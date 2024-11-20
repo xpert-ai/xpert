@@ -21,6 +21,7 @@ import {
 } from '../../../@core'
 import { CardCreateComponent, MaterialModule, TranslationBaseComponent, UserProfileInlineComponent } from '../../../@shared'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
+import { DynamicGridDirective } from '@metad/core'
 
 @Component({
   standalone: true,
@@ -34,6 +35,7 @@ import { EmojiAvatarComponent } from '../../../@shared/avatar'
     CdkMenuModule,
     AppearanceDirective,
     DensityDirective,
+    DynamicGridDirective,
     EmojiAvatarComponent,
     UserProfileInlineComponent,
     CardCreateComponent

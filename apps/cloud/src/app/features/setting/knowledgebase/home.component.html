@@ -1,7 +1,10 @@
 <h2 class="pac-page-title">{{ 'PAC.Knowledgebase.Knowledgebase' | translate: {Default: 'Knowledgebase' } }}</h2>
 
 <div class="flex-1 overflow-auto">
-  <nav class="min-h-full grid content-start grid-cols-1 gap-4 px-4 pt-12 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 grow shrink-0 pb-4 overflow-auto">
+  <nav class="min-h-full content-start gap-4 px-4 pt-12 grow shrink-0 pb-4 overflow-auto"
+    ngmDynamicGrid colWidth="280"
+    box="content-box"
+    >
     <ngm-card-create
       [title]=" 'PAC.Knowledgebase.AddKnowledgebase' | translate: {Default: 'Add knowledgebase'} "
       [helpTitle]="'PAC.Knowledgebase.AddKnowledgebaseHelp' | translate: {Default: 'Learn more about custom knowledgebases'}"
@@ -81,20 +84,3 @@
     </button>
   </div>
 </ng-template>
-
-<!-- 
-<mat-menu #menu="matMenu" class="ngm-density__compact">
-  <ng-template matMenuContent let-item="item">
-    <button mat-menu-item (click)="edit(item)">
-      <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
-      <span>
-        {{ 'PAC.ACTIONS.Edit' | translate: {Default: "Edit"} }}
-      </span>
-    </button>
-
-    <button mat-menu-item ngmAppearance="danger" (click)="remove(item)">
-      <mat-icon fontSet="material-icons-outlined">delete_forever</mat-icon>
-      <span>{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
-    </button>
-  </ng-template>
-</mat-menu> -->

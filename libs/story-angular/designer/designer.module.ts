@@ -9,7 +9,6 @@ import { MatTabsModule } from '@angular/material/tabs'
 import { MatToolbarModule } from '@angular/material/toolbar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
-import { ResizeObserverModule } from '@ng-web-apis/resize-observer'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NxComponentSettingsComponent } from './component-form/formly-form.component'
@@ -29,7 +28,6 @@ import { NgmSettingsPanelComponent } from './settings-panel/settings-panel.compo
     MatTabsModule,
     MatToolbarModule,
     MatTooltipModule,
-    ResizeObserverModule,
     FormlyModule,
     TranslateModule,
 
