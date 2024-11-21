@@ -10,6 +10,9 @@ import { CommandHandlers } from './commands/handlers/index'
 import { KnowledgebaseModule } from '../knowledgebase/'
 import { QueryHandlers } from './queries/handlers'
 
+/**
+ * @deprecated use Xpert
+ */
 @Module({
     imports: [
         RouterModule.forRoutes([{ path: '/copilot-role', module: CopilotRoleModule }]),

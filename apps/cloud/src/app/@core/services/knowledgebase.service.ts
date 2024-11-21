@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { DocumentInterface } from '@langchain/core/documents'
+import { MaxMarginalRelevanceSearchOptions, VectorStoreInterface } from '@langchain/core/vectorstores'
 import { API_PREFIX, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
 import { IKnowledgebase } from '@metad/contracts'
 import { NGXLogger } from 'ngx-logger'
@@ -41,5 +42,21 @@ export class KnowledgebaseService extends OrganizationBaseCrudService<IKnowledge
       this.apiBaseUrl + '/' + id + '/test',
       options
     )
+  }
+
+  similaritySearch(
+    query: string,
+    options: { k?: number; filter?: VectorStoreInterface['FilterType']; role: string; score: number }
+  ) {
+    return this.httpClient.post<DocumentInterface[]>(`${this.apiBaseUrl}/similarity-search`, { query, options })
+  }
+
+  maxMarginalRelevanceSearch(
+    query: string,
+    options: MaxMarginalRelevanceSearchOptions<VectorStoreInterface['FilterType']> & {
+      role: string
+    }
+  ) {
+    return this.httpClient.post<DocumentInterface[]>(`${this.apiBaseUrl}/mmr-search`, { query, options })
   }
 }

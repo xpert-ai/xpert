@@ -27,7 +27,7 @@ import { AiProviderDto, ListModelProvidersQuery } from '../ai-model'
 import { Copilot } from './copilot.entity'
 import { CopilotService } from './copilot.service'
 import { FindCopilotModelsQuery, ModelParameterRulesQuery } from './queries'
-import { CopilotWithProviderDto } from './dto'
+import { CopilotDto, CopilotWithProviderDto } from './dto'
 import { getErrorMessage } from '@metad/server-common'
 
 @ApiTags('Copilot')
@@ -49,8 +49,12 @@ export class CopilotController extends CrudController<Copilot> {
 		description: 'Found records' /* type: IPagination<T> */
 	})
 	@Get()
-	async findAll(filter?: PaginationParams<Copilot>, ...options: any[]): Promise<IPagination<Copilot>> {
-		return this.service.findAvalibles(filter)
+	async findAllAvalibles(filter?: PaginationParams<Copilot>, ...options: any[]): Promise<IPagination<CopilotDto>> {
+		const result = await this.service.findAvalibles(filter)
+		return {
+			items: result.items.map((item) => new CopilotDto(item)),
+			total: result.total
+		}
 	}
 
 	@Get('model-select-options')

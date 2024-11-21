@@ -27,7 +27,7 @@
       </svg>
     </div>
 
-    <ul class="relative flex" cdkListbox cdkListboxS [(ngModel)]="types">
+    <ul class="relative flex flex-wrap" cdkListbox cdkListboxS [(ngModel)]="types">
       <li
         [cdkOption]="null"
         class="xpert-list-option" [ngClass]="{active: !type() }"

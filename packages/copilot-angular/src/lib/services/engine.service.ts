@@ -33,8 +33,6 @@ import { injectCreateChatAgent } from './agent-free'
 import { NgmCopilotContextToken, recognizeContext, recognizeContextParams } from './context.service'
 import { NgmCopilotService } from './copilot.service'
 import { formatDocumentsAsString } from 'langchain/util/document'
-import { combineLatest, map, shareReplay } from 'rxjs'
-import { createLLM } from '../core'
 
 export const AgentRecursionLimit = 20
 
@@ -65,13 +63,13 @@ export class NgmCopilotEngineService implements CopilotEngine {
   readonly verbose = computed(() => this.#aiOptions().verbose)
 
   readonly llm = toSignal(this.copilot.llm$)
-  readonly secondaryLLM$ = combineLatest([this.copilot.secondary$, this.copilot.clientOptions$]).pipe(
-    map(([secondary, clientOptions]) => secondary?.enabled ? createLLM(secondary, clientOptions, (input) => {
-      this.copilot.recordTokenUsage(input)
-    }) : null),
-    shareReplay(1)
-  )
-  readonly secondaryLLM = toSignal(this.secondaryLLM$)
+  // readonly secondaryLLM$ = combineLatest([this.copilot.secondary$, this.copilot.clientOptions$]).pipe(
+  //   map(([secondary, clientOptions]) => secondary?.enabled ? createLLM(secondary, clientOptions, (input) => {
+  //     this.copilot.recordTokenUsage(input)
+  //   }) : null),
+  //   shareReplay(1)
+  // )
+  // readonly secondaryLLM = toSignal(this.secondaryLLM$)
 
   routeTemplate: TemplateRef<any> | null = null
 
@@ -778,7 +776,7 @@ export class NgmCopilotEngineService implements CopilotEngine {
       options.interruptAfter = command.agent.interruptAfter
     }
 
-    const _graph = await command.createGraph({ ...options, llm: this.llm(), secondaryChatModel: this.secondaryLLM() })
+    const _graph = await command.createGraph({ ...options, llm: this.llm(), }) // secondaryChatModel: this.secondaryLLM() })
     if (_graph instanceof StateGraph) {
       return _graph.compile(options)
     } else {
@@ -1004,11 +1002,11 @@ export class NgmCopilotEngineService implements CopilotEngine {
 
     try {
       const llm = this.llm()
-      const secondaryLLM = this.secondaryLLM()
+      // const secondaryLLM = this.secondaryLLM()
       const verbose = this.verbose()
       if (llm) {
         if (command.suggestion?.promptTemplate) {
-          const chain = command.suggestion.promptTemplate.pipe((secondaryLLM ?? llm).bindTools([SuggestionOutputTool]))
+          const chain = command.suggestion.promptTemplate.pipe((llm).bindTools([SuggestionOutputTool]))
             .pipe(new StringOutputParser())
           return await chain.invoke({
             input,

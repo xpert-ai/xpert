@@ -1,5 +1,4 @@
 import { ICopilot } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
@@ -14,7 +13,7 @@ export class CopilotGetOneHandler implements IQueryHandler<CopilotGetOneQuery> {
 	) {}
 
 	public async execute(command: CopilotGetOneQuery): Promise<ICopilot> {
-		const tenantId = RequestContext.currentTenantId()
+		const tenantId = command.tenantId
 		// Regardless of organization restrictions when get copilot by id
 		return await this.repository.findOne(command.id, { where: { tenantId }, relations: command.relations })
 	}

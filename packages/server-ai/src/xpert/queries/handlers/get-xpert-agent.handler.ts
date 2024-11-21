@@ -76,7 +76,7 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 	 */
 	async fillCopilot(copilotModel: ICopilotModel) {
 		if (copilotModel?.copilotId) {
-			copilotModel.copilot = await this.queryBus.execute(new CopilotGetOneQuery(copilotModel.copilotId, []))
+			copilotModel.copilot = await this.queryBus.execute(new CopilotGetOneQuery(copilotModel.tenantId, copilotModel.copilotId, []))
 		}
 	}
 }

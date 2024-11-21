@@ -8,6 +8,14 @@ export class BaichuanProvider extends ModelProvider {
 		super('baichuan')
 	}
 
+	getBaseUrl(credentials: Record<string, any>): string {
+		return null
+	}
+
+	getAuthorization(credentials: Record<string, any>): string {
+		return null
+	}
+
 	async validateProviderCredentials(credentials: Record<string, any>): Promise<void> {
 		//
 	}

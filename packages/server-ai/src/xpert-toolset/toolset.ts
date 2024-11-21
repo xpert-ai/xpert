@@ -190,144 +190,144 @@ export abstract class BaseTool extends Tool {
 	// protected toolset?: IXpertToolset
 }
 
-export class CommandToolset extends BaseToolset<Tool> {
-	providerType = XpertToolsetCategoryEnum.BUILTIN
+// export class CommandToolset extends BaseToolset<Tool> {
+// 	providerType = XpertToolsetCategoryEnum.BUILTIN
 
-	constructor(
-		toolset: IXpertToolset,
-		private tenantId: string,
-		private organizationId: string,
-		private toolsetService: XpertToolsetService,
-		private readonly commandBus: CommandBus,
-		private readonly user: IUser,
-		private readonly copilots: ICopilot[],
-		private readonly chatModel: BaseChatModel
-	) {
-		super(toolset)
+// 	constructor(
+// 		toolset: IXpertToolset,
+// 		private tenantId: string,
+// 		private organizationId: string,
+// 		private toolsetService: XpertToolsetService,
+// 		private readonly commandBus: CommandBus,
+// 		private readonly user: IUser,
+// 		private readonly copilots: ICopilot[],
+// 		private readonly chatModel: BaseChatModel
+// 	) {
+// 		super(toolset)
 
-		this.tools = this.toolset.tools.map((item) => {
-			let zodSchema: z.AnyZodObject = null
-			try {
-				zodSchema = eval(jsonSchemaToZod(item.schema, { module: 'cjs' }))
-			} catch (err) {
-				throw new Error(`Invalid input schema for tool: ${item.name}`)
-			}
-			// Copilot
-			let chatModel = this.chatModel
-			if (item.aiProviderRole || toolset.aiProviderRole) {
-				const copilot = this.findCopilot(item.aiProviderRole || toolset.aiProviderRole)
-				chatModel = this.createLLM(copilot)
-			}
+// 		this.tools = this.toolset.tools.map((item) => {
+// 			let zodSchema: z.AnyZodObject = null
+// 			try {
+// 				zodSchema = eval(jsonSchemaToZod(item.schema, { module: 'cjs' }))
+// 			} catch (err) {
+// 				throw new Error(`Invalid input schema for tool: ${item.name}`)
+// 			}
+// 			// Copilot
+// 			let chatModel = this.chatModel
+// 			if (item.aiProviderRole || toolset.aiProviderRole) {
+// 				const copilot = this.findCopilot(item.aiProviderRole || toolset.aiProviderRole)
+// 				chatModel = this.createLLM(copilot)
+// 			}
 
-			// Default args values in copilot role for tool function
-			// const defaultArgs = role?.options?.toolsets?.[toolset.id]?.[item.name]?.defaultArgs
+// 			// Default args values in copilot role for tool function
+// 			// const defaultArgs = role?.options?.toolsets?.[toolset.id]?.[item.name]?.defaultArgs
 
-			return tool(
-				async (args, config) => {
-					try {
-						return await this.toolsetService.executeCommand(
-							item.name,
-							{
-								...args
-							},
-							config,
-							// <XpertToolContext>{
-							// 	tenantId: this.tenantId,
-							// 	organizationId: this.organizationId,
-							// 	user: this.user,
-							// 	chatModel,
-							// 	// role,
-							// 	roleContext: this.toolset.options
-							// }
-						)
-					} catch (error) {
-						return `Error: ${getErrorMessage(error)}`
-					}
-				},
-				{
-					name: item.name,
-					description: item.description,
-					schema: zodSchema
-				}
-			) as unknown as Tool
-		})
-	}
+// 			return tool(
+// 				async (args, config) => {
+// 					try {
+// 						return await this.toolsetService.executeCommand(
+// 							item.name,
+// 							{
+// 								...args
+// 							},
+// 							config,
+// 							// <XpertToolContext>{
+// 							// 	tenantId: this.tenantId,
+// 							// 	organizationId: this.organizationId,
+// 							// 	user: this.user,
+// 							// 	chatModel,
+// 							// 	// role,
+// 							// 	roleContext: this.toolset.options
+// 							// }
+// 						)
+// 					} catch (error) {
+// 						return `Error: ${getErrorMessage(error)}`
+// 					}
+// 				},
+// 				{
+// 					name: item.name,
+// 					description: item.description,
+// 					schema: zodSchema
+// 				}
+// 			) as unknown as Tool
+// 		})
+// 	}
 
-	findCopilot(role: AiProviderRole) {
-		const copilots = this.copilots
-		let copilot: ICopilot = null
-		for (const priorityRole of ProviderRolePriority.slice(ProviderRolePriority.indexOf(role))) {
-			copilot = copilots.find((item) => item.role === priorityRole && item.enabled)
-			if (copilot) {
-				break
-			}
-		}
+// 	findCopilot(role: AiProviderRole) {
+// 		const copilots = this.copilots
+// 		let copilot: ICopilot = null
+// 		for (const priorityRole of ProviderRolePriority.slice(ProviderRolePriority.indexOf(role))) {
+// 			copilot = copilots.find((item) => item.role === priorityRole && item.enabled)
+// 			if (copilot) {
+// 				break
+// 			}
+// 		}
 
-		if (!copilot) {
-			throw new Error('copilot not found')
-		}
-		return copilot
-	}
+// 		if (!copilot) {
+// 			throw new Error('copilot not found')
+// 		}
+// 		return copilot
+// 	}
 
-	createLLM(copilot: ICopilot) {
-		return createLLM<BaseChatModel>(copilot, {}, async (input) => {
-			try {
-				await this.commandBus.execute(
-					new CopilotTokenRecordCommand({
-						...input,
-						tenantId: this.tenantId,
-						organizationId: this.organizationId,
-						userId: this.user.id,
-						copilot: copilot
-					})
-				)
-			} catch (err) {
-				// if (this.abortController && !this.abortController.signal.aborted) {
-				// 	try {
-				// 		this.abortController.abort(err.message)
-				// 	} catch(err) {
-				// 		//
-				// 	}
-				// }
-			}
-		})
-	}
-}
+// 	createLLM(copilot: ICopilot) {
+// 		return createLLM<BaseChatModel>(copilot, {}, async (input) => {
+// 			try {
+// 				await this.commandBus.execute(
+// 					new CopilotTokenRecordCommand({
+// 						...input,
+// 						tenantId: this.tenantId,
+// 						organizationId: this.organizationId,
+// 						userId: this.user.id,
+// 						copilot: copilot
+// 					})
+// 				)
+// 			} catch (err) {
+// 				// if (this.abortController && !this.abortController.signal.aborted) {
+// 				// 	try {
+// 				// 		this.abortController.abort(err.message)
+// 				// 	} catch(err) {
+// 				// 		//
+// 				// 	}
+// 				// }
+// 			}
+// 		})
+// 	}
+// }
 
-/**
- * @deprecated use BaseToolset class
- */
-export function createToolset(
-	toolset: IXpertToolset,
-	context?: {
-		tenantId: string
-		organizationId: string
-		toolsetService: XpertToolsetService
-		commandBus: CommandBus
-		user: IUser
-		copilots: ICopilot[]
-		chatModel: BaseChatModel
-	}
-) {
-	switch (toolset.type) {
-		// case 'DuckDuckGo':
-		// 	return new DuckDuckGoToolset(toolset)
-		// case 'TavilySearch':
-		// 	return new TavilySearchToolset(toolset)
-		default: {
-			if (toolset.category === 'command') {
-				return new CommandToolset(
-					toolset,
-					context.tenantId,
-					context.organizationId,
-					context.toolsetService,
-					context.commandBus,
-					context.user,
-					context.copilots,
-					context.chatModel
-				)
-			}
-			return null
-		}
-	}
-}
+// /**
+//  * @deprecated use BaseToolset class
+//  */
+// export function createToolset(
+// 	toolset: IXpertToolset,
+// 	context?: {
+// 		tenantId: string
+// 		organizationId: string
+// 		toolsetService: XpertToolsetService
+// 		commandBus: CommandBus
+// 		user: IUser
+// 		copilots: ICopilot[]
+// 		chatModel: BaseChatModel
+// 	}
+// ) {
+// 	switch (toolset.type) {
+// 		// case 'DuckDuckGo':
+// 		// 	return new DuckDuckGoToolset(toolset)
+// 		// case 'TavilySearch':
+// 		// 	return new TavilySearchToolset(toolset)
+// 		default: {
+// 			if (toolset.category === 'command') {
+// 				return new CommandToolset(
+// 					toolset,
+// 					context.tenantId,
+// 					context.organizationId,
+// 					context.toolsetService,
+// 					context.commandBus,
+// 					context.user,
+// 					context.copilots,
+// 					context.chatModel
+// 				)
+// 			}
+// 			return null
+// 		}
+// 	}
+// }

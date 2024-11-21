@@ -3,7 +3,7 @@ import { IXpertToolset } from './xpert-toolset.model'
 import { IKnowledgebase } from './knowledgebase.model'
 
 /**
- * @deprecated use XpertRole
+ * @deprecated use Xpert
  * 
  * Copilot role, business role for the copilot
  */

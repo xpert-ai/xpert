@@ -9,7 +9,6 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmCommonModule, NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
-import { IntersectionObserverModule } from '@ng-web-apis/intersection-observer'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isNil, omitBy } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
@@ -37,6 +36,7 @@ import { XpertStudioCreateToolComponent } from '../../tools/create/create.compon
 import { XpertToolConfigureBuiltinComponent } from '../../tools'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { injectParams } from 'ngxtension/inject-params'
+import { DynamicGridDirective } from '@metad/core'
 
 
 @Component({
@@ -51,9 +51,9 @@ import { injectParams } from 'ngxtension/inject-params'
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-    IntersectionObserverModule,
     MaterialModule,
 
+    DynamicGridDirective,
     NgmCommonModule,
     AppearanceDirective,
     CardCreateComponent,

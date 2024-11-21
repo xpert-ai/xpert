@@ -1,6 +1,6 @@
 import { PGVectorStore, PGVectorStoreArgs } from '@langchain/community/vectorstores/pgvector'
 import { Document } from '@langchain/core/documents'
-import type { EmbeddingsInterface } from '@langchain/core/embeddings'
+import type { Embeddings, EmbeddingsInterface } from '@langchain/core/embeddings'
 import { MaxMarginalRelevanceSearchOptions } from '@langchain/core/vectorstores'
 import {
 	AiBusinessRole,
@@ -12,7 +12,7 @@ import {
 } from '@metad/contracts'
 import { DATABASE_POOL_TOKEN, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { CommandBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { compact, uniq } from 'lodash'
 import { Pool } from 'pg'
@@ -20,10 +20,10 @@ import { DeleteResult, FindManyOptions, FindOneOptions, Repository, UpdateResult
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { CopilotService } from '../copilot/copilot.service'
 import { CopilotKnowledge } from './copilot-knowledge.entity'
-import { createEmbeddings } from '../copilot/llm'
 import { isEqual } from 'date-fns/isEqual'
 import { pick } from '@metad/server-common'
 import { XpertCreateCommand } from '../xpert'
+import { CopilotModelGetEmbeddingsQuery } from '../copilot-model/queries'
 
 @Injectable()
 export class CopilotKnowledgeService extends TenantOrganizationAwareCrudService<CopilotKnowledge> {
@@ -36,7 +36,8 @@ export class CopilotKnowledgeService extends TenantOrganizationAwareCrudService<
 		repository: Repository<CopilotKnowledge>,
 		private copilotService: CopilotService,
 		@Inject(DATABASE_POOL_TOKEN) private pgPool: Pool,
-		private readonly commandBus: CommandBus
+		private readonly commandBus: CommandBus,
+		private readonly queryBus: QueryBus,
 	) {
 		super(repository)
 	}
@@ -194,7 +195,11 @@ export class CopilotKnowledgeService extends TenantOrganizationAwareCrudService<
 	 */
 	private async getEmbeddings(copilot: ICopilot) {
 		if (copilot) {
-			return createEmbeddings(copilot, null, null)
+			return await this.queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
+				new CopilotModelGetEmbeddingsQuery(copilot, {}, {tokenCallback: (token) => {
+					// execution.tokens += (token ?? 0)
+				}})
+			)
 		}
 		return null
 	}
@@ -322,7 +327,7 @@ class PGMemberVectorStore {
 	vectorStore: PGVectorStore
 
 	get provider() {
-		return this.copilot.provider
+		return this.copilot.modelProvider?.providerName
 	}
 
 	constructor(

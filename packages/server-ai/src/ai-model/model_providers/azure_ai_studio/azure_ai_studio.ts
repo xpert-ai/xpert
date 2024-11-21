@@ -9,6 +9,14 @@ export class AzureAIStudioProvider extends ModelProvider {
 		super('azure_ai_studio')
 	}
 
+	getBaseUrl(credentials: Record<string, any>): string {
+		return null
+	}
+
+	getAuthorization(credentials: Record<string, any>): string {
+		return null
+	}
+
 	async validateProviderCredentials(credentials: Record<string, any>): Promise<void> {
 		throw new NotImplementedError()
 	}

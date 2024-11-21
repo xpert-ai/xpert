@@ -95,10 +95,6 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     })
   }
 
-  getCopilotXperts() {
-    return this.getAllInOrg({ where: {latest: true, type: XpertTypeEnum.Copilot }, order: {updatedAt: OrderTypeEnum.DESC} })
-  }
-
   getXpertManagers(id: string) {
     return this.httpClient.get<IUser[]>(this.apiBaseUrl + `/${id}/managers`)
   }
@@ -113,6 +109,10 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   getMyAll(params: PaginationParams<IXpert>) {
     return this.httpClient.get<{items: IXpert[]}>(this.apiBaseUrl + `/my`, { params: toHttpParams(params) })
+  }
+
+  getMyCopilots(relations?: string[]) {
+    return this.getMyAll({ relations, where: {latest: true, type: XpertTypeEnum.Copilot }, order: {updatedAt: OrderTypeEnum.DESC} })
   }
 }
 

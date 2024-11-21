@@ -74,7 +74,7 @@ export class Copilot extends TenantOrganizationBaseEntity implements ICopilot {
     |--------------------------------------------------------------------------
     */
 	@ApiProperty({ type: () => CopilotProvider })
-	@OneToOne(() => CopilotProvider, provider => provider.copilot) 
+	@OneToOne(() => CopilotProvider, provider => provider.copilot, { eager: true })
 	@IsOptional()
 	modelProvider?: ICopilotProvider
 

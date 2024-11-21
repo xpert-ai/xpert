@@ -38,13 +38,14 @@ export class KnowledgeDocumentConsumer {
 	async process(job: Job<{ userId: string; docs: IKnowledgeDocument[] }>) {
 		const userId = job.data.userId
 		const knowledgebaseId = job.data.docs[0]?.knowledgebaseId
-		this.knowledgebase = await this.knowledgebaseService.findOne(knowledgebaseId, { relations: ['copilotModel', 'copilotModel.copilot'] })
+		this.knowledgebase = await this.knowledgebaseService.findOne(knowledgebaseId, { relations: ['copilotModel', 'copilotModel.copilot', 'copilotModel.copilot.modelProvider'] })
 		let vectorStore: KnowledgeDocumentVectorStore
 		try {
 			const doc = job.data.docs[0]
 
 			vectorStore = await this.knowledgebaseService.getVectorStore(
 				this.knowledgebase,
+				true,
 				doc.tenantId,
 				doc.organizationId
 			)
@@ -96,7 +97,7 @@ export class KnowledgeDocumentConsumer {
 								tenantId: this.knowledgebase.tenantId,
 								organizationId: this.knowledgebase.organizationId,
 								userId,
-								copilot: this.copilot,
+								copilotId: this.copilot.id,
 								tokenUsed
 							})
 						)

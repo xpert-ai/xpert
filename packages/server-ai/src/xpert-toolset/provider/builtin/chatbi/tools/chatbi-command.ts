@@ -7,6 +7,7 @@ import { CopilotGetOneQuery } from '../../../../../copilot/'
 import { ToolProviderCredentialValidationError } from '../../../../errors'
 import { BaseCommandTool } from '../../command'
 import { CopilotModelGetChatModelQuery } from '../../../../../copilot-model/queries'
+import { RequestContext } from '@metad/server-core'
 
 /**
  * Command tool for ChatBI
@@ -27,8 +28,10 @@ export class ChatBICommandTool extends BaseCommandTool {
 		if (!copilotModel?.copilotId) {
 			throw new ToolProviderCredentialValidationError(``)
 		}
+
+		const tenantId = parentConfig.configurable?.tenantId || RequestContext.currentTenantId()
 		const copilot = await this.queryBus.execute<CopilotGetOneQuery, ICopilot>(
-			new CopilotGetOneQuery(copilotModel.copilotId, ['modelProvider'])
+			new CopilotGetOneQuery(tenantId, copilotModel.copilotId, ['modelProvider'])
 		)
 		const abortController = new AbortController()
 		const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(

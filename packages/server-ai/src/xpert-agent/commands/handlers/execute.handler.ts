@@ -58,7 +58,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		const copilotId = agent.copilotModel?.copilotId ?? team.copilotModel?.copilotId
 		const copilotModel = agent.copilotModel ?? team.copilotModel
 		if (copilotId) {
-			copilot = await this.queryBus.execute(new CopilotGetOneQuery(copilotId, ['modelProvider']))
+			copilot = await this.queryBus.execute(new CopilotGetOneQuery(tenantId, copilotId, ['modelProvider']))
 		} else {
 			throw new XpertCopilotNotFoundException(`Xpert copilot not found for '${xpert.name}'`)
 		}

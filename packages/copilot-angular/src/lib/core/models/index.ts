@@ -5,22 +5,30 @@ import { ChatOpenAI, ClientOptions } from '@langchain/openai'
 import { ChatAnthropic } from '@langchain/anthropic'
 import { AI_PROVIDERS, AiProtocol, AiProvider, ICopilot, sumTokenUsage } from '@metad/copilot'
 import { NgmChatOllama } from './chat-ollama'
+import { TCopilotCredentials } from '../../types'
 
 
 export function createLLM<T = BaseChatModel>(
   copilot: ICopilot,
+  credentials: TCopilotCredentials,
   clientOptions: ClientOptions,
   tokenRecord: (input: { copilot: ICopilot; tokenUsed: number }) => void
 ): T {
-  if (AI_PROVIDERS[copilot?.provider]?.protocol === AiProtocol.OpenAI) {
+  if (!copilot) {
+    return null
+  }
+
+  const providerName = copilot.modelProvider.providerName
+
+  if (AI_PROVIDERS[providerName]?.protocol === AiProtocol.OpenAI) {
     return new ChatOpenAI({
-      apiKey: copilot.apiKey,
+      apiKey: credentials.apiKey,
       model: copilot.defaultModel,
       temperature: 0,
       maxRetries: 0,
       ...(clientOptions ?? {}),
       configuration: {
-        baseURL: copilot.apiHost || AI_PROVIDERS[copilot.provider]?.apiHost || null,
+        baseURL: credentials.apiHost ? (credentials.apiHost + `/${copilot.id}`) : AI_PROVIDERS[copilot.provider]?.apiHost || null,
         ...(clientOptions ?? {})
       },
       callbacks: [
@@ -35,10 +43,10 @@ export function createLLM<T = BaseChatModel>(
       ]
     }) as T
   }
-  switch (copilot?.provider) {
+  switch (providerName) {
     case AiProvider.Ollama:
       return new NgmChatOllama({
-        baseUrl: copilot.apiHost || null,
+        baseUrl: credentials.apiHost ? (credentials.apiHost + `/${copilot.id}`) : null,
         model: copilot.defaultModel,
         headers: {
           ...(clientOptions?.defaultHeaders ?? {})
@@ -53,8 +61,8 @@ export function createLLM<T = BaseChatModel>(
       }) as T
     case AiProvider.Anthropic: {
       return new ChatAnthropic({
-        anthropicApiUrl: copilot.apiHost || null,
-        apiKey: copilot.apiKey,
+        anthropicApiUrl: credentials.apiHost ? (credentials.apiHost + `/${copilot.id}`) : null,
+        apiKey: credentials.apiKey,
         model: copilot.defaultModel,
         temperature: 0,
         maxTokens: undefined,

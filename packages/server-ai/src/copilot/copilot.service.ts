@@ -30,7 +30,7 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 	async findOneByRole(role: string, tenantId: string, organizationId: string): Promise<Copilot> {
 		tenantId = tenantId || RequestContext.currentTenantId()
 		organizationId = organizationId || RequestContext.getOrganizationId()
-		const items = await this.repository.find({ where: { tenantId, organizationId, role } })
+		const items = await this.repository.find({ where: { tenantId, organizationId, role }, relations: ['modelProvider'] })
 		return items.length ? items[0] : null
 	}
 

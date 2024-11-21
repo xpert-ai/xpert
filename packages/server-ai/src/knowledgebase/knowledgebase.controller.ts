@@ -8,6 +8,7 @@ import {
 	RequestContext,
 	TransformInterceptor
 } from '@metad/server-core'
+import { getErrorMessage } from '@metad/server-common'
 import {
 	Body,
 	Controller,
@@ -26,7 +27,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { In, Not } from 'typeorm'
 import { Knowledgebase } from './knowledgebase.entity'
 import { KnowledgebaseService } from './knowledgebase.service'
-import { getErrorMessage } from '@metad/server-common'
+
 
 @ApiTags('Knowledgebase')
 @ApiBearerAuth()
@@ -108,6 +109,30 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 		})
 	}
 
+	@Post('similarity-search')
+	async similaritySearch(
+		@Body('query') query: string,
+		@Body('options') options?: { k: number; filter: any; score?: number }
+	) {
+		this.#logger.debug(
+			`Retrieving documents for query: ${query} with k = ${options?.k} score = ${options?.score} and filter = ${options?.filter}`
+		)
+
+		return this.service.similaritySearch(query, options)
+	}
+
+	@Post('mmr-search')
+	async maxMarginalRelevanceSearch(
+		@Body('query') query: string,
+		@Body('options') options?: { k: number; filter: any }
+	) {
+		this.#logger.debug(
+			`Retrieving documents for mmr query: ${query} with k = ${options?.k} and filter = ${options?.filter}`
+		)
+
+		return this.service.maxMarginalRelevanceSearch(query, options)
+	}
+
 	@Post(':id/test')
 	async test(@Param('id') id: string, @Body() body: { query: string; k: number; score: number; filter: Metadata }) {
 		try {
@@ -116,4 +141,5 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 			throw new InternalServerErrorException(getErrorMessage(err))
 		}
 	}
+	
 }

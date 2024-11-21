@@ -12,6 +12,7 @@ export class KnowledgebaseClearHandler implements ICommandHandler<KnowledgebaseC
 
 		const vectorStore = await this.knowledgebaseService.getVectorStore(
 			entity,
+			false,
 			RequestContext.currentTenantId(),
 			RequestContext.getOrganizationId()
 		)

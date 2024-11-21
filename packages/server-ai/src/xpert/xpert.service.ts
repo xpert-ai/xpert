@@ -109,9 +109,13 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 		const baseQuery = this.repository.createQueryBuilder('xpert')
 			.innerJoin('xpert.managers', 'manager', 'manager.id = :userId', { userId })
 		// add relations
-		relations.forEach((relation) => baseQuery.leftJoinAndSelect('xpert.' + relation, relation))
+		relations?.forEach((relation) => baseQuery.leftJoinAndSelect('xpert.' + relation, relation))
+		if (order) {
+			Object.keys(order).forEach((name) => {
+				baseQuery.addOrderBy(`xpert.${name}`, order[name])
+			})
+		}
 		const xpertsManagedByUser = await baseQuery.where(params.where ?? {})
-			.orderBy(order)
 			.take(take)
 			.getMany();
 

@@ -55,44 +55,41 @@ export class KnowledgebaseService extends TenantOrganizationAwareCrudService<Kno
 		return results
 	}
 
-	async getVectorStore(knowledgebaseId: IKnowledgebase | string, tenantId?: string, organizationId?: string) {
-		// let copilot: ICopilot = null
-		// if (knowledgebase.copilotId) {
-		// 	copilot = await this.copilotService.findOne(knowledgebase.copilotId)
-		// } else {
-		// 	copilot = await this.copilotService.findCopilot(tenantId, organizationId, AiProviderRole.Embedding)
-		// }
-
-		// if (!copilot?.enabled) {
-		// 	throw new Error('No copilot found')
-		// }
+	async getVectorStore(knowledgebaseId: IKnowledgebase | string, requiredEmbeddings = false, tenantId?: string, organizationId?: string) {
 		let knowledgebase: IKnowledgebase
 		if (typeof knowledgebaseId === 'string') {
-			knowledgebase = await this.findOne(knowledgebaseId, { relations: ['copilotModel', 'copilotModel.copilot', 'copilotModel.copilot.modelProvider']})
+			if (requiredEmbeddings) {
+			  knowledgebase = await this.findOne(knowledgebaseId, { relations: ['copilotModel', 'copilotModel.copilot', 'copilotModel.copilot.modelProvider']})
+			} else {
+			  knowledgebase = await this.findOne(knowledgebaseId, { relations: ['copilotModel']})
+			}
 		} else {
 			knowledgebase = knowledgebaseId
 		}
 
 		const copilotModel = knowledgebase.copilotModel
-		if (!copilotModel) {
+		if (requiredEmbeddings && !copilotModel) {
 			throw new CopilotModelNotFoundException(`Copilot model not set for knowledgebase '${knowledgebase.name}'`)
 		}
-		const copilot = copilotModel.copilot
-		if (!copilot) {
+		const copilot = copilotModel?.copilot
+		if (requiredEmbeddings && !copilot) {
 			throw new CopilotNotFoundException(`Copilot not set for knowledgebase '${knowledgebase.name}'`)
 		}
 
-		const embeddings = await this.queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
-			new CopilotModelGetEmbeddingsQuery(copilot, copilotModel, {tokenCallback: (token) => {
-				// execution.tokens += (token ?? 0)
-			}})
-		)
+		let embeddings = null
+		if (copilotModel && copilot?.modelProvider) {
+			embeddings = await this.queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
+				new CopilotModelGetEmbeddingsQuery(copilot, copilotModel, {tokenCallback: (token) => {
+					// execution.tokens += (token ?? 0)
+				}})
+			)
+		}
 
-		if (!embeddings) {
+		if (requiredEmbeddings && !embeddings) {
 			throw new AiModelNotFoundException(`Embeddings model '${copilotModel.model || copilotModel.copilot.defaultModel}' not found for knowledgebase '${knowledgebase.name}'`)
 		}
 
-		const vectorStore = new KnowledgeDocumentVectorStore(embeddings, knowledgebase, this.pgPool)
+		const vectorStore = new KnowledgeDocumentVectorStore(knowledgebase, this.pgPool, embeddings)
 
 		// Create table for vector store if not exist
 		await vectorStore.ensureTableInDatabase()
@@ -127,7 +124,7 @@ export class KnowledgebaseService extends TenantOrganizationAwareCrudService<Kno
 		const documents: { doc: DocumentInterface<Record<string, any>>; score: number }[] = []
 		const kbs = await Promise.all(
 			_knowledgebases.map((kb) => {
-				return this.getVectorStore(kb, tenantId, organizationId).then((vectorStore) => {
+				return this.getVectorStore(kb.id, true, tenantId, organizationId).then((vectorStore) => {
 					return vectorStore.similaritySearchWithScore(query, k, filter)
 				})
 			})

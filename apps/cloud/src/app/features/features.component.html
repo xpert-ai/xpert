@@ -162,14 +162,18 @@
         [(opened)]="copilotDrawerOpened">
         @if(copilotEnabled$()) {
           <ngm-copilot-chat #copilotChat class="pac-cdk-drop__list pac-cdk-drop__area w-full h-full"
-            thinkingAvatar="assets/images/copilot_sparkle_processing.gif"
-            assistantAvatar="assets/images/copilot_sparkle.svg"
+            [aiAvatarTemplate]="aiAvatar"
             [user]="user$()"
             [copilotEngine]="copilotEngine"
             cdkDropList
             (cdkDropListDropped)="copilotChat.dropCopilot($event)"
             (enableCopilot)="toEnableCopilot()"
           ></ngm-copilot-chat>
+
+          <ng-template #aiAvatar let-avatar="avatar" let-className="className">
+            <emoji-avatar [avatar]="avatar" class="rounded-xl overflow-hidden shadow-sm border-0 border-solid border-transparent"
+              [ngClass]="className"/>
+          </ng-template>
         }
         
         <div ngmResizerBar resizerBarPosition="left"

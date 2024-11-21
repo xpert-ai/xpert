@@ -57,6 +57,7 @@ export class XpertComponent {
   readonly draft = signal<TXpertTeamDraft>(null)
   readonly xpert = signal<Partial<IXpert>>(null)
   readonly avatar = computed(() => this.xpert()?.avatar)
+  readonly xpertType = computed(() => this.xpert()?.type)
 
   private xpertSub = this.paramId$
     .pipe(

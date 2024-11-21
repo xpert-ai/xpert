@@ -1,5 +1,4 @@
 import { animate, state, style, transition, trigger } from '@angular/animations'
-import { AsyncPipe } from '@angular/common'
 import { afterNextRender, Component, effect, inject, model, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -46,7 +45,6 @@ import { formatRelative } from 'date-fns/formatRelative'
   templateUrl: './documents.component.html',
   styleUrls: ['./documents.component.scss'],
   imports: [
-    AsyncPipe,
     RouterModule,
     FormsModule,
     TranslateModule,

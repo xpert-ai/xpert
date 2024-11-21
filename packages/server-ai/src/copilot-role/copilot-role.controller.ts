@@ -6,6 +6,9 @@ import { CrudController, TransformInterceptor } from '@metad/server-core'
 import { CopilotRole } from './copilot-role.entity'
 import { CopilotRoleService } from './copilot-role.service'
 
+/**
+ * @deprecated use Xpert
+ */
 @ApiTags('CopilotRole')
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)

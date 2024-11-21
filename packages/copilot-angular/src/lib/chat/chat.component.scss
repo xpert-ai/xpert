@@ -14,7 +14,7 @@
 }
 
 .ngm-copilot-chat__command-tag {
-  @apply bg-gray-200 text-neutral-800 dark:bg-gray-100/10 dark:text-neutral-300;
+  @apply bg-gray-100 text-neutral-800 dark:bg-gray-100/10 dark:text-neutral-300;
 }
 
 .copilot-code-container {
@@ -100,6 +100,12 @@
   stroke-width: 1.5;
   height: 18px;
   width: 18px;
+}
+
+.copilot-role-list {
+  .copilot-role-list-item.active {
+    @apply bg-primary-100 text-primary-600 font-medium shadow-sm;
+  }
 }
 
 :host::ng-deep {

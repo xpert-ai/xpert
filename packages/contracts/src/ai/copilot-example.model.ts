@@ -5,7 +5,7 @@ import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
  * Examples for copilot, which is used to few shot user question
  */
 export interface ICopilotKnowledge extends IBasePerTenantAndOrganizationEntityModel {
-  provider?: AiProvider
+  provider?: AiProvider | string
   role?: AiBusinessRole | string
   command?: string
   input?: string

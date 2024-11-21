@@ -3,7 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Pool } from 'pg'
 import { Repository } from 'typeorm'
-import { TenantOrganizationAwareCrudService, DATABASE_POOL_TOKEN, StorageFileService } from '@metad/server-core'
+import { TenantOrganizationAwareCrudService, DATABASE_POOL_TOKEN, StorageFileService, PaginationParams } from '@metad/server-core'
 import { KnowledgeDocument } from './document.entity'
 import { KnowledgebaseService, KnowledgeDocumentVectorStore } from '../knowledgebase'
 
@@ -40,11 +40,11 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 			: await this.repository.save(document)
 	}
 
-	async getChunks(id: string) {
+	async getChunks(id: string, params: PaginationParams<IKnowledgeDocument>) {
 		const document = await this.findOne(id, { relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot'] })
 		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase)
 		// const vectorStore = new KnowledgeDocumentVectorStore(document.knowledgebase, this.pgPool)
-		return await vectorStore.getChunks(id)
+		return await vectorStore.getChunks(id, params)
 	}
 
 	async deleteChunk(documentId: string, id: string) {

@@ -10,7 +10,7 @@
           "error",
           {
             "type": "attribute",
-            "prefix": "ngm",
+            "prefix": "ngm|copilot",
             "style": "camelCase"
           }
         ],
@@ -18,7 +18,7 @@
           "error",
           {
             "type": "element",
-            "prefix": "ngm",
+            "prefix": "ngm|copilot",
             "style": "kebab-case"
           }
         ]

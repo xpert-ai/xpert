@@ -32,6 +32,7 @@ import { NgmDrawerComponent, NgmDrawerContainerComponent } from '@metad/ocap-ang
 import { NgxEchartsModule } from 'ngx-echarts'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { NgxFloatUiModule } from 'ngx-float-ui'
+import { EmojiAvatarComponent } from '../@shared/avatar'
 
 registerEChartsThemes()
 
@@ -68,6 +69,7 @@ registerEChartsThemes()
     NgmTableComponent,
     NotificationComponent,
     TuneComponent,
+    EmojiAvatarComponent
   ],
   providers: [
     DirtyCheckGuard,

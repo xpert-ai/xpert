@@ -6,9 +6,10 @@ import { In } from 'typeorm'
 import { ODataToolset } from '../../provider'
 import { createBuiltinToolset } from '../../provider/builtin'
 import { OpenAPIToolset } from '../../provider/openapi/openapi-toolset'
-import { BaseToolset, createToolset } from '../../toolset'
+import { BaseToolset } from '../../toolset'
 import { XpertToolsetService } from '../../xpert-toolset.service'
 import { ToolsetGetToolsCommand } from '../get-tools.command'
+import { ToolProviderNotFoundError } from '../../errors'
 
 @CommandHandler(ToolsetGetToolsCommand)
 export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCommand> {
@@ -46,11 +47,15 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 						case 'odata': {
 							return new ODataToolset(toolset)
 						}
+						default: {
+							throw new ToolProviderNotFoundError(`API Tool type '${toolset.type}' not found`)
+						}
 					}
 				}
+				default: {
+					throw new ToolProviderNotFoundError(`Tool category '${toolset.category}' not found`)
+				}
 			}
-
-			return createToolset(toolset) as BaseToolset<Tool>
 		})
 	}
 }

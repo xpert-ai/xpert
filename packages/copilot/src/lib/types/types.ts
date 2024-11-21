@@ -43,6 +43,10 @@ export interface ICopilot {
    * Show tokens for message
    */
   showTokenizer?: boolean
+
+  modelProvider?: {
+    providerName: string
+  }
 }
 
 export interface BusinessOperation {
@@ -142,6 +146,11 @@ export type BusinessRoleType = {
   title: string
   titleCN: string
   description: string
+  copilotModel?: {
+    copilotId: string
+    model: string
+  }
+  avatar?: any
 }
 
 export type Headers = Record<string, string | null | undefined>

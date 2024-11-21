@@ -14,6 +14,7 @@ import {
   computed,
   effect,
   inject,
+  input,
   model,
   signal,
   viewChild
@@ -21,14 +22,13 @@ import {
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import {
-  MatAutocomplete,
   MatAutocompleteActivatedEvent,
   MatAutocompleteModule,
   MatAutocompleteTrigger
 } from '@angular/material/autocomplete'
 import { MatButtonModule } from '@angular/material/button'
 import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatChipsModule } from '@angular/material/chips'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
 import { MatListModule } from '@angular/material/list'
@@ -52,7 +52,6 @@ import {
   nonBlank,
 } from '@metad/copilot'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgxFloatUiContentComponent, NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
 import {
   BehaviorSubject,
@@ -79,6 +78,9 @@ import { CopilotChatTokenComponent } from './token/token.component'
 import { IUser, NgmCopilotChatMessage } from '../types'
 import { PlaceholderMessages } from './types'
 import { CopilotAIMessageComponent } from './ai-message/ai-message.component'
+import { OverlayModule } from '@angular/cdk/overlay'
+import { CdkListboxModule } from '@angular/cdk/listbox'
+import { A11yModule } from '@angular/cdk/a11y'
 
 export const AUTO_SUGGESTION_DEBOUNCE_TIME = 1000
 export const AUTO_SUGGESTION_STOP = ['\n', '.', ',', '@', '#']
@@ -95,20 +97,22 @@ export const AUTO_SUGGESTION_STOP = ['\n', '.', ',', '@', '#']
     ReactiveFormsModule,
     RouterModule,
     TextFieldModule,
+    OverlayModule,
+    CdkListboxModule,
+    CdkMenuModule,
+    A11yModule,
     MatInputModule,
     MatIconModule,
     MatButtonModule,
     MatCheckboxModule,
     MatTooltipModule,
-    MatAutocompleteModule,
+    MatAutocompleteModule, // @deprecated
     MatProgressBarModule,
     MatListModule,
     MatSliderModule,
     MatMenuModule,
-    MatChipsModule,
     MatProgressSpinnerModule,
     TranslateModule,
-    NgxFloatUiModule,
     ScrollingModule,
 
     NgmSearchComponent,
@@ -126,8 +130,6 @@ export const AUTO_SUGGESTION_STOP = ['\n', '.', ',', '@', '#']
   animations: [provideFadeAnimation('100ms')]
 })
 export class NgmCopilotChatComponent {
-  eNgxFloatUiPlacements = NgxFloatUiPlacements
-  eNgxFloatUiTriggers = NgxFloatUiTriggers
   CopilotChatMessageRoleEnum = CopilotChatMessageRoleEnum
   AgentRecursionLimit = AgentRecursionLimit
 
@@ -137,10 +139,17 @@ export class NgmCopilotChatComponent {
 
   readonly copilotEngine$ = signal<NgmCopilotEngineService>(this.#copilotEngine)
 
+  // Inputs
   @Input() welcomeTitle: string
   @Input() welcomeSubTitle: string
   @Input() placeholder: string
+  /**
+   * @deprecated use aiAvatarTemplate
+   */
   @Input() thinkingAvatar: string
+   /**
+   * @deprecated use aiAvatarTemplate
+   */
   @Input() assistantAvatar: string
 
   /**
@@ -155,17 +164,20 @@ export class NgmCopilotChatComponent {
 
   @Input() user: IUser
 
+  readonly aiAvatarTemplate = input<TemplateRef<unknown>>()
+
+  // Outputs
   @Output() conversationsChange = new EventEmitter()
   @Output() enableCopilot = new EventEmitter()
 
+  // Children
   @ViewChild('chatsContent') chatsContent: ElementRef<HTMLDivElement>
-  @ViewChild('copilotOptions') copilotOptions: NgxFloatUiContentComponent
   @ViewChild('scrollBack') scrollBack!: NgmScrollBackComponent
   readonly routeTemplate = viewChild('routeTemplate', { read: TemplateRef })
-
   readonly autocompleteTrigger = viewChild('userInput', { read: MatAutocompleteTrigger })
   readonly userInput = viewChild('userInput', { read: ElementRef })
 
+  // States
   get _placeholder() {
     return this.copilotEngine?.placeholder ?? this.placeholder
   }
@@ -445,6 +457,10 @@ export class NgmCopilotChatComponent {
     })))
   })
 
+  readonly commandsPanelOpen = signal(false)
+  readonly focusCommand = signal('')
+  readonly selectedRoles = computed(() => [this.copilotService.role()])
+
   /**
   |--------------------------------------------------------------------------
   | Copilot
@@ -526,6 +542,10 @@ export class NgmCopilotChatComponent {
       if (this.copilotEngine) {
         this.copilotEngine.routeTemplate = this.routeTemplate()
       }
+    })
+
+    effect(() => {
+      console.log(this.roleDetail())
     })
   }
 
@@ -629,7 +649,6 @@ export class NgmCopilotChatComponent {
   clear() {
     this.copilotEngine.clear()
     this.conversationsChange.emit(this.conversations)
-    this.copilotOptions.hide()
   }
 
   onEnableCopilot() {
@@ -701,7 +720,7 @@ export class NgmCopilotChatComponent {
   }
   autocompleteDisplayWith = this._autocompleteDisplayWith.bind(this)
 
-  triggerFun(event: KeyboardEvent, autocomplete: MatAutocomplete) {
+  triggerFun(event: KeyboardEvent) {
     if ((event.isComposing || event.shiftKey) && event.key === 'Enter') {
       return
     }
@@ -710,6 +729,10 @@ export class NgmCopilotChatComponent {
         this.askCopilotStream(this.prompt().trim())
       })
       return
+    }
+
+    if (event.key === '/') {
+      this.commandsPanelOpen.set(true)
     }
 
     // Tab 键补全提示语
@@ -741,7 +764,7 @@ export class NgmCopilotChatComponent {
     // Reset completion
     this.promptCompletion.set(null)
 
-    if (!autocomplete.isOpen && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+    if ( (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
       event.preventDefault()
 
       const historyQuestions = this.historyQuestions()
@@ -759,6 +782,20 @@ export class NgmCopilotChatComponent {
     }
   }
 
+  /**
+   * 响应 Commands panel 上的键盘事件
+   */
+  onSelectCommand(event: KeyboardEvent) {
+    if (event.key === 'Enter' || event.key === 'Tab') {
+      this.selectCommand(this.focusCommand())
+    }
+  }
+
+  selectCommand(command: string) {
+    this.promptControl.setValue(command)
+    this.commandsPanelOpen.set(false)
+  }
+
   onPromptActivated(event: MatAutocompleteActivatedEvent) {
     this.#activatedPrompt.set(event.option?.value)
   }
@@ -773,9 +810,13 @@ export class NgmCopilotChatComponent {
     }, 300)
   }
 
+  setRole(role: string) {
+    this.copilotService.role.set(role)
+  }
+
   switchRole() {
     const roles = this.roles()
-    const index = roles.findIndex((role) => role.name === this.role())
+    const index = roles.findIndex((role) => role.name === this.role()[0])
     const nextIndex = (index + 1) % roles.length
     this.copilotService.setRole(roles[nextIndex].name)
   }

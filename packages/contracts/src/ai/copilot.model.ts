@@ -17,6 +17,7 @@ export interface ICopilot extends IBasePerTenantAndOrganizationEntityModel {
    * @deprecated
    */
   apiHost?: string
+  
   defaultModel?: string
 
   showTokenizer?: boolean

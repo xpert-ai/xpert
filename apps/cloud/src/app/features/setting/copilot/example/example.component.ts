@@ -32,7 +32,7 @@ export class CopilotExampleComponent extends TranslationBaseComponent {
   readonly paramId = injectParams('id')
 
   readonly formGroup = this.fb.group({
-    provider: new FormControl<AiProvider>(null),
+    provider: new FormControl<AiProvider | string>(null),
     role: new FormControl<AiBusinessRole | string>(null),
     command: new FormControl(null, [Validators.required]),
     input: new FormControl(null, [Validators.required]),

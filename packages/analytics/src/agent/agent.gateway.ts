@@ -93,7 +93,8 @@ export class EventsGateway implements OnGatewayDisconnect {
 			await this.commandBus.execute(new CopilotTokenRecordCommand({
 				...data, 
 				tenantId: user.tenantId,
-				userId: user.id
+				userId: user.id,
+				copilotId: data.copilot?.id
 			}))
 		} catch (error) {
 			console.log(error);

@@ -15,8 +15,6 @@ import {
   filter,
   firstValueFrom,
   map,
-  Observable,
-  shareReplay,
   startWith,
   switchMap
 } from 'rxjs'
@@ -41,8 +39,6 @@ export class PACCopilotService extends NgmCopilotService {
 
   readonly refresh$ = new BehaviorSubject(false)
 
-  readonly copilots = signal<ICopilot[]>(null)
-
   // Init copilot config
   private _userSub = this.#store.user$
     .pipe(
@@ -59,13 +55,13 @@ export class PACCopilotService extends NgmCopilotService {
     })
 
   // Use Xpert as copilot role
-  private roleSub = this.xpertService.getCopilotXperts()
+  private roleSub = this.xpertService.getMyCopilots(['copilotModel'])
     .pipe(
       map(({ items }) => items),
       takeUntilDestroyed()
     )
     .subscribe((roles) => {
-      this.roles.set(roles as BusinessRoleType[])
+      this.roles.set(roles as unknown as BusinessRoleType[])
     })
 
   private clientOptionsSub = combineLatest([this.#store.token$, this.#store.selectOrganizationId()])
@@ -109,6 +105,13 @@ export class PACCopilotService extends NgmCopilotService {
 
   constructor() {
     super()
+
+    effect(() => {
+      this.credentials.set({
+        apiHost: API_AI_HOST,
+        apiKey: this.#store.token
+      })
+    }, { allowSignalWrites: true })
 
     effect(
       () => {

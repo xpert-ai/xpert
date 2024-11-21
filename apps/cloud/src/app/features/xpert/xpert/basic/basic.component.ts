@@ -74,7 +74,8 @@ export class XpertBasicComponent {
     }
     return null
   })
-  readonly team = computed(() => this.draft()?.team)
+  readonly type = computed(() => this.xpert()?.type)
+  readonly team = computed(() => this.type() === XpertTypeEnum.Agent ? this.draft()?.team : this.xpert())
 
   readonly isExpanded = model<boolean>(false)
 
@@ -134,17 +135,33 @@ export class XpertBasicComponent {
 
   saveDraft() {
     this.loading.set(true)
-    this.xpertService
-      .upadteDraft(this.xpertId(), {
-        team: {
-          ...omitXpertRelations(this.xpert()),
-          ...(this.draft()?.team ?? {}),
-          ...this.form.value
-        }
-      } as TXpertTeamDraft)
-      .subscribe({
+    if (this.type() === XpertTypeEnum.Agent) {
+      this.xpertService
+        .upadteDraft(this.xpertId(), {
+          team: {
+            ...omitXpertRelations(this.xpert()),
+            ...(this.draft()?.team ?? {}),
+            ...this.form.value
+          }
+        } as TXpertTeamDraft)
+        .subscribe({
+          next: (value) => {
+            this.#toastr.success('PAC.Messages.SavedDraft', { Default: 'Saved draft!' })
+            this.loading.set(false)
+            this.form.markAsPristine()
+            this.xpertComponent.refresh()
+          },
+          error: (err) => {
+            this.loading.set(false)
+            this.#toastr.error(getErrorMessage(err))
+          }
+        })
+    } else {
+      this.xpertService.update(this.xpertId(), {
+        ...this.form.value
+      }).subscribe({
         next: (value) => {
-          this.#toastr.success('PAC.Messages.SavedDraft', { Default: 'Saved draft!' })
+          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully!' })
           this.loading.set(false)
           this.form.markAsPristine()
           this.xpertComponent.refresh()
@@ -154,5 +171,6 @@ export class XpertBasicComponent {
           this.#toastr.error(getErrorMessage(err))
         }
       })
+    }
   }
 }

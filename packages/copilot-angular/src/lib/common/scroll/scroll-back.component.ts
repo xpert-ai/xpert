@@ -31,8 +31,8 @@ const passiveEventListenerOptions = normalizePassiveListenerOptions({ passive: t
 @Component({
   standalone: true,
   imports: [CommonModule],
-  selector: 'ngm-scroll-back',
-  exportAs: 'ngmScrollBack',
+  selector: 'copilot-scroll-back',
+  exportAs: 'copilotScrollBack',
   template: `@if (visible()) {
     <div #backTop class="ngm-scroll-back block" [class.ngm-scroll-back-rtl]="dir === 'rtl'">
       <ng-template #defaultContent>

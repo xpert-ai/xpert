@@ -11,7 +11,7 @@ import {
 import { ExampleVectorStoreRetrieverInput, NgmCopilotService } from '@metad/copilot-angular'
 import { catchError, firstValueFrom, of, timeout } from 'rxjs'
 import { SERVER_REQUEST_TIMEOUT } from '../config'
-import { KnowledgeDocumentService } from '../services/'
+import { KnowledgebaseService } from '../services/'
 
 /**
  * Type for options when adding a document to the VectorStore.
@@ -52,7 +52,7 @@ export class KnowledgeRetriever<V extends VectorStoreInterface = VectorStoreInte
 
   constructor(
     fields: VectorStoreRetrieverInput<V> & { role: Signal<string>; score?: number },
-    private readonly service: KnowledgeDocumentService
+    private readonly service: KnowledgebaseService
   ) {
     super(fields)
     this.vectorStore = fields.vectorStore
@@ -117,7 +117,7 @@ export class KnowledgeRetriever<V extends VectorStoreInterface = VectorStoreInte
 
 export function injectKnowledgeRetriever(fields?: ExampleVectorStoreRetrieverInput) {
   const copilotService = inject(NgmCopilotService)
-  const knowledgeDocumentService = inject(KnowledgeDocumentService)
+  const knowledgebaseService = inject(KnowledgebaseService)
 
   return new KnowledgeRetriever(
     {
@@ -125,6 +125,6 @@ export function injectKnowledgeRetriever(fields?: ExampleVectorStoreRetrieverInp
       vectorStore: null,
       role: copilotService.role
     },
-    knowledgeDocumentService
+    knowledgebaseService
   )
 }

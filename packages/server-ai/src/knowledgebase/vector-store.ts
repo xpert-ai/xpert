@@ -12,12 +12,12 @@ export class KnowledgeDocumentVectorStore extends PGVectorStore {
 	}
 
 	constructor(
-		embeddings: Embeddings,
 		public knowledgebase: IKnowledgebase,
 		public pgPool: Pool,
+
+		embeddings?: Embeddings,
 	) {
 		const model = getCopilotModel(knowledgebase)
-		// const embeddings = knowledgebase.copilotModel?.copilot ? createEmbeddings(knowledgebase.copilotModel?.copilot, { model }) : null
 
 		super(embeddings, {
 			pool: pgPool,
@@ -35,7 +35,7 @@ export class KnowledgeDocumentVectorStore extends PGVectorStore {
 		this.model = model
 	}
 
-	async getChunks(knowledgeId: string) {
+	async getChunks(knowledgeId: string, options: {take: number; skip: number;}) {
 		const filter = { knowledgeId }
 		let collectionId: string
 		if (this.collectionTableName) {
@@ -45,11 +45,25 @@ export class KnowledgeDocumentVectorStore extends PGVectorStore {
 		// Set parameters of dynamically generated query
 		const params = collectionId ? [filter, collectionId] : [filter]
 
-		const queryString = `
-		  SELECT * FROM ${this.computedTableName}
-		  WHERE ${collectionId ? 'collection_id = $2 AND ' : ''}${this.metadataColumnName}::jsonb @> $1
-		`
-		return (await this.pool.query(queryString, params)).rows
+		const queryString = `SELECT * FROM ${this.computedTableName}
+		  WHERE ${collectionId ? 'collection_id = $2 AND ' : ''}${this.metadataColumnName}::jsonb @> $1`
+
+		const take = options?.take || 100;
+		const skip = options?.skip || 0;
+		const paginatedQueryString = `${queryString} LIMIT ${take} OFFSET ${skip}`;
+
+		const {rows} = await this.pool.query(paginatedQueryString, params)
+
+		const countQueryString = `SELECT COUNT(*) FROM ${this.computedTableName}
+		  WHERE ${collectionId ? 'collection_id = $2 AND ' : ''}${this.metadataColumnName}::jsonb @> $1`;
+
+		const totalResult = await this.pool.query(countQueryString, params);
+		const total = parseInt(totalResult.rows[0].count, 10);
+
+		return {
+			items: rows,
+			total
+		}
 	}
 
 	async addKnowledgeDocument(

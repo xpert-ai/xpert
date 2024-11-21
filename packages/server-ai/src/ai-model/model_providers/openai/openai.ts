@@ -6,13 +6,23 @@ import { PROVIDE_AI_MODEL_LLM, PROVIDE_AI_MODEL_TEXT_EMBEDDING } from '../../typ
 import { CredentialsValidateFailedError } from '../errors'
 import { OpenAILargeLanguageModel } from './llm/llm'
 import { OpenAITextEmbeddingModel } from './text-embedding/text-embedding'
-import { OpenAICredentials } from './types'
+import { OpenAICredentials, toCredentialKwargs } from './types'
 
 
 @Injectable()
 export class OpenAIProvider extends ModelProvider {
 	constructor() {
 		super('openai')
+	}
+
+	getBaseUrl(credentials: OpenAICredentials): string {
+		const kwags = toCredentialKwargs(credentials)
+		return kwags.configuration.baseURL || `https://api.openai.com/v1`
+	}
+
+	getAuthorization(credentials: OpenAICredentials): string {
+		const kwags = toCredentialKwargs(credentials)
+		return `Bearer ${kwags.apiKey}`
 	}
 
 	async validateProviderCredentials(credentials: OpenAICredentials): Promise<void> {

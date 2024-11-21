@@ -98,11 +98,8 @@
       <td mat-cell *matCellDef="let element" [attr.colspan]="columnsToDisplayWithExpand.length">
         <div class="example-element-detail" displayDensity="compact"
             [@detailExpand]="element.id === expandedElement?.id ? 'expanded' : 'collapsed'">
-          <div class="example-element-diagram">
-            <div class="example-element-position"> {{element.position}} </div>
-            <div class="example-element-symbol"> {{element.symbol}} </div>
-            <div class="example-element-name"> {{element.name}} </div>
-            <div class="example-element-weight"> {{element.weight}} </div>
+          <div class="example-element-diagram flex flex-col justify-center items-center border-2 border-solid border-neutral-500">
+            <div class="uppercase text-lg"> {{element.type}} </div>
           </div>
           <div class="example-element-description flex-1 flex flex-wrap gap-2">
             <ngm-slider-input [label]=" 'PAC.Knowledgebase.ChunkSize' | translate: {Default: 'Chunk Size'} "

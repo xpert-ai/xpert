@@ -12,11 +12,13 @@
   <span class="flex-1"></span>
 
   @if (role()) {
-    <span class="cursor-pointer bg-purple-100 text-purple-800 text-sm font-medium me-2 px-2 py-0.5 rounded-xl dark:bg-purple-900 dark:text-purple-300"
+    <span class="cursor-pointer bg-purple-100 text-purple-800 text-sm font-medium me-2 px-2 py-0.5 rounded-lg dark:bg-purple-900 dark:text-purple-300"
       [matTooltip]="roleDetail()?.description"
-      (click)="switchRole()">
+      matTooltipPosition="above"
+      [cdkMenuTriggerFor]="rolesMenu"
+      >
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" class="h-4 w-4 inline-block align-text-bottom"><path fill="currentColor" fill-rule="evenodd" d="M12 7.42a22 22 0 0 0-2.453 2.127A22 22 0 0 0 7.42 12a22 22 0 0 0 2.127 2.453c.807.808 1.636 1.52 2.453 2.128a22 22 0 0 0 2.453-2.128A22 22 0 0 0 16.58 12a22 22 0 0 0-2.127-2.453A22 22 0 0 0 12 7.42m1.751-1.154a25 25 0 0 1 2.104 1.88 25 25 0 0 1 1.88 2.103c.316-.55.576-1.085.779-1.59.35-.878.507-1.625.503-2.206-.003-.574-.16-.913-.358-1.111-.199-.199-.537-.356-1.112-.36-.58-.003-1.328.153-2.205.504-.506.203-1.04.464-1.59.78Zm3.983 7.485a25 25 0 0 1-1.88 2.104 25 25 0 0 1-2.103 1.88 13 13 0 0 0 1.59.779c.878.35 1.625.507 2.206.503.574-.003.913-.16 1.111-.358.199-.199.356-.538.36-1.112.003-.58-.154-1.328-.504-2.205a13 13 0 0 0-.78-1.59ZM12 18.99c.89.57 1.768 1.03 2.605 1.364 1.026.41 2.036.652 2.955.646.925-.006 1.828-.267 2.5-.94.673-.672.934-1.575.94-2.5.006-.919-.236-1.929-.646-2.954A15.7 15.7 0 0 0 18.99 12a15.6 15.6 0 0 0 1.364-2.606c.41-1.025.652-2.035.646-2.954-.006-.925-.267-1.828-.94-2.5-.672-.673-1.575-.934-2.5-.94-.919-.006-1.929.235-2.954.646-.838.335-1.716.795-2.606 1.364a15.7 15.7 0 0 0-2.606-1.364C8.37 3.236 7.36 2.994 6.44 3c-.925.006-1.828.267-2.5.94-.673.672-.934 1.575-.94 2.5-.006.919.235 1.929.646 2.955A15.7 15.7 0 0 0 5.01 12c-.57.89-1.03 1.768-1.364 2.605-.41 1.026-.652 2.036-.646 2.955.006.925.267 1.828.94 2.5.672.673 1.575.934 2.5.94.92.006 1.93-.235 2.955-.646A15.7 15.7 0 0 0 12 18.99m-1.751-1.255a25 25 0 0 1-2.104-1.88 25 25 0 0 1-1.88-2.104c-.315.55-.576 1.085-.779 1.59-.35.878-.507 1.625-.503 2.206.003.574.16.913.359 1.111.198.199.537.356 1.111.36.58.003 1.328-.153 2.205-.504.506-.203 1.04-.463 1.59-.78Zm-3.983-7.486a25 25 0 0 1 1.88-2.104 25 25 0 0 1 2.103-1.88 13 13 0 0 0-1.59-.779c-.878-.35-1.625-.507-2.206-.503-.574.003-.913.16-1.111.359-.199.198-.356.537-.36 1.111-.003.58.153 1.328.504 2.205.203.506.464 1.04.78 1.59Z" clip-rule="evenodd"></path></svg>
-      {{roleDetail()?.title}}
+      {{roleDetail()?.title || roleDetail()?.name}}
     </span>
   }
 
@@ -27,6 +29,16 @@
     </button>
   }
 </div>
+
+<ng-template #rolesMenu>
+  <div cdkMenu class="ngm-cdk-menu p-2">
+    <ul>
+      @for (role of roles(); track role) {
+        <li class="ngm-cdk-menu-item px-2 py-1 cursor-pointer" (click)="setRole(role.name)" >{{role.title || role.name}}</li>
+      }
+    </ul>
+  </div>
+</ng-template>
 
 <div class="ngm-copilot-chat__content relative flex-1 flex flex-col overflow-hidden">
     <div #chatsContent class="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
@@ -46,8 +58,18 @@
                                 } @else {
                                     <img class="w-8 h-8 pointer-events-none" [src]="assistantAvatar"/>
                                 }
+                            } @else if (aiAvatarTemplate()) {
+                              <ng-container *ngTemplateOutlet="aiAvatarTemplate(); context: {
+                                  avatar: roleDetail()?.avatar,
+                                  className: {
+                                    'copilot-thinking': message.status === 'thinking',
+                                    'copilot-answering': message.status === 'answering',
+                                  }
+                                }"
+                              >
+                              </ng-container>
                             } @else {
-                                <div class="w-8 h-8 rounded-full text-xl text-center font-notoColorEmoji">🤖</div>
+                              <div class="w-8 h-8 rounded-full text-xl text-center font-notoColorEmoji">🤖</div>
                             }
                       </div>
                       
@@ -171,20 +193,24 @@
 
           @if (roles()) {
             <label @fadeAnimation>{{'Copilot.PleaseSelectBusinessRole' | translate: {Default: 'Please select a business role'} }}</label>
-            <mat-chip-listbox class="ngm-copilot-chat__roles mb-4" [(ngModel)]="role">
+            <ul cdkListbox class="copilot-role-list flex flex-wrap justify-center gap-1"
+              [ngModel]="selectedRoles()" (ngModelChange)="setRole($event[0])">
               @for (item of roles(); track $index) {
-                <mat-chip-option @fadeAnimation [selected]="role() === item.name" [value]="item.name"
+                <li [cdkOption]="item.name" #option="cdkOption" class="copilot-role-list-item cursor-pointer px-2 py-1 rounded-xl border-light active:bg-gray-100 hover:shadow-sm"
+                  [class.active]="option.isActive()"
                   [matTooltip]="item.description"
                   matTooltipPosition="above"
-                  >{{item.title || item.name}}</mat-chip-option>
+                  >
+                  {{item.title || item.name}}
+                </li>
               }
-            </mat-chip-listbox>
+            </ul>
           }
         </div>
       }
     </div>
 
-    <ngm-scroll-back #scrollBack class="block absolute bottom-0 left-1/2" [class.animate-bounce]="answering()"
+    <copilot-scroll-back #scrollBack class="block absolute bottom-0 left-1/2" [class.animate-bounce]="answering()"
       [ngmTarget]="chatsContent" direction="bottom" />
 </div>
 
@@ -229,11 +255,12 @@
           id="userInput" onInput="this.parentNode.dataset.replicatedValue = this.value"
           [placeholder]="_placeholder || (('Copilot.Placeholder' | translate: {Default: 'Ask Copilot or type / for commands'}) + '\nEnter ' + ('Copilot.SendPrompt' | translate: {Default: 'send prompt'}))"
           [formControl]="promptControl"
-          (keydown)="triggerFun($event, autoPrompts)"
+          (keydown)="triggerFun($event)"
 
-          [matAutocomplete]="autoPrompts"
-          matAutocompletePosition="above"
-
+          #inputTrigger
+          cdkOverlayOrigin
+          #commandsPanelTrigger="cdkOverlayOrigin"
+          
           cdkTextareaAutosize
           cdkAutosizeMinRows="1"
           cdkAutosizeMaxRows="3"
@@ -273,6 +300,82 @@
           </div>
         }
       </div>
+
+      <ng-template
+        cdkConnectedOverlay
+        [cdkConnectedOverlayOrigin]="commandsPanelTrigger"
+        [cdkConnectedOverlayOpen]="commandsPanelOpen()"
+        [cdkConnectedOverlayOffsetY]="-15"
+        [cdkConnectedOverlayPositions]="[
+          {
+            originX: 'start',
+            originY: 'top',
+            overlayX: 'start',
+            overlayY: 'bottom'
+          },
+        ]"
+        (detach)="commandsPanelOpen.set(false)"
+      >
+        <div class="commands-panel relative flex flex-col p-2 rounded-xl bg-components-card-bg border-light shadow-md"
+          [style.width.px]="inputTrigger.offsetWidth"
+          cdkTrapFocus
+          cdkTrapFocusAutoCapture="true"
+          (keyup)="onSelectCommand($event)"
+        >
+        @if (loadingContext$ | async) {
+          <mat-progress-bar mode="query" role="progressbar"
+              color="accent"
+              class="top-0 left-0 w-full"
+              style="position: absolute; height: 2px;"
+              />
+          <mat-option [value]="null"></mat-option>
+        } @else if (filteredContextItems()) {
+          <cdk-virtual-scroll-viewport class="nx-formly__virtual-scroll-viewport" minBufferPx="200" maxBufferPx="400"
+              [style.height.px]="240" [itemSize]="36"
+          >
+            <mat-option *cdkVirtualFor="let item of filteredContextItems(); trackBy: trackByKey"
+              [value]="item"
+              (click)="setContext(item)"
+            >
+              <div class="flex-1 flex items-center overflow-hidden" >
+                <span class="flex-1 text-ellipsis overflow-hidden" [ngmHighlight]="contextSearchWords()?.[0]"
+                  [content]="item.caption">{{item.caption}}</span>
+                <span class="text-xs text-ellipsis overflow-hidden italic opacity-50" [ngmHighlight]="contextSearchWords()?.[0]"
+                  [content]="item.key">{{item.key}}</span>
+              </div>
+            </mat-option>
+          </cdk-virtual-scroll-viewport>
+        }
+
+          <ul cdkListbox>
+            @for (command of filteredCommands();  track command.prompt) {
+              <li class="px-2 py-1 rounded-lg cursor-pointer hover:bg-hover-bg outline-none focus-within:bg-gray-50"
+                [cdkOption]="'/'+command.name+' '+(command.example || '')"
+                [title]="command.description"
+                (focus)="focusCommand.set('/'+command.name+' '+(command.example || ''))"
+                (click)="selectCommand('/'+command.name+' '+(command.example || ''))"
+              >
+                <span class="ngm-copilot-chat__command-tag text-xs font-medium me-2 p-1 mr-1 rounded"
+                  >/{{command.name}}</span>
+                @if (command.alias) {
+                  <span class="ngm-copilot-chat__command-tag text-xs font-medium me-2 p-1 mr-1 rounded"
+                  >/{{command.alias}}</span>
+                }
+
+                @if (command.example) {
+                  <div class="whitespace-nowrap text-ellipsis overflow-hidden text-gray-500 italic"
+                      [ngmHighlight]="prompt()"
+                      [content]="command.example"
+                      customClasses="text-gray-600 bg-gray-200 font-bold not-italic"
+                  >{{command.example}}</div>
+                } @else {
+                  <span class="ml-auto opacity-50">{{command.description}}</span>
+                }
+              </li>
+            }
+          </ul>
+        </div>
+      </ng-template>
 
         <mat-autocomplete #autoPrompts="matAutocomplete" class="ngm-copilot-chat__autocomplete-panel ngm-autocomplete-panel ngm-density__cosy"
             autoActiveFirstOption hideSingleSelectionIndicator
@@ -330,16 +433,22 @@
         </mat-autocomplete>
 
         <div class="shrink-0 flex items-center">
-            <button mat-icon-button type="button" displayDensity="cosy"
-                [floatUi]="copilotOptions"
-                [showTrigger]="eNgxFloatUiTriggers.click"
-                hideOnClickOutside
-                [hideOnScroll]="true"
-                [hideOnMouseLeave]="false"
-                [placement]="eNgxFloatUiPlacements.TOPEND"
-                (click)="$event.stopPropagation()"
+            <button type="button" class="p-2 rounded-full text-text-secondary hover:bg-hover-bg hover:text-text-primary"
+              [cdkMenuTriggerFor]="copilotOptions"
+              [cdkMenuPosition]="[
+                {
+                  originX: 'end',
+                  originY: 'top',
+                  overlayX: 'end',
+                  overlayY: 'bottom',
+                  offsetY: -5,
+                }
+              ]"
+              (click)="$event.stopPropagation()"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" class="h-5 w-5 shrink-0"><path fill="currentColor" fill-rule="evenodd" d="M11.568 3.5a1 1 0 0 0-.863.494l-.811 1.381A3 3 0 0 1 7.33 6.856l-1.596.013a1 1 0 0 0-.858.501l-.44.761a1 1 0 0 0-.003.992l.792 1.4a3 3 0 0 1 0 2.954l-.792 1.4a1 1 0 0 0 .004.992l.439.76a1 1 0 0 0 .858.502l1.596.013a3 3 0 0 1 2.564 1.48l.811 1.382a1 1 0 0 0 .863.494h.87a1 1 0 0 0 .862-.494l.812-1.381a3 3 0 0 1 2.563-1.481l1.596-.013a1 1 0 0 0 .859-.501l.439-.761a1 1 0 0 0 .004-.992l-.793-1.4a3 3 0 0 1 0-2.953l.793-1.401a1 1 0 0 0-.004-.992l-.439-.76a1 1 0 0 0-.859-.502l-1.596-.013a3 3 0 0 1-2.563-1.48L13.3 3.993a1 1 0 0 0-.862-.494zM8.98 2.981A3 3 0 0 1 11.568 1.5h.87a3 3 0 0 1 2.588 1.481l.81 1.382a1 1 0 0 0 .855.494l1.597.013a3 3 0 0 1 2.575 1.502l.44.76a3 3 0 0 1 .011 2.975l-.792 1.4a1 1 0 0 0 0 .985l.792 1.401a3 3 0 0 1-.012 2.974l-.439.761a3 3 0 0 1-2.575 1.503l-1.597.012a1 1 0 0 0-.854.494l-.811 1.382a3 3 0 0 1-2.588 1.481h-.87a3 3 0 0 1-2.588-1.481l-.811-1.382a1 1 0 0 0-.855-.494l-1.596-.012a3 3 0 0 1-2.576-1.503l-.439-.76a3 3 0 0 1-.012-2.975l.793-1.4a1 1 0 0 0 0-.985l-.793-1.4a3 3 0 0 1 .012-2.975l.44-.761A3 3 0 0 1 5.717 4.87l1.596-.013a1 1 0 0 0 .855-.494z" clip-rule="evenodd"></path><path fill="currentColor" fill-rule="evenodd" d="M12.003 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M8.502 12a3.5 3.5 0 1 1 7 .001 3.5 3.5 0 0 1-7-.001" clip-rule="evenodd"></path></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" class="h-5 w-5 shrink-0">
+                <path fill="currentColor" fill-rule="evenodd" d="M11.568 3.5a1 1 0 0 0-.863.494l-.811 1.381A3 3 0 0 1 7.33 6.856l-1.596.013a1 1 0 0 0-.858.501l-.44.761a1 1 0 0 0-.003.992l.792 1.4a3 3 0 0 1 0 2.954l-.792 1.4a1 1 0 0 0 .004.992l.439.76a1 1 0 0 0 .858.502l1.596.013a3 3 0 0 1 2.564 1.48l.811 1.382a1 1 0 0 0 .863.494h.87a1 1 0 0 0 .862-.494l.812-1.381a3 3 0 0 1 2.563-1.481l1.596-.013a1 1 0 0 0 .859-.501l.439-.761a1 1 0 0 0 .004-.992l-.793-1.4a3 3 0 0 1 0-2.953l.793-1.401a1 1 0 0 0-.004-.992l-.439-.76a1 1 0 0 0-.859-.502l-1.596-.013a3 3 0 0 1-2.563-1.48L13.3 3.993a1 1 0 0 0-.862-.494zM8.98 2.981A3 3 0 0 1 11.568 1.5h.87a3 3 0 0 1 2.588 1.481l.81 1.382a1 1 0 0 0 .855.494l1.597.013a3 3 0 0 1 2.575 1.502l.44.76a3 3 0 0 1 .011 2.975l-.792 1.4a1 1 0 0 0 0 .985l.792 1.401a3 3 0 0 1-.012 2.974l-.439.761a3 3 0 0 1-2.575 1.503l-1.597.012a1 1 0 0 0-.854.494l-.811 1.382a3 3 0 0 1-2.588 1.481h-.87a3 3 0 0 1-2.588-1.481l-.811-1.382a1 1 0 0 0-.855-.494l-1.596-.012a3 3 0 0 1-2.576-1.503l-.439-.76a3 3 0 0 1-.012-2.975l.793-1.4a1 1 0 0 0 0-.985l-.793-1.4a3 3 0 0 1 .012-2.975l.44-.761A3 3 0 0 1 5.717 4.87l1.596-.013a1 1 0 0 0 .855-.494z" clip-rule="evenodd"></path><path fill="currentColor" fill-rule="evenodd" d="M12.003 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M8.502 12a3.5 3.5 0 1 1 7 .001 3.5 3.5 0 0 1-7-.001" clip-rule="evenodd"></path>
+              </svg>
             </button>
 
             <span class="flex-1"></span>
@@ -370,67 +479,65 @@
   <ngm-copilot-enable class="z-[101]"
     [title]="welcomeTitle || 'Metad Copilot'"
     [subTitle]="welcomeSubTitle || ('Copilot.YourAIPairProgrammer' | translate: {Default: 'Your AI pair programmer'})"
-    (toConfig)="onEnableCopilot()"/>
+    (toConfig)="onEnableCopilot()"
+  />
 }
 
-<float-ui-content #copilotOptions class="z-[101]">
-    <div class="w-80 flex flex-col max-w-sm p-4 border-0 border-gray-200 rounded-lg shadow-lg
-        dark:bg-gray-800/20 dark:border-gray-700 bg-white/60 backdrop-blur-lg">
-        <div class="text-lg">
-            {{ 'Copilot.Options' | translate: {Default: 'Options'} }}
-        </div>
-
-        <div class="mt-2 flex justify-between items-center">
-            <label class="shrink-0">
-                {{ 'Copilot.Model' | translate: {Default: 'Model'} }}:<span class="font-notoColorEmoji" matTooltip="ID of the model to use.">💡</span>
-            </label>
-
-            <ngm-search class="flex-1" [formControl]="searchModel"/>
-
-          @if (canListModels()) {
-            @if (refreshingModels()) {
-              <mat-spinner class="m-2" [diameter]="22"></mat-spinner>
-            } @else {
-              <button mat-icon-button displayDensity="compact" (click)="refreshModels()">
-                <mat-icon>refresh</mat-icon>
-              </button>
-            }
-          }
-        </div>
-        
-        <mat-selection-list class="flex flex-col gap-2 max-h-[120px] overflow-auto"
-            [(ngModel)]="selectedModel"
-            [multiple]="false"
-            (ngModelChange)="changeSelectedModel($event)">
-          @for (model of models(); track model.id) {
-            <mat-list-option [value]="model.id" class="rounded-md">
-                {{model.name}}
-            </mat-list-option>
-          }
-        </mat-selection-list>
-
-        <label class="pt-4">Temperature:<span class="font-notoColorEmoji" matTooltip="What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.">💡</span></label>
-        <mat-slider color="accent" min="0" max="2" step="0.1" value="1" discrete>
-            <input matSliderThumb [(ngModel)]="temperature">
-        </mat-slider>
-        
-        <label class="pt-4">{{'Copilot.RecursionLimit' | translate: {Default: 'Recursion Limit'} }}:<span class="font-notoColorEmoji" matTooltip="Maximum number of loop calls">💡</span></label>
-        <mat-slider color="accent" min="1" max="100" step="1" value="20" discrete>
-          <input matSliderThumb [(ngModel)]="recursionLimit">
-        </mat-slider>
-
-        <mat-checkbox [(ngModel)]="interactive" color="accent" labelPosition="before">
-          {{ 'Copilot.Interactive' | translate: {Default: 'Interactive'} }}
-        </mat-checkbox>
-        <mat-checkbox [(ngModel)]="verbose" color="accent" labelPosition="before">
-          {{ 'Copilot.Verbose' | translate: {Default: 'Verbose'} }}
-        </mat-checkbox>
-
-        <!-- <button mat-stroked-button displayDensity="cosy" class="pac-colpilot__clear-messages mt-4" (click)="clear()">
-            {{ 'Copilot.ClearMessages' | translate: {Default: 'Clear messages'} }}
-        </button> -->
+<ng-template #copilotOptions>
+  <div class="ngm-cdk-menu w-80 flex flex-col max-w-sm p-4 border-0 border-gray-200 rounded-lg shadow-lg
+    dark:bg-gray-800/20 dark:border-gray-700 bg-white/60 backdrop-blur-lg"
+    cdkMenu>
+    <div class="text-lg">
+      {{ 'Copilot.Options' | translate: {Default: 'Options'} }}
     </div>
-</float-ui-content>
+
+    <div class="mt-2 flex justify-between items-center">
+      <label class="shrink-0">
+          {{ 'Copilot.Model' | translate: {Default: 'Model'} }}:<span class="font-notoColorEmoji" matTooltip="ID of the model to use.">💡</span>
+      </label>
+
+      <ngm-search class="flex-1" [formControl]="searchModel"/>
+
+    @if (canListModels()) {
+      @if (refreshingModels()) {
+        <mat-spinner class="m-2" [diameter]="22"></mat-spinner>
+      } @else {
+        <button mat-icon-button displayDensity="compact" (click)="refreshModels()">
+          <mat-icon>refresh</mat-icon>
+        </button>
+      }
+    }
+    </div>
+  
+    <mat-selection-list class="flex flex-col gap-2 max-h-[120px] overflow-auto"
+      [(ngModel)]="selectedModel"
+      [multiple]="false"
+      (ngModelChange)="changeSelectedModel($event)">
+    @for (model of models(); track model.id) {
+      <mat-list-option [value]="model.id" class="rounded-md">
+          {{model.name}}
+      </mat-list-option>
+    }
+    </mat-selection-list>
+
+    <label class="pt-4">Temperature:<span class="font-notoColorEmoji" matTooltip="What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.">💡</span></label>
+    <mat-slider color="accent" min="0" max="2" step="0.1" value="1" discrete>
+        <input matSliderThumb [(ngModel)]="temperature">
+    </mat-slider>
+    
+    <label class="pt-4">{{'Copilot.RecursionLimit' | translate: {Default: 'Recursion Limit'} }}:<span class="font-notoColorEmoji" matTooltip="Maximum number of loop calls">💡</span></label>
+    <mat-slider color="accent" min="1" max="100" step="1" value="20" discrete>
+      <input matSliderThumb [(ngModel)]="recursionLimit">
+    </mat-slider>
+
+    <mat-checkbox [(ngModel)]="interactive" color="accent" labelPosition="before">
+      {{ 'Copilot.Interactive' | translate: {Default: 'Interactive'} }}
+    </mat-checkbox>
+    <mat-checkbox [(ngModel)]="verbose" color="accent" labelPosition="before">
+      {{ 'Copilot.Verbose' | translate: {Default: 'Verbose'} }}
+    </mat-checkbox>
+  </div>
+</ng-template>
 
 
 <mat-menu #contextMenu="matMenu" class="ngm-menu__copilot-context-popper ngm-density__compact">

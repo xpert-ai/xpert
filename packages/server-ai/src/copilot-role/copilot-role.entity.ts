@@ -6,6 +6,9 @@ import { Column, Entity, JoinTable, ManyToMany } from 'typeorm'
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { Knowledgebase } from '../core/entities/internal'
 
+/**
+ * @deprecated use Xpert
+ */
 @Entity('copilot_role')
 export class CopilotRole extends TenantOrganizationBaseEntity implements ICopilotRole {
 	@ApiPropertyOptional({ type: () => String })

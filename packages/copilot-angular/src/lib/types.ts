@@ -34,3 +34,8 @@ export interface ISelectOption<T = unknown> {
 }
 
 export { AgentState } from '@metad/copilot'
+
+export type TCopilotCredentials = {
+  apiHost: string
+  apiKey: string
+}

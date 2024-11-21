@@ -9,13 +9,14 @@ import {
 	Logger,
 	Param,
 	Post,
-	UseInterceptors
+	UseInterceptors,
+	Query
 } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { Queue } from 'bull'
 import { In } from 'typeorm'
-import { CrudController, RequestContext, TransformInterceptor } from '@metad/server-core'
+import { CrudController, PaginationParams, ParseJsonPipe, RequestContext, TransformInterceptor } from '@metad/server-core'
 import { KnowledgeDocument } from './document.entity'
 import { KnowledgeDocumentService } from './document.service'
 import { DocumentChunkDTO } from './dto'
@@ -84,35 +85,14 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 		return await this.service.save(knowledgeDocument)
 	}
 
-	// @Post('similarity-search')
-	// async similaritySearch(
-	// 	@Body('query') query: string,
-	// 	@Body('options') options?: { k: number; filter: any; score?: number }
-	// ) {
-	// 	this.#logger.debug(
-	// 		`Retrieving documents for query: ${query} with k = ${options?.k} score = ${options?.score} and filter = ${options?.filter}`
-	// 	)
-
-	// 	return this.service.similaritySearch(query, options)
-	// }
-
-	// @Post('mmr-search')
-	// async maxMarginalRelevanceSearch(
-	// 	@Body('query') query: string,
-	// 	@Body('options') options?: { k: number; filter: any }
-	// ) {
-	// 	this.#logger.debug(
-	// 		`Retrieving documents for mmr query: ${query} with k = ${options?.k} and filter = ${options?.filter}`
-	// 	)
-
-	// 	return this.service.maxMarginalRelevanceSearch(query, options)
-	// }
-
 	@UseInterceptors(ClassSerializerInterceptor)
 	@Get(':id/chunk')
-	async getChunks(@Param('id') id: string) {
-		const chunks = await this.service.getChunks(id)
-		return chunks.map((item) => new DocumentChunkDTO(item))
+	async getChunks(@Param('id') id: string, @Query('data', ParseJsonPipe) params: PaginationParams<IKnowledgeDocument>) {
+		const result = await this.service.getChunks(id, params)
+		return {
+			...result,
+			items: result.items.map((item) => new DocumentChunkDTO(item))
+		}
 	}
 
 	@Delete(':docId/chunk/:id')

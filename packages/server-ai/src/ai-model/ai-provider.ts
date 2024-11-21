@@ -26,7 +26,10 @@ export abstract class ModelProvider {
 		AIProviderRegistry.getInstance().registerProvider(this)
 	}
 
+	abstract getAuthorization(credentials: Record<string, any>): string;
+	abstract getBaseUrl(credentials: Record<string, any>): string;
 	abstract validateProviderCredentials(credentials: Record<string, any>): Promise<void>
+
 
 	getProviderServerPath() {
 		return path.join(this.configService.assetOptions.serverRoot, ModelProvidersFolderPath, this.name)

@@ -69,7 +69,7 @@ export class ChatConversationAgent {
 						tenantId: this.tenantId,
 						organizationId: this.organizationId,
 						userId: this.user.id,
-						copilot: copilot
+						copilotId: copilot.id
 					})
 				)
 			} catch(err) {

@@ -2,6 +2,7 @@ import { Injectable, Module } from '@nestjs/common'
 import { ModelProvider } from '../../ai-provider'
 import { OllamaLargeLanguageModel } from './llm/llm'
 import { OllamaTextEmbeddingModel } from './text-embedding/text-embedding'
+import { OllamaCredentials } from './types'
 
 @Injectable()
 export class OllamaProvider extends ModelProvider {
@@ -9,7 +10,15 @@ export class OllamaProvider extends ModelProvider {
 		super('ollama')
 	}
 
-	async validateProviderCredentials(credentials: Record<string, any>): Promise<void> {
+	getBaseUrl(credentials: OllamaCredentials): string {
+		return credentials.base_url
+	}
+
+	getAuthorization(credentials: OllamaCredentials): string {
+		return null
+	}
+
+	async validateProviderCredentials(credentials: OllamaCredentials): Promise<void> {
 		return
 	}
 }

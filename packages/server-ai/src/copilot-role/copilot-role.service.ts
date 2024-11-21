@@ -6,6 +6,9 @@ import { TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { KnowledgebaseService } from '../knowledgebase'
 import { CopilotRole } from './copilot-role.entity'
 
+/**
+ * @deprecated use Xpert
+ */
 @Injectable()
 export class CopilotRoleService extends TenantOrganizationAwareCrudService<CopilotRole> {
 	readonly #logger = new Logger(CopilotRoleService.name)
