@@ -20,8 +20,8 @@
             matTooltipPosition="right"
             [matTooltipDisabled]="!!item.children?.length"
 
-            (mouseover)="item.children?.length && item.expanded = true"
-            (mouseout)="item.children?.length && closeSubMenu(item)"
+            (mouseover)="item.children?.length && openSubMenu(item)"
+            (mouseleave)="item.children?.length && closeSubMenu(item)"
              cdkOverlayOrigin
              #subMenuTrigger="cdkOverlayOrigin"
           >
@@ -29,11 +29,10 @@
           </button>
 
           @if (item.children?.length) {
-
             <ng-template #connectedOverlay="cdkConnectedOverlay"
               cdkConnectedOverlay
               [cdkConnectedOverlayOrigin]="subMenuTrigger"
-              [cdkConnectedOverlayOpen]="item.expanded"
+              [cdkConnectedOverlayOpen]="menuOpen()[item.link]"
               [cdkConnectedOverlayOffsetY]="-5"
               [cdkConnectedOverlayPositions]="[
                 {
@@ -44,7 +43,9 @@
                 },
               ]"
             >
-              <div class="flex flex-col p-2 bg-components-panel-bg rounded-xl shadow-sm border-light">
+              <div class="flex flex-col p-2 bg-components-panel-bg rounded-xl shadow-sm border-light"
+                (mouseover)="openSubMenu(item)"
+                (mouseleave)="closeSubMenu(item)">
                 @for (child of item.children; track $index) {
                   @if (!child.hidden) {
                     <button class="p-2 rounded-lg hover:bg-hover-bg"

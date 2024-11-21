@@ -8,7 +8,7 @@ import {
 	TransformInterceptor,
 	UUIDValidationPipe
 } from '@metad/server-core'
-import { Body, Controller, ForbiddenException, Get, Param, Post, Put, Delete, Query, UseInterceptors, UseGuards } from '@nestjs/common'
+import { Body, Controller, ForbiddenException, Get, Param, Post, Put, Delete, Query, UseInterceptors, UseGuards,Inject } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { DeleteResult, UpdateResult } from 'typeorm'
@@ -19,12 +19,17 @@ import { CopilotProviderDto } from './dto'
 import { CopilotProviderModel } from './models/copilot-provider-model.entity'
 import { CopilotProviderModelService } from './models/copilot-provider-model.service'
 import { CopilotProviderUpsertCommand } from './commands'
+import { ConfigService } from '@metad/server-config'
 
 @ApiTags('CopilotProvider')
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
 export class CopilotProviderController extends CrudController<CopilotProvider> {
+
+	@Inject(ConfigService)
+	private readonly configService: ConfigService
+
 	constructor(
 		private readonly service: CopilotProviderService,
 		private readonly modelService: CopilotProviderModelService,
@@ -63,7 +68,7 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
 			}
 		}
 
-		return new CopilotProviderDto(one)
+		return new CopilotProviderDto(one, this.configService.get('baseUrl') as string)
 	}
 
 	@Get(':providerId/model')

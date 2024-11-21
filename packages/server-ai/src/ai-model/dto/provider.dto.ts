@@ -36,9 +36,9 @@ export class AiProviderDto {
 	@Exclude()
 	urlPrefix?: string
 
-	constructor(partial: Partial<AiProviderDto>) {
+	constructor(partial: Partial<AiProviderDto>, baseUrl: string) {
 		Object.assign(this, partial)
 
-		this.urlPrefix = `/api/ai-model/provider/${partial.provider}`
+		this.urlPrefix = baseUrl + (baseUrl.endsWith('/') ? '' : '/') +  `api/ai-model/provider/${partial.provider}`
 	}
 }

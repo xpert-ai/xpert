@@ -36,7 +36,7 @@ export class OpenAIProvider extends ModelProvider {
 			if (ex instanceof CredentialsValidateFailedError) {
 				throw ex
 			} else {
-				this.logger.error(`${this.getProviderSchema().provider} 凭证验证失败`, ex.stack)
+				this.logger.error(`${this.getProviderSchema().provider}: credentials verification failed`, ex.stack)
 				throw ex
 			}
 		}

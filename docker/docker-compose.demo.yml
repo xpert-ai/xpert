@@ -1,4 +1,4 @@
-name: metad-ocap-demo
+name: xpert-ai-demo
 
 volumes:
   postgres_data:
@@ -66,7 +66,7 @@ services:
 
   # OLAP Services
   olap:
-    image: metadc/metad-olap:1.0.0
+    image: registry.cn-hangzhou.aliyuncs.com/metad/ocap-olap:main
     deploy:
       replicas: 1
     restart: unless-stopped

@@ -2,9 +2,11 @@
   <emoji-avatar class="rounded-full overflow-hidden shadow-sm mr-4" [avatar]="role()?.avatar" />
 </div>
 
-<div class="flex-1 flex flex-col gap-2 mt-2 overflow-x-hidden">
+<div class="relative flex-1 flex flex-col gap-2 mt-2">
   @if (message()?.event) {
-    <div class="px-2 rounded-md text-token-text-secondary hover:bg-gray-50">{{message().event}}</div>
+    <div class="absolute left-0 -top-6 px-2 rounded-md cursor-pointer text-token-text-secondary hover:bg-gray-50">
+      {{'PAC.Chat.Event_' + message().event | translate: {Default: message().event.toUpperCase()} }}
+    </div>
   }
 
   @if (messageGroup(); as group) {

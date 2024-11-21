@@ -25,13 +25,12 @@ export class AIProvidersService {
 	}
 
 	getPositionMap() {
-		if (this.positions) {
-			return this.positions
+		if (!this.positions) {
+			const positionFolder = path.join(this.configService.assetOptions.serverRoot, ModelProvidersFolderPath)
+			this.positions = getPositionMap(positionFolder)
 		}
 
-		const positionFolder = path.join(this.configService.assetOptions.serverRoot, ModelProvidersFolderPath)
-
-		return getPositionMap(positionFolder)
+		return this.positions
 	}
 
 	async providerCredentialsValidate(provider: string, credentials: Record<string, any>): Promise<Record<string, any>> {

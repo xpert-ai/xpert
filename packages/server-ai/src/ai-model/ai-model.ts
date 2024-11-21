@@ -1,5 +1,5 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AIModelEntity, FetchFrom, ICopilotModel, AiModelTypeEnum, ParameterRule } from '@metad/contracts'
+import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilotModel, ParameterRule } from '@metad/contracts'
 import { Injectable, Logger } from '@nestjs/common'
 import * as fs from 'fs'
 import * as yaml from 'js-yaml'
@@ -7,11 +7,15 @@ import * as path from 'path'
 import { ModelProvider } from './ai-provider'
 import { DefaultParameterName, PARAMETER_RULE_TEMPLATE, PriceInfo, PriceType, valueOf } from './entities'
 import { TChatModelOptions } from './types/types'
+import { getPositionMap } from './utils'
 
 @Injectable()
 export abstract class AIModel {
 	protected logger = new Logger(AIModel.name)
+
 	protected modelSchemas: AIModelEntity[] | null = null
+
+	private positions: Record<string, number> = null
 
 	constructor(
 		protected readonly modelProvider: ModelProvider,
@@ -64,6 +68,11 @@ export abstract class AIModel {
 		}
 	}
 
+	protected getModelPath() {
+		const modelType = this.modelType.toLowerCase()
+		return path.join(this.modelProvider.getProviderServerPath(), modelType)
+	}
+
 	predefinedModels(): AIModelEntity[] {
 		if (this.modelSchemas) {
 			return this.modelSchemas
@@ -71,7 +80,7 @@ export abstract class AIModel {
 
 		const providerName = this.modelProvider.name.toLowerCase()
 		const modelType = this.modelType.toLowerCase()
-		const providerModelTypePath = path.join(this.modelProvider.getProviderServerPath(), modelType)
+		const providerModelTypePath = this.getModelPath()
 
 		const modelSchemaFiles = fs
 			.readdirSync(providerModelTypePath)
@@ -98,10 +107,8 @@ export abstract class AIModel {
 		}
 
 		// 根据位置排序模型架构
-		this.sortModelSchemas(modelSchemas, providerModelTypePath)
-
-		this.modelSchemas = modelSchemas
-		return modelSchemas
+		this.modelSchemas = this.sortModelSchemas(modelSchemas, providerModelTypePath)
+		return this.modelSchemas
 	}
 
 	getModelSchema(model: string, credentials?: Record<string, any>): AIModelEntity | null {
@@ -157,14 +164,24 @@ export abstract class AIModel {
 		yamlData.fetch_from = FetchFrom.PREDEFINED_MODEL
 	}
 
-	private sortModelSchemas(modelSchemas: AIModelEntity[], providerModelTypePath: string): void {
+	private sortModelSchemas(modelSchemas: AIModelEntity[], providerModelTypePath: string) {
 		// 实现模型架构排序逻辑
+		if (!this.positions) {
+			this.positions = getPositionMap(providerModelTypePath)
+		}
+
+		return modelSchemas.sort((a, b) => {
+			const positionA = this.positions[a.model] ?? Number.MAX_SAFE_INTEGER;
+			const positionB = this.positions[b.model] ?? Number.MAX_SAFE_INTEGER;
+			return positionA - positionB;
+		})
 	}
 
 	public getParameterRules(model: string, credentials: Record<string, string>) {
 		const modelSchema = this.getModelSchema(model, credentials)
 		return modelSchema?.parameter_rules ?? []
 	}
+
 }
 
 function getDefaultParameterRuleVariableMap(name: DefaultParameterName): ParameterRule {

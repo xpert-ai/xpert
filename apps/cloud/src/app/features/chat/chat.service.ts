@@ -262,16 +262,34 @@ export class ChatService {
                 this.appendMessageComponent(event.data)
               }
             } else if (event.type === ChatMessageTypeEnum.EVENT) {
-              this.updateEvent(event.event)
+              if (event.event === ChatMessageEventTypeEnum.ON_CONVERSATION_START) {
+                this.updateConversation(event.data)
+              } else {
+                this.updateEvent(event.event)
+              }
             }
           }
         }
       },
       error: (error) => {
         this.#toastr.error(getErrorMessage(error))
+        this.updateLatestMessage((message) => {
+          return {
+            ...message,
+            status: 'error',
+            error: getErrorMessage(error)
+          }
+        })
         this.answering.set(false)
       },
       complete: () => {
+        this.updateLatestMessage((message) => {
+          return {
+            ...message,
+            status: 'done',
+            error: null
+          }
+        })
         this.answering.set(false)
       }
     })
@@ -310,6 +328,11 @@ export class ChatService {
     this.conversationService.delete(id).subscribe({
       next: () => {}
     })
+  }
+
+  updateConversation(data: IChatConversation) {
+    this.conversation.set({ ...data, messages: [...(this.messages() ?? [])] })
+    this.conversations.update((items) => [{ ...data }, ...items])
   }
 
   updateMessage(id: string, message: Partial<CopilotBaseMessage>) {

@@ -31,7 +31,7 @@ import { NgmCopilotChatComponent, NgmCopilotEngineService } from '@metad/copilot
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions'
-import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
+import { NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { combineLatestWith, firstValueFrom } from 'rxjs'
 import { filter, map, startWith, tap } from 'rxjs/operators'
 import {
@@ -49,7 +49,6 @@ import {
   MenuCatalog,
   PermissionsEnum,
   RolesEnum,
-  SelectorService,
   Store,
   routeAnimations
 } from '../@core'
@@ -142,6 +141,8 @@ export class FeaturesComponent implements OnInit {
   readonly copilotEnabled$ = toSignal(this.appService.copilotEnabled$)
   readonly user$ = toSignal(this.store.user$)
 
+  readonly selectedOrganization$ = this.store.selectedOrganization$
+
   /**
   |--------------------------------------------------------------------------
   | Signals
@@ -178,7 +179,6 @@ export class FeaturesComponent implements OnInit {
     private readonly ngxPermissionsService: NgxPermissionsService,
     private readonly usersService: UsersService,
     public readonly translateService: TranslateService,
-    private readonly selectorService: SelectorService,
     protected renderer: Renderer2,
     private router: Router,
     public dialog: MatDialog,
@@ -213,12 +213,12 @@ export class FeaturesComponent implements OnInit {
         filter((permissions: IRolePermission[]) => isNotEmpty(permissions)),
         map((permissions) => permissions.map(({ permission }) => permission)),
         tap((permissions) => this.ngxPermissionsService.loadPermissions(permissions)),
-        combineLatestWith(this.translateService.onLangChange.pipe(startWith(null))),
+        combineLatestWith(this.translateService.onLangChange.pipe(startWith(null)), this.selectedOrganization$),
         takeUntilDestroyed(this.#destroyRef)
       )
-      .subscribe(([permissions]) => {
-        this.menus.set(this.getMenuItems())
-        this.loadItems(this.selectorService.showSelectors(this.router.url).showOrganizationShortcuts)
+      .subscribe(([permissions, lang, org]) => {
+        this.menus.set(this.getMenuItems(org))
+        this.loadItems()
       })
   }
 
@@ -255,17 +255,17 @@ export class FeaturesComponent implements OnInit {
     this.store.userRolePermissions = role.rolePermissions.filter((permission) => permission.enabled)
   }
 
-  loadItems(withOrganizationShortcuts: boolean) {
+  loadItems() {
     // ??
     this.menus.update((menus) => {
       return menus.map((item) => {
-        this.refreshMenuItem(item, withOrganizationShortcuts)
+        this.refreshMenuItem(item)
         return item
       })
     })
   }
 
-  refreshMenuItem(item, withOrganizationShortcuts) {
+  refreshMenuItem(item: PacMenuItem) {
     item.title = this.translateService.instant('PAC.MENU.' + item.data.translationKey, {
       Default: item.data.translationKey
     })
@@ -279,7 +279,7 @@ export class FeaturesComponent implements OnInit {
       item.hidden = !anyPermission || (item.data.hide && item.data.hide())
 
       if (anyPermission && item.data.organizationShortcut) {
-        item.hidden = !withOrganizationShortcuts || !this.organization
+        item.hidden = !this.organization
         if (!item.hidden) {
           item.link = item.data.urlPrefix + this.organization.id + item.data.urlPostfix
         }
@@ -295,7 +295,7 @@ export class FeaturesComponent implements OnInit {
 
     if (item.children) {
       item.children.forEach((childItem) => {
-        this.refreshMenuItem(childItem, withOrganizationShortcuts)
+        this.refreshMenuItem(childItem)
       })
     }
   }
@@ -395,7 +395,7 @@ export class FeaturesComponent implements OnInit {
     this.appService.toggleDark()
   }
 
-  getMenuItems(): PacMenuItem[] {
+  getMenuItems(org: IOrganization): PacMenuItem[] {
     return [
       // Xpert AI Features
       {
@@ -701,15 +701,17 @@ export class FeaturesComponent implements OnInit {
               permissionKeys: [RolesEnum.SUPER_ADMIN]
             }
           },
-          {
-            title: 'Tenant',
-            matIcon: 'storage',
-            link: '/settings/tenant',
-            data: {
-              translationKey: 'Tenant',
-              permissionKeys: [RolesEnum.SUPER_ADMIN]
+          ...(org ? [] : [
+            {
+              title: 'Tenant',
+              matIcon: 'storage',
+              link: '/settings/tenant',
+              data: {
+                translationKey: 'Tenant',
+                permissionKeys: [RolesEnum.SUPER_ADMIN]
+              }
             }
-          }
+          ])
         ]
       }
     ]

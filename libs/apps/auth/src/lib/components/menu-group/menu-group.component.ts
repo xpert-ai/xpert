@@ -5,11 +5,10 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import {CdkMenuModule} from '@angular/cdk/menu'
 import { RouterModule } from '@angular/router'
-import { DensityDirective, effectAction } from '@metad/ocap-angular/core'
+import { DensityDirective } from '@metad/ocap-angular/core'
 import { isNil } from '@metad/ocap-core'
 import { PacMenuItem } from '../types'
 import { OverlayModule } from '@angular/cdk/overlay'
-import { delay, Observable, tap } from 'rxjs'
 
 @Component({
   standalone: true,
@@ -39,18 +38,41 @@ export class PacMenuGroupComponent {
 
   @Output() clicked = new EventEmitter()
 
-  readonly sunMenuOpen = signal(false)
+  readonly menuOpen = signal<Record<string, boolean>>({})
+  readonly delayClose = signal<Record<string, number>>({})
 
   isActive(menu: PacMenuItem) {
     return isNil(menu.expanded) ? menu.children?.some((item) => item.isActive) : menu.expanded
   }
 
-  closeSubMenu = effectAction((origin$: Observable<PacMenuItem>) => {
-    return origin$.pipe(
-      delay(300),
-      tap((item) => {
-        item.expanded = false
-      })
-    )
-  })
+  openSubMenu(item: PacMenuItem) {
+    this.delayClose.update((state) => {
+      if (state[item.link]) {
+        clearTimeout(state[item.link])
+      }
+
+      return {
+        ...state,
+        [item.link]: null
+      }
+    })
+    this.menuOpen.update((state) => ({...state, [item.link]: true}))
+  }
+
+  closeSubMenu(item: PacMenuItem) {
+    this.delayClose.update((state) => {
+      if (state[item.link]) {
+        clearTimeout(state[item.link])
+      }
+      const handler = setTimeout(() => {
+        this.menuOpen.update((state) => ({...state, [item.link]: false}))
+      }, 500) as unknown as number
+
+      return {
+        ...state,
+        [item.link]: handler
+      }
+    })
+  }
+
 }

@@ -15,11 +15,11 @@
 
 <ng-template #editorMenu>
     <div cdkMenu displayDensity="cosy" class="p-2">
-        <button cdkMenuItem class="p-1" (click)="fileUpload.click()">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="fileUpload.click()">
             {{ 'PAC.ACTIONS.Upload' | translate: { Default: 'Upload' } }}
         </button>
       @if (value()) {
-        <button cdkMenuItem class="p-1" ngmAppearance="danger" (click)="remove()">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" ngmAppearance="danger" (click)="remove()">
             {{ 'PAC.ACTIONS.Remove' | translate: { Default: 'Remove' } }}
         </button>
       }

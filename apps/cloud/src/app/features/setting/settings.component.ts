@@ -44,14 +44,6 @@ export class PACSettingComponent {
         icon: 'account_circle'
       },
       {
-        link: 'data-sources',
-        label: 'Data Sources',
-        icon: 'topic',
-        data: {
-          permissionKeys: [AnalyticsPermissionsEnum.DATA_SOURCE_EDIT]
-        }
-      },
-      {
         link: 'copilot',
         label: 'AI Copilot',
         icon: 'psychology',
@@ -67,6 +59,14 @@ export class PACSettingComponent {
         data: {
           featureKey: AiFeatureEnum.FEATURE_COPILOT_KNOWLEDGEBASE,
           permissionKeys: [AIPermissionsEnum.KNOWLEDGEBASE_EDIT]
+        }
+      },
+      {
+        link: 'data-sources',
+        label: 'Data Sources',
+        icon: 'topic',
+        data: {
+          permissionKeys: [AnalyticsPermissionsEnum.DATA_SOURCE_EDIT]
         }
       },
       {

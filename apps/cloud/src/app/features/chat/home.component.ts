@@ -7,7 +7,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { effectAction, NgmDSCoreService, provideOcapCore } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
-import { IntersectionObserverModule } from '@ng-web-apis/intersection-observer'
+import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { format } from 'date-fns/format'
 import { isToday } from 'date-fns/isToday'
@@ -28,6 +28,7 @@ import { ChatToolbarComponent } from './toolbar/toolbar.component'
 import { convertNewSemanticModelResult, NgmSemanticModel, SemanticModelServerService } from '@metad/cloud/state'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import { EmojiAvatarComponent } from '../../@shared/avatar'
+import { A11yModule } from '@angular/cdk/a11y'
 
 @Component({
   standalone: true,
@@ -38,9 +39,10 @@ import { EmojiAvatarComponent } from '../../@shared/avatar'
     RouterModule,
     DragDropModule,
     CdkListboxModule,
+    A11yModule,
     RouterModule,
     TranslateModule,
-    IntersectionObserverModule,
+    WaIntersectionObserver,
     MaterialModule,
     NgmCommonModule,
     EmojiAvatarComponent,

@@ -1,4 +1,5 @@
 import { loadYamlFile } from '@metad/server-core'
+import { Logger } from '@nestjs/common'
 import * as path from 'path'
 
 /**
@@ -8,10 +9,9 @@ import * as path from 'path'
  * @param fileName the YAML file name, default to '_position.yaml'
  * @return a dict with name as key and index as value
  */
-export function getPositionMap(folderPath: string, fileName = '_position.yaml'): Record<string, number> {
-	
+export function getPositionMap(folderPath: string, fileName = '_position.yaml', logger?: Logger): Record<string, number> {
 	const positionFilePath = path.join(folderPath, fileName)
-	const yamlContent = loadYamlFile<string[]>(positionFilePath)
+	const yamlContent = loadYamlFile<string[]>(positionFilePath, logger, true, [])
 	const positions = yamlContent
 		?.filter((item: any) => item && typeof item === 'string' && item.trim())
 		.map((item: string) => item.trim())

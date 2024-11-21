@@ -13,10 +13,10 @@ export class CopilotDto {
 	@Exclude()
 	secretKey?: string
 
-	@Transform(({ value }) => value && new CopilotProviderPublicDto(value))
+	@Transform(({ value, obj }) => value && new CopilotProviderPublicDto(value, obj.baseUrl))
 	modelProvider?: ICopilotProvider
 
-	constructor(partial: Partial<CopilotDto>) {
+	constructor(partial: Partial<CopilotDto>, private baseUrl: string) {
 		Object.assign(this, partial)
 	}
 }

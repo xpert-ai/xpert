@@ -19,6 +19,7 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 		const xpert = await this.service.findOne(id, {
 			relations: ['agent', 'copilotModel', 'copilotModel.copilot', 'agents', 'agents.copilotModel', 'knowledgebases', 'toolsets', 'executors']
 		})
+		const tenantId = xpert.tenantId
 
 		if (draft && xpert.draft) {
 			const draft = xpert.draft
@@ -39,8 +40,8 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 				.filter((_) => _.type === 'xpert' && _.from === agentKey)
 				.map((conn) => draft.nodes.find((_) => _.type === 'xpert' && _.key === conn.to))
 			
-			await this.fillCopilot((<IXpertAgent>agentNode.entity).copilotModel)
-			await this.fillCopilot(draft.team.copilotModel)
+			await this.fillCopilot(tenantId, (<IXpertAgent>agentNode.entity).copilotModel)
+			await this.fillCopilot(tenantId, draft.team.copilotModel)
 			return {
 				...agentNode.entity,
 				toolsetIds: toolNodes.filter(nonNullable).map((node) => node.key),
@@ -56,7 +57,7 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 			const agents = [xpert.agent, ...xpert.agents]
 			const agent = agentKey ? agents.find((_) => _.key === agentKey) : xpert.agent
 			if (agent) {
-				await this.fillCopilot(agent.copilotModel)
+				await this.fillCopilot(tenantId, agent.copilotModel)
 				return {
 					...agent,
 					followers: [xpert.agent, ...xpert.agents].filter((_) => _.leaderKey === agent.key),
@@ -74,9 +75,9 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 	 * 
 	 * @param copilotModel 
 	 */
-	async fillCopilot(copilotModel: ICopilotModel) {
+	async fillCopilot(tenantId: string, copilotModel: ICopilotModel) {
 		if (copilotModel?.copilotId) {
-			copilotModel.copilot = await this.queryBus.execute(new CopilotGetOneQuery(copilotModel.tenantId, copilotModel.copilotId, []))
+			copilotModel.copilot = await this.queryBus.execute(new CopilotGetOneQuery(tenantId, copilotModel.copilotId, []))
 		}
 	}
 }

@@ -1,9 +1,11 @@
+import { AiModelTypeEnum } from '@metad/contracts'
 import { ConfigModule } from '@metad/server-config'
 import { Injectable, Module } from '@nestjs/common'
-import { PROVIDE_AI_MODEL_LLM } from '../../types/types'
 import { ModelProvider } from '../../ai-provider'
+import { PROVIDE_AI_MODEL_LLM } from '../../types/types'
+import { CredentialsValidateFailedError } from '../errors'
 import { DeepseekLargeLanguageModel } from './llm/llm'
-import { DeepseekCredentials } from './types'
+import { DeepseekCredentials, toCredentialKwargs } from './types'
 
 @Injectable()
 export class DeepseekProvider extends ModelProvider {
@@ -12,15 +14,29 @@ export class DeepseekProvider extends ModelProvider {
 	}
 
 	getBaseUrl(credentials: DeepseekCredentials): string {
-		return credentials.endpoint_url
+		const params = toCredentialKwargs(credentials)
+		return params.configuration.baseURL
 	}
 
 	getAuthorization(credentials: DeepseekCredentials): string {
 		return `Bearer ${credentials.api_key}`
 	}
 
-	async validateProviderCredentials(credentials: Record<string, any>): Promise<void> {
-		//
+	async validateProviderCredentials(credentials: DeepseekCredentials): Promise<void> {
+		try {
+			const modelInstance = this.getModelManager(AiModelTypeEnum.LLM)
+
+			// 使用 `deepseek-chat` 模型进行验证，
+			// 无论您传入什么模型，文本补全模型或聊天模型
+			await modelInstance.validateCredentials('deepseek-chat', credentials)
+		} catch (ex) {
+			if (ex instanceof CredentialsValidateFailedError) {
+				throw ex
+			} else {
+				this.logger.error(`${this.getProviderSchema().provider}: credentials verification failed`, ex.stack)
+				throw ex
+			}
+		}
 	}
 }
 

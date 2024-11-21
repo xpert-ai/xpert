@@ -1,10 +1,13 @@
 import { ChatAnthropic } from '@langchain/anthropic'
-import { AIModelEntity, ICopilotModel, AiModelTypeEnum } from '@metad/contracts'
+import { AIModelEntity, AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
 import { sumTokenUsage } from '@metad/copilot'
+import { getErrorMessage } from '@metad/server-common'
 import { Injectable } from '@nestjs/common'
 import { AIModel } from '../../../ai-model'
 import { ModelProvider } from '../../../ai-provider'
 import { TChatModelOptions } from '../../../types/types'
+import { CredentialsValidateFailedError } from '../../errors'
+import { AnthropicCredentials, toCredentialKwargs } from '../types'
 
 @Injectable()
 export class AnthropicLargeLanguageModel extends AIModel {
@@ -12,9 +15,24 @@ export class AnthropicLargeLanguageModel extends AIModel {
 		super(modelProvider, AiModelTypeEnum.LLM)
 	}
 
-	validateCredentials(model: string, credentials: Record<string, any>): Promise<void> {
-		throw new Error('Method not implemented.')
+	async validateCredentials(model: string, credentials: AnthropicCredentials): Promise<void> {
+		try {
+			const chatModel = new ChatAnthropic({
+				...toCredentialKwargs(credentials),
+				model,
+				temperature: 0
+			})
+			await chatModel.invoke([
+				{
+					role: 'human',
+					content: `Hi`
+				}
+			])
+		} catch (err) {
+			throw new CredentialsValidateFailedError(getErrorMessage(err))
+		}
 	}
+
 	protected getCustomizableModelSchemaFromCredentials(
 		model: string,
 		credentials: Record<string, any>
@@ -24,13 +42,13 @@ export class AnthropicLargeLanguageModel extends AIModel {
 
 	getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions) {
 		const { copilot } = copilotModel
+		const { modelProvider } = copilot
 
 		const { handleLLMTokens } = options ?? {}
 
 		const model = copilotModel?.model || copilotModel?.referencedModel?.model || copilot.defaultModel
 		return new ChatAnthropic({
-			anthropicApiUrl: copilot.apiHost || null,
-			apiKey: copilot.apiKey,
+			...toCredentialKwargs(modelProvider.credentials as AnthropicCredentials),
 			model,
 			temperature: 0,
 			maxTokens: undefined,
@@ -40,9 +58,9 @@ export class AnthropicLargeLanguageModel extends AIModel {
 					handleLLMEnd(output) {
 						if (handleLLMTokens) {
 							handleLLMTokens({
-								    copilot,
-								    tokenUsed: output.llmOutput?.totalTokens ?? sumTokenUsage(output)
-								})
+								copilot,
+								tokenUsed: output.llmOutput?.totalTokens ?? sumTokenUsage(output)
+							})
 						}
 					}
 				}

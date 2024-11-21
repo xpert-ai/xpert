@@ -16,7 +16,7 @@ export class OpenAILargeLanguageModel extends CommonOpenAI {
 	}
 
 	async validateCredentials(model: string, credentials: OpenAICredentials): Promise<void> {
-		console.log(model, credentials)
+		// console.log(model, credentials)
 		const params = this.toCredentialKwargs(credentials)
 
 		const chatModel = new ChatOpenAI(params)

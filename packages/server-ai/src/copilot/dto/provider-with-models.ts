@@ -15,8 +15,8 @@ export class ProviderWithModelsDto extends AiProviderDto {
 	@Transform(({ value }) => value && value.map((_) => new PublicAIModelDto(_)))
 	models: ProviderModel[]
 
-	constructor(partial: Partial<ProviderWithModelsDto>) {
-		super(partial)
+	constructor(partial: Partial<ProviderWithModelsDto>, baseUrl: string) {
+		super(partial, baseUrl)
 		Object.assign(this, partial)
 	}
 }

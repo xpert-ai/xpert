@@ -212,7 +212,7 @@ export function loadYamlFile<T>(
 	  }
 	} catch (e) {
 	  if (ignoreError) {
-		logger.debug(`Error loading YAML file: ${e}`);
+		logger?.debug(`Error loading YAML file: ${e}`);
 		return defaultValue;
 	  } else {
 		throw e;

@@ -97,7 +97,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 					event: ChatMessageEventTypeEnum.ON_CONVERSATION_START,
 					data: {
 						id: conversation.id,
-						title: conversation.title
+						title: conversation.title,
+						createdAt: conversation.createdAt,
+						updatedAt: conversation.updatedAt,
 					}
 				}
 			} as MessageEvent)

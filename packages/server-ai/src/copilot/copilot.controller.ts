@@ -16,6 +16,7 @@ import {
 	Post,
 	Query,
 	UseGuards,
+	Inject,
 	UseInterceptors,
 	HttpException,
 	InternalServerErrorException
@@ -29,12 +30,17 @@ import { CopilotService } from './copilot.service'
 import { FindCopilotModelsQuery, ModelParameterRulesQuery } from './queries'
 import { CopilotDto, CopilotWithProviderDto } from './dto'
 import { getErrorMessage } from '@metad/server-common'
+import { ConfigService } from '@metad/server-config'
 
 @ApiTags('Copilot')
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
 export class CopilotController extends CrudController<Copilot> {
+
+	@Inject(ConfigService)
+	private readonly configService: ConfigService
+	
 	constructor(
 		private readonly service: CopilotService,
 		private readonly commandBus: CommandBus,
@@ -52,7 +58,7 @@ export class CopilotController extends CrudController<Copilot> {
 	async findAllAvalibles(filter?: PaginationParams<Copilot>, ...options: any[]): Promise<IPagination<CopilotDto>> {
 		const result = await this.service.findAvalibles(filter)
 		return {
-			items: result.items.map((item) => new CopilotDto(item)),
+			items: result.items.map((item) => new CopilotDto(item, this.configService.get('baseUrl') as string)),
 			total: result.total
 		}
 	}
@@ -120,7 +126,7 @@ export class CopilotController extends CrudController<Copilot> {
 	@Get('providers')
 	async getModelProviders(@Query('type') type: AiModelTypeEnum) {
 		const providers = await this.queryBus.execute<ListModelProvidersQuery, IAiProviderEntity[]>(new ListModelProvidersQuery())
-		return providers.map((_) => new AiProviderDto(_))
+		return providers.map((_) => new AiProviderDto(_, this.configService.get('baseUrl') as string))
 	}
 
 	/**

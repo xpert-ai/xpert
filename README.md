@@ -10,7 +10,7 @@ English | [中文](./README_zh.md)
   </a>
 </p>
 <p align="center">
-  <em>Open-Source AI Platform for Enterprise Data Analysis, Indicator Management and System Orchestration</em>
+  <em>Open-Source AI Platform for Enterprise Data Analysis, Indicator Management and Agents Orchestration</em>
 </p>
 <p align="center">
   <a href="https://github.com/meta-d/ocap/" target="_blank">
@@ -27,7 +27,7 @@ English | [中文](./README_zh.md)
   </a>
 </p>
 
-# Metad Analytics Platform
+# Xpert AI Platform
 
 ## 💡 What's New
 ### Xpert AI
@@ -41,6 +41,29 @@ English | [中文](./README_zh.md)
 [ChatBI](https://mtda.cloud/en/docs/chatbi) is an innovative feature we are introducing, combining chat functionality with business intelligence (BI) analysis capabilities. It offers users a more intuitive and convenient data analysis experience through natural language interaction.
 
 [ChatBI_Demo.mp4](https://github.com/user-attachments/assets/5f7c84be-2307-43cf-8342-bce39524e37d)
+
+## 🚀 Quick Start
+
+> Before installing Xpert, make sure your machine meets the following minimum system requirements:
+> 
+>- CPU >= 2 Core
+>- RAM >= 4 GiB
+
+</br>
+
+The easiest way to start the Xpert server is through [docker compose](docker/docker-compose.yaml). Before running Xpert with the following commands, make sure that [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) are installed on your machine:
+
+```bash
+cd xpert
+cd docker
+cp .env.example .env
+docker compose up -d
+```
+
+After running, you can access the Xpert dashboard in your browser at [http://localhost/onboarding](http://localhost/onboarding) and start the initialization process.
+
+
+Please check our [Wiki - Development](https://github.com/meta-d/ocap/wiki/Development) to get started quickly.
 
 ## 🎯 Mission
 
@@ -192,10 +215,6 @@ Note: thanks to TypeORM, OCAP will support lots of DBs: SQLite (default, for dem
 ## 📄 Documentation
 
 Please refer to our official [Platform Documentation](https://mtda.cloud/en/docs/) and to our [Wiki](https://github.com/meta-d/ocap/wiki) (WIP) or [api references](https://meta-d.github.io/ocap/) for more details.
-
-## 🚀 Quick Start
-
-Please check our [Wiki - Development](https://github.com/meta-d/ocap/wiki/Development) to get started quickly.
 
 ## 💌 Contact Us
 

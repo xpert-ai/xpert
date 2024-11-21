@@ -1476,7 +1476,13 @@
       "CloseSidebar": "关闭边栏",
       "OpenSidebar": "打开边栏",
       "NewChat": "新聊天",
-      "MessageDigitalExpert": "提问数字专家"
+      "MessageDigitalExpert": "提问数字专家",
+      "Event_on_agent_start": "智能体开始",
+      "Event_on_agent_end": "智能体结束",
+      "Event_on_tool_start": "调用工具开始",
+      "Event_on_tool_end": "调用工具结束",
+      "Event_on_retriever_start": "知识检索开始",
+      "Event_on_retriever_end": "知识检索结束"
     },
     "ChatBI": {
       "Title": "ChatBI-数据分析与洞察",

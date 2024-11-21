@@ -12,7 +12,7 @@ import { NgmHighlightDirective, NgmSearchComponent } from '@metad/ocap-angular/c
 import { NgmDensityDirective, NgmI18nPipe, nonBlank } from '@metad/ocap-angular/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { debounceTime } from 'rxjs'
+import { debounceTime, map } from 'rxjs'
 import { TranslateModule } from '@ngx-translate/core'
 import { ICopilot, ICopilotModel, ModelFeature, AiModelTypeEnum, PACCopilotService, CopilotServerService } from '../../../@core'
 
@@ -63,7 +63,14 @@ export class CopilotModelSelectComponent {
   // States
   readonly _copilotModel = computed(() => this.copilotModel() ?? this.inheritModel())
 
-  readonly copilotWithModels = derivedAsync(() => this.copilotServer.getCopilotModels(this.modelType()))
+  readonly copilotWithModels = derivedAsync(() => this.copilotServer.getCopilotModels(this.modelType()).pipe(
+      map((copilots) => {
+        return copilots?.sort((a, b) => {
+          const roleOrder = { primary: 0, secondary: 1, embedding: 2 };
+          return roleOrder[a.role] - roleOrder[b.role];
+        })
+      })
+    ))
   readonly copilotWithModels$ = toObservable(this.copilotWithModels)
 
   readonly searchControl = new FormControl()
