@@ -33,7 +33,7 @@ services:
   olap:
     image: registry.cn-hangzhou.aliyuncs.com/metad/ocap-olap:main
     profiles:
-      - demo
+      - bi
     mem_limit: 1024m
     restart: unless-stopped
     healthcheck:
@@ -52,9 +52,7 @@ services:
       - default
 
   api:
-    image: registry.cn-hangzhou.aliyuncs.com/metad/ocap-api-demo:latest
-    profiles:
-      - demo
+    image: registry.cn-hangzhou.aliyuncs.com/metad/xpert-api-demo:latest
     environment:
       HOST: ${API_HOST:-api}
       PORT: ${API_PORT:-3000}
@@ -83,9 +81,7 @@ services:
       - default
 
   webapp:
-    image: registry.cn-hangzhou.aliyuncs.com/metad/ocap-webapp-demo:latest
-    profiles:
-      - demo
+    image: registry.cn-hangzhou.aliyuncs.com/metad/xpert-webapp-demo:latest
     environment:
       HOST: ${WEB_HOST:-webapp}
       NODE_ENV: ${NODE_ENV:-development}
