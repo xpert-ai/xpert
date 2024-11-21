@@ -1,11 +1,13 @@
-// src/openai/openai.service.ts
-
 import { ICopilot } from '@metad/contracts'
 import { AI_PROVIDERS } from '@metad/copilot'
-import { Injectable } from '@nestjs/common'
+import { Injectable, Inject } from '@nestjs/common'
+import { QueryBus } from '@nestjs/cqrs'
 import axios from 'axios'
 import { PassThrough } from 'stream'
-import { CopilotService } from '../copilot'
+import { CopilotGetOneQuery, CopilotService } from '../copilot'
+import { RequestContext } from '@metad/server-core'
+import { CopilotUserService } from '../copilot-user'
+import { CopilotOrganizationService } from '../copilot-organization'
 
 function chatCompletionsUrl(copilot: ICopilot, path?: string) {
 	const apiHost: string = copilot.apiHost || AI_PROVIDERS[copilot.provider]?.apiHost
@@ -15,40 +17,85 @@ function chatCompletionsUrl(copilot: ICopilot, path?: string) {
 
 @Injectable()
 export class AiService {
-	constructor(private readonly copilotService: CopilotService) {}
 
-	async getCopilot() {
-		const result = await this.copilotService.findAll()
-		if (result.total === 0) {
-			throw new Error('No copilot found')
-		}
-		return result.items[0]
-	}
+	@Inject(QueryBus)
+	private readonly queryBus: QueryBus
 
-	async proxyChatCompletionStream(path: string, body: any, headers) {
-		const copilot = await this.getCopilot()
-		const copilotUrl = chatCompletionsUrl(copilot, path)
+	constructor(
+		private readonly copilotService: CopilotService,
+		private readonly copilotUserService: CopilotUserService,
+		private readonly copilotOrganizationService: CopilotOrganizationService,
+	) {}
 
-		const passThrough = new PassThrough()
+	// async getCopilot() {
+	// 	const result = await this.copilotService.findAll()
+	// 	if (result.total === 0) {
+	// 		throw new Error('No copilot found')
+	// 	}
+	// 	return result.items[0]
+	// }
 
-		try {
-			const response = await axios({
-				method: 'POST',
-				url: copilotUrl,
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${copilot.apiKey}`,
-					Accept: headers.accept
-				},
-				data: body,
-				responseType: 'stream'
+	async getCopilot(copilotId: string) {
+		const tenantId = RequestContext.currentTenantId()
+		const userId = RequestContext.currentUserId()
+		const organizationId = RequestContext.getOrganizationId()
+
+		const result = await this.queryBus.execute(new CopilotGetOneQuery(tenantId, copilotId, []))
+
+		// let result = await this.copilotService.findOneByRole(role, null, null)
+		if (result?.enabled) {
+			// Check token usage in organizaiton
+			const usage = await this.copilotUserService.findOneOrFail({
+				where: { userId, orgId: organizationId, provider: result.provider }
 			})
-
-			response.data.pipe(passThrough)
-		} catch (error) {
-			passThrough.emit('error', error)
+			if (usage.success && usage.record.tokenLimit) {
+				if (usage.record.tokenUsed >= usage.record.tokenLimit) {
+					throw new Error('Token usage exceeds limit')
+				}
+			}
 		}
-
-		return passThrough
+		// else {
+		// 	result = await this.copilotService.findTenantOneByRole(role, null)
+		// 	if (!result?.enabled) {
+		// 		throw new Error('No copilot found')
+		// 	}
+		// 	// Check token usage in tenant
+		// 	const usage = await this.copilotOrganizationService.findOneOrFail({
+		// 		where: { organizationId, provider: result.provider }
+		// 	})
+		// 	if (usage.success && usage.record.tokenLimit) {
+		// 		if (usage.record.tokenUsed >= usage.record.tokenLimit) {
+		// 			throw new Error('Token usage exceeds limit')
+		// 		}
+		// 	}
+		// }
+		return result
 	}
+
+	// async proxyChatCompletionStream(path: string, body: any, headers) {
+	// 	const copilot = await this.getCopilot(null)
+	// 	const copilotUrl = chatCompletionsUrl(copilot, path)
+
+	// 	const passThrough = new PassThrough()
+
+	// 	try {
+	// 		const response = await axios({
+	// 			method: 'POST',
+	// 			url: copilotUrl,
+	// 			headers: {
+	// 				'Content-Type': 'application/json',
+	// 				Authorization: `Bearer ${copilot.apiKey}`,
+	// 				Accept: headers.accept
+	// 			},
+	// 			data: body,
+	// 			responseType: 'stream'
+	// 		})
+
+	// 		response.data.pipe(passThrough)
+	// 	} catch (error) {
+	// 		passThrough.emit('error', error)
+	// 	}
+
+	// 	return passThrough
+	// }
 }

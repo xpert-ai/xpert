@@ -26,6 +26,7 @@ export function createLLM<T = BaseChatModel>(
       model: copilot.defaultModel,
       temperature: 0,
       maxRetries: 0,
+      streaming: true,
       ...(clientOptions ?? {}),
       configuration: {
         baseURL: credentials.apiHost ? (credentials.apiHost + `/${copilot.id}`) : AI_PROVIDERS[copilot.provider]?.apiHost || null,

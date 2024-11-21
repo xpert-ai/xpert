@@ -25,7 +25,7 @@ import { MatIconModule } from '@angular/material/icon'
 
 @Component({
   standalone: true,
-  selector: 'ngm-copilot-command-dialog',
+  selector: 'copilot-command-dialog',
   templateUrl: './command-dialog.component.html',
   styleUrls: ['./command-dialog.component.scss'],
   imports: [
@@ -175,6 +175,10 @@ export class CommandDialogComponent {
     }
   }
 
+  stopExecute() {
+    this.#copilotEngine.stopConversation()
+  }
+
   trackByKey(index: number, item: CopilotContextItem) {
     return item?.key
   }
@@ -230,6 +234,10 @@ export class CommandDialogComponent {
 
   repleaceContext(orginal: string, target: CopilotContextItem) {
     this.prompt.update((prompt) => prompt.split(`@${orginal}`).join(`@${target.uKey}`))
+  }
+
+  cancel() {
+    this.dialogRef.close()
   }
 }
 

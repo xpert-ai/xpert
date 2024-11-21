@@ -46,8 +46,10 @@
       [isMobile]="isMobile()"
       [menus]="menus()"
       (clicked)="onMenuClicked($event, isMobile())">
-      <pac-notification class="flex justify-end"/>
-      <pac-tune class="flex justify-end"/>
+      <div class="w-full flex flex-col">
+        <pac-notification class="flex justify-start"/>
+        <pac-tune class="flex justify-start"/>
+      </div>
     </pac-menu>
   </mat-sidenav>
 

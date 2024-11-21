@@ -58,6 +58,7 @@ import {
   catchError,
   debounceTime,
   delay,
+  distinctUntilChanged,
   filter,
   map,
   of,
@@ -507,6 +508,12 @@ export class NgmCopilotChatComponent {
       }
     })
 
+  private roleSub = toObservable(this.copilotService.role).pipe(
+    distinctUntilChanged()
+  ).subscribe(() => {
+    this.clear()
+  })
+
   constructor() {
     effect(
       () => {
@@ -542,10 +549,6 @@ export class NgmCopilotChatComponent {
       if (this.copilotEngine) {
         this.copilotEngine.routeTemplate = this.routeTemplate()
       }
-    })
-
-    effect(() => {
-      console.log(this.roleDetail())
     })
   }
 

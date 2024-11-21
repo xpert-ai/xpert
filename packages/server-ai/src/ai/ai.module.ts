@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common'
+import { CqrsModule } from '@nestjs/cqrs'
 import { RouterModule } from 'nest-router'
 import { CopilotModule } from '../copilot'
 import { CopilotOrganizationModule } from '../copilot-organization/index'
@@ -16,6 +17,7 @@ import { AiService } from './ai.service'
 			}
 		]),
 		TenantModule,
+		CqrsModule,
 		CopilotModule,
 		CopilotUserModule,
 		CopilotOrganizationModule

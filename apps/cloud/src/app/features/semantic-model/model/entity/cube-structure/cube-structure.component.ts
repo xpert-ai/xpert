@@ -414,6 +414,7 @@ export class ModelCubeStructureComponent {
     this._dialog
       .open(CommandDialogComponent, {
         backdropClass: 'bg-transparent',
+        disableClose: true,
         data: {
           commands: ['calculated']
         }

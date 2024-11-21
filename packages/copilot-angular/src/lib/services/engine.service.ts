@@ -599,7 +599,8 @@ export class NgmCopilotEngineService implements CopilotEngine {
           references
         }
       }
-      const streamResults = await graph.stream(
+
+      const eventStream = await graph.streamEvents(
         inputState
           ? {
               ...inputState,
@@ -608,129 +609,221 @@ export class NgmCopilotEngineService implements CopilotEngine {
             }
           : null,
         {
+          version: 'v2',
           configurable: {
-            thread_id: conversation.id
+            thread_id: conversation.id,
+            checkpoint_ns: '',
           },
           recursionLimit: this.aiOptions.recursionLimit ?? AgentRecursionLimit,
           signal: abortController.signal
-        }
-      )
-
+        })
       let verboseContent = ''
-      let end = false
-      try {
-        for await (const output of streamResults) {
-          if (!output?.__end__) {
-            const message = {data: null} as NgmCopilotChatMessage
-            let content = ''
-            Object.entries(output).forEach(
-              ([key, value]: [
-                string,
-                {
-                  messages?: HumanMessage[]
-                  next?: string
-                  instructions?: string
-                  reasoning?: string
-                }
-              ]) => {
-                content += content ? '\n' : ''
-                // Prioritize Routes
-                if (value.next) {
-                  if (value.next === 'FINISH' || value.next === END) {
-                    end = true
-                  } else {
-                    // message.templateRef = this.routeTemplate
-                    message.data = {
-                      type: MessageDataType.Route,
-                      data: {
-                        next: value.next,
-                        instructions: value.instructions,
-                        reasoning: value.reasoning
-                      }
-                    }
-                    content +=
-                      `<b>${key}</b>` +
-                      '\n\n<b>' +
-                      this.#translate.instant('Copilot.Invoke', { Default: 'Invoke' }) +
-                      `</b>: ${value.next}` +
-                      '\n\n<b>' +
-                      this.#translate.instant('Copilot.Instructions', { Default: 'Instructions' }) +
-                      `</b>: ${value.instructions || ''}` +
-                      '\n\n<b>' +
-                      this.#translate.instant('Copilot.Reasoning', { Default: 'Reasoning' }) +
-                      `</b>: ${value.reasoning || ''}`
-                  }
-                } else if (value.messages) {
-                  const _message = value.messages[0]
-                  if (isAIMessage(_message)) {
-                    if (_message.tool_calls?.length > 0) {
-                      message.data = {
-                        type: MessageDataType.ToolsCall,
-                        data: _message.tool_calls.map(({name, args, id}) => ({name, args: JSON.stringify(args), id}))
-                      }
-                    } else if (_message.content) {
-                      if (this.verbose()) {
-                        content += `<b>${key}</b>\n`
-                      }
-                      content += value.messages.map((m) => m.content).join('\n\n')
-                    }
-                  }
-                }
-              }
-            )
-
-            if (content) {
-              if (this.verbose()) {
-                if (verboseContent) {
-                  verboseContent += '\n\n<br>'
-                }
-                verboseContent += '✨ ' + content
-              } else {
-                verboseContent = content
-              }
-            }
-            if (content || message.data) {
+      const eventStack = []
+      for await (const event of eventStream) {
+        
+        switch(event.event) {
+          case('on_chain_start'): {
+            eventStack.push(event.event)
+            break
+          }
+          case('on_chain_end'): {
+            eventStack.pop()
+            if (eventStack.length === 0) {
               this.upsertMessage({
-                ...message,
                 id: assistantId,
-                role: CopilotChatMessageRoleEnum.Assistant,
-                status: 'thinking',
-                content: verboseContent
+                status: 'done'
               })
             }
-            if (abort()) {
-              break
+            break
+          }
+          case('on_tool_start'): {
+            eventStack.push(event.event)
+            console.log(event)
+            this.upsertMessage({
+              id: assistantId,
+              data: {
+                type: MessageDataType.ToolsCall,
+                data: [
+                  {
+                    id: event.run_id,
+                    name: event.name,
+                    args: event.data.input.input
+                  }
+                ]
+              }
+            })
+
+            break
+          }
+          case('on_tool_end'): {
+            eventStack.pop()
+            console.log(event)
+            this.upsertMessage({
+              id: assistantId,
+              data: null
+            })
+            break
+          }
+          case('on_chain_stream'): {
+            if (event.data?.chunk?.agent?.messages?.[0]?.content) {
+              verboseContent += event.data?.chunk.agent.messages[0].content
+            } else {
+              console.log(event)
             }
+            this.upsertMessage({
+                id: assistantId,
+                content: verboseContent
+              })
           }
         }
-      } catch (err: any) {
-        if (err instanceof ToolInputParsingException) {
-          this.#logger.error(err.message, err.output)
-          throw err
-        } else if (err instanceof GraphValueError) {
-          end = true
-        } else {
-          throw err
-        }
+      }
+
+      if (eventStack.length > 0) {
+        this.upsertMessage({
+          id: assistantId,
+          status: 'error'
+        })
       }
 
       this.updateConversation(conversation.id, (conversation) => ({
         ...conversation,
-        status: end ? 'completed' : 'interrupted'
+        status: 'completed' // end ?  : 'interrupted'
       }))
 
-      const lastMessage = this.getMessage(assistantId)
-      if (lastMessage.content || lastMessage.data) {
-        this.upsertMessage({
-          id: assistantId,
-          role: CopilotChatMessageRoleEnum.Assistant,
-          status: end ? 'done' : 'pending'
-        })
-      } else {
-        this.deleteMessage(assistantId)
-      }
+      return verboseContent
 
-      return lastMessage.content
+      // const streamResults = await graph.stream(
+      //   inputState
+      //     ? {
+      //         ...inputState,
+      //         role: this.copilot.rolePrompt(),
+      //         language: this.copilot.languagePrompt()
+      //       }
+      //     : null,
+      //   {
+      //     configurable: {
+      //       thread_id: conversation.id
+      //     },
+      //     recursionLimit: this.aiOptions.recursionLimit ?? AgentRecursionLimit,
+      //     signal: abortController.signal
+      //   }
+      // )
+
+      // let verboseContent = ''
+      // let end = false
+      // try {
+      //   for await (const output of streamResults) {
+      //     if (!output?.__end__) {
+      //       const message = {data: null} as NgmCopilotChatMessage
+      //       let content = ''
+      //       Object.entries(output).forEach(
+      //         ([key, value]: [
+      //           string,
+      //           {
+      //             messages?: HumanMessage[]
+      //             next?: string
+      //             instructions?: string
+      //             reasoning?: string
+      //           }
+      //         ]) => {
+      //           content += content ? '\n' : ''
+      //           // Prioritize Routes
+      //           if (value.next) {
+      //             if (value.next === 'FINISH' || value.next === END) {
+      //               end = true
+      //             } else {
+      //               // message.templateRef = this.routeTemplate
+      //               message.data = {
+      //                 type: MessageDataType.Route,
+      //                 data: {
+      //                   next: value.next,
+      //                   instructions: value.instructions,
+      //                   reasoning: value.reasoning
+      //                 }
+      //               }
+      //               content +=
+      //                 `<b>${key}</b>` +
+      //                 '\n\n<b>' +
+      //                 this.#translate.instant('Copilot.Invoke', { Default: 'Invoke' }) +
+      //                 `</b>: ${value.next}` +
+      //                 '\n\n<b>' +
+      //                 this.#translate.instant('Copilot.Instructions', { Default: 'Instructions' }) +
+      //                 `</b>: ${value.instructions || ''}` +
+      //                 '\n\n<b>' +
+      //                 this.#translate.instant('Copilot.Reasoning', { Default: 'Reasoning' }) +
+      //                 `</b>: ${value.reasoning || ''}`
+      //             }
+      //           } else if (value.messages) {
+      //             const _message = value.messages[0]
+      //             if (isAIMessage(_message)) {
+      //               if (_message.tool_calls?.length > 0) {
+      //                 message.data = {
+      //                   type: MessageDataType.ToolsCall,
+      //                   data: _message.tool_calls.map(({name, args, id}) => ({name, args: JSON.stringify(args), id}))
+      //                 }
+      //               } else if (_message.content) {
+      //                 if (this.verbose()) {
+      //                   content += `<b>${key}</b>\n`
+      //                 }
+      //                 content += value.messages.map((m) => m.content).join('\n\n')
+      //               }
+      //             }
+      //           }
+      //         }
+      //       )
+
+      //       if (content) {
+      //         if (this.verbose()) {
+      //           if (verboseContent) {
+      //             verboseContent += '\n\n<br>'
+      //           }
+      //           verboseContent += '✨ ' + content
+      //         } else {
+      //           verboseContent = content
+      //         }
+      //       }
+      //       if (content || message.data) {
+      //         this.upsertMessage({
+      //           ...message,
+      //           id: assistantId,
+      //           role: CopilotChatMessageRoleEnum.Assistant,
+      //           status: 'thinking',
+      //           content: verboseContent
+      //         })
+      //       }
+      //       if (abort()) {
+      //         break
+      //       }
+      //     }
+      //   }
+      // } catch (err: any) {
+      //   if (err instanceof ToolInputParsingException) {
+      //     this.#logger.error(err.message, err.output)
+      //     throw err
+      //   } else if (err instanceof GraphValueError) {
+      //     end = true
+      //   } else {
+      //     throw err
+      //   }
+      // }
+
+      // this.updateConversation(conversation.id, (conversation) => ({
+      //   ...conversation,
+      //   status: end ? 'completed' : 'interrupted'
+      // }))
+
+      // const lastMessage = this.getMessage(assistantId)
+      // if (lastMessage.content || lastMessage.data) {
+      //   this.upsertMessage({
+      //     id: assistantId,
+      //     role: CopilotChatMessageRoleEnum.Assistant,
+      //     status: end ? 'done' : 'pending'
+      //   })
+      // } else {
+      //   this.deleteMessage(assistantId)
+      // }
+
+      // return lastMessage.content
     } catch (err: any) {
       console.error(err)
       this.upsertMessage({
@@ -1023,6 +1116,12 @@ export class NgmCopilotEngineService implements CopilotEngine {
       }
     } catch (err: any) {
       throw new Error('Error: ' + err.message)
+    }
+  }
+
+  stopConversation() {
+    if (this.currentConversation().abortController && !this.currentConversation().abortController.signal.aborted) {
+      this.currentConversation().abortController.abort()
     }
   }
 }

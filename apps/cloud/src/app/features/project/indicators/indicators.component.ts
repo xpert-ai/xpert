@@ -202,6 +202,7 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
     this._dialog
       .open(CommandDialogComponent, {
         backdropClass: 'bg-transparent',
+        disableClose: true,
         data: {
           commands: ['indicator']
         }

@@ -1,7 +1,7 @@
 <ul class="flex flex-col gap-1">
   @for (item of menus(); track $index) {
-    <li>
-      <div class="pac-router-link flex justify-start items-center rounded-lg cursor-pointer"
+    <li class="flex flex-col items-center">
+      <div class="pac-router-link w-full shrink-0 flex justify-start items-center rounded-lg cursor-pointer"
         [class.has-submenu]="item.children"
         [routerLink]="item.children ? null : item.link"
         routerLinkActive
@@ -10,42 +10,66 @@
         (click)="item.expanded=!isActive(item)"
       >
         @if (isCollapsed) {
-          <button type="button" class="menu-button w-12 h-12 flex justify-center items-center p-2 leading-4 rounded-xl opacity-80 hover:opacity-100 hover:scale-110 transition-all duration-200 hover:bg-hover-bg"
-            [matTooltip]="item.title"
-            matTooltipPosition="right"
-            [cdkMenuTriggerFor]="isCollapsed && item.children ? subMenus : null"
+          <button type="button" class="menu-button shrink-0 w-12 h-12 flex justify-center items-center p-2 leading-4 rounded-xl opacity-80 hover:opacity-100 hover:scale-110 transition-all duration-200 hover:bg-hover-bg"
             [routerLink]="isCollapsed ? item.link : null"
             routerLinkActive
             #rla="routerLinkActive"
             [class.active]="rla.isActive"
+
+            [matTooltip]="item.title"
+            matTooltipPosition="right"
+            [matTooltipDisabled]="!!item.children?.length"
+
+            (mouseover)="item.children?.length && item.expanded = true"
+            (mouseout)="item.children?.length && closeSubMenu(item)"
+             cdkOverlayOrigin
+             #subMenuTrigger="cdkOverlayOrigin"
           >
             <mat-icon fontSet="material-icons-round">{{ item.matIcon }}</mat-icon>
           </button>
+
+          @if (item.children?.length) {
+
+            <ng-template #connectedOverlay="cdkConnectedOverlay"
+              cdkConnectedOverlay
+              [cdkConnectedOverlayOrigin]="subMenuTrigger"
+              [cdkConnectedOverlayOpen]="item.expanded"
+              [cdkConnectedOverlayOffsetY]="-5"
+              [cdkConnectedOverlayPositions]="[
+                {
+                  originX: 'end',
+                  originY: 'center',
+                  overlayX: 'start',
+                  overlayY: 'bottom'
+                },
+              ]"
+            >
+              <div class="flex flex-col p-2 bg-components-panel-bg rounded-xl shadow-sm border-light">
+                @for (child of item.children; track $index) {
+                  @if (!child.hidden) {
+                    <button class="p-2 rounded-lg hover:bg-hover-bg"
+                      [routerLink]="child.link"
+                      routerLinkActive [routerLinkActiveOptions]="{ exact: true }"
+                      #rla="routerLinkActive"
+                      (isActiveChange)="child.isActive = $event"
+                      [class.active]="rla.isActive"
+                      (click)="clicked.emit()"
+                    >
+                      <div class="flex items-center">
+                        @if (child.matIcon) {
+                          <mat-icon fontSet="material-icons-round" class="text-text-secondary mr-2">{{ child.matIcon }}</mat-icon>
+                        }
+                        <span>{{ child.title }}</span>
+                      </div>
+                    </button>
+                  }
+                }
+              </div>
+            </ng-template>
+          }
         } @else if (item.matIcon) {
           <mat-icon displayDensity="cosy" fontSet="material-icons-round">{{ item.matIcon }}</mat-icon>
         }
-
-        <ng-template #subMenus>
-          <div cdkMenu class="ngm-cdk-menu p-2">
-            @for (child of item.children; track $index) {
-              @if (!child.hidden) {
-                <button cdkMenuItem class="p-2 rounded-lg"
-                  [routerLink]="child.link"
-                  routerLinkActive [routerLinkActiveOptions]="{ exact: true }"
-                  #rla="routerLinkActive"
-                  (isActiveChange)="child.isActive = $event"
-                  [class.active]="rla.isActive"
-                  (click)="clicked.emit()"
-                >
-                  @if (child.matIcon) {
-                    <mat-icon fontSet="material-icons-round" class="mr-2">{{ child.matIcon }}</mat-icon>
-                  }
-                  <span>{{ child.title }}</span>
-                </button>
-              }
-            }
-          </div>
-        </ng-template>
 
         @if (!isCollapsed) {
           <span class="flex-1 ml-3">{{ item.title }}</span>
@@ -61,7 +85,7 @@
       </div>
 
       @if (!isCollapsed && item.children) {
-        <ul class="pac-sub-menu flex flex-col ml-3 mt-1" [class.expanded]="isActive(item)"
+        <ul class="pac-sub-menu w-full flex flex-col ml-3 mt-1" [class.expanded]="isActive(item)"
           [class.gap-1]="isActive(item)"
         >
           @for (child of item.children; track $index) {

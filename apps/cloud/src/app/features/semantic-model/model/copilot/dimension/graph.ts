@@ -14,7 +14,7 @@ import { injectCreateDimensionTool, injectCreateHierarchyTool } from './tools'
 import { DimensionCommandName, timeLevelFormatter } from './types'
 
 export const CreateDimensionSystemPrompt =
-  `You are a cube modeling expert. Let's create a shared dimension for cube!` +
+  `You are a cube modeling expert. Let's directly call the tool to create a shared dimension for the cube!` +
   ` If the user does not provide a dimension table, use 'selectTables' tool to get the table, and then select a table related to the requirement to create a dimension.` +
   ` If the user does not provide the table field information, use the 'queryTables' tool to obtain the table field structure.` +
   ` If the user wants to add an analysis scenario for the current dimension, please call 'createHierarchy' to add the corresponding hierarchy of the dimension.` +

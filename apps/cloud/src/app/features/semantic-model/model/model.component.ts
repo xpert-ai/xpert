@@ -377,6 +377,7 @@ export class ModelComponent extends TranslationBaseComponent implements IsDirty 
     this._dialog
       .open(CommandDialogComponent, {
         backdropClass: 'bg-transparent',
+        disableClose: true,
         data: {
           commands: ['dimension', 'cube', 'table']
         }

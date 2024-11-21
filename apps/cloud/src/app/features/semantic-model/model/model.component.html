@@ -275,23 +275,23 @@
     
 
 <ng-template #mobileMenu>
-    <div cdkMenu>
-        <button cdkMenuItem [cdkMenuTriggerFor]="generalMenu" class="relative">
+    <div cdkMenu class="p-2">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="generalMenu" class="relative">
             <span>{{ 'PAC.KEY_WORDS.GENERAL' | translate: {Default: "General"} }}</span>
             <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
           @if (isDirty()) {
             <pac-dirty-badge class="absolute left-2 top-2"/>
           }
         </button>
-        <button cdkMenuItem [cdkMenuTriggerFor]="editMenu">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="editMenu">
             <span>{{ 'PAC.KEY_WORDS.EDIT' | translate: {Default: "Edit"} }}</span>
             <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
         </button>
-        <button cdkMenuItem [cdkMenuTriggerFor]="dataMenu">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="dataMenu">
             <span>{{ 'PAC.KEY_WORDS.DATA' | translate: {Default: "Data"} }}</span>
             <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
         </button>
-        <button cdkMenuItem [cdkMenuTriggerFor]="manageMenu">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="manageMenu">
             <span>{{ 'PAC.KEY_WORDS.Management' | translate: {Default: "Management"} }}</span>
             <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
         </button>
@@ -299,24 +299,24 @@
 </ng-template>
 
 <ng-template #generalMenu>
-    <div cdkMenu>
-        <button cdkMenuItem [disabled]="!isDirty()" (click)="saveModel()">
+    <div cdkMenu class="p-2">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" [disabled]="!isDirty()" (click)="saveModel()">
             <mat-icon fontSet="material-icons-outlined" [color]="isDirty() ?'accent':''">save</mat-icon>
-            <span>{{ 'PAC.ACTIONS.SAVE' | translate: {Default: "Save"} }}</span>
+            <span class="ml-2">{{ 'PAC.ACTIONS.SAVE' | translate: {Default: "Save"} }}</span>
         </button>
 
-        <button cdkMenuItem (click)="openPreferences($event)">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="openPreferences($event)">
             <mat-icon fontSet="material-icons-outlined">settings_suggest</mat-icon>
-            {{ 'PAC.KEY_WORDS.PREFERENCES' | translate: {Default: "Preferences"} }}
+            <span class="ml-2">{{ 'PAC.KEY_WORDS.PREFERENCES' | translate: {Default: "Preferences"} }}</span>
         </button>
 
-        <button cdkMenuItem (click)="onDownload()">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="onDownload()">
             <mat-icon fontSet="material-icons-outlined">file_download</mat-icon>
-            {{ 'PAC.ACTIONS.Download' | translate: {Default: 'Download'} }}
+            <span class="ml-2">{{ 'PAC.ACTIONS.Download' | translate: {Default: 'Download'} }}</span>
         </button>
 
         <mat-divider></mat-divider>
-        <button cdkMenuItem [cdkMenuTriggerFor]="storyMenu" class="flex justify-between items-center">
+        <button cdkMenuItem class="flex justify-between items-center px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="storyMenu">
             <span>
                 {{ 'PAC.MENU.STORY_LIST' | translate: {Default: "Story List"} }}
             </span>
@@ -326,28 +326,28 @@
 </ng-template>
 
 <ng-template #editMenu>
-    <div cdkMenu>
-        <button cdkMenuItem (click)="undo()">
+    <div cdkMenu class="p-2">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="undo()">
             <mat-icon fontSet="material-icons-outlined">undo</mat-icon>
-            {{ 'PAC.KEY_WORDS.Undo' | translate: {Default: "Undo"} }}
+            <span class="ml-2">{{ 'PAC.KEY_WORDS.Undo' | translate: {Default: "Undo"} }}</span>
         </button>
-        <button cdkMenuItem (click)="redo()">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="redo()">
             <mat-icon fontSet="material-icons-outlined">redo</mat-icon>
-            {{ 'PAC.KEY_WORDS.Redo' | translate: {Default: "Redo"} }}
+            <span class="ml-2">{{ 'PAC.KEY_WORDS.Redo' | translate: {Default: "Redo"} }}</span>
         </button>
 
-        <button cdkMenuItem (click)="createStory()">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="createStory()">
             <mat-icon fontSet="material-icons-outlined">auto_stories</mat-icon>
-            {{ 'PAC.ACTIONS.CREATE_STORY' | translate: {Default: "Create Story"} }}
+            <span class="ml-2">{{ 'PAC.ACTIONS.CREATE_STORY' | translate: {Default: "Create Story"} }}</span>
         </button>
-        <button cdkMenuItem (click)="createIndicator()">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="createIndicator()">
             <mat-icon fontSet="material-icons-outlined">trending_up</mat-icon>
-            {{ 'PAC.ACTIONS.CreateIndicator' | translate: {Default: "Create Indicator"} }}
+            <span class="ml-2">{{ 'PAC.ACTIONS.CreateIndicator' | translate: {Default: "Create Indicator"} }}</span>
         </button>
     
-        <button cdkMenuItem (click)="reset()">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="reset()">
             <mat-icon fontSet="material-icons-outlined">restart_alt</mat-icon>
-            {{ 'PAC.MODEL.Reset' | translate: {Default: "Reset"} }}
+            <span class="ml-2">{{ 'PAC.MODEL.Reset' | translate: {Default: "Reset"} }}</span>
         </button>
     
         <!-- <button mat-menu-item>
@@ -367,39 +367,39 @@
 </ng-template>
 
 <ng-template #dataMenu>
-    <div cdkMenu>
+    <div cdkMenu class="p-2">
         <!-- <button mat-menu-item>
             <mat-icon fontSet="material-icons-outlined">code</mat-icon>
             {{ 'PAC.KEY_WORDS.VARIABLES' | translate: {Default: "Variables"} }}
         </button> -->
         
-        <button cdkMenuItem (click)="refreshSchema()">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="refreshSchema()">
             <mat-icon fontSet="material-icons-outlined">model_training</mat-icon>
-            {{ 'PAC.ACTIONS.REFRESH_DATA_SOURCE_SCHEMA' | translate: {Default: "Refresh Data Source Schema"} }}
+            <span class="ml-2">{{ 'PAC.ACTIONS.REFRESH_DATA_SOURCE_SCHEMA' | translate: {Default: "Refresh Data Source Schema"} }}</span>
         </button>
 
-        <button cdkMenuItem [disabled]="clearingServerCache" (click)="clearServerCache()">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" [disabled]="clearingServerCache" (click)="clearServerCache()">
             <mat-icon fontSet="material-icons-outlined">clear_all</mat-icon>
-            {{ 'PAC.MODEL.ClearServerCache' | translate: {Default: "Clear Server Cache"} }}
+            <span class="ml-2">{{ 'PAC.MODEL.ClearServerCache' | translate: {Default: "Clear Server Cache"} }}</span>
         </button>
 
-        <button cdkMenuItem [routerLink]="['./member-retriever']">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" [routerLink]="['./member-retriever']">
             <mat-icon fontSet="material-icons-outlined">tag</mat-icon>
-            {{ 'PAC.KEY_WORDS.MemberRetriever' | translate: {Default: "Member Retriever"} }}
+            <span class="ml-2">{{ 'PAC.KEY_WORDS.MemberRetriever' | translate: {Default: "Member Retriever"} }}</span>
         </button>
     </div>
 </ng-template>
 
 <ng-template #storyMenu>
-    <div cdkMenu>
-        <button cdkMenuItem (click)="createStory()">
+    <div cdkMenu class="p-2">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="createStory()">
             <mat-icon fontSet="material-icons-outlined">dashboard</mat-icon>
-            {{ 'PAC.ACTIONS.CREATE_STORY' | translate: {Default: "Create Story"} }}
+            <span class="ml-2">{{ 'PAC.ACTIONS.CREATE_STORY' | translate: {Default: "Create Story"} }}</span>
         </button>
     
         <mat-divider></mat-divider>
     
-        <button cdkMenuItem *ngFor="let story of stories$ | async"
+        <button cdkMenuItem *ngFor="let story of stories$ | async" class="px-2 py-1 rounded-lg"
             (click)="openStory(story.id)">
             {{story.name}}
         </button>
@@ -407,34 +407,34 @@
 </ng-template>
 
 <ng-template #manageMenu>
-    <div cdkMenu>
-        <button cdkMenuItem [routerLink]="['.']">
+    <div cdkMenu class="p-2">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" [routerLink]="['.']">
             <mat-icon fontSet="material-icons-outlined">hub</mat-icon>
-            {{ 'PAC.MODEL.ModelOverview' | translate: {Default: "Model Overview"} }}
+            <span class="ml-2">{{ 'PAC.MODEL.ModelOverview' | translate: {Default: "Model Overview"} }}</span>
         </button>
     
-        <button cdkMenuItem [routerLink]="['./admin']">
+        <button cdkMenuItem class="px-2 py-1 rounded-lg" [routerLink]="['./admin']">
             <mat-icon fontSet="material-icons-outlined">admin_panel_settings</mat-icon>
-            {{ 'PAC.KEY_WORDS.Admin' | translate: {Default: "Admin"} }}
+            <span class="ml-2">{{ 'PAC.KEY_WORDS.Admin' | translate: {Default: "Admin"} }}</span>
         </button>
     
-        <button cdkMenuItem *ngIf="isOlap$()" [routerLink]="['./access']">
+        <button cdkMenuItem *ngIf="isOlap$()" [routerLink]="['./access']" class="px-2 py-1 rounded-lg">
             <mat-icon fontSet="material-icons-outlined">manage_accounts</mat-icon>
-            {{ 'PAC.MODEL.AccessControl.Title' | translate: {Default: "Access Control"} }}
+            <span class="ml-2">{{ 'PAC.MODEL.AccessControl.Title' | translate: {Default: "Access Control"} }}</span>
         </button>
     </div>
 </ng-template>
 
 <mat-menu #entityMenu="matMenu" class="ngm-density__compact">
     <ng-template matMenuContent let-entity="entity">
-        <button mat-menu-item *ngIf="entity.type === SemanticModelEntityType.CUBE"
+        <button mat-menu-item *ngIf="entity.type === SemanticModelEntityType.CUBE" class="px-2 py-1 rounded-lg"
             (click)="saveAsDefaultCube(entity.name)">
             <mat-icon fontSet="material-icons-outlined">stars</mat-icon>
-            <span>{{ 'PAC.MODEL.SaveAsDefaultCube' | translate: {Default: "Save as Default Cube"} }}</span>
+            <span class="ml-2">{{ 'PAC.MODEL.SaveAsDefaultCube' | translate: {Default: "Save as Default Cube"} }}</span>
         </button>
-        <button mat-menu-item class="ngm-appearance-danger" (click)="deleteEntity(entity.id)">
+        <button mat-menu-item class="ngm-appearance-danger px-2 py-1 rounded-lg" (click)="deleteEntity(entity.id)">
             <mat-icon fontSet="material-icons-round">delete_forever</mat-icon>
-            <span>{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
+            <span class="ml-2">{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
         </button>
     </ng-template>
 </mat-menu>

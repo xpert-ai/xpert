@@ -172,6 +172,8 @@ export interface CopilotEngine {
     input: string,
     options: { command: CopilotCommand; context: CopilotContext }
   ): Promise<SuggestionOutput>
+
+  stopConversation(): void
 }
 
 export const SuggestionOutputTool = tool((_) => '补全用户提示语', {

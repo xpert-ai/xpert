@@ -197,13 +197,13 @@ export class ModelDimensionComponent extends TranslationBaseComponent implements
     this.dialog
       .open(CommandDialogComponent, {
         backdropClass: 'bg-transparent',
+        disableClose: true,
         data: {
           commands: ['hierarchy']
         }
       })
       .afterClosed()
       .subscribe((result) => {})
-    // this.dimensionService.newHierarchy(null)
   }
 
   duplicateHierarchy(key: string) {

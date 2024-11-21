@@ -1,6 +1,3 @@
-import { AiProviderRole, ICopilot } from '@metad/contracts'
-import { AI_PROVIDERS } from '@metad/copilot'
-import { RequestContext } from '@metad/server-core'
 import {
 	Body,
 	Controller,
@@ -13,20 +10,15 @@ import {
 	Logger,
 	Param,
 	Post,
-	Res
+	Res,
 } from '@nestjs/common'
+import { QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { ServerResponse } from 'http'
 import { CopilotService } from '../copilot'
-import { CopilotOrganizationService } from '../copilot-organization/index'
-import { CopilotUserService } from '../copilot-user/index'
 import { AiService } from './ai.service'
+import { GetAiProviderCredentialsQuery } from '../copilot-provider/queries'
 
-function chatCompletionsUrl(copilot: ICopilot, path?: string) {
-	const apiHost: string = copilot.apiHost || AI_PROVIDERS[copilot.provider]?.apiHost
-	const chatCompletionsUrl: string = AI_PROVIDERS[copilot.provider]?.chatCompletionsUrl
-	return (apiHost?.endsWith('/') ? apiHost.slice(0, apiHost.length - 1) : apiHost) + (path ?? chatCompletionsUrl)
-}
 
 @ApiTags('AI/Chat')
 @ApiBearerAuth()
@@ -37,58 +29,57 @@ export class AIController {
 	constructor(
 		private readonly aiService: AiService,
 		private readonly copilotService: CopilotService,
-		private readonly copilotUserService: CopilotUserService,
-		private readonly copilotOrganizationService: CopilotOrganizationService
+		private readonly queryBus: QueryBus
 	) {}
 
-	@ApiOperation({ summary: 'Chat with AI provider apis' })
-	@ApiResponse({
-		status: HttpStatus.CREATED,
-		description: 'Success!'
-	})
-	@ApiResponse({
-		status: HttpStatus.BAD_REQUEST,
-		description: 'Invalid input, The response body may contain clues as to what went wrong'
-	})
-	@HttpCode(HttpStatus.CREATED)
-	@Post('chat')
-	async chat(@Headers() headers, @Body() body: any, @Res() resp: ServerResponse) {
-		const result = await this.copilotService.findAll()
-		if (result.total === 0) {
-			throw new Error('No copilot found')
-		}
+// 	@ApiOperation({ summary: 'Chat with AI provider apis' })
+// 	@ApiResponse({
+// 		status: HttpStatus.CREATED,
+// 		description: 'Success!'
+// 	})
+// 	@ApiResponse({
+// 		status: HttpStatus.BAD_REQUEST,
+// 		description: 'Invalid input, The response body may contain clues as to what went wrong'
+// 	})
+// 	@HttpCode(HttpStatus.CREATED)
+// 	@Post('chat')
+// 	async chat(@Headers() headers, @Body() body: any, @Res() resp: ServerResponse) {
+// 		const result = await this.copilotService.findAll()
+// 		if (result.total === 0) {
+// 			throw new Error('No copilot found')
+// 		}
 
-		const copilot = result.items[0]
-		const copilotUrl = chatCompletionsUrl(copilot)
-		try {
-			const response = await fetch(copilotUrl, {
-				method: 'POST',
-				body: JSON.stringify(body),
-				headers: {
-					'content-type': 'application/json',
-					authorization: `Bearer ${copilot.apiKey}`,
-					accept: headers.accept
-				}
-			})
+// 		const copilot = result.items[0]
+// 		const copilotUrl = '' //chatCompletionsUrl(copilot)
+// 		try {
+// 			const response = await fetch(copilotUrl, {
+// 				method: 'POST',
+// 				body: JSON.stringify(body),
+// 				headers: {
+// 					'content-type': 'application/json',
+// 					authorization: `Bearer ${copilot.apiKey}`,
+// 					accept: headers.accept
+// 				}
+// 			})
 
-			if (!resp.headersSent) {
-				await streamToResponse(response, resp, { status: response.status })
-			}
-		} catch (error) {
-			this.#logger.error(`Try to call ai api '${copilotUrl}' with body:
-\`\`\`
-${JSON.stringify(body)}
-\`\`\`
-failed: ${error.message}`)
-			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
-		}
-	}
+// 			if (!resp.headersSent) {
+// 				await streamToResponse(response, resp, { status: response.status })
+// 			}
+// 		} catch (error) {
+// 			this.#logger.error(`Try to call ai api '${copilotUrl}' with body:
+// \`\`\`
+// ${JSON.stringify(body)}
+// \`\`\`
+// failed: ${error.message}`)
+// 			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
+// 		}
+// 	}
 
-	@Get('proxy/:role/:m')
-	async proxyGetModule(@Param('role') role: AiProviderRole, @Param('m') m: string, @Headers() headers) {
+	@Get('proxy/:copilotId/:m')
+	async proxyGetModule(@Param('copilotId') copilotId: string, @Param('m') m: string, @Headers() headers) {
 		const path = '/' + m
-		const copilot = await this.getCopilot(role)
-		const copilotUrl = chatCompletionsUrl(copilot, path)
+		const copilot = await this.aiService.getCopilot(copilotId)
+		const copilotUrl = path // chatCompletionsUrl(copilot, path)
 		try {
 			const response = await fetch(copilotUrl, {
 				method: 'GET',
@@ -106,20 +97,21 @@ failed: ${error.message}`)
 			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
 		}
 	}
-	@Post('proxy/:role/:m')
+	@Post('proxy/:copilotId/:m')
 	async proxyModule(
-		@Param('role') role: AiProviderRole,
+		@Param('copilotId') copilotId: string,
 		@Param('m') m: string,
 		@Headers() headers,
 		@Body() body: any,
 		@Res() resp: ServerResponse
 	) {
 		const path = '/' + m
-		return await this.proxy(role, path, headers, body, resp)
+		return await this.proxy(copilotId, path, headers, body, resp)
 	}
-	@Post('proxy/:role/:m/:f')
+
+	@Post('proxy/:copilotId/:m/:f')
 	async proxyModuleFun(
-		@Param('role') role: AiProviderRole,
+		@Param('copilotId') copilotId: string,
 		@Param('m') m: string,
 		@Param('f') f: string,
 		@Headers() headers,
@@ -127,20 +119,18 @@ failed: ${error.message}`)
 		@Res() resp: ServerResponse
 	) {
 		const path = '/' + m + (f ? '/' + f : '')
-
-		// const stream = await this.aiService.proxyChatCompletionStream(path, body, headers);
-		// resp.setHeader('Content-Type', 'application/json');
-		// stream.pipe(resp);
-
-		return await this.proxy(role, path, headers, body, resp)
+		await this.proxy(copilotId, path, headers, body, resp)
 	}
 
-	async proxy(role: AiProviderRole, path: string, headers: any, body: any, resp: ServerResponse) {
+	async proxy(copilotId: string, path: string, headers: any, body: any, resp: ServerResponse) {
 		let copilot = null
 		let copilotUrl = null
+		let _authorization = null
 		try {
-			copilot = await this.getCopilot(role)
-			copilotUrl = chatCompletionsUrl(copilot, path)
+			copilot = await this.aiService.getCopilot(copilotId)
+			const { baseURL, authorization } = await this.queryBus.execute(new GetAiProviderCredentialsQuery(copilot.modelProvider))
+			copilotUrl = `${baseURL}${path}`
+			_authorization = authorization
 		} catch (err) {
 			throw new ForbiddenException(err.message)
 		}
@@ -151,26 +141,42 @@ failed: ${error.message}`)
 				body: JSON.stringify(body),
 				headers: {
 					'content-type': 'application/json',
-					authorization: `Bearer ${copilot.apiKey}`,
+					authorization: _authorization,
 					accept: headers.accept
 				}
 			})
 
-			// if (body.stream) {
 			if (!resp.headersSent) {
-				await streamToResponse(response, resp, {
-					status: response.status,
-					headers: {
-						'content-type': response.headers.get('content-type') || 'application/json'
-					}
-				})
-			}
-			// } else {
-			// 	const result = await response.json()
+				const headers = {
+					'content-type': response.headers.get('content-type'),
+					'cache-control': 'no-cache',
+					'connection': 'keep-alive',
+				}
+				if (response.headers.get('transfer-encoding')) {
+					headers['transfer-encoding'] = response.headers.get('transfer-encoding')
+				}
+				if (response.headers.get('access-control-allow-origin')) {
+					headers['access-control-allow-origin'] = response.headers.get('access-control-allow-origin')
+				}
 
-			// 	resp.write(JSON.stringify(result))
-			// 	resp.end()
-			// }
+				resp.writeHead(response.status, headers)
+			}
+			const reader = response.body.getReader()
+
+			const decoder = new TextDecoder()
+			const read = async () => {
+				const { done, value } = await reader.read()
+				if (done) {
+					resp.end()
+					return
+				}
+				if (value) {
+					const text = decoder.decode(value, { stream: true })
+					resp.write(text)
+				}
+				await read()
+			}
+			await read()
 		} catch (error) {
 			this.#logger.error(`Try to call ai api '${copilotUrl}' with body:
 \`\`\`
@@ -180,63 +186,4 @@ failed: ${error.message}`)
 			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
 		}
 	}
-
-	async getCopilot(role: AiProviderRole) {
-		const userId = RequestContext.currentUserId()
-		const organizationId = RequestContext.getOrganizationId()
-		let result = await this.copilotService.findOneByRole(role, null, null)
-		if (result?.enabled) {
-			// Check token usage in organizaiton
-			const usage = await this.copilotUserService.findOneOrFail({
-				where: { userId, orgId: organizationId, provider: result.provider }
-			})
-			if (usage.success && usage.record.tokenLimit) {
-				if (usage.record.tokenUsed >= usage.record.tokenLimit) {
-					throw new Error('Token usage exceeds limit')
-				}
-			}
-		} else {
-			result = await this.copilotService.findTenantOneByRole(role, null)
-			if (!result?.enabled) {
-				throw new Error('No copilot found')
-			}
-			// Check token usage in tenant
-			const usage = await this.copilotOrganizationService.findOneOrFail({
-				where: { organizationId, provider: result.provider }
-			})
-			if (usage.success && usage.record.tokenLimit) {
-				if (usage.record.tokenUsed >= usage.record.tokenLimit) {
-					throw new Error('Token usage exceeds limit')
-				}
-			}
-		}
-		return result
-	}
-}
-
-/**
- * A utility function to stream a ReadableStream to a Node.js response-like object.
- */
-export async function streamToResponse(
-	res: Response,
-	response: ServerResponse,
-	init?: { headers?: Record<string, string>; status?: number }
-) {
-	response.writeHead(init?.status || 200, {
-		...(init?.headers ?? {})
-	})
-
-	const reader = res.body.getReader()
-	async function read() {
-		const { done, value } = await reader.read()
-		if (done) {
-			response.end()
-			return
-		}
-		if (value) {
-			response.write(value)
-		}
-		await read()
-	}
-	await read()
 }

@@ -1,9 +1,16 @@
-<h2 mat-dialog-title>
+<h2 mat-dialog-title class="flex items-center justify-between">
   <mat-chip-listbox hideSingleSelectionIndicator [(ngModel)]="commandName" required color="basic">
     @for (command of data.commands; track command) {
       <mat-chip-option [value]="command">/{{command}}</mat-chip-option>
     }
   </mat-chip-listbox>
+
+  <div class="flex-1"></div>
+
+  <button type="button" class="pressable cursor-pointer text-text-secondary hover:bg-hover-bg rounded-full p-1"
+    (click)="cancel()"
+  ><i class="ri-close-circle-line w-6 h-6 block"></i>
+  </button>
 </h2>
 <mat-dialog-content class="relative">
   @if (contexts().length) {
@@ -65,8 +72,9 @@
     <mat-progress-bar class="absolute left-0 right-0 bottom-0" mode="buffer"></mat-progress-bar>
   }
 </mat-dialog-content>
+
 <mat-dialog-actions>
-  <button class="ngm-copilot-command-button ai-generate w-full" mat-flat-button color="accent"
+  <button class="ngm-copilot-command-button ai-generate flex-1" mat-flat-button color="accent"
     [disabled]="copilotEnabled() && (creating() || promptEmpty())"
     (click)="execute()">
   @if (copilotEnabled()) {
@@ -87,7 +95,7 @@
     <div class="inline-flex gap-2 items-center rounded-md px-2 py-0 bg-white/10">
       <span>{{ctrlKey}}</span>
 
-      <svg class="inline-block" xmlns="http://www.w3.org/2000/svg" data-name="Layer 1" viewBox="0 0 100 100" width="20px" height="20px" x="0px" y="0px">
+      <svg class="inline-block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="20px" height="20px" x="0px" y="0px">
         <path fill="currentColor" d="M74,50V24H68V50a5,5,0,0,1-5,5H36.24l11-11L43,39.76,26.88,55.88a3,3,0,0,0,0,4.24L43,76.24,47.24,72l-11-11H63A11,11,0,0,0,74,50Z"/>
       </svg>
     </div>
@@ -98,6 +106,17 @@
     </div>
   }
   </button>
+
+  @if (creating()) {
+    <button type="button" class="btn disabled:btn-disabled h-9 ml-2 btn-danger pressable"
+      (click)="stopExecute()"
+    >
+      <div class="w-full text-center">
+        <i class="ri-stop-line"></i>
+        {{ 'Copilot.Stop' | translate: { Default: 'Stop' } }}
+      </div>
+    </button>
+  }
 </mat-dialog-actions>
 
 
