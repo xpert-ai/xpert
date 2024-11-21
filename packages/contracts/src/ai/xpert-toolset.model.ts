@@ -1,5 +1,5 @@
 import { AiProviderRole } from './copilot.model'
-import { TAvatar } from './types'
+import { TAvatar } from '../types'
 import { IXpertTool, XpertToolType } from './xpert-tool.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 import { ITag } from '../tag-entity.model'

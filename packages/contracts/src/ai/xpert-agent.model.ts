@@ -1,7 +1,7 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { ICopilotModel } from './copilot-model.model'
 import { IKnowledgebase } from './knowledgebase.model'
-import { TAvatar } from './types'
+import { TAvatar } from '../types'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IXpert, TXpertParameter } from './xpert.model'
 

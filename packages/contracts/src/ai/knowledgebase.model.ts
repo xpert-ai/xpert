@@ -1,7 +1,7 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IStorageFile } from '../storage-file.model'
 import { ICopilotModel } from './copilot-model.model'
-import { TAvatar } from './types'
+import { TAvatar } from '../types'
 
 export type KnowledgebaseParserConfig = {
   pages?: number[][]
