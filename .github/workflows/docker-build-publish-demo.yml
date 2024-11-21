@@ -26,7 +26,7 @@ jobs:
           load: true
           platforms: linux/amd64
           tags: |
-              ghcr.io/meta-d/xpert-api-demo:latest
+              ghcr.io/xpert-ai/xpert-api-demo:latest
               metadc/xpert-api-demo:latest
               registry.cn-hangzhou.aliyuncs.com/metad/xpert-api-demo:latest
           cache-from: type=registry,ref=metadc/xpert-api-demo:latest
@@ -54,7 +54,7 @@ jobs:
 
     - name: Push to Github Registry
       run: |
-          docker push ghcr.io/meta-d/xpert-api-demo:latest
+          docker push ghcr.io/xpert-ai/xpert-api-demo:latest
 
     - uses: aliyun/acr-login@v1
       with:
@@ -80,7 +80,7 @@ jobs:
           load: true
           platforms: linux/amd64
           tags: |
-              ghcr.io/meta-d/xpert-webapp-demo:latest
+              ghcr.io/xpert-ai/xpert-webapp-demo:latest
               metadc/xpert-webapp-demo:latest
               registry.cn-hangzhou.aliyuncs.com/metad/xpert-webapp-demo:latest
           cache-from: type=registry,ref=metadc/xpert-webapp-demo:latest
@@ -107,7 +107,7 @@ jobs:
 
     - name: Push to Github Registry
       run: |
-          docker push ghcr.io/meta-d/xpert-webapp-demo:latest
+          docker push ghcr.io/xpert-ai/xpert-webapp-demo:latest
 
     - uses: aliyun/acr-login@v1
       with:
