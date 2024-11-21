@@ -8,10 +8,10 @@ on:
     
 jobs:
 
-  ocap-api:
+  xpert-api:
 
     runs-on: ubuntu-latest
-
+    environment: production
     steps:
     - uses: actions/checkout@v4
     - name: Build
@@ -22,10 +22,10 @@ jobs:
           load: true
           platforms: linux/amd64
           tags: |
-              ghcr.io/meta-d/ocap-api-demo:latest
-              metadc/ocap-api-demo:latest
-              registry.cn-hangzhou.aliyuncs.com/metad/ocap-api-demo:latest
-          cache-from: type=registry,ref=metadc/ocap-api-demo:latest
+              ghcr.io/meta-d/xpert-api-demo:latest
+              metadc/xpert-api-demo:latest
+              registry.cn-hangzhou.aliyuncs.com/metad/xpert-api-demo:latest
+          cache-from: type=registry,ref=metadc/xpert-api-demo:latest
           cache-to: type=inline
     - name: Docker images list
       run: |
@@ -39,7 +39,7 @@ jobs:
 
     - name: Push to Docker Hub Registry
       run: |
-        docker push metadc/ocap-api-demo:latest
+        docker push metadc/xpert-api-demo:latest
 
     - name: Login to GitHub Container Registry
       uses: docker/login-action@v3.2.0
@@ -50,7 +50,7 @@ jobs:
 
     - name: Push to Github Registry
       run: |
-          docker push ghcr.io/meta-d/ocap-api-demo:latest
+          docker push ghcr.io/meta-d/xpert-api-demo:latest
 
     - uses: aliyun/acr-login@v1
       with:
@@ -60,9 +60,9 @@ jobs:
 
     - name: Push to Aliyun Registry
       run: |
-          docker push registry.cn-hangzhou.aliyuncs.com/metad/ocap-api-demo:latest
+          docker push registry.cn-hangzhou.aliyuncs.com/metad/xpert-api-demo:latest
           
-  ocap-webapp:
+  xpert-webapp:
 
     runs-on: ubuntu-latest
 
@@ -76,10 +76,10 @@ jobs:
           load: true
           platforms: linux/amd64
           tags: |
-              ghcr.io/meta-d/ocap-webapp-demo:latest
-              metadc/ocap-webapp-demo:latest
-              registry.cn-hangzhou.aliyuncs.com/metad/ocap-webapp-demo:latest
-          cache-from: type=registry,ref=metadc/ocap-webapp-demo:latest
+              ghcr.io/meta-d/xpert-webapp-demo:latest
+              metadc/xpert-webapp-demo:latest
+              registry.cn-hangzhou.aliyuncs.com/metad/xpert-webapp-demo:latest
+          cache-from: type=registry,ref=metadc/xpert-webapp-demo:latest
           cache-to: type=inline
     - name: Docker images list
       run: |
@@ -92,7 +92,7 @@ jobs:
         
     - name: Push to Docker Hub Registry
       run: |
-        docker push metadc/ocap-webapp-demo:latest
+        docker push metadc/xpert-webapp-demo:latest
 
     - name: Login to GitHub Container Registry
       uses: docker/login-action@v3.2.0
@@ -103,7 +103,7 @@ jobs:
 
     - name: Push to Github Registry
       run: |
-          docker push ghcr.io/meta-d/ocap-webapp-demo:latest
+          docker push ghcr.io/meta-d/xpert-webapp-demo:latest
 
     - uses: aliyun/acr-login@v1
       with:
@@ -113,5 +113,4 @@ jobs:
 
     - name: Push to Aliyun Registry
       run: |
-          docker push registry.cn-hangzhou.aliyuncs.com/metad/ocap-webapp-demo:latest
-    
+          docker push registry.cn-hangzhou.aliyuncs.com/metad/xpert-webapp-demo:latest
