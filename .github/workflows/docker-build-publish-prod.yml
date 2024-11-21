@@ -8,10 +8,11 @@ on:
 
 jobs:
 
-  ocap-api:
+  xpert-api:
 
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && !contains(github.ref, 'beta')
+    environment: production
     steps:
     - uses: actions/checkout@v4
     - name: Build
@@ -71,10 +72,11 @@ jobs:
           docker tag registry.cn-hangzhou.aliyuncs.com/metad/ocap-api:latest registry.cn-hangzhou.aliyuncs.com/metad/ocap-api:$GITHUB_REF_NAME
           docker push registry.cn-hangzhou.aliyuncs.com/metad/ocap-api:$GITHUB_REF_NAME
           
-  ocap-webapp:
+  xpert-webapp:
 
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && !contains(github.ref, 'beta')
+    environment: production
     steps:
     - uses: actions/checkout@v4
     - name: Build
@@ -137,6 +139,7 @@ jobs:
   ocap-olap:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && !contains(github.ref, 'beta')
+    environment: production
     steps:
       - uses: actions/checkout@v4
       - name: Build
