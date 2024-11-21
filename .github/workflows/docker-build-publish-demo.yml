@@ -5,7 +5,11 @@ on:
     branches: [ "develop" ]
   pull_request:
     branches: [ "develop" ]
-    
+
+permissions:
+  contents: read
+  packages: write
+
 jobs:
 
   xpert-api:
