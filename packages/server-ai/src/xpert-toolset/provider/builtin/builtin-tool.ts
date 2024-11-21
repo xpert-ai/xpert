@@ -1,4 +1,5 @@
 import { BaseTool } from "../../toolset";
 
-export class BuiltinTool extends BaseTool {
+export abstract class BuiltinTool extends BaseTool {
+
 }

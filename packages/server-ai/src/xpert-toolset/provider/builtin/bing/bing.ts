@@ -1,5 +1,4 @@
 import { IXpertToolset, TToolCredentials } from "@metad/contracts";
-import { ToolProviderCredentialValidationError } from "../../../errors";
 import { BuiltinToolset } from "../builtin-toolset";
 
 export class BingToolset extends BuiltinToolset {
