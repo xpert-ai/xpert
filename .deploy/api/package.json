@@ -1,20 +1,41 @@
 {
-  "name": "ocap-server",
-  "author": "Metad",
-  "version": "2.7",
+  "name": "xpert.ai",
+  "version": "3.0",
+  "description": "",
+  "license": "AGPL-3.0",
+  "homepage": "https://mtda.cloud",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xpert-ai/xpert.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xpert-ai/xpert/issues"
+  },
+  "private": true,
+  "author": {
+    "name": "XpertAI Co. LTD",
+    "email": "service@mtda.cloud",
+    "url": "https://mtda.cloud"
+  },
+  "keywords": [
+    "Xpert",
+    "AI",
+    "Agent",
+    "Copilot",
+    "BI"
+  ],
   "scripts": {
     "start": "nx serve",
     "build": "nx build",
     "test": "nx test",
     "build:all": "yarn rimraf dist && yarn nx build contracts && yarn nx build common && yarn nx build config && yarn nx build auth && yarn nx build server && yarn nx build adapter && yarn nx build analytics && yarn nx build api"
   },
-  "private": true,
   "dependencies": {
-    "@langchain/community": "0.3.0",
-    "@langchain/core": "0.3.1",
-    "@langchain/langgraph": "0.2.3",
+    "@langchain/community": "0.3.11",
+    "@langchain/core": "0.3.13",
+    "@langchain/langgraph": "0.2.17",
     "@langchain/ollama": "0.1.0",
-    "@langchain/openai": "0.3.0",
+    "@langchain/openai": "0.3.11",
     "@nestjs/common": "^8.0.0",
     "@nestjs/core": "^8.0.0",
     "@nestjs/platform-express": "^8.0.0",
@@ -58,6 +79,6 @@
     "packages/*"
   ],
   "resolutions": {
-    "@langchain/core": "0.3.1"
+    "@langchain/core": "0.3.13"
   }
 }

@@ -1,4 +1,4 @@
-const vars = {
+export const TailwindThemeVars = {
   // https://daisyui.com/docs/colors/
   'base-content': 'var(--color-base-content)',
 
@@ -53,5 +53,3 @@ const vars = {
   'components-list-option-bg': 'var(--color-components-list-option-bg)',
   'components-list-option-active-bg': 'var(--color-components-list-option-active-bg)',
 }
-
-export default vars

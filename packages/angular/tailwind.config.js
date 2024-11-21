@@ -1,5 +1,6 @@
 const { createGlobPatternsForDependencies } = require('@nx/angular/tailwind')
 const { join } = require('path')
+import { TailwindThemeVars } from './core/style/tailwind-theme-var-define'
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -20,7 +21,20 @@ module.exports = {
           800: '#37474F',
           900: '#263238'
         },
-        'components-input-bg': 'var(--color-components-input-bg)',
+        primary: {
+          25: '#f5f8ff',
+          50: '#eff4ff',
+          100: '#d1e0ff',
+          200: '#b2ccff',
+          300: '#84adff',
+          400: '#528bff',
+          500: '#2970ff',
+          600: '#155eef',
+          700: '#004eeb',
+          800: '#0040c1',
+          900: '#00359e',
+        },
+        ...TailwindThemeVars
       }
     }
   },

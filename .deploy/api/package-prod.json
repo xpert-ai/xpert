@@ -1,7 +1,7 @@
 {
-  "name": "metad-server",
-  "version": "2.7",
-  "license": "MIT",
+  "name": "xpert.ai",
+  "version": "3.0",
+  "license": "AGPL-3.0",
   "scripts": {
     "start": "nx serve",
     "build": "nx build",
@@ -10,11 +10,11 @@
   },
   "private": true,
   "dependencies": {
-    "@langchain/community": "0.3.0",
-    "@langchain/core": "0.3.1",
-    "@langchain/langgraph": "0.2.3",
+    "@langchain/community": "0.3.11",
+    "@langchain/core": "0.3.13",
+    "@langchain/langgraph": "0.2.17",
     "@langchain/ollama": "0.1.0",
-    "@langchain/openai": "0.3.0",
+    "@langchain/openai": "0.3.11",
     "@nestjs/common": "^8.0.0",
     "@nestjs/core": "^8.0.0",
     "@nestjs/platform-express": "^8.0.0",
@@ -32,6 +32,6 @@
     "packages/*"
   ],
   "resolutions": {
-    "@langchain/core": "0.3.1"
+    "@langchain/core": "0.3.13"
   }
 }

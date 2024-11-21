@@ -1,26 +1,28 @@
 {
-  "name": "ocap",
-  "version": "2.7",
+  "name": "xpert.ai",
+  "version": "3.0",
   "description": "",
   "license": "AGPL-3.0",
   "homepage": "https://mtda.cloud",
   "repository": {
     "type": "git",
-    "url": "https://github.com/meta-d/ocap.git"
+    "url": "https://github.com/xpert-ai/xpert.git"
   },
   "bugs": {
-    "url": "https://github.com/meta-d/ocap/issues"
+    "url": "https://github.com/xpert-ai/xpert/issues"
   },
   "private": true,
   "author": {
-    "name": "Metad Co. LTD",
+    "name": "XpertAI Co. LTD",
     "email": "service@mtda.cloud",
     "url": "https://mtda.cloud"
   },
   "keywords": [
-    "ocap",
-    "BI",
-    "MDX"
+    "Xpert",
+    "AI",
+    "Agent",
+    "Copilot",
+    "BI"
   ],
   "scripts": {
     "start": "concurrently \"yarn start:api\" \"yarn start:olap\" \"yarn start:cloud\"",

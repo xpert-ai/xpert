@@ -11,6 +11,14 @@ export class AnthropicProvider extends ModelProvider {
 		super('anthropic')
 	}
 
+	getBaseUrl(credentials: Record<string, any>): string {
+		return null
+	}
+
+	getAuthorization(credentials: Record<string, any>): string {
+		return null
+	}
+
 	async validateProviderCredentials(credentials: Record<string, any>): Promise<void> {
 		//
 	}

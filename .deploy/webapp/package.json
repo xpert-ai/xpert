@@ -1,26 +1,28 @@
 {
-  "name": "ocap",
-  "version": "2.7",
+  "name": "xpert.ai",
+  "version": "3.0",
   "description": "",
   "license": "AGPL-3.0",
   "homepage": "https://mtda.cloud",
   "repository": {
     "type": "git",
-    "url": "https://github.com/meta-d/ocap.git"
+    "url": "https://github.com/xpert-ai/xpert.git"
   },
   "bugs": {
-    "url": "https://github.com/meta-d/ocap/issues"
+    "url": "https://github.com/xpert-ai/xpert/issues"
   },
   "private": true,
   "author": {
-    "name": "Metad Co. LTD",
+    "name": "XpertAI Co. LTD",
     "email": "service@mtda.cloud",
     "url": "https://mtda.cloud"
   },
   "keywords": [
-    "ocap",
-    "BI",
-    "MDX"
+    "Xpert",
+    "AI",
+    "Agent",
+    "Copilot",
+    "BI"
   ],
   "scripts": {
     "build:cloud:prod": "set NODE_OPTIONS=--max_old_space_size=8192 & yarn nx build cloud --configuration=production"
@@ -43,18 +45,28 @@
     "@antv/g2plot": "^2.3.40",
     "@casl/ability": "^5.4.3",
     "@casl/angular": "^6.0.0",
+    "@ctrl/ngx-emoji-mart": "^9.2.0",
+    "@dagrejs/dagre": "^1.1.4",
     "@datorama/akita": "^6.2.3",
     "@duckdb/duckdb-wasm": "1.25.0",
-    "@langchain/community": "0.3.0",
-    "@langchain/core": "0.3.1",
-    "@langchain/langgraph": "0.2.3",
+    "@emoji-mart/data": "^1.2.1",
+    "@floating-ui/dom": "^1.6.11",
+    "@foblex/2d": "^1.1.0",
+    "@foblex/drag-toolkit": "^1.1.0",
+    "@foblex/flow": "^16.0.5",
+    "@foblex/mediator": "^1.1.0",
+    "@foblex/platform": "^1.0.4",
+    "@foblex/utils": "^1.1.0",
+    "@langchain/community": "0.3.11",
+    "@langchain/core": "0.3.13",
+    "@langchain/langgraph": "0.2.17",
     "@langchain/ollama": "0.1.0",
-    "@langchain/openai": "0.3.0",
+    "@langchain/openai": "0.3.11",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@ng-matero/extensions": "^13.1.0",
-    "@ng-web-apis/common": "^2.0.1",
-    "@ng-web-apis/intersection-observer": "^3.0.0",
-    "@ng-web-apis/resize-observer": "^2.0.0",
+    "@ng-web-apis/common": "^4.11.1",
+    "@ng-web-apis/intersection-observer": "^4.11.1",
+    "@ng-web-apis/resize-observer": "^4.11.1",
     "@ngneat/content-loader": "^7.0.0",
     "@ngneat/elf": "^2.5.1",
     "@ngneat/elf-entities": "^5.0.1",
@@ -67,7 +79,6 @@
     "@ngx-formly/material": "^6.0.0",
     "@ngx-translate/core": "^15.0.0",
     "@ngx-translate/http-loader": "^8.0.0",
-    "@popperjs/core": "^2.11.6",
     "@sentry/angular": "^7.38.0",
     "@sentry/tracing": "^7.38.0",
     "@swc/helpers": "0.5.3",
@@ -85,6 +96,7 @@
     "echarts": "5.5.0",
     "echarts-gl": "^2.0.9",
     "elkjs": "^0.9.3",
+    "emoji-mart": "^5.6.0",
     "expr-eval": "^2.0.2",
     "hammerjs": "2.0.8",
     "idb-keyval": "^6.2.1",
@@ -100,17 +112,18 @@
     "money-clip": "^3.0.5",
     "nanoid": "^3.3.4",
     "ngx-cookie-service": "^14.0.1",
+    "ngx-float-ui": "^18.0.1",
     "ngx-logger": "^5.0.12",
     "ngx-markdown": "^17.1.1",
     "ngx-monaco-editor": "^12.0.0",
     "ngx-permissions": "^13.0.1",
-    "ngx-popperjs": "^15.0.4",
     "ngx-quill": "^16.1.2",
-    "ngxtension": "^3.1.2",
+    "ngxtension": "^4.0.0",
     "noto-serif-sc": "^8.0.0",
     "ollama": "^0.5.6",
     "prismjs": "^1.29.0",
     "quill": "^1.3.7",
+    "remixicon": "^4.5.0",
     "rxjs": "~7.8.0",
     "short-unique-id": "^4.4.4",
     "socket.io-client": "^4.7.5",
@@ -193,7 +206,7 @@
     "packages/*"
   ],
   "resolutions": {
-    "@langchain/core": "0.3.1"
+    "@langchain/core": "0.3.13"
   },
   "nx": {
     "includedScripts": []

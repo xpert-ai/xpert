@@ -4,7 +4,7 @@ ARG PORT
 FROM node:18-alpine AS build
 
 LABEL maintainer="meta.digital.cloud@gmail.com"
-LABEL org.opencontainers.image.source https://github.com/meta-d/ocap
+LABEL org.opencontainers.image.source https://github.com/xpert-ai/xpert
 
 ENV CI=true
 
