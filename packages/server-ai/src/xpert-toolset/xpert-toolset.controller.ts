@@ -18,7 +18,8 @@ import {
 	Post,
 	Query,
 	Res,
-	UseInterceptors
+	UseInterceptors,
+	Inject
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
@@ -37,6 +38,7 @@ import {
 import { XpertToolset } from './xpert-toolset.entity'
 import { XpertToolsetService } from './xpert-toolset.service'
 import { ToolProviderNotFoundError } from './errors'
+import { ConfigService } from '@metad/server-config'
 
 
 @ApiTags('XpertToolset')
@@ -45,6 +47,10 @@ import { ToolProviderNotFoundError } from './errors'
 @Controller()
 export class XpertToolsetController extends CrudController<XpertToolset> {
 	readonly #logger = new Logger(XpertToolsetController.name)
+
+	@Inject(ConfigService)
+	private readonly configService: ConfigService
+	
 	constructor(
 		private readonly service: XpertToolsetService,
 		private readonly commandBus: CommandBus,
@@ -96,7 +102,7 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 				(schema) =>
 					new ToolProviderDTO({
 						...schema.identity
-					})
+					}, this.configService.get('baseUrl') as string)
 			)
 		)
 	}
@@ -125,7 +131,7 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 
 		return new ToolProviderDTO({
 			...providers[0].identity
-		})
+		}, this.configService.get('baseUrl') as string)
 	}
 
 	@Public()

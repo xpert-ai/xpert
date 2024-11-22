@@ -1,5 +1,5 @@
 import { PaginationParams, TenantOrganizationAwareCrudService } from '@metad/server-core'
-import { Injectable, Logger, NotFoundException, Type } from '@nestjs/common'
+import { Injectable, Logger, NotFoundException, Type, Inject } from '@nestjs/common'
 import { CommandBus, ICommand, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { FindConditions, IsNull, Not, Repository } from 'typeorm'
@@ -14,10 +14,14 @@ import { ToolProviderNotFoundError } from './errors'
 import { TToolsetProviderSchema } from './types'
 import { createBuiltinToolset } from './provider/builtin'
 import { ToolProviderDTO } from './dto'
+import { ConfigService } from '@metad/server-config'
 
 @Injectable()
 export class XpertToolsetService extends TenantOrganizationAwareCrudService<XpertToolset> {
 	readonly #logger = new Logger(XpertToolsetService.name)
+
+	@Inject(ConfigService)
+	private readonly configService: ConfigService
 
 	private commands = new Map<string, Type<ICommand>>()
 	
@@ -122,7 +126,7 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 		return await this.create({
 			// Provider properties as the default fields
 			name: providers[0].identity.name, 
-			avatar: new ToolProviderDTO(providers[0].identity).avatar,
+			avatar: new ToolProviderDTO(providers[0].identity, this.configService.get('baseUrl') as string).avatar,
 			// Custom fields
 			...entity, 
 			// Enforce constraints fields

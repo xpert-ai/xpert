@@ -20,6 +20,8 @@
 					"packages/server-ai/**/*.csv",
 					"packages/server-ai/**/*.json",
 					"packages/server-ai/**/*.svg",
+					"packages/server-ai/**/*.png",
+					"packages/server-ai/**/*.jpg",
 					"packages/server-ai/**/*.yaml"
 				]
 			}
