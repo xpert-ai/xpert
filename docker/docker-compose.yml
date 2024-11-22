@@ -9,16 +9,16 @@ services:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASS:-root}
     healthcheck:
-        test:
-          [
-            'CMD-SHELL',
-            'psql postgres://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@localhost:5432/$${POSTGRES_DB} || exit 1'
-          ]
+      test:
+        [
+          'CMD-SHELL',
+          'psql postgres://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@localhost:5432/$${POSTGRES_DB} || exit 1'
+        ]
     volumes:
-        - ./volumes/db/data:/var/lib/postgresql/data
-        - ./.scripts/initdb.d/:/docker-entrypoint-initdb.d/:ro
+      - ./volumes/db/data:/var/lib/postgresql/data
+      - ./.scripts/initdb.d/:/docker-entrypoint-initdb.d/:ro
     networks:
-        - default
+      - default
 
   redis:
     image: redis/redis-stack:latest
@@ -37,12 +37,14 @@ services:
     mem_limit: 1024m
     restart: unless-stopped
     healthcheck:
-        test: curl -m 5 --silent --fail --request GET http://localhost:8080/ | jq --exit-status -n 'inputs | if has("status") then .status=="UP" else false end' > /dev/null || exit 1
-        interval: 10s
-        timeout: 2s
-        retries: 10
+      test: curl -m 5 --silent --fail --request GET http://localhost:8080/ | jq --exit-status -n 'inputs | if has("status") then .status=="UP" else false end' > /dev/null || exit 1
+      interval: 10s
+      timeout: 2s
+      retries: 10
     links:
       - db:${DB_HOST:-db}
+    depends_on:
+      - api
     environment:
       REDIS_DATABASE: 1
       REDIS_HOST: "redis"
@@ -102,7 +104,7 @@ services:
     links:
       - api:${API_HOST:-api}
     depends_on:
-        - api
+      - api
     ports:
       - ${WEB_PORT:-80}:80
       # - 443:443
