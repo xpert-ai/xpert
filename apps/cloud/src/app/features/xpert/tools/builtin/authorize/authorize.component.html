@@ -63,7 +63,7 @@
 
     @for (credential of credentialsSchema(); track $index) {
       <div class="py-3 flex flex-wrap">
-        <div class="flex items-center py-2 text-sm text-gray-900">
+        <div class="flex-1 flex items-center py-2 text-sm text-gray-900">
           {{credential.label | i18n}}
           @if (credential.required) {
             <span class="ml-1 text-red-500">*</span>
@@ -80,7 +80,7 @@
           }
         </div>
 
-        <xpert-tool-builtin-credential class="w-full"
+        <xpert-tool-builtin-credential class="shrink-0"
           [credential]="credential"
           [credentials]="credentialsValue()"
           [ngModel]="getCredential(credential.name)"
