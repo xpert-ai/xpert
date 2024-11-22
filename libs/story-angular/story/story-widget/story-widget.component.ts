@@ -898,6 +898,7 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
     this._dialog
       .open(CommandDialogComponent, {
         backdropClass: 'bg-transparent',
+        disableClose: true,
         data: {
           commands: ['widget']
         }

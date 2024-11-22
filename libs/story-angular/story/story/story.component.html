@@ -27,10 +27,10 @@
                     
                     <button *ngIf="editable()" mat-icon-button disableRipple displayDensity="cosy" class="ngm-story-point__tab-menu-trigger"
                         (click)="$event.preventDefault();$event.stopPropagation()"
-                        [matMenuTriggerFor]="pointMenu"
-                        [matMenuTriggerData]="{point: point, component: story_point}"
-                        #mt="matMenuTrigger"
-                        [class.active]="mt.menuOpen"
+                        [cdkMenuTriggerFor]="pageMenu"
+                        [cdkMenuTriggerData]="{point: point, component: story_point}"
+                        #mt="cdkMenuTriggerFor"
+                        [class.active]="mt.isOpen()"
                     >
                         <mat-icon>more_vert</mat-icon>
                     </button>
@@ -72,69 +72,69 @@
 @if (enableWatermark$()) {
   <ngm-trial-watermark [options]="watermarkOptions$()"/>
 }
- 
-<mat-menu #pointMenu="matMenu" xPosition="before" class="ngm-density__compact">
-  <ng-template matMenuContent let-point="point" let-component="component">
-    <button mat-menu-item [disabled]="!component.dirtySignal()" (click)="saveStoryPoint(point.key)">
+
+<ng-template #pageMenu let-point="point" let-component="component">
+  <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem [disabled]="!component?.dirtySignal()" (click)="saveStoryPoint(point.key)">
         <mat-icon fontSet="material-icons-outlined">save</mat-icon>
         {{ 'Story.Story.Save' | translate: {Default: "Save"} }}
     </button>
 
-    <button mat-menu-item (click)="duplicateStoryPoint(point.key)">
+    <button cdkMenuItem (click)="duplicateStoryPoint(point.key)">
         <mat-icon>content_copy</mat-icon>
         {{ 'Story.Story.Duplicate' | translate: {Default: "Duplicate"} }}
     </button>
-    <button mat-menu-item (click)="component.rename()">
+    <button cdkMenuItem (click)="component?.rename()">
         <mat-icon fontSet="material-icons-outlined">drive_file_rename_outline</mat-icon>
         {{ 'Story.Story.Rename' | translate: {Default: "Rename"} }}
     </button>
 
     <mat-divider></mat-divider>
 
-    <button mat-menu-item *ngIf="!point.hidden" (click)="toggleStoryPointHidden(point.key)">
+    <button cdkMenuItem *ngIf="!point.hidden" (click)="toggleStoryPointHidden(point.key)">
         <mat-icon>flip_to_back</mat-icon>
         {{ 'Story.Story.Hidden' | translate: {Default: "Hidden"} }}
     </button>
-    <button mat-menu-item *ngIf="point.hidden" (click)="toggleStoryPointHidden(point.key)">
+    <button cdkMenuItem *ngIf="point.hidden" (click)="toggleStoryPointHidden(point.key)">
         <mat-icon>flip_to_front</mat-icon>
         {{ 'Story.Story.Visiable' | translate: {Default: "Visiable"} }}
     </button>
-    <button mat-menu-item [disabled]="component.isFirst" (click)="move(point, 'left')">
+    <button cdkMenuItem [disabled]="component?.isFirst" (click)="move(point, 'left')">
         <mat-icon>chevron_left</mat-icon>
         {{ 'Story.Story.MOVE_LEFT' | translate: {Default: "Move Left"} }}
     </button>
-    <button mat-menu-item [disabled]="component.isLast" (click)="move(point, 'right')">
+    <button cdkMenuItem [disabled]="component?.isLast" (click)="move(point, 'right')">
         <mat-icon>chevron_right</mat-icon>
         {{ 'Story.Story.MOVE_RIGHT' | translate: {Default: "Move Right"} }}
     </button>
-    <button mat-menu-item [disabled]="component.isFirst" (click)="move(point, 'first')">
+    <button cdkMenuItem [disabled]="component?.isFirst" (click)="move(point, 'first')">
         <mat-icon>first_page</mat-icon>
         {{ 'Story.Story.MOVE_FIRST' | translate: {Default: "Move First"} }}
     </button>
-    <button mat-menu-item [disabled]="component.isLast" (click)="move(point, 'last')">
+    <button cdkMenuItem [disabled]="component?.isLast" (click)="move(point, 'last')">
         <mat-icon>last_page</mat-icon>
         {{ 'Story.Story.MOVE_LAST' | translate: {Default: "Move Last"} }}
     </button>
 
     <mat-divider></mat-divider>
-    <!-- <button mat-menu-item >
+    <!-- <button cdkMenuItem >
         <mat-icon>comment</mat-icon>
         {{ 'Story.Story.COMMENT' | translate: {Default: "Comment"} }}
     </button> -->
-    <button mat-menu-item (click)="openShare(point)">
+    <button cdkMenuItem (click)="openShare(point)">
         <mat-icon fontSet="material-icons-outlined">share</mat-icon>
         {{ 'Story.Story.Share' | translate: {Default: "Share"} }}
     </button>
 
     <mat-divider></mat-divider>
 
-    <button mat-menu-item class="ngm-cdk-menu__danger" color="warn" ngmAppearance="danger"
+    <button cdkMenuItem class="ngm-cdk-menu__danger" color="warn" ngmAppearance="danger"
         (click)="removeStoryPoint(point)">
         <mat-icon>delete_forever</mat-icon>
         {{ 'Story.Story.Delete' | translate: {Default: "Delete"} }}
     </button>
-  </ng-template>
-</mat-menu>
+  </div>
+</ng-template>
 
 <div *ngIf="tabIsPoint()" class="ngm-story__pagination ngm-story__pagination-bullets px-8"
     [class.ngm-story__pagination-header-below]="pageHeaderPosition() === 'below'"
@@ -143,7 +143,8 @@
 >
     <div class="ngm-story__pagination-horizontal overflow-auto whitespace-nowrap pointer-events-auto flex flex-wrap justify-start items-center
         rounded-lg px-2 py-1 bg-slate-500/10 backdrop-blur-md">
-        <div *ngFor="let point of displayPoints(); index as i;" class="ngm-story__pagination-page flex items-center cursor-pointer group hover:underline pointer-events-auto"
+      @for (point of displayPoints(); track point.id; let index = $index;) {
+        <div class="ngm-story__pagination-page flex items-center cursor-pointer group hover:underline pointer-events-auto"
             (click)="storyService.setCurrentPageKey(point.key)"
         >
             <div class="ngm-story__pagination-bullet shrink-0 inline-block w-4 h-4 rounded-full mx-1 opacity-50 group-hover:opacity-100"
@@ -157,7 +158,16 @@
               {{point.name}}
             </div>
           }
+          @if (editable() && point.key === currentPageKey()) {
+            <button class="px-1 rounded-md hover:bg-hover-bg" [cdkMenuTriggerFor]="pageMenu"
+                [cdkMenuTriggerData]="{point: point}"
+                #mt="cdkMenuTriggerFor"
+                [class.active]="mt.isOpen()">
+                <i class="ri-more-line"></i>
+            </button>
+          }
         </div>
+      }
     </div>
 </div>
 

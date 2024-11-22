@@ -79,3 +79,10 @@
     }
   }
 }
+
+.cdk-menu.cdk-menu__medium {
+  @apply p-2 rounded-xl;
+  .cdk-menu-item {
+    @apply px-2 py-1 rounded-lg;
+  }
+}

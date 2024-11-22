@@ -98,7 +98,7 @@
 </ng-template>
 
 <ng-template #context_menu>
-    <div cdkMenu>
+    <div cdkMenu class="cdk-menu__medium">
         <button cdkMenuItem *ngIf="!point.hidden" (click)="hidePage()">
             <mat-icon>flip_to_back</mat-icon>
             {{ 'Story.Story.Hidden' | translate: {Default: "Hidden"} }}

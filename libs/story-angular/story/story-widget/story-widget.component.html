@@ -41,14 +41,8 @@
   </ng-container>
 </div>
 
-<mat-menu #addMenu="matMenu" class="ngm-density__compact">
-  <button mat-menu-item (click)="onAddComment()">
-    <mat-icon>add_comment</mat-icon>
-  </button>
-</mat-menu>
-
 <ng-template #context_menu>
-  <div cdkMenu>
+  <div cdkMenu class="cdk-menu__medium">
     <ng-container *ngFor="let menu of menus$ | async; trackBy: trackByMenu">
       <ng-container [ngSwitch]="menu.type">
         <button cdkMenuItem *ngSwitchCase="WIDGET_MENU_TYPE.Toggle" (click)="onClickMenu(menu)">
@@ -187,7 +181,7 @@
 </ng-template>
 
 <ng-template #copyMenu>
-  <div cdkMenu displayDensity="cosy">
+  <div cdkMenu class="cdk-menu__medium">
     <button cdkMenuItem (click)="onCopy()">
       {{ 'Story.Story.Copy' | translate: {Default: "Copy"} }}
     </button>
@@ -204,7 +198,7 @@
 </ng-template>
 
 <ng-template #moveToMenu>
-  <div cdkMenu displayDensity="cosy">
+  <div cdkMenu class="cdk-menu__medium">
     <button cdkMenuItem (click)="onMoveToNew(STORY_POINT_TYPE.Responsive)">
       {{ 'Story.Story.NewResponsivePage' | translate: {Default: "New Responsive Page"} }}
     </button>
@@ -221,7 +215,7 @@
 </ng-template>
 
 <ng-template #copyToMenu>
-  <div cdkMenu displayDensity="cosy">
+  <div cdkMenu class="cdk-menu__medium">
     <button cdkMenuItem (click)="onCopyToNew(STORY_POINT_TYPE.Responsive)">
       {{ 'Story.Story.NewResponsivePage' | translate: {Default: "New Responsive Page"} }}
     </button>
@@ -240,7 +234,7 @@
 
 
 <ng-template #subMenu>
-  <div cdkMenu displayDensity="cosy">
+  <div cdkMenu class="cdk-menu__medium">
     <ng-container *ngFor="let menu of customSubMenus; trackBy: trackByMenu">
       <mat-divider *ngIf="menu.type === WIDGET_MENU_TYPE.Divider"></mat-divider>
       <button cdkMenuItem *ngIf="menu.type !== WIDGET_MENU_TYPE.Divider"
