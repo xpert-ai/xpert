@@ -74,6 +74,9 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
     return this.modelsByType.get(type)
   }
 
+  /**
+   * @deprecated use getModelParameterRules in CopilotProviderService
+   */
   getModelParameterRules(provider: string, model: string) {
     return this.httpClient.get<ParameterRule[]>(API_COPILOT + `/provider/${provider}/model-parameter-rules`, {
       params: {

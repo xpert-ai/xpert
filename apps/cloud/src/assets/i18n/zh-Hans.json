@@ -449,6 +449,7 @@
     },
     "ACTIONS": {
       "Add": "添加",
+      "Apply": "应用",
       "Cancel": "取消",
       "Create": "创建",
       "Enter": "确认",
@@ -1421,6 +1422,7 @@
       "HowToContribute": "简单几步，贡献代码，共创美好未来",
       "Support": "支持",
       "OurSupport": "联系我们，获取优先支持",
+      "DelCopilotModelUseInherit": "删除当前配置，如果可以将使用继承配置",
       "Prompts": {
         "Set story theme dark": "设置故事暗黑主题",
         "Set story gradient background color sense of technology": "设置故事背景为科技感渐变色",
@@ -1960,7 +1962,8 @@
       "PublishAt": "发布于",
       "Authorization": "授权",
       "WorkspaceMember": "工作空间成员",
-      "XpertManagers": "数字专家负责人"
+      "XpertManagers": "数字专家负责人",
+      "NoExecutionYet": "暂未有执行记录"
     },
     "title": {
       "short": "Xpert AI"

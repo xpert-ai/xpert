@@ -1,4 +1,4 @@
-import { IAiProviderEntity, ICopilotProvider, ICopilotProviderModel, ProviderModel, RolesEnum } from '@metad/contracts'
+import { AiModelTypeEnum, IAiProviderEntity, ICopilotProvider, ICopilotProviderModel, ProviderModel, RolesEnum } from '@metad/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -20,6 +20,7 @@ import { CopilotProviderModel } from './models/copilot-provider-model.entity'
 import { CopilotProviderModelService } from './models/copilot-provider-model.service'
 import { CopilotProviderUpsertCommand } from './commands'
 import { ConfigService } from '@metad/server-config'
+import { CopilotProviderModelParameterRulesQuery } from './queries/model-parameter-rules.query'
 
 @ApiTags('CopilotProvider')
 @ApiBearerAuth()
@@ -69,6 +70,14 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
 		}
 
 		return new CopilotProviderDto(one, this.configService.get('baseUrl') as string)
+	}
+
+	@Get(':providerId/model-parameter-rules')
+	async getModelParameters(
+		@Param('providerId', UUIDValidationPipe) providerId: string,
+		@Query('model') model: string
+	) {
+		return this.queryBus.execute(new CopilotProviderModelParameterRulesQuery(providerId, AiModelTypeEnum.LLM, model))
 	}
 
 	@Get(':providerId/model')

@@ -7,7 +7,7 @@
   </div>
 }
 
-<div class="flex items-center px-2 h-8 rounded-lg cursor-pointer border
+<div class="flex items-center px-1 h-8 rounded-lg cursor-pointer border
  bg-gray-100 border-gray-100 hover:border-gray-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:border-zinc-600">
   <div class="flex-1 relative flex items-center overflow-hidden"
     #menuTrigger
@@ -15,10 +15,16 @@
   >
     @if (selectedCopilotWithModels(); as copilot) {
       @if (isInherit()) {
-        <i class="ri-skip-up-line mr-1" [matTooltip]="'PAC.Copilot.Inherited' | translate: {Default: 'Inherited'}"></i>
+        <i class="ri-skip-up-line mx-1" [matTooltip]="'PAC.Copilot.Inherited' | translate: {Default: 'Inherited'}"></i>
+      } @else if(!readonly()) {
+        <button class="w-6 h-6 rounded-lg hover:bg-hover-bg cursor-pointer pressable"
+          [matTooltip]="'PAC.Copilot.DelCopilotModelUseInherit' | translate: {Default: 'Delete current configuration, and use the inherited configuration if possible'}"
+          (click)="$event.stopPropagation(); delete()">
+          <i class="ri-close-line"></i>
+        </button>
       }
 
-      <img [src]="copilot.providerWithModels.icon_small | i18n" class="w-4 h-4 mr-1.5">
+      <img [src]="copilot.providerWithModels.icon_small | i18n" class="w-4 h-4 mx-1.5">
       <div class="flex items-center truncate text-[13px] font-medium mr-1.5">
         <div class="truncate" [title]="_copilotModel()?.model">{{_copilotModel()?.model}}</div>
         @if (selectedAiModel()?.model_type === eModelType.LLM) {
@@ -53,7 +59,9 @@
 
   @if (!readonly()) {
     <div class="cursor-pointer p-1 rounded-lg border border-transparent hover:bg-black/5 hover:border-slate-200"
+      #menuTrigger="cdkMenuTriggerFor"
       [cdkMenuTriggerFor]="parametersMenu"
+      [class.active]="menuTrigger.isOpen()"
       >
       <svg
         width="24"
@@ -76,11 +84,10 @@
 </div>
 
 <ng-template #parametersMenu>
-  <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu p-2 copilot-model-parameters-menu">
-
-    <div class="max-h-[480px] overflow-y-auto p-8">
-      <div class="flex items-center justify-between">
-        <div class="font-semibold text-gray-900">{{'PAC.Copilot.Parameters' | translate: {Default: 'Parameters'} }}</div>
+  <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu copilot-model-parameters-menu">
+    <div class="w-[400px] max-h-[480px] overflow-y-auto p-6">
+      <div class="flex items-center justify-between mb-2">
+        <div class="font-semibold text-lg text-gray-900">{{'PAC.Copilot.Parameters' | translate: {Default: 'Parameters'} }}</div>
       </div>
       @for (parameter of modelParameterRules(); track parameter.name) {
         <div class="flex items-center justify-between">
@@ -95,49 +102,11 @@
             </div>
           </div>
   
-          @switch (parameter.type) {
-            @case('float') {
-              <mat-slider class="w-[200px]" ngm-density="small" [min]="parameter.min" [max]="parameter.max" [step]="0.1" discrete>
-                <input matSliderThumb [value]="getParameter(parameter.name)"
-                  (dragEnd)="updateParameter(parameter.name, $event.value)">
-              </mat-slider>
-  
-              <input matInput class="shrink-0 block ml-4 pl-3 w-16 h-8 appearance-none outline-none rounded-lg bg-gray-100 text-[13px] text-gra-900" [max]="parameter.max" [min]="parameter.min" [step]="0.1" type="number"
-                [ngModel]="getParameter(parameter.name)"
-                (ngModelChange)="updateParameter(parameter.name, $event)"
-                [ngModelOptions]="{standalone: true}">
-            }
-        
-            @case ('int') {
-              <mat-slider class="w-[200px]" ngm-density="small" [min]="parameter.min" [max]="parameter.max" discrete>
-                <input matSliderThumb [value]="getParameter(parameter.name)"
-                  (dragEnd)="updateParameter(parameter.name, $event.value)" >
-              </mat-slider>
-  
-              <input matInput class="shrink-0 block ml-4 pl-3 w-16 h-8 appearance-none outline-none rounded-lg bg-gray-100 text-[13px] text-gra-900" [max]="parameter.max" [min]="parameter.min" [step]="1" type="number"
-                [ngModel]="getParameter(parameter.name)"
-                (ngModelChange)="updateParameter(parameter.name, $event)"
-                [ngModelOptions]="{standalone: true}">
-            }
-        
-            @default {
-              @if (parameter.options) {
-                <mat-select class="w-full h-full rounded-lg border-0 bg-gray-100 py-1.5 pl-3 pr-4 sm:text-sm sm:leading-6 focus-visible:outline-none focus-visible:bg-gray-200 group-hover:bg-gray-200 cursor-pointer"
-                  [ngModel]="getParameter(parameter.name)"
-                  (ngModelChange)="updateParameter(parameter.name, $event)"
-                  [ngModelOptions]="{standalone: true}">
-                  @for (option of parameter.options; track option) {
-                    <mat-option [value]="option">{{option}}</mat-option>
-                  }
-                </mat-select>
-              } @else {
-                <input matInput class="w-full ml-4 flex items-center px-3 h-8 appearance-none outline-none rounded-lg bg-gray-100 text-[13px] text-gra-900"
-                  [ngModel]="getParameter(parameter.name)"
-                  (ngModelChange)="updateParameter(parameter.name, $event)"
-                  [ngModelOptions]="{standalone: true}">
-              }
-            }
-          }
+          <copilot-model-parameter-input [parameter]="parameter"
+            [ngModel]="getParameter(parameter.name)"
+            [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="updateParameter(parameter.name, $event)"
+          />
         </div>
       }
     </div>
@@ -146,57 +115,56 @@
 
 <ng-template #modelsMenu>
   <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu pl-2" [style.width.px]="menuTrigger.offsetWidth">
-    <div class="p-1 overflow-auto">
-      <ngm-search class="mt-1 sticky top-0 rounded-lg overflow-hidden" [formControl]="searchControl"></ngm-search>
-
-        <ul cdkListbox >
-          @for (copilot of searchedModels(); track copilot.id) {
-            <div class="h-0.5 mx-2 my-2 rounded-full bg-neutral-100"></div>
-            <div class="text-base px-2 my-2 font-semibold flex justify-start items-center">
-              <span class="uppercase">{{ ('PAC.Copilot.Role_' + copilot.role) | translate: {Default: copilot.role} }}</span>
-              <span class="mx-1">•</span>
-              <img [src]="(copilot.providerWithModels.icon_small | i18n)" class="w-4 h-4 inline-block mx-1">
-              {{copilot.providerWithModels?.label | i18n }}
-            </div>
-            @for (item of copilot.providerWithModels?.models; track item.model) {
-              <li cdkMenuItem class="flex justify-start items-center gap-2 px-4 py-2 rounded-xl cursor-pointer hover:bg-primary-100/50 hover:text-primary-500"
-                [ngClass]="model() === item.model ? 'bg-primary-100 text-primary-600 font-semibold' : ''"
-                (click)="setModel(copilot, item.model);"
-              >
-                <span [ngmHighlight]="searchText()"
-                  [content]="item.model"
-                  customClasses="text-primary-600">{{item.model}}</span>
-                @if (item.model_type === 'llm') {
-                  <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium text-gray-500 cursor-default">
-                    {{'PAC.Copilot.Chat' | translate: {Default: 'Chat'} }}
-                  </div>
-                }
-                @if (item.features?.includes(eModelFeature.VISION)) {
-                  <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default mr-0.5 w-[18px] justify-center">
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      class="w-3 h-3"
-                    >
-                      <g id="eye-sparkle, magic eyes">
-                        <path
-                          id="Icon"
-                          fill-rule="evenodd"
-                          clip-rule="evenodd"
-                          d="M11.0338 5.05688C9.75366 3.05335 7.90203 1.99999 6.00017 2C4.09831 2.00001 2.24669 3.05341 0.966566 5.05693C0.599687 5.63113 0.599686 6.36892 0.966566 6.94312C2.24669 8.94665 4.09832 10 6.00018 10C7.90204 9.99999 9.75366 8.94659 11.0338 6.94307C11.4007 6.36887 11.4007 5.63108 11.0338 5.05688ZM5.77639 4.44721L5.3706 5.2588C5.34641 5.30718 5.30718 5.34641 5.2588 5.3706L4.44721 5.77639C4.26295 5.86852 4.26295 6.13148 4.44721 6.22361L5.2588 6.6294C5.30718 6.65359 5.34641 6.69282 5.3706 6.7412L5.77639 7.55279C5.86852 7.73705 6.13148 7.73705 6.22361 7.55279L6.6294 6.7412C6.65359 6.69282 6.69282 6.65359 6.7412 6.6294L7.55279 6.22361C7.73705 6.13148 7.73705 5.86852 7.55279 5.77639L6.7412 5.3706C6.69282 5.34641 6.65359 5.30718 6.6294 5.2588L6.22361 4.44721C6.13148 4.26295 5.86852 4.26295 5.77639 4.44721Z"
-                          fill="currentColor"
-                        ></path>
-                      </g>
-                    </svg>
-                  </div>
-                }
-              </li>
-            }
-          }
-        </ul>
+    <div class="p-1 sticky top-0 w-full bg-components-card-bg border-b border-solid border-divider-deep">
+      <ngm-search class="w-full mt-1 rounded-lg overflow-hidden" [formControl]="searchControl"></ngm-search>
     </div>
+
+    <ul cdkListbox >
+      @for (copilot of searchedModels(); track copilot.id) {
+        <div class="text-base px-4 my-4 font-semibold flex justify-start items-center">
+          <span class="uppercase">{{ ('PAC.Copilot.Role_' + copilot.role) | translate: {Default: copilot.role} }}</span>
+          <span class="mx-1">•</span>
+          <img [src]="(copilot.providerWithModels.icon_small | i18n)" class="w-4 h-4 inline-block mx-1">
+          {{copilot.providerWithModels?.label | i18n }}
+        </div>
+        @for (item of copilot.providerWithModels?.models; track item.model) {
+          <li cdkMenuItem class="flex justify-start items-center gap-2 px-4 py-2 rounded-xl cursor-pointer hover:bg-primary-100/50 hover:text-primary-500"
+            [ngClass]="model() === item.model ? 'bg-primary-100 text-primary-600 font-semibold' : ''"
+            (click)="setModel(copilot, item.model);"
+          >
+            <span [ngmHighlight]="searchText()"
+              [content]="item.model"
+              customClasses="text-primary-600">{{item.model}}</span>
+            @if (item.model_type === 'llm') {
+              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium text-gray-500 cursor-default">
+                {{'PAC.Copilot.Chat' | translate: {Default: 'Chat'} }}
+              </div>
+            }
+            @if (item.features?.includes(eModelFeature.VISION)) {
+              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default mr-0.5 w-[18px] justify-center">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-3 h-3"
+                >
+                  <g id="eye-sparkle, magic eyes">
+                    <path
+                      id="Icon"
+                      fill-rule="evenodd"
+                      clip-rule="evenodd"
+                      d="M11.0338 5.05688C9.75366 3.05335 7.90203 1.99999 6.00017 2C4.09831 2.00001 2.24669 3.05341 0.966566 5.05693C0.599687 5.63113 0.599686 6.36892 0.966566 6.94312C2.24669 8.94665 4.09832 10 6.00018 10C7.90204 9.99999 9.75366 8.94659 11.0338 6.94307C11.4007 6.36887 11.4007 5.63108 11.0338 5.05688ZM5.77639 4.44721L5.3706 5.2588C5.34641 5.30718 5.30718 5.34641 5.2588 5.3706L4.44721 5.77639C4.26295 5.86852 4.26295 6.13148 4.44721 6.22361L5.2588 6.6294C5.30718 6.65359 5.34641 6.69282 5.3706 6.7412L5.77639 7.55279C5.86852 7.73705 6.13148 7.73705 6.22361 7.55279L6.6294 6.7412C6.65359 6.69282 6.69282 6.65359 6.7412 6.6294L7.55279 6.22361C7.73705 6.13148 7.73705 5.86852 7.55279 5.77639L6.7412 5.3706C6.69282 5.34641 6.65359 5.30718 6.6294 5.2588L6.22361 4.44721C6.13148 4.26295 5.86852 4.26295 5.77639 4.44721Z"
+                      fill="currentColor"
+                    ></path>
+                  </g>
+                </svg>
+              </div>
+            }
+          </li>
+        }
+      }
+    </ul>
   </div>
 </ng-template>

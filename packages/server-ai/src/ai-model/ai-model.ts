@@ -120,16 +120,26 @@ export abstract class AIModel {
 		}
 
 		if (credentials) {
-			// return this.getCustomizableModelSchemaFromCredentials(model, credentials)
+			return this.getCustomizableModelSchemaFromCredentials(model, credentials)
 		}
 
 		return null
 	}
 
-	// protected getCustomizableModelSchemaFromCredentials(
-	// 	model: string,
-	// 	credentials: Record<string, any>
-	// ): AIModelEntity | null
+	/**
+	 * Get customizable model schema.
+	 * Implement this method in ai model sub class that can customize model
+	 * 
+	 * @param model model name
+	 * @param credentials model credentials
+	 * @returns model schema
+	 */
+	protected getCustomizableModelSchemaFromCredentials(
+		model: string,
+		credentials: Record<string, any>
+	): AIModelEntity | null {
+		return null
+	}
 
 	private processParameterRules(yamlData: Record<string, any>): void {
 		const newParameterRules: any[] = []

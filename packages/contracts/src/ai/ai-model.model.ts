@@ -98,7 +98,7 @@ export interface ProviderModel {
   model_type: AiModelTypeEnum;
   features?: ModelFeature[];
   fetch_from: FetchFrom;
-  model_properties: Record<ModelPropertyKey, any>;
+  model_properties: Partial<Record<ModelPropertyKey, any>>;
   deprecated?: boolean;
   modelConfig?: any;
 }

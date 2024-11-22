@@ -1,13 +1,12 @@
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
+import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { AIProvidersService } from '../../../ai-model/index'
-import { CopilotService } from '../../copilot.service'
 import { ModelParameterRulesQuery } from '../model-parameter-rules.query'
 
 @QueryHandler(ModelParameterRulesQuery)
 export class ModelParameterRulesHandler implements IQueryHandler<ModelParameterRulesQuery> {
 	constructor(
-		private readonly service: CopilotService,
-		private readonly providersService: AIProvidersService
+		private readonly providersService: AIProvidersService,
+		private readonly queryBus: QueryBus
 	) {}
 
 	public async execute(command: ModelParameterRulesQuery): Promise<any[]> {

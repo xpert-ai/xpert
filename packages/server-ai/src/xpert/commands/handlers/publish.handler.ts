@@ -131,6 +131,8 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
     async publish(xpert: Xpert, version: string, draft: TXpertTeamDraft) {
 		this.#logger.debug(`Publish Xpert '${xpert.name}' to new version '${version}'`)
 
+		const xpertOptions = draft.team?.options ?? xpert.options ?? {}
+
 		const oldAgents = xpert.agents
 
 		// CURD Agents
@@ -176,14 +178,14 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 					if (xpert.agent.updatedAt.toISOString() > `${node.entity.updatedAt}`) {
 						throw new BadRequestException(`Agent record has been updated, please resynchronize`)
 					}
-					// Update primary agent when update xpert through OneToOne relationship
-					xpert.agent = {
+					// Update primary agent (save the relation updates in agent) before update xpert
+					xpert.agent = await this.xpertAgentService.update(xpert.agent.id, {
 						...xpert.agent,
 						...pickXpertAgent(node.entity),
 						toolsetIds,
 						knowledgebaseIds,
 						collaboratorNames
-					}
+					})
 				} else {
 					// Create new xpert agent
 					const newAgent = await this.xpertAgentService.create({
@@ -216,10 +218,10 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 			// Recording graph node positions
 			xpert.options ??= {}
 			draft.nodes.forEach((node) => {
-				xpert.options[node.type] ??= {}
-				xpert.options[node.type][node.key] ??= {}
-				xpert.options[node.type][node.key].position = node.position
-				xpert.options[node.type][node.key].size = node.size
+				xpertOptions[node.type] ??= {}
+				xpertOptions[node.type][node.key] ??= {}
+				xpertOptions[node.type][node.key].position = node.position
+				xpertOptions[node.type][node.key].size = node.size
 			})
 		}
 
@@ -232,6 +234,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 			xpert.starters = draft.team.starters
 			xpert.tags = draft.team.tags?.map((t) => ({id: t.id}))
 			xpert.copilotModel = draft.team.copilotModel
+			xpert.options = xpertOptions
 		}
 
 		// Update new version

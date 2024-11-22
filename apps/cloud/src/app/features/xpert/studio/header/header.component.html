@@ -239,9 +239,10 @@
 <ng-template #versionMenu>
   <div class="ngm-cdk-menu p-2" cdkMenu @overlayAnimation1>
     @for (item of versions(); track item.version) {
-      <button class="ngm-cdk-menu-item p-2" cdkMenuItem
+      <button class="ngm-cdk-menu-item px-2 py-1" cdkMenuItem
         [matTooltip]=" ('PAC.Xpert.PublishAt' | translate: {Default: 'Publish at'}) + ':' + (item.publishAt | date: 'short') "
         matTooltipPosition="before"
+        [matTooltipDisabled]="!item.publishAt"
         (click)="selectVersion(item.id)">
         @if (item.version) {
           v{{item.version}}
@@ -249,7 +250,7 @@
           {{ 'PAC.Xpert.Draft' | translate: {Default: 'Draft'} }}
         }
         @if (item.version === version()) {
-            <div class="ml-4 text-xs inline-flex items-center px-2 py-1 font-bold leading-sm uppercase bg-primary-100 text-primary-600 rounded-lg">
+            <div class="ml-4 text-xs inline-flex items-center px-2 font-bold leading-sm uppercase text-primary-600 rounded-lg">
               current
             </div>
         }
@@ -259,9 +260,10 @@
 </ng-template>
 
 <float-ui-content #conversations>
-  <div class="ngm-cdk-menu p-2 w-90">
+  <div class="ngm-cdk-menu p-2 w-96 max-w-md">
     @for (item of conversations$ | async; track item.id) {
       <button class="ngm-cdk-menu-item px-2 py-1 max-w-full flex flex-col justify-start items-start"
+        [title]="item.title"
         (click)="conversations.hide();openConversation(item)">
         <div class="text-start text-sm max-w-full truncate">{{item.title}}</div>
         <div class="text-start text-xs max-w-full text-text-tertiary">{{item.createdAt | date: 'medium'}}</div>

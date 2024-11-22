@@ -10,13 +10,16 @@ import { CopilotProviderModel } from '../core'
 import { CopilotProviderModelService } from './models/copilot-provider-model.service'
 import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
+import { AIModelModule } from '../ai-model'
 
 @Module({
 	imports: [
 		RouterModule.forRoutes([{ path: '/copilot-provider', module: CopilotProviderModule }]),
 		TypeOrmModule.forFeature([CopilotProvider, CopilotProviderModel]),
 		TenantModule,
-		CqrsModule
+		CqrsModule,
+
+		AIModelModule
 	],
 	controllers: [CopilotProviderController],
 	providers: [CopilotProviderService, CopilotProviderModelService, ...CommandHandlers, ...QueryHandlers],

@@ -100,7 +100,7 @@ export class XpertStudioHeaderComponent {
   }
 
   selectVersion(id: string) {
-    this.router.navigate(['..', id], { relativeTo: this.route })
+    this.router.navigate(['../../', id, 'agents'], { relativeTo: this.route })
   }
 
   togglePreview() {

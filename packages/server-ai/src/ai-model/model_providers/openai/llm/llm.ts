@@ -16,7 +16,6 @@ export class OpenAILargeLanguageModel extends CommonOpenAI {
 	}
 
 	async validateCredentials(model: string, credentials: OpenAICredentials): Promise<void> {
-		// console.log(model, credentials)
 		const params = this.toCredentialKwargs(credentials)
 
 		const chatModel = new ChatOpenAI(params)
@@ -48,7 +47,8 @@ export class OpenAILargeLanguageModel extends CommonOpenAI {
 		return new ChatOpenAI({
 			...params,
 			model: copilotModel.model || copilot.defaultModel,
-			temperature: 0,
+			streaming: copilotModel.options?.streaming ?? true,
+			temperature: copilotModel.options?.temperature ?? 0,
 			callbacks: [
 				{
 					handleLLMEnd(output) {

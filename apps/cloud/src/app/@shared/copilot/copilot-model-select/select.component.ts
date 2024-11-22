@@ -4,17 +4,25 @@ import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, effect, inject, input, model } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
-import { MatSelectModule } from '@angular/material/select'
-import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmHighlightDirective, NgmSearchComponent } from '@metad/ocap-angular/common'
-import { NgmDensityDirective, NgmI18nPipe, nonBlank } from '@metad/ocap-angular/core'
+import { NgmI18nPipe, nonBlank } from '@metad/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { debounceTime, map } from 'rxjs'
-import { TranslateModule } from '@ngx-translate/core'
-import { ICopilot, ICopilotModel, ModelFeature, AiModelTypeEnum, PACCopilotService, CopilotServerService } from '../../../@core'
+import {
+  AiModelTypeEnum,
+  CopilotServerService,
+  ICopilot,
+  ICopilotModel,
+  injectCopilotProviderService,
+  injectCopilots,
+  ModelFeature,
+  PACCopilotService,
+  ParameterType
+} from '../../../@core'
+import { ModelParameterInputComponent } from '../model-parameter-input/input.component'
 
 @Component({
   standalone: true,
@@ -26,13 +34,10 @@ import { ICopilot, ICopilotModel, ModelFeature, AiModelTypeEnum, PACCopilotServi
     CdkMenuModule,
     CdkListboxModule,
     MatTooltipModule,
-    MatSliderModule,
-    MatSelectModule,
-    MatInputModule,
     NgmSearchComponent,
     NgmI18nPipe,
     NgmHighlightDirective,
-    NgmDensityDirective
+    ModelParameterInputComponent
   ],
   selector: 'copilot-model-select',
   templateUrl: 'select.component.html',
@@ -42,10 +47,13 @@ import { ICopilot, ICopilotModel, ModelFeature, AiModelTypeEnum, PACCopilotServi
 export class CopilotModelSelectComponent {
   eModelFeature = ModelFeature
   eModelType = AiModelTypeEnum
+  eParameterType = ParameterType
 
   protected cva = inject<NgxControlValueAccessor<Partial<ICopilotModel> | null>>(NgxControlValueAccessor)
   readonly copilotService = inject(PACCopilotService)
   readonly copilotServer = inject(CopilotServerService)
+  readonly copilotProviderService = injectCopilotProviderService()
+  readonly copilots = injectCopilots()
 
   // Inputs
   readonly modelType = input<AiModelTypeEnum>()
@@ -63,14 +71,16 @@ export class CopilotModelSelectComponent {
   // States
   readonly _copilotModel = computed(() => this.copilotModel() ?? this.inheritModel())
 
-  readonly copilotWithModels = derivedAsync(() => this.copilotServer.getCopilotModels(this.modelType()).pipe(
+  readonly copilotWithModels = derivedAsync(() =>
+    this.copilotServer.getCopilotModels(this.modelType()).pipe(
       map((copilots) => {
         return copilots?.sort((a, b) => {
-          const roleOrder = { primary: 0, secondary: 1, embedding: 2 };
-          return roleOrder[a.role] - roleOrder[b.role];
+          const roleOrder = { primary: 0, secondary: 1, embedding: 2 }
+          return roleOrder[a.role] - roleOrder[b.role]
         })
       })
-    ))
+    )
+  )
   readonly copilotWithModels$ = toObservable(this.copilotWithModels)
 
   readonly searchControl = new FormControl()
@@ -102,22 +112,28 @@ export class CopilotModelSelectComponent {
     return this.copilotWithModels()?.find((_) => _.id === this.copilotId())
   })
 
-  readonly copilots = this.copilotService.copilots
-  readonly provider = computed(() => this.copilots()?.find((_) => _.id === this.copilotId())?.provider)
+  // readonly copilots = this.copilotServer.copilots
+  readonly provider = computed(
+    () => this.copilots()?.find((_) => _.id === this.copilotId())?.modelProvider?.providerName
+  )
+  readonly providerId = computed(() => this.copilots()?.find((_) => _.id === this.copilotId())?.modelProvider?.id)
+
   readonly model = computed(() => this._copilotModel()?.model)
-  readonly selectedAiModel = computed(() => this.selectedCopilotWithModels()?.providerWithModels?.models?.find((_) => _.model === this.model()))
+  readonly selectedAiModel = computed(() =>
+    this.selectedCopilotWithModels()?.providerWithModels?.models?.find((_) => _.model === this.model())
+  )
 
   readonly modelParameterRules = derivedAsync(() => {
     const provider = this.provider()
     const model = this.model()
     if (provider && model) {
-      return this.copilotServer.getModelParameterRules(this.provider(), this.model())
+      return this.copilotProviderService.getModelParameterRules(this.providerId(), this.model())
     }
     return null
   })
 
   readonly isInherit = computed(() => !this.copilotModel())
-  
+
   constructor() {
     effect(
       () => {
@@ -131,24 +147,38 @@ export class CopilotModelSelectComponent {
     )
   }
 
+  updateValue(value: ICopilotModel) {
+    this.copilotModel.set(value)
+    this.cva.value$.set(value)
+  }
+
+  initModel(copilotId: string, model: string) {
+    this.updateValue({
+      copilotId,
+      model,
+      modelType: this.modelType()
+    })
+  }
+
   setModel(copilot: ICopilot, model: string) {
     const nValue = {
-      ...(this._copilotModel() ?? {}),
+      ...(this.copilotModel() ?? {}),
       model,
       copilotId: copilot.id,
-      // copilot: copilot,
       modelType: this.modelType()
     }
-    this.copilotModel.set(nValue)
-
-    this.cva.value$.set(nValue)
+    this.updateValue(nValue)
   }
 
   getParameter(name: string) {
-    return this.copilotModel()?.options?.[name]
+    return this._copilotModel()?.options?.[name]
   }
 
   updateParameter(name: string, value: any) {
+    if (!this.copilotModel()) {
+      this.initModel(this.copilotId(), this.model())
+    }
+    
     this.copilotModel.update((state) =>
       state
         ? {
@@ -160,5 +190,10 @@ export class CopilotModelSelectComponent {
           }
         : { options: { [name]: value } }
     )
+    this.updateValue(this.copilotModel())
+  }
+
+  delete() {
+    this.updateValue(null)
   }
 }

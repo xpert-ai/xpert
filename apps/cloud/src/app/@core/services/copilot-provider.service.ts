@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core'
 import { OrganizationBaseCrudService } from '@metad/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { API_COPILOT_PROVIDER } from '../constants/app.constants'
-import { ICopilotProvider, ICopilotProviderModel, ProviderModel } from '../types'
+import { ICopilotProvider, ICopilotProviderModel, ParameterRule, ProviderModel } from '../types'
 
 @Injectable({ providedIn: 'root' })
 export class CopilotProviderService extends OrganizationBaseCrudService<ICopilotProvider> {
@@ -12,8 +12,18 @@ export class CopilotProviderService extends OrganizationBaseCrudService<ICopilot
     super(API_COPILOT_PROVIDER)
   }
 
-  getModels(providerId: string,) {
-    return this.httpClient.get<{custom: ICopilotProviderModel[]; builtin: ProviderModel[]}>(this.apiBaseUrl + `/${providerId}/model`)
+  getModelParameterRules(providerId: string, model: string) {
+    return this.httpClient.get<ParameterRule[]>(this.apiBaseUrl + `/${providerId}/model-parameter-rules`, {
+      params: {
+        model
+      }
+    })
+  }
+
+  getModels(providerId: string) {
+    return this.httpClient.get<{ custom: ICopilotProviderModel[]; builtin: ProviderModel[] }>(
+      this.apiBaseUrl + `/${providerId}/model`
+    )
   }
 
   getModel(providerId: string, modelId: string) {

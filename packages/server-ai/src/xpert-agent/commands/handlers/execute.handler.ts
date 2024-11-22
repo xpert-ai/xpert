@@ -290,7 +290,9 @@ ${agent.prompt}
 					case 'on_tool_end': {
 						this.#logger.verbose(data, rest)
 						// Clear finished tool call
-						toolCalls[rest.run_id] = null
+						if (toolCalls?.[rest.run_id]) {
+						  toolCalls[rest.run_id] = null
+						}
 						const _event = eventStack.pop()
 						if (_event !== 'on_tool_start') { // 应该不会出现这种情况吧？
 							eventStack.pop()

@@ -8,6 +8,7 @@ export function injectGetXpertTeam() {
     return xpertService.getTeam(id, {
       relations: [
         'agent',
+        'agent.copilotModel',
         'agents',
         'agents.copilotModel',
         'executors',

@@ -125,22 +125,25 @@
   <div cdkMenu class="ngm-cdk-menu p-2 w-60">
     <button cdkMenuItem class="ngm-cdk-menu-item px-2 py-1 max-w-full text-left"
       (click)="openExecution()">
-      <i class="ri-play-line"></i>{{ 'PAC.Xpert.RunThisAgent' | translate: { Default: 'Run this agent' } }}
+      <i class="ri-play-line mr-1"></i>{{ 'PAC.Xpert.RunThisAgent' | translate: { Default: 'Run this agent' } }}
     </button>
     <button cdkMenuItem class="ngm-cdk-menu-item px-2 py-1 max-w-full text-left"
       [cdkMenuTriggerFor]="executionsMenu">
-      <span><i class="ri-history-line"></i>{{ 'PAC.Xpert.ExecutionsHistories' | translate: { Default: 'Executions Histories' } }}</span>
+      <span><i class="ri-history-line mr-1"></i>{{ 'PAC.Xpert.ExecutionsHistories' | translate: { Default: 'Executions Histories' } }}</span>
     </button>
   </div>
 </ng-template>
 
 <ng-template #executionsMenu>
-  <div cdkMenu class="ngm-cdk-menu p-2 w-60 overflow-auto">
+  <div cdkMenu class="ngm-cdk-menu p-2 w-72 overflow-auto">
     @for (execution of executions(); track execution.id) {
-      <button cdkMenuItem class="ngm-cdk-menu-item shrink-0 px-2 py-1 max-w-full flex flex-col justify-start items-start"
+      <button cdkMenuItem class="ngm-cdk-menu-item shrink-0 px-2 py-1 max-w-full flex justify-between items-start text-sm"
         (click)="openExecution(execution)">
         {{execution.updatedAt | date: 'medium'}}
+        <span class="px-1 rounded-md border-light text-xs">{{execution.elapsedTime | number}}ms</span>
       </button>
+    } @empty {
+      <div class="text-text-secondary">{{'PAC.Xpert.NoExecutionYet' | translate: { Default:'No execution yet'} }}</div>
     }
   </div>
 </ng-template>

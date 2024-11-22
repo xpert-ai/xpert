@@ -108,11 +108,11 @@ export class XpertStudioPanelAgentExecutionComponent {
       switchMap((id) => (id ? this.agentExecutionService.getOneLog(id) : of(null)))
     )
     .subscribe((value) => {
-      // this.execution.set(value)
       this.executionService.clear()
       if (value) {
         this.executionService.setAgentExecution(value.agentKey, value)
       }
+      this.input.set(value?.inputs?.input)
       this.output.set(value?.outputs?.output)
     })
 

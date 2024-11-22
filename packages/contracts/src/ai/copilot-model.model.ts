@@ -27,5 +27,5 @@ export type TCopilotModel = {
 }
 
 export type TCopilotModelOptions = {
-  [key: string]: unknown
+  [key: string]: any
 }
