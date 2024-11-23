@@ -41,7 +41,7 @@ export class DynamicGridDirective {
   ) {
     this.initializeSignalEffect()
 
-    this.entries$.pipe(debounceTime(100), takeUntilDestroyed()).subscribe((entries) => {
+    this.entries$.pipe(takeUntilDestroyed()).subscribe((entries) => {
       // This will trigger when the component resizes
       this.elementWidth.set(entries[0].contentBoxSize[0].inlineSize)
     })

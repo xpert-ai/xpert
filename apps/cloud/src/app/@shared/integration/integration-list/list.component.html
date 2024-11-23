@@ -4,14 +4,14 @@
     [cdkListboxCompareWith]="compareId"
   >
     @for (item of integrationList(); track item.id) {
-      <li [cdkOption]="item" #option="cdkOption" class="ngm-cdk-option flex items-center cursor-pointer rounded-md
+      <li [cdkOption]="item" #option="cdkOption" class="ngm-cdk-option flex items-center cursor-pointer rounded-xl text-sm
        hover:bg-black/5 dark:hover:bg-white/10"
         [class.cdk-option-selected]="option.isSelected()"
       >
         @if (option.isSelected()) {
-          <mat-icon class="absolute left-1" fontSet="material-icons-outlined" color="accent">check_small</mat-icon>
+          <mat-icon class="absolute right-1" fontSet="material-icons-outlined" color="accent">check_small</mat-icon>
         }
-        <pac-avatar [imageUrl]="item.avatar || getProvider(item)?.avatar" class="shrink-0 mr-2 w-6 h-6 overflow-hidden rounded-full" />
+        <emoji-avatar [avatar]="item.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-lg" />
         <span class="whitespace-nowrap text-ellipsis overflow-hidden" [title]="item.name">{{item.name}}</span>
       </li>
     }

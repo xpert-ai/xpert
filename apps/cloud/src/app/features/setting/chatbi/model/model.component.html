@@ -28,11 +28,6 @@
     </div>
 
     <div class="flex-1 flex flex-col mt-4">
-      <label class="ngm-input-label shrink-0">{{'PAC.ChatBI.RolesWithPermission' | translate: {Default: 'Roles with Permission'} }}</label>
-      <pac-xpert-role-list [roleList]="roleList()" [(roles)]="roles" />
-    </div>
-
-    <div class="flex-1 flex flex-col mt-4">
       <label class="ngm-input-label shrink-0">{{'PAC.ChatBI.IntegrationsWithPermission' | translate: {Default: 'Integrations with Permission'} }}</label>
       <pac-integration-list [integrationList]="integrationList()" [(integrations)]="integrations" />
     </div>

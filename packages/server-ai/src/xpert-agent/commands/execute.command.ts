@@ -2,10 +2,11 @@ import { tool } from '@langchain/core/tools'
 import { LangGraphRunnableConfig } from '@langchain/langgraph'
 import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpert, IXpertAgent, IXpertAgentExecution, TChatOptions, TXpertParameter, XpertAgentExecutionEnum, XpertParameterTypeEnum } from '@metad/contracts'
 import { convertToUrlPath, getErrorMessage } from '@metad/server-common'
-import { CommandBus, ICommand } from '@nestjs/cqrs'
+import { CommandBus, ICommand, QueryBus } from '@nestjs/cqrs'
 import { lastValueFrom, Observable, reduce, Subscriber, tap } from 'rxjs'
 import { z } from 'zod'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands'
+import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries'
 
 export class XpertAgentExecuteCommand implements ICommand {
 	static readonly type = '[Xpert Agent] Execute'
@@ -41,6 +42,7 @@ export class XpertAgentExecuteCommand implements ICommand {
  */
 export function createXpertAgentTool(
 	commandBus: CommandBus,
+	queryBus: QueryBus,
 	config: {
 		xpert: Partial<IXpert>
 		agent: IXpertAgent
@@ -118,13 +120,17 @@ export function createXpertAgentTool(
 								})
 							)
 
+							const fullExecution = await queryBus.execute(
+								new XpertAgentExecutionOneQuery(newExecution.id)
+							)
+
 							// End agent execution event
 							subscriber.next(
 								({
 									data: {
 										type: ChatMessageTypeEnum.EVENT,
 										event: ChatMessageEventTypeEnum.ON_AGENT_END,
-										data: newExecution
+										data: fullExecution
 									}
 								}) as MessageEvent
 							)

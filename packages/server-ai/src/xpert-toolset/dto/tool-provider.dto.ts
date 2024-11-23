@@ -13,7 +13,7 @@ export class ToolProviderDTO implements Partial<IToolProvider> {
 		Object.assign(this, partial)
 
 		this.avatar = partial.avatar ?? {
-			url: baseUrl + (baseUrl.endsWith('/') ? '' : '/') + `/api/xpert-toolset/builtin-provider/${partial.name}/icon`
+			url: baseUrl + (baseUrl.endsWith('/') ? '' : '/') + `api/xpert-toolset/builtin-provider/${partial.name}/icon`
 		}
 	}
 }

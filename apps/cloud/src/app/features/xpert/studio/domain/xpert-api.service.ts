@@ -427,4 +427,13 @@ export class XpertStudioApiService {
     new LayoutHandler(this.store).handle(new LayoutRequest('TB'))
     // this.#reload.next(EReloadReason.AUTO_LAYOUT)
   }
+
+  // Get toolset detail from cache or remote
+  private readonly toolsets = new Map<string, Observable<IXpertToolset>>()
+  getToolset(id: string) {
+    if (!this.toolsets.get(id)) {
+      this.toolsets.set(id, this.toolsetService.getOneById(id, { relations: ['tools']}).pipe(shareReplay(1)))
+    }
+    return this.toolsets.get(id)
+  }
 }

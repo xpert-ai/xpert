@@ -8,6 +8,9 @@ import { TranslateModule } from '@ngx-translate/core'
 import { IXpertRole } from '../../../@core/types'
 import { AvatarComponent } from '../../files'
 
+/**
+ * @deprecated
+ */
 @Component({
   standalone: true,
   imports: [

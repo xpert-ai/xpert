@@ -22,6 +22,8 @@ export class RemoveNodeHandler implements IHandler<RemoveNodeRequest> {
     })
 
     switch(node.type) {
+      case 'toolset':
+        return EReloadReason.TOOLSET_REMOVED
       case 'knowledge':
         return EReloadReason.KNOWLEDGE_REMOVED
       case 'agent':
@@ -31,8 +33,3 @@ export class RemoveNodeHandler implements IHandler<RemoveNodeRequest> {
     }
   }
 }
-
-// export function removeKnowledgebase(xpert: IXpertRole, key: string) {
-//   xpert.knowledgebases = xpert.knowledgebases?.filter((item) => item.id !== key)
-//   xpert.members?.forEach((member) => removeKnowledgebase(member, key))
-// }

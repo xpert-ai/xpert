@@ -13,7 +13,7 @@ import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
 import { EMPTY, map, of, pipe, startWith, switchMap } from 'rxjs'
 import { ChatBIModelService, XpertService, IChatBIModel, IntegrationService, ToastrService, routeAnimations } from '../../../../@core'
-import { XpertRoleListComponent, IntegrationListComponent, MaterialModule, UpsertEntityComponent } from '../../../../@shared'
+import { IntegrationListComponent, MaterialModule, UpsertEntityComponent } from '../../../../@shared'
 import { ChatBIModelsComponent } from '../models/models.component'
 
 @Component({
@@ -28,7 +28,6 @@ import { ChatBIModelsComponent } from '../models/models.component'
     TranslateModule,
     MaterialModule,
     NgmCommonModule,
-    XpertRoleListComponent,
     IntegrationListComponent
   ],
   animations: [routeAnimations]

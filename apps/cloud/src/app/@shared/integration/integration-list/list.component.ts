@@ -3,10 +3,9 @@ import { CommonModule } from '@angular/common'
 import { Component, input, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatIconModule } from '@angular/material/icon'
-import { DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { AvatarComponent } from '../../files'
 import { IIntegration, INTEGRATION_PROVIDERS } from '../../../@core/types'
+import { EmojiAvatarComponent } from '../../avatar'
 
 @Component({
   standalone: true,
@@ -17,8 +16,7 @@ import { IIntegration, INTEGRATION_PROVIDERS } from '../../../@core/types'
     CdkListboxModule,
     TranslateModule,
     MatIconModule,
-    DensityDirective,
-    AvatarComponent
+    EmojiAvatarComponent
   ],
   selector: 'pac-integration-list',
   templateUrl: 'list.component.html',

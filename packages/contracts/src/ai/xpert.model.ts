@@ -244,6 +244,6 @@ export type TChatOptions = {
 // Helpers
 export function omitXpertRelations(xpert: Partial<IXpert>) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { draft, agent, agents, copilotModel, executors, leaders, knowledgebases, toolsets, managers, ...rest } = xpert ?? {}
+  const { draft, agent, agents, executors, leaders, knowledgebases, toolsets, managers, ...rest } = xpert ?? {}
   return rest
 }

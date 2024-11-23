@@ -1,6 +1,8 @@
 <h2 class="pac-page-title">{{ 'PAC.Integration.Integrations' | translate: {Default: 'Integrations' } }}</h2>
 
-<nav class="min-h-full grid content-start grid-cols-1 gap-4 px-4 pt-12 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 grow shrink-0 pb-4 overflow-auto">
+<nav class="min-h-full content-start gap-4 px-4 pt-12 grow shrink-0 pb-4 overflow-auto"
+  ngmDynamicGrid colWidth="280"
+  box="content-box">
   <ngm-card-create
     [title]=" 'PAC.Integration.AddIntegration' | translate: {Default: 'Add Integration'} "
     [helpTitle]="'PAC.Integration.AddIntegrationHelp' | translate: {Default: 'Learn more about custom integrations'}"

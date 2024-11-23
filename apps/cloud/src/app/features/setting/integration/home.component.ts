@@ -8,8 +8,9 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, EMPTY, map, switchMap } from 'rxjs'
 import { getErrorMessage, IIntegration, IntegrationService, routeAnimations, ToastrService } from '../../../@core'
 import { CardCreateComponent, MaterialModule, UserPipe } from '../../../@shared'
-import { EmojiAvatarComponent } from '../../../@shared/avatar/emoji-avatar/avatar.component'
+import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { CdkMenuModule } from '@angular/cdk/menu'
+import { DynamicGridDirective } from '@metad/core'
 
 @Component({
   standalone: true,
@@ -26,7 +27,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     UserPipe,
     NgmTagsComponent,
     CardCreateComponent,
-    EmojiAvatarComponent
+    EmojiAvatarComponent,
+    DynamicGridDirective
   ],
   animations: [routeAnimations]
 })

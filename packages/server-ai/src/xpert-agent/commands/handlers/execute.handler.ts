@@ -97,6 +97,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			agent.followers.forEach((follower) => {
 				tools.push(createXpertAgentTool(
 					this.commandBus,
+					this.queryBus,
 					{
 						xpert,
 						agent: follower,
@@ -116,6 +117,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 				const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(new GetXpertAgentQuery(collaborator.id,))
 				tools.push(createXpertAgentTool(
 					this.commandBus,
+					this.queryBus,
 					{
 						xpert: collaborator,
 						agent,
