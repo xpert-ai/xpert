@@ -60,6 +60,8 @@ export class CopilotModelSelectComponent {
   readonly inheritModel = input<ICopilotModel>()
   readonly copilotModel = model<ICopilotModel>()
 
+  readonly copilot = input<ICopilot>()
+
   readonly readonly = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
@@ -68,19 +70,23 @@ export class CopilotModelSelectComponent {
     transform: booleanAttribute
   })
 
+  readonly label = input<string>()
+
   // States
   readonly _copilotModel = computed(() => this.copilotModel() ?? this.inheritModel())
 
-  readonly copilotWithModels = derivedAsync(() =>
-    this.copilotServer.getCopilotModels(this.modelType()).pipe(
+  readonly copilotWithModels = derivedAsync(() => {
+    const copilot = this.copilot()
+    return this.copilotServer.getCopilotModels(this.modelType()).pipe(
       map((copilots) => {
-        return copilots?.sort((a, b) => {
-          const roleOrder = { primary: 0, secondary: 1, embedding: 2 }
-          return roleOrder[a.role] - roleOrder[b.role]
-        })
+        return copilots?.filter((_) => copilot ? _.id === copilot.id : true )
+          .sort((a, b) => {
+            const roleOrder = { primary: 0, secondary: 1, embedding: 2 }
+            return roleOrder[a.role] - roleOrder[b.role]
+          })
       })
     )
-  )
+  })
   readonly copilotWithModels$ = toObservable(this.copilotWithModels)
 
   readonly searchControl = new FormControl()
@@ -112,7 +118,6 @@ export class CopilotModelSelectComponent {
     return this.copilotWithModels()?.find((_) => _.id === this.copilotId())
   })
 
-  // readonly copilots = this.copilotServer.copilots
   readonly provider = computed(
     () => this.copilots()?.find((_) => _.id === this.copilotId())?.modelProvider?.providerName
   )
@@ -178,7 +183,7 @@ export class CopilotModelSelectComponent {
     if (!this.copilotModel()) {
       this.initModel(this.copilotId(), this.model())
     }
-    
+
     this.copilotModel.update((state) =>
       state
         ? {

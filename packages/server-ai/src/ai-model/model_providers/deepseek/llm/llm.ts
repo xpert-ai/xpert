@@ -47,7 +47,7 @@ export class DeepseekLargeLanguageModel extends AIModel {
 		const { handleLLMTokens } = options ?? {}
 		return new ChatOpenAI({
 			...params,
-			model: copilotModel.model || copilot.defaultModel,
+			model: copilotModel.model,
 			temperature: 0,
 			callbacks: [
 				{

@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { IsNull, Repository } from 'typeorm'
 import { Copilot } from './copilot.entity'
 import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { assign } from 'lodash'
 
 export const ProviderRolePriority = [AiProviderRole.Embedding, AiProviderRole.Secondary, AiProviderRole.Primary]
 
@@ -104,4 +105,9 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 		return await this.findOne(entity.id)
 	}
 	
+	async update(id: string, entity: DeepPartial<ICopilot>) {
+		const copilot = await this.findOne(id)
+		assign(copilot, entity)
+		return await this.repository.save(copilot)
+	}
 }

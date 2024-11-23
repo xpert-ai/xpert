@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FFlowModule } from '@foblex/flow'
-import { XpertStudioRoleToolsetComponent } from './toolset/toolset.component'
 import { AiModelTypeEnum, TXpertTeamNode } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
@@ -13,7 +12,7 @@ import { XpertStudioApiService } from '../../domain'
   styleUrls: ['./agent.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, PlusSvgComponent, EmojiAvatarComponent, CopilotModelSelectComponent, XpertStudioRoleToolsetComponent],
+  imports: [FFlowModule, PlusSvgComponent, EmojiAvatarComponent, CopilotModelSelectComponent],
   host: {
     tabindex: '-1',
     '[class.selected]': 'isSelected',

@@ -46,7 +46,7 @@ export class OpenAILargeLanguageModel extends CommonOpenAI {
 		const { handleLLMTokens } = options ?? {}
 		return new ChatOpenAI({
 			...params,
-			model: copilotModel.model || copilot.defaultModel,
+			model: copilotModel.model,
 			streaming: copilotModel.options?.streaming ?? true,
 			temperature: copilotModel.options?.temperature ?? 0,
 			callbacks: [

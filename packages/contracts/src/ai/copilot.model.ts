@@ -1,5 +1,6 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { AiProvider } from './ai.model'
+import { ICopilotModel } from './copilot-model.model'
 import { ICopilotProvider } from './copilot-provider.model'
 
 export interface ICopilot extends IBasePerTenantAndOrganizationEntityModel {
@@ -17,7 +18,9 @@ export interface ICopilot extends IBasePerTenantAndOrganizationEntityModel {
    * @deprecated
    */
   apiHost?: string
-  
+  /**
+   * @deprecated use copilotModel
+   */
   defaultModel?: string
 
   showTokenizer?: boolean
@@ -32,6 +35,7 @@ export interface ICopilot extends IBasePerTenantAndOrganizationEntityModel {
   options?: any
 
   modelProvider?: ICopilotProvider
+  copilotModel?: ICopilotModel
 }
 
 /**

@@ -1,16 +1,25 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { DecimalPipe } from '@angular/common'
 import { booleanAttribute, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { AiProviderRole } from '@metad/contracts'
-import { AI_PROVIDERS, AiModelCapability, AiProvider, isNil } from '@metad/copilot'
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { AiModelTypeEnum, AiProviderRole } from '@metad/contracts'
+import { AiProvider } from '@metad/copilot'
 import { TranslateModule } from '@ngx-translate/core'
-import { startWith, switchMap } from 'rxjs/operators'
-import { CopilotServerService, getErrorMessage, injectCopilots, PACCopilotService, Store, ToastrService } from '../../../../@core'
-import { CopilotAiProvidersComponent, CopilotProviderComponent, MaterialModule } from '../../../../@shared'
-import {Dialog, DialogRef, DIALOG_DATA, DialogModule} from '@angular/cdk/dialog';
 import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
+import { switchMap } from 'rxjs/operators'
+import {
+  CopilotServerService,
+  getErrorMessage,
+  injectCopilots,
+  PACCopilotService,
+  Store,
+  ToastrService
+} from '../../../../@core'
+import { CopilotAiProvidersComponent, CopilotProviderComponent, MaterialModule } from '../../../../@shared'
+import { CopilotModelSelectComponent } from '../../../../@shared/'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 
 const PROVIDERS = [
   {
@@ -90,7 +99,7 @@ const PROVIDERS = [
     icon: 'cohere.svg',
     iconAlt: 'cohere-logo',
     embedding: true
-  },
+  }
 ]
 
 @Component({
@@ -98,10 +107,20 @@ const PROVIDERS = [
   selector: 'pac-copilot-form',
   templateUrl: './copilot-form.component.html',
   styleUrls: ['./copilot-form.component.scss'],
-  imports: [DecimalPipe, TranslateModule, MaterialModule, FormsModule, ReactiveFormsModule, CopilotProviderComponent]
+  imports: [
+    DecimalPipe,
+    TranslateModule,
+    MaterialModule,
+    FormsModule,
+    ReactiveFormsModule,
+    NgmSpinComponent,
+    CopilotProviderComponent,
+    CopilotModelSelectComponent
+  ]
 })
 export class CopilotFormComponent {
   AiProvider = AiProvider
+  eAiModelTypeEnum = AiModelTypeEnum
 
   readonly #store = inject(Store)
   readonly copilotService = inject(PACCopilotService)
@@ -110,6 +129,7 @@ export class CopilotFormComponent {
   readonly #dialog = inject(Dialog)
   readonly copilots = injectCopilots()
 
+  // Inputs
   readonly role = input<AiProviderRole>()
 
   readonly enabled = model<boolean>(false)
@@ -117,66 +137,55 @@ export class CopilotFormComponent {
     transform: booleanAttribute
   })
 
-  readonly formGroup = new FormGroup({
-    id: new FormControl(null),
-    // enabled: new FormControl(false),
-    // provider: new FormControl(AiProvider.OpenAI, [Validators.required]),
-    // apiKey: new FormControl(null),
-    // apiHost: new FormControl(null),
-    // defaultModel: new FormControl<string | null>(null),
-
-    // showTokenizer: new FormControl(null),
-    tokenBalance: new FormControl(null)
-  }, {})
+  // States
+  readonly formGroup = new FormGroup(
+    {
+      id: new FormControl(null),
+      tokenBalance: new FormControl(null),
+      copilotModel: new FormControl(null)
+    },
+    {}
+  )
 
   get tokenBalance() {
     return this.formGroup.get('tokenBalance').value
   }
 
-  // readonly providers = computed(() =>
-  //   (this.embedding() ? PROVIDERS.filter((p) => p.embedding) : PROVIDERS).map((provider) => ({
-  //     ...provider,
-  //     caption: AI_PROVIDERS[provider.name].caption
-  //   }))
-  // )
-  // readonly provider = toSignal(this.formGroup.get('provider').valueChanges.pipe(startWith(AiProvider.OpenAI)))
-  // readonly models = computed(() => {
-  //   const models = AI_PROVIDERS[this.provider()]?.models || []
-  //   return this.embedding() ? models.filter((_) => isNil(_.capabilities) || _.capabilities.includes(AiModelCapability.Embed)) 
-  //     : models.filter((_) => isNil(_.capabilities) || _.capabilities.includes(AiModelCapability.Chat))
-  // })
-  // readonly providerHomepage = computed(() => AI_PROVIDERS[this.provider()]?.homepage || '')
-  // readonly providerInfo = computed(() => this.providers().find((item) => item.name === this.provider()))
-
   readonly saving = signal(false)
 
   readonly organizationId = toSignal(this.#store.selectOrganizationId())
-  readonly copilotId = computed(() =>
-    this.copilots()
-      ?.find((item) => item.organizationId === this.organizationId() && item.role === this.role())?.id
+  readonly copilotId = computed(
+    () =>
+      this.copilots()?.find((item) => item.organizationId === this.organizationId() && item.role === this.role())?.id
   )
 
   readonly refresh$ = new BehaviorSubject<void>(null)
   readonly copilot = derivedAsync(() => {
-    return this.copilotId() ? 
-      this.refresh$.pipe(switchMap(() => this.copilotServer.getOneById(this.copilotId(), { relations: ['modelProvider'] }))) : null
+    return this.copilotId()
+      ? this.refresh$.pipe(
+          switchMap(() => this.copilotServer.getOneById(this.copilotId(), { relations: ['modelProvider',] }))
+        )
+      : null
   })
 
   readonly modelProvider = computed(() => this.copilot()?.modelProvider)
 
+  readonly defaultModelType = computed(() => {
+    switch(this.role()) {
+      case AiProviderRole.Primary:
+        return AiModelTypeEnum.LLM
+      case AiProviderRole.Secondary:
+        return AiModelTypeEnum.LLM
+      case AiProviderRole.Embedding:
+        return AiModelTypeEnum.TEXT_EMBEDDING
+      default:
+        return null
+    }
+  })
   constructor() {
-    // effect(() => {
-    //   if (this.enabled()) {
-    //     this.formGroup.enable()
-    //   } else {
-    //     this.formGroup.disable()
-    //   }
-    // })
-
     effect(
       () => {
         if (this.copilot()) {
-          // this.enabled.set(this.copilot().enabled)
           this.formGroup.patchValue(this.copilot())
           this.formGroup.markAsPristine()
         }
@@ -186,22 +195,13 @@ export class CopilotFormComponent {
   }
 
   async onSubmit() {
-    // if (!this.formGroup.value.id && !this.enabled()) {
-    //   return
-    // }
     try {
       this.saving.set(true)
-      await firstValueFrom(this.copilotServer.update(this.copilotId(), {
-        ...this.formGroup.value
-      }))
-      // await this.copilotService.upsertItems([
-      //   this.enabled()
-      //     ? { ...this._getValue(this.formGroup), role: this.role(), enabled: true }
-      //     : {
-      //         id: this.formGroup.value.id,
-      //         enabled: false
-      //       }
-      // ])
+      await firstValueFrom(
+        this.copilotServer.update(this.copilotId(), {
+          ...this.formGroup.value
+        })
+      )
       this.formGroup.markAsPristine()
       this.#toastrService.success('PAC.ACTIONS.Save', { Default: 'Save' })
     } catch (err) {
@@ -210,19 +210,6 @@ export class CopilotFormComponent {
       this.saving.set(false)
     }
   }
-
-  // _getValue(form: FormGroup) {
-  //   const { apiKey, secondary, ...rest } = form.value
-
-  //   return form.get('apiKey').dirty
-  //     ? {
-  //         ...rest,
-  //         apiKey: apiKey.trim()
-  //       }
-  //     : {
-  //         ...rest
-  //       }
-  // }
 
   formatBalanceLabel(value: number): string {
     if (value >= 1000000) {
@@ -248,8 +235,8 @@ export class CopilotFormComponent {
     const dialogRef = this.#dialog.open<string>(CopilotAiProvidersComponent, {
       data: {
         copilot: this.formGroup.value
-      },
-    });
+      }
+    })
 
     dialogRef.closed.subscribe((copilotProvider) => {
       this.refresh$.next()

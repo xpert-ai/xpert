@@ -12,7 +12,7 @@ export class CopilotModelGetEmbeddingsHandler implements IQueryHandler<CopilotMo
 	public async execute(command: CopilotModelGetEmbeddingsQuery) {
 		// Temporarily the same logic as `CopilotModelGetChatModelQuery`
 		return await this.queryBus.execute(
-			new CopilotModelGetChatModelQuery(command.copilot, command.copilotModel, command.options)
+			new CopilotModelGetChatModelQuery(command.copilot, command.copilotModel ?? command.copilot.copilotModel, command.options)
 		)
 	}
 }

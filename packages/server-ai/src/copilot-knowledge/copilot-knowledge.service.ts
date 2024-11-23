@@ -196,7 +196,7 @@ export class CopilotKnowledgeService extends TenantOrganizationAwareCrudService<
 	private async getEmbeddings(copilot: ICopilot) {
 		if (copilot) {
 			return await this.queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
-				new CopilotModelGetEmbeddingsQuery(copilot, {}, {tokenCallback: (token) => {
+				new CopilotModelGetEmbeddingsQuery(copilot, null, {tokenCallback: (token) => {
 					// execution.tokens += (token ?? 0)
 				}})
 			)

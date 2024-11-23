@@ -1,4 +1,13 @@
-import { AiModelTypeEnum, AIPermissionsEnum, IPagination, IAiProviderEntity, AiProviderRole } from '@metad/contracts'
+import {
+	AiModelTypeEnum,
+	AIPermissionsEnum,
+	AiProviderRole,
+	IAiProviderEntity,
+	ICopilot,
+	IPagination,
+} from '@metad/contracts'
+import { getErrorMessage } from '@metad/server-common'
+import { ConfigService } from '@metad/server-config'
 import {
 	CrudController,
 	PaginationParams,
@@ -11,15 +20,16 @@ import {
 	Controller,
 	Get,
 	HttpCode,
+	HttpException,
 	HttpStatus,
+	Inject,
+	InternalServerErrorException,
 	Param,
 	Post,
+	Put,
 	Query,
 	UseGuards,
-	Inject,
-	UseInterceptors,
-	HttpException,
-	InternalServerErrorException
+	UseInterceptors
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
@@ -27,20 +37,21 @@ import { DeepPartial } from 'typeorm'
 import { AiProviderDto, ListModelProvidersQuery } from '../ai-model'
 import { Copilot } from './copilot.entity'
 import { CopilotService } from './copilot.service'
-import { FindCopilotModelsQuery, ModelParameterRulesQuery } from './queries'
 import { CopilotDto, CopilotWithProviderDto } from './dto'
-import { getErrorMessage } from '@metad/server-common'
-import { ConfigService } from '@metad/server-config'
+import { FindCopilotModelsQuery, ModelParameterRulesQuery } from './queries'
 
 @ApiTags('Copilot')
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
 export class CopilotController extends CrudController<Copilot> {
-
 	@Inject(ConfigService)
 	private readonly configService: ConfigService
-	
+
+	get baseUrl() {
+		return this.configService.get('baseUrl') as string
+	}
+
 	constructor(
 		private readonly service: CopilotService,
 		private readonly commandBus: CommandBus,
@@ -58,14 +69,16 @@ export class CopilotController extends CrudController<Copilot> {
 	async findAllAvalibles(filter?: PaginationParams<Copilot>, ...options: any[]): Promise<IPagination<CopilotDto>> {
 		const result = await this.service.findAvalibles(filter)
 		return {
-			items: result.items.map((item) => new CopilotDto(item, this.configService.get('baseUrl') as string)),
+			items: result.items.map((item) => new CopilotDto(item, this.baseUrl)),
 			total: result.total
 		}
 	}
 
 	@Get('model-select-options')
 	async getCopilotModelSelectOptions(@Query('type') type: AiModelTypeEnum) {
-		const copilots = await this.queryBus.execute<FindCopilotModelsQuery, CopilotWithProviderDto[]>(new FindCopilotModelsQuery(type))
+		const copilots = await this.queryBus.execute<FindCopilotModelsQuery, CopilotWithProviderDto[]>(
+			new FindCopilotModelsQuery(type)
+		)
 		const items = []
 		copilots.forEach((copilot) => {
 			copilot.providerWithModels.models.forEach((model) => {
@@ -84,7 +97,7 @@ export class CopilotController extends CrudController<Copilot> {
 
 		return items
 	}
-
+	
 	@ApiOperation({ summary: 'Create new record' })
 	@ApiResponse({
 		status: HttpStatus.CREATED,
@@ -102,9 +115,11 @@ export class CopilotController extends CrudController<Copilot> {
 		return this.service.upsert(entity)
 	}
 
+	@UseGuards(PermissionGuard)
+	@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 	@Post('enable/:role')
 	async enableCopilotRole(@Param('role') role: AiProviderRole) {
-		const copilot = await this.service.findOneOrFail({ where: {role} })
+		const copilot = await this.service.findOneOrFail({ where: { role } })
 		if (copilot.success) {
 			await this.service.update(copilot.record.id, { enabled: true })
 		} else {
@@ -112,34 +127,40 @@ export class CopilotController extends CrudController<Copilot> {
 		}
 	}
 
+	@UseGuards(PermissionGuard)
+	@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 	@Post('disable/:role')
 	async disableCopilotRole(@Param('role') role: AiProviderRole) {
-		const copilot = await this.service.findOne({ where: {role} })
+		const copilot = await this.service.findOne({ where: { role } })
 		await this.service.update(copilot.id, { enabled: false })
 	}
 
 	/**
 	 * get model providers
-	 * 
+	 *
 	 * @returns
 	 */
 	@Get('providers')
 	async getModelProviders(@Query('type') type: AiModelTypeEnum) {
-		const providers = await this.queryBus.execute<ListModelProvidersQuery, IAiProviderEntity[]>(new ListModelProvidersQuery())
-		return providers.map((_) => new AiProviderDto(_, this.configService.get('baseUrl') as string))
+		const providers = await this.queryBus.execute<ListModelProvidersQuery, IAiProviderEntity[]>(
+			new ListModelProvidersQuery()
+		)
+		return providers.map((_) => new AiProviderDto(_, this.baseUrl))
 	}
 
 	/**
 	 * get models by model type
-	 * 
+	 *
 	 * @param type ModelType
 	 * @returns
 	 */
 	@Get('models')
 	async getModels(@Query('type') type: AiModelTypeEnum) {
 		try {
-			return await this.queryBus.execute<FindCopilotModelsQuery, CopilotWithProviderDto[]>(new FindCopilotModelsQuery(type))
-		} catch(err) {
+			return await this.queryBus.execute<FindCopilotModelsQuery, CopilotWithProviderDto[]>(
+				new FindCopilotModelsQuery(type)
+			)
+		} catch (err) {
 			if (err instanceof HttpException) {
 				throw err
 			} else {
@@ -148,12 +169,24 @@ export class CopilotController extends CrudController<Copilot> {
 		}
 	}
 
+	/**
+	 * @deprecated use in CopilotProvider
+	 */
 	@Get('provider/:name/model-parameter-rules')
-	async getModelParameters(
-		@Param('name') provider: string,
-		@Query('model') model: string
-	) {
+	async getModelParameters(@Param('name') provider: string, @Query('model') model: string) {
 		return this.queryBus.execute(new ModelParameterRulesQuery(provider, AiModelTypeEnum.LLM, model))
 	}
 
+	@UseGuards(PermissionGuard)
+	@Permissions(AIPermissionsEnum.COPILOT_EDIT)
+	@Put(':copilotId')
+	async updateCopilot(@Param('copilotId') copilotId: string, @Body() entity: Partial<ICopilot>) {
+		return await this.service.update(copilotId, entity)
+	}
+
+	@Get(':copilotId')
+	async getOne(@Param('copilotId') copilotId: string,) {
+		const copilot = await this.service.findOne(copilotId)
+		return new CopilotDto(copilot, this.baseUrl)
+	}
 }

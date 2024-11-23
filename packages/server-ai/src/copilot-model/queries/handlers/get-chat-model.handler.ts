@@ -27,8 +27,8 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 			copilot
 		}))
 
-        const copilotModel = command.copilotModel
-        const modelName = copilotModel.model || copilot.defaultModel
+        const copilotModel = command.copilotModel ?? copilot.copilotModel
+        const modelName = copilotModel.model
         // Custom model
         const customModels = await this.queryBus.execute(new GetCopilotProviderModelQuery(copilot.modelProvider.id, modelName))
 		

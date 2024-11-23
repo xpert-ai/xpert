@@ -1,10 +1,10 @@
-import { AiProvider, AiProviderRole, ICopilot, ICopilotProvider } from '@metad/contracts'
+import { AiProvider, AiProviderRole, ICopilot, ICopilotModel, ICopilotProvider } from '@metad/contracts'
 import { IsSecret, TenantOrganizationBaseEntity, WrapSecrets } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Exclude, Expose } from 'class-transformer'
 import { IsBoolean, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
-import { AfterLoad, Column, Entity, OneToOne } from 'typeorm'
-import { CopilotProvider } from '../core/entities/internal'
+import { AfterLoad, Column, Entity, JoinColumn, OneToOne, RelationId } from 'typeorm'
+import { CopilotModel, CopilotProvider } from '../core/entities/internal'
 
 @Entity('copilot')
 export class Copilot extends TenantOrganizationBaseEntity implements ICopilot {
@@ -20,12 +20,18 @@ export class Copilot extends TenantOrganizationBaseEntity implements ICopilot {
 	@Column({ nullable: true, length: 10 })
 	role: AiProviderRole
 
+	/**
+	 * @deprecated
+	 */
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
 	@Column({ nullable: true, length: 20 })
 	provider?: AiProvider
 
+	/**
+	 * @deprecated
+	 */
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
@@ -33,12 +39,18 @@ export class Copilot extends TenantOrganizationBaseEntity implements ICopilot {
 	@Column({ nullable: true })
 	apiKey?: string
 
+	/**
+	 * @deprecated
+	 */
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
 	@Column({ nullable: true })
 	apiHost?: string
 
+	/**
+	 * @deprecated
+	 */
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
@@ -74,9 +86,24 @@ export class Copilot extends TenantOrganizationBaseEntity implements ICopilot {
     |--------------------------------------------------------------------------
     */
 	@ApiProperty({ type: () => CopilotProvider })
-	@OneToOne(() => CopilotProvider, provider => provider.copilot, { eager: true })
+	@OneToOne(() => CopilotProvider, (provider) => provider.copilot, { eager: true })
 	@IsOptional()
 	modelProvider?: ICopilotProvider
+
+	@ApiProperty({ type: () => CopilotModel })
+	@IsOptional()
+	@OneToOne(() => CopilotModel, { 
+		eager: true,
+		cascade: true,
+	})
+	@JoinColumn()
+	copilotModel?: ICopilotModel
+
+	@ApiProperty({ type: () => String })
+	@RelationId((it: Copilot) => it.copilotModel)
+	@IsString()
+	@Column({ nullable: true })
+	readonly copilotModelId?: string
 
 	@AfterLoad()
 	afterLoadEntity?() {

@@ -1,7 +1,11 @@
 @if (!hiddenLabel()) {
   <div class="flex justify-between items-center">
     <div class="flex items-center h-6">
-      <div class="">{{'PAC.Copilot.Models' | translate: {Default: 'Models'} }}</div>
+      @if (label()) {
+        {{label()}}
+      } @else {
+        <div class="">{{'PAC.Copilot.Models' | translate: {Default: 'Models'} }}</div>
+      }
     </div>
     <div class="flex"></div>
   </div>

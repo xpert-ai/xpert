@@ -46,7 +46,7 @@ export class AnthropicLargeLanguageModel extends AIModel {
 
 		const { handleLLMTokens } = options ?? {}
 
-		const model = copilotModel?.model || copilotModel?.referencedModel?.model || copilot.defaultModel
+		const model = copilotModel?.model || copilotModel?.referencedModel?.model
 		return new ChatAnthropic({
 			...toCredentialKwargs(modelProvider.credentials as AnthropicCredentials),
 			model,

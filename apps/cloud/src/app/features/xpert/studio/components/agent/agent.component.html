@@ -29,21 +29,11 @@
   </div>
   
   <div class="px-3 pb-2 w-full flex flex-col items-stretch">
-    <p class="mb-2 text-sm text-token-text-secondary text-left line-clamp-3" [title]="xpertAgent().description">{{xpertAgent().description}}</p>
+    <p class="mb-2 px-2 text-sm text-token-text-secondary text-left line-clamp-3" [title]="xpertAgent().description">{{xpertAgent().description}}</p>
 
     <copilot-model-select readonly hiddenLabel [inheritModel]="xpertCopilotModel()" [modelType]="eModelType.LLM"
       [copilotModel]="copilotModel()"
     />
-  
-    @if (toolsets()?.length) {
-      <label class="mt-4 text-left">Tools:</label>
-    }
-    @for (toolset of toolsets(); track toolset.id) {
-      <xpert-studio-role-toolset [toolset]="toolset" class="flex items-center cursor-pointer px-2 py-1 rounded-md
-        hover:bg-black/5 dark:hover:bg-white/10">
-        <emoji-avatar [avatar]="toolset.avatar" small class="shrink-0 mr-2 overflow-hidden rounded-full" />
-        <span class="whitespace-nowrap text-ellipsis overflow-hidden" [title]="toolset.name">{{toolset.name}}</span>
-      </xpert-studio-role-toolset>
-    }
+
   </div>
 }

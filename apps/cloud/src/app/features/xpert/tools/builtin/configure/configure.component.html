@@ -76,8 +76,7 @@
 </div>
 }
 
-
-<mat-dialog-actions align="end">
+<div class="sticky bottom-0 flex justify-end p-4 bg-components-card-bg">
   <div class="flex space-x-2">
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium"
       (click)="cancel($event)">{{'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}</button>
@@ -86,4 +85,4 @@
       (click)="save()"
     >{{'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}</button>
   </div>
-</mat-dialog-actions>
+</div>

@@ -12,8 +12,11 @@
   </div>
 }
 
-<form [formGroup]="formGroup" class="w-full flex flex-col items-start p-4 overflow-hidden bg-gray-100 rounded-xl shadow-sm border-light"
+<form [formGroup]="formGroup" class="relative w-full flex flex-col items-start gap-4 p-4 overflow-hidden bg-gray-50 rounded-xl shadow-sm border-light"
   (ngSubmit)="onSubmit()">
+
+  <copilot-model-select class="w-full" formControlName="copilotModel" [copilot]="copilot()" [modelType]="defaultModelType()"
+    [label]="'PAC.Copilot.DefaultModel' | translate: {Default: 'Default Model'}" />
 
   <div class="w-full flex flex-col justify-start items-stretch">
     <label>{{ 'PAC.Copilot.TokenBalancePerUser' | translate: {Default: 'Token Balance/User'} }}: {{tokenBalance | number}}</label>
@@ -22,84 +25,21 @@
     </mat-slider>
   </div>
 
-  <div class="self-stretch flex justify-start items-center gap-2 mt-8">
+  <div class="self-stretch flex justify-start items-center gap-2 mt-4">
     <button mat-flat-button type="button" class="ngm-rounded-full" [disabled]="formGroup.pristine"
       (click)="cancel()">
       {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
     </button>
     <button mat-raised-button color="primary" class="ngm-rounded-full"
-      [disabled]="formGroup.invalid || formGroup.pristine"
+      [disabled]="formGroup.invalid || formGroup.pristine || saving()"
     >
       <div class="flex items-center">
-        @if (saving()) {
-          <mat-spinner diameter="20" class="mr-2" />
-        }
         <span>{{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}</span>
       </div>
     </button>
   </div>
+
+  @if (saving()) {
+    <ngm-spin class="absolute top-0 left-0 w-full h-full" ></ngm-spin>
+  }
 </form>
-
-<!-- 
-    <mat-form-field appearance="fill">
-        <mat-label>{{ 'PAC.Copilot.Provider' | translate: {Default: 'Provider'} }}</mat-label>
-        <mat-select formControlName="provider">
-          <mat-select-trigger class="flex items-center">
-            @if (providerInfo(); as provider) {
-              <img [src]="'/assets/icons/llm/' + provider.icon" [alt]="provider.iconAlt" class="inline-block w-6 h-6 mr-1 rounded-full" />
-              <span>{{ 'PAC.Copilot.Provider_' + provider.caption | translate: {Default: provider.caption} }}</span>
-            }
-          </mat-select-trigger>
-          @for (option of providers(); track option.name) {
-            <mat-option [value]="option.name">
-              <img [src]="'/assets/icons/llm/' + option.icon" [alt]="option.iconAlt" class="inline-block w-8 h-8 mr-2 rounded-full" />
-              <span>{{ 'PAC.Copilot.Provider_' + option.caption | translate: {Default: option.caption} }}</span>
-            </mat-option>
-          }
-        </mat-select>
-    </mat-form-field>
-
-    <input type="text" name="ai-username" aria-hidden="true" style="display: none;">
-    <div class="w-[600px] max-w-full flex justify-start items-center gap-4">
-        <mat-form-field appearance="fill" class="flex-1">
-            <mat-label>
-                {{ 'PAC.Copilot.APIKey' | translate: {Default: 'API Key'} }}
-            </mat-label>
-            <input name="copilot-apikey" matInput formControlName="apiKey" type="password">
-        </mat-form-field>
-
-        <a mat-stroked-button [href]="providerHomepage()" target="_blank">
-            {{ 'PAC.Copilot.GetYourApiKey' | translate: {Default: 'Get your api key!'} }}
-        </a>
-    </div>
-
-    <div class="self-stretch flex justify-start items-center">
-        <mat-form-field appearance="fill" class="flex-1">
-            <mat-label>
-                {{ 'PAC.Copilot.APIHost' | translate: {Default: 'API Host'} }}
-            </mat-label>
-            <input name="copilot-apihost" matInput formControlName="apiHost" type="text">
-        </mat-form-field>
-    </div> 
-
-    <div class="flex items-center gap-4">
-        <mat-form-field class="w-64 max-w-full flex-1">
-            <mat-label>{{ 'PAC.Copilot.DefaultModel' | translate: {Default: 'Default Model'} }}</mat-label>
-            <input type="text"
-                   [placeholder]="'PAC.Copilot.SelectDefaultModel' | translate: {Default: 'Select or input a default model'}"
-                   aria-label="Default Model"
-                   matInput
-                   formControlName="defaultModel"
-                   [matAutocomplete]="auto">
-            <mat-autocomplete autoActiveFirstOption #auto="matAutocomplete">
-              @for (model of models(); track model.id) {
-                <mat-option [value]="model.id">{{model.name}}</mat-option>
-              }
-            </mat-autocomplete>
-        </mat-form-field>
-
-        <mat-checkbox formControlName="showTokenizer">
-            {{ 'PAC.Copilot.ShowTokenizer' | translate: {Default: 'Show Tokenizer'} }}
-        </mat-checkbox>
-    </div>
--->

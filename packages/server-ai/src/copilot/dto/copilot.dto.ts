@@ -16,7 +16,11 @@ export class CopilotDto {
 	@Transform(({ value, obj }) => value && new CopilotProviderPublicDto(value, obj.baseUrl))
 	modelProvider?: ICopilotProvider
 
-	constructor(partial: Partial<CopilotDto>, private baseUrl: string) {
+	@Exclude()
+	baseUrl: string
+
+	constructor(partial: Partial<CopilotDto>, baseUrl: string) {
 		Object.assign(this, partial)
+		this.baseUrl = baseUrl
 	}
 }
