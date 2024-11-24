@@ -7,7 +7,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as chalk from 'chalk';
-import { load } from 'js-yaml'
+import { parse } from 'yaml'
 
 
 namespace Utils {
@@ -205,7 +205,7 @@ export function loadYamlFile<T>(
 	try {
 	  const fileContent = fs.readFileSync(filePath, 'utf-8');
 	  try {
-		const yamlContent = load(fileContent) as T;
+		const yamlContent = parse(fileContent) as T;
 		return yamlContent || defaultValue;
 	  } catch (e) {
 		throw new Error(`Failed to load YAML file ${filePath}: ${e}`);

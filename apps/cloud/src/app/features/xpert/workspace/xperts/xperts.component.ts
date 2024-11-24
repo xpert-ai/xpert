@@ -7,7 +7,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, injec
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { DynamicGridDirective } from '@metad/core'
+import { DynamicGridDirective, uploadYamlFile } from '@metad/core'
 import { CdkConfirmDeleteComponent, CdkConfirmUniqueComponent, NgmCommonModule } from '@metad/ocap-angular/common'
 import { AppearanceDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
@@ -18,7 +18,6 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'
 import { BehaviorSubject, EMPTY } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
-import { parse } from 'yaml'
 import {
   getErrorMessage,
   IToolProvider,
@@ -328,29 +327,23 @@ export class XpertStudioXpertsComponent {
     input.onchange = (event: any) => {
       const file = event.target.files[0]
       if (file) {
-        const reader = new FileReader()
-        reader.onload = async (e: any) => {
-          try {
-            const dslContent = e.target.result
-            const parsedDSL = parse(dslContent)
-            // Assuming there's a method to handle the parsed DSL
-            this.handleImportedDSL(parsedDSL)
-          } catch (error) {
-            this.#toastr.error(
-              this.#translate.instant('PAC.Xpert.ImportError', { Default: 'Failed to import DSL file' }) +
-                ': ' +
-                getErrorMessage(error)
-            )
-          }
-        }
-        reader.readAsText(file)
+        uploadYamlFile(file).then((parsedDSL) => {
+          // Assuming there's a method to handle the parsed DSL
+          this.handleImportedDSL(parsedDSL)
+        }).catch((error) => {
+          this.#toastr.error(
+            this.#translate.instant('PAC.Xpert.ImportError', { Default: 'Failed to import DSL file' }) +
+              ': ' +
+              getErrorMessage(error)
+          )
+        })
       }
     }
 
     input.click()
   }
 
-  async handleImportedDSL(dsl: Partial<XpertDraftDslDTO>) {
+  handleImportedDSL(dsl: Partial<XpertDraftDslDTO>) {
     this.dialog
       .open(CdkConfirmUniqueComponent, {
         data: {

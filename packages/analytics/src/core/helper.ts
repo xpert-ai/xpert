@@ -1,5 +1,5 @@
 import * as fs from 'fs'
-import { load } from 'js-yaml'
+import { parse } from 'yaml'
 
 interface HasherState {
 	buffer: string
@@ -381,7 +381,7 @@ if (Md5.hashStr('hello') !== '5d41402abc4b2a76b9719d911017c592') {
 export async function readYamlFile<T>(file: string) {
 	try {
 		const data = fs.readFileSync(file, 'utf8')
-		return load(data) as T
+		return parse(data) as T
 	} catch (err) {
 		console.error(err)
         return null

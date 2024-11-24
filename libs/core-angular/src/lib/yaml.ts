@@ -1,7 +1,7 @@
-import yaml from 'js-yaml'
+import { parse, stringify } from 'yaml'
 
 export function saveAsYaml(fileName: string, obj: any) {
-  const content = yaml.dump(obj)
+  const content = stringify(obj)
 
   // Create element with <a> tag
   const link = document.createElement('a')
@@ -25,7 +25,7 @@ export async function uploadYamlFile<T>(file) {
     const reader = new FileReader()
     reader.onload = ((f) => {
       return (e) => {
-        resolve(yaml.load(e.target.result as string) as T)
+        resolve(parse(e.target.result as string) as T)
       }
     })(file)
   

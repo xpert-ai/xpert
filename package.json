@@ -140,7 +140,6 @@
     "hive-driver": "^0.1.7",
     "idb-keyval": "^6.2.1",
     "immer": "^10.0.1",
-    "js-yaml": "^4.1.0",
     "json5": "^2.2.3",
     "langchain": "0.3.2",
     "lato-font": "^3.0.0",
@@ -184,6 +183,7 @@
     "uuid": "^10.0.0",
     "xlsx": "^0.18.5",
     "xmldom": "^0.6.0",
+    "yaml": "^2.6.1",
     "zone.js": "~0.14.0"
   },
   "devDependencies": {
@@ -227,7 +227,6 @@
     "@swc/jest": "0.2.20",
     "@types/crypto-js": "^4.1.1",
     "@types/jest": "29.4.4",
-    "@types/js-yaml": "^4.0.5",
     "@types/lodash": "^4.14.182",
     "@types/lodash-es": "^4.17.6",
     "@types/marked": "^4.0.3",

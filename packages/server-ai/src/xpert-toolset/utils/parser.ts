@@ -1,7 +1,7 @@
 import { ApiProviderSchemaType, ApiToolBundle, ToolParameterForm, ToolParameterType, TToolParameter } from '@metad/contracts';
 import { getErrorMessage, shortuuid } from '@metad/server-common';
 import { fromParameter, fromSchema } from '@openapi-contrib/openapi-schema-to-json-schema';
-import { load } from 'js-yaml';
+import { parse } from 'yaml'
 import { jsonSchemaToZod } from 'json-schema-to-zod';
 import type { JSONSchema4, JSONSchema4Type } from "json-schema";
 import type { ParameterObject } from "openapi-typescript/src/types";
@@ -169,7 +169,7 @@ export class ApiBasedToolSchemaParser {
     extraInfo: Record<string, any> = {},
     warning: Record<string, any> = {}
   ): ApiToolBundle[] {
-    const openapi: Record<string, any> = load(yaml);
+    const openapi: Record<string, any> = parse(yaml);
     if (!openapi) {
       throw new Error('Invalid openapi yaml.');
     }
@@ -177,7 +177,7 @@ export class ApiBasedToolSchemaParser {
   }
 
   static parseOpenAPIYamlToJSONSchema(spec: string, options?: {path: string; operartor: string}) {
-    const openapiSpecJSON = load(spec)
+    const openapiSpecJSON = parse(spec)
     const jsonSchema = fromSchema(openapiSpecJSON)
     if (options?.path) {
       return jsonSchema.paths?.[options.path]?.[options.operartor]
@@ -242,7 +242,7 @@ export class ApiBasedToolSchemaParser {
 
       if (loadedContent === null) {
           try {
-              loadedContent = load(content)
+              loadedContent = parse(content)
           } catch (e) {
               yamlError = e;
           }
