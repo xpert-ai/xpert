@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { FFlowModule } from '@foblex/flow'
 import { AiModelTypeEnum, TXpertTeamNode } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
@@ -36,6 +36,12 @@ export class XpertStudioNodeAgentComponent {
 
   private get hostElement(): HTMLElement {
     return this.elementRef.nativeElement
+  }
+
+  constructor() {
+    effect(() => {
+      // console.log(`Agent node:`, this.node())
+    })
   }
 
   protected emitSelectionChangeEvent(event: MouseEvent): void {

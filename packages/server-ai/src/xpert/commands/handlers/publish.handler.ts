@@ -269,7 +269,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
  * @param agent Draft
  * @returns 
  */
-export function pickXpertAgent(agent: IXpertAgent) {
+export function pickXpertAgent(agent: Partial<IXpertAgent>) {
   return pick(
 	agent,
 	'name',

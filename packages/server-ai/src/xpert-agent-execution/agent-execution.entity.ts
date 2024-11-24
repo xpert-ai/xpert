@@ -98,7 +98,8 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 
 	@ApiProperty({ type: () => Xpert })
 	@ManyToOne(() => Xpert, {
-		nullable: true
+		nullable: true,
+		cascade: true
 	})
 	@JoinColumn()
 	xpert: IXpert

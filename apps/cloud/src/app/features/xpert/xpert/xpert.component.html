@@ -1,7 +1,9 @@
 <mat-sidenav-container class="flex-1 h-full" autosize>
   <mat-sidenav #sidenav [(opened)]="sideMenuOpened" [mode]="isMobile() ? 'over' : 'side'" >
 
-    <div class="flex p-2 mx-2 mt-2 rounded-xl hover:bg-gray-100 cursor-pointer active:scale-98 origin-bottom">
+    <div class="flex p-2 mx-2 mt-2 rounded-xl hover:bg-gray-100 cursor-pointer active:scale-98 origin-bottom"
+      [cdkMenuTriggerFor]="menu"
+    >
       <div class="relative shrink-0 mr-2">
         <emoji-avatar [avatar]="avatar()" class="rounded-lg overflow-hidden" />
         <span class="absolute bottom-[-3px] right-[-3px] w-4 h-4 p-0.5 bg-white rounded border-[0.5px] border-[rgba(0,0,0,0.02)] shadow-sm">
@@ -178,6 +180,14 @@
   </mat-sidenav-content>
 </mat-sidenav-container>
 
+<ng-template #menu>
+  <div cdkMenu @overlayAnimation1 class="cdk-menu__large w-60">
+
+    <div class="border-b border-solid border-divider-regular my-1"></div>
+
+    <div cdkMenuItem class="danger" (click)="delete()">{{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} }}</div>
+  </div>
+</ng-template>
 
 <ng-template #developInDevelopment >
   <pac-in-development @overlayAnimation1 feature="API access for development" class="w-80" />
@@ -186,7 +196,6 @@
 <ng-template #logsInDevelopment >
   <pac-in-development @overlayAnimation1 feature="Xpert access logs" class="w-80" />
 </ng-template>
-
 
 <ng-template #monitorInDevelopment >
   <pac-in-development @overlayAnimation1 feature="Xpert's monitor" class="w-80" />

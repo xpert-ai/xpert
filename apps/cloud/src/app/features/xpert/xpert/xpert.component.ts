@@ -1,22 +1,23 @@
+import { Dialog } from '@angular/cdk/dialog'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
+import { getErrorMessage, OverlayAnimations } from '@metad/core'
+import { CdkConfirmDeleteComponent, NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmTooltipDirective, nonBlank } from '@metad/ocap-angular/core'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { injectParams } from 'ngxtension/inject-params'
-import { BehaviorSubject } from 'rxjs'
+import { BehaviorSubject, EMPTY } from 'rxjs'
 import { distinctUntilChanged, filter, switchMap } from 'rxjs/operators'
-import { IXpert, routeAnimations, TXpertTeamDraft, XpertTypeEnum } from '../../../@core'
+import { injectToastr, IXpert, routeAnimations, TXpertTeamDraft, XpertService, XpertTypeEnum } from '../../../@core'
 import { MaterialModule } from '../../../@shared'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
+import { InDevelopmentComponent } from '../../../@theme'
 import { AppService } from '../../../app.service'
 import { injectGetXpertTeam } from '../utils'
-import { OverlayAnimations } from '@metad/core'
-import { InDevelopmentComponent } from '../../../@theme'
-
 
 @Component({
   standalone: true,
@@ -27,6 +28,7 @@ import { InDevelopmentComponent } from '../../../@theme'
     TranslateModule,
     MaterialModule,
     RouterModule,
+    CdkMenuModule,
 
     NgmCommonModule,
     EmojiAvatarComponent,
@@ -46,6 +48,10 @@ export class XpertComponent {
   readonly appService = inject(AppService)
   readonly paramId = injectParams('id')
   readonly getXpertTeam = injectGetXpertTeam()
+  readonly #dialog = inject(Dialog)
+  readonly #translate = inject(TranslateService)
+  readonly #xpertService = inject(XpertService)
+  readonly #toastr = injectToastr()
 
   readonly paramId$ = toObservable(this.paramId)
   readonly #refresh$ = new BehaviorSubject<void>(null)
@@ -72,4 +78,29 @@ export class XpertComponent {
   refresh() {
     this.#refresh$.next()
   }
+
+  delete() {
+    const xpert = this.xpert()
+    this.#dialog
+      .open(CdkConfirmDeleteComponent, {
+        data: {
+          value: xpert.title,
+          information: this.#translate.instant('PAC.Xpert.DeleteAllDataXpert', {
+            value: xpert.name,
+            Default: `Delete all data of xpert '${xpert.name}'?`
+          })
+        }
+      })
+      .closed.pipe(switchMap((confirm) => (confirm ? this.#xpertService.delete(xpert.id) : EMPTY)))
+      .subscribe({
+        next: () => {
+          this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, xpert.title)
+          this.refresh()
+        },
+        error: (error) => {
+          this.#toastr.error(getErrorMessage(error))
+        }
+      })
+  }
+
 }

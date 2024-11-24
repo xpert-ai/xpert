@@ -1,6 +1,9 @@
 import { Component, HostBinding, inject } from '@angular/core'
 import { MAT_DIALOG_DATA } from '@angular/material/dialog'
 
+/**
+ * @deprecated CdkConfirmDeleteComponent
+ */
 @Component({
   selector: 'ngm-confirm-delete',
   templateUrl: './confirm-delete.component.html',

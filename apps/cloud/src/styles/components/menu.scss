@@ -1,68 +1,14 @@
-.cdk-menu-bar {
-  .cdk-menu-item {
-    @apply p-2 whitespace-nowrap text-neutral-500 dark:text-neutral-500;
-  }
-  .cdk-menu-item:hover {
-    @apply bg-black/5 dark:bg-gray-100/10 text-neutral-600 dark:text-neutral-400;
-  }
-  // .cdk-menu-item[aria-expanded='true'] {
-  //   @apply bg-black/10 dark:bg-gray-100/20 text-neutral-600 dark:text-neutral-400;
-  // }
-}
+// .cdk-menu-bar {
+//   .cdk-menu-item {
+//     @apply p-2 whitespace-nowrap text-neutral-500 dark:text-neutral-500;
+//   }
+//   .cdk-menu-item:hover {
+//     @apply bg-black/5 dark:bg-gray-100/10 text-neutral-600 dark:text-neutral-400;
+//   }
+// }
 
 .cdk-menu-trigger[aria-expanded='true'] {
   @apply bg-black/10 dark:bg-gray-100/20 text-neutral-600 dark:text-neutral-400;
-}
-
-.cdk-menu.cdk-menu-group {
-  @apply mt-2 inline-flex flex-col rounded-xl shadow-lg overflow-auto border border-solid 
-    border-neutral-200 dark:border-neutral-700 dark:shadow-neutral-800;
-  background-color: var(--ngm-color-surface);
-
-  .cdk-menu-item {
-    @apply flex items-center bg-transparent whitespace-nowrap cursor-pointer border-none select-none;
-    min-width: 64px;
-
-    &:hover {
-      @apply bg-black/2 dark:bg-white/5;
-    }
-  
-    &.ngm-cdk-menu-item__disabled {
-      cursor: default;
-      opacity: 0.5;
-      &:hover {
-        background-color: unset;
-      }
-    }
-
-    &.ngm-cdk-menu__danger:hover {
-      @apply bg-red-400 text-white;
-    }
-
-    & + .mat-icon {
-      margin-right: 10px;
-    }
-
-    &.disabled, &.mat-button-disabled {
-      @apply opacity-50 cursor-default;
-    }
-
-    .mat-button-wrapper {
-      @apply w-full flex items-center;
-
-      > .mat-icon:is(:first-child) {
-        margin-right: 10px;
-      }
-    }
-    
-    .mdc-button__label {
-      @apply flex-1;
-    }
-  }
-}
-
-.cdk-menu-item.cdk-menu-trigger {
-  justify-content: space-between;
 }
 
 .mat-mdc-menu-panel .mat-mdc-menu-content {

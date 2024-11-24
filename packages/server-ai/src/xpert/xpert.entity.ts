@@ -21,7 +21,7 @@ import { CopilotModel, Knowledgebase, XpertAgent, XpertToolset } from '../core/e
 
 
 @Entity('xpert')
-@Index(['tenantId', 'organizationId', 'type', 'slug', 'version', 'latest', 'deletedAt'], { unique: true })
+@Index(['tenantId', 'organizationId', 'type', 'slug', 'version', 'latest'], { unique: true })
 export class Xpert extends WorkspaceBaseEntity implements IXpert {
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
@@ -104,9 +104,7 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
     |--------------------------------------------------------------------------
     */
 	@ApiProperty({ type: () => XpertAgent })
-	@OneToOne(() => XpertAgent, (agent: XpertAgent) => agent.xpert, {
-		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
-	})
+	@OneToOne(() => XpertAgent, (agent: XpertAgent) => agent.xpert)
 	agent?: IXpertAgent
 
 	// Copilot Model
@@ -158,7 +156,9 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 	executors?: IXpert[]
 
 	// Leaders
-	@ManyToMany(() => Xpert, (x) => x.executors)
+	@ManyToMany(() => Xpert, (x) => x.executors, {
+		cascade: true
+	})
 	leaders?: IXpert[]
 
 	// Xpert role's knowledgebases

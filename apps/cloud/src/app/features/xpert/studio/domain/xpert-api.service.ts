@@ -5,7 +5,7 @@ import { nonNullable, debounceUntilChanged } from '@metad/core'
 import { createStore, Store, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
 import { KnowledgebaseService, PACCopilotService, ToastrService, XpertService, XpertToolsetService } from 'apps/cloud/src/app/@core'
-import { isEqual, negate } from 'lodash-es'
+import { isEqual, negate, omit } from 'lodash-es'
 import {
   BehaviorSubject,
   combineLatest,
@@ -72,9 +72,7 @@ export class XpertStudioApiService {
   })
   readonly historyHasPast = toSignal(this.#stateHistory.hasPast$)
   readonly historyHasFuture = toSignal(this.#stateHistory.hasFuture$)
-  /**
-   * @deprecated
-   */
+
   get storage(): TXpertTeamDraft {
     return this.store.getValue().draft
   }
@@ -205,23 +203,23 @@ export class XpertStudioApiService {
     })
   }
   
+  getInitialDraft() {
+    const xpert = this.team()
+    return {
+      team: {
+        ...omit(xpert, 'agents'),
+        id: xpert.id
+      },
+      nodes: new ToNodeViewModelHandler(xpert).handle().nodes,
+      connections: new ToConnectionViewModelHandler(xpert).handle()
+    } as TXpertTeamDraft
+  }
 
   public initRole(xpert: IXpert) {
     this.team.set(xpert)
 
-    const team = xpert.draft?.team ?? xpert
-    const nodes = xpert.draft?.nodes ?? new ToNodeViewModelHandler(xpert).handle().nodes
-    const connections = xpert.draft?.connections ?? new ToConnectionViewModelHandler(xpert).handle()
-
     this.store.update(() => ({
-      draft: {
-        team: {
-          ...team,
-          id: xpert.id
-        },
-        nodes,
-        connections
-      } as TXpertTeamDraft
+      draft: xpert.draft ?? this.getInitialDraft()
     }))
 
     this.#reload.next(EReloadReason.INIT)

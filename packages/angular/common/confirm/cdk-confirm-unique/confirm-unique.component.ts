@@ -1,19 +1,16 @@
 import { A11yModule } from '@angular/cdk/a11y'
+import { DIALOG_DATA, DialogModule, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, HostBinding, OnInit, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isString } from 'lodash-es'
 
-/**
- * @deprecated use CdkConfirmUniqueComponent
- */
 @Component({
   standalone: true,
   imports: [
@@ -21,7 +18,7 @@ import { isString } from 'lodash-es'
     A11yModule,
     FormsModule,
     DragDropModule,
-    MatDialogModule,
+    DialogModule,
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
@@ -29,15 +26,18 @@ import { isString } from 'lodash-es'
 
     ButtonGroupDirective
   ],
-  selector: 'ngm-confirm-unique',
+  selector: 'cdk-confirm-unique',
   templateUrl: './confirm-unique.component.html',
-  styleUrls: ['./confirm-unique.component.scss']
+  styleUrls: ['./confirm-unique.component.scss'],
+  host: {
+    'class': 'cdk-dialog-card'
+  }
 })
-export class NgmConfirmUniqueComponent implements OnInit {
+export class CdkConfirmUniqueComponent implements OnInit {
   @HostBinding('class.ngm-dialog-container') isDialogContainer = true
 
-  public data = inject<string | { title: string; value: string }>(MAT_DIALOG_DATA)
-  private _dialogRef = inject(MatDialogRef<NgmConfirmUniqueComponent>)
+  public data = inject<string | { title: string; value: string }>(DIALOG_DATA)
+  private _dialogRef = inject(DialogRef<string, CdkConfirmUniqueComponent>)
 
   value: string
   title: string
@@ -55,7 +55,11 @@ export class NgmConfirmUniqueComponent implements OnInit {
     }
   }
 
-  onSubmit() {
+  onCancel() {
+    this._dialogRef.close()
+  }
+
+  onApply() {
     this._dialogRef.close(this.value)
   }
 }

@@ -182,12 +182,12 @@
 </div>
 
 <ng-template #publishMenu>
-  <div class="ngm-cdk-menu w-80" cdkMenu @overlayAnimation1>
+  <div class="cdk-menu__large w-80" cdkMenu @overlayAnimation1>
     <div class="flex flex-col px-2 pt-2 pb-4 text-gray-500">
       <div class="flex items-center h-6 font-medium uppercase mb-2 text-sm">
         {{ 'PAC.Xpert.LatestPublish' | translate: {Default: 'Latest Publish'} }}
       </div>
-      <div cdkMenuItem class="ngm-cdk-menu-item flex justify-between items-center p-2"
+      <div cdkMenuItem class="flex justify-between items-center p-2"
         [cdkMenuTriggerFor]="versionMenu"
         [cdkMenuPosition]="[
           {
@@ -220,6 +220,16 @@
           </button>
         }
       </div>
+
+      <div cdkMenuItem class="p-2" (click)="export()">
+        {{ 'PAC.Xpert.ExportDSLVersion' | translate: {Default: 'Export SDL (current version)'} }}
+      </div>
+    @if (draft()) {
+      <div cdkMenuItem class="p-2" (click)="export(true)">
+        {{ 'PAC.Xpert.ExportDSLDraft' | translate: {Default: 'Export SDL (draft)'} }}
+      </div>
+    }
+      <div class="border-b border-solid border-divider-regular my-1"></div>
 
       <button class="mt-2 no-underline group cursor-pointer relative shadow-2xl rounded-lg p-2 text-base font-semibold leading-6 inline-block
         bg-primary-500 shadow-zinc-900 text-white

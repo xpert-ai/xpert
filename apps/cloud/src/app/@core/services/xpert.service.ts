@@ -5,7 +5,7 @@ import { EventSourceMessage, fetchEventSource } from '@microsoft/fetch-event-sou
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, Observable, tap } from 'rxjs'
 import { API_XPERT_ROLE } from '../constants/app.constants'
-import { IUser, IXpert, IXpertAgentExecution, OrderTypeEnum, TChatRequest, TXpertTeamDraft, XpertTypeEnum } from '../types'
+import { IUser, IXpert, IXpertAgentExecution, OrderTypeEnum, TChatRequest, TXpertTeamDraft, XpertDslDTO, XpertTypeEnum } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 
 @Injectable({ providedIn: 'root' })
@@ -113,6 +113,14 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   getMyCopilots(relations?: string[]) {
     return this.getMyAll({ relations, where: {latest: true, type: XpertTypeEnum.Copilot }, order: {updatedAt: OrderTypeEnum.DESC} })
+  }
+
+  export(id: string, isDraft: boolean) {
+    return this.httpClient.get(this.apiBaseUrl + `/${id}/export`, {params: {isDraft}})
+  }
+
+  importDSL(dslObject: Record<string, any>) {
+    return this.httpClient.post(this.apiBaseUrl + `/import`, dslObject)
   }
 }
 

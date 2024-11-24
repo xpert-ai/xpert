@@ -1,8 +1,9 @@
 import { IHandler } from '@foblex/mediator'
 import { Store, StoreDef } from '@ngneat/elf'
-import { IStudioStore } from '../../types'
-import { UpdateNodeRequest } from './update.request'
 import { TXpertTeamNode } from 'apps/cloud/src/app/@core'
+import { omit } from 'lodash-es'
+import { calculateHash, IStudioStore } from '../../types'
+import { UpdateNodeRequest } from './update.request'
 
 export class UpdateNodeHandler implements IHandler<UpdateNodeRequest> {
   constructor(private store: Store<StoreDef, IStudioStore>) {}
@@ -19,6 +20,8 @@ export class UpdateNodeHandler implements IHandler<UpdateNodeRequest> {
       } else {
         throw new Error(`Node with key ${request.key} not found!`)
       }
+
+      draft.nodes[index].hash = calculateHash(JSON.stringify(omit(draft.nodes[index], 'hash')))
 
       return {
         draft

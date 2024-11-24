@@ -135,9 +135,9 @@ export class XpertStudioPanelAgentComponent {
       { allowSignalWrites: true }
     )
 
-    // effect(() => {
-    //   console.log(`copilotModel:`, this.copilotModel())
-    // })
+    effect(() => {
+      // console.log(`agent copilotModel:`, this.copilotModel())
+    })
   }
 
   onNameChange(event: string) {

@@ -1,19 +1,18 @@
-import { Component, computed, effect, inject, input } from '@angular/core'
-import { CommonModule } from '@angular/common'
-import { NgmSelectComponent } from '@metad/ocap-angular/common'
-import { DisplayBehaviour, isEqual } from '@metad/ocap-core'
-import { TranslateModule } from '@ngx-translate/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { CdkMenuModule } from '@angular/cdk/menu'
-import { FormArray, FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { CdkListboxModule } from '@angular/cdk/listbox'
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { CommonModule } from '@angular/common'
+import { Component, effect, inject } from '@angular/core'
+import { FormArray, FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { TXpertParameter, XpertParameterTypeEnum } from '../../../@core'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { DisplayBehaviour } from '@metad/ocap-core'
+import { TranslateModule } from '@ngx-translate/core'
+import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-
+import { TXpertParameter, XpertParameterTypeEnum } from '../../../@core'
 
 @Component({
   standalone: true,
@@ -32,14 +31,12 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
     MatSlideToggleModule,
     MatInputModule,
 
-    NgmDensityDirective,
-    NgmSelectComponent
+    NgmDensityDirective
   ],
 
-  hostDirectives: [NgxControlValueAccessor],
+  hostDirectives: [NgxControlValueAccessor]
 })
 export class XpertParametersEditComponent {
-
   eXpertParameterTypeEnum = XpertParameterTypeEnum
   eDisplayBehaviour = DisplayBehaviour
 
@@ -54,14 +51,16 @@ export class XpertParametersEditComponent {
     return this.form.get('parameters') as FormArray
   }
 
-
   constructor() {
-    effect(() => {
-      const value = this.cva.value$()
-      if (value && !this.parameters.value.length) {
-        this.initParameters(value)
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        const value = this.cva.value$()
+        if (value && !this.parameters.value.length) {
+          this.initParameters(value)
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   onChange() {
@@ -71,11 +70,11 @@ export class XpertParametersEditComponent {
   initParameters(values: TXpertParameter[]) {
     this.parameters.clear()
     values?.forEach((p) => {
-      this.addParameter(p)
+      this.addParameter(p, { emitEvent: false })
     })
   }
 
-  addParameter(param: Partial<TXpertParameter>) {
+  addParameter(param: Partial<TXpertParameter>, options?: { emitEvent: boolean }) {
     this.parameters.push(
       this.#fb.group({
         type: this.#fb.control(param.type),
@@ -84,14 +83,17 @@ export class XpertParametersEditComponent {
         description: this.#fb.control(param.description),
         optional: this.#fb.control(param.optional),
         maximum: this.#fb.control(param.maximum),
-        options: this.#fb.control(param.options),
+        options: this.#fb.control(param.options)
       })
     )
-    this.onChange()
+
+    if (isNil(options?.emitEvent) || options.emitEvent) {
+      this.onChange()
+    }
   }
-  
+
   updateParameter(index: number, name: string, value: string) {
-    this.parameters.at(index).get(name).setValue(value, {emitEvent: true})
+    this.parameters.at(index).get(name).setValue(value, { emitEvent: true })
     this.form.markAsDirty()
     this.onChange()
   }
@@ -104,10 +106,7 @@ export class XpertParametersEditComponent {
   addOption(index: number) {
     const control = this.parameters.at(index)
     control.patchValue({
-      options: [
-        ...(control.value.options ?? []),
-        ''
-      ]
+      options: [...(control.value.options ?? []), '']
     })
     this.onChange()
   }

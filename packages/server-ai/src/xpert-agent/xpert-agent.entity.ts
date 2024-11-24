@@ -61,6 +61,8 @@ export class XpertAgent extends TenantOrganizationBaseEntity implements IXpertAg
 	@ApiProperty({ type: () => Xpert })
 	@OneToOne(() => Xpert, {
 		nullable: true,
+		onDelete: 'CASCADE',
+		onUpdate: 'CASCADE'
 	})
 	@JoinColumn()
 	xpert: IXpert

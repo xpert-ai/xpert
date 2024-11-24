@@ -1423,6 +1423,7 @@
       "Support": "支持",
       "OurSupport": "联系我们，获取优先支持",
       "DelCopilotModelUseInherit": "删除当前配置，如果可以将使用继承配置",
+      "ChooseRightCopilot": "请选择合适的智能助理",
       "Prompts": {
         "Set story theme dark": "设置故事暗黑主题",
         "Set story gradient background color sense of technology": "设置故事背景为科技感渐变色",
@@ -1963,7 +1964,12 @@
       "Authorization": "授权",
       "WorkspaceMember": "工作空间成员",
       "XpertManagers": "数字专家负责人",
-      "NoExecutionYet": "暂未有执行记录"
+      "NoExecutionYet": "暂未有执行记录",
+      "ImportSuccess": "DSL文件导入成功",
+      "ImportError": "DSL文件导入失败",
+      "ChangeXpertName": "更改专家名称",
+      "ExportDSLVersion": "导出 DSL (当前版本)",
+      "ExportDSLDraft": "导出 DSL (草稿)"
     },
     "title": {
       "short": "Xpert AI"

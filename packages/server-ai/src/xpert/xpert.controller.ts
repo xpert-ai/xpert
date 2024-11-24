@@ -1,4 +1,4 @@
-import { TChatRequest, TXpertTeamDraft } from '@metad/contracts'
+import { TChatRequest, TXpertTeamDraft, XpertDraftDslDTO } from '@metad/contracts'
 import {
 	CrudController,
 	OptionParams,
@@ -7,6 +7,7 @@ import {
 	RequestContext,
 	TransformInterceptor,
 	UserPublicDTO,
+	UseValidationPipe,
 	UUIDValidationPipe
 } from '@metad/server-core'
 import {
@@ -25,13 +26,14 @@ import {
 	Sse,
 	UseInterceptors,
 	UseGuards,
+	HttpException
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { DeleteResult } from 'typeorm'
 import { XpertAgentExecution } from '../core/entities/internal'
 import { FindExecutionsByXpertQuery } from '../xpert-agent-execution/queries'
-import { XpertChatCommand } from './commands'
+import { XpertChatCommand, XpertImportCommand } from './commands'
 import { XpertPublicDTO } from './dto'
 import { Xpert } from './xpert.entity'
 import { XpertService } from './xpert.service'
@@ -73,6 +75,19 @@ export class XpertController extends CrudController<Xpert> {
 	@Get('validate')
 	async validateTitle(@Query('title') title: string) {
 		return this.service.validateTitle(title).then((items) => items.map((item) => new XpertPublicDTO(item)))
+	}
+
+	@UseValidationPipe({ transform: true })
+	@Post('import')
+	async importDSL(@Body() dsl: XpertDraftDslDTO) {
+		try {
+			return await this.commandBus.execute(new XpertImportCommand(dsl))
+		} catch (error) {
+			throw new HttpException(
+				`An error occurred during import: ${error.message}`,
+				HttpStatus.INTERNAL_SERVER_ERROR
+			)
+		}
 	}
 
 	@Get(':id/team')
@@ -142,7 +157,8 @@ export class XpertController extends CrudController<Xpert> {
 	@HttpCode(HttpStatus.ACCEPTED)
 	@Delete(':id')
 	async delete(@Param('id', UUIDValidationPipe) id: string, ...options: any[]): Promise<Xpert | DeleteResult> {
-		return this.service.deleteXpert(id)
+		// return this.service.deleteXpert(id)
+		return this.service.delete(id)
 	}
 
 	@Get(':id/managers')
@@ -160,4 +176,13 @@ export class XpertController extends CrudController<Xpert> {
 	async removeManager(@Param('id') id: string, @Param('userId') userId: string) {
 		await this.service.removeManager(id, userId)
 	}
+
+	// @Get(':xpertId/export')
+	// async exportDSL(
+	// 	@Param('xpertId') xpertId: string,
+	// 	@Query('isDraft') isDraft: boolean,
+	// 	@Query('data', ParseJsonPipe) params: PaginationParams<Xpert>) {
+	// 	// const xpert = await this.service.findOne(xpertId, isDraft ? null : params)
+	// }
+
 }

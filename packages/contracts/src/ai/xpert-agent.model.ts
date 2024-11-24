@@ -5,10 +5,7 @@ import { TAvatar } from '../types'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IXpert, TXpertParameter } from './xpert.model'
 
-/**
- * Expert agent, ai agent for the xperts.
- */
-export interface IXpertAgent extends IBasePerTenantAndOrganizationEntityModel {
+export type TXpertAgent = {
   key: string
   name?: string
   title?: string
@@ -73,6 +70,13 @@ export interface IXpertAgent extends IBasePerTenantAndOrganizationEntityModel {
    */
   knowledgebases?: IKnowledgebase[]
   knowledgebaseIds?: string[]
+}
+
+/**
+ * Expert agent, ai agent for the xperts.
+ */
+export interface IXpertAgent extends IBasePerTenantAndOrganizationEntityModel, TXpertAgent {
+  
 }
 
 export type TXpertAgentOptions = {

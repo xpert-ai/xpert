@@ -1,0 +1,29 @@
+<header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="pb-2 cursor-move">
+  <h4 class="text-xl pointer-events-none">
+    {{ title || ('COMPONENTS.CONFIRM.INPUT_UNIQUE_VALUE' | translate: {Default: 'Input Unique Value'}) }}
+  </h4>
+</header>
+
+<div class="mat-typography py-4" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+  <form (ngSubmit)="onApply()">
+    <mat-form-field appearance="fill" class="w-full">
+      <mat-label>{{ 'COMPONENTS.CONFIRM.NAME' | translate: {Default: 'Name'} }}</mat-label>
+      <input cdkFocusInitial matInput name="value" [(ngModel)]="value" />
+    </mat-form-field>
+  </form>
+</div>
+
+<div class="w-full flex justify-between items-center">
+  <button mat-button (click)="reset()">
+    {{ 'COMPONENTS.COMMON.RESET' | translate: {Default: 'Reset'} }}
+  </button>
+
+  <div ngmButtonGroup class="ml-8">
+    <button mat-flat-button (click)="onCancel()">
+      {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
+    </button>
+    <button mat-raised-button color="accent" cdkFocusInitial (click)="onApply()">
+      {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
+    </button>
+  </div>
+</div>

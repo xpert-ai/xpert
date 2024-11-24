@@ -58,8 +58,8 @@ export class CopilotModelSelectComponent {
   // Inputs
   readonly modelType = input<AiModelTypeEnum>()
   readonly inheritModel = input<ICopilotModel>()
-  readonly copilotModel = model<ICopilotModel>()
-
+  readonly copilotModel = input<ICopilotModel>()
+  
   readonly copilot = input<ICopilot>()
 
   readonly readonly = input<boolean, boolean | string>(false, {
@@ -73,7 +73,8 @@ export class CopilotModelSelectComponent {
   readonly label = input<string>()
 
   // States
-  readonly _copilotModel = computed(() => this.copilotModel() ?? this.inheritModel())
+  readonly __copilotModel = computed(() => this.cva.value$() ?? this.copilotModel())
+  readonly _copilotModel = computed(() => this.__copilotModel() ?? this.inheritModel())
 
   readonly copilotWithModels = derivedAsync(() => {
     const copilot = this.copilot()
@@ -137,24 +138,18 @@ export class CopilotModelSelectComponent {
     return null
   })
 
-  readonly isInherit = computed(() => !this.copilotModel())
+  readonly isInherit = computed(() => !this.__copilotModel())
 
   constructor() {
-    effect(
-      () => {
-        // todo 不应该以 null undefined 作为判断标准
-        const copilotModel = this.cva.value$()
-        if (copilotModel) {
-          this.copilotModel.set(copilotModel)
-        }
-      },
-      { allowSignalWrites: true }
-    )
+    effect(() => {
+      // console.log(this.cva.value$(), this.copilotModel(), this.inheritModel())
+    })
   }
 
   updateValue(value: ICopilotModel) {
-    this.copilotModel.set(value)
-    this.cva.value$.set(value)
+    if (!this.readonly()) {
+      this.cva.value$.set(value)
+    }
   }
 
   initModel(copilotId: string, model: string) {
@@ -167,7 +162,7 @@ export class CopilotModelSelectComponent {
 
   setModel(copilot: ICopilot, model: string) {
     const nValue = {
-      ...(this.copilotModel() ?? {}),
+      ...(this.cva.value$() ?? {}),
       model,
       copilotId: copilot.id,
       modelType: this.modelType()
@@ -180,22 +175,19 @@ export class CopilotModelSelectComponent {
   }
 
   updateParameter(name: string, value: any) {
-    if (!this.copilotModel()) {
+    if (!this.cva.value$()) {
       this.initModel(this.copilotId(), this.model())
     }
-
-    this.copilotModel.update((state) =>
-      state
-        ? {
-            ...state,
-            options: {
-              ...(state.options ?? {}),
-              [name]: value
-            }
-          }
-        : { options: { [name]: value } }
+    
+    this.updateValue(
+      {
+        ...this.cva.value$(),
+        options: {
+          ...(this.cva.value$().options ?? {}),
+          [name]: value
+        }
+      }
     )
-    this.updateValue(this.copilotModel())
   }
 
   delete() {
