@@ -12,7 +12,18 @@
 				"tsConfig": "packages/analytics/tsconfig.lib.json",
 				"packageJson": "packages/analytics/package.json",
 				"main": "packages/analytics/src/index.ts",
-				"assets": ["packages/analytics/*.md"]
+				"assets": [
+					"packages/analytics/*.md",
+					"packages/analytics/**/*.gql",
+					"packages/analytics/**/*.hbs",
+					"packages/analytics/**/*.mjml",
+					"packages/analytics/**/*.csv",
+					"packages/analytics/**/*.json",
+					"packages/analytics/**/*.svg",
+					"packages/analytics/**/*.png",
+					"packages/analytics/**/*.jpg",
+					"packages/analytics/**/*.yaml"
+				]
 			}
 		},
 		"publish": {

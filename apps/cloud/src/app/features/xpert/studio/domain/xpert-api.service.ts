@@ -219,7 +219,11 @@ export class XpertStudioApiService {
     this.team.set(xpert)
 
     this.store.update(() => ({
-      draft: xpert.draft ?? this.getInitialDraft()
+      draft: xpert.draft ? {
+        team: xpert.draft.team ?? omit(xpert, 'agents'),
+        nodes: xpert.draft.nodes ?? new ToNodeViewModelHandler(xpert).handle().nodes,
+        connections: xpert.draft.connections ?? new ToConnectionViewModelHandler(xpert).handle()
+      } : this.getInitialDraft()
     }))
 
     this.#reload.next(EReloadReason.INIT)

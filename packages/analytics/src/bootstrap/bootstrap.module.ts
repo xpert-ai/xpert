@@ -2,6 +2,7 @@ import { SeederModule, ServerAppModule } from '@metad/server-core'
 import { ServerAIModule } from '@metad/server-ai'
 import { Logger, MiddlewareConsumer, Module, NestModule, OnApplicationShutdown } from '@nestjs/common'
 import { AnalyticsModule } from '../app.module'
+export * from '../ai/index'
 
 @Module({
 	imports: [ServerAppModule, ServerAIModule, AnalyticsModule, SeederModule]

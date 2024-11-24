@@ -5,9 +5,10 @@ import { existsSync, readFileSync } from 'fs'
 import * as mime from 'mime-types'
 import * as path from 'path'
 import { ToolProviderNotFoundError } from '../../errors'
-import { ToolsetFolderPath, TToolsetProviderSchema } from '../../types'
+import { TToolsetProviderSchema } from '../../types'
 import { ToolProviderIconQuery } from '../get-provider-icon.query'
 import { ListBuiltinToolProvidersQuery } from '../list-builtin-providers.query'
+import { getBuiltinToolsetBaseUrl } from '../../provider/builtin'
 
 
 @QueryHandler(ToolProviderIconQuery)
@@ -41,6 +42,6 @@ export class ToolProviderIconHandler implements IQueryHandler<ToolProviderIconQu
 	}
 
 	getProviderServerPath(name: string) {
-		return path.join(this.configService.assetOptions.serverRoot, ToolsetFolderPath, '/provider/builtin/', name)
+		return path.join(this.configService.assetOptions.serverRoot, getBuiltinToolsetBaseUrl(name), name)
 	}
 }

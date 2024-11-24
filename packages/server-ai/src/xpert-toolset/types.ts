@@ -1,6 +1,6 @@
 import { I18nObject, ToolProviderCredentials, ToolTagEnum } from '@metad/contracts'
 
-export const ToolsetFolderPath = 'packages/server-ai/src/xpert-toolset'
+export const ToolsetFolderPath = 'packages/server-ai/src/xpert-toolset/provider/builtin/'
 
 export interface IToolRuntime {
 	/**

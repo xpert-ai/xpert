@@ -1,6 +1,6 @@
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { RunnableConfig } from '@langchain/core/runnables'
-import { BaseCommandTool } from '../../command'
+import { BaseCommandTool } from '@metad/server-ai'
 
 /**
  * Command operators on database

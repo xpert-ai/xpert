@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { RouterModule } from '@angular/router'
+import { Router, RouterModule } from '@angular/router'
 import { getErrorMessage, OverlayAnimations } from '@metad/core'
 import { CdkConfirmDeleteComponent, NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmTooltipDirective, nonBlank } from '@metad/ocap-angular/core'
@@ -52,6 +52,7 @@ export class XpertComponent {
   readonly #translate = inject(TranslateService)
   readonly #xpertService = inject(XpertService)
   readonly #toastr = injectToastr()
+  readonly #router = inject(Router)
 
   readonly paramId$ = toObservable(this.paramId)
   readonly #refresh$ = new BehaviorSubject<void>(null)
@@ -95,7 +96,7 @@ export class XpertComponent {
       .subscribe({
         next: () => {
           this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, xpert.title)
-          this.refresh()
+          this.#router.navigate(['/xpert/w', xpert.workspaceId])
         },
         error: (error) => {
           this.#toastr.error(getErrorMessage(error))

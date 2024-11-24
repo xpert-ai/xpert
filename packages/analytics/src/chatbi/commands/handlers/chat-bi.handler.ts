@@ -125,7 +125,7 @@ export class ChatBIToolHandler implements ICommandHandler<ChatBIToolCommand> {
 		const { subscriber } = context
 
 		// Create graph
-		const agent = this.createGraphAgent(llm, context, dsCoreService, subscriber)
+		const graph = this.createGraphAgent(llm, context, dsCoreService, subscriber)
 
 		// Few-shot prompt
 		const exampleFewShotPrompt = createExampleFewShotPrompt(this.copilotKnowledgeService, {
@@ -139,7 +139,7 @@ export class ChatBIToolHandler implements ICommandHandler<ChatBIToolCommand> {
 		const content = await exampleFewShotPrompt.format({ input: input })
 		
 		try {
-			const streamResults = agent.streamEvents(
+			const streamResults = graph.streamEvents(
 				{
 					...args,
 					messages: [new HumanMessage(content)],
@@ -241,7 +241,7 @@ export class ChatBIToolHandler implements ICommandHandler<ChatBIToolCommand> {
 			parentConfig.signal.removeEventListener('abort', abortEventListener)
 		}
 
-		const state = await agent.getState({
+		const state = await graph.getState({
 			configurable: {
 				thread_id,
 				checkpoint_ns: ''

@@ -104,7 +104,9 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
     |--------------------------------------------------------------------------
     */
 	@ApiProperty({ type: () => XpertAgent })
-	@OneToOne(() => XpertAgent, (agent: XpertAgent) => agent.xpert)
+	@OneToOne(() => XpertAgent, (agent: XpertAgent) => agent.xpert, {
+		cascade: true
+	})
 	agent?: IXpertAgent
 
 	// Copilot Model

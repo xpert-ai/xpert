@@ -5,9 +5,9 @@ import { Inject, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import * as fs from 'fs'
 import * as path from 'path'
-import { ToolsetFolderPath } from '../../types'
 import { XpertToolsetService } from '../../xpert-toolset.service'
 import { ListBuiltinToolsQuery } from '../list-builtin-tools.query'
+import { getBuiltinToolsetBaseUrl } from '../../provider/builtin'
 
 @QueryHandler(ListBuiltinToolsQuery)
 export class ListBuiltinToolsHandler implements IQueryHandler<ListBuiltinToolsQuery> {
@@ -35,6 +35,8 @@ export class ListBuiltinToolsHandler implements IQueryHandler<ListBuiltinToolsQu
 			return this._builtinTools.get(provider)
 		}
 
+
+
 		const toolPath = path.join(this.getProviderServerPath(provider), 'tools')
 		const toolFiles = fs.readdirSync(toolPath).filter((file) => file.endsWith('.yaml') && !file.startsWith('__'))
 		const tools: IBuiltinTool[] = []
@@ -52,6 +54,6 @@ export class ListBuiltinToolsHandler implements IQueryHandler<ListBuiltinToolsQu
 	}
 
 	getProviderServerPath(name: string) {
-		return path.join(this.configService.assetOptions.serverRoot, ToolsetFolderPath, '/provider/builtin/', name)
+		return path.join(this.configService.assetOptions.serverRoot, getBuiltinToolsetBaseUrl(name), name)
 	}
 }

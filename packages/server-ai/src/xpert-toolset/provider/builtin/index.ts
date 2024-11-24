@@ -1,22 +1,41 @@
-import { IXpertToolset } from "@metad/contracts";
-import { ToolProviderNotFoundError } from "../../errors";
+import { Type } from '@nestjs/common'
 import { BingToolset } from "./bing/bing";
 import { DuckDuckGoToolset } from "./duckduckgo/duckduckgo";
 import { TavilyToolset } from "./tavily/tavily";
-import { ChatDBToolset } from "./chatdb/chatdb";
-import { TBuiltinToolsetParams } from "./builtin-toolset";
-import { ChatBIToolset } from "./chatbi/chatbi";
+import { ToolsetFolderPath } from '../../types';
+import { IXpertToolset } from '@metad/contracts';
+import { TBuiltinToolsetParams } from './builtin-toolset';
+import { ToolProviderNotFoundError } from '../../errors';
 
-export const ToolProviders = [
-    DuckDuckGoToolset,
-    TavilyToolset,
-    BingToolset,
-    ChatDBToolset,
-    ChatBIToolset
+export * from './command'
+export * from './builtin-tool'
+export * from './builtin-toolset'
+
+export const BUILTIN_TOOLSET_REPOSITORY: {
+	baseUrl: string;
+	providers: Array<Type<any> & {provider: string}>
+}[] = [
+	{
+		baseUrl: ToolsetFolderPath,
+		providers: [
+            DuckDuckGoToolset,
+            TavilyToolset,
+            BingToolset,
+        ]
+	}
 ]
 
+export function getBuiltinToolsetBaseUrl(name: string) {
+	return BUILTIN_TOOLSET_REPOSITORY.find((item) => item.providers.some((_) => _.provider === name))?.baseUrl
+}
+
 export function createBuiltinToolset(provider: string, toolset?: IXpertToolset, params?: TBuiltinToolsetParams) {
-    const providerTypeClass = ToolProviders.find((t) => t.provider === provider)
+	let providerTypeClass = null
+	BUILTIN_TOOLSET_REPOSITORY.find((item) => {
+		providerTypeClass = item.providers.find((_) => _.provider === provider)
+		return !!providerTypeClass
+	})
+
     if (providerTypeClass) {
         return new providerTypeClass(toolset, params)
     }

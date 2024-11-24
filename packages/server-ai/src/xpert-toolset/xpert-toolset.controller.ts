@@ -50,6 +50,10 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 
 	@Inject(ConfigService)
 	private readonly configService: ConfigService
+
+	get baseUrl() {
+		return this.configService.get('baseUrl') as string
+	}
 	
 	constructor(
 		private readonly service: XpertToolsetService,
@@ -98,11 +102,10 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 	@Get('providers')
 	async getAllToolProviders() {
 		return this.queryBus.execute(new ListBuiltinToolProvidersQuery()).then((items) =>
-			items.map(
-				(schema) =>
+			items.map((schema) =>
 					new ToolProviderDTO({
 						...schema.identity
-					}, this.configService.get('baseUrl') as string)
+					}, this.baseUrl)
 			)
 		)
 	}
@@ -131,7 +134,7 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 
 		return new ToolProviderDTO({
 			...providers[0].identity
-		}, this.configService.get('baseUrl') as string)
+		}, this.baseUrl)
 	}
 
 	@Public()

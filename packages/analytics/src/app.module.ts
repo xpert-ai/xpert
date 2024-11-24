@@ -1,4 +1,4 @@
-import { EmployeeModule, OrganizationModule, RedisModule, TenantModule } from '@metad/server-core'
+import { OrganizationModule, RedisModule, TenantModule } from '@metad/server-core'
 import { BullModule } from '@nestjs/bull'
 import { Module, forwardRef, CacheModule } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'

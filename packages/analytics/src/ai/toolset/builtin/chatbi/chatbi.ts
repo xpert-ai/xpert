@@ -1,8 +1,7 @@
 import { IXpertTool, IXpertToolset, TToolCredentials } from '@metad/contracts'
 import { getErrorMessage, omit } from '@metad/server-common'
-import { ToolProviderCredentialValidationError } from '../../../errors'
-import { BuiltinToolset, TBuiltinToolsetParams } from '../builtin-toolset'
 import { ChatBICommandTool } from './tools/chatbi-command'
+import { BuiltinToolset, TBuiltinToolsetParams, ToolProviderCredentialValidationError } from '@metad/server-ai'
 
 export class ChatBIToolset extends BuiltinToolset {
 	static provider = 'chatbi'

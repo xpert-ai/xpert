@@ -2,12 +2,14 @@ import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { ICopilot, TCopilotModel } from '@metad/contracts'
-import { randomUUID } from 'crypto'
-import { CopilotGetOneQuery } from '../../../../../copilot/'
-import { ToolProviderCredentialValidationError } from '../../../../errors'
-import { BaseCommandTool } from '../../command'
-import { CopilotModelGetChatModelQuery } from '../../../../../copilot-model/queries'
+import {
+	BaseCommandTool,
+	CopilotGetOneQuery,
+	CopilotModelGetChatModelQuery,
+	ToolProviderCredentialValidationError
+} from '@metad/server-ai'
 import { RequestContext } from '@metad/server-core'
+import { randomUUID } from 'crypto'
 
 /**
  * Command tool for ChatBI
@@ -55,7 +57,7 @@ export class ChatBICommandTool extends BaseCommandTool {
 				// ChatbiModels in credentials configuration
 				models: this.tool.toolset.credentials.models,
 				chatModel,
-				thread_id: (runManager?.parentRunId ?? randomUUID()) + '/chatbi-tool',
+				thread_id: (runManager?.parentRunId ?? randomUUID()) + '/chatbi-tool'
 			}
 		})
 	}

@@ -59,11 +59,8 @@ export class XpertBasicComponent {
   readonly getXpertTeam = injectGetXpertTeam()
   readonly #fb = inject(FormBuilder)
   readonly #toastr = inject(ToastrService)
-  readonly #cdr = inject(ChangeDetectorRef)
 
   readonly xpertId = this.xpertComponent.paramId
-  // readonly xpert = this.xpertComponent.xpert
-  // readonly draft = this.xpertComponent.draft
 
   readonly xpert = derivedAsync(() => {
     return this.xpertId() ? this.getXpertTeam(this.xpertId()) : null
