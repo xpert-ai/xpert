@@ -34,6 +34,7 @@ import { XpertToolAuthorizationInputComponent } from '../../authorization'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { XpertToolTestDialogComponent } from '../../tool-test'
 import { XpertConfigureToolComponent } from '../../api-tool/types'
+import { Dialog } from '@angular/cdk/dialog'
 
 
 @Component({
@@ -70,7 +71,7 @@ export class XpertStudioConfigureToolComponent extends XpertConfigureToolCompone
 
   readonly toolsetService = inject(XpertToolsetService)
   readonly #fb = inject(FormBuilder)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(Dialog)
   readonly #cdr = inject(ChangeDetectorRef)
   readonly #toastr = inject(ToastrService)
 
@@ -235,9 +236,10 @@ export class XpertStudioConfigureToolComponent extends XpertConfigureToolCompone
         tool: {
           ...tool,
           toolset: this.formGroup.value
-        }
+        },
+        enableAuthorization: true
       }
-    }).afterClosed().subscribe({
+    }).closed.subscribe({
       next: (result) => {
 
       }

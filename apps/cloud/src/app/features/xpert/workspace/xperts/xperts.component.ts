@@ -293,7 +293,7 @@ export class XpertStudioXpertsComponent {
 
   navigateTo(toolset: IXpertToolset) {
     if (toolset.category === XpertToolsetCategoryEnum.API) {
-      this.router.navigate(['./tool', toolset.id], { relativeTo: this.route })
+      this.router.navigate(['/xpert/tool', toolset.id],)
     } else {
       this.toolsetService
         .getOneById(toolset.id, { relations: ['tools'] })

@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
-import { MAT_DIALOG_DATA, MatDialog, MatDialogModule } from '@angular/material/dialog'
+import { DIALOG_DATA, Dialog, DialogModule, DialogRef } from '@angular/cdk/dialog'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertTool } from 'apps/cloud/src/app/@core'
@@ -15,7 +15,7 @@ import { XpertToolsetToolTestComponent } from '../test/tool.component'
     CommonModule,
     FormsModule,
     TranslateModule,
-    MatDialogModule,
+    DialogModule,
     MatButtonModule,
 
     NgmI18nPipe,
@@ -23,16 +23,18 @@ import { XpertToolsetToolTestComponent } from '../test/tool.component'
     XpertToolsetToolTestComponent,
     XpertToolAuthorizationInputComponent
   ],
-  selector: 'xpert-tool-odata-test',
+  selector: 'xpert-tool-test',
   templateUrl: './tool.component.html',
   styleUrl: 'tool.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class XpertToolTestDialogComponent {
-  readonly #dialogRef = inject(MatDialog)
-  readonly #data = inject<{ tool: IXpertTool }>(MAT_DIALOG_DATA)
+  readonly #dialogRef = inject(DialogRef)
+  readonly #data = inject<{ tool: IXpertTool; enableAuthorization: boolean; }>(DIALOG_DATA)
 
   readonly credentials = model(this.#data.tool.toolset.credentials)
+  readonly enableAuthorization = model(this.#data.enableAuthorization)
+  
   readonly tool = computed(() => ({
     ...this.#data.tool,
     toolset: {
@@ -41,4 +43,8 @@ export class XpertToolTestDialogComponent {
       tools: null
     }
   }))
+
+  cancel() {
+    this.#dialogRef.close()
+  }
 }

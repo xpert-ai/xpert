@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, input, model } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { routeAnimations } from '@metad/core'
@@ -10,6 +9,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { IBuiltinTool, IXpertToolset, XpertToolsetService } from 'apps/cloud/src/app/@core'
 import { XpertToolBuiltinParametersComponent } from '../parameters/parameters.component'
 import { XpertToolTestDialogComponent } from '../../tool-test'
+import { Dialog, DialogModule } from '@angular/cdk/dialog'
 
 
 @Component({
@@ -19,7 +19,7 @@ import { XpertToolTestDialogComponent } from '../../tool-test'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatDialogModule,
+    DialogModule,
     MatTooltipModule,
     MatSlideToggleModule,
     NgmI18nPipe,
@@ -36,7 +36,7 @@ export class XpertToolBuiltinToolComponent {
 
   readonly toolsetService = inject(XpertToolsetService)
   readonly #formBuilder = inject(FormBuilder)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(Dialog)
   readonly #cdr = inject(ChangeDetectorRef)
   readonly i18n = new NgmI18nPipe()
 
@@ -68,7 +68,7 @@ export class XpertToolBuiltinToolComponent {
           toolset: this.toolset()
         }
       }
-    }).afterClosed().subscribe({
+    }).closed.subscribe({
       next: (result) => {
         //
       }

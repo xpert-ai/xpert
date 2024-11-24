@@ -13,6 +13,21 @@
   }
 }
 
+.cdk-overlay-pane {
+  &.small {
+    min-height: 50vh;
+    min-width: 40vw;
+  }
+  &.medium {
+    min-width: 60vw;
+    min-height: 60vh;
+  }
+  &.large {
+    min-width: 80vw;
+    min-height: 80vh;
+  }
+}
+
 @layer components {
   .cdk-dialog-card {
     @apply bg-components-card-bg rounded-2xl p-4;

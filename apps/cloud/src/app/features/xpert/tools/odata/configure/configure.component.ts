@@ -9,15 +9,12 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { EntriesPipe, routeAnimations } from '@metad/core'
 import { pick } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ApiProviderAuthType,
-  ApiToolBundle,
   getErrorMessage,
-  IXpert,
   IXpertTool,
   IXpertToolset,
   TagCategoryEnum,
@@ -37,6 +34,7 @@ import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { XpertToolAuthorizationInputComponent } from '../../authorization'
 import { XpertToolTestDialogComponent } from '../../tool-test'
 import { XpertConfigureToolComponent } from '../../api-tool/types'
+import { Dialog, DialogModule } from '@angular/cdk/dialog'
 
 
 @Component({
@@ -46,6 +44,7 @@ import { XpertConfigureToolComponent } from '../../api-tool/types'
     FormsModule,
     ReactiveFormsModule,
     CdkMenuModule,
+    DialogModule,
     TranslateModule,
     MatSlideToggleModule,
 
@@ -77,7 +76,7 @@ export class XpertStudioConfigureODataComponent extends XpertConfigureToolCompon
   readonly toolsetService = inject(XpertToolsetService)
   readonly #toastr = inject(ToastrService)
   readonly #formBuilder = inject(FormBuilder)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(Dialog)
   readonly #cdr = inject(ChangeDetectorRef)
   readonly #fb = inject(FormBuilder)
 
@@ -146,14 +145,6 @@ export class XpertStudioConfigureODataComponent extends XpertConfigureToolCompon
   }
 
   readonly url = model('')
-
-  // readonly schemas = toSignal(
-  //   this.schema.valueChanges.pipe(
-  //     filter(() => !this.toolset()),
-  //     distinctUntilChanged(),
-  //     switchMap((schema) => (!schema?.trim() ? of(null) : this.toolsetService.parserODataSchema(schema)))
-  //   )
-  // )
 
   constructor() {
     super()
@@ -237,9 +228,10 @@ export class XpertStudioConfigureODataComponent extends XpertConfigureToolCompon
         tool: {
           ...tool,
           toolset: this.formGroup.value
-        }
+        },
+        enableAuthorization: true
       }
-    }).afterClosed().subscribe({
+    }).closed.subscribe({
       next: (result) => {
 
       }

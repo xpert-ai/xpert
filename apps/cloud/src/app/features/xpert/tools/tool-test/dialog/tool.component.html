@@ -1,9 +1,14 @@
-<h2 mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle><div class="flex-1 truncate">{{tool().name | i18n}}</div></h2>
-<mat-dialog-content>
-    <xpert-tool-authorization-input [(ngModel)]="credentials" />
-    <xpert-toolset-tool-test [tool]="tool()" visibleAll />
-</mat-dialog-content>
+<h2 cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="p-4">
+  <div class="flex-1 text-lg truncate">{{tool().name | i18n}}</div>
+</h2>
 
-<mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close cdkFocusInitial>{{'PAC.ACTIONS.Close' | translate: {Default: 'Close'} }}</button>
-</mat-dialog-actions>
+<div class="flex flex-col items-stretch px-4 py-2">
+  @if (enableAuthorization()) {
+    <xpert-tool-authorization-input [(ngModel)]="credentials" />
+  }
+  <xpert-toolset-tool-test [tool]="tool()" visibleAll />
+</div>
+
+<div class="w-full flex justify-end sticky bottom-0 p-4 bg-components-card-bg">
+  <button mat-button cdkFocusInitial (click)="cancel()">{{'PAC.ACTIONS.Close' | translate: {Default: 'Close'} }}</button>
+</div>

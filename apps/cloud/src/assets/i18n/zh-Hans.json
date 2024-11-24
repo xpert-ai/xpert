@@ -1968,6 +1968,7 @@
       "ImportSuccess": "DSL文件导入成功",
       "ImportError": "DSL文件导入失败",
       "ChangeXpertName": "更改专家名称",
+      "ImportDSL": "导入 DSL 文件",
       "ExportDSLVersion": "导出 DSL (当前版本)",
       "ExportDSLDraft": "导出 DSL (草稿)"
     },
