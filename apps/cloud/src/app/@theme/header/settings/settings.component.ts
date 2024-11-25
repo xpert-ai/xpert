@@ -1,18 +1,15 @@
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
-import { MatSelectModule } from '@angular/material/select'
 import { Router } from '@angular/router'
-import { NgmSelectComponent } from '@metad/ocap-angular/common'
-import { DensityDirective, ThemesEnum } from '@metad/ocap-angular/core'
+import { ThemesEnum } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { startWith } from 'rxjs'
 import { LANGUAGES, LanguagesMap, Store } from '../../../@core'
-import { UserPipe } from '../../../@shared'
+import { UserProfileInlineComponent } from '../../../@shared/'
 
 const THEMES = [
   {
@@ -39,17 +36,7 @@ const THEMES = [
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatSelectModule,
-    MatIconModule,
-    MatButtonModule,
-    TranslateModule,
-    DensityDirective,
-    UserPipe,
-    NgmSelectComponent
-  ],
+  imports: [CommonModule, FormsModule, CdkMenuModule, TranslateModule, UserProfileInlineComponent],
   selector: 'pac-header-settings',
   templateUrl: './settings.component.html'
 })
@@ -78,6 +65,11 @@ export class HeaderSettingsComponent {
       caption: translate[item.caption] ?? item.caption
     }))
   })
+
+  readonly langLabel = computed(() => LANGUAGES.find((_) => _.value === this.language$())?.label)
+  readonly themeLabel = computed(
+    () => this.themeOptions$().find((_) => _.key === (this.preferredTheme$() ?? ThemesEnum.system))?.caption
+  )
 
   onLanguageSelect(language: string): void {
     this.store.preferredLanguage = LanguagesMap[language] ?? language

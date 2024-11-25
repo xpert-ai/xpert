@@ -134,9 +134,9 @@ export class XpertWorkspaceHomeComponent {
     } else if (this.isXperts()) {
       return this.xpertTags()
     } else if (this.isBuiltinTools()) {
-      this.toolTags()
+      return this.toolTags()
     } else if (this.isTools()) {
-      return []
+      return this.toolTags()
     }
     return []
   })

@@ -257,7 +257,9 @@
       "AllTags": "所有标签",
       "Label": "标签",
       "Icon": "图标",
-      "By": "作者"
+      "By": "作者",
+      "Feedback": "用户反馈",
+      "HelpDocs": "帮助文档"
     },
     "MENU": {
       "Certification": "认证",

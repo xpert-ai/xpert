@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { NgModule, importProvidersFrom } from '@angular/core'
+import { NgModule } from '@angular/core'
 import { PacAuthModule } from '@metad/cloud/auth'
 import { NgmFormlyModule, provideFormly, provideFormlyMaterial } from '@metad/formly'
 import { registerEChartsThemes } from '@metad/material-theme'
@@ -22,7 +22,7 @@ import { DirtyCheckGuard, LocalAgent, PACCopilotService, ServerAgent, ServerSock
 import { AssetsComponent } from '../@shared/assets/assets.component'
 import { MaterialModule, SharedModule } from '../@shared/index'
 import { NotificationComponent, TuneComponent } from '../@theme'
-import { HeaderSettingsComponent, ProjectSelectorComponent } from '../@theme/header'
+import { HeaderUserComponent, ProjectSelectorComponent } from '../@theme/header'
 import { PACThemeModule } from '../@theme/theme.module'
 import { StoryFeedService, StoryModelService, StoryStoreService } from '../services/index'
 import { FeaturesRoutingModule } from './features-routing.module'
@@ -33,6 +33,7 @@ import { NgxEchartsModule } from 'ngx-echarts'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { NgxFloatUiModule } from 'ngx-float-ui'
 import { EmojiAvatarComponent } from '../@shared/avatar'
+import { CdkMenuModule } from '@angular/cdk/menu'
 
 registerEChartsThemes()
 
@@ -41,12 +42,12 @@ registerEChartsThemes()
   imports: [
     CommonModule,
     FeaturesRoutingModule,
+    CdkMenuModule,
     MaterialModule,
     SharedModule,
     PacAuthModule,
     PACThemeModule,
     NgxFloatUiModule,
-    HeaderSettingsComponent,
     AssetsComponent,
     ProjectSelectorComponent,
     DensityDirective,
@@ -69,7 +70,8 @@ registerEChartsThemes()
     NgmTableComponent,
     NotificationComponent,
     TuneComponent,
-    EmojiAvatarComponent
+    EmojiAvatarComponent,
+    HeaderUserComponent
   ],
   providers: [
     DirtyCheckGuard,

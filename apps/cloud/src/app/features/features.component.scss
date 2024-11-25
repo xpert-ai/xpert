@@ -131,6 +131,10 @@ emoji-avatar.copilot-thinking {
   @apply border-2 animate-twinkling-slow;
 }
 
+.pac-copilot-trigger.active {
+  @apply shadow-lg bg-components-card-bg;
+}
+
 ::ng-deep {
   .pac-toolbar-search__autocomplete.mat-mdc-autocomplete-panel {
     @apply relative mt-2 max-h-[456px] min-w-[240px];
@@ -139,14 +143,6 @@ emoji-avatar.copilot-thinking {
   .pac-features__sidenav {
     .mat-drawer-inner-container {
       @apply flex flex-col overflow-hidden;
-    }
-  }
-
-  .pac-features__auth-popper {
-    .ngxp__container.ngxp__animation {
-      .ngxp__inner {
-        background-color: var(--ngm-card-bg-color);
-      }
     }
   }
 }

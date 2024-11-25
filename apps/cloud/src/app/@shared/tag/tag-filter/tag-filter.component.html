@@ -1,6 +1,7 @@
 <div class="flex items-center gap-1 px-2 h-8 rounded-lg border-[0.5px] border-transparent bg-gray-200 cursor-pointer hover:bg-gray-300"
- [cdkMenuTriggerFor]="tagsMenu"
- [cdkMenuPosition]="[
+  #menuTrigger
+  [cdkMenuTriggerFor]="tagsMenu"
+  [cdkMenuPosition]="[
   {
     originX: 'end',
     originY: 'bottom',
@@ -46,7 +47,7 @@
 </div>
 
 <ng-template #tagsMenu>
-  <div cdkMenu class="p-2 w-full">
+  <div cdkMenu class="p-2 w-full" [style.min-width.px]="menuTrigger.offsetWidth">
     <ul cdkListbox [(ngModel)]="tags" [cdkListboxCompareWith]="compareWith" cdkListboxMultiple
       (ngModelChange)="onTagChange()"
     >
@@ -58,12 +59,15 @@
           <div class="flex-1 w-24">{{(tag.label | i18n) || tag.description}}</div>
         @if (option.isSelected()) {
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"
-             class="shrink-0 w-4 h-4 text-primary-600" data-icon="Check" aria-hidden="true">
-             <g id="check"><path id="Icon" d="M13.3334 4L6.00008 11.3333L2.66675 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+             class="shrink-0 w-4 h-4 text-primary-600">
+            <g id="check">
+              <path id="Icon" d="M13.3334 4L6.00008 11.3333L2.66675 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
             </g>
           </svg>
         }
         </div>
+      } @empty {
+        <div class="text-text-secondary">{{ 'PAC.KEY_WORDS.Empty' | translate: {Default: 'Empty'} }}</div>
       }
     </ul>
   </div>

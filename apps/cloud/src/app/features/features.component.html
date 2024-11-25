@@ -10,14 +10,14 @@
       [ngClass]="isCollapsed ? 'flex-col' : 'flex-row'">
       <button class="outline-none hover:text-yellow-600"
         (click)="toggleSidenav(sidenavContainer)">
-        <pac-sidenav-navigator [mode]="sidenavMode()" class="w-12 h-12 flex justify-center items-center"/>
+        <pac-sidenav-navigator [mode]="sidenavMode()" class="w-14 h-14 flex justify-center items-center"/>
       </button>
       <pac-organization-selector class="overflow-hidden flex-1 flex justify-center items-center hover:text-yellow-600 transition-colors"
         [class.pl-[12px]]="isCollapsed"
         [isCollapsed]="isCollapsed"/>
     </div>
 
-    @if (AbilityActions.Manage | able:'Story') {
+    <!-- @if (AbilityActions.Manage | able:'Story') {
       @if (isCollapsed) {
         <button mat-icon-button color="accent" class="pac__toolbar-new m-2"
           [matMenuTriggerFor]="creatMenu"
@@ -39,7 +39,7 @@
           </div>
         </button>
       }
-    }
+    } -->
 
     <pac-menu class="flex-1 p-2 flex overflow-hidden hover:overflow-y-auto"
       [isCollapsed]="isCollapsed"
@@ -54,7 +54,7 @@
   </mat-sidenav>
 
   <mat-sidenav-content class="pac_sidenav-content max-h-full overflow-hidden" cdkDropListGroup>
-    <mat-toolbar class="pac__shell-bar flex justify-between items-center md:gap-2">
+    <mat-toolbar class="pac__shell-bar flex justify-between items-center md:gap-2" cdkMenuBar>
       <div class="flex justify-start items-center gap-2 overflow-hidden">
         <button *ngIf="!(sidenav.opened && sidenavMode()==='side')" class="w-12 outline-none hover:text-yellow-600 transition-colors"
           (click)="sidenav.toggle();sidenavMode.set('over')">
@@ -105,7 +105,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-2 h-4 w-4 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
         </svg>
-        <input #searchInput class="flex-1 max-w-full p-1 pl-8 rounded-lg outline-none placeholder:opacity-30 focus:placeholder:opacity-50 transition-all
+        <input #searchInput class="flex-1 max-w-full p-1.5 pl-8 rounded-xl outline-none placeholder:opacity-30 focus:placeholder:opacity-50 transition-all
           bg-black/5 hover:bg-black/10 focus:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 dark:focus:bg-white/10"
           type="text"
           [placeholder]=" ('PAC.ACTIONS.Search' | translate: {Default: 'Search'})+'...'"
@@ -123,27 +123,17 @@
       </mat-autocomplete>
 
       @if(copilotEnabled$()) {
-        <button mat-icon-button class="pac-copilot-trigger font-notoColorEmoji"
-          displayDensity="cosy"
+        <button type="button" class="pac-copilot-trigger font-notoColorEmoji flex justify-center items-center w-10 h-10 rounded-lg
+          text-text-tertiary hover:text-text-secondary hover:bg-white hover:shadow-lg active:shadow-sm"
           [class.active]="copilotDrawer.opened()"
-          [color]="copilotDrawer.opened() ? 'accent':''"
           (click)="copilotDrawer.toggle()"
         >
-          <div class="flex justify-center items-center text-xl">🤖</div>
+          <div class="text-lg">🤖</div>
         </button>
       }
       
       @if (isAuthenticated$ | async; as user) {
-        <button mat-icon-button class="pac-auth-button"
-          displayDensity="cosy"
-          [floatUi]="popperContent"
-          [showTrigger]="eNgxFloatUiTriggers.click"
-          [hideOnClickOutside]="true"
-          [hideOnScroll]="true"
-          [placement]="eNgxFloatUiPlacements.BOTTOMEND"
-        >
-          <img class="avatar w-full h-full rounded-full" [src]="user?.imageUrl || '/assets/images/avatar-default.svg'" />
-        </button>
+        <pac-header-user [user]="user" />
       }
     </mat-toolbar>
 
@@ -229,10 +219,6 @@
     color="accent" mode="indeterminate" >
   </mat-progress-bar>
 }
-
-<float-ui-content #popperContent class="pac-features__auth-popper">
-  <pac-header-settings />
-</float-ui-content>
 
 <mat-menu #creatMenu="matMenu" class="ngm-density__compact mat-color-accent"
   xPosition="before">

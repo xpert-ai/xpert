@@ -147,4 +147,8 @@
   .cdk-menu-item.danger:hover {
     @apply bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-300;
   }
+
+  .cdk-menu-item.active {
+    @apply text-primary-500;
+  }
 }

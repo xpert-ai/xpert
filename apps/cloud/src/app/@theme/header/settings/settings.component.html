@@ -1,46 +1,88 @@
-<div role="tooltip" class="z-50 dark:text-white">
-  <div class="p-4 border-b flex items-center border-gray-200 rounded-t-lg dark:border-gray-600">
-    <h3 class="mb-0 font-semibold">
-      {{ 'PAC.MENU.UserSettings' | translate: { Default: 'User Settings' } }}
-    </h3>:
-
-    <span class="flex-1 overflow-hidden text-ellipsis">
-      {{ userSignal() | user }}
-    </span>
+<div role="tooltip" class="z-50 dark:text-white" cdkMenu>
+  <div class="p-2 border-b flex items-center border-gray-200 rounded-t-lg dark:border-gray-600">
+    <pac-user-profile-inline [user]="userSignal()" />
   </div>
 
   @if (userSignal()) {
-    <div class="w-[220px] flex flex-col justify-start items-stretch gap-2 p-4">
-      <ngm-select [label]="'PAC.MENU.GENERAL.LANGUAGE' | translate: { Default: 'Language' }"
-        [placeholder]="'PAC.MENU.GENERAL.LANGUAGE_PLACEHOLDER' | translate: { Default: 'Select Language' }"
-        [displayBehaviour]="DisplayBehaviour.descriptionOnly"
-        [selectOptions]="languages"
-        [ngModel]="language$()"
-        (ngModelChange)="onLanguageSelect($event)"
-      >
-        <mat-icon ngmSuffix>translate</mat-icon>
-      </ngm-select>
+    <div class="w-[220px] flex flex-col justify-start items-stretch gap-1 p-1" >
+      <div class="flex items-center justify-between h-9 px-3 rounded-lg cursor-pointer group hover:bg-gray-50"
+        cdkMenuItem
+        [cdkMenuTriggerFor]="langMenu">
+        <div class="font-normal text-gray-700">
+          {{langLabel()}}
+        </div>
+        <i class="ri-translate-2"></i>
+      </div>
 
-      <ngm-select [label]="'PAC.MENU.GENERAL.THEME' | translate: { Default: 'Theme' }"
-        [placeholder]="'PAC.MENU.GENERAL.ThemePlaceholder' | translate: { Default: 'Select Theme' }"
-        [displayBehaviour]="DisplayBehaviour.descriptionOnly"
-        [valueKey]="'key'"
-        [selectOptions]="themeOptions$()"
-        [ngModel]="preferredTheme$() ?? ThemesEnum.system"
-        (ngModelChange)="onThemeSelect($event)"
-      >
-        <mat-icon ngmSuffix>{{preferredThemeIcon$()}}</mat-icon>
-      </ngm-select>
+      <div class="flex items-center justify-between h-9 px-3 rounded-lg cursor-pointer group hover:bg-gray-50"
+        cdkMenuItem
+        [cdkMenuTriggerFor]="themeMenu">
+        <div class="font-normal text-gray-700">
+          {{themeLabel()}}
+        </div>
+        <i class="ri-palette-line"></i>
+      </div>
 
-      <button mat-button (click)="onProfile()">
-        <mat-icon>account_circle</mat-icon>
-        <span>{{ 'PAC.MENU.UserProfile' | translate: {Default: 'User Profile'} }}</span>
-      </button>
+      <div class="flex items-center justify-between h-9 px-3 rounded-lg cursor-pointer group hover:bg-gray-50"
+        cdkMenuItem
+        (click)="onProfile()">
+        <div class="font-normal text-gray-700">{{ 'PAC.MENU.UserProfile' | translate: {Default: 'User Profile'} }}</div>
+        <i class="ri-user-settings-line"></i>
+      </div>
 
-      <button mat-button (click)="onLogoutClick()">
-        <mat-icon>settings_power</mat-icon>
-        <span>{{ 'PAC.MENU.Logout' | translate: {Default: 'Logout'} }}</span>
-      </button>
+      <a class="flex items-center w-full h-9 px-3 text-gray-700 text-[14px] rounded-lg font-normal hover:bg-gray-50 cursor-pointer group justify-between" target="_blank" rel="noopener noreferrer" role="menuitem" tabindex="-1" 
+        cdkMenuItem
+        href="https://github.com/orgs/xpert-ai/discussions/categories/feedbacks">
+        <div>{{ 'PAC.KEY_WORDS.Feedback' | translate: {Default: 'Feedback'} }}</div>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" class="hidden w-[14px] h-[14px] text-gray-500 group-hover:flex">
+          <g id="arrow-up-right"><path id="Icon" d="M4.08325 9.91665L9.91659 4.08331M9.91659 4.08331H4.08325M9.91659 4.08331V9.91665" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"></path>
+          </g>
+        </svg>
+      </a>
+
+      <a class="flex items-center w-full h-9 px-3 text-gray-700 text-[14px] rounded-lg font-normal hover:bg-gray-50 cursor-pointer group justify-between" target="_blank" rel="noopener noreferrer" role="menuitem" tabindex="-1"
+        cdkMenuItem
+        href="https://mtda.cloud/en/docs/">
+        <div>{{ 'PAC.KEY_WORDS.HelpDocs' | translate: {Default: 'Help'} }}</div>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"
+          class="hidden w-[14px] h-[14px] text-gray-500 group-hover:flex">
+          <g id="arrow-up-right"><path id="Icon" d="M4.08325 9.91665L9.91659 4.08331M9.91659 4.08331H4.08325M9.91659 4.08331V9.91665" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"></path>
+          </g>
+        </svg>
+      </a>
+
+      <div class="w-full border-b border-solid border-divider-regular my-1"></div>
+
+      <div class="flex items-center justify-between h-9 px-3 rounded-lg cursor-pointer group hover:bg-gray-50"
+        cdkMenuItem
+        (click)="onLogoutClick()">
+        <div class="font-normal text-gray-700">{{ 'PAC.MENU.Logout' | translate: {Default: 'Logout'} }}</div>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"
+          class="hidden w-[14px] h-[14px] text-gray-500 group-hover:flex">
+          <g id="log-out-01"><path id="Icon" d="M9.33333 9.91667L12.25 7M12.25 7L9.33333 4.08333M12.25 7H5.25M5.25 1.75H4.55C3.56991 1.75 3.07986 1.75 2.70552 1.94074C2.37623 2.10852 2.10852 2.37623 1.94074 2.70552C1.75 3.07986 1.75 3.56991 1.75 4.55V9.45C1.75 10.4301 1.75 10.9201 1.94074 11.2945C2.10852 11.6238 2.37623 11.8915 2.70552 12.0593C3.07986 12.25 3.56991 12.25 4.55 12.25H5.25" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"></path>
+          </g>
+        </svg>
+      </div>
     </div>
   }
 </div>
+
+<ng-template #themeMenu >
+  <div cdkMenu class="cdk-menu__medium">
+    @for (theme of themeOptions$(); track theme.key) {
+      <div cdkMenuItem class=""
+        [class.active]="theme.key === preferredTheme$()"
+        (click)="onThemeSelect(theme.key)">{{theme.caption}}</div>
+    }
+  </div>
+</ng-template>
+
+<ng-template #langMenu >
+  <div cdkMenu class="cdk-menu__medium">
+    @for (lang of languages; track lang) {
+      <div cdkMenuItem class=""
+        [class.active]="lang.value === language$()"
+        (click)="onLanguageSelect(lang.value)">{{lang.label}}</div>
+    }
+  </div>
+</ng-template>
