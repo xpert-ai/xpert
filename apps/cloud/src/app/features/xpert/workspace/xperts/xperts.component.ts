@@ -26,7 +26,6 @@ import {
   OrderTypeEnum,
   routeAnimations,
   ToastrService,
-  XpertDraftDslDTO,
   XpertService,
   XpertToolsetCategoryEnum,
   XpertToolsetService,
@@ -346,7 +345,7 @@ export class XpertStudioXpertsComponent {
     input.click()
   }
 
-  handleImportedDSL(dsl: Partial<XpertDraftDslDTO>) {
+  handleImportedDSL(dsl: any) {
     this.dialog
       .open(CdkConfirmUniqueComponent, {
         data: {

@@ -12,22 +12,18 @@ import {
   IChatConversation,
   OrderTypeEnum,
   ToastrService,
-  XpertDraftDslDTO,
   XpertService
 } from 'apps/cloud/src/app/@core'
 import { MaterialModule } from 'apps/cloud/src/app/@shared'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { formatRelative } from 'date-fns'
-import { sortBy } from 'lodash-es'
+import { result, sortBy } from 'lodash-es'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { distinctUntilChanged, filter, map, shareReplay, switchMap } from 'rxjs'
 import { getDateLocale } from '../../../../@core'
 import { XpertStudioApiService } from '../domain'
 import { XpertExecutionService } from '../services/execution.service'
 import { XpertStudioComponent } from '../studio.component'
-import { parse, stringify } from 'yaml'
-import { instanceToPlain } from 'class-transformer';
-
 
 @Component({
   selector: 'xpert-studio-header',
@@ -136,14 +132,26 @@ export class XpertStudioHeaderComponent {
   }
 
   export(isDraft = false) {
-    const draft = isDraft ? this.apiService.store.getValue().draft : this.apiService.getInitialDraft()
-    const result = stringify(instanceToPlain(new XpertDraftDslDTO(draft)))
-    const blob = new Blob([result], { type: 'text/plain;charset=utf-8' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `xpert-${this.apiService.team().slug}.yaml`
-    a.click();
-    window.URL.revokeObjectURL(url);
+    this.xpertService.exportDSL(this.team().id, isDraft).subscribe({
+      next: (result) => {
+        const blob = new Blob([result.data], { type: 'text/plain;charset=utf-8' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `xpert-${this.apiService.team().slug}.yaml`
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        this.#toastr.error(
+          `PAC.Xpert.ExportFailed`,
+          getErrorMessage(err)
+        )
+      }
+    })
+
+    // const draft = isDraft ? this.apiService.store.getValue().draft : this.apiService.getInitialDraft()
+    // const result = stringify(instanceToPlain(new XpertDraftDslDTO(draft)))
+    
   }
 }

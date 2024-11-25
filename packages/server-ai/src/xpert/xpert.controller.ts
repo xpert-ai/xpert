@@ -1,4 +1,4 @@
-import { TChatRequest, TXpertTeamDraft, XpertDraftDslDTO } from '@metad/contracts'
+import { TChatRequest, TXpertTeamDraft } from '@metad/contracts'
 import {
 	CrudController,
 	OptionParams,
@@ -33,8 +33,8 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { DeleteResult } from 'typeorm'
 import { XpertAgentExecution } from '../core/entities/internal'
 import { FindExecutionsByXpertQuery } from '../xpert-agent-execution/queries'
-import { XpertChatCommand, XpertImportCommand } from './commands'
-import { XpertPublicDTO } from './dto'
+import { XpertChatCommand, XpertExportCommand, XpertImportCommand } from './commands'
+import { XpertDraftDslDTO, XpertPublicDTO } from './dto'
 import { Xpert } from './xpert.entity'
 import { XpertService } from './xpert.service'
 import { WorkspaceGuard } from '../xpert-workspace/'
@@ -88,6 +88,14 @@ export class XpertController extends CrudController<Xpert> {
 				HttpStatus.INTERNAL_SERVER_ERROR
 			)
 		}
+	}
+
+	@Get(':xpertId/export')
+	async exportDSL(
+		@Param('xpertId') xpertId: string,
+		@Query('isDraft') isDraft: string,
+		@Query('data', ParseJsonPipe) params: PaginationParams<Xpert>) {
+		return await this.commandBus.execute(new XpertExportCommand(xpertId, isDraft))
 	}
 
 	@Get(':id/team')
@@ -176,13 +184,5 @@ export class XpertController extends CrudController<Xpert> {
 	async removeManager(@Param('id') id: string, @Param('userId') userId: string) {
 		await this.service.removeManager(id, userId)
 	}
-
-	// @Get(':xpertId/export')
-	// async exportDSL(
-	// 	@Param('xpertId') xpertId: string,
-	// 	@Query('isDraft') isDraft: boolean,
-	// 	@Query('data', ParseJsonPipe) params: PaginationParams<Xpert>) {
-	// 	// const xpert = await this.service.findOne(xpertId, isDraft ? null : params)
-	// }
 
 }
