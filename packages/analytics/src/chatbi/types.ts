@@ -15,7 +15,10 @@ import {
 } from '@metad/ocap-core'
 import { ChatLarkContext, LarkService } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
+import { Cache } from 'cache-manager'
 import { z } from 'zod'
+import { NgmDSCoreService } from '../model/ocap'
+import { ChatBIModelService } from '../chatbi-model'
 
 export const CHATBI_COMMAND_NAME = 'chatbi'
 export type ChatBIAgentState = AgentState
@@ -90,7 +93,7 @@ export const GetCubesContextSchema = z.object({
 
 export const ChatAnswerSchema = z.object({
 	preface: z.string().describe('preface of the answer'),
-	visualType: z.enum(['Chart', 'Table', 'KPI']).describe('Visual type of result'),
+	visualType: z.enum(['Chart', 'Table', 'KPI']).optional().describe('Visual type of result'),
 	dataSettings: DataSettingsSchema.optional().describe('The data settings of the widget'),
 	chartType: z
 		.object({
@@ -106,3 +109,11 @@ export const ChatAnswerSchema = z.object({
 	timeSlicers: z.array(TimeSlicerSchema).optional().describe('The time slicers to filter data'),
 	variables: z.array(VariableSchema).optional().describe('The variables to the query of cube')
 })
+
+
+// BI Context
+export type TBIContext = {
+	dsCoreService: NgmDSCoreService
+	modelService: ChatBIModelService
+	cacheManager: Cache
+}

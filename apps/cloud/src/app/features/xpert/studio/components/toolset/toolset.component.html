@@ -14,7 +14,10 @@
   (wheel)="$event.stopPropagation()"
 >
   @for (tool of availableTools(); track tool.id) {
-    <div class="relative flex items-center px-4 py-2 text-left rounded-lg text-sm bg-gray-100 dark:bg-zinc-800">
+    <div class="relative flex items-center px-4 py-2 text-left rounded-lg text-sm bg-gray-100 dark:bg-zinc-800"
+      [matTooltip]="tool.description"
+      matTooltipPosition="after"
+    >
       @switch (toolExecutions()[tool.name]?.status) {
         @case (eXpertAgentExecutionEnum.RUNNING) {
           <ngm-spin class="-ml-2 mr-2" small />

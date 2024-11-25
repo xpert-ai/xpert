@@ -43,7 +43,11 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 										model: model.modelName,
 										model_type: model.modelType,
 										fetch_from: FetchFrom.CUSTOMIZABLE_MODEL,
-										model_properties: model.modelProperties
+										model_properties: model.modelProperties,
+										label: {
+											zh_Hans: model.modelName,
+											en_US: model.modelName,
+										}
 									}) as ProviderModel
 							)
 						)

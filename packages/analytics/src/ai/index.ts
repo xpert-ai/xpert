@@ -5,7 +5,7 @@ BUILTIN_TOOLSET_REPOSITORY.push({
     baseUrl: `packages/analytics/src/ai/toolset/builtin`,
     providers: [
         ChatDBToolset,
-        ChatBIToolset
+        ChatBIToolset,
     ]
 })
 

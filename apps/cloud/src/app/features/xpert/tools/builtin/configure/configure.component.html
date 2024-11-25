@@ -54,7 +54,7 @@
 
   <div class="pt-3">
     <div class="text-sm font-medium leading-6 text-gray-500">
-      <span class="">{{tools()?.length ?? 0}} {{'PAC.Xpert.ToolsIncluded' | translate: {Default: 'Tools Included'} }}</span>
+      <span class="">{{builtinTools()?.length ?? 0}} {{'PAC.Xpert.ToolsIncluded' | translate: {Default: 'Tools Included'} }}</span>
       @if (!toolset()) {
         <span class="px-1">·</span>
         <span class="text-[#DC6803]">{{'PAC.Xpert.SetUpAuthorizationToUse' | translate: {Default: 'Set Up Authorization to Use'} }}</span>
@@ -62,7 +62,7 @@
     </div>
     
     <div class="mt-1">
-      @for (tool of tools(); track tool.identity.name) {
+      @for (tool of builtinTools(); track tool.identity.name) {
         <xpert-tool-builtin-tool class=""
           [disabled]="!toolset()"
           [tool]="tool"

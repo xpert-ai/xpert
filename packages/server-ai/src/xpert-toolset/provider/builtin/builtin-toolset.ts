@@ -6,6 +6,8 @@ import { BuiltinTool } from './builtin-tool'
 import { XpertToolsetService } from '../../xpert-toolset.service'
 
 export type TBuiltinToolsetParams = {
+	tenantId: string
+    organizationId?: string
 	toolsetService: XpertToolsetService
 	commandBus: CommandBus
 	queryBus: QueryBus
@@ -17,6 +19,12 @@ export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> {
 
 	providerType: XpertToolsetCategoryEnum.BUILTIN
 
+	get tenantId() {
+		return this.params?.tenantId
+	}
+	get organizationId() {
+		return this.params?.organizationId
+	}
 	get commandBus() {
 		return this.params?.commandBus
 	}

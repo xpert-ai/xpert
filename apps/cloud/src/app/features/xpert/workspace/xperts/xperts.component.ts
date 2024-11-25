@@ -137,7 +137,10 @@ export class XpertStudioXpertsComponent {
       switchMap(() =>
         this.toolsetService.getAllByWorkspace(workspaceId, {
           where: omitBy(where, isNil),
-          relations: ['createdBy', 'tags']
+          relations: ['createdBy', 'tags'],
+          order: {
+            updatedAt: OrderTypeEnum.DESC
+          }
         })
       ),
       map(({ items }) => items)

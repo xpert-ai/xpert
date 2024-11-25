@@ -174,4 +174,11 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 	async parseODataSchema(@Body() { schema }: { schema: string }) {
 		return this.commandBus.execute(new ParserODataSchemaCommand(schema))
 	}
+
+	// Single Toolset
+	@Get(':toolsetId/tools')
+	async getToolsetTools(@Param('toolsetId') toolsetId: string,) {
+		const toolset = await this.service.findOne(toolsetId, { relations: ['tools'] })
+		return toolset.tools
+	}
 }

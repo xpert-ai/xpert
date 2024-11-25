@@ -14,7 +14,7 @@ export abstract class BaseToolset<T extends StructuredToolInterface = Tool> exte
 		super()
 	}
 
-	getTools() {
+	async initTools() {
 		return this.tools
 	}
 

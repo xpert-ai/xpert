@@ -93,4 +93,8 @@ export class XpertToolsetService extends XpertWorkspaceBaseCrudService<IXpertToo
       schema
     })
   }
+
+  getToolsetTools(id: string,) {
+    return this.httpClient.get<IXpertTool[]>(this.apiBaseUrl + `/${id}/tools`)
+  }
 }

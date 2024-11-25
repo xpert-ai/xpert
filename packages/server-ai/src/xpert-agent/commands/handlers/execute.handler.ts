@@ -73,7 +73,10 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			new ToolsetGetToolsCommand(options?.toolsets ?? agent.toolsetIds)
 		)
 		const tools = []
-		toolsets.forEach((toolset) => tools.push(...toolset.getTools()))
+		for await (const toolset of toolsets) {
+			const items = await toolset.initTools()
+			tools.push(...items)
+		}
 
 		this.#logger.debug(`Use tools:\n ${tools.map((_) => _.name + ': ' + _.description)}`)
 
@@ -271,6 +274,20 @@ ${agent.prompt}
 						}
 						break
 					}
+					
+					case 'on_chain_stream': {
+						// Only returns the stream events content of the current react agent (filter by tag: thread_id), not events of agent in tool call.
+						if (tags.includes(thread_id)) {
+							const msg = data.chunk as AIMessageChunk
+							if (!msg.tool_call_chunks?.length) {
+								if (msg.content) {
+									return msg.content
+								}
+							}
+						}
+						break
+					}
+					
 					case 'on_tool_start': {
 						this.#logger.verbose(data, rest)
 						eventStack.push(event)

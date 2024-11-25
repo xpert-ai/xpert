@@ -7,6 +7,7 @@ import { OcapModule } from '../model/ocap'
 import { provideOcap } from '../model/ocap/'
 import { ChatBIService } from './chatbi.service'
 import { CommandHandlers } from './commands/handlers'
+import { QueryHandlers } from './queries/handlers'
 
 @Module({
 	imports: [
@@ -21,7 +22,7 @@ import { CommandHandlers } from './commands/handlers'
 		XpertToolsetModule
 	],
 	controllers: [],
-	providers: [ChatBIService, ...CommandHandlers, ...provideOcap()],
+	providers: [ChatBIService, ...CommandHandlers, ...QueryHandlers, ...provideOcap()],
 	exports: []
 })
 export class ChatBIModule {}

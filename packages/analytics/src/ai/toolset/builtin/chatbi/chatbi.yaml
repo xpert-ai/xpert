@@ -11,17 +11,17 @@ identity:
   tags:
     - analysis
 credentials_for_provider:
-  copilotModel:
-    type: remote-select
-    required: true
-    label:
-      en_US: Copilot Model
-      zh_Hans: 智能助理模型
-    placeholder:
-      en_US: Please select your copilot model
-      zh_Hans: 请选择你的智能助理模型
-    selectUrl: /api/copilot/model-select-options
-    multi: false
+  # copilotModel:
+  #   type: remote-select
+  #   required: true
+  #   label:
+  #     en_US: Copilot Model
+  #     zh_Hans: 智能助理模型
+  #   placeholder:
+  #     en_US: Please select your copilot model
+  #     zh_Hans: 请选择你的智能助理模型
+  #   selectUrl: /api/copilot/model-select-options
+  #   multi: false
   models:
     type: remote-select
     required: true

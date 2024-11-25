@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, effect, inject, model, signal } from '@angular/core'
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { routeAnimations } from '@metad/core'
@@ -20,6 +20,7 @@ import { BehaviorSubject, of } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 import { XpertToolBuiltinAuthorizeComponent } from '../authorize/authorize.component'
 import { XpertToolBuiltinToolComponent } from '../tool/tool.component'
+import { omit } from 'lodash-es'
 
 @Component({
   standalone: true,
@@ -60,12 +61,13 @@ export class XpertToolConfigureBuiltinComponent {
   readonly toolset = model<IXpertToolset>(this.#data.toolset)
   readonly providerName = signal(this.#data.providerName)
   readonly workspace = signal(this.#data.workspace)
+  readonly toolsetId = computed(() => this.toolset()?.id)
 
   readonly provider = derivedAsync(() =>
     this.providerName() ? this.xpertToolsetService.getProvider(this.providerName()) : of(null)
   )
 
-  readonly tools = derivedAsync(() => {
+  readonly builtinTools = derivedAsync(() => {
     if (this.providerName()) {
       return this.xpertToolsetService.getBuiltinTools(this.providerName())
     }
@@ -82,6 +84,10 @@ export class XpertToolConfigureBuiltinComponent {
     return null
   })
 
+  readonly tools = derivedAsync(() => {
+    return this.toolsetId() ? this.xpertToolsetService.getToolsetTools(this.toolsetId()) : of(null)
+  })
+
   readonly loading = signal(false)
   readonly authorizing = signal(false)
 
@@ -91,8 +97,12 @@ export class XpertToolConfigureBuiltinComponent {
 
   constructor() {
     effect(() => {
-      // console.log(this.toolset())
-    })
+      const tools = this.tools()
+      this.toolset.update((state) => (state ? {
+        ...state,
+        tools
+      } : null))
+    }, { allowSignalWrites: true })
   }
 
   openAuthorize(toolset?: IXpertToolset) {
@@ -141,7 +151,7 @@ export class XpertToolConfigureBuiltinComponent {
 
   save() {
     this.loading.set(true)
-    this.xpertToolsetService.update(this.toolset().id, this.toolset()).subscribe({
+    this.xpertToolsetService.update(this.toolset().id, omit(this.toolset(), 'tags')).subscribe({
       next: (toolset) => {
         this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
         this.loading.set(false)

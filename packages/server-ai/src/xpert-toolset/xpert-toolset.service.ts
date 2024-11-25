@@ -1,4 +1,4 @@
-import { PaginationParams, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Injectable, Logger, NotFoundException, Type, Inject } from '@nestjs/common'
 import { CommandBus, ICommand, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -99,16 +99,16 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 		provider: string,
 		entity: Partial<IXpertToolset>
 	) {
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
 		const providers = await this.queryBus.execute<ListBuiltinToolProvidersQuery, TToolsetProviderSchema[]>(new ListBuiltinToolProvidersQuery([provider]))
 		if (!providers[0]) {
 			throw new ToolProviderNotFoundError(`Builtin tool provider '${provider}' not found!`)
 		}
 
-		// const user = RequestContext.currentUser()
-		// // Get instances in workspace
-		// const {items: exists} = await this.getAllByWorkspace(entity.workspaceId, {where: {type: provider}}, null, user)
-
 		const toolproviderController = createBuiltinToolset(provider, null, {
+			tenantId,
+			organizationId,
 			toolsetService: this,
 			commandBus: this.commandBus,
 			queryBus: this.queryBus

@@ -9,6 +9,7 @@ import { BaseToolset } from '../../toolset'
 import { XpertToolsetService } from '../../xpert-toolset.service'
 import { ToolsetGetToolsCommand } from '../get-tools.command'
 import { ToolProviderNotFoundError } from '../../errors'
+import { RequestContext } from '@metad/server-core'
 
 @CommandHandler(ToolsetGetToolsCommand)
 export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCommand> {
@@ -21,6 +22,8 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 	) {}
 
 	public async execute(command: ToolsetGetToolsCommand): Promise<BaseToolset<Tool>[]> {
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
 		const ids = command.ids
 		const { items: toolsets } = await this.toolsetService.findAll({
 			where: {
@@ -33,6 +36,8 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 			switch (toolset.category) {
 				case XpertToolsetCategoryEnum.BUILTIN: {
 					return createBuiltinToolset(toolset.type, toolset, {
+						tenantId,
+						organizationId,
 						toolsetService: this.toolsetService,
 						commandBus: this.commandBus,
 						queryBus: this.queryBus

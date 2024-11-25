@@ -7,6 +7,7 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
+import { MatTooltipModule } from '@angular/material/tooltip'
 
 @Component({
   selector: 'xpert-studio-node-toolset',
@@ -14,7 +15,7 @@ import { XpertExecutionService } from '../../services/execution.service'
   styleUrls: ['./toolset.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, EmojiAvatarComponent, NgmSpinComponent],
+  imports: [FFlowModule, MatTooltipModule, EmojiAvatarComponent, NgmSpinComponent],
   host: {
     tabindex: '-1',
     '[class.selected]': 'isSelected',

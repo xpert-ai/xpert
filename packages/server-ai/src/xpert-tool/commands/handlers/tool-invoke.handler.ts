@@ -25,6 +25,8 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 	) {}
 
 	public async execute(command: ToolInvokeCommand): Promise<any> {
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
 		// Default enabled tool for invoke
 		const tool = { ...command.tool, enabled: true }
 		const toolset = tool.toolset
@@ -46,9 +48,10 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 		subscriber.subscribe((event) => events.push(event))
 
 		const toolContext = {
-			tenantId: RequestContext.currentTenantId(),
-			organizationId: RequestContext.getOrganizationId(),
+			tenantId,
+			organizationId,
 			user: RequestContext.currentUser(),
+			userId: RequestContext.currentUserId(),
 			subscriber
 		}
 
@@ -66,6 +69,8 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 						]
 					},
 					{
+						tenantId,
+						organizationId,
 						toolsetService: this.toolsetService,
 						commandBus: this.commandBus,
 						queryBus: this.queryBus
@@ -76,7 +81,9 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 				// 	.filter((param) => param.form === ToolParameterForm.LLM)
 				// 	.map((param) => param.name)
 
-				const result = await builtinToolset.getTool(tool.name).invoke(parameters, {
+				await builtinToolset.initTools()
+
+				const result = await builtinToolset.getTool(tool.name).invoke(parameters ?? {}, {
 					configurable: toolContext
 				})
 
