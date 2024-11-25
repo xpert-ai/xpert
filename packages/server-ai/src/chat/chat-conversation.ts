@@ -1,35 +1,30 @@
-import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { AIMessageChunk, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
+import { RunnableConfig } from '@langchain/core/runnables'
 import { CompiledStateGraph, START } from '@langchain/langgraph'
 import {
-	AiProviderRole,
-	ChatGatewayEvent,
-	ChatGatewayMessage,
+	ChatMessageEventTypeEnum,
+	ChatMessageTypeEnum,
 	CopilotBaseMessage,
 	CopilotChatMessage,
 	CopilotMessageGroup,
 	IChatConversation,
 	ICopilot,
-	IXpertToolset,
-	IUser,
-	IXpert,
+	IUser
 } from '@metad/contracts'
 import { AgentRecursionLimit } from '@metad/copilot'
-import { getErrorMessage, omit, shortuuid } from '@metad/server-common'
+import { getErrorMessage, shortuuid } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { formatDocumentsAsString } from 'langchain/util/document'
 import { catchError, concat, filter, from, fromEvent, map, Observable, of, tap } from 'rxjs'
-import { ChatConversationUpdateCommand } from '../chat-conversation'
-import { createLLM, createReactAgent } from '../copilot'
+import { ChatConversationUpsertCommand } from '../chat-conversation'
+import { CopilotGetChatQuery, createReactAgent } from '../copilot'
 import { CopilotCheckpointSaver } from '../copilot-checkpoint'
-import { CopilotTokenRecordCommand } from '../copilot-user/commands'
+import { CopilotModelGetChatModelQuery } from '../copilot-model'
+import { CopilotNotFoundException } from '../core/errors'
 import { KnowledgeSearchQuery } from '../knowledgebase/queries'
-import { ChatService } from './chat.service'
 import { ChatAgentState, chatAgentState } from './types'
-import { RunnableConfig } from '@langchain/core/runnables'
-
 
 export class ChatConversationAgent {
 	private logger = new Logger(ChatConversationAgent.name)
@@ -43,7 +38,7 @@ export class ChatConversationAgent {
 	}
 
 	private message: CopilotMessageGroup = null
-	private abortController: AbortController
+	private abortController: AbortController = new AbortController()
 
 	// knowledges
 	private knowledges = null
@@ -53,166 +48,51 @@ export class ChatConversationAgent {
 		public readonly organizationId: string,
 		private readonly user: IUser,
 		private readonly copilotCheckpointSaver: CopilotCheckpointSaver,
-		private readonly chatService: ChatService,
+		// private readonly chatService: ChatService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
 	) {
-		this.copilot = this.chatService.findCopilot(this.tenantId, organizationId, AiProviderRole.Secondary)
+		// this.copilot = this.chatService.findCopilot(this.tenantId, organizationId, AiProviderRole.Secondary)
 	}
 
-	createLLM(copilot: ICopilot) {
-		return createLLM<BaseChatModel>(copilot, {}, async (input) => {
-			try {
-				await this.commandBus.execute(
-					new CopilotTokenRecordCommand({
-						...input,
-						tenantId: this.tenantId,
-						organizationId: this.organizationId,
-						userId: this.user.id,
-						copilotId: copilot.id
-					})
-				)
-			} catch(err) {
-				if (this.abortController && !this.abortController.signal.aborted) {
-					try {
-						this.abortController.abort(err.message)
-					} catch(err) {
-						//
-					}
-				}
-				
-			}
-		})
-	}
+	// createLLM(copilot: ICopilot) {
+	// 	return createLLM<BaseChatModel>(copilot, {}, async (input) => {
+	// 		try {
+	// 			await this.commandBus.execute(
+	// 				new CopilotTokenRecordCommand({
+	// 					...input,
+	// 					tenantId: this.tenantId,
+	// 					organizationId: this.organizationId,
+	// 					userId: this.user.id,
+	// 					copilotId: copilot.id
+	// 				})
+	// 			)
+	// 		} catch(err) {
+	// 			if (this.abortController && !this.abortController.signal.aborted) {
+	// 				try {
+	// 					this.abortController.abort(err.message)
+	// 				} catch(err) {
+	// 					//
+	// 				}
+	// 			}
 
-	createAgentGraph(role: IXpert, toolsets: IXpertToolset[]) {
-		const llm = this.createLLM(this.copilot)
-		if (!llm) {
-			throw new Error(`Can't create chatModel for provider '${this.copilot.provider}'`)
+	// 		}
+	// 	})
+	// }
+
+	async createAgentGraph() {
+		const tenantId = this.tenantId
+		const organizationId = this.organizationId
+		this.copilot = await this.queryBus.execute(new CopilotGetChatQuery(tenantId, organizationId, []))
+		if (!this.copilot) {
+			throw new CopilotNotFoundException(`Primary chat copilot not found`)
 		}
 
+		const llm = await this.queryBus.execute(
+			new CopilotModelGetChatModelQuery(this.copilot, null, { abortController: this.abortController })
+		)
+
 		const tools = []
-
-		// toolsets.forEach((toolset) => {
-		// 	const toolkit = createToolset(toolset, {
-		// 		tenantId: this.tenantId,
-		// 		organizationId: this.organizationId,
-		// 		toolsetService: this.chatService.toolsetService,
-		// 		commandBus: this.commandBus,
-		// 		user: this.user,
-		// 		copilots: this.chatService.getCopilots(this.tenantId, this.organizationId),
-		// 		chatModel: llm
-		// 	})
-		// 	if (toolkit) {
-		// 		tools.push(...toolkit.getTools())
-		// 	} else {
-		// 		switch (toolset.name) {
-		// 			case 'Wikipedia': {
-		// 				const wikiTool = new WikipediaQueryRun({
-		// 					topKResults: 3,
-		// 					maxDocContentLength: 4000
-		// 				})
-		// 				tools.push(wikiTool)
-		// 				break
-		// 			}
-		// 			// case 'DuckDuckGo': {
-		// 			// 	const duckTool = new DuckDuckGoSearch({ maxResults: 1 })
-		// 			// 	tools.push(duckTool)
-		// 			// 	break
-		// 			// }
-		// 			case 'SearchApi': {
-		// 				tools.push(new SearchApi(process.env.SEARCHAPI_API_KEY, {
-		// 					...(toolset.tools?.[0]?.options ?? {}),
-		// 				}))
-		// 				break
-		// 			}
-		// 			// case 'TavilySearch': {
-		// 			// 	tools.push(new TavilySearchResults({
-		// 			// 		...(toolset.tools?.[0]?.options ?? {}),
-		// 			// 		apiKey: process.env.TAVILY_API_KEY
-		// 			// 	}))
-		// 			// 	break
-		// 			// }
-		// 			case 'ExaSearch': {
-		// 				tools.push(new ExaSearchResults({
-		// 					client: exaClient,
-		// 					searchArgs: {
-		// 					...(toolset.tools?.[0]?.options ?? {}),
-		// 					} as any,
-		// 				})
-		// 				)
-		// 				break
-		// 			}
-		// 			case 'SearxngSearch': {
-		// 				tools.push(new SearxngSearch({
-		// 					apiBase: (toolset.tools?.[0]?.options ?? {}).apiBase,
-		// 					params: {
-		// 						engines: "google",
-		// 						...omit(toolset.tools?.[0]?.options ?? {}, 'apiBase'),
-		// 						format: "json", // Do not change this, format other than "json" is will throw error
-		// 					},
-		// 					// Custom Headers to support rapidAPI authentication Or any instance that requires custom headers
-		// 					headers: {},
-		// 				})
-		// 				)
-		// 				break
-		// 			}
-
-		// 			default: {
-		// 				// toolset.tools?.forEach((item) => {
-		// 				// 	switch (item.type) {
-		// 				// 		case 'command': {
-		// 				// 			let zodSchema: z.AnyZodObject = null
-		// 				// 			try {
-		// 				// 				zodSchema = eval(jsonSchemaToZod(JSON.parse(item.schema), { module: 'cjs' }))
-		// 				// 			} catch (err) {
-		// 				// 				throw new Error(`Invalid input schema for tool: ${item.name}`)
-		// 				// 			}
-		// 				// 			// Copilot
-		// 				// 			let chatModel = llm
-		// 				// 			if (item.providerRole || toolset.providerRole) {
-		// 				// 				const copilot = this.chatService.findCopilot(this.tenantId, this.organizationId, item.providerRole || toolset.providerRole)
-		// 				// 				chatModel = this.createLLM(copilot)
-		// 				// 			}
-
-		// 				// 			// Default args values in copilot role for tool function
-		// 				// 			const defaultArgs = role?.options?.toolsets?.[toolset.id]?.[item.name]?.defaultArgs
-
-		// 				// 			tools.push(
-		// 				// 				tool(
-		// 				// 					async (args, config) => {
-		// 				// 						try {
-		// 				// 							return await this.chatService.executeCommand(item.name, {
-		// 				// 									...(defaultArgs ?? {}),
-		// 				// 									...args
-		// 				// 								}, config, <XpertToolContext>{
-		// 				// 									tenantId: this.tenantId,
-		// 				// 									organizationId: this.organizationId,
-		// 				// 									user: this.user,
-		// 				// 									chatModel,
-		// 				// 									role,
-		// 				// 									roleContext: role?.options?.context,
-		// 				// 								})
-		// 				// 						} catch(error) {
-		// 				// 							return `Error: ${getErrorMessage(error)}`
-		// 				// 						}
-		// 				// 					},
-		// 				// 					{
-		// 				// 						name: item.name,
-		// 				// 						description: item.description,
-		// 				// 						schema: defaultArgs ? null : zodSchema
-		// 				// 					}
-		// 				// 				)
-		// 				// 			)
-		// 				// 			break
-		// 				// 		}
-		// 				// 	}
-		// 				// })
-		// 			}
-		// 		}
-		// 	}
-		// })
-
 		this.graph = createReactAgent({
 			state: chatAgentState,
 			llm,
@@ -265,187 +145,199 @@ References documents:
 						// debug: true
 					}
 				)
-			).pipe(
-				map(({ event, data, ...rest }: any) => {
-					if (Logger.isLevelEnabled('verbose')) {
-						if (event === 'on_chat_model_stream') {
-							if (prevEvent === 'on_chat_model_stream') {
-								process.stdout.write('.')
+			)
+				.pipe(
+					map(({ event, data, ...rest }: any) => {
+						if (Logger.isLevelEnabled('verbose')) {
+							if (event === 'on_chat_model_stream') {
+								if (prevEvent === 'on_chat_model_stream') {
+									process.stdout.write('.')
+								} else {
+									this.logger.verbose('on_chat_model_stream')
+								}
 							} else {
-								this.logger.verbose('on_chat_model_stream')
-							}
-						} else {
-							if (prevEvent === 'on_chat_model_stream') {
-								process.stdout.write('\n')
-							}
-							this.logger.verbose(event)
-						}
-					}
-					prevEvent = event
-					switch (event) {
-						case 'on_chain_start': {
-							eventStack.push(event)
-							break
-						}
-						case 'on_chat_model_start': {
-							eventStack.push(event)
-							this.message.content = ''
-							break
-						}
-						case 'on_chain_end': {
-							let _event = eventStack.pop()
-							if (_event === 'on_tool_start') {
-								// 当调用 Tool 报错异常时会跳过 on_tool_end 事件，直接到此事件
-								while(_event === 'on_tool_start') {
-									_event = eventStack.pop()
+								if (prevEvent === 'on_chat_model_stream') {
+									process.stdout.write('\n')
 								}
-								// Clear all error tool calls
-								const toolMessages: CopilotMessageGroup[] = []
-								if (toolCalls) {
-									Object.keys(toolCalls).filter((id) => !!toolCalls[id]).forEach((id) => {
-										this.updateStep(id, {status: 'error'})
-										toolMessages.push({
-											id,
-											role: 'tool',
-											status: 'error'
-										})
-									})
-									toolCalls = null
-									if (toolMessages.length) {
-										this.logger.debug(`Tool call error:`)
-										this.logger.debug(data, rest)
+								this.logger.verbose(event)
+							}
+						}
+						prevEvent = event
+						switch (event) {
+							case 'on_chain_start': {
+								eventStack.push(event)
+								break
+							}
+							case 'on_chat_model_start': {
+								eventStack.push(event)
+								this.message.content = ''
+								break
+							}
+							case 'on_chain_end': {
+								let _event = eventStack.pop()
+								if (_event === 'on_tool_start') {
+									// 当调用 Tool 报错异常时会跳过 on_tool_end 事件，直接到此事件
+									while (_event === 'on_tool_start') {
+										_event = eventStack.pop()
+									}
+									// Clear all error tool calls
+									const toolMessages: CopilotMessageGroup[] = []
+									if (toolCalls) {
+										Object.keys(toolCalls)
+											.filter((id) => !!toolCalls[id])
+											.forEach((id) => {
+												this.updateStep(id, { status: 'error' })
+												toolMessages.push({
+													id,
+													role: 'tool',
+													status: 'error'
+												})
+											})
+										toolCalls = null
+										if (toolMessages.length) {
+											this.logger.debug(`Tool call error:`)
+											this.logger.debug(data, rest)
 
-										return {
-											event: ChatGatewayEvent.ToolEnd,
-											data: toolMessages
+											return {
+												data: {
+													type: ChatMessageTypeEnum.EVENT,
+													event: ChatMessageEventTypeEnum.ON_TOOL_END,
+													data: toolMessages
+												}
+											}
 										}
 									}
 								}
-							}
-							
-							// All chains end
-							if (_event !== 'on_chain_start') {
-								eventStack.pop()
-							}
-							if (!eventStack.length) {
-								return {
-									event: ChatGatewayEvent.ChainEnd,
-									data: {
-										id: answerId
-									}
+
+								// All chains end
+								if (_event !== 'on_chain_start') {
+									eventStack.pop()
 								}
-							}
-							break
-						}
-						case 'on_chat_model_end': {
-							const _event = eventStack.pop()
-							if (_event !== 'on_chat_model_start') {
-								eventStack.pop()
-							}
-							return null
-						}
-						case 'on_chat_model_stream': {
-							const msg = data.chunk as AIMessageChunk
-							if (!msg.tool_call_chunks?.length) {
-								if (msg.content) {
-									this.message.content = (<string>this.message.content) + msg.content
+								if (!eventStack.length) {
 									return {
-										event: ChatGatewayEvent.MessageStream,
 										data: {
-											conversationId: this.id,
-											id: answerId,
-											content: msg.content
+											type: ChatMessageTypeEnum.EVENT,
+											event: ChatMessageEventTypeEnum.ON_AGENT_END,
+											data: {
+												id: answerId
+											}
 										}
 									}
 								}
+								break
 							}
-							break
-						}
-						case 'on_tool_start': {
-							this.logger.debug(`Tool call '` + rest.name + '\':')
-							this.logger.debug(data, rest)
-							eventStack.push(event)
-							// toolId = rest.run_id,
-
-							// Tools currently called in parallel
-							toolCalls ??= {}
-							toolCalls[rest.run_id] = data
-
-							stepMessage = {
-								id: rest.run_id,
-								name: rest.name,
-								role: 'tool',
-								status: 'thinking',
-								messages: [
-									{
-										id: shortuuid(),
-										role: 'assistant',
-										content: '```json\n' + data.input.input + '\n```'
+							case 'on_chat_model_end': {
+								const _event = eventStack.pop()
+								if (_event !== 'on_chat_model_start') {
+									eventStack.pop()
+								}
+								return null
+							}
+							case 'on_chat_model_stream': {
+								const msg = data.chunk as AIMessageChunk
+								if (!msg.tool_call_chunks?.length) {
+									if (msg.content) {
+										this.message.content = <string>this.message.content + msg.content
+										return {
+											data: {
+												type: ChatMessageTypeEnum.MESSAGE,
+												data: msg.content
+											}
+										}
 									}
-								]
+								}
+								break
 							}
-							this.addStep(stepMessage)
-							return {
-								event: ChatGatewayEvent.ToolStart,
-								data: stepMessage
-							}
-						}
-						case 'on_tool_end': {
-							this.logger.debug(`Tool call end '` + rest.name + '\':')
-							// this.logger.debug(data)
+							case 'on_tool_start': {
+								this.logger.debug(`Tool call '` + rest.name + "':")
+								this.logger.debug(data, rest)
+								eventStack.push(event)
+								// toolId = rest.run_id,
 
-							// Clear finished tool call
-							toolCalls[rest.run_id] = null
+								// Tools currently called in parallel
+								toolCalls ??= {}
+								toolCalls[rest.run_id] = data
 
-							const _event = eventStack.pop()
-							if (_event !== 'on_tool_start') {
-								eventStack.pop()
-							}
-							if (stepMessage) {
-								stepMessage.status = 'done'
-							}
-
-							const toolMessage = data.output as ToolMessage
-
-							const message: CopilotBaseMessage = {
-								id: shortuuid(),
-								role: 'assistant',
-								content: toolMessage.content
-							}
-							this.updateStep(rest.run_id, { status: 'done' })
-							this.addStepMessage(rest.run_id, message)
-
-							return {
-								event: ChatGatewayEvent.ToolEnd,
-								data: {
+								stepMessage = {
 									id: rest.run_id,
 									name: rest.name,
 									role: 'tool',
-									status: 'done',
+									status: 'thinking',
 									messages: [
-										message
+										{
+											id: shortuuid(),
+											role: 'assistant',
+											content: '```json\n' + data.input.input + '\n```'
+										}
 									]
 								}
-							} as ChatGatewayMessage
+								this.addStep(stepMessage)
+								return {
+									data: {
+										type: ChatMessageTypeEnum.EVENT,
+										event: ChatMessageEventTypeEnum.ON_TOOL_START,
+										data: stepMessage
+									}
+								}
+							}
+							case 'on_tool_end': {
+								this.logger.debug(`Tool call end '` + rest.name + "':")
+								// this.logger.debug(data)
+
+								// Clear finished tool call
+								toolCalls[rest.run_id] = null
+
+								const _event = eventStack.pop()
+								if (_event !== 'on_tool_start') {
+									eventStack.pop()
+								}
+								if (stepMessage) {
+									stepMessage.status = 'done'
+								}
+
+								const toolMessage = data.output as ToolMessage
+
+								const message: CopilotBaseMessage = {
+									id: shortuuid(),
+									role: 'assistant',
+									content: toolMessage.content
+								}
+								this.updateStep(rest.run_id, { status: 'done' })
+								this.addStepMessage(rest.run_id, message)
+
+								return {
+									data: {
+										type: ChatMessageTypeEnum.EVENT,
+										event: ChatMessageEventTypeEnum.ON_TOOL_END,
+										data: {
+											id: rest.run_id,
+											name: rest.name,
+											role: 'tool',
+											status: 'done',
+											messages: [message]
+										}
+									}
+								}
+							}
 						}
-					}
-					return null
-				}),
-			).subscribe(subscriber)
+						return null
+					})
+				)
+				.subscribe(subscriber)
 		}).pipe(
 			filter((data) => data != null),
 			tap({
-				next: (event: ChatGatewayMessage) => {
-					if (event?.event === ChatGatewayEvent.Message) {
+				next: (event: MessageEvent) => {
+					if (event?.data.type === ChatMessageTypeEnum.MESSAGE) {
 						this.addStep(event.data)
-					} else if(event?.event === ChatGatewayEvent.Agent) {
+					} else if (event?.data.type === ChatMessageTypeEnum.EVENT) {
 						this.addStepMessage(event.data.id, event.data.message)
 					}
 				},
 				complete: () => {
 					this.upsertMessageWithStatus('done')
 				}
-			}),
+			})
 			// catchError((err) => {
 			// 	// todo 区分 aborted 与 error
 			// 	console.error(err)
@@ -475,10 +367,10 @@ References documents:
 				content: '',
 				status: 'thinking'
 			}
-			subscriber.next({
-				event: ChatGatewayEvent.StepStart,
-				data: stepMessage
-			})
+			// subscriber.next({
+			// 	event: ChatGatewayEvent.StepStart,
+			// 	data: stepMessage
+			// })
 			// Search knowledgebases
 			this.queryBus
 				.execute(
@@ -502,18 +394,19 @@ References documents:
 						stepMessage.content = `Got ${items.length} document chunks!`
 						stepMessage.data = items
 						this.addStep({ ...stepMessage })
-						subscriber.next({
-							event: ChatGatewayEvent.StepEnd,
-							data: { ...stepMessage }
-						})
+						// subscriber.next({
+						// 	event: ChatGatewayEvent.StepEnd,
+						// 	data: { ...stepMessage }
+						// })
 						subscriber.complete()
 					}
-				}).catch((error) => {
+				})
+				.catch((error) => {
 					this.addStep({ ...stepMessage, status: 'error', content: getErrorMessage(error) })
-					subscriber.next({
-						event: ChatGatewayEvent.StepEnd,
-						data: { ...stepMessage, status: 'error' }
-					})
+					// subscriber.next({
+					// 	event: ChatGatewayEvent.StepEnd,
+					// 	data: { ...stepMessage, status: 'error' }
+					// })
 					subscriber.error(error)
 				})
 
@@ -536,10 +429,13 @@ References documents:
 				new Observable((subscriber) => {
 					abortSignal$.subscribe(() => {
 						subscriber.next({
-							event: ChatGatewayEvent.ChainAborted,
 							data: {
-								conversationId: this.conversation.id,
-								id: answerId
+								type: ChatMessageTypeEnum.EVENT,
+								event: ChatMessageEventTypeEnum.ON_ERROR,
+								data: {
+									conversationId: this.conversation.id,
+									id: answerId
+								}
 							}
 						})
 						subscriber.unsubscribe()
@@ -550,12 +446,15 @@ References documents:
 			catchError((err) => {
 				this.upsertMessageWithStatus('error', getErrorMessage(err))
 				return of({
-					event: ChatGatewayEvent.Error,
 					data: {
-						conversationId: this.conversation.id,
-						id: answerId,
-						role: 'error',
-						error: getErrorMessage(err)
+						type: ChatMessageTypeEnum.EVENT,
+						event: ChatMessageEventTypeEnum.ON_ERROR,
+						data: {
+							conversationId: this.conversation.id,
+							id: answerId,
+							role: 'error',
+							error: getErrorMessage(err)
+						}
 					}
 				})
 			})
@@ -570,7 +469,7 @@ References documents:
 					checkpoint_ns: '',
 					checkpoint_id: '',
 					tenantId: this.tenantId,
-					organizationId: this.organizationId,
+					organizationId: this.organizationId
 				}
 			} as RunnableConfig,
 			state
@@ -593,9 +492,9 @@ References documents:
 	}
 	/**
 	 * Add messages to tool call step message
-	 * 
-	 * @param id 
-	 * @param message 
+	 *
+	 * @param id
+	 * @param message
 	 */
 	addStepMessage(id: string, message: CopilotBaseMessage) {
 		const index = this.message.messages.findIndex((item) => item.id === id)
@@ -634,12 +533,10 @@ References documents:
 	async saveMessage(message: CopilotBaseMessage) {
 		// Record conversation message
 		this.conversation = await this.commandBus.execute(
-			new ChatConversationUpdateCommand({
+			new ChatConversationUpsertCommand({
 				id: this.id,
-				entity: {
-					title: this.conversation.title ,
-					messages: [...(this.conversation.messages ?? []), message]
-				}
+				title: this.conversation.title,
+				messages: [...(this.conversation.messages ?? []), message]
 			})
 		)
 	}
