@@ -4,7 +4,7 @@
       <span>{{ 'PAC.Xpert.NewAgent' | translate: {Default: 'New Agent'} }}</span>
     </div>
     <div cdkMenuItem class="ngm-cdk-menu-item"
-      [cdkMenuTriggerFor]="teamsMenu"
+      [cdkMenuTriggerFor]="collaboratorsMenu"
       [cdkMenuPosition]="[
         {
           originX: 'end',
@@ -66,7 +66,7 @@
   </div>
 </ng-template>
 
-<ng-template #teamsMenu>
+<ng-template #collaboratorsMenu>
   <div cdkMenu class="ngm-cdk-menu flex flex-col">
     @for (xpert of collaborators$ | async; track xpert.id) {
       <xpert-inline-profile cdkMenuItem class="ngm-cdk-menu-item py-1 overflow-hidden"

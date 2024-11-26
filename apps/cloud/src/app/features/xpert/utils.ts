@@ -23,7 +23,7 @@ export function injectGetXpertTeam() {
 export function injectGetXpertsByWorkspace() {
   const xpertService = inject(XpertService)
 
-  return (workspace: IXpertWorkspace) => {
-    return xpertService.getAllByWorkspace(workspace.id, { where: { latest: true } }, true)
+  return (workspace: string) => {
+    return xpertService.getAllByWorkspace(workspace, { where: { latest: true } }, true)
   }
 }

@@ -86,7 +86,7 @@ export class ChatAiMessageComponent {
 
   constructor() {
     effect(() => {
-      console.log(this.contents())
+      // console.log(this.contents())
     })
   }
 
