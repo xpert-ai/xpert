@@ -54,7 +54,7 @@ services:
       - default
 
   api:
-    image: registry.cn-hangzhou.aliyuncs.com/metad/xpert-api-demo:latest
+    image: ghcr.io/xpert-ai/xpert-api-demo:latest
     environment:
       HOST: ${API_HOST:-api}
       PORT: ${API_PORT:-3000}
@@ -83,7 +83,7 @@ services:
       - default
 
   webapp:
-    image: registry.cn-hangzhou.aliyuncs.com/metad/xpert-webapp-demo:latest
+    image: ghcr.io/xpert-ai/xpert-webapp-demo:latest
     environment:
       HOST: ${WEB_HOST:-webapp}
       NODE_ENV: ${NODE_ENV:-development}
