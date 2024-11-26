@@ -13,12 +13,16 @@
 				"packageJson": "packages/server/package.json",
 				"main": "packages/server/src/index.ts",
 				"assets": [
-					"packages/server/*.md",
-					"packages/server/**/*.gql",
-					"packages/server/**/*.hbs",
-					"packages/server/**/*.mjml",
-					"packages/server/**/*.csv",
-					"packages/server/**/*.json"
+					{
+						"glob": "**/*.(csv|gql|hbs|mjml|md)",
+						"input": "packages/server/",
+						"output": "./"
+					},
+					{
+						"glob": "**/*.json",
+						"input": "packages/server/src",
+						"output": "./src/"
+					}
 				]
 			}
 		},
