@@ -29,8 +29,6 @@
     "start:cloud": "cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=12288 yarn nx serve cloud --disableHostCheck --host 0.0.0.0",
     "start:analytics": "yarn --cwd ./packages/analytics start",
     "start:angular": "nx serve --project ng --port 4400 --disableHostCheck --host 0.0.0.0",
-    "start:react": "nx serve --project rc --port 4300",
-    "start:vue": "nx serve --project vue-app --port 4500",
     "start:nest": "nx serve --project nest",
     "start:olap": "yarn --cwd ./packages/olap start",
     "start:api": "yarn b:p:all && yarn nx serve api",
