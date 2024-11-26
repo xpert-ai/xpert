@@ -25,7 +25,7 @@
     "BI"
   ],
   "scripts": {
-    "start": "concurrently \"yarn start:api\" \"yarn start:olap\" \"yarn start:cloud\"",
+    "start": "concurrently \"yarn start:api\" \"yarn start:cloud\"",
     "start:cloud": "cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=12288 yarn nx serve cloud --disableHostCheck --host 0.0.0.0",
     "start:analytics": "yarn --cwd ./packages/analytics start",
     "start:angular": "nx serve --project ng --port 4400 --disableHostCheck --host 0.0.0.0",
@@ -250,6 +250,7 @@
     "jest-preset-angular": "14.0.4",
     "jsonc-eslint-parser": "^2.1.0",
     "ng-packagr": "16.1.0",
+    "nodemon": "^3.1.7",
     "nx": "19.0.3",
     "postcss": "^8.4.5",
     "postcss-import": "14.1.0",
