@@ -1563,7 +1563,9 @@
       "INDICATOR": "指标"
     },
     "Onboarding": {
-      "Welcome": "欢迎使用 Metad 分析平台",
+      "Welcome": "欢迎使用 Xpert AI 平台",
+      "WelcomeTo": "欢迎使用",
+      "Platform": "平台",
       "WelcomeInfo": "看起来一切都正常。 现在让我们认识您，连接到你的数据，并开始为您寻找一些答案！",
       "LetGetStarted": "让我们开始吧",
       "FeelStuck": "如果您感到困惑",
@@ -1597,6 +1599,7 @@
       "Done": "完成",
       "AllSetup": "您已经设置好了！",
       "TakeMetoMetadAnalyticsPlatform": "带我去 Metad 分析平台",
+      "TakeMetoXpertAiPlatform": "带我去 Xpert AI 平台",
       "SelectNetwork": "选择所需网络",
       "GenerateDemoSuccess": "演示数据和样例生成成功！"
     },

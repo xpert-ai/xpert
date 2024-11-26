@@ -72,24 +72,24 @@ export class AppComponent {
 
     effect(() => {
       const isMobile = this.isMobile$()
-      const { preferredTheme, primary } = this.appService.theme$()
+      // const { preferredTheme, primary } = this.appService.theme$()
 
-      const theme = `ngm-theme-${preferredTheme} ${primary} ${preferredTheme}`
+      // const theme = `ngm-theme-${preferredTheme} ${primary} ${preferredTheme}`
 
       // for body's class
       const body = this.document.getElementsByTagName('body')[0]
-      const bodyThemeRemove = Array.from(body.classList).filter(
-        (item: string) => item.includes('-theme') || item.startsWith('light') || item.startsWith('dark')
-      )
-      if (bodyThemeRemove.length) {
-        body.classList.remove(...bodyThemeRemove)
-      }
-      theme
-        .split(' ')
-        .filter(nonBlank)
-        .forEach((value) => {
-          this.renderer.addClass(body, value)
-        })
+      // const bodyThemeRemove = Array.from(body.classList).filter(
+      //   (item: string) => item.includes('-theme') || item.startsWith('light') || item.startsWith('dark')
+      // )
+      // if (bodyThemeRemove.length) {
+      //   body.classList.remove(...bodyThemeRemove)
+      // }
+      // theme
+      //   .split(' ')
+      //   .filter(nonBlank)
+      //   .forEach((value) => {
+      //     this.renderer.addClass(body, value)
+      //   })
 
       // for mobile
       if (isMobile && (this.platform.IOS || this.platform.ANDROID)) {
@@ -99,10 +99,10 @@ export class AppComponent {
       }
 
       // for <meta name="theme-color" content="white" />
-      const themeColorMeta = document.querySelector('meta[name="theme-color"]')
-      if (themeColorMeta) {
-        themeColorMeta.setAttribute('content', primary === 'dark' ? 'black' : '#f5f5f5')
-      }
+      // const themeColorMeta = document.querySelector('meta[name="theme-color"]')
+      // if (themeColorMeta) {
+      //   themeColorMeta.setAttribute('content', primary === 'dark' ? 'black' : '#f5f5f5')
+      // }
     })
 
     effect(() => {

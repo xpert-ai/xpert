@@ -6,12 +6,13 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatSelectModule } from '@angular/material/select'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { Ability } from '@casl/ability'
 import { nonNullable } from '@metad/core'
 import { uniqBy } from 'lodash-es'
-import { filter, map, shareReplay, switchMap, tap } from 'rxjs'
-import { AbilityActions, IOrganization, Store, UsersOrganizationsService } from '../../../@core'
+import { combineLatestWith, filter, from, map, shareReplay, switchMap, tap } from 'rxjs'
+import { IOrganization, PermissionsEnum, Store, UsersOrganizationsService } from '../../../@core'
 import { TranslationBaseComponent, OrgAvatarComponent } from '../../../@shared'
+import { NgxPermissionsService } from 'ngx-permissions'
+
 
 @Component({
   standalone: true,
@@ -34,7 +35,7 @@ import { TranslationBaseComponent, OrgAvatarComponent } from '../../../@shared'
 export class OrganizationSelectorComponent extends TranslationBaseComponent implements OnInit {
   private readonly store = inject(Store)
   private readonly userOrganizationService = inject(UsersOrganizationsService)
-  private readonly ability = inject(Ability)
+  private readonly permissionsService = inject(NgxPermissionsService)
   private readonly destroyRef = inject(DestroyRef)
 
   @Input() isCollapsed = false
@@ -80,9 +81,9 @@ export class OrganizationSelectorComponent extends TranslationBaseComponent impl
           }
         }
       }),
-      map((organizations) =>
-        this.ability.can(AbilityActions.Manage, 'Organization') && organizations.length > 1
-          ? [
+      combineLatestWith(from(this.permissionsService.hasPermission(PermissionsEnum.SUPER_ADMIN_EDIT))),
+      map(([organizations, canAllOrgEdit]) => {
+        return canAllOrgEdit ? [
               {
                 name: this.getTranslation('PAC.KEY_WORDS.Tenant', { Default: 'Tenant' }),
                 id: null
@@ -90,7 +91,8 @@ export class OrganizationSelectorComponent extends TranslationBaseComponent impl
               ...organizations
             ]
           : organizations
-      ),
+      }),
+      tap((values) => console.log(values)),
       takeUntilDestroyed(),
       shareReplay(1)
     )

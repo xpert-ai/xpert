@@ -1,10 +1,11 @@
 <div class="w-full p-2 flex justify-center">
 	<img src="/assets/logo.svg" class="w-12 h-12">
 </div>
-<mat-divider class="w-full"></mat-divider>
+
+<div class="w-full border-b border-solid border-divider-regular"></div>
 
 <mat-vertical-stepper class="w-[600px] max-w-full my-4 shadow-lg rounded-lg" [linear]="true" #stepper>
-  <mat-step [stepControl]="preferredLanguageFormGroup" [editable]="!tenantCompleted() && !loading()">
+  <!-- <mat-step [stepControl]="preferredLanguageFormGroup" [editable]="!tenantCompleted() && !loading()">
     <form [formGroup]="preferredLanguageFormGroup">
       <ng-template matStepLabel>
         {{ 'PAC.Onboarding.WhatsPreferredLanguage' | translate: {Default: 'What\'s your preferred Language'} }}
@@ -24,7 +25,8 @@
         </button>
       </div>
     </form>
-  </mat-step>
+  </mat-step> -->
+
   <mat-step [stepControl]="userFormGroup" [editable]="!tenantCompleted() && !loading()">
     <form [formGroup]="userFormGroup" class="flex flex-col gap-4">
       <ng-template matStepLabel> {{ 'PAC.Onboarding.WhatCallYou' | translate: {Default: 'What should we call you'} }}?</ng-template>
@@ -64,9 +66,7 @@
         </mat-form-field>
 
         @if (loading()) {
-          <div class="absolute w-full h-full inset-0 flex justify-center items-center">
-            <mat-spinner diameter="50" strokeWidth="3"></mat-spinner>
-          </div>
+          <ngm-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />
         }
       </div>
 
@@ -107,7 +107,7 @@
     </div>
   </mat-step>
 
-  <mat-step [editable]="!loading()" [editable]="!connectionCompleted()">
+  <mat-step [editable]="!loading() && !connectionCompleted()">
     <ng-template matStepLabel>{{ 'PAC.Onboarding.AddYourData' | translate: {Default: 'Add your data'} }}</ng-template>
 
     <div class="w-full flex flex-col gap-4">
@@ -174,11 +174,12 @@
     <div class="flex flex-col justify-start items-center gap-4">
       <div class="text-3xl text-bluegray-500 p-8">{{ 'PAC.Onboarding.AllSetup' | translate: {Default: 'You\'re all set up!'} }} </div>
 
-      <mat-divider class="w-full"></mat-divider>
+      <div class="w-full border-b border-solid border-divider-regular"></div>
 
       <div class="p-8">
-        <button mat-raised-button color="primary" (click)="navigateHome()">
-          {{ 'PAC.Onboarding.TakeMetoMetadAnalyticsPlatform' | translate: {Default: 'Take me to Metad Analytics Platform'} }}
+        <button type="button" class="flex justify-center items-center rounded-lg text-lg font-semibold px-4 py-1.5 shadow-sm border text-white border-gray-200 bg-primary-500 hover:bg-primary-600 hover:shadow-lg"
+          (click)="navigateHome()">
+          {{ 'PAC.Onboarding.TakeMetoXpertAiPlatform' | translate: {Default: 'Take me to Xpert AI Platform'} }}
         </button>
       </div>
     </div>

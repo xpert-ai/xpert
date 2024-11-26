@@ -1,20 +1,17 @@
 import { CommonModule } from '@angular/common'
 import { Component, ViewChild, inject, signal } from '@angular/core'
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
-import { MatDividerModule } from '@angular/material/divider'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatInputModule } from '@angular/material/input'
 import { MatListModule } from '@angular/material/list'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatRadioModule } from '@angular/material/radio'
 import { MatStepper, MatStepperModule } from '@angular/material/stepper'
 import { Router } from '@angular/router'
 import { matchWithValidator } from '@metad/cloud/auth'
 import { DataSourceService, DataSourceTypesService, Store } from '@metad/cloud/state'
-import { nonNullable } from '@metad/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { omit } from '@metad/ocap-core'
 import { FormlyModule } from '@ngx-formly/core'
@@ -28,15 +25,16 @@ import {
   DefaultValueDateTypeEnum,
   IDataSourceType,
   IOrganization,
-  LanguagesEnum,
   OrganizationDemoNetworkEnum,
   OrganizationsService,
   ServerAgent,
   TenantService,
   ToastrService,
   convertConfigurationSchema,
-  getErrorMessage
+  getErrorMessage,
+  injectLanguage
 } from '../../@core'
+import { WelcomeComponent } from '../welcome/welcome.component'
 
 @Component({
   standalone: true,
@@ -52,8 +50,6 @@ import {
     MatButtonModule,
     MatInputModule,
     MatListModule,
-    MatDividerModule,
-    MatProgressSpinnerModule,
     MatRadioModule,
     MatProgressBarModule,
     FormlyModule,
@@ -75,14 +71,16 @@ export class TenantDetailsComponent {
   private readonly router = inject(Router)
   private readonly translateService = inject(TranslateService)
   private readonly toastrService = inject(ToastrService)
+  readonly currentLanguage = injectLanguage()
 
   @ViewChild('stepper') stepper: MatStepper
 
-  Languages = Object.values(LanguagesEnum)
+  // Languages = Object.values(LanguagesEnum).filter((lang) => lang !== LanguagesEnum.Chinese)
 
-  preferredLanguageFormGroup: FormGroup = this._formBuilder.group({
-    preferredLanguage: [[this.translateService.currentLang], [Validators.required]]
-  })
+  // preferredLanguageFormGroup: FormGroup = this._formBuilder.group({
+  //   preferredLanguage: [[this.translateService.currentLang], [Validators.required]]
+  // })
+
   readonly password = this._formBuilder.control('', [Validators.required, Validators.minLength(8)])
   userFormGroup: FormGroup = this._formBuilder.group({
     firstName: [''],
@@ -131,16 +129,16 @@ export class TenantDetailsComponent {
 
   model = {}
 
-  private preferredLanguageSub = this.preferredLanguageFormGroup
-    .get('preferredLanguage')
-    .valueChanges.pipe(
-      map((languages) => languages?.[0]),
-      filter(nonNullable),
-      takeUntilDestroyed()
-    )
-    .subscribe((language) => {
-      this.translateService.use(language)
-    })
+  // private preferredLanguageSub = this.preferredLanguageFormGroup
+  //   .get('preferredLanguage')
+  //   .valueChanges.pipe(
+  //     map((languages) => languages?.[0]),
+  //     filter(nonNullable),
+  //     takeUntilDestroyed()
+  //   )
+  //   .subscribe((language) => {
+  //     this.translateService.use(language)
+  //   })
 
   minlengthError() {
     return this.userFormGroup.get('password').getError('minlength')
@@ -164,11 +162,11 @@ export class TenantDetailsComponent {
           lastName: this.userFormGroup.get('lastName').value,
           email: this.userFormGroup.get('email').value,
           hash: this.userFormGroup.get('password').value,
-          preferredLanguage: this.preferredLanguageFormGroup.get('preferredLanguage').value[0]
+          preferredLanguage: this.currentLanguage()
         },
         defaultOrganization: {
           name: this.userFormGroup.get('organizationName').value,
-          preferredLanguage: this.preferredLanguageFormGroup.get('preferredLanguage').value[0],
+          preferredLanguage: this.currentLanguage(),
           invitesAllowed: true,
           currency: CurrenciesEnum.USD,
           profile_link: '',

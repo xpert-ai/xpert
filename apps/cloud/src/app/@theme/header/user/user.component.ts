@@ -79,6 +79,8 @@ export class HeaderUserComponent {
     () => this.themeOptions$().find((_) => _.key === (this.preferredTheme$() ?? ThemesEnum.system))?.caption
   )
 
+  readonly firstLetter = computed(() => new UserPipe().transform(this.user())?.[0].toUpperCase())
+
   onLanguageSelect(language: string): void {
     this.store.preferredLanguage = LanguagesMap[language] ?? language
   }
