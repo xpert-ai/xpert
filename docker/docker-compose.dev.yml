@@ -1,73 +1,58 @@
-name: metad-ocap-dev
+name: xpert-ai-dev
 
 volumes:
-    pg_dev_data:
-    mysql_dev_data:
+  pg_dev_data:
 
 networks:
-    overlay:
-        driver: bridge
+  overlay:
+    driver: bridge
 
 services:
-    db:
-        container_name: db
-        image: pgvector/pgvector:pg12
-        restart: always
-        environment:
-            POSTGRES_DB: ${DB_NAME:-postgres}
-            POSTGRES_USER: ${DB_USER:-postgres}
-            POSTGRES_PASSWORD: ${DB_PASS:-root}
-        healthcheck:
-            test:
-                [
-                    'CMD-SHELL',
-                    'psql postgres://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@localhost:5432/$${POSTGRES_DB} || exit 1'
-                ]
-        volumes:
-            - pg_dev_data:/var/lib/postgresql/data
-            - ./.scripts/initdb.d/:/docker-entrypoint-initdb.d/:ro
-        ports:
-            - ${DB_PORT:-5432}:5432
-        networks:
-            - overlay
+  db:
+    container_name: db
+    image: pgvector/pgvector:pg12
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-postgres}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-root}
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'psql postgres://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@localhost:5432/$${POSTGRES_DB} || exit 1'
+        ]
+    volumes:
+      - pg_dev_data:/var/lib/postgresql/data
+      - ./.scripts/initdb.d/:/docker-entrypoint-initdb.d/:ro
+    ports:
+      - ${DB_PORT:-5432}:5432
+    networks:
+      - overlay
 
-    adminer:
-        container_name: adminer
-        image: adminer
-        restart: always
-        depends_on:
-            - db
-        environment:
-            ADMINER_DEFAULT_DB_DRIVER: pgsql
-            ADMINER_DEFAULT_DB_HOST: ${DB_HOST:-db}
-            ADMINER_DEFAULT_DB_NAME: ${DB_NAME:-postgres}
-            ADMINER_DEFAULT_DB_PASSWORD: ${DB_PASS:-root}
-        ports:
-            - '8084:8080'
-        networks:
-            - overlay
+  adminer:
+    container_name: adminer
+    image: adminer
+    restart: always
+    depends_on:
+      - db
+    environment:
+      ADMINER_DEFAULT_DB_DRIVER: pgsql
+      ADMINER_DEFAULT_DB_HOST: ${DB_HOST:-db}
+      ADMINER_DEFAULT_DB_NAME: ${DB_NAME:-postgres}
+      ADMINER_DEFAULT_DB_PASSWORD: ${DB_PASS:-root}
+    ports:
+      - '8084:8080'
+    networks:
+      - overlay
 
-    redis:
-        image: redis/redis-stack:latest
-        restart: unless-stopped
-        ports:
-            - 6379:6379
-            - 8001:8001
-        environment:
-            REDIS_ARGS: "--requirepass ${REDIS_PASSWORD:-}"
-        networks:
-            - overlay
-
-    # mysqldb:
-    #     image: mysql:8
-    #     command: --default-authentication-plugin=mysql_native_password
-    #     restart: always
-    #     ports:
-    #         - 3306:3306
-    #     environment:
-    #         MYSQL_ROOT_PASSWORD: example
-    #         MYSQL_DATABASE: foodmart
-    #     volumes:
-    #         - ./.volumes/mysql/entrypoint-initdb/:/docker-entrypoint-initdb.d:ro
-    #     networks:
-    #         - overlay
+  redis:
+    image: redis/redis-stack:latest
+    restart: unless-stopped
+    ports:
+      - 6379:6379
+      - 8001:8001
+    environment:
+      REDIS_ARGS: '--requirepass ${REDIS_PASSWORD:-}'
+    networks:
+      - overlay
