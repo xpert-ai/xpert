@@ -23,6 +23,7 @@ import {
 	Tenant,
 	User
 } from '@metad/server-core'
+import { readYamlFile } from '@metad/server-common'
 import { Inject, Injectable } from '@nestjs/common'
 import { ConfigService as NestConfigService } from '@nestjs/config'
 import chalk from 'chalk';
@@ -44,7 +45,7 @@ import {
 	StoryPoint,
 	StoryWidget
 } from '../entities/internal'
-import { readYamlFile } from '../helper'
+
 
 @Injectable()
 export class SeedDataService extends SeedServerDataService {

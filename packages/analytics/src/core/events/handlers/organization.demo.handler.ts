@@ -16,7 +16,7 @@ import {
 	StoryStatusEnum,
 	Visibility
 } from '@metad/contracts'
-import { pick } from '@metad/server-common'
+import { pick, readYamlFile } from '@metad/server-common'
 import { ConfigService, getConnectionOptions } from '@metad/server-config'
 import { Organization, OrganizationDemoCommand, REDIS_CLIENT, RequestContext } from '@metad/server-core'
 import { Inject, Logger } from '@nestjs/common'
@@ -43,7 +43,6 @@ import {
 	StoryPoint,
 	StoryWidget
 } from '../../entities/internal'
-import { readYamlFile } from '../../helper'
 
 
 export enum InstallationModeEnum {

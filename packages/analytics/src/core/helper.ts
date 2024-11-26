@@ -1,6 +1,3 @@
-import * as fs from 'fs'
-import { parse } from 'yaml'
-
 interface HasherState {
 	buffer: string
 	buflen: number
@@ -376,14 +373,4 @@ export class Md5 {
 
 if (Md5.hashStr('hello') !== '5d41402abc4b2a76b9719d911017c592') {
 	throw new Error('Md5 self test failed.')
-}
-
-export async function readYamlFile<T>(file: string) {
-	try {
-		const data = fs.readFileSync(file, 'utf8')
-		return parse(data) as T
-	} catch (err) {
-		console.error(err)
-        return null
-	}
 }
