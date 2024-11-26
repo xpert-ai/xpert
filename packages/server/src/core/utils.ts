@@ -1,13 +1,13 @@
 import { Logger } from '@nestjs/common'
 import { IUser } from '@metad/contracts';
 import { getConfig } from '@metad/server-config';
+import { yaml } from '@metad/server-common';
 import { sample } from 'underscore';
 import * as moment from 'moment';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as chalk from 'chalk';
-import { parse } from 'yaml'
 
 
 namespace Utils {
@@ -102,7 +102,7 @@ export function getDateRange(
 	startDate?: string | Date,
 	endDate?: string | Date,
 	type: 'day' | 'week' = 'day',
-	isFormat: boolean = false
+	isFormat = false
 ) {
 	if (endDate === 'day' || endDate === 'week') {
 		type = endDate;
@@ -205,7 +205,7 @@ export function loadYamlFile<T>(
 	try {
 	  const fileContent = fs.readFileSync(filePath, 'utf-8');
 	  try {
-		const yamlContent = parse(fileContent) as T;
+		const yamlContent = yaml.parse(fileContent) as T;
 		return yamlContent || defaultValue;
 	  } catch (e) {
 		throw new Error(`Failed to load YAML file ${filePath}: ${e}`);

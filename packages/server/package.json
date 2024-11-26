@@ -55,8 +55,7 @@
     "rimraf": "^5.0.5",
     "swagger-ui-express": "^4.1.6",
     "typeorm": "^0.2.37",
-    "underscore": "^1.13.1",
-    "yaml": "^2.6.1"
+    "underscore": "^1.13.1"
   },
   "devDependencies": {
     "@types/passport": "^1.0.11",

@@ -1,8 +1,8 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilotModel, ParameterRule } from '@metad/contracts'
 import { Injectable, Logger } from '@nestjs/common'
+import { yaml } from '@metad/server-common';
 import * as fs from 'fs'
-import { parse } from 'yaml'
 import * as path from 'path'
 import { ModelProvider } from './ai-provider'
 import { DefaultParameterName, PARAMETER_RULE_TEMPLATE, PriceInfo, PriceType, valueOf } from './entities'
@@ -92,7 +92,7 @@ export abstract class AIModel {
 			const filePath = path.join(providerModelTypePath, file)
 
 			const yamlContent = fs.readFileSync(filePath, 'utf8')
-			const yamlData = parse(yamlContent)
+			const yamlData = yaml.parse(yamlContent)
 
 			// 处理参数规则和标签
 			this.processParameterRules(yamlData)

@@ -5,11 +5,10 @@ import {
 	TXpertTeamConnection,
 	TXpertTeamDraft
 } from '@metad/contracts'
-import { omit } from '@metad/server-common'
+import { omit, yaml } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { instanceToPlain } from 'class-transformer'
-import { stringify } from 'yaml'
 import { XpertAgentService } from '../../../xpert-agent'
 import { XpertDraftDslDTO } from '../../dto'
 import { XpertService } from '../../xpert.service'
@@ -45,7 +44,7 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
 		})
 
 		const draft = isDraft === 'true' ? xpert.draft : this.getInitialDraft(xpert)
-		const result = stringify(instanceToPlain(new XpertDraftDslDTO(draft)))
+		const result = yaml.stringify(instanceToPlain(new XpertDraftDslDTO(draft)))
 
 		return {
 			data: result
