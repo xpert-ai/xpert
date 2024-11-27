@@ -36,6 +36,9 @@ export interface ICopilot extends IBasePerTenantAndOrganizationEntityModel {
 
   modelProvider?: ICopilotProvider
   copilotModel?: ICopilotModel
+
+  // Temporary properties
+  usage?: TCopilotTokenUsage
 }
 
 /**
@@ -45,4 +48,11 @@ export enum AiProviderRole {
   Primary = 'primary',
   Secondary = 'secondary',
   Embedding = 'embedding',
+}
+
+export type TCopilotTokenUsage = {
+  // Token limit for the current period
+  tokenLimit?: number
+  // Tokens used in the current period
+  tokenUsed?: number
 }

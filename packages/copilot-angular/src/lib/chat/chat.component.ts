@@ -203,17 +203,17 @@ export class NgmCopilotChatComponent {
     return this.copilotEngine?.aiOptions ?? this.openaiOptions
   }
 
-  get model() {
-    return this.aiOptions.model
-  }
-  set model(value) {
-    if (this.copilotEngine) {
-      this.copilotEngine.aiOptions = { ...this.aiOptions, model: value }
-    } else {
-      this.openaiOptions.model = value
-    }
-    this.copilotService.update({ defaultModel: value })
-  }
+  // get model() {
+  //   return this.aiOptions.model
+  // }
+  // set model(value) {
+  //   if (this.copilotEngine) {
+  //     this.copilotEngine.aiOptions = { ...this.aiOptions, model: value }
+  //   } else {
+  //     this.openaiOptions.model = value
+  //   }
+  //   this.copilotService.update({ defaultModel: value })
+  // }
 
   readonly selectedModel = model([this.aiOptions.model])
 
@@ -525,7 +525,7 @@ export class NgmCopilotChatComponent {
     effect(
       () => {
         this.selectedModel.set([this.#defaultModel()])
-        this.model = this.#defaultModel()
+        // this.model = this.#defaultModel()
       },
       { allowSignalWrites: true }
     )
@@ -576,7 +576,7 @@ export class NgmCopilotChatComponent {
   }
 
   changeSelectedModel(values) {
-    this.model = values[0]
+    // this.model = values[0]
   }
 
   newChat() {

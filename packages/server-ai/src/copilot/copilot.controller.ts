@@ -4,13 +4,11 @@ import {
 	AiProviderRole,
 	IAiProviderEntity,
 	ICopilot,
-	IPagination,
 } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { ConfigService } from '@metad/server-config'
 import {
 	CrudController,
-	PaginationParams,
 	PermissionGuard,
 	Permissions,
 	TransformInterceptor
@@ -66,12 +64,9 @@ export class CopilotController extends CrudController<Copilot> {
 		description: 'Found records' /* type: IPagination<T> */
 	})
 	@Get()
-	async findAllAvalibles(filter?: PaginationParams<Copilot>, ...options: any[]): Promise<IPagination<CopilotDto>> {
-		const result = await this.service.findAvalibles(filter)
-		return {
-			items: result.items.map((item) => new CopilotDto(item, this.baseUrl)),
-			total: result.total
-		}
+	async findAllAvalibles(): Promise<CopilotDto[]> {
+		const items = await this.service.findAvailables()
+		return items.map((item) => new CopilotDto(item, this.baseUrl))
 	}
 
 	@Get('model-select-options')

@@ -2,10 +2,12 @@ import { AiProviderRole, ICopilot } from '@metad/contracts'
 import { DeepPartial } from '@metad/server-common'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { IsNull, Repository } from 'typeorm'
 import { Copilot } from './copilot.entity'
 import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { assign } from 'lodash'
+import { GetCopilotOrgUsageQuery } from '../copilot-organization/queries'
 
 export const ProviderRolePriority = [AiProviderRole.Embedding, AiProviderRole.Secondary, AiProviderRole.Primary]
 
@@ -13,17 +15,28 @@ export const ProviderRolePriority = [AiProviderRole.Embedding, AiProviderRole.Se
 export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> {
 	constructor(
 		@InjectRepository(Copilot)
-		repository: Repository<Copilot>
+		repository: Repository<Copilot>,
+
+		private readonly queryBus: QueryBus
 	) {
 		super(repository)
 	}
 
-	async findAvalibles(filter?: PaginationParams<Copilot>) {
-		const { items, total } = await super.findAll(filter)
-		if (items.some((item) => item.enabled)) {
-			return { items, total }
+	/**
+	 * Get all available copilots in organization or tenant (if not enabled anyone in organization).
+	 * Fill the quota of tenant copilots for organization user
+	 * 
+	 * @param filter 
+	 */
+	async findAvailables(filter?: PaginationParams<Copilot>) {
+		const copilots = await this.findAllCopilots()
+		for await (const copilot of copilots) {
+			if (!copilot.organizationId) {
+				const usage = await this.queryBus.execute(new GetCopilotOrgUsageQuery(RequestContext.currentTenantId(), RequestContext.getOrganizationId(), copilot.id))
+				copilot.usage = usage
+			}
 		}
-		return await super.findAllWithoutOrganization()
+		return copilots
 	}
 
 	/**
@@ -74,13 +87,14 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 	 * @param organizationId 
 	 * @returns All copilots
 	 */
-	async findAllCopilots(tenantId: string, organizationId: string) {
+	async findAllCopilots(tenantId?: string, organizationId?: string, params?: PaginationParams<Copilot>) {
 		tenantId = tenantId || RequestContext.currentTenantId()
 		organizationId = organizationId || RequestContext.getOrganizationId()
 		const items = await this.repository.find({ where: { tenantId, organizationId }, relations: ['modelProvider'] })
-		if (items.length) {
+		if (items.some((item) => item.enabled)) {
 			return items
 		}
+
 		return await this.repository.find({ where: { tenantId, organizationId: IsNull() }, relations: ['modelProvider'] })
 	}
 

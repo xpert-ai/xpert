@@ -157,6 +157,8 @@
             [aiAvatarTemplate]="aiAvatar"
             [user]="user$()"
             [copilotEngine]="copilotEngine"
+            [welcomeTitle]="'PAC.Copilot.WelcomeTitle' | translate: {Default: 'Xpert Copilot'}"
+            [welcomeSubTitle]="'PAC.Copilot.WelcomeSubTitle' | translate: {Default: 'Your digital business expert copilot'}"
             cdkDropList
             (cdkDropListDropped)="copilotChat.dropCopilot($event)"
             (enableCopilot)="toEnableCopilot()"

@@ -5,6 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { AiModelTypeEnum, AiProviderRole } from '@metad/contracts'
 import { AiProvider } from '@metad/copilot'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
@@ -12,6 +13,7 @@ import { switchMap } from 'rxjs/operators'
 import {
   CopilotServerService,
   getErrorMessage,
+  ICopilotProviderModel,
   injectCopilots,
   PACCopilotService,
   Store,
@@ -19,7 +21,6 @@ import {
 } from '../../../../@core'
 import { CopilotAiProvidersComponent, CopilotProviderComponent, MaterialModule } from '../../../../@shared'
 import { CopilotModelSelectComponent } from '../../../../@shared/'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
 
 const PROVIDERS = [
   {
@@ -163,7 +164,7 @@ export class CopilotFormComponent {
   readonly copilot = derivedAsync(() => {
     return this.copilotId()
       ? this.refresh$.pipe(
-          switchMap(() => this.copilotServer.getOneById(this.copilotId(), { relations: ['modelProvider',] }))
+          switchMap(() => this.copilotServer.getOneById(this.copilotId(), { relations: ['modelProvider'] }))
         )
       : null
   })
@@ -171,7 +172,7 @@ export class CopilotFormComponent {
   readonly modelProvider = computed(() => this.copilot()?.modelProvider)
 
   readonly defaultModelType = computed(() => {
-    switch(this.role()) {
+    switch (this.role()) {
       case AiProviderRole.Primary:
         return AiModelTypeEnum.LLM
       case AiProviderRole.Secondary:
@@ -183,6 +184,10 @@ export class CopilotFormComponent {
     }
   })
   constructor() {
+    effect(() => {
+      // console.log(this.copilot())
+    })
+
     effect(
       () => {
         if (this.copilot()) {
@@ -245,5 +250,10 @@ export class CopilotFormComponent {
 
   removedModelProvider() {
     this.refresh$.next()
+    this.copilotServer.refresh()
+  }
+
+  onAddedModel(model: ICopilotProviderModel) {
+    this.copilotServer.refresh()
   }
 }

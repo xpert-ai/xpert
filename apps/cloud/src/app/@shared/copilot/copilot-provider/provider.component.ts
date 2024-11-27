@@ -1,13 +1,13 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core'
+import { booleanAttribute, ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ConfigurateMethod, getErrorMessage, ICopilotProviderModel, injectAiProviders, injectCopilotProviderService, ToastrService } from '../../../@core'
+import { ConfigurateMethod, getErrorMessage, ICopilotProviderModel, injectAiProviders, injectCopilotProviderService, TCopilotTokenUsage, ToastrService } from '../../../@core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { Dialog } from '@angular/cdk/dialog'
 import { CopilotProviderModelComponent } from '../copilot-provider-model/model.component'
@@ -48,9 +48,14 @@ export class CopilotProviderComponent {
 
   // Inputs
   readonly providerId = input<string>()
+  readonly readonly = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
+  readonly usage = input<TCopilotTokenUsage>()
 
   // Outputs
   readonly deleted = output<void>()
+  readonly addedModel = output<ICopilotProviderModel>()
 
   readonly refresh$ = new BehaviorSubject<void>(null)
   readonly showModels = signal(false)
@@ -97,6 +102,9 @@ export class CopilotProviderComponent {
   }
 
   delete() {
+    if (this.readonly()) {
+      return
+    }
     this.#dialog.open(CdkConfirmDeleteComponent, {
       data: {
         value: this.#i18n.transform(this.label()),
@@ -125,6 +133,9 @@ export class CopilotProviderComponent {
   }
 
   addModel() {
+    if (this.readonly()) {
+      return
+    }
     this.#dialog.open(CopilotProviderModelComponent, {
       data: {
         provider: this.copilotProvider(),
@@ -133,6 +144,7 @@ export class CopilotProviderComponent {
     }).closed.subscribe({
       next: (result) => {
         if (result) {
+          this.addedModel.emit(result)
           this.refresh$.next()
         }
       }
@@ -140,6 +152,9 @@ export class CopilotProviderComponent {
   }
 
   editModel(model: ICopilotProviderModel) {
+    if (this.readonly()) {
+      return
+    }
     this.#dialog.open(CopilotProviderModelComponent, {
       data: {
         provider: this.copilotProvider(),
@@ -148,6 +163,7 @@ export class CopilotProviderComponent {
     }).closed.subscribe({
       next: (result) => {
         if (result) {
+          this.addedModel.emit(result)
           this.refresh$.next()
         }
       }
@@ -155,6 +171,9 @@ export class CopilotProviderComponent {
   }
 
   openSetup() {
+    if (this.readonly()) {
+      return
+    }
     const provider = this.copilotProvider().provider
     const copilot = this.copilotProvider().copilot
     this.#dialog.open(CopilotAiProviderAuthComponent, {

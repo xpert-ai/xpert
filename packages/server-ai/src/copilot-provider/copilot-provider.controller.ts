@@ -59,7 +59,7 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
 		@Param('id', UUIDValidationPipe) id: string,
 		@Query('data', ParseJsonPipe) params?: PaginationParams<CopilotProvider>
 	): Promise<CopilotProviderDto> {
-		const one = await this.service.findOne(id, params)
+		const one = await this.service.findOneInOrganizationOrTenant(id, params)
 		if (one) {
 			const providers = await this.queryBus.execute<ListModelProvidersQuery, IAiProviderEntity[]>(
 				new ListModelProvidersQuery([one.providerName])
@@ -67,9 +67,10 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
 			if (providers[0]) {
 				one.provider = providers[0]
 			}
-		}
 
-		return new CopilotProviderDto(one, this.configService.get('baseUrl') as string)
+			return new CopilotProviderDto(one, this.configService.get('baseUrl') as string)
+		}
+		return null
 	}
 
 	@Get(':providerId/model-parameter-rules')
@@ -84,7 +85,7 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
 	async getProviderModels(
 		@Param('providerId', UUIDValidationPipe) providerId: string,
 	): Promise<{custom: ICopilotProviderModel[]; builtin: ProviderModel[]}> {
-		const provider = await this.service.findOne(providerId, { relations: ['models']})
+		const provider = await this.service.findOneInOrganizationOrTenant(providerId, { relations: ['models']})
 		const models = await this.queryBus.execute(new ListBuiltinModelsQuery(provider.providerName))
 		return {
 			builtin: models,
@@ -110,7 +111,7 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
 		@Query('data', ParseJsonPipe) params?: PaginationParams<CopilotProviderModel>
 	): Promise<CopilotProviderModel> {
 		await this.service.findOne(providerId)
-		const model = await this.modelService.findOne(id, params)
+		const model = await this.modelService.findOneInOrganizationOrTenant(id, params)
 		if (model.providerId !== providerId) {
 			throw new ForbiddenException(`Provider model not match`)
 		}

@@ -1,4 +1,4 @@
-import { AiProvider, AiProviderRole, ICopilot, ICopilotModel, ICopilotProvider } from '@metad/contracts'
+import { AiProvider, AiProviderRole, ICopilot, ICopilotModel, ICopilotProvider, TCopilotTokenUsage } from '@metad/contracts'
 import { IsSecret, TenantOrganizationBaseEntity, WrapSecrets } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Exclude, Expose } from 'class-transformer'
@@ -8,6 +8,7 @@ import { CopilotModel, CopilotProvider } from '../core/entities/internal'
 
 @Entity('copilot')
 export class Copilot extends TenantOrganizationBaseEntity implements ICopilot {
+
 	@ApiPropertyOptional({ type: () => Boolean })
 	@IsBoolean()
 	@IsOptional()
@@ -104,6 +105,9 @@ export class Copilot extends TenantOrganizationBaseEntity implements ICopilot {
 	@IsString()
 	@Column({ nullable: true })
 	readonly copilotModelId?: string
+
+	// Temporary properties
+	usage?: TCopilotTokenUsage
 
 	@AfterLoad()
 	afterLoadEntity?() {

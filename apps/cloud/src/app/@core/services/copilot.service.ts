@@ -47,11 +47,11 @@ export class PACCopilotService extends NgmCopilotService {
       distinctUntilChanged(),
       filter(Boolean),
       switchMap(() => this.#store.selectOrganizationId()),
-      switchMap(() => this.httpClient.get<{ total: number; items: ICopilot[] }>(API_PREFIX + '/copilot')),
+      switchMap(() => this.httpClient.get<ICopilot[]>(API_PREFIX + '/copilot')),
       takeUntilDestroyed()
     )
-    .subscribe((result) => {
-      this.copilots.set(result.items)
+    .subscribe((items) => {
+      this.copilots.set(items)
     })
 
   // Use Xpert as copilot role
@@ -113,33 +113,33 @@ export class PACCopilotService extends NgmCopilotService {
       })
     }, { allowSignalWrites: true })
 
-    effect(
-      () => {
-        const items = this.copilots()
-        if (items?.length > 0) {
-          items.forEach((item) => {
-            if (item.role === AiProviderRole.Primary) {
-              this.copilot = {
-                ...item,
-                chatUrl: API_CHAT,
-                apiHost: API_AI_HOST + `/${AiProviderRole.Primary}`,
-                apiKey: this.#store.token
-              }
-            } else if (item.role === AiProviderRole.Secondary) {
-              this.secondary = {
-                ...item,
-                apiHost: API_AI_HOST + `/${AiProviderRole.Secondary}`
-              }
-            }
-          })
-        } else {
-          this.copilot = {
-            enabled: false
-          }
-        }
-      },
-      { allowSignalWrites: true }
-    )
+    // effect(
+    //   () => {
+    //     const items = this.copilots()
+    //     if (items?.length > 0) {
+    //       items.forEach((item) => {
+    //         if (item.role === AiProviderRole.Primary) {
+    //           this.copilot = {
+    //             ...item,
+    //             chatUrl: API_CHAT,
+    //             apiHost: API_AI_HOST + `/${AiProviderRole.Primary}`,
+    //             apiKey: this.#store.token
+    //           }
+    //         } else if (item.role === AiProviderRole.Secondary) {
+    //           this.secondary = {
+    //             ...item,
+    //             apiHost: API_AI_HOST + `/${AiProviderRole.Secondary}`
+    //           }
+    //         }
+    //       })
+    //     } else {
+    //       this.copilot = {
+    //         enabled: false
+    //       }
+    //     }
+    //   },
+    //   { allowSignalWrites: true }
+    // )
 
     effect(
       () => {

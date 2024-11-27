@@ -36,3 +36,13 @@
 </div>
 
 <p class="w-full px-2 py-2 text-center text-xs text-token-text-secondary empty:hidden md:px-[60px]">{{'Digital expert can make mistakes. Check important info.'}}</p>
+
+@if (disabled$ | async) {
+  <div class="absolute left-0 top-0 w-full h-full flex justify-center items-center z-50">
+    <button type="button" class="flex justify-center items-center rounded-xl text-base font-semibold px-4 py-1 shadow-sm border
+     border-gray-200 bg-primary-500 hover:bg-primary-600 hover:shadow-lg text-white"
+      (click)="navigateCopilot()">
+      {{ 'PAC.Chat.EnableCopilot' | translate: {Default: 'Enable Copilot'} }}
+    </button>
+  </div>
+}

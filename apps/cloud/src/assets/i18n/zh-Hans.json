@@ -1383,6 +1383,7 @@
       "Prompt": "提示",
       "SendPrompt": "发送提示",
       "CommandChartDesc": "描述图形的业务逻辑",
+      "TokenLimitPerUser": "代币限额/用户",
       "TokenBalancePerUser": "代币余额/用户",
       "Provider_Alibaba Tongyi": "阿里云百炼",
       "Provider_Zhipu": "智谱",
@@ -1426,6 +1427,14 @@
       "OurSupport": "联系我们，获取优先支持",
       "DelCopilotModelUseInherit": "删除当前配置，如果可以将使用继承配置",
       "ChooseRightCopilot": "请选择合适的智能助理",
+      "FreeTrialTokenQuota": "免费试用的 Token 额度，在启用组织自定义 Copilot 后失效",
+      "Tokens": "代币",
+      "Quota": "额度",
+      "FreeQuota": "免费额度",
+      "CustomCopilots": "自定义智能助理",
+      "Remain": "剩余",
+      "WelcomeTitle": "Xpert 智能助理",
+      "WelcomeSubTitle": "你的数字业务专家智能助理",
       "Prompts": {
         "Set story theme dark": "设置故事暗黑主题",
         "Set story gradient background color sense of technology": "设置故事背景为科技感渐变色",
@@ -1474,6 +1483,7 @@
       }
     },
     "Chat": {
+      "EnableCopilot": "启用智能助理",
       "DeleteConversation": "删除会话",
       "RetrievingDocuments": "检索文档",
       "RetrievedDocuments": "检索到{{value}}个相关文档块",

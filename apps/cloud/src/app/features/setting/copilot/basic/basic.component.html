@@ -1,3 +1,18 @@
+@if (quotaCopilots()?.length) {
+  <div class="text-lg px-2 py-1">
+    {{ 'PAC.Copilot.FreeQuota' | translate: {Default: 'Free Quota'} }}
+  </div>
+
+  @for (copilot of quotaCopilots(); track copilot.id) {
+    <copilot-provider @disappear1 readonly [providerId]="copilot.modelProvider.id" [usage]="copilot.usage" class="shadow-sm mb-2 rounded-xl border-[0.5px] border-black/5"/>
+  }
+}
+
+@if (quotaCopilots()?.length) {
+  <div class="text-lg px-2 py-1">
+    {{ 'PAC.Copilot.CustomCopilots' | translate: {Default: 'Custom Copilots'} }}
+  </div>
+}
 <mat-accordion >
   <mat-expansion-panel hideToggle class="mat-elevation-z" [disabled]="!primary()?.enabled">
     <mat-expansion-panel-header>

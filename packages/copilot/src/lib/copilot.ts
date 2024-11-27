@@ -17,22 +17,22 @@ function modelsUrl(copilot: ICopilot) {
  */
 export abstract class CopilotService {
   readonly #copilot$ = new BehaviorSubject<ICopilot | null>({} as ICopilot)
-  get copilot(): ICopilot {
-    return this.#copilot$.value
-  }
-  set copilot(value: Partial<ICopilot> | null) {
-    this.#copilot$.next(
-      value
-        ? {
-            ...this.#copilot$.value,
-            ...value
-          }
-        : null
-    )
-  }
+  // get copilot(): ICopilot {
+  //   return this.#copilot$.value
+  // }
+  // set copilot(value: Partial<ICopilot> | null) {
+  //   this.#copilot$.next(
+  //     value
+  //       ? {
+  //           ...this.#copilot$.value,
+  //           ...value
+  //         }
+  //       : null
+  //   )
+  // }
 
   readonly copilot$ = this.#copilot$.asObservable()
-  readonly enabled$ = this.copilot$.pipe(map((copilot) => copilot?.enabled && copilot?.apiKey))
+  readonly enabled$ = this.copilot$.pipe(map((copilot) => copilot?.enabled && copilot?.modelProvider))
 
   // Secondary
   readonly #secondary$ = new BehaviorSubject<ICopilot | null>(null)
@@ -58,12 +58,12 @@ export abstract class CopilotService {
 
   constructor(copilot?: ICopilot) {
     if (copilot) {
-      this.copilot = copilot
+      // this.copilot = copilot
     }
   }
 
-  update(copilot: Partial<ICopilot>) {
-    this.copilot = copilot
+  setCopilot(copilot: ICopilot) {
+    this.#copilot$.next(copilot)
   }
 
   abstract roles(): BusinessRoleType[]
@@ -71,7 +71,7 @@ export abstract class CopilotService {
   abstract setRole(role: string): void
 
   getModels() {
-    return fromFetch(modelsUrl(this.copilot), {
+    return fromFetch(modelsUrl(this.#copilot$.value), {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'

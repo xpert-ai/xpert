@@ -18,8 +18,8 @@ export class CopilotProviderModelParameterRulesHandler
 	public async execute(command: CopilotProviderModelParameterRulesQuery): Promise<any[]> {
 		const { providerId, modelType, model } = command
 
-		const copilotProvider = await this.service.findOne(providerId)
-		const customModel = await this.modelService.findOneOrFail({
+		const copilotProvider = await this.service.findOneInOrganizationOrTenant(providerId)
+		const customModel = await this.modelService.findOneOrFailWithoutOrg({
 			where: { providerId, modelType, modelName: model }
 		})
 

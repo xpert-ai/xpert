@@ -92,7 +92,6 @@ export class OrganizationSelectorComponent extends TranslationBaseComponent impl
             ]
           : organizations
       }),
-      tap((values) => console.log(values)),
       takeUntilDestroyed(),
       shareReplay(1)
     )

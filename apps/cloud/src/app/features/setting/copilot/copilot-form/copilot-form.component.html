@@ -1,6 +1,8 @@
 @if (modelProvider()) {
   <copilot-provider [providerId]="modelProvider().id" class="shadow-sm mb-2 rounded-xl border-[0.5px] border-black/5"
-    (deleted)="removedModelProvider()" />
+    (deleted)="removedModelProvider()"
+    (addedModel)="onAddedModel($event)"
+    />
 } @else {
   <div class="w-full flex items-center px-3 py-2 mb-2 rounded-lg text-base text-text-secondary bg-gray-200 cursor-pointer hover:bg-gray-300 hover:text-text-primary"
     (click)="openAiProviders()"
@@ -19,7 +21,7 @@
     [label]="'PAC.Copilot.DefaultModel' | translate: {Default: 'Default Model'}" />
 
   <div class="w-full flex flex-col justify-start items-stretch">
-    <label>{{ 'PAC.Copilot.TokenBalancePerUser' | translate: {Default: 'Token Balance/User'} }}: {{tokenBalance | number}}</label>
+    <label>{{ 'PAC.Copilot.TokenLimitPerUser' | translate: {Default: 'Token Limit/User'} }}: {{tokenBalance | number}}</label>
     <mat-slider min="0" max="10000000" step="10000" discrete [displayWith]="formatBalanceLabel">
       <input matSliderThumb formControlName="tokenBalance">
     </mat-slider>

@@ -1,6 +1,13 @@
-import { Injectable, computed, inject, signal } from '@angular/core'
-import { toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { AiProviderRole, BusinessRoleType, CopilotService, DefaultBusinessRole, ICopilot, NgmLanguageEnum } from '@metad/copilot'
+import { Injectable, computed, effect, inject, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
+import {
+  AiProviderRole,
+  BusinessRoleType,
+  CopilotService,
+  DefaultBusinessRole,
+  ICopilot,
+  NgmLanguageEnum
+} from '@metad/copilot'
 import { TranslateService } from '@ngx-translate/core'
 import { combineLatest, map, shareReplay, startWith } from 'rxjs'
 import { createLLM } from '../core'
@@ -10,8 +17,8 @@ export abstract class NgmCopilotService extends CopilotService {
   readonly translate = inject(TranslateService)
 
   readonly copilots = signal<ICopilot[]>(null)
-  readonly credentials = signal<{apiHost: string; apiKey: string;}>(null)
-  
+  readonly credentials = signal<{ apiHost: string; apiKey: string }>(null)
+
   readonly lang = toSignal(
     this.translate.onLangChange.pipe(
       map((event) => event.lang),
@@ -52,32 +59,28 @@ export abstract class NgmCopilotService extends CopilotService {
       `Please answer in language ${Object.entries(NgmLanguageEnum).find((item) => item[1] === this.lang())?.[0] ?? 'English'}`
   )
 
-  // readonly llm$ = combineLatest([this.copilot$, this.clientOptions$]).pipe(
-  //   map(([copilot, clientOptions]) =>
-  //     copilot?.enabled
-  //       ? createLLM(copilot, this.credentials(), clientOptions, (input) => {
-  //           this.recordTokenUsage(input)
-  //         })
-  //       : null
-  //   ),
-  //   shareReplay(1)
-  // )
-
   // Xpert ChatModel
-  readonly llm$ = combineLatest([
-    toObservable(this.roleDetail).pipe(
-      map((role) => ({
-        role,
-        copilot: this.copilots()?.find((_) => _.id === role.copilotModel?.copilotId) ?? this.copilots()?.find((_) => _.role === AiProviderRole.Primary)
-      }))
-    ),
-    this.clientOptions$,
-  ]).pipe(
-    map(([{role, copilot}, clientOptions]) => {
+  readonly copilot = computed(() => {
+    const role = this.roleDetail()
+    const copilots = this.copilots()
+    return (
+      copilots?.find((_) => _.id === role?.copilotModel?.copilotId) ??
+      copilots?.find((_) => _.role === AiProviderRole.Primary)
+    )
+  })
+
+  readonly llm$ = combineLatest([this.copilot$, this.clientOptions$]).pipe(
+    map(([copilot, clientOptions]) => {
+      const role = this.roleDetail()
       return copilot?.enabled
-        ? createLLM({...copilot, defaultModel: role.copilotModel?.model || copilot.defaultModel}, this.credentials(), clientOptions, (input) => {
-            this.recordTokenUsage(input)
-          })
+        ? createLLM(
+            { ...copilot, defaultModel: role.copilotModel?.model || copilot.defaultModel },
+            this.credentials(),
+            clientOptions,
+            (input) => {
+              this.recordTokenUsage(input)
+            }
+          )
         : null
     }),
     shareReplay(1)
@@ -86,9 +89,15 @@ export abstract class NgmCopilotService extends CopilotService {
   constructor() {
     super()
 
-    this.llm$.subscribe((value) => {
-      console.log(`selected copilot:`, value)
-    })
+    effect(() => {
+      if (this.copilot()) {
+        this.setCopilot(this.copilot())
+      }
+    }, { allowSignalWrites: true })
+
+    // this.llm$.subscribe((value) => {
+    //   console.log(`selected copilot:`, value)
+    // })
   }
 
   setRole(role: string): void {
@@ -105,7 +114,7 @@ export abstract class NgmCopilotService extends CopilotService {
               this.recordTokenUsage(input)
             })
           : null
-      ),
+      )
     )
   }
 }

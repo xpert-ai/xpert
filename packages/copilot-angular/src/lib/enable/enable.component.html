@@ -1,23 +1,26 @@
-@if (!copilotConfig?.enabled || !copilotConfig?.apiKey) {
-<div class="w-full h-full flex-1 flex flex-col justify-center items-center gap-4 bg-gray-500/20 backdrop-blur-md group">
+@if (disabled$ | async) {
+  <div class="w-full h-full flex-1 flex flex-col justify-center items-center gap-4 bg-gray-500/20 backdrop-blur-md group">
     <div class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-fuchsia-500 to-indigo-500 group-hover:ngm-background-animate">
         {{ title }}
     </div>
-    <div class="text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-fuchsia-500 to-indigo-500 group-hover:ngm-background-animate">
-        {{ subTitle }}
+    <div class="text-base text-text-secondary">
+      {{ subTitle }}
     </div>
     
-    @if (copilotConfig?.enabled && !copilotConfig?.apiKey) {
-    <div class="text-red-400">
-        {{ 'Copilot.ProvideOpenaiApiKey' | translate: {Default: 'Please provide openai api key!'} }}
-    </div>
+    @if (copilot()?.enabled && !copilot()?.modelProvider?.providerName) {
+      <div class="text-sm text-red-400">
+        {{ 'Copilot.ProvideAiModelProvider' | translate: {Default: 'Please provide ai model provider!'} }}
+      </div>
     }
     
-    <button mat-stroked-button (click)="navigateToConfig()">
-        <div class="flex items-center">
+    <button type="button" class="flex justify-center items-center rounded-xl text-base font-semibold px-4 py-1 shadow-sm
+      bg-primary-500 hover:bg-primary-600 hover:shadow-lg text-white"
+      (click)="navigateToConfig()">
+        <div class="flex justify-center items-center">
             {{ 'Copilot.EnableCopilot' | translate: {Default: 'Enable Copilot'} }}
-            <mat-icon fontSet="material-icons-outlined" displayDensity="cosy">arrow_forward</mat-icon>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path d="M10 6V8H5V19H16V14H18V20C18 20.5523 17.5523 21 17 21H4C3.44772 21 3 20.5523 3 20V7C3 6.44772 3.44772 6 4 6H10ZM21 3V11H19L18.9999 6.413L11.2071 14.2071L9.79289 12.7929L17.5849 5H13V3H21Z"></path></svg>
         </div>
     </button>
-</div>
+  </div>
 }

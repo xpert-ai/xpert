@@ -2,13 +2,14 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, effect, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { RouterModule } from '@angular/router'
+import { Router, RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { MaterialModule } from '../../../@shared'
 import { AppService } from '../../../app.service'
 import { ChatService } from '../chat.service'
-import { uuid } from '../../../@core'
+import { PACCopilotService, uuid } from '../../../@core'
+import { map } from 'rxjs'
 
 
 @Component({
@@ -30,10 +31,14 @@ import { uuid } from '../../../@core'
 export class ChatInputComponent {
   readonly chatService = inject(ChatService)
   readonly appService = inject(AppService)
+  readonly copilotService = inject(PACCopilotService)
+  readonly #router = inject(Router)
 
   readonly promptControl = new FormControl<string>(null)
   readonly prompt = toSignal(this.promptControl.valueChanges)
   readonly answering = this.chatService.answering
+
+  readonly disabled$ = this.copilotService.enabled$.pipe(map((enabled) => !enabled))
 
   constructor() {
     effect(() => {
@@ -88,5 +93,9 @@ export class ChatInputComponent {
       })
       return
     }
+  }
+
+  navigateCopilot() {
+    this.#router.navigate(['/settings/copilot'])
   }
 }

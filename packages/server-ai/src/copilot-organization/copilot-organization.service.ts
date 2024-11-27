@@ -18,13 +18,18 @@ export class CopilotOrganizationService extends TenantAwareCrudService<CopilotOr
         super(repository)
     }
 
-
+	/**
+	 * Upsert copilot oranization token usage by key (tenantId, organizationId, copilotId)
+	 * 
+	 * @param input 
+	 * @returns 
+	 */
 	async upsert(input: Partial<CopilotOrganization>): Promise<ICopilotOrganization> {
 		const existing = await this.findOneOrFail({
 			where: {
 				tenantId: input.tenantId,
 				organizationId: input.organizationId,
-				provider: input.provider
+				copilotId: input.copilotId
 			}
 		})
 		if (existing.success) {
@@ -35,6 +40,7 @@ export class CopilotOrganizationService extends TenantAwareCrudService<CopilotOr
 			return await this.create({
 				tenantId: input.tenantId,
 				organizationId: input.organizationId,
+				copilotId: input.copilotId,
 				provider: input.provider,
 				tokenUsed: input.tokenUsed ?? 0,
 				tokenLimit: input.tokenLimit,

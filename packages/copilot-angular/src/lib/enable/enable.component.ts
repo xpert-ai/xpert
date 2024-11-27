@@ -1,10 +1,9 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, EventEmitter, inject, Input, Output } from '@angular/core'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmCopilotService } from '../services'
+import { map } from 'rxjs'
 
 @Component({
   standalone: true,
@@ -12,7 +11,7 @@ import { NgmCopilotService } from '../services'
   selector: 'ngm-copilot-enable',
   templateUrl: 'enable.component.html',
   styleUrls: ['enable.component.scss'],
-  imports: [CommonModule, RouterModule, TranslateModule, MatIconModule, MatButtonModule],
+  imports: [CommonModule, RouterModule, TranslateModule],
   host: {
     class: 'ngm-copilot-enable'
   }
@@ -24,9 +23,8 @@ export class NgmCopilotEnableComponent {
   @Input() subTitle: string
   @Output() toConfig = new EventEmitter()
 
-  get copilotConfig() {
-    return this.copilotService.copilot
-  }
+  readonly disabled$ = this.copilotService.enabled$.pipe(map((enabled) => !enabled))
+  readonly copilot = this.copilotService.copilot
 
   navigateToConfig() {
     this.toConfig.emit()

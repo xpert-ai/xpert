@@ -14,29 +14,33 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
 
 	public async execute(command: CopilotTokenRecordCommand): Promise<void> {
 		const { input } = command
-		const { copilotId, organizationId, tokenUsed } = input
+		const { organizationId, userId, tokenUsed } = input
+		const copilotId = input.copilotId ?? input.copilot?.id
 
 		if (tokenUsed > 0) {
-			const copilot = await this.queryBus.execute(new CopilotGetOneQuery(input.tenantId, copilotId ?? input.copilot?.id, ['modelProvider']))
-			// 记录该用户所使用组织或全局的 token
+			const copilot = await this.queryBus.execute(new CopilotGetOneQuery(input.tenantId, copilotId, ['modelProvider']))
+			// Record the token used by the organization or globally for the user
 			const record = await this.copilotUserService.upsert({
-				...input,
+				copilotId,
 				organizationId,
+				userId,
 				orgId: copilot.organizationId,
 				provider: copilot.modelProvider.providerName,
-				tokenLimit: copilot.tokenBalance
+				tokenLimit: copilot.tokenBalance,
+				tokenUsed
 			})
 
 			if (record.tokenLimit && record.tokenUsed >= record.tokenLimit) {
 				throw new Error('Token usage exceeds limit')
 			}
 
-			// 使用全局 Copilot 时记录该用户所在组织的 token 使用
+			// Record the token usage of the user's organization when using the global Copilot
 			if (!copilot.organizationId) {
 				const orgRecord = await this.copilotOrganizationService.upsert({
 					tenantId: input.tenantId,
 					tokenUsed: input.tokenUsed,
 					organizationId,
+					copilotId,
 					provider: copilot.modelProvider.providerName,
 					tokenLimit: copilot.tokenBalance
 				})

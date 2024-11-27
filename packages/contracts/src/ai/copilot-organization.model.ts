@@ -1,19 +1,19 @@
 import { AiProvider } from './ai.model'
 import { IBasePerTenantEntityModel } from '../base-entity.model'
 import { IOrganization } from '../organization.model'
+import { ICopilot, TCopilotTokenUsage } from './copilot.model'
 
 /**
- * 
+ * Organization token usage of global copilot
  */
-export interface ICopilotOrganization extends IBasePerTenantEntityModel {
+export interface ICopilotOrganization extends IBasePerTenantEntityModel, TCopilotTokenUsage {
   organizationId?: string
   organization?: IOrganization
-  // 关联的ai服务提供商
+  copilotId?: string
+  copilot?: ICopilot
+  // Associated AI Model provider
   provider?: AiProvider | string
-  // 当前期间token限制数量
-  tokenLimit?: number
-  // 当前期间内使用的token
-  tokenUsed?: number
-  // 历史使用token总数
+
+  // Total tokens used historically
   tokenTotalUsed?: number
 }

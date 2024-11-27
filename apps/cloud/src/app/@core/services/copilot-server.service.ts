@@ -38,8 +38,7 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
 
   private readonly copilots$ = this.refresh$.pipe(
     switchMap(() => this.selectOrganizationId()),
-    switchMap(() => this.httpClient.get<{ total: number; items: ICopilot[] }>(API_COPILOT)),
-    map(({items}) => items),
+    switchMap(() => this.httpClient.get<ICopilot[]>(API_COPILOT)),
     shareReplay(1)
   )
 

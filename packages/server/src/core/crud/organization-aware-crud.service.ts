@@ -223,6 +223,22 @@ export abstract class TenantOrganizationAwareCrudService<
 		return await this._findOneOrFail(id, this.findManyWithoutOrganization(options));
 	}
 
+	/**
+	 * Try to find T entity in organization or tenant
+	 */
+	async findOneInOrganizationOrTenant(id: string, options?: FindOneOptions<T>) {
+		let entity: T = null
+		try {
+			entity = await this.findOneByIdString(id, options)
+		} catch (err) {
+			const result = await this.findOneOrFailWithoutOrg(id, options)
+			if (result.success) {
+				entity = result.record
+			}
+		}
+		return entity
+	}
+
 	public async create(entity: DeepPartial<T>, ...options: any[]): Promise<T> {
 		const tenantId = RequestContext.currentTenantId()
 		const user = RequestContext.currentUser()
