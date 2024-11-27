@@ -52,7 +52,7 @@ export class CopilotBasicComponent {
   )
 
   readonly quotaCopilots = computed(() => {
-    return this.copilots()?.filter((item) => !item.organizationId)
+    return this.copilots()?.filter((item) => !item.organizationId && item.modelProvider)
   })
 
   constructor() {

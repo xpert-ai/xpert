@@ -239,6 +239,16 @@ export abstract class TenantOrganizationAwareCrudService<
 		return entity
 	}
 
+	async findAllInOrganizationOrTenant(options?: FindManyOptions<T>) {
+		const orgResults = await this.findAll(options)
+		const tenantResults = await this.findAllWithoutOrganization(options)
+
+		return {
+			total: orgResults.total + tenantResults.total,
+			items: [...orgResults.items, tenantResults.items]
+		}
+	}
+
 	public async create(entity: DeepPartial<T>, ...options: any[]): Promise<T> {
 		const tenantId = RequestContext.currentTenantId()
 		const user = RequestContext.currentUser()

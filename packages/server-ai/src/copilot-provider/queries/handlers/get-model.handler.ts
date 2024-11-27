@@ -12,7 +12,7 @@ export class GetCopilotProviderModelHandler implements IQueryHandler<GetCopilotP
 	) {}
 
 	public async execute(command: GetCopilotProviderModelQuery) {
-		const { items } = await this.service.findAll({
+		const { items } = await this.service.findAllInOrganizationOrTenant({
 			where: {
 				providerId: command.providerId,
 				modelName: command.modelName || Not(IsNull())

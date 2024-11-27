@@ -49,7 +49,7 @@ export class OllamaLargeLanguageModel extends AIModel {
 
 		const { handleLLMTokens } = options ?? {}
 		return new ChatOllama({
-			baseUrl: modelProperties.base_url,
+			baseUrl: copilot.modelProvider.credentials?.base_url,
 			model: copilotModel.model,
 			streaming: copilotModel.options?.streaming ?? true,
 			temperature: copilotModel.options?.temperature ?? 0,

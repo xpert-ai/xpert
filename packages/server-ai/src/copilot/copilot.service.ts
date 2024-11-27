@@ -33,7 +33,10 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 		for await (const copilot of copilots) {
 			if (!copilot.organizationId) {
 				const usage = await this.queryBus.execute(new GetCopilotOrgUsageQuery(RequestContext.currentTenantId(), RequestContext.getOrganizationId(), copilot.id))
-				copilot.usage = usage
+				copilot.usage = usage ?? {
+					tokenLimit: copilot.tokenBalance ?? Number.MAX_SAFE_INTEGER,
+					tokenUsed: 0
+				}
 			}
 		}
 		return copilots

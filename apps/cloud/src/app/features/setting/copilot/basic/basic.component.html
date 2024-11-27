@@ -14,7 +14,7 @@
   </div>
 }
 <mat-accordion >
-  <mat-expansion-panel hideToggle class="mat-elevation-z" [disabled]="!primary()?.enabled">
+  <mat-expansion-panel hideToggle class="mat-elevation-z" [disabled]="!primary()?.enabled" [expanded]="!!primary()?.enabled">
     <mat-expansion-panel-header>
       <mat-panel-title>{{'PAC.KEY_WORDS.Copilot' | translate: {Default: 'Copilot'} }}({{'PAC.KEY_WORDS.Primary' | translate: {Default: 'Primary'} }})</mat-panel-title>
       <mat-panel-description class="flex-1">
@@ -29,7 +29,7 @@
     <pac-copilot-form [role]="eAiProviderRole.Primary"></pac-copilot-form>
   </mat-expansion-panel>
 
-  <mat-expansion-panel hideToggle class="mat-elevation-z" [disabled]="!secondary()?.enabled">
+  <mat-expansion-panel hideToggle class="mat-elevation-z" [disabled]="!secondary()?.enabled" [expanded]="!!secondary()?.enabled">
     <mat-expansion-panel-header>
       <mat-panel-title>{{'PAC.KEY_WORDS.Copilot' | translate: {Default: 'Copilot'} }}({{'PAC.KEY_WORDS.Secondary' | translate: {Default: 'Secondary'} }})</mat-panel-title>
       <mat-panel-description class="flex-1">
@@ -44,9 +44,7 @@
     <pac-copilot-form [role]="eAiProviderRole.Secondary"></pac-copilot-form>
   </mat-expansion-panel>
 
-  <mat-expansion-panel hideToggle class="mat-elevation-z"
-    [disabled]="!embedding()?.enabled"
-    [expanded]="!!embedding()?.enabled">
+  <mat-expansion-panel hideToggle class="mat-elevation-z" [disabled]="!embedding()?.enabled" [expanded]="!!embedding()?.enabled">
     <mat-expansion-panel-header>
       <mat-panel-title>{{'PAC.KEY_WORDS.Copilot' | translate: {Default: 'Copilot'} }}({{'PAC.KEY_WORDS.Embedding' | translate: {Default: 'Embedding'} }})</mat-panel-title>
       <mat-panel-description class="flex-1">

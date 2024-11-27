@@ -244,6 +244,7 @@ export class CopilotFormComponent {
     })
 
     dialogRef.closed.subscribe((copilotProvider) => {
+      this.copilotServer.refresh()
       this.refresh$.next()
     })
   }
