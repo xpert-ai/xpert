@@ -245,7 +245,7 @@ export abstract class TenantOrganizationAwareCrudService<
 
 		return {
 			total: orgResults.total + tenantResults.total,
-			items: [...orgResults.items, tenantResults.items]
+			items: [...orgResults.items, ...tenantResults.items]
 		}
 	}
 
