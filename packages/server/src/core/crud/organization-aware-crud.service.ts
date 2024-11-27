@@ -240,7 +240,11 @@ export abstract class TenantOrganizationAwareCrudService<
 	}
 
 	async findAllInOrganizationOrTenant(options?: FindManyOptions<T>) {
-		const orgResults = await this.findAll(options)
+		// In organization
+		const orgResults = RequestContext.getOrganizationId() ? await this.findAll(options) : {
+			total: 0,
+			items: []
+		}
 		const tenantResults = await this.findAllWithoutOrganization(options)
 
 		return {

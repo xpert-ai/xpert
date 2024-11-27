@@ -8,6 +8,10 @@ import { ButtonGroupDirective } from '@metad/ocap-angular/core';
 import { FormlyModule } from '@ngx-formly/core';
 import { TranslateModule } from '@ngx-translate/core';
 
+
+/**
+ * @deprecated CdkConfirmOptionsComponent
+ */
 @Component({
   standalone: true,
   imports: [

@@ -15,7 +15,7 @@ import { DeleteResult, UpdateResult } from 'typeorm'
 import { ListBuiltinModelsQuery, ListModelProvidersQuery } from '../ai-model'
 import { CopilotProvider } from './copilot-provider.entity'
 import { CopilotProviderService } from './copilot-provider.service'
-import { CopilotProviderDto } from './dto'
+import { CopilotProviderDto, CopilotProviderPublicDto } from './dto'
 import { CopilotProviderModel } from './models/copilot-provider-model.entity'
 import { CopilotProviderModelService } from './models/copilot-provider-model.service'
 import { CopilotProviderUpsertCommand } from './commands'
@@ -30,6 +30,10 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
 
 	@Inject(ConfigService)
 	private readonly configService: ConfigService
+
+	get baseUrl() {
+		return this.configService.get('baseUrl') as string
+	}
 
 	constructor(
 		private readonly service: CopilotProviderService,
@@ -58,7 +62,7 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
 	async findOneById(
 		@Param('id', UUIDValidationPipe) id: string,
 		@Query('data', ParseJsonPipe) params?: PaginationParams<CopilotProvider>
-	): Promise<CopilotProviderDto> {
+	): Promise<CopilotProviderDto | CopilotProviderPublicDto> {
 		const one = await this.service.findOneInOrganizationOrTenant(id, params)
 		if (one) {
 			const providers = await this.queryBus.execute<ListModelProvidersQuery, IAiProviderEntity[]>(
@@ -68,7 +72,10 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
 				one.provider = providers[0]
 			}
 
-			return new CopilotProviderDto(one, this.configService.get('baseUrl') as string)
+			if (!one.organizationId) {
+				return new CopilotProviderPublicDto(one, this.baseUrl)
+			}
+			return new CopilotProviderDto(one, this.baseUrl)
 		}
 		return null
 	}

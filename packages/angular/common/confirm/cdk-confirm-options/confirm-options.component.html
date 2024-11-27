@@ -1,0 +1,26 @@
+<header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="pb-2 cursor-move">
+  <h4 class="text-xl pointer-events-none">
+    {{data?.information}}
+  </h4>
+</header>
+
+<div class="mat-typography py-4 min-h-[100px]" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+  <formly-form class="w-full"
+    [form]="formGroup"
+    [fields]="fields()"
+    [model]="model"
+    (modelChange)="onModelChange($event)"
+    [options]="options"
+  />
+</div>
+
+<div class="w-full flex justify-end items-center">
+  <div ngmButtonGroup>
+    <button mat-button mat-dialog-close>
+      {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
+    </button>
+    <button mat-raised-button color="accent" cdkFocusInitial (click)="apply()">
+      {{ 'COMPONENTS.COMMON.Confirm' | translate: {Default: 'Confirm'} }}
+    </button>
+  </div>
+</div>

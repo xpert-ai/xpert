@@ -1435,6 +1435,8 @@
       "Remain": "剩余",
       "WelcomeTitle": "Xpert 智能助理",
       "WelcomeSubTitle": "你的数字业务专家智能助理",
+      "UploadFile": "上传文件",
+      "NewExample": "新建示例",
       "Prompts": {
         "Set story theme dark": "设置故事暗黑主题",
         "Set story gradient background color sense of technology": "设置故事背景为科技感渐变色",
@@ -1465,7 +1467,9 @@
         "ConfirmOptionsForUploadExample": "请确认上传示例的选项",
         "UpdatedBy": "更新人",
         "UpdatedAt": "更新时间",
-        "ExpertRole": "专家角色"
+        "ExpertRole": "专家角色",
+        "Test": "测试",
+        "RetrievalTesting": "召回测试"
       },
       "Roles": {
         "Name": "名称",
@@ -1985,7 +1989,12 @@
       "ChangeXpertName": "更改专家名称",
       "ImportDSL": "导入 DSL 文件",
       "ExportDSLVersion": "导出 DSL (当前版本)",
-      "ExportDSLDraft": "导出 DSL (草稿)"
+      "ExportDSLDraft": "导出 DSL (草稿)",
+      "CommandExamples": "命令示例",
+      "Command": "命令",
+      "Input": "输入",
+      "Retrieval": "检索",
+      "Examples": "示例"
     },
     "title": {
       "short": "Xpert AI"

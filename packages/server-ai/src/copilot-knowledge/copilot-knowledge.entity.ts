@@ -1,8 +1,9 @@
-import { AiBusinessRole, AiProvider, ICopilotKnowledge } from '@metad/contracts'
-import { ApiPropertyOptional } from '@nestjs/swagger'
+import { AiProvider, ICopilotKnowledge, IXpert } from '@metad/contracts'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsOptional, IsString } from 'class-validator'
-import { Column, Entity } from 'typeorm'
+import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { Xpert } from '../core/entities/internal'
 
 @Entity('copilot_knowledge')
 export class CopilotKnowledge extends TenantOrganizationBaseEntity implements ICopilotKnowledge {
@@ -16,7 +17,7 @@ export class CopilotKnowledge extends TenantOrganizationBaseEntity implements IC
 	@IsString()
 	@IsOptional()
 	@Column({ nullable: true, length: 100 })
-	role?: AiBusinessRole | string
+	role?: string
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
@@ -39,4 +40,23 @@ export class CopilotKnowledge extends TenantOrganizationBaseEntity implements IC
 	@IsOptional()
 	@Column({ default: false })
 	vector?: boolean
+
+	/*
+    |--------------------------------------------------------------------------
+    | @ManyToOne
+    |--------------------------------------------------------------------------
+    */
+	@ApiProperty({ type: () => Xpert })
+	@ManyToOne(() => Xpert, {
+		nullable: true,
+		onDelete: 'CASCADE'
+	})
+	@JoinColumn()
+	xpert?: IXpert
+
+	@ApiProperty({ type: () => String })
+	@RelationId((it: CopilotKnowledge) => it.xpert)
+	@IsString()
+	@Column({ nullable: true })
+	xpertId?: string
 }

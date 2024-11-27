@@ -260,7 +260,7 @@ export class CopilotExamplesComponent extends TranslationBaseComponent {
         switchMap((options) => {
           if (options) {
             this.loading.set(true)
-            return this.exampleService.createBulk(examples, roles, options)
+            return this.exampleService.createBulk(examples, options)
           } else {
             return EMPTY
           }

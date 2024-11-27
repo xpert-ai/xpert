@@ -11,6 +11,8 @@ import { XpertWorkspaceWelcomeComponent } from './workspace/welcome/welcome.comp
 import { XpertWorkspaceHomeComponent } from './workspace/home/home.component'
 import { XpertAuthorizationComponent } from './xpert/authorization/authorization.component'
 import { XpertCopilotComponent } from './xpert/copilot/copilot.component'
+import { XpertCopilotKnowledgeNewBlankComponent } from './xpert/copilot/blank/blank.component'
+import { XpertCopilotKnowledgeTestingComponent } from './xpert/copilot/testing/testing.component'
 
 export const routes: Routes = [
   {
@@ -79,7 +81,21 @@ export const routes: Routes = [
       },
       {
         path: 'copilot',
-        component: XpertCopilotComponent
+        component: XpertCopilotComponent,
+        children: [
+          {
+            path: 'create',
+            component: XpertCopilotKnowledgeNewBlankComponent
+          },
+          {
+            path: 'testing',
+            component: XpertCopilotKnowledgeTestingComponent
+          },
+          {
+            path: ':id',
+            component: XpertCopilotKnowledgeNewBlankComponent
+          }
+        ]
       },
     ]
   },

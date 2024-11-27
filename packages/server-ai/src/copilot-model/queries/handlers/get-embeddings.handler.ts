@@ -1,6 +1,8 @@
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { CopilotModelGetChatModelQuery } from '../get-chat-model.query'
 import { CopilotModelGetEmbeddingsQuery } from '../get-embeddings.query'
+import { AiModelTypeEnum } from '@metad/contracts'
+import { CopilotModelInvalidException } from '../../../core/errors'
 
 @QueryHandler(CopilotModelGetEmbeddingsQuery)
 export class CopilotModelGetEmbeddingsHandler implements IQueryHandler<CopilotModelGetEmbeddingsQuery> {
@@ -10,9 +12,15 @@ export class CopilotModelGetEmbeddingsHandler implements IQueryHandler<CopilotMo
 	) {}
 
 	public async execute(command: CopilotModelGetEmbeddingsQuery) {
+
+		const copilotModel = command.copilotModel ?? command.copilot.copilotModel
+		if (copilotModel?.modelType !== AiModelTypeEnum.TEXT_EMBEDDING) {
+			throw new CopilotModelInvalidException(`Should select a text embedding model, current is '${copilotModel?.model}: ${copilotModel?.modelType}'`)
+		}
+
 		// Temporarily the same logic as `CopilotModelGetChatModelQuery`
 		return await this.queryBus.execute(
-			new CopilotModelGetChatModelQuery(command.copilot, command.copilotModel ?? command.copilot.copilotModel, command.options)
+			new CopilotModelGetChatModelQuery(command.copilot, copilotModel, command.options)
 		)
 	}
 }

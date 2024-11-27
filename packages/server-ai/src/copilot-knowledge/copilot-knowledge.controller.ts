@@ -6,6 +6,7 @@ import { CrudController, PaginationParams, ParseJsonPipe, TransformInterceptor, 
 import { CopilotKnowledge } from './copilot-knowledge.entity'
 import { CopilotKnowledgeService } from './copilot-knowledge.service'
 
+
 @ApiTags('CopilotKnowledge')
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
@@ -81,6 +82,6 @@ export class CopilotKnowledgeController extends CrudController<CopilotKnowledge>
 		@Body('roles') roles: IXpert[],
 		@Body('options') options: { createRole: boolean; clearRole: boolean }
 	) {
-		return this.service.createBulk(entities, roles, options)
+		return this.service.createBulk(entities, options)
 	}
 }

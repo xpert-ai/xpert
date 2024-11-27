@@ -125,8 +125,10 @@ export class CopilotModelSelectComponent {
   readonly providerId = computed(() => this.copilots()?.find((_) => _.id === this.copilotId())?.modelProvider?.id)
 
   readonly model = computed(() => this._copilotModel()?.model)
+
   readonly selectedAiModel = computed(() =>
-    this.selectedCopilotWithModels()?.providerWithModels?.models?.find((_) => _.model === this.model())
+    this.selectedCopilotWithModels()?.providerWithModels?.models?.find((_) => _.model === this.model() &&
+      (this.modelType() ? _.model_type === this.modelType() : true))
   )
 
   readonly modelParameterRules = derivedAsync(() => {
@@ -142,7 +144,7 @@ export class CopilotModelSelectComponent {
 
   constructor() {
     effect(() => {
-      // console.log(this.cva.value$(), this.copilotModel(), this.inheritModel())
+      console.log(this.searchedModels())
     })
   }
 

@@ -139,7 +139,7 @@
         </div>
         @for (item of copilot.providerWithModels?.models; track item.model) {
           <li cdkMenuItem class="flex justify-start items-center gap-2 px-4 py-2 rounded-xl cursor-pointer hover:bg-primary-100/50 hover:text-primary-500"
-            [ngClass]="model() === item.model ? 'bg-primary-100 text-primary-600 font-semibold' : ''"
+            [ngClass]="(model() === item.model && modelType() === item.model_type) ? 'bg-primary-100 text-primary-600 font-semibold' : ''"
             (click)="setModel(copilot, item.model);"
           >
             <span [ngmHighlight]="searchText()"

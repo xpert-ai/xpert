@@ -7,14 +7,12 @@ import {
 	AiProviderRole,
 	ICopilot,
 	ICopilotKnowledge,
-	IXpert,
-	XpertTypeEnum,
 } from '@metad/contracts'
 import { DATABASE_POOL_TOKEN, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { compact, uniq } from 'lodash'
+import { uniq } from 'lodash'
 import { Pool } from 'pg'
 import { DeleteResult, FindManyOptions, FindOneOptions, Repository, UpdateResult } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
@@ -22,7 +20,6 @@ import { CopilotService } from '../copilot/copilot.service'
 import { CopilotKnowledge } from './copilot-knowledge.entity'
 import { isEqual } from 'date-fns/isEqual'
 import { pick } from '@metad/server-common'
-import { XpertCreateCommand } from '../xpert'
 import { CopilotModelGetEmbeddingsQuery } from '../copilot-model/queries'
 
 @Injectable()
@@ -204,7 +201,7 @@ export class CopilotKnowledgeService extends TenantOrganizationAwareCrudService<
 		return null
 	}
 
-	async getVectorStore(tenantId: string, organizationId: string, role: AiBusinessRole | string) {
+	async getVectorStore(tenantId: string, organizationId: string, role: string) {
 		const id = (organizationId || tenantId) + `:${role || 'default'}`
 
 		let collectionName = id
@@ -263,7 +260,6 @@ export class CopilotKnowledgeService extends TenantOrganizationAwareCrudService<
 
 	async createBulk(
 		entities: ICopilotKnowledge[],
-		roles: IXpert[],
 		options: { createRole: boolean; clearRole: boolean }
 	) {
 		const tenantId = RequestContext.currentTenantId()
@@ -271,22 +267,22 @@ export class CopilotKnowledgeService extends TenantOrganizationAwareCrudService<
 		const { createRole, clearRole } = options || {}
 		const roleNames = uniq(entities.map((example) => example.role))
 
-		if (roles) {
-			for await (const role of roles) {
-				try {
-					await this.commandBus.execute(new XpertCreateCommand({...role, type: XpertTypeEnum.Copilot}))
-				} catch (error) {}
-			}
-		}
+		// if (roles) {
+		// 	for await (const role of roles) {
+		// 		try {
+		// 			await this.commandBus.execute(new XpertCreateCommand({...role, type: XpertTypeEnum.Copilot}))
+		// 		} catch (error) {}
+		// 	}
+		// }
 
-		// Auto create role if not existed
-		if (createRole) {
-			for await (const role of compact(roleNames).filter((role) => !roles.find((r) => r.name === role))) {
-				try {
-					await this.commandBus.execute(new XpertCreateCommand({ name: role, type: XpertTypeEnum.Copilot }))
-				} catch (error) {}
-			}
-		}
+		// // Auto create role if not existed
+		// if (createRole) {
+		// 	for await (const role of compact(roleNames).filter((role) => !roles.find((r) => r.name === role))) {
+		// 		try {
+		// 			await this.commandBus.execute(new XpertCreateCommand({ name: role, type: XpertTypeEnum.Copilot }))
+		// 		} catch (error) {}
+		// 	}
+		// }
 
 		const results = []
 
@@ -351,7 +347,7 @@ class PGMemberVectorStore {
 						input: example.input,
 						output: example.output,
 						provider: this.provider,
-						model: this.copilot.defaultModel
+						model: this.copilot.copilotModel?.model
 					},
 					pageContent: example.input
 				})

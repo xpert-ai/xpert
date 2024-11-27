@@ -69,11 +69,10 @@ export class CopilotExampleService {
       .pipe(map((items) => items.map(({ command }) => command)))
   }
 
-  createBulk(entities: ICopilotKnowledge[], roles: IXpertRole[], options: { clearRole: boolean }) {
+  createBulk(entities: ICopilotKnowledge[], options: { clearRole: boolean }) {
     return this.httpClient
       .post<ICopilotKnowledge[]>(`${API_COPILOT_KNOWLEDGE}/bulk`, {
         examples: entities,
-        roles,
         options
       })
       .pipe(tap(() => this.xpertService.refresh()))

@@ -71,7 +71,7 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 			}
 		}
 		// 没有配置过 org 内的 copilot（包括又禁用的情况） 则使用 Tenant 全局配置
-		if (!copilot) {
+		if (!copilot?.enabled) {
 			for (const priorityRole of ProviderRolePriority.slice(ProviderRolePriority.indexOf(role))) {
 				copilot = await this.findTenantOneByRole(priorityRole, tenantId)
 				if (copilot?.enabled) {
