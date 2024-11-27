@@ -41,10 +41,20 @@
         </div>
       </div>
       <div class="flex items-center h-4 text-sm text-gray-500">
-        <span class="mr-0.5 text-sm font-semibold text-gray-700">{{(usage.tokenLimit - usage.tokenUsed) | number}}</span>
+        @if (usage.tokenLimit) {
+          <span class="mr-0.5 text-sm font-semibold text-gray-700">{{(usage.tokenLimit - usage.tokenUsed) | number}}</span>
+        } @else {
+          <span class="mr-0.5 text-sm font-semibold text-gray-700">∞</span>
+        }
         {{ 'PAC.Copilot.Tokens' | translate: {Default: 'Tokens'} }}
       </div>
-      <div class="text-xs text-gray-700">{{ 'PAC.Copilot.Remain' | translate: {Default: 'Remain'} }}: {{ ((usage.tokenLimit - usage.tokenUsed) / usage.tokenLimit * 100) | number: '0.0-0' }}%</div>
+      <div class="text-xs text-gray-700">{{ 'PAC.Copilot.Remain' | translate: {Default: 'Remain'} }}: 
+        @if (usage.tokenLimit) {
+          {{ ((usage.tokenLimit - usage.tokenUsed) / usage.tokenLimit * 100) | number: '0.0-0' }}
+        } @else {
+          100
+        }
+        %</div>
     </div>
   }
 
