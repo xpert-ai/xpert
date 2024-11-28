@@ -1,12 +1,37 @@
-import { ApiToolBundle, IXpertTool, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { IXpertTool, IXpertToolset, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { BaseToolset } from '../../toolset'
 import { OpenAPITool } from './tools/openapi-tool'
 
 export class OpenAPIToolset extends BaseToolset<OpenAPITool> {
 
 	providerType = XpertToolsetCategoryEnum.API
-
 	provider_id: string
+
+	constructor(protected toolset?: IXpertToolset) {
+		super(toolset)
+
+		const tools: OpenAPITool[] = []
+		this.toolset.tools?.filter((_) => _.enabled).forEach((item) => {
+			// Provide specific tool name to tool class
+			const DynamicOpenAPITool = class extends OpenAPITool {
+				static lc_name(): string {
+					return item.name
+				} 
+				constructor(tool: IXpertTool,) {
+					super(tool)
+				}
+			}
+
+			const tool = new DynamicOpenAPITool({
+				...item,
+				toolset: this.toolset
+			})
+		
+			tools.push(tool)
+		})
+
+		this.tools = tools
+	}
 
 	// private _parse_tool_bundle(tool_bundle: ApiToolBundle): OpenAPITool {
 	// 	// Todo
@@ -33,32 +58,7 @@ export class OpenAPIToolset extends BaseToolset<OpenAPITool> {
 	// }
 
 	getTools() {
-		if (this.tools) {
-			return this.tools
-		}
-
-		const tools: OpenAPITool[] = []
-		this.toolset.tools?.filter((_) => _.enabled).forEach((item) => {
-			// Provide specific tool name to tool class
-			const DynamicOpenAPITool = class extends OpenAPITool {
-				static lc_name(): string {
-					return item.name
-				} 
-				constructor(tool: IXpertTool,) {
-					super(tool)
-				}
-			}
-
-			const tool = new DynamicOpenAPITool({
-				...item,
-				toolset: this.toolset
-			})
-		
-			tools.push(tool)
-		})
-
-		this.tools = tools
-		return tools
+		return this.tools
 	}
 
 	getTool(toolName: string): OpenAPITool {

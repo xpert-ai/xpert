@@ -144,7 +144,7 @@ export class CopilotModelSelectComponent {
 
   constructor() {
     effect(() => {
-      console.log(this.searchedModels())
+      // console.log(this.searchedModels())
     })
   }
 

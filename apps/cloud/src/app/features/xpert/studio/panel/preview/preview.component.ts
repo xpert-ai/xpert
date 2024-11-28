@@ -1,8 +1,10 @@
+import { Clipboard } from '@angular/cdk/clipboard'
 import { TextFieldModule } from '@angular/cdk/text-field'
-import { Clipboard, ClipboardModule } from '@angular/cdk/clipboard'
 import { CommonModule } from '@angular/common'
 import { Component, computed, DestroyRef, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { appendMessageContent, stringifyMessageContent } from '@metad/copilot'
+import { TranslateModule } from '@ngx-translate/core'
 import {
   ChatConversationService,
   ChatMessageTypeEnum,
@@ -18,9 +20,6 @@ import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { processEvents } from '../agent-execution/execution.component'
-import { TranslateModule } from '@ngx-translate/core'
-import { MatSnackBar } from '@angular/material/snack-bar'
-import { appendMessageContent, stringifyMessageContent } from '@metad/copilot'
 import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
 
 @Component({
@@ -49,7 +48,6 @@ export class XpertStudioPreviewComponent {
   readonly #toastr = inject(ToastrService)
   readonly #destroyRef = inject(DestroyRef)
   readonly #clipboard = inject(Clipboard)
-  readonly #snackBar = inject(MatSnackBar)
 
   readonly envriments = signal(false)
 
@@ -97,13 +95,17 @@ export class XpertStudioPreviewComponent {
 
     // Send to server chat
     this.xpertService
-      .chat(this.xpert().id, {
-        input: { input },
-        conversationId: this.conversation()?.id,
-        xpertId: this.xpert().id
-      }, {
-        isDraft: true,
-      })
+      .chat(
+        this.xpert().id,
+        {
+          input: { input },
+          conversationId: this.conversation()?.id,
+          xpertId: this.xpert().id
+        },
+        {
+          isDraft: true
+        }
+      )
       .subscribe({
         next: (msg) => {
           if (msg.event === 'error') {
@@ -114,7 +116,7 @@ export class XpertStudioPreviewComponent {
               if (event.type === ChatMessageTypeEnum.MESSAGE) {
                 this.lastMessage.update((message) => {
                   appendMessageContent(message as any, event.data)
-                  return {...message}
+                  return { ...message }
                 })
                 if (typeof event.data === 'string') {
                   // Update last AI message
@@ -130,14 +132,14 @@ export class XpertStudioPreviewComponent {
           console.error(err)
           this.loading.set(false)
           if (this.lastMessage()) {
-            this.executionService.appendMessage({...this.lastMessage()})
+            this.executionService.appendMessage({ ...this.lastMessage() })
           }
           this.lastMessage.set(null)
         },
         complete: () => {
           this.loading.set(false)
           if (this.lastMessage()) {
-            this.executionService.appendMessage({...this.lastMessage()})
+            this.executionService.appendMessage({ ...this.lastMessage() })
           }
           this.lastMessage.set(null)
         }
@@ -150,10 +152,22 @@ export class XpertStudioPreviewComponent {
 
   close() {
     this.studioComponent.preview.set(false)
+    this.executionService.setConversation(null)
   }
 
   copy(message: CopilotChatMessage) {
     this.#clipboard.copy(stringifyMessageContent(message.content))
-    this.#toastr.info({code: 'PAC.Xpert.Copied', default: 'Copied'})
+    this.#toastr.info({ code: 'PAC.Xpert.Copied', default: 'Copied' })
+  }
+
+  onKeydown(event: KeyboardEvent) {
+    if (event.key === 'Enter') {
+      if (event.isComposing || event.shiftKey) {
+        return
+      }
+
+      this.chat(this.input())
+      event.preventDefault()
+    }
   }
 }

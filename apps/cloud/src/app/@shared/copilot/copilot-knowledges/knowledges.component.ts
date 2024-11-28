@@ -1,8 +1,8 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, input, model, signal, TemplateRef, viewChild } from '@angular/core'
+import { CommonModule, DatePipe } from '@angular/common'
+import { Component, computed, effect, inject, input, LOCALE_ID, model, signal, TemplateRef, viewChild } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -13,11 +13,10 @@ import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedFrom } from 'ngxtension/derived-from'
-import { BehaviorSubject, combineLatest, combineLatestWith, debounceTime, EMPTY, map, pipe, startWith, switchMap } from 'rxjs'
+import { BehaviorSubject, combineLatest, EMPTY, map, pipe, switchMap } from 'rxjs'
 import { CopilotExampleService, getErrorMessage, ICopilotKnowledge, injectToastr, IXpert } from '../../../@core'
 import { userLabel } from '../../pipes'
 import { ActivatedRoute, Router } from '@angular/router'
-import { ExampleVectorStoreRetriever } from '../../../@core/copilot'
 
 @Component({
   standalone: true,
@@ -46,6 +45,8 @@ export class CopilotKnowledgesComponent {
   readonly #dialog = inject(Dialog)
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
+  readonly locale = inject(LOCALE_ID)
+  readonly datePipe = new DatePipe(this.locale,)
 
   // Inputs
   readonly xpert = input<Partial<IXpert>>()
@@ -120,7 +121,8 @@ export class CopilotKnowledgesComponent {
         },
         {
           name: 'updatedAt',
-          caption: i18n?.UpdatedAt || 'Updated At'
+          caption: i18n?.UpdatedAt || 'Updated At',
+          pipe: (d) => this.datePipe.transform(d, 'short')
         },
         {
           name: 'input',

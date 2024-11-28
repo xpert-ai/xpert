@@ -8,35 +8,35 @@
       }
       @if (!isMobile()) {
         <button cdkMenuItem [cdkMenuTriggerFor]="generalMenu" class="relative flex items-center">
-            <span>{{ 'PAC.KEY_WORDS.GENERAL' | translate: {Default: "General"} }}</span>
-            <mat-icon fontSet="material-icons-outlined">keyboard_arrow_down</mat-icon>
+          <span>{{ 'PAC.KEY_WORDS.GENERAL' | translate: {Default: "General"} }}</span>
+          <i class="ri-arrow-drop-down-line text-xl"></i>
           @if (isDirty()) {
             <pac-dirty-badge class="absolute left-2 top-2"/>
           }
         </button>
         <button cdkMenuItem [cdkMenuTriggerFor]="editMenu" class="flex items-center">
-            <span>{{ 'PAC.KEY_WORDS.EDIT' | translate: {Default: "Edit"} }}</span>
-            <mat-icon fontSet="material-icons-outlined">keyboard_arrow_down</mat-icon>
+          <span>{{ 'PAC.KEY_WORDS.EDIT' | translate: {Default: "Edit"} }}</span>
+          <i class="ri-arrow-drop-down-line text-xl"></i>
         </button>
         <button cdkMenuItem [cdkMenuTriggerFor]="dataMenu" class="flex items-center">
-            <span>{{ 'PAC.KEY_WORDS.DATA' | translate: {Default: "Data"} }}</span>
-            <mat-icon fontSet="material-icons-outlined">keyboard_arrow_down</mat-icon>
+          <span>{{ 'PAC.KEY_WORDS.DATA' | translate: {Default: "Data"} }}</span>
+          <i class="ri-arrow-drop-down-line text-xl"></i>
         </button>
         <button cdkMenuItem [cdkMenuTriggerFor]="manageMenu" class="flex items-center">
-            <span>{{ 'PAC.KEY_WORDS.Management' | translate: {Default: "Management"} }}</span>
-            <mat-icon fontSet="material-icons-outlined">keyboard_arrow_down</mat-icon>
+          <span>{{ 'PAC.KEY_WORDS.Management' | translate: {Default: "Management"} }}</span>
+          <i class="ri-arrow-drop-down-line text-xl"></i>
         </button>
       }
         <div [routerLink]="['./access']" routerLinkActive #rla="routerLinkActive">
-            <button *ngIf="rla.isActive" mat-button [color]="'accent'">
-                <span class="font-notoColorEmoji">🔏</span>{{ 'PAC.MODEL.AccessControl.Title' | translate: {Default: "Access Control"} }}
-            </button>
+          <button *ngIf="rla.isActive" mat-button [color]="'accent'">
+            <span class="font-notoColorEmoji">🔏</span>{{ 'PAC.MODEL.AccessControl.Title' | translate: {Default: "Access Control"} }}
+          </button>
         </div>
     
         <div [routerLink]="['./query']" routerLinkActive #rla2="routerLinkActive">
-            <button mat-button [color]="rla2.isActive?'accent':''">
-                <span class="font-notoColorEmoji">🧪</span>{{ 'PAC.MODEL.QUERY.TITLE' | translate: {Default: "Query Lab"} }}
-            </button>
+          <button mat-button [color]="rla2.isActive?'accent':''">
+            <span class="font-notoColorEmoji">🧪</span>{{ 'PAC.MODEL.QUERY.TITLE' | translate: {Default: "Query Lab"} }}
+          </button>
         </div>
     </div>
 

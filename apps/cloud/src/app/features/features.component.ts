@@ -203,6 +203,7 @@ export class FeaturesComponent implements OnInit {
         this.sidenavOpened.set(false)
       }
     }, { allowSignalWrites: true })
+
   }
 
   async ngOnInit() {

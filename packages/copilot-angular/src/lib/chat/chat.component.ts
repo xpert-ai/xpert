@@ -25,15 +25,9 @@ import {
 } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import {
-  MatAutocompleteActivatedEvent,
-  MatAutocompleteModule,
-  MatAutocompleteTrigger
-} from '@angular/material/autocomplete'
 import { MatButtonModule } from '@angular/material/button'
 import { MatInputModule } from '@angular/material/input'
 import { MatListModule } from '@angular/material/list'
-import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -58,7 +52,6 @@ import {
   delay,
   distinctUntilChanged,
   filter,
-  map,
   of,
   startWith,
   switchMap,
@@ -101,10 +94,8 @@ export const AUTO_SUGGESTION_STOP = ['\n', '.', ',', '@', '#']
     MatInputModule,
     MatButtonModule,
     MatTooltipModule,
-    MatAutocompleteModule, // @deprecated
     MatProgressBarModule,
     MatListModule,
-    MatMenuModule,
     TranslateModule,
     ScrollingModule,
 
@@ -134,6 +125,7 @@ export class NgmCopilotChatComponent {
   readonly copilotEngine$ = signal<NgmCopilotEngineService>(this.#copilotEngine)
 
   // Inputs
+  readonly opened = model<boolean>()
   @Input() welcomeTitle: string
   @Input() welcomeSubTitle: string
   @Input() placeholder: string
@@ -167,8 +159,8 @@ export class NgmCopilotChatComponent {
   // Children
   @ViewChild('chatsContent') chatsContent: ElementRef<HTMLDivElement>
   @ViewChild('scrollBack') scrollBack!: CopilotScrollBackComponent
+  readonly commandsPanel = viewChild('commandsPanel', { read: ElementRef })
   // readonly routeTemplate = viewChild('routeTemplate', { read: TemplateRef })
-  readonly autocompleteTrigger = viewChild('userInput', { read: MatAutocompleteTrigger })
   readonly userInput = viewChild('userInput', { read: ElementRef })
 
   // States
@@ -194,7 +186,7 @@ export class NgmCopilotChatComponent {
   readonly copilot = toSignal(this.copilotService.copilot$)
   readonly copilotEnabled = toSignal(this.copilotService.enabled$)
   readonly showTokenizer$ = computed(() => this.copilot()?.showTokenizer)
-  readonly #defaultModel = computed(() => this.copilot()?.defaultModel)
+  // readonly #defaultModel = computed(() => this.copilot()?.defaultModel)
   readonly interactive = this.copilotEngine$().agentConfig.interactive
   readonly #predefinedModels = computed(() => AI_PROVIDERS[this.copilot()?.provider]?.models)
   readonly canListModels = computed(() => !!AI_PROVIDERS[this.copilot()?.provider]?.modelsUrl)
@@ -210,7 +202,7 @@ export class NgmCopilotChatComponent {
   readonly role = this.copilotService.role
   readonly roleDetail = this.copilotService.roleDetail
 
-  readonly #activatedPrompt = signal<CopilotContextItem | string>('')
+  // readonly #activatedPrompt = signal<CopilotContextItem | string>('')
   readonly refreshingModels = signal(false)
 
   /**
@@ -375,26 +367,26 @@ export class NgmCopilotChatComponent {
   readonly messageCopied = signal<string[]>([])
   readonly editingMessageId = signal<string>(null)
 
-  readonly input = toSignal(
-    this.promptControl.valueChanges.pipe(
-      debounceTime(AUTO_SUGGESTION_DEBOUNCE_TIME),
-      filter((text) => !AUTO_SUGGESTION_STOP.includes(text.slice(-1))),
-      map((text) => text.trim())
-    )
-  )
-  readonly examplesRetriever = computed(() => this.command()?.examplesRetriever)
-  readonly examples = derivedAsync(() => {
-    const examplesRetriever = this.examplesRetriever()
-    const input = this.input()
-    if (!examplesRetriever) {
-      return null
-    }
-    return examplesRetriever.invoke(input).then((docs) =>
-      docs.map((doc) => ({
-        text: doc.metadata['input']
-      }))
-    )
-  })
+  // readonly input = toSignal(
+  //   this.promptControl.valueChanges.pipe(
+  //     debounceTime(AUTO_SUGGESTION_DEBOUNCE_TIME),
+  //     filter((text) => !AUTO_SUGGESTION_STOP.includes(text?.slice(-1))),
+  //     map((text) => text.trim())
+  //   )
+  // )
+  // readonly examplesRetriever = computed(() => this.command()?.examplesRetriever)
+  // readonly examples = derivedAsync(() => {
+  //   const examplesRetriever = this.examplesRetriever()
+  //   const input = this.input()
+  //   if (!examplesRetriever) {
+  //     return null
+  //   }
+  //   return examplesRetriever.invoke(input).then((docs) =>
+  //     docs.map((doc) => ({
+  //       text: doc.metadata['input']
+  //     }))
+  //   )
+  // })
 
   readonly commandsPanelOpen = signal(false)
   readonly focusCommand = signal('')
@@ -453,6 +445,12 @@ export class NgmCopilotChatComponent {
     })
 
   constructor() {
+    effect(() => {
+      if (this.opened()) {
+        this.focus()
+      }
+    })
+    
     effect(
       () => {
         this.answering() ? this.promptControl.disable() : this.promptControl.enable()
@@ -483,11 +481,9 @@ export class NgmCopilotChatComponent {
       { allowSignalWrites: true }
     )
 
-    // effect(() => {
-    //   if (this.copilotEngine) {
-    //     this.copilotEngine.routeTemplate = this.routeTemplate()
-    //   }
-    // })
+    effect(() => {
+      console.log(`isContextTrigger:`, this.isContextTrigger(), this.filteredContextItems())
+    })
   }
 
   trackByKey(index: number, item) {
@@ -672,7 +668,7 @@ export class NgmCopilotChatComponent {
       return
     }
 
-    if (event.key === '/') {
+    if (event.key === '/' || event.key === '@') {
       setTimeout(() => {
         this.commandsPanelOpen.set(true)
       })
@@ -685,23 +681,23 @@ export class NgmCopilotChatComponent {
       if (this.promptCompletion()) {
         this.promptControl.setValue(this.promptControl.value.trimEnd() + ' ' + this.promptCompletion())
       } else {
-        const activatedPrompt = this.#activatedPrompt()
-        if (this.isContextTrigger()) {
-          let item: CopilotContextItem = null
-          if (activatedPrompt && typeof activatedPrompt !== 'string') {
-            item = activatedPrompt
-          } else {
-            item = this.filteredContextItems()[0]
-          }
-          if (item) {
-            this.promptControl.setValue(this.beforeLastWord() + ' @' + item.uKey + ' ')
-            this.context.set(item)
-          }
-        } else if (typeof activatedPrompt === 'string') {
-          this.promptControl.setValue(activatedPrompt)
-        } else if (this.filteredCommands()?.length) {
-          this.promptControl.setValue(this.filteredCommands()[0] ? '/' + this.filteredCommands()[0].name + ' ' : null)
-        }
+        // const activatedPrompt = this.#activatedPrompt()
+        // if (this.isContextTrigger()) {
+        //   let item: CopilotContextItem = null
+        //   if (activatedPrompt && typeof activatedPrompt !== 'string') {
+        //     item = activatedPrompt
+        //   } else {
+        //     item = this.filteredContextItems()[0]
+        //   }
+        //   if (item) {
+        //     this.promptControl.setValue(this.beforeLastWord() + ' @' + item.uKey + ' ')
+        //     this.context.set(item)
+        //   }
+        // } else if (typeof activatedPrompt === 'string') {
+        //   this.promptControl.setValue(activatedPrompt)
+        // } else if (this.filteredCommands()?.length) {
+        //   this.promptControl.setValue(this.filteredCommands()[0] ? '/' + this.filteredCommands()[0].name + ' ' : null)
+        // }
       }
     }
 
@@ -710,18 +706,21 @@ export class NgmCopilotChatComponent {
 
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
       event.preventDefault()
-
-      const historyQuestions = this.historyQuestions()
-      if (historyQuestions.length) {
-        if (event.key === 'ArrowUp' && this.historyIndex() < historyQuestions.length - 1) {
-          this.historyIndex.set(this.historyIndex() + 1)
-        } else if (event.key === 'ArrowDown' && this.historyIndex() > -1) {
-          this.historyIndex.set(this.historyIndex() - 1)
-        } else {
-          return
+      if (this.commandsPanelOpen()) {
+        this.commandsPanel().nativeElement.focus()
+      } else {
+        const historyQuestions = this.historyQuestions()
+        if (historyQuestions.length) {
+          if (event.key === 'ArrowUp' && this.historyIndex() < historyQuestions.length - 1) {
+            this.historyIndex.set(this.historyIndex() + 1)
+          } else if (event.key === 'ArrowDown' && this.historyIndex() > -1) {
+            this.historyIndex.set(this.historyIndex() - 1)
+          } else {
+            return
+          }
+  
+          this.promptControl.setValue(historyQuestions[this.historyIndex()] ?? '')
         }
-
-        this.promptControl.setValue(historyQuestions[this.historyIndex()] ?? '')
       }
     }
   }
@@ -732,16 +731,15 @@ export class NgmCopilotChatComponent {
   onSelectCommand(event: KeyboardEvent) {
     if (event.key === 'Enter' || event.key === 'Tab') {
       this.selectCommand(this.focusCommand())
+
+      this.userInput().nativeElement.focus()
     }
   }
 
   selectCommand(command: string) {
-    this.promptControl.setValue(command)
+    const value = this.prompt().replace(new RegExp(this.lastWord() + '$'), command + ' ')
+    this.promptControl.setValue(value)
     this.commandsPanelOpen.set(false)
-  }
-
-  onPromptActivated(event: MatAutocompleteActivatedEvent) {
-    this.#activatedPrompt.set(event.option?.value)
   }
 
   dropCopilot(event: CdkDragDrop<any[], any[], any>) {
@@ -777,8 +775,16 @@ export class NgmCopilotChatComponent {
     element.attributes.removeNamedItem('contenteditable')
   }
 
+  /**
+   * Set context item by click
+   * 
+   * @param item Context item
+   */
   setContext(item: CopilotContextItem) {
+    const value = this.prompt().replace(new RegExp(this.lastWord() + '$'), `@${item.key}`)
+    this.promptControl.setValue(value)
     this.context.set(item)
+    this.commandsPanelOpen.set(false)
   }
 
   repleaceContext(orginal: string, target: CopilotContextItem) {
@@ -797,13 +803,15 @@ export class NgmCopilotChatComponent {
   }
 
   focus(value?: string) {
-    this.userInput().nativeElement.focus()
     if (!this.prompt()) {
       this.promptControl.setValue(value)
     }
-    if (value) {
-      this.autocompleteTrigger().openPanel()
-    }
+    // if (value) {
+    //   this.autocompleteTrigger().openPanel()
+    // }
+    setTimeout(() => {
+      this.userInput().nativeElement.focus()
+    }, 100);
   }
 
   async continue(conversation: CopilotChatConversation) {

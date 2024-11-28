@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, HostBinding, input, model } from '@angular/core'
-import { MatIconModule } from '@angular/material/icon'
 
 @Component({
   standalone: true,
@@ -8,7 +7,7 @@ import { MatIconModule } from '@angular/material/icon'
   selector: 'ngm-drawer-container',
   templateUrl: './drawer-container.component.html',
   styleUrls: ['./drawer-container.component.scss'],
-  imports: [CommonModule, MatIconModule]
+  imports: [CommonModule,]
 })
 export class NgmDrawerContainerComponent {
   readonly opened = model<boolean>()

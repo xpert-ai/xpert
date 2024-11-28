@@ -231,8 +231,8 @@
             @if (context()) {
               <span class="flex items-center px-1 py-0.5 rounded-full bg-neutral-50 dark:bg-neutral-900 cursor-pointer"
                 [matTooltip]="context().caption"
-                [matMenuTriggerFor]="contextMenu"
-                [matMenuTriggerData]="{word: {text: context().uKey }}"
+                [cdkMenuTriggerFor]="contextMenu"
+                [cdkMenuTriggerData]="{word: {text: context().uKey }}"
                 (click)="$event.stopPropagation()">{{context().caption || context().key}}<button class="flex-shrink-0 hover:text-red-500" (click)="removeContext()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" class="icon-lg"><path fill="currentColor" fill-rule="evenodd" d="M7.293 7.293a1 1 0 0 1 1.414 0L12 10.586l3.293-3.293a1 1 0 1 1 1.414 1.414L13.414 12l3.293 3.293a1 1 0 0 1-1.414 1.414L12 13.414l-3.293 3.293a1 1 0 0 1-1.414-1.414L10.586 12 7.293 8.707a1 1 0 0 1 0-1.414" clip-rule="evenodd"></path></svg></button></span>
             }
             @if (command()) {
@@ -240,13 +240,13 @@
             }
           </div>
 
-          <div class="flex flex-wrap max-h-[100px] overflow-auto">
+          <!-- <div class="flex flex-wrap max-h-[100px] overflow-auto">
             @for (example of examples(); track example.text) {
               <span class="inline-flex m-1 cursor-pointer hover:underline items-center rounded-md px-2 py-1 text-xs font-medium border border-neutral-100 dark:border-neutral-800"
                 (click)="pickExample(example.text)"
               >{{example.text}}</span>
             }
-          </div>
+          </div> -->
         </div>
       }
 
@@ -267,33 +267,6 @@
         >
         </textarea>
 
-          <!-- <div class="ngm-colpilot__words absolute top-0 block z-20 whitespace-pre-wrap">
-            @for (line of promptWords(); track $index; let last = $last) {
-              @for (word of line; track $index) {
-                @switch (word.type) {
-                  @case('command') {
-                    <span class="rounded-md cursor-pointer bg-neutral-200 dark:bg-neutral-600" [matTooltip]="word.description | async">{{word.text}}</span>
-                  }
-                  @case('context') {
-                    <span class="rounded-md cursor-pointer bg-neutral-200 dark:bg-neutral-600"
-                        [matTooltip]="word.description | async"
-                        [matMenuTriggerFor]="contextMenu"
-                        [matMenuTriggerData]="{word: word, index: $index}"
-                        (click)="$event.stopPropagation()"
-                        >{{word.text}}</span>
-                  }
-                  @default {
-                    <span class="opacity-0">{{word.text}}</span>
-                  }
-                }
-                <span>{{' '}}</span>
-              }
-              @if (!last) {
-                <br>
-              }
-            }
-          </div> -->
-          
         @if (promptCompletion()) {
           <div class="absolute top-0 left-0 px-1.5 whitespace-pre-wrap">
               <span class="opacity-30 z-0">{{prompt()}} <span class="italic">{{promptCompletion()}}</span></span>
@@ -316,121 +289,59 @@
         ]"
         (detach)="commandsPanelOpen.set(false)"
       >
-        <div class="commands-panel relative flex flex-col p-2 rounded-xl bg-components-card-bg border-light shadow-md"
+        <ul #commandsPanel cdkListbox class="commands-panel relative flex flex-col p-2 rounded-xl bg-components-card-bg border-light shadow-md"
           [style.width.px]="inputTrigger.offsetWidth"
-          cdkTrapFocus
-          cdkTrapFocusAutoCapture="true"
-          (keyup)="onSelectCommand($event)"
+
+          (keydown)="onSelectCommand($event)"
         >
-        @if (loadingContext$ | async) {
-          <mat-progress-bar mode="query" role="progressbar"
-              color="accent"
-              class="top-0 left-0 w-full"
-              style="position: absolute; height: 2px;"
-              />
-          <mat-option [value]="null"></mat-option>
-        } @else if (filteredContextItems()) {
-          <cdk-virtual-scroll-viewport class="nx-formly__virtual-scroll-viewport" minBufferPx="200" maxBufferPx="400"
-              [style.height.px]="240" [itemSize]="36"
-          >
-            <mat-option *cdkVirtualFor="let item of filteredContextItems(); trackBy: trackByKey"
-              [value]="item"
-              (click)="setContext(item)"
-            >
-              <div class="flex-1 flex items-center overflow-hidden" >
-                <span class="flex-1 text-ellipsis overflow-hidden" [ngmHighlight]="contextSearchWords()?.[0]"
-                  [content]="item.caption">{{item.caption}}</span>
-                <span class="text-xs text-ellipsis overflow-hidden italic opacity-50" [ngmHighlight]="contextSearchWords()?.[0]"
-                  [content]="item.key">{{item.key}}</span>
-              </div>
-            </mat-option>
-          </cdk-virtual-scroll-viewport>
-        }
-
-          <ul cdkListbox>
-            @for (command of filteredCommands();  track command.prompt) {
-              <li class="px-2 py-1 rounded-lg cursor-pointer hover:bg-hover-bg outline-none focus-within:bg-gray-50"
-                [cdkOption]="'/'+command.name+' '+(command.example || '')"
-                [title]="command.description"
-                (focus)="focusCommand.set('/'+command.name+' '+(command.example || ''))"
-                (click)="selectCommand('/'+command.name+' '+(command.example || ''))"
-              >
-                <span class="ngm-copilot-chat__command-tag text-xs font-medium me-2 p-1 mr-1 rounded"
-                  >/{{command.name}}</span>
-                @if (command.alias) {
-                  <span class="ngm-copilot-chat__command-tag text-xs font-medium me-2 p-1 mr-1 rounded"
-                  >/{{command.alias}}</span>
-                }
-
-                @if (command.example) {
-                  <div class="whitespace-nowrap text-ellipsis overflow-hidden text-sm text-gray-500 italic"
-                      [ngmHighlight]="prompt()"
-                      [content]="command.example"
-                      customClasses="text-gray-600 bg-gray-200 font-bold not-italic"
-                  >{{command.example}}</div>
-                } @else {
-                  <span class="ml-auto text-sm opacity-50">{{command.description}}</span>
-                }
-              </li>
-            }
-          </ul>
-        </div>
-      </ng-template>
-
-        <mat-autocomplete #autoPrompts="matAutocomplete" class="ngm-copilot-chat__autocomplete-panel ngm-autocomplete-panel ngm-density__cosy"
-            autoActiveFirstOption hideSingleSelectionIndicator
-            [displayWith]="autocompleteDisplayWith"
-            (optionActivated)="onPromptActivated($event)"
-            (opened)="suggestionsOpened$.next(true)"
-            (closed)="suggestionsOpened$.next(false)"
-        >
-
           @if (loadingContext$ | async) {
             <mat-progress-bar mode="query" role="progressbar"
                 color="accent"
                 class="top-0 left-0 w-full"
                 style="position: absolute; height: 2px;"
-                />
-            <mat-option [value]="null"></mat-option>
+              />
           } @else if (filteredContextItems()) {
-            <cdk-virtual-scroll-viewport class="nx-formly__virtual-scroll-viewport" minBufferPx="200" maxBufferPx="400"
-                [style.height.px]="240" [itemSize]="36"
-            >
-              <mat-option *cdkVirtualFor="let item of filteredContextItems(); trackBy: trackByKey"
-                [value]="item"
+            @for (item of filteredContextItems();  track item.key) {
+              <li class="h-8 px-2 py-1 rounded-lg flex items-center overflow-hidden cursor-pointer hover:bg-hover-bg outline-none focus-within:bg-gray-50"
+                [cdkOption]="'@'+ item.key"
+                (focus)="focusCommand.set('@'+item.key)"
                 (click)="setContext(item)"
               >
-                <div class="flex-1 flex items-center overflow-hidden" >
-                  <span class="flex-1 text-ellipsis overflow-hidden" [ngmHighlight]="contextSearchWords()?.[0]"
-                    [content]="item.caption">{{item.caption}}</span>
-                  <span class="text-xs text-ellipsis overflow-hidden italic opacity-50" [ngmHighlight]="contextSearchWords()?.[0]"
-                    [content]="item.key">{{item.key}}</span>
-                </div>
-              </mat-option>
-            </cdk-virtual-scroll-viewport>
+                <span class="flex-1 text-ellipsis overflow-hidden" [ngmHighlight]="contextSearchWords()?.[0]"
+                  [content]="item.caption">{{item.caption}}</span>
+                <span class="text-xs text-ellipsis overflow-hidden italic opacity-50" [ngmHighlight]="contextSearchWords()?.[0]"
+                  [content]="item.key">{{item.key}}</span>
+              </li>
+            }
           }
 
           @for (command of filteredCommands();  track command.prompt) {
-            <mat-option [value]="'/'+command.name+' '+(command.example || '')" [title]="command.description">
-                <span class="ngm-copilot-chat__command-tag text-xs font-medium me-2 px-1 mr-1 rounded"
+            <li class="px-2 py-1 rounded-lg cursor-pointer hover:bg-hover-bg outline-none focus-within:bg-gray-50"
+              [cdkOption]="'/'+command.name+' '+(command.example || '')"
+              [title]="command.description"
+              (focus)="focusCommand.set('/'+command.name+' '+(command.example || ''))"
+              (click)="selectCommand('/'+command.name+' '+(command.example || ''))"
+            >
+              <span class="ngm-copilot-chat__command-tag text-xs font-medium me-2 p-1 mr-1 rounded"
                 >/{{command.name}}</span>
               @if (command.alias) {
-                <span class="ngm-copilot-chat__command-tag text-xs font-medium me-2 px-1 mr-1 rounded"
+                <span class="ngm-copilot-chat__command-tag text-xs font-medium me-2 p-1 mr-1 rounded"
                 >/{{command.alias}}</span>
               }
 
               @if (command.example) {
-                <div class="whitespace-nowrap text-ellipsis overflow-hidden text-gray-500 italic"
+                <div class="whitespace-nowrap text-ellipsis overflow-hidden text-sm text-gray-500 italic"
                     [ngmHighlight]="prompt()"
                     [content]="command.example"
                     customClasses="text-gray-600 bg-gray-200 font-bold not-italic"
                 >{{command.example}}</div>
               } @else {
-                <span class="ml-auto opacity-50">{{command.description}}</span>
+                <span class="ml-auto text-sm opacity-50">{{command.description}}</span>
               }
-            </mat-option>
+            </li>
           }
-        </mat-autocomplete>
+        </ul>
+      </ng-template>
 
         <div class="shrink-0 flex items-center">
             <button type="button" class="p-2 rounded-full text-text-secondary hover:bg-hover-bg hover:text-text-primary"
@@ -489,10 +400,9 @@
   />
 </ng-template>
 
-
-<mat-menu #contextMenu="matMenu" class="ngm-menu__copilot-context-popper ngm-density__compact">
-  <ng-template matMenuContent let-word="word">
-    <ngm-search class="m-2 mb-0" (click)="$event.stopPropagation()" [(ngModel)]="contextMenuSearch" />
+<ng-template #contextMenu let-word="word">
+  <div cdkMenu class="flex flex-col px-2">
+    <ngm-search class="mt-2" (click)="$event.stopPropagation()" [(ngModel)]="contextMenuSearch" />
 
     @if (loadingContext$ | async) {
       <mat-progress-bar mode="query" role="progressbar"
@@ -501,18 +411,20 @@
         style="position: absolute; height: 2px;"/>
     } @else if (filteredContextMenuItems()) {
       <cdk-virtual-scroll-viewport minBufferPx="200" maxBufferPx="400"
-        [style.height.px]="240" [itemSize]="30"
+        [style.height.px]="240" [itemSize]="28"
       >
-        <button mat-menu-item *cdkVirtualFor="let item of filteredContextMenuItems(); trackBy: trackByKey"
+        <button 
+          *cdkVirtualFor="let item of filteredContextMenuItems(); trackBy: trackByKey"
+          cdkMenuItem class="w-full px-2 py-1 rounded-lg h-8"
           [ngClass]="{active: item.uKey === word.text}"
           (click)="repleaceContext(word.text, item)"
         >
-          <div class="flex-1 flex items-center overflow-hidden">
-            <span class="flex-1 text-ellipsis overflow-hidden" [title]="item.caption" [ngmHighlight]="contextMenuSearch()" [content]="item.caption">{{item.caption}}</span>
-            <span class="flex-1 text-sm text-ellipsis overflow-hidden italic opacity-50" [title]="item.key" [ngmHighlight]="contextMenuSearch()" [content]="item.key">{{item.key}}</span>
+          <div class="w-full flex items-center overflow-hidden">
+            <span class="flex-1 text-start text-ellipsis overflow-hidden" [title]="item.caption" [ngmHighlight]="contextMenuSearch()" [content]="item.caption">{{item.caption}}</span>
+            <span class="flex-1 text-sm text-end text-ellipsis overflow-hidden italic opacity-50" [title]="item.key" [ngmHighlight]="contextMenuSearch()" [content]="item.key">{{item.key}}</span>
           </div>
         </button>
       </cdk-virtual-scroll-viewport>
     }
-  </ng-template>
-</mat-menu>
+  </div>
+</ng-template>

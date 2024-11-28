@@ -138,10 +138,12 @@
     </mat-toolbar>
 
     <ngm-drawer-container class="relative flex-1 z-10" [mode]="isMobile() ? 'over' : 'side'"
-      [(opened)]="copilotDrawerOpened">
+      [(opened)]="copilotDrawerOpened"
+    >
       <ngm-drawer-content class="flex-1 relative flex" [@routeAnimations]="o.isActivated && o.activatedRouteData?.title">
         @if(copilotEnabled$()) {
-          <ngm-drawer-trigger class="absolute -right-2 top-1/2 -translate-y-1/2 z-40" [(opened)]="copilotDrawerOpened" side="right"
+          <ngm-drawer-trigger class="absolute -right-2 top-1/2 -translate-y-1/2 z-40"
+            [(opened)]="copilotDrawerOpened" side="right"
             [matTooltip]="'PAC.Copilot.AICopilot' | translate: {Default: 'AI Copilot'}"
             matTooltipPosition="before"
           />
@@ -151,7 +153,8 @@
 
       <ngm-drawer #copilotDrawer class="relative z-50 w-96 h-full max-w-full max-h-full border-l border-solid border-transparent border-l-neutral-100 dark:border-l-neutral-800"
         ngmResizer [resizerWidth]="380"
-        [(opened)]="copilotDrawerOpened">
+        [(opened)]="copilotDrawerOpened"
+      >
         @if(copilotEnabled$()) {
           <ngm-copilot-chat #copilotChat class="pac-cdk-drop__list pac-cdk-drop__area w-full h-full"
             [aiAvatarTemplate]="aiAvatar"
@@ -159,6 +162,7 @@
             [copilotEngine]="copilotEngine"
             [welcomeTitle]="'PAC.Copilot.WelcomeTitle' | translate: {Default: 'Xpert Copilot'}"
             [welcomeSubTitle]="'PAC.Copilot.WelcomeSubTitle' | translate: {Default: 'Your digital business expert copilot'}"
+            [(opened)]="copilotDrawerOpened"
             cdkDropList
             (cdkDropListDropped)="copilotChat.dropCopilot($event)"
             (enableCopilot)="toEnableCopilot()"
@@ -176,43 +180,7 @@
         ></div>
       </ngm-drawer>
     </ngm-drawer-container>
-<!-- 
-    <mat-drawer-container class="flex-1 h-full" [ngClass]="{'pac-fullscreen': fullscreenIndex$() > 1}"
-      autosize
-    >
-      <mat-drawer #copilotDrawer class="ngm-sidenav-container-bg-transparent mat-elevation-z max-w-full" position="end"
-        [mode]="isMobile() ? 'over' : 'side'"
-        ngmResizer [resizerWidth]="380"
-        [(opened)]="copilotDrawerOpened"
-      >
-        @if(copilotEnabled$()) {
-          <ngm-copilot-chat #copilotChat class="pac-cdk-drop__list pac-cdk-drop__area h-full"
-            thinkingAvatar="assets/images/copilot_sparkle_processing.gif"
-            assistantAvatar="assets/images/copilot_sparkle.svg"
-            [user]="user$()"
-            [copilotEngine]="copilotEngine"
-            cdkDropList
-            (cdkDropListDropped)="copilotChat.dropCopilot($event)"
-            (enableCopilot)="toEnableCopilot()"
-          ></ngm-copilot-chat>
-        }
-        
-        <div ngmResizerBar resizerBarPosition="left"
-          cdkDrag
-          cdkDragLockAxis="x"
-        ></div>
-      </mat-drawer>
-      <mat-drawer-content class="pac-app__page-outlet relative z-0" 
-        [@routeAnimations]="o.isActivated && o.activatedRouteData?.title">
-        @if(copilotEnabled$()) {
-          <ngm-drawer-trigger class="absolute -right-2 top-1/2 -translate-y-1/2 z-40" [(opened)]="copilotDrawerOpened" side="right"
-            [matTooltip]="'PAC.Copilot.AICopilot' | translate: {Default: 'AI Copilot'}"
-            matTooltipPosition="before"
-          />
-        }
-        <router-outlet #o="outlet"></router-outlet>
-      </mat-drawer-content>
-    </mat-drawer-container> -->
+
   </mat-sidenav-content>
 </mat-sidenav-container>
 

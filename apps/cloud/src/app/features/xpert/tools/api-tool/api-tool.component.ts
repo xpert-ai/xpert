@@ -252,6 +252,7 @@ export class XpertStudioAPIToolComponent {
   }
 
   cancel() {
-    this.#router.navigate(['/xpert'])
+    // Back to workspace
+    this.#router.navigate(['/xpert/w', this.toolset().workspaceId])
   }
 }

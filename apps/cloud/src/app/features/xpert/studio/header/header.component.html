@@ -96,8 +96,7 @@
       <div
         class="group flex items-center justify-center px-2 py-1 rounded-md cursor-pointer
           text-text-tertiary hover:bg-primary-50 hover:text-primary-500"
-        [floatUi]="conversations"
-        [placement]="eNgxFloatUiPlacements.BOTTOMSTART"
+        [cdkMenuTriggerFor]="conversationsMenu"
       >
         <svg
           width="16"
@@ -269,23 +268,29 @@
   </div>
 </ng-template>
 
-<float-ui-content #conversations>
-  <div class="ngm-cdk-menu p-2 w-96 max-w-md">
-    @for (item of conversations$ | async; track item.id) {
-      <button class="ngm-cdk-menu-item px-2 py-1 max-w-full flex flex-col justify-start items-start"
-        [title]="item.title"
-        (click)="conversations.hide();openConversation(item)">
-        <div class="text-start text-sm max-w-full truncate">{{item.title}}</div>
-        <div class="text-start text-xs max-w-full text-text-tertiary">{{item.createdAt | date: 'medium'}}</div>
-      </button>
-    } @empty {
-      <div class="w-32 h-8 flex justify-center items-center">
-        {{ 'PAC.Xpert.NoChatHistory' | translate: {Default: 'No chat history'} }}
-      </div>
-    }
-  </div>
-</float-ui-content>
+<ng-template #conversationsMenu>
+  <div class="cdk-menu__medium flex flex-col w-96 max-w-md" cdkMenu @overlayAnimation1>
+    <div class="sticky top-0 bg-white flex items-center justify-between px-2 pt-1 text-base font-semibold text-gray-900">
+      <div class="grow">{{ 'PAC.Xpert.ChatHistory' | translate: {Default: 'Chat History'} }}</div>
+    </div>
 
+    <div class="w-full flex flex-col items-stretch">
+      @for (item of conversations$ | async; track item.id) {
+        <button cdkMenuItem class="px-2 py-1 max-w-full flex flex-col justify-start items-start"
+          [class.active]="conversationId() === item.id"
+          [title]="item.title"
+          (click)="openConversation(item)">
+          <div class="text-start text-sm w-full max-w-full truncate">{{item.title}}</div>
+          <div class="w-full text-end text-xs max-w-full text-text-tertiary">{{item.createdAt | date: 'medium'}}</div>
+        </button>
+      } @empty {
+        <div class="w-32 h-8 flex justify-center items-center">
+          {{ 'PAC.Xpert.NoChatHistory' | translate: {Default: 'No chat history'} }}
+        </div>
+      }
+    </div>
+  </div>
+</ng-template>
 
 <ng-template #envInDevelopment>
   <pac-in-development @overlayAnimation1 feature="Enviroments for variable and parameter" class="w-96" />

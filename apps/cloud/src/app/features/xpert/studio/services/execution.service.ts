@@ -81,6 +81,7 @@ export class XpertExecutionService {
   }
 
   setConversation(value: IChatConversation) {
+    this.conversation.set(null)
     this.conversationId.set(value?.id)
     this.#agentExecutions.set({})
     this.#messages.set([])

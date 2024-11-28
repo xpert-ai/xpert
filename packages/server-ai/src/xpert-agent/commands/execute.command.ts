@@ -85,63 +85,78 @@ export function createXpertAgentTool(
 				}) as MessageEvent
 			)
 
-			const obs = await commandBus.execute<XpertAgentExecuteCommand, Observable<string>>(
-				new XpertAgentExecuteCommand(args, agent.key, xpert, { ...options, thread_id, execution })
-			)
-
 			let status = XpertAgentExecutionEnum.SUCCEEDED
 			let error = null
 			let result = ''
-			await lastValueFrom(obs.pipe(
-				reduce((acc, val) => acc + val, ''),
-				tap({
-					next: (text: string) => {
-						result = text
-					},
-					error: (err) => {
-						status = XpertAgentExecutionEnum.FAILED
-						error = getErrorMessage(err)
-					},
-					finalize: async () => {
-						try {
-							const timeEnd = Date.now()
-							// Record End time
-							const newExecution = await commandBus.execute(
-								new XpertAgentExecutionUpsertCommand({
-									id: execution.id,
-									elapsedTime: timeEnd - timeStart,
-									status,
-									error,
-									tokens: execution.tokens,
-									thread_id,
-									outputs: {
-										output: result
-									}
-								})
-							)
+			const finalize = async () => {
+				const timeEnd = Date.now()
+				// Record End time
+				const newExecution = await commandBus.execute(
+					new XpertAgentExecutionUpsertCommand({
+						id: execution.id,
+						elapsedTime: timeEnd - timeStart,
+						status,
+						error,
+						tokens: execution.tokens,
+						thread_id,
+						outputs: {
+							output: result
+						}
+					})
+				)
 
-							const fullExecution = await queryBus.execute(
-								new XpertAgentExecutionOneQuery(newExecution.id)
-							)
+				const fullExecution = await queryBus.execute(
+					new XpertAgentExecutionOneQuery(newExecution.id)
+				)
 
-							// End agent execution event
-							subscriber.next(
-								({
-									data: {
-										type: ChatMessageTypeEnum.EVENT,
-										event: ChatMessageEventTypeEnum.ON_AGENT_END,
-										data: fullExecution
-									}
-								}) as MessageEvent
-							)
-						} catch(err) {
-							//
+				// End agent execution event
+				subscriber.next(
+					({
+						data: {
+							type: ChatMessageTypeEnum.EVENT,
+							event: ChatMessageEventTypeEnum.ON_AGENT_END,
+							data: fullExecution
+						}
+					}) as MessageEvent
+				)
+			}
+			try {
+				const obs = await commandBus.execute<XpertAgentExecuteCommand, Observable<string>>(
+					new XpertAgentExecuteCommand(args, agent.key, xpert, { ...options, thread_id, execution })
+				)
+				
+				await lastValueFrom(obs.pipe(
+					reduce((acc, val) => acc + val, ''),
+					tap({
+						next: (text: string) => {
+							result = text
+						},
+						error: (err) => {
+							status = XpertAgentExecutionEnum.FAILED
+							error = getErrorMessage(err)
+						},
+						finalize: async () => {
+							try {
+								await finalize()
+							} catch(err) {
+								//
+							}
 						}
 					}
-				}
-			)))
+				)))
 
-			return result
+				return result
+			} catch(err) {
+				// Catch the error before generated obs
+				try {
+					status = XpertAgentExecutionEnum.FAILED
+					error = getErrorMessage(err)
+					await finalize()
+				} catch(err) {
+					//
+				}
+				throw err
+			}
 		},
 		{
 			name: convertToUrlPath(agent.name) || agent.key,

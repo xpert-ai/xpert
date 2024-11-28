@@ -88,6 +88,16 @@ export class CopilotProviderComponent {
 
   readonly isShowModels = signal(false)
 
+  readonly tokenRemain = computed(() => {
+    const usage = this.usage()
+    if (usage?.tokenLimit) {
+      return (usage.tokenLimit - usage.tokenUsed) / usage.tokenLimit * 100
+    }
+    return 100
+  })
+  readonly usageWarn = computed(() => this.tokenRemain() < 40 && this.tokenRemain() > 1)
+  readonly usageError = computed(() => this.tokenRemain() < 1)
+
   constructor() {
     effect(() => {
       // console.log(this.#models())

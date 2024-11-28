@@ -17,8 +17,7 @@ import {
 import { MaterialModule } from 'apps/cloud/src/app/@shared'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { formatRelative } from 'date-fns'
-import { result, sortBy } from 'lodash-es'
-import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
+import { sortBy } from 'lodash-es'
 import { distinctUntilChanged, filter, map, shareReplay, switchMap } from 'rxjs'
 import { getDateLocale } from '../../../../@core'
 import { XpertStudioApiService } from '../domain'
@@ -33,7 +32,6 @@ import { XpertStudioComponent } from '../studio.component'
     CdkMenuModule,
     MaterialModule,
     TranslateModule,
-    NgxFloatUiModule,
     NgmTooltipDirective,
     InDevelopmentComponent
   ],
@@ -42,8 +40,6 @@ import { XpertStudioComponent } from '../studio.component'
   animations: [...OverlayAnimations]
 })
 export class XpertStudioHeaderComponent {
-  eNgxFloatUiPlacements = NgxFloatUiPlacements
-  eNgxFloatUiTriggers = NgxFloatUiTriggers
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly xpertService = inject(XpertService)
   readonly apiService = inject(XpertStudioApiService)
@@ -94,6 +90,8 @@ export class XpertStudioHeaderComponent {
     map(({ items }) => items),
     shareReplay(1)
   )
+
+  readonly conversationId = this.executionService.conversationId
 
   publish() {
     this.publishing.set(true)
