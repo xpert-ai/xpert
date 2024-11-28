@@ -19,17 +19,19 @@ export function createLLM<T = BaseChatModel>(
   }
 
   const providerName = copilot.modelProvider.providerName
+  const model = copilot.copilotModel.model
+  const modelOptions = copilot.copilotModel.options
 
   if (AI_PROVIDERS[providerName]?.protocol === AiProtocol.OpenAI) {
     return new ChatOpenAI({
       apiKey: credentials.apiKey,
-      model: copilot.defaultModel,
-      temperature: 0,
-      maxRetries: 0,
-      streaming: true,
+      model,
+      temperature: modelOptions?.temperature ?? 0,
+      maxRetries: modelOptions?.maxRetries ?? 2,
+      streaming: modelOptions?.streaming ?? true,
       ...(clientOptions ?? {}),
       configuration: {
-        baseURL: credentials.apiHost ? (credentials.apiHost + `/${copilot.id}`) : AI_PROVIDERS[copilot.provider]?.apiHost || null,
+        baseURL: credentials.apiHost ? (credentials.apiHost + `/${copilot.id}`) : AI_PROVIDERS[providerName]?.apiHost || null,
         ...(clientOptions ?? {})
       },
       callbacks: [
@@ -48,7 +50,10 @@ export function createLLM<T = BaseChatModel>(
     case AiProvider.Ollama:
       return new NgmChatOllama({
         baseUrl: credentials.apiHost ? (credentials.apiHost + `/${copilot.id}`) : null,
-        model: copilot.defaultModel,
+        model,
+        temperature: modelOptions?.temperature ?? 0,
+        maxRetries: modelOptions?.maxRetries ?? 2,
+        streaming: modelOptions?.streaming ?? true,
         headers: {
           ...(clientOptions?.defaultHeaders ?? {})
         },
@@ -64,10 +69,11 @@ export function createLLM<T = BaseChatModel>(
       return new ChatAnthropic({
         anthropicApiUrl: credentials.apiHost ? (credentials.apiHost + `/${copilot.id}`) : null,
         apiKey: credentials.apiKey,
-        model: copilot.defaultModel,
-        temperature: 0,
+        model,
+        temperature: modelOptions?.temperature ?? 0,
         maxTokens: undefined,
-        maxRetries: 2,
+        maxRetries: modelOptions?.maxRetries ?? 2,
+        streaming: modelOptions?.streaming ?? true,
         callbacks: [
           {
             handleLLMEnd(output) {
@@ -80,6 +86,7 @@ export function createLLM<T = BaseChatModel>(
         ]
       }) as T
     }
+    // @todo
     case AiProvider.BaiduQianfan: {
 			return new ChatBaiduQianfan({
 				qianfanAccessKey: copilot.apiKey,

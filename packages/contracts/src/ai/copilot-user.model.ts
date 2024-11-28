@@ -1,7 +1,7 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IOrganization } from '../organization.model'
 import { IUser } from '../user.model'
-import { AiProvider } from './ai.model'
+import { AiProvider } from '../agent/'
 import { ICopilot, TCopilotTokenUsage } from './copilot.model'
 
 /**

@@ -1,4 +1,5 @@
 import { BaseMessage, FunctionCall, MessageContent, OpenAIToolCall } from '@langchain/core/messages'
+import { AiModelTypeEnum } from '@metad/contracts'
 import { AiProvider } from './providers'
 
 export const DefaultModel = 'gpt-3.5-turbo'
@@ -18,9 +19,12 @@ export interface ICopilot {
   organizationId?: string
   enabled: boolean
   role: AiProviderRole
+  /**
+   * @deprecated use modelProvider.providerName as the ai provider
+   */
   provider?: AiProvider
   /**
-   * Authorization key for the API
+   * @deprecated
    */
   apiKey?: string
   /**
@@ -28,11 +32,11 @@ export interface ICopilot {
    */
   apiHost?: string
   /**
-   * Authorization token for the API
+   * @deprecated
    */
   token?: string
   /**
-   * Default model to use
+   * @deprecated use copilotModel.model as default model
    */
   defaultModel: string
 
@@ -46,6 +50,11 @@ export interface ICopilot {
 
   modelProvider?: {
     providerName: string
+  }
+  copilotModel?: {
+    model: string
+    modelType: AiModelTypeEnum
+    options: any
   }
 }
 

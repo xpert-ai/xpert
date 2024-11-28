@@ -1,4 +1,4 @@
-import { AiProvider } from './ai.model'
+import { AiProvider } from '../agent/'
 import { IBasePerTenantEntityModel } from '../base-entity.model'
 import { IOrganization } from '../organization.model'
 import { ICopilot, TCopilotTokenUsage } from './copilot.model'

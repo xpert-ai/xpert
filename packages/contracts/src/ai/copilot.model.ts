@@ -1,5 +1,5 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
-import { AiProvider } from './ai.model'
+import { AiProvider } from '../agent/'
 import { ICopilotModel } from './copilot-model.model'
 import { ICopilotProvider } from './copilot-provider.model'
 

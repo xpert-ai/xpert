@@ -640,7 +640,7 @@ export class NgmCopilotEngineService implements CopilotEngine {
           }
           case('on_tool_start'): {
             eventStack.push(event.event)
-            console.log(event)
+            // console.log(event)
             this.upsertMessage({
               id: assistantId,
               data: {
@@ -659,7 +659,7 @@ export class NgmCopilotEngineService implements CopilotEngine {
           }
           case('on_tool_end'): {
             eventStack.pop()
-            console.log(event)
+            // console.log(event)
             this.upsertMessage({
               id: assistantId,
               data: null
@@ -670,7 +670,7 @@ export class NgmCopilotEngineService implements CopilotEngine {
             if (event.data?.chunk?.agent?.messages?.[0]?.content) {
               verboseContent += event.data?.chunk.agent.messages[0].content
             } else {
-              console.log(event)
+              // console.log(event)
             }
             this.upsertMessage({
                 id: assistantId,

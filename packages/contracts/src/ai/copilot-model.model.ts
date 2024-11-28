@@ -1,5 +1,5 @@
+import { AiModelTypeEnum } from '../agent'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
-import { AiModelTypeEnum } from './ai-model.model'
 import { ICopilot } from './copilot.model'
 
 export interface ICopilotModel extends TCopilotModel, IBasePerTenantAndOrganizationEntityModel {}

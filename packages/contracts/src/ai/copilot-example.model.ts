@@ -1,4 +1,4 @@
-import { AiProvider } from './ai.model'
+import { AiProvider } from '../agent'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IXpert } from './xpert.model'
 

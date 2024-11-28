@@ -21,7 +21,10 @@ export function injectCreateDimensionTool() {
       logger.debug(`Execute copilot action 'createDimension':`, d)
       createOrEditDimension(modelService, d as any)
       return translate.instant('PAC.MODEL.Copilot.CreatedDimension', { Default: 'Created Dimension!' })
-    }
+    },
+    verboseParsingErrors: true,
+    verbose: true,
+    tags: ['dimension']
   })
 
   return createDimensionTool
@@ -50,7 +53,9 @@ export function injectCreateHierarchyTool() {
         }
       })
       return translate.instant('PAC.MODEL.Copilot.CreatedHierarchy', { Default: 'Created hierarchy!' })
-    }
+    },
+    verboseParsingErrors: true,
+    verbose: true,
   })
 
   return createHierarchyTool

@@ -1,3 +1,4 @@
+import { AiModelTypeEnum } from '../agent/'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { I18nObject } from '../types'
 import { ICopilot } from './copilot.model'
@@ -47,16 +48,6 @@ export interface IAiModel extends IBasePerTenantAndOrganizationEntityModel {
    * 是否已废弃
    */
   deprecated: boolean
-}
-
-export enum AiModelTypeEnum {
-  LLM = "llm",
-  TEXT_EMBEDDING = "text-embedding",
-  RERANK = "rerank",
-  SPEECH2TEXT = "speech2text",
-  MODERATION = "moderation",
-  TTS = "tts",
-  TEXT2IMG = "text2img"
 }
 
 export enum ProviderType {
