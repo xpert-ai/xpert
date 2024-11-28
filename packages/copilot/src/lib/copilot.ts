@@ -47,7 +47,7 @@ export abstract class CopilotService {
   /**
    * If the provider has tools function
    */
-  readonly isTools$ = this.copilot$.pipe(map((copilot) => copilot?.provider && AI_PROVIDERS[copilot.provider]?.isTools))
+  // readonly isTools$ = this.copilot$.pipe(map((copilot) => copilot?.provider && AI_PROVIDERS[copilot.provider]?.isTools))
 
   readonly clientOptions$ = new BehaviorSubject<ClientOptions>(null)
 

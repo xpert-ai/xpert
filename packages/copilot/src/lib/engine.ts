@@ -3,7 +3,7 @@ import { CompiledStateGraph } from '@langchain/langgraph/web'
 import { z } from 'zod'
 import { CopilotCommand, CopilotContext } from './command'
 import { CopilotService } from './copilot'
-import { AIOptions, CopilotChatMessage } from './types'
+import { CopilotChatMessage, TAgentConfig } from './types'
 
 export type CopilotChatOptions = {
   command?: string
@@ -55,10 +55,10 @@ export interface CopilotEngine {
    * Placeholder in ask input
    */
   placeholder?: string
-  /**
-   * AI Configuration
-   */
-  aiOptions: AIOptions
+  // /**
+  //  * AI Configuration
+  //  */
+  // aiOptions: AIOptions
   /**
    * @deprecated use system prompt of command instead
    */
@@ -68,6 +68,12 @@ export interface CopilotEngine {
    * @deprecated use commands instead
    */
   prompts?: string[]
+  /**
+   * Agent config
+   */
+  agentConfig: TAgentConfig
+
+  updateAgentConfig(config: Partial<TAgentConfig>): void
 
   /**
    * Conversations
@@ -159,8 +165,6 @@ export interface CopilotEngine {
    * @param fn
    */
   updateLastConversation?(fn: (conversation: CopilotChatConversation) => CopilotChatConversation): void
-
-  updateAiOptions(options: Partial<AIOptions>): void
 
   /**
    * Execute command suggestion completion request

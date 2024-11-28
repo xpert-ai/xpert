@@ -144,7 +144,7 @@ export const CopilotDefaultOptions = {
 export type BusinessRoleType = {
   name: string
   title: string
-  titleCN: string
+  titleCN?: string
   description: string
   copilotModel?: {
     copilotId: string
@@ -169,11 +169,23 @@ export type JSONValue =
     }
   | Array<JSONValue>
 
+/**
+ * @deprecated use TAgentConfig
+ */
 export type AIOptions = {
   model?: string
   temperature?: number | null;
   n?: number
   useSystemPrompt?: boolean
+  verbose?: boolean
+  interactive?: boolean
+  recursionLimit?: number
+}
+
+/**
+ * Config for Agent (langgraph, not AI model)
+ */
+export type TAgentConfig = {
   verbose?: boolean
   interactive?: boolean
   recursionLimit?: number

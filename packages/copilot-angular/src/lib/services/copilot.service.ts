@@ -31,23 +31,32 @@ export abstract class NgmCopilotService extends CopilotService {
     })
   )
 
+  readonly role = signal<string>(DefaultBusinessRole)
   readonly roles = signal<BusinessRoleType[]>([])
   readonly allRoles = computed(() => {
     const lang = this.lang()
+    const selectedRoleName = this.role()
     const roles = [NgmLanguageEnum.SimplifiedChinese, NgmLanguageEnum.Chinese].includes(lang as NgmLanguageEnum)
       ? this.roles()?.map((role) => ({ ...role, title: role.titleCN || role.title }))
       : this.roles()
-
-    return [
+    const items: BusinessRoleType[] = [
       {
         name: DefaultBusinessRole,
         title: this.defaultRoleI18n().title,
         description: this.defaultRoleI18n().description
-      } as BusinessRoleType,
+      },
       ...(roles ?? [])
     ]
+    if (!items.some((_) => _.name === selectedRoleName)) {
+      items.push({
+        name: selectedRoleName,
+        title: selectedRoleName,
+        description: ''
+      })
+    }
+    return items
   })
-  readonly role = signal<string>(DefaultBusinessRole)
+  
   readonly roleDetail = computed(() => this.allRoles()?.find((role) => role.name === this.role()))
   readonly rolePrompt = computed(() => {
     const role = this.roleDetail()
@@ -74,7 +83,7 @@ export abstract class NgmCopilotService extends CopilotService {
       const role = this.roleDetail()
       return copilot?.enabled
         ? createLLM(
-            { ...copilot, defaultModel: role.copilotModel?.model || copilot.defaultModel },
+            { ...copilot, defaultModel: role?.copilotModel?.model || copilot.defaultModel },
             this.credentials(),
             clientOptions,
             (input) => {

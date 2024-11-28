@@ -66,7 +66,7 @@ const passiveEventListenerOptions = normalizePassiveListenerOptions({ passive: t
     `
   ]
 })
-export class NgmScrollBackComponent implements OnInit, OnDestroy, OnChanges {
+export class CopilotScrollBackComponent implements OnInit, OnDestroy, OnChanges {
   readonly #destroyRef = inject(DestroyRef)
   readonly #scrollSrv = inject(NzScrollService)
 

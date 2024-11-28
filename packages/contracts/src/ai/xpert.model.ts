@@ -30,6 +30,10 @@ export interface IXpert extends IBasePerWorkspaceEntityModel {
    * More configuration
    */
   options?: TXpertOptions
+  /**
+   * Config for every agent
+   */
+  agentConfig?: TXpertAgentConfig
 
   /**
    * Version of role: '1' '2' '2.1' '2.2'...
@@ -108,6 +112,19 @@ export type TXpertOptions = {
   >
   position?: IPoint
   scale?: number
+}
+
+export type TXpertAgentConfig = {
+  /**
+   * Maximum number of times a call can recurse. If not provided, defaults to 25.
+   */
+  recursionLimit?: number;
+  /** Maximum number of parallel calls to make. */
+  maxConcurrency?: number;
+  /**
+   * Timeout for this call in milliseconds.
+   */
+  timeout?: number;
 }
 
 export enum XpertTypeEnum {

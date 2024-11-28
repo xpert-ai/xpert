@@ -1,0 +1,17 @@
+<div class="text-lg">
+  {{ 'Copilot.Options' | translate: {Default: 'Options'} }}
+</div>
+
+<label class="pt-4">{{'Copilot.RecursionLimit' | translate: {Default: 'Recursion Limit'} }}:
+  <span class="font-notoColorEmoji" matTooltip="Maximum number of loop calls" matTooltipPosition="above">💡</span>
+</label>
+<mat-slider color="accent" min="1" max="100" step="1" value="20" discrete>
+  <input matSliderThumb [(ngModel)]="recursionLimit">
+</mat-slider>
+
+<mat-checkbox [(ngModel)]="interactive" color="accent" labelPosition="before">
+  {{ 'Copilot.Interactive' | translate: {Default: 'Interactive'} }}
+</mat-checkbox>
+<mat-checkbox [(ngModel)]="verbose" color="accent" labelPosition="before">
+  {{ 'Copilot.Verbose' | translate: {Default: 'Verbose'} }}
+</mat-checkbox>

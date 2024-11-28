@@ -8,7 +8,6 @@ import { ToolInputParsingException } from '@langchain/core/tools'
 import { PregelInputType } from '@langchain/langgraph/dist/pregel'
 import { BaseCheckpointSaver, END, GraphValueError, StateGraph } from '@langchain/langgraph/web'
 import {
-  AIOptions,
   CopilotAgentType,
   CopilotChatConversation,
   CopilotChatMessage,
@@ -17,12 +16,12 @@ import {
   CopilotCommand,
   CopilotContext,
   CopilotEngine,
-  DefaultModel,
   getCommandPrompt,
   MessageDataType,
   nanoid,
   SuggestionOutput,
-  SuggestionOutputTool
+  SuggestionOutputTool,
+  TAgentConfig
 } from '@metad/copilot'
 import { TranslateService } from '@ngx-translate/core'
 import { AgentExecutor, createOpenAIToolsAgent } from 'langchain/agents'
@@ -54,24 +53,28 @@ export class NgmCopilotEngineService implements CopilotEngine {
 
   placeholder?: string
 
-  aiOptions = {} as AIOptions
+  // aiOptions = {} as AIOptions
 
-  readonly #aiOptions = signal<AIOptions>({
-    model: DefaultModel
-  } as AIOptions)
+  // readonly #aiOptions = signal<AIOptions>({
+  //   model: DefaultModel
+  // } as AIOptions)
 
-  readonly verbose = computed(() => this.#aiOptions().verbose)
+
+  readonly agentConfig$ = signal<TAgentConfig>({
+    recursionLimit: AgentRecursionLimit
+  })
+  get agentConfig() {
+    return this.agentConfig$()
+  }
+  set agentConfig(value: TAgentConfig) {
+    this.agentConfig$.set(value)
+  }
+
+  readonly verbose = computed(() => this.agentConfig$().verbose)
 
   readonly llm = toSignal(this.copilot.llm$)
-  // readonly secondaryLLM$ = combineLatest([this.copilot.secondary$, this.copilot.clientOptions$]).pipe(
-  //   map(([secondary, clientOptions]) => secondary?.enabled ? createLLM(secondary, clientOptions, (input) => {
-  //     this.copilot.recordTokenUsage(input)
-  //   }) : null),
-  //   shareReplay(1)
-  // )
-  // readonly secondaryLLM = toSignal(this.secondaryLLM$)
 
-  routeTemplate: TemplateRef<any> | null = null
+  // routeTemplate: TemplateRef<any> | null = null
 
   /**
    * One conversation including user and assistant messages
@@ -166,9 +169,8 @@ export class NgmCopilotEngineService implements CopilotEngine {
     //   })
   }
 
-  updateAiOptions(options?: Partial<AIOptions>) {
-    this.#aiOptions.update((state) => ({ ...state, ...options }))
-    this.aiOptions = this.#aiOptions()
+  updateAgentConfig(config?: Partial<TAgentConfig>) {
+    this.agentConfig$.update((state) => ({ ...state, ...config }))
   }
 
   /**
@@ -614,7 +616,7 @@ export class NgmCopilotEngineService implements CopilotEngine {
             thread_id: conversation.id,
             checkpoint_ns: '',
           },
-          recursionLimit: this.aiOptions.recursionLimit ?? AgentRecursionLimit,
+          recursionLimit: this.agentConfig.recursionLimit ?? AgentRecursionLimit,
           signal: abortController.signal
         })
       let verboseContent = ''
@@ -864,7 +866,7 @@ export class NgmCopilotEngineService implements CopilotEngine {
    */
   private async createCommandGraph(command: CopilotCommand, interactive?: boolean) {
     const options = { checkpointer: this.checkpointSaver, interruptBefore: null, interruptAfter: null }
-    if (interactive ?? this.aiOptions.interactive) {
+    if (interactive ?? this.agentConfig$().interactive) {
       options.interruptBefore = command.agent.interruptBefore
       options.interruptAfter = command.agent.interruptAfter
     }

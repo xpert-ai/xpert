@@ -8,6 +8,7 @@ import {
 	IXpertAgent,
 	IXpertToolset,
 	TAvatar,
+	TXpertAgentConfig,
 	TXpertOptions,
 	TXpertTeamDraft,
 	XpertTypeEnum
@@ -79,6 +80,12 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
 	options?: TXpertOptions
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	agentConfig?: TXpertAgentConfig
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()

@@ -363,13 +363,13 @@
                 }
 
                 @if (command.example) {
-                  <div class="whitespace-nowrap text-ellipsis overflow-hidden text-gray-500 italic"
+                  <div class="whitespace-nowrap text-ellipsis overflow-hidden text-sm text-gray-500 italic"
                       [ngmHighlight]="prompt()"
                       [content]="command.example"
                       customClasses="text-gray-600 bg-gray-200 font-bold not-italic"
                   >{{command.example}}</div>
                 } @else {
-                  <span class="ml-auto opacity-50">{{command.description}}</span>
+                  <span class="ml-auto text-sm opacity-50">{{command.description}}</span>
                 }
               </li>
             }
@@ -484,85 +484,35 @@
 }
 
 <ng-template #copilotOptions>
-  <div class="ngm-cdk-menu w-80 flex flex-col max-w-sm p-4 border-0 border-gray-200 rounded-lg shadow-lg
-    dark:bg-gray-800/20 dark:border-gray-700 bg-white/60 backdrop-blur-lg"
-    cdkMenu>
-    <div class="text-lg">
-      {{ 'Copilot.Options' | translate: {Default: 'Options'} }}
-    </div>
-
-    <div class="mt-2 flex justify-between items-center">
-      <label class="shrink-0">
-          {{ 'Copilot.Model' | translate: {Default: 'Model'} }}:<span class="font-notoColorEmoji" matTooltip="ID of the model to use.">💡</span>
-      </label>
-
-      <ngm-search class="flex-1" [formControl]="searchModel"/>
-
-    @if (canListModels()) {
-      @if (refreshingModels()) {
-        <mat-spinner class="m-2" [diameter]="22"></mat-spinner>
-      } @else {
-        <button mat-icon-button displayDensity="compact" (click)="refreshModels()">
-          <mat-icon>refresh</mat-icon>
-        </button>
-      }
-    }
-    </div>
-  
-    <mat-selection-list class="flex flex-col gap-2 max-h-[120px] overflow-auto"
-      [(ngModel)]="selectedModel"
-      [multiple]="false"
-      (ngModelChange)="changeSelectedModel($event)">
-    @for (model of models(); track model.id) {
-      <mat-list-option [value]="model.id" class="rounded-md">
-          {{model.name}}
-      </mat-list-option>
-    }
-    </mat-selection-list>
-
-    <label class="pt-4">Temperature:<span class="font-notoColorEmoji" matTooltip="What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. We generally recommend altering this or top_p but not both.">💡</span></label>
-    <mat-slider color="accent" min="0" max="2" step="0.1" value="1" discrete>
-        <input matSliderThumb [(ngModel)]="temperature">
-    </mat-slider>
-    
-    <label class="pt-4">{{'Copilot.RecursionLimit' | translate: {Default: 'Recursion Limit'} }}:<span class="font-notoColorEmoji" matTooltip="Maximum number of loop calls">💡</span></label>
-    <mat-slider color="accent" min="1" max="100" step="1" value="20" discrete>
-      <input matSliderThumb [(ngModel)]="recursionLimit">
-    </mat-slider>
-
-    <mat-checkbox [(ngModel)]="interactive" color="accent" labelPosition="before">
-      {{ 'Copilot.Interactive' | translate: {Default: 'Interactive'} }}
-    </mat-checkbox>
-    <mat-checkbox [(ngModel)]="verbose" color="accent" labelPosition="before">
-      {{ 'Copilot.Verbose' | translate: {Default: 'Verbose'} }}
-    </mat-checkbox>
-  </div>
+  <copilot-agent-config cdkMenu class="ngm-cdk-menu w-80 flex flex-col max-w-sm p-4"
+    [copilotEngine]="copilotEngine$()"
+  />
 </ng-template>
 
 
 <mat-menu #contextMenu="matMenu" class="ngm-menu__copilot-context-popper ngm-density__compact">
-    <ng-template matMenuContent let-word="word">
-        <ngm-search class="m-2 mb-0" (click)="$event.stopPropagation()" [(ngModel)]="contextMenuSearch" />
+  <ng-template matMenuContent let-word="word">
+    <ngm-search class="m-2 mb-0" (click)="$event.stopPropagation()" [(ngModel)]="contextMenuSearch" />
 
-      @if (loadingContext$ | async) {
-        <mat-progress-bar mode="query" role="progressbar"
-            color="accent"
-            class="top-0 left-0 w-full" 
-            style="position: absolute; height: 2px;"/>
-      } @else if (filteredContextMenuItems()) {
-        <cdk-virtual-scroll-viewport minBufferPx="200" maxBufferPx="400"
-            [style.height.px]="240" [itemSize]="30"
+    @if (loadingContext$ | async) {
+      <mat-progress-bar mode="query" role="progressbar"
+        color="accent"
+        class="top-0 left-0 w-full" 
+        style="position: absolute; height: 2px;"/>
+    } @else if (filteredContextMenuItems()) {
+      <cdk-virtual-scroll-viewport minBufferPx="200" maxBufferPx="400"
+        [style.height.px]="240" [itemSize]="30"
+      >
+        <button mat-menu-item *cdkVirtualFor="let item of filteredContextMenuItems(); trackBy: trackByKey"
+          [ngClass]="{active: item.uKey === word.text}"
+          (click)="repleaceContext(word.text, item)"
         >
-            <button mat-menu-item *cdkVirtualFor="let item of filteredContextMenuItems(); trackBy: trackByKey"
-              [ngClass]="{active: item.uKey === word.text}"
-              (click)="repleaceContext(word.text, item)"
-            >
-              <div class="flex-1 flex items-center overflow-hidden">
-                <span class="flex-1 text-ellipsis overflow-hidden" [title]="item.caption" [ngmHighlight]="contextMenuSearch()" [content]="item.caption">{{item.caption}}</span>
-                <span class="flex-1 text-sm text-ellipsis overflow-hidden italic opacity-50" [title]="item.key" [ngmHighlight]="contextMenuSearch()" [content]="item.key">{{item.key}}</span>
-              </div>
-            </button>
-        </cdk-virtual-scroll-viewport>
-      }
-    </ng-template>
+          <div class="flex-1 flex items-center overflow-hidden">
+            <span class="flex-1 text-ellipsis overflow-hidden" [title]="item.caption" [ngmHighlight]="contextMenuSearch()" [content]="item.caption">{{item.caption}}</span>
+            <span class="flex-1 text-sm text-ellipsis overflow-hidden italic opacity-50" [title]="item.key" [ngmHighlight]="contextMenuSearch()" [content]="item.key">{{item.key}}</span>
+          </div>
+        </button>
+      </cdk-virtual-scroll-viewport>
+    }
+  </ng-template>
 </mat-menu>
