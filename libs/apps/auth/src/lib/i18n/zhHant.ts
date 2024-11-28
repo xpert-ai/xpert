@@ -1,6 +1,5 @@
 export const ZhHant = {
   Auth: {
-    AppName: '元數分析雲',
     Copyright: '版權',
     Login: '登錄',
     Signin: '登錄',

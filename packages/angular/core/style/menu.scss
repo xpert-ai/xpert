@@ -93,9 +93,9 @@
     @apply flex items-center bg-transparent whitespace-nowrap cursor-pointer border-none select-none;
     min-width: 64px;
 
-    &:hover {
-      @apply bg-black/2 dark:bg-white/5;
-    }
+    // &:hover {
+    //   @apply bg-black/2 dark:bg-white/5;
+    // }
   
     &.ngm-cdk-menu-item__disabled {
       cursor: default;

@@ -1,6 +1,5 @@
 export const ZhHans = {
   Auth: {
-    AppName: '元数分析云',
     Copyright: '版权',
     Login: '登录',
     Signin: '登录',
