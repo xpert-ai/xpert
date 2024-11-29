@@ -34,6 +34,8 @@ English | [中文](./README_zh.md)
 
 **Xpert AI** is an enterprise-level AI system that integrates BI (Business Intelligence) indicators management and intelligent dialogue functionality. It features modules such as a knowledge base, data analysis toolset (ChatBI, ChatDB, Search), and more. It acts as a digital expert, providing intelligent assistant copilot services and is deeply integrated with Feishu (Lark) bots. *Xpert AI* leverages advanced AI technology to offer efficient decision support and information management for enterprises, helping users quickly obtain data insights, optimize business processes, and enhance overall operational efficiency.
 
+[Xpert Agents](https://github.com/user-attachments/assets/e21f8b35-2f72-4b81-a245-f36759df7c27)
+
 [More details](https://mtda.cloud/en/blog/releases-2-7-xpert)
 
 ### ChatBI: Natural Language-Driven Business Intelligence Analysis
