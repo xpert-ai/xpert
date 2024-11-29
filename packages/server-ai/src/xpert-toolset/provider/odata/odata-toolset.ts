@@ -13,21 +13,20 @@ export class ODataToolset extends BaseToolset<ODataTool> {
 		super()
 
 		const service = this.getODataService(this.toolset)
-		this.tools = this.toolset.tools
-		.filter((tool) => tool.enabled)
-		.map((_) => {
-			// Provide specific tool name to tool class
-			const DynamicODataTool = class extends ODataTool {
-				static lc_name(): string {
-					return _.name
+		this.tools = this.toolset.tools?.filter((tool) => tool.enabled)
+			.map((_) => {
+				// Provide specific tool name to tool class
+				const DynamicODataTool = class extends ODataTool {
+					static lc_name(): string {
+						return _.name
+					}
+					constructor(tool: IXpertTool, service) {
+						super(tool, service)
+					}
 				}
-				constructor(tool: IXpertTool, service) {
-					super(tool, service)
-				}
-			}
 
-			return new DynamicODataTool(_, service)
-		})
+				return new DynamicODataTool(_, service)
+			})
 	}
 
 	getTools() {

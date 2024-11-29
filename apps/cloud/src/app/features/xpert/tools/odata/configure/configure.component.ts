@@ -195,7 +195,7 @@ export class XpertStudioConfigureODataComponent extends XpertConfigureToolCompon
   }
 
   triggerSample(name: keyof typeof Samples) {
-    this.baseUrl.setValue(Samples[name].url)
+    this.url.set(Samples[name].url)
     this.getMetadata()
   }
 
@@ -204,7 +204,6 @@ export class XpertStudioConfigureODataComponent extends XpertConfigureToolCompon
     this.loading.set(true)
     this.toolsetService.getODataRemoteMetadata(this.url(), this.credentials.value).subscribe({
       next: (result) => {
-        // console.log(result)
         this.loading.set(false)
         // Handle the success scenario here
         this.formGroup.patchValue({
