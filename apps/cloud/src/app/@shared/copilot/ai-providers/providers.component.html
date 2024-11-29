@@ -1,72 +1,70 @@
-<div class="p-4 cursor-move flex justify-start items-center sticky top-0 z-10 bg-components-card-bg"
+<div class="w-full p-4 cursor-move flex justify-start items-center sticky top-0 z-10 bg-components-card-bg"
   cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
   <div class="text-lg font-semibold">{{'PAC.Copilot.ModelProviders' | translate: {Default: 'Model Providers'} }}</div>
 </div>
 
-<div class="px-8 text-base text-text-secondary">{{'PAC.Copilot.ModelProvidersDesc' | translate: {Default: 'Select an AI model provider and configure authorization information for Copilot or add an AI model manually after added provider.'} }}</div>
-<div class="w-[820px] flex flex-wrap px-8 py-2">
-  <div class="grid grid-cols-3 gap-3">
-    @for (provider of aiProviders(); track provider.provider) {
-      <div class="group relative flex flex-col px-4 py-3 h-[148px] border-[0.5px] border-black/5 rounded-xl shadow-sm hover:shadow-lg"
-        [ngStyle]="{background: provider.background}"
-      >
-        <div class="grow h-0">
-          <div class="py-1">
-            <img alt="provider-icon" [src]="provider.icon_large | i18n" class="w-auto h-7">
-          </div>
-          <div class="mt-1 leading-4 text-sm text-zinc-600 line-clamp-4" [title]="provider.description | i18n">{{provider.description | i18n}}</div>
+<div class="w-full px-8 text-base text-text-secondary">{{'PAC.Copilot.ModelProvidersDesc' | translate: {Default: 'Select an AI model provider and configure authorization information for Copilot or add an AI model manually after added provider.'} }}</div>
+<div class="w-[820px] px-8 py-4 grid grid-cols-3 gap-3">
+  @for (provider of aiProviders(); track provider.provider) {
+    <div class="group relative flex flex-col px-4 py-3 h-[148px] border-[0.5px] border-black/5 rounded-xl shadow-sm hover:shadow-lg"
+      [ngStyle]="{background: provider.background}"
+    >
+      <div class="grow h-0">
+        <div class="py-1">
+          <img alt="provider-icon" [src]="provider.icon_large | i18n" class="w-auto h-7">
         </div>
-        <div class="shrink-0">
-          <div class="flex flex-wrap group-hover:hidden gap-0.5">
-            @for (type of provider.supported_model_types; track type) {
-              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] uppercase font-medium text-gray-500 cursor-default">
-                {{type}}
-              </div>
-            }
-          </div>
+        <div class="mt-1 leading-4 text-sm text-zinc-600 line-clamp-4" [title]="provider.description | i18n">{{provider.description | i18n}}</div>
+      </div>
+      <div class="shrink-0">
+        <div class="flex flex-wrap group-hover:hidden gap-0.5">
+          @for (type of provider.supported_model_types; track type) {
+            <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] uppercase font-medium text-gray-500 cursor-default">
+              {{type}}
+            </div>
+          }
+        </div>
 
-          <div class="hidden group-hover:flex gap-1">
-            @if (provider.not_implemented) {
-              <a type="button" class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm shrink-0"
-                [matTooltip]="'PAC.Copilot.HowToContribute' | translate: {Default: 'In just a few steps, contribute code and create a better future together'}"
-                matTooltipPosition="above"
-                href="https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/ai-model/" target="_blank">
-                <i class="ri-code-ai-line text-lg mr-1"></i>
+        <div class="hidden group-hover:flex gap-1">
+          @if (provider.not_implemented) {
+            <a type="button" class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm shrink-0"
+              [matTooltip]="'PAC.Copilot.HowToContribute' | translate: {Default: 'In just a few steps, contribute code and create a better future together'}"
+              matTooltipPosition="above"
+              href="https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/ai-model/" target="_blank">
+              <i class="ri-code-ai-line text-lg mr-1"></i>
+              <span class="text-sm inline-flex items-center justify-center overflow-ellipsis shrink-0">
+                {{'PAC.Copilot.Contribute' | translate: {Default: 'Contribute'} }}
+              </span>
+            </a>
+            <a type="button" class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm shrink-0"
+              [matTooltip]="'PAC.Copilot.OurSupport' | translate: {Default: 'Contact us for priority support'}"
+              matTooltipPosition="above"
+              href="{{helpBaseUrl() + '/#connect'}}" target="_blank">
+              <i class="ri-hand-heart-line text-lg mr-1"></i>
+              <span class="text-sm inline-flex items-center justify-center overflow-ellipsis shrink-0">
+                {{'PAC.Copilot.Support' | translate: {Default: 'Support'} }}
+              </span>
+            </a>
+          } @else {
+            @if (provider.provider_credential_schema) {
+              <button type="button" class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm shrink-0"
+                (click)="openSetup(provider)">
+                <i class="ri-settings-5-line text-lg mr-1"></i>
                 <span class="text-sm inline-flex items-center justify-center overflow-ellipsis shrink-0">
-                  {{'PAC.Copilot.Contribute' | translate: {Default: 'Contribute'} }}
+                  {{'PAC.Copilot.Setup' | translate: {Default: 'Setup'} }}
                 </span>
-              </a>
-              <a type="button" class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm shrink-0"
-                [matTooltip]="'PAC.Copilot.OurSupport' | translate: {Default: 'Contact us for priority support'}"
-                matTooltipPosition="above"
-                href="{{helpBaseUrl() + '/#connect'}}" target="_blank">
-                <i class="ri-hand-heart-line text-lg mr-1"></i>
-                <span class="text-sm inline-flex items-center justify-center overflow-ellipsis shrink-0">
-                  {{'PAC.Copilot.Support' | translate: {Default: 'Support'} }}
-                </span>
-              </a>
+              </button>
             } @else {
-              @if (provider.provider_credential_schema) {
-                <button type="button" class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm shrink-0"
-                  (click)="openSetup(provider)">
-                  <i class="ri-settings-5-line text-lg mr-1"></i>
-                  <span class="text-sm inline-flex items-center justify-center overflow-ellipsis shrink-0">
-                    {{'PAC.Copilot.Setup' | translate: {Default: 'Setup'} }}
-                  </span>
-                </button>
-              } @else {
-                <button type="button" class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm"
-                  (click)="addProvider(provider)">
-                  <i class="ri-add-circle-line text-lg mr-1"></i>
-                  <span class="text-sm inline-flex items-center justify-center overflow-ellipsis shrink-0">
-                    {{'PAC.Copilot.Add' | translate: {Default: 'Add'} }}
-                  </span>
-                </button>
-              }
+              <button type="button" class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm"
+                (click)="addProvider(provider)">
+                <i class="ri-add-circle-line text-lg mr-1"></i>
+                <span class="text-sm inline-flex items-center justify-center overflow-ellipsis shrink-0">
+                  {{'PAC.Copilot.Add' | translate: {Default: 'Add'} }}
+                </span>
+              </button>
             }
-          </div>
+          }
         </div>
       </div>
-    }
-  </div>
+    </div>
+  }
 </div>
