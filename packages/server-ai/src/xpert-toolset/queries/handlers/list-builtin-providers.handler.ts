@@ -4,10 +4,10 @@ import { loadYamlFile } from '@metad/server-core'
 import { Inject, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import * as path from 'path'
+import { BUILTIN_TOOLSET_REPOSITORY } from '../../provider/builtin'
 import { TToolsetProviderSchema } from '../../types'
 import { XpertToolsetService } from '../../xpert-toolset.service'
 import { ListBuiltinToolProvidersQuery } from '../list-builtin-providers.query'
-import { BUILTIN_TOOLSET_REPOSITORY } from '../../provider/builtin'
 
 @QueryHandler(ListBuiltinToolProvidersQuery)
 export class ListBuiltinToolProvidersHandler implements IQueryHandler<ListBuiltinToolProvidersQuery> {
@@ -69,4 +69,5 @@ export class ListBuiltinToolProvidersHandler implements IQueryHandler<ListBuilti
 			throw new Error(`Invalid provider schema for ${name}: ${e.message}`)
 		}
 	}
+
 }

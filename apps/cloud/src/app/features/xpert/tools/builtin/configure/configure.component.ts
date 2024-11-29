@@ -1,13 +1,14 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { routeAnimations } from '@metad/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
   IBuiltinTool,
+  injectHelpWebsite,
   IXpertToolset,
   IXpertWorkspace,
   TagCategoryEnum,
@@ -21,6 +22,7 @@ import { map, switchMap } from 'rxjs/operators'
 import { XpertToolBuiltinAuthorizeComponent } from '../authorize/authorize.component'
 import { XpertToolBuiltinToolComponent } from '../tool/tool.component'
 import { omit } from 'lodash-es'
+import { MatTooltipModule } from '@angular/material/tooltip'
 
 @Component({
   standalone: true,
@@ -29,7 +31,7 @@ import { omit } from 'lodash-es'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatDialogModule,
+    MatTooltipModule,
     EmojiAvatarComponent,
     NgmI18nPipe,
 
@@ -46,7 +48,6 @@ export class XpertToolConfigureBuiltinComponent {
   eTagCategoryEnum = TagCategoryEnum
   private readonly xpertToolsetService = inject(XpertToolsetService)
   readonly #formBuilder = inject(FormBuilder)
-  readonly #dialog = inject(MatDialog)
   readonly #cdr = inject(ChangeDetectorRef)
   readonly #toastr = inject(ToastrService)
   readonly #dialogRef = inject(MatDialogRef<XpertToolConfigureBuiltinComponent>)
@@ -55,6 +56,7 @@ export class XpertToolConfigureBuiltinComponent {
     providerName: string
     toolset: IXpertToolset
   }>(MAT_DIALOG_DATA)
+  readonly helpBaseUrl = injectHelpWebsite()
 
   readonly #refresh$ = new BehaviorSubject<void>(null)
 
@@ -66,6 +68,7 @@ export class XpertToolConfigureBuiltinComponent {
   readonly provider = derivedAsync(() =>
     this.providerName() ? this.xpertToolsetService.getProvider(this.providerName()) : of(null)
   )
+  readonly notImplemented = computed(() => this.provider()?.not_implemented)
 
   readonly builtinTools = derivedAsync(() => {
     if (this.providerName()) {

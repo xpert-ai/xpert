@@ -5,7 +5,7 @@ import { ProviderCredentialSchemaValidator } from './schema_validators/'
 import { ConfigService } from '@metad/server-config'
 import * as path from 'path'
 import { ModelProvidersFolderPath } from './types/types'
-import { getPositionMap } from './utils'
+import { getPositionMap } from '../core/utils'
 
 @Injectable()
 export class AIProvidersService {

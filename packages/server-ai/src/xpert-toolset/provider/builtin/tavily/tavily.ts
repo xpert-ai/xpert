@@ -1,5 +1,5 @@
 import { IXpertToolset, TToolCredentials } from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
+import { getErrorMessage, omit } from '@metad/server-common'
 import { ToolProviderCredentialValidationError } from '../../../errors'
 import { BuiltinToolset } from '../builtin-toolset'
 import { TavilySearchResults } from './tools/tavily_search'
@@ -19,6 +19,7 @@ export class TavilyToolset extends BuiltinToolset {
                 const tavilySearchTool = new TavilySearchResults({
                     ...(tool.parameters ?? {}),
                     apiKey: toolset.credentials.tavily_api_key as string,
+					kwargs: omit(tool.parameters, 'max_results')
                 })
 				// Overwrite tool name
 				tavilySearchTool.name = tool.name
@@ -33,7 +34,7 @@ export class TavilyToolset extends BuiltinToolset {
 		try {
 			const tavilySearch = new TavilySearchResults({
 				apiKey: credentials.tavily_api_key as string,
-                maxResults: 1
+                max_results: 1
 			})
 
 			await tavilySearch.invoke({

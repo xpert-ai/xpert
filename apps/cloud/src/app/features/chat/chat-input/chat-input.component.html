@@ -19,17 +19,15 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" class="icon-lg"><rect width="10" height="10" x="7" y="7" fill="currentColor" rx="1.25"></rect></svg>
       </button>
     } @else {
-      <button type="button" class="rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1 bg-black disabled:opacity-10 disabled:text-gray-400 enabled:bg-black text-white dark:border-white dark:bg-white bottom-1.5 transition-colors
-          hover:opacity-60"
-          matTooltip="event-stream"
-          [disabled]="!prompt()"
-          (click)="send()"
+      <button type="button" class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1
+         bg-black disabled:opacity-10 disabled:text-gray-400 enabled:bg-black text-white dark:border-white dark:bg-white bottom-1.5 transition-colors
+        hover:opacity-60"
+        [disabled]="!prompt()"
+        (click)="send()"
       >
-        <span class="">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-white dark:text-black">
-            <path d="M7 11L12 6L17 11M12 18V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-          </svg>
-        </span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-white dark:text-black">
+          <path d="M7 11L12 6L17 11M12 18V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
       </button>
     }
   </div>

@@ -27,12 +27,33 @@
           <div class="text-[13px] font-medium text-gray-700">{{'PAC.Xpert.Authorized' | translate: {Default: 'Authorized'} }}: {{toolset()?.name}}</div>
         </button>
       } @else {
-        <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium shrink-0 my-3 w-full text-center"
-          (click)="openAuthorize()">
-          <div class="text-white font-medium">
-            {{'PAC.Xpert.ToAuthorize' | translate: {Default: 'To Authorize'} }}
-          </div>
-        </button>
+        @if (notImplemented()) {
+          <a type="button" class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm shrink-0"
+            [matTooltip]="'PAC.Copilot.HowToContribute' | translate: {Default: 'In just a few steps, contribute code and create a better future together'}"
+            matTooltipPosition="above"
+            href="https://github.com/xpert-ai/xpert/tree/main/packages/server-ai/src/xpert-toolset/provider/builtin/" target="_blank">
+            <i class="ri-code-ai-line text-lg mr-1"></i>
+            <span class="text-sm inline-flex items-center justify-center overflow-ellipsis shrink-0">
+              {{'PAC.Copilot.Contribute' | translate: {Default: 'Contribute'} }}
+            </span>
+          </a>
+          <a type="button" class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm shrink-0"
+            [matTooltip]="'PAC.Copilot.OurSupport' | translate: {Default: 'Contact us for priority support'}"
+            matTooltipPosition="above"
+            href="{{helpBaseUrl() + '/#connect'}}" target="_blank">
+            <i class="ri-hand-heart-line text-lg mr-1"></i>
+            <span class="text-sm inline-flex items-center justify-center overflow-ellipsis shrink-0">
+              {{'PAC.Copilot.Support' | translate: {Default: 'Support'} }}
+            </span>
+          </a>
+        } @else {
+          <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium shrink-0 my-3 w-full text-center"
+            (click)="openAuthorize()">
+            <div class="text-white font-medium">
+              {{'PAC.Xpert.ToAuthorize' | translate: {Default: 'To Authorize'} }}
+            </div>
+          </button>
+        }
       }
     </div>
   }

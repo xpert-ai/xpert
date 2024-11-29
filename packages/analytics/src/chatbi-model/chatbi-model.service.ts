@@ -28,22 +28,22 @@ export class ChatBIModelService extends TenantOrganizationAwareCrudService<ChatB
 		await this.repository.save(record)
 	}
 
-	async updateRoles(modelId: string, roles: string[]) {
-		const model = await super.findOne({ where: { id: modelId }, relations: ['roles'] })
+	// async updateRoles(modelId: string, roles: string[]) {
+	// 	const model = await super.findOne({ where: { id: modelId }, relations: ['roles'] })
 
-		const _roles = await this.roleService.findAll({
-			where: {
-				id: In(roles)
-			}
-		})
+	// 	const _roles = await this.roleService.findAll({
+	// 		where: {
+	// 			id: In(roles)
+	// 		}
+	// 	})
 
-		model.xperts = _roles.items
-		return await this.repository.save(model)
-	}
+	// 	model.xperts = _roles.items
+	// 	return await this.repository.save(model)
+	// }
 
 	async update(modelId: string, entity: QueryDeepPartialEntity<ChatBIModel>): Promise<UpdateResult | ChatBIModel> {
 		const { integrations, xperts, ...updateEntity } = entity
-		const model = await super.findOne({ where: { id: modelId }, relations: ['roles', 'integrations'] })
+		const model = await super.findOne({ where: { id: modelId }, relations: ['integrations'] })
 		if (integrations) {
 			const _integrations = await this.integrationService.findAll({
 				where: {
@@ -54,15 +54,15 @@ export class ChatBIModelService extends TenantOrganizationAwareCrudService<ChatB
 			model.integrations = _integrations.items
 		}
 
-		if (xperts) {
-			const _roles = await this.roleService.findAll({
-				where: {
-					id: In((<QueryDeepPartialEntity<IXpert>[]>xperts).map(({ id }) => id))
-				}
-			})
+		// if (xperts) {
+		// 	const _roles = await this.roleService.findAll({
+		// 		where: {
+		// 			id: In((<QueryDeepPartialEntity<IXpert>[]>xperts).map(({ id }) => id))
+		// 		}
+		// 	})
 
-			model.xperts = _roles.items
-		}
+		// 	model.xperts = _roles.items
+		// }
 		await this.repository.save(model)
 		return await super.update(modelId, updateEntity)
 	}

@@ -33,6 +33,7 @@ export enum ToolInvokeFrom {
 }
 
 export interface ToolProviderIdentity {
+	not_implemented?: boolean
     author: string;
     name: string;
     description: I18nObject;

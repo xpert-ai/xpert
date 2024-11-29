@@ -10,13 +10,18 @@ import * as path from 'path'
  * @return a dict with name as key and index as value
  */
 export function getPositionMap(folderPath: string, fileName = '_position.yaml', logger?: Logger): Record<string, number> {
+	const positions = getPositionList(folderPath, fileName, logger)
+	return positions.reduce((acc: Record<string, number>, name: string, index: number) => {
+		acc[name] = index
+		return acc
+	}, {})
+}
+
+export function getPositionList(folderPath: string, fileName = '_position.yaml', logger?: Logger): string[] {
 	const positionFilePath = path.join(folderPath, fileName)
 	const yamlContent = loadYamlFile<string[]>(positionFilePath, logger, true, [])
 	const positions = yamlContent
 		?.filter((item: any) => item && typeof item === 'string' && item.trim())
 		.map((item: string) => item.trim())
-	return positions.reduce((acc: Record<string, number>, name: string, index: number) => {
-		acc[name] = index
-		return acc
-	}, {})
+	return positions
 }

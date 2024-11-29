@@ -8,11 +8,18 @@ import { IsDirty } from '@metad/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { omit } from 'lodash-es'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
-import { EMPTY, map, of, pipe, startWith, switchMap } from 'rxjs'
-import { ChatBIModelService, XpertService, IChatBIModel, IntegrationService, ToastrService, routeAnimations } from '../../../../@core'
+import { EMPTY, map, pipe, startWith, switchMap } from 'rxjs'
+import {
+  ChatBIModelService,
+  IChatBIModel,
+  IntegrationService,
+  XpertService,
+  getErrorMessage,
+  injectToastr,
+  routeAnimations
+} from '../../../../@core'
 import { IntegrationListComponent, MaterialModule, UpsertEntityComponent } from '../../../../@shared'
 import { ChatBIModelsComponent } from '../models/models.component'
 
@@ -39,17 +46,17 @@ export class ChatBIModelComponent extends UpsertEntityComponent<IChatBIModel> im
   readonly chatbiModelService = inject(ChatBIModelService)
   readonly roleService = inject(XpertService)
   readonly integrationService = inject(IntegrationService)
-  readonly _toastrService = inject(ToastrService)
   readonly fb = inject(FormBuilder)
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
+  readonly #toastr = injectToastr()
   readonly modelsComponent = inject(ChatBIModelsComponent)
 
   readonly paramId = injectParams('id')
 
   readonly chatbiModel = derivedFrom(
     [this.paramId],
-    pipe(switchMap(([id]) => (id ? this.chatbiModelService.getOneById(id, { relations: ['roles', 'integrations'] }) : EMPTY))),
+    pipe(switchMap(([id]) => (id ? this.chatbiModelService.getOneById(id, { relations: ['integrations'] }) : EMPTY))),
     {
       initialValue: null
     }
@@ -60,17 +67,8 @@ export class ChatBIModelComponent extends UpsertEntityComponent<IChatBIModel> im
     entity: new FormControl(null),
     entityCaption: new FormControl(null),
     entityDescription: new FormControl(null),
-    roles: new FormControl(null),
-    integrations: new FormControl(null),
+    integrations: new FormControl(null)
   })
-
-  get roles() {
-    return this.formGroup.get('roles').value
-  }
-  set roles(value) {
-    this.formGroup.patchValue({ roles: value })
-    this.formGroup.get('roles').markAsDirty()
-  }
 
   get integrations() {
     return this.formGroup.get('integrations').value
@@ -137,25 +135,20 @@ export class ChatBIModelComponent extends UpsertEntityComponent<IChatBIModel> im
   }
 
   saveAll() {
-    const entity = omit(this.formGroup.value, 'roles')
+    this.loading.set(true)
+    const entity = { ...this.formGroup.value }
     ;(this.paramId()
       ? this.update(this.paramId(), entity).pipe(map(() => this.paramId()))
       : this.save(entity).pipe(map((model) => model.id))
-    )
-      .pipe(
-        switchMap((modelId) =>
-          this.formGroup.get('roles').dirty
-            ? this.chatbiModelService.updateRoles(
-                modelId,
-                this.roles.map(({ id }) => id)
-              )
-            : of(null)
-        )
-      )
-      .subscribe(() => {
+    ).subscribe({
+      next: () => {
         this.formGroup.markAsPristine()
         this.close()
-      })
+      },
+      error: (err) => {
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
   }
 
   close(refresh = false) {

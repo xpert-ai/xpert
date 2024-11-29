@@ -38,7 +38,7 @@
               <a type="button" class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm shrink-0"
                 [matTooltip]="'PAC.Copilot.OurSupport' | translate: {Default: 'Contact us for priority support'}"
                 matTooltipPosition="above"
-                href="https://mtda.cloud/#connect" target="_blank">
+                href="{{helpBaseUrl() + '/#connect'}}" target="_blank">
                 <i class="ri-hand-heart-line text-lg mr-1"></i>
                 <span class="text-sm inline-flex items-center justify-center overflow-ellipsis shrink-0">
                   {{'PAC.Copilot.Support' | translate: {Default: 'Support'} }}

@@ -7,7 +7,7 @@ import * as path from 'path'
 import { ModelProvider } from './ai-provider'
 import { DefaultParameterName, PARAMETER_RULE_TEMPLATE, PriceInfo, PriceType, valueOf } from './entities'
 import { TChatModelOptions } from './types/types'
-import { getPositionMap } from './utils'
+import { getPositionMap } from '../core/utils'
 
 @Injectable()
 export abstract class AIModel {

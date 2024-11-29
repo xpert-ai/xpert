@@ -6,7 +6,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {Dialog, DialogRef, DIALOG_DATA} from '@angular/cdk/dialog';
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { getErrorMessage, IAiProviderEntity, ICopilot, injectAiProviders, injectCopilotProviderService, ToastrService } from '../../../@core'
+import { getErrorMessage, IAiProviderEntity, ICopilot, injectAiProviders, injectCopilotProviderService, injectHelpWebsite, ToastrService } from '../../../@core'
 import { CopilotAiProviderAuthComponent } from '../provider-authorization/authorization.component'
 import { MatTooltipModule } from '@angular/material/tooltip'
 
@@ -27,6 +27,7 @@ export class CopilotAiProvidersComponent {
   readonly #toastr = inject(ToastrService)
   readonly #copilotProviderService = injectCopilotProviderService()
   readonly aiProviders = injectAiProviders()
+  readonly helpBaseUrl = injectHelpWebsite()
 
   readonly copilot = signal(this.#data.copilot)
 

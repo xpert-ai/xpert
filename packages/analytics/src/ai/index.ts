@@ -1,12 +1,9 @@
-import { BUILTIN_TOOLSET_REPOSITORY } from "@metad/server-ai";
-import { ChatBIToolset, ChatDBToolset } from "./toolset/builtin";
+import { BUILTIN_TOOLSET_REPOSITORY } from '@metad/server-ai'
+import { ChatBIToolset, ChatDBToolset } from './toolset/builtin'
 
-BUILTIN_TOOLSET_REPOSITORY.push({
-    baseUrl: `packages/analytics/src/ai/toolset/builtin`,
-    providers: [
-        ChatDBToolset,
-        ChatBIToolset,
-    ]
+BUILTIN_TOOLSET_REPOSITORY.splice(0, 0, {
+	baseUrl: `packages/analytics/src/ai/toolset/builtin`,
+	providers: [ ChatBIToolset, ChatDBToolset, ]
 })
 
-export { ChatDBToolset, ChatBIToolset }
+export { ChatBIToolset, ChatDBToolset }

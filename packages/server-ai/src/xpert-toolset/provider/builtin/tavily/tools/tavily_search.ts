@@ -6,7 +6,7 @@ import { getEnvironmentVariable } from "@langchain/core/utils/env";
  * Options for the TavilySearchResults tool.
  */
 export type TavilySearchAPIRetrieverFields = ToolParams & {
-  maxResults?: number;
+  max_results?: number;
   kwargs?: Record<string, unknown>;
   apiKey?: string;
 };
@@ -90,7 +90,7 @@ export class TavilySearchResults extends Tool {
 
   name = "tavily_search_results_json";
 
-  protected maxResults = 5;
+  protected max_results = 5;
 
   protected apiKey?: string;
 
@@ -98,7 +98,7 @@ export class TavilySearchResults extends Tool {
 
   constructor(fields?: TavilySearchAPIRetrieverFields) {
     super(fields);
-    this.maxResults = fields?.maxResults ?? this.maxResults;
+    this.max_results = fields?.max_results ?? this.max_results;
     this.kwargs = fields?.kwargs ?? this.kwargs;
     this.apiKey = fields?.apiKey ?? getEnvironmentVariable("TAVILY_API_KEY");
     if (this.apiKey === undefined) {
@@ -114,7 +114,7 @@ export class TavilySearchResults extends Tool {
   ): Promise<string> {
     const body: Record<string, unknown> = {
       query: input,
-      max_results: this.maxResults,
+      max_results: this.max_results,
       api_key: this.apiKey,
     };
 
