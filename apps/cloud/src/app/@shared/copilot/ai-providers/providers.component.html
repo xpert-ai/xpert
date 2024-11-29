@@ -1,10 +1,11 @@
-<div class="px-4 pt-2 pb-4 cursor-move flex justify-start items-center" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<div class="p-4 cursor-move flex justify-start items-center sticky top-0 z-10 bg-components-card-bg"
+  cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
   <div class="text-lg font-semibold">{{'PAC.Copilot.ModelProviders' | translate: {Default: 'Model Providers'} }}</div>
 </div>
 
 <div class="px-8 text-base text-text-secondary">{{'PAC.Copilot.ModelProvidersDesc' | translate: {Default: 'Select an AI model provider and configure authorization information for Copilot or add an AI model manually after added provider.'} }}</div>
 <div class="w-[820px] flex flex-wrap px-8 py-2">
-  <div class="grid grid-cols-3 gap-2">
+  <div class="grid grid-cols-3 gap-3">
     @for (provider of aiProviders(); track provider.provider) {
       <div class="group relative flex flex-col px-4 py-3 h-[148px] border-[0.5px] border-black/5 rounded-xl shadow-sm hover:shadow-lg"
         [ngStyle]="{background: provider.background}"
@@ -13,7 +14,7 @@
           <div class="py-1">
             <img alt="provider-icon" [src]="provider.icon_large | i18n" class="w-auto h-7">
           </div>
-          <div class="mt-1 leading-4 text-sm text-zinc-500 line-clamp-4" [title]="provider.description | i18n">{{provider.description | i18n}}</div>
+          <div class="mt-1 leading-4 text-sm text-zinc-600 line-clamp-4" [title]="provider.description | i18n">{{provider.description | i18n}}</div>
         </div>
         <div class="shrink-0">
           <div class="flex flex-wrap group-hover:hidden gap-0.5">

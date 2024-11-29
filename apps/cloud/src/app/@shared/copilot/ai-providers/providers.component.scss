@@ -1,3 +1,3 @@
 :host {
-    @apply flex flex-col items-stretch w-full h-[600px] rounded-2xl bg-components-card-bg p-4;
+    @apply flex flex-col items-stretch w-full max-h-[90vh] rounded-2xl pb-4 bg-components-card-bg overflow-auto outline-none;
 }

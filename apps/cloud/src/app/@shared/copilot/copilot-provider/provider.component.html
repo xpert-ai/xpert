@@ -88,7 +88,9 @@
     <div class="py-1 bg-white rounded-lg">
       <div class="flex items-center pl-1 pr-[3px]">
         <span class="group shrink-0 flex items-center mr-2">
-          <span class="group-hover:hidden pl-1 pr-1.5 h-6 leading-6 text-sm font-medium text-gray-500">{{modelCount()}} 个模型</span>
+          <span class="group-hover:hidden pl-1 pr-1.5 h-6 leading-6 text-sm font-medium text-gray-500">
+            {{modelCount()}} {{'PAC.Copilot.Models' | translate: {Default: 'Models'} }}
+          </span>
           <span class="hidden group-hover:inline-flex items-center pl-1 pr-1.5 h-6 text-sm font-medium text-gray-500 bg-gray-50 cursor-pointer rounded-lg"
             (click)="toggleShowModels()"
           >

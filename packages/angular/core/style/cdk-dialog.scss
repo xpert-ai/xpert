@@ -28,6 +28,10 @@
   }
 }
 
+.cdk-dialog-container {
+  @apply outline-none;
+}
+
 @layer components {
   .cdk-dialog-card {
     @apply bg-components-card-bg rounded-2xl p-4;
