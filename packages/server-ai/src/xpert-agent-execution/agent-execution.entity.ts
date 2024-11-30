@@ -10,7 +10,7 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true, length: 100 })
+	@Column({ nullable: true,})
 	title?: string
 
 	@ApiPropertyOptional({ type: () => String })

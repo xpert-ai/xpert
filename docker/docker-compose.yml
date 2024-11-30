@@ -31,7 +31,7 @@ services:
 
   # OLAP Services
   olap:
-    image: registry.cn-hangzhou.aliyuncs.com/metad/ocap-olap:main
+    image: ghcr.io/xpert-ai/ocap-olap:latest
     profiles:
       - bi
     mem_limit: 1024m
@@ -54,7 +54,7 @@ services:
       - default
 
   api:
-    image: ghcr.io/xpert-ai/xpert-api-demo:latest
+    image: ghcr.io/xpert-ai/xpert-api:latest
     environment:
       HOST: ${API_HOST:-api}
       PORT: ${API_PORT:-3000}
@@ -83,7 +83,7 @@ services:
       - default
 
   webapp:
-    image: ghcr.io/xpert-ai/xpert-webapp-demo:latest
+    image: ghcr.io/xpert-ai/xpert-webapp:latest
     environment:
       HOST: ${WEB_HOST:-webapp}
       NODE_ENV: ${NODE_ENV:-development}
@@ -110,23 +110,6 @@ services:
       # - 443:443
     volumes:
       - ./volumes/webapp/:/webapp/
-    networks:
-      - default
-
-  adminer:
-    image: adminer
-    profiles:
-      - debug
-    restart: always
-    depends_on:
-      - db
-    environment:
-      ADMINER_DEFAULT_DB_DRIVER: pgsql
-      ADMINER_DEFAULT_DB_HOST: ${DB_HOST:-db}
-      ADMINER_DEFAULT_DB_NAME: ${DB_NAME:-postgres}
-      ADMINER_DEFAULT_DB_PASSWORD: ${DB_PASS:-root}
-    ports:
-      - '8084:8080'
     networks:
       - default
 

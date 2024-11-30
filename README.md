@@ -6,14 +6,22 @@ English | [中文](./README_zh.md)
 
 <p align="center">
   <a href="https://mtda.cloud/en/">
-  <img src="https://avatars.githubusercontent.com/u/100019674?v=4" alt="Metad">
+  <img src="https://avatars.githubusercontent.com/u/100019674?v=4" alt="Xpert AI">
   </a>
 </p>
+
+<p align="center">
+  <a href="https://app.mtda.cloud/">Xpert Cloud</a> ·
+  <a href="https://mtda.cloud/en/docs/getting-started/community/">Self-hosting</a> ·
+  <a href="https://mtda.cloud/en/docs/">Documentation</a> ·
+  <a href="https://mtda.cloud/en/#connect">Enterprise inquiry</a>
+</p>
+
 <p align="center">
   <em>Open-Source AI Platform for Enterprise Data Analysis, Indicator Management and Agents Orchestration</em>
 </p>
 <p align="center">
-  <a href="https://github.com/meta-d/ocap/" target="_blank">
+  <a href="https://github.com/xpert-ai/xpert/" target="_blank">
     <img src="https://visitor-badge.laobi.icu/badge?page_id=meta-d.ocap" alt="Visitors">
   </a>
   <a href="https://www.npmjs.com/@metad/ocap-core">
@@ -22,23 +30,26 @@ English | [中文](./README_zh.md)
   <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank">
     <img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="License: AGPL v3">
   </a>
-  <a href="https://gitpod.io/#https://github.com/meta-d/ocap" target="_blank">
+  <a href="https://gitpod.io/#https://github.com/xpert-ai/xpert" target="_blank">
     <img src="https://img.shields.io/badge/Gitpod-Ready--to--Code-blue?logo=gitpod" alt="Gitpod Ready-to-Code">
   </a>
 </p>
 
-# Xpert AI Platform
+**Xpert AI** is an open-source enterprise-level AI system that perfectly integrates two major platforms: agent orchestration and data analysis.
 
 ## 💡 What's New
-### Xpert AI
 
-**Xpert AI** is an enterprise-level AI system that integrates BI (Business Intelligence) indicators management and intelligent dialogue functionality. It features modules such as a knowledge base, data analysis toolset (ChatBI, ChatDB, Search), and more. It acts as a digital expert, providing intelligent assistant copilot services and is deeply integrated with Feishu (Lark) bots. *Xpert AI* leverages advanced AI technology to offer efficient decision support and information management for enterprises, helping users quickly obtain data insights, optimize business processes, and enhance overall operational efficiency.
+## [Agent Orchestration Platform](https://mtda.cloud/en/docs/ai/)
+
+By coordinating the collaboration of multiple agents, Xpert completes complex tasks. Xpert integrates different types of AI agents through an efficient management mechanism, utilizing their capabilities to solve multidimensional problems.
 
 [Xpert Agents](https://github.com/user-attachments/assets/e21f8b35-2f72-4b81-a245-f36759df7c27)
 
-[More details](https://mtda.cloud/en/blog/releases-2-7-xpert)
+## [Data Analysis Platform](https://mtda.cloud/en/docs/models/)
 
-### ChatBI: Natural Language-Driven Business Intelligence Analysis
+An agile data analysis platform based on cloud computing for multidimensional modeling, indicator management, and BI display. It supports connecting to various data sources, achieving efficient and flexible data analysis and visualization, and provides multiple intelligent analysis functions and tools to help enterprises quickly and accurately discover business value and make operational decisions.
+
+### ChatBI
 
 [ChatBI](https://mtda.cloud/en/docs/chatbi) is an innovative feature we are introducing, combining chat functionality with business intelligence (BI) analysis capabilities. It offers users a more intuitive and convenient data analysis experience through natural language interaction.
 
@@ -65,82 +76,11 @@ docker compose up -d
 After running, you can access the Xpert dashboard in your browser at [http://localhost/onboarding](http://localhost/onboarding) and start the initialization process.
 
 
-Please check our [Wiki - Development](https://github.com/meta-d/ocap/wiki/Development) to get started quickly.
+Please check our [Wiki - Development](https://github.com/xpert-ai/xpert/wiki/Development) to get started quickly.
 
 ## 🎯 Mission
 
-__"One Table, One Model, One Indicator System"__
-
-Simple, efficient, integrated. Users can conduct analysis by simply dealing with one fact table. Through the multi-dimensional modeling function provided by the platform, a comprehensive set of indicators can be quickly obtained within the unified semantic model.
-
-## 🌟 What is it
-
-[Metad Platform][uri_metad] - **Open-Source Analytics Platform** for Enterprise Data Analysis Indicator Management and Reporting.
-
-* **Semantic Model**: Perform multi-dimensional data modeling and analysis, allowing users to explore data from various dimensions and hierarchies.
-* **Story Dashboard**: Create compelling visual narratives with Story Dashboards, combining interactive visualizations, narrative elements, and data-driven storytelling.
-* **Indicator Management**: Easily define, manage, and monitor key performance indicators (KPIs) to ensure data quality, consistency, and effective performance analysis.
-* **AI Copilot**: Benefit from AI-driven insights and recommendations to enhance decision-making processes and identify actionable opportunities.
-
-![Story Workspace](https://github.com/meta-d/meta-d/raw/main/img/v2.0/story-workspace.png)
-
-![Indicator Application](https://github.com/meta-d/meta-d/raw/main/img/v2.0/indicator-app-ai-copilot.png)
-
-## ✨ Features
-
-Main features:
-
-- **Data Sources**: connects with lots of different databases and data warehouses.
-  - **OLAP**: SAP BW/BPC, HANA, SSAS, Mondrian, Kylin etc.
-  - **MPP DB**: StarRocks, Apache Doris, ClickHouse etc.
-  - **SQL DB**: MySQL, PostgreSQL etc.
-  - **MR Source**: Hive, Trino etc.
-* **Semantic Model**: Supports the unified semantic modeling of two olap engines: MDX and SQL, and supports multi-dimensional modeling and analysis.
-  * **Query Lab**: An environment for executing and analyzing SQL or MDX queries, with AI Copilot to assist in writing and optimizing SQL or MDX queries.
-  * **Virtual Cube**: combine dimensions and measures from multiple cubes.
-  * **Access Control**: The access control of the cube defined based on single role or combined role to the row level.
-  * **External Cube**: support cube from third-party multiple-dimensional data source, such as SSAS, SAP BW/BPC etc.
-  * **Calculated Members**: support calculated dimension members and calculated measures using MDX or SQL expression.
-* **Project**: A project is a collection of story dashboards, indicators and other resources that are used to create and deliver analytics content collaborating with colleagues.
-* **Indicator Management**: Define, manage, and monitor key performance indicators (KPIs) to ensure data quality, consistency, and effective performance analysis.
-  * Indicator registration
-  * Indicator certification
-  * Indicator business area
-  * Derivative indicator
-  * Indicator measure
-* **Indicator Market**: Publish and share indicators with other users in one place.
-* **Indicator Application**: View and analyze indicators in a dedicated single page application.
-* **Story Dashboard**: Create compelling visual narratives with Story Dashboards, combining interactive visualizations, narrative elements, and data-driven storytelling.
-  * **Bigview Dashboard**: A story dashboard suitable for large screen display, supporting data automatic refresh and scrolling display.
-  * **Mobile Design**: support mobile terminal adaptive design, support mobile terminal browser access.
-  * **Story Template**: Create and share a unified style and layout template of story.
-  * **Execution Explain**: Explain the execution process of SQL or MDX queries inculde query statement, slicers, query result and chart options.
-* **AI Copilot**: assist users quickly design and implement story dashboards and indicators.
-  * `/query` command to execute SQL or MDX queries.
-  * `/story` command to create a story dashboard.
-  * `/indicator` command to create an indicator.
-  * `/clear` command to clear the screen.
-  * ...
-
-Basic feartures of the platform:
-
-* Multi-tenant
-* Multiple Organizations Management
-* Home Dashboard
-* Roles / Permissions
-* Tags / Labels
-* Custom SMTP
-* Email Templates
-* Copilot
-* Country
-* Currency
-* Logger
-* Storage File
-* User
-* Invite
-* Business Area
-* Certification
-* Dark / Light and other themes
+__Empowering enterprises with intelligent collaboration and data-driven insights through innovative AI orchestration and agile analytics.__
 
 ## 🌼 Screenshots
 
@@ -167,29 +107,18 @@ Basic feartures of the platform:
 
 </details>
 
-## 🔗 Links
-
-* <https://mtda.cloud/en/> check more information about the platform at the official website.
-* <https://mtda.cloud/en/docs/> (WIP) check the official documentation and tutorials for more details.
-* <https://mtda.cloud/en/blog/> Check out the official blog for the latest updates.
-* <https://app.mtda.cloud/> Login to Metad analytics platform for free use.
-
 ## 💻 Demo, Downloads, Testing and Production
 
 ### Demo
 
-Metad Analytics Platform Demo at <https://app.mtda.cloud>.
+Xpert AI Platform Demo at <https://app.mtda.cloud>.
 
 Notes:
 - You can generate samples data in the home dashbaord page.
 
-### Downloads
-
-You can download [Metad Desktop Agent](https://github.com/meta-d/meta-d/releases) use to connect to your local data sources.
-
 ### Production (SaaS)
 
-Metad Analytics Platform SaaS is available at <https://app.mtda.cloud>.
+Xpert AI Platform SaaS is available at <https://app.mtda.cloud>.
 
 Note: it's currently in Alpha version / in testing mode, please use it with caution!
 
@@ -216,12 +145,12 @@ Note: thanks to TypeORM, OCAP will support lots of DBs: SQLite (default, for dem
 
 ## 📄 Documentation
 
-Please refer to our official [Platform Documentation](https://mtda.cloud/en/docs/) and to our [Wiki](https://github.com/meta-d/ocap/wiki) (WIP) or [api references](https://meta-d.github.io/ocap/) for more details.
+Please refer to our official [Platform Documentation](https://mtda.cloud/en/docs/) and to our [Wiki](https://github.com/xpert-ai/xpert/wiki) (WIP).
 
 ## 💌 Contact Us
 
 - For business inquiries: <mailto:service@mtda.cloud>
-- [Metad Platform @ Twitter](https://twitter.com/CloudMtda)
+- [Xpert AI Platform @ Twitter](https://twitter.com/CloudMtda)
 
 ## 🛡️ License
 
@@ -229,14 +158,14 @@ We support the open-source community.
 
 This software is available under the following licenses:
 
-- [Metad Analytics Platform Community Edition](https://github.com/meta-d/ocap/blob/master/LICENSE.md#metad-analytics-platform-community-edition-license)
-- [Metad Analytics Platform Small Business](https://github.com/meta-d/ocap/blob/master/LICENSE.md#metad-analytics-platform-small-business-license)
-- [Metad Analytics Platform Enterprise](https://github.com/meta-d/ocap/blob/master/LICENSE.md#metad-analytics-platform-enterprise-license)
+- [Xpert AI Platform Community Edition](https://github.com/xpert-ai/xpert/blob/master/LICENSE.md#metad-analytics-platform-community-edition-license)
+- [Xpert AI Platform Small Business](https://github.com/xpert-ai/xpert/blob/master/LICENSE.md#metad-analytics-platform-small-business-license)
+- [Xpert AI Platform Enterprise](https://github.com/xpert-ai/xpert/blob/master/LICENSE.md#metad-analytics-platform-enterprise-license)
 
 #### Please see [LICENSE](LICENSE.md) for more information on licenses.
 
 ## 🍺 Contribute
 
 - Please give us :star: on Github, it **helps**!
-- You are more than welcome to submit feature requests in the [ocap repo](https://github.com/meta-d/ocap/issues)
+- You are more than welcome to submit feature requests in the [Xpert AI repo](https://github.com/xpert-ai/xpert/issues)
 - Pull requests are always welcome! Please base pull requests against the _develop_ branch and follow the [contributing guide](.github/CONTRIBUTING.md).

@@ -23,10 +23,10 @@ jobs:
           load: true
           platforms: linux/amd64
           tags: |
-              ghcr.io/meta-d/ocap-api:latest
-              metadc/ocap-api:latest
-              registry.cn-hangzhou.aliyuncs.com/metad/ocap-api:latest
-          cache-from: type=registry,ref=metadc/ocap-api:latest
+              ghcr.io/xpert-ai/xpert-api:latest
+              metadc/xpert-api:latest
+              registry.cn-hangzhou.aliyuncs.com/metad/xpert-api:latest
+          cache-from: type=registry,ref=metadc/xpert-api:latest
           cache-to: type=inline
 
     - name: Docker images list
@@ -43,9 +43,9 @@ jobs:
       env:
         GITHUB_REF_NAME: ${{ github.ref_name }}
       run: |
-        docker push metadc/ocap-api:latest
-        docker tag metadc/ocap-api:latest metadc/ocap-api:$GITHUB_REF_NAME
-        docker push metadc/ocap-api:$GITHUB_REF_NAME
+        docker push metadc/xpert-api:latest
+        docker tag metadc/xpert-api:latest metadc/xpert-api:$GITHUB_REF_NAME
+        docker push metadc/xpert-api:$GITHUB_REF_NAME
 
     - name: Login to GitHub Container Registry
       uses: docker/login-action@v3.2.0
@@ -56,9 +56,9 @@ jobs:
 
     - name: Push to Github Registry
       run: |
-          docker push ghcr.io/meta-d/ocap-api:latest
-          docker tag ghcr.io/meta-d/ocap-api:latest ghcr.io/meta-d/ocap-api:$GITHUB_REF_NAME
-          docker push ghcr.io/meta-d/ocap-api:$GITHUB_REF_NAME
+          docker push ghcr.io/xpert-ai/xpert-api:latest
+          docker tag ghcr.io/xpert-ai/xpert-api:latest ghcr.io/xpert-ai/xpert-api:$GITHUB_REF_NAME
+          docker push ghcr.io/xpert-ai/xpert-api:$GITHUB_REF_NAME
 
     - uses: aliyun/acr-login@v1
       with:
@@ -68,9 +68,9 @@ jobs:
 
     - name: Push to Aliyun Registry
       run: |
-          docker push registry.cn-hangzhou.aliyuncs.com/metad/ocap-api:latest
-          docker tag registry.cn-hangzhou.aliyuncs.com/metad/ocap-api:latest registry.cn-hangzhou.aliyuncs.com/metad/ocap-api:$GITHUB_REF_NAME
-          docker push registry.cn-hangzhou.aliyuncs.com/metad/ocap-api:$GITHUB_REF_NAME
+          docker push registry.cn-hangzhou.aliyuncs.com/metad/xpert-api:latest
+          docker tag registry.cn-hangzhou.aliyuncs.com/metad/xpert-api:latest registry.cn-hangzhou.aliyuncs.com/metad/xpert-api:$GITHUB_REF_NAME
+          docker push registry.cn-hangzhou.aliyuncs.com/metad/xpert-api:$GITHUB_REF_NAME
           
   xpert-webapp:
 
@@ -87,10 +87,10 @@ jobs:
           load: true
           platforms: linux/amd64
           tags: |
-              ghcr.io/meta-d/ocap-webapp:latest
-              metadc/ocap-webapp:latest
-              registry.cn-hangzhou.aliyuncs.com/metad/ocap-webapp:latest
-          cache-from: type=registry,ref=metadc/ocap-webapp:latest
+              ghcr.io/xpert-ai/xpert-webapp:latest
+              metadc/xpert-webapp:latest
+              registry.cn-hangzhou.aliyuncs.com/metad/xpert-webapp:latest
+          cache-from: type=registry,ref=metadc/xpert-webapp:latest
           cache-to: type=inline
 
     - name: Docker images list
@@ -107,9 +107,9 @@ jobs:
       env:
         GITHUB_REF_NAME: ${{ github.ref_name }}
       run: |
-        docker push metadc/ocap-webapp:latest
-        docker tag metadc/ocap-webapp:latest metadc/ocap-webapp:$GITHUB_REF_NAME
-        docker push metadc/ocap-webapp:$GITHUB_REF_NAME
+        docker push metadc/xpert-webapp:latest
+        docker tag metadc/xpert-webapp:latest metadc/xpert-webapp:$GITHUB_REF_NAME
+        docker push metadc/xpert-webapp:$GITHUB_REF_NAME
 
     - name: Login to GitHub Container Registry
       uses: docker/login-action@v3.2.0
@@ -120,9 +120,9 @@ jobs:
 
     - name: Push to Github Registry
       run: |
-        docker push ghcr.io/meta-d/ocap-webapp:latest
-        docker tag ghcr.io/meta-d/ocap-webapp:latest ghcr.io/meta-d/ocap-webapp:$GITHUB_REF_NAME
-        docker push ghcr.io/meta-d/ocap-webapp:$GITHUB_REF_NAME
+        docker push ghcr.io/xpert-ai/xpert-webapp:latest
+        docker tag ghcr.io/xpert-ai/xpert-webapp:latest ghcr.io/xpert-ai/xpert-webapp:$GITHUB_REF_NAME
+        docker push ghcr.io/xpert-ai/xpert-webapp:$GITHUB_REF_NAME
 
     - uses: aliyun/acr-login@v1
       with:
@@ -132,9 +132,9 @@ jobs:
 
     - name: Push to Aliyun Registry
       run: |
-        docker push registry.cn-hangzhou.aliyuncs.com/metad/ocap-webapp:latest
-        docker tag registry.cn-hangzhou.aliyuncs.com/metad/ocap-webapp:latest registry.cn-hangzhou.aliyuncs.com/metad/ocap-webapp:$GITHUB_REF_NAME
-        docker push registry.cn-hangzhou.aliyuncs.com/metad/ocap-webapp:$GITHUB_REF_NAME
+        docker push registry.cn-hangzhou.aliyuncs.com/metad/xpert-webapp:latest
+        docker tag registry.cn-hangzhou.aliyuncs.com/metad/xpert-webapp:latest registry.cn-hangzhou.aliyuncs.com/metad/xpert-webapp:$GITHUB_REF_NAME
+        docker push registry.cn-hangzhou.aliyuncs.com/metad/xpert-webapp:$GITHUB_REF_NAME
   
   ocap-olap:
     runs-on: ubuntu-latest
@@ -150,7 +150,7 @@ jobs:
             load: true
             platforms: linux/amd64
             tags: |
-                ghcr.io/meta-d/ocap-olap:latest
+                ghcr.io/xpert-ai/ocap-olap:latest
                 metadc/ocap-olap:latest
                 registry.cn-hangzhou.aliyuncs.com/metad/ocap-olap:latest
             cache-from: type=registry,ref=metadc/ocap-olap:latest
@@ -183,9 +183,9 @@ jobs:
   
       - name: Push to Github Registry
         run: |
-            docker push ghcr.io/meta-d/ocap-olap:latest
-            docker tag ghcr.io/meta-d/ocap-olap:latest ghcr.io/meta-d/ocap-olap:$GITHUB_REF_NAME
-            docker push ghcr.io/meta-d/ocap-olap:$GITHUB_REF_NAME
+            docker push ghcr.io/xpert-ai/ocap-olap:latest
+            docker tag ghcr.io/xpert-ai/ocap-olap:latest ghcr.io/xpert-ai/ocap-olap:$GITHUB_REF_NAME
+            docker push ghcr.io/xpert-ai/ocap-olap:$GITHUB_REF_NAME
   
       - uses: aliyun/acr-login@v1
         with:
