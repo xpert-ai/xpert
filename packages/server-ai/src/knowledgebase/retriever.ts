@@ -3,6 +3,8 @@ import { Document, DocumentInterface } from '@langchain/core/documents'
 import { BaseRetriever } from '@langchain/core/retrievers'
 import { Logger } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
+import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch"
+import { getErrorMessage } from '@metad/server-common'
 import { KnowledgeSearchQuery } from './queries'
 
 /**
@@ -28,27 +30,31 @@ export class KnowledgeRetriever extends BaseRetriever {
 
 		this.metadata.knowledgebaseId = this.knowledgebaseId
 
-		const results = await this.queryBus.execute<
-			KnowledgeSearchQuery,
-			{
-				doc: DocumentInterface<Record<string, any>>
-				score: number
-			}[]
-		>(
-			new KnowledgeSearchQuery({
-				tenantId: this.tenantId,
-				organizationId: this.organizationId,
-				knowledgebases: this.knowledgebaseId ? [this.knowledgebaseId] : [],
-				query
-			})
-		)
+		try {
+			const results = await this.queryBus.execute<
+				KnowledgeSearchQuery,
+				{
+					doc: DocumentInterface<Record<string, any>>
+					score: number
+				}[]
+			>(
+				new KnowledgeSearchQuery({
+					tenantId: this.tenantId,
+					organizationId: this.organizationId,
+					knowledgebases: this.knowledgebaseId ? [this.knowledgebaseId] : [],
+					query
+				})
+			)
 
-		return results.map(({ doc }) => doc)
+			return results.map(({ doc }) => doc)
+		} catch(error) {
+			await dispatchCustomEvent("on_retriever_error", {knowledgebaseId: this.knowledgebaseId, error: getErrorMessage(error)})
+			throw error
+		}
 	}
 }
 
 export function createKnowledgeRetriever(queryBus: QueryBus, knowledgebaseId: string) {
-	
 	class DynamicKnowledgeRetriever extends KnowledgeRetriever {
 		// To enable langchain to obtain the actual knowledgebaseId of the Retriever as the event name
 		static lc_name(): string {
