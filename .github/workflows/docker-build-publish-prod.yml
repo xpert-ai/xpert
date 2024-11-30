@@ -6,6 +6,10 @@ on:
     tags:
       - '*'
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
 
   xpert-api:
