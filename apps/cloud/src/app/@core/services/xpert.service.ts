@@ -7,11 +7,13 @@ import { BehaviorSubject, Observable, tap } from 'rxjs'
 import { API_XPERT_ROLE } from '../constants/app.constants'
 import { IUser, IXpert, IXpertAgentExecution, OrderTypeEnum, TChatRequest, TXpertTeamDraft, XpertTypeEnum } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
+import { injectApiBaseUrl } from '../providers'
 
 @Injectable({ providedIn: 'root' })
 export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   readonly #logger = inject(NGXLogger)
   readonly #store = inject(Store)
+  readonly baseUrl = injectApiBaseUrl()
 
   readonly #refresh = new BehaviorSubject<void>(null)
 
@@ -70,7 +72,7 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     const organization = this.store.selectedOrganization ?? { id: null }
     return new Observable((subscriber) => {
       const ctrl = new AbortController()
-      fetchEventSource(this.apiBaseUrl + `/${id}/chat`, {
+      fetchEventSource(this.baseUrl + this.apiBaseUrl + `/${id}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
