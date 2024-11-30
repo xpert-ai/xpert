@@ -1,17 +1,19 @@
 import { inject, Injectable } from '@angular/core'
 import { EventSourceMessage, fetchEventSource } from '@microsoft/fetch-event-source'
+import { pick } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, Observable } from 'rxjs'
 import { API_XPERT_AGENT } from '../constants/app.constants'
+import { injectApiBaseUrl } from '../providers'
 import { IXpertAgent, TChatAgentParams } from '../types'
-import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 import { Store } from './store.service'
-import { pick } from 'lodash-es'
+import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 
 @Injectable({ providedIn: 'root' })
 export class XpertAgentService extends XpertWorkspaceBaseCrudService<IXpertAgent> {
   readonly #logger = inject(NGXLogger)
   readonly #store = inject(Store)
+  readonly baseUrl = injectApiBaseUrl()
 
   readonly #refresh = new BehaviorSubject<void>(null)
 
@@ -21,10 +23,10 @@ export class XpertAgentService extends XpertWorkspaceBaseCrudService<IXpertAgent
 
   chatAgent(data: TChatAgentParams): Observable<EventSourceMessage> {
     const token = this.#store.token
-    const organization = this.store.selectedOrganization ?? {id: null}
+    const organization = this.store.selectedOrganization ?? { id: null }
     return new Observable((subscriber) => {
       const ctrl = new AbortController()
-      fetchEventSource(this.apiBaseUrl + `/chat`, {
+      fetchEventSource(this.baseUrl + this.apiBaseUrl + `/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -44,7 +46,7 @@ export class XpertAgentService extends XpertWorkspaceBaseCrudService<IXpertAgent
         },
         onerror(err) {
           subscriber.error(err)
-          throw err;
+          throw err
         }
       })
 

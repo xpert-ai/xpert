@@ -54,6 +54,8 @@ export class XpertStudioPreviewComponent {
   readonly xpert = this.studioComponent.xpert
   readonly parameters = computed(() => this.apiService.primaryAgent()?.parameters)
   readonly avatar = computed(() => this.xpert()?.avatar)
+  readonly starters = computed(() => this.xpert()?.starters)
+
   readonly input = model<string>()
   readonly inputLength = computed(() => this.input()?.length)
   readonly loading = signal(false)
@@ -170,4 +172,5 @@ export class XpertStudioPreviewComponent {
       event.preventDefault()
     }
   }
+
 }

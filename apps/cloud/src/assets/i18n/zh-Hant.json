@@ -1380,9 +1380,10 @@
       "APIHost": "API 主機",
       "AskAICopilot": "向 AI 智能助理詢問問題",
       "EnableSecondaryProvider": "啟用副提供商",
-      "Prompt": "提示",
+      "Prompt": "提示詞",
       "SendPrompt": "發送提示",
       "CommandChartDesc": "描述圖形的業務邏輯",
+      "TokenLimitPerUser": "代幣限額/用戶",
       "TokenBalancePerUser": "代幣余額/用戶",
       "Provider_Alibaba Tongyi": "阿裏雲百煉",
       "Provider_Zhipu": "智譜",
@@ -1426,6 +1427,16 @@
       "OurSupport": "聯系我們，獲取優先支持",
       "DelCopilotModelUseInherit": "刪除當前配置，如果可以將使用繼承配置",
       "ChooseRightCopilot": "請選擇合適的智能助理",
+      "FreeTrialTokenQuota": "免費試用的 Token 額度，在啟用組織自定義 Copilot 後失效",
+      "Tokens": "代幣",
+      "Quota": "額度",
+      "FreeQuota": "免費額度",
+      "CustomCopilots": "自定義智能助理",
+      "Remain": "剩余",
+      "WelcomeTitle": "Xpert 智能助理",
+      "WelcomeSubTitle": "你的數字業務專家智能助理",
+      "UploadFile": "上傳文件",
+      "NewExample": "新建示例",
       "Prompts": {
         "Set story theme dark": "設置故事暗黑主題",
         "Set story gradient background color sense of technology": "設置故事背景為科技感漸變色",
@@ -1456,7 +1467,9 @@
         "ConfirmOptionsForUploadExample": "請確認上傳示例的選項",
         "UpdatedBy": "更新人",
         "UpdatedAt": "更新時間",
-        "ExpertRole": "專家角色"
+        "ExpertRole": "專家角色",
+        "Test": "測試",
+        "RetrievalTesting": "召回測試"
       },
       "Roles": {
         "Name": "名稱",
@@ -1474,6 +1487,7 @@
       }
     },
     "Chat": {
+      "EnableCopilot": "啟用智能助理",
       "DeleteConversation": "刪除會話",
       "RetrievingDocuments": "檢索文檔",
       "RetrievedDocuments": "檢索到{{value}}個相關文檔塊",
@@ -1921,6 +1935,7 @@
       "ToolsetType_All": "所有",
       "ToolsetType_Builtin": "內置",
       "ToolsetType_Custom": "自定義",
+      "ChatHistory": "聊天記錄",
       "NoChatHistory": "暫無聊天記錄",
       "ReleaseNewVersion": "發布為新版本",
       "Reset": "恢復",
@@ -1975,7 +1990,13 @@
       "ChangeXpertName": "更改專家名稱",
       "ImportDSL": "導入 DSL 文件",
       "ExportDSLVersion": "導出 DSL (當前版本)",
-      "ExportDSLDraft": "導出 DSL (草稿)"
+      "ExportDSLDraft": "導出 DSL (草稿)",
+      "CommandExamples": "命令示例",
+      "Command": "命令",
+      "Input": "輸入",
+      "Retrieval": "檢索",
+      "Examples": "示例",
+      "YouMightAsk": "你可能想問"
     },
     "title": {
       "short": "Xpert AI"

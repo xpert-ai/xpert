@@ -2,16 +2,15 @@ import { HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/c
 import { Injectable } from '@angular/core'
 import { API_PREFIX } from '@metad/cloud/state'
 import { Observable } from 'rxjs'
-import { environment } from '../../../environments/environment'
-
-const baseUrl = environment.API_BASE_URL
+import { injectApiBaseUrl } from '../providers'
 
 @Injectable()
 export class APIInterceptor implements HttpInterceptor {
+  readonly baseUrl = injectApiBaseUrl()
+
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    if (baseUrl && request.url.startsWith(`${API_PREFIX}`)) {
-      const url = baseUrl + request.url
-      // console.log(`API Request: ${request.url} -> ${url}`);
+    if (this.baseUrl && request.url.startsWith(`${API_PREFIX}`)) {
+      const url = this.baseUrl + request.url
       request = request.clone({
         url: url
       })

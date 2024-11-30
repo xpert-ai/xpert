@@ -1995,7 +1995,8 @@
       "Command": "命令",
       "Input": "输入",
       "Retrieval": "检索",
-      "Examples": "示例"
+      "Examples": "示例",
+      "YouMightAsk": "你可能想问"
     },
     "title": {
       "short": "Xpert AI"
