@@ -29,16 +29,21 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 	 * @param filter 
 	 */
 	async findAvailables(filter?: PaginationParams<Copilot>) {
-		const copilots = await this.findAllCopilots()
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
+		let copilots = await this.findAllCopilots()
+		// Filter the tenant enabled copilots for organization user
+		copilots = copilots.filter((copilot) => (organizationId && !copilot.organizationId) ? copilot.enabled : true)
 		for await (const copilot of copilots) {
 			if (!copilot.organizationId) {
-				const usage = await this.queryBus.execute(new GetCopilotOrgUsageQuery(RequestContext.currentTenantId(), RequestContext.getOrganizationId(), copilot.id))
+				const usage = await this.queryBus.execute(new GetCopilotOrgUsageQuery(tenantId, organizationId, copilot.id))
 				copilot.usage = usage ?? {
 					tokenLimit: copilot.tokenBalance,
 					tokenUsed: 0
 				}
 			}
 		}
+		
 		return copilots
 	}
 

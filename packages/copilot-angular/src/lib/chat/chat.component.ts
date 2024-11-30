@@ -481,9 +481,9 @@ export class NgmCopilotChatComponent {
       { allowSignalWrites: true }
     )
 
-    effect(() => {
-      console.log(`isContextTrigger:`, this.isContextTrigger(), this.filteredContextItems())
-    })
+    // effect(() => {
+    //   console.log(`isContextTrigger:`, this.isContextTrigger(), this.filteredContextItems())
+    // })
   }
 
   trackByKey(index: number, item) {
