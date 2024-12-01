@@ -139,7 +139,14 @@ export class EmailTemplateController extends CrudController<EmailTemplate> {
 		@Query('data', ParseJsonPipe) filter: PaginationParams<EmailTemplate>
 	): Promise<IPagination<EmailTemplate>> {
 		return await this.queryBus.execute(
-			new EmailTemplateQuery(filter as PaginationParams<IEmailTemplate>)
+			new EmailTemplateQuery({
+				...(filter ?? {}),
+				where: {
+					...(filter?.where ?? {}),
+					tenantId: RequestContext.currentTenantId(),
+					organizationId: RequestContext.getOrganizationId()
+				}
+			} as PaginationParams<EmailTemplate>)
 		);
 	}
 

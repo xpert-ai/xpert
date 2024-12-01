@@ -11,20 +11,20 @@
 					border-width="1px"
 				></mj-divider>
 				<mj-text font-size="20px" font-family="helvetica"
-					>欢迎加入 Metad 分析云!</mj-text
+					>欢迎加入 Xpert AI 云!</mj-text
 				>
 				<mj-text font-size="16px" font-family="helvetica">
 					<p>你好 {{email}},</p>
                     <br>
 					<p>
-						感谢您注册使用 Metad™ Analytics Cloud - 免费的企业级多维分析云.
+						感谢您注册使用 Xpert AI 云.
 					</p>
 					<p>欢迎点击下方链接激活使用:</p>
                     <br>
 					<p><a href="{{generatedUrl}}" target="_blank">{{generatedUrl}}</a></p>
 					<br>
                     <p>致敬,</p>
-					<p>元数分析云团队</p>
+					<p>Xpert AI 团队</p>
 				</mj-text>
 				<mj-divider
 					border-color="#1B005D"
@@ -33,7 +33,7 @@
 				<mj-text align="center" font-size="12px" font-family="helvetica"
 					>© 2024,
 					<a href="https://app.mtda.cloud/" style="color: #598bff"
-						>元数分析云</a
+						>Xpert AI</a
 					>
 					由
 					<a href="https://mtda.cloud/" style="color: #598bff"

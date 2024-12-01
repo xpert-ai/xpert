@@ -1,32 +1,33 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
+import { API_PREFIX, OrganizationBaseCrudService } from '@metad/cloud/state'
 import {
   ICustomizableEmailTemplate,
   ICustomizeEmailTemplateFindInput,
   IEmailTemplate,
-  IEmailTemplateFindInput,
   IEmailTemplateSaveInput
 } from '@metad/contracts'
-import { API_PREFIX } from '@metad/cloud/state'
 import { firstValueFrom } from 'rxjs'
+import { API_EMAIL_TEMPLATE } from '../constants/app.constants'
 
 @Injectable({
   providedIn: 'root'
 })
-export class EmailTemplateService {
-  constructor(private http: HttpClient) {}
-
-  getAll(
-    relations?: string[],
-    findInput?: IEmailTemplateFindInput
-  ): Promise<{ items: IEmailTemplate[]; total: number }> {
-    const data = JSON.stringify({ relations, findInput })
-    return firstValueFrom(
-      this.http.get<{ items: IEmailTemplate[]; total: number }>(`${API_PREFIX}/email-template`, {
-        params: { data }
-      })
-    )
+export class EmailTemplateService extends OrganizationBaseCrudService<IEmailTemplate> {
+  constructor(private http: HttpClient) {
+    super(API_EMAIL_TEMPLATE)
   }
+
+  // getAll(
+  //   relations?: string[],
+  //   findInput?: IEmailTemplateFindInput
+  // ) {
+  //   const data = JSON.stringify({ relations, findInput })
+  //   return this.http.get<{ items: IEmailTemplate[]; total: number }>(`${API_PREFIX}/email-template`, {
+  //     params: { data }
+  //   })
+  // }
+
   getTemplate(findInput?: ICustomizeEmailTemplateFindInput): Promise<ICustomizableEmailTemplate> {
     const data = JSON.stringify({ findInput })
     return firstValueFrom(

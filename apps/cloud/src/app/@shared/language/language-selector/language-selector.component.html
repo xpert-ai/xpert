@@ -2,6 +2,9 @@
 	[(ngModel)]="selectedLanguageCode"
 	[selectOptions]="languagesOptions()"
 	[valueKey]="'key'"
+	searchable
 >
-	<mat-spinner *ngIf="loading" ngmSuffix color="accent" strokeWidth="2" diameter="20"></mat-spinner>
+  @if (loading()) {
+    <ngm-spin ngmSuffix small />
+  }
 </ngm-select>

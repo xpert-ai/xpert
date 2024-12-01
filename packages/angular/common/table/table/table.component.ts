@@ -35,7 +35,6 @@ import { DisplayDensity, OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import get from 'lodash-es/get'
 import { Subject } from 'rxjs'
-import { NgmSearchComponent } from '../../search/search.component'
 import { TableColumn } from '../types'
 
 @Injectable()
@@ -120,7 +119,7 @@ export class MyCustomPaginatorIntl implements MatPaginatorIntl {
 
     //OCAP Modules
     OcapCoreModule,
-    NgmSearchComponent
+    // NgmSearchComponent
   ]
 })
 export class NgmTableComponent {

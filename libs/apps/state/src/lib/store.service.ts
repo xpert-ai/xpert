@@ -614,3 +614,8 @@ export function injectOrganizationId() {
 	const store = inject(Store)
 	return toSignal(store.selectOrganizationId())
 }
+
+export function injectOrganization() {
+	const store = inject(Store)
+	return toSignal(store.selectedOrganization$)
+}
