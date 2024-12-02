@@ -31,7 +31,7 @@ services:
 
   # OLAP Services
   olap:
-    image: registry.cn-hangzhou.aliyuncs.com/metad/xpert-olap:main
+    image: registry.cn-hangzhou.aliyuncs.com/metad/ocap-olap:latest
     profiles:
       - bi
     mem_limit: 1024m

@@ -16,7 +16,7 @@ export class FeatureService extends CrudService<Feature> {
 	) {
 		super(featureRepository)
 		// Seed latest features into DB
-		this.seedDB()
+		// this.seedDB()
 	}
 
 	async getParentFeatures(request: any): Promise<IPagination<IFeature>> {
