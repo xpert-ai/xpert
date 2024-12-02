@@ -6,9 +6,10 @@
     </span>
   </div>
 
-  <mat-nav-list class="ngm-nav-list my-2 flex-1 overflow-auto">
+  <ul class="ngm-nav-list my-2 flex-1 overflow-auto">
     @for (item of explains; track item.key) {
-      <mat-list-item class="flex group/item mb-2" [class.active]="explain?.key === item.key"
+      <li class="flex group/item px-4 py-2 mb-2 rounded-lg cursor-pointer hover:bg-white/10 active:bg-white/20"
+        [class.active]="explain?.key === item.key"
         (click)="activeLink(item)">
         <span class="flex-1">
           @switch (item.type) {
@@ -32,13 +33,13 @@
             }
           }
         </span>
-      </mat-list-item>
+      </li>
     }
-  </mat-nav-list>
+  </ul>
 
   <div class="flex justify-start items-center">
     <div ngmButtonGroup>
-      <button mat-flat-button mat-dialog-close>
+      <button mat-flat-button (click)="close()">
         {{ 'Story.Common.Close' | translate: {Default: 'Close'} }}
       </button>
     </div>
@@ -48,20 +49,20 @@
 <div class="flex-1 flex flex-col overflow-auto">
   @switch (explain?.type) {
     @case ('dataSettings') {
-      <div>
-        <h5 class="px-4 py-2 text-lg">{{ 'Story.Explain.DataSettings' | translate: {Default: 'Data Settings'} }}:</h5>
-        <ngm-prism-highlight class="text-sm select-all rounded border-dotted border-2 p-2 m-4"
-          [code]="explain.data | omitBlank | json"
-          language="json"
-        />
-      </div>
+      <h5 class="px-4 py-2 text-lg sticky top-0 z-10 bg-components-card-bg">
+        {{ 'Story.Explain.DataSettings' | translate: {Default: 'Data Settings'} }}:
+      </h5>
+      <ngm-prism-highlight class="text-sm select-all rounded-lg border-dotted border-2 p-2 m-4"
+        [code]="explain.data | omitBlank | json"
+        language="json"
+      />
     }
     @case ('statements') {
       <div>
         @for (statement of explain.statements; track statement) {
         <div>
           <h5 class="px-4 py-2 text-lg">{{ 'Story.Explain.Statement' | translate: {Default: 'Statement'} }}:</h5>
-          <ngm-prism-highlight class="text-sm select-all rounded border-dotted border-2 p-2 m-4"
+          <ngm-prism-highlight class="text-sm select-all rounded-lg border-dotted border-2 p-2 m-4"
             [code]="statement"
             language="sql"
             >
@@ -80,15 +81,16 @@
     @case ('error') {
       <div>
         <h5 class="px-4 py-2 text-lg">{{ 'Story.Explain.ErrorInfo' | translate: {Default: 'Error Info'} }}:</h5>
-        <div class="text-sm select-all rounded border-dotted border-2 p-2 m-4">
+        <div class="text-sm select-all rounded-lg border-dotted border-2 p-2 m-4">
           <code>{{ explain.error }}</code>
         </div>
       </div>
     }
     @case ('chart') {
       <div>
-        <h5 class="px-4 py-2 text-lg">{{ 'Story.Explain.Options' | translate: {Default: 'Options'} }}:</h5>
-        <ngm-prism-highlight class="text-sm select-all rounded border-dotted border-2 p-2 m-4"
+        <h5 class="px-4 py-2 text-lg sticky top-0 z-10 bg-components-card-bg">
+          {{ 'Story.Explain.Options' | translate: {Default: 'Options'} }}:</h5>
+        <ngm-prism-highlight class="text-sm select-all rounded-lg border-dotted border-2 p-2 m-4"
           [code]="explain.options | json"
           language="json"
           maximum="10000">
@@ -97,8 +99,9 @@
     }
     @case ('slicers') {
       <div>
-        <h5 class="px-4 py-2 text-lg">{{ 'Story.Explain.Slicers' | translate: {Default: 'Slicers'} }}:</h5>
-        <ngm-prism-highlight class="text-sm select-all rounded border-dotted border-2 p-2 m-4"
+        <h5 class="px-4 py-2 text-lg sticky top-0 z-10 bg-components-card-bg">
+          {{ 'Story.Explain.Slicers' | translate: {Default: 'Slicers'} }}:</h5>
+        <ngm-prism-highlight class="text-sm select-all rounded-lg border-dotted border-2 p-2 m-4"
           [code]="explain.options | json"
           language="json"
           maximum="10000">

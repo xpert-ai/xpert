@@ -1,5 +1,5 @@
 :host {
-  @apply max-w-full flex flex-row flex-1 overflow-hidden;
+  @apply max-w-full flex flex-row flex-1 overflow-hidden max-h-[90vh] bg-components-card-bg rounded-2xl;
 }
 
 .ngm-prism-highlight {

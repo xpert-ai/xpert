@@ -19,3 +19,9 @@
     }
   }
 }
+
+ul.ngm-nav-list {
+  li.active {
+    @apply font-semibold bg-white/90 text-primary-500;
+  }
+}
