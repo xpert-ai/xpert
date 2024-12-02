@@ -1,6 +1,5 @@
 English | [中文](./README_zh.md)
 
-[uri_metad]: https://mtda.cloud/en/
 [uri_license]: https://www.gnu.org/licenses/agpl-3.0.html
 [uri_license_image]: https://img.shields.io/badge/License-AGPL%20v3-blue.svg
 
@@ -130,6 +129,7 @@ Note: it's currently in Alpha version / in testing mode, please use it with caut
 - [Angular](https://angular.dev)
 - [RxJS](http://reactivex.io/rxjs)
 - [TypeORM](https://github.com/typeorm/typeorm)
+- [Langchain](https://js.langchain.com/)
 - [ECharts](https://echarts.apache.org/)
 - [Java](https://www.java.com/)
 - [Mondrian](https://github.com/pentaho/mondrian)
@@ -138,8 +138,6 @@ For Production, we recommend:
 
 - [PostgreSQL](https://www.postgresql.org)
 - [PM2](https://github.com/Unitech/pm2)
-
-Note: thanks to TypeORM, OCAP will support lots of DBs: SQLite (default, for demos), PostgreSQL (development/production), MySql, MariaDb, CockroachDb, MS SQL, Oracle, MongoDb, and others, with minimal changes.
 
 #### See also README.md and CREDITS.md files in relevant folders for lists of libraries and software included in the Platform, information about licenses, and other details
 
@@ -158,9 +156,9 @@ We support the open-source community.
 
 This software is available under the following licenses:
 
-- [Xpert AI Platform Community Edition](https://github.com/xpert-ai/xpert/blob/master/LICENSE.md#metad-analytics-platform-community-edition-license)
-- [Xpert AI Platform Small Business](https://github.com/xpert-ai/xpert/blob/master/LICENSE.md#metad-analytics-platform-small-business-license)
-- [Xpert AI Platform Enterprise](https://github.com/xpert-ai/xpert/blob/master/LICENSE.md#metad-analytics-platform-enterprise-license)
+- [Xpert AI Platform Community Edition](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-community-edition-license)
+- [Xpert AI Platform Small Business](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-small-business-license)
+- [Xpert AI Platform Enterprise](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-enterprise-license)
 
 #### Please see [LICENSE](LICENSE.md) for more information on licenses.
 
