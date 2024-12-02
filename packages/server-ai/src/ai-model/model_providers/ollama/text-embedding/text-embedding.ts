@@ -18,7 +18,7 @@ export class OllamaTextEmbeddingModel extends TextEmbeddingModelManager {
 		const modelProperties = options.modelProperties as OllamaCredentials
 		return new OllamaEmbeddings({
 			baseUrl: modelProperties.base_url,
-			model: copilotModel.model || copilotModel.copilot.defaultModel
+			model: copilotModel.model || copilotModel.copilot.copilotModel?.model
 		})
 	}
 

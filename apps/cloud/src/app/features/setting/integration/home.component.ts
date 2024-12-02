@@ -1,4 +1,4 @@
-import { AsyncPipe, DatePipe } from '@angular/common'
+import { DatePipe } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { MatDialog } from '@angular/material/dialog'
@@ -18,7 +18,6 @@ import { DynamicGridDirective } from '@metad/core'
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss'],
   imports: [
-    AsyncPipe,
     DatePipe,
     RouterModule,
     TranslateModule,

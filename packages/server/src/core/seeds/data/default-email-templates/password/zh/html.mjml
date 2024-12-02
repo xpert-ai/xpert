@@ -4,16 +4,16 @@
 			<mj-column>
 				<mj-image
 					width="100px"
-					src="{{host}}/assets/images/logos/logo_peanut.svg"
+					src="{{host}}/assets/logo.png"
 				></mj-image>
 				<mj-divider
 					border-color="#1B005D"
 					border-width="1px"
 				></mj-divider>
 				<mj-text font-size="16px" font-family="helvetica">
-					<p>Hello!</p>
-					<p>We received a password change request.</p>
-					<p>If you requested to reset your password:</p>
+					<p>你好!</p>
+					<p>我们收到一个密码重置请求.</p>
+					<p>如果是你请求重置密码:</p>
 				</mj-text>
 				<mj-button
 					href="{{generatedUrl}}"
@@ -21,22 +21,22 @@
 					background-color="#3366ff"
 					color="white"
 				>
-					Reset Password Now
+					点击这里
 				</mj-button>
 				<mj-divider
 					border-color="#1B005D"
 					border-width="1px"
 				></mj-divider>
 				<mj-text align="center" font-size="12px" font-family="helvetica"
-					>© 2019,
+					>© 2024,
 					<a href="https://app.mtda.cloud/." style="color: #598bff"
-						>Metad</a
+						>Xpert AI</a
 					>
-					by
+					由
 					<a href="https://mtda.cloud/" style="color: #598bff"
-						>Metad Co. LTD.</a
+						>（南京）元数信息技术有限公司</a
 					>
-					All rights reserved.
+					版权所有.
 				</mj-text>
 			</mj-column>
 		</mj-section>

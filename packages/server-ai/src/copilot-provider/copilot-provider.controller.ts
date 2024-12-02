@@ -3,6 +3,7 @@ import {
 	CrudController,
 	PaginationParams,
 	ParseJsonPipe,
+	RequestContext,
 	RoleGuard,
 	Roles,
 	TransformInterceptor,
@@ -63,6 +64,7 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
 		@Param('id', UUIDValidationPipe) id: string,
 		@Query('data', ParseJsonPipe) params?: PaginationParams<CopilotProvider>
 	): Promise<CopilotProviderDto | CopilotProviderPublicDto> {
+		const organizationId = RequestContext.getOrganizationId()
 		const one = await this.service.findOneInOrganizationOrTenant(id, params)
 		if (one) {
 			const providers = await this.queryBus.execute<ListModelProvidersQuery, IAiProviderEntity[]>(
@@ -72,7 +74,7 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
 				one.provider = providers[0]
 			}
 
-			if (!one.organizationId) {
+			if (organizationId && !one.organizationId) {
 				return new CopilotProviderPublicDto(one, this.baseUrl)
 			}
 			return new CopilotProviderDto(one, this.baseUrl)

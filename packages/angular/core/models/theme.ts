@@ -15,13 +15,15 @@ export function prefersColorScheme() {
     const mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)')
     function onChange({ matches }) {
       if (matches) {
-        subscriber.next(ThemesEnum.dark)
+        // subscriber.next(ThemesEnum.dark) // @todo change back when dark theme complete
+        subscriber.next(ThemesEnum.light)
       } else {
         subscriber.next(ThemesEnum.light)
       }
     }
     mediaQueryList.addEventListener('change', onChange)
-    subscriber.next(mediaQueryList.matches ? ThemesEnum.dark : ThemesEnum.light)
+    // subscriber.next(mediaQueryList.matches ? ThemesEnum.dark : ThemesEnum.light)
+    subscriber.next(mediaQueryList.matches ? ThemesEnum.light : ThemesEnum.light)
     return () => mediaQueryList.removeEventListener('change', onChange)
   })
 }

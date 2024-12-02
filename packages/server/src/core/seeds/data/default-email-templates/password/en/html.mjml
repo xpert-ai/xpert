@@ -4,7 +4,7 @@
 			<mj-column>
 				<mj-image
 					width="100px"
-					src="{{host}}/assets/images/logos/logo_peanut.svg"
+					src="{{host}}/assets/logo.png"
 				></mj-image>
 				<mj-divider
 					border-color="#1B005D"
@@ -28,13 +28,13 @@
 					border-width="1px"
 				></mj-divider>
 				<mj-text align="center" font-size="12px" font-family="helvetica"
-					>© 2019,
+					>© 2024,
 					<a href="https://app.mtda.cloud/." style="color: #598bff"
-						>Metad</a
+						>Xpert AI</a
 					>
 					by
 					<a href="https://mtda.cloud/" style="color: #598bff"
-						>Metad Co. LTD.</a
+						>XpertAI Co. LTD.</a
 					>
 					All rights reserved.
 				</mj-text>

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository, SelectQueryBuilder, WhereExpression } from 'typeorm';
-import { IEmailTemplate, IListQueryInput, IPagination } from '@metad/contracts';
-import { CrudService } from './../core/crud';
+import { IPagination } from '@metad/contracts';
+import { CrudService, PaginationParams } from './../core/crud';
 import { EmailTemplate } from './email-template.entity';
 import { RequestContext } from './../core/context';
 
@@ -20,8 +20,8 @@ export class EmailTemplateService extends CrudService<EmailTemplate> {
 	* @param params 
 	* @returns
 	*/
-	async findAll(params: IListQueryInput<IEmailTemplate>): Promise<IPagination<EmailTemplate>> {
-		const { findInput, relations } = params;
+	async findAll(params: PaginationParams<EmailTemplate>): Promise<IPagination<EmailTemplate>> {
+		const { where, relations } = params;
 		const [items, total]  = await this.emailRepository.findAndCount({
 			relations: [
 				...(relations ? relations : [])
@@ -30,7 +30,7 @@ export class EmailTemplateService extends CrudService<EmailTemplate> {
 				qb.where(
 					new Brackets((bck: WhereExpression) => { 
 						const tenantId = RequestContext.currentTenantId();
-						const { organizationId, languageCode } = findInput;
+						const { organizationId, languageCode } = where;
 						if (organizationId) {
 							bck.andWhere(`"${qb.alias}"."organizationId" = :organizationId`, {
 								organizationId

@@ -5,7 +5,6 @@ import {
   CopilotChatMessage,
   IChatConversation,
   IXpertAgentExecution,
-  XpertAgentExecutionEnum,
 } from 'apps/cloud/src/app/@core'
 import { of, switchMap } from 'rxjs'
 
@@ -48,8 +47,8 @@ export class XpertExecutionService {
     return agentExecutions
   })
 
-  readonly toolExecutions = signal<Record<string, {status: XpertAgentExecutionEnum}>>({})
-  readonly knowledgeExecutions = signal<Record<string, {status: XpertAgentExecutionEnum}>>({})
+  readonly toolExecutions = signal<Record<string, Partial<IXpertAgentExecution>>>({})
+  readonly knowledgeExecutions = signal<Record<string, Partial<IXpertAgentExecution>>>({})
 
   // Subsribe conversation
   private conversationSub = toObservable(this.conversationId).pipe(
@@ -81,20 +80,20 @@ export class XpertExecutionService {
   }
 
   setConversation(value: IChatConversation) {
+    this.clear()
     this.conversation.set(null)
     this.conversationId.set(value?.id)
-    this.#agentExecutions.set({})
     this.#messages.set([])
   }
 
-  setToolExecution(name: string, execution) {
+  setToolExecution(name: string, execution: Partial<IXpertAgentExecution>) {
     this.toolExecutions.update((state) => ({
       ...state,
       [name]: execution
     }))
   }
 
-  setKnowledgeExecution(name: string, execution: { status: XpertAgentExecutionEnum }) {
+  setKnowledgeExecution(name: string, execution: Partial<IXpertAgentExecution>) {
     this.knowledgeExecutions.update((state) => ({
       ...state,
       [name]: execution

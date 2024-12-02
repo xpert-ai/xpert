@@ -3401,7 +3401,9 @@
 			"welcome-user": "欢迎用户",
       "invite-user": "邀请用户",
       "TEMPLATE_NAMES": "模板名称"
-    }
+    },
+    "AddTemplate": "添加模版",
+    "AddTemplateHelp": "学习更多关于自定义邮件模板"
   },
   "TOASTR": {
     "TITLE": {

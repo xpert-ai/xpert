@@ -359,6 +359,27 @@ ${agent.prompt}
 						} as MessageEvent)
 						break
 					}
+					case 'on_custom_event': {
+						this.#logger.verbose(data, rest)
+						switch(rest.name) {
+							case 'on_retriever_error': {
+								subscriber.next({
+									data: {
+										type: ChatMessageTypeEnum.EVENT,
+										event: ChatMessageEventTypeEnum.ON_RETRIEVER_ERROR,
+										data: {
+											tags,
+											...rest,
+											name: data.knowledgebaseId,
+											error: data.error
+										}
+									}
+								} as MessageEvent)
+								break
+							}
+						}
+						break
+					}
 				}
 				return null
 			}),

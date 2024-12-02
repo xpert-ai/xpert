@@ -153,7 +153,7 @@ const routes: Routes = [
       },
       {
         path: 'email-templates',
-        loadChildren: () => import('./email-templates/email-templates.module').then((m) => m.EmailTemplatesModule),
+        loadChildren: () => import('./email-templates/routing').then((m) => m.default),
         data: {
           title: 'settings/email-templates'
         }
