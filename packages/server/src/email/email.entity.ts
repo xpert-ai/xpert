@@ -56,8 +56,11 @@ export class Email extends TenantOrganizationBaseEntity implements IEmail {
 	@Column({ nullable: true })
 	userId?: string;
 
+	/**
+	 * Email Template
+	 */
 	@ApiProperty({ type: () => EmailTemplate })
-	@ManyToOne(() => EmailTemplate, (template) => template.emails, {
+	@ManyToOne(() => EmailTemplate, {
 		nullable: false,
 		onDelete: 'CASCADE'
 	})

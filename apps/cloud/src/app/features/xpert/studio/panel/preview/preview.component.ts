@@ -3,7 +3,7 @@ import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
 import { Component, computed, DestroyRef, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { appendMessageContent, stringifyMessageContent } from '@metad/copilot'
+import { appendMessageContent, nonBlank, stringifyMessageContent } from '@metad/copilot'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ChatConversationService,
@@ -16,6 +16,7 @@ import {
 import { MaterialModule, XpertParametersCardComponent } from 'apps/cloud/src/app/@shared'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { MarkdownModule } from 'ngx-markdown'
+import { Subscription } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
@@ -54,7 +55,7 @@ export class XpertStudioPreviewComponent {
   readonly xpert = this.studioComponent.xpert
   readonly parameters = computed(() => this.apiService.primaryAgent()?.parameters)
   readonly avatar = computed(() => this.xpert()?.avatar)
-  readonly starters = computed(() => this.xpert()?.starters)
+  readonly starters = computed(() => this.xpert()?.starters?.filter(nonBlank))
 
   readonly input = model<string>()
   readonly inputLength = computed(() => this.input()?.length)
@@ -72,6 +73,7 @@ export class XpertStudioPreviewComponent {
     return this.executionService.messages()
   })
 
+  private chatSubscription: Subscription
   constructor() {
     effect(() => {
       // console.log(this.lastMessage(), this.messages())
@@ -96,7 +98,10 @@ export class XpertStudioPreviewComponent {
     })
 
     // Send to server chat
-    this.xpertService
+    if (this.chatSubscription && !this.chatSubscription?.closed) {
+      this.chatSubscription.unsubscribe()
+    }
+    this.chatSubscription = this.xpertService
       .chat(
         this.xpert().id,
         {
@@ -144,8 +149,17 @@ export class XpertStudioPreviewComponent {
             this.executionService.appendMessage({ ...this.lastMessage() })
           }
           this.lastMessage.set(null)
-        }
+        },
       })
+  }
+
+  stop() {
+    if (this.chatSubscription && !this.chatSubscription?.closed) {
+      this.chatSubscription.unsubscribe()
+    }
+    this.loading.set(false)
+    this.lastMessage.set(null)
+    this.executionService.clear()
   }
 
   restart() {
@@ -172,5 +186,4 @@ export class XpertStudioPreviewComponent {
       event.preventDefault()
     }
   }
-
 }

@@ -6,9 +6,8 @@ import { filter, tap } from 'rxjs/operators';
 import { FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldAppearance } from '@angular/material/form-field';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslationBaseComponent } from '../translation-base.component';
-import { NgmSelectComponent } from '@metad/ocap-angular/common';
+import { NgmSelectComponent, NgmSpinComponent } from '@metad/ocap-angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
@@ -18,8 +17,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 		FormsModule,
 		TranslateModule,
 
-		MatProgressSpinnerModule,
-		NgmSelectComponent
+		NgmSelectComponent,
+		NgmSpinComponent
 	],
 	selector: 'pac-language-selector',
 	templateUrl: './language-selector.component.html',
@@ -36,8 +35,6 @@ export class LanguageSelectorComponent extends TranslationBaseComponent implemen
 	readonly destroyRef = inject(DestroyRef)
 	
 	languages = signal<ILanguage[]>([])
-	// languages: ILanguage[];
-	loading: boolean;
 	onChange: any = () => { }
 	onTouch: any = () => { }
 
@@ -111,6 +108,9 @@ export class LanguageSelectorComponent extends TranslationBaseComponent implemen
 
 	@Output() selectedLanguageEvent = new EventEmitter<ILanguage>();
 
+	// States
+	readonly loading = signal(false)
+
 	constructor(
 		private readonly languagesService: LanguagesService,
 		private readonly store: Store,
@@ -165,11 +165,11 @@ export class LanguageSelectorComponent extends TranslationBaseComponent implemen
 			color: '#' + Math.floor(Math.random() * 16777215).toString(16),
 			description: ''
 		};
-		this.loading = true;
+		this.loading.set(true);
 		const language = await this.languagesService.insertLanguage(
 			newLanguage
 		);
-		this.loading = false;
+		this.loading.set(false);
 		return language;
 	};
 

@@ -6,6 +6,7 @@ import {
 	IOrganization,
 	IUser,
 	LanguagesEnum,
+	LanguagesMap,
 } from '@metad/contracts';
 import { forwardRef, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -145,23 +146,44 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 	private render = (view, locals) => {
 		return new Promise(async (resolve, reject) => {
 			view = view.replace('\\', '/');
+			
+			const languageCode = LanguagesMap[locals.locale] ?? locals.locale
 
 			// Find email template for customized for given organization
 			let emailTemplate: IEmailTemplate = await this.emailTemplateRepository.findOne({
 				name: view,
-				languageCode: locals.locale || LanguagesEnum.English,
+				languageCode,
 				organizationId: locals.organizationId,
 				tenantId: locals.tenantId
 			});
+
+			// Try to find default language `en` template
+			if (!emailTemplate) {
+				emailTemplate = await this.emailTemplateRepository.findOne({
+					name: view,
+					languageCode: LanguagesEnum.English,
+					organizationId: locals.organizationId,
+					tenantId: locals.tenantId
+				})
+			}
 
 			// if no email template present for given organization, use default email template
 			if (!emailTemplate) {
 				emailTemplate = await this.emailTemplateRepository.findOne({
 					name: view,
-					languageCode: locals.locale || LanguagesEnum.English,
+					languageCode,
 					organizationId: IsNull(),
 					tenantId: locals.tenantId
 				});
+			}
+
+			if (!emailTemplate) {
+				emailTemplate = await this.emailTemplateRepository.findOne({
+					name: view,
+					languageCode: LanguagesEnum.English,
+					organizationId: IsNull(),
+					tenantId: locals.tenantId
+				})
 			}
 
 			if (!emailTemplate) {
@@ -173,99 +195,6 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 			return resolve(html);
 		});
 	};
-
-	// async sendPaymentReceipt(
-	// 	languageCode: LanguagesEnum,
-	// 	email: string,
-	// 	contactName: string,
-	// 	invoiceNumber: number,
-	// 	amount: number,
-	// 	currency: string,
-	// 	organization: Organization,
-	// 	originUrl: string
-	// ) {
-	// 	const tenantId = RequestContext.currentTenantId();
-	// 	const { id: organizationId, name: organizationName } = organization;
-	// 	const sendOptions = {
-	// 		template: 'payment-receipt',
-	// 		message: {
-	// 			to: `${email}`
-	// 		},
-	// 		locals: {
-	// 			locale: languageCode,
-	// 			host: originUrl || env.clientBaseUrl,
-	// 			contactName,
-	// 			invoiceNumber,
-	// 			amount,
-	// 			currency,
-	// 			organizationId,
-	// 			tenantId,
-	// 			organizationName
-	// 		}
-	// 	}
-	// 	this.email
-	// 		.send(sendOptions)
-	// 		.then((res) => {
-	// 			this.createEmailRecord({
-	// 				templateName: sendOptions.template,
-	// 				email,
-	// 				languageCode,
-	// 				organization,
-	// 				message: res.originalMessage
-	// 			});
-	// 		})
-	// 		.catch(console.error);
-	// }
-
-	// emailInvoice(
-	// 	languageCode: LanguagesEnum,
-	// 	email: string,
-	// 	base64: string,
-	// 	invoiceNumber: number,
-	// 	invoiceId: string,
-	// 	isEstimate: boolean,
-	// 	token: any,
-	// 	originUrl: string,
-	// 	organization: IOrganization
-	// ) {
-	// 	const tenantId = RequestContext.currentTenantId();
-	// 	const { id: organizationId } = organization;
-	// 	const baseUrl = originUrl || env.clientBaseUrl;
-	// 	const sendOptions = {
-	// 		template: isEstimate ? 'email-estimate' : 'email-invoice',
-	// 		message: {
-	// 			to: `${email}`,
-	// 			attachments: [
-	// 				{
-	// 					filename: `${ isEstimate ? 'Estimate' : 'Invoice' }-${invoiceNumber}.pdf`,
-	// 					content: base64,
-	// 					encoding: 'base64'
-	// 				}
-	// 			]
-	// 		},
-	// 		locals: {
-	// 			tenantId,
-	// 			organizationId,
-	// 			locale: languageCode,
-	// 			host: baseUrl,
-	// 			acceptUrl: `${baseUrl}#/auth/estimate/?token=${token}&id=${invoiceId}&action=accept&email=${email}`, 
-	// 			rejectUrl: `${baseUrl}#/auth/estimate/?token=${token}&id=${invoiceId}&action=reject&email=${email}`
-	// 		}
-	// 	};
-		
-	// 	this.email
-	// 		.send(sendOptions)
-	// 		.then((res) => {
-	// 			this.createEmailRecord({
-	// 				templateName: sendOptions.template,
-	// 				email,
-	// 				languageCode,
-	// 				organization,
-	// 				message: res.originalMessage
-	// 			});
-	// 		})
-	// 		.catch(console.error);
-	// }
 
 	async sendAcceptInvitationEmail(joinEmployeeModel: IJoinEmployeeModel, originUrl?: string) {
 		const { 
@@ -522,46 +451,6 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 			console.error(error);
 		}
 	}
-
-	// async sendAppointmentMail(
-	// 	email: string,
-	// 	languageCode: LanguagesEnum,
-	// 	organizationId?: string,
-	// 	originUrl?: string
-	// ) {
-	// 	let organization: Organization;
-	// 	if (organizationId) {
-	// 		organization = await this.organizationRepository.findOne(
-	// 			organizationId
-	// 		);
-	// 	}
-	// 	const tenantId = (organization) ? organization.tenantId : RequestContext.currentTenantId();
-	// 	const sendOptions = {
-	// 		template: 'email-appointment',
-	// 		message: {
-	// 			to: email
-	// 		},
-	// 		locals: {
-	// 			locale: languageCode,
-	// 			email: email,
-	// 			host: originUrl || env.clientBaseUrl,
-	// 			organizationId: organizationId || IsNull(),
-	// 			tenantId: tenantId || IsNull()
-	// 		}
-	// 	};
-	// 	this.email
-	// 		.send(sendOptions)
-	// 		.then((res) => {
-	// 			this.createEmailRecord({
-	// 				templateName: sendOptions.template,
-	// 				email: email,
-	// 				languageCode,
-	// 				organization,
-	// 				message: res.originalMessage
-	// 			});
-	// 		})
-	// 		.catch(console.error);
-	// }
 
 	private async createEmailRecord(createEmailOptions: {
 		templateName: string;

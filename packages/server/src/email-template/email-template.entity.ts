@@ -1,50 +1,42 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Column, Entity, Index, OneToMany } from 'typeorm';
-import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
-import { IEmailTemplate } from '@metad/contracts';
-import { Email, TenantOrganizationBaseEntity } from '../core/entities/internal';
+import { IEmailTemplate } from '@metad/contracts'
+import { ApiProperty } from '@nestjs/swagger'
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator'
+import { Column, Entity, Index } from 'typeorm'
+import { TenantOrganizationBaseEntity } from '../core/entities/internal'
 
 @Entity('email_template')
-export class EmailTemplate
-	extends TenantOrganizationBaseEntity
-	implements IEmailTemplate {
+export class EmailTemplate extends TenantOrganizationBaseEntity implements IEmailTemplate {
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsNotEmpty()
 	@Index()
 	@Column()
-	name: string;
+	name: string
 
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsNotEmpty()
 	@Index()
 	@Column()
-	languageCode: string;
+	languageCode: string
 
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@Column({ type: 'text', nullable: true })
 	@IsOptional()
-	mjml: string;
+	mjml: string
 
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsNotEmpty()
 	@Column()
-	hbs: string;
+	hbs: string
 
-	title?: string;
+	title?: string
 
 	/*
     |--------------------------------------------------------------------------
     | @OneToMany 
     |--------------------------------------------------------------------------
     */
-	// Emails
-	@ApiPropertyOptional({ type: () => Email })
-	@OneToMany(() => Email, (email) => email.emailTemplate, {
-		cascade: true
-	})
-	emails?: IEmailTemplate[];
 }

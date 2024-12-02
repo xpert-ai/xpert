@@ -1,6 +1,5 @@
 
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { IEmailTemplate, IListQueryInput } from '@metad/contracts';
 import { EmailTemplateService } from './../../email-template.service';
 import { EmailTemplateQuery } from '../email-template.query';
 
@@ -13,10 +12,7 @@ export class EmailTemplateQueryHandler
     ) {}
 
     async execute(query: EmailTemplateQuery) {
-        const { input } = query;
-        return await this.emailTemplateService.findAll(
-            input as IListQueryInput<IEmailTemplate>
-        );
+        const { options } = query;
+        return await this.emailTemplateService.findAll(options);
     }
 }
-

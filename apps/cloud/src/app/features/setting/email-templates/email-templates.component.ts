@@ -1,193 +1,169 @@
-import { AfterViewInit, ChangeDetectorRef, Component, OnDestroy, SecurityContext } from '@angular/core'
-import { FormBuilder, FormGroup, Validators } from '@angular/forms'
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser'
-import { EmailTemplateNameEnum, IOrganization, LanguagesEnum, LanguagesMap } from '@metad/contracts'
-import { ISelectOption } from '@metad/ocap-angular/core'
-import { isEqual } from 'lodash-es'
-import { Subject, combineLatest } from 'rxjs'
-import { debounceTime, distinctUntilChanged, filter, map, tap } from 'rxjs/operators'
-import { EmailTemplateService, Store, ToastrService } from '../../../@core/services'
-import { TranslationBaseComponent } from '../../../@shared'
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { EditorThemeMap } from '@metad/ocap-angular/formula'
-
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { CommonModule } from '@angular/common'
+import { Component, computed, effect, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { RouterModule } from '@angular/router'
+import { DynamicGridDirective } from '@metad/core'
+import { NgmSelectComponent, NgmTagsComponent } from '@metad/ocap-angular/common'
+import { TranslateModule } from '@ngx-translate/core'
+import { map } from 'rxjs/operators'
+import { EmailTemplateNameEnum, getErrorMessage } from '../../../@core/types'
+import { EmailTemplateService, injectToastr, LanguagesService } from '../../../@core/services'
+import { CardCreateComponent, LanguageSelectorComponent } from '../../../@shared'
+import { groupBy } from 'lodash-es'
+import { Dialog, DialogRef } from '@angular/cdk/dialog'
+import { injectOrganization } from '@metad/cloud/state'
+import { LanguagesEnum } from '@metad/contracts'
+import { EmailTemplateComponent } from './template/template.component'
+import { MatIconModule } from '@angular/material/icon'
+import { MatButtonModule } from '@angular/material/button'
+import { ButtonGroupDirective } from '@metad/ocap-angular/core'
+import { combineLatest } from 'rxjs'
 
 @Component({
+  standalone: true,
+  imports: [
+    CommonModule,
+    RouterModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    CdkMenuModule,
+
+    MatIconModule,
+    MatButtonModule,
+
+    NgmSelectComponent,
+    NgmTagsComponent,
+    CardCreateComponent,
+    DynamicGridDirective,
+    ButtonGroupDirective,
+
+    LanguageSelectorComponent,
+    EmailTemplateComponent
+  ],
   templateUrl: './email-templates.component.html',
   styleUrls: ['./email-templates.component.scss']
 })
-export class EmailTemplatesComponent extends TranslationBaseComponent implements AfterViewInit {
-  previewEmail: SafeHtml
-  previewSubject: SafeHtml
-  organization: IOrganization
+export class EmailTemplatesComponent {
+  readonly emailTemplateService = inject(EmailTemplateService)
+  readonly languagesService = inject(LanguagesService)
+  readonly #dialog = inject(Dialog)
+  readonly #toastr = injectToastr()
+  readonly organization = injectOrganization()
 
-  templateNames: ISelectOption[] = Object.values(EmailTemplateNameEnum).map((name) => ({ key: name, caption: name }))
-  subject$: Subject<any> = new Subject()
+  readonly emailTemplates = toSignal(this.emailTemplateService.getAllInOrg().pipe(map(({ items }) => items)))
+  readonly allLanguages = toSignal(this.languagesService.getAll().pipe(map(({items}) => items)))
 
-  readonly form: FormGroup = EmailTemplatesComponent.buildForm(this.fb)
-  static buildForm(fb: FormBuilder): FormGroup {
-    return fb.group({
-      name: [EmailTemplateNameEnum.WELCOME_USER],
-      languageCode: [LanguagesEnum.English],
-      subject: ['', [Validators.required, Validators.maxLength(60)]],
-      mjml: ['', Validators.required]
+  readonly langGroup = computed(() => {
+    const languages = groupBy(this.emailTemplates(), 'languageCode')
+    return languages
+  })
+  readonly languages = computed(() => {
+    const allLanguages = this.allLanguages()
+    const languages = this.langGroup()
+    return Object.keys(languages).map((l) => ({
+      key: l,
+      caption: allLanguages?.find((_) => _.code === l)?.name,
+      color: ['red', 'green', 'blue', 'yellow', 'gray'][Math.floor(Math.random() * 5)]
+    }))
+  })
+
+  readonly newTempl = viewChild('newTempl', { read: TemplateRef })
+
+  readonly languageCodes = model([LanguagesEnum.English])
+  get languageCode() {
+    return this.languageCodes()[0]
+  }
+  set languageCode(value) {
+    this.languageCodes.set([value])
+  }
+  readonly name = model<EmailTemplateNameEnum>(null)
+
+  readonly templates = computed(() => {
+    const items = this.langGroup()[this.languageCodes()[0]]
+    if (!items) {
+      return null
+    }
+    
+    const g = groupBy(items.map((item) => ({
+      ...item,
+      name: item.name.split('/')[0],
+      type: item.name.split('/')[1],
+    })), 'name')
+    return Object.keys(g).map((name) => ({
+      name: name as EmailTemplateNameEnum,
+      html: g[name].find((_) => _.type === 'html'),
+      subject: g[name].find((_) => _.type === 'subject'),
+    }))
+  })
+
+  readonly templateNames = signal(Object.values(EmailTemplateNameEnum).map((name) => ({
+    key: name,
+    caption: name
+  })))
+
+  readonly opened = signal(false)
+
+  private dialogRef: DialogRef = null
+
+  constructor() {
+    effect(() => {
+      // console.log(this.languageCodes())
     })
   }
 
-  readonly theme = toSignal(this.store.primaryTheme$.pipe(map((theme) => EditorThemeMap[theme])))
+  newEmailTemplate() {
+    this.dialogRef = this.#dialog.open(this.newTempl(),)
 
-  private _templateSub = this.subject$
-    .pipe(
-      debounceTime(500),
-      tap(() => this.getTemplate()),
-      takeUntilDestroyed()
-    )
-    .subscribe()
-  private _selectedOrganizationSub = combineLatest([this.store.selectedOrganization$, this.store.preferredLanguage$])
-    .pipe(
-      distinctUntilChanged(isEqual),
-      filter(([organization, language]) => !!language),
-      tap(([organization, language]) => {
-        this.organization = organization
-        this.form.patchValue({ languageCode: LanguagesMap[language] ?? language })
-      }),
-      tap(() => this.subject$.next(true)),
-	  takeUntilDestroyed()
-    )
-    .subscribe()
-  constructor(
-    private readonly sanitizer: DomSanitizer,
-    private readonly store: Store,
-    private readonly fb: FormBuilder,
-    private readonly toastrService: ToastrService,
-    private readonly emailTemplateService: EmailTemplateService,
-    private _cdr: ChangeDetectorRef
-  ) {
-    super()
-  }
+    this.dialogRef.closed.subscribe({
+      next: () => {
 
-  ngAfterViewInit() {
-    this.form
-      .get('subject')
-      .valueChanges.pipe(debounceTime(1000), distinctUntilChanged())
-      .subscribe((value) => {
-        this.onSubjectChange(value)
-      })
-    this.form
-      .get('mjml')
-      .valueChanges.pipe(debounceTime(1000), distinctUntilChanged())
-      .subscribe((value) => {
-        this.onEmailChange(value)
-      })
-
-    // this.themeService
-    // 	.getJsTheme()
-    // 	.pipe(untilDestroyed(this))
-    // 	.subscribe(
-    // 		({
-    // 			name
-    // 		}: {
-    // 			name: 'dark' | 'cosmic' | 'corporate' | 'default';
-    // 		}) => {
-    // 			switch (name) {
-    // 				case 'dark':
-    // 				case 'cosmic':
-    // 					this.emailEditor.setTheme('tomorrow_night');
-    // 					this.subjectEditor.setTheme('tomorrow_night');
-    // 					break;
-    // 				default:
-    // 					this.emailEditor.setTheme('sqlserver');
-    // 					this.subjectEditor.setTheme('sqlserver');
-    // 					break;
-    // 			}
-    // 		}
-    // 	);
-
-    const editorOptions = {
-      enableBasicAutocompletion: true,
-      enableLiveAutocompletion: true,
-      printMargin: false,
-      showLineNumbers: true,
-      tabSize: 2
-    }
-
-    // this.emailEditor.getEditor().setOptions(editorOptions);
-    // this.subjectEditor
-    // 	.getEditor()
-    // 	.setOptions({ ...editorOptions, maxLines: 2 });
-  }
-
-  async getTemplate() {
-    try {
-      const { tenantId } = this.store.user
-      const { id: organizationId } = this.organization ?? {}
-      const { languageCode = LanguagesEnum.English, name = EmailTemplateNameEnum.WELCOME_USER } = this.form.value
-      const result = await this.emailTemplateService.getTemplate({
-        languageCode,
-        name,
-        organizationId,
-        tenantId
-      })
-
-      this.form.patchValue({
-        subject: result.subject,
-        mjml: result.template
-      })
-      this.form.markAsPristine()
-      const { html: email } = await this.emailTemplateService.generateTemplatePreview(result.template)
-      const { html: subject } = await this.emailTemplateService.generateTemplatePreview(result.subject)
-      this.previewEmail = this.sanitizer.bypassSecurityTrustHtml(email)
-
-      this.previewSubject = this.sanitizer.sanitize(SecurityContext.HTML, subject)
-    } catch (error) {
-      this.form.patchValue({
-        subject: '',
-        mjml: ''
-      })
-      this.form.markAsPristine()
-      this.toastrService.danger(error)
-    }
-  }
-
-  async onSubjectChange(code: string) {
-    // this.form.get('subject').setValue(code);
-    const { html } = await this.emailTemplateService.generateTemplatePreview(code)
-    this.previewSubject = this.sanitizer.bypassSecurityTrustHtml(html)
-    this._cdr.detectChanges()
-  }
-
-  async onEmailChange(code: string) {
-    // this.form.get('mjml').setValue(code);
-    const { html } = await this.emailTemplateService.generateTemplatePreview(code)
-    this.previewEmail = this.sanitizer.bypassSecurityTrustHtml(html)
-    this._cdr.detectChanges()
-  }
-
-  selectedLanguage(event) {
-    this.form.patchValue({
-      languageCode: event.code
+      }
     })
   }
 
-  async submitForm() {
-    try {
-      const { tenantId } = this.store.user
-      const { id: organizationId } = this.organization ?? {}
-      await this.emailTemplateService.saveEmailTemplate({
-        ...this.form.value,
-        organizationId,
-        tenantId
-      })
+  async create() {
+    this.opened.set(true)
+    this.dialogRef.close()
 
-      this.form.markAsPristine()
-      this._cdr.detectChanges()
+    // try {
+    //   await this.emailTemplateService.saveEmailTemplate({
+    //     name: this.name(),
+    //     languageCode: this.languageCodes()[0],
+    //     mjml: null,
+    //     subject: null
+    //   })
 
-      this.toastrService.success('TOASTR.MESSAGE.EMAIL_TEMPLATE_SAVED', {
-        templateName: this.getTranslation('EMAIL_TEMPLATES_PAGE.TEMPLATE_NAMES.' + this.form.get('name').value),
-        Default: 'Email Template saved'
-      })
-    } catch (error) {
-      this.toastrService.danger(error)
-    }
+    //   this.opened.set(true)
+    // } catch(err) {
+    //   this.#toastr.error(getErrorMessage(err))
+    // }
+  }
+
+  open(name: EmailTemplateNameEnum) {
+    this.name.set(name)
+    this.opened.set(true)
+  }
+
+  edit(name: EmailTemplateNameEnum) {
+    this.name.set(name)
+    this.opened.set(true)
+  }
+
+  delete(item) {
+    combineLatest([
+      this.emailTemplateService.delete(item.subject.id),
+      this.emailTemplateService.delete(item.html.id),
+    ]).subscribe({
+      next: () => {
+        
+      }
+    })
+  }
+
+  close() {
+    this.opened.set(false)
   }
 }

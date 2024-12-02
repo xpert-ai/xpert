@@ -4,19 +4,17 @@
 			<mj-column>
 				<mj-image
 					width="100px"
-					src="{{host}}/assets/images/logos/logo_peanut.svg"
+					src="{{host}}/assets/logo.png"
 				></mj-image>
 				<mj-divider
 					border-color="#1B005D"
 					border-width="1px"
 				></mj-divider>
 				<mj-text font-size="16px" font-family="helvetica">
-					<p>Hi!</p>
-					<p>
-						You have been invited to {{organizationName}} as a
-						{{role}}
+					<p>你好!</p>
+					<p>你被邀请加入组织 {{organizationName}} 作为 {{role}}
 					</p>
-					<p>To accept your invitation</p>
+					<p>要接受邀请</p>
 				</mj-text>
 				<mj-button
 					href="{{generatedUrl}}"
@@ -24,29 +22,25 @@
 					background-color="#3366ff"
 					color="white"
 				>
-					Click here
+					点击这里
 				</mj-button>
 				<mj-text font-size="16px" font-family="helvetica">
-					<p>
-						If you have any questions, you can reply to this email.
-					</p>
-					<p>Best regards,</p>
-					<p>The {{organizationName}} Team</p>
+					<p>如果你有任何疑问，可以直接回复此邮件</p>
+					<p>此致,</p>
+					<p>{{organizationName}} 团队</p>
 				</mj-text>
 				<mj-divider
 					border-color="#1B005D"
 					border-width="1px"
 				></mj-divider>
 				<mj-text align="center" font-size="12px" font-family="helvetica"
-					>© 2019,
+					>© 2024,
 					<a href="https://app.mtda.cloud/" style="color: #598bff"
-						>Metad</a
+						>Xpert AI</a
 					>
-					by
-					<a href="https://mtda.cloud/" style="color: #598bff"
-						>Metad Co. LTD.</a
-					>
-					All rights reserved.
+					由
+					<a href="https://mtda.cloud/" style="color: #598bff">（南京）元数信息技术有限公司</a>
+					版权所有.
 				</mj-text>
 			</mj-column>
 		</mj-section>

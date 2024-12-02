@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectorRef, Component, DestroyRef, Input, OnChanges, OnInit, SimpleChanges, inject } from '@angular/core'
+import { AfterViewInit, ChangeDetectorRef, Component, DestroyRef, Input, OnChanges, OnInit, SimpleChanges, inject, signal } from '@angular/core'
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { ActivatedRoute } from '@angular/router'
@@ -49,7 +49,7 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
   ]
   customSmtp: ICustomSmtp = {} as ICustomSmtp
   user: IUser
-  isValidated: boolean
+  readonly isValidated = signal(false)
 
   /*
    * Income Mutation Form
@@ -199,7 +199,7 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
       const newVal = values[1]
       if ((newVal.username && oldVal.username) || (newVal.host && oldVal.host)) {
         if (newVal.username !== oldVal.username || newVal.host !== oldVal.host) {
-          this.isValidated = false
+          this.isValidated.set(false)
         }
       }
     })
@@ -244,7 +244,7 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
    */
   patchValue() {
     if (this.customSmtp) {
-      this.isValidated = this.customSmtp.isValidate ? true : false
+      this.isValidated.set(this.customSmtp.isValidate ? true : false)
       this.form.patchValue({
         id: this.customSmtp.id,
         host: this.customSmtp.host,
@@ -325,10 +325,10 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
     try {
       const smtp = this.form.getRawValue()
       await this.customSmtpService.validateSMTPSetting(smtp)
-      this.isValidated = true
+      this.isValidated.set(true)
       this.toastrService.success(this.getTranslation('TOASTR.TITLE.SUCCESS', { Default: 'Success' }))
     } catch (error) {
-      this.isValidated = false
+      this.isValidated.set(false)
       this.toastrService.error(this.getTranslation('TOASTR.MESSAGE.ERRORS', { Default: 'Errors' }))
     }
   }

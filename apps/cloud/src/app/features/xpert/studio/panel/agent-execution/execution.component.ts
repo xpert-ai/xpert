@@ -202,7 +202,7 @@ export function processEvents(event, executionService: XpertExecutionService) {
       break;
     }
     case ChatMessageEventTypeEnum.ON_TOOL_ERROR: {
-      executionService.setToolExecution(event.data.name, {status: XpertAgentExecutionEnum.FAILED})
+      executionService.setToolExecution(event.data.name, {status: XpertAgentExecutionEnum.FAILED, error: event.data.error })
       break;
     }
     case ChatMessageEventTypeEnum.ON_AGENT_START:
@@ -219,7 +219,7 @@ export function processEvents(event, executionService: XpertExecutionService) {
       break;
     }
     case ChatMessageEventTypeEnum.ON_RETRIEVER_ERROR: {
-      executionService.setKnowledgeExecution(event.data.name, {status: XpertAgentExecutionEnum.FAILED})
+      executionService.setKnowledgeExecution(event.data.name, {status: XpertAgentExecutionEnum.FAILED, error: event.data.error})
       break;
     }
     default: {

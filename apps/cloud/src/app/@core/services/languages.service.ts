@@ -11,6 +11,10 @@ import { toParams } from '@metad/ocap-angular/core';
 export class LanguagesService {
 	constructor(private http: HttpClient) { }
 
+	getAll() {
+		return this.http.get<{ items: ILanguage[] }>(`${API_PREFIX}/languages`)
+	}
+
 	insertLanguage(createLanguage: ILanguage): Promise<ILanguage> {
 		return firstValueFrom(
 			this.http.post<ILanguage>(`${API_PREFIX}/languages`, createLanguage)

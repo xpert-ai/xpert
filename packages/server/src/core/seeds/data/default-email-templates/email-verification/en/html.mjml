@@ -11,32 +11,32 @@
 					border-width="1px"
 				></mj-divider>
 				<mj-text font-size="20px" font-family="helvetica"
-					>Welcome to Metad Analytics Cloud!</mj-text
+					>Welcome to Xpert AI Cloud!</mj-text
 				>
 				<mj-text font-size="16px" font-family="helvetica">
 					<p>Dear {{email}},</p>
 					<p>
-						Thank you for your registration in Metad™.
+						Thank you for your registration in Xpert AI™.
 					</p>
 					<p>We are happy to have you on board!</p>
                     <br>
 					<p><a href="{{generatedUrl}}" target="_blank">{{generatedUrl}}</a></p>
 					<br>
                     <p>Best regards,</p>
-					<p>Metad Analytics Cloud Team</p>
+					<p>Xpert AI Team</p>
 				</mj-text>
 				<mj-divider
 					border-color="#1B005D"
 					border-width="1px"
 				></mj-divider>
 				<mj-text align="center" font-size="12px" font-family="helvetica"
-					>© 2019,
+					>© 2024,
 					<a href="https://app.mtda.cloud/" style="color: #598bff"
-						>Metad Analytics Cloud</a
+						>Xpert AI Cloud</a
 					>
 					by
 					<a href="https://mtda.cloud/" style="color: #598bff"
-						>Metad Co. LTD.</a
+						>XpertAI Co. LTD.</a
 					>
 					All rights reserved.
 				</mj-text>

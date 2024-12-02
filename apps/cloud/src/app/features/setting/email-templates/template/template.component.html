@@ -1,0 +1,85 @@
+<form [formGroup]="form" class="w-full h-full flex flex-col justify-start items-stretch">
+  <div class="pac-page-header">
+	<div class="flex flex-col">
+	  <div class="pac-page-title">{{ 'PAC.MENU.Email Template' | translate: {Default: "Email Template"} }}</div>
+	  <div class="pac-page-subtitle">{{ 'PAC.MENU.ForOrganization' | translate: {Default: "For Organization"} }}:
+		{{ organization?.name }}
+	  </div>
+	</div>
+
+	<div class="flex justify-between items-end px-4 gap-4" displayDensity="cosy">
+	  <!-- <pac-language-selector class="w-48"
+		formControlName="languageCode"
+		(ngModelChange)="subject$.next(true)"
+	  />
+
+	  <ngm-select class="w-48"
+		label="{{ 'PAC.KEY_WORDS.TemplateName' | translate: {Default: 'Template Name'} }}"
+		formControlName="name"
+		[selectOptions]="templateNames"
+		valueKey="key"
+		displayBehaviour="descriptionOnly"
+		(ngModelChange)="subject$.next(true)"
+	  /> -->
+
+	</div>
+  </div>
+	
+  <div class="flex-1 grid grid-cols-2 gap-4 p-4">
+	<div class="rounded overflow-hidden flex flex-col justify-start items-stretch gap-2 p-2">
+		<div class="basis-10 flex flex-col justify-start items-stretch shadow-md rounded-md">
+			<h3 class="p-2">{{ 'PAC.KEY_WORDS.Subject' | translate: {Default: "Subject"} }}</h3>
+			<ngx-monaco-editor
+				[options]="{
+					theme: theme(),
+					automaticLayout: true,
+					language: 'sql'
+				}"
+				formControlName="subject"
+			></ngx-monaco-editor>
+		</div>
+
+		<div class="flex-1 flex flex-col justify-start items-stretch shadow-md rounded-md">
+			<h3 class="p-2">{{ 'PAC.KEY_WORDS.EmailBody' | translate: {Default: "Email Body"} }}</h3>
+			<ngx-monaco-editor class="flex-1"
+				[options]="{
+					theme: theme(),
+					automaticLayout: true,
+					language: 'html'
+				}"
+				formControlName="mjml"
+			></ngx-monaco-editor>
+		</div>
+	</div>
+
+	<div class="overflow-hidden flex flex-col justify-start items-stretch p-4 shadow-md rounded-md">
+		<div class="basis-14 flex justify-start items-stretch">
+			<span>{{ 'PAC.KEY_WORDS.Subject' | translate: {Default: "Subject"} }}:</span>
+			<div id="previewSubject" class="flex-1"
+				[innerHtml]="previewSubject"
+			></div>
+		</div>
+
+		<div class="flex-1 flex flex-col justify-start items-stretch overflow-auto">
+			<h3>{{ 'PAC.KEY_WORDS.EmailBody' | translate: {Default: "Email Body"} }}</h3>
+			<div class="flex-1 overflow-auto">
+				<div id="previewEmail" [innerHtml]="previewEmail()"></div>
+			</div>
+		</div>
+
+		<div class="w-full flex justify-end">
+		  <div ngmButtonGroup displayDensity="cosy">
+			<button mat-raised-button color="primary" class="shrink-0 w-24" [disabled]="form.invalid || form.pristine"
+			  (click)="submitForm()">
+			  <div class="flex items-center">
+				<mat-icon fontSet="material-icons-outlined">save</mat-icon>
+				{{ 'PAC.ACTIONS.Save' | translate: {Default: "Save"} }}
+			  </div>
+			</button>
+		  </div>
+		</div>
+	</div>
+
+  </div>
+	
+</form>

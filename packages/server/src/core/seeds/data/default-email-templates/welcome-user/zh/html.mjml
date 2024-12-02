@@ -4,39 +4,34 @@
 			<mj-column>
 				<mj-image
 					width="100px"
-					src="{{host}}/assets/images/logos/logo_metad.svg"
+					src="{{host}}/assets/logo.png"
 				></mj-image>
 				<mj-divider
 					border-color="#1B005D"
 					border-width="1px"
 				></mj-divider>
 				<mj-text font-size="20px" font-family="helvetica"
-					>欢迎加入元数分析云!</mj-text
+					>欢迎加入 Xpert AI 云!</mj-text
 				>
 				<mj-text font-size="16px" font-family="helvetica">
-					<p>Dear {{email}},</p>
+					<p>您好 {{email}},</p>
 					<p>
-						感谢您注册使用 Metad™ Analytics Cloud - 免费的企业级多维分析云.
+						感谢您注册使用 Xpert AI 云。
 					</p>
 					<p>欢迎点击下方链接开始使用!</p>
 					<p><a href="{{host}}" target="_blank">{{host}}</a></p>
-					<p>Best regards,</p>
-					<p>Metad Team</p>
+					<p>此致,</p>
+					<p>Xpert AI 团队</p>
 				</mj-text>
 				<mj-divider
 					border-color="#1B005D"
 					border-width="1px"
 				></mj-divider>
-				<mj-text align="center" font-size="12px" font-family="helvetica"
-					>© 2019,
-					<a href="https://app.mtda.cloud/" style="color: #598bff"
-						>元数分析云</a
-					>
-					by
-					<a href="https://mtda.cloud/" style="color: #598bff"
-						>Metad Co. LTD.</a
-					>
-					All rights reserved.
+				<mj-text align="center" font-size="12px" font-family="helvetica">© 2024,
+					<a href="https://app.mtda.cloud/" style="color: #598bff">Xpert AI</a>
+					由
+					<a href="https://mtda.cloud/" style="color: #598bff">（南京）元数信息技术有限公司</a>
+					版权所有.
 				</mj-text>
 			</mj-column>
 		</mj-section>
