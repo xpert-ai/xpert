@@ -1,7 +1,6 @@
 [English](./README.md) | 中文
 
 
-[uri_metad]: https://mtda.cloud/
 [uri_license]: https://www.gnu.org/licenses/agpl-3.0.html
 [uri_license_image]: https://img.shields.io/badge/License-AGPL%20v3-blue.svg
 
@@ -94,18 +93,14 @@ __通过创新的 AI 协同和敏捷分析，赋能企业实现智能协作和�
 
 ### 演示
 
-Metad 分析平台演示地址 <https://app.mtda.cloud> 。
+Xpert AI 平台演示地址 <https://app.mtda.cloud> 。
 
 注意:
 - 您可以在首页生成样本数据。
 
-### 下载
-
-您可以下载 [Metad 桌面代理](https://github.com/meta-d/meta-d/releases) 用于连接 Metad 分析云到您的本地数据源。
-
 ### 生产 (SaaS)
 
-Metad 分析云平台链接为 <https://app.mtda.cloud> 。
+Xpert AI 云平台链接为 <https://app.mtda.cloud> 。
 
 注意: 它目前处于 Alpha 版本/测试模式，请谨慎使用！
 
@@ -117,6 +112,7 @@ Metad 分析云平台链接为 <https://app.mtda.cloud> 。
 - [Angular](https://angular.io)
 - [RxJS](http://reactivex.io/rxjs)
 - [TypeORM](https://github.com/typeorm/typeorm)
+- [Langchain](https://js.langchain.com/)
 - [ECharts](https://echarts.apache.org/)
 - [Java](https://www.java.com/)
 - [Mondrian](https://github.com/pentaho/mondrian)
@@ -125,8 +121,6 @@ Metad 分析云平台链接为 <https://app.mtda.cloud> 。
 
 - [PostgreSQL](https://www.postgresql.org)
 - [PM2](https://github.com/Unitech/pm2)
-
-注意：得益于 TypeORM，OCAP 将支持许多数据库：PostgreSQL（开发/生产），MySQL，MariaDB，CockroachDB，MS SQL，Oracle，MongoDB 等等，并且只需进行最小的更改。
 
 #### 请参阅相应文件夹中的 README.md 和 CREDITS.md 文件以获取包含在平台中的库和软件列表，有关许可证的信息以及其他详细信息
 
@@ -141,14 +135,14 @@ Metad 分析云平台链接为 <https://app.mtda.cloud> 。
 
 此软件在以下许可下可用：
 
-- [Xpert AI 平台社区版](https://github.com/xpert-ai/xpert/blob/master/LICENSE.md#metad-analytics-platform-community-edition-license)
-- [Xpert AI 平台小企业版](https://github.com/xpert-ai/xpert/blob/master/LICENSE.md#metad-analytics-platform-small-business-license)
-- [Xpert AI 平台企业版](https://github.com/xpert-ai/xpert/blob/master/LICENSE.md#metad-analytics-platform-enterprise-license)
+- [Xpert AI 平台社区版](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-community-edition-license)
+- [Xpert AI 平台小企业版](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-small-business-license)
+- [Xpert AI 平台企业版](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-enterprise-license)
 
 #### 请参阅 [LICENSE](LICENSE.md) 以获取有关许可的更多信息。
 
 ## 🍺 贡献
 
 - 请给我们在 Github 上点个 :star: , 这真的很有**帮助**!
-- 非常欢迎您在 [ocap repo](https://github.com/xpert-ai/xpert/issues) 中提交功能请求。
+- 非常欢迎您在 [Xpert repo](https://github.com/xpert-ai/xpert/issues) 中提交功能请求。
 - Pull requests 总是欢迎的！请将拉取请求基于 _develop_ 分支，并遵循 [贡献指南](.github/CONTRIBUTING.md)。
