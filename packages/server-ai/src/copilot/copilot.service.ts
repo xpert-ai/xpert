@@ -31,9 +31,9 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 	async findAvailables(filter?: PaginationParams<Copilot>) {
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
-		let copilots = await this.findAllCopilots()
+		const copilots = await this.findAllCopilots()
 		// Filter the tenant enabled copilots for organization user
-		copilots = copilots.filter((copilot) => (organizationId && !copilot.organizationId) ? copilot.enabled : true)
+		// copilots = copilots.filter((copilot) => (organizationId && !copilot.organizationId) ? copilot.enabled : true)
 		for await (const copilot of copilots) {
 			if (!copilot.organizationId) {
 				const usage = await this.queryBus.execute(new GetCopilotOrgUsageQuery(tenantId, organizationId, copilot.id))
@@ -98,12 +98,12 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 	async findAllCopilots(tenantId?: string, organizationId?: string, params?: PaginationParams<Copilot>) {
 		tenantId = tenantId || RequestContext.currentTenantId()
 		organizationId = organizationId || RequestContext.getOrganizationId()
-		const items = await this.repository.find({ where: { tenantId, organizationId }, relations: ['modelProvider'] })
-		if (items.some((item) => item.enabled)) {
+		const items = await this.repository.find({ where: { tenantId, organizationId, enabled: true }, relations: ['modelProvider'] })
+		if (items.length) {
 			return items
 		}
 
-		return await this.repository.find({ where: { tenantId, organizationId: IsNull() }, relations: ['modelProvider'] })
+		return await this.repository.find({ where: { tenantId, organizationId: IsNull(), enabled: true }, relations: ['modelProvider'] })
 	}
 
 	/**

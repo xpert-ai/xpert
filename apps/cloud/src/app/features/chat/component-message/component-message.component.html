@@ -4,7 +4,40 @@
       [dataSettings]="data().dataSettings"
       [chartSettings]="chartSettings()"
       [slicers]="data().slicers"
-    />
+      (explain)="setExplains($event)"
+    >
+      <button ngmAction class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light"
+        [cdkMenuTriggerFor]="filtersMenu"
+        #mt="cdkMenuTriggerFor"
+        [class.active]="mt.isOpen()"
+        [matTooltip]="'Story.Common.Slicers' | translate: {Default: 'Slicers'}"
+        matTooltipPosition="above">
+        <i class="ri-filter-line"></i>
+      </button>
+      <button ngmAction class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light"
+        (click)="openExplain()">
+        <i class="ri-terminal-box-line"></i>
+      </button>
+    </ngm-analytical-card>
+
+    <ng-template #filtersMenu>
+      <div class="relative p-4 rounded-2xl border-light shadow-md bg-components-card-bg">
+        <div class="text-base font-semibold">{{ 'Ngm.Selection.Slicers' | translate: {Default: "Slicers"} }}</div>
+        <ngm-slicers class="overflow-hidden" inline editable
+          [slicers]="data().slicers"
+          [dataSettings]="data().dataSettings"
+          [limit]="5"
+          [capacities]="[eSlicersCapacity.CombinationSlicer, eSlicersCapacity.AdvancedSlicer, eSlicersCapacity.Variable]"
+          (valueChange)="setSelectOptions(data(), $event)"
+          (click)="$event.stopPropagation()"
+        />
+
+        <button type="button" class="absolute right-2 top-2 pressable cursor-pointer text-text-secondary hover:bg-hover-bg rounded-full p-1"
+          (click)="mt.close()"
+        ><i class="ri-close-circle-line w-6 h-6 block"></i>
+        </button>
+      </div>
+    </ng-template>
   }
   @case ('KPI') {
     <pac-widget-kpi displayDensity="compact" [title]="data().title"
