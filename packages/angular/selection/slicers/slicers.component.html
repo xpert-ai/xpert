@@ -30,13 +30,14 @@
 }
 
 <ng-template #menu>
-  <div cdkMenu class="cdk-menu__medium">
-    <ngm-search class="px-1 rounded-xl sticky top-0" [formControl]="searchControl" (click)="$event.stopPropagation()" />
+  <div cdkMenu class="cdk-menu__large">
+    <ngm-search class="px-1 rounded-2xl" [formControl]="searchControl"
+      (click)="$event.stopPropagation()" />
 
     @if (showVariable()) {
       @for (property of variables$ | async; track property.name) {
         <button cdkMenuItem (click)="openSlicerCreator(property)">
-          <ngm-entity-property [property]="property" [displayBehaviour]="DisplayBehaviour.auto"
+          <ngm-entity-property class="w-full" [property]="property" [displayBehaviour]="DisplayBehaviour.auto"
             [highlight]="highlight" />
         </button>
       }
@@ -48,7 +49,7 @@
           [cdkMenuTriggerFor]="calendarMenu"
           [cdkMenuTriggerData]="{property: property}"
         >
-          <ngm-entity-property [property]="property" [displayBehaviour]="DisplayBehaviour.auto"
+          <ngm-entity-property class="w-full" [property]="property" [displayBehaviour]="DisplayBehaviour.auto"
             [highlight]="highlight" />
         </button>
       } @else {

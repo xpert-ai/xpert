@@ -1,8 +1,7 @@
 import { PGVectorStore, PGVectorStoreArgs } from '@langchain/community/vectorstores/pgvector'
 import { Document } from '@langchain/core/documents'
-import type { EmbeddingsInterface } from '@langchain/core/embeddings'
-import { OpenAIEmbeddings } from '@langchain/openai'
-import { OpenAIEmbeddingsProviders, ISemanticModel, ISemanticModelEntity, AiProviderRole } from '@metad/contracts'
+import type { Embeddings, EmbeddingsInterface } from '@langchain/core/embeddings'
+import { ISemanticModel, ISemanticModelEntity, ICopilot, AiProviderRole } from '@metad/contracts'
 import {
 	EntityType,
 	PropertyDimension,
@@ -22,7 +21,8 @@ import { DeepPartial, FindConditions, FindManyOptions, In, Repository } from 'ty
 import { SemanticModel } from '../model/model.entity'
 import { NgmDSCoreService, getSemanticModelKey } from '../model/ocap'
 import { SemanticModelMember } from './member.entity'
-import { CopilotService } from '@metad/server-ai'
+import { CopilotModelGetEmbeddingsQuery, CopilotNotFoundException, CopilotOneByRoleQuery, CopilotService } from '@metad/server-ai'
+import { QueryBus } from '@nestjs/cqrs'
 
 @Injectable()
 export class SemanticModelMemberService extends TenantOrganizationAwareCrudService<SemanticModelMember> {
@@ -40,6 +40,7 @@ export class SemanticModelMemberService extends TenantOrganizationAwareCrudServi
 		private copilotService: CopilotService,
 
 		private readonly dsCoreService: NgmDSCoreService,
+		private readonly queryBus: QueryBus,
 
 		@Inject(DATABASE_POOL_TOKEN) private pgPool: Pool
 	) {
@@ -52,14 +53,14 @@ export class SemanticModelMemberService extends TenantOrganizationAwareCrudServi
 	 * @param modelId
 	 * @param body Cube name and it's hierarchies
 	 */
-	async syncMembers(modelId: string, cube: string, hierarchies: string[], { id, createdById }: Partial<ISemanticModelEntity>) {
-		const model = await this.modelRepository.findOne(modelId, {
-			relations: ['dataSource', 'dataSource.type', 'roles']
-		})
+	async syncMembers(model: ISemanticModel, cube: string, hierarchies: string[], { id, createdById }: Partial<ISemanticModelEntity>) {
+		// const model = await this.modelRepository.findOne(modelId, {
+		// 	relations: ['dataSource', 'dataSource.type', 'roles']
+		// })
 		const modelKey = getSemanticModelKey(model)
 		const modelDataSource = await this.dsCoreService._getDataSource(modelKey)
 
-		this.logger.debug(`Sync members for dimensions: ${hierarchies} in cube: ${cube} of model: ${modelId} ...`)
+		this.logger.debug(`Sync members for dimensions: ${hierarchies} in cube: ${cube} of model: ${model.name} ...`)
 
 		const entityType = await firstValueFrom(modelDataSource.selectEntityType(cube))
 		if (!isEntityType(entityType)) {
@@ -68,7 +69,7 @@ export class SemanticModelMemberService extends TenantOrganizationAwareCrudServi
 
 		this.logger.debug(`Got entity type: ${entityType.name}`)
 
-		const hMembers = {}
+		const statistics = {}
 		let members = []
 		for (const hierarchy of hierarchies) {
 			const hierarchyProperty = getEntityHierarchy(entityType, hierarchy)
@@ -79,33 +80,37 @@ export class SemanticModelMemberService extends TenantOrganizationAwareCrudServi
 				})
 			)
 
-			hMembers[hierarchy] = _members.length
-			members = members.concat(_members.map((item) => ({ ...item, modelId, entityId: id, cube })))
+			statistics[hierarchy] = _members.length
+			members = members.concat(_members.map((item) => ({ ...item, modelId: model.id, entityId: id, cube })))
 		}
 
 		this.logger.debug(`Got entity members: ${members.length}`)
 
-		if (members.length) {
-			await this.storeMembers(model, cube, members.map((member) => ({...member, createdById })), entityType)
-		}
+		// if (members.length) {
+		// 	await this.storeMembers(model, cube, members.map((member) => ({...member, createdById })), entityType)
+		// }
 
-		return hMembers
+		return {
+			entityType,
+			members,
+			statistics
+		}
 	}
 
-	/**
-	 * Store the members of specified dimension using Cube as the smallest unit.
-	 */
-	async storeMembers(model: SemanticModel, cube: string, members: DeepPartial<SemanticModelMember[]>, entityType: EntityType) {
-		const entities = await this.bulkCreate(model, cube, members)
-		const vectorStore = await this.getVectorStore(null, null, model.id, entityType.name)
-		if (vectorStore) {
-			await vectorStore.clear()
-			await vectorStore.addMembers(entities, entityType)
-			await Promise.all(entities.map((entity) => this.update(entity.id, { vector: true })))
-		}
+	// /**
+	//  * Store the members of specified dimension using Cube as the smallest unit.
+	//  */
+	// async storeMembers(model: SemanticModel, cube: string, members: DeepPartial<SemanticModelMember[]>, entityType: EntityType) {
+	// 	const entities = await this.bulkCreate(model, cube, members)
+		
+	// 	if (vectorStore) {
+	// 		await vectorStore.clear()
+	// 		await vectorStore.addMembers(entities, entityType)
+	// 		await Promise.all(entities.map((entity) => this.update(entity.id, { vector: true })))
+	// 	}
 
-		return entities
-	}
+	// 	return entities
+	// }
 
 	async bulkCreate(model: ISemanticModel, cube: string, members: DeepPartial<SemanticModelMember[]>) {
 		// Remove previous members
@@ -137,11 +142,29 @@ export class SemanticModelMemberService extends TenantOrganizationAwareCrudServi
 		return await this.delete({ id: In(members.map((item) => item.id)) })
 	}
 
-	async retrieveMembers(tenantId: string, organizationId: string, id: string | null, cube: string, query: string, k = 10) {
-		const { vectorStore } = await this.getVectorStore(tenantId, organizationId, id, cube)
+	async retrieveMembers(tenantId: string, organizationId: string, options: {modelId: string | null; cube: string; dimension?: string; hierarchy?: string; level?: string}, query: string, k = 10) {
+		const copilot = await this.queryBus.execute(new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Embedding))
+		if (!copilot) {
+			throw new CopilotNotFoundException(`Copilot not found for role '${AiProviderRole.Embedding}'`)
+		}
+		const { vectorStore } = await this.getVectorStore(copilot, options.modelId, options.cube)
 		if (vectorStore) {
 			try {
-				return await vectorStore.similaritySearch(query, k)
+				const filter = {} as any
+				if (options.dimension) {
+					filter.dimension = options.dimension
+				}
+				if (options.hierarchy) {
+					filter.hierarchy = options.hierarchy
+				}
+				if (options.level) {
+					filter.level = options.level
+				}
+
+
+				const docsWithScore = await vectorStore.similaritySearchWithScore(query, k, filter)
+
+				return docsWithScore.map((item) => item[0])
 			} catch (error) {
 				return []
 			}
@@ -150,22 +173,19 @@ export class SemanticModelMemberService extends TenantOrganizationAwareCrudServi
 		return []
 	}
 
-	async getVectorStore(tenantId: string, organizationId: string, modelId: string, cube: string) {
-		let copilot = await this.copilotService.findOneByRole(AiProviderRole.Primary, tenantId, organizationId)
-		if (!copilot?.enabled) {
-			copilot = await this.copilotService.findTenantOneByRole(AiProviderRole.Primary, tenantId)
-		}
-		if (copilot?.enabled && OpenAIEmbeddingsProviders.includes(copilot.provider)) {
+	async getVectorStore(copilot: ICopilot, modelId: string, cube: string) {
+		const embeddings = await this.queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
+			new CopilotModelGetEmbeddingsQuery(copilot, null, {
+				tokenCallback: (token) => {
+					console.log(`Embedding token usage:`, token)
+				    // execution.tokens += (token ?? 0)
+				}
+			})
+		)
+
+		if (embeddings) {
 			const id = modelId ? `${modelId}${cube ? ':' + cube : ''}` : 'default'
 			if (!this.vectorStores.has(id)) {
-				const embeddings = new OpenAIEmbeddings({
-					verbose: true,
-					apiKey: copilot.apiKey,
-					configuration: {
-						baseURL: copilot.apiHost
-					}
-				})
-
 				const vectorStore = new PGMemberVectorStore(embeddings, {
 					pool: this.pgPool,
 					tableName: 'model_member_vector',
@@ -252,17 +272,5 @@ function formatMemberContent(
 	hierarchyProperty: PropertyHierarchy,
 	levelProperty: PropertyLevel
 ) {
-	return `dimension:
-	name: '${member.dimension}'
-	caption: '${dimensionProperty.caption || ''}'
-hierarchy:
-	name: '${member.hierarchy}'
-	caption: '${hierarchyProperty.caption || ''}'
-level:
-	name: '${member.level}'
-	caption: '${levelProperty?.caption || ''}'
-member:
-	key: '${member.memberKey}'
-	caption: '${member.memberCaption || ''}'
-`
+	return `${member.memberCaption || ''} ${member.memberKey}`
 }

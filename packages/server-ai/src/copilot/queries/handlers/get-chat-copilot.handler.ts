@@ -12,7 +12,7 @@ export class CopilotGetChatHandler implements IQueryHandler<CopilotGetChatQuery>
 	public async execute(command: CopilotGetChatQuery): Promise<ICopilot> {
 		const relations = command.relations
 
-		const copilot = await this.service.findCopilot(command.tenantId, command.organizationId, AiProviderRole.Primary)
+		const copilot = await this.service.findOneByRole(AiProviderRole.Primary, command.tenantId, command.organizationId)
 
 		return copilot
 	}

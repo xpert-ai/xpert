@@ -205,7 +205,7 @@ export class CopilotKnowledgeService extends TenantOrganizationAwareCrudService<
 		const id = (organizationId || tenantId) + `:${role || 'default'}`
 
 		let collectionName = id
-		const copilot = await this.copilotService.findCopilot(tenantId, organizationId, AiProviderRole.Embedding)
+		const copilot = await this.copilotService.findOneByRole(AiProviderRole.Embedding, tenantId, organizationId)
 		if (copilot) {
 			if (!copilot.organizationId) {
 				collectionName = tenantId + `:${role || 'default'}`

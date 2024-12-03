@@ -1,4 +1,4 @@
-<h2 class="text-xl">
+<div class="flex items-center gap-2 text-xl p-4 sticky top-0 z-10 bg-components-panel-bg">
   @if (!modelSideMenuOpened()) {
     <button mat-icon-button class="text-neutral-600" (click)="openSideMenu()">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" class="icon-xl-heavy">
@@ -7,16 +7,14 @@
     </button>
   }
   {{ 'PAC.MODEL.SyncDimensionMembers' | translate: {Default: 'Sync Dimension Members'} }}
-</h2>
+</div>
 
-<mat-accordion multi>
+<mat-accordion multi class="px-4 py-2">
   @for (cube of allCubes(); track cube.name) {
     <pac-model-members-cube [cube]="cube" />
   }
 </mat-accordion>
 
 @if (loading()) {
-  <div class="absolute left-1/2 top-1/2 -ml-3 -mt-3">
-    <mat-progress-spinner mode="indeterminate" [diameter]="24" color="accent"></mat-progress-spinner>
-  </div>
+  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
 }

@@ -1,5 +1,5 @@
+import { CopilotModule } from '@metad/server-ai'
 import { DatabaseModule, SharedModule, TenantModule } from '@metad/server-core'
-import { BullModule } from '@nestjs/bull'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -8,15 +8,12 @@ import { SemanticModelModule } from '../model/model.module'
 import { OcapModule } from '../model/ocap'
 import { ModelMemberController } from './member.controller'
 import { SemanticModelMember } from './member.entity'
-import { MemberProcessor } from './member.processor'
 import { SemanticModelMemberService } from './member.service'
-import { CopilotModule } from '@metad/server-ai'
+import { QueryHandlers } from './queries/handlers'
 
 @Module({
 	imports: [
-		RouterModule.forRoutes([
-			{ path: '/semantic-model-member', module: SemanticModelMemberModule }
-		]),
+		RouterModule.forRoutes([{ path: '/semantic-model-member', module: SemanticModelMemberModule }]),
 		forwardRef(() => TypeOrmModule.forFeature([SemanticModelMember])),
 		forwardRef(() => TenantModule),
 		SharedModule,
@@ -24,14 +21,10 @@ import { CopilotModule } from '@metad/server-ai'
 		forwardRef(() => SemanticModelModule),
 		forwardRef(() => CopilotModule),
 		DatabaseModule,
-
-		BullModule.registerQueue({
-			name: 'member',
-		}),
-		OcapModule,
+		OcapModule
 	],
 	controllers: [ModelMemberController],
-	providers: [SemanticModelMemberService, MemberProcessor],
-	exports: [SemanticModelMemberService, BullModule],
+	providers: [SemanticModelMemberService, ...QueryHandlers],
+	exports: [SemanticModelMemberService]
 })
 export class SemanticModelMemberModule {}

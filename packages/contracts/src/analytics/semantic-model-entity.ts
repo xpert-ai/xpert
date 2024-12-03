@@ -10,7 +10,8 @@ export type SemanticModelEntityOptions = {
 
 export type SemanticModelEntityJob = {
   id: string | number
-  status?: 'completed' | 'failed' | 'processing'
+  status?: 'completed' | 'failed' | 'processing' | 'cancel'
+  progress?: number
   error?: string
 }
 

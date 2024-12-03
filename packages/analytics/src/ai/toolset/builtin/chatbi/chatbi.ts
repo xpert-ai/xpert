@@ -49,6 +49,7 @@ import { ChatAnswerSchema, GetBIContextQuery, TBIContext } from '../../../../cha
 import { markdownCubes } from '../../../../chatbi/graph'
 import { ChatAnswer } from '../../../../chatbi/tools'
 import { registerSemanticModel } from '../../../../model/ocap'
+import { DimensionMemberRetrieverToolQuery } from '../../../../model-member/queries'
 
 export class ChatBIToolset extends BuiltinToolset {
 	static provider = 'chatbi'
@@ -78,28 +79,41 @@ export class ChatBIToolset extends BuiltinToolset {
 		if (!this.toolset) {
 			throw new ToolNotSupportedError(`Toolset not provided for '${ChatBIToolset.provider}'`)
 		}
+		const tools = this.toolset.tools.filter((_) => _.enabled)
+
+		if (!tools.length) {
+			throw new ToolNotSupportedError(`Tools not be enabled for '${ChatBIToolset.provider}'`)
+		}
 
 		this.biContext = await this.queryBus.execute<GetBIContextQuery, TBIContext>(new GetBIContextQuery())
 		this.cubes = await this.registerChatModels(this.toolset.credentials.models)
 
 		this.tools = []
-		if (this.toolset.tools.find((_) => _.name === 'get_available_cubes')) {
+		if (tools.find((_) => _.name === 'get_available_cubes')) {
 			this.tools.push(
 				this.createGetAvailableCubes() as unknown as Tool,
 			)
 		}
-		if (this.toolset.tools.find((_) => _.name === 'get_cube_context')) {
+		if (tools.find((_) => _.name === 'get_cube_context')) {
 			this.tools.push(
 				this.createCubeContextTool(this.dsCoreService) as unknown as Tool,
 			)
 		}
-		if (this.toolset.tools.find((_) => _.name === 'answer_question')) {
+		if (tools.find((_) => _.name === 'answer_question')) {
 			this.tools.push(
 				this.createChatAnswerTool({
 					dsCoreService: this.dsCoreService,
 					entityType: null
 				}) as unknown as Tool,
 			)
+		}
+		if (tools.find((_) => _.name === 'dimension_member_retriever')) {
+			const dimensionMemberRetrieverTool = await this.queryBus.execute(new DimensionMemberRetrieverToolQuery(
+				'dimension_member_retriever',
+				this.toolset.tenantId,
+				this.toolset.organizationId,
+			))
+			this.tools.push(dimensionMemberRetrieverTool)
 		}
 
 		return this.tools
@@ -261,8 +275,9 @@ ${members}
 			{
 				name: 'answer_question',
 				description: 'Show chart answer for the question to user',
-				schema: ChatAnswerSchema
-			}
+				schema: ChatAnswerSchema,
+				verboseParsingErrors: true
+			},
 		)
 	}
 

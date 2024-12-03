@@ -1,80 +1,166 @@
 <mat-expansion-panel class="mat-elevation-z" displayDensity="cosy">
-    <mat-expansion-panel-header class="whitespace-nowrap">
-        <mat-panel-title> {{cube().caption}} <span class="text-sm italic ml-2">({{cube().name}})</span> </mat-panel-title>
-        <mat-panel-description>
-          @if (entity()?.job) {
-            @if (entity().job?.error) {
-              <mat-icon fontSet="material-icons-outlined" class="text-red-500"
-                [matTooltip]="entity().job.error"
-              >error</mat-icon>
-            } @else if(entity().job.status === 'completed') {
-              <mat-icon fontSet="material-icons-outlined" class="text-green-500"
-                [matTooltip]="'PAC.MODEL.SyncMembersJobFinished' | translate: {Default: 'Sync Members Job Finished'}"
-              >check_circle</mat-icon>
-            } @else {
-              <mat-icon fontSet="material-icons-outlined"
-                [matTooltip]="'PAC.MODEL.SyncMembersJobRunning' | translate: {Default: 'Sync Members Job Running'}"
-              >downloading</mat-icon>
+  <mat-expansion-panel-header class="whitespace-nowrap">
+    <mat-panel-title> {{cube().caption}} <span class="text-sm italic ml-2">({{cube().name}})</span> </mat-panel-title>
+    <mat-panel-description>
+      @if (entity()?.job?.status === 'processing' || entity()?.job?.status === 'completed') {
+        <div class="flex items-center gap-1" [matTooltip]="'PAC.MODEL.EmbeddingProgress' | translate: {Default: 'Embedding progress'}" matTooltipPosition="above">
+          <mat-progress-spinner
+            mode="determinate" diameter="24" color="accent"
+            [value]="entity()?.job.progress">
+          </mat-progress-spinner>
+
+          <span>{{entity()?.job.progress}}%</span>
+        </div>
+      }
+      @if (entity()?.job) {
+        @if (entity().job?.error) {
+          <mat-icon fontSet="material-icons-outlined" class="text-red-500"
+            [matTooltip]="entity().job.error" matTooltipPosition="above"
+          >error</mat-icon>
+        } @else if (job()?.status === 'processing') {
+          <button mat-icon-button [disabled]="loading()" ngmAppearance="danger"
+            [matTooltip]="'PAC.MODEL.StopSyncJob' | translate: {Default: 'Stop the synchronization job'}"
+            matTooltipPosition="above"
+            (click)="$event.stopPropagation();stopJob()"
+          >
+            <mat-icon class="material-icons-outlined" >stop_circle</mat-icon>
+          </button>
+        }
+      }
+
+      @if (entity()?.id && job()?.status !== 'processing') {
+        <button mat-icon-button [disabled]="loading()" ngmAppearance="danger"
+          [matTooltip]="'PAC.MODEL.DeleteDimensionMembers' | translate: {Default: 'Delete Dimension Members'}"
+          matTooltipPosition="above"
+          (click)="$event.stopPropagation();deleteMembers(entity().id)"
+        >
+          <mat-icon class="material-icons-outlined" >delete_outline</mat-icon>
+        </button>
+      }
+      
+        <button mat-icon-button [disabled]="loading()"
+          [matTooltip]="'PAC.KEY_WORDS.Refresh' | translate: {Default: 'Refresh'}"
+          matTooltipPosition="above"
+          (click)="$event.stopPropagation();refresh()"
+        >
+            <mat-icon class="material-icons-outlined" >sync</mat-icon>
+        </button>
+
+        <button mat-icon-button [disabled]="loading() || !loaded() || entity()?.job?.status === 'processing'"
+          [matTooltip]="'PAC.MODEL.UploadDimensionMembers' | translate: {Default: 'Upload Dimension Members'}"
+          matTooltipPosition="above"
+          (click)="$event.stopPropagation();createModelEntity(selectedDims())"
+        >
+            <mat-icon class="material-icons-outlined" >file_upload</mat-icon>
+        </button>
+    </mat-panel-description>
+  </mat-expansion-panel-header>
+
+  <div class="relative overflow-x-auto sm:rounded-lg">
+    <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+      <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+        <tr>
+          <th scope="col" class="py-3 px-4 pe-0">
+            <div class="flex items-center h-5">
+              <input id="hs-table-search-checkbox-all" type="checkbox" class="border-gray-200 rounded text-blue-600 focus:ring-blue-500 dark:bg-neutral-700 dark:border-neutral-500 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800"
+                [disabled]="loading()"
+                [ngModel]="allSelected()"
+                [indeterminate]="someSelected()"
+                (ngModelChange)="setAll($event)"
+              >
+              <label for="hs-table-search-checkbox-all" class="sr-only">Checkbox</label>
+            </div>
+          </th>
+          <th scope="col" class="px-6 py-3">
+            {{ 'PAC.KEY_WORDS.Label' | translate: {Default: 'Label'} }}
+          </th>
+          <th scope="col" class="px-6 py-3">
+            {{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}
+          </th>
+          <th scope="col" class="px-6 py-3">
+            {{ 'PAC.MODEL.MemberCount' | translate: {Default: 'Member Count'} }}
+          </th>
+          <th scope="col" class="px-6 py-3">
+            {{ 'PAC.KEY_WORDS.Embedded' | translate: {Default: 'Embedded'} }}
+          </th>
+          <!-- <th scope="col" class="px-6 py-3">
+            {{ 'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}
+          </th> -->
+        </tr>
+      </thead>
+      <tbody>
+        @for (dimension of dimensions(); track dimension.name) {
+          <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+            <td class="py-3 ps-4">
+              <button type="button" class="pressable mr-1 inline-block" (click)="dimension.expand=!dimension.expand">
+                @if (dimension.expand) {
+                  <i class="ri-contract-up-down-fill"></i>
+                } @else {
+                  <i class="ri-expand-up-down-fill"></i>
+                }
+              </button>
+            </td>
+            <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              {{ dimension.caption }}
+            </th>
+            <td class="px-6 py-4">
+              {{ dimension.name }}
+            </td>
+            <td class="px-6 py-4">
+              @for (hierarchy of dimension.hierarchies; track hierarchy.name; let last = $last) {
+                @if (members()[hierarchy.name]) {
+                  {{members()[hierarchy.name].length | number: '0.0-0'}}
+                  @if (!last) {
+                    <span class="mx-1">|</span>
+                  }
+                }
+              }
+            </td>
+            <td class="px-6 py-4">
+              @for (hierarchy of dimension.hierarchies; track hierarchy.name; let last = $last) {
+                @if (syncMembers()[hierarchy.name]) {
+                  {{syncMembers()[hierarchy.name] | number: '0.0-0'}}
+                  @if (!last) {
+                    <span class="mx-1">|</span>
+                  }
+                }
+              }
+            </td>
+          </tr>
+
+          @if (dimension.expand) {
+            @for (hierarchy of dimension.hierarchies; track hierarchy.name) {
+              <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-500">
+                <td class="py-3 ps-4">
+                  <div class="flex items-center h-5">
+                    <input id="hs-table-search-checkbox-1" type="checkbox" name="table-selected-checkbox-1" class="border-gray-200 rounded text-blue-600 focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800"
+                      [disabled]="loading()"
+                      [ngModel]="getSelected(hierarchy.name)"
+                      (ngModelChange)="setSelected(hierarchy.name, $event)"
+                      >
+                    <label for="hs-table-search-checkbox-1" class="sr-only">Checkbox</label>
+                  </div>
+                </td>
+                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                  <div class="inline-block w-4"></div> 
+                  <a class="cursor-pointer hover:underline" (click)="openValueHelp(dimension.name, hierarchy.name)">{{ hierarchy.caption }}</a>
+                </th>
+                <td class="px-6 py-4">
+                  {{ hierarchy.name }}
+                </td>
+                <td class="px-6 py-4">
+                  @if (members()[hierarchy.name]) {
+                    {{members()[hierarchy.name].length | number: '0.0-0'}}
+                  }
+                </td>
+                <td class="px-6 py-4">
+                  <span class="w-16 italic text-sm overflow-hidden text-ellipsis">{{ syncMembers()[hierarchy.name] | number: '0.0-0' }}</span>
+                </td>
+              </tr>
             }
           }
-
-          @if (entity()?.id) {
-            <button mat-icon-button [disabled]="loading()" ngmAppearance="danger"
-              [matTooltip]="'PAC.MODEL.DeleteDimensionMembers' | translate: {Default: 'Delete Dimension Members'}"
-              (click)="$event.stopPropagation();deleteMembers(entity().id)"
-            >
-              <mat-icon class="material-icons-outlined" >delete_outline</mat-icon>
-            </button>
-          }
-          
-            <button mat-icon-button [disabled]="loading()"
-              [matTooltip]="'PAC.KEY_WORDS.Refresh' | translate: {Default: 'Refresh'}"
-              (click)="$event.stopPropagation();refresh()"
-            >
-                <mat-icon class="material-icons-outlined" >sync</mat-icon>
-            </button>
-
-            <button mat-icon-button [disabled]="loading() || !loaded() || entity()?.job?.status === 'processing'"
-              [matTooltip]="'PAC.MODEL.UploadDimensionMembers' | translate: {Default: 'Upload Dimension Members'}"
-              (click)="$event.stopPropagation();createModelEntity(selectedDims())"
-            >
-                <mat-icon class="material-icons-outlined" >file_upload</mat-icon>
-            </button>
-
-            <mat-checkbox [checked]="allSelected()"
-                [indeterminate]="someSelected()"
-                (change)="setAll($event.checked)"
-                (click)="$event.stopPropagation();"></mat-checkbox>
-        </mat-panel-description>
-    </mat-expansion-panel-header>
-    
-    <mat-selection-list #selection role="list" [disabled]="loading()" [(ngModel)]="selectedDims">
-      @for (dimension of dimensions(); track dimension.name) {
-        <div mat-subheader><ngm-entity-property [property]="dimension" /></div>
-
-        @for (hierarchy of dimension.hierarchies; track $index) {
-          <mat-list-option role="listitem" class="hierarchy" [value]="hierarchy.name">
-            <ngm-entity-property [property]="hierarchy" />
-  
-            <span>
-              <span>
-                @if (members()[hierarchy.name]) {
-                  ({{members()[hierarchy.name].length}})
-                }
-                {{ 'PAC.MODEL.Members' | translate: { Default: 'Members' } }};
-              </span>
-
-              <span>
-                <span>
-                  {{ 'PAC.MODEL.Synchronized' | translate: { Default: 'Synchronized' } }}:
-                </span>
-                <span class="w-16 italic text-sm overflow-hidden text-ellipsis">{{ syncMembers()[hierarchy.name] }}</span>
-              </span>
-            </span>
-          </mat-list-option>
         }
-
-        <mat-divider></mat-divider>
-      }
-    </mat-selection-list>
+      </tbody>
+    </table>
+  </div>
 </mat-expansion-panel>

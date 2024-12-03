@@ -1,7 +1,7 @@
 import { type DocumentInterface } from '@langchain/core/documents'
 import { IPagination } from '@metad/contracts'
 import { CrudController, ParseJsonPipe, UUIDValidationPipe } from '@metad/server-core'
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common'
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { FindManyOptions } from 'typeorm'
@@ -46,6 +46,15 @@ export class ModelMemberController extends CrudController<SemanticModelMember> {
 		@Body() body: { cube: string; query: string; k: number }
 	): Promise<DocumentInterface<Record<string, any>>[]> {
 		const { cube, query, k } = body
-		return await this.memberService.retrieveMembers(null, null, id === 'null' ? null : id, cube, query, k)
+		return await this.memberService.retrieveMembers(
+			null,
+			null,
+			{
+				modelId: id === 'null' ? null : id,
+				cube
+			},
+			query,
+			k
+		)
 	}
 }
