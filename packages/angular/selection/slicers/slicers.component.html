@@ -20,7 +20,8 @@
 
 @if (editable() && inline()) {
   <button mat-stroked-button [disabled]="isDisabled" displayDensity="cosy" ngmAppearance="dashed"
-    [matMenuTriggerFor]="menu">
+    [cdkMenuTriggerFor]="menu"
+  >
     <div class="flex items-center justify-center">
       <mat-icon>add</mat-icon>
       {{ 'Ngm.Common.Add' | translate: {Default: "Add"} }}
@@ -28,60 +29,64 @@
   </button>
 }
 
-<mat-menu #menu="matMenu" class="ngm-density__cosy">
-  <ngm-search class="px-1" [formControl]="searchControl" (click)="$event.stopPropagation()" />
+<ng-template #menu>
+  <div cdkMenu class="cdk-menu__large">
+    <ngm-search class="px-1 rounded-2xl" [formControl]="searchControl"
+      (click)="$event.stopPropagation()" />
 
-  @if (showVariable()) {
-    @for (property of variables$ | async; track property.name) {
-      <button mat-menu-item (click)="openSlicerCreator(property)">
-        <ngm-entity-property [property]="property" [displayBehaviour]="DisplayBehaviour.auto"
-          [highlight]="highlight" />
+    @if (showVariable()) {
+      @for (property of variables$ | async; track property.name) {
+        <button cdkMenuItem (click)="openSlicerCreator(property)">
+          <ngm-entity-property class="w-full" [property]="property" [displayBehaviour]="DisplayBehaviour.auto"
+            [highlight]="highlight" />
+        </button>
+      }
+    }
+  
+    @for (property of dimensions$ | async; track property.name) {
+      @if (isSemanticCalendar(property)) {
+        <button cdkMenuItem (click)="openSlicerCreator(property)"
+          [cdkMenuTriggerFor]="calendarMenu"
+          [cdkMenuTriggerData]="{property: property}"
+        >
+          <ngm-entity-property class="w-full" [property]="property" [displayBehaviour]="DisplayBehaviour.auto"
+            [highlight]="highlight" />
+        </button>
+      } @else {
+        <button cdkMenuItem class="w-full" (click)="openSlicerCreator(property)">
+          <ngm-entity-property class="w-full" [property]="property" [displayBehaviour]="DisplayBehaviour.auto"
+            [highlight]="highlight" />
+        </button>
+      }
+    }
+  
+    @if (showCombinationSlicer()) {
+      <button cdkMenuItem (click)="$event.preventDefault();openSlicerCreator(SlicersCapacity.CombinationSlicer)">
+        <mat-icon>tune</mat-icon>
+        {{ 'Ngm.Selection.CombinationSlicer' | translate: {Default: "Combination Slicer"} }}
       </button>
     }
-  }
-
-  @for (property of dimensions$ | async; track property.name) {
-    @if (isSemanticCalendar(property)) {
-      <button mat-menu-item (click)="openSlicerCreator(property)"
-        [matMenuTriggerFor]="calendarMenu"
-        [matMenuTriggerData]="{property: property}"
-      >
-        <ngm-entity-property [property]="property" [displayBehaviour]="DisplayBehaviour.auto"
-          [highlight]="highlight" />
-      </button>
-    } @else {
-      <button mat-menu-item (click)="openSlicerCreator(property)">
-        <ngm-entity-property [property]="property" [displayBehaviour]="DisplayBehaviour.auto"
-          [highlight]="highlight" />
+    @if (showAdvancedSlicer()) {
+      <button cdkMenuItem (click)="$event.preventDefault();openSlicerCreator(SlicersCapacity.AdvancedSlicer)">
+        <mat-icon>data_array</mat-icon>
+        {{ 'Ngm.Selection.AdvancedSlicer' | translate: {Default: 'Advanced Slicer'} }}
       </button>
     }
-  }
+  </div>
+</ng-template>
 
-  @if (showCombinationSlicer()) {
-    <button mat-menu-item (click)="$event.preventDefault();openSlicerCreator(SlicersCapacity.CombinationSlicer)">
-      <mat-icon>tune</mat-icon>
-      {{ 'Ngm.Selection.CombinationSlicer' | translate: {Default: "Combination Slicer"} }}
-    </button>
-  }
-  @if (showAdvancedSlicer()) {
-    <button mat-menu-item (click)="$event.preventDefault();openSlicerCreator(SlicersCapacity.AdvancedSlicer)">
-      <mat-icon>data_array</mat-icon>
-      {{ 'Ngm.Selection.AdvancedSlicer' | translate: {Default: 'Advanced Slicer'} }}
-    </button>
-  }
-</mat-menu>
-
-<mat-menu #calendarMenu="matMenu" class="ngm-density__compact">
-  <ng-template matMenuContent let-property="property">
-    <button mat-menu-item (click)="openValueHelp(property)">
+<ng-template #calendarMenu let-property="property">
+  <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem (click)="openValueHelp(property)">
       <mat-icon fontSet="material-icons-outlined">people_outline</mat-icon>
       {{ 'Ngm.Selection.DimensionMembers' | translate: {Default: 'Dimension Members'} }}
     </button>
     
     @for (variable of dateVariables; track variable.id) {
-      <button mat-menu-item (click)="openDynamicDateHelp(property, variable.dateRange)">
+      <button cdkMenuItem class=""
+        (click)="openDynamicDateHelp(property, variable.dateRange)">
         {{ 'DateVariable.' + variable.id | translate: {Default: variable.id} }}
       </button>
     }
-  </ng-template>
-</mat-menu>
+  </div>
+</ng-template>

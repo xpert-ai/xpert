@@ -332,7 +332,9 @@ export class ChatService {
 
   updateConversation(data: IChatConversation) {
     this.conversation.set({ ...data, messages: [...(this.messages() ?? [])] })
-    this.conversations.update((items) => [{ ...data }, ...items])
+    if (!this.conversations().find((item) => item.id === data.id)) {
+      this.conversations.update((items) => [{ ...data }, ...items])
+    }
   }
 
   updateMessage(id: string, message: Partial<CopilotBaseMessage>) {

@@ -16,10 +16,10 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { convertIndicatorResult, Indicator, IndicatorsService, Store } from '@metad/cloud/state'
-import { createSubStore, dirtyCheckWith, IsDirty, IsNilPipe, nonBlank, NxChartType, saveAsYaml } from '@metad/core'
+import { createSubStore, dirtyCheckWith, IsDirty, IsNilPipe, nonBlank, saveAsYaml } from '@metad/core'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
-import { NgmCommonModule, NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective, PERIODS } from '@metad/ocap-angular/core'
+import { CdkConfirmDeleteComponent, NgmCommonModule } from '@metad/ocap-angular/common'
+import { ButtonGroupDirective, DensityDirective, PERIODS } from '@metad/ocap-angular/core'
 import {
   C_MEASURES,
   calcRange,
@@ -33,7 +33,8 @@ import {
   isEqual,
   negate,
   TimeRangeType,
-  Indicator as OCAPIndicator, 
+  Indicator as OCAPIndicator,
+  ChartTypeEnum, 
 } from '@metad/ocap-core'
 import { withProps } from '@ngneat/elf'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -48,6 +49,10 @@ import { ProjectService } from '../../project.service'
 import { exportIndicator, NewIndicatorCodePlaceholder } from '../../types'
 import { ProjectIndicatorsComponent } from '../indicators.component'
 import { IndicatorRegisterFormComponent } from '../register-form/register-form.component'
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { Dialog } from '@angular/cdk/dialog'
+import { ExplainComponent } from '@metad/story/story'
+
 
 // AOA : array of array
 type AOA = any[][]
@@ -61,11 +66,11 @@ type AOA = any[][]
     ReactiveFormsModule,
     TranslateModule,
     MaterialModule,
+    CdkMenuModule,
     IsNilPipe,
 
     ButtonGroupDirective,
     DensityDirective,
-    AppearanceDirective,
     NgmCommonModule,
     AnalyticalCardModule,
     IndicatorRegisterFormComponent
@@ -86,6 +91,7 @@ export class IndicatorRegisterComponent extends TranslationBaseComponent impleme
   private _route = inject(ActivatedRoute)
   private _router = inject(Router)
   private _dialog = inject(MatDialog)
+  readonly #dialog = inject(Dialog)
   readonly #translate = inject(TranslateService)
   private _logger? = inject(NGXLogger, { optional: true })
 
@@ -149,7 +155,8 @@ export class IndicatorRegisterComponent extends TranslationBaseComponent impleme
       type: TimeRangeType.Standard,
       granularity: timeGranularity,
       formatter: level?.semantics?.formatter,
-      lookBack: period?.lookBack
+      lookBack: period?.lookBack,
+      lookAhead: 0
     })
 
     const timeSlicer = {
@@ -166,13 +173,22 @@ export class IndicatorRegisterComponent extends TranslationBaseComponent impleme
           ...dataSettings,
           chartAnnotation: {
             chartType: {
-              type: NxChartType.Line,
+              type: ChartTypeEnum.Line,
               name: this.translateService.instant(`PAC.KEY_WORDS.LineChart`, {
                 Default: 'Line'
               }),
               chartOptions: {
                 aria: {
                   decal: { show: true }
+                },
+                seriesStyle: {
+                  symbolSize: 20,
+                  lineStyle: {
+                    width: 3
+                  },
+                  emphasis: {
+                    focus: 'item'
+                  },
                 }
               }
             },
@@ -198,15 +214,15 @@ export class IndicatorRegisterComponent extends TranslationBaseComponent impleme
                   unit: indicator.unit
                 },
                 chartOptions: {
-                  seriesStyle: {
-                    symbolSize: 20,
-                    lineStyle: {
-                      width: 3
-                    },
-                    emphasis: {
-                      focus: 'item'
-                    },
-                  }
+                  // seriesStyle: {
+                  //   symbolSize: 20,
+                  //   lineStyle: {
+                  //     width: 3
+                  //   },
+                  //   emphasis: {
+                  //     focus: 'item'
+                  //   },
+                  // }
                 }
               }
             ]
@@ -234,7 +250,7 @@ export class IndicatorRegisterComponent extends TranslationBaseComponent impleme
         obj[['top', 'bottom'][+(pos[1] < size.viewSize[1] / 2)]] = 20
         return obj
       }
-    }
+    },
   })
 
   readonly i18nColumn = toSignal(this.#translate.stream('PAC.KEY_WORDS.ColumnChart', {Default: 'Column'}))
@@ -244,7 +260,7 @@ export class IndicatorRegisterComponent extends TranslationBaseComponent impleme
       universalTransition: true,
       chartTypes: [
         {
-          type: NxChartType.Bar,
+          type: ChartTypeEnum.Bar,
           orient: ChartOrient.vertical,
           name: this.i18nColumn(),
           chartOptions: {
@@ -269,6 +285,8 @@ export class IndicatorRegisterComponent extends TranslationBaseComponent impleme
 
   readonly initialized = signal(false)
   readonly initialized$ = toObservable(this.initialized)
+
+  readonly explains = signal<any[]>([])
 
   private queryMapSub = this._route.queryParams
     .pipe(
@@ -404,13 +422,13 @@ export class IndicatorRegisterComponent extends TranslationBaseComponent impleme
 
   async deleteIndicator() {
     const confirm = await firstValueFrom(
-      this._dialog
-        .open(NgmConfirmDeleteComponent, {
+      this.#dialog
+        .open(CdkConfirmDeleteComponent, {
           data: {
             value: this.indicator().name
           }
         })
-        .afterClosed()
+        .closed
     )
     if (confirm) {
       try {
@@ -434,6 +452,16 @@ export class IndicatorRegisterComponent extends TranslationBaseComponent impleme
       this.translateService.get('PAC.INDICATOR.IndicatorTemplateFileName', { Default: 'IndicatorTemplate' })
     )
     saveAsYaml(`${indicatorTmplFileName}.yaml`, [exportIndicator(this.indicator())])
+  }
+
+  setExplains(items: unknown[]) {
+    this.explains.set(items)
+  }
+
+  openExplain() {
+    this.#dialog.open(ExplainComponent, {
+      data: this.explains(),
+    })
   }
 
   @HostListener('window:keydown', ['$event'])

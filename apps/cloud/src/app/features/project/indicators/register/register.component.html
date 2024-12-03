@@ -16,9 +16,10 @@
         {{ 'PAC.ACTIONS.SAVE' | translate: {Default: "Save"} }}
       </button>
 
-      <button mat-icon-button displayDensity="cosy" [matMenuTriggerFor]="menu"
-        #mt="matMenuTrigger"
-        [class.active]="mt.menuOpen"
+      <button mat-icon-button displayDensity="cosy"
+        [cdkMenuTriggerFor]="menu"
+        #mt="cdkMenuTriggerFor"
+        [class.active]="mt.isOpen()"
       >
         <mat-icon fontSet="material-icons-outlined">more_horiz</mat-icon>
       </button>
@@ -64,8 +65,9 @@
           [options]="{
             realtimeLinked: true,
           }"
+          (explain)="setExplains($event)"
           >
-          <div class=" flex-1 flex items-center md:gap-2">
+          <div class="flex-1 flex items-center md:gap-2">
             <span class="text-base font-medium ml-4 whitespace-nowrap">{{ 'PAC.INDICATOR.Period' | translate: {Default: 'Period'} }}</span>
 
             @for (p of PERIODS; track p.name) {
@@ -77,34 +79,38 @@
               </span>
             }
           </div>
+
+          <div ngmAction>
+            <button class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light" (click)="openExplain()">
+              <i class="ri-terminal-box-line"></i>
+            </button>
+          </div>
         </ngm-analytical-card>
       }
     }
   </div>
 </div>
 
-
-<mat-menu #menu="matMenu" class="ngm-density__compact">
-  <ng-template matMenuContent>
-     <!-- <button mat-button displayDensity="cosy" (click)="fileUpload.click()">
-        <mat-icon fontSet="material-icons-round">upload</mat-icon>
-          {{ 'PAC.MENU.INDICATOR.BATCH_UPLOAD' | translate: {Default: "Batch Upload"} }}
-      </button> -->
-      <button mat-menu-item (click)="downloadTempl()">
-        <mat-icon fontSet="material-icons-outlined">download</mat-icon>{{ 'PAC.MENU.INDICATOR.DownloadAsTemplate' | translate: {Default: "Download as Template"} }}
+<ng-template #menu>
+  <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem (click)="downloadTempl()">
+      <i class="ri-download-2-line mr-1"></i>
+      {{ 'PAC.MENU.INDICATOR.DownloadAsTemplate' | translate: {Default: "Download as Template"} }}
+    </button>
+    
+    @if (type() !== 'copy' && indicator()?.id) {
+      <button cdkMenuItem
+        (click)="copy(indicator())">
+        <i class="ri-file-copy-2-line mr-1"></i>
+        {{ 'PAC.ACTIONS.COPY' | translate: {Default: "Copy"} }}
       </button>
-      
-      @if (type() !== 'copy' && indicator()?.id) {
-        <button mat-menu-item 
-          (click)="copy(indicator())">
-          <mat-icon fontSet="material-icons-outlined">content_copy</mat-icon>{{ 'PAC.ACTIONS.COPY' | translate: {Default: "Copy"} }}
-        </button>
-      }
+    }
 
-      @if (indicator()?.id) {
-        <button mat-menu-item ngmAppearance="danger" (click)="deleteIndicator()">
-          <mat-icon fontSet="material-icons-round">delete_forever</mat-icon>{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}
-        </button>
-      }
-  </ng-template>
-</mat-menu>
+    @if (indicator()?.id) {
+      <button cdkMenuItem class="danger" (click)="deleteIndicator()">
+        <i class="ri-delete-bin-line mr-1"></i>
+        {{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}
+      </button>
+    }
+  </div>
+</ng-template>

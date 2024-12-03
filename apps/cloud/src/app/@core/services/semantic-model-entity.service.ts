@@ -37,4 +37,8 @@ export class SemanticModelEntityService {
   delete(id: string) {
     return this.httpClient.delete(`${C_API_SEMANTIC_MODEL_ENTITY}/${id}`)
   }
+
+  stopJob(id: string) {
+    return this.httpClient.delete(`${C_API_SEMANTIC_MODEL_ENTITY}/${id}/job`)
+  }
 }

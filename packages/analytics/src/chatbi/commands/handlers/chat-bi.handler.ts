@@ -47,13 +47,13 @@ import {
 } from '@metad/server-ai'
 import { getErrorMessage, race, shortuuid, TimeoutError } from '@metad/server-common'
 import { CACHE_MANAGER, Inject, Logger } from '@nestjs/common'
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { omit, upperFirst } from 'lodash'
 import { Cache } from 'cache-manager'
 import { firstValueFrom, Subject, Subscriber, switchMap, takeUntil } from 'rxjs'
 import { In } from 'typeorm'
 import { ChatBIModelService } from '../../../chatbi-model/'
-import { createDimensionMemberRetriever, SemanticModelMemberService } from '../../../model-member'
+import { createDimensionMemberRetriever, DimensionMemberRetrieverQuery, DimensionMemberRetrieverToolQuery, SemanticModelMemberService } from '../../../model-member'
 import {
 	NgmDSCoreService,
 	OCAP_AGENT_TOKEN,
@@ -61,20 +61,25 @@ import {
 	registerSemanticModel
 } from '../../../model/ocap'
 import { ChatBIService } from '../../chatbi.service'
-import { ChatAnswer, createDimensionMemberRetrieverTool } from '../../tools'
+import { ChatAnswer } from '../../tools'
 import { ChatAnswerSchema, GetCubesContextSchema, insightAgentState } from '../../types'
 import { ChatBIToolCommand } from '../chat-bi.command'
 import { markdownCubes } from '../../graph'
 
-
-
 const DefaultToolMaximumWaitTime = 30 * 1000 // 30s
 
+/**
+ * @deprecated use ChatBI builtin toolset
+ */
 type XpertToolChatBIContext = XpertToolContext & {
 	maximumWaitTime: number
 	models: string[]
 }
 
+
+/**
+ * @deprecated use ChatBI builtin toolset
+ */
 @CommandHandler(ChatBIToolCommand)
 export class ChatBIToolHandler implements ICommandHandler<ChatBIToolCommand> {
 	private readonly logger = new Logger(ChatBIToolHandler.name)
@@ -82,7 +87,7 @@ export class ChatBIToolHandler implements ICommandHandler<ChatBIToolCommand> {
 	readonly commandName = 'chatbi'
 
 	constructor(
-		private readonly toolsetService: XpertToolsetService,
+		private readonly queryBus: QueryBus,
 		private readonly chatBIService: ChatBIService,
 		private readonly modelService: ChatBIModelService,
 		private readonly copilotCheckpointSaver: CopilotCheckpointSaver,
@@ -95,7 +100,7 @@ export class ChatBIToolHandler implements ICommandHandler<ChatBIToolCommand> {
 		@Inject(CACHE_MANAGER)
 		private readonly cacheManager: Cache
 	) {
-		this.toolsetService.registerCommand('ChatBI', ChatBIToolCommand)
+		// this.toolsetService.registerCommand('ChatBI', ChatBIToolCommand)
 	}
 
 	public async execute(command: ChatBIToolCommand): Promise<any> {
@@ -291,12 +296,7 @@ export class ChatBIToolHandler implements ICommandHandler<ChatBIToolCommand> {
 			command: [referencesCommandName(this.commandName), referencesCommandName('calculated')],
 			k: 3
 		})
-		const dimensionMemberRetrieverTool = createDimensionMemberRetrieverTool(
-			tenantId,
-			// 知识库跟着 copilot 的配置
-			organizationId,
-			createDimensionMemberRetriever({ logger: this.logger }, this.semanticModelMemberService)
-		)
+		// const dimensionMemberRetrieverTool = await this.queryBus.execute(new DimensionMemberRetrieverToolQuery(tenantId, organizationId))
 
 		const getCubeContext = this.createCubeContextTool(dsCoreService, maximumWaitTime)
 
@@ -306,7 +306,7 @@ export class ChatBIToolHandler implements ICommandHandler<ChatBIToolCommand> {
 			subscriber
 		})
 
-		const tools = [referencesRetrieverTool, dimensionMemberRetrieverTool, getCubeContext, answerTool]
+		const tools = [referencesRetrieverTool, getCubeContext, answerTool]
 
 		return createReactAgent({
 			state: insightAgentState,

@@ -1,7 +1,8 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
+import { Clipboard } from '@angular/cdk/clipboard'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -12,13 +13,9 @@ import { ChatService } from '../chat.service'
 import { ChatComponentMessageComponent } from '../component-message/component-message.component'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { TCopilotChatMessage } from '../types'
-import { CopilotChatMessage, isMessageGroup } from '../../../@core'
+import { CopilotChatMessage, injectToastr, isMessageGroup } from '../../../@core'
+import { stringifyMessageContent } from '@metad/copilot'
 
-interface ICopilotChatMessage extends CopilotChatMessage {
-  expanded?: boolean
-  // messages: CopilotChatMessage[]
-  // data: any[]
-}
 
 @Component({
   standalone: true,
@@ -44,6 +41,8 @@ interface ICopilotChatMessage extends CopilotChatMessage {
 })
 export class ChatAiMessageComponent {
   readonly chatService = inject(ChatService)
+  readonly #clipboard = inject(Clipboard)
+  readonly #toastr = injectToastr()
 
   readonly message = input<TCopilotChatMessage>()
 
@@ -84,6 +83,8 @@ export class ChatAiMessageComponent {
     return isMessageGroup(message) ? message : null
   })
 
+  readonly copied = signal(false)
+
   constructor() {
     effect(() => {
       // console.log(this.contents())
@@ -95,5 +96,11 @@ export class ChatAiMessageComponent {
     setTimeout(() => {
       copyButton.copied = false
     }, 3000)
+  }
+
+  copy(message: CopilotChatMessage) {
+    this.#clipboard.copy(stringifyMessageContent(message.content))
+    this.#toastr.info({ code: 'PAC.KEY_WORDS.Copied', default: 'Copied' })
+    this.copied.set(true)
   }
 }

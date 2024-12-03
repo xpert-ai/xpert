@@ -35,6 +35,6 @@ export class XpertToolController extends CrudController<XpertTool> {
 
 	@Post('test')
 	async test(@Body() body: Partial<IXpertTool>) {
-		return this.service.testTool(body)
+		return await this.service.testTool(body)
 	}
 }

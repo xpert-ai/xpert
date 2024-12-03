@@ -3,7 +3,6 @@ import { Component, computed, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatExpansionModule } from '@angular/material/expansion'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { isEntitySet } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -12,6 +11,7 @@ import { catchError, combineLatest, delay, map, of, startWith, switchMap, tap } 
 import { SemanticModelService } from '../model.service'
 import { ModelMembersCubeComponent } from './cube/cube.component'
 import { ModelComponent } from '../model.component'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 
 @Component({
   standalone: true,
@@ -20,7 +20,7 @@ import { ModelComponent } from '../model.component'
     FormsModule,
     TranslateModule,
     MatExpansionModule,
-    MatProgressSpinnerModule,
+    NgmSpinComponent,
     ModelMembersCubeComponent
   ],
   selector: 'pac-model-members',

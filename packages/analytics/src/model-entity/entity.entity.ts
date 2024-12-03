@@ -13,7 +13,7 @@ import { Column, Entity, JoinColumn, ManyToOne, OneToMany, RelationId } from 'ty
 import { SemanticModel, SemanticModelMember } from '../core/entities/internal'
 
 /**
- * 语义模型
+ * Entity in semantic model
  */
 @Entity('semantic_model_entity')
 export class SemanticModelEntity extends TenantOrganizationBaseEntity implements ISemanticModelEntity {

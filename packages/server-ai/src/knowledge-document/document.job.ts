@@ -14,6 +14,7 @@ import { FileStorage, Provider } from '@metad/server-core'
 import { KnowledgebaseService, KnowledgeDocumentVectorStore } from '../knowledgebase/index'
 import { KnowledgeDocumentService } from './document.service'
 import { CopilotTokenRecordCommand } from '../copilot-user'
+import { estimateTokenUsage } from '@metad/copilot'
 
 @Processor({
 	name: 'embedding-document',
@@ -110,12 +111,21 @@ export class KnowledgeDocumentConsumer {
 						this.logger.debug(
 							`Embeddings document '${document.storageFile.originalName}' progress: ${progress}%`
 						)
+						if (await this.checkIfJobCancelled(doc.id)) {
+							this.logger.debug(
+								`[Job: entity '${job.id}'] Cancelled`
+							)
+							return
+						}
 						await this.service.update(doc.id, { progress: Number(progress) })
 					}
 				}
 
 				await this.service.update(doc.id, { status: 'finish', processMsg: '' })
+
+				this.logger.debug(`[Job: entity '${job.id}'] End!`)
 			} catch (err) {
+				this.logger.debug(`[Job: entity '${job.id}'] Error!`)
 				this.service.update(document.id, {
 					status: 'error',
 					processMsg: getErrorMessage(err)
@@ -181,10 +191,13 @@ export class KnowledgeDocumentConsumer {
 
 		return await textSplitter.splitDocuments(data)
 	}
-}
 
-function estimateTokenUsage(text: string) {
-    const characterCount = text?.length ?? 0 // 获取字符数
-    const tokens = Math.ceil(characterCount / 4) // 估算token数（以4为基准）
-    return tokens
+	async checkIfJobCancelled(docId: string): Promise<boolean> {
+		// Check database/cache for cancellation flag
+		const doc = await this.service.findOne(docId)
+		if (doc) {
+			return doc?.status === 'cancel'
+		}
+		return true
+	}
 }

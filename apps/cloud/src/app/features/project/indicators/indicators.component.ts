@@ -5,8 +5,8 @@ import { RouterModule } from '@angular/router'
 import { Indicator, IndicatorsService, convertIndicatorResult } from '@metad/cloud/state'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import { saveAsYaml, uploadYamlFile } from '@metad/core'
-import { NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective, NgmDSCoreService } from '@metad/ocap-angular/core'
+import { CdkConfirmDeleteComponent } from '@metad/ocap-angular/common'
+import { ButtonGroupDirective, DensityDirective, NgmDSCoreService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
@@ -16,6 +16,9 @@ import { ManageEntityBaseComponent, MaterialModule } from '../../../@shared'
 import { ProjectService } from '../project.service'
 import { NewIndicatorCodePlaceholder, exportIndicator, injectFetchModelDetails } from '../types'
 import { IndicatorImportComponent } from './indicator-import/indicator-import.component'
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { Dialog } from '@angular/cdk/dialog'
+
 
 @Component({
   standalone: true,
@@ -23,8 +26,9 @@ import { IndicatorImportComponent } from './indicator-import/indicator-import.co
     CommonModule,
     RouterModule,
     TranslateModule,
+    CdkMenuModule,
     MaterialModule,
-    AppearanceDirective,
+
     ButtonGroupDirective,
     DensityDirective
   ],
@@ -38,6 +42,7 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
 
   private projectService = inject(ProjectService)
   private _dialog = inject(MatDialog)
+  readonly #dialog = inject(Dialog)
   readonly #logger = inject(NGXLogger)
   readonly #translate = inject(TranslateService)
   readonly indicatorsService = inject(IndicatorsService)
@@ -57,8 +62,7 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
     if (this.isDirty(link.id)) {
       const indicator = this.projectService.indicators().find((item) => item.id === link.id)
       const confirm = await firstValueFrom(
-        this._dialog
-          .open(NgmConfirmDeleteComponent, {
+        this.#dialog.open(CdkConfirmDeleteComponent, {
             data: {
               title: this.getTranslation('PAC.ACTIONS.Close', { Default: 'Close' }) + ` [${indicator.name}]`,
               value: indicator.name,
@@ -67,7 +71,7 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
               })
             }
           })
-          .afterClosed()
+          .closed
       )
       if (!confirm) {
         return
@@ -89,8 +93,7 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
   }
 
   deleteSelected() {
-    this._dialog
-      .open(NgmConfirmDeleteComponent, {
+    this.#dialog.open(CdkConfirmDeleteComponent, {
         data: {
           title: this.getTranslation('PAC.ACTIONS.Delete', { Default: 'Delete' }),
           information: this.getTranslation('PAC.INDICATOR.DeleteSelectedIndicators', {
@@ -98,7 +101,7 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
           })
         }
       })
-      .afterClosed()
+      .closed
       .pipe(
         switchMap((confirm) => {
           if (confirm) {

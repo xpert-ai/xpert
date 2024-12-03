@@ -35,7 +35,6 @@ import { markdownCubes } from './graph/index'
 import {
 	createChatAnswerTool,
 	createCubeContextTool,
-	createDimensionMemberRetrieverTool,
 	createEndTool,
 	errorWithEndMessage
 } from './tools'
@@ -124,12 +123,12 @@ export class ChatBIConversation implements IChatBIConversation {
 			k: 3
 		})
 
-		this.dimensionMemberRetrieverTool = createDimensionMemberRetrieverTool(
-			this.tenantId,
-			// 知识库跟着 copilot 的配置
-			this.organizationId,
-			createDimensionMemberRetriever({ logger: this.logger }, this.semanticModelMemberService)
-		)
+		// this.dimensionMemberRetrieverTool = createDimensionMemberRetrieverTool(
+		// 	this.tenantId,
+		// 	// 知识库跟着 copilot 的配置
+		// 	this.organizationId,
+		// 	createDimensionMemberRetriever({ logger: this.logger }, this.semanticModelMemberService)
+		// )
 
 		// Indicators
 		this.indicators$.pipe(takeUntil(this.destroy$)).subscribe(async (indicators) => {
@@ -272,7 +271,7 @@ ${markdownCubes(this.models.slice(3))}
 			larkService: chatContext.larkService
 		},)
 		const tools = [
-			this.dimensionMemberRetrieverTool,
+			// this.dimensionMemberRetrieverTool,
 			this.referencesRetrieverTool,
 			getCubeContext,
 			welcomeTool,

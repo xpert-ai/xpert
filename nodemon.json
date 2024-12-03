@@ -5,7 +5,7 @@
 	"exec": "yarn ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json apps/api/src/main.ts",
 	"env": {
 		"NODE_ENV": "development",
-		"LOGGER_LEVEL": "debug"
+		"LOGGER_LEVEL": "verbose"
 	},
 	"ext": "ts"
 }

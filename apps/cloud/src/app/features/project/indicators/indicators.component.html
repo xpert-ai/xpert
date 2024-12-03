@@ -26,9 +26,10 @@
           </button>
         }
         
-        <button mat-icon-button displayDensity="cosy" [matMenuTriggerFor]="menu"
-          #mt="matMenuTrigger"
-          [class.active]="mt.menuOpen"
+        <button mat-icon-button displayDensity="cosy"
+          [cdkMenuTriggerFor]="menu"
+          #mt="cdkMenuTriggerFor"
+          [class.active]="mt.isOpen()"
         >
           <mat-icon fontSet="material-icons-outlined">more_horiz</mat-icon>
         </button>
@@ -99,24 +100,25 @@
   <router-outlet #o="outlet"></router-outlet>
 </mat-tab-nav-panel>
 
-<mat-menu #menu="matMenu" class="ngm-density__compact">
-  <ng-template matMenuContent>
-    <button mat-menu-item [disabled]="!selectedIndicators()?.length" (click)="export()">
+<ng-template #menu>
+  <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem [disabled]="!selectedIndicators()?.length" (click)="export()">
       <div class="flex items-center">
-        <mat-icon fontSet="material-icons-outlined">file_download</mat-icon>
+        <i class="ri-download-2-line mr-1"></i>
         {{ 'PAC.INDICATOR.MY_INDICATORS.EXPORT' | translate: {Default: "Export"} }}
       </div>
     </button>
 
-    <button mat-menu-item (click)="fileUpload.click()">
-      <mat-icon fontSet="material-icons-round">upload</mat-icon>
+    <button cdkMenuItem (click)="fileUpload.click()">
+      <i class="ri-upload-2-line mr-1"></i>
       <span class="whitespace-nowrap">{{ 'PAC.MENU.INDICATOR.BATCH_UPLOAD' | translate: {Default: "Batch Upload"} }}</span>
     </button>
 
-    <mat-divider></mat-divider>
+    <div class="border-b border-solid border-divider-deep my-1"></div>
 
-    <button mat-menu-item ngmAppearance="danger" [disabled]="!selectedIndicators()?.length" (click)="deleteSelected()">
-      <mat-icon fontSet="material-icons-round">delete_forever</mat-icon>{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}
+    <button cdkMenuItem class="danger" [disabled]="!selectedIndicators()?.length" (click)="deleteSelected()">
+      <i class="ri-delete-bin-line mr-1"></i>
+      {{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}
     </button>
-  </ng-template>
-</mat-menu>
+  </div>
+</ng-template>

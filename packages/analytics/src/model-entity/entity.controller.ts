@@ -10,6 +10,7 @@ import { InjectQueue } from '@nestjs/bull'
 import {
 	Body,
 	Controller,
+	Delete,
 	Get,
 	HttpStatus,
 	Param,
@@ -72,7 +73,8 @@ export class ModelEntityController extends CrudController<SemanticModelEntity> {
 			await this.entityService.update(result.id, {
 				job: {
 					id: job.id,
-					status: 'processing'
+					status: 'processing',
+					progress: 0
 				}
 			})
 
@@ -80,5 +82,25 @@ export class ModelEntityController extends CrudController<SemanticModelEntity> {
 		}
 
 		return result
+	}
+
+	@Delete(':id/job')
+	async stopJob(@Param('id') id: string) {
+		const entity = await this.entityService.findOne(id)
+		try {
+			if (entity.job?.id) {
+				const job = await this.entityQueue.getJob(entity.job.id)
+				// cancel job
+				// const lockKey = job.lockKey()
+				if (job) {
+					await job.discard()
+					await job.moveToFailed({ message: 'Job stopped by user' }, true)
+				}
+			}
+		} catch(err) {}
+
+		await this.entityService.update(entity.id, {job: {...entity.job, progress: null, status: 'cancel'}})
+
+		return await this.entityService.findOne(entity.id)
 	}
 }

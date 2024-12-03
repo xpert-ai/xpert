@@ -73,8 +73,11 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 			if (knowledgeDocument.jobId) {
 				const job = await this.docQueue.getJob(knowledgeDocument.jobId)
 				// cancel job
-				const lockKey = job.lockKey()
-				await job.moveToFailed({ message: 'Job stopped by user' })
+				// const lockKey = job.lockKey()
+				if (job) {
+					await job.discard()
+					await job.moveToFailed({ message: 'Job stopped by user' }, true)
+				}
 			}
 		} catch(err) {}
 

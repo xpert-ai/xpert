@@ -2,29 +2,31 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatDialog } from '@angular/material/dialog'
 import { MatExpansionModule } from '@angular/material/expansion'
 import { MatIconModule } from '@angular/material/icon'
-import { MatListModule, MatSelectionList } from '@angular/material/list'
+import { MatSelectionList } from '@angular/material/list'
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { SemanticModelServerService } from '@metad/cloud/state'
-import { NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
+import { CdkConfirmDeleteComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
-import { Cube, EntityType, getEntityDimensions, getEntityHierarchy } from '@metad/ocap-core'
+import { Cube, EntityType, FilterSelectionType, Property, getEntityDimensions, getEntityHierarchy } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ISemanticModelEntity,
   ModelEntityType,
   SemanticModelEntityService,
-  ToastrService,
   getErrorMessage,
+  injectToastr,
   tryHttp
 } from 'apps/cloud/src/app/@core'
 import { uniq } from 'lodash-es'
-import { EMPTY, catchError, firstValueFrom, switchMap, tap } from 'rxjs'
+import { EMPTY, Subject, catchError, debounceTime, switchMap, tap } from 'rxjs'
 import { SemanticModelService } from '../../model.service'
+import { Dialog } from '@angular/cdk/dialog'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 
 @Component({
   standalone: true,
@@ -35,12 +37,10 @@ import { SemanticModelService } from '../../model.service'
     MatIconModule,
     MatExpansionModule,
     MatButtonModule,
-    MatListModule,
     MatTooltipModule,
-    MatCheckboxModule,
+    MatProgressSpinnerModule,
     DensityDirective,
     AppearanceDirective,
-    NgmEntityPropertyComponent
   ],
   selector: 'pac-model-members-cube',
   templateUrl: 'cube.component.html',
@@ -50,9 +50,12 @@ export class ModelMembersCubeComponent {
   readonly modelService = inject(SemanticModelService)
   readonly modelEntityService = inject(SemanticModelEntityService)
   readonly modelsService = inject(SemanticModelServerService)
-  readonly toastrService = inject(ToastrService)
   readonly dialog = inject(MatDialog)
+  readonly #dialog = inject(Dialog)
+  readonly #toastr = injectToastr()
   readonly translate = inject(TranslateService)
+
+  readonly semanticModelKey = toSignal(this.modelService.semanticModelKey$)
 
   readonly cube = model<
     Cube & {
@@ -60,9 +63,10 @@ export class ModelMembersCubeComponent {
       __entity__: ISemanticModelEntity
     }
   >(null)
-  readonly selectionList = viewChild('selection', { read: MatSelectionList })
 
-  readonly dimensions = computed(() => (this.cube() ? getEntityDimensions(this.cube().entityType) : []))
+  readonly dimensions = computed<Array<Property & { expand?: boolean }>>(() =>
+    this.cube() ? getEntityDimensions(this.cube().entityType) : []
+  )
   readonly selectedDims = model(null)
   readonly allSelected = signal(false)
 
@@ -83,7 +87,10 @@ export class ModelMembersCubeComponent {
 
   readonly entity = computed(() => this.cube()?.__entity__)
   readonly syncMembers = computed(() => this.entity()?.options?.members ?? {})
+  readonly job = computed(() => this.cube()?.__entity__?.job)
 
+  readonly delayRefresh$ = new Subject<boolean>()
+  
   constructor() {
     effect(
       () => {
@@ -93,6 +100,26 @@ export class ModelMembersCubeComponent {
       },
       { allowSignalWrites: true }
     )
+
+    effect(() => {
+      if (this.job()?.status ==='processing') {
+        this.delayRefresh$.next(true)
+      }
+    })
+
+    this.delayRefresh$.pipe(takeUntilDestroyed(), debounceTime(5000)).subscribe(() => this.refreshStatus())
+  }
+
+  getSelected(name: string) {
+    return this.selectedDims()?.includes(name)
+  }
+  setSelected(name: string, value: boolean) {
+    if (value && !this.selectedDims()?.includes(name)) {
+      this.selectedDims.update((values) => [...(values ?? []), name])
+    }
+    if (!value) {
+      this.selectedDims.update((values) => values?.filter((_) => _ !== name))
+    }
   }
 
   setAll(completed: boolean) {
@@ -102,28 +129,48 @@ export class ModelMembersCubeComponent {
       return
     }
 
-    this.allSelected() ? this.selectionList().selectAll() : this.selectionList().deselectAll()
+    this.allSelected() ? this.selectAll() : this.deselectAll()
+  }
+
+  selectAll() {
+    const names = []
+    this.dimensions().forEach((dim) => {
+      dim.hierarchies.forEach((h) => {
+        names.push(h.name)
+      })
+    })
+    this.selectedDims.set(names)
+  }
+
+  deselectAll() {
+    this.selectedDims.set([])
   }
 
   async refresh() {
     const cube = this.cube().name
 
     this.loading.set(true)
-    if (this.entity()?.id) {
-      const entity = await firstValueFrom(this.modelEntityService.getOne(this.entity().id))
-      this.cube.update((cube) => ({ ...cube, __entity__: entity }))
-    }
+    // if (this.entity()?.id) {
+    //   const entity = await firstValueFrom(this.modelEntityService.getOne(this.entity().id))
+    //   this.cube.update((cube) => ({ ...cube, __entity__: entity }))
+    // }
 
     if (this.selectedDims()) {
       for (const name of this.selectedDims()) {
         let storeMembers = []
         const hierarchy = getEntityHierarchy(this.cube().entityType, name)
         if (!hierarchy) {
-          this.toastrService.error('PAC.MODEL.CanntFoundHierarchy', null, {Default: `Can't found hierarchy '${name}'`, value: name})
+          this.#toastr.error('PAC.MODEL.CanntFoundHierarchy', null, {
+            Default: `Can't found hierarchy '${name}'`,
+            value: name
+          })
         } else {
           const members = await tryHttp(
-            this.modelService.selectHierarchyMembers(cube, { dimension: hierarchy.dimension, hierarchy: hierarchy.name }),
-            this.toastrService
+            this.modelService.selectHierarchyMembers(cube, {
+              dimension: hierarchy.dimension,
+              hierarchy: hierarchy.name
+            }),
+            this.#toastr
           )
           if (members) {
             storeMembers = storeMembers.concat(members)
@@ -139,6 +186,14 @@ export class ModelMembersCubeComponent {
     }
 
     this.loading.set(false)
+  }
+
+  refreshStatus() {
+    if (this.entity()?.id) {
+      this.modelEntityService.getOne(this.entity().id).subscribe((entity) => {
+        this.cube.update((cube) => ({ ...cube, __entity__: entity }))
+      })
+    }
   }
 
   async createModelEntity(dimensions: string[]) {
@@ -159,10 +214,10 @@ export class ModelMembersCubeComponent {
       .subscribe({
         next: (entity) => {
           this.cube.update((cube) => ({ ...cube, __entity__: entity }))
-          this.toastrService.success('PAC.MODEL.CreatedSuccessfully', { Default: 'Created Successfully!' })
+          this.#toastr.success('PAC.MODEL.SynchronizationJobCreatedSuccessfully', { Default: 'Synchronization job created successfully!' })
         },
         error: (err) => {
-          this.toastrService.error(getErrorMessage(err))
+          this.#toastr.error(getErrorMessage(err))
           this.loading.set(false)
         },
         complete: () => {
@@ -171,9 +226,23 @@ export class ModelMembersCubeComponent {
       })
   }
 
+  stopJob() {
+    this.loading.set(true)
+    this.modelEntityService.stopJob(this.entity().id).subscribe({
+      next: (entity) => {
+        this.loading.set(false)
+        this.cube.update((cube) => ({ ...cube, __entity__: entity }))
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
+
   deleteMembers(id: string) {
-    this.dialog
-      .open(NgmConfirmDeleteComponent, {
+    this.#dialog
+      .open(CdkConfirmDeleteComponent, {
         data: {
           value: this.cube().caption,
           information: this.translate.instant('PAC.MODEL.SureDeleteDimensionMembers', {
@@ -181,17 +250,17 @@ export class ModelMembersCubeComponent {
           })
         }
       })
-      .afterClosed()
+      .closed
       .pipe(
         switchMap((confirm) =>
           confirm
             ? this.modelEntityService.delete(id).pipe(
                 tap(() => {
                   this.cube.update((state) => ({ ...state, __entity__: null }))
-                  this.toastrService.success('PAC.MODEL.DeletedSuccessfully', { Default: 'Deleted Successfully!' })
+                  this.#toastr.success('PAC.MODEL.DeletedSuccessfully', { Default: 'Deleted Successfully!' })
                 }),
                 catchError((err) => {
-                  this.toastrService.error(getErrorMessage(err))
+                  this.#toastr.error(getErrorMessage(err))
                   return EMPTY
                 })
               )
@@ -199,5 +268,28 @@ export class ModelMembersCubeComponent {
         )
       )
       .subscribe()
+  }
+
+  openValueHelp(dimension: string, hierarchy: string) {
+    this.dialog
+      .open(NgmValueHelpComponent, {
+        // viewContainerRef: this.viewContainerRef,
+        data: {
+          dataSettings: {
+            dataSource: this.semanticModelKey(),
+            entitySet: this.cube().name
+          },
+          dimension: {
+            dimension,
+            hierarchy
+          },
+          options: {
+            selectionType: FilterSelectionType.Multiple,
+            searchable: true,
+            initialLevel: 1
+          }
+        }
+      })
+      .afterClosed()
   }
 }

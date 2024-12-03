@@ -1,5 +1,4 @@
 import { Component, inject, OnInit } from '@angular/core'
-import { MAT_DIALOG_DATA } from '@angular/material/dialog'
 import { NgmPrismHighlightComponent } from '@metad/ocap-angular/prism'
 import { convertQueryResultColumns, nonNullable } from '@metad/core'
 import { NgmTableComponent } from '@metad/ocap-angular/common'
@@ -7,17 +6,33 @@ import { OcapCoreModule, OmitBlankPipe } from '@metad/ocap-angular/core'
 import { isDataSettings } from '@metad/ocap-core'
 import { uuid } from '@metad/story/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NxStorySharedModule } from '../shared.module'
+import { MatIconModule } from '@angular/material/icon'
+import { DragDropModule } from '@angular/cdk/drag-drop'
+import { MatButtonModule } from '@angular/material/button'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { CommonModule } from '@angular/common'
+
 
 @Component({
   standalone: true,
-  imports: [NxStorySharedModule, TranslateModule, NgmTableComponent, NgmPrismHighlightComponent, OcapCoreModule, OmitBlankPipe],
+  imports: [
+    CommonModule,
+    TranslateModule,
+    DragDropModule,
+    MatIconModule,
+    MatButtonModule,
+    NgmTableComponent,
+    NgmPrismHighlightComponent,
+    OcapCoreModule,
+    OmitBlankPipe
+  ],
   selector: 'pac-story-explain',
   templateUrl: 'explain.component.html',
   styleUrls: ['explain.component.scss']
 })
 export class ExplainComponent implements OnInit {
-  private data = inject(MAT_DIALOG_DATA)
+  private data = inject(DIALOG_DATA)
+  readonly dialogRef = inject(DialogRef)
   public explains = []
   public explain = null
 
@@ -77,7 +92,11 @@ export class ExplainComponent implements OnInit {
     }
   }
 
-  activeLink(explain) {
+  activeLink(explain: unknown[]) {
     this.explain = explain
+  }
+
+  close() {
+    this.dialogRef.close()
   }
 }

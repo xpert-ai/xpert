@@ -47,9 +47,9 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 		return await this.commandBus.execute(new command(...args))
 	}
 
-	async findCopilot(tenantId: string, organizationId: string, role: AiProviderRole) {
-		await this.copilotService.findCopilot(tenantId, organizationId, role)
-	}
+	// async findCopilot(tenantId: string, organizationId: string, role: AiProviderRole) {
+	// 	await this.copilotService.findCopilot(tenantId, organizationId, role)
+	// }
 	
 	async update(id: string, entity: Partial<XpertToolset>) {
 		const _entity = await super.findOne(id)

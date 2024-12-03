@@ -259,7 +259,9 @@
       "Icon": "图标",
       "By": "作者",
       "Feedback": "用户反馈",
-      "HelpDocs": "帮助文档"
+      "HelpDocs": "帮助文档",
+      "Embedded": "已嵌入",
+      "Copied": "已复制"
     },
     "MENU": {
       "Certification": "认证",
@@ -740,6 +742,10 @@
       "SyncMembersJobFinished": "同步成员任务已完成",
       "SyncMembersJobRunning": "同步成员任务正在运行",
       "CanntFoundHierarchy": "找不到层次结构'{{value}}'",
+      "EmbeddingProgress": "嵌入进度",
+      "MemberCount": "成员数量",
+      "SynchronizationJobCreatedSuccessfully": "同步任务创建成功!",
+      "StopSyncJob": "终止同步任务",
 
       "QUERY": {
         "TITLE": "查询实验室",
