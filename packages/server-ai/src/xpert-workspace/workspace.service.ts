@@ -2,7 +2,7 @@ import { IUser } from '@metad/contracts'
 import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { Brackets, Repository } from 'typeorm'
 import { WorkspacePublicDTO } from './dto'
 import { XpertWorkspace } from './workspace.entity'
 
@@ -21,15 +21,27 @@ export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<Xp
 		const user = RequestContext.currentUser()
 		const organizationId = RequestContext.getOrganizationId()
 
-		const workspaces = await this.repository
+		const orderBy = options?.order ? Object.keys(options.order).reduce((order, name) => {
+			order[`workspace.${name}`] = options.order[name]
+			return order
+		}, {}) : {}
+
+		const query = this.repository
 			.createQueryBuilder('workspace')
 			.leftJoinAndSelect('workspace.members', 'member')
-			.where('workspace.ownerId = :ownerId', { ownerId: user.id })
-			.andWhere('workspace.tenantId = :tenantId', { tenantId: user.tenantId })
+			.where('workspace.tenantId = :tenantId', { tenantId: user.tenantId })
 			.andWhere('workspace.organizationId = :organizationId', { organizationId })
-			.orWhere('member.id = :userId', { userId: user.id })
-			.andWhere('member.tenantId = :tenantId', { tenantId: user.tenantId })
-			.getMany()
+			.andWhere(new Brackets((qb) => {
+				qb.where(`workspace.status <> 'archived'`)
+					.orWhere(`workspace.status IS NULL`)
+			}))
+			.andWhere(new Brackets((qb) => {
+				qb.where('workspace.ownerId = :ownerId', { ownerId: user.id })
+					.orWhere('member.id = :userId', { userId: user.id })
+			}))
+			.orderBy(orderBy)
+			
+		const workspaces = await query.getMany()
 
 		return {
 			items: workspaces.map((item) => new WorkspacePublicDTO(item))

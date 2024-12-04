@@ -33,6 +33,7 @@ import {
   injectTags,
   injectUser,
   ITag,
+  OrderTypeEnum,
   routeAnimations,
   TagCategoryEnum,
   ToastrService,
@@ -99,7 +100,11 @@ export class XpertWorkspaceHomeComponent {
   readonly isMobile = this.appService.isMobile
   readonly lang = this.appService.lang
 
-  readonly workspaces = toSignal(this.workspaceService.getAllMy().pipe(map(({ items }) => items)), {initialValue: null})
+  readonly workspaces = toSignal(
+    this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } })
+      .pipe(map(({ items }) => items)),
+    {initialValue: null}
+  )
   readonly selectedWorkspaces = model<string[]>([])
   readonly workspace = computed(() => this.workspaces()?.find((_) => _.id === this.selectedWorkspaces()[0]), {
     equal: (a, b) => a?.id === b?.id
@@ -187,6 +192,11 @@ export class XpertWorkspaceHomeComponent {
         }
       })
       .afterClosed()
-      .subscribe()
+      .subscribe((event) => {
+        if (event === 'deleted' || event === 'archived') {
+          this.workspaceService.refresh()
+          this.router.navigate(['/xpert/w'])
+        }
+      })
   }
 }

@@ -261,7 +261,8 @@
       "Feedback": "用户反馈",
       "HelpDocs": "帮助文档",
       "Embedded": "已嵌入",
-      "Copied": "已复制"
+      "Copied": "已复制",
+      "DangerZone": "危险区域"
     },
     "MENU": {
       "Certification": "认证",
@@ -509,7 +510,8 @@
       "NewTag": "新建标签",
       "Duplicate": "复制",
       "OpenAttributesPanel": "打开属性面板",
-      "Close": "关闭"
+      "Close": "关闭",
+      "Update": "更新"
     },
     "MESSAGE": {
       "MAIN_ORGANIZATION_UPDATED": "组织更新成功",
@@ -537,6 +539,7 @@
       "SavedSuccessfully": "保存成功",
       "UpdatedSuccessfully": "更新成功",
       "UploadSuccessfully": "上传成功",
+      "ArchivedSuccessfully": "已成功归档",
       "NoRecordsFoundinFile": "文件中未找到记录",
       "UnsavedChanges": "未保存的更改",
       "SavedDraft": "草稿已保存！"
@@ -2002,7 +2005,13 @@
       "Input": "输入",
       "Retrieval": "检索",
       "Examples": "示例",
-      "YouMightAsk": "你可能想问"
+      "YouMightAsk": "你可能想问",
+      "General": "通用",
+      "EnterWorkspaceName": "输入工作空间名称",
+      "ArchiveWorkspace": "归档此工作空间",
+      "DeleteWorkspace": "删除此工作空间",
+      "ArchiveWorkspaceDesc": "将此工作区及其所有专家和工具集标记为已存档和只读",
+      "DeleteWorkspaceDesc": "一旦删除，它将永远消失，请确保"
     },
     "title": {
       "short": "Xpert AI"
