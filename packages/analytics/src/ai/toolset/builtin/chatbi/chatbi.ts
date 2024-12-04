@@ -1,7 +1,5 @@
 import { Tool, tool } from '@langchain/core/tools'
 import {
-	ChatGatewayEvent,
-	ChatGatewayMessage,
 	ChatMessageTypeEnum,
 	IXpertToolset,
 	JSONValue,
@@ -340,51 +338,55 @@ ${members}
 				chartAnnotation,
 				presentationVariant
 			}
+
+			// In parallel: return to the front-end display and back-end data retrieval
+			if (answer.visualType === 'KPI') {
+				subscriber?.next({
+					data: {
+						type: ChatMessageTypeEnum.MESSAGE,
+						data: {
+							id: shortuuid(),
+							type: 'component',
+							data: {
+								type: 'KPI',
+								dataSettings: {
+									...omit(dataSettings, 'chartAnnotation'),
+									KPIAnnotation: {
+										DataPoint: {
+											Value: chartAnnotation.measures[0]
+										}
+									}
+								} as DataSettings,
+								slicers,
+								title: answer.preface
+							} as unknown as JSONValue
+						}
+					}
+				} as MessageEvent
+				)
+			} else {
+				subscriber.next({
+					data: {
+						type: ChatMessageTypeEnum.MESSAGE,
+						data: {
+							id: shortuuid(),
+							type: 'component',
+							data: {
+								type: 'AnalyticalCard',
+								dataSettings,
+								chartSettings,
+								slicers,
+								title: answer.preface
+							} as unknown as JSONValue
+						}
+					}
+				} as MessageEvent)
+			}
+
 			chartService.selectResult().subscribe((result) => {
 				if (result.error) {
 					reject(result.error)
 				} else {
-					if (answer.visualType === 'KPI') {
-						subscriber?.next({
-							event: ChatGatewayEvent.Message,
-							data: {
-								id: shortuuid(),
-								role: 'component',
-								data: {
-									type: 'KPI',
-									data: result.data,
-									dataSettings: {
-										...omit(dataSettings, 'chartAnnotation'),
-										KPIAnnotation: {
-											DataPoint: {
-												Value: chartAnnotation.measures[0]
-											}
-										}
-									} as DataSettings,
-									slicers,
-									title: answer.preface
-								} as unknown as JSONValue
-							}
-						} as ChatGatewayMessage)
-					} else {
-						subscriber.next({
-							data: {
-								type: ChatMessageTypeEnum.MESSAGE,
-								data: {
-									id: shortuuid(),
-									type: 'component',
-									data: {
-										type: 'AnalyticalCard',
-										data: result.data,
-										dataSettings,
-										chartSettings,
-										slicers,
-										title: answer.preface
-									} as unknown as JSONValue
-								}
-							}
-						} as MessageEvent)
-					}
 					resolve({ data: result.data })
 				}
 				destroy$.next()
