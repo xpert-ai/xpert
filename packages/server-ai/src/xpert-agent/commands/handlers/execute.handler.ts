@@ -150,6 +150,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			messageModifier: async (state) => {
 				const systemTemplate = `{{role}}
 {{language}}
+Current time: ${new Date()}
 References documents:
 {{context}}
 ${agent.prompt}

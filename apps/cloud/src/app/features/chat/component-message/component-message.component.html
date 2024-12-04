@@ -48,6 +48,12 @@
         shortNumber: true,
         digitsInfo: '0.0-2'
       }"
-    />
+      (explain)="setExplains($event)"
+    >
+      <button ngmAction class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light"
+        (click)="openExplain()">
+        <i class="ri-terminal-box-line"></i>
+      </button>
+    </pac-widget-kpi>
   }
 }
