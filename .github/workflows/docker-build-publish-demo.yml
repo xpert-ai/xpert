@@ -56,6 +56,7 @@ jobs:
           context: .
           file: ${{ matrix.service.context }}/Dockerfile
           platforms: ${{ matrix.platform }}
+          build-args: COMMIT_SHA=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
           tags: |
             ghcr.io/xpert-ai/${{ matrix.service.image_name }}:latest
             metadc/${{ matrix.service.image_name }}:latest
@@ -63,6 +64,21 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=metadc/${{ matrix.service.image_name }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.service.name }}-${{ matrix.platform }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
 
   create-manifest:
     needs: build
@@ -75,25 +91,36 @@ jobs:
     environment: production
 
     steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-${{ matrix.service.name }}-*
+          merge-multiple: true
+
       - name: Login to DockerHub
         uses: docker/login-action@v3.2.0
         with:
           username: ${{ env.DOCKERHUB_USERNAME }}
           password: ${{ env.DOCKERHUB_TOKEN }}
 
-      - name: Create and Push Multi-Platform Manifest
-        uses: docker/manifest-create-action@v1
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          image: |
-            ghcr.io/xpert-ai/${{ matrix.service.image_name }}:latest
-            metadc/${{ matrix.service.image_name }}:latest
-            registry.cn-hangzhou.aliyuncs.com/metad/${{ matrix.service.image_name }}:latest
-          platforms: |
-            linux/amd64
-            linux/arm64
+          images: metadc/${{ matrix.service.image_name }}
+          tags: |
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-') }}
+            type=ref,event=branch
+            type=sha,enable=true,priority=100,prefix=,suffix=,format=long
+            type=raw,value=${{ github.ref_name }},enable=${{ startsWith(github.ref, 'refs/tags/') }}
 
-      - name: Push Manifest to Docker Registries
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
         run: |
-          docker push ghcr.io/xpert-ai/${{ matrix.service.image_name }}:latest
-          docker push metadc/${{ matrix.service.image_name }}:latest
-          docker push registry.cn-hangzhou.aliyuncs.com/metad/${{ matrix.service.image_name }}:latest
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf 'metadc/${{ matrix.service.image_name }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect metadc/${{ matrix.service.image_name }}:${{ steps.meta.outputs.version }}
