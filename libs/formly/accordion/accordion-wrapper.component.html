@@ -11,11 +11,13 @@
           {{item.props.label}}
         </mat-panel-title>
         <mat-panel-description class="flex-1">
-          <mat-slide-toggle *ngIf="item.hideExpression || item.props.toggleable" labelPosition="before"
-            [checked]="isShow(item)"
-            (change)="onToggle($event, item, expansionPanel)"
-            (click)="$event.stopPropagation();">
-          </mat-slide-toggle>
+          @if (item.hideExpression || item.props.toggleable) {
+            <mat-slide-toggle labelPosition="before" ngm-density small
+              [checked]="isShow(item)"
+              (change)="onToggle($event, item, expansionPanel)"
+              (click)="$event.stopPropagation();">
+            </mat-slide-toggle>
+          }
         </mat-panel-description>
         
       </mat-expansion-panel-header>

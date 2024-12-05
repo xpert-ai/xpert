@@ -103,6 +103,13 @@ $prefix: (ngm, color);
       @apply text-xs;
     }
   }
+
+  .ngm-input-element__clear {
+    @apply w-5 h-5;
+    .material-icons {
+      font-size: 16px;
+    }
+  }
 }
 
 .mat-mdc-autocomplete-panel.ngm-select__autocomplete-panel {

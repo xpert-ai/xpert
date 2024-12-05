@@ -1,9 +1,10 @@
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormlyModule } from '@ngx-formly/core';
-import { ReactiveFormsModule } from '@angular/forms';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { NgmFormlyToggleComponent } from './toggle.type';
+import { CommonModule } from '@angular/common'
+import { NgModule } from '@angular/core'
+import { ReactiveFormsModule } from '@angular/forms'
+import { MatSlideToggleModule } from '@angular/material/slide-toggle'
+import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { FormlyModule } from '@ngx-formly/core'
+import { NgmFormlyToggleComponent } from './toggle.type'
 
 @NgModule({
   declarations: [NgmFormlyToggleComponent],
@@ -11,14 +12,15 @@ import { NgmFormlyToggleComponent } from './toggle.type';
     CommonModule,
     ReactiveFormsModule,
     MatSlideToggleModule,
+    NgmDensityDirective,
     FormlyModule.forChild({
       types: [
         {
           name: 'toggle',
-          component: NgmFormlyToggleComponent,
-        },
-      ],
-    }),
-  ],
+          component: NgmFormlyToggleComponent
+        }
+      ]
+    })
+  ]
 })
 export class NgmFormlyMatToggleModule {}
