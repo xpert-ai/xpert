@@ -15,10 +15,14 @@ export class XpertWorkspaceService extends OrganizationBaseCrudService<IXpertWor
     super(API_XPERT_WORKSPACE)
   }
 
-  getAllMy() {
+  getAllMy(params?: PaginationParams<IXpertWorkspace>) {
     return this.selectOrganizationId().pipe(
       switchMap(() =>
-        this.#refresh.pipe(switchMap(() => this.httpClient.get<{ items: IXpertWorkspace[] }>(this.apiBaseUrl + `/my`)))
+        this.#refresh.pipe(
+          switchMap(() =>
+            this.httpClient.get<{ items: IXpertWorkspace[] }>(this.apiBaseUrl + `/my`, { params: toHttpParams(params) })
+          )
+        )
       )
     )
   }
@@ -29,6 +33,10 @@ export class XpertWorkspaceService extends OrganizationBaseCrudService<IXpertWor
 
   updateMembers(id: string, members: string[]) {
     return this.httpClient.put<IXpertWorkspace>(this.apiBaseUrl + `/${id}/members`, members)
+  }
+
+  archive(id: string) {
+    return this.httpClient.post<IXpertWorkspace>(this.apiBaseUrl + `/${id}/archive`, {})
   }
 
   refresh() {

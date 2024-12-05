@@ -21,7 +21,8 @@ import {
 	UseGuards,
 	UseInterceptors,
 	Param,
-	Put
+	Put,
+	Delete
 } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
@@ -30,6 +31,7 @@ import { XpertWorkspaceService } from './workspace.service'
 import { WorkspaceGuard } from './guards/workspace.guard'
 import { WorkspaceOwnerGuard } from './guards/workspace-owner.guard'
 import { XpertWorkspaceDTO } from './dto'
+import { Not } from 'typeorm'
 
 @ApiTags('XpertWorkspace')
 @ApiBearerAuth()
@@ -90,5 +92,17 @@ export class XpertWorkspaceController extends CrudController<XpertWorkspace> {
 	async updateMembers(@Param('workspaceId') id: string, @Body() members: string[]) {
 		const workspace = await this.service.updateMembers(id, members)
 		return new XpertWorkspaceDTO(workspace)
+	}
+
+	@UseGuards(WorkspaceOwnerGuard)
+	@Delete(':workspaceId')
+	async delete(@Param('workspaceId') id: string,) {
+		return await this.service.delete(id)
+	}
+
+	@UseGuards(WorkspaceOwnerGuard)
+	@Post(':workspaceId/archive')
+	async archive(@Param('workspaceId') id: string,) {
+		return await this.service.update(id, { status: 'archived' })
 	}
 }

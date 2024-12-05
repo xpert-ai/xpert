@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
 import { IXpertWorkspace } from '@metad/contracts'
@@ -22,7 +22,9 @@ export class XpertWorkspaceWelcomeComponent {
   readonly #router = inject(Router)
   readonly me = injectUser()
 
-  readonly workspaces = this.homeComponent.workspaces
+  readonly workspaces = computed(() => {
+    return this.homeComponent.workspaces()?.slice(0, 10)
+  })
 
   newWorkspace() {
     this.homeComponent.newWorkspace()

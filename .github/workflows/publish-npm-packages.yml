@@ -15,8 +15,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && !contains(github.ref, 'beta')
-    environment:
-      name: prod
+    environment: production
     steps:
       - uses: actions/checkout@v4
         with:
@@ -55,8 +54,7 @@ jobs:
   publish-beta:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && contains(github.ref, 'beta')
-    environment:
-      name: prod
+    environment: production
     steps:
       - uses: actions/checkout@v4
         with:

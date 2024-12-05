@@ -9,7 +9,7 @@ import { injectUser, IUser, IXpertWorkspace, XpertWorkspaceService } from 'apps/
 import { UserPipe, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared'
 import { uniqBy } from 'lodash-es'
 import { EMPTY, filter, switchMap } from 'rxjs'
-import { UserProfileInlineComponent } from '../../../../@shared/'
+import { UserProfileInlineComponent } from '../../../../../@shared/'
 
 @Component({
   selector: 'xpert-workspace-members',

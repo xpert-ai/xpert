@@ -56,9 +56,11 @@ export class XpertDslDTO {
 	copilotModel?: ICopilotModel
 
 	@Expose()
+	@Transform(({ value }) => value?.map((item) => new KnowledgebaseDslDTO(item)))
 	knowledgebases?: IKnowledgebase[]
 
 	@Expose()
+	@Transform(({ value }) => value?.map((item) => new XpertToolsetDslDTO(item)))
 	toolsets?: IXpertToolset[]
 
 	@Expose()
@@ -83,6 +85,24 @@ export class XpertDraftDslDTO implements TXpertTeamDraft {
 					return {
 						...node,
 						entity: new XpertAgentDslDTO(node.entity)
+					}
+				}
+				case 'toolset': {
+					return {
+						...node,
+						entity: new XpertToolsetDslDTO(node.entity)
+					}
+				}
+				case 'knowledge': {
+					return {
+						...node,
+						entity: new KnowledgebaseDslDTO(node.entity)
+					}
+				}
+				case 'xpert': {
+					return {
+						...node,
+						entity: new XpertDslDTO(node.entity)
 					}
 				}
 				default: {
@@ -163,6 +183,55 @@ export class CopilotModelDslDTO implements TCopilotModel {
 	options?: TCopilotModelOptions
 
 	constructor(partial: Partial<CopilotModelDslDTO>) {
+		Object.assign(this, partial)
+	}
+}
+
+@Exclude()
+export class XpertToolsetDslDTO {
+	@Expose()
+	id?: string
+
+	@Expose()
+	name: string
+
+	@Expose()
+	type: string
+
+	@Expose()
+	category: string
+
+	@Expose()
+    description: string
+	@Expose()
+	avatar: TAvatar
+
+	@Expose()
+	options: null
+
+	@Expose()
+	privacyPolicy: null
+
+	@Expose()
+	customDisclaimer: null
+
+	@Expose()
+	tags: any[]
+
+	constructor(partial: Partial<XpertToolsetDslDTO>) {
+		Object.assign(this, partial)
+	}
+}
+
+@Exclude()
+export class KnowledgebaseDslDTO {
+	@Expose()
+	id?: string
+
+	@Expose()
+	name: string
+
+	constructor(partial: Partial<KnowledgebaseDslDTO>) {
 		Object.assign(this, partial)
 	}
 }
