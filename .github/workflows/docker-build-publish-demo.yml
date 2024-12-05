@@ -22,7 +22,7 @@ jobs:
     strategy:
       matrix:
         service:
-          - { name: "xpert-api", context: ".deploy/api", image_name: "xpert-api-demo" }
+          - { name: "xpert-api", context: ".deploy/api", image_name: "metadc/xpert-api-demo" }
           # - { name: "xpert-webapp", context: ".deploy/webapp", image_name: "xpert-webapp-demo" }
         platform: [ "linux/amd64", "linux/arm64" ]
     environment: production
@@ -46,9 +46,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ghcr.io/xpert-ai/${{ matrix.service.image_name }}
-            metadc/${{ matrix.service.image_name }}
-            registry.cn-hangzhou.aliyuncs.com/metad/${{ matrix.service.image_name }}
+            ${{ matrix.service.image_name }}
 
       - name: Build and Push Docker Images
         uses: docker/build-push-action@v6
@@ -58,11 +56,11 @@ jobs:
           platforms: ${{ matrix.platform }}
           build-args: COMMIT_SHA=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
           tags: |
-            metadc/${{ matrix.service.image_name }}:latest
+            ${{ matrix.service.image_name }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=metadc/${{ matrix.service.image_name }},push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=${{ matrix.service.image_name }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
         run: |
