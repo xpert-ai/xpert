@@ -54,7 +54,8 @@ export const ZhHans = {
       ConfirmDeleteInfo: '在实际保存之前不会从服务器上删除',
       Back: '返回',
       Confirm: '确认',
-      Slicers: '切片器'
+      Slicers: '切片器',
+      Entity: "实体"
     },
     Shares: {
       VisibilityChanged: '可见性已更改',

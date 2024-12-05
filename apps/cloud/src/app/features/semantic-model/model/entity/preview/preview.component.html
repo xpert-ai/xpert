@@ -1,7 +1,7 @@
 <div class="pac-model__shell-bar px-2 flex justify-between items-center">
     <span>{{ 'PAC.MENU.PREVIEW' | translate: {Default: "Preview"} }}</span>
-    <div class="ngm-toolbar-actions flex items-center">
-        <mat-slide-toggle labelPosition="before" class="text-sm" [(ngModel)]="manualRefresh">
+    <div class="ngm-toolbar-actions flex items-center gap-1">
+        <mat-slide-toggle labelPosition="before" class="text-sm" ngm-density small [(ngModel)]="manualRefresh">
             {{ 'PAC.MENU.MANUAL_REFRESH' | translate: {Default: "Manual Refresh"} }}
         </mat-slide-toggle>
         <button mat-icon-button displayDensity="cosy" [matTooltip]=" 'PAC.MODEL.ENTITY.CALCULATION.Refresh' | translate: {Default: 'Refresh'} "

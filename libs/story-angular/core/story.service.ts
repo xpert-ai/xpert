@@ -15,7 +15,7 @@ import {
   NxCoreService,
   write
 } from '@metad/core'
-import { NgmConfirmUniqueComponent } from '@metad/ocap-angular/common'
+import { CdkConfirmUniqueComponent } from '@metad/ocap-angular/common'
 import { NgmDSCoreService, NgmOcapCoreService } from '@metad/ocap-angular/core'
 import { EntitySelectDataType, EntitySelectResultType, NgmEntityDialogComponent } from '@metad/ocap-angular/entity'
 import {
@@ -76,11 +76,13 @@ import {
   WidgetComponentType
 } from './types'
 import { convertStoryModel2DataSource, getSemanticModelKey } from './utils'
+import { Dialog } from '@angular/cdk/dialog'
 
 @Injectable()
 export class NxStoryService {
   readonly #translate = inject(TranslateService)
   readonly #ocapService? = inject(NgmOcapCoreService, { optional: true })
+  readonly #dialog = inject(Dialog)
 
   /**
   |--------------------------------------------------------------------------
@@ -681,13 +683,13 @@ export class NxStoryService {
     const name =
       page.name ||
       (await firstValueFrom(
-        this._dialog
-          .open(NgmConfirmUniqueComponent, {
+        this.#dialog
+          .open<string>(CdkConfirmUniqueComponent, {
             data: {
               title: this.getTranslation('Story.Story.NewPageName', 'New Page Name')
             }
           })
-          .afterClosed()
+          .closed
       ))
     if (name) {
       const key = page.key ?? uuid()
