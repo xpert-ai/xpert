@@ -24,26 +24,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Login to DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-            registry: ghcr.io
-            username: ${{ github.actor }}
-            password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Login to Aliyun arc
-        uses: aliyun/acr-login@v1
-        with:
-          login-server: https://registry.cn-hangzhou.aliyuncs.com
-          username: "${{ secrets.ACR_USERNAME }}"
-          password: "${{ secrets.ACR_PASSWORD }}"
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
     
@@ -56,15 +36,51 @@ jobs:
           platforms: linux/amd64,linux/arm64
           context: .
           file: ${{ matrix.service.context }}/Dockerfile
-          push: true
+          load: true
           tags: |
+            metadc/${{ matrix.service.image_name }}:latest
             ghcr.io/xpert-ai/${{ matrix.service.image_name }}:latest
             registry.cn-hangzhou.aliyuncs.com/metad/${{ matrix.service.image_name }}:latest
-      
+          cache-from: type=registry,ref=metadc/${{ matrix.service.image_name }}:latest
+          cache-to: type=inline
+
       - name: Docker images list
         run: |
           sudo docker image list
-        
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push to Docker Hub Registry
+        run: |
+          docker push metadc/${{ matrix.service.image_name }}:latest
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+            registry: ghcr.io
+            username: ${{ github.actor }}
+            password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to GitHub Container Registry
+        run: |
+          docker push ghcr.io/xpert-ai/${{ matrix.service.image_name }}:latest
+
+      - name: Login to Aliyun arc
+        uses: aliyun/acr-login@v1
+        with:
+          login-server: https://registry.cn-hangzhou.aliyuncs.com
+          username: "${{ secrets.ACR_USERNAME }}"
+          password: "${{ secrets.ACR_PASSWORD }}"
+
+      - name: Push to Aliyun arc
+        run: |
+          docker push registry.cn-hangzhou.aliyuncs.com/metad/${{ matrix.service.image_name }}:latest
+
+
   # xpert-api:
 
   #   runs-on: ubuntu-latest
