@@ -25,7 +25,7 @@ jobs:
           - { name: "xpert-api", context: ".deploy/api", image_name: "xpert-api-demo" }
           - { name: "xpert-webapp", context: ".deploy/webapp", image_name: "xpert-webapp-demo" }
         platform: [ "linux/amd64", "linux/arm64" ]
-
+    environment: production
     steps:
       - uses: actions/checkout@v4
 
@@ -72,7 +72,8 @@ jobs:
         service:
           - { name: "xpert-api", image_name: "xpert-api-demo" }
           - { name: "xpert-webapp", image_name: "xpert-webapp-demo" }
-
+    environment: production
+    
     steps:
       - name: Login to DockerHub
         uses: docker/login-action@v3.2.0
