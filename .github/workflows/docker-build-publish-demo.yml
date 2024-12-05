@@ -61,8 +61,6 @@ jobs:
             metadc/${{ matrix.service.image_name }}:latest
             ghcr.io/xpert-ai/${{ matrix.service.image_name }}:latest
             registry.cn-hangzhou.aliyuncs.com/metad/${{ matrix.service.image_name }}:latest
-          cache-from: type=registry,ref=metadc/${{ matrix.service.image_name }}:latest
-          cache-to: type=inline
       
       - name: Docker images list
         run: |
