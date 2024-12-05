@@ -15,7 +15,7 @@
   },
   "scripts": {
     "build:release": "node bundle.mjs release",
-    "docs": "yarn typedoc"
+    "docs": "yarn typedoc --out ./.docs"
   },
   "peerDependencies": {
     "@duckdb/duckdb-wasm": "^1.25.0"

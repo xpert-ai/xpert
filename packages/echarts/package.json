@@ -26,6 +26,6 @@
     "topojson-client": "^3.1.0"
   },
   "scripts": {
-    "docs": "yarn typedoc"
+    "docs": "yarn typedoc --out ./.docs"
   }
 }

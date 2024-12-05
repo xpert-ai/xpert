@@ -5,6 +5,7 @@
 /tmp
 /out-tsc
 /documentation
+packages/**/.docs/
 packages/angular/.storybook/documentation.json
 packages/angular/.storybook/index.css
 
