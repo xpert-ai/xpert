@@ -1,19 +1,19 @@
 import { inject, Injectable } from '@angular/core'
-import { PaginationParams, Store, toHttpParams } from '@metad/cloud/state'
+import { PaginationParams, toHttpParams } from '@metad/cloud/state'
 import { toParams } from '@metad/ocap-angular/core'
-import { EventSourceMessage, fetchEventSource } from '@microsoft/fetch-event-source'
 import { NGXLogger } from 'ngx-logger'
-import { BehaviorSubject, Observable, tap } from 'rxjs'
+import { BehaviorSubject, tap } from 'rxjs'
 import { API_XPERT_ROLE } from '../constants/app.constants'
 import { IUser, IXpert, IXpertAgentExecution, OrderTypeEnum, TChatRequest, TXpertTeamDraft, XpertTypeEnum } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 import { injectApiBaseUrl } from '../providers'
+import { injectFetchEventSource } from './fetch-event-source'
 
 @Injectable({ providedIn: 'root' })
 export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   readonly #logger = inject(NGXLogger)
-  readonly #store = inject(Store)
   readonly baseUrl = injectApiBaseUrl()
+  readonly fetchEventSource = injectFetchEventSource()
 
   readonly #refresh = new BehaviorSubject<void>(null)
 
@@ -67,34 +67,8 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.get<{items: IXpertAgentExecution[]}>(this.apiBaseUrl + `/${id}/executions`, { params: toHttpParams(options) })
   }
 
-  chat(id: string, request: TChatRequest, options: { isDraft: boolean; }): Observable<EventSourceMessage> {
-    const token = this.#store.token
-    const organization = this.store.selectedOrganization ?? { id: null }
-    return new Observable((subscriber) => {
-      const ctrl = new AbortController()
-      fetchEventSource(this.baseUrl + this.apiBaseUrl + `/${id}/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-          'Organization-Id': `${organization.id}`
-        },
-        body: JSON.stringify({request, options}),
-        signal: ctrl.signal,
-        onmessage(msg) {
-          subscriber.next(msg)
-        },
-        onclose() {
-          subscriber.complete()
-        },
-        onerror(err) {
-          subscriber.error(err)
-          throw err; // rethrow to stop the operation, otherwise do nothing to automatically retry.
-        }
-      })
-
-      return () => ctrl.abort()
-    })
+  chat(id: string, request: TChatRequest, options: { isDraft: boolean; }) {
+    return this.fetchEventSource(this.baseUrl + this.apiBaseUrl + `/${id}/chat`, JSON.stringify({request, options}))
   }
 
   getXpertManagers(id: string) {

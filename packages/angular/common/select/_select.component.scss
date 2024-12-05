@@ -70,8 +70,14 @@ $prefix: (ngm, color);
     @apply mb-4;
   }
 }
+
 .ngm-select-panel.mat-mdc-select-panel {
   margin-left: -9px;
+  .mat-mdc-option {
+    .ngm-display-behaviour {
+      min-height: 48px;
+    }
+  }
   .mdc-list-item__primary-text {
     @apply w-full flex items-center justify-start;
   }
@@ -86,6 +92,10 @@ $prefix: (ngm, color);
     .mat-mdc-option {
       min-height: 32px;
       @apply text-sm;
+
+      .ngm-display-behaviour {
+        min-height: 32px;
+      }
     }
   }
 }
@@ -101,6 +111,10 @@ $prefix: (ngm, color);
     .mat-mdc-option {
       min-height: 28px;
       @apply text-xs;
+
+      .ngm-display-behaviour {
+        min-height: 28px;
+      }
     }
   }
 
@@ -115,5 +129,11 @@ $prefix: (ngm, color);
 .mat-mdc-autocomplete-panel.ngm-select__autocomplete-panel {
   .cdk-virtual-scroll-content-wrapper {
     @apply max-w-full;
+  }
+
+  .mat-mdc-option {
+    .ngm-display-behaviour {
+      min-height: 48px;
+    }
   }
 }

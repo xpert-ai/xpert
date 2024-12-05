@@ -118,7 +118,8 @@ export class XpertStudioPanelAgentComponent {
     return this.executionService.findAllByXpertAgent(xpertId, agentKey, {
       order: {
         updatedAt: OrderTypeEnum.DESC
-      }
+      },
+      take: 50
     }).pipe(
       map(({items}) => items)
     )

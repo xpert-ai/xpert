@@ -7,6 +7,7 @@ import {
   inject,
   input,
   model,
+  output,
   signal
 } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
@@ -74,6 +75,8 @@ export class XpertStudioPanelAgentExecutionComponent {
   readonly executionId = input<string>()
   readonly xpert = input<Partial<IXpert>>()
   readonly xpertAgent = input<IXpertAgent>()
+
+  readonly close = output()
 
   readonly agentKey = computed(() => this.xpertAgent()?.key)
   readonly parameters = computed(() => this.xpertAgent().parameters)
@@ -182,6 +185,7 @@ export class XpertStudioPanelAgentExecutionComponent {
   getAgent(key: string): IXpertAgent {
     return this.apiService.getNode(key)?.entity as IXpertAgent
   }
+
 }
 
 export function processEvents(event, executionService: XpertExecutionService) {

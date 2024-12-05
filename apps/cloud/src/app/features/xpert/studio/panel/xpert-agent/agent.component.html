@@ -117,7 +117,9 @@
       [xpertAgent]="xpertAgent()"
       [xpert]="xpert()"
       [executionId]="executionId()"
-      (click)="$event.stopPropagation()" />
+      (click)="$event.stopPropagation()"
+      (close)="closeExecution()"
+      />
   </div>
 }
 

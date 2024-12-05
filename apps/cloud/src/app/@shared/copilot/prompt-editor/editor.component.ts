@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, HostListener, inject, input, model } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, ElementRef, HostListener, inject, input, model, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -24,6 +24,7 @@ export class CopilotPromptEditorComponent {
 
   readonly initHeight = input<number>(210)
   readonly tooltip = input<string>()
+
   readonly prompt = model<string>()
   readonly promptLength = computed(() => this.prompt()?.length)
 
@@ -45,10 +46,9 @@ export class CopilotPromptEditorComponent {
     })
   }
 
-  onBlur() {}
   onPromptChange(editor: HTMLDivElement) {
-    console.log(editor.innerHTML)
-    console.log(formatInnerHTML(editor.innerHTML))
+    // console.log(editor.innerHTML)
+    // console.log(formatInnerHTML(editor.innerHTML))
     this.prompt.set(formatInnerHTML(editor.innerHTML))
   }
 
