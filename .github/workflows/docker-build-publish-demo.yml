@@ -58,7 +58,6 @@ jobs:
           file: ${{ matrix.service.context }}/Dockerfile
           push: true
           tags: |
-            metadc/${{ matrix.service.image_name }}:latest
             ghcr.io/xpert-ai/${{ matrix.service.image_name }}:latest
             registry.cn-hangzhou.aliyuncs.com/metad/${{ matrix.service.image_name }}:latest
       
