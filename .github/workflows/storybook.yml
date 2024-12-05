@@ -16,12 +16,13 @@ jobs:
           npm install --legacy-peer-deps
           npm run b:docs
           mv dist/storybook/angular docs/storybook
-          mv packages/core/docs docs/api/core
-          mv packages/store/docs docs/api/store
-          mv packages/sql/docs docs/api/sql
-          mv packages/xmla/docs docs/api/xmla
-          mv packages/echarts/docs docs/api/echarts
-          mv packages/duckdb/docs docs/api/duckdb
+          mv packages/core/.docs docs/api/core
+          mv packages/store/.docs docs/api/store
+          mv packages/sql/.docs docs/api/sql
+          mv packages/xmla/.docs docs/api/xmla
+          mv packages/echarts/.docs docs/api/echarts
+          mv packages/duckdb/.docs docs/api/duckdb
+          mv packages/copilot/.docs docs/api/copilot
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4.5.0
         with:

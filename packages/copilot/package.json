@@ -1,6 +1,9 @@
 {
   "name": "@metad/copilot",
   "version": "3.0.0",
+  "scripts": {
+    "docs": "yarn typedoc --out ./.docs"
+  },
   "peerDependencies": {
     "nanoid": "^4.0.2",
     "ollama": "^0.5.6"

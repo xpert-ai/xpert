@@ -2,7 +2,7 @@
   "name": "@metad/ocap-xmla",
   "version": "3.0.0",
   "scripts": {
-    "docs": "yarn typedoc"
+    "docs": "yarn typedoc --out ./.docs"
   },
   "main": "./src/index.js",
   "typings": "./src/index.d.ts",
