@@ -36,7 +36,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           context: .
           file: ${{ matrix.service.context }}/Dockerfile
-          load: true
           tags: |
             metadc/${{ matrix.service.image_name }}:latest
             ghcr.io/xpert-ai/${{ matrix.service.image_name }}:latest
