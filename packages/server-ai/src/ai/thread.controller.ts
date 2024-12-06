@@ -4,13 +4,13 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { CopilotService } from '../copilot'
 import { AiService } from './ai.service'
 import type { paths, components } from "./schemas/agent-protocol-schema"
-import { Public } from '@metad/server-core'
-import { XpertAuthGuard } from './auth.guard'
+import { ApiKeyAuthGuard, Public, CurrentUser } from '@metad/server-core'
+import { IUser } from '@metad/contracts'
 
 @ApiTags('AI/Threads')
 @ApiBearerAuth()
 @Public()
-@UseGuards(XpertAuthGuard)
+@UseGuards(ApiKeyAuthGuard)
 @Controller('threads')
 export class ThreadsController {
 	readonly #logger = new Logger(ThreadsController.name)
@@ -22,8 +22,12 @@ export class ThreadsController {
 	) {}
 
     @Post()
-    async createThread(@Body() body: components['schemas']['ThreadCreate']) {
-        console.log(body)
+    async createThread(
+		@Body() body: components['schemas']['ThreadCreate'],
+	    @CurrentUser() user: IUser,
+	) {
+        // console.log(body, user)
+		
 		return body
     }
 }

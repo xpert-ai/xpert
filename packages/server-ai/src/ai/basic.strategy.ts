@@ -1,36 +1,36 @@
-import { Strategy } from 'passport-custom';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { PassportStrategy } from '@nestjs/passport';
-import { Request } from 'express';
+// import { Injectable, UnauthorizedException } from '@nestjs/common'
+// import { PassportStrategy } from '@nestjs/passport'
+// import { IncomingMessage } from 'http'
+// import { Strategy } from 'passport'
 
-@Injectable()
-export class XpertTokenStrategy extends PassportStrategy(Strategy, 'xpert-token') {
-    constructor() {
-        super();
-    }
+// @Injectable()
+// export class XpertTokenStrategy extends PassportStrategy(Strategy, 'xpert-token') {
+// 	constructor() {
+// 		super()
+// 	}
 
-    async validate(req: Request, done: any) {
-        try {
-            const authHeader = req.headers['authorization'];
-            if (!authHeader || !authHeader.startsWith('Bearer ')) {
-                return done(new UnauthorizedException('Authorization header not provided or invalid'), false);
-            }
+// 	authenticate(req: IncomingMessage, options: { session: boolean }) {
+// 		const authHeader = req.headers['authorization']
+// 		if (!authHeader || !authHeader.startsWith('Bearer ')) {
+// 			return this.fail(new UnauthorizedException('Authorization header not provided or invalid'))
+// 		}
 
-            const token = authHeader.split(' ')[1];
-            const user = await this.validateUser(token);
-            if (!user) {
-                return done(new UnauthorizedException('Invalid token'), false);
-            }
+// 		const token = authHeader.split(' ')[1]
+// 		this.validateToken(token)
+// 			.then((user) => {
+// 				if (!user) {
+// 					return this.fail(new UnauthorizedException('Invalid token'))
+// 				}
+// 				this.success(user)
+// 			})
+// 			.catch((err) => {
+// 				console.error(err)
+// 				return this.error(new UnauthorizedException('Unauthorized', err.message))
+// 			})
+// 	}
 
-            done(null, user);
-        } catch (err) {
-            console.error(err);
-            return done(new UnauthorizedException('Unauthorized', err.message), false);
-        }
-    }
-
-    validateUser(token: string) {
-        console.log(token);
-        return true;
-    }
-}
+// 	async validateToken(token: string) {
+// 		console.log(token)
+// 		return true
+// 	}
+// }

@@ -262,7 +262,8 @@
       "HelpDocs": "帮助文档",
       "Embedded": "已嵌入",
       "Copied": "已复制",
-      "DangerZone": "危险区域"
+      "DangerZone": "危险区域",
+      "Copy": "复制"
     },
     "MENU": {
       "Certification": "认证",

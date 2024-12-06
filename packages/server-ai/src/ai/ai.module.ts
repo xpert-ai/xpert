@@ -9,7 +9,6 @@ import { AIController } from './ai.controller'
 import { AiService } from './ai.service'
 import { AIV1Controller } from './ai-v1.controller'
 import { ThreadsController } from './thread.controller'
-import { XpertTokenStrategy } from './basic.strategy'
 
 @Module({
 	imports: [
@@ -26,6 +25,6 @@ import { XpertTokenStrategy } from './basic.strategy'
 		CopilotOrganizationModule
 	],
 	controllers: [AIController, AIV1Controller, ThreadsController],
-	providers: [AiService, XpertTokenStrategy]
+	providers: [AiService]
 })
 export class AIModule {}

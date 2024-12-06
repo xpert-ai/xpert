@@ -38,6 +38,7 @@ import { TenantModule } from './tenant/tenant.module'
 import { UserOrganizationModule } from './user-organization/user-organization.module'
 import { UserModule } from './user/index'
 import { IntegrationModule } from './integration/integration.module'
+import { ApiKeyModule } from './api-key/api-key.module'
 
 @Module({
 	imports: [
@@ -68,6 +69,7 @@ import { IntegrationModule } from './integration/integration.module'
 		RedisModule,
 		CoreModule,
 		AuthModule,
+		ApiKeyModule,
 		UserModule,
 		TenantModule,
 		EmployeeModule,
