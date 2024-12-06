@@ -69,7 +69,7 @@ export const routes: Routes = [
       },
       {
         path: 'develop',
-        component: XpertDevelopComponent
+        loadComponent: () => XpertDevelopComponent
       },
       {
         path: 'logs',
