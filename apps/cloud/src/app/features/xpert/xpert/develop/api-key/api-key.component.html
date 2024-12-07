@@ -1,28 +1,26 @@
-  <h3
-    class="text-lg font-medium leading-6 text-gray-900"
-  >
-    API Secret key
-  </h3>
+<h3 class="text-lg font-medium leading-6 text-gray-900">
+  API {{'PAC.KEY_WORDS.SecretKey' | translate: {Default: 'Key'} }}
+</h3>
 
-  <button type="button" class="absolute right-4 top-4 w-6 h-6 rounded-md cursor-pointer pressable hover:bg-hover-bg" (click)="close()">
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 20 20"
-        fill="currentColor"
-        class="text-gray-500"
-    >
-        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"></path>
-    </svg>
-  </button>
+<button type="button" class="absolute right-4 top-4 w-6 h-6 rounded-md cursor-pointer pressable hover:bg-hover-bg" (click)="close()">
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 20 20"
+    fill="currentColor"
+    class="text-gray-500"
+  >
+    <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"></path>
+  </svg>
+</button>
   
   <p class="mt-1 text-[13px] text-gray-500 font-normal leading-5 flex-shrink-0">
-    To prevent API abuse, protect your API Key. Avoid using it as plain text in front-end code. :)
+    {{ 'PAC.Xpert.ProtectYourKey' | translate: {Default: 'To prevent API abuse, protect your API Key. Avoid using it as plain text in front-end code. :)'} }}
   </p>
   <div class="flex flex-col flex-grow mt-4 overflow-hidden">
     <div class="flex items-center flex-shrink-0 text-sm font-semibold text-gray-500 border-b border-solid h-9">
-      <div class="flex-shrink-0 w-64 px-3">API Key</div>
-      <div class="flex-shrink-0 px-3 w-[200px]">CREATED</div>
-      <div class="flex-shrink-0 px-3 w-[200px]">LAST USED</div>
+      <div class="flex-shrink-0 w-64 px-3">API {{'PAC.KEY_WORDS.SecretKey' | translate: {Default: 'Key'} }}</div>
+      <div class="flex-shrink-0 px-3 w-[200px]">{{ 'PAC.KEY_WORDS.CreatedAt' | translate: {Default: 'Created At'} }}</div>
+      <div class="flex-shrink-0 px-3 w-[200px]">{{ 'PAC.KEY_WORDS.LastUsed' | translate: {Default: 'Last Used'} }}</div>
       <div class="flex-grow px-3"></div>
     </div>
     <div class="flex-grow overflow-auto">
@@ -36,7 +34,7 @@
             @if (key.lastUsedAt) {
                 {{ key.lastUsedAt | date}}
             } @else {
-                Never
+              {{ 'PAC.KEY_WORDS.Never' | translate: {Default: 'Never'} }} 
             }
           </div>
           <div class="flex flex-grow px-3">
@@ -81,7 +79,9 @@
           d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"
         ></path>
       </svg>
-      <div class="text-sm font-medium text-gray-800">Create new Secret key</div>
+      <div class="text-sm font-medium text-gray-800">
+        {{ 'PAC.Xpert.CreateNewSecretKey' | translate: {Default: 'Create new secret key'} }}
+      </div>
     </button>
   </div>
 

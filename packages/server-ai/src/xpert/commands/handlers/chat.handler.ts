@@ -7,7 +7,7 @@ import { Observable, tap } from 'rxjs'
 import { XpertAgentChatCommand } from '../../../xpert-agent/commands'
 import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
-import { FindChatConversationQuery } from '../../../chat-conversation/queries/index'
+import { GetChatConversationQuery } from '../../../chat-conversation/queries/index'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/index'
 import {
 	XpertAgentExecutionUpsertCommand
@@ -39,7 +39,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		let conversation: IChatConversation
 		if (conversationId) {
 			conversation = await this.queryBus.execute(
-				new FindChatConversationQuery({id: conversationId}, [])
+				new GetChatConversationQuery({id: conversationId}, [])
 			)
 			conversation.messages ??= []
 			conversation.messages.push(userMessage)

@@ -1,6 +1,6 @@
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { v4 as uuidv4 } from 'uuid'
-import { ChatConversationUpsertCommand, FindChatConversationQuery } from '../../../chat-conversation'
+import { ChatConversationUpsertCommand, GetChatConversationQuery } from '../../../chat-conversation'
 import { ThreadAlreadyExistsException } from '../../../core'
 import { ThreadDTO } from '../../dto'
 import { ThreadCreateCommand } from '../thread-create.command'
@@ -17,7 +17,7 @@ export class ThreadCreateHandler implements ICommandHandler<ThreadCreateCommand>
 		let conversation = null
 		if (input.thread_id) {
 			conversation = await this.queryBus.execute(
-				new FindChatConversationQuery({
+				new GetChatConversationQuery({
 					threadId: input.thread_id
 				})
 			)

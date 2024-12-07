@@ -22,7 +22,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { filter, lastValueFrom, map, Observable, reduce } from 'rxjs'
 import { AiService } from './ai.service'
 import { RunCreateStreamCommand, ThreadCreateCommand, ThreadDeleteCommand } from './commands'
-import { FindThreadQuery } from './queries'
+import { FindThreadQuery, SearchThreadsQuery } from './queries'
 import type { components } from './schemas/agent-protocol-schema'
 import { UnimplementedException } from '../core'
 
@@ -48,9 +48,10 @@ export class ThreadsController {
 		return await this.commandBus.execute(new ThreadCreateCommand(body))
 	}
 
+	@HttpCode(HttpStatus.OK)
 	@Post('search')
 	async searchThreads(@Body() req: components['schemas']['ThreadSearchRequest']) {
-		throw new UnimplementedException()
+		return this.queryBus.execute(new SearchThreadsQuery(req))
 	}
 
 	@Get(':thread_id')

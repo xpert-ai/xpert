@@ -7,7 +7,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MaskPipe } from '@metad/core'
 import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ApiKeyService, getErrorMessage, IApiKey, injectToastr } from 'apps/cloud/src/app/@core'
 import { BehaviorSubject, EMPTY } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
@@ -35,6 +35,7 @@ export class XpertDevelopApiKeyComponent {
   readonly apiKeyService = inject(ApiKeyService)
   readonly #clipboard = inject(Clipboard)
   readonly #toastr = injectToastr()
+  readonly #translate = inject(TranslateService)
 
   readonly refresh$ = new BehaviorSubject<void>(null)
   readonly keys = toSignal<Array<IApiKey & { copied?: boolean }>>(
@@ -64,8 +65,8 @@ export class XpertDevelopApiKeyComponent {
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
         data: {
-          title: 'Delete this api key?',
-          information: 'This action cannot be undone.'
+          title: this.#translate.instant('PAC.Xpert.DeleteApiKey', {Default: 'Delete this api key?'}),
+          information: this.#translate.instant('PAC.Xpert.ActionUndone', {Default: 'This action cannot be undone.'})
         }
       })
       .closed.pipe(

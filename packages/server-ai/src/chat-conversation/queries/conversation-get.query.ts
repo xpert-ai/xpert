@@ -3,10 +3,10 @@ import { IQuery } from '@nestjs/cqrs'
 import { FindConditions } from 'typeorm'
 
 /**
- * Find chat conversations by conditions
+ * Find one chat conversation by conditions, not raise exception when not found
  */
-export class FindChatConversationQuery implements IQuery {
-	static readonly type = '[Chat Conversation] Find all'
+export class GetChatConversationQuery implements IQuery {
+	static readonly type = '[Chat Conversation] Find One'
 
 	constructor(
 		public readonly conditions: FindConditions<IChatConversation>,

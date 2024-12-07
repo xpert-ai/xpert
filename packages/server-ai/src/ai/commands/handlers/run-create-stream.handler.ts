@@ -1,6 +1,6 @@
 import { CommandBus, QueryBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { RunCreateStreamCommand } from '../run-create-stream.command'
-import { ChatConversationUpsertCommand, FindChatConversationQuery } from '../../../chat-conversation'
+import { ChatConversationUpsertCommand, GetChatConversationQuery } from '../../../chat-conversation'
 import { FindXpertQuery, XpertChatCommand } from '../../../xpert'
 
 @CommandHandler(RunCreateStreamCommand)
@@ -17,7 +17,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 		console.log(input)
 		
 		// Find thread (conversation) and assistant (xpert)
-		const conversation = await this.queryBus.execute(new FindChatConversationQuery({ threadId }))
+		const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
 		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: input.assistant_id }))
 
 		// Update xpert id for chat conversation

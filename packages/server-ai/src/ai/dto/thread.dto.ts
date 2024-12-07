@@ -1,4 +1,4 @@
-import { IChatConversation, IUser, TChatConversationStatus } from '@metad/contracts'
+import { IUser, TChatConversationStatus } from '@metad/contracts'
 import { pick } from '@metad/server-common'
 import { UserPublicDTO } from '@metad/server-core'
 import { Exclude, Expose, Transform } from 'class-transformer'
@@ -11,7 +11,7 @@ export class ThreadDTO {
 	@Expose({
 		name: 'thread_id'
 	})
-	key: string
+	threadId: string
 
 	@Expose()
 	status: TChatConversationStatus
@@ -39,15 +39,15 @@ export class ThreadDTO {
 	updatedBy?: IUser
 
 	@Expose()
-	metadata: Partial<IChatConversation>
+	metadata: Record<string, unknown>
 
 	@Expose()
-	values: Record<string, any>;
+	values: Record<string, unknown>;
 
-	constructor(partial: ChatConversation, values?: any) {
+	constructor(partial: ChatConversation, values?: Record<string, unknown>) {
 		Object.assign(this, partial)
 
-		this.metadata = pick(partial, 'id', 'title', 'xpertId')
+		this.metadata = {...pick(partial, 'id', 'title'), assistant_id: partial.xpertId}
 		this.values = values
 	}
 }

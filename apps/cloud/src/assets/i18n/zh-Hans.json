@@ -263,7 +263,12 @@
       "Embedded": "已嵌入",
       "Copied": "已复制",
       "DangerZone": "危险区域",
-      "Copy": "复制"
+      "Copy": "复制",
+      "Server": "服务器",
+      "InService": "运行中",
+      "SecretKey": "密钥",
+      "LastUsed": "最后使用",
+      "Never": "从未"
     },
     "MENU": {
       "Certification": "认证",
@@ -2023,7 +2028,11 @@
       "ElapsedTime": "已用时间",
       "TotalTokens": "总代币数",
       "ExecutionLog": "执行日志",
-      "Tokens": "代币"
+      "Tokens": "代币",
+      "ProtectYourKey": "为了防止 API 滥用，请保护好您的 API 密钥。避免在前端代码中将其用作纯文本。:)",
+      "CreateNewSecretKey": "创建新的密钥",
+      "DeleteApiKey": "删除此 API 密钥？",
+      "ActionUndone": "此操作无法撤消。"
     },
     "title": {
       "short": "Xpert AI"
