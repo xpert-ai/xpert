@@ -25,8 +25,10 @@ import {
   ToastrService,
   getErrorMessage
 } from '../../../../@core'
-import { MaterialModule, TranslationBaseComponent, userLabel } from '../../../../@shared'
 import { FORMLY_W_1_2 } from '@metad/story/designer'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 
 @Component({
   standalone: true,

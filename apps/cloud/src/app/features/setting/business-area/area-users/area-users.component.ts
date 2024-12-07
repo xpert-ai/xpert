@@ -9,13 +9,6 @@ import { NgmConfirmDeleteComponent, NgmSearchComponent, NgmTableComponent } from
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService } from 'apps/cloud/src/app/@core'
 import {
-  MaterialModule,
-  TranslationBaseComponent,
-  UserProfileInlineComponent,
-  UserRoleSelectComponent,
-  userLabel
-} from 'apps/cloud/src/app/@shared'
-import {
   BehaviorSubject,
   Observable,
   combineLatest,
@@ -28,6 +21,10 @@ import {
   switchMap
 } from 'rxjs'
 import { EditBusinessAreaComponent } from '../business-area/business-area.component'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
+import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 
 @Component({
   standalone: true,

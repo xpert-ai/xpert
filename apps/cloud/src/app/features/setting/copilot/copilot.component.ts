@@ -2,8 +2,9 @@ import { Component, inject } from '@angular/core'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { Store, ToastrService, routeAnimations } from '../../../@core'
-import { MaterialModule, TranslationBaseComponent } from '../../../@shared'
 import { AsyncPipe } from '@angular/common'
+import { MaterialModule } from '../../../@shared/material.module'
+import { TranslationBaseComponent } from '../../../@shared/language'
 
 @Component({
   standalone: true,

@@ -10,7 +10,7 @@ import { TableEntity, isEqual, pick } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmDndDirective } from '@metad/core'
 import { IStorageFile, StorageFileService } from 'apps/cloud/src/app/@core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import {
   BehaviorSubject,
   Subscription,

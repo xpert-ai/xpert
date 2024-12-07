@@ -5,8 +5,9 @@ import { DocumentInterface } from '@langchain/core/documents'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { KnowledgebaseService, Store, ToastrService, getErrorMessage, routeAnimations } from '../../../../../@core'
-import { MaterialModule, TranslationBaseComponent } from '../../../../../@shared'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 @Component({
   standalone: true,

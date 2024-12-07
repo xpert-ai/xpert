@@ -8,11 +8,11 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage, injectToastr, injectUser, injectWorkspaceService, injectXpertService, IUser } from 'apps/cloud/src/app/@core'
-import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared'
 import { BehaviorSubject, EMPTY } from 'rxjs'
 import { switchMap, tap } from 'rxjs/operators'
 import { XpertComponent } from '../xpert.component'
 import { derivedAsync } from 'ngxtension/derived-async'
+import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 
 @Component({
   standalone: true,

@@ -13,7 +13,6 @@ import { NgmMDXEditorComponent } from '@metad/ocap-angular/mdx'
 import { NgmSQLEditorComponent } from '@metad/ocap-angular/sql'
 import { QueryReturn, measureFormatter, nonNullable, serializeUniqueName } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { MaterialModule, TranslationBaseComponent } from 'apps/cloud/src/app/@shared'
 import { isPlainObject } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { connect } from 'ngxtension/connect'
@@ -25,6 +24,8 @@ import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, MODEL_TYPE } from '../../types'
 import { serializePropertyUniqueName } from '../../utils'
 import { ModelEntityService } from '../entity.service'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 @Component({
   standalone: true,

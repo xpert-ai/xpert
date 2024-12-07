@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core'
 import { distinctUntilChanged, map } from 'rxjs'
 import { Store } from '../../../@core'
-import { TranslationBaseComponent } from '../../../@shared'
+import { TranslationBaseComponent } from '../../../@shared/language'
 
 @Component({
   selector: 'pac-tenant-custom-smtp',

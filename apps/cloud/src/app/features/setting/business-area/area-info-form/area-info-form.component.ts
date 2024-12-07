@@ -4,9 +4,10 @@ import { BusinessAreasService, ToastrService } from '@metad/cloud/state'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { pick } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { MaterialModule, TranslationBaseComponent } from 'apps/cloud/src/app/@shared'
 import { firstValueFrom } from 'rxjs'
 import { EditBusinessAreaComponent } from '../business-area/business-area.component'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
 @Component({
   standalone: true,

@@ -2,7 +2,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectorRef, Component, computed, effect, inject, model, signal } from '@angular/core'
+import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormArray, FormBuilder, FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { NgmInputComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
@@ -19,11 +19,13 @@ import {
   XpertService,
   XpertTypeEnum
 } from 'apps/cloud/src/app/@core'
-import { CopilotModelSelectComponent, MaterialModule, TagSelectComponent } from 'apps/cloud/src/app/@shared'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertComponent } from '../xpert.component'
 import { injectGetXpertTeam } from '../../utils'
 import { derivedAsync } from 'ngxtension/derived-async'
+import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { TagSelectComponent } from 'apps/cloud/src/app/@shared/tag'
 
 @Component({
   selector: 'xpert-basic',

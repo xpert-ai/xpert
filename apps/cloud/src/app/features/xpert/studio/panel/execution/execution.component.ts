@@ -3,10 +3,10 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output, si
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertAgent, XpertAgentExecutionService, XpertAgentExecutionStatusEnum } from 'apps/cloud/src/app/@core'
-import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } from 'apps/cloud/src/app/@shared'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
+import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } from 'apps/cloud/src/app/@shared/xpert'
 
 @Component({
   selector: 'xpert-studio-panel-execution',

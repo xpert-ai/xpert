@@ -5,8 +5,9 @@ import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core
 import { TranslateModule } from '@ngx-translate/core'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { ISemanticModel } from 'apps/cloud/src/app/@core'
-import { InlineSearchComponent, MaterialModule } from 'apps/cloud/src/app/@shared'
 import { combineLatest, debounceTime, map, startWith } from 'rxjs'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
 
 @Component({
   standalone: true,

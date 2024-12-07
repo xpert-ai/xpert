@@ -8,11 +8,11 @@ import { RouterModule } from '@angular/router'
 import { StoriesService } from '@metad/cloud/state'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { effectAction } from '@metad/ocap-angular/core'
-import { IntersectionObserverModule } from '@ng-web-apis/intersection-observer'
+import { WaIntersectionObserverDirective } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { debounceTime, distinctUntilChanged, switchMap, tap } from 'rxjs'
 import { IStory, listAnimation } from '../../@core'
-import { StoryCardComponent } from '../../@shared'
+import { StoryCardComponent } from '../../@shared/story'
 
 @Component({
   standalone: true,
@@ -22,7 +22,7 @@ import { StoryCardComponent } from '../../@shared'
     ReactiveFormsModule,
     DragDropModule,
     RouterModule,
-    IntersectionObserverModule,
+    WaIntersectionObserverDirective,
     MatButtonToggleModule,
     MatButtonModule,
 

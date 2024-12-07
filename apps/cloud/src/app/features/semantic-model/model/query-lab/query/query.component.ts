@@ -24,7 +24,7 @@ import { EntityCapacity, EntitySchemaNode, EntitySchemaType } from '@metad/ocap-
 import { C_MEASURES, Cube, EntityType, nonNullable, PropertyAttributes, uniqBy, VariableProperty, wrapBrackets } from '@metad/ocap-core'
 import { serializeName } from '@metad/ocap-sql'
 import { ModelQuery, Store } from 'apps/cloud/src/app/@core'
-import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language/translation-base.component'
 import { cloneDeep, isEqual, isPlainObject } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, Subscription, combineLatest, firstValueFrom, of } from 'rxjs'

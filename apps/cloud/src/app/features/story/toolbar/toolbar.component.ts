@@ -45,13 +45,14 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { map } from 'rxjs/operators'
 import { ToastrService, tryHttp } from '../../../@core'
-import { MaterialModule, ProjectFilesDialogComponent } from '../../../@shared'
 import { StoryDesignerComponent } from '../designer'
 import { SaveAsTemplateComponent } from '../save-as-template/save-as-template.component'
 import { StoryDetailsComponent } from '../story-details/story-details.component'
 import { DeviceOrientation, DeviceZooms, EmulatedDevices, StoryScales, downloadStory } from '../types'
 import { StoryToolbarService } from './toolbar.service'
 import { COMPONENTS, PAGES } from './types'
+import { MaterialModule } from '../../../@shared/material.module'
+import { ProjectFilesDialogComponent } from '../../../@shared/project'
 
 @Component({
   standalone: true,

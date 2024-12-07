@@ -48,12 +48,13 @@ import { nanoid } from 'nanoid'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom } from 'rxjs'
 import { ToastrService, listAnimation } from '../../../@core'
-import { MaterialModule, StorySelectorComponent } from '../../../@shared'
 import { AppService } from '../../../app.service'
 import { QuestionAnswer, SuggestsSchema, transformCopilotChart } from './copilot/copilot'
 import { InsightService } from './insight.service'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
 import { injectInsightCommand } from './copilot/insight'
+import { MaterialModule } from '../../../@shared/material.module'
+import { StorySelectorComponent } from '../../../@shared/story'
 
 @Component({
   standalone: true,

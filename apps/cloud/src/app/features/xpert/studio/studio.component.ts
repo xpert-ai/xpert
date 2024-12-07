@@ -48,10 +48,9 @@ import {
   XpertWorkspaceService
 } from '../../../@core'
 import {
-  MaterialModule,
   XpertAgentExecutionStatusComponent,
   XpertAgentExecutionLogComponent
-} from '../../../@shared'
+} from '../../../@shared/xpert'
 import {
   XpertStudioContextMenuComponent,
   XpertStudioNodeAgentComponent,
@@ -63,6 +62,7 @@ import { XpertStudioHeaderComponent } from './header/header.component'
 import { XpertStudioPanelComponent } from './panel/panel.component'
 import { XpertExecutionService } from './services/execution.service'
 import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
+import { MaterialModule } from '../../../@shared/material.module'
 
 
 @Component({

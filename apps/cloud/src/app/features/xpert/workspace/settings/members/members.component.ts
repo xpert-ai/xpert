@@ -6,10 +6,10 @@ import { nonNullable } from '@metad/copilot'
 import { TranslateModule } from '@ngx-translate/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { injectUser, IUser, IXpertWorkspace, XpertWorkspaceService } from 'apps/cloud/src/app/@core'
-import { UserPipe, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared'
+import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 import { uniqBy } from 'lodash-es'
 import { EMPTY, filter, switchMap } from 'rxjs'
-import { UserProfileInlineComponent } from '../../../../../@shared/'
+import { UserPipe } from 'apps/cloud/src/app/@shared/pipes'
 
 @Component({
   selector: 'xpert-workspace-members',

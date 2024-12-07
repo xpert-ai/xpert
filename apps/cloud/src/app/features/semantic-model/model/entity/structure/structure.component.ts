@@ -38,12 +38,13 @@ import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { Observable, combineLatest, firstValueFrom } from 'rxjs'
 import { filter, map, shareReplay, switchMap, tap, withLatestFrom } from 'rxjs/operators'
-import { MaterialModule, TranslationBaseComponent } from '../../../../../@shared'
 import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, MODEL_TYPE } from '../../types'
 import { ModelEntityService } from '../entity.service'
 import { ERComponent } from '../er'
 import { newDimensionFromColumn } from '../types'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 @Component({
   standalone: true,

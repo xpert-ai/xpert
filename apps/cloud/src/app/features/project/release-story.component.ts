@@ -11,7 +11,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { BusinessAreasService, StoriesService } from '@metad/cloud/state'
 import { BehaviorSubject, filter, firstValueFrom, map, startWith, switchMap } from 'rxjs'
 import { IStory, StoryStatusEnum, ToastrService, Visibility } from '../../@core'
-import { MaterialModule } from '../../@shared'
+import { MaterialModule } from '../../@shared/material.module'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { nonNullable } from '@metad/core'
 

@@ -14,8 +14,10 @@ import { TranslateModule } from '@ngx-translate/core'
 import { groupBy } from 'lodash-es'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
 import { CreationTable, getErrorMessage } from '../../../@core'
-import { MaterialModule, UploadComponent, UploadFile, createTimer } from '../../../@shared'
 import { UploadSheetType, convertExcelDate2ISO, readExcelJson } from '../types'
+import { UploadComponent, UploadFile } from '../../../@shared/files'
+import { MaterialModule } from '../../../@shared/material.module'
+import { createTimer } from '../../../@shared/timer'
 
 @Component({
   standalone: true,

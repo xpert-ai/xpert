@@ -8,10 +8,11 @@ import { IsNilPipe, NxCoreModule } from '@metad/core'
 import { NgmCommonModule, NgmHierarchySelectComponent, ResizerModule, TreeTableModule } from '@metad/ocap-angular/common'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
 import { ButtonGroupDirective, OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
-import { MaterialModule, SharedModule } from '../../@shared'
 import { InlineSearchComponent } from '../../@shared/form-fields'
 import { PACIndicatorRoutingModule } from './indicator-routing.module'
 import { NgmSelectionModule } from '@metad/ocap-angular/selection'
+import { SharedModule } from '../../@shared/shared.module'
+import { MaterialModule } from '../../@shared/material.module'
 
 @NgModule({
   declarations: [],

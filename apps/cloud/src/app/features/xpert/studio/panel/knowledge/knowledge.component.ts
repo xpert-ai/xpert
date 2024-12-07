@@ -9,7 +9,7 @@ import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertKnowledgeTestComponent } from './test/test.component'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'
-import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared'
+import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 
 @Component({
   selector: 'xpert-studio-panel-knowledge',

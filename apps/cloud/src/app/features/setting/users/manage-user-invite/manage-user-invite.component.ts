@@ -5,19 +5,17 @@ import { MatDialog } from '@angular/material/dialog'
 import { InviteService, Store, ToastrService } from '@metad/cloud/state'
 import { InvitationExpirationEnum, InvitationTypeEnum } from '@metad/contracts'
 import { ButtonGroupDirective, OcapCoreModule } from '@metad/ocap-angular/core'
-import {
-  InlineSearchComponent,
-  MaterialModule,
-  SharedModule,
-  TranslationBaseComponent,
-  UserProfileInlineComponent,
-  userLabel
-} from 'apps/cloud/src/app/@shared'
 import { formatDistanceToNow, isAfter } from 'date-fns'
 import { BehaviorSubject, combineLatestWith, firstValueFrom, map, switchMap, withLatestFrom } from 'rxjs'
 import { InviteMutationComponent } from '../../../../@shared/invite'
 import { PACUsersComponent } from '../users.component'
 import { NgmTableComponent } from '@metad/ocap-angular/common'
+import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
+import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
+import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
 
 @Component({
   standalone: true,

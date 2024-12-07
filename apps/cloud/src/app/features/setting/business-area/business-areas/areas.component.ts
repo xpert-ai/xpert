@@ -8,11 +8,13 @@ import { BusinessAreasService } from '@metad/cloud/state'
 import { NgmConfirmDeleteComponent, TreeTableModule } from '@metad/ocap-angular/common'
 import { DisplayDensity, OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { InlineSearchComponent, MaterialModule, SharedModule } from 'apps/cloud/src/app/@shared'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
 import { shareReplay, switchMap, tap } from 'rxjs/operators'
 import { IBusinessArea, ToastrService, routeAnimations } from '../../../../@core/index'
 import { BusinessAreaComponent } from '../business-area.component'
+import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 
 @Component({
   standalone: true,

@@ -32,7 +32,6 @@ import {
 } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ISemanticModel, ITag, registerModel, TagCategoryEnum } from 'apps/cloud/src/app/@core'
-import { MaterialModule, TagEditorComponent } from 'apps/cloud/src/app/@shared'
 import { isEqual } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import {
@@ -53,6 +52,8 @@ import { INDICATOR_AGGREGATORS } from '../../../indicator/types'
 import { ProjectService } from '../../project.service'
 import { injectFetchModelDetails } from '../../types'
 import { injectIndicatorFormulaCommand } from '../../copilot'
+import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
 @Component({
   standalone: true,

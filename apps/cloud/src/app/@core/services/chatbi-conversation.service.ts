@@ -1,7 +1,5 @@
-import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { API_PREFIX, OrganizationBaseCrudService, SystemPrivacyFields } from '@metad/cloud/state'
-import { CopilotChatMessage } from '@metad/copilot'
 import { Indicator } from '@metad/ocap-core'
 import { omit } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
@@ -18,7 +16,7 @@ export interface ChatbiConverstion<T = any> {
   dataSource: string
   entity: string
   command: string
-  messages: CopilotChatMessage[]
+  messages: any[] // CopilotChatMessage[]
   indicators: Indicator[]
   answer: T
   examples: string[]

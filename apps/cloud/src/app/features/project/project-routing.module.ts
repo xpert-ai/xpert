@@ -10,7 +10,7 @@ import { IndicatorRegisterComponent } from './indicators/register/register.compo
 import { ProjectMembersComponent } from './members/members.component'
 import { ProjectComponent } from './project/project.component'
 import { ProjectFilesComponent } from './files/files.component'
-import { NotFoundComponent } from '../../@shared'
+import { NotFoundComponent } from '../../@shared/not-found'
 
 const routes: Routes = [
   {

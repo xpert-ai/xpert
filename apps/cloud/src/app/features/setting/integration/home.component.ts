@@ -7,10 +7,12 @@ import { NgmConfirmDeleteComponent, NgmTagsComponent } from '@metad/ocap-angular
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, EMPTY, map, switchMap } from 'rxjs'
 import { getErrorMessage, IIntegration, IntegrationService, routeAnimations, ToastrService } from '../../../@core'
-import { CardCreateComponent, MaterialModule, UserPipe } from '../../../@shared'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { DynamicGridDirective } from '@metad/core'
+import { CardCreateComponent } from '../../../@shared/card'
+import { MaterialModule } from '../../../@shared/material.module'
+import { UserPipe } from '../../../@shared/pipes'
 
 @Component({
   standalone: true,

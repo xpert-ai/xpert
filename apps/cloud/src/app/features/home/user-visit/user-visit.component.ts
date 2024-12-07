@@ -6,7 +6,7 @@ import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatest, distinctUntilChanged, switchMap } from 'rxjs'
 import { Store, VisitsService } from '../../../@core/services'
-import { MaterialModule } from '../../../@shared'
+import { MaterialModule } from '../../../@shared/material.module'
 
 @Component({
   standalone: true,

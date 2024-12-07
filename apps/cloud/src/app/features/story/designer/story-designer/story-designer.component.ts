@@ -10,8 +10,9 @@ import { FORMLY_W_1_2 } from '@metad/story/designer'
 import { FormlyFieldConfig, FormlyFormOptions, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { combineLatest, debounceTime, map, startWith } from 'rxjs'
-import { InlineSearchComponent, MaterialModule } from '../../../../@shared'
 import { DesignerWidgetComponent } from '../widget/widget.component'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
 
 @Component({
   standalone: true,

@@ -1,10 +1,10 @@
 import { Routes } from '@angular/router'
-import { NotFoundComponent } from 'apps/cloud/src/app/@shared'
 import { ModelEntityCalculationComponent } from './calculation/calculation.component'
 import { ModelEntityComponent } from './entity.component'
 import { ModelEntityPreviewComponent } from './preview/preview.component'
 import { EntityQueryComponent } from './query/query.component'
 import { ModelEntityStructureComponent } from './structure/structure.component'
+import { NotFoundComponent } from 'apps/cloud/src/app/@shared/not-found/'
 
 export const routes: Routes = [
   {

@@ -9,16 +9,12 @@ import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@me
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, map, switchMap } from 'rxjs'
 import { IStorageFile, ProjectsService, Store, ToastrService } from '../../../@core'
-import {
-  MaterialModule,
-  ProjectFilesDialogComponent,
-  UserProfileComponent,
-  UserProfileInlineComponent,
-  UserRoleSelectComponent,
-  userLabel
-} from '../../../@shared'
 import { InlineSearchComponent } from '../../../@shared/form-fields'
 import { ProjectComponent } from '../project/project.component'
+import { MaterialModule } from '../../../@shared/material.module'
+import { userLabel } from '../../../@shared/pipes'
+import { ProjectFilesDialogComponent } from '../../../@shared/project'
+import { UserRoleSelectComponent, UserProfileComponent, UserProfileInlineComponent } from '../../../@shared/user'
 
 @Component({
   standalone: true,

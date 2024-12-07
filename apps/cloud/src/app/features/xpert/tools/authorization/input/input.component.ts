@@ -6,7 +6,7 @@ import { MatDialog } from '@angular/material/dialog'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ApiProviderAuthType } from 'apps/cloud/src/app/@core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { XpertToolAuthorizationComponent } from '../dialog/authorization.component'
 

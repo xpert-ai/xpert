@@ -44,7 +44,6 @@ import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom, from } from 'rxjs'
 import { distinctUntilChanged, filter, map, share, shareReplay, switchMap, tap } from 'rxjs/operators'
 import { MenuCatalog, registerWasmAgentModel, Store } from '../../../@core'
-import { MaterialModule, TranslationBaseComponent } from '../../../@shared'
 import { effectStoryTheme } from '../../../@theme'
 import { AppService } from '../../../app.service'
 import { StoryToolbarComponent } from '../toolbar/toolbar.component'
@@ -53,6 +52,8 @@ import { ResponsiveBreakpoints, ResponsiveBreakpointType } from '../types'
 import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
 import { MatDialog } from '@angular/material/dialog'
 import { injectCalculationGraphCommand, injectStoryCommand, injectStoryPageCommand, injectStoryStyleCommand, injectStoryWidgetCommand } from '../copilot'
+import { MaterialModule } from '../../../@shared/material.module'
+import { TranslationBaseComponent } from '../../../@shared/language'
 
 @Component({
   standalone: true,

@@ -11,7 +11,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { StoriesService } from '@metad/cloud/state'
 import { debounceTime, distinctUntilChanged, switchMap, tap } from 'rxjs'
 import { IStory, listAnimation } from '../../../@core'
-import { StoryCardComponent } from '../../../@shared'
+import { StoryCardComponent } from '../../../@shared/story'
 
 @Component({
   standalone: true,

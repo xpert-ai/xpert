@@ -14,7 +14,7 @@ import {
   ToastrService,
   XpertService
 } from 'apps/cloud/src/app/@core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { formatRelative } from 'date-fns'
 import { sortBy } from 'lodash-es'

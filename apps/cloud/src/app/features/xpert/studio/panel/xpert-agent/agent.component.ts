@@ -27,7 +27,6 @@ import {
   XpertAgentExecutionService,
   XpertService
 } from 'apps/cloud/src/app/@core'
-import { CopilotModelSelectComponent, CopilotPromptEditorComponent, MaterialModule, XpertParametersEditComponent } from 'apps/cloud/src/app/@shared'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioPanelAgentExecutionComponent } from '../agent-execution/execution.component'
@@ -38,6 +37,9 @@ import { map } from 'rxjs'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelKnowledgeSectionComponent } from './knowledge-section/knowledge.component'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { CopilotModelSelectComponent, CopilotPromptEditorComponent } from 'apps/cloud/src/app/@shared/copilot'
+import { XpertParametersEditComponent } from 'apps/cloud/src/app/@shared/xpert'
 
 @Component({
   selector: 'xpert-studio-panel-agent',

@@ -7,7 +7,7 @@ import { ComponentStyling } from '@metad/story/core'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ColorInputComponent } from '../color-input/color-input.component'
-import { MaterialModule } from '../../../../@shared'
+import { MaterialModule } from '../../../../@shared/material.module'
 
 @Component({
   standalone: true,

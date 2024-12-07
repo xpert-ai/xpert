@@ -2,17 +2,15 @@ import { Component } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { MatDialog } from '@angular/material/dialog'
 import { NgmConfirmDeleteComponent, NgmTableComponent } from '@metad/ocap-angular/common'
-import {
-  MaterialModule,
-  SharedModule,
-  TranslationBaseComponent,
-  UserProfileInlineComponent
-} from 'apps/cloud/src/app/@shared'
 import { differenceWith } from 'lodash-es'
 import { BehaviorSubject, combineLatest, firstValueFrom } from 'rxjs'
 import { map, shareReplay, switchMap } from 'rxjs/operators'
 import { IOrganization, OrganizationsService, ToastrService, UsersOrganizationsService } from '../../../../@core'
 import { PACEditUserComponent } from '../edit-user/edit-user.component'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
+import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
 
 @Component({
   standalone: true,

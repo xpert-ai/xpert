@@ -21,13 +21,14 @@ import { injectParams } from 'ngxtension/inject-params'
 import { EMPTY } from 'rxjs'
 import { filter, map } from 'rxjs/operators'
 import { Store, ToastrService } from '../../../../../@core'
-import { MaterialModule, TranslationBaseComponent } from '../../../../../@shared/'
 import { AppService } from '../../../../../app.service'
 import { injectFormulaCommand } from '../../copilot/'
 import { SemanticModelService } from '../../model.service'
 import { MODEL_TYPE, ModelDesignerType } from '../../types'
 import { ModelEntityService } from '../entity.service'
 import { getDropProperty } from '../types'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 @Component({
   standalone: true,

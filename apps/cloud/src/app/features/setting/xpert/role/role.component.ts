@@ -20,9 +20,11 @@ import {
   XpertService,
   XpertToolsetService
 } from '../../../../@core'
-import { AvatarEditorComponent, MaterialModule, UpsertEntityComponent } from '../../../../@shared'
 import { KnowledgebaseListComponent, ToolsetListComponent } from '../../../../@shared/copilot'
 import { XpertRolesComponent } from '../roles/roles.component'
+import { UpsertEntityComponent } from 'apps/cloud/src/app/@shared/common'
+import { AvatarEditorComponent } from 'apps/cloud/src/app/@shared/files'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
 
 @Component({

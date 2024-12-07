@@ -5,9 +5,10 @@ import { NgmDisplayBehaviourComponent, TableColumn } from '@metad/ocap-angular/c
 import { DisplayDensity } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { serializeMemberCaption } from '@metad/ocap-sql'
-import { MaterialModule, SharedModule } from 'apps/cloud/src/app/@shared'
 import { findIndex, get } from 'lodash-es'
 import { HierarchyTableDataType } from '../types'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 
 type LevelTableColumn = TableColumn & { captionName: string }
 

@@ -32,18 +32,14 @@ import {
   XpertTypeEnum,
   XpertWorkspaceService
 } from '../../../../@core'
-import {
-  CardCreateComponent,
-  MaterialModule,
-  ToolProviderCardComponent,
-  ToolsetCardComponent,
-  XpertCardComponent
-} from '../../../../@shared'
 import { AppService } from '../../../../app.service'
 import { XpertToolConfigureBuiltinComponent } from '../../tools'
 import { XpertStudioCreateToolComponent } from '../../tools/create/create.component'
 import { XpertNewBlankComponent } from '../../xpert/index'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { CardCreateComponent } from 'apps/cloud/src/app/@shared/card'
+import { ToolProviderCardComponent, ToolsetCardComponent, XpertCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 
 @Component({
   standalone: true,

@@ -15,12 +15,12 @@ import {
   getErrorMessage,
   ICopilotProviderModel,
   injectCopilots,
-  PACCopilotService,
   Store,
   ToastrService
 } from '../../../../@core'
-import { CopilotAiProvidersComponent, CopilotProviderComponent, MaterialModule } from '../../../../@shared'
-import { CopilotModelSelectComponent } from '../../../../@shared/'
+import { PACCopilotService } from '../../../services'
+import { CopilotProviderComponent, CopilotModelSelectComponent, CopilotAiProvidersComponent } from 'apps/cloud/src/app/@shared/copilot'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
 const PROVIDERS = [
   {

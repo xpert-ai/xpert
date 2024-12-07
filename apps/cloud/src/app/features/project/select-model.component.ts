@@ -8,7 +8,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ISemanticModel } from '../../@core'
-import { MaterialModule } from '../../@shared'
+import { MaterialModule } from '../../@shared/material.module'
 
 @Component({
   standalone: true,

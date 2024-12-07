@@ -13,7 +13,7 @@ import {
   ToastrService,
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { isNil, omitBy } from 'lodash-es'
 import { XpertConfigureToolComponent } from '../api-tool/types'
 import { XpertStudioConfigureODataComponent } from '../odata/'

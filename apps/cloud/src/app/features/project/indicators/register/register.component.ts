@@ -44,7 +44,6 @@ import { injectParams } from 'ngxtension/inject-params'
 import { EMPTY, firstValueFrom } from 'rxjs'
 import { catchError, delayWhen, distinctUntilChanged, filter, map, startWith, tap } from 'rxjs/operators'
 import { IIndicator, isUUID, ToastrService } from '../../../../@core/index'
-import { MaterialModule, TranslationBaseComponent } from '../../../../@shared'
 import { ProjectService } from '../../project.service'
 import { exportIndicator, NewIndicatorCodePlaceholder } from '../../types'
 import { ProjectIndicatorsComponent } from '../indicators.component'
@@ -52,6 +51,8 @@ import { IndicatorRegisterFormComponent } from '../register-form/register-form.c
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Dialog } from '@angular/cdk/dialog'
 import { ExplainComponent } from '@metad/story/story'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 
 // AOA : array of array

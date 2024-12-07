@@ -9,9 +9,11 @@ import { formatRelative } from 'date-fns'
 import { isNil, negate } from 'lodash-es'
 import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
 import { AbilityActions, getDateLocale } from '../../../@core'
-import { CreatedByPipe, MaterialModule, TagViewerComponent } from '../../../@shared'
 import { IndicatorTypeComponent } from '../../../@shared/indicator'
 import { NgmSelectionModule } from '@metad/ocap-angular/selection'
+import { MaterialModule } from '../../../@shared/material.module'
+import { TagViewerComponent } from '../../../@shared/tag'
+import { CreatedByPipe } from '../../../@shared/pipes'
 
 @Component({
   standalone: true,

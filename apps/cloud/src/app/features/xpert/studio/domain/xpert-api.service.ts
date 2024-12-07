@@ -4,7 +4,7 @@ import { IPoint, IRect } from '@foblex/2d'
 import { nonNullable, debounceUntilChanged } from '@metad/core'
 import { createStore, Store, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
-import { KnowledgebaseService, PACCopilotService, ToastrService, XpertService, XpertToolsetService } from 'apps/cloud/src/app/@core'
+import { KnowledgebaseService, ToastrService, XpertService, XpertToolsetService } from 'apps/cloud/src/app/@core'
 import { isEqual, negate, omit } from 'lodash-es'
 import {
   BehaviorSubject,
@@ -53,6 +53,7 @@ import { injectGetXpertsByWorkspace, injectGetXpertTeam } from '../../utils'
 import { XpertComponent } from '../../xpert'
 import { FCanvasChangeEvent } from '@foblex/flow'
 import { nonBlank } from '@metad/copilot'
+import { PACCopilotService } from '../../../services'
 
 
 @Injectable()

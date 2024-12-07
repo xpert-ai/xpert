@@ -12,8 +12,8 @@ import { cloneDeep } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { IUserUpdateInput, LanguagesEnum, Store, ToastrService, User } from '../../../@core'
-import { CreatedByPipe } from '../../../@shared'
 import { UserFormsModule } from '../../../@shared/user/forms'
+import { CreatedByPipe } from '../../../@shared/pipes'
 
 @Component({
   standalone: true,

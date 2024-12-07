@@ -4,7 +4,6 @@ import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule } from '@ang
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { injectParams } from 'ngxtension/inject-params'
-import { MaterialModule, XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared'
 import { ButtonGroupDirective, NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { MatDialog } from '@angular/material/dialog'
 import { NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
@@ -18,6 +17,8 @@ import { XpertStudioConfigureODataComponent } from '../odata'
 import { XpertStudioConfigureToolComponent } from '../openapi/'
 import { XpertConfigureToolComponent } from './types'
 import { omit } from 'lodash-es'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
 
 @Component({
   standalone: true,

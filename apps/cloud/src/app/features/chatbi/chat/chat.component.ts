@@ -29,7 +29,7 @@ import { injectExamplesAgent } from '../copilot'
 import { ChatbiInputComponent } from '../input/input.component'
 import { ChatLoadingComponent } from '../../../@shared/copilot'
 import { AppService } from '../../../app.service'
-import { UserAvatarComponent } from '../../../@shared'
+import { UserAvatarComponent } from '../../../@shared/user'
 
 @Component({
   standalone: true,

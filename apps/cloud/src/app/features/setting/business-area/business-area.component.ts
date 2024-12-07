@@ -8,9 +8,11 @@ import { NgmCommonModule, SplitterType } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { Subject, firstValueFrom } from 'rxjs'
 import { IBusinessArea, ToastrService, routeAnimations } from '../../../@core'
-import { ManageEntityBaseComponent, MaterialModule, SharedModule } from '../../../@shared'
 import { AppService } from '../../../app.service'
 import { BusinessAreasComponent } from './business-areas/areas.component'
+import { SharedModule } from '../../../@shared/shared.module'
+import { MaterialModule } from '../../../@shared/material.module'
+import { ManageEntityBaseComponent } from '../../../@shared/directives'
 
 @Component({
   standalone: true,

@@ -23,7 +23,6 @@ import {
   XpertToolsetCategoryEnum,
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
-import { TagSelectComponent, XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -35,6 +34,8 @@ import { XpertToolAuthorizationInputComponent } from '../../authorization'
 import { XpertToolTestDialogComponent } from '../../tool-test'
 import { XpertConfigureToolComponent } from '../../api-tool/types'
 import { Dialog, DialogModule } from '@angular/cdk/dialog'
+import { TagSelectComponent } from 'apps/cloud/src/app/@shared/tag'
+import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
 
 
 @Component({

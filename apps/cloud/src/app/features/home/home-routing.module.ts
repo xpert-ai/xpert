@@ -3,7 +3,6 @@ import { RouterModule, Routes } from '@angular/router'
 import { CatalogComponent } from './catalog/catalog.component'
 import { DashboardComponent } from './dashboard/dashboard.component'
 import { HomeComponent } from './home.component'
-import { InsightComponent } from './insight/insight.component'
 import { TrendingComponent } from './trending/trending.component'
 
 export function redirectTo() {

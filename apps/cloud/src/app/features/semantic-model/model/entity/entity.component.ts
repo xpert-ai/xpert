@@ -10,7 +10,7 @@ import { NX_STORY_STORE, NxStoryStore, Story, StoryModel } from '@metad/story/co
 import { NxDesignerModule, NxSettingsPanelService } from '@metad/story/designer'
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService } from 'apps/cloud/src/app/@core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { isNil, negate } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom, of } from 'rxjs'

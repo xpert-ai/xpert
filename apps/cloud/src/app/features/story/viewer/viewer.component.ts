@@ -44,10 +44,11 @@ import {
   ToastrService,
   isMobile
 } from '../../../@core'
-import { MaterialModule, TranslationBaseComponent } from '../../../@shared'
 import { effectStoryTheme, registerStoryThemes } from '../../../@theme'
 import { AppService } from '../../../app.service'
 import { StoryScales, downloadStory } from '../types'
+import { MaterialModule } from '../../../@shared/material.module'
+import { TranslationBaseComponent } from '../../../@shared/language'
 
 @Component({
   standalone: true,

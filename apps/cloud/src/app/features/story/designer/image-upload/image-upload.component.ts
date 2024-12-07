@@ -6,7 +6,7 @@ import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IScreenshot, ScreenshotService } from 'apps/cloud/src/app/@core'
 import { firstValueFrom } from 'rxjs'
-import { MaterialModule } from '../../../../@shared'
+import { MaterialModule } from '../../../../@shared/material.module'
 
 @Component({
   standalone: true,

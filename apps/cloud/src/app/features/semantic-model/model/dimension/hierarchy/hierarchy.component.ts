@@ -28,7 +28,6 @@ import { NxSettingsPanelService } from '@metad/story/designer'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateService } from '@ngx-translate/core'
 import { NgmError, ToastrService, uuid } from 'apps/cloud/src/app/@core'
-import { MaterialModule, SharedModule } from 'apps/cloud/src/app/@shared'
 import { isEqual } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, of } from 'rxjs'
@@ -55,6 +54,8 @@ import { ModelDimensionService } from '../dimension.service'
 import { HierarchyTableComponent } from '../hierarchy-table/hierarchy-table.component'
 import { HierarchyTableDataType } from '../types'
 import { ModelHierarchyService } from './hierarchy.service'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 
 @Component({
   standalone: true,

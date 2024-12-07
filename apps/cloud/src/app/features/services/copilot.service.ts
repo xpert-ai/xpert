@@ -3,7 +3,7 @@ import { effect, inject, Injectable, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { Router } from '@angular/router'
 import { API_PREFIX, AuthService } from '@metad/cloud/state'
-import { AiProviderRole, BusinessRoleType, ICopilot } from '@metad/copilot'
+import { BusinessRoleType, ICopilot } from '@metad/copilot'
 import { NgmCopilotService } from '@metad/copilot-angular'
 import { pick } from '@metad/ocap-core'
 import { environment } from 'apps/cloud/src/environments/environment'
@@ -18,10 +18,9 @@ import {
   startWith,
   switchMap
 } from 'rxjs'
-import { ICopilot as IServerCopilot } from '../types'
-import { AgentService } from './agent.service'
-import { Store } from './store.service'
-import { XpertService } from './xpert.service'
+import { ICopilot as IServerCopilot } from '../../@core/types'
+import { AgentService } from '../../@core/services/agent.service'
+import { Store, XpertService } from '../../@core'
 
 
 const baseUrl = environment.API_BASE_URL
