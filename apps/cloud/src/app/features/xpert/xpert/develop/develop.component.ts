@@ -1,14 +1,15 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, ElementRef, inject } from '@angular/core'
+import { afterNextRender, afterRender, AfterRenderPhase, ChangeDetectionStrategy, Component, ElementRef, inject, viewChild } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { routeAnimations } from '../../../../@core'
+import { injectApiBaseUrl, routeAnimations } from '../../../../@core'
 import { Dialog } from '@angular/cdk/dialog'
 import { XpertDevelopApiKeyComponent } from './api-key/api-key.component'
 import { XpertComponent } from '../xpert.component'
 import SwaggerUI from 'swagger-ui';
 import customerApiDoc from './openapi.json'
+
 
 @Component({
   standalone: true,
@@ -23,15 +24,27 @@ export class XpertDevelopComponent {
   readonly xpertComponent = inject(XpertComponent)
   readonly #dialog = inject(Dialog)
   readonly #elementRef = inject(ElementRef)
+  readonly apiBaseUrl = injectApiBaseUrl()
+
+  readonly swaggerUIContainer = viewChild('swaggeruiContainer', { read: ElementRef })
 
   readonly xpertId = this.xpertComponent.paramId
 
-  ngAfterContentInit(): void {
-    const apiDocumentation = customerApiDoc;
-    const ui = SwaggerUI({
-      spec: apiDocumentation,
-      domNode: this.#elementRef.nativeElement.querySelector('#redoc-container'),
-    })
+  constructor() {
+    afterNextRender(() => {
+      console.log(customerApiDoc)
+      const apiDocumentation = {...customerApiDoc, 
+        "servers": [
+          {
+            "url": this.apiBaseUrl + '/api/ai/'
+          }
+        ],
+       }
+      const ui = SwaggerUI({
+        spec: apiDocumentation,
+        domNode: this.swaggerUIContainer().nativeElement,
+      })
+    }, { phase: AfterRenderPhase.Write })
   }
 
   openApiKey() {

@@ -9,9 +9,17 @@ export type TChatConversationOptions = {
   toolsets?: string[]
 }
 
+export type TChatConversationStatus = "idle" | "busy" | "interrupted" | "error"
+
+/**
+ * Chat conversation for xpert ai agent.
+ * 
+ * Corresponds to the thread in the [Agent Protocol](https://github.com/langchain-ai/agent-protocol).
+ */
 export interface IChatConversation extends IBasePerTenantAndOrganizationEntityModel {
   key: string
   title?: string
+  status?: TChatConversationStatus
   
   options?: TChatConversationOptions
 

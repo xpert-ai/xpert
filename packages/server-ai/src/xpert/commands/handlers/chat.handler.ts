@@ -41,6 +41,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			conversation = await this.queryBus.execute(
 				new FindChatConversationQuery({id: conversationId}, ['execution'])
 			)
+			conversation.messages ??= []
 			conversation.messages.push(userMessage)
 			await this.commandBus.execute(
 				new ChatConversationUpsertCommand({

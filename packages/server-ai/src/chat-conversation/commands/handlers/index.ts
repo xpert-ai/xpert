@@ -5,5 +5,5 @@ import { ChatConversationUpsertHandler } from './upsert.handler'
 export const CommandHandlers = [
     ChatConversationUpsertHandler,
     ChatConversationCreateHandler,
-    ChatConversationUpdateHandler
+    ChatConversationUpdateHandler,
 ]

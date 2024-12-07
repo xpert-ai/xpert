@@ -8,6 +8,6 @@ export class FindChatConversationHandler implements IQueryHandler<FindChatConver
 	constructor(private readonly service: ChatConversationService) {}
 
 	public async execute(command: FindChatConversationQuery): Promise<IChatConversation> {
-		return await this.service.findOne({ where: command.input, relations: command.relations })
+		return await this.service.findOne({ where: command.conditions, relations: command.relations })
 	}
 }
