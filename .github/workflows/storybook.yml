@@ -13,8 +13,8 @@ jobs:
           persist-credentials: false
       - name: Install and Build 🔧
         run: | # Install npm packages and build the Storybook files
-          npm install --legacy-peer-deps
-          npm run b:docs
+          yarn bootstrap
+          yarn b:docs
           mv dist/storybook/angular docs/storybook
           mv packages/core/.docs docs/api/core
           mv packages/store/.docs docs/api/store
