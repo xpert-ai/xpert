@@ -127,6 +127,7 @@
     "short-unique-id": "^4.4.4",
     "socket.io-client": "^4.7.5",
     "sql-formatter": "^4.0.2",
+    "swagger-ui": "^5.18.2",
     "swiper": "^8.0.7",
     "timers": "^0.1.1",
     "tinymce": "^6.0.0",
