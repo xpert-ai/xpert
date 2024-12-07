@@ -1,0 +1,37 @@
+<div class="px-2 py-1">
+  <div class="group transition-all bg-background-default border border-components-panel-border rounded-[10px] shadows-shadow-xs hover:shadow-md">
+    <div class="flex items-center pl-1 pr-3 cursor-pointer py-1.5 text-sm" (click)="expand.set(!expand())">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+        class="remixicon shrink-0 w-4 h-4 mr-1 text-text-quaternary transition-all group-hover:text-text-tertiary"
+        [ngClass]="expand() ? 'rotate-90' : ''"
+      >
+        <path d="M13.1717 12.0007L8.22192 7.05093L9.63614 5.63672L16.0001 12.0007L9.63614 18.3646L8.22192 16.9504L13.1717 12.0007Z"></path>
+      </svg>
+
+      <emoji-avatar [avatar]="avatar()" xs class="rounded-lg overflow-hidden mr-1" />
+      
+      <div class="grow text-text-secondary system-xs-semibold-uppercase truncate" [title]="agent()?.title">{{agent()?.title}}</div>
+      <div class="shrink-0 text-text-tertiary system-xs-regular">{{ execution()?.elapsedTime | number }} ms</div>
+
+      @switch (execution().status) {
+        @case (eXpertAgentExecutionStatusEnum.SUCCESS) {
+          <i class="ri-checkbox-circle-fill shrink-0 ml-2 text-text-success"></i>
+        }
+        @case (eXpertAgentExecutionStatusEnum.ERROR) {
+          <i class="ri-close-circle-fill shrink-0 ml-2 text-text-warning"></i>
+        }
+        @case (eXpertAgentExecutionStatusEnum.INTERRUPTED) {
+          <i class="ri-forbid-2-fill shrink-0 ml-2 text-text-secondary"></i>
+        }
+      }
+    </div>
+
+    @for (execution of executions(); track execution.id) {
+      <xpert-agent-execution-accordion class="w-full mt-4" [execution]="execution" />
+    }
+
+    @if (expand()) {
+      <xpert-agent-execution class="w-full px-4 my-4" [execution]="execution()" />
+    }
+  </div>
+</div>

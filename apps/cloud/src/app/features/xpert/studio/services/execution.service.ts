@@ -52,16 +52,19 @@ export class XpertExecutionService {
 
   // Subsribe conversation
   private conversationSub = toObservable(this.conversationId).pipe(
-    switchMap((id) => id ? this.conversationService.getById(this.conversationId(), { relations: ['execution', 'execution.subExecutions'] }) : of(null))
+    switchMap((id) => id ? this.conversationService.getById(this.conversationId(), { relations: [] }) : of(null))
   ).subscribe((conv) => {
     this.conversation.set(conv)
   })
 
   constructor() {
     effect(() => {
-      const execution = this.conversation()?.execution
-      if (execution) {
-        this.#agentExecutions.set({[execution.agentKey]: execution})
+      const executions = this.conversation()?.executions
+      if (executions) {
+        this.#agentExecutions.set(executions.reduce((acc, execution) => {
+          acc[execution.agentKey] = execution
+          return acc
+        }, {} as Record<string, IXpertAgentExecution>))
       }
     }, { allowSignalWrites: true })
   }

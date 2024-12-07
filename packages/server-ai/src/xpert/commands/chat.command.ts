@@ -9,8 +9,6 @@ export class XpertChatCommand implements ICommand {
 		public readonly options?: TChatOptions & {
 			// Use xpert's draft
 			isDraft?: boolean
-			// knowledgebases?: string[]
-			// toolsets?: string[]
 		}
 	) {}
 }

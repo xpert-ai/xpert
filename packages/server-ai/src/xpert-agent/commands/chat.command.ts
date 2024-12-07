@@ -13,7 +13,6 @@ export class XpertAgentChatCommand implements ICommand {
 			[key: string]: unknown
 		},
 		public readonly agentKey: string,
-		
 		public readonly xpert: Partial<IXpert>,
 		public readonly options: TChatOptions & {
 			// Use xpert's draft

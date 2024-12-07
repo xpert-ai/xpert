@@ -3,18 +3,21 @@ import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IXpert } from './xpert.model'
 import { IXpertAgent } from './xpert-agent.model'
 
+/**
+ * Corresponds to the run in the [Agent Protocol](https://github.com/langchain-ai/agent-protocol).
+ */
 export type TXpertAgentExecution = {
   title?: string
   processData?: any
   inputs?: any
   outputs?: any
-  status?: XpertAgentExecutionEnum
+  status?: XpertAgentExecutionStatusEnum
   error?: string
   elapsedTime?: number
   tokens?: number
   metadata?: TAgentExecutionMetadata
 
-  thread_id?: string
+  threadId?: string
   parent_thread_id?: string
 
   // Many to one
@@ -35,16 +38,24 @@ export type TXpertAgentExecution = {
 }
 
 /**
- * Execute xpert agent
+ * Execute xpert agent.
+ * 
+ * Corresponds to the run in the [Agent Protocol](https://github.com/langchain-ai/agent-protocol).
  */
 export interface IXpertAgentExecution extends IBasePerTenantAndOrganizationEntityModel, TXpertAgentExecution {
   
 }
 
-export enum XpertAgentExecutionEnum {
+/**
+ * Corresponds to the status of Run in [Agent Protocol](https://github.com/langchain-ai/agent-protocol).
+ */
+export enum XpertAgentExecutionStatusEnum {
   RUNNING = 'running',
-  SUCCEEDED = 'succeeded',
-  FAILED = 'failed'
+  SUCCESS = 'success',
+  ERROR = 'error',
+  PENDING = 'pending',
+  TIMEOUT = 'timeout',
+  INTERRUPTED = 'interrupted'
 }
 
 export type TAgentExecutionMetadata = {

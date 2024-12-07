@@ -9,15 +9,15 @@ export class FindThreadHandler implements IQueryHandler<FindThreadQuery> {
 	constructor(private readonly queryBus: QueryBus) {}
 
 	public async execute(command: FindThreadQuery): Promise<ThreadDTO> {
-		const chatConversation =  await this.queryBus.execute(new FindChatConversationQuery({ key: command.threadId }, command.relations))
+		const chatConversation =  await this.queryBus.execute(new FindChatConversationQuery({ threadId: command.threadId }, command.relations))
 
-		const checkpoint = await this.queryBus.execute(new CopilotCheckpointGetTupleQuery({
+		const tuple = await this.queryBus.execute(new CopilotCheckpointGetTupleQuery({
 			thread_id: command.threadId,
 			checkpoint_ns: ''
 		}))
 
-		console.log(checkpoint)
+		console.log(tuple)
 
-		return new ThreadDTO(chatConversation)
+		return new ThreadDTO(chatConversation, tuple.checkpoint.channel_values)
 	}
 }

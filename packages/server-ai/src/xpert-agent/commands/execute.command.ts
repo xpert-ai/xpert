@@ -1,6 +1,6 @@
 import { tool } from '@langchain/core/tools'
 import { LangGraphRunnableConfig } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpert, IXpertAgent, IXpertAgentExecution, TChatOptions, TXpertParameter, XpertAgentExecutionEnum, XpertParameterTypeEnum } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpert, IXpertAgent, IXpertAgentExecution, TChatOptions, TXpertParameter, XpertAgentExecutionStatusEnum, XpertParameterTypeEnum } from '@metad/contracts'
 import { convertToUrlPath, getErrorMessage } from '@metad/server-common'
 import { CommandBus, ICommand, QueryBus } from '@nestjs/cqrs'
 import { lastValueFrom, Observable, reduce, Subscriber, tap } from 'rxjs'
@@ -58,10 +58,14 @@ export function createXpertAgentTool(
 
 	return tool(
 		async (args, config: LangGraphRunnableConfig) => {
+			/**
+			 * @todo should record runId in execution
+			 */
+			const runId = config.runId
+
 			// Record start time
 			const timeStart = Date.now()
 
-			const thread_id = crypto.randomUUID()
 			const execution = await commandBus.execute(
 				new XpertAgentExecutionUpsertCommand({
 					xpert: { id: xpert.id } as IXpert,
@@ -69,8 +73,7 @@ export function createXpertAgentTool(
 					inputs: args,
 					parentId: options.rootExecutionId,
 					parent_thread_id: config.configurable.thread_id,
-					thread_id,
-					status: XpertAgentExecutionEnum.RUNNING
+					status: XpertAgentExecutionStatusEnum.RUNNING
 				})
 			)
 
@@ -85,7 +88,7 @@ export function createXpertAgentTool(
 				}) as MessageEvent
 			)
 
-			let status = XpertAgentExecutionEnum.SUCCEEDED
+			let status = XpertAgentExecutionStatusEnum.SUCCESS
 			let error = null
 			let result = ''
 			const finalize = async () => {
@@ -98,7 +101,6 @@ export function createXpertAgentTool(
 						status,
 						error,
 						tokens: execution.tokens,
-						thread_id,
 						outputs: {
 							output: result
 						}
@@ -122,7 +124,7 @@ export function createXpertAgentTool(
 			}
 			try {
 				const obs = await commandBus.execute<XpertAgentExecuteCommand, Observable<string>>(
-					new XpertAgentExecuteCommand(args, agent.key, xpert, { ...options, thread_id, execution })
+					new XpertAgentExecuteCommand(args, agent.key, xpert, { ...options, thread_id: execution.threadId, execution })
 				)
 				
 				await lastValueFrom(obs.pipe(
@@ -132,7 +134,7 @@ export function createXpertAgentTool(
 							result = text
 						},
 						error: (err) => {
-							status = XpertAgentExecutionEnum.FAILED
+							status = XpertAgentExecutionStatusEnum.ERROR
 							error = getErrorMessage(err)
 						},
 						finalize: async () => {
@@ -149,7 +151,7 @@ export function createXpertAgentTool(
 			} catch(err) {
 				// Catch the error before generated obs
 				try {
-					status = XpertAgentExecutionEnum.FAILED
+					status = XpertAgentExecutionStatusEnum.ERROR
 					error = getErrorMessage(err)
 					await finalize()
 				} catch(err) {

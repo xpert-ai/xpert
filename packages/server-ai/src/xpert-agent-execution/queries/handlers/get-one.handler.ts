@@ -5,6 +5,7 @@ import { sortBy } from 'lodash'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
 import { XpertAgentExecutionService } from '../../agent-execution.service'
 import { XpertAgentExecutionOneQuery } from '../get-one.query'
+import { XpertAgentExecutionDTO } from '../../dto'
 
 
 @QueryHandler(XpertAgentExecutionOneQuery)
@@ -16,7 +17,7 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 
 	public async execute(command: XpertAgentExecutionOneQuery): Promise<IXpertAgentExecution> {
 		const id = command.id
-		const execution = await this.service.findOne(id, { relations: ['subExecutions'] })
+		const execution = await this.service.findOne(id, { relations: ['subExecutions', 'createdBy', 'subExecutions.createdBy'] })
 
 		const subExecutions = sortBy(execution.subExecutions, 'createdAt')
 
@@ -27,16 +28,17 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 	}
 
 	async expandExecutionLatestCheckpoint(execution: IXpertAgentExecution) {
-		if (!execution.thread_id) {
+		if (!execution.threadId) {
 			return execution
 		}
 		const tuple = await this.queryBus.execute(
-			new CopilotCheckpointGetTupleQuery({ thread_id: execution.thread_id, checkpoint_ns: '' })
+			new CopilotCheckpointGetTupleQuery({ thread_id: execution.threadId, checkpoint_ns: '' })
 		)
 		const messages = tuple?.checkpoint?.channel_values?.messages
-		return {
+		return new XpertAgentExecutionDTO({
 			...execution,
-			messages: messages ? mapChatMessagesToStoredMessages(messages) : null
-		}
+			messages: messages ? mapChatMessagesToStoredMessages(messages) : null,
+			totalTokens: execution.totalTokens
+		})
 	}
 }

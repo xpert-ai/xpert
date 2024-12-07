@@ -1,7 +1,9 @@
 import { FindExecutionsByXpertHandler } from "./find-by-expert.handler";
+import { FindAgentExecutionsHandler } from "./find.handler";
 import { XpertAgentExecutionOneHandler } from "./get-one.handler";
 
 export const QueryHandlers = [
 	FindExecutionsByXpertHandler,
-	XpertAgentExecutionOneHandler
+	FindAgentExecutionsHandler,
+	XpertAgentExecutionOneHandler,
 ];

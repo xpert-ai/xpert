@@ -17,7 +17,7 @@ export type TChatConversationStatus = "idle" | "busy" | "interrupted" | "error"
  * Corresponds to the thread in the [Agent Protocol](https://github.com/langchain-ai/agent-protocol).
  */
 export interface IChatConversation extends IBasePerTenantAndOrganizationEntityModel {
-  key: string
+  threadId: string
   title?: string
   status?: TChatConversationStatus
   
@@ -25,12 +25,15 @@ export interface IChatConversation extends IBasePerTenantAndOrganizationEntityMo
 
   messages?: CopilotBaseMessage[] | null
 
-  // One ton one
-  /**
-   * Agent Execution of this conversation
-   */
-  execution?: IXpertAgentExecution
-  readonly executionId?: string
+  // // One ton one
+  // /**
+  //  * @deprecated should has multiple executions for every run
+  //  */
+  // execution?: IXpertAgentExecution
+  // /**
+  //  * @deprecated should has multiple executions for every run
+  //  */
+  // readonly executionId?: string
 
   // Many to one
   /**
@@ -38,6 +41,8 @@ export interface IChatConversation extends IBasePerTenantAndOrganizationEntityMo
    */
   xpert?: IXpert
   xpertId?: string | null
+
+  executions?: IXpertAgentExecution[]
 }
 
 // Types
@@ -156,6 +161,8 @@ export type CopilotChatMessage = CopilotBaseMessage & {
   error?: string
 
   messages?: Array<any> // StoredMessage
+
+  executionId?: string
 }
 
 export interface CopilotMessageGroup extends CopilotBaseMessage {

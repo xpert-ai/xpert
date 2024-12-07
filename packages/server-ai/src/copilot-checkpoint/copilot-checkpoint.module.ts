@@ -11,6 +11,7 @@ import { CopilotCheckpointService } from './copilot-checkpoint.service'
 import { CopilotCheckpointWrites } from './writes/writes.entity'
 import { CopilotCheckpointWritesService } from './writes/writes.service'
 import { QueryHandlers } from './queries/handlers'
+import { CommandHandlers } from './commands/handlers'
 
 @Module({
 	imports: [
@@ -21,7 +22,7 @@ import { QueryHandlers } from './queries/handlers'
 		DatabaseModule
 	],
 	controllers: [CopilotCheckpointController],
-	providers: [CopilotCheckpointService, CopilotCheckpointSaver, CopilotCheckpointWritesService, ...QueryHandlers],
+	providers: [CopilotCheckpointService, CopilotCheckpointSaver, CopilotCheckpointWritesService, ...QueryHandlers, ...CommandHandlers],
 	exports: [CopilotCheckpointService, CopilotCheckpointSaver]
 })
 export class CopilotCheckpointModule {}

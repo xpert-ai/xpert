@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, input, model } from '@angular/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { IXpertAgentExecution } from '../../../@core'
 import { CopilotStoredMessageComponent } from '../../copilot'
 
@@ -7,6 +8,7 @@ import { CopilotStoredMessageComponent } from '../../copilot'
   standalone: true,
   imports: [
     CommonModule,
+    TranslateModule,
     CopilotStoredMessageComponent
   ],
   selector: 'xpert-agent-execution-log',

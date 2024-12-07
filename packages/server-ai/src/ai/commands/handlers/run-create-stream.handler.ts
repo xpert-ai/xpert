@@ -17,7 +17,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 		console.log(input)
 		
 		// Find thread (conversation) and assistant (xpert)
-		const conversation = await this.queryBus.execute(new FindChatConversationQuery({ key: threadId }))
+		const conversation = await this.queryBus.execute(new FindChatConversationQuery({ threadId }))
 		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: input.assistant_id }))
 
 		// Update xpert id for chat conversation

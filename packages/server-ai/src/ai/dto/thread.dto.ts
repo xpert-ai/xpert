@@ -44,12 +44,10 @@ export class ThreadDTO {
 	@Expose()
 	values: Record<string, any>;
 
-	constructor(partial: ChatConversation) {
+	constructor(partial: ChatConversation, values?: any) {
 		Object.assign(this, partial)
 
 		this.metadata = pick(partial, 'id', 'title', 'xpertId')
-		this.values = {
-			messages: partial.messages
-		}
+		this.values = values
 	}
 }

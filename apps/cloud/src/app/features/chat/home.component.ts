@@ -188,7 +188,7 @@ export class ChatHomeComponent {
       switchMap(() => {
         this.loading.set(true)
         return this.conversationService.getMyInOrg({
-          select: ['id', 'key', 'title', 'updatedAt'],
+          select: ['id', 'threadId', 'title', 'updatedAt'],
           order: { updatedAt: OrderTypeEnum.DESC },
           take: this.pageSize,
           skip: this.currentPage() * this.pageSize
