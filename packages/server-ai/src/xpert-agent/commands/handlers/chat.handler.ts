@@ -1,5 +1,5 @@
 import { MessageContent } from '@langchain/core/messages'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpert, XpertAgentExecutionEnum } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpert, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -29,13 +29,13 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 				xpert: { id: xpert.id } as IXpert,
 				agentKey,
 				inputs: input,
-				status: XpertAgentExecutionEnum.RUNNING,
+				status: XpertAgentExecutionStatusEnum.RUNNING,
 				title: input.input
 			})
 		)
 
 		const timeStart = Date.now()
-		const thread_id = execution.id
+		const thread_id = execution.threadId
 
 		return new Observable((subscriber) => {
 			// Start execution event
@@ -48,7 +48,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 			} as MessageEvent)
 
 			const destroy$ = new Subject<void>()
-			let status = XpertAgentExecutionEnum.SUCCEEDED
+			let status = XpertAgentExecutionStatusEnum.SUCCESS
 			let error = null
 			let result = ''
 			from(
@@ -76,7 +76,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 					}),
 					tap({
 						error: (err) => {
-							status = XpertAgentExecutionEnum.FAILED
+							status = XpertAgentExecutionStatusEnum.ERROR
 							error = getErrorMessage(err)
 						},
 						finalize: async () => {
@@ -90,7 +90,6 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 										status,
 										error,
 										tokens: execution.tokens,
-										thread_id,
 										outputs: {
 											output: result
 										}

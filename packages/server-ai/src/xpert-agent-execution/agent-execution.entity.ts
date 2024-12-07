@@ -1,4 +1,4 @@
-import { IXpert, IXpertAgentExecution, TAgentExecutionMetadata, XpertAgentExecutionEnum } from '@metad/contracts'
+import { IXpert, IXpertAgentExecution, TAgentExecutionMetadata, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsNumber, IsOptional, IsString, IsEnum } from 'class-validator'
@@ -31,11 +31,11 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 	@Column({ type: 'json', nullable: true })
 	outputs?: any
 
-	@ApiProperty({ type: () => String, enum: XpertAgentExecutionEnum })
-	@IsEnum(XpertAgentExecutionEnum)
+	@ApiProperty({ type: () => String, enum: XpertAgentExecutionStatusEnum })
+	@IsEnum(XpertAgentExecutionStatusEnum)
 	@IsOptional()
 	@Column({ nullable: true })
-	status?: XpertAgentExecutionEnum
+	status?: XpertAgentExecutionStatusEnum
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
@@ -64,8 +64,8 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true, length: 100 })
-	thread_id?: string
+	@Column({ nullable: true, length: 100, default: () => 'uuid_generate_v4()' })
+	threadId?: string
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
@@ -112,8 +112,8 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 
 	// Temporary properties
 	get totalTokens() {
-		return (this.tokens ?? 0) + this.subExecutions?.reduce((acc, curr) => {
+		return (this.tokens ?? 0) + (this.subExecutions?.reduce((acc, curr) => {
 			return acc + (curr.totalTokens ?? 0)
-		}, 0)
+		}, 0) ?? 0)
 	}
 }

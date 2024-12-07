@@ -1,5 +1,5 @@
 import { MessageContent } from '@langchain/core/messages'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, CopilotChatMessage, IChatConversation, IXpert, XpertAgentExecutionEnum } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, CopilotChatMessage, IChatConversation, IXpert, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { getErrorMessage, shortuuid } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -7,7 +7,7 @@ import { Observable, tap } from 'rxjs'
 import { XpertAgentChatCommand } from '../../../xpert-agent/commands'
 import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
-import { FindChatConversationQuery } from '../../../chat-conversation/queries/index'
+import { GetChatConversationQuery } from '../../../chat-conversation/queries/index'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/index'
 import {
 	XpertAgentExecutionUpsertCommand
@@ -39,8 +39,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		let conversation: IChatConversation
 		if (conversationId) {
 			conversation = await this.queryBus.execute(
-				new FindChatConversationQuery({id: conversationId}, ['execution'])
+				new GetChatConversationQuery({id: conversationId}, [])
 			)
+			conversation.messages ??= []
 			conversation.messages.push(userMessage)
 			await this.commandBus.execute(
 				new ChatConversationUpsertCommand({
@@ -49,35 +50,38 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				})
 			)
 		} else {
-			const execution = await this.commandBus.execute(
-				new XpertAgentExecutionUpsertCommand({
-					xpert: { id: xpert.id } as IXpert,
-					agentKey: xpert.agent.key,
-					inputs: input,
-					status: XpertAgentExecutionEnum.RUNNING
-				})
-			)
 			conversation = await this.commandBus.execute(
 				new ChatConversationUpsertCommand({
 					xpert,
+					// threadId,
 					title: input.input, // 改成 AI 自动总结标题
 					options: {
 						knowledgebases: options?.knowledgebases,
 						toolsets: options?.toolsets
 					},
 					messages: [userMessage],
-					execution
 				})
 			)
 		}
+
+		const execution = await this.commandBus.execute(
+			new XpertAgentExecutionUpsertCommand({
+				xpert: { id: xpert.id } as IXpert,
+				agentKey: xpert.agent.key,
+				inputs: input,
+				status: XpertAgentExecutionStatusEnum.RUNNING,
+				threadId: conversation.threadId
+			})
+		)
 
 		const aiMessage: CopilotChatMessage = {
 			id: shortuuid(),
 			role: 'ai',
 			content: ``,
+			executionId: execution.id
 		}
 
-		let status = XpertAgentExecutionEnum.SUCCEEDED
+		let status = XpertAgentExecutionStatusEnum.SUCCESS
 		let error = null
 		let result = ''
 
@@ -85,7 +89,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			new XpertAgentChatCommand(input, xpert.agent.key, xpert, {
 				...(options ?? {}),
 				isDraft: options?.isDraft,
-				execution: conversation.execution
+				execution
 			})
 		)
 
@@ -115,14 +119,24 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 						}
 					},
 					error: (err) => {
-						status = XpertAgentExecutionEnum.FAILED
+						status = XpertAgentExecutionStatusEnum.ERROR
 						error = getErrorMessage(err)
 					},
 					finalize: async () => {
 						try {
 							const timeEnd = Date.now()
-	
 							// Record End time
+							await this.commandBus.execute(new XpertAgentExecutionUpsertCommand({
+								...execution,
+								elapsedTime: timeEnd - timeStart,
+								status,
+								error,
+								outputs: {
+									output: result
+								}
+							}))
+	
+							// Update ai message
 							await this.commandBus.execute(
 								new ChatConversationUpsertCommand({
 									...conversation,
@@ -130,15 +144,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 										...conversation.messages,
 										aiMessage
 									],
-									execution: {
-										...conversation.execution,
-										elapsedTime: timeEnd - timeStart,
-										status,
-										error,
-										outputs: {
-											output: result
-										}
-									},
 								})
 							)
 						} catch (err) {
@@ -152,8 +157,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				//
 			}
 		})
-
-		 
 	}
 }
 

@@ -1,4 +1,7 @@
-import { XpertAgentExecutionOneHandler } from './get-one.handler'
+import { XpertAgentExecutionDelHandler } from './execution-delete.handler'
 import { XpertAgentExecutionUpsertHandler } from './upsert.handler'
 
-export const CommandHandlers = [XpertAgentExecutionUpsertHandler, XpertAgentExecutionOneHandler]
+export const CommandHandlers = [
+    XpertAgentExecutionUpsertHandler,
+    XpertAgentExecutionDelHandler
+]

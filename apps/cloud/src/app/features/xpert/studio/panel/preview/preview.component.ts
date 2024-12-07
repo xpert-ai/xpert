@@ -1,7 +1,7 @@
 import { Clipboard } from '@angular/cdk/clipboard'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
-import { Component, computed, DestroyRef, effect, inject, model, signal } from '@angular/core'
+import { Component, computed, DestroyRef, effect, inject, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { appendMessageContent, nonBlank, stringifyMessageContent } from '@metad/copilot'
 import { TranslateModule } from '@ngx-translate/core'
@@ -50,6 +50,9 @@ export class XpertStudioPreviewComponent {
   readonly #destroyRef = inject(DestroyRef)
   readonly #clipboard = inject(Clipboard)
 
+  // Outputs
+  readonly execution = output<string>()
+
   readonly envriments = signal(false)
 
   readonly xpert = this.studioComponent.xpert
@@ -66,7 +69,7 @@ export class XpertStudioPreviewComponent {
   readonly conversation = this.executionService.conversation
 
   readonly lastMessage = signal<CopilotChatMessage>(null)
-  readonly messages = computed(() => {
+  readonly messages = computed<CopilotChatMessage[]>(() => {
     if (this.lastMessage()) {
       return [...this.executionService.messages(), this.lastMessage()]
     }
@@ -185,5 +188,9 @@ export class XpertStudioPreviewComponent {
       this.chat(this.input())
       event.preventDefault()
     }
+  }
+
+  openExecution(message: CopilotChatMessage) {
+    this.execution.emit(message.executionId)
   }
 }

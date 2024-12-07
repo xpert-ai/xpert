@@ -1,0 +1,22 @@
+import { Module } from '@nestjs/common'
+import { CqrsModule } from '@nestjs/cqrs'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { RouterModule } from 'nest-router'
+import { TenantModule } from '../tenant/tenant.module'
+import { ApiKeyController } from './api-key.controller'
+import { ApiKey } from './api-key.entity'
+import { ApiKeyService } from './api-key.service'
+import { QueryHandlers } from './queries/handlers'
+
+@Module({
+	imports: [
+		RouterModule.forRoutes([{ path: '/api-key', module: ApiKeyModule }]),
+		TypeOrmModule.forFeature([ApiKey]),
+		CqrsModule,
+		TenantModule
+	],
+	controllers: [ApiKeyController],
+	providers: [ApiKeyService, ...QueryHandlers],
+	exports: [ApiKeyService]
+})
+export class ApiKeyModule {}

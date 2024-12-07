@@ -14,7 +14,7 @@ import { Organization, UserOrganization } from './../core/entities/internal'
 import { AuthController } from './auth.controller'
 import { AuthService } from './auth.service'
 import { CommandHandlers } from './commands/handlers'
-import { BasicStrategy, JwtStrategy, WsJwtStrategy, RefreshTokenStrategy } from './strategies'
+import { BasicStrategy, JwtStrategy, WsJwtStrategy, RefreshTokenStrategy, ApiKeyStrategy } from './strategies'
 
 const providers = [AuthService, UserService, UserOrganizationService, EmailService]
 
@@ -46,7 +46,8 @@ const providers = [AuthService, UserService, UserOrganizationService, EmailServi
 		BasicStrategy,
 		JwtStrategy,
 		RefreshTokenStrategy,
-		WsJwtStrategy
+		WsJwtStrategy,
+		ApiKeyStrategy
 	],
 	exports: [...providers]
 })

@@ -7,7 +7,7 @@ import { FindChatConversationQuery } from '../conversation-find.query'
 export class FindChatConversationHandler implements IQueryHandler<FindChatConversationQuery> {
 	constructor(private readonly service: ChatConversationService) {}
 
-	public async execute(command: FindChatConversationQuery): Promise<IChatConversation> {
-		return await this.service.findOne({ where: command.input, relations: command.relations })
+	public async execute(command: FindChatConversationQuery): Promise<{ items: IChatConversation[]; total: number;}> {
+		return await this.service.findAll({ where: command.conditions, relations: command.relations })
 	}
 }

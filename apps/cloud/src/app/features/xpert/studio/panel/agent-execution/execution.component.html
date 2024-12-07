@@ -1,5 +1,12 @@
 <div class="shrink-0 flex justify-between items-center p-4">
-  {{xpertAgent().title || xpertAgent().name || xpertAgent().key}}
+  <div>
+    {{xpertAgent().title || xpertAgent().name || xpertAgent().key}}
+  </div>
+
+  <button type="button" class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+    (click)="close.emit()">
+    <i class="ri-close-line"></i>
+  </button>
 </div>
 
 <div class="flex-1 pl-4 pr-2 overflow-auto">
@@ -17,6 +24,7 @@
       [placeholder]="'PAC.Xpert.PleaseInput' | translate: {Default: 'Please input'}"
       type="text"
       [(ngModel)]="input"
+      (keyup.enter)="startRunAgent()"
     >
   </div>
 
@@ -41,7 +49,7 @@
   </div>
 
     @if (execution(); as execution) {
-      <xpert-agent-execution class="p-2 w-full" [execution]="execution" />
+      <xpert-agent-execution-status class="p-2 w-full mt-4" [execution]="execution" />
     }
 
     <div class="flex items-center my-4 leading-[18px] text-base font-semibold text-gray-500 uppercase">

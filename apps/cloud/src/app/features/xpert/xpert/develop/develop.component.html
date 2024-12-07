@@ -1,11 +1,55 @@
-<div class="w-60 max-w-sm mx-auto shadow-2xl rounded-2xl overflow-hidden mb-10 bg-components-card-bg">
-  <div class="flex items-center justify-start p-4 bg-yellow-100 border-b border-yellow-400 dark:bg-yellow-800">
-    <i class="ri-lightbulb-flash-line text-lg text-yellow-500"></i>
-    <span class="ml-2 text-yellow-700 font-semibold dark:text-yellow-300">API Access</span>
+<div class="flex items-center justify-between flex-shrink-0 px-6 border-b border-solid py-2 border-b-gray-100 sticky top-0 z-10 bg-components-panel-bg">
+  <div class="grow">
   </div>
-  <div class="p-4">
-    <p class="text-gray-700 text-sm dark:text-zinc-300">
-      {{ 'PAC.Xpert.InDevelopment' | translate: { Default: 'This feature is in development' } }}...
-    </p>
+
+  <div class="flex rounded-lg bg-gray-50 hover:bg-gray-50 py-2 items-center flex-shrink-0 mr-2 w-52 sm:w-80">
+    <div class="flex items-center flex-grow h-5">
+      <div class="ml-2 border border-gray-200 border-solid flex-shrink-0 px-2 py-0.5 rounded-[6px] text-gray-500 text-sm">
+        API {{'PAC.KEY_WORDS.Server' | translate: {Default: 'Server'} }}</div>
+      <div class="flex-grow bg-gray-50 text-[13px] relative h-full">
+        <div class="absolute top-0 left-0 w-full pl-2 pr-2 truncate cursor-pointer r-0"
+          [matTooltip]="copied() ? ('PAC.KEY_WORDS.Copied' | translate: {Default: 'Copied'}) : ('PAC.KEY_WORDS.Copy' | translate: {Default: 'Copy'})"
+          matTooltipPosition="below"
+          (click)="copy(apiBaseUrl)">
+          <div class="inline-block">{{ apiBaseUrl }}</div>
+        </div>
+      </div>
+      <div class="flex-shrink-0 h-4 bg-gray-200 border"></div>
+      <div class="px-0.5 flex-shrink-0">
+        <div class="box-border w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 cursor-pointer"
+          [matTooltip]="copied() ? ('PAC.KEY_WORDS.Copied' | translate: {Default: 'Copied'}) : ('PAC.KEY_WORDS.Copy' | translate: {Default: 'Copy'})"
+          matTooltipPosition="below"
+          (click)="copy(apiBaseUrl)">
+          @if (copied()) {
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="mx-1 w-3.5 h-3.5 text-gray-500">
+              <path d="M16 4C16.93 4 17.395 4 17.7765 4.10222C18.8117 4.37962 19.6204 5.18827 19.8978 6.22354C20 6.60504 20 7.07003 20 8V17.2C20 18.8802 20 19.7202 19.673 20.362C19.3854 20.9265 18.9265 21.3854 18.362 21.673C17.7202 22 16.8802 22 15.2 22H8.8C7.11984 22 6.27976 22 5.63803 21.673C5.07354 21.3854 4.6146 20.9265 4.32698 20.362C4 19.7202 4 18.8802 4 17.2V8C4 7.07003 4 6.60504 4.10222 6.22354C4.37962 5.18827 5.18827 4.37962 6.22354 4.10222C6.60504 4 7.07003 4 8 4M9 15L11 17L15.5 12.5M9.6 6H14.4C14.9601 6 15.2401 6 15.454 5.89101C15.6422 5.79513 15.7951 5.64215 15.891 5.45399C16 5.24008 16 4.96005 16 4.4V3.6C16 3.03995 16 2.75992 15.891 2.54601C15.7951 2.35785 15.6422 2.20487 15.454 2.10899C15.2401 2 14.9601 2 14.4 2H9.6C9.03995 2 8.75992 2 8.54601 2.10899C8.35785 2.20487 8.20487 2.35785 8.10899 2.54601C8 2.75992 8 3.03995 8 3.6V4.4C8 4.96005 8 5.24008 8.10899 5.45399C8.20487 5.64215 8.35785 5.79513 8.54601 5.89101C8.75992 6 9.03995 6 9.6 6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          } @else {
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="mx-1 w-3.5 h-3.5 text-gray-500 cursor-pointer">
+              <path d="M16 4C16.93 4 17.395 4 17.7765 4.10222C18.8117 4.37962 19.6204 5.18827 19.8978 6.22354C20 6.60504 20 7.07003 20 8V17.2C20 18.8802 20 19.7202 19.673 20.362C19.3854 20.9265 18.9265 21.3854 18.362 21.673C17.7202 22 16.8802 22 15.2 22H8.8C7.11984 22 6.27976 22 5.63803 21.673C5.07354 21.3854 4.6146 20.9265 4.32698 20.362C4 19.7202 4 18.8802 4 17.2V8C4 7.07003 4 6.60504 4.10222 6.22354C4.37962 5.18827 5.18827 4.37962 6.22354 4.10222C6.60504 4 7.07003 4 8 4M9.6 6H14.4C14.9601 6 15.2401 6 15.454 5.89101C15.6422 5.79513 15.7951 5.64215 15.891 5.45399C16 5.24008 16 4.96005 16 4.4V3.6C16 3.03995 16 2.75992 15.891 2.54601C15.7951 2.35785 15.6422 2.20487 15.454 2.10899C15.2401 2 14.9601 2 14.4 2H9.6C9.03995 2 8.75992 2 8.54601 2.10899C8.35785 2.20487 8.20487 2.35785 8.10899 2.54601C8 2.75992 8 3.03995 8 3.6V4.4C8 4.96005 8 5.24008 8.10899 5.45399C8.20487 5.64215 8.35785 5.79513 8.54601 5.89101C8.75992 6 9.03995 6 9.6 6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          }
+        </div>
+      </div>
+    </div>
   </div>
+
+  <div class="flex items-center h-8 px-3 rounded-lg text-sm font-normal mr-2 text-green-500 bg-green-50">
+    <div class="mr-1">{{ 'PAC.KEY_WORDS.Status' | translate: {Default: 'Status'} }}</div>
+    <div class="font-semibold">{{ 'PAC.KEY_WORDS.InService' | translate: {Default: 'In Service'} }}</div>
+  </div>
+
+  <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium px-3 flex-shrink-0"
+    (click)="openApiKey()"
+  >
+    <div class="flex items-center justify-center w-4 h-4 mr-2">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 3.66672C9.35362 3.66672 9.69276 3.80719 9.94281 4.05724C10.1929 4.30729 10.3333 4.64643 10.3333 5.00005M13 5.00005C13.0002 5.62483 12.854 6.24097 12.5732 6.79908C12.2924 7.3572 11.8847 7.84177 11.3829 8.21397C10.8811 8.58617 10.2991 8.83564 9.68347 8.94239C9.06788 9.04915 8.43584 9.01022 7.838 8.82872L6.33333 10.3334H5V11.6667H3.66667V13.0001H1.66667C1.48986 13.0001 1.32029 12.9298 1.19526 12.8048C1.07024 12.6798 1 12.5102 1 12.3334V10.6094C1.00004 10.4326 1.0703 10.263 1.19533 10.1381L5.17133 6.16205C5.00497 5.61206 4.95904 5.03268 5.0367 4.46335C5.11435 3.89402 5.31375 3.3481 5.62133 2.86275C5.92891 2.3774 6.33744 1.96401 6.81913 1.65073C7.30082 1.33745 7.84434 1.13162 8.41272 1.04725C8.9811 0.96289 9.56098 1.00197 10.1129 1.16184C10.6648 1.32171 11.1758 1.59861 11.6111 1.97369C12.0464 2.34878 12.3958 2.81324 12.6354 3.33548C12.8751 3.85771 12.9994 4.42545 13 5.00005Z" stroke="#1F2A37" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+    </div>
+    <div class="text-base text-gray-800">API {{'PAC.KEY_WORDS.SecretKey' | translate: {Default: 'Key'} }}</div>
+  </button>
 </div>
+
+
+<div #swaggeruiContainer class="scale-90 origin-top"></div>

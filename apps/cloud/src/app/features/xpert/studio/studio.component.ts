@@ -33,7 +33,6 @@ import {
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { effectAction } from '@metad/ocap-angular/core'
-import { IntersectionObserverModule } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { NGXLogger } from 'ngx-logger'
@@ -43,14 +42,14 @@ import {
   AiModelTypeEnum,
   ToastrService,
   TXpertTeamNode,
-  XpertAgentExecutionEnum,
+  XpertAgentExecutionStatusEnum,
   XpertService,
   XpertTypeEnum,
   XpertWorkspaceService
 } from '../../../@core'
 import {
   MaterialModule,
-  XpertAgentExecutionComponent,
+  XpertAgentExecutionStatusComponent,
   XpertAgentExecutionLogComponent
 } from '../../../@shared'
 import {
@@ -78,7 +77,6 @@ import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-    IntersectionObserverModule,
     MaterialModule,
     FFlowModule,
     NgxFloatUiModule,
@@ -92,7 +90,7 @@ import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
     XpertStudioNodeToolsetComponent,
     XpertStudioHeaderComponent,
     XpertStudioPanelComponent,
-    XpertAgentExecutionComponent,
+    XpertAgentExecutionStatusComponent,
     XpertAgentExecutionLogComponent
   ],
   selector: 'pac-xpert-studio',
@@ -102,7 +100,7 @@ import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
   providers: [XpertStudioApiService, SelectionService, XpertExecutionService]
 })
 export class XpertStudioComponent {
-  eXpertAgentExecutionEnum = XpertAgentExecutionEnum
+  eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
   eNgxFloatUiTriggers = NgxFloatUiTriggers
   eNgxFloatUiPlacements = NgxFloatUiPlacements
   DisplayBehaviour = DisplayBehaviour

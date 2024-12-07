@@ -14,7 +14,7 @@ export interface FormlyToggleFieldConfig extends FormlyFieldConfig<ToggleProps> 
 @Component({
   selector: 'ngm-formly-mat-toggle',
   template: `
-    <mat-slide-toggle class="text-sm"
+    <mat-slide-toggle class="text-sm" ngm-density  small
       [id]="id"
       [formControl]="formControl"
       [formlyAttributes]="field"

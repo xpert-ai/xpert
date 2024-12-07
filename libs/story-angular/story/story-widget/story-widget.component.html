@@ -19,12 +19,12 @@
   (cdkDragMoved)="onDragFab($event)">
   
   <button *ngIf="showMenu$ | async" mat-mini-fab [cdkMenuTriggerFor]="context_menu">
-    <mat-icon fontSet="material-icons-outlined">menu</mat-icon>
+    <mat-icon fontSet="material-icons-outlined" class="mr-1">menu</mat-icon>
   </button>
 
   <ng-container *ngIf="comments$ | async as comments">
     <button mat-icon-button color="basic" cdkOverlayOrigin #trigger="cdkOverlayOrigin" (click)="isCommentOpen=!isCommentOpen">
-      <mat-icon fontSet="material-icons-outlined">comment</mat-icon>
+      <mat-icon fontSet="material-icons-outlined" class="mr-1">comment</mat-icon>
     </button>
 
     <ng-template
@@ -53,7 +53,7 @@
         <button cdkMenuItem *ngSwitchCase="WIDGET_MENU_TYPE.Action"
           [disabled]="!menu.editable"
           (click)="onClickMenu(menu)">
-          <mat-icon fontSet="material-icons-outlined">{{menu.icon}}</mat-icon>{{menu.name}}
+          <mat-icon fontSet="material-icons-outlined" class="mr-1">{{menu.icon}}</mat-icon>{{menu.name}}
         </button>
     
         <button cdkMenuItem *ngSwitchCase="WIDGET_MENU_TYPE.Menus"
@@ -61,7 +61,7 @@
           (cdkMenuOpened)="onSubMenuOpened(menu)"
           (cdkMenuClosed)="onSubMenuClosed(menu)"
           >
-          <mat-icon fontSet="material-icons-outlined">{{menu.icon}}</mat-icon>
+          <mat-icon fontSet="material-icons-outlined" class="mr-1">{{menu.icon}}</mat-icon>
           <span class="flex-1 text-left">{{menu.name}}</span>
           <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
         </button>
@@ -72,22 +72,22 @@
 
     <ng-container *ngIf="!standalone">
       <button cdkMenuItem (click)="focus()">
-        <mat-icon fontSet="material-icons-outlined">filter_center_focus</mat-icon>
+        <mat-icon fontSet="material-icons-outlined" class="mr-1">filter_center_focus</mat-icon>
         {{ 'Story.Widget.Focus' | translate: {Default: "Focus"} }}
       </button>
 
       <button cdkMenuItem *ngIf="!fullscreen" (click)="fullscreen=true">
-        <mat-icon fontSet="material-icons-round">fullscreen</mat-icon>
+        <mat-icon fontSet="material-icons-round" class="mr-1">fullscreen</mat-icon>
         {{ 'Story.Widget.Fullscreen' | translate: {Default: "Fullscreen"} }}
       </button>
       <button cdkMenuItem *ngIf="fullscreen" (click)="fullscreen=false">
-        <mat-icon fontSet="material-icons-round">fullscreen_exit</mat-icon>
+        <mat-icon fontSet="material-icons-round" class="mr-1">fullscreen_exit</mat-icon>
         {{ 'Story.Widget.ExitFullscreen' | translate: {Default: "Exit Fullscreen"} }}
       </button>
 
       @if (isAuthenticated()) {
         <button cdkMenuItem (click)="pin()">
-          <mat-icon fontSet="material-icons-round">push_pin</mat-icon>
+          <mat-icon fontSet="material-icons-round" class="mr-1">push_pin</mat-icon>
           {{ 'Story.Widget.PinHome' | translate: {Default: "Pin to Home"} }}
         </button>
       }
@@ -96,31 +96,31 @@
     <mat-divider></mat-divider>
     
     <button cdkMenuItem (click)="refresh(true)">
-      <mat-icon fontSet="material-icons-round">refresh</mat-icon>
+      <mat-icon fontSet="material-icons-round" class="mr-1">refresh</mat-icon>
       {{ 'Story.Widget.Refresh' | translate: {Default: "Refresh"} }}
     </button>
     @if (isAuthenticated()) {
       <button cdkMenuItem (click)="explore()">
-        <mat-icon fontSet="material-icons-outlined">explore</mat-icon>
+        <mat-icon fontSet="material-icons-outlined" class="mr-1">explore</mat-icon>
         {{ 'Story.Widget.Explore' | translate: {Default: "Explore"} }}
       </button>
     }
 
     <ng-container *ngIf="navigate$ | async as item">
       <button cdkMenuItem *ngIf="item.show" (click)="navigate(item.dataSettings)">
-        <mat-icon fontSet="material-icons-round">navigate_next</mat-icon>
+        <mat-icon fontSet="material-icons-round" class="mr-1">navigate_next</mat-icon>
         {{ 'Story.Widget.Navigate' | translate: {Default: "Navigate"} }}
       </button>
     </ng-container>
 
     @if (isAuthenticated()) {
       <button cdkMenuItem (click)="explain()">
-        <mat-icon fontSet="material-icons-round">code</mat-icon>
+        <mat-icon fontSet="material-icons-round" class="mr-1">code</mat-icon>
         {{ 'Story.Widget.Explain' | translate: {Default: "Explain"} }}
       </button>
     }
     <button cdkMenuItem (click)="openShares()">
-      <mat-icon fontSet="material-icons-outlined">share</mat-icon>
+      <mat-icon fontSet="material-icons-outlined" class="mr-1">share</mat-icon>
       {{ 'Story.Widget.Share' | translate: {Default: "Share"} }}
     </button>
 
@@ -128,52 +128,52 @@
       <mat-divider></mat-divider>
       <ng-container *ngIf="allowMultiLayer$ | async">
         <button cdkMenuItem (click)="bringForward()">
-          <mat-icon fontSet="material-icons-outlined">flip_to_front</mat-icon>
+          <mat-icon fontSet="material-icons-outlined" class="mr-1">flip_to_front</mat-icon>
           {{ 'Story.Widget.BringForward' | translate: {Default: "Bring Forward"} }}
         </button>
         <button cdkMenuItem (click)="bringFront()">
-          <mat-icon fontSet="material-icons-outlined">vertical_align_top</mat-icon>
+          <mat-icon fontSet="material-icons-outlined" class="mr-1">vertical_align_top</mat-icon>
           {{ 'Story.Widget.BringtoFront' | translate: {Default: "Bring to Front"} }}
         </button>
         <button cdkMenuItem (click)="sendBackward()">
-          <mat-icon fontSet="material-icons-outlined">flip_to_back</mat-icon>
+          <mat-icon fontSet="material-icons-outlined" class="mr-1">flip_to_back</mat-icon>
           {{ 'Story.Widget.SendBackward' | translate: {Default: "Send Backward"} }}
         </button>
         <button cdkMenuItem (click)="sendBack()">
-          <mat-icon fontSet="material-icons-outlined">vertical_align_bottom</mat-icon>
+          <mat-icon fontSet="material-icons-outlined" class="mr-1">vertical_align_bottom</mat-icon>
           {{ 'Story.Widget.SendtoBack' | translate: {Default: "Send to Back"} }}
         </button>
       </ng-container>
 
       <mat-divider></mat-divider>
       <button cdkMenuItem class="ngm-copilot-command-button" (click)="generateWithAI()">
-        <mat-icon fontSet="material-icons-outlined">auto_fix_high</mat-icon>
+        <mat-icon fontSet="material-icons-outlined" class="mr-1">auto_fix_high</mat-icon>
         {{ 'Copilot.GenerateWithAI' | translate: {Default: "Generate with AI"} }}
       </button>
       <button cdkMenuItem (click)="openEditAttributes()">
-        <mat-icon fontSet="material-icons-outlined">edit_attributes</mat-icon>
+        <mat-icon fontSet="material-icons-outlined" class="mr-1">edit_attributes</mat-icon>
         {{ 'Story.Widget.EditAttributes' | translate: {Default: "Edit Attributes"} }}
       </button>
       <button cdkMenuItem (click)="openLinkedAnalysis()">
-        <mat-icon fontSet="material-icons-outlined">link</mat-icon>
+        <mat-icon fontSet="material-icons-outlined" class="mr-1">link</mat-icon>
         {{ 'Story.Widget.LinkedAnalysis' | translate: {Default: "Linked Analysis"} }}
       </button>
       <button cdkMenuItem [cdkMenuTriggerFor]="copyMenu">
-        <mat-icon fontSet="material-icons-outlined">content_copy</mat-icon>
+        <mat-icon fontSet="material-icons-outlined" class="mr-1">content_copy</mat-icon>
         <span class="flex-1 text-left">{{ 'Story.Story.Copy' | translate: {Default: "Copy"} }}</span>
         <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
       </button>
       <button cdkMenuItem [cdkMenuTriggerFor]="moveToMenu">
-        <mat-icon fontSet="material-icons-outlined">drive_file_move</mat-icon>
+        <mat-icon fontSet="material-icons-outlined" class="mr-1">drive_file_move</mat-icon>
         <span class="flex-1 text-left">{{ 'Story.Widget.MoveTo' | translate: {Default: "Move to"} }}</span>
         <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
       </button>
       <button cdkMenuItem (click)="download()">
-        <mat-icon fontSet="material-icons-outlined">file_download</mat-icon>
+        <mat-icon fontSet="material-icons-outlined" class="mr-1">file_download</mat-icon>
         {{ 'Story.Widget.Download' | translate: {Default: "Download"} }}
       </button>
       <button cdkMenuItem class="ngm-cdk-menu__danger" (click)="removeWidget()">
-        <mat-icon>delete_forever</mat-icon>
+        <mat-icon fontSet="material-icons-outlined" class="mr-1">delete_forever</mat-icon>
         {{ 'Story.Story.Delete' | translate: {Default: "Delete"} }}
       </button>
     </ng-container>

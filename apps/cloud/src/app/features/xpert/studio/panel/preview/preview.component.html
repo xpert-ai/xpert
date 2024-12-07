@@ -100,17 +100,22 @@
                         </div>
                       </div>
 
-                      <!-- <div class="hidden group-hover:flex items-center w-max h-[28px] p-0.5 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
-                        <div class="shrink-0 p-1 flex items-center justify-center rounded-[6px] font-medium text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700">
+                    @if (message.executionId) {
+                      <div class="hidden group-hover:flex items-center w-max h-[28px] p-0.5 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
+                        <div class="shrink-0 p-1 flex items-center justify-center rounded-[6px] font-medium text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
+                          (click)="openExecution(message)"
+                        >
                           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="mr-1 w-4 h-4" data-icon="File02" aria-hidden="true">
                             <g id="Icon">
                               <path id="Icon_2" d="M9.33366 7.3335H5.33366M6.66699 10.0002H5.33366M10.667 4.66683H5.33366M13.3337 4.5335V11.4668C13.3337 12.5869 13.3337 13.147 13.1157 13.5748C12.9239 13.9511 12.618 14.2571 12.2416 14.4488C11.8138 14.6668 11.2538 14.6668 10.1337 14.6668H5.86699C4.74689 14.6668 4.18683 14.6668 3.75901 14.4488C3.38269 14.2571 3.07673 13.9511 2.88498 13.5748C2.66699 13.147 2.66699 12.5869 2.66699 11.4668V4.5335C2.66699 3.41339 2.66699 2.85334 2.88498 2.42552C3.07673 2.04919 3.38269 1.74323 3.75901 1.55148C4.18683 1.3335 4.74689 1.3335 5.86699 1.3335H10.1337C11.2538 1.3335 11.8138 1.3335 12.2416 1.55148C12.618 1.74323 12.9239 2.04919 13.1157 2.42552C13.3337 2.85334 13.3337 3.41339 13.3337 4.5335Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
                             </g>
                           </svg>
-                          <div class="text-xs leading-4">Prompt 日志</div>
+                          <div class="text-sm leading-4">{{'PAC.Xpert.ExecutionLog' | translate: {Default: 'Execution Log'} }}</div>
                         </div>
                         <div class="mx-1 w-[1px] h-[14px] bg-gray-200"></div>
                       </div>
+                    }
+                      <!-- 
                       <div class="hidden group-hover:block h-[28px] p-0.5 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
                         <div class="box-border p-0.5 flex items-center justify-center rounded-md bg-white cursor-pointer">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="p-[3.5px] w-6 h-6 text-[#667085] hover:bg-gray-50" data-icon="Refresh" aria-hidden="true">

@@ -169,8 +169,8 @@ ${agent.prompt}
 			new XpertAgentExecutionUpsertCommand({
 				id: execution.id,
 				metadata: {
-					provider: copilotModel.copilot.provider,
-					model: copilotModel.model || copilotModel.copilot.defaultModel
+					provider: copilotModel.copilot.modelProvider?.providerName,
+					model: copilotModel.model || copilotModel.copilot.copilotModel?.model
 				}
 			})
 		)

@@ -262,7 +262,13 @@
       "HelpDocs": "帮助文档",
       "Embedded": "已嵌入",
       "Copied": "已复制",
-      "DangerZone": "危险区域"
+      "DangerZone": "危险区域",
+      "Copy": "复制",
+      "Server": "服务器",
+      "InService": "运行中",
+      "SecretKey": "密钥",
+      "LastUsed": "最后使用",
+      "Never": "从未"
     },
     "MENU": {
       "Certification": "认证",
@@ -2011,7 +2017,22 @@
       "ArchiveWorkspace": "归档此工作空间",
       "DeleteWorkspace": "删除此工作空间",
       "ArchiveWorkspaceDesc": "将此工作区及其所有专家和工具集标记为已存档和只读",
-      "DeleteWorkspaceDesc": "一旦删除，它将永远消失，请确保"
+      "DeleteWorkspaceDesc": "一旦删除，它将永远消失，请确保",
+      "ConversationLog": "对话日志",
+      "Overview": "总览",
+      "Steps": "步骤",
+      "Metadata": "元数据",
+      "Status": "状态",
+      "Executor": "执行者",
+      "StartTime": "开始时间",
+      "ElapsedTime": "已用时间",
+      "TotalTokens": "总代币数",
+      "ExecutionLog": "执行日志",
+      "Tokens": "代币",
+      "ProtectYourKey": "为了防止 API 滥用，请保护好您的 API 密钥。避免在前端代码中将其用作纯文本。:)",
+      "CreateNewSecretKey": "创建新的密钥",
+      "DeleteApiKey": "删除此 API 密钥？",
+      "ActionUndone": "此操作无法撤消。"
     },
     "title": {
       "short": "Xpert AI"

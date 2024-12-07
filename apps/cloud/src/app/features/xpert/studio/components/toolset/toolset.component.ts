@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { FFlowModule } from '@foblex/flow'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { TXpertTeamNode, XpertAgentExecutionEnum, XpertToolsetService } from 'apps/cloud/src/app/@core'
+import { TXpertTeamNode, XpertAgentExecutionStatusEnum, XpertToolsetService } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'
@@ -23,7 +23,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
   }
 })
 export class XpertStudioNodeToolsetComponent {
-  eXpertAgentExecutionEnum = XpertAgentExecutionEnum
+  eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
 
   readonly elementRef = inject(ElementRef)
   readonly apiService = inject(XpertStudioApiService)

@@ -89,7 +89,6 @@ import { NxStoryPointComponent } from '../story-point/story-point.component'
     NgmCommonModule,
 
     // Local modules
-    StorySharesComponent,
     NgmTransformScaleDirective,
     NxStoryPointComponent
   ]

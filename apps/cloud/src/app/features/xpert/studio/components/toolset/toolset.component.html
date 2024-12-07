@@ -22,10 +22,10 @@
         @case (eXpertAgentExecutionEnum.RUNNING) {
           <ngm-spin class="-ml-2 mr-2" small />
         }
-        @case (eXpertAgentExecutionEnum.FAILED) {
+        @case (eXpertAgentExecutionEnum.ERROR) {
           <div class="w-2 h-2 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)] mr-2"></div>
         }
-        @case (eXpertAgentExecutionEnum.SUCCEEDED) {
+        @case (eXpertAgentExecutionEnum.SUCCESS) {
           <div class="w-2 h-2 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)] mr-2"></div>
         }
       }

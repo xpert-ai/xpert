@@ -3,7 +3,7 @@ import { isNil, NgmLanguageEnum } from '@metad/copilot'
 import { getErrorMessage, shortuuid } from '@metad/server-common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Observable } from 'rxjs'
-import { ChatConversationUpsertCommand, FindChatConversationQuery } from '../../../chat-conversation'
+import { ChatConversationUpsertCommand, GetChatConversationQuery } from '../../../chat-conversation'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { CopilotCheckLimitCommand } from '../../../copilot-user'
 import { XpertChatCommand } from '../../../xpert'
@@ -52,7 +52,7 @@ export class ChatCommandHandler implements ICommandHandler<ChatCommand> {
 					} as MessageEvent)
 				} else {
 					chatConversation = await this.queryBus.execute(
-						new FindChatConversationQuery({
+						new GetChatConversationQuery({
 							id: conversationId
 						})
 					)

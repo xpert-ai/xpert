@@ -41,7 +41,7 @@ export class XpertAuthorizationComponent {
   readonly #toastr = injectToastr()
 
   readonly xpert = this.xpertComponent.xpert
-  readonly workspaceId = computed(() => this.xpert().workspaceId)
+  readonly workspaceId = computed(() => this.xpert()?.workspaceId)
   readonly refresh$ = new BehaviorSubject<void>(null)
   readonly #managers = signal<IUser[]>([])
   readonly loading = signal(false)

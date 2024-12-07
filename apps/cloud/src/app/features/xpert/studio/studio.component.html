@@ -80,7 +80,7 @@
 
           <float-ui-content #executionPopper (click)="$event.stopPropagation()" (wheel)="$event.stopPropagation()">
             @if (agentExecutions()[node.key]) {
-              <xpert-agent-execution class="p-2 w-96" [execution]="agentExecutions()[node.key]" />
+              <xpert-agent-execution-status class="p-2 w-96" [execution]="agentExecutions()[node.key]" />
               <xpert-agent-execution-log class="p-2 w-96 max-h-[400px] overflow-y-auto overflow-x-hidden"
                 [execution]="agentExecutions()[node.key]" />
             }

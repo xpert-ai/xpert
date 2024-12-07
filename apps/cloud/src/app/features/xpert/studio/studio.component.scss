@@ -83,10 +83,10 @@ f-flow {
   &.running {
     @apply animate-twinkling-slow;
   }
-  &.succeeded {
+  &.success {
     @apply border-green-500 dark:border-green-800;
   }
-  &.failed {
+  &.error {
     @apply border-red-500 dark:border-red-800;
   }
 }

@@ -7,7 +7,7 @@ import { nonNullable } from '@metad/core'
 import { AnalyticalGridComponent, AnalyticalGridModule } from '@metad/ocap-angular/analytical-grid'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
-import { DisplayDensity } from '@metad/ocap-angular/core'
+import { DisplayDensity, NgmDensityDirective } from '@metad/ocap-angular/core'
 import { NgmEntityModule, PropertyCapacity } from '@metad/ocap-angular/entity'
 import { C_MEASURES, Dimension, EntityType, FilterOperator, getEntityVariables, ISlicer, Measure, Syntax } from '@metad/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
@@ -38,7 +38,8 @@ import { getDropProperty } from '../types'
     NgmCommonModule,
     AnalyticalGridModule,
     NgmControlsModule,
-    NgmEntityModule
+    NgmEntityModule,
+    NgmDensityDirective
   ]
 })
 export class ModelEntityPreviewComponent {

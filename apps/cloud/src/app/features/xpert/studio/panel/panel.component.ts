@@ -1,7 +1,7 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model } from '@angular/core'
-import { IfAnimation, listAnimation, listFadeIn } from 'apps/cloud/src/app/@core'
+import { listFadeIn } from 'apps/cloud/src/app/@core'
 import { MaterialModule } from '../../../../@shared/index'
 import { SelectionService } from '../domain'
 import { XpertStudioComponent } from '../studio.component'
@@ -9,8 +9,8 @@ import { XpertStudioPreviewComponent } from './preview/preview.component'
 import { XpertStudioPanelToolsetComponent } from './toolset/toolset.component'
 import { XpertStudioPanelAgentComponent } from './xpert-agent/agent.component'
 import { XpertStudioPanelXpertComponent } from './xpert/xpert.component'
-import { animate, style, transition, trigger } from '@angular/animations'
 import { XpertStudioPanelKnowledgeComponent } from './knowledge/knowledge.component'
+import { XpertStudioPanelExecutionComponent } from './execution/execution.component'
 
 @Component({
   selector: 'xpert-studio-panel',
@@ -23,7 +23,8 @@ import { XpertStudioPanelKnowledgeComponent } from './knowledge/knowledge.compon
     XpertStudioPanelXpertComponent,
     XpertStudioPanelToolsetComponent,
     XpertStudioPanelKnowledgeComponent,
-    XpertStudioPreviewComponent
+    XpertStudioPreviewComponent,
+    XpertStudioPanelExecutionComponent
   ],
   templateUrl: './panel.component.html',
   styleUrl: './panel.component.scss',
@@ -36,6 +37,7 @@ export class XpertStudioPanelComponent {
   readonly selectionService = inject(SelectionService)
 
   readonly preview = model(false)
+  readonly executionId = model<string>()
 
   readonly selectedNodes = computed(() => {
     const node = this.selectionService.selectedNode()
@@ -44,5 +46,9 @@ export class XpertStudioPanelComponent {
 
   close() {
     this.selectionService.selectNode(null)
+  }
+
+  closeExecution() {
+    this.executionId.set(null)
   }
 }

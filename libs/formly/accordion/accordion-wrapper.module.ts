@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { FormlyModule } from '@ngx-formly/core';
 import { NgmFormlyAccordionComponent } from './accordion-wrapper.component';
+import { NgmDensityDirective } from '@metad/ocap-angular/core';
 
 @NgModule({
   declarations: [NgmFormlyAccordionComponent],
@@ -20,6 +21,7 @@ import { NgmFormlyAccordionComponent } from './accordion-wrapper.component';
     MatDividerModule,
     MatSlideToggleModule,
     MatExpansionModule,
+    NgmDensityDirective,
     FormlyModule.forChild({
       types: [
         {

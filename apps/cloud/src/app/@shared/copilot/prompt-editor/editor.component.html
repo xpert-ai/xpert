@@ -51,20 +51,19 @@
 
     <div class="relative">
       <div class="px-4 pt-2 bg-white rounded-t-xl text-sm text-gray-700 overflow-y-auto"
-        [style.height.px]="height">
-        <div class="relative min-h-5">
-          <div #editablePrompt
-            class="outline-none leading-5 text-sm whitespace-pre-wrap break-words text-gray-700"
-            contenteditable="true"
-            role="textbox"
-            spellcheck="true"
-            (blur)="onPromptChange(editablePrompt)"
-            ngmHighlightVar
-            [regex]="regex"
-            [content]="prompt()"
-            customClasses="inline-block text-primary-500 bg-transparent"
-          >
-          </div>
+        [style.height.px]="height"
+        >
+        <div #editablePrompt
+          class="h-full outline-none leading-5 text-sm whitespace-pre-wrap break-words text-gray-700"
+          contenteditable="true"
+          role="textbox"
+          spellcheck="true"
+          (blur)="onPromptChange(editablePrompt)"
+          ngmHighlightVar
+          [regex]="regex"
+          [content]="prompt()"
+          customClasses="inline-block text-primary-500 bg-transparent"
+        >
         </div>
       </div>
       <div class="pl-4 pb-2 flex bg-white rounded-b-xl">

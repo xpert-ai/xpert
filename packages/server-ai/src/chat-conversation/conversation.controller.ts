@@ -50,14 +50,13 @@ export class ChatConversationController extends CrudController<ChatConversation>
 		description: 'Record not found'
 	})
 	@Get(':id')
-	async findById(
+	async findOneById(
 		@Param('id', UUIDValidationPipe) id: string,
 		@Query('$relations', ParseJsonPipe) relations?: PaginationParams<ChatConversation>['relations'],
 		@Query('$select', ParseJsonPipe) select?: PaginationParams<ChatConversation>['select'],
 		...options: any[]
-	): Promise<ChatConversation> {
-		const entity = await this.service.findOne(id, { select, relations })
-		return new ChatConversationPublicDTO(entity)
+	): Promise<ChatConversationPublicDTO> {
+		return await this.service.findOneDetail(id, { select, relations })
 	}
 
 	@Get('xpert/:id')
