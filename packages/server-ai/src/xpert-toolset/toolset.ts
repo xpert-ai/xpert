@@ -35,6 +35,4 @@ export interface IBaseTool extends IBuiltinTool {
 
 export abstract class BaseTool extends StructuredTool {
 	schema: ZodObjectAny | ZodEffects<ZodObjectAny, any, { [x: string]: any }>
-	name: string
-	description: string
 }

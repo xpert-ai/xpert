@@ -13,6 +13,8 @@ const API_TOOL_DEFAULT_TIMEOUT = [
 ]
 
 export class OpenAPITool extends BaseTool {
+	public name: string
+	public description: string
 
 	providerType = XpertToolsetCategoryEnum.API
 

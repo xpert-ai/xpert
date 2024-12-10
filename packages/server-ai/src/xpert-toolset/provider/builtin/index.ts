@@ -10,10 +10,11 @@ import { DingTalkToolset } from './dingtalk/dingtalk';
 import { FeishuToolset } from './feishu/feishu';
 import { SlackToolset } from './slack/slack';
 import { GithubToolset } from './github/github';
-import { SmtpToolset } from './email/email';
+import { EmailToolset } from './email/email';
 import { DiscordToolset } from './discord/discord';
 import { SerpAPIToolset } from './serpapi/serpapi';
 import { SearchAPIToolset } from './searchapi/searchapi';
+import { SerperToolset } from './serper/serper';
 
 export * from './command'
 export * from './builtin-tool'
@@ -29,14 +30,15 @@ export const BUILTIN_TOOLSET_REPOSITORY: {
 			TavilyToolset,
 			SearchAPIToolset,
 			SerpAPIToolset,
+			EmailToolset,
             DuckDuckGoToolset,
             BingToolset,
 			DingTalkToolset,
 			FeishuToolset,
 			SlackToolset,
 			GithubToolset,
-			SmtpToolset,
 			DiscordToolset,
+			SerperToolset
         ]
 	}
 ]
