@@ -22,7 +22,9 @@ import {
 	FilteringLogic,
 	getChartType,
 	getEntityDimensions,
+	getEntityProperty,
 	isEntitySet,
+	isIndicatorMeasureProperty,
 	markdownModelCube,
 	PieVariant,
 	PresentationVariant,
@@ -48,6 +50,8 @@ import { markdownCubes } from '../../../../chatbi/graph'
 import { ChatAnswer } from '../../../../chatbi/tools'
 import { registerSemanticModel } from '../../../../model/ocap'
 import { DimensionMemberRetrieverToolQuery } from '../../../../model-member/queries'
+import { ChatBIContext } from './types'
+import { createShowIndicatorsTool } from './tools/show_indicators'
 
 export class ChatBIToolset extends BuiltinToolset {
 	static provider = 'chatbi'
@@ -95,6 +99,14 @@ export class ChatBIToolset extends BuiltinToolset {
 		if (tools.find((_) => _.name === 'get_cube_context')) {
 			this.tools.push(
 				this.createCubeContextTool(this.dsCoreService) as unknown as Tool,
+			)
+		}
+		if (tools.find((_) => _.name === 'show_indicators')) {
+			this.tools.push(
+				createShowIndicatorsTool({
+					dsCoreService: this.dsCoreService,
+					entityType: null
+				}) as unknown as Tool,
 			)
 		}
 		if (tools.find((_) => _.name === 'answer_question')) {
@@ -341,6 +353,12 @@ ${members}
 
 			// In parallel: return to the front-end display and back-end data retrieval
 			if (answer.visualType === 'KPI') {
+				let indicator = null
+				const measure = chartAnnotation.measures[0]
+				const measureProperty = getEntityProperty(entityType, measure)
+				if (isIndicatorMeasureProperty(measureProperty)) {
+					indicator = measureProperty.name
+				}
 				subscriber?.next({
 					data: {
 						type: ChatMessageTypeEnum.MESSAGE,
@@ -358,7 +376,8 @@ ${members}
 									}
 								} as DataSettings,
 								slicers,
-								title: answer.preface
+								title: answer.preface,
+								indicator
 							} as unknown as JSONValue
 						}
 					}
@@ -413,12 +432,6 @@ ${members}
 	async setCubeCache(modelId: string, cubeName: string, data: EntityType): Promise<void> {
 		await this.cacheManager.set(modelId + '/' + cubeName, data)
 	}
-}
-
-type ChatBIContext = {
-	dsCoreService: DSCoreService
-	entityType: EntityType
-	// subscriber: Subscriber<any>
 }
 
 const CHART_TYPES = [

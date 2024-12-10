@@ -4,10 +4,10 @@ import { toObservable } from '@angular/core/rxjs-interop'
 import { IModelRole, IUser, MDX } from '@metad/contracts'
 import { Store, select, withProps } from '@ngneat/elf'
 import { ToastrService } from 'apps/cloud/src/app/@core'
-import { userLabel } from 'apps/cloud/src/app/@shared'
 import { isEqual, negate } from 'lodash-es'
 import { createSubStore, dirtyCheckWith, write } from '../../../store'
 import { SemanticModelService } from '../../model.service'
+import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 
 @Injectable()
 export class RoleStateService {

@@ -286,7 +286,7 @@ export class EntityBusinessService<
     return this.entityService.getCalculatedMember(measure, type, calendar)
   }
 
-  getIndicator(id: string) {
-    return this.entityService.getIndicator(id)
+  getIndicator(idOrCode: string) {
+    return this.entityService.getIndicator(idOrCode)
   }
 }

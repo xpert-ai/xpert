@@ -1,26 +1,13 @@
 import { OrganizationBaseCrudService } from '@metad/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 
-import { HttpClient } from '@angular/common/http'
 import { effect, inject, Injectable, signal } from '@angular/core'
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { Router } from '@angular/router'
-import { API_PREFIX, AuthService } from '@metad/cloud/state'
-import { NgmCopilotService } from '@metad/copilot-angular'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { toParams } from '@metad/core'
-import { pick } from '@metad/ocap-core'
-import { environment } from 'apps/cloud/src/environments/environment'
-import { omit } from 'lodash-es'
 import {
   BehaviorSubject,
-  combineLatest,
-  distinctUntilChanged,
-  filter,
-  firstValueFrom,
-  map,
   Observable,
   shareReplay,
-  startWith,
   switchMap
 } from 'rxjs'
 import { API_COPILOT } from '../constants/app.constants'

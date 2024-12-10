@@ -11,16 +11,12 @@ import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@me
 import { TranslateModule } from '@ngx-translate/core'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { ISemanticModel, IUser, Store, ToastrService } from 'apps/cloud/src/app/@core'
-import {
-  TranslationBaseComponent,
-  UserProfileComponent,
-  UserProfileInlineComponent,
-  UserRoleSelectComponent,
-  userLabel
-} from 'apps/cloud/src/app/@shared'
 import { uniq } from 'lodash-es'
 import { BehaviorSubject, combineLatest, firstValueFrom, map, switchMap } from 'rxjs'
 import { ModelComponent } from '../model.component'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
+import { UserRoleSelectComponent, UserProfileComponent, UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
 
 @Component({
   standalone: true,

@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/cor
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { Router } from '@angular/router'
 import { IOrganization, routeAnimations } from '../../../@core'
-import { TranslationBaseComponent } from '../../../@shared/'
+import { TranslationBaseComponent } from '../../../@shared/language'
 
 
 @Component({

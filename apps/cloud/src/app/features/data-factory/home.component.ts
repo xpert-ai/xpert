@@ -18,7 +18,6 @@ import { CopilotChatMessage } from '@metad/copilot'
 import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { nonBlank, provideOcapCore } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
-import { StoryExplorerModule } from '@metad/story'
 import { TranslateModule } from '@ngx-translate/core'
 import { groupBy } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
@@ -39,8 +38,6 @@ import { AppService } from '../../app.service'
     TranslateModule,
     MatTooltipModule,
     NgmSelectComponent,
-
-    StoryExplorerModule
   ],
   selector: 'pac-chatbi-home',
   templateUrl: './home.component.html',

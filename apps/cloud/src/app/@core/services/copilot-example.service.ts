@@ -5,7 +5,7 @@ import { MaxMarginalRelevanceSearchOptions, VectorStoreInterface } from '@langch
 import { NGXLogger } from 'ngx-logger'
 import { map, tap } from 'rxjs'
 import { API_COPILOT_KNOWLEDGE } from '../constants/app.constants'
-import { ICopilotKnowledge, IXpertRole } from '../types'
+import { ICopilotKnowledge } from '../types'
 import { XpertService } from './xpert.service'
 
 @Injectable({ providedIn: 'root' })

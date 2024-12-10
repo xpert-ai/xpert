@@ -10,7 +10,8 @@ import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, EMPTY } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 import { ChatBIModelService, ToastrService, getErrorMessage, routeAnimations } from '../../../../@core'
-import { MaterialModule, TranslationBaseComponent } from '../../../../@shared'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
 @Component({
   standalone: true,

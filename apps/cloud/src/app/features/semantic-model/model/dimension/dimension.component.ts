@@ -11,7 +11,6 @@ import { NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
 import { NxDesignerModule, NxSettingsPanelService } from '@metad/story/designer'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateService } from '@ngx-translate/core'
-import { MaterialModule, SharedModule, TranslationBaseComponent } from 'apps/cloud/src/app/@shared'
 import { isEqual, uniq } from 'lodash-es'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { Observable, combineLatest, pipe } from 'rxjs'
@@ -24,6 +23,9 @@ import { ModelComponent } from '../model.component'
 import { SemanticModelService } from '../model.service'
 import { ModelDesignerType, TOOLBAR_ACTION_CATEGORY } from '../types'
 import { ModelDimensionService } from './dimension.service'
+import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 @Component({
   standalone: true,

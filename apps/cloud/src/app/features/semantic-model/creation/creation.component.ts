@@ -20,7 +20,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { environment } from 'apps/cloud/src/environments/environment'
 import { Observable, Subject, catchError, filter, map, of, startWith, switchMap, tap } from 'rxjs'
 import { IDataSource, getErrorMessage } from '../../../@core'
-import { MaterialModule } from '../../../@shared'
+import { MaterialModule } from '../../../@shared/material.module'
 
 @Component({
   standalone: true,

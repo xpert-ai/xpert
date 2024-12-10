@@ -1,85 +1,92 @@
 <div class="relative w-full h-64 shrink-0 flex justify-start items-stretch p-1" ngmResizer [resizerHeight]="230">
-    <div class="flex flex-col justify-start">
+    <!-- <div class="flex flex-col justify-start">
         <button mat-stroked-button color="primary" (click)="back()">{{ 'Story.Common.Back' | translate: {Default: 'Back'} }}</button>
-    </div>
+    </div> -->
+  <button type="button" class="absolute right-2 top-2 btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+    (click)="back()">
+    <i class="ri-close-line"></i>
+  </button>  
 
-    <div class="flex-1 h-full flex justify-start items-stretch gap-2 p-1 overflow-hidden hover:overflow-auto">
+  <div class="flex-1 h-full flex justify-start items-stretch gap-2 p-1 overflow-hidden hover:overflow-auto">
 
-        <div class="surface shrink-0 w-64 h-full flex flex-col justify-start items-stretch rounded-xl overflow-hidden">
-            <div class="shrink-0 px-1 flex flex-wrap items-center">
-                {{ 'Story.Common.Measures' | translate: {Default: 'Measures'} }}
-            </div>
+    <div class="surface shrink-0 w-64 h-full flex flex-col justify-start items-stretch rounded-xl overflow-hidden">
+      <div class="shrink-0 px-2 pt-2 flex flex-wrap items-center">
+        {{ 'Story.Common.Measures' | translate: {Default: 'Measures'} }}
+      </div>
 
-            <div class="flex-1 overflow-auto" displayDensity="compact">
-                <ngm-search [formControl]="measureSearch"></ngm-search>
-                <mat-list id="ngm-story-explorer__drop-list-measures" role="list" class="w-full"
-                    cdkDropList
-                    [cdkDropListData]="[]">
-                    <mat-list-item role="listitem" *ngFor="let item of measureList()" class="hover:bg-black/5 dark:hover:bg-neutral-100/10"
-                        cdkDrag
-                        [cdkDragData]="item">
-                        <ngm-entity-property [property]="item" [highlight]="measureSearch.value"></ngm-entity-property>
-                    </mat-list-item>
-                </mat-list>
-            </div>
-        </div>
-
-        <div class="h-full flex gap-2" id="ngm-story-explorer__drop-list-dimensions"
-            cdkDropList cdkDropListOrientation="horizontal"
-            [cdkDropListData]="dimensions()"
-            (cdkDropListDropped)="moveDimension($event)">
-          @for (dim of dimensions(); track dim.dimension?.dimension) {
-            <div class="surface shrink-0 w-64 h-full flex flex-col justify-start items-stretch rounded-xl overflow-hidden"
-                cdkDrag
-                [cdkDragData]="dim"
-            >
-                <div class="shrink-0 p-1 flex flex-wrap items-center gap-1">
-                  @for (item of dim.hierarchies; track item.name) {
-                    <div class="tag text-sm block font-bold leading-sm px-2 py-1 rounded-lg cursor-pointer
-                        overflow-hidden text-ellipsis whitespace-nowrap"
-                        [class.selected]="item.hierarchy === (dim.dimension.hierarchy ?? dim.dimension.dimension)"
-                        [class.slicered]="slicers()[item.dimension]?.members?.length"
-                        (click)="toggleHierarchy(dim.dimension.dimension, item.hierarchy === dim.dimension.hierarchy ? null : item.hierarchy)"
-                        >
-                        <span>{{item.caption}}</span>
-                    </div>
-                  }
-                </div>
-                <ngm-member-tree class="flex-1 overflow-auto" displayDensity="compact"
-                    [dataSettings]="data.dataSettings"
-                    [dimension]="dim.dimension"
-                    [options]="{
-                        searchable: true,
-                        multiple: true,
-                        selectionType: FilterSelectionType.Multiple
-                    }"
-                    [ngModel]="slicers()[dim.dimension.dimension]"
-                    (ngModelChange)="onSlicersChange($event, dim.dimension.dimension)"
-                ></ngm-member-tree>
-            </div>
+      <div class="flex-1 px-2 overflow-auto" displayDensity="compact">
+        <ngm-search [formControl]="measureSearch"></ngm-search>
+        <ul id="ngm-story-explorer__drop-list-measures" role="list" class="w-full"
+          cdkDropList
+          [cdkDropListData]="[]">
+          @for (item of measureList(); track item.name) {
+            <li role="listitem" class="flex items-center justify-start p-1 rounded-md cursor-pointer hover:bg-black/5 dark:hover:bg-neutral-100/10"
+              cdkDrag
+              [cdkDragData]="item">
+              <i class="ri-draggable mr-1 inline-block"></i>
+              <ngm-entity-property [property]="item" [highlight]="measureSearch.value"></ngm-entity-property>
+            </li>
           }
-        </div>
-
-        <div class="add-dimension w-96 h-full shrink-0 flex justify-start items-center rounded-xl cursor-pointer" (click)="openDimensions()">
-            <div>
-                <svg width="100" height="100">
-                    <circle cx="50" cy="50" r="40" class="fill-bluegray-100 group-hover:fill-bluegray-200 group-focus:fill-bluegray-200
-                        dark:fill-gray-800"/>
-                    <rect x="25" y="48" width="50" height="4" fill="white"/>
-                    <rect x="48" y="25" width="4" height="50" fill="white"/>
-                </svg>
-            </div>
-            <div class="flex flex-col justify-center items-start">
-                <div>{{'Story.Explorer.ShowDimensions' | translate: {Default: 'Show Dimensions'} }}</div>
-                <div class="text-sm">{{'Story.Explorer.BringMoreDimensions' | translate: {Default: 'Bring in more dimensions from your dataset and start exploring'} }}.</div>
-            </div>
-        </div>
+        </ul>
+      </div>
     </div>
 
-    <div ngmResizerBar resizerBarPosition="bottom"
-        cdkDrag
-        cdkDragLockAxis="y"
-    ></div>
+    <div class="h-full flex gap-2" id="ngm-story-explorer__drop-list-dimensions"
+      cdkDropList cdkDropListOrientation="horizontal"
+      [cdkDropListData]="dimensions()"
+      (cdkDropListDropped)="moveDimension($event)">
+      @for (dim of dimensions(); track dim.dimension?.dimension) {
+        <div class="surface shrink-0 w-64 h-full flex flex-col justify-start items-stretch rounded-xl overflow-hidden"
+            cdkDrag
+            [cdkDragData]="dim"
+        >
+            <div class="shrink-0 p-1 flex flex-wrap items-center gap-1">
+              @for (item of dim.hierarchies; track item.name) {
+                <div class="tag text-sm block font-bold leading-sm px-2 py-1 rounded-lg cursor-pointer
+                    overflow-hidden text-ellipsis whitespace-nowrap"
+                    [class.selected]="item.hierarchy === (dim.dimension.hierarchy ?? dim.dimension.dimension)"
+                    [class.slicered]="slicers()[item.dimension]?.members?.length"
+                    (click)="toggleHierarchy(dim.dimension.dimension, item.hierarchy === dim.dimension.hierarchy ? null : item.hierarchy)"
+                    >
+                    <span>{{item.caption}}</span>
+                </div>
+              }
+            </div>
+            <ngm-member-tree class="flex-1 overflow-auto" displayDensity="compact"
+                [dataSettings]="data.dataSettings"
+                [dimension]="dim.dimension"
+                [options]="{
+                    searchable: true,
+                    multiple: true,
+                    selectionType: FilterSelectionType.Multiple
+                }"
+                [ngModel]="slicers()[dim.dimension.dimension]"
+                (ngModelChange)="onSlicersChange($event, dim.dimension.dimension)"
+            ></ngm-member-tree>
+        </div>
+      }
+    </div>
+
+    <div class="add-dimension w-96 h-full shrink-0 flex justify-start items-center rounded-xl cursor-pointer" (click)="openDimensions()">
+      <div>
+          <svg width="100" height="100">
+              <circle cx="50" cy="50" r="40" class="fill-bluegray-100 group-hover:fill-bluegray-200 group-focus:fill-bluegray-200
+                  dark:fill-gray-800"/>
+              <rect x="25" y="48" width="50" height="4" fill="white"/>
+              <rect x="48" y="25" width="4" height="50" fill="white"/>
+          </svg>
+      </div>
+      <div class="flex flex-col justify-center items-start">
+          <div>{{'Story.Explorer.ShowDimensions' | translate: {Default: 'Show Dimensions'} }}</div>
+          <div class="text-sm">{{'Story.Explorer.BringMoreDimensions' | translate: {Default: 'Bring in more dimensions from your dataset and start exploring'} }}.</div>
+      </div>
+    </div>
+  </div>
+
+  <div ngmResizerBar resizerBarPosition="bottom"
+    cdkDrag
+    cdkDragLockAxis="y"
+  ></div>
 </div>
 
 <div class="w-full flex-col-reverse flex-1 p-2 flex justify-start items-stretch gap-2 overflow-y-auto overflow-x-hidden
@@ -275,40 +282,50 @@
 </div>
 
 <ng-template #addDimensionsTempl>
-    <div class="flex flex-col overflow-hidden">
-      <header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-        <h4 style="pointer-events: none;" class="mb-0">
-          {{ 'Story.Explorer.AddDimensions' | translate: { Default: 'Add dimensions' } }}
-        </h4>
-      </header>
-    
-      <div mat-dialog-content class="mat-dialog-content mat-typography w-96 overflow-auto">
-        <mat-selection-list [ngModel]="_dimensionsCache()" (ngModelChange)="addDimensionToCache($event)"
-            cdkDropList
-            [cdkDropListData]="[]"
-            (cdkDropListDropped)="moveDimension($event)">
-            <mat-list-option *ngFor="let property of dimensionList()" [value]="property.name"
-                cdkDrag
-                [cdkDragData]="property">
-              {{property.caption}}
-            </mat-list-option>
-        </mat-selection-list>
-      </div>
-    
-      <mat-dialog-actions align="end">
-        <div ngmButtonGroup>
-          <button mat-button mat-dialog-close>
-            {{ 'Story.Common.Cancel' | translate: { Default: 'Cancel' } }}
-          </button>
-    
-          <button
-            mat-raised-button
-            color="accent"
-            (click)="addDimensions()"
-          >
-            {{ 'Story.Common.Confirm' | translate: { Default: 'Confirm' } }}
-          </button>
-        </div>
-      </mat-dialog-actions>
+  <div class="flex flex-col overflow-hidden p-2 rounded-lg bg-components-card-bg">
+    <header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="px-2 pb-2">
+      <h4 style="pointer-events: none;" class="mb-0">
+        {{ 'Story.Explorer.AddDimensions' | translate: { Default: 'Add dimensions' } }}
+      </h4>
+    </header>
+  
+    <div class="w-96 overflow-auto border-b border-dashed border-divider-regular">
+      <ul [ngModel]="_dimensionsCache()" (ngModelChange)="addDimensionToCache($event)"
+        cdkListbox
+        cdkListboxMultiple
+        cdkDropList
+        [cdkDropListData]="[]"
+        (cdkDropListDropped)="moveDimension($event)"
+      >
+        @for (property of dimensionList(); track property.name) {
+          <li class="px-4 py-2 rounded-md cursor-pointer hover:bg-hover-bg"
+            #option="cdkOption"
+            [cdkOption]="property.name"
+            cdkDrag
+            [cdkDragData]="property">
+            @if (option.isSelected()) {
+              <i class="ri-check-line text-lg text-text-success"></i>
+            }
+            {{property.caption}}
+        </li>
+        }
+      </ul>
     </div>
+  
+    <div class="flex justify-end mt-2">
+      <div ngmButtonGroup>
+        <button mat-button (click)="closeDimensions()">
+          {{ 'Story.Common.Cancel' | translate: { Default: 'Cancel' } }}
+        </button>
+  
+        <button
+          mat-raised-button
+          color="accent"
+          (click)="addDimensions()"
+        >
+          {{ 'Story.Common.Confirm' | translate: { Default: 'Confirm' } }}
+        </button>
+      </div>
+    </div>
+  </div>
 </ng-template>

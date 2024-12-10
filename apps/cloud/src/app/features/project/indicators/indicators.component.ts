@@ -12,12 +12,13 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { EMPTY, firstValueFrom, switchMap } from 'rxjs'
 import { IIndicator, IndicatorType, ToastrService, getErrorMessage, isUUID, routeAnimations } from '../../../@core'
-import { ManageEntityBaseComponent, MaterialModule } from '../../../@shared'
 import { ProjectService } from '../project.service'
 import { NewIndicatorCodePlaceholder, exportIndicator, injectFetchModelDetails } from '../types'
 import { IndicatorImportComponent } from './indicator-import/indicator-import.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Dialog } from '@angular/cdk/dialog'
+import { MaterialModule } from '../../../@shared/material.module'
+import { ManageEntityBaseComponent } from '../../../@shared/directives'
 
 
 @Component({

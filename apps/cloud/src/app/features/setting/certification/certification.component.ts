@@ -8,7 +8,10 @@ import { TranslateModule } from '@ngx-translate/core'
 import { UsersService } from '@metad/cloud/state'
 import { BehaviorSubject, catchError, firstValueFrom, from, map, switchMap } from 'rxjs'
 import { CertificationService, ICertification, ToastrService } from '../../../@core'
-import { MaterialModule, SharedModule, UserProfileInlineComponent, userLabel } from '../../../@shared'
+import { MaterialModule } from '../../../@shared/material.module'
+import { userLabel } from '../../../@shared/pipes'
+import { SharedModule } from '../../../@shared/shared.module'
+import { UserProfileInlineComponent } from '../../../@shared/user'
 
 @Component({
   standalone: true,

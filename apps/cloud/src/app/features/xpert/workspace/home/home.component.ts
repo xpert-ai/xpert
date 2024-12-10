@@ -23,7 +23,7 @@ import {
   NgmConfirmUniqueComponent,
 } from '@metad/ocap-angular/common'
 import { DisplayBehaviour } from '@metad/ocap-core'
-import { IntersectionObserverModule } from '@ng-web-apis/intersection-observer'
+import { WaIntersectionObserverDirective } from '@ng-web-apis/intersection-observer'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, EMPTY } from 'rxjs'
@@ -43,10 +43,11 @@ import {
   XpertTypeEnum,
   XpertWorkspaceService
 } from '../../../../@core'
-import { MaterialModule, TagFilterComponent } from '../../../../@shared'
 import { AppService } from '../../../../app.service'
 import { XpertWorkspaceSettingsComponent } from '../settings/settings.component';
 import { concat } from 'lodash-es';
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module';
+import { TagFilterComponent } from 'apps/cloud/src/app/@shared/tag';
 
 export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
 
@@ -64,7 +65,7 @@ export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
     OverlayModule,
     RouterModule,
     TranslateModule,
-    IntersectionObserverModule,
+    WaIntersectionObserverDirective,
     MaterialModule,
 
     NgmCommonModule,

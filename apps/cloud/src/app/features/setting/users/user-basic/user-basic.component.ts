@@ -4,9 +4,12 @@ import { UsersService } from '@metad/cloud/state'
 import { IUserUpdateInput, LanguagesEnum } from '@metad/contracts'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { ToastrService, User } from '../../../../@core'
-import { CreatedByPipe, MaterialModule, SharedModule, TranslationBaseComponent } from '../../../../@shared'
 import { BasicInfoFormComponent, UserFormsModule } from '../../../../@shared/user/forms'
 import { PACEditUserComponent } from '../edit-user/edit-user.component'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
+import { CreatedByPipe } from 'apps/cloud/src/app/@shared/pipes'
 
 @Component({
   standalone: true,

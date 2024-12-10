@@ -24,7 +24,6 @@ import { NGXLogger } from 'ngx-logger'
 import { MarkdownModule } from 'ngx-markdown'
 import { combineLatest, debounceTime, firstValueFrom, map, startWith } from 'rxjs'
 import { Store, ToastrService } from '../../../@core'
-import { StorySelectorComponent } from '../../../@shared'
 import { ChatbiService } from '../chatbi.service'
 import { ChatbiHomeComponent } from '../home.component'
 import { isQuestionAnswer, QuestionAnswer } from '../types'
@@ -35,6 +34,7 @@ import { WidgetService } from '@metad/core'
 import { ChatbiChatComponent } from '../chat/chat.component'
 import { ChatbiInputComponent } from '../input/input.component'
 import { ChatLoadingComponent } from '../../../@shared/copilot'
+import { StorySelectorComponent } from '../../../@shared/story'
 
 @Component({
   standalone: true,

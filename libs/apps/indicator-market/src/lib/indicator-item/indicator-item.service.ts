@@ -4,6 +4,10 @@ import { isNumber, PeriodFunctions, QueryOptions, SmartIndicatorDataService } fr
 import { combineLatest, map } from 'rxjs'
 import { Trend } from '../types'
 
+
+/**
+ * @deprecated use the individual `NgmIndicatorComponent` for indicator
+ */
 @Injectable()
 export class IndicatorItemDataService extends SmartIndicatorDataService<unknown> {
 

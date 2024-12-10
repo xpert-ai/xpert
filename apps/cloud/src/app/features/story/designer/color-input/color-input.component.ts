@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, Input, forwardRef, signal } from '@
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmColorInputComponent } from '@metad/components/form-field'
-import { MaterialModule } from '../../../../@shared'
+import { MaterialModule } from '../../../../@shared/material.module'
 import { DensityDirective } from '@metad/ocap-angular/core'
 
 @Component({

@@ -27,7 +27,7 @@ import { NxCoreService } from '@metad/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { OcapCoreModule, effectAction } from '@metad/ocap-angular/core'
 import { AgentType } from '@metad/ocap-core'
-import { StoryExplorerModule, provideStory } from '@metad/story'
+import { provideStory, StoryExplorerComponent } from '@metad/story'
 import { NxStoryService, Story } from '@metad/story/core'
 import { NxStoryComponent, NxStoryModule, StorySharesComponent } from '@metad/story/story'
 import { TranslateModule } from '@ngx-translate/core'
@@ -44,10 +44,11 @@ import {
   ToastrService,
   isMobile
 } from '../../../@core'
-import { MaterialModule, TranslationBaseComponent } from '../../../@shared'
 import { effectStoryTheme, registerStoryThemes } from '../../../@theme'
 import { AppService } from '../../../app.service'
 import { StoryScales, downloadStory } from '../types'
+import { MaterialModule } from '../../../@shared/material.module'
+import { TranslationBaseComponent } from '../../../@shared/language'
 
 @Component({
   standalone: true,
@@ -60,7 +61,7 @@ import { StoryScales, downloadStory } from '../types'
     TranslateModule,
     OcapCoreModule,
     NxStoryModule,
-    StoryExplorerModule,
+    StoryExplorerComponent,
 
     NgmCommonModule
   ],

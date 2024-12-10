@@ -10,7 +10,6 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { EntriesPipe, routeAnimations } from '@metad/core'
 import { pick } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -25,7 +24,6 @@ import {
   XpertToolsetCategoryEnum,
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
-import { TagSelectComponent, XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { distinctUntilChanged, filter, of, switchMap } from 'rxjs'
 import { CdkMenuModule } from '@angular/cdk/menu'
@@ -35,6 +33,8 @@ import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { XpertToolTestDialogComponent } from '../../tool-test'
 import { XpertConfigureToolComponent } from '../../api-tool/types'
 import { Dialog } from '@angular/cdk/dialog'
+import { TagSelectComponent } from 'apps/cloud/src/app/@shared/tag'
+import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
 
 
 @Component({

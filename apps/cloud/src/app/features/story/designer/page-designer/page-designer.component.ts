@@ -5,8 +5,9 @@ import { AppearanceDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { STORY_DESIGNER_FORM, STORY_DESIGNER_LIVE_MODE } from '@metad/story/designer'
 import { debounceTime, filter, isObservable, of } from 'rxjs'
-import { InlineSearchComponent, MaterialModule } from '../../../../@shared'
 import { DesignerWidgetComponent } from '../widget/widget.component'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
 
 @Component({
   standalone: true,

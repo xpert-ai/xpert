@@ -64,7 +64,7 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true, length: 100, default: () => 'uuid_generate_v4()' })
+	@Column({ nullable: true, length: 100, default: () => 'gen_random_uuid()' })
 	threadId?: string
 
 	@ApiPropertyOptional({ type: () => String })

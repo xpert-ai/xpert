@@ -75,6 +75,12 @@ export interface Indicator {
   visible?: boolean
 }
 
+export enum IndicatorTagEnum {
+  UNIT,
+  MOM,
+  YOY
+}
+
 /**
  * Calculate measure name in EntityType for the indicator
  * 

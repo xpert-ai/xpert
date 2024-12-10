@@ -10,7 +10,6 @@ import { TranslateModule } from '@ngx-translate/core'
 import { map } from 'rxjs/operators'
 import { EmailTemplateNameEnum, getErrorMessage } from '../../../@core/types'
 import { EmailTemplateService, injectToastr, LanguagesService } from '../../../@core/services'
-import { CardCreateComponent, LanguageSelectorComponent } from '../../../@shared'
 import { groupBy } from 'lodash-es'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { injectOrganization } from '@metad/cloud/state'
@@ -20,6 +19,8 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatButtonModule } from '@angular/material/button'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { combineLatest } from 'rxjs'
+import { CardCreateComponent } from '../../../@shared/card'
+import { LanguageSelectorComponent } from '../../../@shared/language'
 
 @Component({
   standalone: true,

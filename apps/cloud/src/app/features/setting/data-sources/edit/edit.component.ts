@@ -7,7 +7,6 @@ import { ContentLoaderModule } from '@ngneat/content-loader'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateService } from '@ngx-translate/core'
 import { DataSourceService, DataSourceTypesService } from '@metad/cloud/state'
-import { MaterialModule, SharedModule } from 'apps/cloud/src/app/@shared'
 import { BehaviorSubject, combineLatest, filter, firstValueFrom, map, switchMap } from 'rxjs'
 import {
   AuthenticationEnum,
@@ -21,6 +20,8 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { environment } from 'apps/cloud/src/environments/environment'
 import { NgmInputComponent } from '@metad/ocap-angular/common'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 
 @Component({
   standalone: true,

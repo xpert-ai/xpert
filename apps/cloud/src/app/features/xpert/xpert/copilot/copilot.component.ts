@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService, XpertService, XpertTypeEnum, IfAnimation } from '../../../../@core'
-import { CopilotKnowledgesComponent } from '../../../../@shared'
+import { CopilotKnowledgesComponent } from '../../../../@shared/copilot'
 import { XpertComponent } from '../xpert.component'
 
 @Component({

@@ -9,9 +9,11 @@ import { MatInputModule } from '@angular/material/input'
 import { MatListModule } from '@angular/material/list'
 import { MatToolbarModule } from '@angular/material/toolbar'
 import { MatTreeModule } from '@angular/material/tree'
-import { NxEntityModule } from '@metad/components/entity'
 import { NxActionStripModule } from '@metad/components/action-strip'
 
+/**
+ * @deprecated
+ */
 @NgModule({
   declarations: [ ],
   imports: [
@@ -25,7 +27,6 @@ import { NxActionStripModule } from '@metad/components/action-strip'
     MatInputModule,
     MatToolbarModule,
     MatListModule,
-    NxEntityModule,
     NxActionStripModule
   ],
   exports: [ ],

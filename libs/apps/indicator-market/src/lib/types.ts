@@ -1,33 +1,26 @@
 import { IIndicator, TimeGranularity } from '@metad/contracts'
+import { Trend } from '@metad/ocap-angular/indicator'
 import { DataSettings, Indicator } from '@metad/ocap-core'
 
-export { IndicatorTagEnum } from '@metad/contracts'
-
-export enum Trend {
-  None,
-  Up,
-  Down
-}
-
-export enum TrendColor {
-  None = '#40A9FF',
-  Up = '#31c75a',
-  Down = '#fe3c2e'
-}
-
-export enum TrendReverseColor {
-  None = '#40A9FF',
-  Down = '#31c75a',
-  Up = '#fe3c2e'
-}
+export { TrendColor, TrendReverseColor, Trend } from '@metad/ocap-angular/indicator'
+export { IndicatorTagEnum } from '@metad/ocap-core'
 
 export interface IndicatorState extends Partial<Indicator>, Omit<IIndicator, 'type'> {
   initialized: boolean
   loaded: boolean
   lookBack: number
   dataSettings: DataSettings
+  /**
+   * @deprecated
+   */
   data: { CURRENT?: number; [key: string]: any }
+  /**
+   * @deprecated
+   */
   trends: Array<unknown>
+  /**
+   * @deprecated
+   */
   trend: Trend
   favour: boolean
   error?: string

@@ -17,7 +17,7 @@ import { NgxEchartsModule } from 'ngx-echarts'
 import { PAC_SERVER_AGENT_DEFAULT_OPTIONS, ServerAgent, StoryPublicResolver } from '../@core'
 import { StoryFeedService, StoryPublicService } from '../services'
 import { STORY_WIDGET_COMPONENTS } from '../widgets'
-import { CreatedByPipe } from './created-by.pipe'
+import { CreatedByUserPipe } from './created-by.pipe'
 import { PublicPointComponent } from './point/point.component'
 import { PublicRoutingModule } from './public-routing.module'
 import { PublicComponent } from './public.component'
@@ -45,7 +45,7 @@ import { PublicWidgetComponent } from './widget/widget.component'
     // Story Widgets
   ],
   exports: [],
-  declarations: [PublicComponent, StoryViewerComponent, PublicPointComponent, PublicWidgetComponent, CreatedByPipe],
+  declarations: [PublicComponent, StoryViewerComponent, PublicPointComponent, PublicWidgetComponent, CreatedByUserPipe],
   providers: [
     // provideOcapCore(),
     StoryPublicResolver,

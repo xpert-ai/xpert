@@ -54,14 +54,15 @@ import {
   routeAnimations,
   tryHttp
 } from '../../../@core'
-import { MaterialModule, StoryCreationComponent } from '../../../@shared'
-import { TranslationBaseComponent } from '../../../@shared/language/translation-base.component'
+import { TranslationBaseComponent } from '../../../@shared/language'
 import { AppService } from '../../../app.service'
 import { injectIndicatorArchitectCommand, injectIndicatorCommand, provideCopilotCubes } from '../copilot/'
 import { ReleaseStoryDialog } from '../release-story.component'
 import { SelectModelDialog } from '../select-model.component'
 import { collectionId, injectFetchModelDetails, treeDataSourceFactory } from '../types'
 import { ProjectService } from '../project.service'
+import { MaterialModule } from '../../../@shared/material.module'
+import { StoryCreationComponent } from '../../../@shared/story'
 
 @Component({
   standalone: true,

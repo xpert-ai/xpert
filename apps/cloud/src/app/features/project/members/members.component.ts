@@ -8,19 +8,15 @@ import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@me
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatest, firstValueFrom, map, switchMap } from 'rxjs'
 import { ICertification, IProject, IUser, ProjectsService, Store, ToastrService } from '../../../@core'
-import {
-  CertificationSelectComponent,
-  UserProfileComponent,
-  UserProfileInlineComponent,
-  UserRoleSelectComponent,
-  userLabel,
-  TranslationBaseComponent
-} from '../../../@shared'
 import { InlineSearchComponent } from '../../../@shared/form-fields'
 import { ProjectComponent } from '../project/project.component'
 import { uniq } from 'lodash-es'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NgmConfirmDeleteComponent, NgmTableComponent } from '@metad/ocap-angular/common'
+import { CertificationSelectComponent } from '../../../@shared/certification'
+import { TranslationBaseComponent } from '../../../@shared/language'
+import { userLabel } from '../../../@shared/pipes'
+import { UserRoleSelectComponent, UserProfileComponent, UserProfileInlineComponent } from '../../../@shared/user'
 
 
 @Component({

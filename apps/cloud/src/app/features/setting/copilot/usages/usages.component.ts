@@ -7,7 +7,9 @@ import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayBehaviour, formatNumber, isNil } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CopilotUsageService, ICopilotOrganization, ToastrService } from '../../../../@core'
-import { MaterialModule, OrgAvatarComponent, TranslationBaseComponent } from '../../../../@shared'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
 
 @Component({
   standalone: true,

@@ -46,7 +46,6 @@ import {
   tap
 } from 'rxjs'
 import { ISemanticModel, MenuCatalog, ToastrService, getErrorMessage, routeAnimations, uuid } from '../../../@core'
-import { TranslationBaseComponent } from '../../../@shared'
 import { AppService } from '../../../app.service'
 import { exportSemanticModel } from '../types'
 import { ModelUploadComponent } from '../upload/upload.component'
@@ -67,6 +66,7 @@ import {
   TOOLBAR_ACTION_CATEGORY
 } from './types'
 import { markdownTableData, stringifyTableType } from './utils'
+import { TranslationBaseComponent } from '../../../@shared/language/'
 
 @Component({
   selector: 'ngm-semanctic-model',

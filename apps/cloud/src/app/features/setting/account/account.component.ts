@@ -6,7 +6,8 @@ import { MatTabsModule } from '@angular/material/tabs'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { Store, routeAnimations } from '../../../@core'
-import { UserAvatarEditorComponent, UserPipe } from '../../../@shared'
+import { UserPipe } from '../../../@shared/pipes'
+import { UserAvatarEditorComponent } from '../../../@shared/user'
 
 @Component({
   standalone: true,

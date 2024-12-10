@@ -4,18 +4,16 @@ import { ToastrService, UsersService } from '@metad/cloud/state'
 import { IUser, RolesEnum } from '@metad/contracts'
 import { ButtonGroupDirective, OcapCoreModule } from '@metad/ocap-angular/core'
 import { MtxCheckboxGroupModule } from '@ng-matero/extensions/checkbox-group'
-import {
-  InlineSearchComponent,
-  MaterialModule,
-  SharedModule,
-  TranslationBaseComponent,
-  UserProfileInlineComponent,
-  userLabel
-} from 'apps/cloud/src/app/@shared'
 import { includes } from 'lodash-es'
 import { BehaviorSubject, firstValueFrom, map, startWith, switchMap } from 'rxjs'
 import { PACUsersComponent } from '../users.component'
 import { NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
+import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
+import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
+import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
 
 @Component({
   standalone: true,

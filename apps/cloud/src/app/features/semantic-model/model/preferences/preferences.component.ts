@@ -7,7 +7,7 @@ import { FORMLY_ROW, FORMLY_W_1_2 } from '@metad/story/designer'
 import { cloneDeep, merge } from 'lodash-es'
 import { firstValueFrom, map } from 'rxjs'
 import { LANGUAGES, Visibility } from '../../../../@core/types'
-import { TranslationBaseComponent } from '../../../../@shared'
+import { TranslationBaseComponent } from '../../../../@shared/language'
 
 @Component({
   selector: 'pac-model-preferences',

@@ -9,12 +9,11 @@ import { DisplayBehaviour, isNil } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ICopilotUser } from '../../../../../../../../packages/contracts/src'
 import { CopilotUsageService, ToastrService } from '../../../../@core'
-import {
-  MaterialModule,
-  OrgAvatarComponent,
-  TranslationBaseComponent,
-  UserProfileInlineComponent
-} from '../../../../@shared'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
+import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
+
 
 @Component({
   standalone: true,

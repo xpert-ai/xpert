@@ -4,9 +4,12 @@ import { ActivatedRoute, Router } from '@angular/router'
 import { Store } from '@metad/cloud/state'
 import { Subject, firstValueFrom, map } from 'rxjs'
 import { Group, IUser, ROUTE_ANIMATIONS_ELEMENTS, routeAnimations } from '../../../@core/index'
-import { MaterialModule, SharedModule, UserMutationComponent, userLabel } from '../../../@shared'
 import { InviteMutationComponent } from '../../../@shared/invite'
-import { TranslationBaseComponent } from '../../../@shared/'
+import { TranslationBaseComponent } from '../../../@shared/language'
+import { MaterialModule } from '../../../@shared/material.module'
+import { userLabel } from '../../../@shared/pipes'
+import { SharedModule } from '../../../@shared/shared.module'
+import { UserMutationComponent } from '../../../@shared/user'
 
 
 @Component({

@@ -2,12 +2,13 @@ import { Component, OnDestroy, effect, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { Store, UsersService } from '@metad/cloud/state'
-import { MaterialModule, SharedModule } from 'apps/cloud/src/app/@shared'
 import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
 import { RolesEnum, routeAnimations } from '../../../../@core'
 import { PACUserOrganizationsComponent } from '../organizations/organizations.component'
 import { UserBasicComponent } from '../user-basic/user-basic.component'
 import { PACUsersComponent } from '../users.component'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 
 @Component({
   standalone: true,

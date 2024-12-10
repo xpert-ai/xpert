@@ -13,7 +13,6 @@ import {
   uuid,
   XpertService
 } from 'apps/cloud/src/app/@core'
-import { MaterialModule, XpertParametersCardComponent } from 'apps/cloud/src/app/@shared'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { MarkdownModule } from 'ngx-markdown'
 import { Subscription } from 'rxjs'
@@ -22,6 +21,8 @@ import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { processEvents } from '../agent-execution/execution.component'
 import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 
 @Component({
   standalone: true,

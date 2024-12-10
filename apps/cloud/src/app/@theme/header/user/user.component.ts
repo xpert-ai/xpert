@@ -8,8 +8,8 @@ import { ThemesEnum } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { startWith } from 'rxjs/operators'
 import { IUser, LANGUAGES, LanguagesMap, Store } from '../../../@core'
-import { UserPipe } from '../../../@shared'
-import { UserProfileInlineComponent } from '../../../@shared/'
+import { UserPipe } from '../../../@shared/pipes'
+import { UserProfileInlineComponent } from '../../../@shared/user'
 
 const THEMES = [
   {

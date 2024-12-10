@@ -5,8 +5,8 @@ import { TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
 import { IStoryTemplate, StoryTemplateType, ToastrService } from '../../../@core'
-import { StoryTemplateComponent } from '../../../@shared'
 import { DeepPartial } from '@metad/ocap-core'
+import { StoryTemplateComponent } from '../../../@shared/story'
 
 @Injectable()
 export class StoryToolbarService {

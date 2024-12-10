@@ -10,15 +10,16 @@ import {
   PermissionApprovalStatusTypesEnum,
   getDateLocale
 } from 'apps/cloud/src/app/@core'
-import { MaterialModule, TranslationBaseComponent, userLabel } from 'apps/cloud/src/app/@shared'
 import { formatRelative } from 'date-fns'
 import { assign, isNil, omitBy } from 'lodash-es'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
 import { combineLatestWith, map, switchMap, tap } from 'rxjs/operators'
-import { UserPipe } from '../../../../@shared/pipes/created-by.pipe'
+import { userLabel, UserPipe } from '../../../../@shared/pipes/'
 import { UserAvatarComponent } from '../../../../@shared/user'
 import { ProjectComponent } from '../../project/project.component'
 import { NgmTableComponent } from '@metad/ocap-angular/common'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 @Component({
   standalone: true,

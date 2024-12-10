@@ -6,7 +6,8 @@ import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
 import { BehaviorSubject, of, pipe, switchMap } from 'rxjs'
 import { KnowledgebaseService, ToastrService, routeAnimations } from '../../../../@core'
-import { MaterialModule, TranslationBaseComponent } from '../../../../@shared'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 @Component({
   standalone: true,

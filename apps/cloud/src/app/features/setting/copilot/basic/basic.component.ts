@@ -9,11 +9,12 @@ import {
   injectCopilots,
   injectCopilotServer,
   injectToastr,
-  PACCopilotService
 } from 'apps/cloud/src/app/@core'
-import { CopilotProviderComponent, MaterialModule } from '../../../../@shared'
 import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
 import { DisappearAnimations } from '@metad/core'
+import { PACCopilotService } from '../../../services'
+import { CopilotProviderComponent } from 'apps/cloud/src/app/@shared/copilot'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
 @Component({
   standalone: true,

@@ -12,7 +12,7 @@ import { EmojiAvatarComponent } from '../../../../../@shared/avatar/emoji-avatar
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { CdkOverlayOrigin, OverlayModule } from '@angular/cdk/overlay'
-import { ToolsetCardComponent } from 'apps/cloud/src/app/@shared'
+import { ToolsetCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 
 @Component({
   selector: 'xpert-studio-toolset-menu',

@@ -19,6 +19,10 @@ const routes: Routes = [
   },
   { path: 'sign-in/success', component: SignInSuccessComponent },
   {
+    path: 'x',
+    loadChildren: () => import('./chat/routes').then((m) => m.routes)
+  },
+  {
     path: '',
     loadChildren: () => import('./features/features.module').then((m) => m.FeaturesModule)
   },

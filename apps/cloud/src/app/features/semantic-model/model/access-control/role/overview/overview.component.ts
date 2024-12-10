@@ -4,11 +4,12 @@ import { FormControl } from '@angular/forms'
 import { MatButtonToggleChange } from '@angular/material/button-toggle'
 import { MatDialog } from '@angular/material/dialog'
 import { IModelRole, MDX, RoleTypeEnum } from 'apps/cloud/src/app/@core'
-import { UserRoleSelectComponent, userLabel } from 'apps/cloud/src/app/@shared'
 import { combineLatestWith, debounceTime, map, startWith, withLatestFrom } from 'rxjs/operators'
 import { AccessControlStateService } from '../../access-control.service'
 import { RoleStateService } from '../role.service'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
+import { UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 
 
 @Component({

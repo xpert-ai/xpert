@@ -1,0 +1,55 @@
+@if (indicator(); as indicator) {
+  <div class="pac-item-meta flex-1 flex flex-col overflow-hidden"
+    [class.text-gray-500]="loading()"
+  >
+    <div class="pac-item-meta-title text-lg flex justify-start items-center overflow-hidden">
+      <span class="flex-1 font-semibold whitespace-nowrap text-ellipsis overflow-hidden">{{ indicator.code }}</span>
+    </div>
+    <div class="pac-item-meta-description text-base">
+      <span>{{ indicator.name }}</span>
+    </div>
+  </div>
+
+  <div class="w-28 h-12 px-2" ngmSparkLine [indicator]="indicator" [statisticalType]="statisticalType"
+    [trend]="trend()"
+    [trends]="trends()"
+  ></div>
+
+
+  <div class="w-16 flex flex-col justify-around items-end z-10">
+    <div>
+      @if (indicator.unit === '%') {
+        <span>
+          {{ main()?.CURRENT * 100 | number:'0.0-2' | isNil:'-' }}
+        </span>
+      } @else {
+        <span>
+          {{ main()?.CURRENT | number:'0.0-2' | isNil:'-' }}
+        </span>
+      }
+    </div>
+
+    <div (click)="_toggleTag($event)" class="pac-indicator__tag text-sm bg-gray-500 bg-opacity-25"
+      [ngClass]="{'Trend-Up': trend() === TREND.Up, 'Trend-Down': trend() === TREND.Down}"
+    >
+      @switch (tagType()) {
+        @case(TagEnum.UNIT) {
+          <span>
+            {{ indicator.unit }}
+          </span>
+        }
+        @case(TagEnum.MOM) {
+          <span>
+            {{ main()?.MOM | percent:'0.2-2' }}
+          </span>
+        }
+        @case(TagEnum.YOY) {
+          <span>
+            {{ main()?.YOY | percent:'0.2-2' }}
+          </span>
+        }
+      }
+    </div>
+
+  </div>
+}

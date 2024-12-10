@@ -18,19 +18,16 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatChipsModule } from '@angular/material/chips'
 import { MatDividerModule } from '@angular/material/divider'
-import { MatListModule } from '@angular/material/list'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatTabsModule } from '@angular/material/tabs'
 import { MatRadioModule } from '@angular/material/radio'
-import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { nonBlank } from '@metad/core'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
 import { AnalyticalGridModule } from '@metad/ocap-angular/analytical-grid'
 import { NgmMemberTreeComponent } from '@metad/ocap-angular/controls'
 import { DisplayDensity, NgmDSCoreService, NgmThemeService, OcapCoreModule } from '@metad/ocap-angular/core'
-import { EntityCapacity, NgmEntityPropertyComponent, NgmEntitySchemaComponent, PropertyCapacity } from '@metad/ocap-angular/entity'
+import { EntityCapacity, NgmEntityPropertyComponent, PropertyCapacity } from '@metad/ocap-angular/entity'
 import { NgmChartPropertyComponent, NgmChartSettingsComponent, NgmSchemaChartTypeComponent } from '@metad/story/widgets/analytical-card'
 import { NgmGridSettingsComponent } from '@metad/story/widgets/analytical-grid'
 import {
@@ -64,9 +61,11 @@ import { NxStoryService, WidgetComponentType } from '@metad/story/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { combineLatestWith, filter, map, startWith, switchMap } from 'rxjs/operators'
 import { MatIconModule } from '@angular/material/icon'
-import { NgmSearchComponent, NgmTableComponent, ResizerModule } from '@metad/ocap-angular/common'
+import { NgmSearchComponent, ResizerModule } from '@metad/ocap-angular/common'
 import { firstValueFrom } from 'rxjs'
 import { ExplainComponent, injectCalclatedMeasureCommand } from '@metad/story/story'
+import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { CdkListboxModule } from '@angular/cdk/listbox'
 
 
 @Component({
@@ -76,20 +75,16 @@ import { ExplainComponent, injectCalclatedMeasureCommand } from '@metad/story/st
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatChipsModule,
+    CdkListboxModule,
     MatButtonModule,
-    MatListModule,
     MatButtonToggleModule,
     MatDividerModule,
     MatTooltipModule,
     MatIconModule,
-    MatDialogModule,
     MatTabsModule,
     MatRadioModule,
     DragDropModule,
-    NgmTableComponent,
     OcapCoreModule,
-    NgmEntitySchemaComponent,
     NgmMemberTreeComponent,
     AnalyticalCardModule,
     AnalyticalGridModule,
@@ -115,10 +110,12 @@ export class StoryExplorerComponent {
   @HostBinding('class.ngm-story-explorer') isStoryExplorerComponent = true
 
   private readonly dsCoreService = inject(NgmDSCoreService)
-  private readonly _dialog = inject(MatDialog)
   private readonly translateService = inject(TranslateService)
   readonly #storyService? = inject(NxStoryService, { optional: true })
   readonly themeService = inject(NgmThemeService)
+  readonly #data = inject<{data: any}>(DIALOG_DATA, { optional: true })
+  readonly #dialogRef = inject(DialogRef, { optional: true })
+  readonly #dialog = inject(Dialog)
 
   @Input()
   get data() {
@@ -197,7 +194,7 @@ export class StoryExplorerComponent {
 
   @ViewChild('addDimensionsTempl') addDimensionsTempl: TemplateRef<ElementRef>
 
-  private dialogRef: MatDialogRef<ElementRef<any>, any>
+  private dialogRef: DialogRef<ElementRef<any>, any>
 
   measureSearch = new FormControl('')
 
@@ -455,10 +452,15 @@ export class StoryExplorerComponent {
       },
       { allowSignalWrites: true }
     )
+
+    if (this.#data?.data) {
+      this.data = this.#data.data
+    }
   }
 
   back() {
     this.closed.emit()
+    this.#dialogRef?.close()
   }
 
   trackByDim(index, item) {
@@ -564,13 +566,13 @@ export class StoryExplorerComponent {
     }
   }
 
-  addDimensionToCache(event) {
+  addDimensionToCache(event: string[]) {
     this._dimensionsCache.set([...event])
   }
 
   openDimensions() {
     this._dimensionsCache.set(this._dimensions().map((d) => d.dimension))
-    this.dialogRef = this._dialog.open(this.addDimensionsTempl)
+    this.dialogRef = this.#dialog.open(this.addDimensionsTempl,)
   }
 
   addDimensions() {
@@ -606,28 +608,31 @@ export class StoryExplorerComponent {
     }
   }
 
-  setExplains(explains) {
+  closeDimensions() {
+    this.dialogRef.close()
+  }
+
+  setExplains(explains: any[]) {
     this.explains.set(explains)
   }
 
   async openExplain() {
-    await firstValueFrom(this._dialog.open(ExplainComponent, {
+    await firstValueFrom(this.#dialog.open(ExplainComponent, {
       data: [...(this.explains() ?? []), {slicers: this.slicers()}]}
-    ).afterClosed())
+    ).closed)
   }
 
   close() {
-    if (this.component().component === WidgetComponentType.AnalyticalCard) {
-      this.closed.emit({
+    const result = this.component().component === WidgetComponentType.AnalyticalCard ?
+      {
         dataSettings: this.dataSettingsChart(),
         chartSettings: this.chartSettings?.chartSettings,
         chartOptions: this.chartSettings?.chartOptions,
-      })
-    } else {
-      this.closed.emit({
+      } : {
         dataSettings:this.dataSettingsGrid(),
         options: this.gridSettings?.options,
-      })
-    }
+      }
+    this.closed.emit(result)
+    this.#dialogRef?.close(result)
   }
 }

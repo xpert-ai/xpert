@@ -17,7 +17,7 @@ import {
   XpertService,
   XpertTypeEnum
 } from '../../../../@core'
-import { MaterialModule } from '../../../../@shared'
+import { MaterialModule } from '../../../../@shared/material.module'
 import { EmojiAvatarComponent } from '../../../../@shared/avatar'
 
 @Component({

@@ -26,18 +26,15 @@ import {
   XpertAgentExecutionService,
   XpertAgentService
 } from 'apps/cloud/src/app/@core'
-import {
-  CopilotStoredMessageComponent,
-  MaterialModule,
-  XpertAgentExecutionStatusComponent,
-  XpertParametersCardComponent
-} from 'apps/cloud/src/app/@shared'
 import { MarkdownModule } from 'ngx-markdown'
 import { of, Subscription } from 'rxjs'
 import { distinctUntilChanged, switchMap } from 'rxjs/operators'
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
+import { CopilotStoredMessageComponent } from 'apps/cloud/src/app/@shared/copilot'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { XpertAgentExecutionStatusComponent, XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 
 @Component({
   selector: 'xpert-studio-panel-agent-execution',

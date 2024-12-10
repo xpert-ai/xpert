@@ -8,7 +8,8 @@ import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, catchError, EMPTY, map, switchMap, tap } from 'rxjs'
 import { getErrorMessage, IXpertToolset, OrderTypeEnum, ToastrService, XpertToolsetService } from '../../../../@core'
-import { AvatarComponent, MaterialModule } from '../../../../@shared'
+import { AvatarComponent } from 'apps/cloud/src/app/@shared/files'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
 type XpertToolsetRowType = Partial<IXpertToolset> & { __edit__?: boolean }
 

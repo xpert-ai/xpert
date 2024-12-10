@@ -14,9 +14,13 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { TinyArea } from '@antv/g2plot/esm/plots/tiny-area'
 import { Store } from '@metad/cloud/state'
 import { TranslateService } from '@ngx-translate/core'
-import { IndicatorState, StatisticalType, Trend, TrendColor, TrendReverseColor } from '../types'
 import { NgmLanguageEnum } from '@metad/ocap-angular/core'
+import { IndicatorState, StatisticalType, Trend, TrendColor, TrendReverseColor } from '../types'
 
+
+/**
+ * @deprecated use the individual `NgmIndicatorComponent` for indicator
+ */
 @Directive({
   selector: '[pacSparkLine]'
 })

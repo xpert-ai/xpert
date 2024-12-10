@@ -16,13 +16,14 @@ import { NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import { EntityCapacity, NgmCalculatedMeasureComponent, NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
 import { AggregationRole, C_MEASURES, Syntax } from '@metad/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
-import { MaterialModule, SharedModule } from 'apps/cloud/src/app/@shared'
 import { NgmNotificationComponent } from 'apps/cloud/src/app/@theme'
 import { NGXLogger } from 'ngx-logger'
 import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
 import { SemanticModelService } from '../model.service'
 import { CdkDragDropContainers, SemanticModelEntityType } from '../types'
 import { VirtualCubeStateService } from './virtual-cube.service'
+import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
 
 @Component({

@@ -33,10 +33,13 @@ import {
   ROUTE_ANIMATIONS_ELEMENTS,
   ToastrService
 } from '../../../@core'
-import { MaterialModule, SharedModule, TranslationBaseComponent, createTimer } from '../../../@shared'
 import { RecentsComponent } from '../recents/recents.component'
 import { StoryWidgetFeedComponent } from '../story-widget/story-widget.component'
 import { UserVisitComponent } from '../user-visit/user-visit.component'
+import { SharedModule } from '../../../@shared/shared.module'
+import { MaterialModule } from '../../../@shared/material.module'
+import { TranslationBaseComponent } from '../../../@shared/language'
+import { createTimer } from '../../../@shared/timer'
 
 const QuickGuidesInit = {
   sample: {

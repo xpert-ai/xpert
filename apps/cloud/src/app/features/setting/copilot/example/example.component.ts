@@ -9,8 +9,9 @@ import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
 import { EMPTY, pipe, switchMap } from 'rxjs'
 import { AiBusinessRole, AiProvider, CopilotExampleService, ToastrService, getErrorMessage } from '../../../../@core'
-import { MaterialModule, TranslationBaseComponent } from '../../../../@shared'
 import { CopilotExamplesComponent } from '../examples/examples.component'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
 @Component({
   standalone: true,

@@ -7,7 +7,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { CredentialsType, ToolProviderCredentials } from 'apps/cloud/src/app/@core'
-import { RemoteSelectComponent } from 'apps/cloud/src/app/@shared'
+import { RemoteSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 

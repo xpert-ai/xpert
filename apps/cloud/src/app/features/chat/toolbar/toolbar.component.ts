@@ -10,12 +10,13 @@ import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { combineLatest, map } from 'rxjs'
 import { KnowledgebaseService } from '../../../@core'
-import { AboutXpertComponent, MaterialModule } from '../../../@shared'
 import { KnowledgebaseListComponent, ToolsetListComponent } from '../../../@shared/copilot'
 import { AppService } from '../../../app.service'
 import { ChatInputComponent } from '../chat-input/chat-input.component'
 import { ChatService } from '../chat.service'
 import { Icons } from '../icons'
+import { MaterialModule } from '../../../@shared/material.module'
+import { AboutXpertComponent } from '../../../@shared/xpert'
 
 @Component({
   standalone: true,

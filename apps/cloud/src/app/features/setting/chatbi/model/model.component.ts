@@ -20,8 +20,10 @@ import {
   injectToastr,
   routeAnimations
 } from '../../../../@core'
-import { IntegrationListComponent, MaterialModule, UpsertEntityComponent } from '../../../../@shared'
 import { ChatBIModelsComponent } from '../models/models.component'
+import { UpsertEntityComponent } from 'apps/cloud/src/app/@shared/common'
+import { IntegrationListComponent } from 'apps/cloud/src/app/@shared/integration'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
 @Component({
   standalone: true,

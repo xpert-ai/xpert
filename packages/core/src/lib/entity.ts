@@ -57,13 +57,11 @@ export interface EntityService<T> {
   getCalculatedMember(measure: string, type: PeriodFunctions, calendar?: string): Property
 
   /**
-   * @deprecated 
-   * 
-   * 获取指标
+   * @deprecated use getIndicator in DataSource ?
    * 
    * @param id 
    */
-  getIndicator(id: string): Indicator
+  getIndicator(idOrCode: string): Indicator
 
   /**
    * Completes all relevant Observable streams.

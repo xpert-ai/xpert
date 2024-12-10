@@ -2,7 +2,6 @@ import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import { API_PREFIX, SemanticModelServerService } from '@metad/cloud/state'
 import { IModelQuery } from '@metad/contracts'
-import { AIOptions, CopilotChatConversation } from '@metad/copilot'
 import { omit, pick } from '@metad/ocap-core'
 import { map } from 'rxjs'
 
@@ -13,8 +12,8 @@ export interface ModelQuery extends IModelQuery {
   name: string
   entities: string[]
   statement?: string
-  aiOptions?: AIOptions
-  conversations?: Array<CopilotChatConversation>
+  aiOptions?: any // AIOptions
+  conversations?: Array<any> // CopilotChatConversation
 }
 
 @Injectable({ providedIn: 'root' })

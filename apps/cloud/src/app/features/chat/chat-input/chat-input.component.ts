@@ -5,11 +5,12 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { MaterialModule } from '../../../@shared'
+import { MaterialModule } from '../../../@shared/material.module'
 import { AppService } from '../../../app.service'
 import { ChatService } from '../chat.service'
-import { PACCopilotService, uuid } from '../../../@core'
 import { map } from 'rxjs'
+import { PACCopilotService } from '../../services'
+import { uuid } from '../../../@core'
 
 
 @Component({

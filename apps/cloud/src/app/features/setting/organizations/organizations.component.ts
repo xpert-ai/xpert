@@ -1,10 +1,10 @@
 import { SelectionModel } from '@angular/cdk/collections'
 import { Component } from '@angular/core'
 import { MatDialog } from '@angular/material/dialog'
-import { BehaviorSubject, firstValueFrom, map, shareReplay, switchMap } from 'rxjs'
+import { BehaviorSubject, firstValueFrom } from 'rxjs'
 import { IOrganization, OrganizationsService, ToastrService, routeAnimations } from '../../../@core'
-import { ManageEntityBaseComponent } from '../../../@shared'
 import { OrganizationMutationComponent } from './organization-mutation/organization-mutation.component'
+import { ManageEntityBaseComponent } from '../../../@shared/directives'
 
 
 @Component({

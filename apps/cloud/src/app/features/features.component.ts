@@ -52,11 +52,11 @@ import {
   Store,
   routeAnimations
 } from '../@core'
-import { StoryCreationComponent } from '../@shared'
 import { AppService } from '../app.service'
 import { ModelCreationComponent } from './semantic-model/creation/creation.component'
 import { QueryCreationDialogComponent } from './semantic-model/query-creation.component'
 import { injectChatCommand } from '../@shared/copilot'
+import { StoryCreationComponent } from '../@shared/story'
 
 
 @Component({

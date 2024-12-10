@@ -18,7 +18,8 @@ import {
   getErrorMessage,
   uuid
 } from '../../../@core'
-import { MaterialModule, TagEditorComponent } from '../../../@shared'
+import { MaterialModule } from '../../../@shared/material.module'
+import { TagEditorComponent } from '../../../@shared/tag'
 
 @Component({
   standalone: true,

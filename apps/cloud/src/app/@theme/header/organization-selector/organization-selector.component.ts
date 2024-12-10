@@ -10,8 +10,9 @@ import { nonNullable } from '@metad/core'
 import { uniqBy } from 'lodash-es'
 import { combineLatestWith, filter, from, map, shareReplay, switchMap, tap } from 'rxjs'
 import { IOrganization, PermissionsEnum, Store, UsersOrganizationsService } from '../../../@core'
-import { TranslationBaseComponent, OrgAvatarComponent } from '../../../@shared'
 import { NgxPermissionsService } from 'ngx-permissions'
+import { OrgAvatarComponent } from '../../../@shared/organization'
+import { TranslationBaseComponent } from '../../../@shared/language'
 
 
 @Component({

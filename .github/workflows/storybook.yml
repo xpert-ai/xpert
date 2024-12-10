@@ -2,7 +2,10 @@ name: Storybook Build and Deploy
 on: 
   push:
     branches: [ "main" ]
-    
+
+permissions:
+  contents: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest

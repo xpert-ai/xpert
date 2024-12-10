@@ -35,9 +35,11 @@ import {
   Store,
   ToastrService
 } from '../../../../../@core'
-import { FilesUploadDialogComponent, MaterialModule, TranslationBaseComponent } from '../../../../../@shared'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { formatRelative } from 'date-fns/formatRelative'
+import { FilesUploadDialogComponent } from 'apps/cloud/src/app/@shared/files'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
 @Component({
   standalone: true,

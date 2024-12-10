@@ -8,9 +8,11 @@ import {
   ToastrService,
   getErrorMessage
 } from 'apps/cloud/src/app/@core'
-import { MaterialModule, SharedModule, TranslationBaseComponent } from 'apps/cloud/src/app/@shared'
 import { Subscription } from 'rxjs'
 import { EditOrganizationComponent } from '../edit-organization/edit-organization.component'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 
 @Component({
   standalone: true,

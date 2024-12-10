@@ -1,0 +1,51 @@
+:host {
+  @apply flex justify-start px-4 text-text-primary;
+}
+
+$trend-up: rgb(49, 199, 90);
+$trend-down: rgb(254, 60, 46);
+$background-color: #090909;
+
+.pac-indicator__tag {
+  width: 60px;
+  text-align: right;
+  border-radius: 5px;
+  padding: 0 5px;
+  cursor: pointer;
+
+  &.Trend-Up {
+    background-color: $trend-up;
+    color: white;
+  }
+  &.Trend-Down {
+    background-color: $trend-down;
+    color: white;
+  }
+}
+
+.Trend-Up {
+  color: $trend-up;
+}
+
+.Trend-Down {
+  color: $trend-down;
+}
+
+:host.reverse-semantic-color {
+  .Trend-Up {
+    color: $trend-down;
+  }
+  .Trend-Down {
+    color: $trend-up;
+  }
+  .pac-indicator__tag {
+    &.Trend-Up {
+      background-color: $trend-down;
+      @apply text-neutral-100;
+    }
+    &.Trend-Down {
+      background-color: $trend-up;
+      @apply text-neutral-100;
+    }
+  }
+}

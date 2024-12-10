@@ -3,9 +3,8 @@ import { Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { CopilotKnowledgeComponent } from '../../../../../@shared'
+import { CopilotKnowledgeComponent } from '../../../../../@shared/copilot'
 import { XpertComponent } from '../../xpert.component'
-import { IfAnimation } from 'apps/cloud/src/app/@core'
 
 @Component({
   selector: 'xpert-copilot-knowledge-blank',

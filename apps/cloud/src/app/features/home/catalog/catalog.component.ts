@@ -10,7 +10,8 @@ import { BusinessAreasService, StoriesService } from '@metad/cloud/state'
 import { sortBy } from 'lodash-es'
 import { combineLatest, debounceTime, map, startWith, switchMap, tap } from 'rxjs'
 import { IBusinessArea, IStory, listAnimation } from '../../../@core'
-import { InlineSearchComponent, StoryCardComponent } from '../../../@shared'
+import { StoryCardComponent } from '../../../@shared/story'
+import { InlineSearchComponent } from '../../../@shared/form-fields'
 
 @Component({
   standalone: true,

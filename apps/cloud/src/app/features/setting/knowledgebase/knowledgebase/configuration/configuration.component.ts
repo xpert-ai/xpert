@@ -2,26 +2,25 @@ import { ChangeDetectorRef, Component, computed, effect, inject, signal } from '
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { AI_PROVIDERS, AiModelCapability, AiProviderRole, isNil } from '@metad/copilot'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { omit, pick, upperFirst } from 'lodash-es'
-import { startWith } from 'rxjs'
 import {
   IKnowledgebase,
   KnowledgebasePermission,
   KnowledgebaseService,
   AiModelTypeEnum,
-  PACCopilotService,
   Store,
   ToastrService,
   getErrorMessage,
   routeAnimations
 } from '../../../../../@core'
-import { AvatarEditorComponent, CopilotModelSelectComponent, MaterialModule, TranslationBaseComponent } from '../../../../../@shared'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { EmojiAvatarComponent } from "../../../../../@shared/avatar/emoji-avatar/avatar.component";
+import { PACCopilotService } from '../../../../services'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 @Component({
   standalone: true,

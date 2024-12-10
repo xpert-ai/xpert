@@ -8,8 +8,10 @@ import { AppearanceDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom, map, shareReplay, switchMap } from 'rxjs'
 import { IOrganization, OrganizationsService, ToastrService } from '../../../../@core'
-import { MaterialModule, OrgAvatarComponent, TranslationBaseComponent } from '../../../../@shared'
 import { OrganizationsComponent } from '../organizations.component'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
 
 @Component({
   standalone: true,

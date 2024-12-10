@@ -20,10 +20,12 @@ import {
   TagService,
   getDateLocale
 } from '../../../@core'
-import { MaterialModule, SharedModule, TagViewerComponent } from '../../../@shared'
 import { InlineSearchComponent } from '../../../@shared/form-fields'
 import { IndicatorTypeComponent } from '../../../@shared/indicator'
 import { AppService } from '../../../app.service'
+import { MaterialModule } from '../../../@shared/material.module'
+import { SharedModule } from '../../../@shared/shared.module'
+import { TagViewerComponent } from '../../../@shared/tag'
 
 @Component({
   standalone: true,

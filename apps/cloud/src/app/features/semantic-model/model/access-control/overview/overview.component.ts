@@ -2,10 +2,11 @@ import { Component } from '@angular/core'
 import { FormControl } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { IUser, RoleTypeEnum } from '@metad/contracts'
-import { UserRoleSelectComponent, userLabel } from 'apps/cloud/src/app/@shared'
 import { BehaviorSubject } from 'rxjs'
 import { combineLatestWith, debounceTime, map, startWith } from 'rxjs/operators'
 import { AccessControlStateService } from '../access-control.service'
+import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
+import { UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 
 @Component({
   selector: 'pac-model-access-overview',

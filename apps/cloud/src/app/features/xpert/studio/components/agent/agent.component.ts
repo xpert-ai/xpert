@@ -3,8 +3,8 @@ import { FFlowModule } from '@foblex/flow'
 import { AiModelTypeEnum, TXpertTeamNode } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
-import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared'
 import { XpertStudioApiService } from '../../domain'
+import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 
 @Component({
   selector: 'xpert-studio-node-agent',

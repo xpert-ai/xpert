@@ -16,8 +16,8 @@ import { computedAsync } from 'ngxtension/computed-async'
 import { firstValueFrom } from 'rxjs'
 import { map, startWith, switchMap } from 'rxjs/operators'
 import { DefaultProject, IProject, ProjectsService, Store, ToastrService } from '../../../@core'
-import { InlineSearchComponent } from '../../../@shared'
 import { ProjectCreationComponent } from './creation/creation.component'
+import { InlineSearchComponent } from '../../../@shared/form-fields'
 
 @Component({
   standalone: true,

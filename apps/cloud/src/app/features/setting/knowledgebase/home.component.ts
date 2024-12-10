@@ -19,9 +19,12 @@ import {
   Store,
   ToastrService
 } from '../../../@core'
-import { CardCreateComponent, MaterialModule, TranslationBaseComponent, UserProfileInlineComponent } from '../../../@shared'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { DynamicGridDirective } from '@metad/core'
+import { CardCreateComponent } from '../../../@shared/card'
+import { TranslationBaseComponent } from '../../../@shared/language'
+import { MaterialModule } from '../../../@shared/material.module'
+import { UserProfileInlineComponent } from '../../../@shared/user'
 
 @Component({
   standalone: true,

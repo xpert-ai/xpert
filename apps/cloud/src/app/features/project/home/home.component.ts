@@ -11,8 +11,8 @@ import { Story } from '@metad/story/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom, switchMap, tap } from 'rxjs'
 import { DefaultCollection, IStory, IStoryTemplate, ProjectsService, ToastrService, tryHttp } from '../../../@core'
-import { StoryCardComponent, StoryCreationComponent, StoryTemplateComponent } from '../../../@shared'
 import { ProjectComponent } from '../project/project.component'
+import { StoryCardComponent, StoryCreationComponent, StoryTemplateComponent } from '../../../@shared/story'
 
 @Component({
   standalone: true,

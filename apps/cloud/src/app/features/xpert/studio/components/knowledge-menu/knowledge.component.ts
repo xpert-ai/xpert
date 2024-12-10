@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
-import { FFlowModule } from '@foblex/flow'
 import { XpertStudioApiService } from '../../domain'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { CdkMenu, CdkMenuModule } from '@angular/cdk/menu'
@@ -7,8 +6,8 @@ import { XpertStudioComponent } from '../../studio.component'
 import { IKnowledgebase } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { TranslateModule } from '@ngx-translate/core'
-import { KnowledgebaseCardComponent } from 'apps/cloud/src/app/@shared'
 import { CdkOverlayOrigin, OverlayModule } from '@angular/cdk/overlay'
+import { KnowledgebaseCardComponent } from 'apps/cloud/src/app/@shared/copilot'
 
 @Component({
   selector: 'xpert-studio-knowledge-menu',

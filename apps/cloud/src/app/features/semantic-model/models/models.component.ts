@@ -26,11 +26,13 @@ import {
   WasmDBDialect,
   getDateLocale
 } from '../../../@core'
-import { CreatedByPipe, MaterialModule, SharedModule } from '../../../@shared'
 import { TranslationBaseComponent } from '../../../@shared/language/translation-base.component'
 import { AppService } from '../../../app.service'
 import { ModelCreationComponent } from '../creation/creation.component'
 import { exportSemanticModel } from '../types'
+import { SharedModule } from '../../../@shared/shared.module'
+import { MaterialModule } from '../../../@shared/material.module'
+import { CreatedByPipe } from '../../../@shared/pipes'
 
 @Component({
   standalone: true,

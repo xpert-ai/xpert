@@ -19,7 +19,6 @@ import {
   injectCopilotProviderService,
   injectCopilots,
   ModelFeature,
-  PACCopilotService,
   ParameterType
 } from '../../../@core'
 import { ModelParameterInputComponent } from '../model-parameter-input/input.component'
@@ -50,7 +49,6 @@ export class CopilotModelSelectComponent {
   eParameterType = ParameterType
 
   protected cva = inject<NgxControlValueAccessor<Partial<ICopilotModel> | null>>(NgxControlValueAccessor)
-  readonly copilotService = inject(PACCopilotService)
   readonly copilotServer = inject(CopilotServerService)
   readonly copilotProviderService = injectCopilotProviderService()
   readonly copilots = injectCopilots()

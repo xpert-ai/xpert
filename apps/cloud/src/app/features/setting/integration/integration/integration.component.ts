@@ -24,10 +24,10 @@ import {
   Store,
   ToastrService
 } from '../../../../@core'
-import { AvatarEditorComponent, MaterialModule } from '../../../../@shared'
 import { IsDirty } from '@metad/core'
 import omit from 'lodash-es/omit'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
 @Component({
   standalone: true,

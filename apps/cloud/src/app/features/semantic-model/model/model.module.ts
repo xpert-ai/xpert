@@ -19,7 +19,6 @@ import { ContentLoaderModule } from '@ngneat/content-loader'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
-import { CreatedByPipe, DirtyBadgeComponent, MaterialModule, UserPipe } from '../../../@shared'
 import { ModelUploadComponent } from '../upload/upload.component'
 import { ModelCreateEntityComponent } from './create-entity/create-entity.component'
 import { ModelComponent } from './model.component'
@@ -42,6 +41,9 @@ import {
   MeasureSchemaService
 } from './schema/index'
 import { ModelDesignerType } from './types'
+import { DirtyBadgeComponent } from '../../../@shared/badge'
+import { MaterialModule } from '../../../@shared/material.module'
+import { CreatedByPipe, UserPipe } from '../../../@shared/pipes'
 
 @NgModule({
   declarations: [ModelComponent, ModelOverviewComponent, ModelCreateEntityComponent, ModelPreferencesComponent],

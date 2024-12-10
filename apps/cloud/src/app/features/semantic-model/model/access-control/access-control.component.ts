@@ -17,21 +17,17 @@ import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angu
 import { MatListModule } from '@angular/material/list'
 import { ActivatedRoute, Router } from '@angular/router'
 import { IModelRole } from '@metad/contracts'
-import { calcEntityTypePrompt } from '@metad/core'
 import { NgmDisplayBehaviourComponent, NgmSearchComponent } from '@metad/ocap-angular/common'
 import { injectCopilotCommand } from '@metad/copilot-angular'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { cloneDeep } from '@metad/ocap-core'
 import { uuid } from 'apps/cloud/src/app/@core'
-import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared'
-import { nanoid } from 'nanoid'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom, map } from 'rxjs'
-import { RoleSchema } from '../copilot'
 import { SemanticModelService } from '../model.service'
 import { AccessControlStateService } from './access-control.service'
-import { zodToAnnotations } from '@metad/copilot'
 import { ModelComponent } from '../model.component'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 @Component({
   selector: 'pac-model-access-control',

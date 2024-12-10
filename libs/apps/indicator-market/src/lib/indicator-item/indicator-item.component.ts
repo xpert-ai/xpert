@@ -5,6 +5,10 @@ import { IndicatorsStore } from '../services/store'
 import { IndicatorState, IndicatorTagEnum, StatisticalType, Trend } from '../types'
 import { IndicatorItemDataService } from './indicator-item.service'
 
+
+/**
+ * @deprecated use the individual `NgmIndicatorComponent` for indicator
+ */
 @Component({
   selector: 'pac-indicator-item',
   templateUrl: 'indicator-item.component.html',

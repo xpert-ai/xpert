@@ -241,7 +241,7 @@ ${this.indicatorDetailComponent()?.makeIndicatorDataPrompt()}
     this.indicatorsStore.updateLookback(event)
   }
 
-  toggleTag(event) {
+  toggleTag(event?: Event) {
     this.indicatorsStore.toggleTag()
   }
 

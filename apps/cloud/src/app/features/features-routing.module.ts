@@ -3,7 +3,7 @@ import { RouterModule, Routes } from '@angular/router'
 import { NgxPermissionsGuard } from 'ngx-permissions'
 import { AnalyticsPermissionsEnum, AuthGuard } from '../@core'
 import { FeaturesComponent } from './features.component'
-import { NotFoundComponent } from '../@shared'
+import { NotFoundComponent } from '../@shared/not-found'
 
 export function redirectTo() {
   return '/chat'

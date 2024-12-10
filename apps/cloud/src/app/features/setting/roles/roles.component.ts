@@ -17,7 +17,7 @@ import {
   Store,
   ToastrService
 } from '../../../@core'
-import { TranslationBaseComponent } from '../../../@shared'
+import { TranslationBaseComponent } from '../../../@shared/language'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { NgmConfirmDeleteComponent, NgmConfirmUniqueComponent } from '@metad/ocap-angular/common'
 
