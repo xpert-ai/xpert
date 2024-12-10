@@ -43,6 +43,7 @@
   --color-divider-deep: theme('colors.neutral.200');
   // Text
   --color-base-content: #1f1f1f;
+  --color-text-primary: var(--color-base-content);
   --text-secondary: theme('colors.neutral.500');
   --color-text-success: theme('colors.green.500');
   --color-text-secondary: theme('colors.zinc.400');
@@ -90,6 +91,7 @@
   --color-divider-deep: theme('colors.neutral.950');
   // Text
   --color-base-content: #e3e3e3;
+  --color-text-primary: var(--color-base-content);
   --text-secondary: theme('colors.zinc.400');
   --color-text-success: theme('colors.green.500');
   --color-text-secondary: theme('colors.zinc.500');

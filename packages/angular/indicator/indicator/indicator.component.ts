@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { NgmIsNilPipe } from '@metad/ocap-angular/core'
-import { DataSettings, IndicatorTagEnum, QueryReturn } from '@metad/ocap-core'
+import { DataSettings, IndicatorTagEnum, QueryReturn, TimeGranularity } from '@metad/ocap-core'
 import { map, startWith } from 'rxjs'
 import { NgmIndicatorService } from '../indicator.service'
 import { NgmSparkLineDirective } from '../spark-line/spark-line.directive'
@@ -29,7 +29,8 @@ export class NgmIndicatorComponent {
   readonly indicatorCode = input.required<string>()
   readonly lookBack = input.required<number>()
   readonly primaryTheme = input<string>()
-  readonly tagType = input<IndicatorTagEnum>()
+  readonly tagType = input<IndicatorTagEnum>(IndicatorTagEnum.MOM)
+  readonly timeGranularity = input<TimeGranularity>(TimeGranularity.Day)
 
   // Outputs
   readonly toggleTag = output<void>()
@@ -74,6 +75,12 @@ export class NgmIndicatorComponent {
     effect(() => {
       if (this.dataSettings()) {
         this.dataService.dataSettings = this.dataSettings()
+      }
+    })
+
+    effect(() => {
+      if (this.timeGranularity()) {
+        this.dataService.timeGranularity = this.timeGranularity()
       }
     })
 

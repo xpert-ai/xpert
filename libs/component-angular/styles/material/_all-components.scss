@@ -1,5 +1,5 @@
 @use '@angular/material' as mat;
-@use '../../entity/entity-theme' as entity;
+// @use '../../entity/entity-theme' as entity;
 @use '../../action-strip/action-strip-theme' as action-strip;
 @use '../../property/property-theme' as property;
 @use '../../form-field/form-field-theme' as form-field;
@@ -12,7 +12,7 @@
 @mixin ngm-mat-theme($theme-or-color-config) {
 
   // @include breadcrumb.theme($theme-or-color-config);
-  @include entity.theme($theme-or-color-config);
+  // @include entity.theme($theme-or-color-config);
   // @include smart-filter.theme($theme-or-color-config);
   // @include selection.theme($theme-or-color-config);
   // @include ngm-scrollbar-theme($theme-or-color-config);
@@ -43,7 +43,7 @@
   // @include ngm-cdk-overlay-color($theme-or-color-config);
   // @include ngm-color-color($theme-or-color-config);
   // @include breadcrumb.color($theme-or-color-config);
-  @include entity.color($theme-or-color-config);
+  // @include entity.color($theme-or-color-config);
   // @include smart-filter.color($theme-or-color-config);
   // @include selection.color($theme-or-color-config);
   @include action-strip.color($theme-or-color-config);

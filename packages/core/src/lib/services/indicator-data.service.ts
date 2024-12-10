@@ -61,20 +61,33 @@ export class SmartIndicatorDataService<
    */
   indicatorMeasures: Record<string, Record<string, string>> = {}
 
-  currentTime: { today: Date; timeGranularity: TimeGranularity }
+  readonly #timeGranularity$ = new BehaviorSubject<TimeGranularity>(null)
+
+  // currentTime: { today: Date; timeGranularity?: TimeGranularity }
+
+  /**
+   * Default time granularity for indicator trend
+   */
+  get timeGranularity() {
+    return this.#timeGranularity$.value
+  }
+  set timeGranularity(value) {
+    this.#timeGranularity$.next(value)
+  }
 
   override onInit(): Observable<any> {
-    return combineLatest([this.indicatorId$, this.dsCoreService.currentTime$]).pipe(
+    return combineLatest([this.indicatorId$, this.#timeGranularity$]).pipe(
+      filter(([idOrCode, ]) => !!idOrCode),
       withLatestFrom(this.measures$),
-      map(([[id, currentTime], measures]) => {
+      map(([[id, timeGranularity], measures]) => {
         if (id) {
           this.indicator = this.getIndicator(id as string)
           if (this.indicator) {
-            this.currentTime = currentTime
+            // this.currentTime = currentTime
             const { dimension, hierarchy, level } = getIndicatorEntityCalendar(
               this.indicator,
               this.entityType,
-              this.currentTime.timeGranularity
+              timeGranularity
             )
             this.calendar = dimension
             this.calendarHierarchy = hierarchy
@@ -137,11 +150,12 @@ export class SmartIndicatorDataService<
     const measureNames = this.registerMembers(indicator, measures)
 
     let timeRange = []
-    if (this.currentTime) {
+    const currentTime = this.dsCoreService.getToday()
+    if (currentTime) {
       if (this.calendarLevel) {
-        timeRange = calcRange(this.currentTime?.today || new Date(), {
+        timeRange = calcRange(currentTime?.today || new Date(), {
           type: TimeRangeType.Standard,
-          granularity: this.currentTime?.timeGranularity,
+          granularity: this.timeGranularity,
           formatter: this.calendarLevel.semantics?.formatter,
           lookBack,
           lookAhead: 0

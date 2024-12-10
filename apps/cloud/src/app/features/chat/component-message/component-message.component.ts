@@ -17,6 +17,11 @@ import { ExplainComponent } from '@metad/story/story'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { derivedAsync } from 'ngxtension/derived-async'
+import { NgmDSCoreService } from '@metad/ocap-angular/core'
+import { DataSettings, TimeGranularity } from '@metad/ocap-core'
+import { of } from 'rxjs'
+import { NgmIndicatorComponent } from '@metad/ocap-angular/indicator'
 
 @Component({
   standalone: true,
@@ -34,8 +39,9 @@ import { MatTooltipModule } from '@angular/material/tooltip'
     NgmCommonModule,
     NgmSelectionModule,
     AnalyticalCardModule,
-    NxWidgetKpiComponent
-  ],
+    NxWidgetKpiComponent,
+    NgmIndicatorComponent
+],
   selector: 'pac-chat-component-message',
   templateUrl: './component-message.component.html',
   styleUrl: 'component-message.component.scss',
@@ -43,11 +49,13 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 })
 export class ChatComponentMessageComponent {
   eSlicersCapacity = SlicersCapacity
+  eTimeGranularity = TimeGranularity
   
   readonly #store = inject(Store)
   readonly chatService = inject(ChatService)
   readonly #dialog = inject(Dialog)
   readonly homeComponent = inject(ChatHomeComponent)
+  readonly dsCore = inject(NgmDSCoreService)
 
   readonly message = input<any>()
 
@@ -62,11 +70,16 @@ export class ChatComponentMessageComponent {
     }
   })
 
-  readonly dataSource = computed(() => {
-    return this.data()?.dataSettings?.dataSource
-  })
+  readonly dataSettings = computed(() => this.data()?.dataSettings as DataSettings)
+  readonly indicator = computed(() => this.data()?.indicator)
+  readonly dataSource = computed(() => this.dataSettings()?.dataSource)
 
   readonly explains = signal<any[]>([])
+
+  readonly entityType = derivedAsync(() => {
+    const dataSettings = this.dataSettings()
+    return dataSettings ? this.dsCore.selectEntitySet(dataSettings.dataSource, dataSettings.entitySet) : of(null)
+  })
 
   constructor() {
     effect(() => {
@@ -74,6 +87,10 @@ export class ChatComponentMessageComponent {
         this.homeComponent.registerSemanticModel(this.dataSource())
       }
     }, { allowSignalWrites: true })
+
+    effect(() => {
+      // console.log(this.entityType())
+    })
   }
 
   setExplains(items: unknown[]) {

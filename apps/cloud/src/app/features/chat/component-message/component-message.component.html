@@ -40,20 +40,28 @@
     </ng-template>
   }
   @case ('KPI') {
-    <pac-widget-kpi displayDensity="compact" [title]="data().title"
-      [dataSettings]="data().dataSettings"
-      [slicers]="data().slicers"
-      [options]="{
-        showToolbar: true,
-        shortNumber: true,
-        digitsInfo: '0.0-2'
-      }"
-      (explain)="setExplains($event)"
-    >
-      <button ngmAction class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light"
-        (click)="openExplain()">
-        <i class="ri-terminal-box-line"></i>
-      </button>
-    </pac-widget-kpi>
+    @if (indicator()) {
+      <div class="dark">
+        <ngm-indicator class="bg-components-card-bg p-4 rounded-lg" [dataSettings]="dataSettings()" [indicatorCode]="indicator()" [lookBack]="12" 
+          [timeGranularity]="eTimeGranularity.Month"
+        />
+      </div>
+    } @else {
+      <pac-widget-kpi displayDensity="compact" [title]="data().title"
+        [dataSettings]="data().dataSettings"
+        [slicers]="data().slicers"
+        [options]="{
+          showToolbar: true,
+          shortNumber: true,
+          digitsInfo: '0.0-2'
+        }"
+        (explain)="setExplains($event)"
+      >
+        <button ngmAction class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light"
+          (click)="openExplain()">
+          <i class="ri-terminal-box-line"></i>
+        </button>
+      </pac-widget-kpi>
+    }
   }
 }

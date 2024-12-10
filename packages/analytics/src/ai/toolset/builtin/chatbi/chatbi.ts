@@ -22,7 +22,9 @@ import {
 	FilteringLogic,
 	getChartType,
 	getEntityDimensions,
+	getEntityProperty,
 	isEntitySet,
+	isIndicatorMeasureProperty,
 	markdownModelCube,
 	PieVariant,
 	PresentationVariant,
@@ -341,6 +343,12 @@ ${members}
 
 			// In parallel: return to the front-end display and back-end data retrieval
 			if (answer.visualType === 'KPI') {
+				let indicator = null
+				const measure = chartAnnotation.measures[0]
+				const measureProperty = getEntityProperty(entityType, measure)
+				if (isIndicatorMeasureProperty(measureProperty)) {
+					indicator = measureProperty.name
+				}
 				subscriber?.next({
 					data: {
 						type: ChatMessageTypeEnum.MESSAGE,
@@ -358,7 +366,8 @@ ${members}
 									}
 								} as DataSettings,
 								slicers,
-								title: answer.preface
+								title: answer.preface,
+								indicator
 							} as unknown as JSONValue
 						}
 					}
