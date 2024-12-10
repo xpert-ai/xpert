@@ -15,7 +15,7 @@ import { Xpert } from '../core/entities/internal'
 export class ChatConversation extends TenantOrganizationBaseEntity implements IChatConversation {
 	@ApiProperty({ type: () => String })
 	@IsString()
-	@Column({ nullable: true, default: () => 'uuid_generate_v4()' })
+	@Column({ nullable: true, default: () => 'gen_random_uuid()' })
 	threadId: string
 
 	@ApiProperty({ type: () => String })
