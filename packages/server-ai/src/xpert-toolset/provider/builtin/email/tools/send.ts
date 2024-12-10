@@ -32,7 +32,7 @@ export function createTransporter(params: EmailToolCredentials) {
 		tls: {
 			rejectUnauthorized: false
 		}
-	})
+	} as nodemailer.SendMailOptions)
 
 	return transporter
 }

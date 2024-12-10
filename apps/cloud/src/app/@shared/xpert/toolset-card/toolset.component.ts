@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, input } from '@angular/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { injectHelpWebsite, IXpertToolset } from '../../../@core'
 import { EmojiAvatarComponent } from '../../avatar'
 import { UserPipe } from '../../pipes'
@@ -8,10 +9,10 @@ import { TagComponent } from '../../tag'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, EmojiAvatarComponent, NgmI18nPipe, TagComponent, UserPipe],
+  imports: [CommonModule, TranslateModule, EmojiAvatarComponent, NgmI18nPipe, TagComponent, UserPipe],
   selector: 'xpert-toolset-card',
   templateUrl: 'toolset.component.html',
-  styleUrls: ['toolset.component.scss'],
+  styleUrls: ['toolset.component.scss']
 })
 export class ToolsetCardComponent {
   readonly helpWebsite = injectHelpWebsite()

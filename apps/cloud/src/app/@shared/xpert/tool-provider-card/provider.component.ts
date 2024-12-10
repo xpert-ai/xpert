@@ -1,13 +1,14 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, input, output } from '@angular/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { upperFirst } from 'lodash-es'
 import { injectHelpWebsite, ITag, IToolProvider, TagCategoryEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../avatar'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, EmojiAvatarComponent, NgmI18nPipe],
+  imports: [CommonModule, TranslateModule, EmojiAvatarComponent, NgmI18nPipe],
   selector: 'xpert-tool-provider-card',
   templateUrl: 'provider.component.html',
   styleUrls: ['provider.component.scss']
