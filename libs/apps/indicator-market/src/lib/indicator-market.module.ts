@@ -21,11 +21,11 @@ import { ReversePipe } from '@metad/core'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
 import { AppearanceDirective, OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
+import { NgmIndicatorComponent } from '@metad/ocap-angular/indicator'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxEchartsModule } from 'ngx-echarts'
 import { LoggerModule } from 'ngx-logger'
 import { MarkdownModule } from 'ngx-markdown'
-import { NgxFloatUiModule } from 'ngx-float-ui'
 import { IndicatorDetailComponent } from './indicator-detail/indicator-detail.component'
 import { IndicatorItemComponent } from './indicator-item/indicator-item.component'
 import { IndicatorMarketRoutingModule } from './indicator-market-routing.module'
@@ -33,6 +33,7 @@ import { IndicatoryMarketComponent } from './indicator-market.component'
 import { PACIndicatorDirective } from './shared/indicator.directive'
 import { ReplaceNullWithTextPipe } from './shared/replace-null-with-text.pipe'
 import { AppSparkLineDirective } from './shared/sparkline.directive'
+import { CdkMenuModule } from '@angular/cdk/menu'
 
 @NgModule({
   declarations: [
@@ -50,6 +51,7 @@ import { AppSparkLineDirective } from './shared/sparkline.directive'
     IndicatorMarketRoutingModule,
     ScrollingModule,
     DragDropModule,
+    CdkMenuModule,
     MatListModule,
     MatCardModule,
     MatCheckboxModule,
@@ -63,7 +65,6 @@ import { AppSparkLineDirective } from './shared/sparkline.directive'
     MatSliderModule,
     MatChipsModule,
     MatInputModule,
-    NgxFloatUiModule,
     MarkdownModule,
     AppearanceDirective,
     ReversePipe,
@@ -73,6 +74,7 @@ import { AppSparkLineDirective } from './shared/sparkline.directive'
     // for DataSources
     OcapCoreModule,
     NgmControlsModule,
+    NgmIndicatorComponent,
 
     // NxAnalyticsStoryModule,
     NgxEchartsModule.forRoot({

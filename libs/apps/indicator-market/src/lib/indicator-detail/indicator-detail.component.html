@@ -78,7 +78,7 @@
     @for (dataSettings of dataSettings$ | async; track dataSettings.id) {
       <ngm-analytical-card class="h-[300px]"
         [dataSettings]="dataSettings"
-        [chartOptions]="chartOptions$ | async"
+        [chartOptions]="chartOptions()"
         [chartSettings]="{theme: primaryTheme$()}"
         [options]="{
           realtimeLinked: true,

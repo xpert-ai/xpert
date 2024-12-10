@@ -10,35 +10,30 @@ import {
   input,
   runInInjectionContext
 } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
 import { TinyArea } from '@antv/g2plot/esm/plots/tiny-area'
-import { Store } from '@metad/cloud/state'
-import { TranslateService } from '@ngx-translate/core'
 import { NgmLanguageEnum } from '@metad/ocap-angular/core'
-import { IndicatorState, StatisticalType, Trend, TrendColor, TrendReverseColor } from '../types'
+import { Indicator } from '@metad/ocap-core'
+import { TranslateService } from '@ngx-translate/core'
+import { StatisticalType, Trend, TrendColor, TrendReverseColor } from '../types'
 
-
-/**
- * @deprecated use the individual `NgmIndicatorComponent` for indicator
- */
 @Directive({
-  selector: '[pacSparkLine]'
+  standalone: true,
+  selector: '[ngmSparkLine]'
 })
-export class AppSparkLineDirective {
-  private elRef = inject(ElementRef)
+export class NgmSparkLineDirective {
+  readonly #elementRef = inject(ElementRef)
   readonly destroyRef = inject(DestroyRef)
   readonly #injector = inject(Injector)
-  readonly #store = inject(Store)
   readonly #translate = inject(TranslateService)
 
-  readonly indicator = input.required<IndicatorState>()
+  readonly indicator = input.required<Indicator>()
+  readonly trend = input<any>()
+  readonly trends = input<any>()
   readonly statisticalType = input<StatisticalType>(StatisticalType.CurrentPeriod)
-
-  readonly indicatorTrends = computed(() => this.indicator()?.trends)
-  readonly primaryTheme$ = toSignal(this.#store.primaryTheme$)
+  readonly primaryTheme = input<string>()
 
   readonly config$ = computed(() => {
-    const trends = this.indicatorTrends()
+    const trends = this.trends()
     const measureFilter = this.statisticalType()
     let data = []
     switch (measureFilter) {
@@ -52,8 +47,8 @@ export class AppSparkLineDirective {
 
     const color =
       this.#translate.currentLang === NgmLanguageEnum.SimplifiedChinese
-        ? TrendReverseColor[Trend[this.indicator().trend]]
-        : TrendColor[Trend[this.indicator().trend]]
+        ? TrendReverseColor[Trend[this.trend()]]
+        : TrendColor[Trend[this.trend()]]
     return {
       data,
       color
@@ -62,7 +57,7 @@ export class AppSparkLineDirective {
 
   constructor() {
     afterNextRender(() => {
-      const tinyArea = new TinyArea(this.elRef.nativeElement, {
+      const tinyArea = new TinyArea(this.#elementRef.nativeElement, {
         animation: false,
         autoFit: true,
         data: [],
@@ -84,7 +79,7 @@ export class AppSparkLineDirective {
               color: color
             },
             areaStyle: {
-              fill: `l(270) 0:${color}00 1:${color}${this.primaryTheme$() === 'dark' ? '' : '70'}`
+              fill: `l(270) 0:${color}00 1:${color}${this.primaryTheme() === 'dark' ? '' : '70'}`
             },
             annotations: [
               {

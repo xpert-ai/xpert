@@ -19,12 +19,7 @@
       </div>
 
       <button mat-icon-button
-        [floatUi]="options"
-        [showTrigger]="eNgxFloatUiTriggers.click"
-        [hideOnClickOutside]="true"
-        [hideOnScroll]="true"
-        [hideOnMouseLeave]="false"
-        [placement]="eNgxFloatUiPlacements.TOPEND"
+        [cdkMenuTriggerFor]="options"
         (click)="$event.stopPropagation();$event.preventDefault();"
       >
         <mat-icon>more_horiz</mat-icon>
@@ -58,7 +53,13 @@
           (click)="click(item)"
           cdkDrag [cdkDragStartDelay]="200"
           >
-          <pac-indicator-item class="flex-1 overflow-hidden" [indicator]="item" [tag]="tagType()"/>
+
+          <ngm-indicator [dataSettings]="item.dataSettings" [indicatorCode]="item.code" [lookBack]="lookBack()" 
+            [tagType]="tagType()"
+            (toggleTag)="toggleTag()"
+          />
+
+          <!-- <pac-indicator-item class="flex-1 overflow-hidden" [indicator]="item" [tag]="tagType()"/> -->
           <div class="pac-indicator__placeholder" *cdkDragPlaceholder></div>
         </mat-list-item>
         <mat-divider></mat-divider>
@@ -84,9 +85,8 @@
   }
 }
 
-<float-ui-content #options class="z-[101]">
-  <div class="pac-indicator-app__options flex flex-col gap-2 p-2">
-
+<ng-template #options>
+  <div cdkMenu class="cdk-menu__medium pac-indicator-app__options flex flex-col gap-2">
     <label>{{ 'IndicatorApp.TimeGranularity' | translate: {Default: 'Time Granularity'} }}</label>
     <mat-button-toggle-group ngmAppearance="hero" color="accent" displayDensity="cosy"
       [ngModel]="timeGranularity()" (ngModelChange)="onTimeGranularity($event)" (click)="$event.stopPropagation()">
@@ -118,11 +118,11 @@
 
     <mat-divider></mat-divider>
 
-    <button mat-button disableRipple (click)="refresh()">
+    <button cdkMenuItem mat-button disableRipple (click)="refresh()">
       <mat-icon>refresh</mat-icon>
       <span>
         {{ 'IndicatorApp.Refresh' | translate: {Default: 'Refresh'} }}
       </span>
     </button>
   </div>
-</float-ui-content>
+</ng-template>

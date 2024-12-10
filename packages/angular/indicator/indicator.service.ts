@@ -1,18 +1,21 @@
-import { Injectable } from '@angular/core'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { isNumber, PeriodFunctions, QueryOptions, SmartIndicatorDataService } from '@metad/ocap-core'
+import { Injectable, Optional } from '@angular/core'
+import {
+  IndicatorBusinessState,
+  isNumber,
+  PeriodFunctions,
+  QueryOptions,
+  SmartFilterBarService,
+  SmartIndicatorDataService
+} from '@metad/ocap-core'
+import { NgmDSCoreService } from '../core'
 import { combineLatest, map } from 'rxjs'
-import { Trend } from '../types'
+import { Trend } from './types'
 
-
-/**
- * @deprecated use the individual `NgmIndicatorComponent` for indicator
- */
 @Injectable()
-export class IndicatorItemDataService extends SmartIndicatorDataService<unknown> {
-
-  constructor(dsCoreService: NgmDSCoreService) {
-    super(dsCoreService)
+export class NgmIndicatorService extends SmartIndicatorDataService<any, IndicatorBusinessState> {
+  
+  constructor(dsCoreService: NgmDSCoreService, @Optional() smartFilterBar?: SmartFilterBarService) {
+    super(dsCoreService, smartFilterBar)
   }
 
   override selectQuery(options?: QueryOptions) {

@@ -4,6 +4,7 @@ import {
   ChangeDetectorRef,
   Component,
   computed,
+  effect,
   ElementRef,
   HostBinding,
   inject,
@@ -222,7 +223,7 @@ export class IndicatorDetailComponent {
           dimension: dimension.name,
           hierarchy: hierarchy.name
         },
-        members: timeRange.map((value) => ({ value })),
+        members: timeRange.map((value) => ({ key: value })),
         operator: FilterOperator.BT
       } as IFilter
     }),
@@ -302,91 +303,96 @@ export class IndicatorDetailComponent {
     distinctUntilChanged(isEqual)
   )
 
-  public readonly chartOptions$: Observable<any> = this.indicator$.pipe(
-    map((indicator) => indicator.trend),
-    distinctUntilChanged(),
-    map((indicatorTrend) => {
-      const color =
-        this.currentLang$() === NgmLanguageEnum.SimplifiedChinese
-          ? TrendReverseColor[Trend[indicatorTrend] ?? Trend[Trend.None]]
-          : TrendColor[Trend[indicatorTrend] ?? Trend[Trend.None]]
-      return {
-        options: {
-          animation: false
+  readonly chartOptions = computed(() => {
+    const indicatorTrend = this.trend()
+    const currentLang = this.currentLang$()
+    const color = currentLang === NgmLanguageEnum.SimplifiedChinese
+        ? TrendReverseColor[Trend[indicatorTrend] ?? Trend[Trend.None]]
+        : TrendColor[Trend[indicatorTrend] ?? Trend[Trend.None]]
+    return {
+      options: {
+        animation: false
+      },
+      grid: {
+        top: 50,
+        right: 10
+      },
+      seriesStyle: {
+        symbol: 'emptyCircle',
+        symbolSize: 20,
+        lineStyle: {
+          color
         },
-        grid: {
-          top: 50,
-          right: 10
+        areaStyle: {
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
+            {
+              offset: 0,
+              color: color + '80'
+            },
+            {
+              offset: 1,
+              color: color + '00'
+            }
+          ])
         },
-        seriesStyle: {
-          symbol: 'emptyCircle',
-          symbolSize: 20,
-          lineStyle: {
-            color
-          },
-          areaStyle: {
-            color: new graphic.LinearGradient(0, 0, 0, 1, [
-              {
-                offset: 0,
-                color: color + '80'
-              },
-              {
-                offset: 1,
-                color: color + '00'
-              }
-            ])
-          },
+        itemStyle: {
+          color: '#ffab00',
+          borderColor: color,
+          borderWidth: 3,
+          opacity: 0
+        },
+        emphasis: {
           itemStyle: {
-            color: '#ffab00',
-            borderColor: color,
-            borderWidth: 3,
-            opacity: 0
-          },
-          emphasis: {
-            itemStyle: {
-              opacity: 1
-            }
-          },
-          selectedMode: 'single',
-          select: {
-            itemStyle: {
-              opacity: 1
-            }
-          },
-          markPoint: {
-            label: {
-              color: 'white'
-            }
+            opacity: 1
           }
         },
-        valueAxis: {
-          splitNumber: 3,
-          position: 'right',
-          minorTick: {
-            show: true,
-            splitNumber: 5
+        selectedMode: 'single',
+        select: {
+          itemStyle: {
+            opacity: 1
           }
         },
-        categoryAxis: {
-          splitLine: {
-            show: true
-          }
-        },
-        tooltip: {
-          trigger: 'axis',
-          axisPointer: {
-            type: 'cross'
-          },
-          position: (pos, params, el, elRect, size) => {
-            const obj = {}
-            obj[['left', 'right'][+(pos[0] < size.viewSize[0] / 2)]] = 60
-            obj[['top', 'bottom'][+(pos[1] < size.viewSize[1] / 2)]] = 20
-            return obj
+        markPoint: {
+          label: {
+            color: 'white'
           }
         }
+      },
+      valueAxis: {
+        splitNumber: 3,
+        position: 'right',
+        minorTick: {
+          show: true,
+          splitNumber: 5
+        }
+      },
+      categoryAxis: {
+        splitLine: {
+          show: true
+        }
+      },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'cross'
+        },
+        position: (pos, params, el, elRect, size) => {
+          const obj = {}
+          obj[['left', 'right'][+(pos[0] < size.viewSize[0] / 2)]] = 60
+          obj[['top', 'bottom'][+(pos[1] < size.viewSize[1] / 2)]] = 20
+          return obj
+        }
       }
-    })
-  )
+    }
+  })
+
+  // public readonly chartOptions$: Observable<any> = this.indicator$.pipe(
+  //   map((indicator) => indicator.trend),
+  //   distinctUntilChanged(),
+  //   map((indicatorTrend) => {
+      
+  //   })
+  // )
 
   readonly mom$ = toSignal(this.indicator$.pipe(map((indicator) => (indicator.data?.MOM > 0 ? Trend.Up : Trend.Down))))
   readonly yoy$ = toSignal(this.indicator$.pipe(map((indicator) => (indicator.data?.YOY > 0 ? Trend.Up : Trend.Down))))
@@ -601,6 +607,7 @@ export class IndicatorDetailComponent {
   |--------------------------------------------------------------------------
   */
   readonly indicator = toSignal(this.indicator$)
+  readonly indicatorMeasureName = computed(() => getIndicatorMeasureName(this.indicator() as Indicator))
   readonly favour = computed(() => this.store.favorites()?.includes(this.indicator()?.id))
   readonly copilotEnabled = toSignal(this.copilotService.enabled$)
 
@@ -623,6 +630,18 @@ export class IndicatorDetailComponent {
         })
       )
     )
+  })
+
+  readonly trend = computed(() => {
+    const data = this.explainDataSignal()?.[1]?.data as any[]
+    if (data) {
+      const values = data.map((_) => _[this.indicatorMeasureName()])
+      const start = values[0]
+      const end = values[values.length - 1]
+      return start > end ? Trend.Down : start < end ? Trend.Up : Trend.None
+    }
+
+    return Trend.None
   })
 
   /**
@@ -653,6 +672,10 @@ export class IndicatorDetailComponent {
     if (this.data?.id) {
       this.id = this.data.id
     }
+
+    effect(() => {
+      // console.log(this.explainDataSignal()[1]?.data)
+    })
   }
 
   onClose(event) {
@@ -736,7 +759,7 @@ export class IndicatorDetailComponent {
     })
   }
 
-  onExplain(event) {
+  onExplain(event?: any[]) {
     this.#logger.trace(`[Indicator App] detail explain:`, event)
     // this.explainData = event
     this.explainDataSignal.set(event)

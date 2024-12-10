@@ -218,10 +218,10 @@ export interface DataSource {
   /**
    * Get an indicator by id from entity
    *
-   * @param id 指标 ID
+   * @param idOrCode Indicator `ID` or `Code`
    * @param entity
    */
-  getIndicator(id: string, entity?: string): Indicator
+  getIndicator(idOrCode: string, entity?: string): Indicator
 
   /**
    * Create DB Table
