@@ -1,6 +1,7 @@
 @switch (data().type) {
   @case ('AnalyticalCard') {
-    <ngm-analytical-card [title]="data().title"
+    <ngm-analytical-card
+      [title]="data().title"
       [dataSettings]="data().dataSettings"
       [chartSettings]="chartSettings()"
       [slicers]="data().slicers"
@@ -63,5 +64,16 @@
         </button>
       </pac-widget-kpi>
     }
+  }
+  @case ('Indicators') {
+    <div class="dark flex flex-col items-stretch">
+      @for (indicator of indicators(); track indicator.indicator) {
+        <ngm-indicator class="bg-components-card-bg p-4 hover:bg-components-panel-bg first:rounded-t-xl last:rounded-b-xl"
+          [dataSettings]="indicator" [indicatorCode]="indicator.indicator"
+          [lookBack]="12" 
+          [timeGranularity]="eTimeGranularity.Month"
+        />
+      }
+    </div>
   }
 }

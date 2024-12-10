@@ -17,11 +17,10 @@ import { ExplainComponent } from '@metad/story/story'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { derivedAsync } from 'ngxtension/derived-async'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { DataSettings, TimeGranularity } from '@metad/ocap-core'
-import { of } from 'rxjs'
 import { NgmIndicatorComponent } from '@metad/ocap-angular/indicator'
+import { compact, uniq } from 'lodash-es'
 
 @Component({
   standalone: true,
@@ -73,18 +72,28 @@ export class ChatComponentMessageComponent {
   readonly dataSettings = computed(() => this.data()?.dataSettings as DataSettings)
   readonly indicator = computed(() => this.data()?.indicator)
   readonly dataSource = computed(() => this.dataSettings()?.dataSource)
+  readonly indicators = computed(() => this.data()?.indicators)
+  readonly dataSources = computed(() => compact(uniq<string>(this.indicators()?.map((_) => _.dataSource))))
 
   readonly explains = signal<any[]>([])
 
-  readonly entityType = derivedAsync(() => {
-    const dataSettings = this.dataSettings()
-    return dataSettings ? this.dsCore.selectEntitySet(dataSettings.dataSource, dataSettings.entitySet) : of(null)
-  })
+  // readonly entityType = derivedAsync(() => {
+  //   const dataSettings = this.dataSettings()
+  //   return dataSettings ? this.dsCore.selectEntitySet(dataSettings.dataSource, dataSettings.entitySet) : of(null)
+  // })
 
   constructor() {
     effect(() => {
       if (this.dataSource()) {
         this.homeComponent.registerSemanticModel(this.dataSource())
+      }
+    }, { allowSignalWrites: true })
+
+    effect(() => {
+      if (this.dataSources()) {
+        this.dataSources().forEach((dataSource) => {
+          this.homeComponent.registerSemanticModel(dataSource)
+        })
       }
     }, { allowSignalWrites: true })
 

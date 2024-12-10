@@ -29,7 +29,7 @@
       }
     </div>
 
-    <div (click)="_toggleTag($event)" class="pac-indicator__tag bg-gray-500 bg-opacity-25"
+    <div (click)="_toggleTag($event)" class="pac-indicator__tag text-sm bg-gray-500 bg-opacity-25"
       [ngClass]="{'Trend-Up': trend() === TREND.Up, 'Trend-Down': trend() === TREND.Down}"
     >
       @switch (tagType()) {
