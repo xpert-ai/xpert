@@ -1,6 +1,6 @@
 {
   "name": "@metad/server-ai",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "type": "commonjs",
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.0",
