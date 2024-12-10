@@ -13,6 +13,7 @@ import { GithubToolset } from './github/github';
 import { SmtpToolset } from './email/email';
 import { DiscordToolset } from './discord/discord';
 import { SerpAPIToolset } from './serpapi/serpapi';
+import { SearchAPIToolset } from './searchapi/searchapi';
 
 export * from './command'
 export * from './builtin-tool'
@@ -26,6 +27,8 @@ export const BUILTIN_TOOLSET_REPOSITORY: {
 		baseUrl: ToolsetFolderPath,
 		providers: [
 			TavilyToolset,
+			SearchAPIToolset,
+			SerpAPIToolset,
             DuckDuckGoToolset,
             BingToolset,
 			DingTalkToolset,
@@ -34,7 +37,6 @@ export const BUILTIN_TOOLSET_REPOSITORY: {
 			GithubToolset,
 			SmtpToolset,
 			DiscordToolset,
-			SerpAPIToolset
         ]
 	}
 ]

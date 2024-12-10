@@ -1,8 +1,10 @@
-import { BaseToolkit, StructuredToolInterface, Tool } from '@langchain/core/tools'
+import { BaseToolkit, StructuredTool, StructuredToolInterface } from '@langchain/core/tools'
 import { IBuiltinTool, IXpertToolset, ToolProviderCredentials, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { IToolRuntime, ToolProviderIdentity } from './types'
+import { ZodObjectAny } from '@langchain/core/dist/types/zod'
+import { ZodEffects } from 'zod'
 
-export abstract class BaseToolset<T extends StructuredToolInterface = Tool> extends BaseToolkit {
+export abstract class BaseToolset<T extends StructuredToolInterface = StructuredToolInterface> extends BaseToolkit {
 	abstract providerType: XpertToolsetCategoryEnum
 	// For langchain
 	tools: T[]
@@ -31,7 +33,8 @@ export interface IBaseTool extends IBuiltinTool {
 	runtime: IToolRuntime
 }
 
-export abstract class BaseTool extends Tool {
+export abstract class BaseTool extends StructuredTool {
+	schema: ZodObjectAny | ZodEffects<ZodObjectAny, any, { [x: string]: any }>
 	name: string
 	description: string
 }

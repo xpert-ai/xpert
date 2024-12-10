@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, input, model } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialogModule } from '@angular/material/dialog'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
@@ -39,7 +39,7 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 export class XpertToolBuiltinCredentialComponent {
   eCredentialsType = CredentialsType
 
-  protected cva = inject<NgxControlValueAccessor<Partial<Record<string, unknown>> | null>>(NgxControlValueAccessor)
+  protected cva = inject<NgxControlValueAccessor<unknown | null>>(NgxControlValueAccessor)
   
   readonly credential = input<ToolProviderCredentials>(null)
   readonly credentials = input<Record<string, unknown>>(null)
@@ -59,4 +59,14 @@ export class XpertToolBuiltinCredentialComponent {
         return acc
     }, {})
   })
+
+  readonly options = computed(() => this.credential()?.options)
+
+  constructor() {
+    effect(() => {
+      if (this.valueModel() === undefined && !isNil(this.credential()?.default)) {
+        this.valueModel.set(this.credential().default)
+      }
+    }, { allowSignalWrites: true })
+  }
 }

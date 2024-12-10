@@ -1,8 +1,8 @@
 import { IXpertToolset, TToolCredentials } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
-import { SerpAPI } from "@langchain/community/tools/serpapi"
 import { ToolProviderCredentialValidationError } from '../../../errors'
 import { BuiltinToolset } from '../builtin-toolset'
+import { SerpAPI } from './tools/serpapi'
 
 export class SerpAPIToolset extends BuiltinToolset {
 	static provider = 'serpapi'
