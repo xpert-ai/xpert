@@ -1,8 +1,0 @@
-:host {
-  @apply flex flex-col items-stretch justify-start pb-1 overflow-hidden;
-}
-
-.ngm-colors__clear {
-  background-color: var(--ngm-color-surface);
-  @apply absolute;
-}

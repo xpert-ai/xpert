@@ -1,9 +1,0 @@
-.mat-mdc-table {
-  width: 100%;
-}
-
-:host ::ng-deep {
-  .mat-mdc-cell.mat-mdc-table-sticky {
-    background-color: var(--mat-table-background-color);
-  }
-}

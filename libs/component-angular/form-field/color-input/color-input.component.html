@@ -1,8 +1,0 @@
-<label *ngIf="label" class="p-1 text-sm text-ellipsis whitespace-nowrap overflow-hidden">{{label}}</label>
-<div class="relative w-full">
-  <input matInput class="ngm-input-element" [disabled]="disabled" [(ngModel)]="value" (ngModelChange)="changeColor($event)" [mtxColorpicker]="picker" [format]="format" />
-  <mtx-colorpicker-toggle class="absolute right-0 top-0"
-    [style.color]="value"
-    [for]="picker"></mtx-colorpicker-toggle>
-</div>
-<mtx-colorpicker #picker></mtx-colorpicker>

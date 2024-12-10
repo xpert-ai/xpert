@@ -1,1 +1,0 @@
-export const ChatBIBotMenuPrefix = 'select_model'

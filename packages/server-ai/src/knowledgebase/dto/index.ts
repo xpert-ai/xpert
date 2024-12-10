@@ -1,1 +1,0 @@
-export * from './knowledgebase-public.dto'

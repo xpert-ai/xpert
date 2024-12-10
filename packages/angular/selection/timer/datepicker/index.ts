@@ -1,6 +1,0 @@
-export * from './datepicker.component'
-export * from './datepicker.module'
-export * from './monthpicker/monthpicker.component'
-export * from './quarterpicker/quarterpicker.component'
-export * from './yearpicker/yearpicker.component'
-export * from './datepicker/datepicker.component'

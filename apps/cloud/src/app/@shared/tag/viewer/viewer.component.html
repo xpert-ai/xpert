@@ -1,7 +1,0 @@
-<span *ngFor="let tag of tags" class="tag text-xs inline-flex items-center font-bold leading-sm uppercase px-2 py-1 rounded-lg"
-    [ngClass]="tag.color"
-    [class.selected]="isSelected(tag)"
-    (click)="selectable && toggleTag(tag)"
->
-    {{tag.name}}
-</span>

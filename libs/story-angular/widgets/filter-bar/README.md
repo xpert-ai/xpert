@@ -1,2 +1,0 @@
-# Filter Bar Widget
-

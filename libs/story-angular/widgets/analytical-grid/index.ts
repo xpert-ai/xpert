@@ -1,6 +1,0 @@
-export * from './analytical-grid.component'
-export * from './analytical-grid.module'
-export * from './analytical-grid.schema'
-export * from './analytical-grid-styling.schema'
-export * from './analytical-grid-column.schema'
-export * from './options/grid-settings.component'

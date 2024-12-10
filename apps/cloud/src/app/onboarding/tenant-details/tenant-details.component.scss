@@ -1,8 +1,0 @@
-:host {
-  @apply flex-1 flex flex-col justify-start items-center overflow-auto;
-}
-
-.description {
-  @apply text-sm;
-  color: var(--ngm-color-on-surface-variant);
-}

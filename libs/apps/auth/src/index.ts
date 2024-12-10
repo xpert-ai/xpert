@@ -1,6 +1,0 @@
-export * from './lib/auth.module'
-export * from './lib/strategies/auth-strategy'
-export * from './lib/auth.options'
-export * from './lib/services'
-export * from './lib/components'
-export * from './lib/i18n/index'

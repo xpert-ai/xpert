@@ -1,7 +1,0 @@
-<ng-container *ngIf="isRowContext">
-  <igx-grid-action-button *ngFor="let action of actions" class="smart-grid__action" classNames='igx-action-strip__menu-item--danger'
-    [iconName]="action.iconName"
-    [labelText]="action.label"
-    (actionClick)="onActionClick($event, action.action)">
-  </igx-grid-action-button>
-</ng-container>

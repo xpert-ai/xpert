@@ -1,7 +1,0 @@
-{
-  "name": "@metad/contracts",
-  "version": "3.0.1",
-  "scripts": {
-    "docs": "yarn typedoc --out ./.docs"
-  }
-}

@@ -1,6 +1,0 @@
-{
-	"ignore": [".git", "node_modules/", "dist/", "coverage/", "**/*.spec.ts"],
-	"watch": ["apps/api/src", "packages/server/src", "packages/auth/src", "packages/analytics/src"],
-	"exec": "node --inspect=0.0.0.0:9229 -r ts-node/register -r tsconfig-paths/register --project apps/api/tsconfig.app.json apps/api/src/main.ts",
-	"ext": "ts"
-}

@@ -1,7 +1,0 @@
-:host::ng-deep {
-  .cdk-option[aria-selected='true'] {
-    input.checkbox {
-      @apply opacity-100;
-    }
-  }
-}

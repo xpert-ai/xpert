@@ -1,9 +1,0 @@
-<formly-form class="w-[600px] max-w-full" [form]="form" [fields]="fields" [model]="model"
-    (modelChange)="onFormChange(model)">
-</formly-form>
-
-<button mat-raised-button color="primary"
-    [disabled]="form.pristine || form.invalid"
-    (click)="updateOrganizationSettings()">
-    {{ 'PAC.ACTIONS.SAVE' | translate: {Default: "Save"} }}
-</button>

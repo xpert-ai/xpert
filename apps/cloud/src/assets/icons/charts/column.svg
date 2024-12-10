@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="200px" height="200px" xmlns:xlink="http://www.w3.org/1999/xlink" style="width:100%;height:100%;background-size:initial;background-repeat-y:initial;background-repeat-x:initial;background-position-y:initial;background-position-x:initial;background-origin:initial;background-image:initial;background-color:rgb(255, 255, 255);background-clip:initial;background-attachment:initial;animation-play-state:paused">
-  <g class="ldl-scale" style="transform-origin:50% 50%;transform:rotate(0deg) scale(0.8, 0.8);animation-play-state:paused">
-    <path d="M52.33 90V45.424h13.975V90z" fill="#a0c8d7" style="fill:rgb(160, 200, 215);animation-play-state:paused"/>
-    <path d="M15.06 90V10h13.976v80z" fill="#e15b64" style="fill:rgb(225, 91, 100);animation-play-state:paused"/>
-    <path d="M33.694 90V29.315H47.67V90z" fill="#f8b26a" style="fill:rgb(248, 178, 106);animation-play-state:paused"/>
-    <path d="M70.964 90V64.234H84.94V90z" fill="#abbd81" style="fill:rgb(171, 189, 129);animation-play-state:paused"/>
-  </g>
-</svg>

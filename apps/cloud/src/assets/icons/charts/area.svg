@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="200px" height="200px" xmlns:xlink="http://www.w3.org/1999/xlink" style="width:100%;height:100%;background-size:initial;background-repeat-y:initial;background-repeat-x:initial;background-position-y:initial;background-position-x:initial;background-origin:initial;background-image:initial;background-color:rgb(255, 255, 255);background-clip:initial;background-attachment:initial;animation-play-state:paused">
-  <g class="ldl-scale" style="transform-origin:50% 50%;transform:rotate(0deg) scale(0.8, 0.8);animation-play-state:paused">
-    <path fill="#e15b64" d="M95 88.1H5V56.2L32.9 29a4.6 4.6 0 0 1 5.2-.9L63 40c1.8.8 3.9.5 5.3-.9L95 11.9v76.2" style="animation-play-state:paused"/>
-  </g>
-</svg>

@@ -1,1 +1,0 @@
-export * from './dirty-badge/dirty-badge.component'

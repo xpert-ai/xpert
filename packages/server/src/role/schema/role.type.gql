@@ -1,5 +1,0 @@
-type Role {
-	id: ID!
-	name: String!
-	tenantId: String!
-}

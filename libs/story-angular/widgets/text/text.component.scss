@@ -1,7 +1,0 @@
-:host {
-  @apply whitespace-pre-wrap;
-
-  &.ngm-intent-navigation {
-    @apply cursor-pointer hover:underline;
-  }
-}

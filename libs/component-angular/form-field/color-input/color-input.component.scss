@@ -1,9 +1,0 @@
-:host {
-  @apply flex flex-col justify-start items-stretch;
-
-  &.disabled {
-    .mtx-colorpicker-toggle {
-      @apply opacity-50;
-    }
-  }
-}

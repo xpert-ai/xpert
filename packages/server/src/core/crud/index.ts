@@ -1,7 +1,0 @@
-export * from './crud.controller'
-export * from './crud.service'
-export * from './organization-aware-crud.service'
-export * from './pagination-params'
-export * from './tenant-aware-crud.service'
-export * from './try-request'
-export * from './FindOptionsWhere'

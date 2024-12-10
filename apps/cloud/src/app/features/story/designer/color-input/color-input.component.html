@@ -1,7 +1,0 @@
-<label class="w-1/3 shrink-0 block tracking-wide text-xs text-right">
-    <mat-checkbox labelPosition="before" [ngModel]="hasColor" (ngModelChange)="toggleColor($event)">
-        {{ label }}
-    </mat-checkbox>
-</label>
-
-<ngm-color-input displayDensity="compact" [ngModel]="value()" (ngModelChange)="changeColor($event)" [disabled]="!hasColor" [format]="'hex'"></ngm-color-input>

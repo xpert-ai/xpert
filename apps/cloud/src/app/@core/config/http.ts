@@ -1,1 +1,0 @@
-export const SERVER_REQUEST_TIMEOUT = 30000

@@ -1,7 +1,0 @@
-<div class="content hover:bg-hover-bg"
-  [ngStyle]="styles()"
-  [matTooltip]="tag().description">
-  @if (tag().icon) {
-    <div [innerHTML]="tag().icon | safe: 'html'" class="tag-icon shrink-0"></div>
-  }
-  {{(tag().label | i18n) || tag().name}}</div>
