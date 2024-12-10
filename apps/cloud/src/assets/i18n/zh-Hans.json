@@ -1516,7 +1516,9 @@
       "Event_on_tool_start": "调用工具开始",
       "Event_on_tool_end": "调用工具结束",
       "Event_on_retriever_start": "知识检索开始",
-      "Event_on_retriever_end": "知识检索结束"
+      "Event_on_retriever_end": "知识检索结束",
+      "OpenExplorer": "打开数据浏览器",
+      "OpenExplain": "打开解释器"
     },
     "ChatBI": {
       "Title": "ChatBI-数据分析与洞察",

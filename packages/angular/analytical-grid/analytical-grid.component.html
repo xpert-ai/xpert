@@ -1,6 +1,6 @@
 @if (showToolbar()) {
   <div class="ngm-card-header flex justify-between items-center" [ngStyle]="styling?.bar">
-    <div>{{ title }}</div>
+    <div class="truncate">{{ title }}</div>
 
     <div style="flex: 1; display: flex; place-content: center flex-end; align-items: center;">
       <ng-content></ng-content>

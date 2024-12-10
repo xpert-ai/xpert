@@ -23,7 +23,7 @@ import { NgmDrawerTriggerComponent, ResizerModule } from '@metad/ocap-angular/co
 import { NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import { AgentType, CalculationProperty, DataSettings, isEqual } from '@metad/ocap-core'
-import { provideStoryDesigner, StoryExplorerModule } from '@metad/story'
+import { provideStoryDesigner, StoryExplorerComponent } from '@metad/story'
 import {
   EmulatedDevice,
   NxStoryService,
@@ -73,7 +73,7 @@ import { TranslationBaseComponent } from '../../../@shared/language'
     NxStoryModule,
     NxDesignerModule,
     StoryToolbarComponent,
-    StoryExplorerModule
+    StoryExplorerComponent
   ],
   selector: 'pac-story-designer',
   templateUrl: './story.component.html',

@@ -1,13 +1,16 @@
-import { NgModule } from '@angular/core'
-import { StoryExplorerComponent } from './explorer.component';
+// import { NgModule } from '@angular/core'
+// import { StoryExplorerComponent } from './explorer.component';
 
-@NgModule({
-  declarations: [],
-  imports: [
-    StoryExplorerComponent
-  ],
-  exports: [
-    StoryExplorerComponent
-  ]
-})
-export class StoryExplorerModule {}
+// /**
+//  * @deprecated use standalone component `StoryExplorerComponent`
+//  */
+// @NgModule({
+//   declarations: [],
+//   imports: [
+//     StoryExplorerComponent
+//   ],
+//   exports: [
+//     StoryExplorerComponent
+//   ]
+// })
+// export class StoryExplorerModule {}

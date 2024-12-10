@@ -1,6 +1,6 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, ViewContainerRef } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
@@ -21,6 +21,8 @@ import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { DataSettings, TimeGranularity } from '@metad/ocap-core'
 import { NgmIndicatorComponent } from '@metad/ocap-angular/indicator'
 import { compact, uniq } from 'lodash-es'
+import { StoryExplorerComponent } from '@metad/story'
+
 
 @Component({
   standalone: true,
@@ -55,6 +57,7 @@ export class ChatComponentMessageComponent {
   readonly #dialog = inject(Dialog)
   readonly homeComponent = inject(ChatHomeComponent)
   readonly dsCore = inject(NgmDSCoreService)
+  readonly #viewContainerRef = inject(ViewContainerRef)
 
   readonly message = input<any>()
 
@@ -73,6 +76,7 @@ export class ChatComponentMessageComponent {
   readonly indicator = computed(() => this.data()?.indicator)
   readonly dataSource = computed(() => this.dataSettings()?.dataSource)
   readonly indicators = computed(() => this.data()?.indicators)
+  readonly slicers = computed(() => this.data()?.slicers)
   readonly dataSources = computed(() => compact(uniq<string>(this.indicators()?.map((_) => _.dataSource))))
 
   readonly explains = signal<any[]>([])
@@ -115,5 +119,24 @@ export class ChatComponentMessageComponent {
   // State updaters
   setSelectOptions(data, slicers) {
     data.slicers = slicers
+  }
+
+  openExplorer() {
+    this.#dialog.open(StoryExplorerComponent, {
+      viewContainerRef: this.#viewContainerRef,
+      data: {
+        data: {
+          dataSettings: this.dataSettings(),
+          slicers: this.slicers()
+        }
+      }
+    }).closed.subscribe({
+      next: (result) => {
+        if (result) {
+          console.log(result)
+
+        }
+      }
+    })
   }
 }
