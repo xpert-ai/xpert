@@ -12,6 +12,7 @@ import { SlackToolset } from './slack/slack';
 import { GithubToolset } from './github/github';
 import { SmtpToolset } from './email/email';
 import { DiscordToolset } from './discord/discord';
+import { SerpAPIToolset } from './serpapi/serpapi';
 
 export * from './command'
 export * from './builtin-tool'
@@ -32,7 +33,8 @@ export const BUILTIN_TOOLSET_REPOSITORY: {
 			SlackToolset,
 			GithubToolset,
 			SmtpToolset,
-			DiscordToolset
+			DiscordToolset,
+			SerpAPIToolset
         ]
 	}
 ]

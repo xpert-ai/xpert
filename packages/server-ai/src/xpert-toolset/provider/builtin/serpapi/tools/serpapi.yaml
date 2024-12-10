@@ -1,0 +1,25 @@
+identity:
+  author: Xpert AI
+  name: serpapi
+  label:
+    en_US: SerpAPI
+    zh_Hans: SerpAPI
+description:
+  human:
+    en_US: SerpAPI Search API
+    zh_Hans: SerpAPI 搜索 API
+  llm: A tool for search engine built specifically for AI agents (LLMs)
+parameters:
+  - name: query
+    type: string
+    required: true
+    label:
+      en_US: Query string
+      zh_Hans: 查询语句
+      pt_BR: Query string
+    human_description:
+      en_US: used for searching
+      zh_Hans: 用于搜索网页内容
+      pt_BR: used for searching
+    llm_description: key words for searching
+    form: llm
