@@ -9,14 +9,13 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
   const auth = inject(AuthStrategy)
 
   return (url: string, data: T) => {
-    const token = store.token
-    const organization = store.selectedOrganization ?? { id: null }
-
     return new Observable<EventSourceMessage>((subscriber) => {
       const ctrl = new AbortController()
+      const organization = store.selectedOrganization ?? { id: null }
 
       let unauthorized = false
       function req() {
+        const token = store.token
         fetchEventSource(url, {
           method: 'POST',
           headers: {
