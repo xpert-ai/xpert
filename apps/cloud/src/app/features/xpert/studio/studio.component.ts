@@ -41,6 +41,7 @@ import { debounce, debounceTime, delay, map, pairwise, tap } from 'rxjs/operator
 import {
   AiModelTypeEnum,
   ToastrService,
+  TXpertAgentConfig,
   TXpertTeamNode,
   XpertAgentExecutionStatusEnum,
   XpertService,
@@ -283,6 +284,10 @@ export class XpertStudioComponent {
       })
     )
   })
+
+  updateXpertAgentConfig(config: Partial<TXpertAgentConfig>) {
+    this.apiService.updateXpertAgentConfig(config)
+  }
   
 }
 

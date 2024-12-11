@@ -26,6 +26,7 @@ import {
   IXpertAgent,
   IXpertToolset,
   OrderTypeEnum,
+  TXpertAgentConfig,
   TXpertOptions,
   TXpertTeamDraft,
   TXpertTeamNode
@@ -419,7 +420,25 @@ export class XpertStudioApiService {
         draft
       }
     })
-    this.#reload.next(reason) // EReloadReason.XPERT_UPDATED)
+    this.#reload.next(reason)
+  }
+
+  public updateXpertAgentConfig(config: Partial<TXpertAgentConfig>, reason = EReloadReason.XPERT_UPDATED) {
+    this.store.update((state) => {
+      const draft = structuredClone(state.draft)
+      draft.team = {
+        ...draft.team,
+        agentConfig: {
+          ...(draft.team.agentConfig ?? {}),
+          ...config
+        }
+      }
+
+      return {
+        draft
+      }
+    })
+    this.#reload.next(reason)
   }
 
   updateCanvas(event: FCanvasChangeEvent) {

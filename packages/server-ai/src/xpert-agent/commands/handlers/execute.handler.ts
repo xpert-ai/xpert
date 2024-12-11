@@ -1,15 +1,17 @@
 import { NotFoundException } from '@nestjs/common'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { AIMessage, AIMessageChunk, HumanMessage, isAIMessageChunk, mapStoredMessageToChatMessage, MessageContent, SystemMessage } from '@langchain/core/messages'
+import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { NodeInterrupt, StateGraphArgs } from '@langchain/langgraph'
+import { ToolNode } from '@langchain/langgraph/prebuilt'
 import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, ICopilot, IXpertAgent } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { filter, from, map, Observable, switchMap, tap } from 'rxjs'
-import { AgentState, CopilotGetOneQuery, createCopilotAgentState, createReactAgent } from '../../../copilot'
+import { filter, from, Observable, switchMap, tap } from 'rxjs'
+import { AgentState, CopilotGetOneQuery, createCopilotAgentState } from '../../../copilot'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { createXpertAgentTool, XpertAgentExecuteCommand } from '../execute.command'
@@ -20,6 +22,7 @@ import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { EnsembleRetriever } from "langchain/retrievers/ensemble"
 import z from 'zod'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model/queries'
+import { createReactAgent } from './react_agent_executor'
 
 
 export type ChatAgentState = AgentState
@@ -71,12 +74,20 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			new ToolsetGetToolsCommand(options?.toolsets ?? agent.toolsetIds)
 		)
 		const tools = []
+		const sensitiveTools = []
 		for await (const toolset of toolsets) {
 			const items = await toolset.initTools()
-			tools.push(...items)
+			items.forEach((item) => {
+				const lc_name = get_lc_unique_name(item.constructor as typeof Serializable)
+				if (team.agentConfig?.interruptBefore?.includes(lc_name)) {
+					sensitiveTools.push(item)
+				} else {
+					tools.push(item)
+				}
+			})
 		}
 
-		this.#logger.debug(`Use tools:\n ${tools.map((_) => _.name + ': ' + _.description)}`)
+		this.#logger.debug(`Use tools:\n ${[...tools, ...sensitiveTools].map((_) => _.name + ': ' + _.description).join('\n')}`)
 
 		// Knowledgebases
 		const knowledgebaseIds = options?.knowledgebases ?? agent.knowledgebaseIds
@@ -145,7 +156,8 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			llm: chatModel,
 			checkpointSaver: this.copilotCheckpointSaver,
 			tools: [...tools],
-			interruptBefore: ['tools'],
+			sensitiveTools: new ToolNode<AgentState>(sensitiveTools),
+			interruptBefore: ['sensitiveTools'],
 			messageModifier: async (state) => {
 				const systemTemplate = `{{role}}
 {{language}}

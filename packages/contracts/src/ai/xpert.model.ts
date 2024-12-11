@@ -125,6 +125,8 @@ export type TXpertAgentConfig = {
    * Timeout for this call in milliseconds.
    */
   timeout?: number;
+
+  interruptBefore?: string[]
 }
 
 export enum XpertTypeEnum {

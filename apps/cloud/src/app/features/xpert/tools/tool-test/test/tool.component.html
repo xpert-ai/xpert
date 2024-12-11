@@ -2,7 +2,7 @@
   <div class="w-full flex justify-between items-center p-2">
     <div class="py-2 leading-5 text-sm font-medium text-gray-900">
       {{ 'PAC.Xpert.Parameters' | translate: { Default: 'Parameters' } }} &amp; {{ 'PAC.Xpert.Value' | translate: { Default: 'Value' } }}</div>
-    <button type="button" class="btn btn-medium h-10"
+    <button type="button" class="btn btn-medium h-8"
       [disabled]="!parameters()"
       (click)="saveAsDefault()">
       {{ 'PAC.Xpert.SaveAsDefault' | translate: { Default: 'Save as default' } }}</button>

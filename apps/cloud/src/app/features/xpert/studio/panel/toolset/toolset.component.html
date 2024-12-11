@@ -23,6 +23,15 @@
 
 <div class="w-full flex flex-col gap-2 p-2">
   @for (tool of tools(); track tool.id) {
-    <xpert-tool-test [tool]="tool" class="w-full" [enabled]="tool.enabled" />
+    <xpert-tool-test [tool]="tool" class="w-full" [enabled]="tool.enabled">
+      <div class="w-full flex justify-end px-2 mb-4">
+        <mat-slide-toggle [ngModel]="getSensitive(tool.name)" (ngModelChange)="updateSensitive(tool.name, $event)"
+          labelPosition="before"
+          ngm-density="xs"
+          [matTooltip]="'PAC.Xpert.SensitiveToolsTip' | translate: {Default: 'Sensitive tools require user confirmation before execution'}"
+          matTooltipPosition="above"
+        >{{'PAC.Xpert.Sensitive' | translate: {Default: 'Sensitive'} }}</mat-slide-toggle>
+      </div>
+    </xpert-tool-test>
   }
 </div>

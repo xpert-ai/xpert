@@ -2036,7 +2036,9 @@
       "DeleteApiKey": "删除此 API 密钥？",
       "ActionUndone": "此操作无法撤消。",
       "Confirm": "确认",
-      "Reject": "拒绝"
+      "Reject": "拒绝",
+      "Sensitive": "敏感",
+      "SensitiveToolsTip": "敏感工具需要经过用户确认后才能执行"
     },
     "title": {
       "short": "Xpert AI"
