@@ -2034,7 +2034,9 @@
       "ProtectYourKey": "为了防止 API 滥用，请保护好您的 API 密钥。避免在前端代码中将其用作纯文本。:)",
       "CreateNewSecretKey": "创建新的密钥",
       "DeleteApiKey": "删除此 API 密钥？",
-      "ActionUndone": "此操作无法撤消。"
+      "ActionUndone": "此操作无法撤消。",
+      "Confirm": "确认",
+      "Reject": "拒绝"
     },
     "title": {
       "short": "Xpert AI"

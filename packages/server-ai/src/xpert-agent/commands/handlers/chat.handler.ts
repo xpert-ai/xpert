@@ -10,6 +10,7 @@ import {
 import { XpertAgentChatCommand } from '../chat.command'
 import { XpertAgentExecuteCommand } from '../execute.command'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
+import { NodeInterrupt } from '@langchain/langgraph'
 
 @CommandHandler(XpertAgentChatCommand)
 export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatCommand> {
@@ -76,8 +77,13 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 					}),
 					tap({
 						error: (err) => {
-							status = XpertAgentExecutionStatusEnum.ERROR
-							error = getErrorMessage(err)
+							if (err instanceof NodeInterrupt) {
+								status = XpertAgentExecutionStatusEnum.INTERRUPTED
+								error = null
+							} else {
+								status = XpertAgentExecutionStatusEnum.ERROR
+								error = getErrorMessage(err)
+							}
 						},
 						finalize: async () => {
 							try {

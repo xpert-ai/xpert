@@ -4,6 +4,7 @@ import {
   Component,
   computed,
   DestroyRef,
+  effect,
   inject,
   input,
   model,
@@ -34,7 +35,8 @@ import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { CopilotStoredMessageComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-import { XpertAgentExecutionStatusComponent, XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { ToolCallConfirmComponent, XpertAgentExecutionStatusComponent, XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { AIMessage, mapStoredMessageToChatMessage } from '@langchain/core/messages'
 
 @Component({
   selector: 'xpert-studio-panel-agent-execution',
@@ -51,7 +53,8 @@ import { XpertAgentExecutionStatusComponent, XpertParametersCardComponent } from
     MarkdownModule,
     CopilotStoredMessageComponent,
     XpertAgentExecutionStatusComponent,
-    XpertParametersCardComponent
+    XpertParametersCardComponent,
+    ToolCallConfirmComponent
   ],
   host: {
     tabindex: '-1',
@@ -59,7 +62,7 @@ import { XpertAgentExecutionStatusComponent, XpertParametersCardComponent } from
   }
 })
 export class XpertStudioPanelAgentExecutionComponent {
-  eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
+  eExecutionStatusEnum = XpertAgentExecutionStatusEnum
 
   readonly xpertAgentService = inject(XpertAgentService)
   readonly agentExecutionService = inject(XpertAgentExecutionService)
@@ -99,6 +102,18 @@ export class XpertStudioPanelAgentExecutionComponent {
     return executions
   })
 
+  readonly status = computed(() => this.execution()?.status)
+
+  readonly lastMessage = computed(() => {
+    const messages = this.execution()?.messages
+    if (messages) {
+      return messages[messages.length - 1]
+    }
+    return null
+  })
+
+  readonly lastAIMessage = model<AIMessage>(null)
+
   readonly loading = signal(false)
   #agentSubscription: Subscription = null
 
@@ -121,6 +136,15 @@ export class XpertStudioPanelAgentExecutionComponent {
     this.#destroyRef.onDestroy(() => {
       this.clearStatus()
     })
+
+    effect(() => {
+      const message = this.lastMessage()
+      if (message) {
+        this.lastAIMessage.set(mapStoredMessageToChatMessage(message))
+      } else {
+        this.lastAIMessage.set(null)
+      }
+    }, { allowSignalWrites: true })
   }
 
   clearStatus() {
@@ -130,6 +154,7 @@ export class XpertStudioPanelAgentExecutionComponent {
   }
 
   startRunAgent() {
+    const executionId = this.execution()?.id
     this.loading.set(true)
     // Clear
     this.clearStatus()
@@ -143,7 +168,8 @@ export class XpertStudioPanelAgentExecutionComponent {
         },
         agent: this.xpertAgent(),
         xpert: this.xpert(),
-        executionId: this.executionId()
+        executionId,
+        message: this.lastAIMessage()?.toDict()
       })
       .subscribe({
         next: (msg) => {
@@ -183,6 +209,10 @@ export class XpertStudioPanelAgentExecutionComponent {
     return this.apiService.getNode(key)?.entity as IXpertAgent
   }
 
+  onConfirm() {
+    this.input.set(null)
+    this.startRunAgent()
+  }
 }
 
 export function processEvents(event, executionService: XpertExecutionService) {

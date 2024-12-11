@@ -1,18 +1,17 @@
 import { NotFoundException } from '@nestjs/common'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AIMessageChunk, HumanMessage, MessageContent, SystemMessage } from '@langchain/core/messages'
+import { AIMessage, AIMessageChunk, HumanMessage, isAIMessageChunk, mapStoredMessageToChatMessage, MessageContent, SystemMessage } from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
-import { StateGraphArgs } from '@langchain/langgraph'
+import { NodeInterrupt, StateGraphArgs } from '@langchain/langgraph'
 import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, ICopilot, IXpertAgent } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { filter, from, map, Observable, tap } from 'rxjs'
+import { filter, from, map, Observable, switchMap, tap } from 'rxjs'
 import { AgentState, CopilotGetOneQuery, createCopilotAgentState, createReactAgent } from '../../../copilot'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
-import { XpertAgentService } from '../../xpert-agent.service'
 import { createXpertAgentTool, XpertAgentExecuteCommand } from '../execute.command'
 import { GetXpertAgentQuery } from '../../../xpert/queries'
 import { XpertCopilotNotFoundException } from '../../../core/errors'
@@ -21,7 +20,6 @@ import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { EnsembleRetriever } from "langchain/retrievers/ensemble"
 import z from 'zod'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model/queries'
-
 
 
 export type ChatAgentState = AgentState
@@ -34,7 +32,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 	readonly #logger = new Logger(XpertAgentExecuteHandler.name)
 
 	constructor(
-		private readonly agentService: XpertAgentService,
+		// private readonly agentService: XpertAgentService,
 		private readonly copilotCheckpointSaver: CopilotCheckpointSaver,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
@@ -42,7 +40,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 
 	public async execute(command: XpertAgentExecuteCommand): Promise<Observable<MessageContent>> {
 		const { input, agentKey, xpert, options } = command
-		const { execution, subscriber } = options
+		const { execution, subscriber, message } = options
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 		const user = RequestContext.currentUser()
@@ -147,6 +145,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			llm: chatModel,
 			checkpointSaver: this.copilotCheckpointSaver,
 			tools: [...tools],
+			interruptBefore: ['tools'],
 			messageModifier: async (state) => {
 				const systemTemplate = `{{role}}
 {{language}}
@@ -175,20 +174,43 @@ ${agent.prompt}
 			})
 		)
 
+		const config = {
+			thread_id,
+			checkpoint_ns: '',
+		}
+		if (message) {
+			// Update parameters of the last tool call message
+			const aiMessage = mapStoredMessageToChatMessage(message) as AIMessage
+			const state = await graph.getState({configurable: config},)
+			const messages = state.values.messages
+			const lastMessage = messages[messages.length - 1]
+			if (lastMessage.id === aiMessage.id) {
+				const newMessage = {
+					role: "assistant",
+					content: lastMessage.content,
+					tool_calls: lastMessage.tool_calls.map((toolCall) => {
+						const newToolCall = aiMessage.tool_calls.find((_) => _.id === toolCall.id)
+						return {...toolCall, args: {...toolCall.args, ...(newToolCall?.args ?? {})} }
+					}) ,
+					id: lastMessage.id
+				}
+				await graph.updateState({configurable: config}, { messages: [newMessage]})
+			}
+		}
+
 		const eventStack: string[] = []
 		let toolCalls = null
 		let prevEvent = ''
 		return from(
 			graph.streamEvents(
-				{
+				input.input ? {
 					...input,
 					messages: [new HumanMessage(input.input)]
-				},
+				} : null,
 				{
 					version: 'v2',
 					configurable: {
-						thread_id,
-						checkpoint_ns: '',
+						...config,
 						tenantId: tenantId,
 						organizationId: organizationId,
 						userId: user.id,
@@ -200,7 +222,7 @@ ${agent.prompt}
 				},
 			)
 		).pipe(
-			map(({ event, tags, data, ...rest }: any) => {
+			switchMap(async ({ event, tags, data, ...rest }: any) => {
 				if (Logger.isLevelEnabled('debug')) {
 					if (event === 'on_chat_model_stream') {
 						if (prevEvent === 'on_chat_model_stream') {
@@ -382,12 +404,31 @@ ${agent.prompt}
 						break
 					}
 				}
+
+				if (!eventStack.length) {
+					const state = await graph.getState({
+						configurable: {
+							...config,
+						}
+					})
+
+					if (state.next?.[0]) {
+						const messages = state.values.messages
+						const lastMessage = messages[messages.length - 1]
+						this.#logger.debug(`Interrupted chat.`)
+						if (isAIMessageChunk(lastMessage)) {
+							throw new NodeInterrupt(`Confirm tool calls`)
+						}
+					} else {
+						this.#logger.debug(`End chat.`)
+					}
+				}
 				return null
 			}),
 			filter((content) => !isNil(content)),
 			tap({
-				complete: () => {
-					this.#logger.debug(`End chat.`)
+				complete: async () => {
+					//
 				},
 				error: (err) => {
 					this.#logger.debug(err)

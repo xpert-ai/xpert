@@ -7,6 +7,7 @@ import { lastValueFrom, Observable, reduce, Subscriber, tap } from 'rxjs'
 import { z } from 'zod'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries'
+import { StoredMessage } from '@langchain/core/messages'
 
 export class XpertAgentExecuteCommand implements ICommand {
 	static readonly type = '[Xpert Agent] Execute'
@@ -29,6 +30,8 @@ export class XpertAgentExecuteCommand implements ICommand {
 			execution: IXpertAgentExecution
 			// The subscriber response to client
 			subscriber: Subscriber<MessageEvent>
+
+			message?: StoredMessage
 		}
 	) {}
 }

@@ -4,6 +4,7 @@ import { IKnowledgebase } from './knowledgebase.model'
 import { TAvatar } from '../types'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IXpert, TXpertParameter } from './xpert.model'
+import { StoredMessage } from '@langchain/core/messages'
 
 export type TXpertAgent = {
   key: string
@@ -91,4 +92,8 @@ export type TChatAgentParams = {
   agent: IXpertAgent
   xpert: Partial<IXpert>
   executionId: string
+  /**
+   * Message to update parameters of last tool call message
+   */
+  message?: StoredMessage
 }

@@ -35,7 +35,8 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 				isDraft: true,
 				execution: {
 					id: params.executionId
-				}
+				},
+				message: params.message
 			})
 		)
 	}

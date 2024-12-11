@@ -1,5 +1,5 @@
 import { BaseMessage } from '@langchain/core/messages'
-import { StateGraphArgs } from '@langchain/langgraph'
+import { messagesStateReducer, StateGraphArgs } from '@langchain/langgraph'
 
 export interface AgentState {
   input: string
@@ -29,7 +29,7 @@ export function createCopilotAgentState(): StateGraphArgs<AgentState>['channels'
       default: () => ''
     },
     messages: {
-      value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
+      value: messagesStateReducer,
       default: () => []
     },
     language: {

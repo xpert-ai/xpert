@@ -1,3 +1,4 @@
+import { StoredMessage } from '@langchain/core/messages'
 import { IXpert, IXpertAgentExecution, TChatOptions } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
@@ -21,6 +22,8 @@ export class XpertAgentChatCommand implements ICommand {
 			 * Use this execution or create a new record
 			 */
 			execution?: IXpertAgentExecution
+
+			message?: StoredMessage
 		}
 	) {}
 }

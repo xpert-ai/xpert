@@ -27,7 +27,7 @@ export class XpertExecutionService {
 
   // readonly execution = signal<IXpertAgentExecution>(null)
   readonly #agentExecutions = signal<Record<string, IXpertAgentExecution>>({})
-  readonly agentExecutions = computed(() => {
+  readonly agentExecutions = computed<Record<string, IXpertAgentExecution>>(() => {
     const agentExecutions = {}
     Object.values(this.#agentExecutions() ?? {}).forEach((execution) => {
       execution.subExecutions?.forEach((item) => {

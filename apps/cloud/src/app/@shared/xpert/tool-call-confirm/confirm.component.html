@@ -1,0 +1,31 @@
+@for (toolCall of toolCalls(); track toolCall.id; let index = $index) {
+  <label class="font-semibold pb-2">{{toolCall.name}}</label>
+  <div class="flex flex-col gap-1">
+    @for (param of toolCall.args | keyvalue; track param.key) {
+      <div class="flex justify-start items-start gap-2">
+        <div class="w-24 shrink-0 whitespace-normal">{{param.key}}</div>
+        <textarea class="flex-1 p-1 rounded-md border border-gray-300 focus:ring-primary-500 focus:border-primary-500 text-sm text-text-secondary"
+          [ngModel]="param.value"
+          (ngModelChange)="updateParam(index, param.key, $event)"
+        >{{param.value}}</textarea>
+      </div>
+    }
+  </div>
+}
+
+<div class="mt-4 flex justify-between space-x-2">
+  <button type="button" class="btn disabled:btn-disabled btn-primary h-10 flex-1 space-x-2"
+    (click)="onConfirm()"
+  >
+    <div class="w-full flex justify-center">{{ 'PAC.Xpert.Confirm' | translate: {Default: 'Confirm'} }}</div>
+  </button>
+
+  <button type="button" class="btn disabled:btn-disabled h-10 btn-danger pressable flex-1"
+    (click)="onReject()"
+  >
+    <div class="w-full text-center">
+      <i class="ri-stop-line"></i>
+      {{ 'PAC.Xpert.Reject' | translate: { Default: 'Reject' } }}
+    </div>
+  </button>
+</div>

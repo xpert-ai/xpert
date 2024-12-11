@@ -241,7 +241,7 @@ export enum ChatMessageEventTypeEnum {
   ON_RETRIEVER_START = 'on_retriever_start',
   ON_RETRIEVER_END = 'on_retriever_end',
   ON_RETRIEVER_ERROR = 'on_retriever_error',
-  ON_ERROR = 'on_error'
+  ON_ERROR = 'on_error',
 }
 
 export type TChatRequest = {
