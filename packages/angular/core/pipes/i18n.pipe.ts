@@ -15,7 +15,7 @@ export class NgmI18nPipe implements PipeTransform {
     } else if (typeof value === 'object' && value !== null) {
       return value[mapLanguage(this.translate.currentLang as NgmLanguageEnum)] ?? value['en_US']
     } else {
-      return value as string
+      return (value ?? '') as string 
     }
   }
 }

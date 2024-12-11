@@ -1,0 +1,44 @@
+identity:
+  name: google_search_api
+  author: SearchApi
+  label:
+    en_US: Google Search API
+    zh_Hans: Google Search API
+description:
+  human:
+    en_US: A tool to retrieve answer boxes, knowledge graphs, snippets, and webpages from Google Search engine.
+    zh_Hans: 一种从 Google 搜索引擎检索答案框、知识图、片段和网页的工具。
+  llm: A tool to retrieve answer boxes, knowledge graphs, snippets, and webpages from Google Search engine.
+parameters:
+  - name: query
+    type: string
+    required: true
+    label:
+      en_US: Query
+      zh_Hans: 询问
+    human_description:
+      en_US: Defines the query you want to search.
+      zh_Hans: 定义您要搜索的查询。
+    llm_description: Defines the search query you want to search.
+    form: llm
+  - name: engine
+    type: select
+    required: false
+    label:
+      en_US: Engine
+      zh_Hans: 搜索引擎
+    human_description:
+      en_US: Select the engine you want to search on.
+      zh_Hans: 选择您要搜索的查询引擎。
+    llm_description: Select the engine you want to search on.
+    form: llm
+    options:
+      - value: google
+        label:
+          zh_Hans: 通用
+          en_US: Common
+      - value: google_news
+        label:
+          zh_Hans: 新闻
+          en_US: News
+

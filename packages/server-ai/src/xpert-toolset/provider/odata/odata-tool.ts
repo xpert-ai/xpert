@@ -9,7 +9,8 @@ import { ToolParameterValidationError } from '../../errors'
 export type TODataService = any
 
 export class ODataTool extends BaseTool {
-	// providerType = XpertToolsetCategoryEnum.API
+	public name: string
+	public description: string
 
 	constructor(
 		protected xpertTool: IXpertTool,

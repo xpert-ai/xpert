@@ -1,0 +1,49 @@
+identity:
+  author: Xpert AI
+  name: serpapi
+  label:
+    en_US: SerpAPI
+    zh_Hans: SerpAPI
+description:
+  human:
+    en_US: SerpAPI Search API
+    zh_Hans: SerpAPI 搜索 API
+  llm: A tool for search engine built specifically for AI agents (LLMs)
+parameters:
+  - name: query
+    type: string
+    required: true
+    label:
+      en_US: Query string
+      zh_Hans: 查询语句
+      pt_BR: Query string
+    human_description:
+      en_US: used for searching
+      zh_Hans: 用于搜索网页内容
+      pt_BR: used for searching
+    llm_description: key words for searching
+    form: llm
+  - name: engine
+    type: select
+    required: false
+    label:
+      en_US: Engine
+      zh_Hans: 搜索引擎
+    human_description:
+      en_US: Select the engine you want to search on.
+      zh_Hans: 选择您要搜索的查询引擎。
+    llm_description: Select the engine you want to search on.
+    form: llm
+    options:
+      - value: google
+        label:
+          zh_Hans: 通用
+          en_US: Common
+      - value: google_news
+        label:
+          zh_Hans: 新闻
+          en_US: News
+      - value: google_hotels
+        label:
+          zh_Hans: 酒店
+          en_US: Hotels

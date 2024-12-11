@@ -1,6 +1,5 @@
 identity:
-  not_implemented: true
-  author: 
+  author: Xpert AI
   name: email
   label:
     en_US: email
