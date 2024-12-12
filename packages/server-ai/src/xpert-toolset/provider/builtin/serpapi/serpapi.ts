@@ -33,7 +33,7 @@ export class SerpAPIToolset extends BuiltinToolset {
 			const serpAPITool = new SerpAPI(credentials?.api_key)
 
 			await serpAPITool.invoke({
-				input: 'what is the current weather in SF?',
+				query: 'what is the current weather in SF?',
 			})
 		} catch (e) {
 			throw new ToolProviderCredentialValidationError(getErrorMessage(e))
