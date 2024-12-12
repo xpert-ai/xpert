@@ -28,7 +28,7 @@ export class XpertChatContinueHandler implements ICommandHandler<XpertChatContin
 
 	public async execute(command: XpertChatContinueCommand): Promise<Observable<MessageEvent>> {
 		const { options } = command
-		const { xpertId, input, conversationId, toolCalls } = command.request
+		const { xpertId, input, conversationId, toolCalls, reject } = command.request
 
 		const timeStart = Date.now()
 
@@ -49,7 +49,8 @@ export class XpertChatContinueHandler implements ICommandHandler<XpertChatContin
 				...(options ?? {}),
 				isDraft: options?.isDraft,
 				execution: { id: executionId },
-				toolCalls
+				toolCalls,
+				reject
 			})
 		)
 

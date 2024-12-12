@@ -165,7 +165,7 @@ export class XpertStudioPanelAgentExecutionComponent {
     this.executionService.setConversation(null)
   }
 
-  startRunAgent() {
+  startRunAgent(options?: {reject: boolean}) {
     const executionId = this.execution()?.id
     this.loading.set(true)
     // Clear
@@ -181,7 +181,8 @@ export class XpertStudioPanelAgentExecutionComponent {
         agent: this.xpertAgent(),
         xpert: this.xpert(),
         executionId,
-        toolCalls: this.lastAIMessage()?.tool_calls
+        toolCalls: this.lastAIMessage()?.tool_calls,
+        reject: options?.reject
       })
       .subscribe({
         next: (msg) => {
@@ -224,6 +225,11 @@ export class XpertStudioPanelAgentExecutionComponent {
   onConfirm() {
     this.input.set(null)
     this.startRunAgent()
+  }
+
+  onReject() {
+    this.input.set(null)
+    this.startRunAgent({reject: true})
   }
 }
 

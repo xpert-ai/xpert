@@ -1,16 +1,16 @@
 import { NotFoundException } from '@nestjs/common'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AIMessage, AIMessageChunk, HumanMessage, isAIMessageChunk, mapStoredMessageToChatMessage, MessageContent, SystemMessage, ToolMessage } from '@langchain/core/messages'
+import { AIMessageChunk, HumanMessage, isAIMessage, isAIMessageChunk, MessageContent, SystemMessage, ToolMessage } from '@langchain/core/messages'
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
-import { Annotation, LangGraphRunnableConfig, NodeInterrupt, StateGraphArgs } from '@langchain/langgraph'
+import { Annotation, CompiledStateGraph, LangGraphRunnableConfig, NodeInterrupt } from '@langchain/langgraph'
 import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, ICopilot, IXpert, IXpertAgent, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { concat, filter, from, lastValueFrom, Observable, of, reduce, Subscriber, switchMap, tap } from 'rxjs'
-import { AgentState, CopilotGetOneQuery, createCopilotAgentState } from '../../../copilot'
+import { AgentState, CopilotGetOneQuery } from '../../../copilot'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { createParameters, XpertAgentExecuteCommand } from '../execute.command'
@@ -26,12 +26,8 @@ import { RunnableLambda } from '@langchain/core/runnables'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { getErrorMessage } from '@metad/server-common'
 import { AgentStateAnnotation } from './types'
+import { ToolCall } from '@langchain/core/dist/messages/tool'
 
-
-export type ChatAgentState = AgentState
-export const chatAgentState: StateGraphArgs<ChatAgentState>['channels'] = {
-	...createCopilotAgentState()
-}
 
 @CommandHandler(XpertAgentExecuteCommand)
 export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecuteCommand> {
@@ -46,7 +42,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 
 	public async execute(command: XpertAgentExecuteCommand): Promise<Observable<MessageContent>> {
 		const { input, agentKey, xpert, options } = command
-		const { execution, subscriber, toolCalls } = options
+		const { execution, subscriber, toolCalls, reject } = options
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 		const user = RequestContext.currentUser()
@@ -183,23 +179,10 @@ ${agent.prompt}
 			thread_id,
 			checkpoint_ns: '',
 		}
-		if (toolCalls) {
-			// Update parameters of the last tool call message
-			const state = await graph.getState({configurable: config},)
-			const messages = state.values.messages
-			const lastMessage = messages[messages.length - 1]
-			if (lastMessage.id) {
-				const newMessage = {
-					role: "assistant",
-					content: lastMessage.content,
-					tool_calls: lastMessage.tool_calls.map((toolCall) => {
-						const newToolCall = toolCalls.find((_) => _.id === toolCall.id)
-						return {...toolCall, args: {...toolCall.args, ...(newToolCall?.args ?? {})} }
-					}) ,
-					id: lastMessage.id
-				}
-				await graph.updateState({configurable: config}, { messages: [newMessage]}, "agent")
-			}
+		if (reject) {
+			await this.reject(graph, config)
+		} else if (toolCalls) {
+			await this.updateToolCalls(graph, config, toolCalls)
 		}
 
 		const eventStack: string[] = []
@@ -606,4 +589,39 @@ ${agent.prompt}
 		tool: agentTool
 	  }
 	}
+
+	async reject(graph: CompiledStateGraph<any, any, any>, config: any) {
+		const state = await graph.getState({configurable: config},)
+		const messages = state.values.messages
+		const lastMessage = messages[messages.length - 1]
+		if (isAIMessage(lastMessage)) {
+			await graph.updateState({configurable: config}, { messages: lastMessage.tool_calls.map((call) => {
+				return new ToolMessage({
+					name: call.name,
+					content: `Error: Reject by user`,
+					tool_call_id: call.id,
+				  })
+			}) }, "agent")
+		}
+	}
+
+	async updateToolCalls(graph: CompiledStateGraph<any, any, any>, config: any, toolCalls: ToolCall[]) {
+		// Update parameters of the last tool call message
+		const state = await graph.getState({configurable: config},)
+		const messages = state.values.messages
+		const lastMessage = messages[messages.length - 1]
+		if (lastMessage.id) {
+			const newMessage = {
+				role: "assistant",
+				content: lastMessage.content,
+				tool_calls: lastMessage.tool_calls.map((toolCall) => {
+					const newToolCall = toolCalls.find((_) => _.id === toolCall.id)
+					return {...toolCall, args: {...toolCall.args, ...(newToolCall?.args ?? {})} }
+				}) ,
+				id: lastMessage.id
+			}
+			await graph.updateState({configurable: config}, { messages: [newMessage]}, "agent")
+		}
+	}
+	
 }

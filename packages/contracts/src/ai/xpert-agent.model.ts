@@ -96,6 +96,10 @@ export type TChatAgentParams = {
    * Message to update parameters of last tool call message
    */
   toolCalls?: ToolCall[]
+  /**
+   * Reject the sensitive tool calls
+   */
+  reject?: boolean
 }
 
 export function agentLabel(agent: IXpertAgent) {

@@ -257,6 +257,7 @@ export type TChatRequest = {
   id?: string
   language?: string
   toolCalls?: ToolCall[]
+  reject?: boolean
 }
 
 export type TChatOptions = {

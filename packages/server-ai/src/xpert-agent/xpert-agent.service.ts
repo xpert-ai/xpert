@@ -36,7 +36,8 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 				execution: {
 					id: params.executionId
 				},
-				toolCalls: params.toolCalls
+				toolCalls: params.toolCalls,
+				reject: params.reject,
 			})
 		)
 	}

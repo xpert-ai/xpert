@@ -138,7 +138,7 @@ export class XpertStudioPreviewComponent {
     }, { allowSignalWrites: true })
   }
 
-  chat(input: string) {
+  chat(input: string, options?: {reject: boolean}) {
     this.loading.set(true)
 
     if (input) {
@@ -173,7 +173,8 @@ export class XpertStudioPreviewComponent {
           input: { input },
           conversationId: this.conversation()?.id,
           xpertId: this.xpert().id,
-          toolCalls: this.lastAIMessage()?.tool_calls
+          toolCalls: this.lastAIMessage()?.tool_calls,
+          reject: options?.reject
         },
         {
           isDraft: true
@@ -266,5 +267,8 @@ export class XpertStudioPreviewComponent {
 
   onConfirm() {
     this.chat(null)
+  }
+  onReject() {
+    this.chat(null, {reject: true})
   }
 }

@@ -3,10 +3,10 @@
   <div class="flex flex-col gap-1">
     @for (param of item.params; track param.name) {
       <div class="flex justify-start items-start gap-2">
-        <div class="w-24 shrink-0 whitespace-normal">{{param.title}}
+        <div class="w-24 shrink-0 whitespace-normal text-sm">{{param.title}}
           <div><ngm-slash-svg class="inline-block"/><span class="text-primary-500">{{param.name}}</span></div>
         </div>
-        <textarea class="flex-1 p-1 rounded-md border border-gray-300 focus:ring-primary-500 focus:border-primary-500 text-sm text-text-secondary"
+        <textarea class="flex-1 p-1 rounded-md border border-gray-300 focus:ring-primary-500 focus:border-primary-500 text-sm text-text-secondary focus:text-text-primary"
           [ngModel]="param.value"
           (ngModelChange)="updateParam(index, param.name, $event)"
         >{{param.value}}</textarea>
@@ -26,7 +26,7 @@
     (click)="onReject()"
   >
     <div class="w-full text-center">
-      <i class="ri-stop-line"></i>
+      <i class="ri-close-line"></i>
       {{ 'PAC.Xpert.Reject' | translate: { Default: 'Reject' } }}
     </div>
   </button>
