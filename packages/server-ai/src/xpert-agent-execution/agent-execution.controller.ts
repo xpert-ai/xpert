@@ -29,8 +29,8 @@ export class XpertAgentExecutionController extends CrudController<XpertAgentExec
 	async findAllByXpertAgent(
 		@Param('id') xpertId: string,
 		@Param('key') agentKey: string,
-		@Query('$order', ParseJsonPipe) order?: PaginationParams<XpertAgentExecution>['order']
+		@Query('data', ParseJsonPipe) data: PaginationParams<XpertAgentExecution>,
 	) {
-		return this.service.findAllByXpertAgent(xpertId, agentKey, { order } as PaginationParams<XpertAgentExecution>)
+		return this.service.findAllByXpertAgent(xpertId, agentKey, data)
 	}
 }

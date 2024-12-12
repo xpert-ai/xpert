@@ -4,13 +4,12 @@ import { AIMessage, AIMessageChunk, HumanMessage, isAIMessageChunk, mapStoredMes
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { NodeInterrupt, StateGraphArgs } from '@langchain/langgraph'
-import { ToolNode } from '@langchain/langgraph/prebuilt'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, ICopilot, IXpertAgent } from '@metad/contracts'
+import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, ICopilot, IXpertAgent } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { filter, from, Observable, switchMap, tap } from 'rxjs'
+import { concat, filter, from, Observable, of, switchMap, tap } from 'rxjs'
 import { AgentState, CopilotGetOneQuery, createCopilotAgentState } from '../../../copilot'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
@@ -23,6 +22,7 @@ import { EnsembleRetriever } from "langchain/retrievers/ensemble"
 import z from 'zod'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model/queries'
 import { createReactAgent } from './react_agent_executor'
+import { ToolNode } from './tool_node'
 
 
 export type ChatAgentState = AgentState
@@ -155,8 +155,8 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			state: chatAgentState,
 			llm: chatModel,
 			checkpointSaver: this.copilotCheckpointSaver,
-			tools: [...tools],
-			sensitiveTools: new ToolNode<AgentState>(sensitiveTools),
+			tools: new ToolNode<AgentState>(tools, {tags: [thread_id]}),
+			sensitiveTools: new ToolNode<AgentState>(sensitiveTools, {tags: [thread_id]}),
 			interruptBefore: ['sensitiveTools'],
 			messageModifier: async (state) => {
 				const systemTemplate = `{{role}}
@@ -213,7 +213,7 @@ ${agent.prompt}
 		const eventStack: string[] = []
 		let toolCalls = null
 		let prevEvent = ''
-		return from(
+		const contentStream = from(
 			graph.streamEvents(
 				input.input ? {
 					...input,
@@ -240,16 +240,16 @@ ${agent.prompt}
 						if (prevEvent === 'on_chat_model_stream') {
 							process.stdout.write('.')
 						} else {
-							this.#logger.debug('on_chat_model_stream')
+							this.#logger.debug(`on_chat_model_stream [${agentLabel(agent)}]`)
 						}
 					} else {
 						if (prevEvent === 'on_chat_model_stream') {
 							process.stdout.write('\n')
 						}
-						this.#logger.debug(event)
+						this.#logger.debug(`${event} [${agentLabel(agent)}]`)
 					}
 				} else {
-					this.#logger.verbose(event)
+					this.#logger.verbose(`${event} [${agentLabel(agent)}]`)
 				}
 
 				prevEvent = event
@@ -324,7 +324,7 @@ ${agent.prompt}
 					}
 					
 					case 'on_tool_start': {
-						this.#logger.verbose(data, rest)
+						// this.#logger.verbose(data, rest)
 						eventStack.push(event)
 						// Tools currently called in parallel
 						toolCalls ??= {}
@@ -342,7 +342,7 @@ ${agent.prompt}
 						break
 					}
 					case 'on_tool_end': {
-						this.#logger.verbose(data, rest)
+						// this.#logger.verbose(data, rest)
 						// Clear finished tool call
 						if (toolCalls?.[rest.run_id]) {
 						  toolCalls[rest.run_id] = null
@@ -365,7 +365,7 @@ ${agent.prompt}
 						break
 					}
 					case 'on_retriever_start': {
-						this.#logger.verbose(data, rest)
+						// this.#logger.verbose(data, rest)
 						subscriber.next({
 							data: {
 								type: ChatMessageTypeEnum.EVENT,
@@ -380,7 +380,7 @@ ${agent.prompt}
 						break
 					}
 					case 'on_retriever_end': {
-						this.#logger.verbose(data, rest)
+						// this.#logger.verbose(data, rest)
 						subscriber.next({
 							data: {
 								type: ChatMessageTypeEnum.EVENT,
@@ -416,28 +416,9 @@ ${agent.prompt}
 						break
 					}
 				}
-
-				if (!eventStack.length) {
-					const state = await graph.getState({
-						configurable: {
-							...config,
-						}
-					})
-
-					if (state.next?.[0]) {
-						const messages = state.values.messages
-						const lastMessage = messages[messages.length - 1]
-						this.#logger.debug(`Interrupted chat.`)
-						if (isAIMessageChunk(lastMessage)) {
-							throw new NodeInterrupt(`Confirm tool calls`)
-						}
-					} else {
-						this.#logger.debug(`End chat.`)
-					}
-				}
+				
 				return null
 			}),
-			filter((content) => !isNil(content)),
 			tap({
 				complete: async () => {
 					//
@@ -449,6 +430,31 @@ ${agent.prompt}
 					//
 				}
 			})
+		)
+
+		return concat(contentStream, of(1).pipe(
+			switchMap(async () => {
+				const state = await graph.getState({
+					configurable: {
+						...config,
+					}
+				})
+
+				if (state.next?.[0]) {
+					// console.log(state)
+					const messages = state.values.messages
+					const lastMessage = messages[messages.length - 1]
+					if (isAIMessageChunk(lastMessage)) {
+						this.#logger.debug(`Interrupted chat [${agentLabel(agent)}].`)
+						throw new NodeInterrupt(`Confirm tool calls`)
+					}
+				} else {
+					this.#logger.debug(`End chat [${agentLabel(agent)}].`)
+				}
+				return null
+			})
+		)).pipe(
+			filter((content) => !isNil(content)),
 		)
 	}
 }

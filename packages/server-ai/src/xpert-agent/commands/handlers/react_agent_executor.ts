@@ -19,16 +19,16 @@ import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { BaseCheckpointSaver, CompiledStateGraph, END, MessagesAnnotation, START, StateGraph, StateGraphArgs } from "@langchain/langgraph";
 import { All } from "@langchain/langgraph-checkpoint";
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { AgentState, createCopilotAgentState } from "../../../copilot"
+import { ToolNode } from "./tool_node";
 
 
 export type N = typeof START | "agent" | "tools" | "sensitiveTools";
 
 export type CreateReactAgentParams = {
   llm: BaseChatModel;
-  tools: (StructuredToolInterface | RunnableToolLike)[];
-  sensitiveTools: ToolNode<typeof MessagesAnnotation.State>
+  tools: ToolNode<typeof MessagesAnnotation.State>;
+  sensitiveTools: ToolNode<typeof MessagesAnnotation.State>;
   messageModifier?:
     | SystemMessage
     | string
@@ -77,15 +77,10 @@ export function createReactAgent(
 
   const toolClasses: (StructuredToolInterface | DynamicTool | RunnableToolLike)[] = []
   if (tools) {
-    toolClasses.push(...tools)
+    toolClasses.push(...tools.tools)
   }
-
   if (sensitiveTools) {
-    if (!Array.isArray(sensitiveTools)) {
-      toolClasses.push(...sensitiveTools.tools)
-    } else {
-      toolClasses.push(...sensitiveTools)
-    }
+    toolClasses.push(...sensitiveTools.tools)
   }
 
   if (!("bindTools" in llm) || typeof llm.bindTools !== "function") {
@@ -126,7 +121,7 @@ export function createReactAgent(
       "agent",
       new RunnableLambda({ func: callModel }).withConfig({ runName: "agent", tags })
     )
-    .addNode("tools", new ToolNode<AgentState>(tools))
+    .addNode("tools", tools)
     .addNode("sensitiveTools", sensitiveTools)
     .addEdge(START, "agent")
     .addConditionalEdges("agent", shouldContinue, {

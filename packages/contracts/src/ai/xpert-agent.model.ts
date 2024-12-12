@@ -97,3 +97,7 @@ export type TChatAgentParams = {
    */
   message?: StoredMessage
 }
+
+export function agentLabel(agent: IXpertAgent) {
+  return agent.title || agent.name || agent.key
+}
