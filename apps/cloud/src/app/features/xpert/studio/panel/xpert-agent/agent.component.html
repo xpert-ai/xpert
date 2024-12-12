@@ -63,7 +63,7 @@
 
     <div class="py-2 flex flex-col">
       <input matInput
-          class="ngm-input-inline ngm-input-sm self-stretch mx-2 mb-1 px-1 py-0.5 text-sm field rounded-lg border border-transparent appearance-none outline-none
+          class="ngm-input-inline ngm-input-sm self-stretch mx-1 mb-1 px-1 py-0.5 text-sm field rounded-lg border border-transparent appearance-none outline-none
            hover:bg-gray-50 focus:border-gray-300 focus:shadow-xs focus:bg-white caret-[#295EFF]"
           [ngClass]="{ 'ngm-error': nameError() }"
           [ngModel]="name()"
@@ -96,6 +96,15 @@
       [(prompt)]="prompt"
       (promptChange)="onPromptChange($event)"
     />
+
+    <div class="w-full flex justify-end p-4 bg-gray-50 rounded-xl">
+      <mat-slide-toggle [ngModel]="isSensitive()" (ngModelChange)="updateSensitive($event)"
+        labelPosition="before"
+        ngm-density="xs"
+        [matTooltip]="'PAC.Xpert.SensitiveAgentTip' | translate: {Default: 'Sensitive agents require user confirmation before execution'}"
+        matTooltipPosition="above"
+      >{{'PAC.Xpert.Sensitive' | translate: {Default: 'Sensitive'} }}</mat-slide-toggle>
+    </div>
 
     <xpert-parameters-edit [ngModel]="parameters()" (ngModelChange)="onParameters($event)" />
 

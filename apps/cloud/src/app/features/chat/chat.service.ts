@@ -21,7 +21,7 @@ import {
 import {
   getErrorMessage,
   IChatConversation,
-  IXpertRole,
+  IXpert,
   IXpertToolset,
   IKnowledgebase,
   LanguagesEnum,
@@ -32,7 +32,7 @@ import {
   CopilotMessageGroup,
   CopilotChatMessage,
   ChatMessageEventTypeEnum,
-  IXpert,
+  XpertAgentExecutionStatusEnum,
 } from '../../@core'
 import { ChatConversationService, ChatService as ChatServerService, XpertService, ToastrService } from '../../@core/services'
 import { AppService } from '../../app.service'
@@ -276,7 +276,7 @@ export class ChatService {
         this.updateLatestMessage((message) => {
           return {
             ...message,
-            status: 'error',
+            status: XpertAgentExecutionStatusEnum.ERROR,
             error: getErrorMessage(error)
           }
         })
@@ -305,7 +305,7 @@ export class ChatService {
     // })
   }
 
-  async newConversation(xpert?: IXpertRole) {
+  async newConversation(xpert?: IXpert) {
     if (this.answering() && this.conversation()?.id) {
       this.cancelMessage()
     }

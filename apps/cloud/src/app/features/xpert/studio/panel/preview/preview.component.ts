@@ -7,22 +7,27 @@ import { appendMessageContent, nonBlank, stringifyMessageContent } from '@metad/
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ChatConversationService,
+  ChatMessageEventTypeEnum,
   ChatMessageTypeEnum,
   CopilotChatMessage,
   ToastrService,
   uuid,
+  XpertAgentExecutionService,
+  XpertAgentExecutionStatusEnum,
   XpertService
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { MarkdownModule } from 'ngx-markdown'
-import { Subscription } from 'rxjs'
+import { of, Subscription } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { processEvents } from '../agent-execution/execution.component'
 import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-import { XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { ToolCallConfirmComponent, XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { derivedAsync } from 'ngxtension/derived-async'
+import { AIMessage, mapStoredMessageToChatMessage } from '@langchain/core/messages'
 
 @Component({
   standalone: true,
@@ -35,17 +40,21 @@ import { XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
     MarkdownModule,
     EmojiAvatarComponent,
     XpertParametersCardComponent,
-    XpertPreviewAiMessageComponent
+    XpertPreviewAiMessageComponent,
+    ToolCallConfirmComponent
   ],
   selector: 'xpert-studio-panel-preview',
   templateUrl: 'preview.component.html',
   styleUrls: ['preview.component.scss']
 })
 export class XpertStudioPreviewComponent {
+  eExecutionStatusEnum = XpertAgentExecutionStatusEnum
+
   readonly xpertService = inject(XpertService)
   readonly apiService = inject(XpertStudioApiService)
   readonly executionService = inject(XpertExecutionService)
   readonly conversationService = inject(ChatConversationService)
+  readonly agentExecutionService = inject(XpertAgentExecutionService)
   readonly studioComponent = inject(XpertStudioComponent)
   readonly #toastr = inject(ToastrService)
   readonly #destroyRef = inject(DestroyRef)
@@ -69,37 +78,89 @@ export class XpertStudioPreviewComponent {
 
   readonly conversation = this.executionService.conversation
 
-  readonly lastMessage = signal<CopilotChatMessage>(null)
+  readonly currentMessage = signal<CopilotChatMessage>(null)
   readonly messages = computed<CopilotChatMessage[]>(() => {
-    if (this.lastMessage()) {
-      return [...this.executionService.messages(), this.lastMessage()]
+    if (this.currentMessage()) {
+      const messages = this.executionService.messages()
+      const lastMessage = messages[messages.length - 1]
+      // Skip the last interrupted message when continuing the chat conversation
+      if (lastMessage.status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
+        return [...messages.slice(0, messages.length - 1), this.currentMessage()]
+      }
+      return [...this.executionService.messages(), this.currentMessage()]
     }
     return this.executionService.messages()
   })
+
+  readonly lastMessage = computed(() => {
+    const messages = this.messages()
+    if (messages) {
+      return messages[messages.length - 1]
+    }
+    return null
+  })
+
+  readonly lastExecutionId = computed(() => {
+    return this.lastMessage()?.executionId
+  })
+  readonly lastStatus = computed(() => {
+    return this.lastMessage()?.status
+  })
+  readonly #lastExecution = derivedAsync(() => {
+    const id = this.lastExecutionId()
+    const status = this.lastStatus()
+    return (status === XpertAgentExecutionStatusEnum.INTERRUPTED && id) ? this.agentExecutionService.getOneLog(id) : of(null)
+  })
+
+  readonly lastExecMessage = computed(() => {
+    const messages = this.#lastExecution()?.messages
+    if (messages) {
+      return messages[messages.length - 1]
+    }
+    return null
+  })
+  readonly lastAIMessage = model<AIMessage>(null)
+  readonly tools = signal([])
 
   private chatSubscription: Subscription
   constructor() {
     effect(() => {
       // console.log(this.lastMessage(), this.messages())
     })
+
+    effect(() => {
+      const message = this.lastExecMessage()
+      if (message) {
+        this.lastAIMessage.set(mapStoredMessageToChatMessage(message))
+      } else {
+        this.lastAIMessage.set(null)
+      }
+    }, { allowSignalWrites: true })
   }
 
   chat(input: string) {
     this.loading.set(true)
 
-    // Add to user message
-    this.executionService.appendMessage({
-      role: 'human',
-      content: input,
-      id: uuid()
-    })
-    this.input.set('')
-    this.lastMessage.set({
-      id: uuid(),
-      role: 'ai',
-      content: '',
-      status: 'thinking'
-    })
+    if (input) {
+      // Add to user message
+      this.executionService.appendMessage({
+        role: 'human',
+        content: input,
+        id: uuid()
+      })
+      this.input.set('')
+      this.currentMessage.set({
+        id: uuid(),
+        role: 'ai',
+        content: '',
+        status: 'thinking'
+      })
+    } else if (this.lastStatus() === XpertAgentExecutionStatusEnum.INTERRUPTED) {
+      this.currentMessage.set({
+        ...this.lastMessage(),
+        status: 'thinking'
+      })
+    }
 
     // Send to server chat
     if (this.chatSubscription && !this.chatSubscription?.closed) {
@@ -111,7 +172,8 @@ export class XpertStudioPreviewComponent {
         {
           input: { input },
           conversationId: this.conversation()?.id,
-          xpertId: this.xpert().id
+          xpertId: this.xpert().id,
+          toolCalls: this.lastAIMessage()?.tool_calls
         },
         {
           isDraft: true
@@ -125,7 +187,7 @@ export class XpertStudioPreviewComponent {
             if (msg.data) {
               const event = JSON.parse(msg.data)
               if (event.type === ChatMessageTypeEnum.MESSAGE) {
-                this.lastMessage.update((message) => {
+                this.currentMessage.update((message) => {
                   appendMessageContent(message as any, event.data)
                   return { ...message }
                 })
@@ -135,6 +197,13 @@ export class XpertStudioPreviewComponent {
                 }
               } else if (event.type === ChatMessageTypeEnum.EVENT) {
                 processEvents(event, this.executionService)
+                if (event.event === ChatMessageEventTypeEnum.ON_AGENT_END) {
+                  this.currentMessage.update((message) => ({
+                    ...message,
+                    executionId: event.data.id,
+                    status: event.data.status
+                  }))
+                }
               }
             }
           }
@@ -142,17 +211,17 @@ export class XpertStudioPreviewComponent {
         error: (err) => {
           console.error(err)
           this.loading.set(false)
-          if (this.lastMessage()) {
-            this.executionService.appendMessage({ ...this.lastMessage() })
+          if (this.currentMessage()) {
+            this.executionService.appendMessage({ ...this.currentMessage() })
           }
-          this.lastMessage.set(null)
+          this.currentMessage.set(null)
         },
         complete: () => {
           this.loading.set(false)
-          if (this.lastMessage()) {
-            this.executionService.appendMessage({ ...this.lastMessage() })
+          if (this.currentMessage()) {
+            this.executionService.appendMessage({ ...this.currentMessage() })
           }
-          this.lastMessage.set(null)
+          this.currentMessage.set(null)
         },
       })
   }
@@ -162,7 +231,7 @@ export class XpertStudioPreviewComponent {
       this.chatSubscription.unsubscribe()
     }
     this.loading.set(false)
-    this.lastMessage.set(null)
+    this.currentMessage.set(null)
     this.executionService.clear()
   }
 
@@ -193,5 +262,9 @@ export class XpertStudioPreviewComponent {
 
   openExecution(message: CopilotChatMessage) {
     this.execution.emit(message.executionId)
+  }
+
+  onConfirm() {
+    this.chat(null)
   }
 }

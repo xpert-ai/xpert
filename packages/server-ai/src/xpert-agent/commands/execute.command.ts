@@ -1,13 +1,14 @@
 import { tool } from '@langchain/core/tools'
 import { LangGraphRunnableConfig } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpert, IXpertAgent, IXpertAgentExecution, TChatOptions, TXpertParameter, XpertAgentExecutionStatusEnum, XpertParameterTypeEnum } from '@metad/contracts'
-import { convertToUrlPath, getErrorMessage } from '@metad/server-common'
+import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IXpert, IXpertAgent, IXpertAgentExecution, TChatOptions, TXpertParameter, XpertAgentExecutionStatusEnum, XpertParameterTypeEnum } from '@metad/contracts'
+import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, ICommand, QueryBus } from '@nestjs/cqrs'
 import { lastValueFrom, Observable, reduce, Subscriber, tap } from 'rxjs'
 import { z } from 'zod'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries'
 import { StoredMessage } from '@langchain/core/messages'
+import { ToolCall } from '@langchain/core/dist/messages/tool'
 
 export class XpertAgentExecuteCommand implements ICommand {
 	static readonly type = '[Xpert Agent] Execute'
@@ -31,12 +32,15 @@ export class XpertAgentExecuteCommand implements ICommand {
 			// The subscriber response to client
 			subscriber: Subscriber<MessageEvent>
 
-			message?: StoredMessage
+			// message?: StoredMessage
+			toolCalls?: ToolCall[]
 		}
 	) {}
 }
 
 /**
+ * @deprecated use SubAgents
+ * 
  * Create agent of xpert as tool to execute
  *
  * @param commandBus
@@ -180,7 +184,7 @@ export function createXpertAgentTool(
  * @param parameters 
  * @returns 
  */
-function createParameters(parameters: TXpertParameter[]) {
+export function createParameters(parameters: TXpertParameter[]) {
 	return parameters?.reduce((schema, parameter) => {
 		let value = null
 		switch(parameter.type) {

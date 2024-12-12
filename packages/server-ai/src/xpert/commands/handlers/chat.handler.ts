@@ -126,17 +126,25 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 						try {
 							const timeEnd = Date.now()
 							// Record End time
-							await this.commandBus.execute(new XpertAgentExecutionUpsertCommand({
-								...execution,
+							const entity = status === XpertAgentExecutionStatusEnum.ERROR ? {
+								id: execution.id,
 								elapsedTime: timeEnd - timeStart,
 								status,
 								error,
 								outputs: {
 									output: result
 								}
-							}))
+							} : {
+								id: execution.id,
+								elapsedTime: timeEnd - timeStart,
+								outputs: {
+									output: result
+								}
+							}
+							const _execution = await this.commandBus.execute(new XpertAgentExecutionUpsertCommand(entity))
 	
 							// Update ai message
+							aiMessage.status = _execution.status
 							await this.commandBus.execute(
 								new ChatConversationUpsertCommand({
 									...conversation,
@@ -160,7 +168,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 	}
 }
 
-function appendMessageContent(aiMessage: CopilotChatMessage, content: MessageContent) {
+export function appendMessageContent(aiMessage: CopilotChatMessage, content: MessageContent) {
 	const _content = aiMessage.content
 	if (typeof content === 'string') {
 		if (typeof _content === 'string') {

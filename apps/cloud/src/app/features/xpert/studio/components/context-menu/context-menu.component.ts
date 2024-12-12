@@ -2,7 +2,7 @@ import { CdkMenu, CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectorRef, Component, inject, TemplateRef, ViewChild } from '@angular/core'
 import { MatTabsModule } from '@angular/material/tabs'
-import { IXpertRole } from 'apps/cloud/src/app/@core'
+import { IXpert } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { Subscription } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
@@ -64,7 +64,7 @@ export class XpertStudioContextMenuComponent {
     this.apiService.createAgent(this.root.contextMenuPosition)
   }
 
-  public addCollaborator(xpert: IXpertRole): void {
+  public addCollaborator(xpert: IXpert): void {
     // menu.menuStack.closeAll()
     this.apiService.createCollaborator(this.root.contextMenuPosition, xpert)
   }

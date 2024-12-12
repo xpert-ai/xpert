@@ -8,6 +8,7 @@ import {
   Runnable,
   RunnableInterface,
   RunnableLambda,
+  RunnableLike,
   RunnableToolLike,
 } from "@langchain/core/runnables";
 import { DynamicTool, StructuredToolInterface } from "@langchain/core/tools";
@@ -16,19 +17,18 @@ import {
   BaseLanguageModelInput,
 } from "@langchain/core/language_models/base";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
-import { BaseCheckpointSaver, CompiledStateGraph, END, MessagesAnnotation, START, StateGraph, StateGraphArgs } from "@langchain/langgraph";
+import { BaseCheckpointSaver, CompiledStateGraph, END, Send, START, StateGraph } from "@langchain/langgraph";
 import { All } from "@langchain/langgraph-checkpoint";
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import { AgentState, createCopilotAgentState } from "../../../copilot"
 import { ToolNode } from "./tool_node";
+import { AgentStateAnnotation } from "./types";
 
+type AgentState = typeof AgentStateAnnotation.State
 
-export type N = typeof START | "agent" | "tools" | "sensitiveTools";
+export type N = any
 
 export type CreateReactAgentParams = {
   llm: BaseChatModel;
-  tools: ToolNode<typeof MessagesAnnotation.State>;
-  sensitiveTools: ToolNode<typeof MessagesAnnotation.State>;
   messageModifier?:
     | SystemMessage
     | string
@@ -38,9 +38,10 @@ export type CreateReactAgentParams = {
   checkpointSaver?: BaseCheckpointSaver;
   interruptBefore?: N[] | All;
   interruptAfter?: N[] | All;
-  state?: StateGraphArgs<AgentState>["channels"]
-  shouldToolContinue?: (state: AgentState) => typeof END | "agent"
+  state?: typeof AgentStateAnnotation
   tags?: string[]
+  subAgents: Record<string,  {tool: StructuredToolInterface | RunnableToolLike; node: RunnableLike<AgentState>}>
+  tools?: (StructuredToolInterface | RunnableToolLike)[];
 };
 
 /**
@@ -59,28 +60,28 @@ export function createReactAgent(
 ): CompiledStateGraph<
   AgentState,
   Partial<AgentState>,
-  typeof START | "agent" | "tools" | "sensitiveTools"
+  typeof START | "agent" | string
 > {
   const {
     llm,
     tools,
-    sensitiveTools,
+    subAgents,
     messageModifier,
     checkpointSaver,
     interruptBefore,
     interruptAfter,
     state,
-    shouldToolContinue,
-    tags
+    tags,
   } = props;
-  const schema: StateGraphArgs<AgentState>["channels"] = createCopilotAgentState()
 
   const toolClasses: (StructuredToolInterface | DynamicTool | RunnableToolLike)[] = []
   if (tools) {
-    toolClasses.push(...tools.tools)
+    toolClasses.push(...tools)
   }
-  if (sensitiveTools) {
-    toolClasses.push(...sensitiveTools.tools)
+  if (subAgents) {
+    Object.keys(subAgents).forEach((name) => {
+      toolClasses.push(subAgents[name].tool)
+    })
   }
 
   if (!("bindTools" in llm) || typeof llm.bindTools !== "function") {
@@ -97,12 +98,7 @@ export function createReactAgent(
         return END;
       }
 
-      // console.log(`call tools:`, lastMessage.tool_calls.map((tool) => tool.name).join(", "))
-
-      if (lastMessage.tool_calls.some((tool) => sensitiveTools?.tools.some((_) => _.name === tool.name))) {
-        return "sensitiveTools"
-      }
-      return "tools";
+      return lastMessage.tool_calls.map((toolCall) => new Send(toolCall.name, { ...state, toolCall }) )
     }
 
     return END;
@@ -114,22 +110,27 @@ export function createReactAgent(
     return { messages: [await modelRunnable.invoke(state as any)] };
   };
 
-  const workflow = new StateGraph<AgentState>({
-    channels: state ?? schema,
-  })
+  const workflow = new StateGraph(state ?? AgentStateAnnotation)
     .addNode(
       "agent",
       new RunnableLambda({ func: callModel }).withConfig({ runName: "agent", tags })
     )
-    .addNode("tools", tools)
-    .addNode("sensitiveTools", sensitiveTools)
+    // .addNode("tools", tools)
     .addEdge(START, "agent")
-    .addConditionalEdges("agent", shouldContinue, {
-      tools: "tools",
-      sensitiveTools: "sensitiveTools",
-      [END]: END,
+    .addConditionalEdges("agent", shouldContinue,)
+    // .addConditionalEdges("tools", shouldToolContinue ?? ((state: AgentState) => "agent"))
+
+  if (subAgents) {
+    Object.keys(subAgents).forEach((name) => {
+      workflow.addNode(name, subAgents[name].node)
+        .addEdge(name, "agent")
     })
-    .addConditionalEdges("tools", shouldToolContinue ?? ((state: AgentState) => "agent"))
+  }
+  tools.forEach((tool) => {
+    const name = tool.name
+    workflow.addNode(name, new ToolNode([tool]))
+      .addEdge(name, "agent")
+  })
 
   return workflow.compile({
     checkpointer: checkpointSaver,

@@ -25,11 +25,12 @@ import {
   ToastrService,
   XpertAgentExecutionStatusEnum,
   XpertAgentExecutionService,
-  XpertAgentService
+  XpertAgentService,
+  agentLabel
 } from 'apps/cloud/src/app/@core'
 import { MarkdownModule } from 'ngx-markdown'
-import { of, Subscription } from 'rxjs'
-import { distinctUntilChanged, switchMap } from 'rxjs/operators'
+import { combineLatest, of, Subscription } from 'rxjs'
+import { distinctUntilChanged, switchMap, map } from 'rxjs/operators'
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
@@ -37,6 +38,7 @@ import { CopilotStoredMessageComponent } from 'apps/cloud/src/app/@shared/copilo
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { ToolCallConfirmComponent, XpertAgentExecutionStatusComponent, XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { AIMessage, mapStoredMessageToChatMessage } from '@langchain/core/messages'
+import { derivedAsync } from 'ngxtension/derived-async'
 
 @Component({
   selector: 'xpert-studio-panel-agent-execution',
@@ -114,6 +116,16 @@ export class XpertStudioPanelAgentExecutionComponent {
 
   readonly lastAIMessage = model<AIMessage>(null)
 
+  readonly tools = derivedAsync(() => {
+    const toolCalls = this.lastAIMessage()?.tool_calls
+    if (toolCalls) {
+      return combineLatest(toolCalls.map((toolCall) => this.apiService.selectAgent(toolCall.name).pipe(
+        map((entity) => ({name: toolCall.name, title: entity ? agentLabel(entity) : null, parameters: entity?.parameters}))
+      )))
+    }
+    return null
+  })
+
   readonly loading = signal(false)
   #agentSubscription: Subscription = null
 
@@ -169,7 +181,7 @@ export class XpertStudioPanelAgentExecutionComponent {
         agent: this.xpertAgent(),
         xpert: this.xpert(),
         executionId,
-        message: this.lastAIMessage()?.toDict()
+        toolCalls: this.lastAIMessage()?.tool_calls
       })
       .subscribe({
         next: (msg) => {

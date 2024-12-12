@@ -1,4 +1,5 @@
 import { XpertChatHandler } from './chat.handler'
+import { XpertChatContinueHandler } from './continue.handler'
 import { XpertCreateHandler } from './create.handler'
 import { XpertExecuteHandler } from './execute.handler'
 import { XpertExportHandler } from './export.handler'
@@ -9,6 +10,7 @@ export const CommandHandlers = [
 	XpertCreateHandler,
 	XpertPublishHandler,
 	XpertChatHandler,
+	XpertChatContinueHandler,
 	XpertExecuteHandler,
 	XpertImportHandler,
 	XpertExportHandler

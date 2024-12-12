@@ -19,8 +19,9 @@ export class XpertExecutionService {
   readonly #messages = signal<CopilotChatMessage[]>([])
 
   readonly messages = computed(() => {
-    if (this.conversation()?.messages) {
-        return [...this.conversation().messages, ...this.#messages()]
+    const messages = this.conversation()?.messages
+    if (messages) {
+      return [...messages.filter((_) => !this.#messages().some((m) => m.id === _.id)), ...this.#messages()]
     }
     return this.#messages()
   })
@@ -71,7 +72,10 @@ export class XpertExecutionService {
 
   appendMessage(message: CopilotChatMessage) {
     this.#messages.update(
-      (state) =>[...(state ?? []), message]
+      (state) => {
+        const messages = state?.filter((_) => _.id !== message.id)
+        return [...(messages ?? []), message]
+      }
     )
   }
 

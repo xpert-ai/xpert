@@ -4,7 +4,7 @@ import { IKnowledgebase } from './knowledgebase.model'
 import { TAvatar } from '../types'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IXpert, TXpertParameter } from './xpert.model'
-import { StoredMessage } from '@langchain/core/messages'
+import { ToolCall } from '@langchain/core/dist/messages/tool'
 
 export type TXpertAgent = {
   key: string
@@ -95,9 +95,19 @@ export type TChatAgentParams = {
   /**
    * Message to update parameters of last tool call message
    */
-  message?: StoredMessage
+  toolCalls?: ToolCall[]
 }
 
 export function agentLabel(agent: IXpertAgent) {
   return agent.title || agent.name || agent.key
+}
+
+export function agentUniqueName(agent: IXpertAgent) {
+  return agent ? (convertToUrlPath(agent.name) || agent.key) : null
+}
+
+export function convertToUrlPath(title: string) {
+  return title?.toLowerCase() // 转换为小写
+    .replace(/\s+/g, '-') // 替换空格为 -
+    .replace(/[^a-z0-9-]/g, ''); // 移除非字母数字字符
 }

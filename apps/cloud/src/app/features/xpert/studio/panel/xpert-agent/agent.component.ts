@@ -12,7 +12,6 @@ import {
   viewChild
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { FFlowModule } from '@foblex/flow'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ICopilotModel,
@@ -25,7 +24,8 @@ import {
   TAvatar,
   TXpertParameter,
   XpertAgentExecutionService,
-  XpertService
+  XpertService,
+  agentUniqueName
 } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { XpertStudioApiService } from '../../domain'
@@ -37,9 +37,13 @@ import { map } from 'rxjs'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelKnowledgeSectionComponent } from './knowledge-section/knowledge.component'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { CopilotModelSelectComponent, CopilotPromptEditorComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { XpertParametersEditComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { uniq } from 'lodash-es'
+import { XpertStudioComponent } from '../../studio.component'
+import { MatSlideToggleModule } from '@angular/material/slide-toggle'
+import { NgmDensityDirective } from '@metad/ocap-angular/core'
 
 @Component({
   selector: 'xpert-studio-panel-agent',
@@ -50,11 +54,12 @@ import { XpertParametersEditComponent } from 'apps/cloud/src/app/@shared/xpert'
   imports: [
     CommonModule,
     CdkMenuModule,
-    FFlowModule,
-    MaterialModule,
     FormsModule,
     TranslateModule,
+    MatTooltipModule,
+    MatSlideToggleModule,
 
+    NgmDensityDirective,
     EmojiAvatarComponent,
     XpertStudioPanelToolsetSectionComponent,
     CopilotModelSelectComponent,
@@ -78,6 +83,7 @@ export class XpertStudioPanelAgentComponent {
   readonly xpertService = inject(XpertService)
   readonly executionService = inject(XpertAgentExecutionService)
   readonly panelComponent = inject(XpertStudioPanelComponent)
+  readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly helpWebsite = injectHelpWebsite()
 
   readonly key = input<string>()
@@ -94,6 +100,9 @@ export class XpertStudioPanelAgentComponent {
   readonly title = computed(() => this.xpertAgent()?.title)
   readonly prompt = model<string>()
   readonly promptLength = computed(() => this.prompt()?.length)
+  readonly agentUniqueName = computed(() => agentUniqueName(this.xpertAgent()))
+  readonly agentConfig = computed(() => this.xpert()?.agentConfig)
+  readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
 
   readonly parameters = computed(() => this.xpertAgent()?.parameters)
 
@@ -187,5 +196,19 @@ export class XpertStudioPanelAgentComponent {
 
   onParameters(event: TXpertParameter[]) {
     this.apiService.updateXpertAgent(this.key(), { parameters: event })
+  }
+
+  getSensitive(name: string) {
+    return this.agentConfig()?.interruptBefore?.includes(name)
+  }
+
+  updateSensitive(value: boolean) {
+    const name = this.agentUniqueName()
+    const interruptBefore = value
+      ? uniq([...(this.agentConfig()?.interruptBefore ?? []), name])
+      : (this.agentConfig()?.interruptBefore?.filter((_) => _ !== name) ?? [])
+    this.xpertStudioComponent.updateXpertAgentConfig({
+      interruptBefore
+    })
   }
 }

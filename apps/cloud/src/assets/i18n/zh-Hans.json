@@ -2038,7 +2038,8 @@
       "Confirm": "确认",
       "Reject": "拒绝",
       "Sensitive": "敏感",
-      "SensitiveToolsTip": "敏感工具需要经过用户确认后才能执行"
+      "SensitiveToolsTip": "敏感工具需要经过用户确认后才能执行",
+      "SensitiveAgentTip": "敏感智能体需要经过用户确认后才能执行"
     },
     "title": {
       "short": "Xpert AI"

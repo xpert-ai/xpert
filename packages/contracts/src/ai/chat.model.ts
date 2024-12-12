@@ -1,7 +1,7 @@
 import { MessageContent, MessageType } from '@langchain/core/messages'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { JSONValue } from '../core.model'
-import { IXpertAgentExecution } from './xpert-agent-execution.model'
+import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model'
 import { IXpert } from './xpert.model'
 
 export type TChatConversationOptions = {
@@ -134,14 +134,8 @@ export interface CopilotBaseMessage {
   
   /**
    * Status of the message:
-   * - thinking: AI is thinking
-   * - answering: AI is answering
-   * - pending: AI is pending for confirm or more information
-   * - done: AI is done
-   * - aborted: AI is aborted
-   * - error: AI has error
    */
-  status?: 'thinking' | 'answering' | 'pending' | 'done' | 'aborted' | 'error'
+  status?: XpertAgentExecutionStatusEnum | 'thinking' | 'aborted' | 'done'
 
   content?: string | MessageContent
 }

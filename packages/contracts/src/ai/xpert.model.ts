@@ -6,6 +6,7 @@ import { TAvatar } from '../types'
 import { IXpertAgent } from './xpert-agent.model'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
+import { ToolCall } from '@langchain/core/dist/messages/tool'
 
 /**
  * Digital Expert
@@ -255,6 +256,7 @@ export type TChatRequest = {
   conversationId?: string
   id?: string
   language?: string
+  toolCalls?: ToolCall[]
 }
 
 export type TChatOptions = {

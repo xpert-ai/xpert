@@ -1,3 +1,4 @@
+import { ToolCall } from '@langchain/core/dist/messages/tool'
 import { StoredMessage } from '@langchain/core/messages'
 import { IXpert, IXpertAgentExecution, TChatOptions } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
@@ -23,7 +24,8 @@ export class XpertAgentChatCommand implements ICommand {
 			 */
 			execution?: IXpertAgentExecution
 
-			message?: StoredMessage
+			// message?: StoredMessage
+			toolCalls?: ToolCall[]
 		}
 	) {}
 }

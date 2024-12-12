@@ -13,8 +13,6 @@ export {
   convertStoryWidgetResult
 } from '@metad/cloud/state'
 
-export { IXpert as IXpertRole } from '@metad/contracts'
-
 export const uid10 = new ShortUniqueId({ length: 10 })
 export const uuid = new ShortUniqueId({ length: 10 })
 

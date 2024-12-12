@@ -21,7 +21,7 @@ import { map, switchMap } from 'rxjs/operators'
 import {
   getErrorMessage,
   IToolProvider,
-  IXpertRole,
+  IXpert,
   IXpertToolset,
   OrderTypeEnum,
   routeAnimations,
@@ -231,7 +231,7 @@ export class XpertStudioXpertsComponent {
       })
   }
 
-  deleteXpert(xpert: IXpertRole) {
+  deleteXpert(xpert: IXpert) {
     this.dialog
       .open(CdkConfirmDeleteComponent, {
         data: {

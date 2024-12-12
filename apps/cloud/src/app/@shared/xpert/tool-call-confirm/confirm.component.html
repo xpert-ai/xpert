@@ -1,12 +1,14 @@
-@for (toolCall of toolCalls(); track toolCall.id; let index = $index) {
-  <label class="font-semibold pb-2">{{toolCall.name}}</label>
+@for (item of toolCalls(); track item.toolCall.id; let index = $index) {
+  <label class="font-semibold pb-2">{{item.tool?.title || item.toolCall?.name}}</label>
   <div class="flex flex-col gap-1">
-    @for (param of toolCall.args | keyvalue; track param.key) {
+    @for (param of item.params; track param.name) {
       <div class="flex justify-start items-start gap-2">
-        <div class="w-24 shrink-0 whitespace-normal">{{param.key}}</div>
+        <div class="w-24 shrink-0 whitespace-normal">{{param.title}}
+          <div><ngm-slash-svg class="inline-block"/><span class="text-primary-500">{{param.name}}</span></div>
+        </div>
         <textarea class="flex-1 p-1 rounded-md border border-gray-300 focus:ring-primary-500 focus:border-primary-500 text-sm text-text-secondary"
           [ngModel]="param.value"
-          (ngModelChange)="updateParam(index, param.key, $event)"
+          (ngModelChange)="updateParam(index, param.name, $event)"
         >{{param.value}}</textarea>
       </div>
     }
@@ -14,13 +16,13 @@
 }
 
 <div class="mt-4 flex justify-between space-x-2">
-  <button type="button" class="btn disabled:btn-disabled btn-primary h-10 flex-1 space-x-2"
+  <button type="button" class="btn disabled:btn-disabled btn-primary h-8 flex-1 space-x-2"
     (click)="onConfirm()"
   >
     <div class="w-full flex justify-center">{{ 'PAC.Xpert.Confirm' | translate: {Default: 'Confirm'} }}</div>
   </button>
 
-  <button type="button" class="btn disabled:btn-disabled h-10 btn-danger pressable flex-1"
+  <button type="button" class="btn disabled:btn-disabled h-8 btn-danger pressable flex-1"
     (click)="onReject()"
   >
     <div class="w-full text-center">

@@ -9,6 +9,9 @@ import { mergeConfigs, patchConfig, Runnable, RunnableConfig, RunnableToolLike }
 import { StructuredToolInterface } from "@langchain/core/tools";
 import { AsyncLocalStorageProviderSingleton } from "@langchain/core/singletons";
 import { END, isGraphInterrupt, MessagesAnnotation } from "@langchain/langgraph";
+import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
+import { ChatMessageEventTypeEnum } from "@metad/contracts";
+import { getErrorMessage } from "@metad/server-common";
 
 export type ToolNodeOptions = {
   name?: string;
@@ -48,8 +51,10 @@ export class ToolNode<T = any> extends Runnable<T, T> {
       throw new Error("ToolNode only accepts AIMessages as input.");
     }
 
+    const tool_calls = input.toolCall ? [input.toolCall] : (message as AIMessage).tool_calls
+
     const outputs = await Promise.all(
-      (message as AIMessage).tool_calls?.map(async (call) => {
+      tool_calls?.map(async (call) => {
         const tool = this.tools.find((tool) => tool.name === call.name);
         try {
           if (tool === undefined) {
@@ -80,6 +85,11 @@ export class ToolNode<T = any> extends Runnable<T, T> {
             // back. Instead, re-throw these errors even when `handleToolErrors = true`.
             throw e;
           }
+
+          await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_ERROR, {
+            toolCall: call,
+            error: getErrorMessage(e)
+          })
           return new ToolMessage({
             content: `Error: ${e.message}\n Please fix your mistakes.`,
             name: call.name,

@@ -20,6 +20,7 @@ import {
   tap
 } from 'rxjs'
 import {
+  agentUniqueName,
   getErrorMessage,
   IKnowledgebase,
   IXpert,
@@ -457,5 +458,13 @@ export class XpertStudioApiService {
       this.toolsets.set(id, this.toolsetService.getOneById(id, { relations: ['tools']}).pipe(shareReplay(1)))
     }
     return this.toolsets.get(id)
+  }
+
+  // Selectors
+  selectAgent(key: string) {
+    return this.store.pipe(
+      map((state) => state.draft?.nodes),
+      map((nodes) => nodes.find((node) => node.type === 'agent' && (node.key === key || agentUniqueName(node.entity as IXpertAgent) === key))?.entity as IXpertAgent)
+    )
   }
 }

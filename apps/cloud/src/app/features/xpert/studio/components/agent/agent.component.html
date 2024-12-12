@@ -23,6 +23,12 @@
 @if (xpertAgent()) {
   <div class="max-w-full flex justify-start items-center px-3 pt-3 pb-2 overflow-hidden">
     <emoji-avatar [avatar]="xpertAgent().avatar" small class="shrink-0 mr-2 rounded-lg overflow-hidden shadow-sm" />
+    @if(isSensitive()) {
+      <i class="ri-shield-keyhole-line mr-1 text-lg text-text-warning"
+        [matTooltip]="'PAC.Xpert.SensitiveAgentTip' | translate: {Default: 'Sensitive agents require user confirmation before execution'}"
+        matTooltipPosition="above">
+      </i>
+    }
     <div class="flex flex-col overflow-hidden text-base-content">
       <span class="text-base font-semibold uppercase truncate">{{xpertAgent().title}}</span>
     </div>

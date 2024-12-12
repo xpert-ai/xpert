@@ -1,6 +1,5 @@
 export * from './create/create.handler'
 export * from './create/create.request'
-export * from './i-view-model'
 export * from './map/to-view-model.handler'
 export * from './remove/remove.handler'
 export * from './remove/remove.request'
