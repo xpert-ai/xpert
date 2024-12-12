@@ -243,15 +243,23 @@ export function processEvents(event, executionService: XpertExecutionService) {
       break;
     }
     case ChatMessageEventTypeEnum.ON_TOOL_START: {
-      executionService.setToolExecution(event.data.name, {status: XpertAgentExecutionStatusEnum.RUNNING})
+      executionService.updateToolExecution(event.data.name, event.data.run_id, {status: XpertAgentExecutionStatusEnum.RUNNING})
       break;
     }
     case ChatMessageEventTypeEnum.ON_TOOL_END: {
-      executionService.setToolExecution(event.data.name, {status: XpertAgentExecutionStatusEnum.SUCCESS})
+      executionService.updateToolExecution(event.data.name, event.data.run_id, {
+        status: XpertAgentExecutionStatusEnum.SUCCESS,
+        inputs: {
+          ...(event.data.data?.input ?? {})
+        },
+        outputs: {
+          output: event.data.data?.output?.content
+        }
+      })
       break;
     }
     case ChatMessageEventTypeEnum.ON_TOOL_ERROR: {
-      executionService.setToolExecution(event.data.name, {status: XpertAgentExecutionStatusEnum.ERROR, error: event.data.error })
+      executionService.updateToolExecution(event.data.name, event.data.run_id, {status: XpertAgentExecutionStatusEnum.ERROR, error: event.data.error })
       break;
     }
     case ChatMessageEventTypeEnum.ON_AGENT_START:

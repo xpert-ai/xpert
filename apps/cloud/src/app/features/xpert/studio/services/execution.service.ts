@@ -48,7 +48,7 @@ export class XpertExecutionService {
     return agentExecutions
   })
 
-  readonly toolExecutions = signal<Record<string, Partial<IXpertAgentExecution>>>({})
+  readonly toolExecutions = signal<Record<string, Record<string, Partial<IXpertAgentExecution>>>>({})
   readonly knowledgeExecutions = signal<Record<string, Partial<IXpertAgentExecution>>>({})
 
   // Subsribe conversation
@@ -93,10 +93,13 @@ export class XpertExecutionService {
     this.#messages.set([])
   }
 
-  setToolExecution(name: string, execution: Partial<IXpertAgentExecution>) {
+  updateToolExecution(name: string, id: string, execution: Partial<IXpertAgentExecution>) {
     this.toolExecutions.update((state) => ({
       ...state,
-      [name]: execution
+      [name]: {
+        ...(state[name] ?? {}),
+        [id]: execution
+      }
     }))
   }
 

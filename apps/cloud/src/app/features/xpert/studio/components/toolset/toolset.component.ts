@@ -10,6 +10,7 @@ import { of } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
+import { KeyValuePipe } from '@angular/common'
 
 @Component({
   selector: 'xpert-studio-node-toolset',
@@ -17,7 +18,7 @@ import { XpertStudioComponent } from '../../studio.component'
   styleUrls: ['./toolset.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, EmojiAvatarComponent, NgmSpinComponent],
+  imports: [FFlowModule, MatTooltipModule, TranslateModule, KeyValuePipe, EmojiAvatarComponent, NgmSpinComponent],
   host: {
     tabindex: '-1',
     '[class.selected]': 'isSelected',
@@ -45,6 +46,12 @@ export class XpertStudioNodeToolsetComponent {
   readonly agentConfig = computed(() => this.xpert()?.agentConfig)
 
   readonly toolExecutions = this.executionService.toolExecutions
+
+  readonly tools = computed(() => {
+    const tools = this.availableTools()
+    const executions = this.toolExecutions()
+    return tools?.map((tool) => ({tool, executions: executions?.[tool.name]}))
+  })
 
   private get hostElement(): HTMLElement {
     return this.elementRef.nativeElement
