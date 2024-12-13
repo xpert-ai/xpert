@@ -97,14 +97,20 @@
       (promptChange)="onPromptChange($event)"
     />
 
-    <div class="w-full flex justify-end p-4 bg-gray-50 rounded-xl">
-      <mat-slide-toggle [ngModel]="isSensitive()" (ngModelChange)="updateSensitive($event)"
-        labelPosition="before"
-        ngm-density="xs"
-        [matTooltip]="'PAC.Xpert.SensitiveAgentTip' | translate: {Default: 'Sensitive agents require user confirmation before execution'}"
-        matTooltipPosition="above"
-      >{{'PAC.Xpert.Sensitive' | translate: {Default: 'Sensitive'} }}</mat-slide-toggle>
-    </div>
+    @if (!isPrimaryAgent()) {
+      <div class="w-full flex justify-between p-3 bg-gray-50 rounded-xl">
+        <div class="flex items-center space-x-1 shrink-0">
+          <div class="flex items-center justify-center w-6 h-6"><i class="ri-shield-keyhole-fill text-base text-orange-600"></i></div>
+          <div class="text-sm font-semibold text-gray-800">{{'PAC.Xpert.Sensitive' | translate: {Default: 'Sensitive'} }}</div>
+        </div>
+        <mat-slide-toggle [ngModel]="isSensitive()" (ngModelChange)="updateSensitive($event)"
+          labelPosition="before"
+          ngm-density="xs"
+          [matTooltip]="'PAC.Xpert.SensitiveAgentTip' | translate: {Default: 'Sensitive agents require user confirmation before execution'}"
+          matTooltipPosition="above"
+        ></mat-slide-toggle>
+      </div>
+    }
 
     <xpert-parameters-edit [ngModel]="parameters()" (ngModelChange)="onParameters($event)" />
 
