@@ -31,7 +31,7 @@ export class SearchAPIToolset extends BuiltinToolset {
 			const searchApi = new SearchApi(credentials?.searchapi_api_key)
 
 			await searchApi.invoke({
-				input: `What's happening in Ukraine today?`
+				query: `What's happening in Ukraine today?`
 			})
 		} catch (e) {
 			throw new ToolProviderCredentialValidationError(getErrorMessage(e))
