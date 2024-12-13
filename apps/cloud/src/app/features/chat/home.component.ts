@@ -19,7 +19,6 @@ import { switchMap, tap } from 'rxjs/operators'
 import { ChatConversationService, IChatConversation, ISemanticModel, IXpert, OrderTypeEnum, registerModel, routeAnimations } from '../../@core'
 import { MaterialModule } from '../../@shared/material.module'
 import { AppService } from '../../app.service'
-import { ChatAiMessageComponent } from './ai-message/ai-message.component'
 import { ChatInputComponent } from './chat-input/chat-input.component'
 import { ChatService } from './chat.service'
 import { ChatMoreComponent } from './icons'
@@ -29,6 +28,7 @@ import { convertNewSemanticModelResult, NgmSemanticModel, SemanticModelServerSer
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import { EmojiAvatarComponent } from '../../@shared/avatar'
 import { A11yModule } from '@angular/cdk/a11y'
+import { ChatConversationComponent } from './conversation/conversation.component'
 
 @Component({
   standalone: true,
@@ -47,11 +47,11 @@ import { A11yModule } from '@angular/cdk/a11y'
     NgmCommonModule,
     EmojiAvatarComponent,
 
-    ChatAiMessageComponent,
     ChatToolbarComponent,
     ChatSidenavMenuComponent,
     ChatInputComponent,
-    ChatMoreComponent
+    ChatMoreComponent,
+    ChatConversationComponent
   ],
   selector: 'pac-chat-home',
   templateUrl: './home.component.html',
@@ -67,7 +67,6 @@ export class ChatHomeComponent {
   readonly #wasmAgent = inject(WasmAgentService)
   readonly chatService = inject(ChatService)
   readonly conversationService = inject(ChatConversationService)
-  // readonly chatbiModelService = inject(ChatBIModelService)
   readonly semanticModelService = inject(SemanticModelServerService)
   readonly appService = inject(AppService)
   readonly router = inject(Router)

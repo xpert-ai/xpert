@@ -1,5 +1,7 @@
 import { ToolCall } from '@langchain/core/dist/messages/tool'
 import { BaseMessage } from '@langchain/core/messages'
+import { Runnable, RunnableLike, RunnableToolLike } from '@langchain/core/runnables'
+import { StructuredToolInterface } from '@langchain/core/tools'
 import { Annotation, messagesStateReducer } from '@langchain/langgraph'
 
 export const AgentStateAnnotation = Annotation.Root({
@@ -20,3 +22,9 @@ export const AgentStateAnnotation = Annotation.Root({
 		default: () => null
 	}),
 })
+
+export type TSubAgent = {
+	name: string;
+	tool: StructuredToolInterface | RunnableToolLike;
+	node: RunnableLike<typeof AgentStateAnnotation> | Runnable
+}

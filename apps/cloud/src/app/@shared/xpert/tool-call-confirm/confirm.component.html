@@ -1,15 +1,16 @@
-@for (item of toolCalls(); track item.toolCall.id; let index = $index) {
-  <label class="font-semibold pb-2">{{item.tool?.title || item.toolCall?.name}}</label>
+@for (item of toolCalls(); track item.call.id; let index = $index) {
+  <label class="font-semibold pb-2">{{item.info?.title || item.info?.name}}</label>
   <div class="flex flex-col gap-1">
-    @for (param of item.params; track param.name) {
+    @for (param of item.parameters; track param.name) {
       <div class="flex justify-start items-start gap-2">
-        <div class="w-24 shrink-0 whitespace-normal text-sm">{{param.title}}
+        <div class="w-24 shrink-0 whitespace-normal text-sm">{{param.title | i18n}}
           <div><ngm-slash-svg class="inline-block"/><span class="text-primary-500">{{param.name}}</span></div>
         </div>
         <textarea class="flex-1 p-1 rounded-md border border-gray-300 focus:ring-primary-500 focus:border-primary-500 text-sm text-text-secondary focus:text-text-primary"
-          [ngModel]="param.value"
+          [placeholder]="param.placeholder | i18n"
+          [ngModel]="item.call.args[param.name]"
           (ngModelChange)="updateParam(index, param.name, $event)"
-        >{{param.value}}</textarea>
+        ></textarea>
       </div>
     }
   </div>

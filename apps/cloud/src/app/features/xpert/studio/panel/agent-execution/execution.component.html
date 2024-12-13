@@ -57,10 +57,12 @@
     <div class="grow w-0 h-px bg-divider-regular"></div>
   </div>
 
-  @if (status() === eExecutionStatusEnum.INTERRUPTED && lastAIMessage()) {
-    <xpert-tool-call-confirm class="w-full" [(message)]="lastAIMessage" [tools]="tools()"
+  @if (status() === eExecutionStatusEnum.INTERRUPTED && operation()) {
+    <xpert-tool-call-confirm class="w-full"
+      [operation]="operation()"
       (confirm)="onConfirm()"
       (reject)="onReject()"
+      (toolCallsChange)="onToolCalls($event)"
     />
   }
 

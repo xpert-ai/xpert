@@ -3,7 +3,8 @@ import {
 	IChatConversation,
 	IXpert,
 	TChatConversationOptions,
-	TChatConversationStatus
+	TChatConversationStatus,
+	TSensitiveOperation
 } from '@metad/contracts'
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
@@ -41,6 +42,12 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
 	messages?: CopilotBaseMessage[] | null
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	operation?: TSensitiveOperation
 
 	/*
     |--------------------------------------------------------------------------

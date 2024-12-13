@@ -1,8 +1,10 @@
 import { MessageContent, MessageType } from '@langchain/core/messages'
+import { ToolCall } from '@langchain/core/dist/messages/tool'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { JSONValue } from '../core.model'
 import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model'
 import { IXpert } from './xpert.model'
+import { I18nObject } from '../types'
 
 export type TChatConversationOptions = {
   knowledgebases?: string[]
@@ -10,6 +12,27 @@ export type TChatConversationOptions = {
 }
 
 export type TChatConversationStatus = "idle" | "busy" | "interrupted" | "error"
+export type TToolCallType = 'agent' | 'tool'
+
+export type TSensitiveOperation = {
+  messageId?: string
+  toolCalls: {
+    call: ToolCall
+    type: TToolCallType
+    info: {
+      name: string
+      title?: string
+      description: string
+    }
+    parameters: {
+      name: string;
+      title: I18nObject | string
+      type: string;
+      description: I18nObject | string
+      placeholder?: I18nObject | string
+    }[]
+  }[]
+}
 
 /**
  * Chat conversation for xpert ai agent.
@@ -24,16 +47,10 @@ export interface IChatConversation extends IBasePerTenantAndOrganizationEntityMo
   options?: TChatConversationOptions
 
   messages?: CopilotBaseMessage[] | null
-
-  // // One ton one
-  // /**
-  //  * @deprecated should has multiple executions for every run
-  //  */
-  // execution?: IXpertAgentExecution
-  // /**
-  //  * @deprecated should has multiple executions for every run
-  //  */
-  // readonly executionId?: string
+  /**
+   * The last operation when interrupted
+   */
+  operation?: TSensitiveOperation
 
   // Many to one
   /**

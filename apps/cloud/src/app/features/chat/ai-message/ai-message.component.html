@@ -3,7 +3,10 @@
 </div>
 
 @if (message()?.event) {
-  <div class="absolute left-14 top-0 px-2 rounded-md cursor-pointer text-sm text-token-text-secondary hover:bg-gray-50">
+  <div class="absolute left-14 top-0 px-2 rounded-md cursor-pointer text-sm text-token-text-secondary hover:bg-gray-50"
+    [matTooltip]=" message().error "
+    matTooltipPosition="above"
+  >
     {{'PAC.Chat.Event_' + message().event | translate: {Default: message().event.toUpperCase()} }}
   </div>
 }

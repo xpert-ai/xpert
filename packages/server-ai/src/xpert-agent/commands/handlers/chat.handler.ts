@@ -1,16 +1,20 @@
 import { MessageContent } from '@langchain/core/messages'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpert, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { NodeInterrupt } from '@langchain/langgraph'
+import {
+	ChatMessageEventTypeEnum,
+	ChatMessageTypeEnum,
+	IXpert,
+	TSensitiveOperation,
+	XpertAgentExecutionStatusEnum
+} from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { from, map, Observable, Subject, switchMap, takeUntil, tap } from 'rxjs'
-import {
-	XpertAgentExecutionUpsertCommand
-} from '../../../xpert-agent-execution/commands'
+import { catchError, concat, EMPTY, from, map, Observable, of, Subject, switchMap, takeUntil, tap } from 'rxjs'
+import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
+import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { XpertAgentChatCommand } from '../chat.command'
 import { XpertAgentExecuteCommand } from '../execute.command'
-import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
-import { NodeInterrupt } from '@langchain/langgraph'
 
 @CommandHandler(XpertAgentChatCommand)
 export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatCommand> {
@@ -37,8 +41,8 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 
 		const timeStart = Date.now()
 		const thread_id = execution.threadId
-
-		return new Observable((subscriber) => {
+		let operation: TSensitiveOperation = null
+		return new Observable<MessageEvent>((subscriber) => {
 			// Start execution event
 			subscriber.next({
 				data: {
@@ -52,19 +56,20 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 			let status = XpertAgentExecutionStatusEnum.SUCCESS
 			let error = null
 			let result = ''
-			from(
-				this.commandBus.execute<XpertAgentExecuteCommand, Observable<MessageContent>>(
-					new XpertAgentExecuteCommand(input, agentKey, xpert, {
-						...(options ?? {}),
-						isDraft: true,
-						rootExecutionId: execution.id,
-						thread_id,
-						execution,
-						subscriber
-					})
-				)
-			)
-				.pipe(
+
+			concat(
+				from(
+					this.commandBus.execute<XpertAgentExecuteCommand, Observable<MessageContent>>(
+						new XpertAgentExecuteCommand(input, agentKey, xpert, {
+							...(options ?? {}),
+							isDraft: true,
+							rootExecutionId: execution.id,
+							thread_id,
+							execution,
+							subscriber
+						})
+					)
+				).pipe(
 					switchMap((output) => output),
 					map((messageContent: MessageContent) => {
 						result += messageContent
@@ -75,55 +80,58 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 							}
 						} as MessageEvent
 					}),
-					tap({
-						error: (err) => {
-							if (err instanceof NodeInterrupt) {
-								status = XpertAgentExecutionStatusEnum.INTERRUPTED
-								error = null
-							} else {
-								status = XpertAgentExecutionStatusEnum.ERROR
-								error = getErrorMessage(err)
-							}
-						},
-						finalize: async () => {
-							try {
-								const timeEnd = Date.now()
-								// Record End time
-								await this.commandBus.execute(
-									new XpertAgentExecutionUpsertCommand({
-										id: execution.id,
-										elapsedTime: Number(execution.elapsedTime ?? 0) + (timeEnd - timeStart),
-										status,
-										error,
-										tokens: execution.tokens,
-										outputs: {
-											output: result
-										}
-									})
-								)
-
-								const fullExecution = await this.queryBus.execute(
-									new XpertAgentExecutionOneQuery(execution.id)
-								)
-
-								this.#logger.verbose(fullExecution)
-
-								subscriber.next({
-									data: {
-										type: ChatMessageTypeEnum.EVENT,
-										event: ChatMessageEventTypeEnum.ON_AGENT_END,
-										data: fullExecution
-									}
-								} as MessageEvent)
-
-								subscriber.complete()
-							} catch (err) {
-								subscriber.error(err)
-							}
+					catchError((err) => {
+						if (err instanceof NodeInterrupt) {
+							status = XpertAgentExecutionStatusEnum.INTERRUPTED
+							error = null
+						} else {
+							status = XpertAgentExecutionStatusEnum.ERROR
+							error = getErrorMessage(err)
 						}
-					}),
-					takeUntil(destroy$)
+						return EMPTY
+					})
+				),
+				of(true).pipe(
+					switchMap(async () => {
+						try {
+							const timeEnd = Date.now()
+
+							// Record End time
+							await this.commandBus.execute(
+								new XpertAgentExecutionUpsertCommand({
+									id: execution.id,
+									elapsedTime: Number(execution.elapsedTime ?? 0) + (timeEnd - timeStart),
+									status,
+									error,
+									tokens: execution.tokens,
+									outputs: {
+										output: result
+									},
+									operation
+								})
+							)
+
+							const fullExecution = await this.queryBus.execute(
+								new XpertAgentExecutionOneQuery(execution.id)
+							)
+
+							this.#logger.verbose(fullExecution)
+
+							return {
+								data: {
+									type: ChatMessageTypeEnum.EVENT,
+									event: ChatMessageEventTypeEnum.ON_AGENT_END,
+									data: fullExecution
+								}
+							} as MessageEvent
+						} catch (err) {
+							console.log(err)
+							subscriber.error(err)
+						}
+					})
 				)
+			)
+				.pipe(takeUntil(destroy$))
 				.subscribe({
 					next: (event) => {
 						subscriber.next(event)
@@ -133,11 +141,23 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 						 * The empty error method is used to catch exceptions and cannot be removed.
 						 * The error handling logic is placed in the `finalize` method
 						 */
+					},
+					complete: () => {
+						subscriber.complete()
 					}
 				})
 			return () => {
 				destroy$.next()
 			}
-		})
+		}).pipe(
+			tap((event) => {
+				if (
+					event.data.type === ChatMessageTypeEnum.EVENT &&
+					event.data.event === ChatMessageEventTypeEnum.ON_INTERRUPT
+				) {
+					operation = event.data.data
+				}
+			})
+		)
 	}
 }

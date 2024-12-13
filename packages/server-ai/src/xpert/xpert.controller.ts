@@ -33,7 +33,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { DeleteResult } from 'typeorm'
 import { XpertAgentExecution } from '../core/entities/internal'
 import { FindExecutionsByXpertQuery } from '../xpert-agent-execution/queries'
-import { XpertChatCommand, XpertChatContinueCommand, XpertExportCommand, XpertImportCommand } from './commands'
+import { XpertChatCommand, XpertExportCommand, XpertImportCommand } from './commands'
 import { XpertDraftDslDTO, XpertPublicDTO } from './dto'
 import { Xpert } from './xpert.entity'
 import { XpertService } from './xpert.service'
@@ -150,9 +150,6 @@ export class XpertController extends CrudController<Xpert> {
 			}
 		}
 	) {
-		if (!body.request.input?.input) {
-			return await this.commandBus.execute(new XpertChatContinueCommand(body.request, body.options))
-		}
 		return await this.commandBus.execute(new XpertChatCommand(body.request, body.options))
 	}
 

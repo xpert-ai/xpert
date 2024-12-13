@@ -236,6 +236,7 @@ export enum ChatMessageTypeEnum {
  */
 export enum ChatMessageEventTypeEnum {
   ON_CONVERSATION_START = 'on_conversation_start',
+  ON_CONVERSATION_END = 'on_conversation_end',
   ON_TOOL_START = 'on_tool_start',
   ON_TOOL_END = 'on_tool_end',
   ON_TOOL_ERROR = 'on_tool_error',
@@ -244,6 +245,7 @@ export enum ChatMessageEventTypeEnum {
   ON_RETRIEVER_START = 'on_retriever_start',
   ON_RETRIEVER_END = 'on_retriever_end',
   ON_RETRIEVER_ERROR = 'on_retriever_error',
+  ON_INTERRUPT = 'on_interrupt',
   ON_ERROR = 'on_error',
 }
 
@@ -257,6 +259,7 @@ export type TChatRequest = {
   id?: string
   language?: string
   toolCalls?: ToolCall[]
+  confirm?: boolean
   reject?: boolean
 }
 

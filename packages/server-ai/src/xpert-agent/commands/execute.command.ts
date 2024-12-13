@@ -1,13 +1,8 @@
 import { ToolCall } from '@langchain/core/dist/messages/tool'
-import { tool } from '@langchain/core/tools'
-import { LangGraphRunnableConfig } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IXpert, IXpertAgent, IXpertAgentExecution, TChatOptions, TXpertParameter, XpertAgentExecutionStatusEnum, XpertParameterTypeEnum } from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
-import { CommandBus, ICommand, QueryBus } from '@nestjs/cqrs'
-import { lastValueFrom, Observable, reduce, Subscriber, tap } from 'rxjs'
+import { IXpert, IXpertAgentExecution, TChatOptions, TXpertParameter, XpertParameterTypeEnum } from '@metad/contracts'
+import { ICommand } from '@nestjs/cqrs'
+import { Subscriber } from 'rxjs'
 import { z } from 'zod'
-import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands'
-import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries'
 
 export class XpertAgentExecuteCommand implements ICommand {
 	static readonly type = '[Xpert Agent] Execute'
@@ -38,155 +33,15 @@ export class XpertAgentExecuteCommand implements ICommand {
 }
 
 /**
- * @deprecated use SubAgents
- * 
- * Create agent of xpert as tool to execute
- *
- * @param commandBus
- * @param config
- * @returns
- */
-export function createXpertAgentTool(
-	commandBus: CommandBus,
-	queryBus: QueryBus,
-	config: {
-		xpert: Partial<IXpert>
-		agent: IXpertAgent
-		options: {
-			rootExecutionId: string
-			isDraft: boolean
-			subscriber: Subscriber<MessageEvent>
-		}
-	}
-) {
-	const { agent, xpert, options } = config
-	const { subscriber } = options
-
-	return tool(
-		async (args, config: LangGraphRunnableConfig) => {
-			/**
-			 * @todo should record runId in execution
-			 */
-			const runId = config.runId
-
-			// Record start time
-			const timeStart = Date.now()
-
-			const execution = await commandBus.execute(
-				new XpertAgentExecutionUpsertCommand({
-					xpert: { id: xpert.id } as IXpert,
-					agentKey: agent.key,
-					inputs: args,
-					parentId: options.rootExecutionId,
-					parent_thread_id: config.configurable.thread_id,
-					status: XpertAgentExecutionStatusEnum.RUNNING
-				})
-			)
-
-			// Start agent execution event
-			subscriber.next(
-				({
-					data: {
-						type: ChatMessageTypeEnum.EVENT,
-						event: ChatMessageEventTypeEnum.ON_AGENT_START,
-						data: execution
-					}
-				}) as MessageEvent
-			)
-
-			let status = XpertAgentExecutionStatusEnum.SUCCESS
-			let error = null
-			let result = ''
-			const finalize = async () => {
-				const timeEnd = Date.now()
-				// Record End time
-				const newExecution = await commandBus.execute(
-					new XpertAgentExecutionUpsertCommand({
-						id: execution.id,
-						elapsedTime: timeEnd - timeStart,
-						status,
-						error,
-						tokens: execution.tokens,
-						outputs: {
-							output: result
-						}
-					})
-				)
-
-				const fullExecution = await queryBus.execute(
-					new XpertAgentExecutionOneQuery(newExecution.id)
-				)
-
-				// End agent execution event
-				subscriber.next(
-					({
-						data: {
-							type: ChatMessageTypeEnum.EVENT,
-							event: ChatMessageEventTypeEnum.ON_AGENT_END,
-							data: fullExecution
-						}
-					}) as MessageEvent
-				)
-			}
-			try {
-				const obs = await commandBus.execute<XpertAgentExecuteCommand, Observable<string>>(
-					new XpertAgentExecuteCommand(args, agent.key, xpert, { ...options, thread_id: execution.threadId, execution })
-				)
-				
-				await lastValueFrom(obs.pipe(
-					reduce((acc, val) => acc + val, ''),
-					tap({
-						next: (text: string) => {
-							result = text
-						},
-						error: (err) => {
-							status = XpertAgentExecutionStatusEnum.ERROR
-							error = getErrorMessage(err)
-						},
-						finalize: async () => {
-							try {
-								await finalize()
-							} catch(err) {
-								//
-							}
-						}
-					}
-				)))
-
-				return result
-			} catch(err) {
-				// Catch the error before generated obs
-				try {
-					status = XpertAgentExecutionStatusEnum.ERROR
-					error = getErrorMessage(err)
-					await finalize()
-				} catch(err) {
-					//
-				}
-				throw err
-			}
-		},
-		{
-			name: convertToUrlPath(agent.name) || agent.key,
-			description: agent.description,
-			schema: z.object({
-				...(createParameters(agent.parameters) ?? {}),
-				input: z.string().describe('Ask me some question or give me task to complete')
-			})
-		}
-	)
-}
-
-/**
  * Create zod schema for custom parameters of agent
- * 
- * @param parameters 
- * @returns 
+ *
+ * @param parameters
+ * @returns
  */
 export function createParameters(parameters: TXpertParameter[]) {
 	return parameters?.reduce((schema, parameter) => {
 		let value = null
-		switch(parameter.type) {
+		switch (parameter.type) {
 			case XpertParameterTypeEnum.TEXT:
 			case XpertParameterTypeEnum.PARAGRAPH: {
 				value = z.string()
@@ -208,7 +63,7 @@ export function createParameters(parameters: TXpertParameter[]) {
 				schema[parameter.name] = value.describe(parameter.description)
 			}
 		}
-		
+
 		return schema
 	}, {})
 }

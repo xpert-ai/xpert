@@ -3,6 +3,7 @@ import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
 import { Component, computed, DestroyRef, effect, inject, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { ToolCall } from '@langchain/core/dist/messages/tool'
 import { appendMessageContent, nonBlank, stringifyMessageContent } from '@metad/copilot'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -17,17 +18,15 @@ import {
   XpertService
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
+import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { ToolCallConfirmComponent, XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
-import { of, Subscription } from 'rxjs'
+import { Subscription } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { processEvents } from '../agent-execution/execution.component'
 import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-import { ToolCallConfirmComponent, XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { AIMessage, mapStoredMessageToChatMessage } from '@langchain/core/messages'
 
 @Component({
   standalone: true,
@@ -99,53 +98,26 @@ export class XpertStudioPreviewComponent {
     }
     return null
   })
+  readonly conversationStatus = computed(() => this.conversation()?.status)
+  readonly operation = computed(() => this.conversation()?.operation)
 
-  readonly lastExecutionId = computed(() => {
-    return this.lastMessage()?.executionId
-  })
-  readonly lastStatus = computed(() => {
-    return this.lastMessage()?.status
-  })
-  readonly #lastExecution = derivedAsync(() => {
-    const id = this.lastExecutionId()
-    const status = this.lastStatus()
-    return (status === XpertAgentExecutionStatusEnum.INTERRUPTED && id) ? this.agentExecutionService.getOneLog(id) : of(null)
-  })
-
-  readonly lastExecMessage = computed(() => {
-    const messages = this.#lastExecution()?.messages
-    if (messages) {
-      return messages[messages.length - 1]
-    }
-    return null
-  })
-  readonly lastAIMessage = model<AIMessage>(null)
-  readonly tools = signal([])
+  readonly toolCalls = signal<ToolCall[]>(null)
 
   private chatSubscription: Subscription
   constructor() {
     effect(() => {
       // console.log(this.lastMessage(), this.messages())
     })
-
-    effect(() => {
-      const message = this.lastExecMessage()
-      if (message) {
-        this.lastAIMessage.set(mapStoredMessageToChatMessage(message))
-      } else {
-        this.lastAIMessage.set(null)
-      }
-    }, { allowSignalWrites: true })
   }
 
-  chat(input: string, options?: {reject: boolean}) {
+  chat(options?: { input?: string; confirm?: boolean; reject?: boolean }) {
     this.loading.set(true)
 
-    if (input) {
+    if (options?.input) {
       // Add to user message
       this.executionService.appendMessage({
         role: 'human',
-        content: input,
+        content: options.input,
         id: uuid()
       })
       this.input.set('')
@@ -155,7 +127,7 @@ export class XpertStudioPreviewComponent {
         content: '',
         status: 'thinking'
       })
-    } else if (this.lastStatus() === XpertAgentExecutionStatusEnum.INTERRUPTED) {
+    } else if (this.conversationStatus() === XpertAgentExecutionStatusEnum.INTERRUPTED) {
       this.currentMessage.set({
         ...this.lastMessage(),
         status: 'thinking'
@@ -170,11 +142,12 @@ export class XpertStudioPreviewComponent {
       .chat(
         this.xpert().id,
         {
-          input: { input },
+          input: { input: options?.input },
           conversationId: this.conversation()?.id,
           xpertId: this.xpert().id,
-          toolCalls: this.lastAIMessage()?.tool_calls,
-          reject: options?.reject
+          toolCalls: this.toolCalls(),
+          reject: options?.reject,
+          confirm: options?.confirm
         },
         {
           isDraft: true
@@ -223,7 +196,7 @@ export class XpertStudioPreviewComponent {
             this.executionService.appendMessage({ ...this.currentMessage() })
           }
           this.currentMessage.set(null)
-        },
+        }
       })
   }
 
@@ -256,7 +229,7 @@ export class XpertStudioPreviewComponent {
         return
       }
 
-      this.chat(this.input())
+      this.chat({ input: this.input() })
       event.preventDefault()
     }
   }
@@ -265,10 +238,16 @@ export class XpertStudioPreviewComponent {
     this.execution.emit(message.executionId)
   }
 
+  onToolCalls(toolCalls: ToolCall[]) {
+    this.toolCalls.set(toolCalls)
+  }
+
   onConfirm() {
-    this.chat(null)
+    this.chat({ confirm: true })
+    this.executionService.conversation.update((state) => ({ ...state, status: 'busy' }))
   }
   onReject() {
-    this.chat(null, {reject: true})
+    this.chat({ reject: true })
+    this.executionService.conversation.update((state) => ({ ...state, status: 'busy' }))
   }
 }

@@ -1,47 +1,39 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, model, output, input, effect } from '@angular/core'
+import { Component, computed, model, output, input, effect, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { AIMessage, isAIMessage } from '@langchain/core/messages'
+import { ToolCall } from '@langchain/core/dist/messages/tool'
+import { TSensitiveOperation } from '@metad/contracts'
 import { SlashSvgComponent } from '@metad/ocap-angular/common'
+import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, SlashSvgComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, SlashSvgComponent, NgmI18nPipe],
   selector: 'xpert-tool-call-confirm',
   templateUrl: 'confirm.component.html',
   styleUrls: ['confirm.component.scss']
 })
 export class ToolCallConfirmComponent {
   // Inputs
-  readonly message = model<AIMessage>()
+  readonly operation = input<TSensitiveOperation>()
   readonly tools = input<{name: string; title: string; parameters: any}[]>()
 
-  readonly toolCalls = computed(() => {
-    if (isAIMessage(this.message())) {
-      return this.message().tool_calls?.map((toolCall) => {
-        const tool = this.tools()?.find((_) => _.name === toolCall.name)
-        return {
-          toolCall,
-          tool,
-          params: Object.keys(toolCall.args).map((name) => ({
-            name,
-            title: tool?.parameters?.find((_) => _.name === name)?.title,
-            value: toolCall.args[name]
-          }))
-        }
-      })
-    }
-    return null
-  })
-
+  // Outputs
+  readonly toolCallsChange = output<ToolCall[]>()
   readonly confirm = output()
   readonly reject = output()
 
+  readonly toolCalls = computed(() => this.operation()?.toolCalls)
+
+  readonly #toolCalls = signal<ToolCall[]>(null)
+
   constructor() {
     effect(() => {
-      // console.log(this.tools())
-    })
+      if (this.operation()) {
+        this.#toolCalls.set(this.operation().toolCalls.map(({call}) => call))
+      }
+    }, { allowSignalWrites: true })
   }
 
   onConfirm() {
@@ -52,8 +44,7 @@ export class ToolCallConfirmComponent {
   }
 
   updateParam(index: number, key: string, value: string) {
-    this.message.update((message) => {
-      const calls = [...message.tool_calls]
+    this.#toolCalls.update((calls) => {
       calls[index] = {
         ...calls[index],
         args: {
@@ -61,10 +52,9 @@ export class ToolCallConfirmComponent {
           [key]: value
         }
       }
-      return new AIMessage({
-        ...message,
-        tool_calls: calls
-      })
+      return [...calls]
     })
+
+    this.toolCallsChange.emit(this.#toolCalls())
   }
 }

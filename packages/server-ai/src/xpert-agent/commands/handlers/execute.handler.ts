@@ -4,7 +4,7 @@ import { AIMessageChunk, HumanMessage, isAIMessage, isAIMessageChunk, MessageCon
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Annotation, CompiledStateGraph, LangGraphRunnableConfig, NodeInterrupt } from '@langchain/langgraph'
-import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, ICopilot, IXpert, IXpertAgent, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, ICopilot, IXpert, IXpertAgent, TSensitiveOperation, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
@@ -25,8 +25,9 @@ import { createReactAgent } from './react_agent_executor'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { getErrorMessage } from '@metad/server-common'
-import { AgentStateAnnotation } from './types'
+import { AgentStateAnnotation, TSubAgent } from './types'
 import { ToolCall } from '@langchain/core/dist/messages/tool'
+import { CompleteToolCallsQuery } from '../../queries'
 
 
 @CommandHandler(XpertAgentExecuteCommand)
@@ -100,7 +101,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			  }))
 		}
 
-		const subAgents = {}
+		const subAgents: Record<string, TSubAgent> = {}
 		if (agent.followers?.length) {
 			this.#logger.debug(`Use sub agents:\n ${agent.followers.map((_) => _.name)}`)
 			agent.followers.forEach((follower) => {
@@ -142,6 +143,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		})
 
 		const thread_id = command.options.thread_id
+
 		const graph = createReactAgent({
 			tags: [thread_id],
 			state: StateAnnotation,
@@ -430,11 +432,20 @@ ${agent.prompt}
 				})
 
 				if (state.next?.[0]) {
-					// console.log(state)
 					const messages = state.values.messages
 					const lastMessage = messages[messages.length - 1]
 					if (isAIMessageChunk(lastMessage)) {
 						this.#logger.debug(`Interrupted chat [${agentLabel(agent)}].`)
+						const operation = await this.queryBus.execute<CompleteToolCallsQuery, TSensitiveOperation>(
+							new CompleteToolCallsQuery(xpert.id, agentKey, lastMessage, options.isDraft)
+						)
+						subscriber.next({
+							data: {
+								type: ChatMessageTypeEnum.EVENT,
+								event: ChatMessageEventTypeEnum.ON_INTERRUPT,
+								data: operation
+							}
+						} as MessageEvent)
 						throw new NodeInterrupt(`Confirm tool calls`)
 					}
 				} else {
@@ -587,21 +598,23 @@ ${agent.prompt}
 		name: uniqueName,
 		node: agentNode,
 		tool: agentTool
-	  }
+	  } as TSubAgent
 	}
 
 	async reject(graph: CompiledStateGraph<any, any, any>, config: any) {
 		const state = await graph.getState({configurable: config},)
 		const messages = state.values.messages
-		const lastMessage = messages[messages.length - 1]
-		if (isAIMessage(lastMessage)) {
-			await graph.updateState({configurable: config}, { messages: lastMessage.tool_calls.map((call) => {
-				return new ToolMessage({
-					name: call.name,
-					content: `Error: Reject by user`,
-					tool_call_id: call.id,
-				  })
-			}) }, "agent")
+		if (messages) {
+			const lastMessage = messages[messages.length - 1]
+			if (isAIMessage(lastMessage)) {
+				await graph.updateState({configurable: config}, { messages: lastMessage.tool_calls.map((call) => {
+					return new ToolMessage({
+						name: call.name,
+						content: `Error: Reject by user`,
+						tool_call_id: call.id,
+					})
+				}) }, "agent")
+			}
 		}
 	}
 

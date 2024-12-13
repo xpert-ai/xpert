@@ -39,6 +39,7 @@ import { AppService } from '../../app.service'
 import { COMMON_COPILOT_ROLE } from './types'
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
+import { ToolCall } from '@langchain/core/dist/messages/tool'
 
 
 @Injectable()
@@ -226,24 +227,36 @@ export class ChatService {
     })
   }
 
-  chat(id: string, content: string) {
+  chat(options: Partial<{id: string; content: string; confirm: boolean; toolCalls: ToolCall[]; reject: boolean}>) {
     this.answering.set(true)
 
-    // Add ai message placeholder
-    this.appendMessage({
-      id: uuid(),
-      role: 'assistant',
-      content: ``,
-      status: 'thinking'
-    })
+    if (options.confirm) {
+      this.updateLatestMessage((message) => {
+        return{
+          ...message,
+          status: 'thinking'
+        }
+      })
+    } else if (options.content) {
+      // Add ai message placeholder
+      this.appendMessage({
+        id: uuid(),
+        role: 'assistant',
+        content: ``,
+        status: 'thinking'
+      })
+    }
 
     this.chatService.chat({
       input: {
-        input: content,
+        input: options.content,
       },
       xpertId: this.xpert$.value?.id,
       conversationId: this.conversation()?.id,
-      id,
+      id: options.id,
+      toolCalls: options.toolCalls,
+      confirm: options.confirm,
+      reject: options.reject,
     }, {
       knowledgebases: this.knowledgebases().map(({ id }) => id),
       toolsets: this.toolsets()?.map(({ id }) => id)
@@ -262,10 +275,10 @@ export class ChatService {
                 this.appendMessageComponent(event.data)
               }
             } else if (event.type === ChatMessageTypeEnum.EVENT) {
-              if (event.event === ChatMessageEventTypeEnum.ON_CONVERSATION_START) {
+              if ([ChatMessageEventTypeEnum.ON_CONVERSATION_START, ChatMessageEventTypeEnum.ON_CONVERSATION_END].includes(event.event)) {
                 this.updateConversation(event.data)
               } else {
-                this.updateEvent(event.event)
+                this.updateEvent(event.event, event.data.error)
               }
             }
           }
@@ -460,11 +473,12 @@ export class ChatService {
     ])
   }
 
-  updateEvent(event: string) {
+  updateEvent(event: string, error: string) {
     this.updateLatestMessage((lastMessage) => {
       return {
         ...lastMessage,
-        event: event === ChatMessageEventTypeEnum.ON_AGENT_END ? null : event
+        event: event === ChatMessageEventTypeEnum.ON_AGENT_END ? null : event,
+        error
       }
     })
   }

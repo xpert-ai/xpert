@@ -8,7 +8,6 @@ import {
   Runnable,
   RunnableInterface,
   RunnableLambda,
-  RunnableLike,
   RunnableToolLike,
 } from "@langchain/core/runnables";
 import { DynamicTool, StructuredToolInterface } from "@langchain/core/tools";
@@ -21,7 +20,7 @@ import { BaseCheckpointSaver, CompiledStateGraph, END, Send, START, StateGraph }
 import { All } from "@langchain/langgraph-checkpoint";
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { ToolNode } from "./tool_node";
-import { AgentStateAnnotation } from "./types";
+import { AgentStateAnnotation, TSubAgent } from "./types";
 
 type AgentState = typeof AgentStateAnnotation.State
 
@@ -40,7 +39,7 @@ export type CreateReactAgentParams = {
   interruptAfter?: N[] | All;
   state?: typeof AgentStateAnnotation
   tags?: string[]
-  subAgents: Record<string,  {tool: StructuredToolInterface | RunnableToolLike; node: RunnableLike<AgentState>}>
+  subAgents: Record<string,  TSubAgent>
   tools?: (StructuredToolInterface | RunnableToolLike)[];
 };
 

@@ -9,6 +9,7 @@ import { XpertAgentService } from './xpert-agent.service'
 import { CommandHandlers } from './commands/handlers'
 import { CopilotCheckpointModule } from '../copilot-checkpoint'
 import { XpertAgentExecutionModule } from '../xpert-agent-execution'
+import { QueryHandlers } from './queries/handlers'
 
 @Module({
 	imports: [
@@ -21,7 +22,7 @@ import { XpertAgentExecutionModule } from '../xpert-agent-execution'
 		XpertAgentExecutionModule
 	],
 	controllers: [XpertAgentController],
-	providers: [XpertAgentService, ...CommandHandlers],
+	providers: [XpertAgentService, ...CommandHandlers, ...QueryHandlers],
 	exports: [XpertAgentService]
 })
 export class XpertAgentModule {}
