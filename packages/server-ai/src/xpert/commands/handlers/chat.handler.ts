@@ -183,6 +183,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 							new ChatConversationUpsertCommand({
 								...conversation,
 								status: convStatus,
+								title: _execution.title,
 								messages: [
 									...messages,
 									aiMessage

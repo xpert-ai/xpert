@@ -21,6 +21,20 @@ export const AgentStateAnnotation = Annotation.Root({
 		reducer: (a, b) => b ?? a,
 		default: () => null
 	}),
+	/**
+	 * The short title of conversation
+	 */
+	title: Annotation<string>({
+		reducer: (a, b) => b ?? a,
+		default: () => null
+	}),
+	/**
+	 * Summarizing past conversations if it's too long
+	 */
+	summary: Annotation<string>({
+		reducer: (a, b) => b ?? a,
+		default: () => null
+	}),
 })
 
 export type TSubAgent = {

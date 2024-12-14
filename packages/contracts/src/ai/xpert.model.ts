@@ -1,3 +1,4 @@
+import { ToolCall } from '@langchain/core/dist/messages/tool'
 import { ITag } from '../tag-entity.model'
 import { IUser } from '../user.model'
 import { ICopilotModel } from './copilot-model.model'
@@ -6,12 +7,8 @@ import { TAvatar } from '../types'
 import { IXpertAgent } from './xpert-agent.model'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
-import { ToolCall } from '@langchain/core/dist/messages/tool'
 
-/**
- * Digital Expert
- */
-export interface IXpert extends IBasePerWorkspaceEntityModel {
+export type TXpert = {
   slug: string
   name: string
   type: XpertTypeEnum
@@ -35,6 +32,10 @@ export interface IXpert extends IBasePerWorkspaceEntityModel {
    * Config for every agent
    */
   agentConfig?: TXpertAgentConfig
+  /**
+   * Config of summarize past conversations
+   */
+  summarize?: TSummarize
 
   /**
    * Version of role: '1' '2' '2.1' '2.2'...
@@ -80,6 +81,13 @@ export interface IXpert extends IBasePerWorkspaceEntityModel {
   managers?: IUser[]
 
   tags?: ITag[]
+}
+
+/**
+ * Digital Expert
+ */
+export interface IXpert extends IBasePerWorkspaceEntityModel, TXpert {
+  
 }
 
 export type TXpertOptions = {
@@ -128,6 +136,26 @@ export type TXpertAgentConfig = {
   timeout?: number;
 
   interruptBefore?: string[]
+}
+
+/**
+ * Config for summarizing past conversations
+ */
+export type TSummarize = {
+  enabled?: boolean
+  /**
+   * The system prompt guide how to summarize the conversation
+   */
+  prompt?: string
+  /**
+   * The maximum number of tolerated messages, otherwise it will be summarized.
+   * Should be greater than the number of retained messages
+   */
+  maxMessages?: number
+  /**
+   * Number of retained messages
+   */
+  retainMessages?: number
 }
 
 export enum XpertTypeEnum {

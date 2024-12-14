@@ -99,11 +99,10 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 							// Record End time
 							await this.commandBus.execute(
 								new XpertAgentExecutionUpsertCommand({
-									id: execution.id,
+									...execution,
 									elapsedTime: Number(execution.elapsedTime ?? 0) + (timeEnd - timeStart),
 									status,
 									error,
-									tokens: execution.tokens,
 									outputs: {
 										output: result
 									},

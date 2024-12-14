@@ -21,7 +21,10 @@ export class XpertAgentExecuteCommand implements ICommand {
 			thread_id?: string
 			// Use xpert's draft
 			isDraft?: boolean
-			// The instance of current agent execution
+			/**
+			 * The instance of current agent execution.
+			 * Do't save execution in ExecuteCommand, only update it's attributes
+			 */
 			execution: IXpertAgentExecution
 			// The subscriber response to client
 			subscriber: Subscriber<MessageEvent>

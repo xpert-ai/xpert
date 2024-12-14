@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AIMessageChunk, HumanMessage, isAIMessage, isAIMessageChunk, MessageContent, SystemMessage, ToolMessage } from '@langchain/core/messages'
+import { AIMessageChunk, HumanMessage, isAIMessage, isAIMessageChunk, MessageContent, ToolMessage } from '@langchain/core/messages'
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Annotation, CompiledStateGraph, LangGraphRunnableConfig, NodeInterrupt } from '@langchain/langgraph'
@@ -152,30 +152,30 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			subAgents,
 			tools: tools,
 			interruptBefore,
-			messageModifier: async (state) => {
-				const systemTemplate = `{{language}}
-Current time: ${new Date()}
-${agent.prompt}
-`
-				const system = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
+			stateModifier: async (state: typeof AgentStateAnnotation.State) => {
+				const { summary } = state
+				let systemTemplate = `{{language}}\nCurrent time: ${new Date().toISOString()}\n${agent.prompt}`
+				if (summary) {
+					systemTemplate += `\nSummary of conversation earlier: \n${summary}`
+				}
+				const systemMessage = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
 					templateFormat: 'mustache'
 				}).format({ ...state })
-				return [new SystemMessage(system), ...state.messages]
-			}
+
+				// console.log(systemMessage)
+				// console.log(state.messages)
+				return [systemMessage, ...state.messages]
+			},
+			summarize: team.summarize
 		})
 
 		this.#logger.debug(`Start chat with xpert '${xpert.name}' & agent '${agent.title}'`)
 
 		// Record ai model info into execution
-		await this.commandBus.execute(
-			new XpertAgentExecutionUpsertCommand({
-				id: execution.id,
-				metadata: {
-					provider: copilotModel.copilot.modelProvider?.providerName,
-					model: copilotModel.model || copilotModel.copilot.copilotModel?.model
-				}
-			})
-		)
+		execution.metadata = {
+			provider: copilotModel.copilot.modelProvider?.providerName,
+			model: copilotModel.model || copilotModel.copilot.copilotModel?.model
+		}
 
 		const config = {
 			thread_id,
@@ -431,6 +431,11 @@ ${agent.prompt}
 					}
 				})
 
+				// Update execution title from graph states
+				if (state.values.title) {
+					execution.title = state.values.title
+				}
+
 				if (state.next?.[0]) {
 					const messages = state.values.messages
 					const lastMessage = messages[messages.length - 1]
@@ -512,11 +517,10 @@ ${agent.prompt}
 			// Record End time
 			const newExecution = await this.commandBus.execute(
 				new XpertAgentExecutionUpsertCommand({
-					id: execution.id,
+					...execution,
 					elapsedTime: timeEnd - timeStart,
 					status,
 					error,
-					tokens: execution.tokens,
 					outputs: {
 						output: result
 					}

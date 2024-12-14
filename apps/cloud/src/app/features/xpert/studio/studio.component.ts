@@ -169,7 +169,6 @@ export class XpertStudioComponent {
   public isSingleSelection: boolean = true
 
   readonly viewModel = toSignal(this.apiService.store.pipe(map((state) => state.draft)))
-  // readonly panelVisible = model<boolean>(false)
   readonly xpert = computed(() => this.viewModel()?.team)
   readonly position = signal<IPoint>(null)
   readonly scale = signal<number>(null)
