@@ -21,6 +21,9 @@ import { XpertModule } from './xpert'
 import { CopilotModelModule } from './copilot-model'
 import { XpertAgentExecutionModule } from './xpert-agent-execution'
 import { CopilotProviderModule } from './copilot-provider'
+import { CopilotStoreModule } from './copilot-store/copilot-store.module'
+import { ChatMessageModule } from './chat-message'
+import { ChatMessageFeedbackModule } from './chat-message-feedback'
 
 @Module({
 	imports: [
@@ -30,6 +33,8 @@ import { CopilotProviderModule } from './copilot-provider'
 		KnowledgeDocumentModule,
 		ChatModule,
 		ChatConversationModule,
+		ChatMessageModule,
+		ChatMessageFeedbackModule,
 		CopilotCheckpointModule,
 		AIModule,
 		CopilotModule,
@@ -38,6 +43,7 @@ import { CopilotProviderModule } from './copilot-provider'
 		CopilotUserModule,
 		CopilotOrganizationModule,
 		CopilotProviderModule,
+		CopilotStoreModule,
 		GraphragModule,
 		XpertModule,
 		XpertAgentModule,

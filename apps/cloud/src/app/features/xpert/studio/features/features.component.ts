@@ -9,6 +9,8 @@ import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioFeaturesSummaryComponent } from './summary/summary.component'
 import { XpertStudioApiService } from '../domain'
 import { FormsModule } from '@angular/forms'
+import { XpertStudioFeaturesMemoryComponent } from './memory/memory.component'
+import { NgmDensityDirective } from '@metad/ocap-angular/core'
 
 
 @Component({
@@ -21,7 +23,9 @@ import { FormsModule } from '@angular/forms'
     TranslateModule,
     MatSlideToggleModule,
     MatTooltipModule,
-    XpertStudioFeaturesSummaryComponent
+    NgmDensityDirective,
+    XpertStudioFeaturesSummaryComponent,
+    XpertStudioFeaturesMemoryComponent
   ],
   templateUrl: './features.component.html',
   styleUrl: './features.component.scss',
@@ -31,16 +35,18 @@ export class XpertStudioFeaturesComponent {
   readonly #dialogRef = inject(DialogRef)
   readonly apiService = inject(XpertStudioApiService)
 
-  readonly view = signal<'summarize' | 'image_upload'>(null)
+  readonly view = signal<'summarize' | 'image_upload' | 'memory'>(null)
   readonly xpert = this.apiService.xpert
   readonly summarize = computed(() => this.xpert()?.summarize)
   readonly enabledSummarize = computed(() => this.summarize()?.enabled)
+  readonly memory = computed(() => this.xpert()?.memory)
+  readonly enabledMemory = computed(() => this.memory()?.enabled)
 
   close() {
     this.#dialogRef.close()
   }
 
-  toggleView(view: 'summarize' | 'image_upload') {
+  toggleView(view: 'summarize' | 'image_upload' | 'memory') {
     this.view.update((state) => state === view ? null : view)
   }
 
@@ -48,6 +54,15 @@ export class XpertStudioFeaturesComponent {
     this.apiService._updateXpert({
       summarize: {
         ...(this.summarize() ?? {}),
+        enabled,
+      }
+    })
+  }
+
+  toggleMemory(enabled?: boolean) {
+    this.apiService._updateXpert({
+      memory: {
+        ...(this.memory() ?? {}),
         enabled,
       }
     })

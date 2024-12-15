@@ -10,6 +10,7 @@ import {
   ChatConversationService,
   ChatMessageEventTypeEnum,
   ChatMessageTypeEnum,
+  CopilotBaseMessage,
   CopilotChatMessage,
   ToastrService,
   uuid,
@@ -77,18 +78,18 @@ export class XpertStudioPreviewComponent {
 
   readonly conversation = this.executionService.conversation
 
-  readonly currentMessage = signal<CopilotChatMessage>(null)
+  readonly currentMessage = signal<Partial<CopilotChatMessage>>(null)
   readonly messages = computed<CopilotChatMessage[]>(() => {
     if (this.currentMessage()) {
       const messages = this.executionService.messages()
       const lastMessage = messages[messages.length - 1]
       // Skip the last interrupted message when continuing the chat conversation
       if (lastMessage.status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
-        return [...messages.slice(0, messages.length - 1), this.currentMessage()]
+        return [...messages.slice(0, messages.length - 1), this.currentMessage()] as CopilotChatMessage[]
       }
-      return [...this.executionService.messages(), this.currentMessage()]
+      return [...this.executionService.messages(), this.currentMessage()] as CopilotChatMessage[]
     }
-    return this.executionService.messages()
+    return this.executionService.messages() as CopilotChatMessage[]
   })
 
   readonly lastMessage = computed(() => {

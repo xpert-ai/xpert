@@ -8,6 +8,7 @@ import {
 	IXpertAgent,
 	IXpertToolset,
 	TAvatar,
+	TLongTermMemory,
 	TSummarize,
 	TXpertAgentConfig,
 	TXpertOptions,
@@ -93,6 +94,12 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
 	summarize?: TSummarize
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	memory?: TLongTermMemory
 
 	// Versions
 	@ApiPropertyOptional({ type: () => String })

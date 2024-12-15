@@ -92,6 +92,8 @@
                     <div class="hidden group-hover:block h-[28px] p-0.5 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
                       <div class="shrink-0 p-1 flex items-center justify-center rounded-[6px] font-medium
                         bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
+                        [matTooltip]="'Copy'"
+                        matTooltipPosition="above"
                         (click)="copy(message)"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -101,7 +103,7 @@
                     </div>
 
                   @if (message.executionId) {
-                    <div class="hidden group-hover:flex items-center w-max h-[28px] p-0.5 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
+                    <div class="hidden group-hover:flex items-center w-max h-[28px] p-1 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
                       <div class="shrink-0 p-1 flex items-center justify-center rounded-[6px] font-medium text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
                         (click)="openExecution(message)"
                       >
@@ -115,6 +117,21 @@
                       <div class="mx-1 w-[1px] h-[14px] bg-gray-200"></div>
                     </div>
                   }
+
+                  <div class="hidden group-hover:flex shrink-0 items-center px-1 bg-white border-[0.5px] border-gray-100 shadow-md text-gray-500 rounded-lg">
+                    <div class="flex items-center justify-center mr-0.5 w-6 h-6 rounded-md hover:bg-black/5 hover:text-gray-800 cursor-pointer"
+                      [matTooltip]="'like'"
+                      matTooltipPosition="above"
+                    >
+                      <i class="ri-thumb-up-line"></i>
+                    </div>
+                    <div class="flex items-center justify-center w-6 h-6 rounded-md hover:bg-black/5 hover:text-gray-800 cursor-pointer"
+                      [matTooltip]="'dislike'"
+                      matTooltipPosition="above"
+                    >
+                      <i class="ri-thumb-down-line"></i>
+                    </div>
+                  </div>
                     <!-- 
                     <div class="hidden group-hover:block h-[28px] p-0.5 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
                       <div class="box-border p-0.5 flex items-center justify-center rounded-md bg-white cursor-pointer">

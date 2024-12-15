@@ -1,5 +1,7 @@
 import {
 	ChatConversation,
+	ChatMessage,
+	ChatMessageFeedback,
 	Copilot,
 	CopilotModel,
 	CopilotCheckpoint,
@@ -9,6 +11,7 @@ import {
 	CopilotUser,
 	CopilotProvider,
 	CopilotProviderModel,
+	CopilotStore,
 	Knowledgebase,
 	KnowledgeDocument,
 	Xpert,
@@ -20,6 +23,9 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+	ChatConversation,
+	ChatMessage,
+	ChatMessageFeedback,
 	Copilot,
 	CopilotModel,
 	CopilotKnowledge,
@@ -29,9 +35,9 @@ export const ALL_AI_ENTITIES = [
 	CopilotCheckpointWrites,
 	CopilotProvider,
 	CopilotProviderModel,
+	CopilotStore,
 	Knowledgebase,
 	KnowledgeDocument,
-	ChatConversation,
 	Xpert,
 	XpertAgent,
 	XpertTool,

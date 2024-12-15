@@ -14,14 +14,14 @@ import {
   RunnableToolLike,
 } from "@langchain/core/runnables";
 import { DynamicTool, StructuredToolInterface } from "@langchain/core/tools";
-import { BaseCheckpointSaver, CompiledStateGraph, END, LangGraphRunnableConfig, MessagesAnnotation, Send, START, StateGraph } from "@langchain/langgraph";
+import { BaseCheckpointSaver, BaseStore, CompiledStateGraph, END, LangGraphRunnableConfig, MessagesAnnotation, Send, START, StateGraph } from "@langchain/langgraph";
 import { All } from "@langchain/langgraph-checkpoint";
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { v4 as uuidv4 } from "uuid";
 import z from 'zod'
 import { ToolNode } from "./tool_node";
 import { AgentStateAnnotation, TSubAgent } from "./types";
-import { TSummarize } from "@metad/contracts";
+import { TLongTermMemory, TSummarize } from "@metad/contracts";
 
 
 function _getStateModifierRunnable(
@@ -99,11 +99,13 @@ export type CreateReactAgentParams = {
   checkpointSaver?: BaseCheckpointSaver;
   interruptBefore?: N[] | All;
   interruptAfter?: N[] | All;
+  store?: BaseStore;
   state?: typeof AgentStateAnnotation
   tags?: string[]
   subAgents: Record<string,  TSubAgent>
   tools?: (StructuredToolInterface | RunnableToolLike)[];
   summarize?: TSummarize
+  memory?: TLongTermMemory
 };
 
 /**
@@ -134,6 +136,8 @@ export function createReactAgent(
     interruptAfter,
     state,
     tags,
+    store,
+    memory
   } = props;
   const summarize = ensureSummarize(props.summarize)
 
@@ -213,6 +217,7 @@ export function createReactAgent(
     checkpointer: checkpointSaver,
     interruptBefore,
     interruptAfter,
+    store
   });
 }
 

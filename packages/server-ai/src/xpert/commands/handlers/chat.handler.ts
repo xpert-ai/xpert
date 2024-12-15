@@ -12,6 +12,7 @@ import { ChatConversationUpsertCommand } from '../../../chat-conversation/comman
 import {
 	XpertAgentExecutionUpsertCommand
 } from '../../../xpert-agent-execution/commands'
+import { ChatMessageUpsertCommand } from '../../../chat-message'
 
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
@@ -37,30 +38,31 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		// Continue thread when confirm or reject operation
 		if (confirm || reject) {
 			conversation = await this.queryBus.execute(
-				new GetChatConversationQuery({ id: conversationId }, [])
+				new GetChatConversationQuery({ id: conversationId }, ['_messages'])
 			)
-			aiMessage = conversation.messages[conversation.messages.length - 1]
+			aiMessage = conversation._messages[conversation._messages.length - 1] as CopilotChatMessage
 			executionId = aiMessage.executionId
 		} else {
 			//  New thead (conversation)
-			const userMessage: CopilotChatMessage = {
-				id: shortuuid(),
-				role: 'human',
-				content: input.input,
-			}
+			// const userMessage: CopilotChatMessage = {
+			// 	id: shortuuid(),
+			// 	role: 'human',
+			// 	content: input.input,
+			// }
+
 			// New message in conversation
 			if (conversationId) {
 				conversation = await this.queryBus.execute(
-					new GetChatConversationQuery({id: conversationId}, [])
+					new GetChatConversationQuery({id: conversationId}, ['_messages'])
 				)
-				conversation.messages ??= []
-				conversation.messages.push(userMessage)
-				await this.commandBus.execute(
-					new ChatConversationUpsertCommand({
-						id: conversation.id,
-						messages: conversation.messages
-					})
-				)
+				// conversation.messages ??= []
+				// conversation.messages.push(userMessage)
+				// await this.commandBus.execute(
+				// 	new ChatConversationUpsertCommand({
+				// 		id: conversation.id,
+				// 		messages: conversation.messages
+				// 	})
+				// )
 			} else {
 				// New conversation
 				conversation = await this.commandBus.execute(
@@ -71,7 +73,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 							knowledgebases: options?.knowledgebases,
 							toolsets: options?.toolsets
 						},
-						messages: [userMessage],
+						// messages: [userMessage],
 					})
 				)
 			}
@@ -87,12 +89,18 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				})
 			)
 			executionId = execution.id
-			aiMessage = {
-				id: shortuuid(),
+
+			const userMessage = await this.commandBus.execute(new ChatMessageUpsertCommand({
+				role: 'human',
+				content: input.input,
+				conversationId: conversation.id
+			}))
+			aiMessage = await this.commandBus.execute(new ChatMessageUpsertCommand({
 				role: 'ai',
 				content: ``,
-				executionId
-			}
+				executionId,
+				conversationId: conversation.id
+			}))
 		}
 
 		let status = XpertAgentExecutionStatusEnum.SUCCESS
@@ -177,20 +185,21 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 							convStatus = 'interrupted'
 						}
 
-						const messages = (confirm || reject) ? conversation.messages.slice(0, conversation.messages.length - 1)
-							: conversation.messages
+						// const messages = (confirm || reject) ? conversation.messages.slice(0, conversation.messages.length - 1)
+						// 	: conversation.messages
 						const _conversation = await this.commandBus.execute(
 							new ChatConversationUpsertCommand({
-								...conversation,
+								id: conversation.id,
 								status: convStatus,
 								title: _execution.title,
-								messages: [
-									...messages,
-									aiMessage
-								],
+								// messages: [
+								// 	...messages,
+								// 	aiMessage
+								// ],
 								operation
 							})
 						)
+						await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
 
 						return {
 							data: {

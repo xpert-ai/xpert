@@ -36,6 +36,10 @@ export type TXpert = {
    * Config of summarize past conversations
    */
   summarize?: TSummarize
+  /**
+   * Long-term memory config
+   */
+  memory?: TLongTermMemory
 
   /**
    * Version of role: '1' '2' '2.1' '2.2'...
@@ -156,6 +160,17 @@ export type TSummarize = {
    * Number of retained messages
    */
   retainMessages?: number
+}
+
+/**
+ * Config of long-term memory
+ */
+export type TLongTermMemory = {
+  enabled?: boolean
+  /**
+   * System prompt guide how to remember the key points of the conversation
+   */
+  prompt?: string
 }
 
 export enum XpertTypeEnum {

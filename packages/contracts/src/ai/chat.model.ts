@@ -5,6 +5,7 @@ import { JSONValue } from '../core.model'
 import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model'
 import { IXpert } from './xpert.model'
 import { I18nObject } from '../types'
+import { IChatMessage } from './chat-message.model'
 
 export type TChatConversationOptions = {
   knowledgebases?: string[]
@@ -46,7 +47,8 @@ export interface IChatConversation extends IBasePerTenantAndOrganizationEntityMo
   
   options?: TChatConversationOptions
 
-  messages?: CopilotBaseMessage[] | null
+  messages?: CopilotBaseMessage[]
+  _messages?: IChatMessage[] | null
   /**
    * The last operation when interrupted
    */
