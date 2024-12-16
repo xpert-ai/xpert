@@ -18,7 +18,7 @@ import { estimateTokenUsage } from '@metad/copilot'
 
 @Processor({
 	name: 'embedding-document',
-	scope: Scope.REQUEST
+	// scope: Scope.REQUEST
 })
 export class KnowledgeDocumentConsumer {
 	private readonly logger = new Logger(KnowledgeDocumentConsumer.name)

@@ -3,7 +3,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { AIMessageChunk, HumanMessage, isAIMessage, isAIMessageChunk, MessageContent, ToolMessage } from '@langchain/core/messages'
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
-import { Annotation, BaseStore, CompiledStateGraph, LangGraphRunnableConfig, NodeInterrupt } from '@langchain/langgraph'
+import { Annotation, CompiledStateGraph, LangGraphRunnableConfig, NodeInterrupt } from '@langchain/langgraph'
 import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, ICopilot, IXpert, IXpertAgent, TSensitiveOperation, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
@@ -28,7 +28,6 @@ import { getErrorMessage } from '@metad/server-common'
 import { AgentStateAnnotation, TSubAgent } from './types'
 import { ToolCall } from '@langchain/core/dist/messages/tool'
 import { CompleteToolCallsQuery } from '../../queries'
-import { CopilotMemoryStore, CreateCopilotStoreCommand } from '../../../copilot-store'
 
 
 @CommandHandler(XpertAgentExecuteCommand)
@@ -143,11 +142,6 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			}, {}) ?? {})
 		})
 
-		let store: BaseStore = null
-		if (team.memory?.enabled) {
-			store = await this.commandBus.execute<CreateCopilotStoreCommand, CopilotMemoryStore>(new CreateCopilotStoreCommand())
-		}
-
 		const thread_id = command.options.thread_id
 
 		const graph = createReactAgent({
@@ -173,7 +167,6 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 				return [systemMessage, ...state.messages]
 			},
 			summarize: team.summarize,
-			store,
 			memory: team.memory
 		})
 

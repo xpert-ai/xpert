@@ -2,19 +2,23 @@ import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import {
   ChatConversationService,
+  ChatMessageFeedbackService,
   CopilotChatMessage,
   IChatConversation,
+  IChatMessageFeedback,
   IXpertAgentExecution,
 } from 'apps/cloud/src/app/@core'
-import { of, switchMap } from 'rxjs'
+import { combineLatest, of, switchMap } from 'rxjs'
 
 @Injectable()
 export class XpertExecutionService {
   readonly conversationService = inject(ChatConversationService)
+  readonly feedbackService = inject(ChatMessageFeedbackService)
 
   readonly conversationId = signal<string>(null)
 
   readonly conversation = signal<IChatConversation>(null)
+  readonly feedbacks = signal<Record<string, IChatMessageFeedback>>(null)
 
   readonly #messages = signal<Partial<CopilotChatMessage>[]>([])
 
@@ -53,9 +57,16 @@ export class XpertExecutionService {
 
   // Subsribe conversation
   private conversationSub = toObservable(this.conversationId).pipe(
-    switchMap((id) => id ? this.conversationService.getById(this.conversationId(), { relations: ['_messages'] }) : of(null))
-  ).subscribe((conv) => {
+    switchMap((id) => id ? combineLatest([
+      this.conversationService.getById(this.conversationId(), { relations: ['_messages'] }),
+      this.feedbackService.getAll({ where: { conversationId: this.conversationId(), } })
+    ]) : of([]))
+  ).subscribe(([conv, feedbacks]) => {
     this.conversation.set(conv)
+    this.feedbacks.set(feedbacks?.items.reduce((acc, feedback) => {
+      acc[feedback.messageId] = feedback
+      return acc
+    }, {}))
   })
 
   constructor() {

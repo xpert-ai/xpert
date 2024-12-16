@@ -102,7 +102,7 @@ export type CreateReactAgentParams = {
   store?: BaseStore;
   state?: typeof AgentStateAnnotation
   tags?: string[]
-  subAgents: Record<string,  TSubAgent>
+  subAgents?: Record<string,  TSubAgent>
   tools?: (StructuredToolInterface | RunnableToolLike)[];
   summarize?: TSummarize
   memory?: TLongTermMemory
@@ -202,7 +202,7 @@ export function createReactAgent(
         .addEdge(name, "agent")
     })
   }
-  tools.forEach((tool) => {
+  tools?.forEach((tool) => {
     const name = tool.name
     workflow.addNode(name, new ToolNode([tool]))
       .addEdge(name, "agent")

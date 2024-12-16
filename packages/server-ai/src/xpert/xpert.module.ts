@@ -11,6 +11,7 @@ import { KnowledgebaseModule } from '../knowledgebase'
 import { QueryHandlers } from './queries/handlers'
 import { XpertAgentModule } from '../xpert-agent'
 import { XpertWorkspaceModule } from '../xpert-workspace'
+import { CopilotCheckpointModule } from '../copilot-checkpoint'
 
 @Module({
     imports: [
@@ -22,6 +23,7 @@ import { XpertWorkspaceModule } from '../xpert-workspace'
         forwardRef(() => XpertAgentModule),
         forwardRef(() => UserModule),
         forwardRef(() => XpertWorkspaceModule),
+        CopilotCheckpointModule
     ],
     controllers: [XpertController],
     providers: [XpertService, ...CommandHandlers, ...QueryHandlers],

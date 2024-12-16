@@ -60,6 +60,7 @@ export class CopilotMemoryStore extends BaseStore {
 		  index?: PostgresIndexConfig
       tenantId: string
       organizationId: string
+      userId: string
     }) {
 		super()
 
@@ -207,7 +208,7 @@ private prepareBatchPutQueries(
 
     // First handle main store insertions
     for (const op of inserts) {
-      values.push(`('${this.options?.tenantId}', '${this.options?.organizationId}', '${op.namespace.join(':')}', '${op.key}', '${JSON.stringify(op.value)}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`);
+      values.push(`('${this.options?.tenantId}', '${this.options?.organizationId}', '${this.options?.userId}', '${op.namespace.join(':')}', '${op.key}', '${JSON.stringify(op.value)}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`);
       // insertionParams.push(
       //   op.namespace.join(':'),
       //   op.key,
@@ -242,7 +243,7 @@ private prepareBatchPutQueries(
     }
     const valuesStr = values.join(',');
     let query = `
-      INSERT INTO copilot_store ( "tenantId", "organizationId", prefix, key, value, "createdAt", "updatedAt")
+      INSERT INTO copilot_store ( "tenantId", "organizationId", "createdById", prefix, key, value, "createdAt", "updatedAt")
       VALUES ${valuesStr}
       ON CONFLICT ("organizationId", prefix, key) DO UPDATE
       SET value = EXCLUDED.value,

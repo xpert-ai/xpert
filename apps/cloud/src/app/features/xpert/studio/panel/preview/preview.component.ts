@@ -9,9 +9,12 @@ import { TranslateModule } from '@ngx-translate/core'
 import {
   ChatConversationService,
   ChatMessageEventTypeEnum,
+  ChatMessageFeedbackRatingEnum,
+  ChatMessageFeedbackService,
   ChatMessageTypeEnum,
-  CopilotBaseMessage,
   CopilotChatMessage,
+  getErrorMessage,
+  IChatMessage,
   ToastrService,
   uuid,
   XpertAgentExecutionService,
@@ -49,12 +52,14 @@ import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
 })
 export class XpertStudioPreviewComponent {
   eExecutionStatusEnum = XpertAgentExecutionStatusEnum
+  eFeedbackRatingEnum = ChatMessageFeedbackRatingEnum
 
   readonly xpertService = inject(XpertService)
   readonly apiService = inject(XpertStudioApiService)
   readonly executionService = inject(XpertExecutionService)
   readonly conversationService = inject(ChatConversationService)
   readonly agentExecutionService = inject(XpertAgentExecutionService)
+  readonly messageFeedbackService = inject(ChatMessageFeedbackService)
   readonly studioComponent = inject(XpertStudioComponent)
   readonly #toastr = inject(ToastrService)
   readonly #destroyRef = inject(DestroyRef)
@@ -77,6 +82,7 @@ export class XpertStudioPreviewComponent {
   readonly output = signal('')
 
   readonly conversation = this.executionService.conversation
+  readonly feedbacks = this.executionService.feedbacks
 
   readonly currentMessage = signal<Partial<CopilotChatMessage>>(null)
   readonly messages = computed<CopilotChatMessage[]>(() => {
@@ -250,5 +256,47 @@ export class XpertStudioPreviewComponent {
   onReject() {
     this.chat({ reject: true })
     this.executionService.conversation.update((state) => ({ ...state, status: 'busy' }))
+  }
+
+  feedback(message: IChatMessage, rating: ChatMessageFeedbackRatingEnum) {
+    this.messageFeedbackService
+      .create({
+        messageId: message.id,
+        conversationId: message.conversationId,
+        rating
+      })
+      .subscribe({
+        next: (feedback) => {
+          this.executionService.feedbacks.update((state) => ({
+            ...(state ?? {}),
+            [message.id]: feedback
+          }))
+          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', {Default: 'Updated successfully'})
+        },
+        error: (error) => {
+          this.#toastr.error(getErrorMessage(error))
+        }
+      })
+  }
+
+  cancelFeedback(message: IChatMessage, id: string) {
+    this.messageFeedbackService
+      .delete(id)
+      .subscribe({
+        next: () => {
+          this.executionService.feedbacks.update((state) => ({
+            ...(state ?? {}),
+            [message.id]: null
+          }))
+          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', {Default: 'Updated successfully'})
+        },
+        error: (error) => {
+          this.#toastr.error(getErrorMessage(error))
+        }
+      })
+  }
+
+  getFeedback(id: string) {
+    return this.feedbacks()?.[id]
   }
 }
