@@ -103,7 +103,7 @@ export class XpertStudioPanelAgentComponent {
   readonly agentUniqueName = computed(() => agentUniqueName(this.xpertAgent()))
   readonly agentConfig = computed(() => this.xpert()?.agentConfig)
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
-  readonly isPrimaryAgent = computed(() => this.key() === this.xpert()?.agent?.key)
+  readonly isPrimaryAgent = computed(() => !!this.xpertAgent()?.xpertId)
 
   readonly parameters = computed(() => this.xpertAgent()?.parameters)
 

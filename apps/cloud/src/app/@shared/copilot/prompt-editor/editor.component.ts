@@ -83,9 +83,11 @@ function formatInnerHTML(htmlContent: string) {
     .replace(/<\/?p[^>]*>/gi, '') // 移除 <p> 标签
     .replace(/<\/?span[^>]*>/gi, '') // 移除 <span> 标签
     .replace(/<mark[^>]*>(.*?)<\/mark>/gi, '$1') // 保留 <mark> 内的内容
+    .replace(/<div[^>]*>/gi, '') // 移除 <div> 标签及带 class 的 <div> 标签
+    .replace(/<\/div>/gi, '\n') // 将 </div> 替换成换行符
 
-  // Step 2: 替换 HTML 转义字符
-  formattedText = formattedText.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+  // // Step 2: 替换 HTML 转义字符
+  // formattedText = formattedText.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
 
   // Step 3: 返回转换后的文本内容
   return formattedText
