@@ -178,6 +178,12 @@ export class XpertStudioPreviewComponent {
                 }
               } else if (event.type === ChatMessageTypeEnum.EVENT) {
                 processEvents(event, this.executionService)
+                if (event.event === ChatMessageEventTypeEnum.ON_MESSAGE_START) {
+                  this.currentMessage.update((state) => ({
+                    ...state,
+                    ...event.data
+                  }))
+                }
                 if (event.event === ChatMessageEventTypeEnum.ON_AGENT_END) {
                   this.currentMessage.update((message) => ({
                     ...message,

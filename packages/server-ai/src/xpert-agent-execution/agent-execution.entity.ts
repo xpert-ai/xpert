@@ -55,6 +55,12 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 	@Column({ type: 'integer', nullable: true, default: 0 })
 	tokens?: number
 
+	@ApiProperty({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ type: 'integer', nullable: true, default: 0 })
+	embedTokens?: number
+
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()
 	@IsOptional()

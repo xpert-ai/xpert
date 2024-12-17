@@ -10,17 +10,15 @@ import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { concat, filter, from, lastValueFrom, Observable, of, reduce, Subscriber, switchMap, tap } from 'rxjs'
-import { AgentState, CopilotGetOneQuery } from '../../../copilot'
+import { AgentState } from '../../../copilot'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { createParameters, XpertAgentExecuteCommand } from '../execute.command'
-import { GetXpertAgentQuery } from '../../../xpert/queries'
-import { XpertCopilotNotFoundException } from '../../../core/errors'
+import { GetXpertAgentQuery, GetXpertChatModelQuery } from '../../../xpert/queries'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { EnsembleRetriever } from "langchain/retrievers/ensemble"
 import z from 'zod'
-import { CopilotModelGetChatModelQuery } from '../../../copilot-model/queries'
 import { createReactAgent } from './react_agent_executor'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
@@ -55,20 +53,35 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		}
 
 		const team = agent.team
-		let copilot: ICopilot = null
-		const copilotId = agent.copilotModel?.copilotId ?? team.copilotModel?.copilotId
+		// let copilot: ICopilot = null
+		// const copilotId = agent.copilotModel?.copilotId ?? team.copilotModel?.copilotId
+		
+		// if (copilotId) {
+		// 	copilot = await this.queryBus.execute(new CopilotGetOneQuery(tenantId, copilotId, ['modelProvider']))
+		// } else {
+		// 	throw new XpertCopilotNotFoundException(`Xpert copilot not found for '${xpert.name}'`)
+		// }
+
+		const chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
+			new GetXpertChatModelQuery(agent.team, agent, {
+				abortController,
+				tokenCallback: (token) => {
+					execution.tokens += token ?? 0
+				}
+			})
+		)
+		// Record ai model info into execution
 		const copilotModel = agent.copilotModel ?? team.copilotModel
-		if (copilotId) {
-			copilot = await this.queryBus.execute(new CopilotGetOneQuery(tenantId, copilotId, ['modelProvider']))
-		} else {
-			throw new XpertCopilotNotFoundException(`Xpert copilot not found for '${xpert.name}'`)
+		execution.metadata = {
+			provider: copilotModel.copilot.modelProvider?.providerName,
+			model: copilotModel.model || copilotModel.copilot.copilotModel?.model
 		}
 
-		const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
-			new CopilotModelGetChatModelQuery(copilot, copilotModel, {abortController, tokenCallback: (token) => {
-				execution.tokens += (token ?? 0)
-			}})
-		)
+		// const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
+		// 	new CopilotModelGetChatModelQuery(copilot, copilotModel, {abortController, tokenCallback: (token) => {
+		// 		execution.tokens += (token ?? 0)
+		// 	}})
+		// )
 
 		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
 			new ToolsetGetToolsCommand(options?.toolsets ?? agent.toolsetIds)
@@ -171,12 +184,6 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		})
 
 		this.#logger.debug(`Start chat with xpert '${xpert.name}' & agent '${agent.title}'`)
-
-		// Record ai model info into execution
-		execution.metadata = {
-			provider: copilotModel.copilot.modelProvider?.providerName,
-			model: copilotModel.model || copilotModel.copilot.copilotModel?.model
-		}
 
 		const config = {
 			thread_id,

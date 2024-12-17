@@ -15,5 +15,5 @@ export type TCopilotStoreVector = {
   prefix: string
   key: string
   field_name: any
-  embedding: string
+  embedding: number[]
 }

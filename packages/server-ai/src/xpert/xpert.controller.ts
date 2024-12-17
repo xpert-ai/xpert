@@ -38,6 +38,7 @@ import { XpertDraftDslDTO, XpertPublicDTO } from './dto'
 import { Xpert } from './xpert.entity'
 import { XpertService } from './xpert.service'
 import { WorkspaceGuard } from '../xpert-workspace/'
+import { SearchXpertMemoryQuery } from './queries'
 
 @ApiTags('Xpert')
 @ApiBearerAuth()
@@ -185,4 +186,8 @@ export class XpertController extends CrudController<Xpert> {
 		await this.service.removeManager(id, userId)
 	}
 
+	@Post(':id/memory/search')
+	async searchMemory(@Param('id') id: string, @Body() body: {text: string; isDraft?: boolean;}) {
+		return this.queryBus.execute(new SearchXpertMemoryQuery(id, body))
+	}
 }

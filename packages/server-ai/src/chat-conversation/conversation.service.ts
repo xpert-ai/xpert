@@ -87,7 +87,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 					await job.moveToFailed({ message: 'Job stopped by user' }, true)
 				}
 			}
-			
+
 			if (summaryJob) {
 				if (summaryJob.memoryKey) {
 					const keys = Array.isArray(summaryJob.memoryKey) ? summaryJob.memoryKey : [summaryJob.memoryKey]
@@ -108,7 +108,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 				await this.messageService.update(messageId, { summaryJob: null })
 			}
 		} catch (err) {
-			//
+			this.logger.error(err)
 		}
 	}
 

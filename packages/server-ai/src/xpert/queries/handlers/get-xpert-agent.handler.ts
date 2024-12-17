@@ -61,7 +61,7 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 				return {
 					...agent,
 					followers: [xpert.agent, ...xpert.agents].filter((_) => _.leaderKey === agent.key),
-					collaborators: agent.collaboratorNames.map((name) => xpert.executors.find((_) => _.name === name)).filter(nonNullable),
+					collaborators: agent.collaboratorNames?.map((name) => xpert.executors.find((_) => _.name === name)).filter(nonNullable),
 					team: xpert
 				}
 			}

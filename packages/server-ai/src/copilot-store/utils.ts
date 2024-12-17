@@ -299,3 +299,14 @@ export function cosineSimilarity(vector1: number[], vector2: number[]): number {
   if (magnitude1 === 0 || magnitude2 === 0) return 0;
   return dotProduct / (magnitude1 * magnitude2);
 }
+
+
+export function decodeNsBytes(namespace: string | Uint8Array | any[]): string[] {
+  if (Array.isArray(namespace)) {
+    return namespace;
+  }
+  if (namespace instanceof Uint8Array) {
+    namespace = new TextDecoder().decode(namespace).slice(1);
+  }
+  return namespace.split(".");
+}

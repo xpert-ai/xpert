@@ -15,7 +15,14 @@ export type TXpertAgentExecution = {
   status?: XpertAgentExecutionStatusEnum
   error?: string
   elapsedTime?: number
+  /**
+   * Token usage of chat model
+   */
   tokens?: number
+  /**
+   * Token usage of embedding
+   */
+  embedTokens?: number
   metadata?: TAgentExecutionMetadata
 
   threadId?: string

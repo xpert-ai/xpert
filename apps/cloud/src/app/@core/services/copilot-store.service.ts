@@ -11,4 +11,5 @@ export class CopilotStoreService extends OrganizationBaseCrudService<ICopilotSto
   constructor() {
     super(API_COPILOT_STORE)
   }
+
 }

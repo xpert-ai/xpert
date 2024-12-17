@@ -5,7 +5,8 @@ import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, Index } from 'typeorm'
 
 @Entity('copilot_store')
-@Index('key_in_namespace', ['organizationId', 'prefix', 'key'], { unique: true })
+@Index('key_in_org', ['organizationId', 'prefix', 'key'], { unique: true })
+@Index('key_in_namespace', ['prefix', 'key'], { unique: true })
 export class CopilotStore extends TenantOrganizationBaseEntity implements ICopilotStore {
 	@ApiPropertyOptional({ type: String })
 	@IsString()

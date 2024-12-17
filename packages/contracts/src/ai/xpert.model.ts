@@ -1,7 +1,7 @@
 import { ToolCall } from '@langchain/core/dist/messages/tool'
 import { ITag } from '../tag-entity.model'
 import { IUser } from '../user.model'
-import { ICopilotModel } from './copilot-model.model'
+import { ICopilotModel, TCopilotModel } from './copilot-model.model'
 import { IKnowledgebase } from './knowledgebase.model'
 import { TAvatar } from '../types'
 import { IXpertAgent } from './xpert-agent.model'
@@ -177,6 +177,7 @@ export type TLongTermMemory = {
    * System prompt guide how to remember the key points of the conversation
    */
   prompt?: string
+  copilotModel?: TCopilotModel
 }
 
 export enum XpertTypeEnum {
@@ -286,6 +287,7 @@ export enum ChatMessageTypeEnum {
 export enum ChatMessageEventTypeEnum {
   ON_CONVERSATION_START = 'on_conversation_start',
   ON_CONVERSATION_END = 'on_conversation_end',
+  ON_MESSAGE_START = 'on_message_start',
   ON_TOOL_START = 'on_tool_start',
   ON_TOOL_END = 'on_tool_end',
   ON_TOOL_ERROR = 'on_tool_error',

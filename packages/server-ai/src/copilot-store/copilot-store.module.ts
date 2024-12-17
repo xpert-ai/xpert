@@ -12,7 +12,7 @@ import { CommandHandlers } from './commands/handlers'
 @Module({
 	imports: [
 		RouterModule.forRoutes([{ path: '/copilot-store', module: CopilotStoreModule }]),
-		TypeOrmModule.forFeature([CopilotStore]),
+		TypeOrmModule.forFeature([CopilotStore,]),
 		TenantModule,
 		CqrsModule,
 	],

@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, inject, signal, TemplateRef, viewChild } from '@angular/core'
+import { ChangeDetectionStrategy, Component, inject, signal, TemplateRef, viewChild, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
@@ -10,9 +10,11 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, EMPTY, of } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
-import { CopilotStoreService, getErrorMessage, injectToastr, routeAnimations } from '../../../../@core'
+import { CopilotStoreService, getErrorMessage, injectToastr, routeAnimations, XpertService } from '../../../../@core'
 import { UserProfileInlineComponent } from '../../../../@shared/user'
 import { XpertComponent } from '../xpert.component'
+import { A11yModule } from '@angular/cdk/a11y'
+import { MatInputModule } from '@angular/material/input'
 
 @Component({
   standalone: true,
@@ -22,6 +24,8 @@ import { XpertComponent } from '../xpert.component'
     ReactiveFormsModule,
     TranslateModule,
     RouterModule,
+    A11yModule,
+    MatInputModule,
     NgmCommonModule,
     CdkMenuModule,
     UserProfileInlineComponent
@@ -37,6 +41,7 @@ export class XpertMemoryComponent {
   readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly storeService = inject(CopilotStoreService)
+  readonly xpertService = inject(XpertService)
   readonly xpertComponent = inject(XpertComponent)
 
   readonly xpertId = this.xpertComponent.paramId
@@ -86,6 +91,8 @@ export class XpertMemoryComponent {
       : of(null)
   })
 
+  readonly input = model<string>()
+
   delete(id: string, value: any) {
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
@@ -106,4 +113,16 @@ export class XpertMemoryComponent {
         }
       })
   }
+
+  search() {
+    this.xpertService.searchMemory(this.xpertId(), {text: this.input(), isDraft: true}).subscribe({
+      next: (results) => {
+        console.log(results)
+      },
+      error: (err) => {
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
+  stop() {}
 }

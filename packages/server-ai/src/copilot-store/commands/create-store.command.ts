@@ -1,4 +1,5 @@
 import { ICommand } from '@nestjs/cqrs'
+import { IndexConfig } from '@langchain/langgraph-checkpoint'
 
 export class CreateCopilotStoreCommand implements ICommand {
 	static readonly type = '[Copilot Store] Create one instance'
@@ -8,6 +9,7 @@ export class CreateCopilotStoreCommand implements ICommand {
 			tenantId: string;
 			organizationId: string;
 			userId: string;
+			index?: IndexConfig
 		}
 	) {}
 }

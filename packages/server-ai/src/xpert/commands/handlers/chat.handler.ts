@@ -1,6 +1,6 @@
 import { MessageContent } from '@langchain/core/messages'
 import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, CopilotChatMessage, IChatConversation, IXpert, TChatConversationStatus, TSensitiveOperation, XpertAgentExecutionStatusEnum } from '@metad/contracts'
-import { getErrorMessage, shortuuid } from '@metad/server-common'
+import { getErrorMessage } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { catchError, concat, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
@@ -129,6 +129,14 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 						createdAt: conversation.createdAt,
 						updatedAt: conversation.updatedAt,
 					}
+				}
+			} as MessageEvent)
+
+			subscriber.next({
+				data: {
+					type: ChatMessageTypeEnum.EVENT,
+					event: ChatMessageEventTypeEnum.ON_MESSAGE_START,
+					data: aiMessage
 				}
 			} as MessageEvent)
 

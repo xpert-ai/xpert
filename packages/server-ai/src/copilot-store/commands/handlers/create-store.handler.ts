@@ -19,11 +19,14 @@ export class CreateCopilotStoreHandler implements ICommandHandler<CreateCopilotS
 		const tenantId = command.options?.tenantId ?? RequestContext.currentTenantId()
 		const organizationId = command.options?.organizationId ?? RequestContext.getOrganizationId()
 		const userId = command.options?.userId ?? RequestContext.currentUserId()
-		return new CopilotMemoryStore({
+		const store = new CopilotMemoryStore({
 			pgPool: this.pgPool,
 			tenantId,
 			organizationId,
-			userId
+			userId,
+			index: command.options.index
 		})
+		await store.ensureTableInDatabase()
+		return store
 	}
 }

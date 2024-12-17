@@ -98,6 +98,10 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   importDSL(dslObject: Record<string, any>) {
     return this.httpClient.post(this.apiBaseUrl + `/import`, dslObject)
   }
+
+  searchMemory(id: string, body: {text: string; isDraft: boolean;}) {
+    return this.httpClient.post(this.apiBaseUrl + `/${id}/memory/search`, body)
+  }
 }
 
 export function injectXpertService() {
