@@ -7,11 +7,6 @@ export enum ChatMessageFeedbackRatingEnum {
   DISLIKE = 'dislike'
 }
 
-export type TSummaryJob = {
-  jobId: number | string;
-  status: string
-  progress?: number
-}
 
 /**
  * 
@@ -21,8 +16,6 @@ export interface IChatMessageFeedback extends IBasePerTenantAndOrganizationEntit
   rating: ChatMessageFeedbackRatingEnum
 
   content?: string
-
-  summaryJob: TSummaryJob
 
   // Many to one
   /**

@@ -1,7 +1,7 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { HumanMessage } from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
-import { IXpertAgent } from '@metad/contracts'
+import { IXpertAgent, LongTermMemoryTypeEnum } from '@metad/contracts'
 import { Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
@@ -12,6 +12,7 @@ import { AgentStateAnnotation } from '../../../xpert-agent/commands/handlers/typ
 import { GetXpertAgentQuery, GetXpertChatModelQuery } from '../../queries'
 import { XpertService } from '../../xpert.service'
 import { XpertSummarizeMemoryCommand } from '../summarize-memory.command'
+import z from 'zod'
 
 @CommandHandler(XpertSummarizeMemoryCommand)
 export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummarizeMemoryCommand> {
@@ -52,6 +53,10 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 			throw new NotFoundException(
 				`Xpert agent not found for '${xpert.name}' and key ${xpert.agent.key} draft is ${command.options?.isDraft}`
 			)
+		}
+
+		if (!agent.team.memory?.enabled) {
+			return
 		}
 
 		const summarizedState = await this.queryBus.execute<
@@ -103,24 +108,57 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 
 		const memory = agent.team.memory
 
-		const response = await graph.invoke(
-			{
-				messages: [
-					new HumanMessage(
-						memory?.prompt ||
-							`用叙述式语气简短一句话总结以上对话的经验，我们将存储至长期记忆中，以便下次能更好地理解和回答用户用户`
-					)
-				]
-			},
-			{
-				configurable: config
-			}
-		)
+		const { summary, messages } = summarizedState
+		let systemTemplate = `${agent.prompt}`
+		if (summary) {
+			systemTemplate += `\nSummary of conversation earlier: \n${summary}`
+		}
+		const systemMessage = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
+			templateFormat: 'mustache'
+		}).format({ ...summarizedState })
 
-		const lastMessage = response.messages[response.messages.length - 1]
+		console.log([systemMessage, ...messages])
+
+		let prompt = memory.prompt
+		let schema = null
+		if (memory.type === LongTermMemoryTypeEnum.QA) {
+			schema = z.object({
+				input: z.string().describe(`The user's input question`),
+				output: z.string().describe(`The ai's output answer`),
+			})
+			if (!prompt) {
+				prompt = `总结以上会话的经验，输出一个简短问题和答案`
+			}
+		} else {
+			// Default profile LongTermMemoryTypeEnum.PROFILE
+			schema = z.object({
+				profile: z.string().describe(`The user's profile`)
+			})
+			if (!prompt) {
+				prompt = `用陈述事实式语气简短一句话总结以上对话的结论，我们将存储至长期记忆中，以便下次能更好地理解和回答用户用户`
+			}
+		}
+
+		const lastMessage = await chatModel.withStructuredOutput(schema).invoke([systemMessage, ...messages, new HumanMessage(prompt)])
+
+		// const response = await graph.invoke(
+		// 	{
+		// 		messages: [
+		// 			new HumanMessage(
+		// 				memory?.prompt ||
+		// 					`用陈述事实式语气简短一句话总结以上对话的结论，我们将存储至长期记忆中，以便下次能更好地理解和回答用户用户`
+		// 			)
+		// 		]
+		// 	},
+		// 	{
+		// 		configurable: config
+		// 	}
+		// )
+
+		// const lastMessage = response.messages[response.messages.length - 1]
 
 		console.log(lastMessage)
 
-		return lastMessage.content
+		return lastMessage
 	}
 }

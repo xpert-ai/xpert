@@ -1,0 +1,40 @@
+<div class="text-xl font-medium p-4">{{ 'PAC.Xpert.LongTermMemory' | translate: {Default: 'Long-term Memory'} }}</div>
+
+<ngm-table class="flex-1 overflow-hidden text-sm" displayDensity="compact" paging
+  [columns]="columns()"
+  [data]="items()"
+/>
+
+@if (loading()) {
+  <ngm-spin class="absolute left-0 top-0 w-full h-full flex justify-center items-center"></ngm-spin>
+}
+
+<ng-template #userTemplate let-user="createdBy">
+  <pac-user-profile-inline [user]="user" small class="my-1" />
+</ng-template>
+
+<ng-template #actionTemplate let-id="id" let-value="value">
+  <div class="flex items-center">
+    <button class="group px-2 py-1 rounded-md bg-transparent hover:bg-hover-bg" type="button"
+      [cdkMenuTriggerFor]="actionMenu"
+      [cdkMenuTriggerData]="{id, value}"
+    >
+      <div class="">
+        <i class="ri-more-line"></i>
+      </div>
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #actionMenu let-id="id" let-value="value">
+  <div cdkMenu class="cdk-menu__medium">
+    <div cdkMenuItem  >
+      <i class="ri-edit-line mr-1"></i>
+        {{ 'PAC.ACTIONS.Edit' | translate: {Default: 'Edit'} }}</div>
+    <div class="w-full border-b border-solid border-divider-regular my-1"></div>
+    <div cdkMenuItem class="danger" (click)="delete(id, value)">
+      <i class="ri-delete-bin-line mr-1"></i>
+        {{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} }}
+    </div>
+  </div>
+</ng-template>

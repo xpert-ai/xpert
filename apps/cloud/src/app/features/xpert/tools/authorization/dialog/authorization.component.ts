@@ -1,12 +1,14 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
+import { MatButtonModule } from '@angular/material/button'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ApiProviderAuthType } from 'apps/cloud/src/app/@core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
 @Component({
   standalone: true,
@@ -15,9 +17,11 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
     TranslateModule,
     FormsModule,
     ReactiveFormsModule,
-    MaterialModule,
     CdkListboxModule,
+    DragDropModule,
     ButtonGroupDirective,
+    MatTooltipModule,
+    MatButtonModule
   ],
   selector: 'xpert-tool-authorization',
   templateUrl: 'authorization.component.html',
@@ -26,9 +30,9 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 export class XpertToolAuthorizationComponent {
   eApiProviderAuthType = ApiProviderAuthType
 
-  readonly data = inject(MAT_DIALOG_DATA)
+  readonly data = inject(DIALOG_DATA)
   readonly #formBuilder = inject(FormBuilder)
-  readonly #dialogRef = inject(MatDialogRef)
+  readonly #dialogRef = inject(DialogRef)
     
   readonly formGroup = this.#formBuilder.group({
     auth_type: this.#formBuilder.control(ApiProviderAuthType.NONE),
@@ -51,5 +55,9 @@ export class XpertToolAuthorizationComponent {
 
   save() {
     this.#dialogRef.close(this.formGroup.value)
+  }
+
+  cancel() {
+    this.#dialogRef.close()
   }
 }

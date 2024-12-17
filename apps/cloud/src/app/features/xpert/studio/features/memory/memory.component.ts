@@ -1,15 +1,15 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject } from '@angular/core'
+import { Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { TLongTermMemory } from '@metad/contracts'
+import { LongTermMemoryTypeEnum, TLongTermMemory } from '@metad/contracts'
 import { OverlayAnimations } from '@metad/core'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { NgmRadioSelectComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { XpertStudioApiService } from '../../domain'
 import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
+import { XpertStudioApiService } from '../../domain'
 
 @Component({
   selector: 'xpert-studio-features-memory',
@@ -21,7 +21,7 @@ import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
     TranslateModule,
     MatSliderModule,
     MatTooltipModule,
-    NgmDensityDirective,
+    NgmRadioSelectComponent,
 
     CopilotPromptEditorComponent
   ],
@@ -30,6 +30,8 @@ import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
   animations: [...OverlayAnimations]
 })
 export class XpertStudioFeaturesMemoryComponent {
+  eLongTermMemoryTypeEnum = LongTermMemoryTypeEnum
+
   readonly apiService = inject(XpertStudioApiService)
 
   readonly xpert = this.apiService.xpert
@@ -42,13 +44,32 @@ export class XpertStudioFeaturesMemoryComponent {
     this.updateMemory({ prompt: value })
   }
 
+  get type() {
+    return this.memory()?.type
+  }
+  set type(value) {
+    this.updateMemory({ type: value })
+  }
+
+  readonly options = signal([
+    {
+      key: LongTermMemoryTypeEnum.PROFILE,
+      caption: 'Profile'
+    },
+    {
+      key: LongTermMemoryTypeEnum.QA,
+      caption: 'Question/Answer'
+    }
+  ])
+
   updateMemory(memory: Partial<TLongTermMemory>) {
     this.apiService.updateXpert((xpert) => {
       return {
         ...xpert,
         memory: {
           ...(xpert.memory ?? {}),
-          ...memory
+          type: xpert.memory?.type ?? LongTermMemoryTypeEnum.PROFILE,
+          ...memory,
         }
       }
     })

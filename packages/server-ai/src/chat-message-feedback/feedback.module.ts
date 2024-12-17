@@ -7,7 +7,6 @@ import { ChatMessageFeedbackController } from './feedback.controller'
 import { ChatMessageFeedback } from './feedback.entity'
 import { ChatMessageFeedbackService } from './feedback.service'
 import { ChatConversationModule } from '../chat-conversation'
-import { CommandHandlers } from './commands/handlers'
 
 @Module({
 	imports: [
@@ -19,6 +18,6 @@ import { CommandHandlers } from './commands/handlers'
 		ChatConversationModule
 	],
 	controllers: [ChatMessageFeedbackController],
-	providers: [ChatMessageFeedbackService, ...CommandHandlers]
+	providers: [ChatMessageFeedbackService,]
 })
 export class ChatMessageFeedbackModule {}

@@ -14,7 +14,6 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { Observable } from 'rxjs'
 import { tap } from 'rxjs/operators'
-import { ChatConversationService } from '../chat-conversation/conversation.service'
 import { ChatMessageFeedback } from './feedback.entity'
 import { ChatMessageFeedbackService } from './feedback.service'
 
@@ -77,7 +76,6 @@ class ResponseInterceptor implements NestInterceptor {
 export class ChatMessageFeedbackController extends CrudController<ChatMessageFeedback> {
 	constructor(
 		private readonly service: ChatMessageFeedbackService,
-		private readonly convService: ChatConversationService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
 	) {

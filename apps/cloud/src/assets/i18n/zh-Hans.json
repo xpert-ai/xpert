@@ -2039,7 +2039,17 @@
       "Reject": "拒绝",
       "Sensitive": "敏感",
       "SensitiveToolsTip": "敏感工具需要经过用户确认后才能执行",
-      "SensitiveAgentTip": "敏感智能体需要经过用户确认后才能执行"
+      "SensitiveAgentTip": "敏感智能体需要经过用户确认后才能执行",
+      "Memory": "记忆",
+      "MemoryCols": {
+        "Key": "键",
+        "Value": "值",
+        "CreatedBy": "创建人",
+        "Actions": "操作"
+      },
+      "LongTermMemory": "长期记忆",
+      "DeleteTheMemory": "删除此记忆",
+      "GainMemoryAgain": "可以被再次触发总结来获得记忆。"
     },
     "title": {
       "short": "Xpert AI"

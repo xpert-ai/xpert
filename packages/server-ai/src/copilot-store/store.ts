@@ -85,11 +85,8 @@ export class CopilotMemoryStore extends BaseStore {
 
 	async batchGetOps(getOps: Array<[number, GetOperation]>, results: OperationResults<GetOperation[]>): Promise<void> {
 		for await (const [query, params, namespace, items] of this.getBatchGetOpsQueries(getOps)) {
-      console.log(query, params)
 			const { rows } = await this.pgPool.query(query, params)
 			const keyToRow: Record<string, any> = {}
-
-      console.log(rows)
 
 			for (const row of rows) {
 				keyToRow[row['key']] = row
@@ -161,149 +158,147 @@ export class CopilotMemoryStore extends BaseStore {
     }
   }
 
-private prepareBatchPutQueries(
-  putOps: Array<[number, PutOperation]>
-): [Array<[string, any[]]>, [string, Array<[string, string, string, string]>] | null] {
-  // Last-write wins
-  const deduppedOps: Map<string, PutOperation> = new Map();
-  for (const [, op] of putOps) {
-    deduppedOps.set(`${op.namespace.join(':')}:${op.key}`, op);
-  }
-
-  const inserts: PutOperation[] = [];
-  const deletes: PutOperation[] = [];
-  for (const op of deduppedOps.values()) {
-    if (op.value === null) {
-      deletes.push(op);
-    } else {
-      inserts.push(op);
+  private prepareBatchPutQueries(
+    putOps: Array<[number, PutOperation]>
+  ): [Array<[string, any[]]>, [string, Array<[string, string, string, string]>] | null] {
+    // Last-write wins
+    const deduppedOps: Map<string, PutOperation> = new Map();
+    for (const [, op] of putOps) {
+      deduppedOps.set(`${op.namespace.join(':')}:${op.key}`, op);
     }
-  }
 
-  const queries: Array<[string, any[]]> = [];
-
-  if (deletes.length > 0) {
-    const namespaceGroups: Map<string, string[]> = new Map();
-    for (const op of deletes) {
-      const ns = op.namespace.join(':');
-      if (!namespaceGroups.has(ns)) {
-        namespaceGroups.set(ns, []);
+    const inserts: PutOperation[] = [];
+    const deletes: PutOperation[] = [];
+    for (const op of deduppedOps.values()) {
+      if (op.value === null) {
+        deletes.push(op);
+      } else {
+        inserts.push(op);
       }
-      namespaceGroups.get(ns).push(op.key);
-    }
-    for (const [namespace, keys] of namespaceGroups.entries()) {
-      const placeholders = keys.map(() => '%s').join(',');
-      const query = `DELETE FROM copilot_store WHERE tenantId = '${this.options?.tenantId}' and organizationId = '${this.options?.organizationId}' and prefix = %s AND key IN (${placeholders})`;
-      const params = [namespace, ...keys];
-      queries.push([query, params]);
-    }
-  }
-
-  let embeddingRequest: [string, Array<[string, string, string, string]>] | null = null;
-  if (inserts.length > 0) {
-    const values: string[] = [];
-    // const insertionParams: any[] = [];
-    const vectorValues: string[] = [];
-    const embeddingRequestParams: Array<[string, string, string, string]> = [];
-
-    // First handle main store insertions
-    for (const op of inserts) {
-      values.push(`('${this.options?.tenantId}', '${this.options?.organizationId}', '${this.options?.userId}', '${op.namespace.join(':')}', '${op.key}', '${JSON.stringify(op.value)}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`);
-      // insertionParams.push(
-      //   op.namespace.join(':'),
-      //   op.key,
-      //   JSON.stringify(op.value)
-      // );
     }
 
-    // Then handle embeddings if configured
-    if (this.index) {
-      for (const op of inserts) {
-        if (op.index === false) {
-          continue;
-        }
-        const value = op.value;
+    const queries: Array<[string, any[]]> = [];
+
+    if (deletes.length > 0) {
+      const namespaceGroups: Map<string, string[]> = new Map();
+      for (const op of deletes) {
         const ns = op.namespace.join(':');
-        const k = op.key;
+        if (!namespaceGroups.has(ns)) {
+          namespaceGroups.set(ns, []);
+        }
+        namespaceGroups.get(ns).push(op.key);
+      }
+      for (const [namespace, keys] of namespaceGroups.entries()) {
+        const placeholders = keys.map((key, index) => `$${index + 2}`).join(',');
+        const query = `DELETE FROM copilot_store WHERE "tenantId" = '${this.options?.tenantId}' and "organizationId" = '${this.options?.organizationId}' and "createdById" = '${this.options.userId}' and prefix = $1 AND key IN (${placeholders})`;
+        const params = [namespace, ...keys];
+        queries.push([query, params]);
+      }
+    }
 
-        const paths = op.index === null
-          ? this.index['__tokenizedFields']
-          : op.index.map((ix: string) => [ix, tokenizePath(ix)]);
+    let embeddingRequest: [string, Array<[string, string, string, string]>] | null = null;
+    if (inserts.length > 0) {
+      const values: string[] = [];
+      // const insertionParams: any[] = [];
+      const vectorValues: string[] = [];
+      const embeddingRequestParams: Array<[string, string, string, string]> = [];
 
-        for (const [path, tokenizedPath] of paths) {
-          const texts = getTextAtPath(value, tokenizedPath);
-          for (let i = 0; i < texts.length; i++) {
-            const text = texts[i];
-            const pathname = texts.length > 1 ? `${path}.${i}` : path as string;
-            vectorValues.push("(%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
-            embeddingRequestParams.push([ns, k, pathname, text]);
+      // First handle main store insertions
+      for (const op of inserts) {
+        values.push(`('${this.options?.tenantId}', '${this.options?.organizationId}', '${this.options?.userId}', '${op.namespace.join(':')}', '${op.key}', '${JSON.stringify(op.value)}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`);
+        // insertionParams.push(
+        //   op.namespace.join(':'),
+        //   op.key,
+        //   JSON.stringify(op.value)
+        // );
+      }
+
+      // Then handle embeddings if configured
+      if (this.index) {
+        for (const op of inserts) {
+          if (op.index === false) {
+            continue;
+          }
+          const value = op.value;
+          const ns = op.namespace.join(':');
+          const k = op.key;
+
+          const paths = op.index === null
+            ? this.index['__tokenizedFields']
+            : op.index.map((ix: string) => [ix, tokenizePath(ix)]);
+
+          for (const [path, tokenizedPath] of paths) {
+            const texts = getTextAtPath(value, tokenizedPath);
+            for (let i = 0; i < texts.length; i++) {
+              const text = texts[i];
+              const pathname = texts.length > 1 ? `${path}.${i}` : path as string;
+              vectorValues.push("(%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+              embeddingRequestParams.push([ns, k, pathname, text]);
+            }
           }
         }
       }
-    }
-    const valuesStr = values.join(',');
-    let query = `
-      INSERT INTO copilot_store ( "tenantId", "organizationId", "createdById", prefix, key, value, "createdAt", "updatedAt")
-      VALUES ${valuesStr}
-      ON CONFLICT ("organizationId", prefix, key) DO UPDATE
-      SET value = EXCLUDED.value,
-          "updatedAt" = CURRENT_TIMESTAMP
-    `;
-    queries.push([query, null]);
-
-    if (vectorValues.length > 0) {
-      const vectorValuesStr = vectorValues.join(',');
-      query = `
-        INSERT INTO store_vectors (prefix, key, field_name, embedding, created_at, updated_at)
-        VALUES ${vectorValuesStr}
-        ON CONFLICT (prefix, key, field_name) DO UPDATE
-        SET embedding = EXCLUDED.embedding,
-            updated_at = CURRENT_TIMESTAMP
+      const valuesStr = values.join(',');
+      let query = `
+        INSERT INTO copilot_store ( "tenantId", "organizationId", "createdById", prefix, key, value, "createdAt", "updatedAt")
+        VALUES ${valuesStr}
+        ON CONFLICT ("organizationId", prefix, key) DO UPDATE
+        SET value = EXCLUDED.value,
+            "updatedAt" = CURRENT_TIMESTAMP
       `;
-      embeddingRequest = [query, embeddingRequestParams];
+      queries.push([query, null]);
+
+      if (vectorValues.length > 0) {
+        const vectorValuesStr = vectorValues.join(',');
+        query = `
+          INSERT INTO store_vectors (prefix, key, field_name, embedding, created_at, updated_at)
+          VALUES ${vectorValuesStr}
+          ON CONFLICT (prefix, key, field_name) DO UPDATE
+          SET embedding = EXCLUDED.embedding,
+              updated_at = CURRENT_TIMESTAMP
+        `;
+        embeddingRequest = [query, embeddingRequestParams];
+      }
     }
+
+    return [queries, embeddingRequest];
   }
 
-  return [queries, embeddingRequest];
-}
 
+  private extractTexts(ops: PutOperation[]): {[text: string]: [string[], string, string][];} {
+    if (!ops.length || !this._indexConfig) {
+      return {};
+    }
 
-private extractTexts(ops: PutOperation[]): {
-  [text: string]: [string[], string, string][];
-} {
-  if (!ops.length || !this._indexConfig) {
-    return {};
-  }
+    const toEmbed: { [text: string]: [string[], string, string][] } = {};
 
-  const toEmbed: { [text: string]: [string[], string, string][] } = {};
-
-  for (const op of ops) {
-    if (op.value !== null && op.index !== false) {
-      const paths =
-        op.index === null || op.index === undefined
-          ? this._indexConfig.__tokenizedFields ?? []
-          : op.index.map(
-              (ix) => [ix, tokenizePath(ix)] as [string, string[]]
-            );
-      for (const [path, field] of paths) {
-        const texts = getTextAtPath(op.value, field);
-        if (texts.length) {
-          if (texts.length > 1) {
-            texts.forEach((text, i) => {
-              if (!toEmbed[text]) toEmbed[text] = [];
-              toEmbed[text].push([op.namespace, op.key, `${path}.${i}`]);
-            });
-          } else {
-            if (!toEmbed[texts[0]]) toEmbed[texts[0]] = [];
-            toEmbed[texts[0]].push([op.namespace, op.key, path]);
+    for (const op of ops) {
+      if (op.value !== null && op.index !== false) {
+        const paths =
+          op.index === null || op.index === undefined
+            ? this._indexConfig.__tokenizedFields ?? []
+            : op.index.map(
+                (ix) => [ix, tokenizePath(ix)] as [string, string[]]
+              );
+        for (const [path, field] of paths) {
+          const texts = getTextAtPath(op.value, field);
+          if (texts.length) {
+            if (texts.length > 1) {
+              texts.forEach((text, i) => {
+                if (!toEmbed[text]) toEmbed[text] = [];
+                toEmbed[text].push([op.namespace, op.key, `${path}.${i}`]);
+              });
+            } else {
+              if (!toEmbed[texts[0]]) toEmbed[texts[0]] = [];
+              toEmbed[texts[0]].push([op.namespace, op.key, path]);
+            }
           }
         }
       }
     }
-  }
 
-  return toEmbed;
-}
+    return toEmbed;
+  }
 
 }
 

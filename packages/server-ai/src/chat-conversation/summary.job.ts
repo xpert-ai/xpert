@@ -4,8 +4,8 @@ import { Inject, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { Job } from 'bull'
 import { v4 as uuidv4 } from 'uuid'
-import { ChatMessageFeedbackUpdateJobCommand } from '../chat-message-feedback/commands/'
 import { ChatMessageService } from '../chat-message/chat-message.service'
+import { ChatMessageUpdateJobCommand } from '../chat-message/commands'
 import { CreateCopilotStoreCommand } from '../copilot-store'
 import { XpertSummarizeMemoryCommand } from '../xpert'
 import { ChatConversationService } from './conversation.service'
@@ -14,7 +14,6 @@ export type ConversationSummaryReqType = {
 	conversationId: string
 	messageId?: string
 	userId: string
-	feedbackId?: string
 }
 
 @Processor({
@@ -32,7 +31,7 @@ export class ConversationSummaryProcessor {
 
 	@Process({ concurrency: 5 })
 	async process(job: Job<ConversationSummaryReqType>) {
-		const { conversationId, messageId, userId, feedbackId } = job.data
+		const { conversationId, messageId, userId } = job.data
 		const conversation = await this.service.findOne(conversationId, { relations: ['_messages'] })
 		const message = await this.messageService.findOne(messageId)
 
@@ -55,30 +54,31 @@ export class ConversationSummaryProcessor {
 					})
 				)
 
+				let memoryKey = null
 				if (Array.isArray(experiences)) {
-					await store.batch(
-						experiences.map((experience) => ({
+					memoryKey = []
+					const operations = experiences.map((experience) => {
+						const key = uuidv4()
+						memoryKey.push(key)
+						return {
 							namespace: [conversation.xpertId],
-							key: uuidv4(),
-							value: {
-								experience
-							}
-						}))
-					)
-				} else if (typeof experiences === 'string') {
-					await store.put([conversation.xpertId], uuidv4(), {
-						experience: experiences
+							key,
+							value: experience
+						}
 					})
+					await store.batch(operations)
+				} else if (experiences) {
+					memoryKey = uuidv4()
+					await store.put([conversation.xpertId], memoryKey, experiences)
 				}
 
-				if (feedbackId) {
-					await this.commandBus.execute(
-						new ChatMessageFeedbackUpdateJobCommand(feedbackId, {
-							progress: 100,
-							status: 'done'
-						})
-					)
-				}
+				await this.commandBus.execute(
+					new ChatMessageUpdateJobCommand(messageId, {
+						progress: 100,
+						status: 'done',
+						memoryKey
+					})
+				)
 			} catch (err) {
 				console.error(err)
 			}

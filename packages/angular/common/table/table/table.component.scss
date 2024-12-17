@@ -35,6 +35,10 @@
         }
       }
     }
+
+    .cdk-cell.mat-mdc-table-sticky {
+      @apply bg-components-panel-bg;
+    }
   }
 }
 

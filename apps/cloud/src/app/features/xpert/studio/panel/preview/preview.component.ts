@@ -258,7 +258,7 @@ export class XpertStudioPreviewComponent {
     this.executionService.conversation.update((state) => ({ ...state, status: 'busy' }))
   }
 
-  feedback(message: IChatMessage, rating: ChatMessageFeedbackRatingEnum) {
+  feedback(message: Partial<IChatMessage>, rating: ChatMessageFeedbackRatingEnum) {
     this.messageFeedbackService
       .create({
         messageId: message.id,
@@ -279,7 +279,7 @@ export class XpertStudioPreviewComponent {
       })
   }
 
-  cancelFeedback(message: IChatMessage, id: string) {
+  cancelFeedback(message: Partial<IChatMessage>, id: string) {
     this.messageFeedbackService
       .delete(id)
       .subscribe({

@@ -162,11 +162,17 @@ export type TSummarize = {
   retainMessages?: number
 }
 
+export enum LongTermMemoryTypeEnum {
+  PROFILE = 'profile',
+  QA = 'qa',
+}
+
 /**
  * Config of long-term memory
  */
 export type TLongTermMemory = {
   enabled?: boolean
+  type?: LongTermMemoryTypeEnum
   /**
    * System prompt guide how to remember the key points of the conversation
    */

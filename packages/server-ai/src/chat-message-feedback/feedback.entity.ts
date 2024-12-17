@@ -1,7 +1,7 @@
-import { ChatMessageFeedbackRatingEnum, IChatConversation, IChatMessage, IChatMessageFeedback, TSummaryJob } from '@metad/contracts'
+import { ChatMessageFeedbackRatingEnum, IChatConversation, IChatMessage, IChatMessageFeedback } from '@metad/contracts'
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsOptional, IsString, IsJSON } from 'class-validator'
+import { ApiProperty } from '@nestjs/swagger'
+import { IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { ChatConversation, ChatMessage } from '../core/entities/internal'
 
@@ -18,12 +18,6 @@ export class ChatMessageFeedback extends TenantOrganizationBaseEntity implements
 	@IsOptional()
 	@Column({ nullable: true })
 	content?: string
-
-	@ApiPropertyOptional({ type: () => Object })
-	@IsJSON()
-	@IsOptional()
-	@Column({ type: 'json', nullable: true })
-	summaryJob: TSummaryJob
 
 	/*
     |--------------------------------------------------------------------------
