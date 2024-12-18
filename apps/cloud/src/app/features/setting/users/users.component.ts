@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, ViewChild, effect, inject, signal } from '@angular/core'
-import { MatDialog } from '@angular/material/dialog'
+import { Dialog } from '@angular/cdk/dialog'
+import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core'
 import { ActivatedRoute, Router } from '@angular/router'
 import { Store } from '@metad/cloud/state'
 import { Subject, firstValueFrom, map } from 'rxjs'
@@ -10,7 +10,6 @@ import { MaterialModule } from '../../../@shared/material.module'
 import { userLabel } from '../../../@shared/pipes'
 import { SharedModule } from '../../../@shared/shared.module'
 import { UserMutationComponent } from '../../../@shared/user'
-
 
 @Component({
   standalone: true,
@@ -28,7 +27,7 @@ export class PACUsersComponent<T extends IUser = IUser> extends TranslationBaseC
   private readonly store = inject(Store)
   private router = inject(Router)
   private _route = inject(ActivatedRoute)
-  private _dialog = inject(MatDialog)
+  private _dialog = inject(Dialog)
 
   openedLinks = signal<T[]>([])
   currentLink = signal<T | null>(null)
@@ -89,7 +88,7 @@ export class PACUsersComponent<T extends IUser = IUser> extends TranslationBaseC
   }
 
   async invite() {
-    const result = await firstValueFrom(this._dialog.open(InviteMutationComponent).afterClosed())
+    const result = await firstValueFrom(this._dialog.open<{total: number}>(InviteMutationComponent).closed)
 
     // 成功邀请人数
     if (result?.total) {
@@ -100,7 +99,7 @@ export class PACUsersComponent<T extends IUser = IUser> extends TranslationBaseC
 
   async addUser() {
     const result = await firstValueFrom(
-      this._dialog.open(UserMutationComponent, { data: { isAdmin: true } }).afterClosed()
+      this._dialog.open<{user: IUser;}>(UserMutationComponent, { data: { isAdmin: true } }).closed
     )
     if (result?.user) {
       this.router.navigate(['.', result.user.id], { relativeTo: this._route })

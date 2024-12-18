@@ -1,36 +1,37 @@
-import { Component, HostBinding, Inject, Input, OnInit, ViewChild } from '@angular/core'
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog'
-import { ITag, IUser } from '@metad/contracts'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
+import { ChangeDetectionStrategy, Component, HostBinding, inject, Inject, Input, OnInit, ViewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
-import { MatDialogModule } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
+import { ITag, IUser } from '@metad/contracts'
+import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { ToastrService } from '../../../@core'
 import { Store } from '../../../@core/services/store.service'
 import { BasicInfoFormComponent, UserFormsModule } from '../forms'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
-import { ToastrService } from '../../../@core'
 
 @Component({
   standalone: true,
   imports: [
-		FormsModule,
-		MatDialogModule,
-		MatIconModule,
-		MatButtonModule,
-		DragDropModule,
-		TranslateModule,
+    FormsModule,
+    MatIconModule,
+    MatButtonModule,
+    DragDropModule,
+    TranslateModule,
     ButtonGroupDirective,
-    
-		UserFormsModule
-	],
+
+    UserFormsModule
+  ],
   selector: 'pac-user-mutation',
   templateUrl: './user-mutation.component.html',
-  styleUrls: ['./user-mutation.component.scss']
+  styleUrls: ['./user-mutation.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class UserMutationComponent implements OnInit {
   @HostBinding('class.ngm-dialog-container') isDialogContainer = true
+
+  readonly dialogRef = inject(DialogRef<{ user: IUser }, UserMutationComponent>)
 
   @ViewChild('userBasicInfo')
   userBasicInfo: BasicInfoFormComponent
@@ -41,10 +42,9 @@ export class UserMutationComponent implements OnInit {
   @Input() public isSuperAdmin: boolean
 
   constructor(
-    protected dialogRef: MatDialogRef<UserMutationComponent>,
     protected store: Store,
-    @Inject(MAT_DIALOG_DATA)
-    private data: {isAdmin: boolean, isSuperAdmin: boolean},
+    @Inject(DIALOG_DATA)
+    private data: { isAdmin: boolean; isSuperAdmin: boolean },
     private toastrService: ToastrService
   ) {}
 
@@ -52,6 +52,7 @@ export class UserMutationComponent implements OnInit {
     this.isAdmin = this.data.isAdmin
     this.isSuperAdmin = this.data.isSuperAdmin
   }
+  
   selectedTagsEvent(ev) {
     this.tags = ev
   }
@@ -60,16 +61,17 @@ export class UserMutationComponent implements OnInit {
     this.dialogRef.close({ user })
   }
 
+  cancel() {
+    this.dialogRef.close()
+  }
+
   async add() {
     try {
       const organization = this.store.selectedOrganization
-      const user = await this.userBasicInfo.registerUser(
-        organization?.id,
-        this.store.userId
-      )
+      const user = await this.userBasicInfo.registerUser(organization?.id, this.store.userId)
       this.closeDialog(user)
     } catch (error) {
-      this.toastrService.danger(error);
+      this.toastrService.danger(error)
     }
   }
 }

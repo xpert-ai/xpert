@@ -235,9 +235,13 @@ export class AuthService extends SocialAuthService {
 
 	/**
 	 * Shared method involved in
-	 * 1. Create user
+	 * 1. Sign up
 	 * 2. Addition of new user to organization
 	 * 3. User invite accept scenario
+	 * 
+	 * @param input
+	 * @param languageCode
+	 * @returns
 	 */
 	async register(
 		input: IUserRegistrationInput,
