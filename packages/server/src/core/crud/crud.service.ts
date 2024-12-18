@@ -1,3 +1,5 @@
+import { IPagination } from '@metad/contracts';
+import { getErrorMessage } from '@metad/server-common';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
 	DeepPartial,
@@ -16,12 +18,10 @@ import { of, throwError } from 'rxjs';
 import * as moment from 'moment';
 import { BaseEntity } from '../entities/internal';
 import { ICrudService } from './icrud.service';
-import { IPagination } from '@metad/contracts';
 import { ITryRequest } from './try-request';
 import { filterQuery } from './query-builder';
 import { RequestContext } from '../context';
 import { FindOptionsWhere } from './FindOptionsWhere';
-import { getErrorMessage } from '@metad/server-common';
 
 export abstract class CrudService<T extends BaseEntity>
 	implements ICrudService<T> {
@@ -35,6 +35,10 @@ export abstract class CrudService<T extends BaseEntity>
 	protected constructor(
 		protected readonly repository: Repository<T>
 	) {}
+
+	async findMyAll(filter?: FindManyOptions<T>): Promise<IPagination<T>> {
+		throw new Error('Method not implemented.');
+	}
 	
 	public async count(filter?: FindManyOptions<T>): Promise<number> {
 		return await this.repository.count(filter);

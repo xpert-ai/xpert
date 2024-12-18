@@ -21,6 +21,11 @@ export class CrudService<T> {
       .get<{ items: T[]; total: number }>(this.apiBaseUrl, { params: toHttpParams(options) })
   }
 
+  getMyAll(options?: PaginationParams<T>) {
+    return this.httpClient
+      .get<{ items: T[]; total: number }>(this.apiBaseUrl + '/my', { params: toHttpParams(options) })
+  }
+
   getById(id: string, options?: {select?: (keyof T)[]; relations?: string[]}) {
     return this.httpClient.get<T>(this.apiBaseUrl + `/${id}`, { params: toHttpParams(options) })
   }

@@ -158,7 +158,7 @@ export class ChatService {
       switchMap((id) =>
         id ? combineLatest([
           this.conversationService.getById(id, { relations: ['xpert', 'xpert.knowledgebases', 'xpert.toolsets', 'messages'] }),
-          this.feedbackService.getAll({ where: { conversationId: id, } })
+          this.feedbackService.getMyAll({ where: { conversationId: id, } })
         ]).pipe(
           catchError((error) => {
             this.#toastr.error(getErrorMessage(error))

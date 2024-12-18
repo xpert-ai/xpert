@@ -22,7 +22,7 @@ export class FeedController extends CrudController<Feed> {
 
 	@Get()
 	async findAll(): Promise<IPagination<Feed>> {
-		return await this.service.findMy()
+		return await this.service.findMyAll()
 	}
 
 	@UseInterceptors(ClassSerializerInterceptor)

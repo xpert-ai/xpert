@@ -14,7 +14,7 @@ export class FeedService extends TenantOrganizationAwareCrudService<Feed> {
 	}
 
 	public async create(entity: DeepPartial<Feed>, ...options: any[]): Promise<Feed> {
-		const exist = await super.findMy({
+		const exist = await super.findMyAll({
 			where: {
 				type: entity.type,
 				entityId: entity.entityId

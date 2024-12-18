@@ -83,10 +83,6 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/managers/${userId}`)
   }
 
-  getMyAll(params: PaginationParams<IXpert>) {
-    return this.httpClient.get<{items: IXpert[]}>(this.apiBaseUrl + `/my`, { params: toHttpParams(params) })
-  }
-
   getMyCopilots(relations?: string[]) {
     return this.getMyAll({ relations, where: {latest: true, type: XpertTypeEnum.Copilot }, order: {updatedAt: OrderTypeEnum.DESC} })
   }
