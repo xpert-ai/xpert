@@ -4,7 +4,7 @@ import { AIMessageChunk, HumanMessage, isAIMessage, isAIMessageChunk, MessageCon
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Annotation, CompiledStateGraph, LangGraphRunnableConfig, NodeInterrupt } from '@langchain/langgraph'
-import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IXpert, IXpertAgent, TSensitiveOperation, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IXpert, IXpertAgent, ToolCall, TSensitiveOperation, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
@@ -24,7 +24,6 @@ import { RunnableLambda } from '@langchain/core/runnables'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { getErrorMessage } from '@metad/server-common'
 import { AgentStateAnnotation, TSubAgent } from './types'
-import { ToolCall } from '@langchain/core/dist/messages/tool'
 import { CompleteToolCallsQuery } from '../../queries'
 
 
@@ -197,6 +196,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		const eventStack: string[] = []
 		// let toolCalls = null
 		let prevEvent = ''
+		const toolsMap: Record<string, string> = {} // For lc_name and name of tool is different
 		const contentStream = from(
 			graph.streamEvents(
 				input?.input ? {
@@ -310,9 +310,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 					case 'on_tool_start': {
 						// this.#logger.verbose(data, rest)
 						eventStack.push(event)
-						// Tools currently called in parallel
-						// toolCalls ??= {}
-						// toolCalls[rest.run_id] = {data, ...rest}
+						toolsMap[rest.metadata.langgraph_node] = rest.name
 						subscriber.next({
 							data: {
 								type: ChatMessageTypeEnum.EVENT,
@@ -327,10 +325,6 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 					}
 					case 'on_tool_end': {
 						// this.#logger.verbose(data, rest)
-						// Clear finished tool call
-						// if (toolCalls?.[rest.run_id]) {
-						//   toolCalls[rest.run_id] = null
-						// }
 						const _event = eventStack.pop()
 						if (_event !== 'on_tool_start') { // 应该不会出现这种情况吧？
 							eventStack.pop()
@@ -389,6 +383,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 										data: {
 											...rest,
 											...data,
+											name: toolsMap[data.toolCall.name] ?? data.toolCall.name,
 											tags,
 										}
 									}

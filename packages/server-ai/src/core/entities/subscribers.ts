@@ -1,3 +1,4 @@
+import { ChatConversationSubscriber } from '../../chat-conversation/conversation.subscriber'
 import { ChatMessageSubscriber } from '../../chat-message/chat-message.subscriber'
 import { CopilotModelSubscriber } from '../../copilot-model/copilot-model.subscriber'
 import { KnowledgebaseSubscriber } from '../../knowledgebase/knowledgebase.subscriber'
@@ -14,5 +15,6 @@ export const AiSubscribers = [
 	XpertToolsetSubscriber,
 	XpertToolSubscriber,
 	CopilotModelSubscriber,
+	ChatConversationSubscriber,
 	ChatMessageSubscriber
 ]

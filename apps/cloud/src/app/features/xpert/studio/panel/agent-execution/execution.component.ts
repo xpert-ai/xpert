@@ -224,13 +224,13 @@ export function processEvents(event, executionService: XpertExecutionService) {
       break
     }
     case ChatMessageEventTypeEnum.ON_TOOL_START: {
-      executionService.updateToolExecution(event.data.name, event.data.run_id, {
+      executionService.updateToolExecution(event.data.name, event.data.metadata?.langgraph_checkpoint_ns, {
         status: XpertAgentExecutionStatusEnum.RUNNING
       })
       break
     }
     case ChatMessageEventTypeEnum.ON_TOOL_END: {
-      executionService.updateToolExecution(event.data.name, event.data.run_id, {
+      executionService.updateToolExecution(event.data.name, event.data.metadata?.langgraph_checkpoint_ns, {
         status: XpertAgentExecutionStatusEnum.SUCCESS,
         inputs: {
           ...(event.data.data?.input ?? {})
@@ -242,7 +242,7 @@ export function processEvents(event, executionService: XpertExecutionService) {
       break
     }
     case ChatMessageEventTypeEnum.ON_TOOL_ERROR: {
-      executionService.updateToolExecution(event.data.name, event.data.run_id, {
+      executionService.updateToolExecution(event.data.name, event.data.metadata?.langgraph_checkpoint_ns, {
         status: XpertAgentExecutionStatusEnum.ERROR,
         error: event.data.error
       })
