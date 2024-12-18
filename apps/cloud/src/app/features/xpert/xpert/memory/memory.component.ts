@@ -1,9 +1,11 @@
+import { A11yModule } from '@angular/cdk/a11y'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, inject, signal, TemplateRef, viewChild, model } from '@angular/core'
+import { ChangeDetectionStrategy, Component, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { MatInputModule } from '@angular/material/input'
 import { RouterModule } from '@angular/router'
 import { CdkConfirmDeleteComponent, NgmCommonModule, TableColumn } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -13,8 +15,6 @@ import { map, switchMap } from 'rxjs/operators'
 import { CopilotStoreService, getErrorMessage, injectToastr, routeAnimations, XpertService } from '../../../../@core'
 import { UserProfileInlineComponent } from '../../../../@shared/user'
 import { XpertComponent } from '../xpert.component'
-import { A11yModule } from '@angular/cdk/a11y'
-import { MatInputModule } from '@angular/material/input'
 
 @Component({
   standalone: true,
@@ -48,6 +48,7 @@ export class XpertMemoryComponent {
 
   // Children
   readonly actionTemplate = viewChild('actionTemplate', { read: TemplateRef })
+  readonly valueTemplate = viewChild('valueTemplate', { read: TemplateRef })
   readonly userTemplate = viewChild('userTemplate', { read: TemplateRef })
 
   readonly loading = signal(false)
@@ -68,7 +69,7 @@ export class XpertMemoryComponent {
           {
             name: 'value',
             caption: i18n.Value || 'Value',
-            pipe: (value: any) => JSON.stringify(value)
+            cellTemplate: this.valueTemplate
           },
           {
             name: 'actions',
@@ -76,7 +77,7 @@ export class XpertMemoryComponent {
             stickyEnd: true,
             cellTemplate: this.actionTemplate
           }
-        ]
+        ] as TableColumn[]
       })
     )
   )
@@ -98,9 +99,12 @@ export class XpertMemoryComponent {
       .open(CdkConfirmDeleteComponent, {
         data: {
           value: id,
-          information: this.#translate.instant('PAC.Xpert.DeleteTheMemory', {Default: 'Delete the memory'})
-            + `:\n` + JSON.stringify(value, null, 2)
-            + `\n` + this.#translate.instant('PAC.Xpert.GainMemoryAgain', {Default: 'Can be retriggered to gain memory.'})
+          information:
+            this.#translate.instant('PAC.Xpert.DeleteTheMemory', { Default: 'Delete the memory' }) +
+            `:\n` +
+            JSON.stringify(value, null, 2) +
+            `\n` +
+            this.#translate.instant('PAC.Xpert.GainMemoryAgain', { Default: 'Can be retriggered to gain memory.' })
         }
       })
       .closed.pipe(switchMap((confirm) => (confirm ? this.storeService.delete(id) : EMPTY)))
@@ -115,7 +119,7 @@ export class XpertMemoryComponent {
   }
 
   search() {
-    this.xpertService.searchMemory(this.xpertId(), {text: this.input(), isDraft: true}).subscribe({
+    this.xpertService.searchMemory(this.xpertId(), { text: this.input(), isDraft: true }).subscribe({
       next: (results) => {
         console.log(results)
       },

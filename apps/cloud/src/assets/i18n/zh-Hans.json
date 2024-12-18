@@ -2049,7 +2049,18 @@
       },
       "LongTermMemory": "长期记忆",
       "DeleteTheMemory": "删除此记忆",
-      "GainMemoryAgain": "可以被再次触发总结来获得记忆。"
+      "GainMemoryAgain": "可以被再次触发总结来获得记忆。",
+      "ConversationSummary": "会话总结",
+      "Settings": "设置",
+      "NumberofMessageSummarized": "总结的消息数量",
+      "NumberofMessageTriggered": "触发总结的消息数量",
+      "MaximumTolerance": "最大容忍数量",
+      "ReserveQuantity": "保留数量",
+      "MemoryType": "记忆类型",
+      "LongTermMemoryTypeEnum": {
+        "Profile": "用户配置",
+        "QuestionAnswer": "问题/回答"
+      }
     },
     "title": {
       "short": "Xpert AI"

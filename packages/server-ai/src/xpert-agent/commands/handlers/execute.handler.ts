@@ -53,14 +53,6 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		}
 
 		const team = agent.team
-		// let copilot: ICopilot = null
-		// const copilotId = agent.copilotModel?.copilotId ?? team.copilotModel?.copilotId
-		
-		// if (copilotId) {
-		// 	copilot = await this.queryBus.execute(new CopilotGetOneQuery(tenantId, copilotId, ['modelProvider']))
-		// } else {
-		// 	throw new XpertCopilotNotFoundException(`Xpert copilot not found for '${xpert.name}'`)
-		// }
 
 		const chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
 			new GetXpertChatModelQuery(agent.team, agent, {
@@ -76,12 +68,6 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			provider: copilotModel.copilot.modelProvider?.providerName,
 			model: copilotModel.model || copilotModel.copilot.copilotModel?.model
 		}
-
-		// const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
-		// 	new CopilotModelGetChatModelQuery(copilot, copilotModel, {abortController, tokenCallback: (token) => {
-		// 		execution.tokens += (token ?? 0)
-		// 	}})
-		// )
 
 		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
 			new ToolsetGetToolsCommand(options?.toolsets ?? agent.toolsetIds)
@@ -168,7 +154,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			stateModifier: async (state: typeof AgentStateAnnotation.State) => {
 				const { summary } = state
 				let systemTemplate = `{{language}}\nCurrent time: ${new Date().toISOString()}\n${agent.prompt}`
-				if (memory) {
+				if (memory?.length) {
 					const memoryPrompt = memory.map((item) => {
 						if (item.value.profile) {
 							return `<profile>\n${item.value.profile}\n</profile>`
@@ -194,7 +180,6 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 				return [systemMessage, ...state.messages]
 			},
 			summarize: team.summarize,
-			memory: team.memory
 		})
 
 		this.#logger.debug(`Start chat with xpert '${xpert.name}' & agent '${agent.title}'`)

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -45,7 +45,11 @@ export class ChatConversationComponent {
   readonly operation = computed(() => this.chatService.conversation()?.operation)
   readonly toolCalls = signal<ToolCall[]>(null)
 
-
+  constructor() {
+    effect(() => {
+      // console.log(this.messages())
+    })
+  }
 
   onToolCalls(toolCalls: ToolCall[]) {
     this.toolCalls.set(toolCalls)

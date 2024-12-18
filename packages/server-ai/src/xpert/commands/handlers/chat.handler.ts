@@ -43,26 +43,11 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			aiMessage = conversation.messages[conversation.messages.length - 1] as CopilotChatMessage
 			executionId = aiMessage.executionId
 		} else {
-			//  New thead (conversation)
-			// const userMessage: CopilotChatMessage = {
-			// 	id: shortuuid(),
-			// 	role: 'human',
-			// 	content: input.input,
-			// }
-
 			// New message in conversation
 			if (conversationId) {
 				conversation = await this.queryBus.execute(
 					new GetChatConversationQuery({id: conversationId}, ['messages'])
 				)
-				// conversation.messages ??= []
-				// conversation.messages.push(userMessage)
-				// await this.commandBus.execute(
-				// 	new ChatConversationUpsertCommand({
-				// 		id: conversation.id,
-				// 		messages: conversation.messages
-				// 	})
-				// )
 			} else {
 				// New conversation
 				conversation = await this.commandBus.execute(
@@ -73,7 +58,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 							knowledgebases: options?.knowledgebases,
 							toolsets: options?.toolsets
 						},
-						// messages: [userMessage],
 					})
 				)
 			}
@@ -99,7 +83,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				role: 'ai',
 				content: ``,
 				executionId,
-				conversationId: conversation.id
+				conversationId: conversation.id,
+				status: 'thinking'
 			}))
 		}
 
@@ -136,7 +121,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				data: {
 					type: ChatMessageTypeEnum.EVENT,
 					event: ChatMessageEventTypeEnum.ON_MESSAGE_START,
-					data: aiMessage
+					data: {...aiMessage, status: 'thinking'}
 				}
 			} as MessageEvent)
 
@@ -193,17 +178,11 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 							convStatus = 'interrupted'
 						}
 
-						// const messages = (confirm || reject) ? conversation.messages.slice(0, conversation.messages.length - 1)
-						// 	: conversation.messages
 						const _conversation = await this.commandBus.execute(
 							new ChatConversationUpsertCommand({
 								id: conversation.id,
 								status: convStatus,
 								title: _execution.title,
-								// messages: [
-								// 	...messages,
-								// 	aiMessage
-								// ],
 								operation
 							})
 						)

@@ -166,17 +166,20 @@ export class ChatService {
           }), 
         ) : of([])
       ),
-      tap(([data, feedbacks]) => {
-        if (data) {
-          this.conversation.set(data)
+      tap(([conv, feedbacks]) => {
+        if (conv) {
+          this.conversation.set(conv)
+          this.#messages.set(sortBy(conv.messages, 'createdAt'))
           this.knowledgebases.set(
-            data.options?.knowledgebases?.map((id) => data.xpert?.knowledgebases?.find((item) => item.id === id)).filter(nonNullable)
+            conv.options?.knowledgebases?.map((id) => conv.xpert?.knowledgebases?.find((item) => item.id === id)).filter(nonNullable)
           )
-          this.toolsets.set(data.options?.toolsets?.map((id) => data.xpert?.toolsets?.find((item) => item.id === id)))
+          this.toolsets.set(conv.options?.toolsets?.map((id) => conv.xpert?.toolsets?.find((item) => item.id === id)))
         } else {
           // New empty conversation
           this.conversation.set({} as IChatConversation)
+          this.#messages.set([])
         }
+
         this.feedbacks.set(feedbacks?.items.reduce((acc, feedback) => {
           acc[feedback.messageId] = feedback
           return acc
@@ -222,16 +225,16 @@ export class ChatService {
     })
 
   constructor() {
-    effect(
-      () => {
-        if (this.conversation()) {
-          this.#messages.set(sortBy(this.conversation().messages, 'createdAt'))
-        } else {
-          this.#messages.set([])
-        }
-      },
-      { allowSignalWrites: true }
-    )
+    // effect(
+    //   () => {
+    //     if (this.conversation()?.messages) {
+    //       this.#messages.set(sortBy(this.conversation().messages, 'createdAt'))
+    //     } else {
+    //       this.#messages.set([])
+    //     }
+    //   },
+    //   { allowSignalWrites: true }
+    // )
 
     effect(
       () => {
@@ -297,10 +300,21 @@ export class ChatService {
                 this.appendMessageComponent(event.data)
               }
             } else if (event.type === ChatMessageTypeEnum.EVENT) {
-              if ([ChatMessageEventTypeEnum.ON_CONVERSATION_START, ChatMessageEventTypeEnum.ON_CONVERSATION_END].includes(event.event)) {
-                this.updateConversation(event.data)
-              } else {
-                this.updateEvent(event.event, event.data.error)
+              switch(event.event) {
+                case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
+                case ChatMessageEventTypeEnum.ON_CONVERSATION_END:
+                  this.updateConversation(event.data)
+                  break
+                case ChatMessageEventTypeEnum.ON_MESSAGE_START:
+                  this.updateLatestMessage((lastM) => {
+                    return {
+                      ...lastM,
+                      ...event.data
+                    }
+                  })
+                  break;
+                default:
+                  this.updateEvent(event.event, event.data.error)
               }
             }
           }
@@ -346,6 +360,7 @@ export class ChatService {
     }
     this.conversation.set(null)
     this.conversationId.set(null)
+    this.#messages.set([])
     this.xpert$.next(xpert)
   }
 
@@ -366,10 +381,19 @@ export class ChatService {
   }
 
   updateConversation(data: IChatConversation) {
-    this.conversation.set({ ...data, messages: [...(this.messages() ?? [])] })
-    if (!this.conversations().find((item) => item.id === data.id)) {
-      this.conversations.update((items) => [{ ...data }, ...items])
-    }
+    this.conversation.set({ ...data, messages: null })
+    this.conversations.update((items) => {
+      const index = items.findIndex((_) => _.id === data.id)
+      if (index > -1) {
+        items[index] = {
+          ...items[index],
+          ...data
+        }
+        return [...items]
+      } else {
+        return  [{ ...data }, ...items]
+      }
+    })
   }
 
   updateMessage(id: string, message: Partial<CopilotBaseMessage>) {

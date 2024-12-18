@@ -1,4 +1,4 @@
-import { Component, HostBinding, Inject, OnInit, Optional } from '@angular/core'
+import { ChangeDetectionStrategy, Component, HostBinding, Inject, OnInit, Optional } from '@angular/core'
 import { FormControl, FormGroup } from '@angular/forms'
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
@@ -35,7 +35,8 @@ import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
   ],
   selector: 'pac-data-source-edit',
   templateUrl: 'edit.component.html',
-  styleUrls: ['edit.component.scss']
+  styleUrls: ['edit.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PACDataSourceEditComponent implements OnInit {
   AuthenticationEnum = AuthenticationEnum

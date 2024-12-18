@@ -1,12 +1,12 @@
 <div class="flex items-center">
   <div class="w-10 border-b border-solid border-divider-deep mx-2"></div>
-  <span class="">总结的消息数量 (<span class="font-semibold">{{summarizeMessages}}</span>)</span>
+  <span class="">{{ 'PAC.Xpert.NumberofMessageSummarized' | translate: {Default: 'Number of messages summarized'} }} (<span class="font-semibold">{{summarizeMessages}}</span>)</span>
   <div class="w-10 border-b border-solid border-divider-deep mx-2"></div>
-  <span class="" [matTooltip]="'不触发总结的消息数'" matTooltipPosition="above"
-  >最大容忍数量(<span class="font-semibold">{{maxMessages}}</span>)</span>
+  <span class="" [matTooltip]="'PAC.Xpert.NumberofMessageTriggered' | translate: {Default: 'The number of messages that triggered the summary'}" matTooltipPosition="above"
+  >{{ 'PAC.Xpert.MaximumTolerance' | translate: {Default: 'Maximum Tolerance'} }}(<span class="font-semibold">{{maxMessages}}</span>)</span>
   <div class="w-10 text-center mx-4"> => </div>
 
-  <span class="">保留数量 (<span class="font-semibold">{{retainMessages()}}</span>)</span>
+  <span class="">{{ 'PAC.Xpert.ReserveQuantity' | translate: {Default: 'Reserve Quantity'} }} (<span class="font-semibold">{{retainMessages()}}</span>)</span>
 </div>
 
 <mat-slider class="w-full" [step]="2" showTickMarks discrete min="0" max="100" ngm-density small color="accent">

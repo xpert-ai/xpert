@@ -1,4 +1,7 @@
-<ngm-radio-select [options]="options()" [(ngModel)]="type" />
+<div clas="flex flex-col">
+  <label class="block p-2">{{ 'PAC.Xpert.MemoryType' | translate: {Default: 'Memory Type'} }}</label>
+  <ngm-radio-select [options]="options()" [(ngModel)]="type" />
+</div>
 
 <copilot-prompt-editor class="relative shadow-md ngm-card-border-gradient self-stretch"
   [tooltip]="'PAC.Xpert.SystemPromptTooltip' | translate: {Default: 'Prompts guide AI reponses with instructions and contraints. Insert parameters like {{input}}. This prompt won\'t be visible to users.'}"

@@ -10,6 +10,7 @@ import { NgmRadioSelectComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
 import { XpertStudioApiService } from '../../domain'
+import { injectTranslate } from 'apps/cloud/src/app/@core'
 
 @Component({
   selector: 'xpert-studio-features-memory',
@@ -33,6 +34,7 @@ export class XpertStudioFeaturesMemoryComponent {
   eLongTermMemoryTypeEnum = LongTermMemoryTypeEnum
 
   readonly apiService = inject(XpertStudioApiService)
+  readonly i18n = injectTranslate('PAC.Xpert.LongTermMemoryTypeEnum')
 
   readonly xpert = this.apiService.xpert
   readonly memory = computed(() => this.xpert()?.memory)
@@ -51,16 +53,19 @@ export class XpertStudioFeaturesMemoryComponent {
     this.updateMemory({ type: value })
   }
 
-  readonly options = signal([
-    {
-      key: LongTermMemoryTypeEnum.PROFILE,
-      caption: 'Profile'
-    },
-    {
-      key: LongTermMemoryTypeEnum.QA,
-      caption: 'Question/Answer'
-    }
-  ])
+  readonly options = computed(() => {
+    const i18n = this.i18n()
+    return [
+      {
+        key: LongTermMemoryTypeEnum.PROFILE,
+        caption: i18n.Profile || 'Profile'
+      },
+      {
+        key: LongTermMemoryTypeEnum.QA,
+        caption: i18n.QuestionAnswer || 'Question/Answer'
+      }
+    ]
+  })
 
   updateMemory(memory: Partial<TLongTermMemory>) {
     this.apiService.updateXpert((xpert) => {

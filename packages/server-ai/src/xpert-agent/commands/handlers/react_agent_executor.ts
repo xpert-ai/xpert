@@ -17,11 +17,10 @@ import { DynamicTool, StructuredToolInterface } from "@langchain/core/tools";
 import { BaseCheckpointSaver, BaseStore, CompiledStateGraph, END, LangGraphRunnableConfig, MessagesAnnotation, Send, START, StateGraph } from "@langchain/langgraph";
 import { All } from "@langchain/langgraph-checkpoint";
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
+import { TSummarize } from "@metad/contracts";
 import { v4 as uuidv4 } from "uuid";
-import z from 'zod'
 import { ToolNode } from "./tool_node";
 import { AgentStateAnnotation, TSubAgent } from "./types";
-import { TLongTermMemory, TSummarize } from "@metad/contracts";
 
 
 function _getStateModifierRunnable(
@@ -105,7 +104,6 @@ export type CreateReactAgentParams = {
   subAgents?: Record<string,  TSubAgent>
   tools?: (StructuredToolInterface | RunnableToolLike)[];
   summarize?: TSummarize
-  memory?: TLongTermMemory
 };
 
 /**
@@ -137,7 +135,6 @@ export function createReactAgent(
     state,
     tags,
     store,
-    memory
   } = props;
   const summarize = ensureSummarize(props.summarize)
 
@@ -258,8 +255,8 @@ export function createTitleAgent(model: BaseChatModel) {
   
     const allMessages = [...messages, new HumanMessage({
       id: uuidv4(),
-      content: "Create a short title of the conversation above:",
-    })];
+      content: "Create a short title for the conversation above:",
+    })]
     const response = await model.invoke(allMessages);
     if (typeof response.content !== "string") {
       throw new Error("Expected a string response from the model");

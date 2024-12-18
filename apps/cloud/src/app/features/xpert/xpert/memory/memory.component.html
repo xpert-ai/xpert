@@ -6,7 +6,9 @@
 />
 
 <div class="sticky bottom-0 p-4 rounded-bl-2xl flex flex-col justify-start items-start">
-  <div class="text-lg p-2">测试</div>
+  <div class="text-lg p-2">
+    {{ 'PAC.KEY_WORLDS.Test' | translate: {Default: 'Test'} }}
+  </div>
   <div class="relative w-full p-[5.5px] max-h-[150px] bg-white border-[1.5px] border-gray-200 rounded-xl mb-2">
     <textarea class="outline-none w-full pl-2 pr-16" matInput [(ngModel)]="input"
       cdkTextareaAutosize
@@ -44,6 +46,10 @@
   <pac-user-profile-inline [user]="user" small class="my-1" />
 </ng-template>
 
+<ng-template #valueTemplate let-value>
+  <div class="rounded-lg p-1 whitespace-pre hover:bg-hover-bg">{{value | json}}</div>
+</ng-template>
+
 <ng-template #actionTemplate let-id="id" let-value="value">
   <div class="flex items-center">
     <button class="group px-2 py-1 rounded-md bg-transparent hover:bg-hover-bg" type="button"
@@ -59,10 +65,10 @@
 
 <ng-template #actionMenu let-id="id" let-value="value">
   <div cdkMenu class="cdk-menu__medium">
-    <div cdkMenuItem  >
+    <!-- <div cdkMenuItem  >
       <i class="ri-edit-line mr-1"></i>
         {{ 'PAC.ACTIONS.Edit' | translate: {Default: 'Edit'} }}</div>
-    <div class="w-full border-b border-solid border-divider-regular my-1"></div>
+    <div class="w-full border-b border-solid border-divider-regular my-1"></div> -->
     <div cdkMenuItem class="danger" (click)="delete(id, value)">
       <i class="ri-delete-bin-line mr-1"></i>
         {{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} }}
