@@ -71,11 +71,12 @@ export class SearchXpertMemoryHandler implements IQueryHandler<SearchXpertMemory
 			fields.push('profile')
 		}
 
+		const userId = RequestContext.currentUserId()
 		const store = await this.commandBus.execute<CreateCopilotStoreCommand, BaseStore>(
 			new CreateCopilotStoreCommand({
 				tenantId,
 				organizationId,
-				userId: RequestContext.currentUserId(),
+				userId,
 				index: {
 					dims: null,
 					embeddings,
@@ -84,6 +85,6 @@ export class SearchXpertMemoryHandler implements IQueryHandler<SearchXpertMemory
 			})
 		)
 
-		return await store.search([xpert.id], { query: options.text })
+		return await store.search([xpert.id,], { query: options.text })
 	}
 }

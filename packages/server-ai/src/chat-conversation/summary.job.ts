@@ -1,11 +1,9 @@
-import { BaseStore } from '@langchain/langgraph'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { Job } from 'bull'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { ChatMessageUpdateJobCommand } from '../chat-message/commands'
-import { CreateCopilotStoreCommand } from '../copilot-store'
 import { XpertSummarizeMemoryCommand } from '../xpert'
 import { ChatConversationService } from './conversation.service'
 
@@ -13,7 +11,6 @@ export type ConversationSummaryReqType = {
 	conversationId: string
 	messageId?: string
 	userId: string
-
 }
 
 @Processor({

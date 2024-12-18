@@ -47,7 +47,6 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 
 		// Long-term memory
 		const memory = await this.getLongTermMemory(options.isDraft ? xpert.draft?.team : xpert, RequestContext.currentUserId())
-		console.log(memory)
 
 		const thread_id = execution.threadId
 		let operation: TSensitiveOperation = null
@@ -199,6 +198,6 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 			})
 		)
 
-		return await store.search([xpert.id])
+		return await store.search([xpert.id,])
 	}
 }

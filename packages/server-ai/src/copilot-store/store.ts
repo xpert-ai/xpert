@@ -390,7 +390,7 @@ export class CopilotMemoryStore extends BaseStore {
 				let baseQuery = `
           SELECT prefix, key, value, "createdAt", "updatedAt"
           FROM copilot_store
-          WHERE prefix LIKE $1
+          WHERE prefix LIKE $1 AND "createdById" = $4
         `
 				const params: Array<string | number> = [`${namespaceToText(op.namespacePrefix)}%`]
 
@@ -402,6 +402,8 @@ export class CopilotMemoryStore extends BaseStore {
 				baseQuery += ' ORDER BY "updatedAt" DESC'
 				baseQuery += ' LIMIT $2 OFFSET $3'
 				params.push(op.limit, op.offset)
+
+        params.push(this.options.userId)
 
 				queries.push([baseQuery, params])
 			}

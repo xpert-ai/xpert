@@ -56,7 +56,9 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 			)
 		}
 
-		if (!agent.team.memory?.enabled) {
+		const memory = agent.team.memory
+
+		if (!memory?.enabled) {
 			return
 		}
 
@@ -81,7 +83,13 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 			})
 		)
 
-		const memory = agent.team.memory
+		const embeddings = await this.queryBus.execute(
+			new GetXpertMemoryEmbeddingsQuery(tenantId, organizationId, memory, {
+				tokenCallback: (token) => {
+					execution.embedTokens += token ?? 0
+				}
+			})
+		)
 
 		const { summary, messages } = summarizedState
 		let systemTemplate = `${agent.prompt}`
@@ -92,8 +100,6 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 			templateFormat: 'mustache'
 		}).format({ ...summarizedState })
 
-		// console.log([systemMessage, ...messages])
-
 		let prompt = memory.prompt
 		let schema = null
 		const fields = []
@@ -103,7 +109,7 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 				output: z.string().describe(`The ai's output answer`)
 			})
 			if (!prompt) {
-				prompt = `总结以上会话的经验，输出一个简短问题和答案`
+				prompt = `Summarize the experience of the above conversation and output a short question and answer`
 			}
 			fields.push('input')
 		} else {
@@ -112,54 +118,10 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 				profile: z.string().describe(`The user's profile`)
 			})
 			if (!prompt) {
-				prompt = `用陈述事实式语气简短一句话总结以上对话的结论，我们将存储至长期记忆中，以便下次能更好地理解和回答用户用户`
+				prompt = `Summarize the conclusion of the above conversation in a short sentence with a factual tone, which we will store in long-term memory`
 			}
 			fields.push('profile')
 		}
-
-		const experiences = await chatModel
-			.withStructuredOutput(schema)
-			.invoke([systemMessage, ...messages, new HumanMessage(prompt)])
-
-		// console.log(experiences)
-
-		// let copilot: ICopilot = null
-		// if (memory.copilotModel?.copilotId) {
-		// 	copilot = await this.queryBus.execute(
-		// 		new CopilotGetOneQuery(tenantId, memory.copilotModel.copilotId, ['copilotModel', 'modelProvider'])
-		// 	)
-		// } else {
-		// 	copilot = await this.queryBus.execute(
-		// 		new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Embedding, [
-		// 			'copilotModel',
-		// 			'modelProvider'
-		// 		])
-		// 	)
-		// }
-
-		// if (!copilot?.enabled) {
-		// 	throw new CopilotNotFoundException(`Not found the embeddinga role copilot`)
-		// }
-
-		// let embeddings = null
-		// const copilotModel = memory.copilotModel ?? copilot.copilotModel
-		// if (copilotModel && copilot?.modelProvider) {
-		// 	embeddings = await this.queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
-		// 		new CopilotModelGetEmbeddingsQuery(copilot, copilotModel, {
-		// 			tokenCallback: (token) => {
-		// 				execution.embedTokens += token ?? 0
-		// 			}
-		// 		})
-		// 	)
-		// }
-
-		const embeddings = await this.queryBus.execute(
-			new GetXpertMemoryEmbeddingsQuery(tenantId, organizationId, memory, {
-				tokenCallback: (token) => {
-					execution.embedTokens += token ?? 0
-				}
-			})
-		)
 
 		const store = await this.commandBus.execute<CreateCopilotStoreCommand, BaseStore>(
 			new CreateCopilotStoreCommand({
@@ -174,6 +136,10 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 			})
 		)
 
+		const experiences = await chatModel
+			.withStructuredOutput(schema)
+			.invoke([systemMessage, ...messages, new HumanMessage(prompt)])
+
 		let memoryKey = null
 		if (Array.isArray(experiences)) {
 			memoryKey = []
@@ -181,7 +147,7 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 				const key = uuidv4()
 				memoryKey.push(key)
 				return {
-					namespace: [xpert.id],
+					namespace: [xpert.id,],
 					key,
 					value: experience
 				}
@@ -189,7 +155,7 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 			await store.batch(operations)
 		} else if (experiences) {
 			memoryKey = uuidv4()
-			await store.put([xpert.id], memoryKey, experiences)
+			await store.put([xpert.id,], memoryKey, experiences)
 		}
 
 		await this.commandBus.execute(new XpertAgentExecutionUpsertCommand(execution))
