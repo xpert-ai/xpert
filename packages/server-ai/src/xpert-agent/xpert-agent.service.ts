@@ -5,9 +5,9 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { assign } from 'lodash'
 import { Repository } from 'typeorm'
-import { XpertAgentExecutionService } from '../xpert-agent-execution'
 import { XpertAgentChatCommand } from './commands'
 import { XpertAgent } from './xpert-agent.entity'
+import { FindXpertQuery } from '../xpert/queries'
 
 @Injectable()
 export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertAgent> {
@@ -16,7 +16,6 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 	constructor(
 		@InjectRepository(XpertAgent)
 		repository: Repository<XpertAgent>,
-		private readonly agentService: XpertAgentExecutionService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
 	) {
@@ -30,8 +29,10 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 	}
 
 	async chatAgent(params: TChatAgentParams) {
+		const xpertId = params.xpertId
+		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }, ['agent']))
 		return await this.commandBus.execute(
-			new XpertAgentChatCommand(params.input, params.agent.key, params.xpert, {
+			new XpertAgentChatCommand(params.input, params.agent.key, xpert, {
 				isDraft: true,
 				execution: {
 					id: params.executionId

@@ -149,7 +149,7 @@ export class XpertStudioPanelAgentExecutionComponent {
           input: this.input()
         },
         agent: this.xpertAgent(),
-        xpert: this.xpert(),
+        xpertId: this.xpert().id,
         executionId,
         toolCalls: this.#toolCalls(),
         reject: options?.reject

@@ -90,7 +90,8 @@ export type TChatAgentParams = {
     [key: string]: unknown
   }
   agent: IXpertAgent
-  xpert: Partial<IXpert>
+  // xpert: Partial<IXpert>
+  xpertId: string
   executionId: string
   /**
    * Message to update parameters of last tool call message

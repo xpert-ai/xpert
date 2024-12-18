@@ -23,7 +23,6 @@ export class XpertAgentService extends XpertWorkspaceBaseCrudService<IXpertAgent
   chatAgent(data: TChatAgentParams) {
     return this.fetchEventSource(this.baseUrl + this.apiBaseUrl + `/chat`, JSON.stringify({
       ...data,
-      xpert: pick(data.xpert, 'id', 'name', 'copilotId', 'copilotModel')
     }))
   }
 }
