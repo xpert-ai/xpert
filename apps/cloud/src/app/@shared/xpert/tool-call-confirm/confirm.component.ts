@@ -1,11 +1,10 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, model, output, input, effect, signal } from '@angular/core'
+import { Component, computed, output, input, effect, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { ToolCall } from '@langchain/core/dist/messages/tool'
-import { TSensitiveOperation } from '@metad/contracts'
 import { SlashSvgComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { ToolCall, TSensitiveOperation } from '../../../@core'
 
 @Component({
   standalone: true,

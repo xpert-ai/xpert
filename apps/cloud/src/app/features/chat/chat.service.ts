@@ -7,6 +7,7 @@ import { injectParams } from 'ngxtension/inject-params'
 import {
   BehaviorSubject,
   catchError,
+  combineLatest,
   combineLatestWith,
   distinctUntilChanged,
   filter,
@@ -33,19 +34,23 @@ import {
   CopilotChatMessage,
   ChatMessageEventTypeEnum,
   XpertAgentExecutionStatusEnum,
+  IChatMessage,
+  ToolCall,
+  IChatMessageFeedback,
 } from '../../@core'
-import { ChatConversationService, ChatService as ChatServerService, XpertService, ToastrService } from '../../@core/services'
+import { ChatConversationService, ChatService as ChatServerService, XpertService, ToastrService, ChatMessageFeedbackService } from '../../@core/services'
 import { AppService } from '../../app.service'
 import { COMMON_COPILOT_ROLE } from './types'
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
-import { ToolCall } from '@langchain/core/dist/messages/tool'
+import { sortBy } from 'lodash-es'
 
 
 @Injectable()
 export class ChatService {
   readonly chatService = inject(ChatServerService)
   readonly conversationService = inject(ChatConversationService)
+  readonly feedbackService = inject(ChatMessageFeedbackService)
   readonly xpertService = inject(XpertService)
   readonly appService = inject(AppService)
   readonly #translate = inject(TranslateService)
@@ -58,9 +63,19 @@ export class ChatService {
 
   readonly conversationId = signal<string>(null)
   readonly xpert$ = new BehaviorSubject<IXpert>(null)
+  /**
+   * The conversation
+   */
   readonly conversation = signal<IChatConversation>(null)
+  /**
+   * User feedbacks for messages of the conversation
+   */
+  readonly feedbacks = signal<Record<string, IChatMessageFeedback>>(null)
 
-  readonly #messages = signal<CopilotBaseMessage[]>([])
+  /**
+   * Messages in the conversation
+   */
+  readonly #messages = signal<IChatMessage[]>([])
   readonly messages = computed(() => this.#messages() ?? [])
 
   // Conversations
@@ -141,14 +156,17 @@ export class ChatService {
       skip(1),
       filter((id) => !this.conversation() || this.conversation().id !== id),
       switchMap((id) =>
-        id ? this.conversationService.getById(id, { relations: ['xpert', 'xpert.knowledgebases', 'xpert.toolsets'] }).pipe(
+        id ? combineLatest([
+          this.conversationService.getById(id, { relations: ['xpert', 'xpert.knowledgebases', 'xpert.toolsets', 'messages'] }),
+          this.feedbackService.getAll({ where: { conversationId: id, } })
+        ]).pipe(
           catchError((error) => {
             this.#toastr.error(getErrorMessage(error))
-            return of(null)
+            return of([])
           }), 
-        ) : of(null)
+        ) : of([])
       ),
-      tap((data) => {
+      tap(([data, feedbacks]) => {
         if (data) {
           this.conversation.set(data)
           this.knowledgebases.set(
@@ -159,12 +177,16 @@ export class ChatService {
           // New empty conversation
           this.conversation.set({} as IChatConversation)
         }
+        this.feedbacks.set(feedbacks?.items.reduce((acc, feedback) => {
+          acc[feedback.messageId] = feedback
+          return acc
+        }, {}))
       }),
       combineLatestWith(toObservable(this.xperts)),
       takeUntilDestroyed()
     )
     .subscribe({
-      next: ([conversation, roles]) => {
+      next: ([[conversation,], roles]) => {
         if (conversation) {
           this.xpert$.next(roles?.find((role) => role.id === conversation.xpertId))
         }
@@ -203,7 +225,7 @@ export class ChatService {
     effect(
       () => {
         if (this.conversation()) {
-          this.#messages.set(this.conversation().messages)
+          this.#messages.set(sortBy(this.conversation().messages, 'createdAt'))
         } else {
           this.#messages.set([])
         }
@@ -285,6 +307,7 @@ export class ChatService {
         }
       },
       error: (error) => {
+        this.answering.set(false)
         this.#toastr.error(getErrorMessage(error))
         this.updateLatestMessage((message) => {
           return {
@@ -293,9 +316,9 @@ export class ChatService {
             error: getErrorMessage(error)
           }
         })
-        this.answering.set(false)
       },
       complete: () => {
+        this.answering.set(false)
         this.updateLatestMessage((message) => {
           return {
             ...message,
@@ -303,7 +326,6 @@ export class ChatService {
             error: null
           }
         })
-        this.answering.set(false)
       }
     })
   }

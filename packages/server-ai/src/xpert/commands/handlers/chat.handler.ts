@@ -38,9 +38,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		// Continue thread when confirm or reject operation
 		if (confirm || reject) {
 			conversation = await this.queryBus.execute(
-				new GetChatConversationQuery({ id: conversationId }, ['_messages'])
+				new GetChatConversationQuery({ id: conversationId }, ['messages'])
 			)
-			aiMessage = conversation._messages[conversation._messages.length - 1] as CopilotChatMessage
+			aiMessage = conversation.messages[conversation.messages.length - 1] as CopilotChatMessage
 			executionId = aiMessage.executionId
 		} else {
 			//  New thead (conversation)
@@ -53,7 +53,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			// New message in conversation
 			if (conversationId) {
 				conversation = await this.queryBus.execute(
-					new GetChatConversationQuery({id: conversationId}, ['_messages'])
+					new GetChatConversationQuery({id: conversationId}, ['messages'])
 				)
 				// conversation.messages ??= []
 				// conversation.messages.push(userMessage)

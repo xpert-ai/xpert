@@ -4,13 +4,14 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, signal } from '@angular/core'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { OverlayAnimations } from '@metad/core'
+import { IfAnimations } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioFeaturesSummaryComponent } from './summary/summary.component'
 import { XpertStudioApiService } from '../domain'
 import { FormsModule } from '@angular/forms'
 import { XpertStudioFeaturesMemoryComponent } from './memory/memory.component'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { DragDropModule } from '@angular/cdk/drag-drop'
 
 
 @Component({
@@ -20,6 +21,7 @@ import { NgmDensityDirective } from '@metad/ocap-angular/core'
     CommonModule,
     FormsModule,
     CdkMenuModule,
+    DragDropModule,
     TranslateModule,
     MatSlideToggleModule,
     MatTooltipModule,
@@ -29,7 +31,7 @@ import { NgmDensityDirective } from '@metad/ocap-angular/core'
   ],
   templateUrl: './features.component.html',
   styleUrl: './features.component.scss',
-  animations: [...OverlayAnimations]
+  animations: [...IfAnimations]
 })
 export class XpertStudioFeaturesComponent {
   readonly #dialogRef = inject(DialogRef)

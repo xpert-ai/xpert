@@ -82,7 +82,7 @@ export class XpertToolset extends WorkspaceBaseEntity implements IXpertToolset {
 	@OneToMany(() => XpertTool, (tool) => tool.toolset, {
 		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
 	})
-	@JoinColumn()
+	// @JoinColumn()
 	tools?: IXpertTool[]
 
 	/*

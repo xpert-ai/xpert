@@ -1,4 +1,4 @@
-import { ToolCall } from '@langchain/core/dist/messages/tool'
+import { ToolCall as LToolCall } from '@langchain/core/dist/messages/tool'
 import { ITag } from '../tag-entity.model'
 import { IUser } from '../user.model'
 import { ICopilotModel, TCopilotModel } from './copilot-model.model'
@@ -7,6 +7,8 @@ import { TAvatar } from '../types'
 import { IXpertAgent } from './xpert-agent.model'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
+
+export type ToolCall = LToolCall
 
 export type TXpert = {
   slug: string

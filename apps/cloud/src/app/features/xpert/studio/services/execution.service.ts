@@ -23,7 +23,7 @@ export class XpertExecutionService {
   readonly #messages = signal<Partial<CopilotChatMessage>[]>([])
 
   readonly messages = computed(() => {
-    const messages = this.conversation()?._messages
+    const messages = this.conversation()?.messages
     if (messages) {
       return [...messages.filter((_) => !this.#messages().some((m) => m.id === _.id)), ...this.#messages()]
     }
@@ -58,7 +58,7 @@ export class XpertExecutionService {
   // Subsribe conversation
   private conversationSub = toObservable(this.conversationId).pipe(
     switchMap((id) => id ? combineLatest([
-      this.conversationService.getById(this.conversationId(), { relations: ['_messages'] }),
+      this.conversationService.getById(this.conversationId(), { relations: ['messages'] }),
       this.feedbackService.getAll({ where: { conversationId: this.conversationId(), } })
     ]) : of([]))
   ).subscribe(([conv, feedbacks]) => {

@@ -44,11 +44,11 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
 	@Column({ type: 'json', nullable: true })
 	operation?: TSensitiveOperation
 
-	@ApiPropertyOptional({ type: () => Object })
-	@IsJSON()
-	@IsOptional()
-	@Column({ type: 'json', nullable: true })
-	messages?: CopilotBaseMessage[] | null
+	// @ApiPropertyOptional({ type: () => Object })
+	// @IsJSON()
+	// @IsOptional()
+	// @Column({ type: 'json', nullable: true })
+	// messages?: CopilotBaseMessage[] | null
 
 	/*
     |--------------------------------------------------------------------------
@@ -60,8 +60,8 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
 	@OneToMany(() => ChatMessage, (m) => m.conversation, {
 		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
 	})
-	@JoinColumn()
-	_messages?: IChatMessage[] | null
+	// @JoinColumn()
+	messages?: IChatMessage[] | null
 
 	/*
     |--------------------------------------------------------------------------

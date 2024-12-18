@@ -3,7 +3,6 @@ import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
 import { Component, computed, DestroyRef, effect, inject, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { ToolCall } from '@langchain/core/dist/messages/tool'
 import { appendMessageContent, nonBlank, stringifyMessageContent } from '@metad/copilot'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -16,6 +15,7 @@ import {
   getErrorMessage,
   IChatMessage,
   ToastrService,
+  ToolCall,
   uuid,
   XpertAgentExecutionService,
   XpertAgentExecutionStatusEnum,

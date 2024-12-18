@@ -4,7 +4,7 @@ import { AIMessageChunk, HumanMessage, isAIMessage, isAIMessageChunk, MessageCon
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Annotation, CompiledStateGraph, LangGraphRunnableConfig, NodeInterrupt } from '@langchain/langgraph'
-import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, ICopilot, IXpert, IXpertAgent, TSensitiveOperation, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IXpert, IXpertAgent, TSensitiveOperation, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
@@ -41,7 +41,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 
 	public async execute(command: XpertAgentExecuteCommand): Promise<Observable<MessageContent>> {
 		const { input, agentKey, xpert, options } = command
-		const { execution, subscriber, toolCalls, reject } = options
+		const { execution, subscriber, toolCalls, reject, memory } = options
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 		const user = RequestContext.currentUser()
@@ -168,6 +168,21 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			stateModifier: async (state: typeof AgentStateAnnotation.State) => {
 				const { summary } = state
 				let systemTemplate = `{{language}}\nCurrent time: ${new Date().toISOString()}\n${agent.prompt}`
+				if (memory) {
+					const memoryPrompt = memory.map((item) => {
+						if (item.value.profile) {
+							return `<profile>\n${item.value.profile}\n</profile>`
+						} else if (item.value.output) {
+							return `<example>
+  <input>${item.value.input}</input>
+  <output>${item.value.output}</output>
+</example>`
+						} else {
+							return ''
+						}
+					}).join('\n')
+					systemTemplate += `\n\n<memory>\n${memoryPrompt}\n</memory>`
+				}
 				if (summary) {
 					systemTemplate += `\nSummary of conversation earlier: \n${summary}`
 				}
@@ -175,8 +190,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 					templateFormat: 'mustache'
 				}).format({ ...state })
 
-				// console.log(systemMessage)
-				// console.log(state.messages)
+				this.#logger.verbose(`SystemMessage:`, systemMessage.content)
 				return [systemMessage, ...state.messages]
 			},
 			summarize: team.summarize,

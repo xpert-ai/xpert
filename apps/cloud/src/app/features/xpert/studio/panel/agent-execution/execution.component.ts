@@ -12,7 +12,6 @@ import {
 } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { ToolCall } from '@langchain/core/dist/messages/tool'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ChatMessageEventTypeEnum,
@@ -22,6 +21,7 @@ import {
   IXpertAgent,
   IXpertAgentExecution,
   ToastrService,
+  ToolCall,
   XpertAgentExecutionService,
   XpertAgentExecutionStatusEnum,
   XpertAgentService

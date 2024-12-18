@@ -1,4 +1,4 @@
-import { CopilotChatMessage, XpertTypeEnum } from '../../@core/types'
+import { IChatMessage, XpertTypeEnum } from '../../@core/types'
 
 export const COMMON_COPILOT_ROLE = {
   slug: null,
@@ -11,6 +11,8 @@ export const COMMON_COPILOT_ROLE = {
 }
 
 
-export type TCopilotChatMessage = CopilotChatMessage & {
+export type TCopilotChatMessage = IChatMessage & {
   event?: string
+  error?: string
+  expanded?: boolean
 }

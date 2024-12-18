@@ -13,7 +13,7 @@ import { ChatService } from '../chat.service'
 import { ChatComponentMessageComponent } from '../component-message/component-message.component'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { TCopilotChatMessage } from '../types'
-import { CopilotChatMessage, injectToastr, isMessageGroup } from '../../../@core'
+import { ChatMessageFeedbackRatingEnum, ChatMessageFeedbackService, getErrorMessage, IChatMessage, injectToastr, isMessageGroup } from '../../../@core'
 import { stringifyMessageContent } from '@metad/copilot'
 
 
@@ -40,11 +40,16 @@ import { stringifyMessageContent } from '@metad/copilot'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatAiMessageComponent {
+  eFeedbackRatingEnum = ChatMessageFeedbackRatingEnum
+
   readonly chatService = inject(ChatService)
+  readonly messageFeedbackService = inject(ChatMessageFeedbackService)
   readonly #clipboard = inject(Clipboard)
   readonly #toastr = injectToastr()
 
   readonly message = input<TCopilotChatMessage>()
+
+  readonly feedbacks = this.chatService.feedbacks
 
   readonly #contentStr = computed(() => {
     const content = this.message()?.content
@@ -80,7 +85,7 @@ export class ChatAiMessageComponent {
 
   readonly messageGroup = computed(() => {
     const message = this.message()
-    return isMessageGroup(message) ? message : null
+    return isMessageGroup(message as any) ? message as any : null
   })
 
   readonly copied = signal(false)
@@ -98,9 +103,51 @@ export class ChatAiMessageComponent {
     }, 3000)
   }
 
-  copy(message: CopilotChatMessage) {
+  copy(message: TCopilotChatMessage) {
     this.#clipboard.copy(stringifyMessageContent(message.content))
     this.#toastr.info({ code: 'PAC.KEY_WORDS.Copied', default: 'Copied' })
     this.copied.set(true)
+  }
+
+  getFeedback(id: string) {
+    return this.feedbacks()?.[id]
+  }
+
+  feedback(message: Partial<IChatMessage>, rating: ChatMessageFeedbackRatingEnum) {
+    this.messageFeedbackService
+      .create({
+        messageId: message.id,
+        conversationId: message.conversationId,
+        rating
+      })
+      .subscribe({
+        next: (feedback) => {
+          this.feedbacks.update((state) => ({
+            ...(state ?? {}),
+            [message.id]: feedback
+          }))
+          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', {Default: 'Updated successfully'})
+        },
+        error: (error) => {
+          this.#toastr.error(getErrorMessage(error))
+        }
+      })
+  }
+
+  cancelFeedback(message: Partial<IChatMessage>, id: string) {
+    this.messageFeedbackService
+      .delete(id)
+      .subscribe({
+        next: () => {
+          this.feedbacks.update((state) => ({
+            ...(state ?? {}),
+            [message.id]: null
+          }))
+          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', {Default: 'Updated successfully'})
+        },
+        error: (error) => {
+          this.#toastr.error(getErrorMessage(error))
+        }
+      })
   }
 }

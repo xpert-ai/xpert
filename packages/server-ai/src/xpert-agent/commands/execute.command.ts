@@ -1,4 +1,5 @@
 import { ToolCall } from '@langchain/core/dist/messages/tool'
+import { SearchItem } from '@langchain/langgraph-checkpoint'
 import { IXpert, IXpertAgentExecution, TChatOptions, TXpertParameter, XpertParameterTypeEnum } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
@@ -31,6 +32,11 @@ export class XpertAgentExecuteCommand implements ICommand {
 
 			toolCalls?: ToolCall[]
 			reject?: boolean
+
+			/**
+			 * Memory
+			 */
+			memory?: SearchItem[]
 		}
 	) {}
 }

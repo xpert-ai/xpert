@@ -75,7 +75,8 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 							rootExecutionId: execution.id,
 							thread_id,
 							execution,
-							subscriber
+							subscriber,
+							memory
 						})
 					)
 				).pipe(

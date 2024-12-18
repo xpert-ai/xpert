@@ -32,7 +32,7 @@ export class ConversationSummaryProcessor {
 	@Process({ concurrency: 5 })
 	async process(job: Job<ConversationSummaryReqType>) {
 		const { conversationId, messageId, userId } = job.data
-		const conversation = await this.service.findOne(conversationId, { relations: ['_messages'] })
+		const conversation = await this.service.findOne(conversationId, { relations: ['messages'] })
 		const message = await this.messageService.findOne(messageId)
 
 		if (conversation.xpertId && message.executionId) {
