@@ -8,6 +8,7 @@ import { IUser, IXpert, IXpertAgentExecution, OrderTypeEnum, TChatRequest, TXper
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 import { injectApiBaseUrl } from '../providers'
 import { injectFetchEventSource } from './fetch-event-source'
+import { SearchItem } from '@langchain/langgraph-checkpoint'
 
 @Injectable({ providedIn: 'root' })
 export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
@@ -96,7 +97,7 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   }
 
   searchMemory(id: string, body: {text: string; isDraft: boolean;}) {
-    return this.httpClient.post(this.apiBaseUrl + `/${id}/memory/search`, body)
+    return this.httpClient.post<SearchItem[]>(this.apiBaseUrl + `/${id}/memory/search`, body)
   }
 }
 

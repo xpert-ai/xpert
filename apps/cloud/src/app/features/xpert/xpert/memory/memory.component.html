@@ -2,7 +2,7 @@
 
 <ngm-table class="flex-1 overflow-hidden text-sm" displayDensity="compact" paging
   [columns]="columns()"
-  [data]="items()"
+  [data]="data()"
 />
 
 <div class="sticky bottom-0 p-4 rounded-bl-2xl flex flex-col justify-start items-start">
@@ -14,6 +14,7 @@
       cdkTextareaAutosize
       cdkAutosizeMinRows="1"
       cdkAutosizeMaxRows="5"
+      (keydown)="onKeydown($event)"
     ></textarea>
     <div class="absolute bottom-1 h-8 right-2 flex items-center">
       <div class="mx-2 w-[1px] h-4 bg-black opacity-5"></div>
@@ -42,6 +43,9 @@
   <ngm-spin class="absolute left-0 top-0 w-full h-full flex justify-center items-center"></ngm-spin>
 }
 
+<ng-template #scoreTemplate let-score>
+  <div>{{ score | number:'0.0-2' }}</div>
+</ng-template>
 <ng-template #userTemplate let-user="createdBy">
   <pac-user-profile-inline [user]="user" small class="my-1" />
 </ng-template>

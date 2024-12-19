@@ -2,6 +2,7 @@ import "dotenv/config";
 import { CopilotMemoryStore } from '../store';
 import { Pool } from 'pg';
 import { GetOperation, OperationResults, PutOperation, SearchOperation } from '@langchain/langgraph';
+import { OllamaEmbeddings } from "@langchain/ollama";
 
 describe('InCopilotStore', () => {
   let store: CopilotMemoryStore;
@@ -76,30 +77,62 @@ describe('InCopilotStore', () => {
   //   });
   // });
 
-  describe('batchSearchOps', () => {
-    it('should execute batch search operations with embeddings', async () => {
-      const searchOps: Array<[number, SearchOperation]> = [
-        [0, { query: 'search query', namespacePrefix: ['namespace'], limit: 10, offset: 0 }]
-      ];
-      const results: OperationResults<SearchOperation[]> = [];
+});
 
-      await store['batchSearchOps'](searchOps, results);
+describe('batchSearchOps', () => {
+  let store: CopilotMemoryStore;
+  let mockPool: Pool;
 
-      expect(results).toHaveLength(1);
-      expect(results[0]).toEqual({ key: 'key1', value: 'value1' });
+  beforeEach(async () => {
+    mockPool = new Pool({
+      connectionString: `postgresql://${process.env.DB_USER}:${process.env.DB_PASS}@localhost:5432/${process.env.DB_NAME}`
     });
 
-    it('should handle batch search operations without embeddings', async () => {
-      const searchOps: Array<[number, SearchOperation]> = [
-        [0, { query: null, namespacePrefix: ['namespace'], limit: 10, offset: 0 }]
-      ];
-      const results: OperationResults<SearchOperation[]> = [];
-
-      // 直接运行在实际的数据库上
-      await store['batchSearchOps'](searchOps, results);
-
-      expect(results).toHaveLength(1);
-      expect(results[0]).toEqual(expect.objectContaining({ key: 'key1', value: expect.objectContaining({ data: 'value1' }) }));
+    store = new CopilotMemoryStore({
+      pgPool: mockPool,
+      tenantId: '31258ebb-23ad-42a5-927b-0c3c44c82b36',
+      organizationId: '6a08dab6-5b1c-4022-b99b-e582b10d8ea4',
+      userId: '91604a85-5870-4d1a-ae9d-566a4da60004',
+      index: {
+        dims: null,
+        embeddings: new OllamaEmbeddings({
+          baseUrl: `${process.env.OLLAMA_URL}`,
+			    model: `${process.env.OLLAMA_EMBEDDINGS_MODEL}`
+        }),
+        fields: ['profile']
+      }
     });
+  });
+
+  afterEach(async () => {
+    jest.clearAllMocks();
+    // await mockPool.end()
+  });
+
+  it('should execute batch search operations with embeddings', async () => {
+    await store.put(['namespace'], 'key1', {profile: ' I am king'})
+
+    const searchOps: Array<[number, SearchOperation]> = [
+      [0, { query: 'king', namespacePrefix: ['namespace'], limit: 10, offset: 0 }]
+    ];
+    const results: OperationResults<SearchOperation[]> = [];
+
+    await store['batchSearchOps'](searchOps, results);
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toEqual({ key: 'key1', value: 'value1' });
+  });
+
+  it('should handle batch search operations without embeddings', async () => {
+    const searchOps: Array<[number, SearchOperation]> = [
+      [0, { query: null, namespacePrefix: ['namespace'], limit: 10, offset: 0 }]
+    ];
+    const results: OperationResults<SearchOperation[]> = [];
+
+    // 直接运行在实际的数据库上
+    await store['batchSearchOps'](searchOps, results);
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toEqual(expect.objectContaining({ key: 'key1', value: expect.objectContaining({ data: 'value1' }) }));
   });
 });

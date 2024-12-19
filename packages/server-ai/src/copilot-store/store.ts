@@ -340,6 +340,7 @@ export class CopilotMemoryStore extends BaseStore {
 				} else {
 					scoreOperator = scoreOperator.replace('%s', vectorType)
 				}
+        scoreOperator = scoreOperator.replace('vector::?', '$5')
 
 				const vectorsPerDocEstimate = 1 // this._indexConfig.__estimatedNumVectors
 				const expandedLimit = op.limit * vectorsPerDocEstimate * 2 + 1
@@ -375,13 +376,12 @@ export class CopilotMemoryStore extends BaseStore {
           OFFSET $4
         `
 				const params = [
-					'_PLACEHOLDER', // Vector placeholder
 					...nsArgs,
 					...filterParams,
-					'_PLACEHOLDER',
 					expandedLimit,
 					op.limit,
-					op.offset
+					op.offset,
+          '_PLACEHOLDER', // Vector placeholder
 				]
 
 				queries.push([baseQuery, params])
@@ -435,7 +435,7 @@ export class CopilotMemoryStore extends BaseStore {
 		for (let i = 0; i < searchOps.length; i++) {
 			const [idx, _] = searchOps[i]
 			const [query, params] = queries[i]
-      console.log(query, params)
+      // console.log(query, params)
 			const result = await this.pgPool.query(query, params)
 			results[idx] = result.rows.map((row: any) => ({
         ...row,
