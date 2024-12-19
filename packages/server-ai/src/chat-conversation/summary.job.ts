@@ -1,3 +1,4 @@
+import { LongTermMemoryTypeEnum } from '@metad/contracts'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -9,8 +10,9 @@ import { ChatConversationService } from './conversation.service'
 
 export type ConversationSummaryReqType = {
 	conversationId: string
-	messageId?: string
 	userId: string
+	types: LongTermMemoryTypeEnum[]
+	messageId?: string
 }
 
 @Processor({
@@ -28,14 +30,19 @@ export class ConversationSummaryProcessor {
 
 	@Process({ concurrency: 5 })
 	async process(job: Job<ConversationSummaryReqType>) {
-		const { conversationId, messageId, userId } = job.data
+		const { conversationId, userId, types } = job.data
 		const conversation = await this.service.findOne(conversationId, { relations: ['messages'] })
+		if (!conversation.messages.length) {
+			return
+		}
+		const messageId = job.data.messageId ?? conversation.messages[conversation.messages.length - 1].id
 		const message = await this.messageService.findOne(messageId)
 
 		if (conversation.xpertId && message.executionId) {
 			try {
 				const memoryKey = await this.commandBus.execute(
 					new XpertSummarizeMemoryCommand(conversation.xpertId, message.executionId, {
+						types,
 						isDraft: true,
 						userId
 					})

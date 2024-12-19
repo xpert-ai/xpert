@@ -1,3 +1,7 @@
 :host {
-  @apply flex flex-col gap-4 pb-4;
+  @apply flex flex-col gap-2 pb-4;
+}
+
+.memory-checkbox {
+  @apply mb-4;
 }

@@ -169,17 +169,24 @@ export enum LongTermMemoryTypeEnum {
   QA = 'qa',
 }
 
+export type TLongTermMemoryConfig = {
+  enabled?: boolean
+  /**
+   * System prompt guide how to remember the key points of the conversation
+   */
+  prompt?: string
+}
 /**
  * Config of long-term memory
  */
 export type TLongTermMemory = {
   enabled?: boolean
   type?: LongTermMemoryTypeEnum
-  /**
-   * System prompt guide how to remember the key points of the conversation
-   */
-  prompt?: string
   copilotModel?: TCopilotModel
+  profile?: TLongTermMemoryConfig & {
+    afterSeconds?: number
+  }
+  qa?: TLongTermMemoryConfig
 }
 
 export enum XpertTypeEnum {
@@ -328,6 +335,9 @@ export function omitXpertRelations(xpert: Partial<IXpert>) {
   return rest
 }
 
+export function figureOutXpert(xpert: IXpert, isDraft: boolean) {
+  return (isDraft ? xpert.draft?.team : xpert) ?? xpert
+}
 
 /**
  * Create agents nodes of xpert and it's area size

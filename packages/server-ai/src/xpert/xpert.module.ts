@@ -12,6 +12,7 @@ import { QueryHandlers } from './queries/handlers'
 import { XpertAgentModule } from '../xpert-agent'
 import { XpertWorkspaceModule } from '../xpert-workspace'
 import { CopilotCheckpointModule } from '../copilot-checkpoint'
+import { CopilotStoreModule } from '../copilot-store/copilot-store.module'
 
 @Module({
     imports: [
@@ -23,7 +24,8 @@ import { CopilotCheckpointModule } from '../copilot-checkpoint'
         forwardRef(() => XpertAgentModule),
         forwardRef(() => UserModule),
         forwardRef(() => XpertWorkspaceModule),
-        CopilotCheckpointModule
+        CopilotCheckpointModule,
+        CopilotStoreModule,
     ],
     controllers: [XpertController],
     providers: [XpertService, ...CommandHandlers, ...QueryHandlers],

@@ -1,4 +1,5 @@
-import { TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { LongTermMemoryTypeEnum } from '@metad/contracts'
+import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -22,7 +23,12 @@ export class ChatMessageFeedbackService extends TenantOrganizationAwareCrudServi
 
 	async triggerSummary(id: string) {
 		const feedback = await this.findOne(id)
-		await this.conversationService.triggerSummary(feedback.conversationId, feedback.messageId)
+		await this.conversationService.triggerSummary(
+			feedback.conversationId,
+			LongTermMemoryTypeEnum.QA,
+			RequestContext.currentUserId(),
+			feedback.messageId
+		)
 	}
 
 	async deleteSummary(id: string) {

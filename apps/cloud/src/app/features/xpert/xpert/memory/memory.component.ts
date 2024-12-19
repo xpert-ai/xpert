@@ -12,7 +12,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, EMPTY, of, Subscription } from 'rxjs'
 import { map, switchMap, tap } from 'rxjs/operators'
-import { CopilotStoreService, getErrorMessage, injectToastr, injectTranslate, routeAnimations, XpertService } from '../../../../@core'
+import { CopilotStoreService, getErrorMessage, injectToastr, injectTranslate, LongTermMemoryTypeEnum, routeAnimations, XpertService } from '../../../../@core'
 import { UserProfileInlineComponent } from '../../../../@shared/user'
 import { XpertComponent } from '../xpert.component'
 
@@ -92,7 +92,7 @@ export class XpertMemoryComponent {
     const id = this.xpertId()
     return id
       ? this.#refresh$.pipe(
-          switchMap(() => this.storeService.getAll({ where: { prefix: `${id}` }, relations: ['createdBy'] })),
+          switchMap(() => this.xpertService.getAllMemory(id, ['', LongTermMemoryTypeEnum.QA, LongTermMemoryTypeEnum.PROFILE])),
           map(({ items }) => items)
         )
       : of(null)

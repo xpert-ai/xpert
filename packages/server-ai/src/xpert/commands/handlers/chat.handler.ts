@@ -1,14 +1,14 @@
 import { MessageContent } from '@langchain/core/messages'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, CopilotChatMessage, IChatConversation, IXpert, TChatConversationStatus, TSensitiveOperation, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, CopilotChatMessage, figureOutXpert, IChatConversation, IXpert, TChatConversationStatus, TSensitiveOperation, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
+import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { catchError, concat, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
 import { XpertAgentChatCommand } from '../../../xpert-agent/'
 import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
-import { GetChatConversationQuery } from '../../../chat-conversation/queries/index'
-import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/index'
+import { GetChatConversationQuery, CancelSummaryJobCommand, ChatConversationUpsertCommand, ScheduleSummaryJobCommand } from '../../../chat-conversation/'
 import {
 	XpertAgentExecutionUpsertCommand
 } from '../../../xpert-agent-execution/commands'
@@ -27,10 +27,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 	public async execute(command: XpertChatCommand): Promise<Observable<MessageEvent>> {
 		const { options } = command
 		const { xpertId, input, conversationId, confirm, reject, toolCalls } = command.request
+		const userId = RequestContext.currentUserId()
 
 		const timeStart = Date.now()
 
 		const xpert = await this.xpertService.findOne(xpertId, { relations: ['agent'] })
+		const memory = figureOutXpert(xpert, options.isDraft).memory
+		
 
 		let conversation: IChatConversation
 		let aiMessage: CopilotChatMessage
@@ -42,12 +45,21 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			)
 			aiMessage = conversation.messages[conversation.messages.length - 1] as CopilotChatMessage
 			executionId = aiMessage.executionId
+
+			// Cancel summary job
+			if (memory?.enabled) {
+				await this.commandBus.execute(new CancelSummaryJobCommand(conversation.id))
+			}
 		} else {
 			// New message in conversation
 			if (conversationId) {
 				conversation = await this.queryBus.execute(
 					new GetChatConversationQuery({id: conversationId}, ['messages'])
 				)
+				// Cancel summary job
+				if (memory?.enabled) {
+					await this.commandBus.execute(new CancelSummaryJobCommand(conversation.id))
+				}
 			} else {
 				// New conversation
 				conversation = await this.commandBus.execute(
@@ -150,8 +162,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			), of(true).pipe(
 				switchMap(async () => {
 					try {
+						// Record Execution
 						const timeEnd = Date.now()
-						// Record End time
 						const entity = status === XpertAgentExecutionStatusEnum.ERROR ? {
 							id: executionId,
 							elapsedTime: timeEnd - timeStart,
@@ -171,13 +183,15 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 						
 						// Update ai message
 						aiMessage.status = _execution.status
+						await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
+
+						// Update conversation
 						let convStatus: TChatConversationStatus = 'idle'
 						if (_execution.status === XpertAgentExecutionStatusEnum.ERROR) {
 							convStatus = 'error'
 						} else if (_execution.status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
 							convStatus = 'interrupted'
 						}
-
 						const _conversation = await this.commandBus.execute(
 							new ChatConversationUpsertCommand({
 								id: conversation.id,
@@ -186,7 +200,11 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 								operation
 							})
 						)
-						await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
+						
+						// Schedule summary job
+						if (memory?.enabled && memory.profile?.enabled) {
+							await this.commandBus.execute(new ScheduleSummaryJobCommand(conversation.id, userId, memory))
+						}
 
 						return {
 							data: {

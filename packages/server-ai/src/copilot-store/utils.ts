@@ -308,5 +308,5 @@ export function decodeNsBytes(namespace: string | Uint8Array | any[]): string[] 
   if (namespace instanceof Uint8Array) {
     namespace = new TextDecoder().decode(namespace).slice(1);
   }
-  return namespace.split(".");
+  return namespace.split(":");
 }

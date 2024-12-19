@@ -1,5 +1,4 @@
 import {
-	CopilotBaseMessage,
 	IChatConversation,
 	IChatMessage,
 	IXpert,

@@ -1,3 +1,4 @@
+import { LongTermMemoryTypeEnum } from '@metad/contracts';
 import { ICommand } from '@nestjs/cqrs'
 
 /**
@@ -9,7 +10,8 @@ export class XpertSummarizeMemoryCommand implements ICommand {
 	constructor(
         public readonly id: string,
         public readonly executionId: string,
-        public readonly options: { 
+        public readonly options: {
+            types: LongTermMemoryTypeEnum[]
             userId: string;
             isDraft: boolean;
         },

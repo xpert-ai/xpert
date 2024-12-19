@@ -2058,10 +2058,13 @@
       "MaximumTolerance": "最大容忍数量",
       "ReserveQuantity": "保留数量",
       "MemoryType": "记忆类型",
+      "AfterSeconds": "几秒后",
       "LongTermMemoryTypeEnum": {
+        "UserProfile": "用户个人资料",
         "Profile": "用户配置",
         "QuestionAnswer": "问题/回答"
-      }
+      },
+      "AfterSecondsTooltip": "会话结束多少秒后如果没有继续对话则进行总结"
     },
     "title": {
       "short": "Xpert AI"

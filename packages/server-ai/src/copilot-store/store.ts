@@ -358,7 +358,7 @@ export class CopilotMemoryStore extends BaseStore {
 
 				const baseQuery = `
           WITH scored AS (
-            SELECT s.prefix, s.key, s.value, s."createdAt", s."updatedAt", ${scoreOperator} AS neg_score
+            SELECT s.prefix, s.key, s.value, s."createdById", s."createdAt", s."updatedAt", ${scoreOperator} AS neg_score
             FROM copilot_store s
             JOIN copilot_store_vectors sv ON s.prefix = sv.prefix AND s.key = sv.key
             ${prefixFilterStr}
@@ -367,7 +367,7 @@ export class CopilotMemoryStore extends BaseStore {
           )
           SELECT * FROM (
             SELECT DISTINCT ON (prefix, key) 
-              prefix, key, value, "createdAt", "updatedAt", ${postOperator} as score 
+              prefix, key, value, "createdById", "createdAt", "updatedAt", ${postOperator} as score 
             FROM scored 
             ORDER BY prefix, key, score DESC
           ) AS unique_docs

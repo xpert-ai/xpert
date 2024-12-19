@@ -4,7 +4,7 @@ import { toParams } from '@metad/ocap-angular/core'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, tap } from 'rxjs'
 import { API_XPERT_ROLE } from '../constants/app.constants'
-import { IUser, IXpert, IXpertAgentExecution, OrderTypeEnum, TChatRequest, TXpertTeamDraft, XpertTypeEnum } from '../types'
+import { ICopilotStore, IUser, IXpert, IXpertAgentExecution, OrderTypeEnum, TChatRequest, TXpertTeamDraft, XpertTypeEnum } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 import { injectApiBaseUrl } from '../providers'
 import { injectFetchEventSource } from './fetch-event-source'
@@ -96,6 +96,13 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.post(this.apiBaseUrl + `/import`, dslObject)
   }
 
+  getAllMemory(id: string, types: string[]) {
+    return this.httpClient.get<{items: ICopilotStore[]}>(this.apiBaseUrl + `/${id}/memory`, {
+      params: {
+        types: types?.join(':')
+      }
+    })
+  }
   searchMemory(id: string, body: {text: string; isDraft: boolean;}) {
     return this.httpClient.post<SearchItem[]>(this.apiBaseUrl + `/${id}/memory/search`, body)
   }

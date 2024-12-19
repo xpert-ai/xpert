@@ -1,4 +1,5 @@
 import { BaseStore } from '@langchain/langgraph'
+import { IChatMessage, LongTermMemoryTypeEnum } from '@metad/contracts'
 import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { InjectQueue } from '@nestjs/bull'
 import { Injectable, Logger } from '@nestjs/common'
@@ -58,16 +59,26 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 		})
 	}
 
-	async triggerSummary(conversationId: string, messageId: string) {
-		const message = await this.messageService.findOne(messageId)
+	async triggerSummary(conversationId: string, type: LongTermMemoryTypeEnum, userId: string, messageId?: string) {
+		let message: IChatMessage = null
+		if (messageId) {
+			message = await this.messageService.findOne(messageId)
+		} else {
+			const conversation = await this.findOne(conversationId, { relations: ['messages'] })
+			if (!conversation.messages.length) {
+				return
+			}
+			message = conversation.messages[conversation.messages.length - 1]
+		}
 
-		if (message && message.summaryJob) {
+		if (message?.summaryJob) {
 			return
 		}
 		return await this.summaryQueue.add({
 			conversationId,
+			userId,
 			messageId,
-			userId: RequestContext.currentUserId()
+			types: [type]
 		})
 	}
 

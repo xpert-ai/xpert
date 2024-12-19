@@ -33,6 +33,8 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
 	@Column({ type: 'json', nullable: true })
 	summaryJob: TSummaryJob
 
+	
+
 	/*
     |--------------------------------------------------------------------------
     | @ManyToOne 

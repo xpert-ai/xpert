@@ -1,15 +1,16 @@
+import { Embeddings } from '@langchain/core/embeddings'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { HumanMessage } from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { BaseStore } from '@langchain/langgraph'
-import { IXpertAgent, LongTermMemoryTypeEnum } from '@metad/contracts'
+import { IXpert, IXpertAgent, LongTermMemoryTypeEnum, TLongTermMemoryConfig } from '@metad/contracts'
 import { Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { v4 as uuidv4 } from 'uuid'
 import z from 'zod'
 import { CreateCopilotStoreCommand } from '../../../copilot-store'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
-import { FindAgentExecutionsQuery, XpertAgentExecutionStateQuery } from '../../../xpert-agent-execution/queries'
+import { XpertAgentExecutionStateQuery } from '../../../xpert-agent-execution/queries'
 import { AgentStateAnnotation } from '../../../xpert-agent/commands/handlers/types'
 import { GetXpertAgentQuery, GetXpertChatModelQuery, GetXpertMemoryEmbeddingsQuery } from '../../queries'
 import { XpertService } from '../../xpert.service'
@@ -27,25 +28,25 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 
 	public async execute(command: XpertSummarizeMemoryCommand) {
 		const { id, executionId } = command
-		const { userId } = command.options
+		const { types, userId } = command.options
 		const xpert = await this.xpertService.findOne(id, { relations: ['agent'] })
 
 		const { tenantId, organizationId } = xpert
 
-		const { items } = await this.queryBus.execute(
-			new FindAgentExecutionsQuery({
-				where: {
-					tenantId,
-					organizationId,
-					id: executionId
-				}
-			})
-		)
+		// const { items } = await this.queryBus.execute(
+		// 	new FindAgentExecutionsQuery({
+		// 		where: {
+		// 			tenantId,
+		// 			organizationId,
+		// 			id: executionId
+		// 		}
+		// 	})
+		// )
 
-		const summarizedExecution = items[0]
-		if (!summarizedExecution) {
-			throw new NotFoundException(`Not found execution of id '${executionId}'`)
-		}
+		// const summarizedExecution = items[0]
+		// if (!summarizedExecution) {
+		// 	throw new NotFoundException(`Not found execution of id '${executionId}'`)
+		// }
 
 		const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
 			new GetXpertAgentQuery(xpert.id, xpert.agent.key, command.options?.isDraft)
@@ -67,6 +68,7 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 			typeof AgentStateAnnotation.State
 		>(new XpertAgentExecutionStateQuery(executionId))
 
+		// Create a new execution (Run) for this chat
 		const execution = await this.commandBus.execute(
 			new XpertAgentExecutionUpsertCommand({
 				xpertId: xpert.id
@@ -91,6 +93,51 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 			})
 		)
 
+		const memoryKey = []
+		if (types.includes(LongTermMemoryTypeEnum.QA)) {
+			const keys = await this.summarize(xpert, LongTermMemoryTypeEnum.QA, memory.qa, {
+				chatModel,
+				embeddings,
+				userId,
+				summarizedState,
+				agent
+			})
+
+			memoryKey.push(...(Array.isArray(keys) ? keys : [keys]))
+		}
+
+		if (types.includes(LongTermMemoryTypeEnum.PROFILE)) {
+			const keys = await this.summarize(xpert, LongTermMemoryTypeEnum.PROFILE, memory.profile, {
+				chatModel,
+				embeddings,
+				userId,
+				summarizedState,
+				agent
+			})
+
+			memoryKey.push(...(Array.isArray(keys) ? keys : [keys]))
+		}
+
+		await this.commandBus.execute(new XpertAgentExecutionUpsertCommand(execution))
+
+		return memoryKey
+	}
+
+	async summarize(
+		xpert: IXpert,
+		type: LongTermMemoryTypeEnum,
+		memory: TLongTermMemoryConfig,
+		options: {
+			chatModel: BaseChatModel
+			embeddings: Embeddings
+			userId: string
+			summarizedState: typeof AgentStateAnnotation.State
+			agent: IXpertAgent
+		}
+	) {
+		const { tenantId, organizationId } = xpert
+		const { chatModel, embeddings, userId, summarizedState, agent } = options
+
 		const { summary, messages } = summarizedState
 		let systemTemplate = `${agent.prompt}`
 		if (summary) {
@@ -103,7 +150,7 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 		let prompt = memory.prompt
 		let schema = null
 		const fields = []
-		if (memory.type === LongTermMemoryTypeEnum.QA) {
+		if (type === LongTermMemoryTypeEnum.QA) {
 			schema = z.object({
 				input: z.string().describe(`The user's input question`),
 				output: z.string().describe(`The ai's output answer`)
@@ -147,7 +194,7 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 				const key = uuidv4()
 				memoryKey.push(key)
 				return {
-					namespace: [xpert.id,],
+					namespace: [xpert.id, type],
 					key,
 					value: experience
 				}
@@ -155,10 +202,8 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 			await store.batch(operations)
 		} else if (experiences) {
 			memoryKey = uuidv4()
-			await store.put([xpert.id,], memoryKey, experiences)
+			await store.put([xpert.id, type], memoryKey, experiences)
 		}
-
-		await this.commandBus.execute(new XpertAgentExecutionUpsertCommand(execution))
 
 		return memoryKey
 	}

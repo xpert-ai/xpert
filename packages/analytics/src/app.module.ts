@@ -3,7 +3,6 @@ import { BullModule } from '@nestjs/bull'
 import { Module, forwardRef, CacheModule } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { CqrsModule } from '@nestjs/cqrs'
-import { ScheduleModule } from '@nestjs/schedule'
 import { AgentModule } from './agent/index'
 import { AppController } from './app.controller'
 import { AnalyticsService } from './app.service'
@@ -63,7 +62,6 @@ import { ChatBIModelModule } from './chatbi-model'
 			},
 			inject: [ConfigService],
 		  }),
-		ScheduleModule.forRoot(),
 		CacheModule.register(),
 		CqrsModule,
 		forwardRef(() => TenantModule),

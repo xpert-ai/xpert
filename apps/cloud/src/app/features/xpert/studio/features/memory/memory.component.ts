@@ -4,13 +4,14 @@ import { Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { LongTermMemoryTypeEnum, TLongTermMemory } from '@metad/contracts'
-import { OverlayAnimations } from '@metad/core'
+import { LongTermMemoryTypeEnum, TLongTermMemory, TLongTermMemoryConfig } from '@metad/contracts'
+import { IfAnimations } from '@metad/core'
 import { NgmRadioSelectComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
 import { XpertStudioApiService } from '../../domain'
 import { injectTranslate } from 'apps/cloud/src/app/@core'
+import { MatCheckboxModule } from '@angular/material/checkbox'
 
 @Component({
   selector: 'xpert-studio-features-memory',
@@ -22,13 +23,14 @@ import { injectTranslate } from 'apps/cloud/src/app/@core'
     TranslateModule,
     MatSliderModule,
     MatTooltipModule,
+    MatCheckboxModule,
     NgmRadioSelectComponent,
 
     CopilotPromptEditorComponent
   ],
   templateUrl: './memory.component.html',
   styleUrl: './memory.component.scss',
-  animations: [...OverlayAnimations]
+  animations: [...IfAnimations]
 })
 export class XpertStudioFeaturesMemoryComponent {
   eLongTermMemoryTypeEnum = LongTermMemoryTypeEnum
@@ -39,33 +41,61 @@ export class XpertStudioFeaturesMemoryComponent {
   readonly xpert = this.apiService.xpert
   readonly memory = computed(() => this.xpert()?.memory)
 
-  get prompt() {
-    return this.memory()?.prompt
+  readonly profile = computed(() => this.memory()?.profile)
+  readonly qa = computed(() => this.memory()?.qa)
+
+  get profileEnabled() {
+    return this.profile()?.enabled
   }
-  set prompt(value) {
-    this.updateMemory({ prompt: value })
+  set profileEnabled(enabled: boolean) {
+    this.updateProfile({ enabled })
   }
 
-  get type() {
-    return this.memory()?.type
+  get qaEnabled() {
+    return this.qa()?.enabled
   }
-  set type(value) {
-    this.updateMemory({ type: value })
+  set qaEnabled(enabled: boolean) {
+    this.updateQA({ enabled })
   }
 
-  readonly options = computed(() => {
-    const i18n = this.i18n()
-    return [
-      {
-        key: LongTermMemoryTypeEnum.PROFILE,
-        caption: i18n.Profile || 'Profile'
-      },
-      {
-        key: LongTermMemoryTypeEnum.QA,
-        caption: i18n.QuestionAnswer || 'Question/Answer'
-      }
-    ]
-  })
+  get profilePrompt() {
+    return this.profile()?.prompt
+  }
+  set profilePrompt(value: string) {
+    this.updateProfile({ prompt: value })
+  }
+
+  get afterSeconds() {
+    return this.profile()?.afterSeconds
+  }
+  set afterSeconds(value: number) {
+    this.updateProfile({ afterSeconds: value })
+  }
+
+  get qaPrompt() {
+    return this.qa()?.prompt
+  }
+  set qaPrompt(value: string) {
+    this.updateQA({ prompt: value })
+  }
+
+  // readonly options = computed(() => {
+  //   const i18n = this.i18n()
+  //   return [
+  //     {
+  //       key: LongTermMemoryTypeEnum.PROFILE,
+  //       caption: i18n.Profile || 'Profile'
+  //     },
+  //     {
+  //       key: LongTermMemoryTypeEnum.QA,
+  //       caption: i18n.QuestionAnswer || 'Question/Answer'
+  //     }
+  //   ]
+  // })
+
+  formatLabel(value: number): string {
+    return `${value}s`;
+  }
 
   updateMemory(memory: Partial<TLongTermMemory>) {
     this.apiService.updateXpert((xpert) => {
@@ -73,9 +103,26 @@ export class XpertStudioFeaturesMemoryComponent {
         ...xpert,
         memory: {
           ...(xpert.memory ?? {}),
-          type: xpert.memory?.type ?? LongTermMemoryTypeEnum.PROFILE,
           ...memory,
         }
+      }
+    })
+  }
+
+  updateProfile(value: Partial<TLongTermMemoryConfig> & {afterSeconds?: number}) {
+    this.updateMemory({
+      profile: {
+        ...(this.profile() ?? {}),
+        ...value
+      }
+    })
+  }
+
+  updateQA(value: Partial<TLongTermMemoryConfig>) {
+    this.updateMemory({
+      qa: {
+        ...(this.qa() ?? {}),
+        ...value
       }
     })
   }
