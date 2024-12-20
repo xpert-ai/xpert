@@ -5,13 +5,15 @@ import { FormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { LongTermMemoryTypeEnum, TLongTermMemory, TLongTermMemoryConfig } from '@metad/contracts'
-import { IfAnimations } from '@metad/core'
+import { IfAnimations, OverlayAnimations } from '@metad/core'
 import { NgmRadioSelectComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
 import { XpertStudioApiService } from '../../domain'
 import { injectTranslate } from 'apps/cloud/src/app/@core'
 import { MatCheckboxModule } from '@angular/material/checkbox'
+import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
+import { NgmTooltipDirective } from '@metad/ocap-angular/core'
 
 @Component({
   selector: 'xpert-studio-features-memory',
@@ -26,11 +28,13 @@ import { MatCheckboxModule } from '@angular/material/checkbox'
     MatCheckboxModule,
     NgmRadioSelectComponent,
 
-    CopilotPromptEditorComponent
+    NgmTooltipDirective,
+    CopilotPromptEditorComponent,
+    InDevelopmentComponent
   ],
   templateUrl: './memory.component.html',
   styleUrl: './memory.component.scss',
-  animations: [...IfAnimations]
+  animations: [...IfAnimations, ...OverlayAnimations]
 })
 export class XpertStudioFeaturesMemoryComponent {
   eLongTermMemoryTypeEnum = LongTermMemoryTypeEnum

@@ -15,6 +15,7 @@ import { AgentStateAnnotation } from '../../../xpert-agent/commands/handlers/typ
 import { GetXpertAgentQuery, GetXpertChatModelQuery, GetXpertMemoryEmbeddingsQuery } from '../../queries'
 import { XpertService } from '../../xpert.service'
 import { XpertSummarizeMemoryCommand } from '../summarize-memory.command'
+import { memoryPrompt } from '../../../copilot-store/utils'
 
 @CommandHandler(XpertSummarizeMemoryCommand)
 export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummarizeMemoryCommand> {
@@ -32,21 +33,6 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 		const xpert = await this.xpertService.findOne(id, { relations: ['agent'] })
 
 		const { tenantId, organizationId } = xpert
-
-		// const { items } = await this.queryBus.execute(
-		// 	new FindAgentExecutionsQuery({
-		// 		where: {
-		// 			tenantId,
-		// 			organizationId,
-		// 			id: executionId
-		// 		}
-		// 	})
-		// )
-
-		// const summarizedExecution = items[0]
-		// if (!summarizedExecution) {
-		// 	throw new NotFoundException(`Not found execution of id '${executionId}'`)
-		// }
 
 		const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
 			new GetXpertAgentQuery(xpert.id, xpert.agent.key, command.options?.isDraft)
@@ -138,36 +124,14 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 		const { tenantId, organizationId } = xpert
 		const { chatModel, embeddings, userId, summarizedState, agent } = options
 
-		const { summary, messages } = summarizedState
-		let systemTemplate = `${agent.prompt}`
-		if (summary) {
-			systemTemplate += `\nSummary of conversation earlier: \n${summary}`
-		}
-		const systemMessage = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
-			templateFormat: 'mustache'
-		}).format({ ...summarizedState })
-
-		let prompt = memory.prompt
 		let schema = null
 		const fields = []
 		if (type === LongTermMemoryTypeEnum.QA) {
-			schema = z.object({
-				input: z.string().describe(`The user's input question`),
-				output: z.string().describe(`The ai's output answer`)
-			})
-			if (!prompt) {
-				prompt = `Summarize the experience of the above conversation and output a short question and answer`
-			}
 			fields.push('input')
-		} else {
-			// Default profile LongTermMemoryTypeEnum.PROFILE
-			schema = z.object({
-				profile: z.string().describe(`The user's profile`)
-			})
-			if (!prompt) {
-				prompt = `Summarize the conclusion of the above conversation in a short sentence with a factual tone, which we will store in long-term memory`
-			}
+		} else if (type === LongTermMemoryTypeEnum.PROFILE) {
 			fields.push('profile')
+		} else {
+			// fields.push('customs')
 		}
 
 		const store = await this.commandBus.execute<CreateCopilotStoreCommand, BaseStore>(
@@ -183,10 +147,45 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 			})
 		)
 
+		const { summary, messages } = summarizedState
+		let systemTemplate = `${agent.prompt}`
+		if (summary) {
+			systemTemplate += `\nSummary of conversation earlier: \n${summary}`
+		}
+		const systemMessage = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
+			templateFormat: 'mustache'
+		}).format({ ...summarizedState })
+
+		const items = await store.search([xpert.id, type])
+
+		let prompt = memory.prompt
+		if (type === LongTermMemoryTypeEnum.QA) {
+			schema = z.object({
+				input: z.string().describe(`The user's input question`),
+				output: z.string().describe(`The ai's output answer`)
+			})
+
+			if (!prompt) {
+				prompt = `Summarize the experience of the above conversation and output a short question and answer`
+			}
+		} else {
+			// Default profile LongTermMemoryTypeEnum.PROFILE
+			schema = z.object({
+				profile: z.string().optional().describe(`The user's profile`),
+			})
+
+			if (!prompt) {
+				prompt = `Extract the important information about the user in the above conversation that is not in the existing memory as a profile. Otherwise, no return value is needed.`
+			}
+		}
+
+		prompt += `\nThe following are existing memories:\n<memory>\n${memoryPrompt(items)}\n</memory>`
+
 		const experiences = await chatModel
 			.withStructuredOutput(schema)
 			.invoke([systemMessage, ...messages, new HumanMessage(prompt)])
 
+		const namespace = [xpert.id, type]
 		let memoryKey = null
 		if (Array.isArray(experiences)) {
 			memoryKey = []
@@ -194,15 +193,27 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 				const key = uuidv4()
 				memoryKey.push(key)
 				return {
-					namespace: [xpert.id, type],
+					namespace,
 					key,
 					value: experience
 				}
 			})
 			await store.batch(operations)
 		} else if (experiences) {
-			memoryKey = uuidv4()
-			await store.put([xpert.id, type], memoryKey, experiences)
+			const query = experiences?.profile || experiences?.input
+			if (query) {
+				// Remove the top 1 record that are too similar
+				const exists = await store.search(namespace, {query})
+				if (exists[0] && exists[0].score > 0.9) {
+					await store.delete(namespace, exists[0].key)
+					this.#logger.debug(`Removed top 1 similar memory: ${exists[0]}`,)
+				}
+
+				// Record new memeory
+				memoryKey = uuidv4()
+				await store.put(namespace, memoryKey, experiences)
+				this.#logger.debug(`Add a memory: ${JSON.stringify(experiences, null, 2)}`,)
+			}
 		}
 
 		return memoryKey

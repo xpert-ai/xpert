@@ -181,7 +181,7 @@ export type TLongTermMemoryConfig = {
  */
 export type TLongTermMemory = {
   enabled?: boolean
-  type?: LongTermMemoryTypeEnum
+  // type?: LongTermMemoryTypeEnum
   copilotModel?: TCopilotModel
   profile?: TLongTermMemoryConfig & {
     afterSeconds?: number

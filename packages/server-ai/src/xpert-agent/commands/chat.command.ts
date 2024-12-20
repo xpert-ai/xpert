@@ -1,5 +1,5 @@
-import { ToolCall } from '@langchain/core/dist/messages/tool'
-import { IXpert, IXpertAgentExecution, TChatOptions } from '@metad/contracts'
+import { SearchItem } from '@langchain/langgraph-checkpoint'
+import { IXpert, IXpertAgentExecution, TChatOptions, ToolCall } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 /**
@@ -14,7 +14,7 @@ export class XpertAgentChatCommand implements ICommand {
 			[key: string]: unknown
 		},
 		public readonly agentKey: string,
-		public readonly xpert: Partial<IXpert>,
+		public readonly xpert: IXpert,
 		public readonly options: TChatOptions & {
 			// Use xpert's draft
 			isDraft?: boolean
@@ -25,6 +25,8 @@ export class XpertAgentChatCommand implements ICommand {
 
 			toolCalls?: ToolCall[]
 			reject?: boolean
+
+			memories?: SearchItem[]
 		}
 	) {}
 }

@@ -25,6 +25,7 @@ import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/quer
 import { getErrorMessage } from '@metad/server-common'
 import { AgentStateAnnotation, TSubAgent } from './types'
 import { CompleteToolCallsQuery } from '../../queries'
+import { memoryPrompt } from '../../../copilot-store/utils'
 
 
 @CommandHandler(XpertAgentExecuteCommand)
@@ -40,7 +41,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 
 	public async execute(command: XpertAgentExecuteCommand): Promise<Observable<MessageContent>> {
 		const { input, agentKey, xpert, options } = command
-		const { execution, subscriber, toolCalls, reject, memory } = options
+		const { execution, subscriber, toolCalls, reject, memories } = options
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 		const user = RequestContext.currentUser()
@@ -153,20 +154,8 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			stateModifier: async (state: typeof AgentStateAnnotation.State) => {
 				const { summary } = state
 				let systemTemplate = `{{language}}\nCurrent time: ${new Date().toISOString()}\n${agent.prompt}`
-				if (memory?.length) {
-					const memoryPrompt = memory.map((item) => {
-						if (item.value.profile) {
-							return `<profile>\n${item.value.profile}\n</profile>`
-						} else if (item.value.output) {
-							return `<example>
-  <input>${item.value.input}</input>
-  <output>${item.value.output}</output>
-</example>`
-						} else {
-							return ''
-						}
-					}).join('\n')
-					systemTemplate += `\n\n<memory>\n${memoryPrompt}\n</memory>`
+				if (memories?.length) {
+					systemTemplate += `\n\n<memory>\n${memoryPrompt(memories)}\n</memory>`
 				}
 				if (summary) {
 					systemTemplate += `\nSummary of conversation earlier: \n${summary}`

@@ -194,6 +194,7 @@ export class CopilotMemoryStore extends BaseStore {
 					await this.pgPool.query(query, param)
 				}
 			} else {
+        console.log(query, params)
 				await this.pgPool.query(query, params)
 			}
 		}
@@ -240,15 +241,18 @@ export class CopilotMemoryStore extends BaseStore {
 		let embeddingRequest: [string, Array<[string, string, string, string]>] | null = null
 		if (inserts.length > 0) {
 			const values: string[] = []
-			// const insertionParams: any[] = [];
+			const insertionParams: any[] = [];
 			const vectorValues: string[] = []
 			const embeddingRequestParams: Array<[string, string, string, string]> = []
 
 			// First handle main store insertions
+      let index = 1;
 			for (const op of inserts) {
 				values.push(
-					`('${this.options?.tenantId}', '${this.options?.organizationId}', '${this.options?.userId}', '${op.namespace.join(':')}', '${op.key}', '${JSON.stringify(op.value)}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
+					`('${this.options?.tenantId}', '${this.options?.organizationId}', '${this.options?.userId}', '${op.namespace.join(':')}', '${op.key}', $${index}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
 				)
+        index++
+        insertionParams.push(JSON.stringify(op.value))
 			}
 
 			// Then handle embeddings if configured
@@ -284,7 +288,7 @@ export class CopilotMemoryStore extends BaseStore {
         SET value = EXCLUDED.value,
             "updatedAt" = CURRENT_TIMESTAMP
       `
-			queries.push([query, null])
+			queries.push([query, insertionParams])
 
 			if (vectorValues.length > 0) {
 				const vectorValuesStr = vectorValues.join(',')
@@ -536,7 +540,7 @@ function namespaceToText(namespace: string[], handleWildcards = false): string {
 	if (handleWildcards) {
 		namespace = namespace.map((val) => (val === '*' ? '%' : val))
 	}
-	return namespace.join('.')
+	return namespace.join(':')
 }
 
 function groupOps(ops: Iterable<Operation>): [Record<string, Array<[number, Operation]>>, number] {

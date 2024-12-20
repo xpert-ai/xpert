@@ -1,5 +1,5 @@
 import { MessageContent } from '@langchain/core/messages'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, CopilotChatMessage, figureOutXpert, IChatConversation, IXpert, TChatConversationStatus, TSensitiveOperation, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, CopilotChatMessage, figureOutXpert, IChatConversation, IXpert, LongTermMemoryTypeEnum, TChatConversationStatus, TSensitiveOperation, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
@@ -13,6 +13,9 @@ import {
 	XpertAgentExecutionUpsertCommand
 } from '../../../xpert-agent-execution/commands'
 import { ChatMessageUpsertCommand } from '../../../chat-message'
+import { GetXpertMemoryEmbeddingsQuery } from '../../queries'
+import { CreateCopilotStoreCommand } from '../../../copilot-store'
+import { BaseStore } from '@langchain/langgraph'
 
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
@@ -32,7 +35,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		const timeStart = Date.now()
 
 		const xpert = await this.xpertService.findOne(xpertId, { relations: ['agent'] })
-		const memory = figureOutXpert(xpert, options.isDraft).memory
+		const latestXpert = figureOutXpert(xpert, options.isDraft)
+		const memory = latestXpert.memory
+		const memoryStore = await this.createMemoryStore(
+			latestXpert,
+			userId
+		)
+		let memories = []
 		
 
 		let conversation: IChatConversation
@@ -47,7 +56,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			executionId = aiMessage.executionId
 
 			// Cancel summary job
-			if (memory?.enabled) {
+			if (memory?.enabled && memory.profile?.enabled) {
 				await this.commandBus.execute(new CancelSummaryJobCommand(conversation.id))
 			}
 		} else {
@@ -57,7 +66,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 					new GetChatConversationQuery({id: conversationId}, ['messages'])
 				)
 				// Cancel summary job
-				if (memory?.enabled) {
+				if (memory?.enabled && memory.profile?.enabled) {
 					await this.commandBus.execute(new CancelSummaryJobCommand(conversation.id))
 				}
 			} else {
@@ -72,6 +81,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 						},
 					})
 				)
+
+				// Remember
+				memories = await this.getLongTermMemory(memoryStore, xpertId, input.input)
 			}
 
 			// New execution (Run) in thread
@@ -110,7 +122,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				isDraft: options?.isDraft,
 				execution: { id: executionId },
 				toolCalls,
-				reject
+				reject,
+				memories
 			})
 		)
 
@@ -229,6 +242,38 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			}
 		})
 	}
+
+	async createMemoryStore(xpert: Partial<IXpert>, userId: string) {
+		const { tenantId, organizationId } = xpert
+		const memory = xpert.memory
+		if (!memory?.enabled) {
+			return null
+		}
+
+		const embeddings = await this.queryBus.execute(
+			new GetXpertMemoryEmbeddingsQuery(tenantId, organizationId, memory, {})
+		)
+
+		const store = await this.commandBus.execute<CreateCopilotStoreCommand, BaseStore>(
+			new CreateCopilotStoreCommand({
+				tenantId,
+				organizationId,
+				userId,
+				index: {
+					dims: null,
+					embeddings,
+					// fields
+				}
+			})
+		)
+
+		return store
+	}
+
+	async getLongTermMemory(store: BaseStore, xpertId: string, input: string) {
+		return await store.search([xpertId, LongTermMemoryTypeEnum.PROFILE], { query: input })
+	}
+
 }
 
 export function appendMessageContent(aiMessage: CopilotChatMessage, content: MessageContent) {

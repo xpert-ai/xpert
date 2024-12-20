@@ -36,7 +36,7 @@ export class XpertAgentExecuteCommand implements ICommand {
 			/**
 			 * Memory
 			 */
-			memory?: SearchItem[]
+			memories?: SearchItem[]
 		}
 	) {}
 }

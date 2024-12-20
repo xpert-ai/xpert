@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, ElementRef, HostListener, inject, input, model, viewChild } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, HostListener, inject, input, model, numberAttribute, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -22,17 +22,27 @@ export class CopilotPromptEditorComponent {
 
   readonly regex = `{{(.*?)}}`
 
-  readonly initHeight = input<number>(210)
+  readonly initHeight = input<number, number | string>(210, {
+    transform: numberAttribute
+  })
   readonly tooltip = input<string>()
 
   readonly prompt = model<string>()
   readonly promptLength = computed(() => this.prompt()?.length)
 
 
-  height = this.initHeight(); // 初始高度
+  height = this.initHeight();
   private isResizing = false;
   private startY = 0;
   private startHeight = 0;
+
+  constructor() {
+    effect(() => {
+      if (this.initHeight()) {
+        this.height = this.initHeight()
+      }
+    })
+  }
 
   generate() {
     this.#dialog.open(CopilotPromptGeneratorComponent, {

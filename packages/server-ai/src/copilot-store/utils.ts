@@ -1,3 +1,5 @@
+import { SearchItem } from "@langchain/langgraph-checkpoint";
+
 /**
  * Tokenize a JSON path into parts.
  * @example
@@ -309,4 +311,19 @@ export function decodeNsBytes(namespace: string | Uint8Array | any[]): string[] 
     namespace = new TextDecoder().decode(namespace).slice(1);
   }
   return namespace.split(":");
+}
+
+export function memoryPrompt(memory: SearchItem[],) {
+  return memory.map((item) => {
+    if (item.value.profile) {
+      return `<profile>\n${item.value.profile}\n</profile>`
+    } else if (item.value.output) {
+      return `<example>
+<input>${item.value.input}</input>
+<output>${item.value.output}</output>
+</example>`
+    } else {
+      return ''
+    }
+  }).join('\n')
 }

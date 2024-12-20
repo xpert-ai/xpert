@@ -1,4 +1,4 @@
-import { ICopilotStore, TChatRequest, TXpertTeamDraft } from '@metad/contracts'
+import { ICopilotStore, OrderTypeEnum, TChatRequest, TXpertTeamDraft } from '@metad/contracts'
 import {
 	CrudController,
 	OptionParams,
@@ -203,7 +203,7 @@ export class XpertController extends CrudController<Xpert> {
 		}
 
 		try {
-			return await this.storeService.findAll({where, relations: ['createdBy']})
+			return await this.storeService.findAll({where, relations: ['createdBy'], order: {createdAt: OrderTypeEnum.DESC}})
 		} catch(err) {
 			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
 		}

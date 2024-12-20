@@ -67,12 +67,12 @@ export class SearchXpertMemoryHandler implements IQueryHandler<SearchXpertMemory
 			)
 		}
 
-		const fields = []
-		if (memory.type === LongTermMemoryTypeEnum.QA) {
-			fields.push('input')
-		} else {
-			fields.push('profile')
-		}
+		// const fields = []
+		// if (memory.type === LongTermMemoryTypeEnum.QA) {
+		// 	fields.push('input')
+		// } else {
+		// 	fields.push('profile')
+		// }
 
 		const userId = RequestContext.currentUserId()
 		const store = await this.commandBus.execute<CreateCopilotStoreCommand, BaseStore>(
@@ -83,7 +83,7 @@ export class SearchXpertMemoryHandler implements IQueryHandler<SearchXpertMemory
 				index: {
 					dims: null,
 					embeddings,
-					fields
+					// fields
 				}
 			})
 		)

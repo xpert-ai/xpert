@@ -28,9 +28,9 @@ export class ScheduleSummaryJobHandler implements ICommandHandler<ScheduleSummar
 			} catch (error) {
 				this.logger.error(`Failed to add summarize job for conversation ${conversationId}:`, error)
 			}
-		}, memory.profile?.afterSeconds ?? 10000) // 10 秒延迟
+		}, memory.profile?.afterSeconds ? (memory.profile.afterSeconds * 1000) : 10000) // x 秒延迟
 
 		this.schedulerRegistry.addTimeout(conversationId, timeout)
-		this.logger.debug(`Scheduled summary job for conversation ${conversationId} in 5 seconds.`)
+		this.logger.debug(`Scheduled summary job for conversation ${conversationId} in ${memory.profile?.afterSeconds ?? 10} seconds.`)
 	}
 }
