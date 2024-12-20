@@ -194,7 +194,7 @@ export class CopilotMemoryStore extends BaseStore {
 					await this.pgPool.query(query, param)
 				}
 			} else {
-        console.log(query, params)
+        // console.log(query, params)
 				await this.pgPool.query(query, params)
 			}
 		}

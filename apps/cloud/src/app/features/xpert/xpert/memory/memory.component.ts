@@ -4,14 +4,14 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
 import { RouterModule } from '@angular/router'
 import { CdkConfirmDeleteComponent, NgmCommonModule, TableColumn } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, EMPTY, of, Subscription } from 'rxjs'
-import { map, switchMap, tap } from 'rxjs/operators'
+import { debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
 import { CopilotStoreService, getErrorMessage, injectToastr, injectTranslate, LongTermMemoryTypeEnum, routeAnimations, XpertService } from '../../../../@core'
 import { UserProfileInlineComponent } from '../../../../@shared/user'
 import { XpertComponent } from '../xpert.component'
@@ -86,7 +86,17 @@ export class XpertMemoryComponent {
     ] as TableColumn[]
   })
 
+  readonly searchControl = new FormControl('')
+  readonly search = toSignal(this.searchControl.valueChanges.pipe(debounceTime(300), startWith('')))
+
   readonly data = signal([])
+  readonly filterdData = computed(() => {
+    const search = this.search()?.toLowerCase()
+    if (search) {
+      return this.data().filter((item) => JSON.stringify(item.value).includes(search))
+    }
+    return this.data()
+  })
 
   readonly items = derivedAsync(() => {
     const id = this.xpertId()
@@ -98,6 +108,8 @@ export class XpertMemoryComponent {
       : of(null)
   })
 
+
+
   readonly input = model<string>()
 
   private searchSub: Subscription
@@ -108,6 +120,26 @@ export class XpertMemoryComponent {
         this.data.set(this.items())
       }
     }, { allowSignalWrites: true })
+  }
+
+  clearMemory() {
+    this.#dialog
+    .open(CdkConfirmDeleteComponent, {
+      data: {
+        information:
+          this.#translate.instant('PAC.Xpert.ClearAllMemoryOfXpert', { Default: 'Clear all memories related to this expert' })
+      }
+    })
+    .closed.pipe(switchMap((confirm) => (confirm ? this.xpertService.clearMemory(this.xpertId()) : EMPTY)))
+    .subscribe({
+      next: (result) => {
+        console.log(result)
+        this.#refresh$.next()
+      },
+      error: (err) => {
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
   }
 
   delete(id: string, value: any) {
@@ -143,7 +175,7 @@ export class XpertMemoryComponent {
     }))
   }
 
-  search() {
+  onSearch() {
     this.loading.set(true)
     this.searchSub = this.xpertService.searchMemory(this.xpertId(), { text: this.input(), isDraft: true }).subscribe({
       next: (results) => {
@@ -169,7 +201,7 @@ export class XpertMemoryComponent {
         return
       }
 
-      this.search()
+      this.onSearch()
       this.input.set('')
       event.preventDefault()
     }

@@ -33,6 +33,6 @@ export class ChatMessageFeedbackService extends TenantOrganizationAwareCrudServi
 
 	async deleteSummary(id: string) {
 		const feedback = await this.findOne(id)
-		await this.conversationService.deleteSummary(feedback.conversationId, feedback.messageId)
+		await this.conversationService.deleteSummary(feedback.conversationId, feedback.messageId, LongTermMemoryTypeEnum.QA,)
 	}
 }

@@ -217,4 +217,13 @@ export class XpertController extends CrudController<Xpert> {
 			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
 		}
 	}
+
+	@Delete(':id/memory')
+	async clearMemory(@Param('id') id: string,) {
+		try {
+			return await this.storeService.delete({prefix: Like(`${id}%`)})
+		} catch(err) {
+			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
+		}
+	}
 }

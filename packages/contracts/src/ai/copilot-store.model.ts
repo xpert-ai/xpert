@@ -17,3 +17,6 @@ export type TCopilotStoreVector = {
   field_name: any
   embedding: number[]
 }
+
+export const MEMORY_QA_PROMPT = `Summarize the experience of the above conversation and output a short question and answer.`
+export const MEMORY_PROFILE_PROMPT = `Extract new user profile information from the above conversation in one short sentence. If no new information is available, return nothing.`

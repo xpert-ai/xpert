@@ -91,17 +91,19 @@
       >
         <i class="ri-user-add-line mr-2 text-xl"></i>
         {{ 'PAC.Xpert.Authorization' | translate: {Default: 'Authorization'} }}</a>
-
-    <a class="router-menu-item"
-      title="Long-term Memory"
-      [routerLink]="['./', 'memory']"
-      [routerLinkActiveOptions]="{ exact: false }"
-      routerLinkActive
-      #rla7="routerLinkActive"
-      [class.active]="rla7.isActive"
-    ><i class="ri-brain-line mr-2 text-xl"></i>
-      {{ 'PAC.Xpert.Memory' | translate: {Default: 'Memory'} }}
-    </a>
+    
+    @if (xpertType() === eXpertTypeEnum.Agent) {
+      <a class="router-menu-item"
+        title="Long-term Memory"
+        [routerLink]="['./', 'memory']"
+        [routerLinkActiveOptions]="{ exact: false }"
+        routerLinkActive
+        #rla7="routerLinkActive"
+        [class.active]="rla7.isActive"
+      ><i class="ri-brain-line mr-2 text-xl"></i>
+        {{ 'PAC.Xpert.Memory' | translate: {Default: 'Memory'} }}
+      </a>
+    }
 
     @if (xpertType() === eXpertTypeEnum.Agent) {
       <a class="router-menu-item"

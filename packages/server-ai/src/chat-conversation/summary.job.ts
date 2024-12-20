@@ -50,9 +50,11 @@ export class ConversationSummaryProcessor {
 
 				await this.commandBus.execute(
 					new ChatMessageUpdateJobCommand(messageId, {
-						progress: 100,
-						status: 'done',
-						memoryKey
+						[types[0]]: {
+							progress: 100,
+							status: 'done',
+							memoryKey
+						}
 					})
 				)
 			} catch (err) {

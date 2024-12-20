@@ -1,12 +1,14 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { CopilotBaseMessage, IChatConversation } from './chat.model'
+import { LongTermMemoryTypeEnum } from './xpert.model'
 
-export type TSummaryJob = {
+export type TSummaryJob = Record<LongTermMemoryTypeEnum, {
   jobId: number | string;
   status: string
   progress?: number
   memoryKey?: string
 }
+>
 
 /**
  * 

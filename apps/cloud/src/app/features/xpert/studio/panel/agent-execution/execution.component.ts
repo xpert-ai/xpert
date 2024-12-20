@@ -268,6 +268,12 @@ export function processEvents(event, executionService: XpertExecutionService) {
       })
       break
     }
+    case ChatMessageEventTypeEnum.ON_MESSAGE_START: {
+      break
+    }
+    case ChatMessageEventTypeEnum.ON_INTERRUPT: {
+      break
+    }
     default: {
       console.log(`未处理的事件：`, event)
     }

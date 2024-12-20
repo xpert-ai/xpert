@@ -3,7 +3,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { HumanMessage } from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { BaseStore } from '@langchain/langgraph'
-import { IXpert, IXpertAgent, LongTermMemoryTypeEnum, TLongTermMemoryConfig } from '@metad/contracts'
+import { IXpert, IXpertAgent, LongTermMemoryTypeEnum, MEMORY_PROFILE_PROMPT, MEMORY_QA_PROMPT, TLongTermMemoryConfig } from '@metad/contracts'
 import { Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { v4 as uuidv4 } from 'uuid'
@@ -166,7 +166,7 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 			})
 
 			if (!prompt) {
-				prompt = `Summarize the experience of the above conversation and output a short question and answer`
+				prompt = MEMORY_QA_PROMPT
 			}
 		} else {
 			// Default profile LongTermMemoryTypeEnum.PROFILE
@@ -175,7 +175,7 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 			})
 
 			if (!prompt) {
-				prompt = `Extract the important information about the user in the above conversation that is not in the existing memory as a profile. Otherwise, no return value is needed.`
+				prompt = MEMORY_PROFILE_PROMPT
 			}
 		}
 

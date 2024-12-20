@@ -71,7 +71,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 			message = conversation.messages[conversation.messages.length - 1]
 		}
 
-		if (message?.summaryJob) {
+		if (message?.summaryJob?.[type]) {
 			return
 		}
 		return await this.summaryQueue.add({
@@ -82,13 +82,13 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 		})
 	}
 
-	async deleteSummary(conversationId: string, messageId: string) {
+	async deleteSummary(conversationId: string, messageId: string, type: LongTermMemoryTypeEnum) {
 		const conversation = await this.findOne(conversationId)
 		const message = await this.messageService.findOne(messageId)
 		const { tenantId, organizationId } = message
 		const userId = RequestContext.currentUserId()
 
-		const summaryJob = message.summaryJob
+		const summaryJob = message.summaryJob?.[type]
 		try {
 			if (summaryJob?.jobId) {
 				const job = await this.getJob(summaryJob.jobId)
@@ -116,7 +116,10 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 					}
 				}
 
-				await this.messageService.update(messageId, { summaryJob: null })
+				await this.messageService.update(messageId, { summaryJob: {
+					...(message.summaryJob),
+					[type]: null
+				} })
 			}
 		} catch (err) {
 			this.logger.error(err)
