@@ -271,7 +271,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 	}
 
 	async getLongTermMemory(store: BaseStore, xpertId: string, input: string) {
-		return await store.search([xpertId, LongTermMemoryTypeEnum.PROFILE], { query: input })
+		return await store?.search([xpertId, LongTermMemoryTypeEnum.PROFILE], { query: input })
 	}
 
 }
