@@ -1,4 +1,4 @@
-import { Connection, Pool, createConnection } from 'mysql' // mysql2 package 的连不上 Doris
+import { Connection, Pool, createConnection } from 'mysql2'
 import { BaseSQLQueryRunner, SQLAdapterOptions, register } from '../../base'
 import { convertMySQLSchema, pick, typeToMySqlDB } from '../../helpers'
 import { DBProtocolEnum, DBSyntaxEnum, IDSSchema, QueryOptions } from '../../types'

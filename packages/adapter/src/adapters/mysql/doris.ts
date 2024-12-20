@@ -1,9 +1,10 @@
+import { Connection, Pool, createConnection } from 'mysql' // mysql2 package 的连不上 Doris
 import * as _axios from 'axios'
 import { Readable } from 'stream'
-import { register } from '../../base'
-import { SkipHeaderTransformStream, typeToStarrocksDB } from '../../helpers'
-import { CreationTable, File } from '../../types'
-import { MySQLRunner, MysqlAdapterOptions } from './mysql'
+import { BaseSQLQueryRunner, register } from '../../base'
+import { convertMySQLSchema, pick, SkipHeaderTransformStream, typeToStarrocksDB } from '../../helpers'
+import { CreationTable, File, IDSSchema, QueryOptions } from '../../types'
+import { MysqlAdapterOptions } from './mysql'
 
 const axios = _axios.default
 
@@ -15,9 +16,16 @@ export interface DorisAdapterOptions extends MysqlAdapterOptions {
   apiPort?: number
 }
 
-export class DorisRunner extends MySQLRunner<DorisAdapterOptions> {
+export class DorisRunner extends BaseSQLQueryRunner<DorisAdapterOptions> {
   readonly name: string = 'Doris'
   readonly type: string = DORIS_TYPE
+
+  readonly jdbcDriver = 'com.mysql.jdbc.Driver'
+  jdbcUrl(schema?: string) {
+    return `jdbc:mysql://${this.options.host}:${this.options.port}/${schema}?user=${encodeURIComponent(
+      this.options.username as string
+    )}&password=${encodeURIComponent(this.options.password as string)}`
+  }
 
   get configurationSchema() {
     return {
@@ -60,6 +68,127 @@ export class DorisRunner extends MySQLRunner<DorisAdapterOptions> {
       required: [],
       secret: ['password']
     }
+  }
+
+  #connection = null
+  protected createConnection(database?: string) {
+    const config: any = pick(this.options, ['host', 'port', 'password', 'database'])
+    if (this.options.username) {
+      config.user = this.options.username
+    }
+    if (database) {
+      config.database = database
+    }
+
+    if (this.options.use_ssl) {
+      if (!this.options.ssl_cacert) {
+        throw new Error(`No mysql ca cert for ssl connection`)
+      }
+      config.ssl = {
+        ca: this.options.ssl_cacert
+      }
+    }
+
+    return createConnection({
+      ...config,
+      // waitForConnections: true,
+      // connectionLimit: 10,
+      // maxIdle: 10, // max idle connections, the default value is the same as `connectionLimit`
+      // idleTimeout: 60000, // idle connections timeout, in milliseconds, the default value 60000
+      // queueLimit: 0,
+      debug: this.options.debug,
+      trace: this.options.trace,
+      charset: 'utf8',
+      connectTimeout: 60000
+    })
+  }
+
+  getConnection(catalog: string): Connection {
+    if (!this.#connection) {
+      this.#connection = this.createConnection(catalog)
+    }
+
+    return this.#connection
+  }
+
+  async query(connection: Connection | Pool, statment: string, values?: any) {
+    return new Promise((resolve, reject) => {
+      const callback = (error, results, fields) => {
+        if (error) {
+          reject(error)
+          return
+        }
+
+        resolve({
+          status: 'OK',
+          data: results,
+          columns: fields
+        })
+      }
+
+      connection.query(
+        {
+          sql: statment,
+          timeout: this.options.queryTimeout || 60000 * 60, // 1h
+          values
+        },
+        callback
+      )
+    })
+  }
+
+  async runQuery(query: string, options?: QueryOptions): Promise<any> {
+    const connection = this.getConnection(options?.catalog ?? this.options.catalog)
+    return await this.query(connection, query)
+  }
+
+  async getCatalogs(): Promise<IDSSchema[]> {
+    const query =
+      "SELECT SCHEMA_NAME FROM `information_schema`.`SCHEMATA` WHERE SCHEMA_NAME NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys')"
+    const { data } = await this.runQuery(query)
+    return data.map((row: any) => ({
+      name: row.SCHEMA_NAME
+    }))
+  }
+
+  async getSchema(catalog?: string, tableName?: string): Promise<IDSSchema[]> {
+    let query = ''
+    const tableSchema = catalog
+      ? `A.\`table_schema\` = '${catalog}'`
+      : `A.\`table_schema\` NOT IN ('information_schema', 'performance_schema', 'mysql', 'sys')`
+    if (tableName) {
+      query =
+        'SELECT A.`table_schema` AS `table_schema`, A.`table_name` AS `table_name`, A.`table_type` AS `table_type`, ' +
+        'A.`table_comment` AS `table_comment`, C.`column_name` AS `column_name`, C.`data_type` AS `data_type`, ' +
+        'C.`column_comment` AS `column_comment` FROM `information_schema`.`tables` AS A join ' +
+        '`information_schema`.`columns` AS C ON A.`table_schema` = C.`table_schema` ' +
+        'AND A.`table_name` = C.`table_name` WHERE ' +
+        tableSchema +
+        ` AND A.\`table_name\` = '${tableName}'`
+    } else {
+      query =
+        'SELECT `table_schema` AS `table_schema`, `table_name` AS `table_name`, `table_type` AS `table_type`, ' +
+        '`table_comment` AS `table_comment` FROM `information_schema`.`tables` AS A WHERE ' +
+        tableSchema
+    }
+
+    const { data } = await this.runQuery(query)
+    return convertMySQLSchema(data)
+  }
+
+  async describe(catalog: string, statement: string) {
+    if (!statement) {
+      return { columns: [] }
+    }
+
+    statement = `${statement} LIMIT 1`
+    return await this.runQuery(statement, { catalog })
+  }
+
+  async createCatalog(catalog: string) {
+    // 用 `CREATE DATABASE` 使其适用于 Doris ？
+    const query = `CREATE DATABASE IF NOT EXISTS \`${catalog}\``
+    await this.runQuery(query)
   }
 
   /**
@@ -169,6 +298,9 @@ export class DorisRunner extends MySQLRunner<DorisAdapterOptions> {
     throw new Error(result.data.Message)
   }
   
+  async teardown() {
+    this.#connection?.destroy()
+  }
 }
 
 export class StarRocksRunner extends DorisRunner {
