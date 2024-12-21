@@ -1,5 +1,5 @@
 import { tool } from '@langchain/core/tools'
-import { ChatLarkContext } from '@metad/server-core'
+import { ChatLarkContext } from '@metad/server-ai'
 import { take } from 'rxjs/operators'
 import { z } from 'zod'
 import { ChatBIConversation } from '../conversation'

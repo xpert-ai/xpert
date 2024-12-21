@@ -21,7 +21,6 @@ import { EmployeeModule } from './employee/employee.module'
 import { FeatureModule } from './feature/feature.module'
 import { resolveServeStaticPath } from './helper'
 import { HomeModule } from './home/home.module'
-import { IntegrationLarkModule } from './integration-lark/index'
 import { InviteModule } from './invite/invite.module'
 import { LanguageModule } from './language/language.module'
 import { OrganizationContactModule } from './organization-contact/organization-contact.module'
@@ -93,7 +92,6 @@ import { ApiKeyModule } from './api-key/api-key.module'
 		LanguageModule,
 		StorageFileModule,
 		IntegrationModule,
-		IntegrationLarkModule,
 	],
 	controllers: [AppController],
 	providers: [AppService],

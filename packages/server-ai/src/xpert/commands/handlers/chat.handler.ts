@@ -1,21 +1,35 @@
 import { MessageContent } from '@langchain/core/messages'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, CopilotChatMessage, figureOutXpert, IChatConversation, IXpert, LongTermMemoryTypeEnum, TChatConversationStatus, TSensitiveOperation, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { BaseStore } from '@langchain/langgraph'
+import {
+	ChatMessageEventTypeEnum,
+	ChatMessageTypeEnum,
+	CopilotChatMessage,
+	figureOutXpert,
+	IChatConversation,
+	IXpert,
+	LongTermMemoryTypeEnum,
+	TChatConversationStatus,
+	TSensitiveOperation,
+	XpertAgentExecutionStatusEnum
+} from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { catchError, concat, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
+import {
+	CancelSummaryJobCommand,
+	ChatConversationUpsertCommand,
+	GetChatConversationQuery,
+	ScheduleSummaryJobCommand
+} from '../../../chat-conversation/'
+import { ChatMessageUpsertCommand } from '../../../chat-message'
+import { CreateCopilotStoreCommand } from '../../../copilot-store'
+import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { XpertAgentChatCommand } from '../../../xpert-agent/'
+import { GetXpertMemoryEmbeddingsQuery } from '../../queries'
 import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
-import { GetChatConversationQuery, CancelSummaryJobCommand, ChatConversationUpsertCommand, ScheduleSummaryJobCommand } from '../../../chat-conversation/'
-import {
-	XpertAgentExecutionUpsertCommand
-} from '../../../xpert-agent-execution/commands'
-import { ChatMessageUpsertCommand } from '../../../chat-message'
-import { GetXpertMemoryEmbeddingsQuery } from '../../queries'
-import { CreateCopilotStoreCommand } from '../../../copilot-store'
-import { BaseStore } from '@langchain/langgraph'
 
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
@@ -35,14 +49,10 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		const timeStart = Date.now()
 
 		const xpert = await this.xpertService.findOne(xpertId, { relations: ['agent'] })
-		const latestXpert = figureOutXpert(xpert, options.isDraft)
+		const latestXpert = figureOutXpert(xpert, options?.isDraft)
 		const memory = latestXpert.memory
-		const memoryStore = await this.createMemoryStore(
-			latestXpert,
-			userId
-		)
+		const memoryStore = await this.createMemoryStore(latestXpert, userId)
 		let memories = []
-		
 
 		let conversation: IChatConversation
 		let aiMessage: CopilotChatMessage
@@ -63,7 +73,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			// New message in conversation
 			if (conversationId) {
 				conversation = await this.queryBus.execute(
-					new GetChatConversationQuery({id: conversationId}, ['messages'])
+					new GetChatConversationQuery({ id: conversationId }, ['messages'])
 				)
 				// Cancel summary job
 				if (memory?.enabled && memory.profile?.enabled) {
@@ -78,7 +88,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 						options: {
 							knowledgebases: options?.knowledgebases,
 							toolsets: options?.toolsets
-						},
+						}
 					})
 				)
 
@@ -98,18 +108,22 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			)
 			executionId = execution.id
 
-			const userMessage = await this.commandBus.execute(new ChatMessageUpsertCommand({
-				role: 'human',
-				content: input.input,
-				conversationId: conversation.id
-			}))
-			aiMessage = await this.commandBus.execute(new ChatMessageUpsertCommand({
-				role: 'ai',
-				content: ``,
-				executionId,
-				conversationId: conversation.id,
-				status: 'thinking'
-			}))
+			const userMessage = await this.commandBus.execute(
+				new ChatMessageUpsertCommand({
+					role: 'human',
+					content: input.input,
+					conversationId: conversation.id
+				})
+			)
+			aiMessage = await this.commandBus.execute(
+				new ChatMessageUpsertCommand({
+					role: 'ai',
+					content: ``,
+					executionId,
+					conversationId: conversation.id,
+					status: 'thinking'
+				})
+			)
 		}
 
 		let status = XpertAgentExecutionStatusEnum.SUCCESS
@@ -137,7 +151,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 						id: conversation.id,
 						title: conversation.title,
 						createdAt: conversation.createdAt,
-						updatedAt: conversation.updatedAt,
+						updatedAt: conversation.updatedAt
 					}
 				}
 			} as MessageEvent)
@@ -146,96 +160,110 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				data: {
 					type: ChatMessageTypeEnum.EVENT,
 					event: ChatMessageEventTypeEnum.ON_MESSAGE_START,
-					data: {...aiMessage, status: 'thinking'}
+					data: { ...aiMessage, status: 'thinking' }
 				}
 			} as MessageEvent)
 
 			let _execution = null
 			let operation: TSensitiveOperation = null
-			concat(agentObservable.pipe(
-				tap({
-					next: (event) => {
-						if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
-							appendMessageContent(aiMessage, event.data.data)
-							if (typeof event.data.data === 'string') {
-							  result += event.data.data
-							}
-						} else if (event.data.type === ChatMessageTypeEnum.EVENT && event.data.event === ChatMessageEventTypeEnum.ON_AGENT_END) {
-							_execution = event.data.data
-						} else if (event.data.type === ChatMessageTypeEnum.EVENT && event.data.event === ChatMessageEventTypeEnum.ON_INTERRUPT) {
-							operation = event.data.data
-						}
-					},
-				}),
-				catchError((err) => {
-					status = XpertAgentExecutionStatusEnum.ERROR
-					error = getErrorMessage(err)
-					return EMPTY
-				}),
-			), of(true).pipe(
-				switchMap(async () => {
-					try {
-						// Record Execution
-						const timeEnd = Date.now()
-						const entity = status === XpertAgentExecutionStatusEnum.ERROR ? {
-							id: executionId,
-							elapsedTime: timeEnd - timeStart,
-							status,
-							error,
-							outputs: {
-								output: result
-							}
-						} : {
-							id: executionId,
-							elapsedTime: timeEnd - timeStart,
-							outputs: {
-								output: result
-							}
-						}
-						await this.commandBus.execute(new XpertAgentExecutionUpsertCommand(entity))
-						
-						// Update ai message
-						aiMessage.status = _execution.status
-						await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
-
-						// Update conversation
-						let convStatus: TChatConversationStatus = 'idle'
-						if (_execution.status === XpertAgentExecutionStatusEnum.ERROR) {
-							convStatus = 'error'
-						} else if (_execution.status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
-							convStatus = 'interrupted'
-						}
-						const _conversation = await this.commandBus.execute(
-							new ChatConversationUpsertCommand({
-								id: conversation.id,
-								status: convStatus,
-								title: _execution.title,
-								operation
-							})
-						)
-						
-						// Schedule summary job
-						if (memory?.enabled && memory.profile?.enabled) {
-							await this.commandBus.execute(new ScheduleSummaryJobCommand(conversation.id, userId, memory))
-						}
-
-						return {
-							data: {
-								type: ChatMessageTypeEnum.EVENT,
-								event: ChatMessageEventTypeEnum.ON_CONVERSATION_END,
-								data: {
-									id: _conversation.id,
-									title: _conversation.title,
-									status: _conversation.status,
-									operation: _conversation.operation
+			concat(
+				agentObservable.pipe(
+					tap({
+						next: (event) => {
+							if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
+								appendMessageContent(aiMessage, event.data.data)
+								if (typeof event.data.data === 'string') {
+									result += event.data.data
 								}
+							} else if (
+								event.data.type === ChatMessageTypeEnum.EVENT &&
+								event.data.event === ChatMessageEventTypeEnum.ON_AGENT_END
+							) {
+								_execution = event.data.data
+							} else if (
+								event.data.type === ChatMessageTypeEnum.EVENT &&
+								event.data.event === ChatMessageEventTypeEnum.ON_INTERRUPT
+							) {
+								operation = event.data.data
 							}
-						} as MessageEvent
-					} catch (err) {
-						console.log(err)
-					}
-				})
-			)).subscribe(subscriber)
+						}
+					}),
+					catchError((err) => {
+						status = XpertAgentExecutionStatusEnum.ERROR
+						error = getErrorMessage(err)
+						return EMPTY
+					})
+				),
+				of(true).pipe(
+					switchMap(async () => {
+						try {
+							// Record Execution
+							const timeEnd = Date.now()
+							const entity =
+								status === XpertAgentExecutionStatusEnum.ERROR
+									? {
+											id: executionId,
+											elapsedTime: timeEnd - timeStart,
+											status,
+											error,
+											outputs: {
+												output: result
+											}
+										}
+									: {
+											id: executionId,
+											elapsedTime: timeEnd - timeStart,
+											outputs: {
+												output: result
+											}
+										}
+							await this.commandBus.execute(new XpertAgentExecutionUpsertCommand(entity))
+
+							// Update ai message
+							aiMessage.status = _execution.status
+							await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
+
+							// Update conversation
+							let convStatus: TChatConversationStatus = 'idle'
+							if (_execution.status === XpertAgentExecutionStatusEnum.ERROR) {
+								convStatus = 'error'
+							} else if (_execution.status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
+								convStatus = 'interrupted'
+							}
+							const _conversation = await this.commandBus.execute(
+								new ChatConversationUpsertCommand({
+									id: conversation.id,
+									status: convStatus,
+									title: _execution.title,
+									operation
+								})
+							)
+
+							// Schedule summary job
+							if (memory?.enabled && memory.profile?.enabled) {
+								await this.commandBus.execute(
+									new ScheduleSummaryJobCommand(conversation.id, userId, memory)
+								)
+							}
+
+							return {
+								data: {
+									type: ChatMessageTypeEnum.EVENT,
+									event: ChatMessageEventTypeEnum.ON_CONVERSATION_END,
+									data: {
+										id: _conversation.id,
+										title: _conversation.title,
+										status: _conversation.status,
+										operation: _conversation.operation
+									}
+								}
+							} as MessageEvent
+						} catch (err) {
+							console.log(err)
+						}
+					})
+				)
+			).subscribe(subscriber)
 
 			return () => {
 				//
@@ -261,7 +289,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				userId,
 				index: {
 					dims: null,
-					embeddings,
+					embeddings
 					// fields
 				}
 			})
@@ -271,9 +299,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 	}
 
 	async getLongTermMemory(store: BaseStore, xpertId: string, input: string) {
-		return await store.search([xpertId, LongTermMemoryTypeEnum.PROFILE], { query: input })
+		return await store?.search([xpertId, LongTermMemoryTypeEnum.PROFILE], { query: input })
 	}
-
 }
 
 export function appendMessageContent(aiMessage: CopilotChatMessage, content: MessageContent) {
@@ -297,7 +324,7 @@ export function appendMessageContent(aiMessage: CopilotChatMessage, content: Mes
 	} else {
 		if (Array.isArray(_content)) {
 			_content.push(content)
-		} else if(_content) {
+		} else if (_content) {
 			aiMessage.content = [
 				{
 					type: 'text',
@@ -306,9 +333,7 @@ export function appendMessageContent(aiMessage: CopilotChatMessage, content: Mes
 				content
 			]
 		} else {
-			aiMessage.content = [
-				content
-			]
+			aiMessage.content = [content]
 		}
 	}
 }

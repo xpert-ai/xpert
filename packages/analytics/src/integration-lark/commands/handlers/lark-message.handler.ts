@@ -1,12 +1,12 @@
-import { LarkMessageCommand } from '@metad/server-core'
+import { LarkChatAgentCommand } from '@metad/server-ai'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { ChatBICommand } from '../../../chatbi/index'
 
-@CommandHandler(LarkMessageCommand)
-export class LarkMessageHandler implements ICommandHandler<LarkMessageCommand> {
+@CommandHandler(LarkChatAgentCommand)
+export class LarkChatAgentHandler implements ICommandHandler<LarkChatAgentCommand> {
 	constructor(private readonly commandBus: CommandBus) {}
 
-	public async execute(command: LarkMessageCommand): Promise<unknown> {
+	public async execute(command: LarkChatAgentCommand): Promise<unknown> {
 		const { input } = command
 		const chatId = input.message.message.chat_id
 		const textContent = JSON.parse(input.message.message.content)
@@ -17,6 +17,8 @@ export class LarkMessageHandler implements ICommandHandler<LarkMessageCommand> {
 				text = text.split(mention.key).join('')
 			})
 		}
+
+		
 		return await this.commandBus.execute(
 			new ChatBICommand({
 				...input,

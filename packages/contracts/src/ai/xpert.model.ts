@@ -479,3 +479,7 @@ export function createAgentConnections(agent: IXpertAgent, collaborators: IXpert
 
   return connections
 }
+
+export function xpertLabel(agent: IXpert) {
+  return agent.title || agent.name
+}

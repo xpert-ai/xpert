@@ -1,33 +1,35 @@
-import { AsyncPipe } from '@angular/common'
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
+import { MatButtonModule } from '@angular/material/button'
 import { MatDialog } from '@angular/material/dialog'
+import { MatIconModule } from '@angular/material/icon'
+import { MatInputModule } from '@angular/material/input'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmInputComponent, NgmSelectComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { IsDirty } from '@metad/core'
+import { NgmInputComponent, NgmSelectComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { ButtonGroupDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { assign, DisplayBehaviour } from '@metad/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { environment } from 'apps/cloud/src/environments/environment'
+import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
+import omit from 'lodash-es/omit'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
 import { BehaviorSubject, distinctUntilChanged, EMPTY, map, pipe, startWith, switchMap } from 'rxjs'
 import {
-  convertConfigurationSchema,
   getErrorMessage,
+  injectApiBaseUrl,
+  injectTranslate,
   INTEGRATION_PROVIDERS,
-  IntegrationEnum,
   IntegrationService,
   routeAnimations,
   Store,
-  ToastrService
+  ToastrService,
+  toFormlySchema
 } from '../../../../@core'
-import { IsDirty } from '@metad/core'
-import omit from 'lodash-es/omit'
-import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
 @Component({
   standalone: true,
@@ -35,19 +37,20 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
   templateUrl: './integration.component.html',
   styleUrls: ['./integration.component.scss'],
   imports: [
-    AsyncPipe,
     RouterModule,
     TranslateModule,
     FormsModule,
     ReactiveFormsModule,
     FormlyModule,
+    MatTooltipModule,
+    MatIconModule,
+    MatInputModule,
+    MatButtonModule,
     ContentLoaderModule,
-    MaterialModule,
     ButtonGroupDirective,
-    AppearanceDirective,
-    DensityDirective,
     NgmSelectComponent,
     NgmInputComponent,
+    NgmSpinComponent,
     EmojiAvatarComponent
   ],
   animations: [routeAnimations]
@@ -62,6 +65,9 @@ export class IntegrationComponent implements IsDirty {
   readonly #route = inject(ActivatedRoute)
   readonly #dialog = inject(MatDialog)
   readonly #translate = inject(TranslateService)
+  readonly apiBaseUrl = injectApiBaseUrl()
+  readonly i18n = new NgmI18nPipe()
+  readonly integrationI18n = injectTranslate('PAC.Integration')
 
   readonly paramId = injectParams('id')
 
@@ -69,12 +75,12 @@ export class IntegrationComponent implements IsDirty {
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
 
-  readonly providers = signal([
-    {
-      key: IntegrationEnum.LARK,
-      caption: 'Lark'
-    }
-  ])
+  readonly providers = signal(
+    Object.keys(INTEGRATION_PROVIDERS).map((name) => ({
+      key: name,
+      caption: this.i18n.transform(INTEGRATION_PROVIDERS[name].label)
+    }))
+  )
 
   readonly formGroup = new FormGroup({
     id: new FormControl(null),
@@ -98,9 +104,8 @@ export class IntegrationComponent implements IsDirty {
     )
   )
 
-  readonly i18n = toSignal(this.#translate.stream('PAC.Integration'))
   readonly schema = computed(() =>
-    this.integrationProvider() ? convertConfigurationSchema(this.integrationProvider().schema, this.i18n()) : null
+    this.integrationProvider() ? toFormlySchema(this.integrationProvider().schema, this.i18n) : null
   )
 
   readonly integration = derivedFrom(
@@ -117,8 +122,7 @@ export class IntegrationComponent implements IsDirty {
   readonly loading = signal(true)
 
   readonly webhookUrl = computed(() =>
-    this.integration() ?
-    this.integrationProvider()?.webhookUrl(this.integration(), environment.API_BASE_URL) : null
+    this.integration() ? this.integrationProvider()?.webhookUrl(this.integration(), this.apiBaseUrl) : null
   )
 
   optionsModel = {}
@@ -166,8 +170,9 @@ export class IntegrationComponent implements IsDirty {
   upsert() {
     ;(this.formGroup.value.id
       ? this.integrationService.update(this.formGroup.value.id, {
-        ...this.formGroup.value
-      }) : this.integrationService.create(omit(this.formGroup.value, 'id'))
+          ...this.formGroup.value
+        })
+      : this.integrationService.create(omit(this.formGroup.value, 'id'))
     ).subscribe({
       next: () => {
         this.formGroup.markAsPristine()
@@ -179,7 +184,7 @@ export class IntegrationComponent implements IsDirty {
       }
     })
   }
-  
+
   cancel() {
     this.close()
   }

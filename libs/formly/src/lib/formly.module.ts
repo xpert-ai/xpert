@@ -22,6 +22,7 @@ import { FormlyMatSliderModule } from '@metad/formly/slider'
 import { PACFormlySortModule } from '@metad/formly/sort'
 import { PACFormlyTextAreaModule } from '@metad/formly/textarea'
 import { MetadFormlyPanelModule } from '@metad/formly/panel'
+import { NgmFormlyRemoteSelectModule } from '@metad/formly/remote-select'
 
 @NgModule({
   declarations: [],
@@ -49,7 +50,8 @@ import { MetadFormlyPanelModule } from '@metad/formly/panel'
     MetadFormlyPanelModule,
 
     NgmFormlyArrayModule,
-    NgmFormlyAccordionModule
+    NgmFormlyAccordionModule,
+    NgmFormlyRemoteSelectModule
   ]
 })
 export class NgmFormlyModule {}

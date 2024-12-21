@@ -1,0 +1,12 @@
+identity:
+  name: welcome
+  author: Xpert AI
+  label:
+    en_US: Welcome
+    zh_Hans: 欢迎
+description:
+  human:
+    en_US: Show welcome message
+    zh_Hans: 展示欢迎信息
+  llm: A tool to show welcome message to guidle user ask questions abount models.
+parameters:

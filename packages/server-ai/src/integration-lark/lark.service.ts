@@ -1,17 +1,16 @@
 import * as lark from '@larksuiteoapi/node-sdk'
 import { IIntegration, IUser } from '@metad/contracts'
 import { nonNullable } from '@metad/copilot'
+import { ConfigService, IEnvironment } from '@metad/server-config'
+import { UserService, RoleService, RequestContext } from '@metad/server-core'
 import { CACHE_MANAGER, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { Cache } from 'cache-manager'
 import { isEqual } from 'date-fns'
 import express from 'express'
 import { filter, Observable, Observer, Subject, Subscriber } from 'rxjs'
-import { UserService } from '../user'
 import { LarkBotMenuCommand, LarkMessageCommand } from './commands'
 import { ChatLarkContext, LarkMessage } from './types'
-import { ConfigService, IEnvironment } from '@metad/server-config'
-import { RoleService } from '../role/role.service'
 
 @Injectable()
 export class LarkService {
@@ -43,7 +42,7 @@ export class LarkService {
 		private readonly cacheManager: Cache
 	) {}
 
-	webhookEventDispatcher(integration: IIntegration, req: express.Request, res: express.Response) {
+	getOrCreateLarkClient(integration: IIntegration) {
 		let item = this.eventDispatchers.get(integration.id)
 		if (!item || !isEqual(item.integration.updatedAt, integration.updatedAt)) {
 			if (item) { // debug
@@ -68,6 +67,12 @@ export class LarkService {
 			this.eventDispatchers.set(integration.id, item)
 			this.getBotInfo(client).then((bot) => (item.bot = bot))
 		}
+
+		return item
+	}
+
+	webhookEventDispatcher(integration: IIntegration, req: express.Request, res: express.Response) {
+		const item = this.getOrCreateLarkClient(integration)
 
 		item.dispatcher(req, res).catch((err) => {
 			// Error
@@ -150,12 +155,16 @@ export class LarkService {
 				this.logger.debug(data)
 
 				try {
-				    const user = await this.getUser(client, tenant.id, data.sender.sender_id.union_id)
+				    const user = RequestContext.currentUser()
+					console.log(user.id)
+					
+					// await this.getUser(client, tenant.id, data.sender.sender_id.union_id)
 					await this.commandBus.execute<LarkMessageCommand, Observable<any>>(
 						new LarkMessageCommand({
 							tenant,
 							organizationId,
 							integrationId: integration.id,
+							integration,
 							user,
 							message: data as any,
 							chatId,
@@ -327,7 +336,9 @@ export class LarkService {
 
 		if (user) {
 			await this.cacheManager.set(tenantId + '/' + unionId, user)
+			
 		}
+		
 		return user
 	}
 
@@ -500,7 +511,7 @@ export class LarkService {
 					)
 					response.subscribe({
 						next: (message) => {
-							subscriber.next(message.action)
+							subscriber.next(message)
 						},
 						error: (err) => {
 							subscriber.error(err)
@@ -515,7 +526,7 @@ export class LarkService {
 	}
 
 	patchAction({ integrationId }: ChatLarkContext, messageId: string, content: any) {
-		return new Observable<{ value: any }>((subscriber: Subscriber<unknown>) => {
+		return new Observable<{ action: any }>((subscriber: Subscriber<unknown>) => {
 			this.getClient(integrationId)
 				.im.message.patch({
 					data: {
@@ -539,7 +550,7 @@ export class LarkService {
 
 					response.subscribe({
 						next: (message) => {
-							subscriber.next(message.action)
+							subscriber.next(message)
 						},
 						error: (err) => {
 							subscriber.error(err)

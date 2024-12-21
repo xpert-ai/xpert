@@ -1,11 +1,11 @@
 import { IIntegration } from '@metad/contracts'
-import { Body, Controller, HttpCode, Param, Post, Request, Response } from '@nestjs/common'
+import { Body, Controller, HttpCode, Param, Post, Request, Response, UseGuards } from '@nestjs/common'
 import express from 'express'
-import { IntegrationService } from '../integration/integration.service'
-import { Public } from '../shared'
+import { IntegrationService, Public } from '@metad/server-core'
 import { LarkService } from './lark.service'
+import { LarkAuthGuard } from './auth/lark-auth.guard'
 
-@Public()
+
 @Controller()
 export class LarkHooksController {
 	constructor(
@@ -13,6 +13,8 @@ export class LarkHooksController {
 		private readonly integrationService: IntegrationService
 	) {}
 
+	@Public()
+	@UseGuards(LarkAuthGuard)
 	@Post('webhook/:id')
 	@HttpCode(200) // response code 200 required by lark server
 	async webhook(
@@ -28,7 +30,9 @@ export class LarkHooksController {
 	async connect(@Body() integration: IIntegration) {
 		const botInfo = await this.larkService.test(integration)
 		if (!integration.avatar) {
-		    integration.avatar = botInfo.avatar_url
+		    integration.avatar = {
+				url: botInfo.avatar_url
+			}
 		}
 		return integration
 	}

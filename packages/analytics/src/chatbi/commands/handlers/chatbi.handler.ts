@@ -1,5 +1,4 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AiProviderRole } from '@metad/copilot'
 import { Agent, DataSourceFactory } from '@metad/ocap-core'
 import {
 	CopilotCheckLimitCommand,
@@ -7,10 +6,11 @@ import {
 	CopilotKnowledgeService,
 	CopilotService,
 	CopilotTokenRecordCommand,
-	createLLM
+	createLLM,
+	CopilotModelGetChatModelQuery
 } from '@metad/server-ai'
 import { Inject, Logger } from '@nestjs/common'
-import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { ChatBIModelService } from '../../../chatbi-model'
 import { SemanticModelMemberService } from '../../../model-member'
 import { NgmDSCoreService, OCAP_AGENT_TOKEN, OCAP_DATASOURCE_TOKEN } from '../../../model/ocap'
@@ -18,6 +18,7 @@ import { ChatBIService } from '../../chatbi.service'
 import { ChatBIConversation } from '../../conversation'
 import { ChatBILarkContext } from '../../types'
 import { ChatBICommand } from '../chatbi.command'
+import { AiProviderRole } from '@metad/contracts'
 
 @CommandHandler(ChatBICommand)
 export class ChatBIHandler implements ICommandHandler<ChatBICommand> {
@@ -38,7 +39,8 @@ export class ChatBIHandler implements ICommandHandler<ChatBICommand> {
 		private agent: Agent,
 		@Inject(OCAP_DATASOURCE_TOKEN)
 		private dataSourceFactory: { type: string; factory: DataSourceFactory },
-		private readonly commandBus: CommandBus
+		private readonly commandBus: CommandBus,
+		private readonly queryBus: QueryBus,
 	) {}
 
 	public async execute(command: ChatBICommand): Promise<any> {
@@ -70,6 +72,7 @@ export class ChatBIHandler implements ICommandHandler<ChatBICommand> {
 
 		// Ask
 		conversation.ask(input.text).then().catch((err) => {
+			console.error(err)
 			larkService.errorMessage(
 				input,
 				new Error(`Internal Error!`)
@@ -104,29 +107,33 @@ export class ChatBIHandler implements ICommandHandler<ChatBICommand> {
 	async createChatConversation(input: ChatBILarkContext) {
 		const { tenant, organizationId, user } = input
 		const tenantId = tenant.id
-		const items = await this.copilotService.findAllCopilots(tenantId, organizationId)
-		const copilot = items.find((item) => item.role === AiProviderRole.Primary)
+		const copilot = await this.copilotService.findOneByRole(AiProviderRole.Primary, tenantId, organizationId)
+		// const copilot = items.find((item) => item.role === AiProviderRole.Primary)
 		if (!copilot?.enabled) {
 			throw new Error(
 				`No 'Primary' copilot found for tenant='${tenantId}' and organization='${organizationId}'`
 			)
 		}
 
-		const chatModel = createLLM<BaseChatModel>(copilot, {}, async (input) => {
-			try {
-				await this.commandBus.execute(
-					new CopilotTokenRecordCommand({
-						...input,
-						tenantId: tenantId,
-						organizationId: organizationId,
-						userId: user?.id,
-						copilot: copilot
-					})
-				)
-			} catch(err) {
-				//
-			}
-		})
+		const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
+			new CopilotModelGetChatModelQuery(copilot, null, {})
+		)
+		
+		// createLLM<BaseChatModel>(copilot, {}, async (input) => {
+		// 	try {
+		// 		await this.commandBus.execute(
+		// 			new CopilotTokenRecordCommand({
+		// 				...input,
+		// 				tenantId: tenantId,
+		// 				organizationId: organizationId,
+		// 				userId: user?.id,
+		// 				copilot: copilot
+		// 			})
+		// 		)
+		// 	} catch(err) {
+		// 		//
+		// 	}
+		// })
 
 		if (!chatModel) {
 			throw new Error(
@@ -138,7 +145,7 @@ export class ChatBIHandler implements ICommandHandler<ChatBICommand> {
 			input,
 			chatModel,
 			this.modelService,
-			this.semanticModelMemberService,
+			// this.semanticModelMemberService,
 			this.copilotCheckpointSaver,
 			// New Ocap context for every chatbi conversation
 			new NgmDSCoreService(this.agent, this.dataSourceFactory),

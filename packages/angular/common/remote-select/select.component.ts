@@ -5,13 +5,12 @@ import { HttpClient } from '@angular/common/http'
 import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
-import { toParams } from '@metad/core'
-import { NgmHighlightDirective } from '@metad/ocap-angular/common'
-import { ISelectOption, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { ISelectOption, NgmI18nPipe, toParams } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { debounceTime, startWith } from 'rxjs'
+import { NgmHighlightDirective } from '../directives'
 
 type TSelectOptionValue = string | { id: string }
 
@@ -29,12 +28,12 @@ type TSelectOptionValue = string | { id: string }
     NgmI18nPipe,
     NgmHighlightDirective
   ],
-  selector: 'remote-select',
+  selector: 'ngm-remote-select',
   templateUrl: 'select.component.html',
   styleUrls: ['select.component.scss'],
   hostDirectives: [NgxControlValueAccessor]
 })
-export class RemoteSelectComponent {
+export class NgmRemoteSelectComponent {
   readonly httpClient = inject(HttpClient)
   protected cva =
     inject<NgxControlValueAccessor<TSelectOptionValue[] | TSelectOptionValue | null>>(NgxControlValueAccessor)
@@ -48,6 +47,7 @@ export class RemoteSelectComponent {
   })
   readonly placeholder = input<string>()
 
+  // States
   readonly searchControl = new FormControl()
   readonly values = computed(() => {
     if (this.multiple()) {
