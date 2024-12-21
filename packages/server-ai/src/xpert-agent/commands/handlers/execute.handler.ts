@@ -4,7 +4,7 @@ import { AIMessageChunk, HumanMessage, isAIMessage, isAIMessageChunk, MessageCon
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Annotation, CompiledStateGraph, LangGraphRunnableConfig, NodeInterrupt } from '@langchain/langgraph'
-import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IXpert, IXpertAgent, ToolCall, TSensitiveOperation, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IXpert, IXpertAgent, ToolCall, TSensitiveOperation, TStateVariable, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
@@ -23,7 +23,7 @@ import { createReactAgent } from './react_agent_executor'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { getErrorMessage } from '@metad/server-common'
-import { AgentStateAnnotation, TSubAgent } from './types'
+import { AgentStateAnnotation, parseXmlString, TSubAgent } from './types'
 import { CompleteToolCallsQuery } from '../../queries'
 import { memoryPrompt } from '../../../copilot-store/utils'
 
@@ -74,7 +74,9 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		)
 		const tools = []
 		const interruptBefore: string[] = []
+		const stateVariables: TStateVariable[] = []
 		for await (const toolset of toolsets) {
+			stateVariables.push(...(toolset.getVariables() ?? []))
 			const items = await toolset.initTools()
 			tools.push(...items)
 			interruptBefore.push(...items.filter((tool) => {
@@ -135,25 +137,32 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		// Custom parameters
 		const StateAnnotation = Annotation.Root({
 			...AgentStateAnnotation.spec,
+			...(stateVariables.reduce((acc, variable) => {
+				acc[variable.name] = Annotation({
+					reducer: variable.reducer,
+					default: variable.default,
+				  })
+				return acc
+			}, {}) ?? {}),
 			...(agent.parameters?.reduce((acc, parameter) => {
 				acc[parameter.name] = Annotation<string>
 				return acc
-			}, {}) ?? {})
+			}, {}) ?? {}),
 		})
 
 		const thread_id = command.options.thread_id
 
 		const graph = createReactAgent({
-			tags: [thread_id],
-			state: StateAnnotation,
+			stateSchema: StateAnnotation,
 			llm: chatModel,
 			checkpointSaver: this.copilotCheckpointSaver,
 			subAgents,
 			tools: tools,
 			interruptBefore,
+			tags: [thread_id],
 			stateModifier: async (state: typeof AgentStateAnnotation.State) => {
 				const { summary } = state
-				let systemTemplate = `{{language}}\nCurrent time: ${new Date().toISOString()}\n${agent.prompt}`
+				let systemTemplate = `{{language}}\nCurrent time: ${new Date().toISOString()}\n${parseXmlString(agent.prompt) ?? ''}`
 				if (memories?.length) {
 					systemTemplate += `\n\n<memory>\n${memoryPrompt(memories)}\n</memory>`
 				}

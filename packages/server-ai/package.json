@@ -10,7 +10,7 @@
     "@langchain/exa": "0.1.0",
     "@langchain/openai": "0.3.11",
     "@langchain/mistralai": "0.1.1",
-    "@langchain/core": "0.3.13",
+    "@langchain/core": "0.3.23",
     "@langchain/community": "0.3.11",
     "@langchain/langgraph": "0.2.33",
     "@nestjs/schedule": "4.1.2",

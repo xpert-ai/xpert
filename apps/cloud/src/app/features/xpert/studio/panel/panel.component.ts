@@ -11,6 +11,7 @@ import { XpertStudioPanelXpertComponent } from './xpert/xpert.component'
 import { XpertStudioPanelKnowledgeComponent } from './knowledge/knowledge.component'
 import { XpertStudioPanelExecutionComponent } from './execution/execution.component'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { XpertStudioPanelVariablesComponent } from './variables/variables.component'
 
 @Component({
   selector: 'xpert-studio-panel',
@@ -24,7 +25,8 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
     XpertStudioPanelToolsetComponent,
     XpertStudioPanelKnowledgeComponent,
     XpertStudioPreviewComponent,
-    XpertStudioPanelExecutionComponent
+    XpertStudioPanelExecutionComponent,
+    XpertStudioPanelVariablesComponent
   ],
   templateUrl: './panel.component.html',
   styleUrl: './panel.component.scss',
@@ -36,7 +38,8 @@ export class XpertStudioPanelComponent {
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly selectionService = inject(SelectionService)
 
-  readonly preview = model(false)
+  // Inputs
+  readonly sidePanel = model<'preview' | 'variables'>(null)
   readonly executionId = model<string>()
 
   readonly selectedNodes = computed(() => {

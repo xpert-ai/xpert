@@ -1,5 +1,6 @@
 import { Tool, tool } from '@langchain/core/tools'
-import { ChatMessageTypeEnum, IChatBIModel, JSONValue, OrderTypeEnum, TToolCredentials } from '@metad/contracts'
+import { getContextVariable } from "@langchain/core/context";
+import { ChatMessageTypeEnum, IChatBIModel, JSONValue, OrderTypeEnum, TStateVariable, TToolCredentials } from '@metad/contracts'
 import {
 	ChartBusinessService,
 	ChartSettings,
@@ -36,6 +37,11 @@ import { DimensionMemberRetrieverToolQuery } from '../../../../model-member/quer
 import { registerSemanticModel } from '../../../../model/ocap'
 import { CHART_TYPES, ChatBIContext, fixMeasure, TChatBICredentials, tryFixChartType } from './types'
 import { markdownCubes } from '../../../../chatbi/graph'
+import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
+
+function cubesReducer(a, b) {
+	return [...a.filter((_) => !b?.some((item) => item.cubeName === _.cubeName)), ...(b ?? [])]
+}
 
 export abstract class AbstractChatBIToolset extends BuiltinToolset {
 
@@ -56,6 +62,36 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 	}
 
 	protected models: IChatBIModel[]
+
+	getVariables() {
+		return [
+			{
+				name: 'chatbi_models',
+				type: 'array[object]',
+				description: 'Models for ChatBI',
+				reducer: (a, b) => {
+					return b ?? a
+				},
+				default: () => {
+					return markdownCubes(this.models)
+				}
+			} as TStateVariable,
+			{
+				name: 'chatbi_cubes',
+				type: 'array[object]',
+				description: 'Cubes details for ChatBI',
+				reducer: cubesReducer,
+				default: () => {
+					return []
+				}
+			} as TStateVariable,
+			{
+				name: 'chatbi_cubes_context',
+				type: 'string',
+				description: 'Cubes contexts',
+			} as TStateVariable,
+		]
+	}
 
 	async initTools() {
 		if (!this.toolset) {
@@ -161,11 +197,11 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 	createCubeContextTool(dsCoreService: DSCoreService) {
 		const maximumWaitTime = 3000
 		return tool(
-			async ({ modelId, name }): Promise<string> => {
+			async ({ modelId, name }, config: LangGraphRunnableConfig) => {
 				this.logger.debug(`Tool 'get_cube_context' params:`, modelId, name)
 				try {
 					return await race(maximumWaitTime, async () => {
-						let context = ''
+						const cubes = []
 						for await (const item of [{ modelId, name }]) {
 							this.logger.debug(`Start get context for (modelId='${item.modelId}', cube='${item.name}')`)
 
@@ -184,21 +220,40 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 								}
 							}
 							if (entityType) {
-								if (context) {
-									context += '\n'
-								}
-
-								context += markdownModelCube({
-									modelId: item.modelId,
-									dataSource: item.modelId,
-									cube: entityType
+								cubes.push({
+									cubeName: item.name,
+									context: markdownModelCube({
+										modelId: item.modelId,
+										dataSource: item.modelId,
+										cube: entityType
+									})
 								})
 
 								// Record visit
 								await this.modelService.visit(item.modelId, item.name)
 							}
 						}
-						return context
+
+						// Fetch a context variable named "currentState".
+						// We have set this variable explicitly in each ToolNode invoke method that calls this tool.
+						const currentState = getContextVariable("currentState");
+
+						// Populated when a tool is called with a tool call from a model as input
+						const toolCallId = config.metadata.tool_call_id;
+						return new Command({
+							update: {
+								chatbi_cubes: cubes,
+								chatbi_cubes_context: cubesReducer(currentState.chatbi_cubes, cubes).map(({context}) => context).join('\n\n'),
+								// update the message history
+								messages: [
+									{
+										role: "tool",
+										content: cubes.map(({context}) => context).join('\n\n'),
+										tool_call_id: toolCallId,
+									},
+								],
+							},
+						})
 					})
 				} catch (err) {
 					if (err instanceof TimeoutError) {

@@ -1,7 +1,9 @@
 import { getEnvironmentVariable } from "@langchain/core/utils/env";
 import { StructuredTool } from "@langchain/core/tools";
 import z from 'zod'
-import { ZodObjectAny } from "@langchain/core/dist/types/zod";
+
+
+type ZodObjectAny = z.ZodObject<any, any, any, any>;
 
 /**
  * This does not use the `serpapi` package because it appears to cause issues

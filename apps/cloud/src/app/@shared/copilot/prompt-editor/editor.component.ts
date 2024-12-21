@@ -57,6 +57,7 @@ export class CopilotPromptEditorComponent {
   }
 
   onPromptChange(editor: HTMLDivElement) {
+    // console.log(editor.children)
     // console.log(editor.innerHTML)
     // console.log(formatInnerHTML(editor.innerHTML))
     this.prompt.set(formatInnerHTML(editor.innerHTML))

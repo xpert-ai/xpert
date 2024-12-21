@@ -3411,6 +3411,11 @@
   resolved "https://registry.yarnpkg.com/@casl/angular/-/angular-6.0.0.tgz#ad06e6335e103740f6cef1a671fa9b44a50e14c0"
   integrity sha512-NVKPUPOx5sqSimxMxCgV8Gi2+2yCWNABeFSDtfgX+J1hkp34anYqee9eXWB+4zvnEjIKKvukWIiSKHyZsDtGgg==
 
+"@cfworker/json-schema@^4.0.2":
+  version "4.0.3"
+  resolved "https://registry.yarnpkg.com/@cfworker/json-schema/-/json-schema-4.0.3.tgz#30fc6b72322c74ceb27014a779de0ccdfa0dfb9e"
+  integrity sha512-ZykIcDTVv5UNmKWSTLAs3VukO6NDJkkSKxrgUTDPBkAlORVT3H9n5DbRjRl8xIotklscHdbLIa0b9+y3mQq73g==
+
 "@colors/colors@1.5.0":
   version "1.5.0"
   resolved "https://registry.yarnpkg.com/@colors/colors/-/colors-1.5.0.tgz#bb504579c1cae923e6576a4f5da43d25f97bdbd9"
@@ -4922,16 +4927,17 @@
     zod "^3.22.3"
     zod-to-json-schema "^3.22.5"
 
-"@langchain/core@0.3.13":
-  version "0.3.13"
-  resolved "https://registry.yarnpkg.com/@langchain/core/-/core-0.3.13.tgz#0434455272f4a6f12d011ec8788306ed595e8820"
-  integrity sha512-sHDlwyHhgeaYC+wfORrWO7sXxD6/GDtZZ5mqjY48YMwB58cVv8hTs8goR/9EwXapYt8fQi2uXTGUV87bHzvdZQ==
+"@langchain/core@0.3.23":
+  version "0.3.23"
+  resolved "https://registry.yarnpkg.com/@langchain/core/-/core-0.3.23.tgz#aa7362df6eda59a110dc221d2cf214092c7c1631"
+  integrity sha512-Aut43dEJYH/ibccSErFOLQzymkBG4emlN16P0OHWwx02bDosOR9ilZly4JJiCSYcprn2X2H8nee6P/4VMg1oQA==
   dependencies:
+    "@cfworker/json-schema" "^4.0.2"
     ansi-styles "^5.0.0"
     camelcase "6"
     decamelize "1.2.0"
     js-tiktoken "^1.0.12"
-    langsmith "^0.1.65"
+    langsmith "^0.2.8"
     mustache "^4.2.0"
     p-queue "^6.6.2"
     p-retry "4"
@@ -19958,10 +19964,10 @@ langsmith@^0.1.56-rc.1:
     semver "^7.6.3"
     uuid "^10.0.0"
 
-langsmith@^0.1.65:
-  version "0.1.66"
-  resolved "https://registry.yarnpkg.com/langsmith/-/langsmith-0.1.66.tgz#f5a4424c65b8d028b42e90a2e375c862748b78c7"
-  integrity sha512-ZhZ9g8t/qjj0oUWpvKLtUe3qxDL/N0wG0m+Ctkxf0keopYJkcMJg4/71jl6ZYyiSU8xlC27aixXOT0uvLhqcFA==
+langsmith@^0.2.0:
+  version "0.2.3"
+  resolved "https://registry.yarnpkg.com/langsmith/-/langsmith-0.2.3.tgz#91c5b4e3d5b030d8a995e9acaac43dba4b9b225c"
+  integrity sha512-SPMYPVqR9kwXZVmJ2PXC61HeBnXIFHrjfjDxQ14H0+n5p4gqjLzgSHIQyxBlFeWQUQzArJxe65Ap+s+Xo1cZog==
   dependencies:
     "@types/uuid" "^10.0.0"
     commander "^10.0.1"
@@ -19970,10 +19976,10 @@ langsmith@^0.1.65:
     semver "^7.6.3"
     uuid "^10.0.0"
 
-langsmith@^0.2.0:
-  version "0.2.3"
-  resolved "https://registry.yarnpkg.com/langsmith/-/langsmith-0.2.3.tgz#91c5b4e3d5b030d8a995e9acaac43dba4b9b225c"
-  integrity sha512-SPMYPVqR9kwXZVmJ2PXC61HeBnXIFHrjfjDxQ14H0+n5p4gqjLzgSHIQyxBlFeWQUQzArJxe65Ap+s+Xo1cZog==
+langsmith@^0.2.8:
+  version "0.2.13"
+  resolved "https://registry.yarnpkg.com/langsmith/-/langsmith-0.2.13.tgz#73edf3e1d0cf2d4dda4699348bed1cb2b9888706"
+  integrity sha512-16EOM5nhU6GlMCKGm5sgBIAKOKzS2d30qcDZmF21kSLZJiUhUNTROwvYdqgZLrGfIIzmSMJHCKA7RFd5qf50uw==
   dependencies:
     "@types/uuid" "^10.0.0"
     commander "^10.0.1"

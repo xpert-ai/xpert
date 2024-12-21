@@ -42,3 +42,7 @@ export type TSubAgent = {
 	tool: StructuredToolInterface | RunnableToolLike;
 	node: RunnableLike<typeof AgentStateAnnotation> | Runnable
 }
+
+export function parseXmlString(content: string) {
+	return content?.replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+}

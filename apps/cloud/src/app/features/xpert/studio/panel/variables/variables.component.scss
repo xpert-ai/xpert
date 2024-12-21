@@ -1,0 +1,7 @@
+:host {
+  @apply relative flex flex-col w-[420px] bg-gray-50 rounded-l-2xl h-full border border-components-panel-border shadow-sm;
+}
+
+.variable-list-item.danger {
+  @apply border-red-300 bg-red-50;
+}

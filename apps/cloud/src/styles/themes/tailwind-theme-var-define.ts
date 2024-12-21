@@ -50,6 +50,12 @@ const vars = {
   'components-button-primary-border': 'var(--color-components-button-primary-border)',
   'components-button-primary-bg': 'var(--color-components-button-primary-bg)',
   'components-input-bg': 'var(--color-components-input-bg)',
+  'components-input-bg-normal': 'var(--color-components-input-bg-normal)',
+  'components-input-bg-hover': 'var(--color-components-input-bg-hover)',
+  'components-input-bg-active': 'var(--color-components-input-bg-active)',
+  'components-input-border-hover': 'var(--color-components-input-border-hover)',
+  'components-input-border-active': 'var(--color-components-input-border-active)',
+  'components-input-text-placeholder': 'var(--color-components-input-text-placeholder)',
   'components-list-option-bg': 'var(--color-components-list-option-bg)',
   'components-list-option-active-bg': 'var(--color-components-list-option-active-bg)',
 }

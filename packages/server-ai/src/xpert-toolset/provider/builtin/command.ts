@@ -8,7 +8,9 @@ import { BaseTool } from '../../toolset'
 import { ApiBasedToolSchemaParser } from '../../utils/parser'
 import { BuiltinToolset } from './builtin-toolset'
 
+
 export class BaseCommandTool extends BaseTool {
+	
 	public name: string
 	public description: string
 	public command: string

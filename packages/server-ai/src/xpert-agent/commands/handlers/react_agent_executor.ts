@@ -17,6 +17,7 @@ import { DynamicTool, StructuredToolInterface } from "@langchain/core/tools";
 import { BaseCheckpointSaver, BaseStore, CompiledStateGraph, END, LangGraphRunnableConfig, MessagesAnnotation, Send, START, StateGraph } from "@langchain/langgraph";
 import { All } from "@langchain/langgraph-checkpoint";
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
+import { AnnotationRoot } from "@langchain/langgraph/dist/graph";
 import { TSummarize } from "@metad/contracts";
 import { v4 as uuidv4 } from "uuid";
 import { ToolNode } from "./tool_node";
@@ -82,7 +83,11 @@ export type StateModifier =
     ) => Promise<BaseMessageLike[]>)
   | Runnable;
 
-export type CreateReactAgentParams = {
+export type CreateReactAgentParams<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  A extends AnnotationRoot<any> = AnnotationRoot<any>
+> = {
+  /** The chat model that can utilize OpenAI-style tool calling. */
   llm: BaseChatModel;
   /**
    * An optional state modifier. This takes full graph state BEFORE the LLM is called and prepares the input to LLM.
@@ -95,11 +100,12 @@ export type CreateReactAgentParams = {
    * - Runnable: This runnable should take in full graph state and the output is then passed to the language model.
    */
   stateModifier?: StateModifier;
+  stateSchema?: A;
   checkpointSaver?: BaseCheckpointSaver;
   interruptBefore?: N[] | All;
   interruptAfter?: N[] | All;
   store?: BaseStore;
-  state?: typeof AgentStateAnnotation
+  // state?: typeof AgentStateAnnotation
   tags?: string[]
   subAgents?: Record<string,  TSubAgent>
   tools?: (StructuredToolInterface | RunnableToolLike)[];
@@ -129,10 +135,11 @@ export function createReactAgent(
     tools,
     subAgents,
     stateModifier,
+    stateSchema,
     checkpointSaver,
     interruptBefore,
     interruptAfter,
-    state,
+    // state,
     tags,
     store,
   } = props;
@@ -183,7 +190,7 @@ export function createReactAgent(
     return { messages: [await modelRunnable.invoke(state, config)] };
   };
 
-  const workflow = new StateGraph(state ?? AgentStateAnnotation)
+  const workflow = new StateGraph(stateSchema ?? AgentStateAnnotation)
     .addNode(
       "agent",
       new RunnableLambda({ func: callModel }).withConfig({ runName: "agent", tags })

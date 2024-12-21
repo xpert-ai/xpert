@@ -227,7 +227,7 @@ export class XpertStudioPreviewComponent {
   }
 
   close() {
-    this.studioComponent.preview.set(false)
+    this.studioComponent.sidePanel.set(null)
     this.executionService.setConversation(null)
   }
 
