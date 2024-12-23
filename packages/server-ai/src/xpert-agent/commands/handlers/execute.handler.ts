@@ -119,7 +119,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		}
 
 		if (agent.collaborators?.length) {
-			this.#logger.debug(`Use xpert collaborators:\n ${agent.collaborators.map((_) => _.name)}`)
+			this.#logger.debug(`Use xpert collaborators:\n${agent.collaborators.map((_) => _.name)}`)
 			for await (const collaborator of agent.collaborators) {
 				const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(new GetXpertAgentQuery(collaborator.id,))
 				const item = this.createXpertAgent(agent, { xpert: collaborator, options: {

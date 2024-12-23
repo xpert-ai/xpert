@@ -220,21 +220,21 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 							await this.commandBus.execute(new XpertAgentExecutionUpsertCommand(entity))
 
 							// Update ai message
-							aiMessage.status = _execution.status
+							aiMessage.status = _execution?.status ?? status
 							await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
 
 							// Update conversation
 							let convStatus: TChatConversationStatus = 'idle'
-							if (_execution.status === XpertAgentExecutionStatusEnum.ERROR) {
+							if (_execution?.status === XpertAgentExecutionStatusEnum.ERROR) {
 								convStatus = 'error'
-							} else if (_execution.status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
+							} else if (_execution?.status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
 								convStatus = 'interrupted'
 							}
 							const _conversation = await this.commandBus.execute(
 								new ChatConversationUpsertCommand({
 									id: conversation.id,
 									status: convStatus,
-									title: conversation.title || _execution.title,
+									title: conversation.title || _execution?.title,
 									operation
 								})
 							)
@@ -259,7 +259,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 								}
 							} as MessageEvent
 						} catch (err) {
-							console.log(err)
+							this.#logger.warn(err)
+							subscriber.error(err)
 						}
 					})
 				)

@@ -163,7 +163,7 @@ export class XpertStudioPreviewComponent {
       .subscribe({
         next: (msg) => {
           if (msg.event === 'error') {
-            this.#toastr.error(msg.data)
+            this.onChatError(msg.data)
           } else {
             if (msg.data) {
               const event = JSON.parse(msg.data)
@@ -196,13 +196,7 @@ export class XpertStudioPreviewComponent {
           }
         },
         error: (err) => {
-          console.error(err)
-          this.loading.set(false)
-          if (this.currentMessage()) {
-            this.executionService.appendMessage({ ...this.currentMessage() })
-          }
-          this.currentMessage.set(null)
-          this.executionService.markError(getErrorMessage(err))
+          this.onChatError(getErrorMessage(err))
         },
         complete: () => {
           this.loading.set(false)
@@ -212,6 +206,15 @@ export class XpertStudioPreviewComponent {
           this.currentMessage.set(null)
         }
       })
+  }
+
+  onChatError(message: string) {
+    this.loading.set(false)
+    if (this.currentMessage()) {
+      this.executionService.appendMessage({ ...this.currentMessage() })
+    }
+    this.currentMessage.set(null)
+    this.executionService.markError(message)
   }
 
   stop() {

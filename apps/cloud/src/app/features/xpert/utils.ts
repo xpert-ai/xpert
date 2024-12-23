@@ -1,5 +1,5 @@
 import { inject } from '@angular/core'
-import { IXpertWorkspace, XpertService } from '../../@core'
+import { letterStartSUID, XpertService } from '../../@core'
 
 export function injectGetXpertTeam() {
   const xpertService = inject(XpertService)
@@ -26,4 +26,8 @@ export function injectGetXpertsByWorkspace() {
   return (workspace: string) => {
     return xpertService.getAllByWorkspace(workspace, { where: { latest: true } }, true)
   }
+}
+
+export function genAgentKey() {
+  return letterStartSUID('Agent_')
 }

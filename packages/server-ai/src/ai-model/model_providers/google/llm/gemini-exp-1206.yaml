@@ -1,6 +1,6 @@
-model: gemini-1.5-flash-8b-exp-0924
+model: gemini-exp-1206
 label:
-  en_US: Gemini 1.5 Flash 8B 0924
+  en_US: Gemini exp 1206
 model_type: llm
 features:
   - agent-thought
@@ -12,7 +12,7 @@ features:
   - audio
 model_properties:
   mode: chat
-  context_size: 1048576
+  context_size: 2097152
 parameter_rules:
   - name: temperature
     use_template: temperature

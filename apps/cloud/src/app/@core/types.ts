@@ -15,6 +15,9 @@ export {
 
 export const uid10 = new ShortUniqueId({ length: 10 })
 export const uuid = new ShortUniqueId({ length: 10 })
+export function letterStartSUID(start: string) {
+  return start + uuid()
+}
 
 export enum AbilityActions {
   Create = 'Create',

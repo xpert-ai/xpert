@@ -4415,6 +4415,11 @@
   resolved "https://registry.yarnpkg.com/@foliojs-fork/restructure/-/restructure-2.0.2.tgz#73759aba2aff1da87b7c4554e6839c70d43c92b4"
   integrity sha512-59SgoZ3EXbkfSX7b63tsou/SDGzwUEK6MuB5sKqgVK1/XE0fxmpsOb9DQI8LXW3KfGnAjImCGhhEb7uPPAUVNA==
 
+"@google/generative-ai@^0.21.0":
+  version "0.21.0"
+  resolved "https://registry.yarnpkg.com/@google/generative-ai/-/generative-ai-0.21.0.tgz#a5011aab9e6082e706937b26ef23445933fa0d15"
+  integrity sha512-7XhUbtnlkSEZK15kN3t+tzIMxsbKm/dSkKBFalj+20NvPKe1kBY7mR2P7vuijEn+f06z5+A8bVGKO0v39cr6Wg==
+
 "@graphql-tools/merge@8.2.1":
   version "8.2.1"
   resolved "https://registry.yarnpkg.com/@graphql-tools/merge/-/merge-8.2.1.tgz#bf83aa06a0cfc6a839e52a58057a84498d0d51ff"
@@ -4951,6 +4956,14 @@
   integrity sha512-9HN4vuqiKxo4SYu7SbxdrKAu2ISiDUy0PRexKX/pNbxwAzKhBhCDkALjIceSAIJ9F6rgJxkykPYJd1AzHPvXFA==
   dependencies:
     exa-js "^1.0.12"
+
+"@langchain/google-genai@0.1.6":
+  version "0.1.6"
+  resolved "https://registry.yarnpkg.com/@langchain/google-genai/-/google-genai-0.1.6.tgz#71c58fdd31ff813e7119af779631f07cdc139835"
+  integrity sha512-LF3fan9pvgFa1vw2/IYGhi5KjppE0OvPFX3QQBUshBLpXWERP+BSpSD7jcXyqm9Kf7DcFj7w5/2knKeEwih8Xg==
+  dependencies:
+    "@google/generative-ai" "^0.21.0"
+    zod-to-json-schema "^3.22.4"
 
 "@langchain/langgraph-checkpoint@~0.0.13":
   version "0.0.13"

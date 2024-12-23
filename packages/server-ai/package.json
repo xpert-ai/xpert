@@ -13,6 +13,7 @@
     "@langchain/core": "0.3.23",
     "@langchain/community": "0.3.11",
     "@langchain/langgraph": "0.2.33",
+    "@langchain/google-genai": "0.1.6",
     "@nestjs/schedule": "4.1.2",
     "@openapi-contrib/openapi-schema-to-json-schema": "^5.1.0",
     "@sap_oss/odata-library": "2.4.0",

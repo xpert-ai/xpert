@@ -2029,6 +2029,8 @@
       "StartTime": "开始时间",
       "ElapsedTime": "已用时间",
       "TotalTokens": "总代币数",
+      "AIProvider": "AI 提供商",
+      "AIModel": "AI 模型",
       "ExecutionLog": "执行日志",
       "Tokens": "代币",
       "ProtectYourKey": "为了防止 API 滥用，请保护好您的 API 密钥。避免在前端代码中将其用作纯文本。:)",

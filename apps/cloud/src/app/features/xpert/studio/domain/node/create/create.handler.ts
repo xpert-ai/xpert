@@ -1,8 +1,9 @@
 import { IHandler } from '@foblex/mediator'
 import { Store, StoreDef } from '@ngneat/elf'
-import { TXpertTeamNode, uuid, XpertTypeEnum } from 'apps/cloud/src/app/@core'
+import { TXpertTeamNode, XpertTypeEnum } from 'apps/cloud/src/app/@core'
 import { IStudioStore } from '../../types'
 import { CreateNodeRequest } from './create.request'
+import { genAgentKey } from '../../../../utils'
 
 export class CreateNodeHandler implements IHandler<CreateNodeRequest> {
   constructor(private store: Store<StoreDef, IStudioStore>) {}
@@ -17,7 +18,7 @@ export class CreateNodeHandler implements IHandler<CreateNodeRequest> {
         }
       }
 
-      const key = request.entity?.id ?? uuid()
+      const key = request.entity?.id ?? genAgentKey()
       let entity = null
       switch(request.type) {
         case 'agent': {

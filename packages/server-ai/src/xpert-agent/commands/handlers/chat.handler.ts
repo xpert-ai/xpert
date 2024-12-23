@@ -127,7 +127,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 								}
 							} as MessageEvent
 						} catch (err) {
-							console.log(err)
+							this.#logger.warn(err)
 							subscriber.error(err)
 						}
 					})
