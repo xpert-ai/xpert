@@ -2045,6 +2045,7 @@
         "Key": "键",
         "Value": "值",
         "CreatedBy": "创建人",
+        "CreatedAt": "创建于",
         "Actions": "操作",
         "Score": "分数"
       },

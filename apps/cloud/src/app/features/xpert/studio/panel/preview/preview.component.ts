@@ -202,6 +202,7 @@ export class XpertStudioPreviewComponent {
             this.executionService.appendMessage({ ...this.currentMessage() })
           }
           this.currentMessage.set(null)
+          this.executionService.markError(getErrorMessage(err))
         },
         complete: () => {
           this.loading.set(false)

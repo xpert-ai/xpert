@@ -3,6 +3,7 @@ import {
   HumanMessage,
   isAIMessage,
   isBaseMessage,
+  isHumanMessage,
   RemoveMessage,
   SystemMessage,
 } from "@langchain/core/messages";
@@ -246,8 +247,13 @@ export function createSummarizeAgent(model: BaseChatModel, summarize: TSummarize
     })];
     const response = await model.invoke(allMessages);
     // We now need to delete messages that we no longer want to show up
-    // I will delete all but the last two messages, but you can change this
-    const deleteMessages = messages.slice(0, -summarize.retainMessages).map((m) => new RemoveMessage({ id: m.id as string }));
+    const summarizedMessages = messages.slice(0, -summarize.retainMessages)
+    const retainMessages = messages.slice(-summarize.retainMessages)
+    while(!isHumanMessage(retainMessages[0]) && summarizedMessages.length) {
+      const lastSummarizedMessage = summarizedMessages.pop()
+      retainMessages.unshift(lastSummarizedMessage)
+    }
+    const deleteMessages = summarizedMessages.map((m) => new RemoveMessage({ id: m.id as string }))
     if (typeof response.content !== "string") {
       throw new Error("Expected a string summary of response from the model");
     }

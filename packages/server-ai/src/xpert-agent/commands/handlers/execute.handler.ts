@@ -161,7 +161,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			interruptBefore,
 			tags: [thread_id],
 			stateModifier: async (state: typeof AgentStateAnnotation.State) => {
-				const { summary } = state
+				const { summary, memories } = state
 				let systemTemplate = `{{language}}\nCurrent time: ${new Date().toISOString()}\n${parseXmlString(agent.prompt) ?? ''}`
 				if (memories?.length) {
 					systemTemplate += `\n\n<memory>\n${memoryPrompt(memories)}\n</memory>`
@@ -199,6 +199,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			graph.streamEvents(
 				input?.input ? {
 					...input,
+					memories,
 					messages: [new HumanMessage(input.input)]
 				} : null,
 				{
@@ -430,6 +431,8 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 						...config,
 					}
 				})
+
+				execution.checkpointId = state.parentConfig?.configurable?.checkpoint_id
 
 				// Update execution title from graph states
 				if (state.values.title) {

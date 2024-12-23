@@ -52,6 +52,7 @@ export class XpertMemoryComponent {
   readonly actionTemplate = viewChild('actionTemplate', { read: TemplateRef })
   readonly valueTemplate = viewChild('valueTemplate', { read: TemplateRef })
   readonly userTemplate = viewChild('userTemplate', { read: TemplateRef })
+  readonly dateTemplate = viewChild('dateTemplate', { read: TemplateRef })
 
   readonly loading = signal(false)
   readonly #refresh$ = new BehaviorSubject<void>(null)
@@ -67,6 +68,11 @@ export class XpertMemoryComponent {
         name: 'createdBy',
         caption: i18n.CreatedBy || 'Created By',
         cellTemplate: this.userTemplate
+      },
+      {
+        name: 'createdAt',
+        caption: i18n.CreatedAt || 'Created At',
+        cellTemplate: this.dateTemplate
       },
       {
         name: 'key',

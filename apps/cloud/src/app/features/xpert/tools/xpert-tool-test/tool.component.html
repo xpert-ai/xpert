@@ -14,13 +14,11 @@
     </button>
     
     <div class="flex-1 truncate">{{tool().name | i18n}}</div>
-
-    <!-- <mat-slide-toggle [(ngModel)]="enabled" ngm-density="xs" [disabled]="disabled()" /> -->
   </div>
 
   @if (expand()) {
     <ng-content></ng-content>
-    <xpert-toolset-tool-test @ifAnimationTrigger [tool]="toolDetail$ | async" />
+    <xpert-toolset-tool-test @heightChangeAnimation [tool]="toolDetail$ | async" />
   }
 
   @if (loading()) {

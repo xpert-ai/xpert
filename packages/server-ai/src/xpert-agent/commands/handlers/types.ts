@@ -3,6 +3,7 @@ import { BaseMessage } from '@langchain/core/messages'
 import { Runnable, RunnableLike, RunnableToolLike } from '@langchain/core/runnables'
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { Annotation, messagesStateReducer } from '@langchain/langgraph'
+import { SearchItem } from '@langchain/langgraph-checkpoint'
 
 export const AgentStateAnnotation = Annotation.Root({
 	messages: Annotation<BaseMessage[]>({
@@ -32,6 +33,13 @@ export const AgentStateAnnotation = Annotation.Root({
 	 * Summarizing past conversations if it's too long
 	 */
 	summary: Annotation<string>({
+		reducer: (a, b) => b ?? a,
+		default: () => null
+	}),
+	/**
+	 * Long term memory retrieved 
+	 */
+	memories: Annotation<SearchItem[]>({
 		reducer: (a, b) => b ?? a,
 		default: () => null
 	}),

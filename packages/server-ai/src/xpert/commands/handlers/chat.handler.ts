@@ -52,7 +52,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		const latestXpert = figureOutXpert(xpert, options?.isDraft)
 		const memory = latestXpert.memory
 		const memoryStore = await this.createMemoryStore(latestXpert, userId)
-		let memories = []
+		let memories = null
 
 		let conversation: IChatConversation
 		let aiMessage: CopilotChatMessage
@@ -84,7 +84,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				conversation = await this.commandBus.execute(
 					new ChatConversationUpsertCommand({
 						xpert,
-						title: input.input, // 改成 AI 自动总结标题
+						// title: input.input, // 改成 AI 自动总结标题
 						options: {
 							knowledgebases: options?.knowledgebases,
 							toolsets: options?.toolsets
@@ -149,7 +149,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 					event: ChatMessageEventTypeEnum.ON_CONVERSATION_START,
 					data: {
 						id: conversation.id,
-						title: conversation.title,
+						title: conversation.title || input?.input,
 						createdAt: conversation.createdAt,
 						updatedAt: conversation.updatedAt
 					}
@@ -234,13 +234,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 								new ChatConversationUpsertCommand({
 									id: conversation.id,
 									status: convStatus,
-									title: _execution.title,
+									title: conversation.title || _execution.title,
 									operation
 								})
 							)
 
 							// Schedule summary job
-							if (memory?.enabled && memory.profile?.enabled) {
+							if (memory?.enabled && memory.profile?.enabled && convStatus === 'idle') {
 								await this.commandBus.execute(
 									new ScheduleSummaryJobCommand(conversation.id, userId, memory)
 								)

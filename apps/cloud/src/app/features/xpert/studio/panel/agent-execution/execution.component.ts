@@ -176,6 +176,7 @@ export class XpertStudioPanelAgentExecutionComponent {
         error: (error) => {
           this.#toastr.error(getErrorMessage(error))
           this.loading.set(false)
+          this.executionService.markError(getErrorMessage(error))
         },
         complete: () => {
           this.loading.set(false)
@@ -207,7 +208,9 @@ export class XpertStudioPanelAgentExecutionComponent {
   }
 }
 
-export function processEvents(event, executionService: XpertExecutionService) {
+export function processEvents(
+  event: {type: ChatMessageTypeEnum; event?: ChatMessageEventTypeEnum; data: any},
+  executionService: XpertExecutionService) {
   switch (event.event) {
     case ChatMessageEventTypeEnum.ON_CONVERSATION_START: {
       executionService.conversation.update((state) => ({
