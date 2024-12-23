@@ -13,7 +13,7 @@ import {
 	TimeSlicerSchema,
 	VariableSchema
 } from '@metad/ocap-core'
-import { ChatLarkContext, LarkService } from '@metad/server-core'
+import { ChatLarkContext, LarkService } from '@metad/server-ai'
 import { Logger } from '@nestjs/common'
 import { Cache } from 'cache-manager'
 import { z } from 'zod'

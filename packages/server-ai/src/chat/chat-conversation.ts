@@ -303,7 +303,7 @@ References documents:
 									role: 'assistant',
 									content: toolMessage.content
 								}
-								this.updateStep(rest.run_id, { status: 'done' })
+								this.updateStep(rest.run_id, { status: XpertAgentExecutionStatusEnum.SUCCESS })
 								this.addStepMessage(rest.run_id, message)
 
 								return {
@@ -336,7 +336,7 @@ References documents:
 					}
 				},
 				complete: () => {
-					this.upsertMessageWithStatus('done')
+					this.upsertMessageWithStatus(XpertAgentExecutionStatusEnum.SUCCESS)
 				}
 			})
 			// catchError((err) => {
@@ -391,7 +391,7 @@ References documents:
 						this.knowledges = knowledges
 						completed = true
 
-						stepMessage.status = 'done'
+						stepMessage.status = XpertAgentExecutionStatusEnum.SUCCESS
 						stepMessage.content = `Got ${items.length} document chunks!`
 						stepMessage.data = items
 						this.addStep({ ...stepMessage })

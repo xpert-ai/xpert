@@ -25,7 +25,7 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
 	@IsString()
 	@IsOptional()
 	@Column({ nullable: true })
-	status: XpertAgentExecutionStatusEnum | 'thinking' | 'aborted' | 'done'
+	status: XpertAgentExecutionStatusEnum | 'thinking' | 'aborted'
 
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()

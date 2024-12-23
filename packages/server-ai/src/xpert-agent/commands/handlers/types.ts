@@ -3,6 +3,7 @@ import { BaseMessage } from '@langchain/core/messages'
 import { Runnable, RunnableLike, RunnableToolLike } from '@langchain/core/runnables'
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { Annotation, messagesStateReducer } from '@langchain/langgraph'
+import { SearchItem } from '@langchain/langgraph-checkpoint'
 
 export const AgentStateAnnotation = Annotation.Root({
 	messages: Annotation<BaseMessage[]>({
@@ -35,10 +36,21 @@ export const AgentStateAnnotation = Annotation.Root({
 		reducer: (a, b) => b ?? a,
 		default: () => null
 	}),
+	/**
+	 * Long term memory retrieved 
+	 */
+	memories: Annotation<SearchItem[]>({
+		reducer: (a, b) => b ?? a,
+		default: () => null
+	}),
 })
 
 export type TSubAgent = {
 	name: string;
 	tool: StructuredToolInterface | RunnableToolLike;
 	node: RunnableLike<typeof AgentStateAnnotation> | Runnable
+}
+
+export function parseXmlString(content: string) {
+	return content?.replace(/&lt;/g, '<').replace(/&gt;/g, '>')
 }

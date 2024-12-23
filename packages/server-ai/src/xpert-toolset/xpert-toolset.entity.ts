@@ -2,7 +2,7 @@ import { ITag, IXpertTool, IXpertToolset, TAvatar, TToolCredentials, XpertToolse
 import { Tag } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, OneToMany } from 'typeorm'
+import { Column, Entity, JoinTable, ManyToMany, OneToMany } from 'typeorm'
 import { XpertTool } from '../core/entities/internal'
 import { WorkspaceBaseEntity } from '../core/entities/base.entity'
 
@@ -82,7 +82,6 @@ export class XpertToolset extends WorkspaceBaseEntity implements IXpertToolset {
 	@OneToMany(() => XpertTool, (tool) => tool.toolset, {
 		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
 	})
-	// @JoinColumn()
 	tools?: IXpertTool[]
 
 	/*

@@ -157,7 +157,7 @@ export class XpertStudioPanelAgentExecutionComponent {
       .subscribe({
         next: (msg) => {
           if (msg.event === 'error') {
-            this.#toastr.error(msg.data)
+            this.onChatError(msg.data)
           } else {
             if (msg.data) {
               const event = JSON.parse(msg.data)
@@ -174,13 +174,18 @@ export class XpertStudioPanelAgentExecutionComponent {
           }
         },
         error: (error) => {
-          this.#toastr.error(getErrorMessage(error))
-          this.loading.set(false)
+          this.onChatError(getErrorMessage(error))
         },
         complete: () => {
           this.loading.set(false)
         }
       })
+  }
+
+  onChatError(message: string) {
+    this.#toastr.error(message)
+    this.loading.set(false)
+    this.executionService.markError(message)
   }
 
   stopAgent() {
@@ -207,7 +212,9 @@ export class XpertStudioPanelAgentExecutionComponent {
   }
 }
 
-export function processEvents(event, executionService: XpertExecutionService) {
+export function processEvents(
+  event: {type: ChatMessageTypeEnum; event?: ChatMessageEventTypeEnum; data: any},
+  executionService: XpertExecutionService) {
   switch (event.event) {
     case ChatMessageEventTypeEnum.ON_CONVERSATION_START: {
       executionService.conversation.update((state) => ({

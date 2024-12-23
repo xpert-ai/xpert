@@ -7,6 +7,7 @@ import {
   IChatConversation,
   IChatMessageFeedback,
   IXpertAgentExecution,
+  XpertAgentExecutionStatusEnum,
 } from 'apps/cloud/src/app/@core'
 import { combineLatest, of, switchMap } from 'rxjs'
 
@@ -119,6 +120,44 @@ export class XpertExecutionService {
       ...state,
       [name]: execution
     }))
+  }
+
+  markError(error: string) {
+    this.#agentExecutions.update((state) => {
+      return Object.keys(state).reduce((acc, key) => {
+        acc[key] = state[key].status === XpertAgentExecutionStatusEnum.RUNNING ? {
+          ...state[key],
+          status: XpertAgentExecutionStatusEnum.ERROR,
+          error
+        } : state[key]
+        return acc
+      }, {})
+    })
+
+    this.toolExecutions.update((state) => {
+      return Object.keys(state).reduce((acc, name) => {
+        acc[name] = Object.keys(acc[name]).reduce((executions, id) => {
+          executions[id] = acc[name][id].status  === XpertAgentExecutionStatusEnum.RUNNING ? {
+            ...acc[name][id],
+            status: XpertAgentExecutionStatusEnum.ERROR,
+            error
+          } : acc[name][id]
+          return executions
+        }, {})
+        return acc
+      }, {})
+    })
+
+    this.knowledgeExecutions.update((state) => {
+      return Object.keys(state).reduce((acc, key) => {
+        acc[key] = state[key].status === XpertAgentExecutionStatusEnum.RUNNING ? {
+          ...state[key],
+          status: XpertAgentExecutionStatusEnum.ERROR,
+          error
+        } : state[key]
+        return acc
+      }, {})
+    })
   }
 
   clear() {

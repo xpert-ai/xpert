@@ -26,6 +26,7 @@ export type TXpertAgentExecution = {
   metadata?: TAgentExecutionMetadata
 
   threadId?: string
+  checkpointId?: string
   parent_thread_id?: string
   operation?: TSensitiveOperation
 

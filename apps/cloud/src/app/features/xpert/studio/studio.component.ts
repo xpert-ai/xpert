@@ -64,6 +64,7 @@ import { XpertStudioPanelComponent } from './panel/panel.component'
 import { XpertExecutionService } from './services/execution.service'
 import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
 import { MaterialModule } from '../../../@shared/material.module'
+import { EmojiAvatarComponent } from '../../../@shared/avatar'
 
 
 @Component({
@@ -84,6 +85,7 @@ import { MaterialModule } from '../../../@shared/material.module'
 
     NgmCommonModule,
 
+    EmojiAvatarComponent,
     XpertStudioToolbarComponent,
     XpertStudioContextMenuComponent,
     XpertStudioNodeAgentComponent,
@@ -177,7 +179,7 @@ export class XpertStudioComponent {
 
   // Agent Execution Running status
   readonly agentExecutions = this.executionService.agentExecutions
-  readonly preview = model(false)
+  readonly sidePanel = model<"preview" | "variables">()
 
   constructor() {
     effect(() => {
@@ -288,6 +290,9 @@ export class XpertStudioComponent {
     this.apiService.updateXpertAgentConfig(config)
   }
   
+  onPreview(preview: boolean) {
+    this.sidePanel.set(preview ? 'preview' : null)
+  }
 }
 
 function extractXpertNodes(nodes: TXpertTeamNode[], xpertNode: TXpertTeamNode & { type: 'xpert' }) {

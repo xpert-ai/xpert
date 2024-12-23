@@ -1,6 +1,5 @@
-import { IChatBIModel } from '@metad/contracts'
 import { CrudController } from '@metad/server-core'
-import { Body, Controller, Get, Param, Put } from '@nestjs/common'
+import { Controller, Get } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { ChatBIModel } from './chatbi-model.entity'
 import { ChatBIModelService } from './chatbi-model.service'
@@ -21,5 +20,4 @@ export class ChatBIModelController extends CrudController<ChatBIModel> {
 			label: item.entityCaption
 		}))
 	}
-
 }

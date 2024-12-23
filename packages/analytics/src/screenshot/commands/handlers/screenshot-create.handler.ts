@@ -1,11 +1,9 @@
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { BadRequestException } from '@nestjs/common';
-import { Between } from 'typeorm';
 import * as moment from 'moment';
 import { ScreenshotCreateCommand } from './../screenshot-create.command';
 import { ScreenshotService } from './../../../screenshot/screenshot.service';
 import { RequestContext } from '@metad/server-core';
-import { IntegrationEntity } from '@metad/contracts';
 
 @CommandHandler(ScreenshotCreateCommand)
 export class ScreenshotCreateHandler
@@ -39,7 +37,7 @@ export class ScreenshotCreateHandler
 				organizationId
 			});
 		} catch (error) {
-			throw new BadRequestException(error, `Can'\t create ${IntegrationEntity.SCREENSHOT} for ${IntegrationEntity.TIME_SLOT}`);
+			throw new BadRequestException(error, `Can'\t create SCREENSHOT for xxx`);
 		}
 	}
 }

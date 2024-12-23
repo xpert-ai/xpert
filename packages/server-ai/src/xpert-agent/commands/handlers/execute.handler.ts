@@ -4,7 +4,7 @@ import { AIMessageChunk, HumanMessage, isAIMessage, isAIMessageChunk, MessageCon
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Annotation, CompiledStateGraph, LangGraphRunnableConfig, NodeInterrupt } from '@langchain/langgraph'
-import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IXpert, IXpertAgent, ToolCall, TSensitiveOperation, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IXpert, IXpertAgent, ToolCall, TSensitiveOperation, TStateVariable, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
@@ -23,7 +23,7 @@ import { createReactAgent } from './react_agent_executor'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { getErrorMessage } from '@metad/server-common'
-import { AgentStateAnnotation, TSubAgent } from './types'
+import { AgentStateAnnotation, parseXmlString, TSubAgent } from './types'
 import { CompleteToolCallsQuery } from '../../queries'
 import { memoryPrompt } from '../../../copilot-store/utils'
 
@@ -74,7 +74,9 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		)
 		const tools = []
 		const interruptBefore: string[] = []
+		const stateVariables: TStateVariable[] = []
 		for await (const toolset of toolsets) {
+			stateVariables.push(...(toolset.getVariables() ?? []))
 			const items = await toolset.initTools()
 			tools.push(...items)
 			interruptBefore.push(...items.filter((tool) => {
@@ -117,7 +119,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		}
 
 		if (agent.collaborators?.length) {
-			this.#logger.debug(`Use xpert collaborators:\n ${agent.collaborators.map((_) => _.name)}`)
+			this.#logger.debug(`Use xpert collaborators:\n${agent.collaborators.map((_) => _.name)}`)
 			for await (const collaborator of agent.collaborators) {
 				const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(new GetXpertAgentQuery(collaborator.id,))
 				const item = this.createXpertAgent(agent, { xpert: collaborator, options: {
@@ -135,25 +137,32 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		// Custom parameters
 		const StateAnnotation = Annotation.Root({
 			...AgentStateAnnotation.spec,
+			...(stateVariables.reduce((acc, variable) => {
+				acc[variable.name] = Annotation({
+					reducer: variable.reducer,
+					default: variable.default,
+				  })
+				return acc
+			}, {}) ?? {}),
 			...(agent.parameters?.reduce((acc, parameter) => {
 				acc[parameter.name] = Annotation<string>
 				return acc
-			}, {}) ?? {})
+			}, {}) ?? {}),
 		})
 
 		const thread_id = command.options.thread_id
 
 		const graph = createReactAgent({
-			tags: [thread_id],
-			state: StateAnnotation,
+			stateSchema: StateAnnotation,
 			llm: chatModel,
 			checkpointSaver: this.copilotCheckpointSaver,
 			subAgents,
 			tools: tools,
 			interruptBefore,
+			tags: [thread_id],
 			stateModifier: async (state: typeof AgentStateAnnotation.State) => {
-				const { summary } = state
-				let systemTemplate = `{{language}}\nCurrent time: ${new Date().toISOString()}\n${agent.prompt}`
+				const { summary, memories } = state
+				let systemTemplate = `{{language}}\nCurrent time: ${new Date().toISOString()}\n${parseXmlString(agent.prompt) ?? ''}`
 				if (memories?.length) {
 					systemTemplate += `\n\n<memory>\n${memoryPrompt(memories)}\n</memory>`
 				}
@@ -190,6 +199,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			graph.streamEvents(
 				input?.input ? {
 					...input,
+					memories,
 					messages: [new HumanMessage(input.input)]
 				} : null,
 				{
@@ -225,7 +235,6 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 					this.#logger.verbose(`${event} [${agentLabel(agent)}]`)
 				}
 
-				prevEvent = event
 				switch (event) {
 					case 'on_chain_start': {
 						eventStack.push(event)
@@ -268,9 +277,16 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 						if (_event !== 'on_chat_model_start') {
 							eventStack.pop()
 						}
+						if (prevEvent !== 'on_chat_model_stream') {
+							if (tags.includes(thread_id)) {
+								const msg = data.output as AIMessageChunk
+								return msg.content
+							}
+						}
 						return null
 					}
 					case 'on_chat_model_stream': {
+						prevEvent = event
 						// Only returns the stream events content of the current react agent (filter by tag: thread_id), not events of agent in tool call.
 						if (tags.includes(thread_id)) {
 							const msg = data.chunk as AIMessageChunk
@@ -399,6 +415,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 					}
 				}
 				
+				prevEvent = event
 				return null
 			}),
 			tap({
@@ -421,6 +438,8 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 						...config,
 					}
 				})
+
+				execution.checkpointId = state.parentConfig?.configurable?.checkpoint_id
 
 				// Update execution title from graph states
 				if (state.values.title) {

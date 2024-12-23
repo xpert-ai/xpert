@@ -1,5 +1,5 @@
 import * as CryptoJS from 'crypto-js'
-import { IXpert, TXpertTeamDraft } from 'apps/cloud/src/app/@core'
+import { IXpert, letterStartSUID, TXpertTeamDraft } from 'apps/cloud/src/app/@core'
 
 export interface IStudioStore {
   draft: TXpertTeamDraft
@@ -23,8 +23,6 @@ export enum EReloadReason {
   RESIZE = 'resize', // Node resize
   CANVAS_CHANGED = 'canvas_changed'
 }
-
-
 
 export type TStateHistory = {
   reason: EReloadReason

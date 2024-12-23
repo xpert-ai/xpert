@@ -37,14 +37,23 @@
   </div>
 }
 
-@if (preview()) {
+@if (sidePanel(); as sidePanel) {
   <div class="flex gap-2">
-    @if (executionId()) {
-      <xpert-studio-panel-execution [id]="executionId()" class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto
-        w-[420px]"
-        (close)="closeExecution()"
-      />
+    @switch (sidePanel) {
+      @case ('preview') {
+        @if (executionId()) {
+          <xpert-studio-panel-execution [id]="executionId()" class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto
+            w-[420px]"
+            (close)="closeExecution()"
+          />
+        }
+        <xpert-studio-panel-preview (execution)="executionId.set($event)"/>
+      }
+
+      @case ('variables') {
+        <xpert-studio-panel-variables />
+      }
     }
-    <xpert-studio-panel-preview (execution)="executionId.set($event)"/>
+
   </div>
 }

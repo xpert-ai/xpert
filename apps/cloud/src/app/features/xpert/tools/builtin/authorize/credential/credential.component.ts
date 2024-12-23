@@ -4,10 +4,10 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialogModule } from '@angular/material/dialog'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { NgmRemoteSelectComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { CredentialsType, ToolProviderCredentials } from 'apps/cloud/src/app/@core'
-import { RemoteSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 
@@ -22,7 +22,7 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
     MatTooltipModule,
     MatSlideToggleModule,
     NgmI18nPipe,
-    RemoteSelectComponent,
+    NgmRemoteSelectComponent,
     NgmDensityDirective
   ],
   selector: 'xpert-tool-builtin-credential',
@@ -46,9 +46,8 @@ export class XpertToolBuiltinCredentialComponent {
 
   readonly valueModel = this.cva.value$
 
-  readonly inlineBlock = computed(() => {
-    return this.credential()?.type === CredentialsType.BOOLEAN
-  })
+  readonly inlineBlock = computed(() => this.credential()?.type === CredentialsType.BOOLEAN)
+  readonly placeholder = computed(() => this.credential()?.placeholder)
 
   readonly params = computed(() => {
     return this.credential()?.depends?.reduce((acc, name) => {
