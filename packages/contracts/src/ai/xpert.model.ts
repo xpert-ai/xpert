@@ -1,16 +1,16 @@
+import { ToolCall as LToolCall } from '@langchain/core/dist/messages/tool'
 import { ITag } from '../tag-entity.model'
 import { IUser } from '../user.model'
-import { ICopilotModel } from './copilot-model.model'
+import { ICopilotModel, TCopilotModel } from './copilot-model.model'
 import { IKnowledgebase } from './knowledgebase.model'
 import { TAvatar } from '../types'
 import { IXpertAgent } from './xpert-agent.model'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 
-/**
- * Digital Expert
- */
-export interface IXpert extends IBasePerWorkspaceEntityModel {
+export type ToolCall = LToolCall
+
+export type TXpert = {
   slug: string
   name: string
   type: XpertTypeEnum
@@ -34,6 +34,14 @@ export interface IXpert extends IBasePerWorkspaceEntityModel {
    * Config for every agent
    */
   agentConfig?: TXpertAgentConfig
+  /**
+   * Config of summarize past conversations
+   */
+  summarize?: TSummarize
+  /**
+   * Long-term memory config
+   */
+  memory?: TLongTermMemory
 
   /**
    * Version of role: '1' '2' '2.1' '2.2'...
@@ -81,6 +89,13 @@ export interface IXpert extends IBasePerWorkspaceEntityModel {
   tags?: ITag[]
 }
 
+/**
+ * Digital Expert
+ */
+export interface IXpert extends IBasePerWorkspaceEntityModel, TXpert {
+  
+}
+
 export type TXpertOptions = {
   knowledge?: Record<
     string,
@@ -125,6 +140,53 @@ export type TXpertAgentConfig = {
    * Timeout for this call in milliseconds.
    */
   timeout?: number;
+
+  interruptBefore?: string[]
+}
+
+/**
+ * Config for summarizing past conversations
+ */
+export type TSummarize = {
+  enabled?: boolean
+  /**
+   * The system prompt guide how to summarize the conversation
+   */
+  prompt?: string
+  /**
+   * The maximum number of tolerated messages, otherwise it will be summarized.
+   * Should be greater than the number of retained messages
+   */
+  maxMessages?: number
+  /**
+   * Number of retained messages
+   */
+  retainMessages?: number
+}
+
+export enum LongTermMemoryTypeEnum {
+  PROFILE = 'profile',
+  QA = 'qa',
+}
+
+export type TLongTermMemoryConfig = {
+  enabled?: boolean
+  /**
+   * System prompt guide how to remember the key points of the conversation
+   */
+  prompt?: string
+}
+/**
+ * Config of long-term memory
+ */
+export type TLongTermMemory = {
+  enabled?: boolean
+  // type?: LongTermMemoryTypeEnum
+  copilotModel?: TCopilotModel
+  profile?: TLongTermMemoryConfig & {
+    afterSeconds?: number
+  }
+  qa?: TLongTermMemoryConfig
 }
 
 export enum XpertTypeEnum {
@@ -233,6 +295,8 @@ export enum ChatMessageTypeEnum {
  */
 export enum ChatMessageEventTypeEnum {
   ON_CONVERSATION_START = 'on_conversation_start',
+  ON_CONVERSATION_END = 'on_conversation_end',
+  ON_MESSAGE_START = 'on_message_start',
   ON_TOOL_START = 'on_tool_start',
   ON_TOOL_END = 'on_tool_end',
   ON_TOOL_ERROR = 'on_tool_error',
@@ -241,7 +305,8 @@ export enum ChatMessageEventTypeEnum {
   ON_RETRIEVER_START = 'on_retriever_start',
   ON_RETRIEVER_END = 'on_retriever_end',
   ON_RETRIEVER_ERROR = 'on_retriever_error',
-  ON_ERROR = 'on_error'
+  ON_INTERRUPT = 'on_interrupt',
+  ON_ERROR = 'on_error',
 }
 
 export type TChatRequest = {
@@ -253,6 +318,9 @@ export type TChatRequest = {
   conversationId?: string
   id?: string
   language?: string
+  toolCalls?: ToolCall[]
+  confirm?: boolean
+  reject?: boolean
 }
 
 export type TChatOptions = {
@@ -267,6 +335,9 @@ export function omitXpertRelations(xpert: Partial<IXpert>) {
   return rest
 }
 
+export function figureOutXpert(xpert: IXpert, isDraft: boolean) {
+  return (isDraft ? xpert.draft?.team : xpert) ?? xpert
+}
 
 /**
  * Create agents nodes of xpert and it's area size

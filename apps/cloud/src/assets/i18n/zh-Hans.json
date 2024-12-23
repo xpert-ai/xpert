@@ -2034,7 +2034,43 @@
       "ProtectYourKey": "为了防止 API 滥用，请保护好您的 API 密钥。避免在前端代码中将其用作纯文本。:)",
       "CreateNewSecretKey": "创建新的密钥",
       "DeleteApiKey": "删除此 API 密钥？",
-      "ActionUndone": "此操作无法撤消。"
+      "ActionUndone": "此操作无法撤消。",
+      "Confirm": "确认",
+      "Reject": "拒绝",
+      "Sensitive": "敏感",
+      "SensitiveToolsTip": "敏感工具需要经过用户确认后才能执行",
+      "SensitiveAgentTip": "敏感智能体需要经过用户确认后才能执行",
+      "Memory": "记忆",
+      "MemoryCols": {
+        "Key": "键",
+        "Value": "值",
+        "CreatedBy": "创建人",
+        "Actions": "操作",
+        "Score": "分数"
+      },
+      "LongTermMemory": "长期记忆",
+      "DeleteTheMemory": "删除此记忆",
+      "GainMemoryAgain": "可以被再次触发总结来获得记忆。",
+      "ConversationSummary": "会话总结",
+      "Settings": "设置",
+      "NumberofMessageSummarized": "总结的消息数量",
+      "NumberofMessageTriggered": "触发总结的消息数量",
+      "MaximumTolerance": "最大容忍数量",
+      "ReserveQuantity": "保留数量",
+      "MemoryType": "记忆类型",
+      "AfterSeconds": "几秒后",
+      "LongTermMemoryTypeEnum": {
+        "UserProfile": "用户档案",
+        "Profile": "用户配置",
+        "QuestionAnswer": "问题/回答",
+        "Custom": "自定义"
+      },
+      "AfterSecondsTooltip": "会话结束多少秒后如果没有继续对话则进行总结",
+      "ProfileMemoryPromptTooltip": "提示用于通过指令和约束引导 AI 提取用户信息",
+      "QAMemoryPromptTooltip": "提示用于通过指令和约束引导 AI 总结对话问题和答案的成功经验",
+      "ClearMemory": "清空记忆",
+      "ClearAllMemoryOfXpert": "清空跟此专家相关的所有记忆",
+      "SemanticSearchTest": "语义搜索测试"
     },
     "title": {
       "short": "Xpert AI"

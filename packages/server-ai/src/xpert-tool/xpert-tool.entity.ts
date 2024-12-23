@@ -1,4 +1,4 @@
-import { IBuiltinTool, IXpertTool, IXpertToolset, TAvatar } from '@metad/contracts'
+import { IBuiltinTool, IXpertTool, IXpertToolset, TAvatar, TXpertToolEntity } from '@metad/contracts'
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString, IsBoolean } from 'class-validator'
@@ -33,7 +33,7 @@ export class XpertTool extends TenantOrganizationBaseEntity implements IXpertToo
 	@IsJSON()
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
-	schema?: Record<string, any>
+	schema?: Record<string, any> | TXpertToolEntity | IBuiltinTool
 
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()

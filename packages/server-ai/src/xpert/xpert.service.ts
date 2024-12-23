@@ -1,5 +1,4 @@
-import { IUser, TXpertTeamDraft } from '@metad/contracts'
-import { convertToUrlPath } from '@metad/server-common'
+import { convertToUrlPath, IUser, TXpertTeamDraft } from '@metad/contracts'
 import {
 	OptionParams,
 	PaginationParams,

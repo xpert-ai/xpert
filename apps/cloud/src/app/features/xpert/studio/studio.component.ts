@@ -41,6 +41,7 @@ import { debounce, debounceTime, delay, map, pairwise, tap } from 'rxjs/operator
 import {
   AiModelTypeEnum,
   ToastrService,
+  TXpertAgentConfig,
   TXpertTeamNode,
   XpertAgentExecutionStatusEnum,
   XpertService,
@@ -168,7 +169,6 @@ export class XpertStudioComponent {
   public isSingleSelection: boolean = true
 
   readonly viewModel = toSignal(this.apiService.store.pipe(map((state) => state.draft)))
-  // readonly panelVisible = model<boolean>(false)
   readonly xpert = computed(() => this.viewModel()?.team)
   readonly position = signal<IPoint>(null)
   readonly scale = signal<number>(null)
@@ -283,6 +283,10 @@ export class XpertStudioComponent {
       })
     )
   })
+
+  updateXpertAgentConfig(config: Partial<TXpertAgentConfig>) {
+    this.apiService.updateXpertAgentConfig(config)
+  }
   
 }
 

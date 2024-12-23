@@ -1,8 +1,11 @@
 import { MessageContent, MessageType } from '@langchain/core/messages'
+import { ToolCall } from '@langchain/core/dist/messages/tool'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { JSONValue } from '../core.model'
-import { IXpertAgentExecution } from './xpert-agent-execution.model'
+import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model'
 import { IXpert } from './xpert.model'
+import { I18nObject } from '../types'
+import { IChatMessage } from './chat-message.model'
 
 export type TChatConversationOptions = {
   knowledgebases?: string[]
@@ -10,6 +13,27 @@ export type TChatConversationOptions = {
 }
 
 export type TChatConversationStatus = "idle" | "busy" | "interrupted" | "error"
+export type TToolCallType = 'agent' | 'tool'
+
+export type TSensitiveOperation = {
+  messageId?: string
+  toolCalls: {
+    call: ToolCall
+    type: TToolCallType
+    info: {
+      name: string
+      title?: string
+      description: string
+    }
+    parameters: {
+      name: string;
+      title: I18nObject | string
+      type: string;
+      description: I18nObject | string
+      placeholder?: I18nObject | string
+    }[]
+  }[]
+}
 
 /**
  * Chat conversation for xpert ai agent.
@@ -23,17 +47,12 @@ export interface IChatConversation extends IBasePerTenantAndOrganizationEntityMo
   
   options?: TChatConversationOptions
 
-  messages?: CopilotBaseMessage[] | null
-
-  // // One ton one
-  // /**
-  //  * @deprecated should has multiple executions for every run
-  //  */
-  // execution?: IXpertAgentExecution
-  // /**
-  //  * @deprecated should has multiple executions for every run
-  //  */
-  // readonly executionId?: string
+  // messages?: CopilotBaseMessage[]
+  messages?: IChatMessage[] | null
+  /**
+   * The last operation when interrupted
+   */
+  operation?: TSensitiveOperation
 
   // Many to one
   /**
@@ -134,14 +153,8 @@ export interface CopilotBaseMessage {
   
   /**
    * Status of the message:
-   * - thinking: AI is thinking
-   * - answering: AI is answering
-   * - pending: AI is pending for confirm or more information
-   * - done: AI is done
-   * - aborted: AI is aborted
-   * - error: AI has error
    */
-  status?: 'thinking' | 'answering' | 'pending' | 'done' | 'aborted' | 'error'
+  status?: XpertAgentExecutionStatusEnum | 'thinking' | 'aborted' | 'done'
 
   content?: string | MessageContent
 }

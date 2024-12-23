@@ -12,7 +12,6 @@ import {
 } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { FFlowModule } from '@foblex/flow'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ChatMessageEventTypeEnum,
@@ -22,19 +21,23 @@ import {
   IXpertAgent,
   IXpertAgentExecution,
   ToastrService,
-  XpertAgentExecutionStatusEnum,
+  ToolCall,
   XpertAgentExecutionService,
+  XpertAgentExecutionStatusEnum,
   XpertAgentService
 } from 'apps/cloud/src/app/@core'
+import { CopilotStoredMessageComponent } from 'apps/cloud/src/app/@shared/copilot'
+import {
+  ToolCallConfirmComponent,
+  XpertAgentExecutionStatusComponent,
+  XpertParametersCardComponent
+} from 'apps/cloud/src/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
 import { of, Subscription } from 'rxjs'
 import { distinctUntilChanged, switchMap } from 'rxjs/operators'
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
-import { CopilotStoredMessageComponent } from 'apps/cloud/src/app/@shared/copilot'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-import { XpertAgentExecutionStatusComponent, XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 
 @Component({
   selector: 'xpert-studio-panel-agent-execution',
@@ -44,14 +47,13 @@ import { XpertAgentExecutionStatusComponent, XpertParametersCardComponent } from
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
-    FFlowModule,
-    MaterialModule,
     FormsModule,
     TranslateModule,
     MarkdownModule,
     CopilotStoredMessageComponent,
     XpertAgentExecutionStatusComponent,
-    XpertParametersCardComponent
+    XpertParametersCardComponent,
+    ToolCallConfirmComponent
   ],
   host: {
     tabindex: '-1',
@@ -59,7 +61,7 @@ import { XpertAgentExecutionStatusComponent, XpertParametersCardComponent } from
   }
 })
 export class XpertStudioPanelAgentExecutionComponent {
-  eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
+  eExecutionStatusEnum = XpertAgentExecutionStatusEnum
 
   readonly xpertAgentService = inject(XpertAgentService)
   readonly agentExecutionService = inject(XpertAgentExecutionService)
@@ -99,6 +101,10 @@ export class XpertStudioPanelAgentExecutionComponent {
     return executions
   })
 
+  readonly status = computed(() => this.execution()?.status)
+  readonly operation = computed(() => this.execution()?.operation)
+  readonly #toolCalls = signal<ToolCall[]>(null)
+
   readonly loading = signal(false)
   #agentSubscription: Subscription = null
 
@@ -129,7 +135,8 @@ export class XpertStudioPanelAgentExecutionComponent {
     this.executionService.setConversation(null)
   }
 
-  startRunAgent() {
+  startRunAgent(options?: { reject: boolean; confirm?: boolean }) {
+    const executionId = this.execution()?.id
     this.loading.set(true)
     // Clear
     this.clearStatus()
@@ -142,8 +149,10 @@ export class XpertStudioPanelAgentExecutionComponent {
           input: this.input()
         },
         agent: this.xpertAgent(),
-        xpert: this.xpert(),
-        executionId: this.executionId()
+        xpertId: this.xpert().id,
+        executionId,
+        toolCalls: this.#toolCalls(),
+        reject: options?.reject
       })
       .subscribe({
         next: (msg) => {
@@ -183,45 +192,87 @@ export class XpertStudioPanelAgentExecutionComponent {
     return this.apiService.getNode(key)?.entity as IXpertAgent
   }
 
+  onToolCalls(toolCalls: ToolCall[]) {
+    this.#toolCalls.set(toolCalls)
+  }
+
+  onConfirm() {
+    this.input.set(null)
+    this.startRunAgent()
+  }
+
+  onReject() {
+    this.input.set(null)
+    this.startRunAgent({ reject: true })
+  }
 }
 
 export function processEvents(event, executionService: XpertExecutionService) {
-  switch(event.event) {
+  switch (event.event) {
     case ChatMessageEventTypeEnum.ON_CONVERSATION_START: {
       executionService.conversation.update((state) => ({
         ...(state ?? {}),
         ...event.data
       }))
-      break;
+      break
+    }
+    case ChatMessageEventTypeEnum.ON_CONVERSATION_END: {
+      executionService.conversation.update((state) => ({
+        ...(state ?? {}),
+        ...event.data
+      }))
+      break
     }
     case ChatMessageEventTypeEnum.ON_TOOL_START: {
-      executionService.setToolExecution(event.data.name, {status: XpertAgentExecutionStatusEnum.RUNNING})
-      break;
+      executionService.updateToolExecution(event.data.name, event.data.metadata?.langgraph_checkpoint_ns, {
+        status: XpertAgentExecutionStatusEnum.RUNNING
+      })
+      break
     }
     case ChatMessageEventTypeEnum.ON_TOOL_END: {
-      executionService.setToolExecution(event.data.name, {status: XpertAgentExecutionStatusEnum.SUCCESS})
-      break;
+      executionService.updateToolExecution(event.data.name, event.data.metadata?.langgraph_checkpoint_ns, {
+        status: XpertAgentExecutionStatusEnum.SUCCESS,
+        inputs: {
+          ...(event.data.data?.input ?? {})
+        },
+        outputs: {
+          output: event.data.data?.output?.content
+        }
+      })
+      break
     }
     case ChatMessageEventTypeEnum.ON_TOOL_ERROR: {
-      executionService.setToolExecution(event.data.name, {status: XpertAgentExecutionStatusEnum.ERROR, error: event.data.error })
-      break;
+      executionService.updateToolExecution(event.data.name, event.data.metadata?.langgraph_checkpoint_ns, {
+        status: XpertAgentExecutionStatusEnum.ERROR,
+        error: event.data.error
+      })
+      break
     }
     case ChatMessageEventTypeEnum.ON_AGENT_START:
     case ChatMessageEventTypeEnum.ON_AGENT_END: {
       executionService.setAgentExecution(event.data.agentKey, event.data)
-      break;
+      break
     }
     case ChatMessageEventTypeEnum.ON_RETRIEVER_START: {
-      executionService.setKnowledgeExecution(event.data.name, {status: XpertAgentExecutionStatusEnum.RUNNING})
-      break;
+      executionService.setKnowledgeExecution(event.data.name, { status: XpertAgentExecutionStatusEnum.RUNNING })
+      break
     }
     case ChatMessageEventTypeEnum.ON_RETRIEVER_END: {
-      executionService.setKnowledgeExecution(event.data.name, {status: XpertAgentExecutionStatusEnum.SUCCESS})
-      break;
+      executionService.setKnowledgeExecution(event.data.name, { status: XpertAgentExecutionStatusEnum.SUCCESS })
+      break
     }
     case ChatMessageEventTypeEnum.ON_RETRIEVER_ERROR: {
-      executionService.setKnowledgeExecution(event.data.name, {status: XpertAgentExecutionStatusEnum.ERROR, error: event.data.error})
-      break;
+      executionService.setKnowledgeExecution(event.data.name, {
+        status: XpertAgentExecutionStatusEnum.ERROR,
+        error: event.data.error
+      })
+      break
+    }
+    case ChatMessageEventTypeEnum.ON_MESSAGE_START: {
+      break
+    }
+    case ChatMessageEventTypeEnum.ON_INTERRUPT: {
+      break
     }
     default: {
       console.log(`未处理的事件：`, event)

@@ -1,0 +1,58 @@
+<div clas="flex flex-col">
+  <label class="block p-2">{{ 'PAC.Xpert.MemoryType' | translate: {Default: 'Memory Type'} }}</label>
+  <!-- <ngm-radio-select [options]="options()" [(ngModel)]="type" /> -->
+</div>
+
+<section class="memory-section">
+  <mat-checkbox class="memory-checkbox" [(ngModel)]="profileEnabled">
+    {{ 'PAC.Xpert.LongTermMemoryTypeEnum.UserProfile' | translate: {Default: 'User Profile'} }}
+  </mat-checkbox>
+
+  <div class="flex items-center px-2">
+    <label>{{ 'PAC.Xpert.AfterSeconds' | translate: {Default: 'After Seconds'} }}</label>
+
+    <i class="ri-question-line mr-4 shrink-0 text-text-quaternary hover:text-text-tertiary"
+      [matTooltip]="'PAC.Xpert.AfterSecondsTooltip' | translate: {Default: 'The number of seconds after the conversation ends to summarize, if there is no continuation of the conversation'}"
+      matTooltipPosition="above"></i>
+
+    <mat-slider class="grow" min="0" max="100" step="1" showTickMarks discrete [displayWith]="formatLabel">
+      <input matSliderThumb [(ngModel)]="afterSeconds">
+    </mat-slider>
+  </div>
+
+  @if (profileEnabled) {
+    <copilot-prompt-editor @heightChangeAnimation class="relative ngm-card-border-gradient self-stretch"
+      [tooltip]="'PAC.Xpert.ProfileMemoryPromptTooltip' | translate: {Default: 'Prompt guide AI to extract user information through instructions and constraints'}"
+      [(prompt)]="profilePrompt"
+      initHeight="100"
+    />
+  }
+
+</section>
+
+<section class="memory-section">
+  <mat-checkbox class="memory-checkbox" [(ngModel)]="qaEnabled">
+    {{ 'PAC.Xpert.LongTermMemoryTypeEnum.QuestionAnswer' | translate: {Default: 'Question/Answer'} }}
+  </mat-checkbox>
+
+  @if (qaEnabled) {
+    <copilot-prompt-editor @heightChangeAnimation class="relative shadow-sm ngm-card-border-gradient self-stretch"
+      [tooltip]="'PAC.Xpert.QAMemoryPromptTooltip' | translate: {Default: 'Prompt to use instructions and constraints to guide AI to summarize successful experiences of conversation question and answer'}"
+      [(prompt)]="qaPrompt"
+      initHeight="100"
+    />
+  }
+
+</section>
+
+<section class="memory-section"
+  [ngmTooltip]="customInDevelopment"
+  [hideDelay]="100">
+  <mat-checkbox class="memory-checkbox" >
+    {{ 'PAC.Xpert.LongTermMemoryTypeEnum.Custom' | translate: {Default: 'Custom'} }}
+  </mat-checkbox>
+</section>
+
+<ng-template #customInDevelopment >
+  <pac-in-development @overlayAnimation1 feature="Custom Memory" class="w-80" />
+</ng-template>

@@ -1,40 +1,39 @@
 import { NotFoundException } from '@nestjs/common'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AIMessageChunk, HumanMessage, MessageContent, SystemMessage } from '@langchain/core/messages'
+import { AIMessageChunk, HumanMessage, isAIMessage, isAIMessageChunk, MessageContent, ToolMessage } from '@langchain/core/messages'
+import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
-import { StateGraphArgs } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, ICopilot, IXpertAgent } from '@metad/contracts'
+import { Annotation, CompiledStateGraph, LangGraphRunnableConfig, NodeInterrupt } from '@langchain/langgraph'
+import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IXpert, IXpertAgent, ToolCall, TSensitiveOperation, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { filter, from, map, Observable, tap } from 'rxjs'
-import { AgentState, CopilotGetOneQuery, createCopilotAgentState, createReactAgent } from '../../../copilot'
+import { concat, filter, from, lastValueFrom, Observable, of, reduce, Subscriber, switchMap, tap } from 'rxjs'
+import { AgentState } from '../../../copilot'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
-import { XpertAgentService } from '../../xpert-agent.service'
-import { createXpertAgentTool, XpertAgentExecuteCommand } from '../execute.command'
-import { GetXpertAgentQuery } from '../../../xpert/queries'
-import { XpertCopilotNotFoundException } from '../../../core/errors'
+import { createParameters, XpertAgentExecuteCommand } from '../execute.command'
+import { GetXpertAgentQuery, GetXpertChatModelQuery } from '../../../xpert/queries'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { EnsembleRetriever } from "langchain/retrievers/ensemble"
 import z from 'zod'
-import { CopilotModelGetChatModelQuery } from '../../../copilot-model/queries'
+import { createReactAgent } from './react_agent_executor'
+import { RunnableLambda } from '@langchain/core/runnables'
+import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
+import { getErrorMessage } from '@metad/server-common'
+import { AgentStateAnnotation, TSubAgent } from './types'
+import { CompleteToolCallsQuery } from '../../queries'
+import { memoryPrompt } from '../../../copilot-store/utils'
 
-
-
-export type ChatAgentState = AgentState
-export const chatAgentState: StateGraphArgs<ChatAgentState>['channels'] = {
-	...createCopilotAgentState()
-}
 
 @CommandHandler(XpertAgentExecuteCommand)
 export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecuteCommand> {
 	readonly #logger = new Logger(XpertAgentExecuteHandler.name)
 
 	constructor(
-		private readonly agentService: XpertAgentService,
+		// private readonly agentService: XpertAgentService,
 		private readonly copilotCheckpointSaver: CopilotCheckpointSaver,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
@@ -42,7 +41,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 
 	public async execute(command: XpertAgentExecuteCommand): Promise<Observable<MessageContent>> {
 		const { input, agentKey, xpert, options } = command
-		const { execution, subscriber } = options
+		const { execution, subscriber, toolCalls, reject, memories } = options
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 		const user = RequestContext.currentUser()
@@ -54,31 +53,37 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		}
 
 		const team = agent.team
-		let copilot: ICopilot = null
-		const copilotId = agent.copilotModel?.copilotId ?? team.copilotModel?.copilotId
-		const copilotModel = agent.copilotModel ?? team.copilotModel
-		if (copilotId) {
-			copilot = await this.queryBus.execute(new CopilotGetOneQuery(tenantId, copilotId, ['modelProvider']))
-		} else {
-			throw new XpertCopilotNotFoundException(`Xpert copilot not found for '${xpert.name}'`)
-		}
 
-		const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
-			new CopilotModelGetChatModelQuery(copilot, copilotModel, {abortController, tokenCallback: (token) => {
-				execution.tokens += (token ?? 0)
-			}})
+		const chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
+			new GetXpertChatModelQuery(agent.team, agent, {
+				abortController,
+				tokenCallback: (token) => {
+					execution.tokens += token ?? 0
+				}
+			})
 		)
+		// Record ai model info into execution
+		const copilotModel = agent.copilotModel ?? team.copilotModel
+		execution.metadata = {
+			provider: copilotModel.copilot.modelProvider?.providerName,
+			model: copilotModel.model || copilotModel.copilot.copilotModel?.model
+		}
 
 		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
 			new ToolsetGetToolsCommand(options?.toolsets ?? agent.toolsetIds)
 		)
 		const tools = []
+		const interruptBefore: string[] = []
 		for await (const toolset of toolsets) {
 			const items = await toolset.initTools()
 			tools.push(...items)
+			interruptBefore.push(...items.filter((tool) => {
+				const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)
+				return team.agentConfig?.interruptBefore?.includes(lc_name)
+			}).map((tool) => tool.name))
 		}
 
-		this.#logger.debug(`Use tools:\n ${tools.map((_) => _.name + ': ' + _.description)}`)
+		this.#logger.debug(`Use tools:\n ${[...tools,].map((_) => _.name + ': ' + _.description).join('\n')}`)
 
 		// Knowledgebases
 		const knowledgebaseIds = options?.knowledgebases ?? agent.knowledgebaseIds
@@ -95,22 +100,19 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			  }))
 		}
 
+		const subAgents: Record<string, TSubAgent> = {}
 		if (agent.followers?.length) {
 			this.#logger.debug(`Use sub agents:\n ${agent.followers.map((_) => _.name)}`)
 			agent.followers.forEach((follower) => {
-				tools.push(createXpertAgentTool(
-					this.commandBus,
-					this.queryBus,
-					{
-						xpert,
-						agent: follower,
-						options: {
-							rootExecutionId: command.options.rootExecutionId,
-							isDraft: command.options.isDraft,
-							subscriber
-						}
-					}
-				))
+				const item = this.createXpertAgent(follower, { xpert, options: {
+					rootExecutionId: command.options.rootExecutionId,
+					isDraft: command.options.isDraft,
+					subscriber
+				}})
+				subAgents[item.name] = item
+				if (team.agentConfig?.interruptBefore?.includes(item.name)) {
+					interruptBefore.push(item.name)
+				}
 			})
 		}
 
@@ -118,77 +120,82 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			this.#logger.debug(`Use xpert collaborators:\n ${agent.collaborators.map((_) => _.name)}`)
 			for await (const collaborator of agent.collaborators) {
 				const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(new GetXpertAgentQuery(collaborator.id,))
-				tools.push(createXpertAgentTool(
-					this.commandBus,
-					this.queryBus,
-					{
-						xpert: collaborator,
-						agent,
-						options: {
-							rootExecutionId: command.options.rootExecutionId,
-							isDraft: false,
-							subscriber
-						} }))
+				const item = this.createXpertAgent(agent, { xpert: collaborator, options: {
+					rootExecutionId: command.options.rootExecutionId,
+					isDraft: false,
+					subscriber
+				}})
+				subAgents[item.name] = item
+				if (team.agentConfig?.interruptBefore?.includes(item.name)) {
+					interruptBefore.push(item.name)
+				}
 			}
 		}
 
 		// Custom parameters
-		agent.parameters?.forEach((parameter) => {
-			chatAgentState[parameter.name] = {
-				value: (x: any, y: any) => y ?? x,
-				default: () => ''
-			}
+		const StateAnnotation = Annotation.Root({
+			...AgentStateAnnotation.spec,
+			...(agent.parameters?.reduce((acc, parameter) => {
+				acc[parameter.name] = Annotation<string>
+				return acc
+			}, {}) ?? {})
 		})
 
 		const thread_id = command.options.thread_id
+
 		const graph = createReactAgent({
 			tags: [thread_id],
-			state: chatAgentState,
+			state: StateAnnotation,
 			llm: chatModel,
 			checkpointSaver: this.copilotCheckpointSaver,
-			tools: [...tools],
-			messageModifier: async (state) => {
-				const systemTemplate = `{{role}}
-{{language}}
-Current time: ${new Date()}
-References documents:
-{{context}}
-${agent.prompt}
-`
-				const system = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
+			subAgents,
+			tools: tools,
+			interruptBefore,
+			stateModifier: async (state: typeof AgentStateAnnotation.State) => {
+				const { summary } = state
+				let systemTemplate = `{{language}}\nCurrent time: ${new Date().toISOString()}\n${agent.prompt}`
+				if (memories?.length) {
+					systemTemplate += `\n\n<memory>\n${memoryPrompt(memories)}\n</memory>`
+				}
+				if (summary) {
+					systemTemplate += `\nSummary of conversation earlier: \n${summary}`
+				}
+				const systemMessage = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
 					templateFormat: 'mustache'
 				}).format({ ...state })
-				return [new SystemMessage(system), ...state.messages]
-			}
+
+				this.#logger.verbose(`SystemMessage:`, systemMessage.content)
+				return [systemMessage, ...state.messages]
+			},
+			summarize: team.summarize,
 		})
 
 		this.#logger.debug(`Start chat with xpert '${xpert.name}' & agent '${agent.title}'`)
 
-		// Record ai model info into execution
-		await this.commandBus.execute(
-			new XpertAgentExecutionUpsertCommand({
-				id: execution.id,
-				metadata: {
-					provider: copilotModel.copilot.modelProvider?.providerName,
-					model: copilotModel.model || copilotModel.copilot.copilotModel?.model
-				}
-			})
-		)
+		const config = {
+			thread_id,
+			checkpoint_ns: '',
+		}
+		if (reject) {
+			await this.reject(graph, config)
+		} else if (toolCalls) {
+			await this.updateToolCalls(graph, config, toolCalls)
+		}
 
 		const eventStack: string[] = []
-		let toolCalls = null
+		// let toolCalls = null
 		let prevEvent = ''
-		return from(
+		const toolsMap: Record<string, string> = {} // For lc_name and name of tool is different
+		const contentStream = from(
 			graph.streamEvents(
-				{
+				input?.input ? {
 					...input,
 					messages: [new HumanMessage(input.input)]
-				},
+				} : null,
 				{
 					version: 'v2',
 					configurable: {
-						thread_id,
-						checkpoint_ns: '',
+						...config,
 						tenantId: tenantId,
 						organizationId: organizationId,
 						userId: user.id,
@@ -200,22 +207,22 @@ ${agent.prompt}
 				},
 			)
 		).pipe(
-			map(({ event, tags, data, ...rest }: any) => {
+			switchMap(async ({ event, tags, data, ...rest }: any) => {
 				if (Logger.isLevelEnabled('debug')) {
 					if (event === 'on_chat_model_stream') {
 						if (prevEvent === 'on_chat_model_stream') {
 							process.stdout.write('.')
 						} else {
-							this.#logger.debug('on_chat_model_stream')
+							this.#logger.debug(`on_chat_model_stream [${agentLabel(agent)}]`)
 						}
 					} else {
 						if (prevEvent === 'on_chat_model_stream') {
 							process.stdout.write('\n')
 						}
-						this.#logger.debug(event)
+						this.#logger.debug(`${event} [${agentLabel(agent)}]`)
 					}
 				} else {
-					this.#logger.verbose(event)
+					this.#logger.verbose(`${event} [${agentLabel(agent)}]`)
 				}
 
 				prevEvent = event
@@ -231,19 +238,19 @@ ${agent.prompt}
 							while(_event === 'on_tool_start') {
 								_event = eventStack.pop()
 							}
-							// Clear all error tool calls
-							if (toolCalls) {
-								Object.keys(toolCalls).filter((id) => !!toolCalls[id]).forEach((id) => {
-									subscriber.next({
-										data: {
-											type: ChatMessageTypeEnum.EVENT,
-											event: ChatMessageEventTypeEnum.ON_TOOL_ERROR,
-											data: toolCalls[id]
-										}
-									} as MessageEvent)
-								})
-								toolCalls = null
-							}
+							// // Clear all error tool calls
+							// if (toolCalls) {
+							// 	Object.keys(toolCalls).filter((id) => !!toolCalls[id]).forEach((id) => {
+							// 		subscriber.next({
+							// 			data: {
+							// 				type: ChatMessageTypeEnum.EVENT,
+							// 				event: ChatMessageEventTypeEnum.ON_TOOL_ERROR,
+							// 				data: toolCalls[id]
+							// 			}
+							// 		} as MessageEvent)
+							// 	})
+							// 	toolCalls = null
+							// }
 						}
 						
 						// All chains end
@@ -290,11 +297,9 @@ ${agent.prompt}
 					}
 					
 					case 'on_tool_start': {
-						this.#logger.verbose(data, rest)
+						// this.#logger.verbose(data, rest)
 						eventStack.push(event)
-						// Tools currently called in parallel
-						toolCalls ??= {}
-						toolCalls[rest.run_id] = {data, ...rest}
+						toolsMap[rest.metadata.langgraph_node] = rest.name
 						subscriber.next({
 							data: {
 								type: ChatMessageTypeEnum.EVENT,
@@ -308,11 +313,7 @@ ${agent.prompt}
 						break
 					}
 					case 'on_tool_end': {
-						this.#logger.verbose(data, rest)
-						// Clear finished tool call
-						if (toolCalls?.[rest.run_id]) {
-						  toolCalls[rest.run_id] = null
-						}
+						// this.#logger.verbose(data, rest)
 						const _event = eventStack.pop()
 						if (_event !== 'on_tool_start') { // 应该不会出现这种情况吧？
 							eventStack.pop()
@@ -331,7 +332,7 @@ ${agent.prompt}
 						break
 					}
 					case 'on_retriever_start': {
-						this.#logger.verbose(data, rest)
+						// this.#logger.verbose(data, rest)
 						subscriber.next({
 							data: {
 								type: ChatMessageTypeEnum.EVENT,
@@ -346,7 +347,7 @@ ${agent.prompt}
 						break
 					}
 					case 'on_retriever_end': {
-						this.#logger.verbose(data, rest)
+						// this.#logger.verbose(data, rest)
 						subscriber.next({
 							data: {
 								type: ChatMessageTypeEnum.EVENT,
@@ -363,7 +364,22 @@ ${agent.prompt}
 					case 'on_custom_event': {
 						this.#logger.verbose(data, rest)
 						switch(rest.name) {
-							case 'on_retriever_error': {
+							case ChatMessageEventTypeEnum.ON_TOOL_ERROR: {
+								subscriber.next({
+									data: {
+										type: ChatMessageTypeEnum.EVENT,
+										event: ChatMessageEventTypeEnum.ON_TOOL_ERROR,
+										data: {
+											...rest,
+											...data,
+											name: toolsMap[data.toolCall.name] ?? data.toolCall.name,
+											tags,
+										}
+									}
+								} as MessageEvent)
+								break
+							}
+							case ChatMessageEventTypeEnum.ON_RETRIEVER_ERROR: {
 								subscriber.next({
 									data: {
 										type: ChatMessageTypeEnum.EVENT,
@@ -382,12 +398,12 @@ ${agent.prompt}
 						break
 					}
 				}
+				
 				return null
 			}),
-			filter((content) => !isNil(content)),
 			tap({
-				complete: () => {
-					this.#logger.debug(`End chat.`)
+				complete: async () => {
+					//
 				},
 				error: (err) => {
 					this.#logger.debug(err)
@@ -397,5 +413,223 @@ ${agent.prompt}
 				}
 			})
 		)
+
+		return concat(contentStream, of(1).pipe(
+			switchMap(async () => {
+				const state = await graph.getState({
+					configurable: {
+						...config,
+					}
+				})
+
+				// Update execution title from graph states
+				if (state.values.title) {
+					execution.title = state.values.title
+				}
+
+				if (state.next?.[0]) {
+					const messages = state.values.messages
+					const lastMessage = messages[messages.length - 1]
+					if (isAIMessageChunk(lastMessage)) {
+						this.#logger.debug(`Interrupted chat [${agentLabel(agent)}].`)
+						const operation = await this.queryBus.execute<CompleteToolCallsQuery, TSensitiveOperation>(
+							new CompleteToolCallsQuery(xpert.id, agentKey, lastMessage, options.isDraft)
+						)
+						subscriber.next({
+							data: {
+								type: ChatMessageTypeEnum.EVENT,
+								event: ChatMessageEventTypeEnum.ON_INTERRUPT,
+								data: operation
+							}
+						} as MessageEvent)
+						throw new NodeInterrupt(`Confirm tool calls`)
+					}
+				} else {
+					this.#logger.debug(`End chat [${agentLabel(agent)}].`)
+				}
+				return null
+			})
+		)).pipe(
+			filter((content) => !isNil(content)),
+		)
 	}
+
+	createXpertAgent(
+		agent: IXpertAgent,
+		config: {
+			xpert: Partial<IXpert>
+			options: {
+				rootExecutionId: string
+				isDraft: boolean
+				subscriber: Subscriber<MessageEvent>
+			}
+		}
+	) {
+		const { xpert, options } = config
+		const { subscriber } = options
+
+	  const agentNode = RunnableLambda.from(async (state: AgentState, config: LangGraphRunnableConfig): Promise<Partial<AgentState>> => {
+		const call = state.toolCall
+		// console.log(call)
+		/**
+		 * @todo should record runId in execution
+		 */
+		const runId = config.runId
+
+		// Record start time
+		const timeStart = Date.now()
+		const execution = await this.commandBus.execute(
+			new XpertAgentExecutionUpsertCommand({
+				xpert: { id: xpert.id } as IXpert,
+				agentKey: agent.key,
+				inputs: call.args,
+				parentId: options.rootExecutionId,
+				parent_thread_id: config.configurable.thread_id,
+				status: XpertAgentExecutionStatusEnum.RUNNING
+			})
+		)
+
+		// Start agent execution event
+		subscriber.next(
+			({
+				data: {
+					type: ChatMessageTypeEnum.EVENT,
+					event: ChatMessageEventTypeEnum.ON_AGENT_START,
+					data: execution
+				}
+			}) as MessageEvent
+		)
+
+		let status = XpertAgentExecutionStatusEnum.SUCCESS
+		let error = null
+		let result = ''
+		const finalize = async () => {
+			const timeEnd = Date.now()
+			// Record End time
+			const newExecution = await this.commandBus.execute(
+				new XpertAgentExecutionUpsertCommand({
+					...execution,
+					elapsedTime: timeEnd - timeStart,
+					status,
+					error,
+					outputs: {
+						output: result
+					}
+				})
+			)
+
+			const fullExecution = await this.queryBus.execute(
+				new XpertAgentExecutionOneQuery(newExecution.id)
+			)
+
+			// End agent execution event
+			subscriber.next(
+				({
+					data: {
+						type: ChatMessageTypeEnum.EVENT,
+						event: ChatMessageEventTypeEnum.ON_AGENT_END,
+						data: fullExecution
+					}
+				}) as MessageEvent
+			)
+		}
+		try {
+			const obs = await this.commandBus.execute<XpertAgentExecuteCommand, Observable<string>>(
+				new XpertAgentExecuteCommand(call.args, agent.key, xpert, { ...options, thread_id: execution.threadId, execution })
+			)
+			
+			await lastValueFrom(obs.pipe(
+				reduce((acc, val) => acc + val, ''),
+				tap({
+					next: (text: string) => {
+						result = text
+					},
+					error: (err) => {
+						status = XpertAgentExecutionStatusEnum.ERROR
+						error = getErrorMessage(err)
+					},
+					finalize: async () => {
+						try {
+							await finalize()
+						} catch(err) {
+							//
+						}
+					}
+				}
+			)))
+
+			return {
+				messages: [
+				  new ToolMessage({
+					content: result,
+					name: call.name,
+					tool_call_id: call.id ?? "",
+				  })
+				]
+			  }
+		} catch(err) {
+			// Catch the error before generated obs
+			try {
+				status = XpertAgentExecutionStatusEnum.ERROR
+				error = getErrorMessage(err)
+				await finalize()
+			} catch(err) {
+				//
+			}
+			throw err
+		}
+	  })
+	  const uniqueName = convertToUrlPath(agent.name) || agent.key
+	  const agentTool = RunnableLambda.from(async (params: {input: string;} & any): Promise<string> => ``).asTool({
+		name: uniqueName,
+		description: agent.description,
+		schema: z.object({
+			...(createParameters(agent.parameters) ?? {}),
+			input: z.string().describe('Ask me some question or give me task to complete')
+		})
+	  })
+
+	  return {
+		name: uniqueName,
+		node: agentNode,
+		tool: agentTool
+	  } as TSubAgent
+	}
+
+	async reject(graph: CompiledStateGraph<any, any, any>, config: any) {
+		const state = await graph.getState({configurable: config},)
+		const messages = state.values.messages
+		if (messages) {
+			const lastMessage = messages[messages.length - 1]
+			if (isAIMessage(lastMessage)) {
+				await graph.updateState({configurable: config}, { messages: lastMessage.tool_calls.map((call) => {
+					return new ToolMessage({
+						name: call.name,
+						content: `Error: Reject by user`,
+						tool_call_id: call.id,
+					})
+				}) }, "agent")
+			}
+		}
+	}
+
+	async updateToolCalls(graph: CompiledStateGraph<any, any, any>, config: any, toolCalls: ToolCall[]) {
+		// Update parameters of the last tool call message
+		const state = await graph.getState({configurable: config},)
+		const messages = state.values.messages
+		const lastMessage = messages[messages.length - 1]
+		if (lastMessage.id) {
+			const newMessage = {
+				role: "assistant",
+				content: lastMessage.content,
+				tool_calls: lastMessage.tool_calls.map((toolCall) => {
+					const newToolCall = toolCalls.find((_) => _.id === toolCall.id)
+					return {...toolCall, args: {...toolCall.args, ...(newToolCall?.args ?? {})} }
+				}) ,
+				id: lastMessage.id
+			}
+			await graph.updateState({configurable: config}, { messages: [newMessage]}, "agent")
+		}
+	}
+	
 }

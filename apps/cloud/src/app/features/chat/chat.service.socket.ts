@@ -24,7 +24,7 @@ import {
   ChatGatewayMessage,
   getErrorMessage,
   IChatConversation,
-  IXpertRole,
+  IXpert,
   IXpertToolset,
   IKnowledgebase,
   LanguagesEnum,
@@ -53,7 +53,7 @@ export class ChatWebsocketService {
   readonly paramId = injectParams('id')
 
   readonly conversationId = signal<string>(null)
-  readonly role$ = new BehaviorSubject<IXpertRole>(null)
+  readonly role$ = new BehaviorSubject<IXpert>(null)
   readonly conversation = signal<IChatConversation>(null)
 
   readonly messages = signal<CopilotBaseMessage[]>([])
@@ -346,7 +346,7 @@ export class ChatWebsocketService {
     })
   }
 
-  async newConversation(role?: IXpertRole) {
+  async newConversation(role?: IXpert) {
     if (this.answering() && this.conversation()?.id) {
       this.cancelMessage()
     }

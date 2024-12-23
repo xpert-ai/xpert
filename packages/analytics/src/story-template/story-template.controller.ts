@@ -44,9 +44,9 @@ export class StoryTemplateController extends CrudController<StoryTemplate> {
 
 	@UseInterceptors(ClassSerializerInterceptor)
 	@Get('my')
-	async findMyAll(@Query('data', ParseJsonPipe) data: any): Promise<IPagination<IStoryTemplate>> {
+	async findMyAllTemp(@Query('data', ParseJsonPipe) data: any): Promise<IPagination<IStoryTemplate>> {
 		const { relations, findInput } = data
-		const {total, items} = await this.storyTemplateService.findMy({ where: findInput, relations, order: { createdAt: 'DESC' } })
+		const {total, items} = await this.storyTemplateService.findMyAll({ where: findInput, relations, order: { createdAt: 'DESC' } })
 		return {
 			total,
 			items: items.map((item) => ({...item, previewUrl: item.preview?.url}))

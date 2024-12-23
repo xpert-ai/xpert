@@ -1,0 +1,29 @@
+@for (message of messages(); track message.id) {
+  @switch (message.role) {
+    @case ('user') {
+      <div class="w-full flex justify-end my-4">
+        <div class="max-w-[70%] p-4 whitespace-pre-wrap rounded-2xl bg-black/5 dark:bg-white/10">{{ message.content }}</div>
+      </div>
+    }
+    @case ('human') {
+      <div class="w-full flex justify-end my-4">
+        <div class="max-w-[70%] p-4 whitespace-pre-wrap rounded-2xl bg-black/5 dark:bg-white/10">{{ message.content }}</div>
+      </div>
+    }
+    @case ('assistant') {
+      <pac-ai-message class="my-4 lg:p-2" [message]="message" />
+    }
+    @case ('ai') {
+      <pac-ai-message class="my-4 lg:p-2" [message]="message" />
+    }
+  }
+}
+
+@if (conversationStatus() === eExecutionStatusEnum.INTERRUPTED && operation()) {
+  <xpert-tool-call-confirm class="w-full max-w-xl mx-auto bg-components-card-bg"
+    [operation]="operation()"
+    (confirm)="onConfirm()"
+    (reject)="onReject()"
+    (toolCallsChange)="onToolCalls($event)"
+  />
+}

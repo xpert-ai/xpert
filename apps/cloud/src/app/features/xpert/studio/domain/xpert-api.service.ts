@@ -26,6 +26,7 @@ import {
   IXpertAgent,
   IXpertToolset,
   OrderTypeEnum,
+  TXpertAgentConfig,
   TXpertOptions,
   TXpertTeamDraft,
   TXpertTeamNode
@@ -117,6 +118,7 @@ export class XpertStudioApiService {
     }
     return null
   })
+  readonly xpert = computed(() => this.viewModel()?.team)
 
   // knowledgebases
   readonly knowledgebases$ = this.knowledgebaseService.getAllInOrg().pipe(
@@ -170,17 +172,23 @@ export class XpertStudioApiService {
             debounceUntilChanged(2000),
             tap((event) => {
               if (event) {
-                this.stateHistories.update((state) => ({
-                  past: [
-                    ...state.past,
-                    {
-                      reason: event,
-                      cursor: this.#stateHistory.getPast().length,
-                      createdAt: new Date()
+                this.stateHistories.update((state) => {
+                  const last = state.past[state.past.length - 1]
+                  if (this.#stateHistory.getPast().length !== last.cursor) {
+                    return {
+                      past: [
+                        ...state.past,
+                        {
+                          reason: event,
+                          cursor: this.#stateHistory.getPast().length,
+                          createdAt: new Date()
+                        }
+                      ],
+                      future: []
                     }
-                  ],
-                  future: []
-                }))
+                  }
+                  return state
+                })
               }
             })
           )
@@ -400,26 +408,44 @@ export class XpertStudioApiService {
       this.#reload.next(EReloadReason.XPERT_UPDATED)
     }
   }
-  public updateXpert(xpert: Partial<IXpert>) {
-    new UpdateXpertHandler(this.store).handle(new UpdateXpertRequest(xpert))
-    this.#reload.next(EReloadReason.XPERT_UPDATED)
-  }
-  public updateXpertOptions(options: Partial<TXpertOptions>, reason: EReloadReason) {
+
+  updateXpert(fn: (state: Partial<IXpert>) => Partial<IXpert>, reason = EReloadReason.XPERT_UPDATED) {
     this.store.update((state) => {
       const draft = structuredClone(state.draft)
-      draft.team = {
-        ...draft.team,
-        options: {
-          ...(draft.team.options ?? {}),
-          ...options
-        }
-      }
-
+      draft.team = fn(draft.team)
       return {
         draft
       }
     })
-    this.#reload.next(reason) // EReloadReason.XPERT_UPDATED)
+    this.#reload.next(reason)
+  }
+
+  public _updateXpert(xpert: Partial<IXpert>) {
+    new UpdateXpertHandler(this.store).handle(new UpdateXpertRequest(xpert))
+    this.#reload.next(EReloadReason.XPERT_UPDATED)
+  }
+  public updateXpertOptions(options: Partial<TXpertOptions>, reason: EReloadReason) {
+    this.updateXpert((xpert) => {
+      return {
+        ...xpert,
+        options: {
+          ...(xpert.options ?? {}),
+          ...options
+        }
+      }
+    }, reason)
+  }
+
+  public updateXpertAgentConfig(config: Partial<TXpertAgentConfig>, reason = EReloadReason.XPERT_UPDATED) {
+    this.updateXpert((xpert) => {
+      return {
+        ...xpert,
+        agentConfig: {
+          ...(xpert.agentConfig ?? {}),
+          ...config
+        }
+      }
+    }, reason)
   }
 
   updateCanvas(event: FCanvasChangeEvent) {

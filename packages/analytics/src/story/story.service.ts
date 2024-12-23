@@ -209,10 +209,6 @@ export class StoryService extends TenantOrganizationAwareCrudService<Story> {
 		}
 	}
 
-	async findOwn(conditions?: FindManyOptions<Story>) {
-		return super.findMy(conditions)
-	}
-
 	async updateModels(id: string, models: string[], relations?: string[]) {
 		const story = await this.findOne(id)
 		story.models = models.map((id) => ({ id }))

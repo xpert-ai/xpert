@@ -27,6 +27,10 @@ export abstract class BaseToolset<T extends StructuredToolInterface = Structured
 	getCredentialsSchema(): { [key: string]: ToolProviderCredentials } {
 		return { ...this.credentialsSchema }
 	}
+
+	getToolset() {
+		return this.toolset
+	}
 }
 
 export interface IBaseTool extends IBuiltinTool {

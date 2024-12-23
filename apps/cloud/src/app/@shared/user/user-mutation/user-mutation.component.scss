@@ -1,3 +1,5 @@
 :host {
-    width: 600px;
+  min-width: 600px;
+  max-width: 100%;
+  @apply rounded-2xl bg-components-card-bg;
 }

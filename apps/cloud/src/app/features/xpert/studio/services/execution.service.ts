@@ -2,32 +2,37 @@ import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import {
   ChatConversationService,
+  ChatMessageFeedbackService,
   CopilotChatMessage,
   IChatConversation,
+  IChatMessageFeedback,
   IXpertAgentExecution,
 } from 'apps/cloud/src/app/@core'
-import { of, switchMap } from 'rxjs'
+import { combineLatest, of, switchMap } from 'rxjs'
 
 @Injectable()
 export class XpertExecutionService {
   readonly conversationService = inject(ChatConversationService)
+  readonly feedbackService = inject(ChatMessageFeedbackService)
 
   readonly conversationId = signal<string>(null)
 
   readonly conversation = signal<IChatConversation>(null)
+  readonly feedbacks = signal<Record<string, IChatMessageFeedback>>(null)
 
-  readonly #messages = signal<CopilotChatMessage[]>([])
+  readonly #messages = signal<Partial<CopilotChatMessage>[]>([])
 
   readonly messages = computed(() => {
-    if (this.conversation()?.messages) {
-        return [...this.conversation().messages, ...this.#messages()]
+    const messages = this.conversation()?.messages
+    if (messages) {
+      return [...messages.filter((_) => !this.#messages().some((m) => m.id === _.id)), ...this.#messages()]
     }
     return this.#messages()
   })
 
   // readonly execution = signal<IXpertAgentExecution>(null)
   readonly #agentExecutions = signal<Record<string, IXpertAgentExecution>>({})
-  readonly agentExecutions = computed(() => {
+  readonly agentExecutions = computed<Record<string, IXpertAgentExecution>>(() => {
     const agentExecutions = {}
     Object.values(this.#agentExecutions() ?? {}).forEach((execution) => {
       execution.subExecutions?.forEach((item) => {
@@ -47,14 +52,21 @@ export class XpertExecutionService {
     return agentExecutions
   })
 
-  readonly toolExecutions = signal<Record<string, Partial<IXpertAgentExecution>>>({})
+  readonly toolExecutions = signal<Record<string, Record<string, Partial<IXpertAgentExecution>>>>({})
   readonly knowledgeExecutions = signal<Record<string, Partial<IXpertAgentExecution>>>({})
 
   // Subsribe conversation
   private conversationSub = toObservable(this.conversationId).pipe(
-    switchMap((id) => id ? this.conversationService.getById(this.conversationId(), { relations: [] }) : of(null))
-  ).subscribe((conv) => {
+    switchMap((id) => id ? combineLatest([
+      this.conversationService.getById(this.conversationId(), { relations: ['messages'] }),
+      this.feedbackService.getAll({ where: { conversationId: this.conversationId(), } })
+    ]) : of([]))
+  ).subscribe(([conv, feedbacks]) => {
     this.conversation.set(conv)
+    this.feedbacks.set(feedbacks?.items.reduce((acc, feedback) => {
+      acc[feedback.messageId] = feedback
+      return acc
+    }, {}))
   })
 
   constructor() {
@@ -69,9 +81,12 @@ export class XpertExecutionService {
     }, { allowSignalWrites: true })
   }
 
-  appendMessage(message: CopilotChatMessage) {
+  appendMessage(message: Partial<CopilotChatMessage>) {
     this.#messages.update(
-      (state) =>[...(state ?? []), message]
+      (state) => {
+        const messages = state?.filter((_) => _.id !== message.id)
+        return [...(messages ?? []), message]
+      }
     )
   }
 
@@ -89,10 +104,13 @@ export class XpertExecutionService {
     this.#messages.set([])
   }
 
-  setToolExecution(name: string, execution: Partial<IXpertAgentExecution>) {
+  updateToolExecution(name: string, id: string, execution: Partial<IXpertAgentExecution>) {
     this.toolExecutions.update((state) => ({
       ...state,
-      [name]: execution
+      [name]: {
+        ...(state[name] ?? {}),
+        [id]: execution
+      }
     }))
   }
 

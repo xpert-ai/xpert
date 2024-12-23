@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, ElementRef, HostListener, inject, input, model, viewChild } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, HostListener, inject, input, model, numberAttribute, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -22,17 +22,27 @@ export class CopilotPromptEditorComponent {
 
   readonly regex = `{{(.*?)}}`
 
-  readonly initHeight = input<number>(210)
+  readonly initHeight = input<number, number | string>(210, {
+    transform: numberAttribute
+  })
   readonly tooltip = input<string>()
 
   readonly prompt = model<string>()
   readonly promptLength = computed(() => this.prompt()?.length)
 
 
-  height = this.initHeight(); // 初始高度
+  height = this.initHeight();
   private isResizing = false;
   private startY = 0;
   private startHeight = 0;
+
+  constructor() {
+    effect(() => {
+      if (this.initHeight()) {
+        this.height = this.initHeight()
+      }
+    })
+  }
 
   generate() {
     this.#dialog.open(CopilotPromptGeneratorComponent, {
@@ -83,9 +93,11 @@ function formatInnerHTML(htmlContent: string) {
     .replace(/<\/?p[^>]*>/gi, '') // 移除 <p> 标签
     .replace(/<\/?span[^>]*>/gi, '') // 移除 <span> 标签
     .replace(/<mark[^>]*>(.*?)<\/mark>/gi, '$1') // 保留 <mark> 内的内容
+    .replace(/<div[^>]*>/gi, '') // 移除 <div> 标签及带 class 的 <div> 标签
+    .replace(/<\/div>/gi, '\n') // 将 </div> 替换成换行符
 
-  // Step 2: 替换 HTML 转义字符
-  formattedText = formattedText.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+  // // Step 2: 替换 HTML 转义字符
+  // formattedText = formattedText.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
 
   // Step 3: 返回转换后的文本内容
   return formattedText

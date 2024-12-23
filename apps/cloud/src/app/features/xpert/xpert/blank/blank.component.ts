@@ -9,7 +9,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { debounceTime, map, of, switchMap, tap } from 'rxjs'
 import {
   getErrorMessage,
-  IXpertRole,
+  IXpert,
   IXpertWorkspace,
   TAvatar,
   ToastrService,
@@ -106,7 +106,7 @@ export class XpertNewBlankComponent {
       })
   }
 
-  close(value?: IXpertRole) {
+  close(value?: IXpert) {
     this.#dialogRef.close(value)
   }
 }

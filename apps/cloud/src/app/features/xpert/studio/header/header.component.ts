@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, model, signal } from '@angular/core'
+import { Component, computed, inject, model, signal, ViewContainerRef } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { OverlayAnimations } from '@metad/core'
@@ -23,6 +23,8 @@ import { getDateLocale } from '../../../../@core'
 import { XpertStudioApiService } from '../domain'
 import { XpertExecutionService } from '../services/execution.service'
 import { XpertStudioComponent } from '../studio.component'
+import { XpertStudioFeaturesComponent } from '../features/features.component'
+import { Dialog } from '@angular/cdk/dialog'
 
 @Component({
   selector: 'xpert-studio-header',
@@ -45,10 +47,12 @@ export class XpertStudioHeaderComponent {
   readonly apiService = inject(XpertStudioApiService)
   readonly executionService = inject(XpertExecutionService)
   readonly chatConversationService = inject(ChatConversationService)
+  readonly #dialog = inject(Dialog)
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
+  readonly #viewContainerRef = inject(ViewContainerRef)
 
   readonly preview = model(false)
 
@@ -122,6 +126,12 @@ export class XpertStudioHeaderComponent {
 
   togglePreview() {
     this.preview.update((state) => !state)
+  }
+
+  toggleFeatures() {
+    this.#dialog.open(XpertStudioFeaturesComponent, {
+      viewContainerRef: this.#viewContainerRef
+    })
   }
 
   openConversation(item: IChatConversation) {

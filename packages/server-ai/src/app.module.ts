@@ -1,6 +1,7 @@
 import { UserModule } from '@metad/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
+import { ScheduleModule } from '@nestjs/schedule'
 import { AIModule } from './ai'
 import { ChatModule } from './chat'
 import { ChatConversationModule } from './chat-conversation'
@@ -21,15 +22,21 @@ import { XpertModule } from './xpert'
 import { CopilotModelModule } from './copilot-model'
 import { XpertAgentExecutionModule } from './xpert-agent-execution'
 import { CopilotProviderModule } from './copilot-provider'
+import { CopilotStoreModule } from './copilot-store/copilot-store.module'
+import { ChatMessageModule } from './chat-message'
+import { ChatMessageFeedbackModule } from './chat-message-feedback'
 
 @Module({
 	imports: [
 		forwardRef(() => CqrsModule),
 		forwardRef(() => UserModule),
+		ScheduleModule.forRoot(),
 		KnowledgebaseModule,
 		KnowledgeDocumentModule,
 		ChatModule,
 		ChatConversationModule,
+		ChatMessageModule,
+		ChatMessageFeedbackModule,
 		CopilotCheckpointModule,
 		AIModule,
 		CopilotModule,
@@ -38,6 +45,7 @@ import { CopilotProviderModule } from './copilot-provider'
 		CopilotUserModule,
 		CopilotOrganizationModule,
 		CopilotProviderModule,
+		CopilotStoreModule,
 		GraphragModule,
 		XpertModule,
 		XpertAgentModule,

@@ -1,4 +1,4 @@
-import { TChatRequest, TXpertTeamDraft } from '@metad/contracts'
+import { ICopilotStore, OrderTypeEnum, TChatRequest, TXpertTeamDraft } from '@metad/contracts'
 import {
 	CrudController,
 	OptionParams,
@@ -28,9 +28,10 @@ import {
 	UseGuards,
 	HttpException
 } from '@nestjs/common'
+import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
-import { DeleteResult } from 'typeorm'
+import { DeleteResult, FindConditions, In, Like } from 'typeorm'
 import { XpertAgentExecution } from '../core/entities/internal'
 import { FindExecutionsByXpertQuery } from '../xpert-agent-execution/queries'
 import { XpertChatCommand, XpertExportCommand, XpertImportCommand } from './commands'
@@ -38,6 +39,8 @@ import { XpertDraftDslDTO, XpertPublicDTO } from './dto'
 import { Xpert } from './xpert.entity'
 import { XpertService } from './xpert.service'
 import { WorkspaceGuard } from '../xpert-workspace/'
+import { SearchXpertMemoryQuery } from './queries'
+import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 
 @ApiTags('Xpert')
 @ApiBearerAuth()
@@ -47,6 +50,7 @@ export class XpertController extends CrudController<Xpert> {
 	readonly #logger = new Logger(XpertController.name)
 	constructor(
 		private readonly service: XpertService,
+		private readonly storeService: CopilotStoreService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
 	) {
@@ -185,4 +189,41 @@ export class XpertController extends CrudController<Xpert> {
 		await this.service.removeManager(id, userId)
 	}
 
+	@Get(':id/memory')
+	async getAllMemory(@Param('id') id: string, @Query('types') types: string) {
+		const where = {} as FindConditions<ICopilotStore>
+		const _types = types?.split(':')
+		if (_types?.length > 1) {
+			where.prefix = In(_types.map((type) => `${id}${type ? `:${type}` : ''}`))
+		} else if(_types?.length === 1) {
+			const type = _types[0]
+			where.prefix = `${id}${type ? `:${type}` : ''}`
+		} else {
+			where.prefix = Like(`${id}%`)
+		}
+
+		try {
+			return await this.storeService.findAll({where, relations: ['createdBy'], order: {createdAt: OrderTypeEnum.DESC}})
+		} catch(err) {
+			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
+		}
+	}
+
+	@Post(':id/memory/search')
+	async searchMemory(@Param('id') id: string, @Body() body: {text: string; isDraft?: boolean;}) {
+		try {
+			return await this.queryBus.execute(new SearchXpertMemoryQuery(id, body))
+		} catch(err) {
+			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
+		}
+	}
+
+	@Delete(':id/memory')
+	async clearMemory(@Param('id') id: string,) {
+		try {
+			return await this.storeService.delete({prefix: Like(`${id}%`)})
+		} catch(err) {
+			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
+		}
+	}
 }

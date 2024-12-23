@@ -7,13 +7,11 @@ import {
   ContentChild,
   ElementRef,
   HostBinding,
-  Renderer2,
   TemplateRef,
   booleanAttribute,
   computed,
   effect,
   forwardRef,
-  inject,
   input,
   signal,
   viewChild
@@ -72,7 +70,6 @@ import { NgmOptionContent } from '../../input/option-content'
 
     OcapCoreModule,
     NgmDisplayBehaviourComponent,
-    NgmOptionContent
   ]
 })
 export class NgmSelectComponent implements ControlValueAccessor

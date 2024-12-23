@@ -8,6 +8,7 @@ import { XpertCopilotKnowledgeTestingComponent } from './copilot/testing/testing
 import { XpertLogsComponent } from './logs/logs.component'
 import { XpertMonitorComponent } from './monitor/monitor.component'
 import { XpertComponent } from './xpert.component'
+import { XpertMemoryComponent } from './memory/memory.component'
 
 export const routes: Routes = [
   {
@@ -42,6 +43,10 @@ export const routes: Routes = [
       {
         path: 'monitor',
         component: XpertMonitorComponent
+      },
+      {
+        path: 'memory',
+        component: XpertMemoryComponent
       },
       {
         path: 'copilot',

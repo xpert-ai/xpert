@@ -10,7 +10,8 @@ import {
 	CopilotMessageGroup,
 	IChatConversation,
 	ICopilot,
-	IUser
+	IUser,
+	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
 import { AgentRecursionLimit } from '@metad/copilot'
 import { getErrorMessage, shortuuid } from '@metad/server-common'
@@ -186,11 +187,11 @@ References documents:
 										Object.keys(toolCalls)
 											.filter((id) => !!toolCalls[id])
 											.forEach((id) => {
-												this.updateStep(id, { status: 'error' })
+												this.updateStep(id, { status: XpertAgentExecutionStatusEnum.ERROR })
 												toolMessages.push({
 													id,
 													role: 'tool',
-													status: 'error'
+													status: XpertAgentExecutionStatusEnum.ERROR
 												})
 											})
 										toolCalls = null
@@ -402,7 +403,7 @@ References documents:
 					}
 				})
 				.catch((error) => {
-					this.addStep({ ...stepMessage, status: 'error', content: getErrorMessage(error) })
+					this.addStep({ ...stepMessage, status: XpertAgentExecutionStatusEnum.ERROR, content: getErrorMessage(error) })
 					// subscriber.next({
 					// 	event: ChatGatewayEvent.StepEnd,
 					// 	data: { ...stepMessage, status: 'error' }
@@ -444,7 +445,7 @@ References documents:
 					!subscriber.closed && source.subscribe(subscriber)
 				}),
 			catchError((err) => {
-				this.upsertMessageWithStatus('error', getErrorMessage(err))
+				this.upsertMessageWithStatus(XpertAgentExecutionStatusEnum.ERROR, getErrorMessage(err))
 				return of({
 					data: {
 						type: ChatMessageTypeEnum.EVENT,

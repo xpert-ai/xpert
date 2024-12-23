@@ -13,6 +13,7 @@ import { FindOptionsWhere } from './FindOptionsWhere';
 export interface ICrudService<T> {
 	count(filter?: FindManyOptions<T>): Promise<number>;
 	findAll(filter?: FindManyOptions<T>): Promise<IPagination<T>>;
+	findMyAll(filter?: FindManyOptions<T>): Promise<IPagination<T>>;
 	paginate(filter?: FindManyOptions<T>): Promise<IPagination<T>>;
 	findOne(
 		id: string | number | FindOneOptions<T> | FindConditions<T>,

@@ -84,6 +84,16 @@ export abstract class CrudController<T extends BaseEntity> {
 			...(filter ?? {}),
 		}, isNil));
 	}
+
+	@ApiOperation({ summary: 'find my all' })
+	@ApiResponse({
+		status: HttpStatus.OK,
+		description: 'Found my records'
+	})
+	@Get('my')
+	async findMyAll(@Query('data', ParseJsonPipe) params: PaginationParams<T>,): Promise<IPagination<T>> {
+		return this.crudService.findMyAll(params);
+	}
 	
 	@ApiOperation({ summary: 'Find by id' })
 	@ApiResponse({

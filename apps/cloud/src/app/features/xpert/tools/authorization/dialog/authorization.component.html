@@ -1,10 +1,10 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-  <h4 style="pointer-events: none;">
+<header class="px-4 pt-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  <h4 class="text-xl cursor-move">
     {{ 'PAC.Xpert.AuthorizationMethod' | translate: { Default: 'Authorization method' } }}
   </h4>
 </header>
   
-<div mat-dialog-content>
+<div class="flex p-4">
   <form class="space-y-4" [formGroup]="formGroup">
     <div>
       <div class="py-2 leading-5 text-sm font-medium">
@@ -84,10 +84,10 @@
     }
   </form>
 </div>
-  
-<div mat-dialog-actions align="end">
+
+<div class="w-full flex justify-end p-2">
   <div ngmButtonGroup>
-    <button mat-stroked-button mat-dialog-close cdkFocusInitial>
+    <button mat-stroked-button cdkFocusInitial (click)="cancel()">
       {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
     <button mat-raised-button color="accent" (click)="save()">

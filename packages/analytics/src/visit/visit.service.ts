@@ -77,7 +77,7 @@ export class VisitService extends TenantOrganizationAwareCrudService<Visit> {
 
 	public async recentRanking(owner: 'all' | 'my', entity?: VisitEntityEnum, days = 7): Promise<IEntityVisits[]> {
 		const { items: myStories } =
-			owner === 'all' ? await this.storyService.findMy() : await this.storyService.findOwn()
+			owner === 'all' ? await this.storyService.findMy() : await this.storyService.findMyAll()
 		const recentDay = Number(
 			subDays(new Date(), days || 7)
 				.toISOString()

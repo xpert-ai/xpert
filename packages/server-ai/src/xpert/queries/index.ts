@@ -1,2 +1,5 @@
 export * from './get-one.query'
 export * from './get-xpert-agent.query'
+export * from './get-xpert-chat-model.query'
+export * from './search-memory.query'
+export * from './get-memory-embedding.query'

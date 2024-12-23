@@ -68,7 +68,7 @@ export abstract class BusinessAreaAwareCrudService<
 	}
 
 	async findOwn(conditions?: FindManyOptions<T>) {
-		return super.findMy(conditions)
+		return super.findMyAll(conditions)
 	}
 
 	public async countMy(conditions?: FindManyOptions<T>) {

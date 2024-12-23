@@ -89,6 +89,9 @@ f-flow {
   &.error {
     @apply border-red-500 dark:border-red-800;
   }
+  &.interrupted {
+    @apply border-neutral-700 dark:border-neutral-500;
+  }
 }
 
 .f-selection-area {

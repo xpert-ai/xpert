@@ -19,6 +19,7 @@
   </div>
 
   @if (expand()) {
+    <ng-content></ng-content>
     <xpert-toolset-tool-test @ifAnimationTrigger [tool]="toolDetail$ | async" />
   }
 

@@ -20,7 +20,7 @@ import {
   CopilotExampleService,
   XpertService,
   ICopilotKnowledge,
-  IXpertRole,
+  IXpert,
   LanguagesEnum,
   ToastrService,
   getErrorMessage
@@ -218,7 +218,7 @@ export class CopilotExamplesComponent extends TranslationBaseComponent {
   }
 
   async handleUploadChange(event) {
-    const { roles, examples } = await uploadYamlFile<{ roles: IXpertRole[]; examples: ICopilotKnowledge[] }>(
+    const { roles, examples } = await uploadYamlFile<{ roles: IXpert[]; examples: ICopilotKnowledge[] }>(
       event.target.files[0]
     )
 

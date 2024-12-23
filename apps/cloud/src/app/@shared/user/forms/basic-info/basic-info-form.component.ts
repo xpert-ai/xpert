@@ -1,4 +1,4 @@
-import { Component, ElementRef, forwardRef, inject, Input, ViewChild } from '@angular/core'
+import { Component, computed, ElementRef, forwardRef, inject, Input, ViewChild } from '@angular/core'
 import { ControlValueAccessor, FormGroup, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { matchValidator } from '@metad/cloud/auth'
 import { AuthService } from '@metad/cloud/state'
@@ -7,7 +7,8 @@ import { FORMLY_ROW, FORMLY_W_1_2 } from '@metad/story/designer'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { firstValueFrom, map } from 'rxjs'
 import { LANGUAGES, RoleService, Store } from '../../../../@core'
-import { TranslationBaseComponent } from '../../../language/translation-base.component'
+import { TranslationBaseComponent } from '../../../language/'
+import { DisplayBehaviour } from '@metad/ocap-core'
 
 @Component({
   selector: 'pac-user-basic-info-form',
@@ -22,6 +23,8 @@ import { TranslationBaseComponent } from '../../../language/translation-base.com
   ]
 })
 export class BasicInfoFormComponent extends TranslationBaseComponent implements ControlValueAccessor {
+  eDisplayBehaviour = DisplayBehaviour
+  
   readonly #store = inject(Store)
   readonly #roleService = inject(RoleService)
   readonly #authService = inject(AuthService)
@@ -52,6 +55,10 @@ export class BasicInfoFormComponent extends TranslationBaseComponent implements 
   public form = new FormGroup({})
   model = {} as any
   fields: FormlyFieldConfig[] = []
+
+  get invalid() {
+    return this.form.invalid
+  }
 
   onChange: (value: any) => any
 
@@ -157,6 +164,7 @@ export class BasicInfoFormComponent extends TranslationBaseComponent implements 
               options: this.roles$,
               appearance: 'fill',
               valueKey: 'key',
+              displayBehaviour: DisplayBehaviour.descriptionOnly
             }
           },
           {

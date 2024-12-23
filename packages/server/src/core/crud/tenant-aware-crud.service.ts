@@ -276,7 +276,7 @@ export abstract class TenantAwareCrudService<T extends TenantBaseEntity>
 		}
 	}
 
-	public async findMy(filter?: FindManyOptions<T>): Promise<IPagination<T>> {
+	public async findMyAll(filter?: FindManyOptions<T>): Promise<IPagination<T>> {
 		const user = RequestContext.currentUser();
 		filter = filter || {}
 		if (user) {

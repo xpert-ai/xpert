@@ -4,6 +4,7 @@ import { XpertExecuteHandler } from './execute.handler'
 import { XpertExportHandler } from './export.handler'
 import { XpertImportHandler } from './import.handler'
 import { XpertPublishHandler } from './publish.handler'
+import { XpertSummarizeMemoryHandler } from './summarize-memory.handler'
 
 export const CommandHandlers = [
 	XpertCreateHandler,
@@ -11,5 +12,6 @@ export const CommandHandlers = [
 	XpertChatHandler,
 	XpertExecuteHandler,
 	XpertImportHandler,
-	XpertExportHandler
+	XpertExportHandler,
+	XpertSummarizeMemoryHandler
 ]

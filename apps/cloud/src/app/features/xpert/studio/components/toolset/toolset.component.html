@@ -13,24 +13,39 @@
 <div class="w-full flex flex-col justify-start items-stretch p-2 gap-1 max-h-48 overflow-y-auto"
   (wheel)="$event.stopPropagation()"
 >
-  @for (tool of availableTools(); track tool.id) {
-    <div class="relative flex items-center px-4 py-2 text-left rounded-lg text-sm bg-gray-100 dark:bg-zinc-800"
-      [matTooltip]="tool.description"
+  @for (item of tools(); track item.tool.id) {
+    <div class="relative flex items-center gap-1 px-4 py-2 text-left rounded-lg text-sm bg-gray-100 dark:bg-zinc-800"
+      [matTooltip]="item.tool.description"
       matTooltipPosition="after"
     >
-      @switch (toolExecutions()[tool.name]?.status) {
-        @case (eXpertAgentExecutionEnum.RUNNING) {
-          <ngm-spin class="-ml-2 mr-2" small />
-        }
-        @case (eXpertAgentExecutionEnum.ERROR) {
-          <div class="w-2 h-2 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)] mr-2"></div>
-        }
-        @case (eXpertAgentExecutionEnum.SUCCESS) {
-          <div class="w-2 h-2 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)] mr-2"></div>
+      @for (execution of item.executions | keyvalue; track execution.key) {
+        @switch (execution.value.status) {
+          @case (eXpertAgentExecutionEnum.RUNNING) {
+            <ngm-spin class="scale-90 origin-center" small />
+          }
+          @case (eXpertAgentExecutionEnum.ERROR) {
+            <div class="w-2 h-2 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)] mr-2"
+              [matTooltip]="execution.value.error"
+              matTooltipPosition="above"
+            ></div>
+          }
+          @case (eXpertAgentExecutionEnum.SUCCESS) {
+            <div class="w-2 h-2 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)] mr-2"
+              [matTooltip]="execution.value.outputs?.output"
+              matTooltipPosition="above"
+            >
+            </div>
+          }
         }
       }
-      <span>
-        {{tool.name}}
+      
+      @if (isSensitive(item.tool.name)) {
+        <i class="ri-shield-keyhole-line text-lg text-text-warning"
+          [matTooltip]="'PAC.Xpert.SensitiveToolsTip' | translate: {Default: 'Sensitive tools require user confirmation before execution'}"
+          matTooltipPosition="above"></i>
+      }
+      <span class="flex-1" [title]="item.tool.description || item.tool.name">
+        {{item.tool.name}}
       </span>
     </div>
   }

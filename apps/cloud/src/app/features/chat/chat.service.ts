@@ -7,6 +7,7 @@ import { injectParams } from 'ngxtension/inject-params'
 import {
   BehaviorSubject,
   catchError,
+  combineLatest,
   combineLatestWith,
   distinctUntilChanged,
   filter,
@@ -21,7 +22,7 @@ import {
 import {
   getErrorMessage,
   IChatConversation,
-  IXpertRole,
+  IXpert,
   IXpertToolset,
   IKnowledgebase,
   LanguagesEnum,
@@ -32,19 +33,24 @@ import {
   CopilotMessageGroup,
   CopilotChatMessage,
   ChatMessageEventTypeEnum,
-  IXpert,
+  XpertAgentExecutionStatusEnum,
+  IChatMessage,
+  ToolCall,
+  IChatMessageFeedback,
 } from '../../@core'
-import { ChatConversationService, ChatService as ChatServerService, XpertService, ToastrService } from '../../@core/services'
+import { ChatConversationService, ChatService as ChatServerService, XpertService, ToastrService, ChatMessageFeedbackService } from '../../@core/services'
 import { AppService } from '../../app.service'
 import { COMMON_COPILOT_ROLE } from './types'
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
+import { sortBy } from 'lodash-es'
 
 
 @Injectable()
 export class ChatService {
   readonly chatService = inject(ChatServerService)
   readonly conversationService = inject(ChatConversationService)
+  readonly feedbackService = inject(ChatMessageFeedbackService)
   readonly xpertService = inject(XpertService)
   readonly appService = inject(AppService)
   readonly #translate = inject(TranslateService)
@@ -57,9 +63,19 @@ export class ChatService {
 
   readonly conversationId = signal<string>(null)
   readonly xpert$ = new BehaviorSubject<IXpert>(null)
+  /**
+   * The conversation
+   */
   readonly conversation = signal<IChatConversation>(null)
+  /**
+   * User feedbacks for messages of the conversation
+   */
+  readonly feedbacks = signal<Record<string, IChatMessageFeedback>>(null)
 
-  readonly #messages = signal<CopilotBaseMessage[]>([])
+  /**
+   * Messages in the conversation
+   */
+  readonly #messages = signal<IChatMessage[]>([])
   readonly messages = computed(() => this.#messages() ?? [])
 
   // Conversations
@@ -140,30 +156,40 @@ export class ChatService {
       skip(1),
       filter((id) => !this.conversation() || this.conversation().id !== id),
       switchMap((id) =>
-        id ? this.conversationService.getById(id, { relations: ['xpert', 'xpert.knowledgebases', 'xpert.toolsets'] }).pipe(
+        id ? combineLatest([
+          this.conversationService.getById(id, { relations: ['xpert', 'xpert.knowledgebases', 'xpert.toolsets', 'messages'] }),
+          this.feedbackService.getMyAll({ where: { conversationId: id, } })
+        ]).pipe(
           catchError((error) => {
             this.#toastr.error(getErrorMessage(error))
-            return of(null)
+            return of([])
           }), 
-        ) : of(null)
+        ) : of([])
       ),
-      tap((data) => {
-        if (data) {
-          this.conversation.set(data)
+      tap(([conv, feedbacks]) => {
+        if (conv) {
+          this.conversation.set(conv)
+          this.#messages.set(sortBy(conv.messages, 'createdAt'))
           this.knowledgebases.set(
-            data.options?.knowledgebases?.map((id) => data.xpert?.knowledgebases?.find((item) => item.id === id)).filter(nonNullable)
+            conv.options?.knowledgebases?.map((id) => conv.xpert?.knowledgebases?.find((item) => item.id === id)).filter(nonNullable)
           )
-          this.toolsets.set(data.options?.toolsets?.map((id) => data.xpert?.toolsets?.find((item) => item.id === id)))
+          this.toolsets.set(conv.options?.toolsets?.map((id) => conv.xpert?.toolsets?.find((item) => item.id === id)))
         } else {
           // New empty conversation
           this.conversation.set({} as IChatConversation)
+          this.#messages.set([])
         }
+
+        this.feedbacks.set(feedbacks?.items.reduce((acc, feedback) => {
+          acc[feedback.messageId] = feedback
+          return acc
+        }, {}))
       }),
       combineLatestWith(toObservable(this.xperts)),
       takeUntilDestroyed()
     )
     .subscribe({
-      next: ([conversation, roles]) => {
+      next: ([[conversation,], roles]) => {
         if (conversation) {
           this.xpert$.next(roles?.find((role) => role.id === conversation.xpertId))
         }
@@ -199,16 +225,16 @@ export class ChatService {
     })
 
   constructor() {
-    effect(
-      () => {
-        if (this.conversation()) {
-          this.#messages.set(this.conversation().messages)
-        } else {
-          this.#messages.set([])
-        }
-      },
-      { allowSignalWrites: true }
-    )
+    // effect(
+    //   () => {
+    //     if (this.conversation()?.messages) {
+    //       this.#messages.set(sortBy(this.conversation().messages, 'createdAt'))
+    //     } else {
+    //       this.#messages.set([])
+    //     }
+    //   },
+    //   { allowSignalWrites: true }
+    // )
 
     effect(
       () => {
@@ -226,24 +252,36 @@ export class ChatService {
     })
   }
 
-  chat(id: string, content: string) {
+  chat(options: Partial<{id: string; content: string; confirm: boolean; toolCalls: ToolCall[]; reject: boolean}>) {
     this.answering.set(true)
 
-    // Add ai message placeholder
-    this.appendMessage({
-      id: uuid(),
-      role: 'assistant',
-      content: ``,
-      status: 'thinking'
-    })
+    if (options.confirm) {
+      this.updateLatestMessage((message) => {
+        return{
+          ...message,
+          status: 'thinking'
+        }
+      })
+    } else if (options.content) {
+      // Add ai message placeholder
+      this.appendMessage({
+        id: uuid(),
+        role: 'assistant',
+        content: ``,
+        status: 'thinking'
+      })
+    }
 
     this.chatService.chat({
       input: {
-        input: content,
+        input: options.content,
       },
       xpertId: this.xpert$.value?.id,
       conversationId: this.conversation()?.id,
-      id,
+      id: options.id,
+      toolCalls: options.toolCalls,
+      confirm: options.confirm,
+      reject: options.reject,
     }, {
       knowledgebases: this.knowledgebases().map(({ id }) => id),
       toolsets: this.toolsets()?.map(({ id }) => id)
@@ -262,27 +300,39 @@ export class ChatService {
                 this.appendMessageComponent(event.data)
               }
             } else if (event.type === ChatMessageTypeEnum.EVENT) {
-              if (event.event === ChatMessageEventTypeEnum.ON_CONVERSATION_START) {
-                this.updateConversation(event.data)
-              } else {
-                this.updateEvent(event.event)
+              switch(event.event) {
+                case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
+                case ChatMessageEventTypeEnum.ON_CONVERSATION_END:
+                  this.updateConversation(event.data)
+                  break
+                case ChatMessageEventTypeEnum.ON_MESSAGE_START:
+                  this.updateLatestMessage((lastM) => {
+                    return {
+                      ...lastM,
+                      ...event.data
+                    }
+                  })
+                  break;
+                default:
+                  this.updateEvent(event.event, event.data.error)
               }
             }
           }
         }
       },
       error: (error) => {
+        this.answering.set(false)
         this.#toastr.error(getErrorMessage(error))
         this.updateLatestMessage((message) => {
           return {
             ...message,
-            status: 'error',
+            status: XpertAgentExecutionStatusEnum.ERROR,
             error: getErrorMessage(error)
           }
         })
-        this.answering.set(false)
       },
       complete: () => {
+        this.answering.set(false)
         this.updateLatestMessage((message) => {
           return {
             ...message,
@@ -290,7 +340,6 @@ export class ChatService {
             error: null
           }
         })
-        this.answering.set(false)
       }
     })
   }
@@ -305,12 +354,13 @@ export class ChatService {
     // })
   }
 
-  async newConversation(xpert?: IXpertRole) {
+  async newConversation(xpert?: IXpert) {
     if (this.answering() && this.conversation()?.id) {
       this.cancelMessage()
     }
     this.conversation.set(null)
     this.conversationId.set(null)
+    this.#messages.set([])
     this.xpert$.next(xpert)
   }
 
@@ -331,10 +381,19 @@ export class ChatService {
   }
 
   updateConversation(data: IChatConversation) {
-    this.conversation.set({ ...data, messages: [...(this.messages() ?? [])] })
-    if (!this.conversations().find((item) => item.id === data.id)) {
-      this.conversations.update((items) => [{ ...data }, ...items])
-    }
+    this.conversation.set({ ...data, messages: null })
+    this.conversations.update((items) => {
+      const index = items.findIndex((_) => _.id === data.id)
+      if (index > -1) {
+        items[index] = {
+          ...items[index],
+          ...data
+        }
+        return [...items]
+      } else {
+        return  [{ ...data }, ...items]
+      }
+    })
   }
 
   updateMessage(id: string, message: Partial<CopilotBaseMessage>) {
@@ -460,11 +519,12 @@ export class ChatService {
     ])
   }
 
-  updateEvent(event: string) {
+  updateEvent(event: string, error: string) {
     this.updateLatestMessage((lastMessage) => {
       return {
         ...lastMessage,
-        event: event === ChatMessageEventTypeEnum.ON_AGENT_END ? null : event
+        event: event === ChatMessageEventTypeEnum.ON_AGENT_END ? null : event,
+        error
       }
     })
   }

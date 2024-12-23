@@ -1,0 +1,8 @@
+<ul class="ngm-radio-select flex flex-wrap space-x-3" cdkListbox [(ngModel)]="value">
+  @for (option of options(); track option.key) {
+    <li [cdkOption]="option.key" class="w-40">
+      <div class="radio-indicator"></div>
+      <div class="text-sm font-normal">{{option.caption}}</div>
+    </li>
+  }
+</ul>

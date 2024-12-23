@@ -234,6 +234,9 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 			xpert.starters = draft.team.starters
 			xpert.tags = draft.team.tags?.map((t) => ({id: t.id}))
 			xpert.copilotModel = draft.team.copilotModel
+			xpert.agentConfig = draft.team.agentConfig
+			xpert.memory = draft.team.memory
+			xpert.summarize = draft.team.summarize
 			xpert.options = xpertOptions
 		}
 

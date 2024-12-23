@@ -19,3 +19,11 @@ export function injectLanguage() {
     )
   )
 }
+
+export function injectTranslate(key?: string) {
+  const translate = inject(TranslateService)
+
+  return toSignal(
+    translate.stream(key)
+  )
+}

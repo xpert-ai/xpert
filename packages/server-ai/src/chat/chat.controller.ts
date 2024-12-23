@@ -2,8 +2,8 @@ import { Body, Controller, Header, Logger, Post, Sse } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { TChatOptions, TChatRequest } from '@metad/contracts'
-import { ChatCommand } from './commands'
 import { RequestContext } from '@metad/server-core'
+import { ChatCommand } from './commands'
 
 @ApiTags('Chat')
 @ApiBearerAuth()

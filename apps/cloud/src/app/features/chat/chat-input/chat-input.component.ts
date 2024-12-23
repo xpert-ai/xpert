@@ -63,20 +63,19 @@ export class ChatInputComponent {
   //   this.promptControl.setValue('')
   // }
 
-  ask(statement: string) {
+  ask(content: string) {
     const id = uuid()
     // const content = this.prompt().trim()
     // this.answering.set(true)
     this.chatService.appendMessage({
       id,
       role: 'user',
-      content: statement
+      content
     })
     this.promptControl.setValue('')
 
     // Send message
-    // this.chatService.message(id, statement)
-    this.chatService.chat(id, statement)
+    this.chatService.chat({id, content})
   }
 
   stopGenerating() {
@@ -89,6 +88,7 @@ export class ChatInputComponent {
     }
 
     if (event.key === 'Enter') {
+      event.preventDefault()
       setTimeout(() => {
         this.ask(this.prompt().trim())
       })

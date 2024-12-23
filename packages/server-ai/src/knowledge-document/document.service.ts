@@ -5,7 +5,7 @@ import { Pool } from 'pg'
 import { Repository } from 'typeorm'
 import { TenantOrganizationAwareCrudService, DATABASE_POOL_TOKEN, StorageFileService, PaginationParams } from '@metad/server-core'
 import { KnowledgeDocument } from './document.entity'
-import { KnowledgebaseService, KnowledgeDocumentVectorStore } from '../knowledgebase'
+import { KnowledgebaseService } from '../knowledgebase'
 
 @Injectable()
 export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService<KnowledgeDocument> {

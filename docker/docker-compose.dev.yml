@@ -56,3 +56,13 @@ services:
       REDIS_ARGS: '--requirepass ${REDIS_PASSWORD:-}'
     networks:
       - overlay
+
+  # mysqldb:
+  #   image: mysql:8
+  #   restart: always
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: example
+  #   ports:
+  #     - 3306:3306
+  #   networks:
+  #     - overlay
