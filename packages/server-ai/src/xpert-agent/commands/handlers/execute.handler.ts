@@ -235,7 +235,6 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 					this.#logger.verbose(`${event} [${agentLabel(agent)}]`)
 				}
 
-				prevEvent = event
 				switch (event) {
 					case 'on_chain_start': {
 						eventStack.push(event)
@@ -278,9 +277,16 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 						if (_event !== 'on_chat_model_start') {
 							eventStack.pop()
 						}
+						if (prevEvent !== 'on_chat_model_stream') {
+							if (tags.includes(thread_id)) {
+								const msg = data.output as AIMessageChunk
+								return msg.content
+							}
+						}
 						return null
 					}
 					case 'on_chat_model_stream': {
+						prevEvent = event
 						// Only returns the stream events content of the current react agent (filter by tag: thread_id), not events of agent in tool call.
 						if (tags.includes(thread_id)) {
 							const msg = data.chunk as AIMessageChunk
@@ -409,6 +415,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 					}
 				}
 				
+				prevEvent = event
 				return null
 			}),
 			tap({

@@ -1,13 +1,13 @@
-model: gpt-4o-mini-2024-07-18
+model: gpt-4o-audio-preview
 label:
-  zh_Hans: gpt-4o-mini-2024-07-18
-  en_US: gpt-4o-mini-2024-07-18
+  zh_Hans: gpt-4o-audio-preview
+  en_US: gpt-4o-audio-preview
 model_type: llm
 features:
   - multi-tool-call
   - agent-thought
   - stream-tool-call
-  - vision
+  - audio
 model_properties:
   mode: chat
   context_size: 128000
@@ -37,11 +37,8 @@ parameter_rules:
     options:
       - text
       - json_object
-      - json_schema
-  - name: json_schema
-    use_template: json_schema
 pricing:
-  input: '0.15'
-  output: '0.60'
+  input: '5.00'
+  output: '15.00'
   unit: '0.000001'
   currency: USD

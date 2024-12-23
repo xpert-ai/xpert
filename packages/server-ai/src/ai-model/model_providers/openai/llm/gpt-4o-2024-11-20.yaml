@@ -1,7 +1,7 @@
-model: gpt-4o-mini-2024-07-18
+model: gpt-4o-2024-11-20
 label:
-  zh_Hans: gpt-4o-mini-2024-07-18
-  en_US: gpt-4o-mini-2024-07-18
+  zh_Hans: gpt-4o-2024-11-20
+  en_US: gpt-4o-2024-11-20
 model_type: llm
 features:
   - multi-tool-call
@@ -41,7 +41,7 @@ parameter_rules:
   - name: json_schema
     use_template: json_schema
 pricing:
-  input: '0.15'
-  output: '0.60'
+  input: '2.50'
+  output: '10.00'
   unit: '0.000001'
   currency: USD
