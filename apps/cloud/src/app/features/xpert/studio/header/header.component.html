@@ -20,7 +20,10 @@
 
   <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium p-2"
     [ngClass]="sidePanel() === 'variables' ? 'text-primary-500' : ''"
-    (click)="toggleVariables()">
+    (click)="toggleVariables()"
+    [ngmTooltip]="varInDevelopment"
+    [hideDelay]="100"
+  >
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"
       class="w-4 h-4 text-components-button-secondary-text">
       <g id="Icon L">
@@ -291,6 +294,10 @@
       }
     </div>
   </div>
+</ng-template>
+
+<ng-template #varInDevelopment>
+  <pac-in-development @overlayAnimation1 feature="State variables" class="w-96" />
 </ng-template>
 
 <ng-template #envInDevelopment>

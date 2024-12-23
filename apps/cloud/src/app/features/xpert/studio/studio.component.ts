@@ -64,6 +64,7 @@ import { XpertStudioPanelComponent } from './panel/panel.component'
 import { XpertExecutionService } from './services/execution.service'
 import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
 import { MaterialModule } from '../../../@shared/material.module'
+import { EmojiAvatarComponent } from '../../../@shared/avatar'
 
 
 @Component({
@@ -84,6 +85,7 @@ import { MaterialModule } from '../../../@shared/material.module'
 
     NgmCommonModule,
 
+    EmojiAvatarComponent,
     XpertStudioToolbarComponent,
     XpertStudioContextMenuComponent,
     XpertStudioNodeAgentComponent,

@@ -16,6 +16,13 @@
   </div>
 </div>
 
-<div class="px-4 py-2 text-text-tertiary text-sm">
-  {{xpert().description}}
+<div class="w-full flex flex-col p-4 gap-4">
+  <div class="text-text-tertiary text-sm">
+    {{xpert().description}}
+  </div>
+
+  <copilot-model-select class="w-full" readonly
+    [modelType]="eModelType.LLM"
+    [copilotModel]="copilotModel()"
+  />
 </div>

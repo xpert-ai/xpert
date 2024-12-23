@@ -7,6 +7,7 @@ import { XpertStudioApiService } from '../../domain'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
+import { XpertStudioComponent } from '../../studio.component'
 
 @Component({
   selector: 'xpert-studio-node-agent',
@@ -25,6 +26,7 @@ export class XpertStudioNodeAgentComponent {
   eModelType = AiModelTypeEnum
   readonly elementRef = inject(ElementRef)
   readonly apiService = inject(XpertStudioApiService)
+  readonly studioComponent = inject(XpertStudioComponent)
 
   readonly node = input<TXpertTeamNode & {type: 'agent'}>()
   readonly isRoot = input<boolean>(false)
@@ -32,13 +34,21 @@ export class XpertStudioNodeAgentComponent {
   
   readonly toolsets = computed(() => this.xpertAgent()?.toolsets)
   
-  readonly xpert = computed(() => this.apiService.viewModel()?.team)
+  readonly xperts = this.studioComponent.xperts
+  readonly xpert = computed(() => {
+    if (this.node()?.parentId) {
+      return this.xperts()?.find((_) => _.key === this.node()?.parentId)?.entity
+    }
+    return this.apiService.viewModel()?.team
+  })
+
   readonly xpertCopilotModel = computed(() => this.xpert()?.copilotModel)
   readonly copilotModel = computed(() => this.xpertAgent()?.copilotModel)
   readonly agentConfig = computed(() => this.xpert()?.agentConfig)
 
   readonly agentUniqueName = computed(() => agentUniqueName(this.xpertAgent()))
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
+   
 
   private get hostElement(): HTMLElement {
     return this.elementRef.nativeElement
