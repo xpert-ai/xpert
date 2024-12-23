@@ -336,7 +336,7 @@ export class ChatService {
         this.updateLatestMessage((message) => {
           return {
             ...message,
-            status: 'done',
+            status: XpertAgentExecutionStatusEnum.SUCCESS,
             error: null
           }
         })

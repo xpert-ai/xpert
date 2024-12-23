@@ -8,10 +8,11 @@ import {
 import { mergeConfigs, patchConfig, Runnable, RunnableConfig, RunnableToolLike } from "@langchain/core/runnables";
 import { StructuredToolInterface } from "@langchain/core/tools";
 import { AsyncLocalStorageProviderSingleton } from "@langchain/core/singletons";
-import { END, isGraphInterrupt, MessagesAnnotation } from "@langchain/langgraph";
+import { END, isCommand, isGraphInterrupt, MessagesAnnotation } from "@langchain/langgraph";
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
 import { ChatMessageEventTypeEnum } from "@metad/contracts";
 import { getErrorMessage } from "@metad/server-common";
+import { setContextVariable } from "@langchain/core/context";
 
 export type ToolNodeOptions = {
   name?: string;
@@ -64,7 +65,9 @@ export class ToolNode<T = any> extends Runnable<T, T> {
             { ...call, type: "tool_call" },
             config
           );
-          if (isBaseMessage(output) && output._getType() === "tool") {
+          if (isBaseMessage(output) && output._getType() === "tool" ||
+            isCommand(output)
+          ) {
             return output;
           } else {
             return new ToolMessage({
@@ -99,7 +102,19 @@ export class ToolNode<T = any> extends Runnable<T, T> {
       }) ?? []
     );
 
-    return (Array.isArray(input) ? outputs : { messages: outputs }) as T;
+     // Preserve existing behavior for non-command tool outputs for backwards compatibility
+     if (!outputs.some(isCommand)) {
+      return (Array.isArray(input) ? outputs : { messages: outputs }) as T;
+    }
+
+    // Handle mixed Command and non-Command outputs
+    const combinedOutputs = outputs.map((output) => {
+      if (isCommand(output)) {
+        return output;
+      }
+      return Array.isArray(input) ? [output] : { messages: [output] };
+    });
+    return combinedOutputs as T;
   }
 
   protected async _tracedInvoke(
@@ -131,6 +146,10 @@ export class ToolNode<T = any> extends Runnable<T, T> {
     options?: Partial<RunnableConfig> | undefined
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<any> {
+
+    // We set a context variable before invoking the tool node and running our tool.
+    setContextVariable("currentState", input);
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let returnValue: any;
     // const config = ensureLangGraphConfig(options);

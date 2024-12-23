@@ -5,9 +5,10 @@ import { Inject, Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import * as fs from 'fs'
 import * as path from 'path'
+import { getPositionMap } from '../../../core/utils'
+import { getBuiltinToolsetBaseUrl } from '../../provider/builtin'
 import { XpertToolsetService } from '../../xpert-toolset.service'
 import { ListBuiltinToolsQuery } from '../list-builtin-tools.query'
-import { getBuiltinToolsetBaseUrl } from '../../provider/builtin'
 
 @QueryHandler(ListBuiltinToolsQuery)
 export class ListBuiltinToolsHandler implements IQueryHandler<ListBuiltinToolsQuery> {
@@ -25,9 +26,7 @@ export class ListBuiltinToolsHandler implements IQueryHandler<ListBuiltinToolsQu
 
 		const tools = await this.getBuiltinTools(provider)
 
-		return tools.filter((tool) =>
-			names ? names.includes(tool.identity.name) : true
-		)
+		return tools.filter((tool) => (names ? names.includes(tool.identity.name) : true))
 	}
 
 	private async getBuiltinTools(provider: string): Promise<IBuiltinTool[]> {
@@ -35,9 +34,13 @@ export class ListBuiltinToolsHandler implements IQueryHandler<ListBuiltinToolsQu
 			return this._builtinTools.get(provider)
 		}
 
-		const toolPath = path.join(this.getProviderServerPath(provider), 'tools')
+		const providerPath = this.getProviderServerPath(provider)
+		const toolPath = path.join(providerPath, 'tools')
 		const toolFiles = fs.readdirSync(toolPath).filter((file) => file.endsWith('.yaml') && !file.startsWith('__'))
-		const tools: IBuiltinTool[] = []
+
+		const positionMap = getPositionMap(providerPath)
+
+		let tools: IBuiltinTool[] = []
 
 		for (const toolFile of toolFiles) {
 			// const toolName = toolFile.split(".")[0];
@@ -46,6 +49,8 @@ export class ListBuiltinToolsHandler implements IQueryHandler<ListBuiltinToolsQu
 			tool.identity.provider = provider
 			tools.push(tool)
 		}
+
+		tools = tools.sort((a, b) => (positionMap[a.identity.name] ?? 999) - (positionMap[b.identity.name] ?? 999))
 
 		this._builtinTools.set(provider, tools)
 		return tools

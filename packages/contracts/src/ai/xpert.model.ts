@@ -129,6 +129,9 @@ export type TXpertOptions = {
   scale?: number
 }
 
+/**
+ * Config for Agent execution (Langgraph.js)
+ */
 export type TXpertAgentConfig = {
   /**
    * Maximum number of times a call can recurse. If not provided, defaults to 25.
@@ -142,6 +145,16 @@ export type TXpertAgentConfig = {
   timeout?: number;
 
   interruptBefore?: string[]
+
+  stateVariables?: TStateVariable[]
+}
+
+export type TStateVariable<ValueType = any, UpdateType = ValueType> = {
+  name: string
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array[string]' | 'array[number]' | 'array[object]'
+  description: string
+  default?: any
+  reducer?: (a: ValueType, b: UpdateType) => ValueType
 }
 
 /**
@@ -478,4 +491,8 @@ export function createAgentConnections(agent: IXpertAgent, collaborators: IXpert
   })
 
   return connections
+}
+
+export function xpertLabel(agent: IXpert) {
+  return agent.title || agent.name
 }

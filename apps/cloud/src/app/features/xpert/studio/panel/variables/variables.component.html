@@ -1,0 +1,228 @@
+  <div class="shrink-0 flex items-center justify-between p-4 pb-0 text-text-primary system-xl-semibold">
+    会话变量
+    <div class="flex items-center gap-1">
+      <button type="button" class="action-btn action-btn-m action-btn-active">
+        <svg
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          fill="currentColor"
+          class="w-4 h-4"
+        >
+          <path
+            d="M13 21V23H11V21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3H9C10.1947 3 11.2671 3.52375 12 4.35418C12.7329 3.52375 13.8053 3 15 3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H13ZM20 19V5H15C13.8954 5 13 5.89543 13 7V19H20ZM11 19V7C11 5.89543 10.1046 5 9 5H4V19H11Z"
+          ></path>
+        </svg>
+      </button>
+
+      <div class="flex items-center justify-center w-6 h-6 cursor-pointer"
+        (click)="closePanel()"
+      >
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="w-4 h-4 text-text-tertiary"><path d="M11.9997 10.5865L16.9495 5.63672L18.3637 7.05093L13.4139 12.0007L18.3637 16.9504L16.9495 18.3646L11.9997 13.4149L7.04996 18.3646L5.63574 16.9504L10.5855 12.0007L5.63574 7.05093L7.04996 5.63672L11.9997 10.5865Z"></path></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="shrink-0 px-4 pt-2 pb-3">
+    <div class="inline-block" >
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
+        [cdkMenuTriggerFor]="variableMenu"
+        [cdkMenuTriggerData]="{trigger: trigger}"
+        #trigger="cdkMenuTriggerFor"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          fill="currentColor"
+          class="mr-1 w-4 h-4"
+        >
+          <path d="M11 11V5H13V11H19V13H13V19H11V13H5V11H11Z"></path>
+        </svg>
+        <span class="system-sm-medium">添加变量</span>
+      </button>
+    </div>
+  </div>
+
+<div class="grow px-4 rounded-b-2xl overflow-y-auto">
+  @for (item of variables(); track item.variable.name; let index = $index) {
+    <div class="variable-list-item mb-1 px-2.5 py-2 rounded-xl bg-components-card-bg border shadow-sm hover:bg-gray-50"
+      [class.danger]="item.__hover__"
+    >
+      <div class="flex items-center justify-between">
+        <div class="grow flex gap-1 items-center">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-4 h-4 text-green-700"
+          >
+            <g id="Icon L">
+              <g id="Vector">
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M3.33463 3.33333C2.96643 3.33333 2.66796 3.63181 2.66796 4V10.6667C2.66796 11.0349 2.96643 11.3333 3.33463 11.3333H4.66796C5.03615 11.3333 5.33463 11.6318 5.33463 12V12.8225L7.65833 11.4283C7.76194 11.3662 7.8805 11.3333 8.00132 11.3333H12.0013C12.3695 11.3333 12.668 11.0349 12.668 10.6667C12.668 10.2985 12.9665 10 13.3347 10C13.7028 10 14.0013 10.2985 14.0013 10.6667C14.0013 11.7713 13.1058 12.6667 12.0013 12.6667H8.18598L5.01095 14.5717C4.805 14.6952 4.5485 14.6985 4.33949 14.5801C4.13049 14.4618 4.00129 14.2402 4.00129 14V12.6667H3.33463C2.23006 12.6667 1.33463 11.7713 1.33463 10.6667V4C1.33463 2.89543 2.23006 2 3.33463 2H6.66798C7.03617 2 7.33464 2.29848 7.33464 2.66667C7.33464 3.03486 7.03617 3.33333 6.66798 3.33333H3.33463Z"
+                  fill="currentColor"
+                ></path>
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M8.74113 2.66667C8.74113 2.29848 9.03961 2 9.4078 2H10.331C10.9721 2 11.5177 2.43571 11.6859 3.04075L11.933 3.93004L12.8986 2.77189C13.3045 2.28508 13.9018 2 14.536 2H14.5954C14.9636 2 15.2621 2.29848 15.2621 2.66667C15.2621 3.03486 14.9636 3.33333 14.5954 3.33333H14.536C14.3048 3.33333 14.08 3.43702 13.9227 3.6257L12.367 5.49165L12.8609 7.2689C12.8746 7.31803 12.9105 7.33333 12.9312 7.33333H13.8543C14.2225 7.33333 14.521 7.63181 14.521 8C14.521 8.36819 14.2225 8.66667 13.8543 8.66667H12.9312C12.29 8.66667 11.7444 8.23095 11.5763 7.62591L11.3291 6.73654L10.3634 7.89478C9.95758 8.38159 9.36022 8.66667 8.72604 8.66667H8.66666C8.29847 8.66667 7.99999 8.36819 7.99999 8C7.99999 7.63181 8.29847 7.33333 8.66666 7.33333H8.72604C8.95723 7.33333 9.18204 7.22965 9.33935 7.04096L10.8951 5.17493L10.4012 3.39777C10.3876 3.34863 10.3516 3.33333 10.331 3.33333H9.4078C9.03961 3.33333 8.74113 3.03486 8.74113 2.66667Z"
+                  fill="currentColor"
+                ></path>
+              </g>
+            </g>
+          </svg>
+          <div class="text-text-primary system-sm-medium">{{item.variable.name}}</div>
+          <div class="text-text-tertiary system-xs-medium">{{item.variable.type}}</div>
+        </div>
+
+        <div class="shrink-0 flex gap-1 items-center text-text-tertiary">
+          <button type="button" class="btn p-1 rounded-lg cursor-pointer hover:bg-hover-bg hover:text-text-secondary"
+            (click)="editVar(item.variable)"
+            [cdkMenuTriggerFor]="variableMenu"
+            [cdkMenuTriggerData]="{trigger: trigger, index: index}"
+            #trigger="cdkMenuTriggerFor"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              fill="currentColor"
+              class="w-4 h-4"
+            >
+              <path
+                d="M6.41421 15.89L16.5563 5.74785L15.1421 4.33363L5 14.4758V15.89H6.41421ZM7.24264 17.89H3V13.6473L14.435 2.21231C14.8256 1.82179 15.4587 1.82179 15.8492 2.21231L18.6777 5.04074C19.0682 5.43126 19.0682 6.06443 18.6777 6.45495L7.24264 17.89ZM3 19.89H21V21.89H3V19.89Z"
+              ></path>
+            </svg>
+          </button>
+          <button type="button" class="btn p-1 rounded-lg cursor-pointer hover:bg-hover-bg hover:text-red-500"
+            (mouseover)="item.__hover__ = true"
+            (mouseleave)="item.__hover__ = false"
+            (click)="removeVar(index)"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              fill="currentColor"
+              class="w-4 h-4"
+            >
+              <path
+                d="M17 6H22V8H20V21C20 21.5523 19.5523 22 19 22H5C4.44772 22 4 21.5523 4 21V8H2V6H7V3C7 2.44772 7.44772 2 8 2H16C16.5523 2 17 2.44772 17 3V6ZM18 8H6V20H18V8ZM9 11H11V17H9V11ZM13 11H15V17H13V11ZM9 4V6H15V4H9Z"
+              ></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="text-text-tertiary system-xs-regular truncate">{{item.variable.description}}</div>
+    </div>
+  }
+</div>
+
+<ng-template #variableMenu let-trigger="trigger" let-index="index">
+  <div class="flex flex-col w-[360px] bg-components-panel-bg rounded-2xl h-full border-[0.5px] border-components-panel-border shadow-2xl"
+    cdkTrapFocusAutoCapture
+    cdkTrapFocus
+  >
+    <div class="shrink-0 flex items-center justify-between mb-3 p-4 pb-0 text-text-primary system-xl-semibold">添加会话变量
+      <div class="flex items-center">
+        <div class="flex items-center justify-center w-6 h-6 cursor-pointer"
+          (click)="trigger.close()"
+        >
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="w-4 h-4 text-text-tertiary">
+            <path d="M11.9997 10.5865L16.9495 5.63672L18.3637 7.05093L13.4139 12.0007L18.3637 16.9504L16.9495 18.3646L11.9997 13.4149L7.04996 18.3646L5.63574 16.9504L10.5855 12.0007L5.63574 7.05093L7.04996 5.63672L11.9997 10.5865Z"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <form [formGroup]="form" class="px-4 py-2 max-h-[480px] overflow-y-auto">
+      <div class="mb-4">
+        <div class="mb-1 h-6 flex items-center text-text-secondary system-sm-semibold">名称</div>
+        <div class="flex">
+          <input formControlName="name" matInput tabindex="0" class="block px-3 w-full h-8 bg-components-input-bg-normal system-sm-regular rounded-lg border border-transparent appearance-none outline-none caret-primary-600 hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:system-sm-regular placeholder:text-components-input-text-placeholder" placeholder="变量名" type="text" value="" data-tabindex="0">
+        </div>
+      </div>
+      <div class="mb-4">
+        <div class="mb-1 h-6 flex items-center text-text-secondary system-sm-semibold">类型</div>
+
+        <ngm-select formControlName="type"
+          [selectOptions]="[
+            {
+              value: 'string',
+              label: {
+                en_US: 'String',
+                zh_Hans: '字符串'
+              }
+            },
+            {
+              value: 'number',
+              label: {
+                en_US: 'Number',
+                zh_Hans: '数字'
+              }
+            },
+            {
+              value: 'object',
+              label: {
+                en_US: 'Object',
+                zh_Hans: '对象'
+              }
+            },
+            {
+              value: 'array[string]',
+              label: {
+                en_US: 'String[]',
+                zh_Hans: '字符串数组'
+              }
+            },
+            {
+              value: 'array[number]',
+              label: {
+                en_US: 'Number[]',
+                zh_Hans: '数字数组'
+              }
+            },
+            {
+              value: 'array[object]',
+              label: {
+                en_US: 'Object[]',
+                zh_Hans: '对象数组'
+              }
+            }]"
+        />
+
+      </div>
+      <div class="mb-4">
+        <div class="mb-1 h-6 flex items-center justify-between text-text-secondary system-sm-semibold">
+          <div>默认值</div>
+        </div>
+        <div class="flex">
+          <input formControlName="default" matInput tabindex="0" class="block px-3 w-full h-8 bg-components-input-bg-normal system-sm-regular rounded-lg border border-transparent appearance-none outline-none caret-primary-600 hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:system-sm-regular placeholder:text-components-input-text-placeholder" placeholder="默认值，可以为空">
+        </div>
+      </div>
+      <div class="">
+        <div class="mb-1 h-6 flex items-center text-text-secondary system-sm-semibold">描述</div>
+        <div class="flex">
+          <textarea formControlName="description" matInput tabindex="0" class="block p-2 w-full h-20 rounded-lg bg-components-input-bg-normal border border-transparent system-sm-regular outline-none appearance-none caret-primary-600 resize-none hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:system-sm-regular placeholder:text-components-input-text-placeholder" placeholder="变量的描述"></textarea>
+        </div>
+      </div>
+    </form>
+
+    <div class="p-4 pt-2 flex flex-row-reverse rounded-b-2xl">
+      <div class="flex gap-2">
+        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium" (click)="trigger.close()">取消</button>
+        <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
+          (click)="addVar(index);trigger.close()">保存</button>
+      </div>
+    </div>
+  </div>
+</ng-template>

@@ -35,6 +35,12 @@
   --color-components-button-secondary-bg: theme('colors.white');
   --color-components-button-secondary-bg-hover: #f9fafb;
   --color-components-input-bg: theme('colors.gray.100');
+  --color-components-input-bg-normal: theme('colors.gray.100');
+  --color-components-input-bg-hover: theme('colors.gray.50');
+  --color-components-input-bg-active: theme('colors.gray.50');
+  --color-components-input-border-hover: theme('colors.gray.200');
+  --color-components-input-border-active: theme('colors.gray.200');
+  --color-components-input-text-placeholder: var(--color-text-secondary);
   --color-components-list-option-bg: theme('colors.gray.50');
   --color-components-list-option-active-bg: theme('colors.gray.100');
   // Divider
@@ -83,6 +89,12 @@
   --color-components-button-secondary-bg: theme('colors.neutral.700');
   --color-components-button-secondary-bg-hover: #f9fafb;
   --color-components-input-bg: theme('colors.neutral.800');
+  --color-components-input-bg-normal: theme('colors.neutral.800');
+  --color-components-input-bg-hover: theme('colors.neutral.700');
+  --color-components-input-bg-active: theme('colors.neutral.700');
+  --color-components-input-border-hover: theme('colors.neutral.600');
+  --color-components-input-border-active: theme('colors.neutral.600');
+  --color-components-input-text-placeholder: var(--color-text-secondary);
   --color-components-list-option-bg: theme('colors.neutral.800');
   --color-components-list-option-active-bg: theme('colors.neutral.700');
   // Divider

@@ -1,10 +1,12 @@
-import { ICopilotStore, OrderTypeEnum, TChatRequest, TXpertTeamDraft } from '@metad/contracts'
+import { ICopilotStore, OrderTypeEnum, RolesEnum, TChatRequest, TXpertTeamDraft, xpertLabel } from '@metad/contracts'
 import {
 	CrudController,
 	OptionParams,
 	PaginationParams,
 	ParseJsonPipe,
 	RequestContext,
+	RoleGuard,
+	Roles,
 	TransformInterceptor,
 	UserPublicDTO,
 	UseValidationPipe,
@@ -31,7 +33,7 @@ import {
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
-import { DeleteResult, FindConditions, In, Like } from 'typeorm'
+import { DeleteResult, FindConditions, In, IsNull, Like, Not } from 'typeorm'
 import { XpertAgentExecution } from '../core/entities/internal'
 import { FindExecutionsByXpertQuery } from '../xpert-agent-execution/queries'
 import { XpertChatCommand, XpertExportCommand, XpertImportCommand } from './commands'
@@ -55,6 +57,22 @@ export class XpertController extends CrudController<Xpert> {
 		private readonly queryBus: QueryBus
 	) {
 		super(service)
+	}
+
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Get()
+	async getAll(@Query('data', ParseJsonPipe) params: Partial<PaginationParams<Xpert>>, @Query('published') published?: boolean) {
+		const { where, ...rest } = params
+		if (published) {
+			where.version = Not(IsNull())
+		}
+		
+		const result = await this.service.findAll({...rest, where})
+		return {
+			...result,
+			items: result.items.map((item) => new XpertPublicDTO(item))
+		}
 	}
 
 	@UseGuards(WorkspaceGuard)
@@ -92,6 +110,17 @@ export class XpertController extends CrudController<Xpert> {
 				HttpStatus.INTERNAL_SERVER_ERROR
 			)
 		}
+	}
+	
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Get('select-options')
+	async getSelectOptions() {
+		const { items } = await this.getAll({where: {latest: true, }}, true, )
+		return items.map((item) => ({
+			value: item.id,
+			label: xpertLabel(item)
+		}))
 	}
 
 	@Get(':xpertId/export')

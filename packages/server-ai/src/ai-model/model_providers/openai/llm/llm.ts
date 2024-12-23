@@ -1,3 +1,4 @@
+import { HumanMessage, isSystemMessage } from '@langchain/core/messages'
 import { ChatOpenAI } from '@langchain/openai'
 import { AIModelEntity, AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
 import { sumTokenUsage } from '@metad/copilot'
@@ -8,6 +9,21 @@ import { TChatModelOptions } from '../../../types/types'
 import { CredentialsValidateFailedError } from '../../errors'
 import { CommonOpenAI } from '../common'
 import { OpenAICredentials } from '../types'
+
+class ValidatedChatOpenAI extends ChatOpenAI {
+	async invoke(messages, options?: any): Promise<any> {
+		if (this.model?.startsWith('o')) {
+			this.streaming = false
+			messages.forEach((message, index: number) => {
+				if (isSystemMessage(message)) {
+					messages[index] = new HumanMessage(message)
+				}
+			})
+		}
+
+		return super.invoke(messages, options)
+	}
+}
 
 @Injectable()
 export class OpenAILargeLanguageModel extends CommonOpenAI {
@@ -44,11 +60,13 @@ export class OpenAILargeLanguageModel extends CommonOpenAI {
 		const params = this.toCredentialKwargs(modelProvider.credentials as OpenAICredentials)
 
 		const { handleLLMTokens } = options ?? {}
-		return new ChatOpenAI({
+		return new ValidatedChatOpenAI({
 			...params,
 			model: copilotModel.model,
 			streaming: copilotModel.options?.streaming ?? true,
 			temperature: copilotModel.options?.temperature ?? 0,
+			maxTokens: copilotModel.options?.max_tokens,
+			streamUsage: false,
 			callbacks: [
 				{
 					handleLLMEnd(output) {

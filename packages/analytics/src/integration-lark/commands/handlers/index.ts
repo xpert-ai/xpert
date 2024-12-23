@@ -1,4 +1,4 @@
 import { LarkBotMenuHandler } from './bot-menu.command'
-import { LarkMessageHandler } from './lark-message.handler'
+import { LarkChatAgentHandler } from './lark-message.handler'
 
-export const CommandHandlers = [LarkMessageHandler, LarkBotMenuHandler]
+export const CommandHandlers = [LarkChatAgentHandler, LarkBotMenuHandler]

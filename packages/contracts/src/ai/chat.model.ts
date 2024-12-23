@@ -154,7 +154,7 @@ export interface CopilotBaseMessage {
   /**
    * Status of the message:
    */
-  status?: XpertAgentExecutionStatusEnum | 'thinking' | 'aborted' | 'done'
+  status?: XpertAgentExecutionStatusEnum | 'thinking' | 'aborted'
 
   content?: string | MessageContent
 }

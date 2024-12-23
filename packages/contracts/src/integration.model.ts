@@ -6,43 +6,43 @@ import { IOrganizationUpdateInput } from './organization.model';
 import { ITag } from './tag-entity.model';
 import { TAvatar } from './types';
 
-export interface IIntegrationSetting
-	extends IBasePerTenantAndOrganizationEntityModel {
-	settingsName: string;
-	settingsValue: string;
-	integration?: IIntegrationTenant;
-	integrationId?: string;
-}
+// export interface IIntegrationSetting
+// 	extends IBasePerTenantAndOrganizationEntityModel {
+// 	settingsName: string;
+// 	settingsValue: string;
+// 	integration?: IIntegrationTenant;
+// 	integrationId?: string;
+// }
 
-export interface IIntegrationEntitySetting
-	extends IBasePerTenantAndOrganizationEntityModel {
-	entity: string;
-	sync: boolean;
-	integration?: IIntegrationTenant;
-	readonly integrationId?: string;
-	tiedEntities?: IIntegrationEntitySettingTied[];
-}
+// export interface IIntegrationEntitySetting
+// 	extends IBasePerTenantAndOrganizationEntityModel {
+// 	entity: string;
+// 	sync: boolean;
+// 	integration?: IIntegrationTenant;
+// 	readonly integrationId?: string;
+// 	tiedEntities?: IIntegrationEntitySettingTied[];
+// }
 
-export interface IIntegrationEntitySettingTied
-	extends IBasePerTenantAndOrganizationEntityModel {
-	entity: string;
-	sync: boolean;
-	integrationEntitySetting?: IIntegrationEntitySetting;
-	readonly integrationEntitySettingId?: string;
-}
+// export interface IIntegrationEntitySettingTied
+// 	extends IBasePerTenantAndOrganizationEntityModel {
+// 	entity: string;
+// 	sync: boolean;
+// 	integrationEntitySetting?: IIntegrationEntitySetting;
+// 	readonly integrationEntitySettingId?: string;
+// }
 
-export interface IIntegrationViewModel {
-	name: string;
-	imgSrc: string;
-	navigation_url: string;
-	isComingSoon?: boolean;
-}
+// export interface IIntegrationViewModel {
+// 	name: string;
+// 	imgSrc: string;
+// 	navigation_url: string;
+// 	isComingSoon?: boolean;
+// }
 
-export interface IIntegrationTenant extends IBasePerTenantAndOrganizationEntityModel {
-	name: string;
-	entitySettings?: IIntegrationEntitySetting[];
-	settings?: IIntegrationSetting[];
-}
+// export interface IIntegrationTenant extends IBasePerTenantAndOrganizationEntityModel {
+// 	name: string;
+// 	entitySettings?: IIntegrationEntitySetting[];
+// 	settings?: IIntegrationSetting[];
+// }
 
 export interface IIntegration extends IBasePerTenantAndOrganizationEntityModel {
 	name: string
@@ -53,6 +53,10 @@ export interface IIntegration extends IBasePerTenantAndOrganizationEntityModel {
 	avatar?: TAvatar
 	slug: string;
 	provider: IntegrationEnum
+	/**
+	 * Integration type: Agent ...
+	 */
+	type?: string
 
 	options?: any
 
@@ -79,12 +83,12 @@ export interface IIntegrationMapSyncOrganization
 	sourceId: number;
 }
 
-export interface IIntegrationTenantCreateDto
-	extends IBasePerTenantAndOrganizationEntityModel {
-	name: string;
-	entitySettings?: IIntegrationEntitySetting[];
-	settings?: IIntegrationSetting[];
-}
+// export interface IIntegrationTenantCreateDto
+// 	extends IBasePerTenantAndOrganizationEntityModel {
+// 	name: string;
+// 	entitySettings?: IIntegrationEntitySetting[];
+// 	settings?: IIntegrationSetting[];
+// }
 
 export enum IntegrationEnum {
 	UPWORK = 'Upwork',
@@ -92,22 +96,22 @@ export enum IntegrationEnum {
 	LARK = 'Lark'
 }
 
-export enum IntegrationEntity {
-	PROJECT = 'Project',
-	ORGANIZATION = 'Organization',
-	NOTE = 'Note',
-	CLIENT = 'Client',
-	TASK = 'Task',
-	ACTIVITY = 'Activity',
-	USER = 'User',
-	EMPLOYEE = 'Employee',
-	TIME_LOG = 'TimeLog',
-	TIME_SLOT = 'TimeSlot',
-	SCREENSHOT = 'Screenshot',
-	INCOME = 'Income',
-	EXPENSE = 'Expense',
-	PROPOSAL = 'Proposal'
-}
+// export enum IntegrationEntity {
+// 	PROJECT = 'Project',
+// 	ORGANIZATION = 'Organization',
+// 	NOTE = 'Note',
+// 	CLIENT = 'Client',
+// 	TASK = 'Task',
+// 	ACTIVITY = 'Activity',
+// 	USER = 'User',
+// 	EMPLOYEE = 'Employee',
+// 	TIME_LOG = 'TimeLog',
+// 	TIME_SLOT = 'TimeSlot',
+// 	SCREENSHOT = 'Screenshot',
+// 	INCOME = 'Income',
+// 	EXPENSE = 'Expense',
+// 	PROPOSAL = 'Proposal'
+// }
 
 export enum IntegrationTypeGroupEnum {
 	FEATURED = 'Featured',
@@ -177,10 +181,10 @@ export const DEFAULT_INTEGRATIONS = [
 /**
 * Hubstaff Integration
 */
-export interface IEntitySettingToSync {
-	previousValue: IIntegrationEntitySetting[];
-	currentValue: IIntegrationEntitySetting[];
-}
+// export interface IEntitySettingToSync {
+// 	previousValue: IIntegrationEntitySetting[];
+// 	currentValue: IIntegrationEntitySetting[];
+// }
 
 export interface IDateRangeActivityFilter {
 	start: Date;

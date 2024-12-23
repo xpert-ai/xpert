@@ -54,7 +54,7 @@ export class XpertStudioHeaderComponent {
   readonly route = inject(ActivatedRoute)
   readonly #viewContainerRef = inject(ViewContainerRef)
 
-  readonly preview = model(false)
+  readonly sidePanel = model<'preview' | 'variables'>(null)
 
   readonly team = computed(() => this.xpertStudioComponent.team())
   readonly version = computed(() => this.team()?.version)
@@ -125,7 +125,11 @@ export class XpertStudioHeaderComponent {
   }
 
   togglePreview() {
-    this.preview.update((state) => !state)
+    this.sidePanel.update((state) => state === 'preview' ? null : 'preview')
+  }
+
+  toggleVariables() {
+    this.sidePanel.update((state) => state === 'variables' ? null : 'variables')
   }
 
   toggleFeatures() {
@@ -135,7 +139,7 @@ export class XpertStudioHeaderComponent {
   }
 
   openConversation(item: IChatConversation) {
-    this.preview.set(true)
+    this.sidePanel.set('preview')
     this.executionService.setConversation(item)
   }
 

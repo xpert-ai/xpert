@@ -1,5 +1,5 @@
 import { IChatBIModel } from '@metad/contracts'
-import { LarkBotMenuCommand, LarkMessage } from '@metad/server-core'
+import { LarkBotMenuCommand, LarkMessage } from '@metad/server-ai'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { map, Observable, of } from 'rxjs'
 import { UserSessionCommand } from '../../../chatbi'

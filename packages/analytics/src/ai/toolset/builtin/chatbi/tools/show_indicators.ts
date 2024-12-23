@@ -2,10 +2,11 @@ import { tool } from '@langchain/core/tools'
 import { ChatMessageTypeEnum, JSONValue } from '@metad/contracts'
 import { shortuuid } from '@metad/server-common'
 import { z } from 'zod'
-import { ChatBIContext } from '../types'
+import { ChatBIContext, TChatBICredentials } from '../types'
 
-export function createShowIndicatorsTool(context: ChatBIContext) {
+export function createShowIndicatorsTool(context: ChatBIContext, credentials: TChatBICredentials) {
 	const { dsCoreService } = context
+	const { dataPermission } = credentials
 
 	return tool(
 		async (
@@ -14,8 +15,6 @@ export function createShowIndicatorsTool(context: ChatBIContext) {
 		): Promise<string> => {
 			const { configurable } = config ?? {}
 			const { subscriber } = configurable ?? {}
-
-			// console.log(dataSource, indicators)
 
 			subscriber?.next({
 				data: {

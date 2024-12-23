@@ -13,12 +13,12 @@ import {
   IXpertWorkspace,
   TAvatar,
   ToastrService,
-  uuid,
   XpertService,
   XpertTypeEnum
 } from '../../../../@core'
 import { MaterialModule } from '../../../../@shared/material.module'
 import { EmojiAvatarComponent } from '../../../../@shared/avatar'
+import { genAgentKey } from '../../utils'
 
 @Component({
   selector: 'xpert-new-blank',
@@ -91,7 +91,7 @@ export class XpertNewBlankComponent {
         workspaceId: this.#dialogData?.workspace?.id,
         avatar: this.avatar(),
         agent: {
-          key: uuid(),
+          key: genAgentKey(),
           avatar: this.avatar()
         }
       })

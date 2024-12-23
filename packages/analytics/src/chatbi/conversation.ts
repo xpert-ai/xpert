@@ -3,7 +3,7 @@ import { BaseMessage, HumanMessage, isAIMessage, SystemMessage, ToolMessage } fr
 import { FewShotPromptTemplate, SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { DynamicStructuredTool, ToolInputParsingException } from '@langchain/core/tools'
 import { CompiledStateGraph, END, GraphValueError, START } from '@langchain/langgraph'
-import { IChatBIModel, ICopilot, ISemanticModel, OrderTypeEnum } from '@metad/contracts'
+import { IChatBIModel, ICopilot, ISemanticModel, OrderTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { AgentRecursionLimit, createAgentStepsInstructions, nanoid, referencesCommandName } from '@metad/copilot'
 import {
 	CubeVariablePrompt,
@@ -41,8 +41,8 @@ import {
 import { C_CHATBI_END_CONVERSATION, ChatBILarkContext, IChatBIConversation, insightAgentState } from './types'
 import { createMoreQuestionsTool } from './tools/more-questions'
 import { createWelcomeTool } from './tools/welcome'
-import { ChatLarkMessage, ChatStack } from './message'
 import { createIndicatorTool } from './tools/indicator'
+import { ChatLarkMessage, ChatStack } from './message'
 
 /**
  * ChatBI conversation for Lark
@@ -100,7 +100,7 @@ export class ChatBIConversation implements IChatBIConversation {
 		private readonly chatContext: ChatBILarkContext,
 		private readonly chatModel: BaseChatModel,
 		private readonly modelService: ChatBIModelService,
-		private readonly semanticModelMemberService: SemanticModelMemberService,
+		// private readonly semanticModelMemberService: SemanticModelMemberService,
 		private readonly copilotCheckpointSaver: CopilotCheckpointSaver,
 		private readonly dsCoreService: NgmDSCoreService,
 		private readonly copilotKnowledgeService: CopilotKnowledgeService,
@@ -190,7 +190,7 @@ export class ChatBIConversation implements IChatBIConversation {
 
 		const { items } = await this.modelService.findAll({
 			where: { tenantId: this.chatContext.tenant.id, organizationId: this.chatContext.organizationId },
-			relations: ['model', 'model.dataSource', 'model.dataSource.type', 'model.roles', 'model.indicators', 'roles', 'integrations'],
+			relations: ['model', 'model.dataSource', 'model.dataSource.type', 'model.roles', 'model.indicators', 'integrations'],
 			order: {
 				visits: OrderTypeEnum.DESC
 			}
@@ -438,12 +438,12 @@ ${createAgentStepsInstructions(
 						// 对话结束时还有正在思考的消息，则意味着出现错误
 						if (['thinking', 'continuing', 'waiting'].includes(this.message?.status)) {
 							this.message.update({
-								status: 'error',
+								status: XpertAgentExecutionStatusEnum.ERROR,
 								elements: [{tag: 'markdown', content: verboseContent}]
 							})
 						}
 					}
-					if (this.message?.status === 'end') {
+					if (this.message?.status === XpertAgentExecutionStatusEnum.SUCCESS) {
 					  break
 					}
 				}
@@ -541,7 +541,7 @@ ${createAgentStepsInstructions(
 			session.chatModelId = null
 		}
 
-		await this.message.update({status: 'end', elements: [
+		await this.message.update({status: XpertAgentExecutionStatusEnum.SUCCESS, elements: [
 			{
 				tag: 'markdown',
 				content: `对话已结束。如果您有其他问题，欢迎随时再来咨询。`
@@ -555,7 +555,7 @@ ${createAgentStepsInstructions(
 		await this.message.update({status: 'continuing', elements})
 	}
 	async done(card: {elements: any[]; header: any}) {
-		await this.message.update({...card, status: 'done'})
+		await this.message.update({...card, status: XpertAgentExecutionStatusEnum.SUCCESS })
 	}
 	async updateMessage(card: {elements: any[]; header: any; action: (action) => void}) {
 		await this.message.update(card)

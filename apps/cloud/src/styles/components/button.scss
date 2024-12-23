@@ -86,7 +86,7 @@
     @apply rounded-md p-1;
   }
 
-  .action-btn-md {
+  .action-btn-md, .action-btn-m {
     @apply rounded-md p-1.5;
   }
 
@@ -102,5 +102,18 @@
     &.btn-danger, &.danger {
       @apply text-red-500 border-red-50 hover:border-red-500 hover:bg-red-50;
     }
+  }
+
+  .system-xl-semibold {
+    @apply text-xl font-semibold;
+  }
+  .system-sm-semibold {
+    @apply text-sm font-semibold;
+  }
+  .system-sm-regular {
+    @apply text-sm;
+  }
+  .system-xs-regular {
+    @apply text-sm;
   }
 }

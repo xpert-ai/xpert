@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@langchain/community": "0.3.11",
-    "@langchain/core": "0.3.13",
+    "@langchain/core": "0.3.23",,
     "@langchain/langgraph": "0.2.33",
     "@langchain/ollama": "0.1.0",
     "@langchain/openai": "0.3.11",
@@ -79,6 +79,6 @@
     "packages/*"
   ],
   "resolutions": {
-    "@langchain/core": "0.3.13"
+    "@langchain/core": "0.3.23",
   }
 }

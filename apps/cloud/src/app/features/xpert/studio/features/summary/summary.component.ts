@@ -43,7 +43,7 @@ export class XpertStudioFeaturesSummaryComponent {
     this.updateSummarize({ maxMessages: value })
   }
   get summarizeMessages() {
-    return this.maxMessages - (this.summarize()?.retainMessages ?? 100)
+    return Math.max(this.maxMessages - (this.summarize()?.retainMessages ?? this.maxMessages), 0)
   }
   set summarizeMessages(value) {
     this.updateSummarize({ retainMessages: this.maxMessages - value })
@@ -55,7 +55,6 @@ export class XpertStudioFeaturesSummaryComponent {
   set prompt(value) {
     this.updateSummarize({ prompt: value })
   }
-
   
 
   updateSummarize(summarize: Partial<TSummarize>) {

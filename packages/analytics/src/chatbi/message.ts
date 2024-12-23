@@ -1,7 +1,8 @@
-import { ChatLarkContext } from '@metad/server-core'
+import { ChatLarkContext, ChatLarkMessageStatus } from '@metad/server-ai'
 import { C_CHATBI_END_CONVERSATION, IChatBIConversation } from './types'
 
-export type ChatLarkMessageStatus = 'thinking' | 'continuing' | 'waiting' | 'done' | 'end' | 'error'
+export { ChatLarkMessageStatus }
+
 export class ChatLarkMessage {
 	static readonly headerTemplate = 'indigo'
 	static readonly logoImgKey = 'img_v3_02e1_a8d74bc6-3c8a-4f66-b44f-c4cc837e285g'

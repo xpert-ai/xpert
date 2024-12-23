@@ -8,8 +8,9 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { IfAnimation, IXpertTool, ToastrService, XpertToolService, XpertToolsetService } from 'apps/cloud/src/app/@core'
+import { IXpertTool, ToastrService, XpertToolService, XpertToolsetService } from 'apps/cloud/src/app/@core'
 import { map, of, shareReplay, switchMap, tap } from 'rxjs'
+import { IfAnimations } from '@metad/core'
 import { XpertToolsetToolTestComponent } from '../tool-test'
 
 @Component({
@@ -31,9 +32,7 @@ import { XpertToolsetToolTestComponent } from '../tool-test'
   templateUrl: './tool.component.html',
   styleUrl: 'tool.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  animations: [
-    IfAnimation
-  ]
+  animations: [...IfAnimations]
 })
 export class XpertToolTestComponent {
   readonly toolsetService = inject(XpertToolsetService)

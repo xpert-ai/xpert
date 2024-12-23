@@ -12,6 +12,7 @@ import { CopilotOrganizationModule } from './copilot-organization'
 import { CopilotUserModule } from './copilot-user'
 import { EventHandlers } from './core/events'
 import { GraphragModule } from './graphrag/graphrag.module'
+import { IntegrationLarkModule } from './integration-lark/index'
 import { KnowledgeDocumentModule } from './knowledge-document/index'
 import { KnowledgebaseModule } from './knowledgebase/index'
 import { XpertToolModule } from './xpert-tool/index'
@@ -52,7 +53,8 @@ import { ChatMessageFeedbackModule } from './chat-message-feedback'
 		XpertAgentExecutionModule,
 		XpertToolModule,
 		XpertToolsetModule,
-		XpertWorkspaceModule
+		XpertWorkspaceModule,
+		IntegrationLarkModule
 	],
 	controllers: [],
 	providers: [...EventHandlers]
