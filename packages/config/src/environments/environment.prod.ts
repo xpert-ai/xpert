@@ -5,7 +5,7 @@ import { IEnvironment, IPACFeatures } from './ienvironment';
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000'
 
-export const environment: IEnvironment = {
+export const prodEnvironment: IEnvironment = {
 	port: process.env.PORT || 3000,
 	host: process.env.HOST || 'http://localhost',
 	baseUrl: API_BASE_URL,
@@ -188,7 +188,7 @@ export const environment: IEnvironment = {
 	demo: process.env.DEMO === 'true' ? true : false
 };
 
-export const pacToggleFeatures: IPACFeatures = {
+export const prodToggleFeatures: IPACFeatures = {
 	FEATURE_DASHBOARD: process.env.FEATURE_DASHBOARD === 'false' ? false : true,
 	FEATURE_TIME_TRACKING:
 		process.env.FEATURE_TIME_TRACKING === 'false' ? false : true,

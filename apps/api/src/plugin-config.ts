@@ -82,22 +82,22 @@ function getDbConfig(): ConnectionOptions {
 			};
 		}
 
-		case 'sqlite': {
-			const sqlitePath =
-				process.env.DB_PATH ||
-				path.join(
-					path.resolve('.', ...['apps', 'api', 'data']),
-					'gauzy.sqlite3'
-				);
+		// case 'sqlite': {
+		// 	const sqlitePath =
+		// 		process.env.DB_PATH ||
+		// 		path.join(
+		// 			path.resolve('.', ...['apps', 'api', 'data']),
+		// 			'xxxx.sqlite3'
+		// 		);
 
-			return {
-				type: dbType,
-				database: sqlitePath,
-				logging: true,
-				// Removes console logging, instead logs all queries in a file ormlogs.log
-				logger: 'file',
-				synchronize: true
-			};
-		}
+		// 	return {
+		// 		type: dbType,
+		// 		database: sqlitePath,
+		// 		logging: true,
+		// 		// Removes console logging, instead logs all queries in a file ormlogs.log
+		// 		logger: 'file',
+		// 		synchronize: true
+		// 	};
+		// }
 	}
 }

@@ -1,7 +1,7 @@
 import { AnalyticsFeatures, FeatureEnum, AiFeatureEnum, IFeatureCreateInput } from '@metad/contracts'
-import { pacToggleFeatures } from '@metad/server-config'
+import { toggleFeatures } from '@metad/server-config'
 
-const features = pacToggleFeatures
+const features = toggleFeatures
 
 export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
 	{
