@@ -1,4 +1,4 @@
-import * as path from 'path';
+// import * as path from 'path';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConnectionOptions } from 'typeorm';
 
@@ -7,11 +7,11 @@ const defaultConnection =
 		? 'postgres'
 		: 'sqlite';
 
-const dbPath =
-	process.env.DB_PATH ||
-	path.join(process.cwd(), ...['apps', 'api', 'data'], 'metad.sqlite3');
+// const dbPath =
+// 	process.env.DB_PATH ||
+// 	path.join(process.cwd(), ...['apps', 'api', 'data'], 'metad.sqlite3');
 
-console.log('Sqlite DB Path: ' + dbPath);
+// console.log('Sqlite DB Path: ' + dbPath);
 
 const ssl = process.env.DB_SSL_MODE === 'true' ? true : undefined;
 
@@ -29,17 +29,17 @@ const postgreSQLConfig: ConnectionOptions = {
 	uuidExtension: 'pgcrypto'
 };
 
-const sqliteConfig: ConnectionOptions = {
-	type: 'sqlite',
-	database: dbPath,
-	logging: true,
-	logger: 'file', //Removes console logging, instead logs all queries in a file ormlogs.log
-	synchronize: true
-};
+// const sqliteConfig: ConnectionOptions = {
+// 	type: 'sqlite',
+// 	database: dbPath,
+// 	logging: true,
+// 	logger: 'file', //Removes console logging, instead logs all queries in a file ormlogs.log
+// 	synchronize: true
+// };
 
 const connections = {
 	postgres: postgreSQLConfig,
-	sqlite: sqliteConfig
+	// sqlite: sqliteConfig
 };
 
 export function getConnectionOptions(connection: string) {

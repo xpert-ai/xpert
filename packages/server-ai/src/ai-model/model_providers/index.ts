@@ -13,7 +13,7 @@ import { MistralAIProviderModule } from './mistralai/mistralai'
 import { MoonshotProviderModule } from './moonshot/moonshot'
 import { OllamaProviderModule } from './ollama/ollama'
 import { OpenAIProviderModule } from './openai/openai'
-import { TogetherAIProvider } from './togetherai/togetherai'
+import { TogetherAIProviderModule } from './togetherai/togetherai'
 import { TongyiProviderModule } from './tongyi/tongyi'
 import { XAIProviderModule } from './x/x'
 import { ZhipuaiProviderModule } from './zhipuai/zhipuai'
@@ -26,7 +26,7 @@ export const ProviderModules = [
 	BaichuanProviderModule,
 	AzureAIStudioProviderModule,
 	ZhipuaiProviderModule,
-	TogetherAIProvider,
+	TogetherAIProviderModule,
 	CohereProviderModule,
 	GoogleProviderModule,
 	GroqProviderModule,
