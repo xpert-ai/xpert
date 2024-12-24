@@ -136,7 +136,7 @@ export class XpertExecutionService {
 
     this.toolExecutions.update((state) => {
       return Object.keys(state).reduce((acc, name) => {
-        acc[name] = Object.keys(acc[name]).reduce((executions, id) => {
+        acc[name] = Object.keys(acc[name] ?? {}).reduce((executions, id) => {
           executions[id] = acc[name][id].status  === XpertAgentExecutionStatusEnum.RUNNING ? {
             ...acc[name][id],
             status: XpertAgentExecutionStatusEnum.ERROR,

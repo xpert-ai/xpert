@@ -35,6 +35,9 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 			)
 		)
 
+		// Thinking message
+		await larkMessage.update({status: 'thinking'})
+
 		let responseMessageContent = ''
 		observable.subscribe({
 			next: (event) => {

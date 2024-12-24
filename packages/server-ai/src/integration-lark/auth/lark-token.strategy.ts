@@ -22,30 +22,37 @@ export class LarkTokenStrategy extends PassportStrategy(Strategy, 'lark-token') 
 		;(async () => {
 			try {
 				const integration = await this.integrationService.findOne(integrationId, { relations: ['tenant'] })
-				const integrationClient = this.larkService.getOrCreateLarkClient(integration)
-				let union_id = null
-				switch (data.header?.event_type) {
-					case 'card.action.trigger': {
-						union_id = data.event.operator?.union_id
-						break
-					}
-					case 'im.message.receive_v1': {
-						union_id = data.event.sender?.sender_id.union_id
-						break
-					}
-				}
-
-				if (!union_id) {
-					throw new Error(`Can't get union_id from event of lark message`)
-				}
-				const user = await this.larkService.getUser(
-					integrationClient.client,
-					integration.tenantId,
-					union_id
-				)
-
 				req.headers['organization-id'] = integration.organizationId
-				this.success(user)
+
+				const integrationClient = this.larkService.getOrCreateLarkClient(integration)
+				console.log(data)
+				if (data.type === 'url_verification') {
+					this.success({})
+				} else {
+					let union_id = null
+					switch (data.header?.event_type) {
+						case 'card.action.trigger': {
+							union_id = data.event.operator?.union_id
+							break
+						}
+						case 'im.message.receive_v1': {
+							union_id = data.event.sender?.sender_id.union_id
+							break
+						}
+					}
+	
+					if (!union_id) {
+						throw new Error(`Can't get union_id from event of lark message`)
+					}
+
+					const user = await this.larkService.getUser(
+						integrationClient.client,
+						integration.tenantId,
+						union_id
+					)
+					this.success(user)
+				}
+				
 			} catch (err) {
 				console.error(err, integrationId, data)
 				this.fail(new UnauthorizedException('Invalid user', err.message))

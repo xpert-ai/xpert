@@ -1,9 +1,9 @@
 import { NotFoundException } from '@nestjs/common'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AIMessageChunk, HumanMessage, isAIMessage, isAIMessageChunk, MessageContent, ToolMessage } from '@langchain/core/messages'
+import { AIMessageChunk, HumanMessage, isAIMessage, isAIMessageChunk, isToolMessage, MessageContent, ToolMessage } from '@langchain/core/messages'
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
-import { Annotation, CompiledStateGraph, LangGraphRunnableConfig, NodeInterrupt } from '@langchain/langgraph'
+import { Annotation, CompiledStateGraph, isCommand, LangGraphRunnableConfig, NodeInterrupt } from '@langchain/langgraph'
 import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IXpert, IXpertAgent, ToolCall, TSensitiveOperation, TStateVariable, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
@@ -334,12 +334,21 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 						if (_event !== 'on_tool_start') { // 应该不会出现这种情况吧？
 							eventStack.pop()
 						}
+
+						let output = data.output
+						if ( isCommand(output)) {
+							const messages = (<AgentState>output.update)?.messages
+							if (Array.isArray(messages)) {
+								const toolMessage = messages[messages.length - 1]
+								output = toolMessage
+							}
+						}
 						subscriber.next({
 							data: {
 								type: ChatMessageTypeEnum.EVENT,
 								event: ChatMessageEventTypeEnum.ON_TOOL_END,
 								data: {
-									data,
+									data: {...data, output},
 									tags,
 									...rest,
 								}
