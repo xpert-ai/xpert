@@ -1,6 +1,7 @@
 - openai
 - anthropic
 - azure_openai
+- x
 - google
 - vertex_ai
 - nvidia

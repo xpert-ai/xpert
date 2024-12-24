@@ -15,6 +15,7 @@ import { OllamaProviderModule } from './ollama/ollama'
 import { OpenAIProviderModule } from './openai/openai'
 import { TogetherAIProvider } from './togetherai/togetherai'
 import { TongyiProviderModule } from './tongyi/tongyi'
+import { XAIProviderModule } from './x/x'
 import { ZhipuaiProviderModule } from './zhipuai/zhipuai'
 
 export const ProviderModules = [
@@ -33,5 +34,6 @@ export const ProviderModules = [
     MistralAIProviderModule,
     MoonshotProviderModule,
 	TongyiProviderModule,
-	HuggingfaceHubProviderModule
+	HuggingfaceHubProviderModule,
+	XAIProviderModule
 ]
