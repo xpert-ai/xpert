@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, effect, inject, input, model } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { ISelectOption, NgmDensityDirective } from '@metad/ocap-angular/core'
+import { TSelectOption, NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 
@@ -22,13 +22,14 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
     },
     NgxControlValueAccessor
   ],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkListboxModule]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkListboxModule, NgmI18nPipe]
 })
 export class NgmRadioSelectComponent {
 
   protected cva = inject<NgxControlValueAccessor<any | null>>(NgxControlValueAccessor)
 
-  readonly options = input<ISelectOption[]>()
+  readonly selectOptions = input<TSelectOption[]>()
+  readonly options = computed(() => this.selectOptions()?.map((option) => ({...option, key: option.key ?? option.value})))
 
   readonly value = model(null)
 

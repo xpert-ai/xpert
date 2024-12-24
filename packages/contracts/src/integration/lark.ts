@@ -1,6 +1,6 @@
-import { IIntegration, IntegrationEnum } from '../integration.model'
+import { IIntegration, IntegrationEnum, TIntegrationProvider } from '../integration.model'
 
-export const IntegrationLarkProvider = {
+export const IntegrationLarkProvider: TIntegrationProvider = {
   name: IntegrationEnum.LARK,
   label: {
     en_US: 'Lark',

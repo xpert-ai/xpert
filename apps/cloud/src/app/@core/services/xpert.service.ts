@@ -4,7 +4,7 @@ import { toParams } from '@metad/ocap-angular/core'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, tap } from 'rxjs'
 import { API_XPERT_ROLE } from '../constants/app.constants'
-import { ICopilotStore, IUser, IXpert, IXpertAgentExecution, OrderTypeEnum, TChatRequest, TDeleteResult, TXpertTeamDraft, XpertTypeEnum } from '../types'
+import { ICopilotStore, IIntegration, IUser, IXpert, IXpertAgentExecution, OrderTypeEnum, TChatRequest, TDeleteResult, TXpertTeamDraft, XpertTypeEnum } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 import { injectApiBaseUrl } from '../providers'
 import { injectFetchEventSource } from './fetch-event-source'
@@ -56,6 +56,12 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   publish(id: string) {
     return this.httpClient.post<IXpert>(this.apiBaseUrl + `/${id}/publish`, {})
+  }
+  publishIntegration(id: string, integration: Partial<IIntegration>) {
+    return this.httpClient.post<IIntegration>(this.apiBaseUrl + `/${id}/publish/integration`, integration)
+  }
+  removeIntegration(xpertId: string, id: string) {
+    return this.httpClient.delete(this.apiBaseUrl + `/${xpertId}/publish/integration/${id}`,)
   }
 
   validateTitle(title: string) {

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, Component, computed, HostListener, HostBinding, inject, input, model } from '@angular/core'
+import { booleanAttribute, Component, computed, HostListener, HostBinding, inject, input, model, effect } from '@angular/core'
 import { MatDialog } from '@angular/material/dialog'
 import { EmojiComponent } from '@ctrl/ngx-emoji-mart/ngx-emoji'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -69,6 +69,14 @@ export class EmojiAvatarComponent {
   readonly emojiSize = computed(() => (this.large() ? 24 : this.small() ? 16 : this.xs() ? 14 : 18))
 
   @HostBinding('class.focused') focused = false;
+
+  constructor() {
+    effect(() => {
+      if (this.cva.value$()) {
+        this.avatar.set(this.cva.value$())
+      }
+    }, { allowSignalWrites: true })
+  }
 
   @HostListener('click')
   onClick() {

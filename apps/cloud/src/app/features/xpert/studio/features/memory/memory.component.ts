@@ -6,7 +6,6 @@ import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { LongTermMemoryTypeEnum, TLongTermMemory, TLongTermMemoryConfig } from '@metad/contracts'
 import { IfAnimations, OverlayAnimations } from '@metad/core'
-import { NgmRadioSelectComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
 import { XpertStudioApiService } from '../../domain'
@@ -26,7 +25,6 @@ import { NgmTooltipDirective } from '@metad/ocap-angular/core'
     MatSliderModule,
     MatTooltipModule,
     MatCheckboxModule,
-    NgmRadioSelectComponent,
 
     NgmTooltipDirective,
     CopilotPromptEditorComponent,

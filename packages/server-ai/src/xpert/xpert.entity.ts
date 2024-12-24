@@ -1,6 +1,7 @@
 import {
 	AiBusinessRole,
 	ICopilotModel,
+	IIntegration,
 	IKnowledgebase,
 	ITag,
 	IUser,
@@ -15,7 +16,7 @@ import {
 	TXpertTeamDraft,
 	XpertTypeEnum
 } from '@metad/contracts'
-import { Tag, User } from '@metad/server-core'
+import { Integration, Tag, User } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, OneToMany, OneToOne, RelationId } from 'typeorm'
@@ -219,4 +220,14 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 		name: 'tag_xpert'
 	})
 	tags?: ITag[]
+
+	@ApiProperty({ type: () => Integration, isArray: true })
+	@ManyToMany(() => Integration, {
+		onUpdate: 'CASCADE',
+		onDelete: 'CASCADE'
+	})
+	@JoinTable({
+		name: 'xpert_to_integration',
+	})
+	integrations?: IIntegration[]
 }

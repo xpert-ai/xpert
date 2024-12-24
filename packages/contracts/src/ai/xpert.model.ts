@@ -7,6 +7,7 @@ import { TAvatar } from '../types'
 import { IXpertAgent } from './xpert-agent.model'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
+import { IIntegration } from '../integration.model'
 
 export type ToolCall = LToolCall
 
@@ -85,7 +86,11 @@ export type TXpert = {
    * The corresponding person in charge, whose has the authority to execute this digital expert
    */
   managers?: IUser[]
-
+  /**
+   * Integrations for this xpert
+   */
+  integrations?: IIntegration[]
+  
   tags?: ITag[]
 }
 
