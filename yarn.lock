@@ -5037,6 +5037,13 @@
   dependencies:
     js-tiktoken "^1.0.12"
 
+"@langchain/xai@0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@langchain/xai/-/xai-0.0.1.tgz#e9dfbae3e64f3bfab2c5236b311f090f71a0cace"
+  integrity sha512-F1/btq7+DzvyBFsCsShkt1MVUXIo52b4f6Ti2Eea0o/Oth/D2jfpnQmZLZ4rZHSGjxI0bRkS5zLyYveTbr+7yA==
+  dependencies:
+    "@langchain/openai" "~0.3.0"
+
 "@larksuiteoapi/node-sdk@^1.30.0":
   version "1.33.0"
   resolved "https://registry.yarnpkg.com/@larksuiteoapi/node-sdk/-/node-sdk-1.33.0.tgz#33d22ac10a11171d5161e9e1bd82a248c56b2540"

@@ -1,0 +1,7 @@
+:host {
+  @apply flex h-[80vh] rounded-2xl overflow-hidden shadow-xl bg-components-card-bg;
+}
+
+.integration.active {
+  @apply bg-white/30;
+}

@@ -4,7 +4,7 @@ import {
 import { IOrganizationProjectsUpdateInput } from './organization-projects.model';
 import { IOrganizationUpdateInput } from './organization.model';
 import { ITag } from './tag-entity.model';
-import { TAvatar } from './types';
+import { I18nObject, TAvatar } from './types';
 
 // export interface IIntegrationSetting
 // 	extends IBasePerTenantAndOrganizationEntityModel {
@@ -93,7 +93,9 @@ export interface IIntegrationMapSyncOrganization
 export enum IntegrationEnum {
 	UPWORK = 'Upwork',
 	HUBSTAFF = 'Hubstaff',
-	LARK = 'Lark'
+	LARK = 'Lark',
+	DINGTALK = 'DingTalk',
+	WECOM = 'WeCom'
 }
 
 // export enum IntegrationEntity {
@@ -189,4 +191,13 @@ export const DEFAULT_INTEGRATIONS = [
 export interface IDateRangeActivityFilter {
 	start: Date;
 	end: Date;
+}
+
+export type TIntegrationProvider = {
+	name: string
+	label: I18nObject
+	avatar: string
+	schema?: any
+	webhookUrl?: (integration: IIntegration, baseUrl: string) => string
+	pro?: boolean
 }

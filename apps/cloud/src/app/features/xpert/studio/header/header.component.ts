@@ -10,6 +10,7 @@ import {
   ChatConversationService,
   getErrorMessage,
   IChatConversation,
+  IntegrationEnum,
   OrderTypeEnum,
   ToastrService,
   XpertService
@@ -25,6 +26,7 @@ import { XpertExecutionService } from '../services/execution.service'
 import { XpertStudioComponent } from '../studio.component'
 import { XpertStudioFeaturesComponent } from '../features/features.component'
 import { Dialog } from '@angular/cdk/dialog'
+import { XpertPublishComponent } from 'apps/cloud/src/app/@shared/xpert'
 
 @Component({
   selector: 'xpert-studio-header',
@@ -57,6 +59,7 @@ export class XpertStudioHeaderComponent {
   readonly sidePanel = model<'preview' | 'variables'>(null)
 
   readonly team = computed(() => this.xpertStudioComponent.team())
+  readonly xpert = this.xpertStudioComponent.xpert
   readonly version = computed(() => this.team()?.version)
   readonly latest = computed(() => this.team()?.latest)
   readonly versions = computed(() => {
@@ -164,6 +167,13 @@ export class XpertStudioHeaderComponent {
 
     // const draft = isDraft ? this.apiService.store.getValue().draft : this.apiService.getInitialDraft()
     // const result = stringify(instanceToPlain(new XpertDraftDslDTO(draft)))
-    
+  }
+
+  publishToIntegration() {
+    this.#dialog.open(XpertPublishComponent, {
+      data: {
+        xpert: this.xpert(),
+      }
+    }).closed.subscribe({})
   }
 }

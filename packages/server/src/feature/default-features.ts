@@ -1,7 +1,7 @@
-import { pacToggleFeatures } from '@metad/server-config';
+import { toggleFeatures } from '@metad/server-config';
 import { FeatureEnum, IFeatureCreateInput } from '@metad/contracts';
 
-const features = pacToggleFeatures;
+const features = toggleFeatures;
 
 export let DEFAULT_FEATURES: IFeatureCreateInput[] = [
 	{

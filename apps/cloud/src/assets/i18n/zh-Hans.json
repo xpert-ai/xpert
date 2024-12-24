@@ -268,7 +268,8 @@
       "InService": "运行中",
       "SecretKey": "密钥",
       "LastUsed": "最后使用",
-      "Never": "从未"
+      "Never": "从未",
+      "AvailablePro": "企业版中可用"
     },
     "MENU": {
       "Certification": "认证",
@@ -548,7 +549,8 @@
       "ArchivedSuccessfully": "已成功归档",
       "NoRecordsFoundinFile": "文件中未找到记录",
       "UnsavedChanges": "未保存的更改",
-      "SavedDraft": "草稿已保存！"
+      "SavedDraft": "草稿已保存！",
+      "Successfully": "成功"
     },
     "NOTES": {
       "ORGANIZATIONS": {
@@ -2073,7 +2075,13 @@
       "QAMemoryPromptTooltip": "提示用于通过指令和约束引导 AI 总结对话问题和答案的成功经验",
       "ClearMemory": "清空记忆",
       "ClearAllMemoryOfXpert": "清空跟此专家相关的所有记忆",
-      "SemanticSearchTest": "语义搜索测试"
+      "SemanticSearchTest": "语义搜索测试",
+      "PublishThirdPlatforms": "发布到第三方平台",
+      "PublishTo": "发布到",
+      "PublishToLarketc": "发布到飞书等.",
+      "ConfigurationRequired": "需要进行配置",
+      "XpertPublished": "专家已发布成功",
+      "XpertPublishDeleted": "专家发布已删除"
     },
     "title": {
       "short": "Xpert AI"

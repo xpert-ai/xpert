@@ -30,6 +30,7 @@ import {
   ToastrService,
   toFormlySchema
 } from '../../../../@core'
+import { TextFieldModule } from '@angular/cdk/text-field'
 
 @Component({
   standalone: true,
@@ -42,6 +43,7 @@ import {
     FormsModule,
     ReactiveFormsModule,
     FormlyModule,
+    TextFieldModule,
     MatTooltipModule,
     MatIconModule,
     MatInputModule,

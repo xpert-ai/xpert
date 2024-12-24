@@ -1,0 +1,94 @@
+<div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
+  <div class="w-full flex justify-start items-center mb-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    <span class="text-lg pointer-events-none">
+      {{ 'PAC.Xpert.PublishThirdPlatforms' | translate: { Default: 'Publish to third-party platforms' } }}
+    </span>
+  </div>
+
+  <ul class="flex flex-col items-stretch gap-1">
+    @for (item of integrations(); track item.id) {
+      <li class="integration flex justify-start items-center p-2 rounded-lg cursor-pointer bg-gray-50/10 hover:bg-gray-50/50 text-text-primary"
+        [class.active]="item.id === integration()?.id"
+        (click)="selectIntegration(item)"
+      >
+        <emoji-avatar small class="shrink-0 rounded-xl overflow-hidden shadow-sm mr-1"
+          [avatar]="item.avatar" />
+        {{ item.name }}
+      </li>
+    }
+  </ul>
+
+  <div class="flex justify-end mt-2">
+    <button type="button" class="btn btn-primary btn-large pressable"
+      [cdkMenuTriggerFor]="addMenu"
+    >
+      <i class="ri-apps-2-add-line"></i> {{ 'PAC.ACTIONS.Add' | translate: {Default: 'Add'} }}
+    </button>
+  </div>
+</div>
+
+<ng-template #addMenu>
+  <div cdkMenu class="w-[200px] divide-y-2 p-2">
+    @for (provider of providers(); track provider.name) {
+      <div cdkMenuItem class="mb-1 p-2 relative rounded-xl"
+        [class.enterprise-pro]="provider.pro"
+        (click)="addIntegration(provider)"
+      >
+        <img [src]="'/assets/images/destinations/' + provider.avatar" class="shrink-0 w-auto h-6" >
+        {{ provider.label | i18n }}
+
+        @if (provider.pro) {
+          <img src="/assets/images/illustrations/pro.svg" class="absolute -right-1 -top-1 w-5 h-5"
+            [matTooltip]="'PAC.KEY_WORDS.AvailablePro' | translate: {Default: 'Available in enterprise pro edition'}"
+            matTooltipPosition="above"
+          >
+        }
+      </div>
+    }
+  </div>
+</ng-template>
+
+<div class="grow relative flex flex-col w-[600px] overflow-auto">
+  <div class="!border-b-black/5 shrink-0 border-b border-b-gray-100 py-4 sticky top-0 z-10 bg-slate-50"
+    cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    <div class="flex justify-between items-center pl-6 pr-5 h-6">
+      <div>{{ 'PAC.Xpert.PublishTo' | translate: { Default: 'Publish to ' } }} {{integration()?.provider || '?'}}</div>
+      <div class="flex items-center">
+        <div class="flex justify-center items-center w-6 h-6 cursor-pointer" (click)="close()">
+          <i class="ri-close-line"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  @for (integration of selectedIntegrations(); track integration) {
+    <pac-integration-form #form [integration]="integration" (integrationChange)="updateIntegration($event)" />
+
+    <div class="mt-2 shrink-0 flex py-4 px-6 rounded-b-[10px] bg-gray-50 border-t border-black/5">
+
+      @if (integration.id) {
+        <button type="button" class="btn disabled:btn-disabled btn-danger btn-medium"
+          (click)="remove(integration)">{{'PAC.ACTIONS.Remove' | translate: {Default: 'Remove'} }}</button>
+      }
+
+      <span class="grow"></span>
+
+      <div class="flex space-x-2">
+        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium"
+          (click)="cancel()"
+        >
+          {{ 'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}
+        </button>
+
+        <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
+          [disabled]="form.formGroup.invalid || form.formGroup.pristine"
+          (click)="save(form.formGroup.value)"
+        >{{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}</button>
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <ngm-spin class="absolute left-0 top-0 w-full h-full"></ngm-spin>
+  }
+</div>

@@ -6,6 +6,7 @@ import { TenantModule } from '../tenant/tenant.module'
 import { IntegrationController } from './integration.controller'
 import { Integration } from './integration.entity'
 import { IntegrationService } from './integration.service'
+import { CommandHandlers } from './commands/handlers'
 
 @Module({
 	imports: [
@@ -15,7 +16,7 @@ import { IntegrationService } from './integration.service'
 		CqrsModule
 	],
 	controllers: [IntegrationController],
-	providers: [IntegrationService],
+	providers: [IntegrationService, ...CommandHandlers],
 	exports: [IntegrationService]
 })
 export class IntegrationModule {}

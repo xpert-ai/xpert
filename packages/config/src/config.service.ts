@@ -1,9 +1,12 @@
+import "dotenv/config";
+
 import { DynamicModule, Injectable, Type, Logger } from '@nestjs/common';
 import { IPluginConfig, IApiServerOptions, IAssetOptions } from '@metad/server-common';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { getConfig } from './config-manager';
-import { environment } from './environments/environment';
 import { IEnvironment } from './environments/ienvironment';
+import { environment } from "./environments";
+
 
 @Injectable()
 export class ConfigService {

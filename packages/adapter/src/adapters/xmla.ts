@@ -121,7 +121,7 @@ export class XMLA extends BaseHTTPQueryRunner<XmlaAdapterOptions> {
 
       return response
     } catch (error: any) {
-      if (error.response.status === 401) {
+      if (error.response?.status === 401) {
         // If unauthorized, re-authenticate
         // Retry the request with auth
         response = await this.post(query, {

@@ -1,4 +1,4 @@
-import { ICopilotStore, OrderTypeEnum, RolesEnum, TChatRequest, TXpertTeamDraft, xpertLabel } from '@metad/contracts'
+import { ICopilotStore, IIntegration, OrderTypeEnum, RolesEnum, TChatRequest, TXpertTeamDraft, xpertLabel } from '@metad/contracts'
 import {
 	CrudController,
 	OptionParams,
@@ -36,7 +36,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { DeleteResult, FindConditions, In, IsNull, Like, Not } from 'typeorm'
 import { XpertAgentExecution } from '../core/entities/internal'
 import { FindExecutionsByXpertQuery } from '../xpert-agent-execution/queries'
-import { XpertChatCommand, XpertExportCommand, XpertImportCommand } from './commands'
+import { XpertChatCommand, XpertDelIntegrationCommand, XpertExportCommand, XpertImportCommand, XpertPublishIntegrationCommand } from './commands'
 import { XpertDraftDslDTO, XpertPublicDTO } from './dto'
 import { Xpert } from './xpert.entity'
 import { XpertService } from './xpert.service'
@@ -160,6 +160,16 @@ export class XpertController extends CrudController<Xpert> {
 	@Post(':id/publish')
 	async publish(@Param('id') id: string) {
 		return this.service.publish(id)
+	}
+
+	@Post(':id/publish/integration')
+	async publishIntegration(@Param('id') id: string, @Body() integration: Partial<IIntegration>) {
+		return this.commandBus.execute(new XpertPublishIntegrationCommand(id, integration))
+	}
+
+	@Delete(':id/publish/integration/:integration')
+	async deleteIntegration(@Param('id') id: string, @Param('integration') integration: string,) {
+		return this.commandBus.execute(new XpertDelIntegrationCommand(id, integration))
 	}
 
 	@Get(':id/executions')
