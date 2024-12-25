@@ -19,8 +19,8 @@ export const prodEnvironment: IEnvironment = {
 
 	EXPRESS_SESSION_SECRET: 'pangolin',
 	USER_PASSWORD_BCRYPT_SALT_ROUNDS: 12,
-	// JWT_SECRET: 'secretKey',
-	// JWT_REFRESH_SECRET: 'refreshSecretKey',
+	JWT_SECRET: process.env.JWT_SECRET,
+	JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
 	// jwtExpiresIn: '1h',
 	// jwtRefreshExpiresIn: '7d',
 	mailVerificationUrl: API_BASE_URL + '/api/auth/verify',
