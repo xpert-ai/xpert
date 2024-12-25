@@ -6,7 +6,6 @@ import { Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MAT_DIALOG_DATA } from '@angular/material/dialog'
 import { DataSourceService } from '@metad/cloud/state'
-import { NgmDialogComponent } from '@metad/components/dialog'
 import { NgmInputComponent } from '@metad/ocap-angular/common'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { AgentType, DataSource, TableColumnType, compact } from '@metad/ocap-core'
@@ -14,7 +13,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { groupBy } from 'lodash-es'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
 import { CreationTable, getErrorMessage } from '../../../@core'
-import { UploadSheetType, convertExcelDate2ISO, readExcelJson } from '../types'
+import { UploadSheetType, WorkBook, convertExcelDate2ISO, readExcelJson } from '../types'
 import { UploadComponent, UploadFile } from '../../../@shared/files'
 import { MaterialModule } from '../../../@shared/material.module'
 import { createTimer } from '../../../@shared/timer'
@@ -30,7 +29,6 @@ import { createTimer } from '../../../@shared/timer'
     CdkMenuModule,
     MaterialModule,
     TranslateModule,
-    NgmDialogComponent,
     NgmInputComponent,
     OcapCoreModule,
     UploadComponent
@@ -40,7 +38,7 @@ export class ModelUploadComponent {
   private data: { dataSource: DataSource; id: string } = inject(MAT_DIALOG_DATA)
   private readonly dataSourceService = inject(DataSourceService)
 
-  fileList = []
+  fileList: UploadFile[] = []
   // 加载文件中
   readonly isLoading = signal(false)
   // 上传中
@@ -63,7 +61,7 @@ export class ModelUploadComponent {
   error: string = null
 
   removeFile(index: number) {
-    const file = this.fileList[index]
+    const file = this.fileList[index].file
     this.fileList.splice(index, 1)
     this.fileList = [...this.fileList]
     this.sheets$.next(this.sheets$.value.filter((item) => item.fileName !== file.name))
@@ -102,11 +100,12 @@ export class ModelUploadComponent {
     this.error = null
     this.isLoading.set(true)
     // 暂时只支持单文件上传
-    this.fileList = Array.from(files)
+    this.fileList = Array.from(files).map((file) => ({file}))
+
     this.sheets$.next([])
     try {
       for (let i = 0; i < this.fileList.length; i++) {
-        await this.appendFile(this.fileList[i])
+        await this.appendFile(this.fileList[i].file)
       }
       this.isLoading.set(false)
 
@@ -238,8 +237,15 @@ export async function readExcelWorkSheets(file: File) {
     const reader: FileReader = new FileReader()
 
     reader.onload = async (e: any) => {
-      const data: string = e.target.result
-      const wBook = XLSX.read(data, { type: 'array' })
+      const data: ArrayBuffer = e.target.result
+      let wBook: WorkBook
+      if (file.type === 'text/csv') {
+        const decoder = new TextDecoder('utf-8')
+        const decodedData = decoder.decode(data)
+        wBook = XLSX.read(decodedData, { type: 'string' })
+      } else {
+        wBook = XLSX.read(data, { type: 'array' })
+      }
 
       try {
         resolve(await readExcelJson(wBook, file.name))

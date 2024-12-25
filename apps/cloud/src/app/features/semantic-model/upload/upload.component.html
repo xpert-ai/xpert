@@ -10,7 +10,7 @@
         <mat-step [label]="'PAC.MODEL.UPLOAD.Files' | translate: {Default: 'Files'}">
             <div *ngFor="let file of fileList; index as i" class="flex justify-end items-center overflow-hidden">
                 <span class="text-ellipsis">
-                    {{ file.name }}
+                    {{ file.file.name }}
                 </span>
                 <button mat-icon-button ngmAppearance="danger" displayDensity="cosy" (click)="removeFile(i)">
                   <mat-icon>close</mat-icon> 
@@ -102,11 +102,11 @@
 <div class="relative flex-1 flex flex-col justify-start items-stretch overflow-auto">
   @switch (stepper.selectedIndex) {
     @case(0) {
-        <pac-upload class="flex-1"
-            [files]="fileList"
-            (filesChange)="onFileListChange($event)"
-            (removeFileChange)="removeFiles($event)"
-        ></pac-upload>
+      <pac-upload class="flex-1"
+        [files]="fileList"
+        (filesChange)="onFileListChange($event)"
+        (removeFileChange)="removeFiles($event)"
+      />
     }
     @case(1) {
       @if (isLoading()) {

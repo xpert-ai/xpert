@@ -1,8 +1,8 @@
-import { TableColumnType, TableEntity, omit, pick } from '@metad/ocap-core'
-import { ColumnDef } from '../../@core'
 import { SemanticModelServerService } from '@metad/cloud/state'
-import { firstValueFrom } from 'rxjs'
 import { saveAsYaml } from '@metad/core'
+import { TableColumnType, TableEntity, omit, pick } from '@metad/ocap-core'
+import { firstValueFrom } from 'rxjs'
+import { ColumnDef } from '../../@core'
 
 export interface UploadSheetType extends Omit<TableEntity, 'columns'> {
   file: File
@@ -25,11 +25,11 @@ export async function fetchExcelFile(name: string, sourceUrl: string) {
   const XLSX = await import('xlsx')
   // Load from excel
   const response = await fetch(sourceUrl).then((response) => {
-      if (response.ok) {
-        return response
-      }
-      throw new Error(`Can't download file '${sourceUrl}' for reason: ${response.statusText || response.status}`)
-    })
+    if (response.ok) {
+      return response
+    }
+    throw new Error(`Can't download file '${sourceUrl}' for reason: ${response.statusText || response.status}`)
+  })
   const reader = response.body.getReader()
   const stream = new ReadableStream({
     start(controller) {
@@ -55,7 +55,8 @@ export async function fetchExcelFile(name: string, sourceUrl: string) {
   return data
 }
 
-export async function readExcelJson(wSheet, fileName = ''): Promise<UploadSheetType[]> {
+export type WorkBook = any
+export async function readExcelJson(wSheet: WorkBook, fileName = ''): Promise<UploadSheetType[]> {
   const XLSX = await import('xlsx')
 
   const name = fileName
@@ -79,11 +80,11 @@ export async function readExcelJson(wSheet, fileName = ''): Promise<UploadSheetT
     const refExcelData = origExcelData.slice(1).map((value) => Object.assign([], value))
     const excelTransformNum = origExcelData[0].map((col) => `${col}`.trim())
 
-    /* 合併成JSON */
+    /* Combine to JSON */
     const excelDataEncodeToJson = refExcelData.slice(0).map((item, row) =>
       item.reduce((obj, val, i) => {
         if (!excelTransformNum[i]) {
-          throw new Error(`没有找到 ${row + 2} 行 ${i + 1} 列单元格对应的列名称`)
+          throw new Error(`No column name found for cell at row ${row + 2}, column ${i + 1}`)
         }
         obj[excelTransformNum[i].trim()] = val
         return obj
@@ -110,7 +111,7 @@ export async function readExcelJson(wSheet, fileName = ''): Promise<UploadSheetT
 }
 
 export function mapToTableColumnType(type: string): TableColumnType {
-  switch(type) {
+  switch (type) {
     case 'string':
       return 'String'
     case 'number':
@@ -134,6 +135,11 @@ export function convertExcelDate2ISO(cell: number, type: TableColumnType) {
 
 export async function exportSemanticModel(modelService: SemanticModelServerService, id: string) {
   const model = await firstValueFrom(modelService.getById(id, ['roles']))
-  model.roles = model.roles?.map((role) => omit(role, 'id',  'tenantId', 'organizationId', 'createdById', 'updatedById', 'createdAt', 'updatedAt', 'modelId'))
-  saveAsYaml(model.name + '.yml', pick(model, 'key', 'name', 'description', 'type', 'catalog', 'cube', 'options', 'preferences', 'roles'))
+  model.roles = model.roles?.map((role) =>
+    omit(role, 'id', 'tenantId', 'organizationId', 'createdById', 'updatedById', 'createdAt', 'updatedAt', 'modelId')
+  )
+  saveAsYaml(
+    model.name + '.yml',
+    pick(model, 'key', 'name', 'description', 'type', 'catalog', 'cube', 'options', 'preferences', 'roles')
+  )
 }
