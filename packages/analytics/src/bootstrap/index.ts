@@ -10,7 +10,7 @@ import { AnalyticsService } from '../app.service'
 import { BootstrapModule } from './bootstrap.module'
 
 const LOGGER_LEVELS = ['error', 'warn', 'log', 'debug', 'verbose'] as LogLevel[]
-const LoggerIndex = LOGGER_LEVELS.findIndex((value) => value === (process.env.LOGGER_LEVEL || 'warn'))
+const LoggerIndex = LOGGER_LEVELS.findIndex((value) => value === (process.env.LOG_LEVEL || 'warn'))
 
 export async function bootstrap(options: {title: string; version: string}) {
 	const app = await NestFactory.create(BootstrapModule, {

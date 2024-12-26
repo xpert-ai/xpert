@@ -4,8 +4,7 @@
 	"watch": ["apps/api/src", "packages/contacts/src", "packages/common/src", "packages/config/src", "packages/adapter/src", "packages/server/src", "packages/auth/src", "packages/server-ai/src", "packages/analytics/src", "packages/xmla/src"],
 	"exec": "yarn ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json apps/api/src/main.ts",
 	"env": {
-		"NODE_ENV": "development",
-		"LOGGER_LEVEL": "debug"
+		"NODE_ENV": "development"
 	},
 	"ext": "ts"
 }

@@ -1,4 +1,5 @@
 import { IChatMessage } from '@metad/contracts'
+import { Logger } from '@nestjs/common';
 import { ChatLarkContext, LARK_END_CONVERSATION, TLarkConversationStatus } from '../types'
 import { LarkConversationService } from '../conversation.service'
 
@@ -12,6 +13,8 @@ export class ChatLarkMessage {
 		img_key: ChatLarkMessage.logoImgKey
 	}
 	static readonly helpUrl = 'https://mtda.cloud/docs/chatbi/feishu/bot/'
+
+	private readonly logger = new Logger(ChatLarkMessage.name)
 
 	private id: string = null
 	public status: ChatLarkMessageStatus = 'thinking'

@@ -18,7 +18,7 @@ import {
 	ILarkConfig
 } from '@metad/server-common';
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+export type LogLevel = 'verbose' | 'debug' | 'log' | 'warn' | 'error';
 
 /**
  * environment variables that goes into process.env

@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 import { FileStorageProviderEnum } from '@metad/contracts';
-import { IEnvironment, IPACFeatures } from './ienvironment';
+import { IEnvironment, IPACFeatures, LogLevel } from './ienvironment';
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000'
 
@@ -14,7 +14,7 @@ export const prodEnvironment: IEnvironment = {
 	envName: 'prod',
 
 	env: {
-		LOG_LEVEL: 'debug'
+		LOG_LEVEL: (process.env.LOG_LEVEL || 'log') as LogLevel
 	},
 
 	EXPRESS_SESSION_SECRET: 'pangolin',

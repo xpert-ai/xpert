@@ -1,5 +1,6 @@
 ARG HOST
 ARG PORT
+ARG LOG_LEVEL
 
 FROM node:18-alpine AS build
 
@@ -66,7 +67,8 @@ ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=2048"} \
     DB_SSL_MODE=${DB_SSL_MODE} \
     HOST=${HOST:-0.0.0.0} \
     PORT=${PORT:-3000} \
-    DEMO=${DEMO:-false}
+    DEMO=${DEMO:-false} \
+    LOG_LEVEL=${LOG_LEVEL}
 
 WORKDIR /srv/pangolin
 
