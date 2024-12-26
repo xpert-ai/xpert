@@ -29,4 +29,16 @@ export class LarkConversationService {
 	async ask(xpertId: string, content: string, message: ChatLarkMessage) {
 		await this.commandBus.execute(new LarkChatXpertCommand(xpertId, content, message))
 	}
+
+	async confirm(xpertId: string, message: ChatLarkMessage) {
+		await this.commandBus.execute(new LarkChatXpertCommand(xpertId, null, message, {
+			confirm: true
+		}))
+	}
+
+	async reject(xpertId: string, message: ChatLarkMessage) {
+		await this.commandBus.execute(new LarkChatXpertCommand(xpertId, null, message, {
+			reject: true
+		}))
+	}
 }

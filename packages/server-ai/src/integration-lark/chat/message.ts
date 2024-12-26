@@ -1,7 +1,16 @@
-import { IChatMessage } from '@metad/contracts'
-import { Logger } from '@nestjs/common';
-import { ChatLarkContext, LARK_END_CONVERSATION, TLarkConversationStatus } from '../types'
+import { I18nObject, IChatMessage, TSensitiveOperation } from '@metad/contracts'
+import { Logger } from '@nestjs/common'
 import { LarkConversationService } from '../conversation.service'
+import {
+	ChatLarkContext,
+	isConfirmAction,
+	isEndAction,
+	isRejectAction,
+	LARK_CONFIRM,
+	LARK_END_CONVERSATION,
+	LARK_REJECT,
+	TLarkConversationStatus
+} from '../types'
 
 export type ChatLarkMessageStatus = IChatMessage['status'] | 'continuing' | 'waiting' | TLarkConversationStatus
 
@@ -28,7 +37,7 @@ export class ChatLarkMessage {
 
 	constructor(
 		private chatContext: ChatLarkContext,
-		private options: {userId: string; xpertId: string; text: string},
+		private options: { userId: string; xpertId: string; text: string },
 		private conversation?: LarkConversationService
 	) {}
 
@@ -40,6 +49,8 @@ export class ChatLarkMessage {
 				return '继续思考...'
 			case 'waiting':
 				return '还在思考，请稍后...'
+			case 'interrupted':
+				return '请确认'
 			default:
 				return ''
 		}
@@ -85,6 +96,7 @@ export class ChatLarkMessage {
 			tag: 'action',
 			layout: 'default',
 			actions: [
+				...(this.status === 'interrupted' ? this.getInterruptedActions() : []),
 				{
 					tag: 'button',
 					text: {
@@ -108,11 +120,38 @@ export class ChatLarkMessage {
 					width: 'default',
 					size: 'medium',
 					multi_url: {
-						url: ChatLarkMessage.helpUrl,
+						url: ChatLarkMessage.helpUrl
 					}
 				}
 			]
 		}
+	}
+
+	getInterruptedActions() {
+		return [
+			{
+				tag: 'button',
+				text: {
+					tag: 'plain_text',
+					content: '确认'
+				},
+				type: 'primary',
+				width: 'default',
+				size: 'medium',
+				value: LARK_CONFIRM
+			},
+			{
+				tag: 'button',
+				text: {
+					tag: 'plain_text',
+					content: '拒绝'
+				},
+				type: 'danger',
+				width: 'default',
+				size: 'medium',
+				value: LARK_REJECT
+			}
+		]
 	}
 
 	async update(options?: {
@@ -130,10 +169,12 @@ export class ChatLarkMessage {
 		if (options?.header) {
 			this.header = options.header
 		}
+
+		const elements = this.getCard()
 		if (this.id) {
 			this.larkService
 				.patchAction(this.chatContext, this.id, {
-					...this.getCard(),
+					...elements,
 					header: this.header ?? this.getHeader()
 				})
 				.subscribe({
@@ -148,7 +189,7 @@ export class ChatLarkMessage {
 			const result = await this.larkService.interactiveActionMessage(
 				this.chatContext,
 				{
-					...this.getCard(),
+					...elements,
 					header: this.header ?? this.getHeader()
 				},
 				{
@@ -165,25 +206,143 @@ export class ChatLarkMessage {
 		}
 	}
 
-	async onAction(action: {value: string}, callback?: (action) => void) {
-		if (action?.value === LARK_END_CONVERSATION || action?.value === `"${LARK_END_CONVERSATION}"`) {
-			await this.update({status: 'end', elements: [
-				{
-					tag: 'markdown',
-					content: `对话已结束。如果您有其他问题，欢迎随时再来咨询。`
-				}
-			]})
+	async onAction(action: { value: string }, callback?: (action) => void) {
+		if (isEndAction(action?.value)) {
+			await this.update({
+				status: 'end',
+				elements: [
+					{
+						tag: 'markdown',
+						content: `对话已结束。如果您有其他问题，欢迎随时再来咨询。`
+					}
+				]
+			})
 			await this.conversation.endConversation(this.options.userId, this.options.xpertId)
-		} else if (typeof action.value === 'string') {
+		} else if (isConfirmAction(action?.value)) {
+			await this.conversation.confirm(this.options.xpertId, this)
+		} else if (isRejectAction(action?.value)) {
+			await this.conversation.reject(this.options.xpertId, this)
+		} else if (typeof action?.value === 'string') {
 			await this.conversation.ask(this.options.xpertId, action.value, this)
 		} else {
 			callback?.(action)
 		}
 	}
 
+	async confirm(operation: TSensitiveOperation) {
+		await this.update({
+			status: 'interrupted',
+			elements: createConfirmMessage(operation),
+			action: (action) => {
+				console.log(action)
+			}
+		})
+	}
 }
 
 export type ChatStack = {
 	text: string
 	message: ChatLarkMessage
+}
+
+// 构造 Lark 消息卡片
+function createConfirmMessage(operation: TSensitiveOperation) {
+	// Helper: 处理多语言或默认值
+	const resolveI18n = (i18n: I18nObject | string): string =>
+		typeof i18n === 'string' ? i18n : i18n?.zh_Hans || i18n?.en_US || ''
+
+	const toolElements = operation.toolCalls.map((toolCall, index) => {
+		const { call, parameters } = toolCall
+		const paramsElements = []
+		parameters.map((param) => {
+			paramsElements.push({
+				tag: 'markdown',
+				content: `**${resolveI18n(param.title || param.name)}** <text_tag color='turquoise'>${param.name}</text_tag>: ${call.args[param.name]}`
+			})
+
+			// paramsElements.push({
+			// 	tag: 'input',
+			// 	placeholder: {
+			// 		tag: 'plain_text',
+			// 		content: resolveI18n(param.placeholder || '请输入...')
+			// 	},
+			// 	label: {
+			// 		// 文本标签，即对输入框的描述，用于提示用户要填写的内容。
+			// 		tag: 'plain_text',
+			// 		content: resolveI18n(param.title || param.name) + ':'
+			// 	},
+			// 	default_value: call.args[param.name],
+			// 	width: 'default',
+			// 	name: param.name,
+			// 	disabled: true,
+			// 	fallback: {
+			// 		tag: 'fallback_text',
+			// 		text: {
+			// 			tag: 'plain_text',
+			// 			content: '仅支持在飞书 V6.8 及以上版本使用'
+			// 		}
+			// 	}
+			// })
+		})
+
+		return [
+			{
+				tag: 'markdown',
+				content: `**${toolCall.info.title || toolCall.info.name}**: *${toolCall.info.description}*`
+			},
+			...paramsElements
+		]
+	})
+
+	return [
+
+		...toolElements.flat(),
+				{
+					tag: 'hr',
+					"margin": "0px 0px 10px 0px"
+				},
+
+		// {
+		// 	tag: 'form',
+		// 	elements: [
+		// 		...toolElements.flat(),
+		// 		{
+		// 			tag: 'hr',
+		// 			"margin": "0px 0px 10px 0px"
+		// 		},
+				// {
+				// 	tag: 'action',
+				// 	layout: 'default',
+				// 	actions: [
+				// 		{
+				// 			tag: 'button',
+				// 			text: {
+				// 				tag: 'plain_text',
+				// 				content: '确认'
+				// 			},
+				// 			type: 'primary',
+				// 			width: 'default',
+				// 			size: 'medium',
+				// 			value: LARK_CONFIRM,
+				// 			form_action_type: 'submit',
+				// 			name: 'Button_confirm'
+				// 		},
+				// 		{
+				// 			tag: 'button',
+				// 			text: {
+				// 				tag: 'plain_text',
+				// 				content: '拒绝'
+				// 			},
+				// 			type: 'danger',
+				// 			width: 'default',
+				// 			size: 'medium',
+				// 			value: LARK_REJECT,
+				// 			name: 'Button_reject'
+				// 		}
+				// 	]
+				// }
+			// ],
+		// 	name: 'Form_m55io38s'
+		// }
+	]
 }

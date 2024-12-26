@@ -10,7 +10,8 @@ import { isEqual } from 'date-fns'
 import express from 'express'
 import { filter, Observable, Observer, Subject, Subscriber } from 'rxjs'
 import { LarkBotMenuCommand, LarkMessageCommand } from './commands'
-import { ChatLarkContext, LarkMessage } from './types'
+import { ChatLarkContext, isEndAction, LarkMessage } from './types'
+import { LarkConversationService } from './conversation.service'
 
 @Injectable()
 export class LarkService {
@@ -34,6 +35,7 @@ export class LarkService {
 	>()
 
 	constructor(
+		private readonly conversation: LarkConversationService,
 		private readonly userService: UserService,
 		private readonly roleService: RoleService,
 		private readonly configService: ConfigService,
@@ -91,6 +93,7 @@ export class LarkService {
 	}
 
 	createEventDispatcher(integration: IIntegration, client: lark.Client) {
+		const { xpertId } = integration.options ?? {}
 		return new lark.EventDispatcher({
 			verificationToken: integration.options.verificationToken,
 			encryptKey: integration.options.encryptKey,
@@ -156,7 +159,6 @@ export class LarkService {
 
 				try {
 				    const user = RequestContext.currentUser()
-					console.log(user.id)
 					
 					// await this.getUser(client, tenant.id, data.sender.sender_id.union_id)
 					await this.commandBus.execute<LarkMessageCommand, Observable<any>>(
@@ -254,6 +256,9 @@ export class LarkService {
 					if (this.actions.get(messageId)) {
 						this.actions.get(messageId).next(data)
 						return true
+					} else if(isEndAction(data.action?.value) && xpertId) {
+						const user = RequestContext.currentUser()
+						await this.conversation.endConversation(user.id, xpertId)
 					} else {
 						this.errorMessage(
 							{ integrationId: integration.id, chatId: data.context.open_chat_id },

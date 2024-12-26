@@ -29,7 +29,9 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 						input
 					},
 					xpertId,
-					conversationId
+					conversationId,
+					confirm: command.options?.confirm,
+  					reject: command.options?.reject,
 				},
 				null
 			)
@@ -61,6 +63,17 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 										this.#logger.error(err)
 									})
 								break
+							}
+							case ChatMessageEventTypeEnum.ON_CONVERSATION_END: {
+								if (message.data.status === XpertAgentExecutionStatusEnum.INTERRUPTED && message.data.operation) {
+									larkMessage.confirm(message.data.operation).catch((err) => {
+										this.#logger.error(err)
+									})
+								}
+								break
+							}
+							default: {
+								console.log(`未处理的事件: ${message.event}`)
 							}
 						}
 					}
