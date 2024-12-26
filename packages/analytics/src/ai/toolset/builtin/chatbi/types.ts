@@ -5,6 +5,11 @@ import { omit, upperFirst } from "lodash"
 export enum ChatBIToolsEnum {
 	SHOW_INDICATORS = 'show_indicators',
 	ANSWER_QUESTION = 'answer_question',
+	CREATE_INDICATOR = 'create_indicator'
+}
+
+export enum ChatBIVariableEnum {
+	INDICATORS = 'chatbi_indicators'
 }
 
 export type TChatBICredentials = {
@@ -16,7 +21,6 @@ export type ChatBIContext = {
 	dsCoreService: DSCoreService
 	entityType: EntityType
 	logger?: Logger
-	// subscriber: Subscriber<any>
 }
 
 

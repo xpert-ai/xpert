@@ -1,0 +1,12 @@
+identity:
+  name: knowledge_retriever
+  author: Xpert AI
+  label:
+    en_US: Knowledge Retriever
+    zh_Hans: 知识检索器
+description:
+  human:
+    en_US: Knowledge Retriever
+    zh_Hans: 知识检索器
+  llm: A tool to retrieve knowledges.
+parameters:
