@@ -269,7 +269,11 @@
       "SecretKey": "密钥",
       "LastUsed": "最后使用",
       "Never": "从未",
-      "AvailablePro": "企业版中可用"
+      "AvailablePro": "企业版中可用",
+      "Like": "喜欢",
+      "Dislike": "不喜欢",
+      "CancelLike": "取消喜欢",
+      "CancelDislike": "取不喜欢"
     },
     "MENU": {
       "Certification": "认证",

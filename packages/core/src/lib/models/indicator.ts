@@ -25,6 +25,12 @@ export interface Indicator {
    * Name
    */
   name: string
+
+  /**
+   * Description
+   */
+  description?: string
+
   /**
    * Semantic model id
    */

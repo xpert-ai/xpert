@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { NgmIsNilPipe } from '@metad/ocap-angular/core'
+import { NgmIsNilPipe, NgmLanguageEnum } from '@metad/ocap-angular/core'
 import { DataSettings, IndicatorTagEnum, QueryReturn, TimeGranularity } from '@metad/ocap-core'
+import { TranslateService } from '@ngx-translate/core'
 import { map, startWith } from 'rxjs'
 import { NgmIndicatorService } from '../indicator.service'
 import { NgmSparkLineDirective } from '../spark-line/spark-line.directive'
@@ -15,7 +16,10 @@ import { StatisticalType, Trend } from '../types'
   templateUrl: 'indicator.component.html',
   styleUrls: ['indicator.component.scss'],
   providers: [NgmIndicatorService],
-  imports: [CommonModule, NgmSparkLineDirective, NgmIsNilPipe]
+  imports: [CommonModule, NgmSparkLineDirective, NgmIsNilPipe],
+  host: {
+    '[class.reverse-semantic-color]': 'reverseSemanticColor()'
+  }
 })
 export class NgmIndicatorComponent {
   statisticalType: StatisticalType = StatisticalType.CurrentPeriod
@@ -23,6 +27,7 @@ export class NgmIndicatorComponent {
   TagEnum = IndicatorTagEnum
 
   readonly dataService = inject(NgmIndicatorService)
+  readonly #translate = inject(TranslateService)
 
   // Inputs
   readonly dataSettings = input.required<DataSettings>()
@@ -35,6 +40,7 @@ export class NgmIndicatorComponent {
   // Outputs
   readonly toggleTag = output<void>()
 
+  // States
   readonly initied = toSignal(
     this.dataService.onAfterServiceInit().pipe(
       map(() => true),
@@ -66,6 +72,14 @@ export class NgmIndicatorComponent {
   readonly main = computed(() => this.data()?.data)
   readonly trend = computed(() => this.data()?.trend)
   readonly trends = computed(() => this.data()?.trends)
+
+  readonly currentLang = toSignal(
+    this.#translate.onLangChange.pipe(
+      map((event) => event.lang),
+      startWith(this.#translate.currentLang)
+    )
+  )
+  readonly reverseSemanticColor = computed(() => this.currentLang() === NgmLanguageEnum.SimplifiedChinese)
 
   constructor() {
     effect(() => {

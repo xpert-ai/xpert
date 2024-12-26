@@ -20,9 +20,9 @@ import { RouterModule } from '@angular/router'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { NgmIndicatorComponent } from '@metad/ocap-angular/indicator'
+import { NgmIndicatorComponent, NgmIndicatorExplorerComponent } from '@metad/ocap-angular/indicator'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
-import { DataSettings, Indicator, TimeGranularity } from '@metad/ocap-core'
+import { DataSettings, Indicator, IndicatorTagEnum, TimeGranularity } from '@metad/ocap-core'
 import { StoryExplorerComponent } from '@metad/story'
 import { ExplainComponent } from '@metad/story/story'
 import { NxWidgetKpiComponent } from '@metad/story/widgets/kpi'
@@ -48,7 +48,8 @@ import { Store } from '../../../@core'
     NgmSelectionModule,
     AnalyticalCardModule,
     NxWidgetKpiComponent,
-    NgmIndicatorComponent
+    NgmIndicatorComponent,
+    NgmIndicatorExplorerComponent
   ],
   selector: 'pac-chat-component-message',
   templateUrl: './component-message.component.html',
@@ -60,9 +61,7 @@ export class ChatComponentMessageComponent {
   eTimeGranularity = TimeGranularity
 
   readonly #store = inject(Store)
-  // readonly chatService = inject(ChatService)
   readonly #dialog = inject(Dialog)
-  // readonly homeComponent = inject(ChatHomeComponent)
   readonly dsCore = inject(NgmDSCoreService)
   readonly #viewContainerRef = inject(ViewContainerRef)
 
@@ -93,10 +92,8 @@ export class ChatComponentMessageComponent {
 
   readonly explains = signal<any[]>([])
 
-  // readonly entityType = derivedAsync(() => {
-  //   const dataSettings = this.dataSettings()
-  //   return dataSettings ? this.dsCore.selectEntitySet(dataSettings.dataSource, dataSettings.entitySet) : of(null)
-  // })
+  readonly indicatorExplorer = signal<string>(null)
+  readonly indicatorTagType = signal<IndicatorTagEnum>(IndicatorTagEnum.MOM)
 
   constructor() {
     effect(
@@ -139,9 +136,18 @@ export class ChatComponentMessageComponent {
     })
   }
 
-  // State updaters
-  setSelectOptions(data, slicers) {
-    data.slicers = slicers
+  toggleIndicatorTagType() {
+    this.indicatorTagType.update((tagType) => {
+      if (IndicatorTagEnum[tagType + 1]) {
+        return tagType + 1
+      } else {
+        return IndicatorTagEnum[IndicatorTagEnum[0]] // Ensure to start from 0
+      }
+    })
+  }
+
+  toggleIndicator(indicator: string) {
+    this.indicatorExplorer.update((state) => state === indicator ? null : indicator)
   }
 
   openExplorer() {

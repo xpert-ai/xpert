@@ -121,7 +121,7 @@
                   @if (getFeedback(message.id); as feedback) {
                     @if (feedback.rating === eFeedbackRatingEnum.LIKE) {
                       <div class="flex items-center justify-center m-1 w-6 h-6 rounded-md cursor-pointer bg-primary-100 text-primary-500 hover:bg-primary-100 hover:text-primary-600"
-                        [matTooltip]="'Cancel like'"
+                        [matTooltip]="'PAC.KEY_WORDS.CancelLike' | translate: {Default: 'Cancel like'}"
                         matTooltipPosition="above"
                         (click)="cancelFeedback(message, feedback.id)"
                       >
@@ -129,7 +129,7 @@
                       </div>
                     } @else if (feedback.rating === eFeedbackRatingEnum.DISLIKE) {
                       <div class="flex items-center justify-center m-1 w-6 h-6 rounded-md cursor-pointer bg-red-100 text-red-500 hover:bg-red-200 hover:text-red-600"
-                        [matTooltip]="'Cancel dislike'"
+                        [matTooltip]="'PAC.KEY_WORDS.CancelDislike' | translate: {Default: 'Cancel dislike'}"
                         matTooltipPosition="above"
                         (click)="cancelFeedback(message, feedback.id)"
                       >
@@ -139,14 +139,14 @@
                   } @else {
                     <div class="hidden group-hover:flex shrink-0 items-center p-1 bg-white border-[0.5px] border-gray-100 shadow-md text-gray-500 rounded-lg">
                       <div class="flex items-center justify-center mr-0.5 w-6 h-6 rounded-md hover:bg-black/5 hover:text-gray-800 cursor-pointer"
-                        [matTooltip]="'like'"
+                        [matTooltip]="'PAC.KEY_WORDS.Like' | translate: {Default: 'Like'}"
                         matTooltipPosition="above"
                         (click)="feedback(message, eFeedbackRatingEnum.LIKE)"
                       >
                         <i class="ri-thumb-up-line"></i>
                       </div>
                       <div class="flex items-center justify-center w-6 h-6 rounded-md hover:bg-black/5 hover:text-gray-800 cursor-pointer"
-                        [matTooltip]="'dislike'"
+                        [matTooltip]="'PAC.KEY_WORDS.Dislike' | translate: {Default: 'Dislike'}"
                         matTooltipPosition="above"
                         (click)="feedback(message, eFeedbackRatingEnum.DISLIKE)"
                       >

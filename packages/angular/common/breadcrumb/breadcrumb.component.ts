@@ -2,7 +2,9 @@ import { CommonModule } from '@angular/common'
 import { Component, EventEmitter, HostBinding, Input, OnChanges, Output, SimpleChanges } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
 
 export interface Step {
   value: any
@@ -18,8 +20,10 @@ export interface Step {
   styleUrls: ['breadcrumb.component.scss'],
   imports: [
     CommonModule,
+    TranslateModule,
     MatButtonModule,
     MatIconModule,
+    MatTooltipModule,
     OcapCoreModule
   ]
 })

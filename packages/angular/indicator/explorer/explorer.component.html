@@ -1,0 +1,37 @@
+@if (indicator(); as indicator) {
+  <div class="flex flex-col dark:text-text-primary">
+    @for (dataSettings of analyticalCards(); track dataSettings.id) {
+      <ngm-analytical-card class="h-[300px]"
+        [dataSettings]="dataSettings"
+        [chartOptions]="chartOptions()"
+        [chartSettings]="{theme: primaryTheme()}"
+        [options]="{
+          realtimeLinked: true,
+          showSlicers: true
+        }"
+        (slicersChanging)="onPeriodSlicerChange($event)"
+        (explain)="onExplain($event)"
+        >
+        <div class=" flex-1 flex items-center md:gap-2 dark:text-text-primary">
+          @for (p of PERIODS; track p.name) {
+            <span class="period-tag text-sm cursor-pointer inline-flex items-center font-semibold leading-sm uppercase px-2 py-1 rounded-lg"
+              [ngClass]="{selected: p.name === periodName()}"
+              (click)="togglePeriod(p.name)"
+            >
+              {{p.name}}
+            </span>
+          }
+        </div>
+      </ngm-analytical-card>
+    }
+  </div>
+
+  @if (indicator.description) {
+    <div class="indicator-business mt-4 dark:text-text-primary">
+      <div class="title text-base">
+        {{ 'Ngm.Indicator.Description' | translate: {Default: 'Indicator Description'} }}
+      </div>
+      <div class="whitespace-pre-wrap text-sm text-text-secondary">{{ indicator.description }}</div>
+    </div>
+  }
+}

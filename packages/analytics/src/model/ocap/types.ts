@@ -93,15 +93,20 @@ export function registerSemanticModel(model: ISemanticModel, dsCoreService: DSCo
 	return semanticModel
 }
 
-
+/**
+ * Convert the indicator type on server to the ocap framework type
+ */
 export function convertOcapIndicatorResult(result: IIndicator): Indicator {
 	return {
 	  ...omit(result, 'options'),
+	  description: result.business,
 	  ...(result.options ?? {})
 	} as Indicator
 }
 
-
+/**
+ * Convert the semantic model type on server to the ocap framework type
+ */
 export function convertOcapSemanticModel(result: ISemanticModel): SemanticModel {
 	return {
 	  ...result.options,

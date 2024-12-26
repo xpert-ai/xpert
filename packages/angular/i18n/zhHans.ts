@@ -28,7 +28,9 @@ export const ZhHans = {
       Default: '默认',
       Hierarchy: '层次结构',
       DisplayBehaviour: '显示行为',
-      DisplayBehaviour_IDOnly: '编码'
+      DisplayBehaviour_IDOnly: '编码',
+      ClearDrillDown: "清空下钻",
+      Description: "描述"
     },
     AnalyticalCard: {
       Screenshot: '截图',
@@ -338,6 +340,9 @@ export const ZhHans = {
         SYSTEMTIME: '系统时间',
         TODAY: '今天'
       }
+    },
+    Indicator: {
+      Description: '指标描述'
     },
     Messages: {
       NotFoundValue: '未找到值：'
