@@ -52,6 +52,7 @@
         [regex]="regex"
         [content]="prompt()"
         customClasses="inline-block text-primary-500 bg-transparent"
+        (keyup)="onKeyup($event)"
       >
       </div>
     </div>
@@ -64,3 +65,15 @@
     </div>
   </div>
 </div>
+
+<ng-template #suggestionsTemplate>
+  <div cdkMenu class="cdk-menu__medium">
+    <ul>
+      @for (variable of variables(); track variable.name) {
+        <li cdkMenuItem class="max-w-sm space-x-2 truncate" (click)="selectVariable(variable)">
+          {{ variable.name }} <span class="px-1 text-sm rounded-md bg-gray-50 text-primary-300">{{variable.type}}</span> <span class="text-sm italic">{{variable.description}}</span>
+        </li>
+      }
+    </ul>
+  </div>
+</ng-template>

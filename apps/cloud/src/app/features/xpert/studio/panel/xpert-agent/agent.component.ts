@@ -33,7 +33,7 @@ import { XpertStudioPanelAgentExecutionComponent } from '../agent-execution/exec
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertStudioPanelToolsetSectionComponent } from './toolset-section/toolset.component'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { map } from 'rxjs'
+import { map, of } from 'rxjs'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelKnowledgeSectionComponent } from './knowledge-section/knowledge.component'
@@ -135,6 +135,12 @@ export class XpertStudioPanelAgentComponent {
     }).pipe(
       map(({items}) => items)
     )
+  })
+
+  readonly variables = derivedAsync(() => {
+    const xpertId = this.xpertId()
+    const agentKey = this.key()
+    return xpertId && agentKey ? this.xpertService.getVariables(xpertId, agentKey) : of(null)
   })
 
   constructor() {

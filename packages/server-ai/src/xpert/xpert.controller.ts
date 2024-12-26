@@ -43,6 +43,7 @@ import { XpertService } from './xpert.service'
 import { WorkspaceGuard } from '../xpert-workspace/'
 import { SearchXpertMemoryQuery } from './queries'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
+import { XpertAgentVariablesQuery } from '../xpert-agent/queries'
 
 @ApiTags('Xpert')
 @ApiBearerAuth()
@@ -262,6 +263,15 @@ export class XpertController extends CrudController<Xpert> {
 		try {
 			return await this.storeService.delete({prefix: Like(`${id}%`)})
 		} catch(err) {
+			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
+		}
+	}
+
+	@Get(':id/agent/:agent/variables')
+	async getVariables(@Param('id') id: string, @Param('agent') agentKey: string,) {
+		try {
+			return await this.queryBus.execute(new XpertAgentVariablesQuery(id, agentKey, true))
+		} catch (err) {
 			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
 		}
 	}
