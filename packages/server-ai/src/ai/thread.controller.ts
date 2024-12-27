@@ -103,6 +103,7 @@ export class ThreadsController {
 	}
 
 	@Header('content-type', 'text/event-stream')
+	@Header('Connection', 'keep-alive')
 	@Post(':thread_id/runs/stream')
 	@Sse()
 	async runStream(@Param('thread_id') thread_id: string, @Body() body: components['schemas']['RunCreateStateful']) {

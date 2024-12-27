@@ -617,7 +617,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 					code: z.string().describe('The unique code of indicator'),
 					name: z.string().describe(`The caption of indicator in user's language`),
 					formula: z.string().describe('The MDX formula for calculated measure'),
-					unit: z.string().optional().describe('The unit of measure'),
+					unit: z.string().optional().describe(`The unit of measure, '%' or orthers`),
 					description: z
 						.string()
 						.describe(

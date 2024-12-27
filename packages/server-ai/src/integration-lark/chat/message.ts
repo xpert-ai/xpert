@@ -1,3 +1,4 @@
+import { Serializable } from '@langchain/core/load/serializable'
 import { I18nObject, IChatMessage, TSensitiveOperation } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { LarkConversationService } from '../conversation.service'
@@ -14,7 +15,31 @@ import {
 
 export type ChatLarkMessageStatus = IChatMessage['status'] | 'continuing' | 'waiting' | TLarkConversationStatus
 
-export class ChatLarkMessage {
+export interface ChatLarkMessageFields {
+	// ID of lark message
+	id: string;
+	// ID of IChatMessage
+	messageId: string;
+	// Status of lark message
+	status: ChatLarkMessageStatus
+	header: any
+	elements: any[]
+}
+
+export class ChatLarkMessage extends Serializable implements ChatLarkMessageFields {
+	lc_namespace: string[] = ['lark',]
+	lc_serializable = true
+
+	get lc_attributes() {
+		return {
+			status: this.status,
+			id: this.id,
+			messageId: this.messageId,
+			header: this.header,
+			elements: this.elements
+		}
+	}
+
 	static readonly headerTemplate = 'indigo'
 	static readonly logoImgKey = 'img_v3_02e1_a8d74bc6-3c8a-4f66-b44f-c4cc837e285g'
 	static readonly logoIcon = {
@@ -25,21 +50,35 @@ export class ChatLarkMessage {
 
 	private readonly logger = new Logger(ChatLarkMessage.name)
 
-	private id: string = null
+	// ID of lark message
+	public id: string = null
 	public status: ChatLarkMessageStatus = 'thinking'
+	// ID of IChatMessage
+	public messageId: string
 
 	get larkService() {
 		return this.chatContext.larkService
 	}
 
-	private header = null
-	private elements = []
+	public header = null
+	public elements = []
 
 	constructor(
 		private chatContext: ChatLarkContext,
-		private options: { userId: string; xpertId: string; text: string },
-		private conversation?: LarkConversationService
-	) {}
+		private options: {
+			userId?: string
+			xpertId?: string
+			text?: string
+		} & Partial<ChatLarkMessageFields>,
+		private conversation: LarkConversationService
+	) {
+		super(options)
+		this.id = options.id
+		this.messageId = options.messageId
+		this.status = options.status
+		this.header = options.header
+		this.elements = options.elements ?? []
+	}
 
 	getTitle() {
 		switch (this.status) {
@@ -82,7 +121,7 @@ export class ChatLarkMessage {
 
 	getCard() {
 		const elements = [...this.elements]
-		
+
 		console.log(`2: ${this.status}`)
 
 		if (elements[elements.length - 1]?.tag !== 'hr') {
@@ -103,7 +142,6 @@ export class ChatLarkMessage {
 	}
 
 	getEndAction() {
-
 		console.log(`3: ${this.status}`)
 		return {
 			tag: 'action',
@@ -224,10 +262,7 @@ export class ChatLarkMessage {
 
 	async onAction(action: { value: string }, callback?: (action) => void) {
 		if (isEndAction(action?.value)) {
-			await this.update({
-				status: 'end',
-			})
-			await this.conversation.endConversation(this.options.userId, this.options.xpertId)
+			await this.conversation.endConversation(this.chatContext, this.options.userId, this.options.xpertId)
 		} else if (isConfirmAction(action?.value)) {
 			await this.conversation.confirm(this.options.xpertId, this)
 		} else if (isRejectAction(action?.value)) {
@@ -305,12 +340,11 @@ function createConfirmMessage(operation: TSensitiveOperation) {
 	})
 
 	return [
-
 		...toolElements.flat(),
-				{
-					tag: 'hr',
-					"margin": "0px 0px 10px 0px"
-				},
+		{
+			tag: 'hr',
+			margin: '0px 0px 10px 0px'
+		}
 
 		// {
 		// 	tag: 'form',
@@ -320,38 +354,38 @@ function createConfirmMessage(operation: TSensitiveOperation) {
 		// 			tag: 'hr',
 		// 			"margin": "0px 0px 10px 0px"
 		// 		},
-				// {
-				// 	tag: 'action',
-				// 	layout: 'default',
-				// 	actions: [
-				// 		{
-				// 			tag: 'button',
-				// 			text: {
-				// 				tag: 'plain_text',
-				// 				content: '确认'
-				// 			},
-				// 			type: 'primary',
-				// 			width: 'default',
-				// 			size: 'medium',
-				// 			value: LARK_CONFIRM,
-				// 			form_action_type: 'submit',
-				// 			name: 'Button_confirm'
-				// 		},
-				// 		{
-				// 			tag: 'button',
-				// 			text: {
-				// 				tag: 'plain_text',
-				// 				content: '拒绝'
-				// 			},
-				// 			type: 'danger',
-				// 			width: 'default',
-				// 			size: 'medium',
-				// 			value: LARK_REJECT,
-				// 			name: 'Button_reject'
-				// 		}
-				// 	]
-				// }
-			// ],
+		// {
+		// 	tag: 'action',
+		// 	layout: 'default',
+		// 	actions: [
+		// 		{
+		// 			tag: 'button',
+		// 			text: {
+		// 				tag: 'plain_text',
+		// 				content: '确认'
+		// 			},
+		// 			type: 'primary',
+		// 			width: 'default',
+		// 			size: 'medium',
+		// 			value: LARK_CONFIRM,
+		// 			form_action_type: 'submit',
+		// 			name: 'Button_confirm'
+		// 		},
+		// 		{
+		// 			tag: 'button',
+		// 			text: {
+		// 				tag: 'plain_text',
+		// 				content: '拒绝'
+		// 			},
+		// 			type: 'danger',
+		// 			width: 'default',
+		// 			size: 'medium',
+		// 			value: LARK_REJECT,
+		// 			name: 'Button_reject'
+		// 		}
+		// 	]
+		// }
+		// ],
 		// 	name: 'Form_m55io38s'
 		// }
 	]

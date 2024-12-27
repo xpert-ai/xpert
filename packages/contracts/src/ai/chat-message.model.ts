@@ -3,12 +3,11 @@ import { CopilotBaseMessage, IChatConversation } from './chat.model'
 import { LongTermMemoryTypeEnum } from './xpert.model'
 
 export type TSummaryJob = Record<LongTermMemoryTypeEnum, {
-  jobId: number | string;
-  status: string
-  progress?: number
-  memoryKey?: string
-}
->
+    jobId: number | string;
+    status: string
+    progress?: number
+    memoryKey?: string
+  }>
 
 /**
  * 
@@ -16,6 +15,11 @@ export type TSummaryJob = Record<LongTermMemoryTypeEnum, {
 export interface IChatMessage extends IBasePerTenantAndOrganizationEntityModel, Omit<Omit<CopilotBaseMessage, 'createdAt'>, 'id'> {
 
   summaryJob?: TSummaryJob
+
+  /**
+   * the third-party platform's message
+   */
+  thirdPartyMessage?: any
 
   // Many to one
   /**
@@ -25,5 +29,4 @@ export interface IChatMessage extends IBasePerTenantAndOrganizationEntityModel, 
   conversationId?: string | null
 
   executionId?: string
-  
 }

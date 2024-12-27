@@ -166,7 +166,7 @@ export function createWelcomeTool(context: Partial<ChatBILarkContext>) {
 			// 	}
 			// })
 
-			return 'Welcome info has sent to user, waiting for user response...'
+			return 'The welcome message and opening questions have been sent to the user, no need to respond with any content.'
 		},
 		{
 			name: ChatBILarkToolsEnum.WELCOME,

@@ -19,6 +19,7 @@ export class AIV1Controller {
 	) {}
 
 	@Header('content-type', 'text/event-stream')
+	@Header('Connection', 'keep-alive')
 	@Post('chat')
 	@Sse()
 	async chat(@Body() body: { request: TChatRequest; options: TChatOptions }) {

@@ -182,6 +182,8 @@ export class XpertController extends CrudController<Xpert> {
 	}
 
 	@Header('content-type', 'text/event-stream')
+	@Header('Connection', 'keep-alive')
+	@Header('Cache-Control', 'no-cache')
 	@Post(':id/chat')
 	@Sse()
 	async chat(
