@@ -46,6 +46,7 @@ export enum ModelDesignerType {
   level = 'level',
   measure = 'measure',
   calculatedMember = 'calculatedMember',
+  variable = 'variable',
   cubeAttributes = 'cubeAttributes',
   dimensionAttributes = 'dimensionAttributes',
   hierarchyAttributes = 'hierarchyAttributes',

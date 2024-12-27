@@ -1,5 +1,5 @@
 <div class="flex flex-col group">
-  <mat-toolbar class="pac-sub-toolbar flex justify-between item-center" displayDensity="compact">
+  <div class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10" displayDensity="compact">
     <span>
       {{ 'PAC.MENU.DIMENSIONS' | translate: {Default: "Dimensions"} }}
     </span>
@@ -13,7 +13,7 @@
         <mat-icon>add</mat-icon>
       </button>
     }
-  </mat-toolbar>
+  </div>
 
   <div cdkDropList id="list-dimensions" class="pac-cdk-drop__list flex-1 flex flex-col min-h-[60px]"
     [cdkDropListEnterPredicate]="dropDimensionPredicate"
@@ -42,7 +42,7 @@
 </div>
 
 <div class="flex flex-col mt-4 group">
-  <mat-toolbar class="pac-sub-toolbar flex justify-between item-center" displayDensity="compact">
+  <div class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10" displayDensity="compact">
     <span>
       {{ 'PAC.MENU.MEASURES' | translate: {Default: "Measures"} }}
     </span>
@@ -54,7 +54,7 @@
         <mat-icon>add</mat-icon>
       </button>
     }
-  </mat-toolbar>
+  </div>
         
   <div class="pac-cdk-drop__list flex-1 flex flex-col min-h-[60px]"
     id="list-measures"
@@ -91,7 +91,7 @@
 </div>
 
 <div class="flex flex-col mt-4 group">
-  <mat-toolbar class="pac-sub-toolbar flex justify-between item-center" displayDensity="compact">
+  <div class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10" displayDensity="compact">
     <span>
       {{ 'PAC.MENU.CALCULATED_MEMBERS' | translate: {Default: "Calculated Members"} }}
     </span>
@@ -107,7 +107,7 @@
       (click)="$event.stopPropagation();$event.preventDefault();onAddCalculatedMember($event)">
       <mat-icon>add</mat-icon>
     </button>
-  </mat-toolbar>
+  </div>
         
   <div id="list-calculated-members" class="pac-cdk-drop__list flex-1 flex flex-col min-h-[60px]"
     cdkDropList
@@ -144,3 +144,42 @@
     </mat-list>
   </div>
 </div>
+
+@if (variables()?.length) {
+  <div class="flex flex-col my-4">
+    <div class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10" displayDensity="compact">
+      <span>
+        {{ 'PAC.MODEL.Variables' | translate: {Default: "Variables"} }}
+      </span>
+
+      <span class="flex-1"></span>
+    </div>
+          
+    <div class="pac-cdk-drop__list flex-1 flex flex-col min-h-[60px]">
+      <ul>
+        @for (variable of variables(); track variable.__id__) {
+          <li class="group relative p-1.5 rounded-md text-sm hover:bg-gray-50"
+            [class.bg-orange-100]="!variable.name"
+            [class.selected]="isSelected(ModelDesignerType.calculatedMember, variable.__id__)"
+          >
+            <ngm-entity-property class="flex-1" [property]="$any(variable)"/>
+
+            <div class="hidden group-hover:flex items-center gap-0.5 absolute right-1 top-1">
+              <button type="button" class="btn btn-small p-0 w-7 h-7 justify-center"
+              (click)="openVariableAttributes(variable)"
+              >
+                <i class="ri-edit-line"></i>
+              </button>
+
+              <button type="button" class="btn btn-small danger p-0 w-7 h-7 justify-center"
+                (click)="onDeleteVariable($event, variable)"
+              >
+                <i class="ri-delete-bin-4-line"></i>
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    </div>
+  </div>
+}

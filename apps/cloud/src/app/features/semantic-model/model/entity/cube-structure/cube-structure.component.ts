@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CdkDrag, CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import {
@@ -18,7 +19,7 @@ import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { NxActionStripModule } from '@metad/components/action-strip'
 import { CommandDialogComponent } from '@metad/copilot-angular'
-import { NgmCommonModule, SplitterType } from '@metad/ocap-angular/common'
+import { CdkConfirmDeleteComponent, CdkConfirmOptionsComponent, NgmCommonModule, SplitterType } from '@metad/ocap-angular/common'
 import { NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
 import {
   AggregationRole,
@@ -27,17 +28,20 @@ import {
   CalculationType,
   DimensionUsage,
   PropertyMeasure,
+  VariableProperty,
   getEntityDimensions,
   getEntityMeasures,
+  getEntityVariables,
   isEntityType,
   isVisible
 } from '@metad/ocap-core'
-import { TranslateModule } from '@ngx-translate/core'
-import { uuid } from 'apps/cloud/src/app/@core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { injectToastr, uuid } from 'apps/cloud/src/app/@core'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { NGXLogger } from 'ngx-logger'
 import { combineLatest, combineLatestWith, filter, map, switchMap, withLatestFrom } from 'rxjs'
 import { SemanticModelService } from '../../model.service'
+import { createVariableSchema } from '../../schema/variable.schema'
 import {
   CdkDragDropContainers,
   MODEL_TYPE,
@@ -45,9 +49,10 @@ import {
   SemanticModelEntity,
   SemanticModelEntityType
 } from '../../types'
+import { InlineDimensionComponent, UsageDimensionComponent } from '../dimension'
 import { ModelEntityService } from '../entity.service'
 import { CubeEventType } from '../types'
-import { InlineDimensionComponent, UsageDimensionComponent } from '../dimension'
+import { CubeVariableFormComponent } from 'apps/cloud/src/app/@shared/model'
 
 /**
  * 展示和编辑多维分析模型的字段列表
@@ -87,6 +92,9 @@ export class ModelCubeStructureComponent {
   public readonly entityService = inject(ModelEntityService)
   private readonly _cdr = inject(ChangeDetectorRef)
   readonly _dialog = inject(MatDialog)
+  readonly #dialog = inject(Dialog)
+  readonly #translate = inject(TranslateService)
+  readonly #toastr = injectToastr()
   private readonly _logger = inject(NGXLogger)
 
   readonly modelType = input<MODEL_TYPE>()
@@ -96,30 +104,35 @@ export class ModelCubeStructureComponent {
   @Output() editChange = new EventEmitter<any>()
 
   @ViewChildren(CdkDropList) cdkDropList: CdkDropList[]
-  
+
   /**
   |--------------------------------------------------------------------------
   | Signals
   |--------------------------------------------------------------------------
   */
+  readonly semanticModelKey = this.modelService.semanticModelKey
+  readonly cubeName = this.entityService.cubeName
   readonly search = model<string>('')
   readonly dimensions = computed(() => {
     const dimensions = this.entityService.dimensions()
     const search = this.search()
     if (search) {
       const text = search.trim().toLowerCase()
-      return dimensions?.filter(({ name, caption }) => name.toLowerCase().includes(text) || caption?.toLowerCase().includes(text))
+      return dimensions?.filter(
+        ({ name, caption }) => name.toLowerCase().includes(text) || caption?.toLowerCase().includes(text)
+      )
     }
     return dimensions
   })
 
   readonly calculatedMembers = toSignal(
-    combineLatest([this.entityService.calculatedMembers$, toObservable(this.search)])
-    .pipe(
+    combineLatest([this.entityService.calculatedMembers$, toObservable(this.search)]).pipe(
       map(([members, search]) => {
         if (search) {
           const text = search.trim().toLowerCase()
-          members = members?.filter(({ name, caption }) => name.toLowerCase().includes(text) || caption?.toLowerCase().includes(text))
+          members = members?.filter(
+            ({ name, caption }) => name.toLowerCase().includes(text) || caption?.toLowerCase().includes(text)
+          )
         }
         return members?.map(
           (member) =>
@@ -132,20 +145,33 @@ export class ModelCubeStructureComponent {
       })
     )
   )
- 
+
   readonly measures = computed(() => {
     const measures = this.entityService.measures()
     const search = this.search()
     if (search) {
       const text = search.trim().toLowerCase()
-      return measures?.filter(({ name, caption }) => name.toLowerCase().includes(text) || caption?.toLowerCase().includes(text))
+      return measures?.filter(
+        ({ name, caption }) => name.toLowerCase().includes(text) || caption?.toLowerCase().includes(text)
+      )
     }
     return measures
   })
+
+  readonly variables = computed(() => {
+    const variables = this.entityService.variables()
+    const search = this.search()
+    if (search) {
+      const text = search.trim().toLowerCase()
+      return variables?.filter(
+        ({ name, caption }) => name.toLowerCase().includes(text) || caption?.toLowerCase().includes(text)
+      )
+    }
+    return variables
+  })
+
   readonly selectedProperty = this.entityService.selectedProperty
   readonly entityType = toSignal(this.entityService.originalEntityType$)
-
-  
 
   /**
   |--------------------------------------------------------------------------
@@ -158,7 +184,9 @@ export class ModelCubeStructureComponent {
     map(([[dimensionUsages, sharedDimensions], search]) => {
       if (search) {
         search = search.trim().toLowerCase()
-        dimensionUsages = dimensionUsages?.filter((usage) => usage.name.toLowerCase().includes(search) || usage.caption?.toLowerCase().includes(search))
+        dimensionUsages = dimensionUsages?.filter(
+          (usage) => usage.name.toLowerCase().includes(search) || usage.caption?.toLowerCase().includes(search)
+        )
       }
       return dimensionUsages?.map((usage) => {
         const dimension = sharedDimensions.find((item) => usage.source === item.name)
@@ -187,6 +215,7 @@ export class ModelCubeStructureComponent {
       filter(isEntityType)
     )
     .subscribe((entityType) => {
+      console.log(entityType)
       // Sync original dimensions and measures when that is empty
       if (!this.entityService.dimensions()?.length) {
         this.entityService.updateCube({
@@ -204,7 +233,7 @@ export class ModelCubeStructureComponent {
                 __id__: uuid(),
                 name: level.name,
                 caption: level.caption,
-                visible: level.visible ?? true,
+                visible: level.visible ?? true
               }))
             }))
           }))
@@ -217,7 +246,19 @@ export class ModelCubeStructureComponent {
             __id__: uuid(),
             name: measure.name,
             caption: measure.caption,
-            visible: measure.visible ?? true,
+            visible: measure.visible ?? true
+          }))
+        })
+      }
+
+      if (!this.entityService.variables()?.length) {
+        this.entityService.updateCube({
+          variables: getEntityVariables(entityType).map((variable) => ({
+            ...variable,
+            __id__: uuid(),
+            name: variable.name,
+            caption: variable.caption,
+            visible: variable.visible ?? true
           }))
         })
       }
@@ -421,5 +462,41 @@ export class ModelCubeStructureComponent {
       })
       .afterClosed()
       .subscribe((result) => {})
+  }
+
+  openVariableAttributes(variable: VariableProperty) {
+    this.#dialog.open(CubeVariableFormComponent, {
+      data: {
+        variable,
+        dataSettings: {
+          dataSource: this.semanticModelKey(),
+          entitySet: this.cubeName()
+        }
+      }
+    }).closed.subscribe({
+      next: (result) => {
+        if (result) {
+          this.entityService.updateCubeProperty({
+            id: variable.__id__,
+            type: ModelDesignerType.variable,
+            model: result
+          })
+        }
+      }
+    })
+  }
+
+  onDeleteVariable(event: Event, variable: VariableProperty) {
+    this.#dialog.open(CdkConfirmDeleteComponent, {
+      data: {
+        value: variable.name
+      }
+    }).closed.subscribe({
+      next: (confirm) => {
+        if (confirm) {
+          this.entityService.deleteCubeProperty({id: variable.__id__, type: ModelDesignerType.variable})
+        }
+      }
+    })
   }
 }

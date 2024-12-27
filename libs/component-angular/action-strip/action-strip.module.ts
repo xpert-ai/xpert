@@ -3,6 +3,7 @@ import { NgModule } from '@angular/core'
 import { IgxActionStripComponent, IgxActionStripMenuItemDirective } from './action-strip.component'
 
 /**
+ * @deprecated use tailwind
  * @hidden
  */
 @NgModule({

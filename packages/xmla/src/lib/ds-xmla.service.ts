@@ -980,6 +980,15 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
         }
       })
 
+    // Variables
+    const parameters = rtEntityType.parameters
+    cube.variables?.forEach((variable) => {
+      parameters[variable.name] = {
+        ...(properties[variable.name] ?? {}),
+        ...variable
+      }
+    })
+
     // Custom entity type (common in story editor)
     const customEntityType = schema?.entitySets?.[rtEntityType.name]?.entityType
     if (!isNil(customEntityType)) {
@@ -993,7 +1002,8 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
       ...rtEntityType,
       caption: cube.caption || rtEntityType.caption,
       description: cube.description || rtEntityType.description,
-      properties
+      properties,
+      parameters
     }
   }
 
