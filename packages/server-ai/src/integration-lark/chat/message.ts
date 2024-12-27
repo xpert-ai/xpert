@@ -82,16 +82,29 @@ export class ChatLarkMessage {
 
 	getCard() {
 		const elements = [...this.elements]
-		if (this.status !== 'end') {
+		
+		console.log(`2: ${this.status}`)
+
+		if (elements[elements.length - 1]?.tag !== 'hr') {
 			elements.push({ tag: 'hr' })
+		}
+		if (this.status === 'end') {
+			elements.push({
+				tag: 'markdown',
+				content: `对话已结束。如果您有其他问题，欢迎随时再来咨询。`
+			})
+		} else {
 			elements.push(this.getEndAction())
 		}
+
 		return {
 			elements
 		}
 	}
 
 	getEndAction() {
+
+		console.log(`3: ${this.status}`)
 		return {
 			tag: 'action',
 			layout: 'default',
@@ -170,7 +183,10 @@ export class ChatLarkMessage {
 			this.header = options.header
 		}
 
+		console.log(`1: ${this.status}`)
 		const elements = this.getCard()
+		console.log(`4: ${this.status}`)
+
 		if (this.id) {
 			this.larkService
 				.patchAction(this.chatContext, this.id, {
@@ -210,12 +226,6 @@ export class ChatLarkMessage {
 		if (isEndAction(action?.value)) {
 			await this.update({
 				status: 'end',
-				elements: [
-					{
-						tag: 'markdown',
-						content: `对话已结束。如果您有其他问题，欢迎随时再来咨询。`
-					}
-				]
 			})
 			await this.conversation.endConversation(this.options.userId, this.options.xpertId)
 		} else if (isConfirmAction(action?.value)) {

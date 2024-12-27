@@ -49,9 +49,10 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 						if (typeof message.data === 'string') {
 							responseMessageContent += message.data
 						} else {
-							console.log(`未处理的消息：`, message)
-							if (message.data.type === 'update') {
+							if (message.data?.type === 'update') {
 								larkMessage.update(message.data.data)
+							} else {
+								console.log(`未处理的消息：`, message)
 							}
 						}
 					} else if (message.type === ChatMessageTypeEnum.EVENT) {
@@ -90,6 +91,15 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 					larkMessage.update({
 						status: XpertAgentExecutionStatusEnum.SUCCESS,
 						elements: [{ tag: 'markdown', content: responseMessageContent }]
+					}).catch((error) => {
+						this.#logger.error(error)
+					})
+				} else if (command.options?.reject) {
+					larkMessage.update({
+						status: XpertAgentExecutionStatusEnum.SUCCESS,
+						elements: []
+					}).catch((error) => {
+						this.#logger.error(error)
 					})
 				}
 			}
