@@ -34,7 +34,7 @@ export class CopilotModel extends TenantOrganizationBaseEntity implements ICopil
     */
 	@ApiProperty({ type: () => Copilot })
 	@IsOptional()
-	@ManyToOne(() => Copilot)
+	@ManyToOne(() => Copilot, { onDelete: 'SET NULL' })
 	@JoinColumn()
 	copilot?: ICopilot
 

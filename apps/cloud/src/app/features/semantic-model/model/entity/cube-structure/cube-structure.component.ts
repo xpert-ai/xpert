@@ -41,7 +41,6 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { NGXLogger } from 'ngx-logger'
 import { combineLatest, combineLatestWith, filter, map, switchMap, withLatestFrom } from 'rxjs'
 import { SemanticModelService } from '../../model.service'
-import { createVariableSchema } from '../../schema/variable.schema'
 import {
   CdkDragDropContainers,
   MODEL_TYPE,

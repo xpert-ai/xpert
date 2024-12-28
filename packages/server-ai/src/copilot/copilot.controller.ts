@@ -63,7 +63,7 @@ export class CopilotController extends CrudController<Copilot> {
 		status: HttpStatus.OK,
 		description: 'Found records' /* type: IPagination<T> */
 	})
-	@Get()
+	@Get('availables')
 	async findAllAvalibles(): Promise<CopilotDto[]> {
 		const items = await this.service.findAvailables()
 		return items.map((item) => new CopilotDto(item, this.baseUrl))

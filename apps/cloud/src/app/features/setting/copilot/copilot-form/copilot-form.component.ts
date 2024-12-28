@@ -3,13 +3,18 @@ import { DecimalPipe } from '@angular/common'
 import { booleanAttribute, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { AiModelTypeEnum, AiProviderRole } from '@metad/contracts'
+import { MatButtonModule } from '@angular/material/button'
+import { MatSliderModule } from '@angular/material/slider'
+import { AiModelTypeEnum, AiProviderRole, ICopilot } from '@metad/contracts'
 import { AiProvider } from '@metad/copilot'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { derivedAsync } from 'ngxtension/derived-async'
+import {
+  CopilotAiProvidersComponent,
+  CopilotModelSelectComponent,
+  CopilotProviderComponent
+} from 'apps/cloud/src/app/@shared/copilot'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
-import { switchMap } from 'rxjs/operators'
 import {
   CopilotServerService,
   getErrorMessage,
@@ -19,89 +24,6 @@ import {
   ToastrService
 } from '../../../../@core'
 import { PACCopilotService } from '../../../services'
-import { CopilotProviderComponent, CopilotModelSelectComponent, CopilotAiProvidersComponent } from 'apps/cloud/src/app/@shared/copilot'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-
-const PROVIDERS = [
-  {
-    name: AiProvider.OpenAI,
-    icon: 'openai.svg',
-    iconAlt: 'openai-logo',
-    embedding: true
-  },
-  {
-    name: AiProvider.Azure,
-    icon: 'azure.svg',
-    iconAlt: 'azure-logo',
-    embedding: true
-  },
-  {
-    name: AiProvider.Ollama,
-    icon: 'ollama.svg',
-    iconAlt: 'ollama-logo',
-    embedding: true
-  },
-  {
-    name: AiProvider.DeepSeek,
-    icon: 'deepseek.svg',
-    iconAlt: 'deepseek-logo',
-    embedding: false
-  },
-  {
-    name: AiProvider.Anthropic,
-    icon: 'claude.svg',
-    iconAlt: 'claude-logo',
-    embedding: false
-  },
-  {
-    name: AiProvider.AlibabaTongyi,
-    icon: 'tongyi.svg',
-    iconAlt: 'tongyi-logo',
-    embedding: true
-  },
-  {
-    name: AiProvider.Zhipu,
-    icon: 'zhipu.svg',
-    iconAlt: 'zhipu-logo',
-    embedding: true
-  },
-  // {
-  //   name: AiProvider.BaiduQianfan,
-  //   icon: 'qianfan.svg',
-  //   iconAlt: 'qianfan-logo',
-  //   embedding: true
-  // }
-  {
-    name: AiProvider.Together,
-    icon: 'together-ai.svg',
-    iconAlt: 'together-logo',
-    embedding: true
-  },
-  {
-    name: AiProvider.Moonshot,
-    icon: 'moonshot.svg',
-    iconAlt: 'moonshot-logo',
-    embedding: false
-  },
-  {
-    name: AiProvider.Groq,
-    icon: 'groq.svg',
-    iconAlt: 'groq-logo',
-    embedding: false
-  },
-  {
-    name: AiProvider.Mistral,
-    icon: 'mistral.svg',
-    iconAlt: 'mistral-logo',
-    embedding: true
-  },
-  {
-    name: AiProvider.Cohere,
-    icon: 'cohere.svg',
-    iconAlt: 'cohere-logo',
-    embedding: true
-  }
-]
 
 @Component({
   standalone: true,
@@ -111,9 +33,10 @@ const PROVIDERS = [
   imports: [
     DecimalPipe,
     TranslateModule,
-    MaterialModule,
     FormsModule,
     ReactiveFormsModule,
+    MatSliderModule,
+    MatButtonModule,
     NgmSpinComponent,
     CopilotProviderComponent,
     CopilotModelSelectComponent
@@ -131,7 +54,7 @@ export class CopilotFormComponent {
   readonly copilots = injectCopilots()
 
   // Inputs
-  readonly role = input<AiProviderRole>()
+  readonly copilot = input<ICopilot>()
 
   readonly enabled = model<boolean>(false)
   readonly embedding = input<boolean, string | boolean>(false, {
@@ -152,6 +75,8 @@ export class CopilotFormComponent {
     return this.formGroup.get('tokenBalance').value
   }
 
+  readonly role = computed(() => this.copilot()?.role)
+
   readonly saving = signal(false)
 
   readonly organizationId = toSignal(this.#store.selectOrganizationId())
@@ -161,13 +86,13 @@ export class CopilotFormComponent {
   )
 
   readonly refresh$ = new BehaviorSubject<void>(null)
-  readonly copilot = derivedAsync(() => {
-    return this.copilotId()
-      ? this.refresh$.pipe(
-          switchMap(() => this.copilotServer.getOneById(this.copilotId(), { relations: ['modelProvider'] }))
-        )
-      : null
-  })
+  // readonly copilot = derivedAsync(() => {
+  //   return this.copilotId()
+  //     ? this.refresh$.pipe(
+  //         switchMap(() => this.copilotServer.getOneById(this.copilotId(), { relations: ['modelProvider'] }))
+  //       )
+  //     : null
+  // })
 
   readonly modelProvider = computed(() => this.copilot()?.modelProvider)
 

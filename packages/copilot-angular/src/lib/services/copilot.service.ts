@@ -1,16 +1,16 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import {
-  AiProviderRole,
   BusinessRoleType,
   CopilotService,
   DefaultBusinessRole,
-  ICopilot,
-  NgmLanguageEnum
+  NgmLanguageEnum,
+  AiProviderRole,
+  ICopilot
 } from '@metad/copilot'
 import { TranslateService } from '@ngx-translate/core'
 import { combineLatest, map, shareReplay, startWith } from 'rxjs'
-import { createLLM } from '../core'
+import { createLLM, } from '../core'
 
 @Injectable()
 export abstract class NgmCopilotService extends CopilotService {

@@ -1,4 +1,4 @@
-<mat-toolbar class="pac-nav-toolbar pac-model__shell-bar flex items-center" displayDensity="compact">
+<div class="pac-nav-toolbar pac-model__shell-bar flex items-center px-1" displayDensity="compact">
   @if (!modelSideMenuOpened()) {
     <button mat-icon-button class="text-neutral-600" (click)="openSideMenu()">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" class="icon-xl-heavy">
@@ -10,8 +10,11 @@
     <div class="flex items-center px-4">
       @if (cube()) {
         <span class="text-lg">{{ cube().caption || cube().name}}</span>
-        <button mat-icon-button (click)="openCubeDesigner()">
-            <mat-icon fontSet="material-icons-outlined">settings</mat-icon>
+        <button mat-icon-button [matTooltip]="'PAC.MODEL.OpenCubeDesigner' | translate: {Default: 'Open cube designer'}"
+          matTooltipPosition="above"
+          (click)="toggleCubeDesigner()"
+        >
+          <mat-icon fontSet="material-icons-outlined">settings</mat-icon>
         </button>
       }
     </div>
@@ -43,7 +46,7 @@
             }
         </span>
     </nav>
-</mat-toolbar>
+</div>
 
 <mat-drawer-container class="flex-1" autosize [hasBackdrop]="false">
     <mat-drawer #designerDrawer class="ngm-story__designer-drawer mat-elevation-z"
@@ -91,7 +94,9 @@
     </mat-drawer-content>
 </mat-drawer-container>
 
-<div *ngIf="!cube()" class="pac-result absolute top-0 left-0 w-full h-full z-10 flex flex-col justify-center items-center bg-white/10 backdrop-blur-md">
+@if (!cube()) {
+  <div class="pac-result absolute top-0 left-0 w-full h-full z-10 flex flex-col justify-center items-center bg-white/10 backdrop-blur-md">
     <span class="bug font-notoColorEmoji">🐞</span>
     <span class="description">{{ 'PAC.MODEL.ENTITY.CubeNotFound' | translate: {Default: 'Cube not found!'} }}</span>
-</div>
+  </div>
+}
