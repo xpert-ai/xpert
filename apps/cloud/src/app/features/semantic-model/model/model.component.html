@@ -77,12 +77,17 @@
 
                     <span class="flex-1"></span>
                     
-                    <button mat-icon-button displayDensity="cosy" class="ngm-copilot-command-button ngm-toolbar__action" [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} "
+                    <button mat-icon-button displayDensity="cosy" class="ngm-copilot-command-button ngm-toolbar__action"
+                        [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} "
+                        matTooltipPosition="above"
                         (click)="aiCreateEntity()">
                         <mat-icon fontSet="material-icons-outlined">auto_fix_high</mat-icon>
                     </button>
-                    <button mat-icon-button displayDensity="cosy" class="ngm-toolbar__action" [matTooltip]=" 'PAC.MODEL.MODEL.New' | translate: {Default: 'New'} "
-                        (click)="createEntity()">
+                    <button mat-icon-button displayDensity="cosy" class="ngm-toolbar__action"
+                        [matTooltip]=" 'PAC.MODEL.MODEL.New' | translate: {Default: 'New'} "
+                        matTooltipPosition="above"
+                        (click)="createEntity()"
+                    >
                         <mat-icon>add</mat-icon>
                     </button>
                 </mat-toolbar>
@@ -103,6 +108,9 @@
                             cdkDrag
                             [cdkDragData]="entity"
                         >
+                          @if (cube() === entity.name) {
+                            <i class="ri-star-fill" [matTooltip]="'PAC.MODEL.IsDefault' | translate: {Default: 'Is default'}"></i>
+                          }
                           @switch (entity.type) {
                             @case(SemanticModelEntityType.CUBE) {
                                 <mat-icon class="pac-model__nav-icon"
@@ -123,10 +131,10 @@
                           }
 
                             <button mat-icon-button displayDensity="compact" class="pac-model__nav-action"
-                                [matMenuTriggerFor]="entityMenu"
-                                [matMenuTriggerData]="{entity: entity}"
-                                #mt="matMenuTrigger"
-                                [class.active]="mt.menuOpen"
+                                [cdkMenuTriggerFor]="entityMenu"
+                                [cdkMenuTriggerData]="{entity: entity}"
+                                #mt="cdkMenuTriggerFor"
+                                [class.active]="mt.isOpen()"
                                 (click)="$event.stopPropagation();$event.preventDefault()">
                                 <mat-icon>more_vert</mat-icon>
                             </button>
@@ -299,30 +307,30 @@
 </ng-template>
 
 <ng-template #generalMenu>
-    <div cdkMenu class="p-2">
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" [disabled]="!isDirty()" (click)="saveModel()">
-            <mat-icon fontSet="material-icons-outlined" [color]="isDirty() ?'accent':''">save</mat-icon>
-            <span class="ml-2">{{ 'PAC.ACTIONS.SAVE' | translate: {Default: "Save"} }}</span>
-        </button>
+  <div cdkMenu class="p-2">
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" [disabled]="!isDirty()" (click)="saveModel()">
+        <mat-icon fontSet="material-icons-outlined" [color]="isDirty() ?'accent':''">save</mat-icon>
+        <span class="ml-2">{{ 'PAC.ACTIONS.SAVE' | translate: {Default: "Save"} }}</span>
+    </button>
 
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="openPreferences($event)">
-            <mat-icon fontSet="material-icons-outlined">settings_suggest</mat-icon>
-            <span class="ml-2">{{ 'PAC.KEY_WORDS.PREFERENCES' | translate: {Default: "Preferences"} }}</span>
-        </button>
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="openPreferences($event)">
+        <mat-icon fontSet="material-icons-outlined">settings_suggest</mat-icon>
+        <span class="ml-2">{{ 'PAC.KEY_WORDS.PREFERENCES' | translate: {Default: "Preferences"} }}</span>
+    </button>
 
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="onDownload()">
-            <mat-icon fontSet="material-icons-outlined">file_download</mat-icon>
-            <span class="ml-2">{{ 'PAC.ACTIONS.Download' | translate: {Default: 'Download'} }}</span>
-        </button>
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="onDownload()">
+        <mat-icon fontSet="material-icons-outlined">file_download</mat-icon>
+        <span class="ml-2">{{ 'PAC.ACTIONS.Download' | translate: {Default: 'Download'} }}</span>
+    </button>
 
-        <mat-divider></mat-divider>
-        <button cdkMenuItem class="flex justify-between items-center px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="storyMenu">
-            <span>
-                {{ 'PAC.MENU.STORY_LIST' | translate: {Default: "Story List"} }}
-            </span>
-            <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
-        </button>
-    </div>
+    <div class="border-b border-solid border-divider-regular my-1"></div>
+    <button cdkMenuItem class="flex justify-between items-center px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="storyMenu">
+        <span>
+            {{ 'PAC.MENU.STORY_LIST' | translate: {Default: "Story List"} }}
+        </span>
+        <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
+    </button>
+  </div>
 </ng-template>
 
 <ng-template #editMenu>
@@ -391,19 +399,19 @@
 </ng-template>
 
 <ng-template #storyMenu>
-    <div cdkMenu class="p-2">
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="createStory()">
-            <mat-icon fontSet="material-icons-outlined">dashboard</mat-icon>
-            <span class="ml-2">{{ 'PAC.ACTIONS.CREATE_STORY' | translate: {Default: "Create Story"} }}</span>
-        </button>
-    
-        <mat-divider></mat-divider>
-    
-        <button cdkMenuItem *ngFor="let story of stories$ | async" class="px-2 py-1 rounded-lg"
-            (click)="openStory(story.id)">
-            {{story.name}}
-        </button>
-    </div>
+  <div cdkMenu class="p-2">
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="createStory()">
+        <mat-icon fontSet="material-icons-outlined">dashboard</mat-icon>
+        <span class="ml-2">{{ 'PAC.ACTIONS.CREATE_STORY' | translate: {Default: "Create Story"} }}</span>
+    </button>
+
+    <div class="border-b border-solid border-divider-regular my-1"></div>
+
+    <button cdkMenuItem *ngFor="let story of stories$ | async" class="px-2 py-1 rounded-lg"
+        (click)="openStory(story.id)">
+        {{story.name}}
+    </button>
+  </div>
 </ng-template>
 
 <ng-template #manageMenu>
@@ -425,19 +433,26 @@
     </div>
 </ng-template>
 
-<mat-menu #entityMenu="matMenu" class="ngm-density__compact">
-    <ng-template matMenuContent let-entity="entity">
-        <button mat-menu-item *ngIf="entity.type === SemanticModelEntityType.CUBE" class="px-2 py-1 rounded-lg"
-            (click)="saveAsDefaultCube(entity.name)">
-            <mat-icon fontSet="material-icons-outlined">stars</mat-icon>
-            <span class="ml-2">{{ 'PAC.MODEL.SaveAsDefaultCube' | translate: {Default: "Save as Default Cube"} }}</span>
-        </button>
-        <button mat-menu-item class="ngm-appearance-danger px-2 py-1 rounded-lg" (click)="deleteEntity(entity.id)">
-            <mat-icon fontSet="material-icons-round">delete_forever</mat-icon>
-            <span class="ml-2">{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
-        </button>
-    </ng-template>
-</mat-menu>
+<ng-template #entityMenu let-entity="entity">
+  <div cdkMenu class="cdk-menu__medium">
+    @if (entity.type === SemanticModelEntityType.CUBE) {
+      <button cdkMenuItem class="px-2 py-1 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
+        [disabled]="cube() === entity.name"
+        (click)="saveAsDefaultCube(entity.name)"
+      >
+        <i class="ri-star-fill"></i>
+        <span class="ml-2">{{ 'PAC.MODEL.SaveAsDefaultCube' | translate: {Default: "Save as Default Cube"} }}</span>
+      </button>
+    }
+    
+    <button cdkMenuItem class="danger px-2 py-1 rounded-lg"
+      (click)="deleteEntity(entity.id)"
+    >
+      <i class="ri-delete-bin-line"></i>
+      <span class="ml-2">{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
+    </button>
+  </div>
+</ng-template>
 
 <ng-template #tableTemplate let-message="message">
   @if (message.data['header']) {

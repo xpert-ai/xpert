@@ -188,6 +188,7 @@ export class ModelComponent extends TranslationBaseComponent implements IsDirty 
   public readonly copilotEnabled$ = this.appService.copilotEnabled$
 
   private readonly dimensions = toSignal(this.modelService.dimensions$)
+  readonly cube = computed(() => this.modelService.model()?.cube)
 
   model: ISemanticModel
 
