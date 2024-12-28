@@ -3,14 +3,14 @@ import { BehaviorSubject, catchError, map, of, Subject, switchMap } from 'rxjs'
 import { fromFetch } from 'rxjs/fetch'
 import { AI_PROVIDERS, BusinessRoleType, ICopilot } from './types'
 
-function modelsUrl(copilot: ICopilot) {
-  const apiHost: string = copilot.apiHost || AI_PROVIDERS[copilot.provider]?.apiHost
-  const modelsUrl: string = AI_PROVIDERS[copilot.provider]?.modelsUrl
-  return (
-    copilot.modelsUrl ||
-    (apiHost?.endsWith('/') ? apiHost.slice(0, apiHost.length - 1) + modelsUrl : apiHost + modelsUrl)
-  )
-}
+// function modelsUrl(copilot: ICopilot) {
+//   const apiHost: string = copilot.apiHost || AI_PROVIDERS[copilot.provider]?.apiHost
+//   const modelsUrl: string = AI_PROVIDERS[copilot.provider]?.modelsUrl
+//   return (
+//     copilot.modelsUrl ||
+//     (apiHost?.endsWith('/') ? apiHost.slice(0, apiHost.length - 1) + modelsUrl : apiHost + modelsUrl)
+//   )
+// }
 
 /**
  * Copilot Service
@@ -70,31 +70,31 @@ export abstract class CopilotService {
   abstract role(): string
   abstract setRole(role: string): void
 
-  getModels() {
-    return fromFetch(modelsUrl(this.#copilot$.value), {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-        // ...((this.requestOptions()?.headers ?? {}) as Record<string, string>)
-        // Authorization: `Bearer ${this.copilot.apiKey}`
-      }
-    }).pipe(
-      switchMap((response) => {
-        if (response.ok) {
-          // OK return data
-          return response.json()
-        } else {
-          // Server is returning a status requiring the client to try something else.
-          return of({ error: true, message: `Error ${response.status}` })
-        }
-      }),
-      catchError((err) => {
-        // Network or other error, handle appropriately
-        console.error(err)
-        return of({ error: true, message: err.message })
-      })
-    )
-  }
+  // getModels() {
+  //   return fromFetch(modelsUrl(this.#copilot$.value), {
+  //     method: 'GET',
+  //     headers: {
+  //       'Content-Type': 'application/json'
+  //       // ...((this.requestOptions()?.headers ?? {}) as Record<string, string>)
+  //       // Authorization: `Bearer ${this.copilot.apiKey}`
+  //     }
+  //   }).pipe(
+  //     switchMap((response) => {
+  //       if (response.ok) {
+  //         // OK return data
+  //         return response.json()
+  //       } else {
+  //         // Server is returning a status requiring the client to try something else.
+  //         return of({ error: true, message: `Error ${response.status}` })
+  //       }
+  //     }),
+  //     catchError((err) => {
+  //       // Network or other error, handle appropriately
+  //       console.error(err)
+  //       return of({ error: true, message: err.message })
+  //     })
+  //   )
+  // }
 
   recordTokenUsage(usage: { copilot: ICopilot; tokenUsed: number }) {
     this.tokenUsage$.next(usage)

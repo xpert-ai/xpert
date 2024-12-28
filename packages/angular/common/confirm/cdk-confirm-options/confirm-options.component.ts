@@ -6,6 +6,7 @@ import { Component, HostBinding, inject, signal } from '@angular/core'
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
+import { assign } from '@metad/ocap-core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 
@@ -30,8 +31,8 @@ import { TranslateModule } from '@ngx-translate/core'
     'class': 'cdk-dialog-card'
   }
 })
-export class CdkConfirmOptionsComponent {
-  readonly data = inject<{ formFields: any; information: string }>(DIALOG_DATA)
+export class CdkConfirmOptionsComponent<T> {
+  readonly data = inject<{ formFields: any; information: string; value: T }>(DIALOG_DATA)
   readonly dialogRef = inject(DialogRef)
 
   @HostBinding('class.ngm-dialog-container') isDialogContainer = true
@@ -41,6 +42,10 @@ export class CdkConfirmOptionsComponent {
   options = {}
 
   readonly fields = signal(this.data.formFields)
+
+  constructor() {
+    assign(this.model, this.data.value)
+  }
 
   onModelChange(event) {
     //

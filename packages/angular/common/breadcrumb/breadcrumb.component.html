@@ -1,15 +1,20 @@
 <nav mat-tab-nav-bar disableRipple class="breadcrumb" headerPosition="above" mat-stretch-tabs="false" mat-align-tabs="start">
-  <div mat-tab-link class="breadcrumb__step"
-    *ngFor="let step of steps; index as i"
-    [ngClass]="{
-      'breadcrumb__step--active': step.active
-    }"
-    (click)="activeLink = step;onClick(step)"
-  >
-    {{step.label}}
-  </div>
+  @for (step of steps; track step; let i = $index; let first = $first; let last = $last) {
+    <div mat-tab-link class="breadcrumb__step"
+      [ngClass]="{
+        'breadcrumb__step--active': step.active,
+        'first': first,
+        'last': last
+      }"
+      (click)="activeLink = step;onClick(step)"
+    >
+      {{step.label}}
+    </div>
+  }
 </nav>
 
-<button mat-icon-button displayDensity="compact" (click)="onClose()">
+<button mat-icon-button displayDensity="compact" [matTooltip]="'Ngm.Common.ClearDrillDown' | translate: {Default: 'Clear Drill Down'}"
+  matTooltipPosition="above"
+  (click)="onClose()">
   <mat-icon fontSet="material-icons-outlined">close</mat-icon>
 </button>

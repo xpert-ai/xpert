@@ -10,7 +10,8 @@ import { isEqual } from 'date-fns'
 import express from 'express'
 import { filter, Observable, Observer, Subject, Subscriber } from 'rxjs'
 import { LarkBotMenuCommand, LarkMessageCommand } from './commands'
-import { ChatLarkContext, LarkMessage } from './types'
+import { ChatLarkContext, isEndAction, LarkMessage } from './types'
+import { LarkConversationService } from './conversation.service'
 
 @Injectable()
 export class LarkService {
@@ -34,6 +35,7 @@ export class LarkService {
 	>()
 
 	constructor(
+		private readonly conversation: LarkConversationService,
 		private readonly userService: UserService,
 		private readonly roleService: RoleService,
 		private readonly configService: ConfigService,
@@ -91,6 +93,7 @@ export class LarkService {
 	}
 
 	createEventDispatcher(integration: IIntegration, client: lark.Client) {
+		const { xpertId } = integration.options ?? {}
 		return new lark.EventDispatcher({
 			verificationToken: integration.options.verificationToken,
 			encryptKey: integration.options.encryptKey,
@@ -156,7 +159,6 @@ export class LarkService {
 
 				try {
 				    const user = RequestContext.currentUser()
-					console.log(user.id)
 					
 					// await this.getUser(client, tenant.id, data.sender.sender_id.union_id)
 					await this.commandBus.execute<LarkMessageCommand, Observable<any>>(
@@ -251,7 +253,22 @@ export class LarkService {
 				this.logger.debug(data)
 				const messageId = data.context.open_message_id
 				if (messageId) {
-					if (this.actions.get(messageId)) {
+					if(isEndAction(data.action?.value) && xpertId) {
+						const user = RequestContext.currentUser()
+						const tenant = integration.tenant
+						const organizationId = integration.organizationId
+						await this.conversation.endConversation(
+							{
+								tenant,
+								organizationId,
+								integrationId: integration.id,
+								integration,
+								larkService: this,
+								user
+							},
+							user.id, xpertId)
+						return true
+					} else if (this.actions.get(messageId)) {
 						this.actions.get(messageId).next(data)
 						return true
 					} else {
@@ -288,7 +305,7 @@ export class LarkService {
 
 	async getUser(client: lark.Client, tenantId: string, unionId: string) {
 		// From cache
-		let user = await this.cacheManager.get<IUser>(tenantId + '/' + unionId)
+		let user = await this.cacheManager.get<IUser>('user/' + tenantId + '/' + unionId)
 		if (user) {
 			return user
 		}
@@ -335,7 +352,7 @@ export class LarkService {
 		}
 
 		if (user) {
-			await this.cacheManager.set(tenantId + '/' + unionId, user)
+			await this.cacheManager.set('user/' + tenantId + '/' + unionId, user)
 			
 		}
 		
@@ -368,7 +385,7 @@ export class LarkService {
 		}
 	}
 
-	async errorMessage({ integrationId, chatId }: { integrationId: string; chatId: string }, err: Error) {
+	async errorMessage({ integrationId, chatId }: { integrationId: string; chatId?: string }, err: Error) {
 		await this.createMessage(integrationId, {
 			params: {
 				receive_id_type: 'chat_id'

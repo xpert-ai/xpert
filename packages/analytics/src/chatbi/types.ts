@@ -54,8 +54,8 @@ export type ChatBILarkMessage = {
 }
 
 export type ChatBILarkContext = ChatLarkContext & {
-	userId: string
-	text: string
+	userId?: string
+	text?: string
 }
 
 export type IChatBIConversation = {

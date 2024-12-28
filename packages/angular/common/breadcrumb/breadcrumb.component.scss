@@ -12,6 +12,13 @@
 
 .breadcrumb__step {
   @apply whitespace-nowrap text-ellipsis shrink;
+
+  &.first {
+    @apply rounded-l-lg;
+  }
+  &.last {
+    @apply rounded-r-lg;
+  }
 }
 
 .breadcrumb__step.breadcrumb__step--active:last-child {

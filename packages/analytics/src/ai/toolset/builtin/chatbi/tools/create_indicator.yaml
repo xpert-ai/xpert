@@ -1,0 +1,51 @@
+identity:
+  name: create_indicator
+  author: Xpert AI
+  label:
+    en_US: Create indicator
+    zh_Hans: 创建指标
+description:
+  human:
+    en_US: Create indicator in semantic model
+    zh_Hans: 为语义模型创建指标
+  llm: A tool to create indicator for semantic model.
+parameters:
+  - name: modelId
+    type: string
+    required: true
+    label:
+      en_US: Semantic Model ID
+      zh_Hans: 语义模型 ID
+    human_description:
+      en_US: The id of semantic model to query
+      zh_Hans: 要查询的语义模型的 ID
+    llm_description: Semantic Model ID
+    form: llm
+    schema:
+      type: string
+  - name: cube
+    type: string
+    required: true
+    label:
+      en_US: Cube Name
+      zh_Hans: 立方体名称
+    human_description:
+      en_US: The name of cube in model
+      zh_Hans: 语义模型中的立方体名称
+    llm_description: The name of cube in semantic model
+    form: llm
+    schema:
+      type: string
+  - name: code
+    type: string
+    required: true
+    label:
+      en_US: Indicator code
+      zh_Hans: 指标编码
+    human_description:
+      en_US: Indicator code
+      zh_Hans: 指标编码
+    llm_description: The unique code of indicator in semantic model
+    form: llm
+    schema:
+      type: string

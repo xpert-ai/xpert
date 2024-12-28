@@ -10,7 +10,7 @@ import { StructuredToolInterface } from "@langchain/core/tools";
 import { AsyncLocalStorageProviderSingleton } from "@langchain/core/singletons";
 import { END, isCommand, isGraphInterrupt, MessagesAnnotation } from "@langchain/langgraph";
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
-import { ChatMessageEventTypeEnum } from "@metad/contracts";
+import { ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from "@metad/contracts";
 import { getErrorMessage } from "@metad/server-common";
 import { setContextVariable } from "@langchain/core/context";
 
@@ -148,7 +148,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
   ): Promise<any> {
 
     // We set a context variable before invoking the tool node and running our tool.
-    setContextVariable("currentState", input);
+    setContextVariable(CONTEXT_VARIABLE_CURRENTSTATE, input);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let returnValue: any;

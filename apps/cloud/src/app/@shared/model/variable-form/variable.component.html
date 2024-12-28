@@ -1,0 +1,29 @@
+<header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="pb-2 cursor-move">
+  <h4 class="text-xl pointer-events-none">
+    {{ 'PAC.MODEL.EditCubeVariable' | translate: {Default: 'Edit cube variable'} }}
+  </h4>
+</header>
+
+<div class="flex flex-col">
+  <div class="flex justify-between item-center gap-4">
+    <ngm-input class="" [label]="'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'}" disabled [ngModel]="name()"/>
+    <ngm-input [label]="'PAC.KEY_WORDS.Caption' | translate: {Default: 'Caption'}" [(ngModel)]="caption"/>
+  </div>
+
+  <ngm-variable [label]="variable().caption" displayDensity="cosy"
+    [dataSettings]="dataSettings()"
+    [variable]="variable()"
+    [(ngModel)]="defaultLow"
+  />
+</div>
+
+<div class="w-full flex justify-end items-center">
+  <div ngmButtonGroup>
+    <button mat-button (click)="cancel()">
+        {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
+    </button>
+    <button mat-raised-button color="accent" cdkFocusInitial (click)="apply()">
+        {{ 'COMPONENTS.COMMON.Confirm' | translate: {Default: 'Confirm'} }}
+    </button>
+  </div>
+</div>

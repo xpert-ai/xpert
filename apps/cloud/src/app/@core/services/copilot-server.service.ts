@@ -1,18 +1,18 @@
-import { OrganizationBaseCrudService } from '@metad/cloud/state'
-import { NGXLogger } from 'ngx-logger'
-
-import { effect, inject, Injectable, signal } from '@angular/core'
+import { inject, Injectable } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
+import { OrganizationBaseCrudService } from '@metad/cloud/state'
 import { toParams } from '@metad/core'
-import {
-  BehaviorSubject,
-  Observable,
-  shareReplay,
-  switchMap
-} from 'rxjs'
+import { NGXLogger } from 'ngx-logger'
+import { BehaviorSubject, Observable, shareReplay, switchMap } from 'rxjs'
 import { API_COPILOT } from '../constants/app.constants'
-import { ICopilotWithProvider, ICopilot as IServerCopilot, AiModelTypeEnum, ParameterRule, IAiProviderEntity, ICopilot, AiProviderRole } from '../types'
-
+import {
+  AiModelTypeEnum,
+  AiProviderRole,
+  IAiProviderEntity,
+  ICopilot,
+  ICopilotWithProvider,
+  ParameterRule
+} from '../types'
 
 @Injectable({ providedIn: 'root' })
 export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> {
@@ -21,11 +21,16 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
   readonly refresh$ = new BehaviorSubject(false)
 
   private readonly modelsByType = new Map<AiModelTypeEnum, Observable<ICopilotWithProvider[]>>()
-  private readonly aiProviders$ = this.httpClient.get<IAiProviderEntity[]>(API_COPILOT + `/providers`).pipe(shareReplay(1))
+  private readonly aiProviders$ = this.httpClient
+    .get<IAiProviderEntity[]>(API_COPILOT + `/providers`)
+    .pipe(shareReplay(1))
 
+  /**
+   * All available copilots (enabled or tenant free quota)
+   */
   private readonly copilots$ = this.refresh$.pipe(
     switchMap(() => this.selectOrganizationId()),
-    switchMap(() => this.httpClient.get<ICopilot[]>(API_COPILOT)),
+    switchMap(() => this.httpClient.get<ICopilot[]>(this.apiBaseUrl + `/availables`)),
     shareReplay(1)
   )
 
@@ -81,8 +86,8 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
 }
 
 export function injectAiProviders() {
-    const service = inject(CopilotServerService)
-    return toSignal(service.getAiProviders())
+  const service = inject(CopilotServerService)
+  return toSignal(service.getAiProviders())
 }
 
 export function injectCopilotServer() {

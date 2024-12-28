@@ -148,26 +148,31 @@ export class XpertPublishComponent {
   }
 
   remove(integration: IIntegration) {
-    this.#dialog
-      .open(CdkConfirmDeleteComponent, {
-        data: {
-          value: integration.name,
-          information: integration.description
-        }
-      })
-      .closed.pipe(switchMap((confirm) => (confirm ? this.delete(integration.id) : EMPTY)))
-      .subscribe({
-        next: () => {
-          this.#toastr.success('PAC.Xpert.XpertPublishDeleted', { Default: 'Xpert publish deleted!' })
-          this.loading.set(false)
-          this.selectedIntegrations.set([])
-          this.integrations.update((state) => state.filter((_) => _.id !== integration.id))
-        },
-        error: (error) => {
-          this.#toastr.danger(getErrorMessage(error))
-          this.loading.set(false)
-        }
-      })
+    if (integration.id) {
+      this.#dialog
+        .open(CdkConfirmDeleteComponent, {
+          data: {
+            value: integration.name,
+            information: integration.description
+          }
+        })
+        .closed.pipe(switchMap((confirm) => (confirm ? this.delete(integration.id) : EMPTY)))
+        .subscribe({
+          next: () => {
+            this.#toastr.success('PAC.Xpert.XpertPublishDeleted', { Default: 'Xpert publish deleted!' })
+            this.loading.set(false)
+            this.selectedIntegrations.set([])
+            this.integrations.update((state) => state.filter((_) => _.id !== integration.id))
+          },
+          error: (error) => {
+            this.#toastr.danger(getErrorMessage(error))
+            this.loading.set(false)
+          }
+        })
+    } else {
+      this.selectedIntegrations.set([])
+      this.integrations.update((state) => state.filter((_) => _ !== integration))
+    }
   }
 
   delete(id: string) {

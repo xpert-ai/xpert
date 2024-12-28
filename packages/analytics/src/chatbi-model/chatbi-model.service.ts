@@ -1,4 +1,4 @@
-import { IXpert, IIntegration } from '@metad/contracts'
+import { IIntegration } from '@metad/contracts'
 import { XpertService } from '@metad/server-ai'
 import { IntegrationService, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Injectable, Logger } from '@nestjs/common'

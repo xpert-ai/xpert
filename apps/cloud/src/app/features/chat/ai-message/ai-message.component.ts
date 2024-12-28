@@ -1,21 +1,29 @@
-import { DragDropModule } from '@angular/cdk/drag-drop'
 import { Clipboard } from '@angular/cdk/clipboard'
+import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
+import { stringifyMessageContent } from '@metad/copilot'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { Indicator } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
+import {
+  ChatMessageFeedbackRatingEnum,
+  ChatMessageFeedbackService,
+  getErrorMessage,
+  IChatMessage,
+  injectToastr,
+  isMessageGroup
+} from '../../../@core'
+import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { MaterialModule } from '../../../@shared/material.module'
 import { ChatService } from '../chat.service'
 import { ChatComponentMessageComponent } from '../component-message/component-message.component'
-import { EmojiAvatarComponent } from '../../../@shared/avatar'
+import { ChatHomeComponent } from '../home.component'
 import { TCopilotChatMessage } from '../types'
-import { ChatMessageFeedbackRatingEnum, ChatMessageFeedbackService, getErrorMessage, IChatMessage, injectToastr, isMessageGroup } from '../../../@core'
-import { stringifyMessageContent } from '@metad/copilot'
-
 
 @Component({
   standalone: true,
@@ -43,6 +51,7 @@ export class ChatAiMessageComponent {
   eFeedbackRatingEnum = ChatMessageFeedbackRatingEnum
 
   readonly chatService = inject(ChatService)
+  readonly chatHomeComponent = inject(ChatHomeComponent)
   readonly messageFeedbackService = inject(ChatMessageFeedbackService)
   readonly #clipboard = inject(Clipboard)
   readonly #toastr = injectToastr()
@@ -85,7 +94,7 @@ export class ChatAiMessageComponent {
 
   readonly messageGroup = computed(() => {
     const message = this.message()
-    return isMessageGroup(message as any) ? message as any : null
+    return isMessageGroup(message as any) ? (message as any) : null
   })
 
   readonly copied = signal(false)
@@ -94,6 +103,10 @@ export class ChatAiMessageComponent {
     effect(() => {
       // console.log(this.message()?.status)
     })
+  }
+
+  onRegister(models: { id: string; indicators?: Indicator[] }[]) {
+    this.chatHomeComponent.registerSemanticModel(models)
   }
 
   onCopy(copyButton) {
@@ -126,7 +139,7 @@ export class ChatAiMessageComponent {
             ...(state ?? {}),
             [message.id]: feedback
           }))
-          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', {Default: 'Updated successfully'})
+          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
         },
         error: (error) => {
           this.#toastr.error(getErrorMessage(error))
@@ -135,19 +148,17 @@ export class ChatAiMessageComponent {
   }
 
   cancelFeedback(message: Partial<IChatMessage>, id: string) {
-    this.messageFeedbackService
-      .delete(id)
-      .subscribe({
-        next: () => {
-          this.feedbacks.update((state) => ({
-            ...(state ?? {}),
-            [message.id]: null
-          }))
-          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', {Default: 'Updated successfully'})
-        },
-        error: (error) => {
-          this.#toastr.error(getErrorMessage(error))
-        }
-      })
+    this.messageFeedbackService.delete(id).subscribe({
+      next: () => {
+        this.feedbacks.update((state) => ({
+          ...(state ?? {}),
+          [message.id]: null
+        }))
+        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+      },
+      error: (error) => {
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
   }
 }

@@ -251,11 +251,11 @@ export function getEntityCalculations(entityType: EntityType): CalculationProper
   ) as CalculationProperty[]
 }
 
-export function getEntityParameters(entityType: EntityType): ParameterProperty[] {
+export function getEntityParameters<T extends ParameterProperty>(entityType: EntityType): T[] {
   if (isNil(entityType?.parameters)) {
     return []
   }
-  return Object.values(entityType.parameters)
+  return Object.values(entityType.parameters) as T[]
 }
 
 export function getEntityVariables(entityType: EntityType): VariableProperty[] {

@@ -5,6 +5,9 @@
       [dataSettings]="data().dataSettings"
       [chartSettings]="chartSettings()"
       [slicers]="data().slicers"
+      [options]="{
+        showSlicers: true
+      }"
       (explain)="setExplains($event)"
     >
       <button ngmAction class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light"
@@ -13,14 +16,7 @@
         (click)="openExplorer()">
         <i class="ri-expand-diagonal-2-line"></i>
       </button>
-      <button ngmAction class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light"
-        [cdkMenuTriggerFor]="filtersMenu"
-        #mt="cdkMenuTriggerFor"
-        [class.active]="mt.isOpen()"
-        [matTooltip]="'Story.Common.Slicers' | translate: {Default: 'Slicers'}"
-        matTooltipPosition="above">
-        <i class="ri-filter-line"></i>
-      </button>
+    
       <button ngmAction class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light"
         [matTooltip]="'PAC.Chat.OpenExplain' | translate: {Default: 'Open Explain'}"
         matTooltipPosition="above"
@@ -28,25 +24,6 @@
         <i class="ri-terminal-box-line"></i>
       </button>
     </ngm-analytical-card>
-
-    <ng-template #filtersMenu>
-      <div class="relative p-4 rounded-2xl border-light shadow-md bg-components-card-bg">
-        <div class="text-base font-semibold">{{ 'Ngm.Selection.Slicers' | translate: {Default: "Slicers"} }}</div>
-        <ngm-slicers class="overflow-hidden" inline editable
-          [slicers]="data().slicers"
-          [dataSettings]="data().dataSettings"
-          [limit]="5"
-          [capacities]="[eSlicersCapacity.CombinationSlicer, eSlicersCapacity.AdvancedSlicer, eSlicersCapacity.Variable]"
-          (valueChange)="setSelectOptions(data(), $event)"
-          (click)="$event.stopPropagation()"
-        />
-
-        <button type="button" class="absolute right-2 top-2 pressable cursor-pointer text-text-secondary hover:bg-hover-bg rounded-full p-1"
-          (click)="mt.close()"
-        ><i class="ri-close-circle-line w-6 h-6 block"></i>
-        </button>
-      </div>
-    </ng-template>
   }
   @case ('KPI') {
     @if (indicator()) {
@@ -76,11 +53,24 @@
   @case ('Indicators') {
     <div class="dark flex flex-col items-stretch">
       @for (indicator of indicators(); track indicator.indicator) {
-        <ngm-indicator class="bg-components-card-bg p-4 hover:bg-components-panel-bg first:rounded-t-xl last:rounded-b-xl"
+        <ngm-indicator class="indicator min-h-[75px] border-t border-solid dark:border-neutral-800 border-transparent bg-components-card-bg p-4 cursor-pointer hover:bg-components-panel-bg first:rounded-t-xl last:rounded-b-xl"
+          [class.active]="indicatorExplorer() === indicator.indicator"
           [dataSettings]="indicator" [indicatorCode]="indicator.indicator"
           [lookBack]="12" 
           [timeGranularity]="eTimeGranularity.Month"
+          [tagType]="indicatorTagType()"
+          (click)="toggleIndicator(indicator.indicator)"
+          (toggleTag)="toggleIndicatorTagType()"
         />
+        @if (indicatorExplorer() === indicator.indicator) {
+          <ngm-indicator-explorer class="ngm-indicator-explorer last:rounded-b-xl"
+            [dataSettings]="indicator"
+            [indicatorCode]="indicator.indicator" 
+            [lookBack]="12" 
+            periodName="6M"
+            [primaryTheme]="'dark'"
+          />
+        }
       }
     </div>
   }

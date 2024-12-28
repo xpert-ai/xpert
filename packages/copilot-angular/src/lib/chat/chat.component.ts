@@ -490,24 +490,24 @@ export class NgmCopilotChatComponent {
     return item?.key
   }
 
-  refreshModels() {
-    if (this.refreshingModels()) {
-      return
-    }
-    this.refreshingModels.set(true)
-    this.copilotService.getModels().subscribe({
-      next: (res) => {
-        this.refreshingModels.set(false)
-        this.latestModels.set(res.data.map((model) => ({ id: model.id, name: model.id })))
-      },
-      error: (error) => {
-        this.refreshingModels.set(false)
-        this._snackBar.open(error.message, 'Close', {
-          duration: 5000
-        })
-      }
-    })
-  }
+  // refreshModels() {
+  //   if (this.refreshingModels()) {
+  //     return
+  //   }
+  //   this.refreshingModels.set(true)
+  //   this.copilotService.getModels().subscribe({
+  //     next: (res) => {
+  //       this.refreshingModels.set(false)
+  //       this.latestModels.set(res.data.map((model) => ({ id: model.id, name: model.id })))
+  //     },
+  //     error: (error) => {
+  //       this.refreshingModels.set(false)
+  //       this._snackBar.open(error.message, 'Close', {
+  //         duration: 5000
+  //       })
+  //     }
+  //   })
+  // }
 
   changeSelectedModel(values) {
     // this.model = values[0]

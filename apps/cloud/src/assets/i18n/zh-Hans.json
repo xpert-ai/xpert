@@ -212,6 +212,7 @@
       "Primary": "主",
       "Secondary": "副",
       "Embedding": "嵌入",
+      "Reasoning": "推理",
       "Open": "打开",
       "Knowledgebases": "知识库",
       "Empty": "无数据",
@@ -269,7 +270,11 @@
       "SecretKey": "密钥",
       "LastUsed": "最后使用",
       "Never": "从未",
-      "AvailablePro": "企业版中可用"
+      "AvailablePro": "企业版中可用",
+      "Like": "喜欢",
+      "Dislike": "不喜欢",
+      "CancelLike": "取消喜欢",
+      "CancelDislike": "取不喜欢"
     },
     "MENU": {
       "Certification": "认证",
@@ -757,6 +762,9 @@
       "MemberCount": "成员数量",
       "SynchronizationJobCreatedSuccessfully": "同步任务创建成功!",
       "StopSyncJob": "终止同步任务",
+      "EditCubeVariable": "编辑立方体变量",
+      "Variables": "参数变量",
+      "OpenCubeDesigner": "打开多维数据集属性编辑器",
 
       "QUERY": {
         "TITLE": "查询实验室",
@@ -1122,6 +1130,10 @@
           "The error is xxxx": "错误是 xxxx",
           "query total sales amount by products": "查询产品的销售总额"
         }
+      },
+      "VariableSchema": {
+        "Name": "名称",
+        "Caption": "标签"
       }
     },
     "BUSINESS_AREA": {

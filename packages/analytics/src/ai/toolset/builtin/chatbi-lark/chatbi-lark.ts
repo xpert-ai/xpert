@@ -6,6 +6,7 @@ import { createWelcomeTool } from './tools/welcome'
 import { ChatBILarkToolsEnum } from './types'
 import { createChatAnswerTool } from './tools/answer_question'
 import { ChatBIToolsEnum } from '../chatbi/types'
+import { createShowIndicatorsTool } from './tools/show_indicators'
 
 export class ChatBILarkToolset extends AbstractChatBIToolset {
 	static provider = 'chatbi-lark'
@@ -31,7 +32,7 @@ export class ChatBILarkToolset extends AbstractChatBIToolset {
 			)
 		}
 
-		// if (tools.find((_) => _.name === ChatBILarkToolsEnum.SHOW_INDICATORS)) {
+		// if (tools.find((_) => _.name === ChatBIToolsEnum.SHOW_INDICATORS)) {
 		// 	this.tools.push(
 		// 		createShowIndicatorsTool({
 		// 			dsCoreService: this.dsCoreService,

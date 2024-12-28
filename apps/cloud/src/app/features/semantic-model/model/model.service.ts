@@ -189,6 +189,7 @@ export class SemanticModelService {
     filter(nonNullable),
     distinctUntilChanged()
   )
+  readonly semanticModelKey = toSignal(this.semanticModelKey$)
 
   readonly dataSource$ = new BehaviorSubject<DataSource>(null)
 

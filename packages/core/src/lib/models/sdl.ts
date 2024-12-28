@@ -63,6 +63,7 @@ export interface Cube extends Entity {
   dimensions?: PropertyDimension[]
   measures?: PropertyMeasure[]
   calculatedMembers?: CalculatedMember[]
+  variables?: VariableProperty[]
   defaultMeasure?: string
 }
 

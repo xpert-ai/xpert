@@ -53,7 +53,9 @@ export class NgmInputComponent implements ControlValueAccessor {
 
   readonly options = input<ISelectOption[]>()
 
-  readonly disabled = input(false)
+  readonly disabled = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
   readonly _disabled = signal(false)
 
   readonly simple = input<boolean, boolean | string>(false, {

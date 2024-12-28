@@ -16,6 +16,7 @@ export class ChatController {
 	) {}
 
 	@Header('content-type', 'text/event-stream')
+	@Header('Connection', 'keep-alive')
 	@Post('')
 	@Sse()
 	async chat(@Body() body: {request: TChatRequest; options: TChatOptions;}) {

@@ -1,9 +1,12 @@
+import { SerializedConstructor } from '@langchain/core/load/serializable'
 import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { Observable } from 'rxjs'
+import { ChatMessageUpsertCommand } from '../../../chat-message'
 import { XpertChatCommand } from '../../../xpert/index'
+import { ChatLarkMessage } from '../../chat/message'
 import { LarkConversationService } from '../../conversation.service'
 import { LarkChatXpertCommand } from '../chat-xpert.command'
 
@@ -29,14 +32,16 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 						input
 					},
 					xpertId,
-					conversationId
+					conversationId,
+					confirm: command.options?.confirm,
+					reject: command.options?.reject
 				},
 				null
 			)
 		)
 
 		// Thinking message
-		await larkMessage.update({status: 'thinking'})
+		await larkMessage.update({ status: 'thinking' })
 
 		let responseMessageContent = ''
 		observable.subscribe({
@@ -47,9 +52,10 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 						if (typeof message.data === 'string') {
 							responseMessageContent += message.data
 						} else {
-							console.log(`未处理的消息：`, message)
-							if (message.data.type === 'update') {
+							if (message.data?.type === 'update') {
 								larkMessage.update(message.data.data)
+							} else {
+								console.log(`未处理的消息：`, message)
 							}
 						}
 					} else if (message.type === ChatMessageTypeEnum.EVENT) {
@@ -61,6 +67,24 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 										this.#logger.error(err)
 									})
 								break
+							}
+							case ChatMessageEventTypeEnum.ON_MESSAGE_START: {
+								larkMessage.messageId = message.data.id
+								break
+							}
+							case ChatMessageEventTypeEnum.ON_CONVERSATION_END: {
+								if (
+									message.data.status === XpertAgentExecutionStatusEnum.INTERRUPTED &&
+									message.data.operation
+								) {
+									larkMessage.confirm(message.data.operation).catch((err) => {
+										this.#logger.error(err)
+									})
+								}
+								break
+							}
+							default: {
+								console.log(`未处理的事件: ${message.event}`)
 							}
 						}
 					}
@@ -74,12 +98,40 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 			complete: () => {
 				console.log('End chat with lark')
 				if (responseMessageContent) {
-					larkMessage.update({
-						status: XpertAgentExecutionStatusEnum.SUCCESS,
-						elements: [{ tag: 'markdown', content: responseMessageContent }]
-					})
+					larkMessage
+						.update({
+							status: XpertAgentExecutionStatusEnum.SUCCESS,
+							elements: [{ tag: 'markdown', content: responseMessageContent }]
+						})
+						.catch((error) => {
+							this.#logger.error(error)
+						})
+				} else if (command.options?.reject) {
+					larkMessage
+						.update({
+							status: XpertAgentExecutionStatusEnum.SUCCESS,
+							elements: []
+						})
+						.catch((error) => {
+							this.#logger.error(error)
+						})
 				}
+
+				this.saveLarkMessage(larkMessage).catch((error) => {
+					this.#logger.error(error)
+				})
 			}
 		})
+	}
+
+	async saveLarkMessage(message: ChatLarkMessage) {
+		if (message.messageId) {
+			await this.commandBus.execute(
+				new ChatMessageUpsertCommand({
+					id: message.messageId,
+					thirdPartyMessage: (message.toJSON() as SerializedConstructor).kwargs
+				})
+			)
+		}
 	}
 }

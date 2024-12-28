@@ -14,6 +14,9 @@ import {
   ViewContainerRef
 } from '@angular/core'
 
+/**
+ * @deprecated use tailwind
+ */
 @Directive({
   selector: '[igxActionStripMenuItem]'
 })
@@ -21,6 +24,9 @@ export class IgxActionStripMenuItemDirective {
   constructor(public templateRef: TemplateRef<any>) {}
 }
 
+/**
+ * @deprecated use tailwind
+ */
 @Component({
   selector: 'ngm-action-strip',
   templateUrl: 'action-strip.component.html'

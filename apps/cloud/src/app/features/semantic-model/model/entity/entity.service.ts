@@ -77,6 +77,12 @@ export class ModelEntityService {
     filter(nonNullable)
   )
   public readonly cube$ = this.store.pipe(select((state) => state))
+  readonly cubeName = toSignal(
+    this.cube$.pipe(
+      map((cube) => cube?.name),
+      filter(nonNullable)
+    )
+  )
 
   readonly _preview = signal(null)
   get preview() {
@@ -140,6 +146,7 @@ export class ModelEntityService {
   readonly dimensions = toSignal(this.cube$.pipe(map((cube) => cube?.dimensions)))
   readonly measures = toSignal(this.cube$.pipe(map((cube) => cube?.measures)))
   readonly calculatedMembers = toSignal(this.cube$.pipe(map((cube) => cube?.calculatedMembers)))
+  readonly variables = toSignal(this.cube$.pipe(map((cube) => cube?.variables)))
   readonly sharedDimensions = toSignal(this.#modelService.sharedDimensions$)
 
   readonly dimensionUsages$ = toObservable(this.dimensionUsages)
@@ -752,8 +759,33 @@ export class ModelEntityService {
           })
         }
       }
+
+      if (type === ModelDesignerType.variable) {
+        const index = state.variables?.findIndex((item) => item.__id__ === id)
+        if (index > -1) {
+          state.variables[index] = {
+            ...state.variables[index],
+            ...model
+          }
+        } else {
+          state.variables = state.variables ?? []
+          state.variables.push({
+            ...model,
+            __id__: uuid()
+          })
+        }
+      }
     }
   )
+
+  readonly deleteCubeProperty = this.updater(
+    (state, { id, type, }: { id: string; type: ModelDesignerType; }) => {
+      switch(type) {
+        case ModelDesignerType.variable: {
+          state.variables = state.variables?.filter((_) => _.__id__ !== id)
+        }
+      }
+    })
 
   readonly navigateDimension = effectAction((origin$: Observable<string>) => {
     return origin$.pipe(

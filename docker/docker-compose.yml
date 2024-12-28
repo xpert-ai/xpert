@@ -58,7 +58,7 @@ services:
     environment:
       HOST: ${API_HOST:-api}
       PORT: ${API_PORT:-3000}
-      NODE_ENV: ${NODE_ENV:-production}
+      NODE_ENV: ${NODE_ENV:-development}
       DB_HOST: db
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -86,7 +86,7 @@ services:
     image: ghcr.io/xpert-ai/xpert-webapp:latest
     environment:
       HOST: ${WEB_HOST:-webapp}
-      NODE_ENV: ${NODE_ENV:-production}
+      NODE_ENV: ${NODE_ENV:-development}
       API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
       CLIENT_BASE_URL: ${CLIENT_BASE_URL:-http://localhost:4200}
       SENTRY_DSN: ${SENTRY_DSN:-}

@@ -14,7 +14,7 @@
     </mat-datepicker>
   
     <div class="flex justify-end items-center">
-      <div class="pac-indicator__tag uppercase bg-gray-500 bg-opacity-25" (click)="toggleTag($event)">
+      <div class="pac-indicator__tag px-2 rounded-lg uppercase cursor-pointer bg-gray-100 hover:bg-gray-200" (click)="toggleTag($event)">
         {{ 'IndicatorApp.TagEnum.' + tagType() | translate: {Default: IndicatorTagEnum[tagType()]} }}
       </div>
 

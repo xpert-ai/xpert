@@ -142,14 +142,17 @@ export class ModelEntityComponent implements OnInit {
   }
 
   onDesignerDrawerChange(opened: boolean) {
-    // this.detailsOpen.set(opened)
     this.settingsService.setEditable(opened)
   }
 
-  openCubeDesigner() {
-    this.entityService.setSelectedProperty(null)
-    this.settingsService.setEditable(true)
-    this.detailsOpen.set(true)
+  toggleCubeDesigner() {
+    if (this.detailsOpen() && !this.entityService.selectedProperty()) {
+      this.detailsOpen.set(false)
+    } else {
+      this.entityService.setSelectedProperty(null)
+      this.settingsService.setEditable(true)
+      this.detailsOpen.set(true)
+    }
   }
 
   openSub(event) {
@@ -157,7 +160,6 @@ export class ModelEntityComponent implements OnInit {
   }
 
   propertySelectedChange(selected: string) {
-    // this.entityService.setSelectedProperty(selected)
     this.detailsOpen.set(true)
   }
 

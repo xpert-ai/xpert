@@ -1,0 +1,1 @@
+export const CONTEXT_VARIABLE_CURRENTSTATE = 'currentState'

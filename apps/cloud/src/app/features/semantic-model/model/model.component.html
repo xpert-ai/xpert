@@ -1,4 +1,4 @@
-<mat-toolbar class="pac__toolbar pac-model__shell-bar flex justify-between items-center">
+<div class="pac__toolbar pac-model__shell-bar flex justify-between items-center px-2 py-1">
     <div class="flex justify-start items-center" cdkMenuBar>
       @if (isMobile()) {
         <button cdkMenuItem class="pac-model__page-trigger flex-1"
@@ -55,7 +55,7 @@
         </button> -->
     </div>
 
-</mat-toolbar>
+</div>
 
 <mat-drawer-container class="flex-1" autosize>
     <mat-drawer #drawer class="ngm-story__designer-drawer ngm-sidenav-container-bg-transparent mat-elevation-z"

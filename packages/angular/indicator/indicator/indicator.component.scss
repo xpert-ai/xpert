@@ -6,7 +6,7 @@ $trend-up: rgb(49, 199, 90);
 $trend-down: rgb(254, 60, 46);
 $background-color: #090909;
 
-.pac-indicator__tag {
+.ngm-indicator__tag {
   width: 60px;
   text-align: right;
   border-radius: 5px;
@@ -38,7 +38,7 @@ $background-color: #090909;
   .Trend-Down {
     color: $trend-up;
   }
-  .pac-indicator__tag {
+  .ngm-indicator__tag {
     &.Trend-Up {
       background-color: $trend-down;
       @apply text-neutral-100;

@@ -8,5 +8,9 @@ export class LarkChatXpertCommand implements ICommand {
 		public readonly xpertId: string,
 		public readonly input: string,
 		public readonly larkMessage: ChatLarkMessage,
+		public readonly options?: {
+			confirm?: boolean
+  			reject?: boolean
+		}
 	) {}
 }

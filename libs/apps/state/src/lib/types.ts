@@ -163,6 +163,7 @@ export function convertIndicator(input: Partial<Indicator>) {
 export function convertIndicatorResult(result: IIndicator): any {
   return {
     ...omit(result, 'options'),
+    description: result.business,
     ...(result.options ?? {})
   } as any
 }

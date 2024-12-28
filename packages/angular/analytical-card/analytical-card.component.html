@@ -30,6 +30,7 @@
       <!-- data download -->
     @if (!options()?.hideDataDownload) {
       <button mat-icon-button displayDensity="cosy" [matTooltip]=" 'Ngm.AnalyticalCard.DataDownload' | translate: {Default: 'Data Download'} "
+        matTooltipPosition="above"
         (click)="downloadData()">
         <mat-icon fontSet="material-icons-outlined">file_download</mat-icon>
       </button>
@@ -37,14 +38,28 @@
       <!-- screenshot -->
     @if (!options()?.hideScreenshot) {
       <button mat-icon-button displayDensity="cosy" [matTooltip]=" 'Ngm.AnalyticalCard.Screenshot' | translate: {Default: 'Screenshot'} "
+        matTooltipPosition="above"
         (click)="screenshot()">
         <mat-icon fontSet="material-icons-outlined">photo_camera</mat-icon>
+      </button>
+    }
+
+    @if (options()?.showSlicers) {
+      <button ngmAction class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 bg-transparent hover:bg-hover-bg"
+        [cdkMenuTriggerFor]="filtersMenu"
+        [cdkMenuTriggerData]="{trigger: mt}"
+        #mt="cdkMenuTriggerFor"
+        [class.active]="mt.isOpen()"
+        [matTooltip]="'Story.Common.Slicers' | translate: {Default: 'Slicers'}"
+        matTooltipPosition="above">
+        <i class="ri-filter-line"></i>
       </button>
     }
 
       <!-- Refresh & Loading icon -->
       <button mat-icon-button class="ngm-analytical-card__refresh" displayDensity="cosy"
         [matTooltip]=" 'Ngm.AnalyticalCard.Refresh' | translate: {Default: 'Refresh'} "
+        matTooltipPosition="above"
         [style.visibility]="(isLoading$ | async) ? 'hidden' : 'visible'"
         (click)="refresh()">
         <mat-icon fontSet="material-icons-outlined">refresh</mat-icon>
@@ -96,77 +111,105 @@
 
 
 <div style="visibility: hidden; position: absolute;"
-  #contextMenuTrigger="matMenuTrigger"
-    [style.left]="contextMenuPosition.x"
-    [style.top]="contextMenuPosition.y"
-    [matMenuTriggerFor]="contextMenu">
+  #cmt="cdkMenuTriggerFor"
+  [style.left]="contextMenuPosition.x"
+  [style.top]="contextMenuPosition.y"
+  [cdkMenuTriggerFor]="contextMenu">
 </div>
 
 <!-- [hasBackdrop]="false" -->
-<mat-menu #contextMenu="matMenu" class="ngm-density__compact">
-	<ng-template matMenuContent let-slicers="slicers">
-
-    <button mat-menu-item (click)="onLinkAnalysis(slicers)">
+<ng-template #contextMenu let-slicers="slicers">
+  <div cdkMenu class="cdk-menu__large">
+    <button cdkMenuItem (click)="onLinkAnalysis(slicers)">
       <mat-icon displayDensity="cosy">add_link</mat-icon>
       {{ 'Ngm.AnalyticalCard.LinkAnalysis' | translate: {Default: "Link Analysis"} }}
     </button>
 
-    <ng-container *ngIf="canDrillLevels$ | async">
-      <mat-divider></mat-divider>
-      <button mat-menu-item disableRipple disabled>
+    @if (canDrillLevels$ | async) {
+      <div class="border-b border-solid border-divider-regular my-1"></div>
+      <div class="p-2">
         {{ 'Ngm.AnalyticalCard.DrillLevel' | translate: {Default: "Drill Level"} }}
-      </button>
-      <button mat-menu-item *ngFor="let drill of drillLevels$ | async"
-        [matMenuTriggerFor]="drillLevelsMenu"
-        [matMenuTriggerData]="{slicer: drill.slicer, levels: drill.levels}">
-        <mat-icon displayDensity="cosy">format_list_numbered</mat-icon>
-        <div class="flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
-          {{drill.property.caption || drill.property.name}}:{{drill.slicerCaption}}
-        </div>
-      </button>
-    </ng-container>
+      </div>
 
-    <ng-container *ngIf="canDrillDimensions$ | async">
-      <mat-divider></mat-divider>
-      <button mat-menu-item disableRipple disabled>
+      @for (drill of drillLevels$ | async; track drill) {
+        <button cdkMenuItem
+          [cdkMenuTriggerFor]="drillLevelsMenu"
+          [cdkMenuTriggerData]="{slicer: drill.slicer, levels: drill.levels}"
+        >
+          <mat-icon displayDensity="cosy">format_list_numbered</mat-icon>
+          <div class="flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
+            {{drill.property.caption || drill.property.name}}:{{drill.slicerCaption}}
+          </div>
+        </button>
+      }
+    }
+
+    @if (canDrillDimensions$ | async) {
+      <div class="border-b border-solid border-divider-regular my-1"></div>
+      <div class="p-2">
         {{ 'Ngm.AnalyticalCard.DrillDimension' | translate: {Default: "Drill Dimension"} }}
-      </button>
+      </div>
 
-      <button mat-menu-item *ngFor="let item of dillSlicers$ | async"
-        [matMenuTriggerFor]="drillDimensionsMenu"
-        [matMenuTriggerData]="{slicer: item.value}">
-        <mat-icon displayDensity="cosy">tag</mat-icon>{{ item.label }}
-      </button>
+      @for (item of dillSlicers$ | async; track item) {
+        <button cdkMenuItem
+          [cdkMenuTriggerFor]="drillDimensionsMenu"
+          [cdkMenuTriggerData]="{slicer: item.value}"
+        >
+          <mat-icon displayDensity="cosy">tag</mat-icon>{{ item.label }}
+        </button>
+      }
+    }
 
-    </ng-container>
-
-    <ng-container *ngIf="dilldown$ | async as slicer">
-      <mat-divider></mat-divider>
-      <button mat-menu-item  (click)="drillDown(slicer)">
+    @if (dilldown$ | async; as slicer) {
+      <div class="border-b border-solid border-divider-regular my-1"></div>
+      <button cdkMenuItem (click)="drillDown(slicer)">
         <mat-icon displayDensity="cosy">arrow_drop_down</mat-icon>
         {{ 'Ngm.AnalyticalCard.DrillDown' | translate: {Default: "Drill Down"} }}
       </button>
-    </ng-container>
-		
-	</ng-template>
-</mat-menu>
+    }
+  </div>
+</ng-template>
 
-<mat-menu #drillLevelsMenu="matMenu" class="ngm-density__compact">
-  <ng-template matMenuContent let-levels="levels" let-slicer="slicer">
-    <button mat-menu-item *ngFor="let item of levels" 
-      [disabled]="item.disabled"
-      (click)="drillLevel({property: item.property, slicer})">
-      <ngm-entity-property [property]="item.property"></ngm-entity-property>
-    </button>
-  </ng-template>
-</mat-menu>
+<ng-template #drillLevelsMenu let-levels="levels" let-slicer="slicer">
+  <div cdkMenu class="cdk-menu__medium">
+    @for (item of levels; track item) {
+      <button cdkMenuItem
+        [disabled]="item.disabled"
+        (click)="drillLevel({property: item.property, slicer})">
+        <ngm-entity-property class="w-full" [property]="item.property"></ngm-entity-property>
+      </button>
+    }
+  </div>
+</ng-template>
 
-<mat-menu #drillDimensionsMenu="matMenu" class="ngm-density__compact">
-  <ng-template matMenuContent let-slicer="slicer">
-    <button mat-menu-item *ngFor="let item of drillDimensions$ | async" 
-      [disabled]="item.disabled"
-      (click)="drill({parent: slicer.dimension, dimension: item.dimension, slicer})">
-      <ngm-entity-property [property]="item.property"></ngm-entity-property>
+<ng-template #drillDimensionsMenu let-slicer="slicer">
+  <div cdkMenu class="cdk-menu__medium">
+    @for (item of drillDimensions$ | async; track item) {
+      <button cdkMenuItem 
+        [disabled]="item.disabled"
+        (click)="drill({parent: slicer.dimension, dimension: item.dimension, slicer})">
+        <ngm-entity-property class="w-full" [property]="item.property"></ngm-entity-property>
+      </button>
+    }
+  </div>
+</ng-template>
+
+
+<ng-template #filtersMenu let-trigger="trigger">
+  <div class="relative p-4 rounded-2xl border-light shadow-md bg-components-card-bg">
+    <div class="text-base font-semibold">{{ 'Ngm.Selection.Slicers' | translate: {Default: "Slicers"} }}</div>
+    <ngm-slicers class="overflow-hidden" inline editable
+      [slicers]="slicers"
+      [dataSettings]="_dataSettings()"
+      [limit]="5"
+      [capacities]="[eSlicersCapacity.CombinationSlicer, eSlicersCapacity.AdvancedSlicer, eSlicersCapacity.Variable]"
+      (valueChange)="updateSlicers($event)"
+      (click)="$event.stopPropagation()"
+    />
+
+    <button type="button" class="absolute right-2 top-2 pressable cursor-pointer text-text-secondary hover:bg-hover-bg rounded-full p-1"
+      (click)="trigger.close()"
+    ><i class="ri-close-circle-line w-6 h-6 block"></i>
     </button>
-  </ng-template>
-</mat-menu>
+  </div>
+</ng-template>

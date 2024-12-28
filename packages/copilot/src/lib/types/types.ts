@@ -1,62 +1,9 @@
 import { BaseMessage, FunctionCall, MessageContent, OpenAIToolCall } from '@langchain/core/messages'
-import { AiModelTypeEnum } from '@metad/contracts'
-import { AiProvider } from './providers'
 
 export const DefaultModel = 'gpt-3.5-turbo'
 export const DefaultBusinessRole = 'default'
+export { ICopilot, AiProviderRole } from '@metad/contracts'
 
-/**
- * @deprecated use in @metad/contracts
- */
-export enum AiProviderRole {
-  Primary = 'primary',
-  Secondary = 'secondary',
-  Embedding = 'embedding'
-}
-
-export interface ICopilot {
-  id?: string
-  organizationId?: string
-  enabled: boolean
-  role: AiProviderRole
-  /**
-   * @deprecated use modelProvider.providerName as the ai provider
-   */
-  provider?: AiProvider
-  /**
-   * @deprecated
-   */
-  apiKey?: string
-  /**
-   * API Host or proxy host
-   */
-  apiHost?: string
-  /**
-   * @deprecated
-   */
-  token?: string
-  /**
-   * @deprecated use copilotModel.model as default model
-   */
-  defaultModel: string
-
-  chatUrl?: string
-  modelsUrl?: string
-
-  /**
-   * Show tokens for message
-   */
-  showTokenizer?: boolean
-
-  modelProvider?: {
-    providerName: string
-  }
-  copilotModel?: {
-    model: string
-    modelType: AiModelTypeEnum
-    options: any
-  }
-}
 
 export interface BusinessOperation {
   businessArea: string

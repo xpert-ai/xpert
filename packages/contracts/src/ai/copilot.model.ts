@@ -48,6 +48,7 @@ export enum AiProviderRole {
   Primary = 'primary',
   Secondary = 'secondary',
   Embedding = 'embedding',
+  Reasoning = 'reasoning'
 }
 
 export type TCopilotTokenUsage = {

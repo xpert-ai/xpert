@@ -47,7 +47,7 @@ export class CopilotProvider extends TenantOrganizationBaseEntity implements ICo
     */
 	@ApiProperty({ type: () => Copilot })
 	@IsOptional()
-	@OneToOne(() => Copilot)
+	@OneToOne(() => Copilot, { onDelete: 'CASCADE' })
 	@JoinColumn()
 	copilot?: ICopilot
 

@@ -1,15 +1,20 @@
 import { AiProviderRole, ICopilot } from '@metad/contracts'
 import { DeepPartial } from '@metad/server-common'
+import {
+	FindOptionsWhere,
+	PaginationParams,
+	RequestContext,
+	TenantOrganizationAwareCrudService
+} from '@metad/server-core'
 import { Injectable } from '@nestjs/common'
-import { InjectRepository } from '@nestjs/typeorm'
 import { QueryBus } from '@nestjs/cqrs'
-import { IsNull, Repository } from 'typeorm'
-import { Copilot } from './copilot.entity'
-import { FindOptionsWhere, PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { InjectRepository } from '@nestjs/typeorm'
 import { assign } from 'lodash'
+import { IsNull, Repository } from 'typeorm'
 import { GetCopilotOrgUsageQuery } from '../copilot-organization/queries'
+import { Copilot } from './copilot.entity'
 
-export const ProviderRolePriority = [AiProviderRole.Embedding, AiProviderRole.Secondary, AiProviderRole.Primary]
+export const ProviderRolePriority = [AiProviderRole.Embedding, AiProviderRole.Secondary, AiProviderRole.Primary, AiProviderRole.Reasoning]
 
 @Injectable()
 export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> {
@@ -25,8 +30,8 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 	/**
 	 * Get all available copilots in organization or tenant (if not enabled anyone in organization).
 	 * Fill the quota of tenant copilots for organization user
-	 * 
-	 * @param filter 
+	 *
+	 * @param filter
 	 */
 	async findAvailables(filter?: PaginationParams<Copilot>) {
 		const tenantId = RequestContext.currentTenantId()
@@ -36,77 +41,53 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 		// copilots = copilots.filter((copilot) => (organizationId && !copilot.organizationId) ? copilot.enabled : true)
 		for await (const copilot of copilots) {
 			if (!copilot.organizationId) {
-				const usage = await this.queryBus.execute(new GetCopilotOrgUsageQuery(tenantId, organizationId, copilot.id))
+				const usage = await this.queryBus.execute(
+					new GetCopilotOrgUsageQuery(tenantId, organizationId, copilot.id)
+				)
 				copilot.usage = usage ?? {
 					tokenLimit: copilot.tokenBalance,
 					tokenUsed: 0
 				}
 			}
 		}
-		
+
 		return copilots
 	}
 
 	/**
-	 * 
+	 *
 	 */
 	async findOneByRole(role: AiProviderRole, tenantId: string, organizationId: string): Promise<Copilot> {
 		const items = await this.findAllCopilots(tenantId, organizationId, { role })
 		return items.length ? items[0] : null
 	}
 
-	// /**
-	//  */
-	// async findTenantOneByRole(role: string, tenantId: string): Promise<Copilot> {
-	// 	tenantId = tenantId || RequestContext.currentTenantId()
-	// 	const items = await this.repository.find({ where: { tenantId, role, organizationId: IsNull() } })
-	// 	return items.length ? items[0] : null
-	// }
-
-	// async findCopilot(tenantId: string, organizationId: string, role?: AiProviderRole) {
-	// 	tenantId = tenantId || RequestContext.currentTenantId()
-	// 	organizationId = organizationId || RequestContext.getOrganizationId()
-	// 	role = role ?? AiProviderRole.Secondary
-	// 	let copilot: ICopilot = null
-	// 	for (const priorityRole of ProviderRolePriority.slice(ProviderRolePriority.indexOf(role))) {
-	// 		copilot = await this.findOneByRole(priorityRole, tenantId, organizationId)
-	// 		if (copilot?.enabled) {
-	// 			break
-	// 		}
-	// 	}
-	// 	// 没有配置过 org 内的 copilot（包括又禁用的情况） 则使用 Tenant 全局配置
-	// 	if (!copilot?.enabled) {
-	// 		for (const priorityRole of ProviderRolePriority.slice(ProviderRolePriority.indexOf(role))) {
-	// 			copilot = await this.findTenantOneByRole(priorityRole, tenantId)
-	// 			if (copilot?.enabled) {
-	// 				break
-	// 			}
-	// 		}
-	// 	}
-	
-	// 	return copilot
-	// }
-
 	/**
 	 * Find all copilots in organization or tenant globally
-	 * 
+	 *
 	 * @param tenantId
-	 * @param organizationId 
+	 * @param organizationId
 	 * @returns All copilots
 	 */
 	async findAllCopilots(tenantId?: string, organizationId?: string, where?: FindOptionsWhere<Copilot>) {
 		tenantId = tenantId || RequestContext.currentTenantId()
 		organizationId = organizationId || RequestContext.getOrganizationId()
-		const items = await this.repository.find({ where: { ...(where ?? {}), tenantId, organizationId, enabled: true }, relations: ['modelProvider'] })
+		const items = await this.repository.find({
+			where: { ...(where ?? {}), tenantId, organizationId, enabled: true },
+			relations: ['modelProvider']
+		})
 		if (items.length) {
 			return items
 		}
 
-		return await this.repository.find({ where: { ...(where ?? {}), tenantId, organizationId: IsNull(), enabled: true }, relations: ['modelProvider'] })
+		return await this.repository.find({
+			where: { ...(where ?? {}), tenantId, organizationId: IsNull(), enabled: true },
+			relations: ['modelProvider']
+		})
 	}
 
 	/**
-	 * Insert or update by id or role
+	 * Insert or update by id
 	 *
 	 * @param entity
 	 * @returns
@@ -114,18 +95,12 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 	async upsert(entity: DeepPartial<Copilot>) {
 		if (entity.id) {
 			await this.update(entity.id, entity)
+			return await this.findOne(entity.id)
 		} else {
-			const record = await this.findOneByRole(entity.role, null, null)
-			if (record) {
-				await this.update(record.id, entity)
-				entity.id = record.id
-			} else {
-				entity = await this.create(entity)
-			}
+			return await this.create(entity)
 		}
-		return await this.findOne(entity.id)
 	}
-	
+
 	async update(id: string, entity: DeepPartial<ICopilot>) {
 		const copilot = await this.findOne(id)
 		assign(copilot, entity)

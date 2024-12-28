@@ -7,7 +7,6 @@ export type ChatBILarkContext = ChatBIContext & {
 
 export enum ChatBILarkToolsEnum {
 	WELCOME = 'welcome',
-	
 }
 
 export const TABLE_PAGE_SIZE = 10

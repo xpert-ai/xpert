@@ -1,0 +1,10 @@
+:host {
+  @apply flex flex-col justify-start items-stretch p-4 bg-components-card-bg;
+}
+
+.period-tag {
+  @apply text-neutral-700 hover:bg-neutral-100 focus:bg-neutral-200 dark:hover:bg-white/10 dark:focus:bg-white/20 dark:text-neutral-200;
+  &.selected {
+    @apply font-extrabold bg-neutral-200 text-neutral-800 dark:bg-white/20 dark:text-neutral-100;
+  }
+}

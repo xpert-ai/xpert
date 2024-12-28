@@ -4,7 +4,7 @@ import { toParams } from '@metad/ocap-angular/core'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, tap } from 'rxjs'
 import { API_XPERT_ROLE } from '../constants/app.constants'
-import { ICopilotStore, IIntegration, IUser, IXpert, IXpertAgentExecution, OrderTypeEnum, TChatRequest, TDeleteResult, TXpertTeamDraft, XpertTypeEnum } from '../types'
+import { ICopilotStore, IIntegration, IUser, IXpert, IXpertAgentExecution, OrderTypeEnum, TChatRequest, TDeleteResult, TStateVariable, TXpertTeamDraft, XpertTypeEnum } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 import { injectApiBaseUrl } from '../providers'
 import { injectFetchEventSource } from './fetch-event-source'
@@ -115,6 +115,10 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   clearMemory(id: string) {
     return this.httpClient.delete<TDeleteResult>(this.apiBaseUrl + `/${id}/memory`,)
+  }
+
+  getVariables(id: string, agentKey: string) {
+    return this.httpClient.get<TStateVariable[]>(this.apiBaseUrl + `/${id}/agent/${agentKey}/variables`)
   }
 }
 

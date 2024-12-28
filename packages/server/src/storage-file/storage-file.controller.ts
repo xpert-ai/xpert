@@ -46,11 +46,12 @@ export class StorageFileController {
 	  )
 	async create(@Body() entity: StorageFile, @UploadedFileStorage() file: UploadedFile) {
 		const { key, url, originalname, size, mimetype, encoding } = file;
+		const decodedOriginalName = Buffer.from(originalname, 'latin1').toString('utf8');
 		const provider = new FileStorage().getProvider();
 		return await this.storageFileService.create({
 			file: key,
 			url: url,
-			originalName: originalname,
+			originalName: decodedOriginalName,
 			encoding,
 			size,
 			mimetype,

@@ -17,7 +17,7 @@ import {
   input,
   signal
 } from '@angular/core'
-import { MatMenuTrigger } from '@angular/material/menu'
+import { CdkMenuTrigger } from '@angular/cdk/menu'
 import { csvDownload, DisplayDensity, ISelectOption, NgmAppearance } from '@metad/ocap-angular/core'
 import {
   ChartAnnotation,
@@ -53,8 +53,9 @@ import { BehaviorSubject, combineLatest, Observable } from 'rxjs'
 import { distinctUntilChanged, filter, map, pairwise, shareReplay, skip, startWith, tap, withLatestFrom } from 'rxjs/operators'
 import { Step } from '@metad/ocap-angular/common'
 import { AnalyticalCardService } from './analytical-card.service'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { TranslateService } from '@ngx-translate/core'
+import { SlicersCapacity } from '@metad/ocap-angular/selection'
 
 
 export interface DrillLevel {
@@ -71,6 +72,7 @@ export interface DrillLevel {
 }
 
 export interface AnalyticalCardOptions {
+  showSlicers?: boolean
   /**
    * Hide elements in this component
    */
@@ -88,7 +90,7 @@ export interface AnalyticalCardOptions {
 
 export interface AnalyticalCardState {
   dataSettings: DataSettings
-  slicers: ISlicer[]
+  // slicers: ISlicer[]
 
   // 已下钻维度
   drilledDimensions: Array<DrillLevel>
@@ -111,6 +113,7 @@ export interface AnalyticalCardState {
 })
 export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState> implements OnInit, OnDestroy {
   DisplayDensity = DisplayDensity
+  eSlicersCapacity = SlicersCapacity
 
   private readonly businessService = inject(AnalyticalCardService)
   readonly translate = inject(TranslateService)
@@ -145,11 +148,15 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
   readonly options = input<AnalyticalCardOptions>(null)
 
   @Input() get slicers() {
-    return this.get((state) => state.slicers)
+    // return this.get((state) => state.slicers)
+    return this.#slicers()
   }
   set slicers(value) {
-    this.patchState({slicers: value})
+    // this.patchState({slicers: value})
+    this.#slicers.set(value)
   }
+
+  readonly #slicers = signal<ISlicer[]>(null)
 
   /**
    * @deprecated use slicersChanging
@@ -164,7 +171,7 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
   @Output() chartContextMenu = this.echartsEngine.chartContextMenu$
   @Output() explain = new EventEmitter<any[]>()
 
-  @ViewChild('contextMenuTrigger') contextMenu: MatMenuTrigger
+  @ViewChild('cmt') contextMenu: CdkMenuTrigger
   contextMenuPosition = { x: '0px', y: '0px' }
 
   get displayDensity() {
@@ -275,7 +282,8 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
    */
   readonly dataSettings$ = combineLatest([
     this._dataSettings$,
-    this.select((state) => state.slicers),
+    // this.select((state) => state.slicers),
+    toObservable(this.#slicers),
     this.selectedDrilledDimensions$
   ]).pipe(
     filter(([dataSettings]) => !isNil(dataSettings)),
@@ -534,11 +542,11 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
     this.contextMenu.menuData = { slicers }
 
     if (isEmpty(slicers)) {
-      this.contextMenu.closeMenu()
+      this.contextMenu.close()
       this.onLinkAnalysis([])
     } else {
       if (!this.options()?.disableContextMenu) {
-        this.contextMenu.openMenu()
+        this.contextMenu.open()
       }
       
       if (this.options()?.realtimeLinked) {
@@ -594,7 +602,7 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
           })
         }
 
-        this.contextMenu.closeMenu()
+        this.contextMenu.close()
       })
     )
   })
@@ -627,6 +635,10 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
     state.drilledDimensions = null
     state.selectedDrilledDimensions = null
   })
+
+  updateSlicers(slicers: ISlicer[]) {
+    this.#slicers.set(slicers)
+  }
 
   screenshot() {
     const baseImage = this.echartsEngine.echarts.getDataURL({ type: 'png' })

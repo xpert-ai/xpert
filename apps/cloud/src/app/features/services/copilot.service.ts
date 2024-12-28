@@ -20,7 +20,7 @@ import {
 } from 'rxjs'
 import { ICopilot as IServerCopilot } from '../../@core/types'
 import { AgentService } from '../../@core/services/agent.service'
-import { Store, XpertService } from '../../@core'
+import { CopilotServerService, Store, XpertService } from '../../@core'
 
 
 const baseUrl = environment.API_BASE_URL
@@ -35,18 +35,12 @@ export class PACCopilotService extends NgmCopilotService {
   readonly xpertService = inject(XpertService)
   readonly router = inject(Router)
   readonly #agentService = inject(AgentService)
+  readonly copilotServer = inject(CopilotServerService)
 
   readonly refresh$ = new BehaviorSubject(false)
 
   // Init copilot config
-  private _userSub = this.#store.user$
-    .pipe(
-      map((user) => user?.id),
-      startWith(null),
-      distinctUntilChanged(),
-      filter(Boolean),
-      switchMap(() => this.#store.selectOrganizationId()),
-      switchMap(() => this.httpClient.get<ICopilot[]>(API_PREFIX + '/copilot')),
+  private _userSub = this.copilotServer.getCopilots().pipe(
       takeUntilDestroyed()
     )
     .subscribe((items) => {
@@ -161,25 +155,25 @@ export class PACCopilotService extends NgmCopilotService {
     return `Bearer ${this.#store.token}`
   }
 
-  async upsertItems(items: Partial<IServerCopilot[]>) {
-    items = await Promise.all(
-      items.map((item) =>
-        firstValueFrom(this.httpClient.post<ICopilot>(API_PREFIX + '/copilot', item.id ? item : omit(item, 'id')))
-      )
-    )
+  // async upsertItems(items: Partial<IServerCopilot[]>) {
+  //   items = await Promise.all(
+  //     items.map((item) =>
+  //       firstValueFrom(this.httpClient.post<ICopilot>(API_PREFIX + '/copilot', item.id ? item : omit(item, 'id')))
+  //     )
+  //   )
 
-    this.copilots.update((copilots) => {
-      items.forEach((item) => {
-        if (item.id) {
-          copilots = copilots.filter((_) => _.id !== item.id)
-        }
-        copilots.push(item as ICopilot)
-      })
-      return copilots
-    })
+  //   this.copilots.update((copilots) => {
+  //     items.forEach((item) => {
+  //       if (item.id) {
+  //         copilots = copilots.filter((_) => _.id !== item.id)
+  //       }
+  //       copilots.push(item as ICopilot)
+  //     })
+  //     return copilots
+  //   })
 
-    this.refresh$.next(true)
-  }
+  //   this.refresh$.next(true)
+  // }
 
   enableCopilot(): void {
     this.router.navigate(['settings', 'copilot'])

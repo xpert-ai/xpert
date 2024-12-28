@@ -1,1 +1,1 @@
-export * from './formula.component'
+export * from './variable-form/variable.component'

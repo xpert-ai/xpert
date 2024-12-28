@@ -1,61 +1,88 @@
 @if (quotaCopilots()?.length) {
-  <div class="text-lg px-2 py-1">
+  <div class="text-lg px-2 py-2">
     {{ 'PAC.Copilot.FreeQuota' | translate: {Default: 'Free Quota'} }}
   </div>
 
   @for (copilot of quotaCopilots(); track copilot.id) {
-    <copilot-provider @disappear1 readonly [providerId]="copilot.modelProvider.id" [usage]="copilot.usage" class="shadow-sm mb-2 rounded-xl border-[0.5px] border-black/5"/>
+    <copilot-provider @disappear1 readonly class="shadow-sm mb-2 rounded-xl border-[0.5px] border-black/5"
+      [providerId]="copilot.modelProvider.id" 
+      [usage]="copilot.usage"
+    />
   }
 }
 
 @if (quotaCopilots()?.length) {
-  <div class="text-lg px-2 py-1">
+  <div class="text-lg px-2 py-4">
     {{ 'PAC.Copilot.CustomCopilots' | translate: {Default: 'Custom Copilots'} }}
   </div>
 }
+
 <mat-accordion >
-  <mat-expansion-panel hideToggle class="mat-elevation-z" [disabled]="!primary()?.enabled" [expanded]="!!primary()?.enabled">
+  <mat-expansion-panel #expansion hideToggle class="mat-elevation-z" [disabled]="!primary()?.enabled" [expanded]="!!primary()?.enabled">
     <mat-expansion-panel-header>
-      <mat-panel-title>{{'PAC.KEY_WORDS.Copilot' | translate: {Default: 'Copilot'} }}({{'PAC.KEY_WORDS.Primary' | translate: {Default: 'Primary'} }})</mat-panel-title>
+      <mat-panel-title>{{'PAC.KEY_WORDS.Primary' | translate: {Default: 'Primary'} }}</mat-panel-title>
       <mat-panel-description class="flex-1">
-        <mat-slide-toggle labelPosition="before" ngm-density small [matTooltip]="'PAC.Copilot.EnableCopilot' | translate: {Default: 'Enable Copilot'}"
+        <mat-slide-toggle labelPosition="before" ngm-density small
+          [matTooltip]="'PAC.Copilot.EnableCopilot' | translate: {Default: 'Enable Copilot'}"
+          matTooltipPosition="above"
           [checked]="primary()?.enabled"
-          (change)="onToggle(eAiProviderRole.Primary, primary()?.enabled)"
+          (change)="onToggle(null, eAiProviderRole.Primary, primary()?.enabled, expansion)"
           (click)="$event.stopPropagation();">
         </mat-slide-toggle>
       </mat-panel-description>
     </mat-expansion-panel-header>
     
-    <pac-copilot-form [role]="eAiProviderRole.Primary"></pac-copilot-form>
+    <pac-copilot-form [copilot]="primary()" />
   </mat-expansion-panel>
 
-  <mat-expansion-panel hideToggle class="mat-elevation-z" [disabled]="!secondary()?.enabled" [expanded]="!!secondary()?.enabled">
-    <mat-expansion-panel-header>
-      <mat-panel-title>{{'PAC.KEY_WORDS.Copilot' | translate: {Default: 'Copilot'} }}({{'PAC.KEY_WORDS.Secondary' | translate: {Default: 'Secondary'} }})</mat-panel-title>
-      <mat-panel-description class="flex-1">
-        <mat-slide-toggle labelPosition="before" ngm-density small [matTooltip]="'PAC.Copilot.EnableCopilot' | translate: {Default: 'Enable Copilot'}"
-          [checked]="secondary()?.enabled"
-          (change)="onToggle(eAiProviderRole.Secondary, secondary()?.enabled)"
-          (click)="$event.stopPropagation();">
-        </mat-slide-toggle>
-      </mat-panel-description>
-    </mat-expansion-panel-header>
-    
-    <pac-copilot-form [role]="eAiProviderRole.Secondary"></pac-copilot-form>
-  </mat-expansion-panel>
-
-  <mat-expansion-panel hideToggle class="mat-elevation-z" [disabled]="!embedding()?.enabled" [expanded]="!!embedding()?.enabled">
-    <mat-expansion-panel-header>
-      <mat-panel-title>{{'PAC.KEY_WORDS.Copilot' | translate: {Default: 'Copilot'} }}({{'PAC.KEY_WORDS.Embedding' | translate: {Default: 'Embedding'} }})</mat-panel-title>
-      <mat-panel-description class="flex-1">
-        <mat-slide-toggle labelPosition="before" ngm-density small [matTooltip]="'PAC.Copilot.EnableCopilot' | translate: {Default: 'Enable Copilot'}"
-          [checked]="embedding()?.enabled"
-          (change)="onToggle(eAiProviderRole.Embedding, embedding()?.enabled)"
-          (click)="$event.stopPropagation();">
-        </mat-slide-toggle>
-      </mat-panel-description>
-    </mat-expansion-panel-header>
-    
-    <pac-copilot-form [role]="eAiProviderRole.Embedding" embedding></pac-copilot-form>
-  </mat-expansion-panel>
+  @for (copilot of copilots(); track copilot.id) {
+    <mat-expansion-panel #expansion hideToggle class="mat-elevation-z" [disabled]="!copilot.enabled">
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          {{'PAC.KEY_WORDS.' + (copilot.role | capitalize) | translate: { Default: (copilot.role | capitalize) } }}
+        </mat-panel-title>
+        <mat-panel-description class="flex-1">
+          <mat-slide-toggle labelPosition="before" ngm-density small 
+            [matTooltip]="'PAC.Copilot.EnableCopilot' | translate: {Default: 'Enable Copilot'}"
+            matTooltipPosition="above"
+            [checked]="copilot.enabled"
+            (change)="onToggle(copilot, null, copilot.enabled, expansion)"
+            (click)="$event.stopPropagation();">
+          </mat-slide-toggle>
+          @if (!copilot.enabled) {
+            <button type="button" class="btn pressable danger rounded-full w-6 h-6 p-0 justify-center ml-2"
+              [matTooltip]="'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'}"
+              matTooltipPosition="above"
+              (click)="deleteCopilot(copilot)">
+              <i class="ri-close-line"></i>
+            </button>
+          }
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+      
+      <pac-copilot-form [copilot]="copilot" />
+    </mat-expansion-panel>
+  }
 </mat-accordion>
+
+<div class="flex justify-end mt-2">
+  <button type="button" class="btn btn-primary btn-large pressable"
+    [cdkMenuTriggerFor]="addMenu"
+  >
+    <i class="ri-apps-2-add-line"></i> {{ 'PAC.ACTIONS.Add' | translate: {Default: 'Add'} }}
+  </button>
+</div>
+
+<ng-template #addMenu>
+  <div cdkMenu class="cdk-menu__large w-[200px] divide-y-2 p-2">
+    @for (provider of providers(); track provider.value) {
+      <div cdkMenuItem (click)="addProvider(provider.value)">
+        {{ 'PAC.KEY_WORDS.' + provider.label | translate: {Default: provider.label } }}
+      </div>
+    }
+  </div>
+</ng-template>
+
+@if (loading()) {
+  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+}

@@ -7,7 +7,7 @@ import { IQuery } from '@nestjs/cqrs'
  * @return TSensitiveOperation
  */
 export class CompleteToolCallsQuery implements IQuery {
-	static readonly type = '[Xpert] Complete tool calls'
+	static readonly type = '[Xpert Agent] Complete tool calls'
 
 	constructor(
 		public readonly xpertId: string,

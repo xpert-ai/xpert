@@ -22,6 +22,7 @@ export class XpertAgentController extends CrudController<XpertAgent> {
 	}
 
 	@Header('content-type', 'text/event-stream')
+	@Header('Connection', 'keep-alive')
 	@Post('chat')
 	@Sse()
 	async chatAgent(@Body() body: TChatAgentParams): Promise<Observable<MessageEvent>> {

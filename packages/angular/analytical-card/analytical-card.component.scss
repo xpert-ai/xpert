@@ -6,7 +6,7 @@
   .ngm-card-header .actions {
     position: relative;
 
-    > * {
+    > *:not(.active) {
       opacity: .1;
     }
   }
