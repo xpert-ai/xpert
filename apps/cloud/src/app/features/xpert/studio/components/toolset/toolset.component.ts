@@ -50,7 +50,9 @@ export class XpertStudioNodeToolsetComponent {
   readonly tools = computed(() => {
     const tools = this.availableTools()
     const executions = this.toolExecutions()
-    return tools?.map((tool) => ({tool, executions: executions?.[tool.name]}))
+    return tools?.map((tool) => ({
+      tool,
+      executions: Object.values(executions?.[tool.name] ?? {}).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())}))
   })
 
   private get hostElement(): HTMLElement {
