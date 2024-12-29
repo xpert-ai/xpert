@@ -1,6 +1,6 @@
 # ocap-server
 
-The basic server package for the ocap project.
+The basic server package for the projects.
 
 ## English
 
