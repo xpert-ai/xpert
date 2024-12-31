@@ -24,7 +24,7 @@ export class ChatBILarkToolset extends AbstractChatBIToolset {
 		const tools = this.toolset.tools.filter((_) => _.enabled)
 		if (tools.find((_) => _.name === ChatBILarkToolsEnum.WELCOME)) {
 			this.tools.push(
-				createWelcomeTool({
+				createWelcomeTool(this, {
 					dsCoreService: this.dsCoreService,
 					models: this.models,
 					logger: this.logger

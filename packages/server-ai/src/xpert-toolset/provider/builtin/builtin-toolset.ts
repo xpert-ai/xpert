@@ -13,6 +13,16 @@ export type TBuiltinToolsetParams = {
 	queryBus: QueryBus
 }
 
+export type TranslateOptions = {
+	lang?: string;
+    args?: ({
+        [k: string]: any;
+    } | string)[] | {
+        [k: string]: any;
+    };
+    debug?: boolean;
+}
+
 export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> {
 	static provider = ''
 	protected logger = new Logger(this.constructor.name)
@@ -49,4 +59,15 @@ export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> {
 	}
 
 	abstract _validateCredentials(credentials: TToolCredentials): Promise<void>
+
+	/**
+	 * Translate language text
+	 * 
+	 * @param key 
+	 * @param options 
+	 * @returns 
+	 */
+	async translate(key: string, options?: TranslateOptions) {
+		return await this.toolsetService.translate(key, options)
+	}
 }

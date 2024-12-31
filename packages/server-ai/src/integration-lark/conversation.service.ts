@@ -1,5 +1,5 @@
 import { IChatConversation } from '@metad/contracts'
-import { REDIS_OPTIONS } from '@metad/server-core'
+import { REDIS_OPTIONS, runWithRequestContext, UserService } from '@metad/server-core'
 import { CACHE_MANAGER, forwardRef, Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import * as Bull from 'bull'
@@ -12,7 +12,7 @@ import { ChatLarkMessage } from './chat/message'
 import { LarkMessageCommand } from './commands'
 import { LarkChatXpertCommand } from './commands/chat-xpert.command'
 import { LarkService } from './lark.service'
-import { ChatLarkContext } from './types'
+import { ChatLarkContext, isConfirmAction, isEndAction, isRejectAction } from './types'
 
 @Injectable()
 export class LarkConversationService implements OnModuleDestroy {
@@ -23,6 +23,7 @@ export class LarkConversationService implements OnModuleDestroy {
 	private userQueues: Map<string, Queue> = new Map()
 
 	constructor(
+		private readonly userService: UserService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
 		@Inject(CACHE_MANAGER)
@@ -41,43 +42,44 @@ export class LarkConversationService implements OnModuleDestroy {
 		return await this.cacheManager.set(this.prefix + `/${userId}/${xpertId}`, conversationId)
 	}
 
-	async endConversation(chatContext: ChatLarkContext, userId: string, xpertId: string) {
-		const id = await this.getConversation(userId, xpertId)
-		if (id) {
-			const conversation = await this.queryBus.execute<GetChatConversationQuery, IChatConversation>(
-				new GetChatConversationQuery({ id }, ['messages'])
-			)
-			const lastMessage = conversation.messages.slice(-1)[0]
-			if (lastMessage?.thirdPartyMessage) {
-				const message = new ChatLarkMessage(
-					{ ...chatContext, larkService: this.larkService },
-					{ ...lastMessage.thirdPartyMessage, messageId: lastMessage.id } as any,
-					this
-				)
-				await message.update({ status: 'end' })
-			}
-			await this.cacheManager.del(this.prefix + `/${userId}/${xpertId}`)
-		}
-	}
-
 	async ask(xpertId: string, content: string, message: ChatLarkMessage) {
 		await this.commandBus.execute(new LarkChatXpertCommand(xpertId, content, message))
 	}
 
-	async confirm(xpertId: string, message: ChatLarkMessage) {
-		await this.commandBus.execute(
-			new LarkChatXpertCommand(xpertId, null, message, {
-				confirm: true
-			})
-		)
-	}
+	async onAction(action: string, chatContext: ChatLarkContext, userId: string, xpertId: string) {
+		const id = await this.getConversation(userId, xpertId)
 
-	async reject(xpertId: string, message: ChatLarkMessage) {
-		await this.commandBus.execute(
-			new LarkChatXpertCommand(xpertId, null, message, {
-				reject: true
-			})
+		const conversation = await this.queryBus.execute<GetChatConversationQuery, IChatConversation>(
+			new GetChatConversationQuery({ id }, ['messages'])
 		)
+		const lastMessage = conversation.messages.slice(-1)[0]
+
+		const message = new ChatLarkMessage(
+			{ ...chatContext, larkService: this.larkService },
+			{ ...(lastMessage?.thirdPartyMessage ?? {}), messageId: lastMessage.id } as any,
+		)
+
+		if (isEndAction(action)) {
+			await message.update({ status: 'end' })
+			await this.cacheManager.del(this.prefix + `/${userId}/${xpertId}`)
+		} else if (isConfirmAction(action)) {
+			await this.commandBus.execute(
+				new LarkChatXpertCommand(xpertId, null, message, {
+					confirm: true
+				})
+			)
+		} else if (isRejectAction(action)) {
+			await this.commandBus.execute(
+				new LarkChatXpertCommand(xpertId, null, message, {
+					reject: true
+				})
+			)
+		} else {
+			await this.commandBus.execute(new LarkChatXpertCommand(xpertId, action, new ChatLarkMessage(
+				{ ...chatContext, larkService: this.larkService },
+				null,
+			)))
+		}
 	}
 
 	/**
@@ -96,11 +98,8 @@ export class LarkConversationService implements OnModuleDestroy {
 			 * Bind processing logic, maximum concurrency is one
 			 */
 			queue.process(1, async (job) => {
-				console.log(`Processing job for user ${userId}:`, job.data)
-
 				await this.commandBus.execute<LarkMessageCommand, Observable<any>>(new LarkMessageCommand(job.data))
-
-				return `Processed message: ${job.data.message}`
+				return `Processed message: ${job.id}`
 			})
 
 			// completed event

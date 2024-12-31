@@ -1,7 +1,6 @@
 import { RequestContext } from '@metad/server-core'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { ChatLarkMessage } from '../../chat/message'
-import { LarkConversationService } from '../../conversation.service'
 import { LarkChatAgentCommand } from '../chat-agent.command'
 import { LarkChatXpertCommand } from '../chat-xpert.command'
 import { LarkMessageCommand } from '../mesage.command'
@@ -10,7 +9,6 @@ import { LarkService } from '../../lark.service'
 @CommandHandler(LarkMessageCommand)
 export class LarkMessageHandler implements ICommandHandler<LarkMessageCommand> {
 	constructor(
-		private readonly conversationService: LarkConversationService,
 		private readonly larkService: LarkService,
 		private readonly commandBus: CommandBus
 	) {}
@@ -33,7 +31,6 @@ export class LarkMessageHandler implements ICommandHandler<LarkMessageCommand> {
 					userId,
 					text
 				},
-				this.conversationService
 			)
 
 			return await this.commandBus.execute(

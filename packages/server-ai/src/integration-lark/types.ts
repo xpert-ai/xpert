@@ -1,5 +1,4 @@
 import { ITenant, IUser, IIntegration, TChatConversationStatus } from "@metad/contracts"
-import { LarkService } from "./lark.service"
 
 export type LarkMessage = {
 	data: {
@@ -19,7 +18,6 @@ export type ChatLarkContext<T = any> = {
 	integrationId: string
 	integration: IIntegration
 	user: IUser
-	// larkService: LarkService
 	chatId?: string
 	chatType?: 'p2p' | 'group' | string
 	message?: T
@@ -78,4 +76,8 @@ export function isConfirmAction(value: string) {
 
 export function isRejectAction(value: string) {
 	return value === `"${LARK_REJECT}"` || value === LARK_REJECT
+}
+
+export function isConversationAction(value: string) {
+	return isEndAction(value) || isConfirmAction(value) || isRejectAction(value)
 }

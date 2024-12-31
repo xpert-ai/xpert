@@ -14,7 +14,7 @@ export const AgentStateAnnotation = Annotation.Root({
 		reducer: (a, b) => b ?? a,
 		default: () => ''
 	}),
-    language: Annotation<string>({
+    sys_language: Annotation<string>({
 		reducer: (a, b) => b ?? a,
 		default: () => null
 	}),

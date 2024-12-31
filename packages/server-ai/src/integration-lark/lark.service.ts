@@ -10,7 +10,7 @@ import { isEqual } from 'date-fns'
 import express from 'express'
 import { filter, Observable, Observer, Subject, Subscriber } from 'rxjs'
 import { LarkBotMenuCommand, LarkMessageCommand } from './commands'
-import { ChatLarkContext, isEndAction, LarkMessage } from './types'
+import { ChatLarkContext, isConversationAction, isEndAction, LarkMessage } from './types'
 import { LarkConversationService } from './conversation.service'
 
 @Injectable()
@@ -172,21 +172,7 @@ export class LarkService {
 						message: data as any,
 						chatId,
 						chatType: data.message.chat_type,
-						// larkService: this
 					})
-					// await this.commandBus.execute<LarkMessageCommand, Observable<any>>(
-					// 	new LarkMessageCommand({
-					// 		tenant,
-					// 		organizationId,
-					// 		integrationId: integration.id,
-					// 		integration,
-					// 		user,
-					// 		message: data as any,
-					// 		chatId,
-					// 		chatType: data.message.chat_type,
-					// 		larkService: this
-					// 	})
-					// )
 				} catch(err) {
 					console.error(err)
 				}
@@ -217,7 +203,7 @@ export class LarkService {
 				  }
 				 * 
 				 */
-				const { event_key } = data
+				// const { event_key } = data
 				this.logger.debug('application.bot.menu_v6:')
 				this.logger.debug(data)
 				// const organizationId = environment.larkConfig.organizationId
@@ -265,31 +251,28 @@ export class LarkService {
 				this.logger.debug('card.action.trigger:')
 				this.logger.debug(data)
 				const messageId = data.context.open_message_id
-				if (messageId) {
-					if(isEndAction(data.action?.value) && xpertId) {
-						const user = RequestContext.currentUser()
-						const tenant = integration.tenant
-						const organizationId = integration.organizationId
-						await this.conversation.endConversation(
-							{
-								tenant,
-								organizationId,
-								integrationId: integration.id,
-								integration,
-								// larkService: this,
-								user
-							},
-							user.id, xpertId)
-						return true
-					} else if (this.actions.get(messageId)) {
-						this.actions.get(messageId).next(data)
-						return true
-					} else {
-						this.errorMessage(
-							{ integrationId: integration.id, chatId: data.context.open_chat_id },
-							new Error(`响应动作不存在或已超时！`)
-						)
-					}
+				if (messageId && xpertId) {
+					const user = RequestContext.currentUser()
+					const tenant = integration.tenant
+					const organizationId = integration.organizationId
+					await this.conversation.onAction(
+						data.action.value,
+						{
+							tenant,
+							organizationId,
+							integrationId: integration.id,
+							integration,
+							user
+						},
+						user.id,
+						xpertId
+					)
+					return true
+				} else {
+					this.errorMessage(
+						{ integrationId: integration.id, chatId: data.context.open_chat_id },
+						new Error(`响应动作不存在或已超时！`)
+					)
 				}
 				return false
 			}

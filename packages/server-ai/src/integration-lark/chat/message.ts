@@ -1,12 +1,8 @@
 import { Serializable } from '@langchain/core/load/serializable'
 import { I18nObject, IChatMessage, TSensitiveOperation } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
-import { LarkConversationService } from '../conversation.service'
 import {
 	ChatLarkContext,
-	isConfirmAction,
-	isEndAction,
-	isRejectAction,
 	LARK_CONFIRM,
 	LARK_END_CONVERSATION,
 	LARK_REJECT,
@@ -23,6 +19,7 @@ export interface ChatLarkMessageFields {
 	messageId: string;
 	// Status of lark message
 	status: ChatLarkMessageStatus
+	language: string
 	header: any
 	elements: any[]
 }
@@ -37,7 +34,8 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 			id: this.id,
 			messageId: this.messageId,
 			header: this.header,
-			elements: this.elements
+			elements: this.elements,
+			language: this.language,
 		}
 	}
 
@@ -56,6 +54,7 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 	public status: ChatLarkMessageStatus = 'thinking'
 	// ID of IChatMessage
 	public messageId: string
+	public language: string
 
 	get larkService() {
 		return this.chatContext.larkService
@@ -71,12 +70,12 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 			xpertId?: string
 			text?: string
 		} & Partial<ChatLarkMessageFields>,
-		private conversation: LarkConversationService
 	) {
 		super(options)
 		this.id = options.id
 		this.messageId = options.messageId
 		this.status = options.status
+		this.language = options.language
 		this.header = options.header
 		this.elements = options.elements ?? []
 	}
@@ -143,7 +142,6 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 	}
 
 	getEndAction() {
-		console.log(`3: ${this.status}`)
 		return {
 			tag: 'action',
 			layout: 'default',
@@ -222,10 +220,7 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 			this.header = options.header
 		}
 
-		console.log(`1: ${this.status}`)
 		const elements = this.getCard()
-		console.log(`4: ${this.status}`)
-
 		if (this.id) {
 			this.larkService
 				.patchAction(this.chatContext, this.id, {
@@ -234,7 +229,7 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 				})
 				.subscribe({
 					next: (message) => {
-						this.onAction(message.action, options?.action)
+						// this.onAction(message.action, options?.action)
 					},
 					error: (err) => {
 						console.error(err)
@@ -249,7 +244,7 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 				},
 				{
 					next: async (message) => {
-						this.onAction(message.action, options?.action)
+						// this.onAction(message.action, options?.action)
 					},
 					error: (err) => {
 						console.error(err)
@@ -258,20 +253,6 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 			)
 
 			this.id = result.data.message_id
-		}
-	}
-
-	async onAction(action: { value: string }, callback?: (action) => void) {
-		if (isEndAction(action?.value)) {
-			await this.conversation.endConversation(this.chatContext, this.options.userId, this.options.xpertId)
-		} else if (isConfirmAction(action?.value)) {
-			await this.conversation.confirm(this.options.xpertId, this)
-		} else if (isRejectAction(action?.value)) {
-			await this.conversation.reject(this.options.xpertId, this)
-		} else if (typeof action?.value === 'string') {
-			await this.conversation.ask(this.options.xpertId, action.value, this)
-		} else {
-			callback?.(action)
 		}
 	}
 

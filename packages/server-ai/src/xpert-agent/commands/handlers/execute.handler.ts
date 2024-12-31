@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AIMessageChunk, HumanMessage, isAIMessage, isAIMessageChunk, isToolMessage, MessageContent, ToolMessage } from '@langchain/core/messages'
+import { AIMessageChunk, HumanMessage, isAIMessage, isAIMessageChunk, MessageContent, ToolMessage } from '@langchain/core/messages'
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Annotation, CompiledStateGraph, isCommand, LangGraphRunnableConfig, NodeInterrupt } from '@langchain/langgraph'
@@ -33,7 +33,6 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 	readonly #logger = new Logger(XpertAgentExecuteHandler.name)
 
 	constructor(
-		// private readonly agentService: XpertAgentService,
 		private readonly copilotCheckpointSaver: CopilotCheckpointSaver,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
@@ -44,7 +43,8 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		const { execution, subscriber, toolCalls, reject, memories } = options
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
-		const user = RequestContext.currentUser()
+		const userId = RequestContext.currentUserId()
+
 		const abortController = new AbortController()
 
 		const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(new GetXpertAgentQuery(xpert.id, agentKey, command.options?.isDraft))
@@ -162,7 +162,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			tags: [thread_id],
 			stateModifier: async (state: typeof AgentStateAnnotation.State) => {
 				const { summary, memories } = state
-				let systemTemplate = `{{language}}\nCurrent time: ${new Date().toISOString()}\n${parseXmlString(agent.prompt) ?? ''}`
+				let systemTemplate = `{{sys_language}}\nCurrent time: ${new Date().toISOString()}\n${parseXmlString(agent.prompt) ?? ''}`
 				if (memories?.length) {
 					systemTemplate += `\n\n<memory>\n${memoryPrompt(memories)}\n</memory>`
 				}
@@ -208,7 +208,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 						...config,
 						tenantId: tenantId,
 						organizationId: organizationId,
-						userId: user.id,
+						userId,
 						subscriber
 					},
 					recursionLimit: AgentRecursionLimit,

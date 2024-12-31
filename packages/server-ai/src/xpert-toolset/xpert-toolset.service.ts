@@ -4,8 +4,7 @@ import { CommandBus, ICommand, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { FindConditions, IsNull, Not, Repository } from 'typeorm'
 import { XpertToolset } from './xpert-toolset.entity'
-import { CopilotService } from '../copilot'
-import { AiProviderRole, ITag, IUser, IXpertToolset, TagCategoryEnum, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { ITag, IUser, IXpertToolset, TagCategoryEnum, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { assign } from 'lodash'
 import { GetXpertWorkspaceQuery } from '../xpert-workspace'
 import { DEFAULT_TOOL_TAG_MAP, defaultToolTags } from './utils/tags'
@@ -14,6 +13,7 @@ import { ToolProviderNotFoundError } from './errors'
 import { TToolsetProviderSchema } from './types'
 import { ToolProviderDTO } from './dto'
 import { ConfigService } from '@metad/server-config'
+import { I18nService, translateOptions } from 'nestjs-i18n';
 import { createBuiltinToolset } from './provider/builtin'
 
 @Injectable()
@@ -28,7 +28,7 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 	constructor(
 		@InjectRepository(XpertToolset)
 		repository: Repository<XpertToolset>,
-		private readonly copilotService: CopilotService,
+		private readonly i18n: I18nService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
 	) {
@@ -46,10 +46,6 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 		}
 		return await this.commandBus.execute(new command(...args))
 	}
-
-	// async findCopilot(tenantId: string, organizationId: string, role: AiProviderRole) {
-	// 	await this.copilotService.findCopilot(tenantId, organizationId, role)
-	// }
 	
 	async update(id: string, entity: Partial<XpertToolset>) {
 		const _entity = await super.findOne(id)
@@ -160,5 +156,9 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 		}
 
 		return toolsets
+	}
+
+	async translate(key: string, options: translateOptions) {
+		return await this.i18n.t(key, options)
 	}
 }

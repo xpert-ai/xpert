@@ -1,18 +1,20 @@
 import { tool } from '@langchain/core/tools'
+import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
 import { ChatMessageTypeEnum, JSONValue } from '@metad/contracts'
 import { ChatLarkMessage } from '@metad/server-ai'
 import { shortuuid } from '@metad/server-common'
-import { flatten, Logger } from '@nestjs/common'
+import { Logger } from '@nestjs/common'
 import { z } from 'zod'
 import { ChatBILarkContext, ChatBILarkToolsEnum } from '../types'
+import { AbstractChatBIToolset } from '../../chatbi/chatbi-toolset'
 
-export function createWelcomeTool(context: Partial<ChatBILarkContext>) {
+export function createWelcomeTool(chatbi: AbstractChatBIToolset, context: Partial<ChatBILarkContext>) {
 	const logger = new Logger('WelcomeTool')
 	const { models: _models } = context
 	return tool(
-		async ({ models, more }, config): Promise<string> => {
+		async ({ language, models, more }, config: LangGraphRunnableConfig) => {
 			logger.debug(
-				`[ChatBI] [Copilot Tool] [Welcome] models: ${JSON.stringify(models, null, 2)} and more: ${JSON.stringify(more, null, 2)}`
+				`[ChatBI] [Welcome] Language: ${language}, models: ${JSON.stringify(models, null, 2)} and more: ${JSON.stringify(more, null, 2)}`
 			)
 
 			const { subscriber } = config.configurable
@@ -20,65 +22,99 @@ export function createWelcomeTool(context: Partial<ChatBILarkContext>) {
 			const elements = []
 			elements.push({
 				tag: 'markdown',
-				content: '猜你想问：'
+				content: await chatbi.translate('toolset.ChatBI.GuessAsk', { lang: language })
 			})
-			elements.push(
-				...flatten(
-					models.map(({ modelId, cubeName, prompts }) => {
-						const chatModel = _models.find(
-							(model) => model.modelId === modelId && model.entity === cubeName
-						)
-						if (!chatModel) {
-							return []
-						}
 
-						return [
+			for await (const model of models) {
+				const {modelId, cubeName, prompts} = model
+				const chatModel = _models.find(
+					(model) => model.modelId === modelId && model.entity === cubeName
+				)
+				if (!chatModel) {
+					throw new Error(await chatbi.translate('toolset.ChatBI.Error.NoModel', { lang: language, args: {model: modelId, cube: cubeName} }))
+				}
+
+				const questionPrefix = await chatbi.translate('toolset.ChatBI.AnalyzeDataset', { lang: language, args: {cube: chatModel.entityCaption} })
+
+				elements.push(
+					{
+						tag: 'markdown',
+						content: await chatbi.translate('toolset.ChatBI.QuestionsAboutDataset',
+									{
+										lang: language,
+										args: {
+											cube: chatModel.entityCaption
+										}
+									})
+					},
+					{
+						tag: 'column_set',
+						columns: [
 							{
-								tag: 'markdown',
-								content: `- 关于数据集 “${chatModel.entityCaption}”, 您可能关心的问题：`
+								tag: 'column',
+								width: '23px'
 							},
 							{
-								tag: 'column_set',
-								columns: [
-									{
-										tag: 'column',
-										width: '23px'
-									},
-									{
-										tag: 'column',
-										elements: [
-											...prompts.map((prompt) => {
-												const fullPrompt = `分析数据集 “${chatModel.entityCaption}”：` + prompt
-												return {
-													tag: 'button',
-													text: {
-														tag: 'plain_text',
-														content: prompt
-													},
-													type: 'primary_text',
-													complex_interaction: true,
-													width: 'default',
-													size: 'small',
-													value: fullPrompt,
-													hover_tips: {
-														tag: 'plain_text',
-														content: fullPrompt
-													}
-												}
-											})
-										]
-									}
+								tag: 'column',
+								elements: [
+									...prompts.map((prompt) => {
+										const fullPrompt = questionPrefix + prompt
+										return {
+											tag: 'button',
+											text: {
+												tag: 'plain_text',
+												content: prompt
+											},
+											type: 'primary_text',
+											complex_interaction: true,
+											width: 'default',
+											size: 'small',
+											value: fullPrompt,
+											hover_tips: {
+												tag: 'plain_text',
+												content: fullPrompt
+											}
+										}
+									})
 								]
 							}
 						]
-					})
+					}
 				)
-			)
+			}
+
 			if (more?.length) {
 				elements.push({
 					tag: 'markdown',
-					content: `- 更多数据集：`
+					content: await chatbi.translate('toolset.ChatBI.MoreDatasets', { lang: language })
 				})
+
+				const columnSet = []
+				for await (const model of more) {
+					const { modelId, cubeName } = model
+					const chatModel = _models.find(
+						(model) => model.modelId === modelId && model.entity === cubeName
+					)
+
+					if (!chatModel) {
+						throw new Error(await chatbi.translate('toolset.ChatBI.Error.NoModel', { lang: language, args: {model: modelId, cube: cubeName} }))
+					}
+
+					const welcomeMessage = await chatbi.translate('toolset.ChatBI.GiveWelcomeMessage', {lang: language, args: {cube: chatModel.entityCaption}})
+
+					columnSet.push({
+						tag: 'button',
+						text: {
+							tag: 'plain_text',
+							content: chatModel.entityCaption
+						},
+						type: 'primary_text',
+						complex_interaction: true,
+						width: 'default',
+						size: 'small',
+						value: welcomeMessage
+					})
+				}
 
 				elements.push({
 					tag: 'column_set',
@@ -89,38 +125,11 @@ export function createWelcomeTool(context: Partial<ChatBILarkContext>) {
 						},
 						{
 							tag: 'column',
-							elements: [
-								...more.map(({ modelId, cubeName }) => {
-									const chatModel = _models.find(
-										(model) => model.modelId === modelId && model.entity === cubeName
-									)
-
-									if (!chatModel) {
-										throw new Error(`No model found for ${modelId} and ${cubeName}`)
-									}
-
-									return {
-										tag: 'button',
-										text: {
-											tag: 'plain_text',
-											content: chatModel.entityCaption
-										},
-										type: 'primary_text',
-										complex_interaction: true,
-										width: 'default',
-										size: 'small',
-										value: `针对数据集 “${chatModel.entityCaption}” 给出欢迎信息`
-									}
-								})
-							]
+							elements: columnSet
 						}
 					]
 				})
 			}
-			elements.push({
-				tag: 'markdown',
-				content: `您也可以对我说 “**结束对话**” 来结束本轮对话。`
-			})
 
 			subscriber.next({
 				data: {
@@ -133,7 +142,7 @@ export function createWelcomeTool(context: Partial<ChatBILarkContext>) {
 							header: {
 								title: {
 									tag: 'plain_text',
-									content: 'Hi, 我是 ChatBI, 我可以根据你的问题分析数据、生成图表'
+									content: await chatbi.translate('toolset.ChatBI.Welcome', {lang: language,})
 								},
 								subtitle: {
 									tag: 'plain_text',
@@ -147,31 +156,26 @@ export function createWelcomeTool(context: Partial<ChatBILarkContext>) {
 				}
 			})
 
-			// larkMessage.update({
-			// 	elements,
-			// 	header: {
-			// 		title: {
-			// 			tag: 'plain_text',
-			// 			content: 'Hi, 我是 ChatBI, 我可以根据你的问题分析数据、生成图表'
-			// 		},
-			// 		subtitle: {
-			// 			tag: 'plain_text',
-			// 			content: ''
-			// 		},
-			// 		template: ChatLarkMessage.headerTemplate,
-			// 		icon: ChatLarkMessage.logoIcon
-			// 	},
-			// 	action: (action) => {
-			// 		larkMessage.ask(action.value)
-			// 	}
-			// })
-
-			return 'The welcome message and opening questions have been sent to the user, no need to respond with any content.'
+			const toolCallId = config.metadata.tool_call_id
+			return new Command({
+				update: {
+					sys_language: language,
+					// update the message history
+					messages: [
+						{
+							role: 'tool',
+							content: 'The welcome message and opening questions have been sent to the user, no need to respond with any content.',
+							tool_call_id: toolCallId
+						}
+					]
+				}
+			})
 		},
 		{
 			name: ChatBILarkToolsEnum.WELCOME,
 			description: 'Show welcome message to guidle user ask questions abount models.',
 			schema: z.object({
+				language: z.enum(['en', 'zh']).describe('Language ​​used by user'),
 				models: z
 					.array(
 						z.object({
