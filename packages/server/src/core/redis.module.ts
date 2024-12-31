@@ -1,14 +1,26 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
+import * as Redis from 'ioredis'
 import { createClient } from 'redis'
 
 export const REDIS_CLIENT = 'REDIS_CLIENT'
+export const REDIS_OPTIONS = 'Redis_Options'
 
 @Module({
-    imports: [
-        ConfigModule
-    ],
+	imports: [ConfigModule],
 	providers: [
+		{
+			inject: [ConfigService],
+			provide: REDIS_OPTIONS,
+			useFactory: async (configService: ConfigService) => {
+				return {
+					host: configService.get('REDIS_HOST') || 'localhost',
+					port: configService.get('REDIS_PORT') || 6379,
+					username: configService.get('REDIS.USERNAME') || '',
+					password: configService.get('REDIS_PASSWORD') || ''
+				} as Redis.RedisOptions
+			}
+		},
 		{
 			inject: [ConfigService],
 			provide: REDIS_CLIENT,
@@ -28,6 +40,6 @@ export const REDIS_CLIENT = 'REDIS_CLIENT'
 			}
 		}
 	],
-	exports: [REDIS_CLIENT]
+	exports: [REDIS_OPTIONS, REDIS_CLIENT]
 })
 export class RedisModule {}

@@ -1,5 +1,5 @@
 import { tool } from '@langchain/core/tools'
-import { ChatLarkContext } from '@metad/server-ai'
+import { ChatLarkContext, LarkService } from '@metad/server-ai'
 import { take } from 'rxjs/operators'
 import { z } from 'zod'
 import { ChatBIConversation } from '../conversation'
@@ -20,7 +20,7 @@ export function createEndTool(context: ChatContext) {
 	)
 }
 
-export async function errorWithEndMessage(context: ChatLarkContext, error: string, conversation: ChatBIConversation) {
+export async function errorWithEndMessage(context: ChatLarkContext & {larkService?: LarkService}, error: string, conversation: ChatBIConversation) {
 	const { larkService } = context
 	const data = {
 		config: {

@@ -161,19 +161,32 @@ export class LarkService {
 				    const user = RequestContext.currentUser()
 					
 					// await this.getUser(client, tenant.id, data.sender.sender_id.union_id)
-					await this.commandBus.execute<LarkMessageCommand, Observable<any>>(
-						new LarkMessageCommand({
-							tenant,
-							organizationId,
-							integrationId: integration.id,
-							integration,
-							user,
-							message: data as any,
-							chatId,
-							chatType: data.message.chat_type,
-							larkService: this
-						})
-					)
+					const userQueue = await this.conversation.getUserQueue(user.id)
+					// 添加任务到队列
+    				await userQueue.add({
+						tenant,
+						organizationId,
+						integrationId: integration.id,
+						integration,
+						user,
+						message: data as any,
+						chatId,
+						chatType: data.message.chat_type,
+						// larkService: this
+					})
+					// await this.commandBus.execute<LarkMessageCommand, Observable<any>>(
+					// 	new LarkMessageCommand({
+					// 		tenant,
+					// 		organizationId,
+					// 		integrationId: integration.id,
+					// 		integration,
+					// 		user,
+					// 		message: data as any,
+					// 		chatId,
+					// 		chatType: data.message.chat_type,
+					// 		larkService: this
+					// 	})
+					// )
 				} catch(err) {
 					console.error(err)
 				}
@@ -263,7 +276,7 @@ export class LarkService {
 								organizationId,
 								integrationId: integration.id,
 								integration,
-								larkService: this,
+								// larkService: this,
 								user
 							},
 							user.id, xpertId)
@@ -580,4 +593,5 @@ export class LarkService {
 				.catch((err) => subscriber.error(err))
 		})
 	}
+
 }

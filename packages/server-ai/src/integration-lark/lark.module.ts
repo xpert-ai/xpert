@@ -1,4 +1,4 @@
-import { IntegrationModule, RoleModule, UserModule } from '@metad/server-core'
+import { IntegrationModule, RedisModule, RoleModule, UserModule } from '@metad/server-core'
 import { CacheModule, CacheStore, Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -15,6 +15,7 @@ import { LarkService } from './lark.service'
 		RouterModule.forRoutes([{ path: '/lark', module: IntegrationLarkModule }]),
 		CacheModule.registerAsync({
 			imports: [ConfigModule],
+			// @todo relace with REDIS_OPTIONS
 			useFactory: async (configService: ConfigService) => {
 				const host = configService.get('REDIS_HOST') || 'localhost'
 				const port = configService.get('REDIS_PORT') || 6379
@@ -24,7 +25,7 @@ import { LarkService } from './lark.service'
 				const store = await redisStore({
 					socket: {
 						host,
-						port,
+						port
 					},
 					password
 				})
@@ -37,6 +38,7 @@ import { LarkService } from './lark.service'
 			},
 			inject: [ConfigService]
 		}),
+		RedisModule,
 		CqrsModule,
 		UserModule,
 		RoleModule,

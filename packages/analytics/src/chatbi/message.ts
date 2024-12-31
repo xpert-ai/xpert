@@ -1,4 +1,4 @@
-import { ChatLarkContext, ChatLarkMessageStatus } from '@metad/server-ai'
+import { ChatLarkContext, ChatLarkMessageStatus, LarkService } from '@metad/server-ai'
 import { C_CHATBI_END_CONVERSATION, IChatBIConversation } from './types'
 
 export { ChatLarkMessageStatus }
@@ -23,7 +23,7 @@ export class ChatLarkMessage {
 	private elements = []
 
 	constructor(
-		private chatContext: ChatLarkContext,
+		private chatContext: ChatLarkContext & {larkService: LarkService},
 		private text: string,
 		private conversation: IChatBIConversation
 	) {}

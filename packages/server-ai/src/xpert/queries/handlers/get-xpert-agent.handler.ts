@@ -17,7 +17,7 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 	public async execute(command: GetXpertAgentQuery): Promise<IXpertAgent> {
 		const { id, agentKey, draft } = command
 		const xpert = await this.service.findOne(id, {
-			relations: ['agent', 'copilotModel', 'copilotModel.copilot', 'agents', 'agents.copilotModel', 'knowledgebases', 'toolsets', 'executors']
+			relations: ['agent', 'agent.copilotModel', 'copilotModel', 'copilotModel.copilot', 'agents', 'agents.copilotModel', 'knowledgebases', 'toolsets', 'executors']
 		})
 		const tenantId = xpert.tenantId
 

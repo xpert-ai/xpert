@@ -19,7 +19,7 @@ export type ChatLarkContext<T = any> = {
 	integrationId: string
 	integration: IIntegration
 	user: IUser
-	larkService: LarkService
+	// larkService: LarkService
 	chatId?: string
 	chatType?: 'p2p' | 'group' | string
 	message?: T

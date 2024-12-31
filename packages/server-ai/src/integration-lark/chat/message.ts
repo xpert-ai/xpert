@@ -12,6 +12,7 @@ import {
 	LARK_REJECT,
 	TLarkConversationStatus
 } from '../types'
+import { LarkService } from '../lark.service'
 
 export type ChatLarkMessageStatus = IChatMessage['status'] | 'continuing' | 'waiting' | TLarkConversationStatus
 
@@ -64,7 +65,7 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 	public elements = []
 
 	constructor(
-		private chatContext: ChatLarkContext,
+		private chatContext: ChatLarkContext & {larkService: LarkService},
 		private options: {
 			userId?: string
 			xpertId?: string
