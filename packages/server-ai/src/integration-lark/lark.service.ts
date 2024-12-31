@@ -262,7 +262,8 @@ export class LarkService {
 							organizationId,
 							integrationId: integration.id,
 							integration,
-							user
+							user,
+							chatId: data.context.open_chat_id
 						},
 						user.id,
 						xpertId
@@ -271,7 +272,7 @@ export class LarkService {
 				} else {
 					this.errorMessage(
 						{ integrationId: integration.id, chatId: data.context.open_chat_id },
-						new Error(`响应动作不存在或已超时！`)
+						new Error(`出现内部错误！`)
 					)
 				}
 				return false

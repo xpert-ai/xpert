@@ -39,7 +39,7 @@ export function createWelcomeTool(chatbi: AbstractChatBIToolset, context: Partia
 				elements.push(
 					{
 						tag: 'markdown',
-						content: await chatbi.translate('toolset.ChatBI.QuestionsAboutDataset',
+						content: `- ` + await chatbi.translate('toolset.ChatBI.QuestionsAboutDataset',
 									{
 										lang: language,
 										args: {
@@ -58,7 +58,7 @@ export function createWelcomeTool(chatbi: AbstractChatBIToolset, context: Partia
 								tag: 'column',
 								elements: [
 									...prompts.map((prompt) => {
-										const fullPrompt = `- ` + questionPrefix + prompt
+										const fullPrompt = questionPrefix + prompt
 										return {
 											tag: 'button',
 											text: {
@@ -164,7 +164,7 @@ export function createWelcomeTool(chatbi: AbstractChatBIToolset, context: Partia
 					messages: [
 						{
 							role: 'tool',
-							content: 'The welcome message and opening questions have been sent to the user, no need to respond with any content.',
+							content: '',
 							tool_call_id: toolCallId
 						}
 					]

@@ -1,5 +1,5 @@
 import { IChatConversation } from '@metad/contracts'
-import { REDIS_OPTIONS, UserService } from '@metad/server-core'
+import { REDIS_OPTIONS } from '@metad/server-core'
 import { CACHE_MANAGER, forwardRef, Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import * as Bull from 'bull'
@@ -23,7 +23,6 @@ export class LarkConversationService implements OnModuleDestroy {
 	private userQueues: Map<string, Queue> = new Map()
 
 	constructor(
-		private readonly userService: UserService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
 		@Inject(CACHE_MANAGER)
@@ -39,7 +38,7 @@ export class LarkConversationService implements OnModuleDestroy {
 	}
 
 	async setConversation(userId: string, xpertId: string, conversationId: string) {
-		return await this.cacheManager.set(this.prefix + `/${userId}/${xpertId}`, conversationId)
+		return await this.cacheManager.set(this.prefix + `/${userId}/${xpertId}`, conversationId, 1000 * 60 * 10)
 	}
 
 	async ask(xpertId: string, content: string, message: ChatLarkMessage) {
@@ -48,6 +47,15 @@ export class LarkConversationService implements OnModuleDestroy {
 
 	async onAction(action: string, chatContext: ChatLarkContext, userId: string, xpertId: string) {
 		const id = await this.getConversation(userId, xpertId)
+
+		if (!id) {
+			const {integration, chatId} = chatContext
+
+			return this.larkService.errorMessage(
+				{ integrationId: integration.id, chatId },
+				new Error(`响应动作不存在或会话已超时！`)
+			)
+		}
 
 		const conversation = await this.queryBus.execute<GetChatConversationQuery, IChatConversation>(
 			new GetChatConversationQuery({ id }, ['messages'])
@@ -77,7 +85,7 @@ export class LarkConversationService implements OnModuleDestroy {
 		} else {
 			await this.commandBus.execute(new LarkChatXpertCommand(xpertId, action, new ChatLarkMessage(
 				{ ...chatContext, larkService: this.larkService },
-				null,
+				{text: action},
 			)))
 		}
 	}

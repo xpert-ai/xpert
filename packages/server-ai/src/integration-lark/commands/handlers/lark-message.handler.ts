@@ -22,13 +22,9 @@ export class LarkMessageHandler implements ICommandHandler<LarkMessageCommand> {
 			const textContent = JSON.parse(content)
 			const text = textContent.text as string
 
-			const userId = RequestContext.currentUserId()
-
 			const larkMessage = new ChatLarkMessage(
 				{...input, larkService: this.larkService },
 				{
-					xpertId: integration.options.xpertId,
-					userId,
 					text
 				},
 			)

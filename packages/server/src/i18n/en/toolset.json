@@ -1,8 +1,8 @@
 {
   "ChatBI": {
     "GuessAsk": "Guess you want to ask:",
-    "QuestionsAboutDataset": "Questions you may want to ask about the dataset \"{cube}\":",
-    "AnalyzeDataset": "Analyze the dataset \"{cube}\": ",
+    "QuestionsAboutDataset": "Questions you may want to ask about the dataset '{cube}':",
+    "AnalyzeDataset": "Analyze the dataset '{cube}': ",
     "MoreDatasets": "- More datasets:",
     "GiveWelcomeMessage": "Give a welcome message for the dataset '{cube}'",
     "Welcome": "Hi, I am ChatBI. I can analyze the data and generate charts based on your questions.",

@@ -66,8 +66,6 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 	constructor(
 		private chatContext: ChatLarkContext & {larkService: LarkService},
 		private options: {
-			userId?: string
-			xpertId?: string
 			text?: string
 		} & Partial<ChatLarkMessageFields>,
 	) {
@@ -106,7 +104,7 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 				content: this.getTitle()
 			},
 			subtitle: {
-				tag: 'plain_text', // 固定值 plain_text。
+				tag: 'plain_text',
 				content: this.getSubtitle()
 			},
 			template: ChatLarkMessage.headerTemplate,
@@ -121,8 +119,6 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 
 	getCard() {
 		const elements = [...this.elements]
-
-		console.log(`2: ${this.status}`)
 
 		if (elements[elements.length - 1]?.tag !== 'hr') {
 			elements.push({ tag: 'hr' })
