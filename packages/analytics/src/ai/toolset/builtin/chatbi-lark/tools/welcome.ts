@@ -58,7 +58,7 @@ export function createWelcomeTool(chatbi: AbstractChatBIToolset, context: Partia
 								tag: 'column',
 								elements: [
 									...prompts.map((prompt) => {
-										const fullPrompt = questionPrefix + prompt
+										const fullPrompt = `- ` + questionPrefix + prompt
 										return {
 											tag: 'button',
 											text: {
@@ -159,7 +159,7 @@ export function createWelcomeTool(chatbi: AbstractChatBIToolset, context: Partia
 			const toolCallId = config.metadata.tool_call_id
 			return new Command({
 				update: {
-					sys_language: language,
+					sys_language: `Answer in language '${language}'.`,
 					// update the message history
 					messages: [
 						{
