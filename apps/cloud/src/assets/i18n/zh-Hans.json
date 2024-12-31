@@ -2101,7 +2101,12 @@
       "End": "终点",
       "EndTool": "终点工具，完成后对话结束",
       "EndAgentTip": "终点智能体，完成后对话结束",
-      "Node": "节点"
+      "Node": "节点",
+      "MaxConcurrencyTip": "控制最大并行调用数",
+      "RecursionLimitTip": "限制智能体可以递归的次数",
+      "RecursionLimit": "递归次数限制",
+      "MaxConcurrency": "最大并发请求",
+      "AgentSettings": "智能体设置"
     },
     "title": {
       "short": "Xpert AI"

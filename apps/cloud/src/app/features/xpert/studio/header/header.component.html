@@ -18,6 +18,15 @@
 
 <div class="flex items-center gap-2">
 
+  <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium shrink-0 mr-2"
+    #mt="cdkMenuTriggerFor"
+    [cdkMenuTriggerFor]="agentMenu"
+    [cdkMenuTriggerData]="{trigger: mt}"
+  >
+    <i class="ri-chat-settings-line text-lg mr-1"></i>
+    {{ 'PAC.Xpert.AgentSettings' | translate: {Default: 'Agent Settings'} }}
+  </button>
+
   <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium p-2"
     [ngClass]="sidePanel() === 'variables' ? 'text-primary-500' : ''"
     (click)="toggleVariables()"
@@ -312,6 +321,94 @@
           {{ 'PAC.Xpert.NoChatHistory' | translate: {Default: 'No chat history'} }}
         </div>
       }
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #agentMenu let-trigger="trigger">
+  <div
+    @overlayAnimation1
+    class="w-[640px] flex flex-col h-full bg-white border-[0.5px] border-gray-200 rounded-xl shadow-xl"
+  >
+    <div class="shrink-0 flex justify-between items-center pl-6 pr-5 h-14 border-b border-b-gray-100">
+      <div class="flex flex-col text-base font-semibold text-gray-900">
+        <div class="leading-6">{{ 'PAC.Xpert.AgentSettings' | translate: {Default: 'Agent Settings'} }}</div>
+      </div>
+      <div class="flex items-center">
+        <div class="flex justify-center items-center w-6 h-6 cursor-pointer">
+          <button
+            type="button"
+            class="pressable cursor-pointer text-text-secondary hover:bg-hover-bg rounded-full p-1"
+            (click)="trigger.close()"
+          >
+            <i class="ri-close-circle-line w-6 h-6 block"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grow p-6 pt-5 border-b pb-[68px]">
+      <div class="mb-4 flex justify-between items-center h-12 px-3 rounded-lg bg-gray-50">
+        <div class="flex items-center">
+          <i class="ri-git-merge-line text-xl text-fuchsia-600"></i>
+          <div class="ml-3 mr-1 leading-6 text-sm font-semibold text-gray-800">
+            {{ 'PAC.Xpert.MaxConcurrency' | translate: {Default: 'Max Concurrency'} }}
+          </div>
+          <i class="ri-question-line opacity-30 hover:opacity-100"
+            [matTooltip]="'PAC.Xpert.MaxConcurrencyTip' | translate: {Default: 'Control the maximum number of parallel calls'}"
+            matTooltipPosition="above"
+          ></i>
+        </div>
+        <div class="flex items-center gap-6 w-[240px]">
+          <mat-slider class="relative slider grow" disableRipple discrete
+            min="1"
+            max="10"
+            step="1" >
+            <input matSliderThumb [value]="maxConcurrency()" (dragEnd)="updateAgentConfig({maxConcurrency: $event.value})">
+          </mat-slider>
+          <input matInput
+            min="1"
+            max="10"
+            step="1"
+            class="block w-12 h-7 leading-7 rounded-lg border-0 pl-1 px-1.5 bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600"
+            type="number"
+            [ngModel]="maxConcurrency()"
+            (ngModelChange)="updateAgentConfig({maxConcurrency: $event})"
+          />
+        </div>
+      </div>
+
+      <div class="mb-4 flex justify-between items-center h-12 px-3 rounded-lg bg-gray-50">
+        <div class="flex-1 flex justify-start items-center">
+          <i class="ri-infinity-line text-xl text-lime-600"></i>
+
+          <div class="ml-3 mr-1 leading-6 text-sm font-semibold text-gray-800">
+            {{ 'PAC.Xpert.RecursionLimit' | translate: {Default: 'Recursion Limit'} }}
+          </div>
+
+          <i class="ri-question-line opacity-30 hover:opacity-100"
+            [matTooltip]="'PAC.Xpert.RecursionLimitTip' | translate: {Default: 'Limit the number of times a Agent can recurse'}"
+            matTooltipPosition="above"
+          ></i>
+        </div>
+        <div class="flex items-center gap-6 w-[240px]">
+          <mat-slider class="relative slider grow" disableRipple discrete
+            min="1"
+            max="30"
+            step="1" >
+            <input matSliderThumb [value]="recursionLimit()" (dragEnd)="updateAgentConfig({recursionLimit: $event.value})">
+          </mat-slider>
+          <input matInput
+            min="1"
+            max="99"
+            step="1"
+            class="block w-12 h-7 leading-7 rounded-lg border-0 pl-1 px-1.5 bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600"
+            type="number"
+            [ngModel]="recursionLimit()"
+            (ngModelChange)="updateAgentConfig({recursionLimit: $event})"
+          />
+        </div>
+      </div>
     </div>
   </div>
 </ng-template>

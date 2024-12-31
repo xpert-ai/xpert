@@ -212,7 +212,8 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 						userId,
 						subscriber
 					},
-					recursionLimit: AgentRecursionLimit,
+					recursionLimit: team.agentConfig?.recursionLimit ?? AgentRecursionLimit,
+					maxConcurrency: team.agentConfig?.maxConcurrency,
 					signal: abortController.signal
 					// debug: true
 				},
