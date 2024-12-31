@@ -1,5 +1,5 @@
 - welcome
 - get_cube_context
 - dimension_member_retriever
-- show_indicators
 - answer_question
+- create_indicator

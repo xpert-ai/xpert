@@ -1,0 +1,7 @@
+:host {
+  @apply flex flex-col items-stretch;
+}
+
+.indicator.last:not(.has-more) {
+  @apply rounded-b-xl;
+}

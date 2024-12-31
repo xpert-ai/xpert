@@ -64,7 +64,7 @@ export class XpertStudioHeaderComponent {
   readonly latest = computed(() => this.team()?.latest)
   readonly versions = computed(() => {
     const versions = this.apiService.versions()?.filter(nonBlank)
-    return sortBy(versions, 'version').reverse()
+    return versions.sort((a, b) => Number(b.version) - Number(a.version))
   })
   readonly draft = computed(() => this.apiService.draft())
   readonly unsaved = this.apiService.unsaved

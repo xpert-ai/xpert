@@ -30,6 +30,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { compact, uniq } from 'lodash-es'
 import { MarkdownModule } from 'ngx-markdown'
 import { Store } from '../../../@core'
+import { ChatComponentIndicatorsComponent } from './indicators/indicators.component'
 
 @Component({
   standalone: true,
@@ -49,7 +50,7 @@ import { Store } from '../../../@core'
     AnalyticalCardModule,
     NxWidgetKpiComponent,
     NgmIndicatorComponent,
-    NgmIndicatorExplorerComponent
+    ChatComponentIndicatorsComponent
   ],
   selector: 'pac-chat-component-message',
   templateUrl: './component-message.component.html',
@@ -92,9 +93,6 @@ export class ChatComponentMessageComponent {
 
   readonly explains = signal<any[]>([])
 
-  readonly indicatorExplorer = signal<string>(null)
-  readonly indicatorTagType = signal<IndicatorTagEnum>(IndicatorTagEnum.MOM)
-
   constructor() {
     effect(
       () => {
@@ -134,20 +132,6 @@ export class ChatComponentMessageComponent {
     this.#dialog.open(ExplainComponent, {
       data: this.explains()
     })
-  }
-
-  toggleIndicatorTagType() {
-    this.indicatorTagType.update((tagType) => {
-      if (IndicatorTagEnum[tagType + 1]) {
-        return tagType + 1
-      } else {
-        return IndicatorTagEnum[IndicatorTagEnum[0]] // Ensure to start from 0
-      }
-    })
-  }
-
-  toggleIndicator(indicator: string) {
-    this.indicatorExplorer.update((state) => state === indicator ? null : indicator)
   }
 
   openExplorer() {
