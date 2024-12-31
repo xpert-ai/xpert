@@ -258,7 +258,7 @@ export class XpertStudioComponent {
   }
 
   public onSizeChange(event: IRect, node: TXpertTeamNode) {
-    this.apiService.updateNode(node.key, { position: event })
+    this.apiService.moveNode(node.key, event)
   }
 
   private mousePosition = {

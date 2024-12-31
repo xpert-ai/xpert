@@ -2096,7 +2096,8 @@
       "PublishToLarketc": "发布到飞书等.",
       "ConfigurationRequired": "需要进行配置",
       "XpertPublished": "专家已发布成功",
-      "XpertPublishDeleted": "专家发布已删除"
+      "XpertPublishDeleted": "专家发布已删除",
+      "RefreshToolset": "刷新，同步工具集配置"
     },
     "title": {
       "short": "Xpert AI"

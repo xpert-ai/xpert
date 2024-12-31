@@ -59,6 +59,7 @@ export interface IXpertToolset extends IBasePerWorkspaceEntityModel, TXpertTools
 
 export type TXpertToolsetOptions = {
   baseUrl?: string
+  toolPositions?: Record<string, number>
   [key: string]: any
 }
 
