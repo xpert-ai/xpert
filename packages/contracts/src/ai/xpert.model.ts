@@ -150,6 +150,7 @@ export type TXpertAgentConfig = {
   timeout?: number;
 
   interruptBefore?: string[]
+  endNodes?: string[]
 
   stateVariables?: TStateVariable[]
 }

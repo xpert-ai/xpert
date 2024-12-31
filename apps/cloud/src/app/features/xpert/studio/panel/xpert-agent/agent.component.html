@@ -99,17 +99,36 @@
     />
 
     @if (!isPrimaryAgent()) {
-      <div class="w-full flex justify-between p-3 bg-gray-50 rounded-xl">
+      
+      <div class="w-full flex flex-col gap-2 p-3 bg-gray-50 rounded-xl">
         <div class="flex items-center space-x-1 shrink-0">
-          <div class="flex items-center justify-center w-6 h-6"><i class="ri-shield-keyhole-fill text-base text-orange-600"></i></div>
-          <div class="text-sm font-semibold text-gray-800">{{'PAC.Xpert.Sensitive' | translate: {Default: 'Sensitive'} }}</div>
+          <div class="flex items-center justify-center w-6 h-6">
+            <i class="ri-git-commit-fill text-orange-600"></i>
+          </div>
+          <div class="text-sm font-semibold text-gray-800">{{'PAC.Xpert.Node' | translate: {Default: 'Node'} }}</div>
         </div>
-        <mat-slide-toggle [ngModel]="isSensitive()" (ngModelChange)="updateSensitive($event)"
-          labelPosition="before"
-          ngm-density="xs"
-          [matTooltip]="'PAC.Xpert.SensitiveAgentTip' | translate: {Default: 'Sensitive agents require user confirmation before execution'}"
-          matTooltipPosition="above"
-        ></mat-slide-toggle>
+
+        <div class="flex justify-end items-end gap-1 w-full">
+          <i class="ri-shield-keyhole-fill text-base text-orange-600"></i>
+          <div class="text-base">{{'PAC.Xpert.Sensitive' | translate: {Default: 'Sensitive'} }}</div>
+          <mat-slide-toggle [ngModel]="isSensitive()" (ngModelChange)="updateSensitive($event)"
+            labelPosition="before"
+            ngm-density="xs"
+            [matTooltip]="'PAC.Xpert.SensitiveAgentTip' | translate: {Default: 'Sensitive agents require user confirmation before execution'}"
+            matTooltipPosition="above"
+          />
+        </div>
+
+        <div class="flex justify-end items-end gap-1 w-full">
+          <i class="ri-stop-circle-line text-base text-text-secondary"></i>
+          <div class="text-base">{{'PAC.Xpert.End' | translate: {Default: 'End'} }}</div>
+          <mat-slide-toggle [ngModel]="isEnd()" (ngModelChange)="updateEnd($event)"
+            labelPosition="before"
+            ngm-density="xs"
+            [matTooltip]="'PAC.Xpert.EndAgentTip' | translate: {Default: 'The terminal agent, the conversation ends after agent completion'}"
+            matTooltipPosition="above"
+          />
+        </div>
       </div>
     }
 

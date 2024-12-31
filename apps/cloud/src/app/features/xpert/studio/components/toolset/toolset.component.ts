@@ -85,4 +85,8 @@ export class XpertStudioNodeToolsetComponent {
   isSensitive(name: string) {
     return this.agentConfig()?.interruptBefore?.includes(name)
   }
+
+  isEnd(name: string) {
+    return this.agentConfig()?.endNodes?.includes(name)
+  }
 }

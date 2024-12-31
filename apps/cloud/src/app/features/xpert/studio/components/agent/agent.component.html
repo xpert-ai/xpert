@@ -29,6 +29,12 @@
         matTooltipPosition="above">
       </i>
     }
+    @if(isEnd()) {
+      <i class="ri-stop-circle-line mr-1 text-lg text-text-secondary"
+        [matTooltip]="'PAC.Xpert.EndAgentTip' | translate: {Default: 'The terminal agent, the conversation ends after agent completion'}"
+        matTooltipPosition="above">
+      </i>
+    }
     <div class="flex flex-col overflow-hidden text-base-content">
       <span class="text-base font-semibold uppercase truncate">{{xpertAgent().title}}</span>
     </div>

@@ -1,5 +1,5 @@
 import { IChatConversation } from '@metad/contracts'
-import { REDIS_OPTIONS, runWithRequestContext, UserService } from '@metad/server-core'
+import { REDIS_OPTIONS, UserService } from '@metad/server-core'
 import { CACHE_MANAGER, forwardRef, Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import * as Bull from 'bull'

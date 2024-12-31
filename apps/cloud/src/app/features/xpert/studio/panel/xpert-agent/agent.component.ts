@@ -103,6 +103,7 @@ export class XpertStudioPanelAgentComponent {
   readonly agentUniqueName = computed(() => agentUniqueName(this.xpertAgent()))
   readonly agentConfig = computed(() => this.xpert()?.agentConfig)
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
+  readonly isEnd = computed(() => this.agentConfig()?.endNodes?.includes(this.agentUniqueName()))
   readonly isPrimaryAgent = computed(() => !!this.xpertAgent()?.xpertId)
 
   readonly parameters = computed(() => this.xpertAgent()?.parameters)
@@ -205,17 +206,19 @@ export class XpertStudioPanelAgentComponent {
     this.apiService.updateXpertAgent(this.key(), { parameters: event })
   }
 
-  getSensitive(name: string) {
-    return this.agentConfig()?.interruptBefore?.includes(name)
-  }
-
   updateSensitive(value: boolean) {
     const name = this.agentUniqueName()
     const interruptBefore = value
       ? uniq([...(this.agentConfig()?.interruptBefore ?? []), name])
       : (this.agentConfig()?.interruptBefore?.filter((_) => _ !== name) ?? [])
-    this.xpertStudioComponent.updateXpertAgentConfig({
-      interruptBefore
-    })
+    this.xpertStudioComponent.updateXpertAgentConfig({ interruptBefore })
+  }
+
+  updateEnd(value: boolean) {
+    const name = this.agentUniqueName()
+    const endNodes = value
+      ? uniq([...(this.agentConfig()?.endNodes ?? []), name])
+      : (this.agentConfig()?.endNodes?.filter((_) => _ !== name) ?? [])
+    this.xpertStudioComponent.updateXpertAgentConfig({ endNodes })
   }
 }

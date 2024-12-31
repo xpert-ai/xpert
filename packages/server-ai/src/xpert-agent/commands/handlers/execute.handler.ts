@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AIMessageChunk, HumanMessage, isAIMessage, isAIMessageChunk, MessageContent, ToolMessage } from '@langchain/core/messages'
+import { AIMessageChunk, HumanMessage, isAIMessage, isAIMessageChunk, isToolMessage, MessageContent, ToolMessage } from '@langchain/core/messages'
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Annotation, CompiledStateGraph, isCommand, LangGraphRunnableConfig, NodeInterrupt } from '@langchain/langgraph'
@@ -159,6 +159,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			subAgents,
 			tools: tools,
 			interruptBefore,
+			endNodes: team.agentConfig?.endNodes,
 			tags: [thread_id],
 			stateModifier: async (state: typeof AgentStateAnnotation.State) => {
 				const { summary, memories } = state
@@ -455,9 +456,9 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 					execution.title = state.values.title
 				}
 
+				const messages = state.values.messages
+				const lastMessage = messages[messages.length - 1]
 				if (state.next?.[0]) {
-					const messages = state.values.messages
-					const lastMessage = messages[messages.length - 1]
 					if (isAIMessageChunk(lastMessage)) {
 						this.#logger.debug(`Interrupted chat [${agentLabel(agent)}].`)
 						const operation = await this.queryBus.execute<CompleteToolCallsQuery, TSensitiveOperation>(
@@ -472,6 +473,8 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 						} as MessageEvent)
 						throw new NodeInterrupt(`Confirm tool calls`)
 					}
+				} else if (isToolMessage(lastMessage)) {
+					return lastMessage.content
 				} else {
 					this.#logger.debug(`End chat [${agentLabel(agent)}].`)
 				}

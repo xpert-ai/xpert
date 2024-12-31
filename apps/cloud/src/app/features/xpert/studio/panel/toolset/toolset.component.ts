@@ -97,6 +97,17 @@ export class XpertStudioPanelToolsetComponent {
     })
   }
 
+  isEnd(name: string) {
+    return this.agentConfig()?.endNodes?.includes(name)
+  }
+
+  updateEnd(name: string, value: boolean) {
+    const endNodes = value
+      ? uniq([...(this.agentConfig()?.endNodes ?? []), name])
+      : (this.agentConfig()?.endNodes?.filter((_) => _ !== name) ?? [])
+    this.xpertStudioComponent.updateXpertAgentConfig({ endNodes })
+  }
+
   closePanel() {
     this.panelComponent.close()
   }

@@ -48,7 +48,7 @@ export class XpertStudioNodeAgentComponent {
 
   readonly agentUniqueName = computed(() => agentUniqueName(this.xpertAgent()))
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
-   
+  readonly isEnd = computed(() => this.agentConfig()?.endNodes?.includes(this.agentUniqueName()))
 
   private get hostElement(): HTMLElement {
     return this.elementRef.nativeElement
