@@ -20,9 +20,9 @@ import { RouterModule } from '@angular/router'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { NgmIndicatorComponent, NgmIndicatorExplorerComponent } from '@metad/ocap-angular/indicator'
+import { NgmIndicatorComponent } from '@metad/ocap-angular/indicator'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
-import { DataSettings, Indicator, IndicatorTagEnum, TimeGranularity } from '@metad/ocap-core'
+import { DataSettings, Indicator, TimeGranularity } from '@metad/ocap-core'
 import { StoryExplorerComponent } from '@metad/story'
 import { ExplainComponent } from '@metad/story/story'
 import { NxWidgetKpiComponent } from '@metad/story/widgets/kpi'
@@ -70,7 +70,7 @@ export class ChatComponentMessageComponent {
   readonly message = input<any>()
 
   // Outputs
-  readonly register = output<{id: string; indicators?: Indicator[]}[]>()
+  readonly register = output<{ id: string; indicators?: Indicator[] }[]>()
 
   // States
   readonly data = computed(() => this.message()?.data as any)
@@ -97,11 +97,12 @@ export class ChatComponentMessageComponent {
     effect(
       () => {
         if (this.dataSource()) {
-          this.register.emit([{
-            id: this.dataSource(),
-            indicators: this.indicators()
-          }])
-          // this.homeComponent.registerSemanticModel(this.dataSource())
+          this.register.emit([
+            {
+              id: this.dataSource(),
+              indicators: this.indicators()
+            }
+          ])
         }
       },
       { allowSignalWrites: true }
@@ -110,10 +111,7 @@ export class ChatComponentMessageComponent {
     effect(
       () => {
         if (this.dataSources()) {
-          this.register.emit(this.dataSources().map((id) => ({id})))
-          // this.dataSources().forEach((dataSource) => {
-          //   this.homeComponent.registerSemanticModel(dataSource)
-          // })
+          this.register.emit(this.dataSources().map((id) => ({ id })))
         }
       },
       { allowSignalWrites: true }

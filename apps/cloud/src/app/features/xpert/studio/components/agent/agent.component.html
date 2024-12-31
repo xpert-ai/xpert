@@ -2,7 +2,7 @@
   <div fNodeInput [fInputId]="node().key" fInputConnectableSide="top" class="top"></div>
 }
 
-<div class="node-output-bottom flex items-center gap-2 h-3 absolute -bottom-[8px] left-1/2 -ml-3">
+<div class="node-output-bottom flex items-center gap-2 h-3 absolute -bottom-[8px] left-1/2 -ml-5">
   <div fNodeOutput [fOutputId]="node().key + '/agent'" fOutputConnectableSide="bottom" [fOutputMultiple]="true">
     <ngm-plus-svg class="w-2 h-2 text-white" />
   </div>
@@ -11,7 +11,7 @@
   </div>
 </div>
 
-<div class="node-output-right flex flex-col items-center gap-2 w-3 absolute -right-[8px] top-1/2 -mt-3">
+<div class="node-output-right flex flex-col items-center gap-2 w-3 absolute -right-[8px] top-1/2 -mt-5">
   <div fNodeOutput [fOutputId]="node().key + '/knowledge'" fOutputConnectableSide="right" [fOutputMultiple]="true">
     <ngm-plus-svg class="w-2 h-2 text-white" />
   </div>

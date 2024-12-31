@@ -2,6 +2,6 @@
   @apply flex flex-col items-stretch;
 }
 
-.indicator.last:not(.has-more) {
+.indicator.last:not(.has-more):not(.active) {
   @apply rounded-b-xl;
 }

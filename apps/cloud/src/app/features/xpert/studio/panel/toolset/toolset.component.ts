@@ -63,7 +63,9 @@ export class XpertStudioPanelToolsetComponent {
 
   readonly tools = computed(() => {
     const positions = this.positions()
-    return this.toolsetDetail()?.tools?.filter((_) => _.enabled).sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
+    const tools = this.toolsetDetail()?.tools?.filter((_) => _.enabled)
+    return positions && tools ? tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
+      : tools
   })
 
   readonly loading = signal(false)
