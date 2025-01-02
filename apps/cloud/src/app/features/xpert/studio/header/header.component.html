@@ -1,22 +1,20 @@
-<div>
-  <div class="flex items-center gap-2 h-[18px] text-sm opacity-50">
-    @if (unsaved()) {
-      <span class="w-2 h-2 rounded-full bg-green-500 shadow-md shadow-green-400"
-        [matTooltip]="'PAC.Messages.UnsavedChanges' | translate: {Default: 'Unsaved changes'} ">
-      </span>
-    }
-    @if (draftSavedDate()) {
-      <span>{{ 'PAC.Xpert.AutoSave' | translate: {Default: 'Auto save'} }} {{draftSavedDate()}}</span>
-    }
-    @if (latestPublishDate()) {
-      <span class="flex items-center mx-1">·</span>{{ 'PAC.Xpert.Published' | translate: {Default: 'Published'} }} {{latestPublishDate()}}
-    }
-  </div>
+<div class="flex items-center gap-2 h-[2rem] text-sm truncate opacity-50">
+  @if (unsaved()) {
+    <span class="w-2 h-2 shrink-0 rounded-full bg-green-500 shadow-md shadow-green-400"
+      [matTooltip]="'PAC.Messages.UnsavedChanges' | translate: {Default: 'Unsaved changes'} ">
+    </span>
+  }
+  @if (draftSavedDate()) {
+    <span class="truncate">{{ 'PAC.Xpert.AutoSave' | translate: {Default: 'Auto save'} }} {{draftSavedDate()}}</span>
+  }
+  @if (latestPublishDate()) {
+    <span class="flex items-center mx-1">·</span>{{ 'PAC.Xpert.Published' | translate: {Default: 'Published'} }} {{latestPublishDate()}}
+  }
 </div>
 
 <div class="flex-1"></div>
 
-<div class="flex items-center gap-2">
+<div class="flex flex-wrap items-center gap-2">
 
   <button type="button" class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium shrink-0 mr-2"
     #mt="cdkMenuTriggerFor"
