@@ -11,6 +11,7 @@ import { AbstractChatBIToolset } from '../../chatbi/chatbi-toolset'
 export function createWelcomeTool(chatbi: AbstractChatBIToolset, context: Partial<ChatBILarkContext>) {
 	const logger = new Logger('WelcomeTool')
 	const { models: _models } = context
+	
 	return tool(
 		async ({ language, models, more }, config: LangGraphRunnableConfig) => {
 			logger.debug(
@@ -138,6 +139,7 @@ export function createWelcomeTool(chatbi: AbstractChatBIToolset, context: Partia
 						id: shortuuid(),
 						type: 'update',
 						data: {
+							language,
 							elements,
 							header: {
 								title: {

@@ -1,5 +1,5 @@
 import { IChatConversation } from '@metad/contracts'
-import { REDIS_OPTIONS } from '@metad/server-core'
+import { REDIS_OPTIONS, RequestContext } from '@metad/server-core'
 import { CACHE_MANAGER, forwardRef, Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import * as Bull from 'bull'
@@ -45,22 +45,37 @@ export class LarkConversationService implements OnModuleDestroy {
 		await this.commandBus.execute(new LarkChatXpertCommand(xpertId, content, message))
 	}
 
+	/**
+	 * Get last message of user's conversation.	
+	 * 
+	 * @param userId 
+	 * @param xpertId 
+	 * @returns 
+	 */
+	async getLastMessage(userId: string, xpertId: string) {
+		const id = await this.getConversation(userId, xpertId)
+		if (id) {
+			const conversation = await this.queryBus.execute<GetChatConversationQuery, IChatConversation>(
+				new GetChatConversationQuery({ id }, ['messages'])
+			)
+			return conversation.messages.slice(-1)[0]
+		}
+		return null
+	}
+
 	async onAction(action: string, chatContext: ChatLarkContext, userId: string, xpertId: string) {
 		const id = await this.getConversation(userId, xpertId)
 
 		if (!id) {
-			const {integration, chatId} = chatContext
+			const {integrationId, chatId} = chatContext
 
 			return this.larkService.errorMessage(
-				{ integrationId: integration.id, chatId },
-				new Error(`响应动作不存在或会话已超时！`)
+				{ integrationId, chatId },
+				new Error(await this.larkService.translate('integration.Lark.ActionSessionTimedOut', {}))
 			)
 		}
 
-		const conversation = await this.queryBus.execute<GetChatConversationQuery, IChatConversation>(
-			new GetChatConversationQuery({ id }, ['messages'])
-		)
-		const lastMessage = conversation.messages.slice(-1)[0]
+		const lastMessage = await this.getLastMessage(userId, xpertId)
 
 		const message = new ChatLarkMessage(
 			{ ...chatContext, larkService: this.larkService },
@@ -83,10 +98,13 @@ export class LarkConversationService implements OnModuleDestroy {
 				})
 			)
 		} else {
-			await this.commandBus.execute(new LarkChatXpertCommand(xpertId, action, new ChatLarkMessage(
-				{ ...chatContext, larkService: this.larkService },
-				{text: action},
-			)))
+			const user = RequestContext.currentUser()
+			const userQueue = await this.getUserQueue(user.id)
+			// Adding task to user's queue
+			await userQueue.add({
+				...chatContext,
+				input: action,
+			})
 		}
 	}
 

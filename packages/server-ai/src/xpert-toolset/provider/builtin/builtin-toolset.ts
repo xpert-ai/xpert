@@ -1,4 +1,4 @@
-import { IXpertToolset, TToolCredentials, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { IXpertToolset, TranslateOptions, TToolCredentials, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { BaseToolset } from '../../toolset'
@@ -11,16 +11,6 @@ export type TBuiltinToolsetParams = {
 	toolsetService: XpertToolsetService
 	commandBus: CommandBus
 	queryBus: QueryBus
-}
-
-export type TranslateOptions = {
-	lang?: string;
-    args?: ({
-        [k: string]: any;
-    } | string)[] | {
-        [k: string]: any;
-    };
-    debug?: boolean;
 }
 
 export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> {

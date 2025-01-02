@@ -1,5 +1,5 @@
 import { Serializable } from '@langchain/core/load/serializable'
-import { I18nObject, IChatMessage, TSensitiveOperation } from '@metad/contracts'
+import { I18nObject, IChatMessage, TranslateOptions, TSensitiveOperation } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import {
 	ChatLarkContext,
@@ -78,16 +78,17 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 		this.elements = options.elements ?? []
 	}
 
-	getTitle() {
+	async getTitle() {
+		const status = await this.translate('integration.Lark.Status_' + this.status, {lang: this.language,})
 		switch (this.status) {
 			case 'thinking':
-				return '正在思考...'
+				return status
 			case 'continuing':
-				return '继续思考...'
+				return status
 			case 'waiting':
-				return '还在思考，请稍后...'
+				return status
 			case 'interrupted':
-				return '请确认'
+				return status
 			default:
 				return ''
 		}
@@ -97,11 +98,11 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 		return this.options.text
 	}
 
-	getHeader() {
+	async getHeader() {
 		return {
 			title: {
 				tag: 'plain_text',
-				content: this.getTitle()
+				content: await this.getTitle()
 			},
 			subtitle: {
 				tag: 'plain_text',
@@ -109,15 +110,15 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 			},
 			template: ChatLarkMessage.headerTemplate,
 			ud_icon: {
-				token: 'myai_colorful', // 图标的 token
+				token: 'myai_colorful',
 				style: {
-					color: 'red' // 图标颜色
+					color: 'red'
 				}
 			}
 		}
 	}
 
-	getCard() {
+	async getCard() {
 		const elements = [...this.elements]
 
 		if (elements[elements.length - 1]?.tag !== 'hr') {
@@ -126,10 +127,10 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 		if (this.status === 'end') {
 			elements.push({
 				tag: 'markdown',
-				content: `对话已结束。如果您有其他问题，欢迎随时再来咨询。`
+				content: await this.translate('integration.Lark.ConversationEnded', {lang: this.language,})
 			})
 		} else {
-			elements.push(this.getEndAction())
+			elements.push(await this.getEndAction())
 		}
 
 		return {
@@ -137,17 +138,17 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 		}
 	}
 
-	getEndAction() {
+	async getEndAction() {
 		return {
 			tag: 'action',
 			layout: 'default',
 			actions: [
-				...(this.status === 'interrupted' ? this.getInterruptedActions() : []),
+				...(this.status === 'interrupted' ? (await this.getInterruptedActions()) : []),
 				{
 					tag: 'button',
 					text: {
 						tag: 'plain_text',
-						content: '结束对话'
+						content: await this.translate('integration.Lark.EndConversation', {lang: this.language,})
 					},
 					type: 'text',
 					complex_interaction: true,
@@ -159,7 +160,7 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 					tag: 'button',
 					text: {
 						tag: 'plain_text',
-						content: '帮助文档'
+						content: await this.translate('integration.Lark.HelpDoc', {lang: this.language,})
 					},
 					type: 'text',
 					complex_interaction: true,
@@ -173,13 +174,13 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 		}
 	}
 
-	getInterruptedActions() {
+	async getInterruptedActions() {
 		return [
 			{
 				tag: 'button',
 				text: {
 					tag: 'plain_text',
-					content: '确认'
+					content: await this.translate('integration.Lark.Confirm', {lang: this.language,})
 				},
 				type: 'primary',
 				width: 'default',
@@ -190,7 +191,7 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 				tag: 'button',
 				text: {
 					tag: 'plain_text',
-					content: '拒绝'
+					content: await this.translate('integration.Lark.Reject', {lang: this.language,})
 				},
 				type: 'danger',
 				width: 'default',
@@ -204,8 +205,12 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 		status?: ChatLarkMessageStatus
 		elements?: any[]
 		header?: any
+		language?: string
 		action?: (action) => void
 	}) {
+		if (options?.language) {
+			this.language = options.language
+		}
 		if (options?.status) {
 			this.status = options.status
 		}
@@ -216,12 +221,12 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 			this.header = options.header
 		}
 
-		const elements = this.getCard()
+		const elements = await this.getCard()
 		if (this.id) {
 			this.larkService
 				.patchAction(this.chatContext, this.id, {
 					...elements,
-					header: this.header ?? this.getHeader()
+					header: this.header ?? (await this.getHeader())
 				})
 				.subscribe({
 					next: (message) => {
@@ -236,7 +241,7 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 				this.chatContext,
 				{
 					...elements,
-					header: this.header ?? this.getHeader()
+					header: this.header ?? (await this.getHeader())
 				},
 				{
 					next: async (message) => {
@@ -260,6 +265,10 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 				console.log(action)
 			}
 		})
+	}
+
+	async translate(key: string, options: TranslateOptions) {
+		return await this.larkService.translate(key, options)
 	}
 }
 

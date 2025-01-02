@@ -1,0 +1,15 @@
+{
+    "Lark": {
+        "EndConversation": "结束对话",
+        "HelpDoc": "帮助文档",
+        "ConversationEnded": "对话已结束。如果您有其他问题，欢迎随时再来咨询。",
+        "Confirm": "确认",
+        "Reject": "拒绝",
+        "Status_thinking": "正在思考...",
+        "Status_continuing": "继续思考...",
+        "Status_waiting": "还在思考，请稍后...",
+        "Status_interrupted": "请确认",
+        "Status_end": "结束",
+        "ActionSessionTimedOut": "响应动作不存在或会话已超时！"
+    }
+}

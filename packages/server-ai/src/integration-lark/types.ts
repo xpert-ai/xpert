@@ -16,11 +16,11 @@ export type ChatLarkContext<T = any> = {
 	tenant: ITenant
 	organizationId: string
 	integrationId: string
-	integration: IIntegration
-	user: IUser
+	userId: string
 	chatId?: string
 	chatType?: 'p2p' | 'group' | string
 	message?: T
+	input?: string
 }
 
 export type TLarkEvent = {
