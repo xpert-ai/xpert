@@ -1,6 +1,32 @@
-import { assignDeepOmitBlank, C_MEASURES, ChartMeasure, ChartOrient, ChartType, ChartTypeEnum, cloneDeep, DSCoreService, EntityType, getChartType, PieVariant, tryFixDimension } from "@metad/ocap-core"
-import { Logger } from "@nestjs/common"
-import { omit, upperFirst } from "lodash"
+import {
+	assignDeepOmitBlank,
+	C_MEASURES,
+	ChartDimensionSchema,
+	ChartMeasure,
+	ChartMeasureSchema,
+	ChartOrient,
+	ChartTypeEnum,
+	cloneDeep,
+	DataSettings,
+	DataSettingsSchema,
+	Dimension,
+	DSCoreService,
+	EntityType,
+	getChartType,
+	ISlicer,
+	Measure,
+	OrderBy,
+	OrderBySchema,
+	PieVariant,
+	SlicerSchema,
+	TimeRangesSlicer,
+	TimeSlicerSchema,
+	tryFixDimension,
+	VariableSchema
+} from '@metad/ocap-core'
+import { upperFirst } from 'lodash'
+import { z } from 'zod'
+import { AbstractChatBIToolset } from './chatbi-toolset'
 
 export enum ChatBIToolsEnum {
 	SHOW_INDICATORS = 'show_indicators',
@@ -18,11 +44,59 @@ export type TChatBICredentials = {
 }
 
 export type ChatBIContext = {
+	chatbi: AbstractChatBIToolset
 	dsCoreService: DSCoreService
-	entityType: EntityType
-	logger?: Logger
+	entityType?: EntityType
 }
 
+export type ChatAnswer = {
+	language: string
+	preface: string
+	visualType: 'ColumnChart' | 'LineChart' | 'PieChart' | 'BarChart' | 'Table' | 'KPI'
+	dataSettings: DataSettings
+	dimensions: Dimension[]
+	measures: Measure[]
+	orders: OrderBy[]
+	top: number
+	variables: ISlicer[]
+	slicers: ISlicer[]
+	timeSlicers: TimeRangesSlicer[]
+}
+
+const LanguageSchema = z.enum(['en', 'zh']).describe('Language ​​used by user')
+
+export const ChatAnswerSchema = z.object({
+	language: LanguageSchema,
+	preface: z.string().describe('preface of the answer'),
+	visualType: z
+		.enum(['ColumnChart', 'LineChart', 'PieChart', 'BarChart', 'Table', 'KPI'])
+		.optional()
+		.describe('Visual type of result'),
+	dataSettings: DataSettingsSchema.optional().describe('The data settings of the widget'),
+	dimensions: z.array(ChartDimensionSchema).optional().describe('The dimensions used by the chart'),
+	measures: z.array(ChartMeasureSchema).optional().describe('The measures used by the chart'),
+	orders: z.array(OrderBySchema).optional().describe('The orders used by the chart'),
+	top: z.number().optional().describe('The number of top members'),
+	slicers: z.array(SlicerSchema).optional().describe('The slicers to filter data'),
+	timeSlicers: z.array(TimeSlicerSchema).optional().describe('The time slicers to filter data'),
+	variables: z.array(VariableSchema).optional().describe('The variables to the query of cube')
+})
+
+export const IndicatorSchema = z.object({
+	language: LanguageSchema,
+	modelId: z.string().describe('The id of model'),
+	entity: z.string().describe('The cube name'),
+	code: z.string().describe('The unique code of indicator'),
+	name: z.string().describe(`The caption of indicator in user's language`),
+	formula: z.string().describe('The MDX formula for calculated measure'),
+	unit: z.string().optional().describe(`The unit of measure, '%' or orthers`),
+	description: z
+		.string()
+		.describe(
+			'The detail description of calculated measure, business logic and cube info for example: the time dimensions, measures or dimension members involved'
+		),
+	query: z.string().describe(`A query statement to test this indicator can correctly query the results, you need include indicator code as measure name in statement`)
+})
 
 export const CHART_TYPES = [
 	{
@@ -94,12 +168,12 @@ export const CHART_TYPES = [
 	}
 ]
 
-export function tryFixChartType(chartType: ChartType) {
-	return assignDeepOmitBlank(
-		cloneDeep(getChartType(upperFirst(chartType.type))?.value.chartType),
-		omit(chartType, 'type'),
-		5
-	)
+export function tryFixChartType(chartType: string) {
+	if (chartType.endsWith('Chart')) {
+		chartType = chartType.replace(/Chart$/, '')
+		return assignDeepOmitBlank(cloneDeep(getChartType(upperFirst(chartType))?.value.chartType), {}, 5)
+	}
+	return null
 }
 
 export function fixMeasure(measure: ChartMeasure, entityType: EntityType) {

@@ -161,7 +161,7 @@ export function createWelcomeTool(chatbi: AbstractChatBIToolset, context: Partia
 			const toolCallId = config.metadata.tool_call_id
 			return new Command({
 				update: {
-					sys_language: `Answer in language '${language}'.`,
+					sys_language: language,
 					// update the message history
 					messages: [
 						{

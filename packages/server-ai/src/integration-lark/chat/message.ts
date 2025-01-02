@@ -40,10 +40,11 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 	}
 
 	static readonly headerTemplate = 'indigo'
-	static readonly logoImgKey = 'img_v3_02e1_a8d74bc6-3c8a-4f66-b44f-c4cc837e285g'
+	static readonly logoImgKey = 'img_v3_02i5_2fd70b28-1f68-4618-9e17-c9140c49bbfg'
 	static readonly logoIcon = {
 		tag: 'custom_icon',
-		img_key: ChatLarkMessage.logoImgKey
+		img_key: ChatLarkMessage.logoImgKey,
+		corner_radius: "30%"
 	}
 	static readonly helpUrl = 'https://mtda.cloud/docs/chatbi/feishu/bot/'
 

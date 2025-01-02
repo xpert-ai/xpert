@@ -10,6 +10,7 @@
         "Status_waiting": "还在思考，请稍后...",
         "Status_interrupted": "请确认",
         "Status_end": "结束",
+        "Status_success": "成功",
         "ActionSessionTimedOut": "响应动作不存在或会话已超时！"
     }
 }

@@ -25,7 +25,9 @@ import {
   TXpertParameter,
   XpertAgentExecutionService,
   XpertService,
-  agentUniqueName
+  agentUniqueName,
+  injectToastr,
+  getErrorMessage
 } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { XpertStudioApiService } from '../../domain'
@@ -33,7 +35,7 @@ import { XpertStudioPanelAgentExecutionComponent } from '../agent-execution/exec
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertStudioPanelToolsetSectionComponent } from './toolset-section/toolset.component'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { map, of } from 'rxjs'
+import { catchError, map, of } from 'rxjs'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelKnowledgeSectionComponent } from './knowledge-section/knowledge.component'
@@ -84,6 +86,7 @@ export class XpertStudioPanelAgentComponent {
   readonly executionService = inject(XpertAgentExecutionService)
   readonly panelComponent = inject(XpertStudioPanelComponent)
   readonly xpertStudioComponent = inject(XpertStudioComponent)
+  readonly #toastr = injectToastr()
   readonly helpWebsite = injectHelpWebsite()
 
   readonly key = input<string>()
@@ -141,7 +144,12 @@ export class XpertStudioPanelAgentComponent {
   readonly variables = derivedAsync(() => {
     const xpertId = this.xpertId()
     const agentKey = this.key()
-    return xpertId && agentKey ? this.xpertService.getVariables(xpertId, agentKey) : of(null)
+    return xpertId && agentKey ? this.xpertService.getVariables(xpertId, agentKey).pipe(
+      catchError((error) => {
+        this.#toastr.error(getErrorMessage(error))
+        return of([])
+      })
+    ) : of(null)
   })
 
   constructor() {

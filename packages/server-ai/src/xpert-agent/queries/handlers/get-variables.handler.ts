@@ -4,6 +4,7 @@ import { omit } from 'lodash'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertAgentQuery } from '../../../xpert/queries/'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
+import { STATE_VARIABLE_SYS_LANGUAGE } from '../../commands/handlers/types'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
@@ -15,7 +16,16 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 	public async execute(command: XpertAgentVariablesQuery): Promise<any[]> {
 		const { xpertId, agentKey, isDraft } = command
 
-		const variables: TStateVariable[] = []
+		const variables: TStateVariable[] = [
+			{
+				name: STATE_VARIABLE_SYS_LANGUAGE,
+  				type: 'string',
+				description: {
+					en_US: 'Language',
+					zh_Hans: '语言',
+				}
+			}
+		]
 
 		const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
 			new GetXpertAgentQuery(xpertId, agentKey, isDraft)
@@ -32,8 +42,11 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		}
 
 		for await (const toolset of toolsets) {
-			const items = await toolset.initTools()
-			variables.push(...toolset.getVariables().map(toolsetVariableToVariable))
+			await toolset.initTools()
+			const toolVars = toolset.getVariables()
+			if (toolVars) {
+				variables.push(...toolVars.map(toolsetVariableToVariable))
+			}
 		}
 
 		return variables

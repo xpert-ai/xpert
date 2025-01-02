@@ -7,7 +7,15 @@
     "GiveWelcomeMessage": "Give a welcome message for the dataset '{cube}'",
     "Welcome": "Hi, I am ChatBI. I can analyze the data and generate charts based on your questions.",
     "Error": {
-        "NoModel": "No ChatBI Model found for model: '{model}' and cube: '{cube}'"
-    }
+      "NoModel": "No ChatBI Model found for model: '{model}' and cube: '{cube}'",
+      "ChartError": "Chart config error"
+    },
+    "NewCalculatedIndicator": "Create a new calculated indicator:",
+    "Name": "Name",
+    "Code": "Code",
+    "Formula": "Formula",
+    "Unit": "Unit",
+    "AnalysisConditions": "Analysis conditions",
+    "QueryStatement": "Query statement"
   }
 }

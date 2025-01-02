@@ -5,6 +5,8 @@ import { StructuredToolInterface } from '@langchain/core/tools'
 import { Annotation, messagesStateReducer } from '@langchain/langgraph'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
 
+export const STATE_VARIABLE_SYS_LANGUAGE = 'sys_language'
+
 export const AgentStateAnnotation = Annotation.Root({
 	messages: Annotation<BaseMessage[]>({
 		reducer: messagesStateReducer,
@@ -14,9 +16,9 @@ export const AgentStateAnnotation = Annotation.Root({
 		reducer: (a, b) => b ?? a,
 		default: () => ''
 	}),
-    sys_language: Annotation<string>({
+    [STATE_VARIABLE_SYS_LANGUAGE]: Annotation<string>({
 		reducer: (a, b) => b ?? a,
-		default: () => null
+		default: () => 'default'
 	}),
     toolCall: Annotation<ToolCall>({
 		reducer: (a, b) => b ?? a,

@@ -163,7 +163,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			tags: [thread_id],
 			stateModifier: async (state: typeof AgentStateAnnotation.State) => {
 				const { summary, memories } = state
-				let systemTemplate = `{{sys_language}}\nCurrent time: ${new Date().toISOString()}\n${parseXmlString(agent.prompt) ?? ''}`
+				let systemTemplate = `Current time: ${new Date().toISOString()}\n${parseXmlString(agent.prompt) ?? ''}`
 				if (memories?.length) {
 					systemTemplate += `\n\n<memory>\n${memoryPrompt(memories)}\n</memory>`
 				}

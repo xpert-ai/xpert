@@ -52,7 +52,6 @@ export interface EntityProperty extends BaseProperty, PropertyAttributes {
   entity?: string
   description?: string
   dataType?: DataType | string
-
   /**
    * @deprecated use semantics
    */

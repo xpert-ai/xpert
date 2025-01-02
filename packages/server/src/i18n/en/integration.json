@@ -10,6 +10,7 @@
         "Status_waiting": "Still thinking, please wait...",
         "Status_interrupted": "Please confirm",
         "Status_end": "End",
+        "Status_success": "Success",
         "ActionSessionTimedOut": "The action does not exist or the session has timed out!"
     }
 }

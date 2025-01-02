@@ -52,7 +52,7 @@ export function getPGSchemaQuery(schemaName: string, tableName: string) {
     : `table_schema NOT IN ('pg_catalog', 'information_schema', 'pg_toast', 'pg_toast_temp_1', 'pg_temp_1')`
   let query = ''
   if (tableName) {
-    query = `SELECT cols.table_schema, cols.table_name, cols.column_name, cols.data_type, cols.is_nullable, pg_catalog.col_description(c.oid, cols.ordinal_position::int) as column_comment, pg_catalog.obj_description(c.oid, 'pg_class') as table_comment FROM pg_catalog.pg_class c, information_schema.columns cols WHERE ${tableSchema} AND cols.table_name = '${tableName}' AND cols.table_name = c.relname`
+    query = `SELECT cols.table_schema, cols.table_name, cols.column_name, cols.data_type, cols.character_maximum_length, cols.ordinal_position, cols.is_nullable, pg_catalog.col_description(c.oid, cols.ordinal_position::int) as column_comment, pg_catalog.obj_description(c.oid, 'pg_class') as table_comment FROM pg_catalog.pg_class c, information_schema.columns cols WHERE ${tableSchema} AND cols.table_name = '${tableName}' AND cols.table_name = c.relname ORDER BY ordinal_position`
   } else {
     query = `SELECT table_schema, t.table_name, pg_catalog.obj_description(pgc.oid, 'pg_class') as table_comment FROM information_schema.tables t INNER JOIN pg_catalog.pg_class pgc ON t.table_name = pgc.relname WHERE ${tableSchema}`
   }
@@ -75,7 +75,9 @@ export function convertPGSchema(data: any[]): IDSSchema[] {
             name: item.column_name,
             type: pgTypeMap(item.data_type),
             label: item.column_comment,
-            dataType: item.data_type
+            dataType: item.data_type,
+            dataLength: item.character_maximum_length,
+            position: item.ordinal_position
           } as IColumnDef))
       }
     })

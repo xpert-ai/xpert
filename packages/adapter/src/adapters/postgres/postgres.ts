@@ -161,9 +161,9 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
   }
 
   async getSchema(catalog?: string, tableName?: string): Promise<IDSSchema[]> {
-    return this.runQuery(getPGSchemaQuery(catalog, tableName)).then(({data}) => {
-      return convertPGSchema(data)
-    })
+    const query = getPGSchemaQuery(catalog, tableName)
+    const result = await this.runQuery(query)
+    return convertPGSchema(result.data)
   }
 
   async describe(catalog: string, statement: string) {
