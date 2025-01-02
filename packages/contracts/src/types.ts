@@ -32,3 +32,13 @@ export type TDeleteResult = {
    */
   affected?: number | null;
 }
+
+export type TranslateOptions = {
+	lang?: string;
+  args?: ({
+      [k: string]: any;
+  } | string)[] | {
+      [k: string]: any;
+  };
+  debug?: boolean;
+}

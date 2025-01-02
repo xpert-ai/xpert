@@ -1,0 +1,16 @@
+{
+    "Lark": {
+        "EndConversation": "End",
+        "HelpDoc": "Help",
+        "ConversationEnded": "This conversation has ended. If you have any other questions, please feel free to contact us.",
+        "Confirm": "Confirm",
+        "Reject": "Reject",
+        "Status_thinking": "Thinking...",
+        "Status_continuing": "Continuing...",
+        "Status_waiting": "Still thinking, please wait...",
+        "Status_interrupted": "Please confirm",
+        "Status_end": "End",
+        "Status_success": "Success",
+        "ActionSessionTimedOut": "The action does not exist or the session has timed out!"
+    }
+}

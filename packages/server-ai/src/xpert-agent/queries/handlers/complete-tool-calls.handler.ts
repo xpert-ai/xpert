@@ -63,7 +63,7 @@ export class CompleteToolCallsHandler implements IQueryHandler<CompleteToolCalls
 						title: subAgents[toolCall.name].title,
 						description: subAgents[toolCall.name].description
 					},
-					parameters: subAgents[toolCall.name].parameters.map((param) => ({
+					parameters: subAgents[toolCall.name].parameters?.map((param) => ({
 						name: param.name,
 						title: param.title,
 						description: param.description,

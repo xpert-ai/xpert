@@ -3,7 +3,7 @@ import { ITag } from '../tag-entity.model'
 import { IUser } from '../user.model'
 import { ICopilotModel, TCopilotModel } from './copilot-model.model'
 import { IKnowledgebase } from './knowledgebase.model'
-import { TAvatar } from '../types'
+import { I18nObject, TAvatar } from '../types'
 import { IXpertAgent } from './xpert-agent.model'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
@@ -150,6 +150,7 @@ export type TXpertAgentConfig = {
   timeout?: number;
 
   interruptBefore?: string[]
+  endNodes?: string[]
 
   stateVariables?: TStateVariable[]
 }
@@ -157,7 +158,7 @@ export type TXpertAgentConfig = {
 export type TStateVariable<ValueType = any, UpdateType = ValueType> = {
   name: string
   type: 'string' | 'number' | 'boolean' | 'object' | 'array[string]' | 'array[number]' | 'array[object]'
-  description: string
+  description: I18nObject | string
   default?: any
   reducer?: (a: ValueType, b: UpdateType) => ValueType
 }

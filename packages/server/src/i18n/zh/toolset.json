@@ -1,0 +1,21 @@
+{
+  "ChatBI": {
+    "GuessAsk": "猜你想问：",
+    "QuestionsAboutDataset": "关于数据集 “{cube}”, 您可能想问的问题：",
+    "AnalyzeDataset": "分析数据集 “{cube}”：",
+    "MoreDatasets": "- 更多数据集：",
+    "GiveWelcomeMessage": "针对数据集 “{cube}” 给出欢迎信息",
+    "Welcome": "Hi, 我是 ChatBI, 我可以根据你的问题分析数据、生成图表",
+    "Error": {
+      "NoModel": "未找到模型：'{model}' 和数据集：'{cube}' 的 ChatBI 模型配置",
+      "ChartError": "图形配置错误"
+    },
+    "NewCalculatedIndicator": "新建计算指标：",
+    "Name": "名称",
+    "Code": "编码",
+    "Formula": "公式",
+    "Unit": "单位",
+    "AnalysisConditions": "分析条件",
+    "QueryStatement": "查询语句"
+  }
+}

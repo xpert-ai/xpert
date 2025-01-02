@@ -18,20 +18,20 @@
       [matTooltip]="item.tool.description"
       matTooltipPosition="after"
     >
-      @for (execution of item.executions | keyvalue; track execution.key) {
-        @switch (execution.value.status) {
+      @for (execution of item.executions; track execution) {
+        @switch (execution.status) {
           @case (eXpertAgentExecutionEnum.RUNNING) {
             <ngm-spin class="shrink-0 scale-90 origin-center" small />
           }
           @case (eXpertAgentExecutionEnum.ERROR) {
             <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
-              [matTooltip]="execution.value.error"
+              [matTooltip]="execution.error"
               matTooltipPosition="above"
             ></div>
           }
           @case (eXpertAgentExecutionEnum.SUCCESS) {
             <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
-              [matTooltip]="execution.value.outputs?.output"
+              [matTooltip]="execution.outputs?.output"
               matTooltipPosition="above"
             >
             </div>
@@ -47,6 +47,11 @@
       <span class="flex-1 truncate" [title]="item.tool.description || item.tool.name">
         {{item.tool.name}}
       </span>
+      @if (isEnd(item.tool.name)) {
+        <i class="ri-stop-circle-line shrink-0 text-lg text-text-secondary"
+          [matTooltip]="'PAC.Xpert.EndTool' | translate: {Default: 'Terminal tool, the run of chat ends when tool completed'}"
+          matTooltipPosition="above"></i>
+      }
     </div>
   }
 </div>

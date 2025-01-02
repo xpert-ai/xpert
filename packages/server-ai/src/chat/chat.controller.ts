@@ -1,8 +1,9 @@
+import { TChatOptions, TChatRequest } from '@metad/contracts'
+import { RequestContext } from '@metad/server-core'
 import { Body, Controller, Header, Logger, Post, Sse } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { TChatOptions, TChatRequest } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+import { merge, Observable } from 'rxjs'
 import { ChatCommand } from './commands'
 
 @ApiTags('Chat')
@@ -19,8 +20,8 @@ export class ChatController {
 	@Header('Connection', 'keep-alive')
 	@Post('')
 	@Sse()
-	async chat(@Body() body: {request: TChatRequest; options: TChatOptions;}) {
-		return await this.commandBus.execute(
+	async chat(@Body() body: { request: TChatRequest; options: TChatOptions }) {
+		const observable = await this.commandBus.execute(
 			new ChatCommand(body.request, {
 				...(body.options ?? {}),
 				tenantId: RequestContext.currentTenantId(),
@@ -28,5 +29,15 @@ export class ChatController {
 				user: RequestContext.currentUser()
 			})
 		)
+
+		// const keepAliveObservable = new Observable<MessageEvent>((subscriber) => {
+		// 	const intervalId = setInterval(() => {
+		// 		subscriber.next({ data: ': keep-alive' } as MessageEvent)
+		// 	}, 5000) // 每 5 秒发送一次
+
+		// 	return () => clearInterval(intervalId)
+		// })
+
+		return observable // merge(observable, keepAliveObservable)
 	}
 }

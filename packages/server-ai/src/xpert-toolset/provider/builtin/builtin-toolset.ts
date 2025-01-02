@@ -1,4 +1,4 @@
-import { IXpertToolset, TToolCredentials, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { IXpertToolset, TranslateOptions, TToolCredentials, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { BaseToolset } from '../../toolset'
@@ -49,4 +49,15 @@ export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> {
 	}
 
 	abstract _validateCredentials(credentials: TToolCredentials): Promise<void>
+
+	/**
+	 * Translate language text
+	 * 
+	 * @param key 
+	 * @param options 
+	 * @returns 
+	 */
+	async translate(key: string, options?: TranslateOptions) {
+		return await this.toolsetService.translate(key, options)
+	}
 }

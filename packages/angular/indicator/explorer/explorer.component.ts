@@ -22,7 +22,6 @@ import {
   TimeRangeType
 } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { graphic } from 'echarts/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'
 import { map, startWith } from 'rxjs/operators'
@@ -213,16 +212,23 @@ export class NgmIndicatorExplorerComponent {
           color
         },
         areaStyle: {
-          color: new graphic.LinearGradient(0, 0, 0, 1, [
-            {
-              offset: 0,
-              color: color + '80'
-            },
-            {
-              offset: 1,
-              color: color + '00'
-            }
-          ])
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              {
+                offset: 0,
+                color: color + '80'
+              },
+              {
+                offset: 1,
+                color: color + '00'
+              }
+            ]
+          }
         },
         itemStyle: {
           color: '#ffab00',

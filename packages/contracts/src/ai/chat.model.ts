@@ -47,7 +47,7 @@ export interface IChatConversation extends IBasePerTenantAndOrganizationEntityMo
   
   options?: TChatConversationOptions
 
-  // messages?: CopilotBaseMessage[]
+  error?: string
   messages?: IChatMessage[] | null
   /**
    * The last operation when interrupted

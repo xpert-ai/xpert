@@ -217,6 +217,7 @@ export class SemanticModelService {
   | Signals
   |--------------------------------------------------------------------------
   */
+  readonly model = toSignal(this.model$)
   readonly modelType = toSignal(this.modelType$)
   readonly dialect = toSignal(this.model$.pipe(map((model) => model?.dataSource?.type?.type)))
   readonly isDirty = this.dirtyCheckResult.dirty

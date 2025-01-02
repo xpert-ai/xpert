@@ -1,6 +1,5 @@
 import { tool } from '@langchain/core/tools'
 import { firstValueFrom, Subject, Subscriber, takeUntil } from 'rxjs'
-import { ChatAnswer } from '../../../../../chatbi/tools'
 import { ChatAnswerSchema } from '../../../../../chatbi/types'
 import { ChatBILarkContext, TABLE_PAGE_SIZE } from '../types'
 import { ChartAnnotation, ChartBusinessService, ChartDimensionRoleType, EntityType, FilteringLogic, formatNumber, formatShortNumber, getChartSeries, getEntityHierarchy, getEntityProperty, getPropertyHierarchy, getPropertyMeasure, isBlank, ISlicer, isNil, isTimeRangesSlicer, PresentationVariant, PropertyHierarchy, PropertyMeasure, slicerAsString, timeRangesSlicerAsString, toAdvancedFilter, tryFixDimension, tryFixSlicer, tryFixVariableSlicer, workOutTimeRangeSlicers } from '@metad/ocap-core'
@@ -8,22 +7,37 @@ import { ChatLarkMessage } from '@metad/server-ai'
 import { createDualAxisChart, createSeriesChart } from '../charts/combination'
 import { createBaseChart } from '../charts/chart'
 import { getErrorMessage, race, shortuuid } from '@metad/server-common'
-import { ChatMessageTypeEnum } from '@metad/contracts'
-import { ChatBIToolsEnum, TChatBICredentials } from '../../chatbi/types'
+import { ChatMessageTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from '@metad/contracts'
+import { ChatAnswer, ChatBIToolsEnum, ChatBIVariableEnum, TChatBICredentials, tryFixChartType } from '../../chatbi/types'
+import { Logger } from '@nestjs/common'
+import { getContextVariable } from '@langchain/core/context'
 
 export function createChatAnswerTool(
 	context: ChatBILarkContext,
 	credentials: TChatBICredentials,
 	toolCallTimeout = 30 * 1000 /* 30s */
 ) {
-	const { dsCoreService, logger } = context
+	const logger = new Logger('ChatAnswerTool')
+	const { dsCoreService, chatbi } = context
 	const { dataPermission } = credentials
 
 	return tool(
-		async (answer: any, config): Promise<string> => {
+		async (params, config): Promise<string> => {
 			const { configurable } = config ?? {}
 			const { subscriber } = configurable ?? {}
+
+			const answer = params as ChatAnswer
 			logger.debug(`Execute copilot action 'answerQuestion':`, JSON.stringify(answer, null, 2))
+
+			const { language } = answer
+			const i18n = chatbi.translate('toolset.ChatBI', {lang: language})
+			const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
+			
+			// Update runtime indicators
+			const indicators = currentState[ChatBIVariableEnum.INDICATORS]
+			if (indicators) {
+				await chatbi.updateIndicators(dsCoreService, indicators)
+			}
 
 			try {
 				// 限制总体超时时间
@@ -48,7 +62,8 @@ export function createChatAnswerTool(
 							const { data, categoryMembers } = await drawChartMessage(
 								{ ...context, entityType: entityType || context.entityType },
 								answer as ChatAnswer,
-                                subscriber
+                                subscriber,
+								i18n
 							)
 
 							if (dataPermission) {
@@ -75,7 +90,7 @@ export function createChatAnswerTool(
 							return `The analysis data has been displayed to the user. The dimension members involved in this data analysis are:\n${members}\n Please give more analysis suggestions about other dimensions or filter by dimensioin members, 3 will be enough.`
 						}
 
-						return `图表答案已经回复给用户了，请不要重复回答了。`
+						return `The chart answer has already been provided to the user, please do not repeat the response.`
 					})()
 				)
 			} catch (err) {
@@ -95,14 +110,15 @@ export function createChatAnswerTool(
 async function drawChartMessage(
 	context: ChatBILarkContext,
 	answer: ChatAnswer,
-    subscriber: Subscriber<MessageEvent>
+    subscriber: Subscriber<MessageEvent>,
+	i18n: any
 ): Promise<any> {
-	const { entityType } = context
+	const { entityType, chatbi } = context
 	const chartService = new ChartBusinessService(context.dsCoreService)
 	const destroy$ = new Subject<void>()
 
 	const chartAnnotation = {
-		chartType: answer.chartType,
+		chartType: tryFixChartType(answer.visualType),
 		dimensions: answer.dimensions?.map((dimension) => tryFixDimension(dimension, context.entityType)),
 		measures: answer.measures?.map((measure) => tryFixDimension(measure, context.entityType))
 	}
@@ -134,12 +150,12 @@ async function drawChartMessage(
 		icon: ChatLarkMessage.logoIcon,
 		title: {
 			tag: 'plain_text',
-			content: '分析条件'
+			content: i18n?.['AnalysisConditions'] || 'Analysis conditions'
 		},
 		subtitle: {
-			// 卡片主标题。必填。
-			tag: 'plain_text', // 固定值 plain_text。
-			content: answer.preface // 主标题内容。
+			// Card main title. Required.
+			tag: 'plain_text',
+			content: answer.preface
 		},
 		text_tag_list: createSlicersTitle(slicers)
 	}
@@ -153,18 +169,13 @@ async function drawChartMessage(
 					answer.visualType === 'Table'
 						? createTableMessage(answer, chartAnnotation, context.entityType, result.data, header)
 						: chartAnnotation.dimensions?.length > 0
-							? createLineChart(answer, chartAnnotation, context.entityType, result.data, header)
+							? createLineChart(i18n, chartAnnotation, context.entityType, result.data, header)
 							: createKPI(chartAnnotation, context.entityType, result.data, header)
 
-				// console.log(JSON.stringify(card, null, 2))
-
 				if (result.stats?.statements?.[0]) {
-					const stats = createStats(result.stats.statements[0])
+					const stats = createStats(result.stats.statements[0], i18n)
 					card.elements.push(stats as any)
 				}
-				// console.log(data)
-				// larkContext.larkService.interactiveMessage(larkContext, card)
-				// conversation.done(card)
 
                 subscriber.next({
                     data: {
@@ -216,7 +227,6 @@ const colors = [
 ]
 
 export function createSlicersTitle(slicers: ISlicer[]) {
-	// console.log(JSON.stringify(slicers, null, 2))
 	return slicers.map((slicer) => {
 		return {
 			tag: 'text_tag',
@@ -231,7 +241,7 @@ export function createSlicersTitle(slicers: ISlicer[]) {
 
 
 function createLineChart(
-	answer: ChatAnswer,
+	i18n: unknown,
 	chartAnnotation: ChartAnnotation,
 	entityType: EntityType,
 	data: any[],
@@ -239,9 +249,6 @@ function createLineChart(
 ) {
 	const measure = chartAnnotation.measures[0]
 	const measureName = getPropertyMeasure(measure)
-	// const measureProperty = getEntityProperty(entityType, measure)
-	// Empty items data
-	// let _data = data.map(() => ({}))
 
 	const chartSpec = {} as any
 	let unit = ''
@@ -331,7 +338,7 @@ function createLineChart(
 		chart_spec = chartSpec
 		unit = shortUnit
 	} else {
-		throw Error(`图形配置错误`)
+		throw Error(i18n?.['Error']?.['ChartError'] || 'Chart config error')
 	}
 
 	const categoryMembers = {}
@@ -354,14 +361,13 @@ function createLineChart(
 					chart_spec: {
 						...chart_spec,
 						title: {
-							text: unit ? `单位：${unit}` : ''
+							text: unit ? `${i18n?.['Unit'] || `Unit`}: ${unit}` : ''
 						}
 					}
 				}
 			],
 			header
 		},
-		// data: _data,
 		categoryMembers
 	}
 }
@@ -512,7 +518,7 @@ function createTableMessage(
 	}
 }
 
-function createStats(statement: string) {
+function createStats(statement: string, i18n: any) {
 	return {
 		tag: 'collapsible_panel',
 		expanded: false,
@@ -520,7 +526,7 @@ function createStats(statement: string) {
 			template: 'blue',
 			title: {
 				tag: 'plain_text',
-				content: '查询语句'
+				content: i18n?.['QueryStatement'] || 'Query Statement'
 			},
 			vertical_align: 'center',
 			icon: {
@@ -537,9 +543,7 @@ function createStats(statement: string) {
 		elements: [
 			{
 				tag: 'markdown',
-				content: `\`\`\`SQL
-${statement}
-\`\`\``
+				content: `\`\`\`SQL\n${statement}\n\`\`\``
 			}
 		]
 	}

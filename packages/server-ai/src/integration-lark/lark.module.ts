@@ -1,8 +1,8 @@
-import { IntegrationModule, RoleModule, UserModule } from '@metad/server-core'
+import { IntegrationModule, REDIS_OPTIONS, RedisModule, RoleModule, UserModule } from '@metad/server-core'
 import { CacheModule, CacheStore, Module } from '@nestjs/common'
-import { ConfigModule, ConfigService } from '@nestjs/config'
 import { CqrsModule } from '@nestjs/cqrs'
 import { redisStore } from 'cache-manager-redis-yet'
+import { RedisOptions } from 'ioredis'
 import { RouterModule } from 'nest-router'
 import { LarkTokenStrategy } from './auth/lark-token.strategy'
 import { CommandHandlers } from './commands/handlers'
@@ -14,19 +14,15 @@ import { LarkService } from './lark.service'
 	imports: [
 		RouterModule.forRoutes([{ path: '/lark', module: IntegrationLarkModule }]),
 		CacheModule.registerAsync({
-			imports: [ConfigModule],
-			useFactory: async (configService: ConfigService) => {
-				const host = configService.get('REDIS_HOST') || 'localhost'
-				const port = configService.get('REDIS_PORT') || 6379
-				// const username = configService.get('REDIS.USERNAME') || ''
-				const password = configService.get('REDIS_PASSWORD') || ''
-
+			imports: [RedisModule],
+			useFactory: async (redisOptions: RedisOptions) => {
 				const store = await redisStore({
 					socket: {
-						host,
-						port,
+						host: redisOptions.host,
+						port: redisOptions.port
 					},
-					password
+					username: redisOptions.username,
+					password: redisOptions.password
 				})
 
 				return {
@@ -35,8 +31,9 @@ import { LarkService } from './lark.service'
 					// ttl: configService.get('CACHE_TTL'),
 				}
 			},
-			inject: [ConfigService]
+			inject: [REDIS_OPTIONS]
 		}),
+		RedisModule,
 		CqrsModule,
 		UserModule,
 		RoleModule,

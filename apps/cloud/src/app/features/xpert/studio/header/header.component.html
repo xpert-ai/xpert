@@ -1,24 +1,31 @@
-<div>
-  <div class="flex items-center gap-2 h-[18px] text-sm opacity-50">
-    @if (unsaved()) {
-      <span class="w-2 h-2 rounded-full bg-green-500 shadow-md shadow-green-400"
-        [matTooltip]="'PAC.Messages.UnsavedChanges' | translate: {Default: 'Unsaved changes'} ">
-      </span>
-    }
-    @if (draftSavedDate()) {
-      <span>{{ 'PAC.Xpert.AutoSave' | translate: {Default: 'Auto save'} }} {{draftSavedDate()}}</span>
-    }
-    @if (latestPublishDate()) {
-      <span class="flex items-center mx-1">·</span>{{ 'PAC.Xpert.Published' | translate: {Default: 'Published'} }} {{latestPublishDate()}}
-    }
-  </div>
+<div class="flex items-center gap-2 h-[2rem] text-sm truncate opacity-50">
+  @if (unsaved()) {
+    <span class="w-2 h-2 shrink-0 rounded-full bg-green-500 shadow-md shadow-green-400"
+      [matTooltip]="'PAC.Messages.UnsavedChanges' | translate: {Default: 'Unsaved changes'} ">
+    </span>
+  }
+  @if (draftSavedDate()) {
+    <span class="truncate">{{ 'PAC.Xpert.AutoSave' | translate: {Default: 'Auto save'} }} {{draftSavedDate()}}</span>
+  }
+  @if (latestPublishDate()) {
+    <span class="flex items-center mx-1">·</span>{{ 'PAC.Xpert.Published' | translate: {Default: 'Published'} }} {{latestPublishDate()}}
+  }
 </div>
 
 <div class="flex-1"></div>
 
-<div class="flex items-center gap-2">
+<div class="flex flex-wrap items-center gap-2">
 
-  <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium p-2"
+  <button type="button" class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium shrink-0 mr-2"
+    #mt="cdkMenuTriggerFor"
+    [cdkMenuTriggerFor]="agentMenu"
+    [cdkMenuTriggerData]="{trigger: mt}"
+  >
+    <i class="ri-chat-settings-line text-lg mr-1"></i>
+    {{ 'PAC.Xpert.AgentSettings' | translate: {Default: 'Agent Settings'} }}
+  </button>
+
+  <button type="button" class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium p-2"
     [ngClass]="sidePanel() === 'variables' ? 'text-primary-500' : ''"
     (click)="toggleVariables()"
     [ngmTooltip]="varInDevelopment"
@@ -35,7 +42,7 @@
     </svg>
   </button>
 
-  <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium p-2"
+  <button type="button" class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium p-2"
     [ngmTooltip]="envInDevelopment"
     [hideDelay]="100"
   >
@@ -90,8 +97,7 @@
     class="flex items-center p-0.5 rounded-lg border-[0.5px] shadow-sm bg-components-card-bg"
   >
     <div
-      class="flex items-center px-2 py-1 rounded-md text-sm font-medium cursor-pointer
-        text-text-tertiary hover:bg-primary-50 hover:text-primary-500"
+      class="studio-action-btn flex items-center px-2 py-1 rounded-md text-sm font-medium cursor-pointer"
       [ngClass]="sidePanel() === 'preview' ? 'bg-primary-50 text-primary-500' : ''"
       (click)="togglePreview()"
     >
@@ -111,9 +117,7 @@
     </div>
     <div class="mx-0.5 w-[1px] h-3.5 bg-divider-regular"></div>
     <div class="inline-block">
-      <div
-        class="group flex items-center justify-center px-2 py-1 rounded-md cursor-pointer
-          text-text-tertiary hover:bg-primary-50 hover:text-primary-500"
+      <div class="studio-action-btn group flex items-center justify-center px-2 py-1 rounded-md cursor-pointer"
         [cdkMenuTriggerFor]="conversationsMenu"
       >
         <svg
@@ -143,8 +147,7 @@
     <div class="inline-block" >
       <div class="relative ml-0.5 flex items-center justify-center w-7 h-7 rounded-md">
         <div
-          class="group flex items-center justify-center w-full h-full rounded-md cursor-pointer
-              text-text-tertiary hover:bg-primary-50 hover:text-primary-500"
+          class="studio-action-btn group flex items-center justify-center w-full h-full rounded-md cursor-pointer"
           [ngmTooltip]="checklistInDevelopment"
           [hideDelay]="100"
         >
@@ -165,7 +168,7 @@
     </div>
   </div>
 
-  <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium text-components-button-secondary-text"
+  <button type="button" class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium text-components-button-secondary-text"
     (click)="toggleFeatures()">
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="w-4 h-4 mr-1 text-components-button-secondary-text">
       <path d="M2.5 7C2.5 9.48528 4.51472 11.5 7 11.5C9.48528 11.5 11.5 9.48528 11.5 7C11.5 4.51472 9.48528 2.5 7 2.5C4.51472 2.5 2.5 4.51472 2.5 7ZM2.5 17C2.5 19.4853 4.51472 21.5 7 21.5C9.48528 21.5 11.5 19.4853 11.5 17C11.5 14.5147 9.48528 12.5 7 12.5C4.51472 12.5 2.5 14.5147 2.5 17ZM12.5 17C12.5 19.4853 14.5147 21.5 17 21.5C19.4853 21.5 21.5 19.4853 21.5 17C21.5 14.5147 19.4853 12.5 17 12.5C14.5147 12.5 12.5 14.5147 12.5 17ZM9.5 7C9.5 8.38071 8.38071 9.5 7 9.5C5.61929 9.5 4.5 8.38071 4.5 7C4.5 5.61929 5.61929 4.5 7 4.5C8.38071 4.5 9.5 5.61929 9.5 7ZM9.5 17C9.5 18.3807 8.38071 19.5 7 19.5C5.61929 19.5 4.5 18.3807 4.5 17C4.5 15.6193 5.61929 14.5 7 14.5C8.38071 14.5 9.5 15.6193 9.5 17ZM19.5 17C19.5 18.3807 18.3807 19.5 17 19.5C15.6193 19.5 14.5 18.3807 14.5 17C14.5 15.6193 15.6193 14.5 17 14.5C18.3807 14.5 19.5 15.6193 19.5 17ZM16 11V8H13V6H16V3H18V6H21V8H18V11H16Z"></path>
@@ -283,9 +286,9 @@
           {{ 'PAC.Xpert.Draft' | translate: {Default: 'Draft'} }}
         }
         @if (item.version === version()) {
-            <div class="ml-4 text-xs inline-flex items-center px-2 font-bold leading-sm uppercase text-primary-600 rounded-lg">
-              current
-            </div>
+          <div class="ml-4 text-xs inline-flex items-center px-2 font-bold leading-sm uppercase text-primary-600 rounded-lg">
+            current
+          </div>
         }
       </button>
     }
@@ -312,6 +315,94 @@
           {{ 'PAC.Xpert.NoChatHistory' | translate: {Default: 'No chat history'} }}
         </div>
       }
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #agentMenu let-trigger="trigger">
+  <div
+    @overlayAnimation1
+    class="w-[640px] flex flex-col h-full bg-white border-[0.5px] border-gray-200 rounded-xl shadow-xl"
+  >
+    <div class="shrink-0 flex justify-between items-center pl-6 pr-5 h-14 border-b border-b-gray-100">
+      <div class="flex flex-col text-base font-semibold text-gray-900">
+        <div class="leading-6">{{ 'PAC.Xpert.AgentSettings' | translate: {Default: 'Agent Settings'} }}</div>
+      </div>
+      <div class="flex items-center">
+        <div class="flex justify-center items-center w-6 h-6 cursor-pointer">
+          <button
+            type="button"
+            class="pressable cursor-pointer text-text-secondary hover:bg-hover-bg rounded-full p-1"
+            (click)="trigger.close()"
+          >
+            <i class="ri-close-circle-line w-6 h-6 block"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grow p-6 pt-5 border-b pb-[68px]">
+      <div class="mb-4 flex justify-between items-center h-12 px-3 rounded-lg bg-gray-50">
+        <div class="flex items-center">
+          <i class="ri-git-merge-line text-xl text-fuchsia-600"></i>
+          <div class="ml-3 mr-1 leading-6 text-sm font-semibold text-gray-800">
+            {{ 'PAC.Xpert.MaxConcurrency' | translate: {Default: 'Max Concurrency'} }}
+          </div>
+          <i class="ri-question-line opacity-30 hover:opacity-100"
+            [matTooltip]="'PAC.Xpert.MaxConcurrencyTip' | translate: {Default: 'Control the maximum number of parallel calls'}"
+            matTooltipPosition="above"
+          ></i>
+        </div>
+        <div class="flex items-center gap-6 w-[240px]">
+          <mat-slider class="relative slider grow" disableRipple discrete
+            min="1"
+            max="10"
+            step="1" >
+            <input matSliderThumb [value]="maxConcurrency()" (dragEnd)="updateAgentConfig({maxConcurrency: $event.value})">
+          </mat-slider>
+          <input matInput
+            min="1"
+            max="10"
+            step="1"
+            class="block w-12 h-7 leading-7 rounded-lg border-0 pl-1 px-1.5 bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600"
+            type="number"
+            [ngModel]="maxConcurrency()"
+            (ngModelChange)="updateAgentConfig({maxConcurrency: $event})"
+          />
+        </div>
+      </div>
+
+      <div class="mb-4 flex justify-between items-center h-12 px-3 rounded-lg bg-gray-50">
+        <div class="flex-1 flex justify-start items-center">
+          <i class="ri-infinity-line text-xl text-lime-600"></i>
+
+          <div class="ml-3 mr-1 leading-6 text-sm font-semibold text-gray-800">
+            {{ 'PAC.Xpert.RecursionLimit' | translate: {Default: 'Recursion Limit'} }}
+          </div>
+
+          <i class="ri-question-line opacity-30 hover:opacity-100"
+            [matTooltip]="'PAC.Xpert.RecursionLimitTip' | translate: {Default: 'Limit the number of times a Agent can recurse'}"
+            matTooltipPosition="above"
+          ></i>
+        </div>
+        <div class="flex items-center gap-6 w-[240px]">
+          <mat-slider class="relative slider grow" disableRipple discrete
+            min="1"
+            max="30"
+            step="1" >
+            <input matSliderThumb [value]="recursionLimit()" (dragEnd)="updateAgentConfig({recursionLimit: $event.value})">
+          </mat-slider>
+          <input matInput
+            min="1"
+            max="99"
+            step="1"
+            class="block w-12 h-7 leading-7 rounded-lg border-0 pl-1 px-1.5 bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600"
+            type="number"
+            [ngModel]="recursionLimit()"
+            (ngModelChange)="updateAgentConfig({recursionLimit: $event})"
+          />
+        </div>
+      </div>
     </div>
   </div>
 </ng-template>

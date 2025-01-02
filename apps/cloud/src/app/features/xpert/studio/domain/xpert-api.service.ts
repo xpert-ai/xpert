@@ -374,7 +374,7 @@ export class XpertStudioApiService {
     this.#reload.next(EReloadReason.JUST_RELOAD)
   }
 
-  public updateNode(key: string, value: Partial<TXpertTeamNode>): void {
+  private updateNode(key: string, value: Partial<TXpertTeamNode>): void {
     new UpdateNodeHandler(this.store).handle(new UpdateNodeRequest(key, value))
   }
   public removeNode(key: string) {
@@ -446,6 +446,11 @@ export class XpertStudioApiService {
         }
       }
     }, reason)
+  }
+
+  updateToolset(key: string, toolset: IXpertToolset) {
+    this.updateNode(key, {entity: toolset})
+    this.#reload.next(EReloadReason.TOOLSET_CREATED)
   }
 
   updateCanvas(event: FCanvasChangeEvent) {

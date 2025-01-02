@@ -355,7 +355,7 @@ ${createAgentStepsInstructions(
 	async ask(text: string, message?: ChatLarkMessage) {
 		// Running, please wait
 		if (this.status === 'running') {
-			const chatStack = {text, message: new ChatLarkMessage(this.chatContext, text, this)}
+			const chatStack = {text, message: new ChatLarkMessage(this.chatContext as any, text, this)}
 			await chatStack.message.update({status: 'waiting'})
 			this.chatStack.push(chatStack)
 			return
@@ -365,7 +365,7 @@ ${createAgentStepsInstructions(
 		this.status = 'running'
 		// Send thinking message to user
 		// this.thinkingMessageId = messageId ?? await createThinkingMessage(this.chatContext, text)
-		this.message = message ?? new ChatLarkMessage(this.chatContext, text, this)
+		this.message = message ?? new ChatLarkMessage(this.chatContext as any, text, this)
 		await this.message.update({status: 'thinking'})
 
 		// Init new thread

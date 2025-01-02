@@ -1,0 +1,40 @@
+@for (indicator of showIndicators(); track indicator.indicator; let last = $last) {
+  <ngm-indicator class="indicator min-h-[75px] border-t border-solid dark:border-neutral-800 border-transparent bg-components-card-bg p-4 cursor-pointer hover:bg-components-panel-bg first:rounded-t-xl"
+    [class.active]="indicatorExplorer() === indicator.indicator"
+    [class.last]="last"
+    [class.has-more]="hasMore()"
+    [dataSettings]="indicator"
+    [indicatorCode]="indicator.indicator"
+    [lookBack]="12" 
+    [timeGranularity]="eTimeGranularity.Month"
+    [tagType]="indicatorTagType()"
+    (click)="toggleIndicator(indicator.indicator)"
+    (toggleTag)="toggleIndicatorTagType()"
+  />
+  @if (indicatorExplorer() === indicator.indicator) {
+    <ngm-indicator-explorer class="ngm-indicator-explorer last:rounded-b-xl"
+      [dataSettings]="indicator"
+      [indicatorCode]="indicator.indicator" 
+      [lookBack]="12" 
+      periodName="6M"
+      [primaryTheme]="'dark'"
+    />
+  }
+}
+
+@if (indicators()?.length > pageSize()) {
+  <div class="flex justify-center gap-1">
+    @if (hasMore()) {
+      <button type="button" class="btn pressable justify-center" [matTooltip]="'PAC.Chat.ShowMoreIndicators' | translate: {Default: 'Show more indicators'}"
+        (click)="showMore()">
+        <i class="ri-arrow-down-wide-line"></i>
+      </button>
+    }
+    @if (showIndicators()?.length > pageSize()) {
+      <button type="button" class="btn pressable justify-center" [matTooltip]="'PAC.Chat.ShowLessIndicators' | translate: {Default: 'Show less indicators'}"
+        (click)="showLess()">
+        <i class="ri-arrow-up-wide-line"></i>
+      </button>
+    }
+  </div>
+}

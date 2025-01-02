@@ -23,16 +23,16 @@ export class ChatBIToolset extends AbstractChatBIToolset {
 		if (tools.find((_) => _.name === ChatBIToolsEnum.SHOW_INDICATORS)) {
 			this.tools.push(
 				createShowIndicatorsTool({
+					chatbi: this,
 					dsCoreService: this.dsCoreService,
-					entityType: null
 				}, this.toolsetCredentials) as unknown as Tool
 			)
 		}
 		if (tools.find((_) => _.name === ChatBIToolsEnum.ANSWER_QUESTION)) {
 			this.tools.push(
 				this.createChatAnswerTool({
+					chatbi: this,
 					dsCoreService: this.dsCoreService,
-					entityType: null
 				}, this.toolsetCredentials) as unknown as Tool
 			)
 		}

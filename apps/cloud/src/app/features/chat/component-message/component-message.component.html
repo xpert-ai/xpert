@@ -51,27 +51,6 @@
     }
   }
   @case ('Indicators') {
-    <div class="dark flex flex-col items-stretch">
-      @for (indicator of indicators(); track indicator.indicator) {
-        <ngm-indicator class="indicator min-h-[75px] border-t border-solid dark:border-neutral-800 border-transparent bg-components-card-bg p-4 cursor-pointer hover:bg-components-panel-bg first:rounded-t-xl last:rounded-b-xl"
-          [class.active]="indicatorExplorer() === indicator.indicator"
-          [dataSettings]="indicator" [indicatorCode]="indicator.indicator"
-          [lookBack]="12" 
-          [timeGranularity]="eTimeGranularity.Month"
-          [tagType]="indicatorTagType()"
-          (click)="toggleIndicator(indicator.indicator)"
-          (toggleTag)="toggleIndicatorTagType()"
-        />
-        @if (indicatorExplorer() === indicator.indicator) {
-          <ngm-indicator-explorer class="ngm-indicator-explorer last:rounded-b-xl"
-            [dataSettings]="indicator"
-            [indicatorCode]="indicator.indicator" 
-            [lookBack]="12" 
-            periodName="6M"
-            [primaryTheme]="'dark'"
-          />
-        }
-      }
-    </div>
+    <pac-chat-component-indicators [indicators]="indicators()" class="dark"/>
   }
 }

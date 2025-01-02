@@ -110,6 +110,7 @@ export type CreateReactAgentParams<
   tags?: string[]
   subAgents?: Record<string,  TSubAgent>
   tools?: (StructuredToolInterface | RunnableToolLike)[];
+  endNodes?: string[]
   summarize?: TSummarize
 };
 
@@ -140,7 +141,7 @@ export function createReactAgent(
     checkpointSaver,
     interruptBefore,
     interruptAfter,
-    // state,
+    endNodes,
     tags,
     store,
   } = props;
@@ -204,13 +205,13 @@ export function createReactAgent(
   if (subAgents) {
     Object.keys(subAgents).forEach((name) => {
       workflow.addNode(name, subAgents[name].node)
-        .addEdge(name, "agent")
+        .addEdge(name, endNodes?.includes(name) ? END :"agent")
     })
   }
   tools?.forEach((tool) => {
     const name = tool.name
     workflow.addNode(name, new ToolNode([tool]))
-      .addEdge(name, "agent")
+      .addEdge(name, endNodes?.includes(tool.name) ? END : "agent")
   })
 
   if (summarize?.enabled) {

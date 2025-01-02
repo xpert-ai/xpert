@@ -45,7 +45,7 @@ export class ChatBIHandler implements ICommandHandler<ChatBICommand> {
 
 	public async execute(command: ChatBICommand): Promise<any> {
 		const { input } = command
-		const { tenant, organizationId, user, larkService } = input
+		const { tenant, organizationId, userId, larkService } = input
 
 		const conversation = await this.getUserConversation(input)
 		if (!conversation) {
@@ -60,7 +60,7 @@ export class ChatBIHandler implements ICommandHandler<ChatBICommand> {
 			await this.commandBus.execute(new CopilotCheckLimitCommand({
 				tenantId: tenant.id,
 				organizationId,
-				userId: user.id,
+				userId,
 				copilot: conversation.copilot
 			}))
 		} catch(err) {
@@ -105,7 +105,7 @@ export class ChatBIHandler implements ICommandHandler<ChatBICommand> {
 	 * @returns ChatBIConversation
 	 */
 	async createChatConversation(input: ChatBILarkContext) {
-		const { tenant, organizationId, user } = input
+		const { tenant, organizationId } = input
 		const tenantId = tenant.id
 		const copilot = await this.copilotService.findOneByRole(AiProviderRole.Primary, tenantId, organizationId)
 		// const copilot = items.find((item) => item.role === AiProviderRole.Primary)

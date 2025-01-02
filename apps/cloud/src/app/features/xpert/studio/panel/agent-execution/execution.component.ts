@@ -232,7 +232,8 @@ export function processEvents(
     }
     case ChatMessageEventTypeEnum.ON_TOOL_START: {
       executionService.updateToolExecution(event.data.name, event.data.metadata?.langgraph_checkpoint_ns, {
-        status: XpertAgentExecutionStatusEnum.RUNNING
+        status: XpertAgentExecutionStatusEnum.RUNNING,
+        createdAt: new Date()
       })
       break
     }

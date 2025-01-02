@@ -146,11 +146,7 @@
     />
   }
 
-  <!-- @if (['thinking', 'answering'].includes(message().status) && answering()) {
-    <pac-chat-loading />
-  } -->
-
-  <div class="absolute left-0 bottom-2 flex justify-end gap-1">
+  <div class="absolute left-0 bottom-2 flex justify-end items-center gap-1">
     <div class="hidden group-hover:block p-0.5 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
       <div class="shrink-0 w-6 h-6 p-1 flex items-center justify-center rounded-md font-medium pressable
         bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
@@ -170,7 +166,7 @@
 
     @if (getFeedback(message().id); as feedback) {
       @if (feedback.rating === eFeedbackRatingEnum.LIKE) {
-        <div class="flex items-center justify-center m-1 w-6 h-6 rounded-md cursor-pointer bg-primary-100 text-primary-500 hover:bg-primary-100 hover:text-primary-600"
+        <div class="flex items-center justify-center mx-1 w-6 h-6 rounded-md cursor-pointer bg-primary-100 text-primary-500 hover:bg-primary-100 hover:text-primary-600"
           [matTooltip]="'PAC.KEY_WORDS.CancelLike' | translate: {Default: 'Cancel like'}"
           matTooltipPosition="above"
           (click)="cancelFeedback(message(), feedback.id)"
@@ -178,7 +174,7 @@
           <i class="ri-thumb-up-line"></i>
         </div>
       } @else if (feedback.rating === eFeedbackRatingEnum.DISLIKE) {
-        <div class="flex items-center justify-center m-1 w-6 h-6 rounded-md cursor-pointer bg-red-100 text-red-500 hover:bg-red-200 hover:text-red-600"
+        <div class="flex items-center justify-center mx-1 w-6 h-6 rounded-md cursor-pointer bg-red-100 text-red-500 hover:bg-red-200 hover:text-red-600"
           [matTooltip]="'PAC.KEY_WORDS.CancelDislike' | translate: {Default: 'Cancel dislike'}"
           matTooltipPosition="above"
           (click)="cancelFeedback(message(), feedback.id)"

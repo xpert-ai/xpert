@@ -1,6 +1,6 @@
 {
   "name": "@metad/copilot-angular",
-  "version": "3.0.8",
+  "version": "3.0.9",
   "peerDependencies": {
     "@angular/common": "^17.3.0",
     "@angular/core": "^17.3.0",

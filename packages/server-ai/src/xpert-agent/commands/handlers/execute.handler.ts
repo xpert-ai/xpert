@@ -33,7 +33,6 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 	readonly #logger = new Logger(XpertAgentExecuteHandler.name)
 
 	constructor(
-		// private readonly agentService: XpertAgentService,
 		private readonly copilotCheckpointSaver: CopilotCheckpointSaver,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
@@ -44,7 +43,8 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		const { execution, subscriber, toolCalls, reject, memories } = options
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
-		const user = RequestContext.currentUser()
+		const userId = RequestContext.currentUserId()
+
 		const abortController = new AbortController()
 
 		const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(new GetXpertAgentQuery(xpert.id, agentKey, command.options?.isDraft))
@@ -159,10 +159,11 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			subAgents,
 			tools: tools,
 			interruptBefore,
+			endNodes: team.agentConfig?.endNodes,
 			tags: [thread_id],
 			stateModifier: async (state: typeof AgentStateAnnotation.State) => {
 				const { summary, memories } = state
-				let systemTemplate = `{{language}}\nCurrent time: ${new Date().toISOString()}\n${parseXmlString(agent.prompt) ?? ''}`
+				let systemTemplate = `Current time: ${new Date().toISOString()}\n${parseXmlString(agent.prompt) ?? ''}`
 				if (memories?.length) {
 					systemTemplate += `\n\n<memory>\n${memoryPrompt(memories)}\n</memory>`
 				}
@@ -208,10 +209,11 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 						...config,
 						tenantId: tenantId,
 						organizationId: organizationId,
-						userId: user.id,
+						userId,
 						subscriber
 					},
-					recursionLimit: AgentRecursionLimit,
+					recursionLimit: team.agentConfig?.recursionLimit ?? AgentRecursionLimit,
+					maxConcurrency: team.agentConfig?.maxConcurrency,
 					signal: abortController.signal
 					// debug: true
 				},
@@ -455,9 +457,9 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 					execution.title = state.values.title
 				}
 
+				const messages = state.values.messages
+				const lastMessage = messages[messages.length - 1]
 				if (state.next?.[0]) {
-					const messages = state.values.messages
-					const lastMessage = messages[messages.length - 1]
 					if (isAIMessageChunk(lastMessage)) {
 						this.#logger.debug(`Interrupted chat [${agentLabel(agent)}].`)
 						const operation = await this.queryBus.execute<CompleteToolCallsQuery, TSensitiveOperation>(
@@ -472,6 +474,8 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 						} as MessageEvent)
 						throw new NodeInterrupt(`Confirm tool calls`)
 					}
+				} else if (isToolMessage(lastMessage)) {
+					return lastMessage.content
 				} else {
 					this.#logger.debug(`End chat [${agentLabel(agent)}].`)
 				}

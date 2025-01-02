@@ -1,3 +1,8 @@
 :host {
   background: linear-gradient(var(--ngm-color-main-container-background) 0%, rgba(249, 250, 251, 0) 100%);
+  @apply flex-wrap p-2 pl-4;
+}
+
+.studio-action-btn {
+  @apply text-text-secondary hover:bg-primary-50 hover:text-primary-500;
 }

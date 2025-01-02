@@ -5,6 +5,6 @@ export class LarkMessageCommand implements ICommand {
 	static readonly type = '[Lark] Message'
 
 	constructor(
-		public readonly input: ChatLarkContext<TLarkEvent>
+		public readonly options: ChatLarkContext<TLarkEvent>
 	) {}
 }

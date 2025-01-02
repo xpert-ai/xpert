@@ -105,12 +105,22 @@ export class XpertExecutionService {
     this.#messages.set([])
   }
 
+  /**
+   * Update execution of tool call
+   * 
+   * @param name Tool's name
+   * @param id Execution run id
+   * @param execution Execution entity
+   */
   updateToolExecution(name: string, id: string, execution: Partial<IXpertAgentExecution>) {
     this.toolExecutions.update((state) => ({
       ...state,
       [name]: {
         ...(state[name] ?? {}),
-        [id]: execution
+        [id]: {
+          ...(state[name]?.[id] ?? {}),
+          ...execution
+        }
       }
     }))
   }

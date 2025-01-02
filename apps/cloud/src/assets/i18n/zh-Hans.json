@@ -765,6 +765,7 @@
       "EditCubeVariable": "编辑立方体变量",
       "Variables": "参数变量",
       "OpenCubeDesigner": "打开多维数据集属性编辑器",
+      "IsDefault": "是默认",
 
       "QUERY": {
         "TITLE": "查询实验室",
@@ -1532,7 +1533,9 @@
       "Event_on_retriever_start": "知识检索开始",
       "Event_on_retriever_end": "知识检索结束",
       "OpenExplorer": "打开数据浏览器",
-      "OpenExplain": "打开解释器"
+      "OpenExplain": "打开解释器",
+      "ShowMoreIndicators": "展示更多指标",
+      "ShowLessIndicators": "展示少一些指标"
     },
     "ChatBI": {
       "Title": "ChatBI-数据分析与洞察",
@@ -2093,7 +2096,17 @@
       "PublishToLarketc": "发布到飞书等.",
       "ConfigurationRequired": "需要进行配置",
       "XpertPublished": "专家已发布成功",
-      "XpertPublishDeleted": "专家发布已删除"
+      "XpertPublishDeleted": "专家发布已删除",
+      "RefreshToolset": "刷新，同步工具集配置",
+      "End": "终点",
+      "EndTool": "终点工具，完成时对话运行结束",
+      "EndAgentTip": "终点智能体，完成时对话运行结束",
+      "Node": "节点",
+      "MaxConcurrencyTip": "控制最大并行调用数",
+      "RecursionLimitTip": "限制智能体可以递归的次数",
+      "RecursionLimit": "递归次数限制",
+      "MaxConcurrency": "最大并发请求",
+      "AgentSettings": "智能体设置"
     },
     "title": {
       "short": "Xpert AI"

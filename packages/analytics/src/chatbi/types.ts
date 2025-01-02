@@ -56,6 +56,8 @@ export type ChatBILarkMessage = {
 export type ChatBILarkContext = ChatLarkContext & {
 	userId?: string
 	text?: string
+
+	larkService?: LarkService
 }
 
 export type IChatBIConversation = {
@@ -93,14 +95,8 @@ export const GetCubesContextSchema = z.object({
 
 export const ChatAnswerSchema = z.object({
 	preface: z.string().describe('preface of the answer'),
-	visualType: z.enum(['Chart', 'Table', 'KPI']).optional().describe('Visual type of result'),
+	visualType: z.enum(['ColumnChart', 'LineChart', 'PieChart', 'BarChart', 'Table', 'KPI']).optional().describe('Visual type of result'),
 	dataSettings: DataSettingsSchema.optional().describe('The data settings of the widget'),
-	chartType: z
-		.object({
-			type: z.enum(['Column', 'Line', 'Pie', 'Bar']).describe('The type of chart')
-		})
-		.optional()
-		.describe('Chart configuration'),
 	dimensions: z.array(ChartDimensionSchema).optional().describe('The dimensions used by the chart'),
 	measures: z.array(ChartMeasureSchema).optional().describe('The measures used by the chart'),
 	orders: z.array(OrderBySchema).optional().describe('The orders used by the chart'),

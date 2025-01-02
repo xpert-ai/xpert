@@ -71,6 +71,7 @@ export interface IColumnDef {
    * Original data type in database
    */
   dataType: string
+  dataLength?: number
   nullable?: boolean
   position?: number
   /**

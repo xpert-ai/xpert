@@ -1,5 +1,5 @@
 import * as lark from '@larksuiteoapi/node-sdk'
-import { IIntegration, IUser } from '@metad/contracts'
+import { IIntegration, IUser, TranslateOptions } from '@metad/contracts'
 import { nonNullable } from '@metad/copilot'
 import { ConfigService, IEnvironment } from '@metad/server-config'
 import { UserService, RoleService, RequestContext } from '@metad/server-core'
@@ -9,8 +9,9 @@ import { Cache } from 'cache-manager'
 import { isEqual } from 'date-fns'
 import express from 'express'
 import { filter, Observable, Observer, Subject, Subscriber } from 'rxjs'
-import { LarkBotMenuCommand, LarkMessageCommand } from './commands'
-import { ChatLarkContext, isEndAction, LarkMessage } from './types'
+import { I18nService } from 'nestjs-i18n';
+import { LarkBotMenuCommand } from './commands'
+import { ChatLarkContext, LarkMessage } from './types'
 import { LarkConversationService } from './conversation.service'
 
 @Injectable()
@@ -39,6 +40,7 @@ export class LarkService {
 		private readonly userService: UserService,
 		private readonly roleService: RoleService,
 		private readonly configService: ConfigService,
+		private readonly i18n: I18nService,
 		private readonly commandBus: CommandBus,
 		@Inject(CACHE_MANAGER)
 		private readonly cacheManager: Cache
@@ -154,31 +156,28 @@ export class LarkService {
 				// 	return true
 				// }
 
-				this.logger.debug('im.message.receive_v1:')
-				this.logger.debug(data)
+				this.logger.verbose('im.message.receive_v1:')
+				this.logger.verbose(data)
 
 				try {
 				    const user = RequestContext.currentUser()
-					
-					// await this.getUser(client, tenant.id, data.sender.sender_id.union_id)
-					await this.commandBus.execute<LarkMessageCommand, Observable<any>>(
-						new LarkMessageCommand({
-							tenant,
-							organizationId,
-							integrationId: integration.id,
-							integration,
-							user,
-							message: data as any,
-							chatId,
-							chatType: data.message.chat_type,
-							larkService: this
-						})
-					)
+					const userQueue = await this.conversation.getUserQueue(user.id)
+					// Adding task to user's queue
+    				await userQueue.add({
+						tenant,
+						organizationId,
+						integrationId: integration.id,
+						// integration,
+						userId: user.id,
+						message: data as any,
+						chatId,
+						chatType: data.message.chat_type,
+					})
 				} catch(err) {
 					console.error(err)
 				}
 
-				this.logger.debug('Return for message:' + data.event_id)
+				this.logger.verbose('Return for message:' + data.event_id)
 				return 'ok'
 			},
 			'application.bot.menu_v6': async (data) => {
@@ -204,9 +203,9 @@ export class LarkService {
 				  }
 				 * 
 				 */
-				const { event_key } = data
-				this.logger.debug('application.bot.menu_v6:')
-				this.logger.debug(data)
+				// const { event_key } = data
+				this.logger.verbose('application.bot.menu_v6:')
+				this.logger.verbose(data)
 				// const organizationId = environment.larkConfig.organizationId
 				// const tenant = await this.tenantService.findOne({ id: environment.larkConfig.tenantId })
 				const tenant = integration.tenant
@@ -249,34 +248,32 @@ export class LarkService {
 					[Symbol(event-type)]: 'card.action.trigger'
 				  }
 				 */
-				this.logger.debug('card.action.trigger:')
-				this.logger.debug(data)
+				this.logger.verbose('card.action.trigger:')
+				this.logger.verbose(data)
 				const messageId = data.context.open_message_id
-				if (messageId) {
-					if(isEndAction(data.action?.value) && xpertId) {
-						const user = RequestContext.currentUser()
-						const tenant = integration.tenant
-						const organizationId = integration.organizationId
-						await this.conversation.endConversation(
-							{
-								tenant,
-								organizationId,
-								integrationId: integration.id,
-								integration,
-								larkService: this,
-								user
-							},
-							user.id, xpertId)
-						return true
-					} else if (this.actions.get(messageId)) {
-						this.actions.get(messageId).next(data)
-						return true
-					} else {
-						this.errorMessage(
-							{ integrationId: integration.id, chatId: data.context.open_chat_id },
-							new Error(`响应动作不存在或已超时！`)
-						)
-					}
+				if (messageId && xpertId) {
+					const user = RequestContext.currentUser()
+					const tenant = integration.tenant
+					const organizationId = integration.organizationId
+					await this.conversation.onAction(
+						data.action.value,
+						{
+							tenant,
+							organizationId,
+							integrationId: integration.id,
+							// integration,
+							userId: user.id,
+							chatId: data.context.open_chat_id
+						},
+						user.id,
+						xpertId
+					)
+					return true
+				} else {
+					this.errorMessage(
+						{ integrationId: integration.id, chatId: data.context.open_chat_id },
+						new Error(`出现内部错误！`)
+					)
 				}
 				return false
 			}
@@ -579,5 +576,9 @@ export class LarkService {
 				})
 				.catch((err) => subscriber.error(err))
 		})
+	}
+
+	async translate(key: string, options: TranslateOptions) {
+		return await this.i18n.t(key, options)
 	}
 }

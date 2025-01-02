@@ -13,7 +13,6 @@ import {
   input,
   model,
   numberAttribute,
-  signal,
   TemplateRef,
   ViewChild,
   ViewContainerRef
@@ -23,6 +22,7 @@ import { MatDialog } from '@angular/material/dialog'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmHighlightVarDirective } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
+import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { CopilotPromptGeneratorComponent } from '../prompt-generator/generator.component'
 import { TStateVariable } from '../../../@core'
 
@@ -32,7 +32,7 @@ import { TStateVariable } from '../../../@core'
   styleUrls: ['./editor.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, MatTooltipModule, NgmHighlightVarDirective]
+  imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, MatTooltipModule, NgmI18nPipe, NgmHighlightVarDirective]
 })
 export class CopilotPromptEditorComponent {
   readonly #dialog = inject(MatDialog)
@@ -82,9 +82,6 @@ export class CopilotPromptEditorComponent {
   }
 
   onPromptChange(editor: HTMLDivElement) {
-    // console.log(editor.children)
-    // console.log(editor.innerHTML)
-    // console.log(formatInnerHTML(editor.innerHTML))
     this.prompt.set(formatInnerHTML(editor.innerHTML))
   }
 

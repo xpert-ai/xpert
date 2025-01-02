@@ -1,17 +1,14 @@
 import { Serializable } from '@langchain/core/load/serializable'
-import { I18nObject, IChatMessage, TSensitiveOperation } from '@metad/contracts'
+import { I18nObject, IChatMessage, TranslateOptions, TSensitiveOperation } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
-import { LarkConversationService } from '../conversation.service'
 import {
 	ChatLarkContext,
-	isConfirmAction,
-	isEndAction,
-	isRejectAction,
 	LARK_CONFIRM,
 	LARK_END_CONVERSATION,
 	LARK_REJECT,
 	TLarkConversationStatus
 } from '../types'
+import { LarkService } from '../lark.service'
 
 export type ChatLarkMessageStatus = IChatMessage['status'] | 'continuing' | 'waiting' | TLarkConversationStatus
 
@@ -22,6 +19,7 @@ export interface ChatLarkMessageFields {
 	messageId: string;
 	// Status of lark message
 	status: ChatLarkMessageStatus
+	language: string
 	header: any
 	elements: any[]
 }
@@ -36,15 +34,17 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 			id: this.id,
 			messageId: this.messageId,
 			header: this.header,
-			elements: this.elements
+			elements: this.elements,
+			language: this.language,
 		}
 	}
 
 	static readonly headerTemplate = 'indigo'
-	static readonly logoImgKey = 'img_v3_02e1_a8d74bc6-3c8a-4f66-b44f-c4cc837e285g'
+	static readonly logoImgKey = 'img_v3_02i5_2fd70b28-1f68-4618-9e17-c9140c49bbfg'
 	static readonly logoIcon = {
 		tag: 'custom_icon',
-		img_key: ChatLarkMessage.logoImgKey
+		img_key: ChatLarkMessage.logoImgKey,
+		corner_radius: "30%"
 	}
 	static readonly helpUrl = 'https://mtda.cloud/docs/chatbi/feishu/bot/'
 
@@ -55,6 +55,7 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 	public status: ChatLarkMessageStatus = 'thinking'
 	// ID of IChatMessage
 	public messageId: string
+	public language: string
 
 	get larkService() {
 		return this.chatContext.larkService
@@ -64,32 +65,31 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 	public elements = []
 
 	constructor(
-		private chatContext: ChatLarkContext,
+		private chatContext: ChatLarkContext & {larkService: LarkService},
 		private options: {
-			userId?: string
-			xpertId?: string
 			text?: string
 		} & Partial<ChatLarkMessageFields>,
-		private conversation: LarkConversationService
 	) {
 		super(options)
 		this.id = options.id
 		this.messageId = options.messageId
 		this.status = options.status
+		this.language = options.language
 		this.header = options.header
 		this.elements = options.elements ?? []
 	}
 
-	getTitle() {
+	async getTitle() {
+		const status = await this.translate('integration.Lark.Status_' + this.status, {lang: this.language,})
 		switch (this.status) {
 			case 'thinking':
-				return '正在思考...'
+				return status
 			case 'continuing':
-				return '继续思考...'
+				return status
 			case 'waiting':
-				return '还在思考，请稍后...'
+				return status
 			case 'interrupted':
-				return '请确认'
+				return status
 			default:
 				return ''
 		}
@@ -99,30 +99,28 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 		return this.options.text
 	}
 
-	getHeader() {
+	async getHeader() {
 		return {
 			title: {
 				tag: 'plain_text',
-				content: this.getTitle()
+				content: await this.getTitle()
 			},
 			subtitle: {
-				tag: 'plain_text', // 固定值 plain_text。
+				tag: 'plain_text',
 				content: this.getSubtitle()
 			},
 			template: ChatLarkMessage.headerTemplate,
 			ud_icon: {
-				token: 'myai_colorful', // 图标的 token
+				token: 'myai_colorful',
 				style: {
-					color: 'red' // 图标颜色
+					color: 'red'
 				}
 			}
 		}
 	}
 
-	getCard() {
+	async getCard() {
 		const elements = [...this.elements]
-
-		console.log(`2: ${this.status}`)
 
 		if (elements[elements.length - 1]?.tag !== 'hr') {
 			elements.push({ tag: 'hr' })
@@ -130,10 +128,10 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 		if (this.status === 'end') {
 			elements.push({
 				tag: 'markdown',
-				content: `对话已结束。如果您有其他问题，欢迎随时再来咨询。`
+				content: await this.translate('integration.Lark.ConversationEnded', {lang: this.language,})
 			})
 		} else {
-			elements.push(this.getEndAction())
+			elements.push(await this.getEndAction())
 		}
 
 		return {
@@ -141,18 +139,17 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 		}
 	}
 
-	getEndAction() {
-		console.log(`3: ${this.status}`)
+	async getEndAction() {
 		return {
 			tag: 'action',
 			layout: 'default',
 			actions: [
-				...(this.status === 'interrupted' ? this.getInterruptedActions() : []),
+				...(this.status === 'interrupted' ? (await this.getInterruptedActions()) : []),
 				{
 					tag: 'button',
 					text: {
 						tag: 'plain_text',
-						content: '结束对话'
+						content: await this.translate('integration.Lark.EndConversation', {lang: this.language,})
 					},
 					type: 'text',
 					complex_interaction: true,
@@ -164,7 +161,7 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 					tag: 'button',
 					text: {
 						tag: 'plain_text',
-						content: '帮助文档'
+						content: await this.translate('integration.Lark.HelpDoc', {lang: this.language,})
 					},
 					type: 'text',
 					complex_interaction: true,
@@ -178,13 +175,13 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 		}
 	}
 
-	getInterruptedActions() {
+	async getInterruptedActions() {
 		return [
 			{
 				tag: 'button',
 				text: {
 					tag: 'plain_text',
-					content: '确认'
+					content: await this.translate('integration.Lark.Confirm', {lang: this.language,})
 				},
 				type: 'primary',
 				width: 'default',
@@ -195,7 +192,7 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 				tag: 'button',
 				text: {
 					tag: 'plain_text',
-					content: '拒绝'
+					content: await this.translate('integration.Lark.Reject', {lang: this.language,})
 				},
 				type: 'danger',
 				width: 'default',
@@ -209,8 +206,12 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 		status?: ChatLarkMessageStatus
 		elements?: any[]
 		header?: any
+		language?: string
 		action?: (action) => void
 	}) {
+		if (options?.language) {
+			this.language = options.language
+		}
 		if (options?.status) {
 			this.status = options.status
 		}
@@ -221,19 +222,16 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 			this.header = options.header
 		}
 
-		console.log(`1: ${this.status}`)
-		const elements = this.getCard()
-		console.log(`4: ${this.status}`)
-
+		const elements = await this.getCard()
 		if (this.id) {
 			this.larkService
 				.patchAction(this.chatContext, this.id, {
 					...elements,
-					header: this.header ?? this.getHeader()
+					header: this.header ?? (await this.getHeader())
 				})
 				.subscribe({
 					next: (message) => {
-						this.onAction(message.action, options?.action)
+						// this.onAction(message.action, options?.action)
 					},
 					error: (err) => {
 						console.error(err)
@@ -244,11 +242,11 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 				this.chatContext,
 				{
 					...elements,
-					header: this.header ?? this.getHeader()
+					header: this.header ?? (await this.getHeader())
 				},
 				{
 					next: async (message) => {
-						this.onAction(message.action, options?.action)
+						// this.onAction(message.action, options?.action)
 					},
 					error: (err) => {
 						console.error(err)
@@ -260,20 +258,6 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 		}
 	}
 
-	async onAction(action: { value: string }, callback?: (action) => void) {
-		if (isEndAction(action?.value)) {
-			await this.conversation.endConversation(this.chatContext, this.options.userId, this.options.xpertId)
-		} else if (isConfirmAction(action?.value)) {
-			await this.conversation.confirm(this.options.xpertId, this)
-		} else if (isRejectAction(action?.value)) {
-			await this.conversation.reject(this.options.xpertId, this)
-		} else if (typeof action?.value === 'string') {
-			await this.conversation.ask(this.options.xpertId, action.value, this)
-		} else {
-			callback?.(action)
-		}
-	}
-
 	async confirm(operation: TSensitiveOperation) {
 		await this.update({
 			status: 'interrupted',
@@ -282,6 +266,10 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 				console.log(action)
 			}
 		})
+	}
+
+	async translate(key: string, options: TranslateOptions) {
+		return await this.larkService.translate(key, options)
 	}
 }
 

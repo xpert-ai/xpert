@@ -25,7 +25,9 @@ import {
   TXpertParameter,
   XpertAgentExecutionService,
   XpertService,
-  agentUniqueName
+  agentUniqueName,
+  injectToastr,
+  getErrorMessage
 } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { XpertStudioApiService } from '../../domain'
@@ -33,7 +35,7 @@ import { XpertStudioPanelAgentExecutionComponent } from '../agent-execution/exec
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertStudioPanelToolsetSectionComponent } from './toolset-section/toolset.component'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { map, of } from 'rxjs'
+import { catchError, map, of } from 'rxjs'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelKnowledgeSectionComponent } from './knowledge-section/knowledge.component'
@@ -84,6 +86,7 @@ export class XpertStudioPanelAgentComponent {
   readonly executionService = inject(XpertAgentExecutionService)
   readonly panelComponent = inject(XpertStudioPanelComponent)
   readonly xpertStudioComponent = inject(XpertStudioComponent)
+  readonly #toastr = injectToastr()
   readonly helpWebsite = injectHelpWebsite()
 
   readonly key = input<string>()
@@ -103,6 +106,7 @@ export class XpertStudioPanelAgentComponent {
   readonly agentUniqueName = computed(() => agentUniqueName(this.xpertAgent()))
   readonly agentConfig = computed(() => this.xpert()?.agentConfig)
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
+  readonly isEnd = computed(() => this.agentConfig()?.endNodes?.includes(this.agentUniqueName()))
   readonly isPrimaryAgent = computed(() => !!this.xpertAgent()?.xpertId)
 
   readonly parameters = computed(() => this.xpertAgent()?.parameters)
@@ -140,7 +144,12 @@ export class XpertStudioPanelAgentComponent {
   readonly variables = derivedAsync(() => {
     const xpertId = this.xpertId()
     const agentKey = this.key()
-    return xpertId && agentKey ? this.xpertService.getVariables(xpertId, agentKey) : of(null)
+    return xpertId && agentKey ? this.xpertService.getVariables(xpertId, agentKey).pipe(
+      catchError((error) => {
+        this.#toastr.error(getErrorMessage(error))
+        return of([])
+      })
+    ) : of(null)
   })
 
   constructor() {
@@ -205,17 +214,19 @@ export class XpertStudioPanelAgentComponent {
     this.apiService.updateXpertAgent(this.key(), { parameters: event })
   }
 
-  getSensitive(name: string) {
-    return this.agentConfig()?.interruptBefore?.includes(name)
-  }
-
   updateSensitive(value: boolean) {
     const name = this.agentUniqueName()
     const interruptBefore = value
       ? uniq([...(this.agentConfig()?.interruptBefore ?? []), name])
       : (this.agentConfig()?.interruptBefore?.filter((_) => _ !== name) ?? [])
-    this.xpertStudioComponent.updateXpertAgentConfig({
-      interruptBefore
-    })
+    this.xpertStudioComponent.updateXpertAgentConfig({ interruptBefore })
+  }
+
+  updateEnd(value: boolean) {
+    const name = this.agentUniqueName()
+    const endNodes = value
+      ? uniq([...(this.agentConfig()?.endNodes ?? []), name])
+      : (this.agentConfig()?.endNodes?.filter((_) => _ !== name) ?? [])
+    this.xpertStudioComponent.updateXpertAgentConfig({ endNodes })
   }
 }

@@ -8,6 +8,7 @@ import {
 	IIndicator,
 	JSONValue,
 	OrderTypeEnum,
+	TranslateOptions,
 	TStateVariable,
 	TToolCredentials
 } from '@metad/contracts'
@@ -42,10 +43,9 @@ import { In } from 'typeorm'
 import { z } from 'zod'
 import { ChatAnswerSchema, GetBIContextQuery, TBIContext } from '../../../../chatbi'
 import { markdownCubes } from '../../../../chatbi/graph'
-import { ChatAnswer } from '../../../../chatbi/tools'
 import { DimensionMemberRetrieverToolQuery } from '../../../../model-member/queries'
 import { getSemanticModelKey, NgmDSCoreService, registerSemanticModel } from '../../../../model/ocap'
-import { CHART_TYPES, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, fixMeasure, TChatBICredentials, tryFixChartType } from './types'
+import { CHART_TYPES, ChatAnswer, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, fixMeasure, IndicatorSchema, TChatBICredentials, tryFixChartType } from './types'
 
 function cubesReducer(a, b) {
 	return [...a.filter((_) => !b?.some((item) => item.cubeName === _.cubeName)), ...(b ?? [])]
@@ -156,6 +156,12 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			console.log(credentials)
 		} catch (e) {
 			throw new ToolProviderCredentialValidationError(getErrorMessage(e))
+		}
+	}
+
+	getTranslator() {
+		return async (key: string, options?: TranslateOptions) => {
+			return await this.translate(key, options)
 		}
 	}
 
@@ -359,11 +365,13 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		const { dataPermission } = credentials
 
 		return tool(
-			async (answer: any, config): Promise<string> => {
+			async (params, config: LangGraphRunnableConfig): Promise<string> => {
 				const { configurable } = config ?? {}
 				const { subscriber } = configurable ?? {}
 				const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
-				this.logger.debug(`Execute copilot action '${ChatBIToolsEnum.ANSWER_QUESTION}':`, JSON.stringify(answer, null, 2))
+				this.logger.debug(`Execute copilot action '${ChatBIToolsEnum.ANSWER_QUESTION}':`, JSON.stringify(params, null, 2))
+
+				const answer = params as ChatAnswer
 
 				// Update runtime indicators
 				const indicators = currentState[ChatBIVariableEnum.INDICATORS]
@@ -436,7 +444,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		const destroy$ = new Subject<void>()
 
 		const chartAnnotation = {
-			chartType: tryFixChartType(answer.chartType),
+			chartType: tryFixChartType(answer.visualType),
 			dimensions: answer.dimensions?.map((dimension) => tryFixDimension(dimension, entityType)),
 			measures: answer.measures?.map((measure) => fixMeasure(measure, entityType))
 		}
@@ -571,14 +579,16 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 	 */
 	createIndicatorTool(dsCoreService: NgmDSCoreService) {
 		return tool(
-			async (indicator: Indicator & {query: string}, config: LangGraphRunnableConfig) => {
+			async (indicator: Indicator & { language: 'zh' | 'en'; query: string}, config: LangGraphRunnableConfig) => {
 				this.logger.debug(`[ChatBI] [create_indicator] new indicator: ${JSON.stringify(indicator)}`)
 
 				// const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 				// const currentIndicators = currentState[ChatBIVariableEnum.INDICATORS] ?? []
 
+				const { subscriber } = config?.configurable ?? {}
+
 				// Checking the validity of formula
-				const { query } = indicator
+				const { language, query } = indicator
 				if (query) {
 					const statement = `WITH MEMBER [Measures].[${indicator.code}] AS ${indicator.formula}\n` + query
 					const dataSource = await firstValueFrom(dsCoreService.getDataSource(this.getModelKey(indicator.modelId)))
@@ -591,6 +601,8 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				const indicators = [{...indicator, visible: true}]
 
 				await this.updateIndicators(dsCoreService, indicators)
+				// Created event
+				await this.onCreatedIndicator(subscriber, indicator, language)
 
 				// Populated when a tool is called with a tool call from a model as input
 				const toolCallId = config.metadata.tool_call_id
@@ -611,22 +623,19 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			{
 				name: ChatBIToolsEnum.CREATE_INDICATOR,
 				description: 'Create a indicator for new measure',
-				schema: z.object({
-					modelId: z.string().describe('The id of model'),
-					entity: z.string().describe('The cube name'),
-					code: z.string().describe('The unique code of indicator'),
-					name: z.string().describe(`The caption of indicator in user's language`),
-					formula: z.string().describe('The MDX formula for calculated measure'),
-					unit: z.string().optional().describe(`The unit of measure, '%' or orthers`),
-					description: z
-						.string()
-						.describe(
-							'The detail description of calculated measure, business logic and cube info for example: the time dimensions, measures or dimension members involved'
-						),
-					query: z.string().describe(`A query statement to test this indicator can correctly query the results, you need include indicator code as measure name in statement`)
-				})
+				schema: IndicatorSchema
 			}
 		)
+	}
+
+	/**
+	 * On created indicator event.
+	 * 
+	 * @param subscriber 
+	 * @param indicator 
+	 */
+	async onCreatedIndicator(subscriber: Subscriber<MessageEvent>, indicator: IIndicator, language: string) {
+		//
 	}
 }
 

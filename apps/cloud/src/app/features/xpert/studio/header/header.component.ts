@@ -10,31 +10,35 @@ import {
   ChatConversationService,
   getErrorMessage,
   IChatConversation,
-  IntegrationEnum,
   OrderTypeEnum,
   ToastrService,
   XpertService
 } from 'apps/cloud/src/app/@core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { formatRelative } from 'date-fns'
-import { sortBy } from 'lodash-es'
 import { distinctUntilChanged, filter, map, shareReplay, switchMap } from 'rxjs'
-import { getDateLocale } from '../../../../@core'
+import { getDateLocale, TXpertAgentConfig } from '../../../../@core'
 import { XpertStudioApiService } from '../domain'
 import { XpertExecutionService } from '../services/execution.service'
 import { XpertStudioComponent } from '../studio.component'
 import { XpertStudioFeaturesComponent } from '../features/features.component'
 import { Dialog } from '@angular/cdk/dialog'
 import { XpertPublishComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { FormsModule } from '@angular/forms'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { MatInputModule } from '@angular/material/input'
+import { MatSliderModule } from '@angular/material/slider'
 
 @Component({
   selector: 'xpert-studio-header',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     CdkMenuModule,
-    MaterialModule,
+    MatTooltipModule,
+    MatInputModule,
+    MatSliderModule,
     TranslateModule,
     NgmTooltipDirective,
     InDevelopmentComponent
@@ -64,7 +68,7 @@ export class XpertStudioHeaderComponent {
   readonly latest = computed(() => this.team()?.latest)
   readonly versions = computed(() => {
     const versions = this.apiService.versions()?.filter(nonBlank)
-    return sortBy(versions, 'version').reverse()
+    return versions.sort((a, b) => Number(b.version) - Number(a.version))
   })
   readonly draft = computed(() => this.apiService.draft())
   readonly unsaved = this.apiService.unsaved
@@ -83,6 +87,10 @@ export class XpertStudioHeaderComponent {
     }
     return null
   })
+
+  readonly agentConfig = computed(() => this.xpert()?.agentConfig)
+  readonly maxConcurrency = computed(() => this.agentConfig()?.maxConcurrency)
+  readonly recursionLimit = computed(() => this.agentConfig()?.recursionLimit)
 
   readonly publishing = signal(false)
 
@@ -139,6 +147,10 @@ export class XpertStudioHeaderComponent {
     this.#dialog.open(XpertStudioFeaturesComponent, {
       viewContainerRef: this.#viewContainerRef
     })
+  }
+
+  updateAgentConfig(config: Partial<TXpertAgentConfig>) {
+    this.apiService.updateXpertAgentConfig(config)
   }
 
   openConversation(item: IChatConversation) {

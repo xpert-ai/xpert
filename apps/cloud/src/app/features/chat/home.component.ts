@@ -10,7 +10,8 @@ import {
   ElementRef,
   inject,
   signal,
-  viewChild
+  viewChild,
+  model
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
@@ -101,6 +102,7 @@ export class ChatHomeComponent {
   readonly lang = this.appService.lang
   readonly messages = this.chatService.messages
   readonly conversationId = this.chatService.conversationId
+  readonly sidenavOpened = model(!this.isMobile())
   readonly groups = computed(() => {
     const conversations = this.chatService.conversations()
     // 定义分组时间段
