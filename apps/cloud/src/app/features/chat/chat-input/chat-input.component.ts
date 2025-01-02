@@ -89,9 +89,12 @@ export class ChatInputComponent {
 
     if (event.key === 'Enter') {
       event.preventDefault()
-      setTimeout(() => {
-        this.ask(this.prompt().trim())
-      })
+      const text = this.prompt()?.trim()
+      if (text) {
+        setTimeout(() => {
+          this.ask(text)
+        })
+      }
       return
     }
   }

@@ -36,7 +36,7 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 	async findAvailables(filter?: PaginationParams<Copilot>) {
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
-		const copilots = await this.findAllCopilots()
+		const copilots = await this.findAllAvailablesCopilots()
 		// Filter the tenant enabled copilots for organization user
 		// copilots = copilots.filter((copilot) => (organizationId && !copilot.organizationId) ? copilot.enabled : true)
 		for await (const copilot of copilots) {
@@ -58,7 +58,7 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 	 *
 	 */
 	async findOneByRole(role: AiProviderRole, tenantId: string, organizationId: string): Promise<Copilot> {
-		const items = await this.findAllCopilots(tenantId, organizationId, { role })
+		const items = await this.findAllAvailablesCopilots(tenantId, organizationId, { role })
 		return items.length ? items[0] : null
 	}
 
@@ -69,7 +69,7 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 	 * @param organizationId
 	 * @returns All copilots
 	 */
-	async findAllCopilots(tenantId?: string, organizationId?: string, where?: FindOptionsWhere<Copilot>) {
+	async findAllAvailablesCopilots(tenantId?: string, organizationId?: string, where?: FindOptionsWhere<Copilot>) {
 		tenantId = tenantId || RequestContext.currentTenantId()
 		organizationId = organizationId || RequestContext.getOrganizationId()
 		const items = await this.repository.find({
