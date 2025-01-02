@@ -6,7 +6,7 @@ import { ChatBILarkContext } from '../types'
 import { ChatBIToolsEnum } from '../../chatbi/types'
 
 export function createShowIndicatorsTool(context: ChatBILarkContext) {
-	const { dsCoreService, logger } = context
+	const { dsCoreService } = context
 
 	return tool(
 		async (
