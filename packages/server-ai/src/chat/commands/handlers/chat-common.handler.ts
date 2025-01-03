@@ -261,6 +261,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 										id: conversation.id,
 										status: convStatus,
 										title: conversation.title || execution.title,
+										error
 									})
 								)
 	
@@ -272,7 +273,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 											id: _conversation.id,
 											title: _conversation.title,
 											status: _conversation.status,
-											operation: _conversation.operation
+											operation: _conversation.operation,
+											error: _conversation.error
 										}
 									}
 								} as MessageEvent)

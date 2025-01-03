@@ -2,7 +2,7 @@
   @if (workspaces().length === 0) {
     <div class="flex-1 flex justify-center items-center">
       <button type="button"
-        class="btn btn-primary btn-large px-4 py-2 text-lg"
+        class="btn btn-primary px-4 py-2 text-lg rounded-xl"
         (click)="newWorkspace()"
       >
         {{ 'PAC.Xpert.CreateWorkspaceStart' | translate: { Default: 'Create a workspace to get started!' } }}

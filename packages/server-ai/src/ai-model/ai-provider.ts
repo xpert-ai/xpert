@@ -10,6 +10,7 @@ import { AIModel } from './ai-model'
 import { AIProviderRegistry } from './registry'
 import { TextEmbeddingModelManager } from './types/text-embedding-model'
 import { ModelProvidersFolderPath, TChatModelOptions } from './types/types'
+import { AiModelNotFoundException } from '../core/errors'
 
 @Injectable()
 export abstract class ModelProvider {
@@ -71,7 +72,7 @@ export abstract class ModelProvider {
 		const modelInstance = this.modelManagers.get(modelType)
 
 		if (!modelInstance) {
-			throw new Error(`Missing AIModel instance for model type ${modelType}`)
+			throw new AiModelNotFoundException(`Missing AIModel instance for model type ${modelType}`)
 		}
 
 		return modelInstance as T

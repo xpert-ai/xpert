@@ -20,6 +20,7 @@
                 routerLink="/xpert/w"
               >
                 {{ 'PAC.Chat.GotoNewXpert' | translate: {Default: 'Go to New Digital Expert'} }}
+                <i class="ri-corner-up-right-fill ml-1 text-lg"></i>
               </button>
             </div>
           }
@@ -118,12 +119,12 @@
 <ng-template #convMenu let-id="id" let-title="title">
   <div cdkMenu class="cdk-menu__medium">
     <button cdkMenuItem (click)="editingConversation.set(id);editingTitle.set(title)">
-      <i class="ri-edit-line"></i>
+      <i class="ri-edit-line mr-1"></i>
       {{ 'PAC.KEY_WORDS.Rename' | translate: {Default: 'Rename'} }}
     </button>
 
     <button cdkMenuItem class="danger" (click)="deleteConv(id)">
-      <i class="ri-delete-bin-4-line"></i>
+      <i class="ri-delete-bin-4-line mr-1"></i>
       {{ 'PAC.KEY_WORDS.Delete' | translate: {Default: 'Delete'} }}
     </button>
   </div>

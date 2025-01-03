@@ -294,6 +294,14 @@ export class ChatService {
                 case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
                 case ChatMessageEventTypeEnum.ON_CONVERSATION_END:
                   this.updateConversation(event.data)
+                  if (event.data.status === 'error') {
+                    this.updateLatestMessage((lastM) => {
+                      return {
+                        ...lastM,
+                        status: XpertAgentExecutionStatusEnum.ERROR
+                      }
+                    })
+                  }
                   break
                 case ChatMessageEventTypeEnum.ON_MESSAGE_START:
                   if (options.content) {
