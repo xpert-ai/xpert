@@ -1,11 +1,16 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core'
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { Router } from '@angular/router'
-import { IOrganization, routeAnimations } from '../../../@core'
+import { FeatureService, getErrorMessage, injectToastr, IOrganization, routeAnimations } from '../../../@core'
 import { TranslationBaseComponent } from '../../../@shared/language'
+import { SharedModule } from '../../../@shared/shared.module'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 
 
 @Component({
+  standalone: true,
+  imports: [SharedModule, NgmSpinComponent],
+  providers: [FeatureService],
   selector: 'pac-features',
   templateUrl: './features.component.html',
   styleUrls: ['./features.component.scss'],
@@ -14,9 +19,13 @@ import { TranslationBaseComponent } from '../../../@shared/language'
 })
 export class PACFeaturesComponent extends TranslationBaseComponent implements OnInit {
   private router = inject(Router)
+  readonly #featureService = inject(FeatureService)
+  readonly #toastr = injectToastr()
 
   tabs: any[]
   organization: IOrganization
+
+  readonly loading = signal(false)
 
   private langSub = this.translateService.onLangChange.pipe(takeUntilDestroyed()).subscribe(() => {
     this.loadTabs()
@@ -45,5 +54,19 @@ export class PACFeaturesComponent extends TranslationBaseComponent implements On
 
   navigate(url) {
     this.router.navigate([url])
+  }
+
+  upgrade() {
+    this.loading.set(true)
+    this.#featureService.upgrade().subscribe({
+      next: () => {
+        this.loading.set(false)
+        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', {Default: 'Updated successfully'})
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
   }
 }

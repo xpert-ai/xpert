@@ -189,6 +189,7 @@
     },
     "ORGANIZATIONS_PAGE": {
       "PERMISSIONS": {
+        "PROFILE_EDIT": "Edit Profile",
         "ADMIN_DASHBOARD_VIEW": "View Admin Dashboard",
         "DATA_SOURCE_VIEW": "View DataSources",
         "DATA_SOURCE_EDIT": "Edit DataSources",
@@ -301,7 +302,18 @@
         "TENANT_SETTINGS": "Tenant Settings",
         "ACCESS_DELETE_ACCOUNT": "Access Delete Account",
         "ACCESS_DELETE_ALL_DATA": "Access Delete All Data",
-        "ORG_DEMO_EDIT": "Edit Organization Demo"
+        "ORG_DEMO_EDIT": "Edit Organization Demo",
+        "CERTIFICATION_EDIT": "Maintain Certifications",
+        "CHATBI_VIEW": "Use ChatBI",
+        "CHATBI_EDIT": "Manage ChatBI Configuration",
+        "COPILOT_VIEW": "Use Copilots",
+        "COPILOT_EDIT": "Maintain Copilot Configuration",
+        "KNOWLEDGEBASE_EDIT": "Maintain Knowledge Base",
+        "CHAT_VIEW": "Use Chat AI",
+        "INTEGRATION_EDIT": "Maintain Integrations",
+        "DATA_FACTORY_VIEW": "Use Data Factory",
+        "DATA_FACTORY_EDIT": "Manage Data Factory Configuration",
+        "XPERT_EDIT": "Manage Difital Experts"
       }
     }
   },
@@ -457,13 +469,13 @@
         "Name": "Chat AI",
         "Description": "A conversational interface for interacting with intelligent assistants, digital experts, and toolsets."
       },
-      "FEATURE_COPILOT_XPERT": {
-        "Name": "Digital Expert",
-        "Description": "A virtual assistant that leverages artificial intelligence to provide personalized, real-time, and precise consulting, analysis, and decision support."
-      },
       "FEATURE_COPILOT_CHATBI": {
         "Name": "Chat BI",
         "Description": "A conversational interface that enables data querying, analysis, and visualization through natural language interaction."
+      },
+      "FEATURE_XPERT": {
+        "Name": "Digital Expert",
+        "Description": "A virtual assistant that leverages artificial intelligence to provide personalized, real-time, and precise consulting, analysis, and decision support."
       }
     }
   }

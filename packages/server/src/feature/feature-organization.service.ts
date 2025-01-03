@@ -43,10 +43,10 @@ export class FeatureOrganizationService extends TenantAwareCrudService<FeatureOr
 		});
 
 		if (!total) {
-			const featureOrganization: IFeatureOrganization  = new FeatureOrganization({
+			const featureOrganization: IFeatureOrganization  = new FeatureOrganization().instanceOf({
 				...entity,
 				tenantId
-			});
+			})
 			await this.featureOrganizationRepository.save(featureOrganization);
 		} else {
 			featureOrganizations.map((item: IFeatureOrganization) => {

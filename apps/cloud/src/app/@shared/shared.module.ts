@@ -8,6 +8,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { MaterialModule } from './material.module'
 import { CreatedByPipe, UserPipe } from './pipes/index'
 import { TagEditorComponent, TagViewerComponent } from './tag'
+import { CdkMenuModule } from '@angular/cdk/menu'
 
 const Modules = [TranslateModule, FormsModule, ReactiveFormsModule, AbilityModule, OcapCoreModule]
 
@@ -18,6 +19,7 @@ const Modules = [TranslateModule, FormsModule, ReactiveFormsModule, AbilityModul
     RouterModule,
     MaterialModule,
     ...Modules,
+    CdkMenuModule,
     CreatedByPipe,
     UserPipe,
     TagEditorComponent,
@@ -28,6 +30,7 @@ const Modules = [TranslateModule, FormsModule, ReactiveFormsModule, AbilityModul
     RouterModule,
     MaterialModule,
     ...Modules,
+    CdkMenuModule,
     UserPipe,
     CreatedByPipe,
     TagEditorComponent,

@@ -127,7 +127,7 @@ const routes: Routes = [
       },
       {
         path: 'features',
-        canActivate: [NgxPermissionsGuard],
+        loadChildren: () => import('./features/routing').then((m) => m.default),
         data: {
           title: 'settings/features',
           permissions: {
@@ -135,7 +135,7 @@ const routes: Routes = [
             redirectTo
           }
         },
-        loadChildren: () => import('./features/features.module').then((m) => m.FeaturesModule)
+        canActivate: [NgxPermissionsGuard],
       },
       {
         path: 'tenant',

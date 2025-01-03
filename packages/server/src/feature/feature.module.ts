@@ -9,17 +9,18 @@ import { FeatureService } from './feature.service';
 import { FeatureOrganizationService } from './feature-organization.service';
 import { TenantModule } from '../tenant/tenant.module';
 import { CommandHandlers } from './commands/handlers';
+import { FeatureController } from './feature.controller';
 
 @Module({
 	imports: [
 		RouterModule.forRoutes([
-			{ path: '/feature/toggle', module: FeatureModule }
+			{ path: '/feature', module: FeatureModule },
 		]),
 		TypeOrmModule.forFeature([Feature, FeatureOrganization]),
 		forwardRef(() => TenantModule),
 		CqrsModule
 	],
-	controllers: [FeatureToggleController],
+	controllers: [FeatureController, FeatureToggleController],
 	providers: [FeatureService, FeatureOrganizationService, ...CommandHandlers],
 	exports: [FeatureService, FeatureOrganizationService]
 })

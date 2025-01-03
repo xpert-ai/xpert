@@ -31,7 +31,7 @@ import { subDays } from 'date-fns/subDays'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { combineLatest, of } from 'rxjs'
-import { switchMap, tap } from 'rxjs/operators'
+import { map, switchMap, tap } from 'rxjs/operators'
 import {
   ChatConversationService,
   getErrorMessage,
@@ -40,6 +40,7 @@ import {
   ISemanticModel,
   IXpert,
   OrderTypeEnum,
+  AIPermissionsEnum,
   registerModel,
   routeAnimations
 } from '../../@core'
@@ -52,6 +53,8 @@ import { ChatConversationComponent } from './conversation/conversation.component
 import { ChatMoreComponent } from './icons'
 import { ChatSidenavMenuComponent } from './sidenav-menu/sidenav-menu.component'
 import { ChatToolbarComponent } from './toolbar/toolbar.component'
+import { NgxPermissionsService } from 'ngx-permissions'
+import { toSignal } from '@angular/core/rxjs-interop'
 
 @Component({
   standalone: true,
@@ -93,9 +96,10 @@ export class ChatHomeComponent {
   readonly conversationService = inject(ChatConversationService)
   readonly semanticModelService = inject(SemanticModelServerService)
   readonly appService = inject(AppService)
-  readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
   readonly logger = inject(NGXLogger)
+  readonly permissionsService = inject(NgxPermissionsService)
+  readonly #router = inject(Router)
   readonly #toastr = injectToastr()
 
   readonly contentContainer = viewChild('contentContainer', { read: ElementRef })
@@ -146,6 +150,10 @@ export class ChatHomeComponent {
 
   readonly xperts = this.chatService.xperts
   readonly role = this.chatService.xpert
+
+  readonly hasEditXpertPermission = toSignal(this.permissionsService.permissions$.pipe(
+    map((permissions) => !!permissions[AIPermissionsEnum.XPERT_EDIT])
+  ))
 
   readonly editingConversation = signal<string>(null)
   readonly editingTitle = signal<string>(null)
@@ -341,4 +349,5 @@ export class ChatHomeComponent {
       })
     }, 100)
   }
+
 }

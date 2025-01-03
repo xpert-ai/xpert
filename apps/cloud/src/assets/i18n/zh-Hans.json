@@ -274,7 +274,8 @@
       "Like": "喜欢",
       "Dislike": "不喜欢",
       "CancelLike": "取消喜欢",
-      "CancelDislike": "取不喜欢"
+      "CancelDislike": "取不喜欢",
+      "Upgrade": "更新"
     },
     "MENU": {
       "Certification": "认证",
@@ -1535,7 +1536,8 @@
       "OpenExplorer": "打开数据浏览器",
       "OpenExplain": "打开解释器",
       "ShowMoreIndicators": "展示更多指标",
-      "ShowLessIndicators": "展示少一些指标"
+      "ShowLessIndicators": "展示少一些指标",
+      "GotoNewXpert": "去新建数字专家"
     },
     "ChatBI": {
       "Title": "ChatBI-数据分析与洞察",
@@ -1774,7 +1776,11 @@
         },
         "FEATURE_DATA_FACTORY": {
           "Name": "数据工厂",
-          "Description": "负责自动化、标准化和高效地处理、转换和存储数据，以支持数据分析、应用和决策。"
+          "Description": "负责自动化、标准化和高效地处理、转换和存储数据，以支持数据分析、应用和决策"
+        },
+        "FEATURE_XPERT": {
+          "Name": "数字专家",
+          "Description": "数字专家模块"
         }
       }
     },
@@ -2269,7 +2275,8 @@
         "CHAT_VIEW": "使用智能对话",
         "INTEGRATION_EDIT": "维护集成连接",
         "DATA_FACTORY_VIEW": "使用数据工厂",
-        "DATA_FACTORY_EDIT": "管理数据工厂配置"
+        "DATA_FACTORY_EDIT": "管理数据工厂配置",
+        "XPERT_EDIT": "管理数字专家"
       },
       "Organization": {
         "AllOrganizations": "所有组织",

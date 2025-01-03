@@ -417,8 +417,8 @@ export class FeaturesComponent implements OnInit {
         pathMatch: 'prefix',
         data: {
           translationKey: 'Xpert',
-          featureKey: AiFeatureEnum.FEATURE_COPILOT_CHAT,
-          permissionKeys: [AIPermissionsEnum.CHAT_VIEW]
+          featureKey: AiFeatureEnum.FEATURE_XPERT,
+          permissionKeys: [AIPermissionsEnum.XPERT_EDIT]
         }
       },
 
