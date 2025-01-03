@@ -1,13 +1,13 @@
-import { AiModelTypeEnum, IAiProviderEntity, ICopilotProvider, ICopilotProviderModel, ProviderModel, RolesEnum } from '@metad/contracts'
+import { AiModelTypeEnum, AIPermissionsEnum, IAiProviderEntity, ICopilotProvider, ICopilotProviderModel, ProviderModel, RolesEnum } from '@metad/contracts'
 import {
 	CrudController,
 	PaginationParams,
 	ParseJsonPipe,
+	PermissionGuard,
 	RequestContext,
-	RoleGuard,
-	Roles,
+	Permissions,
 	TransformInterceptor,
-	UUIDValidationPipe
+	UUIDValidationPipe,
 } from '@metad/server-core'
 import { Body, Controller, ForbiddenException, Get, Param, Post, Put, Delete, Query, UseInterceptors, UseGuards,Inject } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -45,15 +45,15 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
 		super(service)
 	}
 
-	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN)
+	@UseGuards(PermissionGuard)
+	@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 	@Post()
 	async create(@Body() entity: Partial<ICopilotProvider>) {
 		return await this.commandBus.execute(new CopilotProviderUpsertCommand(entity))
 	}
 
-	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN)
+	@UseGuards(PermissionGuard)
+	@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 	@Put(':id')
 	async update(@Param('id', UUIDValidationPipe) id: string, @Body() entity: Partial<ICopilotProvider>) {
 		return await this.commandBus.execute(new CopilotProviderUpsertCommand({...entity, id}))

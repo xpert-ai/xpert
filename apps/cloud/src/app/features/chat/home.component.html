@@ -23,7 +23,7 @@
           @for (item of group.values; track item.id) {
             <mat-list-item class="pac-chat__conversation-item group cursor-pointer rounded-md hover:bg-black/5 dark:hover:bg-white/10"
               [ngClass]="{active: item.id === conversationId()}"
-              [class.menu-active]="mt.menuOpen"
+              [class.menu-active]="mt.isOpen()"
               (click)="selectConversation(item)"
             >
             @if (editingConversation()  === item.id) {
@@ -34,13 +34,13 @@
 
               <div class="absolute bottom-0 top-0 items-center gap-1.5 pr-2 right-0 flex">
                 <span class="" data-state="closed">
-                  <button class="menu-trigger flex items-center justify-center text-token-text-secondary transition opacity-0
-                    group-hover:opacity-50 group-hover:hover:opacity-100"
-                    type="button" id="radix-:r5pv:" aria-haspopup="menu" aria-expanded="false" data-state="closed"
-                    [matMenuTriggerFor]="convMenu"
-                    [matMenuTriggerData]="item"
-                    #mt="matMenuTrigger"
-                    [class.active]="mt.menuOpen"
+                  <button class="menu-trigger flex items-center justify-center p-1 rounded-full text-token-text-secondary transition opacity-0
+                    group-hover:opacity-50 group-hover:hover:opacity-100 hover:bg-hover-bg"
+                    type="button"
+                    [cdkMenuTriggerFor]="convMenu"
+                    [cdkMenuTriggerData]="item"
+                    #mt="cdkMenuTriggerFor"
+                    [class.active]="mt.isOpen()"
                     [matTooltip]="'PAC.KEY_WORDS.Options' | translate: {Default: 'Options'} "
                     matTooltipPosition="above"
                     (click)="$event.stopPropagation();">
@@ -105,16 +105,16 @@
   </mat-sidenav-content>
 </mat-sidenav-container>
 
-<mat-menu #convMenu="matMenu" class="ngm-density__compact">
-  <ng-template matMenuContent let-id="id" let-title="title">
-    <button mat-menu-item (click)="editingConversation.set(id);editingTitle.set(title)">
-      <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+<ng-template #convMenu let-id="id" let-title="title">
+  <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem (click)="editingConversation.set(id);editingTitle.set(title)">
+      <i class="ri-edit-line"></i>
       {{ 'PAC.KEY_WORDS.Rename' | translate: {Default: 'Rename'} }}
     </button>
 
-    <button mat-menu-item ngmAppearance="danger" (click)="deleteConv(id)">
-      <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
+    <button cdkMenuItem class="danger" (click)="deleteConv(id)">
+      <i class="ri-delete-bin-4-line"></i>
       {{ 'PAC.KEY_WORDS.Delete' | translate: {Default: 'Delete'} }}
     </button>
-  </ng-template>
-</mat-menu>
+  </div>
+</ng-template>

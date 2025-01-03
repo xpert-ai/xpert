@@ -140,3 +140,13 @@ export const parseToBoolean = (value: any): boolean => {
         return false; // Return false on parsing errors
     }
 };
+
+/**
+ * Remove duplicates from an array
+ *
+ * @param data
+ * @returns
+ */
+export function removeDuplicates(data: string[]) {
+	return [...new Set(data)];
+}

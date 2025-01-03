@@ -4,12 +4,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { RouterModule } from 'nest-router';
 import { UserOrganizationModule } from './../user-organization/user-organization.module';
 import { TenantModule } from '../tenant/tenant.module';
-import { UserModule } from './../user/user.module';
 import { RoleModule } from './../role/role.module';
 import { CommandHandlers } from './commands/handlers';
 import { OrganizationController } from './organization.controller';
 import { Organization } from './organization.entity';
 import { OrganizationService } from './organization.service';
+import { RolePermissionModule } from '../role-permission';
+import { UserModule } from '../user';
 
 @Module({
 	imports: [
@@ -19,8 +20,9 @@ import { OrganizationService } from './organization.service';
 		TypeOrmModule.forFeature([ Organization ]),
 		forwardRef(() => TenantModule),
 		forwardRef(() => UserOrganizationModule),
-		forwardRef(() => UserModule),
+		forwardRef(() => RolePermissionModule),
 		forwardRef(() => RoleModule),
+		forwardRef(() => UserModule),
 		CqrsModule,
 	],
 	controllers: [OrganizationController],

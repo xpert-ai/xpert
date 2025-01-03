@@ -3,7 +3,7 @@ import { AgentRecursionLimit, appendMessageContent, isNil, NgmLanguageEnum } fro
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { catchError, concat, EMPTY, filter, from, map, Observable, of, switchMap, tap } from 'rxjs'
-import { ChatConversationUpsertCommand, GetChatConversationQuery } from '../../../chat-conversation'
+import { ChatConversationUpsertCommand } from '../../../chat-conversation'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { ChatCommonCommand } from '../chat-common.command'
 import { CopilotGetChatQuery } from '../../../copilot'
@@ -34,10 +34,11 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 	public async execute(command: ChatCommonCommand): Promise<Observable<any>> {
 		const { tenantId, organizationId, user, knowledgebases } = command.options
-		const { conversationId, id, input, language } = command.request
+		const { conversationId, input, retry } = command.request
 		const userId = RequestContext.currentUserId()
 
 		let conversation: IChatConversation = null
+		let userMessage: IChatMessage = null
 		let aiMessage: IChatMessage = null
 		if (isNil(conversationId)) {
 			conversation = await this.commandBus.execute(
@@ -45,19 +46,28 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					tenantId,
 					organizationId,
 					createdById: user.id,
+					status: 'busy',
 					options: {
 						knowledgebases
 					}
 				})
 			)
-
-			
 		} else {
-			conversation = await this.queryBus.execute(
-				new GetChatConversationQuery({
-					id: conversationId
+			conversation = await this.commandBus.execute(
+				new ChatConversationUpsertCommand({
+					id: conversationId,
+					status: 'busy',
+					error: null
 				}, ['messages'])
 			)
+			const lastMessage = conversation.messages[conversation.messages.length - 1]
+			if (retry) {
+				if (lastMessage?.role === 'ai') {
+					aiMessage = lastMessage
+				} else if (lastMessage?.role === 'human') {
+					userMessage = lastMessage
+				}
+			}
 		}
 
 		// New execution (Run) in thread
@@ -69,13 +79,15 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			})
 		)
 
-		const userMessage = await this.commandBus.execute(
-			new ChatMessageUpsertCommand({
-				role: 'human',
-				content: input.input,
-				conversationId: conversation.id
-			})
-		)
+		if (!userMessage) {
+			userMessage = await this.commandBus.execute(
+				new ChatMessageUpsertCommand({
+					role: 'human',
+					content: input.input,
+					conversationId: conversation.id
+				})
+			)
+		}
 
 		const tools = []
 		// Knowledgebases
@@ -100,7 +112,12 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					data: {
 						type: ChatMessageTypeEnum.EVENT,
 						event: ChatMessageEventTypeEnum.ON_CONVERSATION_START,
-						data: conversation
+						data: {
+							id: conversation.id,
+							status: 'busy',
+							createdAt: conversation.createdAt,
+							updatedAt: conversation.updatedAt
+						}
 					}
 				} as MessageEvent)
 
@@ -143,9 +160,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 					const contentStream = from(
 						graph.streamEvents(
-							input?.input ? {
-								...input,
-								messages: [new HumanMessage(input.input)]
+							(input?.input || retry) ? {
+								...(input ?? {}),
+								messages: [new HumanMessage(userMessage.content as string)]
 							} : null,
 							{
 								version: 'v2',
@@ -308,18 +325,21 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			tap({
 				next: (event) => {
 					if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
-						appendMessageContent(aiMessage as any, event.data.data)
+						if (aiMessage) {
+							appendMessageContent(aiMessage as any, event.data.data)
+						}
 					}
 				},
 				finalize: async () => {
-					try {
-						// Update ai message
-						aiMessage.status = status
-						await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
-					} catch(err) {
-						this.#logger.error(err)
+					if (aiMessage) {
+						try {
+							// Update ai message
+							aiMessage.status = status
+							await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
+						} catch(err) {
+							this.#logger.error(err)
+						}
 					}
-					
 				}
 			})
 		)

@@ -14,6 +14,7 @@ import {
   model
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { convertNewSemanticModelResult, NgmSemanticModel, SemanticModelServerService } from '@metad/cloud/state'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -60,6 +61,7 @@ import { ChatToolbarComponent } from './toolbar/toolbar.component'
     ReactiveFormsModule,
     RouterModule,
     DragDropModule,
+    CdkMenuModule,
     CdkListboxModule,
     A11yModule,
     RouterModule,

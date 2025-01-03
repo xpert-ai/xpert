@@ -40,7 +40,7 @@ export class AuthRegisterTrialHandler implements ICommandHandler<AuthTrialComman
 			this.logger.debug(`Found email '${record.email}' is '${success}'`)
 		}
 
-		// 已通过邮箱验证的账号
+		// Account verified by email
 		if (success && record.emailVerified) {
 
 			this.logger.debug(`Found email '${record.email}' is email exists`)
@@ -102,20 +102,6 @@ export class AuthRegisterTrialHandler implements ICommandHandler<AuthTrialComman
 		this.logger.debug(`Signup user '${userId}'`)
 
 		const user = this.publisher.mergeObjectContext(await this.userService.findOne(userId, { relations: ['role'] }))
-		// Init empoyee for trial user
-		// const employee = await this.commandBus.execute(
-		// 	new EmployeeCreateCommand(
-		// 		{
-		// 			tenant,
-		// 			organization,
-		// 			user,
-		// 			password: input.password || 'XXXX'
-		// 		},
-		// 		languageCode
-		// 	)
-		// )
-
-		// this.logger.debug(`Created employee '${employee.id}' for trial user '${userId}'`)
 
 		user.createTrial(organization.id)
 		user.commit()

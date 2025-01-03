@@ -19,6 +19,19 @@
   }
 }
 
+@if (conversationStatus() === eExecutionStatusEnum.ERROR) {
+  <div class="w-full flex items-start gap-2 p-4 rounded-3xl text-orange-500 bg-orange-50 border border-solid border-orange-200">
+    <div >
+      <i class="ri-information-2-line text-xl"></i>
+    </div>
+    <div class="flex-1 py-1">{{error()}}</div>
+
+    <button type="button" class="btn btn-small text-text-primary" (click)="onRetry()">
+      Retry
+    </button>
+  </div>
+}
+
 @if (conversationStatus() === eExecutionStatusEnum.INTERRUPTED && operation()) {
   <xpert-tool-call-confirm class="w-full max-w-xl mx-auto bg-components-card-bg"
     [operation]="operation()"

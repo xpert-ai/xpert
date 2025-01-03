@@ -340,6 +340,7 @@ export type TChatRequest = {
   toolCalls?: ToolCall[]
   confirm?: boolean
   reject?: boolean
+  retry?: boolean
 }
 
 export type TChatOptions = {

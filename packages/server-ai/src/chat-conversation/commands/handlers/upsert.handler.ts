@@ -15,8 +15,9 @@ export class ChatConversationUpsertHandler implements ICommandHandler<ChatConver
 
 		if (entity.id) {
 			await this.service.update(entity.id, entity as ChatConversation)
-			return await this.service.findOne(entity.id)
+		} else {
+			await this.service.create(entity)
 		}
-		return await this.service.create(entity)
+		return await this.service.findOne(entity.id, {relations: command.relations})
 	}
 }

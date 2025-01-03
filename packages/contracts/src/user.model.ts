@@ -107,6 +107,9 @@ export interface IUserPasswordInput {
 	confirmPassword?: string
 }
 
+/**
+ * Browser http header `Language`
+ */
 export enum LanguagesEnum {
 	Chinese = "zh-CN",
 	SimplifiedChinese = "zh-Hans",

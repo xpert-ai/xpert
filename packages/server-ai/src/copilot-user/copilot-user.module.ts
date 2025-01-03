@@ -1,8 +1,8 @@
-import { Module } from '@nestjs/common'
+import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { RouterModule } from 'nest-router'
-import { TenantModule } from '@metad/server-core'
+import { TenantModule, UserModule } from '@metad/server-core'
 import { CopilotUser } from './copilot-user.entity'
 import { CopilotUserService } from './copilot-user.service'
 import { CopilotUserController } from './copilot-user.controller'
@@ -13,6 +13,7 @@ import { CopilotOrganizationModule } from '../copilot-organization/index'
     imports: [
         RouterModule.forRoutes([{ path: '/copilot-user', module: CopilotUserModule }]),
         TypeOrmModule.forFeature([CopilotUser]),
+		forwardRef(() => UserModule),
         TenantModule,
         CqrsModule,
         CopilotOrganizationModule

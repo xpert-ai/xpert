@@ -6,10 +6,10 @@ import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { ThemesEnum } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { startWith } from 'rxjs/operators'
 import { IUser, LANGUAGES, LanguagesMap, Store } from '../../../@core'
 import { UserPipe } from '../../../@shared/pipes'
 import { UserProfileInlineComponent } from '../../../@shared/user'
+import { AppService } from '../../../app.service'
 
 const THEMES = [
   {
@@ -36,14 +36,7 @@ const THEMES = [
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    CdkMenuModule,
-    TranslateModule,
-    UserPipe,
-    UserProfileInlineComponent,
-  ],
+  imports: [CommonModule, FormsModule, CdkMenuModule, TranslateModule, UserPipe, UserProfileInlineComponent],
   selector: 'pac-header-user',
   templateUrl: './user.component.html'
 })
@@ -52,6 +45,7 @@ export class HeaderUserComponent {
   ThemesEnum = ThemesEnum
 
   readonly store = inject(Store)
+  readonly appService = inject(AppService)
   readonly router = inject(Router)
   readonly #translate = inject(TranslateService)
 
@@ -61,8 +55,7 @@ export class HeaderUserComponent {
   readonly preferredThemeIcon$ = computed(() => THEMES.find((item) => item.key === this.preferredTheme$())?.icon)
 
   readonly userSignal = toSignal(this.store.user$)
-  // readonly isAuthenticated$ = computed(() => Boolean(this.store.user))
-  readonly language$ = toSignal(this.store.preferredLanguage$.pipe(startWith(this.#translate.currentLang)))
+  readonly language$ = toSignal(this.appService.preferredLanguage$)
 
   readonly themesT$ = toSignal(this.#translate.stream('PAC.Themes'))
 

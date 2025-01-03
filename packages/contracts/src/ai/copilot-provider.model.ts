@@ -42,3 +42,5 @@ export interface ICopilotProviderModel extends IBasePerTenantAndOrganizationEnti
 
   // Temporary properties
 }
+
+export type TCopilotProviderPublicDto = Omit<ICopilotProvider, 'credentials'>

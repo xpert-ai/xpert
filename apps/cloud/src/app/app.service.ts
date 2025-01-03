@@ -1,13 +1,16 @@
 import { BreakpointObserver, Breakpoints, BreakpointState } from '@angular/cdk/layout'
+import { DOCUMENT } from '@angular/common'
 import { computed, inject, Injectable, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { DateAdapter } from '@angular/material/core'
+import { prefersColorScheme, ThemesEnum } from '@metad/ocap-angular/core'
+import { nonNullable } from '@metad/ocap-core'
 import { ComponentStore } from '@metad/store'
+import { TranslateService } from '@ngx-translate/core'
 import { includes, some } from 'lodash-es'
 import { combineLatest } from 'rxjs'
-import { map, shareReplay, startWith } from 'rxjs/operators'
-import { LanguagesEnum, MenuCatalog, Store } from './@core'
-import { toSignal } from '@angular/core/rxjs-interop'
-import { TranslateService } from '@ngx-translate/core'
-import { prefersColorScheme, ThemesEnum } from '@metad/ocap-angular/core'
+import { filter, map, shareReplay, startWith } from 'rxjs/operators'
+import { LanguagesEnum, mapDateLocale, MenuCatalog, navigatorLanguage, Store } from './@core'
 
 export interface PACAppState {
   insight: boolean
@@ -26,12 +29,20 @@ export interface PACAppState {
 })
 export class AppService extends ComponentStore<PACAppState> {
   readonly translate = inject(TranslateService)
+  readonly #document = inject(DOCUMENT)
 
   readonly tenantSettings = toSignal(this.store.tenantSettings$)
-  readonly lang = toSignal<LanguagesEnum>(this.translate.onLangChange.pipe(map((event) => event.lang as LanguagesEnum), startWith(this.translate.currentLang as LanguagesEnum)))
+  readonly lang = toSignal<LanguagesEnum>(
+    this.translate.onLangChange.pipe(
+      map((event) => event.lang as LanguagesEnum),
+      startWith(this.translate.currentLang as LanguagesEnum)
+    )
+  )
   readonly title = computed(() => {
     const lang = this.lang()
-    return this.tenantSettings() && (this.tenantSettings()['tenant_title_' + lang] || this.tenantSettings()['tenant_title'])
+    return (
+      this.tenantSettings() && (this.tenantSettings()['tenant_title_' + lang] || this.tenantSettings()['tenant_title'])
+    )
   })
   /**
    * @deprecated use signal {@link isAuthenticated} instead
@@ -58,17 +69,16 @@ export class AppService extends ComponentStore<PACAppState> {
     map((values) => some(['XSmall', 'Small', 'HandsetPortrait'], (el) => includes(values, el))),
     shareReplay(1)
   )
-  readonly isMobile = toSignal(this.mediaMatcher$.pipe(
-    map((values) => some(['XSmall', 'Small', 'HandsetPortrait'], (el) => includes(values, el))),
-  ))
+  readonly isMobile = toSignal(
+    this.mediaMatcher$.pipe(map((values) => some(['XSmall', 'Small', 'HandsetPortrait'], (el) => includes(values, el))))
+  )
 
   public readonly isDark$ = this.select((state) => state.dark)
 
   public readonly copilotEnabled$ = this.store.featureOrganizations$.pipe(
-    map(() => this.store.hasFeatureEnabled('FEATURE_COPILOT' as any)),
+    map(() => this.store.hasFeatureEnabled('FEATURE_COPILOT' as any))
   )
 
-  
   readonly preferredTheme$ = toSignal(this.store.preferredTheme$)
   readonly systemColorScheme$ = toSignal(prefersColorScheme())
 
@@ -84,16 +94,35 @@ export class AppService extends ComponentStore<PACAppState> {
     return {
       preferredTheme,
       primary,
-      color,
+      color
     }
   })
 
   readonly inProject = signal(false)
-  
+
+  // Obserables
+  readonly preferredLanguage$ = this.store.preferredLanguage$.pipe(map((lang) => lang ?? this.translate.currentLang))
+
   constructor(
     private store: Store,
-    private breakpointObserver: BreakpointObserver) {
+    private breakpointObserver: BreakpointObserver,
+    private _adapter: DateAdapter<any>
+  ) {
     super({ navigation: {}, zIndexs: [] } as PACAppState)
+
+    this.translate.setDefaultLang('en')
+    // the lang to use, if the lang isn't available, it will use the current loader to get them
+    this.translate.use(this.store.preferredLanguage || navigatorLanguage())
+
+    this.#document.documentElement.lang = this.translate.currentLang
+
+    this.store.preferredLanguage$
+      .pipe(filter(nonNullable), startWith(this.translate.currentLang))
+      .subscribe((language) => {
+        this.translate.use(language)
+        this.#document.documentElement.lang = language
+        this._adapter.setLocale(mapDateLocale(language))
+      })
   }
 
   public toggleInsight = this.updater((state) => {
