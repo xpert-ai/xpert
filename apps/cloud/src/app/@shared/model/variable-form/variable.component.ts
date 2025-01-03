@@ -60,7 +60,7 @@ export class CubeVariableFormComponent {
     this.#dialogRef.close({
       ...this.variable(),
       caption: this.caption(),
-      defaultLow: this.defaultLow().members?.[0]?.key
+      defaultLow: this.defaultLow()?.members?.[0]?.key
     })
   }
 }
