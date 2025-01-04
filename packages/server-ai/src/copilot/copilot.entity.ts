@@ -58,6 +58,7 @@ export class Copilot extends TenantOrganizationBaseEntity implements ICopilot {
 	@IsOptional()
 	@OneToOne(() => CopilotModel, { 
 		eager: true,
+		cascade: ["insert", "update", "remove", "soft-remove", "recover"]
 	})
 	@JoinColumn()
 	copilotModel?: ICopilotModel

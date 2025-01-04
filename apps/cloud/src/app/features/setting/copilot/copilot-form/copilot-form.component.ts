@@ -80,19 +80,9 @@ export class CopilotFormComponent {
   readonly saving = signal(false)
 
   readonly organizationId = toSignal(this.#store.selectOrganizationId())
-  readonly copilotId = computed(
-    () =>
-      this.copilots()?.find((item) => item.organizationId === this.organizationId() && item.role === this.role())?.id
-  )
+  readonly copilotId = computed(() => this.copilot()?.id)
 
   readonly refresh$ = new BehaviorSubject<void>(null)
-  // readonly copilot = derivedAsync(() => {
-  //   return this.copilotId()
-  //     ? this.refresh$.pipe(
-  //         switchMap(() => this.copilotServer.getOneById(this.copilotId(), { relations: ['modelProvider'] }))
-  //       )
-  //     : null
-  // })
 
   readonly modelProvider = computed(() => this.copilot()?.modelProvider)
 
