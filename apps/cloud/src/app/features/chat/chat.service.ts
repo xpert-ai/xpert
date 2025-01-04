@@ -37,6 +37,7 @@ import {
   IChatMessage,
   ToolCall,
   IChatMessageFeedback,
+  OrderTypeEnum,
 } from '../../@core'
 import { ChatConversationService, ChatService as ChatServerService, XpertService, ToastrService, ChatMessageFeedbackService } from '../../@core/services'
 import { AppService } from '../../app.service'
@@ -89,7 +90,7 @@ export class ChatService {
   readonly lang = this.appService.lang
   readonly xperts = derivedFrom(
     [
-      this.xpertService.getMyAll({ where: { type: XpertTypeEnum.Agent, latest: true }, relations: ['knowledgebases', 'toolsets'] })
+      this.xpertService.getMyAll({ where: { type: XpertTypeEnum.Agent, latest: true }, order: {createdAt: OrderTypeEnum.DESC} })
         .pipe(map(({ items }) => items)),
       this.lang
     ],
@@ -102,7 +103,7 @@ export class ChatService {
         }
       })
     ),
-    { initialValue: [] }
+    { initialValue: null }
   )
 
   readonly xpert = derivedFrom(
@@ -225,17 +226,6 @@ export class ChatService {
     })
 
   constructor() {
-    // effect(
-    //   () => {
-    //     if (this.conversation()?.messages) {
-    //       this.#messages.set(sortBy(this.conversation().messages, 'createdAt'))
-    //     } else {
-    //       this.#messages.set([])
-    //     }
-    //   },
-    //   { allowSignalWrites: true }
-    // )
-
     effect(
       () => {
         if (this.paramId()) {
@@ -252,7 +242,7 @@ export class ChatService {
     })
   }
 
-  chat(options: Partial<{id: string; content: string; confirm: boolean; toolCalls: ToolCall[]; reject: boolean}>) {
+  chat(options: Partial<{id: string; content: string; confirm: boolean; toolCalls: ToolCall[]; reject: boolean; retry: boolean}>) {
     this.answering.set(true)
 
     if (options.confirm) {
@@ -264,12 +254,12 @@ export class ChatService {
       })
     } else if (options.content) {
       // Add ai message placeholder
-      this.appendMessage({
-        id: uuid(),
-        role: 'assistant',
-        content: ``,
-        status: 'thinking'
-      })
+      // this.appendMessage({
+      //   id: uuid(),
+      //   role: 'assistant',
+      //   content: ``,
+      //   status: 'thinking'
+      // })
     }
 
     this.chatService.chat({
@@ -282,8 +272,9 @@ export class ChatService {
       toolCalls: options.toolCalls,
       confirm: options.confirm,
       reject: options.reject,
+      retry: options.retry,
     }, {
-      knowledgebases: this.knowledgebases().map(({ id }) => id),
+      knowledgebases: this.knowledgebases()?.map(({ id }) => id),
       toolsets: this.toolsets()?.map(({ id }) => id)
     })
     .subscribe({
@@ -304,8 +295,24 @@ export class ChatService {
                 case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
                 case ChatMessageEventTypeEnum.ON_CONVERSATION_END:
                   this.updateConversation(event.data)
+                  if (event.data.status === 'error') {
+                    this.updateLatestMessage((lastM) => {
+                      return {
+                        ...lastM,
+                        status: XpertAgentExecutionStatusEnum.ERROR
+                      }
+                    })
+                  }
                   break
                 case ChatMessageEventTypeEnum.ON_MESSAGE_START:
+                  if (options.content) {
+                    this.appendMessage({
+                      id: uuid(),
+                      role: 'assistant',
+                      content: ``,
+                      status: 'thinking'
+                    })
+                  }
                   this.updateLatestMessage((lastM) => {
                     return {
                       ...lastM,
@@ -380,18 +387,22 @@ export class ChatService {
     })
   }
 
-  updateConversation(data: IChatConversation) {
-    this.conversation.set({ ...data, messages: null })
+  updateConversation(data: Partial<IChatConversation>) {
+    this.conversation.update((state) => ({
+      ...(state ?? {}),
+      ...data,
+      messages: null
+    } as IChatConversation))
     this.conversations.update((items) => {
-      const index = items.findIndex((_) => _.id === data.id)
+      const index = items.findIndex((_) => _.id === this.conversation().id)
       if (index > -1) {
         items[index] = {
           ...items[index],
-          ...data
+          ...this.conversation()
         }
         return [...items]
       } else {
-        return  [{ ...data }, ...items]
+        return  [{ ...this.conversation() }, ...items]
       }
     })
   }

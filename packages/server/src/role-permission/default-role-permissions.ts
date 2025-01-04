@@ -109,6 +109,7 @@ export const DEFAULT_ROLE_PERMISSIONS = [
 			PermissionsEnum.ORG_TAGS_EDIT,
 			PermissionsEnum.PROFILE_EDIT,
 			PermissionsEnum.ORG_DEMO_EDIT,
+			PermissionsEnum.INTEGRATION_EDIT,
 		]
 	}
 ];

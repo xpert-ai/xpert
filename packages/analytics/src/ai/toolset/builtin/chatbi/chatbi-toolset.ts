@@ -9,6 +9,7 @@ import {
 	JSONValue,
 	OrderTypeEnum,
 	TranslateOptions,
+	TranslationLanguageMap,
 	TStateVariable,
 	TToolCredentials
 } from '@metad/contracts'
@@ -21,11 +22,9 @@ import {
 	FilteringLogic,
 	getEntityDimensions,
 	getEntityHierarchy,
-	getEntityProperty,
 	getPropertyHierarchy,
 	Indicator,
 	isEntitySet,
-	isIndicatorMeasureProperty,
 	markdownModelCube,
 	PresentationVariant,
 	Schema,
@@ -35,7 +34,7 @@ import {
 	tryFixVariableSlicer,
 	workOutTimeRangeSlicers
 } from '@metad/ocap-core'
-import { BuiltinToolset, ToolNotSupportedError, ToolProviderCredentialValidationError } from '@metad/server-ai'
+import { BuiltinToolset, STATE_VARIABLE_SYS_LANGUAGE, ToolNotSupportedError, ToolProviderCredentialValidationError } from '@metad/server-ai'
 import { getErrorMessage, omit, race, shortuuid, TimeoutError } from '@metad/server-common'
 import { groupBy } from 'lodash'
 import { firstValueFrom, Subject, Subscriber, switchMap, takeUntil } from 'rxjs'
@@ -379,52 +378,47 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 					await this.updateIndicators(dsCoreService, indicators)
 				}
 
-				try {
-					let entityType = null
-					if (answer.dataSettings) {
-						// Make sure datasource exists
-						const _dataSource = await dsCoreService._getDataSource(answer.dataSettings.dataSource)
-						const entity = await firstValueFrom(
-							dsCoreService.selectEntitySet(answer.dataSettings.dataSource, answer.dataSettings.entitySet)
-						)
-						entityType = entity.entityType
-					}
-
-					// Fetch data for chart or table or kpi
-					if (answer.dimensions?.length || answer.measures?.length) {
-						const { data, members } = await this.drawChartMessage(
-							answer as ChatAnswer,
-							{ ...context, entityType },
-							subscriber
-						)
-
-						// Max limit 20 members
-						let results = ''
-						if (dataPermission) {
-							results = data ? JSON.stringify(Object.values(data).slice(0, 20)) : 'Empty'
-						} else {
-							if (members) {
-								Object.keys(members).forEach((key) => {
-									results += `Members of dimension '${key}':]\n`
-									results += Object.values(members[key])
-										.slice(0, 20)
-										.map((member) => JSON.stringify(member))
-										.join('\n')
-									results += '\n\n'
-								})
-							} else {
-								results = 'Empty'
-							}
-						}
-
-						return `The data are:\n${results}\n`
-					}
-
-					return `The chart answer has already been provided to the user, please do not repeat the response.`
-				} catch (err) {
-					this.logger.error(err)
-					return `Error: ${err}. If more information is needed from the user, please directly prompt the user.`
+				let entityType = null
+				if (answer.dataSettings) {
+					// Make sure datasource exists
+					const _dataSource = await dsCoreService._getDataSource(answer.dataSettings.dataSource)
+					const entity = await firstValueFrom(
+						dsCoreService.selectEntitySet(answer.dataSettings.dataSource, answer.dataSettings.entitySet)
+					)
+					entityType = entity.entityType
 				}
+
+				// Fetch data for chart or table or kpi
+				if (answer.dimensions?.length || answer.measures?.length) {
+					const { data, members } = await this.drawChartMessage(
+						answer as ChatAnswer,
+						{ ...context, entityType },
+						subscriber
+					)
+
+					// Max limit 20 members
+					let results = ''
+					if (dataPermission) {
+						results = data ? JSON.stringify(Object.values(data).slice(0, 20)) : 'Empty'
+					} else {
+						if (members) {
+							Object.keys(members).forEach((key) => {
+								results += `Members of dimension '${key}':]\n`
+								results += Object.values(members[key])
+									.slice(0, 20)
+									.map((member) => JSON.stringify(member))
+									.join('\n')
+								results += '\n\n'
+							})
+						} else {
+							results = 'Empty'
+						}
+					}
+
+					return `The data are:\n${results}\n`
+				}
+
+				return `The chart answer has already been provided to the user, please do not repeat the response.`
 			},
 			{
 				name: ChatBIToolsEnum.ANSWER_QUESTION,
@@ -435,10 +429,11 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		)
 	}
 
-	drawChartMessage(answer: ChatAnswer, context: ChatBIContext, subscriber: Subscriber<MessageEvent>): Promise<any> {
-		const { dsCoreService, entityType } = context
+	async drawChartMessage(answer: ChatAnswer, context: ChatBIContext, subscriber: Subscriber<MessageEvent>): Promise<any> {
+		const { dsCoreService, entityType, chatbi } = context
 		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 
+		const lang = currentState[STATE_VARIABLE_SYS_LANGUAGE]
 		const indicators = currentState[ChatBIVariableEnum.INDICATORS]?.map((_) => omit(_, 'default', 'reducer'))
 		const chartService = new ChartBusinessService(dsCoreService)
 		const destroy$ = new Subject<void>()
@@ -479,7 +474,8 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			}))
 
 		// ChartTypes
-		const chartTypes = [...CHART_TYPES]
+		const i18n = await chatbi.translate('toolset.ChatBI.ChartTypes', {lang: TranslationLanguageMap[lang] || lang})
+		const chartTypes = CHART_TYPES.map((_) => ({..._, name: i18n[_.name]}))
 		const index = chartTypes.findIndex(
 			({ type, orient }) => type === chartAnnotation.chartType.type && orient === chartAnnotation.chartType.orient
 		)
@@ -500,12 +496,6 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 
 			// In parallel: return to the front-end display and back-end data retrieval
 			if (answer.visualType === 'KPI') {
-				let indicator = null
-				const measure = chartAnnotation.measures[0]
-				const measureProperty = getEntityProperty(entityType, measure)
-				if (isIndicatorMeasureProperty(measureProperty)) {
-					indicator = measureProperty.name
-				}
 				subscriber?.next({
 					data: {
 						type: ChatMessageTypeEnum.MESSAGE,
@@ -524,7 +514,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 								} as DataSettings,
 								slicers,
 								title: answer.preface,
-								indicator
+								// indicator
 							} as unknown as JSONValue
 						}
 					}
@@ -598,17 +588,17 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 					}
 				}
 
-				const indicators = [{...indicator, visible: true}]
+				const _indicator = {...indicator, visible: true}
 
-				await this.updateIndicators(dsCoreService, indicators)
+				await this.updateIndicators(dsCoreService, [_indicator])
 				// Created event
-				await this.onCreatedIndicator(subscriber, indicator, language)
+				await this.onCreatedIndicator(subscriber, _indicator, language)
 
 				// Populated when a tool is called with a tool call from a model as input
 				const toolCallId = config.metadata.tool_call_id
 				return new Command({
 					update: {
-						[ChatBIVariableEnum.INDICATORS]: [indicator],
+						[ChatBIVariableEnum.INDICATORS]: [_indicator],
 						// update the message history
 						messages: [
 							{
@@ -623,7 +613,8 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			{
 				name: ChatBIToolsEnum.CREATE_INDICATOR,
 				description: 'Create a indicator for new measure',
-				schema: IndicatorSchema
+				schema: IndicatorSchema,
+				verboseParsingErrors: true
 			}
 		)
 	}
@@ -632,10 +623,23 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 	 * On created indicator event.
 	 * 
 	 * @param subscriber 
-	 * @param indicator 
+	 * @param indicator
+	 * @param language Language of current chat context
 	 */
 	async onCreatedIndicator(subscriber: Subscriber<MessageEvent>, indicator: IIndicator, language: string) {
-		//
+		subscriber.next({
+			data: {
+				type: ChatMessageTypeEnum.MESSAGE,
+				data: {
+					id: shortuuid(),
+					type: 'component',
+					data: {
+						type: 'NewIndicator',
+						indicator
+					} as unknown as JSONValue
+				}
+			}
+		} as MessageEvent)
 	}
 }
 

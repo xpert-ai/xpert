@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RouterModule } from 'nest-router';
@@ -18,6 +18,7 @@ import { UserOrganizationModule } from './../user-organization/user-organization
 import { InviteController } from './invite.controller';
 import { Invite } from './invite.entity';
 import { InviteService } from './invite.service';
+import { RolePermissionModule } from '../role-permission';
 
 @Module({
 	imports: [
@@ -25,11 +26,12 @@ import { InviteService } from './invite.service';
 			{ path: '/invite', module: InviteModule }
 		]),
 		TypeOrmModule.forFeature([ Invite ]),
+		forwardRef(() => RolePermissionModule),
+		forwardRef(() => UserModule),
 		SharedModule,
 		CqrsModule,
 		EmailModule,
 		TenantModule,
-		UserModule,
 		RoleModule,
 		OrganizationModule,
 		OrganizationProjectModule,

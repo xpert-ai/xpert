@@ -50,10 +50,9 @@ export enum PermissionsEnum {
   ORG_HELP_CENTER_EDIT = 'ORG_HELP_CENTER_EDIT',
   ORG_CONTACT_EDIT = 'ORG_CONTACT_EDIT',
   ORG_CONTACT_VIEW = 'ORG_CONTACT_VIEW',
-  // ORG_COPILOT_EDIT = 'ORG_COPILOT_EDIT',
   ORG_DEMO_EDIT = 'ORG_DEMO_EDIT', // Orgnization demo edit permission
   INTEGRATION_EDIT = 'INTEGRATION_EDIT',
-  
+  INTEGRATION_VIEW = 'INTEGRATION_VIEW',
   FILE_STORAGE_VIEW = 'FILE_STORAGE_VIEW',
   SMS_GATEWAY_VIEW = 'SMS_GATEWAY_VIEW',
   CUSTOM_SMTP_VIEW = 'CUSTOM_SMTP_VIEW',
@@ -82,6 +81,7 @@ export const PermissionGroups = {
     AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
     AIPermissionsEnum.COPILOT_VIEW,
     AIPermissionsEnum.COPILOT_EDIT,
+    AIPermissionsEnum.XPERT_EDIT,
     AIPermissionsEnum.CHAT_VIEW,
 
     // DataSource
@@ -115,8 +115,6 @@ export const PermissionGroups = {
 
   //Readonly permissions, are only enabled for admin role
   ADMINISTRATION: [
-    // PermissionsEnum.ORG_EMPLOYEES_VIEW,
-    // PermissionsEnum.ORG_EMPLOYEES_EDIT,
     PermissionsEnum.ORG_USERS_VIEW,
     PermissionsEnum.ORG_USERS_EDIT,
     PermissionsEnum.ALL_ORG_VIEW,
@@ -124,12 +122,7 @@ export const PermissionGroups = {
     PermissionsEnum.CHANGE_SELECTED_ORGANIZATION,
     PermissionsEnum.CHANGE_ROLES_PERMISSIONS,
     PermissionsEnum.SUPER_ADMIN_EDIT,
-    // PermissionsEnum.PUBLIC_PAGE_EDIT,
-    // PermissionsEnum.INTEGRATION_VIEW,
-    // PermissionsEnum.FILE_STORAGE_VIEW,
-    // PermissionsEnum.SMS_GATEWAY_VIEW,
-    // PermissionsEnum.CUSTOM_SMTP_VIEW,
-    // PermissionsEnum.IMPORT_EXPORT_VIEW,
+    PermissionsEnum.INTEGRATION_VIEW,
     PermissionsEnum.ACCESS_DELETE_ACCOUNT,
     PermissionsEnum.ACCESS_DELETE_ALL_DATA
   ]

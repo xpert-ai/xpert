@@ -13,10 +13,13 @@ export class ChatConversationUpsertHandler implements ICommandHandler<ChatConver
 	public async execute(command: ChatConversationUpsertCommand): Promise<ChatConversation> {
 		const entity = command.entity
 
-		if (entity.id) {
+		let id = entity.id
+		if (id) {
 			await this.service.update(entity.id, entity as ChatConversation)
-			return await this.service.findOne(entity.id)
+		} else {
+			const newEntity = await this.service.create(entity)
+			id = newEntity.id
 		}
-		return await this.service.create(entity)
+		return await this.service.findOne(id, {relations: command.relations})
 	}
 }

@@ -1,23 +1,19 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
-import { MatMenuModule } from '@angular/material/menu'
 import { Router } from '@angular/router'
-import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { computedAsync } from 'ngxtension/computed-async'
 import { firstValueFrom } from 'rxjs'
 import { map, startWith, switchMap } from 'rxjs/operators'
 import { DefaultProject, IProject, ProjectsService, Store, ToastrService } from '../../../@core'
-import { ProjectCreationComponent } from './creation/creation.component'
 import { InlineSearchComponent } from '../../../@shared/form-fields'
+import { ProjectCreationComponent } from './creation/creation.component'
 
 @Component({
   standalone: true,
@@ -26,15 +22,10 @@ import { InlineSearchComponent } from '../../../@shared/form-fields'
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
-    MatFormFieldModule,
-    MatIconModule,
+    CdkMenuModule,
     MatButtonModule,
-    MatMenuModule,
     MatDialogModule,
-    MatInputModule,
     TranslateModule,
-    DensityDirective,
-    ButtonGroupDirective,
     InlineSearchComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

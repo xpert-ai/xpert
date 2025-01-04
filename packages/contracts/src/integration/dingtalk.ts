@@ -7,5 +7,8 @@ export const IntegrationDingTalkProvider: TIntegrationProvider = {
     zh_Hans: '钉钉'
   },
   avatar: 'dingtalk.png',
+  schema: {
+    properties: {}
+  },
   pro: true
 }

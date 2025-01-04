@@ -1,4 +1,4 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { CacheModule, forwardRef, Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RouterModule } from 'nest-router';
@@ -22,9 +22,10 @@ import { EmailVerification } from './email-verification/email-verification.entit
 		SharedModule,
 		CqrsModule,
 		FactoryResetModule,
+		CacheModule.register({ isGlobal: true })
 	],
 	controllers: [UserController],
 	providers: [UserService, ...CommandHandlers, ...EventHandlers],
-	exports: [TypeOrmModule, UserService]
+	exports: [TypeOrmModule, UserService, CacheModule, CqrsModule]
 })
 export class UserModule {}

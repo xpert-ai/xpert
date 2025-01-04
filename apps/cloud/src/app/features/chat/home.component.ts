@@ -14,7 +14,8 @@ import {
   model
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { ActivatedRoute, Router, RouterModule } from '@angular/router'
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { ActivatedRoute, RouterModule } from '@angular/router'
 import { convertNewSemanticModelResult, NgmSemanticModel, SemanticModelServerService } from '@metad/cloud/state'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { effectAction, NgmDSCoreService, provideOcapCore } from '@metad/ocap-angular/core'
@@ -37,7 +38,6 @@ import {
   IChatConversation,
   injectToastr,
   ISemanticModel,
-  IXpert,
   OrderTypeEnum,
   registerModel,
   routeAnimations
@@ -51,6 +51,7 @@ import { ChatConversationComponent } from './conversation/conversation.component
 import { ChatMoreComponent } from './icons'
 import { ChatSidenavMenuComponent } from './sidenav-menu/sidenav-menu.component'
 import { ChatToolbarComponent } from './toolbar/toolbar.component'
+import { ChatXpertsComponent } from './xperts/xperts.component'
 
 @Component({
   standalone: true,
@@ -60,6 +61,7 @@ import { ChatToolbarComponent } from './toolbar/toolbar.component'
     ReactiveFormsModule,
     RouterModule,
     DragDropModule,
+    CdkMenuModule,
     CdkListboxModule,
     A11yModule,
     RouterModule,
@@ -73,7 +75,8 @@ import { ChatToolbarComponent } from './toolbar/toolbar.component'
     ChatSidenavMenuComponent,
     ChatInputComponent,
     ChatMoreComponent,
-    ChatConversationComponent
+    ChatConversationComponent,
+    ChatXpertsComponent
   ],
   selector: 'pac-chat-home',
   templateUrl: './home.component.html',
@@ -91,7 +94,6 @@ export class ChatHomeComponent {
   readonly conversationService = inject(ChatConversationService)
   readonly semanticModelService = inject(SemanticModelServerService)
   readonly appService = inject(AppService)
-  readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
   readonly logger = inject(NGXLogger)
   readonly #toastr = injectToastr()
@@ -142,7 +144,6 @@ export class ChatHomeComponent {
     return groups
   })
 
-  readonly xperts = this.chatService.xperts
   readonly role = this.chatService.xpert
 
   readonly editingConversation = signal<string>(null)
@@ -239,7 +240,7 @@ export class ChatHomeComponent {
 
           this.#semanticModels.update((state) => {
             return Object.keys(state).reduce((acc, key) => {
-              acc[key] = { ...state[key], dirty: !state[key].model }
+              acc[key] = { ...state[key], dirty: state[key].model ? false : state[key].dirty }
               return acc
             }, {})
           })
@@ -255,10 +256,6 @@ export class ChatHomeComponent {
 
   deleteConv(id: string) {
     this.chatService.deleteConversation(id)
-  }
-
-  selectXpert(xpert: IXpert) {
-    this.chatService.newConversation(xpert)
   }
 
   updateTitle(conv: IChatConversation) {
@@ -339,4 +336,5 @@ export class ChatHomeComponent {
       })
     }, 100)
   }
+
 }

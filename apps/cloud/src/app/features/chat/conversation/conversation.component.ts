@@ -36,12 +36,14 @@ export class ChatConversationComponent {
   readonly #router = inject(Router)
 
   readonly messages = this.chatService.messages
+  readonly conversation = this.chatService.conversation
 
   readonly lastMessage = computed(() => this.messages()[this.messages().length - 1] as CopilotChatMessage)
   readonly lastExecutionId = computed(() => {
     return this.lastMessage()?.executionId
   })
-  readonly conversationStatus = computed(() => this.chatService.conversation()?.status)
+  readonly conversationStatus = computed(() => this.conversation()?.status)
+  readonly error = computed(() => this.conversation()?.error)
   readonly operation = computed(() => this.chatService.conversation()?.operation)
   readonly toolCalls = signal<ToolCall[]>(null)
 
@@ -60,5 +62,15 @@ export class ChatConversationComponent {
   }
   onReject() {
     this.chatService.chat({ reject: true })
+  }
+
+  onRetry() {
+    this.chatService.updateConversation({
+      status: 'busy',
+      error: null
+    })
+    this.chatService.chat({
+      retry: true
+    })
   }
 }

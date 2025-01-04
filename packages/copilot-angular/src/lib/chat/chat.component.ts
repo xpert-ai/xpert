@@ -188,8 +188,8 @@ export class NgmCopilotChatComponent {
   readonly showTokenizer$ = computed(() => this.copilot()?.showTokenizer)
   // readonly #defaultModel = computed(() => this.copilot()?.defaultModel)
   readonly interactive = this.copilotEngine$().agentConfig.interactive
-  readonly #predefinedModels = computed(() => AI_PROVIDERS[this.copilot()?.provider]?.models)
-  readonly canListModels = computed(() => !!AI_PROVIDERS[this.copilot()?.provider]?.modelsUrl)
+  readonly #predefinedModels = computed(() => AI_PROVIDERS[this.copilot()?.modelProvider?.providerName]?.models)
+  readonly canListModels = computed(() => !!AI_PROVIDERS[this.copilot()?.modelProvider?.providerName]?.modelsUrl)
   readonly latestModels = signal<AiModelType[]>([])
   readonly conversations = computed<Array<CopilotChatConversation<NgmCopilotChatMessage>>>(() =>
     this.copilotEngine?.conversations()

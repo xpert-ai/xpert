@@ -1,3 +1,3 @@
 :host {
-  @apply flex flex-col w-[600px] p-8 rounded-2xl bg-components-card-bg overflow-y-auto;
+  @apply flex flex-col w-[600px] max-h-screen rounded-2xl bg-components-card-bg overflow-y-auto;
 }

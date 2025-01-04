@@ -20,7 +20,6 @@ import { RouterModule } from '@angular/router'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { NgmIndicatorComponent } from '@metad/ocap-angular/indicator'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
 import { DataSettings, Indicator, TimeGranularity } from '@metad/ocap-core'
 import { StoryExplorerComponent } from '@metad/story'
@@ -31,6 +30,7 @@ import { compact, uniq } from 'lodash-es'
 import { MarkdownModule } from 'ngx-markdown'
 import { Store } from '../../../@core'
 import { ChatComponentIndicatorsComponent } from './indicators/indicators.component'
+import { ChatComponentIndicatorComponent } from './indicator/indicator.component'
 
 @Component({
   standalone: true,
@@ -49,8 +49,8 @@ import { ChatComponentIndicatorsComponent } from './indicators/indicators.compon
     NgmSelectionModule,
     AnalyticalCardModule,
     NxWidgetKpiComponent,
-    NgmIndicatorComponent,
-    ChatComponentIndicatorsComponent
+    ChatComponentIndicatorsComponent,
+    ChatComponentIndicatorComponent
   ],
   selector: 'pac-chat-component-message',
   templateUrl: './component-message.component.html',
@@ -85,7 +85,7 @@ export class ChatComponentMessageComponent {
   })
 
   readonly dataSettings = computed(() => this.data()?.dataSettings as DataSettings)
-  readonly indicator = computed(() => this.data()?.indicator)
+  readonly indicator = computed<Indicator>(() => this.data()?.indicator)
   readonly dataSource = computed(() => this.dataSettings()?.dataSource)
   readonly indicators = computed(() => this.data()?.indicators)
   readonly slicers = computed(() => this.data()?.slicers)
@@ -110,16 +110,27 @@ export class ChatComponentMessageComponent {
 
     effect(
       () => {
+        const newIndicator = this.indicator()
+        if (newIndicator) {
+          this.register.emit([
+            {
+              id: newIndicator.modelId,
+              indicators: [newIndicator]
+            }
+          ])
+        }
+      },
+      { allowSignalWrites: true }
+    )
+
+    effect(
+      () => {
         if (this.dataSources()) {
           this.register.emit(this.dataSources().map((id) => ({ id })))
         }
       },
       { allowSignalWrites: true }
     )
-
-    effect(() => {
-      // console.log(this.entityType())
-    })
   }
 
   setExplains(items: unknown[]) {

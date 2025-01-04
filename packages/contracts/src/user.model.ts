@@ -21,7 +21,7 @@ export interface IUser extends IBasePerTenantEntityModel {
 	tags?: ITag[];
 	preferredLanguage?: string;
 	paymentsId?: string;
-	preferredComponentLayout?: string;
+	// preferredComponentLayout?: string;
 	fullName?: string;
 	organizations?: IOrganization[];
 	isImporting?: boolean;
@@ -84,7 +84,7 @@ export interface IUserCreateInput {
 	imageUrl?: string;
 	tags?: ITag[];
 	preferredLanguage?: LanguagesEnum;
-	preferredComponentLayout?: ComponentLayoutStyleEnum;
+	// preferredComponentLayout?: ComponentLayoutStyleEnum;
 }
 
 export interface IUserUpdateInput {
@@ -98,7 +98,7 @@ export interface IUserUpdateInput {
 	imageUrl?: string;
 	tags?: ITag[];
 	preferredLanguage?: LanguagesEnum;
-	preferredComponentLayout?: ComponentLayoutStyleEnum;
+	// preferredComponentLayout?: ComponentLayoutStyleEnum;
 }
 
 export interface IUserPasswordInput {
@@ -107,6 +107,9 @@ export interface IUserPasswordInput {
 	confirmPassword?: string
 }
 
+/**
+ * Browser http header `Language`
+ */
 export enum LanguagesEnum {
 	Chinese = "zh-CN",
 	SimplifiedChinese = "zh-Hans",
@@ -120,10 +123,10 @@ export const LanguagesMap = {
 	'zh': LanguagesEnum.SimplifiedChinese,
 }
 
-export enum ComponentLayoutStyleEnum {
-	CARDS_GRID = 'CARDS_GRID',
-	TABLE = 'TABLE'
-}
+// export enum ComponentLayoutStyleEnum {
+// 	CARDS_GRID = 'CARDS_GRID',
+// 	TABLE = 'TABLE'
+// }
 
 export enum ProviderEnum {
 	GOOGLE = 'google',

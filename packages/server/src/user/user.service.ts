@@ -5,7 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { environment as env } from '@metad/server-config'
 import { User } from './user.entity';
 import { TenantAwareCrudService } from './../core/crud';
-import { ComponentLayoutStyleEnum, IUser, LanguagesEnum, PermissionsEnum, RolesEnum } from '@metad/contracts';
+import { IUser, LanguagesEnum, PermissionsEnum, RolesEnum } from '@metad/contracts';
 import { RequestContext } from '../core/context';
 import { EmailVerification } from './email-verification/email-verification.entity';
 import { UserPublicDTO } from './dto';
@@ -205,25 +205,6 @@ export class UserService extends TenantAwareCrudService<User> {
 				throw new NotFoundException(`The user was not found`);
 			}
 			user.preferredLanguage = preferredLanguage;
-			return await this.repository.save(user);
-		} catch (err) {
-			throw new NotFoundException(`The record was not found`, err);
-		}
-	}
-
-	/*
-	 * Update user preferred component layout
-	 */
-	async updatePreferredComponentLayout(
-		id: string | number,
-		preferredComponentLayout: ComponentLayoutStyleEnum
-	): Promise<IUser> {
-		try {
-			const user = await this.findOne(id);
-			if (!user) {
-				throw new NotFoundException(`The user was not found`);
-			}
-			user.preferredComponentLayout = preferredComponentLayout;
 			return await this.repository.save(user);
 		} catch (err) {
 			throw new NotFoundException(`The record was not found`, err);

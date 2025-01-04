@@ -119,7 +119,7 @@ export function createFeature(item: IFeature,) {
 		status,
 		icon
 	} = item;
-	const feature: IFeature = new Feature({
+	const feature: IFeature = new Feature().instanceOf({
 		name,
 		code,
 		description,
@@ -133,7 +133,8 @@ export function createFeature(item: IFeature,) {
 		// 		tenant
 		// 	})
 		// ]
-	});
+	})
+
 	return feature;
 }
 

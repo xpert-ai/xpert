@@ -27,6 +27,8 @@ import { AppRoutingModule } from './app-routing.module'
 import { AppComponent } from './app.component'
 import { PAC_API_BASE_URL } from '@metad/cloud/auth'
 import { environment } from '../environments/environment'
+import { DateAdapter, MAT_DATE_FORMATS } from '@angular/material/core'
+import { DateFnsAdapter, MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter'
 
 const TYPE_KEY = '__subject__'
 function detectSubjectType(subject) {
@@ -111,7 +113,12 @@ function detectSubjectType(subject) {
     {
       provide: PAC_API_BASE_URL,
       useValue: environment.API_BASE_URL
-    }
+    },
+    {
+      provide: DateAdapter,
+      useClass: DateFnsAdapter
+    },
+    { provide: MAT_DATE_FORMATS, useValue: MAT_DATE_FNS_FORMATS }
 
     // {
     //   provide: ErrorHandler,

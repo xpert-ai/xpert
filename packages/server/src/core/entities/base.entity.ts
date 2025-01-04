@@ -26,6 +26,21 @@ export abstract class Model extends AggregateRoot {
 			}
 		}
 	}
+
+	/**
+	 * @deprecated Because the input parameters of the constructor cannot be assigned to this
+	 * 
+	 * @param input 
+	 * @returns 
+	 */
+	instanceOf(input?: any) {
+		if (input) {
+			for (const [key, value] of Object.entries(input)) {
+				;(this as any)[key] = value
+			}
+		}
+		return this
+	}
 }
 
 export abstract class BaseEntity extends Model implements IBaseEntityModel {

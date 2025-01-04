@@ -11,7 +11,11 @@
     >
       <div class="grow h-0">
         <div class="py-1">
-          <img alt="provider-icon" [src]="provider.icon_large | i18n" class="w-auto h-7">
+          @if (provider.icon_large) {
+            <img alt="provider-icon" [src]="provider.icon_large | i18n" class="w-auto h-7">
+          } @else {
+            {{ provider.label | i18n }}
+          }
         </div>
         <div class="mt-1 leading-4 text-sm text-zinc-600 line-clamp-4" [title]="provider.description | i18n">{{provider.description | i18n}}</div>
       </div>

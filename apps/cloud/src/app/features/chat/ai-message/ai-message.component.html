@@ -129,7 +129,8 @@
           />
         }
         @case ('component') {
-          <pac-chat-component-message [message]="message" class="w-full p-2 rounded-2xl hover:bg-hover-bg"
+          <pac-chat-component-message class="w-full p-2 rounded-2xl hover:bg-hover-bg"
+            [message]="message"
             (register)="onRegister($event)"
           />
         }

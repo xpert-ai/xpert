@@ -1,5 +1,5 @@
-import { TenantModule } from '@metad/server-core'
-import { Module } from '@nestjs/common'
+import { TenantModule, UserModule } from '@metad/server-core'
+import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { RouterModule } from 'nest-router'
@@ -16,6 +16,7 @@ import { AIModelModule } from '../ai-model'
 	imports: [
 		RouterModule.forRoutes([{ path: '/copilot-provider', module: CopilotProviderModule }]),
 		TypeOrmModule.forFeature([CopilotProvider, CopilotProviderModel]),
+		forwardRef(() => UserModule),
 		TenantModule,
 		CqrsModule,
 

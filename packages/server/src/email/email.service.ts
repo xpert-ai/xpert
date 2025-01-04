@@ -6,7 +6,7 @@ import {
 	IOrganization,
 	IUser,
 	LanguagesEnum,
-	LanguagesMap,
+	TranslationLanguageMap,
 } from '@metad/contracts';
 import { forwardRef, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -147,7 +147,7 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 		return new Promise(async (resolve, reject) => {
 			view = view.replace('\\', '/');
 			
-			const languageCode = LanguagesMap[locals.locale] ?? locals.locale
+			const languageCode = TranslationLanguageMap[locals.locale] ?? locals.locale
 
 			// Find email template for customized for given organization
 			let emailTemplate: IEmailTemplate = await this.emailTemplateRepository.findOne({

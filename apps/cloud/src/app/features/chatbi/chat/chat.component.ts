@@ -9,7 +9,7 @@ import {
   signal,
   viewChild
 } from '@angular/core'
-import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatDividerModule } from '@angular/material/divider'
@@ -17,8 +17,6 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { CopilotChatMessage } from '@metad/copilot'
-import { NgmDisplayBehaviourComponent } from '@metad/ocap-angular/common'
-import { DensityDirective } from '@metad/ocap-angular/core'
 import { nonBlank, nonNullable } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
@@ -44,8 +42,6 @@ import { UserAvatarComponent } from '../../../@shared/user'
     MatTooltipModule,
     MatButtonModule,
     MatDividerModule,
-    DensityDirective,
-    NgmDisplayBehaviourComponent,
     UserAvatarComponent,
 
     ChatbiInputComponent,

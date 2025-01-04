@@ -1,4 +1,4 @@
-import { ICopilotStore, IIntegration, OrderTypeEnum, RolesEnum, TChatRequest, TXpertTeamDraft, xpertLabel } from '@metad/contracts'
+import { ICopilotStore, IIntegration, LanguagesEnum, OrderTypeEnum, RolesEnum, TChatRequest, TXpertTeamDraft, xpertLabel } from '@metad/contracts'
 import {
 	CrudController,
 	OptionParams,
@@ -34,6 +34,7 @@ import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { DeleteResult, FindConditions, In, IsNull, Like, Not } from 'typeorm'
+import { I18nLang } from 'nestjs-i18n'
 import { XpertAgentExecution } from '../core/entities/internal'
 import { FindExecutionsByXpertQuery } from '../xpert-agent-execution/queries'
 import { XpertChatCommand, XpertDelIntegrationCommand, XpertExportCommand, XpertImportCommand, XpertPublishIntegrationCommand } from './commands'
@@ -188,6 +189,7 @@ export class XpertController extends CrudController<Xpert> {
 	@Sse()
 	async chat(
 		@Param('id') id: string,
+		@I18nLang() language: LanguagesEnum,
 		@Body()
 		body: {
 			request: TChatRequest
@@ -196,7 +198,7 @@ export class XpertController extends CrudController<Xpert> {
 			}
 		}
 	) {
-		return await this.commandBus.execute(new XpertChatCommand(body.request, body.options))
+		return await this.commandBus.execute(new XpertChatCommand(body.request, {...body.options, language }))
 	}
 
 	@ApiOperation({ summary: 'Delete record' })

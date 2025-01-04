@@ -31,7 +31,6 @@ import { XpertWorkspaceService } from './workspace.service'
 import { WorkspaceGuard } from './guards/workspace.guard'
 import { WorkspaceOwnerGuard } from './guards/workspace-owner.guard'
 import { XpertWorkspaceDTO } from './dto'
-import { Not } from 'typeorm'
 
 @ApiTags('XpertWorkspace')
 @ApiBearerAuth()

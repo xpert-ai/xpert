@@ -9,6 +9,8 @@ import { getErrorMessage } from '@metad/server-common'
 import { ConfigService } from '@metad/server-config'
 import {
 	CrudController,
+	PaginationParams,
+	ParseJsonPipe,
 	PermissionGuard,
 	Permissions,
 	TransformInterceptor
@@ -61,7 +63,21 @@ export class CopilotController extends CrudController<Copilot> {
 	@ApiOperation({ summary: 'find all' })
 	@ApiResponse({
 		status: HttpStatus.OK,
-		description: 'Found records' /* type: IPagination<T> */
+		description: 'Found records'
+	})
+	@Get()
+	async findAllCopilots(@Query('data', ParseJsonPipe) params: PaginationParams<Copilot>,) {
+		const result = await this.service.findAll(params)
+		return {
+			...result,
+			items: result.items.map((item) => new CopilotDto(item, this.baseUrl))
+		}
+	}
+
+	@ApiOperation({ summary: 'find all' })
+	@ApiResponse({
+		status: HttpStatus.OK,
+		description: 'Found enabled records'
 	})
 	@Get('availables')
 	async findAllAvalibles(): Promise<CopilotDto[]> {

@@ -1,9 +1,8 @@
-import { NgModule } from '@angular/core'
-import { RouterModule, Routes } from '@angular/router'
+import { Routes } from '@angular/router'
 import { FeatureToggleComponent } from '../../../@shared/feature-toggle'
 import { PACFeaturesComponent } from './features.component'
 
-const routes: Routes = [
+export default [
   {
     path: '',
     component: PACFeaturesComponent,
@@ -29,11 +28,4 @@ const routes: Routes = [
       }
     ]
   }
-]
-
-@NgModule({
-  declarations: [],
-  imports: [RouterModule.forChild(routes)],
-  exports: [RouterModule]
-})
-export class FeaturesRoutingModule {}
+] as Routes

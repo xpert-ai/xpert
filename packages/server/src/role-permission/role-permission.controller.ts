@@ -27,7 +27,8 @@ import { RolePermission } from './role-permission.entity';
 import { RolePermissionService } from './role-permission.service';
 
 @ApiTags('Role')
-@UseGuards(TenantPermissionGuard)
+@UseGuards(TenantPermissionGuard, PermissionGuard)
+@Permissions(PermissionsEnum.CHANGE_ROLES_PERMISSIONS)
 @Controller()
 export class RolePermissionController extends CrudController<RolePermission> {
 	constructor(
@@ -80,8 +81,6 @@ export class RolePermissionController extends CrudController<RolePermission> {
 		description:
 			'Invalid input, The response body may contain clues as to what went wrong'
 	})
-	@UseGuards(PermissionGuard)
-	@Permissions(PermissionsEnum.CHANGE_ROLES_PERMISSIONS)
 	@HttpCode(HttpStatus.CREATED)
 	@Post()
 	async create(
@@ -104,8 +103,6 @@ export class RolePermissionController extends CrudController<RolePermission> {
 		description:
 			'Invalid input, The response body may contain clues as to what went wrong'
 	})
-	@UseGuards(PermissionGuard)
-	@Permissions(PermissionsEnum.CHANGE_ROLES_PERMISSIONS)
 	@HttpCode(HttpStatus.ACCEPTED)
 	@Put(':id')
 	async update(
@@ -116,8 +113,6 @@ export class RolePermissionController extends CrudController<RolePermission> {
 	}
 
 	@HttpCode(HttpStatus.ACCEPTED)
-	@UseGuards(PermissionGuard)
-	@Permissions(PermissionsEnum.CHANGE_ROLES_PERMISSIONS)
 	@Delete(':id')
 	async delete(
 		@Param('id', UUIDValidationPipe) id: string

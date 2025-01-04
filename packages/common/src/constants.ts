@@ -8,4 +8,5 @@ export const DEFAULT_GRAPHQL_API_PATH = 'graphql';
 
 export const DEFAULT_DB_CONNECTION = 'default';
 export const SEEDER_DB_CONNECTION = 'seeder';
+export const ROLES_METADATA = 'roles';
 export const PERMISSIONS_METADATA = 'permissions';

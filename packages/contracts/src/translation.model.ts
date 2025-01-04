@@ -25,3 +25,8 @@ export interface TranslatePropertyInput {
 	propsTranslate: Array<TranslateInput>;
 	propAsArr?: Array<string>;
 }
+
+export const TranslationLanguageMap = {
+	'zh-CN': 'zh',
+	'zh-Hans': 'zh',
+}

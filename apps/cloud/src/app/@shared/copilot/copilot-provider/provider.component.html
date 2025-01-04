@@ -1,12 +1,18 @@
 <div class="group flex pl-3 py-2 pr-2 rounded-t-xl">
   <div class="grow px-1 pt-1 pb-0.5">
-    <div class="flex items-center">
-      <img
-        alt="provider-icon"
-        [src]="icon() | i18n"
-        class="w-auto h-8 mb-2"
-      />
-    </div>
+    @if (icon()) {
+      <div class="flex items-center">
+        <img
+          alt="provider-icon"
+          [src]="icon() | i18n"
+          class="w-auto h-8 mb-2"
+        />
+      </div>
+    } @else {
+      <div class="flex items-center">
+        {{ label() | i18n }}
+      </div>
+    }
     
     <div class="flex gap-0.5">
       @for (modelType of supported_model_types(); track modelType) {
@@ -114,11 +120,11 @@
 
       @for (model of customModels(); track model.id) {
         <div class="group flex items-center pl-2 pr-2.5 h-8 rounded-lg hover:bg-gray-50">
-          <img
-            alt="model-icon"
-            [src]="smallIcon() | i18n"
-            class="w-4 h-4 shrink-0 mr-2"
-          />
+          @if (smallIcon()) {
+            <img alt="model-icon" class="w-4 h-4 shrink-0 mr-2"
+              [src]="smallIcon() | i18n"
+            />
+          }
 
           <div class="flex items-center truncate text-[13px] grow text-sm font-normal text-gray-900">
             <div class="truncate" [title]="model.modelName">{{model.modelName}}</div>
@@ -128,9 +134,7 @@
             </div>
 
             @if (model.modelProperties?.context_size) {
-              <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium text-gray-500 cursor-default ml-1"
-              >
+              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium text-gray-500 cursor-default ml-1">
                 {{(model.modelProperties.context_size / 1000) | number: '0.0-0'}}K
               </div>
             }

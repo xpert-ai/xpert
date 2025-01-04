@@ -216,7 +216,7 @@ export class CopilotKnowledgeService extends TenantOrganizationAwareCrudService<
 
 		if (!this.vectorStores.has(id) || !isEqual(this.vectorStores.get(id).copilot.updatedAt, copilot.updatedAt)) {
 
-			this.#logger.verbose(`Found embedding model for (tenantId: ${tenantId}, organizationId: ${organizationId}, role: ${role}):`, JSON.stringify(pick(copilot,  'role', 'provider', 'defaultModel'), null, 2))
+			this.#logger.verbose(`Found embedding model for (tenantId: ${tenantId}, organizationId: ${organizationId}, role: ${role}):`)
 			
 			const embeddings = await this.getEmbeddings(copilot)
 

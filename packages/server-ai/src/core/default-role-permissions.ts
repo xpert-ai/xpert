@@ -7,6 +7,7 @@ export const DEFAULT_ROLE_PERMISSIONS = [
 			AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
 			AIPermissionsEnum.COPILOT_VIEW,
 			AIPermissionsEnum.COPILOT_EDIT,
+			AIPermissionsEnum.XPERT_EDIT,
 			AIPermissionsEnum.CHAT_VIEW,
 		]
 	},
@@ -16,6 +17,7 @@ export const DEFAULT_ROLE_PERMISSIONS = [
 			AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
 			AIPermissionsEnum.COPILOT_VIEW,
 			AIPermissionsEnum.COPILOT_EDIT,
+			AIPermissionsEnum.XPERT_EDIT,
 			AIPermissionsEnum.CHAT_VIEW,
 		]
 	},
@@ -23,6 +25,7 @@ export const DEFAULT_ROLE_PERMISSIONS = [
 		role: RolesEnum.DATA_ENTRY,
 		defaultEnabledPermissions: [
 			AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
+			AIPermissionsEnum.XPERT_EDIT,
 			AIPermissionsEnum.CHAT_VIEW,
 		]
 	},
@@ -47,6 +50,7 @@ export const DEFAULT_ROLE_PERMISSIONS = [
 			AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
 			AIPermissionsEnum.COPILOT_VIEW,
 			AIPermissionsEnum.COPILOT_EDIT,
+			AIPermissionsEnum.XPERT_EDIT,
 			AIPermissionsEnum.CHAT_VIEW,
 		]
 	}

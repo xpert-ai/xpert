@@ -13,6 +13,8 @@ import { MistralAIProviderModule } from './mistralai/mistralai'
 import { MoonshotProviderModule } from './moonshot/moonshot'
 import { OllamaProviderModule } from './ollama/ollama'
 import { OpenAIProviderModule } from './openai/openai'
+import { OAICompatProviderModule } from './openai_api_compatible/openai_api_compatible'
+import { OpenRouterProviderModule } from './openrouter/openrouter'
 import { TogetherAIProviderModule } from './togetherai/togetherai'
 import { TongyiProviderModule } from './tongyi/tongyi'
 import { XAIProviderModule } from './x/x'
@@ -35,5 +37,7 @@ export const ProviderModules = [
     MoonshotProviderModule,
 	TongyiProviderModule,
 	HuggingfaceHubProviderModule,
-	XAIProviderModule
+	XAIProviderModule,
+	OpenRouterProviderModule,
+	OAICompatProviderModule
 ]

@@ -40,10 +40,8 @@ import {
 	CopilotCheckpointSaver,
 	CopilotKnowledgeService,
 	createExampleFewShotPrompt,
-	createLLM,
 	createReactAgent,
 	createReferencesRetrieverTool,
-	XpertToolsetService
 } from '@metad/server-ai'
 import { getErrorMessage, race, shortuuid, TimeoutError } from '@metad/server-common'
 import { CACHE_MANAGER, Inject, Logger } from '@nestjs/common'
@@ -53,7 +51,6 @@ import { Cache } from 'cache-manager'
 import { firstValueFrom, Subject, Subscriber, switchMap, takeUntil } from 'rxjs'
 import { In } from 'typeorm'
 import { ChatBIModelService } from '../../../chatbi-model/'
-import { createDimensionMemberRetriever, DimensionMemberRetrieverQuery, DimensionMemberRetrieverToolQuery, SemanticModelMemberService } from '../../../model-member'
 import {
 	NgmDSCoreService,
 	OCAP_AGENT_TOKEN,
@@ -92,7 +89,6 @@ export class ChatBIToolHandler implements ICommandHandler<ChatBIToolCommand> {
 		private readonly modelService: ChatBIModelService,
 		private readonly copilotCheckpointSaver: CopilotCheckpointSaver,
 		private readonly copilotKnowledgeService: CopilotKnowledgeService,
-		private readonly semanticModelMemberService: SemanticModelMemberService,
 		@Inject(OCAP_AGENT_TOKEN)
 		private agent: Agent,
 		@Inject(OCAP_DATASOURCE_TOKEN)
@@ -120,11 +116,11 @@ export class ChatBIToolHandler implements ICommandHandler<ChatBIToolCommand> {
 		const cubesContext = await this.registerChatModels(dsCoreService, context)
 		// Prepare LLM
 		const { copilotModel, chatModel } = context
-		const llm =
-			<BaseChatModel>chatModel ??
-			createLLM<BaseChatModel>(copilotModel?.copilot, {}, (input) => {
-				//
-			})
+		const llm = null
+			// <BaseChatModel>chatModel ??
+			// createLLM<BaseChatModel>(copilotModel?.copilot, {}, (input) => {
+			// 	//
+			// })
 		const { tenantId, organizationId } = context
 		const { thread_id } = parentConfig.configurable as { thread_id: string }
 		const { subscriber } = context

@@ -1,4 +1,4 @@
-import { ComponentLayoutStyleEnum, LanguagesEnum } from '@metad/contracts';
+import { LanguagesEnum } from '@metad/contracts';
 
 export const DEFAULT_EMPLOYEES: any = [
 	{
@@ -10,7 +10,6 @@ export const DEFAULT_EMPLOYEES: any = [
 		startedWorkOn: '2018-03-20',
 		employeeLevel: 'A',
 		preferredLanguage: LanguagesEnum.English,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	}
 ];
 
@@ -23,7 +22,6 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		imageUrl: 'assets/images/avatars/ruslan.jpg',
 		employeeLevel: 'A',
 		preferredLanguage: LanguagesEnum.English,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	},
 	{
 		email: 'alish@mtda.cloud',
@@ -35,7 +33,6 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		endWork: null,
 		employeeLevel: 'D',
 		preferredLanguage: LanguagesEnum.English,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	},
 	{
 		email: 'blagovest@mtda.cloud',
@@ -47,7 +44,6 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		endWork: null,
 		employeeLevel: 'C',
 		preferredLanguage: LanguagesEnum.English,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	},
 	{
 		email: 'elvis@mtda.cloud',
@@ -59,7 +55,6 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		endWork: null,
 		employeeLevel: 'C',
 		preferredLanguage: LanguagesEnum.English,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	},
 	{
 		email: 'hristo@mtda.cloud',
@@ -71,7 +66,6 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		endWork: null,
 		employeeLevel: 'B',
 		preferredLanguage: LanguagesEnum.English,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	},
 	{
 		email: 'alex@mtda.cloud',
@@ -83,7 +77,6 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		endWork: null,
 		employeeLevel: 'B',
 		preferredLanguage: LanguagesEnum.English,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	},
 	{
 		email: 'rachit@mtda.cloud',
@@ -95,7 +88,6 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		endWork: null,
 		employeeLevel: null,
 		preferredLanguage: LanguagesEnum.English,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	},
 	{
 		email: 'dimana@mtda.cloud',
@@ -107,7 +99,6 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		endWork: null,
 		employeeLevel: null,
 		preferredLanguage: LanguagesEnum.English,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	},
 	{
 		email: 'pavel@mtda.cloud',
@@ -119,7 +110,6 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		endWork: null,
 		employeeLevel: 'A',
 		preferredLanguage: LanguagesEnum.English,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	},
 	{
 		email: 'yavor@mtda.cloud',
@@ -131,7 +121,6 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		endWork: null,
 		employeeLevel: 'A',
 		preferredLanguage: LanguagesEnum.English,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	},
 	{
 		email: 'tsvetelina@mtda.cloud',
@@ -143,7 +132,6 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		endWork: null,
 		employeeLevel: 'A',
 		preferredLanguage: LanguagesEnum.English,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	},
 	{
 		email: 'muiz@smooper.xyz',
@@ -155,7 +143,6 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		endWork: null,
 		employeeLevel: null,
 		preferredLanguage: LanguagesEnum.English,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	},
 	{
 		email: 'deko898@hotmail.com',
@@ -167,7 +154,6 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		endWork: null,
 		employeeLevel: null,
 		preferredLanguage: LanguagesEnum.English,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	},
 	{
 		email: 'ckhandla94@gmail.com',
@@ -179,7 +165,6 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		endWork: null,
 		employeeLevel: null,
 		preferredLanguage: LanguagesEnum.English,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	},
 	{
 		email: 'julia@mtda.cloud',
@@ -191,7 +176,6 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		endWork: null,
 		employeeLevel: 'C',
 		preferredLanguage: LanguagesEnum.English,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	},
 	{
 		email: 'yordan@mtda.cloud',
@@ -203,6 +187,5 @@ export const DEFAULT_PEANUT_EMPLOYEES: any = [
 		endWork: null,
 		employeeLevel: 'C',
 		preferredLanguage: LanguagesEnum.English,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	}
 ];

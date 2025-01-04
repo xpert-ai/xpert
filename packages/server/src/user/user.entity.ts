@@ -1,6 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import {
-	ComponentLayoutStyleEnum,
 	IEmailVerification,
 	IEmployee,
 	IOrganization,
@@ -110,10 +109,10 @@ export class User extends TenantBaseEntity implements IUser {
 	@Column({ nullable: true })
 	preferredLanguage?: string
 
-	@ApiProperty({ type: () => String, enum: ComponentLayoutStyleEnum })
-	@IsEnum(ComponentLayoutStyleEnum)
-	@Column({ nullable: true })
-	preferredComponentLayout?: string
+	// @ApiProperty({ type: () => String, enum: ComponentLayoutStyleEnum })
+	// @IsEnum(ComponentLayoutStyleEnum)
+	// @Column({ nullable: true })
+	// preferredComponentLayout?: string
 
 	@ApiProperty({ type: () => Boolean })
 	@IsBoolean()
@@ -215,9 +214,9 @@ export class UserPreferredLanguageDTO {
 	readonly preferredLanguage: LanguagesEnum
 }
 
-export class UserPreferredComponentLayoutDTO {
-	@ApiProperty({ type: () => String, enum: ComponentLayoutStyleEnum })
-	@IsNotEmpty()
-	@IsEnum(ComponentLayoutStyleEnum)
-	readonly preferredComponentLayout: ComponentLayoutStyleEnum
-}
+// export class UserPreferredComponentLayoutDTO {
+// 	@ApiProperty({ type: () => String, enum: ComponentLayoutStyleEnum })
+// 	@IsNotEmpty()
+// 	@IsEnum(ComponentLayoutStyleEnum)
+// 	readonly preferredComponentLayout: ComponentLayoutStyleEnum
+// }

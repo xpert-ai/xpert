@@ -3,10 +3,13 @@ import { EventSourceMessage, EventStreamContentType, fetchEventSource } from '@m
 import { firstValueFrom, Observable } from 'rxjs'
 import { AuthStrategy } from '../auth'
 import { Store } from './store.service'
+import { injectLanguage } from '../providers'
 
 export function injectFetchEventSource<T extends BodyInit | null>() {
   const store = inject(Store)
   const auth = inject(AuthStrategy)
+  const lang = injectLanguage()
+
 
   return (url: string, data: T) => {
     return new Observable<EventSourceMessage>((subscriber) => {
@@ -21,7 +24,8 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
-            'Organization-Id': `${organization.id}`
+            'Organization-Id': `${organization.id}`,
+            Language: lang()
           },
           body: data,
           signal: ctrl.signal,

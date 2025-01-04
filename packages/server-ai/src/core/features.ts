@@ -24,15 +24,6 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
 				status: 'info'
 			},
 			{
-				name: 'Copilot Xpert',
-				code: AiFeatureEnum.FEATURE_COPILOT_XPERT,
-				description: 'Manage Xperts of Copilot',
-				link: 'settings/xpert',
-				isEnabled: features.FEATURE_COPILOT_XPERT,
-				icon: 'expert',
-				status: 'info'
-			},
-			{
 				name: 'Copilot Chat',
 				code: AiFeatureEnum.FEATURE_COPILOT_CHAT,
 				description: 'Use Chat of Copilot',
@@ -42,5 +33,15 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
 				status: 'info'
 			}
 		]
+	},
+	{
+		name: 'Xpert',
+		code: AiFeatureEnum.FEATURE_XPERT,
+		description: 'Enable Xpert',
+		image: 'xpert.png',
+		link: '/xpert',
+		isEnabled: features.FEATURE_XPERT,
+		icon: 'assistant',
+		status: 'accent',
 	}
 ]

@@ -1,8 +1,9 @@
-import { TChatOptions, TChatRequest } from '@metad/contracts'
+import { LanguagesEnum, TChatOptions, TChatRequest } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
 import { Body, Controller, Header, Logger, Post, Sse } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
+import { I18nLang } from 'nestjs-i18n'
 import { merge, Observable } from 'rxjs'
 import { ChatCommand } from './commands'
 
@@ -20,10 +21,11 @@ export class ChatController {
 	@Header('Connection', 'keep-alive')
 	@Post('')
 	@Sse()
-	async chat(@Body() body: { request: TChatRequest; options: TChatOptions }) {
+	async chat(@I18nLang() language: LanguagesEnum, @Body() body: { request: TChatRequest; options: TChatOptions }) {
 		const observable = await this.commandBus.execute(
 			new ChatCommand(body.request, {
 				...(body.options ?? {}),
+				language,
 				tenantId: RequestContext.currentTenantId(),
 				organizationId: RequestContext.getOrganizationId(),
 				user: RequestContext.currentUser()

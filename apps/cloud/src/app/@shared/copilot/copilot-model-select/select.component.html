@@ -27,7 +27,10 @@
       </button>
     }
     @if (selectedCopilotWithModels(); as copilot) {
-      <img [src]="copilot.providerWithModels.icon_small | i18n" class="w-4 h-4 mx-1.5">
+      @if (copilot.providerWithModels.icon_small) {
+        <img [src]="copilot.providerWithModels.icon_small | i18n" class="w-4 h-4 mx-1.5">
+      }
+      
       <div class="flex items-center truncate text-[13px] font-medium mr-1.5">
         <div class="truncate" [title]="_copilotModel()?.model">{{_copilotModel()?.model}}</div>
         @if (selectedAiModel()?.model_type === eModelType.LLM) {
@@ -134,7 +137,9 @@
         <div class="text-base px-4 my-4 font-semibold flex justify-start items-center">
           <span class="uppercase">{{ ('PAC.Copilot.Role_' + copilot.role) | translate: {Default: copilot.role} }}</span>
           <span class="mx-1">•</span>
-          <img [src]="(copilot.providerWithModels.icon_small | i18n)" class="w-4 h-4 inline-block mx-1">
+          @if (copilot.providerWithModels.icon_small) {
+            <img [src]="(copilot.providerWithModels.icon_small | i18n)" class="w-4 h-4 inline-block mx-1">
+          }
           {{copilot.providerWithModels?.label | i18n }}
         </div>
         @for (item of copilot.providerWithModels?.models; track item.model) {

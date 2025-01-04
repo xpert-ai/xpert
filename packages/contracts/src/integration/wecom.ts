@@ -7,5 +7,8 @@ export const IntegrationWeComProvider: TIntegrationProvider = {
     zh_Hans: '企业微信'
   },
   avatar: 'wecom.png',
+  schema: {
+    properties: {}
+  },
   pro: true
 }

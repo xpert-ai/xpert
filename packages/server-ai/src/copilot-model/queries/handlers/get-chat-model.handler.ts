@@ -4,6 +4,7 @@ import { CopilotCheckLimitCommand, CopilotTokenRecordCommand } from '../../../co
 import { CopilotModelGetChatModelQuery } from '../get-chat-model.query'
 import { ModelProvider, AIModelGetProviderQuery } from '../../../ai-model'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
+import { CopilotModelNotFoundException } from '../../../core/errors'
 
 @QueryHandler(CopilotModelGetChatModelQuery)
 export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotModelGetChatModelQuery> {
@@ -28,6 +29,9 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 		}))
 
         const copilotModel = command.copilotModel ?? copilot.copilotModel
+		if (!copilotModel) {
+			throw new CopilotModelNotFoundException(`No AI model provided`)
+		}
         const modelName = copilotModel.model
         // Custom model
         const customModels = await this.queryBus.execute(new GetCopilotProviderModelQuery(copilot.modelProvider.id, modelName))

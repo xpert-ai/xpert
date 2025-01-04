@@ -19,6 +19,7 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "All": "所有",
       "Ask": "提问",
       "Certification": "认证",
       "DigitalAssetCertificationTypes": "数字资产认证类型",
@@ -274,7 +275,10 @@
       "Like": "喜欢",
       "Dislike": "不喜欢",
       "CancelLike": "取消喜欢",
-      "CancelDislike": "取不喜欢"
+      "CancelDislike": "取不喜欢",
+      "Upgrade": "更新",
+      "Code": "编码",
+      "Retry": "重试"
     },
     "MENU": {
       "Certification": "认证",
@@ -1530,12 +1534,16 @@
       "Event_on_agent_end": "智能体结束",
       "Event_on_tool_start": "调用工具开始",
       "Event_on_tool_end": "调用工具结束",
+      "Event_on_tool_error": "调用工具错误",
       "Event_on_retriever_start": "知识检索开始",
       "Event_on_retriever_end": "知识检索结束",
+      "Event_on_retriever_error": "知识检索错误",
       "OpenExplorer": "打开数据浏览器",
       "OpenExplain": "打开解释器",
       "ShowMoreIndicators": "展示更多指标",
-      "ShowLessIndicators": "展示少一些指标"
+      "ShowLessIndicators": "展示少一些指标",
+      "GotoNewXpert": "去新建数字专家",
+      "NewCalculatedIndicator": "新建计算指标"
     },
     "ChatBI": {
       "Title": "ChatBI-数据分析与洞察",
@@ -1774,7 +1782,11 @@
         },
         "FEATURE_DATA_FACTORY": {
           "Name": "数据工厂",
-          "Description": "负责自动化、标准化和高效地处理、转换和存储数据，以支持数据分析、应用和决策。"
+          "Description": "负责自动化、标准化和高效地处理、转换和存储数据，以支持数据分析、应用和决策"
+        },
+        "FEATURE_XPERT": {
+          "Name": "数字专家",
+          "Description": "数字专家模块"
         }
       }
     },
@@ -2269,7 +2281,8 @@
         "CHAT_VIEW": "使用智能对话",
         "INTEGRATION_EDIT": "维护集成连接",
         "DATA_FACTORY_VIEW": "使用数据工厂",
-        "DATA_FACTORY_EDIT": "管理数据工厂配置"
+        "DATA_FACTORY_EDIT": "管理数据工厂配置",
+        "XPERT_EDIT": "管理数字专家"
       },
       "Organization": {
         "AllOrganizations": "所有组织",

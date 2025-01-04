@@ -1,5 +1,4 @@
 import {
-	FeatureEnum,
 	IFeatureOrganization,
 	IFeatureOrganizationUpdateInput,
 	IPagination,
@@ -17,7 +16,7 @@ import { FeatureService } from './feature.service'
 import { getFeatureToggleDefinitions } from './default-features'
 
 @ApiTags('Feature')
-@Controller()
+@Controller('toggle')
 export class FeatureToggleController {
 	constructor(
 		private readonly featureService: FeatureService,

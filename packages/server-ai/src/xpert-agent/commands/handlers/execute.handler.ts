@@ -23,7 +23,7 @@ import { createReactAgent } from './react_agent_executor'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { getErrorMessage } from '@metad/server-common'
-import { AgentStateAnnotation, parseXmlString, TSubAgent } from './types'
+import { AgentStateAnnotation, parseXmlString, STATE_VARIABLE_SYS_LANGUAGE, TSubAgent } from './types'
 import { CompleteToolCallsQuery } from '../../queries'
 import { memoryPrompt } from '../../../copilot-store/utils'
 
@@ -200,6 +200,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			graph.streamEvents(
 				input?.input ? {
 					...input,
+					[STATE_VARIABLE_SYS_LANGUAGE]: options.language || null,
 					memories,
 					messages: [new HumanMessage(input.input)]
 				} : null,

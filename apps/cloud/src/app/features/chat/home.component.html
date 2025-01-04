@@ -6,15 +6,7 @@
       waIntersectionObserver
       waIntersectionThreshold="0.5"
     >
-      <ul cdkListbox>
-        @for (xpert of xperts(); track xpert.id) {
-          <li [cdkOption]="role" class="flex items-center cursor-pointer px-4 py-2 rounded-lg truncate
-            active:scale-95 transition-transform
-           hover:bg-black/5 dark:hover:bg-white/10"
-            (click)="selectXpert(xpert)"
-          ><emoji-avatar [avatar]="xpert.avatar" xs class="rounded-lg overflow-hidden shadow-sm mr-1" />{{xpert.title || xpert.name}}</li>
-        }
-      </ul>
+      <pac-chat-xperts />
 
       <mat-list>
         @for (group of groups(); track groups.name) {
@@ -23,7 +15,7 @@
           @for (item of group.values; track item.id) {
             <mat-list-item class="pac-chat__conversation-item group cursor-pointer rounded-md hover:bg-black/5 dark:hover:bg-white/10"
               [ngClass]="{active: item.id === conversationId()}"
-              [class.menu-active]="mt.menuOpen"
+              [class.menu-active]="mt.isOpen()"
               (click)="selectConversation(item)"
             >
             @if (editingConversation()  === item.id) {
@@ -34,13 +26,13 @@
 
               <div class="absolute bottom-0 top-0 items-center gap-1.5 pr-2 right-0 flex">
                 <span class="" data-state="closed">
-                  <button class="menu-trigger flex items-center justify-center text-token-text-secondary transition opacity-0
-                    group-hover:opacity-50 group-hover:hover:opacity-100"
-                    type="button" id="radix-:r5pv:" aria-haspopup="menu" aria-expanded="false" data-state="closed"
-                    [matMenuTriggerFor]="convMenu"
-                    [matMenuTriggerData]="item"
-                    #mt="matMenuTrigger"
-                    [class.active]="mt.menuOpen"
+                  <button class="menu-trigger flex items-center justify-center p-1 rounded-full text-token-text-secondary transition opacity-0
+                    group-hover:opacity-50 group-hover:hover:opacity-100 hover:bg-hover-bg"
+                    type="button"
+                    [cdkMenuTriggerFor]="convMenu"
+                    [cdkMenuTriggerData]="item"
+                    #mt="cdkMenuTriggerFor"
+                    [class.active]="mt.isOpen()"
                     [matTooltip]="'PAC.KEY_WORDS.Options' | translate: {Default: 'Options'} "
                     matTooltipPosition="above"
                     (click)="$event.stopPropagation();">
@@ -78,7 +70,7 @@
 
           <div class="w-full flex flex-col items-center gap-2">
             <p class="text-xl">{{role().title || role().name}}</p>
-            <p class="text-token-text-secondary">{{role().description}}</p>
+            <p class="w-96 text-center text-text-secondary line-clamp-5" [title]="role().description">{{role().description}}</p>
           </div>
 
           <div class="mx-3 mt-12 flex max-w-3xl flex-wrap items-stretch justify-center gap-4 mb-8">
@@ -105,16 +97,16 @@
   </mat-sidenav-content>
 </mat-sidenav-container>
 
-<mat-menu #convMenu="matMenu" class="ngm-density__compact">
-  <ng-template matMenuContent let-id="id" let-title="title">
-    <button mat-menu-item (click)="editingConversation.set(id);editingTitle.set(title)">
-      <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+<ng-template #convMenu let-id="id" let-title="title">
+  <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem (click)="editingConversation.set(id);editingTitle.set(title)">
+      <i class="ri-edit-line mr-1"></i>
       {{ 'PAC.KEY_WORDS.Rename' | translate: {Default: 'Rename'} }}
     </button>
 
-    <button mat-menu-item ngmAppearance="danger" (click)="deleteConv(id)">
-      <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
+    <button cdkMenuItem class="danger" (click)="deleteConv(id)">
+      <i class="ri-delete-bin-4-line mr-1"></i>
       {{ 'PAC.KEY_WORDS.Delete' | translate: {Default: 'Delete'} }}
     </button>
-  </ng-template>
-</mat-menu>
+  </div>
+</ng-template>

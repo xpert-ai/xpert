@@ -11,8 +11,14 @@ import { map, switchMap, tap } from 'rxjs/operators'
 import { environment } from '../../../environments/environment'
 import { FeatureService, FeatureStoreService, Store } from '../../@core/services'
 import { TranslationBaseComponent } from '../language/translation-base.component'
+import { CommonModule } from '@angular/common'
+import { TranslateModule } from '@ngx-translate/core'
+import { MaterialModule } from '../material.module'
 
 @Component({
+  standalone: true,
+  imports: [CommonModule, TranslateModule, MaterialModule],
+  providers: [FeatureStoreService],
   selector: 'pac-feature-toggle',
   templateUrl: './feature-toggle.component.html',
   styleUrls: ['./feature-toggle.component.scss']
@@ -89,7 +95,6 @@ export class FeatureToggleComponent extends TranslationBaseComponent {
         })
 
         this.featureToggles.set(featureToggles)
-        console.log(featureToggles)
 
         this.loading.set(false)
       },

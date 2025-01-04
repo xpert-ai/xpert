@@ -15,9 +15,7 @@ import {
 	IEmployee,
 	IRole,
 	InvitationExpirationEnum,
-	IInvite,
 	InvitationTypeEnum,
-	IJoinEmployeeModel
 } from '@metad/contracts';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';

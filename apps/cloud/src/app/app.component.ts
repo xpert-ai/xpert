@@ -1,22 +1,11 @@
 import { Platform } from '@angular/cdk/platform'
 import { DOCUMENT } from '@angular/common'
 import { ChangeDetectionStrategy, Component, Inject, Renderer2, effect } from '@angular/core'
-import { DateFnsAdapter, MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter'
-import { DateAdapter, MAT_DATE_FORMATS } from '@angular/material/core'
 import { MatIconRegistry } from '@angular/material/icon'
 import { DomSanitizer, Title } from '@angular/platform-browser'
-import { nonBlank, nonNullable } from '@metad/core'
-import { TranslateService } from '@ngx-translate/core'
-import { NGXLogger } from 'ngx-logger'
-import { filter, startWith } from 'rxjs/operators'
 import {
   ICONS,
-  LanguagesService,
-  PACThemeService,
-  Store,
   UpdateService,
-  mapDateLocale,
-  navigatorLanguage
 } from './@core'
 import { AppService } from './app.service'
 
@@ -25,25 +14,14 @@ import { AppService } from './app.service'
   selector: 'pac-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
-  providers: [
-    {
-      provide: DateAdapter,
-      useClass: DateFnsAdapter
-    },
-    { provide: MAT_DATE_FORMATS, useValue: MAT_DATE_FNS_FORMATS }
-  ]
+  providers: []
 })
 export class AppComponent {
   readonly isMobile$ = this.appService.isMobile
 
   constructor(
-    private store: Store,
     public readonly appService: AppService,
     public readonly updateService: UpdateService,
-    private readonly themeService: PACThemeService,
-    private readonly languagesService: LanguagesService,
-    private translate: TranslateService,
-    private logger: NGXLogger,
     @Inject(DOCUMENT)
     private document: Document,
     private renderer: Renderer2,
@@ -51,21 +29,7 @@ export class AppComponent {
     private domSanitizer: DomSanitizer,
     private platform: Platform,
     private title: Title,
-    private _adapter: DateAdapter<any>
   ) {
-    translate.setDefaultLang('en')
-    // the lang to use, if the lang isn't available, it will use the current loader to get them
-    translate.use(this.store.preferredLanguage || navigatorLanguage())
-    this.document.documentElement.lang = translate.currentLang
-
-    this.store.preferredLanguage$.pipe(filter(nonNullable), startWith(translate.currentLang)).subscribe((language) => {
-      this.translate.use(language)
-      this.document.documentElement.lang = language
-      this._adapter.setLocale(mapDateLocale(language))
-    })
-
-    // this.translate.stream('PAC.Title').subscribe((title) => this.title.setTitle(title))
-
     ICONS.forEach((icon) => {
       this.matIconRegistry.addSvgIcon(icon.name, this.domSanitizer.bypassSecurityTrustResourceUrl(icon.resourceUrl))
     })
