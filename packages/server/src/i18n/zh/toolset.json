@@ -16,6 +16,12 @@
     "Formula": "公式",
     "Unit": "单位",
     "AnalysisConditions": "分析条件",
-    "QueryStatement": "查询语句"
+    "QueryStatement": "查询语句",
+    "ChartTypes": {
+      "Line": "线图",
+      "Column": "柱形图",
+      "Bar": "条形图",
+      "Pie": "饼图"
+    }
   }
 }

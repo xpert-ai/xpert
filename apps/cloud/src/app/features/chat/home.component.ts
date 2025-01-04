@@ -240,7 +240,7 @@ export class ChatHomeComponent {
 
           this.#semanticModels.update((state) => {
             return Object.keys(state).reduce((acc, key) => {
-              acc[key] = { ...state[key], dirty: !state[key].model }
+              acc[key] = { ...state[key], dirty: state[key].model ? false : state[key].dirty }
               return acc
             }, {})
           })

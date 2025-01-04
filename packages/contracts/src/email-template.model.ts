@@ -48,8 +48,3 @@ export interface IEmailTemplateSaveInput
 	mjml: string;
 	subject: string;
 }
-
-export const EmailLanguageCodeMap = {
-	'zh-CN': 'zh',
-	'zh-Hans': 'zh',
-}

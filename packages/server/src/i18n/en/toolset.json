@@ -16,6 +16,12 @@
     "Formula": "Formula",
     "Unit": "Unit",
     "AnalysisConditions": "Analysis conditions",
-    "QueryStatement": "Query statement"
+    "QueryStatement": "Query statement",
+    "ChartTypes": {
+      "Line": "Line",
+      "Column": "Column",
+      "Bar": "Bar",
+      "Pie": "Pie"
+    }
   }
 }

@@ -336,7 +336,7 @@ export type TChatRequest = {
   xpertId: string
   conversationId?: string
   id?: string
-  language?: string
+  // language?: string
   toolCalls?: ToolCall[]
   confirm?: boolean
   reject?: boolean
@@ -346,6 +346,7 @@ export type TChatRequest = {
 export type TChatOptions = {
   knowledgebases?: string[]
   toolsets?: string[]
+  language?: string
 }
 
 // Helpers

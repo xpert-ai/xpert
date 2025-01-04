@@ -276,7 +276,9 @@
       "Dislike": "不喜欢",
       "CancelLike": "取消喜欢",
       "CancelDislike": "取不喜欢",
-      "Upgrade": "更新"
+      "Upgrade": "更新",
+      "Code": "编码",
+      "Retry": "重试"
     },
     "MENU": {
       "Certification": "认证",
@@ -1532,13 +1534,16 @@
       "Event_on_agent_end": "智能体结束",
       "Event_on_tool_start": "调用工具开始",
       "Event_on_tool_end": "调用工具结束",
+      "Event_on_tool_error": "调用工具错误",
       "Event_on_retriever_start": "知识检索开始",
       "Event_on_retriever_end": "知识检索结束",
+      "Event_on_retriever_error": "知识检索错误",
       "OpenExplorer": "打开数据浏览器",
       "OpenExplain": "打开解释器",
       "ShowMoreIndicators": "展示更多指标",
       "ShowLessIndicators": "展示少一些指标",
-      "GotoNewXpert": "去新建数字专家"
+      "GotoNewXpert": "去新建数字专家",
+      "NewCalculatedIndicator": "新建计算指标"
     },
     "ChatBI": {
       "Title": "ChatBI-数据分析与洞察",

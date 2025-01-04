@@ -33,7 +33,7 @@ export class ChatComponentIndicatorsComponent {
   eTimeGranularity = TimeGranularity
 
   // Inputs
-  readonly indicators = input<Array<DataSettings & { indicator: string }>>()
+  readonly indicators = input<Array<Pick<DataSettings, 'dataSource'> & Pick<DataSettings, 'entitySet'> & { indicatorCode: string }>>()
 
   // States
   readonly pageSize = signal(5)

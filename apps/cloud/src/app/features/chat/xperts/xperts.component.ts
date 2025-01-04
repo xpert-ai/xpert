@@ -52,7 +52,7 @@ export class ChatXpertsComponent {
       const sortOrderMap = new Map(sortOrder.map((id, index) => [id, index]))
       xperts.sort(
         (a, b) =>
-          (sortOrderMap.get(a.id) ?? Infinity) - (sortOrderMap.get(b.id) ?? Infinity) ||
+          (sortOrderMap.get(a.id) ?? 0) - (sortOrderMap.get(b.id) ?? 0) ||
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       )
     }
@@ -60,8 +60,8 @@ export class ChatXpertsComponent {
   })
 
   readonly hasMore = computed(() => {
-    const totalXperts = this.chatService.xperts().length
-    return totalXperts > (this.pageNo() + 1) * this.pageSize()
+    const totalXperts = this.chatService.xperts()?.length
+    return totalXperts > this.pageNo() * this.pageSize()
   })
 
   readonly hasEditXpertPermission = toSignal(

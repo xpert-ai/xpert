@@ -132,6 +132,16 @@
       "zh-Hans": "Simplied Chinese",
       "zh-Hant": "Traditional Chinese"
     },
+    "Chat": {
+      "Event_on_agent_start": "Agent start",
+      "Event_on_agent_end": "Agent end",
+      "Event_on_tool_start": "Tool start",
+      "Event_on_tool_end": "Tool end",
+      "Event_on_tool_error": "Tool error",
+      "Event_on_retriever_start": "Knowledge retrieve start",
+      "Event_on_retriever_end": "Knowledge retrieve end",
+      "Event_on_retriever_error": "Knowledge retrieve error"
+    },
     "title": {
       "short": "Analytics Cloud"
     },

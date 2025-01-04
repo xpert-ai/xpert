@@ -27,7 +27,8 @@ export function createShowIndicatorsTool(context: ChatBIContext, credentials: TC
 							indicators: indicators.map((indicator) => ({
 								...indicator,
 								dataSource,
-								entitySet: indicator.cube
+								entitySet: indicator.cube,
+								indicatorCode: indicator.indicator
 							}))
 						} as unknown as JSONValue
 					}

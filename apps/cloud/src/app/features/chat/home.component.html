@@ -70,7 +70,7 @@
 
           <div class="w-full flex flex-col items-center gap-2">
             <p class="text-xl">{{role().title || role().name}}</p>
-            <p class="text-token-text-secondary">{{role().description}}</p>
+            <p class="w-96 text-center text-text-secondary line-clamp-5" [title]="role().description">{{role().description}}</p>
           </div>
 
           <div class="mx-3 mt-12 flex max-w-3xl flex-wrap items-stretch justify-center gap-4 mb-8">
