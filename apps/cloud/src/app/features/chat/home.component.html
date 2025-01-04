@@ -6,26 +6,7 @@
       waIntersectionObserver
       waIntersectionThreshold="0.5"
     >
-      <ul cdkListbox>
-        @for (xpert of xperts(); track xpert.id) {
-          <li [cdkOption]="role" class="flex items-center cursor-pointer px-4 py-2 rounded-lg truncate
-            active:scale-95 transition-transform
-           hover:bg-black/5 dark:hover:bg-white/10"
-            (click)="selectXpert(xpert)"
-          ><emoji-avatar [avatar]="xpert.avatar" xs class="rounded-lg overflow-hidden shadow-sm mr-1" />{{xpert.title || xpert.name}}</li>
-        } @empty {
-          @if (hasEditXpertPermission()) {
-            <div class="w-full flex justify-center">
-              <button type="button" class="btn btn-primary px-3 py-1"
-                routerLink="/xpert/w"
-              >
-                {{ 'PAC.Chat.GotoNewXpert' | translate: {Default: 'Go to New Digital Expert'} }}
-                <i class="ri-corner-up-right-fill ml-1 text-lg"></i>
-              </button>
-            </div>
-          }
-        }
-      </ul>
+      <pac-chat-xperts />
 
       <mat-list>
         @for (group of groups(); track groups.name) {

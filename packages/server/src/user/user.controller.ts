@@ -37,7 +37,7 @@ import { RequestContext } from '../core/context';
 import { UUIDValidationPipe, ParseJsonPipe } from './../shared/pipes';
 import { PermissionGuard, TenantPermissionGuard } from './../shared/guards';
 import { Permissions } from './../shared/decorators';
-import { User, UserPreferredComponentLayoutDTO, UserPreferredLanguageDTO } from './user.entity';
+import { User, UserPreferredLanguageDTO } from './user.entity';
 import { UserService } from './user.service';
 import { UserCreateCommand } from './commands';
 import { FactoryResetService } from './factory-reset/factory-reset.service';
@@ -137,38 +137,6 @@ export class UserController extends CrudController<User> {
 			preferredLanguage
 		);
 	}
-
-	/**
-	 * UPDATE user preferred component layout
-	 * 
-	 * @param id 
-	 * @param entity 
-	 * @param options 
-	 * @returns 
-	 */
-	@HttpCode(HttpStatus.ACCEPTED)
-	@UseGuards(TenantPermissionGuard)
-	@Put('/preferred-layout/:id')
-	@UsePipes(new ValidationPipe({
-		transform: true,
-		whitelist: true
-	}))
-	async updatePreferredComponentLayout(
-		@Param('id', UUIDValidationPipe) id: string,
-		@Body() entity: UserPreferredComponentLayoutDTO
-	) {
-		const userId = RequestContext.currentUserId();
-		if (userId !== id) {
-			throw new ForbiddenException();
-		}
-		
-		const { preferredComponentLayout } = entity;
-		return this.userService.updatePreferredComponentLayout(
-			id, 
-			preferredComponentLayout
-		);
-	}
-
 
 	/**
 	 * GET user count

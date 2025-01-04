@@ -8,7 +8,6 @@ import {
 	IFeatureToggle,
 	IFeatureOrganization,
 	ISelectedEmployee,
-	ComponentLayoutStyleEnum,
 	PermissionsEnum,
 	IProject,
 	FeatureEnum,
@@ -20,10 +19,9 @@ import { Injectable, inject } from '@angular/core';
 import { StoreConfig, Store as AkitaStore, Query } from '@datorama/akita';
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions';
 import { distinctUntilChanged, map } from 'rxjs/operators';
-import { combineLatest, merge, Subject } from 'rxjs';
+import { combineLatest } from 'rxjs';
 import { uniqBy } from 'lodash-es';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ComponentEnum } from './constants';
 import { ThemesEnum, prefersColorScheme } from '@metad/ocap-angular/core';
 
 
@@ -57,14 +55,6 @@ export interface PersistState {
 	preferredLanguage: LanguagesEnum;
 	preferredTheme: ThemesEnum;
 	/**
-	 * @deprecated unused
-	 */
-	preferredComponentLayout: ComponentLayoutStyleEnum;
-	/**
-	 * @deprecated unused
-	 */
-	componentLayout: any[]; //This would be a Map but since Maps can't be serialized/deserialized it is stored as an array
-	/**
 	 * The cache level for the ocap framework
 	 */
 	cacheLevel: number
@@ -77,6 +67,15 @@ export interface PersistState {
 	 * Business Role of the copilot
 	 */
 	copilotRole?: string
+	/**
+	 * preferences for xperts
+	 */
+	xpert: {
+		/**
+		 * Order of xperts in chat page
+		 */
+		sortOrder: string[]
+	}
 }
 
 export function createInitialAppState(): AppState {
@@ -99,6 +98,7 @@ export function createInitialPersistState(): PersistState {
 	const componentLayout = localStorage.getItem('componentLayout') || [];
 	const cacheLevel = localStorage.getItem('cacheLevel') || null;
 	const fixedLayoutSider = true
+	const xpert = localStorage.getItem('xpert') || null;
 
 	return {
 		token,
@@ -108,7 +108,8 @@ export function createInitialPersistState(): PersistState {
 		preferredLanguage,
 		componentLayout,
 		cacheLevel,
-		fixedLayoutSider
+		fixedLayoutSider,
+		xpert,
 	} as unknown as PersistState;
 }
 
@@ -177,65 +178,17 @@ export class Store {
 		.pipe(
 			map(([primary, systemColorScheme]) => (primary === ThemesEnum.system || !primary) ? systemColorScheme : primary)
 		)
-	preferredComponentLayout$ = this.persistQuery.select(
-		(state) => state.preferredComponentLayout
-	);
-	componentLayoutMap$ = this.persistQuery
-		.select((state) => state.componentLayout)
-		.pipe(map((componentLayout) => new Map(componentLayout)));
+
 	systemLanguages$ = this.appQuery.select((state) => state.systemLanguages);
 	tenantSettings$ = this.appQuery.select((state) => state.tenantSettings);
 
 	token$ = this.persistQuery.select((state) => state.token);
-	
-	subject = new Subject<ComponentEnum>();
 
 	// Signals
 	readonly fixedLayoutSider = toSignal(this.persistQuery.select((state) => state.fixedLayoutSider))
 	readonly pinStoryToolbar = toSignal(this.persistQuery.select((state) => state.pinStoryToolbar))
 	readonly copilotRole = toSignal(this.persistQuery.select((state) => state.copilotRole))
-
-	/**
-	 * Observe any change to the component layout.
-	 * Returns the layout for the component given in the params in the following order of preference
-	 * 1. If overridden at component level, return that.
-	 * Else
-	 * 2. If preferred layout set, then return that
-	 * Else
-	 * 3. Return the system default layout
-	 */
-	componentLayout$(component: ComponentEnum) {
-		return merge(
-			this.persistQuery
-				.select((state) => state.preferredComponentLayout)
-				.pipe(
-					map((preferredLayout) => {
-						const dataLayout = this.getLayoutForComponent(
-							component
-						);
-						return (
-							dataLayout ||
-							preferredLayout
-							// ||
-							// SYSTEM_DEFAULT_LAYOUT
-						);
-					})
-				),
-			this.persistQuery
-				.select((state) => state.componentLayout)
-				.pipe(
-					map((componentLayout) => {
-						const componentMap = new Map(componentLayout);
-						return (
-							componentMap.get(component) ||
-							this.preferredComponentLayout
-							// ||
-							// SYSTEM_DEFAULT_LAYOUT
-						);
-					})
-				)
-		);
-	}
+	readonly xpert = toSignal(this.persistQuery.select((state) => state.xpert))
 
 	set selectedOrganization(organization: IOrganization) {
 		this.appStore.update({
@@ -314,6 +267,9 @@ export class Store {
 		});
 	}
 
+	/**
+	 * @deprecated use injectOrganizationId
+	 */
 	get organizationId(): IOrganization['id'] | null {
 		const { organizationId } = this.persistQuery.getValue();
 		return organizationId;
@@ -488,17 +444,6 @@ export class Store {
 		});
 	}
 
-	get preferredComponentLayout(): any | null {
-		const { preferredComponentLayout } = this.persistQuery.getValue();
-		return preferredComponentLayout;
-	}
-
-	set preferredComponentLayout(preferredComponentLayout) {
-		this.persistStore.update({
-			preferredComponentLayout: preferredComponentLayout
-		});
-	}
-
 	get cacheLevel(): any | null {
 		const { cacheLevel } = this.persistQuery.getValue();
 		return cacheLevel;
@@ -574,39 +519,23 @@ export class Store {
 		this.permissionsService.loadPermissions(permissions);
 	}
 
-	getLayoutForComponent(
-		componentName: ComponentEnum
-	): ComponentLayoutStyleEnum {
-		const { componentLayout } = this.persistQuery.getValue();
-		const componentLayoutMap = new Map(componentLayout);
-		return componentLayoutMap.get(
-			componentName
-		) as ComponentLayoutStyleEnum;
-	}
-
-	setLayoutForComponent(
-		componentName: ComponentEnum,
-		style: ComponentLayoutStyleEnum
-	) {
-		const { componentLayout } = this.persistQuery.getValue();
-		const componentLayoutMap = new Map(componentLayout);
-		componentLayoutMap.set(componentName, style);
-		const componentLayoutArray = Array.from(
-			componentLayoutMap.entries()
-		) as any;
-		this.persistStore.update({
-			componentLayout: componentLayoutArray
-		});
-	}
-
-	set componentLayout(componentLayout: any[]) {
-		this.persistStore.update({
-			componentLayout
-		});
-	}
-
 	selectOrganizationId() {
 		return this.selectedOrganization$.pipe(map((org) => org?.id), distinctUntilChanged())
+	}
+
+	/**
+	 * Update preferences of xperts
+	 * 
+	 * @param xpert preferences
+	 */
+	updateXpert(xpert: Partial<PersistState['xpert']>) {
+		this.persistStore.update((state) => {
+			state.xpert = {
+				...(state.xpert ?? {}),
+				...xpert
+			} as PersistState['xpert']
+			return {...state}
+		})
 	}
 }
 
@@ -618,4 +547,9 @@ export function injectOrganizationId() {
 export function injectOrganization() {
 	const store = inject(Store)
 	return toSignal(store.selectedOrganization$)
+}
+
+export function injectXpertPreferences() {
+	const store = inject(Store)
+	return store.xpert
 }

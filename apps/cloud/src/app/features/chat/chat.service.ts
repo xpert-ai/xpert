@@ -37,6 +37,7 @@ import {
   IChatMessage,
   ToolCall,
   IChatMessageFeedback,
+  OrderTypeEnum,
 } from '../../@core'
 import { ChatConversationService, ChatService as ChatServerService, XpertService, ToastrService, ChatMessageFeedbackService } from '../../@core/services'
 import { AppService } from '../../app.service'
@@ -89,7 +90,7 @@ export class ChatService {
   readonly lang = this.appService.lang
   readonly xperts = derivedFrom(
     [
-      this.xpertService.getMyAll({ where: { type: XpertTypeEnum.Agent, latest: true }, relations: ['knowledgebases', 'toolsets'] })
+      this.xpertService.getMyAll({ where: { type: XpertTypeEnum.Agent, latest: true }, order: {createdAt: OrderTypeEnum.DESC} })
         .pipe(map(({ items }) => items)),
       this.lang
     ],
@@ -102,7 +103,7 @@ export class ChatService {
         }
       })
     ),
-    { initialValue: [] }
+    { initialValue: null }
   )
 
   readonly xpert = derivedFrom(

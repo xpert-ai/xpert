@@ -1,4 +1,4 @@
-import { ComponentLayoutStyleEnum, LanguagesEnum } from '@metad/contracts'
+import { LanguagesEnum } from '@metad/contracts'
 
 export const EMAIL_ADDRESS = '@mtda.cloud'
 
@@ -10,7 +10,6 @@ export const DEFAULT_SUPER_ADMINS = [
 		lastName: 'Admin',
 		imageUrl: 'assets/images/avatar-default.svg',
 		preferredLanguage: LanguagesEnum.Chinese,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	}
 ]
 
@@ -22,6 +21,5 @@ export const DEFAULT_ADMINS = [
 		lastName: 'Admin',
 		imageUrl: 'assets/images/avatar-default.svg',
 		preferredLanguage: LanguagesEnum.Chinese,
-		preferredComponentLayout: ComponentLayoutStyleEnum.TABLE
 	}
 ]

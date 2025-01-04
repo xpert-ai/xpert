@@ -10,7 +10,6 @@ import {
 	IRole,
 	ITenant,
 	IUser,
-	ComponentLayoutStyleEnum,
 	DEFAULT_TENANT
 } from '@metad/contracts';
 import { User } from './user.entity';
@@ -349,7 +348,6 @@ const generateDefaultUser = async (
 		email,
 		imageUrl,
 		preferredLanguage,
-		preferredComponentLayout = ComponentLayoutStyleEnum.TABLE
 	} = defaultUser;
 
 	user.email = tenant.name === DEFAULT_TENANT ? email : email.replace(EMAIL_ADDRESS, `.${tenant.name.toLowerCase()}${EMAIL_ADDRESS}`);
@@ -361,7 +359,6 @@ const generateDefaultUser = async (
 	user.imageUrl = imageUrl;
 	user.tenant = tenant;
 	user.preferredLanguage = preferredLanguage;
-	user.preferredComponentLayout = preferredComponentLayout;
 
 	user.hash = await bcrypt.hash(
 		defaultUser.password,
