@@ -86,7 +86,7 @@ export class KnowledgebaseService extends TenantOrganizationAwareCrudService<Kno
 		}
 
 		if (requiredEmbeddings && !embeddings) {
-			throw new AiModelNotFoundException(`Embeddings model '${copilotModel.model || copilotModel.copilot.defaultModel}' not found for knowledgebase '${knowledgebase.name}'`)
+			throw new AiModelNotFoundException(`Embeddings model '${copilotModel.model || copilot?.copilotModel?.model}' not found for knowledgebase '${knowledgebase.name}'`)
 		}
 
 		const vectorStore = new KnowledgeDocumentVectorStore(knowledgebase, this.pgPool, embeddings)

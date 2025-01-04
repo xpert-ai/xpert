@@ -1,9 +1,9 @@
-import { AiProvider, AiProviderRole, ICopilot, ICopilotModel, ICopilotProvider, TCopilotTokenUsage } from '@metad/contracts'
-import { IsSecret, TenantOrganizationBaseEntity, WrapSecrets } from '@metad/server-core'
+import { AiProviderRole, ICopilot, ICopilotModel, ICopilotProvider, TCopilotTokenUsage } from '@metad/contracts'
+import { IsSecret, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { Exclude, Expose } from 'class-transformer'
+import { Expose } from 'class-transformer'
 import { IsBoolean, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
-import { AfterLoad, Column, Entity, JoinColumn, OneToOne, RelationId } from 'typeorm'
+import { Column, Entity, JoinColumn, OneToOne, RelationId } from 'typeorm'
 import { CopilotModel, CopilotProvider } from '../core/entities/internal'
 
 @Entity('copilot')
@@ -20,43 +20,6 @@ export class Copilot extends TenantOrganizationBaseEntity implements ICopilot {
 	@IsOptional()
 	@Column({ nullable: true, length: 10 })
 	role: AiProviderRole
-
-	/**
-	 * @deprecated
-	 */
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@IsOptional()
-	@Column({ nullable: true, length: 20 })
-	provider?: AiProvider
-
-	/**
-	 * @deprecated
-	 */
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@IsOptional()
-	@Exclude({ toPlainOnly: true })
-	@Column({ nullable: true })
-	apiKey?: string
-
-	/**
-	 * @deprecated
-	 */
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@IsOptional()
-	@Column({ nullable: true })
-	apiHost?: string
-
-	/**
-	 * @deprecated
-	 */
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
-	@IsOptional()
-	@Column({ nullable: true })
-	defaultModel?: string
 
 	@ApiPropertyOptional({ type: () => Boolean })
 	@IsBoolean()
@@ -95,7 +58,6 @@ export class Copilot extends TenantOrganizationBaseEntity implements ICopilot {
 	@IsOptional()
 	@OneToOne(() => CopilotModel, { 
 		eager: true,
-		cascade: true,
 	})
 	@JoinColumn()
 	copilotModel?: ICopilotModel
@@ -109,9 +71,9 @@ export class Copilot extends TenantOrganizationBaseEntity implements ICopilot {
 	// Temporary properties
 	usage?: TCopilotTokenUsage
 
-	@AfterLoad()
-	afterLoadEntity?() {
-		this.secretKey = this.apiKey
-		WrapSecrets(this, this)
-	}
+	// @AfterLoad()
+	// afterLoadEntity?() {
+	// 	this.secretKey = this.apiKey
+	// 	WrapSecrets(this, this)
+	// }
 }

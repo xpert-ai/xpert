@@ -99,5 +99,5 @@ export class KnowledgeDocumentVectorStore extends PGVectorStore {
 }
 
 function getCopilotModel(knowledgebase: IKnowledgebase) {
-	return knowledgebase.copilotModel?.model || knowledgebase.copilotModel?.copilot?.defaultModel
+	return knowledgebase.copilotModel?.model || knowledgebase.copilotModel?.copilot?.copilotModel?.model
 }

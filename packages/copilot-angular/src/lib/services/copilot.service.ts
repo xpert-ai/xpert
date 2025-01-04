@@ -10,7 +10,7 @@ import {
 } from '@metad/copilot'
 import { TranslateService } from '@ngx-translate/core'
 import { combineLatest, map, shareReplay, startWith } from 'rxjs'
-import { createLLM, } from '../core'
+import { createLLM } from '../core'
 
 @Injectable()
 export abstract class NgmCopilotService extends CopilotService {
@@ -83,7 +83,7 @@ export abstract class NgmCopilotService extends CopilotService {
       const role = this.roleDetail()
       return copilot?.enabled
         ? createLLM(
-            { ...copilot, defaultModel: role?.copilotModel?.model || copilot.defaultModel },
+            { ...copilot, copilotModel: role?.copilotModel || copilot.copilotModel },
             this.credentials(),
             clientOptions,
             (input) => {

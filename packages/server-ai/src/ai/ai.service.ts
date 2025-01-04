@@ -1,39 +1,15 @@
-import { ICopilot } from '@metad/contracts'
-import { AI_PROVIDERS } from '@metad/copilot'
-import { Injectable, Inject } from '@nestjs/common'
-import { QueryBus } from '@nestjs/cqrs'
-import axios from 'axios'
-import { PassThrough } from 'stream'
-import { CopilotGetOneQuery, CopilotService } from '../copilot'
 import { RequestContext } from '@metad/server-core'
+import { Inject, Injectable } from '@nestjs/common'
+import { QueryBus } from '@nestjs/cqrs'
+import { CopilotGetOneQuery } from '../copilot'
 import { CopilotUserService } from '../copilot-user'
-import { CopilotOrganizationService } from '../copilot-organization'
-
-function chatCompletionsUrl(copilot: ICopilot, path?: string) {
-	const apiHost: string = copilot.apiHost || AI_PROVIDERS[copilot.provider]?.apiHost
-	const chatCompletionsUrl: string = AI_PROVIDERS[copilot.provider]?.chatCompletionsUrl
-	return (apiHost?.endsWith('/') ? apiHost.slice(0, apiHost.length - 1) : apiHost) + (path ?? chatCompletionsUrl)
-}
 
 @Injectable()
 export class AiService {
-
 	@Inject(QueryBus)
 	private readonly queryBus: QueryBus
 
-	constructor(
-		private readonly copilotService: CopilotService,
-		private readonly copilotUserService: CopilotUserService,
-		private readonly copilotOrganizationService: CopilotOrganizationService,
-	) {}
-
-	// async getCopilot() {
-	// 	const result = await this.copilotService.findAll()
-	// 	if (result.total === 0) {
-	// 		throw new Error('No copilot found')
-	// 	}
-	// 	return result.items[0]
-	// }
+	constructor(private readonly copilotUserService: CopilotUserService) {}
 
 	async getCopilot(copilotId: string) {
 		const tenantId = RequestContext.currentTenantId()

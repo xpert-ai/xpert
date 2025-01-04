@@ -5,8 +5,6 @@ import {
 	CopilotCheckpointSaver,
 	CopilotKnowledgeService,
 	CopilotService,
-	CopilotTokenRecordCommand,
-	createLLM,
 	CopilotModelGetChatModelQuery
 } from '@metad/server-ai'
 import { Inject, Logger } from '@nestjs/common'
@@ -136,9 +134,7 @@ export class ChatBIHandler implements ICommandHandler<ChatBICommand> {
 		// })
 
 		if (!chatModel) {
-			throw new Error(
-				`Failed to create ChatModel for Copilot(provider='${copilot.provider}', role='${copilot.role}', defaultModel='${copilot.defaultModel}')`
-			)
+		
 		}
 
 		return new ChatBIConversation(

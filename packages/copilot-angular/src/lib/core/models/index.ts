@@ -1,5 +1,4 @@
 // 同步与：`@metad/server-ai`/copilot/llm.ts
-import { ChatBaiduQianfan } from '@langchain/baidu-qianfan'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { ChatOpenAI, ClientOptions } from '@langchain/openai'
 import { ChatAnthropic } from '@langchain/anthropic'
@@ -26,9 +25,9 @@ export function createLLM<T = BaseChatModel>(
     return new ChatOpenAI({
       apiKey: credentials.apiKey,
       model,
-      temperature: modelOptions?.temperature ?? 0,
-      maxRetries: modelOptions?.maxRetries ?? 2,
-      streaming: modelOptions?.streaming ?? true,
+      temperature: modelOptions?.['temperature'] ?? 0,
+      maxRetries: modelOptions?.['maxRetries'] ?? 2,
+      streaming: modelOptions?.['streaming'] ?? true,
       ...(clientOptions ?? {}),
       configuration: {
         baseURL: credentials.apiHost ? (credentials.apiHost + `/${copilot.id}`) : AI_PROVIDERS[providerName]?.apiHost || null,
@@ -51,9 +50,9 @@ export function createLLM<T = BaseChatModel>(
       return new NgmChatOllama({
         baseUrl: credentials.apiHost ? (credentials.apiHost + `/${copilot.id}`) : null,
         model,
-        temperature: modelOptions?.temperature ?? 0,
-        maxRetries: modelOptions?.maxRetries ?? 2,
-        streaming: modelOptions?.streaming ?? true,
+        temperature: modelOptions?.['temperature'] ?? 0,
+        maxRetries: modelOptions?.['maxRetries'] ?? 2,
+        streaming: modelOptions?.['streaming'] ?? true,
         headers: {
           ...(clientOptions?.defaultHeaders ?? {})
         },
@@ -70,10 +69,10 @@ export function createLLM<T = BaseChatModel>(
         anthropicApiUrl: credentials.apiHost ? (credentials.apiHost + `/${copilot.id}`) : null,
         apiKey: credentials.apiKey,
         model,
-        temperature: modelOptions?.temperature ?? 0,
+        temperature: modelOptions?.['temperature'] ?? 0,
         maxTokens: undefined,
-        maxRetries: modelOptions?.maxRetries ?? 2,
-        streaming: modelOptions?.streaming ?? true,
+        maxRetries: modelOptions?.['maxRetries'] ?? 2,
+        streaming: modelOptions?.['streaming'] ?? true,
         callbacks: [
           {
             handleLLMEnd(output) {
@@ -87,13 +86,13 @@ export function createLLM<T = BaseChatModel>(
       }) as T
     }
     // @todo
-    case AiProvider.BaiduQianfan: {
-			return new ChatBaiduQianfan({
-				qianfanAccessKey: copilot.apiKey,
-				qianfanSecretKey: copilot.apiKey,
-				model: copilot.defaultModel
-			}) as T
-		}
+    // case AiProvider.BaiduQianfan: {
+		// 	return new ChatBaiduQianfan({
+		// 		qianfanAccessKey: copilot.apiKey,
+		// 		qianfanSecretKey: copilot.apiKey,
+		// 		model: copilot.defaultModel
+		// 	}) as T
+		// }
     default:
       return null
   }

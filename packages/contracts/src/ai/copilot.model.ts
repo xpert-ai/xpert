@@ -1,27 +1,10 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
-import { AiProvider } from '../agent/'
 import { ICopilotModel } from './copilot-model.model'
 import { ICopilotProvider } from './copilot-provider.model'
 
 export interface ICopilot extends IBasePerTenantAndOrganizationEntityModel {
   role: AiProviderRole
   enabled?: boolean
-  /**
-   * @deprecated use modelProvider
-   */
-  provider?: AiProvider
-  /**
-   * @deprecated
-   */
-  apiKey?: string
-  /**
-   * @deprecated
-   */
-  apiHost?: string
-  /**
-   * @deprecated use copilotModel
-   */
-  defaultModel?: string
 
   showTokenizer?: boolean
   /**

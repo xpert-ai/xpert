@@ -32,7 +32,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 				return this.knowledgebaseService
 					.getVectorStore(kb.id, true, tenantId, organizationId)
 					.then((vectorStore) => {
-						this.logger.debug(`SimilaritySearch question='${query}' kb='${kb.name}' in ai provider='${kb.copilotModel?.copilot?.provider}' and model='${vectorStore.embeddingModel}'`)
+						this.logger.debug(`SimilaritySearch question='${query}' kb='${kb.name}' in ai provider='${kb.copilotModel?.copilot?.modelProvider?.providerName}' and model='${vectorStore.embeddingModel}'`)
 						return vectorStore.similaritySearchWithScore(query, k, filter)
 					})
 					.then((docs) =>
