@@ -28,6 +28,7 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
             Language: lang()
           },
           body: data,
+          openWhenHidden: true,
           signal: ctrl.signal,
           onopen: async (response) => {
             if (!unauthorized && response.status === 401) {
