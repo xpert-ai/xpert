@@ -1,7 +1,7 @@
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -42,21 +42,24 @@ export class ChatXpertsComponent {
   readonly pageSize = signal(5)
   readonly pageNo = signal(1)
 
-  readonly xperts = computed(() => {
+  readonly #sortedXperts = computed(() => {
     const xperts = this.chatService.xperts()
-    if (!xperts) {
-      return null
-    }
     const sortOrder = this.sortOrder()
-    if (sortOrder) {
+    if (xperts && sortOrder) {
       const sortOrderMap = new Map(sortOrder.map((id, index) => [id, index]))
-      xperts.sort(
+      return [...xperts].sort(
         (a, b) =>
           (sortOrderMap.get(a.id) ?? 0) - (sortOrderMap.get(b.id) ?? 0) ||
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       )
     }
-    return xperts.slice(0, this.pageNo() * this.pageSize())
+
+    return xperts
+  })
+
+  readonly xperts = computed(() => {
+    const xperts = this.#sortedXperts()
+    return xperts?.slice(0, this.pageNo() * this.pageSize())
   })
 
   readonly hasMore = computed(() => {
@@ -67,6 +70,12 @@ export class ChatXpertsComponent {
   readonly hasEditXpertPermission = toSignal(
     this.permissionsService.permissions$.pipe(map((permissions) => !!permissions[AIPermissionsEnum.XPERT_EDIT]))
   )
+
+  constructor() {
+    effect(() => {
+      // console.log(this.#sortedXperts(), this.sortOrder())
+    })
+  }
 
   showMore() {
     this.pageNo.update((state) => state + 1)
@@ -81,7 +90,7 @@ export class ChatXpertsComponent {
   }
 
   dropSort(event: CdkDragDrop<IXpert[]>) {
-    const xperts = this.xperts().map(({ id }) => id)
+    const xperts = this.#sortedXperts().map(({ id }) => id)
     moveItemInArray(xperts, event.previousIndex, event.currentIndex)
     this.#store.updateXpert({ sortOrder: xperts })
   }

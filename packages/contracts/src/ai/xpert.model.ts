@@ -316,6 +316,7 @@ export enum ChatMessageEventTypeEnum {
   ON_CONVERSATION_START = 'on_conversation_start',
   ON_CONVERSATION_END = 'on_conversation_end',
   ON_MESSAGE_START = 'on_message_start',
+  ON_MESSAGE_END = 'on_message_end',
   ON_TOOL_START = 'on_tool_start',
   ON_TOOL_END = 'on_tool_end',
   ON_TOOL_ERROR = 'on_tool_error',

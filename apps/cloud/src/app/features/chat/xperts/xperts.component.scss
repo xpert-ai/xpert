@@ -16,6 +16,6 @@
 
 .cdk-drop-list:not(.cdk-drop-list-dragging) {
   .xpert-item {
-    @apply scale-95 transition-transform;
+    @apply active:scale-95;
   }
 }
