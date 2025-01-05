@@ -1,6 +1,6 @@
 {
   "name": "@metad/server-auth",
-  "version": "3.0.10",
+  "version": "3.0.11",
   "type": "commonjs",
   "dependencies": {
     "@nestjs/common": "^8.0.0",

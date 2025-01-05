@@ -1,6 +1,6 @@
 {
   "name": "@metad/copilot",
-  "version": "3.0.10",
+  "version": "3.0.11",
   "scripts": {
     "docs": "yarn typedoc --out ./.docs"
   },
