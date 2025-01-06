@@ -1,5 +1,5 @@
 import { I18nObject } from '@metad/contracts'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
 import { includes, upperFirst } from 'lodash-es'
 
 export function convertConfigurationSchema(schema: any, i18n?: any) {
@@ -112,13 +112,27 @@ export function toFormlyField(
   schema: any,
   name: string,
   property: {
-    type: string; extendedEnum: any[]; title: I18nObject; placeholder: I18nObject; default: string, depend: string; selectUrl: string; params: any; multi?: boolean },
+    type: string;
+    extendedEnum: any[];
+    title: I18nObject;
+    placeholder: I18nObject;
+    default: string,
+    depend: string;
+    selectUrl: string;
+    params: any;
+    multi?: boolean;
+    options?: {
+      value: string | number
+      label: I18nObject
+    }[]
+  },
   i18n?: NgmI18nPipe
 ) {
   const label = property.title || upperFirst(name)
   let type = ''
   let inputType = null
   const props = {} as any
+  let options: TSelectOption[] = property.extendedEnum?.map((item) => ({ value: item.value, label: item.name, icon: item.icon }))
   switch (property.type) {
     case 'string':
       if (property.extendedEnum) {
@@ -140,6 +154,10 @@ export function toFormlyField(
       break
     case 'toggle':
       type = 'toggle'
+      break
+    case 'select':
+      type = 'select'
+      options = property.options?.map((option) => ({...option, label: i18n.transform(option.label)}))
       break
     case 'remote-select':
       type = 'remote-select'
@@ -164,7 +182,7 @@ export function toFormlyField(
       floatLabel: 'always',
       appearance: 'fill',
       required: includes(schema.required, name),
-      options: property.extendedEnum?.map((item) => ({ value: item.value, label: item.name, icon: item.icon })),
+      options,
       autosize: type === 'textarea',
       ...props
     },

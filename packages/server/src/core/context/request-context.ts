@@ -1,14 +1,14 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
-import * as cls from 'cls-hooked';
 import {
 	IUser,
 	PermissionsEnum,
 	LanguagesEnum,
 	RolesEnum
 } from '@metad/contracts';
+import { environment as env } from '@metad/server-config';
+import * as cls from 'cls-hooked';
 import { ExtractJwt } from 'passport-jwt';
 import { JsonWebTokenError, verify } from 'jsonwebtoken';
-import { environment as env } from '@metad/server-config';
 
 export class RequestContext {
 	readonly id: number;
@@ -91,20 +91,28 @@ export class RequestContext {
 		return this.hasPermissions([permission], throwError);
 	}
 
+	/**
+	 * Retrieves the language code from the headers of the current request.
+	 * @returns The language code (LanguagesEnum) extracted from the headers, or the default language (ENGLISH) if not found.
+	 */
 	static getLanguageCode(): LanguagesEnum {
-		const req = this.currentRequest();
+		// Retrieve the current request
+		const req = RequestContext.currentRequest();
+
+		// Variable to store the extracted language code
 		let lang: LanguagesEnum;
-		const keys = ['language'];
+
+		// Check if a request exists
 		if (req) {
-			for (const key of keys) {
-				if (req.headers && req.headers[key]) {
-					lang = req.headers[key];
-					break;
-				}
+			// Check if the 'language' header exists in the request
+			if (req.headers && req.headers['language']) {
+				// If found, set the lang variable
+				lang = req.headers['language'] as LanguagesEnum;
 			}
 		}
 
-		return lang;
+		// Return the extracted language code or the default language (ENGLISH) if not found
+		return lang || LanguagesEnum.English;
 	}
 
 	static getOrganizationId(): string {
