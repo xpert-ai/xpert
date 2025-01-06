@@ -10,7 +10,10 @@ import {
 	TAvatar,
 	TCopilotModel,
 	TCopilotModelOptions,
+	TLongTermMemory,
+	TSummarize,
 	TXpertAgent,
+	TXpertAgentConfig,
 	TXpertAgentOptions,
 	TXpertOptions,
 	TXpertParameter,
@@ -43,6 +46,15 @@ export class XpertDslDTO {
 
 	@Expose()
 	options?: TXpertOptions
+
+	@Expose()
+	agentConfig?: TXpertAgentConfig
+
+	@Expose()
+	memory?: TLongTermMemory
+
+	@Expose()
+	summarize?: TSummarize
 
 	@Expose()
 	version?: string

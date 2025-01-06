@@ -255,19 +255,19 @@ export class LarkService {
 					const user = RequestContext.currentUser()
 					const tenant = integration.tenant
 					const organizationId = integration.organizationId
-					await this.conversation.onAction(
+					// Does not block onAction execution and returns to Lark immediately
+					this.conversation.onAction(
 						data.action.value,
 						{
 							tenant,
 							organizationId,
 							integrationId: integration.id,
-							// integration,
 							userId: user.id,
 							chatId: data.context.open_chat_id
 						},
 						user.id,
 						xpertId
-					)
+					).catch((err) => this.logger.error(err))
 					return true
 				} else {
 					this.errorMessage(

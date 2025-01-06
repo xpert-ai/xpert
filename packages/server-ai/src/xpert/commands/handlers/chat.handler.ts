@@ -223,7 +223,18 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
 							// Update ai message
 							aiMessage.status = _execution?.status ?? status
+							if (_execution?.status === XpertAgentExecutionStatusEnum.ERROR) {
+								aiMessage.error = _execution.error
+							}
 							await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
+
+							subscriber.next({
+								data: {
+									type: ChatMessageTypeEnum.EVENT,
+									event: ChatMessageEventTypeEnum.ON_MESSAGE_END,
+									data: { ...aiMessage }
+								}
+							} as MessageEvent)
 
 							// Update conversation
 							let convStatus: TChatConversationStatus = 'idle'
@@ -237,7 +248,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 									id: conversation.id,
 									status: convStatus,
 									title: conversation.title || _execution?.title,
-									operation
+									operation,
+									error: _execution?.error
 								})
 							)
 
@@ -256,7 +268,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 										id: _conversation.id,
 										title: _conversation.title,
 										status: _conversation.status,
-										operation: _conversation.operation
+										operation: _conversation.operation,
+										error: _conversation.error
 									}
 								}
 							} as MessageEvent

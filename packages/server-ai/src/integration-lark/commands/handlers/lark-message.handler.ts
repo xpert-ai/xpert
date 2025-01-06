@@ -1,11 +1,12 @@
+import { TIntegrationLarkOptions } from '@metad/contracts'
 import { IntegrationService } from '@metad/server-core'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { ChatLarkMessage } from '../../chat/message'
+import { LarkConversationService } from '../../conversation.service'
+import { LarkService } from '../../lark.service'
 import { LarkChatAgentCommand } from '../chat-agent.command'
 import { LarkChatXpertCommand } from '../chat-xpert.command'
 import { LarkMessageCommand } from '../mesage.command'
-import { LarkService } from '../../lark.service'
-import { LarkConversationService } from '../../conversation.service'
 
 @CommandHandler(LarkMessageCommand)
 export class LarkMessageHandler implements ICommandHandler<LarkMessageCommand> {
@@ -33,11 +34,13 @@ export class LarkMessageHandler implements ICommandHandler<LarkMessageCommand> {
 			const lastMessage = await this.conversationService.getLastMessage(userId, integration.options.xpertId)
 
 			const larkMessage = new ChatLarkMessage(
-				{...options, larkService: this.larkService },
+				{ ...options, larkService: this.larkService },
 				{
 					text,
-					language: lastMessage?.thirdPartyMessage?.language
-				},
+					language:
+						lastMessage?.thirdPartyMessage?.language ||
+						(<TIntegrationLarkOptions>integration.options)?.preferLanguage
+				}
 			)
 
 			return await this.commandBus.execute(

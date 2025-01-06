@@ -320,6 +320,15 @@ export class ChatService {
                     }
                   })
                   break;
+                case ChatMessageEventTypeEnum.ON_MESSAGE_END:
+                  this.updateLatestMessage((lastM) => {
+                    return {
+                      ...lastM,
+                      status: event.data.status,
+                      error: event.data.error,
+                    }
+                  })
+                  break;
                 default:
                   this.updateEvent(event.event, event.data.error)
               }

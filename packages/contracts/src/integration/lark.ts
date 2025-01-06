@@ -6,7 +6,7 @@ export type TIntegrationLarkOptions = {
   verificationToken: string
   encryptKey: string
   xpertId: string
-  prefLanguage: string
+  preferLanguage: string
 }
 
 export const IntegrationLarkProvider: TIntegrationProvider = {
@@ -41,28 +41,28 @@ export const IntegrationLarkProvider: TIntegrationProvider = {
         },
         selectUrl: '/api/xpert/select-options'
       },
-      // prefLanguage: {
-      //   type: 'select',
-      //   title: {
-      //     en_US: 'Preferred Language',
-      //     zh_Hans: '首选语言'
-      //   },
-      //   options: [
-      //     {
-      //       value: 'en',
-      //       label: {
-      //         en_US: 'English',
-      //         zh_Hans: '英语'
-      //       }
-      //     }, {
-      //       value: 'zh',
-      //       label: {
-      //         en_US: 'Chinese',
-      //         zh_Hans: '中文'
-      //       }
-      //     }
-      //   ]
-      // },
+      preferLanguage: {
+        type: 'select',
+        title: {
+          en_US: 'Preferred Language',
+          zh_Hans: '首选语言'
+        },
+        options: [
+          {
+            value: 'en',
+            label: {
+              en_US: 'English',
+              zh_Hans: '英语'
+            }
+          }, {
+            value: 'zh',
+            label: {
+              en_US: 'Chinese',
+              zh_Hans: '中文'
+            }
+          }
+        ]
+      },
     },
     required: ['appId', 'appSecret'],
     secret: ['appSecret', 'verificationToken', 'encryptKey']

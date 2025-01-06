@@ -54,7 +54,7 @@
       <div (waIntersectionObservee)="onIntersection()" class="p-4"></div>
     </div>
   </mat-sidenav>
-  <mat-sidenav-content class="overflow-auto">
+  <mat-sidenav-content #contentContainer class="overflow-auto">
     <pac-chat-toolbar class="sticky top-0 z-10 bg-components-panel-bg"
       [chatInput]="chatInput">
       @if (!sidenav.opened) {
@@ -62,7 +62,7 @@
       }
     </pac-chat-toolbar>
 
-    <div #contentContainer class="w-full flex-1 px-2 lg:w-[800px] lg:px-8 max-w-full m-auto">
+    <div class="w-full flex-1 px-2 lg:w-[800px] lg:px-8 max-w-full m-auto">
 
       @if (!conversationId() && !messages()?.length && role()) {
         <div class="w-full h-full flex flex-col justify-center items-center gap-4">

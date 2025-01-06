@@ -1,16 +1,27 @@
-import { IIntegration } from '@metad/contracts'
-import { Body, Controller, HttpCode, Param, Post, Request, Response, UseGuards } from '@nestjs/common'
+import { IIntegration, TranslationLanguageMap } from '@metad/contracts'
+import { IntegrationService, Public, RequestContext } from '@metad/server-core'
+import {
+	Body,
+	Controller,
+	ForbiddenException,
+	HttpCode,
+	Param,
+	Post,
+	Request,
+	Response,
+	UseGuards
+} from '@nestjs/common'
 import express from 'express'
-import { IntegrationService, Public } from '@metad/server-core'
-import { LarkService } from './lark.service'
+import { I18nService } from 'nestjs-i18n'
 import { LarkAuthGuard } from './auth/lark-auth.guard'
-
+import { LarkService } from './lark.service'
 
 @Controller()
 export class LarkHooksController {
 	constructor(
 		private readonly larkService: LarkService,
-		private readonly integrationService: IntegrationService
+		private readonly integrationService: IntegrationService,
+		private readonly i18n: I18nService
 	) {}
 
 	@Public()
@@ -29,8 +40,14 @@ export class LarkHooksController {
 	@Post('test')
 	async connect(@Body() integration: IIntegration) {
 		const botInfo = await this.larkService.test(integration)
+		if (!botInfo) {
+			const error = await this.i18n.translate('integration.Lark.Error_BotPermission', {
+				lang: TranslationLanguageMap[RequestContext.getLanguageCode()] || RequestContext.getLanguageCode()
+			})
+			throw new ForbiddenException(error)
+		}
 		if (!integration.avatar) {
-		    integration.avatar = {
+			integration.avatar = {
 				url: botInfo.avatar_url
 			}
 		}

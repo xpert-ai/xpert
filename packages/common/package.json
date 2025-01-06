@@ -1,6 +1,6 @@
 {
   "name": "@metad/server-common",
-  "version": "3.0.10",
+  "version": "3.0.11",
   "type": "commonjs",
   "dependencies": {
     "@nestjs/typeorm": "^8.0.3",

@@ -8,3 +8,5 @@ export const INTEGRATION_PROVIDERS = {
   [IntegrationEnum.DINGTALK]: IntegrationDingTalkProvider,
   [IntegrationEnum.WECOM]: IntegrationWeComProvider,
 }
+
+export * from './lark'
