@@ -223,6 +223,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
 							// Update ai message
 							aiMessage.status = _execution?.status ?? status
+							if (_execution?.status === XpertAgentExecutionStatusEnum.ERROR) {
+								aiMessage.error = _execution.error
+							}
 							await this.commandBus.execute(new ChatMessageUpsertCommand(aiMessage))
 
 							subscriber.next({
@@ -265,7 +268,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 										id: _conversation.id,
 										title: _conversation.title,
 										status: _conversation.status,
-										operation: _conversation.operation
+										operation: _conversation.operation,
+										error: _conversation.error
 									}
 								}
 							} as MessageEvent

@@ -157,6 +157,11 @@ export interface CopilotBaseMessage {
   status?: XpertAgentExecutionStatusEnum | 'thinking' | 'aborted'
 
   content?: string | MessageContent
+
+  /**
+   * Error info when status is error
+   */
+  error?: string
 }
 
 export type CopilotChatMessage = CopilotBaseMessage & {
@@ -170,8 +175,6 @@ export type CopilotChatMessage = CopilotBaseMessage & {
   name?: string
 
   data?: JSONValue
-
-  error?: string
 
   messages?: Array<any> // StoredMessage
 
