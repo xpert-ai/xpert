@@ -7,6 +7,7 @@ import {
 	ITag,
 	IUser,
 	LanguagesEnum,
+	UserType,
 } from '@metad/contracts'
 import { Exclude } from 'class-transformer'
 import {
@@ -46,6 +47,13 @@ import { TrialUserCreatedEvent } from './events'
 
 @Entity('user')
 export class User extends TenantBaseEntity implements IUser {
+	@Column({
+		type: 'enum',
+		enum: UserType,
+		default: UserType.USER,
+	})
+	type: UserType
+
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@Index()

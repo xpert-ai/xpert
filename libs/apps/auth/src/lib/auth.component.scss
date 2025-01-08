@@ -1,6 +1,6 @@
 :host {
   background-color: var(--ngm-color-surface-container);
-  @apply w-full max-w-full h-full flex flex-col justify-center items-center;
+  @apply w-full max-w-full h-full flex flex-col justify-start items-center overflow-auto;
 }
 
 .pac-auth-card {
@@ -13,9 +13,7 @@
   align-items: center;
   justify-content: flex-start;
 }
-.pac-auth__logo {
-  @apply absolute top-8 left-1/2 -ml-5 w-10 h-10;
-}
+
 .pac-auth__copyright {
   margin: 1rem;
 }

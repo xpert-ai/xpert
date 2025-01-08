@@ -88,7 +88,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 						options: {
 							knowledgebases: options?.knowledgebases,
 							toolsets: options?.toolsets
-						}
+						},
+						fromEndUserId: options?.fromEndUserId
 					})
 				)
 

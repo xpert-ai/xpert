@@ -5,11 +5,10 @@ import { BusinessAreaUserService } from '../../../business-area-user/index'
 import { BusinessArea } from '../../business-area.entity'
 import { BusinessAreaService } from '../../business-area.service'
 import { BusinessAreaDTO } from '../../dto/business-area.dto'
-import { BusinessAreaCreateCommand } from '../business-area.create.command'
 import { BusinessAreaMyCommand } from '../business-area.my.command'
 
 @CommandHandler(BusinessAreaMyCommand)
-export class BusinessAreaMyHandler implements ICommandHandler<BusinessAreaCreateCommand, BusinessAreaDTO[]> {
+export class BusinessAreaMyHandler implements ICommandHandler<BusinessAreaMyCommand, BusinessAreaDTO[]> {
 	constructor(
 		private readonly businessArea: BusinessAreaService,
 		private readonly bauService: BusinessAreaUserService

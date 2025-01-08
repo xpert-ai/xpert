@@ -58,6 +58,10 @@ export type TXpert = {
    */
   draft?: TXpertTeamDraft
 
+  app?: TChatApp
+  userId?: string
+  user?: IUser
+
   agent?: IXpertAgent
 
   // Many to one
@@ -230,6 +234,9 @@ export type TXpertParameter = {
   options?: string[]
 }
 
+export type TChatApp = {
+  enabled?: boolean
+}
 
 // Xpert team draft types
 
@@ -337,7 +344,6 @@ export type TChatRequest = {
   xpertId: string
   conversationId?: string
   id?: string
-  // language?: string
   toolCalls?: ToolCall[]
   confirm?: boolean
   reject?: boolean

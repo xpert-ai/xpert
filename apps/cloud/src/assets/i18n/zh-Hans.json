@@ -22,6 +22,7 @@
       "All": "所有",
       "Ask": "提问",
       "Certification": "认证",
+      "Conversation": "会话",
       "DigitalAssetCertificationTypes": "数字资产认证类型",
       "Owner": "所有者",
       "Query": "查询",
@@ -559,7 +560,8 @@
       "NoRecordsFoundinFile": "文件中未找到记录",
       "UnsavedChanges": "未保存的更改",
       "SavedDraft": "草稿已保存！",
-      "Successfully": "成功"
+      "Successfully": "成功",
+      "NoPermissionOrNotExist": "没有权限访问或不存在"
     },
     "NOTES": {
       "ORGANIZATIONS": {
@@ -2118,7 +2120,9 @@
       "RecursionLimitTip": "限制智能体可以递归的次数",
       "RecursionLimit": "递归次数限制",
       "MaxConcurrency": "最大并发请求",
-      "AgentSettings": "智能体设置"
+      "AgentSettings": "智能体设置",
+      "EnableXpertChatApp": "启用或禁用数字专家的公开聊天应用程序",
+      "NewChat": "新聊天"
     },
     "title": {
       "short": "Xpert AI"

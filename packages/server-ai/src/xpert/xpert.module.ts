@@ -13,6 +13,7 @@ import { XpertAgentModule } from '../xpert-agent'
 import { XpertWorkspaceModule } from '../xpert-workspace'
 import { CopilotCheckpointModule } from '../copilot-checkpoint'
 import { CopilotStoreModule } from '../copilot-store/copilot-store.module'
+import { AnonymousStrategy } from './auth/anonymous.strategy'
 
 @Module({
     imports: [
@@ -28,7 +29,7 @@ import { CopilotStoreModule } from '../copilot-store/copilot-store.module'
         CopilotStoreModule,
     ],
     controllers: [XpertController],
-    providers: [XpertService, ...CommandHandlers, ...QueryHandlers],
+    providers: [XpertService, AnonymousStrategy, ...CommandHandlers, ...QueryHandlers],
     exports: [XpertService]
 })
 export class XpertModule { }

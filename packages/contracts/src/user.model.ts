@@ -4,6 +4,11 @@ import { ITag } from './tag-entity.model';
 import { IEmployee } from './employee.model';
 import { IOrganization } from './organization.model';
 
+export enum UserType {
+	USER = 'user',             // Regular user
+	COMMUNICATION = 'communication', // Backend communication & integration account
+}
+
 export interface IUser extends IBasePerTenantEntityModel {
 	thirdPartyId?: string;
 	name?: string;
@@ -12,6 +17,7 @@ export interface IUser extends IBasePerTenantEntityModel {
 	email?: string;
 	mobile?: string
 	username?: string;
+	type?: UserType
 	role?: IRole;
 	roleId?: string;
 	hash?: string;
@@ -74,6 +80,7 @@ export interface IAuthResponse {
 	refreshToken: string;
 }
 export interface IUserCreateInput {
+	type?: UserType
 	firstName?: string;
 	lastName?: string;
 	email?: string;

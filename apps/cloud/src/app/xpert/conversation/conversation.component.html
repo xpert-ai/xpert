@@ -1,0 +1,42 @@
+@for (message of messages(); track message.id) {
+  @switch (message.role) {
+    @case ('user') {
+      <div class="w-full flex justify-end my-4">
+        <div class="max-w-[70%] p-4 whitespace-pre-wrap rounded-2xl bg-black/5 dark:bg-white/10">{{ message.content }}</div>
+      </div>
+    }
+    @case ('human') {
+      <div class="w-full flex justify-end my-4">
+        <div class="max-w-[70%] p-4 whitespace-pre-wrap rounded-2xl bg-black/5 dark:bg-white/10">{{ message.content }}</div>
+      </div>
+    }
+    @case ('assistant') {
+      <pac-ai-message class="my-4 lg:p-2" [message]="message" />
+    }
+    @case ('ai') {
+      <pac-ai-message class="my-4 lg:p-2" [message]="message" />
+    }
+  }
+}
+
+@if (conversationStatus() === eExecutionStatusEnum.ERROR) {
+  <div class="w-full flex items-start gap-2 p-4 rounded-3xl text-orange-500 bg-orange-50 border border-solid border-orange-200">
+    <div >
+      <i class="ri-information-2-line text-xl"></i>
+    </div>
+    <div class="flex-1 py-1">{{error()}}</div>
+
+    <button type="button" class="btn btn-small text-text-primary" (click)="onRetry()">
+      {{ 'PAC.KEY_WORDS.Retry' | translate: {Default: 'Retry'} }}
+    </button>
+  </div>
+}
+
+@if (conversationStatus() === eExecutionStatusEnum.INTERRUPTED && operation()) {
+  <xpert-tool-call-confirm class="w-full max-w-xl mx-auto bg-components-card-bg"
+    [operation]="operation()"
+    (confirm)="onConfirm()"
+    (reject)="onReject()"
+    (toolCallsChange)="onToolCalls($event)"
+  />
+}

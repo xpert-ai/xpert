@@ -1,4 +1,4 @@
-import { ICopilotStore, IIntegration, LanguagesEnum, OrderTypeEnum, RolesEnum, TChatRequest, TXpertTeamDraft, xpertLabel } from '@metad/contracts'
+import { IChatConversation, ICopilotStore, IIntegration, LanguagesEnum, OrderTypeEnum, RolesEnum, TChatApp, TChatOptions, TChatRequest, TXpertTeamDraft, UserType, xpertLabel } from '@metad/contracts'
 import {
 	CrudController,
 	OptionParams,
@@ -10,7 +10,9 @@ import {
 	TransformInterceptor,
 	UserPublicDTO,
 	UseValidationPipe,
-	UUIDValidationPipe
+	UUIDValidationPipe,
+	UserCreateCommand,
+	Public,
 } from '@metad/server-core'
 import {
 	Body,
@@ -28,14 +30,16 @@ import {
 	Sse,
 	UseInterceptors,
 	UseGuards,
-	HttpException
+	HttpException,
+	ForbiddenException
 } from '@nestjs/common'
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { Request } from 'express'
 import { DeleteResult, FindConditions, In, IsNull, Like, Not } from 'typeorm'
 import { I18nLang } from 'nestjs-i18n'
-import { XpertAgentExecution } from '../core/entities/internal'
+import { ChatConversation, XpertAgentExecution } from '../core/entities/internal'
 import { FindExecutionsByXpertQuery } from '../xpert-agent-execution/queries'
 import { XpertChatCommand, XpertDelIntegrationCommand, XpertExportCommand, XpertImportCommand, XpertPublishIntegrationCommand } from './commands'
 import { XpertDraftDslDTO, XpertPublicDTO } from './dto'
@@ -45,6 +49,9 @@ import { WorkspaceGuard } from '../xpert-workspace/'
 import { SearchXpertMemoryQuery } from './queries'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { XpertAgentVariablesQuery } from '../xpert-agent/queries'
+import { AnonymousXpertAuthGuard } from './auth/anonymous-auth.guard'
+import { ChatConversationDeleteCommand, ChatConversationUpsertCommand, FindChatConversationQuery, GetChatConversationQuery } from '../chat-conversation'
+import { FindMessageFeedbackQuery } from '../chat-message-feedback/queries'
 
 @ApiTags('Xpert')
 @ApiBearerAuth()
@@ -278,5 +285,99 @@ export class XpertController extends CrudController<Xpert> {
 		} catch (err) {
 			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
 		}
+	}
+
+	@Public()
+	@UseGuards(AnonymousXpertAuthGuard)
+	@Get(':name/app')
+	async getChatApp(@Param('name') name: string,) {
+		const xpert = await this.service.findBySlug(name)
+		if (!xpert.app?.enabled) {
+			throw new ForbiddenException(name)
+		}
+
+		return new XpertPublicDTO(xpert)
+	}
+
+	@Put(':id/app')
+	async updateChatApp(@Param('id') id: string, @Body() app: Partial<TChatApp>) {
+		const xpert = await this.service.findOne(id)
+		await this.service.update(id, {app: {...(xpert.app ?? {}), ...app}})
+		if (app.enabled && !xpert.userId) {
+			const user = await this.commandBus.execute(new UserCreateCommand({
+				username: xpert.slug,
+				type: UserType.COMMUNICATION,
+				preferredLanguage: LanguagesEnum.English,
+				hash: '123456',
+			}))
+			await this.service.update(id, {user})
+		}
+	}
+
+	@Public()
+	@UseGuards(AnonymousXpertAuthGuard)
+	@Get(':name/conversation/:id')
+	async getAppConversation(@Param('name') name: string, @Param('id') id: string,
+		@Query('$relations', ParseJsonPipe) relations?: PaginationParams<ChatConversation>['relations'],
+		@Query('$select', ParseJsonPipe) select?: PaginationParams<ChatConversation>['select'],
+	) {
+		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
+		const conversation = await this.queryBus.execute(new GetChatConversationQuery({id, fromEndUserId}, relations))
+		return conversation
+	}
+
+	@Public()
+	@UseGuards(AnonymousXpertAuthGuard)
+	@Delete(':name/conversation/:id')
+	async deleteAppConversation(@Param('name') name: string, @Param('id') id: string,) {
+		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
+		await this.queryBus.execute(new GetChatConversationQuery({id, fromEndUserId}))
+		await this.commandBus.execute(new ChatConversationDeleteCommand({id, fromEndUserId}))
+	}
+
+	@Public()
+	@UseGuards(AnonymousXpertAuthGuard)
+	@Get(':name/conversation')
+	async getAppConversations(@Param('name') name: string,
+		@Query('data', ParseJsonPipe) paginationOptions?: PaginationParams<ChatConversation>,
+	) {
+		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
+		const conversation = await this.queryBus.execute(new FindChatConversationQuery({fromEndUserId}, paginationOptions))
+		return conversation
+	}
+
+	@Public()
+	@UseGuards(AnonymousXpertAuthGuard)
+	@Put(':name/conversation/:id')
+	async updateAppConversation(@Param('name') name: string, @Param('id') id: string, @Body() entity: Partial<IChatConversation>) {
+		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
+		await this.queryBus.execute(new FindChatConversationQuery({id, fromEndUserId}))
+		await this.commandBus.execute(new ChatConversationUpsertCommand({
+			id,
+			...entity
+		}))
+	}
+
+	@Public()
+	@UseGuards(AnonymousXpertAuthGuard)
+	@Get(':name/conversation/:id/feedbacks')
+	async getAppFeedbacks(@Param('name') name: string, @Param('id') id: string,
+		@Query('$relations', ParseJsonPipe) relations?: PaginationParams<ChatConversation>['relations'],
+		@Query('$select', ParseJsonPipe) select?: PaginationParams<ChatConversation>['select'],
+	) {
+		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
+		const conversation = await this.queryBus.execute(new FindChatConversationQuery({id, fromEndUserId}, {relations}))
+		return await this.queryBus.execute(new FindMessageFeedbackQuery({conversationId: conversation.id}, relations))
+	}
+
+	@Public()
+	@UseGuards(AnonymousXpertAuthGuard)
+	@Header('content-type', 'text/event-stream')
+	@Header('Connection', 'keep-alive')
+	@Post(':name/chat-app')
+	@Sse()
+	async chatApp(@Param('name') name: string, @I18nLang() language: LanguagesEnum, @Body() body: { request: TChatRequest; options: TChatOptions }) {
+		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
+		return await this.commandBus.execute(new XpertChatCommand(body.request, {...body.options, language, fromEndUserId }))
 	}
 }

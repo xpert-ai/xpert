@@ -20,7 +20,7 @@ const routes: Routes = [
   { path: 'sign-in/success', component: SignInSuccessComponent },
   {
     path: 'x',
-    loadChildren: () => import('./chat/routes').then((m) => m.routes)
+    loadChildren: () => import('./xpert/routes').then((m) => m.routes),
   },
   {
     path: '',

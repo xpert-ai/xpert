@@ -54,6 +54,11 @@ export interface IChatConversation extends IBasePerTenantAndOrganizationEntityMo
    */
   operation?: TSensitiveOperation
 
+  /**
+   * End anonymous user
+   */
+  fromEndUserId?: string
+
   // Many to one
   /**
    * Chat with Xpert

@@ -239,4 +239,8 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 		xpert.managers.splice(managerIndex, 1)
 		await this.repository.save(xpert)
 	}
+
+	async findBySlug(slug: string) {
+		return await this.repository.findOne({where: {slug, latest: true, publishAt: Not(IsNull())}, relations: ['user', 'createdBy', 'organization'] })
+	}
 }

@@ -4,7 +4,6 @@ import { Body, Controller, Header, Logger, Post, Sse } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { I18nLang } from 'nestjs-i18n'
-import { merge, Observable } from 'rxjs'
 import { ChatCommand } from './commands'
 
 @ApiTags('Chat')

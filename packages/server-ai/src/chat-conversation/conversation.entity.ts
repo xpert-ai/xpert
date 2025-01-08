@@ -49,6 +49,12 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
 	@Column({ type: 'json', nullable: true })
 	operation?: TSensitiveOperation
 
+	@ApiProperty({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	fromEndUserId?: string
+
 	/*
     |--------------------------------------------------------------------------
     | @OneToMany

@@ -1,14 +1,30 @@
 import { inject, Injectable } from '@angular/core'
+import { SearchItem } from '@langchain/langgraph-checkpoint'
 import { PaginationParams, toHttpParams } from '@metad/cloud/state'
 import { toParams } from '@metad/ocap-angular/core'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, tap } from 'rxjs'
 import { API_XPERT_ROLE } from '../constants/app.constants'
-import { ICopilotStore, IIntegration, IUser, IXpert, IXpertAgentExecution, OrderTypeEnum, TChatRequest, TDeleteResult, TStateVariable, TXpertTeamDraft, XpertTypeEnum } from '../types'
-import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 import { injectApiBaseUrl } from '../providers'
+import {
+  IChatConversation,
+  IChatMessageFeedback,
+  ICopilotStore,
+  IIntegration,
+  IUser,
+  IXpert,
+  IXpertAgentExecution,
+  OrderTypeEnum,
+  TChatApp,
+  TChatOptions,
+  TChatRequest,
+  TDeleteResult,
+  TStateVariable,
+  TXpertTeamDraft,
+  XpertTypeEnum
+} from '../types'
 import { injectFetchEventSource } from './fetch-event-source'
-import { SearchItem } from '@langchain/langgraph-checkpoint'
+import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 
 @Injectable({ providedIn: 'root' })
 export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
@@ -43,7 +59,9 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   }
 
   getVersions(id: string) {
-    return this.httpClient.get<{ id: string; version: string; latest: boolean; publishAt: Date; }[]>(this.apiBaseUrl + `/${id}/version`)
+    return this.httpClient.get<{ id: string; version: string; latest: boolean; publishAt: Date }[]>(
+      this.apiBaseUrl + `/${id}/version`
+    )
   }
 
   saveDraft(id: string, draft: TXpertTeamDraft) {
@@ -61,7 +79,7 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.post<IIntegration>(this.apiBaseUrl + `/${id}/publish/integration`, integration)
   }
   removeIntegration(xpertId: string, id: string) {
-    return this.httpClient.delete(this.apiBaseUrl + `/${xpertId}/publish/integration/${id}`,)
+    return this.httpClient.delete(this.apiBaseUrl + `/${xpertId}/publish/integration/${id}`)
   }
 
   validateTitle(title: string) {
@@ -71,11 +89,13 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   }
 
   getExecutions(id: string, options?: PaginationParams<IXpertAgentExecution>) {
-    return this.httpClient.get<{items: IXpertAgentExecution[]}>(this.apiBaseUrl + `/${id}/executions`, { params: toHttpParams(options) })
+    return this.httpClient.get<{ items: IXpertAgentExecution[] }>(this.apiBaseUrl + `/${id}/executions`, {
+      params: toHttpParams(options)
+    })
   }
 
-  chat(id: string, request: TChatRequest, options: { isDraft: boolean; }) {
-    return this.fetchEventSource(this.baseUrl + this.apiBaseUrl + `/${id}/chat`, JSON.stringify({request, options}))
+  chat(id: string, request: TChatRequest, options: { isDraft: boolean }) {
+    return this.fetchEventSource(this.baseUrl + this.apiBaseUrl + `/${id}/chat`, JSON.stringify({ request, options }))
   }
 
   getXpertManagers(id: string) {
@@ -91,11 +111,15 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   }
 
   getMyCopilots(relations?: string[]) {
-    return this.getMyAll({ relations, where: {latest: true, type: XpertTypeEnum.Copilot }, order: {updatedAt: OrderTypeEnum.DESC} })
+    return this.getMyAll({
+      relations,
+      where: { latest: true, type: XpertTypeEnum.Copilot },
+      order: { updatedAt: OrderTypeEnum.DESC }
+    })
   }
 
   exportDSL(id: string, isDraft: boolean) {
-    return this.httpClient.get<{data: string;}>(this.apiBaseUrl + `/${id}/export`, {params: {isDraft}})
+    return this.httpClient.get<{ data: string }>(this.apiBaseUrl + `/${id}/export`, { params: { isDraft } })
   }
 
   importDSL(dslObject: Record<string, any>) {
@@ -103,22 +127,80 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   }
 
   getAllMemory(id: string, types: string[]) {
-    return this.httpClient.get<{items: ICopilotStore[]}>(this.apiBaseUrl + `/${id}/memory`, {
+    return this.httpClient.get<{ items: ICopilotStore[] }>(this.apiBaseUrl + `/${id}/memory`, {
       params: {
         types: types?.join(':')
       }
     })
   }
-  searchMemory(id: string, body: {text: string; isDraft: boolean;}) {
+  searchMemory(id: string, body: { text: string; isDraft: boolean }) {
     return this.httpClient.post<SearchItem[]>(this.apiBaseUrl + `/${id}/memory/search`, body)
   }
 
   clearMemory(id: string) {
-    return this.httpClient.delete<TDeleteResult>(this.apiBaseUrl + `/${id}/memory`,)
+    return this.httpClient.delete<TDeleteResult>(this.apiBaseUrl + `/${id}/memory`)
   }
 
   getVariables(id: string, agentKey: string) {
     return this.httpClient.get<TStateVariable[]>(this.apiBaseUrl + `/${id}/agent/${agentKey}/variables`)
+  }
+
+  getChatApp(id: string) {
+    return this.httpClient.get<{ user: IUser; token: string; refreshToken: string; xpert: IXpert }>(
+      this.apiBaseUrl + `/${id}/app`,
+      { withCredentials: true }
+    )
+  }
+  updateChatApp(id: string, app: Partial<TChatApp>) {
+    return this.httpClient.put<void>(this.apiBaseUrl + `/${id}/app`, app)
+  }
+
+  chatApp(name: string, request: TChatRequest, options: TChatOptions) {
+    return this.fetchEventSource(
+      this.apiBaseUrl + `/${name}/chat-app`,
+      JSON.stringify({
+        request,
+        options
+      })
+    )
+  }
+
+  getAppConversation(name: string, id: string, options: PaginationParams<IChatConversation>) {
+    return this.httpClient.get<IChatConversation>(this.apiBaseUrl + `/${name}/conversation/${id}`, {
+      withCredentials: true,
+      params: toHttpParams(options)
+    })
+  }
+
+  getAppConversations(name: string, options: PaginationParams<IChatConversation>) {
+    return this.httpClient.get<{ items: IChatConversation[]; total: number }>(
+      this.apiBaseUrl + `/${name}/conversation`,
+      {
+        withCredentials: true,
+        params: toHttpParams(options)
+      }
+    )
+  }
+
+  deleteAppConversation(name: string, id: string) {
+    return this.httpClient.delete<IChatConversation>(this.apiBaseUrl + `/${name}/conversation/${id}`, {
+      withCredentials: true
+    })
+  }
+
+  updateAppConversation(name: string, id: string, entity: Partial<IChatConversation>) {
+    return this.httpClient.put<void>(this.apiBaseUrl + `/${name}/conversation/${id}`, entity, {
+      withCredentials: true
+    })
+  }
+
+  getAppFeedbacks(name: string, id: string) {
+    return this.httpClient.get<{ items: IChatMessageFeedback[]; total: number }>(
+      this.apiBaseUrl + `/${name}/conversation/${id}/feedbacks`,
+      {
+        withCredentials: true
+      }
+    )
   }
 }
 

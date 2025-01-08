@@ -1,0 +1,23 @@
+.ngm-analytical-card {
+  min-height: 300px;
+}
+
+.indicator.active {
+  @apply border-neutral-200 dark:border-neutral-700;
+}
+.ngm-indicator-explorer {
+  @apply border-b border-solid border-neutral-200 dark:border-neutral-700;
+}
+
+:host::ng-deep {
+  .ngm-kpi--kpi {
+    @apply p-4;
+    .ngm-kpi--title {
+      @apply text-xl;
+    }
+    .ngm-kpi--value {
+      font-size: 3rem;
+      line-height: 1.5;
+    }
+  }
+}
