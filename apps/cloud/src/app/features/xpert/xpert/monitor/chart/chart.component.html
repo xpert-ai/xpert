@@ -2,9 +2,9 @@
   <div class="flex items-start p-1">
     <div class="group">
       <div
-        class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+        class="flex flex-row items-center text-3xl font-semibold text-gray-700 group-hover:text-gray-900 break-all"
       >
-        {{ total() }}
+        {{ total() | number:'0.0-1' }}
       </div>
       <div class="text-xs font-normal text-gray-500 group-hover:text-gray-700 break-all"></div>
       <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
@@ -12,11 +12,8 @@
   </div>
 </div>
 
-<div class="echarts h-80" echarts
+<div class="echarts h-64" echarts
   [options]="options()"
   theme="light"
-  [initOpts]="{
-    height: '300px',
-  }"
 >
 </div>

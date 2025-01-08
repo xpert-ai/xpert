@@ -30,8 +30,13 @@ import { NgxEchartsDirective } from 'ngx-echarts'
 })
 export class XpertStatisticsChartComponent {
   readonly data = input<{ date: string; count: number }[]>()
+  readonly measureLabel = input<string>()
+  readonly totalType = input<'sum' | 'avg'>('sum')
 
-  readonly total = computed(() => this.data()?.reduce((acc, { count }) => acc + (Number(count) ?? 0), 0))
+  readonly total = computed(() => {
+    const total = this.data()?.reduce((acc, { count }) => acc + (Number(count) ?? 0), 0)
+    return this.totalType() === 'avg' ? total / this.data()?.length : total
+  })
   readonly options = computed(() => {
     const items = this.data()
     const max = maxBy(items, 'count')?.['count']
@@ -39,7 +44,9 @@ export class XpertStatisticsChartComponent {
       items &&
       ({
         grid: {
-          bottom: 40
+          left: 40,
+          right: 20,
+          bottom: 30
         },
         xAxis: {
           type: 'category',
@@ -56,7 +63,7 @@ export class XpertStatisticsChartComponent {
         },
         series: [
           {
-            name: 'Conversations',
+            name: this.measureLabel(),
             data: items.map(({ count }) => count),
             type: 'line'
           }

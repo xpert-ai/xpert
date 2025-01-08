@@ -1,5 +1,5 @@
 import { CdkListboxModule, ListboxValueChangeEvent } from '@angular/cdk/listbox'
-import { CdkMenuModule } from '@angular/cdk/menu'
+import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { HttpClient } from '@angular/common/http'
 import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
@@ -55,6 +55,12 @@ export class NgmSelectComponent {
       this.cva.value$.set([...event.value])
     } else {
       this.cva.value$.set(event.value[0] ?? null)
+    }
+  }
+
+  selectOption(trigger: CdkMenuTrigger, value: any) {
+    if (!this.multiple()) {
+      trigger.close()
     }
   }
 }

@@ -1,7 +1,9 @@
 <div tabindex="0"
   #menuTrigger
+  #trigger="cdkMenuTriggerFor"
   class="flex items-center px-3 py-2 rounded-lg bg-gray-100 cursor-pointer hover:bg-gray-200"
   [cdkMenuTriggerFor]="menu"
+  [cdkMenuTriggerData]="{ trigger: trigger }"
 >
   <div class="grow mr-2 text-gray-900 text-sm leading-5">
     @for (option of selectedOptions(); track option.value; let last = $last) {
@@ -27,7 +29,7 @@
   </svg>
 </div>
 
-<ng-template #menu>
+<ng-template #menu let-trigger="trigger">
   <div
     cdkMenu
     class="relative bg-white rounded-lg border-[0.5px] border-gray-200 shadow-md p-2"
@@ -37,7 +39,9 @@
       [cdkListboxValue]="values()"
       (cdkListboxValueChange)="selectValues($event)">
       @for (option of selectOptions(); track option.key) {
-        <li #opElem="cdkOption" class="p-2 rounded-lg hover:bg-gray-50 cursor-pointer" [cdkOption]="option.value">
+        <li #opElem="cdkOption" class="p-2 rounded-lg hover:bg-gray-50 cursor-pointer" [cdkOption]="option.value"
+          (click)="selectOption(trigger, option.value)"
+        >
           <div class="relative pl-5">
             <div class="text-gray-700 text-sm leading-5">{{ option.label | i18n }}</div>
             <div class="text-gray-500 text-xs leading-[18px]">{{ option.description | i18n }}</div>

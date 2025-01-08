@@ -1,5 +1,7 @@
 <div class="mb-3 flex justify-between items-center">
-  <div class="h-[41px] flex items-center text-lg font-semibold text-gray-900">Monitoring</div>
+  <div class="h-[41px] flex items-center text-lg font-semibold text-gray-900">
+    {{ 'PAC.Xpert.Monitoring' | translate: {Default: 'Monitoring'} }}
+  </div>
   <div
     class="flex items-center p-2 rounded-xl border-[0.5px] border-gray-200 shadow-xs cursor-pointer hover:bg-gray-100"
     [ngmTooltip]="perfInDevelopment"
@@ -8,9 +10,11 @@
     <div class="mr-2 w-6 h-6 p-1 flex justify-center items-center rounded-lg shadow-md bg-primary-500 text-white">
       <i class="ri-pulse-ai-line"></i>
     </div>
-    <div class="leading-5 text-sm font-semibold text-gray-700">Tracing app performance</div>
+    <div class="leading-5 text-sm font-semibold text-gray-700">
+      {{ 'PAC.Xpert.TracingAppPerf' | translate: {Default: 'Tracing app performance'} }}
+    </div>
     <div class="flex items-center">
-      <div class="inline-block" data-state="closed">
+      <div class="inline-block">
         <div class="ml-2 w-6 h-6 p-1 flex justify-center items-center rounded-md hover:bg-black/5 cursor-pointer">
           <i class="ri-equalizer-2-line"></i>
         </div>

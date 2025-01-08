@@ -51,7 +51,7 @@ import { SearchXpertMemoryQuery } from './queries'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { XpertAgentVariablesQuery } from '../xpert-agent/queries'
 import { AnonymousXpertAuthGuard } from './auth/anonymous-auth.guard'
-import { ChatConversationDeleteCommand, ChatConversationUpsertCommand, FindChatConversationQuery, GetChatConversationQuery, StatisticsAverageSessionInteractionsQuery, StatisticsDailyConvQuery, StatisticsDailyEndUsersQuery } from '../chat-conversation'
+import { ChatConversationDeleteCommand, ChatConversationUpsertCommand, FindChatConversationQuery, GetChatConversationQuery, StatisticsAverageSessionInteractionsQuery, StatisticsDailyConvQuery, StatisticsDailyEndUsersQuery, StatisticsDailyMessagesQuery } from '../chat-conversation'
 import { FindMessageFeedbackQuery } from '../chat-message-feedback/queries'
 import { XpertGuard } from './guards/xpert.guard'
 
@@ -428,4 +428,11 @@ export class XpertController extends CrudController<Xpert> {
 	async getAverageSessionInteractions(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsAverageSessionInteractionsQuery(id, start, end))
 	}
+
+	@UseGuards(XpertGuard)
+	@Get(':id/statistics/daily-messages')
+	async getDailyMessages(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsDailyMessagesQuery(id, start, end))
+	}
+
 }

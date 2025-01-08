@@ -246,6 +246,15 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
       }
     })
   }
+
+  getDailyMessages(id: string, timeRange: [string, string]) {
+    return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/daily-messages`, {
+      params: {
+        start: timeRange[0],
+        end: timeRange[1]
+      }
+    })
+  }
 }
 
 export function injectXpertService() {
