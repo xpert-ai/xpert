@@ -161,6 +161,15 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.put<void>(this.apiBaseUrl + `/${id}/app`, app)
   }
 
+  // Conversations
+  getConversations(id: string, options: PaginationParams<IChatConversation>) {
+    return this.httpClient.get<{items: IChatConversation[]; total: number;}>(this.apiBaseUrl + `/${id}/conversations`, {
+      params: toHttpParams(options)
+    })
+  }
+
+  // Chat App
+
   chatApp(name: string, request: TChatRequest, options: TChatOptions) {
     return this.fetchEventSource(
       this.apiBaseUrl + `/${name}/chat-app`,
@@ -207,6 +216,35 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
         withCredentials: true
       }
     )
+  }
+
+  // Statistics
+
+  getDailyConversations(id: string, timeRange: [string, string]) {
+    return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/daily-conversations`, {
+      params: {
+        start: timeRange[0],
+        end: timeRange[1]
+      }
+    })
+  }
+
+  getDailyEndUsers(id: string, timeRange: [string, string]) {
+    return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/daily-end-users`, {
+      params: {
+        start: timeRange[0],
+        end: timeRange[1]
+      }
+    })
+  }
+
+  getAverageSessionInteractions(id: string, timeRange: [string, string]) {
+    return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/average-session-interactions`, {
+      params: {
+        start: timeRange[0],
+        end: timeRange[1]
+      }
+    })
   }
 }
 

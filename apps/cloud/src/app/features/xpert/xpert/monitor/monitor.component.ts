@@ -24,6 +24,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { QRCodeComponent } from 'apps/cloud/src/app/@shared/qrcode'
 import { Dialog } from '@angular/cdk/dialog'
 import { XpertDevelopApiKeyComponent } from '../develop/api-key/api-key.component'
+import { XpertStatisticsComponent } from './statistics/statistics.component'
 
 @Component({
   standalone: true,
@@ -39,7 +40,8 @@ import { XpertDevelopApiKeyComponent } from '../develop/api-key/api-key.componen
     NgmSpinComponent,
     NgmTooltipDirective,
     InDevelopmentComponent,
-    QRCodeComponent
+    QRCodeComponent,
+    XpertStatisticsComponent
   ],
   selector: 'xpert-monitor',
   templateUrl: './monitor.component.html',

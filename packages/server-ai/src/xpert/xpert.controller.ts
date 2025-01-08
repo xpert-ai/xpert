@@ -51,8 +51,9 @@ import { SearchXpertMemoryQuery } from './queries'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { XpertAgentVariablesQuery } from '../xpert-agent/queries'
 import { AnonymousXpertAuthGuard } from './auth/anonymous-auth.guard'
-import { ChatConversationDeleteCommand, ChatConversationUpsertCommand, FindChatConversationQuery, GetChatConversationQuery } from '../chat-conversation'
+import { ChatConversationDeleteCommand, ChatConversationUpsertCommand, FindChatConversationQuery, GetChatConversationQuery, StatisticsAverageSessionInteractionsQuery, StatisticsDailyConvQuery, StatisticsDailyEndUsersQuery } from '../chat-conversation'
 import { FindMessageFeedbackQuery } from '../chat-message-feedback/queries'
+import { XpertGuard } from './guards/xpert.guard'
 
 @ApiTags('Xpert')
 @ApiBearerAuth()
@@ -151,6 +152,7 @@ export class XpertController extends CrudController<Xpert> {
 		return this.service.allVersions(id)
 	}
 
+	@UseGuards(XpertGuard)
 	@Post(':id/draft')
 	async saveDraft(@Param('id') id: string, @Body() draft: TXpertTeamDraft) {
 		// todo 检查有权限编辑此 xpert role
@@ -318,6 +320,16 @@ export class XpertController extends CrudController<Xpert> {
 		}
 	}
 
+	// Conversations
+
+	@UseGuards(XpertGuard)
+	@Get(':id/conversations')
+	async getConversations(@Param('id') id: string, @Query('data', ParseJsonPipe) data: PaginationParams<ChatConversation>) {
+		return this.queryBus.execute(new FindChatConversationQuery({xpertId: id}, data))
+	}
+
+	// Public App
+
 	@Public()
 	@UseGuards(AnonymousXpertAuthGuard)
 	@Get(':name/app')
@@ -395,5 +407,25 @@ export class XpertController extends CrudController<Xpert> {
 	async chatApp(@Param('name') name: string, @I18nLang() language: LanguagesEnum, @Body() body: { request: TChatRequest; options: TChatOptions }) {
 		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
 		return await this.commandBus.execute(new XpertChatCommand(body.request, {...body.options, language, fromEndUserId }))
+	}
+
+	// Statistics
+
+	@UseGuards(XpertGuard)
+	@Get(':id/statistics/daily-conversations')
+	async getDailyConversations(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsDailyConvQuery(id, start, end))
+	}
+
+	@UseGuards(XpertGuard)
+	@Get(':id/statistics/daily-end-users')
+	async getDailyEndUsers(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsDailyEndUsersQuery(id, start, end))
+	}
+	
+	@UseGuards(XpertGuard)
+	@Get(':id/statistics/average-session-interactions')
+	async getAverageSessionInteractions(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsAverageSessionInteractionsQuery(id, start, end))
 	}
 }
