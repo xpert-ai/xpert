@@ -1,4 +1,10 @@
-<div class="w-full relative overflow-x-auto flex-1"
+<div class="mb-3 flex justify-between items-center">
+  <div class="h-[41px] flex items-center text-lg font-semibold text-gray-900">
+    {{ 'PAC.Xpert.Logs' | translate: {Default: 'Logs'} }}
+  </div>
+</div>
+
+<div class="w-full relative overflow-auto flex-1"
   waIntersectionObserver
   waIntersectionThreshold="0.5">
   <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
@@ -34,6 +40,13 @@
     </div>
   }
 
-  <div (waIntersectionObservee)="onIntersection()" class="p-4"></div>
+  @if (!done()) {
+    <button (waIntersectionObservee)="onIntersection()" class="w-full flex justify-center p-2 cursor-pointer hover:bg-gray-100"
+      [disabled]="loading()"
+      (click)="onIntersection()"
+    >
+      <i class="ri-arrow-down-wide-line"></i>
+    </button>
+  }
 
 </div>
