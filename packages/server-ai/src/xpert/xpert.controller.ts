@@ -1,4 +1,4 @@
-import { IChatConversation, ICopilotStore, IIntegration, LanguagesEnum, OrderTypeEnum, RolesEnum, TChatApp, TChatOptions, TChatRequest, TXpertTeamDraft, UserType, xpertLabel } from '@metad/contracts'
+import { IChatConversation, ICopilotStore, IIntegration, LanguagesEnum, OrderTypeEnum, RolesEnum, TChatApi, TChatApp, TChatOptions, TChatRequest, TXpertTeamDraft, UserType, xpertLabel } from '@metad/contracts'
 import {
 	CrudController,
 	OptionParams,
@@ -39,6 +39,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { Request } from 'express'
 import { DeleteResult, FindConditions, In, IsNull, Like, Not } from 'typeorm'
 import { I18nLang } from 'nestjs-i18n'
+import { v4 as uuidv4 } from 'uuid'
 import { ChatConversation, XpertAgentExecution } from '../core/entities/internal'
 import { FindExecutionsByXpertQuery } from '../xpert-agent-execution/queries'
 import { XpertChatCommand, XpertDelIntegrationCommand, XpertExportCommand, XpertImportCommand, XpertPublishIntegrationCommand } from './commands'
@@ -287,16 +288,19 @@ export class XpertController extends CrudController<Xpert> {
 		}
 	}
 
-	@Public()
-	@UseGuards(AnonymousXpertAuthGuard)
-	@Get(':name/app')
-	async getChatApp(@Param('name') name: string,) {
-		const xpert = await this.service.findBySlug(name)
-		if (!xpert.app?.enabled) {
-			throw new ForbiddenException(name)
+	@Put(':id/api')
+	async updateChatApi(@Param('id') id: string, @Body() api: Partial<TChatApi>) {
+		const xpert = await this.service.findOne(id)
+		await this.service.update(id, {api: {...(xpert.api ?? {}), ...api}})
+		if (!api.disabled && !xpert.userId) {
+			const user = await this.commandBus.execute(new UserCreateCommand({
+				username: xpert.slug,
+				type: UserType.COMMUNICATION,
+				preferredLanguage: LanguagesEnum.English,
+				hash: uuidv4(),
+			}))
+			await this.service.update(id, {user})
 		}
-
-		return new XpertPublicDTO(xpert)
 	}
 
 	@Put(':id/app')
@@ -308,10 +312,22 @@ export class XpertController extends CrudController<Xpert> {
 				username: xpert.slug,
 				type: UserType.COMMUNICATION,
 				preferredLanguage: LanguagesEnum.English,
-				hash: '123456',
+				hash: uuidv4(),
 			}))
 			await this.service.update(id, {user})
 		}
+	}
+
+	@Public()
+	@UseGuards(AnonymousXpertAuthGuard)
+	@Get(':name/app')
+	async getChatApp(@Param('name') name: string,) {
+		const xpert = await this.service.findBySlug(name)
+		if (!xpert.app?.enabled) {
+			throw new ForbiddenException(name)
+		}
+
+		return new XpertPublicDTO(xpert)
 	}
 
 	@Public()

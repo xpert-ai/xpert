@@ -9,6 +9,7 @@ import {
 	IXpertAgent,
 	IXpertToolset,
 	TAvatar,
+	TChatApi,
 	TChatApp,
 	TLongTermMemory,
 	TSummarize,
@@ -121,6 +122,12 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
 	draft?: TXpertTeamDraft
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	api?: TChatApi
 
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()

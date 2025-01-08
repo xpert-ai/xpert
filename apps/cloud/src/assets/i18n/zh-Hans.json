@@ -263,7 +263,7 @@
       "By": "作者",
       "Feedback": "用户反馈",
       "HelpDocs": "帮助文档",
-      "Embedded": "已嵌入",
+      "Embedded": "嵌入",
       "Copied": "已复制",
       "DangerZone": "危险区域",
       "Copy": "复制",
@@ -279,7 +279,10 @@
       "CancelDislike": "取不喜欢",
       "Upgrade": "更新",
       "Code": "编码",
-      "Retry": "重试"
+      "Retry": "重试",
+      "Preview": "预览",
+      "PublicURL": "公开链接",
+      "Disabled": "禁用"
     },
     "MENU": {
       "Certification": "认证",
@@ -2122,7 +2125,18 @@
       "MaxConcurrency": "最大并发请求",
       "AgentSettings": "智能体设置",
       "EnableXpertChatApp": "启用或禁用数字专家的公开聊天应用程序",
-      "NewChat": "新聊天"
+      "EnableXpertApi": "启用或禁用数字专家的 API",
+      "NewChat": "新聊天",
+      "TracingAppPerf": "跟踪应用程序性能",
+      "QRCodeSharing": "二维码分享",
+      "APIReference": "API 参考",
+      "Copied": "已复制",
+      "ReadyAIWebApp": "即用型 AI Web应用程序",
+      "BackendServiceAPI": "后端服务 API",
+      "EasilyIntegratedApp": "轻松集成到您的应用程序中",
+      "ServiceAPIEndpoint": "服务 API 端点",
+      "ShareQRCode": "扫码分享应用",
+      "DownloadQRCode": "下载二维码"
     },
     "title": {
       "short": "Xpert AI"

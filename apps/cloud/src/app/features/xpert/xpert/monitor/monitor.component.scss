@@ -1,3 +1,9 @@
 :host {
-    @apply flex flex-col justify-start items-stretch h-full w-full px-12 py-6 bg-components-panel-bg;
+  @apply flex flex-col justify-start items-stretch h-full w-full px-12 py-6 bg-components-panel-bg;
+}
+
+.download {
+  position: relative;
+  color: #155eef;
+  @apply text-sm;
 }

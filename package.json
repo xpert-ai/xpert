@@ -119,6 +119,7 @@
     "@swc/helpers": "0.5.3",
     "@tinymce/tinymce-angular": "^6.0.1",
     "angular-gridster2": "^14.0.1",
+    "angularx-qrcode": "^19.0.0",
     "apache-arrow": "^9.0.0",
     "axios": "1.6.8",
     "clickhouse": "^2.5.0",

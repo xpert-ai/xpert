@@ -19,7 +19,6 @@ export class AnonymousStrategy extends PassportStrategy(Strategy, 'xpert') {
 					const user = xpert.user || xpert.createdBy
 					// Check if an anonymous user ID exists
 					const anonymousId = req.cookies['anonymous.id']
-					console.log(req.sessionID, anonymousId)
 					if (!anonymousId) {
 						// Generate a new anonymous user ID
 						const newId = uuidv4()

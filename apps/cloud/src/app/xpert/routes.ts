@@ -11,9 +11,9 @@ export const authGuard: CanActivateFn = async (route: ActivatedRouteSnapshot, st
   const router = inject(Router)
   const store = inject(Store)
 
-  if (await authService.isAuthenticated()) {
-    return true;  // Allow access if logged in
-  }
+  // if (await authService.isAuthenticated()) {
+  //   return true;  // Allow access if logged in
+  // }
 
   const nameParam = route.paramMap.get('name');
 

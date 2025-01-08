@@ -15,6 +15,7 @@ import {
   IXpert,
   IXpertAgentExecution,
   OrderTypeEnum,
+  TChatApi,
   TChatApp,
   TChatOptions,
   TChatRequest,
@@ -151,6 +152,11 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
       { withCredentials: true }
     )
   }
+
+  updateChatApi(id: string, api: Partial<TChatApi>) {
+    return this.httpClient.put<void>(this.apiBaseUrl + `/${id}/api`, api)
+  }
+
   updateChatApp(id: string, app: Partial<TChatApp>) {
     return this.httpClient.put<void>(this.apiBaseUrl + `/${id}/app`, app)
   }

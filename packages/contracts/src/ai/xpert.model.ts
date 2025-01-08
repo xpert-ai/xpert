@@ -58,6 +58,7 @@ export type TXpert = {
    */
   draft?: TXpertTeamDraft
 
+  api?: TChatApi
   app?: TChatApp
   userId?: string
   user?: IUser
@@ -236,6 +237,10 @@ export type TXpertParameter = {
 
 export type TChatApp = {
   enabled?: boolean
+}
+
+export type TChatApi = {
+  disabled?: boolean
 }
 
 // Xpert team draft types
