@@ -59,9 +59,18 @@ export class ChatConversationComponent {
 
   onConfirm() {
     this.chatService.chat({ confirm: true, toolCalls: this.toolCalls() })
+    this.chatService.updateConversation({
+      status: 'busy',
+      error: null
+    })
   }
+  
   onReject() {
     this.chatService.chat({ reject: true })
+    this.chatService.updateConversation({
+      status: 'busy',
+      error: null
+    })
   }
 
   onRetry() {

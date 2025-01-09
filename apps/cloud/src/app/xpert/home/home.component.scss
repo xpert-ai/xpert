@@ -4,7 +4,7 @@
 }
 
 .chat-conversation-list {
-  .item.active {
+  .item.active, .item.menu-active {
     @apply bg-black/5 dark:bg-white/10;
     .menu-trigger {
       opacity: 100;

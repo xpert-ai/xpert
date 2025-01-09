@@ -14,9 +14,11 @@
 
   <div class="flex items-center gap-2">
     @if (answering()) {
-      <button type="button" class="rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1 hover:opacity-60 text-white bg-black dark:bg-white dark:text-black" aria-label="停止生成"
+      <button type="button" class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1 hover:opacity-60 text-white bg-black dark:bg-white dark:text-black"
         (click)="stopGenerating()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" class="icon-lg"><rect width="10" height="10" x="7" y="7" fill="currentColor" rx="1.25"></rect></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" class="icon-lg">
+          <rect width="10" height="10" x="7" y="7" fill="currentColor" rx="1.25"></rect>
+        </svg>
       </button>
     } @else {
       <button type="button" class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1

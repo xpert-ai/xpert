@@ -23,11 +23,6 @@ import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import { DisplayBehaviour, Indicator } from '@metad/ocap-core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
-import { format } from 'date-fns/format'
-import { isToday } from 'date-fns/isToday'
-import { isWithinInterval } from 'date-fns/isWithinInterval'
-import { isYesterday } from 'date-fns/isYesterday'
-import { subDays } from 'date-fns/subDays'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { combineLatest, of } from 'rxjs'
@@ -52,6 +47,7 @@ import { ChatMoreComponent } from './icons'
 import { ChatSidenavMenuComponent } from './sidenav-menu/sidenav-menu.component'
 import { ChatToolbarComponent } from './toolbar/toolbar.component'
 import { ChatXpertsComponent } from './xperts/xperts.component'
+import { groupConversations } from '../../xpert/chat.service'
 
 @Component({
   standalone: true,
@@ -107,41 +103,7 @@ export class ChatHomeComponent {
   readonly sidenavOpened = model(!this.isMobile())
   readonly groups = computed(() => {
     const conversations = this.chatService.conversations()
-    // 定义分组时间段
-    const startOfToday = new Date()
-    const startOfLast7Days = subDays(startOfToday, 7)
-    const startOfLast30Days = subDays(startOfToday, 30)
-    const groups: { name: string; values: IChatConversation[] }[] = []
-    let currentGroup: (typeof groups)[0] = null
-    conversations.forEach((item) => {
-      const recordDate = new Date(item.updatedAt)
-      let name = ''
-      if (isToday(recordDate)) {
-        name = 'Today'
-      } else if (isYesterday(recordDate)) {
-        name = 'Yesterday'
-      } else if (isWithinInterval(recordDate, { start: startOfLast7Days, end: startOfToday })) {
-        name = 'Last7Days'
-      } else if (isWithinInterval(recordDate, { start: startOfLast30Days, end: startOfLast7Days })) {
-        name = 'Last30Days'
-      } else {
-        // 按月份分组
-        const monthKey = format(recordDate, 'yyyy-MM') //{locale: eoLocale});
-        name = monthKey
-      }
-
-      if (name !== currentGroup?.name) {
-        currentGroup = {
-          name,
-          values: [item]
-        }
-        groups.push(currentGroup)
-      } else {
-        currentGroup.values.push(item)
-      }
-    })
-
-    return groups
+    return groupConversations(conversations)
   })
 
   readonly role = this.chatService.xpert
