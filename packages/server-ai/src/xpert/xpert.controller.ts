@@ -54,6 +54,7 @@ import { AnonymousXpertAuthGuard } from './auth/anonymous-auth.guard'
 import { ChatConversationDeleteCommand, ChatConversationUpsertCommand, FindChatConversationQuery, GetChatConversationQuery, StatisticsAverageSessionInteractionsQuery, StatisticsDailyConvQuery, StatisticsDailyEndUsersQuery, StatisticsDailyMessagesQuery } from '../chat-conversation'
 import { FindMessageFeedbackQuery } from '../chat-message-feedback/queries'
 import { XpertGuard } from './guards/xpert.guard'
+import { ChatConversationPublicDTO } from '../chat-conversation/dto'
 
 @ApiTags('Xpert')
 @ApiBearerAuth()
@@ -325,7 +326,11 @@ export class XpertController extends CrudController<Xpert> {
 	@UseGuards(XpertGuard)
 	@Get(':id/conversations')
 	async getConversations(@Param('id') id: string, @Query('data', ParseJsonPipe) data: PaginationParams<ChatConversation>) {
-		return this.queryBus.execute(new FindChatConversationQuery({xpertId: id}, data))
+		const result = await this.queryBus.execute(new FindChatConversationQuery({xpertId: id}, data))
+		return {
+			...result,
+			items: result.items.map((item) => new ChatConversationPublicDTO(item))
+		}
 	}
 
 	// Public App

@@ -10,10 +10,21 @@
   <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
     <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
       <tr>
-        <th scope="col" class="px-6 py-3">Title</th>
-        <th scope="col" class="px-6 py-3">Created By</th>
-        <th scope="col" class="px-6 py-3">End User</th>
-        <th scope="col" class="px-6 py-3">Updated At</th>
+        <th scope="col" class="px-6 py-3">
+          {{ 'PAC.KEY_WORDS.Title' | translate: {Default: 'Title'} }}
+        </th>
+        <th scope="col" class="px-6 py-3">
+          {{ 'PAC.KEY_WORDS.CreatedBy' | translate: {Default: 'Created By'} }}
+        </th>
+        <th scope="col" class="px-6 py-3">
+          {{ 'PAC.KEY_WORDS.EndUser' | translate: {Default: 'End User'} }}
+        </th>
+        <th scope="col" class="px-6 py-3">
+          {{ 'PAC.KEY_WORDS.Status' | translate: {Default: 'Status'} }}
+        </th>
+        <th scope="col" class="px-6 py-3">
+          {{ 'PAC.KEY_WORDS.UpdatedAt' | translate: {Default: 'Updated At'} }}
+        </th>
       </tr>
     </thead>
     <tbody>
@@ -23,10 +34,48 @@
             {{conv.title}}
           </th>
           <td class="px-6 py-4">
-            {{conv.createdById}}
+            {{conv.createdBy | user }}
           </td>
           <td class="px-6 py-4">
             {{conv.fromEndUserId}}
+          </td>
+          <td class="px-6 py-4">
+            @switch (conv.status) {
+              @case ('busy') {
+                <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+                  <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
+                  <span class="">
+                    {{ 'PAC.Xpert.Busy' | translate: {Default: 'Busy'} }}
+                  </span>
+                </div>
+              }
+              @case ('error') {
+                <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+                  <div class="w-2.5 h-2.5 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
+                  <span class="text-red-500">
+                    {{ 'PAC.Xpert.Failure' | translate: {Default: 'Failure'} }}
+                  </span>
+                </div>
+              }
+              @case ('interrupted') {
+                <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+                  <div class="w-2.5 h-2.5 border border-solid rounded-[3px] bg-neutral-600 border-neutral-800 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
+                  <span class="">
+                    {{ 'PAC.Xpert.Interrupted' | translate: {Default: 'Interrupted'} }}
+                  </span>
+                </div>
+              }
+              @case ('idle') {
+                <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+                  <span class="">
+                    {{ 'PAC.Xpert.Idle' | translate: {Default: 'Idle'} }}
+                  </span>
+                </div>
+              }
+              @default {
+                {{conv.status}}
+              }
+            }
           </td>
           <td class="px-6 py-4">{{ conv.updatedAt | date: 'long' }}</td>
         </tr>

@@ -7,6 +7,7 @@ import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { effectAction } from '@metad/ocap-angular/core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
+import { UserPipe } from 'apps/cloud/src/app/@shared/pipes'
 import { delayWhen, filter, switchMap, tap } from 'rxjs/operators'
 import { IChatConversation, OrderTypeEnum, routeAnimations, XpertService } from '../../../../@core'
 import { XpertComponent } from '../xpert.component'
@@ -20,7 +21,8 @@ import { XpertComponent } from '../xpert.component'
     TranslateModule,
     RouterModule,
     WaIntersectionObserver,
-    NgmSpinComponent
+    NgmSpinComponent,
+    UserPipe
   ],
   selector: 'xpert-logs',
   templateUrl: './logs.component.html',
@@ -49,7 +51,8 @@ export class XpertLogsComponent {
       switchMap(() => {
         this.loading.set(true)
         return this.xpertService.getConversations(this.xpertId(), {
-          select: ['id', 'threadId', 'title', 'createdById', 'fromEndUserId', 'updatedAt'],
+          select: ['id', 'threadId', 'title', 'status', 'createdById', 'fromEndUserId', 'updatedAt'],
+          relations: ['createdBy'],
           order: { updatedAt: OrderTypeEnum.DESC },
           take: this.pageSize,
           skip: this.currentPage() * this.pageSize

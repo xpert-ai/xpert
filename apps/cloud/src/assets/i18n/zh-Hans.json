@@ -282,7 +282,9 @@
       "Retry": "重试",
       "Preview": "预览",
       "PublicURL": "公开链接",
-      "Disabled": "禁用"
+      "Disabled": "禁用",
+      "EndUser": "终端用户",
+      "Title": "标题"
     },
     "MENU": {
       "Certification": "认证",
@@ -2146,7 +2148,11 @@
       "AvgSessionInteractions": "平均会话互动数",
       "AvgSessionInteractionsTooltip": "每个会话用户与专家的交互数",
       "TotalMessages": "全部消息数",
-      "TotalMessagesTooltip": "每日与专家的互动总数"
+      "TotalMessagesTooltip": "每日与专家的互动总数",
+      "Failure": "失败",
+      "Interrupted": "打断",
+      "Idle": "闲置",
+      "Busy": "忙碌"
     },
     "title": {
       "short": "Xpert AI"
