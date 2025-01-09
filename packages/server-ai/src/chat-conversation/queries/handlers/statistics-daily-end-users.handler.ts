@@ -5,9 +5,7 @@ import { StatisticsDailyEndUsersQuery } from '../statistics-daily-end-suers.quer
 
 @QueryHandler(StatisticsDailyEndUsersQuery)
 export class StatisticsDailyEndUsersHandler implements IQueryHandler<StatisticsDailyEndUsersQuery> {
-	constructor(
-		private readonly queryBus: QueryBus
-	) {}
+	constructor(private readonly queryBus: QueryBus) {}
 
 	public async execute(command: StatisticsDailyEndUsersQuery) {
 		const { id, start, end } = command
@@ -18,9 +16,14 @@ export class StatisticsDailyEndUsersHandler implements IQueryHandler<StatisticsD
 			.createQueryBuilder('chat_conversation')
 			.select('DATE("createdAt") as date')
 			.addSelect('COUNT(DISTINCT COALESCE("fromEndUserId", "createdById"::text)) as count')
-			.where('chat_conversation.createdAt BETWEEN :start AND :end', { start, end })
-			.andWhere('chat_conversation.xpertId = :id', { id })
-			.addGroupBy('date')
+			.where('chat_conversation.xpertId = :id', { id })
+		if (start) {
+			query.andWhere('chat_conversation.createdAt >= :start', { start })
+		}
+		if (end) {
+			query.andWhere('chat_conversation.createdAt <= :end', { end })
+		}
+		query.addGroupBy('date')
 
 		return await query.getRawMany()
 	}

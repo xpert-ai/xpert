@@ -26,6 +26,7 @@ import {
 } from '../types'
 import { injectFetchEventSource } from './fetch-event-source'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
+import { HttpParams } from '@angular/common/http'
 
 @Injectable({ providedIn: 'root' })
 export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
@@ -222,38 +223,37 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   getDailyConversations(id: string, timeRange: [string, string]) {
     return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/daily-conversations`, {
-      params: {
-        start: timeRange[0],
-        end: timeRange[1]
-      }
+      params: this.timeRangeToParams(timeRange)
     })
   }
 
   getDailyEndUsers(id: string, timeRange: [string, string]) {
     return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/daily-end-users`, {
-      params: {
-        start: timeRange[0],
-        end: timeRange[1]
-      }
+      params: this.timeRangeToParams(timeRange)
     })
   }
 
   getAverageSessionInteractions(id: string, timeRange: [string, string]) {
     return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/average-session-interactions`, {
-      params: {
-        start: timeRange[0],
-        end: timeRange[1]
-      }
+      params: this.timeRangeToParams(timeRange)
     })
   }
 
   getDailyMessages(id: string, timeRange: [string, string]) {
     return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/daily-messages`, {
-      params: {
-        start: timeRange[0],
-        end: timeRange[1]
-      }
+      params: this.timeRangeToParams(timeRange)
     })
+  }
+
+  timeRangeToParams(timeRange: [string, string]) {
+    let params = new HttpParams()
+    if (timeRange[0]) {
+      params = params.set('start', timeRange[0])
+    }
+    if (timeRange[1]) {
+      params = params.set('end', timeRange[1])
+    }
+    return params
   }
 }
 

@@ -4,11 +4,11 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { EChartsOption } from 'echarts'
 import { maxBy } from 'lodash-es'
 import { NgxEchartsDirective } from 'ngx-echarts'
+
 
 @Component({
   standalone: true,
@@ -20,7 +20,6 @@ import { NgxEchartsDirective } from 'ngx-echarts'
     RouterModule,
     CdkMenuModule,
     MatTooltipModule,
-    NgmSpinComponent,
     NgxEchartsDirective
   ],
   selector: 'xpert-statistics-chart',
@@ -50,7 +49,7 @@ export class XpertStatisticsChartComponent {
         },
         xAxis: {
           type: 'category',
-          data: items.map(({ date }) => date?.slice(0, 10))
+          data: items.map(({ date }) => date ? new Date(date).toLocaleDateString().slice(0, 10) : 'N/A')
         },
         yAxis: {
           type: 'value',

@@ -22,10 +22,16 @@ export class StatisticsAverageSessionInteractionsHandler
 			.addSelect('COUNT(*)', 'messages_count')
 			.addSelect('COUNT( DISTINCT chat_conversation.id)', 'conversations_count')
 			.addSelect('COUNT(*) / COUNT( DISTINCT chat_conversation.id)', 'count')
-			.where('chat_conversation.createdAt BETWEEN :start AND :end', { start, end })
-			.andWhere('chat_conversation.xpertId = :id', { id })
+			.where('chat_conversation.xpertId = :id', { id })
 			.andWhere('chat_message.role = :role', { role: 'human' })
-			.addGroupBy('date')
+
+			if (start) {
+				query.andWhere('chat_conversation.createdAt >= :start', { start })
+			}
+			if (end) {
+				query.andWhere('chat_conversation.createdAt <= :end', { end })
+			}
+			query.addGroupBy('date')
 
 		return await query.getRawMany()
 	}

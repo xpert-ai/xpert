@@ -18,9 +18,14 @@ export class StatisticsDailyConvHandler implements IQueryHandler<StatisticsDaily
 			.createQueryBuilder('chat_conversation')
 			.select('DATE("createdAt") as date')
 			.addSelect('COUNT(*) as count')
-			.where('chat_conversation.createdAt BETWEEN :start AND :end', { start, end })
-			.andWhere('chat_conversation.xpertId = :id', { id })
-			.addGroupBy('date')
+			.where('chat_conversation.xpertId = :id', { id })
+		if (start) {
+			query.andWhere('chat_conversation.createdAt >= :start', { start })
+		}
+		if (end) {
+			query.andWhere('chat_conversation.createdAt <= :end', { end })
+		}
+		query.addGroupBy('date')
 
 		return await query.getRawMany()
 	}

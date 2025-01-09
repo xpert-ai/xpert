@@ -9,7 +9,7 @@ import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
-import { differenceInDays, startOfMonth, subDays } from 'date-fns'
+import { addDays, differenceInDays, startOfMonth, startOfQuarter, startOfYear, subDays, subSeconds } from 'date-fns'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'
 import { injectApiBaseUrl, injectToastr, XpertService } from '../../../../../@core'
@@ -47,10 +47,12 @@ export class XpertStatisticsComponent {
   readonly xpertId = computed(() => this.xpert()?.id)
 
   readonly selectedTime = model<number>(7)
-  readonly timeRange = computed<[string, string]>(() => [
-    subDays(new Date(), this.selectedTime()).toISOString(),
-    new Date().toISOString()
-  ])
+  readonly timeRange = computed<[string, string]>(() => this.selectedTime() ? [
+    subDays(new Date(), this.selectedTime() - 1)
+      .toISOString()
+      .slice(0, 10),
+    subSeconds(addDays(new Date(new Date().toISOString().slice(0, 10)), 1), 1).toISOString()
+  ] : [null, null])
 
   readonly dailyConv = derivedAsync(() => {
     return this.xpertId() ? this.xpertService.getDailyConversations(this.xpertId(), this.timeRange()) : of(null)
@@ -70,6 +72,8 @@ export class XpertStatisticsComponent {
 
   readonly today = new Date()
   readonly firstDayOfMonth = startOfMonth(this.today)
+  readonly firstDayOfQuarter = startOfQuarter(this.today)
+  readonly firstDayOfYear = startOfYear(this.today)
   readonly timeOptions = signal<TSelectOption[]>([
     {
       value: 1,
@@ -104,6 +108,27 @@ export class XpertStatisticsComponent {
       label: {
         en_US: 'Month to date',
         zh_Hans: '本月至今'
+      }
+    },
+    {
+      value: differenceInDays(this.today, this.firstDayOfQuarter),
+      label: {
+        en_US: 'Quarter to date',
+        zh_Hans: '本季度至今'
+      }
+    },
+    {
+      value: differenceInDays(this.today, this.firstDayOfYear),
+      label: {
+        en_US: 'Year to date',
+        zh_Hans: '本年至今'
+      }
+    },
+    {
+      value: null,
+      label: {
+        en_US: 'All time',
+        zh_Hans: '所有时间'
       }
     }
   ])
