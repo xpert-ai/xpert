@@ -1,5 +1,7 @@
 <div class="flex items-end rounded-[2rem] p-2 active:scale-[.99] active:translate-y-0.5 transition-all
- bg-black/5 dark:bg-white/10 active:bg-black/10 active:dark:bg-white/5">
+  bg-black/5 dark:bg-white/10 active:bg-black/10 active:dark:bg-white/5"
+  (click)="userInput.focus()"
+ >
   <textarea #userInput matInput class="ngm-colpilot__input flex-1 w-full px-1.5 m-2 z-10 resize-none overflow-visible"
     id="userInput" onInput="this.parentNode.dataset.replicatedValue = this.value"
     [placeholder]="'PAC.Chat.MessageDigitalExpert' | translate: {Default: 'Message digital expert'}"

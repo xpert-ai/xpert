@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -9,6 +9,8 @@ import { ToolCallConfirmComponent } from '../../@shared/xpert'
 import { AppService } from '../../app.service'
 import { ChatAiMessageComponent } from '../ai-message/ai-message.component'
 import { ChatService } from '../chat.service'
+import { EmojiAvatarComponent } from '../../@shared/avatar'
+import { ChatInputComponent } from '../chat-input/chat-input.component'
 
 @Component({
   standalone: true,
@@ -19,9 +21,9 @@ import { ChatService } from '../chat.service'
     RouterModule,
     TranslateModule,
     NgmCommonModule,
-
+    EmojiAvatarComponent,
     ToolCallConfirmComponent,
-    ChatAiMessageComponent
+    ChatAiMessageComponent,
   ],
   selector: 'chat-conversation',
   templateUrl: './conversation.component.html',
@@ -35,8 +37,13 @@ export class ChatConversationComponent {
   readonly appService = inject(AppService)
   readonly #router = inject(Router)
 
+  // Inputs
+  readonly chatInput = input.required<ChatInputComponent>()
+
+  // States
   readonly messages = this.chatService.messages
   readonly conversation = this.chatService.conversation
+  readonly role = this.chatService.xpert
 
   readonly lastMessage = computed(() => this.messages()[this.messages().length - 1] as CopilotChatMessage)
   readonly lastExecutionId = computed(() => {
