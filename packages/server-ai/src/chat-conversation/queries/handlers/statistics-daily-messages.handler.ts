@@ -25,7 +25,7 @@ export class StatisticsDailyMessagesHandler implements IQueryHandler<StatisticsD
 		if (end) {
 			query.andWhere('chat_conversation.createdAt <= :end', { end })
 		}
-		query.addGroupBy('date')
+		query.addGroupBy('date').orderBy('date')
 
 		return await query.getRawMany()
 	}

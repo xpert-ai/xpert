@@ -3,7 +3,8 @@
     {{ 'PAC.Xpert.Analysis' | translate: {Default: 'Analysis'} }}
   </span>
 
-  <ngm-select class="inline-block w-40" [selectOptions]="timeOptions()" [(ngModel)]="selectedTime" />
+  <ngm-select class="inline-block w-48" placeholder="Select time range" icon="ri-calendar-line"
+    [selectOptions]="TimeRanges" [(ngModel)]="timeRangeValue" />
 </div>
 
 <div class="grid gap-6 grid-cols-1 xl:grid-cols-2 w-full mb-6">

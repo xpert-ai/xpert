@@ -221,31 +221,31 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   // Statistics
 
-  getDailyConversations(id: string, timeRange: [string, string]) {
+  getDailyConversations(id: string, timeRange: string[]) {
     return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/daily-conversations`, {
       params: this.timeRangeToParams(timeRange)
     })
   }
 
-  getDailyEndUsers(id: string, timeRange: [string, string]) {
+  getDailyEndUsers(id: string, timeRange: string[]) {
     return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/daily-end-users`, {
       params: this.timeRangeToParams(timeRange)
     })
   }
 
-  getAverageSessionInteractions(id: string, timeRange: [string, string]) {
+  getAverageSessionInteractions(id: string, timeRange: string[]) {
     return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/average-session-interactions`, {
       params: this.timeRangeToParams(timeRange)
     })
   }
 
-  getDailyMessages(id: string, timeRange: [string, string]) {
+  getDailyMessages(id: string, timeRange: string[]) {
     return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/daily-messages`, {
       params: this.timeRangeToParams(timeRange)
     })
   }
 
-  timeRangeToParams(timeRange: [string, string]) {
+  timeRangeToParams(timeRange: string[]) {
     let params = new HttpParams()
     if (timeRange[0]) {
       params = params.set('start', timeRange[0])

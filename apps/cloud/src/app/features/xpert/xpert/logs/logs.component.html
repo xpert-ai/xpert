@@ -4,6 +4,10 @@
   </div>
 </div>
 
+<div class="flex items-center mb-2 gap-2">
+  <ngm-select placeholder="select time range" icon="ri-calendar-line" [selectOptions]="TimeRanges" [(ngModel)]="timeRangeValue" class="min-w-[150px] rounded-lg shadow-sm" />
+</div>
+
 <div class="w-full relative overflow-auto flex-1"
   waIntersectionObserver
   waIntersectionThreshold="0.5">

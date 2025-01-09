@@ -1,11 +1,16 @@
 <div tabindex="0"
   #menuTrigger
   #trigger="cdkMenuTriggerFor"
-  class="flex items-center px-3 py-2 rounded-lg bg-gray-100 cursor-pointer hover:bg-gray-200"
+  class="flex items-center px-2 py-1.5 rounded-lg border-[0.5px] border-solid border-neutral-300 bg-gray-100 cursor-pointer hover:bg-gray-200"
   [cdkMenuTriggerFor]="menu"
   [cdkMenuTriggerData]="{ trigger: trigger }"
 >
-  <div class="grow mr-2 text-gray-900 text-sm leading-5">
+  @if (icon()) {
+    <div class="w-4 h-4 flex justify-center items-center mr-1 text-text-secondary">
+      <i [class]="icon()"></i>
+    </div>
+  }
+  <div class="grow mr-2 text-text-secondary text-sm">
     @for (option of selectedOptions(); track option.value; let last = $last) {
       {{option.label | i18n}}
       @if (!last) {
@@ -21,12 +26,29 @@
     width="24"
     height="24"
     fill="currentColor"
-    class="remixicon shrink-0 w-4 h-4 text-gray-700"
+    class="remixicon shrink-0 w-4 h-4 text-text-secondary"
   >
     <path
       d="M11.9999 13.1714L16.9497 8.22168L18.3639 9.63589L11.9999 15.9999L5.63599 9.63589L7.0502 8.22168L11.9999 13.1714Z"
     ></path>
   </svg>
+
+  @if (values()?.length) {
+    <div class="p-[1px] cursor-pointer group/clear" (click)="clear()">
+      <svg
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        fill="currentColor"
+        class="h-3.5 w-3.5 text-text-quaternary group-hover/clear:text-text-tertiary"
+      >
+        <path
+          d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 10.5858L9.17157 7.75736L7.75736 9.17157L10.5858 12L7.75736 14.8284L9.17157 16.2426L12 13.4142L14.8284 16.2426L16.2426 14.8284L13.4142 12L16.2426 9.17157L14.8284 7.75736L12 10.5858Z"
+        ></path>
+      </svg>
+    </div>
+  }
 </div>
 
 <ng-template #menu let-trigger="trigger">
@@ -39,10 +61,10 @@
       [cdkListboxValue]="values()"
       (cdkListboxValueChange)="selectValues($event)">
       @for (option of selectOptions(); track option.key) {
-        <li #opElem="cdkOption" class="p-2 rounded-lg hover:bg-gray-50 cursor-pointer" [cdkOption]="option.value"
+        <li #opElem="cdkOption" class="px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer" [cdkOption]="option.value"
           (click)="selectOption(trigger, option.value)"
         >
-          <div class="relative pl-5">
+          <div class="relative">
             <div class="text-gray-700 text-sm leading-5">{{ option.label | i18n }}</div>
             <div class="text-gray-500 text-xs leading-[18px]">{{ option.description | i18n }}</div>
             @if (opElem.isSelected()) {
@@ -52,7 +74,7 @@
                 viewBox="0 0 16 16"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
-                class="absolute top-0.5 left-0 w-4 h-4 text-primary-600"
+                class="absolute top-0.5 right-0 w-4 h-4 text-primary-600"
               >
                 <g id="check">
                   <path

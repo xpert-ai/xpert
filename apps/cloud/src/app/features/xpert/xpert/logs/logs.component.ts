@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
@@ -7,10 +7,12 @@ import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { effectAction } from '@metad/ocap-angular/core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
+import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { UserPipe } from 'apps/cloud/src/app/@shared/pipes'
 import { delayWhen, filter, switchMap, tap } from 'rxjs/operators'
 import { IChatConversation, OrderTypeEnum, routeAnimations, XpertService } from '../../../../@core'
 import { XpertComponent } from '../xpert.component'
+import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@metad/core'
 
 @Component({
   standalone: true,
@@ -22,7 +24,8 @@ import { XpertComponent } from '../xpert.component'
     RouterModule,
     WaIntersectionObserver,
     NgmSpinComponent,
-    UserPipe
+    UserPipe,
+    NgmSelectComponent
   ],
   selector: 'xpert-logs',
   templateUrl: './logs.component.html',
@@ -31,6 +34,7 @@ import { XpertComponent } from '../xpert.component'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertLogsComponent {
+  TimeRanges = TimeRangeOptions
   readonly xpertService = inject(XpertService)
   readonly xpertComponent = inject(XpertComponent)
 
@@ -44,6 +48,19 @@ export class XpertLogsComponent {
   readonly done = signal(false)
 
   readonly conversations = signal<IChatConversation[]>([])
+
+  readonly timeRangeValue = model<TimeRangeEnum>(TimeRangeEnum.Last7Days)
+  readonly timeRange = computed(() => calcTimeRange(this.timeRangeValue()))
+  readonly timeRange$ = toObservable(this.timeRange)
+
+  constructor() {
+    this.timeRange$.subscribe(() => {
+      this.conversations.set([])
+      this.currentPage.set(0)
+      this.done.set(false)
+      this.loadConversations()
+    })
+  }
 
   loadConversations = effectAction((origin$) => {
     return origin$.pipe(
