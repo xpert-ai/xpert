@@ -1,23 +1,10 @@
 :host {
-  @apply flex flex-col relative;
+  @apply flex flex-col relative rounded-2xl bg-components-card-bg;
 }
 
 .cdk-option-active {
   @apply border-components-card-option-selected-border;
 }
-
-// .abc {
-//   @apply border-4 border-transparent relative;
-//   &::after {
-//     content: '';
-//     position: absolute;
-//     top: 0;
-//     left: 0;
-//     width: 100%;
-//     height: 100%;
-//     @apply bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500;
-//   }
-// }
 
 .xpert-type-list {
   .cdk-option {

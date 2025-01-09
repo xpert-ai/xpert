@@ -87,12 +87,12 @@
     />
   </div>
 
-  <span class="text-sm">
+  <span class="text-sm h-4 pl-12 inline-block">
     @if (checking()) {
-      <span class="ml-8 ">{{ 'PAC.Xpert.CheckingName' | translate: {Default: 'Checking the name...'} }}</span>
+      <span class="">{{ 'PAC.Xpert.CheckingName' | translate: {Default: 'Checking the name...'} }}</span>
     } @else if(name()) {
       @if (validateName()?.available) {
-        <span class="ml-8 flex justify-start items-center gap-2 text-green-500">
+        <span class="flex justify-start items-center gap-2 text-green-500">
           <span class="flex">
             <svg
               class="inline-block select-none"
@@ -109,7 +109,7 @@
           <span>{{ name() }} {{ 'PAC.Xpert.IsAvailable' | translate: {Default: 'is available'} }}</span>
         </span>
       } @else {
-        <span class="ml-8 flex justify-start items-center gap-2 text-red-500">
+        <span class="flex justify-start items-center gap-2 text-red-500">
           <span class="flex">
             <svg
               class="inline-block"

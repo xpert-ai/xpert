@@ -2152,7 +2152,14 @@
       "Failure": "失败",
       "Interrupted": "打断",
       "Idle": "闲置",
-      "Busy": "忙碌"
+      "Busy": "忙碌",
+      "NameOnlyContain": "名称只能包含[a-zA-Z0-9 _-]",
+      "NameExisted": "名称已存在！",
+      "Workspace": {
+        "ConfirmDelWorkspace": "工作空间包含的专家和工具集等将一并被删除",
+        "ArchiveWorkspace": "归档工作空间",
+        "ArchiveWorkspaceInfo": "工作空间的事物将不再可用"
+      }
     },
     "title": {
       "short": "Xpert AI"

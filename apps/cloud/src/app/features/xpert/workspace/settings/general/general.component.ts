@@ -1,13 +1,14 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
-import { Component, effect, input, model, output, signal } from '@angular/core'
+import { Component, effect, inject, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
   IfAnimation,
   injectToastr,
+  injectTranslate,
   injectWorkspaceService,
   IXpertWorkspace
 } from 'apps/cloud/src/app/@core'
@@ -23,6 +24,8 @@ import {
 export class XpertWorkspaceSettingsGeneralComponent {
   readonly workspaceService = injectWorkspaceService()
   readonly #toastr = injectToastr()
+  readonly confirmDel = injectConfirmDelete()
+  readonly i18n = injectTranslate('PAC.Xpert.Workspace')
 
   // Inputs
   readonly workspace = input<IXpertWorkspace>()
@@ -66,32 +69,43 @@ export class XpertWorkspaceSettingsGeneralComponent {
 
   archive() {
     this.loading.set(true)
-    this.workspaceService.archive(this.workspace().id)
-      .subscribe({
+    this.confirmDel({
+        value: this.workspace().name,
+        title: this.i18n()?.ArchiveWorkspace || 'Archive Workspace',
+        information: this.i18n()?.ArchiveWorkspaceInfo || 'Things in the workspace will no longer be available'
+      },
+      this.workspaceService.archive(this.workspace().id)
+    ).subscribe({
         next: () => {
-          this.loading.set(false)
           this.archived.emit()
           this.#toastr.success('PAC.Messages.ArchivedSuccessfully', { Default: 'Archived successfully' })
         },
         error: (error) => {
           this.loading.set(false)
           this.#toastr.error(getErrorMessage(error))
+        },
+        complete: () => {
+          this.loading.set(false)
         }
       }) 
   }
 
   delete() {
     this.loading.set(true)
-    this.workspaceService.delete(this.workspace().id)
-      .subscribe({
+    this.confirmDel(
+      {value: this.workspace().name, information: this.i18n()?.ConfirmDelWorkspace || 'The experts and toolsets contained in the workspace will be deleted.' },
+      this.workspaceService.delete(this.workspace().id)
+    ).subscribe({
         next: () => {
-          this.loading.set(false)
           this.deleted.emit()
           this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
         },
         error: (error) => {
           this.loading.set(false)
           this.#toastr.error(getErrorMessage(error))
+        },
+        complete: () => {
+          this.loading.set(false)
         }
       })
   }

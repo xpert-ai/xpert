@@ -107,8 +107,8 @@ export class XpertController extends CrudController<Xpert> {
 	}
 
 	@Get('validate')
-	async validateTitle(@Query('title') title: string) {
-		return this.service.validateTitle(title).then((items) => items.map((item) => new XpertPublicDTO(item)))
+	async validateName(@Query('name') name: string) {
+		return this.service.validateName(name)
 	}
 
 	@UseValidationPipe({ transform: true })

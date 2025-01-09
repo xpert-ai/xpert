@@ -84,9 +84,9 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.delete(this.apiBaseUrl + `/${xpertId}/publish/integration/${id}`)
   }
 
-  validateTitle(title: string) {
-    return this.httpClient.get<IXpert[]>(this.apiBaseUrl + `/validate`, {
-      params: toParams({ title })
+  validateName(name: string) {
+    return this.httpClient.get<boolean>(this.apiBaseUrl + `/validate`, {
+      params: toParams({ name })
     })
   }
 
