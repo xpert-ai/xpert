@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, output, input, effect, signal } from '@angular/core'
+import { Component, computed, output, input, effect, signal, booleanAttribute } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { SlashSvgComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -17,6 +17,9 @@ export class ToolCallConfirmComponent {
   // Inputs
   readonly operation = input<TSensitiveOperation>()
   readonly tools = input<{name: string; title: string; parameters: any}[]>()
+  readonly readonly = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
   // Outputs
   readonly toolCallsChange = output<ToolCall[]>()

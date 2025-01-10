@@ -13,6 +13,7 @@ import { delayWhen, filter, switchMap, tap } from 'rxjs/operators'
 import { OrderTypeEnum, routeAnimations, TChatConversationLog, XpertService } from '../../../../@core'
 import { XpertComponent } from '../xpert.component'
 import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@metad/core'
+import { ChatConversationPreviewComponent, ChatMessageExecutionComponent } from 'apps/cloud/src/app/@shared/chat'
 
 @Component({
   standalone: true,
@@ -25,7 +26,9 @@ import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@metad/core'
     WaIntersectionObserver,
     NgmSpinComponent,
     UserPipe,
-    NgmSelectComponent
+    NgmSelectComponent,
+    ChatConversationPreviewComponent,
+    ChatMessageExecutionComponent
   ],
   selector: 'xpert-logs',
   templateUrl: './logs.component.html',
@@ -52,6 +55,9 @@ export class XpertLogsComponent {
   readonly timeRangeValue = model<TimeRangeEnum>(TimeRangeEnum.Last7Days)
   readonly timeRange = computed(() => calcTimeRange(this.timeRangeValue()))
   readonly timeRange$ = toObservable(this.timeRange)
+
+  readonly preview = signal<string>(null)
+  readonly executionId = signal<string>(null)
 
   constructor() {
     this.timeRange$.subscribe(() => {
@@ -95,5 +101,17 @@ export class XpertLogsComponent {
     if (!this.loading() && !this.done()) {
       this.loadConversations()
     }
+  }
+
+  togglePreview(id: string) {
+    this.preview.update((state) => state === id ? null : id)
+  }
+
+  selectExecution(id: string) {
+    this.executionId.set(id)
+  }
+
+  closeExecution() {
+    this.executionId.set(null)
   }
 }

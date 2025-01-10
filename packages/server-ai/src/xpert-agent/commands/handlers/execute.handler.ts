@@ -451,6 +451,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 					}
 				})
 
+				// @todo checkpoint_id The source of the value should be wrong
 				execution.checkpointId = state.parentConfig?.configurable?.checkpoint_id
 
 				// Update execution title from graph states

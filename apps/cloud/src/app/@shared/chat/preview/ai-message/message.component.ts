@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, input } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { CopilotBaseMessage } from 'apps/cloud/src/app/@core'
+import { IChatMessage } from 'apps/cloud/src/app/@core'
 import { MarkdownModule } from 'ngx-markdown'
 
 @Component({
@@ -12,7 +12,7 @@ import { MarkdownModule } from 'ngx-markdown'
   styleUrls: ['message.component.scss']
 })
 export class XpertPreviewAiMessageComponent {
-  readonly message = input<CopilotBaseMessage>()
+  readonly message = input<IChatMessage>()
 
   readonly contents = computed(() => {
     if (typeof this.message()?.content === 'string') {

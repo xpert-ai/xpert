@@ -36,10 +36,13 @@
     </thead>
     <tbody>
       @for (conv of conversations(); track conv.id) {
-        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-          <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+        <tr class="row cursor-pointer bg-white border-b dark:bg-gray-800 dark:border-gray-700"
+          [class.selected]="preview() === conv.id"
+          (click)="togglePreview(conv.id)"
+        >
+          <td class="px-6 py-4 whitespace-nowrap">
             {{conv.title}}
-          </th>
+          </td>
           <td class="px-6 py-4">
             {{conv.createdBy | user }}
           </td>
@@ -109,3 +112,23 @@
   }
 
 </div>
+
+@if (preview()) {
+  <div class="absolute right-0 top-0 bottom-0 p-4 flex gap-2">
+    @if (executionId()) {
+      <chat-message-execution class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto
+        w-[420px]"
+        [id]="executionId()"
+        [xpert]="prev.xpert()"
+        (close)="closeExecution()"
+      />
+    }
+
+    <chat-conversation-preview #prev class="h-full w-[420px] rounded-2xl shadow-lg bg-components-card-bg overflow-auto"
+      readonly
+      [conversationId]="preview()"
+      (close)="preview.set(null)"
+      (execution)="selectExecution($event)"
+    />
+  </div>
+}

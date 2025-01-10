@@ -4,7 +4,6 @@ import { Component, computed, inject, model } from '@angular/core'
 import { listFadeIn } from 'apps/cloud/src/app/@core'
 import { SelectionService } from '../domain'
 import { XpertStudioComponent } from '../studio.component'
-import { XpertStudioPreviewComponent } from './preview/preview.component'
 import { XpertStudioPanelToolsetComponent } from './toolset/toolset.component'
 import { XpertStudioPanelAgentComponent } from './xpert-agent/agent.component'
 import { XpertStudioPanelXpertComponent } from './xpert/xpert.component'
@@ -12,6 +11,7 @@ import { XpertStudioPanelKnowledgeComponent } from './knowledge/knowledge.compon
 import { XpertStudioPanelExecutionComponent } from './execution/execution.component'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { XpertStudioPanelVariablesComponent } from './variables/variables.component'
+import { XpertStudioPreviewComponent } from './preview/preview.component'
 
 @Component({
   selector: 'xpert-studio-panel',

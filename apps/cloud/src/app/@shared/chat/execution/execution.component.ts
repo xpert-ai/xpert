@@ -2,14 +2,13 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { IXpertAgent, XpertAgentExecutionService, XpertAgentExecutionStatusEnum } from 'apps/cloud/src/app/@core'
-import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'
-import { XpertStudioApiService } from '../../domain'
+import { IXpert, XpertAgentExecutionService, XpertAgentExecutionStatusEnum } from '../../../@core'
+import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } from '../../xpert'
 
 @Component({
-  selector: 'xpert-studio-panel-execution',
+  selector: 'chat-message-execution',
   templateUrl: './execution.component.html',
   styleUrls: ['./execution.component.scss'],
   standalone: true,
@@ -22,14 +21,14 @@ import { XpertStudioApiService } from '../../domain'
     XpertAgentExecutionAccordionComponent
   ]
 })
-export class XpertStudioPanelExecutionComponent {
+export class ChatMessageExecutionComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
 
   readonly agentExecutionService = inject(XpertAgentExecutionService)
-  readonly apiService = inject(XpertStudioApiService)
 
   // Inputs
   readonly id = input<string>()
+  readonly xpert = input<Partial<IXpert>>()
 
   // Output
   readonly close = output<void>()
@@ -39,24 +38,30 @@ export class XpertStudioPanelExecutionComponent {
     return id ? this.agentExecutionService.getOneLog(id) : of(null)
   })
 
-  readonly nodes = computed(() => this.apiService.viewModel()?.nodes)
+  readonly agents = computed(() => {
+    if (this.xpert()) {
+      return [this.xpert().agent, ...(this.xpert().agents ?? [])]
+    }
+    return []
+  })
 
   readonly pageType = signal<'overview' | 'steps'>('overview')
 
   readonly execution = computed(() => {
     const execution = this.#execution()
+    const agents = this.agents()
     return execution
       ? {
           ...execution,
-          agent: this.nodes()?.find((node) => node.type === 'agent' && node.key === execution.agentKey)
-            ?.entity as IXpertAgent
+          agent: agents.find((node) => node.key === execution.agentKey)
         }
       : null
   })
-  readonly executions = computed(() =>
-    this.#execution()?.subExecutions?.map((exec) => ({
+  readonly executions = computed(() => {
+    const agents = this.agents()
+    return this.#execution()?.subExecutions?.map((exec) => ({
       ...exec,
-      agent: this.nodes()?.find((node) => node.type === 'agent' && node.key === exec.agentKey)?.entity as IXpertAgent
+      agent: agents.find((node) => node.key === exec.agentKey)
     }))
-  )
+  })
 }
