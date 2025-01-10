@@ -77,23 +77,31 @@ export class LarkConversationService implements OnModuleDestroy {
 
 		const lastMessage = await this.getLastMessage(userId, xpertId)
 
-		const message = new ChatLarkMessage(
+		const prevMessage = new ChatLarkMessage(
 			{ ...chatContext, larkService: this.larkService },
 			{ ...(lastMessage?.thirdPartyMessage ?? {}), messageId: lastMessage.id } as any,
 		)
 
+		const newMessage = new ChatLarkMessage(
+			{ ...chatContext, larkService: this.larkService },
+			{
+				language: lastMessage?.thirdPartyMessage?.language
+			} as any,
+		)
 		if (isEndAction(action)) {
-			await message.update({ status: 'end' })
+			await prevMessage.end()
 			await this.cacheManager.del(this.prefix + `/${userId}/${xpertId}`)
 		} else if (isConfirmAction(action)) {
+			await prevMessage.done()
 			await this.commandBus.execute(
-				new LarkChatXpertCommand(xpertId, null, message, {
+				new LarkChatXpertCommand(xpertId, null, newMessage, {
 					confirm: true
 				})
 			)
 		} else if (isRejectAction(action)) {
+			await prevMessage.done()
 			await this.commandBus.execute(
-				new LarkChatXpertCommand(xpertId, null, message, {
+				new LarkChatXpertCommand(xpertId, null, newMessage, {
 					reject: true
 				})
 			)

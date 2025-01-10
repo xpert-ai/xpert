@@ -45,7 +45,7 @@ import { createIndicatorTool } from './tools/indicator'
 import { ChatLarkMessage, ChatStack } from './message'
 
 /**
- * ChatBI conversation for Lark
+ * @deprecated Use ChatBI toolset
  */
 export class ChatBIConversation implements IChatBIConversation {
 	static readonly toolCallTimeout = 30 * 1000 // 30s

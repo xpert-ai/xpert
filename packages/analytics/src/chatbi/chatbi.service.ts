@@ -3,6 +3,9 @@ import { Cache } from 'cache-manager'
 import { ChatBIModelService } from '../chatbi-model/chatbi-model.service'
 import { ChatBIUserSession } from './types'
 
+/**
+ * @deprecated Use ChatBI toolset
+ */
 @Injectable()
 export class ChatBIService {
 	private readonly logger = new Logger(ChatBIService.name)

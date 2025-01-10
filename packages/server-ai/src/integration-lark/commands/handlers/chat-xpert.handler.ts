@@ -81,6 +81,10 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 										larkMessage.confirm(message.data.operation).catch((err) => {
 											this.#logger.error(err)
 										})
+									} else if (message.data.status === XpertAgentExecutionStatusEnum.ERROR) {
+										larkMessage.error(message.data.error || `Internal Error`).catch((err) => {
+											this.#logger.error(err)
+										})
 									}
 									break
 								}
@@ -98,7 +102,7 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 					reject(error)
 				},
 				complete: () => {
-					console.log('End chat with lark')
+					// console.log('End chat with lark')
 					if (responseMessageContent) {
 						larkMessage
 							.update({

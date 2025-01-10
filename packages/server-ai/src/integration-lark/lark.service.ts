@@ -18,6 +18,9 @@ import { LarkConversationService } from './conversation.service'
 export class LarkService {
 	private readonly logger = new Logger(LarkService.name)
 
+	/**
+	 * @deprecated 使用可恢复会话的方式
+	 */
 	private actions = new Map<string, Subject<any>>()
 
 	private eventDispatchers = new Map<
@@ -539,42 +542,14 @@ export class LarkService {
 		})
 	}
 
-	patchAction({ integrationId }: ChatLarkContext, messageId: string, content: any) {
-		return new Observable<{ action: any }>((subscriber: Subscriber<unknown>) => {
-			this.getClient(integrationId)
-				.im.message.patch({
-					data: {
-						content: JSON.stringify(content)
-					},
-					path: {
-						message_id: messageId
-					}
-				})
-				.then((res) => {
-					const response = new Subject<any>()
-					this.actions.set(messageId, response)
-					// 超时时间 10m
-					setTimeout(
-						() => {
-							response.complete()
-							this.actions.delete(messageId)
-						},
-						1000 * 60 * 10
-					)
-
-					response.subscribe({
-						next: (message) => {
-							subscriber.next(message)
-						},
-						error: (err) => {
-							subscriber.error(err)
-						},
-						complete: () => {
-							subscriber.complete()
-						}
-					})
-				})
-				.catch((err) => subscriber.error(err))
+	async patchAction({ integrationId }: ChatLarkContext, messageId: string, content: any) {
+		await this.getClient(integrationId).im.message.patch({
+			data: {
+				content: JSON.stringify(content)
+			},
+			path: {
+				message_id: messageId
+			}
 		})
 	}
 

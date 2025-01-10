@@ -3,6 +3,9 @@ import { C_CHATBI_END_CONVERSATION, IChatBIConversation } from './types'
 
 export { ChatLarkMessageStatus }
 
+/**
+ * @deprecated Use ChatBI toolset
+ */
 export class ChatLarkMessage {
 	static readonly headerTemplate = 'indigo'
 	static readonly logoImgKey = 'img_v3_02e1_a8d74bc6-3c8a-4f66-b44f-c4cc837e285g'
@@ -132,14 +135,14 @@ export class ChatLarkMessage {
 					...this.getCard(),
 					header: this.header ?? this.getHeader()
 				})
-				.subscribe({
-					next: (action) => {
-						this.onAction(action, options?.action)
-					},
-					error: (err) => {
-						console.error(err)
-					}
-				})
+				// .subscribe({
+				// 	next: (action) => {
+				// 		this.onAction(action, options?.action)
+				// 	},
+				// 	error: (err) => {
+				// 		console.error(err)
+				// 	}
+				// })
 		} else {
 			const result = await this.larkService.interactiveActionMessage(
 				this.chatContext,

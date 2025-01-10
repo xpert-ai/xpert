@@ -9,6 +9,9 @@ import { ChatBIService } from './chatbi.service'
 import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
 
+/**
+ * @deprecated Use ChatBI toolset
+ */
 @Module({
 	imports: [
 		CacheModule.register(),

@@ -1,5 +1,8 @@
 import { ICommand } from '@nestjs/cqrs'
 
+/**
+ * @deprecated Use ChatBI toolset
+ */
 export class UserSessionCommand implements ICommand {
 	static readonly type = '[ChatBI] User Session'
 
