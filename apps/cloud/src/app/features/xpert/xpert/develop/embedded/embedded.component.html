@@ -1,0 +1,45 @@
+<h3 class="text-2xl font-semibold text-text-primary">
+  {{ 'PAC.Xpert.EmbedOnWebsite' | translate: {Default: 'Embed on website'} }}
+</h3>
+<div class="absolute z-10 top-6 right-6 w-5 h-5 rounded-2xl flex items-center justify-center hover:cursor-pointer hover:bg-state-base-hover"
+  (click)="close()"
+>
+  <i class="ri-close-line"></i>
+</div>
+<div class="mb-4 mt-8 text-gray-900 text-[14px] font-medium leading-tight">
+  {{ 'PAC.Xpert.ChooseEmbedWay' | translate: {Default: 'Choose the way to embed chat app to your website'} }}
+</div>
+<div class="flex items-center justify-center gap-2">
+  @for (type of types; track type.value) {
+    <div class="type-option border-2 border-solid border-transparent rounded-xl cursor-pointer overflow-hidden"
+      [class.selected]="type.value === selectedType()"
+      (click)="selectedType.set(type.value)"
+    >
+      <img class="h-full w-auto" src="/assets/images/xperts/{{type.image}}">
+    </div>
+  }
+</div>
+
+@if (app(); as app) {
+<div class="w-full bg-gray-100 rounded-lg flex-col justify-start items-start inline-flex mt-6">
+  <div class="inline-flex items-center self-stretch justify-start gap-2 py-1 pl-3 pr-1 border border-black rounded-tl-lg rounded-tr-lg bg-gray-50 border-opacity-5">
+    <div class="grow shrink basis-0 text-slate-700 text-[13px] font-medium leading-none">
+      {{app.caption | i18n}}
+    </div>
+    <div class="flex items-center justify-center gap-1 p-2 rounded-lg">
+      <div class="w-8 h-8 rounded-lg flex justify-center items-center cursor-pointer hover:bg-gray-100"
+        [matTooltip]="'PAC.KEY_WORDS.Copy' | translate: {Default: 'Copy'}"
+        matTooltipPosition="above"
+        (click)="copy()"
+      >
+        <i class="ri-clipboard-line"></i>
+      </div>
+    </div>
+  </div>
+  <div class="flex items-start justify-start w-full gap-2 p-3 overflow-x-auto">
+    <div class="grow shrink basis-0 text-slate-700 text-[13px] leading-tight font-mono">
+      <pre class="select-text">{{app.code || ''}}</pre>
+    </div>
+  </div>
+</div>
+}

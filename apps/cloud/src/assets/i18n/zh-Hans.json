@@ -2160,7 +2160,9 @@
         "ConfirmDelWorkspace": "工作空间包含的专家和工具集等将一并被删除",
         "ArchiveWorkspace": "归档工作空间",
         "ArchiveWorkspaceInfo": "工作空间的事物将不再可用"
-      }
+      },
+      "EmbedOnWebsite": "嵌入网站",
+      "ChooseEmbedWay": "选择将聊天应用程序嵌入到您的网站的方式"
     },
     "title": {
       "short": "Xpert AI"

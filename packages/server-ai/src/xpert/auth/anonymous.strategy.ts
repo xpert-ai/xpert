@@ -22,7 +22,7 @@ export class AnonymousStrategy extends PassportStrategy(Strategy, 'xpert') {
 					if (!anonymousId) {
 						// Generate a new anonymous user ID
 						const newId = uuidv4()
-						req.res.cookie('anonymous.id', newId, { httpOnly: true, maxAge: 365 * 24 * 60 * 60 * 1000, sameSite: 'lax', secure: true }) // 1 年
+						req.res.cookie('anonymous.id', newId, { httpOnly: true, maxAge: 365 * 24 * 60 * 60 * 1000, secure: true }) // 1 年
 						this.success({ ...user, thirdPartyId: newId })
 					} else {
 						this.success({ ...user, thirdPartyId: anonymousId })

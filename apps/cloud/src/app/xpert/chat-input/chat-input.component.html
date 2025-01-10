@@ -3,7 +3,7 @@
   (click)="userInput.focus()"
  >
   <textarea #userInput matInput class="ngm-colpilot__input flex-1 w-full px-1.5 m-2 z-10 resize-none overflow-visible"
-    id="userInput" onInput="this.parentNode.dataset.replicatedValue = this.value"
+    id="userInput"
     [placeholder]="'PAC.Chat.MessageDigitalExpert' | translate: {Default: 'Message digital expert'}"
     [formControl]="promptControl"
     (keydown)="triggerFun($event)"

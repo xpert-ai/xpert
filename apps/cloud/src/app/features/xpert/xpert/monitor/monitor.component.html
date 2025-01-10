@@ -95,25 +95,27 @@
       <div class="pt-2 flex flex-row items-center flex-wrap gap-y-2">
         <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium mr-2"
           (click)="preview()">
-          <div class="flex flex-row items-center" data-state="closed">
+          <div class="flex flex-row items-center">
             <i class="ri-slideshow-3-line text-lg mr-1.5"></i>
             <span class="text-[13px]">{{ 'PAC.KEY_WORDS.Preview' | translate: {Default: 'Preview'} }}</span>
           </div>
         </button>
         <!-- <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium mr-2">
-          <div class="flex flex-row items-center" data-state="closed">
+          <div class="flex flex-row items-center">
             <i class="ri-quill-pen-ai-line text-lg mr-1.5"></i>
             <span class="text-[13px]">{{ 'PAC.KEY_WORDS.Customize' | translate: {Default: 'Customize'} }}</span>
           </div>
         </button> -->
-        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium mr-2">
-          <div class="flex flex-row items-center" data-state="closed">
+        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium mr-2"
+          (click)="openEmbedded()"
+        >
+          <div class="flex flex-row items-center">
             <i class="ri-terminal-window-line text-lg mr-1.5"></i>
             <span class="text-[13px]">{{ 'PAC.KEY_WORDS.Embedded' | translate: {Default: 'Embedded'} }}</span>
           </div>
         </button>
         <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium mr-2">
-          <div class="flex flex-row items-center" data-state="closed">
+          <div class="flex flex-row items-center">
             <i class="ri-settings-4-line text-lg mr-1.5"></i>
             <span class="text-[13px]">{{ 'PAC.KEY_WORDS.Settings' | translate: {Default: 'Settings'} }}</span>
           </div>

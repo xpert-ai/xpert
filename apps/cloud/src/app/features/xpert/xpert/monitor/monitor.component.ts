@@ -23,7 +23,7 @@ import { OverlayAnimations } from '@metad/core'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { QRCodeComponent } from 'apps/cloud/src/app/@shared/qrcode'
 import { Dialog } from '@angular/cdk/dialog'
-import { XpertDevelopApiKeyComponent } from '../develop/api-key/api-key.component'
+import { XpertDevelopApiKeyComponent, XpertDevelopEmbeddedComponent } from '../develop'
 import { XpertStatisticsComponent } from './statistics/statistics.component'
 
 @Component({
@@ -126,4 +126,17 @@ export class XpertMonitorComponent {
         }
       })
     }
+
+  openEmbedded() {
+    this.#dialog
+      .open(XpertDevelopEmbeddedComponent, {
+        data: {
+          xpert: this.xpert()
+        }
+      })
+      .closed.subscribe({
+        next: () => {
+        }
+      })
+  }
 }
