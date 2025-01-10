@@ -284,7 +284,8 @@
       "PublicURL": "公开链接",
       "Disabled": "禁用",
       "EndUser": "终端用户",
-      "Title": "标题"
+      "Title": "标题",
+      "MessageCount": "消息数"
     },
     "MENU": {
       "Certification": "认证",

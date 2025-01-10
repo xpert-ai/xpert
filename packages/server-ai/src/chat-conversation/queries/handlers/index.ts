@@ -4,6 +4,7 @@ import { StatisticsDailyConvHandler } from "./statistics-daily-conv.handler";
 import { StatisticsDailyEndUsersHandler } from "./statistics-daily-end-users.handler";
 import { StatisticsAverageSessionInteractionsHandler } from "./statistics-average-session-interactions.handler";
 import { StatisticsDailyMessagesHandler } from "./statistics-daily-messages.handler";
+import { ChatConversationLogsHandler } from "./conversation-logs.handler";
 
 export const QueryHandlers = [
 	GetChatConversationHandler,
@@ -11,5 +12,6 @@ export const QueryHandlers = [
 	StatisticsDailyConvHandler,
 	StatisticsDailyEndUsersHandler,
 	StatisticsAverageSessionInteractionsHandler,
-	StatisticsDailyMessagesHandler
+	StatisticsDailyMessagesHandler,
+	ChatConversationLogsHandler
 ];

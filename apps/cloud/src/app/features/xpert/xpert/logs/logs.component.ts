@@ -10,7 +10,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { UserPipe } from 'apps/cloud/src/app/@shared/pipes'
 import { delayWhen, filter, switchMap, tap } from 'rxjs/operators'
-import { IChatConversation, OrderTypeEnum, routeAnimations, XpertService } from '../../../../@core'
+import { OrderTypeEnum, routeAnimations, TChatConversationLog, XpertService } from '../../../../@core'
 import { XpertComponent } from '../xpert.component'
 import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@metad/core'
 
@@ -47,7 +47,7 @@ export class XpertLogsComponent {
   readonly currentPage = signal(0)
   readonly done = signal(false)
 
-  readonly conversations = signal<IChatConversation[]>([])
+  readonly conversations = signal<TChatConversationLog[]>([])
 
   readonly timeRangeValue = model<TimeRangeEnum>(TimeRangeEnum.Last7Days)
   readonly timeRange = computed(() => calcTimeRange(this.timeRangeValue()))
@@ -68,12 +68,12 @@ export class XpertLogsComponent {
       switchMap(() => {
         this.loading.set(true)
         return this.xpertService.getConversations(this.xpertId(), {
-          select: ['id', 'threadId', 'title', 'status', 'createdById', 'fromEndUserId', 'updatedAt'],
+          // select: ['id', 'threadId', 'title', 'status', 'createdById', 'fromEndUserId', 'updatedAt'],
           relations: ['createdBy'],
           order: { updatedAt: OrderTypeEnum.DESC },
           take: this.pageSize,
           skip: this.currentPage() * this.pageSize
-        })
+        }, this.timeRange())
       }),
       tap({
         next: ({ items, total }) => {

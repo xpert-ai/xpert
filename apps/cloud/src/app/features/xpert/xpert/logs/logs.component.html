@@ -24,6 +24,9 @@
           {{ 'PAC.KEY_WORDS.EndUser' | translate: {Default: 'End User'} }}
         </th>
         <th scope="col" class="px-6 py-3">
+          {{ 'PAC.KEY_WORDS.MessageCount' | translate: {Default: 'Message Count'} }}
+        </th>
+        <th scope="col" class="px-6 py-3">
           {{ 'PAC.KEY_WORDS.Status' | translate: {Default: 'Status'} }}
         </th>
         <th scope="col" class="px-6 py-3">
@@ -42,6 +45,9 @@
           </td>
           <td class="px-6 py-4">
             {{conv.fromEndUserId}}
+          </td>
+          <td class="px-6 py-4">
+            {{conv.messageCount | number:'0.0-0'}}
           </td>
           <td class="px-6 py-4">
             @switch (conv.status) {

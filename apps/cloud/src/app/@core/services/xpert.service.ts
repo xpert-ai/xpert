@@ -17,6 +17,7 @@ import {
   OrderTypeEnum,
   TChatApi,
   TChatApp,
+  TChatConversationLog,
   TChatOptions,
   TChatRequest,
   TDeleteResult,
@@ -163,9 +164,11 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   }
 
   // Conversations
-  getConversations(id: string, options: PaginationParams<IChatConversation>) {
-    return this.httpClient.get<{items: IChatConversation[]; total: number;}>(this.apiBaseUrl + `/${id}/conversations`, {
-      params: toHttpParams(options)
+  getConversations(id: string, options: PaginationParams<IChatConversation>, timeRange: string[]) {
+    const params = toHttpParams(options)
+
+    return this.httpClient.get<{items: TChatConversationLog[]; total: number;}>(this.apiBaseUrl + `/${id}/conversations`, {
+      params: this.timeRangeToParams(params, timeRange)
     })
   }
 
@@ -223,30 +226,29 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   getDailyConversations(id: string, timeRange: string[]) {
     return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/daily-conversations`, {
-      params: this.timeRangeToParams(timeRange)
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
     })
   }
 
   getDailyEndUsers(id: string, timeRange: string[]) {
     return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/daily-end-users`, {
-      params: this.timeRangeToParams(timeRange)
+      params: this.timeRangeToParams(new HttpParams(),timeRange)
     })
   }
 
   getAverageSessionInteractions(id: string, timeRange: string[]) {
     return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/average-session-interactions`, {
-      params: this.timeRangeToParams(timeRange)
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
     })
   }
 
   getDailyMessages(id: string, timeRange: string[]) {
     return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/daily-messages`, {
-      params: this.timeRangeToParams(timeRange)
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
     })
   }
 
-  timeRangeToParams(timeRange: string[]) {
-    let params = new HttpParams()
+  timeRangeToParams(params: HttpParams, timeRange: string[]) {
     if (timeRange[0]) {
       params = params.set('start', timeRange[0])
     }

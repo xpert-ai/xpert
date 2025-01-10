@@ -69,6 +69,10 @@ export interface IChatConversation extends IBasePerTenantAndOrganizationEntityMo
   executions?: IXpertAgentExecution[]
 }
 
+export type TChatConversationLog = IChatConversation & {
+  messageCount: number
+}
+
 // Types
 export type ChatMessage = {
   conversationId: string;

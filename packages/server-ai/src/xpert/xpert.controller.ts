@@ -37,7 +37,7 @@ import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Request } from 'express'
-import { DeleteResult, FindConditions, In, IsNull, Like, Not } from 'typeorm'
+import { Between, DeleteResult, FindConditions, In, IsNull, Like, Not } from 'typeorm'
 import { I18nLang } from 'nestjs-i18n'
 import { v4 as uuidv4 } from 'uuid'
 import { ChatConversation, XpertAgentExecution } from '../core/entities/internal'
@@ -51,7 +51,7 @@ import { SearchXpertMemoryQuery } from './queries'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { XpertAgentVariablesQuery } from '../xpert-agent/queries'
 import { AnonymousXpertAuthGuard } from './auth/anonymous-auth.guard'
-import { ChatConversationDeleteCommand, ChatConversationUpsertCommand, FindChatConversationQuery, GetChatConversationQuery, StatisticsAverageSessionInteractionsQuery, StatisticsDailyConvQuery, StatisticsDailyEndUsersQuery, StatisticsDailyMessagesQuery } from '../chat-conversation'
+import { ChatConversationDeleteCommand, ChatConversationLogsQuery, ChatConversationUpsertCommand, FindChatConversationQuery, GetChatConversationQuery, StatisticsAverageSessionInteractionsQuery, StatisticsDailyConvQuery, StatisticsDailyEndUsersQuery, StatisticsDailyMessagesQuery } from '../chat-conversation'
 import { FindMessageFeedbackQuery } from '../chat-message-feedback/queries'
 import { XpertGuard } from './guards/xpert.guard'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
@@ -325,8 +325,23 @@ export class XpertController extends CrudController<Xpert> {
 
 	@UseGuards(XpertGuard)
 	@Get(':id/conversations')
-	async getConversations(@Param('id') id: string, @Query('data', ParseJsonPipe) data: PaginationParams<ChatConversation>) {
-		const result = await this.queryBus.execute(new FindChatConversationQuery({xpertId: id}, data))
+	async getConversations(
+		@Param('id') id: string,
+		@Query('data', ParseJsonPipe) data: PaginationParams<ChatConversation>,
+		@Query('start') start: string,
+		@Query('end') end: string
+	) {
+		const {where} = data
+		const result = await this.queryBus.execute(new ChatConversationLogsQuery(
+			{
+				...data,
+				where: {
+					...(where ?? {}),
+					xpertId: id,
+					createdAt: Between(start, end)
+				},
+			},
+		))
 		return {
 			...result,
 			items: result.items.map((item) => new ChatConversationPublicDTO(item))
