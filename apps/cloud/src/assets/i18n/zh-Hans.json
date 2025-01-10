@@ -2162,7 +2162,11 @@
         "ArchiveWorkspaceInfo": "工作空间的事物将不再可用"
       },
       "EmbedOnWebsite": "嵌入网站",
-      "ChooseEmbedWay": "选择将聊天应用程序嵌入到您的网站的方式"
+      "ChooseEmbedWay": "选择将聊天应用程序嵌入到您的网站的方式",
+      "ChatApp": "对话应用程序",
+      "PublicChatApp": "公开对话应用程序",
+      "ChatApp_Everyone": "所有人均可访问，包括匿名用户",
+      "ChatApp_Account": "有账号的人可访问，拒绝匿名用户"
     },
     "title": {
       "short": "Xpert AI"

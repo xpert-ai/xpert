@@ -1,0 +1,32 @@
+<h3 class="p-6 text-2xl font-semibold text-text-primary">
+  {{ 'PAC.Xpert.ChatApp' | translate: {Default: 'Chat App'} }}
+</h3>
+<div class="absolute z-10 top-6 right-6 w-5 h-5 rounded-2xl flex items-center justify-center hover:cursor-pointer hover:bg-state-base-hover"
+  (click)="close()"
+>
+  <i class="ri-close-line"></i>
+</div>
+
+<div class="px-6 flex flex-col">
+
+  <mat-slide-toggle [(ngModel)]="public">{{ 'PAC.Xpert.PublicChatApp' | translate: {Default: 'Public chat app'} }}</mat-slide-toggle>
+
+  <div class="relative my-3 text-text-secondary">
+    @if (public) {
+      <div @slideUpAnimation>{{ 'PAC.Xpert.ChatApp_Everyone' | translate: {Default: 'Accessible to everyone, including anonymous users'} }}</div>
+    } @else {
+      <div @slideUpAnimation>{{ 'PAC.Xpert.ChatApp_Account' | translate: {Default: 'Anyone with an account can access it, anonymous users are not allowed'} }}</div>
+    }
+  </div>
+</div>
+
+<div class="flex justify-end p-4">
+  <div ngmButtonGroup>
+    <button mat-flat-button (click)="close()">
+      {{ 'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}
+    </button>
+    <button mat-raised-button color="accent" (click)="apply()">
+      {{ 'PAC.ACTIONS.Apply' | translate: {Default: 'Apply'} }}
+    </button>
+  </div>
+</div>

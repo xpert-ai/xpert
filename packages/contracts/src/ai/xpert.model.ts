@@ -237,6 +237,7 @@ export type TXpertParameter = {
 
 export type TChatApp = {
   enabled?: boolean
+  public?: boolean
 }
 
 export type TChatApi = {

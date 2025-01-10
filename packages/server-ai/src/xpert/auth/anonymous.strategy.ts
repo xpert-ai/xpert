@@ -14,7 +14,7 @@ export class AnonymousStrategy extends PassportStrategy(Strategy, 'xpert') {
 		this.xpertService
 			.findBySlug(req.params.name)
 			.then((xpert) => {
-				if (xpert.app?.enabled) {
+				if (xpert.app?.enabled && xpert.app.public) {
 					req.headers['organization-id'] = xpert.organizationId
 					const user = xpert.user || xpert.createdBy
 					// Check if an anonymous user ID exists
@@ -28,7 +28,7 @@ export class AnonymousStrategy extends PassportStrategy(Strategy, 'xpert') {
 						this.success({ ...user, thirdPartyId: anonymousId })
 					}
 				} else {
-					this.fail('x', 404)
+					this.fail('x', 401)
 				}
 			})
 			.catch((err) => this.fail('x', 404))
