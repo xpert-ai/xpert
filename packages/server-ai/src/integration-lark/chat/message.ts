@@ -316,7 +316,7 @@ function createConfirmMessage(operation: TSensitiveOperation) {
 	const toolElements = operation.toolCalls.map((toolCall, index) => {
 		const { call, parameters } = toolCall
 		const paramsElements = []
-		parameters.map((param) => {
+		parameters?.map((param) => {
 			paramsElements.push({
 				tag: 'markdown',
 				content: `**${resolveI18n(param.title || param.name)}** <text_tag color='turquoise'>${param.name}</text_tag>: ${call.args[param.name]}`
