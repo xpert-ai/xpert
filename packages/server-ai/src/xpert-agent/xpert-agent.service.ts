@@ -8,6 +8,7 @@ import { Repository } from 'typeorm'
 import { XpertAgentChatCommand } from './commands'
 import { XpertAgent } from './xpert-agent.entity'
 import { FindXpertQuery } from '../xpert/queries'
+import { Observable } from 'rxjs'
 
 @Injectable()
 export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertAgent> {
@@ -31,7 +32,7 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 	async chatAgent(params: TChatAgentParams) {
 		const xpertId = params.xpertId
 		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }, ['agent']))
-		return await this.commandBus.execute(
+		return await this.commandBus.execute<XpertAgentChatCommand, Observable<MessageEvent>>(
 			new XpertAgentChatCommand(params.input, params.agent.key, xpert, {
 				isDraft: true,
 				execution: {
@@ -39,6 +40,7 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 				},
 				toolCalls: params.toolCalls,
 				reject: params.reject,
+				from: 'debugger'
 			})
 		)
 	}

@@ -1,11 +1,13 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { Component, inject, model, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
+import { MatButtonModule } from '@angular/material/button'
+import { MatInputModule } from '@angular/material/input'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { debounceTime, map, of, switchMap, tap } from 'rxjs'
 import {
   getErrorMessage,
@@ -16,7 +18,6 @@ import {
   XpertService,
   XpertTypeEnum
 } from '../../../../@core'
-import { MaterialModule } from '../../../../@shared/material.module'
 import { EmojiAvatarComponent } from '../../../../@shared/avatar'
 import { genAgentKey } from '../../utils'
 
@@ -26,8 +27,9 @@ import { genAgentKey } from '../../utils'
   imports: [
     CommonModule,
     TranslateModule,
+    MatInputModule,
+    MatButtonModule,
     ButtonGroupDirective,
-    MaterialModule,
     FormsModule,
     CdkListboxModule,
     EmojiAvatarComponent
@@ -37,10 +39,11 @@ import { genAgentKey } from '../../utils'
 })
 export class XpertNewBlankComponent {
   eXpertTypeEnum = XpertTypeEnum
-  readonly #dialogRef = inject(MatDialogRef<XpertNewBlankComponent>)
-  readonly #dialogData = inject<{ workspace: IXpertWorkspace }>(MAT_DIALOG_DATA)
+  readonly #dialogRef = inject(DialogRef<IXpert>)
+  readonly #dialogData = inject<{ workspace: IXpertWorkspace }>(DIALOG_DATA)
   readonly xpertService = inject(XpertService)
   readonly #toastr = inject(ToastrService)
+  readonly #translate = inject(TranslateService)
 
   readonly types = model<XpertTypeEnum[]>([XpertTypeEnum.Agent])
   readonly name = model<string>()
@@ -57,28 +60,29 @@ export class XpertNewBlankComponent {
           if (!isValidTitle) {
             return of({
               available: false,
-              error: 'Name can only contain [a-zA-Z0-9 _-]'
+              error: this.#translate.instant('PAC.Xpert.NameOnlyContain', {Default: 'Name can only contain [a-zA-Z0-9 _-]'})
             })
           }
 
-          return this.validateTitle(title).pipe(
-            map((items) => ({
-              available: !items.length,
-              error: items.length ? 'Name existed!' : ''
+          return this._validateName(title).pipe(
+            map((available) => ({
+              available,
+              error: available ? '' : this.#translate.instant('PAC.Xpert.NameExisted', {Default: 'Name existed!'})
             }))
           )
         }
 
         return of({
-          available: true
+          available: true,
+          error: null
         })
       })
     )
   )
 
-  validateTitle(title: string) {
+  _validateName(name: string) {
     this.checking.set(true)
-    return this.xpertService.validateTitle(title).pipe(tap(() => this.checking.set(false)))
+    return this.xpertService.validateName(name).pipe(tap(() => this.checking.set(false)))
   }
 
   create() {

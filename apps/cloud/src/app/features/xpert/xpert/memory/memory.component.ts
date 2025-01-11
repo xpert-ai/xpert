@@ -114,8 +114,6 @@ export class XpertMemoryComponent {
       : of(null)
   })
 
-
-
   readonly input = model<string>()
 
   private searchSub: Subscription

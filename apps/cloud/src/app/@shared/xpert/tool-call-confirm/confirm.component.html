@@ -7,6 +7,7 @@
           <div><ngm-slash-svg class="inline-block"/><span class="text-primary-500">{{param.name}}</span></div>
         </div>
         <textarea class="flex-1 p-1 rounded-md border border-gray-300 focus:ring-primary-500 focus:border-primary-500 text-sm text-text-secondary focus:text-text-primary"
+          [disabled]="readonly()"
           [placeholder]="param.placeholder | i18n"
           [ngModel]="item.call.args[param.name]"
           (ngModelChange)="updateParam(index, param.name, $event)"
@@ -18,12 +19,14 @@
 
 <div class="mt-4 flex justify-between space-x-2">
   <button type="button" class="btn disabled:btn-disabled btn-primary h-8 flex-1 space-x-2"
+    [disabled]="readonly()"
     (click)="onConfirm()"
   >
     <div class="w-full flex justify-center">{{ 'PAC.Xpert.Confirm' | translate: {Default: 'Confirm'} }}</div>
   </button>
 
   <button type="button" class="btn disabled:btn-disabled h-8 btn-danger pressable flex-1"
+    [disabled]="readonly()"
     (click)="onReject()"
   >
     <div class="w-full text-center">

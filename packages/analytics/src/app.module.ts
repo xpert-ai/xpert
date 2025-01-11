@@ -37,7 +37,6 @@ import { VisitModule } from './visit/visit.module'
 import { SemanticModelEntityModule } from './model-entity'
 import { SemanticModelMemberModule } from './model-member'
 import { ChatBIConversationModule } from './chatbi-conversation/conversation.module'
-import { IntegrationLarkModule } from './integration-lark'
 import { ChatBIModule } from './chatbi'
 import { ChatBIModelModule } from './chatbi-model'
 
@@ -98,7 +97,6 @@ import { ChatBIModelModule } from './chatbi-model'
 		CertificationModule,
 		RedisModule,
 		ChatBIConversationModule,
-		IntegrationLarkModule,
 		ChatBIModule,
 		ChatBIModelModule
 	],

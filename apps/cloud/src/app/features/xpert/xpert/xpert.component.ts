@@ -65,6 +65,7 @@ export class XpertComponent {
   readonly xpert = signal<Partial<IXpert>>(null)
   readonly avatar = computed(() => this.xpert()?.avatar)
   readonly xpertType = computed(() => this.xpert()?.type)
+  readonly latestXpert = signal<IXpert>(null)
 
   private xpertSub = this.paramId$
     .pipe(
@@ -73,6 +74,7 @@ export class XpertComponent {
       switchMap((id) => this.#refresh$.pipe(switchMap(() => this.getXpertTeam(id))))
     )
     .subscribe((value) => {
+      this.latestXpert.set(value)
       this.xpert.set(value.draft?.team ?? value)
     })
 

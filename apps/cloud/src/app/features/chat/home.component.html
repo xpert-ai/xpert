@@ -89,11 +89,13 @@
 
         </div>
       } @else {
-        <pac-chat-conversation class="w-full lg:w-[800px] max-w-full m-auto py-4 lg:p-8"/>
+        <chat-conversation class="w-full lg:w-[800px] max-w-full m-auto py-4 lg:p-8"
+          [chatInput]="chatInput"
+        />
       }
     </div>
 
-    <pac-chat-input #chatInput cdkTrapFocusAutoCapture class="w-full px-4 lg:w-[800px] lg:px-8 max-w-full m-auto sticky bottom-0 z-10 bg-components-panel-bg"/>
+    <chat-input #chatInput cdkTrapFocusAutoCapture class="w-full px-4 lg:w-[800px] lg:px-8 max-w-full m-auto sticky bottom-0 z-10 bg-components-panel-bg"/>
   </mat-sidenav-content>
 </mat-sidenav-container>
 

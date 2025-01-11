@@ -47,7 +47,7 @@ const providers = [AuthService, UserService, UserOrganizationService, EmailServi
 		JwtStrategy,
 		RefreshTokenStrategy,
 		WsJwtStrategy,
-		ApiKeyStrategy
+		ApiKeyStrategy,
 	],
 	exports: [...providers]
 })

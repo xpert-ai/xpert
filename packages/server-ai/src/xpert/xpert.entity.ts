@@ -9,6 +9,8 @@ import {
 	IXpertAgent,
 	IXpertToolset,
 	TAvatar,
+	TChatApi,
+	TChatApp,
 	TLongTermMemory,
 	TSummarize,
 	TXpertAgentConfig,
@@ -19,7 +21,7 @@ import {
 import { Integration, Tag, User } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsJSON, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, OneToMany, OneToOne, RelationId } from 'typeorm'
+import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
 import { WorkspaceBaseEntity } from '../core/entities/base.entity'
 import { CopilotModel, Knowledgebase, XpertAgent, XpertToolset } from '../core/entities/internal'
 
@@ -120,6 +122,25 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
 	draft?: TXpertTeamDraft
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	api?: TChatApi
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	app?: TChatApp
+
+	@Column({ nullable: true })
+	userId?: string
+
+	@ManyToOne(() => User, { nullable: true })
+	@JoinColumn()
+	user?: User
 
 	/*
     |--------------------------------------------------------------------------

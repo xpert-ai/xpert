@@ -1,96 +1,39 @@
 import { Location } from '@angular/common'
-import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core'
+import { effect, inject, Injectable } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { nonNullable } from '@metad/ocap-core'
+import { TranslateService } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
+import { combineLatestWith, distinctUntilChanged, filter, map, pipe, withLatestFrom } from 'rxjs'
 import {
-  BehaviorSubject,
-  catchError,
-  combineLatest,
-  combineLatestWith,
-  distinctUntilChanged,
-  filter,
-  map,
-  of,
-  pipe,
-  skip,
-  switchMap,
-  tap,
-  withLatestFrom
-} from 'rxjs'
-import {
-  getErrorMessage,
-  IChatConversation,
-  IXpert,
-  IXpertToolset,
-  IKnowledgebase,
-  LanguagesEnum,
-  XpertTypeEnum,
-  ChatMessageTypeEnum,
-  uuid,
-  CopilotBaseMessage,
-  CopilotMessageGroup,
-  CopilotChatMessage,
   ChatMessageEventTypeEnum,
-  XpertAgentExecutionStatusEnum,
-  IChatMessage,
-  ToolCall,
-  IChatMessageFeedback,
+  ChatMessageTypeEnum,
+  getErrorMessage,
+  IXpert,
+  LanguagesEnum,
   OrderTypeEnum,
+  ToolCall,
+  uuid,
+  XpertAgentExecutionStatusEnum,
+  XpertTypeEnum
 } from '../../@core'
-import { ChatConversationService, ChatService as ChatServerService, XpertService, ToastrService, ChatMessageFeedbackService } from '../../@core/services'
-import { AppService } from '../../app.service'
+import { ToastrService } from '../../@core/services'
+import { ChatService } from '../../xpert/'
 import { COMMON_COPILOT_ROLE } from './types'
-import { TranslateService } from '@ngx-translate/core'
-import { NGXLogger } from 'ngx-logger'
-import { sortBy } from 'lodash-es'
-
 
 @Injectable()
-export class ChatService {
-  readonly chatService = inject(ChatServerService)
-  readonly conversationService = inject(ChatConversationService)
-  readonly feedbackService = inject(ChatMessageFeedbackService)
-  readonly xpertService = inject(XpertService)
-  readonly appService = inject(AppService)
+export class ChatPlatformService extends ChatService {
   readonly #translate = inject(TranslateService)
-  readonly #logger = inject(NGXLogger)
   readonly #toastr = inject(ToastrService)
   readonly #location = inject(Location)
-  readonly #destroyRef = inject(DestroyRef)
   readonly paramRole = injectParams('role')
   readonly paramId = injectParams('id')
 
-  readonly conversationId = signal<string>(null)
-  readonly xpert$ = new BehaviorSubject<IXpert>(null)
-  /**
-   * The conversation
-   */
-  readonly conversation = signal<IChatConversation>(null)
-  /**
-   * User feedbacks for messages of the conversation
-   */
-  readonly feedbacks = signal<Record<string, IChatMessageFeedback>>(null)
-
-  /**
-   * Messages in the conversation
-   */
-  readonly #messages = signal<IChatMessage[]>([])
-  readonly messages = computed(() => this.#messages() ?? [])
-
-  // Conversations
-  readonly conversations = signal<IChatConversation[]>([])
-
-  readonly knowledgebases = signal<IKnowledgebase[]>([])
-  readonly toolsets = signal<IXpertToolset[]>([])
-
-  readonly answering = signal<boolean>(false)
-
-  readonly lang = this.appService.lang
   readonly xperts = derivedFrom(
     [
-      this.xpertService.getMyAll({ where: { type: XpertTypeEnum.Agent, latest: true }, order: {createdAt: OrderTypeEnum.DESC} })
+      this.xpertService
+        .getMyAll({ where: { type: XpertTypeEnum.Agent, latest: true }, order: { createdAt: OrderTypeEnum.DESC } })
         .pipe(map(({ items }) => items)),
       this.lang
     ],
@@ -113,7 +56,10 @@ export class ChatService {
         if (!role) {
           role = {
             ...COMMON_COPILOT_ROLE,
-            description: this.#translate.instant('PAC.Chat.CommonRoleDescription', {Default: 'Hi, how can I help? I can chat and search the knowledge base. Please select the appropriate role if you would like to use the tools.'})
+            description: this.#translate.instant('PAC.Chat.CommonRoleDescription', {
+              Default:
+                'Hi, how can I help? I can chat and search the knowledge base. Please select the appropriate role if you would like to use the tools.'
+            })
           }
         }
         if ([LanguagesEnum.SimplifiedChinese, LanguagesEnum.Chinese].includes(lang as LanguagesEnum)) {
@@ -152,53 +98,6 @@ export class ChatService {
         this.xpert$.next(roles.find((item) => item.slug === paramRole))
       }
     })
-  private idSub = toObservable(this.conversationId)
-    .pipe(
-      skip(1),
-      filter((id) => !this.conversation() || this.conversation().id !== id),
-      switchMap((id) =>
-        id ? combineLatest([
-          this.conversationService.getById(id, { relations: ['xpert', 'xpert.knowledgebases', 'xpert.toolsets', 'messages'] }),
-          this.feedbackService.getMyAll({ where: { conversationId: id, } })
-        ]).pipe(
-          catchError((error) => {
-            this.#toastr.error(getErrorMessage(error))
-            return of([])
-          }), 
-        ) : of([])
-      ),
-      tap(([conv, feedbacks]) => {
-        if (conv) {
-          this.conversation.set(conv)
-          this.#messages.set(sortBy(conv.messages, 'createdAt'))
-          this.knowledgebases.set(
-            conv.options?.knowledgebases?.map((id) => conv.xpert?.knowledgebases?.find((item) => item.id === id)).filter(nonNullable)
-          )
-          this.toolsets.set(conv.options?.toolsets?.map((id) => conv.xpert?.toolsets?.find((item) => item.id === id)))
-        } else {
-          // New empty conversation
-          this.conversation.set({} as IChatConversation)
-          this.#messages.set([])
-        }
-
-        this.feedbacks.set(feedbacks?.items.reduce((acc, feedback) => {
-          acc[feedback.messageId] = feedback
-          return acc
-        }, {}))
-      }),
-      combineLatestWith(toObservable(this.xperts)),
-      takeUntilDestroyed()
-    )
-    .subscribe({
-      next: ([[conversation,], roles]) => {
-        if (conversation) {
-          this.xpert$.next(roles?.find((role) => role.id === conversation.xpertId))
-        }
-      },
-      error: (error) => {
-        this.#toastr.error(getErrorMessage(error))
-      }
-    })
 
   private conversationSub = toObservable(this.conversation)
     .pipe(
@@ -226,6 +125,7 @@ export class ChatService {
     })
 
   constructor() {
+    super()
     effect(
       () => {
         if (this.paramId()) {
@@ -234,318 +134,141 @@ export class ChatService {
       },
       { allowSignalWrites: true }
     )
-
-    this.#destroyRef.onDestroy(() => {
-      if (this.answering() && this.conversation()?.id) {
-        this.cancelMessage()
-      }
-    })
   }
 
-  chat(options: Partial<{id: string; content: string; confirm: boolean; toolCalls: ToolCall[]; reject: boolean; retry: boolean}>) {
-    this.answering.set(true)
+  // chat(
+  //   options: Partial<{
+  //     id: string
+  //     content: string
+  //     confirm: boolean
+  //     toolCalls: ToolCall[]
+  //     reject: boolean
+  //     retry: boolean
+  //   }>
+  // ) {
+  //   this.answering.set(true)
 
-    if (options.confirm) {
-      this.updateLatestMessage((message) => {
-        return{
-          ...message,
-          status: 'thinking'
-        }
-      })
-    } else if (options.content) {
-      // Add ai message placeholder
-      // this.appendMessage({
-      //   id: uuid(),
-      //   role: 'assistant',
-      //   content: ``,
-      //   status: 'thinking'
-      // })
-    }
+  //   if (options.confirm) {
+  //     this.updateLatestMessage((message) => {
+  //       return {
+  //         ...message,
+  //         status: 'thinking'
+  //       }
+  //     })
+  //   } else if (options.content) {
+  //     // Add ai message placeholder
+  //     // this.appendMessage({
+  //     //   id: uuid(),
+  //     //   role: 'assistant',
+  //     //   content: ``,
+  //     //   status: 'thinking'
+  //     // })
+  //   }
 
-    this.chatService.chat({
-      input: {
-        input: options.content,
-      },
-      xpertId: this.xpert$.value?.id,
-      conversationId: this.conversation()?.id,
-      id: options.id,
-      toolCalls: options.toolCalls,
-      confirm: options.confirm,
-      reject: options.reject,
-      retry: options.retry,
-    }, {
-      knowledgebases: this.knowledgebases()?.map(({ id }) => id),
-      toolsets: this.toolsets()?.map(({ id }) => id)
-    })
-    .subscribe({
-      next: (msg) => {
-        if (msg.event === 'error') {
-          this.#toastr.error(msg.data)
-        } else {
-          if (msg.data) {
-            const event = JSON.parse(msg.data)
-            if (event.type === ChatMessageTypeEnum.MESSAGE) {
-              if (typeof event.data === 'string') {
-                this.appendStreamMessage(event.data)
-              } else {
-                this.appendMessageComponent(event.data)
-              }
-            } else if (event.type === ChatMessageTypeEnum.EVENT) {
-              switch(event.event) {
-                case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
-                case ChatMessageEventTypeEnum.ON_CONVERSATION_END:
-                  this.updateConversation(event.data)
-                  if (event.data.status === 'error') {
-                    this.updateLatestMessage((lastM) => {
-                      return {
-                        ...lastM,
-                        status: XpertAgentExecutionStatusEnum.ERROR
-                      }
-                    })
-                  }
-                  break
-                case ChatMessageEventTypeEnum.ON_MESSAGE_START:
-                  if (options.content) {
-                    this.appendMessage({
-                      id: uuid(),
-                      role: 'assistant',
-                      content: ``,
-                      status: 'thinking'
-                    })
-                  }
-                  this.updateLatestMessage((lastM) => {
-                    return {
-                      ...lastM,
-                      ...event.data
-                    }
-                  })
-                  break;
-                case ChatMessageEventTypeEnum.ON_MESSAGE_END:
-                  this.updateLatestMessage((lastM) => {
-                    return {
-                      ...lastM,
-                      status: event.data.status,
-                      error: event.data.error,
-                    }
-                  })
-                  break;
-                default:
-                  this.updateEvent(event.event, event.data.error)
-              }
-            }
-          }
-        }
-      },
-      error: (error) => {
-        this.answering.set(false)
-        this.#toastr.error(getErrorMessage(error))
-        this.updateLatestMessage((message) => {
-          return {
-            ...message,
-            status: XpertAgentExecutionStatusEnum.ERROR,
-            error: getErrorMessage(error)
-          }
-        })
-      },
-      complete: () => {
-        this.answering.set(false)
-        this.updateLatestMessage((message) => {
-          return {
-            ...message,
-            status: XpertAgentExecutionStatusEnum.SUCCESS,
-            error: null
-          }
-        })
-      }
-    })
-  }
-
-  cancelMessage() {
-    this.answering.set(false)
-    // return this.chatService.message({
-    //   event: ChatGatewayEvent.CancelChain,
-    //   data: {
-    //     conversationId: this.conversation().id
-    //   }
-    // })
-  }
+  //   this.chatSubscription = this.chatService
+  //     .chat(
+  //       {
+  //         input: {
+  //           input: options.content
+  //         },
+  //         xpertId: this.xpert$.value?.id,
+  //         conversationId: this.conversation()?.id,
+  //         id: options.id,
+  //         toolCalls: options.toolCalls,
+  //         confirm: options.confirm,
+  //         reject: options.reject,
+  //         retry: options.retry
+  //       },
+  //       {
+  //         knowledgebases: this.knowledgebases()?.map(({ id }) => id),
+  //         toolsets: this.toolsets()?.map(({ id }) => id)
+  //       }
+  //     )
+  //     .subscribe({
+  //       next: (msg) => {
+  //         if (msg.event === 'error') {
+  //           this.#toastr.error(msg.data)
+  //         } else {
+  //           if (msg.data) {
+  //             const event = JSON.parse(msg.data)
+  //             if (event.type === ChatMessageTypeEnum.MESSAGE) {
+  //               if (typeof event.data === 'string') {
+  //                 this.appendStreamMessage(event.data)
+  //               } else {
+  //                 this.appendMessageComponent(event.data)
+  //               }
+  //             } else if (event.type === ChatMessageTypeEnum.EVENT) {
+  //               switch (event.event) {
+  //                 case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
+  //                 case ChatMessageEventTypeEnum.ON_CONVERSATION_END:
+  //                   this.updateConversation(event.data)
+  //                   if (event.data.status === 'error') {
+  //                     this.updateLatestMessage((lastM) => {
+  //                       return {
+  //                         ...lastM,
+  //                         status: XpertAgentExecutionStatusEnum.ERROR
+  //                       }
+  //                     })
+  //                   }
+  //                   break
+  //                 case ChatMessageEventTypeEnum.ON_MESSAGE_START:
+  //                   if (options.content) {
+  //                     this.appendMessage({
+  //                       id: uuid(),
+  //                       role: 'ai',
+  //                       content: ``,
+  //                       status: 'thinking'
+  //                     })
+  //                   }
+  //                   this.updateLatestMessage((lastM) => {
+  //                     return {
+  //                       ...lastM,
+  //                       ...event.data
+  //                     }
+  //                   })
+  //                   break
+  //                 case ChatMessageEventTypeEnum.ON_MESSAGE_END:
+  //                   this.updateLatestMessage((lastM) => {
+  //                     return {
+  //                       ...lastM,
+  //                       status: event.data.status,
+  //                       error: event.data.error
+  //                     }
+  //                   })
+  //                   break
+  //                 default:
+  //                   this.updateEvent(event.event, event.data.error)
+  //               }
+  //             }
+  //           }
+  //         }
+  //       },
+  //       error: (error) => {
+  //         this.answering.set(false)
+  //         this.#toastr.error(getErrorMessage(error))
+  //         this.updateLatestMessage((message) => {
+  //           return {
+  //             ...message,
+  //             status: XpertAgentExecutionStatusEnum.ERROR,
+  //             error: getErrorMessage(error)
+  //           }
+  //         })
+  //       },
+  //       complete: () => {
+  //         this.answering.set(false)
+  //         this.updateLatestMessage((message) => {
+  //           return {
+  //             ...message,
+  //             status: XpertAgentExecutionStatusEnum.SUCCESS,
+  //             error: null
+  //           }
+  //         })
+  //       }
+  //     })
+  // }
 
   async newConversation(xpert?: IXpert) {
-    if (this.answering() && this.conversation()?.id) {
-      this.cancelMessage()
-    }
-    this.conversation.set(null)
-    this.conversationId.set(null)
-    this.#messages.set([])
+    await super.newConversation()
     this.xpert$.next(xpert)
-  }
-
-  setConversation(id: string) {
-    if (id !== this.conversationId()) {
-      if (this.answering() && this.conversation()?.id) {
-        this.cancelMessage()
-      }
-      this.conversationId.set(id)
-    }
-  }
-
-  deleteConversation(id: string) {
-    this.conversations.update((items) => items.filter((item) => item.id !== id))
-    this.conversationService.delete(id).subscribe({
-      next: () => {}
-    })
-  }
-
-  updateConversation(data: Partial<IChatConversation>) {
-    this.conversation.update((state) => ({
-      ...(state ?? {}),
-      ...data,
-      messages: null
-    } as IChatConversation))
-    this.conversations.update((items) => {
-      const index = items.findIndex((_) => _.id === this.conversation().id)
-      if (index > -1) {
-        items[index] = {
-          ...items[index],
-          ...this.conversation()
-        }
-        return [...items]
-      } else {
-        return  [{ ...this.conversation() }, ...items]
-      }
-    })
-  }
-
-  updateMessage(id: string, message: Partial<CopilotBaseMessage>) {
-    this.#messages.update((messages) => {
-      const lastMessage = messages[messages.length - 1] as CopilotMessageGroup
-      messages[messages.length - 1] = { ...lastMessage, ...message }
-      return [...messages]
-    })
-  }
-
-  appendMessageComponent(message) {
-    this.updateLatestMessage((lastM) => {
-      const content = lastM.content
-      if (typeof content === 'string') {
-        lastM.content = [
-          {
-            type: 'text',
-            text: content
-          },
-          message
-        ]
-      } else if (Array.isArray(content)) {
-        lastM.content = [
-          ...content,
-          message
-        ]
-      } else {
-        lastM.content = [
-          message
-        ]
-      }
-      return {
-        ...lastM
-      }
-    })
-  }
-
-  appendStreamMessage(text: string) {
-    this.updateLatestMessage((lastM) => {
-      const content = lastM.content
-
-      if (typeof content === 'string') {
-        lastM.content = content + text
-      } else if (Array.isArray(content)) {
-        const lastContent = content[content.length - 1]
-        if (lastContent.type === 'text') {
-          content[content.length - 1] = {
-            ...lastContent,
-            text: lastContent.text + text
-          }
-          lastM.content = [
-            ...content,
-          ]
-        } else {
-          lastM.content = [
-            ...content,
-            {
-              type: 'text',
-              text
-            }
-          ]
-        }
-      } else {
-        lastM.content = text
-      }
-
-      return {
-        ...lastM
-      }
-    })
-  }
-
-  appendMessageStep(step: CopilotChatMessage) {
-    this.updateLatestMessage((lastMessage) => ({
-      ...lastMessage,
-      messages: [...(lastMessage.messages ?? []), step]
-    }))
-  }
-
-  updateLatestMessage(updateFn: (value: CopilotMessageGroup) => CopilotMessageGroup) {
-    this.#messages.update((messages) => {
-      const lastMessage = messages[messages.length - 1] as CopilotMessageGroup
-      messages[messages.length - 1] = updateFn(lastMessage)
-      return [...messages]
-    })
-  }
-
-  updateMessageStep(step: CopilotChatMessage) {
-    this.updateLatestMessage((lastMessage) => {
-      const _steps = lastMessage.messages.reverse()
-      const index = _steps.findIndex((item) => item.id === step.id && item.role === step.role)
-      if (index > -1) {
-        _steps[index] = {
-          ..._steps[index],
-          ...step
-        }
-        lastMessage.messages = _steps.reverse()
-      }
-      return {...lastMessage}
-    })
-  }
-
-  abortMessage(id: string) {
-    this.updateLatestMessage((lastMessage) => {
-      if (lastMessage.id === id) {
-        lastMessage.messages = lastMessage.messages?.map((m) => {
-          if (m.status === 'thinking') {
-            return { ...m, status: 'aborted' }
-          }
-          return m
-        })
-
-        return { ...lastMessage, status: 'aborted' }
-      }
-      return lastMessage
-    })
-  }
-
-  appendMessage(message: CopilotBaseMessage) {
-    this.#messages.update((messages) => [
-      ...(messages ?? []),
-      message
-    ])
-  }
-
-  updateEvent(event: string, error: string) {
-    this.updateLatestMessage((lastMessage) => {
-      return {
-        ...lastMessage,
-        event: event === ChatMessageEventTypeEnum.ON_AGENT_END ? null : event,
-        error
-      }
-    })
   }
 }

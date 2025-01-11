@@ -18,6 +18,9 @@ import { LarkConversationService } from './conversation.service'
 export class LarkService {
 	private readonly logger = new Logger(LarkService.name)
 
+	/**
+	 * @deprecated 使用可恢复会话的方式
+	 */
 	private actions = new Map<string, Subject<any>>()
 
 	private eventDispatchers = new Map<
@@ -167,7 +170,6 @@ export class LarkService {
 						tenant,
 						organizationId,
 						integrationId: integration.id,
-						// integration,
 						userId: user.id,
 						message: data as any,
 						chatId,
@@ -256,18 +258,20 @@ export class LarkService {
 					const tenant = integration.tenant
 					const organizationId = integration.organizationId
 					// Does not block onAction execution and returns to Lark immediately
-					this.conversation.onAction(
-						data.action.value,
-						{
-							tenant,
-							organizationId,
-							integrationId: integration.id,
-							userId: user.id,
-							chatId: data.context.open_chat_id
-						},
-						user.id,
-						xpertId
-					).catch((err) => this.logger.error(err))
+					setTimeout(() => {
+						this.conversation.onAction(
+							data.action.value,
+							{
+								tenant,
+								organizationId,
+								integrationId: integration.id,
+								userId: user.id,
+								chatId: data.context.open_chat_id
+							},
+							user.id,
+							xpertId
+						).catch((err) => this.logger.error(err))
+					}, 500)
 					return true
 				} else {
 					this.errorMessage(
@@ -539,42 +543,14 @@ export class LarkService {
 		})
 	}
 
-	patchAction({ integrationId }: ChatLarkContext, messageId: string, content: any) {
-		return new Observable<{ action: any }>((subscriber: Subscriber<unknown>) => {
-			this.getClient(integrationId)
-				.im.message.patch({
-					data: {
-						content: JSON.stringify(content)
-					},
-					path: {
-						message_id: messageId
-					}
-				})
-				.then((res) => {
-					const response = new Subject<any>()
-					this.actions.set(messageId, response)
-					// 超时时间 10m
-					setTimeout(
-						() => {
-							response.complete()
-							this.actions.delete(messageId)
-						},
-						1000 * 60 * 10
-					)
-
-					response.subscribe({
-						next: (message) => {
-							subscriber.next(message)
-						},
-						error: (err) => {
-							subscriber.error(err)
-						},
-						complete: () => {
-							subscriber.complete()
-						}
-					})
-				})
-				.catch((err) => subscriber.error(err))
+	async patchAction({ integrationId }: ChatLarkContext, messageId: string, content: any) {
+		await this.getClient(integrationId).im.message.patch({
+			data: {
+				content: JSON.stringify(content)
+			},
+			path: {
+				message_id: messageId
+			}
 		})
 	}
 

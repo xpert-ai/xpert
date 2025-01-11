@@ -1,0 +1,102 @@
+<div class="shrink-0 h-full flex flex-col items-center md:items-start w-16 md:w-[240px] border-r border-r-gray-100">
+  <div class="shrink-0 flex py-2 md:p-4">
+    <emoji-avatar [avatar]="avatar()" class="shrink-0 rounded-lg shadow-sm overflow-hidden mr-1"
+      [matTooltip]="xpert()?.description"
+    />
+    <div class="hidden md:block py-1 text-base font-semibold text-gray-800">{{ xpert()?.title || xpert()?.name }}</div>
+  </div>
+  <div class="w-full shrink-0 p-2 md:p-4">
+    <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium justify-start w-full"
+      [matTooltip]="'PAC.Xpert.NewChat' | translate: {Default: 'New chat'}"
+      matTooltipPosition="above"
+      (click)="newConversation()"
+    >
+      <i class="ri-add-line"></i>
+      <span class="hidden md:inline-block">{{ 'PAC.Xpert.NewChat' | translate: {Default: 'New chat'} }}</span>
+    </button>
+  </div>
+
+  <div class="relative group w-full flex-1">
+    <div class="grow px-2 md:px-4 w-full py-2 overflow-y-auto rounded-md border border-solid border-transparent
+        group-hover:absolute group-hover:w-80 group-hover:shadow-sm left-0 top-0 z-20
+        bg-components-card-bg group-hover:border-divider-regular"
+      waIntersectionObserver
+      waIntersectionThreshold="0.5">
+      <ul class="chat-conversation-list items-center md:items-start">
+        @for (group of groups(); track groups.name) {
+          <div mat-subheader class="pt-8 text-sm font-semibold text-ellipsis overflow-hidden break-all text-token-text-primary">
+            {{ 'PAC.KEY_WORDS.Date_' + group.name | translate: {Default: group.name} }}</div>
+          @for (item of group.values; track item.id) {
+            <li class="item relative flex mb-0.5 last-of-type:mb-0 py-1.5 group-hover:pl-3 pr-1.5 text-sm font-medium
+               text-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 group/item"
+              [ngClass]="{active: item.id === conversationId()}"
+              [class.menu-active]="mt.isOpen()"
+              (click)="selectConversation(item)"
+            >
+              @if (editingConversation()  === item.id) {
+                <input matInput [(ngModel)]="editingTitle"
+                  (keydown.enter)="updateTitle(item)"
+                  (keydown.esc)="editingConversation.set(null); editingTitle.set('')"
+                  >
+              } @else {
+                <div class="grow truncate" [title]="item.title">{{item.title}}</div>
+              }
+              
+              <div class="absolute right-0 bottom-0 top-0 items-center gap-1.5 pr-2 hidden md:flex group-hover:flex">
+                <button class="menu-trigger flex items-center justify-center w-6 h-6 p-1 rounded-full transition opacity-0
+                  group-hover/item:opacity-50 group-hover/item:hover:opacity-100 hover:bg-hover-bg"
+                  type="button"
+                  [cdkMenuTriggerFor]="convMenu"
+                  [cdkMenuTriggerData]="item"
+                  #mt="cdkMenuTriggerFor"
+                  [class.active]="mt.isOpen()"
+                  [matTooltip]="'PAC.KEY_WORDS.Options' | translate: {Default: 'Options'} "
+                  matTooltipPosition="right"
+                  (click)="$event.stopPropagation();">
+                  <i class="ri-more-line"></i>
+                </button>
+              </div>
+            </li>
+          }
+        }
+      </ul>
+
+      @if (loading()) {
+        <div class="flex justify-center">
+          <ngm-spin />
+        </div>
+      }
+
+      <div (waIntersectionObservee)="onIntersection()" class="p-4"></div>
+    </div>
+
+  </div>
+  
+  <div class="px-4 pb-4 text-xs text-gray-400">© {{ xpert()?.title || xpert()?.name }} 2025</div>
+</div>
+
+<div class="flex-1 flex flex-col px-2 lg:px-4 overflow-auto">
+  <chat-conversation class="w-full flex-1 lg:w-[800px] max-w-full m-auto py-4 lg:px-8" 
+    [chatInput]="chatInput"
+  />
+
+  <chat-input
+    #chatInput
+    cdkTrapFocusAutoCapture
+    class="w-full px-4 lg:w-[800px] lg:px-8 max-w-full m-auto sticky bottom-0 z-10 bg-components-panel-bg"
+  />
+</div>
+
+<ng-template #convMenu let-id="id" let-title="title">
+  <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem (click)="editingConversation.set(id);editingTitle.set(title)">
+      <i class="ri-edit-line mr-1"></i>
+      {{ 'PAC.KEY_WORDS.Rename' | translate: {Default: 'Rename'} }}
+    </button>
+
+    <button cdkMenuItem class="danger" (click)="deleteConv(id)">
+      <i class="ri-delete-bin-4-line mr-1"></i>
+      {{ 'PAC.KEY_WORDS.Delete' | translate: {Default: 'Delete'} }}
+    </button>
+  </div>
+</ng-template>

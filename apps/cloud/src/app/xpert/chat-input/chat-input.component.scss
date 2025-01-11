@@ -1,0 +1,8 @@
+:host {
+  @apply w-full flex flex-col items-stretch lg:w-[800px] max-w-full pt-4 lg:pt-8;
+}
+
+// Copilot
+.ngm-colpilot__input.mat-mdc-input-element {
+  @apply outline-none bg-transparent;
+}

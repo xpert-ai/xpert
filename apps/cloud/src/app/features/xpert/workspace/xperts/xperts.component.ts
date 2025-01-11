@@ -216,14 +216,14 @@ export class XpertStudioXpertsComponent {
   }
 
   newBlank() {
-    this.#dialog
-      .open(XpertNewBlankComponent, {
+    this.dialog
+      .open<IXpert>(XpertNewBlankComponent, {
         disableClose: true,
         data: {
           workspace: this.workspace()
         }
       })
-      .afterClosed()
+      .closed
       .subscribe((xpert) => {
         if (xpert) {
           this.router.navigate(['/xpert/', xpert.id])

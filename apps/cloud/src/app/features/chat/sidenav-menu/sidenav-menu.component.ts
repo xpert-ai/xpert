@@ -5,9 +5,8 @@ import { MatSidenav } from '@angular/material/sidenav'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { MaterialModule } from '../../../@shared/material.module'
-import { ChatService } from '../chat.service'
 import { ChatNewChatComponent, ChatSideMenuComponent } from '../icons'
-import { COMMON_COPILOT_ROLE } from '../types'
+import { ChatService } from '../../../xpert/'
 
 @Component({
   standalone: true,

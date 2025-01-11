@@ -22,6 +22,7 @@
       "All": "所有",
       "Ask": "提问",
       "Certification": "认证",
+      "Conversation": "会话",
       "DigitalAssetCertificationTypes": "数字资产认证类型",
       "Owner": "所有者",
       "Query": "查询",
@@ -262,7 +263,7 @@
       "By": "作者",
       "Feedback": "用户反馈",
       "HelpDocs": "帮助文档",
-      "Embedded": "已嵌入",
+      "Embedded": "嵌入",
       "Copied": "已复制",
       "DangerZone": "危险区域",
       "Copy": "复制",
@@ -278,7 +279,13 @@
       "CancelDislike": "取不喜欢",
       "Upgrade": "更新",
       "Code": "编码",
-      "Retry": "重试"
+      "Retry": "重试",
+      "Preview": "预览",
+      "PublicURL": "公开链接",
+      "Disabled": "禁用",
+      "EndUser": "终端用户",
+      "Title": "标题",
+      "MessageCount": "消息数"
     },
     "MENU": {
       "Certification": "认证",
@@ -559,7 +566,8 @@
       "NoRecordsFoundinFile": "文件中未找到记录",
       "UnsavedChanges": "未保存的更改",
       "SavedDraft": "草稿已保存！",
-      "Successfully": "成功"
+      "Successfully": "成功",
+      "NoPermissionOrNotExist": "没有权限访问或不存在"
     },
     "NOTES": {
       "ORGANIZATIONS": {
@@ -2118,7 +2126,49 @@
       "RecursionLimitTip": "限制智能体可以递归的次数",
       "RecursionLimit": "递归次数限制",
       "MaxConcurrency": "最大并发请求",
-      "AgentSettings": "智能体设置"
+      "AgentSettings": "智能体设置",
+      "EnableXpertChatApp": "启用或禁用数字专家的公开聊天应用程序",
+      "EnableXpertApi": "启用或禁用数字专家的 API",
+      "NewChat": "新聊天",
+      "TracingAppPerf": "追踪应用性能",
+      "QRCodeSharing": "二维码分享",
+      "APIReference": "API 参考",
+      "Copied": "已复制",
+      "ReadyAIWebApp": "即用型 AI Web应用程序",
+      "BackendServiceAPI": "后端服务 API",
+      "EasilyIntegratedApp": "轻松集成到您的应用程序中",
+      "ServiceAPIEndpoint": "服务 API 端点",
+      "ShareQRCode": "扫码分享应用",
+      "DownloadQRCode": "下载二维码",
+      "Analysis": "分析",
+      "TotalConversations": "所有对话数",
+      "TotalConversationsTooltip": "每日专家与用户对话计数；不包括专家作者和调试者",
+      "Conversations": "对话",
+      "ActiveUsers": "活跃用户数",
+      "ActiveUsersTooltip": "与专家交互的用户数；不包括专家作者和调试者",
+      "AvgSessionInteractions": "平均会话互动数",
+      "AvgSessionInteractionsTooltip": "每个会话用户与专家的交互数",
+      "TotalMessages": "全部消息数",
+      "TotalMessagesTooltip": "每日与专家的互动总数",
+      "Failure": "失败",
+      "Interrupted": "打断",
+      "Idle": "闲置",
+      "Busy": "忙碌",
+      "NameOnlyContain": "名称只能包含[a-zA-Z0-9 _-]",
+      "NameExisted": "名称已存在！",
+      "Workspace": {
+        "ConfirmDelWorkspace": "工作空间包含的专家和工具集等将一并被删除",
+        "ArchiveWorkspace": "归档工作空间",
+        "ArchiveWorkspaceInfo": "工作空间的事物将不再可用"
+      },
+      "EmbedOnWebsite": "嵌入网站",
+      "ChooseEmbedWay": "选择将聊天应用程序嵌入到您的网站的方式",
+      "ChatApp": "对话应用程序",
+      "PublicChatApp": "公开对话应用程序",
+      "ChatApp_Everyone": "所有人均可访问，包括匿名用户",
+      "ChatApp_Account": "有账号的人可访问，拒绝匿名用户",
+      "ThirdPartyMessage": "第三方平台消息",
+      "ChatFrom": "对话来源"
     },
     "title": {
       "short": "Xpert AI"

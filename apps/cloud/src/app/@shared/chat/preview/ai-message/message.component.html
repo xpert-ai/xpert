@@ -1,0 +1,28 @@
+@for (chunk of contents(); track $index) {
+  @switch(chunk.type) {
+    @case ('text') {
+      <markdown class="ngm-copilot-markdown text-sm"
+        lineNumbers
+        [start]="5"
+        [data]="chunk.text"
+      />
+    }
+    @default {
+      <div class="group rounded-lg flex flex-col items-stretch max-h-48 hover:bg-gray-50 transition-all">
+        <div class="text-base font-semibold shrink-0 p-2">{{'PAC.Xpert.Component' | translate: {Default: 'Component'} }}</div>
+        <div class="flex-1 text-sm rounded-lg whitespace-normal overflow-auto">
+          <p class="px-4 pb-4">{{chunk | json}}</p>
+        </div>
+      </div>
+    }
+  }
+}
+
+@if (thirdPartyMessage()) {
+  <div class="group rounded-lg flex flex-col items-stretch max-h-48 hover:bg-gray-50 transition-all">
+    <div class="text-base font-semibold shrink-0 p-2">{{'PAC.Xpert.ThirdPartyMessage' | translate: {Default: 'Third-party platform message'} }}</div>
+    <div class="flex-1 text-sm rounded-lg whitespace-normal overflow-auto">
+      <p class="px-4 pb-4">{{thirdPartyMessage() | json}}</p>
+    </div>
+  </div>
+}

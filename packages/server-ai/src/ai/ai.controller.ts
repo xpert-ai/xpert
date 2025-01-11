@@ -4,7 +4,6 @@ import {
 	ForbiddenException,
 	Get,
 	Headers,
-	HttpCode,
 	HttpException,
 	HttpStatus,
 	Logger,
@@ -13,7 +12,7 @@ import {
 	Res,
 } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { ServerResponse } from 'http'
 import { CopilotService } from '../copilot'
 import { AiService } from './ai.service'
@@ -31,49 +30,6 @@ export class AIController {
 		private readonly copilotService: CopilotService,
 		private readonly queryBus: QueryBus
 	) {}
-
-// 	@ApiOperation({ summary: 'Chat with AI provider apis' })
-// 	@ApiResponse({
-// 		status: HttpStatus.CREATED,
-// 		description: 'Success!'
-// 	})
-// 	@ApiResponse({
-// 		status: HttpStatus.BAD_REQUEST,
-// 		description: 'Invalid input, The response body may contain clues as to what went wrong'
-// 	})
-// 	@HttpCode(HttpStatus.CREATED)
-// 	@Post('chat')
-// 	async chat(@Headers() headers, @Body() body: any, @Res() resp: ServerResponse) {
-// 		const result = await this.copilotService.findAll()
-// 		if (result.total === 0) {
-// 			throw new Error('No copilot found')
-// 		}
-
-// 		const copilot = result.items[0]
-// 		const copilotUrl = '' //chatCompletionsUrl(copilot)
-// 		try {
-// 			const response = await fetch(copilotUrl, {
-// 				method: 'POST',
-// 				body: JSON.stringify(body),
-// 				headers: {
-// 					'content-type': 'application/json',
-// 					authorization: `Bearer ${copilot.apiKey}`,
-// 					accept: headers.accept
-// 				}
-// 			})
-
-// 			if (!resp.headersSent) {
-// 				await streamToResponse(response, resp, { status: response.status })
-// 			}
-// 		} catch (error) {
-// 			this.#logger.error(`Try to call ai api '${copilotUrl}' with body:
-// \`\`\`
-// ${JSON.stringify(body)}
-// \`\`\`
-// failed: ${error.message}`)
-// 			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
-// 		}
-// 	}
 
 	@Get('proxy/:copilotId/:m')
 	async proxyGetModule(@Param('copilotId') copilotId: string, @Param('m') m: string, @Headers() headers) {

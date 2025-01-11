@@ -11,6 +11,7 @@
         "Status_interrupted": "Please confirm",
         "Status_end": "End",
         "Status_success": "Success",
+        "Status_error": "Error",
         "ActionSessionTimedOut": "The action does not exist or the session has timed out!",
         "Error_BotPermission": "Maybe the bot capabilities or permissions have not been added"
     }

@@ -2,8 +2,8 @@ import { IApiKey } from '@metad/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { IsString, IsOptional } from 'class-validator';
 import { differenceInMinutes } from 'date-fns'
-import { AfterLoad, Column, Entity, Index } from 'typeorm'
-import { TenantOrganizationBaseEntity } from '../core/entities/internal'
+import { AfterLoad, Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm'
+import { TenantOrganizationBaseEntity, User } from '../core/entities/internal'
 
 @Entity('api_key')
 export class ApiKey extends TenantOrganizationBaseEntity implements IApiKey {
@@ -50,6 +50,13 @@ export class ApiKey extends TenantOrganizationBaseEntity implements IApiKey {
 		nullable: true
 	})
 	lastUsedAt?: Date
+
+	@Column({ nullable: true })
+	userId?: string
+
+	@ManyToOne(() => User, { nullable: true })
+	@JoinColumn()
+	user?: User
 
 	/**
 	 * Called after entity is loaded.

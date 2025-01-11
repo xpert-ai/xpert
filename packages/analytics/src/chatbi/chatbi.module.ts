@@ -5,10 +5,12 @@ import { ChatBIModelModule } from '../chatbi-model'
 import { SemanticModelMemberModule } from '../model-member/index'
 import { OcapModule } from '../model/ocap'
 import { provideOcap } from '../model/ocap/'
-import { ChatBIService } from './chatbi.service'
 import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
 
+/**
+ * @deprecated Use ChatBI toolset
+ */
 @Module({
 	imports: [
 		CacheModule.register(),
@@ -22,7 +24,7 @@ import { QueryHandlers } from './queries/handlers'
 		XpertToolsetModule
 	],
 	controllers: [],
-	providers: [ChatBIService, ...CommandHandlers, ...QueryHandlers, ...provideOcap()],
+	providers: [...CommandHandlers, ...QueryHandlers, ...provideOcap()],
 	exports: []
 })
 export class ChatBIModule {}

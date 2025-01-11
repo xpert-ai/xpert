@@ -38,7 +38,8 @@
       "SEMANTIC_MODEL": "Semantic Model",
       "STORY": "Story",
       "USER": "User",
-      "SUCCEED": "Succeed"
+      "SUCCEED": "Succeed",
+      "Conversation": "Conversation"
     },
     "MENU": {
       "AGENT": "Agent",

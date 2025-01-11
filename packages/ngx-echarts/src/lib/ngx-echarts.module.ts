@@ -2,8 +2,8 @@ import { NgModule, ModuleWithProviders } from '@angular/core';
 import { NgxEchartsDirective, NgxEchartsConfig, NGX_ECHARTS_CONFIG, ThemeOption } from './ngx-echarts.directive';
 
 @NgModule({
-  imports: [],
-  declarations: [NgxEchartsDirective],
+  imports: [NgxEchartsDirective],
+  declarations: [],
   exports: [NgxEchartsDirective],
 })
 export class NgxEchartsModule {

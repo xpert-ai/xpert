@@ -1,5 +1,5 @@
 import { Serializable } from '@langchain/core/load/serializable'
-import { I18nObject, IChatMessage, TranslateOptions, TSensitiveOperation } from '@metad/contracts'
+import { I18nObject, IChatMessage, TranslateOptions, TSensitiveOperation, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import {
 	ChatLarkContext,
@@ -10,7 +10,7 @@ import {
 } from '../types'
 import { LarkService } from '../lark.service'
 
-export type ChatLarkMessageStatus = IChatMessage['status'] | 'continuing' | 'waiting' | TLarkConversationStatus
+export type ChatLarkMessageStatus = IChatMessage['status'] | 'continuing' | 'waiting' | 'done' | TLarkConversationStatus
 
 export interface ChatLarkMessageFields {
 	// ID of lark message
@@ -52,6 +52,7 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 
 	// ID of lark message
 	public id: string = null
+	// private prevStatus: ChatLarkMessageStatus = null
 	public status: ChatLarkMessageStatus = 'thinking'
 	// ID of IChatMessage
 	public messageId: string
@@ -100,14 +101,16 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 	}
 
 	async getHeader() {
-		return {
+		const title = await this.getTitle()
+		const subTitle = this.getSubtitle()
+		return title || subTitle ? {
 			title: {
 				tag: 'plain_text',
-				content: await this.getTitle()
+				content: title
 			},
 			subtitle: {
 				tag: 'plain_text',
-				content: this.getSubtitle()
+				content: subTitle
 			},
 			template: ChatLarkMessage.headerTemplate,
 			ud_icon: {
@@ -116,21 +119,24 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 					color: 'red'
 				}
 			}
-		}
+		} : null
 	}
 
 	async getCard() {
 		const elements = [...this.elements]
-
-		if (elements[elements.length - 1]?.tag !== 'hr') {
-			elements.push({ tag: 'hr' })
-		}
+		
 		if (this.status === 'end') {
+			if (elements[elements.length - 1]?.tag !== 'hr') {
+				elements.push({ tag: 'hr' })
+			}
 			elements.push({
 				tag: 'markdown',
 				content: await this.translate('integration.Lark.ConversationEnded', {lang: this.language,})
 			})
-		} else {
+		} else if (this.status !== 'done') {
+			if (elements[elements.length - 1]?.tag !== 'hr') {
+				elements.push({ tag: 'hr' })
+			}
 			elements.push(await this.getEndAction())
 		}
 
@@ -202,6 +208,34 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 		]
 	}
 
+	/**
+	 * Complete this message and a new message will be opened
+	 */
+	async done() {
+		await this.update({status: 'done'})
+	}
+
+	/**
+	 * Ending a Session (Conversation)
+	 */
+	async end() {
+		await this.update({status: 'end'})
+	}
+
+	/**
+	 * Reply to error message
+	 * 
+	 * @param message Error message
+	 */
+	async error(message: string) {
+		await this.update({status: XpertAgentExecutionStatusEnum.ERROR, elements: [
+			{
+				tag: 'markdown',
+				content: message
+			}
+		]})
+	}
+
 	async update(options?: {
 		status?: ChatLarkMessageStatus
 		elements?: any[]
@@ -224,19 +258,14 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 
 		const elements = await this.getCard()
 		if (this.id) {
-			this.larkService
-				.patchAction(this.chatContext, this.id, {
+			try {
+				await this.larkService.patchAction(this.chatContext, this.id, {
 					...elements,
 					header: this.header ?? (await this.getHeader())
 				})
-				.subscribe({
-					next: (message) => {
-						// this.onAction(message.action, options?.action)
-					},
-					error: (err) => {
-						console.error(err)
-					}
-				})
+			} catch(err) {
+				console.error(err)
+			}
 		} else {
 			const result = await this.larkService.interactiveActionMessage(
 				this.chatContext,
@@ -287,7 +316,7 @@ function createConfirmMessage(operation: TSensitiveOperation) {
 	const toolElements = operation.toolCalls.map((toolCall, index) => {
 		const { call, parameters } = toolCall
 		const paramsElements = []
-		parameters.map((param) => {
+		parameters?.map((param) => {
 			paramsElements.push({
 				tag: 'markdown',
 				content: `**${resolveI18n(param.title || param.name)}** <text_tag color='turquoise'>${param.name}</text_tag>: ${call.args[param.name]}`

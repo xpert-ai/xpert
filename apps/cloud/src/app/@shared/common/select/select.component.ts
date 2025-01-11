@@ -1,15 +1,15 @@
 import { CdkListboxModule, ListboxValueChangeEvent } from '@angular/cdk/listbox'
-import { CdkMenuModule } from '@angular/cdk/menu'
+import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { HttpClient } from '@angular/common/http'
 import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
-import { NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 
 /**
+ * 
  */
 @Component({
   standalone: true,
@@ -20,7 +20,6 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
     CdkListboxModule,
     CdkMenuModule,
     NgmI18nPipe,
-    NgmHighlightDirective
   ],
   selector: 'ngm-select',
   templateUrl: 'select.component.html',
@@ -37,6 +36,8 @@ export class NgmSelectComponent {
   readonly multiple = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
+
+  readonly icon = input<string>()
 
   readonly selectedOptions = computed(() => {
     return this.values()?.map((value) => this.selectOptions()?.find((_) => _.value === value))
@@ -56,5 +57,15 @@ export class NgmSelectComponent {
     } else {
       this.cva.value$.set(event.value[0] ?? null)
     }
+  }
+
+  selectOption(trigger: CdkMenuTrigger, value: any) {
+    if (!this.multiple()) {
+      trigger.close()
+    }
+  }
+
+  clear() {
+    this.cva.writeValue(this.multiple() ? [] : null)
   }
 }

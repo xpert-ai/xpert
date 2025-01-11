@@ -37,7 +37,11 @@ export class ChatConversationController extends CrudController<ChatConversation>
 		@Query('data', ParseJsonPipe) filter?: PaginationParams<ChatConversation>,
 		...options: any[]
 	): Promise<IPagination<ChatConversation>> {
-		return this.service.findAll({ ...filter, where: { createdById: RequestContext.currentUserId() } })
+		return this.service.findAll({ ...filter, where: {
+				...(filter.where ?? {}),
+				createdById: RequestContext.currentUserId()
+			}
+		})
 	}
 
 	@ApiOperation({ summary: 'Find by id' })

@@ -8,6 +8,7 @@ import { IXpertAgent } from './xpert-agent.model'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 import { IIntegration } from '../integration.model'
+import { TChatFrom } from './chat.model'
 
 export type ToolCall = LToolCall
 
@@ -57,6 +58,11 @@ export type TXpert = {
    * 当前版本上的草稿
    */
   draft?: TXpertTeamDraft
+
+  api?: TChatApi
+  app?: TChatApp
+  userId?: string
+  user?: IUser
 
   agent?: IXpertAgent
 
@@ -230,6 +236,14 @@ export type TXpertParameter = {
   options?: string[]
 }
 
+export type TChatApp = {
+  enabled?: boolean
+  public?: boolean
+}
+
+export type TChatApi = {
+  disabled?: boolean
+}
 
 // Xpert team draft types
 
@@ -337,7 +351,6 @@ export type TChatRequest = {
   xpertId: string
   conversationId?: string
   id?: string
-  // language?: string
   toolCalls?: ToolCall[]
   confirm?: boolean
   reject?: boolean
@@ -348,6 +361,7 @@ export type TChatOptions = {
   knowledgebases?: string[]
   toolsets?: string[]
   language?: string
+  from?: TChatFrom
 }
 
 // Helpers

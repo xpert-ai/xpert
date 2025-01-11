@@ -7,7 +7,7 @@ import {
 	TSensitiveOperation,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
+import { getErrorMessage, omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { catchError, concat, EMPTY, from, map, Observable, of, Subject, switchMap, takeUntil, tap } from 'rxjs'
@@ -93,6 +93,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 						return EMPTY
 					})
 				),
+				// Then do the final async work after the agent stream
 				of(true).pipe(
 					switchMap(async () => {
 						try {
@@ -132,7 +133,35 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 					})
 				)
 			)
-				.pipe(takeUntil(destroy$))
+				.pipe(
+					tap({
+						/**
+						 * This function is triggered when the stream is unsubscribed
+						 */
+						unsubscribe: async () => {
+							this.#logger.debug(`Canceled by client!`)
+							
+							try {
+								const timeEnd = Date.now()
+	
+								// Record End time
+								await this.commandBus.execute(
+									new XpertAgentExecutionUpsertCommand({
+										...omit(execution, 'checkpointId'),
+										elapsedTime: Number(execution.elapsedTime ?? 0) + (timeEnd - timeStart),
+										status: XpertAgentExecutionStatusEnum.ERROR,
+										error: 'Aborted!',
+										outputs: {
+											output: result
+										},
+									})
+								)
+							} catch(err) {
+								this.#logger.error(err)
+							}
+						}
+					}),
+					takeUntil(destroy$))
 				.subscribe({
 					next: (event) => {
 						subscriber.next(event)
@@ -147,6 +176,8 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 						subscriber.complete()
 					}
 				})
+
+			// When this TeardownLogic is called, the subscriber is already in the 'closed' state.
 			return () => {
 				destroy$.next()
 			}

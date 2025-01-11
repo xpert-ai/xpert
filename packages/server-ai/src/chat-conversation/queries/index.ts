@@ -1,2 +1,7 @@
 export * from './conversation-get.query'
 export * from './conversation-find.query'
+export * from './statistics-average-session-interactions.query'
+export * from './statistics-daily-conv.query'
+export * from './statistics-daily-end-suers.query'
+export * from './statistics-daily-messages.query'
+export * from './conversation-logs.query'

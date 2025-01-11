@@ -10,13 +10,13 @@ import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { combineLatest, map } from 'rxjs'
 import { KnowledgebaseService } from '../../../@core'
-import { KnowledgebaseListComponent, ToolsetListComponent } from '../../../@shared/copilot'
+import { KnowledgebaseListComponent } from '../../../@shared/copilot'
 import { AppService } from '../../../app.service'
-import { ChatInputComponent } from '../chat-input/chat-input.component'
-import { ChatService } from '../chat.service'
 import { Icons } from '../icons'
-import { MaterialModule } from '../../../@shared/material.module'
 import { AboutXpertComponent } from '../../../@shared/xpert'
+import { MatIconModule } from '@angular/material/icon'
+import { ChatService } from '../../../xpert/chat.service'
+import { ChatInputComponent } from '../../../xpert'
 
 @Component({
   standalone: true,
@@ -27,11 +27,10 @@ import { AboutXpertComponent } from '../../../@shared/xpert'
     RouterModule,
     CdkMenuModule,
     TranslateModule,
-    MaterialModule,
+    MatIconModule,
     NgmCommonModule,
     ...Icons,
     KnowledgebaseListComponent,
-    ToolsetListComponent
   ],
   selector: 'pac-chat-toolbar',
   templateUrl: './toolbar.component.html',

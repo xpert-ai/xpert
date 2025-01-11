@@ -1,6 +1,5 @@
 import { tool } from '@langchain/core/tools'
 import { firstValueFrom, Subject, Subscriber, takeUntil } from 'rxjs'
-import { ChatAnswerSchema } from '../../../../../chatbi/types'
 import { ChatBILarkContext, TABLE_PAGE_SIZE } from '../types'
 import { ChartAnnotation, ChartBusinessService, ChartDimensionRoleType, EntityType, FilteringLogic, formatNumber, formatShortNumber, getChartSeries, getEntityHierarchy, getEntityProperty, getPropertyHierarchy, getPropertyMeasure, isBlank, ISlicer, isNil, isTimeRangesSlicer, PresentationVariant, PropertyHierarchy, PropertyMeasure, slicerAsString, timeRangesSlicerAsString, toAdvancedFilter, tryFixDimension, tryFixSlicer, tryFixVariableSlicer, workOutTimeRangeSlicers } from '@metad/ocap-core'
 import { ChatLarkMessage } from '@metad/server-ai'
@@ -8,9 +7,10 @@ import { createDualAxisChart, createSeriesChart } from '../charts/combination'
 import { createBaseChart } from '../charts/chart'
 import { getErrorMessage, race, shortuuid } from '@metad/server-common'
 import { ChatMessageTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from '@metad/contracts'
-import { ChatAnswer, ChatBIToolsEnum, ChatBIVariableEnum, TChatBICredentials, tryFixChartType } from '../../chatbi/types'
+import { ChatAnswer, ChatAnswerSchema, ChatBIToolsEnum, ChatBIVariableEnum, TChatBICredentials, tryFixChartType } from '../../chatbi/types'
 import { Logger } from '@nestjs/common'
 import { getContextVariable } from '@langchain/core/context'
+
 
 export function createChatAnswerTool(
 	context: ChatBILarkContext,
@@ -27,11 +27,11 @@ export function createChatAnswerTool(
 			const { subscriber } = configurable ?? {}
 
 			const answer = params as ChatAnswer
-			logger.debug(`Execute copilot action 'answerQuestion':`, JSON.stringify(answer, null, 2))
+			logger.debug(`Execute tool '${ChatBIToolsEnum.ANSWER_QUESTION}':`, JSON.stringify(answer, null, 2))
 
-			const { language } = answer
-			const i18n = chatbi.translate('toolset.ChatBI', {lang: language})
 			const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
+			const { language } = answer
+			const i18n = await chatbi.translate('toolset.ChatBI', {lang: language})
 			
 			// Update runtime indicators
 			const indicators = currentState[ChatBIVariableEnum.INDICATORS]

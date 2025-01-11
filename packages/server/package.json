@@ -1,6 +1,6 @@
 {
   "name": "@metad/server-core",
-  "version": "3.0.11",
+  "version": "3.0.12",
   "type": "commonjs",
   "dependencies": {
     "@casl/ability": "^5.4.3",
@@ -28,6 +28,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.13.1",
     "cls-hooked": "^4.2.2",
+    "cookie-parser": "1.4.7",
     "date-fns": "^3.0.4",
     "email-templates": "^8.0.8",
     "express-session": "^1.17.2",
@@ -58,6 +59,8 @@
     "underscore": "^1.13.1"
   },
   "devDependencies": {
+    "@types/cookie-parser": "1.4.8",
+    "@types/express-session": "1.18.1",
     "@types/passport": "^1.0.11",
     "@types/passport-http": "^0.3.9",
     "@types/passport-local": "^1.0.34",

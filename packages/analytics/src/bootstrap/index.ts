@@ -3,6 +3,7 @@ import { AppService, AuthGuard, ServerAppModule } from '@metad/server-core'
 import { Logger, LogLevel } from '@nestjs/common'
 import { NestFactory, Reflector } from '@nestjs/core'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import * as cookieParser from 'cookie-parser'
 import { json, text, urlencoded } from 'express'
 import * as expressSession from 'express-session'
 import { AnalyticsModule } from '../app.module'
@@ -21,6 +22,7 @@ export async function bootstrap(options: {title: string; version: string}) {
 	const reflector = app.get(Reflector)
 	app.useGlobalGuards(new AuthGuard(reflector))
 
+	app.use(cookieParser())
 	app.use(
 		text({
 			limit: '50mb',
@@ -33,7 +35,7 @@ export async function bootstrap(options: {title: string; version: string}) {
 	const headersForOpenAI =
 		'x-stainless-os, x-stainless-lang, x-stainless-package-version, x-stainless-runtime, x-stainless-arch, x-stainless-runtime-version, x-stainless-retry-count'
 	app.enableCors({
-		origin: '*',
+		origin: [...origins(env.clientBaseUrl), '*'],
 		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
 		credentials: true,
 		allowedHeaders:
@@ -80,4 +82,16 @@ export async function bootstrap(options: {title: string; version: string}) {
 	await app.listen(port, '0.0.0.0', () => {
 		Logger.log('Listening at http://localhost:' + port + '/' + globalPrefix)
 	})
+}
+
+function origins(url: string) {
+  const urls = []
+  if (url.startsWith('http')) {
+	urls.push(url)
+  } else if (url.startsWith('//')) {
+	urls.push('http:' + url, 'https:' + url)
+  } else {
+	urls.push('http://' + url, 'https://' + url)
+  }
+  return urls
 }
