@@ -84,10 +84,13 @@ export class ChatHomeComponent {
       switchMap(() => {
         this.loading.set(true)
         return this.xpertService.getAppConversations(this.xpert().slug, {
-          select: ['id', 'threadId', 'title', 'updatedAt'],
+          select: ['id', 'threadId', 'title', 'updatedAt', 'from'],
           order: { updatedAt: OrderTypeEnum.DESC },
           take: this.pageSize,
-          skip: this.currentPage() * this.pageSize
+          skip: this.currentPage() * this.pageSize,
+          where: {
+            from: 'webapp'
+          }
         })
       }),
       tap({

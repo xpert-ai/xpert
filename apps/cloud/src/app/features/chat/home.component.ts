@@ -40,14 +40,13 @@ import {
 import { EmojiAvatarComponent } from '../../@shared/avatar'
 import { MaterialModule } from '../../@shared/material.module'
 import { AppService } from '../../app.service'
-import { ChatInputComponent } from './chat-input/chat-input.component'
-import { ChatService } from './chat.service'
-import { ChatConversationComponent } from './conversation/conversation.component'
 import { ChatMoreComponent } from './icons'
 import { ChatSidenavMenuComponent } from './sidenav-menu/sidenav-menu.component'
 import { ChatToolbarComponent } from './toolbar/toolbar.component'
 import { ChatXpertsComponent } from './xperts/xperts.component'
-import { groupConversations } from '../../xpert/chat.service'
+import { ChatInputComponent, ChatService, groupConversations } from '../../xpert/'
+import { ChatPlatformService } from './chat.service'
+import { ChatConversationComponent } from '../../xpert/'
 
 @Component({
   standalone: true,
@@ -79,7 +78,7 @@ import { groupConversations } from '../../xpert/chat.service'
   styleUrl: 'home.component.scss',
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [provideOcapCore(), ChatService]
+  providers: [provideOcapCore(), ChatPlatformService, {provide: ChatService, useExisting: ChatPlatformService}]
 })
 export class ChatHomeComponent {
   DisplayBehaviour = DisplayBehaviour
@@ -236,10 +235,13 @@ export class ChatHomeComponent {
       switchMap(() => {
         this.loading.set(true)
         return this.conversationService.getMyInOrg({
-          select: ['id', 'threadId', 'title', 'updatedAt'],
+          select: ['id', 'threadId', 'title', 'updatedAt', 'from'],
           order: { updatedAt: OrderTypeEnum.DESC },
           take: this.pageSize,
-          skip: this.currentPage() * this.pageSize
+          skip: this.currentPage() * this.pageSize,
+          where: {
+            from: 'platform'
+          }
         })
       }),
       tap({

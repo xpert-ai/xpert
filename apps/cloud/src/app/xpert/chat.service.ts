@@ -62,8 +62,7 @@ export class ChatService {
   readonly #toastr = inject(ToastrService)
   readonly #location = inject(Location)
   readonly #destroyRef = inject(DestroyRef)
-  readonly paramRole = injectParams('name')
-  readonly paramId = injectParams('id')
+
 
   readonly conversationId = signal<string>(null)
   readonly xpert$ = new BehaviorSubject<IXpert>(null)
@@ -71,6 +70,7 @@ export class ChatService {
    * The conversation
    */
   readonly conversation = signal<IChatConversation>(null)
+  readonly loadingConv = signal(false)
   /**
    * User feedbacks for messages of the conversation
    */
@@ -105,27 +105,6 @@ export class ChatService {
       }
     >
   >({})
-
-  private roleSub = this.xpert$
-    .pipe(
-      withLatestFrom(toObservable(this.paramRole)),
-      filter(() => !this.conversationId()),
-      takeUntilDestroyed()
-    )
-    .subscribe(([role, paramRole]) => {
-      if (role?.slug === 'common') {
-        this.#location.replaceState('/x')
-      } else if (role?.name && role.slug !== paramRole) {
-        this.#location.replaceState('/x/' + role.slug)
-      }
-
-      if (!this.conversationId()) {
-        // 默认启用所有知识库
-        this.knowledgebases.set(role?.knowledgebases ?? [])
-        // 默认使用所有工具集
-        this.toolsets.set(role?.toolsets ?? [])
-      }
-    })
 
   // private paramRoleSub = toObservable(this.paramRole)
   //   .pipe(
@@ -167,6 +146,7 @@ export class ChatService {
         ) : of([])
       ),
       tap(([conv, feedbacks]) => {
+        this.loadingConv.set(false)
         if (conv) {
           this.conversation.set(conv)
           this.#messages.set(sortBy(conv.messages, 'createdAt'))
@@ -194,45 +174,14 @@ export class ChatService {
         }
       },
       error: (error) => {
+        this.loadingConv.set(false)
         this.#toastr.error(getErrorMessage(error))
       }
     })
 
-  private conversationSub = toObservable(this.conversation)
-    .pipe(
-      filter(nonNullable),
-      map((conversation) => conversation?.id),
-      distinctUntilChanged(),
-      takeUntilDestroyed()
-    )
-    .subscribe((id) => {
-      const roleName = this.paramRole()
-      const paramId = this.paramId()
-      // if (paramId !== id) {
-      if (this.xpert$.value?.slug) {
-        if (id) {
-          this.#location.replaceState('/x/' + this.xpert$.value.slug + '/c/' + id)
-        } else {
-          this.#location.replaceState('/x/' + this.xpert$.value.slug)
-        }
-      } else if (id) {
-        this.#location.replaceState('/x/c/' + id)
-      } else {
-        this.#location.replaceState('/x/')
-      }
-      // }
-    })
+
 
   constructor() {
-    effect(
-      () => {
-        if (this.paramId()) {
-          this.conversationId.set(this.paramId())
-        }
-      },
-      { allowSignalWrites: true }
-    )
-
     this.#destroyRef.onDestroy(() => {
       if (this.answering() && this.conversation()?.id) {
         this.cancelMessage()
@@ -245,6 +194,7 @@ export class ChatService {
   }
 
   getConversation(id: string) {
+    this.loadingConv.set(true)
     return this.conversationService.getById(id, { relations: ['xpert', 'xpert.knowledgebases', 'xpert.toolsets', 'messages'] })
   }
 
@@ -376,12 +326,6 @@ export class ChatService {
 
   cancelMessage() {
     this.answering.set(false)
-    // return this.chatService.message({
-    //   event: ChatGatewayEvent.CancelChain,
-    //   data: {
-    //     conversationId: this.conversation().id
-    //   }
-    // })
   }
 
   async newConversation(xpert?: IXpert) {
@@ -391,7 +335,6 @@ export class ChatService {
     this.conversation.set(null)
     this.conversationId.set(null)
     this.#messages.set([])
-    // this.xpert$.next(xpert)
   }
 
   setConversation(id: string) {

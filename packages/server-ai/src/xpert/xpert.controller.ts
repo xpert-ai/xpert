@@ -394,7 +394,10 @@ export class XpertController extends CrudController<Xpert> {
 		@Query('data', ParseJsonPipe) paginationOptions?: PaginationParams<ChatConversation>,
 	) {
 		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
-		const conversation = await this.queryBus.execute(new FindChatConversationQuery({fromEndUserId}, paginationOptions))
+		const conversation = await this.queryBus.execute(new FindChatConversationQuery({
+				...(paginationOptions.where ?? {}),
+				fromEndUserId
+			}, paginationOptions))
 		return conversation
 	}
 

@@ -44,6 +44,7 @@ export class ChatConversationComponent {
   readonly messages = this.chatService.messages
   readonly conversation = this.chatService.conversation
   readonly role = this.chatService.xpert
+  readonly loadingConv = this.chatService.loadingConv
 
   readonly lastMessage = computed(() => this.messages()[this.messages().length - 1] as CopilotChatMessage)
   readonly lastExecutionId = computed(() => {
