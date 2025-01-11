@@ -2166,7 +2166,8 @@
       "ChatApp": "对话应用程序",
       "PublicChatApp": "公开对话应用程序",
       "ChatApp_Everyone": "所有人均可访问，包括匿名用户",
-      "ChatApp_Account": "有账号的人可访问，拒绝匿名用户"
+      "ChatApp_Account": "有账号的人可访问，拒绝匿名用户",
+      "ThirdPartyMessage": "第三方平台消息"
     },
     "title": {
       "short": "Xpert AI"

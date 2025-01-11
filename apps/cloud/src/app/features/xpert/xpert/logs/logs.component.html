@@ -11,25 +11,25 @@
 <div class="w-full relative overflow-auto flex-1"
   waIntersectionObserver
   waIntersectionThreshold="0.5">
-  <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+  <table class="table-fixed w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
     <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
       <tr>
-        <th scope="col" class="px-6 py-3">
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-80 truncate">
           {{ 'PAC.KEY_WORDS.Title' | translate: {Default: 'Title'} }}
         </th>
-        <th scope="col" class="px-6 py-3">
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
           {{ 'PAC.KEY_WORDS.CreatedBy' | translate: {Default: 'Created By'} }}
         </th>
-        <th scope="col" class="px-6 py-3">
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
           {{ 'PAC.KEY_WORDS.EndUser' | translate: {Default: 'End User'} }}
         </th>
-        <th scope="col" class="px-6 py-3">
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
           {{ 'PAC.KEY_WORDS.MessageCount' | translate: {Default: 'Message Count'} }}
         </th>
-        <th scope="col" class="px-6 py-3">
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
           {{ 'PAC.KEY_WORDS.Status' | translate: {Default: 'Status'} }}
         </th>
-        <th scope="col" class="px-6 py-3">
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
           {{ 'PAC.KEY_WORDS.UpdatedAt' | translate: {Default: 'Updated At'} }}
         </th>
       </tr>
@@ -40,7 +40,7 @@
           [class.selected]="preview() === conv.id"
           (click)="togglePreview(conv.id)"
         >
-          <td class="px-6 py-4 whitespace-nowrap">
+          <td class="px-6 py-4 whitespace-nowrap truncate">
             {{conv.title}}
           </td>
           <td class="px-6 py-4">

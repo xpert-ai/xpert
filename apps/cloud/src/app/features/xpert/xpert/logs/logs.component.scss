@@ -5,3 +5,11 @@
 .row.selected {
   @apply text-text-primary;
 }
+
+tr th {
+  @apply whitespace-nowrap;
+}
+
+tr td {
+  @apply whitespace-nowrap truncate;
+}

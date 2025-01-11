@@ -29,9 +29,11 @@ export class XpertPreviewAiMessageComponent {
     return null
   })
 
+  readonly thirdPartyMessage = computed(() => this.message().thirdPartyMessage)
+
   constructor() {
-    // effect(() => {
-    //   console.log(this.contents())
-    // })
+    effect(() => {
+      // console.log(this.message())
+    })
   }
 }
