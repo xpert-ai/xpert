@@ -24,7 +24,7 @@ import { TranslateModule } from '@ngx-translate/core'
     NgmIndicatorComponent,
     NgmIndicatorExplorerComponent
   ],
-  selector: 'pac-chat-component-indicators',
+  selector: 'chat-component-indicators',
   templateUrl: './indicators.component.html',
   styleUrl: 'indicators.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

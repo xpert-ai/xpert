@@ -2,7 +2,7 @@
   <emoji-avatar class="rounded-full overflow-hidden shadow-sm mr-4" [avatar]="role()?.avatar" />
 </div>
 
-@if (message()?.event) {
+@if (message()?.event && answering()) {
   <div class="absolute left-14 top-0 px-2 flex items-center gap-1 rounded-md cursor-pointer text-sm text-token-text-secondary hover:bg-gray-50"
     [matTooltip]=" message().error "
     matTooltipPosition="above"
@@ -14,6 +14,7 @@
 
 <div class="group relative flex-1 flex flex-col gap-2 mt-2 pb-10 overflow-hidden">
 
+  <!-- @deprecated use contents -->
   @if (messageGroup(); as group) {
     @for (message of group.messages; track message) {
       @switch (message.role) {
@@ -110,7 +111,7 @@
           </div>
         }
         @case ('component') {
-          <pac-chat-component-message [message]="message" class="w-full"
+          <chat-component-message [message]="message" class="w-full"
             (register)="onRegister($event)"
           />
         }
@@ -130,7 +131,7 @@
           />
         }
         @case ('component') {
-          <pac-chat-component-message class="w-full p-2 rounded-2xl hover:bg-hover-bg"
+          <chat-component-message class="w-full p-2 rounded-2xl hover:bg-hover-bg"
             [message]="message"
             (register)="onRegister($event)"
           />

@@ -1,8 +1,10 @@
 import { LanguagesEnum, TChatOptions, TChatRequest } from '@metad/contracts'
+import { takeUntilClose } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
-import { Body, Controller, Header, Logger, Post, Sse } from '@nestjs/common'
+import { Body, Controller, Header, Logger, Post, Sse, Res } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
+import { Response } from 'express'
 import { I18nLang } from 'nestjs-i18n'
 import { ChatCommand } from './commands'
 
@@ -20,7 +22,8 @@ export class ChatController {
 	@Header('Connection', 'keep-alive')
 	@Post('')
 	@Sse()
-	async chat(@I18nLang() language: LanguagesEnum, @Body() body: { request: TChatRequest; options: TChatOptions }) {
+	async chat(@Res() res: Response, @I18nLang() language: LanguagesEnum, @Body() body: { request: TChatRequest; options: TChatOptions }) {
+
 		const observable = await this.commandBus.execute(
 			new ChatCommand(body.request, {
 				...(body.options ?? {}),
@@ -40,6 +43,6 @@ export class ChatController {
 		// 	return () => clearInterval(intervalId)
 		// })
 
-		return observable // merge(observable, keepAliveObservable)
+		return observable.pipe(takeUntilClose(res)) // merge(observable, keepAliveObservable)
 	}
 }

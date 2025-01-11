@@ -136,136 +136,136 @@ export class ChatPlatformService extends ChatService {
     )
   }
 
-  chat(
-    options: Partial<{
-      id: string
-      content: string
-      confirm: boolean
-      toolCalls: ToolCall[]
-      reject: boolean
-      retry: boolean
-    }>
-  ) {
-    this.answering.set(true)
+  // chat(
+  //   options: Partial<{
+  //     id: string
+  //     content: string
+  //     confirm: boolean
+  //     toolCalls: ToolCall[]
+  //     reject: boolean
+  //     retry: boolean
+  //   }>
+  // ) {
+  //   this.answering.set(true)
 
-    if (options.confirm) {
-      this.updateLatestMessage((message) => {
-        return {
-          ...message,
-          status: 'thinking'
-        }
-      })
-    } else if (options.content) {
-      // Add ai message placeholder
-      // this.appendMessage({
-      //   id: uuid(),
-      //   role: 'assistant',
-      //   content: ``,
-      //   status: 'thinking'
-      // })
-    }
+  //   if (options.confirm) {
+  //     this.updateLatestMessage((message) => {
+  //       return {
+  //         ...message,
+  //         status: 'thinking'
+  //       }
+  //     })
+  //   } else if (options.content) {
+  //     // Add ai message placeholder
+  //     // this.appendMessage({
+  //     //   id: uuid(),
+  //     //   role: 'assistant',
+  //     //   content: ``,
+  //     //   status: 'thinking'
+  //     // })
+  //   }
 
-    this.chatService
-      .chat(
-        {
-          input: {
-            input: options.content
-          },
-          xpertId: this.xpert$.value?.id,
-          conversationId: this.conversation()?.id,
-          id: options.id,
-          toolCalls: options.toolCalls,
-          confirm: options.confirm,
-          reject: options.reject,
-          retry: options.retry
-        },
-        {
-          knowledgebases: this.knowledgebases()?.map(({ id }) => id),
-          toolsets: this.toolsets()?.map(({ id }) => id)
-        }
-      )
-      .subscribe({
-        next: (msg) => {
-          if (msg.event === 'error') {
-            this.#toastr.error(msg.data)
-          } else {
-            if (msg.data) {
-              const event = JSON.parse(msg.data)
-              if (event.type === ChatMessageTypeEnum.MESSAGE) {
-                if (typeof event.data === 'string') {
-                  this.appendStreamMessage(event.data)
-                } else {
-                  this.appendMessageComponent(event.data)
-                }
-              } else if (event.type === ChatMessageTypeEnum.EVENT) {
-                switch (event.event) {
-                  case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
-                  case ChatMessageEventTypeEnum.ON_CONVERSATION_END:
-                    this.updateConversation(event.data)
-                    if (event.data.status === 'error') {
-                      this.updateLatestMessage((lastM) => {
-                        return {
-                          ...lastM,
-                          status: XpertAgentExecutionStatusEnum.ERROR
-                        }
-                      })
-                    }
-                    break
-                  case ChatMessageEventTypeEnum.ON_MESSAGE_START:
-                    if (options.content) {
-                      this.appendMessage({
-                        id: uuid(),
-                        role: 'assistant',
-                        content: ``,
-                        status: 'thinking'
-                      })
-                    }
-                    this.updateLatestMessage((lastM) => {
-                      return {
-                        ...lastM,
-                        ...event.data
-                      }
-                    })
-                    break
-                  case ChatMessageEventTypeEnum.ON_MESSAGE_END:
-                    this.updateLatestMessage((lastM) => {
-                      return {
-                        ...lastM,
-                        status: event.data.status,
-                        error: event.data.error
-                      }
-                    })
-                    break
-                  default:
-                    this.updateEvent(event.event, event.data.error)
-                }
-              }
-            }
-          }
-        },
-        error: (error) => {
-          this.answering.set(false)
-          this.#toastr.error(getErrorMessage(error))
-          this.updateLatestMessage((message) => {
-            return {
-              ...message,
-              status: XpertAgentExecutionStatusEnum.ERROR,
-              error: getErrorMessage(error)
-            }
-          })
-        },
-        complete: () => {
-          this.answering.set(false)
-          this.updateLatestMessage((message) => {
-            return {
-              ...message,
-              status: XpertAgentExecutionStatusEnum.SUCCESS,
-              error: null
-            }
-          })
-        }
-      })
-  }
+  //   this.chatSubscription = this.chatService
+  //     .chat(
+  //       {
+  //         input: {
+  //           input: options.content
+  //         },
+  //         xpertId: this.xpert$.value?.id,
+  //         conversationId: this.conversation()?.id,
+  //         id: options.id,
+  //         toolCalls: options.toolCalls,
+  //         confirm: options.confirm,
+  //         reject: options.reject,
+  //         retry: options.retry
+  //       },
+  //       {
+  //         knowledgebases: this.knowledgebases()?.map(({ id }) => id),
+  //         toolsets: this.toolsets()?.map(({ id }) => id)
+  //       }
+  //     )
+  //     .subscribe({
+  //       next: (msg) => {
+  //         if (msg.event === 'error') {
+  //           this.#toastr.error(msg.data)
+  //         } else {
+  //           if (msg.data) {
+  //             const event = JSON.parse(msg.data)
+  //             if (event.type === ChatMessageTypeEnum.MESSAGE) {
+  //               if (typeof event.data === 'string') {
+  //                 this.appendStreamMessage(event.data)
+  //               } else {
+  //                 this.appendMessageComponent(event.data)
+  //               }
+  //             } else if (event.type === ChatMessageTypeEnum.EVENT) {
+  //               switch (event.event) {
+  //                 case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
+  //                 case ChatMessageEventTypeEnum.ON_CONVERSATION_END:
+  //                   this.updateConversation(event.data)
+  //                   if (event.data.status === 'error') {
+  //                     this.updateLatestMessage((lastM) => {
+  //                       return {
+  //                         ...lastM,
+  //                         status: XpertAgentExecutionStatusEnum.ERROR
+  //                       }
+  //                     })
+  //                   }
+  //                   break
+  //                 case ChatMessageEventTypeEnum.ON_MESSAGE_START:
+  //                   if (options.content) {
+  //                     this.appendMessage({
+  //                       id: uuid(),
+  //                       role: 'ai',
+  //                       content: ``,
+  //                       status: 'thinking'
+  //                     })
+  //                   }
+  //                   this.updateLatestMessage((lastM) => {
+  //                     return {
+  //                       ...lastM,
+  //                       ...event.data
+  //                     }
+  //                   })
+  //                   break
+  //                 case ChatMessageEventTypeEnum.ON_MESSAGE_END:
+  //                   this.updateLatestMessage((lastM) => {
+  //                     return {
+  //                       ...lastM,
+  //                       status: event.data.status,
+  //                       error: event.data.error
+  //                     }
+  //                   })
+  //                   break
+  //                 default:
+  //                   this.updateEvent(event.event, event.data.error)
+  //               }
+  //             }
+  //           }
+  //         }
+  //       },
+  //       error: (error) => {
+  //         this.answering.set(false)
+  //         this.#toastr.error(getErrorMessage(error))
+  //         this.updateLatestMessage((message) => {
+  //           return {
+  //             ...message,
+  //             status: XpertAgentExecutionStatusEnum.ERROR,
+  //             error: getErrorMessage(error)
+  //           }
+  //         })
+  //       },
+  //       complete: () => {
+  //         this.answering.set(false)
+  //         this.updateLatestMessage((message) => {
+  //           return {
+  //             ...message,
+  //             status: XpertAgentExecutionStatusEnum.SUCCESS,
+  //             error: null
+  //           }
+  //         })
+  //       }
+  //     })
+  // }
 
   async newConversation(xpert?: IXpert) {
     await super.newConversation()

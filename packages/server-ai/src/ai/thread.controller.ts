@@ -15,16 +15,20 @@ import {
 	Patch,
 	Sse,
 	UseGuards,
-	UseInterceptors
+	UseInterceptors,
+	Res
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
+import { takeUntilClose } from '@metad/server-common'
+import { Response } from 'express'
 import { filter, lastValueFrom, map, Observable, reduce } from 'rxjs'
 import { AiService } from './ai.service'
 import { RunCreateStreamCommand, ThreadCreateCommand, ThreadDeleteCommand } from './commands'
 import { FindThreadQuery, SearchThreadsQuery } from './queries'
 import type { components } from './schemas/agent-protocol-schema'
 import { UnimplementedException } from '../core'
+
 
 @ApiTags('AI/Threads')
 @ApiBearerAuth()
@@ -106,13 +110,14 @@ export class ThreadsController {
 	@Header('Connection', 'keep-alive')
 	@Post(':thread_id/runs/stream')
 	@Sse()
-	async runStream(@Param('thread_id') thread_id: string, @Body() body: components['schemas']['RunCreateStateful']) {
+	async runStream(@Res() res: Response, @Param('thread_id') thread_id: string, @Body() body: components['schemas']['RunCreateStateful']) {
 		const obser = await this.commandBus.execute<RunCreateStreamCommand, Observable<MessageEvent>>(
 			new RunCreateStreamCommand(thread_id, body)
 		)
 		return obser.pipe(
 			filter((event) => event.data.type === ChatMessageTypeEnum.MESSAGE),
-			map((event) => event.data.data)
+			map((event) => event.data.data),
+			takeUntilClose(res)
 		)
 	}
 

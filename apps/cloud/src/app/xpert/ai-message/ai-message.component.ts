@@ -4,6 +4,9 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { MatIconModule } from '@angular/material/icon'
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { stringifyMessageContent } from '@metad/copilot'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -22,9 +25,6 @@ import { EmojiAvatarComponent } from '../../@shared/avatar'
 import { ChatService } from '../chat.service'
 import { ChatComponentMessageComponent } from '../component-message/component-message.component'
 import { TCopilotChatMessage } from '../types'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatIconModule } from '@angular/material/icon'
 
 @Component({
   standalone: true,
@@ -58,9 +58,15 @@ export class ChatAiMessageComponent {
   readonly #clipboard = inject(Clipboard)
   readonly #toastr = injectToastr()
 
+  // Inputs
   readonly message = input<TCopilotChatMessage>()
 
+  // States
+  readonly role = this.chatService.xpert
   readonly feedbacks = this.chatService.feedbacks
+  readonly answering = computed(() =>
+    this.chatService.answering() && ['thinking', 'answering'].includes(this.message().status)
+  )
 
   readonly #contentStr = computed(() => {
     const content = this.message()?.content
@@ -90,9 +96,6 @@ export class ChatAiMessageComponent {
     }
     return null
   })
-
-  readonly role = this.chatService.xpert
-  readonly answering = this.chatService.answering
 
   readonly messageGroup = computed(() => {
     const message = this.message()

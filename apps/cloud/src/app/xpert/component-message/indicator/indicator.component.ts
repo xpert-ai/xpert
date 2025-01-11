@@ -20,7 +20,7 @@ import { TranslateModule } from '@ngx-translate/core'
     TranslateModule,
     MatTooltipModule
   ],
-  selector: 'pac-chat-component-indicator',
+  selector: 'chat-component-indicator',
   templateUrl: './indicator.component.html',
   styleUrl: 'indicator.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

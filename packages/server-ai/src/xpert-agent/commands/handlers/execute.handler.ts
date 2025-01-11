@@ -22,7 +22,7 @@ import z from 'zod'
 import { createReactAgent } from './react_agent_executor'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
-import { getErrorMessage } from '@metad/server-common'
+import { getErrorMessage, takeUntilAbort } from '@metad/server-common'
 import { AgentStateAnnotation, parseXmlString, STATE_VARIABLE_SYS_LANGUAGE, TSubAgent } from './types'
 import { CompleteToolCallsQuery } from '../../queries'
 import { memoryPrompt } from '../../../copilot-store/utils'
@@ -430,20 +430,9 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 				prevEvent = event
 				return null
 			}),
-			tap({
-				complete: async () => {
-					//
-				},
-				error: (err) => {
-					this.#logger.debug(err)
-				},
-				finalize: () => {
-					//
-				}
-			})
 		)
 
-		return concat(contentStream, of(1).pipe(
+		return concat(contentStream, of(1).pipe( // Then do the final async work after the graph events stream
 			switchMap(async () => {
 				const state = await graph.getState({
 					configurable: {
@@ -485,6 +474,30 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			})
 		)).pipe(
 			filter((content) => !isNil(content)),
+			tap({
+				/**
+				 * This function is triggered when the stream is unsubscribed
+				 */
+				unsubscribe: async () => {
+					this.#logger.debug(`Canceled by client!`)
+					if (!abortController.signal.aborted) {
+						abortController.abort()
+					}
+
+					const state = await graph.getState({
+						configurable: {
+							...config,
+						}
+					})
+
+					await this.commandBus.execute(
+						new XpertAgentExecutionUpsertCommand({
+							id: execution.id,
+							checkpointId: state.parentConfig?.configurable?.checkpoint_id
+						})
+					)
+				}
+			}),
 		)
 	}
 
@@ -574,6 +587,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			
 			await lastValueFrom(obs.pipe(
 				reduce((acc, val) => acc + val, ''),
+				takeUntilAbort(config.signal),
 				tap({
 					next: (text: string) => {
 						result = text

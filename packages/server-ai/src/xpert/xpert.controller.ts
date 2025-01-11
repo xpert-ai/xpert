@@ -31,12 +31,13 @@ import {
 	UseInterceptors,
 	UseGuards,
 	HttpException,
-	ForbiddenException
+	ForbiddenException,
+	Res
 } from '@nestjs/common'
-import { getErrorMessage } from '@metad/server-common'
+import { getErrorMessage, takeUntilClose } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
-import { Request } from 'express'
+import { Request, Response } from 'express'
 import { Between, DeleteResult, FindConditions, In, IsNull, Like, Not } from 'typeorm'
 import { I18nLang } from 'nestjs-i18n'
 import { v4 as uuidv4 } from 'uuid'
@@ -198,7 +199,7 @@ export class XpertController extends CrudController<Xpert> {
 	@Header('Cache-Control', 'no-cache')
 	@Post(':id/chat')
 	@Sse()
-	async chat(
+	async chat(@Res() res: Response,
 		@Param('id') id: string,
 		@I18nLang() language: LanguagesEnum,
 		@Body()
@@ -209,11 +210,11 @@ export class XpertController extends CrudController<Xpert> {
 			}
 		}
 	) {
-		return await this.commandBus.execute(new XpertChatCommand(body.request, {
+		return (await this.commandBus.execute(new XpertChatCommand(body.request, {
 			...body.options,
 			language,
 			from: 'debugger'
-		}))
+		}))).pipe(takeUntilClose(res))
 	}
 
 	@ApiOperation({ summary: 'Delete record' })
@@ -431,14 +432,14 @@ export class XpertController extends CrudController<Xpert> {
 	@Header('Connection', 'keep-alive')
 	@Post(':name/chat-app')
 	@Sse()
-	async chatApp(@Param('name') name: string, @I18nLang() language: LanguagesEnum, @Body() body: { request: TChatRequest; options: TChatOptions }) {
+	async chatApp(@Res() res: Response, @Param('name') name: string, @I18nLang() language: LanguagesEnum, @Body() body: { request: TChatRequest; options: TChatOptions }) {
 		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
-		return await this.commandBus.execute(new XpertChatCommand(body.request, {
+		return (await this.commandBus.execute(new XpertChatCommand(body.request, {
 			...body.options,
 			language,
 			from: 'webapp',
 			fromEndUserId
-		}))
+		}))).pipe(takeUntilClose(res))
 	}
 
 	// Statistics

@@ -12,6 +12,7 @@ import {
   map,
   of,
   skip,
+  Subscription,
   switchMap,
   tap,
   withLatestFrom
@@ -89,6 +90,7 @@ export class ChatService {
   readonly toolsets = signal<IXpertToolset[]>([])
 
   readonly answering = signal<boolean>(false)
+  protected chatSubscription: Subscription = null
 
   readonly lang = this.appService.lang
 
@@ -226,106 +228,114 @@ export class ChatService {
       // })
     }
 
-    this.chatRequest(this.xpert().slug, {
-      input: {
-        input: options.content,
-      },
-      xpertId: this.xpert$.value?.id,
-      conversationId: this.conversation()?.id,
-      id: options.id,
-      toolCalls: options.toolCalls,
-      confirm: options.confirm,
-      reject: options.reject,
-      retry: options.retry,
-    }, {
-      knowledgebases: this.knowledgebases()?.map(({ id }) => id),
-      toolsets: this.toolsets()?.map(({ id }) => id)
-    })
-    .subscribe({
-      next: (msg) => {
-        if (msg.event === 'error') {
-          this.#toastr.error(msg.data)
-        } else {
-          if (msg.data) {
-            const event = JSON.parse(msg.data)
-            if (event.type === ChatMessageTypeEnum.MESSAGE) {
-              if (typeof event.data === 'string') {
-                this.appendStreamMessage(event.data)
-              } else {
-                this.appendMessageComponent(event.data)
-              }
-            } else if (event.type === ChatMessageTypeEnum.EVENT) {
-              switch(event.event) {
-                case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
-                case ChatMessageEventTypeEnum.ON_CONVERSATION_END:
-                  this.updateConversation(event.data)
-                  if (event.data.status === 'error') {
+    this.chatSubscription = this.chatRequest(this.xpert().slug, {
+        input: {
+          input: options.content,
+        },
+        xpertId: this.xpert$.value?.id,
+        conversationId: this.conversation()?.id,
+        id: options.id,
+        toolCalls: options.toolCalls,
+        confirm: options.confirm,
+        reject: options.reject,
+        retry: options.retry,
+      }, {
+        knowledgebases: this.knowledgebases()?.map(({ id }) => id),
+        toolsets: this.toolsets()?.map(({ id }) => id)
+      })
+      .subscribe({
+        next: (msg) => {
+          if (msg.event === 'error') {
+            this.#toastr.error(msg.data)
+          } else {
+            if (msg.data) {
+              const event = JSON.parse(msg.data)
+              if (event.type === ChatMessageTypeEnum.MESSAGE) {
+                if (typeof event.data === 'string') {
+                  this.appendStreamMessage(event.data)
+                } else {
+                  this.appendMessageComponent(event.data)
+                }
+              } else if (event.type === ChatMessageTypeEnum.EVENT) {
+                switch(event.event) {
+                  case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
+                  case ChatMessageEventTypeEnum.ON_CONVERSATION_END:
+                    this.updateConversation(event.data)
+                    if (event.data.status === 'error') {
+                      this.updateLatestMessage((lastM) => {
+                        return {
+                          ...lastM,
+                          status: XpertAgentExecutionStatusEnum.ERROR
+                        }
+                      })
+                    }
+                    break
+                  case ChatMessageEventTypeEnum.ON_MESSAGE_START:
+                    if (options.content) {
+                      this.appendMessage({
+                        id: uuid(),
+                        role: 'ai',
+                        content: ``,
+                        status: 'thinking'
+                      })
+                    }
                     this.updateLatestMessage((lastM) => {
                       return {
                         ...lastM,
-                        status: XpertAgentExecutionStatusEnum.ERROR
+                        ...event.data
                       }
                     })
-                  }
-                  break
-                case ChatMessageEventTypeEnum.ON_MESSAGE_START:
-                  if (options.content) {
-                    this.appendMessage({
-                      id: uuid(),
-                      role: 'assistant',
-                      content: ``,
-                      status: 'thinking'
+                    break;
+                  case ChatMessageEventTypeEnum.ON_MESSAGE_END:
+                    this.updateLatestMessage((lastM) => {
+                      return {
+                        ...lastM,
+                        status: event.data.status,
+                        error: event.data.error,
+                      }
                     })
-                  }
-                  this.updateLatestMessage((lastM) => {
-                    return {
-                      ...lastM,
-                      ...event.data
-                    }
-                  })
-                  break;
-                case ChatMessageEventTypeEnum.ON_MESSAGE_END:
-                  this.updateLatestMessage((lastM) => {
-                    return {
-                      ...lastM,
-                      status: event.data.status,
-                      error: event.data.error,
-                    }
-                  })
-                  break;
-                default:
-                  this.updateEvent(event.event, event.data.error)
+                    break;
+                  default:
+                    this.updateEvent(event.event, event.data.error)
+                }
               }
             }
           }
+        },
+        error: (error) => {
+          this.answering.set(false)
+          this.#toastr.error(getErrorMessage(error))
+          this.updateLatestMessage((message) => {
+            return {
+              ...message,
+              status: XpertAgentExecutionStatusEnum.ERROR,
+              error: getErrorMessage(error)
+            }
+          })
+        },
+        complete: () => {
+          this.answering.set(false)
+          this.updateLatestMessage((message) => {
+            return {
+              ...message,
+              status: XpertAgentExecutionStatusEnum.SUCCESS,
+              error: null
+            }
+          })
         }
-      },
-      error: (error) => {
-        this.answering.set(false)
-        this.#toastr.error(getErrorMessage(error))
-        this.updateLatestMessage((message) => {
-          return {
-            ...message,
-            status: XpertAgentExecutionStatusEnum.ERROR,
-            error: getErrorMessage(error)
-          }
-        })
-      },
-      complete: () => {
-        this.answering.set(false)
-        this.updateLatestMessage((message) => {
-          return {
-            ...message,
-            status: XpertAgentExecutionStatusEnum.SUCCESS,
-            error: null
-          }
-        })
-      }
-    })
+      })
   }
 
   cancelMessage() {
+    this.chatSubscription?.unsubscribe()
     this.answering.set(false)
+    // Update status of ai message
+    this.updateLatestMessage((lastM) => {
+      return {
+        ...lastM,
+        status: lastM.role === 'ai' ? XpertAgentExecutionStatusEnum.SUCCESS : lastM.status
+      }
+    })
   }
 
   async newConversation(xpert?: IXpert) {

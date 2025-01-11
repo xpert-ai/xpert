@@ -199,6 +199,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 						return EMPTY
 					})
 				),
+				// Then do the final async work after the agent stream
 				of(true).pipe(
 					switchMap(async () => {
 						try {
@@ -282,8 +283,50 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 						}
 					})
 				)
-			).subscribe(subscriber)
+			)
+			.pipe(
+				tap({
+					/**
+					 * This function is triggered when the stream is unsubscribed
+					 */
+					unsubscribe: async () => {
+						this.#logger.debug(`Canceled by client!`)
+						try {
+							// Record Execution
+							const timeEnd = Date.now()
 
+							await this.commandBus.execute(new XpertAgentExecutionUpsertCommand({
+								id: executionId,
+								elapsedTime: timeEnd - timeStart,
+								status: XpertAgentExecutionStatusEnum.ERROR,
+								error: 'Aborted!',
+								outputs: {
+									output: result
+								}
+							}))
+
+							await this.commandBus.execute(new ChatMessageUpsertCommand({
+								...aiMessage,
+								status: XpertAgentExecutionStatusEnum.SUCCESS,
+							}))
+
+							await this.commandBus.execute(
+								new ChatConversationUpsertCommand({
+									id: conversation.id,
+									status: 'idle',
+									title: conversation.title || _execution?.title,
+								})
+							)
+						} catch(err) {
+							this.#logger.error(err)
+						}
+					}
+				})
+			)
+			.subscribe(subscriber)
+
+			// It will be triggered when the subscription ends normally or is unsubscribed.
+			// This function can be used for cleanup work.
 			return () => {
 				//
 			}

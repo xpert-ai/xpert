@@ -52,7 +52,7 @@ import { ChatComponentIndicatorComponent } from './indicator/indicator.component
     ChatComponentIndicatorsComponent,
     ChatComponentIndicatorComponent
   ],
-  selector: 'pac-chat-component-message',
+  selector: 'chat-component-message',
   templateUrl: './component-message.component.html',
   styleUrl: 'component-message.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
