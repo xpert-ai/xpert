@@ -13,3 +13,7 @@ tr th {
 tr td {
   @apply whitespace-nowrap truncate;
 }
+
+tbody tr {
+  @apply hover:bg-gray-100;
+}
