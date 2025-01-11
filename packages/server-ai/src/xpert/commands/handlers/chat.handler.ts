@@ -251,7 +251,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 								new ChatConversationUpsertCommand({
 									id: conversation.id,
 									status: convStatus,
-									title: conversation.title || _execution?.title,
+									title: conversation.title || _execution?.title || input?.input,
 									operation,
 									error: _execution?.error
 								})
@@ -314,7 +314,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 								new ChatConversationUpsertCommand({
 									id: conversation.id,
 									status: 'idle',
-									title: conversation.title || _execution?.title,
+									title: conversation.title || _execution?.title || input?.input,
 								})
 							)
 						} catch(err) {

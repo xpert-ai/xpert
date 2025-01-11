@@ -26,6 +26,7 @@ import {
 	Indicator,
 	isEntitySet,
 	markdownModelCube,
+	nonNullable,
 	PresentationVariant,
 	Schema,
 	toAdvancedFilter,
@@ -40,11 +41,10 @@ import { groupBy } from 'lodash'
 import { firstValueFrom, Subject, Subscriber, switchMap, takeUntil } from 'rxjs'
 import { In } from 'typeorm'
 import { z } from 'zod'
-import { ChatAnswerSchema, GetBIContextQuery, TBIContext } from '../../../../chatbi'
-import { markdownCubes } from '../../../../chatbi/graph'
 import { DimensionMemberRetrieverToolQuery } from '../../../../model-member/queries'
 import { getSemanticModelKey, NgmDSCoreService, registerSemanticModel } from '../../../../model/ocap'
-import { CHART_TYPES, ChatAnswer, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, fixMeasure, IndicatorSchema, TChatBICredentials, tryFixChartType } from './types'
+import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, fixMeasure, IndicatorSchema, TChatBICredentials, tryFixChartType } from './types'
+import { GetBIContextQuery, TBIContext } from '../../../../chatbi'
 
 function cubesReducer(a, b) {
 	return [...a.filter((_) => !b?.some((item) => item.cubeName === _.cubeName)), ...(b ?? [])]
@@ -342,10 +342,9 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 					})
 				} catch (err) {
 					if (err instanceof TimeoutError) {
-						return `Error: Timeout for getting cube context, please confirm whether the model information is correct.`
-					} else {
-						return `Error: ` + getErrorMessage(err)
+						throw new Error(`Timeout for getting cube context, please confirm whether the model information is correct.`)
 					}
+					throw err
 				}
 			},
 			{
@@ -368,7 +367,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				const { configurable } = config ?? {}
 				const { subscriber } = configurable ?? {}
 				const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
-				this.logger.debug(`Execute copilot action '${ChatBIToolsEnum.ANSWER_QUESTION}':`, JSON.stringify(params, null, 2))
+				this.logger.debug(`Execute tool '${ChatBIToolsEnum.ANSWER_QUESTION}':`, JSON.stringify(params, null, 2))
 
 				const answer = params as ChatAnswer
 
@@ -664,4 +663,11 @@ function figureOutMembers(data: any[], dataSettings: DataSettings, entityType: E
 	}
 
 	return null
+}
+
+function markdownCubes(models: IChatBIModel[]) {
+    return models.filter(nonNullable).map((item) => `- dataSource: ${item.modelId}
+  cubeName: ${item.entity}
+  cubeCaption: ${item.entityCaption}
+  cubeDescription: ${item.entityDescription}`).join('\n')
 }
