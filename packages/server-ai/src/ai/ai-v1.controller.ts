@@ -28,7 +28,8 @@ export class AIV1Controller {
 				...(body.options ?? {}),
 				tenantId: RequestContext.currentTenantId(),
 				organizationId: RequestContext.getOrganizationId(),
-				user: RequestContext.currentUser()
+				user: RequestContext.currentUser(),
+				from: 'api'
 			})
 		)
 	}

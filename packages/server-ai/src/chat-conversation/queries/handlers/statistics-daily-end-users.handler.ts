@@ -17,6 +17,8 @@ export class StatisticsDailyEndUsersHandler implements IQueryHandler<StatisticsD
 			.select('DATE("createdAt") as date')
 			.addSelect('COUNT(DISTINCT COALESCE("fromEndUserId", "createdById"::text)) as count')
 			.where('chat_conversation.xpertId = :id', { id })
+			.andWhere('chat_conversation.from != :from', { from: 'debugger' })
+			
 		if (start) {
 			query.andWhere('chat_conversation.createdAt >= :start', { start })
 		}

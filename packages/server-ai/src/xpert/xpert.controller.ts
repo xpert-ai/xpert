@@ -209,7 +209,11 @@ export class XpertController extends CrudController<Xpert> {
 			}
 		}
 	) {
-		return await this.commandBus.execute(new XpertChatCommand(body.request, {...body.options, language }))
+		return await this.commandBus.execute(new XpertChatCommand(body.request, {
+			...body.options,
+			language,
+			from: 'debugger'
+		}))
 	}
 
 	@ApiOperation({ summary: 'Delete record' })
@@ -426,7 +430,12 @@ export class XpertController extends CrudController<Xpert> {
 	@Sse()
 	async chatApp(@Param('name') name: string, @I18nLang() language: LanguagesEnum, @Body() body: { request: TChatRequest; options: TChatOptions }) {
 		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
-		return await this.commandBus.execute(new XpertChatCommand(body.request, {...body.options, language, fromEndUserId }))
+		return await this.commandBus.execute(new XpertChatCommand(body.request, {
+			...body.options,
+			language,
+			from: 'webapp',
+			fromEndUserId
+		}))
 	}
 
 	// Statistics

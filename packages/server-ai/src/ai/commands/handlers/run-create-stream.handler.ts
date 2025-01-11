@@ -28,6 +28,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 			input: input.input as any,
 			xpertId: xpert.id,
 			conversationId: conversation.id,
-		}, {}))
+		}, {
+			from: 'api'
+		}))
 	}
 }

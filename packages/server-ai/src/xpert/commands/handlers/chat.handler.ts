@@ -44,6 +44,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 	public async execute(command: XpertChatCommand): Promise<Observable<MessageEvent>> {
 		const { options } = command
 		const { xpertId, input, conversationId, confirm, reject, toolCalls } = command.request
+		const { from, fromEndUserId } = options ?? {}
 		const userId = RequestContext.currentUserId()
 
 		const timeStart = Date.now()
@@ -89,7 +90,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 							knowledgebases: options?.knowledgebases,
 							toolsets: options?.toolsets
 						},
-						fromEndUserId: options?.fromEndUserId
+						from,
+						fromEndUserId
 					})
 				)
 
@@ -140,7 +142,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				execution: { id: executionId },
 				toolCalls,
 				reject,
-				memories
+				memories,
 			})
 		)
 

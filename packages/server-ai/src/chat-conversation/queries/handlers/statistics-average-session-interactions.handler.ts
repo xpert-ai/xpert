@@ -23,6 +23,7 @@ export class StatisticsAverageSessionInteractionsHandler
 			.addSelect('COUNT( DISTINCT chat_conversation.id)', 'conversations_count')
 			.addSelect('COUNT(*) / COUNT( DISTINCT chat_conversation.id)', 'count')
 			.where('chat_conversation.xpertId = :id', { id })
+			.andWhere('chat_conversation.from != :from', { from: 'debugger' })
 			.andWhere('chat_message.role = :role', { role: 'human' })
 
 			if (start) {

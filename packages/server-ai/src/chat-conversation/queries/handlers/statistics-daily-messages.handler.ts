@@ -18,6 +18,7 @@ export class StatisticsDailyMessagesHandler implements IQueryHandler<StatisticsD
 			.select('DATE(chat_conversation."createdAt") as date')
 			.addSelect('COUNT(DISTINCT chat_message.id) as count')
 			.where('chat_conversation.xpertId = :id', { id })
+			.andWhere('chat_conversation.from != :from', { from: 'debugger' })
 			.andWhere('chat_message.role = :role', { role: 'ai' })
 		if (start) {
 			query.andWhere('chat_conversation.createdAt >= :start', { start })

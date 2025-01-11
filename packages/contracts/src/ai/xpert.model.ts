@@ -8,6 +8,7 @@ import { IXpertAgent } from './xpert-agent.model'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 import { IIntegration } from '../integration.model'
+import { TChatFrom } from './chat.model'
 
 export type ToolCall = LToolCall
 
@@ -360,6 +361,7 @@ export type TChatOptions = {
   knowledgebases?: string[]
   toolsets?: string[]
   language?: string
+  from?: TChatFrom
 }
 
 // Helpers

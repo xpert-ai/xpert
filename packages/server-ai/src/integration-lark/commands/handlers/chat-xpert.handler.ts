@@ -37,9 +37,12 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 					xpertId,
 					conversationId,
 					confirm: command.options?.confirm,
-					reject: command.options?.reject
+					reject: command.options?.reject,
 				},
-				null
+				{
+					from: 'feishu',
+					fromEndUserId: userId
+				}
 			)
 		)
 

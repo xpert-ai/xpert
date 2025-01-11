@@ -27,7 +27,8 @@ export class ChatController {
 				language,
 				tenantId: RequestContext.currentTenantId(),
 				organizationId: RequestContext.getOrganizationId(),
-				user: RequestContext.currentUser()
+				user: RequestContext.currentUser(),
+				from: 'platform'
 			})
 		)
 

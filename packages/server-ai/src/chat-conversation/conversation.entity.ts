@@ -4,6 +4,7 @@ import {
 	IXpert,
 	TChatConversationOptions,
 	TChatConversationStatus,
+	TChatFrom,
 	TSensitiveOperation
 } from '@metad/contracts'
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
@@ -48,6 +49,12 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
 	operation?: TSensitiveOperation
+
+	@ApiProperty({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	from: TChatFrom
 
 	@ApiProperty({ type: () => String })
 	@IsString()

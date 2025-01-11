@@ -14,6 +14,7 @@ export type TChatConversationOptions = {
 
 export type TChatConversationStatus = "idle" | "busy" | "interrupted" | "error"
 export type TToolCallType = 'agent' | 'tool'
+export type TChatFrom = 'platform' | 'webapp' | 'debugger' | 'api' | 'feishu' | 'lark' | 'dingtalk' | 'wecom'
 
 export type TSensitiveOperation = {
   messageId?: string
@@ -41,19 +42,38 @@ export type TSensitiveOperation = {
  * Corresponds to the thread in the [Agent Protocol](https://github.com/langchain-ai/agent-protocol).
  */
 export interface IChatConversation extends IBasePerTenantAndOrganizationEntityModel {
+  /**
+   * Thread id for agent execution
+   */
   threadId: string
+  /**
+   * A short title summarizing the session
+   */
   title?: string
+  /**
+   * Current status of conversation
+   */
   status?: TChatConversationStatus
-  
+  /**
+   * Options
+   */
   options?: TChatConversationOptions
-
+  /**
+   * Error message when status is error
+   */
   error?: string
+  /**
+   * ChatMessages in conversation
+   */
   messages?: IChatMessage[] | null
   /**
    * The last operation when interrupted
    */
   operation?: TSensitiveOperation
-
+  /**
+   * Conversation source / user type
+   */
+  from: TChatFrom
   /**
    * End anonymous user
    */

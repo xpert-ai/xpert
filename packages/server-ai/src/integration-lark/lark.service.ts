@@ -170,7 +170,6 @@ export class LarkService {
 						tenant,
 						organizationId,
 						integrationId: integration.id,
-						// integration,
 						userId: user.id,
 						message: data as any,
 						chatId,

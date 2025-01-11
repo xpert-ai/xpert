@@ -21,6 +21,9 @@
           {{ 'PAC.KEY_WORDS.CreatedBy' | translate: {Default: 'Created By'} }}
         </th>
         <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
+          {{ 'PAC.Xpert.ChatFrom' | translate: {Default: 'Chat From'} }}
+        </th>
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
           {{ 'PAC.KEY_WORDS.EndUser' | translate: {Default: 'End User'} }}
         </th>
         <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
@@ -45,6 +48,9 @@
           </td>
           <td class="px-4 py-2">
             {{conv.createdBy | user }}
+          </td>
+          <td class="px-4 py-2">
+            {{conv.from }}
           </td>
           <td class="px-4 py-2">
             {{conv.fromEndUserId}}
