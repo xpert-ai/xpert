@@ -60,11 +60,11 @@ export class XpertDslDTO {
 	version?: string
 
 	@Expose()
-	@Transform(({ value }) => new XpertAgentDslDTO(value))
+	@Transform(({ value }) => value ? new XpertAgentDslDTO(value) : null)
 	agent?: IXpertAgent
 
 	@Expose()
-	@Transform(({ value }) => new CopilotModelDslDTO(value))
+	@Transform(({ value }) => value ? new CopilotModelDslDTO(value) : null)
 	copilotModel?: ICopilotModel
 
 	@Expose()
@@ -160,7 +160,7 @@ export class XpertAgentDslDTO implements TXpertAgent {
 	options?: TXpertAgentOptions
 
 	@Expose()
-	@Transform(({ value }) => new CopilotModelDslDTO(value))
+	@Transform(({ value }) => value ? new CopilotModelDslDTO(value) : null)
 	copilotModel?: ICopilotModel
 
 	@Expose()

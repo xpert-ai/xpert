@@ -43,7 +43,12 @@
         </div>
       </div>
     } @else if (__copilotModel()) {
-      <div class="text-sm text-text-warning">{{'PAC.Copilot.ChooseRightCopilot' | translate: {Default: 'Please choose right copilot'} }}</div>
+      <div class="text-sm text-text-warning">
+        {{'PAC.Copilot.ChooseRightCopilot' | translate: {Default: 'Please choose right copilot'} }}
+        @if (__copilotModel().model) {
+          <span>{{__copilotModel().modelType + '/' + __copilotModel().model}}</span>
+        }
+      </div>
     } @else {
       <div class="mr-1.5 flex items-center justify-center w-4 h-4 rounded-[5px] border border-dashed border-black/5">
         <svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-gray-400">
