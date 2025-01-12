@@ -154,8 +154,8 @@
 
 <ng-template #cardMenu let-xpert="xpert">
   <div class="ngm-cdk-menu p-2" cdkMenu >
-    <button class="ngm-cdk-menu-item p-2" cdkMenuItem ngmAppearance="danger" (click)="deleteXpert(xpert)">
-      <mat-icon class="mr-2" fontSet="material-icons-outlined" >delete</mat-icon>
+    <button class="ngm-cdk-menu-item px-2 py-1.5" cdkMenuItem ngmAppearance="danger" (click)="deleteXpert(xpert)">
+      <i class="ri-delete-bin-line mr-1"></i>
       {{ 'PAC.KEY_WORDS.Delete' | translate: { Default: 'Delete' } }}
     </button>
   </div>

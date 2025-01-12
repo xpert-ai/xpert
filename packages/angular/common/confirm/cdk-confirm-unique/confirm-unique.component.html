@@ -8,7 +8,12 @@
   <form (ngSubmit)="onApply()">
     <mat-form-field appearance="fill" class="w-full">
       <mat-label>{{ 'COMPONENTS.CONFIRM.NAME' | translate: {Default: 'Name'} }}</mat-label>
-      <input cdkFocusInitial matInput name="value" [(ngModel)]="value" />
+      <input cdkFocusInitial matInput name="value" [formControl]="value" />
+      @if (invalid) {
+        <mat-error>
+          {{error || 'Error'}}
+        </mat-error>
+      }
     </mat-form-field>
   </form>
 </div>
@@ -22,7 +27,11 @@
     <button mat-flat-button (click)="onCancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
     </button>
-    <button mat-raised-button color="accent" cdkFocusInitial (click)="onApply()">
+    <button mat-raised-button color="accent"
+      [disabled]="invalid"
+      cdkFocusInitial
+      (click)="onApply()"
+    >
       {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
     </button>
   </div>

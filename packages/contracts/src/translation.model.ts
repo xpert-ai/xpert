@@ -1,4 +1,5 @@
 import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model';
+import { LanguagesEnum } from './user.model';
 
 export interface ITranslation<T>
 	extends IBasePerTenantAndOrganizationEntityModel {
@@ -29,4 +30,8 @@ export interface TranslatePropertyInput {
 export const TranslationLanguageMap = {
 	'zh-CN': 'zh',
 	'zh-Hans': 'zh',
+}
+
+export function mapTranslationLanguage(languageCode: LanguagesEnum) {
+	return TranslationLanguageMap[languageCode] || languageCode
 }

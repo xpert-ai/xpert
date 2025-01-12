@@ -149,7 +149,7 @@
 
 <div class="flex justify-end p-4">
   <div ngmButtonGroup>
-    <button mat-flat-button mat-dialog-close>
+    <button mat-flat-button (click)="close()">
       {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
     <button mat-raised-button color="accent" cdkFocusInitial

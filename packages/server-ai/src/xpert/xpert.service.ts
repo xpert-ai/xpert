@@ -48,6 +48,9 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 	 */
 	async validateName(name: string) {
 		const slug = convertToUrlPath(name)
+		if (slug.length < 5) {
+			return false
+		}
 		const count = await this.repository.count({
 			where: {
 				slug,
