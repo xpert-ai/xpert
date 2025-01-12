@@ -183,16 +183,16 @@ function formatInnerHTML(htmlContent: string) {
   // Step 1: 处理段落 <p> 标签并替换为换行符
   let formattedText = htmlContent
     .replace(/<\/p>\s*<p[^>]*>/gi, '\n') // 替换段落间的换行
+    .replace(/<div><br\s*\/?><\/div>/gi, '\n') // 替换 <br> 标签为换行
     .replace(/<br\s*\/?>/gi, '\n') // 替换 <br> 标签为换行
     .replace(/<\/?p[^>]*>/gi, '') // 移除 <p> 标签
     .replace(/<\/?span[^>]*>/gi, '') // 移除 <span> 标签
     .replace(/<mark[^>]*>(.*?)<\/mark>/gi, '$1') // 保留 <mark> 内的内容
-    .replace(/<div[^>]*>/gi, '') // 移除 <div> 标签及带 class 的 <div> 标签
+    .replace(/<\/div><div>/gi, '\n') // 将 </div><div> 替换成换行符
     .replace(/<\/div>/gi, '\n') // 将 </div> 替换成换行符
 
-  // // Step 2: 替换 HTML 转义字符
-  // formattedText = formattedText.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+  formattedText = formattedText.replace(/\n<div[^>]*>/gi, '\n')
+    .replace(/<div[^>]*>/gi, '\n')
 
-  // Step 3: 返回转换后的文本内容
-  return formattedText
+  return formattedText.trimEnd()
 }

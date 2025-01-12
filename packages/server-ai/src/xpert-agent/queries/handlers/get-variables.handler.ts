@@ -30,6 +30,9 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
 			new GetXpertAgentQuery(xpertId, agentKey, isDraft)
 		)
+		if (!agent) {
+			return variables
+		}
 		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
 			new ToolsetGetToolsCommand(agent.toolsetIds)
 		)

@@ -24,6 +24,9 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 		if (draft && xpert.draft) {
 			const draft = xpert.draft
 			const agentNode = draft.nodes.find((_) => _.key === agentKey)
+			if (!agentNode) {
+				return null
+			}
 
 			const toolNodes = draft.connections
 				.filter((_) => _.type === 'toolset' && _.from === agentKey)
