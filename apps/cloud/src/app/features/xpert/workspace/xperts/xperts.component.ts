@@ -8,7 +8,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective, uploadYamlFile } from '@metad/core'
-import { CdkConfirmDeleteComponent, CdkConfirmUniqueComponent, NgmCommonModule } from '@metad/ocap-angular/common'
+import { CdkConfirmDeleteComponent, CdkConfirmUniqueComponent, injectConfirmUnique, NgmCommonModule } from '@metad/ocap-angular/common'
 import { AppearanceDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -16,9 +16,10 @@ import { isNil, omitBy } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'
-import { BehaviorSubject, EMPTY } from 'rxjs'
+import { BehaviorSubject, EMPTY, firstValueFrom } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 import {
+  convertToUrlPath,
   getErrorMessage,
   IToolProvider,
   IXpert,
@@ -26,6 +27,7 @@ import {
   OrderTypeEnum,
   routeAnimations,
   ToastrService,
+  TXpertTeamDraft,
   XpertService,
   XpertToolsetCategoryEnum,
   XpertToolsetService,
@@ -37,7 +39,6 @@ import { XpertToolConfigureBuiltinComponent } from '../../tools'
 import { XpertStudioCreateToolComponent } from '../../tools/create/create.component'
 import { XpertNewBlankComponent } from '../../xpert/index'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { CardCreateComponent } from 'apps/cloud/src/app/@shared/card'
 import { ToolProviderCardComponent, ToolsetCardComponent, XpertCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 
@@ -53,7 +54,6 @@ import { ToolProviderCardComponent, ToolsetCardComponent, XpertCardComponent } f
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-    MaterialModule,
 
     DynamicGridDirective,
     NgmCommonModule,
@@ -87,6 +87,7 @@ export class XpertStudioXpertsComponent {
   readonly homeComponent = inject(XpertWorkspaceHomeComponent)
   readonly i18n = new NgmI18nPipe()
   readonly workspaceId = injectParams('id')
+  readonly confirmUnique = injectConfirmUnique()
 
   readonly contentContainer = viewChild('contentContainer', { read: ElementRef })
 
@@ -325,7 +326,7 @@ export class XpertStudioXpertsComponent {
     input.onchange = (event: any) => {
       const file = event.target.files[0]
       if (file) {
-        uploadYamlFile(file).then((parsedDSL) => {
+        uploadYamlFile<TXpertTeamDraft>(file).then((parsedDSL) => {
           // Assuming there's a method to handle the parsed DSL
           this.handleImportedDSL(parsedDSL)
         }).catch((error) => {
@@ -341,28 +342,38 @@ export class XpertStudioXpertsComponent {
     input.click()
   }
 
-  handleImportedDSL(dsl: any) {
-    this.dialog
-      .open(CdkConfirmUniqueComponent, {
-        data: {
-          value: dsl.team.name,
-          title: this.#translate.instant('PAC.Xpert.ChangeXpertName', { Default: 'Change the name of xpert' }) 
+  handleImportedDSL(dsl: TXpertTeamDraft) {
+    this.confirmUnique({
+      value: dsl.team.name,
+      title: this.#translate.instant('PAC.Xpert.ChangeXpertName', { Default: 'Change the name of xpert' }),
+      validators: [
+        async (name: string) => {
+          const slug = convertToUrlPath(name)
+          if (slug.length < 5) {
+            return {
+              error: this.#translate.instant('PAC.Xpert.TooShort', { Default: 'Too short' })
+            }
+          }
+
+          if (/[^a-zA-Z0-9-\s]/.test(name)) {
+            return {
+              error: this.#translate.instant('PAC.Xpert.NameContainsNonAlpha', { Default: 'Name contains non (alphabetic | - | blank) characters' })
+            }
+          }
+        },
+        async (name: string) => {
+          const valid = await firstValueFrom(this.xpertService.validateName(name))
+          return valid ? null : {error: this.#translate.instant('PAC.Xpert.NameNotAvailable', { Default: 'Name not available' })}
         }
-      })
-      .closed.pipe(
-        switchMap((name) => {
-          return name
-            ? this.xpertService.importDSL({
-                ...dsl,
-                team: {
-                  ...dsl.team,
-                  name,
-                  workspaceId: this.workspaceId()
-                }
-              })
-            : EMPTY
-        })
-      )
+      ]
+    }, (name: string) => this.xpertService.importDSL({
+      ...dsl,
+      team: {
+        ...dsl.team,
+        name,
+        workspaceId: this.workspaceId()
+      }
+    }))
       .subscribe({
         next: (value) => {
           this.refresh()
