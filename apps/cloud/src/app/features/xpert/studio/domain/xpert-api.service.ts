@@ -46,7 +46,7 @@ import {
   UpdateNodeHandler,
   UpdateNodeRequest
 } from './node'
-import { CreateTeamHandler, CreateTeamRequest, UpdateXpertHandler, UpdateXpertRequest } from './xpert'
+import { CreateTeamHandler, CreateTeamRequest, UpdateXpertHandler, UpdateXpertRequest, UpdateXpertTeamHandler, UpdateXpertTeamRequest } from './xpert'
 import { calculateHash, EReloadReason, IStudioStore, TStateHistory } from './types'
 import { ExpandTeamHandler } from './xpert/expand/expand.handler'
 import { ExpandTeamRequest } from './xpert/expand/expand.request'
@@ -409,7 +409,14 @@ export class XpertStudioApiService {
     }
   }
 
-  updateXpert(fn: (state: Partial<IXpert>) => Partial<IXpert>, reason = EReloadReason.XPERT_UPDATED) {
+  public updateXpert(key: string, entity: IXpert, options?: {emitEvent: boolean}) {
+    new UpdateXpertHandler(this.store).handle(new UpdateXpertRequest(key, entity))
+    if (options?.emitEvent == null || options.emitEvent) {
+      this.#reload.next(EReloadReason.XPERT_UPDATED)
+    }
+  }
+
+  updateXpertTeam(fn: (state: Partial<IXpert>) => Partial<IXpert>, reason = EReloadReason.XPERT_UPDATED) {
     this.store.update((state) => {
       const draft = structuredClone(state.draft)
       draft.team = fn(draft.team)
@@ -420,12 +427,8 @@ export class XpertStudioApiService {
     this.#reload.next(reason)
   }
 
-  public _updateXpert(xpert: Partial<IXpert>) {
-    new UpdateXpertHandler(this.store).handle(new UpdateXpertRequest(xpert))
-    this.#reload.next(EReloadReason.XPERT_UPDATED)
-  }
   public updateXpertOptions(options: Partial<TXpertOptions>, reason: EReloadReason) {
-    this.updateXpert((xpert) => {
+    this.updateXpertTeam((xpert) => {
       return {
         ...xpert,
         options: {
@@ -437,7 +440,7 @@ export class XpertStudioApiService {
   }
 
   public updateXpertAgentConfig(config: Partial<TXpertAgentConfig>, reason = EReloadReason.XPERT_UPDATED) {
-    this.updateXpert((xpert) => {
+    this.updateXpertTeam((xpert) => {
       return {
         ...xpert,
         agentConfig: {

@@ -6,7 +6,15 @@
 
   <div class="flex-1"></div>
 
-  <div>
+  <div class="flex justify-between items-center gap-1">
+
+    <button type="button" class="action-btn action-btn-sm justify-center w-6 h-6 p-0.5 rounded-md pressable"
+      [matTooltip]="'PAC.Xpert.RefreshToolset' | translate: {Default: 'Refresh, sync toolset configuration'}"
+      matTooltipPosition="above"
+      (click)="refresh()">
+      <i class="ri-refresh-line"></i>
+    </button>
+
     <div class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer
       text-text-tertiary hover:text-base-content hover:bg-hover-bg"
       (click)="closePanel()"
@@ -26,3 +34,7 @@
     [copilotModel]="copilotModel()"
   />
 </div>
+
+@if (loading()) {
+  <ngm-spin class="absolute top-0 left-0 w-full h-full"/>
+}
