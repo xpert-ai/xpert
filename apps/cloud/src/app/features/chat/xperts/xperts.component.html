@@ -21,13 +21,15 @@
 
     <div class="w-full flex justify-center">
       @if (hasMore()) {
-        <button type="button" class="btn pressable justify-center rounded-none last:rounded-r-lg first:rounded-l-lg" [matTooltip]="'PAC.Chat.ShowMoreIndicators' | translate: {Default: 'Show more indicators'}"
+        <button type="button" class="btn pressable justify-center rounded-none last:rounded-r-lg first:rounded-l-lg"
+          [matTooltip]="'PAC.Chat.ShowMoreXperts' | translate: {Default: 'Show more experts'}"
           (click)="showMore()">
           <i class="ri-arrow-down-wide-line"></i>
         </button>
       }
       @if (xperts().length > pageSize()) {
-        <button type="button" class="btn pressable justify-center rounded-none last:rounded-r-lg first:rounded-l-lg" [matTooltip]="'PAC.Chat.ShowLessIndicators' | translate: {Default: 'Show less indicators'}"
+        <button type="button" class="btn pressable justify-center rounded-none last:rounded-r-lg first:rounded-l-lg"
+          [matTooltip]="'PAC.Chat.ShowLessXperts' | translate: {Default: 'Show less experts'}"
           (click)="showLess()">
           <i class="ri-arrow-up-wide-line"></i>
         </button>

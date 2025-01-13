@@ -1565,7 +1565,9 @@
       "ShowMoreIndicators": "展示更多指标",
       "ShowLessIndicators": "展示少一些指标",
       "GotoNewXpert": "去新建数字专家",
-      "NewCalculatedIndicator": "新建计算指标"
+      "NewCalculatedIndicator": "新建计算指标",
+      "ShowMoreXperts": "展示更多专家",
+      "ShowLessXperts": "展示少一些专家"
     },
     "ChatBI": {
       "Title": "ChatBI-数据分析与洞察",
