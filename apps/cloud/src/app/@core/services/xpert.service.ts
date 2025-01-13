@@ -294,6 +294,13 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
       params: this.timeRangeToParams(new HttpParams(), timeRange)
     })
   }
+  
+  getStatisticsXpertIntegrations(timeRange: string[]) {
+    return this.httpClient.get<{ slug: string; count: number;}[]>(
+      this.apiBaseUrl + `/statistics/xpert-integrations`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
 
   timeRangeToParams(params: HttpParams, timeRange: string[]) {
     if (timeRange[0]) {

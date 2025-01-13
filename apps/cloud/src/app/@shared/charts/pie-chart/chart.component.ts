@@ -62,9 +62,9 @@ export class StatisticsPieChartComponent {
             type: 'pie',
             radius: ['40%', '70%'],
             center: ['30%', '50%'],
-            padAngle: 5,
+            padAngle: 3,
             itemStyle: {
-              borderRadius: 10
+              borderRadius: 5
             },
             label: {
               show: false,

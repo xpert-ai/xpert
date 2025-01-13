@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http'
+import { HttpClient, HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { DocumentInterface } from '@langchain/core/documents'
 import { MaxMarginalRelevanceSearchOptions, VectorStoreInterface } from '@langchain/core/vectorstores'
@@ -58,5 +58,22 @@ export class KnowledgebaseService extends OrganizationBaseCrudService<IKnowledge
     }
   ) {
     return this.httpClient.post<DocumentInterface[]>(`${this.apiBaseUrl}/mmr-search`, { query, options })
+  }
+
+  getStatisticsKnowledgebases(timeRange: string[]) {
+    return this.httpClient.get<number>(
+      this.apiBaseUrl + `/statistics/knowledgebases`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+
+  timeRangeToParams(params: HttpParams, timeRange: string[]) {
+    if (timeRange[0]) {
+      params = params.set('start', timeRange[0])
+    }
+    if (timeRange[1]) {
+      params = params.set('end', timeRange[1])
+    }
+    return params
   }
 }

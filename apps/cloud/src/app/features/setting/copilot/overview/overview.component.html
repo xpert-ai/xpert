@@ -1,5 +1,5 @@
-<div class="grid gap-6 grid-cols-1 xl:grid-cols-2 w-full mb-6">
-  <div class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm bg-lime-50/50">
+<div class="grid gap-6 grid-cols-1 xl:grid-cols-3 w-full mb-6">
+  <div class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-xl border-gray-200 shadow-sm bg-lime-50/50">
     <div class="mb-3">
       <div class="flex items-start p-1">
         <div
@@ -19,6 +19,50 @@
 
     <div class="text-3xl font-semibold text-lime-700 group-hover:text-gray-900">
       {{ xperts()?.[0]?.count }}
+    </div>
+  </div>
+
+  <div class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-xl border-gray-200 shadow-sm bg-sky-50/50">
+    <div class="mb-3">
+      <div class="flex items-start p-1">
+        <div
+          class="flex flex-row items-center text-lg font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+        >
+          {{ 'PAC.Copilot.TotalXpertIntegrations' | translate: {Default: 'Total Integrations for Experts'} }}
+          <div class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
+            [matTooltip]="'PAC.Copilot.TotalXpertIntegrationsTooltip' | translate: {Default: 'Total third-party integrations for experts.'}"
+            matTooltipPosition="above"
+          >
+            <i class="ri-question-line text-text-secondary text-lg"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-3xl font-semibold text-sky-700 group-hover:text-gray-900">
+      {{ xpertIntegrations()?.[0]?.count }}
+    </div>
+  </div>
+
+  <div class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-xl border-gray-200 shadow-sm bg-violet-50/50">
+    <div class="mb-3">
+      <div class="flex items-start p-1">
+        <div
+          class="flex flex-row items-center text-lg font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+        >
+          {{ 'PAC.Copilot.TotalKnowledgebases' | translate: {Default: 'Total Knowledgebases'} }}
+          <div class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
+            [matTooltip]="'PAC.Copilot.TotalKnowledgebasesTooltip' | translate: {Default: 'Total number of knowledgebases within the organization.'}"
+            matTooltipPosition="above"
+          >
+            <i class="ri-question-line text-text-secondary text-lg"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-3xl font-semibold text-violet-700 group-hover:text-gray-900">
+      {{ knowledgebases() }}
     </div>
   </div>
 </div>

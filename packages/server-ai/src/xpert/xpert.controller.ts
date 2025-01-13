@@ -48,7 +48,7 @@ import { XpertDraftDslDTO, XpertPublicDTO } from './dto'
 import { Xpert } from './xpert.entity'
 import { XpertService } from './xpert.service'
 import { WorkspaceGuard } from '../xpert-workspace/'
-import { SearchXpertMemoryQuery, StatisticsXpertConversationsQuery, StatisticsXpertMessagesQuery, StatisticsXpertsQuery, StatisticsXpertTokensQuery } from './queries'
+import { SearchXpertMemoryQuery, StatisticsXpertConversationsQuery, StatisticsXpertIntegrationsQuery, StatisticsXpertMessagesQuery, StatisticsXpertsQuery, StatisticsXpertTokensQuery } from './queries'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { XpertAgentVariablesQuery } from '../xpert-agent/queries'
 import { AnonymousXpertAuthGuard } from './auth/anonymous-auth.guard'
@@ -470,6 +470,13 @@ export class XpertController extends CrudController<Xpert> {
 	@Get('statistics/xpert-tokens')
 	async getStatisticsXpertTokens(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsXpertTokensQuery(start, end))
+	}
+
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Get('statistics/xpert-integrations')
+	async getStatisticsXpertIntegrations(@Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsXpertIntegrationsQuery(start, end))
 	}
 
 	@UseGuards(XpertGuard)
