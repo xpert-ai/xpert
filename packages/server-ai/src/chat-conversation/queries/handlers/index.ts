@@ -5,6 +5,9 @@ import { StatisticsDailyEndUsersHandler } from "./statistics-daily-end-users.han
 import { StatisticsAverageSessionInteractionsHandler } from "./statistics-average-session-interactions.handler";
 import { StatisticsDailyMessagesHandler } from "./statistics-daily-messages.handler";
 import { ChatConversationLogsHandler } from "./conversation-logs.handler";
+import { StatisticsTokensPerSecondHandler } from "./statistics-tokens-per-second.handler";
+import { StatisticsTokenCostQueryHandler } from "./statistics-token-cost.handler";
+import { StatisticsUserSatisfactionRateHandler } from "./statistics-user-satisfaction-rate.handler";
 
 export const QueryHandlers = [
 	GetChatConversationHandler,
@@ -13,5 +16,8 @@ export const QueryHandlers = [
 	StatisticsDailyEndUsersHandler,
 	StatisticsAverageSessionInteractionsHandler,
 	StatisticsDailyMessagesHandler,
+	StatisticsTokensPerSecondHandler,
+	StatisticsTokenCostQueryHandler,
+	StatisticsUserSatisfactionRateHandler,
 	ChatConversationLogsHandler
 ];

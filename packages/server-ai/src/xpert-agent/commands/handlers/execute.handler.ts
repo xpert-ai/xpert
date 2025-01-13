@@ -26,6 +26,7 @@ import { getErrorMessage, takeUntilAbort } from '@metad/server-common'
 import { AgentStateAnnotation, parseXmlString, STATE_VARIABLE_SYS_LANGUAGE, TSubAgent } from './types'
 import { CompleteToolCallsQuery } from '../../queries'
 import { memoryPrompt } from '../../../copilot-store/utils'
+import { assignExecutionUsage } from '../../../xpert-agent-execution/types'
 
 
 @CommandHandler(XpertAgentExecuteCommand)
@@ -57,6 +58,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		const chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
 			new GetXpertChatModelQuery(agent.team, agent, {
 				abortController,
+				usageCallback: assignExecutionUsage(execution),
 				tokenCallback: (token) => {
 					execution.tokens += token ?? 0
 				}

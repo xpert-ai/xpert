@@ -52,7 +52,7 @@ import { SearchXpertMemoryQuery } from './queries'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { XpertAgentVariablesQuery } from '../xpert-agent/queries'
 import { AnonymousXpertAuthGuard } from './auth/anonymous-auth.guard'
-import { ChatConversationDeleteCommand, ChatConversationLogsQuery, ChatConversationUpsertCommand, FindChatConversationQuery, GetChatConversationQuery, StatisticsAverageSessionInteractionsQuery, StatisticsDailyConvQuery, StatisticsDailyEndUsersQuery, StatisticsDailyMessagesQuery } from '../chat-conversation'
+import { ChatConversationDeleteCommand, ChatConversationLogsQuery, ChatConversationUpsertCommand, FindChatConversationQuery, GetChatConversationQuery, StatisticsAverageSessionInteractionsQuery, StatisticsDailyConvQuery, StatisticsDailyEndUsersQuery, StatisticsDailyMessagesQuery, StatisticsTokenCostQuery, StatisticsTokensPerSecondQuery, StatisticsUserSatisfactionRateQuery } from '../chat-conversation'
 import { FindMessageFeedbackQuery } from '../chat-message-feedback/queries'
 import { XpertGuard } from './guards/xpert.guard'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
@@ -468,4 +468,22 @@ export class XpertController extends CrudController<Xpert> {
 		return await this.queryBus.execute(new StatisticsDailyMessagesQuery(id, start, end))
 	}
 
+	@UseGuards(XpertGuard)
+	@Get(':id/statistics/tokens-per-second')
+	async getTokensPerSecond(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsTokensPerSecondQuery(id, start, end))
+	}
+
+	@UseGuards(XpertGuard)
+	@Get(':id/statistics/token-costs')
+	async getTokenCost(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsTokenCostQuery(id, start, end))
+	}
+
+	@UseGuards(XpertGuard)
+	@Get(':id/statistics/user-satisfaction-rate')
+	async getUserSatisfactionRate(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsUserSatisfactionRateQuery(id, start, end))
+	}
+	
 }

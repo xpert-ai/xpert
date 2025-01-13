@@ -205,3 +205,15 @@ export interface ModelCredentialSchema {
 }
 
 export const AI_MODEL_TYPE_VARIABLE = "__model_type"
+
+export enum PriceType {
+  INPUT = "input",
+  OUTPUT = "output"
+}
+
+export interface PriceInfo {
+  unitPrice: number;
+  unit: number;
+  totalAmount: number;
+  currency: string;
+}

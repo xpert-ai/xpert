@@ -14,7 +14,7 @@ import { AgentStateAnnotation } from '../../../xpert-agent/commands/handlers/typ
 import { getErrorMessage } from '@metad/server-common'
 import { CompiledStateGraph, NodeInterrupt } from '@langchain/langgraph'
 import { ChatMessageUpsertCommand } from '../../../chat-message'
-import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
+import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { HumanMessage, isToolMessage, MessageContent } from '@langchain/core/messages'
 import { RequestContext } from '@metad/server-core'
 import { createProcessStreamEvents } from '../../../xpert-agent'
@@ -131,9 +131,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					const chatModel = await this.queryBus.execute(
 						new CopilotModelGetChatModelQuery(copilot, null, {
 							abortController,
-							tokenCallback: (tokens: number) => {
-								console.log(`tokens usage: ${tokens}`)
-							}
+							usageCallback: assignExecutionUsage(execution),
 						})
 					)
 

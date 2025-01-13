@@ -1,11 +1,11 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilotModel, ParameterRule } from '@metad/contracts'
+import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilotModel, ParameterRule, PriceInfo, PriceType, TTokenUsage, } from '@metad/contracts'
 import { Injectable, Logger } from '@nestjs/common'
 import { yaml } from '@metad/server-common';
 import * as fs from 'fs'
 import * as path from 'path'
 import { ModelProvider } from './ai-provider'
-import { DefaultParameterName, PARAMETER_RULE_TEMPLATE, PriceInfo, PriceType, valueOf } from './entities'
+import { DefaultParameterName, PARAMETER_RULE_TEMPLATE, valueOf } from './entities'
 import { TChatModelOptions } from './types/types'
 import { getPositionMap } from '../core/utils'
 
@@ -30,13 +30,13 @@ export abstract class AIModel {
 		throw new Error(`Unsupport chat model!`)
 	}
 
-	async getPrice(
+	getPrice(
 		model: string,
 		credentials: Record<string, any>,
 		priceType: PriceType,
 		tokens: number
-	): Promise<PriceInfo> {
-		const modelSchema = await this.getModelSchema(model, credentials)
+	): PriceInfo {
+		const modelSchema = this.getModelSchema(model, credentials)
 		if (!modelSchema || !modelSchema.pricing) {
 			return {
 				unitPrice: 0,

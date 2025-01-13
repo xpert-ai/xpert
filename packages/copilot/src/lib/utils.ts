@@ -1,9 +1,10 @@
 import { AIMessage, MessageContent, MessageContentComplex } from '@langchain/core/messages'
-import { ChatGenerationChunk } from '@langchain/core/outputs'
+import { ChatGenerationChunk, LLMResult } from '@langchain/core/outputs'
 import { nanoid as _nanoid } from 'nanoid'
 import { ZodType, ZodTypeDef } from 'zod'
 import zodToJsonSchema from 'zod-to-json-schema'
 import { CopilotChatMessage } from './types'
+import { TTokenUsage } from '@metad/contracts'
 
 export function zodToAnnotations(obj: ZodType<any, ZodTypeDef, any>) {
   return (<{ properties: any }>zodToJsonSchema(obj)).properties
@@ -57,7 +58,10 @@ export function referencesCommandName(commandName: string) {
 
 export const AgentRecursionLimit = 20
 
-export function sumTokenUsage(output) {
+/**
+ * @deprecated use calcTokenUsage
+ */
+export function sumTokenUsage(output: LLMResult) {
   let tokenUsed = 0
   output.generations?.forEach((generation) => {
     generation.forEach((item) => {
@@ -65,6 +69,18 @@ export function sumTokenUsage(output) {
     })
   })
   return tokenUsed
+}
+
+export function calcTokenUsage(output: LLMResult) {
+  const tokenUsage = {promptTokens: 0, completionTokens: 0, totalTokens: 0} as TTokenUsage
+  output.generations?.forEach((generation) => {
+    generation.forEach((item) => {
+      tokenUsage.promptTokens += (<AIMessage>(<ChatGenerationChunk>item).message).usage_metadata.input_tokens
+      tokenUsage.completionTokens = (<AIMessage>(<ChatGenerationChunk>item).message).usage_metadata.output_tokens
+      tokenUsage.totalTokens = (<AIMessage>(<ChatGenerationChunk>item).message).usage_metadata.total_tokens
+    })
+  })
+  return tokenUsage
 }
 
 // stringify MessageContent

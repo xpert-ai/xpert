@@ -1,4 +1,4 @@
-import { IXpert, IXpertAgent } from '@metad/contracts'
+import { ILLMUsage, IXpert, IXpertAgent } from '@metad/contracts'
 import { IQuery } from '@nestjs/cqrs'
 
 /**
@@ -13,6 +13,7 @@ export class GetXpertChatModelQuery implements IQuery {
         public readonly options: {
 			abortController?: AbortController;
 			tokenCallback?: (tokens: number) => void
+			usageCallback: (tokens: ILLMUsage) => void
 		}
 	) {}
 }

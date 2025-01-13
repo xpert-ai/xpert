@@ -2171,7 +2171,14 @@
       "ChatFrom": "对话来源",
       "TooShort": "太短",
       "NameContainsNonAlpha": "名称包含非（字母 | - | 空格）的字符",
-      "NameNotAvailable": "名称不可用"
+      "NameNotAvailable": "名称不可用",
+      "TokenUsage": "费用消耗",
+      "TokenUsageTooltip": "反应每日此专家请求 AI 模型的 Token 使用量，用于成本控制",
+      "ConsumedTokens": "已消耗 Token",
+      "TokenOutputSpeed": "Token 输出速度",
+      "TokenOutputSpeedTooltip": "衡量LLM的性能。统计LLM从请求开始到输出完成的Tokens输出速度。",
+      "UserSatisfactionRate": "用户满意率",
+      "UserSatisfactionRateTooltip": "每千条消息的点赞数。这表示用户非常满意的答案的比例。"
     },
     "title": {
       "short": "Xpert AI"

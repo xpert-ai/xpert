@@ -1,7 +1,7 @@
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { CopilotModelGetChatModelQuery } from '../get-chat-model.query'
 import { CopilotModelGetEmbeddingsQuery } from '../get-embeddings.query'
-import { AiModelTypeEnum } from '@metad/contracts'
+import { AiModelTypeEnum, ILLMUsage } from '@metad/contracts'
 import { CopilotModelInvalidException } from '../../../core/errors'
 
 @QueryHandler(CopilotModelGetEmbeddingsQuery)
@@ -20,7 +20,12 @@ export class CopilotModelGetEmbeddingsHandler implements IQueryHandler<CopilotMo
 
 		// Temporarily the same logic as `CopilotModelGetChatModelQuery`
 		return await this.queryBus.execute(
-			new CopilotModelGetChatModelQuery(command.copilot, copilotModel, command.options)
+			new CopilotModelGetChatModelQuery(command.copilot, copilotModel, {
+				...command.options,
+				usageCallback: (usage: ILLMUsage) => {
+					//
+				}
+			})
 		)
 	}
 }

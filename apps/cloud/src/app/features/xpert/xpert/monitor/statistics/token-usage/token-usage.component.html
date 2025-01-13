@@ -1,0 +1,47 @@
+<div class="mb-3">
+  <div class="flex items-start p-1">
+    <div class="group">
+      <div
+        class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+      >
+        {{ 'PAC.Xpert.TokenUsage' | translate: {Default: 'Token Usage'} }}
+        <div class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
+          [matTooltip]="'PAC.Xpert.TokenUsageTooltip' | translate: {Default: 'Reflects the daily token usage of this expert request ai model, used for cost control'}"
+          matTooltipPosition="above"
+        >
+          <i class="ri-question-line text-text-secondary text-lg"></i>
+        </div>
+      </div>
+      <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+        {{ selectedTimeOption() | i18n }}
+      </div>
+      <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
+    </div>
+  </div>
+</div>
+
+<div class="flex justify-start gap-4 mb-4 flex-1">
+  @for (total of totals(); track total.currency) {
+    <div class="flex items-start p-1">
+      <div class="group">
+        <div
+          class="flex flex-row items-center text-3xl font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+        >
+          {{ total.usage.tokens | number }}
+        </div>
+        <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+          {{ 'PAC.Xpert.ConsumedTokens' | translate: {Default: 'Consumed Tokens'} }}
+          <div class="font-medium text-orange-400">
+            (~ {{ total.usage.price | currency:total.currency:'symbol':'0.0-7' }})
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+<div class="echarts h-64" echarts
+  [options]="options()"
+  theme="light"
+>
+</div>

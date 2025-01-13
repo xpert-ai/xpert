@@ -16,7 +16,7 @@ export type TXpertAgentExecution = {
   error?: string
   elapsedTime?: number
   /**
-   * Token usage of chat model
+   * Total token usage of chat model
    */
   tokens?: number
   /**
@@ -25,9 +25,27 @@ export type TXpertAgentExecution = {
   embedTokens?: number
   metadata?: TAgentExecutionMetadata
 
+  /**
+   * Latency of response from provider (s)
+   */
+  responseLatency?: number
+  // Token usage
+  totalPrice?: number
+  currency?: string
+  inputTokens?: number
+  inputUnitPrice?: number
+  inputPriceUnit?: number
+  outputTokens?: number
+  outputUnitPrice?: number
+  outputPriceUnit?: number
+
+  // State of graph
   threadId?: string
   checkpointId?: string
   parent_thread_id?: string
+  /**
+   * Latest operation when interrupted
+   */
   operation?: TSensitiveOperation
 
   // Many to one
@@ -37,12 +55,9 @@ export type TXpertAgentExecution = {
   // Parent AgentExecution
   parentId?: string
 
-  subExecutions?: IXpertAgentExecution[]
-
   // Temporary properties
   // From CopilotCheckpoint
   messages?: StoredMessage[]
-  runningExecution?: IXpertAgentExecution
   agent?: IXpertAgent
   totalTokens?: number
 }
@@ -53,7 +68,10 @@ export type TXpertAgentExecution = {
  * Corresponds to the run in the [Agent Protocol](https://github.com/langchain-ai/agent-protocol).
  */
 export interface IXpertAgentExecution extends IBasePerTenantAndOrganizationEntityModel, TXpertAgentExecution {
-  
+  subExecutions?: IXpertAgentExecution[]
+
+  // Temporary properties
+  runningExecution?: IXpertAgentExecution
 }
 
 /**
