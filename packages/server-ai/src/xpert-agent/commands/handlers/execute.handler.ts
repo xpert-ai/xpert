@@ -59,9 +59,6 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			new GetXpertChatModelQuery(agent.team, agent, {
 				abortController,
 				usageCallback: assignExecutionUsage(execution),
-				tokenCallback: (token) => {
-					execution.tokens += token ?? 0
-				}
 			})
 		)
 		// Record ai model info into execution

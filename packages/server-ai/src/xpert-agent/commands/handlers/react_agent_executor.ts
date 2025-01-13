@@ -275,7 +275,7 @@ export function createTitleAgent(model: BaseChatModel) {
     if (typeof response.content !== "string") {
       throw new Error("Expected a string response from the model");
     }
-    return { title: response.content };
+    return { title: response.content.replace(/^"/g, '').replace(/"$/g, '') }
   }
 }
 

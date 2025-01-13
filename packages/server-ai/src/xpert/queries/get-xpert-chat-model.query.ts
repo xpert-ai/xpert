@@ -12,7 +12,7 @@ export class GetXpertChatModelQuery implements IQuery {
 		public readonly agent: IXpertAgent,
         public readonly options: {
 			abortController?: AbortController;
-			tokenCallback?: (tokens: number) => void
+			// tokenCallback?: (tokens: number) => void
 			usageCallback: (tokens: ILLMUsage) => void
 		}
 	) {}

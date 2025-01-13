@@ -1,16 +1,17 @@
 import { ChatXAI } from '@langchain/xai'
-import { AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
-import { sumTokenUsage } from '@metad/copilot'
+import { AiModelTypeEnum, ICopilotModel, TTokenUsage } from '@metad/contracts'
+import { calcTokenUsage, sumTokenUsage } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { Injectable } from '@nestjs/common'
-import { AIModel } from '../../../ai-model'
 import { ModelProvider } from '../../../ai-provider'
 import { TChatModelOptions } from '../../../types/types'
 import { CredentialsValidateFailedError } from '../../errors'
 import { XAICredentials, toCredentialKwargs } from '../types'
+import { LargeLanguageModel } from '../../../llm'
+import { ChatOpenAI } from '@langchain/openai'
 
 @Injectable()
-export class XAILargeLanguageModel extends AIModel {
+export class XAILargeLanguageModel extends LargeLanguageModel {
 	constructor(readonly modelProvider: ModelProvider) {
 		super(modelProvider, AiModelTypeEnum.LLM)
 	}
@@ -18,7 +19,7 @@ export class XAILargeLanguageModel extends AIModel {
 	async validateCredentials(model: string, credentials: XAICredentials): Promise<void> {
 		const params = toCredentialKwargs(credentials)
 
-		const chatModel = new ChatXAI({
+		const chatModel = new ChatOpenAI({
 			...params,
 			model
 		})
@@ -38,30 +39,34 @@ export class XAILargeLanguageModel extends AIModel {
 	override getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions) {
 		const { copilot } = copilotModel
 		const { modelProvider } = copilot
-		const params = toCredentialKwargs(modelProvider.credentials as XAICredentials)
+		const credentials = modelProvider.credentials as XAICredentials
+		const params = toCredentialKwargs(credentials)
 
+		const model = copilotModel.model
 		const { handleLLMTokens } = options ?? {}
-		return new ChatXAI({
+		return new ChatOpenAI({
 			...params,
-			model: copilotModel.model,
+			model,
 			streaming: copilotModel.options?.streaming ?? true,
 			temperature: copilotModel.options?.temperature ?? 0,
 			callbacks: [
 				{
-					handleLLMEnd(output) {
+					handleLLMStart: () => {
+						this.startedAt = performance.now()
+					},
+					handleLLMEnd: (output) => {
+						const tokenUsage: TTokenUsage = output.llmOutput?.tokenUsage ?? calcTokenUsage(output)
 						if (handleLLMTokens) {
-							let totalTokens = output.llmOutput?.totalTokens ?? output.llmOutput?.tokenUsage?.totalTokens
-							if (isNaN(totalTokens)) {
-								totalTokens = sumTokenUsage(output)
-							}
 							handleLLMTokens({
 								copilot,
-								tokenUsed: isNaN(totalTokens) ? 0 : (totalTokens ?? 0)
+								model,
+								usage: this.calcResponseUsage(model, credentials, tokenUsage.promptTokens, tokenUsage.completionTokens),
+								tokenUsed: output.llmOutput?.totalTokens ?? sumTokenUsage(output)
 							})
 						}
 					}
 				}
 			]
-		})
+		} as any)
 	}
 }

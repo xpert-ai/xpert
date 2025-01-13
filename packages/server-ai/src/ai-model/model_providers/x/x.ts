@@ -12,8 +12,8 @@ export class XAIProvider extends ModelProvider {
 	}
 
 	getBaseUrl(credentials: XAICredentials): string {
-		// const kwags = toCredentialKwargs(credentials)
-		return `https://api.x.ai`
+		const kwags = toCredentialKwargs(credentials)
+		return kwags.configuration?.baseURL || `https://api.x.ai/v1`
 	}
 
 	getAuthorization(credentials: XAICredentials): string {

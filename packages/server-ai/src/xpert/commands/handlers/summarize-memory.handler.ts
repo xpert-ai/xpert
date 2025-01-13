@@ -66,9 +66,6 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 			new GetXpertChatModelQuery(agent.team, agent, {
 				abortController,
 				usageCallback: assignExecutionUsage(execution),
-				tokenCallback: (token) => {
-					execution.tokens += token ?? 0
-				}
 			})
 		)
 
