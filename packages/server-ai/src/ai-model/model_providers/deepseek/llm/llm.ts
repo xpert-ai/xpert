@@ -1,16 +1,16 @@
 import { ChatOpenAI } from '@langchain/openai'
-import { AIModelEntity, AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
-import { sumTokenUsage } from '@metad/copilot'
+import { AIModelEntity, AiModelTypeEnum, ICopilotModel, TTokenUsage } from '@metad/contracts'
+import { calcTokenUsage, sumTokenUsage } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { Injectable } from '@nestjs/common'
-import { AIModel } from '../../../ai-model'
 import { ModelProvider } from '../../../ai-provider'
 import { TChatModelOptions } from '../../../types/types'
 import { CredentialsValidateFailedError } from '../../errors'
 import { DeepseekCredentials, toCredentialKwargs } from '../types'
+import { LargeLanguageModel } from '../../../llm'
 
 @Injectable()
-export class DeepseekLargeLanguageModel extends AIModel {
+export class DeepseekLargeLanguageModel extends LargeLanguageModel {
 	constructor(readonly modelProvider: ModelProvider) {
 		super(modelProvider, AiModelTypeEnum.LLM)
 	}
@@ -42,19 +42,27 @@ export class DeepseekLargeLanguageModel extends AIModel {
 	override getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions) {
 		const { copilot } = copilotModel
 		const { modelProvider } = copilot
-		const params = toCredentialKwargs(modelProvider.credentials as DeepseekCredentials)
+		const credentials = modelProvider.credentials as DeepseekCredentials
+		const params = toCredentialKwargs(credentials)
 
+		const model = copilotModel.model
 		const { handleLLMTokens } = options ?? {}
 		return new ChatOpenAI({
 			...params,
-			model: copilotModel.model,
+			model,
 			temperature: 0,
 			callbacks: [
 				{
-					handleLLMEnd(output) {
+					handleLLMStart: () => {
+						this.startedAt = performance.now()
+					},
+					handleLLMEnd: (output) => {
+						const tokenUsage: TTokenUsage = output.llmOutput?.tokenUsage ?? calcTokenUsage(output)
 						if (handleLLMTokens) {
 							handleLLMTokens({
 								copilot,
+								model,
+								usage: this.calcResponseUsage(model, credentials, tokenUsage.promptTokens, tokenUsage.completionTokens),
 								tokenUsed: output.llmOutput?.totalTokens ?? sumTokenUsage(output)
 							})
 						}

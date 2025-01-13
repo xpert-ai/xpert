@@ -3,15 +3,19 @@ import { getRepository } from 'typeorm'
 import { ChatConversation } from '../../conversation.entity'
 import { ChatConversationService } from '../../conversation.service'
 import { StatisticsUserSatisfactionRateQuery } from '../statistics-user-satisfaction-rate.query'
+import { RequestContext } from '@metad/server-core'
 
 @QueryHandler(StatisticsUserSatisfactionRateQuery)
 export class StatisticsUserSatisfactionRateHandler implements IQueryHandler<StatisticsUserSatisfactionRateQuery> {
 	constructor(private readonly service: ChatConversationService) {}
 
 	public async execute(command: StatisticsUserSatisfactionRateQuery) {
-		const { id, start, end } = command
+		const { xpertId, start, end } = command
+        const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
 
 		const repository = getRepository(ChatConversation)
+        const where = xpertId ? `AND cc."xpertId" = $7` : ''
 
 		return await repository.manager.query(
 			`SELECT
@@ -32,11 +36,12 @@ FROM (
         "chat_message_feedback" AS feedback
         ON cm."id" = feedback."messageId"
     WHERE 
-        cc."xpertId" = $1 
-        AND cc."from" != $2 
-        AND cm."role" = $3 
-        AND cc."createdAt" >= $4 
-        AND cc."createdAt" <= $5
+        cc."tenantId" = $1
+        AND cc."organizationId" = $2
+        AND cc."from" != $3 ${where}
+        AND cm."role" = $4
+        AND cc."createdAt" >= $5
+        AND cc."createdAt" <= $6
     GROUP BY 
         date
 ) AS satisfaction
@@ -44,7 +49,7 @@ GROUP BY
     date
 ORDER BY 
     date ASC;`,
-			[id, 'debugger', 'ai', start || '0', end || '']
+			[tenantId, organizationId, 'debugger', 'ai', start || '0', end || '', ...(xpertId ? [xpertId] : [])]
 		)
 	}
 }

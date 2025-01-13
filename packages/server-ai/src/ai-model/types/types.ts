@@ -9,6 +9,7 @@ export type TChatModelOptions = {
     modelProperties: Record<string, any>;
     handleLLMTokens: (input: {
         copilot: ICopilot;
+        model?: string;
         usage?: ILLMUsage;
         /**
          * @deprecated use usage

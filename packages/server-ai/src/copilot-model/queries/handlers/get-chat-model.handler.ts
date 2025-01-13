@@ -48,8 +48,7 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 			{
 				modelProperties: customModels[0]?.modelProperties,
 				handleLLMTokens: async (input) => {
-					// console.log(input.usage)
-					if (usageCallback) {
+					if (usageCallback && input.usage) {
 						usageCallback(input.usage)
 					}
 					if (tokenCallback) {
@@ -64,7 +63,8 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 								tenantId,
 								organizationId,
 								userId,
-								copilot
+								copilot,
+								model: input.model
 							})
 						)
 					} catch (err) {

@@ -267,6 +267,34 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     })
   }
 
+  getStatisticsXperts(timeRange: string[]) {
+    return this.httpClient.get<{ count: number;}[]>(
+      this.apiBaseUrl + `/statistics/xperts`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+
+  getStatisticsXpertConv(timeRange: string[]) {
+    return this.httpClient.get<{ slug: string; count: number;}[]>(
+      this.apiBaseUrl + `/statistics/xpert-conversations`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+
+  getStatisticsXpertMessages(timeRange: string[]) {
+    return this.httpClient.get<{ slug: string; count: number;}[]>(
+      this.apiBaseUrl + `/statistics/xpert-messages`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+
+  getStatisticsXpertTokens(timeRange: string[]) {
+    return this.httpClient.get<{ slug: string; count: number;}[]>(
+      this.apiBaseUrl + `/statistics/xpert-tokens`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+
   timeRangeToParams(params: HttpParams, timeRange: string[]) {
     if (timeRange[0]) {
       params = params.set('start', timeRange[0])

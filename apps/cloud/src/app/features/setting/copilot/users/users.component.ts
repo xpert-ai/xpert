@@ -8,7 +8,7 @@ import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayBehaviour, isNil } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ICopilotUser } from '../../../../../../../../packages/contracts/src'
-import { CopilotUsageService, ToastrService } from '../../../../@core'
+import { CopilotUsageService, injectFormatRelative, ToastrService } from '../../../../@core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
@@ -40,6 +40,7 @@ export class CopilotUsersComponent extends TranslationBaseComponent {
   readonly route = inject(ActivatedRoute)
   readonly dialog = inject(MatDialog)
   readonly translate = inject(TranslateService)
+  readonly formatRelative = injectFormatRelative()
 
   readonly usages = signal<ICopilotUser[]>([])
 

@@ -79,6 +79,7 @@ export class OpenAILargeLanguageModel extends CommonOpenAI {
 						if (handleLLMTokens) {
 							handleLLMTokens({
 								copilot,
+								model,
 								usage: this.calcResponseUsage(model, credentials, tokenUsage.promptTokens, tokenUsage.completionTokens),
 								tokenUsed: output.llmOutput?.totalTokens ?? sumTokenUsage(output)
 							})

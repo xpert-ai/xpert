@@ -1,4 +1,4 @@
-import { ICopilot } from '@metad/contracts';
+import { ICopilot } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class CopilotTokenRecordCommand implements ICommand {
@@ -6,11 +6,12 @@ export class CopilotTokenRecordCommand implements ICommand {
 
 	constructor(
 		public readonly input: {
-			tenantId: string;
-			organizationId?: string;
-			userId: string;
-			copilotId?: string;
-			copilot?: ICopilot;
+			tenantId: string
+			organizationId?: string
+			userId: string
+			copilotId?: string
+			copilot?: ICopilot
+			model?: string
 			tokenUsed?: number
 		}
 	) {}

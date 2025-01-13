@@ -6,7 +6,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayBehaviour, formatNumber, isNil } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { CopilotUsageService, ICopilotOrganization, ToastrService } from '../../../../@core'
+import { CopilotUsageService, ICopilotOrganization, injectFormatRelative, ToastrService } from '../../../../@core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
@@ -27,6 +27,7 @@ export class CopilotUsagesComponent extends TranslationBaseComponent {
   readonly route = inject(ActivatedRoute)
   readonly dialog = inject(MatDialog)
   readonly translate = inject(TranslateService)
+  readonly formatRelative = injectFormatRelative()
 
   readonly usages = signal<ICopilotOrganization[]>([])
 

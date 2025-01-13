@@ -4,3 +4,4 @@ export * from './organization.module';
 export * from './organization.service';
 export * from './organization.seed';
 export * from './commands/index'
+export * from './dto/index'

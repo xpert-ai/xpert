@@ -1,10 +1,11 @@
+import { AsyncPipe } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { RouterModule } from '@angular/router'
+import { injectOrganization } from '@metad/cloud/state'
 import { TranslateModule } from '@ngx-translate/core'
-import { Store, ToastrService, routeAnimations } from '../../../@core'
-import { AsyncPipe } from '@angular/common'
-import { MaterialModule } from '../../../@shared/material.module'
+import { ToastrService, routeAnimations } from '../../../@core'
 import { TranslationBaseComponent } from '../../../@shared/language'
+import { MaterialModule } from '../../../@shared/material.module'
 
 @Component({
   standalone: true,
@@ -16,7 +17,5 @@ import { TranslationBaseComponent } from '../../../@shared/language'
 })
 export class CopilotComponent extends TranslationBaseComponent {
   readonly _toastrService = inject(ToastrService)
-  readonly #store = inject(Store)
-
-  readonly organizationId$ = this.#store.selectOrganizationId()
+  readonly organization = injectOrganization()
 }

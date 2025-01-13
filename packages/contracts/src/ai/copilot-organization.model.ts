@@ -13,6 +13,7 @@ export interface ICopilotOrganization extends IBasePerTenantEntityModel, TCopilo
   copilot?: ICopilot
   // Associated AI Model provider
   provider?: AiProvider | string
+  model?: string
 
   // Total tokens used historically
   tokenTotalUsed?: number

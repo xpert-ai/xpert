@@ -3,6 +3,7 @@ import { getRepository } from 'typeorm'
 import { ChatConversation } from '../../conversation.entity'
 import { ChatConversationService } from '../../conversation.service'
 import { StatisticsTokenCostQuery } from '../statistics-token-cost.query'
+import { RequestContext } from '@metad/server-core'
 
 @QueryHandler(StatisticsTokenCostQuery)
 export class StatisticsTokenCostQueryHandler implements IQueryHandler<StatisticsTokenCostQuery>
@@ -10,9 +11,12 @@ export class StatisticsTokenCostQueryHandler implements IQueryHandler<Statistics
 	constructor(private readonly service: ChatConversationService) {}
 
 	public async execute(command: StatisticsTokenCostQuery) {
-		const { id, start, end } = command
+		const { xpertId, start, end } = command
+        const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
 
 		const repository = getRepository(ChatConversation)
+        const where = xpertId ? `AND cc."xpertId" = $7` : ''
 
         return await repository.manager.query(`SELECT 
     date,
@@ -36,11 +40,12 @@ FROM (
         "xpert_agent_execution" AS execution 
         ON execution."id" = cm."executionId" 
     WHERE 
-        cc."xpertId" = $1 
-        AND cc."from" != $2 
-        AND cm."role" = $3 
-        AND cc."createdAt" >= $4 
-        AND cc."createdAt" <= $5 
+        cc."tenantId" = $1
+        AND cc."organizationId" = $2
+        AND cc."from" != $3 ${where}
+        AND cm."role" = $4
+        AND cc."createdAt" >= $5
+        AND cc."createdAt" <= $6
     GROUP BY 
         date, model, execution.currency
 
@@ -64,11 +69,12 @@ FROM (
         "xpert_agent_execution" AS subexecution 
         ON subexecution."parentId" = execution."id" 
     WHERE 
-        cc."xpertId" = $1 
-        AND cc."from" != $2 
-        AND cm."role" = $3 
-        AND cc."createdAt" >= $4 
-        AND cc."createdAt" <= $5 
+        cc."tenantId" = $1
+        AND cc."organizationId" = $2
+        AND cc."from" != $3 ${where}
+        AND cm."role" = $4
+        AND cc."createdAt" >= $5
+        AND cc."createdAt" <= $6
     GROUP BY 
         date, model, subexecution.currency
 ) AS combined_data
@@ -76,7 +82,7 @@ WHERE tokens > 0
 GROUP BY 
     date, model, currency
 ORDER BY 
-    date ASC;`, [id, 'debugger', 'ai', start || '0', end || ''])
+    date ASC;`, [tenantId, organizationId, 'debugger', 'ai', start || '0', end || '', ...(xpertId ? [xpertId] : [])])
 
 	}
 }

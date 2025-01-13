@@ -22,12 +22,12 @@ import { NgxEchartsDirective } from 'ngx-echarts'
     MatTooltipModule,
     NgxEchartsDirective
   ],
-  selector: 'xpert-statistics-chart',
+  selector: 'pac-statistics-chart',
   templateUrl: './chart.component.html',
   styleUrl: 'chart.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class XpertStatisticsChartComponent {
+export class StatisticsChartComponent {
   readonly locale = inject(LOCALE_ID)
   readonly num = new DecimalPipe(this.locale)
   
@@ -48,9 +48,9 @@ export class XpertStatisticsChartComponent {
       items &&
       ({
         grid: {
-          left: 40,
           right: 20,
-          bottom: 30
+          bottom: 30,
+          containLabel: true
         },
         xAxis: {
           type: 'category',
@@ -85,11 +85,11 @@ export class XpertStatisticsChartComponent {
                 colorStops: [
                   {
                     offset: 0,
-                    color: 'rgba(255, 158, 68, 50)'
+                    color: 'rgba(255, 158, 68, 0.5)'
                   },
                   {
                     offset: 1,
-                    color: 'rgba(255, 158, 68, 00)'
+                    color: 'rgba(255, 158, 68, 0)'
                   }
                 ],
                 global: false

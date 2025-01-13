@@ -1,18 +1,13 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule, DecimalPipe } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, LOCALE_ID } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, input, LOCALE_ID } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { XpertService } from 'apps/cloud/src/app/@core'
 import { EChartsOption } from 'echarts'
 import { groupBy } from 'lodash-es'
 import { NgxEchartsDirective } from 'ngx-echarts'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { of } from 'rxjs'
-import { XpertStatisticsComponent } from '../statistics.component'
 
 @Component({
   standalone: true,
@@ -24,27 +19,18 @@ import { XpertStatisticsComponent } from '../statistics.component'
     RouterModule,
     CdkMenuModule,
     MatTooltipModule,
-    NgmI18nPipe,
-    NgxEchartsDirective,
+    NgxEchartsDirective
   ],
-  selector: 'xpert-statistics-token-usage',
+  selector: 'pac-statistics-token-usage',
   templateUrl: 'token-usage.component.html',
   styleUrl: 'token-usage.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class XpertStatisticsTokenUsageComponent {
-  readonly statistic = inject(XpertStatisticsComponent)
-  readonly xpertService = inject(XpertService)
+export class StatisticsTokenUsageComponent {
   readonly locale = inject(LOCALE_ID)
   readonly num = new DecimalPipe(this.locale)
 
-  readonly xpertId = this.statistic.xpertId
-  readonly timeRange = this.statistic.timeRange
-  readonly selectedTimeOption = this.statistic.selectedTimeOption
-
-  readonly tokenCost = derivedAsync(() => {
-    return this.xpertId() ? this.xpertService.getStatisticsTokenCost(this.xpertId(), this.timeRange()) : of(null)
-  })
+  readonly tokenCost = input<any[]>()
 
   readonly items = computed(() =>
     this.tokenCost()?.map((item) => ({
@@ -78,14 +64,17 @@ export class XpertStatisticsTokenUsageComponent {
 
     const groupedItems = groupBy(items, (item) => item.currency)
     return Object.keys(groupedItems).map((currency) => {
-        return {
-            currency,
-            usage: groupedItems[currency].reduce((acc, curr) => {
-                acc.tokens += (curr.tokens ? Number(curr.tokens) : 0)
-                acc.price += (curr.price ? Number(curr.price) : 0)
-                return acc
-            }, {tokens: 0, price: 0})
-          }
+      return {
+        currency,
+        usage: groupedItems[currency].reduce(
+          (acc, curr) => {
+            acc.tokens += curr.tokens ? Number(curr.tokens) : 0
+            acc.price += curr.price ? Number(curr.price) : 0
+            return acc
+          },
+          { tokens: 0, price: 0 }
+        )
+      }
     })
   })
 
@@ -103,8 +92,7 @@ export class XpertStatisticsTokenUsageComponent {
           left: '10%'
         },
         xAxis: {
-          type: 'time'
-          //   data: this.dates()
+          type: 'time',
         },
         yAxis: {
           type: 'value',
@@ -139,10 +127,4 @@ export class XpertStatisticsTokenUsageComponent {
       } as EChartsOption)
     )
   })
-
-  constructor() {
-    effect(() => {
-    //   console.log(this.totals())
-    })
-  }
 }

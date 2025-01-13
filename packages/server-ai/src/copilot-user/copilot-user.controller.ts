@@ -1,10 +1,19 @@
 import { AIPermissionsEnum, ICopilotUser, IPagination } from '@metad/contracts'
+import {
+	CrudController,
+	PaginationParams,
+	ParseJsonPipe,
+	PermissionGuard,
+	Permissions,
+	TransformInterceptor,
+	UseValidationPipe
+} from '@metad/server-core'
 import { Body, Controller, Get, Logger, Param, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { CrudController, PaginationParams, TransformInterceptor, ParseJsonPipe, Permissions, UseValidationPipe, PermissionGuard } from '@metad/server-core'
 import { CopilotUser } from './copilot-user.entity'
 import { CopilotUserService } from './copilot-user.service'
+import { PublicCopilotUserDto } from './dto/public-copilot-user'
 
 @ApiTags('CopilotUser')
 @ApiBearerAuth()
@@ -25,9 +34,14 @@ export class CopilotUserController extends CrudController<CopilotUser> {
 	@UseValidationPipe()
 	async getAll(
 		@Query('$filter', ParseJsonPipe) where: PaginationParams<CopilotUser>['where'],
-		@Query('$relations', ParseJsonPipe) relations: PaginationParams<CopilotUser>['relations']
-	): Promise<IPagination<CopilotUser>> {
-		return await this.service.findAll({ where, relations })
+		@Query('$relations', ParseJsonPipe) relations: PaginationParams<CopilotUser>['relations'],
+		@Query('$order', ParseJsonPipe) order: PaginationParams<CopilotUser>['order'],
+	): Promise<IPagination<PublicCopilotUserDto>> {
+		const result = await this.service.findAll({ where, relations, order })
+		return {
+			...result,
+			items: result.items.map((_) => new PublicCopilotUserDto(_))
+		}
 	}
 
 	@UseGuards(PermissionGuard)

@@ -1,0 +1,25 @@
+<div class="flex justify-start gap-4 mb-4 flex-1">
+  @for (total of totals(); track total.currency) {
+    <div class="flex items-start p-1">
+      <div class="group">
+        <div
+          class="flex flex-row items-center text-3xl font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+        >
+          {{ total.usage.tokens | number }}
+        </div>
+        <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+          {{ 'PAC.Xpert.ConsumedTokens' | translate: {Default: 'Consumed Tokens'} }}
+          <div class="font-medium text-orange-400">
+            (~ {{ total.usage.price | currency:total.currency:'symbol':'0.0-7' }})
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+<div class="echarts h-64" echarts
+  [options]="options()"
+  theme="light"
+>
+</div>

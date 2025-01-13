@@ -14,7 +14,7 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
 
 	public async execute(command: CopilotTokenRecordCommand): Promise<void> {
 		const { input } = command
-		const { organizationId, userId, tokenUsed } = input
+		const { organizationId, userId, model, tokenUsed } = input
 		const copilotId = input.copilotId ?? input.copilot?.id
 
 		if (tokenUsed > 0) {
@@ -26,6 +26,7 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
 				userId,
 				orgId: copilot.organizationId,
 				provider: copilot.modelProvider.providerName,
+				model,
 				tokenLimit: copilot.tokenBalance,
 				tokenUsed
 			})
@@ -42,6 +43,7 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
 					organizationId,
 					copilotId,
 					provider: copilot.modelProvider.providerName,
+					model,
 					tokenLimit: copilot.tokenBalance
 				})
 

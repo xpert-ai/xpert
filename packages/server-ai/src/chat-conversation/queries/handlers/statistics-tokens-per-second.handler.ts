@@ -3,6 +3,7 @@ import { getRepository } from 'typeorm'
 import { ChatConversation } from '../../conversation.entity'
 import { ChatConversationService } from '../../conversation.service'
 import { StatisticsTokensPerSecondQuery } from '../statistics-tokens-per-second.query'
+import { RequestContext } from '@metad/server-core'
 
 @QueryHandler(StatisticsTokensPerSecondQuery)
 export class StatisticsTokensPerSecondHandler
@@ -11,9 +12,12 @@ export class StatisticsTokensPerSecondHandler
 	constructor(private readonly service: ChatConversationService) {}
 
 	public async execute(command: StatisticsTokensPerSecondQuery) {
-		const { id, start, end } = command
+		const { xpertId, start, end } = command
+        const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
 
 		const repository = getRepository(ChatConversation)
+        const where = xpertId ? `AND cc."xpertId" = $7` : ''
 
 		return await repository.manager.query(`SELECT 
     date, 
@@ -34,11 +38,13 @@ FROM (
         "xpert_agent_execution" AS execution 
         ON execution."id" = cm."executionId" 
     WHERE 
-        cc."xpertId" = $1 
-        AND cc."from" != $2 
-        AND cm."role" = $3 
-        AND cc."createdAt" >= $4 
-        AND cc."createdAt" <= $5 
+        cc."tenantId" = $1
+        AND cc."organizationId" = $2
+        AND cc."from" != $3 ${where}
+        AND cm."role" = $4
+        AND cc."createdAt" >= $5
+        AND cc."createdAt" <= $6
+        AND execution."responseLatency" > 0
     GROUP BY 
         date
 
@@ -60,17 +66,19 @@ FROM (
         "xpert_agent_execution" AS subexecution 
         ON subexecution."parentId" = execution."id" 
     WHERE 
-        cc."xpertId" = $1 
-        AND cc."from" != $2 
-        AND cm."role" = $3 
-        AND cc."createdAt" >= $4 
-        AND cc."createdAt" <= $5 
+        cc."tenantId" = $1
+        AND cc."organizationId" = $2
+        AND cc."from" != $3 ${where}
+        AND cm."role" = $4
+        AND cc."createdAt" >= $5
+        AND cc."createdAt" <= $6
+        AND subexecution."responseLatency" > 0
     GROUP BY 
         date
 ) AS combined_data
 GROUP BY 
     date 
 ORDER BY 
-    date ASC;`, [id, 'debugger', 'ai', start || '0', end || ''])
+    date ASC;`, [tenantId, organizationId, 'debugger', 'ai', start || '0', end || '', ...(xpertId ? [xpertId] : [])])
 	}
 }

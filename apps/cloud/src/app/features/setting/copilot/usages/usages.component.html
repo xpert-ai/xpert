@@ -1,8 +1,8 @@
-<ngm-table class="overflow-hidden rounded-lg border m-4"
-    displayDensity="comfortable"
-    paging
-    [data]="usages()"
-    [columns]="[
+<ngm-table class="overflow-hidden rounded-lg border m-4 text-sm"
+  displayDensity="cosy"
+  paging
+  [data]="usages()"
+  [columns]="[
       {
         name: 'organization',
         caption: 'PAC.KEY_WORDS.Organization' | translate: {Default: 'Organization'},
@@ -11,6 +11,10 @@
       {
         name: 'provider',
         caption: 'PAC.KEY_WORDS.Provider' | translate: {Default: 'Provider'},
+      },
+      {
+        name: 'model',
+        caption: 'PAC.Copilot.Model' | translate: {Default: 'Model'},
       },
       {
         name: 'tokenUsed',
@@ -28,11 +32,16 @@
         pipe: formatNumber
       },
       {
+        name: 'updatedAt',
+        caption: 'PAC.Copilot.LastUsed' | translate: {Default: 'Last Used'},
+        pipe: formatRelative
+      },
+      {
         name: 'action',
         caption: 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' },
         cellTemplate: actionTempl
       }
-    ]"
+  ]"
 />
 
 <ng-template #orgTempl let-organization>

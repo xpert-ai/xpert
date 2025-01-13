@@ -1,8 +1,8 @@
 <ngm-table class="overflow-hidden rounded-lg border m-4"
-    displayDensity="comfortable"
-    paging
-    [data]="usages()"
-    [columns]="[
+  displayDensity="cosy"
+  paging
+  [data]="usages()"
+  [columns]="[
       {
         name: 'user',
         caption: 'PAC.KEY_WORDS.User' | translate: {Default: 'User'},
@@ -16,6 +16,10 @@
       {
         name: 'provider',
         caption: 'PAC.KEY_WORDS.Provider' | translate: {Default: 'Provider'},
+      },
+      {
+        name: 'model',
+        caption: 'PAC.Copilot.Model' | translate: {Default: 'Model'},
       },
       {
         name: 'tokenUsed',
@@ -33,16 +37,21 @@
         pipe: formatNumber
       },
       {
+        name: 'updatedAt',
+        caption: 'PAC.Copilot.LastUsed' | translate: {Default: 'Last Used'},
+        pipe: formatRelative
+      },
+      {
         name: 'action',
         caption: 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' },
         cellTemplate: actionTempl
       }
-    ]"
+  ]"
 />
 
 <ng-template #userTempl let-user>
   @if (user) {
-    <pac-user-profile-inline [user]="user" />
+    <pac-user-profile-inline [user]="user" small />
   }
 </ng-template>
 

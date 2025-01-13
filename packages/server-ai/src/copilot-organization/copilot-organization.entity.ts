@@ -1,8 +1,9 @@
 import { AiProvider, ICopilotOrganization, IOrganization } from '@metad/contracts'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsNumber, IsOptional, IsString } from 'class-validator'
+import { Transform } from 'class-transformer'
 import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
-import { Organization, TenantBaseEntity, TenantOrganizationBaseEntity } from '@metad/server-core'
+import { Organization, OrganizationPublicDTO, TenantBaseEntity, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { Copilot } from '../core/entities/internal'
 
 @Entity('copilot_organization')
@@ -13,6 +14,12 @@ export class CopilotOrganization extends TenantBaseEntity implements ICopilotOrg
 	@IsOptional()
 	@Column({ nullable: true, length: 20 })
 	provider?: AiProvider | string
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true, })
+	model?: string
 
 	@ApiPropertyOptional({ type: () => Number })
 	@IsNumber()
@@ -37,6 +44,7 @@ export class CopilotOrganization extends TenantBaseEntity implements ICopilotOrg
     | @ManyToOne 
     |--------------------------------------------------------------------------
     */
+	@Transform(({ value }) => value && new OrganizationPublicDTO(value))
 	@ApiProperty({ type: () => Organization, readOnly: true })
 	@ManyToOne(() => Organization, {
 		nullable: true,

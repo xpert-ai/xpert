@@ -1,6 +1,5 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
-@use './style/table-theme' as table;
 @use './style/card-theme' as card;
 @use './style/mat-list-theme' as mat-list;
 @use './style/mat-form-field-theme' as mat-formfield;
@@ -18,7 +17,6 @@
 @mixin color($config-or-theme) {
   $config: mat.get-color-config($config-or-theme);
 
-  @include table.color($config-or-theme);
   @include card.color($config-or-theme);
   @include mat-list.color($config-or-theme);
   @include mat-formfield.color($config-or-theme);
@@ -35,7 +33,6 @@
 }
 
 @mixin density($config-or-theme) {
-  @include table.density($config-or-theme);
   @include card.density($config-or-theme);
   @include mat-list.density($config-or-theme);
   @include mat-formfield.density($config-or-theme);

@@ -7,8 +7,8 @@ export class StatisticsTokenCostQuery implements IQuery {
     static readonly type = '[ChatConversation] Statistics token cost'
 
     constructor(
-        public readonly id: string,
         public readonly start: string,
         public readonly end: string,
+        public readonly xpertId?: string,
     ) {}
 }
