@@ -297,7 +297,11 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 							const msg = data.chunk as AIMessageChunk
 							if (!msg.tool_call_chunks?.length) {
 								if (msg.content) {
-									return msg.content
+									if (typeof msg.content === 'string') {
+										return msg.content
+									} else {
+										return msg.content.map((_) => (_.type === 'text' || _.type === 'text_delta') ? _.text : '').join('')
+									}
 								}
 							}
 						}

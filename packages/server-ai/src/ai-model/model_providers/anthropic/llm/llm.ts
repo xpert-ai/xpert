@@ -1,16 +1,16 @@
 import { ChatAnthropic } from '@langchain/anthropic'
-import { AIModelEntity, AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
-import { sumTokenUsage } from '@metad/copilot'
+import { AIModelEntity, AiModelTypeEnum, ICopilotModel, TTokenUsage } from '@metad/contracts'
+import { calcTokenUsage, sumTokenUsage } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { Injectable } from '@nestjs/common'
-import { AIModel } from '../../../ai-model'
 import { ModelProvider } from '../../../ai-provider'
 import { TChatModelOptions } from '../../../types/types'
 import { CredentialsValidateFailedError } from '../../errors'
 import { AnthropicCredentials, toCredentialKwargs } from '../types'
+import { LargeLanguageModel } from '../../../llm'
 
 @Injectable()
-export class AnthropicLargeLanguageModel extends AIModel {
+export class AnthropicLargeLanguageModel extends LargeLanguageModel {
 	constructor(readonly modelProvider: ModelProvider) {
 		super(modelProvider, AiModelTypeEnum.LLM)
 	}
@@ -43,22 +43,30 @@ export class AnthropicLargeLanguageModel extends AIModel {
 	getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions) {
 		const { copilot } = copilotModel
 		const { modelProvider } = copilot
+		const credentials = modelProvider.credentials as AnthropicCredentials
 
 		const { handleLLMTokens } = options ?? {}
 
 		const model = copilotModel?.model || copilotModel?.referencedModel?.model
 		return new ChatAnthropic({
-			...toCredentialKwargs(modelProvider.credentials as AnthropicCredentials),
+			...toCredentialKwargs(credentials),
 			model,
+			streaming: copilotModel.options?.streaming ?? true,
 			temperature: 0,
 			maxTokens: undefined,
 			maxRetries: 2,
 			callbacks: [
 				{
-					handleLLMEnd(output) {
+					handleLLMStart: () => {
+						this.startedAt = performance.now()
+					},
+					handleLLMEnd: (output) => {
+						const tokenUsage: TTokenUsage = output.llmOutput?.tokenUsage ?? calcTokenUsage(output)
 						if (handleLLMTokens) {
 							handleLLMTokens({
 								copilot,
+								model,
+								usage: this.calcResponseUsage(model, credentials, tokenUsage.promptTokens, tokenUsage.completionTokens),
 								tokenUsed: output.llmOutput?.totalTokens ?? sumTokenUsage(output)
 							})
 						}

@@ -484,6 +484,19 @@
     formdata-node "^4.3.2"
     node-fetch "^2.6.7"
 
+"@anthropic-ai/sdk@^0.32.1":
+  version "0.32.1"
+  resolved "https://registry.yarnpkg.com/@anthropic-ai/sdk/-/sdk-0.32.1.tgz#d22c8ebae2adccc59d78fb416e89de337ff09014"
+  integrity sha512-U9JwTrDvdQ9iWuABVsMLj8nJVwAyQz6QXvgLsVhryhCEPkLsbcP/MXxm+jYcAwLoV8ESbaTTjnD4kuAFa+Hyjg==
+  dependencies:
+    "@types/node" "^18.11.18"
+    "@types/node-fetch" "^2.6.4"
+    abort-controller "^3.0.0"
+    agentkeepalive "^4.2.1"
+    form-data-encoder "1.7.2"
+    formdata-node "^4.3.2"
+    node-fetch "^2.6.7"
+
 "@antv/adjust@^0.2.1":
   version "0.2.5"
   resolved "https://registry.yarnpkg.com/@antv/adjust/-/adjust-0.2.5.tgz#bb37bb4a0a87ca3f4b660848bc9ac07f02bcf5db"
@@ -4886,12 +4899,12 @@
     zod "^3.22.4"
     zod-to-json-schema "^3.22.4"
 
-"@langchain/anthropic@0.3.5":
-  version "0.3.5"
-  resolved "https://registry.yarnpkg.com/@langchain/anthropic/-/anthropic-0.3.5.tgz#23413fa880c38b1c57d564c147f5399d504a56ee"
-  integrity sha512-AWlF8mSTcxlDdLD+FD9TYFnVaQSCp4foblCDzUR/Xnhn8IvZSzK+3nbxkdVM4a8LS+7GnxP9ED88ZAUvZSQmQg==
+"@langchain/anthropic@0.3.11":
+  version "0.3.11"
+  resolved "https://registry.yarnpkg.com/@langchain/anthropic/-/anthropic-0.3.11.tgz#57277bb4bd7c624eb9039dc10cc36de9ecfeb91c"
+  integrity sha512-rYjDZjMwVQ+cYeJd9IoSESdkkG8fc0m3siGRYKNy6qgYMnqCz8sUPKBanXwbZAs6wvspPCGgNK9WONfaCeX97A==
   dependencies:
-    "@anthropic-ai/sdk" "^0.27.3"
+    "@anthropic-ai/sdk" "^0.32.1"
     fast-xml-parser "^4.4.1"
     zod "^3.22.4"
     zod-to-json-schema "^3.22.4"
