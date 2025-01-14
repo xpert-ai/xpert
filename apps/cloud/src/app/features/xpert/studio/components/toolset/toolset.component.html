@@ -40,7 +40,7 @@
       }
       
       @if (isSensitive(item.tool.name)) {
-        <i class="ri-shield-keyhole-line shrink-0 text-lg text-text-warning"
+        <i class="ri-shield-keyhole-line shrink-0 text-lg leading-4 text-text-warning"
           [matTooltip]="'PAC.Xpert.SensitiveToolsTip' | translate: {Default: 'Sensitive tools require user confirmation before execution'}"
           matTooltipPosition="above"></i>
       }
@@ -48,7 +48,7 @@
         {{item.tool.name}}
       </span>
       @if (isEnd(item.tool.name)) {
-        <i class="ri-stop-circle-line shrink-0 text-lg text-text-secondary"
+        <i class="ri-stop-circle-line shrink-0 text-lg leading-4 text-text-secondary"
           [matTooltip]="'PAC.Xpert.EndTool' | translate: {Default: 'Terminal tool, the run of chat ends when tool completed'}"
           matTooltipPosition="above"></i>
       }
