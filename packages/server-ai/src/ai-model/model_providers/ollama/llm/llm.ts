@@ -7,17 +7,16 @@ import {
 	ModelPropertyKey,
 	ParameterType
 } from '@metad/contracts'
-import { sumTokenUsage } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { Injectable } from '@nestjs/common'
-import { AIModel } from '../../../ai-model'
 import { ModelProvider } from '../../../ai-provider'
 import { TChatModelOptions } from '../../../types/types'
 import { CredentialsValidateFailedError } from '../../errors'
 import { OllamaCredentials } from '../types'
+import { LargeLanguageModel } from '../../../llm'
 
 @Injectable()
-export class OllamaLargeLanguageModel extends AIModel {
+export class OllamaLargeLanguageModel extends LargeLanguageModel {
 	constructor(readonly modelProvider: ModelProvider) {
 		super(modelProvider, AiModelTypeEnum.LLM)
 	}
@@ -45,25 +44,31 @@ export class OllamaLargeLanguageModel extends AIModel {
 
 	override getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions) {
 		const { copilot } = copilotModel
-		const modelProperties = options.modelProperties as OllamaCredentials
-
 		const { handleLLMTokens } = options ?? {}
+		const modelProperties = options.modelProperties as OllamaCredentials
+		const model = copilotModel.model
 		return new ChatOllama({
 			baseUrl: copilot.modelProvider.credentials?.base_url,
-			model: copilotModel.model,
+			model,
 			streaming: copilotModel.options?.streaming ?? true,
 			temperature: copilotModel.options?.temperature ?? 0,
 			callbacks: [
-				{
-					handleLLMEnd(output) {
-						if (handleLLMTokens) {
-							handleLLMTokens({
-								copilot,
-								tokenUsed: output.llmOutput?.totalTokens ?? sumTokenUsage(output)
-							})
-						}
-					}
-				}
+				...this.createHandleUsageCallbacks(
+					copilot,
+					model,
+					modelProperties,
+					handleLLMTokens
+				)
+				// {
+				// 	handleLLMEnd(output) {
+				// 		if (handleLLMTokens) {
+				// 			handleLLMTokens({
+				// 				copilot,
+				// 				tokenUsed: output.llmOutput?.totalTokens ?? sumTokenUsage(output)
+				// 			})
+				// 		}
+				// 	}
+				// }
 			]
 		})
 	}
