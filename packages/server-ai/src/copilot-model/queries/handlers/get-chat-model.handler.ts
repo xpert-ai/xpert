@@ -1,14 +1,18 @@
 import { omit } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
+import { Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { AIModelGetProviderQuery, ModelProvider } from '../../../ai-model'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
 import { CopilotCheckLimitCommand, CopilotTokenRecordCommand } from '../../../copilot-user'
-import { CopilotModelNotFoundException } from '../../../core/errors'
+import { CopilotModelNotFoundException, ExceedingLimitException } from '../../../core/errors'
 import { CopilotModelGetChatModelQuery } from '../get-chat-model.query'
 
 @QueryHandler(CopilotModelGetChatModelQuery)
 export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotModelGetChatModelQuery> {
+
+	readonly #logger = new Logger(CopilotModelGetChatModelHandler.name)
+
 	constructor(
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
@@ -21,21 +25,23 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 		const organizationId = RequestContext.getOrganizationId()
 		const userId = RequestContext.currentUserId()
 
+		const copilotModel = command.copilotModel ?? copilot.copilotModel
+		if (!copilotModel) {
+			throw new CopilotModelNotFoundException(`No AI model provided`)
+		}
+		const modelName = copilotModel.model
+
 		// Check token limit
 		await this.commandBus.execute(
 			new CopilotCheckLimitCommand({
 				tenantId,
 				organizationId,
 				userId,
-				copilot
+				copilot,
+				model: modelName
 			})
 		)
 
-		const copilotModel = command.copilotModel ?? copilot.copilotModel
-		if (!copilotModel) {
-			throw new CopilotModelNotFoundException(`No AI model provided`)
-		}
-		const modelName = copilotModel.model
 		// Custom model
 		const customModels = await this.queryBus.execute(
 			new GetCopilotProviderModelQuery(copilot.modelProvider.id, modelName)
@@ -74,12 +80,16 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 							})
 						)
 					} catch (err) {
-						if (abortController && !abortController.signal.aborted) {
-							try {
-								abortController.abort(err.message)
-							} catch (err) {
-								//
+						if (err instanceof ExceedingLimitException) {
+							if (abortController && !abortController.signal.aborted) {
+								try {
+									abortController.abort(err.message)
+								} catch (err) {
+									//
+								}
 							}
+						} else {
+							this.#logger.error(err)
 						}
 					}
 				}

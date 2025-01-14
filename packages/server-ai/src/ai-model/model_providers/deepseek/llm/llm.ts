@@ -1,13 +1,12 @@
 import { ChatOpenAI } from '@langchain/openai'
-import { AIModelEntity, AiModelTypeEnum, ICopilotModel, TTokenUsage } from '@metad/contracts'
-import { calcTokenUsage, sumTokenUsage } from '@metad/copilot'
+import { AIModelEntity, AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { Injectable } from '@nestjs/common'
 import { ModelProvider } from '../../../ai-provider'
+import { LargeLanguageModel } from '../../../llm'
 import { TChatModelOptions } from '../../../types/types'
 import { CredentialsValidateFailedError } from '../../errors'
 import { DeepseekCredentials, toCredentialKwargs } from '../types'
-import { LargeLanguageModel } from '../../../llm'
 
 @Injectable()
 export class DeepseekLargeLanguageModel extends LargeLanguageModel {
@@ -20,7 +19,8 @@ export class DeepseekLargeLanguageModel extends LargeLanguageModel {
 			const chatModel = new ChatOpenAI({
 				...toCredentialKwargs(credentials),
 				model,
-				temperature: 0
+				temperature: 0,
+				maxTokens: 5
 			})
 			await chatModel.invoke([
 				{
@@ -50,25 +50,11 @@ export class DeepseekLargeLanguageModel extends LargeLanguageModel {
 		return new ChatOpenAI({
 			...params,
 			model,
-			temperature: 0,
-			callbacks: [
-				{
-					handleLLMStart: () => {
-						this.startedAt = performance.now()
-					},
-					handleLLMEnd: (output) => {
-						const tokenUsage: TTokenUsage = output.llmOutput?.tokenUsage ?? calcTokenUsage(output)
-						if (handleLLMTokens) {
-							handleLLMTokens({
-								copilot,
-								model,
-								usage: this.calcResponseUsage(model, credentials, tokenUsage.promptTokens, tokenUsage.completionTokens),
-								tokenUsed: output.llmOutput?.totalTokens ?? sumTokenUsage(output)
-							})
-						}
-					}
-				}
-			]
+			streaming: copilotModel.options?.streaming ?? true,
+			temperature: copilotModel.options?.temperature ?? 0,
+			maxTokens: copilotModel.options?.max_tokens,
+			streamUsage: false,
+			callbacks: [...this.createHandleUsageCallbacks(copilot, model, credentials, handleLLMTokens)]
 		})
 	}
 }

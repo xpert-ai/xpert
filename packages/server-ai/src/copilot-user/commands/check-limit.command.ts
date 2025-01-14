@@ -10,6 +10,7 @@ export class CopilotCheckLimitCommand implements ICommand {
 			organizationId?: string;
 			userId: string;
 			copilot?: ICopilot;
+			model: string
 		}
 	) {}
 }

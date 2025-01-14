@@ -1,9 +1,9 @@
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { HttpException } from '@nestjs/common'
 import { CopilotOrganizationService } from '../../../copilot-organization/index'
 import { CopilotUserService } from '../../copilot-user.service'
 import { CopilotTokenRecordCommand } from '../token-record.command'
 import { CopilotGetOneQuery } from '../../../copilot/queries'
+import { ExceedingLimitException } from '../../../core/errors'
 
 @CommandHandler(CopilotTokenRecordCommand)
 export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRecordCommand> {
@@ -35,7 +35,7 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
 			})
 
 			if (record.tokenLimit && record.tokenUsed >= record.tokenLimit) {
-				throw new HttpException('Token usage exceeds limit', 500)
+				throw new ExceedingLimitException('Token usage exceeds limit')
 			}
 
 			// Record the token usage of the user's organization when using the global Copilot
@@ -53,7 +53,7 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
 				})
 
 				if (orgRecord.tokenLimit && orgRecord.tokenUsed >= orgRecord.tokenLimit) {
-					throw new HttpException('Token usage of org exceeds limit', 500)
+					throw new ExceedingLimitException('Token usage of org exceeds limit')
 				}
 			}
 		}

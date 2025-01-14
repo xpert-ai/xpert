@@ -32,7 +32,7 @@ export class CopilotUserService extends TenantOrganizationAwareCrudService<Copil
 		})
 		if (existing.success) {
 			existing.record.tokenUsed = (existing.record.tokenUsed ?? 0) + (user.tokenUsed ?? 0)
-			existing.record.priceUsed = (existing.record.priceUsed ?? 0) + Number(user.priceUsed ?? 0)
+			existing.record.priceUsed = Number(existing.record.priceUsed ?? 0) + Number(user.priceUsed ?? 0)
 			existing.record.currency ??= user.currency
 			return await this.repository.save(existing.record)
 		} else {

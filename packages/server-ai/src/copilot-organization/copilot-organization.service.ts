@@ -36,7 +36,7 @@ export class CopilotOrganizationService extends TenantAwareCrudService<CopilotOr
 		})
 		if (existing.success) {
 			existing.record.tokenUsed = (existing.record.tokenUsed ?? 0) + (input.tokenUsed ?? 0)
-			existing.record.priceUsed = (existing.record.priceUsed ?? 0) + Number(input.priceUsed ?? 0)
+			existing.record.priceUsed = Number(existing.record.priceUsed ?? 0) + Number(input.priceUsed ?? 0)
 			existing.record.tokenLimit = input.tokenLimit ?? existing.record.tokenLimit
 			existing.record.currency ??= input.currency
 			return await this.repository.save(existing.record)
