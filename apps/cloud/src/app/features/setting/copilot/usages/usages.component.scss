@@ -1,4 +1,4 @@
 :host {
   --mat-table-row-item-label-text-size: 12px;
-  @apply w-full flex-1 flex flex-col;
+  @apply w-full max-h-full flex-1 flex flex-col;
 }

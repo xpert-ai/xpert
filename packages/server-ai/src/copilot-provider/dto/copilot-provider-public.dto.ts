@@ -1,11 +1,11 @@
 import { IAiProviderEntity, ICopilot, TCopilotProviderPublicDto } from '@metad/contracts'
-import { Expose, Exclude, Transform } from 'class-transformer'
-import { AiProviderDto } from '../../ai-model'
+import { Exclude, Expose, Transform } from 'class-transformer'
+import { AiProviderIdentiDto } from '../../ai-model'
 import { CopilotDto } from '../../copilot/dto'
 
 @Expose()
 export class CopilotProviderPublicDto implements TCopilotProviderPublicDto {
-	@Transform(({ value, obj }) => value && new AiProviderDto(value, obj.baseUrl))
+	@Transform(({ value, obj }) => value && new AiProviderIdentiDto(value, obj.baseUrl))
 	provider: IAiProviderEntity
 
 	@Exclude()
@@ -16,7 +16,7 @@ export class CopilotProviderPublicDto implements TCopilotProviderPublicDto {
 
 	@Exclude()
 	baseUrl: string
-	
+
 	constructor(partial: Partial<CopilotProviderPublicDto>, baseUrl: string) {
 		Object.assign(this, partial)
 

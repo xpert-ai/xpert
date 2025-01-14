@@ -67,7 +67,10 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 								organizationId,
 								userId,
 								copilot,
-								model: input.model
+								model: input.model,
+								tokenUsed: input.usage?.totalTokens,
+								priceUsed: input.usage?.totalPrice,
+								currency: input.usage?.currency,
 							})
 						)
 					} catch (err) {

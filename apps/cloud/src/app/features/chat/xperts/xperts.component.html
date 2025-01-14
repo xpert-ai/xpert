@@ -1,11 +1,14 @@
 @if (xperts()) {
   <ul cdkDropList (cdkDropListDropped)="dropSort($event)">
     @for (xpert of xperts(); track xpert.id) {
-      <li class="xpert-item flex items-center cursor-pointer px-4 py-2 rounded-lg truncate
+      <li class="xpert-item flex items-center cursor-pointer px-4 py-2 rounded-lg
         hover:bg-black/5 dark:hover:bg-white/10"
         cdkDrag cdkDragLockAxis="y"
         (click)="selectXpert(xpert)"
-      ><emoji-avatar [avatar]="xpert.avatar" xs class="rounded-lg overflow-hidden shadow-sm mr-1" />{{xpert.title || xpert.name}}</li>
+      >
+        <emoji-avatar [avatar]="xpert.avatar" xs class="shrink-0 rounded-lg overflow-hidden shadow-sm mr-1" />
+        <span class="truncate">{{xpert.title || xpert.name}}</span>
+      </li>
     } @empty {
       @if (hasEditXpertPermission()) {
         <div class="w-full flex justify-center">

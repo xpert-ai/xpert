@@ -13,6 +13,8 @@ export class CopilotTokenRecordCommand implements ICommand {
 			copilot?: ICopilot
 			model?: string
 			tokenUsed?: number
+			priceUsed?: number
+			currency?: string
 		}
 	) {}
 }

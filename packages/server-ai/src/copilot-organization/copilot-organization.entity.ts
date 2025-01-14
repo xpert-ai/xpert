@@ -24,20 +24,44 @@ export class CopilotOrganization extends TenantBaseEntity implements ICopilotOrg
 	@ApiPropertyOptional({ type: () => Number })
 	@IsNumber()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'integer', nullable: true })
 	tokenLimit?: number
 
 	@ApiPropertyOptional({ type: () => Number })
 	@IsNumber()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'numeric', precision: 10, scale: 7, nullable: true })
+	priceLimit?: number
+
+	@ApiPropertyOptional({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ type: 'integer', nullable: true, default: 0 })
 	tokenUsed?: number
 
 	@ApiPropertyOptional({ type: () => Number })
 	@IsNumber()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'integer', nullable: true, default: 0 })
 	tokenTotalUsed?: number
+
+	@ApiPropertyOptional({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ type: 'numeric', precision: 10, scale: 7, nullable: true })
+	priceUsed?: number
+
+	@ApiPropertyOptional({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ type: 'numeric', precision: 10, scale: 7, nullable: true })
+	priceTotalUsed?: number
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	currency?: string
 
 	/*
     |--------------------------------------------------------------------------

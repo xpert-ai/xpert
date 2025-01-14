@@ -23,6 +23,7 @@
       "Ask": "提问",
       "Certification": "认证",
       "Conversation": "会话",
+      "Currency": "币种",
       "DigitalAssetCertificationTypes": "数字资产认证类型",
       "Owner": "所有者",
       "Query": "查询",
@@ -1493,6 +1494,10 @@
       "TotalXpertIntegrationsTooltip": "为专家提供的第三方集成总数",
       "TotalKnowledgebases": "总知识库数",
       "TotalKnowledgebasesTooltip": "组织内知识库总数",
+      "PriceUsed": "已用金额",
+      "PriceLimit": "限额",
+      "PriceTotalUsed": "已用总金额",
+      "TokenLimit": "限额(Token)",
       "Prompts": {
         "Set story theme dark": "设置故事暗黑主题",
         "Set story gradient background color sense of technology": "设置故事背景为科技感渐变色",

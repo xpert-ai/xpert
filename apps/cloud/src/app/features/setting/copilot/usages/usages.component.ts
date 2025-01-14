@@ -32,7 +32,8 @@ export class CopilotUsagesComponent extends TranslationBaseComponent {
   readonly usages = signal<ICopilotOrganization[]>([])
 
   readonly editId = signal<string | null>(null)
-  readonly tokenLimit = model<number>(0)
+  readonly tokenLimit = model<number>(null)
+  readonly priceLimit = model<number>(null)
   readonly loading = signal<boolean>(false)
 
   private dataSub = this.usageService
@@ -47,16 +48,22 @@ export class CopilotUsagesComponent extends TranslationBaseComponent {
   }
   formatNumber = this._formatNumber.bind(this)
 
+  _formatPrice(value: number): string {
+    return isNil(value) ? '' : formatNumber(value, this.translate.currentLang, '0.0-7')
+  }
+  formatPrice = this._formatPrice.bind(this)
+
   renewToken(id: string) {
     this.editId.set(id)
   }
 
   save(id: string) {
     this.loading.set(true)
-    this.usageService.renewOrgLimit(id, this.tokenLimit()).subscribe({
+    this.usageService.renewOrgLimit(id, this.tokenLimit(), this.priceLimit()).subscribe({
       next: (result) => {
         this.usages.update((records) => records.map((item) => (item.id === id ? { ...item, ...result } : item)))
-        this.tokenLimit.set(0)
+        this.tokenLimit.set(null)
+        this.priceLimit.set(null)
         this.editId.set(null)
         this.loading.set(false)
       },

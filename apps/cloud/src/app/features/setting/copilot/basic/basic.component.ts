@@ -9,7 +9,7 @@ import { injectOrganizationId } from '@metad/cloud/state'
 import { AiProviderRole, ICopilot } from '@metad/contracts'
 import { CapitalizePipe, DisappearAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage, injectCopilots, injectCopilotServer, injectToastr } from 'apps/cloud/src/app/@core'
 import { CopilotProviderComponent } from 'apps/cloud/src/app/@shared/copilot'
@@ -33,6 +33,7 @@ import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
     MatTooltipModule,
     NgmDensityDirective,
     NgmSpinComponent,
+    NgmI18nPipe,
     CapitalizePipe,
     CopilotProviderComponent,
     CopilotFormComponent

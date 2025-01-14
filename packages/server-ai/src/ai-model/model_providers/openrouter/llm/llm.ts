@@ -44,6 +44,10 @@ export class OpenRouterLargeLanguageModel extends OAIAPICompatLargeLanguageModel
 			api_key: modelCredentials?.api_key || credentials.api_key
 		})
 	}
+
+	canSteaming(model: string) {
+		return !model.startsWith('openai/o1')
+	}
 }
 
 function toCredentialKwargs(credentials: OpenRouterModelCredentials, model: string) {

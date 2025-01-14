@@ -1,5 +1,7 @@
-import { ILLMUsage, PriceType } from '@metad/contracts'
+import { ICopilot, ILLMUsage, PriceType, TTokenUsage } from '@metad/contracts'
 import { AIModel } from './ai-model'
+import { calcTokenUsage, sumTokenUsage } from '@metad/copilot'
+import { TChatModelOptions } from './types/types'
 
 export class LLMUsage implements ILLMUsage {
 	/**
@@ -120,5 +122,30 @@ export abstract class LargeLanguageModel extends AIModel {
 		}
 
 		return usage
+	}
+
+	createHandleUsageCallbacks(
+		copilot: ICopilot,
+		model: string,
+		credentials: any,
+		handleLLMTokens: TChatModelOptions['handleLLMTokens']) {
+		return [
+			{
+				handleLLMStart: () => {
+					this.startedAt = performance.now()
+				},
+				handleLLMEnd: (output) => {
+					const tokenUsage: TTokenUsage = output.llmOutput?.tokenUsage ?? calcTokenUsage(output)
+					if (handleLLMTokens) {
+						handleLLMTokens({
+							copilot,
+							model,
+							usage: this.calcResponseUsage(model, credentials, tokenUsage.promptTokens, tokenUsage.completionTokens),
+							tokenUsed: output.llmOutput?.totalTokens ?? sumTokenUsage(output)
+						})
+					}
+				}
+			}
+		]
 	}
 }

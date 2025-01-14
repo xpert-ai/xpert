@@ -20,4 +20,5 @@ export interface ICopilotUser extends IBasePerTenantAndOrganizationEntityModel, 
 
   // Total tokens used historically
   tokenTotalUsed?: number
+  priceTotalUsed?: number
 }

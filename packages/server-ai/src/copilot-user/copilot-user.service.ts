@@ -32,6 +32,8 @@ export class CopilotUserService extends TenantOrganizationAwareCrudService<Copil
 		})
 		if (existing.success) {
 			existing.record.tokenUsed = (existing.record.tokenUsed ?? 0) + (user.tokenUsed ?? 0)
+			existing.record.priceUsed = (existing.record.priceUsed ?? 0) + Number(user.priceUsed ?? 0)
+			existing.record.currency ??= user.currency
 			return await this.repository.save(existing.record)
 		} else {
 			return await this.create({
@@ -42,7 +44,9 @@ export class CopilotUserService extends TenantOrganizationAwareCrudService<Copil
 				provider: user.provider,
 				model: user.model,
 				tokenUsed: user.tokenUsed,
-				tokenLimit: user.tokenLimit
+				tokenLimit: user.tokenLimit,
+				priceUsed: Number(user.priceUsed ?? 0),
+				currency: user.currency
 			})
 		}
 	}
@@ -55,8 +59,11 @@ export class CopilotUserService extends TenantOrganizationAwareCrudService<Copil
 			}
 		})
 		record.tokenTotalUsed += record.tokenUsed
+		record.priceTotalUsed += Number(record.priceUsed ?? 0)
 		record.tokenUsed = 0
+		record.priceUsed = 0
 		record.tokenLimit = entity.tokenLimit
+		record.priceLimit = entity.priceLimit
 		return await this.repository.save(record)
 	}
 }

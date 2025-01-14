@@ -1,6 +1,6 @@
 import { ChatXAI } from '@langchain/xai'
-import { AiModelTypeEnum, ICopilotModel, TTokenUsage } from '@metad/contracts'
-import { calcTokenUsage, sumTokenUsage } from '@metad/copilot'
+import { ChatOpenAI } from '@langchain/openai'
+import { AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { Injectable } from '@nestjs/common'
 import { ModelProvider } from '../../../ai-provider'
@@ -8,7 +8,6 @@ import { TChatModelOptions } from '../../../types/types'
 import { CredentialsValidateFailedError } from '../../errors'
 import { XAICredentials, toCredentialKwargs } from '../types'
 import { LargeLanguageModel } from '../../../llm'
-import { ChatOpenAI } from '@langchain/openai'
 
 @Injectable()
 export class XAILargeLanguageModel extends LargeLanguageModel {
@@ -50,22 +49,7 @@ export class XAILargeLanguageModel extends LargeLanguageModel {
 			streaming: copilotModel.options?.streaming ?? true,
 			temperature: copilotModel.options?.temperature ?? 0,
 			callbacks: [
-				{
-					handleLLMStart: () => {
-						this.startedAt = performance.now()
-					},
-					handleLLMEnd: (output) => {
-						const tokenUsage: TTokenUsage = output.llmOutput?.tokenUsage ?? calcTokenUsage(output)
-						if (handleLLMTokens) {
-							handleLLMTokens({
-								copilot,
-								model,
-								usage: this.calcResponseUsage(model, credentials, tokenUsage.promptTokens, tokenUsage.completionTokens),
-								tokenUsed: output.llmOutput?.totalTokens ?? sumTokenUsage(output)
-							})
-						}
-					}
-				}
+				...this.createHandleUsageCallbacks(copilot, model, credentials, handleLLMTokens)
 			]
 		} as any)
 	}

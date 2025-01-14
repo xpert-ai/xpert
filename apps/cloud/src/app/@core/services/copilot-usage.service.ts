@@ -37,11 +37,11 @@ export class CopilotUsageService {
       .pipe(map(({ items }) => items))
   }
 
-  renewOrgLimit(id: string, tokenLimit: number) {
-    return this.httpClient.post<ICopilotOrganization>(API_COPILOT_ORGANIZATION + `/${id}/renew`, { tokenLimit })
+  renewOrgLimit(id: string, tokenLimit: number, priceLimit: number) {
+    return this.httpClient.post<ICopilotOrganization>(API_COPILOT_ORGANIZATION + `/${id}/renew`, { tokenLimit, priceLimit })
   }
 
-  renewUserLimit(id: string, tokenLimit: number) {
-    return this.httpClient.post<ICopilotUser>(API_COPILOT_USER + `/${id}/renew`, { tokenLimit })
+  renewUserLimit(id: string, tokenLimit: number, priceLimit: number) {
+    return this.httpClient.post<ICopilotUser>(API_COPILOT_USER + `/${id}/renew`, { tokenLimit, priceLimit })
   }
 }

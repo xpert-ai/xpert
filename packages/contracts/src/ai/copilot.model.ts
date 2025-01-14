@@ -37,6 +37,7 @@ export enum AiProviderRole {
 export type TCopilotTokenUsage = {
   // Token limit for the current period
   tokenLimit?: number
+  priceLimit?: number
   // Tokens used in the current period
   tokenUsed?: number
 }

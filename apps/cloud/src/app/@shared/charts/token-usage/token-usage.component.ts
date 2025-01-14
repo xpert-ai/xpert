@@ -86,7 +86,8 @@ export class StatisticsTokenUsageComponent {
         grid: {
           left: 60,
           right: 20,
-          bottom: 30
+          bottom: 30,
+          top: 100
         },
         legend: {
           left: '10%'
