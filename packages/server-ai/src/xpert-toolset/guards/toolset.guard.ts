@@ -3,26 +3,26 @@ import { CACHE_MANAGER, CanActivate, ExecutionContext, ForbiddenException, Injec
 import { Reflector } from '@nestjs/core'
 import { Cache } from 'cache-manager'
 import { XpertWorkspaceService } from '../../xpert-workspace/workspace.service'
-import { XpertService } from '../xpert.service'
+import { XpertToolsetService } from '../xpert-toolset.service'
 
 @Injectable()
-export class XpertGuard implements CanActivate {
+export class ToolsetGuard implements CanActivate {
 	constructor(
 		@Inject(CACHE_MANAGER) private cacheManager: Cache,
 		private readonly reflector: Reflector,
-		private readonly xpertService: XpertService,
+		private readonly service: XpertToolsetService,
 		private readonly workspaceService: XpertWorkspaceService
 	) {}
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const request = context.switchToHttp().getRequest()
 		const user = request.user
-		const xpertId = request.params.id
+		const toolsetId = request.params.id
 
 		// Retrieve current tenant ID from RequestContext
 		const tenantId = RequestContext.currentTenantId()
 
-		const cacheKey = `userXperts_${tenantId}_${user.id}_${xpertId}`
+		const cacheKey = `userToolset_${tenantId}_${user.id}_${toolsetId}`
 
 		const fromCache = await this.cacheManager.get<boolean | null>(cacheKey)
 
@@ -31,11 +31,11 @@ export class XpertGuard implements CanActivate {
 		}
 
 		let isAuthorized = false
-		const xpert = await this.xpertService.findOne(xpertId)
-		if (xpert.createdById === user.id) {
+		const toolset = await this.service.findOne(toolsetId)
+		if (toolset.createdById === user.id) {
 			isAuthorized = true
 		} else {
-			isAuthorized = await this.workspaceService.canAccess(xpert.workspaceId, user.id)
+			isAuthorized = await this.workspaceService.canAccess(toolset.workspaceId, user.id)
 
 			if (!isAuthorized) {
 				throw new ForbiddenException('Access denied')

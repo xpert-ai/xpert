@@ -1,0 +1,1 @@
+export type XpertStudioNodeStatus = 'success' | 'error' | 'template'

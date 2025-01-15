@@ -40,6 +40,8 @@ import {
   MoveNodeRequest,
   RemoveNodeHandler,
   RemoveNodeRequest,
+  ReplaceNodeHandler,
+  ReplaceNodeRequest,
   ToNodeViewModelHandler,
   UpdateAgentHandler,
   UpdateAgentRequest,
@@ -465,6 +467,16 @@ export class XpertStudioApiService {
     // this.#reload.next(EReloadReason.AUTO_LAYOUT)
   }
 
+  // Templates
+  replaceToolset(key: string, toolset: IXpertToolset) {
+    new ReplaceNodeHandler(this.store).handle(new ReplaceNodeRequest(key, {entity: toolset, key: toolset.id}))
+    this.#reload.next(EReloadReason.TOOLSET_CREATED)
+  }
+  replaceKnowledgebase(key: string, knowledgebase: IKnowledgebase) {
+    new ReplaceNodeHandler(this.store).handle(new ReplaceNodeRequest(key, {entity: knowledgebase, key: knowledgebase.id}))
+    this.#reload.next(EReloadReason.KNOWLEDGE_CREATED)
+  }
+
   // Get toolset detail from cache or remote
   private readonly toolsets = new Map<string, Observable<IXpertToolset>>()
   getToolset(id: string) {
@@ -472,5 +484,13 @@ export class XpertStudioApiService {
       this.toolsets.set(id, this.toolsetService.getOneById(id, { relations: ['tools']}).pipe(shareReplay(1)))
     }
     return this.toolsets.get(id)
+  }
+
+  private readonly knowledgebases = new Map<string, Observable<IKnowledgebase>>()
+  getKnowledgebase(id: string) {
+    if (!this.knowledgebases.get(id)) {
+      this.knowledgebases.set(id, this.knowledgebaseService.getOneById(id, { relations: ['tools']}).pipe(shareReplay(1)))
+    }
+    return this.knowledgebases.get(id)
   }
 }

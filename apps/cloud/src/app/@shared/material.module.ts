@@ -72,6 +72,9 @@ const MATERIAL_MODULES = [
   MatPaginatorModule
 ]
 
+/**
+ * @deprecated Use separate modules so they can be deprecated in the future.
+ */
 @NgModule({
   imports: [...MATERIAL_MODULES],
   exports: [...MATERIAL_MODULES],

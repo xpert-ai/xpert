@@ -2,12 +2,15 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, ReactiveFormsModule } from '@angular/forms'
+import { MatButtonModule } from '@angular/material/button'
+import { MatInputModule } from '@angular/material/input'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { IsDirty } from '@metad/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
+import { UpsertEntityComponent } from 'apps/cloud/src/app/@shared/common'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
 import { EMPTY, map, pipe, startWith, switchMap } from 'rxjs'
@@ -21,9 +24,6 @@ import {
   routeAnimations
 } from '../../../../@core'
 import { ChatBIModelsComponent } from '../models/models.component'
-import { UpsertEntityComponent } from 'apps/cloud/src/app/@shared/common'
-import { IntegrationListComponent } from 'apps/cloud/src/app/@shared/integration'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
 @Component({
   standalone: true,
@@ -35,9 +35,9 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
     ReactiveFormsModule,
     RouterModule,
     TranslateModule,
-    MaterialModule,
     NgmCommonModule,
-    IntegrationListComponent
+    MatButtonModule,
+    MatInputModule
   ],
   animations: [routeAnimations]
 })
@@ -58,7 +58,7 @@ export class ChatBIModelComponent extends UpsertEntityComponent<IChatBIModel> im
 
   readonly chatbiModel = derivedFrom(
     [this.paramId],
-    pipe(switchMap(([id]) => (id ? this.chatbiModelService.getOneById(id, { relations: ['integrations'] }) : EMPTY))),
+    pipe(switchMap(([id]) => (id ? this.chatbiModelService.getOneById(id) : EMPTY))),
     {
       initialValue: null
     }
@@ -68,17 +68,17 @@ export class ChatBIModelComponent extends UpsertEntityComponent<IChatBIModel> im
     modelId: new FormControl<string>(null),
     entity: new FormControl(null),
     entityCaption: new FormControl(null),
-    entityDescription: new FormControl(null),
-    integrations: new FormControl(null)
+    entityDescription: new FormControl(null)
+    // integrations: new FormControl(null)
   })
 
-  get integrations() {
-    return this.formGroup.get('integrations').value
-  }
-  set integrations(value) {
-    this.formGroup.patchValue({ integrations: value })
-    this.formGroup.get('integrations').markAsDirty()
-  }
+  // get integrations() {
+  //   return this.formGroup.get('integrations').value
+  // }
+  // set integrations(value) {
+  //   this.formGroup.patchValue({ integrations: value })
+  //   this.formGroup.get('integrations').markAsDirty()
+  // }
 
   readonly modelId = toSignal(this.formGroup.get('modelId').valueChanges.pipe(startWith(this.formGroup.value?.modelId)))
 
@@ -96,8 +96,8 @@ export class ChatBIModelComponent extends UpsertEntityComponent<IChatBIModel> im
 
   readonly cubeName = toSignal(this.formGroup.get('entity').valueChanges.pipe(startWith(this.formGroup.value?.entity)))
   readonly selectedCube = computed(() => this.entities()?.find((item) => item.key === this.cubeName())?.value)
-  readonly roleList = toSignal(this.roleService.getAllInOrg().pipe(map(({ items }) => items)))
-  readonly integrationList = toSignal(this.integrationService.getAllInOrg().pipe(map(({ items }) => items)))
+  // readonly roleList = toSignal(this.roleService.getAllInOrg().pipe(map(({ items }) => items)))
+  // readonly integrationList = toSignal(this.integrationService.getAllInOrg().pipe(map(({ items }) => items)))
 
   readonly loading = signal(true)
 

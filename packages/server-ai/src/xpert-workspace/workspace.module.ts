@@ -13,7 +13,7 @@ import { QueryHandlers } from './queries/handlers'
 		RouterModule.forRoutes([{ path: '/xpert-workspace', module: XpertWorkspaceModule }]),
 		TypeOrmModule.forFeature([XpertWorkspace]),
 		TenantModule,
-		CqrsModule
+		CqrsModule,
 	],
 	controllers: [XpertWorkspaceController],
 	providers: [XpertWorkspaceService, ...QueryHandlers],

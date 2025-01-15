@@ -8,8 +8,12 @@ import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertKnowledgeTestComponent } from './test/test.component'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { of } from 'rxjs'
+import { catchError, of } from 'rxjs'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { XpertStudioApiService } from '../../domain'
+import { omit } from 'lodash-es'
+import { Router } from '@angular/router'
 
 @Component({
   selector: 'xpert-studio-panel-knowledge',
@@ -33,8 +37,10 @@ import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 export class XpertStudioPanelKnowledgeComponent {
   eModelType = AiModelTypeEnum
   readonly elementRef = inject(ElementRef)
+  readonly #router = inject(Router)
   readonly panelComponent = inject(XpertStudioPanelComponent)
   readonly knowledgebaseService = inject(KnowledgebaseService)
+  readonly studioService = inject(XpertStudioApiService)
 
   // Inputs
   readonly node = input<TXpertTeamNode>()
@@ -42,13 +48,16 @@ export class XpertStudioPanelKnowledgeComponent {
   // States
   readonly id = computed(() => this.node()?.key)
   readonly knowledgebase = derivedAsync(() =>
-    this.id() ? this.knowledgebaseService.getOneById(this.id(), { relations: ['copilotModel'] }) : of(this.node()?.entity as IKnowledgebase)
+    this.id() ? this.knowledgebaseService.getOneById(this.id(), { relations: ['copilotModel'] }).pipe(
+      catchError((err) => of(omit(this.node()?.entity, 'id') as IKnowledgebase))
+    ) : of(this.node()?.entity as IKnowledgebase)
   )
 
   readonly copilotModel = computed(() => this.knowledgebase()?.copilotModel)
 
-
   readonly openedTest = signal(false)
+
+  readonly knowledgebases = toSignal(this.studioService.knowledgebases$)
 
   openTest() {
     this.openedTest.set(true)
@@ -59,5 +68,13 @@ export class XpertStudioPanelKnowledgeComponent {
 
   closePanel() {
     this.panelComponent.close()
+  }
+
+  gotoKnowledgebase() {
+    this.#router.navigate(['/settings/knowledgebase'])
+  }
+
+  useKnowledgebase(k: IKnowledgebase) {
+    this.studioService.replaceKnowledgebase(this.id(), k)
   }
 }

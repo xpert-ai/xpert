@@ -1,16 +1,8 @@
+import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import {
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  Component,
-  computed,
-  effect,
-  inject,
-  model,
-  signal
-} from '@angular/core'
-import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
+import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
+import { toObservable } from '@angular/core/rxjs-interop'
+import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { routeAnimations } from '@metad/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -19,8 +11,8 @@ import {
   getErrorMessage,
   IBuiltinTool,
   injectHelpWebsite,
+  IXpertTool,
   IXpertToolset,
-  IXpertWorkspace,
   TagCategoryEnum,
   ToastrService,
   XpertToolsetService
@@ -29,10 +21,13 @@ import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { omit } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, of } from 'rxjs'
-import { map, switchMap } from 'rxjs/operators'
+import { distinctUntilChanged, map, switchMap } from 'rxjs/operators'
 import { XpertToolBuiltinAuthorizeComponent } from '../authorize/authorize.component'
 import { XpertToolBuiltinToolComponent } from '../tool/tool.component'
 
+/**
+ * If toolset and tool do not have id, they are considered as templates.
+ */
 @Component({
   standalone: true,
   imports: [
@@ -55,33 +50,34 @@ import { XpertToolBuiltinToolComponent } from '../tool/tool.component'
 })
 export class XpertToolConfigureBuiltinComponent {
   eTagCategoryEnum = TagCategoryEnum
-  private readonly xpertToolsetService = inject(XpertToolsetService)
-  readonly #formBuilder = inject(FormBuilder)
-  readonly #cdr = inject(ChangeDetectorRef)
+
+  readonly #toolsetService = inject(XpertToolsetService)
   readonly #toastr = inject(ToastrService)
-  readonly #dialogRef = inject(MatDialogRef<XpertToolConfigureBuiltinComponent>)
+  readonly #dialogRef = inject(DialogRef<IXpertToolset>)
   readonly #data = inject<{
-    workspace: IXpertWorkspace
+    workspaceId: string
     providerName: string
     toolset: IXpertToolset
-  }>(MAT_DIALOG_DATA)
+    tools?: IXpertTool[]
+  }>(DIALOG_DATA)
   readonly helpBaseUrl = injectHelpWebsite()
 
   readonly #refresh$ = new BehaviorSubject<void>(null)
 
   readonly toolset = model<IXpertToolset>(this.#data.toolset)
+  readonly tools = signal<IXpertTool[]>(this.#data.tools)
   readonly providerName = signal(this.#data.providerName)
-  readonly workspace = signal(this.#data.workspace)
+  readonly workspaceId = signal(this.#data.workspaceId)
   readonly toolsetId = computed(() => this.toolset()?.id)
 
   readonly provider = derivedAsync(() =>
-    this.providerName() ? this.xpertToolsetService.getProvider(this.providerName()) : of(null)
+    this.providerName() ? this.#toolsetService.getProvider(this.providerName()) : of(null)
   )
   readonly notImplemented = computed(() => this.provider()?.not_implemented)
 
   readonly builtinTools = derivedAsync(() => {
     if (this.providerName()) {
-      return this.xpertToolsetService.getBuiltinTools(this.providerName())
+      return this.#toolsetService.getBuiltinTools(this.providerName())
     }
     return null
   })
@@ -89,15 +85,11 @@ export class XpertToolConfigureBuiltinComponent {
   readonly toolsets = derivedAsync(() => {
     if (this.providerName() && !this.toolset()) {
       return this.#refresh$.pipe(
-        switchMap(() => this.xpertToolsetService.getBuiltinToolInstances(this.workspace(), this.providerName())),
+        switchMap(() => this.#toolsetService.getBuiltinToolInstances(this.workspaceId(), this.providerName())),
         map(({ items }) => items)
       )
     }
     return null
-  })
-
-  readonly tools = derivedAsync(() => {
-    return this.toolsetId() ? this.xpertToolsetService.getToolsetTools(this.toolsetId()) : of(null)
   })
 
   readonly loading = signal(false)
@@ -107,22 +99,22 @@ export class XpertToolConfigureBuiltinComponent {
 
   readonly dirty = signal<boolean>(false)
 
-  constructor() {
-    effect(
-      () => {
-        const tools = this.tools()
-        this.toolset.update((state) =>
-          state
-            ? {
-                ...state,
-                tools
-              }
-            : null
-        )
-      },
-      { allowSignalWrites: true }
+  // Subscriptions
+  private toolsSub = toObservable(this.toolsetId)
+    .pipe(
+      distinctUntilChanged(),
+      switchMap((id) => (id ? this.#toolsetService.getToolsetTools(this.toolsetId()) : of(null)))
     )
-  }
+    .subscribe((tools) => {
+      if (tools) {
+        this.tools.update((state) => {
+          const _tools = state?.filter((_) => !_.id && !tools.some((tool) => tool.name === _.name) && 
+              !(_.toolsetId && _.toolsetId !== this.toolsetId())
+            ) ?? []
+          return _tools.concat(tools)
+        })
+      }
+    })
 
   openAuthorize(toolset?: IXpertToolset) {
     this.toolset.set(toolset)
@@ -134,6 +126,7 @@ export class XpertToolConfigureBuiltinComponent {
     if (refresh) {
       this.#refresh$.next()
     }
+    this.dirty.set(true)
   }
 
   cancel(event: MouseEvent) {
@@ -142,26 +135,20 @@ export class XpertToolConfigureBuiltinComponent {
   }
 
   getToolEnabled(name: string) {
-    return this.toolset()?.tools?.find((_) => _.name === name)?.enabled
+    return this.tools()?.find((_) => _.name === name)?.enabled
   }
 
   setToolEnabled(name: string, enabled: boolean, schema: IBuiltinTool) {
-    const tool = this.toolset().tools?.find((_) => _.name === name)
+    const tool = this.tools()?.find((_) => _.name === name)
     if (tool) {
       tool.enabled = enabled
     } else {
-      this.toolset.update((state) => {
-        return {
-          ...state,
-          tools: [
-            ...(state.tools ?? []),
-            {
-              name,
-              enabled,
-              schema
-            }
-          ]
-        }
+      this.tools.update((state) => {
+        return [...(state ?? []), {
+          name,
+          enabled,
+          schema
+        }]
       })
     }
 
@@ -170,23 +157,27 @@ export class XpertToolConfigureBuiltinComponent {
 
   save() {
     this.loading.set(true)
-    this.xpertToolsetService.update(this.toolset().id, {
+    const toolset = {
       ...omit(this.toolset(), 'tags'),
+      tools: this.tools(),
       options: {
         ...(this.toolset().options ?? {}),
         toolPositions: this.getToolPositions()
       }
-    }).subscribe({
-      next: (toolset) => {
-        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
-        this.loading.set(false)
-        this.#dialogRef.close(toolset)
-      },
-      error: (err) => {
-        this.#toastr.error(getErrorMessage(err))
-        this.loading.set(false)
-      }
-    })
+    }
+    this.#toolsetService
+      .update(this.toolset().id, toolset)
+      .subscribe({
+        next: () => {
+          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
+          this.loading.set(false)
+          this.#dialogRef.close(toolset)
+        },
+        error: (err) => {
+          this.#toastr.error(getErrorMessage(err))
+          this.loading.set(false)
+        }
+      })
   }
 
   getToolPositions() {
@@ -194,5 +185,21 @@ export class XpertToolConfigureBuiltinComponent {
       acc[tool.identity.name] = index
       return acc
     }, {})
+  }
+}
+
+export function injectConfigureBuiltin() {
+  const dialog = inject(Dialog)
+
+  return (providerName: string, workspaceId: string, toolset: IXpertToolset, tools: IXpertTool[]) => {
+    return dialog.open<IXpertToolset>(XpertToolConfigureBuiltinComponent, {
+      disableClose: true,
+      data: {
+        providerName,
+        workspaceId,
+        toolset,
+        tools
+      }
+    }).closed
   }
 }

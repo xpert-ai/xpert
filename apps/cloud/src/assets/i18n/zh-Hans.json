@@ -2199,7 +2199,12 @@
       "TokenOutputSpeed": "Token 输出速度",
       "TokenOutputSpeedTooltip": "衡量LLM的性能。统计LLM从请求开始到输出完成的Tokens输出速度。",
       "UserSatisfactionRate": "用户满意率",
-      "UserSatisfactionRateTooltip": "每千条消息的点赞数。这表示用户非常满意的答案的比例。"
+      "UserSatisfactionRateTooltip": "每千条消息的点赞数。这表示用户非常满意的答案的比例。",
+      "Reconfigure": "重新配置",
+      "OrReselect": "或重新选择",
+      "Use": "使用",
+      "ExportFailed": "导出失败",
+      "NeedReconfigure": "需要重新配置"
     },
     "title": {
       "short": "Xpert AI"

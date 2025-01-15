@@ -1,5 +1,5 @@
 import { TenantModule } from '@metad/server-core'
-import { Module } from '@nestjs/common'
+import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { RouterModule } from 'nest-router'
@@ -9,6 +9,7 @@ import { XpertToolsetService } from './xpert-toolset.service'
 import { QueryHandlers } from './queries/handlers'
 import { CopilotModule } from '../copilot'
 import { CommandHandlers } from './commands/handlers'
+import { XpertWorkspaceModule } from '../xpert-workspace'
 
 
 @Module({
@@ -17,8 +18,8 @@ import { CommandHandlers } from './commands/handlers'
 		TypeOrmModule.forFeature([XpertToolset]),
 		TenantModule,
 		CqrsModule,
-
-		CopilotModule
+		CopilotModule,
+		forwardRef(() => XpertWorkspaceModule),
 	],
 	controllers: [XpertToolsetController],
 	providers: [XpertToolsetService, ...QueryHandlers, ...CommandHandlers],

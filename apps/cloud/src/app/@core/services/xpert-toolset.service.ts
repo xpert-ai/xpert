@@ -10,9 +10,9 @@ import {
   IToolTag,
   IXpertTool,
   IXpertToolset,
-  IXpertWorkspace,
   OrderTypeEnum,
   ToolProviderCredentials,
+  TToolCredentials,
   TXpertToolEntity,
 } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
@@ -68,8 +68,8 @@ export class XpertToolsetService extends XpertWorkspaceBaseCrudService<IXpertToo
     return this.httpClient.post<IXpertToolset>(this.apiBaseUrl + `/builtin-provider/${provider}/instance`, entity)
   }
 
-  getBuiltinToolInstances(workspace: IXpertWorkspace, provider: string) {
-    return this.getAllByWorkspace(workspace.id, { where: { type: provider }, order: { updatedAt: OrderTypeEnum.DESC } })
+  getBuiltinToolInstances(workspaceId: string, provider: string) {
+    return this.getAllByWorkspace(workspaceId, { where: { type: provider }, order: { updatedAt: OrderTypeEnum.DESC } })
   }
 
   getOpenAPIRemoteSchema(url: string, credentials: Record<string, string>) {
@@ -96,5 +96,9 @@ export class XpertToolsetService extends XpertWorkspaceBaseCrudService<IXpertToo
 
   getToolsetTools(id: string,) {
     return this.httpClient.get<IXpertTool[]>(this.apiBaseUrl + `/${id}/tools`)
+  }
+
+  getCredentials(id: string,) {
+    return this.httpClient.get<TToolCredentials>(this.apiBaseUrl + `/${id}/credentials`)
   }
 }

@@ -8,13 +8,14 @@
   <div class="flex-1"></div>
 
   <div class="flex justify-between items-center gap-1">
-
-    <button type="button" class="action-btn action-btn-sm justify-center w-6 h-6 p-0.5 rounded-md pressable"
-      [matTooltip]="'PAC.Xpert.RefreshToolset' | translate: {Default: 'Refresh, sync toolset configuration'}"
-      matTooltipPosition="above"
-      (click)="refresh()">
-      <i class="ri-refresh-line"></i>
-    </button>
+    @if(!isTemplate()) {
+      <button type="button" class="action-btn action-btn-sm justify-center w-6 h-6 p-0.5 rounded-md pressable"
+        [matTooltip]="'PAC.Xpert.RefreshToolset' | translate: {Default: 'Refresh, sync toolset configuration'}"
+        matTooltipPosition="above"
+        (click)="refresh()">
+        <i class="ri-refresh-line"></i>
+      </button>
+    }
 
     <div class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer
       text-text-tertiary hover:text-base-content hover:bg-hover-bg"
@@ -28,6 +29,37 @@
 <div class="max-w-full shrink-0 px-4 my-4 text-text-tertiary text-sm line-clamp-3">
   {{toolset()?.description}}
 </div>
+
+@if (isTemplate()) {
+  <div class="flex flex-col justify-start items-stretch p-4 space-y-4 w-full">
+    <button class="btn btn-large btn-primary self-center" (click)="configureToolBuiltin()">
+      {{ 'PAC.Xpert.Reconfigure' | translate: {Default: 'Reconfigure'} }}
+    </button>
+
+    <div class="flex items-center mb-4 leading-[18px] text-base font-semibold text-gray-500 uppercase">
+      <div class="mr-3">{{'PAC.Xpert.OrReselect' | translate: { Default: 'Or reselect'} }}</div>
+      <div class="grow w-0 h-px bg-divider-regular"></div>
+    </div>
+
+    <ul class="p-2 flex flex-col gap-1">
+      @for (toolset of toolsets(); track toolset.id) {
+        <li class="group/item w-full flex flex-col items-stretch px-2 py-1 rounded-lg border-[0.5px] border-solid border-transparent hover:border-gray-100">
+          <div class="relative flex items-center w-full">
+            <emoji-avatar small [avatar]="toolset.avatar" class="mr-1 shrink-0 rounded-lg overflow-hidden shadow-sm" />
+            {{toolset.name}}
+
+            <button type="button" class="absolute right-0 btn btn-small opacity-0 group-hover/item:opacity-100"
+              (click)="useToolset(toolset)"
+            >
+              {{ 'PAC.Xpert.Use' | translate: {Default: 'Use'} }}
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  </div>
+}
+
 
 <div class="w-full flex flex-col gap-2 p-2">
   @for (tool of tools(); track tool.id) {

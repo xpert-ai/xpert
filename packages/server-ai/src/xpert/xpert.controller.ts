@@ -32,6 +32,7 @@ import {
 	UseGuards,
 	HttpException,
 	ForbiddenException,
+	InternalServerErrorException,
 	Res
 } from '@nestjs/common'
 import { getErrorMessage, takeUntilClose } from '@metad/server-common'
@@ -136,12 +137,17 @@ export class XpertController extends CrudController<Xpert> {
 		}))
 	}
 
-	@Get(':xpertId/export')
+	@UseGuards(XpertGuard)
+	@Get(':id/export')
 	async exportDSL(
-		@Param('xpertId') xpertId: string,
+		@Param('id') xpertId: string,
 		@Query('isDraft') isDraft: string,
 		@Query('data', ParseJsonPipe) params: PaginationParams<Xpert>) {
-		return await this.commandBus.execute(new XpertExportCommand(xpertId, isDraft))
+		try {
+			return await this.commandBus.execute(new XpertExportCommand(xpertId, isDraft))
+		} catch(err) {
+			throw new InternalServerErrorException(err.message)
+		}
 	}
 
 	@Get(':id/team')
@@ -163,6 +169,7 @@ export class XpertController extends CrudController<Xpert> {
 		return await this.service.saveDraft(id, draft)
 	}
 
+	@UseGuards(XpertGuard)
 	@Put(':id/draft')
 	async updateDraft(@Param('id') id: string, @Body() draft: TXpertTeamDraft) {
 		// todo 检查有权限编辑此 xpert role
@@ -171,16 +178,19 @@ export class XpertController extends CrudController<Xpert> {
 		return await this.service.updateDraft(id, draft)
 	}
 
+	@UseGuards(XpertGuard)
 	@Post(':id/publish')
 	async publish(@Param('id') id: string) {
 		return this.service.publish(id)
 	}
 
+	@UseGuards(XpertGuard)
 	@Post(':id/publish/integration')
 	async publishIntegration(@Param('id') id: string, @Body() integration: Partial<IIntegration>) {
 		return this.commandBus.execute(new XpertPublishIntegrationCommand(id, integration))
 	}
 
+	@UseGuards(XpertGuard)
 	@Delete(':id/publish/integration/:integration')
 	async deleteIntegration(@Param('id') id: string, @Param('integration') integration: string,) {
 		return this.commandBus.execute(new XpertDelIntegrationCommand(id, integration))

@@ -6,10 +6,11 @@ import { TranslateModule } from '@ngx-translate/core'
 import { TXpertTeamNode, XpertAgentExecutionStatusEnum, IXpertToolset } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { of } from 'rxjs'
+import { catchError, of } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
+import { XpertStudioNodeStatus } from '../../types'
 
 @Component({
   selector: 'xpert-studio-node-toolset',
@@ -20,8 +21,8 @@ import { XpertStudioComponent } from '../../studio.component'
   imports: [FFlowModule, MatTooltipModule, TranslateModule, EmojiAvatarComponent, NgmSpinComponent],
   host: {
     tabindex: '-1',
-    '[class.selected]': 'isSelected',
-    '(contextmenu)': 'emitSelectionChangeEvent($event)'
+    '(contextmenu)': 'emitSelectionChangeEvent($event)',
+    '[class]': 'status()'
   }
 })
 export class XpertStudioNodeToolsetComponent {
@@ -39,9 +40,12 @@ export class XpertStudioNodeToolsetComponent {
   readonly toolset = computed(() => this.node().entity as IXpertToolset)
   readonly positions = computed(() => this.toolset()?.options?.toolPositions)
 
+  // Retrieve the latest information about the toolset
   readonly toolsetDetail = derivedAsync(() => {
-    return this.toolset() ? this.apiService.getToolset(this.toolset().id) : of(null)
+    return this.toolset() ? this.apiService.getToolset(this.toolset().id).pipe(catchError((err) => of(null))) : of(null)
   })
+
+  readonly status = computed<XpertStudioNodeStatus>(() => this.toolset() && !this.toolsetDetail() ? 'template' : null)
 
   readonly availableTools = computed(() => {
     const positions = this.positions()
@@ -80,6 +84,9 @@ export class XpertStudioNodeToolsetComponent {
   protected emitSelectionChangeEvent(event: MouseEvent): void {
     this.hostElement.focus()
     event.preventDefault()
+    event.stopPropagation()
+
+    // Open Context menu
   }
 
   isSensitive(name: string) {

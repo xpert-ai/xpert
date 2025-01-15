@@ -55,4 +55,21 @@ export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<Xp
 
 		return await this.findOne(id, { relations: ['members'] })
 	}
+
+	async canAccess(id: string, userId: string) {
+		const {record: workspace} = await this.findOneOrFail(id, { relations: ['members'] })
+
+		if (!workspace) {
+			return false
+		}
+
+		const isMember = workspace.members.some((member) => member.id === userId)
+		const isOwner = workspace.ownerId === userId
+
+		if (!isMember && !isOwner) {
+			return false
+		}
+
+		return true
+	}
 }
