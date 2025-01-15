@@ -2204,7 +2204,25 @@
       "OrReselect": "或重新选择",
       "Use": "使用",
       "ExportFailed": "导出失败",
-      "NeedReconfigure": "需要重新配置"
+      "NeedReconfigure": "需要重新配置",
+      "InstallToWorkspace": "安装到工作空间",
+      "Categories": {
+        "Recommended": "推荐",
+        "HR": "👔 人力资源",
+        "Programming": "🖥️ 编程",
+        "Workflow": "🔄 工作流",
+        "Writing": "✍️ 写作",
+        "Assistant": "🤖 助手",
+        "Agent": "🕵️‍♂️ Agent",
+        "DataAnalysis": "📊 数据分析"
+      },
+      "SelectAWorkspace": "选择一个工作空间",
+      "Checking": "检查中",
+      "Cancel": "取消",
+      "Create": "创建",
+      "CreateXpertFromTemplate": "从模板 {{value}} 创建数字专家",
+      "ExploreXpertApps": "探索 Xpert 的应用",
+      "ExploreXpertsDesc": "使用这些模板应用，或根据模板自定义您自己的应用程序。"
     },
     "title": {
       "short": "Xpert AI"

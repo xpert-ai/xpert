@@ -1,15 +1,19 @@
 import { Routes } from '@angular/router'
-import { XpertStudioXpertsComponent } from './workspace/xperts/xperts.component'
+import { XpertExploreComponent } from './explore/explore.component'
 import { XpertStudioAPIToolComponent } from './tools'
-import { XpertTemplatesComponent } from './templates/templates.component'
-import { XpertWorkspaceWelcomeComponent } from './workspace/welcome/welcome.component'
 import { XpertWorkspaceHomeComponent } from './workspace/home/home.component'
+import { XpertWorkspaceWelcomeComponent } from './workspace/welcome/welcome.component'
+import { XpertStudioXpertsComponent } from './workspace/xperts/xperts.component'
 
 export const routes: Routes = [
   {
     path: '',
     redirectTo: 'w',
     pathMatch: 'full'
+  },
+  {
+    path: 'e',
+    component: XpertExploreComponent
   },
   {
     path: 'w',
@@ -22,7 +26,7 @@ export const routes: Routes = [
       {
         path: ':id',
         component: XpertStudioXpertsComponent
-      },
+      }
       // {
       //   path: 'tools',
       //   component: XpertStudioToolsComponent
@@ -30,17 +34,13 @@ export const routes: Routes = [
     ]
   },
   {
-    path: 'e',
-    component: XpertTemplatesComponent
-  },
-  {
     path: 'tool/:id',
-    component: XpertStudioAPIToolComponent,
+    component: XpertStudioAPIToolComponent
   },
   {
     path: ':id',
     loadChildren: () => import('./xpert/routes').then((x) => x.routes)
-  },
+  }
   // {
   //   path: '**',
   //   component: XpertHomeComponent,

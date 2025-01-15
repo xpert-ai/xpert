@@ -26,6 +26,7 @@ import { CopilotProviderModule } from './copilot-provider'
 import { CopilotStoreModule } from './copilot-store/copilot-store.module'
 import { ChatMessageModule } from './chat-message'
 import { ChatMessageFeedbackModule } from './chat-message-feedback'
+import { XpertTemplateModule } from './xpert-template/xpert-template.module'
 
 @Module({
 	imports: [
@@ -54,6 +55,7 @@ import { ChatMessageFeedbackModule } from './chat-message-feedback'
 		XpertToolModule,
 		XpertToolsetModule,
 		XpertWorkspaceModule,
+		XpertTemplateModule,
 		IntegrationLarkModule
 	],
 	controllers: [],

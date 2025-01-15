@@ -1,0 +1,7 @@
+:host {
+  @apply w-full;
+}
+
+.category-option.active {
+  @apply bg-white border-gray-200 text-primary-600 shadow-sm;
+}
