@@ -26,6 +26,7 @@ import { getErrorMessage, takeUntilAbort } from '@metad/server-common'
 import { AgentStateAnnotation, parseXmlString, STATE_VARIABLE_SYS_LANGUAGE, TSubAgent } from './types'
 import { CompleteToolCallsQuery } from '../../queries'
 import { memoryPrompt } from '../../../copilot-store/utils'
+import { assignExecutionUsage } from '../../../xpert-agent-execution/types'
 
 
 @CommandHandler(XpertAgentExecuteCommand)
@@ -57,9 +58,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		const chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
 			new GetXpertChatModelQuery(agent.team, agent, {
 				abortController,
-				tokenCallback: (token) => {
-					execution.tokens += token ?? 0
-				}
+				usageCallback: assignExecutionUsage(execution),
 			})
 		)
 		// Record ai model info into execution
@@ -295,7 +294,11 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 							const msg = data.chunk as AIMessageChunk
 							if (!msg.tool_call_chunks?.length) {
 								if (msg.content) {
-									return msg.content
+									if (typeof msg.content === 'string') {
+										return msg.content
+									} else {
+										return msg.content.map((_) => (_.type === 'text' || _.type === 'text_delta') ? _.text : '').join('')
+									}
 								}
 							}
 						}

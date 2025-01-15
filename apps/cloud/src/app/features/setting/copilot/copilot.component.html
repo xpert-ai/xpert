@@ -9,41 +9,44 @@
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla1.isActive"
     >
-      <mat-icon fontSet="material-icons-outlined">generating_tokens</mat-icon>
+      <mat-icon fontSet="material-icons-outlined" class="mr-1">generating_tokens</mat-icon>
       {{ 'PAC.KEY_WORDS.Basic' | translate: {Default: "Basic"} }}
     </span>
+    @if (!organization()) {
+      <span mat-tab-link [routerLink]="['./examples']"
+        routerLinkActive #rla2="routerLinkActive"
+        [active]="rla2.isActive"
+      >
+        <mat-icon fontSet="material-icons-outlined" class="mr-1">tips_and_updates</mat-icon>
+        {{ 'PAC.KEY_WORDS.Examples' | translate: {Default: "Examples"} }}
+      </span>
+    }
 
-    <!-- <span mat-tab-link [routerLink]="['./roles']"
-      routerLinkActive #rla3="routerLinkActive"
-      [active]="rla3.isActive"
-    >
-      <mat-icon fontSet="material-icons-outlined">engineering</mat-icon>
-      {{ 'PAC.KEY_WORDS.Roles' | translate: {Default: "Roles"} }}
-    </span> -->
-
-    <span mat-tab-link [routerLink]="['./examples']"
-      routerLinkActive #rla2="routerLinkActive"
-      [active]="rla2.isActive"
-    >
-      <mat-icon fontSet="material-icons-outlined">tips_and_updates</mat-icon>
-      {{ 'PAC.KEY_WORDS.Examples' | translate: {Default: "Examples"} }}
-    </span>
-
-    @if (organizationId$ | async) {
+    @if (organization()) {
       <span mat-tab-link [routerLink]="['./users']"
         routerLinkActive #rla4="routerLinkActive"
         [active]="rla4.isActive"
       >
-        <mat-icon fontSet="material-icons-outlined">data_usage</mat-icon>
-        {{ 'PAC.KEY_WORDS.Users' | translate: {Default: "Users"} }}
+        <mat-icon fontSet="material-icons-outlined" class="mr-1">data_usage</mat-icon>
+        {{ 'PAC.Copilot.UserUsage' | translate: {Default: "User Usage"} }}
       </span>
     } @else {
       <span mat-tab-link [routerLink]="['./usages']"
         routerLinkActive #rla4="routerLinkActive"
         [active]="rla4.isActive"
       >
-        <mat-icon fontSet="material-icons-outlined">data_usage</mat-icon>
-        {{ 'PAC.KEY_WORDS.Usages' | translate: {Default: "Usages"} }}
+        <mat-icon fontSet="material-icons-outlined" class="mr-1">data_usage</mat-icon>
+        {{ 'PAC.Copilot.OrgUsage' | translate: {Default: "Organization Usage"} }}
+      </span>
+    }
+
+    @if (organization()) {
+      <span mat-tab-link [routerLink]="['./overview']"
+        routerLinkActive #rla4="routerLinkActive"
+        [active]="rla4.isActive"
+      >
+        <mat-icon fontSet="material-icons-outlined" class="mr-1">browse_activity</mat-icon>
+        {{ 'PAC.Copilot.Monitoring' | translate: {Default: "Monitoring"} }}
       </span>
     }
   </nav>

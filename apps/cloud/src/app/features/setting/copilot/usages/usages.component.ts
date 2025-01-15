@@ -6,7 +6,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayBehaviour, formatNumber, isNil } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { CopilotUsageService, ICopilotOrganization, ToastrService } from '../../../../@core'
+import { CopilotUsageService, ICopilotOrganization, injectFormatRelative, ToastrService } from '../../../../@core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
@@ -27,11 +27,13 @@ export class CopilotUsagesComponent extends TranslationBaseComponent {
   readonly route = inject(ActivatedRoute)
   readonly dialog = inject(MatDialog)
   readonly translate = inject(TranslateService)
+  readonly formatRelative = injectFormatRelative()
 
   readonly usages = signal<ICopilotOrganization[]>([])
 
   readonly editId = signal<string | null>(null)
-  readonly tokenLimit = model<number>(0)
+  readonly tokenLimit = model<number>(null)
+  readonly priceLimit = model<number>(null)
   readonly loading = signal<boolean>(false)
 
   private dataSub = this.usageService
@@ -46,16 +48,22 @@ export class CopilotUsagesComponent extends TranslationBaseComponent {
   }
   formatNumber = this._formatNumber.bind(this)
 
+  _formatPrice(value: number): string {
+    return isNil(value) ? '' : formatNumber(value, this.translate.currentLang, '0.0-7')
+  }
+  formatPrice = this._formatPrice.bind(this)
+
   renewToken(id: string) {
     this.editId.set(id)
   }
 
   save(id: string) {
     this.loading.set(true)
-    this.usageService.renewOrgLimit(id, this.tokenLimit()).subscribe({
+    this.usageService.renewOrgLimit(id, this.tokenLimit(), this.priceLimit()).subscribe({
       next: (result) => {
         this.usages.update((records) => records.map((item) => (item.id === id ? { ...item, ...result } : item)))
-        this.tokenLimit.set(0)
+        this.tokenLimit.set(null)
+        this.priceLimit.set(null)
         this.editId.set(null)
         this.loading.set(false)
       },

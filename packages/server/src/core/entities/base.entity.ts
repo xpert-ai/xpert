@@ -16,6 +16,8 @@ import {
 	UpdateDateColumn,
 } from 'typeorm'
 import { User } from './internal'
+import { Transform } from 'class-transformer'
+import { UserPublicDTO } from '../../user/dto'
 
 export abstract class Model extends AggregateRoot {
 	constructor(input?: any) {
@@ -56,7 +58,7 @@ export abstract class BaseEntity extends Model implements IBaseEntityModel {
 	createdById?: ID
 
 	@ApiProperty({ type: () => User, readOnly: true })
-	// @Transform(({ value }) => new UserPublicDTO(value))
+	@Transform(({ value }) => value && new UserPublicDTO(value))
 	@ManyToOne(() => User, {
 		nullable: true,
 		onDelete: 'RESTRICT',
@@ -73,6 +75,7 @@ export abstract class BaseEntity extends Model implements IBaseEntityModel {
 	updatedById?: ID
 
 	@ApiProperty({ type: () => User, readOnly: true })
+	@Transform(({ value }) => value && new UserPublicDTO(value))
 	@ManyToOne(() => User, {
 		nullable: true,
 		onDelete: 'RESTRICT',

@@ -20,7 +20,12 @@
 <mat-accordion >
   <mat-expansion-panel #expansion hideToggle class="mat-elevation-z" [disabled]="!primary()?.enabled" [expanded]="!!primary()?.enabled">
     <mat-expansion-panel-header>
-      <mat-panel-title>{{'PAC.KEY_WORDS.Primary' | translate: {Default: 'Primary'} }}</mat-panel-title>
+      <mat-panel-title>
+        {{'PAC.KEY_WORDS.Primary' | translate: {Default: 'Primary'} }}
+        @if (primary()?.modelProvider?.provider) {
+          <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="primary().modelProvider.provider.icon_large | i18n">
+        }
+      </mat-panel-title>
       <mat-panel-description class="flex-1">
         <mat-slide-toggle labelPosition="before" ngm-density small
           [matTooltip]="'PAC.Copilot.EnableCopilot' | translate: {Default: 'Enable Copilot'}"
@@ -40,6 +45,9 @@
       <mat-expansion-panel-header>
         <mat-panel-title>
           {{'PAC.KEY_WORDS.' + (copilot.role | capitalize) | translate: { Default: (copilot.role | capitalize) } }}
+          @if (copilot.modelProvider?.provider) {
+            <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="copilot.modelProvider.provider.icon_large | i18n">
+          }
         </mat-panel-title>
         <mat-panel-description class="flex-1">
           <mat-slide-toggle labelPosition="before" ngm-density small 

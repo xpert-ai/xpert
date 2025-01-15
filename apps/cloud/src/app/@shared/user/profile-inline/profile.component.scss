@@ -1,5 +1,5 @@
 :host {
-  @apply flex gap-3;
+  @apply flex items-center gap-3;
 
   .avatar {
     @apply h-10 w-10;
@@ -10,8 +10,11 @@
   }
 
   &.small {
+    .status {
+      @apply hidden;
+    }
     .avatar {
-      @apply h-8 w-8;
+      @apply h-7 w-7;
     }
 
     .title {

@@ -4,6 +4,7 @@ import {
 	AiProviderRole,
 	IAiProviderEntity,
 	ICopilot,
+	RolesEnum
 } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { ConfigService } from '@metad/server-config'
@@ -13,6 +14,8 @@ import {
 	ParseJsonPipe,
 	PermissionGuard,
 	Permissions,
+	RoleGuard,
+	Roles,
 	TransformInterceptor
 } from '@metad/server-core'
 import {
@@ -35,6 +38,15 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { DeepPartial } from 'typeorm'
 import { AiProviderDto, ListModelProvidersQuery } from '../ai-model'
+import {
+	StatisticsAverageSessionInteractionsQuery,
+	StatisticsDailyConvQuery,
+	StatisticsDailyEndUsersQuery,
+	StatisticsDailyMessagesQuery,
+	StatisticsTokenCostQuery,
+	StatisticsTokensPerSecondQuery,
+	StatisticsUserSatisfactionRateQuery
+} from '../chat-conversation/queries'
 import { Copilot } from './copilot.entity'
 import { CopilotService } from './copilot.service'
 import { CopilotDto, CopilotWithProviderDto } from './dto'
@@ -66,12 +78,8 @@ export class CopilotController extends CrudController<Copilot> {
 		description: 'Found records'
 	})
 	@Get()
-	async findAllCopilots(@Query('data', ParseJsonPipe) params: PaginationParams<Copilot>,) {
-		const result = await this.service.findAll(params)
-		return {
-			...result,
-			items: result.items.map((item) => new CopilotDto(item, this.baseUrl))
-		}
+	async findAllCopilots(@Query('data', ParseJsonPipe) params: PaginationParams<Copilot>) {
+		return await this.service.findAllCopilots(params)
 	}
 
 	@ApiOperation({ summary: 'find all' })
@@ -108,7 +116,7 @@ export class CopilotController extends CrudController<Copilot> {
 
 		return items
 	}
-	
+
 	@ApiOperation({ summary: 'Create new record' })
 	@ApiResponse({
 		status: HttpStatus.CREATED,
@@ -196,8 +204,59 @@ export class CopilotController extends CrudController<Copilot> {
 	}
 
 	@Get(':copilotId')
-	async getOne(@Param('copilotId') copilotId: string,) {
+	async getOne(@Param('copilotId') copilotId: string) {
 		const copilot = await this.service.findOne(copilotId)
 		return new CopilotDto(copilot, this.baseUrl)
+	}
+
+	// Statistics
+
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Get('statistics/daily-conversations')
+	async getStatisticsDailyConversations(@Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsDailyConvQuery(start, end))
+	}
+
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Get('statistics/daily-end-users')
+	async getStatisticsDailyEndUsers(@Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsDailyEndUsersQuery(start, end))
+	}
+
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Get('statistics/average-session-interactions')
+	async getStatisticsAverageSessionInteractions(@Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsAverageSessionInteractionsQuery(start, end))
+	}
+
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Get('statistics/daily-messages')
+	async getStatisticsDailyMessages(@Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsDailyMessagesQuery(start, end))
+	}
+
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Get('statistics/tokens-per-second')
+	async getStatisticsTokensPerSecond(@Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsTokensPerSecondQuery(start, end))
+	}
+
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Get('statistics/user-satisfaction-rate')
+	async getStatisticsUserSatisfactionRate(@Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsUserSatisfactionRateQuery(start, end))
+	}
+
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Get('statistics/token-costs')
+	async getStatisticsTokenCost(@Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsTokenCostQuery(start, end))
 	}
 }

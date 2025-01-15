@@ -1,0 +1,333 @@
+<div class="grid gap-6 grid-cols-1 xl:grid-cols-3 w-full mb-6">
+  <div class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-xl border-gray-200 shadow-sm bg-lime-50/50">
+    <div class="mb-3">
+      <div class="flex items-start p-1">
+        <div
+          class="flex flex-row items-center text-lg font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+        >
+          {{ 'PAC.Copilot.TotalXperts' | translate: {Default: 'Total Xperts'} }}
+          <div class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
+            [matTooltip]="'PAC.Copilot.TotalXpertsTooltip' | translate: {Default: 'Total published experts in organization.'}"
+            matTooltipPosition="above"
+          >
+            <i class="ri-question-line text-text-secondary text-lg"></i>
+          </div>
+        </div>
+        <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
+      </div>
+    </div>
+
+    <div class="text-3xl font-semibold text-lime-700 group-hover:text-gray-900">
+      {{ xperts()?.[0]?.count }}
+    </div>
+  </div>
+
+  <div class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-xl border-gray-200 shadow-sm bg-sky-50/50">
+    <div class="mb-3">
+      <div class="flex items-start p-1">
+        <div
+          class="flex flex-row items-center text-lg font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+        >
+          {{ 'PAC.Copilot.TotalXpertIntegrations' | translate: {Default: 'Total Integrations for Experts'} }}
+          <div class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
+            [matTooltip]="'PAC.Copilot.TotalXpertIntegrationsTooltip' | translate: {Default: 'Total third-party integrations for experts.'}"
+            matTooltipPosition="above"
+          >
+            <i class="ri-question-line text-text-secondary text-lg"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-3xl font-semibold text-sky-700 group-hover:text-gray-900">
+      {{ xpertIntegrations()?.[0]?.count }}
+    </div>
+  </div>
+
+  <div class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-xl border-gray-200 shadow-sm bg-violet-50/50">
+    <div class="mb-3">
+      <div class="flex items-start p-1">
+        <div
+          class="flex flex-row items-center text-lg font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+        >
+          {{ 'PAC.Copilot.TotalKnowledgebases' | translate: {Default: 'Total Knowledgebases'} }}
+          <div class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
+            [matTooltip]="'PAC.Copilot.TotalKnowledgebasesTooltip' | translate: {Default: 'Total number of knowledgebases within the organization.'}"
+            matTooltipPosition="above"
+          >
+            <i class="ri-question-line text-text-secondary text-lg"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-3xl font-semibold text-violet-700 group-hover:text-gray-900">
+      {{ knowledgebases() }}
+    </div>
+  </div>
+</div>
+
+
+<div class="mt-2 mb-8">
+  <span class="text-lg mr-2">
+    {{ 'PAC.Xpert.Analysis' | translate: {Default: 'Analysis'} }}
+  </span>
+  
+  <ngm-select class="inline-block w-48" placeholder="Select time range" icon="ri-calendar-line"
+    [selectOptions]="TimeRanges"
+    [(ngModel)]="timeRangeValue"
+  />
+</div>
+
+
+<div class="grid gap-6 grid-cols-1 xl:grid-cols-2 w-full mb-6">
+  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm">
+    <div class="mb-3">
+      <div class="flex items-start p-1">
+        <div class="group">
+          <div
+            class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+          >
+            {{ 'PAC.Copilot.TotalMessages' | translate: {Default: 'Total Messages'} }}
+            <div class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
+              [matTooltip]="'PAC.Copilot.TotalMessagesTooltip' | translate: {Default: 'Number of messages answered by each expert; Xpert author and debugger excluded'}"
+              matTooltipPosition="above"
+            >
+              <i class="ri-question-line text-text-secondary text-lg"></i>
+            </div>
+          </div>
+          <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+            {{ selectedTimeOption() | i18n }}
+          </div>
+          <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
+        </div>
+      </div>
+    </div>
+
+    <pac-statistics-pie-chart [data]="xpertMessages()"
+      dimension="slug"
+      [measureLabel]=" 'PAC.Copilot.Messages' | translate: {Default: 'Messages'} "
+    />
+  </div>
+
+  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm">
+      <div class="mb-3">
+        <div class="flex items-start p-1">
+          <div class="group">
+            <div
+              class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+            >
+              {{ 'PAC.Copilot.TotalTokens' | translate: {Default: 'Total Tokens'} }}
+              <div class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
+                [matTooltip]="'PAC.Copilot.TotalTokensTooltip' | translate: {Default: 'Total tokens consumed by each expert; Xpert author and debugger excluded'}"
+                matTooltipPosition="above"
+              >
+                <i class="ri-question-line text-text-secondary text-lg"></i>
+              </div>
+            </div>
+            <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+              {{ selectedTimeOption() | i18n }}
+            </div>
+            <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
+          </div>
+        </div>
+      </div>
+  
+      <pac-statistics-pie-chart [data]="xpertTokens()" dimension="slug" measure="tokens"
+        [measureLabel]=" 'PAC.Copilot.TotalTokens' | translate: {Default: 'Total Tokens'} " />
+  </div>
+</div>
+
+<div class="grid gap-6 grid-cols-1 xl:grid-cols-2 w-full mb-6">
+    <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm">
+      <div class="mb-3">
+        <div class="flex items-start p-1">
+          <div class="group">
+            <div
+              class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+            >
+              {{ 'PAC.Xpert.TotalConversations' | translate: {Default: 'Total Conversations'} }}
+              <div class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
+                [matTooltip]="'PAC.Xpert.TotalConversationsTooltip' | translate: {Default: 'Daily xpert conversations count; Xpert author and debugger excluded'}"
+                matTooltipPosition="above"
+              >
+                <i class="ri-question-line text-text-secondary text-lg"></i>
+              </div>
+            </div>
+            <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+              {{ selectedTimeOption() | i18n }}
+            </div>
+            <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
+          </div>
+        </div>
+      </div>
+  
+      <pac-statistics-chart [data]="dailyConv()" [measureLabel]=" 'PAC.Xpert.Conversations' | translate: {Default: 'Conversations'} " />
+    </div>
+
+    <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm">
+        <div class="mb-3">
+          <div class="flex items-start p-1">
+            <div class="group">
+              <div
+                class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+              >
+                {{ 'PAC.Xpert.ActiveUsers' | translate: {Default: 'Active Users'} }}
+                <div class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
+                  [matTooltip]="'PAC.Xpert.ActiveUsersTooltip' | translate: {Default: 'Unique users who interacted with xpert; Xpert author and debugger excluded'}"
+                  matTooltipPosition="above"
+                >
+                  <i class="ri-question-line text-text-secondary text-lg"></i>
+                </div>
+              </div>
+              <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+                {{ selectedTimeOption() | i18n }}
+              </div>
+              <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
+            </div>
+          </div>
+        </div>
+    
+        <pac-statistics-chart [data]="dailyEndUsers()" [measureLabel]=" 'PAC.Xpert.ActiveUsers' | translate: {Default: 'Active Users'} "/>
+    </div>
+</div>
+
+<div class="grid gap-6 grid-cols-1 xl:grid-cols-2 w-full mb-6">
+    <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm">
+      <div class="mb-3">
+        <div class="flex items-start p-1">
+          <div class="group">
+            <div
+              class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+            >
+              {{ 'PAC.Xpert.AvgSessionInteractions' | translate: {Default: 'Avg. Session Interactions'} }}
+              <div class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
+                [matTooltip]="'PAC.Xpert.AvgSessionInteractionsTooltip' | translate: {Default: 'User interactions per session with xpert'}"
+                matTooltipPosition="above"
+              >
+                <i class="ri-question-line text-text-secondary text-lg"></i>
+              </div>
+            </div>
+            <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+              {{ selectedTimeOption() | i18n }}
+            </div>
+            <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
+          </div>
+        </div>
+      </div>
+  
+      <pac-statistics-chart [data]="averageSessionInteractions()" totalType="avg"
+        [measureLabel]="'PAC.Xpert.AvgSessionInteractions' | translate: {Default: 'Avg. Session Interactions'}"/>
+    </div>
+  
+    <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm">
+      <div class="mb-3">
+        <div class="flex items-start p-1">
+          <div class="group">
+            <div
+              class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+            >
+              {{ 'PAC.Xpert.TotalMessages' | translate: {Default: 'Total Messages'} }}
+              <div class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
+                [matTooltip]="'PAC.Xpert.TotalMessagesTooltip' | translate: {Default: 'Daily interactions count with xpert'}"
+                matTooltipPosition="above"
+              >
+                <i class="ri-question-line text-text-secondary text-lg"></i>
+              </div>
+            </div>
+            <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+              {{ selectedTimeOption() | i18n }}
+            </div>
+            <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
+          </div>
+        </div>
+      </div>
+  
+      <pac-statistics-chart [data]="dailyMessages()" [measureLabel]="'PAC.Xpert.TotalMessages' | translate: {Default: 'Total Messages'}"/>
+    </div>
+  </div>
+  
+  <div class="grid gap-6 grid-cols-1 xl:grid-cols-2 w-full mb-6">
+    <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm">
+      <div class="mb-3">
+        <div class="flex items-start p-1">
+          <div class="group">
+            <div
+              class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+            >
+              {{ 'PAC.Xpert.UserSatisfactionRate' | translate: {Default: 'User Satisfaction Rate'} }}
+              <div class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
+                [matTooltip]="'PAC.Xpert.UserSatisfactionRateTooltip' | translate: {Default: 'The number of likes per 1,000 messages. This indicates the proportion of answers that users are highly satisfied with.'}"
+                matTooltipPosition="above"
+              >
+                <i class="ri-question-line text-text-secondary text-lg"></i>
+              </div>
+            </div>
+            <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+              {{ selectedTimeOption() | i18n }}
+            </div>
+            <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
+          </div>
+        </div>
+      </div>
+  
+      <pac-statistics-chart [data]="userSatisfactionRate()"
+        [measureLabel]="'PAC.Xpert.UserSatisfactionRate' | translate: {Default: 'User Satisfaction Rate'}"/>
+    </div>
+  
+    <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm">
+      <div class="mb-3">
+        <div class="flex items-start p-1">
+          <div class="group">
+            <div
+              class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+            >
+              {{ 'PAC.Xpert.TokenOutputSpeed' | translate: {Default: 'Token Output Speed'} }}
+              <div class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
+                [matTooltip]="'PAC.Xpert.TokenOutputSpeedTooltip' | translate: {Default: 'Measure the performance of the LLM. Count the Tokens output speed of LLM from the beginning of the request to the completion of the output.'}"
+                matTooltipPosition="above"
+              >
+                <i class="ri-question-line text-text-secondary text-lg"></i>
+              </div>
+            </div>
+            <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+              {{ selectedTimeOption() | i18n }}
+            </div>
+            <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
+          </div>
+        </div>
+      </div>
+  
+      <pac-statistics-chart [data]="tokensPerSecond()" totalType="avg" unit="Token/s"
+        [measureLabel]="'PAC.Xpert.TokenOutputSpeed' | translate: {Default: 'Token Output Speed'}"/>
+    </div>
+  </div>
+
+
+<div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm">
+  <div class="mb-3">
+    <div class="flex items-start p-1">
+        <div class="group">
+        <div
+            class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+        >
+            {{ 'PAC.Xpert.TokenUsage' | translate: {Default: 'Token Usage'} }}
+            <div class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
+            [matTooltip]="'PAC.Xpert.TokenUsageTooltip' | translate: {Default: 'Reflects the daily token usage of this expert request ai model, used for cost control'}"
+            matTooltipPosition="above"
+            >
+            <i class="ri-question-line text-text-secondary text-lg"></i>
+            </div>
+        </div>
+        <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+            {{ selectedTimeOption() | i18n }}
+        </div>
+        <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
+        </div>
+    </div>
+  </div>
+
+  <pac-statistics-token-usage class="w-full"
+    [tokenCost]="tokenCost()"
+  />
+</div>

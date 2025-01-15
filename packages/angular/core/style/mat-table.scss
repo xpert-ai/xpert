@@ -1,0 +1,18 @@
+@mixin _ngm-table-height($height, $font-size) {
+  tr.mat-mdc-row {
+    height: $height;
+  }
+  tr.mat-mdc-header-row, tr.mat-mdc-footer-row {
+    height: $height + .25rem;
+  }
+  .mat-mdc-cell, .mat-mdc-footer-cell {
+    font-size: $font-size;
+  }
+}
+
+.mat-mdc-table.ngm-density__cosy {
+  @include _ngm-table-height(2.5rem, .9rem);
+}
+.mat-mdc-table.ngm-density__compact {
+  @include _ngm-table-height(2rem, .85rem);
+}

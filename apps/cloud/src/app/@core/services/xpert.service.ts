@@ -247,6 +247,60 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
       params: this.timeRangeToParams(new HttpParams(), timeRange)
     })
   }
+  
+  getStatisticsTokensPerSecond(id: string, timeRange: string[]) {
+    return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/tokens-per-second`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+
+  getStatisticsTokenCost(id: string, timeRange: string[]) {
+    return this.httpClient.get<{ date: string; tokens: number; price: number; model: string; currency: string;}[]>(this.apiBaseUrl + `/${id}/statistics/token-costs`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+  
+  getStatisticsUserSatisfactionRate(id: string, timeRange: string[]) {
+    return this.httpClient.get<{ date: string; tokens: number; price: number; model: string; currency: string;}[]>(
+      this.apiBaseUrl + `/${id}/statistics/user-satisfaction-rate`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+
+  getStatisticsXperts(timeRange: string[]) {
+    return this.httpClient.get<{ count: number;}[]>(
+      this.apiBaseUrl + `/statistics/xperts`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+
+  getStatisticsXpertConv(timeRange: string[]) {
+    return this.httpClient.get<{ slug: string; count: number;}[]>(
+      this.apiBaseUrl + `/statistics/xpert-conversations`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+
+  getStatisticsXpertMessages(timeRange: string[]) {
+    return this.httpClient.get<{ slug: string; count: number;}[]>(
+      this.apiBaseUrl + `/statistics/xpert-messages`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+
+  getStatisticsXpertTokens(timeRange: string[]) {
+    return this.httpClient.get<{ slug: string; count: number;}[]>(
+      this.apiBaseUrl + `/statistics/xpert-tokens`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+  
+  getStatisticsXpertIntegrations(timeRange: string[]) {
+    return this.httpClient.get<{ slug: string; count: number;}[]>(
+      this.apiBaseUrl + `/statistics/xpert-integrations`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
 
   timeRangeToParams(params: HttpParams, timeRange: string[]) {
     if (timeRange[0]) {

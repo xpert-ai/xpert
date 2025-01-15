@@ -447,14 +447,14 @@ export function createXpertNodes(xpert: IXpert, position: IPoint) {
   }
 
   const size = {
-    width: xRange.max - xRange.min + 20, 
-    height: yRange.max - yRange.min + 20
+    width: xRange.max - xRange.min + 50, 
+    height: yRange.max - yRange.min + 80
   }
 
   nodes.forEach((node) => {
     node.position = {
       x: position.x + (node.position?.x ? node.position.x - xRange.min : 0) + 10,
-      y: position.y + (node.position?.y ? node.position.y - yRange.min : 0) + 10,
+      y: position.y + (node.position?.y ? node.position.y - yRange.min : 0) + 40,
     }
   })
 

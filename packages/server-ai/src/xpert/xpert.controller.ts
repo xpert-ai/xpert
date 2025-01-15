@@ -48,11 +48,11 @@ import { XpertDraftDslDTO, XpertPublicDTO } from './dto'
 import { Xpert } from './xpert.entity'
 import { XpertService } from './xpert.service'
 import { WorkspaceGuard } from '../xpert-workspace/'
-import { SearchXpertMemoryQuery } from './queries'
+import { SearchXpertMemoryQuery, StatisticsXpertConversationsQuery, StatisticsXpertIntegrationsQuery, StatisticsXpertMessagesQuery, StatisticsXpertsQuery, StatisticsXpertTokensQuery } from './queries'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { XpertAgentVariablesQuery } from '../xpert-agent/queries'
 import { AnonymousXpertAuthGuard } from './auth/anonymous-auth.guard'
-import { ChatConversationDeleteCommand, ChatConversationLogsQuery, ChatConversationUpsertCommand, FindChatConversationQuery, GetChatConversationQuery, StatisticsAverageSessionInteractionsQuery, StatisticsDailyConvQuery, StatisticsDailyEndUsersQuery, StatisticsDailyMessagesQuery } from '../chat-conversation'
+import { ChatConversationDeleteCommand, ChatConversationLogsQuery, ChatConversationUpsertCommand, FindChatConversationQuery, GetChatConversationQuery, StatisticsAverageSessionInteractionsQuery, StatisticsDailyConvQuery, StatisticsDailyEndUsersQuery, StatisticsDailyMessagesQuery, StatisticsTokenCostQuery, StatisticsTokensPerSecondQuery, StatisticsUserSatisfactionRateQuery } from '../chat-conversation'
 import { FindMessageFeedbackQuery } from '../chat-message-feedback/queries'
 import { XpertGuard } from './guards/xpert.guard'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
@@ -444,28 +444,81 @@ export class XpertController extends CrudController<Xpert> {
 
 	// Statistics
 
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Get('statistics/xperts')
+	async getStatisticsXperts(@Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsXpertsQuery(start, end))
+	}
+
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Get('statistics/xpert-conversations')
+	async getStatisticsXpertConversations(@Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsXpertConversationsQuery(start, end))
+	}
+
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Get('statistics/xpert-messages')
+	async getStatisticsXpertMessages(@Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsXpertMessagesQuery(start, end))
+	}
+
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Get('statistics/xpert-tokens')
+	async getStatisticsXpertTokens(@Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsXpertTokensQuery(start, end))
+	}
+
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Get('statistics/xpert-integrations')
+	async getStatisticsXpertIntegrations(@Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsXpertIntegrationsQuery(start, end))
+	}
+
 	@UseGuards(XpertGuard)
 	@Get(':id/statistics/daily-conversations')
 	async getDailyConversations(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
-		return await this.queryBus.execute(new StatisticsDailyConvQuery(id, start, end))
+		return await this.queryBus.execute(new StatisticsDailyConvQuery(start, end, id))
 	}
 
 	@UseGuards(XpertGuard)
 	@Get(':id/statistics/daily-end-users')
 	async getDailyEndUsers(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
-		return await this.queryBus.execute(new StatisticsDailyEndUsersQuery(id, start, end))
+		return await this.queryBus.execute(new StatisticsDailyEndUsersQuery(start, end, id))
 	}
 	
 	@UseGuards(XpertGuard)
 	@Get(':id/statistics/average-session-interactions')
 	async getAverageSessionInteractions(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
-		return await this.queryBus.execute(new StatisticsAverageSessionInteractionsQuery(id, start, end))
+		return await this.queryBus.execute(new StatisticsAverageSessionInteractionsQuery(start, end, id))
 	}
 
 	@UseGuards(XpertGuard)
 	@Get(':id/statistics/daily-messages')
 	async getDailyMessages(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
-		return await this.queryBus.execute(new StatisticsDailyMessagesQuery(id, start, end))
+		return await this.queryBus.execute(new StatisticsDailyMessagesQuery(start, end, id))
 	}
 
+	@UseGuards(XpertGuard)
+	@Get(':id/statistics/tokens-per-second')
+	async getTokensPerSecond(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsTokensPerSecondQuery(start, end, id))
+	}
+
+	@UseGuards(XpertGuard)
+	@Get(':id/statistics/token-costs')
+	async getTokenCost(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsTokenCostQuery(start, end, id))
+	}
+
+	@UseGuards(XpertGuard)
+	@Get(':id/statistics/user-satisfaction-rate')
+	async getUserSatisfactionRate(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsUserSatisfactionRateQuery(start, end, id))
+	}
+	
 }

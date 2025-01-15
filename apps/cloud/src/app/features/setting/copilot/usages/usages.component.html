@@ -1,38 +1,67 @@
-<ngm-table class="overflow-hidden rounded-lg border m-4"
-    displayDensity="comfortable"
-    paging
-    [data]="usages()"
-    [columns]="[
-      {
-        name: 'organization',
-        caption: 'PAC.KEY_WORDS.Organization' | translate: {Default: 'Organization'},
-        cellTemplate: orgTempl
-      },
-      {
-        name: 'provider',
-        caption: 'PAC.KEY_WORDS.Provider' | translate: {Default: 'Provider'},
-      },
-      {
-        name: 'tokenUsed',
-        caption: 'PAC.KEY_WORDS.TokenUsed' | translate: {Default: 'Token Used'},
-        pipe: formatNumber
-      },
-      {
-        name: 'tokenLimit',
-        caption: 'PAC.KEY_WORDS.TokenLimit' | translate: {Default: 'Token Limit'},
-        pipe: formatNumber
-      },
-      {
-        name: 'tokenTotalUsed',
-        caption: 'PAC.KEY_WORDS.TokenTotalUsed' | translate: {Default: 'Token Total Used'},
-        pipe: formatNumber
-      },
-      {
-        name: 'action',
-        caption: 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' },
-        cellTemplate: actionTempl
-      }
-    ]"
+<ngm-table class="overflow-hidden rounded-lg border m-4 text-sm"
+  displayDensity="cosy"
+  paging
+  [data]="usages()"
+  [columns]="[
+    {
+      name: 'organization',
+      caption: 'PAC.KEY_WORDS.Organization' | translate: {Default: 'Organization'},
+      cellTemplate: orgTempl
+    },
+    {
+      name: 'provider',
+      caption: 'PAC.KEY_WORDS.Provider' | translate: {Default: 'Provider'},
+    },
+    {
+      name: 'model',
+      caption: 'PAC.Copilot.Model' | translate: {Default: 'Model'},
+    },
+    {
+      name: 'tokenUsed',
+      caption: 'PAC.KEY_WORDS.TokenUsed' | translate: {Default: 'Token Used'},
+      pipe: formatNumber
+    },
+    {
+      name: 'tokenLimit',
+      caption: 'PAC.KEY_WORDS.TokenLimit' | translate: {Default: 'Token Limit'},
+      pipe: formatNumber
+    },
+    {
+      name: 'tokenTotalUsed',
+      caption: 'PAC.KEY_WORDS.TokenTotalUsed' | translate: {Default: 'Token Total Used'},
+      pipe: formatNumber
+    },
+    {
+      name: 'priceUsed',
+      caption: 'PAC.Copilot.PriceUsed' | translate: {Default: 'Price Used'},
+      pipe: formatPrice
+    },
+    {
+      name: 'priceLimit',
+      caption: 'PAC.Copilot.PriceLimit' | translate: {Default: 'Price Limit'},
+      pipe: formatPrice
+    },
+    {
+      name: 'priceTotalUsed',
+      caption: 'PAC.Copilot.PriceTotalUsed' | translate: {Default: 'Price Total Used'},
+      pipe: formatPrice
+    },
+    {
+      name: 'currency',
+      caption: 'PAC.KEY_WORDS.Currency' | translate: {Default: 'Currency'},
+    },
+    {
+      name: 'updatedAt',
+      caption: 'PAC.Copilot.LastUsed' | translate: {Default: 'Last Used'},
+      pipe: formatRelative
+    },
+    {
+      name: 'action',
+      caption: 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' },
+      cellTemplate: actionTempl,
+      stickyEnd: true
+    }
+  ]"
 />
 
 <ng-template #orgTempl let-organization>
@@ -47,7 +76,10 @@
 <ng-template #actionTempl let-id="id" >
   <div class="flex items-center gap-2" displayDensity="compact">
     @if (editId() === id) {
-      <ngm-input type="number" simple [disabled]="loading()" [(ngModel)]="tokenLimit" />
+      <ngm-input type="number" simple [placeholder]="'PAC.Copilot.TokenLimit' | translate: {Default: 'Token Limit'}"
+        [disabled]="loading()" [(ngModel)]="tokenLimit" />
+      <ngm-input type="number" simple [placeholder]="'PAC.Copilot.PriceLimit' | translate: {Default: 'Price Limit'}"
+        [disabled]="loading()" [(ngModel)]="priceLimit" />
       <button mat-icon-button class="text-gray-400"
         [disabled]="loading()"
         [matTooltip]="'PAC.ChatBI.Save' | translate: {Default: 'Save'}"

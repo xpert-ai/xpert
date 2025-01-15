@@ -100,7 +100,7 @@ export class XpertStudioFeaturesMemoryComponent {
   }
 
   updateMemory(memory: Partial<TLongTermMemory>) {
-    this.apiService.updateXpert((xpert) => {
+    this.apiService.updateXpertTeam((xpert) => {
       return {
         ...xpert,
         memory: {

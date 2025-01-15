@@ -23,6 +23,7 @@
       "Ask": "提问",
       "Certification": "认证",
       "Conversation": "会话",
+      "Currency": "币种",
       "DigitalAssetCertificationTypes": "数字资产认证类型",
       "Owner": "所有者",
       "Query": "查询",
@@ -1479,6 +1480,24 @@
       "WelcomeSubTitle": "你的数字业务专家智能助理",
       "UploadFile": "上传文件",
       "NewExample": "新建示例",
+      "LastUsed": "最后使用",
+      "UserUsage": "用户使用量",
+      "OrgUsage": "组织使用量",
+      "Monitoring": "监测",
+      "TotalMessages": "总消息数",
+      "TotalMessagesTooltip": "每个专家回答的消息数，专家作者和调试者对话除外",
+      "TotalTokens": "总 Tokens",
+      "TotalTokensTooltip": "每个专家消耗 Tokens 总量，专家作者和调试者对话除外",
+      "TotalXperts": "专家总数",
+      "TotalXpertsTooltip": "组织内已发布的专家总数。",
+      "TotalXpertIntegrations": "总专家集成数",
+      "TotalXpertIntegrationsTooltip": "为专家提供的第三方集成总数",
+      "TotalKnowledgebases": "总知识库数",
+      "TotalKnowledgebasesTooltip": "组织内知识库总数",
+      "PriceUsed": "已用金额",
+      "PriceLimit": "限额",
+      "PriceTotalUsed": "已用总金额",
+      "TokenLimit": "限额(Token)",
       "Prompts": {
         "Set story theme dark": "设置故事暗黑主题",
         "Set story gradient background color sense of technology": "设置故事背景为科技感渐变色",
@@ -1551,7 +1570,9 @@
       "ShowMoreIndicators": "展示更多指标",
       "ShowLessIndicators": "展示少一些指标",
       "GotoNewXpert": "去新建数字专家",
-      "NewCalculatedIndicator": "新建计算指标"
+      "NewCalculatedIndicator": "新建计算指标",
+      "ShowMoreXperts": "展示更多专家",
+      "ShowLessXperts": "展示少一些专家"
     },
     "ChatBI": {
       "Title": "ChatBI-数据分析与洞察",
@@ -2171,7 +2192,14 @@
       "ChatFrom": "对话来源",
       "TooShort": "太短",
       "NameContainsNonAlpha": "名称包含非（字母 | - | 空格）的字符",
-      "NameNotAvailable": "名称不可用"
+      "NameNotAvailable": "名称不可用",
+      "TokenUsage": "费用消耗",
+      "TokenUsageTooltip": "反应每日此专家请求 AI 模型的 Token 使用量，用于成本控制",
+      "ConsumedTokens": "已消耗 Token",
+      "TokenOutputSpeed": "Token 输出速度",
+      "TokenOutputSpeedTooltip": "衡量LLM的性能。统计LLM从请求开始到输出完成的Tokens输出速度。",
+      "UserSatisfactionRate": "用户满意率",
+      "UserSatisfactionRateTooltip": "每千条消息的点赞数。这表示用户非常满意的答案的比例。"
     },
     "title": {
       "short": "Xpert AI"

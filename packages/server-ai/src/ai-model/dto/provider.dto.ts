@@ -5,12 +5,15 @@ import { IsOptional, IsString, ValidateNested } from 'class-validator'
 @Expose()
 export class AiProviderDto {
 	
+	@Expose()
 	@IsString()
 	provider: string
 
+	@Expose()
 	@ValidateNested()
 	label: I18nObject
 	
+	@Expose()
 	@IsOptional()
 	@ValidateNested()
 	@Transform(
@@ -22,6 +25,7 @@ export class AiProviderDto {
 	)
 	icon_small?: I18nObject
 
+	@Expose()
 	@IsOptional()
 	@ValidateNested()
 	@Transform(

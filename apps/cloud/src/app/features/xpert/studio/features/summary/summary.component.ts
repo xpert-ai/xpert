@@ -58,7 +58,7 @@ export class XpertStudioFeaturesSummaryComponent {
   
 
   updateSummarize(summarize: Partial<TSummarize>) {
-    this.apiService.updateXpert((xpert) => {
+    this.apiService.updateXpertTeam((xpert) => {
       return {
         ...xpert,
         summarize: {

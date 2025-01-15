@@ -5,6 +5,9 @@ import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { Organization, TenantOrganizationBaseEntity, User } from '@metad/server-core'
 import { Copilot } from '../core/entities/internal'
 
+/**
+ * Unique index: user, provider, model
+ */
 @Entity('copilot_user')
 export class CopilotUser extends TenantOrganizationBaseEntity implements ICopilotUser {
 
@@ -24,6 +27,7 @@ export class CopilotUser extends TenantOrganizationBaseEntity implements ICopilo
 	@IsOptional()
 	@Column({ nullable: true })
 	userId?: string
+
 	/*
     |--------------------------------------------------------------------------
     | Attributes 
@@ -35,23 +39,53 @@ export class CopilotUser extends TenantOrganizationBaseEntity implements ICopilo
 	@Column({ nullable: true, length: 20 })
 	provider?: AiProvider | string
 
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true, })
+	model?: string
+
 	@ApiPropertyOptional({ type: () => Number })
 	@IsNumber()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'integer', nullable: true })
 	tokenLimit?: number
 
 	@ApiPropertyOptional({ type: () => Number })
 	@IsNumber()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'numeric', precision: 10, scale: 7, nullable: true })
+	priceLimit?: number
+
+	@ApiPropertyOptional({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ type: 'integer', nullable: true, default: 0 })
 	tokenUsed?: number
 
 	@ApiPropertyOptional({ type: () => Number })
 	@IsNumber()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'integer', nullable: true, default: 0 })
 	tokenTotalUsed?: number
+
+	@ApiPropertyOptional({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ type: 'numeric', precision: 10, scale: 7, nullable: true })
+	priceUsed?: number
+
+	@ApiPropertyOptional({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ type: 'numeric', precision: 10, scale: 7, nullable: true })
+	priceTotalUsed?: number
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	currency?: string
 
 	/*
     |--------------------------------------------------------------------------

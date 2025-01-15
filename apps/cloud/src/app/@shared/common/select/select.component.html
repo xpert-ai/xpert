@@ -10,14 +10,14 @@
       <i [class]="icon()"></i>
     </div>
   }
-  <div class="grow mr-2 text-text-secondary text-sm">
+  <div class="grow mr-2 text-text-primary text-sm">
     @for (option of selectedOptions(); track option.value; let last = $last) {
       {{option.label | i18n}}
       @if (!last) {
         ,
       }
     } @empty {
-      {{ placeholder() }}
+      <div class="text-text-secondary">{{ placeholder() }}</div>
     }
   </div>
   <svg

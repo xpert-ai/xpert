@@ -1,18 +1,17 @@
 import { DialogRef } from '@angular/cdk/dialog'
+import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, signal } from '@angular/core'
+import { FormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { IfAnimations } from '@metad/core'
-import { TranslateModule } from '@ngx-translate/core'
-import { XpertStudioFeaturesSummaryComponent } from './summary/summary.component'
-import { XpertStudioApiService } from '../domain'
-import { FormsModule } from '@angular/forms'
-import { XpertStudioFeaturesMemoryComponent } from './memory/memory.component'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
-import { DragDropModule } from '@angular/cdk/drag-drop'
-
+import { TranslateModule } from '@ngx-translate/core'
+import { XpertStudioApiService } from '../domain'
+import { XpertStudioFeaturesMemoryComponent } from './memory/memory.component'
+import { XpertStudioFeaturesSummaryComponent } from './summary/summary.component'
 
 @Component({
   selector: 'xpert-studio-features',
@@ -49,23 +48,29 @@ export class XpertStudioFeaturesComponent {
   }
 
   toggleView(view: 'summarize' | 'image_upload' | 'memory') {
-    this.view.update((state) => state === view ? null : view)
+    this.view.update((state) => (state === view ? null : view))
   }
 
   toggleSummarize(enabled?: boolean) {
-    this.apiService._updateXpert({
-      summarize: {
-        ...(this.summarize() ?? {}),
-        enabled,
+    this.apiService.updateXpertTeam((xpert) => {
+      return {
+        ...xpert,
+        summarize: {
+          ...(xpert.summarize ?? {}),
+          enabled
+        }
       }
     })
   }
 
   toggleMemory(enabled?: boolean) {
-    this.apiService._updateXpert({
-      memory: {
-        ...(this.memory() ?? {}),
-        enabled,
+    this.apiService.updateXpertTeam((xpert) => {
+      return {
+        ...xpert,
+        memory: {
+          ...(xpert.memory ?? {}),
+          enabled
+        }
       }
     })
   }

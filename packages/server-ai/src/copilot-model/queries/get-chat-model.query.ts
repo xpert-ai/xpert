@@ -1,4 +1,4 @@
-import { ICopilot, ICopilotModel } from '@metad/contracts'
+import { ICopilot, ICopilotModel, ILLMUsage } from '@metad/contracts'
 import { IQuery } from '@nestjs/cqrs'
 
 /**
@@ -12,7 +12,8 @@ export class CopilotModelGetChatModelQuery implements IQuery {
 		public readonly copilotModel: ICopilotModel,
 		public readonly options: {
 			abortController?: AbortController;
-			tokenCallback?: (tokens: number) => void
+			// tokenCallback?: (tokens: number) => void
+			usageCallback: (tokens: ILLMUsage) => void
 		}
 	) {}
 }

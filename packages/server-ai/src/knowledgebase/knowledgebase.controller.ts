@@ -1,4 +1,4 @@
-import { AIPermissionsEnum, IPagination, KnowledgebasePermission, Metadata } from '@metad/contracts'
+import { AIPermissionsEnum, IPagination, KnowledgebasePermission, Metadata, RolesEnum } from '@metad/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -6,6 +6,8 @@ import {
 	PermissionGuard,
 	Permissions,
 	RequestContext,
+	RoleGuard,
+	Roles,
 	TransformInterceptor
 } from '@metad/server-core'
 import { getErrorMessage } from '@metad/server-common'
@@ -22,11 +24,12 @@ import {
 	UseInterceptors,
 	InternalServerErrorException
 } from '@nestjs/common'
-import { CommandBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { In, Not } from 'typeorm'
 import { Knowledgebase } from './knowledgebase.entity'
 import { KnowledgebaseService } from './knowledgebase.service'
+import { StatisticsKnowledgebasesQuery } from './queries'
 
 
 @ApiTags('Knowledgebase')
@@ -37,7 +40,8 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 	readonly #logger = new Logger(KnowledgebaseController.name)
 	constructor(
 		private readonly service: KnowledgebaseService,
-		private readonly commandBus: CommandBus
+		private readonly commandBus: CommandBus,
+		private readonly queryBus: QueryBus
 	) {
 		super(service)
 	}
@@ -142,4 +146,12 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 		}
 	}
 	
+	// Statistics
+
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@Get('statistics/knowledgebases')
+	async getStatisticsKnowledgebases(@Query('start') start: string, @Query('end') end: string) {
+		return await this.queryBus.execute(new StatisticsKnowledgebasesQuery(start, end))
+	}
 }

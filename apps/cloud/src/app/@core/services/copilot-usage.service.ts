@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
-import { ICopilotOrganization, ICopilotUser } from '@metad/contracts'
+import { toHttpParams } from '@metad/cloud/state'
+import { ICopilotOrganization, ICopilotUser, OrderTypeEnum } from '@metad/contracts'
 import { NGXLogger } from 'ngx-logger'
 import { map } from 'rxjs'
 import { API_COPILOT_ORGANIZATION, API_COPILOT_USER } from '../constants/app.constants'
@@ -13,9 +14,12 @@ export class CopilotUsageService {
   getOrgUsages() {
     return this.httpClient
       .get<{ items: ICopilotOrganization[] }>(API_COPILOT_ORGANIZATION, {
-        params: {
-          $relations: JSON.stringify(['organization'])
-        }
+        params: toHttpParams({
+          relations: ['organization'],
+          order: {
+            updatedAt: OrderTypeEnum.DESC
+          }
+        })
       })
       .pipe(map(({ items }) => items))
   }
@@ -23,18 +27,21 @@ export class CopilotUsageService {
   getUserUsages() {
     return this.httpClient
       .get<{ items: ICopilotUser[] }>(API_COPILOT_USER, {
-        params: {
-          $relations: JSON.stringify(['user', 'org'])
-        }
+        params: toHttpParams({
+          relations: ['user', 'org'],
+          order: {
+            updatedAt: OrderTypeEnum.DESC
+          }
+        })
       })
       .pipe(map(({ items }) => items))
   }
 
-  renewOrgLimit(id: string, tokenLimit: number) {
-    return this.httpClient.post<ICopilotOrganization>(API_COPILOT_ORGANIZATION + `/${id}/renew`, { tokenLimit })
+  renewOrgLimit(id: string, tokenLimit: number, priceLimit: number) {
+    return this.httpClient.post<ICopilotOrganization>(API_COPILOT_ORGANIZATION + `/${id}/renew`, { tokenLimit, priceLimit })
   }
 
-  renewUserLimit(id: string, tokenLimit: number) {
-    return this.httpClient.post<ICopilotUser>(API_COPILOT_USER + `/${id}/renew`, { tokenLimit })
+  renewUserLimit(id: string, tokenLimit: number, priceLimit: number) {
+    return this.httpClient.post<ICopilotUser>(API_COPILOT_USER + `/${id}/renew`, { tokenLimit, priceLimit })
   }
 }

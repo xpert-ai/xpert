@@ -1,7 +1,6 @@
 import { HumanMessage, isSystemMessage } from '@langchain/core/messages'
 import { ChatOpenAI } from '@langchain/openai'
 import { AIModelEntity, AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
-import { sumTokenUsage } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { Injectable } from '@nestjs/common'
 import { ModelProvider } from '../../../ai-provider'
@@ -56,29 +55,20 @@ export class OpenAILargeLanguageModel extends CommonOpenAI {
 
 	override getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions) {
 		const { copilot } = copilotModel
-		const { modelProvider } = copilot
-		const params = this.toCredentialKwargs(modelProvider.credentials as OpenAICredentials)
-
 		const { handleLLMTokens } = options ?? {}
+		const { modelProvider } = copilot
+		const credentials = modelProvider.credentials as OpenAICredentials
+		const params = this.toCredentialKwargs(credentials)
+
+		const model = copilotModel.model
 		return new ValidatedChatOpenAI({
 			...params,
-			model: copilotModel.model,
+			model,
 			streaming: copilotModel.options?.streaming ?? true,
 			temperature: copilotModel.options?.temperature ?? 0,
 			maxTokens: copilotModel.options?.max_tokens,
 			streamUsage: false,
-			callbacks: [
-				{
-					handleLLMEnd(output) {
-						if (handleLLMTokens) {
-							handleLLMTokens({
-								copilot,
-								tokenUsed: output.llmOutput?.totalTokens ?? sumTokenUsage(output)
-							})
-						}
-					}
-				}
-			]
+			callbacks: [...this.createHandleUsageCallbacks(copilot, model, credentials, handleLLMTokens)]
 		})
 	}
 }

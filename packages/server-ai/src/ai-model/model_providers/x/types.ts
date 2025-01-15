@@ -1,3 +1,4 @@
+import { ChatOpenAIFields } from '@langchain/openai'
 import { ChatXAIInput } from '@langchain/xai'
 
 export interface XAICredentials {
@@ -6,9 +7,11 @@ export interface XAICredentials {
 }
 
 export function toCredentialKwargs(credentials: XAICredentials) {
-	const credentialsKwargs: ChatXAIInput = {
-		apiKey: credentials.api_key
-		// baseUrl: credentials.endpoint_url
+	const credentialsKwargs: ChatOpenAIFields = {
+		apiKey: credentials.api_key,
+		configuration: {
+			baseURL: credentials.endpoint_url
+		}
 	}
 
 	return credentialsKwargs

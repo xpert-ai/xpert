@@ -9,7 +9,7 @@ import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/c
 import { v4 as uuidv4 } from 'uuid'
 import z from 'zod'
 import { CreateCopilotStoreCommand } from '../../../copilot-store'
-import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
+import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { XpertAgentExecutionStateQuery } from '../../../xpert-agent-execution/queries'
 import { AgentStateAnnotation } from '../../../xpert-agent/commands/handlers/types'
 import { GetXpertAgentQuery, GetXpertChatModelQuery, GetXpertMemoryEmbeddingsQuery } from '../../queries'
@@ -65,9 +65,7 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 		const chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
 			new GetXpertChatModelQuery(agent.team, agent, {
 				abortController,
-				tokenCallback: (token) => {
-					execution.tokens += token ?? 0
-				}
+				usageCallback: assignExecutionUsage(execution),
 			})
 		)
 

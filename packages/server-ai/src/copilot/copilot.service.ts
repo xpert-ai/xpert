@@ -1,23 +1,38 @@
-import { AiProviderRole, ICopilot } from '@metad/contracts'
+import { AiProviderRole, IAiProviderEntity, ICopilot } from '@metad/contracts'
 import { DeepPartial } from '@metad/server-common'
+import { ConfigService } from '@metad/server-config'
 import {
 	FindOptionsWhere,
 	PaginationParams,
 	RequestContext,
 	TenantOrganizationAwareCrudService
 } from '@metad/server-core'
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { assign } from 'lodash'
+import { assign, compact, uniq } from 'lodash'
 import { IsNull, Repository } from 'typeorm'
+import { ListModelProvidersQuery } from '../ai-model'
 import { GetCopilotOrgUsageQuery } from '../copilot-organization/queries'
 import { Copilot } from './copilot.entity'
+import { CopilotDto } from './dto'
 
-export const ProviderRolePriority = [AiProviderRole.Embedding, AiProviderRole.Secondary, AiProviderRole.Primary, AiProviderRole.Reasoning]
+export const ProviderRolePriority = [
+	AiProviderRole.Embedding,
+	AiProviderRole.Secondary,
+	AiProviderRole.Primary,
+	AiProviderRole.Reasoning
+]
 
 @Injectable()
 export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> {
+	@Inject(ConfigService)
+	private readonly configService: ConfigService
+
+	get baseUrl() {
+		return this.configService.get('baseUrl') as string
+	}
+
 	constructor(
 		@InjectRepository(Copilot)
 		repository: Repository<Copilot>,
@@ -105,5 +120,34 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
 		const copilot = await this.findOne(id)
 		assign(copilot, entity)
 		return await this.repository.save(copilot)
+	}
+
+	/**
+	 * Find all copilots
+	 */
+	async findAllCopilots(params: PaginationParams<Copilot>) {
+		const result = await this.findAll(params)
+
+		const providers = await this.queryBus.execute<ListModelProvidersQuery, IAiProviderEntity[]>(
+			new ListModelProvidersQuery(compact(uniq(result.items.map((item) => item.modelProvider?.providerName))))
+		)
+
+		return {
+			...result,
+			items: result.items.map((item) =>
+					new CopilotDto(
+						{
+							...item,
+							modelProvider: item.modelProvider
+								? {
+										...item.modelProvider,
+										provider: providers.find((_) => _.provider === item.modelProvider.providerName)
+									}
+								: null
+						},
+						this.baseUrl
+					)
+			)
+		}
 	}
 }

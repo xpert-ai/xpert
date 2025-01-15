@@ -21,15 +21,3 @@ export interface ModelUsage {
     // 这里可以根据需要添加具体的属性
   token?: number;
 }
-
-export enum PriceType {
-    INPUT = "input",
-    OUTPUT = "output"
-}
-
-export interface PriceInfo {
-    unitPrice: number;
-    unit: number;
-    totalAmount: number;
-    currency: string;
-}

@@ -67,6 +67,60 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 	@Column({ type: 'json', nullable: true })
 	metadata?: TAgentExecutionMetadata
 
+	@ApiProperty({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ type: 'double precision', nullable: true })
+	responseLatency?: number
+	
+	@ApiProperty({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ type: 'numeric', precision: 10, scale: 7, nullable: true })
+	totalPrice?: number
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ length: 20, nullable: true,})
+	currency?: string
+
+	@ApiProperty({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ type: 'integer', nullable: true, default: 0 })
+	inputTokens?: number
+
+	@ApiProperty({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ type: 'numeric', precision: 10, scale: 4, nullable: true })
+	inputUnitPrice?: number
+
+	@ApiProperty({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ type: 'numeric', precision: 10, scale: 7, nullable: true })
+	inputPriceUnit?: number
+
+	@ApiProperty({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ type: 'integer', nullable: true, default: 0 })
+	outputTokens?: number
+
+	@ApiProperty({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ type: 'numeric', precision: 10, scale: 4, nullable: true })
+	outputUnitPrice?: number
+
+	@ApiProperty({ type: () => Number })
+	@IsNumber()
+	@IsOptional()
+	@Column({ type: 'numeric', precision: 10, scale: 7, nullable: true })
+	outputPriceUnit?: number
+
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()

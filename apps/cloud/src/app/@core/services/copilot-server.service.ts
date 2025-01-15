@@ -13,6 +13,7 @@ import {
   ICopilotWithProvider,
   ParameterRule
 } from '../types'
+import { HttpParams } from '@angular/common/http'
 
 @Injectable({ providedIn: 'root' })
 export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> {
@@ -82,6 +83,62 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
 
   disableCopilot(role: AiProviderRole) {
     return this.httpClient.post(this.apiBaseUrl + `/disable/${role}`, {})
+  }
+
+  // Statistics
+
+  getStatisticsDailyConversations(timeRange: string[]) {
+    return this.httpClient.get<{date: string; count?: number;}[]>(this.apiBaseUrl + `/statistics/daily-conversations`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+
+  getStatisticsDailyEndUsers(timeRange: string[]) {
+    return this.httpClient.get<{date: string; count?: number;}[]>(this.apiBaseUrl + `/statistics/daily-end-users`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+
+  getStatisticsAverageSessionInteractions(timeRange: string[]) {
+    return this.httpClient.get<{date: string; count?: number;}[]>(this.apiBaseUrl + `/statistics/average-session-interactions`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+
+  getStatisticsDailyMessages(timeRange: string[]) {
+    return this.httpClient.get<{date: string; count?: number;}[]>(this.apiBaseUrl + `/statistics/daily-messages`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+
+  getStatisticsTokensPerSecond(timeRange: string[]) {
+    return this.httpClient.get<{date: string; count?: number;}[]>(this.apiBaseUrl + `/statistics/tokens-per-second`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+
+  getStatisticsTokenCost(timeRange: string[]) {
+    return this.httpClient.get<{ date: string; tokens: number; price: number; model: string; currency: string;}[]>(this.apiBaseUrl + `/statistics/token-costs`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+
+  getStatisticsUserSatisfactionRate(timeRange: string[]) {
+    return this.httpClient.get<{ date: string; tokens: number; price: number; model: string; currency: string;}[]>(
+      this.apiBaseUrl + `/statistics/user-satisfaction-rate`, {
+      params: this.timeRangeToParams(new HttpParams(), timeRange)
+    })
+  }
+
+
+  timeRangeToParams(params: HttpParams, timeRange: string[]) {
+    if (timeRange[0]) {
+      params = params.set('start', timeRange[0])
+    }
+    if (timeRange[1]) {
+      params = params.set('end', timeRange[1])
+    }
+    return params
   }
 }
 
