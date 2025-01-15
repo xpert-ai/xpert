@@ -16,7 +16,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { formatRelative } from 'date-fns'
-import { distinctUntilChanged, filter, map, shareReplay, switchMap } from 'rxjs'
+import { distinctUntilChanged, filter, map, Observable, of, shareReplay, switchMap } from 'rxjs'
 import { getDateLocale, TXpertAgentConfig } from '../../../../@core'
 import { XpertStudioApiService } from '../domain'
 import { XpertExecutionService } from '../services/execution.service'
@@ -110,7 +110,10 @@ export class XpertStudioHeaderComponent {
 
   publish() {
     this.publishing.set(true)
-    this.xpertService.publish(this.xpertStudioComponent.id()).subscribe({
+    // Check if the draft has been saved
+    const obser: Observable<any> = this.unsaved() ? this.apiService.saveDraft() : of(true)
+    obser.pipe(switchMap(() => this.xpertService.publish(this.xpertStudioComponent.id())))
+    .subscribe({
       next: (result) => {
         this.#toastr.success(
           `PAC.Xpert.PublishedSuccessfully`,

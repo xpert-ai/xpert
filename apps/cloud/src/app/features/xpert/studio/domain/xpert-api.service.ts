@@ -8,9 +8,11 @@ import { KnowledgebaseService, ToastrService, XpertService, XpertToolsetService 
 import { isEqual, negate, omit } from 'lodash-es'
 import {
   BehaviorSubject,
+  catchError,
   combineLatest,
   debounceTime,
   distinctUntilChanged,
+  EMPTY,
   filter,
   map,
   Observable,
@@ -198,15 +200,15 @@ export class XpertStudioApiService {
       ),
       map(() => calculateHash(JSON.stringify(this.storage))),
       distinctUntilChanged(),
-      map(() => this.storage),
       tap(() => this.unsaved.set(true)),
       debounceTime(5 * 1000),
-      switchMap((draft) => this.xpertRoleService.saveDraft(this.storage.team.id, draft))
+      switchMap(() => this.saveDraft()),
+      catchError((err) => {
+        this.#toastr.error(getErrorMessage(err))
+        return EMPTY
+      })
     )
-    .subscribe((draft) => {
-      this.unsaved.set(false)
-      this.draft.set(draft)
-    })
+    .subscribe()
 
   constructor() {
     effect(() => {
@@ -248,6 +250,16 @@ export class XpertStudioApiService {
 
   public refresh() {
     this.#refresh$.next()
+  }
+
+  saveDraft() {
+    const draft = this.storage
+    return this.xpertRoleService.saveDraft(draft.team.id, draft).pipe(
+      tap((draft) => {
+        this.unsaved.set(false)
+        this.draft.set(draft)
+      })
+    )
   }
 
   public getNode(key: string) {
