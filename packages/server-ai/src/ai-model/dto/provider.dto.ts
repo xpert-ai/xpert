@@ -10,6 +10,10 @@ export class AiProviderDto {
 	provider: string
 
 	@Expose()
+	@IsString()
+	background?: string
+
+	@Expose()
 	@ValidateNested()
 	label: I18nObject
 	
