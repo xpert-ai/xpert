@@ -13,11 +13,17 @@ export const routes: Routes = [
   },
   {
     path: 'e',
-    component: XpertExploreComponent
+    component: XpertExploreComponent,
+    data: {
+      title: 'Explore Experts',
+    }
   },
   {
     path: 'w',
     component: XpertWorkspaceHomeComponent,
+    data: {
+      title: 'Expert Workspaces',
+    },
     children: [
       {
         path: '',

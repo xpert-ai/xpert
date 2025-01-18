@@ -1,64 +1,55 @@
-<div class="pac-page-body flex-1 p-4">
-  <ngm-table class="overflow-hidden rounded-lg border mt-2"
-    displayDensity="comfortable"
-    paging
-    [data]="organizations$ | async"
-    [columns]="[
-      {
-        name: 'isDefault',
-        caption: 'PAC.KEY_WORDS.IsDefault' | translate: {Default: 'Is Default'},
-        cellTemplate: isDefaultTempl
-      },
-      {
-        name: 'imageUrl',
-        caption: 'PAC.KEY_WORDS.Logo' | translate: {Default: 'Logo'},
-        cellTemplate: avatarTempl
-      },
-      {
-        name: 'name',
-        caption: 'PAC.KEY_WORDS.NAME' | translate: {Default: 'Name'}
-      },
-      {
-        name: 'totalEmployees',
-        caption: 'PAC.ORGANIZATIONS_PAGE.Organization.TotalEmployees' | translate: {Default: 'Total Employees'}
-      },
-      {
-        name: 'currency',
-        caption: 'PAC.KEY_WORDS.CURRENCY' | translate: {Default: 'Currency'}
-      },
-      {
-        name: 'action',
-        caption: 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' },
-        cellTemplate: actionTempl
+<div class="relative overflow-x-auto">
+  <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+    <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+      <tr>
+        <th scope="col" class="px-4 py-2">
+          {{ 'PAC.KEY_WORDS.IsDefault' | translate: {Default: 'Is Default'} }}
+        </th>
+        <th scope="col" class="px-4 py-2">
+          {{ 'PAC.KEY_WORDS.Logo' | translate: {Default: 'Logo'} }}
+        </th>
+        <th scope="col" class="px-4 py-2">
+          {{ 'PAC.KEY_WORDS.NAME' | translate: {Default: 'Name'} }}
+        </th>
+        <th scope="col" class="px-4 py-2">
+          {{ 'PAC.KEY_WORDS.CURRENCY' | translate: {Default: 'Currency'} }}
+        </th>
+        <th scope="col" class="px-4 py-2">
+          {{ 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of organizations$ | async; track row.id) {
+        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+          <th scope="row" class="px-4 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+            @if (row.isDefault) {
+              <span>✅</span>
+            }
+          </th>
+          <td class="px-4 py-2">
+            <pac-org-avatar [organization]="row" class="block w-8 h-8 rounded-full overflow-hidden" />
+          </td>
+          <td class="px-4 py-2">
+            {{ row.name }}
+          </td>
+          <td class="px-4 py-2">
+            {{ row.currency }}
+          </td>
+          <td class="px-4 py-2">
+            <div class="flex items-center">
+              <button type="button" class="btn action-btn" (click)="editOrganization(row.id)">
+                <i class="ri-edit-box-line"></i>
+              </button>
+          
+              <button type="button" class="btn action-btn"
+                (click)="deleteOrganization(row.id)">
+                <i class="ri-delete-bin-2-line"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
       }
-    ]"
-  ></ngm-table>
+    </tbody>
+  </table>
 </div>
-
-<ng-template #isDefaultTempl let-isDefault>
-  @if (isDefault) {
-    <span>✅</span>
-  }
-</ng-template>
-
-<ng-template #avatarTempl let-imageUrl let-name="name">
-  <pac-org-avatar [organization]="{imageUrl, name}" class="block w-8 h-8 rounded-full overflow-hidden"></pac-org-avatar>
-</ng-template>
-
-<ng-template #actionTempl let-loading="loading" let-id="id">
-  <div class="flex items-center">
-    <button mat-icon-button displayDensity="cosy" class="text-gray-400" (click)="editOrganization(id)">
-      <div class="flex justify-center items-center">
-        <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
-      </div>
-    </button>
-
-    <button mat-icon-button ngmAppearance="danger" displayDensity="cosy" class="text-gray-400"
-      [disabled]="loading"
-      (click)="deleteOrganization(id)">
-      <div class="flex justify-center items-center">
-        <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
-      </div>
-    </button>
-  </div>
-</ng-template>

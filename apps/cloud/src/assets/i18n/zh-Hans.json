@@ -2222,7 +2222,7 @@
       "Create": "创建",
       "CreateXpertFromTemplate": "从模板 {{value}} 创建数字专家",
       "ExploreXpertApps": "探索 Xpert 的应用",
-      "ExploreXpertsDesc": "使用这些模板应用，或根据模板自定义您自己的应用程序。"
+      "ExploreXpertsDesc": "使用这些模板创建，或根据模板自定义您自己的数字专家。"
     },
     "title": {
       "short": "Xpert AI"

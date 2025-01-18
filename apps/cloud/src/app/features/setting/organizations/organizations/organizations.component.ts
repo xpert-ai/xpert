@@ -3,14 +3,12 @@ import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { MatDialog } from '@angular/material/dialog'
 import { Router, RouterModule } from '@angular/router'
-import { NgmConfirmDeleteComponent, NgmTableComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective } from '@metad/ocap-angular/core'
+import { NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom, map, shareReplay, switchMap } from 'rxjs'
 import { IOrganization, OrganizationsService, ToastrService } from '../../../../@core'
 import { OrganizationsComponent } from '../organizations.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
 
 @Component({
@@ -20,12 +18,9 @@ import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
   styleUrls: ['./organizations.component.scss'],
   imports: [
     CommonModule,
-    MaterialModule,
     TranslateModule,
     RouterModule,
-    AppearanceDirective,
     OrgAvatarComponent,
-    NgmTableComponent
   ]
 })
 export class AllOrganizationsComponent extends TranslationBaseComponent {
