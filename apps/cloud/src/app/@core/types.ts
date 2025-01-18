@@ -70,7 +70,7 @@ export function getErrorMessage(err: any): string {
   if (typeof err === 'string') {
     error = err
   } else if (err instanceof HttpErrorResponse) {
-    error = err?.error?.message ?? err.message
+    error = err?.error?.message ?? err?.error ?? err.message
   } else if (err instanceof Error) {
     error = err?.message
   } else if (err?.error instanceof Error) {

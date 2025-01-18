@@ -41,6 +41,14 @@ export class CrudService<T> {
   delete(id: string) {
     return this.httpClient.delete(`${this.apiBaseUrl}/${id}`)
   }
+
+  softDelete(id: string) {
+    return this.httpClient.delete(`${this.apiBaseUrl}/${id}/soft`)
+  }
+
+  softRecover(id: string) {
+    return this.httpClient.put(`${this.apiBaseUrl}/${id}/recover`, {})
+  }
 }
 
 export function toHttpParams(options: PaginationParams<any>) {

@@ -99,15 +99,15 @@ export class XpertToolBuiltinAuthorizeComponent {
   })
 
   constructor() {
-    effect(
-      () => {
-        if (this.credentialsSchema() && this.credentialsSchema().length === 0) {
-          this.#credentials.set({})
-          this.save()
-        }
-      },
-      { allowSignalWrites: true }
-    )
+    // effect(
+    //   () => {
+    //     if (this.credentialsSchema() && this.credentialsSchema().length === 0) {
+    //       this.#credentials.set({})
+    //       this.save()
+    //     }
+    //   },
+    //   { allowSignalWrites: true }
+    // )
 
     effect(() => {
       if (this.toolsetCredentials()) {

@@ -1,0 +1,37 @@
+<div class="p-2 text-base font-medium">{{ 'PAC.Chat.Tasks' | translate: {Default: 'Tasks'} }}: </div>
+
+@for (task of taskDetails(); track task.id) {
+  <div class="task flex w-full rounded-2xl px-6 py-4 shadow-sm border-[0.5px] border-solid border-gray-300"
+    [class.deleted]="!!task.deletedAt"
+  >
+    <div class="flex-1 flex flex-col justify-start items-start overflow-hidden">
+      <div class="font-medium truncate">{{task.name}}</div>
+      <div class="text-text-secondary truncate">{{task.schedule}}</div>
+    </div>
+
+    <div class="flex justify-center items-center rounded-full hover:bg-hover-bg"
+      [cdkMenuTriggerFor]="menu"
+      [cdkMenuTriggerData]="{task: task}"
+    >
+      <i class="ri-more-2-fill"></i>
+    </div>
+  </div>
+}
+
+<ng-template #menu let-task="task">
+  <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItem (click)="editTask(task)">
+      <i class="ri-edit-line mr-1"></i>
+      Edit
+    </div>
+    <div cdkMenuItem>
+      <i class="ri-pause-circle-line mr-1"></i>
+      Pause
+    </div>
+    <div class="border-b border-solid border-divider-regular my-1"></div>
+    <div cdkMenuItem>
+      <i class="ri-list-check-3 mr-1"></i>
+      View all tasks
+    </div>
+  </div>
+</ng-template>

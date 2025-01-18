@@ -24,6 +24,7 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 	public async execute(command: ToolsetGetToolsCommand): Promise<BaseToolset<Tool>[]> {
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
+
 		const ids = command.ids
 		const { items: toolsets } = await this.toolsetService.findAll({
 			where: {
@@ -40,7 +41,9 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 						organizationId,
 						toolsetService: this.toolsetService,
 						commandBus: this.commandBus,
-						queryBus: this.queryBus
+						queryBus: this.queryBus,
+						xpertId: command.environment?.xpertId,
+						agentKey: command.environment?.agentKey,
 					})
 				}
 				case XpertToolsetCategoryEnum.API: {

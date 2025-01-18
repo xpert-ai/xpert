@@ -332,4 +332,9 @@ export class ChatConversationPreviewComponent {
   getFeedback(id: string) {
     return this.feedbacks()?.[id]
   }
+
+  restart() {
+    this.conversationId.set(null)
+    this._messages.set([])
+  }
 }

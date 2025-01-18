@@ -28,9 +28,10 @@ import { NxWidgetKpiComponent } from '@metad/story/widgets/kpi'
 import { TranslateModule } from '@ngx-translate/core'
 import { compact, uniq } from 'lodash-es'
 import { MarkdownModule } from 'ngx-markdown'
-import { Store } from '../../@core'
+import { IXpertTask, Store } from '../../@core'
 import { ChatComponentIndicatorsComponent } from './indicators/indicators.component'
 import { ChatComponentIndicatorComponent } from './indicator/indicator.component'
+import { ChatComponentTasksComponent } from './tasks/tasks.component'
 
 @Component({
   standalone: true,
@@ -50,7 +51,8 @@ import { ChatComponentIndicatorComponent } from './indicator/indicator.component
     AnalyticalCardModule,
     NxWidgetKpiComponent,
     ChatComponentIndicatorsComponent,
-    ChatComponentIndicatorComponent
+    ChatComponentIndicatorComponent,
+    ChatComponentTasksComponent
   ],
   selector: 'chat-component-message',
   templateUrl: './component-message.component.html',
@@ -89,6 +91,7 @@ export class ChatComponentMessageComponent {
   readonly dataSource = computed(() => this.dataSettings()?.dataSource)
   readonly indicators = computed(() => this.data()?.indicators)
   readonly slicers = computed(() => this.data()?.slicers)
+  readonly tasks = computed(() => this.data()?.tasks as IXpertTask[])
   readonly dataSources = computed(() => compact(uniq<string>(this.indicators()?.map((_) => _.dataSource))))
 
   readonly explains = signal<any[]>([])

@@ -5,12 +5,17 @@ import { BaseToolset } from '../../toolset'
 import { BuiltinTool } from './builtin-tool'
 import { XpertToolsetService } from '../../xpert-toolset.service'
 
+/**
+ * The context params of creating toolset
+ */
 export type TBuiltinToolsetParams = {
 	tenantId: string
     organizationId?: string
 	toolsetService: XpertToolsetService
 	commandBus: CommandBus
 	queryBus: QueryBus
+	xpertId?: string
+	agentKey?: string
 }
 
 export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> {
@@ -34,6 +39,9 @@ export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> {
 
 	get toolsetService() {
 		return this.params?.toolsetService
+	}
+	get xpertId() {
+		return this.params?.xpertId
 	}
 
 	constructor(

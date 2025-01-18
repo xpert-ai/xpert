@@ -1,0 +1,14 @@
+identity:
+  author: XpertAI
+  name: task
+  label:
+    en_US: Task
+    zh_Hans: 任务
+  description:
+    en_US: Creating and maintaining scheduled tasks.
+    zh_Hans: 创建和维护定时任务。
+  icon: icon.svg
+  tags:
+    - productivity
+    - utilities
+credentials_for_provider:

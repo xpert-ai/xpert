@@ -29,5 +29,6 @@
     "zod-to-json-schema": "^3.23.2"
   },
   "devDependencies": {
+    "@types/cron": "1.7.3"
   }
 }

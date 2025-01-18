@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router'
 import { ChatHomeComponent } from './home.component'
+import { ChatTasksComponent } from './tasks/tasks.component'
 
 export const routes: Routes = [
   {
@@ -13,6 +14,10 @@ export const routes: Routes = [
   {
     path: 'r/:role/c/:id',
     component: ChatHomeComponent,
+  },
+  {
+    path: 'tasks',
+    component: ChatTasksComponent
   },
   {
     path: '**',

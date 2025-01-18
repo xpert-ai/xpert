@@ -1,0 +1,64 @@
+identity:
+  name: create_task
+  author: XpertAI
+  label:
+    en_US: Create a scheduled task
+    zh_Hans: 创建一个定时任务
+  icon: icon.svg
+description:
+  human:
+    en_US: Create a scheduled task
+    zh_Hans: 创建一个定时任务
+  llm: A tool for creating a scheduled task.
+parameters:
+  - name: name
+    type: string
+    required: true
+    label:
+      en_US: Task name
+      zh_Hans: 任务名称
+    human_description:
+      en_US: Task name
+      zh_Hans: 任务名称
+    llm: Task name
+    form: llm
+  - name: schedule
+    type: string
+    required: true
+    label:
+      en_US: Schedule
+      zh_Hans: 时间
+    human_description:
+      en_US: Schedule Cron Expression
+      zh_Hans: 任务的 Cron 表达式
+    llm: Schedule cron expression
+    form: llm
+  - name: xpertId
+    type: string
+    required: true
+    label:
+      en_US: Xpert ID
+      zh_Hans: 数字专家 ID
+    human_description:
+      en_US: Expert to whom the task belongs
+      zh_Hans: 任务所属的专家
+    form: form
+  - name: agentKey
+    type: string
+    label:
+      en_US: Xpert Agent Key
+      zh_Hans: 数字专家智能体主键
+    human_description:
+      en_US: The key of the agent in the xpert team
+      zh_Hans: 数字专家团队中的智能体主键
+    form: llm
+  - name: prompt
+    type: string
+    label:
+      en_US: Task prompt
+      zh_Hans: 任务指令
+    human_description:
+      en_US: Task prompt
+      zh_Hans: 任务指令
+    llm: Task prompt
+    form: llm

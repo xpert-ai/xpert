@@ -14,7 +14,7 @@ export type TChatConversationOptions = {
 
 export type TChatConversationStatus = "idle" | "busy" | "interrupted" | "error"
 export type TToolCallType = 'agent' | 'tool'
-export type TChatFrom = 'platform' | 'webapp' | 'debugger' | 'api' | 'feishu' | 'lark' | 'dingtalk' | 'wecom'
+export type TChatFrom = 'platform' | 'webapp' | 'debugger' | 'job' | 'api' | 'feishu' | 'lark' | 'dingtalk' | 'wecom'
 
 export type TSensitiveOperation = {
   messageId?: string

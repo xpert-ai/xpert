@@ -1,0 +1,7 @@
+:host {
+  @apply space-y-0.5;
+}
+
+.task.deleted {
+  @apply line-through;
+}

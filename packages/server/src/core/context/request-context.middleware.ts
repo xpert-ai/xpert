@@ -17,3 +17,15 @@ export class RequestContextMiddleware implements NestMiddleware {
 		});
 	}
 }
+
+export function runWithRequestContext(req, next: () => void) {
+	const requestContext = new RequestContext(req, null);
+	const session =
+		cls.getNamespace(RequestContext.name) ||
+		cls.createNamespace(RequestContext.name);
+
+	session.run(async () => {
+		session.set(RequestContext.name, requestContext);
+		next();
+	});
+}
