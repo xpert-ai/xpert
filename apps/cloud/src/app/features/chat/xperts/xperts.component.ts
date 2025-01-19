@@ -5,7 +5,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } 
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { RouterModule } from '@angular/router'
+import { Router, RouterModule } from '@angular/router'
 import { injectXpertPreferences, Store } from '@metad/cloud/state'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxPermissionsService } from 'ngx-permissions'
@@ -37,6 +37,7 @@ export class ChatXpertsComponent {
   readonly permissionsService = inject(NgxPermissionsService)
   readonly #preferences = injectXpertPreferences()
   readonly #store = inject(Store)
+  readonly #router = inject(Router)
 
   readonly sortOrder = computed(() => this.#preferences()?.sortOrder)
   readonly pageSize = signal(5)
@@ -87,6 +88,7 @@ export class ChatXpertsComponent {
 
   selectXpert(xpert: IXpert) {
     this.chatService.newConversation(xpert)
+    this.#router.navigate(['/chat/x/', xpert.slug])
   }
 
   dropSort(event: CdkDragDrop<IXpert[]>) {

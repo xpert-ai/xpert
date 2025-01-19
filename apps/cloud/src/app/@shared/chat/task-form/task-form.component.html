@@ -1,6 +1,8 @@
 <form [formGroup]="formGroup" class="">
   <div class="mb-2">
-    <label class="font-medium my-2 inline-block">Name</label>
+    <label class="font-medium my-2 inline-block">
+      {{ 'PAC.Xpert.Name' | translate: { Default: 'Name' } }}
+    </label>
     <div class="relative w-full">
       <input matInput
         class="w-full py-[7px] bg-components-input-bg-normal border border-transparent 
@@ -15,7 +17,9 @@
   </div>
 
   <div class="mb-2">
-    <label class="font-medium my-2 inline-block">Instructions</label>
+    <label class="font-medium my-2 inline-block">
+      {{ 'PAC.Xpert.Instructions' | translate: { Default: 'Instructions' } }}
+    </label>
     <div class="relative w-full">
       <textarea matInput
         class="w-full py-[7px] bg-components-input-bg-normal border border-transparent 
@@ -33,7 +37,9 @@
   </div>
 
   <div class="mb-2">
-    <label class="font-medium my-2 inline-block">Schedule</label>
+    <label class="font-medium my-2 inline-block">
+      {{ 'PAC.Xpert.Schedule' | translate: { Default: 'Schedule' } }}
+    </label>
     <div class="relative w-full">
       <input matInput
         class="w-full py-[7px] bg-components-input-bg-normal border border-transparent 

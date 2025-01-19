@@ -24,6 +24,7 @@ export type XpertTaskType = {
   xpertId?: string
   agentKey?: string
   
-  // Temp
+  // Temporary properties
   job?: any
+  scheduleDescription?: string
 }

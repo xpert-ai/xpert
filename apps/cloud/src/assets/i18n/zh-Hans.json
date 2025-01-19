@@ -1572,7 +1572,9 @@
       "GotoNewXpert": "去新建数字专家",
       "NewCalculatedIndicator": "新建计算指标",
       "ShowMoreXperts": "展示更多专家",
-      "ShowLessXperts": "展示少一些专家"
+      "ShowLessXperts": "展示少一些专家",
+      "Tasks": "任务",
+      "Pause": "暂停"
     },
     "ChatBI": {
       "Title": "ChatBI-数据分析与洞察",
@@ -2222,7 +2224,17 @@
       "Create": "创建",
       "CreateXpertFromTemplate": "从模板 {{value}} 创建数字专家",
       "ExploreXpertApps": "探索 Xpert 的应用",
-      "ExploreXpertsDesc": "使用这些模板创建，或根据模板自定义您自己的数字专家。"
+      "ExploreXpertsDesc": "使用这些模板创建，或根据模板自定义您自己的数字专家。",
+      "Task": "任务",
+      "Pause": "暂停",
+      "Delete": "删除",
+      "Save": "保存",
+      "Schedule": "安排",
+      "TaskName": "名称",
+      "Instructions": "指令",
+      "Scheduled": "已安排",
+      "Paused": "已暂停",
+      "ViewAllTasks": "查看所有任务"
     },
     "title": {
       "short": "Xpert AI"

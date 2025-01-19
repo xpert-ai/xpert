@@ -22,16 +22,16 @@
   <div cdkMenu class="cdk-menu__large">
     <div cdkMenuItem (click)="editTask(task)">
       <i class="ri-edit-line mr-1"></i>
-      Edit
+      {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
     </div>
     <div cdkMenuItem>
       <i class="ri-pause-circle-line mr-1"></i>
-      Pause
+      {{ 'PAC.Chat.Pause' | translate: { Default: 'Pause' } }}
     </div>
     <div class="border-b border-solid border-divider-regular my-1"></div>
-    <div cdkMenuItem>
+    <div cdkMenuItem routerLink="/chat/tasks">
       <i class="ri-list-check-3 mr-1"></i>
-      View all tasks
+      {{ 'PAC.Xpert.ViewAllTasks' | translate: { Default: 'View all tasks' } }}
     </div>
   </div>
 </ng-template>

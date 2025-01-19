@@ -3,7 +3,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { RouterModule } from '@angular/router'
+import { Router, RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -34,8 +34,17 @@ export class ChatTasksComponent {
   readonly taskService = inject(XpertTaskService)
   readonly #toastr = injectToastr()
   readonly dialog = inject(Dialog)
+  readonly router = inject(Router)
 
   readonly tasks = derivedAsync(() => this.taskService.getMyAll().pipe(map(({ items }) => items)))
+
+  readonly scheduledTasks = derivedAsync(() =>
+    this.tasks().filter(task => task.status === XpertTaskStatus.RUNNING)
+  )
+
+  readonly pausedTasks = derivedAsync(() => 
+    this.tasks().filter(task => task.status === this.eXpertTaskStatus.PAUSED)
+  )
 
   readonly loading = signal(false)
   
@@ -62,5 +71,9 @@ export class ChatTasksComponent {
         this.#toastr.error(getErrorMessage(err))
       }
     })
+  }
+
+  viewAllTaks() {
+    this.router.navigate(['/chat/tasks'])
   }
 }

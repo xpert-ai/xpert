@@ -15,14 +15,16 @@
 </div>
 <div class="p-4 flex justify-between items-center">
   <div class="flex items-center gap-2">
-    <button type="button" class="btn btn-large font-light rounded-full">Pause</button>
-    <button type="button" class="btn btn-large font-light rounded-full"
+    <button type="button" class="btn btn-large font-light rounded-full">{{'PAC.Xpert.Pause' | translate: {Default: 'Pause'} }}</button>
+    <button type="button" class="btn btn-large danger font-light rounded-full"
       (click)="delete()"
-    >Delete</button>
+    >{{'PAC.Xpert.Delete' | translate: {Default: 'Delete'} }}</button>
   </div>
   <div class="flex items-center gap-2">
-    <button type="button" class="btn btn-large font-light rounded-full">Cancel</button>
+    <button type="button" class="btn btn-large font-light rounded-full"
+      (click)="close()"
+    >{{'PAC.Xpert.Cancel' | translate: {Default: 'Cancel'} }}</button>
     <button type="button" class="btn btn-large rounded-full btn-primary"
-      (click)="save()">Save</button>
+      (click)="save()">{{'PAC.Xpert.Save' | translate: {Default: 'Save'} }}</button>
   </div>
 </div>

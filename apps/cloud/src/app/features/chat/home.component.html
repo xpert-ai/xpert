@@ -55,48 +55,7 @@
     </div>
   </mat-sidenav>
   <mat-sidenav-content #contentContainer class="overflow-auto">
-    
-    <pac-chat-toolbar class="sticky top-0 z-10 bg-components-panel-bg"
-      [chatInput]="chatInput">
-      @if (!sidenav.opened) {
-        <pac-chat-sidenav-menu [sidenav]="sidenav"/>
-      }
-    </pac-chat-toolbar>
-
-    <div class="w-full flex-1 px-2 lg:w-[800px] lg:px-8 max-w-full m-auto">
-
-      @if (!conversationId() && !messages()?.length && role()) {
-        <div class="w-full h-full flex flex-col justify-center items-center gap-4">
-          <emoji-avatar [avatar]="role().avatar" large class="rounded-xl overflow-hidden shadow-sm" />
-
-          <div class="w-full flex flex-col items-center gap-2">
-            <p class="text-xl">{{role().title || role().name}}</p>
-            <p class="w-96 text-center text-text-secondary line-clamp-5" [title]="role().description">{{role().description}}</p>
-          </div>
-
-          <div class="mx-3 mt-12 flex max-w-3xl flex-wrap items-stretch justify-center gap-4 mb-8">
-            @for (statement of role().starters; track statement) {
-              @if (statement) {
-                <button class="relative flex w-40 flex-col gap-2 rounded-2xl border border-token-border-light px-3 pb-4 pt-3 text-start align-top text-[15px] shadow-sm transition enabled:hover:bg-token-main-surface-secondary disabled:cursor-not-allowed"
-                  (click)="chatInput.ask(statement)"
-                >
-                  <div class="line-clamp-3 max-w-full text-balance font-light text-neutral-500 dark:text-neutral-500 break-word">
-                    {{statement}}
-                  </div>
-                </button>
-              }
-            }
-          </div>
-
-        </div>
-      } @else {
-        <chat-conversation class="w-full lg:w-[800px] max-w-full m-auto py-4 lg:p-8"
-          [chatInput]="chatInput"
-        />
-      }
-    </div>
-
-    <chat-input #chatInput cdkTrapFocusAutoCapture class="w-full px-4 lg:w-[800px] lg:px-8 max-w-full m-auto sticky bottom-0 z-10 bg-components-panel-bg"/>
+    <router-outlet />
   </mat-sidenav-content>
 </mat-sidenav-container>
 

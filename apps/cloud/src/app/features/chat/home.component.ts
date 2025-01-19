@@ -1,6 +1,7 @@
 import { A11yModule } from '@angular/cdk/a11y'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
@@ -9,13 +10,16 @@ import {
   effect,
   ElementRef,
   inject,
+  model,
   signal,
-  viewChild,
-  model
+  viewChild
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { CdkMenuModule } from '@angular/cdk/menu'
-import { ActivatedRoute, RouterModule } from '@angular/router'
+import { MatListModule } from '@angular/material/list'
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { convertNewSemanticModelResult, NgmSemanticModel, SemanticModelServerService } from '@metad/cloud/state'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { effectAction, NgmDSCoreService, provideOcapCore } from '@metad/ocap-angular/core'
@@ -37,16 +41,12 @@ import {
   registerModel,
   routeAnimations
 } from '../../@core'
-import { EmojiAvatarComponent } from '../../@shared/avatar'
-import { MaterialModule } from '../../@shared/material.module'
 import { AppService } from '../../app.service'
+import { ChatService, groupConversations } from '../../xpert/'
+import { ChatPlatformService } from './chat.service'
 import { ChatMoreComponent } from './icons'
 import { ChatSidenavMenuComponent } from './sidenav-menu/sidenav-menu.component'
-import { ChatToolbarComponent } from './toolbar/toolbar.component'
 import { ChatXpertsComponent } from './xperts/xperts.component'
-import { ChatInputComponent, ChatService, groupConversations } from '../../xpert/'
-import { ChatPlatformService } from './chat.service'
-import { ChatConversationComponent } from '../../xpert/'
 
 @Component({
   standalone: true,
@@ -61,24 +61,23 @@ import { ChatConversationComponent } from '../../xpert/'
     A11yModule,
     RouterModule,
     TranslateModule,
+    MatSidenavModule,
+    MatProgressSpinnerModule,
+    MatListModule,
+    MatTooltipModule,
     WaIntersectionObserver,
-    MaterialModule,
     NgmCommonModule,
-    EmojiAvatarComponent,
 
-    ChatToolbarComponent,
-    ChatSidenavMenuComponent,
-    ChatInputComponent,
     ChatMoreComponent,
-    ChatConversationComponent,
-    ChatXpertsComponent
+    ChatXpertsComponent,
+    ChatSidenavMenuComponent
   ],
   selector: 'pac-chat-home',
   templateUrl: './home.component.html',
   styleUrl: 'home.component.scss',
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [provideOcapCore(), ChatPlatformService, {provide: ChatService, useExisting: ChatPlatformService}]
+  providers: [provideOcapCore(), ChatPlatformService, { provide: ChatService, useExisting: ChatPlatformService }]
 })
 export class ChatHomeComponent {
   DisplayBehaviour = DisplayBehaviour
@@ -90,22 +89,22 @@ export class ChatHomeComponent {
   readonly semanticModelService = inject(SemanticModelServerService)
   readonly appService = inject(AppService)
   readonly route = inject(ActivatedRoute)
+  readonly #router = inject(Router)
   readonly logger = inject(NGXLogger)
   readonly #toastr = injectToastr()
 
   readonly contentContainer = viewChild('contentContainer', { read: ElementRef })
+  readonly sidenav = viewChild('sidenav', { read: MatSidenav })
 
   readonly isMobile = this.appService.isMobile
   readonly lang = this.appService.lang
-  readonly messages = this.chatService.messages
+
   readonly conversationId = this.chatService.conversationId
   readonly sidenavOpened = model(!this.isMobile())
   readonly groups = computed(() => {
     const conversations = this.chatService.conversations()
     return groupConversations(conversations)
   })
-
-  readonly role = this.chatService.xpert
 
   readonly editingConversation = signal<string>(null)
   readonly editingTitle = signal<string>(null)
@@ -213,6 +212,7 @@ export class ChatHomeComponent {
 
   selectConversation(item: IChatConversation) {
     this.chatService.setConversation(item.id)
+    this.#router.navigate(['/chat/c/', item.id])
   }
 
   deleteConv(id: string) {
@@ -272,7 +272,7 @@ export class ChatHomeComponent {
 
   /**
    * Collect the semantic models and the corresponding runtime indicators to be registered.
-   * 
+   *
    * @param models Model id and runtime indicators
    */
   registerSemanticModel(models: { id: string; indicators?: Indicator[] }[]) {
@@ -300,5 +300,4 @@ export class ChatHomeComponent {
       })
     }, 100)
   }
-
 }

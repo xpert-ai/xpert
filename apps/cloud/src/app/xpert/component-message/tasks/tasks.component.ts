@@ -20,6 +20,7 @@ import { XpertTaskDialogComponent } from '../../../@shared/chat'
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
+    RouterModule,
     DragDropModule,
     CdkMenuModule,
     RouterModule,
@@ -55,7 +56,7 @@ export class ChatComponentTasksComponent {
 
   constructor() {
     effect(() => {
-      console.log(this.tasks())
+      // console.log(this.tasks())
     })
   }
 

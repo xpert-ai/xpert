@@ -1,8 +1,12 @@
-import { IXpert, IXpertTask, XpertTaskStatus } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { IXpert, IXpertTask, LanguagesEnum, XpertTaskStatus } from '@metad/contracts'
+import { RequestContext, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger'
 import { IsString, IsOptional, IsEnum } from 'class-validator'
-import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
+import { Transform } from 'class-transformer'
+import cronstrue from 'cronstrue'
+import 'cronstrue/locales/en'
+import 'cronstrue/locales/zh_CN'
+import { Column, DeleteDateColumn, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { Xpert } from '../core/entities/internal'
 
 @Entity('xpert_task')
@@ -49,4 +53,21 @@ export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTas
 	@IsString()
 	@Column({ nullable: true })
 	agentKey?: string
+
+	/**
+	 * Soft Delete
+	 */
+	@ApiPropertyOptional({ type: () => 'timestamptz' })
+	@DeleteDateColumn({ nullable: true })
+	deletedAt?: Date
+
+	// Temporary properties
+	@Transform(({obj}) =>
+		cronstrue.toString(obj.schedule, { locale: CronstrueLocales[RequestContext.getLanguageCode()] ?? RequestContext.getLanguageCode() })
+	)
+    scheduleDescription?: string
+}
+
+const CronstrueLocales = {
+	[LanguagesEnum.SimplifiedChinese]: 'zh_CN',
 }
