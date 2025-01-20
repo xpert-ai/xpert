@@ -12,7 +12,7 @@ import { NgxPermissionsService } from 'ngx-permissions'
 import { map } from 'rxjs'
 import { AIPermissionsEnum, IXpert } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
-import { ChatPlatformService } from '../chat.service'
+import { ChatHomeService } from '../home.service'
 
 @Component({
   standalone: true,
@@ -33,7 +33,7 @@ import { ChatPlatformService } from '../chat.service'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatXpertsComponent {
-  readonly chatService = inject(ChatPlatformService)
+  readonly chatService = inject(ChatHomeService)
   readonly permissionsService = inject(NgxPermissionsService)
   readonly #preferences = injectXpertPreferences()
   readonly #store = inject(Store)
@@ -87,7 +87,7 @@ export class ChatXpertsComponent {
   }
 
   selectXpert(xpert: IXpert) {
-    this.chatService.newConversation(xpert)
+    // this.chatService.newConversation(xpert)
     this.#router.navigate(['/chat/x/', xpert.slug])
   }
 

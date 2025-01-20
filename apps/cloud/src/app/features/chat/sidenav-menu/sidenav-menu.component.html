@@ -1,4 +1,4 @@
-<span class="flex" data-state="closed">
+<span class="flex" >
   <button [matTooltip]="sidenav().opened ? (
     'PAC.Chat.CloseSidebar' | translate: {Default: 'Close sidebar'}
   ) : (
@@ -11,7 +11,7 @@
   </button>
 </span>
 
-<span class="flex" data-state="closed">
+<span class="flex" >
   <button [matTooltip]="'PAC.Chat.NewChat' | translate: {Default: 'New chat'}"
     class="pac-chat-button"
     (click)="newConversation()"

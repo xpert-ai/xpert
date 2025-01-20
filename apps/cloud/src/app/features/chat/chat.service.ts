@@ -5,7 +5,7 @@ import { nonNullable } from '@metad/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
-import { combineLatestWith, distinctUntilChanged, filter, map, pipe, withLatestFrom } from 'rxjs'
+import { BehaviorSubject, combineLatestWith, distinctUntilChanged, filter, map, pipe, withLatestFrom } from 'rxjs'
 import {
   IXpert,
   LanguagesEnum,
@@ -15,33 +15,18 @@ import {
 import { ToastrService } from '../../@core/services'
 import { ChatService } from '../../xpert/'
 import { COMMON_COPILOT_ROLE } from './types'
+import { ChatHomeService } from './home.service'
 
 @Injectable()
 export class ChatPlatformService extends ChatService {
   readonly #translate = inject(TranslateService)
+  readonly homeService = inject(ChatHomeService)
   readonly #toastr = inject(ToastrService)
   readonly #location = inject(Location)
   readonly paramRole = injectParams('role')
   readonly paramId = injectParams('id')
 
-  readonly xperts = derivedFrom(
-    [
-      this.xpertService
-        .getMyAll({ where: { type: XpertTypeEnum.Agent, latest: true }, order: { createdAt: OrderTypeEnum.DESC } })
-        .pipe(map(({ items }) => items)),
-      this.lang
-    ],
-    pipe(
-      map(([roles, lang]) => {
-        if ([LanguagesEnum.SimplifiedChinese, LanguagesEnum.Chinese].includes(lang as LanguagesEnum)) {
-          return roles?.map((role) => ({ ...role, title: role.titleCN || role.title }))
-        } else {
-          return roles
-        }
-      })
-    ),
-    { initialValue: null }
-  )
+  readonly xperts = this.homeService.xperts
 
   readonly xpert = derivedFrom(
     [this.xpert$, this.lang],
@@ -116,6 +101,7 @@ export class ChatPlatformService extends ChatService {
         this.#location.replaceState('/chat/')
       }
       // }
+      this.homeService.conversationId.set(id)
     })
 
   constructor() {

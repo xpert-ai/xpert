@@ -43,10 +43,10 @@ import {
 } from '../../@core'
 import { AppService } from '../../app.service'
 import { ChatService, groupConversations } from '../../xpert/'
-import { ChatPlatformService } from './chat.service'
 import { ChatMoreComponent } from './icons'
 import { ChatSidenavMenuComponent } from './sidenav-menu/sidenav-menu.component'
 import { ChatXpertsComponent } from './xperts/xperts.component'
+import { ChatHomeService } from './home.service'
 
 @Component({
   standalone: true,
@@ -77,16 +77,16 @@ import { ChatXpertsComponent } from './xperts/xperts.component'
   styleUrl: 'home.component.scss',
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [provideOcapCore(), ChatPlatformService, { provide: ChatService, useExisting: ChatPlatformService }]
+  providers: [provideOcapCore(), ChatHomeService]
 })
 export class ChatHomeComponent {
   DisplayBehaviour = DisplayBehaviour
 
   readonly #dsCoreService = inject(NgmDSCoreService)
   readonly #wasmAgent = inject(WasmAgentService)
-  readonly chatService = inject(ChatService)
   readonly conversationService = inject(ChatConversationService)
   readonly semanticModelService = inject(SemanticModelServerService)
+  readonly homeService = inject(ChatHomeService)
   readonly appService = inject(AppService)
   readonly route = inject(ActivatedRoute)
   readonly #router = inject(Router)
@@ -99,10 +99,11 @@ export class ChatHomeComponent {
   readonly isMobile = this.appService.isMobile
   readonly lang = this.appService.lang
 
-  readonly conversationId = this.chatService.conversationId
+  readonly conversationId = this.homeService.conversationId
+  
   readonly sidenavOpened = model(!this.isMobile())
   readonly groups = computed(() => {
-    const conversations = this.chatService.conversations()
+    const conversations = this.homeService.conversations()
     return groupConversations(conversations)
   })
 
@@ -155,12 +156,6 @@ export class ChatHomeComponent {
   constructor() {
     this.loadConversations()
 
-    effect(() => {
-      if (this.chatService.messages()) {
-        this.scrollBottom()
-      }
-    })
-
     // Got model details
     effect(
       () => {
@@ -211,12 +206,11 @@ export class ChatHomeComponent {
   }
 
   selectConversation(item: IChatConversation) {
-    this.chatService.setConversation(item.id)
     this.#router.navigate(['/chat/c/', item.id])
   }
 
   deleteConv(id: string) {
-    this.chatService.deleteConversation(id)
+    this.homeService.deleteConversation(id)
   }
 
   updateTitle(conv: IChatConversation) {
@@ -246,7 +240,7 @@ export class ChatHomeComponent {
       }),
       tap({
         next: ({ items, total }) => {
-          this.chatService.conversations.update((state) => [...state, ...items])
+          this.homeService.conversations.update((state) => [...state, ...items])
           this.currentPage.update((state) => ++state)
           if (items.length < this.pageSize || this.currentPage() * this.pageSize >= total) {
             this.done.set(true)
@@ -291,13 +285,4 @@ export class ChatHomeComponent {
     })
   }
 
-  scrollBottom(smooth = false) {
-    setTimeout(() => {
-      this.contentContainer().nativeElement.scrollTo({
-        top: this.contentContainer().nativeElement.scrollHeight,
-        left: 0,
-        behavior: smooth ? 'smooth' : 'instant'
-      })
-    }, 100)
-  }
 }

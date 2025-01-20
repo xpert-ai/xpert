@@ -1,21 +1,17 @@
 import { Location } from '@angular/common'
-import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core'
+import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { Indicator, nonNullable } from '@metad/ocap-core'
-import { injectParams } from 'ngxtension/inject-params'
 import {
   BehaviorSubject,
   catchError,
   combineLatest,
-  distinctUntilChanged,
   filter,
-  map,
   of,
   skip,
   Subscription,
   switchMap,
   tap,
-  withLatestFrom
 } from 'rxjs'
 import {
   getErrorMessage,
@@ -83,9 +79,6 @@ export class ChatService {
   readonly #messages = signal<IChatMessage[]>([])
   readonly messages = computed(() => this.#messages() ?? [])
 
-  // Conversations
-  readonly conversations = signal<IChatConversation[]>([])
-
   readonly knowledgebases = signal<IKnowledgebase[]>([])
   readonly toolsets = signal<IXpertToolset[]>([])
 
@@ -107,20 +100,6 @@ export class ChatService {
       }
     >
   >({})
-
-  // private paramRoleSub = toObservable(this.paramRole)
-  //   .pipe(
-  //     filter(nonNullable),
-  //     switchMap((slug) => this.getXpert(slug)),
-  //     map(({ items }) => items),
-  //     takeUntilDestroyed())
-  //   .subscribe((xperts) => {
-  //     if (!xperts[0]) {
-  //       this.#toastr.error('PAC.Messages.NoPermissionOrNotExist', this.paramRole(), {Default: 'No permission or does not exist'})
-  //     } else {
-  //       this.xpert$.next(xperts[0])
-  //     }
-  //   })
 
   private idSub = toObservable(this.conversationId)
     .pipe(
@@ -356,31 +335,12 @@ export class ChatService {
     }
   }
 
-  deleteConversation(id: string) {
-    this.conversations.update((items) => items.filter((item) => item.id !== id))
-    this.conversationService.delete(id).subscribe({
-      next: () => {}
-    })
-  }
-
   updateConversation(data: Partial<IChatConversation>) {
     this.conversation.update((state) => ({
       ...(state ?? {}),
       ...data,
       messages: null
     } as IChatConversation))
-    this.conversations.update((items) => {
-      const index = items.findIndex((_) => _.id === this.conversation().id)
-      if (index > -1) {
-        items[index] = {
-          ...items[index],
-          ...this.conversation()
-        }
-        return [...items]
-      } else {
-        return  [{ ...this.conversation() }, ...items]
-      }
-    })
   }
 
   updateMessage(id: string, message: Partial<CopilotBaseMessage>) {
