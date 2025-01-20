@@ -3,6 +3,7 @@ import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { SchedulerRegistry } from '@nestjs/schedule'
+import { instanceToPlain } from 'class-transformer'
 import { FindConditions, Like } from 'typeorm'
 import { XpertTask } from '../../xpert-task.entity'
 import { XpertTaskService } from '../../xpert-task.service'
@@ -28,24 +29,16 @@ export class QueryXpertTaskHandler implements ICommandHandler<QueryXpertTaskComm
 		const { items } = await this.taskService.findAll({ where })
 
 		return items.map((task) => {
+			const plainTask = instanceToPlain(task)
 			try {
 				const job = this.schedulerRegistry.getCronJob(task.name)
 				return {
-					name: task.name,
-					schedule: task.schedule,
-					xpertId: task.xpertId,
-					agentKey: task.agentKey,
-					prompt: task.prompt,
-					status: task.status,
+					...plainTask,
 					job
 				}
 			} catch (err) {
 				return {
-					name: task.name,
-					schedule: task.schedule,
-					xpertId: task.xpertId,
-					agentKey: task.agentKey,
-					prompt: task.prompt,
+					...plainTask,
 					status: XpertTaskStatus.PAUSED,
 					job: null
 				}

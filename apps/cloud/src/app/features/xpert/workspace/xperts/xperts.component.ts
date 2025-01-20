@@ -274,7 +274,7 @@ export class XpertStudioXpertsComponent {
   }
 
   configureToolBuiltin(provider: IToolProvider) {
-    this.#dialog
+    this.dialog
       .open(XpertToolConfigureBuiltinComponent, {
         disableClose: true,
         data: {
@@ -282,7 +282,7 @@ export class XpertStudioXpertsComponent {
           workspaceId: this.workspaceId()
         }
       })
-      .afterClosed()
+      .closed
       .subscribe((result) => {
         if (result) {
           this.refresh()

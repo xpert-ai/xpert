@@ -1,15 +1,21 @@
-<div class="px-8 py-4 flex justify-between items-center">
+<div class="px-6 py-4 flex justify-between items-center">
   <div class="text-lg font-semibold">{{ 'PAC.Xpert.Task' | translate: { Default: 'Task' } }}</div>
 </div>
 
 <div class="max-w-full md:max-w-lg lg:max-w-2xl mx-auto mt-16">
-  <div>{{ 'PAC.Xpert.Scheduled' | translate: { Default: 'Scheduled' } }}</div>
+  <div class="w-full mt-8 pb-2 border-b border-solid border-gray-300">
+    {{ 'PAC.Xpert.Scheduled' | translate: { Default: 'Scheduled' } }}
+  </div>
   @for (task of scheduledTasks(); track task.id) {
     <div class="task flex items-center w-full cursor-pointer px-4 py-2 border-b border-solid border-gray-300 text-sm hover:bg-gray-100"
       [class.deleted]="!!task.deletedAt"
       (click)="editTask(task)"
     >
       <div class="flex-1 flex justify-start items-center overflow-hidden">
+        <emoji-avatar [avatar]="task.xpert.avatar" xs class="overflow-hidden rounded-lg shadow-sm mr-2"
+          [matTooltip]="task.xpert.title||task.xpert.name"
+          matTooltipPosition="above"
+        />
         <i class="ri-calendar-schedule-line mr-2 text-xl text-text-secondary"></i>
         <div class="font-medium truncate">{{task.name}}</div>
       </div>
@@ -18,7 +24,7 @@
     </div>
   }
 
-  <div class="w-full mt-8 border-b border-solid border-gray-300">
+  <div class="w-full mt-8 pb-2 border-b border-solid border-gray-300">
     {{ 'PAC.Xpert.Paused' | translate: { Default: 'Paused' } }}
   </div>
   @for (task of pausedTasks(); track task.id) {
@@ -27,6 +33,10 @@
       (click)="editTask(task)"
     >
       <div class="flex-1 flex justify-start items-center overflow-hidden">
+        <emoji-avatar [avatar]="task.xpert.avatar" xs class="overflow-hidden rounded-lg shadow-sm mr-2"
+          [matTooltip]="task.xpert.title||task.xpert.name"
+          matTooltipPosition="above"
+        />
         <i class="ri-pause-circle-fill mr-2 text-xl text-text-secondary"></i>
         <div class="font-medium truncate">{{task.name}}</div>
       </div>

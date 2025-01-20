@@ -11,12 +11,3 @@ description:
     zh_Hans: 列出所有定时任务
   llm: A tool for listing all scheduled tasks.
 parameters:
-  - name: name
-    type: string
-    label:
-      en_US: Task name
-      zh_Hans: 任务名称
-    human_description:
-      en_US: Task name
-      zh_Hans: 任务名称
-    form: llm

@@ -23,7 +23,7 @@ export class XpertTaskFormComponent {
 
   readonly formGroup = new FormGroup({
     name: new FormControl(''),
-    instructions: new FormControl(''),
+    prompt: new FormControl(''),
     schedule: new FormControl(''),
   })
 

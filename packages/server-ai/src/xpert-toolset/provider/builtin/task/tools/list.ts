@@ -7,7 +7,7 @@ import { TaskToolset } from '../task'
 import { TaskToolEnum } from '../types'
 
 export type TTaskListToolParameters = {
-	name?: string
+	//
 }
 
 export class TaskListTool extends BuiltinTool {
@@ -18,7 +18,6 @@ export class TaskListTool extends BuiltinTool {
 	description = 'A tool for listing scheduled tasks'
 
 	schema = z.object({
-		name: z.string().optional().describe(`task name`)
 	})
 
 	constructor(private toolset: TaskToolset) {
@@ -29,7 +28,7 @@ export class TaskListTool extends BuiltinTool {
 		const { subscriber } = config?.configurable ?? {}
 
 		const tasks = await this.toolset.commandBus.execute<QueryXpertTaskCommand, IXpertTask[]>(
-			new QueryXpertTaskCommand(parameters.name)
+			new QueryXpertTaskCommand()
 		)
 
 		this.toolset.sendTasks(
@@ -38,6 +37,6 @@ export class TaskListTool extends BuiltinTool {
 			'en-US'
 		)
 
-		return tasks.map((_) => omit(_, 'job'))
+		return JSON.stringify(tasks.map((_) => omit(_, 'job')))
 	}
 }

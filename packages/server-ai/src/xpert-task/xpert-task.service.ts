@@ -1,6 +1,6 @@
 import { IUser, IXpertTask, XpertTaskStatus } from '@metad/contracts'
 import { ConfigService } from '@metad/server-config'
-import { runWithRequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { RequestContext, runWithRequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { SchedulerRegistry } from '@nestjs/schedule'
@@ -39,7 +39,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 	}
 
 	scheduleCronJob(task: IXpertTask, user: IUser) {
-		runWithRequestContext({user: user, headers: {['organization-id']: task.organizationId}}, () => {
+		const scheduleJob = () => {
 			const job = new CronJob(task.schedule, () => {
 				this.#logger.warn(`time (${10}) for job ${task.name} to run!`)
 				if (task.xpertId) {
@@ -60,24 +60,22 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 						})
 				}
 			})
-	
+
 			this.schedulerRegistry.addCronJob(task.id, job)
 			job.start()
-		})
+		}
+		if (RequestContext.currentUser()) {
+			scheduleJob()
+		} else {
+			runWithRequestContext({ user: user, headers: { ['organization-id']: task.organizationId } }, scheduleJob)
+		}
 
 		this.#logger.warn(`job ${task.name} added for '${task.schedule}'!`)
 	}
 
 	async removeTasks(tasks: XpertTask[]) {
 		tasks.forEach((task) => {
-			try {
-				const job = this.schedulerRegistry.getCronJob(task.id)
-				if (job) {
-					this.schedulerRegistry.deleteCronJob(task.id)
-				}
-			} catch (err) {
-				//
-			}
+			this.deleteJob(task.id)
 		})
 
 		await this.repository.remove(tasks)
@@ -92,8 +90,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 		})
 	}
 
-	async pause(id: string) {
-		const task = await this.findOne(id)
+	rescheduleTask(task: IXpertTask, user: IUser) {
 		try {
 			const job = this.schedulerRegistry.getCronJob(task.id)
 			if (job) {
@@ -103,6 +100,40 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 			//
 		}
 
-		return await this.update(id, {status: XpertTaskStatus.PAUSED})
+		this.scheduleCronJob(task, user)
+	}
+
+	deleteJob(id: string) {
+		try {
+			const job = this.schedulerRegistry.getCronJob(id)
+			if (job) {
+				this.schedulerRegistry.deleteCronJob(id)
+			}
+		} catch (err) {
+			//
+		}
+	}
+
+	async updateTask(id: string, entity: Partial<IXpertTask>) {
+		super.update(id, entity)
+		const task = await this.findOne(id, { relations: ['createdBy'] })
+		if (task.status === XpertTaskStatus.RUNNING) {
+			this.rescheduleTask(task, RequestContext.currentUser())
+		} else {
+			this.deleteJob(task.id)
+		}
+		return task
+	}
+
+	async schedule(id: string) {
+		const task = await this.findOne(id, { relations: ['createdBy'] })
+		this.rescheduleTask(task, RequestContext.currentUser())
+		return await this.update(id, { status: XpertTaskStatus.RUNNING })
+	}
+
+	async pause(id: string) {
+		const task = await this.findOne(id)
+		this.deleteJob(task.id)
+		return await this.update(id, { status: XpertTaskStatus.PAUSED })
 	}
 }

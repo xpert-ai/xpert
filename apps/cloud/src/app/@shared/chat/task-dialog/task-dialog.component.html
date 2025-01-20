@@ -15,7 +15,15 @@
 </div>
 <div class="p-4 flex justify-between items-center">
   <div class="flex items-center gap-2">
-    <button type="button" class="btn btn-large font-light rounded-full">{{'PAC.Xpert.Pause' | translate: {Default: 'Pause'} }}</button>
+    @if (status() === eXpertTaskStatus.RUNNING) {
+      <button type="button" class="btn btn-large font-light rounded-full"
+        (click)="pause()"
+      >{{'PAC.Xpert.Pause' | translate: {Default: 'Pause'} }}</button>
+    } @else {
+      <button type="button" class="btn btn-large font-light rounded-full"
+        (click)="schedule()"
+      >{{'PAC.Xpert.Schedule' | translate: {Default: 'Schedule'} }}</button>
+    }
     <button type="button" class="btn btn-large danger font-light rounded-full"
       (click)="delete()"
     >{{'PAC.Xpert.Delete' | translate: {Default: 'Delete'} }}</button>

@@ -15,7 +15,7 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 	) {}
 
 	public async execute(command: GetXpertAgentQuery): Promise<IXpertAgent> {
-		const { id, agentKey, draft } = command
+		const { id, agentKey: keyOrName, draft } = command
 		const xpert = await this.service.findOne(id, {
 			relations: ['agent', 'agent.copilotModel', 'copilotModel', 'copilotModel.copilot', 'agents', 'agents.copilotModel', 'knowledgebases', 'toolsets', 'executors']
 		})
@@ -23,10 +23,11 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 
 		if (draft && xpert.draft) {
 			const draft = xpert.draft
-			const agentNode = draft?.nodes?.find((_) => _.key === agentKey)
+			const agentNode = draft?.nodes?.find((_) => _.key === keyOrName || _.entity.name === keyOrName)
 			if (!agentNode) {
 				return null
 			}
+			const agentKey = agentNode.key
 
 			const toolNodes = draft.connections
 				.filter((_) => _.type === 'toolset' && _.from === agentKey)
@@ -58,7 +59,7 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 			} as IXpertAgent
 		} else {
 			const agents = [xpert.agent, ...xpert.agents]
-			const agent = agentKey ? agents.find((_) => _.key === agentKey) : xpert.agent
+			const agent = keyOrName ? agents.find((_) => _.key === keyOrName || _.name === keyOrName) : xpert.agent
 			if (agent) {
 				await this.fillCopilot(tenantId, agent.copilotModel)
 				return {

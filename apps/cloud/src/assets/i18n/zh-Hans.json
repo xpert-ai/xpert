@@ -1574,7 +1574,8 @@
       "ShowMoreXperts": "展示更多专家",
       "ShowLessXperts": "展示少一些专家",
       "Tasks": "任务",
-      "Pause": "暂停"
+      "Pause": "暂停",
+      "NoTasksAvailable": "无可用任务"
     },
     "ChatBI": {
       "Title": "ChatBI-数据分析与洞察",

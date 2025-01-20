@@ -1,4 +1,4 @@
-<div class="p-2 text-base font-medium">{{ 'PAC.Chat.Tasks' | translate: {Default: 'Tasks'} }}: </div>
+<div class="px-2 text-base font-medium">{{ 'PAC.Chat.Tasks' | translate: {Default: 'Tasks'} }}: </div>
 
 @for (task of taskDetails(); track task.id) {
   <div class="task flex w-full rounded-2xl px-6 py-4 shadow-sm border-[0.5px] border-solid border-gray-300"
@@ -16,6 +16,8 @@
       <i class="ri-more-2-fill"></i>
     </div>
   </div>
+} @empty {
+  <div class="p-4 text-text-secondary">{{'PAC.Chat.NoTasksAvailable' | translate: {Default: 'No tasks available'} }}</div>
 }
 
 <ng-template #menu let-task="task">
