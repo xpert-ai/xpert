@@ -1,8 +1,10 @@
 <div class="px-2 text-base font-medium">{{ 'PAC.Chat.Tasks' | translate: {Default: 'Tasks'} }}: </div>
 
 @for (task of taskDetails(); track task.id) {
-  <div class="task flex w-full rounded-2xl px-6 py-4 shadow-sm border-[0.5px] border-solid border-gray-300"
+  <div class="task flex w-full rounded-2xl px-6 py-4 shadow-sm border-[0.5px] border-solid border-gray-300 hover:shadow-md"
     [class.deleted]="!!task.deletedAt"
+    [matTooltip]="task.deletedAt ? ('PAC.Chat.TaskDeleted' | translate: {Default: 'The task has been deleted'}) : null "
+    matTooltipPosition="above"
   >
     <div class="flex-1 flex flex-col justify-start items-start overflow-hidden">
       <div class="font-medium truncate">{{task.name}}</div>
@@ -26,10 +28,12 @@
       <i class="ri-edit-line mr-1"></i>
       {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
     </div>
-    <div cdkMenuItem>
-      <i class="ri-pause-circle-line mr-1"></i>
-      {{ 'PAC.Chat.Pause' | translate: { Default: 'Pause' } }}
-    </div>
+    @if (task.status === eXpertTaskStatus.RUNNING) {
+      <div cdkMenuItem>
+        <i class="ri-pause-circle-line mr-1"></i>
+        {{ 'PAC.Chat.Pause' | translate: { Default: 'Pause' } }}
+      </div>
+    }
     <div class="border-b border-solid border-divider-regular my-1"></div>
     <div cdkMenuItem routerLink="/chat/tasks">
       <i class="ri-list-check-3 mr-1"></i>

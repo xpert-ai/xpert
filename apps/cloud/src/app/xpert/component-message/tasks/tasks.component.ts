@@ -11,7 +11,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { map, of } from 'rxjs'
 import { XpertTaskService } from '../../../@core'
-import { IXpertTask } from '../../../@core/types'
+import { IXpertTask, XpertTaskStatus } from '../../../@core/types'
 import { XpertTaskDialogComponent } from '../../../@shared/chat'
 
 @Component({
@@ -34,6 +34,7 @@ import { XpertTaskDialogComponent } from '../../../@shared/chat'
 })
 export class ChatComponentTasksComponent {
   eTimeGranularity = TimeGranularity
+  eXpertTaskStatus = XpertTaskStatus
 
   readonly dialog = inject(Dialog)
   readonly taskService = inject(XpertTaskService)
