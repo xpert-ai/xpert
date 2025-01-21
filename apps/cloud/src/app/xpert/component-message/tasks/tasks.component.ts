@@ -45,11 +45,11 @@ export class ChatComponentTasksComponent {
   readonly tasks = input<IXpertTask[]>()
 
   // States
-  readonly taskDetails = signal<IXpertTask[]>([])
+  readonly taskDetails = signal<IXpertTask[]>(null)
   readonly syncedTasks = computed(() => {
-    return this.tasks().map(
+    return this.taskDetails() ? this.tasks().map(
       (_) => this.taskDetails().find((item) => item.id === _.id) ?? { ..._, deletedAt: new Date() }
-    )
+    ) : this.tasks()
   })
 
   readonly loading = signal(false)
@@ -82,7 +82,7 @@ export class ChatComponentTasksComponent {
           if (task) {
             this.taskDetails.update((tasks) => [
               { ...task, status: XpertTaskStatus.PAUSED },
-              ...tasks.filter((_) => _.id !== task.id)
+              ...(tasks?.filter((_) => _.id !== task.id) ?? [])
             ])
           }
         }
@@ -96,7 +96,7 @@ export class ChatComponentTasksComponent {
         this.loading.set(false)
         this.taskDetails.update((tasks) => [
           { ...task, status: XpertTaskStatus.PAUSED },
-          ...tasks.filter((_) => _.id !== task.id)
+          ...(tasks?.filter((_) => _.id !== task.id) ?? [])
         ])
       },
       error: (err) => {
