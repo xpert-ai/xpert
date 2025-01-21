@@ -1,8 +1,9 @@
-import { XpertTaskStatus } from '@metad/contracts'
-import { Logger } from '@nestjs/common'
+import { IXpertAgent, XpertTaskStatus } from '@metad/contracts'
 import { InjectQueue } from '@nestjs/bull'
+import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Queue } from 'bull'
+import { GetXpertAgentQuery } from '../../../xpert/queries'
 import { XpertTaskService } from '../../xpert-task.service'
 import { CreateXpertTaskCommand } from '../create.command'
 
@@ -18,16 +19,17 @@ export class CreateXpertTaskHandler implements ICommandHandler<CreateXpertTaskCo
 	) {}
 
 	public async execute(command: CreateXpertTaskCommand) {
-		// const exists = await this.taskService.findAll({
-		// 	where: {
-		// 		createdById: RequestContext.currentUserId(),
-		// 		name: command.task.name
-		// 	}
-		// })
+		const { xpertId, agentKey } = command.task
 
-		// if (exists.items.length) {
-		// 	await this.taskService.removeTasks(exists.items)
-		// }
+		// Check agentKey
+		if (xpertId && agentKey) {
+			const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
+				new GetXpertAgentQuery(xpertId, agentKey, false)
+			)
+			if (!agent) {
+				throw new Error(`Xpert agent not found for xpertId: '${xpertId}' and key ${agentKey}`)
+			}
+		}
 
 		const task = await this.taskService.create({
 			...command.task,
@@ -35,7 +37,7 @@ export class CreateXpertTaskHandler implements ICommandHandler<CreateXpertTaskCo
 		})
 
 		// Start task not in current context
-		await this.scheduler.add({taskId: task.id})
+		await this.scheduler.add({ taskId: task.id })
 
 		return [task]
 	}
