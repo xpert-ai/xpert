@@ -1,3 +1,4 @@
+import { IXpertTask } from '@metad/contracts'
 import { CrudController, RequestContext, TransformInterceptor } from '@metad/server-core'
 import { Controller, Get, Logger, Query, UseInterceptors, Param, Put, Body, Delete } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -5,7 +6,6 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { In } from 'typeorm'
 import { XpertTask } from './xpert-task.entity'
 import { XpertTaskService } from './xpert-task.service'
-import { IXpertTask } from '@metad/contracts'
 
 @ApiTags('XpertTask')
 @ApiBearerAuth()

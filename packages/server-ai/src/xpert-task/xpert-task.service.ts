@@ -1,4 +1,4 @@
-import { IUser, IXpertTask, XpertTaskStatus } from '@metad/contracts'
+import { IUser, IXpert, IXpertTask, RolesEnum, TChatAgentParams, XpertAgentExecutionStatusEnum, XpertTaskStatus } from '@metad/contracts'
 import { ConfigService } from '@metad/server-config'
 import { RequestContext, runWithRequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common'
@@ -7,10 +7,13 @@ import { SchedulerRegistry } from '@nestjs/schedule'
 import { InjectRepository } from '@nestjs/typeorm'
 import * as chalk from 'chalk'
 import { CronJob } from 'cron'
-import { from, switchMap } from 'rxjs'
+import { from, Observable, switchMap } from 'rxjs'
 import { Repository } from 'typeorm'
 import { XpertAgentService } from '../xpert-agent/xpert-agent.service'
 import { XpertTask } from './xpert-task.entity'
+import { FindXpertQuery } from '../xpert/queries'
+import { XpertAgentChatCommand } from '../xpert-agent'
+import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 
 @Injectable()
 export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTask> implements OnModuleInit {
@@ -38,13 +41,57 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 		console.log(chalk.magenta(`Scheduled ${total} tasks for xpert`))
 	}
 
+	async chatAgentJob(id: string, params: TChatAgentParams) {
+		const xpertId = params.xpertId
+		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }, ['agent']))
+		// New execution (Run) in thread
+		const execution = await this.commandBus.execute(
+			new XpertAgentExecutionUpsertCommand({
+				xpert: { id: xpert.id } as IXpert,
+				agentKey: xpert.agent.key,
+				inputs: params.input,
+				status: XpertAgentExecutionStatusEnum.RUNNING,
+			})
+		)
+		// Record execution in task
+		const task = await this.findOne(id)
+		task.executions ??= []
+		task.executions.push(execution)
+		this.repository.save(task)
+
+		// Execute chat
+		const executionId = execution.id
+		return await this.commandBus.execute<XpertAgentChatCommand, Observable<MessageEvent>>(
+			new XpertAgentChatCommand(params.input, params.agentKey, xpert, {
+				isDraft: false,
+				execution: {
+					id: executionId
+				},
+				toolCalls: params.toolCalls,
+				reject: params.reject,
+				from: 'job'
+			})
+		)
+	}
+
 	scheduleCronJob(task: IXpertTask, user: IUser) {
+		const MaximumRuns = 10
+		let runs = 0
+
 		const scheduleJob = () => {
 			const job = new CronJob(task.schedule, () => {
 				this.#logger.warn(`time (${10}) for job ${task.name} to run!`)
 				if (task.xpertId) {
+					runs += 1
+					// Trial account limit
+					if (RequestContext.hasRole(RolesEnum.TRIAL) && runs > MaximumRuns) {
+						this.pause(task.id).catch((err) => {
+							this.#logger.error(err)
+						})
+						return
+					}
 					from(
-						this.agentService.chatAgentJob({
+						this.chatAgentJob(task.id, {
 							input: {
 								input: task.prompt
 							},
@@ -86,7 +133,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 			where: {
 				status: XpertTaskStatus.RUNNING
 			},
-			relations: ['createdBy']
+			relations: ['createdBy', 'createdBy.role']
 		})
 	}
 
@@ -116,7 +163,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
 	async updateTask(id: string, entity: Partial<IXpertTask>) {
 		super.update(id, entity)
-		const task = await this.findOne(id, { relations: ['createdBy'] })
+		const task = await this.findOne(id)
 		if (task.status === XpertTaskStatus.RUNNING) {
 			this.rescheduleTask(task, RequestContext.currentUser())
 		} else {
@@ -126,8 +173,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 	}
 
 	async schedule(id: string) {
-		const task = await this.findOne(id, { relations: ['createdBy'] })
-		this.rescheduleTask(task, RequestContext.currentUser())
+		const task = await this.findOne(id, { relations: ['createdBy', 'createdBy.role'] })
+		this.rescheduleTask(task, RequestContext.currentUser() ?? task.createdBy)
 		return await this.update(id, { status: XpertTaskStatus.RUNNING })
 	}
 

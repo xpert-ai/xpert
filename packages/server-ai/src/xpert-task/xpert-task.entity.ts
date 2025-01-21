@@ -1,13 +1,14 @@
-import { IXpert, IXpertTask, LanguagesEnum, XpertTaskStatus } from '@metad/contracts'
+import { IXpert, IXpertAgentExecution, IXpertTask, LanguagesEnum, XpertAgentExecutionStatusEnum, XpertTaskStatus } from '@metad/contracts'
 import { RequestContext, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger'
 import { IsString, IsOptional, IsEnum } from 'class-validator'
-import { Transform } from 'class-transformer'
+import { Transform, Exclude } from 'class-transformer'
 import cronstrue from 'cronstrue'
 import 'cronstrue/locales/en'
 import 'cronstrue/locales/zh_CN'
-import { Column, DeleteDateColumn, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
-import { Xpert } from '../core/entities/internal'
+import { Column, DeleteDateColumn, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, RelationId } from 'typeorm'
+import { Xpert, XpertAgentExecution } from '../core/entities/internal'
+import { XpertPublicDTO } from '../xpert/dto'
 
 @Entity('xpert_task')
 export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTask {
@@ -36,6 +37,7 @@ export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTas
 	status?: XpertTaskStatus
 
 	@ApiProperty({ type: () => Xpert })
+	@Transform(({value}) => value && new XpertPublicDTO(value))
 	@ManyToOne(() => Xpert, {
 		nullable: true,
 		onDelete: 'CASCADE'
@@ -61,11 +63,32 @@ export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTas
 	@DeleteDateColumn({ nullable: true })
 	deletedAt?: Date
 
+	@ApiProperty({ type: () => [XpertAgentExecution] })
+	@Exclude()
+	@ManyToMany(() => XpertAgentExecution, {
+		eager: true,
+		onUpdate: 'CASCADE',
+		onDelete: 'CASCADE'
+	})
+	@JoinTable({
+		name: 'xpert_task_to_execution'
+	})
+	executions?: IXpertAgentExecution[]
+
 	// Temporary properties
 	@Transform(({obj}) =>
 		cronstrue.toString(obj.schedule, { locale: CronstrueLocales[RequestContext.getLanguageCode()] ?? RequestContext.getLanguageCode() })
 	)
     scheduleDescription?: string
+
+	@Transform(({obj}) => obj.executions?.length)
+	executionCount?: number
+	
+	@Transform(({obj}) => obj.executions?.filter((_) => _.status === XpertAgentExecutionStatusEnum.ERROR).length)
+	errorCount?: number
+
+	@Transform(({obj}) => obj.executions?.filter((_) => _.status !== XpertAgentExecutionStatusEnum.ERROR).length)
+	successCount?: number
 }
 
 const CronstrueLocales = {

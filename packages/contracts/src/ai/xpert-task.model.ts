@@ -1,4 +1,5 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
+import { IXpertAgentExecution } from './xpert-agent-execution.model'
 import { IXpert } from './xpert.model'
 
 export enum XpertTaskStatus {
@@ -23,8 +24,12 @@ export type XpertTaskType = {
   xpert?: IXpert
   xpertId?: string
   agentKey?: string
-  
+  executions?: IXpertAgentExecution[]
+
   // Temporary properties
   job?: any
   scheduleDescription?: string
+  executionCount?: number
+  errorCount?: number
+  successCount?: number
 }

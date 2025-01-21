@@ -24,16 +24,19 @@
 
 <ng-template #menu let-task="task">
   <div cdkMenu class="cdk-menu__large">
-    <div cdkMenuItem (click)="editTask(task)">
-      <i class="ri-edit-line mr-1"></i>
-      {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
-    </div>
-    @if (task.status === eXpertTaskStatus.RUNNING) {
-      <div cdkMenuItem>
-        <i class="ri-pause-circle-line mr-1"></i>
-        {{ 'PAC.Chat.Pause' | translate: { Default: 'Pause' } }}
+    @if (!task.deletedAt) {
+      <div cdkMenuItem (click)="editTask(task)">
+        <i class="ri-edit-line mr-1"></i>
+        {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
       </div>
+      @if (task.status === eXpertTaskStatus.RUNNING) {
+        <div cdkMenuItem>
+          <i class="ri-pause-circle-line mr-1"></i>
+          {{ 'PAC.Chat.Pause' | translate: { Default: 'Pause' } }}
+        </div>
+      }
     }
+    
     <div class="border-b border-solid border-divider-regular my-1"></div>
     <div cdkMenuItem routerLink="/chat/tasks">
       <i class="ri-list-check-3 mr-1"></i>

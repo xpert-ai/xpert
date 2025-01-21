@@ -1576,7 +1576,9 @@
       "Tasks": "任务",
       "Pause": "暂停",
       "NoTasksAvailable": "无可用任务",
-      "TaskDeleted": "任务已被删除"
+      "TaskDeleted": "任务已被删除",
+      "TaskSuccessCount": "任务成功执行次数",
+      "TaskFailureCount": "任务执行失败次数"
     },
     "ChatBI": {
       "Title": "ChatBI-数据分析与洞察",

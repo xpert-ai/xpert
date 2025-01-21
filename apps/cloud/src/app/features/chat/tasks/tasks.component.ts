@@ -53,7 +53,7 @@ export class ChatTasksComponent {
   )
 
   readonly pausedTasks = derivedAsync(() => 
-    this.tasks()?.filter(task => task.status === this.eXpertTaskStatus.PAUSED)
+    this.tasks()?.filter(task => task.status === XpertTaskStatus.PAUSED)
   )
 
   readonly loading = signal(false)
