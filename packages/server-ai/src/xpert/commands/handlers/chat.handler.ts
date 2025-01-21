@@ -143,6 +143,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				toolCalls,
 				reject,
 				memories,
+				summarizeTitle: true
 			})
 		)
 

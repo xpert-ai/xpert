@@ -362,6 +362,7 @@ export type TChatOptions = {
   toolsets?: string[]
   language?: string
   from?: TChatFrom
+  summarizeTitle?: boolean
 }
 
 // Helpers

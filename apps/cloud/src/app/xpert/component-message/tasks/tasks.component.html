@@ -1,6 +1,6 @@
 <div class="px-2 text-base font-medium">{{ 'PAC.Chat.Tasks' | translate: {Default: 'Tasks'} }}: </div>
 
-@for (task of taskDetails(); track task.id) {
+@for (task of syncedTasks(); track task.id) {
   <div class="task flex w-full rounded-2xl px-6 py-4 shadow-sm border-[0.5px] border-solid border-gray-300 hover:shadow-md"
     [class.deleted]="!!task.deletedAt"
     [matTooltip]="task.deletedAt ? ('PAC.Chat.TaskDeleted' | translate: {Default: 'The task has been deleted'}) : null "
@@ -22,6 +22,10 @@
   <div class="p-4 text-text-secondary">{{'PAC.Chat.NoTasksAvailable' | translate: {Default: 'No tasks available'} }}</div>
 }
 
+@if (loading()) {
+  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+}
+
 <ng-template #menu let-task="task">
   <div cdkMenu class="cdk-menu__large">
     @if (!task.deletedAt) {
@@ -30,7 +34,7 @@
         {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
       </div>
       @if (task.status === eXpertTaskStatus.RUNNING) {
-        <div cdkMenuItem>
+        <div cdkMenuItem (click)="pause(task)">
           <i class="ri-pause-circle-line mr-1"></i>
           {{ 'PAC.Chat.Pause' | translate: { Default: 'Pause' } }}
         </div>

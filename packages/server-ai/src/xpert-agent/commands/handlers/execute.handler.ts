@@ -41,7 +41,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 
 	public async execute(command: XpertAgentExecuteCommand): Promise<Observable<MessageContent>> {
 		const { input, agentKey, xpert, options } = command
-		const { execution, subscriber, toolCalls, reject, memories } = options
+		const { execution, subscriber, toolCalls, reject, memories, summarizeTitle } = options
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 		const userId = RequestContext.currentUserId()
@@ -180,6 +180,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 				return [systemMessage, ...state.messages]
 			},
 			summarize: team.summarize,
+			summarizeTitle
 		})
 
 		this.#logger.debug(`Start chat with xpert '${xpert.name}' & agent '${agent.title}'`)

@@ -22,7 +22,7 @@ import { AnnotationRoot } from "@langchain/langgraph/dist/graph";
 import { TSummarize } from "@metad/contracts";
 import { v4 as uuidv4 } from "uuid";
 import { ToolNode } from "./tool_node";
-import { AgentStateAnnotation, TSubAgent } from "./types";
+import { AgentStateAnnotation, STATE_VARIABLE_SYS_LANGUAGE, TSubAgent } from "./types";
 
 
 function _getStateModifierRunnable(
@@ -112,6 +112,10 @@ export type CreateReactAgentParams<
   tools?: (StructuredToolInterface | RunnableToolLike)[];
   endNodes?: string[]
   summarize?: TSummarize
+  /**
+   * Enable summarize a title for initial conversation
+   */
+  summarizeTitle?: boolean
 };
 
 /**
@@ -144,6 +148,7 @@ export function createReactAgent(
     endNodes,
     tags,
     store,
+    summarizeTitle
   } = props;
   const summarize = ensureSummarize(props.summarize)
 
@@ -174,7 +179,7 @@ export function createReactAgent(
         // If there are more than six messages, then we summarize the conversation
         if (summarize?.enabled && messages.length > summarize.maxMessages) {
           return "summarize_conversation";
-        } else if (!title) {
+        } else if (!title && summarizeTitle) {
           return "title_conversation"
         }
 
@@ -197,10 +202,13 @@ export function createReactAgent(
       "agent",
       new RunnableLambda({ func: callModel }).withConfig({ runName: "agent", tags })
     )
-    .addNode("title_conversation", createTitleAgent(llm))
     .addEdge(START, "agent")
     .addConditionalEdges("agent", shouldContinue,)
-    .addEdge("title_conversation", END)
+  
+  if (summarizeTitle) {
+    workflow.addNode("title_conversation", createTitleAgent(llm))
+      .addEdge("title_conversation", END)
+  }
 
   if (subAgents) {
     Object.keys(subAgents).forEach((name) => {
@@ -264,12 +272,13 @@ export function createSummarizeAgent(model: BaseChatModel, summarize: TSummarize
 
 export function createTitleAgent(model: BaseChatModel) {
   return async (state: typeof AgentStateAnnotation.State): Promise<any> => {
-    // First, we title the conversation
+    // Title the conversation
     const { messages } = state;
+    const language = state[STATE_VARIABLE_SYS_LANGUAGE]
   
     const allMessages = [...messages, new HumanMessage({
       id: uuidv4(),
-      content: "Create a short title for the conversation above:",
+      content: `Create a short title${language ? ` in language '${language}'` : ''} for the conversation above:`,
     })]
     const response = await model.invoke(allMessages);
     if (typeof response.content !== "string") {
