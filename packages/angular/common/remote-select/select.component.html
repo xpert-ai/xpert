@@ -1,6 +1,10 @@
-<div #menuTrigger tabindex="0" class="flex items-center gap-1 px-2 h-9 rounded-lg border-[0.5px] border-transparent cursor-pointer
+<div #menuTrigger
+  #trigger="cdkMenuTriggerFor"
+  tabindex="0"
+  class="flex items-center gap-1 px-2 h-9 rounded-lg border-[0.5px] border-transparent cursor-pointer
  bg-gray-100 hover:bg-gray-50"
   [cdkMenuTriggerFor]="menu"
+  [cdkMenuTriggerData]="{ trigger: trigger }"
 >
   <div title="" class="grow space-x-1 text-[13px] leading-[18px] text-gray-700 truncate">
     @for (item of selectedOptions(); track item.value; let last = $last) {
@@ -17,9 +21,15 @@
       <path d="M11.9999 13.1714L16.9497 8.22168L18.3639 9.63589L11.9999 15.9999L5.63599 9.63589L7.0502 8.22168L11.9999 13.1714Z"></path>
     </svg>
   </div>
+
+  @if (values()?.length) {
+    <div class="p-[1px] cursor-pointer group/clear" (click)="clear()">
+      <i class="ri-close-circle-fill text-text-quaternary group-hover/clear:text-text-tertiary"></i>
+    </div>
+  }
 </div>
 
-<ng-template #menu>
+<ng-template #menu let-trigger="trigger">
   <div cdkMenu class="relative bg-white rounded-lg border-[0.5px] border-gray-200 shadow-md" [style.width.px]="menuTrigger.offsetWidth">
     <div class="p-2 border-b-[0.5px] border-black/5">
       <div class="group flex items-center px-2 h-8 rounded-lg border border-transparent overflow-hidden shadow-xs">
@@ -42,6 +52,7 @@
       @for (option of filteredSelectOptions(); track option.value) {
         <li class="flex items-center gap-2 pl-3 py-[6px] pr-2 rounded-lg cursor-pointer hover:bg-gray-100"
           [cdkOption]="option.value"
+          (click)="selectOption(trigger, option.value)"
         >
           <input type="checkbox" class="checkbox opacity-0 w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-blue-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-blue-600 dark:ring-offset-gray-800"
             checked

@@ -2,7 +2,7 @@ import * as lark from '@larksuiteoapi/node-sdk'
 import { IIntegration, IUser, TranslateOptions } from '@metad/contracts'
 import { nonNullable } from '@metad/copilot'
 import { ConfigService, IEnvironment } from '@metad/server-config'
-import { UserService, RoleService, RequestContext } from '@metad/server-core'
+import { UserService, RoleService, RequestContext, IntegrationService } from '@metad/server-core'
 import { CACHE_MANAGER, Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { Cache } from 'cache-manager'
@@ -42,6 +42,7 @@ export class LarkService {
 		private readonly conversation: LarkConversationService,
 		private readonly userService: UserService,
 		private readonly roleService: RoleService,
+		private readonly integrationService: IntegrationService,
 		private readonly configService: ConfigService,
 		private readonly i18n: I18nService,
 		private readonly commandBus: CommandBus,
@@ -85,6 +86,11 @@ export class LarkService {
 			// Error
 			console.error(err)
 		})
+	}
+
+	async getOrCreateLarkClientById(id: string) {
+		const integration = await this.integrationService.findOne(id)
+		return this.getOrCreateLarkClient(integration).client
 	}
 
 	createClient(integration: IIntegration) {

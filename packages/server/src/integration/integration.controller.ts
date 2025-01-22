@@ -13,18 +13,27 @@ import { IntegrationService } from './integration.service'
 @Controller()
 export class IntegrationController extends CrudController<Integration> {
 	constructor(
-		private readonly integrationService: IntegrationService,
+		private readonly service: IntegrationService,
 		private readonly commandBus: CommandBus
 	) {
-		super(integrationService)
+		super(service)
 	}
 
 	@Get()
 	async getAll(@Query('data', ParseJsonPipe) data: PaginationParams<Integration>) {
-		const result = await this.integrationService.findAll(data)
+		const result = await this.service.findAll(data)
 		return {
 			...result,
 			items: result.items.map((_) => new IntegrationPublicDTO(_))
 		}
+	}
+
+	@Get('select-options')
+	async getSelectOptions() {
+		const { items } = await this.service.findAll()
+		return items.map((item) => ({
+			value: item.id,
+			label: item.name
+		}))
 	}
 }

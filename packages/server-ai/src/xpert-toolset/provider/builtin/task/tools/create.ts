@@ -6,6 +6,7 @@ import { BuiltinTool } from '../../builtin-tool'
 import { TaskToolset } from '../task'
 import { TaskToolEnum } from '../types'
 import { LangGraphRunnableConfig } from '@langchain/langgraph'
+import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 
 export type TTaskCreateToolParameters = {
 	name: string
@@ -34,7 +35,7 @@ export class TaskCreateTool extends BuiltinTool {
 		super()
 	}
 
-	async _call(parameters: TTaskCreateToolParameters, callbacks, config) {
+	async _call(parameters: TTaskCreateToolParameters, callbacks: CallbackManagerForToolRun, config: LangGraphRunnableConfig) {
 		if (!parameters.name) {
 			throw new ToolParameterValidationError(`name is empty`)
 		}

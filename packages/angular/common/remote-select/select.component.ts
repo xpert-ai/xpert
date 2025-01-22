@@ -1,5 +1,5 @@
 import { CdkListboxModule, ListboxValueChangeEvent } from '@angular/cdk/listbox'
-import { CdkMenuModule } from '@angular/cdk/menu'
+import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { HttpClient } from '@angular/common/http'
 import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
@@ -9,7 +9,7 @@ import { ISelectOption, NgmI18nPipe, toParams } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { debounceTime, startWith } from 'rxjs'
+import { catchError, debounceTime, of, startWith } from 'rxjs'
 import { NgmHighlightDirective } from '../directives'
 
 type TSelectOptionValue = string | { id: string }
@@ -60,6 +60,7 @@ export class NgmRemoteSelectComponent {
   readonly selectOptions = derivedAsync(() => {
     return this.url()
       ? this.httpClient.get<ISelectOption[]>(this.url(), { params: this.params() ? toParams(this.params()) : null })
+        .pipe(catchError(() => of(null)))
       : []
   })
 
@@ -95,5 +96,15 @@ export class NgmRemoteSelectComponent {
     } else {
       return a === b
     }
+  }
+
+  selectOption(trigger: CdkMenuTrigger, value: any) {
+    if (!this.multiple()) {
+      trigger.close()
+    }
+  }
+
+  clear() {
+    this.cva.writeValue(this.multiple() ? [] : null)
   }
 }

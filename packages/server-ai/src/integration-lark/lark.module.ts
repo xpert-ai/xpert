@@ -9,6 +9,7 @@ import { CommandHandlers } from './commands/handlers'
 import { LarkConversationService } from './conversation.service'
 import { LarkHooksController } from './lark.hooks.controller'
 import { LarkService } from './lark.service'
+import { QueryHandlers } from './queries/handlers'
 
 @Module({
 	imports: [
@@ -40,7 +41,7 @@ import { LarkService } from './lark.service'
 		IntegrationModule
 	],
 	controllers: [LarkHooksController],
-	providers: [LarkService, LarkConversationService, ...CommandHandlers, LarkTokenStrategy],
+	providers: [LarkService, LarkConversationService, ...CommandHandlers, ...QueryHandlers, LarkTokenStrategy],
 	exports: [LarkService]
 })
 export class IntegrationLarkModule {}
