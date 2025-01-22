@@ -12,7 +12,10 @@
         "outputPath": "dist/apps/cloud",
         "index": "apps/cloud/src/index.html",
         "main": "apps/cloud/src/main.ts",
-        "polyfills": ["zone.js"],
+        "polyfills": [
+          "zone.js",
+          "apps/cloud/src/polyfills.ts"
+        ],
         "tsConfig": "apps/cloud/tsconfig.app.json",
         "inlineStyleLanguage": "scss",
         "assets": [
