@@ -416,7 +416,7 @@ export class FeaturesComponent implements OnInit {
         link: '/xpert/e',
         pathMatch: 'prefix',
         data: {
-          translationKey: 'ExploreXperts',
+          translationKey: 'Explore Xperts',
           featureKey: AiFeatureEnum.FEATURE_XPERT,
           permissionKeys: [AIPermissionsEnum.XPERT_EDIT]
         }
@@ -427,7 +427,7 @@ export class FeaturesComponent implements OnInit {
         link: '/xpert/w',
         pathMatch: 'prefix',
         data: {
-          translationKey: 'Xpert',
+          translationKey: 'Building Xperts',
           featureKey: AiFeatureEnum.FEATURE_XPERT,
           permissionKeys: [AIPermissionsEnum.XPERT_EDIT]
         }

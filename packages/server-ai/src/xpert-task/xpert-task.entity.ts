@@ -49,7 +49,7 @@ export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTas
 	@RelationId((it: XpertTask) => it.xpert)
 	@IsString()
 	@Column({ nullable: true })
-	readonly xpertId?: string
+	xpertId?: string
 
 	@ApiProperty({ type: () => String, readOnly: true })
 	@IsString()

@@ -3,8 +3,7 @@ import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { SchedulerRegistry } from '@nestjs/schedule'
-import { instanceToPlain } from 'class-transformer'
-import { FindConditions, Like } from 'typeorm'
+import { FindConditions } from 'typeorm'
 import { XpertTask } from '../../xpert-task.entity'
 import { XpertTaskService } from '../../xpert-task.service'
 import { QueryXpertTaskCommand } from '../query.command'
@@ -22,23 +21,33 @@ export class QueryXpertTaskHandler implements ICommandHandler<QueryXpertTaskComm
 
 	public async execute(command: QueryXpertTaskCommand) {
 		const where = { createdById: RequestContext.currentUserId() } as FindConditions<XpertTask>
-		if (command.name) {
-			where.name = Like(command.name)
+		if (command.xpertId) {
+			where.xpertId = command.xpertId
 		}
 
 		const { items } = await this.taskService.findAll({ where })
 
 		return items.map((task) => {
-			const plainTask = instanceToPlain(task)
 			try {
 				const job = this.schedulerRegistry.getCronJob(task.name)
 				return {
-					...plainTask,
+					name: task.name,
+					schedule: task.schedule,
+					xpertId: task.xpertId,
+					agentKey: task.agentKey,
+					prompt: task.prompt,
+					status: task.status,
+					deletedAt: task.deletedAt,
 					job
 				}
 			} catch (err) {
 				return {
-					...plainTask,
+					name: task.name,
+					schedule: task.schedule,
+					xpertId: task.xpertId,
+					agentKey: task.agentKey,
+					prompt: task.prompt,
+					deletedAt: task.deletedAt,
 					status: XpertTaskStatus.PAUSED,
 					job: null
 				}

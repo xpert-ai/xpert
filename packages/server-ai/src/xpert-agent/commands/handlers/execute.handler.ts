@@ -23,7 +23,7 @@ import { createReactAgent } from './react_agent_executor'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { getErrorMessage, takeUntilAbort } from '@metad/server-common'
-import { AgentStateAnnotation, parseXmlString, STATE_VARIABLE_SYS_LANGUAGE, TSubAgent } from './types'
+import { AgentStateAnnotation, parseXmlString, STATE_VARIABLE_SYS_LANGUAGE, STATE_VARIABLE_USER_EMAIL, TSubAgent } from './types'
 import { CompleteToolCallsQuery } from '../../queries'
 import { memoryPrompt } from '../../../copilot-store/utils'
 import { assignExecutionUsage } from '../../../xpert-agent-execution/types'
@@ -45,6 +45,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 		const userId = RequestContext.currentUserId()
+		const user = RequestContext.currentUser()
 
 		const abortController = new AbortController()
 
@@ -204,6 +205,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 				input?.input ? {
 					...input,
 					[STATE_VARIABLE_SYS_LANGUAGE]: options.language || null,
+					[STATE_VARIABLE_USER_EMAIL]: user.email,
 					memories,
 					messages: [new HumanMessage(input.input)]
 				} : null,

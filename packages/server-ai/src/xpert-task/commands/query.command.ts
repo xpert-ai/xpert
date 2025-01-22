@@ -8,6 +8,6 @@ export class QueryXpertTaskCommand implements ICommand {
 	static readonly type = '[Xpert Task] Query'
 
 	constructor(
-		public readonly name?: string,
+		public readonly xpertId?: string,
 	) {}
 }

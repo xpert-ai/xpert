@@ -28,7 +28,7 @@ export class TaskListTool extends BuiltinTool {
 		const { subscriber } = config?.configurable ?? {}
 
 		const tasks = await this.toolset.commandBus.execute<QueryXpertTaskCommand, IXpertTask[]>(
-			new QueryXpertTaskCommand()
+			new QueryXpertTaskCommand(this.toolset.xpertId)
 		)
 
 		this.toolset.sendTasks(
