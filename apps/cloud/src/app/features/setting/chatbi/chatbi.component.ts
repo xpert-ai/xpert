@@ -2,16 +2,17 @@ import { Component, inject } from '@angular/core'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { Store, ToastrService, routeAnimations } from '../../../@core'
-import { AsyncPipe } from '@angular/common'
 import { TranslationBaseComponent } from '../../../@shared/language'
-import { MaterialModule } from '../../../@shared/material.module'
+import { MatDividerModule } from '@angular/material/divider'
+import { MatTabsModule } from '@angular/material/tabs'
+import { MatIconModule } from '@angular/material/icon'
 
 @Component({
   standalone: true,
   selector: 'pac-settings-chatbi',
   templateUrl: './chatbi.component.html',
   styleUrls: ['./chatbi.component.scss'],
-  imports: [AsyncPipe, RouterModule, TranslateModule, MaterialModule],
+  imports: [RouterModule, TranslateModule, MatDividerModule, MatTabsModule, MatIconModule],
   animations: [routeAnimations]
 })
 export class ChatBIComponent extends TranslationBaseComponent {

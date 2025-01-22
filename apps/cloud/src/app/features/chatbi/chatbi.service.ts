@@ -159,13 +159,15 @@ export class ChatbiService {
         if (this.modelId() && !this.model()) {
           const model = convertNewSemanticModelResult(
             await firstValueFrom(
-              this.#modelsService.getById(this.modelId(), [
-                'indicators',
-                'createdBy',
-                'updatedBy',
-                'dataSource',
-                'dataSource.type'
-              ])
+              this.#modelsService.getById(this.modelId(), {
+                relations: [
+                  'indicators',
+                  'createdBy',
+                  'updatedBy',
+                  'dataSource',
+                  'dataSource.type'
+                ]
+              })
             )
           )
           this.detailModels.update((state) => ({ ...state, [model.id]: model }))

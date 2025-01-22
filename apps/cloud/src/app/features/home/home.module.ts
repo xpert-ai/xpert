@@ -5,7 +5,6 @@ import { NgxEchartsModule } from 'ngx-echarts'
 import { provideLogger } from '../../@core'
 import { STORY_WIDGET_COMPONENTS } from '../../widgets'
 import { HomeRoutingModule } from './home-routing.module'
-import { InsightService } from './insight/insight.service'
 
 @NgModule({
   imports: [
@@ -18,6 +17,6 @@ import { InsightService } from './insight/insight.service'
   ],
   exports: [],
   declarations: [],
-  providers: [provideOcapCore(), InsightService, provideLogger(), ...STORY_WIDGET_COMPONENTS]
+  providers: [provideOcapCore(), provideLogger(), ...STORY_WIDGET_COMPONENTS]
 })
 export class HomeModule {}

@@ -133,13 +133,13 @@ export class ChatHomeComponent {
     if (ids.length) {
       return combineLatest(
         ids.map((id) =>
-          this.semanticModelService.getById(id, [
+          this.semanticModelService.getById(id, {relations: [
             'indicators',
             'createdBy',
             'updatedBy',
             'dataSource',
             'dataSource.type'
-          ])
+          ]})
         )
       ).pipe(
         tap({

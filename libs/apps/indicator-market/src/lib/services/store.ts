@@ -182,7 +182,7 @@ export class IndicatorsStore extends ComponentStore<IndicatorStoreState> {
         combineLatest(
           ids.map((id) =>
             this.modelsService
-              .getById(id, ['dataSource', 'dataSource.type', 'indicators'])
+              .getById(id, {relations: ['dataSource', 'dataSource.type', 'indicators']})
               .pipe(map(convertNewSemanticModelResult))
           )
         )

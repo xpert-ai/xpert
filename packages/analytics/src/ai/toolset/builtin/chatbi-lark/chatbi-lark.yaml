@@ -21,6 +21,7 @@ credentials_for_provider:
       en_US: Please select your chat models
       zh_Hans: 请选择你的对话模型
     selectUrl: /api/chatbi-model/model-select-options
+    url: /settings/chatbi/models
     multi: true
   dataPermission:
     type: boolean

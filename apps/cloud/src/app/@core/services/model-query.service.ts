@@ -35,7 +35,7 @@ export class ModelQueryService {
   }
 
   getByModel(modelId: string) {
-    return this.modelsService.getById(modelId, ['queries']).pipe(
+    return this.modelsService.getById(modelId, {relations: ['queries']}).pipe(
       map((model) => model.queries.map(convertModelQueryResult))
     )
   }

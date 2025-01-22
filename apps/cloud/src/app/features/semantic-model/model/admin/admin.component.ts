@@ -62,7 +62,7 @@ export class ModelAdminComponent extends TranslationBaseComponent {
 
   // Subscribers
   private _modelDetailSub = combineLatest([this.refresh$, this.#model.id$])
-    .pipe(switchMap(([, id]) => this.modelsService.getById(id ?? null, ['owner', 'members'])), takeUntilDestroyed())
+    .pipe(switchMap(([, id]) => this.modelsService.getById(id ?? null, {relations: ['owner', 'members']})), takeUntilDestroyed())
     .subscribe((semanticModel) => {
       this.semanticModel = semanticModel
       this.members = semanticModel.members.map((user) => ({

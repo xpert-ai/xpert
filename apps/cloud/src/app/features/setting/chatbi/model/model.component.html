@@ -1,7 +1,8 @@
 <div class="shrink-0 w-full h-28" (click)="close()"></div>
 <div class="relative w-full flex-1 flex flex-col justify-start items-center rounded-t-3xl bg-gray-50 overflow-auto">
+  <div class="flex-1 max-w-lg pt-4">
+    <div class="w-full text-lg font-medium p-4 text-left">{{'PAC.ChatBI.NewChatBIModel' | translate: {Default: 'New ChatBI Model'} }}</div>
 
-  <div class="flex-1 max-w-lg pt-8">
     <form class="flex flex-wrap gap-4 p-4" [formGroup]="formGroup">
       <ngm-select class="flex-1" [label]="'PAC.ChatBI.SemanticModel' | translate: {Default: 'Semantic Model'}" valueKey="key"
         [displayBehaviour]="DisplayBehaviour.descriptionOnly"

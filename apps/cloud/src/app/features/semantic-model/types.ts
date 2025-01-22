@@ -134,7 +134,7 @@ export function convertExcelDate2ISO(cell: number, type: TableColumnType) {
 }
 
 export async function exportSemanticModel(modelService: SemanticModelServerService, id: string) {
-  const model = await firstValueFrom(modelService.getById(id, ['roles']))
+  const model = await firstValueFrom(modelService.getById(id, {relations: ['roles']}))
   model.roles = model.roles?.map((role) =>
     omit(role, 'id', 'tenantId', 'organizationId', 'createdById', 'updatedById', 'createdAt', 'updatedAt', 'modelId')
   )

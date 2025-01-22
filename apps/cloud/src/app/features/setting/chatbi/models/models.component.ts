@@ -2,23 +2,36 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
+import { MatButtonModule } from '@angular/material/button'
+import { MatDividerModule } from '@angular/material/divider'
+import { MatIconModule } from '@angular/material/icon'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { CdkConfirmDeleteComponent, NgmTableComponent, TableColumn } from '@metad/ocap-angular/common'
 import { AppearanceDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { BehaviorSubject, EMPTY } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 import { ChatBIModelService, ToastrService, getErrorMessage, routeAnimations } from '../../../../@core'
-import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
 @Component({
   standalone: true,
   selector: 'pac-settings-chatbi-models',
   templateUrl: './models.component.html',
   styleUrls: ['./models.component.scss'],
-  imports: [CommonModule, RouterModule, TranslateModule, MaterialModule, AppearanceDirective, NgmTableComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    TranslateModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
+    MatDividerModule,
+    AppearanceDirective,
+    NgmTableComponent
+  ],
   animations: [routeAnimations]
 })
 export class ChatBIModelsComponent extends TranslationBaseComponent {
@@ -35,7 +48,6 @@ export class ChatBIModelsComponent extends TranslationBaseComponent {
       switchMap(() => this.chatbiModelsService.getAllInOrg({ relations: ['model'] }).pipe(map(({ items }) => items)))
     )
   )
-  readonly allModels = toSignal(this.modelsService.getMy())
 
   readonly columns = signal<TableColumn[]>([
     {
