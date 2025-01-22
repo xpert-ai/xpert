@@ -46,7 +46,9 @@ import { isWithinInterval } from 'date-fns/isWithinInterval'
 import { isYesterday } from 'date-fns/isYesterday'
 import { subDays } from 'date-fns/subDays'
 
-
+/**
+ * The context of a single chat is not shared between conversations
+ */
 @Injectable()
 export class ChatService {
   readonly chatService = inject(ChatServerService)
@@ -88,18 +90,6 @@ export class ChatService {
   readonly lang = this.appService.lang
 
   readonly xpert = toSignal(this.xpert$)
-
-  // SemanticModels
-  readonly #semanticModels = signal<
-    Record<
-      string,
-      {
-        model?: ISemanticModel
-        indicators?: Indicator[]
-        dirty?: boolean
-      }
-    >
-  >({})
 
   private idSub = toObservable(this.conversationId)
     .pipe(
@@ -473,27 +463,6 @@ export class ChatService {
         event: event === ChatMessageEventTypeEnum.ON_AGENT_END ? null : event,
         error
       }
-    })
-  }
-
-  /**
-   * Collect the semantic models and the corresponding runtime indicators to be registered.
-   * 
-   * @param models Model id and runtime indicators
-   */
-  registerSemanticModel(models: { id: string; indicators?: Indicator[] }[]) {
-    this.#semanticModels.update((state) => {
-      models.forEach(({ id, indicators }) => {
-        state[id] ??= {}
-        if (indicators) {
-          state[id].indicators ??= []
-          state[id].indicators = [
-            ...state[id].indicators.filter((_) => !indicators.some((i) => i.code === _.code)),
-            ...indicators
-          ]
-        }
-      })
-      return { ...state }
     })
   }
   

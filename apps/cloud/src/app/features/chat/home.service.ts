@@ -1,20 +1,11 @@
-import { inject, Injectable, signal } from '@angular/core'
-import { IChatConversation, LanguagesEnum, OrderTypeEnum, XpertTypeEnum } from '@metad/contracts'
+import { Injectable } from '@angular/core'
+import { LanguagesEnum, OrderTypeEnum, XpertTypeEnum } from '../../@core/types'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { map, pipe } from 'rxjs'
-import { ChatConversationService, XpertService } from '../../@core'
-import { AppService } from '../../app.service'
+import { XpertHomeService } from '../../xpert'
 
 @Injectable()
-export class ChatHomeService {
-  readonly appService = inject(AppService)
-  readonly xpertService = inject(XpertService)
-  readonly conversationService = inject(ChatConversationService)
-  readonly lang = this.appService.lang
-
-  readonly conversations = signal<IChatConversation[]>([])
-  readonly conversationId = signal<string>(null)
-  
+export class ChatHomeService extends XpertHomeService {
   readonly xperts = derivedFrom(
     [
       this.xpertService
@@ -33,11 +24,4 @@ export class ChatHomeService {
     ),
     { initialValue: null }
   )
-
-  deleteConversation(id: string) {
-    this.conversations.update((items) => items.filter((item) => item.id !== id))
-    this.conversationService.delete(id).subscribe({
-      next: () => {}
-    })
-  }
 }

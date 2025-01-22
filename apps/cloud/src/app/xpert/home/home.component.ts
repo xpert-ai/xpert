@@ -20,6 +20,7 @@ import { ChatInputComponent } from '../chat-input/chat-input.component'
 import { ChatService, groupConversations } from '../chat.service'
 import { ChatConversationComponent } from '../conversation/conversation.component'
 import { MatInputModule } from '@angular/material/input'
+import { XpertHomeService } from '../home.service'
 
 @Component({
   standalone: true,
@@ -51,6 +52,7 @@ import { MatInputModule } from '@angular/material/input'
   providers: [
     provideMarkdown({}),
     provideOcapCore(),
+    XpertHomeService,
     ChatAppService,
     { provide: ChatService, useExisting: ChatAppService }
   ]
