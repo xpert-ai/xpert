@@ -60,7 +60,8 @@
     "b:sb:ocap-angular": "yarn nx run ocap-angular:build-storybook",
     "b:docs": "concurrently \"yarn --cwd ./packages/store docs\" \"yarn --cwd ./packages/core docs\" \"yarn --cwd ./packages/xmla docs\" \"yarn --cwd ./packages/sql docs\" \"yarn --cwd ./packages/echarts docs\" \"yarn --cwd ./packages/duckdb docs\" \"yarn --cwd ./packages/copilot docs\" \"yarn b:sb:ocap-angular\"",
     "b:stats": "yarn nx build cloud --stats-json",
-    "analyze": "webpack-bundle-analyzer dist/apps/cloud/stats.json"
+    "analyze": "webpack-bundle-analyzer dist/apps/cloud/stats.json",
+    "show": "yarn nx show project cloud --web"
   },
   "dependencies": {
     "@angular/animations": "~17.3.0",
