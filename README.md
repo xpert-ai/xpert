@@ -162,7 +162,13 @@ This software is available under the following licenses:
 
 #### Please see [LICENSE](LICENSE.md) for more information on licenses.
 
-## 🍺 Contribute
+## 💪 Thanks to our Contributors
+
+**Contributors**
+
+<a href="https://github.com/xpert-ai/xpert/graphs/contributors">
+  <img src="https://contributors-img.web.app/image?repo=xpert-ai/xpert" />
+</a>
 
 - Please give us :star: on Github, it **helps**!
 - You are more than welcome to submit feature requests in the [Xpert AI repo](https://github.com/xpert-ai/xpert/issues)

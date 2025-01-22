@@ -1,0 +1,22 @@
+name: "📚 Documentation Issue"
+description: Report issues in our documentation
+labels:
+  - documentation
+body:
+  - type: checkboxes
+    attributes:
+      label: Self Checks
+      description: "To make sure we get to you in time, please check the following :)"
+      options:
+        - label: I have searched for existing issues [search for existing issues](https://github.com/xpert-ai/xpert/issues), including closed ones.
+          required: true
+        - label: "[FOR CHINESE USERS] 请务必使用英文提交 Issue，谢谢！:）"
+          required: true
+        - label: "Please do not modify this template :) and fill in all the required fields."
+          required: true
+  - type: textarea
+    attributes:
+      label: Provide a description of requested docs changes
+      placeholder: Briefly describe which document needs to be corrected and why.
+    validations:
+      required: true
