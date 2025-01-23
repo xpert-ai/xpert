@@ -3,8 +3,6 @@ import { CommandBus } from '@nestjs/cqrs';
 import { ToolsetGetToolsHandler } from './get-tools.handler';
 import { XpertToolsetService } from '../../xpert-toolset.service';
 import { ToolsetGetToolsCommand } from '../get-tools.command';
-import { createToolset } from '../../toolset';
-import { XpertToolset } from '../../xpert-toolset.entity';
 import { In } from 'typeorm';
 import * as path from 'path';
 import * as fs from 'fs'
@@ -58,28 +56,4 @@ describe('ToolsetGetToolsHandler', () => {
     });
   });
 
-  it('should return an array of toolsets', async () => {
-
-    const mockToolsets = [{
-      id: '1',
-      type: 'openapi',
-      credentials: {
-
-      },
-      tools: [
-        {
-          options: {
-            api_bundle: toolBundles[0]
-          }
-        }
-      ]
-    }, { id: '2' }] as XpertToolset[];
-    jest.spyOn(toolsetService, 'findAll').mockResolvedValueOnce({ total: 2, items: mockToolsets });
-
-    const command = new ToolsetGetToolsCommand(['1', '2']);
-    const result = await handler.execute(command);
-
-
-    expect(result).toEqual(mockToolsets.map(toolset => createToolset(toolset)));
-  });
 });

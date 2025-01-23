@@ -1,0 +1,13 @@
+identity:
+  name: list_task
+  author: XpertAI
+  label:
+    en_US: List scheduled tasks
+    zh_Hans: 列出所有定时任务
+  icon: icon.svg
+description:
+  human:
+    en_US: List scheduled tasks
+    zh_Hans: 列出所有定时任务
+  llm: A tool for listing all scheduled tasks.
+parameters:

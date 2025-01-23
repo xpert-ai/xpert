@@ -21,7 +21,7 @@
 
   &.active {
     .menu-button {
-      @apply rounded-xl shadow-lg bg-white;
+      @apply rounded-xl shadow-lg bg-white text-primary-600;
     }
   }
 }

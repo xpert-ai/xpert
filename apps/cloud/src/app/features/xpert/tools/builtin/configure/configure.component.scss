@@ -1,3 +1,7 @@
 :host {
-    @apply flex flex-col grow w-[420px] overflow-auto;
+    @apply flex flex-col grow w-[420px] max-h-[100vh] rounded-2xl overflow-auto bg-components-card-bg;
+}
+
+.open-authorize-btn.tempalte {
+  @apply border-orange-500 bg-orange-50;
 }

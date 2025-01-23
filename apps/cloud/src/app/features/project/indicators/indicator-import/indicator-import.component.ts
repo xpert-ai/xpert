@@ -51,7 +51,7 @@ export class IndicatorImportComponent {
   uploading = false
 
   private modelsSub = combineLatest<ISemanticModel[]>(
-    this.models.map((model) => this.modelsService.getById(model.id, ['dataSource', 'dataSource.type', 'indicators']))
+    this.models.map((model) => this.modelsService.getById(model.id, {relations: ['dataSource', 'dataSource.type', 'indicators']}))
   ).pipe(takeUntilDestroyed()).subscribe((models) => {
     models.forEach((storyModel) => registerModel(storyModel as NgmSemanticModel, this.dsCoreService, this.wasmAgent))
   })

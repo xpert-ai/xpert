@@ -63,7 +63,7 @@ export function injectFetchModelDetails() {
   const modelsService = inject(SemanticModelServerService)
   return (id: string) => {
     return modelsService
-      .getById(id, ['dataSource', 'dataSource.type', 'indicators'])
+      .getById(id, {relations: ['dataSource', 'dataSource.type', 'indicators']})
       .pipe(map((model) => convertNewSemanticModelResult(model)))
   }
 }

@@ -343,4 +343,9 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		project.members = project.members.filter(({id}) => id !== memberId)
 		await this.repository.save(project)
 	}
+
+	async getCubes(id: string) {
+		const model = await this.findOne(id)
+		return model.options?.schema?.cubes
+	}
 }

@@ -277,6 +277,10 @@ export class XpertStudioComponent {
     }
   }
 
+  public onFocusNode($event: FocusEvent, node: TXpertTeamNode) {
+    this.selectionService.selectNode(node.key)
+  }
+
   onCanvasChange = effectAction((origin$: Observable<FCanvasChangeEvent>) => {
     return origin$.pipe(
       debounceTime(1000),

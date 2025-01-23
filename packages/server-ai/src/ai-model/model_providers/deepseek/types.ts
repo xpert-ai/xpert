@@ -5,6 +5,14 @@ export interface DeepseekCredentials {
     endpoint_url: string
 }
 
+export interface DeepseekModelCredentials {
+    streaming?: boolean
+    temperature: number
+    top_p?: number
+    max_tokens?: number
+    frequency_penalty?: number
+}
+
 export function toCredentialKwargs(credentials: DeepseekCredentials) {
     const credentialsKwargs: OpenAIBaseInput = {
         apiKey: credentials.api_key

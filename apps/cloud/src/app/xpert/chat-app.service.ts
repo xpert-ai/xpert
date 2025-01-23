@@ -8,6 +8,9 @@ import { distinctUntilChanged, filter, map, withLatestFrom } from 'rxjs'
 import { nonNullable } from '@metad/core'
 import { injectParams } from 'ngxtension/inject-params'
 
+/**
+ * Chat context for webapp
+ */
 @Injectable()
 export class ChatAppService extends ChatService {
   readonly route = inject(ActivatedRoute)

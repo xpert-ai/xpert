@@ -1,21 +1,17 @@
 import { Location } from '@angular/common'
-import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core'
+import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { Indicator, nonNullable } from '@metad/ocap-core'
-import { injectParams } from 'ngxtension/inject-params'
 import {
   BehaviorSubject,
   catchError,
   combineLatest,
-  distinctUntilChanged,
   filter,
-  map,
   of,
   skip,
   Subscription,
   switchMap,
   tap,
-  withLatestFrom
 } from 'rxjs'
 import {
   getErrorMessage,
@@ -50,7 +46,9 @@ import { isWithinInterval } from 'date-fns/isWithinInterval'
 import { isYesterday } from 'date-fns/isYesterday'
 import { subDays } from 'date-fns/subDays'
 
-
+/**
+ * The context of a single chat is not shared between conversations
+ */
 @Injectable()
 export class ChatService {
   readonly chatService = inject(ChatServerService)
@@ -83,9 +81,6 @@ export class ChatService {
   readonly #messages = signal<IChatMessage[]>([])
   readonly messages = computed(() => this.#messages() ?? [])
 
-  // Conversations
-  readonly conversations = signal<IChatConversation[]>([])
-
   readonly knowledgebases = signal<IKnowledgebase[]>([])
   readonly toolsets = signal<IXpertToolset[]>([])
 
@@ -95,32 +90,6 @@ export class ChatService {
   readonly lang = this.appService.lang
 
   readonly xpert = toSignal(this.xpert$)
-
-  // SemanticModels
-  readonly #semanticModels = signal<
-    Record<
-      string,
-      {
-        model?: ISemanticModel
-        indicators?: Indicator[]
-        dirty?: boolean
-      }
-    >
-  >({})
-
-  // private paramRoleSub = toObservable(this.paramRole)
-  //   .pipe(
-  //     filter(nonNullable),
-  //     switchMap((slug) => this.getXpert(slug)),
-  //     map(({ items }) => items),
-  //     takeUntilDestroyed())
-  //   .subscribe((xperts) => {
-  //     if (!xperts[0]) {
-  //       this.#toastr.error('PAC.Messages.NoPermissionOrNotExist', this.paramRole(), {Default: 'No permission or does not exist'})
-  //     } else {
-  //       this.xpert$.next(xperts[0])
-  //     }
-  //   })
 
   private idSub = toObservable(this.conversationId)
     .pipe(
@@ -356,31 +325,12 @@ export class ChatService {
     }
   }
 
-  deleteConversation(id: string) {
-    this.conversations.update((items) => items.filter((item) => item.id !== id))
-    this.conversationService.delete(id).subscribe({
-      next: () => {}
-    })
-  }
-
   updateConversation(data: Partial<IChatConversation>) {
     this.conversation.update((state) => ({
       ...(state ?? {}),
       ...data,
       messages: null
     } as IChatConversation))
-    this.conversations.update((items) => {
-      const index = items.findIndex((_) => _.id === this.conversation().id)
-      if (index > -1) {
-        items[index] = {
-          ...items[index],
-          ...this.conversation()
-        }
-        return [...items]
-      } else {
-        return  [{ ...this.conversation() }, ...items]
-      }
-    })
   }
 
   updateMessage(id: string, message: Partial<CopilotBaseMessage>) {
@@ -513,27 +463,6 @@ export class ChatService {
         event: event === ChatMessageEventTypeEnum.ON_AGENT_END ? null : event,
         error
       }
-    })
-  }
-
-  /**
-   * Collect the semantic models and the corresponding runtime indicators to be registered.
-   * 
-   * @param models Model id and runtime indicators
-   */
-  registerSemanticModel(models: { id: string; indicators?: Indicator[] }[]) {
-    this.#semanticModels.update((state) => {
-      models.forEach(({ id, indicators }) => {
-        state[id] ??= {}
-        if (indicators) {
-          state[id].indicators ??= []
-          state[id].indicators = [
-            ...state[id].indicators.filter((_) => !indicators.some((i) => i.code === _.code)),
-            ...indicators
-          ]
-        }
-      })
-      return { ...state }
     })
   }
   

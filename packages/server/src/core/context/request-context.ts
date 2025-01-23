@@ -216,22 +216,34 @@ export class RequestContext {
 		return null;
 	}
 
+	/**
+	 * Checks if the current user has a specific role.
+	 * @param {RolesEnum} role - The role to check.
+	 * @param {boolean} throwError - Flag indicating whether to throw an error if the role is not granted.
+	 * @returns {boolean} - True if the user has the role, otherwise false.
+	 */
 	static hasRole(role: RolesEnum, throwError?: boolean): boolean {
 		return this.hasRoles([role], throwError);
 	}
 
-	static hasRoles(findRoles: RolesEnum[], throwError?: boolean): boolean {
-		const requestContext = RequestContext.currentRequestContext();
-		if (requestContext) {
+	/**
+	 * Checks if the current request context has any of the specified roles.
+	 *
+	 * @param roles - An array of roles to check.
+	 * @param throwError - Whether to throw an error if no roles are found.
+	 * @returns True if any of the required roles are found, otherwise false.
+	 */
+	static hasRoles(roles: RolesEnum[], throwError?: boolean): boolean {
+		const context = RequestContext.currentRequestContext();
+		if (context) {
 			try {
+				// tslint:disable-next-line
 				const token = this.currentToken();
 				if (token) {
-					const { role } = verify(token, env.JWT_SECRET) as {
-						id: string;
-						role: RolesEnum;
-					};
-
-					return role ? findRoles.includes(role) : false;
+					const { role } = verify(token, env.JWT_SECRET) as { id: string; role: RolesEnum };
+					return roles.includes(role ?? null);
+				} else if (this.currentUser().role) {
+					return roles.includes(this.currentUser().role.name as RolesEnum)
 				}
 			} catch (error) {
 				if (error instanceof JsonWebTokenError) {
@@ -241,7 +253,6 @@ export class RequestContext {
 				}
 			}
 		}
-
 		if (throwError) {
 			throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
 		}

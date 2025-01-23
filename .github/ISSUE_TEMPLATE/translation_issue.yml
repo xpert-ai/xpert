@@ -1,0 +1,47 @@
+name: "🌐 Localization/Translation issue"
+description: Report incorrect translations. [please use English :）]
+labels:
+  - translation
+body:
+  - type: checkboxes
+    attributes:
+      label: Self Checks
+      description: "To make sure we get to you in time, please check the following :)"
+      options:
+        - label: I have searched for existing issues [search for existing issues](https://github.com/xpert-ai/xpert/issues), including closed ones.
+          required: true
+        - label: "[FOR CHINESE USERS] 请务必使用英文提交 Issue，谢谢！:）"
+          required: true
+        - label: "Please do not modify this template :) and fill in all the required fields."
+          required: true
+  - type: input
+    attributes:
+      label: Utility with translation issue
+      placeholder: Some area
+      description: Please input here the utility with the translation issue
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: 🌐 Language affected
+      placeholder: "German"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: ❌ Actual phrase(s)
+      placeholder: What is there? Please include a screenshot as that is extremely helpful.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: ✔️ Expected phrase(s)
+      placeholder: What was expected?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: ℹ Why is the current translation wrong
+      placeholder: Why do you feel this is incorrect?
+    validations:
+      required: true

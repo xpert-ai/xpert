@@ -1,41 +1,35 @@
 <div class="shrink-0 w-full h-28" (click)="close()"></div>
 <div class="relative w-full flex-1 flex flex-col justify-start items-center rounded-t-3xl bg-gray-50 overflow-auto">
+  <div class="flex-1 max-w-lg pt-4">
+    <div class="w-full text-lg font-medium p-4 text-left">{{'PAC.ChatBI.NewChatBIModel' | translate: {Default: 'New ChatBI Model'} }}</div>
 
-  <div class="flex-1 max-w-lg">
     <form class="flex flex-wrap gap-4 p-4" [formGroup]="formGroup">
       <ngm-select class="flex-1" [label]="'PAC.ChatBI.SemanticModel' | translate: {Default: 'Semantic Model'}" valueKey="key"
-          [displayBehaviour]="DisplayBehaviour.descriptionOnly"
-          formControlName="modelId"
-          searchable
-          [selectOptions]="models()"
+        [displayBehaviour]="DisplayBehaviour.descriptionOnly"
+        formControlName="modelId"
+        searchable
+        [selectOptions]="models()"
       />
       
       <ngm-select class="flex-1" [label]="'PAC.ChatBI.Entity' | translate: {Default: 'Entity'}" valueKey="key"
-          [displayBehaviour]="DisplayBehaviour.descriptionOnly"
-          formControlName="entity"
-          searchable
-          [selectOptions]="entities()"
+        [displayBehaviour]="DisplayBehaviour.descriptionOnly"
+        formControlName="entity"
+        searchable
+        [selectOptions]="entities()"
       />
           
       <ngm-input class="flex-1 min-w-full" [label]="'PAC.ChatBI.Caption' | translate: {Default: 'Caption'}" valueKey="key"
-          formControlName="entityCaption"
+        formControlName="entityCaption"
       />
       
       <div class="flex-1 min-w-full flex flex-col">
-          <label class="ngm-input-label shrink-0">{{'PAC.ChatBI.Description' | translate: {Default: 'Description'} }}</label>
-          <textarea class="ngm-input-element" matInput formControlName="entityDescription"
-              cdkTextareaAutosize
-              cdkAutosizeMinRows="1"
-              cdkAutosizeMaxRows="5">
-          </textarea>
+        <label class="ngm-input-label shrink-0">{{'PAC.ChatBI.Description' | translate: {Default: 'Description'} }}</label>
+        <textarea class="ngm-input-element" matInput formControlName="entityDescription"
+          cdkTextareaAutosize
+          cdkAutosizeMinRows="1"
+          cdkAutosizeMaxRows="5">
+        </textarea>
       </div>
-
-      <div class="flex-1 flex flex-col mt-4">
-        <label class="ngm-input-label shrink-0">{{'PAC.ChatBI.IntegrationsWithPermission' | translate: {Default: 'Integrations with Permission'} }}</label>
-        <pac-integration-list [integrationList]="integrationList()" [(integrations)]="integrations" />
-      </div>
-
-      <div class="flex-1 flex flex-col"></div>
     </form>
   </div>
 

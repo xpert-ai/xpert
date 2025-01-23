@@ -362,6 +362,7 @@ export type TChatOptions = {
   toolsets?: string[]
   language?: string
   from?: TChatFrom
+  summarizeTitle?: boolean
 }
 
 // Helpers
@@ -373,6 +374,10 @@ export function omitXpertRelations(xpert: Partial<IXpert>) {
 
 export function figureOutXpert(xpert: IXpert, isDraft: boolean) {
   return (isDraft ? xpert.draft?.team : xpert) ?? xpert
+}
+
+export function xpertLabel(agent: IXpert) {
+  return agent.title || agent.name
 }
 
 /**
@@ -516,6 +521,31 @@ export function createAgentConnections(agent: IXpertAgent, collaborators: IXpert
   return connections
 }
 
-export function xpertLabel(agent: IXpert) {
-  return agent.title || agent.name
+export function replaceAgentInDraft(draft: TXpertTeamDraft, key: string, agent: IXpertAgent) {
+  const index = draft.nodes.findIndex((_) => _.type === 'agent' && _.key === key)
+  if (index > -1) {
+    draft.nodes[index] = {
+      ...draft.nodes[index],
+      type: 'agent',
+      key: agent.key,
+      entity: agent
+    }
+  } else {
+    throw new Error(`Can't found agent for key: ${key}`)
+  }
+
+  // Replace agent in connections
+  if (key !== agent.key) {
+    draft.connections.forEach((conn) => {
+      if (conn.from === key) {
+        conn.from = agent.key
+        conn.key = `${conn.from}/${conn.to}`
+      } else if (conn.to === key) {
+        conn.to = agent.key
+        conn.key = `${conn.from}/${conn.to}`
+      }
+    })
+  }
+
+  return draft
 }

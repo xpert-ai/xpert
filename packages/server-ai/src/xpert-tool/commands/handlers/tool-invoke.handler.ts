@@ -1,4 +1,4 @@
-import { XpertToolsetCategoryEnum } from '@metad/contracts'
+import { ToolParameterForm, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -33,14 +33,14 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 
 		// Parse parameters types
 		const parameters = tool.schema.parameters?.reduce((acc, param) => {
-			if (!isNil(tool.parameters[param.name])) {
-				acc[param.name] = ApiBasedToolSchemaParser.convertPropertyValueType(
+			if (!isNil(tool.parameters?.[param.name])) {
+				acc[param.form === ToolParameterForm.FORM ? 'form' : 'llm'][param.name] = ApiBasedToolSchemaParser.convertPropertyValueType(
 					param.schema,
 					tool.parameters[param.name]
 				)
 			}
 			return acc
-		}, {})
+		}, {llm: {}, form: {}})
 
 		const events = []
 		const subscriber = new Subject()
@@ -73,17 +73,15 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 						organizationId,
 						toolsetService: this.toolsetService,
 						commandBus: this.commandBus,
-						queryBus: this.queryBus
+						queryBus: this.queryBus,
+						xpertId: parameters.form.xpertId,
+						agentKey: parameters.form.agentKey,
 					}
 				)
 
-				// const parameterNames = (<TToolParameter[]>tool.schema.parameters)
-				// 	.filter((param) => param.form === ToolParameterForm.LLM)
-				// 	.map((param) => param.name)
-
 				await builtinToolset.initTools()
 
-				const result = await builtinToolset.getTool(tool.name).invoke(parameters ?? {}, {
+				const result = await builtinToolset.getTool(tool.name).invoke(parameters.llm ?? {}, {
 					configurable: toolContext
 				})
 
@@ -100,7 +98,7 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 					case 'openapi': {
 						const openapiToolset = new OpenAPIToolset({ ...toolset, tools: [tool] })
 						const toolRuntime = openapiToolset.getTool(tool.name)
-						return await toolRuntime.invoke(parameters, {
+						return await toolRuntime.invoke(parameters.llm, {
 							configurable: toolContext
 						})
 					}
@@ -108,7 +106,7 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 					case 'odata': {
 						const openapiToolset = new ODataToolset({ ...toolset, tools: [tool] })
 						const toolRuntime = openapiToolset.getTool(tool.name)
-						return await toolRuntime.invoke(parameters, {
+						return await toolRuntime.invoke(parameters.llm, {
 							configurable: toolContext
 						})
 					}

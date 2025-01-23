@@ -141,7 +141,13 @@ Xpert AI 云平台链接为 <https://app.mtda.cloud> 。
 
 #### 请参阅 [LICENSE](LICENSE.md) 以获取有关许可的更多信息。
 
-## 🍺 贡献
+## 💪 感谢我们的贡献者
+
+**贡献者**
+
+<a href="https://github.com/xpert-ai/xpert/graphs/contributors">
+  <img src="https://contributors-img.web.app/image?repo=xpert-ai/xpert" />
+</a>
 
 - 请给我们在 Github 上点个 :star: , 这真的很有**帮助**!
 - 非常欢迎您在 [Xpert repo](https://github.com/xpert-ai/xpert/issues) 中提交功能请求。

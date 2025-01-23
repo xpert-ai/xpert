@@ -126,7 +126,7 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   }
 
   importDSL(dslObject: Record<string, any>) {
-    return this.httpClient.post(this.apiBaseUrl + `/import`, dslObject)
+    return this.httpClient.post<IXpert>(this.apiBaseUrl + `/import`, dslObject)
   }
 
   getAllMemory(id: string, types: string[]) {

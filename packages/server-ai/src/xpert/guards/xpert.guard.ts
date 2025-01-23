@@ -35,16 +35,9 @@ export class XpertGuard implements CanActivate {
 		if (xpert.createdById === user.id) {
 			isAuthorized = true
 		} else {
-			const workspace = await this.workspaceService.findOne(xpert.workspaceId, { relations: ['members'] })
+			isAuthorized = await this.workspaceService.canAccess(xpert.workspaceId, user.id)
 
-			if (!workspace) {
-				throw new ForbiddenException('Access denied')
-			}
-
-			const isMember = workspace.members.some((member) => member.id === user.id)
-			const isOwner = workspace.ownerId === user.id
-
-			if (!isMember && !isOwner) {
+			if (!isAuthorized) {
 				throw new ForbiddenException('Access denied')
 			}
 

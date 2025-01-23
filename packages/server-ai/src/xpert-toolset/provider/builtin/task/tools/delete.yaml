@@ -1,0 +1,22 @@
+identity:
+  name: delete_task
+  author: XpertAI
+  label:
+    en_US: Delete a scheduled task
+    zh_Hans: 删除一个定时任务
+  icon: icon.svg
+description:
+  human:
+    en_US: Delete a scheduled task
+    zh_Hans: 删除一个定时任务
+  llm: A tool for deleting a scheduled task.
+parameters:
+  - name: name
+    type: string
+    label:
+      en_US: Task name
+      zh_Hans: 任务名称
+    human_description:
+      en_US: Task name
+      zh_Hans: 任务名称
+    form: llm

@@ -25,6 +25,7 @@ import { EmojiAvatarComponent } from '../../@shared/avatar'
 import { ChatService } from '../chat.service'
 import { ChatComponentMessageComponent } from '../component-message/component-message.component'
 import { TCopilotChatMessage } from '../types'
+import { XpertHomeService } from '../home.service'
 
 @Component({
   standalone: true,
@@ -54,6 +55,7 @@ export class ChatAiMessageComponent {
   eFeedbackRatingEnum = ChatMessageFeedbackRatingEnum
 
   readonly chatService = inject(ChatService)
+  readonly homeService = inject(XpertHomeService)
   readonly messageFeedbackService = inject(ChatMessageFeedbackService)
   readonly #clipboard = inject(Clipboard)
   readonly #toastr = injectToastr()
@@ -111,7 +113,7 @@ export class ChatAiMessageComponent {
   }
 
   onRegister(models: { id: string; indicators?: Indicator[] }[]) {
-    this.chatService.registerSemanticModel(models)
+    this.homeService.registerSemanticModel(models)
   }
 
   onCopy(copyButton) {

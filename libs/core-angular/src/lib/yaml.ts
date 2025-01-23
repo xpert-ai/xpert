@@ -32,3 +32,8 @@ export async function uploadYamlFile<T>(file) {
     reader.readAsText(file, 'UTF-8')
   })
 }
+
+// 
+export async function parseYAML<T>(content: string) {
+  return parse(content) as T
+}

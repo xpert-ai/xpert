@@ -1,22 +1,26 @@
 /* eslint-disable @typescript-eslint/member-ordering */
-import { HttpClient, HttpParams } from '@angular/common/http'
-import { Injectable } from '@angular/core'
+import { HttpParams } from '@angular/common/http'
+import { inject, Injectable } from '@angular/core'
 import { IDataSource, ISemanticModel } from '@metad/contracts'
-import { hierarchize, Indicator, omit, pick, SemanticModel as OcapSemanticModel } from '@metad/ocap-core'
+import { hierarchize, Indicator, omit, pick, SemanticModel as OcapSemanticModel, Cube } from '@metad/ocap-core'
 import { StoryModel } from '@metad/story/core'
-import { zip } from 'rxjs'
+import { Observable, zip } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 import { BusinessAreasService } from './business-area.service'
 import { C_URI_API_MODELS, C_URI_API_MODEL_MEMBERS } from './constants'
-import { OrganizationBaseService } from './organization-base.service'
 import { convertIndicatorResult, convertStoryModel } from './types'
+import { OrganizationBaseCrudService } from './organization-base-crud.service'
+import { PaginationParams } from './crud.service'
 
 @Injectable({
   providedIn: 'root'
 })
-export class SemanticModelServerService extends OrganizationBaseService {
-  constructor(public httpClient: HttpClient, private businessAreaService: BusinessAreasService) {
-    super()
+export class SemanticModelServerService extends OrganizationBaseCrudService<ISemanticModel> {
+  
+  readonly businessAreaService = inject(BusinessAreasService)
+
+  constructor() {
+    super(C_URI_API_MODELS)
   }
 
   getModels(path: string, query?) {
@@ -46,11 +50,31 @@ export class SemanticModelServerService extends OrganizationBaseService {
   }
 
   getAll() {
-    return this.getModels('')
+    return this.getModels('') as Observable<any>
   }
 
+  /**
+   * @deprecated use getMyModels
+   * 
+   * @param businessAreaId 
+   * @returns 
+   */
   getMy(businessAreaId?: string) {
     return this.getModels('/my', businessAreaId ? { businessAreaId } : null)
+  }
+
+  getMyModels(options?: PaginationParams<ISemanticModel>) {
+    const params = new HttpParams().append(
+      '$query',
+      JSON.stringify(options ?? {})
+    )
+    return this.selectOrganizationId().pipe(
+      switchMap(() =>
+        this.httpClient
+          .get<{ items: Array<ISemanticModel> }>(C_URI_API_MODELS + `/my`, {params})
+          .pipe(map(({ items }) => items.map(convertNewSemanticModelResult)))
+      )
+    )
   }
 
   getMyModelsByAreaTree() {
@@ -149,15 +173,20 @@ export class SemanticModelServerService extends OrganizationBaseService {
     return this.httpClient.delete(`${C_URI_API_MODELS}/${id}`)
   }
 
-  getById(id: string, relations = []) {
-    return this.httpClient.get<ISemanticModel>(C_URI_API_MODELS + `/${id}`, {
+  getById(id: string, options?: {select?: (keyof ISemanticModel)[]; relations?: string[]}) {
+    const { relations } = options ?? {}
+    return this.httpClient.get<ISemanticModel>(this.apiBaseUrl + `/${id}`, {
       params: new HttpParams().append(
         '$query',
         JSON.stringify({
-          relations
+          relations: relations ?? []
         })
       )
     })
+  }
+
+  getCubes(id: string) {
+    return this.httpClient.get<Cube[]>(this.apiBaseUrl + `/${id}/cubes`)
   }
 
   count() {

@@ -1,6 +1,6 @@
 {
   "name": "@metad/server-ai",
-  "version": "3.0.13",
+  "version": "3.0.14",
   "type": "commonjs",
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.0",
@@ -21,6 +21,7 @@
     "duck-duck-scrape": "^2.2.5",
     "cache-manager": "^4.1.0",
     "cache-manager-redis-yet": "5.1.5",
+    "cronstrue": "2.53.0",
     "epub2": "^3.0.2",
     "html-to-text": "^7.1.2",
     "json-schema-to-zod": "^2.4.0",
@@ -29,5 +30,6 @@
     "zod-to-json-schema": "^3.23.2"
   },
   "devDependencies": {
+    "@types/cron": "1.7.3"
   }
 }

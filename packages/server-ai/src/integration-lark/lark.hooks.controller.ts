@@ -1,3 +1,4 @@
+import * as lark from '@larksuiteoapi/node-sdk'
 import { IIntegration, TranslationLanguageMap } from '@metad/contracts'
 import { IntegrationService, Public, RequestContext } from '@metad/server-core'
 import {
@@ -9,19 +10,24 @@ import {
 	Post,
 	Request,
 	Response,
-	UseGuards
+	UseGuards,
+	Get,
+	Query
 } from '@nestjs/common'
+import { QueryBus } from '@nestjs/cqrs'
 import express from 'express'
 import { I18nService } from 'nestjs-i18n'
 import { LarkAuthGuard } from './auth/lark-auth.guard'
 import { LarkService } from './lark.service'
+import { GetLarkClientQuery } from './queries'
 
 @Controller()
 export class LarkHooksController {
 	constructor(
 		private readonly larkService: LarkService,
 		private readonly integrationService: IntegrationService,
-		private readonly i18n: I18nService
+		private readonly i18n: I18nService,
+		private readonly queryBus: QueryBus,
 	) {}
 
 	@Public()
@@ -52,5 +58,34 @@ export class LarkHooksController {
 			}
 		}
 		return integration
+	}
+
+	@Get('chat-select-options')
+	async getChatSelectOptions(@Query('integration') id: string,) {
+		const client = await this.queryBus.execute(new GetLarkClientQuery(id))
+		const result = await client.im.chat.list()
+		const items = result.data.items
+		return items.map((item) => ({
+			value: item.chat_id,
+			label: item.name,
+			icon: item.avatar,
+		}))
+	}
+
+	@Get('user-select-options')
+	async getUserSelectOptions(@Query('integration') id: string,) {
+		const client = await this.queryBus.execute<GetLarkClientQuery, lark.Client>(new GetLarkClientQuery(id))
+		const result = await client.contact.user.list({
+			params: {
+
+			}
+		})
+		const items = result.data.items
+
+		return items.map((item) => ({
+			value: item.union_id,
+			label: item.name || item.email || item.mobile,
+			icon: item.avatar,
+		}))
 	}
 }

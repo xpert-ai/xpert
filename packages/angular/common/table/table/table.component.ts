@@ -44,7 +44,7 @@ export class MyCustomPaginatorIntl implements MatPaginatorIntl {
   changes = new Subject<void>()
 
   #tranSub = this.#translateService
-    .stream('COMPONENTS.Table', {
+    .stream('Ngm.Table', {
       Default: {
         firstPageLabel: 'First page',
         itemsPerPageLabel: 'Items per page:',

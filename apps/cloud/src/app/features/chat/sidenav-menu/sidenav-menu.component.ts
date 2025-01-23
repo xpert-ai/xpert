@@ -2,11 +2,11 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatSidenav } from '@angular/material/sidenav'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { Router } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { MaterialModule } from '../../../@shared/material.module'
 import { ChatNewChatComponent, ChatSideMenuComponent } from '../icons'
-import { ChatService } from '../../../xpert/'
 
 @Component({
   standalone: true,
@@ -15,7 +15,7 @@ import { ChatService } from '../../../xpert/'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MaterialModule,
+    MatTooltipModule,
     NgmCommonModule,
     ChatSideMenuComponent,
     ChatNewChatComponent
@@ -26,11 +26,11 @@ import { ChatService } from '../../../xpert/'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatSidenavMenuComponent {
-  readonly chatService = inject(ChatService)
-  
+  readonly #router = inject(Router)
+
   readonly sidenav = input<MatSidenav>()
 
   async newConversation() {
-    await this.chatService.newConversation()
+    this.#router.navigate(['/chat/x/common'])
   }
 }

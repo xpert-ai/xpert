@@ -1,3 +1,4 @@
+import { Dialog, DialogModule } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, input, model } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -7,10 +8,8 @@ import { routeAnimations } from '@metad/core'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IBuiltinTool, IXpertToolset, XpertToolsetService } from 'apps/cloud/src/app/@core'
-import { XpertToolBuiltinParametersComponent } from '../parameters/parameters.component'
 import { XpertToolTestDialogComponent } from '../../tool-test'
-import { Dialog, DialogModule } from '@angular/cdk/dialog'
-
+import { XpertToolBuiltinParametersComponent } from '../parameters/parameters.component'
 
 @Component({
   standalone: true,
@@ -33,7 +32,6 @@ import { Dialog, DialogModule } from '@angular/cdk/dialog'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertToolBuiltinToolComponent {
-
   readonly toolsetService = inject(XpertToolsetService)
   readonly #formBuilder = inject(FormBuilder)
   readonly #dialog = inject(Dialog)
@@ -57,21 +55,23 @@ export class XpertToolBuiltinToolComponent {
     if (this.disabled()) {
       return
     }
-    this.#dialog.open(XpertToolTestDialogComponent, {
-      panelClass: 'medium',
-      data: {
-        tool: {
-          name: tool.identity.name,
-          description: this.i18n.transform(tool.description.human),
-          schema: tool,
-          toolsetId: this.toolset()?.id,
-          toolset: this.toolset()
+    this.#dialog
+      .open(XpertToolTestDialogComponent, {
+        panelClass: 'medium',
+        data: {
+          tool: {
+            name: tool.identity.name,
+            description: this.i18n.transform(tool.description.human),
+            schema: tool,
+            toolsetId: this.toolset()?.id,
+            toolset: this.toolset()
+          }
         }
-      }
-    }).closed.subscribe({
-      next: (result) => {
-        //
-      }
-    })
+      })
+      .closed.subscribe({
+        next: (result) => {
+          //
+        }
+      })
   }
 }

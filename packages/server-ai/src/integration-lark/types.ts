@@ -1,10 +1,10 @@
-import { ITenant, IUser, IIntegration, TChatConversationStatus } from "@metad/contracts"
+import { ITenant, TChatConversationStatus } from "@metad/contracts"
 
 export type LarkMessage = {
 	data: {
 		receive_id: string
 		content: string
-		msg_type: 'text' | 'image' | 'interactive'
+		msg_type: 'text' | 'post' | 'image' | 'interactive'
 		uuid?: string
 	}
 	params: {

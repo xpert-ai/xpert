@@ -2,28 +2,21 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, ReactiveFormsModule } from '@angular/forms'
+import { MatButtonModule } from '@angular/material/button'
+import { MatInputModule } from '@angular/material/input'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { IsDirty } from '@metad/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
+import { derivedAsync } from 'ngxtension/derived-async'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
-import { EMPTY, map, pipe, startWith, switchMap } from 'rxjs'
-import {
-  ChatBIModelService,
-  IChatBIModel,
-  IntegrationService,
-  XpertService,
-  getErrorMessage,
-  injectToastr,
-  routeAnimations
-} from '../../../../@core'
+import { catchError, EMPTY, map, of, pipe, startWith, switchMap } from 'rxjs'
+import { ChatBIModelService, getErrorMessage, injectToastr, OrderTypeEnum, routeAnimations } from '../../../../@core'
 import { ChatBIModelsComponent } from '../models/models.component'
-import { UpsertEntityComponent } from 'apps/cloud/src/app/@shared/common'
-import { IntegrationListComponent } from 'apps/cloud/src/app/@shared/integration'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { HttpErrorResponse } from '@angular/common/http'
 
 @Component({
   standalone: true,
@@ -35,19 +28,17 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
     ReactiveFormsModule,
     RouterModule,
     TranslateModule,
-    MaterialModule,
     NgmCommonModule,
-    IntegrationListComponent
+    MatButtonModule,
+    MatInputModule
   ],
   animations: [routeAnimations]
 })
-export class ChatBIModelComponent extends UpsertEntityComponent<IChatBIModel> implements IsDirty {
+export class ChatBIModelComponent implements IsDirty {
   DisplayBehaviour = DisplayBehaviour
 
   readonly modelsService = inject(SemanticModelServerService)
   readonly chatbiModelService = inject(ChatBIModelService)
-  readonly roleService = inject(XpertService)
-  readonly integrationService = inject(IntegrationService)
   readonly fb = inject(FormBuilder)
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
@@ -58,7 +49,7 @@ export class ChatBIModelComponent extends UpsertEntityComponent<IChatBIModel> im
 
   readonly chatbiModel = derivedFrom(
     [this.paramId],
-    pipe(switchMap(([id]) => (id ? this.chatbiModelService.getOneById(id, { relations: ['integrations'] }) : EMPTY))),
+    pipe(switchMap(([id]) => (id ? this.chatbiModelService.getOneById(id) : EMPTY))),
     {
       initialValue: null
     }
@@ -68,42 +59,42 @@ export class ChatBIModelComponent extends UpsertEntityComponent<IChatBIModel> im
     modelId: new FormControl<string>(null),
     entity: new FormControl(null),
     entityCaption: new FormControl(null),
-    entityDescription: new FormControl(null),
-    integrations: new FormControl(null)
+    entityDescription: new FormControl(null)
   })
-
-  get integrations() {
-    return this.formGroup.get('integrations').value
-  }
-  set integrations(value) {
-    this.formGroup.patchValue({ integrations: value })
-    this.formGroup.get('integrations').markAsDirty()
-  }
 
   readonly modelId = toSignal(this.formGroup.get('modelId').valueChanges.pipe(startWith(this.formGroup.value?.modelId)))
 
   readonly models = toSignal(
     this.modelsService
-      .getMy()
+      .getMyModels({
+        select: ['id', 'name', 'description'],
+        order: {
+          updatedAt: OrderTypeEnum.DESC
+        }
+      })
       .pipe(map((models) => models.map((item) => ({ key: item.id, caption: item.name, value: item }))))
   )
 
   readonly selectedModel = computed(() => this.models()?.find((item) => item.key === this.modelId()))
 
-  readonly entities = computed(() =>
-    this.selectedModel()?.value?.schema?.cubes.map((cube) => ({ key: cube.name, caption: cube.caption, value: cube }))
-  )
+  readonly entities = derivedAsync(() => {
+    return this.modelId()
+      ? this.modelsService.getCubes(this.modelId()).pipe(
+          map((cubes) => cubes.map((cube) => ({ key: cube.name, caption: cube.caption, value: cube }))),
+          catchError((err) => {
+            this.#toastr.error(getErrorMessage(err))
+            return of(null)
+          })
+        )
+      : of(null)
+  })
 
   readonly cubeName = toSignal(this.formGroup.get('entity').valueChanges.pipe(startWith(this.formGroup.value?.entity)))
   readonly selectedCube = computed(() => this.entities()?.find((item) => item.key === this.cubeName())?.value)
-  readonly roleList = toSignal(this.roleService.getAllInOrg().pipe(map(({ items }) => items)))
-  readonly integrationList = toSignal(this.integrationService.getAllInOrg().pipe(map(({ items }) => items)))
 
   readonly loading = signal(true)
 
-  constructor(chatbiModelService: ChatBIModelService) {
-    super(chatbiModelService)
-
+  constructor() {
     effect(
       () => {
         if (this.selectedCube()) {
@@ -140,15 +131,21 @@ export class ChatBIModelComponent extends UpsertEntityComponent<IChatBIModel> im
     this.loading.set(true)
     const entity = { ...this.formGroup.value }
     ;(this.paramId()
-      ? this.update(this.paramId(), entity).pipe(map(() => this.paramId()))
-      : this.save(entity).pipe(map((model) => model.id))
+      ? this.chatbiModelService.update(this.paramId(), entity).pipe(map(() => this.paramId()))
+      : this.chatbiModelService.create(entity).pipe(map((model) => model.id))
     ).subscribe({
       next: () => {
+        this.loading.set(false)
         this.formGroup.markAsPristine()
         this.close()
       },
       error: (err) => {
-        this.#toastr.error(getErrorMessage(err))
+        this.loading.set(false)
+        if ((<HttpErrorResponse>err).error.code === "23505") {
+          this.#toastr.error('PAC.ChatBI.ModelExists', null, {Default: 'Model already exists'})
+        } else {
+          this.#toastr.error(getErrorMessage(err))
+        }
       }
     })
   }

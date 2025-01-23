@@ -32,20 +32,54 @@
     {{knowledgebase()?.description}}
   </div>
 
-  <copilot-model-select class="text-text-secondary"
-    readonly
-    [modelType]="eModelType.TEXT_EMBEDDING"
-    [copilotModel]="copilotModel()"
-  />
-
-  @if (openedTest()) {
-    <div class="absolute top-0 left-0 w-full h-full z-50 rounded-t-2xl bg-black/20 dark:bg-neutral-500/50 backdrop-blur-[2px]" @ifAnimationTrigger
-      (click)="closeTest()">
-      <xpert-knowledge-test class="absolute top-14 left-0 bottom-0 w-full rounded-t-xl bg-components-panel-bg"
-        [knowledgebase]="knowledgebase()"
-        (click)="$event.stopPropagation()"
-        (close)="closeTest()"
-      />
-    </div>
+  @if (knowledgebase()?.id) {
+    <copilot-model-select class="text-text-secondary"
+      readonly
+      [modelType]="eModelType.TEXT_EMBEDDING"
+      [copilotModel]="copilotModel()"
+    />
   }
 </div>
+
+@if (!knowledgebase()?.id) {
+  <div class="flex flex-col justify-start items-stretch p-4 space-y-4 w-full">
+    <button class="btn btn-large btn-primary self-center" (click)="gotoKnowledgebase()">
+      {{ 'PAC.Xpert.Reconfigure' | translate: {Default: 'Reconfigure'} }}
+    </button>
+
+    @if (knowledgebases()?.length) {
+      <div class="flex items-center mb-4 leading-[18px] text-base font-semibold text-gray-500 uppercase">
+        <div class="mr-3">{{'PAC.Xpert.OrReselect' | translate: { Default: 'Or reselect'} }}</div>
+        <div class="grow w-0 h-px bg-divider-regular"></div>
+      </div>
+
+      <ul class="p-2 flex flex-col gap-1">
+        @for (knowledgebase of knowledgebases(); track knowledgebase.id) {
+          <li class="group/item w-full flex flex-col items-stretch px-2 py-1 rounded-lg border-[0.5px] border-solid border-transparent hover:border-gray-100">
+            <div class="relative flex items-center w-full">
+              <emoji-avatar small [avatar]="knowledgebase.avatar" class="mr-1 shrink-0 rounded-lg overflow-hidden shadow-sm" />
+              {{knowledgebase.name}}
+
+              <button type="button" class="absolute right-0 btn btn-small opacity-0 group-hover/item:opacity-100"
+                (click)="useKnowledgebase(knowledgebase)"
+              >
+                {{ 'PAC.Xpert.Use' | translate: {Default: 'Use'} }}
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+}
+
+@if (openedTest()) {
+  <div class="absolute top-0 left-0 w-full h-full z-50 rounded-t-2xl bg-black/20 dark:bg-neutral-500/50 backdrop-blur-[2px]" @ifAnimationTrigger
+    (click)="closeTest()">
+    <xpert-knowledge-test class="absolute top-14 left-0 bottom-0 w-full rounded-t-xl bg-components-panel-bg"
+      [knowledgebase]="knowledgebase()"
+      (click)="$event.stopPropagation()"
+      (close)="closeTest()"
+    />
+  </div>
+}

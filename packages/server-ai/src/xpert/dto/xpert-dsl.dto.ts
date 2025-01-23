@@ -6,6 +6,7 @@ import {
 	ITag,
 	IXpert,
 	IXpertAgent,
+	IXpertTool,
 	IXpertToolset,
 	TAvatar,
 	TCopilotModel,
@@ -215,6 +216,7 @@ export class XpertToolsetDslDTO {
 
 	@Expose()
     description: string
+	
 	@Expose()
 	avatar: TAvatar
 
@@ -230,7 +232,39 @@ export class XpertToolsetDslDTO {
 	@Expose()
 	tags: any[]
 
+	@Expose()
+	@Transform(({ value }) => value?.map((_) => new XpertToolDslDTO(_)))
+	tools: IXpertTool[]
+
 	constructor(partial: Partial<XpertToolsetDslDTO>) {
+		Object.assign(this, partial)
+	}
+}
+
+@Exclude()
+export class XpertToolDslDTO {
+	@Expose()
+	id?: string
+
+	@Expose()
+	name: string
+
+	@Expose()
+    description: string
+
+	@Expose()
+	avatar: TAvatar
+
+	@Expose()
+	enabled?: boolean
+
+	@Expose()
+	parameters?: Record<string, any>
+
+	@Expose()
+	options?: Record<string, any>
+
+	constructor(partial: Partial<XpertToolDslDTO>) {
 		Object.assign(this, partial)
 	}
 }

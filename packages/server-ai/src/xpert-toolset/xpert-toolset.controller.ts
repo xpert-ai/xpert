@@ -19,7 +19,9 @@ import {
 	Query,
 	Res,
 	UseInterceptors,
-	Inject
+	Inject,
+	UseGuards,
+	InternalServerErrorException
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
@@ -39,6 +41,8 @@ import { XpertToolset } from './xpert-toolset.entity'
 import { XpertToolsetService } from './xpert-toolset.service'
 import { ToolProviderNotFoundError } from './errors'
 import { ConfigService } from '@metad/server-config'
+import { ToolsetGuard } from './guards/toolset.guard'
+import { WorkspaceGuard } from '../xpert-workspace'
 
 
 @ApiTags('XpertToolset')
@@ -63,9 +67,10 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 		super(service)
 	}
 
-	@Get('by-workspace/:id')
+	@UseGuards(WorkspaceGuard)
+	@Get('by-workspace/:workspaceId')
 	async getAllByWorkspace(
-		@Param('id') workspaceId: string,
+		@Param('workspaceId') workspaceId: string,
 		@Query('data', ParseJsonPipe) data: PaginationParams<XpertToolset>,
 		@Query('published') published?: boolean
 	) {
@@ -162,7 +167,11 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 
 	@Post('builtin-provider/:name/instance')
 	async createBuiltinInstance(@Param('name') provider: string, @Body() body: Partial<IXpertToolset>) {
-		return await this.service.createBuiltinToolset(provider, body)
+		try {
+			return await this.service.createBuiltinToolset(provider, body)
+		} catch(err) {
+			throw new InternalServerErrorException(err.message)
+		}
 	}
 
 	@Post('provider/odata/remote')
@@ -180,5 +189,12 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 	async getToolsetTools(@Param('toolsetId') toolsetId: string,) {
 		const toolset = await this.service.findOne(toolsetId, { relations: ['tools'] })
 		return toolset.tools
+	}
+
+	@UseGuards(ToolsetGuard)
+	@Get(':id/credentials')
+	async getCredentials(@Param('id') toolsetId: string,) {
+		const toolset = await this.service.findOne(toolsetId)
+		return toolset.credentials
 	}
 }

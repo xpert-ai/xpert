@@ -30,18 +30,20 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
 	public async execute(command: XpertExportCommand): Promise<{ data: string }> {
 		const { id, isDraft } = command
 
-		const xpert = await this.xpertService.findOne(id, {
-			relations: [
-				'agent',
-				'agent.copilotModel',
-				'agents',
-				'agents.copilotModel',
-				'executors',
-				'executors.agent',
-				'executors.copilotModel',
-				'copilotModel'
-			]
-		})
+		const relations = isDraft === 'true' ? [] : [
+			'agent',
+			'agent.copilotModel',
+			'agents',
+			'agents.copilotModel',
+			'executors',
+			'executors.agent',
+			'executors.copilotModel',
+			'copilotModel',
+			'toolsets',
+			'toolsets.tools',
+			'knowledgebases'
+		]
+		const xpert = await this.xpertService.findOne(id, {relations})
 
 		const draft = isDraft === 'true' ? xpert.draft : this.getInitialDraft(xpert)
 		const result = yaml.stringify(instanceToPlain(new XpertDraftDslDTO(draft)))

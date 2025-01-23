@@ -16,17 +16,19 @@ export class StoryModelResolver  {
     state: RouterStateSnapshot
   ): ISemanticModel | Observable<ISemanticModel> | Promise<ISemanticModel> {
     const modelId = route.paramMap.get('id')
-    return this.modelsService.getById(modelId, [
-      'dataSource',
-      'dataSource.type',
-      'stories',
-      'stories.createdBy',
-      'roles',
-      'roles.users',
-      'indicators',
-      'indicators.createdBy',
-      // 'queries'
-    ])
+    return this.modelsService.getById(modelId, {
+      relations: [
+        'dataSource',
+        'dataSource.type',
+        'stories',
+        'stories.createdBy',
+        'roles',
+        'roles.users',
+        'indicators',
+        'indicators.createdBy',
+        // 'queries'
+      ]
+    })
   }
 }
 
@@ -36,17 +38,19 @@ export const semanticModelResolver: ResolveFn<ISemanticModel> = (
   state: RouterStateSnapshot,
 ) => {
   const router = inject(Router)
-  return inject(SemanticModelServerService).getById(route.paramMap.get('id')!, [
-    'dataSource',
-    'dataSource.type',
-    'stories',
-    'stories.createdBy',
-    'roles',
-    'roles.users',
-    'indicators',
-    'indicators.createdBy',
-    // 'queries'
-  ]).pipe(
+  return inject(SemanticModelServerService).getById(route.paramMap.get('id')!, {
+    relations: [
+      'dataSource',
+      'dataSource.type',
+      'stories',
+      'stories.createdBy',
+      'roles',
+      'roles.users',
+      'indicators',
+      'indicators.createdBy',
+      // 'queries'
+    ]
+  }).pipe(
     catchError((err) => {
       console.error(err)
       router.navigate(['/404'])

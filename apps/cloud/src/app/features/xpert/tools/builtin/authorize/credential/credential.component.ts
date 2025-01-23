@@ -50,11 +50,12 @@ export class XpertToolBuiltinCredentialComponent {
   readonly placeholder = computed(() => this.credential()?.placeholder)
 
   readonly params = computed(() => {
+    const credentials = this.credentials()
     return this.credential()?.depends?.reduce((acc, name) => {
-        if (isNil(this.credentials()?.[name])) {
+        if (isNil(credentials?.[name])) {
             return acc
         }
-        acc[name] = this.credentials()[name]
+        acc[name] = credentials[name]
         return acc
     }, {})
   })

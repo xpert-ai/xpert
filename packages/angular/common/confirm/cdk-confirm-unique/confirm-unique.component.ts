@@ -13,7 +13,7 @@ import { EMPTY, Observable, switchMap } from 'rxjs'
 
 export type TConfirmUniqueInfo = {
   title?: string;
-  value: any;
+  value?: any;
   validators?: Array<(value: string) => Promise<ValidationErrors>>
 }
 

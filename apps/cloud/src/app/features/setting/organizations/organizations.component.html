@@ -20,14 +20,16 @@
       {{ 'PAC.ORGANIZATIONS_PAGE.Organization.AllOrganizations' | translate: {Default: "All Organizations"} }}
     </span>
 
-    <span mat-tab-link *ngFor="let link of openedLinks(); trackBy: trackByEntityId" [routerLink]="[link.id]"
-      [active]="link.id === currentLink()?.id">
-      <mat-icon class="mr-1" fontSet="material-icons-outlined" displayDensity="cosy">face</mat-icon>
-      {{ link.name }}
-      <button mat-icon-button class="pac-tab-close" displayDensity="compact" (click)="removeOpenedLink(link)">
-        <mat-icon>cancel</mat-icon>
-      </button>
-    </span>
+    @for (link of openedLinks(); track link.id) {
+      <span mat-tab-link [routerLink]="[link.id]"
+        [active]="link.id === currentLink()?.id">
+        <mat-icon class="mr-1" fontSet="material-icons-outlined" displayDensity="cosy">face</mat-icon>
+        {{ link.name }}
+        <button mat-icon-button class="pac-tab-close" displayDensity="compact" (click)="removeOpenedLink(link)">
+          <mat-icon>cancel</mat-icon>
+        </button>
+      </span>
+    }
   </nav>
 </div>
 <mat-divider></mat-divider>

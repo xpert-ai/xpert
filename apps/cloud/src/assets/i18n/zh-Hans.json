@@ -295,6 +295,8 @@
       "AI Copilot": "AI 智能助理",
       "Digital Xpert": "数字专家",
       "Xpert": "数字专家",
+      "Explore Xperts": "探索数字专家",
+      "Building Xperts": "构建数字专家",
       "Dashboard": "仪表板",
       "Semantic Model": "语义模型",
       "Story": "故事",
@@ -1572,7 +1574,15 @@
       "GotoNewXpert": "去新建数字专家",
       "NewCalculatedIndicator": "新建计算指标",
       "ShowMoreXperts": "展示更多专家",
-      "ShowLessXperts": "展示少一些专家"
+      "ShowLessXperts": "展示少一些专家",
+      "Tasks": "任务",
+      "Pause": "暂停",
+      "NoTasksAvailable": "无可用任务",
+      "TaskDeleted": "任务已被删除",
+      "TaskSuccessCount": "任务成功执行次数",
+      "TaskFailureCount": "任务执行失败次数",
+      "PauseTask": "暂停此任务",
+      "ScheduleTask": "安排此任务"
     },
     "ChatBI": {
       "Title": "ChatBI-数据分析与洞察",
@@ -1623,7 +1633,9 @@
       "AnotherBatch": "换一批",
       "TryFollowing": "您还可以尝试以下分析",
       "RolesWithPermission": "有权限的角色",
-      "IntegrationsWithPermission": "有权限的集成"
+      "IntegrationsWithPermission": "有权限的集成",
+      "NewChatBIModel": "新建 ChatBI 模型",
+      "ModelExists": "模型已存在"
     },
     "Home": {
       "Insight": {
@@ -2199,7 +2211,42 @@
       "TokenOutputSpeed": "Token 输出速度",
       "TokenOutputSpeedTooltip": "衡量LLM的性能。统计LLM从请求开始到输出完成的Tokens输出速度。",
       "UserSatisfactionRate": "用户满意率",
-      "UserSatisfactionRateTooltip": "每千条消息的点赞数。这表示用户非常满意的答案的比例。"
+      "UserSatisfactionRateTooltip": "每千条消息的点赞数。这表示用户非常满意的答案的比例。",
+      "Reconfigure": "重新配置",
+      "OrReselect": "或重新选择",
+      "Use": "使用",
+      "ExportFailed": "导出失败",
+      "NeedReconfigure": "需要重新配置",
+      "InstallToWorkspace": "安装到工作空间",
+      "Categories": {
+        "Recommended": "推荐",
+        "HR": "👔 人力资源",
+        "Programming": "🖥️ 编程",
+        "Workflow": "🔄 工作流",
+        "Writing": "✍️ 写作",
+        "Assistant": "🤖 助手",
+        "Agent": "🕵️‍♂️ Agent",
+        "DataAnalysis": "📊 数据分析"
+      },
+      "SelectAWorkspace": "选择一个工作空间",
+      "Checking": "检查中",
+      "Cancel": "取消",
+      "Create": "创建",
+      "CreateXpertFromTemplate": "从模板 {{value}} 创建数字专家",
+      "ExploreXpertAgents": "探索 Xpert 智能体",
+      "ExploreXpertsDesc": "使用这些模板创建，或根据模板自定义您自己的数字专家。",
+      "Task": "任务",
+      "Pause": "暂停",
+      "Delete": "删除",
+      "Save": "保存",
+      "Schedule": "安排",
+      "TaskName": "名称",
+      "Instructions": "指令",
+      "Scheduled": "已安排",
+      "Paused": "已暂停",
+      "ViewAllTasks": "查看所有任务",
+      "HowtoGet": "如何获取",
+      "HowtoCreate": "如何创建"
     },
     "title": {
       "short": "Xpert AI"

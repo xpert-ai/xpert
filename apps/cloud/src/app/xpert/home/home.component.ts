@@ -3,7 +3,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
@@ -20,6 +20,7 @@ import { ChatInputComponent } from '../chat-input/chat-input.component'
 import { ChatService, groupConversations } from '../chat.service'
 import { ChatConversationComponent } from '../conversation/conversation.component'
 import { MatInputModule } from '@angular/material/input'
+import { XpertHomeService } from '../home.service'
 
 @Component({
   standalone: true,
@@ -51,6 +52,7 @@ import { MatInputModule } from '@angular/material/input'
   providers: [
     provideMarkdown({}),
     provideOcapCore(),
+    XpertHomeService,
     ChatAppService,
     { provide: ChatService, useExisting: ChatAppService }
   ]
@@ -66,8 +68,9 @@ export class ChatHomeComponent {
 
   readonly avatar = computed(() => this.xpert()?.avatar)
 
+  readonly conversations = signal<IChatConversation[]>([])
   readonly groups = computed(() => {
-    const conversations = this.chatService.conversations()
+    const conversations = this.conversations()
     return groupConversations(conversations)
   })
 
@@ -78,6 +81,26 @@ export class ChatHomeComponent {
 
   readonly editingConversation = signal<string>(null)
   readonly editingTitle = signal<string>(null)
+
+  constructor() {
+    effect(() => {
+      const conv = this.chatService.conversation()
+      if (conv?.id) {
+        this.conversations.update((items) => {
+          const index = items.findIndex((_) => _.id === conv.id)
+          if (index > -1) {
+            items[index] = {
+              ...items[index],
+              ...conv
+            }
+            return [...items]
+          } else {
+            return  [{ ...conv}, ...items]
+          }
+        })
+      }
+    }, { allowSignalWrites: true })
+  }
 
   loadConversations = effectAction((origin$) => {
     return origin$.pipe(
@@ -95,7 +118,7 @@ export class ChatHomeComponent {
       }),
       tap({
         next: ({ items, total }) => {
-          this.chatService.conversations.update((state) => [...state, ...items])
+          this.conversations.update((state) => [...state, ...items])
           this.currentPage.update((state) => ++state)
           if (items.length < this.pageSize || this.currentPage() * this.pageSize >= total) {
             this.done.set(true)
@@ -122,7 +145,7 @@ export class ChatHomeComponent {
   deleteConv(id: string) {
     this.xpertService.deleteAppConversation(this.xpert().slug, id).subscribe({
       next: () => {
-        this.chatService.conversations.update((items) => items.filter((item) => item.id !== id))
+        this.conversations.update((items) => items.filter((item) => item.id !== id))
       },
       error: (err) => {
         this.#toastr.error(getErrorMessage(err))

@@ -14,17 +14,27 @@
   <div class="mt-2 min-h-[36px] text-gray-500 text-sm leading-[18px]">{{provider.description | i18n}}</div>
 
   @if (authorizing()) {
-    <xpert-tool-builtin-authorize [provider]="provider.name" [workspace]="workspace()"
+    <xpert-tool-builtin-authorize class="mb-4"
+      [provider]="provider.name"
+      [workspaceId]="workspaceId()"
       [(toolset)]="toolset"
       [(credentials)]="credentials"
-      (close)="closeAuthorize($event)" class="mb-4" />
+      (close)="closeAuthorize($event)"
+    />
   } @else {
     <div class="flex gap-1 border-b-[0.5px] border-black/5">
       @if (toolset()) {
-        <button type="button" class="btn disabled:btn-disabled btn-medium shrink-0 my-3 w-full bg-white"
+        <button type="button" class="open-authorize-btn btn disabled:btn-disabled btn-medium shrink-0 my-3 w-full border border-solid border-transparent bg-white"
+          [class.tempalte]="!toolset().id"
           (click)="openAuthorize(toolset())">
-          <div class="w-2 h-2 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)] mr-2"></div>
-          <div class="text-[13px] font-medium text-gray-700">{{'PAC.Xpert.Authorized' | translate: {Default: 'Authorized'} }}: {{toolset()?.name}}</div>
+          @if (toolset().id) {
+            <div class="w-2 h-2 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)] mr-2"></div>
+            <div class="text-[13px] font-medium text-gray-700">{{'PAC.Xpert.Authorized' | translate: {Default: 'Authorized'} }}: {{toolset()?.name}}</div>
+          } @else {
+            <i class="ri-spam-2-line text-orange-500"></i>
+            <div class="font-medium text-orange-500">{{ 'PAC.Xpert.Reconfigure' | translate: {Default: 'Reconfigure'} }}: {{toolset()?.name}}</div>
+          }
+          
         </button>
       } @else {
         @if (notImplemented()) {
@@ -102,7 +112,7 @@
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium"
       (click)="cancel($event)">{{'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}</button>
     <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
-      [disabled]="!dirty()"
+      [disabled]="!dirty() || !toolsetId()"
       (click)="save()"
     >{{'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}</button>
   </div>

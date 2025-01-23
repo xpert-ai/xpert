@@ -24,22 +24,22 @@ import {
   IXpert,
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { ToolCallConfirmComponent, XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { map, of, Subscription } from 'rxjs'
 import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
 import { nonBlank } from '@metad/core'
+import { MatTooltipModule } from '@angular/material/tooltip'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     FormsModule,
-    MaterialModule,
     TranslateModule,
     TextFieldModule,
+    MatTooltipModule,
     MarkdownModule,
     EmojiAvatarComponent,
     XpertParametersCardComponent,
@@ -331,5 +331,10 @@ export class ChatConversationPreviewComponent {
 
   getFeedback(id: string) {
     return this.feedbacks()?.[id]
+  }
+
+  restart() {
+    this.conversationId.set(null)
+    this._messages.set([])
   }
 }

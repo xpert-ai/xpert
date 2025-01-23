@@ -8,7 +8,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective, uploadYamlFile } from '@metad/core'
-import { CdkConfirmDeleteComponent, CdkConfirmUniqueComponent, injectConfirmUnique, NgmCommonModule } from '@metad/ocap-angular/common'
+import { CdkConfirmDeleteComponent, injectConfirmUnique, NgmCommonModule } from '@metad/ocap-angular/common'
 import { AppearanceDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -274,15 +274,15 @@ export class XpertStudioXpertsComponent {
   }
 
   configureToolBuiltin(provider: IToolProvider) {
-    this.#dialog
+    this.dialog
       .open(XpertToolConfigureBuiltinComponent, {
         disableClose: true,
         data: {
           providerName: provider.name,
-          workspace: this.workspace()
+          workspaceId: this.workspaceId()
         }
       })
-      .afterClosed()
+      .closed
       .subscribe((result) => {
         if (result) {
           this.refresh()
@@ -304,7 +304,7 @@ export class XpertStudioXpertsComponent {
                 data: {
                   toolset,
                   providerName: toolset.type,
-                  workspace: this.workspace()
+                  workspaceId: this.workspaceId()
                 }
               })
               .afterClosed()
@@ -375,8 +375,9 @@ export class XpertStudioXpertsComponent {
       }
     }))
       .subscribe({
-        next: (value) => {
-          this.refresh()
+        next: (xpert) => {
+          this.router.navigate(['/xpert/', xpert.id],)
+          // this.refresh()
           this.#toastr.success(
             this.#translate.instant('PAC.Xpert.ImportSuccess', { Default: 'DSL file imported successfully' })
           )

@@ -54,10 +54,10 @@
               <xpert-studio-node-agent [node]="node" [isRoot]="rootAgent().key === node.key || node.parentId && !!node.entity.xpertId" class=""/>
             }
             @case('knowledge') {
-              <xpert-studio-node-knowledge [node]="node" class=""/>
+              <xpert-studio-node-knowledge [node]="node" class="" (focus)="onFocusNode($event, node)"/>
             }
             @case('toolset') {
-              <xpert-studio-node-toolset [node]="node" class=""/>
+              <xpert-studio-node-toolset [node]="node" class="" (focus)="onFocusNode($event, node)"/>
             }
           }
 

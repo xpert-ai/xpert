@@ -411,12 +411,23 @@ export class FeaturesComponent implements OnInit {
         }
       },
       {
-        title: 'Xpert',
-        matIcon: 'engineering',
-        link: '/xpert',
+        title: 'Explore Xperts',
+        matIcon: 'explore',
+        link: '/xpert/e',
         pathMatch: 'prefix',
         data: {
-          translationKey: 'Xpert',
+          translationKey: 'Explore Xperts',
+          featureKey: AiFeatureEnum.FEATURE_XPERT,
+          permissionKeys: [AIPermissionsEnum.XPERT_EDIT]
+        }
+      },
+      {
+        title: 'Xpert',
+        matIcon: 'engineering',
+        link: '/xpert/w',
+        pathMatch: 'prefix',
+        data: {
+          translationKey: 'Building Xperts',
           featureKey: AiFeatureEnum.FEATURE_XPERT,
           permissionKeys: [AIPermissionsEnum.XPERT_EDIT]
         }

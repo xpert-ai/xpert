@@ -36,7 +36,7 @@ import {
 	workOutTimeRangeSlicers
 } from '@metad/ocap-core'
 import { BuiltinToolset, STATE_VARIABLE_SYS_LANGUAGE, ToolNotSupportedError, ToolProviderCredentialValidationError } from '@metad/server-ai'
-import { getErrorMessage, omit, race, shortuuid, TimeoutError } from '@metad/server-common'
+import { omit, race, shortuuid, TimeoutError } from '@metad/server-common'
 import { groupBy } from 'lodash'
 import { firstValueFrom, Subject, Subscriber, switchMap, takeUntil } from 'rxjs'
 import { In } from 'typeorm'
@@ -149,13 +149,26 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 	}
 
 	async _validateCredentials(credentials: TToolCredentials) {
-		try {
-			const models = credentials.models
-
-			console.log(credentials)
-		} catch (e) {
-			throw new ToolProviderCredentialValidationError(getErrorMessage(e))
+		const models = credentials.models
+		if (!models || models.length === 0) {
+			throw new ToolProviderCredentialValidationError('Models array is empty')
 		}
+
+		// for await (const id of models) {
+		// 	const result = await this.modelService.findOneOrFail(id, {
+		// 		relations: [
+		// 			'model',
+		// 			'model.dataSource',
+		// 			'model.dataSource.type',
+		// 			'model.roles',
+		// 			'model.indicators',
+		// 		],
+		// 	})
+
+		// 	if (!result.success) {
+		// 		throw new ToolProviderCredentialValidationError(`Model with ID ${id} validation failed`)
+		// 	}
+		// }
 	}
 
 	getTranslator() {
@@ -173,7 +186,6 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				'model.dataSource.type',
 				'model.roles',
 				'model.indicators',
-				'xperts'
 			],
 			order: {
 				visits: OrderTypeEnum.DESC

@@ -8,9 +8,11 @@ import { KnowledgebaseService, ToastrService, XpertService, XpertToolsetService 
 import { isEqual, negate, omit } from 'lodash-es'
 import {
   BehaviorSubject,
+  catchError,
   combineLatest,
   debounceTime,
   distinctUntilChanged,
+  EMPTY,
   filter,
   map,
   Observable,
@@ -40,6 +42,8 @@ import {
   MoveNodeRequest,
   RemoveNodeHandler,
   RemoveNodeRequest,
+  ReplaceNodeHandler,
+  ReplaceNodeRequest,
   ToNodeViewModelHandler,
   UpdateAgentHandler,
   UpdateAgentRequest,
@@ -196,15 +200,15 @@ export class XpertStudioApiService {
       ),
       map(() => calculateHash(JSON.stringify(this.storage))),
       distinctUntilChanged(),
-      map(() => this.storage),
       tap(() => this.unsaved.set(true)),
       debounceTime(5 * 1000),
-      switchMap((draft) => this.xpertRoleService.saveDraft(this.storage.team.id, draft))
+      switchMap(() => this.saveDraft()),
+      catchError((err) => {
+        this.#toastr.error(getErrorMessage(err))
+        return EMPTY
+      })
     )
-    .subscribe((draft) => {
-      this.unsaved.set(false)
-      this.draft.set(draft)
-    })
+    .subscribe()
 
   constructor() {
     effect(() => {
@@ -246,6 +250,16 @@ export class XpertStudioApiService {
 
   public refresh() {
     this.#refresh$.next()
+  }
+
+  saveDraft() {
+    const draft = this.storage
+    return this.xpertRoleService.saveDraft(draft.team.id, draft).pipe(
+      tap((draft) => {
+        this.unsaved.set(false)
+        this.draft.set(draft)
+      })
+    )
   }
 
   public getNode(key: string) {
@@ -465,6 +479,16 @@ export class XpertStudioApiService {
     // this.#reload.next(EReloadReason.AUTO_LAYOUT)
   }
 
+  // Templates
+  replaceToolset(key: string, toolset: IXpertToolset) {
+    new ReplaceNodeHandler(this.store).handle(new ReplaceNodeRequest(key, {entity: toolset, key: toolset.id}))
+    this.#reload.next(EReloadReason.TOOLSET_CREATED)
+  }
+  replaceKnowledgebase(key: string, knowledgebase: IKnowledgebase) {
+    new ReplaceNodeHandler(this.store).handle(new ReplaceNodeRequest(key, {entity: knowledgebase, key: knowledgebase.id}))
+    this.#reload.next(EReloadReason.KNOWLEDGE_CREATED)
+  }
+
   // Get toolset detail from cache or remote
   private readonly toolsets = new Map<string, Observable<IXpertToolset>>()
   getToolset(id: string) {
@@ -472,5 +496,13 @@ export class XpertStudioApiService {
       this.toolsets.set(id, this.toolsetService.getOneById(id, { relations: ['tools']}).pipe(shareReplay(1)))
     }
     return this.toolsets.get(id)
+  }
+
+  private readonly knowledgebases = new Map<string, Observable<IKnowledgebase>>()
+  getKnowledgebase(id: string) {
+    if (!this.knowledgebases.get(id)) {
+      this.knowledgebases.set(id, this.knowledgebaseService.getOneById(id, { relations: ['tools']}).pipe(shareReplay(1)))
+    }
+    return this.knowledgebases.get(id)
   }
 }

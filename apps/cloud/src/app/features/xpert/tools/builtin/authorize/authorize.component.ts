@@ -25,7 +25,6 @@ import {
   CredentialsType,
   getErrorMessage,
   IXpertToolset,
-  IXpertWorkspace,
   TagCategoryEnum,
   ToastrService,
   TToolCredentials,
@@ -70,7 +69,7 @@ export class XpertToolBuiltinAuthorizeComponent {
   readonly #toastr = inject(ToastrService)
   readonly #destroyRef = inject(DestroyRef)
 
-  readonly workspace = input<IXpertWorkspace>()
+  readonly workspaceId = input<string>()
   readonly provider = input<string>()
   readonly toolset = model<IXpertToolset>()
   readonly credentials = model<Record<string, unknown>>(null)
@@ -87,7 +86,7 @@ export class XpertToolBuiltinAuthorizeComponent {
 
   readonly toolsetId = computed(() => this.toolset()?.id)
   readonly toolsetCredentials = derivedAsync(() => {
-    return this.toolsetId() ? this.toolsetService.getOneById(this.toolsetId()) : of(null)
+    return this.toolsetId() ? this.toolsetService.getCredentials(this.toolsetId()) : of(null)
   })
 
   readonly toolsetName = model<string>()
@@ -100,19 +99,19 @@ export class XpertToolBuiltinAuthorizeComponent {
   })
 
   constructor() {
-    effect(
-      () => {
-        if (this.credentialsSchema() && this.credentialsSchema().length === 0) {
-          this.#credentials.set({})
-          this.save()
-        }
-      },
-      { allowSignalWrites: true }
-    )
+    // effect(
+    //   () => {
+    //     if (this.credentialsSchema() && this.credentialsSchema().length === 0) {
+    //       this.#credentials.set({})
+    //       this.save()
+    //     }
+    //   },
+    //   { allowSignalWrites: true }
+    // )
 
     effect(() => {
       if (this.toolsetCredentials()) {
-        this.#credentials.set(this.toolsetCredentials()?.credentials)
+        this.#credentials.set(this.toolsetCredentials())
       }
     }, { allowSignalWrites: true })
 
@@ -159,7 +158,7 @@ export class XpertToolBuiltinAuthorizeComponent {
   save() {
     this.loading.set(true)
     const entity: Partial<IXpertToolset> = {
-      workspaceId: this.workspace()?.id,
+      workspaceId: this.workspaceId(),
       name: this.toolsetName(),
       description: this.toolsetDescription(),
       credentials: this.#credentials()

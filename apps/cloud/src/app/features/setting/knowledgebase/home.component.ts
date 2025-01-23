@@ -1,9 +1,7 @@
-import { AsyncPipe } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmConfirmDeleteComponent, NgmConfirmUniqueComponent } from '@metad/ocap-angular/common'
+import { injectConfirmDelete, injectConfirmUnique } from '@metad/ocap-angular/common'
 import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, EMPTY, map, switchMap } from 'rxjs'
@@ -23,8 +21,9 @@ import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { DynamicGridDirective } from '@metad/core'
 import { CardCreateComponent } from '../../../@shared/card'
 import { TranslationBaseComponent } from '../../../@shared/language'
-import { MaterialModule } from '../../../@shared/material.module'
 import { UserProfileInlineComponent } from '../../../@shared/user'
+import { MatButtonModule } from '@angular/material/button'
+import { MatIconModule } from '@angular/material/icon'
 
 @Component({
   standalone: true,
@@ -34,8 +33,9 @@ import { UserProfileInlineComponent } from '../../../@shared/user'
   imports: [
     RouterModule,
     TranslateModule,
-    MaterialModule,
     CdkMenuModule,
+    MatButtonModule,
+    MatIconModule,
     AppearanceDirective,
     DensityDirective,
     DynamicGridDirective,
@@ -53,8 +53,9 @@ export class KnowledgebaseHomeComponent extends TranslationBaseComponent {
   readonly #store = inject(Store)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
-  readonly #dialog = inject(MatDialog)
   readonly helpWebsite = injectHelpWebsite()
+  readonly confirmUnique = injectConfirmUnique()
+  readonly confirmDelete = injectConfirmDelete()
 
   readonly organizationId$ = this.#store.selectOrganizationId()
 
@@ -77,28 +78,17 @@ export class KnowledgebaseHomeComponent extends TranslationBaseComponent {
   }
 
   newKnowledgebase() {
-    this.#dialog
-      .open(NgmConfirmUniqueComponent, {
-        data: {
-          title: this.translateService.instant('PAC.Knowledgebase.NewKnowledgebase', {
-            Default: `New Knowledgebase`
-          })
-        }
+    this.confirmUnique({
+      title: this.translateService.instant('PAC.Knowledgebase.NewKnowledgebase', {
+        Default: `New Knowledgebase`
       })
-      .afterClosed()
-      .pipe(
-        switchMap((value) =>
-          value
-            ? this.knowledgebaseService.create({
-                name: value
-              })
-            : EMPTY
-        )
-      )
+    }, (name: string) => this.knowledgebaseService.create({
+      name
+    }))
       .subscribe({
         next: (result) => {
           this.refresh()
-          this._toastrService.success('Created knowledgebase', 'Success')
+          this._toastrService.success('PAC.Messages.CreatedSuccessfully', {Default: 'Created successfully!'})
         },
         error: (error) => {
           this._toastrService.error(error, 'Error')
@@ -111,17 +101,12 @@ export class KnowledgebaseHomeComponent extends TranslationBaseComponent {
   }
 
   remove(item: IKnowledgebase) {
-    this.#dialog
-      .open(NgmConfirmDeleteComponent, {
-        data: {
-          value: item.name,
-          information: this.translateService.instant('PAC.Knowledgebase.ConfirmDeleteKnowledgebase', {
-            Default: `Confirm delete knowledgebase and all its contents?`
-          })
-        }
+    this.confirmDelete({
+      value: item.name,
+      information: this.translateService.instant('PAC.Knowledgebase.ConfirmDeleteKnowledgebase', {
+        Default: `Confirm delete knowledgebase and all its contents?`
       })
-      .afterClosed()
-      .pipe(switchMap((confirm) => (confirm ? this.knowledgebaseService.delete(item.id) : EMPTY)))
+    }, this.knowledgebaseService.delete(item.id))
       .subscribe({
         next: () => {
           this.refresh()

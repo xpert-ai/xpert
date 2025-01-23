@@ -6,7 +6,7 @@ import { ModelProvider } from '../../../ai-provider'
 import { LargeLanguageModel } from '../../../llm'
 import { TChatModelOptions } from '../../../types/types'
 import { CredentialsValidateFailedError } from '../../errors'
-import { DeepseekCredentials, toCredentialKwargs } from '../types'
+import { DeepseekCredentials, DeepseekModelCredentials, toCredentialKwargs } from '../types'
 
 @Injectable()
 export class DeepseekLargeLanguageModel extends LargeLanguageModel {
@@ -44,15 +44,18 @@ export class DeepseekLargeLanguageModel extends LargeLanguageModel {
 		const { modelProvider } = copilot
 		const credentials = modelProvider.credentials as DeepseekCredentials
 		const params = toCredentialKwargs(credentials)
+		const modelCredentials = copilotModel.options as DeepseekModelCredentials
 
 		const model = copilotModel.model
 		const { handleLLMTokens } = options ?? {}
 		return new ChatOpenAI({
 			...params,
 			model,
-			streaming: copilotModel.options?.streaming ?? true,
-			temperature: copilotModel.options?.temperature ?? 0,
-			maxTokens: copilotModel.options?.max_tokens,
+			streaming: modelCredentials?.streaming ?? true,
+			temperature: modelCredentials?.temperature ?? 0,
+			maxTokens: modelCredentials?.max_tokens,
+			topP: modelCredentials?.top_p,
+			frequencyPenalty: modelCredentials?.frequency_penalty,
 			streamUsage: false,
 			callbacks: [...this.createHandleUsageCallbacks(copilot, model, credentials, handleLLMTokens)]
 		})

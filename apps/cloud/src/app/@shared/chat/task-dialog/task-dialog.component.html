@@ -1,0 +1,38 @@
+<div class="flex justify-between items-center px-6 py-4 border-b border-solid border-divider-regular"
+  cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle
+>
+  <div class="text-lg font-medium">{{ 'PAC.Xpert.Task' | translate: { Default: 'Task' } }}</div>
+
+  <div class="flex justify-center items-center rounded-full w-5 h-5 cursor-pointer hover:bg-hover-bg" (click)="close()">
+    <i class="ri-close-line"></i>
+  </div>
+</div>
+<div class="p-4 relative">
+  <xpert-task-form #form [task]="task()" />
+  @if (loading()) {
+    <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  }
+</div>
+<div class="p-4 flex justify-between items-center">
+  <div class="flex items-center gap-2">
+    @if (status() === eXpertTaskStatus.RUNNING) {
+      <button type="button" class="btn btn-large font-light rounded-full"
+        (click)="pause()"
+      >{{'PAC.Xpert.Pause' | translate: {Default: 'Pause'} }}</button>
+    } @else {
+      <button type="button" class="btn btn-large font-light rounded-full"
+        (click)="schedule()"
+      >{{'PAC.Xpert.Schedule' | translate: {Default: 'Schedule'} }}</button>
+    }
+    <button type="button" class="btn btn-large danger font-light rounded-full"
+      (click)="delete()"
+    >{{'PAC.Xpert.Delete' | translate: {Default: 'Delete'} }}</button>
+  </div>
+  <div class="flex items-center gap-2">
+    <button type="button" class="btn btn-large font-light rounded-full"
+      (click)="close()"
+    >{{'PAC.Xpert.Cancel' | translate: {Default: 'Cancel'} }}</button>
+    <button type="button" class="btn btn-large rounded-full btn-primary"
+      (click)="save()">{{'PAC.Xpert.Save' | translate: {Default: 'Save'} }}</button>
+  </div>
+</div>

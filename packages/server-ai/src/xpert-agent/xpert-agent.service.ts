@@ -33,7 +33,7 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 		const xpertId = params.xpertId
 		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }, ['agent']))
 		return await this.commandBus.execute<XpertAgentChatCommand, Observable<MessageEvent>>(
-			new XpertAgentChatCommand(params.input, params.agent.key, xpert, {
+			new XpertAgentChatCommand(params.input, params.agentKey, xpert, {
 				isDraft: true,
 				execution: {
 					id: params.executionId

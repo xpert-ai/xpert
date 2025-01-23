@@ -17,14 +17,20 @@
   &.small {
     min-height: 50vh;
     min-width: 40vw;
+    max-width: 60vw;
+    max-height: 80vh;
   }
   &.medium {
     min-width: 60vw;
     min-height: 60vh;
+    max-width: 90vw;
+    max-height: 90vh;
   }
   &.large {
     min-width: 80vw;
     min-height: 80vh;
+    max-width: 100vw;
+    max-height: 100vh;
   }
 }
 

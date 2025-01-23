@@ -46,7 +46,11 @@
         <mat-panel-title>
           {{'PAC.KEY_WORDS.' + (copilot.role | capitalize) | translate: { Default: (copilot.role | capitalize) } }}
           @if (copilot.modelProvider?.provider) {
-            <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="copilot.modelProvider.provider.icon_large | i18n">
+            @if (copilot.modelProvider.provider.icon_large) {
+              <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="copilot.modelProvider.provider.icon_large | i18n">
+            } @else {
+              <span class="ml-2">{{copilot.modelProvider.provider.label | i18n}}</span>
+            }
           }
         </mat-panel-title>
         <mat-panel-description class="flex-1">

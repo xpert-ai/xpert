@@ -2,6 +2,7 @@ import { ITag, IXpertTool, IXpertToolset, TAvatar, TToolCredentials, TXpertTools
 import { Tag } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
+import { Exclude } from 'class-transformer'
 import { Column, Entity, JoinTable, ManyToMany, OneToMany } from 'typeorm'
 import { XpertTool } from '../core/entities/internal'
 import { WorkspaceBaseEntity } from '../core/entities/base.entity'
@@ -44,6 +45,7 @@ export class XpertToolset extends WorkspaceBaseEntity implements IXpertToolset {
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()
 	@IsOptional()
+	@Exclude({toClassOnly: true})
 	@Column({ type: 'json', nullable: true })
 	credentials?: TToolCredentials
 

@@ -106,7 +106,7 @@ export class ModelController extends CrudController<SemanticModel> {
 		@Query('$query', ParseJsonPipe) data: any,
 		@Query('businessAreaId') businessAreaId: string
 	): Promise<IPagination<SemanticModel>> {
-		const { relations, findInput, order } = data
+		const { relations, findInput, order, select } = data
 
 		const where = findInput ?? {}
 		if (businessAreaId) {
@@ -114,6 +114,7 @@ export class ModelController extends CrudController<SemanticModel> {
 		}
 
 		return await this.modelService.findMy({
+			select,
 			where,
 			relations,
 			order
@@ -175,6 +176,11 @@ export class ModelController extends CrudController<SemanticModel> {
 		}
 
 		return model
+	}
+
+	@Get(':id/cubes')
+	async getCubes(@Param('id', UUIDValidationPipe) modelId: string, ) {
+		return this.modelService.getCubes(modelId)
 	}
 
 	@Post('/:id/query')
