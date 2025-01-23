@@ -20,9 +20,11 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { IPoint, IRect, PointExtensions } from '@foblex/2d'
 import {
   EFConnectionType,
+  EFMarkerType,
   EFResizeHandleType,
   FCanvasChangeEvent,
   FCanvasComponent,
+  FConnectionComponent,
   FCreateConnectionEvent,
   FFlowComponent,
   FFlowModule,
@@ -42,6 +44,7 @@ import {
   AiModelTypeEnum,
   ToastrService,
   TXpertAgentConfig,
+  TXpertTeamConnection,
   TXpertTeamNode,
   XpertAgentExecutionStatusEnum,
   XpertService,
@@ -63,7 +66,6 @@ import { XpertStudioHeaderComponent } from './header/header.component'
 import { XpertStudioPanelComponent } from './panel/panel.component'
 import { XpertExecutionService } from './services/execution.service'
 import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
-import { MaterialModule } from '../../../@shared/material.module'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 
 
@@ -79,7 +81,6 @@ import { EmojiAvatarComponent } from '../../../@shared/avatar'
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-    MaterialModule,
     FFlowModule,
     NgxFloatUiModule,
 
@@ -110,6 +111,7 @@ export class XpertStudioComponent {
   EFConnectionType = EFConnectionType
   eModelType = AiModelTypeEnum
   eXpertTypeEnum = XpertTypeEnum
+  protected readonly eMarkerType = EFMarkerType
   public eResizeHandleType = EFResizeHandleType
 
   readonly router = inject(Router)
@@ -279,6 +281,10 @@ export class XpertStudioComponent {
 
   public onFocusNode($event: FocusEvent, node: TXpertTeamNode) {
     this.selectionService.selectNode(node.key)
+  }
+
+  removeConnection(connection: FConnectionComponent) {
+    this.apiService.createConnection(connection.fOutputId, null, connection.fInputId)
   }
 
   onCanvasChange = effectAction((origin$: Observable<FCanvasChangeEvent>) => {
