@@ -376,7 +376,7 @@ export function figureOutXpert(xpert: IXpert, isDraft: boolean) {
   return (isDraft ? xpert.draft?.team : xpert) ?? xpert
 }
 
-export function xpertLabel(agent: IXpert) {
+export function xpertLabel(agent: Partial<IXpert>) {
   return agent.title || agent.name
 }
 

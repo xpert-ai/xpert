@@ -8,7 +8,7 @@ import 'cronstrue/locales/en'
 import 'cronstrue/locales/zh_CN'
 import { Column, DeleteDateColumn, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, RelationId } from 'typeorm'
 import { Xpert, XpertAgentExecution } from '../core/entities/internal'
-import { XpertPublicDTO } from '../xpert/dto'
+import { XpertIdentiDto } from '../xpert/dto'
 
 @Entity('xpert_task')
 export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTask {
@@ -37,7 +37,7 @@ export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTas
 	status?: XpertTaskStatus
 
 	@ApiProperty({ type: () => Xpert })
-	@Transform(({value}) => value && new XpertPublicDTO(value))
+	@Transform(({value}) => value && new XpertIdentiDto(value))
 	@ManyToOne(() => Xpert, {
 		nullable: true,
 		onDelete: 'CASCADE'

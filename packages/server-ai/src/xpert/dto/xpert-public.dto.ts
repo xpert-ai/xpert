@@ -4,9 +4,10 @@ import { Knowledgebase, XpertToolset } from '../../core/entities/internal'
 import { KnowledgebasePublicDTO } from '../../knowledgebase/dto'
 import { ToolsetPublicDTO } from '../../xpert-toolset/dto'
 import { Xpert } from '../xpert.entity'
+import { XpertIdentiDto } from './xpert-identi.dto'
 
 @Expose()
-export class XpertPublicDTO extends Xpert {
+export class XpertPublicDTO extends XpertIdentiDto {
 	@Exclude()
 	declare draft?: TXpertTeamDraft
 
@@ -24,7 +25,6 @@ export class XpertPublicDTO extends Xpert {
 	declare toolsets?: XpertToolset[]
 
 	constructor(partial: Partial<XpertPublicDTO | Xpert>) {
-		super()
-		Object.assign(this, partial)
+		super(partial)
 	}
 }
