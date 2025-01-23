@@ -105,4 +105,21 @@ export class ChatComponentTasksComponent {
       }
     })
   }
+
+  schedule(task: IXpertTask) {
+    this.loading.set(true)
+    this.taskService.schedule(task.id).subscribe({
+      next: () => {
+        this.loading.set(false)
+        this.taskDetails.update((tasks) => [
+          { ...task, status: XpertTaskStatus.RUNNING },
+          ...(tasks?.filter((_) => _.id !== task.id) ?? [])
+        ])
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
 }

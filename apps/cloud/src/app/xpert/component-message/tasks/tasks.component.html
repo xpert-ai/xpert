@@ -1,7 +1,7 @@
 <div class="px-2 text-base font-medium">{{ 'PAC.Chat.Tasks' | translate: {Default: 'Tasks'} }}: </div>
 
 @for (task of syncedTasks(); track task.id) {
-  <div class="task flex w-full rounded-2xl px-6 py-4 shadow-sm border-[0.5px] border-solid border-gray-300 hover:shadow-md"
+  <div class="task flex items-center w-full rounded-2xl px-6 py-4 shadow-sm border-[0.5px] border-solid border-gray-300 hover:shadow-md"
     [class.deleted]="!!task.deletedAt"
     [matTooltip]="task.deletedAt ? ('PAC.Chat.TaskDeleted' | translate: {Default: 'The task has been deleted'}) : null "
     matTooltipPosition="above"
@@ -11,12 +11,30 @@
       <div class="text-text-secondary truncate">{{task.schedule}}</div>
     </div>
 
-    <div class="flex justify-center items-center rounded-full hover:bg-hover-bg"
+    @if (!task.deletedAt) {
+      @if (task.status === eXpertTaskStatus.RUNNING) {
+        <button type="button" class="w-8 h-8 flex justify-center items-center rounded-lg opacity-50 hover:bg-gray-50 hover:opacity-100"
+          [matTooltip]="'PAC.Chat.PauseTask' | translate: {Default: 'Pause the Task'}"
+          matTooltipPosition="above"
+          (click)="pause(task)">
+          <i class="ri-pause-circle-line text-xl"></i>
+        </button>
+      } @else if (task.status === eXpertTaskStatus.PAUSED) {
+        <button type="button" class="w-8 h-8 flex justify-center items-center rounded-lg opacity-50 hover:bg-gray-50 hover:opacity-100"
+          [matTooltip]="'PAC.Chat.ScheduleTask' | translate: {Default: 'Schedule the Task'}"
+          matTooltipPosition="above"
+          (click)="schedule(task)">
+          <i class="ri-play-circle-line text-xl"></i>
+        </button>
+      }
+    }
+
+    <button type="button" class="w-8 h-8 flex justify-center items-center rounded-full opacity-50 hover:bg-gray-50 hover:opacity-100"
       [cdkMenuTriggerFor]="menu"
       [cdkMenuTriggerData]="{task: task}"
     >
       <i class="ri-more-2-fill"></i>
-    </div>
+    </button>
   </div>
 } @empty {
   <div class="p-4 text-text-secondary">{{'PAC.Chat.NoTasksAvailable' | translate: {Default: 'No tasks available'} }}</div>

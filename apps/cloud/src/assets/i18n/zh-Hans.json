@@ -1580,7 +1580,9 @@
       "NoTasksAvailable": "无可用任务",
       "TaskDeleted": "任务已被删除",
       "TaskSuccessCount": "任务成功执行次数",
-      "TaskFailureCount": "任务执行失败次数"
+      "TaskFailureCount": "任务执行失败次数",
+      "PauseTask": "暂停此任务",
+      "ScheduleTask": "安排此任务"
     },
     "ChatBI": {
       "Title": "ChatBI-数据分析与洞察",
