@@ -35,6 +35,10 @@
         class="w-full py-[7px] bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular pl-[26px]"
         [placeholder]="'PAC.KEY_WORDS.Search' | translate: {Default: 'Search'}"
       />
+
+      @if (searchControl.value) {
+        <i class="ri-close-circle-fill absolute right-2 cursor-pointer text-gray-500 opacity-50 hover:opacity-100" (click)="searchControl.setValue('')"></i>
+      }
     </div>
   </div>
   <div class="relative flex flex-1 pb-6 flex-col overflow-auto bg-gray-100 shrink-0 grow mt-4">

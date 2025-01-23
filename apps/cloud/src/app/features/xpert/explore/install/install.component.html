@@ -14,6 +14,11 @@
       [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: {Default: 'Select a workspace'}"
       [(ngModel)]="workspace"
     />
+
+    <a [routerLink]="['/xpert/w']" routerLinkActive="router-link-active" target="_blank" rel="noopener noreferrer" class="inline-flex items-center p-1 text-xs !text-primary-400 hover:!text-primary-600">
+      {{'PAC.Xpert.HowtoCreate' | translate: {Default: 'How to create'} }}
+      <i class="ri-external-link-line"></i>
+    </a>
   </div>
 
   <div class="pt-2">

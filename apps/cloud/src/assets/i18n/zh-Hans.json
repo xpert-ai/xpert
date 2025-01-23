@@ -2244,7 +2244,9 @@
       "Instructions": "指令",
       "Scheduled": "已安排",
       "Paused": "已暂停",
-      "ViewAllTasks": "查看所有任务"
+      "ViewAllTasks": "查看所有任务",
+      "HowtoGet": "如何获取",
+      "HowtoCreate": "如何创建"
     },
     "title": {
       "short": "Xpert AI"
