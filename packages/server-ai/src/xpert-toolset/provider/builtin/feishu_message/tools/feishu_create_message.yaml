@@ -3,12 +3,12 @@ identity:
   author: XpertAI
   label:
     en_US: Send a Message
-    zh_Hans: 发送群消息
+    zh_Hans: 发送消息
   icon: icon.png
 description:
   human:
-    en_US: Sending a group message on Feishu via the webhook of group bot
-    zh_Hans: 通过飞书的群机器人webhook发送群消息
+    en_US: Sending a message on Feishu via bot
+    zh_Hans: 通过飞书的机器人发送消息
   llm: A tool for sending messages to a chat group on Feishu(飞书) .
 parameters:
   - name: content
@@ -19,8 +19,8 @@ parameters:
       zh_Hans: 消息内容
       pt_BR: content
     human_description:
-      en_US: Content to sent to the group.
-      zh_Hans: 群消息文本
-      pt_BR: Content to sent to the group.
+      en_US: Content to sent to feishu group or user.
+      zh_Hans: 消息文本
+      pt_BR: Content to sent to the group or user.
     llm_description: Content of the message
     form: llm

@@ -24,7 +24,7 @@ export class CreateMessageTool extends BuiltinTool {
 	description = 'A tool for creating a feishu message'
 
 	schema = z.object({
-		content: z.string().describe(`task name`)
+		content: z.string().describe(`Content of feishu message`)
 	})
 
 	constructor(private toolset: FeishuMessageToolset) {
