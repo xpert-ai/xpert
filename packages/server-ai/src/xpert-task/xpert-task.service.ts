@@ -80,9 +80,9 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
 		const scheduleJob = () => {
 			const job = new CronJob(task.schedule, () => {
-				this.#logger.warn(`time (${10}) for job ${task.name} to run!`)
+				runs += 1
+				this.#logger.verbose(`Times (${runs}) for job ${task.name} to run!`)
 				if (task.xpertId) {
-					runs += 1
 					// Trial account limit
 					if (RequestContext.hasRole(RolesEnum.TRIAL) && runs > MaximumRuns) {
 						this.pause(task.id).catch((err) => {

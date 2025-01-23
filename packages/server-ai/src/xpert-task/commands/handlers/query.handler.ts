@@ -28,26 +28,25 @@ export class QueryXpertTaskHandler implements ICommandHandler<QueryXpertTaskComm
 		const { items } = await this.taskService.findAll({ where })
 
 		return items.map((task) => {
+			const _task = {
+				id: task.id,
+				name: task.name,
+				schedule: task.schedule,
+				xpertId: task.xpertId,
+				agentKey: task.agentKey,
+				prompt: task.prompt,
+				status: task.status,
+				deletedAt: task.deletedAt,
+			}
 			try {
 				const job = this.schedulerRegistry.getCronJob(task.name)
 				return {
-					name: task.name,
-					schedule: task.schedule,
-					xpertId: task.xpertId,
-					agentKey: task.agentKey,
-					prompt: task.prompt,
-					status: task.status,
-					deletedAt: task.deletedAt,
+					..._task,
 					job
 				}
 			} catch (err) {
 				return {
-					name: task.name,
-					schedule: task.schedule,
-					xpertId: task.xpertId,
-					agentKey: task.agentKey,
-					prompt: task.prompt,
-					deletedAt: task.deletedAt,
+					..._task,
 					status: XpertTaskStatus.PAUSED,
 					job: null
 				}
