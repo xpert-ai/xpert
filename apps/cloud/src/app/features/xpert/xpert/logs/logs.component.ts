@@ -10,7 +10,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { UserPipe } from 'apps/cloud/src/app/@shared/pipes'
 import { delayWhen, filter, switchMap, tap } from 'rxjs/operators'
-import { OrderTypeEnum, routeAnimations, TChatConversationLog, XpertService } from '../../../../@core'
+import { DateRelativePipe, OrderTypeEnum, routeAnimations, TChatConversationLog, XpertService } from '../../../../@core'
 import { XpertComponent } from '../xpert.component'
 import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@metad/core'
 import { ChatConversationPreviewComponent, ChatMessageExecutionComponent } from 'apps/cloud/src/app/@shared/chat'
@@ -26,6 +26,7 @@ import { ChatConversationPreviewComponent, ChatMessageExecutionComponent } from 
     WaIntersectionObserver,
     NgmSpinComponent,
     UserPipe,
+    DateRelativePipe,
     NgmSelectComponent,
     ChatConversationPreviewComponent,
     ChatMessageExecutionComponent

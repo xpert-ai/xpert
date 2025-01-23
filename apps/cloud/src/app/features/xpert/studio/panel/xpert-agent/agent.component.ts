@@ -27,7 +27,8 @@ import {
   XpertService,
   agentUniqueName,
   injectToastr,
-  getErrorMessage
+  getErrorMessage,
+  DateRelativePipe
 } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { XpertStudioApiService } from '../../domain'
@@ -60,6 +61,7 @@ import { NgmDensityDirective } from '@metad/ocap-angular/core'
     TranslateModule,
     MatTooltipModule,
     MatSlideToggleModule,
+    DateRelativePipe,
 
     NgmDensityDirective,
     EmojiAvatarComponent,

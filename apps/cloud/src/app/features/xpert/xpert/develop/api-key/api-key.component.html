@@ -1,4 +1,4 @@
-<h3 class="text-lg font-medium leading-6 text-gray-900">
+<h3 class="text-2xl font-semibold text-text-primary">
   API {{'PAC.KEY_WORDS.SecretKey' | translate: {Default: 'Key'} }}
 </h3>
 
@@ -29,10 +29,10 @@
           <div class="flex-shrink-0 w-64 px-3 font-mono truncate">
             {{ key.token | mask:4:4 }}
           </div>
-          <div class="flex-shrink-0 px-3 truncate w-[200px]">{{ key.createdAt | date}}</div>
+          <div class="flex-shrink-0 px-3 truncate w-[200px]">{{ key.createdAt | format: 'PPpp'}}</div>
           <div class="flex-shrink-0 px-3 truncate w-[200px]">
             @if (key.lastUsedAt) {
-                {{ key.lastUsedAt | date}}
+                {{ key.lastUsedAt | relative}}
             } @else {
               {{ 'PAC.KEY_WORDS.Never' | translate: {Default: 'Never'} }} 
             }

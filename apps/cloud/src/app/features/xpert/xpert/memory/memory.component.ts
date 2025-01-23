@@ -12,7 +12,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, EMPTY, of, Subscription } from 'rxjs'
 import { debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
-import { CopilotStoreService, getErrorMessage, injectToastr, injectTranslate, LongTermMemoryTypeEnum, routeAnimations, XpertService } from '../../../../@core'
+import { CopilotStoreService, DateRelativePipe, getErrorMessage, injectToastr, injectTranslate, LongTermMemoryTypeEnum, routeAnimations, XpertService } from '../../../../@core'
 import { UserProfileInlineComponent } from '../../../../@shared/user'
 import { XpertComponent } from '../xpert.component'
 
@@ -28,7 +28,8 @@ import { XpertComponent } from '../xpert.component'
     MatInputModule,
     NgmCommonModule,
     CdkMenuModule,
-    UserProfileInlineComponent
+    UserProfileInlineComponent,
+    DateRelativePipe
   ],
   selector: 'xpert-memory',
   templateUrl: './memory.component.html',

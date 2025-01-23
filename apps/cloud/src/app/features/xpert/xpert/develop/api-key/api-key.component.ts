@@ -8,7 +8,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { MaskPipe } from '@metad/core'
 import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ApiKeyService, getErrorMessage, IApiKey, injectToastr } from 'apps/cloud/src/app/@core'
+import { ApiKeyService, DateFormatPipe, DateRelativePipe, getErrorMessage, IApiKey, injectToastr } from 'apps/cloud/src/app/@core'
 import { BehaviorSubject, EMPTY } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 
@@ -21,7 +21,9 @@ import { map, switchMap } from 'rxjs/operators'
     TranslateModule,
     MatTooltipModule,
     NgmSpinComponent,
-    MaskPipe
+    MaskPipe,
+    DateFormatPipe,
+    DateRelativePipe
   ],
   selector: 'xpert-develop-api-key',
   templateUrl: './api-key.component.html',
