@@ -2,6 +2,7 @@ import { IBuiltinTool, IXpertTool, IXpertToolset, TAvatar, TXpertToolEntity } fr
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString, IsBoolean } from 'class-validator'
+import { Exclude } from 'class-transformer'
 import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { XpertToolset } from '../core/entities/internal'
 
@@ -32,6 +33,7 @@ export class XpertTool extends TenantOrganizationBaseEntity implements IXpertToo
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()
 	@IsOptional()
+	@Exclude({toPlainOnly: true})
 	@Column({ type: 'json', nullable: true })
 	schema?: Record<string, any> | TXpertToolEntity | IBuiltinTool
 

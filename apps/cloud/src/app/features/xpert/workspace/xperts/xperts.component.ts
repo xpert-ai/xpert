@@ -298,7 +298,7 @@ export class XpertStudioXpertsComponent {
         .getOneById(toolset.id, { relations: ['tools'] })
         .pipe(
           switchMap((toolset) =>
-            this.#dialog
+            this.dialog
               .open(XpertToolConfigureBuiltinComponent, {
                 disableClose: true,
                 data: {
@@ -307,7 +307,7 @@ export class XpertStudioXpertsComponent {
                   workspaceId: this.workspaceId()
                 }
               })
-              .afterClosed()
+              .closed
           )
         )
         .subscribe((result) => {

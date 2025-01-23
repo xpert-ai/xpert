@@ -95,7 +95,7 @@
     <div class="mt-1">
       @for (tool of builtinTools(); track tool.identity.name) {
         <xpert-tool-builtin-tool class=""
-          [disabled]="!toolset()"
+          [disabled]="!toolset() || authorizing()"
           [tool]="tool"
           [toolset]="toolset()"
           [enabled]="getToolEnabled(tool.identity.name)"

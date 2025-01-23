@@ -24,8 +24,9 @@ import { XpertComponent } from '../xpert.component'
 import { injectGetXpertTeam } from '../../utils'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { TagSelectComponent } from 'apps/cloud/src/app/@shared/tag'
+import { MatInputModule } from '@angular/material/input'
+import { IsDirty } from '@metad/core'
 
 @Component({
   selector: 'xpert-basic',
@@ -38,7 +39,7 @@ import { TagSelectComponent } from 'apps/cloud/src/app/@shared/tag'
     CdkMenuModule,
     CdkListboxModule,
     DragDropModule,
-    MaterialModule,
+    MatInputModule,
 
     NgmDensityDirective,
     EmojiAvatarComponent,
@@ -50,7 +51,7 @@ import { TagSelectComponent } from 'apps/cloud/src/app/@shared/tag'
   styleUrl: './basic.component.scss',
   animations: [IfAnimation]
 })
-export class XpertBasicComponent {
+export class XpertBasicComponent implements IsDirty {
   eXpertTypeEnum = XpertTypeEnum
   eModelType = AiModelTypeEnum
   eTagCategoryEnum = TagCategoryEnum
@@ -126,6 +127,10 @@ export class XpertBasicComponent {
       },
       { allowSignalWrites: true }
     )
+  }
+
+  isDirty(): boolean {
+    return this.form.dirty
   }
 
   toggleExpand() {

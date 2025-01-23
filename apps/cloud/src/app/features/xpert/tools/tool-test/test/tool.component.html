@@ -39,7 +39,7 @@
 <div class="flex gap-2 items-center mt-4 ">
   <button type="button" class="flex-1 btn disabled:btn-disabled btn-primary h-10 
     active:scale-x-[0.99] active:scale-y-95"
-    [disabled]="loading()"
+    [disabled]="loading() || invalid()"
     (click)="testTool()"
   ><div class="w-full text-center">{{ 'PAC.Xpert.Test' | translate: { Default: 'Test' } }}</div></button>
 

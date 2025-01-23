@@ -13,7 +13,6 @@ import {
   signal
 } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -23,6 +22,7 @@ import {
   getErrorMessage,
   IXpertTool,
   ToastrService,
+  TToolParameter,
   XpertToolService,
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
@@ -37,7 +37,6 @@ import { Subscription } from 'rxjs'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatDialogModule,
     MatTooltipModule,
     MatSlideToggleModule,
     NgmDensityDirective,
@@ -51,7 +50,6 @@ import { Subscription } from 'rxjs'
 export class XpertToolsetToolTestComponent {
   readonly toolsetService = inject(XpertToolsetService)
   readonly #formBuilder = inject(FormBuilder)
-  readonly #dialog = inject(MatDialog)
   readonly #toastr = inject(ToastrService)
   readonly #cdr = inject(ChangeDetectorRef)
   readonly toolService = inject(XpertToolService)
@@ -71,9 +69,13 @@ export class XpertToolsetToolTestComponent {
   readonly toolId = computed(() => this.tool()?.id)
 
   readonly toolAvatar = computed(() => this.tool()?.avatar)
-  readonly parameterList = computed(() => this.tool()?.schema?.parameters?.filter((_) => isNil(_.visible) || _.visible || this.visibleAll()))
+  readonly parameterList = computed<TToolParameter[]>(() => {
+    const parameters = this.tool()?.schema?.parameters ?? this.tool()?.provider?.parameters
+    return parameters?.filter((_) => isNil(_.visible) || _.visible || this.visibleAll())
+  })
 
   readonly parameters = model<Record<string, any>>(null)
+  readonly invalid = computed(() => this.parameterList()?.some((param) => param.required && isNil(this.parameters()?.[param.name])))
   readonly testResult = signal(null)
 
   readonly loading = signal(false)
