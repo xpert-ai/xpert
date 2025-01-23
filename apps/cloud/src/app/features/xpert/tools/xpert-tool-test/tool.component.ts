@@ -58,7 +58,7 @@ export class XpertToolTestComponent {
     tap(() => this.loading.set(false)),
     shareReplay(1)
   )
-  readonly parameter$ = this.toolDetail$.pipe(map((toolDetail) => toolDetail?.provider.parameters))
+  // readonly parameter$ = this.toolDetail$.pipe(map((toolDetail) => toolDetail?.provider.parameters))
   readonly toolAvatar = computed(() => this.tool()?.avatar)
 
   readonly expand = model(false)

@@ -45,7 +45,7 @@ export class XpertToolset extends WorkspaceBaseEntity implements IXpertToolset {
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()
 	@IsOptional()
-	@Exclude({toClassOnly: true})
+	@Exclude({toPlainOnly: true})
 	@Column({ type: 'json', nullable: true })
 	credentials?: TToolCredentials
 

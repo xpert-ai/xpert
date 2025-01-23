@@ -1,6 +1,6 @@
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -116,6 +116,21 @@ export class XpertToolConfigureBuiltinComponent {
       }
     })
 
+  constructor() {
+    effect(() => {
+      if (this.builtinTools()) {
+        this.tools.update((tools) =>
+          tools?.map((tool) => {
+            if (!tool.schema) {
+              return {...tool, schema: this.builtinTools().find((_) => _.identity.name === tool.name)}
+            }
+            return tool
+          })
+        )
+      }
+    }, { allowSignalWrites: true })
+  }
+
   openAuthorize(toolset?: IXpertToolset) {
     this.toolset.set(toolset)
     this.authorizing.set(true)
@@ -130,7 +145,7 @@ export class XpertToolConfigureBuiltinComponent {
   }
 
   cancel(event: MouseEvent) {
-    this.#dialogRef.close()
+    this.#dialogRef.close(this.dirty)
     event.preventDefault()
   }
 
@@ -142,6 +157,7 @@ export class XpertToolConfigureBuiltinComponent {
     const tool = this.tools()?.find((_) => _.name === name)
     if (tool) {
       tool.enabled = enabled
+      tool.schema ??= schema
     } else {
       this.tools.update((state) => {
         return [...(state ?? []), {

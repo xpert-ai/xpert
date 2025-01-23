@@ -2,14 +2,14 @@ import { CdkListboxModule, ListboxValueChangeEvent } from '@angular/cdk/listbox'
 import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { HttpClient } from '@angular/common/http'
-import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
+import { booleanAttribute, Component, computed, inject, input, output } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
-import { ISelectOption, NgmI18nPipe, toParams } from '@metad/ocap-angular/core'
+import { getErrorMessage, ISelectOption, NgmI18nPipe, toParams } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { catchError, debounceTime, of, startWith } from 'rxjs'
+import { catchError, debounceTime, of, startWith, switchMap, tap } from 'rxjs'
 import { NgmHighlightDirective } from '../directives'
 
 type TSelectOptionValue = string | { id: string }
@@ -47,6 +47,9 @@ export class NgmRemoteSelectComponent {
   })
   readonly placeholder = input<string>()
 
+  // Outputs
+  readonly error = output<string>()
+
   // States
   readonly searchControl = new FormControl()
   readonly values = computed(() => {
@@ -58,10 +61,7 @@ export class NgmRemoteSelectComponent {
   })
 
   readonly selectOptions = derivedAsync(() => {
-    return this.url()
-      ? this.httpClient.get<ISelectOption[]>(this.url(), { params: this.params() ? toParams(this.params()) : null })
-        .pipe(catchError(() => of(null)))
-      : []
+    return this.url() ? this.getSelectOptions(this.url(), this.params()) : []
   })
 
   readonly searchText = toSignal<string>(this.searchControl.valueChanges.pipe(debounceTime(300), startWith(null)))
@@ -77,6 +77,17 @@ export class NgmRemoteSelectComponent {
       (value) => this.selectOptions()?.find((_) => this.compareWith(_.value, value)) ?? { value }
     )
   })
+
+  getSelectOptions(url: string, params: Record<string, unknown>) {
+    return of(true).pipe(
+      tap(() => this.error.emit(null)),
+      switchMap(() => this.httpClient.get<ISelectOption[]>(url, { params: params ? toParams(params) : null })),
+      catchError((err) => {
+        this.error.emit(getErrorMessage(err))
+        return of(null)
+      })
+    )
+  }
 
   selectValues(event: ListboxValueChangeEvent<TSelectOptionValue>) {
     if (this.multiple()) {

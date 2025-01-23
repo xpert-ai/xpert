@@ -13,6 +13,7 @@
         "Status_success": "成功",
         "Status_error": "错误",
         "ActionSessionTimedOut": "响应动作不存在或会话已超时！",
-        "Error_BotPermission": "可能尚未添加机器人能力或权限"
+        "Error_BotPermission": "可能尚未添加机器人能力或权限",
+        "Error_SelectAIntegration": "请选择一个集成"
     }
 }
