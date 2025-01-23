@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialogModule } from '@angular/material/dialog'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
@@ -62,11 +62,17 @@ export class XpertToolBuiltinCredentialComponent {
 
   readonly options = computed(() => this.credential()?.options)
 
+  readonly error = signal<string>(null)
+
   constructor() {
     effect(() => {
       if (this.valueModel() === undefined && !isNil(this.credential()?.default)) {
         this.valueModel.set(this.credential().default)
       }
     }, { allowSignalWrites: true })
+  }
+
+  onError(error: string) {
+    this.error.set(error)
   }
 }
