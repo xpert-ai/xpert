@@ -1,7 +1,7 @@
 import { Location } from '@angular/common'
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { Indicator, nonNullable } from '@metad/ocap-core'
+import { nonNullable } from '@metad/ocap-core'
 import {
   BehaviorSubject,
   catchError,
@@ -30,7 +30,6 @@ import {
   IChatMessage,
   ToolCall,
   IChatMessageFeedback,
-  ISemanticModel,
   TChatOptions,
   TChatRequest,
 } from '../@core'
@@ -149,8 +148,6 @@ export class ChatService {
         this.#toastr.error(getErrorMessage(error))
       }
     })
-
-
 
   constructor() {
     this.#destroyRef.onDestroy(() => {
@@ -465,7 +462,6 @@ export class ChatService {
       }
     })
   }
-  
 }
 
 export function groupConversations(conversations: IChatConversation[]) {
