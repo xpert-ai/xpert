@@ -43,6 +43,7 @@ export class ChatXpertComponent {
   readonly chatHomeComponent = inject(ChatHomeComponent)
   readonly #elementRef = inject(ElementRef)
 
+  readonly sidenavOpened = this.chatHomeComponent.sidenavOpened
   readonly sidenav = this.chatHomeComponent.sidenav
 
   readonly conversationId = this.chatService.conversationId

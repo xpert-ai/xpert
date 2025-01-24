@@ -26,7 +26,7 @@ import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, EMPTY } from 'rxjs'
-import { debounceTime, map, startWith, switchMap } from 'rxjs/operators'
+import { debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
 import {
   getErrorMessage,
   injectTags,
@@ -99,9 +99,13 @@ export class XpertWorkspaceHomeComponent {
   readonly isMobile = this.appService.isMobile
   readonly lang = this.appService.lang
 
+  readonly loading = signal(true)
   readonly workspaces = toSignal(
     this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } })
-      .pipe(map(({ items }) => items)),
+      .pipe(
+        map(({ items }) => items),
+        tap(() => this.loading.set(false))
+      ),
     {initialValue: null}
   )
   readonly selectedWorkspaces = model<string[]>([])

@@ -2,7 +2,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, model } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
@@ -10,7 +10,7 @@ import { RouterModule } from '@angular/router'
 import { DynamicGridDirective } from '@metad/core'
 import { NgmCommonModule, NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { debounceTime, switchMap } from 'rxjs'
+import { debounceTime, switchMap, tap } from 'rxjs'
 import { IXpertTemplate, XpertTemplateService, XpertTypeEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { XpertInstallComponent } from './install/install.component'
@@ -45,7 +45,10 @@ export class XpertExploreComponent {
   readonly templateService = inject(XpertTemplateService)
   readonly #dialog = inject(Dialog)
 
-  readonly templates = toSignal(this.templateService.getAll())
+  readonly loading = signal(true)
+  readonly templates = toSignal(this.templateService.getAll().pipe(
+    tap(() => this.loading.set(false))
+  ))
 
   readonly categories = computed(() => this.templates()?.categories)
   readonly category = model<string[]>(['recommended'])

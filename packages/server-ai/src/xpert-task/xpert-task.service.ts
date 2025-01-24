@@ -179,7 +179,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
 	async updateTask(id: string, entity: Partial<IXpertTask>) {
 		await super.update(id, entity)
-		const task = await this.findOne(id)
+		const task = await this.findOne(id, {relations: ['executions', 'xpert']})
 		if (task.status === XpertTaskStatus.RUNNING) {
 			this.rescheduleTask(task, RequestContext.currentUser())
 		} else {

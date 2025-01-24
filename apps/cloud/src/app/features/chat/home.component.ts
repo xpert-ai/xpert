@@ -111,6 +111,12 @@ export class ChatHomeComponent {
     this.homeService.deleteConversation(id)
   }
 
+  exitEdit(event: Event) {
+    event.stopPropagation()
+    this.editingConversation.set(null)
+    this.editingTitle.set('')
+  }
+
   updateTitle(conv: IChatConversation) {
     this.conversationService.update(this.editingConversation(), { title: this.editingTitle() }).subscribe({
       next: () => {

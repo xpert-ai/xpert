@@ -36,7 +36,7 @@
               @if (editingConversation()  === item.id) {
                 <input matInput [(ngModel)]="editingTitle"
                   (keydown.enter)="updateTitle(item)"
-                  (keydown.esc)="editingConversation.set(null); editingTitle.set('')"
+                  (keydown.esc)="exitEdit($event)"
                   >
               } @else {
                 <div class="grow truncate" [title]="item.title">{{item.title}}</div>
