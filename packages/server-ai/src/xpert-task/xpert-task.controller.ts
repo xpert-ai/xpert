@@ -38,7 +38,8 @@ export class XpertTaskController extends CrudController<XpertTask> {
 			where: {
 				createdById: RequestContext.currentUserId(),
 				id: In(_ids)
-			}
+			},
+			relations: ['executions', 'xpert']
 		})
 	}
 

@@ -19,7 +19,8 @@
               (click)="selectConversation(item)"
             >
             @if (editingConversation()  === item.id) {
-              <input matInput [(ngModel)]="editingTitle" (keydown.enter)="updateTitle(item)">
+              <input matInput [(ngModel)]="editingTitle" (keydown.enter)="updateTitle(item)" 
+                (keydown.esc)="exitEdit($event)">
             } @else {
               {{item.title || item.id}}
             }

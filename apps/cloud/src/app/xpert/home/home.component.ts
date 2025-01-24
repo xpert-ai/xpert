@@ -163,6 +163,12 @@ export class ChatHomeComponent {
     await this.chatService.newConversation()
   }
 
+  exitEdit(event: Event) {
+    event.stopPropagation()
+    this.editingConversation.set(null)
+    this.editingTitle.set('')
+  }
+
   updateTitle(conv: IChatConversation) {
     this.xpertService.updateAppConversation(
       this.xpert().slug,

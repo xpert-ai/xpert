@@ -19,38 +19,40 @@
 </div>
 
 <ng-template #taskTempl let-task="task">
-  <div class="task flex items-center w-full cursor-pointer px-4 py-2 border-b border-solid border-gray-300 text-sm hover:bg-gray-100"
-    [class.deleted]="!!task.deletedAt"
-    (click)="editTask(task)"
-  >
-    <div class="flex-1 flex justify-start items-center gap-1 overflow-hidden">
-      <emoji-avatar [avatar]="task.xpert.avatar" xs class="overflow-hidden rounded-lg shadow-sm"
-        [matTooltip]="task.xpert.title||task.xpert.name"
-        matTooltipPosition="above"
-      />
-      @if (task.status === eXpertTaskStatus.PAUSED) {
-        <i class="ri-pause-circle-fill text-xl text-text-secondary"></i>
-      } @else if (task.status === eXpertTaskStatus.RUNNING) {
-        <i class="ri-calendar-schedule-line mr-2 text-xl text-text-secondary"></i>
-      }
-      <div class="font-medium truncate">{{task.name}}</div>
+  <div class="task flex border-b border-solid border-gray-200">
+    <div class="flex-1 flex items-center cursor-pointer -mx-3 px-4 py-2 rounded-2xl text-sm hover:bg-gray-100"
+      [class.deleted]="!!task.deletedAt"
+      (click)="editTask(task)"
+    >
+      <div class="flex-1 flex justify-start items-center gap-1 overflow-hidden">
+        <emoji-avatar [avatar]="task.xpert.avatar" xs class="overflow-hidden rounded-lg shadow-sm"
+          [matTooltip]="task.xpert.title||task.xpert.name"
+          matTooltipPosition="above"
+        />
+        @if (task.status === eXpertTaskStatus.PAUSED) {
+          <i class="ri-pause-circle-fill text-xl text-text-secondary"></i>
+        } @else if (task.status === eXpertTaskStatus.RUNNING) {
+          <i class="ri-calendar-schedule-line mr-2 text-xl text-text-secondary"></i>
+        }
+        <div class="font-medium truncate">{{task.name}}</div>
 
-      <span class="bg-green-100 text-green-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300"
-        [matTooltip]="'PAC.Chat.TaskSuccessCount' | translate: {Default: 'Number of successful task executions'}"
-        matTooltipPosition="above"
-      >
-        {{task.successCount}}
-      </span>
-      @if (task.errorCount) {
-        <span class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-red-900 dark:text-red-300"
-          [matTooltip]="'PAC.Chat.TaskFailureCount' | translate: {Default: 'Number of task execution failures'}"
-          matTooltipPosition="above">
-          {{task.errorCount}}
+        <span class="bg-green-100 text-green-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300"
+          [matTooltip]="'PAC.Chat.TaskSuccessCount' | translate: {Default: 'Number of successful task executions'}"
+          matTooltipPosition="above"
+        >
+          {{task.successCount}}
         </span>
-      }
+        @if (task.errorCount) {
+          <span class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-red-900 dark:text-red-300"
+            [matTooltip]="'PAC.Chat.TaskFailureCount' | translate: {Default: 'Number of task execution failures'}"
+            matTooltipPosition="above">
+            {{task.errorCount}}
+          </span>
+        }
+      </div>
+      
+      <div class="text-text-secondary truncate">{{task.scheduleDescription}}</div>
     </div>
-    
-    <div class="text-text-secondary truncate">{{task.scheduleDescription}}</div>
   </div>
 </ng-template>
 

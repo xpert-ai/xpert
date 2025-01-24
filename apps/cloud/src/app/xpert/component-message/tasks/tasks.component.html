@@ -8,7 +8,7 @@
   >
     <div class="flex-1 flex flex-col justify-start items-start overflow-hidden">
       <div class="font-medium truncate">{{task.name}}</div>
-      <div class="text-text-secondary truncate">{{task.schedule}}</div>
+      <div class="text-sm text-text-secondary truncate">{{task.scheduleDescription || task.schedule}}</div>
     </div>
 
     @if (!task.deletedAt) {
