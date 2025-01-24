@@ -8,12 +8,12 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { effectAction, provideOcapCore } from '@metad/ocap-angular/core'
+import { effectAction, OCAP_AGENT_TOKEN, provideOcapCore } from '@metad/ocap-angular/core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { provideMarkdown } from 'ngx-markdown'
 import { switchMap, tap } from 'rxjs/operators'
-import { ChatConversationService, OrderTypeEnum, routeAnimations, XpertService, injectToastr, getErrorMessage, IChatConversation } from '../../@core'
+import { ChatConversationService, OrderTypeEnum, routeAnimations, XpertService, injectToastr, getErrorMessage, IChatConversation, ServerSocketAgent } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar/'
 import { ChatAppService } from '../chat-app.service'
 import { ChatInputComponent } from '../chat-input/chat-input.component'
@@ -50,6 +50,12 @@ import { XpertHomeService } from '../home.service'
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
+    ServerSocketAgent,
+    {
+      provide: OCAP_AGENT_TOKEN,
+      useExisting: ServerSocketAgent,
+      multi: true
+    },
     provideMarkdown({}),
     provideOcapCore(),
     XpertHomeService,

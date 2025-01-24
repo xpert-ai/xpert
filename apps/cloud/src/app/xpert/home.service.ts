@@ -26,7 +26,7 @@ export class XpertHomeService {
   readonly conversationService = inject(ChatConversationService)
   readonly semanticModelService = inject(SemanticModelServerService)
   readonly #dsCoreService = inject(NgmDSCoreService)
-  readonly #wasmAgent = inject(WasmAgentService)
+  readonly #wasmAgent? = inject(WasmAgentService, {optional: true})
   readonly #toastr = injectToastr()
   readonly lang = this.appService.lang
 
