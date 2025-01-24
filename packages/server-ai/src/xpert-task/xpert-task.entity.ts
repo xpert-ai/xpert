@@ -82,6 +82,7 @@ export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTas
 	executions?: IXpertAgentExecution[]
 
 	// Temporary properties
+	@Expose()
 	@Transform(({value}) =>
 		cronstrue.toString(value, { locale: CronstrueLocales[RequestContext.getLanguageCode()] ?? RequestContext.getLanguageCode() })
 	)
