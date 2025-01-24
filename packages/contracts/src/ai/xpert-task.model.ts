@@ -18,6 +18,7 @@ export interface IXpertTask extends IBasePerTenantAndOrganizationEntityModel, Xp
 export type XpertTaskType = {
   name?: string
   schedule?: string
+  timeZone?: string
   prompt?: string
   status?: XpertTaskStatus
 

@@ -30,7 +30,9 @@
       <div class="mx-3 mt-12 flex max-w-3xl flex-wrap items-stretch justify-center gap-4 mb-8">
         @for (statement of role().starters; track statement) {
           @if (statement) {
-            <button class="relative flex w-40 flex-col gap-2 rounded-2xl border border-token-border-light px-3 pb-4 pt-3 text-start align-top text-[15px] shadow-sm transition enabled:hover:bg-token-main-surface-secondary disabled:cursor-not-allowed"
+            <button class="relative flex w-40 flex-col gap-2 rounded-xl border border-token-border-light px-2 pb-3 pt-2 text-start align-top text-sm shadow-sm
+              md:text-base md:px-3 md:pt-3 md:pb-4 md:rounded-2xl
+              transition enabled:hover:bg-token-main-surface-secondary disabled:cursor-not-allowed"
               (click)="chatInput().ask(statement)"
             >
               <div class="line-clamp-3 max-w-full text-balance font-light text-neutral-500 dark:text-neutral-500 break-word">

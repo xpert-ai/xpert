@@ -2,7 +2,7 @@ import { Clipboard } from '@angular/cdk/clipboard'
 import { CommonModule } from '@angular/common'
 import { Component, inject, input, signal, WritableSignal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { IXpertAgentExecution } from '../../../@core'
+import { DateRelativePipe, IXpertAgentExecution } from '../../../@core'
 import { UserPipe } from '../../pipes'
 import { XpertAgentExecutionLogComponent } from '../execution-log/execution.component'
 import { XpertAgentExecutionStatusComponent } from '../execution-status/execution.component'
@@ -13,6 +13,7 @@ import { XpertAgentExecutionStatusComponent } from '../execution-status/executio
     CommonModule,
     TranslateModule,
     UserPipe,
+    DateRelativePipe,
     XpertAgentExecutionStatusComponent,
     XpertAgentExecutionLogComponent
   ],

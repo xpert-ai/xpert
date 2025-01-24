@@ -4,7 +4,7 @@ import { omit } from 'lodash'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertAgentQuery } from '../../../xpert/queries/'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
-import { STATE_VARIABLE_SYS_LANGUAGE, STATE_VARIABLE_USER_EMAIL } from '../../commands/handlers/types'
+import { STATE_VARIABLE_SYS_LANGUAGE, STATE_VARIABLE_USER_EMAIL, STATE_VARIABLE_USER_TIMEZONE } from '../../commands/handlers/types'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
@@ -31,6 +31,14 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				description: {
 					en_US: 'User email',
 					zh_Hans: '用户邮箱',
+				}
+			},
+			{
+				name: STATE_VARIABLE_USER_TIMEZONE,
+  				type: 'string',
+				description: {
+					en_US: 'User time zone',
+					zh_Hans: '用户时区',
 				}
 			}
 		]

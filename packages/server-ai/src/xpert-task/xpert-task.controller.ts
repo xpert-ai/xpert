@@ -1,8 +1,8 @@
 import { IXpertTask } from '@metad/contracts'
-import { CrudController, RequestContext, TransformInterceptor } from '@metad/server-core'
-import { Controller, Get, Logger, Query, UseInterceptors, Param, Put, Body, Delete } from '@nestjs/common'
+import { CrudController, PaginationParams, ParseJsonPipe, RequestContext, TransformInterceptor } from '@metad/server-core'
+import { Controller, Get, Logger, Query, UseInterceptors, Param, Put, Body, Delete, HttpStatus } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
+import { ApiOperation, ApiResponse, ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { In } from 'typeorm'
 import { XpertTask } from './xpert-task.entity'
 import { XpertTaskService } from './xpert-task.service'
@@ -19,6 +19,16 @@ export class XpertTaskController extends CrudController<XpertTask> {
 		private readonly commandBus: CommandBus
 	) {
 		super(service)
+	}
+
+	@ApiOperation({ summary: 'find my all' })
+	@ApiResponse({
+		status: HttpStatus.OK,
+		description: 'Found my records'
+	})
+	@Get('my')
+	async findMyAll(@Query('data', ParseJsonPipe) params: PaginationParams<XpertTask>,) {
+		return this.service.findMyAll(params);
 	}
 
 	@Get('by-ids')

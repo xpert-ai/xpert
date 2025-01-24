@@ -360,8 +360,21 @@ export type TChatRequest = {
 export type TChatOptions = {
   knowledgebases?: string[]
   toolsets?: string[]
+  /**
+   * The language used by the current browser page
+   */
   language?: string
+  /**
+   * The browser's time zone
+   */
+  timeZone?: string
+  /**
+   * Call from
+   */
   from?: TChatFrom
+  /**
+   * Whether to summarize the conversation title
+   */
   summarizeTitle?: boolean
 }
 
@@ -376,7 +389,7 @@ export function figureOutXpert(xpert: IXpert, isDraft: boolean) {
   return (isDraft ? xpert.draft?.team : xpert) ?? xpert
 }
 
-export function xpertLabel(agent: IXpert) {
+export function xpertLabel(agent: Partial<IXpert>) {
   return agent.title || agent.name
 }
 

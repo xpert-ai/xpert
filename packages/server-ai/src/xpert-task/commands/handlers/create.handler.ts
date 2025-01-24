@@ -42,8 +42,11 @@ export class CreateXpertTaskHandler implements ICommandHandler<CreateXpertTaskCo
 			}
 		}
 
+		const request = RequestContext.currentRequest()
+		const timeZone = request.headers['time-zone']
 		const task = await this.taskService.create({
 			...command.task,
+			timeZone,
 			status: XpertTaskStatus.RUNNING
 		})
 

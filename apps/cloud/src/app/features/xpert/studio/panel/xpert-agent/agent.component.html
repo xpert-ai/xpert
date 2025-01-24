@@ -176,7 +176,7 @@
     @for (execution of executions(); track execution.id) {
       <button cdkMenuItem class="ngm-cdk-menu-item shrink-0 px-2 py-1 max-w-full flex justify-between items-start text-sm"
         (click)="openExecution(execution)">
-        {{execution.updatedAt | date: 'medium'}}
+        {{execution.updatedAt | relative}}
         <span class="px-1 rounded-md border-light text-xs">{{execution.elapsedTime | number}}ms</span>
       </button>
     } @empty {

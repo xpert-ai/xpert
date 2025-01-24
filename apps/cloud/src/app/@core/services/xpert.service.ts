@@ -176,7 +176,7 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   chatApp(name: string, request: TChatRequest, options: TChatOptions) {
     return this.fetchEventSource(
-      this.apiBaseUrl + `/${name}/chat-app`,
+      this.baseUrl + this.apiBaseUrl + `/${name}/chat-app`,
       JSON.stringify({
         request,
         options

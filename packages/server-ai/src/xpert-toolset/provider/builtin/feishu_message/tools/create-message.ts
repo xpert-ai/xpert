@@ -2,6 +2,7 @@ import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { LangGraphRunnableConfig } from '@langchain/langgraph'
 import * as lark from '@larksuiteoapi/node-sdk'
 import { Logger } from '@nestjs/common'
+import { AxiosError } from 'axios'
 import z from 'zod'
 import { LarkMessage } from '../../../../../integration-lark'
 import { ToolParameterValidationError } from '../../../../errors'
@@ -23,7 +24,7 @@ export class CreateMessageTool extends BuiltinTool {
 	description = 'A tool for creating a feishu message'
 
 	schema = z.object({
-		content: z.string().describe(`task name`)
+		content: z.string().describe(`Content of feishu message`)
 	})
 
 	constructor(private toolset: FeishuMessageToolset) {
@@ -43,11 +44,18 @@ export class CreateMessageTool extends BuiltinTool {
 		const client = await this.toolset.getClient()
 
 		const toolsetCredentials = this.toolset.getCredentials()
-		if (toolsetCredentials.chat) {
-			await this.createMessage(client, 'chat_id', toolsetCredentials.chat, parameters.content)
-		}
-		if (toolsetCredentials.user) {
-			await this.createMessage(client, 'union_id', toolsetCredentials.user, parameters.content)
+		try {
+			if (toolsetCredentials.chat) {
+				await this.createMessage(client, 'chat_id', toolsetCredentials.chat, parameters.content)
+			}
+			if (toolsetCredentials.user) {
+				await this.createMessage(client, 'union_id', toolsetCredentials.user, parameters.content)
+			}
+		} catch (err) {
+			if ((<AxiosError>err).response?.data) {
+				throw new Error(err.response.data.msg)
+			}
+			throw err
 		}
 
 		return 'Message send!'

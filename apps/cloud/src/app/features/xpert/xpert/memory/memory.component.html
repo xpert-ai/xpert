@@ -55,7 +55,7 @@
   <pac-user-profile-inline [user]="user" small class="my-1" />
 </ng-template>
 <ng-template #dateTemplate let-createdAt>
-  {{ createdAt | date: 'short'}}
+  {{ createdAt | relative}}
 </ng-template>
 <ng-template #valueTemplate let-value>
   <div class="rounded-lg p-1 my-1 whitespace-pre hover:bg-gray-50">{{value | json}}</div>

@@ -1,4 +1,4 @@
-import { TChatAgentParams } from '@metad/contracts'
+import { TChatAgentParams, TChatOptions } from '@metad/contracts'
 import { TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -29,11 +29,12 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 		return await this.repository.save(_entity)
 	}
 
-	async chatAgent(params: TChatAgentParams) {
+	async chatAgent(params: TChatAgentParams, options: TChatOptions) {
 		const xpertId = params.xpertId
 		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }, ['agent']))
 		return await this.commandBus.execute<XpertAgentChatCommand, Observable<MessageEvent>>(
 			new XpertAgentChatCommand(params.input, params.agentKey, xpert, {
+				...options,
 				isDraft: true,
 				execution: {
 					id: params.executionId

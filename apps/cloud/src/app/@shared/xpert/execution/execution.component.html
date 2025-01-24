@@ -60,7 +60,7 @@
     <div class="flex">
       <div class="shrink-0 w-[104px] px-2 py-[5px] text-gray-500 text-sm leading-[18px] truncate">{{ 'PAC.Xpert.StartTime' | translate: {Default: 'Start Time'} }}</div>
       <div class="grow px-2 py-[5px] text-gray-900 text-sm leading-[18px]">
-        <span>{{ execution().createdAt | date}}</span>
+        <span>{{ execution().createdAt | relative}}</span>
       </div>
     </div>
     <div class="flex">
