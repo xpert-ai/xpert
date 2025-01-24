@@ -17,6 +17,7 @@ export interface IUser extends IBasePerTenantEntityModel {
 	email?: string;
 	mobile?: string
 	username?: string;
+	timeZone?: string;
 	type?: UserType
 	role?: IRole;
 	roleId?: string;

@@ -1,6 +1,6 @@
 import { LanguagesEnum, TChatOptions, TChatRequest } from '@metad/contracts'
 import { takeUntilClose } from '@metad/server-common'
-import { RequestContext } from '@metad/server-core'
+import { RequestContext, TimeZone } from '@metad/server-core'
 import { Body, Controller, Header, Logger, Post, Sse, Res } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
@@ -22,12 +22,18 @@ export class ChatController {
 	@Header('Connection', 'keep-alive')
 	@Post('')
 	@Sse()
-	async chat(@Res() res: Response, @I18nLang() language: LanguagesEnum, @Body() body: { request: TChatRequest; options: TChatOptions }) {
-
+	async chat(
+		@Res() res: Response,
+		@I18nLang() language: LanguagesEnum,
+		@TimeZone() timeZone: string,
+		@Body() body: { request: TChatRequest; options: TChatOptions },
+	) {
+		console.log(timeZone)
 		const observable = await this.commandBus.execute(
 			new ChatCommand(body.request, {
 				...(body.options ?? {}),
 				language,
+				timeZone,
 				tenantId: RequestContext.currentTenantId(),
 				organizationId: RequestContext.getOrganizationId(),
 				user: RequestContext.currentUser(),

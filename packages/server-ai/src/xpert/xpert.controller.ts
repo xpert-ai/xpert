@@ -13,6 +13,7 @@ import {
 	UUIDValidationPipe,
 	UserCreateCommand,
 	Public,
+	TimeZone,
 } from '@metad/server-core'
 import {
 	Body,
@@ -212,6 +213,7 @@ export class XpertController extends CrudController<Xpert> {
 	async chat(@Res() res: Response,
 		@Param('id') id: string,
 		@I18nLang() language: LanguagesEnum,
+		@TimeZone() timeZone: string,
 		@Body()
 		body: {
 			request: TChatRequest
@@ -223,6 +225,7 @@ export class XpertController extends CrudController<Xpert> {
 		return (await this.commandBus.execute(new XpertChatCommand(body.request, {
 			...body.options,
 			language,
+			timeZone,
 			from: 'debugger'
 		}))).pipe(takeUntilClose(res))
 	}

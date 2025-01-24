@@ -360,8 +360,21 @@ export type TChatRequest = {
 export type TChatOptions = {
   knowledgebases?: string[]
   toolsets?: string[]
+  /**
+   * The language used by the current browser page
+   */
   language?: string
+  /**
+   * The browser's time zone
+   */
+  timeZone?: string
+  /**
+   * Call from
+   */
   from?: TChatFrom
+  /**
+   * Whether to summarize the conversation title
+   */
   summarizeTitle?: boolean
 }
 

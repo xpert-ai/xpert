@@ -1,4 +1,13 @@
-import { IUser, IXpert, IXpertTask, RolesEnum, TChatAgentParams, XpertAgentExecutionStatusEnum, XpertTaskStatus } from '@metad/contracts'
+import {
+	IUser,
+	IXpert,
+	IXpertTask,
+	RolesEnum,
+	TChatAgentParams,
+	TChatOptions,
+	XpertAgentExecutionStatusEnum,
+	XpertTaskStatus
+} from '@metad/contracts'
 import { ConfigService } from '@metad/server-config'
 import { RequestContext, runWithRequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common'
@@ -9,11 +18,11 @@ import * as chalk from 'chalk'
 import { CronJob } from 'cron'
 import { from, Observable, switchMap } from 'rxjs'
 import { Repository } from 'typeorm'
-import { XpertAgentService } from '../xpert-agent/xpert-agent.service'
-import { XpertTask } from './xpert-task.entity'
-import { FindXpertQuery } from '../xpert/queries'
 import { XpertAgentChatCommand } from '../xpert-agent'
 import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
+import { XpertAgentService } from '../xpert-agent/xpert-agent.service'
+import { FindXpertQuery } from '../xpert/queries'
+import { XpertTask } from './xpert-task.entity'
 
 @Injectable()
 export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTask> implements OnModuleInit {
@@ -41,7 +50,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 		console.log(chalk.magenta(`Scheduled ${total} tasks for xpert`))
 	}
 
-	async chatAgentJob(id: string, params: TChatAgentParams) {
+	async chatAgentJob(id: string, params: TChatAgentParams, options: TChatOptions) {
 		const xpertId = params.xpertId
 		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }, ['agent']))
 		// New execution (Run) in thread
@@ -50,7 +59,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 				xpert: { id: xpert.id } as IXpert,
 				agentKey: xpert.agent.key,
 				inputs: params.input,
-				status: XpertAgentExecutionStatusEnum.RUNNING,
+				status: XpertAgentExecutionStatusEnum.RUNNING
 			})
 		)
 		// Record execution in task
@@ -63,6 +72,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 		const executionId = execution.id
 		return await this.commandBus.execute<XpertAgentChatCommand, Observable<MessageEvent>>(
 			new XpertAgentChatCommand(params.input, params.agentKey, xpert, {
+				...options,
 				isDraft: false,
 				execution: {
 					id: executionId
@@ -79,32 +89,38 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 		let runs = 0
 
 		const scheduleJob = () => {
-			const job = new CronJob(task.schedule, () => {
-				runs += 1
-				this.#logger.verbose(`Times (${runs}) for job ${task.name} to run!`)
-				if (task.xpertId) {
-					// Trial account limit
-					if (RequestContext.hasRole(RolesEnum.TRIAL) && runs > MaximumRuns) {
-						this.pause(task.id).catch((err) => {
-							this.#logger.error(err)
-						})
-						return
-					}
-					from(
-						this.chatAgentJob(task.id, {
-							input: {
-								input: task.prompt
-							},
-							xpertId: task.xpertId,
-							agentKey: task.agentKey
-						})
-					)
-						.pipe(switchMap((obsv) => obsv))
-						.subscribe({
-							error: (err) => {
+			const job = CronJob.from({
+				cronTime: task.schedule,
+				timeZone: task.timeZone,
+				onTick: () => {
+					runs += 1
+					this.#logger.verbose(`Times (${runs}) for job ${task.name} to run!`)
+					if (task.xpertId) {
+						// Trial account limit
+						if (RequestContext.hasRole(RolesEnum.TRIAL) && runs > MaximumRuns) {
+							this.pause(task.id).catch((err) => {
 								this.#logger.error(err)
-							}
-						})
+							})
+							return
+						}
+						from(
+							this.chatAgentJob(task.id, {
+								input: {
+									input: task.prompt
+								},
+								xpertId: task.xpertId,
+								agentKey: task.agentKey
+							}, {
+								timeZone: task.timeZone
+							})
+						)
+							.pipe(switchMap((obsv) => obsv))
+							.subscribe({
+								error: (err) => {
+									this.#logger.error(err)
+								}
+							})
+					}
 				}
 			})
 
@@ -162,7 +178,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 	}
 
 	async updateTask(id: string, entity: Partial<IXpertTask>) {
-		super.update(id, entity)
+		await super.update(id, entity)
 		const task = await this.findOne(id)
 		if (task.status === XpertTaskStatus.RUNNING) {
 			this.rescheduleTask(task, RequestContext.currentUser())

@@ -25,7 +25,8 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
             'Organization-Id': `${organization.id}`,
-            Language: lang()
+            Language: lang(),
+            'Time-Zone': Intl.DateTimeFormat().resolvedOptions().timeZone
           },
           body: data,
           openWhenHidden: true,

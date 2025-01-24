@@ -7,6 +7,7 @@ import { SearchItem } from '@langchain/langgraph-checkpoint'
 
 export const STATE_VARIABLE_SYS_LANGUAGE = 'sys_language'
 export const STATE_VARIABLE_USER_EMAIL = 'user_email'
+export const STATE_VARIABLE_USER_TIMEZONE = 'user_timezone'
 
 export const AgentStateAnnotation = Annotation.Root({
 	messages: Annotation<BaseMessage[]>({
@@ -22,6 +23,10 @@ export const AgentStateAnnotation = Annotation.Root({
 		default: () => null
 	}),
 	[STATE_VARIABLE_USER_EMAIL]: Annotation<string>({
+		reducer: (a, b) => b ?? a,
+		default: () => null
+	}),
+	[STATE_VARIABLE_USER_TIMEZONE]: Annotation<string>({
 		reducer: (a, b) => b ?? a,
 		default: () => null
 	}),

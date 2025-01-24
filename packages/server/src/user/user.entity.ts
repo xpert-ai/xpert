@@ -99,6 +99,12 @@ export class User extends TenantBaseEntity implements IUser {
 	@Column({ nullable: true })
 	username?: string
 
+	@ApiPropertyOptional({ type: () => String })
+	@IsOptional()
+	@IsString()
+	@Column({ nullable: true })
+	timeZone?: string;
+
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@Column()

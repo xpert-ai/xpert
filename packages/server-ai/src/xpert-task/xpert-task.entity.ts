@@ -25,6 +25,12 @@ export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTas
 	schedule?: string
 
 	@ApiPropertyOptional({ type: () => String })
+	@IsOptional()
+	@IsString()
+	@Column({ nullable: true })
+	timeZone?: string
+
+	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
 	@Column({ nullable: true })
