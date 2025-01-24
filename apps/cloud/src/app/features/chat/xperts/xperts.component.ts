@@ -87,7 +87,6 @@ export class ChatXpertsComponent {
   }
 
   selectXpert(xpert: IXpert) {
-    // this.chatService.newConversation(xpert)
     this.#router.navigate(['/chat/x/', xpert.slug])
   }
 

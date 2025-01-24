@@ -2,7 +2,7 @@ import { IXpert, IXpertAgentExecution, IXpertTask, LanguagesEnum, XpertAgentExec
 import { RequestContext, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger'
 import { IsString, IsOptional, IsEnum } from 'class-validator'
-import { Transform, Exclude } from 'class-transformer'
+import { Transform, Exclude, Expose } from 'class-transformer'
 import cronstrue from 'cronstrue'
 import 'cronstrue/locales/en'
 import 'cronstrue/locales/zh_CN'
@@ -82,19 +82,28 @@ export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTas
 	executions?: IXpertAgentExecution[]
 
 	// Temporary properties
-	@Transform(({obj}) =>
-		cronstrue.toString(obj.schedule, { locale: CronstrueLocales[RequestContext.getLanguageCode()] ?? RequestContext.getLanguageCode() })
+	@Expose()
+	@Transform(({value}) =>
+		cronstrue.toString(value, { locale: CronstrueLocales[RequestContext.getLanguageCode()] ?? RequestContext.getLanguageCode() })
 	)
-    scheduleDescription?: string
+    get scheduleDescription(): string {
+		return this.schedule
+	}
 
-	@Transform(({obj}) => obj.executions?.length)
-	executionCount?: number
+	@Expose()
+	get executionCount(): number {
+		return this.executions?.length
+	}
 	
-	@Transform(({obj}) => obj.executions?.filter((_) => _.status === XpertAgentExecutionStatusEnum.ERROR).length)
-	errorCount?: number
+	@Expose()
+	get errorCount(): number {
+		return this.executions?.filter((_) => _.status === XpertAgentExecutionStatusEnum.ERROR).length
+	}
 
-	@Transform(({obj}) => obj.executions?.filter((_) => _.status !== XpertAgentExecutionStatusEnum.ERROR).length)
-	successCount?: number
+	@Expose()
+	get successCount(): number {
+		return this.executions?.filter((_) => _.status !== XpertAgentExecutionStatusEnum.ERROR).length
+	}
 }
 
 const CronstrueLocales = {

@@ -113,19 +113,8 @@ export class CopilotProviderModelComponent {
     effect(() => {
       if (!this.modelTypes() && this.supported_model_types()) {
         this.modelTypes.set([this.supported_model_types()[0]])
-
-        console.log(this.model_credential_schema())
       }
     }, { allowSignalWrites: true })
-
-    // effect(() => {
-    //   if (this.model()) {
-        
-    //     setTimeout(() => {
-    //       this.#cdr.detectChanges()
-    //     });
-    //   }
-    // }, { allowSignalWrites: true })
   }
 
   delete() {

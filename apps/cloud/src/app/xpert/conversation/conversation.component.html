@@ -35,7 +35,9 @@
               transition enabled:hover:bg-token-main-surface-secondary disabled:cursor-not-allowed"
               (click)="chatInput().ask(statement)"
             >
-              <div class="line-clamp-3 max-w-full text-balance font-light text-neutral-500 dark:text-neutral-500 break-word">
+              <div class="line-clamp-3 max-w-full text-balance font-light text-neutral-500 dark:text-neutral-500 break-word"
+                [title]="statement"
+              >
                 {{statement}}
               </div>
             </button>
