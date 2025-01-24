@@ -87,13 +87,13 @@ export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTas
 	)
     scheduleDescription?: string
 
-	@Transform(({obj}) => obj.executions?.length)
+	@Transform(({obj}) => obj.executions?.length ?? 0)
 	executionCount?: number
 	
-	@Transform(({obj}) => obj.executions?.filter((_) => _.status === XpertAgentExecutionStatusEnum.ERROR).length)
+	@Transform(({obj}) => obj.executions?.filter((_) => _.status === XpertAgentExecutionStatusEnum.ERROR).length ?? 0)
 	errorCount?: number
 
-	@Transform(({obj}) => obj.executions?.filter((_) => _.status !== XpertAgentExecutionStatusEnum.ERROR).length)
+	@Transform(({obj}) => obj.executions?.filter((_) => _.status !== XpertAgentExecutionStatusEnum.ERROR).length ?? 0)
 	successCount?: number
 }
 
