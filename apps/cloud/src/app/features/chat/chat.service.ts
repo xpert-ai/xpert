@@ -5,12 +5,10 @@ import { nonNullable } from '@metad/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
-import { BehaviorSubject, combineLatestWith, distinctUntilChanged, filter, map, pipe, withLatestFrom } from 'rxjs'
+import { combineLatestWith, distinctUntilChanged, filter, map, pipe, withLatestFrom } from 'rxjs'
 import {
   IXpert,
   LanguagesEnum,
-  OrderTypeEnum,
-  XpertTypeEnum
 } from '../../@core'
 import { ToastrService } from '../../@core/services'
 import { ChatService } from '../../xpert/'
@@ -110,6 +108,8 @@ export class ChatPlatformService extends ChatService {
       () => {
         if (this.paramId()) {
           this.conversationId.set(this.paramId())
+        } else {
+          this.conversationId.set(null)
         }
       },
       { allowSignalWrites: true }
