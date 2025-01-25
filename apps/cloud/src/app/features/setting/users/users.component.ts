@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
-import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { ActivatedRoute, Router } from '@angular/router'
-import { Store } from '@metad/cloud/state'
+import { injectOrganization, Store } from '@metad/cloud/state'
 import { Subject, firstValueFrom, map } from 'rxjs'
 import { Group, IUser, ROUTE_ANIMATIONS_ELEMENTS, routeAnimations } from '../../../@core/index'
 import { InviteMutationComponent } from '../../../@shared/invite'
@@ -28,6 +28,7 @@ export class PACUsersComponent<T extends IUser = IUser> extends TranslationBaseC
   private router = inject(Router)
   private _route = inject(ActivatedRoute)
   private _dialog = inject(Dialog)
+  readonly organization = injectOrganization()
 
   openedLinks = signal<T[]>([])
   currentLink = signal<T | null>(null)
@@ -35,6 +36,8 @@ export class PACUsersComponent<T extends IUser = IUser> extends TranslationBaseC
   public readonly organizationName$ = this.store.selectedOrganization$.pipe(map((org) => org?.name))
 
   public readonly invitedEvent = new Subject<void>()
+
+  readonly invitesAllowed = computed(() => this.organization()?.invitesAllowed) 
 
   constructor() {
     super()

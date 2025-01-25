@@ -68,6 +68,7 @@ export interface IUserRegistrationInput {
 	createdById?: string;
 	isImporting?: boolean;
 	sourceId?: string;
+	timeZone?: string
 }
 
 export interface IUserLoginInput {
@@ -106,6 +107,7 @@ export interface IUserUpdateInput {
 	imageUrl?: string;
 	tags?: ITag[];
 	preferredLanguage?: LanguagesEnum;
+	timeZone?: string
 	// preferredComponentLayout?: ComponentLayoutStyleEnum;
 }
 

@@ -1,6 +1,10 @@
 <h2 class="pac-page-title">{{ 'PAC.Integration.Integrations' | translate: {Default: 'Integrations' } }}</h2>
 
-<nav class="min-h-full content-start gap-4 px-4 pt-12 grow shrink-0 pb-4 overflow-auto"
+<div class="w-full flex justify-start p-4">
+  <ngm-search [formControl]="searchControl" />
+</div>
+
+<nav class="min-h-full content-start gap-4 px-4 pt-4 grow shrink-0 pb-4 overflow-auto"
   ngmDynamicGrid colWidth="280"
   box="content-box">
   <ngm-card-create
@@ -11,7 +15,7 @@
   />
 
   @for (item of integrations(); track item.id) {
-    <div class="ngm-card w-full p-4 group bg-gray-50 dark:bg-neutral-700 hover:bg-white dark:hover:bg-neutral-600">
+    <div class="ngm-card w-full p-4 group min-h-[160px] bg-gray-50 dark:bg-neutral-700 hover:bg-white dark:hover:bg-neutral-600">
       <div class="h-full flex flex-col cursor-pointer" (click)="open(item.id)">
         <div class="flex items-start gap-2">
           <emoji-avatar [avatar]="item.avatar" class="rounded-lg overflow-hidden shadow-sm" />
@@ -24,7 +28,7 @@
           </div>
         </div>
         
-        <div class="w-full my-1 text-sm line-clamp-3" [title]="item.description">
+        <div class="w-full my-1 text-sm text-text-secondary line-clamp-3" [title]="item.description">
           {{item.description}}
         </div>
 

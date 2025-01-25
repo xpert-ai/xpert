@@ -2,18 +2,20 @@ import { Component, inject } from '@angular/core'
 import { MatDialog } from '@angular/material/dialog'
 import { ToastrService, UsersService } from '@metad/cloud/state'
 import { IUser, RolesEnum } from '@metad/contracts'
-import { ButtonGroupDirective, OcapCoreModule } from '@metad/ocap-angular/core'
+import { NgmConfirmDeleteComponent, NgmSearchComponent } from '@metad/ocap-angular/common'
+import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { MtxCheckboxGroupModule } from '@ng-matero/extensions/checkbox-group'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
+import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
 import { includes } from 'lodash-es'
 import { BehaviorSubject, firstValueFrom, map, startWith, switchMap } from 'rxjs'
 import { PACUsersComponent } from '../users.component'
-import { NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
-import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
-import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
-import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
-import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
+import { FormsModule } from '@angular/forms'
+import { CommonModule } from '@angular/common'
+import { TranslateModule } from '@ngx-translate/core'
+import { RouterModule } from '@angular/router'
+import { CdkMenuModule } from '@angular/cdk/menu'
 
 @Component({
   standalone: true,
@@ -21,15 +23,18 @@ import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
   templateUrl: './manage-user.component.html',
   styleUrls: ['./manage-user.component.scss'],
   imports: [
-    SharedModule,
-    MaterialModule,
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    RouterModule,
+    CdkMenuModule,
     // Standard components
-    ButtonGroupDirective,
     MtxCheckboxGroupModule,
-    InlineSearchComponent,
     // OCAP Modules
     OcapCoreModule,
     UserProfileInlineComponent,
+    NgmSearchComponent,
+    UserProfileInlineComponent
   ]
 })
 export class ManageUserComponent extends TranslationBaseComponent {

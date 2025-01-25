@@ -7,6 +7,7 @@ import { FormlyFieldConfig } from '@ngx-formly/core'
 import { TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { OrganizationsService, ToastrService } from '../../../../../../@core'
+import { timezones } from '../../../../../../@core/constants'
 import { EditOrganizationComponent } from '../../edit-organization.component'
 import { FORMLY_ROW, FORMLY_W_1_2 } from '@metad/story/designer'
 import { FORMLY_W_FULL } from '@metad/formly'
@@ -55,7 +56,6 @@ export class EditOrganizationMainComponent {
               props: {
                 label: Organization?.Name ?? 'Name',
                 placeholder: Organization?.OrganizationName ?? 'Organization Name',
-                appearance: 'fill'
               }
             },
             {
@@ -64,7 +64,8 @@ export class EditOrganizationMainComponent {
               type: 'toggle',
               props: {
                 label: Organization?.IsDefault ?? 'Is Default',
-                placeholder: Organization?.SetAsDefault ?? 'Set as Default'
+                placeholder: Organization?.SetAsDefault ?? 'Set as Default',
+                color: 'accent'
               }
             },
             {
@@ -73,7 +74,8 @@ export class EditOrganizationMainComponent {
               type: 'toggle',
               props: {
                 label: Organization?.IsActive ?? 'Is Active',
-                placeholder: Organization?.ActiveOrganization ?? 'Active Organization'
+                placeholder: Organization?.ActiveOrganization ?? 'Active Organization',
+                color: 'accent'
               }
             },
             {
@@ -82,7 +84,6 @@ export class EditOrganizationMainComponent {
               type: 'input',
               props: {
                 label: Organization?.ProfileLink ?? 'Profile Link',
-                appearance: 'fill'
               }
             },
             {
@@ -91,7 +92,6 @@ export class EditOrganizationMainComponent {
               type: 'input',
               props: {
                 label: Organization?.OfficialName ?? 'Official Name',
-                appearance: 'fill'
               }
             },
             {
@@ -100,7 +100,6 @@ export class EditOrganizationMainComponent {
               type: 'textarea',
               props: {
                 label: Organization?.ShortDescription ?? 'Short Description',
-                appearance: 'fill',
                 autosize: true
               }
             },
@@ -110,7 +109,6 @@ export class EditOrganizationMainComponent {
               type: 'input',
               props: {
                 label: Organization?.Website ?? 'Website',
-                appearance: 'fill'
               }
             },
             {
@@ -119,7 +117,8 @@ export class EditOrganizationMainComponent {
               type: 'toggle',
               props: {
                 label: Organization?.InvitesAllowed ?? 'Invites Allowed',
-                placeholder: Organization?.EnableInvitesAllowed ?? 'Enable Invites Allowed'
+                placeholder: Organization?.EnableInvitesAllowed ?? 'Enable Invites Allowed',
+                color: 'accent'
               }
             },
             {
@@ -130,7 +129,20 @@ export class EditOrganizationMainComponent {
                 label: Organization?.InviteExpiryPeriod ?? 'Invite Expiry Period',
                 placeholder: Organization?.InviteExpiryPeriod ?? 'Invite Expiry Period (in Days)',
                 type: 'number',
-                appearance: 'fill'
+              }
+            },
+            {
+              className: FORMLY_W_FULL,
+              key: 'timeZone',
+              type: 'select',
+              props: {
+                label: Organization?.TimeZone ?? 'Time Zone',
+                placeholder: Organization?.SelectTimeZone ?? 'Select a Time Zone',
+                options: timezones.map((item) => ({
+                  value: item.value,
+                  label: item.name
+                })),
+                searchable: true
               }
             }
           ]

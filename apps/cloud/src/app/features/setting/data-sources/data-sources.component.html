@@ -1,8 +1,12 @@
 <div class="pac-page-header">
-    <div class="pac-page-title">{{ 'PAC.KEY_WORDS.DATA_SOURCES' | translate: {Default: "Data Sources"} }}</div>
+  <div class="pac-page-title">{{ 'PAC.KEY_WORDS.DATA_SOURCES' | translate: {Default: "Data Sources"} }}</div>
 </div>
 
-<nav class="grid content-start grid-cols-1 gap-4 px-6 pt-12 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 grow shrink-0">
+<div class="w-full flex justify-start p-4">
+  <ngm-search [formControl]="searchControl" />
+</div>
+
+<nav class="grid content-start grid-cols-1 gap-4 px-6 pt-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 grow shrink-0">
   <ngm-card-create [title]="'PAC.DataSources.CreateDataSource' | translate: {Default: 'Create data source'}"
     [helpTitle]="'PAC.DataSources.CreateDataSourceHelp' | translate: {Default: 'Learn more about custom data sources'} "
     helpUrl="/docs/server/datasources/"

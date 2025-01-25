@@ -33,31 +33,33 @@
 <mat-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center">
   <div class="w-full flex-1 flex items-start overflow-auto">
     <div class="flex-1 p-4 grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 overflow-auto">
-      <mat-card *ngFor="let certification of certifications$ | async" class="w-full flex flex-col">
-        <mat-card-header>
-          <mat-card-title class="text-lg">
-            {{ certification.name }}
-          </mat-card-title>
-          <mat-card-subtitle>
-            {{ certification.description }}
-          </mat-card-subtitle>
-        </mat-card-header>
-
-        <mat-card-content class="flex-1 m-0">
-          <pac-user-profile-inline [user]="certification.owner"></pac-user-profile-inline>
-        </mat-card-content>
-
-        <mat-card-actions align="end">
-          <div ngmButtonGroup displayDensity="cosy">
-            <button mat-icon-button displayDensity="cosy" (click)="editCertification(certification)">
-              <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
-            </button>
-            <button mat-icon-button ngmAppearance="danger" displayDensity="cosy" (click)="removeCertification(certification)">
-              <mat-icon fontSet="material-icons-round">delete_forever</mat-icon>
-            </button>
+      @for (certification of certifications$ | async; track certification.id) {
+        <div class="flex flex-col px-4 py-3 border-[0.5px] border-solid border-gray-200 rounded-xl shadow-sm bg-gray-50 hover:bg-white hover:shadow-lg">
+          <div class="flex flex-col">
+            <div class="text-lg">
+              {{ certification.name }}
+            </div>
+            <div class="text-sm text-text-secondary">
+              {{ certification.description }}
+            </div>
           </div>
-        </mat-card-actions>
-      </mat-card>
+
+          <div class="flex-1 m-0">
+            <pac-user-profile-inline [user]="certification.owner" small />
+          </div>
+
+          <div class="w-full flex justify-end">
+            <div ngmButtonGroup displayDensity="cosy">
+              <button mat-icon-button displayDensity="cosy" class="text-text-secondary" (click)="editCertification(certification)">
+                <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+              </button>
+              <button mat-icon-button ngmAppearance="danger" displayDensity="cosy" class="text-text-secondary" (click)="removeCertification(certification)">
+                <mat-icon fontSet="material-icons-round">delete_forever</mat-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      }
     </div>
 
     <div *ngIf="certification" class="w-[400px] px-8 flex flex-col justify-start items-start">

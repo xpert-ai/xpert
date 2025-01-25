@@ -1,68 +1,68 @@
 <div class="pac-page-body-toolbar">
-    <div>
-        <span>{{ 'PAC.INVITE_PAGE.ForOrganization' | translate: {Default: 'For Organization'} }}</span>: 
-        <span class="italic">
-            {{ organizationName$ | async }}
-        </span>
-    </div>
+  <div>
+    <span>{{ 'PAC.INVITE_PAGE.ForOrganization' | translate: {Default: 'For Organization'} }}</span>: 
+    <span class="italic">
+      {{ organizationName$ | async }}
+    </span>
+  </div>
 </div>
 
 <div class="flex-1 overflow-y-auto">
-    <ngm-table class="rounded-xl border border-gray-200 overflow-hidden"
-        [columns]="[
-            {
-                name: 'email',
-                caption: 'PAC.INVITE_PAGE.Email' | translate: {Default: 'Email'}
-            },
-            {
-                name: 'role.name',
-                caption: 'PAC.INVITE_PAGE.Role' | translate: {Default: 'Role'}
-            },
-            {
-                name: 'invitedBy',
-                caption: 'PAC.INVITE_PAGE.InvitedBy' | translate: {Default: 'Invited By'},
-                cellTemplate: invitedByTempl
-            },
-            {
-                name: 'createdAt',
-                caption: 'PAC.INVITE_PAGE.CreatedAt' | translate: {Default: 'Created At'}
-            },
-            {
-                name: 'expireDate',
-                caption: 'PAC.INVITE_PAGE.Expires' | translate: {Default: 'Expires'}
-            },
-            {
-                name: 'statusText',
-                caption: 'PAC.INVITE_PAGE.Status' | translate: {Default: 'Status'},
-                cellTemplate: statusTempl
-            },
-            {
-                name: 'action',
-                caption: 'PAC.INVITE_PAGE.Action' | translate: {Default: 'Action'},
-                cellTemplate: actionTempl
-            }
-        ]"
-        [data]="invites$ | async">
-    </ngm-table>
+  <ngm-table class="rounded-xl border border-gray-200 overflow-hidden"
+    [columns]="[
+        {
+            name: 'email',
+            caption: 'PAC.INVITE_PAGE.Email' | translate: {Default: 'Email'}
+        },
+        {
+            name: 'role.name',
+            caption: 'PAC.INVITE_PAGE.Role' | translate: {Default: 'Role'}
+        },
+        {
+            name: 'invitedBy',
+            caption: 'PAC.INVITE_PAGE.InvitedBy' | translate: {Default: 'Invited By'},
+            cellTemplate: invitedByTempl
+        },
+        {
+            name: 'createdAt',
+            caption: 'PAC.INVITE_PAGE.CreatedAt' | translate: {Default: 'Created At'}
+        },
+        {
+            name: 'expireDate',
+            caption: 'PAC.INVITE_PAGE.Expires' | translate: {Default: 'Expires'}
+        },
+        {
+            name: 'statusText',
+            caption: 'PAC.INVITE_PAGE.Status' | translate: {Default: 'Status'},
+            cellTemplate: statusTempl
+        },
+        {
+            name: 'action',
+            caption: 'PAC.INVITE_PAGE.Action' | translate: {Default: 'Action'},
+            cellTemplate: actionTempl
+        }
+    ]"
+    [data]="invites$ | async">
+  </ngm-table>
 </div>
 
 <ng-template #invitedByTempl let-invitedBy="invitedBy" >
-    <pac-user-profile-inline [user]="invitedBy"></pac-user-profile-inline>
+  <pac-user-profile-inline class="m-1" [user]="invitedBy" />
 </ng-template>
 
 <ng-template #actionTempl let-id="id" let-email="email">
-    <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" (click)="deleteInvite(id, email)">
-        <div class="flex justify-center items-center">
-            <mat-icon>close</mat-icon>
-        </div>
-    </button>
+  <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" (click)="deleteInvite(id, email)">
+    <div class="flex justify-center items-center">
+      <mat-icon>close</mat-icon>
+    </div>
+  </button>
 </ng-template>
 
 <ng-template #statusTempl let-status="status" let-statusText="statusText">
-    <span [ngSwitch]="status" class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">
-        <span *ngSwitchCase="'INVITED'" class="inline-block w-2 h-2 bg-blue-400 rounded-full"></span>
-        <span *ngSwitchCase="'ACCEPTED'" class="inline-block w-2 h-2 bg-green-400 rounded-full"></span>
-        <span *ngSwitchCase="'EXPIRED'" class="inline-block w-2 h-2 bg-yellow-400 rounded-full"></span>
-        {{ statusText }}
-    </span>
+  <span [ngSwitch]="status" class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-1.5 rounded-lg dark:bg-gray-700 dark:text-gray-300">
+    <span *ngSwitchCase="'INVITED'" class="inline-block w-2 h-2 bg-blue-400 rounded-full"></span>
+    <span *ngSwitchCase="'ACCEPTED'" class="inline-block w-2 h-2 bg-green-400 rounded-full"></span>
+    <span *ngSwitchCase="'EXPIRED'" class="inline-block w-2 h-2 bg-yellow-400 rounded-full"></span>
+    {{ statusText }}
+  </span>
 </ng-template>

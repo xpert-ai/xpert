@@ -4,10 +4,11 @@ import { MatDialog } from '@angular/material/dialog'
 import { NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
 import { DataSourceService } from '@metad/cloud/state'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
-import { switchMap, tap } from 'rxjs/operators'
+import { combineLatestWith, debounceTime, startWith, switchMap, tap, map } from 'rxjs/operators'
 import { IDataSource, injectHelpWebsite, ROUTE_ANIMATIONS_ELEMENTS } from '../../../@core/index'
 import { PACDataSourceCreationComponent } from './creation/creation.component'
 import { PACDataSourceEditComponent } from './edit/edit.component'
+import { FormControl } from '@angular/forms'
 
 @Component({
   selector: 'pac-data-sources',
@@ -23,10 +24,17 @@ export class PACDataSourcesComponent {
 
   loading = false
   private readonly refresh$ = new BehaviorSubject<void>(null)
+  readonly searchControl = new FormControl('')
   readonly dataSources = toSignal(
     this.refresh$.pipe(
       tap(() => (this.loading = true)),
       switchMap(() => this.dataSource.getAll(['type'])),
+      combineLatestWith(this.searchControl.valueChanges.pipe(
+        debounceTime(300),
+        map((text) => text?.toLowerCase()),
+        startWith('')
+      )),
+      map(([items, search]) => search ? items.filter((item) => item.name.toLowerCase().includes(search)) : items ),
       tap(() => (this.loading = false))
     )
   )
