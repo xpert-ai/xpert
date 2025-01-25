@@ -5,20 +5,22 @@
     <nav mat-tab-nav-bar color="accent" mat-align-tabs="start" mat-stretch-tabs="false" disableRipple class="pac-tab-nav-bar flex-1"
       [tabPanel]="tabPanel"
     >
-      <span mat-tab-link *ngFor="let option of roles$ | async" 
-        [active]="role?.name === option.name"
-        (click)="onSelectedRole(option)">
-          <span class="pac-nav-tab__label"
-            matTooltipClass="pac-model-query__statement-tip"
-          >
-            {{ option.name }}
-          </span>
+      @for (option of roles$ | async; track option.id) {
+        <span mat-tab-link
+          [active]="role?.name === option.name"
+          (click)="onSelectedRole(option)">
+            <span class="pac-nav-tab__label"
+              matTooltipClass="pac-model-query__statement-tip"
+            >
+              {{ option.name }}
+            </span>
 
-          <button *ngIf="!option.isSystem" mat-icon-button displayDensity="compact" class="pac-tab-close"
-            (click)="remove(option)">
-            <mat-icon>cancel</mat-icon>
-          </button>
-      </span>
+            <button *ngIf="!option.isSystem" mat-icon-button displayDensity="compact" class="pac-tab-close"
+              (click)="remove(option)">
+              <mat-icon>cancel</mat-icon>
+            </button>
+        </span>
+      }
     </nav>
 
     <button mat-icon-button displayDensity="cosy" class="shrink-0" (click)="create()">
@@ -30,8 +32,8 @@
 
 <div class="pac-page-body p-4" >
   <div class="grid grid-cols-1 md:grid-cols-2 md:gap-4">
-    <div class="flex flex-col items-stretch overflow-hidden shadow-lg rounded-lg ">
-      <h3 class="p-2 text-lg">
+    <div class="flex flex-col items-stretch overflow-hidden rounded-2xl border border-solid border-gray-100">
+      <h3 class="px-4 p-2 text-lg font-medium">
         {{ 'PAC.MENU.Roles.General' | translate: {Default: 'General'} }}
       </h3>
       <mat-list class="overflow-auto">
@@ -46,20 +48,22 @@
         </mat-list-item>
        </mat-list>
     </div>
-    <div class="flex flex-col items-stretch shadow-lg rounded-lg ">
-      <h3 class="p-2 text-lg">
+    <div class="flex flex-col items-stretch rounded-2xl border border-solid border-gray-100">
+      <h3 class="px-4 p-2 text-lg font-medium">
         {{ 'PAC.MENU.Roles.Administration' | translate: {Default: 'Administration'} }}
       </h3>
       <mat-list>
-        <mat-list-item *ngFor="let permission of getAdministrationPermissions()" [disabled]="isDisabledAdministrationPermissions()" class="rounded-md">
-          <span class="flex-1">
-            {{ 'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: {Default: permission} }}
-          </span>
-          <mat-slide-toggle [disabled]="isDisabledAdministrationPermissions()"
-            [ngModel]="enabledPermissions[permission]"
-            (ngModelChange)="permissionChanged(permission, $event)">
-          </mat-slide-toggle>
-        </mat-list-item>
+        @for (permission of getAdministrationPermissions(); track permission) {
+          <mat-list-item [disabled]="isDisabledAdministrationPermissions()" class="rounded-md">
+            <span class="flex-1">
+              {{ 'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: {Default: permission} }}
+            </span>
+            <mat-slide-toggle [disabled]="isDisabledAdministrationPermissions()"
+              [ngModel]="enabledPermissions[permission]"
+              (ngModelChange)="permissionChanged(permission, $event)">
+            </mat-slide-toggle>
+          </mat-list-item>
+        }
        </mat-list>
     </div>
   </div>

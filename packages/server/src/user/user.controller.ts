@@ -29,7 +29,8 @@ import {
 	IUser,
 	PermissionsEnum,
 	IUserCreateInput,
-	IUserUpdateInput
+	IUserUpdateInput,
+	UserType
 } from '@metad/contracts';
 import { CrudController, PaginationParams } from './../core/crud';
 import { TransformInterceptor } from './../core/interceptors';
@@ -42,7 +43,7 @@ import { UserService } from './user.service';
 import { UserCreateCommand } from './commands';
 import { FactoryResetService } from './factory-reset/factory-reset.service';
 import { UserDeleteCommand } from './commands/user.delete.command';
-import { Like } from 'typeorm';
+import { Like, Not } from 'typeorm';
 import { UserPasswordDTO } from './dto';
 
 @ApiTags('User')
@@ -190,17 +191,19 @@ export class UserController extends CrudController<User> {
 	@UseGuards(PermissionGuard)
 	@Permissions(PermissionsEnum.ORG_USERS_VIEW)
 	@Get()
-	async findAll(
-		@Query('data', ParseJsonPipe) data: any
-	): Promise<IPagination<User>> {
+	async findAll(@Query('data', ParseJsonPipe) data: any): Promise<IPagination<User>> {
 		const { relations, search } = data;
 		let { findInput } = data;
 		if (search) {
 			findInput = findInput ?? {}
 			findInput.email = Like(`%${search.split('%').join('')}%`)
 		}
+
 		return this.userService.findAll({
-			where: findInput,
+			where: {
+				...(findInput ?? {}),
+				type: Not(UserType.COMMUNICATION)
+			},
 			relations
 		});
 	}

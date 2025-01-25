@@ -286,7 +286,8 @@
       "Disabled": "禁用",
       "EndUser": "终端用户",
       "Title": "标题",
-      "MessageCount": "消息数"
+      "MessageCount": "消息数",
+      "TimeZone": "时区"
     },
     "MENU": {
       "Certification": "认证",
@@ -1176,7 +1177,9 @@
         "RepeatPasswrod": "重复密码",
         "Role": "角色",
         "PreferredLanguage": "首选语言",
-        "ImageURL": "图片链接 (可选)"
+        "ImageURL": "图片链接 (可选)",
+        "TimeZone": "时区",
+        "SelectTimeZone": "选择一个时区"
       },
       "User": {
         "NameEmail": "名称,邮箱"
@@ -2437,7 +2440,9 @@
         "Website": "网站链接",
         "SelectDataNetwork": "选择数据网络",
         "DataNetworkDescription": "服务端将从此网络存储地址下载相应的数据文件进行演示数据的导入",
-        "FileUrl": "文件链接"
+        "FileUrl": "文件链接",
+        "TimeZone": "时区",
+        "SelectTimeZone": "选择一个时区"
       }
     }
   },

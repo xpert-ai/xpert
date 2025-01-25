@@ -4,14 +4,18 @@
     [src]="user()?.imageUrl || '/assets/images/avatar-default.svg'"
     alt="{{user() | user}}"
   />
-  <span class="status absolute right-0 bottom-0 h-2 w-2 rounded-full bg-green-400 ring ring-white"></span>
+  @if (user().deletedAt) {
+    <span class="status absolute right-0 bottom-0 h-2 w-2 rounded-full bg-neutral-600 ring ring-neutral-100"></span>
+  } @else {
+    <span class="status absolute right-0 bottom-0 h-2 w-2 rounded-full bg-green-400 ring ring-white"></span>
+  }
 </div>
 <div class="title overflow-hidden text-ellipsis flex flex-col justify-end text-text-tertiary">
   <div class="">
     <span class="font-medium truncate">{{user()?.firstName}} {{user()?.lastName}}</span>
     
     @if (isMe()) {
-        ({{'PAC.KEY_WORDS.You' | translate: {Default: 'You'} }})
+      ({{'PAC.KEY_WORDS.You' | translate: {Default: 'You'} }})
     }
   </div>
   <div class="overflow-hidden text-ellipsis opacity-80">{{ user()?.email || user()?.username }}</div>

@@ -32,7 +32,7 @@ $prefix: (ngm, color);
       --tw-ring-offset-color: var(#{token-utils.get-token-variable(surface)});
       --tw-ring-offset-color: var(#{token-utils.get-token-variable(surface)});
     }
-    &:focus {
+    &:enabled:focus {
       --tw-ring-offset-color: var(#{token-utils.get-token-variable(surface)});
       background-color: var(#{token-utils.get-token-variable(surface)});
     }
@@ -45,7 +45,7 @@ $prefix: (ngm, color);
 .ngm-select-element {
   @apply p-2 rounded-lg border border-solid border-transparent
   text-gray-700 ring-offset-1 ring-offset-transparent ring-2 ring-transparent
-  focus:z-10 focus:outline-none hover:ring-yellow-500/50 focus:ring-yellow-500
+  focus:z-10 focus:outline-none enabled:hover:ring-yellow-500/50 enabled:focus:ring-yellow-500
   dark:bg-opacity-50 dark:border-transparent dark:placeholder-gray-400 dark:text-white
   dark:hover:ring-yellow-500/50 dark:focus:ring-yellow-500
   disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none disabled:ring-0 disabled:cursor-not-allowed

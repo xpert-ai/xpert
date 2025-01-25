@@ -1,11 +1,15 @@
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
+import { FormControl } from '@angular/forms'
+import { MatButtonModule } from '@angular/material/button'
+import { MatIconModule } from '@angular/material/icon'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { injectConfirmDelete, injectConfirmUnique } from '@metad/ocap-angular/common'
+import { DynamicGridDirective } from '@metad/core'
+import { injectConfirmDelete, injectConfirmUnique, NgmSearchComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { BehaviorSubject, EMPTY, map, switchMap } from 'rxjs'
-import { CdkMenuModule } from '@angular/cdk/menu'
+import { BehaviorSubject, combineLatestWith, debounceTime, map, startWith, switchMap } from 'rxjs'
 import {
   getErrorMessage,
   IKnowledgebase,
@@ -18,12 +22,9 @@ import {
   ToastrService
 } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
-import { DynamicGridDirective } from '@metad/core'
 import { CardCreateComponent } from '../../../@shared/card'
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { UserProfileInlineComponent } from '../../../@shared/user'
-import { MatButtonModule } from '@angular/material/button'
-import { MatIconModule } from '@angular/material/icon'
 
 @Component({
   standalone: true,
@@ -41,7 +42,8 @@ import { MatIconModule } from '@angular/material/icon'
     DynamicGridDirective,
     EmojiAvatarComponent,
     UserProfileInlineComponent,
-    CardCreateComponent
+    CardCreateComponent,
+    NgmSearchComponent
   ],
   animations: [routeAnimations]
 })
@@ -60,12 +62,26 @@ export class KnowledgebaseHomeComponent extends TranslationBaseComponent {
   readonly organizationId$ = this.#store.selectOrganizationId()
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
+  readonly searchControl = new FormControl('')
   readonly knowledgebases = toSignal(
     this.refresh$.pipe(
       switchMap(() =>
         this.knowledgebaseService.getAllInOrg({ relations: ['createdBy'], order: { updatedAt: OrderTypeEnum.DESC } })
       ),
-      map(({ items }) => items)
+      combineLatestWith(
+        this.searchControl.valueChanges.pipe(
+          debounceTime(300),
+          map((text) => text?.toLowerCase()),
+          startWith('')
+        )
+      ),
+      map(([{ items }, search]) =>
+        search
+          ? items.filter(
+              (item) => item.name.toLowerCase().includes(search) || item.description?.toLowerCase().includes(search)
+            )
+          : items
+      )
     )
   )
 
@@ -78,22 +94,25 @@ export class KnowledgebaseHomeComponent extends TranslationBaseComponent {
   }
 
   newKnowledgebase() {
-    this.confirmUnique({
-      title: this.translateService.instant('PAC.Knowledgebase.NewKnowledgebase', {
-        Default: `New Knowledgebase`
-      })
-    }, (name: string) => this.knowledgebaseService.create({
-      name
-    }))
-      .subscribe({
-        next: (result) => {
-          this.refresh()
-          this._toastrService.success('PAC.Messages.CreatedSuccessfully', {Default: 'Created successfully!'})
-        },
-        error: (error) => {
-          this._toastrService.error(error, 'Error')
-        }
-      })
+    this.confirmUnique(
+      {
+        title: this.translateService.instant('PAC.Knowledgebase.NewKnowledgebase', {
+          Default: `New Knowledgebase`
+        })
+      },
+      (name: string) =>
+        this.knowledgebaseService.create({
+          name
+        })
+    ).subscribe({
+      next: (result) => {
+        this.refresh()
+        this._toastrService.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created successfully!' })
+      },
+      error: (error) => {
+        this._toastrService.error(error, 'Error')
+      }
+    })
   }
 
   edit(item: IKnowledgebase) {
@@ -101,20 +120,22 @@ export class KnowledgebaseHomeComponent extends TranslationBaseComponent {
   }
 
   remove(item: IKnowledgebase) {
-    this.confirmDelete({
-      value: item.name,
-      information: this.translateService.instant('PAC.Knowledgebase.ConfirmDeleteKnowledgebase', {
-        Default: `Confirm delete knowledgebase and all its contents?`
-      })
-    }, this.knowledgebaseService.delete(item.id))
-      .subscribe({
-        next: () => {
-          this.refresh()
-          this._toastrService.success('PAC.Messages.DeletedSuccessfully', 'Deleted Successfully')
-        },
-        error: (error) => {
-          this._toastrService.error(getErrorMessage(error), 'Error')
-        }
-      })
+    this.confirmDelete(
+      {
+        value: item.name,
+        information: this.translateService.instant('PAC.Knowledgebase.ConfirmDeleteKnowledgebase', {
+          Default: `Confirm delete knowledgebase and all its contents?`
+        })
+      },
+      this.knowledgebaseService.delete(item.id)
+    ).subscribe({
+      next: () => {
+        this.refresh()
+        this._toastrService.success('PAC.Messages.DeletedSuccessfully', 'Deleted Successfully')
+      },
+      error: (error) => {
+        this._toastrService.error(getErrorMessage(error), 'Error')
+      }
+    })
   }
 }

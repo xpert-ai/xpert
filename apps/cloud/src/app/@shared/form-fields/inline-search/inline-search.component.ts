@@ -5,6 +5,9 @@ import { MatInputModule } from '@angular/material/input'
 import { TranslateModule } from '@ngx-translate/core'
 import { distinctUntilChanged } from 'rxjs'
 
+/**
+ * @deprecated use `<ngm-search />`
+ */
 @Component({
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, MatInputModule, TranslateModule],

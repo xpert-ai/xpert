@@ -65,5 +65,6 @@ export class NgmSearchComponent implements ControlValueAccessor {
 
   clear() {
     this.onValueChange('')
+    this._value = null
   }
 }
