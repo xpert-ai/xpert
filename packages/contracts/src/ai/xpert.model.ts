@@ -314,7 +314,7 @@ export interface TXpertTeamConnection {
   key: string
   from: string
   to: string
-  type: TXpertTeamNodeType
+  type: 'edge' | TXpertTeamNodeType
 }
 
 export enum ChatMessageTypeEnum {

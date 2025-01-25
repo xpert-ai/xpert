@@ -9,13 +9,18 @@
   <div fNodeOutput [fOutputId]="node().key + '/xpert'" fOutputConnectableSide="bottom" [fOutputMultiple]="true">
     <ngm-plus-svg class="w-2 h-2 text-white" />
   </div>
+  <div fNodeOutput [fOutputId]="node().key + '/toolset'" fOutputConnectableSide="bottom" [fOutputMultiple]="true">
+    <ngm-plus-svg class="w-2 h-2 text-white" />
+  </div>
+</div>
+
+<div class="node-output-left flex flex-col items-center gap-2 w-3 absolute -left-[8px] top-1/2 -mt-5">
+  <div fNodeInput [fInputId]="node().key + '/edge'" fInputConnectableSide="left">
+  </div>
 </div>
 
 <div class="node-output-right flex flex-col items-center gap-2 w-3 absolute -right-[8px] top-1/2 -mt-5">
-  <div fNodeOutput [fOutputId]="node().key + '/knowledge'" fOutputConnectableSide="right" [fOutputMultiple]="true">
-    <ngm-plus-svg class="w-2 h-2 text-white" />
-  </div>
-  <div fNodeOutput [fOutputId]="node().key + '/toolset'" fOutputConnectableSide="right" [fOutputMultiple]="true">
+  <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" [fOutputMultiple]="true">
     <ngm-plus-svg class="w-2 h-2 text-white" />
   </div>
 </div>

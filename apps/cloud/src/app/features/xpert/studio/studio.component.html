@@ -1,11 +1,13 @@
-<f-flow fDraggable (fLoaded)="onLoaded()" (fCreateConnection)="addConnection($event)"
+<f-flow fDraggable [vCellSize]="20" [hCellSize]="20"
+  (fLoaded)="onLoaded()"
+  (fCreateConnection)="addConnection($event)"
   (fReassignConnection)="reassignConnection($event)"
   (fSelectionChange)="selectionChanged($event)"
   (contextmenu)="onContextMenu($event)"
   [cdkContextMenuTriggerFor]="menu.template"
   (cdkContextMenuClosed)="menu.dispose()">
   <f-background>
-    <f-circle-pattern></f-circle-pattern>
+    <f-circle-pattern />
   </f-background>
   <f-line-alignment></f-line-alignment>
   <f-selection-area></f-selection-area>
@@ -15,16 +17,26 @@
     <f-connection-for-create></f-connection-for-create>
     <f-snap-connection fType="bezier" [fSnapThreshold]="100"></f-snap-connection>
     @for (connection of connections(); track connection.key) {
-      <f-connection #connComp [fType]="connection.type==='agent' || connection.type==='xpert' ? EFConnectionType.BEZIER : EFConnectionType.STRAIGHT"
+      <f-connection #connComp [fType]="EFConnectionType.BEZIER"
         [fReassignDisabled]="false"
         [fOutputId]="connection.from + '/' + connection.type"
-        [fInputId]="connection.to"
+        [fInputId]="connection.to + '/' + connection.type"
         class="gradient-color cursor-pointer"
         [class.f-selected]="selectedNodeKey() === connection.from || selectedNodeKey() === connection.to"
         fStartColor="var(--connection-gradient-1)" fEndColor="var(--connection-gradient-2)"
         [cdkContextMenuTriggerFor]="connContextMenu"
         [cdkContextMenuTriggerData]="{connection: connComp}"
       >
+        <svg viewBox="0 0 6 7" fMarker [type]="eMarkerType.END" class="connection-marker"
+            [height]="7" [width]="6"
+            [refX]="5.5" [refY]="3.5" markerUnits="strokeWidth" orient="auto">
+          <path d="M0.000391006 0L6 3.5L0.000391006 7L0.000391006 0Z"/>
+        </svg>
+        <svg viewBox="0 0 6 7" fMarker [type]="eMarkerType.SELECTED_END" class="connection-marker"
+           [height]="7" [width]="6"
+           [refX]="5.5" [refY]="3.5" markerUnits="strokeWidth" orient="auto">
+          <path d="M0.000391006 0L6 3.5L0.000391006 7L0.000391006 0Z"/>
+        </svg>
       </f-connection>
     }
 

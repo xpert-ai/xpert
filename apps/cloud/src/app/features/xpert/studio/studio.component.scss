@@ -11,12 +11,23 @@
   @include flow-common.line-alignment;
   @include flow-common.minimap;
   .f-connection {
+    .connection-marker {
+      circle, rect, path {
+        fill: var(--connection-color);
+      }
+    }
     &.f-selected {
       .f-connection-path {
         stroke: var(--components-card-option-selected-border);
       }
+      .connection-marker {
+        circle, rect, path {
+          fill: var(--components-card-option-selected-border);
+        }
+      }
     }
   }
+  
   .f-node-input,
   .f-node-output {
     @apply flex justify-center items-center;

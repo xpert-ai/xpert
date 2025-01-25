@@ -224,6 +224,7 @@ export class XpertStudioComponent {
   }
 
   public addConnection(event: FCreateConnectionEvent): void {
+    console.log(event)
     if (!event.fInputId) {
       return
     }
