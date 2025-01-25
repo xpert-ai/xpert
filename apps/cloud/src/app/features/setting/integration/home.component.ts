@@ -1,17 +1,17 @@
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { DatePipe } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
+import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmConfirmDeleteComponent, NgmTagsComponent } from '@metad/ocap-angular/common'
+import { DynamicGridDirective } from '@metad/core'
+import { NgmConfirmDeleteComponent, NgmSearchComponent, NgmTagsComponent } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { BehaviorSubject, EMPTY, map, switchMap } from 'rxjs'
+import { BehaviorSubject, combineLatestWith, debounceTime, EMPTY, map, startWith, switchMap } from 'rxjs'
 import { getErrorMessage, IIntegration, IntegrationService, routeAnimations, ToastrService } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
-import { CdkMenuModule } from '@angular/cdk/menu'
-import { DynamicGridDirective } from '@metad/core'
 import { CardCreateComponent } from '../../../@shared/card'
-import { MaterialModule } from '../../../@shared/material.module'
 import { UserPipe } from '../../../@shared/pipes'
 
 @Component({
@@ -21,15 +21,16 @@ import { UserPipe } from '../../../@shared/pipes'
   styleUrls: ['./home.component.scss'],
   imports: [
     DatePipe,
+    ReactiveFormsModule,
     RouterModule,
     TranslateModule,
-    MaterialModule,
     CdkMenuModule,
     UserPipe,
     NgmTagsComponent,
     CardCreateComponent,
     EmojiAvatarComponent,
-    DynamicGridDirective
+    DynamicGridDirective,
+    NgmSearchComponent
   ],
   animations: [routeAnimations]
 })
@@ -42,11 +43,25 @@ export class IntegrationHomeComponent {
   readonly #translate = inject(TranslateService)
 
   readonly refresh$ = new BehaviorSubject<void>(null)
+  readonly searchControl = new FormControl('')
 
   readonly integrations = toSignal(
     this.refresh$.pipe(
       switchMap(() => this.integrationService.getAllInOrg({ relations: ['createdBy'] })),
-      map(({ items }) => items)
+      combineLatestWith(
+        this.searchControl.valueChanges.pipe(
+          debounceTime(300),
+          map((text) => text?.toLowerCase()),
+          startWith('')
+        )
+      ),
+      map(([{ items }, search]) =>
+        search
+          ? items.filter(
+              (item) => item.name.toLowerCase().includes(search) || item.description?.toLowerCase().includes(search)
+            )
+          : items
+      )
     )
   )
 

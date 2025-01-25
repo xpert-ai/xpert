@@ -9,6 +9,8 @@ import { firstValueFrom, map } from 'rxjs'
 import { LANGUAGES, RoleService, Store } from '../../../../@core'
 import { TranslationBaseComponent } from '../../../language/'
 import { DisplayBehaviour } from '@metad/ocap-core'
+import { FORMLY_W_FULL } from '@metad/formly'
+import { timezones } from 'apps/cloud/src/app/@core/constants'
 
 @Component({
   selector: 'pac-user-basic-info-form',
@@ -192,6 +194,20 @@ export class BasicInfoFormComponent extends TranslationBaseComponent implements 
           placeholder: 'Image',
           appearance: 'fill'
         }
+      },
+      {
+        className: FORMLY_W_FULL,
+        key: 'timeZone',
+        type: 'select',
+        props: {
+          label: TRANSLATES?.TimeZone ?? 'Time Zone',
+          placeholder: TRANSLATES?.SelectTimeZone ?? 'Select a Time Zone',
+          options: timezones.map((item) => ({
+            value: item.value,
+            label: item.name
+          })),
+          searchable: true
+        }
       }
     ]
   }
@@ -214,7 +230,8 @@ export class BasicInfoFormComponent extends TranslationBaseComponent implements 
           password: this.model.password,
           confirmPassword: this.model.confirmPassword,
           organizationId,
-          createdById
+          createdById,
+          timeZone: this.model.timeZone
         })
       )
     }

@@ -1,60 +1,52 @@
 <div class="pac-page-body-toolbar">
-    <pac-inline-search [(ngModel)]="search"></pac-inline-search>
+  <ngm-search [(ngModel)]="search" />
 
-    <div class="flex justify-start items-center gap-4">
-        <label>{{ 'PAC.KEY_WORDS.Role' | translate: {Default: 'Role'} }}:</label>
-        <mtx-checkbox-group [items]="ROLES" [(ngModel)]="roles">
-        </mtx-checkbox-group>
-    </div>
-    
+  <div class="flex justify-start items-center gap-4">
+    <label>{{ 'PAC.KEY_WORDS.Role' | translate: {Default: 'Role'} }}:</label>
+    <mtx-checkbox-group [items]="ROLES" [(ngModel)]="roles" />
+  </div>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-    <div *ngFor="let user of users$ | async" >
-        <mat-card class="pac-sketch-card relative">
-            <mat-card-header>
-                <div mat-card-avatar [routerLink]="['/settings/users/', user.id]" >
-                    <img src="{{user.imageUrl || 'assets/images/avatar-default.svg'}}">
-                </div>
-                <mat-card-title class="flex justify-between items-center">
-                    <a [routerLink]="['/settings/users/', user.id]" style="overflow: hidden;">{{ user | user }}</a>
-                </mat-card-title>
-                <mat-card-subtitle class="flex">
-                    <span class="text-xs inline-flex items-center font-bold leading-sm uppercase px-2 py-1 rounded-lg"
-                        [ngClass]="{
-                            'bg-blue-100 text-blue-500': user.role.name === 'VIEWER',
-                            'bg-yellow-100 text-yellow-500': user.role.name === 'ADMIN',
-                            'bg-red-100 text-red-500': user.role.name=== 'SUPER_ADMIN',
-                            'bg-green-100 text-green-500': !['VIEWER', 'ADMIN', 'SUPER_ADMIN'].includes(user.role.name)
-                        }"
-                    >
-                        {{user.role.name}}
-                    </span>
-                    <div>{{user.email || user.mobile}}</div>
-                </mat-card-subtitle>
-            </mat-card-header>
+  @for (user of users$ | async; track user.id) {
+    <div class="flex flex-col px-2 py-3 border-[0.5px] border-solid border-gray-200 rounded-xl shadow-sm bg-gray-50 hover:bg-white hover:shadow-lg">
+      <pac-user-profile-inline [user]="user" [routerLink]="['/settings/users/', user.id]" class="cursor-pointer"/>
+      <div class="p-2 flex justify-start items-center">
+        <span class="mr-2 text-text-secondary">{{'PAC.KEY_WORDS.Role' | translate: {Default: 'Role'} }}:</span>
+        <span class="text-xs inline-flex items-center font-bold leading-sm uppercase px-2 py-1 rounded-lg"
+          [ngClass]="{
+            'bg-blue-100 text-blue-500': user.role.name === 'VIEWER',
+            'bg-yellow-100 text-yellow-500': user.role.name === 'ADMIN',
+            'bg-red-100 text-red-500': user.role.name=== 'SUPER_ADMIN',
+            'bg-green-100 text-green-500': !['VIEWER', 'ADMIN', 'SUPER_ADMIN'].includes(user.role.name)
+          }"
+        >
+          {{user.role?.name}}
+        </span>
+      </div>
 
-            <button mat-icon-button displayDensity="cosy" class="pac-sketch-card__menu"
-                [matMenuTriggerFor]="menu" [matMenuTriggerData]="{user: user}"
-                #mt="matMenuTrigger"
-                [class.active]="mt.menuOpen"
-                >
-                <mat-icon>more_vert</mat-icon>
-            </button>
-        </mat-card>
+      <div class="flex justify-end items-end">
+        <button type="button" class="w-6 h-6 flex justify-center items-center rounded-full hover:bg-gray-100"
+          [cdkMenuTriggerFor]="menu"
+          [cdkMenuTriggerData]="{user: user}"
+        >
+          <i class="ri-more-2-line"></i>
+        </button>
+      </div>
     </div>
+  }
 </div>
 
-<mat-menu #menu="matMenu">
-    <ng-template matMenuContent let-user="user">
-        <button mat-menu-item [routerLink]="['/settings/users/', user.id]">
-            <mat-icon>edit</mat-icon>
-            <span>{{ 'PAC.ACTIONS.Edit' | translate: {Default: "Edit"} }}</span>
-        </button>
-    
-        <button mat-menu-item ngmAppearance="danger" (click)="remove(user)">
-            <mat-icon fontSet="material-icons-round">delete_forever</mat-icon>
-            <span>{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
-        </button>
-    </ng-template>
-</mat-menu>
+<ng-template #menu let-user="user">
+  <div cdkMenu class="cdk-menu__large">
+    <button cdkMenuItem [routerLink]="['/settings/users/', user.id]">
+      <i class="ri-pencil-line mr-1"></i>
+      <span>{{ 'PAC.ACTIONS.Edit' | translate: {Default: "Edit"} }}</span>
+    </button>
+
+    <button cdkMenuItem class="danger" (click)="remove(user)">
+      <i class="ri-delete-bin-line mr-1"></i>
+      <span>{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
+    </button>
+  </div>
+</ng-template>

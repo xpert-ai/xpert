@@ -33,8 +33,8 @@ import { CreatedByPipe } from '../../../@shared/pipes'
   ],
   selector: 'pac-account-profile',
   template: `<div class="flex flex-col items-center justify-start p-4">
-    <pac-user-basic-info-form #form class="block max-w-full md:max-w-[600px] lg:max-w-[900px]" [(ngModel)]="user">
-    </pac-user-basic-info-form>
+    <pac-user-basic-info-form #form class="block max-w-full md:max-w-[600px] lg:max-w-[900px]"
+      [(ngModel)]="user" />
     <div ngmButtonGroup>
       <button
         mat-raised-button
@@ -43,7 +43,7 @@ import { CreatedByPipe } from '../../../@shared/pipes'
         [disabled]="form.form.invalid || form.form.pristine"
         (click)="save(form.form)"
       >
-        <mat-icon fontSet="material-icons-outlined" displayDensity="cosy">save</mat-icon>
+        <mat-icon fontSet="material-icons-outlined" displayDensity="cosy" class="mr-1">save</mat-icon>
         {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
       </button>
     </div>
@@ -64,7 +64,7 @@ export class PACAccountProfileComponent {
   ) {}
 
   async save(form: FormGroup) {
-    const { email, firstName, lastName, tags, preferredLanguage, username, password, imageUrl } = this.user
+    const { email, firstName, lastName, tags, preferredLanguage, username, password, imageUrl, timeZone } = this.user
     let request: IUserUpdateInput = {
       email,
       firstName,
@@ -72,7 +72,8 @@ export class PACAccountProfileComponent {
       tags,
       username,
       imageUrl,
-      preferredLanguage: preferredLanguage as LanguagesEnum
+      preferredLanguage: preferredLanguage as LanguagesEnum,
+      timeZone
     }
 
     if (password) {
