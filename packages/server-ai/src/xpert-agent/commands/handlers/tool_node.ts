@@ -8,9 +8,9 @@ import {
 import { mergeConfigs, patchConfig, Runnable, RunnableConfig, RunnableToolLike } from "@langchain/core/runnables";
 import { StructuredToolInterface } from "@langchain/core/tools";
 import { AsyncLocalStorageProviderSingleton } from "@langchain/core/singletons";
-import { END, isCommand, isGraphInterrupt, MessagesAnnotation } from "@langchain/langgraph";
+import { Command, END, isCommand, isGraphInterrupt, MessagesAnnotation } from "@langchain/langgraph";
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
-import { ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from "@metad/contracts";
+import { ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE, TVariableAssigner } from "@metad/contracts";
 import { getErrorMessage } from "@metad/server-common";
 import { setContextVariable } from "@langchain/core/context";
 
@@ -18,6 +18,8 @@ export type ToolNodeOptions = {
   name?: string;
   tags?: string[];
   handleToolErrors?: boolean;
+  caller?: string
+  variables?: TVariableAssigner[]
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -31,6 +33,8 @@ export class ToolNode<T = any> extends Runnable<T, T> {
   trace = false;
   config?: RunnableConfig;
   recurse = true;
+  caller?: string
+  variables: TVariableAssigner[]
 
   constructor(
     tools: (StructuredToolInterface | RunnableToolLike)[],
@@ -40,6 +44,8 @@ export class ToolNode<T = any> extends Runnable<T, T> {
     super({ name, tags });
     this.tools = tools;
     this.handleToolErrors = handleToolErrors ?? this.handleToolErrors;
+    this.caller = options?.caller
+    this.variables = options?.variables
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -65,9 +71,36 @@ export class ToolNode<T = any> extends Runnable<T, T> {
             { ...call, type: "tool_call" },
             config
           );
-          if (isBaseMessage(output) && output._getType() === "tool" ||
-            isCommand(output)
-          ) {
+          if (isBaseMessage(output) && output._getType() === "tool") {
+            if (this.variables) {
+              console.warn(this.variables)
+              /**
+               * [
+                  {
+                    id: 'UQrgAkR8EM',
+                    variableSelector: 'memories',
+                    operation: 'append',
+                    inputType: 'variable'
+                  }
+                ]
+               */
+              const variables = this.variables.reduce((acc, curr) => {
+                if (curr.inputType === 'variable') {
+                  acc[curr.variableSelector] = (<ToolMessage>output).artifact
+                }
+                return acc
+              }, {})
+              return new Command({
+                update: 
+                  {
+                    ...variables,
+                    [`${this.caller}.messages`]: [output],
+                    messages: [output],
+                  }
+              })
+            }
+            return output;
+          } else if (isCommand(output)) {
             return output;
           } else {
             return new ToolMessage({

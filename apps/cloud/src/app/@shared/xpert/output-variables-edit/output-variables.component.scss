@@ -1,0 +1,30 @@
+:host {
+  @apply flex flex-col space-y-3;
+}
+
+thead td {
+  height: 33px;
+  line-height: 33px;
+}
+
+td {
+  padding-left: 12px;
+}
+
+td.sticky {
+  @apply bg-white dark:bg-neutral-900;
+}
+
+::ng-deep {
+  .parameter-config-menu {
+    .cdk-listbox.parameter-type-list {
+      .cdk-option {
+        @apply w-28 h-16 text-sm flex flex-col justify-center items-center border border-solid border-transparent rounded-xl cursor-pointer
+            hover:bg-primary-100/10 hover:border-primary-300 hover:shadow-sm;
+      }
+      .cdk-option[aria-selected='true'] {
+        @apply shadow-md border-primary-500 text-primary-500 bg-primary-100/10;
+      }
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import { ICopilotModel, IKnowledgebase, IXpert, IXpertAgent, IXpertToolset, TAvatar, TXpertAgentOptions, TXpertParameter } from '@metad/contracts'
+import { ICopilotModel, IKnowledgebase, IXpert, IXpertAgent, IXpertToolset, TAgentOutputVariable, TAgentPromptTemplate, TAvatar, TXpertAgentOptions, TXpertParameter } from '@metad/contracts'
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
@@ -45,7 +45,19 @@ export class XpertAgent extends TenantOrganizationBaseEntity implements IXpertAg
 	@IsJSON()
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
+	promptTemplates?: TAgentPromptTemplate[]
+	
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
 	parameters?: TXpertParameter[]
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	outputVariables?: TAgentOutputVariable[]
 
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()

@@ -1,5 +1,5 @@
 <ng-template>
-  <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu">
+  <div #menu="cdkMenu" cdkMenu class="cdk-menu__large bg-components-panel-bg-blur">
     <div cdkMenuItem class="ngm-cdk-menu-item" (click)="createAgent(menu)">
       <span>{{ 'PAC.Xpert.NewAgent' | translate: {Default: 'New Agent'} }}</span>
     </div>
@@ -46,6 +46,21 @@
       <span>{{ 'PAC.Xpert.AddToolset' | translate: {Default: 'Add Toolset'} }}</span>
     </div>
 
+    <div cdkMenuItem class="ngm-cdk-menu-item"
+      [cdkMenuTriggerFor]="blockMenu"
+      [cdkMenuPosition]="[
+        {
+          originX: 'end',
+          originY: 'top',
+          overlayX: 'start',
+          overlayY: 'top',
+          offsetX: 10,
+        }
+      ]"
+    >
+      <span>{{ 'PAC.Xpert.AddBlock' | translate: {Default: 'Add Block'} }}</span>
+    </div>
+
     @if (node) {
       <div cdkMenuItem class="ngm-cdk-menu-item danger" (click)="deleteNode(menu, node)">
         <span>{{ 'PAC.Xpert.Remove' | translate: {Default: 'Remove'} }}</span>
@@ -78,5 +93,41 @@
         {{ 'PAC.Xpert.NoExternalExpert' | translate: {Default: 'No external expert'} }}
       </div>
     }
+  </div>
+</ng-template>
+
+<ng-template #blockMenu>
+  <div cdkMenu class="cdk-menu__medium bg-components-panel-bg-blur rounded-lg backdrop-blur-[5px] shadow-lg !min-w-[256px]">
+    <div class="pb-1">
+      <div class="relative w-full">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="remixicon absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-components-input-text-placeholder">
+          <path d="M18.031 16.6168L22.3137 20.8995L20.8995 22.3137L16.6168 18.031C15.0769 19.263 13.124 20 11 20C6.032 20 2 15.968 2 11C2 6.032 6.032 2 11 2C15.968 2 20 6.032 20 11C20 13.124 19.263 15.0769 18.031 16.6168ZM16.0247 15.8748C17.2475 14.6146 18 12.8956 18 11C18 7.1325 14.8675 4 11 4C7.1325 4 4 7.1325 4 11C4 14.8675 7.1325 18 11 18C12.8956 18 14.6146 17.2475 15.8748 16.0247L16.0247 15.8748Z"></path>
+        </svg>
+        <input class="w-full py-[7px] bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-md system-sm-regular pl-[26px]"
+          placeholder="Search block" value="" tabindex="-1">
+      </div>
+    </div>
+
+    <div class="flex items-center px-3 border-b-[0.5px] border-divider-subtle">
+      <div class="relative mr-4 pt-1 pb-2 system-sm-medium cursor-pointer text-text-primary after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-util-colors-blue-brand-blue-brand-600">Blocks</div>
+      <div class="relative mr-4 pt-1 pb-2 system-sm-medium cursor-pointer text-text-tertiary">Tools</div>
+    </div>
+
+    <div>
+      <div class="flex items-start px-3 h-[22px] text-xs font-medium text-text-tertiary">Logic</div>
+      <div cdkMenuItem class="flex items-center px-3 w-full h-8 rounded-lg hover:bg-state-base-hover cursor-pointer">
+        <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white
+          w-5 h-5 rounded-md shadow-xs
+          mr-2 shrink-0">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5">
+            <g id="icons/if-else"><path id="Vector (Stroke)" fill-rule="evenodd" clip-rule="evenodd" d="M8.16667 2.98975C7.80423 2.98975 7.51042 2.69593 7.51042 2.3335C7.51042 1.97106 7.80423 1.67725 8.16667 1.67725H11.0833C11.4458 1.67725 11.7396 1.97106 11.7396 2.3335V5.25016C11.7396 5.6126 11.4458 5.90641 11.0833 5.90641C10.7209 5.90641 10.4271 5.6126 10.4271 5.25016V3.91782L7.34474 7.00016L10.4271 10.0825V8.75016C10.4271 8.38773 10.7209 8.09391 11.0833 8.09391C11.4458 8.09391 11.7396 8.38773 11.7396 8.75016V11.6668C11.7396 12.0293 11.4458 12.3231 11.0833 12.3231H8.16667C7.80423 12.3231 7.51042 12.0293 7.51042 11.6668C7.51042 11.3044 7.80423 11.0106 8.16667 11.0106H9.49901L6.14484 7.65641H1.75C1.38756 7.65641 1.09375 7.3626 1.09375 7.00016C1.09375 6.63773 1.38756 6.34391 1.75 6.34391H6.14484L9.49901 2.98975H8.16667Z" fill="currentColor"></path></g>
+          </svg>
+        </div>
+        <div class="text-sm text-text-secondary">IF/ELSE</div>
+      </div>
+      <div cdkMenuItem class="ngm-cdk-menu-item shrink-0">
+        Logic
+      </div>
+    </div>
   </div>
 </ng-template>

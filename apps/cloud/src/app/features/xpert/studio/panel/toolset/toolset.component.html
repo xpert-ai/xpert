@@ -81,6 +81,23 @@
           matTooltipPosition="above"
         >{{'PAC.Xpert.End' | translate: {Default: 'End'} }}</mat-slide-toggle>
       </div>
+
+      <div class="w-full flex justify-end px-2 mb-4">
+        <mat-slide-toggle [ngModel]="toolMemory(tool.name)" (ngModelChange)="toggleToolMemory(tool.name, $event)"
+          labelPosition="before"
+          ngm-density="xs"
+          [matTooltip]="'PAC.Xpert.ToolMemoryTip' | translate: {Default: 'Tool memory, storing tool results in agent state variables'}"
+          matTooltipPosition="above"
+        >{{'PAC.Xpert.ToolMemory' | translate: {Default: 'Tool Memory'} }}</mat-slide-toggle>
+      </div>
+
+      @if (toolMemory(tool.name)) {
+        <xpert-variables-assigner class="p-2"
+          [variables]="variables()"
+          [memories]="toolMemory(tool.name)"
+          (memoriesChange)="updateToolMemory(tool.name, $event)"
+        />
+      }
     </xpert-tool-test>
   }
 </div>

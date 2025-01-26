@@ -18,11 +18,11 @@ import { DynamicTool, StructuredToolInterface } from "@langchain/core/tools";
 import { BaseCheckpointSaver, BaseStore, CompiledStateGraph, END, LangGraphRunnableConfig, MessagesAnnotation, Send, START, StateGraph } from "@langchain/langgraph";
 import { All } from "@langchain/langgraph-checkpoint";
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import { AnnotationRoot } from "@langchain/langgraph/dist/graph";
+import { AnnotationRoot, StateDefinition, UpdateType } from "@langchain/langgraph/dist/graph";
 import { TSummarize } from "@metad/contracts";
 import { v4 as uuidv4 } from "uuid";
 import { ToolNode } from "./tool_node";
-import { AgentStateAnnotation, STATE_VARIABLE_SYS_LANGUAGE, TSubAgent } from "./types";
+import { AgentStateAnnotation, STATE_VARIABLE_SYS_LANGUAGE, TGraphTool, TSubAgent } from "./types";
 
 
 function _getStateModifierRunnable(
@@ -109,7 +109,7 @@ export type CreateReactAgentParams<
   // state?: typeof AgentStateAnnotation
   tags?: string[]
   subAgents?: Record<string,  TSubAgent>
-  tools?: (StructuredToolInterface | RunnableToolLike)[];
+  tools?: TGraphTool[];
   endNodes?: string[]
   summarize?: TSummarize
   /**
@@ -131,30 +131,22 @@ export type CreateReactAgentParams<
  */
 export function createReactAgent(
   props: CreateReactAgentParams
-): CompiledStateGraph<
-  AgentState,
-  Partial<AgentState>,
-  typeof START | "agent" | string
-> {
+): StateGraph<any, any, UpdateType<any> | Partial<any>, "__start__" | "agent" | string, any, any, StateDefinition> {
   const {
     llm,
     tools,
     subAgents,
     stateModifier,
     stateSchema,
-    checkpointSaver,
-    interruptBefore,
-    interruptAfter,
     endNodes,
     tags,
-    store,
     summarizeTitle
   } = props;
   const summarize = ensureSummarize(props.summarize)
 
   const toolClasses: (StructuredToolInterface | DynamicTool | RunnableToolLike)[] = []
   if (tools) {
-    toolClasses.push(...tools)
+    toolClasses.push(...tools.map((item) => item.tool))
   }
   if (subAgents) {
     Object.keys(subAgents).forEach((name) => {
@@ -216,9 +208,9 @@ export function createReactAgent(
         .addEdge(name, endNodes?.includes(name) ? END :"agent")
     })
   }
-  tools?.forEach((tool) => {
+  tools?.forEach(({caller, tool, variables}) => {
     const name = tool.name
-    workflow.addNode(name, new ToolNode([tool]))
+    workflow.addNode(name, new ToolNode([tool], {caller, variables}))
       .addEdge(name, endNodes?.includes(tool.name) ? END : "agent")
   })
 
@@ -227,12 +219,13 @@ export function createReactAgent(
       .addEdge("summarize_conversation", END)
   }
 
-  return workflow.compile({
-    checkpointer: checkpointSaver,
-    interruptBefore,
-    interruptAfter,
-    store
-  });
+  return workflow
+  // .compile({
+  //   checkpointer: checkpointSaver,
+  //   interruptBefore,
+  //   interruptAfter,
+  //   store
+  // });
 }
 
 export function createSummarizeAgent(model: BaseChatModel, summarize: TSummarize) {

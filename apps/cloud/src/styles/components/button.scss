@@ -83,11 +83,11 @@
   }
 
   .action-btn-sm {
-    @apply rounded-md p-1;
+    @apply rounded-md p-1 h-6;
   }
 
   .action-btn-md, .action-btn-m {
-    @apply rounded-md p-1.5;
+    @apply rounded-lg p-1.5 h-7;
   }
 
   .action-btn-active {

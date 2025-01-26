@@ -93,10 +93,55 @@
 
     <copilot-prompt-editor class="relative shadow-md ngm-card-border-gradient self-stretch"
       [tooltip]="'PAC.Xpert.SystemPromptTooltip' | translate: {Default: 'Prompts guide AI reponses with instructions and contraints. Insert parameters like {{input}}. This prompt won\'t be visible to users.'}"
+      [role]="'system'"
       [variables]="variables()"
       [(prompt)]="prompt"
       (promptChange)="onPromptChange($event)"
     />
+
+    <div class="w-full flex justify-between items-center px-4 pt-2 pb-4 rounded-xl bg-gray-100">
+      <div class="flex items-center h-6">
+        <div class="uppercase text-sm font-semibold text-text-secondary mr-2">Memory</div>
+        <i class="ri-question-line opacity-50 hover:opacity-90"
+          [matTooltip]="'PAC.Xpert.AgentMemoryTip' | translate: {Default: 'Agent short-term memory, inserting message history into the conversation'}"
+          matTooltipPosition="above"
+        ></i>
+      </div>
+
+      <mat-slide-toggle ngm-density="xs" [ngModel]="enableMessageHistory()" (ngModelChange)="updateEnMessageHistory($event)" />
+    </div>
+
+    @for (template of promptTemplates(); track template.id; let i = $index) {
+      <copilot-prompt-editor class="prompt-template relative rounded-xl self-stretch bg-gray-50" [class.fullscreen]="promptTemplateFullscreen() === template.id"
+        [tooltip]="'PAC.Xpert.SystemPromptTooltip' | translate: {Default: 'Prompts guide AI reponses with instructions and contraints. Insert parameters like {{input}}. This prompt won\'t be visible to users.'}"
+        [variables]="variables()"
+        [prompt]="template.text"
+        (promptChange)="updatePromptTemplate(i, $event)"
+      >
+        @if (promptTemplateFullscreen() === template.id) {
+          <button type="button" class="action-btn action-btn-m"
+            (click)="promptTemplateFullscreen.set(null)"
+          >
+            <i class="ri-collapse-diagonal-line"></i>
+          </button>
+        } @else {
+          <button type="button" class="action-btn action-btn-m"
+            (click)="promptTemplateFullscreen.set(template.id)"
+          >
+            <i class="ri-expand-diagonal-line"></i>
+          </button>
+        }
+      </copilot-prompt-editor>
+    }
+
+    @if (!enableMessageHistory()) {
+      <button type="button" class="btn disabled:btn-disabled btn-tertiary btn-medium w-full mt-2 h-8 justify-center"
+        (click)="addMessage()"
+      >
+        <i class="ri-add-line"></i>
+        <div>Add Message</div>
+      </button>
+    }
 
     @if (!isPrimaryAgent()) {
       
@@ -142,6 +187,36 @@
       class="mt-3 rounded-xl bg-gray-50 pt-2 pb-3"
       [key]="key()"
     />
+
+    <div class="h-[0.5px] bg-divider-subtle"></div>
+
+    <div class="px-4 pb-2">
+      <div class="flex justify-between items-center mb-2">
+        <div class="flex items-center h-6">
+          <div class="font-semibold uppercase text-sm text-text-secondary">Output Variables</div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <mat-slide-toggle ngm-density="xs" [(ngModel)]="enabledOutputVars" />
+        </div>
+      </div>
+
+      @if (enabledOutputVars) {
+        <xpert-output-variables-edit class="" 
+          [variables]="variables()"
+          [ngModel]="outputVariables()" (ngModelChange)="updateOutputVariables($event)" />
+      } @else {
+        <div class="px-4">
+          <div class="py-1">
+            <div class="flex leading-[18px] items-center">
+              <div class="font-semibold text-text-secondary">text</div>
+              <div class="ml-2 system-xs-regular text-text-tertiary">string</div>
+            </div>
+            <div class="mt-0.5 system-xs-regular text-text-tertiary">Generate content</div>
+          </div>
+        </div>
+      }
+    </div>
 
   </div>
 </div>

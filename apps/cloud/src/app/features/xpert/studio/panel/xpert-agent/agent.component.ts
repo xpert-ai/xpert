@@ -28,7 +28,9 @@ import {
   agentUniqueName,
   injectToastr,
   getErrorMessage,
-  DateRelativePipe
+  DateRelativePipe,
+  TAgentOutputVariable,
+  uuid
 } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { XpertStudioApiService } from '../../domain'
@@ -41,7 +43,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelKnowledgeSectionComponent } from './knowledge-section/knowledge.component'
 import { CopilotModelSelectComponent, CopilotPromptEditorComponent } from 'apps/cloud/src/app/@shared/copilot'
-import { XpertParametersEditComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { XpertOutputVariablesEditComponent, XpertParametersEditComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { uniq } from 'lodash-es'
 import { XpertStudioComponent } from '../../studio.component'
@@ -70,7 +72,8 @@ import { NgmDensityDirective } from '@metad/ocap-angular/core'
     XpertStudioPanelAgentExecutionComponent,
     XpertParametersEditComponent,
     CopilotPromptEditorComponent,
-    XpertStudioPanelKnowledgeSectionComponent
+    XpertStudioPanelKnowledgeSectionComponent,
+    XpertOutputVariablesEditComponent
   ],
   host: {
     tabindex: '-1',
@@ -109,6 +112,8 @@ export class XpertStudioPanelAgentComponent {
   readonly agentConfig = computed(() => this.xpert()?.agentConfig)
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
   readonly isEnd = computed(() => this.agentConfig()?.endNodes?.includes(this.agentUniqueName()))
+  readonly enableMessageHistory = computed(() => this.agentConfig()?.enableMessageHistory)
+  readonly promptTemplates = computed(() => this.xpertAgent()?.promptTemplates)
   readonly isPrimaryAgent = computed(() => !!this.xpertAgent()?.xpertId)
 
   readonly parameters = computed(() => this.xpertAgent()?.parameters)
@@ -119,16 +124,23 @@ export class XpertStudioPanelAgentComponent {
       const isValidName = /^[a-zA-Z0-9 _-]+$/.test(name)
       return !isValidName || this.nodes()
         .filter((_) => _.key !== this.key())
-        .some((n) => n.entity.name === name)
+        .some((n) => n.type === 'agent' && n.entity.name === name)
     }
     return false
   })
+
+  readonly outputVariables = computed(() => this.xpertAgent()?.outputVariables)
+  get enabledOutputVars() {
+    return !!this.outputVariables()
+  }
+  set enabledOutputVars(value: boolean) {
+    this.updateOutputVariables(value ? (this.outputVariables() ?? []) : null)
+  }
 
   readonly copilotModel = model<ICopilotModel>()
 
   readonly openedExecution = signal(false)
   readonly executionId = model<string>(null)
-  // readonly execution = model<IXpertAgentExecution>(null)
 
   readonly executions = derivedAsync(() => {
     const xpertId = this.xpertId()
@@ -153,6 +165,8 @@ export class XpertStudioPanelAgentComponent {
       })
     ) : of(null)
   })
+
+  readonly promptTemplateFullscreen = signal<string>(null)
 
   constructor() {
     effect(
@@ -230,5 +244,34 @@ export class XpertStudioPanelAgentComponent {
       ? uniq([...(this.agentConfig()?.endNodes ?? []), name])
       : (this.agentConfig()?.endNodes?.filter((_) => _ !== name) ?? [])
     this.xpertStudioComponent.updateXpertAgentConfig({ endNodes })
+  }
+
+  updateOutputVariables(event: TAgentOutputVariable[]) {
+    this.apiService.updateXpertAgent(this.key(), { outputVariables: event })
+  }
+
+  addOutputVar() {
+    //
+  }
+
+  updateEnMessageHistory(enable: boolean) {
+    this.xpertStudioComponent.updateXpertAgentConfig({ enableMessageHistory: enable })
+  }
+
+  addMessage() {
+    const promptTemplates = this.promptTemplates()
+    this.apiService.updateXpertAgent(this.key(), { promptTemplates: [
+      ...(promptTemplates ?? []),
+      {id: uuid(), role: 'human', text: ''}
+    ]})
+  }
+
+  updatePromptTemplate(index: number, value: string) {
+    const promptTemplates = this.promptTemplates()
+    promptTemplates[index] = {
+      ...promptTemplates[index],
+      text: value
+    }
+    this.apiService.updateXpertAgent(this.key(), { promptTemplates: [...promptTemplates]})
   }
 }

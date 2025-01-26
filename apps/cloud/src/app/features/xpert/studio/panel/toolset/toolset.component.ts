@@ -9,7 +9,9 @@ import {
   getErrorMessage,
   injectToastr,
   IXpertToolset,
+  TVariableAssigner,
   TXpertTeamNode,
+  XpertService,
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
@@ -20,6 +22,7 @@ import { injectConfigureBuiltin, XpertToolTestComponent } from '../../../tools'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
+import { XpertVariablesAssignerComponent } from 'apps/cloud/src/app/@shared/xpert'
 
 @Component({
   selector: 'xpert-studio-panel-toolset',
@@ -36,7 +39,8 @@ import { XpertStudioPanelComponent } from '../panel.component'
     EmojiAvatarComponent,
     XpertToolTestComponent,
     NgmDensityDirective,
-    NgmSpinComponent
+    NgmSpinComponent,
+    XpertVariablesAssignerComponent
   ]
 })
 export class XpertStudioPanelToolsetComponent {
@@ -45,6 +49,7 @@ export class XpertStudioPanelToolsetComponent {
   readonly panelComponent = inject(XpertStudioPanelComponent)
   readonly toolsetService = inject(XpertToolsetService)
   readonly studioService = inject(XpertStudioApiService)
+  readonly xpertService = inject(XpertService)
   readonly #toastr = injectToastr()
   readonly configureBuiltin = injectConfigureBuiltin()
 
@@ -53,6 +58,7 @@ export class XpertStudioPanelToolsetComponent {
 
   // States
   readonly xpert = this.xpertStudioComponent.xpert
+  readonly xpertId = computed(() => this.xpert()?.id)
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
   readonly toolsetId = computed(() => this.node()?.key)
   readonly toolset = computed(() => this.node()?.entity as IXpertToolset)
@@ -82,6 +88,16 @@ export class XpertStudioPanelToolsetComponent {
     const tools = this.toolsetDetail()?.tools?.filter((_) => _.enabled)
     return positions && tools ? tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
       : tools
+  })
+
+  readonly variables = derivedAsync(() => {
+    const xpertId = this.xpertId()
+    return xpertId ? this.xpertService.getVariables(xpertId).pipe(
+      catchError((error) => {
+        this.#toastr.error(getErrorMessage(error))
+        return of([])
+      })
+    ) : of(null)
   })
 
   readonly loading = signal(false)
@@ -122,6 +138,24 @@ export class XpertStudioPanelToolsetComponent {
       ? uniq([...(this.agentConfig()?.endNodes ?? []), name])
       : (this.agentConfig()?.endNodes?.filter((_) => _ !== name) ?? [])
     this.xpertStudioComponent.updateXpertAgentConfig({ endNodes })
+  }
+
+  toolMemory(name: string) {
+    return this.agentConfig()?.toolsMemory?.[name]
+  }
+
+  toggleToolMemory(name: string, value: boolean) {
+    this.xpertStudioComponent.updateXpertAgentConfig({ toolsMemory: {
+      ...(this.agentConfig()?.toolsMemory ?? {}),
+      [name]: value ? [] : null
+    } })
+  }
+
+  updateToolMemory(name: string, value: TVariableAssigner[]) {
+    this.xpertStudioComponent.updateXpertAgentConfig({ toolsMemory: {
+      ...(this.agentConfig()?.toolsMemory ?? {}),
+      [name]: value
+    } })
   }
 
   configureToolBuiltin() {

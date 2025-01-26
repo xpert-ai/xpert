@@ -3,8 +3,12 @@ import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { omit } from 'lodash'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertAgentQuery } from '../../../xpert/queries/'
+import {
+	STATE_VARIABLE_SYS_LANGUAGE,
+	STATE_VARIABLE_USER_EMAIL,
+	STATE_VARIABLE_USER_TIMEZONE
+} from '../../commands/handlers/types'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
-import { STATE_VARIABLE_SYS_LANGUAGE, STATE_VARIABLE_USER_EMAIL, STATE_VARIABLE_USER_TIMEZONE } from '../../commands/handlers/types'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
@@ -19,26 +23,26 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		const variables: TStateVariable[] = [
 			{
 				name: STATE_VARIABLE_SYS_LANGUAGE,
-  				type: 'string',
+				type: 'string',
 				description: {
 					en_US: 'Language',
-					zh_Hans: '语言',
+					zh_Hans: '语言'
 				}
 			},
 			{
 				name: STATE_VARIABLE_USER_EMAIL,
-  				type: 'string',
+				type: 'string',
 				description: {
 					en_US: 'User email',
-					zh_Hans: '用户邮箱',
+					zh_Hans: '用户邮箱'
 				}
 			},
 			{
 				name: STATE_VARIABLE_USER_TIMEZONE,
-  				type: 'string',
+				type: 'string',
 				description: {
 					en_US: 'User time zone',
-					zh_Hans: '用户时区',
+					zh_Hans: '用户时区'
 				}
 			}
 		]
@@ -49,22 +53,27 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		if (!agent) {
 			return variables
 		}
-		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
-			new ToolsetGetToolsCommand(agent.toolsetIds)
-		)
+
 		const xpert = agent.team
 		if (xpert.agentConfig?.stateVariables) {
 			variables.push(...xpert.agentConfig.stateVariables)
 		}
-		if (agent.parameters) {
-			variables.push(...agent.parameters.map(xpertParameterToVariable))
-		}
 
-		for await (const toolset of toolsets) {
-			await toolset.initTools()
-			const toolVars = toolset.getVariables()
-			if (toolVars) {
-				variables.push(...toolVars.map(toolsetVariableToVariable))
+		if (agentKey) {
+			const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
+				new ToolsetGetToolsCommand(agent.toolsetIds)
+			)
+
+			if (agentKey && agent.parameters) {
+				variables.push(...agent.parameters.map(xpertParameterToVariable))
+			}
+
+			for await (const toolset of toolsets) {
+				await toolset.initTools()
+				const toolVars = toolset.getVariables()
+				if (toolVars) {
+					variables.push(...toolVars.map(toolsetVariableToVariable))
+				}
 			}
 		}
 

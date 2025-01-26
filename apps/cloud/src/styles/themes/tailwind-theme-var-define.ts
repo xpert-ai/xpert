@@ -35,6 +35,7 @@ const vars = {
 
   'hover-bg': 'var(--color-hover-bg)',
   'danger-bg': 'var(--color-danger-bg)',
+  'state-base-hover': 'var(--color-hover-bg)',
 
   'token-main-surface-primary': 'var(--main-surface-primary)',
   'token-main-surface-secondary': 'var(--main-surface-secondary)',
@@ -45,6 +46,7 @@ const vars = {
   'components-card-option-selected-border': 'var(--components-card-option-selected-border)',
   'components-card-bg': 'var(--color-components-card-bg)',
   'components-panel-bg': 'var(--color-components-panel-bg)',
+  'components-panel-bg-blur': 'var(--color-components-panel-bg-blur)',
   'components-panel-border': 'var(--color-components-panel-border)',
   'components-button-primary-text': 'var(--color-components-button-primary-text)',
   'components-button-primary-border': 'var(--color-components-button-primary-border)',

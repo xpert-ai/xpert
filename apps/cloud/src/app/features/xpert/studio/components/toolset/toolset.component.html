@@ -53,6 +53,12 @@
       <span class="flex-1 truncate" [title]="item.tool.description || item.tool.name">
         {{item.tool.name}}
       </span>
+
+      @if (hasMemory(item.tool.name)) {
+        <i class="ri-brain-fill shrink-0 text-lg leading-4 text-text-secondary"
+          [matTooltip]="'PAC.Xpert.ToolMemoryTip' | translate: {Default: 'Tool memory, storing tool results in agent state variables'}"
+          matTooltipPosition="above"></i>
+      }
       @if (isEnd(item.tool.name)) {
         <i class="ri-stop-circle-line shrink-0 text-lg leading-4 text-text-secondary"
           [matTooltip]="'PAC.Xpert.EndTool' | translate: {Default: 'Terminal tool, the run of chat ends when tool completed'}"

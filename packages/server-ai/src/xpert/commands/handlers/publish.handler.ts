@@ -257,7 +257,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 					throw new HttpException(`There are free Xpert agents!`, 500)
 				}
 			})
-			const nameGroups = groupBy(draft.nodes.filter((_) => _.entity.name).map(({entity}) => entity), 'name')
+			const nameGroups = groupBy(draft.nodes.filter((_) => _.type !== 'workflow' && _.entity.name).map(({entity}) => entity), 'name')
 			const names = Object.entries(nameGroups).map(([name, nodes]) => [name, nodes.length]).filter(([, length]: [string, number]) => length > 1)
 			if (names.length) {
 				throw new HttpException(`There are the following duplicate names: ${names}`, 500)

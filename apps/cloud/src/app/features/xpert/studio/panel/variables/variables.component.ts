@@ -7,7 +7,7 @@ import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { TStateVariable } from '@metad/contracts'
+import { TStateVariable, VariableOperationEnum } from '../../../../../@core/types'
 import { CdkConfirmDeleteComponent } from '@metad/ocap-angular/common'
 import { isNil } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -36,6 +36,8 @@ import { XpertStudioPanelComponent } from '../panel.component'
   ]
 })
 export class XpertStudioPanelVariablesComponent {
+  eVariableOperationEnum = VariableOperationEnum
+  
   readonly elementRef = inject(ElementRef)
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly apiService = inject(XpertStudioApiService)
@@ -54,7 +56,8 @@ export class XpertStudioPanelVariablesComponent {
     name: null,
     type: null,
     default: null,
-    description: null
+    description: null,
+    operation: null
   })
 
   closePanel() {

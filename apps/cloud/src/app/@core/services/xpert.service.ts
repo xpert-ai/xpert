@@ -144,8 +144,9 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.delete<TDeleteResult>(this.apiBaseUrl + `/${id}/memory`)
   }
 
-  getVariables(id: string, agentKey: string) {
-    return this.httpClient.get<TStateVariable[]>(this.apiBaseUrl + `/${id}/agent/${agentKey}/variables`)
+  getVariables(id: string, agentKey?: string) {
+    return agentKey ? this.httpClient.get<TStateVariable[]>(this.apiBaseUrl + `/${id}/agent/${agentKey}/variables`)
+    : this.httpClient.get<TStateVariable[]>(this.apiBaseUrl + `/${id}/variables`)
   }
 
   getChatApp(id: string) {

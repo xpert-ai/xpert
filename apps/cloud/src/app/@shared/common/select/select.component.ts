@@ -1,7 +1,6 @@
 import { CdkListboxModule, ListboxValueChangeEvent } from '@angular/cdk/listbox'
 import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { HttpClient } from '@angular/common/http'
 import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
 import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
@@ -9,25 +8,17 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 
 /**
- * 
+ *
  */
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    CdkListboxModule,
-    CdkMenuModule,
-    NgmI18nPipe,
-  ],
+  imports: [CommonModule, ReactiveFormsModule, TranslateModule, CdkListboxModule, CdkMenuModule, NgmI18nPipe],
   selector: 'ngm-select',
   templateUrl: 'select.component.html',
   styleUrls: ['select.component.scss'],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class NgmSelectComponent {
-  readonly httpClient = inject(HttpClient)
   protected cva = inject<NgxControlValueAccessor<any>>(NgxControlValueAccessor)
   readonly i18n = new NgmI18nPipe()
 
@@ -39,9 +30,9 @@ export class NgmSelectComponent {
 
   readonly icon = input<string>()
 
-  readonly selectedOptions = computed(() => {
-    return this.values()?.map((value) => this.selectOptions()?.find((_) => _.value === value))
-  })
+  readonly selectedOptions = computed(() =>
+    this.values()?.map((value) => this.selectOptions()?.find((_) => _.value === value) ?? { value })
+  )
 
   readonly values = computed(() => {
     if (this.multiple()) {

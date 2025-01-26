@@ -10,9 +10,11 @@
       <i [class]="icon()"></i>
     </div>
   }
+  <ng-content select="[icon]"></ng-content>
+  
   <div class="grow mr-2 text-text-primary text-sm">
     @for (option of selectedOptions(); track option.value; let last = $last) {
-      {{option.label | i18n}}
+      {{(option.label | i18n) || option.value}}
       @if (!last) {
         ,
       }

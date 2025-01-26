@@ -23,7 +23,7 @@ export class XpertStudioPanelKnowledgeSectionComponent {
     const draft = this.apiService.viewModel()
     return draft.connections
       .filter((conn) => conn.from === this.key())
-      .map((conn) => draft.nodes.find((n) => n.type === 'knowledge' && n.key === conn.to))
+      .map((conn) => draft.nodes.find((n) => n.type === 'knowledge' && n.key === conn.to) as TXpertTeamNode & {type: 'knowledge'})
       .filter(nonNullable)
   })
 

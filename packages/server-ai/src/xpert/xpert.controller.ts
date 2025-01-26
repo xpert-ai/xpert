@@ -300,8 +300,17 @@ export class XpertController extends CrudController<Xpert> {
 		}
 	}
 
+	@Get(':id/variables')
+	async getVariables(@Param('id') id: string) {
+		try {
+			return await this.queryBus.execute(new XpertAgentVariablesQuery(id, null, true))
+		} catch (err) {
+			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
+		}
+	}
+
 	@Get(':id/agent/:agent/variables')
-	async getVariables(@Param('id') id: string, @Param('agent') agentKey: string,) {
+	async getAgentVariables(@Param('id') id: string, @Param('agent') agentKey: string,) {
 		try {
 			return await this.queryBus.execute(new XpertAgentVariablesQuery(id, agentKey, true))
 		} catch (err) {

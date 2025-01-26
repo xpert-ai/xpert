@@ -28,8 +28,6 @@
   <button type="button" class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium p-2"
     [ngClass]="sidePanel() === 'variables' ? 'text-primary-500' : ''"
     (click)="toggleVariables()"
-    [ngmTooltip]="varInDevelopment"
-    [hideDelay]="100"
   >
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"
       class="w-4 h-4 text-components-button-secondary-text">

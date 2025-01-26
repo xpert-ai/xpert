@@ -31,7 +31,7 @@ export class CreateConnectionHandler implements IHandler<CreateConnectionRequest
             type: request.outputId.endsWith('/edge') ? 'edge' : targetNode.type,
             key,
             from: outputId,
-            to: removeConnSuffix(request.inputId)
+            to: inputId
           })
         }
       }

@@ -26,7 +26,7 @@ export class XpertStudioNodeKnowledgeComponent {
   readonly studioService = inject(XpertStudioApiService)
   readonly executionService = inject(XpertExecutionService)
 
-  readonly node = input<TXpertTeamNode>()
+  readonly node = input<TXpertTeamNode & {type: 'knowledge'}>()
   readonly id = computed(() => this.node()?.key)
   readonly knowledge = computed(() => this.node().entity)
 

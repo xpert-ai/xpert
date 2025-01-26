@@ -20,23 +20,25 @@
       <f-connection #connComp [fType]="EFConnectionType.BEZIER"
         [fReassignDisabled]="false"
         [fOutputId]="connection.from + '/' + connection.type"
-        [fInputId]="connection.to + '/' + connection.type"
+        [fInputId]="connection.to + (connection.type === 'edge' ? '/edge' : '')"
         class="gradient-color cursor-pointer"
         [class.f-selected]="selectedNodeKey() === connection.from || selectedNodeKey() === connection.to"
         fStartColor="var(--connection-gradient-1)" fEndColor="var(--connection-gradient-2)"
         [cdkContextMenuTriggerFor]="connContextMenu"
         [cdkContextMenuTriggerData]="{connection: connComp}"
       >
-        <svg viewBox="0 0 6 7" fMarker [type]="eMarkerType.END" class="connection-marker"
+        @if (connection.type === 'edge') {
+          <svg viewBox="0 0 6 7" fMarker [type]="eMarkerType.END" class="connection-marker"
+              [height]="7" [width]="6"
+              [refX]="5.5" [refY]="3.5" markerUnits="strokeWidth" orient="auto">
+            <path d="M0.000391006 0L6 3.5L0.000391006 7L0.000391006 0Z"/>
+          </svg>
+          <svg viewBox="0 0 6 7" fMarker [type]="eMarkerType.SELECTED_END" class="connection-marker"
             [height]="7" [width]="6"
             [refX]="5.5" [refY]="3.5" markerUnits="strokeWidth" orient="auto">
-          <path d="M0.000391006 0L6 3.5L0.000391006 7L0.000391006 0Z"/>
-        </svg>
-        <svg viewBox="0 0 6 7" fMarker [type]="eMarkerType.SELECTED_END" class="connection-marker"
-           [height]="7" [width]="6"
-           [refX]="5.5" [refY]="3.5" markerUnits="strokeWidth" orient="auto">
-          <path d="M0.000391006 0L6 3.5L0.000391006 7L0.000391006 0Z"/>
-        </svg>
+            <path d="M0.000391006 0L6 3.5L0.000391006 7L0.000391006 0Z"/>
+          </svg>
+        }
       </f-connection>
     }
 

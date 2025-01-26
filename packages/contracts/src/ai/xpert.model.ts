@@ -9,6 +9,7 @@ import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 import { IIntegration } from '../integration.model'
 import { TChatFrom } from './chat.model'
+import { IWorkflowNode, TVariableAssigner, VariableOperationEnum } from './xpert-workflow.model'
 
 export type ToolCall = LToolCall
 
@@ -155,10 +156,29 @@ export type TXpertAgentConfig = {
    */
   timeout?: number;
 
+  /**
+   * Sensitive tools and agents
+   */
   interruptBefore?: string[]
+  /**
+   * End nodes
+   */
   endNodes?: string[]
 
+  /**
+   * Custom variables of graph state
+   */
   stateVariables?: TStateVariable[]
+
+  /**
+   * Memory assigner for tool's results. (save result of tool call into state variable)
+   */
+  toolsMemory?: Record<string, TVariableAssigner[]>
+
+  /**
+   * Enable message history for agent conversation
+   */
+  enableMessageHistory?: boolean
 }
 
 export type TStateVariable<ValueType = any, UpdateType = ValueType> = {
@@ -167,6 +187,7 @@ export type TStateVariable<ValueType = any, UpdateType = ValueType> = {
   description: I18nObject | string
   default?: any
   reducer?: (a: ValueType, b: UpdateType) => ValueType
+  operation?: VariableOperationEnum
 }
 
 /**
@@ -255,7 +276,7 @@ export type TXpertTeamDraft = {
   connections: TXpertTeamConnection[]
 }
 
-export type TXpertTeamNodeType = 'agent' | 'knowledge' | 'toolset' | 'xpert'
+export type TXpertTeamNodeType = 'agent' | 'knowledge' | 'toolset' | 'xpert' | 'workflow'
 
 export type TXpertTeamNode = {
   key: string
@@ -283,6 +304,10 @@ export type TXpertTeamNode = {
       nodes?: TXpertTeamNode[]
       connections?: TXpertTeamConnection[]
       expanded?: boolean
+    }
+  | {
+      type: 'workflow'
+      entity: IWorkflowNode
     }
 )
 

@@ -1,9 +1,9 @@
 import { NotFoundException } from '@nestjs/common'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AIMessageChunk, HumanMessage, isAIMessage, isAIMessageChunk, isToolMessage, MessageContent, ToolMessage } from '@langchain/core/messages'
+import { AIMessageChunk, BaseMessage, HumanMessage, isAIMessage, isAIMessageChunk, isToolMessage, MessageContent, ToolMessage } from '@langchain/core/messages'
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
-import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
-import { Annotation, CompiledStateGraph, isCommand, LangGraphRunnableConfig, NodeInterrupt } from '@langchain/langgraph'
+import { HumanMessagePromptTemplate, SystemMessagePromptTemplate } from '@langchain/core/prompts'
+import { Annotation, CompiledStateGraph, isCommand, LangGraphRunnableConfig, messagesStateReducer, NodeInterrupt } from '@langchain/langgraph'
 import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IXpert, IXpertAgent, ToolCall, TSensitiveOperation, TStateVariable, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
@@ -23,7 +23,7 @@ import { createReactAgent } from './react_agent_executor'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { getErrorMessage, takeUntilAbort } from '@metad/server-common'
-import { AgentStateAnnotation, parseXmlString, STATE_VARIABLE_SYS_LANGUAGE, STATE_VARIABLE_USER_EMAIL, STATE_VARIABLE_USER_TIMEZONE, TSubAgent } from './types'
+import { AgentStateAnnotation, parseXmlString, STATE_VARIABLE_SYS_LANGUAGE, STATE_VARIABLE_USER_EMAIL, STATE_VARIABLE_USER_TIMEZONE, stateVariable, TGraphTool, TSubAgent } from './types'
 import { CompleteToolCallsQuery } from '../../queries'
 import { memoryPrompt } from '../../../copilot-store/utils'
 import { assignExecutionUsage } from '../../../xpert-agent-execution/types'
@@ -75,20 +75,24 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 				agentKey
 			})
 		)
-		const tools = []
+		const tools: TGraphTool[] = []
 		const interruptBefore: string[] = []
 		const stateVariables: TStateVariable[] = []
 		for await (const toolset of toolsets) {
 			stateVariables.push(...(toolset.getVariables() ?? []))
 			const items = await toolset.initTools()
-			tools.push(...items)
-			interruptBefore.push(...items.filter((tool) => {
+			items.forEach((tool) => {
 				const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)
-				return team.agentConfig?.interruptBefore?.includes(lc_name)
-			}).map((tool) => tool.name))
+				tools.push({caller: agent.key, tool, variables: team.agentConfig?.toolsMemory?.[lc_name] })
+
+				// Add sensitive tools into interruptBefore
+				if (team.agentConfig?.interruptBefore?.includes(lc_name)) {
+					interruptBefore.push(tool.name)
+				}
+			})
 		}
 
-		this.#logger.debug(`Use tools:\n ${[...tools,].map((_) => _.name + ': ' + _.description).join('\n')}`)
+		this.#logger.debug(`Use tools:\n ${[...tools,].map((_) => _.tool.name + ': ' + _.tool.description).join('\n')}`)
 
 		// Knowledgebases
 		const knowledgebaseIds = options?.knowledgebases ?? agent.knowledgebaseIds
@@ -98,11 +102,14 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 				retrievers: retrievers,
 				weights: retrievers.map(() => 0.5),
 			  })
-			tools.push(retriever.asTool({
-				name: "knowledge_retriever",
-				description: "Get information about question.",
-				schema: z.string(),
-			  }))
+			tools.push({
+				caller: agent.key,
+				tool: retriever.asTool({
+					name: "knowledge_retriever",
+					description: "Get information about question.",
+					schema: z.string(),
+				  })
+			})
 		}
 
 		const subAgents: Record<string, TSubAgent> = {}
@@ -142,8 +149,10 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			...AgentStateAnnotation.spec,
 			...(stateVariables.reduce((acc, variable) => {
 				acc[variable.name] = Annotation({
-					reducer: variable.reducer,
-					default: variable.default,
+					...(variable.reducer ? stateVariable(variable) : {
+						reducer: variable.reducer,
+						default: variable.default,
+					}),
 				  })
 				return acc
 			}, {}) ?? {}),
@@ -151,11 +160,16 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 				acc[parameter.name] = Annotation<string>
 				return acc
 			}, {}) ?? {}),
+			[`${agent.key}.messages`]: Annotation<BaseMessage[]>({
+				reducer: messagesStateReducer,
+				default: () => []
+			}),
 		})
 
 		const thread_id = command.options.thread_id
 
-		const graph = createReactAgent({
+		const enableMessageHistory = team.agentConfig?.enableMessageHistory
+		const workflow = createReactAgent({
 			stateSchema: StateAnnotation,
 			llm: chatModel,
 			checkpointSaver: this.copilotCheckpointSaver,
@@ -178,11 +192,28 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 				}).format({ ...state })
 
 				this.#logger.verbose(`SystemMessage:`, systemMessage.content)
-				return [systemMessage, ...state.messages]
+
+				const messages: BaseMessage[] = [systemMessage]
+				if (enableMessageHistory) {
+					messages.push(...state.messages)
+				}
+
+				if (agent.promptTemplates) {
+					const humanMessages = await Promise.all(agent.promptTemplates.map((temp) => HumanMessagePromptTemplate.fromTemplate(temp.text, {
+						templateFormat: 'mustache'
+					}).format({ ...state })))
+					messages.push(...humanMessages)
+				}
+				return messages
 			},
 			summarize: team.summarize,
 			summarizeTitle
 		})
+		
+		const graph = workflow.compile({
+			checkpointer: this.copilotCheckpointSaver,
+			interruptBefore,
+		  })
 
 		this.#logger.debug(`Start chat with xpert '${xpert.name}' & agent '${agent.title}'`)
 
