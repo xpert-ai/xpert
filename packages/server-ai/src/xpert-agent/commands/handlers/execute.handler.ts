@@ -368,7 +368,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 
 						let output = data.output
 						if ( isCommand(output)) {
-							const messages = (<AgentState>output.update)?.messages
+							const messages = (<typeof AgentStateAnnotation.State>output.update)?.messages
 							if (Array.isArray(messages)) {
 								const toolMessage = messages[messages.length - 1]
 								output = toolMessage

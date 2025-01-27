@@ -4,7 +4,7 @@ import { Runnable, RunnableLike, RunnableToolLike } from '@langchain/core/runnab
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { Annotation, CompiledStateGraph, messagesStateReducer } from '@langchain/langgraph'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
-import { TStateVariable, TVariableAssigner, VariableOperationEnum } from '@metad/contracts'
+import { TStateVariable, TVariableAssigner, TXpertTeamNode, VariableOperationEnum } from '@metad/contracts'
 
 export const STATE_VARIABLE_SYS_LANGUAGE = 'sys_language'
 export const STATE_VARIABLE_USER_EMAIL = 'user_email'
@@ -63,6 +63,7 @@ export type TSubAgent = {
 	tool: StructuredToolInterface | RunnableToolLike
 	node?: RunnableLike<typeof AgentStateAnnotation> | Runnable
 	stateGraph?: Runnable
+	nextNodes?: TXpertTeamNode[]
 }
 
 export function parseXmlString(content: string) {

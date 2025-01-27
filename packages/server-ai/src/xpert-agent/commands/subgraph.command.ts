@@ -12,10 +12,11 @@ export class XpertAgentSubgraphCommand implements ICommand {
 		public readonly agentKey: string,
 		public readonly xpert: Partial<IXpert>,
 		public readonly options: TChatOptions & {
+			isStart: boolean
 			/**
 			 * Agent key who calls me
 			 */
-			leaderKey: string
+			leaderKey?: string
 			// The id of root agent execution
 			rootExecutionId: string
 			// Langgraph thread id

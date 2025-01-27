@@ -13,7 +13,7 @@ import {
 	START,
 	StateGraph
 } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IXpert, IXpertAgent, IXpertAgentExecution, TStateVariable, TSummarize, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IXpert, IXpertAgent, IXpertAgentExecution, TStateVariable, TSummarize, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
@@ -22,7 +22,7 @@ import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { memoryPrompt } from '../../../copilot-store/utils'
 import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
-import { GetXpertAgentQuery, GetXpertChatModelQuery } from '../../../xpert/queries'
+import { GetXpertWorkflowQuery, GetXpertChatModelQuery } from '../../../xpert/queries'
 import { createParameters } from '../execute.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
@@ -39,18 +39,20 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		private readonly queryBus: QueryBus
 	) {}
 
-	public async execute(command: XpertAgentSubgraphCommand): Promise<CompiledStateGraph<unknown, unknown, any>> {
+	public async execute(command: XpertAgentSubgraphCommand): Promise<{graph: CompiledStateGraph<unknown, unknown, any>; nextNodes: TXpertTeamNode[]}> {
 		const { agentKey, xpert, options } = command
-		const { execution, leaderKey, summarizeTitle, subscriber, abortController } = options
+		const { isStart, execution, leaderKey, summarizeTitle, subscriber, abortController } = options
 
-		const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
-			new GetXpertAgentQuery(xpert.id, agentKey, command.options?.isDraft)
+		const {agent, next} = await this.queryBus.execute<GetXpertWorkflowQuery, {agent: IXpertAgent; next: TXpertTeamNode[]}>(
+			new GetXpertWorkflowQuery(xpert.id, agentKey, command.options?.isDraft)
 		)
 		if (!agent) {
 			throw new NotFoundException(
 				`Xpert agent not found for '${xpert.name}' and key ${agentKey} draft is ${command.options?.isDraft}`
 			)
 		}
+
+		console.log(next)
 
 		// The xpert (agent team)
 		const team = agent.team
@@ -101,14 +103,15 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		if (agent.followers?.length) {
 			this.#logger.debug(`Use sub agents:\n ${agent.followers.map((_) => _.name)}`)
 			for await (const follower of agent.followers) {
-				const item = await this.createXpertAgent(follower, {
+				const item = await this.createAgentSubgraph(follower, {
 					xpert,
 					options: {
 						leaderKey: agent.key,
 						rootExecutionId: command.options.rootExecutionId,
 						isDraft: command.options.isDraft,
 						subscriber
-					}
+					},
+					isTool: true
 				})
 
 				subAgents[item.name] = item
@@ -181,28 +184,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 		// Add nodes for tools
 		const summarize = ensureSummarize(team.summarize)
-		const agentNavigator = (state: typeof AgentStateAnnotation.State) => {
-			const { title, messages } = state
-			const lastMessage = messages[messages.length - 1]
-			if (isAIMessage(lastMessage)) {
-				if (!lastMessage.tool_calls || lastMessage.tool_calls.length === 0) {
-					// If there are more than six messages, then we summarize the conversation
-					if (summarize?.enabled && messages.length > summarize.maxMessages) {
-						return 'summarize_conversation'
-					} else if (!title && summarizeTitle) {
-						return 'title_conversation'
-					}
-
-					return END
-				}
-
-				return lastMessage.tool_calls.map((toolCall) => new Send(toolCall.name, { ...state, toolCall }))
-			}
-
-			return END
-		}
-
-		subgraphBuilder.addConditionalEdges(agentKey, agentNavigator)
+		
 		const endNodes = team.agentConfig?.endNodes
 		tools?.forEach(({ caller, tool, variables }) => {
 			const name = tool.name
@@ -219,13 +201,48 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			})
 		}
 
-		return subgraphBuilder.compile({
-			checkpointer: this.copilotCheckpointSaver,
-			interruptBefore: []
-		})
+		// Next agent
+		if (isStart) {
+			// The root node is responsible for the overall workflow
+			const createSubgraph = async (node: TXpertTeamNode, parentKey: string) => {
+				if (node.type === 'agent' && !subgraphBuilder.nodes[node.entity.key]) {
+					const {stateGraph, nextNodes} = await this.createAgentSubgraph(node.entity, {
+						xpert,
+						options: {
+							leaderKey: parentKey,
+							rootExecutionId: command.options.rootExecutionId,
+							isDraft: command.options.isDraft,
+							subscriber
+						},
+						isTool: false
+					})
+	
+					subgraphBuilder
+						.addNode(node.entity.key, stateGraph)
+						.addConditionalEdges(parentKey, createAgentNavigator(summarize, summarizeTitle, node.entity.key))
+
+					for await (const nNode of nextNodes ?? []) {
+						await createSubgraph(nNode, node.key)
+					}
+				}
+			}
+			for await (const node of next ?? []) {
+				await createSubgraph(node, agentKey)
+			}
+		} else {
+			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(summarize, summarizeTitle,))
+		}
+
+		return {
+			graph: subgraphBuilder.compile({
+				checkpointer: this.copilotCheckpointSaver,
+				interruptBefore: []
+			}),
+			nextNodes: next
+		}
 	}
 
-	async createXpertAgent(
+	async createAgentSubgraph(
 		agent: IXpertAgent,
 		config: {
 			xpert: Partial<IXpert>
@@ -234,16 +251,18 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				rootExecutionId: string
 				isDraft: boolean
 				subscriber: Subscriber<MessageEvent>
-			}
+			};
+			isTool: boolean
 		}
 	) {
-		const { xpert, options } = config
+		const { xpert, options, isTool } = config
 		const { subscriber, leaderKey } = options
 		const execution: IXpertAgentExecution = {}
 
 		// Subgraph
-		const subgraph = await this.commandBus.execute(
+		const {graph, nextNodes} = await this.commandBus.execute(
 			new XpertAgentSubgraphCommand(agent.key, xpert, {
+				isStart: isTool,
 				leaderKey,
 				rootExecutionId: config.options.rootExecutionId,
 				isDraft: config.options.isDraft,
@@ -265,6 +284,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		return {
 			name: uniqueName,
 			tool: agentTool,
+			nextNodes,
 			stateGraph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config: LangGraphRunnableConfig): Promise<Partial<typeof AgentStateAnnotation.State>> => {
 				const call = state.toolCall
 				execution.threadId = config.configurable.thread_id
@@ -277,7 +297,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						...execution,
 						xpert: { id: xpert.id } as IXpert,
 						agentKey: agent.key,
-						inputs: call.args,
+						inputs: call?.args,
 						parentId: options.rootExecutionId,
 						status: XpertAgentExecutionStatusEnum.RUNNING
 					})
@@ -331,18 +351,21 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 				try {
 					const subState = {
-						...state, ...call.args,
-						[`${agent.key}.messages`]: [new HumanMessage(call.args.input)],
+						...state,
+						...(isTool ? {
+							...call.args,
+							[`${agent.key}.messages`]: [new HumanMessage(call.args.input)]
+						} : {}),
 					}
-					const output = await subgraph.invoke(subState, config)
+					const output = await graph.invoke(subState, config)
 
-					const _state = await subgraph.getState(config)
+					const _state = await graph.getState(config)
 
 					// End agent execution event
 					await finalize(_state.config.configurable)
 
 					const lastMessage = output.messages[output.messages.length - 1]
-					return {
+					return isTool ? {
 						[`${leaderKey}.messages`]: [
 							new ToolMessage({
 								content: lastMessage.content,
@@ -350,7 +373,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 								tool_call_id: call.id ?? "",
 							})
 						]
-					}
+					} : {}
 				} catch(err) {
 					console.error(err)
 					// Catch the error before generated obs
@@ -376,4 +399,27 @@ function ensureSummarize(summarize?: TSummarize) {
 			retainMessages: summarize.retainMessages ?? 90
 		}
 	)
+}
+
+function createAgentNavigator(summarize, summarizeTitle, next?: string) {
+	return (state: typeof AgentStateAnnotation.State) => {
+		const { title, messages } = state
+		const lastMessage = messages[messages.length - 1]
+		if (isAIMessage(lastMessage)) {
+			if (!lastMessage.tool_calls || lastMessage.tool_calls.length === 0) {
+				// If there are more than six messages, then we summarize the conversation
+				if (summarize?.enabled && messages.length > summarize.maxMessages) {
+					return 'summarize_conversation'
+				} else if (!title && summarizeTitle) {
+					return 'title_conversation'
+				}
+
+				return next ?? END
+			}
+
+			return lastMessage.tool_calls.map((toolCall) => new Send(toolCall.name, { ...state, toolCall }))
+		}
+
+		return next ?? END
+	}
 }

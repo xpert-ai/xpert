@@ -51,17 +51,17 @@
     "@duckdb/duckdb-wasm": "1.25.0",
     "@emoji-mart/data": "^1.2.1",
     "@floating-ui/dom": "^1.6.11",
-    "@foblex/2d": "^1.1.0",
+    "@foblex/2d": "^1.1.8",
     "@foblex/drag-toolkit": "^1.1.0",
-    "@foblex/flow": "^16.0.5",
-    "@foblex/mediator": "^1.1.0",
+    "@foblex/flow": "^17.1.0",
+    "@foblex/mediator": "^1.1.2",
     "@foblex/platform": "^1.0.4",
     "@foblex/utils": "^1.1.0",
-    "@langchain/community": "0.3.11",
-    "@langchain/core": "0.3.23",
-    "@langchain/langgraph": "0.2.33",
-    "@langchain/ollama": "0.1.0",
-    "@langchain/openai": "0.3.11",
+    "@langchain/community": "0.3.27",
+    "@langchain/core": "0.3.36",
+    "@langchain/langgraph": "0.2.41",
+    "@langchain/ollama": "0.1.5",
+    "@langchain/openai": "0.4.2",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@ng-matero/extensions": "^13.1.0",
     "@ng-web-apis/common": "^4.11.1",
@@ -207,7 +207,7 @@
     "packages/*"
   ],
   "resolutions": {
-    "@langchain/core": "0.3.23"
+    "@langchain/core": "0.3.36"
   },
   "nx": {
     "includedScripts": []

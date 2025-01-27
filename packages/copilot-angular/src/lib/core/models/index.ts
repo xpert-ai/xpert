@@ -10,7 +10,7 @@ import { TCopilotCredentials } from '../../types'
 export function createLLM<T = BaseChatModel>(
   copilot: ICopilot,
   credentials: TCopilotCredentials,
-  clientOptions: ClientOptions,
+  clientOptions: any,
   tokenRecord: (input: { copilot: ICopilot; tokenUsed: number }) => void
 ): T {
   if (!copilot) {

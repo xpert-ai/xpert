@@ -3,7 +3,7 @@ import { ChatOllama, ChatOllamaInput } from '@langchain/ollama'
 import { Ollama } from 'ollama/dist/browser'
 
 export class NgmChatOllama extends ChatOllama {
-  constructor(fields?: ChatOllamaInput & { headers: { [x: string]: string } }) {
+  constructor(fields?: ChatOllamaInput & { headers: HeadersInit }) {
     super(fields ?? {})
 
     this.client = new Ollama({
@@ -15,7 +15,7 @@ export class NgmChatOllama extends ChatOllama {
           headers: {
             ...(options?.headers ?? {}),
             ...(fields?.headers ?? {})
-          }
+          } as HeadersInit
         })
       }
     })

@@ -8,6 +8,7 @@ import { StatisticsXpertMessagesHandler } from "./statistics-xpert-messages.hand
 import { StatisticsXpertTokensHandler } from "./statistics-xpert-tokens.handler";
 import { StatisticsXpertsHandler } from "./statistics-xperts.handler";
 import { StatisticsXpertIntegrationsHandler } from "./statistics-xpert-integrations.handler";
+import { GetXpertWorkflowHandler } from "./get-xpert-workflow.handler";
 
 
 export const QueryHandlers = [
@@ -16,6 +17,7 @@ export const QueryHandlers = [
 	GetXpertChatModelQueryHandler,
 	SearchXpertMemoryHandler,
 	GetXpertMemoryEmbeddingsHandler,
+	GetXpertWorkflowHandler,
 	StatisticsXpertConversationsHandler,
 	StatisticsXpertMessagesHandler,
 	StatisticsXpertTokensHandler,
