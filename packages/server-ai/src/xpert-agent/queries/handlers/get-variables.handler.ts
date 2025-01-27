@@ -1,4 +1,4 @@
-import { IXpertAgent, TStateVariable, TXpertParameter } from '@metad/contracts'
+import { agentLabel, IXpertAgent, TStateVariable, TXpertParameter } from '@metad/contracts'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { omit } from 'lodash'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
@@ -9,16 +9,20 @@ import {
 	STATE_VARIABLE_USER_TIMEZONE
 } from '../../commands/handlers/types'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
+import { XpertService } from '../../../xpert/xpert.service'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
 	constructor(
+		private readonly xpertService: XpertService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
 	) {}
 
 	public async execute(command: XpertAgentVariablesQuery): Promise<any[]> {
 		const { xpertId, agentKey, isDraft } = command
+
+		const xpert = await this.xpertService.findOne(xpertId, {select: ['agentConfig', 'draft', 'graph']})
 
 		const variables: TStateVariable[] = [
 			{
@@ -54,7 +58,6 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			return variables
 		}
 
-		const xpert = agent.team
 		if (xpert.agentConfig?.stateVariables) {
 			variables.push(...xpert.agentConfig.stateVariables)
 		}
@@ -76,6 +79,19 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				}
 			}
 		}
+
+		// All agents output
+		const graph = isDraft ? xpert.draft : xpert.graph
+		graph.nodes.filter((_) => _.type === 'agent' && _.key !== agentKey).forEach((_) => {
+			variables.push({
+				name: `${_.key}.output`,
+				type: 'string',
+				description: {
+					zh_Hans: `${agentLabel(_.entity as IXpertAgent)} 输出`,
+					en_US: `${agentLabel(_.entity as IXpertAgent)} Output`
+				},
+			})
+		})
 
 		return variables
 	}

@@ -9,7 +9,6 @@ import { omit, yaml } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { instanceToPlain } from 'class-transformer'
-import { XpertAgentService } from '../../../xpert-agent'
 import { XpertDraftDslDTO } from '../../dto'
 import { XpertService } from '../../xpert.service'
 import { XpertExportCommand } from '../export.command'
@@ -22,7 +21,6 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
 
 	constructor(
 		private readonly xpertService: XpertService,
-		private readonly agentService: XpertAgentService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
 	) {}

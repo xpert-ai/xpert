@@ -112,7 +112,7 @@ export class XpertStudioPanelAgentComponent {
   readonly agentConfig = computed(() => this.xpert()?.agentConfig)
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
   readonly isEnd = computed(() => this.agentConfig()?.endNodes?.includes(this.agentUniqueName()))
-  readonly enableMessageHistory = computed(() => this.agentConfig()?.enableMessageHistory)
+  readonly enableMessageHistory = computed(() => !this.xpertAgent()?.options?.disableMessageHistory)
   readonly promptTemplates = computed(() => this.xpertAgent()?.promptTemplates)
   readonly isPrimaryAgent = computed(() => !!this.xpertAgent()?.xpertId)
 
@@ -255,7 +255,10 @@ export class XpertStudioPanelAgentComponent {
   }
 
   updateEnMessageHistory(enable: boolean) {
-    this.xpertStudioComponent.updateXpertAgentConfig({ enableMessageHistory: enable })
+    const options = this.xpertAgent().options ?? {}
+    this.apiService.updateXpertAgent(this.key(), {
+      options: {...options, disableMessageHistory: !enable }
+    })
   }
 
   addMessage() {

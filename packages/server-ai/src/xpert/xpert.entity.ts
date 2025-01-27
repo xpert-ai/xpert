@@ -14,6 +14,7 @@ import {
 	TLongTermMemory,
 	TSummarize,
 	TXpertAgentConfig,
+	TXpertGraph,
 	TXpertOptions,
 	TXpertTeamDraft,
 	XpertTypeEnum
@@ -122,6 +123,12 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
 	draft?: TXpertTeamDraft
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	graph?: TXpertGraph
 
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()

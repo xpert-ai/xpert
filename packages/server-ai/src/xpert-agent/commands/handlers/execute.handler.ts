@@ -168,7 +168,7 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 
 		const thread_id = command.options.thread_id
 
-		const enableMessageHistory = team.agentConfig?.enableMessageHistory
+		const enableMessageHistory = !agent.options?.disableMessageHistory
 		const workflow = createReactAgent({
 			stateSchema: StateAnnotation,
 			llm: chatModel,

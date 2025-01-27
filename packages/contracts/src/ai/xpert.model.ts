@@ -59,6 +59,7 @@ export type TXpert = {
    * 当前版本上的草稿
    */
   draft?: TXpertTeamDraft
+  graph?: TXpertGraph
 
   api?: TChatApi
   app?: TChatApp
@@ -174,11 +175,6 @@ export type TXpertAgentConfig = {
    * Memory assigner for tool's results. (save result of tool call into state variable)
    */
   toolsMemory?: Record<string, TVariableAssigner[]>
-
-  /**
-   * Enable message history for agent conversation
-   */
-  enableMessageHistory?: boolean
 }
 
 export type TStateVariable<ValueType = any, UpdateType = ValueType> = {
@@ -267,13 +263,14 @@ export type TChatApi = {
 }
 
 // Xpert team draft types
-
-export type TXpertTeamDraft = {
-  team: Partial<IXpert>
-
-  savedAt?: Date
+export type TXpertGraph = {
   nodes: TXpertTeamNode[]
   connections: TXpertTeamConnection[]
+}
+
+export type TXpertTeamDraft = TXpertGraph & {
+  team: Partial<IXpert>
+  savedAt?: Date
 }
 
 export type TXpertTeamNodeType = 'agent' | 'knowledge' | 'toolset' | 'xpert' | 'workflow'

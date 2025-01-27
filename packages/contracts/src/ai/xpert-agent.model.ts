@@ -88,7 +88,10 @@ export interface IXpertAgent extends IBasePerTenantAndOrganizationEntityModel, T
 }
 
 export type TXpertAgentOptions = {
-  //
+  /**
+   * Disable message history for agent conversation
+   */
+  disableMessageHistory?: boolean
 }
 
 export type TAgentPromptTemplate = {

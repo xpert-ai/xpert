@@ -1,4 +1,4 @@
-import { IXpert, IXpertAgent, mapTranslationLanguage, replaceAgentInDraft } from '@metad/contracts'
+import { IXpert, mapTranslationLanguage, replaceAgentInDraft } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -8,7 +8,6 @@ import { XpertAgentService } from '../../../xpert-agent'
 import { XpertNameInvalidException } from '../../types'
 import { XpertService } from '../../xpert.service'
 import { XpertImportCommand } from '../import.command'
-import { pickXpertAgent } from './publish.handler'
 
 const SYSTEM_FIELDS = ['tenantId', 'organizationId', 'id', 'createdById', 'updatedById']
 
