@@ -135,6 +135,13 @@ export class XpertStudioPanelAgentExecutionComponent {
     this.executionService.setConversation(null)
   }
 
+  onKeyEnter(param: Event) {
+    const event = param as KeyboardEvent
+    if (event.code === 'Enter' && !event.isComposing) {
+      this.startRunAgent()
+    }
+  }
+
   startRunAgent(options?: { reject: boolean; confirm?: boolean }) {
     const executionId = this.execution()?.id
     this.loading.set(true)

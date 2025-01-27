@@ -35,6 +35,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
   recurse = true;
   caller?: string
   variables: TVariableAssigner[]
+  messagesName: string
 
   constructor(
     tools: (StructuredToolInterface | RunnableToolLike)[],
@@ -46,13 +47,14 @@ export class ToolNode<T = any> extends Runnable<T, T> {
     this.handleToolErrors = handleToolErrors ?? this.handleToolErrors;
     this.caller = options?.caller
     this.variables = options?.variables
+    this.messagesName = options?.caller ? `${options.caller}.messages` : 'messages'
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected async run(input: any, config: RunnableConfig): Promise<T> {
     const message = Array.isArray(input)
       ? input[input.length - 1]
-      : input.messages[input.messages.length - 1];
+      : input[this.messagesName][input[this.messagesName].length - 1];
 
     if (message?._getType() !== "ai") {
       throw new Error("ToolNode only accepts AIMessages as input.");
@@ -137,7 +139,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
 
      // Preserve existing behavior for non-command tool outputs for backwards compatibility
      if (!outputs.some(isCommand)) {
-      return (Array.isArray(input) ? outputs : { messages: outputs }) as T;
+      return (Array.isArray(input) ? outputs : { [this.messagesName]: outputs }) as T;
     }
 
     // Handle mixed Command and non-Command outputs
@@ -145,7 +147,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
       if (isCommand(output)) {
         return output;
       }
-      return Array.isArray(input) ? [output] : { messages: [output] };
+      return Array.isArray(input) ? [output] : { [this.messagesName]: [output] };
     });
     return combinedOutputs as T;
   }
@@ -212,19 +214,19 @@ export class ToolNode<T = any> extends Runnable<T, T> {
   }
 }
 
-export function toolsCondition(
-  state: BaseMessage[] | typeof MessagesAnnotation.State
-): "tools" | typeof END {
-  const message = Array.isArray(state)
-    ? state[state.length - 1]
-    : state.messages[state.messages.length - 1];
+// export function toolsCondition(
+//   state: BaseMessage[] | typeof MessagesAnnotation.State
+// ): "tools" | typeof END {
+//   const message = Array.isArray(state)
+//     ? state[state.length - 1]
+//     : state.messages[state.messages.length - 1];
 
-  if (
-    "tool_calls" in message &&
-    ((message as AIMessage).tool_calls?.length ?? 0) > 0
-  ) {
-    return "tools";
-  } else {
-    return END;
-  }
-}
+//   if (
+//     "tool_calls" in message &&
+//     ((message as AIMessage).tool_calls?.length ?? 0) > 0
+//   ) {
+//     return "tools";
+//   } else {
+//     return END;
+//   }
+// }

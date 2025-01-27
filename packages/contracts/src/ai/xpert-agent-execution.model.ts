@@ -41,6 +41,7 @@ export type TXpertAgentExecution = {
 
   // State of graph
   threadId?: string
+  checkpointNs?: string
   checkpointId?: string
   parent_thread_id?: string
   /**

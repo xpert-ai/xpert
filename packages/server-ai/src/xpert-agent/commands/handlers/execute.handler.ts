@@ -287,19 +287,6 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 							while(_event === 'on_tool_start') {
 								_event = eventStack.pop()
 							}
-							// // Clear all error tool calls
-							// if (toolCalls) {
-							// 	Object.keys(toolCalls).filter((id) => !!toolCalls[id]).forEach((id) => {
-							// 		subscriber.next({
-							// 			data: {
-							// 				type: ChatMessageTypeEnum.EVENT,
-							// 				event: ChatMessageEventTypeEnum.ON_TOOL_ERROR,
-							// 				data: toolCalls[id]
-							// 			}
-							// 		} as MessageEvent)
-							// 	})
-							// 	toolCalls = null
-							// }
 						}
 						
 						// All chains end

@@ -34,11 +34,11 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 		const tuple = await this.queryBus.execute(
 			new CopilotCheckpointGetTupleQuery({
 				thread_id: execution.threadId,
-				checkpoint_ns: '',
+				checkpoint_ns: execution.checkpointNs,
 				checkpoint_id: execution.checkpointId
 			})
 		)
-		const messages = tuple?.checkpoint?.channel_values?.messages
+		const messages = tuple?.checkpoint?.channel_values?.[`${execution.agentKey}.messages`] ?? tuple?.checkpoint?.channel_values?.messages
 		return new XpertAgentExecutionDTO({
 			...execution,
 			messages: messages ? mapChatMessagesToStoredMessages(messages) : null,

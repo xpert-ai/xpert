@@ -1,5 +1,5 @@
 <div class="shrink-0 flex justify-between items-center p-4">
-  <div>
+  <div class="font-semibold">
     {{xpertAgent().title || xpertAgent().name || xpertAgent().key}}
   </div>
 
@@ -24,7 +24,7 @@
       [placeholder]="'PAC.Xpert.PleaseInput' | translate: {Default: 'Please input'}"
       type="text"
       [(ngModel)]="input"
-      (keyup.enter)="startRunAgent()"
+      (keyup.enter)="onKeyEnter($event)"
     >
   </div>
 

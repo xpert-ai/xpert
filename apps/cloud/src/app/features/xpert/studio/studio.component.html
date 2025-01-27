@@ -43,7 +43,7 @@
     }
 
     @for (node of nodes(); track node.key + node.hash) {
-      <div class="w-[240px] group relative pb-1 shadow-sm border border-transparent rounded-[15px] bg-workflow-block-bg hover:shadow-lg"
+      <div class="w-[240px] group relative pb-1 shadow-sm border border-transparent rounded-[15px] bg-workflow-block-bg hover:shadow-lg hover:z-10"
         [class.ngm-selected]="selectedNodeKey() === node.key"
         [class.ngm-executor-agent]="node.parentId"
         [ngClass]="agentExecutions()[node.key]?.status||''"

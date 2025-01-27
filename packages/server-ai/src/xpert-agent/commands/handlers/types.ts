@@ -2,7 +2,7 @@ import { ToolCall } from '@langchain/core/dist/messages/tool'
 import { BaseMessage } from '@langchain/core/messages'
 import { Runnable, RunnableLike, RunnableToolLike } from '@langchain/core/runnables'
 import { StructuredToolInterface } from '@langchain/core/tools'
-import { Annotation, messagesStateReducer } from '@langchain/langgraph'
+import { Annotation, CompiledStateGraph, messagesStateReducer } from '@langchain/langgraph'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
 import { TStateVariable, TVariableAssigner, VariableOperationEnum } from '@metad/contracts'
 
@@ -61,7 +61,8 @@ export const AgentStateAnnotation = Annotation.Root({
 export type TSubAgent = {
 	name: string
 	tool: StructuredToolInterface | RunnableToolLike
-	node: RunnableLike<typeof AgentStateAnnotation> | Runnable
+	node?: RunnableLike<typeof AgentStateAnnotation> | Runnable
+	stateGraph?: Runnable
 }
 
 export function parseXmlString(content: string) {
