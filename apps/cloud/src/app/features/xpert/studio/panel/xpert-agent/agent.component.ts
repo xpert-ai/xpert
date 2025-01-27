@@ -274,4 +274,10 @@ export class XpertStudioPanelAgentComponent {
     }
     this.apiService.updateXpertAgent(this.key(), { promptTemplates: [...promptTemplates]})
   }
+
+  removePrompt(index: number) {
+    const promptTemplates = [...this.promptTemplates()]
+    promptTemplates.splice(index, 1)
+    this.apiService.updateXpertAgent(this.key(), { promptTemplates })
+  }
 }

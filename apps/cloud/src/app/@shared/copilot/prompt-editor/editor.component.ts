@@ -13,6 +13,7 @@ import {
   input,
   model,
   numberAttribute,
+  output,
   TemplateRef,
   ViewChild,
   ViewContainerRef
@@ -37,19 +38,27 @@ import { TStateVariable } from '../../../@core'
 export class CopilotPromptEditorComponent {
   readonly #dialog = inject(MatDialog)
   readonly #vcr = inject(ViewContainerRef)
+  readonly elementRef = inject(ElementRef)
 
   readonly regex = `{{(.*?)}}`
 
+  // Inputs
   readonly initHeight = input<number, number | string>(210, {
     transform: numberAttribute
   })
   readonly tooltip = input<string>()
   readonly variables = input<TStateVariable[]>()
+  readonly role = input<'system' | 'ai' | 'human'>()
 
+  // Outputs
+  readonly deleted = output<void>()
+
+  // Children
   @ViewChild('editablePrompt', { static: true }) editablePrompt!: ElementRef
   @ViewChild('suggestionsTemplate', { static: true }) suggestionsTemplate!: TemplateRef<any>
   overlayRef: OverlayRef | null = null
 
+  // States
   readonly prompt = model<string>()
   readonly promptLength = computed(() => this.prompt()?.length)
 
