@@ -26,7 +26,7 @@ import { GetXpertWorkflowQuery, GetXpertChatModelQuery } from '../../../xpert/qu
 import { createParameters } from '../execute.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
-import { AgentStateAnnotation, parseXmlString, TGraphTool, TSubAgent } from './types'
+import { AgentStateAnnotation, parseXmlString, stateVariable, TGraphTool, TSubAgent } from './types'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -81,7 +81,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		)
 		const tools: TGraphTool[] = []
 		const interruptBefore: string[] = []
-		const stateVariables: TStateVariable[] = []
+		const stateVariables: TStateVariable[] = Array.from(team.agentConfig?.stateVariables ?? [])
 		for await (const toolset of toolsets) {
 			stateVariables.push(...(toolset.getVariables() ?? []))
 			const items = await toolset.initTools()
@@ -123,6 +123,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 		const summarize = ensureSummarize(team.summarize)
 		// Next agent
+		let nextNodeKey = END
 		const agentKeys = new Set([agent.key])
 		const nodes = {}
 		const conditionalEdges = {}
@@ -152,6 +153,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			}
 			for await (const node of next ?? []) {
 				await createSubgraph(node, agentKey)
+				nextNodeKey = node.key
 			}
 		}
 		if (leaderKey) {
@@ -161,10 +163,17 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		// State
 		const SubgraphStateAnnotation = Annotation.Root({
 			...AgentStateAnnotation.spec, // Common agent states
-			// [`${agent.key}.messages`]: Annotation<BaseMessage[]>({
-			// 	reducer: messagesStateReducer,
-			// 	default: () => []
-			// }),
+			// Global conversation variables
+			...(stateVariables.reduce((acc, variable) => {
+				acc[variable.name] = Annotation({
+					...(variable.reducer ? stateVariable(variable) : {
+						reducer: variable.reducer,
+						default: variable.default,
+					}),
+				  })
+				return acc
+			}, {}) ?? {}),
+			// Messages channel for agents
 			...Object.fromEntries(Array.from(agentKeys).map((curr) => [
 				`${curr}.messages`,
 				Annotation<BaseMessage[]>({
@@ -233,14 +242,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			const name = tool.name
 			subgraphBuilder
 				.addNode(name, new ToolNode([tool], { caller, variables }))
-				.addEdge(name, endNodes?.includes(tool.name) ? END : agentKey)
+				.addEdge(name, endNodes?.includes(tool.name) ? nextNodeKey : agentKey)
 		})
 
 		// Subgraphs
 		if (subAgents) {
 			Object.keys(subAgents).forEach((name) => {
 				subgraphBuilder.addNode(name, subAgents[name].stateGraph)
-					.addEdge(name, endNodes?.includes(name) ? END : agentKey)
+					.addEdge(name, endNodes?.includes(name) ? nextNodeKey : agentKey)
 			})
 		}
 

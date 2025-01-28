@@ -82,13 +82,20 @@ export class ToolNode<T = any> extends Runnable<T, T> {
                     id: 'UQrgAkR8EM',
                     variableSelector: 'memories',
                     operation: 'append',
-                    inputType: 'variable'
+                    inputType: 'variable',
+                    value: 'content' | ''
                   }
                 ]
                */
               const variables = this.variables.reduce((acc, curr) => {
                 if (curr.inputType === 'variable') {
-                  acc[curr.variableSelector] = (<ToolMessage>output).artifact
+                  if (curr.value === 'artifact') {
+                    acc[curr.variableSelector] = (<ToolMessage>output).artifact
+                  } else {
+                    acc[curr.variableSelector] = (<ToolMessage>output).content
+                  }
+                } else if (curr.inputType === 'constant') {
+                  acc[curr.variableSelector] = curr.value
                 }
                 return acc
               }, {})

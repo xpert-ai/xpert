@@ -84,9 +84,8 @@
 
         <div class="shrink-0 flex gap-1 items-center text-text-tertiary">
           <button type="button" class="btn p-1 rounded-lg cursor-pointer hover:bg-hover-bg hover:text-text-secondary"
-            (click)="editVar(item.variable)"
             [cdkMenuTriggerFor]="variableMenu"
-            [cdkMenuTriggerData]="{trigger: trigger, index: index}"
+            [cdkMenuTriggerData]="{trigger: trigger, index: index, }"
             #trigger="cdkMenuTriggerFor"
           >
             <svg
@@ -128,127 +127,12 @@
 </div>
 
 <ng-template #variableMenu let-trigger="trigger" let-index="index">
-  <div class="flex flex-col w-[360px] bg-components-panel-bg rounded-2xl h-full border-[0.5px] border-components-panel-border shadow-2xl"
+  <xpert-variable-form class="flex flex-col w-[360px] bg-components-panel-bg rounded-2xl h-full border-[0.5px] border-components-panel-border shadow-2xl"
     cdkTrapFocusAutoCapture
     cdkTrapFocus
-  >
-    <div class="shrink-0 flex items-center justify-between mb-3 p-4 pb-0 text-text-primary system-xl-semibold">添加会话变量
-      <div class="flex items-center">
-        <div class="flex items-center justify-center w-6 h-6 cursor-pointer"
-          (click)="trigger.close()"
-        >
-          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="w-4 h-4 text-text-tertiary">
-            <path d="M11.9997 10.5865L16.9495 5.63672L18.3637 7.05093L13.4139 12.0007L18.3637 16.9504L16.9495 18.3646L11.9997 13.4149L7.04996 18.3646L5.63574 16.9504L10.5855 12.0007L5.63574 7.05093L7.04996 5.63672L11.9997 10.5865Z"></path>
-          </svg>
-        </div>
-      </div>
-    </div>
-
-    <form [formGroup]="form" class="px-4 py-2 max-h-[480px] overflow-y-auto">
-      <div class="mb-4">
-        <div class="mb-1 h-6 flex items-center text-text-secondary system-sm-semibold">名称</div>
-        <div class="flex">
-          <input formControlName="name" matInput tabindex="0" class="block px-3 w-full h-8 bg-components-input-bg-normal system-sm-regular rounded-lg border border-transparent appearance-none outline-none caret-primary-600 hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:system-sm-regular placeholder:text-components-input-text-placeholder" placeholder="变量名" type="text" value="" data-tabindex="0">
-        </div>
-      </div>
-      <div class="mb-4 flex gap-2">
-        <div class="grow flex flex-col">
-          <div class="mb-1 h-6 flex items-center text-text-secondary system-sm-semibold">类型</div>
-
-          <ngm-select formControlName="type"
-            [placeholder]="'PAC.Xpert.VariableType' | translate: {Default: 'Type'}"
-            [selectOptions]="[
-              {
-                value: 'string',
-                label: {
-                  en_US: 'String',
-                  zh_Hans: '字符串'
-                }
-              },
-              {
-                value: 'number',
-                label: {
-                  en_US: 'Number',
-                  zh_Hans: '数字'
-                }
-              },
-              {
-                value: 'object',
-                label: {
-                  en_US: 'Object',
-                  zh_Hans: '对象'
-                }
-              },
-              {
-                value: 'array[string]',
-                label: {
-                  en_US: 'String[]',
-                  zh_Hans: '字符串数组'
-                }
-              },
-              {
-                value: 'array[number]',
-                label: {
-                  en_US: 'Number[]',
-                  zh_Hans: '数字数组'
-                }
-              },
-              {
-                value: 'array[object]',
-                label: {
-                  en_US: 'Object[]',
-                  zh_Hans: '对象数组'
-                }
-              }]"
-          />
-        </div>
-
-        <div class="grow flex flex-col">
-          <div class="mb-1 h-6 flex items-center text-text-secondary system-sm-semibold">Reducer</div>
-          <ngm-select formControlName="operation"
-            [placeholder]="'PAC.Xpert.VariableReducer' | translate: {Default: 'Reducer'}"
-            [selectOptions]="[
-              {
-                value: eVariableOperationEnum.APPEND,
-                label: {
-                  en_US: 'Append',
-                  zh_Hans: '追加'
-                }
-              },
-              {
-                value: eVariableOperationEnum.OVERWRITE,
-                label: {
-                  en_US: 'Overwrite',
-                  zh_Hans: '覆盖'
-                }
-              }
-            ]"
-          />
-        </div>
-
-      </div>
-      <div class="mb-4">
-        <div class="mb-1 h-6 flex items-center justify-between text-text-secondary system-sm-semibold">
-          <div>默认值</div>
-        </div>
-        <div class="flex">
-          <input formControlName="default" matInput tabindex="0" class="block px-3 w-full h-8 bg-components-input-bg-normal system-sm-regular rounded-lg border border-transparent appearance-none outline-none caret-primary-600 hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:system-sm-regular placeholder:text-components-input-text-placeholder" placeholder="默认值，可以为空">
-        </div>
-      </div>
-      <div class="">
-        <div class="mb-1 h-6 flex items-center text-text-secondary system-sm-semibold">描述</div>
-        <div class="flex">
-          <textarea formControlName="description" matInput tabindex="0" class="block p-2 w-full h-20 rounded-lg bg-components-input-bg-normal border border-transparent system-sm-regular outline-none appearance-none caret-primary-600 resize-none hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:system-sm-regular placeholder:text-components-input-text-placeholder" placeholder="变量的描述"></textarea>
-        </div>
-      </div>
-    </form>
-
-    <div class="p-4 pt-2 flex flex-row-reverse rounded-b-2xl">
-      <div class="flex gap-2">
-        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium" (click)="trigger.close()">取消</button>
-        <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
-          (click)="addVar(index);trigger.close()">保存</button>
-      </div>
-    </div>
-  </div>
+    [variable]="variables()[index]?.variable"
+    (cancel)="trigger.close()"
+    (saved)="addVar($event, index);trigger.close()"
+    >
+  </xpert-variable-form>
 </ng-template>

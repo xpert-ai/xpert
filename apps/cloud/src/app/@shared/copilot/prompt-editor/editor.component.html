@@ -103,7 +103,9 @@
     <ul>
       @for (variable of variables(); track variable.name) {
         <li cdkMenuItem class="max-w-sm space-x-2 truncate" (click)="selectVariable(variable)">
-          <span class="text-sm mr-1">{{ variable.name }}</span> <span class="px-1 text-sm rounded-md bg-gray-50 text-primary-300">{{variable.type}}</span> <span class="text-sm italic">{{variable.description | i18n}}</span>
+          <span class="text-sm mr-1">{{ variable.name }}</span>
+          <span class="flex-1 text-sm italic truncate">{{variable.description | i18n}}</span>
+          <span class="ml-4 px-1 text-sm rounded-md bg-gray-50 text-primary-300">{{variable.type}}</span>
         </li>
       }
     </ul>

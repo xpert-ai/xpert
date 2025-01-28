@@ -24,7 +24,7 @@
 <div class="flex flex-col">
   @for (memory of memories(); track memory.id; let i = $index) {
     <div class="flex">
-      <div class="flex-1 flex gap-2">
+      <div class="flex-1 flex items-start gap-2">
         <xpert-state-variable-select class="grow" [variables]="variables()"
           [ngModel]="memory.variableSelector"
           [ngModelOptions]="{standalone: true}"
@@ -39,11 +39,16 @@
         />
 
         @if (memory.inputType === 'constant') {
-          <input class="grow rounded-lg bg-gray-100 px-2 py-1 focus:bg-white"
+          <input class="w-32 rounded-lg bg-gray-100 px-2 py-1 focus:bg-white"
             [ngModel]="memory.value"
             (ngModelChange)="updateMemory(i, 'value', $event)">
         } @else {
-          <div class="grow rounded-lg bg-gray-100 px-2 py-1 focus:bg-white">output</div>
+          <ngm-select class="w-32 border-0" [selectOptions]="ToolValueOptions"
+            [placeholder]="'PAC.Xpert.ToolOutput' | translate: {Default: 'Tool output'}"
+            [ngModel]="memory.value"
+            [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="updateMemory(i, 'value', $event)"
+          />
         }
         <div class="flex gap-1">
           <!-- <ngm-select class="w-28 border-0" [selectOptions]="OPERATIONS"

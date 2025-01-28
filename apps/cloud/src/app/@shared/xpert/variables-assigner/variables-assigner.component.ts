@@ -46,6 +46,22 @@ export class XpertVariablesAssignerComponent {
       }
     }
   ]
+  readonly ToolValueOptions: TSelectOption<TVariableAssigner['value']>[] = [
+    {
+      value: 'content',
+      label: {
+        zh_Hans: '内容',
+        en_US: 'Content'
+      }
+    },
+    {
+      value: 'artifact',
+      label: {
+        zh_Hans: '结构数据',
+        en_US: 'Artifact'
+      }
+    }
+  ]
 
   add() {
     this.memories.update((state) => [...(state ?? []), { id: uuid() } as TVariableAssigner])

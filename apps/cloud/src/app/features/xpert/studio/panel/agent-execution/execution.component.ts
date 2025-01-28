@@ -4,6 +4,7 @@ import {
   Component,
   computed,
   DestroyRef,
+  effect,
   inject,
   input,
   model,
@@ -127,6 +128,12 @@ export class XpertStudioPanelAgentExecutionComponent {
     this.#destroyRef.onDestroy(() => {
       this.clearStatus()
     })
+
+    effect(() => {
+      if (this.execution()) {
+        this.parameterValue.set(this.execution().inputs)
+      }
+    }, { allowSignalWrites: true })
   }
 
   clearStatus() {

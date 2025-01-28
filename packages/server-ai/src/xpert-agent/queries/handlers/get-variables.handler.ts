@@ -58,8 +58,9 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			return variables
 		}
 
-		if (xpert.agentConfig?.stateVariables) {
-			variables.push(...xpert.agentConfig.stateVariables)
+		const stateVariables = isDraft ? xpert.draft?.team?.agentConfig?.stateVariables : xpert.agentConfig?.stateVariables
+		if (stateVariables) {
+			variables.push(...stateVariables)
 		}
 
 		if (agentKey) {
