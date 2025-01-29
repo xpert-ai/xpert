@@ -36,6 +36,7 @@ const vars = {
   'hover-bg': 'var(--color-hover-bg)',
   'danger-bg': 'var(--color-danger-bg)',
   'state-base-hover': 'var(--color-hover-bg)',
+  'state-destructive-hover': 'var(--color-state-destructive-hover)',
 
   'token-main-surface-primary': 'var(--main-surface-primary)',
   'token-main-surface-secondary': 'var(--main-surface-secondary)',
@@ -59,7 +60,7 @@ const vars = {
   'components-input-border-active': 'var(--color-components-input-border-active)',
   'components-input-text-placeholder': 'var(--color-components-input-text-placeholder)',
   'components-list-option-bg': 'var(--color-components-list-option-bg)',
-  'components-list-option-active-bg': 'var(--color-components-list-option-active-bg)',
+  'components-list-option-active-bg': 'var(--color-components-list-option-active-bg)'
 }
 
 export default vars

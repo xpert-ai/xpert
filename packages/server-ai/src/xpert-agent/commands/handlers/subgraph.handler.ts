@@ -1,6 +1,6 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
-import { BaseMessage, HumanMessage, isAIMessage, ToolMessage } from '@langchain/core/messages'
+import { AIMessageChunk, BaseMessage, HumanMessage, isAIMessage, isAIMessageChunk, isBaseMessageChunk, ToolMessage } from '@langchain/core/messages'
 import { HumanMessagePromptTemplate, SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
 import {
@@ -13,7 +13,7 @@ import {
 	START,
 	StateGraph
 } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IXpert, IXpertAgent, IXpertAgentExecution, TStateVariable, TSummarize, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IWFNIfElse, IXpert, IXpertAgent, IXpertAgentExecution, TStateVariable, TSummarize, TWFCaseCondition, TXpertGraph, TXpertTeamNode, WorkflowComparisonOperator, WorkflowLogicalOperator, WorkflowNodeTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
@@ -28,6 +28,7 @@ import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
 import { AgentStateAnnotation, parseXmlString, stateVariable, TGraphTool, TSubAgent } from './types'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
+import { channelName } from '../../agent'
 
 @CommandHandler(XpertAgentSubgraphCommand)
 export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubgraphCommand> {
@@ -43,7 +44,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const { agentKey, xpert, options } = command
 		const { isStart, execution, leaderKey, summarizeTitle, subscriber, abortController } = options
 
-		const {agent, next} = await this.queryBus.execute<GetXpertWorkflowQuery, {agent: IXpertAgent; next: TXpertTeamNode[]}>(
+		const {agent, graph, next} = await this.queryBus.execute<GetXpertWorkflowQuery, {agent: IXpertAgent; graph: TXpertGraph; next: TXpertTeamNode[]}>(
 			new GetXpertWorkflowQuery(xpert.id, agentKey, command.options?.isDraft)
 		)
 		if (!agent) {
@@ -129,7 +130,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const conditionalEdges = {}
 		if (isStart) {
 			// The root node is responsible for the overall workflow
-			const createSubgraph = async (node: TXpertTeamNode, parentKey: string) => {
+			const createSubgraph = async (node: TXpertTeamNode, parentKey?: string,) => {
 				if (node.type === 'agent' && !agentKeys.has(node.entity.key)) {
 					agentKeys.add(node.key)
 					const {stateGraph, nextNodes} = await this.createAgentSubgraph(node.entity, {
@@ -144,10 +145,21 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					})
 	
 					nodes[node.entity.key] = stateGraph
-					conditionalEdges[parentKey] = createAgentNavigator(summarize, false, node.entity.key)
+					if (parentKey) {
+					  conditionalEdges[parentKey] = createAgentNavigator(summarize, false, node.entity.key)
+					}
 
 					for await (const nNode of nextNodes ?? []) {
 						await createSubgraph(nNode, node.key)
+					}
+				} else if(node.type === 'workflow') {
+					const { workflowNode, nextNodes } = createWorkflowNode(graph, node,)
+					nodes[node.key] = workflowNode
+					if (parentKey) {
+						conditionalEdges[parentKey] = createAgentNavigator(summarize, false, workflowNode)
+					}
+					for await (const nNode of nextNodes ?? []) {
+						await createSubgraph(nNode)
 					}
 				}
 			}
@@ -166,10 +178,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			// Global conversation variables
 			...(stateVariables.reduce((acc, variable) => {
 				acc[variable.name] = Annotation({
-					...(variable.reducer ? stateVariable(variable) : {
+					...(variable.reducer ? {
 						reducer: variable.reducer,
 						default: variable.default,
-					}),
+					} : stateVariable(variable)),
 				  })
 				return acc
 			}, {}) ?? {}),
@@ -180,11 +192,24 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					reducer: messagesStateReducer,
 					default: () => []
 				})
+			])),
+			// Channels for agents
+			...Object.fromEntries(Array.from(agentKeys).map((curr) => [
+				channelName(curr),
+				Annotation<{messages: BaseMessage[]} & Record<string, unknown>>({
+					reducer: (a, b) => {
+						return b ? {
+							...a,
+							...b,
+							messages: b.messages ? messagesStateReducer(a.messages, b.messages) : a.messages
+						} : a
+					},
+					default: () => ({messages: []})
+				})
 			]))
 		})
 
-		const chatModelWithTools = chatModel.bindTools([...tools.map((item) => item.tool), ...Object.keys(subAgents ?? {}).map((name) => subAgents[name].tool)])
-
+		const withTools = [...tools.map((item) => item.tool), ...Object.keys(subAgents ?? {}).map((name) => subAgents[name].tool)]
 		const enableMessageHistory = !agent.options?.disableMessageHistory
 		const stateModifier = async (state: typeof AgentStateAnnotation.State) => {
 			const { summary, memories } = state
@@ -220,12 +245,40 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			return messages
 		}
 
+		// Execute agent
 		const callModel = async (state: typeof SubgraphStateAnnotation.State, config?: RunnableConfig) => {
+			// With tools or with StructuredOutput
+			const chatModelWithTools = withTools.length ? chatModel.bindTools(tools) : (
+				agent.outputVariables?.length ? chatModel.withStructuredOutput(z.object({
+					...createParameters(agent.outputVariables),
+				})) : chatModel)
+
 			const message = await chatModelWithTools.invoke(await stateModifier(state), config)
-			return {
-				messages: [message],
-				[`${agentKey}.messages`]: [message]
+			const nState: Record<string, any> = {
+				messages: [],
+				[`${agentKey}.messages`]: [],
+				[channelName(agentKey)]: {messages: []}
 			}
+			if (isBaseMessageChunk(message) && isAIMessageChunk(message)) {
+				nState.messages.push(message)
+				nState[`${agentKey}.messages`].push(message)
+				nState[channelName(agentKey)].messages.push(message)
+			} else {
+				nState[channelName(agentKey)] = message
+			}
+			// Write to memory
+			if (isStart && agent.options?.memories) {
+				agent.options?.memories.forEach((item) => {
+					if (item.inputType === 'constant') {
+						nState[item.variableSelector] = item.value
+					} else if (item.inputType === 'variable') {
+						if (item.value === 'content' && isAIMessageChunk(message as AIMessageChunk)) {
+							nState[item.variableSelector] = (message as AIMessageChunk).content
+						}
+					}
+				})
+			}
+			return nState
 		}
 
 		const thread_id = command.options.thread_id
@@ -254,7 +307,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		if (!Object.keys(nodes).length) {
-			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(summarize, false,))
+			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(summarize, false, null))
 		} else {
 			// Next nodes
 			Object.keys(nodes).forEach((name) => subgraphBuilder.addNode(name, nodes[name]))
@@ -309,115 +362,148 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			})
 		})
 
-		return {
-			name: uniqueName,
-			tool: agentTool,
-			nextNodes,
-			stateGraph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config: LangGraphRunnableConfig): Promise<Partial<typeof AgentStateAnnotation.State>> => {
-				const call = state.toolCall
-				execution.threadId = config.configurable.thread_id
-				execution.checkpointNs = config.configurable.checkpoint_ns
+		const stateGraph = RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config: LangGraphRunnableConfig): Promise<Partial<typeof AgentStateAnnotation.State>> => {
+			const call = state.toolCall
+			execution.threadId = config.configurable.thread_id
+			execution.checkpointNs = config.configurable.checkpoint_ns
 
-				// Record start time
-				const timeStart = Date.now()
-				const _execution = await this.commandBus.execute(
+			// Record start time
+			const timeStart = Date.now()
+			const _execution = await this.commandBus.execute(
+				new XpertAgentExecutionUpsertCommand({
+					...execution,
+					xpert: { id: xpert.id } as IXpert,
+					agentKey: agent.key,
+					inputs: call?.args,
+					parentId: options.rootExecutionId,
+					status: XpertAgentExecutionStatusEnum.RUNNING
+				})
+			)
+
+			// Start agent execution event
+			subscriber.next(
+				({
+					data: {
+						type: ChatMessageTypeEnum.EVENT,
+						event: ChatMessageEventTypeEnum.ON_AGENT_START,
+						data: _execution
+					}
+				}) as MessageEvent
+			)
+
+			let status = XpertAgentExecutionStatusEnum.SUCCESS
+			let error = null
+			let result = ''
+			const finalize = async (configurable) => {
+				const timeEnd = Date.now()
+				// Record End time
+				const newExecution = await this.commandBus.execute(
 					new XpertAgentExecutionUpsertCommand({
-						...execution,
-						xpert: { id: xpert.id } as IXpert,
-						agentKey: agent.key,
-						inputs: call?.args,
-						parentId: options.rootExecutionId,
-						status: XpertAgentExecutionStatusEnum.RUNNING
+						..._execution,
+						checkpointId: configurable.checkpoint_id,
+						elapsedTime: timeEnd - timeStart,
+						status,
+						error,
+						outputs: {
+							output: result
+						}
 					})
 				)
-
-				// Start agent execution event
+	
+				const fullExecution = await this.queryBus.execute(
+					new XpertAgentExecutionOneQuery(newExecution.id)
+				)
+	
+				// End agent execution event
 				subscriber.next(
 					({
 						data: {
 							type: ChatMessageTypeEnum.EVENT,
-							event: ChatMessageEventTypeEnum.ON_AGENT_START,
-							data: _execution
+							event: ChatMessageEventTypeEnum.ON_AGENT_END,
+							data: fullExecution
 						}
 					}) as MessageEvent
 				)
+			}
 
-				let status = XpertAgentExecutionStatusEnum.SUCCESS
-				let error = null
-				let result = ''
-				const finalize = async (configurable) => {
-					const timeEnd = Date.now()
-					// Record End time
-					const newExecution = await this.commandBus.execute(
-						new XpertAgentExecutionUpsertCommand({
-							..._execution,
-							checkpointId: configurable.checkpoint_id,
-							elapsedTime: timeEnd - timeStart,
-							status,
-							error,
-							outputs: {
-								output: result
-							}
-						})
-					)
-		
-					const fullExecution = await this.queryBus.execute(
-						new XpertAgentExecutionOneQuery(newExecution.id)
-					)
-		
-					// End agent execution event
-					subscriber.next(
-						({
-							data: {
-								type: ChatMessageTypeEnum.EVENT,
-								event: ChatMessageEventTypeEnum.ON_AGENT_END,
-								data: fullExecution
-							}
-						}) as MessageEvent
-					)
+			try {
+				const subState = {
+					...state,
+					...(isTool ? {
+						...call.args,
+						[`${agent.key}.messages`]: [new HumanMessage(call.args.input)]
+					} : {}),
 				}
+				const output = await graph.invoke(subState, config)
 
-				try {
-					const subState = {
-						...state,
-						...(isTool ? {
-							...call.args,
-							[`${agent.key}.messages`]: [new HumanMessage(call.args.input)]
-						} : {}),
-					}
-					const output = await graph.invoke(subState, config)
+				const _state = await graph.getState(config)
 
-					const _state = await graph.getState(config)
+				const lastMessage = output.messages[output.messages.length - 1]
+				if (lastMessage && isAIMessage(lastMessage)) {
+					result = lastMessage.content as string
+				}
+				
+				// End agent execution event
+				await finalize(_state.config.configurable)
 
-					// End agent execution event
-					await finalize(_state.config.configurable)
-
-					const lastMessage = output.messages[output.messages.length - 1]
-					return isTool ? {
-						[`${leaderKey}.messages`]: [
+				const nState: Record<string, any> = isTool ? {
+					[`${leaderKey}.messages`]: [
+						new ToolMessage({
+							content: lastMessage.content,
+							name: call.name,
+							tool_call_id: call.id ?? "",
+						})
+					],
+					[`${agent.key}.messages`]: [lastMessage],
+					[channelName(leaderKey)]: {
+						messages: [
 							new ToolMessage({
 								content: lastMessage.content,
 								name: call.name,
 								tool_call_id: call.id ?? "",
 							})
-						],
-						[`${agent.key}.messages`]: [lastMessage]
-					} : {
-						[`${agent.key}.messages`]: [lastMessage]
+						]
+					},
+					[channelName(agent.key)]: {
+						messages: [lastMessage]
 					}
-				} catch(err) {
-					console.error(err)
-					// Catch the error before generated obs
-					// try {
-					// 	status = XpertAgentExecutionStatusEnum.ERROR
-					// 	error = getErrorMessage(err)
-					// 	await finalize()
-					// } catch(err) {
-					// 	//
-					// }
-					// throw err
+				} : {
+					[`${agent.key}.messages`]: [lastMessage],
+					[channelName(agent.key)]: {
+						messages: [lastMessage]
+					}
 				}
-			}),
+				// Write to memory
+				agent.options?.memories?.forEach((item) => {
+					if (item.inputType === 'constant') {
+						nState[item.variableSelector] = item.value
+					} else if (item.inputType === 'variable') {
+						if (item.value === 'content') {
+							nState[item.variableSelector] = lastMessage.content
+						}
+					}
+				})
+				
+				return nState
+			} catch(err) {
+				console.error(err)
+				// Catch the error before generated obs
+				// try {
+				// 	status = XpertAgentExecutionStatusEnum.ERROR
+				// 	error = getErrorMessage(err)
+				// 	await finalize()
+				// } catch(err) {
+				// 	//
+				// }
+				// throw err
+			}
+		})
+
+		return {
+			name: uniqueName,
+			tool: agentTool,
+			nextNodes,
+			stateGraph
 		} as TSubAgent
 	}
 }
@@ -432,8 +518,8 @@ function ensureSummarize(summarize?: TSummarize) {
 	)
 }
 
-function createAgentNavigator(summarize, summarizeTitle, next?: string) {
-	return (state: typeof AgentStateAnnotation.State) => {
+function createAgentNavigator(summarize, summarizeTitle, next?: (string | ((state, config) => string))) {
+	return (state: typeof AgentStateAnnotation.State, config) => {
 		const { title, messages } = state
 		const lastMessage = messages[messages.length - 1]
 		if (isAIMessage(lastMessage)) {
@@ -445,13 +531,28 @@ function createAgentNavigator(summarize, summarizeTitle, next?: string) {
 					return 'title_conversation'
 				}
 
-				return next ?? END
+				if (next) {
+					if (typeof next === 'string') {
+						return next
+					} else {
+						return next(state, config)
+					}
+				}
+
+				return END
 			}
 
 			return lastMessage.tool_calls.map((toolCall) => new Send(toolCall.name, { ...state, toolCall }))
 		}
 
-		return next ?? END
+		if (next) {
+			if (typeof next === 'string') {
+				return next
+			} else {
+				return next(state, config)
+			}
+		}
+		return END
 	}
 }
 
@@ -470,4 +571,73 @@ function stateToParameters(state: typeof AgentStateAnnotation.State,) {
 		}
 		return acc
 	}, {})
+}
+
+function createWorkflowNode(graph: TXpertGraph, node: TXpertTeamNode & {type: 'workflow'}) {
+
+	let workflowNode = null
+	
+	if (node.entity.type === WorkflowNodeTypeEnum.IF_ELSE) {
+		const entity = node.entity as IWFNIfElse
+		const evaluateCases = (state: typeof AgentStateAnnotation.State, config) => {
+			const evaluateCondition = (condition: TWFCaseCondition) => {
+				const stateValue = state[condition.variableSelector]
+				switch (condition.comparisonOperator) {
+					case WorkflowComparisonOperator.EQUAL:
+						return stateValue === condition.value;
+					case WorkflowComparisonOperator.NOT_EQUAL:
+						return stateValue !== condition.value;
+					case WorkflowComparisonOperator.CONTAINS:
+						return stateValue?.includes(condition.value);
+					case WorkflowComparisonOperator.NOT_CONTAINS:
+						return !stateValue?.includes(condition.value);
+					case WorkflowComparisonOperator.GT:
+						return stateValue > condition.value;
+					case WorkflowComparisonOperator.LT:
+						return stateValue < condition.value;
+					case WorkflowComparisonOperator.GE:
+						return stateValue >= condition.value;
+					case WorkflowComparisonOperator.LE:
+						return stateValue <= condition.value;
+					case WorkflowComparisonOperator.EMPTY:
+						return !stateValue;
+					case WorkflowComparisonOperator.NOT_EMPTY:
+						return !!stateValue;
+					default:
+						return false;
+				}
+			};
+
+			const evaluateConditions = (conditions: TWFCaseCondition[], logicalOperator: WorkflowLogicalOperator) => {
+				if (logicalOperator === WorkflowLogicalOperator.AND) {
+					return conditions.every(evaluateCondition);
+				} else if (logicalOperator === WorkflowLogicalOperator.OR) {
+					return conditions.some(evaluateCondition);
+				}
+				return false;
+			}
+
+			for (const item of entity.cases) {
+				const result = evaluateConditions(item.conditions, item.logicalOperator)
+				if (result) {
+					// Handle the case where conditions are met
+					// For example, you might want to return a specific state or perform an action
+					return node.key + '/' + item.caseId
+				}
+			}
+			return node.key + '/else'
+		}
+
+		workflowNode = async (state: typeof AgentStateAnnotation.State, config) => {
+			const result = evaluateCases(state, config)
+			return graph.connections.find((conn) =>conn.type === 'edge' && conn.from === result)?.to
+		}
+	}
+
+	return {
+		workflowNode,
+		nextNodes: graph.connections
+			.filter((_) => _.type === 'edge' && _.from.startsWith(node.key))
+			.map((conn) => graph.nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to))
+	}
 }

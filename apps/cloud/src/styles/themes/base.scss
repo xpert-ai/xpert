@@ -58,9 +58,14 @@
   --color-text-tertiary: theme('colors.gray.400');
   --color-text-quaternary: theme('colors.gray.300');
   --color-text-warning: theme('colors.red.300');
+  --color-text-destructive: theme('colors.red.500');
+  --color-text-accent: theme('colors.amber.500');
+  --color-text-accent-secondary: theme('colors.amber.400');
 
   --color-hover-bg: oklch(0 0 0 / 0.05);
   --color-danger-bg: theme('colors.red.50');
+  --color-state-destructive-hover: theme('colors.red.50');
+  --color-state-destructive-hover: theme('colors.red.50');
 }
 
 :root .dark {

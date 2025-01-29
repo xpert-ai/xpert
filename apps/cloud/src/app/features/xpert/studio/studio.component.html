@@ -22,7 +22,7 @@
         [fOutputId]="connection.from + '/' + connection.type"
         [fInputId]="connection.to + (connection.type === 'edge' ? '/edge' : '')"
         class="gradient-color cursor-pointer"
-        [class.f-selected]="selectedNodeKey() === connection.from || selectedNodeKey() === connection.to"
+        [class.f-selected]="connection.from.startsWith(selectedNodeKey()) || connection.to.startsWith(selectedNodeKey())"
         fStartColor="var(--connection-gradient-1)" fEndColor="var(--connection-gradient-2)"
         [cdkContextMenuTriggerFor]="connContextMenu"
         [cdkContextMenuTriggerData]="{connection: connComp}"
@@ -75,6 +75,9 @@
           }
           @case('toolset') {
             <xpert-studio-node-toolset [node]="node" class="" />
+          }
+          @case('workflow') {
+            <xpert-studio-node-workflow [node]="node" class="" />
           }
         }
 

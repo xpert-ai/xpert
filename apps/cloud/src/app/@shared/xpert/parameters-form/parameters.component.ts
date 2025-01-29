@@ -2,10 +2,10 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, input } from '@angular/core'
 import { NgmSelectComponent, SlashSvgComponent, VariableSvgComponent } from '@metad/ocap-angular/common'
 import { DisplayBehaviour } from '@metad/ocap-core'
+import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { TXpertParameter, XpertParameterTypeEnum } from '../../../@core'
-import { FormsModule } from '@angular/forms'
 
 @Component({
   standalone: true,

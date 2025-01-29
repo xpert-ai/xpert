@@ -42,7 +42,7 @@ import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { ToolCallConfirmComponent, XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { map, of, Subscription, switchMap } from 'rxjs'
+import { map, of, Subject, Subscription, switchMap } from 'rxjs'
 import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
 
 @Component({
@@ -84,6 +84,7 @@ export class ChatConversationPreviewComponent {
     transform: booleanAttribute
   })
   readonly _messages = model<IChatMessage[]>()
+  readonly parameterValue = model<Record<string, unknown>>()
 
   // Outputs
   readonly execution = output<string>()
@@ -94,6 +95,7 @@ export class ChatConversationPreviewComponent {
 
   // States
   readonly conversation = signal<IChatConversation>(null)
+  readonly conversationId$ = new Subject<string>()
 
   readonly feedbacks = signal<Record<string, IChatMessageFeedback>>({})
   readonly #feedbacks = derivedAsync(() => {
@@ -137,7 +139,7 @@ export class ChatConversationPreviewComponent {
     return this._messages() as IChatMessage[]
   })
 
-  private convSub = toObservable(this.conversationId)
+  private convSub = this.conversationId$
     .pipe(
       switchMap((id) =>
         id
@@ -154,6 +156,9 @@ export class ChatConversationPreviewComponent {
         if (!this.xpert()) {
           this.xpert.set(conv.xpert)
         }
+        // this.parameterValue.set(conv.)
+      } else {
+        this.parameterValue.set(null)
       }
     })
 
@@ -169,6 +174,12 @@ export class ChatConversationPreviewComponent {
             }, {})
           )
         }
+      },
+      { allowSignalWrites: true }
+    )
+
+    effect(() => {
+        this.conversationId$.next(this.conversationId())
       },
       { allowSignalWrites: true }
     )
@@ -206,7 +217,10 @@ export class ChatConversationPreviewComponent {
       .chat(
         this.xpert().id,
         {
-          input: { input: options?.input },
+          input: {
+            ...(this.parameterValue() ?? {}),
+            input: options?.input
+          },
           conversationId: this.conversation()?.id,
           xpertId: this.xpert().id,
           toolCalls: this.toolCalls(),
@@ -367,7 +381,8 @@ export class ChatConversationPreviewComponent {
   }
 
   restart() {
-    this.conversationId.set(null)
+    this.conversationId$.next(null)
     this._messages.set([])
+    this.parameterValue.set(null)
   }
 }

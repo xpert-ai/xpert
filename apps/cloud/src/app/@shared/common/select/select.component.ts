@@ -3,7 +3,7 @@ import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
-import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
+import { NgmDensityDirective, NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 
@@ -16,7 +16,11 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
   selector: 'ngm-select',
   templateUrl: 'select.component.html',
   styleUrls: ['select.component.scss'],
-  hostDirectives: [NgxControlValueAccessor]
+  hostDirectives: [NgxControlValueAccessor, NgmDensityDirective],
+  inputs: ['small', 'large'],
+  host: {
+    '[class.inline]': 'inline()'
+  }
 })
 export class NgmSelectComponent {
   protected cva = inject<NgxControlValueAccessor<any>>(NgxControlValueAccessor)
@@ -25,6 +29,14 @@ export class NgmSelectComponent {
   readonly placeholder = input<string>()
   readonly selectOptions = input<TSelectOption[]>()
   readonly multiple = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
+
+  readonly inline = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
+
+  readonly nullable = input<boolean, boolean | string>(true, {
     transform: booleanAttribute
   })
 

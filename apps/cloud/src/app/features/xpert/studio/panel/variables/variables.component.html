@@ -130,7 +130,7 @@
   <xpert-variable-form class="flex flex-col w-[360px] bg-components-panel-bg rounded-2xl h-full border-[0.5px] border-components-panel-border shadow-2xl"
     cdkTrapFocusAutoCapture
     cdkTrapFocus
-    [variable]="variables()[index]?.variable"
+    [variable]="variables()?.[index]?.variable"
     (cancel)="trigger.close()"
     (saved)="addVar($event, index);trigger.close()"
     >

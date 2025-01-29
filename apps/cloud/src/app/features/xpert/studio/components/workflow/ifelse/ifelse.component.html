@@ -1,0 +1,26 @@
+@for (ca of cases(); track ca.caseId; let i = $index; let first = $first) {
+  <xpert-workflow-case class=""
+    [index]="i + 1"
+    [first]="first"
+    [case]="ca"
+  >
+    <div fNodeOutput [fOutputId]="node().key + '/' + ca.caseId + '/edge'" fOutputConnectableSide="right" class="right group">
+      <div class="inner-dot">
+        <ngm-plus-svg class="w-2 h-2 text-white" />
+      </div>
+    </div>
+  </xpert-workflow-case>
+}
+
+<div class="relative w-full flex h-6 px-1">
+  <div class="grow flex justify-end">
+    <div class="text-[12px] font-semibold text-text-secondary uppercase">
+      Else
+    </div>
+  </div>
+  <div fNodeOutput [fOutputId]="node().key + '/else/edge'" fOutputConnectableSide="right" class="right group">
+    <div class="inner-dot">
+      <ngm-plus-svg class="w-2 h-2 text-white" />
+    </div>
+  </div>
+</div>

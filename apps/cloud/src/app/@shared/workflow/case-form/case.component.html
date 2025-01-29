@@ -1,0 +1,61 @@
+<div class="group relative">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="remixicon hidden handle absolute top-2 left-1 w-3 h-3 text-text-quaternary cursor-pointer group-hover:block"><path d="M8.5 7C9.32843 7 10 6.32843 10 5.5C10 4.67157 9.32843 4 8.5 4C7.67157 4 7 4.67157 7 5.5C7 6.32843 7.67157 7 8.5 7ZM8.5 13.5C9.32843 13.5 10 12.8284 10 12C10 11.1716 9.32843 10.5 8.5 10.5C7.67157 10.5 7 11.1716 7 12C7 12.8284 7.67157 13.5 8.5 13.5ZM10 18.5C10 19.3284 9.32843 20 8.5 20C7.67157 20 7 19.3284 7 18.5C7 17.6716 7.67157 17 8.5 17C9.32843 17 10 17.6716 10 18.5ZM15.5 7C16.3284 7 17 6.32843 17 5.5C17 4.67157 16.3284 4 15.5 4C14.6716 4 14 4.67157 14 5.5C14 6.32843 14.6716 7 15.5 7ZM17 12C17 12.8284 16.3284 13.5 15.5 13.5C14.6716 13.5 14 12.8284 14 12C14 11.1716 14.6716 10.5 15.5 10.5C16.3284 10.5 17 11.1716 17 12ZM15.5 20C16.3284 20 17 19.3284 17 18.5C17 17.6716 16.3284 17 15.5 17C14.6716 17 14 17.6716 14 18.5C14 19.3284 14.6716 20 15.5 20Z"></path></svg>
+  <div class="absolute left-0 text-[13px] font-semibold text-text-secondary top-1">
+    @if (first()) {
+      IF
+    } @else {
+      ELIF
+    }
+    <div class="text-[10px] text-text-tertiary font-medium">CASE {{index()}}</div>
+  </div>
+
+  <div class="mb-2">
+    <div class="relative pl-[60px]">
+      @if (conditions().length > 1) {
+        <div class="absolute top-0 bottom-0 left-0 w-[60px]">
+          <div class="absolute top-4 bottom-4 left-[46px] w-2.5 border border-divider-deep rounded-l-[8px] border-r-0"></div>
+          <div class="absolute top-1/2 -translate-y-1/2 right-0 w-4 h-[29px] bg-components-panel-bg"></div>
+          <div class="absolute top-1/2 right-1 -translate-y-1/2 flex items-center px-1 h-[21px] rounded-md border-[0.5px]
+            border-components-button-secondary-border bg-components-button-secondary-bg text-text-accent-secondary text-[11px] font-semibold cursor-pointer select-none
+            hover:shadow-sm"
+            (click)="switchOperator()"
+          >
+            @if (eWorkflowLogicalOperator.AND === logicalOperator()) {
+              {{'PAC.Workflow.And' | translate: {Default: 'And'} }}
+            } @else {
+              {{'PAC.Workflow.Or' | translate: {Default: 'Or'} }}
+            }
+            <i class="ri-refresh-line text-sm ml-0.5 w-4 h-4 flex justify-center items-center"></i>
+          </div>
+        </div>
+      }
+      
+      @for (condition of conditions(); track condition.id; let i = $index) {
+        <xpert-workflow-condition-form class="flex mb-1 last-of-type:mb-0"
+          [variables]="variables()"
+          [condition]="condition"
+          (conditionChange)="updateCondition(i, $event)"
+          (deleted)="remove(i)"
+        />
+      }
+    </div>
+  </div>
+
+  <div class="flex items-center justify-between pr-[30px] pl-[60px]">
+    <div class="inline-block" data-state="closed">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
+        (click)="addCondition()"
+      >
+       <i class="ri-add-line"></i>Add Condition
+      </button>
+    </div>
+    <button type="button" class="btn disabled:btn-disabled btn-ghost btn-small danger"
+      (mouseenter)="hoverDelete.set(true)"
+      (mouseleave)="hoverDelete.set(false)"
+      (click)="deleted.emit()"
+    >
+      <i class="ri-delete-bin-5-line"></i>
+      Remove
+    </button>
+  </div>
+</div>

@@ -1,4 +1,4 @@
-import { ICopilotModel, IXpertAgent } from '@metad/contracts'
+import { ICopilotModel, IXpertAgent, TXpertGraph } from '@metad/contracts'
 import { nonNullable } from '@metad/copilot'
 import { pick } from '@metad/server-common'
 import { IQueryHandler, QueryHandler, QueryBus } from '@nestjs/cqrs'
@@ -14,7 +14,7 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 		private readonly queryBus: QueryBus
 	) {}
 
-	public async execute(command: GetXpertWorkflowQuery): Promise<{agent?: IXpertAgent; next?: any}> {
+	public async execute(command: GetXpertWorkflowQuery): Promise<{agent?: IXpertAgent; graph: TXpertGraph; next?: any}> {
 		const { id, agentKey: keyOrName, draft } = command
 		const xpert = await this.service.findOne(id, {
 			relations: ['agent', 'agent.copilotModel', 'copilotModel', 'copilotModel.copilot', 'agents', 'agents.copilotModel', 'knowledgebases', 'toolsets', 'executors']
@@ -62,6 +62,7 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 						...pick(xpert, 'id', 'tenantId', 'organizationId')
 					}
 				} as IXpertAgent,
+				graph: xpert.draft,
 				next 
 			}
 		} else {
@@ -76,12 +77,15 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 						collaborators: agent.collaboratorNames?.map((name) => xpert.executors.find((_) => _.name === name)).filter(nonNullable),
 						team: xpert
 					},
+					graph: xpert.graph,
 					next: null
 				}
 			}
 		}
 
-		return {}
+		return {
+			graph: xpert.graph,
+		}
 	}
 
 	/**

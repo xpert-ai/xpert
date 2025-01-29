@@ -1,3 +1,4 @@
+import { Clipboard } from '@angular/cdk/clipboard'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Overlay, OverlayRef } from '@angular/cdk/overlay'
 import { TemplatePortal } from '@angular/cdk/portal'
@@ -14,6 +15,7 @@ import {
   model,
   numberAttribute,
   output,
+  signal,
   TemplateRef,
   ViewChild,
   ViewContainerRef
@@ -36,6 +38,8 @@ import { TStateVariable } from '../../../@core'
   imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, MatTooltipModule, NgmI18nPipe, NgmHighlightVarDirective]
 })
 export class CopilotPromptEditorComponent {
+  
+  readonly #clipboard = inject(Clipboard)
   readonly #dialog = inject(MatDialog)
   readonly #vcr = inject(ViewContainerRef)
   readonly elementRef = inject(ElementRef)
@@ -43,6 +47,7 @@ export class CopilotPromptEditorComponent {
   readonly regex = `{{(.*?)}}`
 
   // Inputs
+  readonly prompt = model<string>()
   readonly initHeight = input<number, number | string>(210, {
     transform: numberAttribute
   })
@@ -59,13 +64,13 @@ export class CopilotPromptEditorComponent {
   overlayRef: OverlayRef | null = null
 
   // States
-  readonly prompt = model<string>()
   readonly promptLength = computed(() => this.prompt()?.length)
 
   height = this.initHeight()
   private isResizing = false
   private startY = 0
   private startHeight = 0
+  readonly copied = signal(false)
 
   constructor(private overlay: Overlay) {
     effect(() => {
@@ -163,6 +168,19 @@ export class CopilotPromptEditorComponent {
       this.overlayRef.detach()
       this.overlayRef = null
     }
+  }
+
+  remove() {
+    this.prompt.set(null)
+    this.deleted.emit()
+  }
+
+  copy() {
+    this.#clipboard.copy(this.prompt())
+    this.copied.set(true)
+    setTimeout(() => {
+      this.copied.set(false)
+    }, 3000)
   }
 
   onMouseDown(event: MouseEvent): void {

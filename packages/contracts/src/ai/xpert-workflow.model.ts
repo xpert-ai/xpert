@@ -7,6 +7,7 @@ export enum WorkflowNodeTypeEnum {
 
 export interface IWorkflowNode {
   id: string
+  key: string
   title?: string | I18nObject
   description?: string | I18nObject
   type: WorkflowNodeTypeEnum
@@ -43,15 +44,37 @@ export interface IWFNAssigner extends IWorkflowNode {
 
 export interface IWFNIfElse extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.IF_ELSE
-  cases: {
-    case_id: string
-    conditions: {
-      id: string
-      comparisonOperator: 'contains'
-      value: string
-      varType: string
-      variableSelector: string
-    }[]
-    logicalOperator: 'or' | 'and'
-  }[]
+  cases: TWFCase[]
+}
+
+export enum WorkflowLogicalOperator {
+  AND = 'and',
+  OR = 'or'
+}
+
+export enum WorkflowComparisonOperator {
+  CONTAINS = 'contains',
+  NOT_CONTAINS = 'not-contains',
+  EQUAL = 'equal',
+  NOT_EQUAL = 'not-equal',
+  GT = 'gt',
+  LT = 'lt',
+  GE = 'ge',
+  LE = 'le',
+  EMPTY = 'empty',
+  NOT_EMPTY = 'not-empty'
+}
+
+export type TWFCaseCondition = {
+  id: string
+  comparisonOperator: WorkflowComparisonOperator
+  value?: string
+  varType?: string
+  variableSelector?: string
+}
+
+export type TWFCase = {
+  caseId: string
+  conditions: TWFCaseCondition[]
+  logicalOperator: WorkflowLogicalOperator
 }

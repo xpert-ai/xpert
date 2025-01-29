@@ -30,7 +30,8 @@ import {
   getErrorMessage,
   DateRelativePipe,
   TAgentOutputVariable,
-  uuid
+  uuid,
+  TVariableAssigner
 } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { XpertStudioApiService } from '../../domain'
@@ -43,7 +44,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelKnowledgeSectionComponent } from './knowledge-section/knowledge.component'
 import { CopilotModelSelectComponent, CopilotPromptEditorComponent } from 'apps/cloud/src/app/@shared/copilot'
-import { XpertOutputVariablesEditComponent, XpertParametersEditComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { XpertOutputVariablesEditComponent, XpertParametersEditComponent, XpertVariablesAssignerComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { uniq } from 'lodash-es'
 import { XpertStudioComponent } from '../../studio.component'
@@ -73,7 +74,8 @@ import { NgmDensityDirective } from '@metad/ocap-angular/core'
     XpertParametersEditComponent,
     CopilotPromptEditorComponent,
     XpertStudioPanelKnowledgeSectionComponent,
-    XpertOutputVariablesEditComponent
+    XpertOutputVariablesEditComponent,
+    XpertVariablesAssignerComponent
   ],
   host: {
     tabindex: '-1',
@@ -117,6 +119,7 @@ export class XpertStudioPanelAgentComponent {
   readonly isPrimaryAgent = computed(() => !!this.xpertAgent()?.xpertId)
 
   readonly parameters = computed(() => this.xpertAgent()?.parameters)
+  readonly memories = computed(() => this.xpertAgent()?.options?.memories)
 
   readonly nameError = computed(() => {
     const name = this.name()
@@ -282,5 +285,15 @@ export class XpertStudioPanelAgentComponent {
     const promptTemplates = [...this.promptTemplates()]
     promptTemplates.splice(index, 1)
     this.apiService.updateXpertAgent(this.key(), { promptTemplates })
+  }
+
+  updateMemories(value: TVariableAssigner[]) {
+    const options = this.xpertAgent().options ?? {}
+    this.apiService.updateXpertAgent(this.key(), {
+      options: {
+        ...options,
+        memories: value
+      }
+    })
   }
 }

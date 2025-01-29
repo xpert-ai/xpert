@@ -24,6 +24,7 @@ import {
 import {
   getErrorMessage,
   IKnowledgebase,
+  IWorkflowNode,
   IXpert,
   IXpertAgent,
   IXpertToolset,
@@ -31,7 +32,8 @@ import {
   TXpertAgentConfig,
   TXpertOptions,
   TXpertTeamDraft,
-  TXpertTeamNode
+  TXpertTeamNode,
+  WorkflowNodeTypeEnum
 } from '../../../../@core/types'
 import { CreateConnectionHandler, CreateConnectionRequest, ToConnectionViewModelHandler } from './connection'
 import { LayoutHandler, LayoutRequest } from './layout'
@@ -59,6 +61,7 @@ import { XpertComponent } from '../../xpert'
 import { FCanvasChangeEvent } from '@foblex/flow'
 import { nonBlank } from '@metad/copilot'
 import { PACCopilotService } from '../../../services'
+import { CreateWorkflowNodeRequest, CreateWorkflowNodeHandler, UpdateWorkflowNodeHandler, UpdateWorkflowNodeRequest } from './workflow'
 
 
 @Injectable()
@@ -472,6 +475,17 @@ export class XpertStudioApiService {
 
   updateCanvas(event: FCanvasChangeEvent) {
     this.updateXpertOptions({ position: event.position, scale: event.scale }, EReloadReason.CANVAS_CHANGED)
+  }
+
+  // Logic blocks of workflow
+  addBlock(position: IPoint, entity: Partial<IWorkflowNode>) {
+    new CreateWorkflowNodeHandler(this.store).handle(new CreateWorkflowNodeRequest(position, entity))
+    this.#reload.next(EReloadReason.XPERT_UPDATED)
+  }
+
+  updateBlock(key: string, node: Partial<TXpertTeamNode>) {
+    new UpdateWorkflowNodeHandler(this.store).handle(new UpdateWorkflowNodeRequest(key, node))
+    this.#reload.next(EReloadReason.XPERT_UPDATED)
   }
 
   public autoLayout() {

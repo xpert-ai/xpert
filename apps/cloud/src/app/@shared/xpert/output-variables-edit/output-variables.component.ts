@@ -13,8 +13,6 @@ import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { TAgentOutputVariable, TStateVariable, VariableOperations, XpertParameterTypeEnum } from '../../../@core'
-import { NgmSelectComponent } from '../../common'
-import { StateVariableSelectComponent } from '../state-variable-select/select.component'
 
 @Component({
   standalone: true,
@@ -33,9 +31,7 @@ import { StateVariableSelectComponent } from '../state-variable-select/select.co
     MatSlideToggleModule,
     MatInputModule,
 
-    NgmDensityDirective,
-    NgmSelectComponent,
-    StateVariableSelectComponent
+    NgmDensityDirective
   ],
 
   hostDirectives: [NgxControlValueAccessor]
@@ -93,7 +89,7 @@ export class XpertOutputVariablesEditComponent {
         maximum: this.#fb.control(param.maximum),
         options: this.#fb.control(param.options),
         operation: this.#fb.control(param.operation),
-        variableSelector: this.#fb.control(param.variableSelector),
+        variableSelector: this.#fb.control(param.variableSelector)
       })
     )
 

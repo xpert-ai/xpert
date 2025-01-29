@@ -10,6 +10,7 @@ import {
 } from '../../commands/handlers/types'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
 import { XpertService } from '../../../xpert/xpert.service'
+import { channelName } from '../../agent'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
@@ -51,16 +52,39 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			}
 		]
 
+		const stateVariables = isDraft ? xpert.draft?.team?.agentConfig?.stateVariables : xpert.agentConfig?.stateVariables
+		if (stateVariables) {
+			variables.push(...stateVariables)
+		}
+
+		// All agents output
+		const graph = isDraft ? xpert.draft : xpert.graph
+		graph.nodes.filter((_) => _.type === 'agent' && _.key !== agentKey).forEach((_) => {
+			variables.push({
+				name: `${channelName(_.key)}.output`,
+				type: 'string',
+				description: {
+					zh_Hans: `${agentLabel(_.entity as IXpertAgent)} 输出`,
+					en_US: `${agentLabel(_.entity as IXpertAgent)} Output`
+				},
+			})
+			if ((<IXpertAgent>_.entity).outputVariables) {
+				(<IXpertAgent>_.entity).outputVariables.forEach((variable) => {
+					variables.push({
+						name: `${channelName(_.key)}.${variable.name}`,
+						type: variable.type as TStateVariable['type'],
+						description: variable.description
+					})
+				})
+			}
+			
+		})
+
 		const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
 			new GetXpertAgentQuery(xpertId, agentKey, isDraft)
 		)
 		if (!agent) {
 			return variables
-		}
-
-		const stateVariables = isDraft ? xpert.draft?.team?.agentConfig?.stateVariables : xpert.agentConfig?.stateVariables
-		if (stateVariables) {
-			variables.push(...stateVariables)
 		}
 
 		if (agentKey) {
@@ -80,19 +104,6 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				}
 			}
 		}
-
-		// All agents output
-		const graph = isDraft ? xpert.draft : xpert.graph
-		graph.nodes.filter((_) => _.type === 'agent' && _.key !== agentKey).forEach((_) => {
-			variables.push({
-				name: `${_.key}.output`,
-				type: 'string',
-				description: {
-					zh_Hans: `${agentLabel(_.entity as IXpertAgent)} 输出`,
-					en_US: `${agentLabel(_.entity as IXpertAgent)} Output`
-				},
-			})
-		})
 
 		return variables
 	}

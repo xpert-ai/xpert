@@ -143,7 +143,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 							throw new NodeInterrupt(`Confirm tool calls`)
 						}
 					} else if (isToolMessage(lastMessage)) {
-						return lastMessage.content
+						// return lastMessage.content
 					} else {
 						this.#logger.debug(`End chat [${agentLabel(agent)}].`)
 					}

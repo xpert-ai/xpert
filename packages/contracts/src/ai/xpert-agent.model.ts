@@ -4,6 +4,7 @@ import { IKnowledgebase } from './knowledgebase.model'
 import { I18nObject, TAvatar } from '../types'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IXpert, ToolCall, TXpertParameter } from './xpert.model'
+import { TVariableAssigner } from './xpert-workflow.model'
 
 export type TXpertAgent = {
   key: string
@@ -92,6 +93,11 @@ export type TXpertAgentOptions = {
    * Disable message history for agent conversation
    */
   disableMessageHistory?: boolean
+
+  /**
+   * Write output variables to memory (state)
+   */
+  memories?: TVariableAssigner[]
 }
 
 export type TAgentPromptTemplate = {

@@ -5,6 +5,10 @@ import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { AgentStateAnnotation } from './commands/handlers/types'
 
+export function channelName(name: string) {
+	return name.toLowerCase() + '_channel'
+}
+
 export function createProcessStreamEvents(
 	logger: Logger,
 	thread_id: string,
@@ -72,7 +76,7 @@ export function createProcessStreamEvents(
 			case 'on_chat_model_stream': {
 				prevEvent = event
 				// Only returns the stream events content of the current react agent (filter by tag: thread_id), not events of agent in tool call.
-				if (tags.includes(thread_id)) {
+				// if (tags.includes(thread_id)) {
 					const msg = data.chunk as AIMessageChunk
 					if (!msg.tool_call_chunks?.length) {
 						if (msg.content) {
@@ -83,7 +87,7 @@ export function createProcessStreamEvents(
 							}
 						}
 					}
-				}
+				// }
 				break
 			}
 

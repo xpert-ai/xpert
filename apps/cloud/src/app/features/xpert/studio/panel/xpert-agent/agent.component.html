@@ -101,7 +101,9 @@
 
     <div class="w-full flex justify-between items-center px-4 pt-2 pb-4 rounded-xl bg-gray-100">
       <div class="flex items-center h-6">
-        <div class="uppercase text-sm font-semibold text-text-secondary mr-2">Memory</div>
+        <div class="uppercase text-sm font-semibold text-text-secondary mr-2">
+          {{ 'PAC.Xpert.MessageHistory' | translate: {Default: 'Message History'} }}
+        </div>
         <i class="ri-question-line opacity-50 hover:opacity-90"
           [matTooltip]="'PAC.Xpert.AgentMemoryTip' | translate: {Default: 'Agent short-term memory, inserting message history into the conversation'}"
           matTooltipPosition="above"
@@ -112,7 +114,8 @@
     </div>
 
     @for (template of promptTemplates(); track template.id; let i = $index) {
-      <copilot-prompt-editor class="prompt-template relative rounded-xl self-stretch bg-gray-50" [class.fullscreen]="promptTemplateFullscreen() === template.id"
+      <copilot-prompt-editor class="prompt-template relative rounded-xl self-stretch border border-solid border-gray-100"
+        [class.fullscreen]="promptTemplateFullscreen() === template.id"
         [tooltip]="'PAC.Xpert.SystemPromptTooltip' | translate: {Default: 'Prompts guide AI reponses with instructions and contraints. Insert parameters like {{input}}. This prompt won\'t be visible to users.'}"
         [variables]="variables()"
         role="human"
@@ -141,7 +144,7 @@
         (click)="addMessage()"
       >
         <i class="ri-add-line"></i>
-        <div>Add Message</div>
+        <div>{{ 'PAC.Xpert.AddMessage' | translate: {Default: 'Add Message'} }}</div>
       </button>
     }
 
@@ -195,7 +198,9 @@
     <div class="px-4 pb-2">
       <div class="flex justify-between items-center mb-2">
         <div class="flex items-center h-6">
-          <div class="font-semibold uppercase text-sm text-text-secondary">Output Variables</div>
+          <div class="font-semibold uppercase text-sm text-text-primary">
+            {{ 'PAC.Xpert.OutputStructure' | translate: {Default: 'Output Structure'} }}
+          </div>
         </div>
 
         <div class="flex items-center gap-2">
@@ -206,7 +211,9 @@
       @if (enabledOutputVars) {
         <xpert-output-variables-edit class="" 
           [variables]="variables()"
-          [ngModel]="outputVariables()" (ngModelChange)="updateOutputVariables($event)" />
+          [ngModel]="outputVariables()"
+          (ngModelChange)="updateOutputVariables($event)"
+        />
       } @else {
         <div class="px-4">
           <div class="py-1">
@@ -218,6 +225,14 @@
           </div>
         </div>
       }
+
+      <xpert-variables-assigner class="block mt-4"
+        [title]="'PAC.Xpert.WritetoMemory' | translate: {Default: 'Write to memory'}"
+        [tooltip]="'PAC.Xpert.WritetoMemoryTooltip' | translate: {Default: 'Write output content or parameters of the agent into global memory of the digital expert'}"
+        [variables]="variables()"
+        [memories]="memories()"
+        (memoriesChange)="updateMemories($event)"
+      />
     </div>
 
   </div>

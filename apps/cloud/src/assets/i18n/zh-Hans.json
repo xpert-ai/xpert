@@ -289,6 +289,10 @@
       "MessageCount": "消息数",
       "TimeZone": "时区"
     },
+    "Workflow": {
+      "And": "且",
+      "Or": "或"
+    },
     "MENU": {
       "Certification": "认证",
       "Chat": "聊天",
@@ -2255,7 +2259,12 @@
       "Paused": "已暂停",
       "ViewAllTasks": "查看所有任务",
       "HowtoGet": "如何获取",
-      "HowtoCreate": "如何创建"
+      "HowtoCreate": "如何创建",
+      "WritetoMemory": "写入记忆",
+      "OutputStructure": "输出结构",
+      "WritetoMemoryTooltip": "将智能体输出内容或参数写入到数字专家全局记忆中",
+      "MessageHistory": "消息历史",
+      "AddMessage": "添加消息"
     },
     "title": {
       "short": "Xpert AI"

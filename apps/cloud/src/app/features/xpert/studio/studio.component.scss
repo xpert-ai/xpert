@@ -50,9 +50,14 @@
       svg {
         visibility: hidden;
       }
+
+      .inner-dot {
+        @apply w-full h-full flex justify-center items-center shrink-0 bg-primary-400;
+      }
     }
+
     &:not(.ngm-executor-agent):hover {
-      .f-component.f-node-output {
+      .f-component.f-node-output .inner-dot {
         width: var(--output-size);
         height: var(--output-size);
         @apply rounded-full border border-primary-400;

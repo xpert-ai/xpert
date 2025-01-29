@@ -6,10 +6,8 @@
 
     <div class="mx-3 w-[1px] h-3.5 bg-divider-deep"></div>
 
-    <div class="action-btn action-btn-sm danger" (click)="close.emit()" >
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="w-4 h-4">
-        <path d="M11.9997 10.5865L16.9495 5.63672L18.3637 7.05093L13.4139 12.0007L18.3637 16.9504L16.9495 18.3646L11.9997 13.4149L7.04996 18.3646L5.63574 16.9504L10.5855 12.0007L5.63574 7.05093L7.04996 5.63672L11.9997 10.5865Z"></path>
-      </svg>
+    <div class="action-btn action-btn-sm danger" (click)="close.emit()">
+      <i class="ri-close-large-line w-4 h-4 flex justify-center items-center text-sm"></i>
     </div>
   </div>
 </div>
@@ -17,7 +15,9 @@
 <div class="grow flex flex-col rounded-b-2xl overflow-y-auto">
   <div class="flex-1 relative overflow-x-hidden px-3 pt-4">
     @if (parameters()?.length) {
-      <xpert-parameters-card class="w-full" [parameters]="parameters()" />
+      <xpert-parameters-card class="w-full mb-4" [parameters]="parameters()"
+        [(ngModel)]="parameterValue"
+      />
     }
 
     @for (message of messages(); track message.id) {

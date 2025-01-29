@@ -1,6 +1,6 @@
 :host {
   @apply relative flex flex-col;
-  &:focus {
+  &:hover {
     .container {
       @apply bg-white;
     }

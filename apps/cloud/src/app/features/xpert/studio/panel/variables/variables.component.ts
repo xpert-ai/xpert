@@ -40,7 +40,6 @@ export class XpertStudioPanelVariablesComponent {
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly apiService = inject(XpertStudioApiService)
   readonly panelComponent = inject(XpertStudioPanelComponent)
-  // readonly #fb = inject(FormBuilder)
   readonly #dialog = inject(Dialog)
 
   readonly xpert = this.xpertStudioComponent.xpert
@@ -50,25 +49,9 @@ export class XpertStudioPanelVariablesComponent {
     this.stateVariables()?.map((item) => ({ variable: item }))
   )
 
-  // readonly form = this.#fb.group<TStateVariable>({
-  //   name: null,
-  //   type: null,
-  //   default: null,
-  //   description: null,
-  //   operation: null
-  // })
-
   closePanel() {
     this.panelComponent.sidePanel.set(null)
   }
-
-  // editVar(variable: TStateVariable) {
-  //   this.form.setValue({ ...variable })
-  // }
-
-  // closeVarEditor() {
-  //   this.form.reset()
-  // }
 
   addVar(value: Partial<TStateVariable>, index?: number) {
     const stateVariables = this.stateVariables() ?? []

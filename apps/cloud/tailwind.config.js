@@ -49,6 +49,9 @@ module.exports = {
       scale: {
         98: '0.98'
       },
+      fontSize: {
+        xs: "0.7rem",
+      },
       animation: {
         'twinkling-slow': 'twinkling 3s linear infinite',
       },

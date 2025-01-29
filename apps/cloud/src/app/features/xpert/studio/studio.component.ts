@@ -67,6 +67,7 @@ import { XpertStudioPanelComponent } from './panel/panel.component'
 import { XpertExecutionService } from './services/execution.service'
 import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
+import { XpertStudioNodeWorkflowComponent } from './components/workflow/workflow.component'
 
 
 @Component({
@@ -92,6 +93,7 @@ import { EmojiAvatarComponent } from '../../../@shared/avatar'
     XpertStudioNodeAgentComponent,
     XpertStudioNodeKnowledgeComponent,
     XpertStudioNodeToolsetComponent,
+    XpertStudioNodeWorkflowComponent,
     XpertStudioHeaderComponent,
     XpertStudioPanelComponent,
     XpertAgentExecutionStatusComponent,

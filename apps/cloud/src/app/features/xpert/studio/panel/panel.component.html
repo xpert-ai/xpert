@@ -26,6 +26,12 @@
             [node]="node"
           />
         }
+        @case ('workflow') {
+          <xpert-studio-panel-workflow class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto
+            w-[420px]"
+            [node]="node"
+          />
+        }
       }
     }
 

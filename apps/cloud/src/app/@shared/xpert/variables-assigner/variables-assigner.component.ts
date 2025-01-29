@@ -13,12 +13,22 @@ import { StateVariableSelectComponent } from '../state-variable-select/select.co
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, MatTooltipModule, NgmSelectComponent, StateVariableSelectComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    MatTooltipModule,
+    NgmSelectComponent,
+    StateVariableSelectComponent
+  ],
   selector: 'xpert-variables-assigner',
   templateUrl: 'variables-assigner.component.html',
   styleUrls: ['variables-assigner.component.scss']
 })
 export class XpertVariablesAssignerComponent {
+
+  readonly title = input<string>()
+  readonly tooltip = input<string>()
   readonly variables = input<TStateVariable[]>()
   readonly memories = model<TVariableAssigner[]>()
 
@@ -69,9 +79,13 @@ export class XpertVariablesAssignerComponent {
 
   updateMemory(index: number, name: string, value: any) {
     this.memories.update((memories) => {
+      const entity = {[name]: value}
+      if (name === 'inputType' && memories[index].inputType !== value) {
+        entity.value = null
+      }
       memories[index] = {
         ...(memories[index] ?? {}),
-        [name]: value
+        ...entity
       } as TVariableAssigner
       return [...memories]
     })

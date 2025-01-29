@@ -78,7 +78,7 @@ export type TGraphTool = {
 
 export function stateVariable(variable: TStateVariable) {
 	return {
-		default: variable.type === 'string' ? variable.default : variable.default ? JSON.parse(variable.default) : null,
+		default: () => variable.type === 'string' ? variable.default : variable.default ? JSON.parse(variable.default) : null,
 		reducer: (left, right) => {
 			if (variable.type.startsWith('array')) {
 				left ??= []
@@ -97,7 +97,7 @@ export function stateVariable(variable: TStateVariable) {
 					case VariableOperationEnum.APPEND:
 						return left == null ? Number(right) : left + Number(right)
 					case VariableOperationEnum.OVERWRITE:
-						return right
+						return Number(right)
 				}
 			}
 		}

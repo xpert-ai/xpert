@@ -2,7 +2,7 @@ import { CdkMenu, CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectorRef, Component, inject, TemplateRef, ViewChild } from '@angular/core'
 import { MatTabsModule } from '@angular/material/tabs'
-import { IXpert } from 'apps/cloud/src/app/@core'
+import { IXpert, uuid, WorkflowNodeTypeEnum } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { Subscription } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
@@ -29,6 +29,8 @@ import { TranslateModule } from '@ngx-translate/core'
   styleUrl: './context-menu.component.scss'
 })
 export class XpertStudioContextMenuComponent {
+  eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
+  
   readonly apiService = inject(XpertStudioApiService)
   readonly selectionService = inject(SelectionService)
   private root = inject(XpertStudioComponent)
@@ -65,7 +67,6 @@ export class XpertStudioContextMenuComponent {
   }
 
   public addCollaborator(xpert: IXpert): void {
-    // menu.menuStack.closeAll()
     this.apiService.createCollaborator(this.root.contextMenuPosition, xpert)
   }
 
@@ -74,6 +75,10 @@ export class XpertStudioContextMenuComponent {
     if (node) {
       this.apiService.removeNode(node)
     }
+  }
+
+  addWorkflowBlock(type: WorkflowNodeTypeEnum) {
+    this.apiService.addBlock(this.root.contextMenuPosition, {type, key: uuid()})
   }
 
   public dispose(): void {

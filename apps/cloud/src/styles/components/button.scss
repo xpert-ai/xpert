@@ -65,6 +65,11 @@
     @apply border-[0.5px] border-[--color-components-button-secondary-border] bg-[--color-components-button-secondary-bg] shadow-sm
       hover:border-[--color-components-button-secondary-border-hover] hover:bg-[--color-components-button-secondary-bg-hover];
   }
+
+  .btn-tertiary {
+    @apply bg-gray-200 text-text-tertiary hover:text-text-primary;
+  }
+
   .action-btn {
     @apply inline-flex cursor-pointer items-center justify-center origin-bottom transition-transform 
       text-text-tertiary disabled:opacity-50 disabled:cursor-not-allowed;

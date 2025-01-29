@@ -4,6 +4,6 @@ export class CreateNodeRequest {
   constructor(
     public readonly type: TXpertTeamNodeType,
     public readonly position: IRect,
-    public readonly entity?: TXpertTeamNode['entity']
+    public readonly entity?: Partial<TXpertTeamNode['entity']>
   ) {}
 }

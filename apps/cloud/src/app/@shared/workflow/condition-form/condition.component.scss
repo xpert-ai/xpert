@@ -1,0 +1,7 @@
+:host {
+  @apply flex items-start;
+}
+
+.danger {
+  @apply bg-state-destructive-hover;
+}
