@@ -86,7 +86,10 @@ export class XpertStudioPanelAgentExecutionComponent {
 
   readonly output = signal('')
 
-  readonly execution = computed(() => this.executionService.agentExecutions()?.[this.agentKey()])
+  readonly execution = computed(() => {
+    const executions = this.executionService.agentExecutions()?.[this.agentKey()]
+    return executions ? executions[executions.length - 1] : null
+  })
   readonly executions = computed(() => {
     const agentExecutions = this.executionService.agentExecutions()
     if (!agentExecutions) {

@@ -2,14 +2,6 @@
   @apply flex flex-col justify-start items-stretch;
 }
 
-.f-component.f-node-input.left {
-  border-radius: 0;
-  width: 3px;
-  height: 10px;
-  border: none;
-  @apply bg-blue-500;
-}
-
 .f-component.f-node-output.right {
   border-radius: 0;
   width: 3px;

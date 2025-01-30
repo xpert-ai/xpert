@@ -3,7 +3,7 @@
 >
   <div class="flex items-center p-1">
     <div class="grow w-0">
-      <div class="inline-block" [matTooltip]="'xxx'">
+      <div class="inline-block" [matTooltip]="'xxx'" matTooltipPosition="above">
         <div class="inline-flex items-center px-1.5 max-w-full h-6 cursor-pointer text-sm rounded-md border-[0.5px] border-[rgba(16, 2440,0.08)] text-text-secondary bg-white shadow-sm"
           [cdkMenuTriggerFor]="varMenu"
         >
@@ -31,6 +31,7 @@
   <div class="px-2 pt-1 max-h-[100px] border-t border-t-divider-deep overflow-y-auto">
     <textarea matInput class="w-full outline-none leading-5 text-[13px] text-gray-700 bg-transparent focus:bg-white"
       [(ngModel)]="value"
+      [placeholder]="'PAC.Workflow.InputValue' | translate: {Default: 'Input value'}"
       cdkTextareaAutosize
       cdkAutosizeMinRows="1"
       cdkAutosizeMaxRows="5"
@@ -51,13 +52,13 @@
 <ng-template #varMenu>
   <div cdkMenu class="cdk-menu__medium">
     @for (g of groupVariables(); track g) {
-      @if (g.group) {
-        <div class="p-2 text-sm text-text-secondary mt-2">{{g.group}}</div>
+      @if (g.agent) {
+        <div class="p-2 text-sm text-text-secondary mt-2">{{agentLabel(g.agent)}}</div>
       }
       @for (variable of g.variables; track variable.name) {
-        <div cdkMenuItem (click)="selectVariable(variable)">
+        <div cdkMenuItem class="flex items-center" (click)="selectVariable(g.agent?.key, variable)">
           <span class="text-sm mr-1">{{ variable.name }}</span>
-          <span class="flex-1 text-xs italic truncate text-text-secondary">{{variable.description | i18n}}</span>
+          <span class="flex-1 text-xs leading-3 italic truncate text-text-secondary">{{variable.description | i18n}}</span>
           <span class="ml-4 px-1 text-sm rounded-md bg-gray-50 text-primary-300">{{variable.type}}</span>
         </div>
       }
@@ -68,7 +69,7 @@
 <ng-template #opMenu>
   <div cdkMenu class="cdk-menu__medium">
     @for (op of operatorOptions(); track op.value) {
-      <div cdkMenuItem (click)="selectOperator(op.value)">{{op.label | i18n}}</div>
+      <div cdkMenuItem class="text-sm" (click)="selectOperator(op.value)">{{op.label | i18n}}</div>
     }
   </div>
 </ng-template>

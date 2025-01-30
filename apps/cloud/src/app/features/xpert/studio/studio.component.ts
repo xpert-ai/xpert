@@ -180,6 +180,7 @@ export class XpertStudioComponent {
   readonly scale = signal<number>(null)
 
   readonly selectedNodeKey = this.selectionService.selectedNodeKey
+  readonly hoverNode = signal<string>(null)
 
   // Agent Execution Running status
   readonly agentExecutions = this.executionService.agentExecutions
@@ -305,6 +306,11 @@ export class XpertStudioComponent {
   
   onPreview(preview: boolean) {
     this.sidePanel.set(preview ? 'preview' : null)
+  }
+
+  selectAgentStatus(key: string) {
+    const executions = this.agentExecutions()[key]
+    return executions ? executions[executions.length - 1]?.status : null
   }
 }
 

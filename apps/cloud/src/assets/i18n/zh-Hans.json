@@ -291,7 +291,11 @@
     },
     "Workflow": {
       "And": "且",
-      "Or": "或"
+      "Or": "或",
+      "InputValue": "输入值",
+      "AddCondition": "添加条件",
+      "Remove": "移除",
+      "ElseInfo": "用于定义当 if 条件不满足时应执行的逻辑。"
     },
     "MENU": {
       "Certification": "认证",
@@ -1893,6 +1897,21 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "Type": "类型",
+      "Reducer": "归约",
+      "VariableReducer": "变量归约",
+      "SelectReducer": "选择归约方式",
+      "DefaultValue": "默认值",
+      "DefaultValueEmpty": "默认值，可以为空",
+      "VariableDesc": "变量的描述",
+      "Variable": "变量",
+      "VariableName": "变量名",
+      "ConversationVariables": "会话变量",
+      "AddConversationVariables": "添加会话变量",
+      "InputType": "输入类型",
+      "AddVariable": "添加变量",
+      "HelpDocs": "帮助文档",
+      "CanntRemovePrimaryAgent": "不能移除主 Agent",
       "ToolsetType": "工具集类型",
       "PublishedSuccessfully": "发布成功",
       "RunThisAgent": "运行此智能体",
@@ -2263,8 +2282,13 @@
       "WritetoMemory": "写入记忆",
       "OutputStructure": "输出结构",
       "WritetoMemoryTooltip": "将智能体输出内容或参数写入到数字专家全局记忆中",
+      "WriteToolResultToMemoryTooltip": "将工具输出内容写入到数字专家全局记忆中",
       "MessageHistory": "消息历史",
-      "AddMessage": "添加消息"
+      "AddMessage": "添加消息",
+      "OutputVariable": "输出变量",
+      "CustomOutputStructureTip": "是否自定义输出结构",
+      "GenerateContent": "生成内容",
+      "StateVariable": "状态变量"
     },
     "title": {
       "short": "Xpert AI"

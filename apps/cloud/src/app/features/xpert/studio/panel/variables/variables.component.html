@@ -1,25 +1,20 @@
-<div class="shrink-0 flex items-center justify-between p-4 pb-0 text-text-primary system-xl-semibold">
-  会话变量
-  <div class="flex items-center gap-1">
-    <button type="button" class="action-btn action-btn-m action-btn-active">
-      <svg
-        viewBox="0 0 24 24"
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        fill="currentColor"
-        class="w-4 h-4"
-      >
-        <path
-          d="M13 21V23H11V21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3H9C10.1947 3 11.2671 3.52375 12 4.35418C12.7329 3.52375 13.8053 3 15 3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H13ZM20 19V5H15C13.8954 5 13 5.89543 13 7V19H20ZM11 19V7C11 5.89543 10.1046 5 9 5H4V19H11Z"
-        ></path>
-      </svg>
-    </button>
+<div class="shrink-0 flex items-center justify-between p-4 pb-0">
+  <div class="text-text-primary system-xl-semibold">{{'PAC.Xpert.ConversationVariables' | translate: {Default: 'Conversation Variables'} }}</div>
+
+  <div class="flex items-center text-text-secondary">
+    <a [href]="helpUrl() + '/docs/ai/xpert/variables'" target="_blank" class="flex items-center justify-center mr-1 w-6 h-6"
+      [matTooltip]="'PAC.Xpert.HelpDocs' | translate: {Default: 'Help docs'}"
+      matTooltipPosition="above"
+    >
+      <i class="ri-book-open-line text-gray-500"></i>
+    </a>
+
+    <div class="mx-3 w-[1px] h-3.5 bg-divider-deep"></div>
 
     <div class="flex items-center justify-center w-6 h-6 cursor-pointer"
       (click)="closePanel()"
     >
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="w-4 h-4 text-text-tertiary"><path d="M11.9997 10.5865L16.9495 5.63672L18.3637 7.05093L13.4139 12.0007L18.3637 16.9504L16.9495 18.3646L11.9997 13.4149L7.04996 18.3646L5.63574 16.9504L10.5855 12.0007L5.63574 7.05093L7.04996 5.63672L11.9997 10.5865Z"></path></svg>
+      <i class="ri-close-line"></i>
     </div>
   </div>
 </div>
@@ -31,17 +26,10 @@
       [cdkMenuTriggerData]="{trigger: trigger}"
       #trigger="cdkMenuTriggerFor"
     >
-      <svg
-        viewBox="0 0 24 24"
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        fill="currentColor"
-        class="mr-1 w-4 h-4"
-      >
-        <path d="M11 11V5H13V11H19V13H13V19H11V13H5V11H11Z"></path>
-      </svg>
-      <span class="system-sm-medium">添加变量</span>
+      <i class="ri-add-line mr-1"></i>
+      <span class="system-sm-medium">
+        {{'PAC.Xpert.AddVariable' | translate: {Default: 'Add Variable'} }}
+      </span>
     </button>
   </div>
 </div>

@@ -1,7 +1,7 @@
 <div class="relative flex items-center h-6 px-1">
   <div class="flex items-center justify-between w-full">
     <div class="text-[10px] font-semibold text-text-tertiary">CASE {{index()}}</div>
-    <div class="text-[12px] font-semibold text-text-secondary">
+    <div class="text-[12px] font-semibold text-text-primary">
       @if (first()) {
         IF
       } @else {
@@ -26,7 +26,8 @@
           </g>
         </g>
       </svg>
-      <div class="shrink-0 ml-0.5 truncate text-xs font-medium text-text-accent max-w-fit" [title]="condition.variableSelector">
+      <div class="shrink-0 ml-0.5 truncate text-xs font-medium text-text-accent max-w-[100px]"
+        [title]="condition.variableSelector">
         {{condition.variableSelector}}
       </div>
       <div class="shrink-0 mx-1 text-xs font-medium text-text-primary" [title]="condition.comparisonOperator">

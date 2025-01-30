@@ -296,4 +296,8 @@ export class XpertStudioPanelAgentComponent {
       }
     })
   }
+
+  remove() {
+    this.apiService.removeNode(this.key())
+  }
 }

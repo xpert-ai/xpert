@@ -13,7 +13,8 @@ import {
 	START,
 	StateGraph
 } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IWFNIfElse, IXpert, IXpertAgent, IXpertAgentExecution, TStateVariable, TSummarize, TWFCaseCondition, TXpertGraph, TXpertTeamNode, WorkflowComparisonOperator, WorkflowLogicalOperator, WorkflowNodeTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { channelName, ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IWFNIfElse, IXpert, IXpertAgent, IXpertAgentExecution, TStateVariable, TSummarize, TWFCaseCondition, TXpertGraph, TXpertTeamNode, WorkflowComparisonOperator, WorkflowLogicalOperator, WorkflowNodeTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { isEmpty } from '@metad/server-common'
 import { Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
@@ -28,7 +29,7 @@ import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
 import { AgentStateAnnotation, parseXmlString, stateVariable, TGraphTool, TSubAgent } from './types'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
-import { channelName } from '../../agent'
+
 
 @CommandHandler(XpertAgentSubgraphCommand)
 export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubgraphCommand> {
@@ -131,7 +132,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		if (isStart) {
 			// The root node is responsible for the overall workflow
 			const createSubgraph = async (node: TXpertTeamNode, parentKey?: string,) => {
-				if (node.type === 'agent' && !agentKeys.has(node.entity.key)) {
+				if (node.type === 'agent') {
+					if (parentKey) {
+						conditionalEdges[parentKey] = createAgentNavigator(summarize, false, node.key)
+					}
+					if (agentKeys.has(node.entity.key)) {
+						return
+					}
 					agentKeys.add(node.key)
 					const {stateGraph, nextNodes} = await this.createAgentSubgraph(node.entity, {
 						xpert,
@@ -145,18 +152,18 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					})
 	
 					nodes[node.entity.key] = stateGraph
-					if (parentKey) {
-					  conditionalEdges[parentKey] = createAgentNavigator(summarize, false, node.entity.key)
-					}
 
 					for await (const nNode of nextNodes ?? []) {
 						await createSubgraph(nNode, node.key)
 					}
 				} else if(node.type === 'workflow') {
 					const { workflowNode, nextNodes } = createWorkflowNode(graph, node,)
-					nodes[node.key] = workflowNode
+					nodes[node.key] = (state) => {
+						//
+					}
+					conditionalEdges[node.key] = workflowNode
 					if (parentKey) {
-						conditionalEdges[parentKey] = createAgentNavigator(summarize, false, workflowNode)
+						conditionalEdges[parentKey] = createAgentNavigator(summarize, false, node.key)
 					}
 					for await (const nNode of nextNodes ?? []) {
 						await createSubgraph(nNode)
@@ -248,7 +255,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		// Execute agent
 		const callModel = async (state: typeof SubgraphStateAnnotation.State, config?: RunnableConfig) => {
 			// With tools or with StructuredOutput
-			const chatModelWithTools = withTools.length ? chatModel.bindTools(tools) : (
+			const chatModelWithTools = withTools.length ? chatModel.bindTools(withTools) : (
 				agent.outputVariables?.length ? chatModel.withStructuredOutput(z.object({
 					...createParameters(agent.outputVariables),
 				})) : chatModel)
@@ -581,32 +588,61 @@ function createWorkflowNode(graph: TXpertGraph, node: TXpertTeamNode & {type: 'w
 		const entity = node.entity as IWFNIfElse
 		const evaluateCases = (state: typeof AgentStateAnnotation.State, config) => {
 			const evaluateCondition = (condition: TWFCaseCondition) => {
-				const stateValue = state[condition.variableSelector]
-				switch (condition.comparisonOperator) {
-					case WorkflowComparisonOperator.EQUAL:
-						return stateValue === condition.value;
-					case WorkflowComparisonOperator.NOT_EQUAL:
-						return stateValue !== condition.value;
-					case WorkflowComparisonOperator.CONTAINS:
-						return stateValue?.includes(condition.value);
-					case WorkflowComparisonOperator.NOT_CONTAINS:
-						return !stateValue?.includes(condition.value);
-					case WorkflowComparisonOperator.GT:
-						return stateValue > condition.value;
-					case WorkflowComparisonOperator.LT:
-						return stateValue < condition.value;
-					case WorkflowComparisonOperator.GE:
-						return stateValue >= condition.value;
-					case WorkflowComparisonOperator.LE:
-						return stateValue <= condition.value;
-					case WorkflowComparisonOperator.EMPTY:
-						return !stateValue;
-					case WorkflowComparisonOperator.NOT_EMPTY:
-						return !!stateValue;
-					default:
-						return false;
+				const stateValue = state[condition.variableSelector];
+				if (typeof stateValue === 'number') {
+					const conditionValue = Number(condition.value)
+					switch (condition.comparisonOperator) {
+						case WorkflowComparisonOperator.EQUAL:
+							return stateValue === conditionValue
+						case WorkflowComparisonOperator.NOT_EQUAL:
+							return stateValue !== conditionValue
+						case WorkflowComparisonOperator.GT:
+							return stateValue > conditionValue
+						case WorkflowComparisonOperator.LT:
+							return stateValue < conditionValue
+						case WorkflowComparisonOperator.GE:
+							return stateValue >= conditionValue
+						case WorkflowComparisonOperator.LE:
+							return stateValue <= conditionValue
+						case WorkflowComparisonOperator.EMPTY:
+							return stateValue == null
+						case WorkflowComparisonOperator.NOT_EMPTY:
+							return stateValue != null
+						default:
+							return false;
+					}
+				} else if (typeof stateValue === 'string') {
+					switch (condition.comparisonOperator) {
+						case WorkflowComparisonOperator.EQUAL:
+							return stateValue === condition.value;
+						case WorkflowComparisonOperator.NOT_EQUAL:
+							return stateValue !== condition.value;
+						case WorkflowComparisonOperator.CONTAINS:
+							return stateValue.includes(condition.value);
+						case WorkflowComparisonOperator.NOT_CONTAINS:
+							return !stateValue.includes(condition.value);
+						case WorkflowComparisonOperator.STARTS_WITH:
+							return stateValue.startsWith(condition.value);
+						case WorkflowComparisonOperator.ENDS_WITH:
+							return stateValue.endsWith(condition.value);
+						case WorkflowComparisonOperator.EMPTY:
+							return stateValue == null
+						case WorkflowComparisonOperator.NOT_EMPTY:
+							return stateValue != null
+						default:
+							return false;
+					}
+				} else {
+					switch (condition.comparisonOperator) {
+						case WorkflowComparisonOperator.EMPTY:
+							return isEmpty(stateValue)
+						case WorkflowComparisonOperator.NOT_EMPTY:
+							return !isEmpty(stateValue)
+						default:
+							return false
+					}
 				}
-			};
+			}
 
 			const evaluateConditions = (conditions: TWFCaseCondition[], logicalOperator: WorkflowLogicalOperator) => {
 				if (logicalOperator === WorkflowLogicalOperator.AND) {

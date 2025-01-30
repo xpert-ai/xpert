@@ -3,34 +3,37 @@
     <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
                 w-7 h-7 rounded-lg shadow-sm
                 shrink-0 mr-1">
-      <svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" >
-        <g id="icons/if-else"><path id="Vector (Stroke)" fill-rule="evenodd" clip-rule="evenodd" d="M8.16667 2.98975C7.80423 2.98975 7.51042 2.69593 7.51042 2.3335C7.51042 1.97106 7.80423 1.67725 8.16667 1.67725H11.0833C11.4458 1.67725 11.7396 1.97106 11.7396 2.3335V5.25016C11.7396 5.6126 11.4458 5.90641 11.0833 5.90641C10.7209 5.90641 10.4271 5.6126 10.4271 5.25016V3.91782L7.34474 7.00016L10.4271 10.0825V8.75016C10.4271 8.38773 10.7209 8.09391 11.0833 8.09391C11.4458 8.09391 11.7396 8.38773 11.7396 8.75016V11.6668C11.7396 12.0293 11.4458 12.3231 11.0833 12.3231H8.16667C7.80423 12.3231 7.51042 12.0293 7.51042 11.6668C7.51042 11.3044 7.80423 11.0106 8.16667 11.0106H9.49901L6.14484 7.65641H1.75C1.38756 7.65641 1.09375 7.3626 1.09375 7.00016C1.09375 6.63773 1.38756 6.34391 1.75 6.34391H6.14484L9.49901 2.98975H8.16667Z" fill="currentColor"></path></g>
-      </svg>
+      @switch (type()) {
+        @case (eWorkflowNodeTypeEnum.IF_ELSE) {
+          <svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" >
+            <g id="icons/if-else"><path id="Vector (Stroke)" fill-rule="evenodd" clip-rule="evenodd" d="M8.16667 2.98975C7.80423 2.98975 7.51042 2.69593 7.51042 2.3335C7.51042 1.97106 7.80423 1.67725 8.16667 1.67725H11.0833C11.4458 1.67725 11.7396 1.97106 11.7396 2.3335V5.25016C11.7396 5.6126 11.4458 5.90641 11.0833 5.90641C10.7209 5.90641 10.4271 5.6126 10.4271 5.25016V3.91782L7.34474 7.00016L10.4271 10.0825V8.75016C10.4271 8.38773 10.7209 8.09391 11.0833 8.09391C11.4458 8.09391 11.7396 8.38773 11.7396 8.75016V11.6668C11.7396 12.0293 11.4458 12.3231 11.0833 12.3231H8.16667C7.80423 12.3231 7.51042 12.0293 7.51042 11.6668C7.51042 11.3044 7.80423 11.0106 8.16667 11.0106H9.49901L6.14484 7.65641H1.75C1.38756 7.65641 1.09375 7.3626 1.09375 7.00016C1.09375 6.63773 1.38756 6.34391 1.75 6.34391H6.14484L9.49901 2.98975H8.16667Z" fill="currentColor"></path></g>
+          </svg>
+        }
+      }
     </div>
     <input matInput class="grow mr-2 px-1 h-6 text-base text-gray-900 font-semibold rounded-lg border border-transparent appearance-none outline-none
                 hover:bg-gray-50 
                 focus:border-gray-300 focus:shadow-xs focus:bg-white caret-[#295EFF]
-                 min-w-0" placeholder="Add title..."
+                 min-w-0"
+          placeholder="Add title..."
           [(ngModel)]="title"
         >
     <div class="shrink-0 flex items-center text-gray-500">
-      <a href="https://docs.dify.ai/guides/workflow/node/ifelse" target="_blank" class="flex items-center justify-center mr-1 w-6 h-6">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="w-4 h-4 text-gray-500">
-          <path d="M13 21V23H11V21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3H9C10.1947 3 11.2671 3.52375 12 4.35418C12.7329 3.52375 13.8053 3 15 3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H13ZM20 19V5H15C13.8954 5 13 5.89543 13 7V19H20ZM11 19V7C11 5.89543 10.1046 5 9 5H4V19H11Z"></path>
-        </svg>
+      <a [href]="helpUrl() + '/docs/ai/workflow/node/ifelse'" target="_blank" class="flex items-center justify-center mr-1 w-6 h-6"
+        [matTooltip]="'PAC.Xpert.HelpDocs' | translate: {Default: 'Help docs'}"
+        matTooltipPosition="above">
+        <i class="ri-book-open-line text-gray-500"></i>
       </a>
       <div class="inline-block">
-        <div class="flex items-center justify-center w-6 h-6 rounded-md cursor-pointer hover:bg-black/5">
-          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="w-4 h-4 text-gray-700">
-            <path d="M5 10C3.9 10 3 10.9 3 12C3 13.1 3.9 14 5 14C6.1 14 7 13.1 7 12C7 10.9 6.1 10 5 10ZM19 10C17.9 10 17 10.9 17 12C17 13.1 17.9 14 19 14C20.1 14 21 13.1 21 12C21 10.9 20.1 10 19 10ZM12 10C10.9 10 10 10.9 10 12C10 13.1 10.9 14 12 14C13.1 14 14 13.1 14 12C14 10.9 13.1 10 12 10Z"></path>
-          </svg>
+        <div class="flex items-center justify-center w-6 h-6 rounded-md cursor-pointer hover:bg-black/5"
+          [cdkMenuTriggerFor]="moreMenu"
+        >
+          <i class="ri-more-line"></i>
         </div>
       </div>
       <div class="mx-3 w-[1px] h-3.5 bg-divider-regular"></div>
       <div class="flex items-center justify-center w-6 h-6 cursor-pointer" (click)="closePanel()">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="w-4 h-4 text-text-tertiary">
-          <path d="M11.9997 10.5865L16.9495 5.63672L18.3637 7.05093L13.4139 12.0007L18.3637 16.9504L16.9495 18.3646L11.9997 13.4149L7.04996 18.3646L5.63574 16.9504L10.5855 12.0007L5.63574 7.05093L7.04996 5.63672L11.9997 10.5865Z"></path>
-        </svg>
+        <i class="ri-close-line"></i>
       </div>
     </div>
   </div>
@@ -49,32 +52,21 @@
   </div>
 </div>
 
-
-<div class="w-full p-2">
-  @for (case of cases(); track case.caseId; let i = $index; let first = $first) {
-    <div>
-      <xpert-workflow-case-form class="mb-2"
-        [first]="first"
-        [index]="i + 1"
-        [variables]="variables()"
-        [case]="case"
-        (caseChange)="updateCase(i, $event)"
-        (deleted)="remove(i)"
-      />
-      <div class="my-2 mx-3 h-[1px] bg-divider-subtle"></div>
-    </div>
+@switch (type()) {
+  @case (eWorkflowNodeTypeEnum.IF_ELSE) {
+    <xpert-studio-panel-workflow-ifelse [node]="node()" [entity]="wfNode()" />
   }
-
-  <div class="px-4 py-2">
-    <button type="button" class="btn disabled:btn-disabled btn-tertiary btn-medium w-full justify-center"
-      (click)="addCase()"
-    >
-      <i class="ri-add-circle-line"></i>
-      ELIF
-    </button>
-  </div>
-</div>
+}
 
 @if (loading()) {
   <ngm-spin class="absolute top-0 left-0 w-full h-full"/>
 }
+
+<ng-template #moreMenu>
+  <div cdkMenu class="cdk-menu__medium">
+    <div class="h-[1px] bg-divider-regular my-1"></div>
+    <div cdkMenuItem class="danger" (click)="remove()">
+      {{ 'PAC.Workflow.Remove' | translate: {Default: 'Remove'} }}
+    </div>
+  </div>
+</ng-template>

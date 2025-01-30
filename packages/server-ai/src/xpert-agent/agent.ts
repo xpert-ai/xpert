@@ -5,10 +5,6 @@ import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { AgentStateAnnotation } from './commands/handlers/types'
 
-export function channelName(name: string) {
-	return name.toLowerCase() + '_channel'
-}
-
 export function createProcessStreamEvents(
 	logger: Logger,
 	thread_id: string,

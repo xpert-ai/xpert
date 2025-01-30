@@ -136,7 +136,7 @@ export type TChatAgentParams = {
   reject?: boolean
 }
 
-export function agentLabel(agent: IXpertAgent) {
+export function agentLabel(agent: Partial<IXpertAgent>) {
   return agent.title || agent.name || agent.key
 }
 

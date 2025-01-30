@@ -19,6 +19,7 @@ export enum EReloadReason {
   KNOWLEDGE_REMOVED = 'knowledge_removed',
   TOOLSET_CREATED = 'toolset_created',
   TOOLSET_REMOVED = 'toolset_removed',
+  WORKFLOW_REMOVED = 'workflow_removed',
   AUTO_LAYOUT = 'auto_layout',
   RESIZE = 'resize', // Node resize
   CANVAS_CHANGED = 'canvas_changed'

@@ -1,5 +1,5 @@
 <div class="container grow rounded-xl bg-gray-100 overflow-hidden">
-  <div class="flex justify-between items-center h-11 pl-3 pr-2 bg-gray-50 rounded-t-xl">
+  <div class="flex justify-between items-center h-9 pl-3 pr-2 bg-gray-50 rounded-t-xl">
     <div class="flex items-center space-x-1">
       @if (role() === 'system') {
         <div class="h2 text-sm">{{'PAC.Copilot.Prompt' | translate: {Default: 'Prompt'} }}</div>
@@ -24,7 +24,7 @@
     <div class="flex items-center">
       <div class="h-[18px] leading-[18px] px-1 rounded-md bg-gray-100 text-xs text-gray-500">{{promptLength()}}</div>
 
-      <div class="flex space-x-1 items-center px-2 py-1 rounded-lg text-sm cursor-pointer group hover:bg-state-base-hover"
+      <div class="flex space-x-1 items-center px-2 py-0.5 rounded-lg text-sm cursor-pointer group hover:bg-state-base-hover"
         (click)="generate()">
         <svg
           width="14"
@@ -45,7 +45,7 @@
             fill="currentColor"
           ></path>
         </svg>
-        <span class="text-sm font-semibold text-indigo-500 group-hover:text-indigo-600">
+        <span class="font-semibold text-indigo-500 group-hover:text-indigo-600">
           {{'PAC.Copilot.Generate' | translate: {Default: 'Generate'} }}
         </span>
       </div>
@@ -108,12 +108,17 @@
 <ng-template #suggestionsTemplate>
   <div cdkMenu class="cdk-menu__medium">
     <ul>
-      @for (variable of variables(); track variable.name) {
-        <li cdkMenuItem class="max-w-sm space-x-2 truncate" (click)="selectVariable(variable)">
-          <span class="text-sm mr-1">{{ variable.name }}</span>
-          <span class="flex-1 text-xs italic truncate text-text-secondary">{{variable.description | i18n}}</span>
-          <span class="ml-4 px-1 text-sm rounded-md bg-gray-50 text-primary-300">{{variable.type}}</span>
-        </li>
+      @for (g of variables(); track g) {
+        @if (g.agent) {
+          <div class="p-1 mt-2 text-sm text-text-secondary">{{agentLabel(g.agent)}}</div>
+        }
+        @for (variable of g.variables; track variable.name) {
+          <li cdkMenuItem class="max-w-sm space-x-2 truncate" (click)="selectVariable(g.agent?.key, variable)">
+            <span class="text-sm mr-1">{{ variable.name }}</span>
+            <span class="flex-1 text-xs italic truncate text-text-secondary">{{variable.description | i18n}}</span>
+            <span class="ml-4 px-1 text-sm rounded-md bg-gray-50 text-primary-300">{{variable.type}}</span>
+          </li>
+        }
       }
     </ul>
   </div>

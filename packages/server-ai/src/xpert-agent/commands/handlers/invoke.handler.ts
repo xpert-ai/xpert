@@ -27,6 +27,8 @@ import { CompleteToolCallsQuery } from '../../queries'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { STATE_VARIABLE_SYS_LANGUAGE, STATE_VARIABLE_USER_EMAIL, STATE_VARIABLE_USER_TIMEZONE } from './types'
+import { GetCopilotCheckpointsByParentQuery } from '../../../copilot-checkpoint/queries'
+import { pick } from 'lodash'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -114,11 +116,18 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 						}
 					})
 
+					const checkpoints = await this.queryBus.execute(new GetCopilotCheckpointsByParentQuery(pick(
+						state.parentConfig?.configurable,
+						'thread_id',
+						'checkpoint_ns',
+						'checkpoint_id'
+					)))
+
 					// @todo checkpoint_id The source of the value should be wrong
 					execution.checkpointNs =
-						state.config?.configurable?.checkpoint_ns ?? state.parentConfig?.configurable?.checkpoint_ns
+						state.config?.configurable?.checkpoint_ns ?? checkpoints[0]?.checkpoint_ns
 					execution.checkpointId =
-						state.config?.configurable?.checkpoint_id ?? state.parentConfig?.configurable?.checkpoint_id
+						state.config?.configurable?.checkpoint_id ?? checkpoints[0]?.checkpoint_id
 
 					// Update execution title from graph states
 					if (state.values.title) {

@@ -91,6 +91,8 @@ export function stateVariable(variable: TStateVariable) {
 						}
 					case VariableOperationEnum.OVERWRITE:
 						return right
+					default:
+						return right
 				}
 			} else if (variable.type === 'number') {
 				switch (variable.operation) {
@@ -98,6 +100,17 @@ export function stateVariable(variable: TStateVariable) {
 						return left == null ? Number(right) : left + Number(right)
 					case VariableOperationEnum.OVERWRITE:
 						return Number(right)
+					default:
+						return right
+				}
+			} else if (variable.type === 'string') {
+				switch (variable.operation) {
+					case VariableOperationEnum.APPEND:
+						return left == null ? right : left + right
+					case VariableOperationEnum.OVERWRITE:
+						return right ?? left
+					default:
+						return right
 				}
 			}
 		}

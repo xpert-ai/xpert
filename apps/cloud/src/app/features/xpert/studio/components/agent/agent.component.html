@@ -2,37 +2,34 @@
   <div fNodeInput [fInputId]="node().key" fInputConnectableSide="top" class="top"></div>
 }
 
+<div fNodeInput [fInputId]="node().key + '/edge'" fInputConnectableSide="left" class="left"></div>
+
 <div class="node-output-bottom flex items-center gap-2 h-3 absolute -bottom-[8px] left-1/2 -ml-5">
   <div fNodeOutput [fOutputId]="node().key + '/agent'" fOutputConnectableSide="bottom" [fOutputMultiple]="true">
-    <div class="inner-dot">
+    <div class="inner-dot cursor-crosshair">
       <ngm-plus-svg class="w-2 h-2 text-white" />
     </div>
   </div>
   <div fNodeOutput [fOutputId]="node().key + '/xpert'" fOutputConnectableSide="bottom" [fOutputMultiple]="true">
-    <div class="inner-dot">
+    <div class="inner-dot cursor-crosshair">
       <ngm-plus-svg class="w-2 h-2 text-white" />
     </div>
   </div>
   <div fNodeOutput [fOutputId]="node().key + '/toolset'" fOutputConnectableSide="bottom" [fOutputMultiple]="true">
-    <div class="inner-dot">
+    <div class="inner-dot cursor-crosshair">
       <ngm-plus-svg class="w-2 h-2 text-white" />
     </div>
   </div>
   <div fNodeOutput [fOutputId]="node().key + '/knowledge'" fOutputConnectableSide="bottom" [fOutputMultiple]="true">
-    <div class="inner-dot">
+    <div class="inner-dot cursor-crosshair">
       <ngm-plus-svg class="w-2 h-2 text-white" />
     </div>
-  </div>
-</div>
-
-<div class="node-output-left flex flex-col items-center gap-2 w-3 absolute -left-[8px] top-1/2 -mt-5">
-  <div fNodeInput [fInputId]="node().key + '/edge'" fInputConnectableSide="left">
   </div>
 </div>
 
 <div class="node-output-right flex flex-col items-center gap-2 w-3 absolute -right-[8px] top-1/2 -mt-5">
   <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" [fOutputMultiple]="true">
-    <div class="inner-dot">
+    <div class="inner-dot cursor-crosshair">
       <ngm-plus-svg class="w-2 h-2 text-white" />
     </div>
   </div>

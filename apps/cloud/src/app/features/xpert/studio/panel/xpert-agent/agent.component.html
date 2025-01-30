@@ -204,24 +204,26 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <mat-slide-toggle ngm-density="xs" [(ngModel)]="enabledOutputVars" />
+          <mat-slide-toggle ngm-density="xs" 
+            [matTooltip]="'PAC.Xpert.CustomOutputStructureTip' | translate: {Default: 'Whether to customize the output structure'}"
+            matTooltipPosition="above"
+            [(ngModel)]="enabledOutputVars" />
         </div>
       </div>
 
       @if (enabledOutputVars) {
         <xpert-output-variables-edit class="" 
-          [variables]="variables()"
           [ngModel]="outputVariables()"
           (ngModelChange)="updateOutputVariables($event)"
         />
       } @else {
-        <div class="px-4">
-          <div class="py-1">
-            <div class="flex leading-[18px] items-center">
-              <div class="font-semibold text-text-secondary">text</div>
-              <div class="ml-2 system-xs-regular text-text-tertiary">string</div>
-            </div>
-            <div class="mt-0.5 system-xs-regular text-text-tertiary">Generate content</div>
+        <div class="py-1">
+          <div class="flex leading-[18px] items-center">
+            <div class="font-semibold text-text-secondary">content</div>
+            <div class="ml-2 system-xs-regular text-text-tertiary">string</div>
+          </div>
+          <div class="mt-0.5 system-xs-regular text-text-tertiary">
+            {{ 'PAC.Xpert.GenerateContent' | translate: {Default: 'Generate content'} }}
           </div>
         </div>
       }
@@ -229,7 +231,9 @@
       <xpert-variables-assigner class="block mt-4"
         [title]="'PAC.Xpert.WritetoMemory' | translate: {Default: 'Write to memory'}"
         [tooltip]="'PAC.Xpert.WritetoMemoryTooltip' | translate: {Default: 'Write output content or parameters of the agent into global memory of the digital expert'}"
+        type="agent"
         [variables]="variables()"
+        [parameters]="outputVariables()"
         [memories]="memories()"
         (memoriesChange)="updateMemories($event)"
       />
@@ -251,7 +255,7 @@
 }
 
 <ng-template #moreMenu>
-  <div cdkMenu class="ngm-cdk-menu p-2 w-60">
+  <div cdkMenu class="cdk-menu__medium w-60">
     <button cdkMenuItem class="ngm-cdk-menu-item px-2 py-1 max-w-full text-left"
       (click)="openExecution()">
       <i class="ri-play-line mr-1"></i>{{ 'PAC.Xpert.RunThisAgent' | translate: { Default: 'Run this agent' } }}
@@ -259,6 +263,16 @@
     <button cdkMenuItem class="ngm-cdk-menu-item px-2 py-1 max-w-full text-left"
       [cdkMenuTriggerFor]="executionsMenu">
       <span><i class="ri-history-line mr-1"></i>{{ 'PAC.Xpert.ExecutionsHistories' | translate: { Default: 'Executions Histories' } }}</span>
+    </button>
+
+    <div class="h-[1px] bg-divider-regular my-1"></div>
+
+    <button cdkMenuItem class="danger disabled:opacity-80"
+      [disabled]="isPrimaryAgent()"
+      [matTooltip]="'PAC.Xpert.CanntRemovePrimaryAgent' | translate: {Default: 'Cannot remove the primary Agent'}"
+      matTooltipPosition="left"
+      (click)="remove()">
+      {{ 'PAC.Xpert.Remove' | translate: {Default: 'Remove'} }}
     </button>
   </div>
 </ng-template>
@@ -272,7 +286,7 @@
         <span class="px-1 rounded-md border-light text-xs">{{execution.elapsedTime | number}}ms</span>
       </button>
     } @empty {
-      <div class="text-text-secondary">{{'PAC.Xpert.NoExecutionYet' | translate: { Default:'No execution yet'} }}</div>
+      <div class="text-text-secondary m-2">{{'PAC.Xpert.NoExecutionYet' | translate: { Default:'No execution yet'} }}</div>
     }
   </div>
 </ng-template>

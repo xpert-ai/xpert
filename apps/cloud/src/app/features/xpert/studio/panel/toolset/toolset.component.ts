@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { CloseSvgComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
@@ -40,6 +40,7 @@ import { XpertVariablesAssignerComponent } from 'apps/cloud/src/app/@shared/xper
     XpertToolTestComponent,
     NgmDensityDirective,
     NgmSpinComponent,
+    NgmI18nPipe,
     XpertVariablesAssignerComponent
   ]
 })

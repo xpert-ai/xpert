@@ -14,6 +14,7 @@ import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertVariableFormComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { injectHelpWebsite } from 'apps/cloud/src/app/@core'
 
 @Component({
   selector: 'xpert-studio-panel-variables',
@@ -41,6 +42,7 @@ export class XpertStudioPanelVariablesComponent {
   readonly apiService = inject(XpertStudioApiService)
   readonly panelComponent = inject(XpertStudioPanelComponent)
   readonly #dialog = inject(Dialog)
+  readonly helpUrl = injectHelpWebsite()
 
   readonly xpert = this.xpertStudioComponent.xpert
   readonly agentConfig = computed(() => this.xpert()?.agentConfig)

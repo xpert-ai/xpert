@@ -6,8 +6,14 @@ import { MatInputModule } from '@angular/material/input'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { injectToastr, TStateVariable, TWFCaseCondition, WorkflowComparisonOperator } from 'apps/cloud/src/app/@core'
-import { groupBy } from 'lodash'
+import {
+  agentLabel,
+  injectToastr,
+  TStateVariable,
+  TWFCaseCondition,
+  TWorkflowVarGroup,
+  WorkflowComparisonOperator
+} from 'apps/cloud/src/app/@core'
 
 @Component({
   standalone: true,
@@ -17,12 +23,14 @@ import { groupBy } from 'lodash'
   imports: [FormsModule, CdkMenuModule, TranslateModule, MatTooltipModule, MatInputModule, TextFieldModule, NgmI18nPipe]
 })
 export class XpertWorkflowConditionFormComponent {
+  agentLabel = agentLabel
+
   readonly elementRef = inject(ElementRef)
   readonly #toastr = injectToastr()
 
   // Inputs
   readonly condition = model<TWFCaseCondition>()
-  readonly variables = input<TStateVariable[]>()
+  readonly variables = input<TWorkflowVarGroup[]>()
 
   // Outputs
   readonly deleted = output<void>()
@@ -39,27 +47,12 @@ export class XpertWorkflowConditionFormComponent {
       }
     }
     return {
+      group: '',
       name: this.condition()?.variableSelector
     }
   })
   readonly groupVariables = computed(() => {
-    const variables = this.variables()?.map((item) => {
-      const names = item.name.split('.')
-      if (names.length > 1) {
-        return {
-          ...item,
-          group: names[0],
-          name: names[1]
-        }
-      }
-      return item
-    })
-    if (!variables) return null
-    const groups = groupBy(variables, 'group')
-    return Object.keys(groups).map((group) => ({
-      group,
-      variables: groups[group] as Array<TStateVariable & { group: string }>
-    }))
+    return this.variables()
   })
 
   readonly hoverDelete = signal(false)
@@ -79,7 +72,15 @@ export class XpertWorkflowConditionFormComponent {
   }
 
   readonly variable = computed(() => {
-    return this.variables()?.find((_) => _.name === this.condition()?.variableSelector)
+    const [group, name] = this.condition()?.variableSelector?.split('.') ?? []
+    let variable = null
+    this.variables()?.some((g) => {
+      if (g.agent?.key === group) {
+        variable = g.variables.find((_) => _.name === name)
+      }
+      return !!variable
+    })
+    return variable
   })
 
   readonly operatorOptions = computed(() => {
@@ -153,6 +154,48 @@ export class XpertWorkflowConditionFormComponent {
               zh_Hans: '不包含',
               en_US: 'not contains'
             }
+          },
+          {
+            value: WorkflowComparisonOperator.STARTS_WITH,
+            label: {
+              zh_Hans: '开始是',
+              en_US: 'starts with'
+            }
+          },
+          {
+            value: WorkflowComparisonOperator.ENDS_WITH,
+            label: {
+              zh_Hans: '结束是',
+              en_US: 'ends with'
+            }
+          },
+          {
+            value: WorkflowComparisonOperator.EQUAL,
+            label: {
+              zh_Hans: '是',
+              en_US: 'is'
+            }
+          },
+          {
+            value: WorkflowComparisonOperator.NOT_EQUAL,
+            label: {
+              zh_Hans: '不是',
+              en_US: 'not is'
+            }
+          },
+          {
+            value: WorkflowComparisonOperator.EMPTY,
+            label: {
+              zh_Hans: '为空',
+              en_US: 'is empty'
+            }
+          },
+          {
+            value: WorkflowComparisonOperator.NOT_EMPTY,
+            label: {
+              zh_Hans: '不为空',
+              en_US: 'is not empty'
+            }
           }
         ]
       }
@@ -165,12 +208,12 @@ export class XpertWorkflowConditionFormComponent {
       this.condition()?.comparisonOperator
   )
 
-  selectVariable(variable: TStateVariable & { group: string }) {
+  selectVariable(group: string, variable: TStateVariable) {
     this.condition.update(
       (state) =>
         ({
           ...(state ?? {}),
-          variableSelector: variable.group ? `${variable.group}.${variable.name}` : variable.name
+          variableSelector: group ? `${group}.${variable.name}` : variable.name
         }) as TWFCaseCondition
     )
   }

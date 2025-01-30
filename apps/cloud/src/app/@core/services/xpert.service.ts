@@ -21,7 +21,7 @@ import {
   TChatOptions,
   TChatRequest,
   TDeleteResult,
-  TStateVariable,
+  TWorkflowVarGroup,
   TXpertTeamDraft,
   XpertTypeEnum
 } from '../types'
@@ -145,8 +145,8 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   }
 
   getVariables(id: string, agentKey?: string) {
-    return agentKey ? this.httpClient.get<TStateVariable[]>(this.apiBaseUrl + `/${id}/agent/${agentKey}/variables`)
-    : this.httpClient.get<TStateVariable[]>(this.apiBaseUrl + `/${id}/variables`)
+    return agentKey ? this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/agent/${agentKey}/variables`)
+    : this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/variables`)
   }
 
   getChatApp(id: string) {

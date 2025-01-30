@@ -30,7 +30,10 @@ export class XpertStudioNodeKnowledgeComponent {
   readonly id = computed(() => this.node()?.key)
   readonly knowledge = computed(() => this.node().entity)
 
-  readonly execution = computed(() => this.executionService.knowledgeExecutions()?.[this.id()])
+  readonly execution = computed(() => {
+    const executions = this.executionService.knowledgeExecutions()?.[this.id()]
+    return executions ? executions[executions.length - 1] : null
+  })
   readonly executionStatus = computed(() => this.execution()?.status)
 
   readonly knowledgebases = toSignal(this.studioService.knowledgebases$, {initialValue: null})

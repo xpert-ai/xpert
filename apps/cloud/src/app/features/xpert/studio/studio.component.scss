@@ -3,6 +3,7 @@
 :host {
   @apply w-full h-full;
   --output-size: 14px;
+  --f-component-hover-border: theme('colors.primary.300');
 }
 
 :host::ng-deep {
@@ -24,6 +25,17 @@
       .connection-marker {
         circle, rect, path {
           fill: var(--components-card-option-selected-border);
+        }
+      }
+    }
+    &.f-hover:not(.f-selected) {
+      z-index: 1;
+      .f-connection-path {
+        stroke: var(--f-component-hover-border);
+      }
+      .connection-marker {
+        circle, rect, path {
+          fill: var(--f-component-hover-border);
         }
       }
     }
@@ -69,6 +81,14 @@
         }
       }
     }
+
+    .f-component.f-node-input.left {
+      border-radius: 0;
+      width: 3px;
+      height: 10px;
+      border: none;
+      @apply bg-blue-500;
+    }
   }
 }
 
@@ -88,7 +108,10 @@ f-flow {
 }
 .f-node {
   @include flow-common.node;
-  @apply border-[2px] rounded-2xl border-transparent hover:border-primary-100;
+  @apply border-[2px] rounded-2xl border-transparent;
+  &.f-hover:not(.ngm-selected) {
+    border-color: var(--f-component-hover-border);
+  }
   &.ngm-selected {
     @apply border-components-card-option-selected-border shadow-md;
   }

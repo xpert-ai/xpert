@@ -25,9 +25,11 @@ import { MatDialog } from '@angular/material/dialog'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmHighlightVarDirective } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { effectAction, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { CopilotPromptGeneratorComponent } from '../prompt-generator/generator.component'
-import { TStateVariable } from '../../../@core'
+import { agentLabel, TStateVariable, TWorkflowVarGroup } from '../../../@core'
+import { switchMap, tap } from 'rxjs/operators'
+import { timer } from 'rxjs'
 
 @Component({
   selector: 'copilot-prompt-editor',
@@ -38,6 +40,7 @@ import { TStateVariable } from '../../../@core'
   imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, MatTooltipModule, NgmI18nPipe, NgmHighlightVarDirective]
 })
 export class CopilotPromptEditorComponent {
+  agentLabel = agentLabel
   
   readonly #clipboard = inject(Clipboard)
   readonly #dialog = inject(MatDialog)
@@ -52,7 +55,7 @@ export class CopilotPromptEditorComponent {
     transform: numberAttribute
   })
   readonly tooltip = input<string>()
-  readonly variables = input<TStateVariable[]>()
+  readonly variables = input<TWorkflowVarGroup[]>()
   readonly role = input<'system' | 'ai' | 'human'>()
 
   // Outputs
@@ -114,11 +117,11 @@ export class CopilotPromptEditorComponent {
     }
   }
 
-  selectVariable(variable: TStateVariable) {
+  selectVariable(g: string, variable: TStateVariable) {
     const editablePrompt: HTMLDivElement = this.editablePrompt.nativeElement
     const text = editablePrompt.innerText
     const regex = /{{(?=\s+\S*)|{{$/
-    const updatedText = text.replace(regex, `{{${variable.name}}}`)
+    const updatedText = text.replace(regex, g ? `{{${g}.${variable.name}}}` : `{{${variable.name}}}`)
     editablePrompt.innerText = updatedText
     this.hideSuggestions()
 
@@ -175,13 +178,14 @@ export class CopilotPromptEditorComponent {
     this.deleted.emit()
   }
 
-  copy() {
-    this.#clipboard.copy(this.prompt())
-    this.copied.set(true)
-    setTimeout(() => {
-      this.copied.set(false)
-    }, 3000)
-  }
+  copy = effectAction((origin$) => origin$.pipe(
+      tap(() => {
+        this.#clipboard.copy(this.prompt())
+        this.copied.set(true)
+      }),
+      switchMap(() => timer(3000)),
+      tap(() => this.copied.set(false))
+    ))
 
   onMouseDown(event: MouseEvent): void {
     this.isResizing = true

@@ -1,4 +1,6 @@
 import { I18nObject } from "../types"
+import { IXpertAgent } from "./xpert-agent.model"
+import { TStateVariable } from "./xpert.model"
 
 export enum WorkflowNodeTypeEnum {
   ASSIGNER = 'assigner',
@@ -61,8 +63,10 @@ export enum WorkflowComparisonOperator {
   LT = 'lt',
   GE = 'ge',
   LE = 'le',
+  STARTS_WITH = 'starts-with',
+  ENDS_WITH = 'ends-with',
   EMPTY = 'empty',
-  NOT_EMPTY = 'not-empty'
+  NOT_EMPTY = 'not-empty',
 }
 
 export type TWFCaseCondition = {
@@ -77,4 +81,13 @@ export type TWFCase = {
   caseId: string
   conditions: TWFCaseCondition[]
   logicalOperator: WorkflowLogicalOperator
+}
+
+export type TWorkflowVarGroup = {
+  agent?: Partial<IXpertAgent>
+  variables: TStateVariable[]
+}
+
+export function channelName(name: string) {
+	return name.toLowerCase() + '_channel'
 }

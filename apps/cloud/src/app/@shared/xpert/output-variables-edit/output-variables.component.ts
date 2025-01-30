@@ -12,7 +12,7 @@ import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { TAgentOutputVariable, TStateVariable, VariableOperations, XpertParameterTypeEnum } from '../../../@core'
+import { TAgentOutputVariable, VariableOperations, XpertParameterTypeEnum } from '../../../@core'
 
 @Component({
   standalone: true,
@@ -42,8 +42,6 @@ export class XpertOutputVariablesEditComponent {
 
   protected cva = inject<NgxControlValueAccessor<Partial<TAgentOutputVariable[]> | null>>(NgxControlValueAccessor)
   readonly #fb = inject(FormBuilder)
-
-  readonly variables = input<TStateVariable[]>()
 
   readonly form = this.#fb.group({
     parameters: this.#fb.array([])

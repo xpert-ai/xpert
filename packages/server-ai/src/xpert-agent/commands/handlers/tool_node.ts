@@ -75,18 +75,6 @@ export class ToolNode<T = any> extends Runnable<T, T> {
           );
           if (isBaseMessage(output) && output._getType() === "tool") {
             if (this.variables) {
-              console.warn(this.variables)
-              /**
-               * [
-                  {
-                    id: 'UQrgAkR8EM',
-                    variableSelector: 'memories',
-                    operation: 'append',
-                    inputType: 'variable',
-                    value: 'content' | ''
-                  }
-                ]
-               */
               const variables = this.variables.reduce((acc, curr) => {
                 if (curr.inputType === 'variable') {
                   if (curr.value === 'artifact') {
@@ -104,6 +92,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
                   {
                     ...variables,
                     [`${this.caller}.messages`]: [output],
+                    [this.caller]: {messages: [output]},
                     messages: [output],
                   }
               })

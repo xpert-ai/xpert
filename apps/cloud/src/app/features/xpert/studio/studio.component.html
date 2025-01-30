@@ -23,6 +23,7 @@
         [fInputId]="connection.to + (connection.type === 'edge' ? '/edge' : '')"
         class="gradient-color cursor-pointer"
         [class.f-selected]="connection.from.startsWith(selectedNodeKey()) || connection.to.startsWith(selectedNodeKey())"
+        [class.f-hover]="connection.from.startsWith(hoverNode()) || connection.to.startsWith(hoverNode())"
         fStartColor="var(--connection-gradient-1)" fEndColor="var(--connection-gradient-2)"
         [cdkContextMenuTriggerFor]="connContextMenu"
         [cdkContextMenuTriggerData]="{connection: connComp}"
@@ -45,8 +46,9 @@
     @for (node of nodes(); track node.key + node.hash) {
       <div class="w-[240px] group relative pb-1 shadow-sm border border-transparent rounded-[15px] bg-workflow-block-bg hover:shadow-lg hover:z-10"
         [class.ngm-selected]="selectedNodeKey() === node.key"
+        [class.f-hover]="hoverNode() === node.key"
         [class.ngm-executor-agent]="node.parentId"
-        [ngClass]="agentExecutions()[node.key]?.status||''"
+        [ngClass]="selectAgentStatus(node.key) || ''"
         fNode [fNodeId]="node.key"
         [fNodeParentId]="node.parentId"
         fDragHandle
@@ -55,6 +57,8 @@
         (fNodePositionChange)="moveNode({key: node.key, point: $event})"
         (fNodeSizeChange)="onSizeChange($event, node)"
         (mousedown)="onMouseDown($event)"
+        (mouseenter)="hoverNode.set(node.key)"
+        (mouseleave)="hoverNode.set(null)"
         (click)="onSelectNode($event, node)"
 
         [floatUi]="executionPopper"
@@ -96,15 +100,18 @@
           </div>
         }
 
-        @if (agentExecutions()[node.key]?.status === eXpertAgentExecutionEnum.RUNNING) {
+        @if (selectAgentStatus(node.key) === eXpertAgentExecutionEnum.RUNNING) {
           <ngm-spin class="absolute right-2 top-2" />
         }
 
         <float-ui-content #executionPopper (click)="$event.stopPropagation()" (wheel)="$event.stopPropagation()">
           @if (agentExecutions()[node.key]) {
-            <xpert-agent-execution-status class="p-2 w-96" [execution]="agentExecutions()[node.key]" />
-            <xpert-agent-execution-log class="p-2 w-96 max-h-[400px] overflow-y-auto overflow-x-hidden"
-              [execution]="agentExecutions()[node.key]" />
+            @for (execution of agentExecutions()[node.key]; track execution.id) {
+              <xpert-agent-execution-status class="p-2 w-96" [execution]="execution" />
+              <xpert-agent-execution-log class="p-2 w-96 max-h-[400px] overflow-y-auto overflow-x-hidden"
+                [execution]="execution"
+              />
+            }
           }
         </float-ui-content>
       </div>
