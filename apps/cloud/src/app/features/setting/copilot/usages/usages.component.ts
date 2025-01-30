@@ -6,6 +6,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayBehaviour, formatNumber, isNil } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { isNumber } from 'lodash-es'
 import { CopilotUsageService, ICopilotOrganization, injectFormatRelative, ToastrService } from '../../../../@core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
@@ -44,12 +45,12 @@ export class CopilotUsagesComponent extends TranslationBaseComponent {
     })
 
   _formatNumber(value: number): string {
-    return isNil(value) ? '' : formatNumber(value, this.translate.currentLang, '0.0-0')
+    return isNil(value) ? '' : isNumber(value) ? formatNumber(Number(value), this.translate.currentLang, '0.0-0') : ''
   }
   formatNumber = this._formatNumber.bind(this)
 
   _formatPrice(value: number): string {
-    return isNil(value) ? '' : formatNumber(value, this.translate.currentLang, '0.0-7')
+    return isNil(value) ? '' : isNumber(value) ? formatNumber(Number(value), this.translate.currentLang, '0.0-7') : ''
   }
   formatPrice = this._formatPrice.bind(this)
 

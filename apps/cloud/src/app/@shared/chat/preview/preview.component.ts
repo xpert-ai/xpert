@@ -93,7 +93,7 @@ export class ChatConversationPreviewComponent {
   readonly chatStop = output<void>()
 
   // States
-  readonly conversation = signal<IChatConversation>(null)
+  readonly conversation = signal<Partial<IChatConversation>>(null)
 
   readonly feedbacks = signal<Record<string, IChatMessageFeedback>>({})
   readonly #feedbacks = derivedAsync(() => {
@@ -112,6 +112,7 @@ export class ChatConversationPreviewComponent {
   readonly output = signal('')
 
   readonly conversationStatus = computed(() => this.conversation()?.status)
+  readonly error = computed(() => this.conversation()?.error)
   readonly operation = computed(() => this.conversation()?.operation)
 
   readonly toolCalls = signal<ToolCall[]>(null)
@@ -174,7 +175,7 @@ export class ChatConversationPreviewComponent {
     )
   }
 
-  chat(options?: { input?: string; confirm?: boolean; reject?: boolean }) {
+  chat(options?: { input?: string; confirm?: boolean; reject?: boolean; retry?: boolean }) {
     this.loading.set(true)
 
     if (options?.input) {
@@ -211,7 +212,8 @@ export class ChatConversationPreviewComponent {
           xpertId: this.xpert().id,
           toolCalls: this.toolCalls(),
           reject: options?.reject,
-          confirm: options?.confirm
+          confirm: options?.confirm,
+          retry: options?.retry,
         },
         {
           isDraft: true
@@ -283,6 +285,11 @@ export class ChatConversationPreviewComponent {
       this.appendMessage({ ...this.currentMessage() })
     }
     this.currentMessage.set(null)
+    this.conversation.update((state) => ({
+      ...(state ?? {}),
+      status: XpertAgentExecutionStatusEnum.ERROR,
+      error: message
+    }))
     this.chatError.emit(message)
   }
 
@@ -368,6 +375,21 @@ export class ChatConversationPreviewComponent {
 
   restart() {
     this.conversationId.set(null)
+    this.conversation.set(null)
     this._messages.set([])
+  }
+
+  onRetry() {
+    this.conversation.update((state) => {
+      return{
+        ...state,
+        status: 'busy',
+        error: null
+      }
+    })
+
+    this.chat({
+      retry: true
+    })
   }
 }

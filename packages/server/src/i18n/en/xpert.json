@@ -1,5 +1,7 @@
 {
     "Error": {
-        "NameInvalid": "Xpert name is invalid or already in use"
+        "NameInvalid": "Xpert name is invalid or already in use",
+        "EmbeddingCopilotNotFound": "Not found the copilot for role 'embedding'",
+        "EmbeddingModelForMemory": "Need to configure embedding model for long-term memory"
     }
 }

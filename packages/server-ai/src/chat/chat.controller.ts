@@ -28,7 +28,6 @@ export class ChatController {
 		@TimeZone() timeZone: string,
 		@Body() body: { request: TChatRequest; options: TChatOptions },
 	) {
-		console.log(timeZone)
 		const observable = await this.commandBus.execute(
 			new ChatCommand(body.request, {
 				...(body.options ?? {}),
