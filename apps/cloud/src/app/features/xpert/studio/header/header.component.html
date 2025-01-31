@@ -18,6 +18,14 @@
 
   <button type="button" class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium shrink-0 mr-2"
     #mt="cdkMenuTriggerFor"
+    [cdkMenuTriggerFor]="diagramMenu"
+    [cdkMenuTriggerData]="{trigger: mt}"
+  >
+    <i class="ri-links-line text-lg"></i>
+  </button>
+
+  <button type="button" class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium shrink-0 mr-2"
+    #mt="cdkMenuTriggerFor"
     [cdkMenuTriggerFor]="agentMenu"
     [cdkMenuTriggerData]="{trigger: mt}"
   >
@@ -402,6 +410,20 @@
         </div>
       </div>
     </div>
+  </div>
+</ng-template>
+
+
+<ng-template #diagramMenu>
+  <div cdkMenu class="min-w-[100px] min-h-[100px] max-w-xl max-h-96 relative">
+    @if (diagram$ | async; as diagram) {
+      <img [src]="diagram" alt="Diagram Image" class="max-w-full max-h-full">
+    } @else {
+      <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+    }
+    <button type="button" class="btn rounded-xl justify-center absolute top-2 right-2 w-8 h-8" (click)="refreshDiagram$.next()">
+      <i class="ri-restart-line"></i>
+    </button>
   </div>
 </ng-template>
 

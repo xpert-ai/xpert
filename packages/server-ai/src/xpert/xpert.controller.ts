@@ -45,7 +45,7 @@ import { I18nLang } from 'nestjs-i18n'
 import { v4 as uuidv4 } from 'uuid'
 import { ChatConversation, XpertAgentExecution } from '../core/entities/internal'
 import { FindExecutionsByXpertQuery } from '../xpert-agent-execution/queries'
-import { XpertChatCommand, XpertDelIntegrationCommand, XpertExportCommand, XpertImportCommand, XpertPublishIntegrationCommand } from './commands'
+import { XpertChatCommand, XpertDelIntegrationCommand, XpertExportCommand, XpertExportDiagramCommand, XpertImportCommand, XpertPublishIntegrationCommand } from './commands'
 import { XpertDraftDslDTO, XpertPublicDTO } from './dto'
 import { Xpert } from './xpert.entity'
 import { XpertService } from './xpert.service'
@@ -58,6 +58,10 @@ import { ChatConversationDeleteCommand, ChatConversationLogsQuery, ChatConversat
 import { FindMessageFeedbackQuery } from '../chat-message-feedback/queries'
 import { XpertGuard } from './guards/xpert.guard'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
+import * as fs from 'fs';
+import * as path from 'path';
+
+
 
 @ApiTags('Xpert')
 @ApiBearerAuth()
@@ -145,7 +149,7 @@ export class XpertController extends CrudController<Xpert> {
 		@Query('isDraft') isDraft: string,
 		@Query('data', ParseJsonPipe) params: PaginationParams<Xpert>) {
 		try {
-			return await this.commandBus.execute(new XpertExportCommand(xpertId, isDraft))
+			return await this.commandBus.execute(new XpertExportCommand(xpertId, isDraft === 'true'))
 		} catch(err) {
 			throw new InternalServerErrorException(err.message)
 		}
@@ -195,6 +199,18 @@ export class XpertController extends CrudController<Xpert> {
 	@Delete(':id/publish/integration/:integration')
 	async deleteIntegration(@Param('id') id: string, @Param('integration') integration: string,) {
 		return this.commandBus.execute(new XpertDelIntegrationCommand(id, integration))
+	}
+
+	@Get(':id/diagram')
+	async getDiagram(@Res() res: Response, @Param('id') id: string, @Query('isDraft') isDraft: string,) {
+		try {
+			const imageData = await this.commandBus.execute<XpertExportDiagramCommand, Blob>(new XpertExportDiagramCommand(id, isDraft === 'true'))
+			res.setHeader('Content-Type', 'image/jpeg')
+			res.send(Buffer.from(await imageData.arrayBuffer()))
+		} catch (err) {
+			this.#logger.error(`Failed to get image blob for id ${id}: ${err.message}`);
+			throw new InternalServerErrorException('Failed to retrieve image');
+		}
 	}
 
 	@Get(':id/executions')

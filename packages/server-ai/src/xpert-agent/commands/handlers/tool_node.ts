@@ -1,6 +1,5 @@
 import { CallbackManagerForChainRun } from "@langchain/core/callbacks/manager";
 import {
-  BaseMessage,
   ToolMessage,
   AIMessage,
   isBaseMessage,
@@ -8,9 +7,9 @@ import {
 import { mergeConfigs, patchConfig, Runnable, RunnableConfig, RunnableToolLike } from "@langchain/core/runnables";
 import { StructuredToolInterface } from "@langchain/core/tools";
 import { AsyncLocalStorageProviderSingleton } from "@langchain/core/singletons";
-import { Command, END, isCommand, isGraphInterrupt, MessagesAnnotation } from "@langchain/langgraph";
+import { Command, isCommand, isGraphInterrupt } from "@langchain/langgraph";
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
-import { ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE, TVariableAssigner } from "@metad/contracts";
+import { channelName, ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE, TVariableAssigner } from "@metad/contracts";
 import { getErrorMessage } from "@metad/server-common";
 import { setContextVariable } from "@langchain/core/context";
 
@@ -35,7 +34,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
   recurse = true;
   caller?: string
   variables: TVariableAssigner[]
-  messagesName: string
+  channel: string
 
   constructor(
     tools: (StructuredToolInterface | RunnableToolLike)[],
@@ -47,14 +46,15 @@ export class ToolNode<T = any> extends Runnable<T, T> {
     this.handleToolErrors = handleToolErrors ?? this.handleToolErrors;
     this.caller = options?.caller
     this.variables = options?.variables
-    this.messagesName = options?.caller ? `${options.caller}.messages` : 'messages'
+
+    this.channel = options?.caller ? channelName(options.caller) : null
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected async run(input: any, config: RunnableConfig): Promise<T> {
     const message = Array.isArray(input)
-      ? input[input.length - 1]
-      : input[this.messagesName][input[this.messagesName].length - 1];
+      ? input[input.length - 1] : input[this.channel]?.messages ?
+       input[this.channel].messages[input[this.channel].messages.length - 1] : null
 
     if (message?._getType() !== "ai") {
       throw new Error("ToolNode only accepts AIMessages as input.");
@@ -91,8 +91,8 @@ export class ToolNode<T = any> extends Runnable<T, T> {
                 update: 
                   {
                     ...variables,
-                    [`${this.caller}.messages`]: [output],
-                    [this.caller]: {messages: [output]},
+                    // [`${this.channel}.messages`]: [output],
+                    [this.channel]: {messages: [output]},
                     messages: [output],
                   }
               })
@@ -135,7 +135,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
 
      // Preserve existing behavior for non-command tool outputs for backwards compatibility
      if (!outputs.some(isCommand)) {
-      return (Array.isArray(input) ? outputs : { [this.messagesName]: outputs }) as T;
+      return (Array.isArray(input) ? outputs : { [this.channel]: {messages: outputs} }) as T;
     }
 
     // Handle mixed Command and non-Command outputs
@@ -143,7 +143,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
       if (isCommand(output)) {
         return output;
       }
-      return Array.isArray(input) ? [output] : { [this.messagesName]: [output] };
+      return Array.isArray(input) ? [output] : { [this.channel]: {messages: [output]} };
     });
     return combinedOutputs as T;
   }
@@ -209,20 +209,3 @@ export class ToolNode<T = any> extends Runnable<T, T> {
     return returnValue;
   }
 }
-
-// export function toolsCondition(
-//   state: BaseMessage[] | typeof MessagesAnnotation.State
-// ): "tools" | typeof END {
-//   const message = Array.isArray(state)
-//     ? state[state.length - 1]
-//     : state.messages[state.messages.length - 1];
-
-//   if (
-//     "tool_calls" in message &&
-//     ((message as AIMessage).tool_calls?.length ?? 0) > 0
-//   ) {
-//     return "tools";
-//   } else {
-//     return END;
-//   }
-// }

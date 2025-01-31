@@ -16,7 +16,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { formatRelative } from 'date-fns'
-import { distinctUntilChanged, filter, map, Observable, of, shareReplay, switchMap } from 'rxjs'
+import { BehaviorSubject, distinctUntilChanged, filter, map,publish,  Observable, of, shareReplay, switchMap, startWith } from 'rxjs'
 import { getDateLocale, TXpertAgentConfig } from '../../../../@core'
 import { XpertStudioApiService } from '../domain'
 import { XpertExecutionService } from '../services/execution.service'
@@ -28,6 +28,7 @@ import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatInputModule } from '@angular/material/input'
 import { MatSliderModule } from '@angular/material/slider'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 
 @Component({
   selector: 'xpert-studio-header',
@@ -41,6 +42,7 @@ import { MatSliderModule } from '@angular/material/slider'
     MatSliderModule,
     TranslateModule,
     NgmTooltipDirective,
+    NgmSpinComponent,
     InDevelopmentComponent
   ],
   templateUrl: './header.component.html',
@@ -107,6 +109,14 @@ export class XpertStudioHeaderComponent {
   )
 
   readonly conversationId = this.executionService.conversationId
+
+  // Diagram of agents
+  readonly refreshDiagram$ = new BehaviorSubject<void>(null)
+  readonly diagram$ = this.refreshDiagram$.pipe(
+    switchMap(() => this.xpertService.getDiagram(this.xpert().id, true).pipe(startWith(null))),
+    map((imageBlob) => imageBlob ? URL.createObjectURL(imageBlob) : null),
+    shareReplay(1)
+  )
 
   publish() {
     this.publishing.set(true)

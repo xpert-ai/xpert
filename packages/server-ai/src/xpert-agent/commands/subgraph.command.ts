@@ -18,14 +18,14 @@ export class XpertAgentSubgraphCommand implements ICommand {
 			 */
 			leaderKey?: string
 			// The id of root agent execution
-			rootExecutionId: string
+			rootExecutionId?: string
 			// Langgraph thread id
 			thread_id?: string
 			execution?: IXpertAgentExecution
 			// Use xpert's draft
 			isDraft?: boolean
 			// The subscriber response to client
-			subscriber: Subscriber<MessageEvent>
+			subscriber?: Subscriber<MessageEvent>
 			abortController?: AbortController
 		}
 	) {}

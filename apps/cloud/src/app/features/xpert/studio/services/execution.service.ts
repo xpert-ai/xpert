@@ -111,9 +111,10 @@ export class XpertExecutionService {
 
   setAgentExecution(key: string, execution: IXpertAgentExecution) {
     this.#agentExecutions.update((state) => {
+      const executions = state[key] ?? []
       return {
         ...state,
-        [key]: (state[key] ?? []).concat(execution)
+        [key]: executions.filter((_) => _.id !== execution.id).concat(execution)
       }
     })
   }
@@ -146,10 +147,13 @@ export class XpertExecutionService {
   }
 
   setKnowledgeExecution(name: string, execution: Partial<IXpertAgentExecution>) {
-    this.knowledgeExecutions.update((state) => ({
-      ...state,
-      [name]: (state[name] ?? []).concat(execution)
-    }))
+    this.knowledgeExecutions.update((state) => {
+      const executions = state[name] ?? []
+      return {
+        ...state,
+        [name]: executions.filter((_) => _.id !== execution.id).concat(execution)
+      }
+    })
   }
 
   markError(error: string) {

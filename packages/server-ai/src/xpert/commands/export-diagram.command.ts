@@ -1,7 +1,7 @@
 import { ICommand } from '@nestjs/cqrs'
 
-export class XpertExportCommand implements ICommand {
-	static readonly type = '[Xpert] Export DSL'
+export class XpertExportDiagramCommand implements ICommand {
+	static readonly type = '[Xpert] Export Diagram'
 
 	constructor(
 		public readonly id: string,

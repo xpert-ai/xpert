@@ -91,6 +91,13 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     })
   }
 
+  getDiagram(id: string, isDraft: boolean) {
+    return this.httpClient.get(this.apiBaseUrl + `/${id}/diagram`, {
+      params: toParams({ isDraft }),
+      responseType: 'blob',
+    })
+  }
+
   getExecutions(id: string, options?: PaginationParams<IXpertAgentExecution>) {
     return this.httpClient.get<{ items: IXpertAgentExecution[] }>(this.apiBaseUrl + `/${id}/executions`, {
       params: toHttpParams(options)
