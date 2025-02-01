@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, input } from '@angular/core'
+import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
 import { NgmSelectComponent, SlashSvgComponent, VariableSvgComponent } from '@metad/ocap-angular/common'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { FormsModule } from '@angular/forms'
@@ -21,8 +21,13 @@ export class XpertParametersFormComponent {
 
   protected cva = inject<NgxControlValueAccessor<Partial<Record<string, unknown>> | null>>(NgxControlValueAccessor)
 
+  // Inputs
   readonly parameters = input<TXpertParameter[]>()
+  readonly readonly = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
+  // States
   readonly params = computed(() => {
     return this.parameters().map((parameter) => {
       if (parameter.type === XpertParameterTypeEnum.SELECT) {

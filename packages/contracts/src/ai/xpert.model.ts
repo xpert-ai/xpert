@@ -420,6 +420,43 @@ export function xpertLabel(agent: Partial<IXpert>) {
   return agent.title || agent.name
 }
 
+export function createXpertGraph(xpert: IXpert, position: IPoint) {
+  const graph = xpert.graph ?? xpert.draft
+
+  const nodes = graph.nodes
+
+  // Extract the area by positions of all nodes
+  const positions = nodes.map((node) => node.position)
+  const x0Positions = positions.map((pos) => pos.x)
+  const x1Positions = nodes.map((node) => node.position.x + (node.size?.width ?? 240)) // Node width min 240
+  const y0Positions = positions.map((pos) => pos.y)
+  const y1Positions = nodes.map((node) => node.position.y + (node.size?.height ?? 70)) // Node height min 70
+
+  const xRange = {
+    min: Math.min(...x0Positions),
+    max: Math.max(...x1Positions)
+  }
+
+  const yRange = {
+    min: Math.min(...y0Positions),
+    max: Math.max(...y1Positions)
+  }
+
+  const size = {
+    width: xRange.max - xRange.min + 50, 
+    height: yRange.max - yRange.min + 80
+  }
+
+  nodes.forEach((node) => {
+    node.position = {
+      x: position.x + (node.position?.x ? node.position.x - xRange.min : 0) + 10,
+      y: position.y + (node.position?.y ? node.position.y - yRange.min : 0) + 40,
+    }
+  })
+
+  return { nodes, size, connections: graph.connections }
+}
+
 /**
  * Create agents nodes of xpert and it's area size
  * 

@@ -1,10 +1,10 @@
 import { IHandler } from '@foblex/mediator'
 import { Store, StoreDef } from '@ngneat/elf'
-import { TXpertTeamDraft, TXpertTeamNode } from 'apps/cloud/src/app/@core'
+import { createXpertGraph, TXpertTeamDraft, TXpertTeamNode } from 'apps/cloud/src/app/@core'
 import { firstValueFrom } from 'rxjs'
 import { ToConnectionViewModelHandler } from '../../connection'
 import { ToNodeViewModelHandler } from '../../node'
-import { IStudioStore } from '../../types'
+import { calculateHash, IStudioStore } from '../../types'
 import { XpertStudioApiService } from '../../xpert-api.service'
 import { ExpandTeamRequest } from './expand.request'
 
@@ -32,17 +32,20 @@ export class ExpandTeamHandler implements IHandler<ExpandTeamRequest> {
             node.entity = xpert
           }
 
-          const { nodes, size } = new ToNodeViewModelHandler(node.entity, {position: node.position}).handle()
+          const {nodes, connections, size} = createXpertGraph(node.entity, node.position)
+          // const { nodes, size } = new ToNodeViewModelHandler(node.entity, {position: node.position}).handle()
           node.nodes = nodes
-          node.connections = new ToConnectionViewModelHandler(node.entity).handle()
+          node.connections = connections
           node.size = size
+          node.hash = calculateHash(JSON.stringify(size))
         } else {
           node.nodes = node.nodes.filter((_) => _.key === node.entity.agent.key)
           node.connections = null
           node.size = {
             width: (node.nodes[0].size?.width ?? 240) + 20,
-            height: (node.nodes[0].size?.height ?? 70) + 20,
+            height: (node.nodes[0].size?.height ?? 100) + 50,
           }
+          node.hash = calculateHash(JSON.stringify(node.size))
         }
       }
 

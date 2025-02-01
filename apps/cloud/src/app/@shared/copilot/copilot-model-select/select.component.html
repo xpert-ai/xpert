@@ -11,8 +11,10 @@
   </div>
 }
 
-<div class="flex items-center px-1 h-8 rounded-lg cursor-pointer border
- bg-gray-100 border-gray-100 hover:border-gray-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:border-zinc-600">
+<div class="flex items-center px-1 h-8 rounded-lg border
+ bg-gray-100 border-gray-100 hover:border-gray-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:border-zinc-600"
+ [class.cursor-pointer]="!readonly()"
+>
   <div class="flex-1 relative flex items-center overflow-hidden"
     #menuTrigger
     [cdkMenuTriggerFor]="readonly() ? null : modelsMenu"

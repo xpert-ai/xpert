@@ -41,7 +41,10 @@ import { ModelParameterInputComponent } from '../model-parameter-input/input.com
   selector: 'copilot-model-select',
   templateUrl: 'select.component.html',
   styleUrls: ['select.component.scss'],
-  hostDirectives: [NgxControlValueAccessor]
+  hostDirectives: [NgxControlValueAccessor],
+  host: {
+    '[class.readonly]': 'readonly()'
+  }
 })
 export class CopilotModelSelectComponent {
   eModelFeature = ModelFeature

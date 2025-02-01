@@ -1904,6 +1904,8 @@
       "Apply": "应用",
       "Executions": "执行记录",
       "Type": "类型",
+      "ShowDiagram": "显示图表",
+      "RefreshExternalXpert": "刷新，同步外部专家配置",
       "Reducer": "归约",
       "VariableReducer": "变量归约",
       "SelectReducer": "选择归约方式",

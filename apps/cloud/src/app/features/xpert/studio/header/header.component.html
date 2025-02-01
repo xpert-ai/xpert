@@ -230,7 +230,8 @@
         </div>
         @if (draft()) {
           <button type="button" class="self-center px-2 py-1 rounded-lg border border-token-border-medium text-sm transition duration-200
-            text-primary-600 hover:bg-primary-50 active:bg-primary-100" (click)="resume()">
+            text-primary-600 hover:bg-primary-50 active:bg-primary-100"
+            (click)="resume()">
             {{ 'PAC.Xpert.Reset' | translate: {Default: 'Reset'} }}
           </button>
         }

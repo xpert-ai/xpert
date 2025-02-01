@@ -14,7 +14,7 @@
     </div>
 
     @if (paramsExpanded()) {
-      <xpert-parameters-form class="w-full" [parameters]="parameters()" [(ngModel)]="value" />
+      <xpert-parameters-form class="w-full" [readonly]="readonly()" [parameters]="parameters()" [(ngModel)]="value" />
     }
   </div>
 </div>

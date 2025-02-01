@@ -226,7 +226,10 @@ export class XpertStudioApiService {
         ...omit(xpert, 'agents'),
         id: xpert.id
       },
-      ...xpert.graph,
+      ...(xpert.graph ?? {
+        nodes: new ToNodeViewModelHandler(xpert).handle().nodes,
+        connections: new ToConnectionViewModelHandler(xpert).handle()
+      }),
     } as TXpertTeamDraft
   }
 
