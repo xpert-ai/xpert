@@ -2,7 +2,7 @@ import { IXpert, mapTranslationLanguage, replaceAgentInDraft } from '@metad/cont
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { omit } from 'lodash'
+import { omit, pick } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { XpertAgentService } from '../../../xpert-agent'
 import { XpertNameInvalidException } from '../../types'
@@ -55,7 +55,8 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
 			draft: {
 				...draft,
 				team: xpert
-			}
+			},
+			graph: pick(draft, 'connections', 'nodes')
 		})
 
 		// const xpertAgents = await Promise.all(

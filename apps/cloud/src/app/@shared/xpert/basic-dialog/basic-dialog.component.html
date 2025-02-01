@@ -1,0 +1,21 @@
+<div class="max-w-2xl mb-9">
+  <div class="font-semibold text-xl leading-[30px] truncate cursor-pointer text-gray-900"
+    cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    {{ 'PAC.Xpert.NewXpert' | translate: {Default: 'New Xpert'} }}
+  </div>
+</div>
+
+<div class="mb-9 relative">
+  <xpert-basic-form #basicForm [(name)]="name" [(avatar)]="avatar" [(description)]="description" />
+</div>
+
+<div class="flex flex-row-reverse">
+  <button type="button" class="btn disabled:btn-disabled btn-primary btn-large justify-center w-24 ml-2"
+    [disabled]="basicForm.invalid() || basicForm.checking()"
+    (click)="apply()"
+  >{{ 'PAC.Xpert.Apply' | translate: {Default: 'Apply'} }}</button>
+  <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large justify-center w-24"
+    [disabled]="basicForm.checking()"
+    (click)="close()"
+  >{{ 'PAC.Xpert.Cancel' | translate: {Default: 'Cancel'} }}</button>
+</div>

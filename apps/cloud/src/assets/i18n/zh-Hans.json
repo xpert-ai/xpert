@@ -1897,6 +1897,8 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "NewXpert": "新建数字专家",
+      "Apply": "应用",
       "Type": "类型",
       "Reducer": "归约",
       "VariableReducer": "变量归约",

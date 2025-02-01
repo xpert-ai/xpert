@@ -1,4 +1,17 @@
-<div class="p-2 uppercase font-semibold">{{message().type}}</div>
+<div class="flex justify-between items-center px-2 py-1">
+  <div class="uppercase font-semibold">{{message().type}}</div>
+
+  <button type="button" class="action-btn action-btn-m w-7 h-7"
+    (click)="copy()"
+  >
+    @if (copied()) {
+      <i class="ri-clipboard-fill"></i>
+    } @else {
+      <i class="ri-clipboard-line"></i>
+    }
+  </button>
+</div>
+
 <div class="p-2 flex flex-col">
 @switch (message().type) {
   @case ('human') {

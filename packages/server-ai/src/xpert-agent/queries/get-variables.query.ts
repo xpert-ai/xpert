@@ -9,6 +9,9 @@ export class XpertAgentVariablesQuery implements IQuery {
 	constructor(
 		public readonly xpertId: string,
 		public readonly agentKey?: string,
+		/**
+		 * Draft First
+		 */
 		public readonly isDraft?: boolean,
 	) {}
 }

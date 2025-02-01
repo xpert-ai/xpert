@@ -305,7 +305,17 @@
 </ng-template>
 
 <ng-template #conversationsMenu>
-  <div class="cdk-menu__medium flex flex-col w-96 max-w-md !p-0" cdkMenu @overlayAnimation1>
+  <div class="cdk-menu__medium relative flex flex-col w-96 max-w-md !p-0" cdkMenu @overlayAnimation1>
+
+    <button type="button" class="btn rounded-xl justify-center absolute top-2 right-2 w-8 h-8 z-20"
+      (click)="refreshConv$.next()">
+      <i class="ri-restart-line"></i>
+    </button>
+
+    @if (loadingConv()) {
+      <ngm-spin class="absolute top-0 left-0 w-full h-full z-20" />
+    }
+
     <div class="sticky top-0 bg-white flex items-center justify-between p-2 text-base font-semibold text-gray-900">
       <div class="grow">{{ 'PAC.Xpert.ChatHistory' | translate: {Default: 'Chat History'} }}</div>
     </div>

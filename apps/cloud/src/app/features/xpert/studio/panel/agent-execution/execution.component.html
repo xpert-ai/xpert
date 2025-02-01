@@ -86,13 +86,30 @@
     </div>
 
     <div class="flex flex-col gap-2 p-2">
-      @for (execution of executions(); track execution.id) {
+      @for (item of executions(); track item.agent.key) {
         <div class="flex items-center my-4 leading-[18px] text-sm font-semibold text-gray-500 uppercase">
-          <div class="mr-3">{{execution.agent?.title || execution.agent?.name || execution.agentKey}}</div>
+          <div class="flex items-center cursor-pointer rounded-md hover:bg-hover-bg" (click)="toggleExpand(item.agent.key)">
+            @if (item.expand) {
+              <i class="ri-arrow-drop-down-line"></i>
+            } @else {
+              <i class="ri-arrow-drop-right-line"></i>
+            }
+            <div class="mr-3">{{item.agent?.title || item.agent?.name || item.agent?.key}}</div>
+          </div>
           <div class="grow w-0 h-px bg-divider-regular"></div>
         </div>
-        @for (message of execution.messages; track $index) {
-          <copilot-stored-message [message]="message" />
+
+        @if (item.expand) {
+          @for (execution of item.executions; track execution.id) {
+            <div class="flex items-center w-full my-2">
+              <div class="grow h-[1px] bg-divider-regular"></div>
+              <div class="mx-2 max-w-[50%] truncate text-xs text-text-secondary" [title]="execution.title">{{execution.title || execution.id}}</div>
+              <div class="grow h-[1px] bg-divider-regular"></div>
+            </div>
+            @for (message of execution.messages; track $index) {
+              <copilot-stored-message [message]="message" />
+            }
+          }
         }
       }
     </div>

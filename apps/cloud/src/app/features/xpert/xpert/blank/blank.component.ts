@@ -2,13 +2,11 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { Component, inject, model, signal } from '@angular/core'
-import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatInputModule } from '@angular/material/input'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { debounceTime, map, of, switchMap, tap } from 'rxjs'
+import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
   IXpert,
@@ -18,8 +16,9 @@ import {
   XpertService,
   XpertTypeEnum
 } from '../../../../@core'
-import { EmojiAvatarComponent } from '../../../../@shared/avatar'
 import { genAgentKey } from '../../utils'
+import { XpertBasicFormComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { DragDropModule } from '@angular/cdk/drag-drop'
 
 @Component({
   selector: 'xpert-new-blank',
@@ -27,12 +26,13 @@ import { genAgentKey } from '../../utils'
   imports: [
     CommonModule,
     TranslateModule,
+    DragDropModule,
     MatInputModule,
     MatButtonModule,
     ButtonGroupDirective,
     FormsModule,
     CdkListboxModule,
-    EmojiAvatarComponent
+    XpertBasicFormComponent
   ],
   templateUrl: './blank.component.html',
   styleUrl: './blank.component.scss'
@@ -43,47 +43,46 @@ export class XpertNewBlankComponent {
   readonly #dialogData = inject<{ workspace: IXpertWorkspace }>(DIALOG_DATA)
   readonly xpertService = inject(XpertService)
   readonly #toastr = inject(ToastrService)
-  readonly #translate = inject(TranslateService)
 
   readonly types = model<XpertTypeEnum[]>([XpertTypeEnum.Agent])
   readonly name = model<string>()
   readonly description = model<string>()
   readonly avatar = model<TAvatar>()
 
-  readonly checking = signal(false)
-  readonly validateName = toSignal<{available: boolean; error?: string;}>(
-    toObservable(this.name).pipe(
-      debounceTime(500),
-      switchMap((title) => {
-        if (title) {
-          const isValidTitle = /^[a-zA-Z0-9 _-]+$/.test(title)
-          if (!isValidTitle) {
-            return of({
-              available: false,
-              error: this.#translate.instant('PAC.Xpert.NameOnlyContain', {Default: 'Name can only contain [a-zA-Z0-9 _-]'})
-            })
-          }
+  // readonly checking = signal(false)
+  // readonly validateName = toSignal<{available: boolean; error?: string;}>(
+  //   toObservable(this.name).pipe(
+  //     debounceTime(500),
+  //     switchMap((title) => {
+  //       if (title) {
+  //         const isValidTitle = /^[a-zA-Z0-9 _-]+$/.test(title)
+  //         if (!isValidTitle) {
+  //           return of({
+  //             available: false,
+  //             error: this.#translate.instant('PAC.Xpert.NameOnlyContain', {Default: 'Name can only contain [a-zA-Z0-9 _-]'})
+  //           })
+  //         }
 
-          return this._validateName(title).pipe(
-            map((available) => ({
-              available,
-              error: available ? '' : this.#translate.instant('PAC.Xpert.NameExisted', {Default: 'Name existed!'})
-            }))
-          )
-        }
+  //         return this._validateName(title).pipe(
+  //           map((available) => ({
+  //             available,
+  //             error: available ? '' : this.#translate.instant('PAC.Xpert.NameExisted', {Default: 'Name existed!'})
+  //           }))
+  //         )
+  //       }
 
-        return of({
-          available: true,
-          error: null
-        })
-      })
-    )
-  )
+  //       return of({
+  //         available: true,
+  //         error: null
+  //       })
+  //     })
+  //   )
+  // )
 
-  _validateName(name: string) {
-    this.checking.set(true)
-    return this.xpertService.validateName(name).pipe(tap(() => this.checking.set(false)))
-  }
+  // _validateName(name: string) {
+  //   this.checking.set(true)
+  //   return this.xpertService.validateName(name).pipe(tap(() => this.checking.set(false)))
+  // }
 
   create() {
     this.xpertService

@@ -20,6 +20,7 @@ export class XpertExportDiagramHandler implements ICommandHandler<XpertExportDia
 		const xpert = await this.xpertService.findOne(id, { relations: ['agent'] })
 
 		// Create graph by command
+		const controller = new AbortController()
 		const { graph } = await this.commandBus.execute<
 			XpertAgentSubgraphCommand,
 			{
@@ -29,7 +30,9 @@ export class XpertExportDiagramHandler implements ICommandHandler<XpertExportDia
 			new XpertAgentSubgraphCommand(xpert.agent.key, xpert, {
 				isDraft,
 				isStart: true,
-				execution: {}
+				execution: {},
+				rootController: controller,
+				signal: controller.signal
 			})
 		)
 		const _graph = await graph.getGraphAsync()

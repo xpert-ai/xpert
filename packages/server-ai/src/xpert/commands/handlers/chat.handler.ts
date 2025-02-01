@@ -87,6 +87,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 						xpert,
 						// title: input.input, // 改成 AI 自动总结标题
 						options: {
+							parameters: input,
 							knowledgebases: options?.knowledgebases,
 							toolsets: options?.toolsets
 						},

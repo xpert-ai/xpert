@@ -40,7 +40,7 @@ import { XpertStudioCreateToolComponent } from '../../tools/create/create.compon
 import { XpertNewBlankComponent } from '../../xpert/index'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { CardCreateComponent } from 'apps/cloud/src/app/@shared/card'
-import { ToolProviderCardComponent, ToolsetCardComponent, XpertCardComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { ToolProviderCardComponent, ToolsetCardComponent, XpertBasicDialogComponent, XpertCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 
 @Component({
   standalone: true,
@@ -343,41 +343,58 @@ export class XpertStudioXpertsComponent {
   }
 
   handleImportedDSL(dsl: TXpertTeamDraft) {
-    this.confirmUnique({
-      value: dsl.team.name,
-      title: this.#translate.instant('PAC.Xpert.ChangeXpertName', { Default: 'Change the name of xpert' }),
-      validators: [
-        async (name: string) => {
-          const slug = convertToUrlPath(name)
-          if (slug.length < 5) {
-            return {
-              error: this.#translate.instant('PAC.Xpert.TooShort', { Default: 'Too short' })
-            }
-          }
-
-          if (/[^a-zA-Z0-9-\s]/.test(name)) {
-            return {
-              error: this.#translate.instant('PAC.Xpert.NameContainsNonAlpha', { Default: 'Name contains non (alphabetic | - | blank) characters' })
-            }
-          }
-        },
-        async (name: string) => {
-          const valid = await firstValueFrom(this.xpertService.validateName(name))
-          return valid ? null : {error: this.#translate.instant('PAC.Xpert.NameNotAvailable', { Default: 'Name not available' })}
-        }
-      ]
-    }, (name: string) => this.xpertService.importDSL({
-      ...dsl,
-      team: {
-        ...dsl.team,
-        name,
-        workspaceId: this.workspaceId()
+    this.dialog.open<{name: string;}>(XpertBasicDialogComponent, {
+      data: {
+        name: dsl.team.name,
+        avatar: dsl.team.avatar,
+        description: dsl.team.description,
       }
-    }))
+    }).closed.pipe(
+      switchMap((basic) => {
+        return basic ? this.xpertService.importDSL({
+          ...dsl,
+          team: {
+            ...dsl.team,
+            ...basic,
+            workspaceId: this.workspaceId()
+          }
+        }) : EMPTY
+      })
+    )
+    // this.confirmUnique({
+    //   value: dsl.team.name,
+    //   title: this.#translate.instant('PAC.Xpert.ChangeXpertName', { Default: 'Change the name of xpert' }),
+    //   validators: [
+    //     async (name: string) => {
+    //       const slug = convertToUrlPath(name)
+    //       if (slug.length < 5) {
+    //         return {
+    //           error: this.#translate.instant('PAC.Xpert.TooShort', { Default: 'Too short' })
+    //         }
+    //       }
+
+    //       if (/[^a-zA-Z0-9-\s]/.test(name)) {
+    //         return {
+    //           error: this.#translate.instant('PAC.Xpert.NameContainsNonAlpha', { Default: 'Name contains non (alphabetic | - | blank) characters' })
+    //         }
+    //       }
+    //     },
+    //     async (name: string) => {
+    //       const valid = await firstValueFrom(this.xpertService.validateName(name))
+    //       return valid ? null : {error: this.#translate.instant('PAC.Xpert.NameNotAvailable', { Default: 'Name not available' })}
+    //     }
+    //   ]
+    // }, (name: string) => this.xpertService.importDSL({
+    //   ...dsl,
+    //   team: {
+    //     ...dsl.team,
+    //     name,
+    //     workspaceId: this.workspaceId()
+    //   }
+    // }))
       .subscribe({
         next: (xpert) => {
           this.router.navigate(['/xpert/', xpert.id],)
-          // this.refresh()
           this.#toastr.success(
             this.#translate.instant('PAC.Xpert.ImportSuccess', { Default: 'DSL file imported successfully' })
           )

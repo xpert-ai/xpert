@@ -13,7 +13,8 @@ import {
 	ChatMessageTypeEnum,
 	IXpertAgent,
 	ToolCall,
-	TSensitiveOperation
+	TSensitiveOperation,
+	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
@@ -49,11 +50,12 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
 		const abortController = new AbortController()
 		// Create graph by command
-		const { graph } = await this.commandBus.execute(
+		const { graph } = await this.commandBus.execute<XpertAgentSubgraphCommand, {graph: CompiledStateGraph<any, any, any>}>(
 			new XpertAgentSubgraphCommand(agentKey, xpert, {
 				...options,
 				isStart: true,
-				abortController
+				rootController: abortController,
+				signal: abortController.signal
 			})
 		)
 
@@ -168,21 +170,37 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				unsubscribe: async () => {
 					this.#logger.debug(`Canceled by client!`)
 					if (!abortController.signal.aborted) {
-						abortController.abort()
-					}
-
-					const state = await graph.getState({
-						configurable: {
-							...config
+						try {
+							abortController.abort()
+						} catch(err) {
+							//
 						}
-					})
-
-					await this.commandBus.execute(
-						new XpertAgentExecutionUpsertCommand({
-							id: execution.id,
-							checkpointId: state.parentConfig?.configurable?.checkpoint_id
+					}
+					
+					try {
+						const state = await graph.getState({
+							configurable: {
+								...config
+							}
 						})
-					)
+						const checkpoints = await this.queryBus.execute(new GetCopilotCheckpointsByParentQuery(pick(
+							state.parentConfig?.configurable,
+							'thread_id',
+							'checkpoint_ns',
+							'checkpoint_id'
+						)))
+	
+						await this.commandBus.execute(
+							new XpertAgentExecutionUpsertCommand({
+								id: execution.id,
+								checkpointId: state.config?.configurable?.checkpoint_id ?? checkpoints[0]?.checkpoint_id,
+								status: XpertAgentExecutionStatusEnum.ERROR,
+								error: 'Aborted!',
+							})
+						)
+					} catch(err) {
+						//
+					}
 				}
 			})
 		)

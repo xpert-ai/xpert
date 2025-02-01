@@ -88,7 +88,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
                 return acc
               }, {})
               return new Command({
-                update: 
+                update:
                   {
                     ...variables,
                     // [`${this.channel}.messages`]: [output],
@@ -124,11 +124,19 @@ export class ToolNode<T = any> extends Runnable<T, T> {
             toolCall: call,
             error: getErrorMessage(e)
           })
-          return new ToolMessage({
-            content: `Error: ${e.message}\n Please fix your mistakes.`,
-            name: call.name,
-            tool_call_id: call.id ?? "",
-          });
+          // Return back to caller agent when error
+          return new Command({
+            goto: this.caller,
+            update: {
+              [this.channel]: {messages: [
+                new ToolMessage({
+                  content: `Error: ${e.message}\n Please fix your mistakes.`,
+                  name: call.name,
+                  tool_call_id: call.id ?? "",
+                })
+              ]},
+            }
+          })
         }
       }) ?? []
     );

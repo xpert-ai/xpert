@@ -26,7 +26,11 @@ export class XpertAgentSubgraphCommand implements ICommand {
 			isDraft?: boolean
 			// The subscriber response to client
 			subscriber?: Subscriber<MessageEvent>
-			abortController?: AbortController
+			/**
+			 * Control the entire graph
+			 */
+			rootController: AbortController
+			signal: AbortSignal
 		}
 	) {}
 }

@@ -8,6 +8,10 @@ import { I18nObject } from '../types'
 import { IChatMessage } from './chat-message.model'
 
 export type TChatConversationOptions = {
+  parameters?: {
+    input?: string
+    [key: string]: unknown
+  }
   knowledgebases?: string[]
   toolsets?: string[]
 }

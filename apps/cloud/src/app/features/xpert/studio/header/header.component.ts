@@ -16,7 +16,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { formatRelative } from 'date-fns'
-import { BehaviorSubject, distinctUntilChanged, filter, map,publish,  Observable, of, shareReplay, switchMap, startWith } from 'rxjs'
+import { BehaviorSubject, distinctUntilChanged, filter, map,publish,  Observable, of, shareReplay, switchMap, startWith, combineLatestWith, tap } from 'rxjs'
 import { getDateLocale, TXpertAgentConfig } from '../../../../@core'
 import { XpertStudioApiService } from '../domain'
 import { XpertExecutionService } from '../services/execution.service'
@@ -102,9 +102,14 @@ export class XpertStudioHeaderComponent {
     distinctUntilChanged(),
     filter(nonBlank)
   )
+  readonly refreshConv$ = new BehaviorSubject<void>(null)
+  readonly loadingConv = signal(false)
   readonly conversations$ = this.xpertId$.pipe(
-    switchMap((id) => this.chatConversationService.findAllByXpert(id, { order: { updatedAt: OrderTypeEnum.DESC } })),
+    combineLatestWith(this.refreshConv$),
+    tap(() => this.loadingConv.set(true)),
+    switchMap(([id]) => this.chatConversationService.findAllByXpert(id, { order: { updatedAt: OrderTypeEnum.DESC } })),
     map(({ items }) => items),
+    tap(() => this.loadingConv.set(false)),
     shareReplay(1)
   )
 

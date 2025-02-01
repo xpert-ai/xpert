@@ -157,10 +157,10 @@
       </div>
 
       @if (!isPrimaryAgent()) {
-        <div class="flex justify-end items-end gap-1 w-full">
+        <div class="flex justify-end items-center gap-1 w-full">
           <i class="ri-shield-keyhole-fill text-base text-orange-600"></i>
-          <div class="text-base">{{'PAC.Xpert.Sensitive' | translate: {Default: 'Sensitive'} }}</div>
-          <mat-slide-toggle [ngModel]="isSensitive()" (ngModelChange)="updateSensitive($event)"
+          <div class="text-sm">{{'PAC.Xpert.Sensitive' | translate: {Default: 'Sensitive'} }}</div>
+          <mat-slide-toggle class="flex" [ngModel]="isSensitive()" (ngModelChange)="updateSensitive($event)"
             labelPosition="before"
             ngm-density="xs"
             [matTooltip]="'PAC.Xpert.SensitiveAgentTip' | translate: {Default: 'Sensitive agents require user confirmation before execution'}"
@@ -168,10 +168,10 @@
           />
         </div>
 
-        <div class="flex justify-end items-end gap-1 w-full">
+        <div class="flex justify-end items-center gap-1 w-full">
           <i class="ri-stop-circle-line text-base text-text-secondary"></i>
-          <div class="text-base">{{'PAC.Xpert.End' | translate: {Default: 'End'} }}</div>
-          <mat-slide-toggle [ngModel]="isEnd()" (ngModelChange)="updateEnd($event)"
+          <div class="text-sm">{{'PAC.Xpert.End' | translate: {Default: 'End'} }}</div>
+          <mat-slide-toggle class="flex" [ngModel]="isEnd()" (ngModelChange)="updateEnd($event)"
             labelPosition="before"
             ngm-density="xs"
             [matTooltip]="'PAC.Xpert.EndAgentTip' | translate: {Default: 'The terminal agent, the conversation ends after agent completion'}"
@@ -180,10 +180,10 @@
         </div>
       }
 
-      <div class="flex justify-end items-end gap-1 w-full">
+      <div class="flex justify-end items-center gap-1 w-full">
         <i class="ri-volume-mute-fill text-base text-sky-500"></i>
-        <div class="text-base">{{'PAC.Xpert.DisableOutput' | translate: {Default: 'Disable Output'} }}</div>
-        <mat-slide-toggle [ngModel]="disableOutput()" (ngModelChange)="updateDisableOutput($event)"
+        <div class="text-sm">{{'PAC.Xpert.DisableOutput' | translate: {Default: 'Disable Output'} }}</div>
+        <mat-slide-toggle class="flex" [ngModel]="disableOutput()" (ngModelChange)="updateDisableOutput($event)"
           labelPosition="before"
           ngm-density="xs"
           [matTooltip]="'PAC.Xpert.DisableOutputTip' | translate: {Default: 'Disable returning the agent\'s output to the user'}"

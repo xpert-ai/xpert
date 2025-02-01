@@ -1,5 +1,6 @@
 <div class="shrink-0 flex flex-col h-full rounded-t-xl bg-components-card-bg">
-  <div class="shrink-0 pl-8 pr-6 pt-6 pb-3 text-xl rounded-t-xl leading-[30px] font-semibold z-10">
+  <div class="shrink-0 pl-8 pr-6 pt-6 pb-3 text-xl rounded-t-xl leading-[30px] font-semibold cursor-pointer z-10"
+    cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     {{ 'PAC.Xpert.CreateBlankXpert' | translate: {Default: 'Create blank Xpert'} }}
   </div>
 </div>
@@ -72,82 +73,8 @@
   </ul>
 </div>
 
-<!-- Relace with template in XpertInstallComponent -->
-<div class="pt-2 px-8">
-  <div class="py-2 text-sm font-medium leading-[20px] text-gray-900">
-    {{ 'PAC.Xpert.Avatar' | translate: {Default: 'Avatar'} }} &amp; {{ 'PAC.Xpert.Name' | translate: {Default: 'Name'} }}
-  </div>
-  <div class="flex items-center justify-between space-x-2">
-    <emoji-avatar class="rounded-lg overflow-hidden"
-      editable
-      [(avatar)]="avatar" />
-    
-    <input
-      matInput
-      [placeholder]="'PAC.Xpert.GiveXpertName' | translate: {Default: 'Give the expert a name, a-zA-Z0-9-_'}"
-      class="grow h-10 px-3 text-sm font-normal bg-gray-100 rounded-lg border border-transparent outline-none appearance-none caret-primary-600 placeholder:text-gray-400 hover:bg-gray-50 hover:border hover:border-gray-300 focus:bg-gray-50 focus:border focus:border-gray-300 focus:shadow-xs"
-      [(ngModel)]="name"
-    />
-  </div>
-
-  <span class="text-sm h-4 pl-12 inline-block">
-    @if (checking()) {
-      <span class="">{{ 'PAC.Xpert.CheckingName' | translate: {Default: 'Checking the name...'} }}</span>
-    } @else if(name()) {
-      @if (validateName()?.available) {
-        <span class="flex justify-start items-center gap-2 text-green-500">
-          <span class="flex">
-            <svg
-              class="inline-block select-none"
-              viewBox="0 0 12 12"
-              width="12"
-              height="12"
-              fill="currentColor"
-            >
-              <path
-                d="M6 0a6 6 0 1 1 0 12A6 6 0 0 1 6 0Zm-.705 8.737L9.63 4.403 8.392 3.166 5.295 6.263l-1.7-1.702L2.356 5.8l2.938 2.938Z"
-              ></path>
-            </svg>
-          </span>
-          <span>{{ name() }} {{ 'PAC.Xpert.IsAvailable' | translate: {Default: 'is available'} }}</span>
-        </span>
-      } @else {
-        <span class="flex justify-start items-center gap-2 text-red-500">
-          <span class="flex">
-            <svg
-              class="inline-block"
-              viewBox="0 0 12 12"
-              width="12"
-              height="12"
-              fill="currentColor"
-            >
-              <path
-                d="M4.855.708c.5-.896 1.79-.896 2.29 0l4.675 8.351a1.312 1.312 0 0 1-1.146 1.954H1.33A1.313 1.313 0 0 1 .183 9.058ZM7 7V3H5v4Zm-1 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"
-              ></path>
-            </svg>
-          </span>
-          <span>
-            @if (validateName()?.error) {
-              {{validateName()?.error}}
-            } @else {
-             <strong>{{name()}}</strong> {{ 'PAC.Xpert.AlreadyExistsOrg' | translate: {Default: 'already exists on this organization'} }}
-            }
-          </span>
-        </span>
-      }
-    }
-  </span>
-</div>
-<div class="pt-2 px-8">
-  <div class="py-2 text-sm font-medium leading-[20px]">
-    {{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}
-  </div>
-  <textarea
-    matInput
-    class="w-full px-3 py-2 text-sm font-normal bg-gray-100 rounded-lg border border-transparent outline-none appearance-none caret-primary-600 placeholder:text-gray-400 hover:bg-gray-50 hover:border hover:border-gray-300 focus:bg-gray-50 focus:border focus:border-gray-300 focus:shadow-xs h-[80px] resize-none"
-    placeholder="{{ 'PAC.Xpert.InputXpertDescription' | translate: {Default: 'Input xpert description'} }}"
-    [(ngModel)]="description"
-  ></textarea>
+<div class="px-8">
+  <xpert-basic-form #basicForm [(name)]="name" [(avatar)]="avatar" [(description)]="description" />
 </div>
 
 <div class="flex justify-end p-4">
@@ -156,7 +83,7 @@
       {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
     <button mat-raised-button color="accent" cdkFocusInitial
-      [disabled]="!validateName()?.available"
+      [disabled]="basicForm.checking() || basicForm.invalid()"
       (click)="create()">
       <span>
         {{ 'Story.Common.Save' | translate: { Default: 'Save' } }}
@@ -165,17 +92,6 @@
   </div>
 </div>
 
-<div class="absolute right-6 top-6 p-2 cursor-pointer z-20" (click)="close()">
-  <svg
-    viewBox="0 0 24 24"
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    fill="currentColor"
-    class="w-4 h-4 text-gray-500"
-  >
-    <path
-      d="M11.9997 10.5865L16.9495 5.63672L18.3637 7.05093L13.4139 12.0007L18.3637 16.9504L16.9495 18.3646L11.9997 13.4149L7.04996 18.3646L5.63574 16.9504L10.5855 12.0007L5.63574 7.05093L7.04996 5.63672L11.9997 10.5865Z"
-    ></path>
-  </svg>
+<div class="absolute right-5 top-5 p-2 cursor-pointer z-20 danger" (click)="close()">
+  <i class="ri-close-line text-text-secondary"></i>
 </div>

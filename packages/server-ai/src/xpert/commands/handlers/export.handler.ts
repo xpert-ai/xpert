@@ -57,8 +57,8 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
 				...omit(xpert, 'agents'),
 				id: xpert.id
 			},
-			nodes: createXpertNodes(xpert, { x: 0, y: 0 }).nodes,
-			connections: this.makeConnections(xpert)
+			nodes: xpert.graph?.nodes ?? createXpertNodes(xpert, { x: 0, y: 0 }).nodes,
+			connections: xpert.graph?.connections ?? this.makeConnections(xpert)
 		} as TXpertTeamDraft
 	}
 

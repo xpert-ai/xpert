@@ -8,6 +8,8 @@ import {
 	IXpertAgent,
 	IXpertTool,
 	IXpertToolset,
+	TAgentOutputVariable,
+	TAgentPromptTemplate,
 	TAvatar,
 	TCopilotModel,
 	TCopilotModelOptions,
@@ -155,7 +157,13 @@ export class XpertAgentDslDTO implements TXpertAgent {
 	prompt?: string
 
 	@Expose()
+	promptTemplates?: TAgentPromptTemplate[]
+
+	@Expose()
 	parameters?: TXpertParameter[]
+
+	@Expose()
+	outputVariables?: TAgentOutputVariable[]
 
 	@Expose()
 	options?: TXpertAgentOptions

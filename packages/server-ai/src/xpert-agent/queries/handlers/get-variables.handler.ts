@@ -63,19 +63,18 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			}
 		]
 
-		const stateVariables = isDraft
-			? xpert.draft?.team?.agentConfig?.stateVariables
-			: xpert.agentConfig?.stateVariables
+		const agentConfig = isDraft ? xpert.draft?.team?.agentConfig ?? xpert.agentConfig : xpert.agentConfig
+		const stateVariables = agentConfig?.stateVariables
 		if (stateVariables) {
 			varGroups[0].variables.push(...stateVariables)
 		}
 
 		// All agents output
-		const graph = isDraft ? xpert.draft : xpert.graph
-		const agents = graph.nodes.filter((_) => _.type === 'agent' && _.key !== agentKey) as Array<
+		const graph = isDraft ? xpert.draft ?? xpert.graph : xpert.graph
+		const agents = graph?.nodes.filter((_) => _.type === 'agent' && _.key !== agentKey) as Array<
 			TXpertTeamNode & { type: 'agent' }
 		>
-		agents.forEach((_) => {
+		agents?.forEach((_) => {
 			const variables = []
 			varGroups.push({
 				agent: {...pick(_.entity, 'name', 'title', 'description'), key: channelName(_.key)},

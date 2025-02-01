@@ -41,8 +41,9 @@ import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { ToolCallConfirmComponent, XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { map, of, Subject, Subscription, switchMap } from 'rxjs'
+import { map, Observable, of, Subject, timer, switchMap, tap, Subscription } from 'rxjs'
 import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
+import { effectAction } from '@metad/ocap-angular/core'
 
 @Component({
   standalone: true,
@@ -138,6 +139,8 @@ export class ChatConversationPreviewComponent {
     return this._messages() as IChatMessage[]
   })
 
+  readonly copiedMessages = signal<Record<string, boolean>>({})
+
   private convSub = this.conversationId$
     .pipe(
       switchMap((id) =>
@@ -155,7 +158,7 @@ export class ChatConversationPreviewComponent {
         if (!this.xpert()) {
           this.xpert.set(conv.xpert)
         }
-        // this.parameterValue.set(conv.)
+        this.parameterValue.set(conv.options?.parameters ?? {})
       } else {
         this.parameterValue.set(null)
       }
@@ -315,10 +318,18 @@ export class ChatConversationPreviewComponent {
     })
   }
 
-  copy(message: IChatMessage) {
-    this.#clipboard.copy(stringifyMessageContent(message.content))
-    this.#toastr.info({ code: 'PAC.Xpert.Copied', default: 'Copied' })
-  }
+  copy = effectAction((origin$: Observable<IChatMessage>) =>
+    origin$.pipe(
+      tap((message) => {
+        this.#clipboard.copy(stringifyMessageContent(message.content))
+        this.#toastr.info({ code: 'PAC.Xpert.Copied', default: 'Copied' })
+        this.copiedMessages.update((state) => ({...state, [message.id]: true}))
+      }),
+      switchMap((message) => timer(3000).pipe(
+        tap(() => this.copiedMessages.update((state) => ({...state, [message.id]: false})))
+      )),
+    )
+  )
 
   onKeydown(event: KeyboardEvent) {
     if (event.key === 'Enter') {
@@ -383,5 +394,6 @@ export class ChatConversationPreviewComponent {
     this.conversationId$.next(null)
     this._messages.set([])
     this.parameterValue.set(null)
+    this.execution.emit(null)
   }
 }

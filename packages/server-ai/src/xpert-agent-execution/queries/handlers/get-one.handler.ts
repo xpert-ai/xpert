@@ -1,5 +1,5 @@
 import { mapChatMessagesToStoredMessages } from '@langchain/core/messages'
-import { IXpertAgentExecution } from '@metad/contracts'
+import { channelName, IXpertAgentExecution } from '@metad/contracts'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { sortBy } from 'lodash'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
@@ -34,11 +34,11 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 		const tuple = await this.queryBus.execute(
 			new CopilotCheckpointGetTupleQuery({
 				thread_id: execution.threadId,
-				checkpoint_ns: execution.checkpointNs,
+				checkpoint_ns: execution.checkpointNs ?? '',
 				checkpoint_id: execution.checkpointId
 			})
 		)
-		const messages = tuple?.checkpoint?.channel_values?.[`${execution.agentKey}.messages`] ?? tuple?.checkpoint?.channel_values?.messages
+		const messages = tuple?.checkpoint?.channel_values?.[channelName(execution.agentKey)]?.messages ?? tuple?.checkpoint?.channel_values?.messages
 		return new XpertAgentExecutionDTO({
 			...execution,
 			messages: messages ? mapChatMessagesToStoredMessages(messages) : null,

@@ -43,7 +43,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 	public async execute(command: XpertAgentSubgraphCommand): Promise<{graph: CompiledStateGraph<unknown, unknown, any>; nextNodes: TXpertTeamNode[]}> {
 		const { agentKey, xpert, options } = command
-		const { isStart, execution, leaderKey, summarizeTitle, subscriber, abortController } = options
+		const { isStart, execution, leaderKey, summarizeTitle, subscriber, rootController, signal } = options
+
+		// Signal controller in this subgraph
+		const abortController = new AbortController()
+		signal?.addEventListener('abort', () => abortController.abort())
 
 		const {agent, graph, next} = await this.queryBus.execute<GetXpertWorkflowQuery, {agent: IXpertAgent; graph: TXpertGraph; next: TXpertTeamNode[]}>(
 			new GetXpertWorkflowQuery(xpert.id, agentKey, command.options?.isDraft)
@@ -56,11 +60,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 		// The xpert (agent team)
 		const team = agent.team
+		const agentChannel = channelName(agentKey)
+		const thread_id = command.options.thread_id
 
 		// LLM
 		const chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
 			new GetXpertChatModelQuery(agent.team, agent, {
-				abortController,
+				abortController: rootController,
 				usageCallback: assignExecutionUsage(execution)
 			})
 		)
@@ -111,6 +117,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						isDraft: command.options.isDraft,
 						subscriber
 					},
+					thread_id,
+					rootController,
+					signal,
 					isTool: true
 				})
 
@@ -160,6 +169,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 							isDraft: command.options.isDraft,
 							subscriber
 						},
+						thread_id,
+						rootController,
+						signal,
 						isTool: false
 					})
 	
@@ -250,22 +262,17 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 			this.#logger.verbose(`SystemMessage:`, systemMessage.content)
 
-			const messages: BaseMessage[] = [systemMessage]
-			if (enableMessageHistory && state[`${agentKey}.messages`]) {
-				messages.push(...state[`${agentKey}.messages`])
-			}
-
-			if (agent.promptTemplates) {
-				const humanMessages = await Promise.all(
+			return {
+				systemMessage,
+				messageHistory: enableMessageHistory ? state[agentChannel].messages : [],
+				humanMessages: agent.promptTemplates ? await Promise.all(
 					agent.promptTemplates.map((temp) =>
 						HumanMessagePromptTemplate.fromTemplate(temp.text, {
 							templateFormat: 'mustache'
 						}).format(parameters)
 					)
-				)
-				messages.push(...humanMessages)
+				) : []
 			}
-			return messages
 		}
 
 		// Execute agent
@@ -276,11 +283,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					...createParameters(agent.outputVariables),
 				})) : chatModel)
 
-			const message = await chatModelWithTools.invoke(await stateModifier(state), config)
+			const {systemMessage, messageHistory, humanMessages} = await stateModifier(state)
+
+			const message = await chatModelWithTools.invoke([systemMessage, ...messageHistory, ...humanMessages], {...config, signal: abortController.signal})
+
 			const nState: Record<string, any> = {
 				messages: [],
-				[`${agentKey}.messages`]: [],
-				[channelName(agentKey)]: {messages: []}
+				[`${agentKey}.messages`]: [...humanMessages],
+				[channelName(agentKey)]: {messages: [...humanMessages]}
 			}
 			if (isBaseMessageChunk(message) && isAIMessageChunk(message)) {
 				nState.messages.push(message)
@@ -304,7 +314,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			return nState
 		}
 
-		const thread_id = command.options.thread_id
 		const subgraphBuilder = new StateGraph(SubgraphStateAnnotation)
 			.addNode(
 				agentKey,
@@ -347,6 +356,15 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 	}
 
+	/**
+	 * Create two types of sub-agent graphs (isTool):
+	 * - Tool: Sub graph as a tool
+	 * - Node: Sub graph as subsequent node
+	 * 
+	 * @param agent 
+	 * @param config 
+	 * @returns 
+	 */
 	async createAgentSubgraph(
 		agent: IXpertAgent,
 		config: {
@@ -357,16 +375,22 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				isDraft: boolean
 				subscriber: Subscriber<MessageEvent>
 			};
+			thread_id: string
+			rootController: AbortController
+			signal: AbortSignal
 			isTool: boolean
 		}
 	) {
-		const { xpert, options, isTool } = config
+		const { xpert, options, isTool, thread_id, rootController, signal } = config
 		const { subscriber, leaderKey } = options
 		const execution: IXpertAgentExecution = {}
 
 		// Subgraph
 		const {graph, nextNodes} = await this.commandBus.execute<XpertAgentSubgraphCommand, {graph: CompiledStateGraph<unknown, unknown>; nextNodes: TXpertTeamNode[]}>(
 			new XpertAgentSubgraphCommand(agent.key, xpert, {
+				thread_id,
+				rootController,
+				signal,
 				isStart: isTool,
 				leaderKey,
 				rootExecutionId: config.options.rootExecutionId,
@@ -460,7 +484,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						[`${agent.key}.messages`]: [new HumanMessage(call.args.input)]
 					} : {}),
 				}
-				const output = await graph.invoke(subState, config)
+				const output = await graph.invoke(subState, {...config, signal})
 
 				const lastMessage = output.messages[output.messages.length - 1]
 				if (lastMessage && isAIMessage(lastMessage)) {
@@ -492,6 +516,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						messages: [lastMessage]
 					}
 				} : {
+					messages: [lastMessage],
 					[`${agent.key}.messages`]: [lastMessage],
 					[channelName(agent.key)]: {
 						messages: [lastMessage]
@@ -505,6 +530,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						if (item.value === 'content') {
 							nState[item.variableSelector] = lastMessage.content
 						}
+						// @todo more variables
 					}
 				})
 				
