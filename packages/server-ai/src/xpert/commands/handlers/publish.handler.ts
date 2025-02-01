@@ -1,4 +1,4 @@
-import { IKnowledgebase, IXpert, IXpertAgent, IXpertToolset, TXpertGraph, TXpertTeamDraft, TXpertTeamNode } from '@metad/contracts'
+import { IKnowledgebase, IXpert, IXpertAgent, IXpertToolset, TXpertGraph, TXpertTeamDraft, TXpertTeamNode, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { omit, pick } from '@metad/server-common'
 import { BadRequestException, HttpException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
@@ -254,7 +254,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 	check(draft: TXpertTeamDraft) {
 		// Check all nodes have been connected
 		if (draft.nodes?.length > 1) {
-			draft.nodes.forEach((node) => {
+			draft.nodes.filter((_) => !(_.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.NOTE)).forEach((node) => {
 				if (!draft.connections.some((connection) => connection.from === node.key || connection.to === node.key)) {
 					throw new HttpException(`There are free Xpert agents!`, 500)
 				}

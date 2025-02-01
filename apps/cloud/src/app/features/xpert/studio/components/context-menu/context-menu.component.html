@@ -127,8 +127,14 @@
         </div>
         <div class="text-sm text-text-secondary">IF/ELSE</div>
       </div>
-      <div cdkMenuItem class="ngm-cdk-menu-item shrink-0">
-        Logic
+      <div cdkMenuItem class="ngm-cdk-menu-item shrink-0"
+        (click)="addWorkflowBlock(eWorkflowNodeTypeEnum.NOTE)">
+        <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-orange-500
+          w-5 h-5 rounded-md
+          mr-2 shrink-0">
+          <i class="ri-sticky-note-add-line"></i>
+        </div>
+        <div class="text-sm text-text-secondary">Note</div>
       </div>
     </div>
   </div>

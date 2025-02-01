@@ -5,6 +5,7 @@ import { TStateVariable } from "./xpert.model"
 export enum WorkflowNodeTypeEnum {
   ASSIGNER = 'assigner',
   IF_ELSE = 'if-else',
+  NOTE = 'note'
 }
 
 export interface IWorkflowNode {
