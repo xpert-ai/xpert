@@ -1,4 +1,5 @@
 import { LongTermMemoryTypeEnum } from '@metad/contracts'
+import { runWithRequestContext } from '@metad/server-core'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -31,7 +32,9 @@ export class ConversationSummaryProcessor {
 	@Process({ concurrency: 5 })
 	async process(job: Job<ConversationSummaryReqType>) {
 		const { conversationId, userId, types } = job.data
-		const conversation = await this.service.findOne(conversationId, { relations: ['messages'] })
+		const conversation = await this.service.findOne(conversationId, {
+			relations: ['messages', 'createdBy', 'createdBy.role']
+		})
 		if (!conversation.messages.length) {
 			return
 		}
@@ -39,27 +42,32 @@ export class ConversationSummaryProcessor {
 		const message = await this.messageService.findOne(messageId)
 
 		if (conversation.xpertId && message.executionId) {
-			try {
-				const memoryKey = await this.commandBus.execute(
-					new XpertSummarizeMemoryCommand(conversation.xpertId, message.executionId, {
-						types,
-						isDraft: true,
-						userId
-					})
-				)
+			runWithRequestContext(
+				{ user: conversation.createdBy, headers: { ['organization-id']: conversation.organizationId } },
+				async () => {
+					try {
+						const memoryKey = await this.commandBus.execute(
+							new XpertSummarizeMemoryCommand(conversation.xpertId, message.executionId, {
+								types,
+								isDraft: true,
+								userId
+							})
+						)
 
-				await this.commandBus.execute(
-					new ChatMessageUpdateJobCommand(messageId, {
-						[types[0]]: {
-							progress: 100,
-							status: 'done',
-							memoryKey
-						}
-					})
-				)
-			} catch (err) {
-				console.error(err)
-			}
+						await this.commandBus.execute(
+							new ChatMessageUpdateJobCommand(messageId, {
+								[types[0]]: {
+									progress: 100,
+									status: 'done',
+									memoryKey
+								}
+							})
+						)
+					} catch (err) {
+						console.error(err)
+					}
+				}
+			)
 		}
 	}
 }

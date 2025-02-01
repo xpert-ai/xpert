@@ -9,6 +9,7 @@ import {
 import { IndexConfig } from '@langchain/langgraph-checkpoint/dist/store/base'
 import { Pool } from 'pg'
 import { decodeNsBytes, getTextAtPath, tokenizePath } from './utils'
+import { CopilotModelNotFoundException } from '../core'
 
 /**
  * In-memory key-value store with optional vector search.
@@ -385,17 +386,15 @@ export class CopilotMemoryStore extends BaseStore {
 					expandedLimit,
 					op.limit,
 					op.offset,
-          '_PLACEHOLDER', // Vector placeholder
+          			'_PLACEHOLDER', // Vector placeholder
 				]
 
 				queries.push([baseQuery, params])
 			} else {
 				// Regular search branch
-				let baseQuery = `
-          SELECT prefix, key, value, "createdAt", "updatedAt"
-          FROM copilot_store
-          WHERE prefix LIKE $1 AND "createdById" = $4
-        `
+				let baseQuery = `SELECT prefix, key, value, "createdAt", "updatedAt"\n` +
+          							`FROM copilot_store\n` +
+          							`WHERE prefix LIKE $1 AND "createdById" = $4\n`
 				const params: Array<string | number> = [`${namespaceToText(op.namespacePrefix)}%`]
 
 				if (filterConditions.length) {
@@ -422,7 +421,10 @@ export class CopilotMemoryStore extends BaseStore {
 	): Promise<void> {
 		const [queries, embeddingRequests] = this.prepareBatchSearchQueries(searchOps)
 
-		if (embeddingRequests && this.embeddings) {
+		if (embeddingRequests) {
+			if (!this.embeddings) {
+				throw new CopilotModelNotFoundException('embeddings')
+			}
 			const embeddings = await this.embeddings.embedDocuments(embeddingRequests.map(([_, query]) => query))
 			for (let i = 0; i < embeddingRequests.length; i++) {
 				const [idx, _] = embeddingRequests[i]
@@ -439,12 +441,11 @@ export class CopilotMemoryStore extends BaseStore {
 		for (let i = 0; i < searchOps.length; i++) {
 			const [idx, _] = searchOps[i]
 			const [query, params] = queries[i]
-      // console.log(query, params)
 			const result = await this.pgPool.query(query, params)
 			results[idx] = result.rows.map((row: any) => ({
-        ...row,
-        namespace: decodeNsBytes(row['prefix']),
-      }))
+					...row,
+					namespace: decodeNsBytes(row['prefix']),
+				}))
 		}
 	}
 
