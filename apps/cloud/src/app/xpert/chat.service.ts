@@ -19,13 +19,8 @@ import {
   IXpertToolset,
   IKnowledgebase,
   ChatMessageTypeEnum,
-  uuid,
-  CopilotBaseMessage,
-  CopilotMessageGroup,
-  CopilotChatMessage,
   ChatMessageEventTypeEnum,
   XpertAgentExecutionStatusEnum,
-  IChatMessage,
   ToolCall,
   IChatMessageFeedback,
   TChatOptions,
@@ -42,6 +37,7 @@ import { isWithinInterval } from 'date-fns/isWithinInterval'
 import { isYesterday } from 'date-fns/isYesterday'
 import { subDays } from 'date-fns/subDays'
 import { XpertHomeService } from './home.service'
+import { TCopilotChatMessage } from './types'
 
 /**
  * The context of a single chat is not shared between conversations
@@ -75,7 +71,7 @@ export class ChatService {
   /**
    * Messages in the conversation
    */
-  readonly #messages = signal<IChatMessage[]>([])
+  readonly #messages = signal<TCopilotChatMessage[]>([])
   readonly messages = computed(() => this.#messages() ?? [])
 
   readonly knowledgebases = signal<IKnowledgebase[]>([])
@@ -117,6 +113,7 @@ export class ChatService {
         if (conv) {
           this.conversation.set(conv)
           this.#messages.set(sortBy(conv.messages, 'createdAt'))
+          this.parametersValue.set(conv.options?.parameters ?? {})
           this.knowledgebases.set(
             conv.options?.knowledgebases?.map((id) => conv.xpert?.knowledgebases?.find((item) => item.id === id)).filter(nonNullable)
           )
@@ -231,14 +228,14 @@ export class ChatService {
                     }
                     break
                   case ChatMessageEventTypeEnum.ON_MESSAGE_START:
-                    if (options.content) {
-                      this.appendMessage({
-                        id: uuid(),
-                        role: 'ai',
-                        content: ``,
-                        status: 'thinking'
-                      })
-                    }
+                    // if (options.content) {
+                    //   this.appendMessage({
+                    //     id: uuid(),
+                    //     role: 'ai',
+                    //     content: ``,
+                    //     status: 'thinking'
+                    //   })
+                    // }
                     this.updateLatestMessage((lastM) => {
                       return {
                         ...lastM,
@@ -255,6 +252,18 @@ export class ChatService {
                       }
                     })
                     break;
+                  case ChatMessageEventTypeEnum.ON_AGENT_START:
+                  case ChatMessageEventTypeEnum.ON_AGENT_END: {
+                    const execution = event.data
+                    this.updateLatestMessage((message) => {
+                      const executions = (message.executions ?? []).filter((_) => _.id !== execution.id)
+                      return {
+                        ...message,
+                        executions: executions.concat(execution)
+                      }
+                    })
+                    break
+                  }
                   default:
                     this.updateEvent(event.event, event.data.error)
                 }
@@ -324,13 +333,13 @@ export class ChatService {
     } as IChatConversation))
   }
 
-  updateMessage(id: string, message: Partial<CopilotBaseMessage>) {
-    this.#messages.update((messages) => {
-      const lastMessage = messages[messages.length - 1] as CopilotMessageGroup
-      messages[messages.length - 1] = { ...lastMessage, ...message }
-      return [...messages]
-    })
-  }
+  // updateMessage(id: string, message: Partial<CopilotBaseMessage>) {
+  //   this.#messages.update((messages) => {
+  //     const lastMessage = messages[messages.length - 1] as CopilotMessageGroup
+  //     messages[messages.length - 1] = { ...lastMessage, ...message }
+  //     return [...messages]
+  //   })
+  // }
 
   appendMessageComponent(message) {
     this.updateLatestMessage((lastM) => {
@@ -394,45 +403,45 @@ export class ChatService {
     })
   }
 
-  appendMessageStep(step: CopilotChatMessage) {
-    this.updateLatestMessage((lastMessage) => ({
-      ...lastMessage,
-      messages: [...(lastMessage.messages ?? []), step]
-    }))
-  }
+  // appendMessageStep(step: TCopilotChatMessage) {
+  //   this.updateLatestMessage((lastMessage) => ({
+  //     ...lastMessage,
+  //     messages: [...(lastMessage.messages ?? []), step]
+  //   }))
+  // }
 
-  updateLatestMessage(updateFn: (value: CopilotMessageGroup) => CopilotMessageGroup) {
+  updateLatestMessage(updateFn: (value: TCopilotChatMessage) => TCopilotChatMessage) {
     this.#messages.update((messages) => {
-      const lastMessage = messages[messages.length - 1] as CopilotMessageGroup
+      const lastMessage = messages[messages.length - 1] as TCopilotChatMessage
       messages[messages.length - 1] = updateFn(lastMessage)
       return [...messages]
     })
   }
 
-  updateMessageStep(step: CopilotChatMessage) {
-    this.updateLatestMessage((lastMessage) => {
-      const _steps = lastMessage.messages.reverse()
-      const index = _steps.findIndex((item) => item.id === step.id && item.role === step.role)
-      if (index > -1) {
-        _steps[index] = {
-          ..._steps[index],
-          ...step
-        }
-        lastMessage.messages = _steps.reverse()
-      }
-      return {...lastMessage}
-    })
-  }
+  // updateMessageStep(step: CopilotChatMessage) {
+  //   this.updateLatestMessage((lastMessage) => {
+  //     const _steps = lastMessage.messages.reverse()
+  //     const index = _steps.findIndex((item) => item.id === step.id && item.role === step.role)
+  //     if (index > -1) {
+  //       _steps[index] = {
+  //         ..._steps[index],
+  //         ...step
+  //       }
+  //       lastMessage.messages = _steps.reverse()
+  //     }
+  //     return {...lastMessage}
+  //   })
+  // }
 
   abortMessage(id: string) {
     this.updateLatestMessage((lastMessage) => {
       if (lastMessage.id === id) {
-        lastMessage.messages = lastMessage.messages?.map((m) => {
-          if (m.status === 'thinking') {
-            return { ...m, status: 'aborted' }
-          }
-          return m
-        })
+        // lastMessage.messages = lastMessage.messages?.map((m) => {
+        //   if (m.status === 'thinking') {
+        //     return { ...m, status: 'aborted' }
+        //   }
+        //   return m
+        // })
 
         return { ...lastMessage, status: 'aborted' }
       }
@@ -440,7 +449,7 @@ export class ChatService {
     })
   }
 
-  appendMessage(message: CopilotBaseMessage) {
+  appendMessage(message: TCopilotChatMessage) {
     this.#messages.update((messages) => [
       ...(messages ?? []),
       message

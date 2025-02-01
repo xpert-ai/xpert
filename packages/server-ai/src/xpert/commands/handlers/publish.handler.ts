@@ -67,11 +67,11 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 		// // await this.repository.queryRunner.startTransaction()
 		// // try {
 			// Back up the current version
-			if (currentVersion) {
-				await this.saveTeamVersion(xpert, version)
-			}
+		if (currentVersion) {
+			await this.saveTeamVersion(xpert, version)
+		}
 
-			return await this.publish(xpert, version, draft)
+		return await this.publish(xpert, version, draft)
 		// 	// await this.repository.queryRunner.commitTransaction()
 		// // } catch (err) {
 		// 	// since we have errors lets rollback the changes we made
@@ -168,10 +168,10 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 							toolsetIds,
 							knowledgebaseIds,
 							collaboratorNames,
-
 						}
 						this.#logger.verbose(`Update xpert team agent (name/key='${oldAgent.name || oldAgent.key}', id='${oldAgent.id}') with value:\n${JSON.stringify(entity, null, 2)}`)
-						await this.xpertAgentService.update(oldAgent.id, entity)
+						const _entity = await this.xpertAgentService.update(oldAgent.id, entity)
+						node.entity = _entity
 					}
 					newAgents.push(oldAgent)
 				} else if (node.key === xpert.agent.key) {
@@ -186,6 +186,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 						knowledgebaseIds,
 						collaboratorNames
 					})
+					node.entity = xpert.agent
 				} else {
 					// Create new xpert agent
 					const newAgent = await this.xpertAgentService.create({
@@ -281,7 +282,9 @@ export function pickXpertAgent(agent: Partial<IXpertAgent>) {
 	'description',
 	'avatar',
 	'prompt',
+	'promptTemplates',
 	'parameters',
+	'outputVariables',
 	'options',
 	'leaderKey', // todo
 	'collaboratorNames',

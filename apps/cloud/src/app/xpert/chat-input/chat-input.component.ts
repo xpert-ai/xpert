@@ -2,14 +2,13 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, effect, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { MatInputModule } from '@angular/material/input'
 import { Router, RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
+import { uuid } from '../../@core'
 import { AppService } from '../../app.service'
 import { ChatService } from '../chat.service'
-import { uuid } from '../../@core'
-import { MatInputModule } from '@angular/material/input'
-
 
 @Component({
   standalone: true,
@@ -42,7 +41,7 @@ export class ChatInputComponent {
 
   constructor() {
     effect(() => {
-      (this.answering() || this.disabled()) ? this.promptControl.disable() : this.promptControl.enable()
+      this.answering() || this.disabled() ? this.promptControl.disable() : this.promptControl.enable()
     })
   }
 
@@ -74,7 +73,7 @@ export class ChatInputComponent {
     this.promptControl.setValue('')
 
     // Send message
-    this.chatService.chat({id, content})
+    this.chatService.chat({ id, content })
   }
 
   stopGenerating() {

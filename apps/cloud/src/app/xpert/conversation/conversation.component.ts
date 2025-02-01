@@ -57,7 +57,7 @@ export class ChatConversationComponent {
   readonly toolCalls = signal<ToolCall[]>(null)
   readonly parameters = computed(() => this.xpert()?.agent?.parameters)
 
-  readonly parametersValue = model<Record<string, unknown>>()
+  readonly parametersValue = this.chatService.parametersValue
  
 
   onToolCalls(toolCalls: ToolCall[]) {

@@ -1897,8 +1897,12 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "AddTitle": "添加标题",
+      "AddDescription": "添加描述",
+      "Copy": "复制",
       "NewXpert": "新建数字专家",
       "Apply": "应用",
+      "Executions": "执行记录",
       "Type": "类型",
       "Reducer": "归约",
       "VariableReducer": "变量归约",
@@ -2089,7 +2093,6 @@
       "Undo": "撤销",
       "Redo": "重做",
       "ArrangeNodes": "整理节点",
-      "AddDescription": "添加描述",
       "Actions": "操作",
       "Optional": "可选",
       "SelectOptions": "可选项",

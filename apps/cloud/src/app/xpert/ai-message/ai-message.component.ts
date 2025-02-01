@@ -1,4 +1,3 @@
-import { Clipboard } from '@angular/cdk/clipboard'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
@@ -8,9 +7,9 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
-import { stringifyMessageContent } from '@metad/copilot'
+import { nonNullable, stringifyMessageContent } from '@metad/copilot'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { Indicator } from '@metad/ocap-core'
+import { Indicator, omit } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import {
@@ -19,13 +18,19 @@ import {
   getErrorMessage,
   IChatMessage,
   injectToastr,
-  isMessageGroup
+  isMessageGroup,
+  XpertAgentExecutionService,
+  XpertAgentExecutionStatusEnum
 } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar'
 import { ChatService } from '../chat.service'
 import { ChatComponentMessageComponent } from '../component-message/component-message.component'
 import { TCopilotChatMessage } from '../types'
 import { XpertHomeService } from '../home.service'
+import { toObservable } from '@angular/core/rxjs-interop'
+import { filter, map, shareReplay, switchMap, tap } from 'rxjs'
+import { ChatMessageExecutionComponent } from '../../@shared/chat'
+import { CopyComponent } from '../../@shared/common'
 
 @Component({
   standalone: true,
@@ -44,7 +49,9 @@ import { XpertHomeService } from '../home.service'
     MatIconModule,
     NgmCommonModule,
     EmojiAvatarComponent,
-    ChatComponentMessageComponent
+    ChatComponentMessageComponent,
+    ChatMessageExecutionComponent,
+    CopyComponent
   ],
   selector: 'pac-ai-message',
   templateUrl: './ai-message.component.html',
@@ -57,7 +64,7 @@ export class ChatAiMessageComponent {
   readonly chatService = inject(ChatService)
   readonly homeService = inject(XpertHomeService)
   readonly messageFeedbackService = inject(ChatMessageFeedbackService)
-  readonly #clipboard = inject(Clipboard)
+  readonly agentExecutionService = inject(XpertAgentExecutionService)
   readonly #toastr = injectToastr()
 
   // Inputs
@@ -66,6 +73,7 @@ export class ChatAiMessageComponent {
   // States
   readonly role = this.chatService.xpert
   readonly feedbacks = this.chatService.feedbacks
+  readonly executionId = computed(() => this.message()?.executionId)
   readonly answering = computed(() =>
     this.chatService.answering() && ['thinking', 'answering'].includes(this.message().status)
   )
@@ -104,7 +112,27 @@ export class ChatAiMessageComponent {
     return isMessageGroup(message as any) ? (message as any) : null
   })
 
-  readonly copied = signal(false)
+  readonly contentString = computed(() => stringifyMessageContent(this.message().content))
+
+  readonly executings = computed(() => this.message().executions?.filter((_) => _.status === XpertAgentExecutionStatusEnum.RUNNING))
+
+  readonly expandExecutions = signal(false)
+  readonly loadingExecutions = signal(false)
+
+  readonly executions$ = toObservable(this.executionId).pipe(
+    filter(nonNullable),
+    tap(() => this.loadingExecutions.set(true)),
+    switchMap((id) => this.agentExecutionService.getOneLog(id)),
+    tap(() => this.loadingExecutions.set(false)),
+    map((execution) => {
+      const executions = []
+      execution.subExecutions?.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        .forEach((_) => executions.push(_))
+      executions.push(omit(execution, 'subExecutions'))
+      return executions
+    }),
+    shareReplay(1)
+  )
 
   constructor() {
     effect(() => {
@@ -121,12 +149,6 @@ export class ChatAiMessageComponent {
     setTimeout(() => {
       copyButton.copied = false
     }, 3000)
-  }
-
-  copy(message: TCopilotChatMessage) {
-    this.#clipboard.copy(stringifyMessageContent(message.content))
-    this.#toastr.info({ code: 'PAC.KEY_WORDS.Copied', default: 'Copied' })
-    this.copied.set(true)
   }
 
   getFeedback(id: string) {
