@@ -99,7 +99,7 @@
       (promptChange)="onPromptChange($event)"
     />
 
-    <div class="w-full flex justify-between items-center px-4 pt-2 pb-4 rounded-xl bg-gray-100">
+    <div class="w-full flex justify-between items-center px-4 pt-2 pb-4 rounded-xl bg-gray-50">
       <div class="flex items-center h-6">
         <div class="uppercase text-sm font-semibold text-text-secondary mr-2">
           {{ 'PAC.Xpert.MessageHistory' | translate: {Default: 'Message History'} }}
@@ -113,33 +113,33 @@
       <mat-slide-toggle ngm-density="xs" [ngModel]="enableMessageHistory()" (ngModelChange)="updateEnMessageHistory($event)" />
     </div>
 
-    @for (template of promptTemplates(); track template.id; let i = $index) {
-      <copilot-prompt-editor class="prompt-template relative rounded-xl self-stretch border border-solid border-gray-100"
-        [class.fullscreen]="promptTemplateFullscreen() === template.id"
-        [tooltip]="'PAC.Xpert.SystemPromptTooltip' | translate: {Default: 'Prompts guide AI reponses with instructions and contraints. Insert parameters like {{input}}. This prompt won\'t be visible to users.'}"
-        [variables]="variables()"
-        role="human"
-        [prompt]="template.text"
-        (promptChange)="updatePromptTemplate(i, $event)"
-        (deleted)="removePrompt(i)"
-      >
-        @if (promptTemplateFullscreen() === template.id) {
-          <button type="button" class="action-btn action-btn-m"
-            (click)="promptTemplateFullscreen.set(null)"
-          >
-            <i class="ri-collapse-diagonal-line"></i>
-          </button>
-        } @else {
-          <button type="button" class="action-btn action-btn-m"
-            (click)="promptTemplateFullscreen.set(template.id)"
-          >
-            <i class="ri-expand-diagonal-line"></i>
-          </button>
-        }
-      </copilot-prompt-editor>
-    }
-
     @if (!enableMessageHistory()) {
+      @for (template of promptTemplates(); track template.id; let i = $index) {
+        <copilot-prompt-editor class="prompt-template relative rounded-xl self-stretch border border-solid border-gray-100"
+          [class.fullscreen]="promptTemplateFullscreen() === template.id"
+          [tooltip]="'PAC.Xpert.SystemPromptTooltip' | translate: {Default: 'Prompts guide AI reponses with instructions and contraints. Insert parameters like {{input}}. This prompt won\'t be visible to users.'}"
+          [variables]="variables()"
+          role="human"
+          [prompt]="template.text"
+          (promptChange)="updatePromptTemplate(i, $event)"
+          (deleted)="removePrompt(i)"
+        >
+          @if (promptTemplateFullscreen() === template.id) {
+            <button type="button" class="action-btn action-btn-m"
+              (click)="promptTemplateFullscreen.set(null)"
+            >
+              <i class="ri-collapse-diagonal-line"></i>
+            </button>
+          } @else {
+            <button type="button" class="action-btn action-btn-m"
+              (click)="promptTemplateFullscreen.set(template.id)"
+            >
+              <i class="ri-expand-diagonal-line"></i>
+            </button>
+          }
+        </copilot-prompt-editor>
+      }
+
       <button type="button" class="btn disabled:btn-disabled btn-tertiary btn-medium w-full mt-2 h-8 justify-center"
         (click)="addMessage()"
       >
@@ -147,17 +147,16 @@
         <div>{{ 'PAC.Xpert.AddMessage' | translate: {Default: 'Add Message'} }}</div>
       </button>
     }
-
-    @if (!isPrimaryAgent()) {
       
-      <div class="w-full flex flex-col gap-2 p-3 bg-gray-50 rounded-xl">
-        <div class="flex items-center space-x-1 shrink-0">
-          <div class="flex items-center justify-center w-6 h-6">
-            <i class="ri-git-commit-fill text-orange-600"></i>
-          </div>
-          <div class="text-sm font-semibold text-gray-800">{{'PAC.Xpert.Node' | translate: {Default: 'Node'} }}</div>
+    <div class="w-full flex flex-col gap-2 p-3 bg-gray-50 rounded-xl">
+      <div class="flex items-center space-x-1 shrink-0">
+        <div class="flex items-center justify-center w-6 h-6">
+          <i class="ri-git-commit-fill text-orange-600"></i>
         </div>
+        <div class="text-sm font-semibold text-gray-800">{{'PAC.Xpert.Node' | translate: {Default: 'Node'} }}</div>
+      </div>
 
+      @if (!isPrimaryAgent()) {
         <div class="flex justify-end items-end gap-1 w-full">
           <i class="ri-shield-keyhole-fill text-base text-orange-600"></i>
           <div class="text-base">{{'PAC.Xpert.Sensitive' | translate: {Default: 'Sensitive'} }}</div>
@@ -179,8 +178,20 @@
             matTooltipPosition="above"
           />
         </div>
+      }
+
+      <div class="flex justify-end items-end gap-1 w-full">
+        <i class="ri-volume-mute-fill text-base text-sky-500"></i>
+        <div class="text-base">{{'PAC.Xpert.DisableOutput' | translate: {Default: 'Disable Output'} }}</div>
+        <mat-slide-toggle [ngModel]="disableOutput()" (ngModelChange)="updateDisableOutput($event)"
+          labelPosition="before"
+          ngm-density="xs"
+          [matTooltip]="'PAC.Xpert.DisableOutputTip' | translate: {Default: 'Disable returning the agent\'s output to the user'}"
+          matTooltipPosition="above"
+        />
       </div>
-    }
+      
+    </div>
 
     <xpert-parameters-edit [ngModel]="parameters()" (ngModelChange)="onParameters($event)" />
 

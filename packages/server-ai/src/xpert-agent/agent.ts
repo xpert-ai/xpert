@@ -1,6 +1,6 @@
 import { AIMessageChunk } from '@langchain/core/messages'
 import { isCommand } from '@langchain/langgraph'
-import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpertAgent } from '@metad/contracts'
+import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpert, IXpertAgent } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { AgentStateAnnotation } from './commands/handlers/types'
@@ -9,8 +9,9 @@ export function createProcessStreamEvents(
 	logger: Logger,
 	thread_id: string,
 	subscriber: Subscriber<MessageEvent>,
-	agent?: IXpertAgent
+	options?: {agent?: IXpertAgent; xpert: IXpert}
 ) {
+	const { agent, xpert } = options ?? {}
 	const eventStack: string[] = []
 	let prevEvent = ''
 	const toolsMap: Record<string, string> = {} // For lc_name and name of tool is different
@@ -71,7 +72,9 @@ export function createProcessStreamEvents(
 			}
 			case 'on_chat_model_stream': {
 				prevEvent = event
+
 				// Only returns the stream events content of the current react agent (filter by tag: thread_id), not events of agent in tool call.
+				if (!xpert?.agentConfig?.disableOutputs?.some((key) => tags.includes(key))) {
 				// if (tags.includes(thread_id)) {
 					const msg = data.chunk as AIMessageChunk
 					if (!msg.tool_call_chunks?.length) {
@@ -83,7 +86,7 @@ export function createProcessStreamEvents(
 							}
 						}
 					}
-				// }
+				}
 				break
 			}
 

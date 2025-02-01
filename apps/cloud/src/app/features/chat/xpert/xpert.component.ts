@@ -1,7 +1,7 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, ElementRef, effect, inject } from '@angular/core'
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
@@ -13,6 +13,10 @@ import { ChatHomeComponent } from '../home.component'
 import { ChatSidenavMenuComponent } from '../sidenav-menu/sidenav-menu.component'
 import { ChatToolbarComponent } from '../toolbar/toolbar.component'
 import { ChatHomeService } from '../home.service'
+import { injectParams } from 'ngxtension/inject-params'
+import { derivedAsync } from 'ngxtension/derived-async'
+import { XpertParametersCardComponent } from '../../../@shared/xpert'
+import { isNil } from '@metad/copilot'
 
 @Component({
   standalone: true,
@@ -26,10 +30,11 @@ import { ChatHomeService } from '../home.service'
     DragDropModule,
     MatTooltipModule,
     EmojiAvatarComponent,
+    XpertParametersCardComponent,
     ChatToolbarComponent,
     ChatSidenavMenuComponent,
     ChatConversationComponent,
-    ChatInputComponent
+    ChatInputComponent,
   ],
   selector: 'pac-chat-xpert',
   templateUrl: './xpert.component.html',
@@ -42,13 +47,24 @@ export class ChatXpertComponent {
   readonly homeService = inject(ChatHomeService)
   readonly chatHomeComponent = inject(ChatHomeComponent)
   readonly #elementRef = inject(ElementRef)
+  readonly paramRole = injectParams('role')
 
   readonly sidenavOpened = this.chatHomeComponent.sidenavOpened
   readonly sidenav = this.chatHomeComponent.sidenav
 
   readonly conversationId = this.chatService.conversationId
   readonly messages = this.chatService.messages
-  readonly role = this.chatService.xpert
+
+  readonly xpert = derivedAsync(() => {
+    return this.paramRole() ? this.homeService.getXpert(this.paramRole()) : null
+  })
+
+  readonly parameters = computed(() => this.xpert()?.agent?.parameters)
+  readonly parametersValue = model<Record<string, unknown>>()
+
+  readonly parameterInvalid = computed(() => {
+    return this.parameters()?.some((param) => !param.optional && isNil(this.parametersValue()?.[param.name]))
+  })
 
   constructor() {
     effect(() => {
@@ -56,6 +72,18 @@ export class ChatXpertComponent {
         this.scrollBottom()
       }
     })
+
+    effect(() => {
+      if (this.xpert()) {
+        this.chatService.xpert$.next(this.xpert())
+      }
+    }, { allowSignalWrites: true })
+
+    effect(() => {
+      if (this.parametersValue()) {
+        this.chatService.parametersValue.set(this.parametersValue())
+      }
+    }, { allowSignalWrites: true })
 
     effect(() => {
       const conv = this.chatService.conversation()

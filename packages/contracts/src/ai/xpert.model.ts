@@ -175,6 +175,11 @@ export type TXpertAgentConfig = {
    * Memory assigner for tool's results. (save result of tool call into state variable)
    */
   toolsMemory?: Record<string, TVariableAssigner[]>
+
+  /**
+   * Disable agent's output
+   */
+  disableOutputs?: string[]
 }
 
 export type TStateVariable<ValueType = any, UpdateType = ValueType> = {

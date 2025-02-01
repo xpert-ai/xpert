@@ -54,8 +54,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			)
 		}
 
-		console.log(next)
-
 		// The xpert (agent team)
 		const team = agent.team
 
@@ -310,7 +308,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const subgraphBuilder = new StateGraph(SubgraphStateAnnotation)
 			.addNode(
 				agentKey,
-				new RunnableLambda({ func: callModel }).withConfig({ runName: agentKey, tags: [thread_id] })
+				new RunnableLambda({ func: callModel }).withConfig({ runName: agentKey, tags: [thread_id, agentKey] })
 			)
 			.addEdge(START, agentKey)
 

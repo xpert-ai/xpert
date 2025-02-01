@@ -114,6 +114,7 @@ export class XpertStudioPanelAgentComponent {
   readonly agentConfig = computed(() => this.xpert()?.agentConfig)
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
   readonly isEnd = computed(() => this.agentConfig()?.endNodes?.includes(this.agentUniqueName()))
+  readonly disableOutput = computed(() => this.agentConfig()?.disableOutputs?.includes(this.key()))
   readonly enableMessageHistory = computed(() => !this.xpertAgent()?.options?.disableMessageHistory)
   readonly promptTemplates = computed(() => this.xpertAgent()?.promptTemplates)
   readonly isPrimaryAgent = computed(() => !!this.xpertAgent()?.xpertId)
@@ -247,6 +248,14 @@ export class XpertStudioPanelAgentComponent {
       ? uniq([...(this.agentConfig()?.endNodes ?? []), name])
       : (this.agentConfig()?.endNodes?.filter((_) => _ !== name) ?? [])
     this.xpertStudioComponent.updateXpertAgentConfig({ endNodes })
+  }
+
+  updateDisableOutput(value: boolean) {
+    const name = this.key()
+    const disableOutputs = value
+      ? uniq([...(this.agentConfig()?.disableOutputs ?? []), name])
+      : (this.agentConfig()?.disableOutputs?.filter((_) => _ !== name) ?? [])
+    this.xpertStudioComponent.updateXpertAgentConfig({ disableOutputs })
   }
 
   updateOutputVariables(event: TAgentOutputVariable[]) {

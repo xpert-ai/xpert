@@ -39,12 +39,12 @@ export class XpertExecutionService {
         execution.subExecutions?.forEach((item) => {
           if (item.agentKey) {
             agentExecutions[item.agentKey] ??= []
-            agentExecutions[item.agentKey].push(item)
+            agentExecutions[item.agentKey] = agentExecutions[item.agentKey].filter((_) => _.id !== item.id).concat(item)
           }
         })
         if (execution.agentKey) {
           agentExecutions[execution.agentKey] ??= []
-          agentExecutions[execution.agentKey].push(execution)
+          agentExecutions[execution.agentKey] = agentExecutions[execution.agentKey].filter((_) => _.id !== execution.id).concat(execution)
         }
       })
     })

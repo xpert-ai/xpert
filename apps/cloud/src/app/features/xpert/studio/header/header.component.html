@@ -1,7 +1,10 @@
 <div class="flex items-center gap-2 h-[2rem] text-sm truncate opacity-50">
   @if (unsaved()) {
-    <span class="w-2 h-2 shrink-0 rounded-full bg-green-500 shadow-md shadow-green-400"
-      [matTooltip]="'PAC.Messages.UnsavedChanges' | translate: {Default: 'Unsaved changes'} ">
+    <span class="w-2 h-2 shrink-0 rounded-full cursor-pointer bg-green-500 shadow-md shadow-green-400"
+      [matTooltip]=" 'PAC.Messages.UnsavedChanges' | translate: {Default: 'Unsaved changes'} "
+      matTooltipPosition="above"
+      (click)="save()"
+    >
     </span>
   }
   @if (draftSavedDate()) {
@@ -17,17 +20,17 @@
 <div class="flex flex-wrap items-center gap-2">
 
   <button type="button" class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium shrink-0 mr-2"
-    #mt="cdkMenuTriggerFor"
+    #mt1="cdkMenuTriggerFor"
     [cdkMenuTriggerFor]="diagramMenu"
-    [cdkMenuTriggerData]="{trigger: mt}"
+    [cdkMenuTriggerData]="{trigger: mt1}"
   >
     <i class="ri-links-line text-lg"></i>
   </button>
 
   <button type="button" class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium shrink-0 mr-2"
-    #mt="cdkMenuTriggerFor"
+    #mt2="cdkMenuTriggerFor"
     [cdkMenuTriggerFor]="agentMenu"
-    [cdkMenuTriggerData]="{trigger: mt}"
+    [cdkMenuTriggerData]="{trigger: mt2}"
   >
     <i class="ri-chat-settings-line text-lg mr-1"></i>
     {{ 'PAC.Xpert.AgentSettings' | translate: {Default: 'Agent Settings'} }}
@@ -415,7 +418,7 @@
 
 
 <ng-template #diagramMenu>
-  <div cdkMenu class="min-w-[100px] min-h-[100px] max-w-xl max-h-96 relative">
+  <div cdkMenu @overlayAnimation1 class="min-w-[100px] min-h-[200px] max-w-xl max-h-[600px] p-4 relative">
     @if (diagram$ | async; as diagram) {
       <img [src]="diagram" alt="Diagram Image" class="max-w-full max-h-full">
     } @else {

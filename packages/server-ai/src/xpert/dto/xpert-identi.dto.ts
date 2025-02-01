@@ -1,4 +1,4 @@
-import { TAvatar } from '@metad/contracts'
+import { IXpert, TAvatar } from '@metad/contracts'
 import { Exclude, Expose } from 'class-transformer'
 import { Xpert } from '../xpert.entity'
 
@@ -6,9 +6,12 @@ import { Xpert } from '../xpert.entity'
  * IdentiDto: The minimum attributes that can be exposed to represent this object
  */
 @Exclude()
-export class XpertIdentiDto {
+export class XpertIdentiDto implements Partial<IXpert> {
     @Expose()
 	id: string
+
+	@Expose()
+	slug: string
 
 	@Expose()
 	name: string

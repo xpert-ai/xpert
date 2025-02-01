@@ -13,7 +13,6 @@ import {
   output,
   signal
 } from '@angular/core'
-import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { appendMessageContent, stringifyMessageContent } from '@metad/copilot'

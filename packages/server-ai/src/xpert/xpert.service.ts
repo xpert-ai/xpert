@@ -15,7 +15,7 @@ import { FindConditions, In, IsNull, Not, Repository } from 'typeorm'
 import { GetXpertWorkspaceQuery, MyXpertWorkspaceQuery } from '../xpert-workspace'
 import { XpertPublishCommand } from './commands'
 import { Xpert } from './xpert.entity'
-import { XpertPublicDTO } from './dto'
+import { XpertIdentiDto } from './dto'
 
 @Injectable()
 export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
@@ -144,7 +144,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 		], 'id')
 
 		return {
-			items: allXperts.map((item) => new XpertPublicDTO(item)),
+			items: allXperts.map((item) => new XpertIdentiDto(item)),
 			total: allXperts.length
 		};
 	}
@@ -249,14 +249,14 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 		await this.repository.save(xpert)
 	}
 
-	async findBySlug(slug: string) {
+	async findBySlug(slug: string, relations?: string[]) {
 		return await this.repository.findOne({
 			where: {
 				slug,
 				latest: true,
 				publishAt: Not(IsNull())
 			},
-			relations: ['user', 'createdBy', 'organization']
+			relations: uniq((relations ?? []).concat(['user', 'createdBy', 'organization']))
 		})
 	}
 }

@@ -50,6 +50,12 @@
         matTooltipPosition="above">
       </i>
     }
+    @if (isDisableOutput()) {
+      <i class="ri-volume-mute-fill mr-1 text-lg text-sky-500"
+        [matTooltip]="'PAC.Xpert.DisableOutputTip' | translate: {Default: 'Disable returning the agent\'s output to the user'}"
+        matTooltipPosition="above">
+      </i>
+    }
     <div class="flex flex-col overflow-hidden text-base-content">
       <span class="text-base font-semibold uppercase truncate">{{xpertAgent().title}}</span>
     </div>

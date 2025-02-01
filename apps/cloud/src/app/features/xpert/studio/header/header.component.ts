@@ -118,26 +118,30 @@ export class XpertStudioHeaderComponent {
     shareReplay(1)
   )
 
+  save() {
+    this.apiService.saveDraft().subscribe()
+  }
+
   publish() {
     this.publishing.set(true)
     // Check if the draft has been saved
     const obser: Observable<any> = this.unsaved() ? this.apiService.saveDraft() : of(true)
     obser.pipe(switchMap(() => this.xpertService.publish(this.xpertStudioComponent.id())))
-    .subscribe({
-      next: (result) => {
-        this.#toastr.success(
-          `PAC.Xpert.PublishedSuccessfully`,
-          { Default: 'Published successfully' },
-          `v${result.version}`
-        )
-        this.publishing.set(false)
-        this.apiService.refresh()
-      },
-      error: (error) => {
-        this.#toastr.error(getErrorMessage(error))
-        this.publishing.set(false)
-      }
-    })
+      .subscribe({
+        next: (result) => {
+          this.#toastr.success(
+            `PAC.Xpert.PublishedSuccessfully`,
+            { Default: 'Published successfully' },
+            `v${result.version}`
+          )
+          this.publishing.set(false)
+          this.apiService.refresh()
+        },
+        error: (error) => {
+          this.#toastr.error(getErrorMessage(error))
+          this.publishing.set(false)
+        }
+      })
   }
 
   resume() {

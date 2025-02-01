@@ -4,13 +4,14 @@ import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import { Indicator } from '@metad/ocap-core'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { combineLatest, of, tap } from 'rxjs'
+import { combineLatest, Observable, of, shareReplay, tap } from 'rxjs'
 import {
   ChatConversationService,
   getErrorMessage,
   IChatConversation,
   injectToastr,
   ISemanticModel,
+  IXpert,
   registerModel,
   XpertService
 } from '../@core'
@@ -32,6 +33,9 @@ export class XpertHomeService {
 
   readonly conversations = signal<IChatConversation[]>([])
   readonly conversationId = signal<string>(null)
+
+  // Xperts details
+  readonly #xperts: Record<string, Observable<IXpert>> = {}
 
   // SemanticModels
   readonly #semanticModels = signal<
@@ -115,6 +119,15 @@ export class XpertHomeService {
       },
       { allowSignalWrites: true }
     )
+  }
+
+  getXpert(slug: string) {
+    if (!this.#xperts[slug]) {
+      this.#xperts[slug] = this.xpertService.getBySlug(slug).pipe(
+        shareReplay(1)
+      )
+    }
+    return this.#xperts[slug]
   }
 
   deleteConversation(id: string) {

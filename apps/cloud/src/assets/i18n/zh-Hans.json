@@ -2186,6 +2186,8 @@
       "ToolMemoryTip": "工具记忆，存储工具结果至智能体状态变量中",
       "ToolMemory": "工具记忆",
       "AgentMemoryTip": "智能体短期记忆，对话中插入消息历史",
+      "DisableOutput": "禁用输出",
+      "DisableOutputTip": "禁止返回智能体的输出给用户",
       "Node": "节点",
       "MaxConcurrencyTip": "控制最大并行调用数",
       "RecursionLimitTip": "限制智能体可以递归的次数",

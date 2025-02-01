@@ -57,6 +57,10 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     this.#refresh.next()
   }
 
+  getBySlug(slug: string) {
+    return this.httpClient.get<IXpert>(this.apiBaseUrl + `/slug/${slug}`)
+  }
+
   getTeam(id: string, options?: PaginationParams<IXpert>) {
     return this.httpClient.get<IXpert>(this.apiBaseUrl + `/${id}/team`, { params: toHttpParams(options) })
   }

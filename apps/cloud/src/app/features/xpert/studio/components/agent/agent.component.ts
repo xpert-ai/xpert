@@ -31,6 +31,7 @@ export class XpertStudioNodeAgentComponent {
   readonly node = input<TXpertTeamNode & {type: 'agent'}>()
   readonly isRoot = input<boolean>(false)
   readonly xpertAgent = computed(() => this.node().entity)
+  readonly key = computed(() => this.node().key)
   
   readonly toolsets = computed(() => this.xpertAgent()?.toolsets)
   
@@ -49,6 +50,7 @@ export class XpertStudioNodeAgentComponent {
   readonly agentUniqueName = computed(() => agentUniqueName(this.xpertAgent()))
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
   readonly isEnd = computed(() => this.agentConfig()?.endNodes?.includes(this.agentUniqueName()))
+  readonly isDisableOutput = computed(() => this.agentConfig()?.disableOutputs?.includes(this.key()))
 
   private get hostElement(): HTMLElement {
     return this.elementRef.nativeElement

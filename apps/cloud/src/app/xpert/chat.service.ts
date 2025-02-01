@@ -1,5 +1,4 @@
-import { Location } from '@angular/common'
-import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core'
+import { computed, DestroyRef, inject, Injectable, model, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { nonNullable } from '@metad/ocap-core'
 import {
@@ -19,7 +18,6 @@ import {
   IXpert,
   IXpertToolset,
   IKnowledgebase,
-  XpertTypeEnum,
   ChatMessageTypeEnum,
   uuid,
   CopilotBaseMessage,
@@ -35,7 +33,6 @@ import {
 } from '../@core'
 import { ChatConversationService, ChatService as ChatServerService, XpertService, ToastrService, ChatMessageFeedbackService } from '../@core/services'
 import { AppService } from '../app.service'
-import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { sortBy } from 'lodash-es'
 import { HttpErrorResponse } from '@angular/common/http'
@@ -44,6 +41,7 @@ import { isToday } from 'date-fns/isToday'
 import { isWithinInterval } from 'date-fns/isWithinInterval'
 import { isYesterday } from 'date-fns/isYesterday'
 import { subDays } from 'date-fns/subDays'
+import { XpertHomeService } from './home.service'
 
 /**
  * The context of a single chat is not shared between conversations
@@ -55,15 +53,15 @@ export class ChatService {
   readonly feedbackService = inject(ChatMessageFeedbackService)
   readonly xpertService = inject(XpertService)
   readonly appService = inject(AppService)
-  readonly #translate = inject(TranslateService)
+  readonly homeService = inject(XpertHomeService)
   readonly #logger = inject(NGXLogger)
   readonly #toastr = inject(ToastrService)
-  readonly #location = inject(Location)
   readonly #destroyRef = inject(DestroyRef)
 
 
   readonly conversationId = signal<string>(null)
   readonly xpert$ = new BehaviorSubject<IXpert>(null)
+  readonly parametersValue = signal<Record<string, unknown>>(null)
   /**
    * The conversation
    */
@@ -87,7 +85,6 @@ export class ChatService {
   protected chatSubscription: Subscription = null
 
   readonly lang = this.appService.lang
-
   readonly xpert = toSignal(this.xpert$)
 
   private idSub = toObservable(this.conversationId)
@@ -157,10 +154,6 @@ export class ChatService {
     })
   }
 
-  getXpert(slug: string) {
-    return this.xpertService.getMyAll({ where: { slug, type: XpertTypeEnum.Agent, latest: true } })
-  }
-
   getConversation(id: string) {
     this.loadingConv.set(true)
     return this.conversationService.getById(id, { relations: ['xpert', 'xpert.knowledgebases', 'xpert.toolsets', 'messages'] })
@@ -196,9 +189,10 @@ export class ChatService {
 
     this.chatSubscription = this.chatRequest(this.xpert().slug, {
         input: {
+          ...(this.parametersValue() ?? {}),
           input: options.content,
         },
-        xpertId: this.xpert$.value?.id,
+        xpertId: this.xpert()?.id,
         conversationId: this.conversation()?.id,
         id: options.id,
         toolCalls: options.toolCalls,

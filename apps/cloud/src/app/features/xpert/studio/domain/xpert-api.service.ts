@@ -66,7 +66,7 @@ import { CreateWorkflowNodeRequest, CreateWorkflowNodeHandler, UpdateWorkflowNod
 
 @Injectable()
 export class XpertStudioApiService {
-  readonly xpertRoleService = inject(XpertService)
+  readonly xpertService = inject(XpertService)
   readonly knowledgebaseService = inject(KnowledgebaseService)
   readonly toolsetService = inject(XpertToolsetService)
   readonly copilotService = inject(PACCopilotService)
@@ -99,7 +99,7 @@ export class XpertStudioApiService {
   readonly versions = toSignal(
     this.#refresh$.pipe(
       switchMap(() => this.paramId$.pipe(distinctUntilChanged())),
-      switchMap((id) => this.xpertRoleService.getVersions(id))
+      switchMap((id) => this.xpertService.getVersions(id))
     )
   )
   readonly workspaceId = computed(() => this.team()?.workspaceId)
@@ -226,8 +226,7 @@ export class XpertStudioApiService {
         ...omit(xpert, 'agents'),
         id: xpert.id
       },
-      nodes: new ToNodeViewModelHandler(xpert).handle().nodes,
-      connections: new ToConnectionViewModelHandler(xpert).handle()
+      ...xpert.graph,
     } as TXpertTeamDraft
   }
 
@@ -246,7 +245,7 @@ export class XpertStudioApiService {
   }
 
   public resume() {
-    this.xpertRoleService.update(this.team().id, { draft: null }).subscribe(() => {
+    this.xpertService.update(this.team().id, { draft: null }).subscribe(() => {
       this.refresh()
     })
   }
@@ -257,7 +256,7 @@ export class XpertStudioApiService {
 
   saveDraft() {
     const draft = this.storage
-    return this.xpertRoleService.saveDraft(draft.team.id, draft).pipe(
+    return this.xpertService.saveDraft(draft.team.id, draft).pipe(
       tap((draft) => {
         this.unsaved.set(false)
         this.draft.set(draft)

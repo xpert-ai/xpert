@@ -102,7 +102,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				}
 			)
 		).pipe(
-			switchMap(createProcessStreamEvents(this.#logger, thread_id, subscriber))
+			switchMap(createProcessStreamEvents(this.#logger, thread_id, subscriber, {xpert: team, agent}))
 		)
 
 		return concat(

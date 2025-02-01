@@ -1,4 +1,4 @@
-import { IKnowledgebase, IXpert, IXpertAgent, IXpertToolset, TXpertTeamDraft, TXpertTeamNode } from '@metad/contracts'
+import { IKnowledgebase, IXpert, IXpertAgent, IXpertToolset, TXpertGraph, TXpertTeamDraft, TXpertTeamNode } from '@metad/contracts'
 import { omit, pick } from '@metad/server-common'
 import { BadRequestException, HttpException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
@@ -243,6 +243,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 		// Update new version
 		xpert.version = version
 		xpert.draft = null
+		xpert.graph = pick(draft, 'nodes', 'connections') as TXpertGraph
 		xpert.publishAt = new Date()
 		xpert.active = true
 

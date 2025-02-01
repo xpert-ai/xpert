@@ -34,11 +34,13 @@
   </div>
 </div>
 
-<div class="grow px-4 rounded-b-2xl overflow-y-auto">
+<div class="variable-list grow px-4 rounded-b-2xl overflow-y-auto" cdkDropList (cdkDropListDropped)="drop($event)">
   @for (item of variables(); track item.variable.name; let index = $index) {
-    <div class="variable-list-item mb-1 px-2.5 py-2 rounded-xl bg-components-card-bg border shadow-sm hover:bg-gray-50"
+    <div class="variable-list-item relative group mb-1 pl-6 pr-2.5 py-2 rounded-xl bg-components-card-bg border shadow-sm hover:bg-gray-50"
       [class.danger]="item.__hover__"
+      cdkDrag cdkDragLockAxis="y"
     >
+      <i class="ri-draggable absolute top-2 left-1 cursor-pointer opacity-0 group-hover:opacity-100"></i>
       <div class="flex items-center justify-between">
         <div class="grow flex gap-1 items-center">
           <svg

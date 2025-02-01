@@ -141,6 +141,12 @@ export class XpertController extends CrudController<Xpert> {
 			label: xpertLabel(item)
 		}))
 	}
+	
+	@Get('slug/:slug')
+	async getOneBySlug(@Param('slug') slug: string,) {
+		const xpert = await this.service.findBySlug(slug, ['agent'])
+		return new XpertPublicDTO(xpert)
+	}
 
 	@UseGuards(XpertGuard)
 	@Get(':id/export')

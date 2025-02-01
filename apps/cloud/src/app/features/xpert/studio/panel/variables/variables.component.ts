@@ -15,6 +15,7 @@ import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertVariableFormComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { injectHelpWebsite } from 'apps/cloud/src/app/@core'
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 
 @Component({
   selector: 'xpert-studio-panel-variables',
@@ -27,6 +28,7 @@ import { injectHelpWebsite } from 'apps/cloud/src/app/@core'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
+    DragDropModule,
     CdkMenuModule,
     MatSlideToggleModule,
     MatTooltipModule,
@@ -86,5 +88,13 @@ export class XpertStudioPanelVariablesComponent {
           }
         }
       })
+  }
+
+  drop(event: CdkDragDrop<string[]>) {
+    if (event.previousContainer === event.container) {
+      const stateVariables = this.stateVariables() ?? []
+      moveItemInArray(stateVariables, event.previousIndex, event.currentIndex)
+      this.apiService.updateXpertAgentConfig({ stateVariables: [...stateVariables] })
+    }
   }
 }
