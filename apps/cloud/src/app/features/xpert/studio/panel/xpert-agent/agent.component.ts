@@ -39,7 +39,7 @@ import { XpertStudioPanelAgentExecutionComponent } from '../agent-execution/exec
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertStudioPanelToolsetSectionComponent } from './toolset-section/toolset.component'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { catchError, map, of } from 'rxjs'
+import { BehaviorSubject, catchError, map, of, shareReplay, startWith, switchMap } from 'rxjs'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelKnowledgeSectionComponent } from './knowledge-section/knowledge.component'
@@ -50,6 +50,8 @@ import { uniq } from 'lodash-es'
 import { XpertStudioComponent } from '../../studio.component'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { OverlayAnimations } from '@metad/core'
 
 @Component({
   selector: 'xpert-studio-panel-agent',
@@ -67,6 +69,7 @@ import { NgmDensityDirective } from '@metad/ocap-angular/core'
     DateRelativePipe,
 
     NgmDensityDirective,
+    NgmSpinComponent,
     EmojiAvatarComponent,
     XpertStudioPanelToolsetSectionComponent,
     CopilotModelSelectComponent,
@@ -80,7 +83,7 @@ import { NgmDensityDirective } from '@metad/ocap-angular/core'
   host: {
     tabindex: '-1',
   },
-  animations: [IfAnimation]
+  animations: [IfAnimation, ...OverlayAnimations]
 })
 export class XpertStudioPanelAgentComponent {
   eModelType = AiModelTypeEnum
@@ -171,6 +174,14 @@ export class XpertStudioPanelAgentComponent {
   })
 
   readonly promptTemplateFullscreen = signal<string>(null)
+
+  // Diagram of agents
+  readonly refreshDiagram$ = new BehaviorSubject<void>(null)
+  readonly diagram$ = this.refreshDiagram$.pipe(
+    switchMap(() => this.xpertService.getDiagram(this.xpert().id, this.key()).pipe(startWith(null))),
+    map((imageBlob) => imageBlob ? URL.createObjectURL(imageBlob) : null),
+    shareReplay(1)
+  )
 
   constructor() {
     effect(

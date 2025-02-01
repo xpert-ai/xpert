@@ -208,9 +208,13 @@ export class XpertController extends CrudController<Xpert> {
 	}
 
 	@Get(':id/diagram')
-	async getDiagram(@Res() res: Response, @Param('id') id: string, @Query('isDraft') isDraft: string,) {
+	async getDiagram(
+		@Res() res: Response,
+		@Param('id') id: string, 
+		@Query('isDraft') isDraft: string,
+		@Query('agentKey') agentKey: string,) {
 		try {
-			const imageData = await this.commandBus.execute<XpertExportDiagramCommand, Blob>(new XpertExportDiagramCommand(id, isDraft === 'true'))
+			const imageData = await this.commandBus.execute<XpertExportDiagramCommand, Blob>(new XpertExportDiagramCommand(id, isDraft === 'true', agentKey))
 			res.setHeader('Content-Type', 'image/jpeg')
 			res.send(Buffer.from(await imageData.arrayBuffer()))
 		} catch (err) {

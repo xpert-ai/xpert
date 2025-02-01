@@ -95,9 +95,13 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     })
   }
 
-  getDiagram(id: string, isDraft: boolean) {
+  getDiagram(id: string, agentKey?: string) {
+    let params = toParams({isDraft: true,})
+    if (agentKey) {
+      params =params.append('agentKey', agentKey)
+    }
     return this.httpClient.get(this.apiBaseUrl + `/${id}/diagram`, {
-      params: toParams({ isDraft }),
+      params,
       responseType: 'blob',
     })
   }

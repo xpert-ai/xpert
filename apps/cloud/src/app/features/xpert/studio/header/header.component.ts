@@ -118,7 +118,7 @@ export class XpertStudioHeaderComponent {
   // Diagram of agents
   readonly refreshDiagram$ = new BehaviorSubject<void>(null)
   readonly diagram$ = this.refreshDiagram$.pipe(
-    switchMap(() => this.xpertService.getDiagram(this.xpert().id, true).pipe(startWith(null))),
+    switchMap(() => this.xpertService.getDiagram(this.xpert().id).pipe(startWith(null))),
     map((imageBlob) => imageBlob ? URL.createObjectURL(imageBlob) : null),
     shareReplay(1)
   )

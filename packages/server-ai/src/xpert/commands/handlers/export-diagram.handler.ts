@@ -16,7 +16,7 @@ export class XpertExportDiagramHandler implements ICommandHandler<XpertExportDia
 	) {}
 
 	public async execute(command: XpertExportDiagramCommand): Promise<Blob> {
-		const { id, isDraft } = command
+		const { id, isDraft, agentKey } = command
 		const xpert = await this.xpertService.findOne(id, { relations: ['agent'] })
 
 		// Create graph by command
@@ -27,7 +27,7 @@ export class XpertExportDiagramHandler implements ICommandHandler<XpertExportDia
 				graph: CompiledStateGraph<unknown, unknown>
 			}
 		>(
-			new XpertAgentSubgraphCommand(xpert.agent.key, xpert, {
+			new XpertAgentSubgraphCommand(agentKey ?? xpert.agent.key, xpert, {
 				isDraft,
 				isStart: true,
 				execution: {},

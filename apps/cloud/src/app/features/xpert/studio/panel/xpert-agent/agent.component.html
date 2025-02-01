@@ -26,6 +26,17 @@
             <path d="M8 18.3915V5.60846L18.2264 12L8 18.3915ZM6 3.80421V20.1957C6 20.9812 6.86395 21.46 7.53 21.0437L20.6432 12.848C21.2699 12.4563 21.2699 11.5436 20.6432 11.152L7.53 2.95621C6.86395 2.53993 6 3.01878 6 3.80421Z"></path>
           </svg>
         </div>
+
+        <div class="flex items-center justify-center mr-1 w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-base-content
+          hover:bg-hover-bg"
+          [matTooltip]="'PAC.Xpert.RunThisAgent' | translate: { Default: 'Run this agent' }"
+          #mt1="cdkMenuTriggerFor"
+          [cdkMenuTriggerFor]="diagramMenu"
+          [cdkMenuTriggerData]="{trigger: mt1}"
+        >
+          <i class="ri-links-line text-lg"></i>
+        </div>
+
         <a [href]="helpWebsite() + '/docs/ai/'" target="_blank" class="flex items-center justify-center mr-1 w-6 h-6"
           [matTooltip]="'PAC.Xpert.HelpDocumentation' | translate: { Default: 'Help Documentation' }">
           <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="w-4 h-4 text-text-tertiary hover:text-base-content">
@@ -299,5 +310,18 @@
     } @empty {
       <div class="text-text-secondary m-2">{{'PAC.Xpert.NoExecutionYet' | translate: { Default:'No execution yet'} }}</div>
     }
+  </div>
+</ng-template>
+
+<ng-template #diagramMenu>
+  <div cdkMenu @overlayAnimation1 class="min-w-[100px] min-h-[200px] max-w-xl max-h-[600px] p-4 relative">
+    @if (diagram$ | async; as diagram) {
+      <img [src]="diagram" alt="Diagram Image" class="max-w-full max-h-full">
+    } @else {
+      <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+    }
+    <button type="button" class="btn rounded-xl justify-center absolute top-2 right-2 w-8 h-8" (click)="refreshDiagram$.next()">
+      <i class="ri-restart-line"></i>
+    </button>
   </div>
 </ng-template>

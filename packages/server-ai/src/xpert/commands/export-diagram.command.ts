@@ -6,5 +6,6 @@ export class XpertExportDiagramCommand implements ICommand {
 	constructor(
 		public readonly id: string,
 		public readonly isDraft: boolean,
+		public readonly agentKey?: string,
 	) {}
 }
