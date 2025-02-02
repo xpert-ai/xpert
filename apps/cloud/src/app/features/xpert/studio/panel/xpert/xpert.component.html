@@ -39,6 +39,15 @@
     {{xpert().description}}
   </div>
 
+  <div class="flex flex-col border border-solid border-divider-regular px-3 py-2 rounded-2xl text-sm text-text-secondary">
+    <div class="flex items-center text-gray-600">
+      <i class="ri-robot-2-line mr-1 text-lg"></i>
+      <span class="font-semibold uppercase">{{primaryAgent().title}}</span>
+    </div>
+    <div class="font-medium">{{primaryAgent().name || primaryAgent().key}}</div>
+    <div>{{primaryAgent().description}}</div>
+  </div>
+
   <copilot-model-select class="w-full" readonly
     [modelType]="eModelType.LLM"
     [copilotModel]="copilotModel()"
@@ -47,6 +56,28 @@
   @if (parameters()?.length) {
     <xpert-parameters-card [parameters]="parameters()" readonly />
   }
+
+  <div class="w-full h-[1px] bg-divider-regular my-2"></div>
+
+  <div class="">
+    <div class="flex items-center space-x-1 shrink-0">
+      <div class="flex items-center justify-center w-6 h-6">
+        <i class="ri-git-commit-fill text-orange-600"></i>
+      </div>
+      <div class="text-sm font-semibold text-gray-800">{{'PAC.Xpert.Node' | translate: {Default: 'Node'} }}</div>
+    </div>
+
+    <div class="flex justify-end items-center gap-1 w-full">
+      <i class="ri-volume-mute-fill text-base text-sky-500"></i>
+      <div class="text-sm">{{'PAC.Xpert.DisableOutput' | translate: {Default: 'Disable Output'} }}</div>
+      <mat-slide-toggle class="flex" [ngModel]="disableOutput()" (ngModelChange)="updateDisableOutput($event)"
+        labelPosition="before"
+        ngm-density="xs"
+        [matTooltip]="'PAC.Xpert.DisableOutputTip' | translate: {Default: 'Disable returning the agent\'s output to the user'}"
+        matTooltipPosition="above"
+      />
+    </div>
+  </div>
 </div>
 
 @if (loading()) {

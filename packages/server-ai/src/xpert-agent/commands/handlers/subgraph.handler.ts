@@ -23,13 +23,15 @@ import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { memoryPrompt } from '../../../copilot-store/utils'
 import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
-import { GetXpertWorkflowQuery, GetXpertChatModelQuery } from '../../../xpert/queries'
+import { GetXpertWorkflowQuery, GetXpertChatModelQuery, GetXpertAgentQuery } from '../../../xpert/queries'
 import { createParameters } from '../execute.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
 import { AgentStateAnnotation, parseXmlString, stateVariable, TGraphTool, TSubAgent } from './types'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { createTitleAgent, createSummarizeAgent } from './react_agent_executor'
+import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
+import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -105,6 +107,24 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 		this.#logger.debug(`Use tools:\n ${[...tools].map((_) => _.tool.name + ': ' + _.tool.description).join('\n')}`)
 
+		// Knowledgebases
+		const knowledgebaseIds = options?.knowledgebases ?? agent.knowledgebaseIds
+		if (knowledgebaseIds?.length) {
+			const retrievers = knowledgebaseIds.map((id) => createKnowledgeRetriever(this.queryBus, id))
+			const retriever = new EnsembleRetriever({
+				retrievers: retrievers,
+				weights: retrievers.map(() => 0.5),
+			  })
+			tools.push({
+				caller: agent.key,
+				tool: retriever.asTool({
+					name: "knowledge_retriever",
+					description: "Get information about question.",
+					schema: z.string(),
+				  })
+			})
+		}
+
 		// Sub agents
 		const subAgents: Record<string, TSubAgent> = {}
 		if (agent.followers?.length) {
@@ -124,6 +144,32 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					isTool: true
 				})
 
+				subAgents[item.name] = item
+				if (team.agentConfig?.interruptBefore?.includes(item.name)) {
+					interruptBefore.push(item.name)
+				}
+			}
+		}
+
+		// Collaborators (external xperts)
+		if (agent.collaborators?.length) {
+			this.#logger.debug(`Use xpert collaborators:\n${agent.collaborators.map((_) => _.name)}`)
+			for await (const collaborator of agent.collaborators) {
+				const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(new GetXpertAgentQuery(collaborator.id,))
+				const item = await this.createAgentSubgraph(agent, {
+					xpert: collaborator,
+					options: {
+						leaderKey: agent.key,
+						rootExecutionId: command.options.rootExecutionId,
+						isDraft: false,
+						subscriber
+					},
+					thread_id,
+					rootController,
+					signal,
+					isTool: true
+				})
+				
 				subAgents[item.name] = item
 				if (team.agentConfig?.interruptBefore?.includes(item.name)) {
 					interruptBefore.push(item.name)
@@ -319,7 +365,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const subgraphBuilder = new StateGraph(SubgraphStateAnnotation)
 			.addNode(
 				agentKey,
-				new RunnableLambda({ func: callModel }).withConfig({ runName: agentKey, tags: [thread_id, agentKey] })
+				new RunnableLambda({ func: callModel }).withConfig({ runName: agentKey, tags: [thread_id, xpert.id, agentKey] })
 			)
 			.addEdge(START, agentKey)
 

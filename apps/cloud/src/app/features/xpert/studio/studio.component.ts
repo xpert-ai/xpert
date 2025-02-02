@@ -42,9 +42,9 @@ import { Observable, of, Subscription, timer } from 'rxjs'
 import { debounce, debounceTime, delay, map, pairwise, tap } from 'rxjs/operators'
 import {
   AiModelTypeEnum,
+  IXpert,
   ToastrService,
   TXpertAgentConfig,
-  TXpertTeamConnection,
   TXpertTeamNode,
   XpertAgentExecutionStatusEnum,
   XpertService,
@@ -68,6 +68,7 @@ import { XpertExecutionService } from './services/execution.service'
 import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { XpertStudioNodeWorkflowComponent } from './components/workflow/workflow.component'
+import { MatTooltipModule } from '@angular/material/tooltip'
 
 
 @Component({
@@ -84,6 +85,7 @@ import { XpertStudioNodeWorkflowComponent } from './components/workflow/workflow
     TranslateModule,
     FFlowModule,
     NgxFloatUiModule,
+    MatTooltipModule,
 
     NgmCommonModule,
 
@@ -156,7 +158,7 @@ export class XpertStudioComponent {
     return nodes
   })
   readonly xperts = computed(() => {
-    const xperts = []
+    const xperts: (TXpertTeamNode & {type: 'xpert'})[] = []
     extractXpertGroup(xperts, this.viewModel()?.nodes)
     return xperts
   })
@@ -176,6 +178,7 @@ export class XpertStudioComponent {
 
   readonly viewModel = toSignal(this.apiService.store.pipe(map((state) => state.draft)))
   readonly xpert = computed(() => this.viewModel()?.team)
+  readonly agentConfig = computed(() => this.xpert()?.agentConfig)
   readonly position = signal<IPoint>(null)
   readonly scale = signal<number>(null)
 
@@ -227,7 +230,6 @@ export class XpertStudioComponent {
   }
 
   public addConnection(event: FCreateConnectionEvent): void {
-    console.log(event)
     if (!event.fInputId) {
       return
     }
@@ -311,6 +313,10 @@ export class XpertStudioComponent {
   selectAgentStatus(key: string) {
     const executions = this.agentExecutions()[key]
     return executions ? executions[executions.length - 1]?.status : null
+  }
+
+  isDisableOutput(g: TXpertTeamNode) {
+    return this.agentConfig()?.disableOutputs?.includes(g.key)
   }
 }
 

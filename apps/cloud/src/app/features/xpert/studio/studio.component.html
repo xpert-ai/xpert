@@ -123,8 +123,14 @@
         (mousedown)="onMouseDown($event)"
         (click)="onSelectNode($event, group)"
       >
-        <div class="group-title flex items-center">
+        <div class="group-title flex items-center gap-1">
           <emoji-avatar [avatar]="group.entity.avatar" small class="shrink-0 mr-2 rounded-lg overflow-hidden shadow-sm" />
+          @if (isDisableOutput(group)) {
+            <i class="ri-volume-mute-fill mr-1 text-lg text-sky-500"
+              [matTooltip]="'PAC.Xpert.DisableOutputTip' | translate: {Default: 'Disable returning the agent\'s output to the user'}"
+              matTooltipPosition="above">
+            </i>
+          }
           <span class="truncate text-text-secondary">{{ group.entity.title || group.entity.name }}</span>
         </div>
         <div fResizeHandle [fResizeHandleType]="eResizeHandleType.LEFT_TOP"></div>

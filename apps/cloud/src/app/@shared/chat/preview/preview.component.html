@@ -4,9 +4,15 @@
 
     <ng-content></ng-content>
 
-    <div class="mx-3 w-[1px] h-3.5 bg-divider-deep"></div>
+    <button type="button" class="action-btn action-btn-sm primary w-7 h-7"
+      [matTooltip]="'PAC.Xpert.Restart' | translate: {Default: 'Restart'}"
+      (click)="onRestart()">
+      <i class="ri-restart-line font-normal text-base"></i>
+    </button>
 
-    <div class="action-btn action-btn-sm danger" (click)="close.emit()">
+    <div class="mx-2 w-[1px] h-3.5 bg-divider-deep"></div>
+
+    <div class="action-btn action-btn-sm danger" (click)="onClose()">
       <i class="ri-close-large-line w-4 h-4 flex justify-center items-center text-sm"></i>
     </div>
   </div>

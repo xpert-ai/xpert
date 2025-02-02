@@ -17,7 +17,7 @@ import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { appendMessageContent, stringifyMessageContent } from '@metad/copilot'
 import { nonBlank } from '@metad/core'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ChatConversationService,
   ChatMessageEventTypeEnum,
@@ -41,10 +41,11 @@ import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { ToolCallConfirmComponent, XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { map, Observable, of, Subject, timer, switchMap, tap, Subscription } from 'rxjs'
+import { map, Observable, of, timer, switchMap, tap, Subscription, EMPTY, pipe } from 'rxjs'
 import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
 import { effectAction } from '@metad/ocap-angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
+import { injectConfirmDelete } from '@metad/ocap-angular/common'
 
 @Component({
   standalone: true,
@@ -74,7 +75,9 @@ export class ChatConversationPreviewComponent {
   readonly messageFeedbackService = inject(ChatMessageFeedbackService)
   readonly #toastr = inject(ToastrService)
   readonly #destroyRef = inject(DestroyRef)
+  readonly #translate = inject(TranslateService)
   readonly #clipboard = inject(Clipboard)
+  readonly confirmDel = injectConfirmDelete()
 
   // Inputs
   readonly conversationId = model<string>()
@@ -90,6 +93,7 @@ export class ChatConversationPreviewComponent {
   // Outputs
   readonly execution = output<string>()
   readonly close = output<void>()
+  readonly restart = output<void>()
   readonly chatEvent = output<any>()
   readonly chatError = output<string>()
   readonly chatStop = output<void>()
@@ -391,10 +395,27 @@ export class ChatConversationPreviewComponent {
     return this.feedbacks()?.[id]
   }
 
-  restart() {
-    this.conversationId.set(null)
-    this.conversation.set(null)
-    this._messages.set([])
+  onRestart() {
+    if (this.loading()) {
+      this.confirmDel({
+        title: this.#translate.instant('PAC.Chat.StopGenerate', {Default: 'Stop generate'}),
+        information: this.#translate.instant('PAC.Chat.StopGenerateOnRestart', {Default: 'Restarting the conversation will stop current generating content'}),
+      }).subscribe((confirm) => {
+        if (confirm) {
+          this.onStop()
+          
+          this.conversationId.set(null)
+          this.conversation.set(null)
+          this._messages.set([])
+          this.restart.emit()
+        }
+      })
+    } else {
+      this.conversationId.set(null)
+      this.conversation.set(null)
+      this._messages.set([])
+      this.restart.emit()
+    }
   }
 
   onRetry() {
@@ -409,5 +430,21 @@ export class ChatConversationPreviewComponent {
     this.chat({
       retry: true
     })
+  }
+
+  onClose() {
+    if (this.loading()) {
+      this.confirmDel({
+        title: this.#translate.instant('PAC.Chat.StopGenerate', {Default: 'Stop generate'}),
+        information: this.#translate.instant('PAC.Chat.PreviewStopGenerate', {Default: 'Closing the panel will stop generating content'}),
+      }).subscribe((confirm) => {
+        if (confirm) {
+          this.onStop()
+          this.close.emit()
+        }
+      })
+    } else {
+      this.close.emit()
+    }
   }
 }
