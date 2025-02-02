@@ -1,8 +1,9 @@
-import { Clipboard } from '@angular/cdk/clipboard'
 import { CommonModule } from '@angular/common'
-import { Component, inject, input, signal, WritableSignal } from '@angular/core'
+import { Component, input } from '@angular/core'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import { DateRelativePipe, IXpertAgentExecution } from '../../../@core'
+import { CopyComponent } from '../../common'
 import { UserPipe } from '../../pipes'
 import { XpertAgentExecutionLogComponent } from '../execution-log/execution.component'
 import { XpertAgentExecutionStatusComponent } from '../execution-status/execution.component'
@@ -12,8 +13,10 @@ import { XpertAgentExecutionStatusComponent } from '../execution-status/executio
   imports: [
     CommonModule,
     TranslateModule,
+    MatTooltipModule,
     UserPipe,
     DateRelativePipe,
+    CopyComponent,
     XpertAgentExecutionStatusComponent,
     XpertAgentExecutionLogComponent
   ],
@@ -22,18 +25,5 @@ import { XpertAgentExecutionStatusComponent } from '../execution-status/executio
   styleUrls: ['execution.component.scss']
 })
 export class XpertAgentExecutionComponent {
-  readonly #clipboard = inject(Clipboard)
-
   readonly execution = input<IXpertAgentExecution>(null)
-
-  readonly inputCopied = signal(false)
-  readonly outputCopied = signal(false)
-
-  copy(content: any, status: WritableSignal<boolean>) {
-    status.set(true)
-    this.#clipboard.copy(JSON.stringify(content, null, 2))
-    setTimeout(() => {
-      status.set(false)
-    }, 2000)
-  }
 }

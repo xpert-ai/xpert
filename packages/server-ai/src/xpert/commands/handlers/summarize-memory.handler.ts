@@ -3,7 +3,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { HumanMessage } from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { BaseStore } from '@langchain/langgraph'
-import { IXpert, IXpertAgent, LongTermMemoryTypeEnum, MEMORY_PROFILE_PROMPT, MEMORY_QA_PROMPT, TLongTermMemoryConfig } from '@metad/contracts'
+import { channelName, IXpert, IXpertAgent, LongTermMemoryTypeEnum, MEMORY_PROFILE_PROMPT, MEMORY_QA_PROMPT, TLongTermMemoryConfig } from '@metad/contracts'
 import { Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { v4 as uuidv4 } from 'uuid'
@@ -121,6 +121,7 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 	) {
 		const { tenantId, organizationId } = xpert
 		const { chatModel, embeddings, userId, summarizedState, agent } = options
+		const channel = channelName(agent.key)
 
 		let schema = null
 		const fields = []
@@ -145,7 +146,7 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 			})
 		)
 
-		const { summary, messages } = summarizedState
+		const { summary, messages } = summarizedState[channel]
 		let systemTemplate = `${agent.prompt}`
 		if (summary) {
 			systemTemplate += `\nSummary of conversation earlier: \n${summary}`

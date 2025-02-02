@@ -1907,6 +1907,7 @@
       "ShowDiagram": "显示图表",
       "RefreshExternalXpert": "刷新，同步外部专家配置",
       "Reducer": "归约",
+      "Summary": "总结",
       "VariableReducer": "变量归约",
       "SelectReducer": "选择归约方式",
       "DefaultValue": "默认值",

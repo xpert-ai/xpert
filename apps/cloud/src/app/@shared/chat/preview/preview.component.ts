@@ -131,7 +131,7 @@ export class ChatConversationPreviewComponent {
       const messages = this._messages()
       const lastMessage = messages[messages.length - 1]
       // Skip the last interrupted message when continuing the chat conversation
-      if (lastMessage.status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
+      if (lastMessage?.status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
         return [...messages.slice(0, messages.length - 1), this.currentMessage()] as IChatMessage[]
       }
       return [...this._messages(), this.currentMessage()] as IChatMessage[]

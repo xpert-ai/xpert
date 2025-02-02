@@ -61,6 +61,10 @@ export type TXpertAgentExecution = {
   messages?: StoredMessage[]
   agent?: IXpertAgent
   totalTokens?: number
+  /**
+   * Summary of conversation
+   */
+  summary?: string
 }
 
 /**

@@ -9,9 +9,12 @@ export function createProcessStreamEvents(
 	logger: Logger,
 	thread_id: string,
 	subscriber: Subscriber<MessageEvent>,
-	options?: {agent?: IXpertAgent; xpert: IXpert}
+	options?: {
+		agent?: IXpertAgent;
+		disableOutputs?: string[]
+	}
 ) {
-	const { agent, xpert } = options ?? {}
+	const { agent, disableOutputs } = options ?? {}
 	const eventStack: string[] = []
 	let prevEvent = ''
 	const toolsMap: Record<string, string> = {} // For lc_name and name of tool is different
@@ -74,7 +77,7 @@ export function createProcessStreamEvents(
 				prevEvent = event
 
 				// Only returns the stream events content of the current react agent (filter by tag: thread_id), not events of agent in tool call.
-				if (!xpert?.agentConfig?.disableOutputs?.some((key) => tags.includes(key))) {
+				if (!disableOutputs?.some((key) => tags.includes(key))) {
 				// if (tags.includes(thread_id)) {
 					const msg = data.chunk as AIMessageChunk
 					if (!msg.tool_call_chunks?.length) {

@@ -194,4 +194,6 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 			return acc + (curr.totalTokens ?? 0)
 		}, 0) ?? 0)
 	}
+
+	summary?: string
 }

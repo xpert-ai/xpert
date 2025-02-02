@@ -19,7 +19,7 @@ import { BaseCheckpointSaver, BaseStore, CompiledStateGraph, END, LangGraphRunna
 import { All } from "@langchain/langgraph-checkpoint";
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { AnnotationRoot, StateDefinition, UpdateType } from "@langchain/langgraph/dist/graph";
-import { TSummarize } from "@metad/contracts";
+import { channelName, TSummarize } from "@metad/contracts";
 import { v4 as uuidv4 } from "uuid";
 import { ToolNode } from "./tool_node";
 import { AgentStateAnnotation, STATE_VARIABLE_SYS_LANGUAGE, TGraphTool, TSubAgent } from "./types";
@@ -228,26 +228,27 @@ export function createReactAgent(
   // });
 }
 
-export function createSummarizeAgent(model: BaseChatModel, summarize: TSummarize) {
-  return async (state: typeof AgentStateAnnotation.State): Promise<any> => {
+export function createSummarizeAgent(model: BaseChatModel, summarize: TSummarize, agentKey?: string) {
+  return async (state: typeof AgentStateAnnotation.State): Promise<Partial<typeof AgentStateAnnotation.State>> => {
+    const channel = channelName(agentKey)
     // First, we summarize the conversation
-    const { summary, messages } = state;
+    const summary = state[channel].summary
+    const messages = state[channel].messages
     let summaryMessage: string;
     if (summary) {
       // If a summary already exists, we use a different system prompt
       // to summarize it than if one didn't
       summaryMessage = `This is summary of the conversation to date: ${summary}\n\n` +
-        (summarize.prompt ? `${summarize.prompt}\n` : '')
-        "Extend the summary by taking into account the new messages above:";
+        (summarize.prompt ? summarize.prompt : 'Extend the summary by taking into account the new messages above:');
     } else {
-      summaryMessage = (summarize.prompt ? `${summarize.prompt}\n` : '') + "Create a summary of the conversation above:";
+      summaryMessage = summarize.prompt ? summarize.prompt : 'Create a summary of the conversation above:'
     }
   
     const allMessages = [...messages, new HumanMessage({
       id: uuidv4(),
       content: summaryMessage,
     })];
-    const response = await model.invoke(allMessages);
+    const response = await model.invoke(allMessages, {tags: ['summarize_conversation']});
     // We now need to delete messages that we no longer want to show up
     const summarizedMessages = messages.slice(0, -summarize.retainMessages)
     const retainMessages = messages.slice(-summarize.retainMessages)
@@ -259,21 +260,28 @@ export function createSummarizeAgent(model: BaseChatModel, summarize: TSummarize
     if (typeof response.content !== "string") {
       throw new Error("Expected a string summary of response from the model");
     }
-    return { summary: response.content, messages: deleteMessages };
+    return {
+      summary: response.content,
+      [channel]: {
+        summary: response.content,
+        messages: deleteMessages
+      }
+    };
   }
 }
 
-export function createTitleAgent(model: BaseChatModel) {
+export function createTitleAgent(model: BaseChatModel, agentKey?: string) {
   return async (state: typeof AgentStateAnnotation.State): Promise<any> => {
+    const channel = channelName(agentKey)
     // Title the conversation
-    const { messages } = state;
+    const messages = state[channel].messages
     const language = state[STATE_VARIABLE_SYS_LANGUAGE]
   
     const allMessages = [...messages, new HumanMessage({
       id: uuidv4(),
-      content: `Create a short title${language ? ` in language '${language}'` : ''} for the conversation above:`,
+      content: `Create a short title${language ? ` in language '${language}'` : ''} for the conversation above, without adding any extra phrases like 'Conversation Title:':`,
     })]
-    const response = await model.invoke(allMessages);
+    const response = await model.invoke(allMessages, {tags: ['title_conversation']});
     if (typeof response.content !== "string") {
       throw new Error("Expected a string response from the model");
     }

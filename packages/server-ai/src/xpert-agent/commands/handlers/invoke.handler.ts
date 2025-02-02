@@ -9,6 +9,7 @@ import {
 import { CompiledStateGraph, NodeInterrupt } from '@langchain/langgraph'
 import {
 	agentLabel,
+	channelName,
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
 	IXpertAgent,
@@ -85,7 +86,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 							[STATE_VARIABLE_USER_TIMEZONE]: user.timeZone || options.timeZone,
 							memories,
 							messages: [new HumanMessage(input.input)],
-							[`${agentKey}.messages`]: [new HumanMessage(input.input)]
+							[channelName(agentKey)]: {
+								messages: [new HumanMessage(input.input)],
+							}
 						}
 					: null,
 				{
@@ -104,7 +107,10 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				}
 			)
 		).pipe(
-			switchMap(createProcessStreamEvents(this.#logger, thread_id, subscriber, {xpert: team, agent}))
+			switchMap(createProcessStreamEvents(this.#logger, thread_id, subscriber, {
+				disableOutputs: [...(team.agentConfig?.disableOutputs ?? []), 'title_conversation', 'summarize_conversation'],
+				agent
+			}))
 		)
 
 		return concat(

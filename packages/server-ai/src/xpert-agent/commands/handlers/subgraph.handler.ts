@@ -29,6 +29,7 @@ import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
 import { AgentStateAnnotation, parseXmlString, stateVariable, TGraphTool, TSubAgent } from './types'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
+import { createTitleAgent, createSummarizeAgent } from './react_agent_executor'
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -152,7 +153,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				if (node.type === 'agent') {
 					if (parentKey) {
 						if (isPrimary) {
-							conditionalEdges[parentKey] = [createAgentNavigator(summarize, false, node.key), [...nexts, node.key]]
+							conditionalEdges[parentKey] = [createAgentNavigator(channelName(parentKey), summarize, summarizeTitle, node.key), [...nexts, node.key]]
 						} else {
 							edges[parentKey] = node.key
 						}
@@ -188,7 +189,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					conditionalEdges[node.key] = [workflowNode, nextNodes.map((n) => n.key)]
 					if (parentKey) {
 						if (isPrimary) {
-							conditionalEdges[parentKey] = [createAgentNavigator(summarize, false, node.key), [...nexts, node.key]]
+							conditionalEdges[parentKey] = [createAgentNavigator(channelName(parentKey), summarize, summarizeTitle, node.key), [...nexts, node.key]]
 						} else {
 							edges[parentKey] = node.key
 						}
@@ -247,7 +248,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 		const enableMessageHistory = !agent.options?.disableMessageHistory
 		const stateModifier = async (state: typeof AgentStateAnnotation.State) => {
-			const { summary, memories } = state
+			const { memories } = state
+			const summary = state[agentChannel].summary
 			const parameters = stateToParameters(state)
 			let systemTemplate = `Current time: ${new Date().toISOString()}\n${parseXmlString(agent.prompt) ?? ''}`
 			if (memories?.length) {
@@ -338,8 +340,17 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			})
 		}
 
+		if (summarizeTitle) {
+			subgraphBuilder.addNode("title_conversation", createTitleAgent(chatModel, agentKey))
+				.addEdge("title_conversation", END)
+		}
+		if (summarize?.enabled) {
+			subgraphBuilder.addNode("summarize_conversation", createSummarizeAgent(chatModel, summarize, agentKey))
+				.addEdge("summarize_conversation", END)
+		}
+
 		if (!Object.keys(nodes).length) {
-			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(summarize, false, null))
+			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(agentChannel, summarize, summarizeTitle, null))
 		} else {
 			// Next nodes
 			Object.keys(nodes).forEach((name) => subgraphBuilder.addNode(name, nodes[name]))
@@ -563,9 +574,10 @@ function ensureSummarize(summarize?: TSummarize) {
 	)
 }
 
-function createAgentNavigator(summarize: TSummarize, summarizeTitle: boolean, next?: (string | ((state, config) => string))) {
+function createAgentNavigator(agentChannel: string, summarize: TSummarize, summarizeTitle: boolean, next?: (string | ((state, config) => string))) {
 	return (state: typeof AgentStateAnnotation.State, config) => {
-		const { title, messages } = state
+		const { title } = state
+		const messages = state[agentChannel].messages
 		const lastMessage = messages[messages.length - 1]
 		if (isAIMessage(lastMessage)) {
 			if (!lastMessage.tool_calls || lastMessage.tool_calls.length === 0) {
