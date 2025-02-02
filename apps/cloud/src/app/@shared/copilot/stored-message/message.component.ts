@@ -1,17 +1,26 @@
 import { Clipboard } from '@angular/cdk/clipboard'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, input, signal } from '@angular/core'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { StoredMessage } from '@langchain/core/messages'
-import { effectAction } from '@metad/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
-import { timer } from 'rxjs'
-import { switchMap, tap } from 'rxjs/operators'
+import { Copy2Component, CopyComponent } from '../../common'
 import { CopilotMessageContentComponent } from '../message-content/content.component'
 import { CopilotMessageToolCallComponent } from '../tool-call/tool-call.component'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MarkdownModule, CopilotMessageContentComponent, CopilotMessageToolCallComponent],
+  imports: [
+    CommonModule,
+    TranslateModule,
+    MatTooltipModule,
+    MarkdownModule,
+    CopyComponent,
+    Copy2Component,
+    CopilotMessageContentComponent,
+    CopilotMessageToolCallComponent
+  ],
   selector: 'copilot-stored-message',
   templateUrl: 'message.component.html',
   styleUrls: ['message.component.scss']
@@ -33,23 +42,17 @@ export class CopilotStoredMessageComponent {
     return content
   })
 
-  readonly copied = signal(false)
+  readonly reasoning = computed(() => this.message()?.data?.additional_kwargs?.reasoning_content)
+  readonly text = computed(() => {
+    const text = this.content()
+      ? typeof this.content() === 'string'
+        ? this.content()
+        : JSON.stringify(this.content())
+      : this.toolCalls()
+        ? JSON.stringify(this.toolCalls())
+        : this.toolResponse()
+    return text
+  })
 
-  copy = effectAction((origin$) =>
-    origin$.pipe(
-      tap(() => {
-        const text = this.content()
-          ? typeof this.content() === 'string'
-            ? this.content()
-            : JSON.stringify(this.content())
-          : this.toolCalls()
-            ? JSON.stringify(this.toolCalls())
-            : this.toolResponse()
-        this.#clipboard.copy(text)
-        this.copied.set(true)
-      }),
-      switchMap(() => timer(3000)),
-      tap(() => this.copied.set(false))
-    )
-  )
+  readonly expandReason = signal(false)
 }

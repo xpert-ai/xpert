@@ -51,7 +51,7 @@ import { CopyComponent } from '../../@shared/common'
     EmojiAvatarComponent,
     ChatComponentMessageComponent,
     ChatMessageExecutionComponent,
-    CopyComponent
+    CopyComponent,
   ],
   selector: 'pac-ai-message',
   templateUrl: './ai-message.component.html',
@@ -133,6 +133,10 @@ export class ChatAiMessageComponent {
     }),
     shareReplay(1)
   )
+
+  // Reasoning
+  readonly reasoning = computed(() => this.message().reasoning as string)
+  readonly expandReason = signal(true)
 
   constructor() {
     effect(() => {

@@ -108,6 +108,9 @@ export type ChatUserMessage = ChatMessage & {
   language: string
 }
 
+/**
+ * @deprecated use ChatMessageEventTypeEnum
+ */
 export enum ChatGatewayEvent {
   ACK = 'ack', // acknowledgment for received message
   ConversationCreated = 'conversation_created',
@@ -177,7 +180,7 @@ export type ChatGatewayMessage = {
 export type DeprecatedMessageType = 'assistant' | 'user' | 'info' | 'component'
 export type CopilotMessageType = MessageType | DeprecatedMessageType
 /**
- * 
+ * BaseMessage or AIMessage in Langchain.js
  */
 export interface CopilotBaseMessage {
   id: string
@@ -190,6 +193,7 @@ export interface CopilotBaseMessage {
   status?: XpertAgentExecutionStatusEnum | 'thinking' | 'aborted'
 
   content?: string | MessageContent
+  reasoning?: MessageContent
 
   /**
    * Error info when status is error

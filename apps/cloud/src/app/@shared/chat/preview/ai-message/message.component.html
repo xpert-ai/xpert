@@ -1,3 +1,33 @@
+@if (reasoning()) {
+  <div class="relative group w-full max-h-90 p-1 rounded-lg border border-solid border-gray-200 overflow-auto">
+    <div class="flex justify-between items-center">
+      <div class="flex items-center cursor-pointer pressable rounded-md px-1 text-gray-500 hover:bg-hover-bg"
+        (click)="expandReason.set(!expandReason())">
+        @if (expandReason()) {
+          <i class="ri-arrow-down-s-line"></i>
+        } @else {
+          <i class="ri-arrow-right-s-line"></i>
+        }
+        <div class="mr-1 leading-[18px] text-sm font-semibold uppercase">
+          {{ 'PAC.Chat.Reasoning' | translate: {Default: 'Reasoning'} }}
+        </div>
+      </div>
+
+      <copy2 #copy class="opacity-30 group-hover:opacity-100"
+        [content]="reasoning()"
+        [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
+        matTooltipPosition="above" />
+    </div>
+    @if (expandReason()) {
+      <markdown class="ngm-copilot-markdown text-xs"
+        lineNumbers
+        [start]="5"
+        [data]="reasoning()"
+      />
+    }
+  </div>
+}
+
 @for (chunk of contents(); track $index) {
   @switch(chunk.type) {
     @case ('text') {

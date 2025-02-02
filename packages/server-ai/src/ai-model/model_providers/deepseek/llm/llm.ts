@@ -1,4 +1,4 @@
-import { ChatOpenAI } from '@langchain/openai'
+import { ChatDeepSeek } from '@langchain/deepseek'
 import { AIModelEntity, AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { Injectable } from '@nestjs/common'
@@ -16,7 +16,7 @@ export class DeepseekLargeLanguageModel extends LargeLanguageModel {
 
 	async validateCredentials(model: string, credentials: DeepseekCredentials): Promise<void> {
 		try {
-			const chatModel = new ChatOpenAI({
+			const chatModel = new ChatDeepSeek({
 				...toCredentialKwargs(credentials),
 				model,
 				temperature: 0,
@@ -48,7 +48,7 @@ export class DeepseekLargeLanguageModel extends LargeLanguageModel {
 
 		const model = copilotModel.model
 		const { handleLLMTokens } = options ?? {}
-		return new ChatOpenAI({
+		return new ChatDeepSeek({
 			...params,
 			model,
 			streaming: modelCredentials?.streaming ?? true,

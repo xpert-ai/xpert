@@ -1,12 +1,14 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, input } from '@angular/core'
+import { Component, computed, effect, input, signal } from '@angular/core'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import { IChatMessage } from 'apps/cloud/src/app/@core'
 import { MarkdownModule } from 'ngx-markdown'
+import { Copy2Component } from '../../../common'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, MarkdownModule],
+  imports: [CommonModule, TranslateModule, MatTooltipModule, MarkdownModule, Copy2Component],
   selector: 'xpert-preview-ai-message',
   templateUrl: 'message.component.html',
   styleUrls: ['message.component.scss']
@@ -30,6 +32,8 @@ export class XpertPreviewAiMessageComponent {
   })
 
   readonly thirdPartyMessage = computed(() => this.message().thirdPartyMessage)
+  readonly reasoning = computed(() => this.message().reasoning as string)
+  readonly expandReason = signal(false)
 
   constructor() {
     effect(() => {

@@ -69,7 +69,7 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 			const agents = [xpert.agent, ...xpert.agents]
 			const agent = keyOrName ? agents.find((_) => _.key === keyOrName || _.name === keyOrName) : xpert.agent
 			if (agent) {
-				const next = xpert.graph.connections
+				const next = xpert.graph?.connections
 					.filter((_) => _.type === 'edge' && _.from === agent.key)
 					.map((conn) => xpert.graph.nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to))
 

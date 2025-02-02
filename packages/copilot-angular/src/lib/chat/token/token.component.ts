@@ -28,7 +28,7 @@ import { TranslateModule } from '@ngx-translate/core'
   }
 })
 export class CopilotChatTokenComponent {
-  readonly content = input<string | null>()
+  readonly content = input<string | any>()
 
   readonly characterLength = computed(() => {
     return this.content()?.length ?? 0

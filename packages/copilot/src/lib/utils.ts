@@ -121,21 +121,26 @@ export function appendMessageContent(aiMessage: CopilotChatMessage, content: Mes
 			aiMessage.content = content
 		}
 	} else {
-		if (Array.isArray(_content)) {
-			_content.push(content)
-		} else if(_content) {
-			aiMessage.content = [
-				{
-					type: 'text',
-					text: _content
-				},
-				content
-			]
-		} else {
-			aiMessage.content = [
-				content
-			]
-		}
+    if ((<any>content).type === 'reasoning') {
+      aiMessage.reasoning ??= ''
+      aiMessage.reasoning += (<any>content).content
+    } else {
+      if (Array.isArray(_content)) {
+        _content.push(content)
+      } else if(_content) {
+        aiMessage.content = [
+          {
+            type: 'text',
+            text: _content
+          },
+          content
+        ]
+      } else {
+        aiMessage.content = [
+          content
+        ]
+      }
+    }
 	}
 }
 

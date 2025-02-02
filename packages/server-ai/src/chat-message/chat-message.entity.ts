@@ -21,6 +21,12 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
 	@Column({ type: 'json', nullable: true })
 	content: string | MessageContent
 
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	reasoning?: MessageContent
+
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsOptional()

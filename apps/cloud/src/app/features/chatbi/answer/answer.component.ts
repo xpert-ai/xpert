@@ -10,7 +10,7 @@ import { MatInputModule } from '@angular/material/input'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
-import { CopilotChatMessage, JSONValue, nanoid } from '@metad/copilot'
+import { CopilotChatMessage, JSONValue, nanoid, stringifyMessageContent } from '@metad/copilot'
 import { AnalyticalCardComponent, AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
 import { AnalyticalGridComponent, AnalyticalGridModule } from '@metad/ocap-angular/analytical-grid'
 import { NgmDisplayBehaviourComponent, NgmInputComponent, NgmSearchComponent } from '@metad/ocap-angular/common'
@@ -93,6 +93,8 @@ export class ChatbiAnswerComponent {
   readonly chatInput = input<ChatbiInputComponent>(null)
   readonly analyticalCard = viewChild(AnalyticalCardComponent)
   readonly analyticalGrid = viewChild(AnalyticalGridComponent)
+
+  readonly content = computed(() => stringifyMessageContent(this.message()?.content))
 
   readonly primaryTheme = toSignal(this.#store.primaryTheme$)
   readonly model = this.chatbiService.model

@@ -12,11 +12,11 @@
   </div>
 }
 
-<div class="group relative flex-1 flex flex-col gap-2 mt-2 pb-10 overflow-hidden">
+<div class="group/message relative flex-1 flex flex-col gap-2 mt-2 pb-10 overflow-hidden">
 
   <!-- executions -->
   <div class="relative rounded-xl border border-solid border-teal-800 p-2 bg-gray-50">
-    <div class="flex items-center leading-[18px] text-sm font-semibold text-gray-500 uppercase">
+    <div class="flex items-center leading-[18px] text-sm text-gray-500 uppercase">
       <div class="flex items-center cursor-pointer pressable rounded-md hover:bg-hover-bg"
         (click)="expandExecutions.set(!expandExecutions())">
         @if (expandExecutions()) {
@@ -24,7 +24,7 @@
         } @else {
           <i class="ri-arrow-right-s-line"></i>
         }
-        <div class="mr-3">{{'PAC.Xpert.Executions' | translate: {Default: 'Executions'} }}</div>
+        <div class="mr-3 font-semibold">{{'PAC.Xpert.Executions' | translate: {Default: 'Executions'} }}</div>
       </div>
     </div>
 
@@ -41,6 +41,36 @@
       }
     }
   </div>
+
+  @if (reasoning()) {
+    <div class="relative group w-full max-h-90 p-1 rounded-xl border border-solid border-gray-200 overflow-auto">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center cursor-pointer pressable rounded-md px-1 text-gray-500 hover:bg-hover-bg"
+          (click)="expandReason.set(!expandReason())">
+          @if (expandReason()) {
+            <i class="ri-arrow-down-s-line"></i>
+          } @else {
+            <i class="ri-arrow-right-s-line"></i>
+          }
+          <div class="mr-1 leading-[18px] text-sm font-semibold uppercase">
+            {{ 'PAC.Chat.Reasoning' | translate: {Default: 'Reasoning'} }}
+          </div>
+        </div>
+  
+        <copy #copy class="mr-1 opacity-30 group-hover:opacity-100"
+          [content]="reasoning()"
+          [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
+          matTooltipPosition="above" />
+      </div>
+      @if (expandReason()) {
+        <markdown class="ngm-copilot-markdown text-sm text-gray-500"
+          lineNumbers
+          [start]="5"
+          [data]="reasoning()"
+        />
+      }
+    </div>
+  }
 
   <!-- @deprecated use contents -->
   @if (messageGroup(); as group) {
@@ -178,11 +208,13 @@
   }
 
   <div class="absolute left-0 bottom-2 flex justify-end items-center gap-1">
-    <div class="hidden group-hover:block p-0.5 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
+    <div class="hidden group-hover/message:block p-0.5 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
       <div class="shrink-0 w-6 h-6 p-1 flex items-center justify-center rounded-md font-medium pressable
         bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
       >
-        <copy [content]="contentString()" />
+        <copy #copy [content]="contentString()"
+          [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
+          matTooltipPosition="above"/>
       </div>
     </div>
 
@@ -205,7 +237,7 @@
         </div>
       }
     } @else {
-      <div class="hidden group-hover:flex shrink-0 items-center p-0.5 bg-white border-[0.5px] border-gray-100 shadow-sm text-gray-500 rounded-lg">
+      <div class="hidden group-hover/message:flex shrink-0 items-center p-0.5 bg-white border-[0.5px] border-gray-100 shadow-sm text-gray-500 rounded-lg">
         <div class="flex items-center justify-center mr-0.5 w-6 h-6 rounded-md hover:bg-black/5 hover:text-gray-800 cursor-pointer"
           [matTooltip]="'PAC.KEY_WORDS.Like' | translate: {Default: 'Like'}"
           matTooltipPosition="above"

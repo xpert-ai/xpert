@@ -38,6 +38,8 @@ import { isYesterday } from 'date-fns/isYesterday'
 import { subDays } from 'date-fns/subDays'
 import { XpertHomeService } from './home.service'
 import { TCopilotChatMessage } from './types'
+import { MessageContent } from '@langchain/core/messages'
+import { appendMessageContent } from '@metad/copilot'
 
 /**
  * The context of a single chat is not shared between conversations
@@ -333,35 +335,29 @@ export class ChatService {
     } as IChatConversation))
   }
 
-  // updateMessage(id: string, message: Partial<CopilotBaseMessage>) {
-  //   this.#messages.update((messages) => {
-  //     const lastMessage = messages[messages.length - 1] as CopilotMessageGroup
-  //     messages[messages.length - 1] = { ...lastMessage, ...message }
-  //     return [...messages]
-  //   })
-  // }
-
-  appendMessageComponent(message) {
+  appendMessageComponent(content: MessageContent) {
     this.updateLatestMessage((lastM) => {
-      const content = lastM.content
-      if (typeof content === 'string') {
-        lastM.content = [
-          {
-            type: 'text',
-            text: content
-          },
-          message
-        ]
-      } else if (Array.isArray(content)) {
-        lastM.content = [
-          ...content,
-          message
-        ]
-      } else {
-        lastM.content = [
-          message
-        ]
-      }
+      appendMessageContent(lastM as any, content)
+
+      // const content = lastM.content
+      // if (typeof content === 'string') {
+      //   lastM.content = [
+      //     {
+      //       type: 'text',
+      //       text: content
+      //     },
+      //     message
+      //   ]
+      // } else if (Array.isArray(content)) {
+      //   lastM.content = [
+      //     ...content,
+      //     message
+      //   ]
+      // } else {
+      //   lastM.content = [
+      //     message
+      //   ]
+      // }
       return {
         ...lastM
       }

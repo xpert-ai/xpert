@@ -1,4 +1,4 @@
-<div class="w-full flex items-center justify-between px-1">
+<div class="w-full flex items-center justify-between">
   <div class="flex items-center cursor-pointer pressable rounded-md text-gray-500 hover:bg-hover-bg"
     (click)="expand.set(!expand())">
     @if (expand()) {
@@ -9,7 +9,7 @@
     <div class="mr-3 leading-[18px] text-sm font-semibold uppercase">{{ execution().agentKey }}</div>
   </div>
 
-  <div class="flex items-center gap-1 h-[18px] text-sm font-medium leading-3"
+  <div class="flex items-center gap-2 mr-2 h-[18px] text-sm font-medium leading-3"
     [ngClass]="execution().status">
 
     <span>{{execution().elapsedTime / 1000 | number: '0.0-3'}}<span class="ml-0.5 font-semibold">s</span></span>
@@ -31,11 +31,12 @@
     </div>
   }
 
-  <div class="rounded-xl min-h-[40px] max-h-52 w-full text-sm bg-gray-100">
+  <div class="group rounded-xl min-h-[40px] max-h-52 w-full text-sm bg-gray-100">
     <div class="flex justify-between items-center p-2">
       <span class="uppercase">{{ 'PAC.Xpert.Input' | translate: {Default: 'Input'} }}</span>
 
-      <copy #copy [content]="execution().inputs"
+      <copy #copy class="opacity-20 group-hover:opacity-100"
+        [content]="execution().inputs"
         [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
         matTooltipPosition="above" />
     </div>
@@ -44,11 +45,12 @@
   </div>
 
   @if (execution().outputs) {
-    <div class="rounded-xl min-h-[40px] max-h-52 w-full text-sm overflow-auto bg-gray-100">
+    <div class="group rounded-xl min-h-[40px] max-h-52 w-full text-sm overflow-auto bg-gray-100">
       <div class="flex justify-between items-center p-2">
         <span class="uppercase">{{ 'PAC.Xpert.Output' | translate: {Default: 'Output'} }}</span>
     
-        <copy #copy [content]="execution().outputs" 
+        <copy #copy class="opacity-20 group-hover:opacity-100"
+          [content]="execution().outputs" 
           [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
           matTooltipPosition="above" />
       </div>

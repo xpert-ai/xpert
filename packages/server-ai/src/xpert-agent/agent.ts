@@ -88,6 +88,17 @@ export function createProcessStreamEvents(
 								return msg.content.map((_) => (_.type === 'text' || _.type === 'text_delta') ? _.text : '').join('')
 							}
 						}
+						if (msg.additional_kwargs?.reasoning_content) {
+							subscriber.next({
+								data: {
+									type: ChatMessageTypeEnum.MESSAGE,
+									data: {
+										type: 'reasoning',
+										content: msg.additional_kwargs.reasoning_content
+									}
+								}
+							} as MessageEvent)
+						}
 					}
 				}
 				break

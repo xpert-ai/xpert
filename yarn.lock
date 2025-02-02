@@ -4979,6 +4979,14 @@
     zod "^3.22.4"
     zod-to-json-schema "^3.22.3"
 
+"@langchain/deepseek@0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@langchain/deepseek/-/deepseek-0.0.1.tgz#dcfd06dd65abb77fc176745d80d65e966dfc5ffc"
+  integrity sha512-jgrbitvV4p7Kqo/Fyni9coCliNXUrJ2XChdR8eHvQg3RL+w13DIQjJn2mrkCrb7v6Is1rI7It2x3yIbADL71Yg==
+  dependencies:
+    "@langchain/openai" "^0.4.2"
+    zod "^3.24.1"
+
 "@langchain/exa@0.1.0":
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/@langchain/exa/-/exa-0.1.0.tgz#03eed8a788123580c23ebd5de09832e4cba6f101"
@@ -5039,17 +5047,7 @@
     ollama "^0.5.9"
     uuid "^10.0.0"
 
-"@langchain/openai@0.3.11":
-  version "0.3.11"
-  resolved "https://registry.yarnpkg.com/@langchain/openai/-/openai-0.3.11.tgz#c93ee298a87318562a1da6c2915a180fe5155ac4"
-  integrity sha512-mEFbpJ8w8NPArsquUlCwxvZTKNkXxqwzvTEYzv6Jb7gUoBDOZtwLg6AdcngTJ+w5VFh3wxgPy0g3zb9Aw0Qbpw==
-  dependencies:
-    js-tiktoken "^1.0.12"
-    openai "^4.68.0"
-    zod "^3.22.4"
-    zod-to-json-schema "^3.22.3"
-
-"@langchain/openai@0.4.2", "@langchain/openai@>=0.2.0 <0.5.0":
+"@langchain/openai@0.4.2", "@langchain/openai@>=0.2.0 <0.5.0", "@langchain/openai@^0.4.2":
   version "0.4.2"
   resolved "https://registry.yarnpkg.com/@langchain/openai/-/openai-0.4.2.tgz#1259bf56c4948ed2301d366e2fe945c29dfb53bc"
   integrity sha512-Cuj7qbVcycALTP0aqZuPpEc7As8cwiGaU21MhXRyZFs+dnWxKYxZ1Q1z4kcx6cYkq/I+CNwwmk+sP+YruU73Aw==
@@ -22948,19 +22946,6 @@ openai@^4.57.3:
     node-fetch "^2.6.7"
     qs "^6.10.3"
 
-openai@^4.68.0:
-  version "4.68.4"
-  resolved "https://registry.yarnpkg.com/openai/-/openai-4.68.4.tgz#f8d684c1f2408d362164ad71916e961941aeedd1"
-  integrity sha512-LRinV8iU9VQplkr25oZlyrsYGPGasIwYN8KFMAAFTHHLHjHhejtJ5BALuLFrkGzY4wfbKhOhuT+7lcHZ+F3iEA==
-  dependencies:
-    "@types/node" "^18.11.18"
-    "@types/node-fetch" "^2.6.4"
-    abort-controller "^3.0.0"
-    agentkeepalive "^4.2.1"
-    form-data-encoder "1.7.2"
-    formdata-node "^4.3.2"
-    node-fetch "^2.6.7"
-
 openai@^4.77.0:
   version "4.80.1"
   resolved "https://registry.yarnpkg.com/openai/-/openai-4.80.1.tgz#0869ae7d4efbe1794dbec9b648aa329d369cea36"
@@ -30482,6 +30467,11 @@ zod@^3.22.3, zod@^3.22.4, zod@^3.23.8:
   version "3.23.8"
   resolved "https://registry.yarnpkg.com/zod/-/zod-3.23.8.tgz#e37b957b5d52079769fb8097099b592f0ef4067d"
   integrity sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==
+
+zod@^3.24.1:
+  version "3.24.1"
+  resolved "https://registry.yarnpkg.com/zod/-/zod-3.24.1.tgz#27445c912738c8ad1e9de1bea0359fa44d9d35ee"
+  integrity sha512-muH7gBL9sI1nciMZV67X5fTKKBLtwpZ5VBp1vsOQzj1MhrBZ4wlVCm3gedKZWLp0Oyel8sIGfeiz54Su+OVT+A==
 
 zone.js@~0.14.0:
   version "0.14.10"

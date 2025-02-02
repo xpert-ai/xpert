@@ -16,7 +16,7 @@ import { MatDividerModule } from '@angular/material/divider'
 import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
-import { CopilotChatMessage } from '@metad/copilot'
+import { CopilotChatMessage, stringifyMessageContent } from '@metad/copilot'
 import { nonBlank, nonNullable } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
@@ -87,7 +87,7 @@ export class ChatbiChatComponent {
     })
 
   editQuestion(message: CopilotChatMessage) {
-    this.prompt.set(message.content)
+    this.prompt.set(stringifyMessageContent(message.content))
   }
 
   setExample(example: string) {
