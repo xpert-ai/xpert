@@ -103,6 +103,7 @@ export function stringifyMessageContent(content: MessageContent | MessageContent
 
 
 export function appendMessageContent(aiMessage: CopilotChatMessage, content: MessageContent) {
+  aiMessage.status = 'answering'
 	const _content = aiMessage.content
 	if (typeof content === 'string') {
 		if (typeof _content === 'string') {
@@ -124,6 +125,7 @@ export function appendMessageContent(aiMessage: CopilotChatMessage, content: Mes
     if ((<any>content).type === 'reasoning') {
       aiMessage.reasoning ??= ''
       aiMessage.reasoning += (<any>content).content
+      aiMessage.status = 'reasoning'
     } else {
       if (Array.isArray(_content)) {
         _content.push(content)

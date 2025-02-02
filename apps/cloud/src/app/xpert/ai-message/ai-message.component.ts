@@ -74,8 +74,9 @@ export class ChatAiMessageComponent {
   readonly role = this.chatService.xpert
   readonly feedbacks = this.chatService.feedbacks
   readonly executionId = computed(() => this.message()?.executionId)
+  readonly status = computed(() => this.message()?.status)
   readonly answering = computed(() =>
-    this.chatService.answering() && ['thinking', 'answering'].includes(this.message().status)
+    this.chatService.answering() && ['thinking', 'answering'].includes(this.status())
   )
 
   readonly #contentStr = computed(() => {
@@ -93,7 +94,7 @@ export class ChatAiMessageComponent {
 
   readonly contentStr = computed(() => {
     const content = this.#contentStr()
-    if (['thinking', 'answering'].includes(this.message().status) && this.answering()) {
+    if (['thinking', 'answering'].includes(this.status()) && this.answering()) {
       return content + '<span class="thinking-placeholder"></span>'
     }
     return content

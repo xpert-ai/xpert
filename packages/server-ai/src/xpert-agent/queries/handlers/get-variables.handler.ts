@@ -70,8 +70,8 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		}
 
 		// All agents output
-		const graph = isDraft ? xpert.draft ?? xpert.graph : xpert.graph
-		const agents = graph?.nodes.filter((_) => _.type === 'agent' && _.key !== agentKey) as Array<
+		const graph = isDraft ? {...(xpert.graph ?? {}), ...(xpert.draft ?? {})} : xpert.graph
+		const agents = graph?.nodes?.filter((_) => _.type === 'agent' && _.key !== agentKey) as Array<
 			TXpertTeamNode & { type: 'agent' }
 		>
 		agents?.forEach((_) => {

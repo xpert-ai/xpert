@@ -45,7 +45,10 @@
   @if (reasoning()) {
     <div class="relative group w-full max-h-90 p-1 rounded-xl border border-solid border-gray-200 overflow-auto">
       <div class="flex justify-between items-center">
-        <div class="flex items-center cursor-pointer pressable rounded-md px-1 text-gray-500 hover:bg-hover-bg"
+        @if (status() === 'reasoning') {
+          <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
+        }
+        <div class="flex justify-start items-center cursor-pointer pressable rounded-md px-1 text-gray-500 hover:bg-hover-bg"
           (click)="expandReason.set(!expandReason())">
           @if (expandReason()) {
             <i class="ri-arrow-down-s-line"></i>
@@ -56,6 +59,8 @@
             {{ 'PAC.Chat.Reasoning' | translate: {Default: 'Reasoning'} }}
           </div>
         </div>
+
+        <div class="grow"></div>
   
         <copy #copy class="mr-1 opacity-30 group-hover:opacity-100"
           [content]="reasoning()"

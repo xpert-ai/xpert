@@ -4,7 +4,7 @@ import { Component, computed, inject, input, signal } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmIsNilPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { IXpertAgentExecution } from '../../../@core'
+import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from '../../../@core'
 import { CopyComponent } from '../../common'
 
 @Component({
@@ -19,6 +19,8 @@ import { CopyComponent } from '../../common'
   }
 })
 export class ChatMessageExecutionComponent {
+  eXpertAgentExecutionStatusEnum = XpertAgentExecutionStatusEnum
+  
   readonly #clipboard = inject(Clipboard)
 
   // Inputs

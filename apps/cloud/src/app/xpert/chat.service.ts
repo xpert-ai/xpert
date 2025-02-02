@@ -25,6 +25,8 @@ import {
   IChatMessageFeedback,
   TChatOptions,
   TChatRequest,
+  uuid,
+  ChatMessageStatusEnum,
 } from '../@core'
 import { ChatConversationService, ChatService as ChatServerService, XpertService, ToastrService, ChatMessageFeedbackService } from '../@core/services'
 import { AppService } from '../app.service'
@@ -230,14 +232,14 @@ export class ChatService {
                     }
                     break
                   case ChatMessageEventTypeEnum.ON_MESSAGE_START:
-                    // if (options.content) {
-                    //   this.appendMessage({
-                    //     id: uuid(),
-                    //     role: 'ai',
-                    //     content: ``,
-                    //     status: 'thinking'
-                    //   })
-                    // }
+                    if (options.content) {
+                      this.appendMessage({
+                        id: uuid(),
+                        role: 'ai',
+                        content: ``,
+                        status: 'thinking'
+                      })
+                    }
                     this.updateLatestMessage((lastM) => {
                       return {
                         ...lastM,
@@ -338,26 +340,6 @@ export class ChatService {
   appendMessageComponent(content: MessageContent) {
     this.updateLatestMessage((lastM) => {
       appendMessageContent(lastM as any, content)
-
-      // const content = lastM.content
-      // if (typeof content === 'string') {
-      //   lastM.content = [
-      //     {
-      //       type: 'text',
-      //       text: content
-      //     },
-      //     message
-      //   ]
-      // } else if (Array.isArray(content)) {
-      //   lastM.content = [
-      //     ...content,
-      //     message
-      //   ]
-      // } else {
-      //   lastM.content = [
-      //     message
-      //   ]
-      // }
       return {
         ...lastM
       }
@@ -367,7 +349,7 @@ export class ChatService {
   appendStreamMessage(text: string) {
     this.updateLatestMessage((lastM) => {
       const content = lastM.content
-
+      lastM.status = 'answering'
       if (typeof content === 'string') {
         lastM.content = content + text
       } else if (Array.isArray(content)) {
@@ -399,13 +381,6 @@ export class ChatService {
     })
   }
 
-  // appendMessageStep(step: TCopilotChatMessage) {
-  //   this.updateLatestMessage((lastMessage) => ({
-  //     ...lastMessage,
-  //     messages: [...(lastMessage.messages ?? []), step]
-  //   }))
-  // }
-
   updateLatestMessage(updateFn: (value: TCopilotChatMessage) => TCopilotChatMessage) {
     this.#messages.update((messages) => {
       const lastMessage = messages[messages.length - 1] as TCopilotChatMessage
@@ -413,21 +388,6 @@ export class ChatService {
       return [...messages]
     })
   }
-
-  // updateMessageStep(step: CopilotChatMessage) {
-  //   this.updateLatestMessage((lastMessage) => {
-  //     const _steps = lastMessage.messages.reverse()
-  //     const index = _steps.findIndex((item) => item.id === step.id && item.role === step.role)
-  //     if (index > -1) {
-  //       _steps[index] = {
-  //         ..._steps[index],
-  //         ...step
-  //       }
-  //       lastMessage.messages = _steps.reverse()
-  //     }
-  //     return {...lastMessage}
-  //   })
-  // }
 
   abortMessage(id: string) {
     this.updateLatestMessage((lastMessage) => {

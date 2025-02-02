@@ -1,4 +1,7 @@
 <div class="w-full flex items-center justify-between">
+  @if (execution().status === eXpertAgentExecutionStatusEnum.RUNNING) {
+    <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
+  }
   <div class="flex items-center cursor-pointer pressable rounded-md text-gray-500 hover:bg-hover-bg"
     (click)="expand.set(!expand())">
     @if (expand()) {
@@ -8,6 +11,8 @@
     }
     <div class="mr-3 leading-[18px] text-sm font-semibold uppercase">{{ execution().agentKey }}</div>
   </div>
+
+  <span class="grow"></span>
 
   <div class="flex items-center gap-2 mr-2 h-[18px] text-sm font-medium leading-3"
     [ngClass]="execution().status">

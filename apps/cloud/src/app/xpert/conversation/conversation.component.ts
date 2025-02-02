@@ -58,7 +58,12 @@ export class ChatConversationComponent {
   readonly parameters = computed(() => this.xpert()?.agent?.parameters)
 
   readonly parametersValue = this.chatService.parametersValue
- 
+
+  constructor() {
+    effect(() => {
+      // console.log(this.messages())
+    })
+  }
 
   onToolCalls(toolCalls: ToolCall[]) {
     this.toolCalls.set(toolCalls)

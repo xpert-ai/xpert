@@ -1,5 +1,5 @@
 import { BaseMessage, FunctionCall, MessageContent, OpenAIToolCall } from '@langchain/core/messages'
-import { CopilotBaseMessage, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { ChatMessageStatusEnum, CopilotBaseMessage, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 
 export const DefaultModel = 'gpt-3.5-turbo'
 export const DefaultBusinessRole = 'default'
@@ -47,7 +47,7 @@ export enum CopilotChatMessageRoleEnum {
 /**
  */
 export interface CopilotChatMessage extends Omit<CopilotBaseMessage, 'status'> {
-  status?: XpertAgentExecutionStatusEnum | 'thinking' | 'aborted' | 'done' | 'error' | 'answering'
+  status?: ChatMessageStatusEnum | 'done' | 'error' | 'answering'
   tool_call_id?: string
   /**
    * If the message has a role of `function`, the `name` field is the name of the function.
