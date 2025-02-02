@@ -55,15 +55,16 @@ export class CopilotBasicComponent {
     )
   )
   readonly primary = computed(() =>
-    this.#copilots()?.find((_) => _.organizationId === this.organizationId() && _.role === AiProviderRole.Primary)
+    this.#copilots()?.find((_) => _.role === AiProviderRole.Primary)
   )
 
   readonly copilots = computed(() =>
-    this.#copilots()?.filter((_) => _.organizationId === this.organizationId() && _.role !== AiProviderRole.Primary)
+    this.#copilots()?.filter((_) => _.role !== AiProviderRole.Primary)
   )
 
+  // Free quota for organizations in tenant
   readonly quotaCopilots = computed(() => {
-    return this.avaliableCopilots()?.filter((item) => !item.organizationId && item.modelProvider)
+    return this.organizationId() ? this.avaliableCopilots()?.filter((item) => !item.organizationId && item.modelProvider) : []
   })
 
   readonly providers = signal([

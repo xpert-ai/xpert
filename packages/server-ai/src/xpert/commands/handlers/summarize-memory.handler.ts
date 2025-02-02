@@ -78,7 +78,7 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 		)
 
 		const memoryKey = []
-		if (types.includes(LongTermMemoryTypeEnum.QA)) {
+		if (types.includes(LongTermMemoryTypeEnum.QA) && memory.qa?.enabled) {
 			const keys = await this.summarize(xpert, LongTermMemoryTypeEnum.QA, memory.qa, {
 				chatModel,
 				embeddings,
@@ -90,7 +90,7 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 			memoryKey.push(...(Array.isArray(keys) ? keys : [keys]))
 		}
 
-		if (types.includes(LongTermMemoryTypeEnum.PROFILE)) {
+		if (types.includes(LongTermMemoryTypeEnum.PROFILE) && memory.profile?.enabled) {
 			const keys = await this.summarize(xpert, LongTermMemoryTypeEnum.PROFILE, memory.profile, {
 				chatModel,
 				embeddings,
