@@ -32,6 +32,8 @@ import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/quer
 import { createTitleAgent, createSummarizeAgent } from './react_agent_executor'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
+import { ChatOpenAI } from '@langchain/openai'
+import { isNil } from 'lodash'
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -326,10 +328,18 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		// Execute agent
 		const callModel = async (state: typeof SubgraphStateAnnotation.State, config?: RunnableConfig) => {
 			// With tools or with StructuredOutput
-			const chatModelWithTools = withTools.length ? chatModel.bindTools(withTools) : (
-				agent.outputVariables?.length ? chatModel.withStructuredOutput(z.object({
+			let chatModelWithTools = null
+			if (withTools.length) {
+				if (!isNil(agent.options?.parallelToolCalls) && chatModel instanceof ChatOpenAI) {
+					chatModelWithTools = chatModel.bindTools(withTools, {parallel_tool_calls: agent.options.parallelToolCalls})
+				} else {
+					chatModelWithTools = chatModel.bindTools(withTools)
+				}
+			} else {
+				chatModelWithTools = agent.outputVariables?.length ? chatModel.withStructuredOutput(z.object({
 					...createParameters(agent.outputVariables),
-				})) : chatModel)
+				})) : chatModel
+			}
 
 			const {systemMessage, messageHistory, humanMessages} = await stateModifier(state)
 

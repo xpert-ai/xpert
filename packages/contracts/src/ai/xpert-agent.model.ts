@@ -98,6 +98,11 @@ export type TXpertAgentOptions = {
    * Write output variables to memory (state)
    */
   memories?: TVariableAssigner[]
+
+  /**
+   * Whether to enable parallel tool calls, default: true
+   */
+  parallelToolCalls?: boolean
 }
 
 export type TAgentPromptTemplate = {

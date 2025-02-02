@@ -1911,6 +1911,8 @@
       "ShowDiagram": "显示图表",
       "RefreshExternalXpert": "刷新，同步外部专家配置",
       "Reducer": "归约",
+      "ParallelToolCalls": "并行工具调用",
+      "ParallelToolCallsTip": "是否启用工具的并行调用能力，针对像 OpenAI 等的部分模型起作用",
       "Summary": "总结",
       "Logic": "逻辑",
       "Note": "注释",

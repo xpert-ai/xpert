@@ -192,7 +192,7 @@
       }
 
       <div class="flex justify-end items-center gap-1 w-full">
-        <i class="ri-volume-mute-fill text-base text-sky-500"></i>
+        <i class="ri-volume-mute-fill text-base text-sky-700"></i>
         <div class="text-sm">{{'PAC.Xpert.DisableOutput' | translate: {Default: 'Disable Output'} }}</div>
         <mat-slide-toggle class="flex" [ngModel]="disableOutput()" (ngModelChange)="updateDisableOutput($event)"
           labelPosition="before"
@@ -202,6 +202,16 @@
         />
       </div>
       
+      <div class="flex justify-end items-center gap-1 w-full">
+        <i class="ri-git-close-pull-request-fill text-base text-fuchsia-700"></i>
+        <div class="text-sm">{{'PAC.Xpert.ParallelToolCalls' | translate: {Default: 'Parallel tool calls'} }}</div>
+        <mat-slide-toggle class="flex" [ngModel]="parallelToolCalls()" (ngModelChange)="updateParallelToolCalls($event)"
+          labelPosition="before"
+          ngm-density="xs"
+          [matTooltip]="'PAC.Xpert.ParallelToolCallsTip' | translate: {Default: 'Whether to enable the parallel calling capability of the tool, which works for some models like OpenAI'}"
+          matTooltipPosition="above"
+        />
+      </div>
     </div>
 
     <xpert-parameters-edit [ngModel]="parameters()" (ngModelChange)="onParameters($event)" />

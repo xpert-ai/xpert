@@ -124,6 +124,7 @@ export class XpertStudioPanelAgentComponent {
 
   readonly parameters = computed(() => this.xpertAgent()?.parameters)
   readonly memories = computed(() => this.xpertAgent()?.options?.memories)
+  readonly parallelToolCalls = computed(() => this.xpertAgent()?.options?.parallelToolCalls ?? true)
 
   readonly nameError = computed(() => {
     const name = this.name()
@@ -267,6 +268,13 @@ export class XpertStudioPanelAgentComponent {
       ? uniq([...(this.agentConfig()?.disableOutputs ?? []), name])
       : (this.agentConfig()?.disableOutputs?.filter((_) => _ !== name) ?? [])
     this.xpertStudioComponent.updateXpertAgentConfig({ disableOutputs })
+  }
+
+  updateParallelToolCalls(value: boolean) {
+    const options = this.xpertAgent().options ?? {}
+    this.apiService.updateXpertAgent(this.key(), {
+      options: {...options, parallelToolCalls: value }
+    })
   }
 
   updateOutputVariables(event: TAgentOutputVariable[]) {
