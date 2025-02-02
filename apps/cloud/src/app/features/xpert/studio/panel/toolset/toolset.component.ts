@@ -23,6 +23,7 @@ import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertVariablesAssignerComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { CommonModule } from '@angular/common'
 
 @Component({
   selector: 'xpert-studio-panel-toolset',
@@ -31,6 +32,7 @@ import { XpertVariablesAssignerComponent } from 'apps/cloud/src/app/@shared/xper
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    CommonModule,
     FormsModule,
     TranslateModule,
     MatSlideToggleModule,
@@ -90,6 +92,8 @@ export class XpertStudioPanelToolsetComponent {
     return positions && tools ? tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
       : tools
   })
+
+  readonly expandTools = signal<Record<string, boolean>>({})
 
   readonly variables = derivedAsync(() => {
     const xpertId = this.xpertId()
@@ -166,7 +170,7 @@ export class XpertStudioPanelToolsetComponent {
       this.toolset().tools?.map((tool) => omit(tool, 'id', 'toolsetId'))
     )
       .subscribe((toolset) => {
-        if (toolset) {
+        if (toolset && toolset.id) {
           this.useToolset(toolset)
         }
       })
@@ -190,6 +194,10 @@ export class XpertStudioPanelToolsetComponent {
         this.#toastr.error(getErrorMessage(err))
       }
     })
+  }
+
+  toggleExpand(name: string) {
+    this.expandTools.update((state) => ({...state, [name]: !state[name]}))
   }
 
   closePanel() {

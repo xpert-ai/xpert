@@ -62,6 +62,7 @@ import { FCanvasChangeEvent } from '@foblex/flow'
 import { nonBlank } from '@metad/copilot'
 import { PACCopilotService } from '../../../services'
 import { CreateWorkflowNodeRequest, CreateWorkflowNodeHandler, UpdateWorkflowNodeHandler, UpdateWorkflowNodeRequest } from './workflow'
+import { derivedAsync } from 'ngxtension/derived-async'
 
 
 @Injectable()
@@ -139,6 +140,8 @@ export class XpertStudioApiService {
     map(({ items }) => items),
     shareReplay(1)
   )
+
+  readonly builtinToolProviders = derivedAsync(() => this.toolsetService.getProviders())
   
   readonly workspace = computed(() => this.team()?.workspace, { equal: (a, b) => a?.id === b?.id })
 

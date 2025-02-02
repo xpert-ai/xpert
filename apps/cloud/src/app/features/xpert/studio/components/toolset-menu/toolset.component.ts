@@ -1,18 +1,19 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenu, CdkMenuModule } from '@angular/cdk/menu'
+import { CdkOverlayOrigin, OverlayModule } from '@angular/cdk/overlay'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmSearchComponent } from '@metad/ocap-angular/common'
+import { NgmHighlightDirective, NgmSearchComponent } from '@metad/ocap-angular/common'
+import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { IXpertTool, IXpertToolset, XpertToolsetCategoryEnum } from 'apps/cloud/src/app/@core'
+import { IToolProvider, IXpertToolset, uuid, XpertToolsetCategoryEnum } from 'apps/cloud/src/app/@core'
+import { ToolProviderCardComponent, ToolsetCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { debounceTime, map, startWith } from 'rxjs'
 import { EmojiAvatarComponent } from '../../../../../@shared/avatar/emoji-avatar/avatar.component'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
-import { CdkOverlayOrigin, OverlayModule } from '@angular/cdk/overlay'
-import { ToolsetCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 
 @Component({
   selector: 'xpert-studio-toolset-menu',
@@ -28,10 +29,12 @@ import { ToolsetCardComponent } from 'apps/cloud/src/app/@shared/xpert'
     CdkMenuModule,
     CdkListboxModule,
     OverlayModule,
-    NgmSearchComponent,
     
+    NgmSearchComponent,
+    NgmHighlightDirective,
     EmojiAvatarComponent,
-    ToolsetCardComponent
+    ToolsetCardComponent,
+    ToolProviderCardComponent
   ],
   host: {
     tabindex: '-1'
@@ -42,6 +45,7 @@ export class XpertStudioToolsetMenuComponent {
   readonly cdkMenu = inject(CdkMenu)
   private root = inject(XpertStudioComponent)
   readonly apiService = inject(XpertStudioApiService)
+  readonly i18n = new NgmI18nPipe()
 
   readonly TYPES = [
     {
@@ -58,6 +62,7 @@ export class XpertStudioToolsetMenuComponent {
     }
   ]
 
+  readonly #builtinToolProviders = this.apiService.builtinToolProviders
   readonly #toolsets = toSignal(this.apiService.toolsets$)
   readonly searchControl = new FormControl()
   readonly searchText = toSignal(
@@ -75,20 +80,51 @@ export class XpertStudioToolsetMenuComponent {
       .filter((_) => (search ? _.name.toLowerCase().includes(search) : true))
   })
 
+  readonly toolProviders = computed(() => {
+    const search = this.searchText()
+    return this.#builtinToolProviders()?.filter(
+      (provider) =>
+        provider.name.toLowerCase().includes(search) ||
+        this.i18n.transform(provider.description)?.toLowerCase().includes(search)
+    )
+  })
+
   readonly type = model<(XpertToolsetCategoryEnum | 'command')[]>([null])
 
   readonly toolDetailTrigger = signal<CdkOverlayOrigin>(null)
   readonly toolDetailOpen = signal(false)
   readonly toolset = signal<IXpertToolset>(null)
+  readonly builtinToolset = signal<IToolProvider>(null)
 
   public createToolset(toolset: IXpertToolset): void {
     this.cdkMenu.menuStack.closeAll()
     this.apiService.createToolset(this.root.contextMenuPosition, toolset)
   }
 
+  public createBuiltinToolset(toolset: IToolProvider): void {
+    if (toolset.not_implemented) {
+      return
+    }
+    this.cdkMenu.menuStack.closeAll()
+    this.apiService.createToolset(this.root.contextMenuPosition, {
+      id: uuid(),
+      category: XpertToolsetCategoryEnum.BUILTIN,
+      type: toolset.name,
+      name: toolset.name
+    })
+  }
+
   openToolsetTip(toolset: IXpertToolset, overlayTrigger: CdkOverlayOrigin) {
     this.toolDetailOpen.set(true)
     this.toolDetailTrigger.set(overlayTrigger)
     this.toolset.set(toolset)
+    this.builtinToolset.set(null)
+  }
+
+  openBuiltinToolsetTip(toolset: IToolProvider, overlayTrigger: CdkOverlayOrigin) {
+    this.toolDetailOpen.set(true)
+    this.toolDetailTrigger.set(overlayTrigger)
+    this.builtinToolset.set(toolset)
+    this.toolset.set(null)
   }
 }

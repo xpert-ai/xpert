@@ -53,7 +53,7 @@ export class XpertToolConfigureBuiltinComponent {
 
   readonly #toolsetService = inject(XpertToolsetService)
   readonly #toastr = inject(ToastrService)
-  readonly #dialogRef = inject(DialogRef<IXpertToolset>)
+  readonly #dialogRef = inject(DialogRef<IXpertToolset | boolean>)
   readonly #data = inject<{
     workspaceId: string
     providerName: string
@@ -145,7 +145,7 @@ export class XpertToolConfigureBuiltinComponent {
   }
 
   cancel(event: MouseEvent) {
-    this.#dialogRef.close(this.dirty)
+    this.#dialogRef.close(this.dirty())
     event.preventDefault()
   }
 

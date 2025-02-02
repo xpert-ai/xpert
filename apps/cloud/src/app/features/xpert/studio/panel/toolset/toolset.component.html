@@ -65,7 +65,17 @@
   @for (tool of tools(); track tool.id) {
     <div class="w-full flex flex-col">
       <div class="my-2 h-[1px] bg-divider-subtle"></div>
-      <div class="px-2 truncate">{{tool.name | i18n}}</div>
+      <div class="w-full flex justify-start items-center">
+        <button class="w-7 h-7 mr-1 flex justify-center items-center rounded-lg pressable enabled:hover:bg-hover-bg enabled:cursor-pointer"
+          (click)="toggleExpand(tool.name)"
+        >
+          <i class="ri-arrow-up-s-line text-text-tertiary transition-transform origin-center"
+            [ngClass]="{'rotate-90': !expandTools()[tool.name]}"></i>
+        </button>
+        <div class="px-2 truncate">{{tool.name | i18n}}</div>
+      </div>
+
+    @if (expandTools()[tool.name]) {
       <div class="px-2 text-text-secondary line-clamp-3">{{tool.description | i18n}}</div>
 
       <div class="w-full flex justify-end px-2 mb-4">
@@ -107,6 +117,7 @@
       }
 
       <xpert-tool-test [tool]="tool" class="w-full px-2 mt-4" [enabled]="tool.enabled" />
+    }
     </div>
   }
 </div>
