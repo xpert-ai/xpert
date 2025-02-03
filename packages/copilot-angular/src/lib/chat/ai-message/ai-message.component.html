@@ -71,11 +71,11 @@
             [clipboardButtonTemplate]="buttonTemplate"
             lineNumbers
             [start]="5"
-            [data]="message().content"
+            [data]="content()"
         ></markdown>
 
       @if (showTokenizer() && message().content) {
-        <ngm-copilot-token [content]="message().content"></ngm-copilot-token>
+        <ngm-copilot-token [content]="content()"></ngm-copilot-token>
       }
 
         @if (message().status === 'done') {

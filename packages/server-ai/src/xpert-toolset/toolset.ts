@@ -1,13 +1,18 @@
+import { RunnableConfig } from '@langchain/core/runnables'
 import { BaseToolkit, StructuredTool, StructuredToolInterface } from '@langchain/core/tools'
 import {
 	IBuiltinTool,
 	IXpertToolset,
+	ToolCall,
 	ToolProviderCredentials,
 	TStateVariable,
 	XpertToolsetCategoryEnum
 } from '@metad/contracts'
-import { ZodObject, ZodEffects } from 'zod'
+import { z, ZodEffects, ZodObject } from 'zod'
 import { IToolRuntime, ToolProviderIdentity } from './types'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ZodObjectAny = z.ZodObject<any, any, any, any>;
 
 export abstract class BaseToolset<T extends StructuredToolInterface = StructuredToolInterface> extends BaseToolkit {
 	abstract providerType: XpertToolsetCategoryEnum
@@ -25,8 +30,8 @@ export abstract class BaseToolset<T extends StructuredToolInterface = Structured
 
 	/**
 	 * Async init tools
-	 * 
-	 * @returns 
+	 *
+	 * @returns
 	 */
 	async initTools() {
 		return this.tools
@@ -34,9 +39,9 @@ export abstract class BaseToolset<T extends StructuredToolInterface = Structured
 
 	/**
 	 * Get one tool
-	 * 
-	 * @param toolName 
-	 * @returns 
+	 *
+	 * @param toolName
+	 * @returns
 	 */
 	getTool(toolName: string) {
 		return this.getTools().find((tool) => tool.name === toolName)
@@ -44,7 +49,7 @@ export abstract class BaseToolset<T extends StructuredToolInterface = Structured
 
 	/**
 	 * Get credentials schema
-	 * 
+	 *
 	 * @returns Credentials schema
 	 */
 	getCredentialsSchema(): { [key: string]: ToolProviderCredentials } {
@@ -53,7 +58,7 @@ export abstract class BaseToolset<T extends StructuredToolInterface = Structured
 
 	/**
 	 * Get toolset entity
-	 * 
+	 *
 	 * @returns XpertToolset
 	 */
 	getToolset() {
@@ -62,7 +67,7 @@ export abstract class BaseToolset<T extends StructuredToolInterface = Structured
 
 	/**
 	 * Get state variables config
-	 * 
+	 *
 	 * @returns State variables
 	 */
 	getVariables(): TStateVariable[] {
@@ -74,6 +79,19 @@ export interface IBaseTool extends IBuiltinTool {
 	runtime: IToolRuntime
 }
 
-export abstract class BaseTool extends StructuredTool {
-	schema: ZodObject<any, any, any, any, { [x: string]: any }> | ZodEffects<ZodObject<any, any, any, any, { [x: string]: any }>, any, { [x: string]: any }>
+export abstract class BaseTool<T extends ZodObjectAny = ZodObjectAny> extends StructuredTool {
+	schema:
+		| ZodObject<any, any, any, any, { [x: string]: any }>
+		| ZodEffects<ZodObject<any, any, any, any, { [x: string]: any }>, any, { [x: string]: any }> = z
+		.object({ input: z.string().optional() })
+		.transform((obj) => obj.input)
+
+	async invoke(
+		input: (z.output<T> extends string ? string : never) | z.input<T> | ToolCall,
+		config?: RunnableConfig
+	): Promise<string> {
+		const results = await super.invoke(input, config)
+		console.log(results)
+		return results
+	}
 }

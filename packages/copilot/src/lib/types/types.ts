@@ -1,8 +1,9 @@
 import { BaseMessage, FunctionCall, MessageContent, OpenAIToolCall } from '@langchain/core/messages'
+import { ChatMessageStatusEnum, CopilotBaseMessage, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 
 export const DefaultModel = 'gpt-3.5-turbo'
 export const DefaultBusinessRole = 'default'
-export { ICopilot, AiProviderRole } from '@metad/contracts'
+export { ICopilot, AiProviderRole, CopilotBaseMessage, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 
 
 export interface BusinessOperation {
@@ -21,31 +22,32 @@ export enum CopilotChatMessageRoleEnum {
   Info = 'info'
 }
 
-/**
- * @deprecated use types in server
- */
-export interface CopilotBaseMessage {
-  id: string
-  createdAt?: Date
-  role: 'system' | 'user' | 'assistant' | 'function' | 'data' | 'tool' | 'info' | 'component'
+// /**
+//  * @deprecated use types in server
+//  */
+// export interface CopilotBaseMessage {
+//   id: string
+//   createdAt?: Date
+//   role: 'system' | 'user' | 'assistant' | 'function' | 'data' | 'tool' | 'info' | 'component'
   
-  /**
-   * Status of the message:
-   * - thinking: AI is thinking
-   * - answering: AI is answering
-   * - pending: AI is pending for confirm or more information
-   * - done: AI is done
-   * - aborted: AI is aborted
-   * - error: AI has error
-   */
-  status?: 'thinking' | 'answering' | 'pending' | 'done' | 'aborted' | 'error'
+//   /**
+//    * Status of the message:
+//    * - thinking: AI is thinking
+//    * - answering: AI is answering
+//    * - pending: AI is pending for confirm or more information
+//    * - done: AI is done
+//    * - aborted: AI is aborted
+//    * - error: AI has error
+//    */
+//   status?: 'thinking' | 'answering' | 'pending' | 'done' | 'aborted' | 'error'
 
-  content?: string | MessageContent | any
-}
+//   content?: string | MessageContent | any
+// }
 
 /**
  */
-export interface CopilotChatMessage extends CopilotBaseMessage {
+export interface CopilotChatMessage extends Omit<CopilotBaseMessage, 'status'> {
+  status?: ChatMessageStatusEnum | 'done' | 'error' | 'answering'
   tool_call_id?: string
   /**
    * If the message has a role of `function`, the `name` field is the name of the function.

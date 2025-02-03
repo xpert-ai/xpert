@@ -96,4 +96,8 @@ export class XpertStudioNodeToolsetComponent {
   isEnd(name: string) {
     return this.agentConfig()?.endNodes?.includes(name)
   }
+
+  hasMemory(name: string) {
+    return this.agentConfig()?.toolsMemory?.[name]
+  }
 }

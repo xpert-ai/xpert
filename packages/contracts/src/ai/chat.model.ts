@@ -1,13 +1,15 @@
-import { MessageContent, MessageType } from '@langchain/core/messages'
 import { ToolCall } from '@langchain/core/dist/messages/tool'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
-import { JSONValue } from '../core.model'
-import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model'
+import { IXpertAgentExecution } from './xpert-agent-execution.model'
 import { IXpert } from './xpert.model'
 import { I18nObject } from '../types'
-import { IChatMessage } from './chat-message.model'
+import { CopilotChatMessage, CopilotMessageGroup, IChatMessage } from './chat-message.model'
 
 export type TChatConversationOptions = {
+  parameters?: {
+    input?: string
+    [key: string]: unknown
+  }
   knowledgebases?: string[]
   toolsets?: string[]
 }
@@ -104,6 +106,9 @@ export type ChatUserMessage = ChatMessage & {
   language: string
 }
 
+/**
+ * @deprecated use ChatMessageEventTypeEnum
+ */
 export enum ChatGatewayEvent {
   ACK = 'ack', // acknowledgment for received message
   ConversationCreated = 'conversation_created',
@@ -121,6 +126,10 @@ export enum ChatGatewayEvent {
   Agent = 'agent'
 }
 
+
+/**
+ * @deprecated use ChatMessageEventTypeEnum
+ */
 export type ChatGatewayMessage = {
   organizationId?: string;
   xpert?: {
@@ -166,55 +175,3 @@ export type ChatGatewayMessage = {
     message: CopilotChatMessage
   }
 })
-
-/**
- * @deprecated
- */
-export type DeprecatedMessageType = 'assistant' | 'user' | 'info' | 'component'
-export type CopilotMessageType = MessageType | DeprecatedMessageType
-/**
- * 
- */
-export interface CopilotBaseMessage {
-  id: string
-  createdAt?: Date
-  role: CopilotMessageType
-  
-  /**
-   * Status of the message:
-   */
-  status?: XpertAgentExecutionStatusEnum | 'thinking' | 'aborted'
-
-  content?: string | MessageContent
-
-  /**
-   * Error info when status is error
-   */
-  error?: string
-}
-
-export type CopilotChatMessage = CopilotBaseMessage & {
-
-  tool_call_id?: string
-  
-  /**
-   * If the message has a role of `function`, the `name` field is the name of the function.
-   * Otherwise, the name field should not be set.
-   */
-  name?: string
-
-  data?: JSONValue
-
-  messages?: Array<any> // StoredMessage
-
-  executionId?: string
-}
-
-export interface CopilotMessageGroup extends CopilotBaseMessage {
-  messages?: CopilotChatMessage[]
-}
-
-// Type guards
-export function isMessageGroup(message: CopilotBaseMessage): message is CopilotMessageGroup {
-  return 'messages' in message;
-}

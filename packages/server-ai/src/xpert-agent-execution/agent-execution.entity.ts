@@ -130,6 +130,12 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
+	@Column({ nullable: true, })
+	checkpointNs?: string
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
 	@Column({ nullable: true })
 	checkpointId?: string
 
@@ -188,4 +194,6 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 			return acc + (curr.totalTokens ?? 0)
 		}, 0) ?? 0)
 	}
+
+	summary?: string
 }

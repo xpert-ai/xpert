@@ -3,18 +3,19 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject } from '@angular/core'
-import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
+import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { TStateVariable } from '@metad/contracts'
+import { TStateVariable, VariableOperationEnum } from '../../../../../@core/types'
 import { CdkConfirmDeleteComponent } from '@metad/ocap-angular/common'
 import { isNil } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
+import { XpertVariableFormComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { injectHelpWebsite } from 'apps/cloud/src/app/@core'
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 
 @Component({
   selector: 'xpert-studio-panel-variables',
@@ -27,21 +28,23 @@ import { XpertStudioPanelComponent } from '../panel.component'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
+    DragDropModule,
     CdkMenuModule,
     MatSlideToggleModule,
     MatTooltipModule,
     A11yModule,
-    NgmSelectComponent,
-    MatInputModule
+    XpertVariableFormComponent
   ]
 })
 export class XpertStudioPanelVariablesComponent {
+  eVariableOperationEnum = VariableOperationEnum
+  
   readonly elementRef = inject(ElementRef)
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly apiService = inject(XpertStudioApiService)
   readonly panelComponent = inject(XpertStudioPanelComponent)
-  readonly #fb = inject(FormBuilder)
   readonly #dialog = inject(Dialog)
+  readonly helpUrl = injectHelpWebsite()
 
   readonly xpert = this.xpertStudioComponent.xpert
   readonly agentConfig = computed(() => this.xpert()?.agentConfig)
@@ -50,32 +53,19 @@ export class XpertStudioPanelVariablesComponent {
     this.stateVariables()?.map((item) => ({ variable: item }))
   )
 
-  readonly form = this.#fb.group<TStateVariable>({
-    name: null,
-    type: null,
-    default: null,
-    description: null
-  })
-
   closePanel() {
     this.panelComponent.sidePanel.set(null)
   }
 
-  editVar(variable: TStateVariable) {
-    this.form.setValue({ ...variable })
-  }
-
-  addVar(index?: number) {
-    const value = this.form.value as TStateVariable
+  addVar(value: Partial<TStateVariable>, index?: number) {
     const stateVariables = this.stateVariables() ?? []
     if (isNil(index)) {
-      stateVariables.push({ ...value })
+      stateVariables.push({ ...value } as TStateVariable)
     } else {
-      stateVariables[index] = { ...value }
+      stateVariables[index] = { ...value } as TStateVariable
     }
 
     this.apiService.updateXpertAgentConfig({ stateVariables: [...stateVariables] })
-    this.form.reset()
   }
 
   removeVar(index: number) {
@@ -94,9 +84,17 @@ export class XpertStudioPanelVariablesComponent {
             this.apiService.updateXpertAgentConfig({
               stateVariables: [...stateVariables]
             })
-            this.form.reset()
+            // this.form.reset()
           }
         }
       })
+  }
+
+  drop(event: CdkDragDrop<string[]>) {
+    if (event.previousContainer === event.container) {
+      const stateVariables = this.stateVariables() ?? []
+      moveItemInArray(stateVariables, event.previousIndex, event.currentIndex)
+      this.apiService.updateXpertAgentConfig({ stateVariables: [...stateVariables] })
+    }
   }
 }

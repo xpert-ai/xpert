@@ -12,7 +12,7 @@ export class CreateNodeHandler implements IHandler<CreateNodeRequest> {
     this.store.update((state) => {
       const draft = structuredClone(state.draft)
 
-      if (request.entity) {
+      if (request.entity?.id) {
         if (draft.nodes.find((item) => item.entity?.id === request.entity.id)) {
           throw new Error(`Node with id ${request.entity.id} already added!`)
         }

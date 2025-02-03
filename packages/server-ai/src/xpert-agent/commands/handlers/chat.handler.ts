@@ -14,7 +14,7 @@ import { catchError, concat, EMPTY, from, map, Observable, of, Subject, switchMa
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { XpertAgentChatCommand } from '../chat.command'
-import { XpertAgentExecuteCommand } from '../execute.command'
+import { XpertAgentInvokeCommand } from '../invoke.command'
 
 @CommandHandler(XpertAgentChatCommand)
 export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatCommand> {
@@ -61,8 +61,8 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 
 			concat(
 				from(
-					this.commandBus.execute<XpertAgentExecuteCommand, Observable<MessageContent>>(
-						new XpertAgentExecuteCommand(input, agentKey, xpert, {
+					this.commandBus.execute<XpertAgentInvokeCommand, Observable<MessageContent>>(
+						new XpertAgentInvokeCommand(input, agentKey, xpert, {
 							...(options ?? {}),
 							rootExecutionId: execution.id,
 							thread_id,

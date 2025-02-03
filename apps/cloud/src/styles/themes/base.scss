@@ -25,6 +25,7 @@
   --border-light: theme('colors.neutral.200');
   --components-card-option-selected-border: theme('colors.blue.500');
   --color-components-panel-bg: #fff;
+  --color-components-panel-bg-blur: hsla(0, 0%, 100%, 0.8);
   --color-components-panel-border: #10182814;
   --color-components-card-bg: white;
   --color-components-button-primary-text: white;
@@ -47,6 +48,7 @@
   --ngm-divider-color-secondary: theme('colors.neutral.100');
   --color-divider-regular: theme('colors.neutral.100');
   --color-divider-deep: theme('colors.neutral.200');
+  --color-divider-subtle: theme('colors.neutral.100');
   // Text
   --color-base-content: #1f1f1f;
   --color-text-primary: var(--color-base-content);
@@ -56,9 +58,14 @@
   --color-text-tertiary: theme('colors.gray.400');
   --color-text-quaternary: theme('colors.gray.300');
   --color-text-warning: theme('colors.red.300');
+  --color-text-destructive: theme('colors.red.500');
+  --color-text-accent: theme('colors.amber.500');
+  --color-text-accent-secondary: theme('colors.amber.400');
 
   --color-hover-bg: oklch(0 0 0 / 0.05);
   --color-danger-bg: theme('colors.red.50');
+  --color-state-destructive-hover: theme('colors.red.50');
+  --color-state-destructive-hover: theme('colors.red.50');
 }
 
 :root .dark {
@@ -101,6 +108,7 @@
   --ngm-divider-color-secondary: theme('colors.neutral.900');
   --color-divider-regular: theme('colors.neutral.900');
   --color-divider-deep: theme('colors.neutral.950');
+  --color-divider-subtle: theme('colors.neutral.900');
   // Text
   --color-base-content: #e3e3e3;
   --color-text-primary: var(--color-base-content);

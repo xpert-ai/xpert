@@ -1,6 +1,7 @@
 import { CallbackManagerForToolRun } from "@langchain/core/callbacks/manager";
 import { Tool, type ToolParams } from "@langchain/core/tools";
 import { getEnvironmentVariable } from "@langchain/core/utils/env";
+import { BaseTool } from "../../../../toolset";
 
 /**
  * Options for the TavilySearchResults tool.
@@ -77,7 +78,7 @@ export type TavilySearchAPIRetrieverFields = ToolParams & {
  * ```
  * </details>
  */
-export class TavilySearchResults extends Tool {
+export class TavilySearchResults extends BaseTool {
   /**
    * Change the tool name
    */
@@ -106,12 +107,13 @@ export class TavilySearchResults extends Tool {
         `No Tavily API key found. Either set an environment variable named "TAVILY_API_KEY" or pass an API key as "apiKey".`
       );
     }
+    this.responseFormat = 'content_and_artifact'
   }
 
   protected async _call(
     input: string,
     _runManager?: CallbackManagerForToolRun
-  ): Promise<string> {
+  ): Promise<[string, any]> {
     const body: Record<string, unknown> = {
       query: input,
       max_results: this.max_results,
@@ -134,6 +136,6 @@ export class TavilySearchResults extends Tool {
     if (!Array.isArray(json.results)) {
       throw new Error(`Could not parse Tavily results. Please try again.`);
     }
-    return JSON.stringify(json.results);
+    return [JSON.stringify(json.results, null, 2), json.results]
   }
 }

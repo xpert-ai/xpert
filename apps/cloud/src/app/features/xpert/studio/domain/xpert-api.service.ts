@@ -24,6 +24,7 @@ import {
 import {
   getErrorMessage,
   IKnowledgebase,
+  IWorkflowNode,
   IXpert,
   IXpertAgent,
   IXpertToolset,
@@ -31,7 +32,8 @@ import {
   TXpertAgentConfig,
   TXpertOptions,
   TXpertTeamDraft,
-  TXpertTeamNode
+  TXpertTeamNode,
+  WorkflowNodeTypeEnum
 } from '../../../../@core/types'
 import { CreateConnectionHandler, CreateConnectionRequest, ToConnectionViewModelHandler } from './connection'
 import { LayoutHandler, LayoutRequest } from './layout'
@@ -59,11 +61,13 @@ import { XpertComponent } from '../../xpert'
 import { FCanvasChangeEvent } from '@foblex/flow'
 import { nonBlank } from '@metad/copilot'
 import { PACCopilotService } from '../../../services'
+import { CreateWorkflowNodeRequest, CreateWorkflowNodeHandler, UpdateWorkflowNodeHandler, UpdateWorkflowNodeRequest } from './workflow'
+import { derivedAsync } from 'ngxtension/derived-async'
 
 
 @Injectable()
 export class XpertStudioApiService {
-  readonly xpertRoleService = inject(XpertService)
+  readonly xpertService = inject(XpertService)
   readonly knowledgebaseService = inject(KnowledgebaseService)
   readonly toolsetService = inject(XpertToolsetService)
   readonly copilotService = inject(PACCopilotService)
@@ -96,7 +100,7 @@ export class XpertStudioApiService {
   readonly versions = toSignal(
     this.#refresh$.pipe(
       switchMap(() => this.paramId$.pipe(distinctUntilChanged())),
-      switchMap((id) => this.xpertRoleService.getVersions(id))
+      switchMap((id) => this.xpertService.getVersions(id))
     )
   )
   readonly workspaceId = computed(() => this.team()?.workspaceId)
@@ -136,6 +140,8 @@ export class XpertStudioApiService {
     map(({ items }) => items),
     shareReplay(1)
   )
+
+  readonly builtinToolProviders = derivedAsync(() => this.toolsetService.getProviders())
   
   readonly workspace = computed(() => this.team()?.workspace, { equal: (a, b) => a?.id === b?.id })
 
@@ -223,8 +229,10 @@ export class XpertStudioApiService {
         ...omit(xpert, 'agents'),
         id: xpert.id
       },
-      nodes: new ToNodeViewModelHandler(xpert).handle().nodes,
-      connections: new ToConnectionViewModelHandler(xpert).handle()
+      ...(xpert.graph ?? {
+        nodes: new ToNodeViewModelHandler(xpert).handle().nodes,
+        connections: new ToConnectionViewModelHandler(xpert).handle()
+      }),
     } as TXpertTeamDraft
   }
 
@@ -234,8 +242,8 @@ export class XpertStudioApiService {
     this.store.update(() => ({
       draft: xpert.draft ? {
         team: xpert.draft.team ?? omit(xpert, 'agents'),
-        nodes: xpert.draft.nodes ?? new ToNodeViewModelHandler(xpert).handle().nodes,
-        connections: xpert.draft.connections ?? new ToConnectionViewModelHandler(xpert).handle()
+        nodes: xpert.draft.nodes ?? xpert.graph?.nodes ?? new ToNodeViewModelHandler(xpert).handle().nodes,
+        connections: xpert.draft.connections ?? xpert.graph?.connections ?? new ToConnectionViewModelHandler(xpert).handle()
       } : this.getInitialDraft()
     }))
 
@@ -243,7 +251,7 @@ export class XpertStudioApiService {
   }
 
   public resume() {
-    this.xpertRoleService.update(this.team().id, { draft: null }).subscribe(() => {
+    this.xpertService.update(this.team().id, { draft: null }).subscribe(() => {
       this.refresh()
     })
   }
@@ -254,7 +262,7 @@ export class XpertStudioApiService {
 
   saveDraft() {
     const draft = this.storage
-    return this.xpertRoleService.saveDraft(draft.team.id, draft).pipe(
+    return this.xpertService.saveDraft(draft.team.id, draft).pipe(
       tap((draft) => {
         this.unsaved.set(false)
         this.draft.set(draft)
@@ -472,6 +480,17 @@ export class XpertStudioApiService {
 
   updateCanvas(event: FCanvasChangeEvent) {
     this.updateXpertOptions({ position: event.position, scale: event.scale }, EReloadReason.CANVAS_CHANGED)
+  }
+
+  // Logic blocks of workflow
+  addBlock(position: IPoint, entity: Partial<IWorkflowNode>) {
+    new CreateWorkflowNodeHandler(this.store).handle(new CreateWorkflowNodeRequest(position, entity))
+    this.#reload.next(EReloadReason.XPERT_UPDATED)
+  }
+
+  updateBlock(key: string, node: Partial<TXpertTeamNode>) {
+    new UpdateWorkflowNodeHandler(this.store).handle(new UpdateWorkflowNodeRequest(key, node))
+    this.#reload.next(EReloadReason.XPERT_UPDATED)
   }
 
   public autoLayout() {

@@ -12,7 +12,70 @@
   </div>
 }
 
-<div class="group relative flex-1 flex flex-col gap-2 mt-2 pb-10 overflow-hidden">
+<div class="group/message relative flex-1 flex flex-col gap-2 mt-2 pb-10 overflow-hidden">
+
+  <!-- executions -->
+  <div class="relative rounded-xl border border-solid border-teal-800 p-2 bg-gray-50">
+    <div class="flex items-center leading-[18px] text-sm text-gray-500 uppercase">
+      <div class="flex items-center cursor-pointer pressable rounded-md hover:bg-hover-bg"
+        (click)="expandExecutions.set(!expandExecutions())">
+        @if (expandExecutions()) {
+          <i class="ri-arrow-down-s-line"></i>
+        } @else {
+          <i class="ri-arrow-right-s-line"></i>
+        }
+        <div class="mr-3 font-semibold">{{'PAC.Xpert.Executions' | translate: {Default: 'Executions'} }}</div>
+      </div>
+    </div>
+
+    @if (expandExecutions()) {
+      @if (loadingExecutions()) {
+        <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+      }
+      @for (execution of executions$ | async; track execution.id) {
+        <chat-message-execution [execution]="execution" class="p-1 bg-components-card-bg border border-solid border-divider-regular rounded-xl mb-1" />
+      }
+    } @else {
+      @for (execution of executings(); track execution.id) {
+        <chat-message-execution [execution]="execution" class="p-1 bg-components-card-bg border border-solid border-divider-regular rounded-xl mb-1" />
+      }
+    }
+  </div>
+
+  @if (reasoning()) {
+    <div class="relative group w-full max-h-90 p-1 rounded-xl border border-solid border-gray-200 overflow-auto">
+      <div class="flex justify-between items-center">
+        @if (status() === 'reasoning') {
+          <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
+        }
+        <div class="flex justify-start items-center cursor-pointer pressable rounded-md px-1 text-gray-500 hover:bg-hover-bg"
+          (click)="expandReason.set(!expandReason())">
+          @if (expandReason()) {
+            <i class="ri-arrow-down-s-line"></i>
+          } @else {
+            <i class="ri-arrow-right-s-line"></i>
+          }
+          <div class="mr-1 leading-[18px] text-sm font-semibold uppercase">
+            {{ 'PAC.Chat.Reasoning' | translate: {Default: 'Reasoning'} }}
+          </div>
+        </div>
+
+        <div class="grow"></div>
+  
+        <copy #copy class="mr-1 opacity-30 group-hover:opacity-100"
+          [content]="reasoning()"
+          [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
+          matTooltipPosition="above" />
+      </div>
+      @if (expandReason()) {
+        <markdown class="ngm-copilot-markdown text-sm text-gray-500"
+          lineNumbers
+          [start]="5"
+          [data]="reasoning()"
+        />
+      }
+    </div>
+  }
 
   <!-- @deprecated use contents -->
   @if (messageGroup(); as group) {
@@ -150,20 +213,13 @@
   }
 
   <div class="absolute left-0 bottom-2 flex justify-end items-center gap-1">
-    <div class="hidden group-hover:block p-0.5 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
+    <div class="hidden group-hover/message:block p-0.5 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
       <div class="shrink-0 w-6 h-6 p-1 flex items-center justify-center rounded-md font-medium pressable
         bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
-        (click)="copy(message())"
       >
-        @if (copied()) {
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10.6665 2.66683C11.2865 2.66683 11.5965 2.66683 11.8508 2.73498C12.541 2.91991 13.0801 3.45901 13.265 4.14919C13.3332 4.40352 13.3332 4.71352 13.3332 5.3335V11.4668C13.3332 12.5869 13.3332 13.147 13.1152 13.5748C12.9234 13.9511 12.6175 14.2571 12.2412 14.4488C11.8133 14.6668 11.2533 14.6668 10.1332 14.6668H5.8665C4.7464 14.6668 4.18635 14.6668 3.75852 14.4488C3.3822 14.2571 3.07624 13.9511 2.88449 13.5748C2.6665 13.147 2.6665 12.5869 2.6665 11.4668V5.3335C2.6665 4.71352 2.6665 4.40352 2.73465 4.14919C2.91959 3.45901 3.45868 2.91991 4.14887 2.73498C4.4032 2.66683 4.71319 2.66683 5.33317 2.66683M5.99984 10.0002L7.33317 11.3335L10.3332 8.3335M6.39984 4.00016H9.59984C9.9732 4.00016 10.1599 4.00016 10.3025 3.9275C10.4279 3.86359 10.5299 3.7616 10.5938 3.63616C10.6665 3.49355 10.6665 3.30686 10.6665 2.9335V2.40016C10.6665 2.02679 10.6665 1.84011 10.5938 1.6975C10.5299 1.57206 10.4279 1.47007 10.3025 1.40616C10.1599 1.3335 9.97321 1.3335 9.59984 1.3335H6.39984C6.02647 1.3335 5.83978 1.3335 5.69718 1.40616C5.57174 1.47007 5.46975 1.57206 5.40583 1.6975C5.33317 1.84011 5.33317 2.02679 5.33317 2.40016V2.9335C5.33317 3.30686 5.33317 3.49355 5.40583 3.63616C5.46975 3.7616 5.57174 3.86359 5.69718 3.9275C5.83978 4.00016 6.02647 4.00016 6.39984 4.00016Z" stroke="#1D2939" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        } @else {
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M10.6665 2.66634H11.9998C12.3535 2.66634 12.6926 2.80682 12.9426 3.05687C13.1927 3.30691 13.3332 3.64605 13.3332 3.99967V13.333C13.3332 13.6866 13.1927 14.0258 12.9426 14.2758C12.6926 14.5259 12.3535 14.6663 11.9998 14.6663H3.99984C3.64622 14.6663 3.30708 14.5259 3.05703 14.2758C2.80698 14.0258 2.6665 13.6866 2.6665 13.333V3.99967C2.6665 3.64605 2.80698 3.30691 3.05703 3.05687C3.30708 2.80682 3.64622 2.66634 3.99984 2.66634H5.33317M5.99984 1.33301H9.99984C10.368 1.33301 10.6665 1.63148 10.6665 1.99967V3.33301C10.6665 3.7012 10.368 3.99967 9.99984 3.99967H5.99984C5.63165 3.99967 5.33317 3.7012 5.33317 3.33301V1.99967C5.33317 1.63148 5.63165 1.33301 5.99984 1.33301Z" stroke="#667085" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        }
+        <copy #copy [content]="contentString()"
+          [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
+          matTooltipPosition="above"/>
       </div>
     </div>
 
@@ -186,7 +242,7 @@
         </div>
       }
     } @else {
-      <div class="hidden group-hover:flex shrink-0 items-center p-0.5 bg-white border-[0.5px] border-gray-100 shadow-sm text-gray-500 rounded-lg">
+      <div class="hidden group-hover/message:flex shrink-0 items-center p-0.5 bg-white border-[0.5px] border-gray-100 shadow-sm text-gray-500 rounded-lg">
         <div class="flex items-center justify-center mr-0.5 w-6 h-6 rounded-md hover:bg-black/5 hover:text-gray-800 cursor-pointer"
           [matTooltip]="'PAC.KEY_WORDS.Like' | translate: {Default: 'Like'}"
           matTooltipPosition="above"

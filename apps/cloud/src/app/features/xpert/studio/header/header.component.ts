@@ -16,7 +16,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { formatRelative } from 'date-fns'
-import { distinctUntilChanged, filter, map, Observable, of, shareReplay, switchMap } from 'rxjs'
+import { BehaviorSubject, distinctUntilChanged, filter, map,publish,  Observable, of, shareReplay, switchMap, startWith, combineLatestWith, tap } from 'rxjs'
 import { getDateLocale, TXpertAgentConfig } from '../../../../@core'
 import { XpertStudioApiService } from '../domain'
 import { XpertExecutionService } from '../services/execution.service'
@@ -28,6 +28,7 @@ import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatInputModule } from '@angular/material/input'
 import { MatSliderModule } from '@angular/material/slider'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 
 @Component({
   selector: 'xpert-studio-header',
@@ -41,6 +42,7 @@ import { MatSliderModule } from '@angular/material/slider'
     MatSliderModule,
     TranslateModule,
     NgmTooltipDirective,
+    NgmSpinComponent,
     InDevelopmentComponent
   ],
   templateUrl: './header.component.html',
@@ -100,34 +102,51 @@ export class XpertStudioHeaderComponent {
     distinctUntilChanged(),
     filter(nonBlank)
   )
+  readonly refreshConv$ = new BehaviorSubject<void>(null)
+  readonly loadingConv = signal(false)
   readonly conversations$ = this.xpertId$.pipe(
-    switchMap((id) => this.chatConversationService.findAllByXpert(id, { order: { updatedAt: OrderTypeEnum.DESC } })),
+    combineLatestWith(this.refreshConv$),
+    tap(() => this.loadingConv.set(true)),
+    switchMap(([id]) => this.chatConversationService.findAllByXpert(id, { order: { updatedAt: OrderTypeEnum.DESC } })),
     map(({ items }) => items),
+    tap(() => this.loadingConv.set(false)),
     shareReplay(1)
   )
 
   readonly conversationId = this.executionService.conversationId
+
+  // Diagram of agents
+  readonly refreshDiagram$ = new BehaviorSubject<void>(null)
+  readonly diagram$ = this.refreshDiagram$.pipe(
+    switchMap(() => this.xpertService.getDiagram(this.xpert().id).pipe(startWith(null))),
+    map((imageBlob) => imageBlob ? URL.createObjectURL(imageBlob) : null),
+    shareReplay(1)
+  )
+
+  save() {
+    this.apiService.saveDraft().subscribe()
+  }
 
   publish() {
     this.publishing.set(true)
     // Check if the draft has been saved
     const obser: Observable<any> = this.unsaved() ? this.apiService.saveDraft() : of(true)
     obser.pipe(switchMap(() => this.xpertService.publish(this.xpertStudioComponent.id())))
-    .subscribe({
-      next: (result) => {
-        this.#toastr.success(
-          `PAC.Xpert.PublishedSuccessfully`,
-          { Default: 'Published successfully' },
-          `v${result.version}`
-        )
-        this.publishing.set(false)
-        this.apiService.refresh()
-      },
-      error: (error) => {
-        this.#toastr.error(getErrorMessage(error))
-        this.publishing.set(false)
-      }
-    })
+      .subscribe({
+        next: (result) => {
+          this.#toastr.success(
+            `PAC.Xpert.PublishedSuccessfully`,
+            { Default: 'Published successfully' },
+            `v${result.version}`
+          )
+          this.publishing.set(false)
+          this.apiService.refresh()
+        },
+        error: (error) => {
+          this.#toastr.error(getErrorMessage(error))
+          this.publishing.set(false)
+        }
+      })
   }
 
   resume() {

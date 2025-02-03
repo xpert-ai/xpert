@@ -3,13 +3,15 @@ import { FormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { CloseSvgComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
   injectToastr,
   IXpertToolset,
+  TVariableAssigner,
   TXpertTeamNode,
+  XpertService,
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
@@ -20,6 +22,8 @@ import { injectConfigureBuiltin, XpertToolTestComponent } from '../../../tools'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
+import { XpertVariablesAssignerComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { CommonModule } from '@angular/common'
 
 @Component({
   selector: 'xpert-studio-panel-toolset',
@@ -28,6 +32,7 @@ import { XpertStudioPanelComponent } from '../panel.component'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    CommonModule,
     FormsModule,
     TranslateModule,
     MatSlideToggleModule,
@@ -36,7 +41,9 @@ import { XpertStudioPanelComponent } from '../panel.component'
     EmojiAvatarComponent,
     XpertToolTestComponent,
     NgmDensityDirective,
-    NgmSpinComponent
+    NgmSpinComponent,
+    NgmI18nPipe,
+    XpertVariablesAssignerComponent
   ]
 })
 export class XpertStudioPanelToolsetComponent {
@@ -45,6 +52,7 @@ export class XpertStudioPanelToolsetComponent {
   readonly panelComponent = inject(XpertStudioPanelComponent)
   readonly toolsetService = inject(XpertToolsetService)
   readonly studioService = inject(XpertStudioApiService)
+  readonly xpertService = inject(XpertService)
   readonly #toastr = injectToastr()
   readonly configureBuiltin = injectConfigureBuiltin()
 
@@ -53,6 +61,7 @@ export class XpertStudioPanelToolsetComponent {
 
   // States
   readonly xpert = this.xpertStudioComponent.xpert
+  readonly xpertId = computed(() => this.xpert()?.id)
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
   readonly toolsetId = computed(() => this.node()?.key)
   readonly toolset = computed(() => this.node()?.entity as IXpertToolset)
@@ -82,6 +91,18 @@ export class XpertStudioPanelToolsetComponent {
     const tools = this.toolsetDetail()?.tools?.filter((_) => _.enabled)
     return positions && tools ? tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
       : tools
+  })
+
+  readonly expandTools = signal<Record<string, boolean>>({})
+
+  readonly variables = derivedAsync(() => {
+    const xpertId = this.xpertId()
+    return xpertId ? this.xpertService.getVariables(xpertId).pipe(
+      catchError((error) => {
+        this.#toastr.error(getErrorMessage(error))
+        return of([])
+      })
+    ) : of(null)
   })
 
   readonly loading = signal(false)
@@ -124,6 +145,24 @@ export class XpertStudioPanelToolsetComponent {
     this.xpertStudioComponent.updateXpertAgentConfig({ endNodes })
   }
 
+  toolMemory(name: string) {
+    return this.agentConfig()?.toolsMemory?.[name]
+  }
+
+  toggleToolMemory(name: string, value: boolean) {
+    this.xpertStudioComponent.updateXpertAgentConfig({ toolsMemory: {
+      ...(this.agentConfig()?.toolsMemory ?? {}),
+      [name]: value ? [] : null
+    } })
+  }
+
+  updateToolMemory(name: string, value: TVariableAssigner[]) {
+    this.xpertStudioComponent.updateXpertAgentConfig({ toolsMemory: {
+      ...(this.agentConfig()?.toolsMemory ?? {}),
+      [name]: value
+    } })
+  }
+
   configureToolBuiltin() {
     const providerName = this.toolset().type
     this.configureBuiltin(providerName, this.xpert().workspaceId, 
@@ -131,7 +170,7 @@ export class XpertStudioPanelToolsetComponent {
       this.toolset().tools?.map((tool) => omit(tool, 'id', 'toolsetId'))
     )
       .subscribe((toolset) => {
-        if (toolset) {
+        if (toolset && toolset.id) {
           this.useToolset(toolset)
         }
       })
@@ -155,6 +194,10 @@ export class XpertStudioPanelToolsetComponent {
         this.#toastr.error(getErrorMessage(err))
       }
     })
+  }
+
+  toggleExpand(name: string) {
+    this.expandTools.update((state) => ({...state, [name]: !state[name]}))
   }
 
   closePanel() {

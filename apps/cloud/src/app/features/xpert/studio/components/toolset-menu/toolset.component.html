@@ -1,6 +1,6 @@
-<ngm-search [formControl]="searchControl" class="w-full" />
+<ngm-search [formControl]="searchControl" class="w-full rounded-xl" />
 
-<ul class="w-full flex items-center px-3 py-2 space-x-1 bg-gray-25 border-b-[0.5px] border-black/[0.08]"
+<ul class="w-full flex items-center px-3 py-2 mb-1 space-x-1 bg-gray-25 border-b-[0.5px] border-black/[0.08]"
   cdkListbox
   [(ngModel)]="type"
   >
@@ -14,23 +14,41 @@
   }
 </ul>
 
-@for (toolset of toolsets(); track toolset.id) {
-  <div cdkMenuItem class="ngm-cdk-menu-item shrink-0 w-full flex justify-start items-center py-0.5 overflow-hidden"
-    (click)="createToolset(toolset)"
-    (mouseover)="openToolsetTip(toolset, overlayTrigger)"
-    (mouseout)="toolDetailOpen.set(false)"
-    cdkOverlayOrigin
-    #overlayTrigger="cdkOverlayOrigin"
-    >
-    <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-full"  />
-    <div class="flex-1 truncate">
-      {{toolset.name}}
+@if (type()[0]) {
+  @for (toolset of toolsets(); track toolset.id) {
+    <div cdkMenuItem class="shrink-0 w-full flex justify-start items-center p-1 rounded-lg overflow-hidden"
+      (click)="createToolset(toolset)"
+      (mouseover)="openToolsetTip(toolset, overlayTrigger)"
+      (mouseout)="toolDetailOpen.set(false)"
+      cdkOverlayOrigin
+      #overlayTrigger="cdkOverlayOrigin"
+      >
+      <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-full scale-95"  />
+      <div class="flex-1 truncate" [ngmHighlight]="searchText()" [content]="toolset.name">
+        {{toolset.name}}
+      </div>
     </div>
-  </div>
-} @empty {
-  <div class="p-2">
-    {{ 'PAC.Xpert.NoToolset' | translate: {Default: 'No toolset'} }}
-  </div>
+  } @empty {
+    <div class="p-2">
+      {{ 'PAC.Xpert.NoToolset' | translate: {Default: 'No toolset'} }}
+    </div>
+  }
+} @else {
+  @for (toolset of toolProviders(); track toolset.id) {
+    <div cdkMenuItem class="shrink-0 w-full flex justify-start items-center p-1 rounded-lg overflow-hidden"
+      [cdkMenuItemDisabled]="toolset.not_implemented"
+      (click)="createBuiltinToolset(toolset)"
+      (mouseover)="openBuiltinToolsetTip(toolset, overlayTrigger)"
+      (mouseout)="toolDetailOpen.set(false)"
+      cdkOverlayOrigin
+      #overlayTrigger="cdkOverlayOrigin"
+      >
+      <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-full scale-95"  />
+      <div class="flex-1 truncate" [ngmHighlight]="searchText()" [content]="toolset.name">
+        {{toolset.name}}
+      </div>
+    </div>
+  }
 }
 
 <ng-template
@@ -48,5 +66,9 @@
     },
   ]"
 >
-  <xpert-toolset-card [toolset]="toolset()" class="toolset-tip-card w-96 bg-components-card-bg " />
+  @if (toolset()) {
+    <xpert-toolset-card [toolset]="toolset()" class="toolset-tip-card w-96 bg-components-card-bg " />
+  } @else if (builtinToolset()) {
+    <xpert-tool-provider-card [provider]="builtinToolset()" class="toolset-tip-card w-96 bg-components-card-bg" />
+  }
 </ng-template>

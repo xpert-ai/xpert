@@ -1,3 +1,8 @@
 :host {
-    @apply relative;
+  @apply relative flex flex-col;
+  &:hover {
+    .container {
+      @apply bg-white;
+    }
+  }
 }

@@ -1,4 +1,3 @@
-import { MessageContent } from '@langchain/core/messages'
 import { BaseStore } from '@langchain/langgraph'
 import {
 	ChatMessageEventTypeEnum,
@@ -33,6 +32,7 @@ import { GetXpertMemoryEmbeddingsQuery } from '../../queries'
 import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
 import { CopilotNotFoundException } from '../../../core/errors'
+import { appendMessageContent } from '@metad/copilot'
 
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
@@ -91,6 +91,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 						xpert,
 						// title: input.input, // 改成 AI 自动总结标题
 						options: {
+							parameters: input,
 							knowledgebases: options?.knowledgebases,
 							toolsets: options?.toolsets
 						},
@@ -385,37 +386,37 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 	}
 }
 
-export function appendMessageContent(aiMessage: CopilotChatMessage, content: MessageContent) {
-	const _content = aiMessage.content
-	if (typeof content === 'string') {
-		if (typeof _content === 'string') {
-			aiMessage.content = _content + content
-		} else if (Array.isArray(_content)) {
-			const lastContent = _content[_content.length - 1]
-			if (lastContent.type === 'text') {
-				lastContent.text = lastContent.text + content
-			} else {
-				_content.push({
-					type: 'text',
-					text: content
-				})
-			}
-		} else {
-			aiMessage.content = content
-		}
-	} else {
-		if (Array.isArray(_content)) {
-			_content.push(content)
-		} else if (_content) {
-			aiMessage.content = [
-				{
-					type: 'text',
-					text: _content
-				},
-				content
-			]
-		} else {
-			aiMessage.content = [content]
-		}
-	}
-}
+// export function appendMessageContent(aiMessage: CopilotChatMessage, content: MessageContent) {
+// 	const _content = aiMessage.content
+// 	if (typeof content === 'string') {
+// 		if (typeof _content === 'string') {
+// 			aiMessage.content = _content + content
+// 		} else if (Array.isArray(_content)) {
+// 			const lastContent = _content[_content.length - 1]
+// 			if (lastContent.type === 'text') {
+// 				lastContent.text = lastContent.text + content
+// 			} else {
+// 				_content.push({
+// 					type: 'text',
+// 					text: content
+// 				})
+// 			}
+// 		} else {
+// 			aiMessage.content = content
+// 		}
+// 	} else {
+// 		if (Array.isArray(_content)) {
+// 			_content.push(content)
+// 		} else if (_content) {
+// 			aiMessage.content = [
+// 				{
+// 					type: 'text',
+// 					text: _content
+// 				},
+// 				content
+// 			]
+// 		} else {
+// 			aiMessage.content = [content]
+// 		}
+// 	}
+// }

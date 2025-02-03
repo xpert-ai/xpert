@@ -14,7 +14,7 @@ export class CopilotCheckpointWrites extends TenantOrganizationBaseEntity implem
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
-	@Column({ length: 100 })
+	@Column({ length: 1000 })
 	checkpoint_ns: string
 
 	@ApiPropertyOptional({ type: () => String })

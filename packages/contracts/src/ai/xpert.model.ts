@@ -9,6 +9,7 @@ import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 import { IIntegration } from '../integration.model'
 import { TChatFrom } from './chat.model'
+import { IWorkflowNode, TVariableAssigner, VariableOperationEnum } from './xpert-workflow.model'
 
 export type ToolCall = LToolCall
 
@@ -58,6 +59,7 @@ export type TXpert = {
    * 当前版本上的草稿
    */
   draft?: TXpertTeamDraft
+  graph?: TXpertGraph
 
   api?: TChatApi
   app?: TChatApp
@@ -155,10 +157,29 @@ export type TXpertAgentConfig = {
    */
   timeout?: number;
 
+  /**
+   * Sensitive tools and agents
+   */
   interruptBefore?: string[]
+  /**
+   * End nodes
+   */
   endNodes?: string[]
 
+  /**
+   * Custom variables of graph state
+   */
   stateVariables?: TStateVariable[]
+
+  /**
+   * Memory assigner for tool's results. (save result of tool call into state variable)
+   */
+  toolsMemory?: Record<string, TVariableAssigner[]>
+
+  /**
+   * Disable agent's output
+   */
+  disableOutputs?: string[]
 }
 
 export type TStateVariable<ValueType = any, UpdateType = ValueType> = {
@@ -167,6 +188,7 @@ export type TStateVariable<ValueType = any, UpdateType = ValueType> = {
   description: I18nObject | string
   default?: any
   reducer?: (a: ValueType, b: UpdateType) => ValueType
+  operation?: VariableOperationEnum
 }
 
 /**
@@ -246,16 +268,17 @@ export type TChatApi = {
 }
 
 // Xpert team draft types
-
-export type TXpertTeamDraft = {
-  team: Partial<IXpert>
-
-  savedAt?: Date
+export type TXpertGraph = {
   nodes: TXpertTeamNode[]
   connections: TXpertTeamConnection[]
 }
 
-export type TXpertTeamNodeType = 'agent' | 'knowledge' | 'toolset' | 'xpert'
+export type TXpertTeamDraft = TXpertGraph & {
+  team: Partial<IXpert>
+  savedAt?: Date
+}
+
+export type TXpertTeamNodeType = 'agent' | 'knowledge' | 'toolset' | 'xpert' | 'workflow'
 
 export type TXpertTeamNode = {
   key: string
@@ -283,6 +306,10 @@ export type TXpertTeamNode = {
       nodes?: TXpertTeamNode[]
       connections?: TXpertTeamConnection[]
       expanded?: boolean
+    }
+  | {
+      type: 'workflow'
+      entity: IWorkflowNode
     }
 )
 
@@ -314,7 +341,7 @@ export interface TXpertTeamConnection {
   key: string
   from: string
   to: string
-  type: TXpertTeamNodeType
+  type: 'edge' | TXpertTeamNodeType
 }
 
 export enum ChatMessageTypeEnum {
@@ -391,6 +418,43 @@ export function figureOutXpert(xpert: IXpert, isDraft: boolean) {
 
 export function xpertLabel(agent: Partial<IXpert>) {
   return agent.title || agent.name
+}
+
+export function createXpertGraph(xpert: IXpert, position: IPoint) {
+  const graph = xpert.graph ?? xpert.draft
+
+  const nodes = graph.nodes
+
+  // Extract the area by positions of all nodes
+  const positions = nodes.map((node) => node.position)
+  const x0Positions = positions.map((pos) => pos.x)
+  const x1Positions = nodes.map((node) => node.position.x + (node.size?.width ?? 240)) // Node width min 240
+  const y0Positions = positions.map((pos) => pos.y)
+  const y1Positions = nodes.map((node) => node.position.y + (node.size?.height ?? 70)) // Node height min 70
+
+  const xRange = {
+    min: Math.min(...x0Positions),
+    max: Math.max(...x1Positions)
+  }
+
+  const yRange = {
+    min: Math.min(...y0Positions),
+    max: Math.max(...y1Positions)
+  }
+
+  const size = {
+    width: xRange.max - xRange.min + 50, 
+    height: yRange.max - yRange.min + 80
+  }
+
+  nodes.forEach((node) => {
+    node.position = {
+      x: position.x + (node.position?.x ? node.position.x - xRange.min : 0) + 10,
+      y: position.y + (node.position?.y ? node.position.y - yRange.min : 0) + 40,
+    }
+  })
+
+  return { nodes, size, connections: graph.connections }
 }
 
 /**

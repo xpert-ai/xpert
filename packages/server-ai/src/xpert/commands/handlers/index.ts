@@ -2,6 +2,7 @@ import { XpertChatHandler } from './chat.handler'
 import { XpertCreateHandler } from './create.handler'
 import { XpertDelIntegrationHandler } from './del-integration.handler'
 import { XpertExecuteHandler } from './execute.handler'
+import { XpertExportDiagramHandler } from './export-diagram.handler'
 import { XpertExportHandler } from './export.handler'
 import { XpertImportHandler } from './import.handler'
 import { XpertPublishIntegrationHandler } from './publish-integration.handler'
@@ -17,5 +18,6 @@ export const CommandHandlers = [
 	XpertExportHandler,
 	XpertSummarizeMemoryHandler,
 	XpertPublishIntegrationHandler,
-	XpertDelIntegrationHandler
+	XpertDelIntegrationHandler,
+	XpertExportDiagramHandler
 ]

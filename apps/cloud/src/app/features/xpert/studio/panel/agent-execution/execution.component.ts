@@ -4,6 +4,7 @@ import {
   Component,
   computed,
   DestroyRef,
+  effect,
   inject,
   input,
   model,
@@ -71,12 +72,15 @@ export class XpertStudioPanelAgentExecutionComponent {
   readonly #toastr = inject(ToastrService)
   readonly #destroyRef = inject(DestroyRef)
 
+  // Inputs
   readonly executionId = input<string>()
   readonly xpert = input<Partial<IXpert>>()
   readonly xpertAgent = input<IXpertAgent>()
 
+  // Outputs
   readonly close = output()
 
+  // States
   readonly agentKey = computed(() => this.xpertAgent()?.key)
   readonly parameters = computed(() => this.xpertAgent().parameters)
 
@@ -85,17 +89,22 @@ export class XpertStudioPanelAgentExecutionComponent {
 
   readonly output = signal('')
 
-  readonly execution = computed(() => this.executionService.agentExecutions()?.[this.agentKey()])
+  readonly execution = computed(() => {
+    const executions = this.executionService.agentExecutions()?.[this.agentKey()]
+    return executions ? executions[executions.length - 1] : null
+  })
+  readonly #expandAgents = signal<Record<string, boolean>>({})
   readonly executions = computed(() => {
     const agentExecutions = this.executionService.agentExecutions()
     if (!agentExecutions) {
       return []
     }
-    const executions: IXpertAgentExecution[] = []
+    const executions: {executions: IXpertAgentExecution[]; agent: IXpertAgent; expand: boolean;}[] = []
     Object.keys(agentExecutions).forEach((key) => {
       executions.push({
-        ...agentExecutions[key],
-        agent: this.getAgent(key)
+        executions: agentExecutions[key],
+        agent: this.getAgent(key),
+        expand: this.#expandAgents()[key]
       })
     })
     return executions
@@ -127,12 +136,29 @@ export class XpertStudioPanelAgentExecutionComponent {
     this.#destroyRef.onDestroy(() => {
       this.clearStatus()
     })
+
+    effect(() => {
+      if (this.execution()) {
+        this.parameterValue.set(this.execution().inputs)
+      }
+    }, { allowSignalWrites: true })
+
+    effect(() => {
+      console.log(this.#expandAgents())
+    })
   }
 
   clearStatus() {
     this.output.set('')
     this.executionService.clear()
     this.executionService.setConversation(null)
+  }
+
+  onKeyEnter(param: Event) {
+    const event = param as KeyboardEvent
+    if (event.code === 'Enter' && !event.isComposing) {
+      this.startRunAgent()
+    }
   }
 
   startRunAgent(options?: { reject: boolean; confirm?: boolean }) {
@@ -210,6 +236,13 @@ export class XpertStudioPanelAgentExecutionComponent {
   onReject() {
     this.input.set(null)
     this.startRunAgent({ reject: true })
+  }
+
+  toggleExpand(key: string) {
+    this.#expandAgents.update((state) => ({
+      ...state,
+      [key]: !state[key]
+    }))
   }
 }
 

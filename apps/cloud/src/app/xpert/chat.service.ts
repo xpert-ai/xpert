@@ -1,5 +1,4 @@
-import { Location } from '@angular/common'
-import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core'
+import { computed, DestroyRef, inject, Injectable, model, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { nonNullable } from '@metad/ocap-core'
 import {
@@ -19,23 +18,18 @@ import {
   IXpert,
   IXpertToolset,
   IKnowledgebase,
-  XpertTypeEnum,
   ChatMessageTypeEnum,
-  uuid,
-  CopilotBaseMessage,
-  CopilotMessageGroup,
-  CopilotChatMessage,
   ChatMessageEventTypeEnum,
   XpertAgentExecutionStatusEnum,
-  IChatMessage,
   ToolCall,
   IChatMessageFeedback,
   TChatOptions,
   TChatRequest,
+  uuid,
+  ChatMessageStatusEnum,
 } from '../@core'
 import { ChatConversationService, ChatService as ChatServerService, XpertService, ToastrService, ChatMessageFeedbackService } from '../@core/services'
 import { AppService } from '../app.service'
-import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { sortBy } from 'lodash-es'
 import { HttpErrorResponse } from '@angular/common/http'
@@ -44,6 +38,10 @@ import { isToday } from 'date-fns/isToday'
 import { isWithinInterval } from 'date-fns/isWithinInterval'
 import { isYesterday } from 'date-fns/isYesterday'
 import { subDays } from 'date-fns/subDays'
+import { XpertHomeService } from './home.service'
+import { TCopilotChatMessage } from './types'
+import { MessageContent } from '@langchain/core/messages'
+import { appendMessageContent } from '@metad/copilot'
 
 /**
  * The context of a single chat is not shared between conversations
@@ -55,15 +53,15 @@ export class ChatService {
   readonly feedbackService = inject(ChatMessageFeedbackService)
   readonly xpertService = inject(XpertService)
   readonly appService = inject(AppService)
-  readonly #translate = inject(TranslateService)
+  readonly homeService = inject(XpertHomeService)
   readonly #logger = inject(NGXLogger)
   readonly #toastr = inject(ToastrService)
-  readonly #location = inject(Location)
   readonly #destroyRef = inject(DestroyRef)
 
 
   readonly conversationId = signal<string>(null)
   readonly xpert$ = new BehaviorSubject<IXpert>(null)
+  readonly parametersValue = signal<Record<string, unknown>>(null)
   /**
    * The conversation
    */
@@ -77,7 +75,7 @@ export class ChatService {
   /**
    * Messages in the conversation
    */
-  readonly #messages = signal<IChatMessage[]>([])
+  readonly #messages = signal<TCopilotChatMessage[]>([])
   readonly messages = computed(() => this.#messages() ?? [])
 
   readonly knowledgebases = signal<IKnowledgebase[]>([])
@@ -87,7 +85,6 @@ export class ChatService {
   protected chatSubscription: Subscription = null
 
   readonly lang = this.appService.lang
-
   readonly xpert = toSignal(this.xpert$)
 
   private idSub = toObservable(this.conversationId)
@@ -120,6 +117,7 @@ export class ChatService {
         if (conv) {
           this.conversation.set(conv)
           this.#messages.set(sortBy(conv.messages, 'createdAt'))
+          this.parametersValue.set(conv.options?.parameters ?? {})
           this.knowledgebases.set(
             conv.options?.knowledgebases?.map((id) => conv.xpert?.knowledgebases?.find((item) => item.id === id)).filter(nonNullable)
           )
@@ -157,10 +155,6 @@ export class ChatService {
     })
   }
 
-  getXpert(slug: string) {
-    return this.xpertService.getMyAll({ where: { slug, type: XpertTypeEnum.Agent, latest: true } })
-  }
-
   getConversation(id: string) {
     this.loadingConv.set(true)
     return this.conversationService.getById(id, { relations: ['xpert', 'xpert.knowledgebases', 'xpert.toolsets', 'messages'] })
@@ -196,9 +190,10 @@ export class ChatService {
 
     this.chatSubscription = this.chatRequest(this.xpert().slug, {
         input: {
+          ...(this.parametersValue() ?? {}),
           input: options.content,
         },
-        xpertId: this.xpert$.value?.id,
+        xpertId: this.xpert()?.id,
         conversationId: this.conversation()?.id,
         id: options.id,
         toolCalls: options.toolCalls,
@@ -261,6 +256,18 @@ export class ChatService {
                       }
                     })
                     break;
+                  case ChatMessageEventTypeEnum.ON_AGENT_START:
+                  case ChatMessageEventTypeEnum.ON_AGENT_END: {
+                    const execution = event.data
+                    this.updateLatestMessage((message) => {
+                      const executions = (message.executions ?? []).filter((_) => _.id !== execution.id)
+                      return {
+                        ...message,
+                        executions: executions.concat(execution)
+                      }
+                    })
+                    break
+                  }
                   default:
                     this.updateEvent(event.event, event.data.error)
                 }
@@ -330,35 +337,9 @@ export class ChatService {
     } as IChatConversation))
   }
 
-  updateMessage(id: string, message: Partial<CopilotBaseMessage>) {
-    this.#messages.update((messages) => {
-      const lastMessage = messages[messages.length - 1] as CopilotMessageGroup
-      messages[messages.length - 1] = { ...lastMessage, ...message }
-      return [...messages]
-    })
-  }
-
-  appendMessageComponent(message) {
+  appendMessageComponent(content: MessageContent) {
     this.updateLatestMessage((lastM) => {
-      const content = lastM.content
-      if (typeof content === 'string') {
-        lastM.content = [
-          {
-            type: 'text',
-            text: content
-          },
-          message
-        ]
-      } else if (Array.isArray(content)) {
-        lastM.content = [
-          ...content,
-          message
-        ]
-      } else {
-        lastM.content = [
-          message
-        ]
-      }
+      appendMessageContent(lastM as any, content)
       return {
         ...lastM
       }
@@ -368,7 +349,7 @@ export class ChatService {
   appendStreamMessage(text: string) {
     this.updateLatestMessage((lastM) => {
       const content = lastM.content
-
+      lastM.status = 'answering'
       if (typeof content === 'string') {
         lastM.content = content + text
       } else if (Array.isArray(content)) {
@@ -400,45 +381,23 @@ export class ChatService {
     })
   }
 
-  appendMessageStep(step: CopilotChatMessage) {
-    this.updateLatestMessage((lastMessage) => ({
-      ...lastMessage,
-      messages: [...(lastMessage.messages ?? []), step]
-    }))
-  }
-
-  updateLatestMessage(updateFn: (value: CopilotMessageGroup) => CopilotMessageGroup) {
+  updateLatestMessage(updateFn: (value: TCopilotChatMessage) => TCopilotChatMessage) {
     this.#messages.update((messages) => {
-      const lastMessage = messages[messages.length - 1] as CopilotMessageGroup
+      const lastMessage = messages[messages.length - 1] as TCopilotChatMessage
       messages[messages.length - 1] = updateFn(lastMessage)
       return [...messages]
-    })
-  }
-
-  updateMessageStep(step: CopilotChatMessage) {
-    this.updateLatestMessage((lastMessage) => {
-      const _steps = lastMessage.messages.reverse()
-      const index = _steps.findIndex((item) => item.id === step.id && item.role === step.role)
-      if (index > -1) {
-        _steps[index] = {
-          ..._steps[index],
-          ...step
-        }
-        lastMessage.messages = _steps.reverse()
-      }
-      return {...lastMessage}
     })
   }
 
   abortMessage(id: string) {
     this.updateLatestMessage((lastMessage) => {
       if (lastMessage.id === id) {
-        lastMessage.messages = lastMessage.messages?.map((m) => {
-          if (m.status === 'thinking') {
-            return { ...m, status: 'aborted' }
-          }
-          return m
-        })
+        // lastMessage.messages = lastMessage.messages?.map((m) => {
+        //   if (m.status === 'thinking') {
+        //     return { ...m, status: 'aborted' }
+        //   }
+        //   return m
+        // })
 
         return { ...lastMessage, status: 'aborted' }
       }
@@ -446,7 +405,7 @@ export class ChatService {
     })
   }
 
-  appendMessage(message: CopilotBaseMessage) {
+  appendMessage(message: TCopilotChatMessage) {
     this.#messages.update((messages) => [
       ...(messages ?? []),
       message

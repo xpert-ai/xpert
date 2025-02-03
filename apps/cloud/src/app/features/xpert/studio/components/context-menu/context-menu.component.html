@@ -1,5 +1,5 @@
 <ng-template>
-  <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu">
+  <div #menu="cdkMenu" cdkMenu class="cdk-menu__large bg-components-panel-bg-blur">
     <div cdkMenuItem class="ngm-cdk-menu-item" (click)="createAgent(menu)">
       <span>{{ 'PAC.Xpert.NewAgent' | translate: {Default: 'New Agent'} }}</span>
     </div>
@@ -46,6 +46,21 @@
       <span>{{ 'PAC.Xpert.AddToolset' | translate: {Default: 'Add Toolset'} }}</span>
     </div>
 
+    <div cdkMenuItem class="ngm-cdk-menu-item"
+      [cdkMenuTriggerFor]="blockMenu"
+      [cdkMenuPosition]="[
+        {
+          originX: 'end',
+          originY: 'top',
+          overlayX: 'start',
+          overlayY: 'top',
+          offsetX: 10,
+        }
+      ]"
+    >
+      <span>{{ 'PAC.Xpert.AddBlock' | translate: {Default: 'Add Block'} }}</span>
+    </div>
+
     @if (node) {
       <div cdkMenuItem class="ngm-cdk-menu-item danger" (click)="deleteNode(menu, node)">
         <span>{{ 'PAC.Xpert.Remove' | translate: {Default: 'Remove'} }}</span>
@@ -78,5 +93,40 @@
         {{ 'PAC.Xpert.NoExternalExpert' | translate: {Default: 'No external expert'} }}
       </div>
     }
+  </div>
+</ng-template>
+
+<ng-template #blockMenu>
+  <div cdkMenu class="cdk-menu__medium bg-components-panel-bg-blur rounded-lg backdrop-blur-[5px] shadow-lg !min-w-[256px]">
+    <div class="flex items-start px-2 mt-2 text-sm font-medium text-text-tertiary">
+      {{ 'PAC.Xpert.Logic' | translate: {Default: 'Logic'} }}
+    </div>
+    <div cdkMenuItem class="flex items-center px-3 w-full h-8 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowBlock(eWorkflowNodeTypeEnum.IF_ELSE)"
+    >
+      <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-cyan-600
+        w-5 h-5 rounded-md
+        mr-2 shrink-0">
+        <svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5">
+          <g id="icons/if-else"><path id="Vector (Stroke)" fill-rule="evenodd" clip-rule="evenodd" d="M8.16667 2.98975C7.80423 2.98975 7.51042 2.69593 7.51042 2.3335C7.51042 1.97106 7.80423 1.67725 8.16667 1.67725H11.0833C11.4458 1.67725 11.7396 1.97106 11.7396 2.3335V5.25016C11.7396 5.6126 11.4458 5.90641 11.0833 5.90641C10.7209 5.90641 10.4271 5.6126 10.4271 5.25016V3.91782L7.34474 7.00016L10.4271 10.0825V8.75016C10.4271 8.38773 10.7209 8.09391 11.0833 8.09391C11.4458 8.09391 11.7396 8.38773 11.7396 8.75016V11.6668C11.7396 12.0293 11.4458 12.3231 11.0833 12.3231H8.16667C7.80423 12.3231 7.51042 12.0293 7.51042 11.6668C7.51042 11.3044 7.80423 11.0106 8.16667 11.0106H9.49901L6.14484 7.65641H1.75C1.38756 7.65641 1.09375 7.3626 1.09375 7.00016C1.09375 6.63773 1.38756 6.34391 1.75 6.34391H6.14484L9.49901 2.98975H8.16667Z" fill="currentColor"></path></g>
+        </svg>
+      </div>
+      <div class="text-sm text-text-secondary">IF/ELSE</div>
+    </div>
+
+    <div class="flex items-start px-2 mt-2 text-sm font-medium text-text-tertiary">
+      {{ 'PAC.Xpert.Others' | translate: {Default: 'Others'} }}
+    </div>
+    <div cdkMenuItem class="ngm-cdk-menu-item shrink-0"
+      (click)="addWorkflowBlock(eWorkflowNodeTypeEnum.NOTE)">
+      <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-orange-500
+        w-5 h-5 rounded-md
+        mr-2 shrink-0">
+        <i class="ri-sticky-note-add-line"></i>
+      </div>
+      <div class="text-sm text-text-secondary">
+        {{ 'PAC.Xpert.Note' | translate: {Default: 'Note'} }}
+      </div>
+    </div>
   </div>
 </ng-template>

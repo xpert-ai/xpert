@@ -1,16 +1,14 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, effect, inject } from '@angular/core'
+import { ChangeDetectionStrategy, Component, effect, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { MatInputModule } from '@angular/material/input'
 import { Router, RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { MaterialModule } from '../../@shared/material.module'
+import { uuid } from '../../@core'
 import { AppService } from '../../app.service'
 import { ChatService } from '../chat.service'
-import { map } from 'rxjs'
-import { uuid } from '../../@core'
-
 
 @Component({
   standalone: true,
@@ -20,7 +18,7 @@ import { uuid } from '../../@core'
     ReactiveFormsModule,
     RouterModule,
     TranslateModule,
-    MaterialModule,
+    MatInputModule,
     NgmCommonModule
   ],
   selector: 'chat-input',
@@ -31,18 +29,19 @@ import { uuid } from '../../@core'
 export class ChatInputComponent {
   readonly chatService = inject(ChatService)
   readonly appService = inject(AppService)
-  // readonly copilotService = inject(PACCopilotService)
   readonly #router = inject(Router)
 
+  // Inputs
+  readonly disabled = input<boolean>()
+
+  // States
   readonly promptControl = new FormControl<string>(null)
   readonly prompt = toSignal(this.promptControl.valueChanges)
   readonly answering = this.chatService.answering
 
-  // readonly disabled$ = this.copilotService.enabled$.pipe(map((enabled) => !enabled))
-
   constructor() {
     effect(() => {
-      this.answering() ? this.promptControl.disable() : this.promptControl.enable()
+      this.answering() || this.disabled() ? this.promptControl.disable() : this.promptControl.enable()
     })
   }
 
@@ -74,7 +73,7 @@ export class ChatInputComponent {
     this.promptControl.setValue('')
 
     // Send message
-    this.chatService.chat({id, content})
+    this.chatService.chat({ id, content })
   }
 
   stopGenerating() {

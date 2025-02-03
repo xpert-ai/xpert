@@ -11,6 +11,9 @@ export class GetXpertAgentQuery implements IQuery {
 	constructor(
         public readonly id: string,
         public readonly agentKey?: string,
+        /**
+         * Draft First
+         */
         public readonly draft?: boolean
     ) {}
 }

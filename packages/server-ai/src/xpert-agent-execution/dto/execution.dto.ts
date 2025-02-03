@@ -16,13 +16,16 @@ export class XpertAgentExecutionDTO {
 	@Transform(({ value }) => value?.map((_) => new XpertAgentExecutionDTO(_)))
 	subExecutions?: IXpertAgentExecution[]
 
+	@Expose()
+	@Transform(({ value }) => new UserPublicDTO(value))
+	createdBy: IUser
+
 	// Temporary properties
 	@Expose()
 	totalTokens?: number
 
 	@Expose()
-	@Transform(({ value }) => new UserPublicDTO(value))
-	createdBy: IUser
+	summary?: string
 
 	constructor(partial: Partial<XpertAgentExecutionDTO>) {
 		Object.assign(this, partial)

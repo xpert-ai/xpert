@@ -1,7 +1,7 @@
 <div tabindex="0"
   #menuTrigger
   #trigger="cdkMenuTriggerFor"
-  class="flex items-center px-2 py-1.5 rounded-lg border-[0.5px] border-solid border-neutral-300 bg-gray-100 cursor-pointer hover:bg-gray-200"
+  class="select-trigger flex items-center rounded-lg cursor-pointer hover:bg-gray-200"
   [cdkMenuTriggerFor]="menu"
   [cdkMenuTriggerData]="{ trigger: trigger }"
 >
@@ -10,9 +10,11 @@
       <i [class]="icon()"></i>
     </div>
   }
+  <ng-content select="[icon]"></ng-content>
+  
   <div class="grow mr-2 text-text-primary text-sm">
     @for (option of selectedOptions(); track option.value; let last = $last) {
-      {{option.label | i18n}}
+      {{(option.label | i18n) || option.value}}
       @if (!last) {
         ,
       }
@@ -33,7 +35,7 @@
     ></path>
   </svg>
 
-  @if (values()?.length) {
+  @if (nullable() && values()?.length) {
     <div class="p-[1px] cursor-pointer group/clear" (click)="clear()">
       <svg
         viewBox="0 0 24 24"

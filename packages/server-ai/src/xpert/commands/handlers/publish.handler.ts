@@ -1,4 +1,4 @@
-import { IKnowledgebase, IXpert, IXpertAgent, IXpertToolset, TXpertTeamDraft, TXpertTeamNode } from '@metad/contracts'
+import { IKnowledgebase, IXpert, IXpertAgent, IXpertToolset, TXpertGraph, TXpertTeamDraft, TXpertTeamNode, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { omit, pick } from '@metad/server-common'
 import { BadRequestException, HttpException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
@@ -67,11 +67,11 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 		// // await this.repository.queryRunner.startTransaction()
 		// // try {
 			// Back up the current version
-			if (currentVersion) {
-				await this.saveTeamVersion(xpert, version)
-			}
+		if (currentVersion) {
+			await this.saveTeamVersion(xpert, version)
+		}
 
-			return await this.publish(xpert, version, draft)
+		return await this.publish(xpert, version, draft)
 		// 	// await this.repository.queryRunner.commitTransaction()
 		// // } catch (err) {
 		// 	// since we have errors lets rollback the changes we made
@@ -168,10 +168,10 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 							toolsetIds,
 							knowledgebaseIds,
 							collaboratorNames,
-
 						}
 						this.#logger.verbose(`Update xpert team agent (name/key='${oldAgent.name || oldAgent.key}', id='${oldAgent.id}') with value:\n${JSON.stringify(entity, null, 2)}`)
-						await this.xpertAgentService.update(oldAgent.id, entity)
+						const _entity = await this.xpertAgentService.update(oldAgent.id, entity)
+						node.entity = _entity
 					}
 					newAgents.push(oldAgent)
 				} else if (node.key === xpert.agent.key) {
@@ -186,6 +186,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 						knowledgebaseIds,
 						collaboratorNames
 					})
+					node.entity = xpert.agent
 				} else {
 					// Create new xpert agent
 					const newAgent = await this.xpertAgentService.create({
@@ -243,6 +244,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 		// Update new version
 		xpert.version = version
 		xpert.draft = null
+		xpert.graph = pick(draft, 'nodes', 'connections') as TXpertGraph
 		xpert.publishAt = new Date()
 		xpert.active = true
 
@@ -252,12 +254,12 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 	check(draft: TXpertTeamDraft) {
 		// Check all nodes have been connected
 		if (draft.nodes?.length > 1) {
-			draft.nodes.forEach((node) => {
+			draft.nodes.filter((_) => !(_.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.NOTE)).forEach((node) => {
 				if (!draft.connections.some((connection) => connection.from === node.key || connection.to === node.key)) {
 					throw new HttpException(`There are free Xpert agents!`, 500)
 				}
 			})
-			const nameGroups = groupBy(draft.nodes.filter((_) => _.entity.name).map(({entity}) => entity), 'name')
+			const nameGroups = groupBy(draft.nodes.filter((_) => _.type !== 'workflow' && _.entity.name).map(({entity}) => entity), 'name')
 			const names = Object.entries(nameGroups).map(([name, nodes]) => [name, nodes.length]).filter(([, length]: [string, number]) => length > 1)
 			if (names.length) {
 				throw new HttpException(`There are the following duplicate names: ${names}`, 500)
@@ -280,7 +282,9 @@ export function pickXpertAgent(agent: Partial<IXpertAgent>) {
 	'description',
 	'avatar',
 	'prompt',
+	'promptTemplates',
 	'parameters',
+	'outputVariables',
 	'options',
 	'leaderKey', // todo
 	'collaboratorNames',

@@ -1,3 +1,4 @@
+import { Clipboard } from '@angular/cdk/clipboard'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Overlay, OverlayRef } from '@angular/cdk/overlay'
 import { TemplatePortal } from '@angular/cdk/portal'
@@ -13,6 +14,8 @@ import {
   input,
   model,
   numberAttribute,
+  output,
+  signal,
   TemplateRef,
   ViewChild,
   ViewContainerRef
@@ -22,9 +25,11 @@ import { MatDialog } from '@angular/material/dialog'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmHighlightVarDirective } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { effectAction, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { CopilotPromptGeneratorComponent } from '../prompt-generator/generator.component'
-import { TStateVariable } from '../../../@core'
+import { agentLabel, TStateVariable, TWorkflowVarGroup } from '../../../@core'
+import { switchMap, tap } from 'rxjs/operators'
+import { timer } from 'rxjs'
 
 @Component({
   selector: 'copilot-prompt-editor',
@@ -35,28 +40,40 @@ import { TStateVariable } from '../../../@core'
   imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, MatTooltipModule, NgmI18nPipe, NgmHighlightVarDirective]
 })
 export class CopilotPromptEditorComponent {
+  agentLabel = agentLabel
+  
+  readonly #clipboard = inject(Clipboard)
   readonly #dialog = inject(MatDialog)
   readonly #vcr = inject(ViewContainerRef)
+  readonly elementRef = inject(ElementRef)
 
   readonly regex = `{{(.*?)}}`
 
+  // Inputs
+  readonly prompt = model<string>()
   readonly initHeight = input<number, number | string>(210, {
     transform: numberAttribute
   })
   readonly tooltip = input<string>()
-  readonly variables = input<TStateVariable[]>()
+  readonly variables = input<TWorkflowVarGroup[]>()
+  readonly role = input<'system' | 'ai' | 'human'>()
 
+  // Outputs
+  readonly deleted = output<void>()
+
+  // Children
   @ViewChild('editablePrompt', { static: true }) editablePrompt!: ElementRef
   @ViewChild('suggestionsTemplate', { static: true }) suggestionsTemplate!: TemplateRef<any>
   overlayRef: OverlayRef | null = null
 
-  readonly prompt = model<string>()
+  // States
   readonly promptLength = computed(() => this.prompt()?.length)
 
   height = this.initHeight()
   private isResizing = false
   private startY = 0
   private startHeight = 0
+  readonly copied = signal(false)
 
   constructor(private overlay: Overlay) {
     effect(() => {
@@ -100,11 +117,11 @@ export class CopilotPromptEditorComponent {
     }
   }
 
-  selectVariable(variable: TStateVariable) {
+  selectVariable(g: string, variable: TStateVariable) {
     const editablePrompt: HTMLDivElement = this.editablePrompt.nativeElement
     const text = editablePrompt.innerText
     const regex = /{{(?=\s+\S*)|{{$/
-    const updatedText = text.replace(regex, `{{${variable.name}}}`)
+    const updatedText = text.replace(regex, g ? `{{${g}.${variable.name}}}` : `{{${variable.name}}}`)
     editablePrompt.innerText = updatedText
     this.hideSuggestions()
 
@@ -155,6 +172,20 @@ export class CopilotPromptEditorComponent {
       this.overlayRef = null
     }
   }
+
+  remove() {
+    this.prompt.set(null)
+    this.deleted.emit()
+  }
+
+  copy = effectAction((origin$) => origin$.pipe(
+      tap(() => {
+        this.#clipboard.copy(this.prompt())
+        this.copied.set(true)
+      }),
+      switchMap(() => timer(3000)),
+      tap(() => this.copied.set(false))
+    ))
 
   onMouseDown(event: MouseEvent): void {
     this.isResizing = true

@@ -14,7 +14,6 @@ import { KnowledgebaseListComponent } from '../../../@shared/copilot'
 import { AppService } from '../../../app.service'
 import { Icons } from '../icons'
 import { AboutXpertComponent } from '../../../@shared/xpert'
-import { MatIconModule } from '@angular/material/icon'
 import { ChatService } from '../../../xpert/chat.service'
 import { ChatInputComponent } from '../../../xpert'
 
@@ -27,7 +26,6 @@ import { ChatInputComponent } from '../../../xpert'
     RouterModule,
     CdkMenuModule,
     TranslateModule,
-    MatIconModule,
     NgmCommonModule,
     ...Icons,
     KnowledgebaseListComponent,
@@ -47,7 +45,7 @@ export class ChatToolbarComponent {
   readonly chatInput = input<ChatInputComponent>()
 
   readonly lang = this.appService.lang
-  readonly _role = toSignal(this.chatService.xpert$)
+  readonly xpert = this.chatService.xpert
 
   readonly allKnowledgebases = toSignal(
     combineLatest([this.knowledgebaseService.getMyAllInOrg(), this.knowledgebaseService.getAllByPublicInOrg()]).pipe(
@@ -56,19 +54,14 @@ export class ChatToolbarComponent {
   )
 
   readonly knowledgebaseList = computed(() =>
-    this._role()?.id ? this._role().knowledgebases : this.allKnowledgebases()
+    this.xpert()?.id ? this.xpert().knowledgebases : this.allKnowledgebases()
   )
   readonly knowledgebases = this.chatService.knowledgebases
 
-  readonly toolsetList = computed(() => this._role()?.toolsets)
+  readonly toolsetList = computed(() => this.xpert()?.toolsets)
   readonly toolsets = this.chatService.toolsets
 
-  readonly xpert = this.chatService.xpert
   readonly disabled = computed(() => !!this.chatService.conversation()?.id)
-
-  // constructor() {
-  //   effect(() => console.log(this._role()))
-  // }
 
   openAbout() {
     this.#dialog

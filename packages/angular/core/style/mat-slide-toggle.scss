@@ -1,4 +1,5 @@
 .mat-mdc-slide-toggle.xs {
+    display: inline-flex;
     --mat-switch-with-icon-handle-size: 14px;
     --mdc-switch-track-height: 10px;
     --mdc-switch-track-width: 26px;
@@ -9,6 +10,7 @@
 }
 
 .mat-mdc-slide-toggle.small {
+    display: inline-flex;
     --mat-switch-with-icon-handle-size: 16px;
     --mdc-switch-track-height: 12px;
     --mdc-switch-track-width: 26px;

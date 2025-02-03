@@ -9,7 +9,6 @@ import { omit, yaml } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { instanceToPlain } from 'class-transformer'
-import { XpertAgentService } from '../../../xpert-agent'
 import { XpertDraftDslDTO } from '../../dto'
 import { XpertService } from '../../xpert.service'
 import { XpertExportCommand } from '../export.command'
@@ -22,7 +21,6 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
 
 	constructor(
 		private readonly xpertService: XpertService,
-		private readonly agentService: XpertAgentService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
 	) {}
@@ -30,7 +28,7 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
 	public async execute(command: XpertExportCommand): Promise<{ data: string }> {
 		const { id, isDraft } = command
 
-		const relations = isDraft === 'true' ? [] : [
+		const relations = isDraft ? [] : [
 			'agent',
 			'agent.copilotModel',
 			'agents',
@@ -45,7 +43,7 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
 		]
 		const xpert = await this.xpertService.findOne(id, {relations})
 
-		const draft = isDraft === 'true' ? xpert.draft : this.getInitialDraft(xpert)
+		const draft = isDraft ? xpert.draft : this.getInitialDraft(xpert)
 		const result = yaml.stringify(instanceToPlain(new XpertDraftDslDTO(draft)))
 
 		return {
@@ -59,8 +57,8 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
 				...omit(xpert, 'agents'),
 				id: xpert.id
 			},
-			nodes: createXpertNodes(xpert, { x: 0, y: 0 }).nodes,
-			connections: this.makeConnections(xpert)
+			nodes: xpert.graph?.nodes ?? createXpertNodes(xpert, { x: 0, y: 0 }).nodes,
+			connections: xpert.graph?.connections ?? this.makeConnections(xpert)
 		} as TXpertTeamDraft
 	}
 

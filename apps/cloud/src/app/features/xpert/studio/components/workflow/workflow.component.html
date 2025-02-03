@@ -1,0 +1,48 @@
+@if (type() !== eWorkflowNodeTypeEnum.NOTE) {
+  <div fNodeInput [fInputId]="node().key + '/edge'" fInputConnectableSide="left" class="left"></div>
+}
+
+<div class="flex items-center px-3 pt-3 pb-2 rounded-t-2xl">
+  @switch (type()) {
+    @case (eWorkflowNodeTypeEnum.IF_ELSE) {
+      <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
+        w-6 h-6 rounded-lg shadow-sm
+        shrink-0 mr-2">
+        <svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5">
+          <g id="icons/if-else"><path id="Vector (Stroke)" fill-rule="evenodd" clip-rule="evenodd" d="M8.16667 2.98975C7.80423 2.98975 7.51042 2.69593 7.51042 2.3335C7.51042 1.97106 7.80423 1.67725 8.16667 1.67725H11.0833C11.4458 1.67725 11.7396 1.97106 11.7396 2.3335V5.25016C11.7396 5.6126 11.4458 5.90641 11.0833 5.90641C10.7209 5.90641 10.4271 5.6126 10.4271 5.25016V3.91782L7.34474 7.00016L10.4271 10.0825V8.75016C10.4271 8.38773 10.7209 8.09391 11.0833 8.09391C11.4458 8.09391 11.7396 8.38773 11.7396 8.75016V11.6668C11.7396 12.0293 11.4458 12.3231 11.0833 12.3231H8.16667C7.80423 12.3231 7.51042 12.0293 7.51042 11.6668C7.51042 11.3044 7.80423 11.0106 8.16667 11.0106H9.49901L6.14484 7.65641H1.75C1.38756 7.65641 1.09375 7.3626 1.09375 7.00016C1.09375 6.63773 1.38756 6.34391 1.75 6.34391H6.14484L9.49901 2.98975H8.16667Z" fill="currentColor"></path></g>
+        </svg>
+      </div>
+    }
+    @case (eWorkflowNodeTypeEnum.NOTE) {
+      <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-orange-500
+        w-6 h-6 rounded-lg shadow-sm
+        shrink-0 mr-2">
+        <i class="ri-sticky-note-add-line"></i>
+      </div>
+    }
+    @default {
+      <div>Unimplement type ({{type()}})</div>
+    }
+  }
+  
+  <div [title]="title()" class="grow mr-1 font-semibold text-sm uppercase text-text-primary truncate flex items-center">
+    <div>{{title()}}</div>
+  </div>
+</div>
+
+@switch(type()) {
+  @case (eWorkflowNodeTypeEnum.IF_ELSE) {
+    <xpert-studio-node-workflow-ifelse class="px-3" [node]="node()" [entity]="entity()" />
+  }
+  @case (eWorkflowNodeTypeEnum.NOTE) {
+  }
+  @default {
+    <div>Unimplement type ({{type()}})</div>
+  }
+}
+
+@if (description()) {
+  <div class="px-3 pt-1 pb-2 text-left text-xs text-text-tertiary whitespace-pre-line break-words">
+    {{description()}}
+  </div>
+}

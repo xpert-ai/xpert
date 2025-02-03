@@ -26,29 +26,29 @@ export class ChatPlatformService extends ChatService {
 
   readonly xperts = this.homeService.xperts
 
-  readonly xpert = derivedFrom(
-    [this.xpert$, this.lang],
-    pipe(
-      map(([role, lang]) => {
-        if (!role) {
-          role = {
-            ...COMMON_COPILOT_ROLE,
-            description: this.#translate.instant('PAC.Chat.CommonRoleDescription', {
-              Default:
-                'Hi, how can I help? I can chat and search the knowledge base. Please select the appropriate role if you would like to use the tools.'
-            })
-          }
-        }
-        if ([LanguagesEnum.SimplifiedChinese, LanguagesEnum.Chinese].includes(lang as LanguagesEnum)) {
-          return { ...role, title: role.titleCN || role.title }
-        } else {
-          return role
-        }
-      })
-    )
-  )
+  // readonly xpert = derivedFrom(
+  //   [this.xpert$, this.lang],
+  //   pipe(
+  //     map(([role, lang]) => {
+  //       if (!role) {
+  //         role = {
+  //           ...COMMON_COPILOT_ROLE,
+  //           description: this.#translate.instant('PAC.Chat.CommonRoleDescription', {
+  //             Default:
+  //               'Hi, how can I help? I can chat and search the knowledge base. Please select the appropriate role if you would like to use the tools.'
+  //           })
+  //         }
+  //       }
+  //       if ([LanguagesEnum.SimplifiedChinese, LanguagesEnum.Chinese].includes(lang as LanguagesEnum)) {
+  //         return { ...role, title: role.titleCN || role.title }
+  //       } else {
+  //         return role
+  //       }
+  //     })
+  //   )
+  // )
 
-  private roleSub = this.xpert$
+  private roleSub = toObservable(this.xpert)
     .pipe(
       withLatestFrom(toObservable(this.paramRole)),
       filter(() => !this.conversationId()),
@@ -68,13 +68,13 @@ export class ChatPlatformService extends ChatService {
         this.toolsets.set(role?.toolsets ?? [])
       }
     })
-  private paramRoleSub = toObservable(this.paramRole)
-    .pipe(combineLatestWith(toObservable(this.xperts)), withLatestFrom(this.xpert$), takeUntilDestroyed())
-    .subscribe(([[paramRole, roles], role]) => {
-      if (roles && role?.slug !== paramRole) {
-        this.xpert$.next(roles.find((item) => item.slug === paramRole))
-      }
-    })
+  // private paramRoleSub = toObservable(this.paramRole)
+  //   .pipe(combineLatestWith(toObservable(this.xperts)), takeUntilDestroyed())
+  //   .subscribe(([paramRole, roles]) => {
+  //     if (roles && this.xpert()?.slug !== paramRole) {
+  //       this.xpert$.next(roles.find((item) => item.slug === paramRole))
+  //     }
+  //   })
 
   private conversationSub = toObservable(this.conversation)
     .pipe(
@@ -87,11 +87,11 @@ export class ChatPlatformService extends ChatService {
       const roleName = this.paramRole()
       const paramId = this.paramId()
       // if (paramId !== id) {
-      if (this.xpert$.value?.slug) {
+      if (this.xpert()?.slug) {
         if (id) {
-          this.#location.replaceState('/chat/x/' + this.xpert$.value.slug + '/c/' + id)
+          this.#location.replaceState('/chat/x/' + this.xpert().slug + '/c/' + id)
         } else {
-          this.#location.replaceState('/chat/x/' + this.xpert$.value.slug)
+          this.#location.replaceState('/chat/x/' + this.xpert().slug)
         }
       } else if (id) {
         this.#location.replaceState('/chat/c/' + id)

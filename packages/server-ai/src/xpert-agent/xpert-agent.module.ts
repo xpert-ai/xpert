@@ -1,5 +1,5 @@
 import { TenantModule } from '@metad/server-core'
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { RouterModule } from 'nest-router'
@@ -10,6 +10,7 @@ import { CommandHandlers } from './commands/handlers'
 import { CopilotCheckpointModule } from '../copilot-checkpoint'
 import { XpertAgentExecutionModule } from '../xpert-agent-execution'
 import { QueryHandlers } from './queries/handlers'
+import { XpertModule } from '../xpert/xpert.module'
 
 @Module({
 	imports: [
@@ -19,7 +20,8 @@ import { QueryHandlers } from './queries/handlers'
 		CqrsModule,
 		
 		CopilotCheckpointModule,
-		XpertAgentExecutionModule
+		XpertAgentExecutionModule,
+		forwardRef(() => XpertModule),
 	],
 	controllers: [XpertAgentController],
 	providers: [XpertAgentService, ...CommandHandlers, ...QueryHandlers],

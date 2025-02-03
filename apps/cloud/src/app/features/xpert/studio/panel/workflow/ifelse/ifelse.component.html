@@ -1,0 +1,44 @@
+<div class="cases-list w-full p-2" cdkDropList (cdkDropListDropped)="drop($event)">
+  @for (case of cases(); track case.caseId; let i = $index; let first = $first) {
+    <div class="cases-list-item group relative pl-6 bg-components-card-bg" cdkDrag cdkDragLockAxis="y">
+      <i class="ri-draggable hidden absolute top-1 left-1 group-hover:inline-block cursor-pointer"></i>
+
+      <xpert-workflow-case-form class="mb-2"
+        [first]="first"
+        [index]="i + 1"
+        [variables]="variables()"
+        [case]="case"
+        (caseChange)="updateCase(i, $event)"
+        (deleted)="remove(i)"
+      />
+      <div class="my-2 h-[1px] bg-divider-subtle"></div>
+    </div>
+  }
+
+  <div class="px-4 py-2">
+    <button type="button" class="btn disabled:btn-disabled btn-tertiary btn-medium w-full justify-center"
+      (click)="addCase()"
+    >
+      <i class="ri-add-circle-line mr-1"></i>
+      ELIF
+    </button>
+  </div>
+
+  <div class="my-2 mx-3 h-[1px] bg-divider-subtle"></div>
+
+  <div class="px-4 py-2">
+    <div class="flex justify-between items-center">
+      <div class="flex items-center h-6">
+        <div class="font-semibold uppercase text-sm text-text-primary">Else</div>
+      </div>
+      <div class="flex"></div>
+    </div>
+    <div class="mt-1">
+      <div class="leading-[18px] text-sm font-normal text-text-tertiary">
+        {{'PAC.Workflow.ElseInfo' | translate: {Default: 'Used to define the logic that should be executed when the if conditions are not met.'} }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="my-2 h-[1px] bg-divider-subtle"></div>

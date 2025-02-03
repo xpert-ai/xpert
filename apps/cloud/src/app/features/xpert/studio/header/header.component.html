@@ -1,7 +1,10 @@
 <div class="flex items-center gap-2 h-[2rem] text-sm truncate opacity-50">
   @if (unsaved()) {
-    <span class="w-2 h-2 shrink-0 rounded-full bg-green-500 shadow-md shadow-green-400"
-      [matTooltip]="'PAC.Messages.UnsavedChanges' | translate: {Default: 'Unsaved changes'} ">
+    <span class="w-2 h-2 shrink-0 rounded-full cursor-pointer bg-green-500 shadow-md shadow-green-400"
+      [matTooltip]=" 'PAC.Messages.UnsavedChanges' | translate: {Default: 'Unsaved changes'} "
+      matTooltipPosition="above"
+      (click)="save()"
+    >
     </span>
   }
   @if (draftSavedDate()) {
@@ -17,9 +20,17 @@
 <div class="flex flex-wrap items-center gap-2">
 
   <button type="button" class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium shrink-0 mr-2"
-    #mt="cdkMenuTriggerFor"
+    #mt1="cdkMenuTriggerFor"
+    [cdkMenuTriggerFor]="diagramMenu"
+    [cdkMenuTriggerData]="{trigger: mt1}"
+  >
+    <i class="ri-links-line text-lg"></i>
+  </button>
+
+  <button type="button" class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium shrink-0 mr-2"
+    #mt2="cdkMenuTriggerFor"
     [cdkMenuTriggerFor]="agentMenu"
-    [cdkMenuTriggerData]="{trigger: mt}"
+    [cdkMenuTriggerData]="{trigger: mt2}"
   >
     <i class="ri-chat-settings-line text-lg mr-1"></i>
     {{ 'PAC.Xpert.AgentSettings' | translate: {Default: 'Agent Settings'} }}
@@ -28,8 +39,6 @@
   <button type="button" class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium p-2"
     [ngClass]="sidePanel() === 'variables' ? 'text-primary-500' : ''"
     (click)="toggleVariables()"
-    [ngmTooltip]="varInDevelopment"
-    [hideDelay]="100"
   >
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"
       class="w-4 h-4 text-components-button-secondary-text">
@@ -221,7 +230,8 @@
         </div>
         @if (draft()) {
           <button type="button" class="self-center px-2 py-1 rounded-lg border border-token-border-medium text-sm transition duration-200
-            text-primary-600 hover:bg-primary-50 active:bg-primary-100" (click)="resume()">
+            text-primary-600 hover:bg-primary-50 active:bg-primary-100"
+            (click)="resume()">
             {{ 'PAC.Xpert.Reset' | translate: {Default: 'Reset'} }}
           </button>
         }
@@ -296,7 +306,17 @@
 </ng-template>
 
 <ng-template #conversationsMenu>
-  <div class="cdk-menu__medium flex flex-col w-96 max-w-md !p-0" cdkMenu @overlayAnimation1>
+  <div class="cdk-menu__medium relative flex flex-col w-96 max-w-md !p-0" cdkMenu @overlayAnimation1>
+
+    <button type="button" class="btn rounded-xl justify-center absolute top-2 right-2 w-8 h-8 z-20"
+      (click)="refreshConv$.next()">
+      <i class="ri-restart-line"></i>
+    </button>
+
+    @if (loadingConv()) {
+      <ngm-spin class="absolute top-0 left-0 w-full h-full z-20" />
+    }
+
     <div class="sticky top-0 bg-white flex items-center justify-between p-2 text-base font-semibold text-gray-900">
       <div class="grow">{{ 'PAC.Xpert.ChatHistory' | translate: {Default: 'Chat History'} }}</div>
     </div>
@@ -404,6 +424,20 @@
         </div>
       </div>
     </div>
+  </div>
+</ng-template>
+
+
+<ng-template #diagramMenu>
+  <div cdkMenu @overlayAnimation1 class="min-w-[100px] min-h-[200px] max-w-xl max-h-[600px] p-4 relative">
+    @if (diagram$ | async; as diagram) {
+      <img [src]="diagram" alt="Diagram Image" class="max-w-full max-h-full">
+    } @else {
+      <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+    }
+    <button type="button" class="btn rounded-xl justify-center absolute top-2 right-2 w-8 h-8" (click)="refreshDiagram$.next()">
+      <i class="ri-restart-line"></i>
+    </button>
   </div>
 </ng-template>
 

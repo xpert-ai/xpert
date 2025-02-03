@@ -7,16 +7,26 @@
   <div class="flex-1"></div>
 
   <div class="flex justify-between items-center gap-1">
+    <div class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-base-content
+      hover:bg-hover-bg"
+      [matTooltip]="'PAC.Xpert.ShowDiagram' | translate: { Default: 'Show diagram' }"
+      #mt1="cdkMenuTriggerFor"
+      [cdkMenuTriggerFor]="diagramMenu"
+      [cdkMenuTriggerData]="{trigger: mt1}"
+    >
+      <i class="ri-links-line text-lg"></i>
+    </div>
 
-    <button type="button" class="action-btn action-btn-sm justify-center w-6 h-6 p-0.5 rounded-md pressable"
-      [matTooltip]="'PAC.Xpert.RefreshToolset' | translate: {Default: 'Refresh, sync toolset configuration'}"
-      matTooltipPosition="above"
+    <button type="button" class="action-btn action-btn-sm justify-center w-8 h-8 p-0.5 rounded-md pressable"
+      [matTooltip]="'PAC.Xpert.RefreshExternalXpert' | translate: {Default: 'Refresh, sync external xpert configuration'}"
       (click)="refresh()">
       <i class="ri-refresh-line"></i>
     </button>
 
+    <div class="mx-2 w-[1px] h-3.5 bg-divider-regular"></div>
+
     <div class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer
-      text-text-tertiary hover:text-base-content hover:bg-hover-bg"
+      text-text-tertiary hover:text-text-danger hover:bg-hover-bg"
       (click)="closePanel()"
     >
       <ngm-close-svg class="w-5 h-5" />
@@ -29,12 +39,61 @@
     {{xpert().description}}
   </div>
 
+  <div class="flex flex-col border border-solid border-divider-regular px-3 py-2 rounded-2xl text-sm text-text-secondary">
+    <div class="flex items-center text-gray-600">
+      <i class="ri-robot-2-line mr-1 text-lg"></i>
+      <span class="font-semibold uppercase">{{primaryAgent().title}}</span>
+    </div>
+    <div class="font-medium">{{primaryAgent().name || primaryAgent().key}}</div>
+    <div>{{primaryAgent().description}}</div>
+  </div>
+
   <copilot-model-select class="w-full" readonly
     [modelType]="eModelType.LLM"
     [copilotModel]="copilotModel()"
   />
+
+  @if (parameters()?.length) {
+    <xpert-parameters-card [parameters]="parameters()" readonly />
+  }
+
+  <div class="w-full h-[1px] bg-divider-regular my-2"></div>
+
+  <div class="">
+    <div class="flex items-center space-x-1 shrink-0">
+      <div class="flex items-center justify-center w-6 h-6">
+        <i class="ri-git-commit-fill text-orange-600"></i>
+      </div>
+      <div class="text-sm font-semibold text-gray-800">{{'PAC.Xpert.Node' | translate: {Default: 'Node'} }}</div>
+    </div>
+
+    <div class="flex justify-end items-center gap-1 w-full">
+      <i class="ri-volume-mute-fill text-base text-sky-500"></i>
+      <div class="text-sm">{{'PAC.Xpert.DisableOutput' | translate: {Default: 'Disable Output'} }}</div>
+      <mat-slide-toggle class="flex" [ngModel]="disableOutput()" (ngModelChange)="updateDisableOutput($event)"
+        labelPosition="before"
+        ngm-density="xs"
+        [matTooltip]="'PAC.Xpert.DisableOutputTip' | translate: {Default: 'Disable returning the agent\'s output to the user'}"
+        matTooltipPosition="above"
+      />
+    </div>
+  </div>
 </div>
 
 @if (loading()) {
   <ngm-spin class="absolute top-0 left-0 w-full h-full"/>
 }
+
+
+<ng-template #diagramMenu>
+  <div cdkMenu @overlayAnimation1 class="min-w-[100px] min-h-[200px] max-w-xl max-h-[600px] p-4 relative">
+    @if (diagram$ | async; as diagram) {
+      <img [src]="diagram" alt="Diagram Image" class="max-w-full max-h-full">
+    } @else {
+      <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+    }
+    <button type="button" class="btn rounded-xl justify-center absolute top-2 right-2 w-8 h-8" (click)="refreshDiagram$.next()">
+      <i class="ri-restart-line"></i>
+    </button>
+  </div>
+</ng-template>

@@ -149,7 +149,11 @@
   }
 
   .cdk-menu-item.danger:hover {
-    @apply bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-300;
+    @apply bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-300 disabled:bg-gray-50 dark:disabled:bg-gray-100/10;
+  }
+
+  .cdk-menu-item:disabled {
+    @apply cursor-not-allowed;
   }
 
   .cdk-menu-item.active {

@@ -2,8 +2,9 @@ import { ToolCall } from '@langchain/core/dist/messages/tool'
 import { BaseMessage } from '@langchain/core/messages'
 import { Runnable, RunnableLike, RunnableToolLike } from '@langchain/core/runnables'
 import { StructuredToolInterface } from '@langchain/core/tools'
-import { Annotation, messagesStateReducer } from '@langchain/langgraph'
+import { Annotation, CompiledStateGraph, messagesStateReducer } from '@langchain/langgraph'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
+import { TStateVariable, TVariableAssigner, TXpertTeamNode, VariableOperationEnum } from '@metad/contracts'
 
 export const STATE_VARIABLE_SYS_LANGUAGE = 'sys_language'
 export const STATE_VARIABLE_USER_EMAIL = 'user_email'
@@ -14,11 +15,11 @@ export const AgentStateAnnotation = Annotation.Root({
 		reducer: messagesStateReducer,
 		default: () => []
 	}),
-    input: Annotation<string>({
+	input: Annotation<string>({
 		reducer: (a, b) => b ?? a,
 		default: () => ''
 	}),
-    [STATE_VARIABLE_SYS_LANGUAGE]: Annotation<string>({
+	[STATE_VARIABLE_SYS_LANGUAGE]: Annotation<string>({
 		reducer: (a, b) => b ?? a,
 		default: () => null
 	}),
@@ -30,7 +31,7 @@ export const AgentStateAnnotation = Annotation.Root({
 		reducer: (a, b) => b ?? a,
 		default: () => null
 	}),
-    toolCall: Annotation<ToolCall>({
+	toolCall: Annotation<ToolCall>({
 		reducer: (a, b) => b ?? a,
 		default: () => null
 	}),
@@ -49,20 +50,69 @@ export const AgentStateAnnotation = Annotation.Root({
 		default: () => null
 	}),
 	/**
-	 * Long term memory retrieved 
+	 * Long term memory retrieved
 	 */
 	memories: Annotation<SearchItem[]>({
 		reducer: (a, b) => b ?? a,
 		default: () => null
-	}),
+	})
 })
 
 export type TSubAgent = {
-	name: string;
-	tool: StructuredToolInterface | RunnableToolLike;
-	node: RunnableLike<typeof AgentStateAnnotation> | Runnable
+	name: string
+	tool: StructuredToolInterface | RunnableToolLike
+	node?: RunnableLike<typeof AgentStateAnnotation> | Runnable
+	stateGraph?: Runnable
+	nextNodes?: TXpertTeamNode[]
 }
 
 export function parseXmlString(content: string) {
 	return content?.replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+}
+
+export type TGraphTool = {
+	caller: string
+	tool: StructuredToolInterface | RunnableToolLike
+	variables?: TVariableAssigner[]
+}
+
+export function stateVariable(variable: TStateVariable) {
+	return {
+		default: () => variable.type === 'string' ? variable.default : variable.default ? JSON.parse(variable.default) : null,
+		reducer: (left, right) => {
+			if (variable.type.startsWith('array')) {
+				left ??= []
+				switch (variable.operation) {
+					case VariableOperationEnum.APPEND:
+						if (Array.isArray(right)) {
+							return [...left, ...right]
+						} else {
+							return right == null ? left : [...left, right]
+						}
+					case VariableOperationEnum.OVERWRITE:
+						return right
+					default:
+						return right
+				}
+			} else if (variable.type === 'number') {
+				switch (variable.operation) {
+					case VariableOperationEnum.APPEND:
+						return left == null ? Number(right) : left + Number(right)
+					case VariableOperationEnum.OVERWRITE:
+						return Number(right)
+					default:
+						return right
+				}
+			} else if (variable.type === 'string') {
+				switch (variable.operation) {
+					case VariableOperationEnum.APPEND:
+						return left == null ? right : left + right
+					case VariableOperationEnum.OVERWRITE:
+						return right ?? left
+					default:
+						return right
+				}
+			}
+		}
+	}
 }

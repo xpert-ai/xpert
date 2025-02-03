@@ -1,8 +1,9 @@
 @use '../flow-common';
 
 :host {
-  @apply w-full w-full;
+  @apply w-full h-full;
   --output-size: 14px;
+  --f-component-hover-border: theme('colors.primary.300');
 }
 
 :host::ng-deep {
@@ -11,12 +12,35 @@
   @include flow-common.line-alignment;
   @include flow-common.minimap;
   .f-connection {
+    .connection-marker {
+      circle, rect, path {
+        fill: var(--connection-color);
+      }
+    }
     &.f-selected {
+      z-index: 1;
       .f-connection-path {
         stroke: var(--components-card-option-selected-border);
       }
+      .connection-marker {
+        circle, rect, path {
+          fill: var(--components-card-option-selected-border);
+        }
+      }
+    }
+    &.f-hover:not(.f-selected) {
+      z-index: 1;
+      .f-connection-path {
+        stroke: var(--f-component-hover-border);
+      }
+      .connection-marker {
+        circle, rect, path {
+          fill: var(--f-component-hover-border);
+        }
+      }
     }
   }
+  
   .f-node-input,
   .f-node-output {
     @apply flex justify-center items-center;
@@ -38,9 +62,14 @@
       svg {
         visibility: hidden;
       }
+
+      .inner-dot {
+        @apply w-full h-full flex justify-center items-center shrink-0 bg-primary-400;
+      }
     }
+
     &:not(.ngm-executor-agent):hover {
-      .f-component.f-node-output {
+      .f-component.f-node-output .inner-dot {
         width: var(--output-size);
         height: var(--output-size);
         @apply rounded-full border border-primary-400;
@@ -51,6 +80,14 @@
           @apply transition-all origin-center scale-150;
         }
       }
+    }
+
+    .f-component.f-node-input.left {
+      border-radius: 0;
+      width: 3px;
+      height: 10px;
+      border: none;
+      @apply bg-blue-500;
     }
   }
 }
@@ -71,7 +108,10 @@ f-flow {
 }
 .f-node {
   @include flow-common.node;
-  @apply border-[2px] rounded-2xl border-transparent hover:border-primary-100;
+  @apply border-[2px] rounded-2xl border-transparent;
+  &.f-hover:not(.ngm-selected) {
+    border-color: var(--f-component-hover-border);
+  }
   &.ngm-selected {
     @apply border-components-card-option-selected-border shadow-md;
   }

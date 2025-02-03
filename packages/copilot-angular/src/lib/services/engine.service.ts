@@ -21,7 +21,8 @@ import {
   nanoid,
   SuggestionOutput,
   SuggestionOutputTool,
-  TAgentConfig
+  TAgentConfig,
+  XpertAgentExecutionStatusEnum
 } from '@metad/copilot'
 import { TranslateService } from '@ngx-translate/core'
 import { AgentExecutor, createOpenAIToolsAgent } from 'langchain/agents'
@@ -683,7 +684,7 @@ export class NgmCopilotEngineService implements CopilotEngine {
       if (eventStack.length > 0) {
         this.upsertMessage({
           id: assistantId,
-          status: 'error'
+          status: XpertAgentExecutionStatusEnum.ERROR
         })
       }
 
@@ -831,7 +832,7 @@ export class NgmCopilotEngineService implements CopilotEngine {
       this.upsertMessage({
         id: assistantId,
         role: CopilotChatMessageRoleEnum.Assistant,
-        status: 'error',
+        status: XpertAgentExecutionStatusEnum.ERROR,
         error: err.message
       })
 

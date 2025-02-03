@@ -1,10 +1,10 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { ICopilotModel } from './copilot-model.model'
 import { IKnowledgebase } from './knowledgebase.model'
-import { TAvatar } from '../types'
+import { I18nObject, TAvatar } from '../types'
 import { IXpertToolset } from './xpert-toolset.model'
-import { IXpert, TXpertParameter } from './xpert.model'
-import { ToolCall } from '@langchain/core/dist/messages/tool'
+import { IXpert, ToolCall, TXpertParameter } from './xpert.model'
+import { TVariableAssigner } from './xpert-workflow.model'
 
 export type TXpertAgent = {
   key: string
@@ -13,13 +13,21 @@ export type TXpertAgent = {
   description?: string
   avatar?: TAvatar
   /**
-   * 系统提示语
+   * System prompt
    */
   prompt?: string
+  /**
+   * Prompt templates (ai or human)
+   */
+  promptTemplates?: TAgentPromptTemplate[]
   /**
    * Input parameters for agent
    */
   parameters?: TXpertParameter[]
+  /**
+   * Output variables of agent
+   */
+  outputVariables?: TAgentOutputVariable[]
 
   /**
    * More configuration
@@ -81,7 +89,37 @@ export interface IXpertAgent extends IBasePerTenantAndOrganizationEntityModel, T
 }
 
 export type TXpertAgentOptions = {
-  //
+  /**
+   * Disable message history for agent conversation
+   */
+  disableMessageHistory?: boolean
+
+  /**
+   * Write output variables to memory (state)
+   */
+  memories?: TVariableAssigner[]
+
+  /**
+   * Whether to enable parallel tool calls, default: true
+   */
+  parallelToolCalls?: boolean
+}
+
+export type TAgentPromptTemplate = {
+  id: string;
+  role: 'ai' | 'human';
+  text: string
+}
+
+export type TAgentOutputVariable = TXpertParameter & {
+  /**
+     * value write to state's variable
+     */
+  variableSelector: string
+  /**
+   * How to write value to variable
+   */
+  operation: 'append' | 'extends' | 'overwrite' | 'clear'
 }
 
 export type TChatAgentParams = {
@@ -103,7 +141,7 @@ export type TChatAgentParams = {
   reject?: boolean
 }
 
-export function agentLabel(agent: IXpertAgent) {
+export function agentLabel(agent: Partial<IXpertAgent>) {
   return agent.title || agent.name || agent.key
 }
 
@@ -116,3 +154,37 @@ export function convertToUrlPath(title: string) {
     .replace(/\s+/g, '-') // Replace spaces with -
     .replace(/[^a-z0-9-]/g, ''); // Remove non-alphanumeric characters
 }
+
+export const VariableOperations: {
+  value: TAgentOutputVariable['operation'];
+  label: I18nObject
+}[] = [
+  {
+    value: 'append',
+    label: {
+      zh_Hans: '追加',
+      en_US: 'Append'
+    }
+  },
+  {
+    value: 'extends',
+    label: {
+      zh_Hans: '扩展',
+      en_US: 'Extend'
+    }
+  },
+  {
+    value: 'overwrite',
+    label: {
+      zh_Hans: '覆盖',
+      en_US: 'Overwrite'
+    }
+  },
+  {
+    value: 'clear',
+    label: {
+      zh_Hans: '清除',
+      en_US: 'Clear'
+    }
+  }
+]

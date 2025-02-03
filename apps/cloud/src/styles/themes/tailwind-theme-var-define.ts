@@ -1,6 +1,7 @@
 const vars = {
   // https://daisyui.com/docs/colors/
   'base-content': 'var(--color-base-content)',
+  'surface-container': 'var(--ngm-color-surface-container)',
 
   // Custom colors
   'text-primary': 'var(--color-text-primary)',
@@ -35,6 +36,8 @@ const vars = {
 
   'hover-bg': 'var(--color-hover-bg)',
   'danger-bg': 'var(--color-danger-bg)',
+  'state-base-hover': 'var(--color-hover-bg)',
+  'state-destructive-hover': 'var(--color-state-destructive-hover)',
 
   'token-main-surface-primary': 'var(--main-surface-primary)',
   'token-main-surface-secondary': 'var(--main-surface-secondary)',
@@ -45,6 +48,7 @@ const vars = {
   'components-card-option-selected-border': 'var(--components-card-option-selected-border)',
   'components-card-bg': 'var(--color-components-card-bg)',
   'components-panel-bg': 'var(--color-components-panel-bg)',
+  'components-panel-bg-blur': 'var(--color-components-panel-bg-blur)',
   'components-panel-border': 'var(--color-components-panel-border)',
   'components-button-primary-text': 'var(--color-components-button-primary-text)',
   'components-button-primary-border': 'var(--color-components-button-primary-border)',
@@ -57,7 +61,7 @@ const vars = {
   'components-input-border-active': 'var(--color-components-input-border-active)',
   'components-input-text-placeholder': 'var(--color-components-input-text-placeholder)',
   'components-list-option-bg': 'var(--color-components-list-option-bg)',
-  'components-list-option-active-bg': 'var(--color-components-list-option-active-bg)',
+  'components-list-option-active-bg': 'var(--color-components-list-option-active-bg)'
 }
 
 export default vars

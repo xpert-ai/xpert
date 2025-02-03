@@ -1,6 +1,9 @@
 @for (parameter of params(); track parameter.name) {
   <div class="xl:flex flex-col justify-start items-stretch">
     <div class="h-6 mb-1 flex justify-start items-center gap-0.5 text-text-secondary">
+      @if (!parameter.optional) {
+        <span class="text-red-500">*</span>
+      }
       <div class="mx-0.5 text-sm font-medium text-gray-700 max-w-[150px] truncate" [title]="parameter.title">{{parameter.title}}</div>
       <ngm-slash-svg class="" />
       <ngm-variable-svg class="w-4 h-4 text-primary-500" />
@@ -11,8 +14,9 @@
       @case (eXpertParameterTypeEnum.TEXT) {
         <input
             class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
-            [placeholder]="(parameter.title || parameter.name) + (parameter.optional ? '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' : '')"
+            [placeholder]="(parameter.description || parameter.title || parameter.name) + (parameter.optional ? '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' : '')"
             type="text"
+            [disabled]="readonly()"
             [ngModel]="getParameter(parameter.name)"
             (ngModelChange)="updateParameter(parameter.name, $event)"
         />
@@ -20,8 +24,9 @@
       @case (eXpertParameterTypeEnum.NUMBER) {
         <input
             class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
-            [placeholder]="(parameter.title || parameter.name) + (parameter.optional ? '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' : '')"
+            [placeholder]="(parameter.description || parameter.title || parameter.name) + (parameter.optional ? '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' : '')"
             type="number"
+            [disabled]="readonly()"
             [ngModel]="getParameter(parameter.name)"
             (ngModelChange)="updateParameter(parameter.name, $event)"
         />
@@ -29,7 +34,8 @@
       @case (eXpertParameterTypeEnum.PARAGRAPH) {
         <textarea
           class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-[120px] bg-gray-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
-          [placeholder]="(parameter.title || parameter.name) + (parameter.optional ? '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' : '')"
+          [disabled]="readonly()"
+          [placeholder]="(parameter.description || parameter.title || parameter.name) + (parameter.optional ? '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' : '')"
           [ngModel]="getParameter(parameter.name)"
           (ngModelChange)="updateParameter(parameter.name, $event)"
         ></textarea>
@@ -37,8 +43,9 @@
 
       @case (eXpertParameterTypeEnum.SELECT) {
         <ngm-select class="flex-1"
-          [placeholder]="(parameter.title || parameter.name) + (parameter.optional ? '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' : '')"
-          valueKey="key" 
+          [placeholder]="(parameter.description || parameter.title || parameter.name) + (parameter.optional ? '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' : '')"
+          valueKey="key"
+          [disabled]="readonly()"
           [selectOptions]="parameter.options" displayDensity="cosy"
           [displayBehaviour]="eDisplayBehaviour.descriptionOnly" 
           [ngModel]="getParameter(parameter.name)"

@@ -34,7 +34,9 @@
         <pac-knowledgebase-list class="w-full" [disabled]="disabled()" [knowledgebaseList]="knowledgebaseList()" [(knowledgebases)]="knowledgebases" />
       } @else {
         <div class="flex justify-center p-4 text-token-text-secondary">
-          <mat-icon fontSet="material-icons-round">battery_horiz_000</mat-icon> {{ 'PAC.KEY_WORDS.Empty' | translate: {Default: 'Empty'}  }}</div>
+          <i class="ri-battery-line mr-1"></i>
+          {{ 'PAC.KEY_WORDS.Empty' | translate: {Default: 'Empty'} }}
+        </div>
       }
     </div>
 
@@ -55,7 +57,7 @@
 
     @if (xpert()?.id) {
       <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="openAbout()">
-        <mat-icon class="text-token-text-secondary mr-2">info</mat-icon>
+        <i class="ri-information-2-line mr-2"></i>
         {{'PAC.KEY_WORDS.About'  | translate: {Default: 'About'} }}
       </button>
     }

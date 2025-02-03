@@ -63,7 +63,21 @@
 
 <div class="w-full flex flex-col gap-2 p-2">
   @for (tool of tools(); track tool.id) {
-    <xpert-tool-test [tool]="tool" class="w-full" [enabled]="tool.enabled">
+    <div class="w-full flex flex-col">
+      <div class="my-2 h-[1px] bg-divider-subtle"></div>
+      <div class="w-full flex justify-start items-center">
+        <button class="w-7 h-7 mr-1 flex justify-center items-center rounded-lg pressable enabled:hover:bg-hover-bg enabled:cursor-pointer"
+          (click)="toggleExpand(tool.name)"
+        >
+          <i class="ri-arrow-up-s-line text-text-tertiary transition-transform origin-center"
+            [ngClass]="{'rotate-90': !expandTools()[tool.name]}"></i>
+        </button>
+        <div class="px-2 truncate">{{tool.name | i18n}}</div>
+      </div>
+
+    @if (expandTools()[tool.name]) {
+      <div class="px-2 text-text-secondary line-clamp-3">{{tool.description | i18n}}</div>
+
       <div class="w-full flex justify-end px-2 mb-4">
         <mat-slide-toggle [ngModel]="getSensitive(tool.name)" (ngModelChange)="updateSensitive(tool.name, $event)"
           labelPosition="before"
@@ -81,7 +95,30 @@
           matTooltipPosition="above"
         >{{'PAC.Xpert.End' | translate: {Default: 'End'} }}</mat-slide-toggle>
       </div>
-    </xpert-tool-test>
+
+      <div class="w-full flex justify-end px-2 mb-4">
+        <mat-slide-toggle [ngModel]="toolMemory(tool.name)" (ngModelChange)="toggleToolMemory(tool.name, $event)"
+          labelPosition="before"
+          ngm-density="xs"
+          [matTooltip]="'PAC.Xpert.ToolMemoryTip' | translate: {Default: 'Tool memory, storing tool results in agent state variables'}"
+          matTooltipPosition="above"
+        >{{'PAC.Xpert.ToolMemory' | translate: {Default: 'Tool Memory'} }}</mat-slide-toggle>
+      </div>
+
+      @if (toolMemory(tool.name)) {
+        <xpert-variables-assigner class="p-2"
+          [title]="'PAC.Xpert.WritetoMemory' | translate: {Default: 'Write to memory'}"
+          [tooltip]="'PAC.Xpert.WriteToolResultToMemoryTooltip' | translate: {Default: 'Write tool output to global memory of the digital expert'}"
+          type="tool"
+          [variables]="variables()"
+          [memories]="toolMemory(tool.name)"
+          (memoriesChange)="updateToolMemory(tool.name, $event)"
+        />
+      }
+
+      <xpert-tool-test [tool]="tool" class="w-full px-2 mt-4" [enabled]="tool.enabled" />
+    }
+    </div>
   }
 </div>
 

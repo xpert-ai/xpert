@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, inject, input, signal } from '@angular/core'
+import { booleanAttribute, Component, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -18,8 +18,13 @@ export class XpertParametersCardComponent {
   public cva = inject<NgxControlValueAccessor<Partial<Record<string, unknown>> | null>>(NgxControlValueAccessor)
   readonly value = this.cva.value$
 
+  // Inputs
   readonly parameters = input<TXpertParameter[]>()
+  readonly readonly = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
+  // States
   readonly paramsExpanded = signal(false)
 
   toggleParams() {

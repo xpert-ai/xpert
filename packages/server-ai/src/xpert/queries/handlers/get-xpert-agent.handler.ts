@@ -23,7 +23,7 @@ export class GetXpertAgentHandler implements IQueryHandler<GetXpertAgentQuery> {
 
 		if (draft && xpert.draft) {
 			const draft = xpert.draft
-			const agentNode = draft?.nodes?.find((_) => _.key === keyOrName || _.entity.name === keyOrName)
+			const agentNode = draft?.nodes?.find((_) => _.type === 'agent' && (_.key === keyOrName || _.entity.name === keyOrName))
 			if (!agentNode) {
 				return null
 			}

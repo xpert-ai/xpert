@@ -21,7 +21,7 @@ import {
   TChatOptions,
   TChatRequest,
   TDeleteResult,
-  TStateVariable,
+  TWorkflowVarGroup,
   TXpertTeamDraft,
   XpertTypeEnum
 } from '../types'
@@ -57,6 +57,10 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     this.#refresh.next()
   }
 
+  getBySlug(slug: string) {
+    return this.httpClient.get<IXpert>(this.apiBaseUrl + `/slug/${slug}`)
+  }
+
   getTeam(id: string, options?: PaginationParams<IXpert>) {
     return this.httpClient.get<IXpert>(this.apiBaseUrl + `/${id}/team`, { params: toHttpParams(options) })
   }
@@ -88,6 +92,17 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   validateName(name: string) {
     return this.httpClient.get<boolean>(this.apiBaseUrl + `/validate`, {
       params: toParams({ name })
+    })
+  }
+
+  getDiagram(id: string, agentKey?: string) {
+    let params = toParams({isDraft: true,})
+    if (agentKey) {
+      params =params.append('agentKey', agentKey)
+    }
+    return this.httpClient.get(this.apiBaseUrl + `/${id}/diagram`, {
+      params,
+      responseType: 'blob',
     })
   }
 
@@ -144,8 +159,9 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.delete<TDeleteResult>(this.apiBaseUrl + `/${id}/memory`)
   }
 
-  getVariables(id: string, agentKey: string) {
-    return this.httpClient.get<TStateVariable[]>(this.apiBaseUrl + `/${id}/agent/${agentKey}/variables`)
+  getVariables(id: string, agentKey?: string) {
+    return agentKey ? this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/agent/${agentKey}/variables`)
+    : this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/variables`)
   }
 
   getChatApp(id: string) {

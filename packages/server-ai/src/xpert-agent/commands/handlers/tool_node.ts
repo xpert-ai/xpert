@@ -1,6 +1,5 @@
 import { CallbackManagerForChainRun } from "@langchain/core/callbacks/manager";
 import {
-  BaseMessage,
   ToolMessage,
   AIMessage,
   isBaseMessage,
@@ -8,9 +7,9 @@ import {
 import { mergeConfigs, patchConfig, Runnable, RunnableConfig, RunnableToolLike } from "@langchain/core/runnables";
 import { StructuredToolInterface } from "@langchain/core/tools";
 import { AsyncLocalStorageProviderSingleton } from "@langchain/core/singletons";
-import { END, isCommand, isGraphInterrupt, MessagesAnnotation } from "@langchain/langgraph";
+import { Command, isCommand, isGraphInterrupt } from "@langchain/langgraph";
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
-import { ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from "@metad/contracts";
+import { channelName, ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE, TVariableAssigner } from "@metad/contracts";
 import { getErrorMessage } from "@metad/server-common";
 import { setContextVariable } from "@langchain/core/context";
 
@@ -18,6 +17,8 @@ export type ToolNodeOptions = {
   name?: string;
   tags?: string[];
   handleToolErrors?: boolean;
+  caller?: string
+  variables?: TVariableAssigner[]
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -31,6 +32,9 @@ export class ToolNode<T = any> extends Runnable<T, T> {
   trace = false;
   config?: RunnableConfig;
   recurse = true;
+  caller?: string
+  variables: TVariableAssigner[]
+  channel: string
 
   constructor(
     tools: (StructuredToolInterface | RunnableToolLike)[],
@@ -40,13 +44,17 @@ export class ToolNode<T = any> extends Runnable<T, T> {
     super({ name, tags });
     this.tools = tools;
     this.handleToolErrors = handleToolErrors ?? this.handleToolErrors;
+    this.caller = options?.caller
+    this.variables = options?.variables
+
+    this.channel = options?.caller ? channelName(options.caller) : null
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected async run(input: any, config: RunnableConfig): Promise<T> {
     const message = Array.isArray(input)
-      ? input[input.length - 1]
-      : input.messages[input.messages.length - 1];
+      ? input[input.length - 1] : input[this.channel]?.messages ?
+       input[this.channel].messages[input[this.channel].messages.length - 1] : null
 
     if (message?._getType() !== "ai") {
       throw new Error("ToolNode only accepts AIMessages as input.");
@@ -65,9 +73,32 @@ export class ToolNode<T = any> extends Runnable<T, T> {
             { ...call, type: "tool_call" },
             config
           );
-          if (isBaseMessage(output) && output._getType() === "tool" ||
-            isCommand(output)
-          ) {
+          if (isBaseMessage(output) && output._getType() === "tool") {
+            if (this.variables) {
+              const variables = this.variables.reduce((acc, curr) => {
+                if (curr.inputType === 'variable') {
+                  if (curr.value === 'artifact') {
+                    acc[curr.variableSelector] = (<ToolMessage>output).artifact
+                  } else {
+                    acc[curr.variableSelector] = (<ToolMessage>output).content
+                  }
+                } else if (curr.inputType === 'constant') {
+                  acc[curr.variableSelector] = curr.value
+                }
+                return acc
+              }, {})
+              return new Command({
+                update:
+                  {
+                    ...variables,
+                    // [`${this.channel}.messages`]: [output],
+                    [this.channel]: {messages: [output]},
+                    messages: [output],
+                  }
+              })
+            }
+            return output;
+          } else if (isCommand(output)) {
             return output;
           } else {
             return new ToolMessage({
@@ -93,18 +124,26 @@ export class ToolNode<T = any> extends Runnable<T, T> {
             toolCall: call,
             error: getErrorMessage(e)
           })
-          return new ToolMessage({
-            content: `Error: ${e.message}\n Please fix your mistakes.`,
-            name: call.name,
-            tool_call_id: call.id ?? "",
-          });
+          // Return back to caller agent when error
+          return new Command({
+            goto: this.caller,
+            update: {
+              [this.channel]: {messages: [
+                new ToolMessage({
+                  content: `Error: ${e.message}\n Please fix your mistakes.`,
+                  name: call.name,
+                  tool_call_id: call.id ?? "",
+                })
+              ]},
+            }
+          })
         }
       }) ?? []
     );
 
      // Preserve existing behavior for non-command tool outputs for backwards compatibility
      if (!outputs.some(isCommand)) {
-      return (Array.isArray(input) ? outputs : { messages: outputs }) as T;
+      return (Array.isArray(input) ? outputs : { [this.channel]: {messages: outputs} }) as T;
     }
 
     // Handle mixed Command and non-Command outputs
@@ -112,7 +151,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
       if (isCommand(output)) {
         return output;
       }
-      return Array.isArray(input) ? [output] : { messages: [output] };
+      return Array.isArray(input) ? [output] : { [this.channel]: {messages: [output]} };
     });
     return combinedOutputs as T;
   }
@@ -176,22 +215,5 @@ export class ToolNode<T = any> extends Runnable<T, T> {
     }
 
     return returnValue;
-  }
-}
-
-export function toolsCondition(
-  state: BaseMessage[] | typeof MessagesAnnotation.State
-): "tools" | typeof END {
-  const message = Array.isArray(state)
-    ? state[state.length - 1]
-    : state.messages[state.messages.length - 1];
-
-  if (
-    "tool_calls" in message &&
-    ((message as AIMessage).tool_calls?.length ?? 0) > 0
-  ) {
-    return "tools";
-  } else {
-    return END;
   }
 }

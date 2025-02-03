@@ -16,6 +16,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { IPoint, IRect, PointExtensions } from '@foblex/2d'
 import {
@@ -42,9 +43,9 @@ import { Observable, of, Subscription, timer } from 'rxjs'
 import { debounce, debounceTime, delay, map, pairwise, tap } from 'rxjs/operators'
 import {
   AiModelTypeEnum,
+  IXpert,
   ToastrService,
   TXpertAgentConfig,
-  TXpertTeamConnection,
   TXpertTeamNode,
   XpertAgentExecutionStatusEnum,
   XpertService,
@@ -67,6 +68,7 @@ import { XpertStudioPanelComponent } from './panel/panel.component'
 import { XpertExecutionService } from './services/execution.service'
 import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
+import { XpertStudioNodeWorkflowComponent } from './components/workflow/workflow.component'
 
 
 @Component({
@@ -83,6 +85,7 @@ import { EmojiAvatarComponent } from '../../../@shared/avatar'
     TranslateModule,
     FFlowModule,
     NgxFloatUiModule,
+    MatTooltipModule,
 
     NgmCommonModule,
 
@@ -92,6 +95,7 @@ import { EmojiAvatarComponent } from '../../../@shared/avatar'
     XpertStudioNodeAgentComponent,
     XpertStudioNodeKnowledgeComponent,
     XpertStudioNodeToolsetComponent,
+    XpertStudioNodeWorkflowComponent,
     XpertStudioHeaderComponent,
     XpertStudioPanelComponent,
     XpertAgentExecutionStatusComponent,
@@ -154,7 +158,7 @@ export class XpertStudioComponent {
     return nodes
   })
   readonly xperts = computed(() => {
-    const xperts = []
+    const xperts: (TXpertTeamNode & {type: 'xpert'})[] = []
     extractXpertGroup(xperts, this.viewModel()?.nodes)
     return xperts
   })
@@ -174,10 +178,12 @@ export class XpertStudioComponent {
 
   readonly viewModel = toSignal(this.apiService.store.pipe(map((state) => state.draft)))
   readonly xpert = computed(() => this.viewModel()?.team)
+  readonly agentConfig = computed(() => this.xpert()?.agentConfig)
   readonly position = signal<IPoint>(null)
   readonly scale = signal<number>(null)
 
   readonly selectedNodeKey = this.selectionService.selectedNodeKey
+  readonly hoverNode = signal<string>(null)
 
   // Agent Execution Running status
   readonly agentExecutions = this.executionService.agentExecutions
@@ -302,6 +308,15 @@ export class XpertStudioComponent {
   
   onPreview(preview: boolean) {
     this.sidePanel.set(preview ? 'preview' : null)
+  }
+
+  selectAgentStatus(key: string) {
+    const executions = this.agentExecutions()[key]
+    return executions ? executions[executions.length - 1]?.status : null
+  }
+
+  isDisableOutput(g: TXpertTeamNode) {
+    return this.agentConfig()?.disableOutputs?.includes(g.key)
   }
 }
 

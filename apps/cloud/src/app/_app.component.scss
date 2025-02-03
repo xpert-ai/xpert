@@ -1,6 +1,7 @@
 @import './features/home/_home';
 @import './features/project/_project.component';
 @import './features/_features.component';
+@import './@shared/components';
 
 .pac-page-header {
   @apply flex flex-col justify-start items-stretch gap-2 px-4 pt-4;

@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output, si
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { CopilotChatConversation, CopilotChatMessage, CopilotCommand, MessageDataType } from '@metad/copilot'
+import { CopilotChatConversation, CopilotChatMessage, CopilotCommand, MessageDataType, stringifyMessageContent } from '@metad/copilot'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { NgmCopilotEngineService, NgmCopilotService } from '../../services'
@@ -45,6 +45,7 @@ export class CopilotAIMessageComponent {
   readonly copilot = toSignal(this.copilotService.copilot$)
   readonly copilotEnabled = toSignal(this.copilotService.enabled$)
   readonly showTokenizer = computed(() => this.copilot()?.showTokenizer)
+  readonly content = computed(() => stringifyMessageContent(this.message()?.content))
 
   readonly messageCopied = signal<string[]>([])
 
@@ -59,8 +60,8 @@ export class CopilotAIMessageComponent {
   }
 
   copyMessage(message: CopilotChatMessage) {
-    this.copied.emit(message.content)
-    this.#clipboard.copy(message.content)
+    this.copied.emit(stringifyMessageContent(message.content))
+    this.#clipboard.copy(stringifyMessageContent(message.content))
     this.messageCopied.update((ids) => [...ids, message.id])
     setTimeout(() => {
       this.messageCopied.update((ids) => ids.filter((id) => id !== message.id))

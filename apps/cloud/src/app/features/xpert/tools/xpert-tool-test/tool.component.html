@@ -3,14 +3,11 @@
   [disabled]="disabled()"
 >
   <div class="w-full text-gray-800 font-semibold leading-5 flex items-center">
-    <button class="w-6 h-6 mr-2 rounded-md pressable enabled:hover:bg-hover-bg enabled:cursor-pointer"
+    <button class="w-7 h-7 mr-1 flex justify-center items-center rounded-lg pressable enabled:hover:bg-hover-bg enabled:cursor-pointer"
       [disabled]="disabled()"
       (click)="toggleExpand()">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
-        class="w-6 h-6 text-text-tertiary"
-        [ngClass]="{'rotate-180': expand()}">
-        <path d="M12 15.0006L7.75732 10.758L9.17154 9.34375L12 12.1722L14.8284 9.34375L16.2426 10.758L12 15.0006Z"></path>
-      </svg>
+      <i class="ri-arrow-up-s-line text-text-tertiary transition-transform origin-center"
+        [ngClass]="{'rotate-90': !expand()}"></i>
     </button>
     
     <div class="flex-1 truncate">{{tool().name | i18n}}</div>

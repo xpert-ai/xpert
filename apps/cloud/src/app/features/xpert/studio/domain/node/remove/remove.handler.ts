@@ -13,7 +13,7 @@ export class RemoveNodeHandler implements IHandler<RemoveNodeRequest> {
 
       draft.nodes = draft.nodes.filter((item) => item.key !== request.key)
       draft.connections = draft.connections.filter(
-        (item) => item.from !== request.key && item.to !== request.key
+        (item) => !(item.from.startsWith(request.key) || item.to.startsWith(request.key))
       )
 
       return {
@@ -30,6 +30,8 @@ export class RemoveNodeHandler implements IHandler<RemoveNodeRequest> {
         return EReloadReason.AGENT_REMOVED
       case 'xpert':
         return EReloadReason.XPERT_REMOVED
+      case 'workflow':
+        return EReloadReason.WORKFLOW_REMOVED
     }
   }
 }

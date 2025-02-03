@@ -13,7 +13,7 @@ import { delayWhen, filter, switchMap, tap } from 'rxjs/operators'
 import { DateRelativePipe, OrderTypeEnum, routeAnimations, TChatConversationLog, XpertService } from '../../../../@core'
 import { XpertComponent } from '../xpert.component'
 import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@metad/core'
-import { ChatConversationPreviewComponent, ChatMessageExecutionComponent } from 'apps/cloud/src/app/@shared/chat'
+import { ChatConversationPreviewComponent, ChatMessageExecutionPanelComponent } from 'apps/cloud/src/app/@shared/chat'
 
 @Component({
   standalone: true,
@@ -29,7 +29,7 @@ import { ChatConversationPreviewComponent, ChatMessageExecutionComponent } from 
     DateRelativePipe,
     NgmSelectComponent,
     ChatConversationPreviewComponent,
-    ChatMessageExecutionComponent
+    ChatMessageExecutionPanelComponent
   ],
   selector: 'xpert-logs',
   templateUrl: './logs.component.html',

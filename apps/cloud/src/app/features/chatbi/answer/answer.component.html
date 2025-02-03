@@ -25,7 +25,7 @@
           [clipboardButtonTemplate]="buttonTemplate"
           lineNumbers
           [start]="5"
-          [data]="message().content"
+          [data]="content()"
         />
       }
       @for (item of toArray(message().data); track trackByKey(item)) {

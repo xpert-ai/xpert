@@ -5,11 +5,11 @@ import { Component, computed, HostBinding, inject } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { EMPTY, Observable, switchMap } from 'rxjs'
+import { EMPTY, Observable, of, switchMap } from 'rxjs'
 
 export type TConfirmDeleteInfo = {
   title?: string;
-  value: any;
+  value?: any;
   information: string
 }
 
@@ -37,11 +37,11 @@ export class CdkConfirmDeleteComponent {
 export function injectConfirmDelete() {
   const dialog = inject(Dialog)
 
-  return <T>(info: TConfirmDeleteInfo, execution: Observable<T>) => {
+  return <T>(info: TConfirmDeleteInfo, execution?: Observable<T>) => {
     return dialog.open(CdkConfirmDeleteComponent, {
       data: info
     }).closed.pipe(
-      switchMap((confirm) => confirm ? execution : EMPTY)
+      switchMap((confirm) => confirm ? (execution ?? of(confirm)) : EMPTY)
     )
   }
 }

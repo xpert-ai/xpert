@@ -28,7 +28,10 @@ import {
   agentUniqueName,
   injectToastr,
   getErrorMessage,
-  DateRelativePipe
+  DateRelativePipe,
+  TAgentOutputVariable,
+  uuid,
+  TVariableAssigner
 } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { XpertStudioApiService } from '../../domain'
@@ -36,17 +39,19 @@ import { XpertStudioPanelAgentExecutionComponent } from '../agent-execution/exec
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertStudioPanelToolsetSectionComponent } from './toolset-section/toolset.component'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { catchError, map, of } from 'rxjs'
+import { BehaviorSubject, catchError, map, of, shareReplay, startWith, switchMap } from 'rxjs'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelKnowledgeSectionComponent } from './knowledge-section/knowledge.component'
 import { CopilotModelSelectComponent, CopilotPromptEditorComponent } from 'apps/cloud/src/app/@shared/copilot'
-import { XpertParametersEditComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { XpertOutputVariablesEditComponent, XpertParametersEditComponent, XpertVariablesAssignerComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { uniq } from 'lodash-es'
 import { XpertStudioComponent } from '../../studio.component'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { OverlayAnimations } from '@metad/core'
 
 @Component({
   selector: 'xpert-studio-panel-agent',
@@ -64,18 +69,21 @@ import { NgmDensityDirective } from '@metad/ocap-angular/core'
     DateRelativePipe,
 
     NgmDensityDirective,
+    NgmSpinComponent,
     EmojiAvatarComponent,
     XpertStudioPanelToolsetSectionComponent,
     CopilotModelSelectComponent,
     XpertStudioPanelAgentExecutionComponent,
     XpertParametersEditComponent,
     CopilotPromptEditorComponent,
-    XpertStudioPanelKnowledgeSectionComponent
+    XpertStudioPanelKnowledgeSectionComponent,
+    XpertOutputVariablesEditComponent,
+    XpertVariablesAssignerComponent
   ],
   host: {
     tabindex: '-1',
   },
-  animations: [IfAnimation]
+  animations: [IfAnimation, ...OverlayAnimations]
 })
 export class XpertStudioPanelAgentComponent {
   eModelType = AiModelTypeEnum
@@ -109,9 +117,14 @@ export class XpertStudioPanelAgentComponent {
   readonly agentConfig = computed(() => this.xpert()?.agentConfig)
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
   readonly isEnd = computed(() => this.agentConfig()?.endNodes?.includes(this.agentUniqueName()))
+  readonly disableOutput = computed(() => this.agentConfig()?.disableOutputs?.includes(this.key()))
+  readonly enableMessageHistory = computed(() => !this.xpertAgent()?.options?.disableMessageHistory)
+  readonly promptTemplates = computed(() => this.xpertAgent()?.promptTemplates)
   readonly isPrimaryAgent = computed(() => !!this.xpertAgent()?.xpertId)
 
   readonly parameters = computed(() => this.xpertAgent()?.parameters)
+  readonly memories = computed(() => this.xpertAgent()?.options?.memories)
+  readonly parallelToolCalls = computed(() => this.xpertAgent()?.options?.parallelToolCalls ?? true)
 
   readonly nameError = computed(() => {
     const name = this.name()
@@ -119,16 +132,23 @@ export class XpertStudioPanelAgentComponent {
       const isValidName = /^[a-zA-Z0-9 _-]+$/.test(name)
       return !isValidName || this.nodes()
         .filter((_) => _.key !== this.key())
-        .some((n) => n.entity.name === name)
+        .some((n) => n.type === 'agent' && n.entity.name === name)
     }
     return false
   })
+
+  readonly outputVariables = computed(() => this.xpertAgent()?.outputVariables)
+  get enabledOutputVars() {
+    return !!this.outputVariables()
+  }
+  set enabledOutputVars(value: boolean) {
+    this.updateOutputVariables(value ? (this.outputVariables() ?? []) : null)
+  }
 
   readonly copilotModel = model<ICopilotModel>()
 
   readonly openedExecution = signal(false)
   readonly executionId = model<string>(null)
-  // readonly execution = model<IXpertAgentExecution>(null)
 
   readonly executions = derivedAsync(() => {
     const xpertId = this.xpertId()
@@ -153,6 +173,16 @@ export class XpertStudioPanelAgentComponent {
       })
     ) : of(null)
   })
+
+  readonly promptTemplateFullscreen = signal<string>(null)
+
+  // Diagram of agents
+  readonly refreshDiagram$ = new BehaviorSubject<void>(null)
+  readonly diagram$ = this.refreshDiagram$.pipe(
+    switchMap(() => this.xpertService.getDiagram(this.xpert().id, this.key()).pipe(startWith(null))),
+    map((imageBlob) => imageBlob ? URL.createObjectURL(imageBlob) : null),
+    shareReplay(1)
+  )
 
   constructor() {
     effect(
@@ -230,5 +260,72 @@ export class XpertStudioPanelAgentComponent {
       ? uniq([...(this.agentConfig()?.endNodes ?? []), name])
       : (this.agentConfig()?.endNodes?.filter((_) => _ !== name) ?? [])
     this.xpertStudioComponent.updateXpertAgentConfig({ endNodes })
+  }
+
+  updateDisableOutput(value: boolean) {
+    const name = this.key()
+    const disableOutputs = value
+      ? uniq([...(this.agentConfig()?.disableOutputs ?? []), name])
+      : (this.agentConfig()?.disableOutputs?.filter((_) => _ !== name) ?? [])
+    this.xpertStudioComponent.updateXpertAgentConfig({ disableOutputs })
+  }
+
+  updateParallelToolCalls(value: boolean) {
+    const options = this.xpertAgent().options ?? {}
+    this.apiService.updateXpertAgent(this.key(), {
+      options: {...options, parallelToolCalls: value }
+    })
+  }
+
+  updateOutputVariables(event: TAgentOutputVariable[]) {
+    this.apiService.updateXpertAgent(this.key(), { outputVariables: event })
+  }
+
+  addOutputVar() {
+    //
+  }
+
+  updateEnMessageHistory(enable: boolean) {
+    const options = this.xpertAgent().options ?? {}
+    this.apiService.updateXpertAgent(this.key(), {
+      options: {...options, disableMessageHistory: !enable }
+    })
+  }
+
+  addMessage() {
+    const promptTemplates = this.promptTemplates()
+    this.apiService.updateXpertAgent(this.key(), { promptTemplates: [
+      ...(promptTemplates ?? []),
+      {id: uuid(), role: 'human', text: ''}
+    ]})
+  }
+
+  updatePromptTemplate(index: number, value: string) {
+    const promptTemplates = this.promptTemplates()
+    promptTemplates[index] = {
+      ...promptTemplates[index],
+      text: value
+    }
+    this.apiService.updateXpertAgent(this.key(), { promptTemplates: [...promptTemplates]})
+  }
+
+  removePrompt(index: number) {
+    const promptTemplates = [...this.promptTemplates()]
+    promptTemplates.splice(index, 1)
+    this.apiService.updateXpertAgent(this.key(), { promptTemplates })
+  }
+
+  updateMemories(value: TVariableAssigner[]) {
+    const options = this.xpertAgent().options ?? {}
+    this.apiService.updateXpertAgent(this.key(), {
+      options: {
+        ...options,
+        memories: value
+      }
+    })
+  }
+
+  remove() {
+    this.apiService.removeNode(this.key())
   }
 }

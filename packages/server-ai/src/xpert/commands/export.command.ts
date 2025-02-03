@@ -5,6 +5,6 @@ export class XpertExportCommand implements ICommand {
 
 	constructor(
 		public readonly id: string,
-		public readonly isDraft: string,
+		public readonly isDraft: boolean,
 	) {}
 }

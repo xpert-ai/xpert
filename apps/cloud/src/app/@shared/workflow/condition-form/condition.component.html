@@ -1,0 +1,75 @@
+<div class="grow flex flex-col bg-components-input-bg-normal rounded-lg"
+  [class.danger]="hoverDelete()"
+>
+  <div class="flex items-center p-1">
+    <div class="grow w-0">
+      <div class="inline-block" [matTooltip]="'xxx'" matTooltipPosition="above">
+        <div class="inline-flex items-center px-1.5 max-w-full h-6 cursor-pointer text-sm rounded-md border-[0.5px] border-[rgba(16, 2440,0.08)] text-text-secondary bg-white shadow-sm"
+          [cdkMenuTriggerFor]="varMenu"
+        >
+          <i class="ri-chat-thread-line"></i>
+          <div class="max-w-[60px] truncate font-medium"
+            [title]="''"
+          >{{variableSelector()?.group}}</div>
+          <span class="mx-1">/</span>
+          <div class="truncate ml-0.5 text-text-accent font-medium">
+            {{variableSelector()?.name}}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mx-1 w-[1px] h-3 bg-divider-regular"></div>
+
+    <div class="flex items-center p-1 rounded-md text-xs hover:bg-gray-200"
+      [cdkMenuTriggerFor]="opMenu"
+    >
+      <span class="grow mr-2">{{ operatorLabel() | i18n }}</span>
+      <i class="ri-arrow-down-s-line"></i>
+    </div>
+  </div>
+
+  <div class="px-2 pt-1 max-h-[100px] border-t border-t-divider-deep overflow-y-auto">
+    <textarea matInput class="w-full outline-none leading-5 text-[13px] text-gray-700 bg-transparent focus:bg-white"
+      [(ngModel)]="value"
+      [placeholder]="'PAC.Workflow.InputValue' | translate: {Default: 'Input value'}"
+      cdkTextareaAutosize
+      cdkAutosizeMinRows="1"
+      cdkAutosizeMaxRows="5"
+    ></textarea>
+  </div>
+</div>
+
+<div class="shrink-0 flex items-center justify-center ml-1 mt-1 w-6 h-6 rounded-lg cursor-pointer hover:bg-state-destructive-hover text-text-tertiary hover:text-text-destructive"
+  (mouseenter)="hoverDelete.set(true)"
+  (mouseleave)="hoverDelete.set(false)"
+  (click)="deleted.emit()"
+>
+  <i class="ri-delete-bin-5-fill"></i>
+</div>
+
+
+
+<ng-template #varMenu>
+  <div cdkMenu class="cdk-menu__medium">
+    @for (g of groupVariables(); track g) {
+      @if (g.agent) {
+        <div class="p-2 text-sm text-text-secondary mt-2">{{agentLabel(g.agent)}}</div>
+      }
+      @for (variable of g.variables; track variable.name) {
+        <div cdkMenuItem class="flex items-center" (click)="selectVariable(g.agent?.key, variable)">
+          <span class="text-sm mr-1">{{ variable.name }}</span>
+          <span class="flex-1 text-xs leading-3 italic truncate text-text-secondary">{{variable.description | i18n}}</span>
+          <span class="ml-4 px-1 text-sm rounded-md bg-gray-50 text-primary-300">{{variable.type}}</span>
+        </div>
+      }
+    }
+  </div>
+</ng-template>
+
+<ng-template #opMenu>
+  <div cdkMenu class="cdk-menu__medium">
+    @for (op of operatorOptions(); track op.value) {
+      <div cdkMenuItem class="text-sm" (click)="selectOperator(op.value)">{{op.label | i18n}}</div>
+    }
+  </div>
+</ng-template>

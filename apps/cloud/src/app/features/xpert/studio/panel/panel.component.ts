@@ -9,9 +9,9 @@ import { XpertStudioPanelAgentComponent } from './xpert-agent/agent.component'
 import { XpertStudioPanelXpertComponent } from './xpert/xpert.component'
 import { XpertStudioPanelKnowledgeComponent } from './knowledge/knowledge.component'
 import { XpertStudioPanelExecutionComponent } from './execution/execution.component'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { XpertStudioPanelVariablesComponent } from './variables/variables.component'
 import { XpertStudioPreviewComponent } from './preview/preview.component'
+import { XpertStudioPanelWorkflowComponent } from './workflow/workflow.component'
 
 @Component({
   selector: 'xpert-studio-panel',
@@ -19,14 +19,14 @@ import { XpertStudioPreviewComponent } from './preview/preview.component'
   imports: [
     CommonModule,
     CdkMenuModule,
-    MaterialModule,
     XpertStudioPanelAgentComponent,
     XpertStudioPanelXpertComponent,
     XpertStudioPanelToolsetComponent,
     XpertStudioPanelKnowledgeComponent,
     XpertStudioPreviewComponent,
     XpertStudioPanelExecutionComponent,
-    XpertStudioPanelVariablesComponent
+    XpertStudioPanelVariablesComponent,
+    XpertStudioPanelWorkflowComponent
   ],
   templateUrl: './panel.component.html',
   styleUrl: './panel.component.scss',

@@ -1,0 +1,59 @@
+  <div class="absolute left-0 text-[13px] font-semibold text-text-primary top-1">
+    @if (first()) {
+      IF
+    } @else {
+      ELIF
+    }
+    <div class="text-[10px] text-text-tertiary font-medium">CASE {{index()}}</div>
+  </div>
+
+  <div class="mb-2">
+    <div class="relative pl-[60px]">
+      @if (conditions().length > 1) {
+        <div class="absolute top-0 bottom-0 left-0 w-[60px]">
+          <div class="absolute top-4 bottom-4 left-[46px] w-2.5 border border-divider-deep rounded-l-[8px] border-r-0"></div>
+          <div class="absolute top-1/2 -translate-y-1/2 right-0 w-4 h-[29px] bg-components-panel-bg"></div>
+          <div class="absolute top-1/2 right-1 -translate-y-1/2 flex items-center px-1 h-[21px] rounded-md border-[0.5px]
+            border-components-button-secondary-border bg-components-button-secondary-bg text-text-accent-secondary text-[11px] font-semibold cursor-pointer select-none
+            hover:shadow-sm"
+            (click)="switchOperator()"
+          >
+            @if (eWorkflowLogicalOperator.AND === logicalOperator()) {
+              {{'PAC.Workflow.And' | translate: {Default: 'And'} }}
+            } @else {
+              {{'PAC.Workflow.Or' | translate: {Default: 'Or'} }}
+            }
+            <i class="ri-refresh-line text-sm ml-0.5 w-4 h-4 flex justify-center items-center"></i>
+          </div>
+        </div>
+      }
+      
+      @for (condition of conditions(); track condition.id; let i = $index) {
+        <xpert-workflow-condition-form class="flex mb-1 last-of-type:mb-0"
+          [variables]="variables()"
+          [condition]="condition"
+          (conditionChange)="updateCondition(i, $event)"
+          (deleted)="remove(i)"
+        />
+      }
+    </div>
+  </div>
+
+  <div class="flex items-center justify-between pr-[30px] pl-[60px]">
+    <div class="inline-block" data-state="closed">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
+        (click)="addCondition()"
+      >
+       <i class="ri-add-line"></i>
+       {{ 'PAC.Workflow.AddCondition' | translate: {Default: 'Add Condition'} }}
+      </button>
+    </div>
+    <button type="button" class="btn disabled:btn-disabled btn-ghost btn-small danger"
+      (mouseenter)="hoverDelete.set(true)"
+      (mouseleave)="hoverDelete.set(false)"
+      (click)="deleted.emit()"
+    >
+      <i class="ri-delete-bin-5-line"></i>
+      {{ 'PAC.Workflow.Remove' | translate: {Default: 'Remove'} }}
+    </button>
+  </div>

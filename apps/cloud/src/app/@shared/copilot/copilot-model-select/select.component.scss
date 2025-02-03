@@ -1,4 +1,18 @@
 :host {
+  .container {
+    @apply cursor-pointer bg-gray-100;
+  }
+  &.status-choose {
+    .container {
+      @apply bg-yellow-50 border-yellow-200 hover:border-yellow-300;
+    }
+  }
+
+  &.readonly {
+    .container {
+      @apply cursor-default;
+    }
+  }
 }
 
 ::ng-deep {

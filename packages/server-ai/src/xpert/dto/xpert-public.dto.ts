@@ -1,4 +1,4 @@
-import { TXpertOptions, TXpertTeamDraft } from '@metad/contracts'
+import { TXpertGraph, TXpertOptions, TXpertTeamDraft } from '@metad/contracts'
 import { Exclude, Expose, Transform, TransformFnParams } from 'class-transformer'
 import { Knowledgebase, XpertToolset } from '../../core/entities/internal'
 import { KnowledgebasePublicDTO } from '../../knowledgebase/dto'
@@ -10,6 +10,9 @@ import { XpertIdentiDto } from './xpert-identi.dto'
 export class XpertPublicDTO extends XpertIdentiDto {
 	@Exclude()
 	declare draft?: TXpertTeamDraft
+
+	@Exclude()
+	declare graph?: TXpertGraph
 
 	@Exclude()
 	declare options?: TXpertOptions

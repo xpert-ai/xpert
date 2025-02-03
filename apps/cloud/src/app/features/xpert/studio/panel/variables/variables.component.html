@@ -1,56 +1,46 @@
-  <div class="shrink-0 flex items-center justify-between p-4 pb-0 text-text-primary system-xl-semibold">
-    会话变量
-    <div class="flex items-center gap-1">
-      <button type="button" class="action-btn action-btn-m action-btn-active">
-        <svg
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          fill="currentColor"
-          class="w-4 h-4"
-        >
-          <path
-            d="M13 21V23H11V21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3H9C10.1947 3 11.2671 3.52375 12 4.35418C12.7329 3.52375 13.8053 3 15 3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H13ZM20 19V5H15C13.8954 5 13 5.89543 13 7V19H20ZM11 19V7C11 5.89543 10.1046 5 9 5H4V19H11Z"
-          ></path>
-        </svg>
-      </button>
+<div class="shrink-0 flex items-center justify-between p-4 pb-0">
+  <div class="text-text-primary system-xl-semibold">{{'PAC.Xpert.ConversationVariables' | translate: {Default: 'Conversation Variables'} }}</div>
 
-      <div class="flex items-center justify-center w-6 h-6 cursor-pointer"
-        (click)="closePanel()"
-      >
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="w-4 h-4 text-text-tertiary"><path d="M11.9997 10.5865L16.9495 5.63672L18.3637 7.05093L13.4139 12.0007L18.3637 16.9504L16.9495 18.3646L11.9997 13.4149L7.04996 18.3646L5.63574 16.9504L10.5855 12.0007L5.63574 7.05093L7.04996 5.63672L11.9997 10.5865Z"></path></svg>
-      </div>
-    </div>
-  </div>
-
-  <div class="shrink-0 px-4 pt-2 pb-3">
-    <div class="inline-block" >
-      <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
-        [cdkMenuTriggerFor]="variableMenu"
-        [cdkMenuTriggerData]="{trigger: trigger}"
-        #trigger="cdkMenuTriggerFor"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          fill="currentColor"
-          class="mr-1 w-4 h-4"
-        >
-          <path d="M11 11V5H13V11H19V13H13V19H11V13H5V11H11Z"></path>
-        </svg>
-        <span class="system-sm-medium">添加变量</span>
-      </button>
-    </div>
-  </div>
-
-<div class="grow px-4 rounded-b-2xl overflow-y-auto">
-  @for (item of variables(); track item.variable.name; let index = $index) {
-    <div class="variable-list-item mb-1 px-2.5 py-2 rounded-xl bg-components-card-bg border shadow-sm hover:bg-gray-50"
-      [class.danger]="item.__hover__"
+  <div class="flex items-center text-text-secondary">
+    <a [href]="helpUrl() + '/docs/ai/xpert/variables'" target="_blank" class="flex items-center justify-center mr-1 w-6 h-6"
+      [matTooltip]="'PAC.Xpert.HelpDocs' | translate: {Default: 'Help docs'}"
+      matTooltipPosition="above"
     >
+      <i class="ri-book-open-line text-gray-500"></i>
+    </a>
+
+    <div class="mx-3 w-[1px] h-3.5 bg-divider-deep"></div>
+
+    <div class="flex items-center justify-center w-6 h-6 cursor-pointer"
+      (click)="closePanel()"
+    >
+      <i class="ri-close-line"></i>
+    </div>
+  </div>
+</div>
+
+<div class="shrink-0 px-4 pt-2 pb-3">
+  <div class="inline-block" >
+    <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
+      [cdkMenuTriggerFor]="variableMenu"
+      [cdkMenuTriggerData]="{trigger: trigger}"
+      #trigger="cdkMenuTriggerFor"
+    >
+      <i class="ri-add-line mr-1"></i>
+      <span class="system-sm-medium">
+        {{'PAC.Xpert.AddVariable' | translate: {Default: 'Add Variable'} }}
+      </span>
+    </button>
+  </div>
+</div>
+
+<div class="variable-list grow px-4 rounded-b-2xl overflow-y-auto" cdkDropList (cdkDropListDropped)="drop($event)">
+  @for (item of variables(); track item.variable.name; let index = $index) {
+    <div class="variable-list-item relative group mb-1 pl-6 pr-2.5 py-2 rounded-xl bg-components-card-bg border shadow-sm hover:bg-gray-50"
+      [class.danger]="item.__hover__"
+      cdkDrag cdkDragLockAxis="y"
+    >
+      <i class="ri-draggable absolute top-2 left-1 cursor-pointer opacity-0 group-hover:opacity-100"></i>
       <div class="flex items-center justify-between">
         <div class="grow flex gap-1 items-center">
           <svg
@@ -84,9 +74,8 @@
 
         <div class="shrink-0 flex gap-1 items-center text-text-tertiary">
           <button type="button" class="btn p-1 rounded-lg cursor-pointer hover:bg-hover-bg hover:text-text-secondary"
-            (click)="editVar(item.variable)"
             [cdkMenuTriggerFor]="variableMenu"
-            [cdkMenuTriggerData]="{trigger: trigger, index: index}"
+            [cdkMenuTriggerData]="{trigger: trigger, index: index, }"
             #trigger="cdkMenuTriggerFor"
           >
             <svg
@@ -128,101 +117,12 @@
 </div>
 
 <ng-template #variableMenu let-trigger="trigger" let-index="index">
-  <div class="flex flex-col w-[360px] bg-components-panel-bg rounded-2xl h-full border-[0.5px] border-components-panel-border shadow-2xl"
+  <xpert-variable-form class="flex flex-col w-[360px] bg-components-panel-bg rounded-2xl h-full border-[0.5px] border-components-panel-border shadow-2xl"
     cdkTrapFocusAutoCapture
     cdkTrapFocus
-  >
-    <div class="shrink-0 flex items-center justify-between mb-3 p-4 pb-0 text-text-primary system-xl-semibold">添加会话变量
-      <div class="flex items-center">
-        <div class="flex items-center justify-center w-6 h-6 cursor-pointer"
-          (click)="trigger.close()"
-        >
-          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="w-4 h-4 text-text-tertiary">
-            <path d="M11.9997 10.5865L16.9495 5.63672L18.3637 7.05093L13.4139 12.0007L18.3637 16.9504L16.9495 18.3646L11.9997 13.4149L7.04996 18.3646L5.63574 16.9504L10.5855 12.0007L5.63574 7.05093L7.04996 5.63672L11.9997 10.5865Z"></path>
-          </svg>
-        </div>
-      </div>
-    </div>
-
-    <form [formGroup]="form" class="px-4 py-2 max-h-[480px] overflow-y-auto">
-      <div class="mb-4">
-        <div class="mb-1 h-6 flex items-center text-text-secondary system-sm-semibold">名称</div>
-        <div class="flex">
-          <input formControlName="name" matInput tabindex="0" class="block px-3 w-full h-8 bg-components-input-bg-normal system-sm-regular rounded-lg border border-transparent appearance-none outline-none caret-primary-600 hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:system-sm-regular placeholder:text-components-input-text-placeholder" placeholder="变量名" type="text" value="" data-tabindex="0">
-        </div>
-      </div>
-      <div class="mb-4">
-        <div class="mb-1 h-6 flex items-center text-text-secondary system-sm-semibold">类型</div>
-
-        <ngm-select formControlName="type"
-          [selectOptions]="[
-            {
-              value: 'string',
-              label: {
-                en_US: 'String',
-                zh_Hans: '字符串'
-              }
-            },
-            {
-              value: 'number',
-              label: {
-                en_US: 'Number',
-                zh_Hans: '数字'
-              }
-            },
-            {
-              value: 'object',
-              label: {
-                en_US: 'Object',
-                zh_Hans: '对象'
-              }
-            },
-            {
-              value: 'array[string]',
-              label: {
-                en_US: 'String[]',
-                zh_Hans: '字符串数组'
-              }
-            },
-            {
-              value: 'array[number]',
-              label: {
-                en_US: 'Number[]',
-                zh_Hans: '数字数组'
-              }
-            },
-            {
-              value: 'array[object]',
-              label: {
-                en_US: 'Object[]',
-                zh_Hans: '对象数组'
-              }
-            }]"
-        />
-
-      </div>
-      <div class="mb-4">
-        <div class="mb-1 h-6 flex items-center justify-between text-text-secondary system-sm-semibold">
-          <div>默认值</div>
-        </div>
-        <div class="flex">
-          <input formControlName="default" matInput tabindex="0" class="block px-3 w-full h-8 bg-components-input-bg-normal system-sm-regular rounded-lg border border-transparent appearance-none outline-none caret-primary-600 hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:system-sm-regular placeholder:text-components-input-text-placeholder" placeholder="默认值，可以为空">
-        </div>
-      </div>
-      <div class="">
-        <div class="mb-1 h-6 flex items-center text-text-secondary system-sm-semibold">描述</div>
-        <div class="flex">
-          <textarea formControlName="description" matInput tabindex="0" class="block p-2 w-full h-20 rounded-lg bg-components-input-bg-normal border border-transparent system-sm-regular outline-none appearance-none caret-primary-600 resize-none hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:system-sm-regular placeholder:text-components-input-text-placeholder" placeholder="变量的描述"></textarea>
-        </div>
-      </div>
-    </form>
-
-    <div class="p-4 pt-2 flex flex-row-reverse rounded-b-2xl">
-      <div class="flex gap-2">
-        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium" (click)="trigger.close()">取消</button>
-        <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
-          (click)="addVar(index);trigger.close()">保存</button>
-      </div>
-    </div>
-  </div>
+    [variable]="variables()?.[index]?.variable"
+    (cancel)="trigger.close()"
+    (saved)="addVar($event, index);trigger.close()"
+    >
+  </xpert-variable-form>
 </ng-template>
