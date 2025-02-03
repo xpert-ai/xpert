@@ -1,11 +1,12 @@
-import { IXpertTask } from '@metad/contracts'
+import { IXpertTask, XpertTaskStatus } from '@metad/contracts'
 import { CrudController, RequestContext, TransformInterceptor } from '@metad/server-core'
-import { Body, Controller, Delete, Get, Logger, Param, Put, Query, UseInterceptors } from '@nestjs/common'
+import { BadRequestException, Body, Controller, Delete, Get, Logger, Param, Put, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { In } from 'typeorm'
 import { XpertTask } from './xpert-task.entity'
 import { XpertTaskService } from './xpert-task.service'
+import { getErrorMessage } from '@metad/server-common'
 
 @ApiTags('XpertTask')
 @ApiBearerAuth()
@@ -35,12 +36,23 @@ export class XpertTaskController extends CrudController<XpertTask> {
 
 	@Put(':id')
 	async update(@Param('id') id: string, @Body() entity: Partial<IXpertTask>) {
-		return this.service.updateTask(id, entity)
+		try {
+			return await this.service.updateTask(id, entity)
+		} catch(err) {
+			throw new BadRequestException(getErrorMessage(err))
+		}
 	}
 
 	@Put(':id/schedule')
-	async schedule(@Param('id') id: string) {
-		return this.service.schedule(id)
+	async schedule(@Param('id') id: string, @Body() entity: Partial<IXpertTask>) {
+		try {
+			if (entity) {
+				return await this.service.updateTask(id, {...entity, status:  XpertTaskStatus.RUNNING})
+			}
+			return await this.service.schedule(id)
+		} catch(err) {
+			throw new BadRequestException(getErrorMessage(err))
+		}
 	}
 
 	@Put(':id/pause')

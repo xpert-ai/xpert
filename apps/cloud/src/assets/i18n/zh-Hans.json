@@ -1411,6 +1411,7 @@
     },
     "Copilot": {
       "Copilot": "智能助理",
+      "ConversationVariables": "会话变量",
       "AICopilot": "AI 智能助理",
       "EnableCopilot": "启用智能助理",
       "GetYourApiKey": "获取你的 API Key",

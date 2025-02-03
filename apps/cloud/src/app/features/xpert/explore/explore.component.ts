@@ -10,7 +10,7 @@ import { RouterModule } from '@angular/router'
 import { DynamicGridDirective } from '@metad/core'
 import { NgmCommonModule, NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { debounceTime, switchMap, tap } from 'rxjs'
+import { debounceTime, tap } from 'rxjs'
 import { IXpertTemplate, XpertTemplateService, XpertTypeEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { XpertInstallComponent } from './install/install.component'
@@ -73,18 +73,10 @@ export class XpertExploreComponent {
   readonly searchText = toSignal(this.searchControl.valueChanges.pipe(debounceTime(300)), { initialValue: '' })
 
   install(app: IXpertTemplate) {
-    this.templateService
-      .getTemplate(app.id)
-      .pipe(
-        switchMap(
-          (app) =>
-            this.#dialog.open(XpertInstallComponent, {
-              data: app
-            }).closed
-        )
-      )
-      .subscribe({
-        next: () => {}
-      })
+    this.#dialog.open(XpertInstallComponent, {
+      data: app
+    }).closed.subscribe({
+      next: () => {}
+    })
   }
 }

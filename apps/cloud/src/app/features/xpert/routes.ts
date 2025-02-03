@@ -1,5 +1,4 @@
 import { Routes } from '@angular/router'
-import { XpertExploreComponent } from './explore/explore.component'
 import { XpertStudioAPIToolComponent } from './tools'
 import { XpertWorkspaceHomeComponent } from './workspace/home/home.component'
 import { XpertWorkspaceWelcomeComponent } from './workspace/welcome/welcome.component'
@@ -10,13 +9,6 @@ export const routes: Routes = [
     path: '',
     redirectTo: 'w',
     pathMatch: 'full'
-  },
-  {
-    path: 'e',
-    component: XpertExploreComponent,
-    data: {
-      title: 'Explore Experts',
-    }
   },
   {
     path: 'w',

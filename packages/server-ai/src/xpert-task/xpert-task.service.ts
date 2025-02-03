@@ -23,6 +23,7 @@ import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 import { XpertAgentService } from '../xpert-agent/xpert-agent.service'
 import { FindXpertQuery } from '../xpert/queries'
 import { XpertTask } from './xpert-task.entity'
+import { getErrorMessage } from '@metad/server-common'
 
 @Injectable()
 export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTask> implements OnModuleInit {
@@ -45,7 +46,11 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 	async onModuleInit() {
 		const { items: jobs, total } = await this.getActiveJobs()
 		jobs.forEach((job) => {
-			this.scheduleCronJob(job, job.createdBy)
+			try {
+				this.scheduleCronJob(job, job.createdBy)
+			} catch(err) {
+				console.error(chalk.red('Schedule "' + job.name + '" error:' + getErrorMessage(err)))
+			}
 		})
 		console.log(chalk.magenta(`Scheduled ${total} tasks for xpert`))
 	}
@@ -127,10 +132,17 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 			this.schedulerRegistry.addCronJob(task.id, job)
 			job.start()
 		}
+		
 		if (RequestContext.currentUser()) {
 			scheduleJob()
 		} else {
-			runWithRequestContext({ user: user, headers: { ['organization-id']: task.organizationId } }, scheduleJob)
+			runWithRequestContext({ user: user, headers: { ['organization-id']: task.organizationId } }, () => {
+				try {
+					scheduleJob()
+				} catch(err) {
+					console.error(chalk.red('Schedule "' + task.name + '" error: ' + getErrorMessage(err)))
+				}
+			})
 		}
 
 		this.#logger.warn(`job ${task.name} added for '${task.schedule}'!`)

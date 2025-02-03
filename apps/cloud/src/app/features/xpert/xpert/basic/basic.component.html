@@ -81,3 +81,7 @@
     </button>
   </div>
 </form>
+
+@if (loading()) {
+  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+}

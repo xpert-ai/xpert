@@ -1,8 +1,16 @@
-import { IXpert, IXpertAgentExecution, IXpertTask, LanguagesEnum, XpertAgentExecutionStatusEnum, XpertTaskStatus } from '@metad/contracts'
+import {
+	IXpert,
+	IXpertAgentExecution,
+	IXpertTask,
+	LanguagesEnum,
+	XpertAgentExecutionStatusEnum,
+	XpertTaskStatus
+} from '@metad/contracts'
+import { getErrorMessage } from '@metad/server-common'
 import { RequestContext, TenantOrganizationBaseEntity } from '@metad/server-core'
-import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger'
-import { IsString, IsOptional, IsEnum } from 'class-validator'
-import { Transform, Exclude, Expose } from 'class-transformer'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
+import { Exclude, Expose, Transform } from 'class-transformer'
+import { IsEnum, IsOptional, IsString } from 'class-validator'
 import cronstrue from 'cronstrue'
 import 'cronstrue/locales/en'
 import 'cronstrue/locales/zh_CN'
@@ -43,7 +51,7 @@ export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTas
 	status?: XpertTaskStatus
 
 	@ApiProperty({ type: () => Xpert })
-	@Transform(({value}) => value && new XpertIdentiDto(value))
+	@Transform(({ value }) => value && new XpertIdentiDto(value))
 	@ManyToOne(() => Xpert, {
 		nullable: true,
 		onDelete: 'CASCADE'
@@ -83,18 +91,21 @@ export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTas
 
 	// Temporary properties
 	@Expose()
-	@Transform(({value}) =>
-		cronstrue.toString(value, { locale: CronstrueLocales[RequestContext.getLanguageCode()] ?? RequestContext.getLanguageCode() })
-	)
-    get scheduleDescription(): string {
-		return this.schedule
+	get scheduleDescription(): string {
+		try {
+			return cronstrue.toString(this.schedule, {
+				locale: CronstrueLocales[RequestContext.getLanguageCode()] ?? RequestContext.getLanguageCode()
+			})
+		} catch (err) {
+			return getErrorMessage(err)
+		}
 	}
 
 	@Expose()
 	get executionCount(): number {
 		return this.executions?.length
 	}
-	
+
 	@Expose()
 	get errorCount(): number {
 		return this.executions?.filter((_) => _.status === XpertAgentExecutionStatusEnum.ERROR).length
@@ -107,5 +118,5 @@ export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTas
 }
 
 const CronstrueLocales = {
-	[LanguagesEnum.SimplifiedChinese]: 'zh_CN',
+	[LanguagesEnum.SimplifiedChinese]: 'zh_CN'
 }

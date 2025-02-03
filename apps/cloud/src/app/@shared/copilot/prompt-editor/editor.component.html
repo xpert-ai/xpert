@@ -106,8 +106,17 @@
 </div>
 
 <ng-template #suggestionsTemplate>
-  <div cdkMenu class="cdk-menu__medium">
-    <ul>
+  <div cdkMenu class="cdk-menu__medium relative">
+    <div class="flex justify-between items-center text-text-secondary">
+      <div class="text-sm font-semibold p-1">{{'PAC.Copilot.ConversationVariables' | translate: {Default: 'Conversation Variables'} }}</div>
+      <div class="flex items-center justify-center w-6 h-6 cursor-pointer"
+        (click)="hideSuggestions()"
+      >
+        <i class="ri-close-line"></i>
+      </div>
+    </div>
+    
+    <ul class="overflow-auto">
       @for (g of variables(); track g) {
         @if (g.agent) {
           <div class="p-1 mt-2 text-sm text-text-secondary">{{agentLabel(g.agent)}}</div>
