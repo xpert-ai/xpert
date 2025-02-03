@@ -65,7 +65,7 @@ export class OpenAILargeLanguageModel extends CommonOpenAI {
 			...params,
 			model,
 			streaming: copilotModel.options?.streaming ?? true,
-			temperature: copilotModel.options?.temperature ?? 0,
+			temperature: copilotModel.options?.temperature,
 			maxTokens: copilotModel.options?.max_tokens,
 			streamUsage: false,
 			callbacks: [...this.createHandleUsageCallbacks(copilot, model, credentials, handleLLMTokens)]
