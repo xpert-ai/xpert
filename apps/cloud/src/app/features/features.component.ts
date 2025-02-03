@@ -413,7 +413,7 @@ export class FeaturesComponent implements OnInit {
       {
         title: 'Explore Xperts',
         matIcon: 'explore',
-        link: '/xpert/e',
+        link: '/explore',
         pathMatch: 'prefix',
         data: {
           translationKey: 'Explore Xperts',
@@ -424,7 +424,7 @@ export class FeaturesComponent implements OnInit {
       {
         title: 'Xpert',
         matIcon: 'engineering',
-        link: '/xpert/w',
+        link: '/xpert',
         pathMatch: 'prefix',
         data: {
           translationKey: 'Building Xperts',

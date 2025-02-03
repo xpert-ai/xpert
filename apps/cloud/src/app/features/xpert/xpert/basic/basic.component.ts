@@ -4,7 +4,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormArray, FormBuilder, FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { NgmInputComponent } from '@metad/ocap-angular/common'
+import { NgmInputComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -22,11 +22,12 @@ import {
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertComponent } from '../xpert.component'
 import { injectGetXpertTeam } from '../../utils'
-import { derivedAsync } from 'ngxtension/derived-async'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { TagSelectComponent } from 'apps/cloud/src/app/@shared/tag'
 import { MatInputModule } from '@angular/material/input'
 import { IsDirty } from '@metad/core'
+import { derivedFrom } from 'ngxtension/derived-from'
+import { pipe, switchMap, of, tap } from 'rxjs'
 
 @Component({
   selector: 'xpert-basic',
@@ -45,7 +46,8 @@ import { IsDirty } from '@metad/core'
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
     TagSelectComponent,
-    NgmInputComponent
+    NgmInputComponent,
+    NgmSpinComponent,
   ],
   templateUrl: './basic.component.html',
   styleUrl: './basic.component.scss',
@@ -65,9 +67,17 @@ export class XpertBasicComponent implements IsDirty {
 
   readonly xpertId = this.xpertComponent.paramId
 
-  readonly xpert = derivedAsync(() => {
-    return this.xpertId() ? this.getXpertTeam(this.xpertId()) : null
-  })
+  readonly loading = signal(false)
+  readonly xpert = derivedFrom([this.xpertId], pipe(
+    switchMap(([id]) => {
+      if (id) {
+        this.loading.set(true)
+        return this.getXpertTeam(this.xpertId()).pipe(tap(() => this.loading.set(false)))
+      }
+      return of(null)
+    })
+  ), {initialValue: null})
+  
   readonly draft = computed(() => {
     if (this.xpert()) {
       return this.xpert().draft ?? {team: omitXpertRelations(this.xpert())}
@@ -114,8 +124,6 @@ export class XpertBasicComponent implements IsDirty {
   get starters() {
     return this.form.get('starters') as FormArray
   }
-
-  readonly loading = signal(false)
 
   constructor() {
     effect(

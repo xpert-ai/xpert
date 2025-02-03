@@ -19,8 +19,8 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import {
+  injectConfirmUnique,
   NgmCommonModule,
-  NgmConfirmUniqueComponent,
 } from '@metad/ocap-angular/common'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -93,6 +93,7 @@ export class XpertWorkspaceHomeComponent {
   // Xpert's tags
   readonly xpertTags = injectTags(TagCategoryEnum.XPERT)
   readonly me = injectUser()
+  readonly confirmUnique = injectConfirmUnique();
 
   readonly contentContainer = viewChild('contentContainer', { read: ElementRef })
 
@@ -163,21 +164,21 @@ export class XpertWorkspaceHomeComponent {
   }
 
   newWorkspace() {
-    this.#dialog
-      .open(NgmConfirmUniqueComponent, {
-        data: {
-          title: this.#translate.instant('PAC.Xpert.NewWorkspace', {Default: 'New Workspace'})
-        }
+    this.confirmUnique({
+        title: this.#translate.instant('PAC.Xpert.NewWorkspace', {Default: 'New Workspace'})
+      }, (name: string) => {
+        this.loading.set(true)
+        return this.workspaceService.create({ name })
       })
-      .afterClosed()
-      .pipe(switchMap((name) => (name ? this.workspaceService.create({ name }) : EMPTY)))
       .subscribe({
         next: (workspace) => {
+          this.loading.set(false)
           this.workspaceService.refresh()
           this.selectedWorkspaces.set([workspace.id])
           this.#toastr.success(`PAC.Messages.CreatedSuccessfully`, { Default: 'Created Successfully!' })
         },
         error: (error) => {
+          this.loading.set(false)
           this.#toastr.error(getErrorMessage(error))
         }
       })

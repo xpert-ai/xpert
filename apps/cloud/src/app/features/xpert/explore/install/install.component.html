@@ -21,44 +21,7 @@
     </a>
   </div>
 
-  <div class="pt-2">
-    <div class="py-2 text-sm font-medium leading-[20px] text-gray-900">
-      {{ 'PAC.Xpert.Avatar' | translate: {Default: 'Avatar'} }} &amp; {{ 'PAC.Xpert.Name' | translate: {Default: 'Name'} }}
-    </div>
-    <div class="flex items-center justify-between space-x-2">
-      <emoji-avatar editable [(avatar)]="avatar" class="rounded-lg overflow-hidden shadow-sm shrink-0" />
-      <div class="relative w-full">
-        <input matInput
-          class="w-full py-[7px] bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover
-            focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-sm
-            placeholder:text-components-input-text-placeholder
-            appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular grow h-10"
-          [placeholder]="'PAC.Xpert.GiveXpertName' | translate: {Default: 'Give the expert a name, a-zA-Z0-9-_'}"
-          [(ngModel)]="name"
-        />
-      </div>
-    </div>
-    @if (error()) {
-      <div class="pl-10 text-sm text-red-500">
-        {{error() || 'Error'}}
-      </div>
-    } @else if (checking()) {
-      <div class="pl-10 text-sm text-text-secondary">
-        {{ 'PAC.Xpert.Checking' | translate: {Default: 'Checking'} }}...
-      </div>
-    }
-  </div>
-  <div class="pt-2">
-    <div class="py-2 text-sm font-medium leading-[20px] text-gray-900">{{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</div>
-    <textarea matInput
-      class="w-full min-h-20 p-2 bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-sm placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular resize-none"
-      placeholder="{{ 'PAC.Xpert.InputXpertDescription' | translate: {Default: 'Input xpert description'} }}"
-      [(ngModel)]="description"
-      cdkTextareaAutosize
-      cdkAutosizeMinRows="3"
-      cdkAutosizeMaxRows="6"
-    ></textarea>
-  </div>
+  <xpert-basic-form #basicForm [(name)]="name" [(avatar)]="avatar" [(description)]="description" />
 
   @if (loading()) {
     <ngm-spin class="absolute top-0 left-0 w-full h-full"></ngm-spin>
@@ -67,7 +30,7 @@
 
 <div class="flex flex-row-reverse">
   <button type="button" class="btn disabled:btn-disabled btn-primary btn-large justify-center w-24 ml-2"
-    [disabled]="invalid() || loading()"
+    [disabled]="basicForm.invalid() || loading()"
     (click)="create()"
   >{{ 'PAC.Xpert.Create' | translate: {Default: 'Create'} }}</button>
   <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large justify-center w-24"
