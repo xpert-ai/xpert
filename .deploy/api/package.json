@@ -41,7 +41,7 @@
     "@nestjs/platform-express": "^8.0.0",
     "@swc/helpers": "~0.5.0",
     "idb-keyval": "^6.0.2",
-    "langchain": "0.3.2",
+    "langchain": "0.3.15",
     "money-clip": "^3.0.5",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.0.0",
