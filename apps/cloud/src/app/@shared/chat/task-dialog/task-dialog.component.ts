@@ -85,7 +85,7 @@ export class XpertTaskDialogComponent {
 
   schedule() {
     this.loading.set(true)
-    this.taskService.schedule(this.taskId()).subscribe({
+    this.taskService.schedule(this.taskId(), this.form().formGroup.value).subscribe({
       next: () => {
         this.loading.set(false)
         this.close({...this.task(), status: XpertTaskStatus.RUNNING})

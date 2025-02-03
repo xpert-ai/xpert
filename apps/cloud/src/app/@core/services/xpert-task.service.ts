@@ -19,8 +19,8 @@ export class XpertTaskService extends OrganizationBaseCrudService<IXpertTask> {
     })
   }
 
-  schedule(id: string) {
-    return this.httpClient.put(this.apiBaseUrl + `/${id}/schedule`, {})
+  schedule(id: string, entity?: Partial<IXpertTask>) {
+    return this.httpClient.put(this.apiBaseUrl + `/${id}/schedule`, entity)
   }
   
   pause(id: string) {
