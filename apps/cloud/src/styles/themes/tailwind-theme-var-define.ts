@@ -1,6 +1,7 @@
 const vars = {
   // https://daisyui.com/docs/colors/
   'base-content': 'var(--color-base-content)',
+  'surface-container': 'var(--ngm-color-surface-container)',
 
   // Custom colors
   'text-primary': 'var(--color-text-primary)',

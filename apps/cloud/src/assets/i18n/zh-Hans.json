@@ -1913,6 +1913,8 @@
       "Reducer": "归约",
       "ParallelToolCalls": "并行工具调用",
       "ParallelToolCallsTip": "是否启用工具的并行调用能力，针对像 OpenAI 等的部分模型起作用",
+      "JoinTheCommunity": "参与社区",
+      "CommunicateDifferentChannels": "与团队成员、贡献者和开发者在不同频道中交流",
       "Summary": "总结",
       "Logic": "逻辑",
       "Note": "注释",

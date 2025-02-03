@@ -1,115 +1,129 @@
-<div class="flex flex-col h-full border-l border-gray-200">
-  <div class="shrink-0 pt-6 px-12">
-    <div class="mb-1 text-2xl font-semibold text-primary-600">
-      {{ 'PAC.Xpert.ExploreXpertAgents' | translate: {Default: 'Explore Xpert Agents'} }}
-    </div>
-    <div class="text-gray-500 text-sm">
-      {{ 'PAC.Xpert.ExploreXpertsDesc' | translate: {Default: 'Use these templates to create, or customize your own digital expert based on the template.'} }}
-    </div>
+<div class="shrink-0 pt-6 px-12">
+  <div class="mb-1 text-2xl font-semibold text-primary-600">
+    {{ 'PAC.Xpert.ExploreXpertAgents' | translate: {Default: 'Explore Xpert Agents'} }}
   </div>
-  <div class="flex items-center justify-between mt-6 px-12">
-    <ul class="flex space-x-1 text-[13px] flex-wrap"
-      cdkListbox
-      [(ngModel)]="category"
+  <div class="text-gray-500 text-sm">
+    {{ 'PAC.Xpert.ExploreXpertsDesc' | translate: {Default: 'Use these templates to create, or customize your own digital expert based on the template.'} }}
+  </div>
+</div>
+
+<div class="flex items-center justify-between mt-6 px-12 sticky top-0 z-10 bg-surface-container">
+  <ul class="flex space-x-1 text-[13px] flex-wrap"
+    cdkListbox
+    [(ngModel)]="category"
+  >
+    <li #option="cdkOption"
+      class="category-option flex items-center px-3 py-[7px] h-[32px] rounded-lg border-[0.5px] font-medium leading-[18px] cursor-pointer border-transparent hover:bg-white"
+      [cdkOption]="'recommended'"
+      [class.active]="option.isSelected()"
     >
-      <li #option="cdkOption"
-        class="category-option flex items-center px-3 py-[7px] h-[32px] rounded-lg border-[0.5px] font-medium leading-[18px] cursor-pointer border-transparent hover:bg-white"
-        [cdkOption]="'recommended'"
+      <i class="ri-thumb-up-line mr-1"></i> {{ 'PAC.Xpert.Categories.Recommended' | translate: {Default: 'Recommended'} }}
+    </li>  
+    @for (category of categories(); track category) {
+      <li #option="cdkOption" class="category-option flex items-center px-3 py-[7px] h-[32px] rounded-lg border-[0.5px] border-transparent text-gray-700 font-medium leading-[18px] cursor-pointer hover:bg-gray-200"
+        [cdkOption]="category"
         [class.active]="option.isSelected()"
       >
-        <i class="ri-thumb-up-line mr-1"></i> {{ 'PAC.Xpert.Categories.Recommended' | translate: {Default: 'Recommended'} }}
-      </li>  
-      @for (category of categories(); track category) {
-        <li #option="cdkOption" class="category-option flex items-center px-3 py-[7px] h-[32px] rounded-lg border-[0.5px] border-transparent text-gray-700 font-medium leading-[18px] cursor-pointer hover:bg-gray-200"
-          [cdkOption]="category"
-          [class.active]="option.isSelected()"
-        >
-          {{ 'PAC.Xpert.Categories.' + category | translate: {Default: category} }}
-        </li>
-      }
-    </ul>
-    <div class="relative w-[200px] flex items-center">
-      <i class="ri-search-2-line absolute left-2 text-text-secondary"></i>
-      
-      <input matInput [formControl]="searchControl"
-        class="w-full py-[7px] bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular pl-[26px]"
-        [placeholder]="'PAC.KEY_WORDS.Search' | translate: {Default: 'Search'}"
-      />
+        {{ 'PAC.Xpert.Categories.' + category | translate: {Default: category} }}
+      </li>
+    }
+  </ul>
+  <div class="relative w-[200px] flex items-center">
+    <i class="ri-search-2-line absolute left-2 text-text-secondary"></i>
+    
+    <input matInput [formControl]="searchControl"
+      class="w-full py-[7px] bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular pl-[26px]"
+      [placeholder]="'PAC.KEY_WORDS.Search' | translate: {Default: 'Search'}"
+    />
 
-      @if (searchControl.value) {
-        <i class="ri-close-circle-fill absolute right-2 cursor-pointer text-gray-500 opacity-50 hover:opacity-100" (click)="searchControl.setValue('')"></i>
-      }
-    </div>
+    @if (searchControl.value) {
+      <i class="ri-close-circle-fill absolute right-2 cursor-pointer text-gray-500 opacity-50 hover:opacity-100" (click)="searchControl.setValue('')"></i>
+    }
   </div>
-  <div class="relative flex flex-1 pb-6 flex-col overflow-auto bg-gray-100 shrink-0 grow mt-4">
-    <nav class="grid content-start shrink-0 gap-4 px-6 sm:px-12"
-      ngmDynamicGrid colWidth="280"
-      box="content-box">
-      @for (app of apps(); track app.id) {
-        <div
-          class="relative overflow-hidden pb-2 group col-span-1 bg-white border-2 border-solid border-transparent rounded-lg shadow-sm flex flex-col transition-all duration-200 ease-in-out hover:shadow-lg"
-        >
-          <div class="flex pt-[14px] px-[14px] pb-3 h-[66px] items-center gap-3 grow-0 shrink-0">
-            <div class="relative shrink-0">
-              <emoji-avatar [avatar]="app.avatar" class="rounded-lg overflow-hidden shadow-sm shrink-0"/>
-              <span class="absolute bottom-[-3px] right-[-3px] w-4 h-4 p-0.5 bg-white rounded border-[0.5px] border-[rgba(0,0,0,0.02)] shadow-sm">
-                @switch (app.type) {
-                  @case (eXpertTypeEnum.Copilot) {
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-primary-600" >
-                      <g id="cute-robot">
-                        <path id="Icon" fill-rule="evenodd" clip-rule="evenodd" d="M12 1C12.5523 1 13 1.44772 13 2V3H17C18.6569 3 20 4.34315 20 6V11C20 11.8885 19.6138 12.6868 19 13.2361V14.5858L20.7071 16.2929C21.0976 16.6834 21.0976 17.3166 20.7071 17.7071C20.3166 18.0976 19.6834 18.0976 19.2929 17.7071L18.681 17.0952C17.7905 19.9377 15.1361 22 12 22C8.8639 22 6.20948 19.9377 5.31897 17.0952L4.70711 17.7071C4.31658 18.0976 3.68342 18.0976 3.29289 17.7071C2.90237 17.3166 2.90237 16.6834 3.29289 16.2929L5 14.5858V13.2361C4.38625 12.6868 4 11.8885 4 11V6C4 4.34315 5.34315 3 7 3H11V2C11 1.44772 11.4477 1 12 1ZM7 5C6.44772 5 6 5.44772 6 6V11C6 11.5523 6.44772 12 7 12H17C17.5523 12 18 11.5523 18 11V6C18 5.44772 17.5523 5 17 5H7ZM9 7C9.55228 7 10 7.44772 10 8V9C10 9.55228 9.55228 10 9 10C8.44772 10 8 9.55228 8 9V8C8 7.44772 8.44772 7 9 7ZM15 7C15.5523 7 16 7.44772 16 8V9C16 9.55228 15.5523 10 15 10C14.4477 10 14 9.55228 14 9V8C14 7.44772 14.4477 7 15 7Z" fill="currentColor"></path>
-                      </g>
-                    </svg>
-                  }
-                  @case (eXpertTypeEnum.Agent) {
-                    <svg width="13" height="12" viewBox="0 0 13 12" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-[#1570EF]">
-                      <g id="chat-bot">
-                        <path id="Vector" d="M4.20913 2.76912L4.09542 2.83543L3.98172 2.76912C3.90566 2.72476 3.86328 2.64979 3.86328 2.57101C3.86328 2.44347 3.96789 2.33887 4.09542 2.33887C4.22296 2.33887 4.32757 2.44347 4.32757 2.57101C4.32757 2.64979 4.28519 2.72476 4.20913 2.76912Z" fill="currentColor" stroke="currentColor" stroke-width="1.25"></path>
-                        <path id="Vector_2" d="M10.0174 6.00058C10.0123 5.98686 10.0097 5.97229 10.0046 5.95858C9.81684 5.48158 9.35398 5.14258 8.81056 5.14258H8.66784L7.52484 5.99972C7.33713 6.14029 7.11556 6.21444 6.88284 6.21444C6.29184 6.21444 5.81056 5.73358 5.81056 5.14258H2.81013C2.10127 5.14258 1.52441 5.71944 1.52441 6.42829V9.85686C1.52441 10.5657 2.10127 11.1426 2.81013 11.1426H8.81013C9.51899 11.1426 10.0958 10.5657 10.0958 9.85686V6.42829C10.0958 6.34386 10.0868 6.26158 10.071 6.18186C10.0586 6.11886 10.0384 6.05972 10.0174 6.00058ZM3.88156 8.57115C3.52713 8.57115 3.2387 8.28272 3.2387 7.92829C3.2387 7.57386 3.52713 7.28544 3.88156 7.28544C4.23599 7.28544 4.52441 7.57386 4.52441 7.92829C4.52441 8.28272 4.23599 8.57115 3.88156 8.57115ZM7.7387 8.57115C7.38427 8.57115 7.09584 8.28272 7.09584 7.92829C7.09584 7.57386 7.38427 7.28544 7.7387 7.28544C8.09313 7.28544 8.38156 7.57386 8.38156 7.92829C8.38156 8.28272 8.09313 8.57115 7.7387 8.57115Z" fill="currentColor"></path>
-                        <path id="Vector_3" d="M6.66699 5.14314V1.71456C6.66699 1.24099 7.05056 0.857422 7.52413 0.857422H10.9527C11.4263 0.857422 11.8098 1.24099 11.8098 1.71456V3.42885C11.8098 3.90242 11.4263 4.28599 10.9527 4.28599H8.38128L7.00985 5.31456C6.86842 5.42042 6.66699 5.31971 6.66699 5.14314Z" fill="currentColor"></path>
-                      </g>
-                    </svg>
-                  }
+</div>
+
+<div class="relative flex flex-1 pb-6 flex-col bg-gray-100 shrink-0 grow mt-4">
+  <nav class="grid content-start shrink-0 gap-4 px-6 sm:px-12"
+    ngmDynamicGrid colWidth="280"
+    box="content-box">
+    @for (app of apps(); track app.id) {
+      <div
+        class="relative overflow-hidden pb-2 group col-span-1 bg-white border-2 border-solid border-transparent rounded-lg shadow-sm flex flex-col transition-all duration-200 ease-in-out hover:shadow-lg"
+      >
+        <div class="flex pt-[14px] px-[14px] pb-3 h-[66px] items-center gap-3 grow-0 shrink-0">
+          <div class="relative shrink-0">
+            <emoji-avatar [avatar]="app.avatar" class="rounded-lg overflow-hidden shadow-sm shrink-0"/>
+            <span class="absolute bottom-[-3px] right-[-3px] w-4 h-4 p-0.5 bg-white rounded border-[0.5px] border-[rgba(0,0,0,0.02)] shadow-sm">
+              @switch (app.type) {
+                @case (eXpertTypeEnum.Copilot) {
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-primary-600" >
+                    <g id="cute-robot">
+                      <path id="Icon" fill-rule="evenodd" clip-rule="evenodd" d="M12 1C12.5523 1 13 1.44772 13 2V3H17C18.6569 3 20 4.34315 20 6V11C20 11.8885 19.6138 12.6868 19 13.2361V14.5858L20.7071 16.2929C21.0976 16.6834 21.0976 17.3166 20.7071 17.7071C20.3166 18.0976 19.6834 18.0976 19.2929 17.7071L18.681 17.0952C17.7905 19.9377 15.1361 22 12 22C8.8639 22 6.20948 19.9377 5.31897 17.0952L4.70711 17.7071C4.31658 18.0976 3.68342 18.0976 3.29289 17.7071C2.90237 17.3166 2.90237 16.6834 3.29289 16.2929L5 14.5858V13.2361C4.38625 12.6868 4 11.8885 4 11V6C4 4.34315 5.34315 3 7 3H11V2C11 1.44772 11.4477 1 12 1ZM7 5C6.44772 5 6 5.44772 6 6V11C6 11.5523 6.44772 12 7 12H17C17.5523 12 18 11.5523 18 11V6C18 5.44772 17.5523 5 17 5H7ZM9 7C9.55228 7 10 7.44772 10 8V9C10 9.55228 9.55228 10 9 10C8.44772 10 8 9.55228 8 9V8C8 7.44772 8.44772 7 9 7ZM15 7C15.5523 7 16 7.44772 16 8V9C16 9.55228 15.5523 10 15 10C14.4477 10 14 9.55228 14 9V8C14 7.44772 14.4477 7 15 7Z" fill="currentColor"></path>
+                    </g>
+                  </svg>
                 }
-              </span>
-            </div>
-            <div class="grow w-0 py-[1px]">
-              <div class="flex items-center text-base leading-5 font-semibold text-gray-800">
-                <div class="truncate" [title]="app.name" [ngmHighlight]="searchText()" [content]="app.name"></div>
-              </div>
-              <div class="flex items-center text-sm leading-[18px] text-gray-500 font-medium">
-                @switch (app.type) {
-                  @case (eXpertTypeEnum.Copilot) {
-                    <div class="truncate">{{ 'PAC.Xpert.Copilot' | translate: {Default: 'Copilot'} }}</div>
-                  }
-                  @case (eXpertTypeEnum.Agent) {
-                    <div class="truncate">{{ 'PAC.Xpert.Agent' | translate: {Default: 'Agent'} }}</div>
-                  }
+                @case (eXpertTypeEnum.Agent) {
+                  <svg width="13" height="12" viewBox="0 0 13 12" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-[#1570EF]">
+                    <g id="chat-bot">
+                      <path id="Vector" d="M4.20913 2.76912L4.09542 2.83543L3.98172 2.76912C3.90566 2.72476 3.86328 2.64979 3.86328 2.57101C3.86328 2.44347 3.96789 2.33887 4.09542 2.33887C4.22296 2.33887 4.32757 2.44347 4.32757 2.57101C4.32757 2.64979 4.28519 2.72476 4.20913 2.76912Z" fill="currentColor" stroke="currentColor" stroke-width="1.25"></path>
+                      <path id="Vector_2" d="M10.0174 6.00058C10.0123 5.98686 10.0097 5.97229 10.0046 5.95858C9.81684 5.48158 9.35398 5.14258 8.81056 5.14258H8.66784L7.52484 5.99972C7.33713 6.14029 7.11556 6.21444 6.88284 6.21444C6.29184 6.21444 5.81056 5.73358 5.81056 5.14258H2.81013C2.10127 5.14258 1.52441 5.71944 1.52441 6.42829V9.85686C1.52441 10.5657 2.10127 11.1426 2.81013 11.1426H8.81013C9.51899 11.1426 10.0958 10.5657 10.0958 9.85686V6.42829C10.0958 6.34386 10.0868 6.26158 10.071 6.18186C10.0586 6.11886 10.0384 6.05972 10.0174 6.00058ZM3.88156 8.57115C3.52713 8.57115 3.2387 8.28272 3.2387 7.92829C3.2387 7.57386 3.52713 7.28544 3.88156 7.28544C4.23599 7.28544 4.52441 7.57386 4.52441 7.92829C4.52441 8.28272 4.23599 8.57115 3.88156 8.57115ZM7.7387 8.57115C7.38427 8.57115 7.09584 8.28272 7.09584 7.92829C7.09584 7.57386 7.38427 7.28544 7.7387 7.28544C8.09313 7.28544 8.38156 7.57386 8.38156 7.92829C8.38156 8.28272 8.09313 8.57115 7.7387 8.57115Z" fill="currentColor"></path>
+                      <path id="Vector_3" d="M6.66699 5.14314V1.71456C6.66699 1.24099 7.05056 0.857422 7.52413 0.857422H10.9527C11.4263 0.857422 11.8098 1.24099 11.8098 1.71456V3.42885C11.8098 3.90242 11.4263 4.28599 10.9527 4.28599H8.38128L7.00985 5.31456C6.86842 5.42042 6.66699 5.31971 6.66699 5.14314Z" fill="currentColor"></path>
+                    </g>
+                  </svg>
                 }
-              </div>
-            </div>
+              }
+            </span>
           </div>
-          <div class="description-wrapper h-[90px] px-[14px] text-sm leading-normal text-gray-500">
-            <div class="line-clamp-4 group-hover:line-clamp-2" [ngmHighlight]="searchText()" [content]="app.description">
+          <div class="grow w-0 py-[1px]">
+            <div class="flex items-center text-base leading-5 font-semibold text-gray-800">
+              <div class="truncate" [title]="app.name" [ngmHighlight]="searchText()" [content]="app.name"></div>
             </div>
-          </div>
-          <div
-            class="hidden items-center flex-wrap min-h-[42px] px-[14px] pt-2 pb-[10px] bg-white group-hover:flex absolute bottom-0 left-0 right-0"
-          >
-            <div class="flex items-center w-full space-x-2">
-              <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium grow h-8"
-                (click)="install(app)"
-              >
-                <i class="ri-add-line text-lg leading-5 mr-2"></i>
-                <span class="text-sm">{{ 'PAC.Xpert.InstallToWorkspace' | translate: {Default: 'Install to workspace'} }}</span>
-              </button>
+            <div class="flex items-center text-sm leading-[18px] text-gray-500 font-medium">
+              @switch (app.type) {
+                @case (eXpertTypeEnum.Copilot) {
+                  <div class="truncate">{{ 'PAC.Xpert.Copilot' | translate: {Default: 'Copilot'} }}</div>
+                }
+                @case (eXpertTypeEnum.Agent) {
+                  <div class="truncate">{{ 'PAC.Xpert.Agent' | translate: {Default: 'Agent'} }}</div>
+                }
+              }
             </div>
           </div>
         </div>
-      }
-    </nav>
-  </div>
+        <div class="description-wrapper h-[90px] px-[14px] text-sm leading-normal text-gray-500">
+          <div class="line-clamp-4 group-hover:line-clamp-2" [ngmHighlight]="searchText()" [content]="app.description">
+          </div>
+        </div>
+        <div
+          class="hidden items-center flex-wrap min-h-[42px] px-[14px] pt-2 pb-[10px] bg-white group-hover:flex absolute bottom-0 left-0 right-0"
+        >
+          <div class="flex items-center w-full space-x-2">
+            <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium grow h-8"
+              (click)="install(app)"
+            >
+              <i class="ri-add-line text-lg leading-5 mr-2"></i>
+              <span class="text-sm">{{ 'PAC.Xpert.InstallToWorkspace' | translate: {Default: 'Install to workspace'} }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </nav>
 </div>
+
+<footer class="px-12 py-6 grow-0 shrink-0">
+  <h3 class="text-xl font-semibold leading-tight text-primary-500">{{'PAC.Xpert.JoinTheCommunity' | translate: {Default: 'Join the community'} }}</h3>
+  <p class="mt-1 system-sm-regular text-text-tertiary">
+    {{ 'PAC.Xpert.CommunicateDifferentChannels' | translate: {Default: 'Communicate with team members, contributors, and developers in different channels'} }}
+  </p>
+  <div class="flex items-center gap-2 mt-3">
+    <a class="" target="_blank" rel="noopener noreferrer" href="https://github.com/xpert-ai/xpert">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="w-5 h-5 text-text-tertiary hover:text-text-primary">
+        <path d="M12.001 2C6.47598 2 2.00098 6.475 2.00098 12C2.00098 16.425 4.86348 20.1625 8.83848 21.4875C9.33848 21.575 9.52598 21.275 9.52598 21.0125C9.52598 20.775 9.51348 19.9875 9.51348 19.15C7.00098 19.6125 6.35098 18.5375 6.15098 17.975C6.03848 17.6875 5.55098 16.8 5.12598 16.5625C4.77598 16.375 4.27598 15.9125 5.11348 15.9C5.90098 15.8875 6.46348 16.625 6.65098 16.925C7.55098 18.4375 8.98848 18.0125 9.56348 17.75C9.65098 17.1 9.91348 16.6625 10.201 16.4125C7.97598 16.1625 5.65098 15.3 5.65098 11.475C5.65098 10.3875 6.03848 9.4875 6.67598 8.7875C6.57598 8.5375 6.22598 7.5125 6.77598 6.1375C6.77598 6.1375 7.61348 5.875 9.52598 7.1625C10.326 6.9375 11.176 6.825 12.026 6.825C12.876 6.825 13.726 6.9375 14.526 7.1625C16.4385 5.8625 17.276 6.1375 17.276 6.1375C17.826 7.5125 17.476 8.5375 17.376 8.7875C18.0135 9.4875 18.401 10.375 18.401 11.475C18.401 15.3125 16.0635 16.1625 13.8385 16.4125C14.201 16.725 14.5135 17.325 14.5135 18.2625C14.5135 19.6 14.501 20.675 14.501 21.0125C14.501 21.275 14.6885 21.5875 15.1885 21.4875C19.259 20.1133 21.9999 16.2963 22.001 12C22.001 6.475 17.526 2 12.001 2Z"></path>
+      </svg>
+    </a>
+  </div>
+</footer>
 
 @if (loading()) {
   <ngm-spin class="absolute top-0 left-0 w-full h-full" />

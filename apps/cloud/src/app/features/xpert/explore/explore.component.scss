@@ -1,5 +1,5 @@
 :host {
-  @apply w-full relative;
+  @apply w-full relative flex flex-col border-l border-gray-200 overflow-auto;
 }
 
 .category-option.active {
