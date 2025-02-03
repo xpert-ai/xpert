@@ -124,7 +124,6 @@ export class CopilotKnowledgeService extends TenantOrganizationAwareCrudService<
 				{
 					...(options ?? {})
 				} as MaxMarginalRelevanceSearchOptions<Record<string, any>>,
-				undefined
 			)
 		}
 		return null

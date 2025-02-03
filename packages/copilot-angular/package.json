@@ -7,7 +7,7 @@
     "ngx-float-ui": "^18.0.1"
   },
   "dependencies": {
-    "@langchain/anthropic": "0.3.1",
+    "@langchain/anthropic": "^0.3.12",
     "@langchain/baidu-qianfan": "0.1.0",
     "@langchain/cohere": "0.3.0",
     "tslib": "^2.3.0"
