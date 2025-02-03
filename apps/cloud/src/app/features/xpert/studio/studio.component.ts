@@ -16,6 +16,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { IPoint, IRect, PointExtensions } from '@foblex/2d'
 import {
@@ -68,7 +69,6 @@ import { XpertExecutionService } from './services/execution.service'
 import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { XpertStudioNodeWorkflowComponent } from './components/workflow/workflow.component'
-import { MatTooltipModule } from '@angular/material/tooltip'
 
 
 @Component({

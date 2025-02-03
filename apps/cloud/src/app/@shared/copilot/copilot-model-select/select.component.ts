@@ -43,7 +43,8 @@ import { ModelParameterInputComponent } from '../model-parameter-input/input.com
   styleUrls: ['select.component.scss'],
   hostDirectives: [NgxControlValueAccessor],
   host: {
-    '[class.readonly]': 'readonly()'
+    '[class.readonly]': 'readonly()',
+    '[class.status-choose]': 'statusChoose()',
   }
 })
 export class CopilotModelSelectComponent {
@@ -142,6 +143,7 @@ export class CopilotModelSelectComponent {
   })
 
   readonly isInherit = computed(() => !this.__copilotModel())
+  readonly statusChoose = computed(() => !this.selectedCopilotWithModels() && !!this.__copilotModel())
 
   constructor() {
     effect(() => {

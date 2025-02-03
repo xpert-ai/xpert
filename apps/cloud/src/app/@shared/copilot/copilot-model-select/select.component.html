@@ -11,10 +11,7 @@
   </div>
 }
 
-<div class="flex items-center px-1 h-8 rounded-lg border
- bg-gray-100 border-gray-100 hover:border-gray-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:border-zinc-600"
- [class.cursor-pointer]="!readonly()"
->
+<div class="container flex items-center px-1 h-8 rounded-lg border border-gray-100 hover:border-gray-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:border-zinc-600">
   <div class="flex-1 relative flex items-center overflow-hidden"
     #menuTrigger
     [cdkMenuTriggerFor]="readonly() ? null : modelsMenu"
@@ -22,7 +19,7 @@
     @if (isInherit()) {
       <i class="ri-skip-up-line mx-1" [matTooltip]="'PAC.Copilot.Inherited' | translate: {Default: 'Inherited'}"></i>
     } @else if(!readonly()) {
-      <button class="w-6 h-6 rounded-lg hover:bg-hover-bg cursor-pointer pressable"
+      <button class="w-6 h-6 rounded-lg hover:bg-hover-bg cursor-pointer pressable hover:text-red-500"
         [matTooltip]="'PAC.Copilot.DelCopilotModelUseInherit' | translate: {Default: 'Delete current configuration, and use the inherited configuration if possible'}"
         (click)="$event.stopPropagation(); delete()">
         <i class="ri-close-line"></i>
@@ -45,7 +42,7 @@
         </div>
       </div>
     } @else if (__copilotModel()) {
-      <div class="text-sm text-text-warning">
+      <div class="truncate text-sm text-text-warning" [title]="__copilotModel().model">
         {{'PAC.Copilot.ChooseRightCopilot' | translate: {Default: 'Please choose right copilot'} }}
         @if (__copilotModel().model) {
           <span>{{__copilotModel().modelType + '/' + __copilotModel().model}}</span>
