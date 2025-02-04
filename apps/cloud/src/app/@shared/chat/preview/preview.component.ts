@@ -407,6 +407,7 @@ export class ChatConversationPreviewComponent {
           this.conversationId.set(null)
           this.conversation.set(null)
           this._messages.set([])
+          this.parameterValue.set({})
           this.restart.emit()
         }
       })
@@ -414,6 +415,7 @@ export class ChatConversationPreviewComponent {
       this.conversationId.set(null)
       this.conversation.set(null)
       this._messages.set([])
+      this.parameterValue.set({})
       this.restart.emit()
     }
   }
