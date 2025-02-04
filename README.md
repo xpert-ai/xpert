@@ -38,6 +38,13 @@ English | [中文](./README_zh.md)
 
 ## 💡 What's New
 
+**Agent and Workflow Hybrid Architecture**
+
+In today's rapidly evolving AI landscape, enterprises face a critical dilemma: **how to balance the creativity of LLMs with the stability of processes?** While purely agent-based architectures offer flexibility, they are difficult to control; traditional workflows, though reliable, lack adaptability. The **Agent and Workflow Hybrid Architecture** of the Xpert AI platform is designed to resolve this conflict — it allows AI to possess "free will" while adhering to "rules and order."
+![agent-workflow-hybrid-architecture](https://github.com/user-attachments/assets/b3b432f9-54ab-4ec1-9fc4-7e46fbfb88ba)
+
+[Blog - Agent and Workflow Hybrid Architecture](https://mtda.cloud/en/blog/agent-workflow-hybrid-architecture)
+
 ## [Agent Orchestration Platform](https://mtda.cloud/en/docs/ai/)
 
 By coordinating the collaboration of multiple agents, Xpert completes complex tasks. Xpert integrates different types of AI agents through an efficient management mechanism, utilizing their capabilities to solve multidimensional problems.
