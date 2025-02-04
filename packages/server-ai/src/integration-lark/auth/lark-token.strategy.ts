@@ -25,7 +25,7 @@ export class LarkTokenStrategy extends PassportStrategy(Strategy, 'lark-token') 
 				req.headers['organization-id'] = integration.organizationId
 
 				const integrationClient = this.larkService.getOrCreateLarkClient(integration)
-				console.log(data)
+				// console.log(data)
 				if (data.type === 'url_verification') {
 					this.success({})
 				} else {

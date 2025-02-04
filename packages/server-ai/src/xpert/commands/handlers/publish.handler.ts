@@ -1,8 +1,10 @@
-import { IKnowledgebase, IXpert, IXpertAgent, IXpertToolset, TXpertGraph, TXpertTeamDraft, TXpertTeamNode, WorkflowNodeTypeEnum } from '@metad/contracts'
+import { agentLabel, IKnowledgebase, IXpert, IXpertAgent, IXpertToolset, mapTranslationLanguage, TXpertGraph, TXpertTeamDraft, TXpertTeamNode, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { omit, pick } from '@metad/server-common'
+import { RequestContext } from '@metad/server-core'
 import { BadRequestException, HttpException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { groupBy, uniq } from 'lodash'
+import { I18nService } from 'nestjs-i18n'
 import { IsNull } from 'typeorm'
 import { Xpert } from '../../xpert.entity'
 import { XpertService } from '../../xpert.service'
@@ -14,10 +16,9 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 	readonly #logger = new Logger(XpertPublishHandler.name)
 
 	constructor(
-		// @InjectRepository(Xpert)
-		// private readonly repository: Repository<Xpert>,
 		private readonly xpertService: XpertService,
 		private readonly xpertAgentService: XpertAgentService,
+		private readonly i18nService: I18nService,
 	) {}
 
 	public async execute(command: XpertPublishCommand): Promise<Xpert> {
@@ -158,8 +159,15 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 				const conn = draft.connections.find((_) => _.type === 'agent' && _.to === node.key)
 				
 				if (oldAgent) {
-					if (oldAgent.updatedAt.toISOString() > `${node.entity.updatedAt}`) {
-						throw new BadRequestException(`Agent record has been updated, please resynchronize`)
+					if (oldAgent.updatedAt.getTime() > new Date(node.entity.updatedAt).getTime()) {
+						throw new BadRequestException(
+							await this.i18nService.translate('xpert.Error.AgentOutdated', {
+								lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+								args: {
+									agentKey: agentLabel(node.entity)
+								}
+							})
+						)
 					} else {
 						// Update xpert agent
 						const entity = {
@@ -175,8 +183,15 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 					}
 					newAgents.push(oldAgent)
 				} else if (node.key === xpert.agent.key) {
-					if (xpert.agent.updatedAt.toISOString() > `${node.entity.updatedAt}`) {
-						throw new BadRequestException(`Agent record has been updated, please resynchronize`)
+					if (xpert.agent.updatedAt.getTime() > new Date(node.entity.updatedAt).getTime()) {
+						throw new BadRequestException(
+							await this.i18nService.translate('xpert.Error.AgentOutdated', {
+								lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+								args: {
+									agentKey: agentLabel(node.entity)
+								}
+							})
+						)
 					}
 					// Update primary agent (save the relation updates in agent) before update xpert
 					xpert.agent = await this.xpertAgentService.update(xpert.agent.id, {

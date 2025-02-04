@@ -101,8 +101,6 @@ export class LarkHooksController {
 			})
 			const items = result.data.items
 
-			console.log(items)
-
 			return items.map((item) => ({
 				value: item.union_id,
 				label: item.name || item.email || item.mobile,

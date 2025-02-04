@@ -31,7 +31,8 @@ import {
   DateRelativePipe,
   TAgentOutputVariable,
   uuid,
-  TVariableAssigner
+  TVariableAssigner,
+  XpertAgentService
 } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { XpertStudioApiService } from '../../domain'
@@ -93,6 +94,7 @@ export class XpertStudioPanelAgentComponent {
   readonly appService = inject(AppService)
   readonly apiService = inject(XpertStudioApiService)
   readonly xpertService = inject(XpertService)
+  readonly agentService = inject(XpertAgentService)
   readonly executionService = inject(XpertAgentExecutionService)
   readonly panelComponent = inject(XpertStudioPanelComponent)
   readonly xpertStudioComponent = inject(XpertStudioComponent)
@@ -175,6 +177,8 @@ export class XpertStudioPanelAgentComponent {
   })
 
   readonly promptTemplateFullscreen = signal<string>(null)
+
+  readonly loading = signal(false)
 
   // Diagram of agents
   readonly refreshDiagram$ = new BehaviorSubject<void>(null)
@@ -321,6 +325,23 @@ export class XpertStudioPanelAgentComponent {
       options: {
         ...options,
         memories: value
+      }
+    })
+  }
+
+  synchronous() {
+    if (!this.node().entity) {
+      return
+    }
+    this.loading.set(true)
+    this.agentService.getOneById(this.node().entity.id).subscribe({
+      next: (agent) => {
+        this.loading.set(false)
+        this.apiService.updateXpertAgent(this.key(), agent)
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(err))
       }
     })
   }
