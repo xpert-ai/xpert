@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
-import { Component, computed, ElementRef, inject, input, model, output, signal } from '@angular/core'
+import { Component, computed, effect, ElementRef, inject, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -71,11 +71,11 @@ export class XpertWorkflowConditionFormComponent {
     this.condition.update((state) => ({ ...(state ?? {}), comparisonOperator: value }) as TWFCaseCondition)
   }
 
-  readonly variable = computed(() => {
-    const [group, name] = this.condition()?.variableSelector?.split('.') ?? []
+  readonly variable = computed<TStateVariable>(() => {
+    const {group, name} = this.variableSelector() ?? {}
     let variable = null
     this.variables()?.some((g) => {
-      if (g.agent?.key === group) {
+      if ((group && g.agent?.key === group) || (!group && !g.agent?.key)) {
         variable = g.variables.find((_) => _.name === name)
       }
       return !!variable
@@ -207,6 +207,12 @@ export class XpertWorkflowConditionFormComponent {
       this.operatorOptions()?.find((_) => _.value === this.condition()?.comparisonOperator)?.label ||
       this.condition()?.comparisonOperator
   )
+
+  constructor() {
+    effect(() => {
+      // console.log(this.variable())
+    })
+  }
 
   selectVariable(group: string, variable: TStateVariable) {
     this.condition.update(

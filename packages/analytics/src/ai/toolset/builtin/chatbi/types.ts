@@ -169,7 +169,7 @@ export const CHART_TYPES = [
 ]
 
 export function tryFixChartType(chartType: string) {
-	if (chartType.endsWith('Chart')) {
+	if (chartType?.endsWith('Chart')) {
 		chartType = chartType.replace(/Chart$/, '')
 		return assignDeepOmitBlank(cloneDeep(getChartType(upperFirst(chartType))?.value.chartType), {}, 5)
 	}

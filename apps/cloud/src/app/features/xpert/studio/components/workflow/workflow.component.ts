@@ -1,8 +1,14 @@
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { TranslateModule } from '@ngx-translate/core'
-import { IWorkflowNode, TXpertTeamNode, WorkflowNodeTypeEnum, XpertAgentExecutionStatusEnum } from 'apps/cloud/src/app/@core'
+import {
+  IWorkflowNode,
+  TXpertTeamNode,
+  WorkflowNodeTypeEnum,
+  XpertAgentExecutionStatusEnum
+} from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
@@ -14,7 +20,7 @@ import { XpertStudioNodeWorkflowIfelseComponent } from './ifelse/ifelse.componen
   styleUrls: ['./workflow.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, XpertStudioNodeWorkflowIfelseComponent],
+  imports: [FFlowModule, CdkMenuModule, MatTooltipModule, TranslateModule, XpertStudioNodeWorkflowIfelseComponent],
   host: {
     tabindex: '-1',
     '(contextmenu)': 'emitSelectionChangeEvent($event)'
