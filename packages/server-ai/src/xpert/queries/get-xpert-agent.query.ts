@@ -1,6 +1,8 @@
 import { IQuery } from '@nestjs/cqrs'
 
 /**
+ * @deprecated use `GetXpertWorkflowQuery`
+ * 
  * Get agent of xpert with team (xpert).
  * - Get the root agent if agentKey is not provided.
  * - Get draft version if draft is provided.

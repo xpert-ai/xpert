@@ -1,6 +1,6 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
-import { AIMessageChunk, BaseMessage, HumanMessage, isAIMessage, isAIMessageChunk, isBaseMessageChunk, ToolMessage } from '@langchain/core/messages'
+import { AIMessageChunk, BaseMessage, HumanMessage, isAIMessage, isAIMessageChunk, isBaseMessage, isBaseMessageChunk, ToolMessage } from '@langchain/core/messages'
 import { HumanMessagePromptTemplate, SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { RunnableConfig, RunnableLambda, RunnableLike } from '@langchain/core/runnables'
 import {
@@ -46,8 +46,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		private readonly queryBus: QueryBus
 	) {}
 
-	public async execute(command: XpertAgentSubgraphCommand): Promise<{graph: CompiledStateGraph<unknown, unknown, any>; nextNodes: TXpertTeamNode[]}> {
-		const { agentKey, xpert, options } = command
+	public async execute(command: XpertAgentSubgraphCommand): Promise<{agent: IXpertAgent; graph: CompiledStateGraph<unknown, unknown, any>; nextNodes: TXpertTeamNode[]}> {
+		const { agentKeyOrName, xpert, options } = command
 		const { isStart, execution, leaderKey, summarizeTitle, subscriber, rootController, signal } = options
 
 		// Signal controller in this subgraph
@@ -55,17 +55,18 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		signal?.addEventListener('abort', () => abortController.abort())
 
 		const {agent, graph, next} = await this.queryBus.execute<GetXpertWorkflowQuery, {agent: IXpertAgent; graph: TXpertGraph; next: TXpertTeamNode[]}>(
-			new GetXpertWorkflowQuery(xpert.id, agentKey, command.options?.isDraft)
+			new GetXpertWorkflowQuery(xpert.id, agentKeyOrName, command.options?.isDraft)
 		)
 		if (!agent) {
 			throw new NotFoundException(
-				`Xpert agent not found for '${xpert.name}' and key ${agentKey} draft is ${command.options?.isDraft}`
+				`Xpert agent not found for '${xpert.name}' and key or name '${agentKeyOrName}', draft is ${command.options?.isDraft}`
 			)
 		}
 
 		// The xpert (agent team)
 		const team = agent.team
-		const agentChannel = channelName(agentKey)
+		const agentKey = agent.key
+		const agentChannel = channelName(agent.key)
 		const thread_id = command.options.thread_id
 
 		// LLM
@@ -157,7 +158,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		if (agent.collaborators?.length) {
 			this.#logger.debug(`Use xpert collaborators:\n${agent.collaborators.map((_) => _.name)}`)
 			for await (const collaborator of agent.collaborators) {
-				const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(new GetXpertAgentQuery(collaborator.id,))
+				const {agent} = await this.queryBus.execute<GetXpertWorkflowQuery, {agent: IXpertAgent}>(new GetXpertWorkflowQuery(collaborator.id,))
 				const item = await this.createAgentSubgraph(agent, {
 					xpert: collaborator,
 					options: {
@@ -297,7 +298,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const enableMessageHistory = !agent.options?.disableMessageHistory
 		const stateModifier = async (state: typeof AgentStateAnnotation.State) => {
 			const { memories } = state
-			const summary = state[agentChannel].summary
+			const summary = state[agentChannel]?.summary
 			const parameters = stateToParameters(state)
 			let systemTemplate = `Current time: ${new Date().toISOString()}\n${parseXmlString(agent.prompt) ?? ''}`
 			if (memories?.length) {
@@ -314,7 +315,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 			return {
 				systemMessage,
-				messageHistory: enableMessageHistory ? state[agentChannel].messages : [],
+				messageHistory: enableMessageHistory ? state[agentChannel]?.messages ?? [] : [],
 				humanMessages: agent.promptTemplates ? await Promise.all(
 					agent.promptTemplates.map((temp) =>
 						HumanMessagePromptTemplate.fromTemplate(temp.text, {
@@ -415,6 +416,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		return {
+			agent,
 			graph: subgraphBuilder.compile({
 				checkpointer: this.copilotCheckpointSaver,
 				interruptBefore: []
@@ -633,9 +635,9 @@ function ensureSummarize(summarize?: TSummarize) {
 function createAgentNavigator(agentChannel: string, summarize: TSummarize, summarizeTitle: boolean, next?: (string | ((state, config) => string))) {
 	return (state: typeof AgentStateAnnotation.State, config) => {
 		const { title } = state
-		const messages = state[agentChannel].messages
+		const messages = state[agentChannel]?.messages ?? []
 		const lastMessage = messages[messages.length - 1]
-		if (isAIMessage(lastMessage)) {
+		if (isBaseMessage(lastMessage) && isAIMessage(lastMessage)) {
 			if (!lastMessage.tool_calls || lastMessage.tool_calls.length === 0) {
 				// If there are more than six messages, then we summarize the conversation
 				if (summarize?.enabled && messages.length > summarize.maxMessages) {
