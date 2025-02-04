@@ -274,6 +274,10 @@
   </div>
 </div>
 
+@if (loading()) {
+  <ngm-spin class="absolute top-0 left-0 w-full h-full"/>
+}
+
 @if (openedExecution()) {
   <div class="absolute top-0 left-0 w-full h-full z-50 bg-black/20 dark:bg-neutral-500/50 backdrop-blur-[2px]" @ifAnimationTrigger (click)="closeExecution()">
     <xpert-studio-panel-agent-execution class="absolute top-14 left-0 bottom-0 w-full rounded-t-xl bg-components-panel-bg"
@@ -295,6 +299,14 @@
     <button cdkMenuItem class="ngm-cdk-menu-item px-2 py-1 max-w-full text-left"
       [cdkMenuTriggerFor]="executionsMenu">
       <span><i class="ri-history-line mr-1"></i>{{ 'PAC.Xpert.ExecutionsHistories' | translate: { Default: 'Executions Histories' } }}</span>
+    </button>
+
+    <div class="h-[1px] bg-divider-regular my-1"></div>
+    
+    <button cdkMenuItem class="ngm-cdk-menu-item px-2 py-1 max-w-full text-left"
+      (click)="synchronous()">
+      <i class="ri-refresh-line mr-1"></i>
+      <span>{{ 'PAC.Xpert.Synchronous' | translate: { Default: 'Synchronous' } }}</span>
     </button>
 
     <div class="h-[1px] bg-divider-regular my-1"></div>

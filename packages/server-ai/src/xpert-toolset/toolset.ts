@@ -1,9 +1,7 @@
-import { RunnableConfig } from '@langchain/core/runnables'
 import { BaseToolkit, StructuredTool, StructuredToolInterface } from '@langchain/core/tools'
 import {
 	IBuiltinTool,
 	IXpertToolset,
-	ToolCall,
 	ToolProviderCredentials,
 	TStateVariable,
 	XpertToolsetCategoryEnum
@@ -85,13 +83,4 @@ export abstract class BaseTool<T extends ZodObjectAny = ZodObjectAny> extends St
 		| ZodEffects<ZodObject<any, any, any, any, { [x: string]: any }>, any, { [x: string]: any }> = z
 		.object({ input: z.string().optional() })
 		.transform((obj) => obj.input)
-
-	async invoke(
-		input: (z.output<T> extends string ? string : never) | z.input<T> | ToolCall,
-		config?: RunnableConfig
-	): Promise<string> {
-		const results = await super.invoke(input, config)
-		console.log(results)
-		return results
-	}
 }

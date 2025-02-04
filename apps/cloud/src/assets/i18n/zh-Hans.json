@@ -1932,6 +1932,7 @@
       "InputType": "输入类型",
       "AddVariable": "添加变量",
       "HelpDocs": "帮助文档",
+      "Synchronous": "同步",
       "CanntRemovePrimaryAgent": "不能移除主 Agent",
       "ToolsetType": "工具集类型",
       "PublishedSuccessfully": "发布成功",

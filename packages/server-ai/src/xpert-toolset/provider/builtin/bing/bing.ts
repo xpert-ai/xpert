@@ -7,7 +7,6 @@ export class BingToolset extends BuiltinToolset {
     constructor(protected toolset?: IXpertToolset) {
         super(BingToolset.provider, toolset)
         if (toolset?.tools) {
-            console.log(toolset.tools)
             this.tools = [
             ]
         }

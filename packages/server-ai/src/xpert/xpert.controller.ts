@@ -58,9 +58,6 @@ import { ChatConversationDeleteCommand, ChatConversationLogsQuery, ChatConversat
 import { FindMessageFeedbackQuery } from '../chat-message-feedback/queries'
 import { XpertGuard } from './guards/xpert.guard'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
-import * as fs from 'fs';
-import * as path from 'path';
-
 
 
 @ApiTags('Xpert')

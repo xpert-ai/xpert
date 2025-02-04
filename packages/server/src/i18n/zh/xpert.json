@@ -2,6 +2,7 @@
     "Error": {
         "NameInvalid": "数字专家名称无效或已被使用",
         "EmbeddingCopilotNotFound": "未找到'嵌入'角色的智能助理",
-        "EmbeddingModelForMemory": "需要为长期记忆配置'嵌入'模型"
+        "EmbeddingModelForMemory": "需要为长期记忆配置'嵌入'模型",
+        "AgentOutdated": "Agent '{agentKey}' 记录已更新，请重新同步"
     }
 }

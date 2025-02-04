@@ -3,7 +3,7 @@ import { InjectQueue } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Queue } from 'bull'
-import { GetXpertAgentQuery } from '../../../xpert/queries'
+import { GetXpertWorkflowQuery } from '../../../xpert/queries'
 import { XpertTaskService } from '../../xpert-task.service'
 import { CreateXpertTaskCommand } from '../create.command'
 import { RequestContext } from '@metad/server-core'
@@ -34,11 +34,11 @@ export class CreateXpertTaskHandler implements ICommandHandler<CreateXpertTaskCo
 
 		// Check agentKey
 		if (xpertId && agentKey) {
-			const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
-				new GetXpertAgentQuery(xpertId, agentKey, false)
+			const {agent} = await this.queryBus.execute<GetXpertWorkflowQuery, {agent: IXpertAgent}>(
+				new GetXpertWorkflowQuery(xpertId, agentKey, false)
 			)
 			if (!agent) {
-				throw new Error(`Xpert agent not found for xpertId: '${xpertId}' and key ${agentKey}`)
+				throw new Error(`Xpert agent not found for xpertId: '${xpertId}' and key '${agentKey}'`)
 			}
 		}
 

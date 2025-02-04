@@ -9,7 +9,7 @@ export class XpertAgentSubgraphCommand implements ICommand {
 	static readonly type = '[Xpert Agent] Subgraph'
 
 	constructor(
-		public readonly agentKey: string,
+		public readonly agentKeyOrName: string,
 		public readonly xpert: Partial<IXpert>,
 		public readonly options: TChatOptions & {
 			isStart: boolean

@@ -23,7 +23,6 @@ import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { concat, filter, from, Observable, of, switchMap, tap } from 'rxjs'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
-import { GetXpertAgentQuery } from '../../../xpert/queries'
 import { createProcessStreamEvents } from '../../agent'
 import { CompleteToolCallsQuery } from '../../queries'
 import { XpertAgentInvokeCommand } from '../invoke.command'
@@ -42,7 +41,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 	) {}
 
 	public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
-		const { input, agentKey, xpert, options } = command
+		const { input, agentKeyOrName, xpert, options } = command
 		const { execution, subscriber, toolCalls, reject, memories } = options
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
@@ -51,18 +50,15 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
 		const abortController = new AbortController()
 		// Create graph by command
-		const { graph } = await this.commandBus.execute<XpertAgentSubgraphCommand, {graph: CompiledStateGraph<any, any, any>}>(
-			new XpertAgentSubgraphCommand(agentKey, xpert, {
+		const { agent, graph } = await this.commandBus.execute<XpertAgentSubgraphCommand, {agent: IXpertAgent; graph: CompiledStateGraph<any, any, any>}>(
+			new XpertAgentSubgraphCommand(agentKeyOrName, xpert, {
 				...options,
 				isStart: true,
 				rootController: abortController,
 				signal: abortController.signal
 			})
 		)
-
-		const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
-			new GetXpertAgentQuery(xpert.id, agentKey, command.options?.isDraft)
-		)
+	
 		const team = agent.team
 
 		const thread_id = command.options.thread_id
@@ -86,7 +82,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 							[STATE_VARIABLE_USER_TIMEZONE]: user.timeZone || options.timeZone,
 							memories,
 							messages: [new HumanMessage(input.input)],
-							[channelName(agentKey)]: {
+							[channelName(agent.key)]: {
 								messages: [new HumanMessage(input.input)],
 							}
 						}
@@ -148,7 +144,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 						if (isAIMessageChunk(lastMessage)) {
 							this.#logger.debug(`Interrupted chat [${agentLabel(agent)}].`)
 							const operation = await this.queryBus.execute<CompleteToolCallsQuery, TSensitiveOperation>(
-								new CompleteToolCallsQuery(xpert.id, agentKey, lastMessage, options.isDraft)
+								new CompleteToolCallsQuery(xpert.id, agent.key, lastMessage, options.isDraft)
 							)
 							subscriber.next({
 								data: {

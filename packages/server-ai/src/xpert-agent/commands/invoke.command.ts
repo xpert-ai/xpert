@@ -12,7 +12,7 @@ export class XpertAgentInvokeCommand implements ICommand {
 			input?: string
 			[key: string]: unknown
 		},
-		public readonly agentKey: string,
+		public readonly agentKeyOrName: string,
 		public readonly xpert: Partial<IXpert>,
 		public readonly options: TChatOptions & {
 			// The id of root agent execution
