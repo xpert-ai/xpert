@@ -21,6 +21,13 @@
 
 ## 💡 新功能
 
+**智能体与工作流混合架构**
+
+在AI技术快速落地的今天，企业面临一个关键矛盾：**如何平衡 LLM 的创造性与流程的稳定性**？纯粹的智能体架构虽灵活，却难以控制；传统工作流虽可靠，却缺乏应变能力。Xpert AI 平台的**智能体与工作流混合架构**，正是为解决这一矛盾而生——它让 AI 既拥有“自由意志”，又遵循“规则秩序”
+![agent-workflow-hybrid-architecture](https://github.com/user-attachments/assets/b3b432f9-54ab-4ec1-9fc4-7e46fbfb88ba)
+
+[博客 - 智能体与工作流混合架构](https://mtda.cloud/blog/agent-workflow-hybrid-architecture)
+
 ## [智能体编排平台](https://mtda.cloud/docs/ai/)
 
 通过协调多个智能代理的协作，Xpert 能够完成复杂任务。Xpert 通过高效的管理机制集成不同类型的 AI 代理，利用其能力解决多维度问题。
