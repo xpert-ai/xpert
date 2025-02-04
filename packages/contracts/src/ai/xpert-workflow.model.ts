@@ -85,7 +85,14 @@ export type TWFCase = {
 }
 
 export type TWorkflowVarGroup = {
+  /**
+   * @deprecated use group
+   */
   agent?: Partial<IXpertAgent>
+  group?: {
+    name: string
+    description: I18nObject
+  }
   variables: TStateVariable[]
 }
 

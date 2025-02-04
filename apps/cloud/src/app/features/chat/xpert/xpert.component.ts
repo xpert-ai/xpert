@@ -56,7 +56,7 @@ export class ChatXpertComponent {
   readonly messages = this.chatService.messages
 
   readonly xpert = derivedAsync(() => {
-    return this.paramRole() ? this.homeService.getXpert(this.paramRole()) : null
+    return (this.paramRole() && this.paramRole() !== 'common') ? this.homeService.getXpert(this.paramRole()) : null
   })
 
   readonly parameters = computed(() => this.xpert()?.agent?.parameters)

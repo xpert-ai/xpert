@@ -5,7 +5,7 @@ import {
   isBaseMessage,
 } from "@langchain/core/messages";
 import { mergeConfigs, patchConfig, Runnable, RunnableConfig, RunnableToolLike } from "@langchain/core/runnables";
-import { StructuredToolInterface } from "@langchain/core/tools";
+import { StructuredToolInterface, tool } from "@langchain/core/tools";
 import { AsyncLocalStorageProviderSingleton } from "@langchain/core/singletons";
 import { Command, isCommand, isGraphInterrupt } from "@langchain/langgraph";
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
@@ -99,6 +99,22 @@ export class ToolNode<T = any> extends Runnable<T, T> {
             }
             return output;
           } else if (isCommand(output)) {
+            // Migrate messages into agent channel
+            const update = output.update
+            if (Array.isArray(update)) {
+              output.update = update.map((_) => {
+                if (_[0] === 'messages') {
+                  return [this.channel, {messages: _[1]}] as [string, unknown]
+                }
+                return _
+              })
+            } else {
+              output.update = {
+                ...update,
+                [this.channel]:  {messages: update.messages},
+              }
+            }
+            
             return output;
           } else {
             return new ToolMessage({

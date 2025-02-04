@@ -5,6 +5,9 @@ import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 import { z } from 'zod'
 
+/**
+ * @deprecated use XpertAgentSubgraphCommand
+ */
 export class XpertAgentExecuteCommand implements ICommand {
 	static readonly type = '[Xpert Agent] Execute'
 

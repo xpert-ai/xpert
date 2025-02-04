@@ -2,7 +2,7 @@
   <div fNodeInput [fInputId]="node().key + '/edge'" fInputConnectableSide="left" class="left"></div>
 }
 
-<div class="flex items-center px-3 pt-3 pb-2 rounded-t-2xl">
+<div class="flex items-center px-3 pt-3 pb-2 rounded-t-2xl" (cdkContextMenuTriggerFor)="context_menu">
   @switch (type()) {
     @case (eWorkflowNodeTypeEnum.IF_ELSE) {
       <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
@@ -46,3 +46,9 @@
     {{description()}}
   </div>
 }
+
+<ng-template #context_menu>
+  <div cdkMenu>
+    AAA
+  </div>
+</ng-template>

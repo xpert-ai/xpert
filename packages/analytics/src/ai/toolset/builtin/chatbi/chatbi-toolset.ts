@@ -14,8 +14,11 @@ import {
 	TToolCredentials
 } from '@metad/contracts'
 import {
+	BarVariant,
 	ChartBusinessService,
+	ChartOrient,
 	ChartSettings,
+	ChartTypeEnum,
 	DataSettings,
 	DSCoreService,
 	EntityType,
@@ -455,6 +458,15 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			measures: answer.measures?.map((measure) => fixMeasure(measure, entityType))
 		}
 
+		// Temporarily support Column to represent Table
+		if (answer.visualType === 'Table') {
+			chartAnnotation.chartType = {
+				type: ChartTypeEnum.Bar,
+				orient: ChartOrient.vertical,
+				variant: BarVariant.None
+			}
+		}
+
 		const slicers = []
 		if (answer.variables) {
 			slicers.push(...answer.variables.map((slicer) => tryFixVariableSlicer(slicer, entityType)))
@@ -485,17 +497,20 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			}))
 
 		// ChartTypes
-		const i18n = await chatbi.translate('toolset.ChatBI.ChartTypes', {lang: TranslationLanguageMap[lang] || lang})
-		const chartTypes = CHART_TYPES.map((_) => ({..._, name: i18n[_.name]}))
-		const index = chartTypes.findIndex(
-			({ type, orient }) => type === chartAnnotation.chartType.type && orient === chartAnnotation.chartType.orient
-		)
-		if (index > -1) {
-			chartAnnotation.chartType = chartTypes.splice(index, 1)[0]
-		}
-		const chartSettings: ChartSettings = {
-			universalTransition: true,
-			chartTypes
+		let chartSettings: ChartSettings = null
+		if (chartAnnotation.chartType) {
+			const i18n = await chatbi.translate('toolset.ChatBI.ChartTypes', {lang: TranslationLanguageMap[lang] || lang})
+			const chartTypes = CHART_TYPES.map((_) => ({..._, name: i18n[_.name]}))
+			const index = chartTypes.findIndex(
+				({ type, orient }) => type === chartAnnotation.chartType.type && orient === chartAnnotation.chartType.orient
+			)
+			if (index > -1) {
+				chartAnnotation.chartType = chartTypes.splice(index, 1)[0]
+			}
+			chartSettings = {
+				universalTransition: true,
+				chartTypes
+			}
 		}
 
 		return new Promise((resolve, reject) => {

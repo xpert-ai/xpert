@@ -1562,6 +1562,7 @@
       }
     },
     "Chat": {
+      "Common": "通用",
       "EnableCopilot": "启用智能助理",
       "DeleteConversation": "删除会话",
       "RetrievingDocuments": "检索文档",

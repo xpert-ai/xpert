@@ -3,7 +3,7 @@
 >
   <div class="flex items-center p-1">
     <div class="grow w-0">
-      <div class="inline-block" [matTooltip]="'xxx'" matTooltipPosition="above">
+      <div class="inline-block" [matTooltip]="variable()?.description | i18n" matTooltipPosition="above">
         <div class="inline-flex items-center px-1.5 max-w-full h-6 cursor-pointer text-sm rounded-md border-[0.5px] border-[rgba(16, 2440,0.08)] text-text-secondary bg-white shadow-sm"
           [cdkMenuTriggerFor]="varMenu"
         >
