@@ -1462,6 +1462,7 @@
       "Role_primary": "主",
       "Role_secondary": "次",
       "Role_embedding": "嵌入",
+      "Role_reasoning": "推理",
       "Inherited": "继承的",
       "PrefixPrompt": "前缀提示词",
       "Generate": "生成",
