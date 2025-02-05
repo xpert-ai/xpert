@@ -14,6 +14,7 @@ import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
 import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
 import { ICopilotUser } from '../../../../../../../../packages/contracts/src'
 import { CopilotUsageService, injectFormatRelative, ToastrService } from '../../../../@core'
+import { MatButtonModule } from '@angular/material/button'
 
 @Component({
   standalone: true,
@@ -28,6 +29,7 @@ import { CopilotUsageService, injectFormatRelative, ToastrService } from '../../
     ReactiveFormsModule,
     MatTooltipModule,
     MatIconModule,
+    MatButtonModule,
     NgmCommonModule,
     OrgAvatarComponent,
     UserProfileInlineComponent
