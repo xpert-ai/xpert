@@ -1,7 +1,8 @@
 <div class="flex justify-between items-center px-2 py-1">
   <div class="uppercase font-semibold">{{message().type}}</div>
 
-  <copy2 #copy [content]="text()"
+  <copy2 #copy class="copy"
+    [content]="text()"
     [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
     matTooltipPosition="above" />
 </div>
@@ -9,7 +10,7 @@
 <div class="p-2 flex flex-col">
 
   @if (reasoning()) {
-    <div class="relative group w-full max-h-90 p-1 rounded-lg border border-solid border-gray-200 overflow-auto">
+    <div class="relative group/reasoning w-full max-h-90 p-1 rounded-lg border border-solid border-gray-200 overflow-auto">
       <div class="flex justify-between items-center">
         <div class="flex items-center cursor-pointer pressable rounded-md px-1 text-gray-500 hover:bg-hover-bg"
           (click)="expandReason.set(!expandReason())">
@@ -23,7 +24,7 @@
           </div>
         </div>
   
-        <copy #copy class="opacity-30 group-hover:opacity-100"
+        <copy #copy class="opacity-30 group-hover/reasoning:opacity-100"
           [content]="reasoning()"
           [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
           matTooltipPosition="above" />
