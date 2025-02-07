@@ -22,6 +22,12 @@ export class XpertIdentiDto implements Partial<IXpert> {
 	@Expose()
 	avatar?: TAvatar
 
+	@Expose()
+	title?: string
+
+	@Expose()
+	titleCN?: string
+
 	constructor(partial: Partial<XpertIdentiDto | Xpert>) {
 		Object.assign(this, partial)
 	}
