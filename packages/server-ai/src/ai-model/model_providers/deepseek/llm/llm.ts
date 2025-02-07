@@ -1,7 +1,7 @@
 import { ChatDeepSeek } from '@langchain/deepseek'
 import { AIModelEntity, AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { ModelProvider } from '../../../ai-provider'
 import { LargeLanguageModel } from '../../../llm'
 import { TChatModelOptions } from '../../../types/types'
@@ -10,6 +10,8 @@ import { DeepseekCredentials, DeepseekModelCredentials, toCredentialKwargs } fro
 
 @Injectable()
 export class DeepseekLargeLanguageModel extends LargeLanguageModel {
+	readonly #logger = new Logger(DeepseekLargeLanguageModel.name)
+
 	constructor(readonly modelProvider: ModelProvider) {
 		super(modelProvider, AiModelTypeEnum.LLM)
 	}
@@ -40,6 +42,7 @@ export class DeepseekLargeLanguageModel extends LargeLanguageModel {
 	}
 
 	override getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions) {
+		const { handleLLMTokens } = options ?? {}
 		const { copilot } = copilotModel
 		const { modelProvider } = copilot
 		const credentials = modelProvider.credentials as DeepseekCredentials
@@ -47,8 +50,7 @@ export class DeepseekLargeLanguageModel extends LargeLanguageModel {
 		const modelCredentials = copilotModel.options as DeepseekModelCredentials
 
 		const model = copilotModel.model
-		const { handleLLMTokens } = options ?? {}
-		return new ChatDeepSeek({
+		const fields = {
 			...params,
 			model,
 			streaming: modelCredentials?.streaming ?? true,
@@ -57,7 +59,14 @@ export class DeepseekLargeLanguageModel extends LargeLanguageModel {
 			topP: modelCredentials?.top_p,
 			frequencyPenalty: modelCredentials?.frequency_penalty,
 			streamUsage: false,
-			callbacks: [...this.createHandleUsageCallbacks(copilot, model, credentials, handleLLMTokens)]
+			maxRetries: 2
+		}
+		return new ChatDeepSeek({
+			...fields,
+			callbacks: [
+				...this.createHandleUsageCallbacks(copilot, model, credentials, handleLLMTokens),
+				this.createHandleLLMErrorCallbacks(fields, this.#logger)
+			]
 		})
 	}
 }
