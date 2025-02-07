@@ -6,7 +6,7 @@ import { Injectable } from '@nestjs/common'
 import { ModelProvider } from '../../../ai-provider'
 import { TChatModelOptions } from '../../../types/types'
 import { CredentialsValidateFailedError } from '../../errors'
-import { AnthropicCredentials, toCredentialKwargs } from '../types'
+import { AnthropicCredentials, AnthropicModelCredentials, toCredentialKwargs } from '../types'
 import { LargeLanguageModel } from '../../../llm'
 
 @Injectable()
@@ -41,20 +41,19 @@ export class AnthropicLargeLanguageModel extends LargeLanguageModel {
 	}
 
 	getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions) {
+		const { handleLLMTokens } = options ?? {}
 		const { copilot } = copilotModel
 		const { modelProvider } = copilot
 		const credentials = modelProvider.credentials as AnthropicCredentials
-
-		const { handleLLMTokens } = options ?? {}
-
+		const modelCredentials = copilotModel.options as AnthropicModelCredentials
 		const model = copilotModel?.model || copilotModel?.referencedModel?.model
 		return new ChatAnthropic({
 			...toCredentialKwargs(credentials),
 			model,
-			streaming: copilotModel.options?.streaming ?? true,
+			streaming: modelCredentials?.streaming ?? true,
 			temperature: 0,
-			maxTokens: undefined,
-			maxRetries: 2,
+			maxTokens: modelCredentials?.max_tokens,
+			maxRetries: modelCredentials?.maxRetries,
 			callbacks: [
 				{
 					handleLLMStart: () => {

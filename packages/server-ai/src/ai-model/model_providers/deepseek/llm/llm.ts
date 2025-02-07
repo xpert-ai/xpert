@@ -58,8 +58,8 @@ export class DeepseekLargeLanguageModel extends LargeLanguageModel {
 			maxTokens: modelCredentials?.max_tokens,
 			topP: modelCredentials?.top_p,
 			frequencyPenalty: modelCredentials?.frequency_penalty,
+			maxRetries: modelCredentials?.maxRetries,
 			streamUsage: false,
-			maxRetries: 2
 		}
 		return new ChatDeepSeek({
 			...fields,

@@ -4,6 +4,11 @@ import { AIModel } from './ai-model'
 import { calcTokenUsage, sumTokenUsage } from '@metad/copilot'
 import { TChatModelOptions } from './types/types'
 
+export type CommonChatModelParameters = {
+	temperature: number
+	maxRetries?: number | null
+}
+
 export class LLMUsage implements ILLMUsage {
 	/**
 	 * Model class for llm usage.

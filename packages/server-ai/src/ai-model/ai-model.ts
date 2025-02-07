@@ -1,12 +1,12 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilotModel, ParameterRule, PriceInfo, PriceType, TTokenUsage, } from '@metad/contracts'
+import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilotModel, ParameterRule, PriceInfo, PriceType, } from '@metad/contracts'
 import { Injectable, Logger } from '@nestjs/common'
 import { yaml } from '@metad/server-common';
 import * as fs from 'fs'
 import * as path from 'path'
 import { ModelProvider } from './ai-provider'
 import { DefaultParameterName, PARAMETER_RULE_TEMPLATE, valueOf } from './entities'
-import { TChatModelOptions } from './types/types'
+import { CommonParameterRules, TChatModelOptions } from './types/types'
 import { getPositionMap } from '../core/utils'
 
 @Injectable()
@@ -187,11 +187,14 @@ export abstract class AIModel {
 		})
 	}
 
-	public getParameterRules(model: string, credentials: Record<string, string>) {
+	public getParameterRules(model: string, credentials: Record<string, string>): ParameterRule[] {
 		const modelSchema = this.getModelSchema(model, credentials)
-		return modelSchema?.parameter_rules ?? []
+		const parameterRules: ParameterRule[] = modelSchema?.parameter_rules ?? []
+		return [
+			...CommonParameterRules,
+			...parameterRules.filter((_) => !CommonParameterRules.some((r) => r.name === _.name))
+		]
 	}
-
 }
 
 function getDefaultParameterRuleVariableMap(name: DefaultParameterName): ParameterRule {

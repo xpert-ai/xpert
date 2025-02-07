@@ -1,9 +1,17 @@
 import { ClientOptions, OpenAIBaseInput } from '@langchain/openai'
+import { CommonChatModelParameters } from '../../llm'
 
 export interface OpenAICredentials {
     openai_api_key: string
     openai_organization: string
     openai_api_base: string
+}
+
+export interface OpenAIModelCredentials extends CommonChatModelParameters {
+    streaming?: boolean
+	top_p?: number
+	max_tokens?: number
+	frequency_penalty?: number
 }
 
 export function toCredentialKwargs(credentials: OpenAICredentials): OpenAIBaseInput & { configuration: ClientOptions } {
