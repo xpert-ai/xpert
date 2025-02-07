@@ -1,9 +1,6 @@
-import { computed, inject } from '@angular/core'
-import { TranslateService } from '@ngx-translate/core'
 import { firstValueFrom, Observable } from 'rxjs'
 import { ToastrService } from './services'
-import { getErrorMessage, LanguagesEnum } from './types'
-import { injectLanguage } from './providers'
+import { getErrorMessage } from './types'
 
 export function requestFullscreen(document) {
   if (document.documentElement.requestFullscreen) {
@@ -63,25 +60,4 @@ export function isUUID(id: string) {
 
 export function getWebSocketUrl(url: string) {
   return (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + url.replace('http:', '').replace('https:', '')
-}
-
-/**
- * Inject help website url for language
- * 
- * @returns url of website
- */
-export function injectHelpWebsite() {
-  const translate = inject(TranslateService)
-  const lang = injectLanguage()
-
-  const website = 'https://mtda.cloud'
-
-  return computed(() => {
-    const language = lang()
-    if ([LanguagesEnum.Chinese, LanguagesEnum.SimplifiedChinese, LanguagesEnum.TraditionalChinese].includes(language)) {
-      return website
-    } else {
-      return `${website}/en`
-    }
-  })
 }

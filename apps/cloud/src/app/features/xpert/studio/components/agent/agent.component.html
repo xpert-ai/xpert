@@ -27,14 +27,6 @@
   </div>
 </div>
 
-<div class="node-output-right flex flex-col items-center gap-2 w-3 absolute -right-[8px] top-1/2 -mt-5">
-  <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" [fOutputMultiple]="true">
-    <div class="inner-dot cursor-crosshair">
-      <ngm-plus-svg class="w-2 h-2 text-white" />
-    </div>
-  </div>
-</div>
-
 @if (xpertAgent()) {
   <div class="max-w-full flex justify-start items-center px-3 pt-3 pb-2 overflow-hidden">
     <emoji-avatar [avatar]="xpertAgent().avatar" small class="shrink-0 mr-2 rounded-lg overflow-hidden shadow-sm" />
@@ -61,12 +53,73 @@
     </div>
   </div>
   
-  <div class="px-3 pb-2 w-full flex flex-col items-stretch">
-    <p class="mb-2 px-2 text-sm text-token-text-secondary text-left line-clamp-3" [title]="xpertAgent().description">{{xpertAgent().description}}</p>
+  <div class="relative px-3 pb-2 w-full flex">
+    <p class="px-2 text-sm text-token-text-secondary text-left whitespace-pre-line line-clamp-3" [title]="xpertAgent().description">{{xpertAgent().description}}</p>
+  </div>
 
-    <copilot-model-select readonly hiddenLabel [inheritModel]="xpertCopilotModel()" [modelType]="eModelType.LLM"
+  <div class="relative px-3 pb-2 w-full flex">
+    <copilot-model-select class="w-full" readonly hiddenLabel
+      [inheritModel]="xpertCopilotModel()"
+      [modelType]="eModelType.LLM"
       [copilotModel]="copilotModel()"
     />
 
+    <div class="edge absolute -right-[4px] top-[7px]" fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right">
+      <div class="inner-dot cursor-crosshair">
+        <ngm-plus-svg class="w-2 h-2 text-white" />
+      </div>
+    </div>
   </div>
+
+  @if (retry()?.enabled && retry().stopAfterAttempt) {
+    <div class="w-full px-3">
+      <div class="flex items-center justify-between px-[5px] py-1 bg-gray-100 border-[0.5px] border-transparent rounded-md uppercase font-medium text-sm text-text-tertiary">
+        <div class="flex items-center">
+          {{'PAC.Xpert.RetryTimes' | translate: {
+              Default: 'Retry '+(retry().stopAfterAttempt - 1)+' times on failure',
+              times: retry().stopAfterAttempt - 1
+            }
+          }}
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (fallback()?.enabled) {
+    <div class="w-full px-3 flex flex-col items-start">
+      <div class="px-1 text-sm">{{'PAC.Xpert.FallbackModel' | translate: {Default: 'Fallback Model'} }}:</div>
+      <copilot-model-select readonly hiddenLabel class="w-full"
+        [modelType]="eModelType.LLM"
+        [copilotModel]="fallbackModel()"
+      />
+    </div>
+  }
+
+  @if (errorHandling()?.type) {
+    <div class="w-full relative pt-1 pb-2 px-3">
+      <div class="relative flex items-center justify-between px-[5px] h-7 bg-gray-100 rounded-md">
+        <div class="text-sm font-medium uppercase text-text-tertiary">
+          {{'PAC.Xpert.OnFailure' | translate: {Default: 'On Failure'} }}
+        </div>
+        @if (errorHandling().type === 'defaultValue') {
+          <div class="system-xs-medium text-text-primary">
+            {{'PAC.Xpert.OutputDefaultValue' | translate: {Default: 'Output Default Value'} }}
+          </div>
+        }
+        @if (errorHandling().type === 'failBranch') {
+          <div class="system-xs-medium text-text-primary">
+            {{'PAC.Xpert.FailBranch' | translate: {Default: 'Fail Branch'} }}
+          </div>
+        }
+      </div>
+
+      @if (errorHandling().type === 'failBranch') {
+        <div class="edge danger absolute -right-[4px] top-[9px]" fNodeOutput [fOutputId]="node().key + '/fail/edge'" fOutputConnectableSide="right">
+          <div class="inner-dot cursor-crosshair">
+            <ngm-plus-svg class="w-2 h-2 text-white" />
+          </div>
+        </div>
+      }
+    </div>
+  }
 }

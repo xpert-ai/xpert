@@ -16,7 +16,6 @@ import { TranslateModule } from '@ngx-translate/core'
 import {
   ICopilotModel,
   IfAnimation,
-  injectHelpWebsite,
   IXpertAgent,
   IXpertAgentExecution,
   AiModelTypeEnum,
@@ -32,7 +31,9 @@ import {
   TAgentOutputVariable,
   uuid,
   TVariableAssigner,
-  XpertAgentService
+  XpertAgentService,
+  TXpertAgentOptions,
+  injectHelpWebsite
 } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { XpertStudioApiService } from '../../domain'
@@ -53,6 +54,8 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { OverlayAnimations } from '@metad/core'
+import { MatSliderModule } from '@angular/material/slider'
+import { XpertErrorHandlingComponent } from './error-handling/error-handling.component'
 
 @Component({
   selector: 'xpert-studio-panel-agent',
@@ -67,6 +70,7 @@ import { OverlayAnimations } from '@metad/core'
     TranslateModule,
     MatTooltipModule,
     MatSlideToggleModule,
+    MatSliderModule,
     DateRelativePipe,
 
     NgmDensityDirective,
@@ -79,7 +83,8 @@ import { OverlayAnimations } from '@metad/core'
     CopilotPromptEditorComponent,
     XpertStudioPanelKnowledgeSectionComponent,
     XpertOutputVariablesEditComponent,
-    XpertVariablesAssignerComponent
+    XpertVariablesAssignerComponent,
+    XpertErrorHandlingComponent
   ],
   host: {
     tabindex: '-1',
@@ -127,6 +132,16 @@ export class XpertStudioPanelAgentComponent {
   readonly parameters = computed(() => this.xpertAgent()?.parameters)
   readonly memories = computed(() => this.xpertAgent()?.options?.memories)
   readonly parallelToolCalls = computed(() => this.xpertAgent()?.options?.parallelToolCalls ?? true)
+
+  // Error handling
+  readonly retry = computed(() => this.xpertAgent()?.options?.retry)
+  readonly retryEnabled = computed(() => this.retry()?.enabled)
+  readonly stopAfterAttempt = computed(() => this.retry()?.stopAfterAttempt)
+  readonly fallback = computed(() => this.xpertAgent()?.options?.fallback)
+  readonly fallbackEnabled = computed(() => this.fallback()?.enabled)
+  readonly fallbackModel = computed(() => this.fallback()?.copilotModel)
+  readonly errorHandling = computed(() => this.xpertAgent()?.options?.errorHandling)
+  readonly errorHandlingType = computed(() => this.errorHandling()?.type)
 
   readonly nameError = computed(() => {
     const name = this.name()
@@ -348,5 +363,27 @@ export class XpertStudioPanelAgentComponent {
 
   remove() {
     this.apiService.removeNode(this.key())
+  }
+
+  updateOptions(value: Partial<TXpertAgentOptions>) {
+    const options = this.xpertAgent().options ?? {}
+    this.apiService.updateXpertAgent(this.key(), {
+      options: {...options, ...value }
+    })
+  }
+
+  updateRetry(value: Partial<TXpertAgentOptions['retry']>) {
+    const retry = this.retry() ?? {}
+    this.updateOptions({retry: {...retry, ...value}})
+  }
+
+  updateFallback(value: Partial<TXpertAgentOptions['fallback']>) {
+    const fallback = this.fallback() ?? {}
+    this.updateOptions({fallback: {...fallback, ...value}})
+  }
+
+  updateErrorHandling(value: Partial<TXpertAgentOptions['errorHandling']>) {
+    const errorHandling = this.errorHandling() ?? {}
+    this.updateOptions({errorHandling: {...errorHandling, ...value}})
   }
 }

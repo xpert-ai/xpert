@@ -3,16 +3,23 @@ import { Component, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
 import { MatSelectModule } from '@angular/material/select'
+import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatSliderModule } from '@angular/material/slider'
+import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { ParameterRule, ParameterType } from '../../../@core'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
-import { NgxFloatUiModule } from 'ngx-float-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, MatSliderModule, MatSelectModule, MatInputModule, MatSlideToggleModule, NgmDensityDirective, NgxFloatUiModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatSliderModule,
+    MatSelectModule,
+    MatInputModule,
+    MatSlideToggleModule,
+    NgmDensityDirective
+  ],
   selector: 'copilot-model-parameter-input',
   templateUrl: 'input.component.html',
   styleUrls: ['input.component.scss'],

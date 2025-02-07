@@ -51,6 +51,12 @@ export class XpertStudioNodeAgentComponent {
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
   readonly isEnd = computed(() => this.agentConfig()?.endNodes?.includes(this.agentUniqueName()))
   readonly isDisableOutput = computed(() => this.agentConfig()?.disableOutputs?.includes(this.key()))
+  // Options
+  readonly options = computed(() => this.xpertAgent()?.options)
+  readonly retry = computed(() => this.options()?.retry)
+  readonly fallback = computed(() => this.options()?.fallback)
+  readonly fallbackModel = computed(() => this.fallback()?.copilotModel)
+  readonly errorHandling = computed(() => this.options()?.errorHandling)
 
   private get hostElement(): HTMLElement {
     return this.elementRef.nativeElement
@@ -58,7 +64,7 @@ export class XpertStudioNodeAgentComponent {
 
   constructor() {
     effect(() => {
-      // console.log(`Agent node:`, this.node())
+      console.log(this.errorHandling())
     })
   }
 

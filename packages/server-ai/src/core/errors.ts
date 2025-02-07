@@ -18,3 +18,5 @@ export class ThreadAlreadyExistsException extends BadRequestException {
     super(message || 'The thread already exists.');
   }
 }
+
+export class XpertConfigException extends NotFoundException {}

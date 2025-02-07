@@ -43,6 +43,7 @@ export type TXpertAgentExecution = {
   threadId?: string
   checkpointNs?: string
   checkpointId?: string
+  channelName?: string
   parent_thread_id?: string
   /**
    * Latest operation when interrupted

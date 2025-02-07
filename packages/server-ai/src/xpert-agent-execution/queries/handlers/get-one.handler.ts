@@ -23,11 +23,11 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 
 		return {
 			...(await this.expandExecutionLatestCheckpoint(execution)),
-			subExecutions: await Promise.all(subExecutions.map((item) => this.expandExecutionLatestCheckpoint(item)))
+			subExecutions: await Promise.all(subExecutions.map((item) => this.expandExecutionLatestCheckpoint(item, execution)))
 		}
 	}
 
-	async expandExecutionLatestCheckpoint(execution: IXpertAgentExecution) {
+	async expandExecutionLatestCheckpoint(execution: IXpertAgentExecution, parent?: IXpertAgentExecution) {
 		if (!execution.threadId) {
 			return execution
 		}
@@ -35,11 +35,11 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 			new CopilotCheckpointGetTupleQuery({
 				thread_id: execution.threadId,
 				checkpoint_ns: execution.checkpointNs ?? '',
-				checkpoint_id: execution.checkpointId
+				checkpoint_id: execution.checkpointId ?? (execution.checkpointNs ? null : parent.checkpointId)
 			})
 		)
 
-		const channel = channelName(execution.agentKey)
+		const channel = execution.channelName || (execution.agentKey ? channelName(execution.agentKey) : null)
 		const messages = tuple?.checkpoint?.channel_values?.[channel]?.messages ?? tuple?.checkpoint?.channel_values?.messages
 		return new XpertAgentExecutionDTO({
 			...execution,

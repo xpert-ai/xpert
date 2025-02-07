@@ -3,6 +3,7 @@
         "NameInvalid": "Xpert name is invalid or already in use",
         "EmbeddingCopilotNotFound": "Not found the copilot for role 'embedding'",
         "EmbeddingModelForMemory": "Need to configure embedding model for long-term memory",
-        "AgentOutdated": "Agent '{agentKey}' record has been updated, please resynchronize"
+        "AgentOutdated": "Agent '{agentKey}' record has been updated, please resynchronize",
+        "FallbackModelNotFound": "Fallback model not found for agent '{agent}'"
     }
 }

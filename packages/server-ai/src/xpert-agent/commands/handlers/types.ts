@@ -2,13 +2,14 @@ import { ToolCall } from '@langchain/core/dist/messages/tool'
 import { BaseMessage } from '@langchain/core/messages'
 import { Runnable, RunnableLike, RunnableToolLike } from '@langchain/core/runnables'
 import { StructuredToolInterface } from '@langchain/core/tools'
-import { Annotation, CompiledStateGraph, messagesStateReducer } from '@langchain/langgraph'
+import { Annotation, messagesStateReducer } from '@langchain/langgraph'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
-import { TStateVariable, TVariableAssigner, TXpertTeamNode, VariableOperationEnum } from '@metad/contracts'
+import { channelName, TMessageChannel, TStateVariable, TVariableAssigner, TXpertTeamNode, VariableOperationEnum } from '@metad/contracts'
 
 export const STATE_VARIABLE_SYS_LANGUAGE = 'sys_language'
 export const STATE_VARIABLE_USER_EMAIL = 'user_email'
 export const STATE_VARIABLE_USER_TIMEZONE = 'user_timezone'
+export const STATE_VARIABLE_TITLE_CHANNEL = channelName('title')
 
 export const AgentStateAnnotation = Annotation.Root({
 	messages: Annotation<BaseMessage[]>({
@@ -42,6 +43,16 @@ export const AgentStateAnnotation = Annotation.Root({
 		reducer: (a, b) => b ?? a,
 		default: () => null
 	}),
+	[STATE_VARIABLE_TITLE_CHANNEL]: Annotation<TMessageChannel & Record<string, unknown>>({
+		reducer: (a, b) => {
+			return b ? {
+				...a,
+				...b,
+				messages: b.messages ? messagesStateReducer(a.messages, b.messages) : a.messages
+			} : a
+		},
+		default: () => ({messages: []})
+	}),
 	/**
 	 * Summarizing past conversations if it's too long
 	 */
@@ -64,6 +75,7 @@ export type TSubAgent = {
 	node?: RunnableLike<typeof AgentStateAnnotation> | Runnable
 	stateGraph?: Runnable
 	nextNodes?: TXpertTeamNode[]
+	failNode?: TXpertTeamNode
 }
 
 export function parseXmlString(content: string) {
