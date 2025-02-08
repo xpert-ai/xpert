@@ -1,6 +1,6 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
-import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, isAIMessage, isAIMessageChunk, isBaseMessage, isBaseMessageChunk, ToolMessage } from '@langchain/core/messages'
+import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, isAIMessage, isAIMessageChunk, isBaseMessage, isBaseMessageChunk, RemoveMessage, ToolMessage } from '@langchain/core/messages'
 import { HumanMessagePromptTemplate, SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Runnable, RunnableConfig, RunnableLambda, RunnableLike } from '@langchain/core/runnables'
 import {
@@ -385,7 +385,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 			return {
 				systemMessage,
-				messageHistory: enableMessageHistory ? (<TMessageChannel>state[agentChannel])?.messages ?? [] : [],
+				messageHistory: (<TMessageChannel>state[agentChannel])?.messages ?? [],
 				humanMessages
 			}
 		}
@@ -443,16 +443,17 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				])
 			}
 
+			const {systemMessage, messageHistory, humanMessages} = await stateModifier(state)
+			const deleteMessages = enableMessageHistory ? [] : messageHistory.map((m) => new RemoveMessage({ id: m.id as string }))
 			try {
-				const {systemMessage, messageHistory, humanMessages} = await stateModifier(state)
-				const message = await withFallbackModel.invoke([systemMessage, ...messageHistory, ...humanMessages], {...config, signal: abortController.signal})
-				if (isCommand(message)) {
-					return message
-				}
+				const message = await withFallbackModel.invoke([systemMessage, ...(enableMessageHistory ? messageHistory : []), ...humanMessages], {...config, signal: abortController.signal})
+				// if (isCommand(message)) {
+				// 	return message
+				// }
 				const nState: Record<string, any> = {
 					messages: [],
 					// [`${agentKey}.messages`]: [...humanMessages],
-					[channelName(agentKey)]: {messages: [...humanMessages]}
+					[channelName(agentKey)]: {messages: [...deleteMessages, ...humanMessages]}
 				}
 				if ((isBaseMessage(message) && isAIMessage(message))
 					|| isBaseMessageChunk(message) && isAIMessageChunk(message)) {
@@ -480,7 +481,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					return new Command({
 						goto: failNodeKey,
 						update: {
-							[channelName(agentKey)]: {messages: [new AIMessage(`Error: ${getErrorMessage(err)}`)]}
+							[channelName(agentKey)]: {messages: [...deleteMessages, new AIMessage(`Error: ${getErrorMessage(err)}`)]}
 						}
 					})
 				}
