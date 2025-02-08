@@ -4,7 +4,7 @@ import { Runnable, RunnableLike, RunnableToolLike } from '@langchain/core/runnab
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { Annotation, messagesStateReducer } from '@langchain/langgraph'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
-import { channelName, TMessageChannel, TStateVariable, TVariableAssigner, TXpertTeamNode, VariableOperationEnum } from '@metad/contracts'
+import { channelName, IXpertAgent, TMessageChannel, TStateVariable, TVariableAssigner, TXpertGraph, TXpertTeamNode, VariableOperationEnum } from '@metad/contracts'
 
 export const STATE_VARIABLE_SYS_LANGUAGE = 'sys_language'
 export const STATE_VARIABLE_USER_EMAIL = 'user_email'
@@ -128,4 +128,8 @@ export function stateVariable(variable: TStateVariable) {
 			}
 		}
 	}
+}
+
+export function allAgentsKey(graph: TXpertGraph,): IXpertAgent[] {
+	return graph.nodes.filter((n) => n.type === 'agent').map((_) => _.entity as IXpertAgent)
 }

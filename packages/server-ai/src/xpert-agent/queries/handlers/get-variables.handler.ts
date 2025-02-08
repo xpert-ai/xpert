@@ -98,7 +98,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				}
 			})
 			if ((<IXpertAgent>_.entity).outputVariables) {
-				;(<IXpertAgent>_.entity).outputVariables.forEach((variable) => {
+				(<IXpertAgent>_.entity).outputVariables.forEach((variable) => {
 					variables.push({
 						name: variable.name,
 						type: variable.type as TStateVariable['type'],

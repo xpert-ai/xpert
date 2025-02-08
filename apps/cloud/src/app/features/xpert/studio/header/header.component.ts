@@ -16,7 +16,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { formatRelative } from 'date-fns'
-import { BehaviorSubject, distinctUntilChanged, filter, map,publish,  Observable, of, shareReplay, switchMap, startWith, combineLatestWith, tap } from 'rxjs'
+import { BehaviorSubject, distinctUntilChanged, filter, map,publish,  Observable, of, shareReplay, switchMap, startWith, combineLatestWith, tap, catchError } from 'rxjs'
 import { getDateLocale, TXpertAgentConfig } from '../../../../@core'
 import { XpertStudioApiService } from '../domain'
 import { XpertExecutionService } from '../services/execution.service'
@@ -118,8 +118,11 @@ export class XpertStudioHeaderComponent {
   // Diagram of agents
   readonly refreshDiagram$ = new BehaviorSubject<void>(null)
   readonly diagram$ = this.refreshDiagram$.pipe(
-    switchMap(() => this.xpertService.getDiagram(this.xpert().id).pipe(startWith(null))),
-    map((imageBlob) => imageBlob ? URL.createObjectURL(imageBlob) : null),
+    switchMap(() => this.xpertService.getDiagram(this.xpert().id).pipe(
+      map((imageBlob) => imageBlob ? {image: URL.createObjectURL(imageBlob), error: null} : null),
+      catchError((err) => of({image: null, error: getErrorMessage(err)})),
+      startWith(null))
+    ),
     shareReplay(1)
   )
 

@@ -70,7 +70,7 @@ export class XpertStudioPanelExecutionComponent {
   readonly executions = computed(() =>
     this.#execution()?.subExecutions?.map((exec) => ({
       ...exec,
-      agent: this.nodes()?.find((node) => node.type === 'agent' && node.key === exec.agentKey)?.entity as IXpertAgent
+      agent: exec.agent ?? this.nodes()?.find((node) => node.type === 'agent' && node.key === exec.agentKey)?.entity as IXpertAgent
     }))
   )
 
@@ -79,9 +79,6 @@ export class XpertStudioPanelExecutionComponent {
       () => {
         this.executionService.clear()
         if (this.#execution()) {
-          // this.#execution().subExecutions?.forEach((execution) => {
-          //   this.executionService.setAgentExecution(execution.agentKey, execution)
-          // })
           this.executionService.setAgentExecution(this.#execution().agentKey, this.#execution())
         }
       },
