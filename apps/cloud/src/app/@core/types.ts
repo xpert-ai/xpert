@@ -70,11 +70,19 @@ export function getErrorMessage(err: any): string {
   if (typeof err === 'string') {
     error = err
   } else if (err instanceof HttpErrorResponse) {
-    error = err?.error?.message ?? err?.error ?? err.message
+    if (err?.error?.message) {
+      error = err?.error?.message
+    } else if (typeof err?.error === 'string') {
+      error = err?.error
+    } else if(err.message) {
+      error = err?.message
+    }
   } else if (err instanceof Error) {
     error = err?.message
   } else if (err?.error instanceof Error) {
     error = err?.error?.message
+  } else if (typeof err?.message === 'string') {
+    error = err?.message
   } else if (err) {
     // 实在没办法则转成 JSON string
     error = JSON.stringify(err)

@@ -215,8 +215,7 @@ export class XpertController extends CrudController<Xpert> {
 			res.setHeader('Content-Type', 'image/jpeg')
 			res.send(Buffer.from(await imageData.arrayBuffer()))
 		} catch (err) {
-			this.#logger.error(`Failed to get image blob for id ${id}: ${err.message}`);
-			throw new InternalServerErrorException('Failed to retrieve image');
+			throw new InternalServerErrorException(err.message)
 		}
 	}
 

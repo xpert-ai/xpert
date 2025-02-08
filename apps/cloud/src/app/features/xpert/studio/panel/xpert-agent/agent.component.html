@@ -418,7 +418,14 @@
 <ng-template #diagramMenu>
   <div cdkMenu @overlayAnimation1 class="min-w-[100px] min-h-[200px] max-w-xl max-h-[600px] p-4 relative">
     @if (diagram$ | async; as diagram) {
-      <img [src]="diagram" alt="Diagram Image" class="max-w-full max-h-full">
+      @if (diagram.image) {
+        <img [src]="diagram.image" alt="Diagram Image">
+      } @else {
+        <div class="w-8 h-8 flex justify-center items-center mb-2 rounded-xl bg-slate-50 shadow-sm text-text-warning">
+          <i class="ri-error-warning-line"></i>
+        </div>
+        <div class="text-sm text-text-warning">{{diagram.error}}</div>
+      }
     } @else {
       <ngm-spin class="absolute top-0 left-0 w-full h-full" />
     }

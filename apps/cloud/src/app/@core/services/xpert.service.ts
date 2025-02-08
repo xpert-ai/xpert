@@ -3,7 +3,7 @@ import { SearchItem } from '@langchain/langgraph-checkpoint'
 import { PaginationParams, toHttpParams } from '@metad/cloud/state'
 import { toParams } from '@metad/ocap-angular/core'
 import { NGXLogger } from 'ngx-logger'
-import { BehaviorSubject, tap } from 'rxjs'
+import { BehaviorSubject, catchError, Observable, tap, throwError } from 'rxjs'
 import { API_XPERT_ROLE } from '../constants/app.constants'
 import { injectApiBaseUrl } from '../providers'
 import {
@@ -27,7 +27,7 @@ import {
 } from '../types'
 import { injectFetchEventSource } from './fetch-event-source'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
-import { HttpParams } from '@angular/common/http'
+import { HttpErrorResponse, HttpParams } from '@angular/common/http'
 
 @Injectable({ providedIn: 'root' })
 export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
@@ -96,14 +96,16 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   }
 
   getDiagram(id: string, agentKey?: string) {
-    let params = toParams({isDraft: true,})
+    let params = toParams({ isDraft: true })
     if (agentKey) {
-      params =params.append('agentKey', agentKey)
+      params = params.append('agentKey', agentKey)
     }
     return this.httpClient.get(this.apiBaseUrl + `/${id}/diagram`, {
       params,
       responseType: 'blob',
-    })
+    }).pipe(
+      catchError((error: HttpErrorResponse) => handleError(error))
+    )
   }
 
   getExecutions(id: string, options?: PaginationParams<IXpertAgentExecution>) {
@@ -331,4 +333,32 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
 
 export function injectXpertService() {
   return inject(XpertService)
+}
+
+/**
+ * Handle blob error response
+ * 
+ * @param error 
+ * @returns 
+ */
+function handleError(error: HttpErrorResponse): Observable<never> {
+  if (error.error instanceof Blob) {
+    return new Observable<never>((observer) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const errorMessage = JSON.parse(reader.result as string);
+          observer.error(errorMessage);
+        } catch (e) {
+          observer.error({ message: 'Unknown error', details: reader.result });
+        }
+      };
+      reader.onerror = () => {
+        observer.error({ message: 'Failed to read error response' });
+      };
+      reader.readAsText(error.error);
+    });
+  } else {
+    return throwError(() => error);
+  }
 }

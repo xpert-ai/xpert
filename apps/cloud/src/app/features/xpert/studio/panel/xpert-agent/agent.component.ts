@@ -198,8 +198,11 @@ export class XpertStudioPanelAgentComponent {
   // Diagram of agents
   readonly refreshDiagram$ = new BehaviorSubject<void>(null)
   readonly diagram$ = this.refreshDiagram$.pipe(
-    switchMap(() => this.xpertService.getDiagram(this.xpert().id, this.key()).pipe(startWith(null))),
-    map((imageBlob) => imageBlob ? URL.createObjectURL(imageBlob) : null),
+    switchMap(() => this.xpertService.getDiagram(this.xpert().id, this.key()).pipe(
+      map((imageBlob) => imageBlob ? {image: URL.createObjectURL(imageBlob), error: null} : null),
+      catchError((err) => of({image: null, error: getErrorMessage(err)})),
+      startWith(null))
+    ),
     shareReplay(1)
   )
 

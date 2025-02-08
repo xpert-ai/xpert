@@ -197,8 +197,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		let nextNodeKey = END
 		let failNodeKey = END
 		const agentKeys = new Set([agent.key])
-		const nodes = {}
+		const nodes: Record<string, {ends: string[]; graph: RunnableLike;}> = {}
+		// Conditional Edges
 		const conditionalEdges: Record<string, [RunnableLike, string[]?]> = {}
+		// Fixed Edge
 		const edges: Record<string, string> = {}
 		if (isStart) {
 			/**
@@ -238,20 +240,30 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						signal,
 						isTool: false
 					})
-	
-					nodes[node.key] = stateGraph
-
-					// for await (const nNode of nextNodes ?? []) {
-					// 	await createSubgraph(nNode, node.key)
+					
+					// Conditional Edges
+					const ends = []
+					if (failNode) {
+						ends.push(failNode.key)
+					}
+					// if (nextNodes?.[0]) {
+					// 	ends.push(nextNodes[0].key)
 					// }
+					nodes[node.key] = {graph: stateGraph, ends}
+
+					// Fixed Edge
+					if (!parentKey && nextNodes?.[0]?.key) {
+						edges[node.key] = nextNodes[0].key
+					}
+
 					if (nextNodes?.length || failNode) {
 						await createSubgraph(nextNodes?.[0], failNode)
 					}
 				} else if(node?.type === 'workflow') {
 					const { workflowNode, nextNodes } = createWorkflowNode(graph, node,)
-					nodes[node.key] = (state) => {
+					nodes[node.key] = {graph: (state) => {
 						//
-					}
+					}, ends: []}
 					conditionalEdges[node.key] = [workflowNode, nextNodes.map((n) => n.key)]
 					// if (parentKey) {
 					// 	if (isPrimary) {
@@ -282,7 +294,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						isTool: false
 					})
 	
-					nodes[fail.key] = stateGraph
+					nodes[fail.key] = {graph: stateGraph, ends: []}
 					if (nextNodes?.length || failNode) {
 						await createSubgraph(nextNodes?.[0], failNode)
 					}
@@ -530,7 +542,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(agentChannel, summarize, summarizeTitle, null))
 		} else {
 			// Next nodes
-			Object.keys(nodes).forEach((name) => subgraphBuilder.addNode(name, nodes[name]))
+			Object.keys(nodes).forEach((name) => subgraphBuilder.addNode(name, nodes[name].graph, {ends: nodes[name].ends}))
 			Object.keys(edges).forEach((name) => subgraphBuilder.addEdge(name, edges[name]))
 			Object.keys(conditionalEdges).forEach((name) => subgraphBuilder.addConditionalEdges(name, conditionalEdges[name][0], conditionalEdges[name][1]))
 		}
