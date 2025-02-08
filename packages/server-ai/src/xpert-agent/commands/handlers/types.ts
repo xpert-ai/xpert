@@ -9,6 +9,7 @@ import { channelName, TMessageChannel, TStateVariable, TVariableAssigner, TXpert
 export const STATE_VARIABLE_SYS_LANGUAGE = 'sys_language'
 export const STATE_VARIABLE_USER_EMAIL = 'user_email'
 export const STATE_VARIABLE_USER_TIMEZONE = 'user_timezone'
+export const STATE_VARIABLE_INPUT = 'input'
 export const STATE_VARIABLE_TITLE_CHANNEL = channelName('title')
 
 export const AgentStateAnnotation = Annotation.Root({

@@ -64,7 +64,7 @@ export class XpertStudioNodeAgentComponent {
 
   constructor() {
     effect(() => {
-      console.log(this.errorHandling())
+      // console.log(this.errorHandling())
     })
   }
 

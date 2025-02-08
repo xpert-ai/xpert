@@ -4,6 +4,7 @@ import { Overlay, OverlayRef } from '@angular/cdk/overlay'
 import { TemplatePortal } from '@angular/cdk/portal'
 import { CommonModule } from '@angular/common'
 import {
+  booleanAttribute,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -37,7 +38,10 @@ import { timer } from 'rxjs'
   styleUrls: ['./editor.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, MatTooltipModule, NgmI18nPipe, NgmHighlightVarDirective]
+  imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, MatTooltipModule, NgmI18nPipe, NgmHighlightVarDirective],
+  host: {
+    '[class.fullscreen]': 'fullscreen()'
+  }
 })
 export class CopilotPromptEditorComponent {
   agentLabel = agentLabel
@@ -57,6 +61,9 @@ export class CopilotPromptEditorComponent {
   readonly tooltip = input<string>()
   readonly variables = input<TWorkflowVarGroup[]>()
   readonly role = input<'system' | 'ai' | 'human'>()
+  readonly fullscreen = input<boolean, string | boolean>(false, {
+    transform: booleanAttribute
+  })
 
   // Outputs
   readonly deleted = output<void>()

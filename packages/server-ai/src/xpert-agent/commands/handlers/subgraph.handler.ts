@@ -368,16 +368,25 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 			this.#logger.verbose(`SystemMessage:`, systemMessage.content)
 
-			return {
-				systemMessage,
-				messageHistory: enableMessageHistory ? (<TMessageChannel>state[agentChannel])?.messages ?? [] : [],
-				humanMessages: agent.promptTemplates ? await Promise.all(
-					agent.promptTemplates.map((temp) =>
+			let humanMessages = []
+			const humanTemplates = agent.promptTemplates?.filter((_) => !!_.text?.trim())
+			if (humanTemplates?.length) {
+				humanMessages = humanMessages.concat(await Promise.all(
+					humanTemplates.map((temp) =>
 						HumanMessagePromptTemplate.fromTemplate(temp.text, {
 							templateFormat: 'mustache'
 						}).format(parameters)
 					)
-				) : []
+				))
+			}
+			if (!humanMessages.length) {
+				humanMessages.push(new HumanMessage(state.input))
+			}
+
+			return {
+				systemMessage,
+				messageHistory: enableMessageHistory ? (<TMessageChannel>state[agentChannel])?.messages ?? [] : [],
+				humanMessages
 			}
 		}
 		
@@ -442,13 +451,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				}
 				const nState: Record<string, any> = {
 					messages: [],
-					[`${agentKey}.messages`]: [...humanMessages],
+					// [`${agentKey}.messages`]: [...humanMessages],
 					[channelName(agentKey)]: {messages: [...humanMessages]}
 				}
 				if ((isBaseMessage(message) && isAIMessage(message))
 					|| isBaseMessageChunk(message) && isAIMessageChunk(message)) {
 					nState.messages.push(message)
-					nState[`${agentKey}.messages`].push(message)
+					// nState[`${agentKey}.messages`].push(message)
 					nState[channelName(agentKey)].messages.push(message)
 				} else {
 					nState[channelName(agentKey)] = message

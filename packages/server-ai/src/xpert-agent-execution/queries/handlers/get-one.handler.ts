@@ -35,7 +35,7 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 			new CopilotCheckpointGetTupleQuery({
 				thread_id: execution.threadId,
 				checkpoint_ns: execution.checkpointNs ?? '',
-				checkpoint_id: execution.checkpointId ?? (execution.checkpointNs ? null : parent.checkpointId)
+				checkpoint_id: execution.checkpointId ?? (execution.checkpointNs ? null : parent?.checkpointId)
 			})
 		)
 

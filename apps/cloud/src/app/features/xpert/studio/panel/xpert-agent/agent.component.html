@@ -123,10 +123,10 @@
       <mat-slide-toggle ngm-density="xs" [ngModel]="enableMessageHistory()" (ngModelChange)="updateEnMessageHistory($event)" />
     </div>
 
-    @if (!enableMessageHistory()) {
+    <!-- @if (!enableMessageHistory()) { -->
       @for (template of promptTemplates(); track template.id; let i = $index) {
         <copilot-prompt-editor class="prompt-template relative rounded-xl self-stretch border border-solid border-gray-100"
-          [class.fullscreen]="promptTemplateFullscreen() === template.id"
+          [fullscreen]="promptTemplateFullscreen() === template.id"
           [tooltip]="'PAC.Xpert.SystemPromptTooltip' | translate: {Default: 'Prompts guide AI reponses with instructions and contraints. Insert parameters like {{input}}. This prompt won\'t be visible to users.'}"
           [variables]="variables()"
           role="human"
@@ -156,7 +156,7 @@
         <i class="ri-add-line"></i>
         <div>{{ 'PAC.Xpert.AddMessage' | translate: {Default: 'Add Message'} }}</div>
       </button>
-    }
+    <!-- } -->
       
     <div class="w-full flex flex-col gap-2 p-3 bg-gray-50 rounded-xl">
       <div class="flex items-center space-x-1 shrink-0">
