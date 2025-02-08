@@ -8,7 +8,7 @@ import { IXpertAgent } from './xpert-agent.model'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 import { IIntegration } from '../integration.model'
-import { TChatFrom } from './chat.model'
+import { TChatFrom, TSensitiveOperation } from './chat.model'
 import { IWorkflowNode, TVariableAssigner, VariableOperationEnum } from './xpert-workflow.model'
 
 export type ToolCall = LToolCall
@@ -378,9 +378,10 @@ export type TChatRequest = {
   xpertId: string
   conversationId?: string
   id?: string
-  toolCalls?: ToolCall[]
+  // toolCalls?: ToolCall[]
   confirm?: boolean
   reject?: boolean
+  operation?: TSensitiveOperation
   retry?: boolean
 }
 

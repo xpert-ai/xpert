@@ -178,7 +178,10 @@ export class XpertStudioPanelAgentExecutionComponent {
         agentKey: this.xpertAgent().key,
         xpertId: this.xpert().id,
         executionId,
-        toolCalls: this.#toolCalls(),
+        operation: (options?.reject || this.#toolCalls()) ? {
+          ...this.operation(),
+          toolCalls: this.#toolCalls()?.map((call) => ({call}))
+        } : null,
         reject: options?.reject
       })
       .subscribe({

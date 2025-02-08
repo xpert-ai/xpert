@@ -1,3 +1,7 @@
+@for (agent of agents(); track agent.key) {
+  <xpert-agent-identity [agent]="agent" class="w-full mb-2 p-2 border-[0.5px] border-solid border-divider-deep rounded-lg shadow-sm" />
+}
+
 @for (item of toolCalls(); track item.call.id; let index = $index) {
   <label class="font-semibold pb-2">{{item.info?.title || item.info?.name}}</label>
   <div class="flex flex-col gap-1">

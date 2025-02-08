@@ -20,3 +20,4 @@ export class ThreadAlreadyExistsException extends BadRequestException {
 }
 
 export class XpertConfigException extends NotFoundException {}
+export class XpertSensitiveOperationException extends BadRequestException {}

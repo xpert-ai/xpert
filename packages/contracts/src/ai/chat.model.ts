@@ -4,6 +4,7 @@ import { IXpertAgentExecution } from './xpert-agent-execution.model'
 import { IXpert } from './xpert.model'
 import { I18nObject } from '../types'
 import { CopilotChatMessage, CopilotMessageGroup, IChatMessage } from './chat-message.model'
+import { IXpertAgent } from './xpert-agent.model'
 
 export type TChatConversationOptions = {
   parameters?: {
@@ -20,15 +21,22 @@ export type TChatFrom = 'platform' | 'webapp' | 'debugger' | 'job' | 'api' | 'fe
 
 export type TSensitiveOperation = {
   messageId?: string
+  agent: {
+    id: string
+    key: string
+    name: string
+    title?: string
+    description: string
+  },
   toolCalls: {
     call: ToolCall
-    type: TToolCallType
-    info: {
+    type?: TToolCallType
+    info?: {
       name: string
       title?: string
       description: string
     }
-    parameters: {
+    parameters?: {
       name: string;
       title: I18nObject | string
       type: string;
@@ -36,6 +44,7 @@ export type TSensitiveOperation = {
       placeholder?: I18nObject | string
     }[]
   }[]
+  nextAgents?: Partial<IXpertAgent>[]
 }
 
 /**

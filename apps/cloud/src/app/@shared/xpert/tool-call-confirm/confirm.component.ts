@@ -4,16 +4,19 @@ import { FormsModule } from '@angular/forms'
 import { SlashSvgComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ToolCall, TSensitiveOperation } from '../../../@core'
+import { agentLabel, ToolCall, TSensitiveOperation } from '../../../@core'
+import { XpertAgentIdentityComponent } from '../agent-identity/agent-identity.component'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, SlashSvgComponent, NgmI18nPipe],
+  imports: [CommonModule, FormsModule, TranslateModule, SlashSvgComponent, NgmI18nPipe, XpertAgentIdentityComponent],
   selector: 'xpert-tool-call-confirm',
   templateUrl: 'confirm.component.html',
   styleUrls: ['confirm.component.scss']
 })
 export class ToolCallConfirmComponent {
+  agentLabel = agentLabel
+  
   // Inputs
   readonly operation = input<TSensitiveOperation>()
   readonly tools = input<{name: string; title: string; parameters: any}[]>()
@@ -26,7 +29,9 @@ export class ToolCallConfirmComponent {
   readonly confirm = output()
   readonly reject = output()
 
+  // States
   readonly toolCalls = computed(() => this.operation()?.toolCalls)
+  readonly agents = computed(() => this.operation()?.nextAgents)
 
   readonly #toolCalls = signal<ToolCall[]>(null)
 

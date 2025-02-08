@@ -5,6 +5,7 @@ import { I18nObject, TAvatar } from '../types'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IXpert, ToolCall, TXpertParameter } from './xpert.model'
 import { TVariableAssigner } from './xpert-workflow.model'
+import { TSensitiveOperation } from './chat.model'
 
 export type TXpertAgent = {
   key: string
@@ -159,7 +160,7 @@ export type TChatAgentParams = {
   /**
    * Message to update parameters of last tool call message
    */
-  toolCalls?: ToolCall[]
+  operation?: TSensitiveOperation
   /**
    * Reject the sensitive tool calls
    */

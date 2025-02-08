@@ -58,6 +58,7 @@ export class ChatConversationComponent {
   readonly error = computed(() => this.conversation()?.error)
   readonly operation = computed(() => this.chatService.conversation()?.operation)
   readonly toolCalls = signal<ToolCall[]>(null)
+  readonly #confirmOperation = computed(() => this.toolCalls() ? {...this.operation(), toolCalls: this.toolCalls().map((call) => ({call}))} : null)
   readonly parameters = computed(() => this.xpert()?.agent?.parameters)
 
   readonly parametersValue = this.chatService.parametersValue
@@ -73,7 +74,7 @@ export class ChatConversationComponent {
   }
 
   onConfirm() {
-    this.chatService.chat({ confirm: true, toolCalls: this.toolCalls() })
+    this.chatService.chat({ confirm: true, operation: this.#confirmOperation() })
     this.chatService.updateConversation({
       status: 'busy',
       error: null
@@ -81,7 +82,7 @@ export class ChatConversationComponent {
   }
   
   onReject() {
-    this.chatService.chat({ reject: true })
+    this.chatService.chat({ reject: true, operation: this.operation() })
     this.chatService.updateConversation({
       status: 'busy',
       error: null

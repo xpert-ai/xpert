@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { FFlowModule } from '@foblex/flow'
-import { agentUniqueName, AiModelTypeEnum, TXpertTeamNode } from 'apps/cloud/src/app/@core'
+import { agentLabel, agentUniqueName, AiModelTypeEnum, TXpertTeamNode } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
 import { XpertStudioApiService } from '../../domain'
@@ -48,6 +48,7 @@ export class XpertStudioNodeAgentComponent {
   readonly agentConfig = computed(() => this.xpert()?.agentConfig)
 
   readonly agentUniqueName = computed(() => agentUniqueName(this.xpertAgent()))
+  readonly agentLabel = computed(() => agentLabel(this.xpertAgent()))
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
   readonly isEnd = computed(() => this.agentConfig()?.endNodes?.includes(this.agentUniqueName()))
   readonly isDisableOutput = computed(() => this.agentConfig()?.disableOutputs?.includes(this.key()))

@@ -133,3 +133,14 @@ export function stateVariable(variable: TStateVariable) {
 export function allAgentsKey(graph: TXpertGraph,): IXpertAgent[] {
 	return graph.nodes.filter((n) => n.type === 'agent').map((_) => _.entity as IXpertAgent)
 }
+
+export function identifyAgent(agent: IXpertAgent) {
+	return {
+		id: agent.id,
+		key: agent.key,
+		name: agent.name,
+		title: agent.title,
+		description: agent.description,
+		avatar: agent.avatar,
+	}
+}

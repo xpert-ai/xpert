@@ -47,7 +47,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
 	public async execute(command: XpertChatCommand): Promise<Observable<MessageEvent>> {
 		const { options } = command
-		const { xpertId, input, conversationId, confirm, reject, toolCalls } = command.request
+		const { xpertId, input, conversationId, confirm, reject, operation } = command.request
 		const { from, fromEndUserId } = options ?? {}
 		const userId = RequestContext.currentUserId()
 
@@ -145,7 +145,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				knowledgebases: null, // Does not support customizing whether to use knowledgebases
 				isDraft: options?.isDraft,
 				execution: { id: executionId },
-				toolCalls,
+				operation,
 				reject,
 				memories,
 				summarizeTitle: true

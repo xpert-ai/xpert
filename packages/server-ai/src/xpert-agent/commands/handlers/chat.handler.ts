@@ -10,11 +10,13 @@ import {
 import { getErrorMessage, omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { instanceToPlain } from 'class-transformer'
 import { catchError, concat, EMPTY, from, map, Observable, of, Subject, switchMap, takeUntil, tap } from 'rxjs'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { XpertAgentChatCommand } from '../chat.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
+import { XpertAgentExecutionDTO } from '../../../xpert-agent-execution/dto'
 
 @CommandHandler(XpertAgentChatCommand)
 export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatCommand> {
@@ -113,9 +115,9 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 								})
 							)
 
-							const fullExecution = await this.queryBus.execute(
+							const fullExecution = instanceToPlain(new XpertAgentExecutionDTO(await this.queryBus.execute(
 								new XpertAgentExecutionOneQuery(execution.id)
-							)
+							)))
 
 							this.#logger.verbose(fullExecution)
 

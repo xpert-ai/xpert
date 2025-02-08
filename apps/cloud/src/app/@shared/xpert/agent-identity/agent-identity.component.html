@@ -1,0 +1,11 @@
+<div class="w-full flex justify-start items-center gap-2 mb-2">
+  <emoji-avatar [avatar]="avatar()" small class="rounded-lg overflow-hidden shadow-sm" />
+
+  <div class="flex flex-col overflow-hidden text-base-content">
+    <span class="text-base font-semibold uppercase truncate">{{agentLabel()}}</span>
+  </div>
+</div>
+
+<div class="text-sm text-text-secondary line-clamp-3">
+  {{ description() }}
+</div>

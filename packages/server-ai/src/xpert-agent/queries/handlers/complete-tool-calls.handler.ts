@@ -1,9 +1,10 @@
-import { agentUniqueName, IXpertAgent, TSensitiveOperation, TToolCallType } from '@metad/contracts'
+import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
+import { agentUniqueName, IXpertAgent, TSensitiveOperation, TToolCallType, XpertParameterTypeEnum } from '@metad/contracts'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
-import { GetXpertAgentQuery } from '../../../xpert/queries/get-xpert-agent.query'
+import { GetXpertAgentQuery } from '../../../xpert/queries'
 import { CompleteToolCallsQuery } from '../complete-tool-calls.query'
-import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
+import { identifyAgent, STATE_VARIABLE_INPUT } from '../../commands/handlers/types'
 
 @QueryHandler(CompleteToolCallsQuery)
 export class CompleteToolCallsHandler implements IQueryHandler<CompleteToolCallsQuery> {
@@ -42,33 +43,45 @@ export class CompleteToolCallsHandler implements IQueryHandler<CompleteToolCalls
 		const tools = []
 		for await (const toolset of toolsets) {
 			const items = await toolset.initTools()
-			tools.push(...items.map((tool) => {
-				const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)
-				return {
-					tool,
-					definition: toolset.getToolset().tools.find((_) => _.name === lc_name)
-				}
-			}))
+			tools.push(
+				...items.map((tool) => {
+					const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)
+					return {
+						tool,
+						definition: toolset.getToolset().tools.find((_) => _.name === lc_name)
+					}
+				})
+			)
 		}
 
 		const toolCalls = aiMessage.tool_calls?.map((toolCall) => {
 			toolCall.name
 			// Find in agents
 			if (subAgents[toolCall.name]) {
+				const parameters = [
+					{
+						name: STATE_VARIABLE_INPUT,
+						title: 'Input',
+						description: 'Input content',
+						type: XpertParameterTypeEnum.TEXT
+					}
+				]
+				subAgents[toolCall.name].parameters?.forEach((param) => parameters.push({
+					name: param.name,
+					title: param.title,
+					description: param.description,
+					type: param.type
+				}))
 				return {
 					call: toolCall,
 					type: 'agent' as TToolCallType,
+					
 					info: {
 						name: subAgents[toolCall.name].name,
 						title: subAgents[toolCall.name].title,
 						description: subAgents[toolCall.name].description
 					},
-					parameters: subAgents[toolCall.name].parameters?.map((param) => ({
-						name: param.name,
-						title: param.title,
-						description: param.description,
-						type: param.type,
-					}))
+					parameters
 				}
 			} else {
 				const tool = tools.find((_) => _.tool.name === toolCall.name)
@@ -85,7 +98,7 @@ export class CompleteToolCallsHandler implements IQueryHandler<CompleteToolCalls
 							title: param.label,
 							description: param.human_description,
 							placeholder: param.placeholder,
-							type: param.type,
+							type: param.type
 						}))
 					}
 				}
@@ -95,6 +108,7 @@ export class CompleteToolCallsHandler implements IQueryHandler<CompleteToolCalls
 
 		return {
 			messageId: aiMessage.id,
+			agent: identifyAgent(agent),
 			toolCalls
 		}
 	}

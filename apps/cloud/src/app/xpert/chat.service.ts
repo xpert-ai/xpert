@@ -27,6 +27,7 @@ import {
   TChatRequest,
   uuid,
   ChatMessageStatusEnum,
+  TSensitiveOperation,
 } from '../@core'
 import { ChatConversationService, ChatService as ChatServerService, XpertService, ToastrService, ChatMessageFeedbackService } from '../@core/services'
 import { AppService } from '../app.service'
@@ -168,7 +169,7 @@ export class ChatService {
     return this.chatService.chat(request, options)
   }
 
-  chat(options: Partial<{id: string; content: string; confirm: boolean; toolCalls: ToolCall[]; reject: boolean; retry: boolean}>) {
+  chat(options: Partial<{id: string; content: string; confirm: boolean; operation: TSensitiveOperation; reject: boolean; retry: boolean}>) {
     this.answering.set(true)
 
     if (options.confirm) {
@@ -196,7 +197,7 @@ export class ChatService {
         xpertId: this.xpert()?.id,
         conversationId: this.conversation()?.id,
         id: options.id,
-        toolCalls: options.toolCalls,
+        operation: options.operation,
         confirm: options.confirm,
         reject: options.reject,
         retry: options.retry,

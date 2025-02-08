@@ -1,5 +1,5 @@
 import { SearchItem } from '@langchain/langgraph-checkpoint'
-import { IXpert, IXpertAgentExecution, TChatOptions, ToolCall } from '@metad/contracts'
+import { IXpert, IXpertAgentExecution, TChatOptions, TSensitiveOperation } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 /**
@@ -23,7 +23,7 @@ export class XpertAgentChatCommand implements ICommand {
 			 */
 			execution?: IXpertAgentExecution
 
-			toolCalls?: ToolCall[]
+			operation?: TSensitiveOperation
 			reject?: boolean
 
 			memories?: SearchItem[]
