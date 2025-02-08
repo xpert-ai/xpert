@@ -39,6 +39,10 @@
         }
       }
     }
+
+    &.toolset, &.agent, &.knowledge, &.xpert {
+      stroke-dasharray: 4, 2;
+    }
   }
   
   .f-node-input,
