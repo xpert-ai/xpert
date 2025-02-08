@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertAgent, XpertAgentExecutionService, XpertAgentExecutionStatusEnum } from 'apps/cloud/src/app/@core'
 import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } from 'apps/cloud/src/app/@shared/xpert'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { of } from 'rxjs'
+import { derivedFrom } from 'ngxtension/derived-from'
+import { of, pipe, switchMap, tap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 
@@ -19,6 +20,7 @@ import { XpertExecutionService } from '../../services/execution.service'
     CommonModule,
     FormsModule,
     TranslateModule,
+    NgmSpinComponent,
     XpertAgentExecutionComponent,
     XpertAgentExecutionAccordionComponent
   ]
@@ -36,10 +38,17 @@ export class XpertStudioPanelExecutionComponent {
   // Output
   readonly close = output<void>()
 
-  readonly #execution = derivedAsync(() => {
-    const id = this.id()
-    return id ? this.agentExecutionService.getOneLog(id) : of(null)
-  })
+  // States
+  readonly loading = signal(false)
+  readonly #execution = derivedFrom(
+    [this.id],
+    pipe(
+      tap(() => this.loading.set(true)),
+      switchMap(([id]) => (id ? this.agentExecutionService.getOneLog(id) : of(null))),
+      tap(() => this.loading.set(false))
+    ),
+    { initialValue: null }
+  )
 
   readonly nodes = computed(() => this.studioService.viewModel()?.nodes)
 
@@ -66,14 +75,17 @@ export class XpertStudioPanelExecutionComponent {
   )
 
   constructor() {
-    effect(() => {
-      this.executionService.clear()
-      if (this.#execution()) {
-        // this.#execution().subExecutions?.forEach((execution) => {
-        //   this.executionService.setAgentExecution(execution.agentKey, execution)
-        // })
-        this.executionService.setAgentExecution( this.#execution().agentKey,  this.#execution())
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        this.executionService.clear()
+        if (this.#execution()) {
+          // this.#execution().subExecutions?.forEach((execution) => {
+          //   this.executionService.setAgentExecution(execution.agentKey, execution)
+          // })
+          this.executionService.setAgentExecution(this.#execution().agentKey, this.#execution())
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 }

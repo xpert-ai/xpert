@@ -1,4 +1,4 @@
-<div class="sticky top-0 z-10 bg-components-panel-bg mb-4">
+<div class="shrink-0 z-10 bg-components-panel-bg mb-4">
   <div class="flex justify-between items-center p-2">
     <h1 class="shrink-0 text-lg px-2 font-semibold text-gray-900">{{ 'PAC.Xpert.ConversationLog' | translate: {Default: 'Conversation Log'} }}</h1>
     <button type="button" class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
@@ -18,15 +18,21 @@
   </div>
 </div>
 
-@switch (pageType()) {
-  @case('overview') {
-    @if (execution(); as execution) {
-      <xpert-agent-execution class="w-full px-4" [execution]="execution" />
+<div class="grow overflow-auto">
+  @switch (pageType()) {
+    @case('overview') {
+      @if (execution(); as execution) {
+        <xpert-agent-execution class="w-full px-4" [execution]="execution" />
+      }
+    }
+    @case('steps') {
+      @for (execution of executions(); track execution.id) {
+        <xpert-agent-execution-accordion [execution]="execution" />
+      }
     }
   }
-  @case('steps') {
-    @for (execution of executions(); track execution.id) {
-      <xpert-agent-execution-accordion [execution]="execution" />
-    }
-  }
+</div>
+
+@if (loading()) {
+  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
 }
