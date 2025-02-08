@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core'
+import { booleanAttribute, ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { Router, RouterModule } from '@angular/router'
+import { RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { CopilotChatMessage, IXpert, ToolCall, XpertAgentExecutionStatusEnum } from '../../@core'
@@ -38,11 +38,14 @@ export class ChatConversationComponent {
   readonly chatService = inject(ChatService)
   readonly homeService = inject(XpertHomeService)
   readonly appService = inject(AppService)
-  readonly #router = inject(Router)
+  // readonly #router = inject(Router)
 
   // Inputs
   readonly xpert = input.required<IXpert>()
   readonly chatInput = input.required<ChatInputComponent>()
+  readonly showExecution = input<boolean, string | boolean>(false, {
+    transform: booleanAttribute
+  })
 
   // States
   readonly messages = this.chatService.messages

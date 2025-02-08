@@ -15,6 +15,7 @@
 <div class="group/message relative flex-1 flex flex-col gap-2 mt-2 pb-10 overflow-hidden">
 
   <!-- executions -->
+  @if (showExecution()) {
   <div class="relative rounded-xl border border-solid border-teal-800 p-2 bg-gray-50">
     <div class="flex items-center leading-[18px] text-sm text-gray-500 uppercase">
       <div class="flex items-center cursor-pointer pressable rounded-md hover:bg-hover-bg"
@@ -41,6 +42,7 @@
       }
     }
   </div>
+  }
 
   @if (reasoning()) {
     <div class="relative group/reasoning w-full max-h-90 px-1 border-l-2 border-solid border-gray-200 overflow-auto">

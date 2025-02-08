@@ -19,10 +19,10 @@
       </div>
     }
     @case ('assistant') {
-      <pac-ai-message class="my-4 py-2 lg:px-2" [message]="message" />
+      <pac-ai-message class="my-4 py-2 lg:px-2" [message]="message" [showExecution]="showExecution()" />
     }
     @case ('ai') {
-      <pac-ai-message class="my-4 py-2 lg:px-2" [message]="message" />
+      <pac-ai-message class="my-4 py-2 lg:px-2" [message]="message" [showExecution]="showExecution()" />
     }
   }
 } @empty {

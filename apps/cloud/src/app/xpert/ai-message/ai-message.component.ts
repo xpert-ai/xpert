@@ -1,7 +1,7 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, booleanAttribute, computed, effect, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
@@ -69,6 +69,9 @@ export class ChatAiMessageComponent {
 
   // Inputs
   readonly message = input<TCopilotChatMessage>()
+  readonly showExecution = input<boolean, string | boolean>(false, {
+    transform: booleanAttribute
+  })
 
   // States
   readonly role = this.chatService.xpert
