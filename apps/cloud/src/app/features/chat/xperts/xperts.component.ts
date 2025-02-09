@@ -88,6 +88,7 @@ export class ChatXpertsComponent {
 
   selectXpert(xpert: IXpert) {
     this.#router.navigate(['/chat/x/', xpert.slug])
+    this.chatService.conversationId.set(null)
   }
 
   dropSort(event: CdkDragDrop<IXpert[]>) {

@@ -2,6 +2,7 @@ import {
 	assignDeepOmitBlank,
 	C_MEASURES,
 	ChartDimension,
+	ChartDimensionRoleType,
 	ChartDimensionSchema,
 	ChartMeasure,
 	ChartMeasureSchema,
@@ -200,6 +201,23 @@ export function tryFixDimensions(dimensions: ChartDimension[]) {
 
 	if (dimensions.length === 1) {
 		return dimensions.map((d) => omit(d, 'role'))
+	}
+
+	const hasStacked = dimensions.some((d) => d.role === ChartDimensionRoleType.Stacked)
+	if (hasStacked) {
+		return dimensions.map((d) => d.role === ChartDimensionRoleType.Group ? omit(d, 'role') : d)
+	}
+
+	const doubleGroup = dimensions.filter((d) => d.role === ChartDimensionRoleType.Group)
+	if (doubleGroup.length > 1) {
+		let isFirst = true
+		return dimensions.map((d) => {
+			if (d.role === ChartDimensionRoleType.Group && isFirst) {
+				isFirst = false
+				return omit(d, 'role')
+			}
+			return d
+		})
 	}
 
 	return dimensions

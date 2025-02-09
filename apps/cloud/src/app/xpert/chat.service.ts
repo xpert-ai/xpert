@@ -60,7 +60,7 @@ export class ChatService {
   readonly #destroyRef = inject(DestroyRef)
 
 
-  readonly conversationId = signal<string>(null)
+  readonly conversationId = this.homeService.conversationId // signal<string>(null)
   readonly xpert$ = new BehaviorSubject<IXpert>(null)
   readonly parametersValue = signal<Record<string, unknown>>(null)
   /**
