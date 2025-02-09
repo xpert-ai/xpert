@@ -12,7 +12,7 @@ import { Injectable } from '@nestjs/common'
 import { ModelProvider } from '../../../ai-provider'
 import { TChatModelOptions } from '../../../types/types'
 import { CredentialsValidateFailedError } from '../../errors'
-import { OllamaCredentials } from '../types'
+import { OllamaCredentials, OllamaModelCredentials } from '../types'
 import { LargeLanguageModel } from '../../../llm'
 
 @Injectable()
@@ -47,11 +47,14 @@ export class OllamaLargeLanguageModel extends LargeLanguageModel {
 		const { handleLLMTokens } = options ?? {}
 		const modelProperties = options.modelProperties as OllamaCredentials
 		const model = copilotModel.model
+
+		const modelCredentials = copilotModel.options as OllamaModelCredentials
 		return new ChatOllama({
 			baseUrl: copilot.modelProvider.credentials?.base_url,
 			model,
-			streaming: copilotModel.options?.streaming ?? true,
-			temperature: copilotModel.options?.temperature ?? 0,
+			streaming: modelCredentials?.streaming ?? true,
+			temperature: modelCredentials?.temperature ?? 0,
+			maxRetries: modelCredentials?.maxRetries,
 			callbacks: [
 				...this.createHandleUsageCallbacks(
 					copilot,

@@ -1,6 +1,5 @@
-import { ToolCall } from '@langchain/core/dist/messages/tool'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
-import { IXpert, IXpertAgentExecution, TChatOptions} from '@metad/contracts'
+import { IXpert, IXpertAgentExecution, TChatOptions, TSensitiveOperation} from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 
@@ -28,8 +27,8 @@ export class XpertAgentInvokeCommand implements ICommand {
 			execution: IXpertAgentExecution
 			// The subscriber response to client
 			subscriber: Subscriber<MessageEvent>
-
-			toolCalls?: ToolCall[]
+			
+			operation?: TSensitiveOperation
 			reject?: boolean
 
 			/**

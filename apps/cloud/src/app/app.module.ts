@@ -71,7 +71,7 @@ function detectSubjectType(subject) {
   ],
   providers: [
     provideAnimations(),
-    UpdateService,
+    // UpdateService,
     {
       provide: LOCALE_ID,
       useValue: LOCALE_DEFAULT

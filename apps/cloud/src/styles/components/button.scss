@@ -125,4 +125,7 @@
   .system-xs-regular {
     @apply text-sm;
   }
+  .system-xs-medium {
+    @apply text-xs font-medium;
+  }
 }

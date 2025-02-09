@@ -19,7 +19,7 @@ import { BaseCheckpointSaver, BaseStore, CompiledStateGraph, END, LangGraphRunna
 import { All } from "@langchain/langgraph-checkpoint";
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { AnnotationRoot, StateDefinition, UpdateType } from "@langchain/langgraph/dist/graph";
-import { channelName, TSummarize } from "@metad/contracts";
+import { channelName, TMessageChannel, TSummarize } from "@metad/contracts";
 import { v4 as uuidv4 } from "uuid";
 import { ToolNode } from "./tool_node";
 import { AgentStateAnnotation, STATE_VARIABLE_SYS_LANGUAGE, TGraphTool, TSubAgent } from "./types";
@@ -232,8 +232,8 @@ export function createSummarizeAgent(model: BaseChatModel, summarize: TSummarize
   return async (state: typeof AgentStateAnnotation.State): Promise<Partial<typeof AgentStateAnnotation.State>> => {
     const channel = channelName(agentKey)
     // First, we summarize the conversation
-    const summary = state[channel].summary
-    const messages = state[channel].messages
+    const summary = (<TMessageChannel>state[channel]).summary
+    const messages = (<TMessageChannel>state[channel]).messages
     let summaryMessage: string;
     if (summary) {
       // If a summary already exists, we use a different system prompt
@@ -270,11 +270,14 @@ export function createSummarizeAgent(model: BaseChatModel, summarize: TSummarize
   }
 }
 
+/**
+ * @deprecated
+ */
 export function createTitleAgent(model: BaseChatModel, agentKey?: string) {
   return async (state: typeof AgentStateAnnotation.State): Promise<any> => {
     const channel = channelName(agentKey)
     // Title the conversation
-    const messages = state[channel].messages
+    const messages = (<TMessageChannel>state[channel]).messages
     const language = state[STATE_VARIABLE_SYS_LANGUAGE]
   
     const allMessages = [...messages, new HumanMessage({
@@ -289,6 +292,9 @@ export function createTitleAgent(model: BaseChatModel, agentKey?: string) {
   }
 }
 
+/**
+ * @deprecated
+ */
 function ensureSummarize(summarize?: TSummarize) {
   return summarize && {
     ...summarize,

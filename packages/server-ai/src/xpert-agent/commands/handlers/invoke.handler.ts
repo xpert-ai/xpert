@@ -1,5 +1,4 @@
 import {
-	HumanMessage,
 	isAIMessage,
 	isAIMessageChunk,
 	isToolMessage,
@@ -13,7 +12,6 @@ import {
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
 	IXpertAgent,
-	ToolCall,
 	TSensitiveOperation,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
@@ -21,6 +19,7 @@ import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { pick } from 'lodash'
 import { concat, filter, from, Observable, of, switchMap, tap } from 'rxjs'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { createProcessStreamEvents } from '../../agent'
@@ -29,7 +28,7 @@ import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { STATE_VARIABLE_SYS_LANGUAGE, STATE_VARIABLE_USER_EMAIL, STATE_VARIABLE_USER_TIMEZONE } from './types'
 import { GetCopilotCheckpointsByParentQuery } from '../../../copilot-checkpoint/queries'
-import { pick } from 'lodash'
+import { XpertSensitiveOperationException } from '../../../core/errors'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -42,7 +41,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
 	public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
 		const { input, agentKeyOrName, xpert, options } = command
-		const { execution, subscriber, toolCalls, reject, memories } = options
+		const { execution, subscriber, operation, reject, memories } = options
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
 		const userId = RequestContext.currentUserId()
@@ -63,13 +62,13 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
 		const thread_id = command.options.thread_id
 		const config = {
-			thread_id
-			// checkpoint_ns: '',
+			thread_id,
+			checkpoint_ns: '',
 		}
 		if (reject) {
-			await this.reject(graph, config)
-		} else if (toolCalls) {
-			await this.updateToolCalls(graph, config, toolCalls)
+			await this.reject(graph, config, operation)
+		} else if (operation?.toolCalls) {
+			await this.updateToolCalls(graph, config, operation)
 		}
 
 		const contentStream = from(
@@ -81,10 +80,10 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 							[STATE_VARIABLE_USER_EMAIL]: user.email,
 							[STATE_VARIABLE_USER_TIMEZONE]: user.timeZone || options.timeZone,
 							memories,
-							messages: [new HumanMessage(input.input)],
-							[channelName(agent.key)]: {
-								messages: [new HumanMessage(input.input)],
-							}
+							// messages: [new HumanMessage(input.input)],
+							// [channelName(agent.key)]: {
+							// 	messages: [new HumanMessage(input.input)],
+							// }
 						}
 					: null,
 				{
@@ -141,6 +140,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 					const messages = state.values.messages
 					const lastMessage = messages[messages.length - 1]
 					if (state.next?.[0]) {
+						const nextAgents = state.next.filter((_) => _ !== 'title_conversation')
+												.map((key) => state.values[channelName(key)]?.agent)
+												.filter((_) => !!_)
 						if (isAIMessageChunk(lastMessage)) {
 							this.#logger.debug(`Interrupted chat [${agentLabel(agent)}].`)
 							const operation = await this.queryBus.execute<CompleteToolCallsQuery, TSensitiveOperation>(
@@ -150,7 +152,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 								data: {
 									type: ChatMessageTypeEnum.EVENT,
 									event: ChatMessageEventTypeEnum.ON_INTERRUPT,
-									data: operation
+									data: {...operation, nextAgents}
 								}
 							} as MessageEvent)
 							throw new NodeInterrupt(`Confirm tool calls`)
@@ -208,45 +210,55 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		)
 	}
 
-	async reject(graph: CompiledStateGraph<any, any, any>, config: any) {
+	async reject(graph: CompiledStateGraph<any, any, any>, config: any, operation: TSensitiveOperation) {
 		const state = await graph.getState({ configurable: config })
-		const messages = state.values.messages
+		if (!operation?.agent) {
+			throw new XpertSensitiveOperationException(`Can't found Agent for operation '${operation.messageId}'`)
+		}
+		const channel = channelName(operation.agent.key)
+		const messages = state.values[channel].messages
 		if (messages) {
 			const lastMessage = messages[messages.length - 1]
 			if (isAIMessage(lastMessage)) {
 				await graph.updateState(
 					{ configurable: config },
 					{
-						messages: lastMessage.tool_calls.map((call) => {
-							return new ToolMessage({
-								name: call.name,
-								content: `Error: Reject by user`,
-								tool_call_id: call.id
+						[channel]: {
+							messages: lastMessage.tool_calls.map((call) => {
+								return new ToolMessage({
+									name: call.name,
+									content: `Error: Reject by user`,
+									tool_call_id: call.id
+								})
 							})
-						})
+						}
 					},
-					'agent'
+					operation.agent.key
 				)
 			}
 		}
 	}
 
-	async updateToolCalls(graph: CompiledStateGraph<any, any, any>, config: any, toolCalls: ToolCall[]) {
+	async updateToolCalls(graph: CompiledStateGraph<any, any, any>, config: any, operation: TSensitiveOperation) {
 		// Update parameters of the last tool call message
 		const state = await graph.getState({ configurable: config })
-		const messages = state.values.messages
+		if (!operation?.agent) {
+			throw new XpertSensitiveOperationException(`Can't found Agent for operation '${operation.messageId}'`)
+		}
+		const channel = channelName(operation.agent.key)
+		const messages = state.values[channel].messages
 		const lastMessage = messages[messages.length - 1]
 		if (lastMessage.id) {
 			const newMessage = {
 				role: 'assistant',
 				content: lastMessage.content,
 				tool_calls: lastMessage.tool_calls.map((toolCall) => {
-					const newToolCall = toolCalls.find((_) => _.id === toolCall.id)
-					return { ...toolCall, args: { ...toolCall.args, ...(newToolCall?.args ?? {}) } }
+					const newToolCall = operation.toolCalls.find(({call}) => call.id === toolCall.id)
+					return { ...toolCall, args: { ...toolCall.args, ...(newToolCall?.call.args ?? {}) } }
 				}),
 				id: lastMessage.id
 			}
-			await graph.updateState({ configurable: config }, { messages: [newMessage] }, 'agent')
+			await graph.updateState({ configurable: config }, { [channel]: { messages: [newMessage] }}, operation.agent.key)
 		}
 	}
 }

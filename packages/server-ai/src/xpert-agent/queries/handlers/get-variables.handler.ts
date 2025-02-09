@@ -13,6 +13,7 @@ import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertAgentQuery } from '../../../xpert/queries/'
 import { XpertService } from '../../../xpert/xpert.service'
 import {
+	STATE_VARIABLE_INPUT,
 	STATE_VARIABLE_SYS_LANGUAGE,
 	STATE_VARIABLE_USER_EMAIL,
 	STATE_VARIABLE_USER_TIMEZONE
@@ -35,6 +36,14 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		const varGroups: TWorkflowVarGroup[] = [
 			{
 				variables: [
+					{
+						name: STATE_VARIABLE_INPUT,
+						type: 'string',
+						description: {
+							en_US: 'Input',
+							zh_Hans: '输入'
+						}
+					},
 					{
 						name: STATE_VARIABLE_SYS_LANGUAGE,
 						type: 'string',
@@ -89,7 +98,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				}
 			})
 			if ((<IXpertAgent>_.entity).outputVariables) {
-				;(<IXpertAgent>_.entity).outputVariables.forEach((variable) => {
+				(<IXpertAgent>_.entity).outputVariables.forEach((variable) => {
 					variables.push({
 						name: variable.name,
 						type: variable.type as TStateVariable['type'],

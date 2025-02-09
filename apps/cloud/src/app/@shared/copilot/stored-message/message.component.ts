@@ -1,4 +1,3 @@
-import { Clipboard } from '@angular/cdk/clipboard'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, input, signal } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -26,7 +25,6 @@ import { CopilotMessageToolCallComponent } from '../tool-call/tool-call.componen
   styleUrls: ['message.component.scss']
 })
 export class CopilotStoredMessageComponent {
-  readonly #clipboard = inject(Clipboard)
 
   // Inputs
   readonly message = input<StoredMessage>()

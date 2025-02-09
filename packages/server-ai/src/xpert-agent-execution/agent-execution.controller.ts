@@ -5,6 +5,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { XpertAgentExecution } from './agent-execution.entity'
 import { XpertAgentExecutionService } from './agent-execution.service'
 import { XpertAgentExecutionOneQuery } from './queries'
+import { XpertAgentExecutionDTO } from './dto'
 
 @ApiTags('XpertAgentExecution')
 @ApiBearerAuth()
@@ -22,7 +23,8 @@ export class XpertAgentExecutionController extends CrudController<XpertAgentExec
 
 	@Get(':id/log')
 	async getOne(@Param('id') id: string, @Query('data', ParseJsonPipe) params?: PaginationParams<XpertAgentExecution>) {
-		return this.queryBus.execute(new XpertAgentExecutionOneQuery(id, params))
+		const execution = await this.queryBus.execute(new XpertAgentExecutionOneQuery(id, params))
+		return new XpertAgentExecutionDTO(execution)
 	}
 
 	@Get('xpert/:id/agent/:key')

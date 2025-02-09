@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, input, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from '../../../@core'
+import { agentLabel, IXpertAgentExecution, XpertAgentExecutionStatusEnum } from '../../../@core'
 import { XpertAgentExecutionComponent } from '../execution/execution.component'
 import { EmojiAvatarComponent } from '../../avatar'
 
@@ -23,4 +23,5 @@ export class XpertAgentExecutionAccordionComponent {
 
   readonly agent = computed(() => this.execution()?.agent)
   readonly avatar = computed(() => this.agent()?.avatar)
+  readonly agentLabel = computed(() => this.agent() ? agentLabel(this.agent()) : null)
 }

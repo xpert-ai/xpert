@@ -71,7 +71,7 @@
                 <svg width="8" height="12" viewBox="0 0 8 12" fill="none" xmlns="http://www.w3.org/2000/svg" class="absolute -left-2 top-0 w-2 h-3 text-gray-100" data-icon="AnswerTriangle" aria-hidden="true">
                   <path id="Rectangle 1" d="M1.03647 1.5547C0.59343 0.890144 1.06982 0 1.86852 0H8V12L1.03647 1.5547Z" fill="currentColor"></path>
                 </svg>
-                <div class="grow-0 relative inline-block px-4 py-3 max-w-full bg-gray-100 rounded-b-2xl rounded-tr-2xl text-base text-gray-900">
+                <div class="grow-0 relative inline-block px-2 py-3 max-w-full bg-gray-100 rounded-b-2xl rounded-tr-2xl text-base text-gray-900">
                   <xpert-preview-ai-message [message]="message" class="w-full grow" />
                 </div>
 
@@ -187,9 +187,11 @@
     
     @if (conversationStatus() === eExecutionStatusEnum.INTERRUPTED && operation()) {
       <xpert-tool-call-confirm class="w-full bg-components-card-bg"
-        readonly
+        [readonly]="readonly()"
         [operation]="operation()"
         (toolCallsChange)="onToolCalls($event)"
+        (confirm)="onConfirm()"
+        (reject)="onReject()"
       />
     }
 

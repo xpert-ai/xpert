@@ -7,7 +7,7 @@ import { ModelProvider } from '../../../ai-provider'
 import { TChatModelOptions } from '../../../types/types'
 import { CredentialsValidateFailedError } from '../../errors'
 import { CommonOpenAI } from '../common'
-import { OpenAICredentials } from '../types'
+import { OpenAICredentials, OpenAIModelCredentials } from '../types'
 
 class ValidatedChatOpenAI extends ChatOpenAI {
 	async invoke(messages, options?: any): Promise<any> {
@@ -61,12 +61,14 @@ export class OpenAILargeLanguageModel extends CommonOpenAI {
 		const params = this.toCredentialKwargs(credentials)
 
 		const model = copilotModel.model
+		const modelCredentials = copilotModel.options as OpenAIModelCredentials
 		return new ValidatedChatOpenAI({
 			...params,
 			model,
-			streaming: copilotModel.options?.streaming ?? true,
-			temperature: copilotModel.options?.temperature,
-			maxTokens: copilotModel.options?.max_tokens,
+			streaming: modelCredentials?.streaming ?? true,
+			temperature: modelCredentials?.temperature,
+			maxTokens: modelCredentials?.max_tokens,
+			maxRetries: modelCredentials?.maxRetries,
 			streamUsage: false,
 			callbacks: [...this.createHandleUsageCallbacks(copilot, model, credentials, handleLLMTokens)]
 		})

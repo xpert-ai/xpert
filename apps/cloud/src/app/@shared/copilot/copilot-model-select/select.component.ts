@@ -93,14 +93,14 @@ export class CopilotModelSelectComponent {
   readonly copilotWithModels$ = toObservable(this.copilotWithModels)
 
   readonly searchControl = new FormControl()
-  readonly searchText = toSignal(this.searchControl.valueChanges.pipe(debounceTime(300)))
+  readonly searchText = toSignal(this.searchControl.valueChanges.pipe(debounceTime(300), map((text) => text.toLowerCase())))
   readonly searchedModels = computed(() => {
     const searchText = this.searchText()
     const copilots = this.copilotWithModels()
     return searchText
       ? copilots
           ?.map((_) => {
-            const models = _.providerWithModels.models.filter((m) => m.model.includes(searchText))
+            const models = _.providerWithModels.models.filter((m) => m.model.toLowerCase().includes(searchText))
             if (models.length) {
               return {
                 ..._,

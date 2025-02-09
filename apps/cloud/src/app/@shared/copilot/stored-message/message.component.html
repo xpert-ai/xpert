@@ -1,15 +1,16 @@
 <div class="flex justify-between items-center px-2 py-1">
   <div class="uppercase font-semibold">{{message().type}}</div>
 
-  <copy2 #copy [content]="text()"
+  <copy2 #copy class="copy"
+    [content]="text()"
     [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
     matTooltipPosition="above" />
 </div>
 
-<div class="p-2 flex flex-col">
+<div class="p-2 flex flex-col max-h-[400px] overflow-auto">
 
   @if (reasoning()) {
-    <div class="relative group w-full max-h-90 p-1 rounded-lg border border-solid border-gray-200 overflow-auto">
+    <div class="relative group/reasoning w-full max-h-90 px-1 mb-2 border-l-2 border-solid border-gray-200 overflow-auto">
       <div class="flex justify-between items-center">
         <div class="flex items-center cursor-pointer pressable rounded-md px-1 text-gray-500 hover:bg-hover-bg"
           (click)="expandReason.set(!expandReason())">
@@ -23,13 +24,13 @@
           </div>
         </div>
   
-        <copy #copy class="opacity-30 group-hover:opacity-100"
+        <copy #copy class="opacity-30 group-hover/reasoning:opacity-100"
           [content]="reasoning()"
           [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
           matTooltipPosition="above" />
       </div>
       @if (expandReason()) {
-        <markdown class="ngm-copilot-markdown text-xs"
+        <markdown class="ngm-copilot-markdown text-xs text-zinc-500"
           lineNumbers
           [start]="5"
           [data]="reasoning()"
@@ -56,7 +57,7 @@
       <div class="flex items-center mb-1">Tool: {{toolMessage().name}}</div>
       <!-- <div class="mb-2">{{toolMessage().tool_call_id}}</div> -->
 
-      <markdown class="ngm-copilot-markdown max-h-[400px] block overflow-auto"
+      <markdown class="ngm-copilot-markdown block"
         lineNumbers
         [start]="5"
         [data]="toolMessage().content"

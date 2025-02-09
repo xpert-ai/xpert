@@ -1,7 +1,8 @@
 import { StoredMessage } from '@langchain/core/messages'
-import { IUser, IXpertAgentExecution } from '@metad/contracts'
+import { IUser, IXpertAgent, IXpertAgentExecution } from '@metad/contracts'
 import { UserPublicDTO } from '@metad/server-core'
 import { Expose, Transform } from 'class-transformer'
+import { XpertAgentIdentiDto } from '../../xpert-agent/dto'
 
 @Expose()
 export class XpertAgentExecutionDTO {
@@ -26,6 +27,10 @@ export class XpertAgentExecutionDTO {
 
 	@Expose()
 	summary?: string
+
+	@Transform(({value}) => new XpertAgentIdentiDto(value))
+	@Expose()
+	agent?: IXpertAgent
 
 	constructor(partial: Partial<XpertAgentExecutionDTO>) {
 		Object.assign(this, partial)

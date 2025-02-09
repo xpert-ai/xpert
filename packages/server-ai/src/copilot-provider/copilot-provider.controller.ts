@@ -82,6 +82,13 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
 		return null
 	}
 
+	/**
+	 * Get parameters schema for (LLM) ai model and provider
+	 * 
+	 * @param providerId 
+	 * @param model 
+	 * @returns 
+	 */
 	@Get(':providerId/model-parameter-rules')
 	async getModelParameters(
 		@Param('providerId', UUIDValidationPipe) providerId: string,

@@ -224,7 +224,10 @@ export class ChatConversationPreviewComponent {
           },
           conversationId: this.conversation()?.id,
           xpertId: this.xpert().id,
-          toolCalls: this.toolCalls(),
+          operation: (options?.reject || this.toolCalls()) ? {
+            ...this.operation(),
+            toolCalls: this.toolCalls()?.map((call) => ({call}))
+          } : null,
           reject: options?.reject,
           confirm: options?.confirm,
           retry: options?.retry,
@@ -431,6 +434,32 @@ export class ChatConversationPreviewComponent {
 
     this.chat({
       retry: true
+    })
+  }
+
+  onConfirm() {
+    this.conversation.update((state) => {
+      return{
+        ...state,
+        status: 'busy',
+        error: null
+      }
+    })
+    this.chat({
+      confirm: true
+    })
+  }
+
+  onReject() {
+    this.conversation.update((state) => {
+      return{
+        ...state,
+        status: 'busy',
+        error: null
+      }
+    })
+    this.chat({
+      reject: true
     })
   }
 

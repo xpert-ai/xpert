@@ -142,7 +142,7 @@ export class XpertController extends CrudController<Xpert> {
 	@Get('slug/:slug')
 	async getOneBySlug(@Param('slug') slug: string,) {
 		const xpert = await this.service.findBySlug(slug, ['agent'])
-		return new XpertPublicDTO(xpert)
+		return xpert ? new XpertPublicDTO(xpert) : null
 	}
 
 	@UseGuards(XpertGuard)
@@ -215,8 +215,7 @@ export class XpertController extends CrudController<Xpert> {
 			res.setHeader('Content-Type', 'image/jpeg')
 			res.send(Buffer.from(await imageData.arrayBuffer()))
 		} catch (err) {
-			this.#logger.error(`Failed to get image blob for id ${id}: ${err.message}`);
-			throw new InternalServerErrorException('Failed to retrieve image');
+			throw new InternalServerErrorException(err.message)
 		}
 	}
 
@@ -427,7 +426,7 @@ export class XpertController extends CrudController<Xpert> {
 	@Public()
 	@UseGuards(AnonymousXpertAuthGuard)
 	@Delete(':name/conversation/:id')
-	async deleteAppConversation(@Param('name') name: string, @Param('id') id: string,) {
+	async deleteAppConversation(@Param('name') slug: string, @Param('id') id: string,) {
 		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
 		await this.queryBus.execute(new GetChatConversationQuery({id, fromEndUserId}))
 		await this.commandBus.execute(new ChatConversationDeleteCommand({id, fromEndUserId}))
@@ -436,13 +435,15 @@ export class XpertController extends CrudController<Xpert> {
 	@Public()
 	@UseGuards(AnonymousXpertAuthGuard)
 	@Get(':name/conversation')
-	async getAppConversations(@Param('name') name: string,
+	async getAppConversations(@Param('name') slug: string,
 		@Query('data', ParseJsonPipe) paginationOptions?: PaginationParams<ChatConversation>,
 	) {
+		const xpert = await this.service.findBySlug(slug)
 		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
 		const conversation = await this.queryBus.execute(new FindChatConversationQuery({
 				...(paginationOptions.where ?? {}),
-				fromEndUserId
+				fromEndUserId,
+				xpertId: xpert.id
 			}, paginationOptions))
 		return conversation
 	}
@@ -450,7 +451,7 @@ export class XpertController extends CrudController<Xpert> {
 	@Public()
 	@UseGuards(AnonymousXpertAuthGuard)
 	@Put(':name/conversation/:id')
-	async updateAppConversation(@Param('name') name: string, @Param('id') id: string, @Body() entity: Partial<IChatConversation>) {
+	async updateAppConversation(@Param('name') slug: string, @Param('id') id: string, @Body() entity: Partial<IChatConversation>) {
 		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
 		await this.queryBus.execute(new FindChatConversationQuery({id, fromEndUserId}))
 		await this.commandBus.execute(new ChatConversationUpsertCommand({
@@ -477,7 +478,8 @@ export class XpertController extends CrudController<Xpert> {
 	@Header('Connection', 'keep-alive')
 	@Post(':name/chat-app')
 	@Sse()
-	async chatApp(@Res() res: Response, @Param('name') name: string, @I18nLang() language: LanguagesEnum, @Body() body: { request: TChatRequest; options: TChatOptions }) {
+	async chatApp(@Res() res: Response, @Param('name') name: string, @I18nLang() language: LanguagesEnum,
+		@Body() body: { request: TChatRequest; options: TChatOptions }) {
 		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
 		return (await this.commandBus.execute(new XpertChatCommand(body.request, {
 			...body.options,

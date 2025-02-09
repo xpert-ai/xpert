@@ -7,7 +7,7 @@ import { Router } from '@angular/router'
 import { DataSourceService, SemanticModelServerService } from '@metad/cloud/state'
 import { NgmDialogComponent } from '@metad/components/dialog'
 import { uploadYamlFile } from '@metad/core'
-import { NgmConfirmDeleteComponent, NgmConfirmUniqueComponent, NgmTreeSelectComponent, TreeTableColumn, TreeTableModule } from '@metad/ocap-angular/common'
+import { NgmConfirmDeleteComponent, NgmConfirmUniqueComponent, NgmSpinComponent, NgmTreeSelectComponent, TreeTableColumn, TreeTableModule } from '@metad/ocap-angular/common'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
 import { ButtonGroupDirective, DisplayDensity } from '@metad/ocap-angular/core'
 import { AgentType, Property, Syntax } from '@metad/ocap-core'
@@ -33,6 +33,7 @@ import { exportSemanticModel } from '../types'
 import { SharedModule } from '../../../@shared/shared.module'
 import { MaterialModule } from '../../../@shared/material.module'
 import { CreatedByPipe } from '../../../@shared/pipes'
+import { CdkMenuModule } from '@angular/cdk/menu'
 
 @Component({
   standalone: true,
@@ -41,10 +42,12 @@ import { CreatedByPipe } from '../../../@shared/pipes'
     MaterialModule,
     NgxPermissionsModule,
     MtxPopoverModule,
+    CdkMenuModule,
     NgmDialogComponent,
 
     // OCAP Modles
     NgmTreeSelectComponent,
+    NgmSpinComponent,
     TreeTableModule,
     NgmControlsModule,
     ButtonGroupDirective

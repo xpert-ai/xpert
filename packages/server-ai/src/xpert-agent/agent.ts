@@ -1,9 +1,13 @@
-import { AIMessageChunk } from '@langchain/core/messages'
+import { AIMessage, AIMessageChunk, BaseMessage } from '@langchain/core/messages'
 import { isCommand } from '@langchain/langgraph'
-import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpert, IXpertAgent } from '@metad/contracts'
+import { BaseLLMParams } from '@langchain/core/language_models/llms'
+import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
+import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
+import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpertAgent } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { AgentStateAnnotation } from './commands/handlers/types'
+import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 
 export function createProcessStreamEvents(
 	logger: Logger,
@@ -105,8 +109,7 @@ export function createProcessStreamEvents(
 			}
 
 			case 'on_chain_stream': {
-				// Only returns the stream events content of the current react agent (filter by tag: thread_id), not events of agent in tool call.
-				if (tags.includes(thread_id)) {
+				if (!disableOutputs?.some((key) => tags.includes(key))) {
 					const msg = data.chunk as AIMessageChunk
 					if (!msg.tool_call_chunks?.length) {
 						if (msg.content) {
@@ -232,3 +235,83 @@ export function createProcessStreamEvents(
 		return null
 	}
 }
+
+
+export class FakeStreamingChatModel extends BaseChatModel {
+	sleep?: number = 50;
+  
+	responses?: BaseMessage[];
+  
+	thrownErrorString?: string;
+  
+	constructor(
+	  fields: {
+		sleep?: number;
+		responses?: BaseMessage[];
+		thrownErrorString?: string;
+	  } & BaseLLMParams
+	) {
+	  super(fields);
+	  this.sleep = fields.sleep ?? this.sleep;
+	  this.responses = fields.responses;
+	  this.thrownErrorString = fields.thrownErrorString;
+	}
+  
+	_llmType() {
+	  return "fake";
+	}
+  
+	async _generate(
+	  messages: BaseMessage[],
+	  _options: this["ParsedCallOptions"],
+	  _runManager?: CallbackManagerForLLMRun
+	): Promise<ChatResult> {
+	  if (this.thrownErrorString) {
+		throw new Error(this.thrownErrorString);
+	  }
+  
+	  const content = this.responses?.[0].content ?? messages[0].content;
+	  const generation: ChatResult = {
+		generations: [
+		  {
+			text: "",
+			message: new AIMessage({
+			  content,
+			}),
+		  },
+		],
+	  };
+  
+	  return generation;
+	}
+  
+	async *_streamResponseChunks(
+	  messages: BaseMessage[],
+	  _options: this["ParsedCallOptions"],
+	  _runManager?: CallbackManagerForLLMRun
+	): AsyncGenerator<ChatGenerationChunk> {
+	  if (this.thrownErrorString) {
+		throw new Error(this.thrownErrorString);
+	  }
+	  const content = this.responses?.[0].content ?? messages[0].content;
+	  if (typeof content !== "string") {
+		for (const _ of this.responses ?? messages) {
+		  yield new ChatGenerationChunk({
+			text: "",
+			message: new AIMessageChunk({
+			  content,
+			}),
+		  });
+		}
+	  } else {
+		for (const _ of this.responses ?? messages) {
+		  yield new ChatGenerationChunk({
+			text: content,
+			message: new AIMessageChunk({
+			  content,
+			}),
+		  });
+		}
+	  }
+	}
+  }

@@ -71,19 +71,18 @@
   </div>
 
   <div class="px-4 pb-4 space-y-4 mt-2 w-full">
-
     <div class="py-2 flex flex-col">
       <input matInput
-          class="ngm-input-inline ngm-input-sm self-stretch mx-1 mb-1 px-1 py-0.5 text-sm field rounded-lg border border-transparent appearance-none outline-none
-           hover:bg-gray-50 focus:border-gray-300 focus:shadow-xs focus:bg-white caret-[#295EFF]"
-          [ngClass]="{ 'ngm-error': nameError() }"
-          [ngModel]="name()"
-          (ngModelChange)="onNameChange($event)"
-          (blur)="onBlur()"
-          [matTooltip]="'PAC.Xpert.NameExistedOrInvalid' | translate: { Default: 'Name existed or invalid, use a-zA-Z0-9 _-' }"
-          [matTooltipDisabled]="!nameError()"
-          [placeholder]=" ('PAC.Xpert.NameDefaultUseKey' | translate: {Default: 'Name, default use '}) +key()"
-        />
+        class="ngm-input-inline ngm-input-sm self-stretch mx-1 mb-1 px-1 py-0.5 text-sm field rounded-lg border border-transparent appearance-none outline-none
+          hover:bg-gray-50 focus:border-gray-300 focus:shadow-xs focus:bg-white caret-[#295EFF]"
+        [ngClass]="{ 'ngm-error': nameError() }"
+        [ngModel]="name()"
+        (ngModelChange)="onNameChange($event)"
+        (blur)="onBlur()"
+        [matTooltip]="'PAC.Xpert.NameExistedOrInvalid' | translate: { Default: 'Name existed or invalid, use a-zA-Z0-9 _-' }"
+        [matTooltipDisabled]="!nameError()"
+        [placeholder]=" ('PAC.Xpert.NameDefaultUseKey' | translate: {Default: 'Name, default use '}) +key()"
+      />
       <div class="group flex px-2 py-[5px] max-h-[60px] rounded-lg overflow-y-auto border border-transparent
         text-text-secondary hover:bg-gray-50 focus:border-gray-300 focus:shadow-xs">
         <textarea
@@ -124,10 +123,10 @@
       <mat-slide-toggle ngm-density="xs" [ngModel]="enableMessageHistory()" (ngModelChange)="updateEnMessageHistory($event)" />
     </div>
 
-    @if (!enableMessageHistory()) {
+    <!-- @if (!enableMessageHistory()) { -->
       @for (template of promptTemplates(); track template.id; let i = $index) {
         <copilot-prompt-editor class="prompt-template relative rounded-xl self-stretch border border-solid border-gray-100"
-          [class.fullscreen]="promptTemplateFullscreen() === template.id"
+          [fullscreen]="promptTemplateFullscreen() === template.id"
           [tooltip]="'PAC.Xpert.SystemPromptTooltip' | translate: {Default: 'Prompts guide AI reponses with instructions and contraints. Insert parameters like {{input}}. This prompt won\'t be visible to users.'}"
           [variables]="variables()"
           role="human"
@@ -157,7 +156,7 @@
         <i class="ri-add-line"></i>
         <div>{{ 'PAC.Xpert.AddMessage' | translate: {Default: 'Add Message'} }}</div>
       </button>
-    }
+    <!-- } -->
       
     <div class="w-full flex flex-col gap-2 p-3 bg-gray-50 rounded-xl">
       <div class="flex items-center space-x-1 shrink-0">
@@ -227,7 +226,88 @@
 
     <div class="h-[0.5px] bg-divider-subtle"></div>
 
-    <div class="px-4 pb-2">
+    <div class="flex flex-col w-full px-2">
+      <div class="flex justify-between items-center">
+        <div class="uppercase font-semibold text-sm">
+          {{'PAC.Xpert.RetryOnFailure' | translate: {Default: 'Retry on failure'} }}
+        </div>
+
+        <mat-slide-toggle class=""
+          labelPosition="before"
+          ngm-density="xs"
+          [ngModel]="retryEnabled()"
+          (ngModelChange)="updateRetry({enabled: $event})"
+        />
+      </div>
+
+      @if (retryEnabled()) {
+        <div class="w-full flex justify-between items-center">
+          <div class="grow text-sm">
+            {{'PAC.Xpert.StopAfterAttempt' | translate: {Default: 'Stop After Attempt'} }}
+            <i class="ri-information-line opacity-20 hover:opacity-100"
+              [matTooltip]="'PAC.Xpert.StopAfterAttemptTip' | translate: {Default: 'How many times to try before stopping'}"
+              matTooltipPosition="above"
+            ></i>
+          </div>
+
+          <mat-slider class="w-[200px]" ngm-density small color="accent"
+            [min]="1"
+            [max]="10"
+            discrete
+          >
+            <input matSliderThumb [value]="stopAfterAttempt()"
+              (dragEnd)="updateRetry({stopAfterAttempt: $event.value})" >
+          </mat-slider>
+    
+          <input class="shrink-0 block ml-4 pl-3 w-16 h-8 appearance-none outline-none rounded-lg bg-gray-100 text-[13px] text-gra-900" 
+            [min]="1"
+            [max]="10"
+            [step]="1"
+            type="number"
+            [ngModel]="stopAfterAttempt()"
+            (ngModelChange)="updateRetry({stopAfterAttempt: $event})"
+          >
+        </div>
+      }
+    </div>
+
+    <div class="h-[0.5px] bg-divider-subtle"></div>
+
+    <div class="flex flex-col w-full px-2">
+      <div class="flex justify-between items-center">
+        <div class="uppercase font-semibold text-sm">
+          {{'PAC.Xpert.FallbackModel' | translate: {Default: 'Fallback Model'} }}
+        </div>
+
+        <mat-slide-toggle class=""
+          labelPosition="before"
+          ngm-density="xs"
+          [ngModel]="fallbackEnabled()"
+          (ngModelChange)="updateFallback({enabled: $event})"
+          [matTooltip]="'PAC.Xpert.FallbackModelTip' | translate: {Default: 'This fallback model is used when the agent model fails'}"
+          matTooltipPosition="above"
+        />
+      </div>
+
+      @if (fallbackEnabled()) {
+        <copilot-model-select class="w-full mt-2" hiddenLabel
+          [modelType]="eModelType.LLM"
+          [ngModel]="fallbackModel()"
+          (ngModelChange)="updateFallback({copilotModel: $event})"
+        />
+      }
+    </div>
+
+    <div class="h-[0.5px] bg-divider-subtle"></div>
+
+    <xpert-error-handling class="px-2"
+      [ngModel]="errorHandling()"
+      (ngModelChange)="updateErrorHandling($event)"
+    />
+
+    <div class="h-[0.5px] bg-divider-subtle"></div>
+
+    <div class="px-2 pb-2">
       <div class="flex justify-between items-center mb-2">
         <div class="flex items-center h-6">
           <div class="font-semibold uppercase text-sm text-text-primary">
@@ -338,7 +418,14 @@
 <ng-template #diagramMenu>
   <div cdkMenu @overlayAnimation1 class="min-w-[100px] min-h-[200px] max-w-xl max-h-[600px] p-4 relative">
     @if (diagram$ | async; as diagram) {
-      <img [src]="diagram" alt="Diagram Image" class="max-w-full max-h-full">
+      @if (diagram.image) {
+        <img [src]="diagram.image" alt="Diagram Image">
+      } @else {
+        <div class="w-8 h-8 flex justify-center items-center mb-2 rounded-xl bg-slate-50 shadow-sm text-text-warning">
+          <i class="ri-error-warning-line"></i>
+        </div>
+        <div class="text-sm text-text-warning">{{diagram.error}}</div>
+      }
     } @else {
       <ngm-spin class="absolute top-0 left-0 w-full h-full" />
     }

@@ -48,6 +48,7 @@ export class ChatXpertComponent {
   readonly chatHomeComponent = inject(ChatHomeComponent)
   readonly #elementRef = inject(ElementRef)
   readonly paramRole = injectParams('role')
+  readonly paramConvId = injectParams('id')
 
   readonly sidenavOpened = this.chatHomeComponent.sidenavOpened
   readonly sidenav = this.chatHomeComponent.sidenav
@@ -74,10 +75,10 @@ export class ChatXpertComponent {
     })
 
     effect(() => {
-      if (this.xpert()) {
-        this.chatService.xpert$.next(this.xpert())
-      }
+      this.chatService.xpert$.next(this.xpert())
     }, { allowSignalWrites: true })
+
+    effect(() => this.chatService.conversationId.set(this.paramConvId()), { allowSignalWrites: true })
 
     effect(() => {
       if (this.parametersValue()) {

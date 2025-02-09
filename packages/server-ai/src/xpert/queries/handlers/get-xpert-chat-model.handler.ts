@@ -4,13 +4,11 @@ import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { CopilotGetOneQuery } from '../../../copilot'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
 import { XpertCopilotNotFoundException } from '../../../core/errors'
-import { XpertService } from '../../xpert.service'
 import { GetXpertChatModelQuery } from '../get-xpert-chat-model.query'
 
 @QueryHandler(GetXpertChatModelQuery)
 export class GetXpertChatModelQueryHandler implements IQueryHandler<GetXpertChatModelQuery> {
 	constructor(
-		private readonly service: XpertService,
 		private readonly queryBus: QueryBus
 	) {}
 
@@ -18,9 +16,10 @@ export class GetXpertChatModelQueryHandler implements IQueryHandler<GetXpertChat
 		const { xpert, agent, options } = command
 		const { tenantId } = xpert
 
+		const copilotModel = options?.copilotModel ?? agent?.copilotModel ?? xpert.copilotModel
+
 		let copilot: ICopilot = null
-		const copilotId = agent.copilotModel?.copilotId ?? xpert.copilotModel?.copilotId
-		const copilotModel = agent.copilotModel ?? xpert.copilotModel
+		const copilotId = copilotModel?.copilotId ?? xpert.copilotModel?.copilotId
 		if (copilotId) {
 			copilot = await this.queryBus.execute(new CopilotGetOneQuery(tenantId, copilotId, ['modelProvider']))
 		} else {

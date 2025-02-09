@@ -15,6 +15,7 @@
 <div class="group/message relative flex-1 flex flex-col gap-2 mt-2 pb-10 overflow-hidden">
 
   <!-- executions -->
+  @if (showExecution()) {
   <div class="relative rounded-xl border border-solid border-teal-800 p-2 bg-gray-50">
     <div class="flex items-center leading-[18px] text-sm text-gray-500 uppercase">
       <div class="flex items-center cursor-pointer pressable rounded-md hover:bg-hover-bg"
@@ -41,9 +42,10 @@
       }
     }
   </div>
+  }
 
   @if (reasoning()) {
-    <div class="relative group w-full max-h-90 p-1 rounded-xl border border-solid border-gray-200 overflow-auto">
+    <div class="relative group/reasoning w-full max-h-90 px-1 border-l-2 border-solid border-gray-200 overflow-auto">
       <div class="flex justify-between items-center">
         @if (status() === 'reasoning') {
           <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
@@ -62,7 +64,7 @@
 
         <div class="grow"></div>
   
-        <copy #copy class="mr-1 opacity-30 group-hover:opacity-100"
+        <copy #copy class="mr-1 opacity-30 group-hover/reasoning:opacity-100"
           [content]="reasoning()"
           [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
           matTooltipPosition="above" />

@@ -18,11 +18,12 @@
     <span ngmError>{{error()}}</span>
   }
   <div ngmSuffix class="flex items-center">
-    <mat-progress-spinner class="hidden" color="primary" mode="indeterminate" diameter="16"></mat-progress-spinner>
+    <mat-progress-spinner class="hidden" color="primary" mode="indeterminate" diameter="16" />
     @if (props?.info) {
-      <mat-icon fontSet="material-icons-outlined" class="opacity-50" [displayDensity]="props?.displayDensity"
+      <i class="ri-information-2-line opacity-50"
         [matTooltip]="props.info"
-      >info</mat-icon>
+        matTooltipPosition="above"
+      ></i>
     }
   </div>
 </ngm-select>

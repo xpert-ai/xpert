@@ -20,12 +20,12 @@
     background-color: $fill-background;
   }
 
-  a {
-    color: mat.get-color-from-palette($foreground, text);
-    &:hover {
-      color: mat.get-color-from-palette($primary, 500);
-    }
-  }
+  // a {
+  //   color: mat.get-color-from-palette($foreground, text);
+  //   &:hover {
+  //     color: mat.get-color-from-palette($primary, 500);
+  //   }
+  // }
 
   .mat-checkbox.ngm-density__compact {
     font-size: 12px;

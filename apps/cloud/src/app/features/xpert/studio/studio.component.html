@@ -17,13 +17,14 @@
     <f-connection-for-create></f-connection-for-create>
     <f-snap-connection fType="bezier" [fSnapThreshold]="100"></f-snap-connection>
     @for (connection of connections(); track connection.key) {
-      <f-connection #connComp [fType]="EFConnectionType.BEZIER"
+      <f-connection #connComp [fType]="EFConnectionType.BEZIER" [fOffset]="6" [fRadius]="6"
         [fReassignDisabled]="false"
         [fOutputId]="connection.from + '/' + connection.type"
         [fInputId]="connection.to + (connection.type === 'edge' ? '/edge' : '')"
         class="gradient-color cursor-pointer"
         [class.f-selected]="connection.from.startsWith(selectedNodeKey()) || connection.to.startsWith(selectedNodeKey())"
         [class.f-hover]="connection.from.startsWith(hoverNode()) || connection.to.startsWith(hoverNode())"
+        [ngClass]="connection.type"
         fStartColor="var(--connection-gradient-1)" fEndColor="var(--connection-gradient-2)"
         [cdkContextMenuTriggerFor]="connContextMenu"
         [cdkContextMenuTriggerData]="{connection: connComp}"

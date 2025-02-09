@@ -21,7 +21,7 @@ export class AppComponent {
 
   constructor(
     public readonly appService: AppService,
-    public readonly updateService: UpdateService,
+    // public readonly updateService: UpdateService,
     @Inject(DOCUMENT)
     private document: Document,
     private renderer: Renderer2,

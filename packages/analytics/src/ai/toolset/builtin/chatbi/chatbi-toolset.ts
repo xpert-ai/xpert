@@ -46,7 +46,7 @@ import { In } from 'typeorm'
 import { z } from 'zod'
 import { DimensionMemberRetrieverToolQuery } from '../../../../model-member/queries'
 import { getSemanticModelKey, NgmDSCoreService, registerSemanticModel } from '../../../../model/ocap'
-import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, fixMeasure, IndicatorSchema, TChatBICredentials, tryFixChartType } from './types'
+import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, fixMeasure, IndicatorSchema, TChatBICredentials, tryFixChartType, tryFixDimensions } from './types'
 import { GetBIContextQuery, TBIContext } from '../../../../chatbi'
 
 function cubesReducer(a, b) {
@@ -454,7 +454,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 
 		const chartAnnotation = {
 			chartType: tryFixChartType(answer.visualType),
-			dimensions: answer.dimensions?.map((dimension) => tryFixDimension(dimension, entityType)),
+			dimensions: tryFixDimensions(answer.dimensions?.map((dimension) => tryFixDimension(dimension, entityType))),
 			measures: answer.measures?.map((measure) => fixMeasure(measure, entityType))
 		}
 

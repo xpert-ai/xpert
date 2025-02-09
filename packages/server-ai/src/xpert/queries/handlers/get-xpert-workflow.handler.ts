@@ -1,4 +1,4 @@
-import { ICopilotModel, IXpertAgent, TXpertGraph } from '@metad/contracts'
+import { ICopilotModel, IXpertAgent, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { nonNullable } from '@metad/copilot'
 import { pick } from '@metad/server-common'
 import { IQueryHandler, QueryHandler, QueryBus } from '@nestjs/cqrs'
@@ -14,7 +14,7 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 		private readonly queryBus: QueryBus
 	) {}
 
-	public async execute(command: GetXpertWorkflowQuery): Promise<{agent?: IXpertAgent; graph: TXpertGraph; next?: any}> {
+	public async execute(command: GetXpertWorkflowQuery): Promise<{agent?: IXpertAgent; graph: TXpertGraph; next?: TXpertTeamNode[]; fail?: TXpertTeamNode[]}> {
 		const { id, agentKey: keyOrName, draft } = command
 		const xpert = await this.service.findOne(id, {
 			relations: ['agent', 'agent.copilotModel', 'copilotModel', 'copilotModel.copilot', 'agents', 'agents.copilotModel', 'knowledgebases', 'toolsets', 'executors']
@@ -47,6 +47,9 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 			const next = draft.connections
 				.filter((_) => _.type === 'edge' && _.from === agentKey)
 				.map((conn) => draft.nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to))
+			const fail = draft.connections
+				.filter((_) => _.type === 'edge' && _.from === (agentKey + '/fail'))
+				.map((conn) => draft.nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to))
 			
 			await this.fillCopilot(tenantId, (<IXpertAgent>agentNode.entity).copilotModel)
 			await this.fillCopilot(tenantId, draft.team.copilotModel)
@@ -63,7 +66,8 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 					}
 				} as IXpertAgent,
 				graph: xpert.draft,
-				next 
+				next,
+				fail
 			}
 		} else {
 			const agents = [xpert.agent, ...xpert.agents]
@@ -72,7 +76,9 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 				const next = xpert.graph?.connections
 					.filter((_) => _.type === 'edge' && _.from === agent.key)
 					.map((conn) => xpert.graph.nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to))
-
+				const fail = xpert.graph?.connections
+					.filter((_) => _.type === 'edge' && _.from === (agent.key + '/fail'))
+					.map((conn) => xpert.graph.nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to))
 				await this.fillCopilot(tenantId, agent.copilotModel)
 				return {
 					agent: {
@@ -82,7 +88,8 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 						team: xpert
 					},
 					graph: xpert.graph,
-					next
+					next,
+					fail
 				}
 			}
 		}

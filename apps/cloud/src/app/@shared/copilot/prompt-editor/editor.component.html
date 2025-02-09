@@ -1,5 +1,5 @@
-<div class="container grow rounded-xl bg-gray-50 overflow-hidden">
-  <div class="flex justify-between items-center h-9 pl-3 pr-2 bg-gray-50 rounded-t-xl">
+<div class="container grow flex flex-col rounded-xl bg-gray-50 overflow-hidden">
+  <div class="shrink-0 flex justify-between items-center h-9 pl-3 pr-2 bg-gray-50 rounded-t-xl">
     <div class="flex items-center space-x-1">
       @if (role() === 'system') {
         <div class="h2 text-sm">{{'PAC.Copilot.Prompt' | translate: {Default: 'Prompt'} }}</div>
@@ -78,9 +78,9 @@
     </div>
   </div>
 
-  <div class="relative">
-    <div class="px-4 pt-2 rounded-t-xl text-sm text-gray-700 overflow-y-auto"
-        [style.height.px]="height"
+  <div class="content gow relative overflow-auto">
+    <div class="edit-container px-4 pt-2 rounded-t-xl text-sm text-gray-700 overflow-y-auto"
+      [style.height.px]="height"
       >
       <div #editablePrompt tabindex="0"
         class="h-full outline-none leading-5 text-sm whitespace-pre-wrap break-words text-gray-700"

@@ -1,7 +1,13 @@
 import { ICopilot, ILLMUsage, PriceType, TTokenUsage } from '@metad/contracts'
+import { Logger } from '@nestjs/common'
 import { AIModel } from './ai-model'
 import { calcTokenUsage, sumTokenUsage } from '@metad/copilot'
 import { TChatModelOptions } from './types/types'
+
+export type CommonChatModelParameters = {
+	temperature: number
+	maxRetries?: number | null
+}
 
 export class LLMUsage implements ILLMUsage {
 	/**
@@ -91,6 +97,7 @@ export class LLMUsage implements ILLMUsage {
 }
 
 export abstract class LargeLanguageModel extends AIModel {
+	readonly #logger = new Logger(LargeLanguageModel.name)
 	protected startedAt: DOMHighResTimeStamp
 
 	protected calcResponseUsage(
@@ -147,5 +154,13 @@ export abstract class LargeLanguageModel extends AIModel {
 				}
 			}
 		]
+	}
+
+	createHandleLLMErrorCallbacks(fields, logger?: Logger) {
+		return {
+			handleLLMError: (err) => {
+				(logger ?? this.#logger).error(err, err.cause?.stack ?? err.stack, `Error attemptNumber: ${err.attemptNumber}, retriesLeft: ${err.retriesLeft}, ChatDeepSeek params are:\n${JSON.stringify(fields, null, 2)}`)
+			}
+		}
 	}
 }

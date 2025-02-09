@@ -53,7 +53,7 @@ export class ChatMessageExecutionPanelComponent {
     return execution
       ? {
           ...execution,
-          agent: agents.find((node) => node.key === execution.agentKey)
+          agent: execution.agent ?? agents.find((node) => node.key === execution.agentKey)
         }
       : null
   })
@@ -61,7 +61,7 @@ export class ChatMessageExecutionPanelComponent {
     const agents = this.agents()
     return this.#execution()?.subExecutions?.map((exec) => ({
       ...exec,
-      agent: agents.find((node) => node.key === exec.agentKey)
+      agent: exec.agent ?? agents.find((node) => node.key === exec.agentKey)
     }))
   })
 }

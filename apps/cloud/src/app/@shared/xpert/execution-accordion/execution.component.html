@@ -10,7 +10,8 @@
 
       <emoji-avatar [avatar]="avatar()" xs class="rounded-lg overflow-hidden mr-1" />
       
-      <div class="grow text-text-secondary system-xs-semibold-uppercase truncate" [title]="agent()?.title">{{agent()?.title}}</div>
+      <div class="grow text-text-secondary system-xs-semibold-uppercase truncate"
+        [title]="agentLabel()">{{agentLabel()}}</div>
       <div class="shrink-0 text-text-tertiary system-xs-regular">{{ execution()?.elapsedTime | number }} ms</div>
 
       @switch (execution().status) {

@@ -39,6 +39,10 @@
         }
       }
     }
+
+    &.toolset, &.agent, &.knowledge, &.xpert {
+      stroke-dasharray: 4, 2;
+    }
   }
   
   .f-node-input,
@@ -66,18 +70,32 @@
       .inner-dot {
         @apply w-full h-full flex justify-center items-center shrink-0 bg-primary-400;
       }
+
+      &.danger {
+        .inner-dot {
+          @apply bg-orange-500;
+        }
+      }
     }
 
     &:not(.ngm-executor-agent):hover {
-      .f-component.f-node-output .inner-dot {
-        width: var(--output-size);
-        height: var(--output-size);
-        @apply rounded-full border border-primary-400;
-        svg {
-          visibility: visible;
+      .f-component.f-node-output {
+        .inner-dot {
+          width: var(--output-size);
+          height: var(--output-size);
+          @apply rounded-full border-[0.5px] border-primary-300;
+          svg {
+            visibility: visible;
+          }
+          &:hover {
+            @apply transition-all origin-center scale-150;
+          }
         }
-        &:hover {
-          @apply transition-all origin-center scale-150;
+
+        &.danger {
+          .inner-dot {
+            @apply border-orange-400;
+          }
         }
       }
     }

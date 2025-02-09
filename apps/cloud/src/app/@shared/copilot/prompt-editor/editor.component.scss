@@ -5,4 +5,13 @@
       @apply bg-white;
     }
   }
+
+  &.fullscreen {
+    .content {
+      @apply grow;
+      .edit-container {
+        height: 100% !important;
+      }
+    }
+  }
 }

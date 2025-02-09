@@ -1,10 +1,11 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
-import { ICopilotModel } from './copilot-model.model'
+import { ICopilotModel, TCopilotModel } from './copilot-model.model'
 import { IKnowledgebase } from './knowledgebase.model'
 import { I18nObject, TAvatar } from '../types'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IXpert, ToolCall, TXpertParameter } from './xpert.model'
 import { TVariableAssigner } from './xpert-workflow.model'
+import { TSensitiveOperation } from './chat.model'
 
 export type TXpertAgent = {
   key: string
@@ -103,6 +104,31 @@ export type TXpertAgentOptions = {
    * Whether to enable parallel tool calls, default: true
    */
   parallelToolCalls?: boolean
+
+  /**
+   * Retry on failure
+   */
+  retry?: {
+    enabled?: boolean
+    stopAfterAttempt?: number
+  }
+
+  /**
+   * Fallback model
+   */
+  fallback?: {
+    enabled?: boolean
+    copilotModel?: TCopilotModel
+  }
+
+  /**
+   * Error handling
+   */
+  errorHandling?: {
+    type?: null | 'defaultValue' | 'failBranch'
+    defaultValue?: string
+    failBranch?: string
+  }
 }
 
 export type TAgentPromptTemplate = {
@@ -134,7 +160,7 @@ export type TChatAgentParams = {
   /**
    * Message to update parameters of last tool call message
    */
-  toolCalls?: ToolCall[]
+  operation?: TSensitiveOperation
   /**
    * Reject the sensitive tool calls
    */
