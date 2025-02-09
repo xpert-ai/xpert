@@ -1,6 +1,7 @@
 import {
 	assignDeepOmitBlank,
 	C_MEASURES,
+	ChartDimension,
 	ChartDimensionSchema,
 	ChartMeasure,
 	ChartMeasureSchema,
@@ -24,6 +25,7 @@ import {
 	tryFixDimension,
 	VariableSchema
 } from '@metad/ocap-core'
+import { omit } from '@metad/server-common'
 import { upperFirst } from 'lodash'
 import { z } from 'zod'
 import { AbstractChatBIToolset } from './chatbi-toolset'
@@ -95,7 +97,11 @@ export const IndicatorSchema = z.object({
 		.describe(
 			'The detail description of calculated measure, business logic and cube info for example: the time dimensions, measures or dimension members involved'
 		),
-	query: z.string().describe(`A query statement to test this indicator can correctly query the results, you need include indicator code as measure name in statement`)
+	query: z
+		.string()
+		.describe(
+			`A query statement to test this indicator can correctly query the results, you need include indicator code as measure name in statement`
+		)
 })
 
 export const CHART_TYPES = [
@@ -187,4 +193,14 @@ export function fixMeasure(measure: ChartMeasure, entityType: EntityType) {
 			name: 'Viridis'
 		}
 	}
+}
+
+export function tryFixDimensions(dimensions: ChartDimension[]) {
+	if (!dimensions) return dimensions
+
+	if (dimensions.length === 1) {
+		return dimensions.map((d) => omit(d, 'role'))
+	}
+
+	return dimensions
 }

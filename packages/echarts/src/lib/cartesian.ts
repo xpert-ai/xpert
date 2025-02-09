@@ -75,11 +75,19 @@ export function cartesian(
 export function cartesianCoordinate(context: EChartsContext, data: Array<Record<string, unknown>>): ICoordinate {
   const { chartAnnotation, entityType, settings, options } = context
 
-  const category = getChartCategory(chartAnnotation)
-  // const categoryProperty = getEntityProperty(entityType, category)
+  let category2: ChartDimension
+  let chartSeries: ChartDimension
+  let category = getChartCategory(chartAnnotation)
+  if (category) {
+    category2 = getChartCategory2(chartAnnotation)
+    chartSeries = getChartSeries(chartAnnotation)
+  } else {
+    category = getChartSeries(chartAnnotation)
+  }
+  if (!category) {
+    throw new Error(`'Category' dimension not found`)
+  }
   const categoryMemberCaption = getDimensionMemberCaption(category, entityType)
-  const category2 = getChartCategory2(chartAnnotation)
-  const chartSeries = getChartSeries(chartAnnotation)
 
   let datasets: IDataset[] = []
   if (chartSeries) {

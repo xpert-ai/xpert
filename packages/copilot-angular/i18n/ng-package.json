@@ -1,6 +1,6 @@
 {
   "$schema": "../../../node_modules/ng-packagr/ng-package.schema.json",
-  "dest": "../../dist/packages/copilot-angular/i18n",
+  "dest": "../../../dist/packages/copilot-angular/i18n",
   "lib": {
     "entryFile": "index.ts"
   }

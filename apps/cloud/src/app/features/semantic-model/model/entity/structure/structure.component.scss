@@ -109,10 +109,8 @@
 }
 
 .pac-data-type-tag {
-  // background-color: var(--ngm-color-primary-container);
   border-color: var(--ngm-color-outline);
-  // color: var(--ngm-color-on-primary-container);
-  @apply text-xs inline-flex items-center px-3 py-1 rounded-full overflow-hidden text-ellipsis border border-solid;
+  @apply text-xs leading-3 inline-flex items-center px-3 py-1 rounded-full overflow-hidden text-ellipsis border border-solid;
 }
 
 :host::ng-deep {

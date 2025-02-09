@@ -746,6 +746,7 @@
     },
     "MODEL": {
       "ModelOverview": "语义模型概览",
+      "UploadSemanticModel": "上传语义模型文件",
       "SharedDimensions": "公共维度",
       "Cubes": "多维数据集",
       "VirtualCubes": "虚拟数据集",

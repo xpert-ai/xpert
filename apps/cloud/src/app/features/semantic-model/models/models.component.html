@@ -8,23 +8,29 @@
       (click)="fileUpload.value=null;"
     >
   <div ngmButtonGroup>
-    <button mat-button displayDensity="cosy" (click)="fileUpload.click()" [disabled]="modelUploading">
-      <ng-container *ngIf="modelUploading">
-        <mat-spinner color="primary" strokeWidth="1" diameter="20" style="display: inline-block;"></mat-spinner>
+    <button mat-button displayDensity="cosy"
+      [matTooltip]="'PAC.MODEL.UploadSemanticModel' | translate: {Default: 'Upload Semantic Model File'}"
+      matTooltipPosition="above"
+      [disabled]="modelUploading"
+      (click)="fileUpload.click()" >
+      @if (modelUploading) {
+        <ngm-spin class="inline-block"/>
         {{ 'PAC.ACTIONS.Uploading' | translate: {Default: "Uploading"} }}...
-      </ng-container>
-      <ng-container *ngIf="!modelUploading">
+      } @else {
         {{ 'PAC.ACTIONS.UPLOAD' | translate: {Default: "Upload"} }}
-      </ng-container>
+      }
     </button>
     <button mat-raised-button color="primary" displayDensity="cosy"
       (click)="onNewModel()">
       <div class="flex items-center">
-        <mat-icon>add</mat-icon>{{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }}
+        <i class="ri-add-line text-lg mr-1"></i>
+        {{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }}
       </div>
     </button>
 
-    <button mat-icon-button displayDensity="cosy" [matMenuTriggerFor]="menu">
+    <button mat-icon-button displayDensity="cosy"
+      [cdkMenuTriggerFor]="menu"
+    >
       <mat-icon>more_vert</mat-icon>
     </button>
   </div>
@@ -55,12 +61,9 @@
 >
 </ngm-tree-table>
 
-<div *ngIf="loading" class="absolute left-0 top-0 w-full h-full z-50 flex justify-center items-center">
-  <mat-spinner class="self-center" strokeWidth="2" diameter="30"></mat-spinner>
-</div>
-
-<!-- <mat-tab-nav-panel #tabPanel class="relative flex-1 overflow-auto">
-</mat-tab-nav-panel> -->
+@if (loading) {
+  <ngm-spin class="absolute w-full h-full top-0 left-0" />
+}
 
 <ng-template #nameTempl let-key="key" let-name="name" let-item="raw">
   <div class="max-w-[300px] inline-flex justify-start items-center overflow-hidden whitespace-nowrap text-ellipsis">
@@ -75,54 +78,71 @@
   </div>
 </ng-template>
 
-<mat-menu #menu="matMenu" class="ngm-density__compact">
-  <button mat-menu-item color="primary" (click)="onNewModel(null, 'sql')">
-    <div class="flex items-center">
-      <mat-icon>add</mat-icon>
-      {{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }} SQL {{ 'PAC.KEY_WORDS.MODEL' | translate: {Default: "Model"} }}
-    </div>
-  </button>
-
-  <button mat-menu-item color="primary" (click)="onNewModel(null, 'mdx')">
-    <div class="flex items-center">
-      <mat-icon>add</mat-icon>
-      {{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }} MDX {{ 'PAC.KEY_WORDS.MODEL' | translate: {Default: "Model"} }}
-    </div>
-  </button>
-
-  <button mat-menu-item color="primary" (click)="onNewWASMModel()">
-    <div class="flex items-center">
-      <mat-icon>add</mat-icon>{{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }} WASM {{ 'PAC.KEY_WORDS.MODEL' | translate: {Default: "Model"} }}
-    </div>
-  </button>
-</mat-menu>
+<ng-template #menu>
+  <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem color="primary" (click)="onNewModel(null, 'sql')">
+      <div class="flex items-center">
+        <i class="ri-add-line text-lg mr-1"></i>
+        {{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }} SQL {{ 'PAC.KEY_WORDS.MODEL' | translate: {Default: "Model"} }}
+      </div>
+    </button>
+  
+    <button cdkMenuItem color="primary" (click)="onNewModel(null, 'mdx')">
+      <div class="flex items-center">
+        <i class="ri-add-line text-lg mr-1"></i>
+        {{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }} MDX {{ 'PAC.KEY_WORDS.MODEL' | translate: {Default: "Model"} }}
+      </div>
+    </button>
+  
+    <button cdkMenuItem color="primary" (click)="onNewWASMModel()">
+      <div class="flex items-center">
+        <i class="ri-add-line text-lg mr-1"></i>
+        {{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }} WASM {{ 'PAC.KEY_WORDS.MODEL' | translate: {Default: "Model"} }}
+      </div>
+    </button>
+  </div>
+</ng-template>
 
 <ng-template #actions let-item="raw" let-key="key">
-  <div *ngIf="!item.__isModel__" class="pac__table-actions flex items-center">
-    <button mat-icon-button displayDensity="cosy" [matTooltip]="'PAC.ACTIONS.CreateModel' | translate: {Default: 'Create Model'}"
-      (click)="onNewModel(key)">
-      <mat-icon fontSet="material-icons-outlined">add</mat-icon>
-    </button>
-  </div>
-  <div *ngIf="item.__isModel__" class="pac__table-actions flex items-center gap-2" >
-    <button mat-icon-button displayDensity="cosy" [matTooltip]="'PAC.ACTIONS.Edit' | translate: {Default: '✒️Edit'}"
-      [routerLink]="['/models', key]">
-      <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
-    </button>
-
-    <button mat-icon-button displayDensity="cosy" [matTooltip]="'PAC.ACTIONS.CreateStory' | translate: {Default: '📖Create Story'}"
-      (click)="createStory(item)">
-      <mat-icon fontSet="material-icons-outlined">local_library</mat-icon>
-    </button>
-    
-    <button mat-icon-button displayDensity="cosy" [matTooltip]=" 'PAC.ACTIONS.Download' | translate: {Default: 'Download'} "
-      (click)="onDownload(item.id)">
-      <mat-icon fontSet="material-icons-outlined">file_download</mat-icon>
-    </button>
-    <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" [matTooltip]=" 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} "
-      (click)="onDelete(item)"
-    >
-      <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
-    </button>
-  </div>
+  @if (item.__isModel__) {
+    <div class="pac__table-actions flex items-center gap-2" >
+      <button mat-icon-button displayDensity="cosy"
+        [matTooltip]="'PAC.ACTIONS.Edit' | translate: {Default: '✒️Edit'}"
+        matTooltipPosition="above"
+        [routerLink]="['/models', key]">
+        <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+      </button>
+  
+      <button mat-icon-button displayDensity="cosy"
+        [matTooltip]="'PAC.ACTIONS.CreateStory' | translate: {Default: '📖Create Story'}"
+        matTooltipPosition="above"
+        (click)="createStory(item)">
+        <mat-icon fontSet="material-icons-outlined">local_library</mat-icon>
+      </button>
+      
+      <button mat-icon-button displayDensity="cosy"
+        [matTooltip]=" 'PAC.ACTIONS.Download' | translate: {Default: 'Download'} "
+        matTooltipPosition="above"
+        (click)="onDownload(item.id)">
+        <mat-icon fontSet="material-icons-outlined">file_download</mat-icon>
+      </button>
+      <button mat-icon-button displayDensity="cosy" ngmAppearance="danger"
+        [matTooltip]=" 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} "
+        matTooltipPosition="above"
+        (click)="onDelete(item)"
+      >
+        <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
+      </button>
+    </div>
+  } @else {
+    <div class="pac__table-actions flex items-center">
+      <button mat-icon-button displayDensity="cosy" 
+        [matTooltip]="'PAC.ACTIONS.CreateModel' | translate: {Default: 'Create Model'}"
+        matTooltipPosition="above"
+        (click)="onNewModel(key)"
+      >
+        <mat-icon fontSet="material-icons-outlined">add</mat-icon>
+      </button>
+    </div>
+  }
 </ng-template>

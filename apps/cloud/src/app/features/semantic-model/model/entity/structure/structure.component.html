@@ -13,14 +13,15 @@
     </ngm-splitter-pane>
 
     <ngm-splitter-pane size="50%" class="flex flex-col">
-        <mat-toolbar class="pac-sub-toolbar gap-4" displayDensity="compact">
+        <div class="flex items-center gap-4 px-2 py-1" displayDensity="compact">
             <span class="">
                 {{ 'PAC.MODEL.ENTITY.SourceFields' | translate: {Default: "Source Fields"} }}
             </span>
 
           @if (isSQLSource$ | async) {
-            <button [disabled]="visibleEmpty()" mat-button displayDensity="compact"
+            <button [disabled]="visibleEmpty()" mat-button displayDensity="compact" class="opacity-50 hover:opacity-100"
                 [matTooltip]=" 'PAC.MODEL.ENTITY.OnekeyGenerateModel' | translate: {Default: 'One-key generate model by table fields'} "
+                matTooltipPosition="above"
                 (click)="generate()">
                 <mat-icon fontSet="material-icons-round">auto_fix_high</mat-icon>
                 <span>
@@ -28,8 +29,9 @@
                 </span>
             </button>
 
-            <button [disabled]="visibleEmpty()" mat-button displayDensity="compact"
+            <button [disabled]="visibleEmpty()" mat-button displayDensity="compact" class="opacity-50 hover:opacity-100"
                 [matTooltip]=" 'PAC.MODEL.ENTITY.CreateDimension' | translate: {Default: 'Create dimension'} "
+                matTooltipPosition="above"
                 (click)="createDimension()">
                 <mat-icon fontSet="material-icons-round">tag</mat-icon>
                 <span>
@@ -39,8 +41,9 @@
           }
 
           @if (isXmla$ | async) {
-            <button [disabled]="visibleEmpty()" mat-button displayDensity="compact"
+            <button [disabled]="visibleEmpty()" mat-button displayDensity="compact" class="opacity-50 hover:opacity-100"
                 [matTooltip]=" 'PAC.MODEL.ENTITY.OnekeySyncModel' | translate: {Default: 'One-key sync model by source cube defination'} "
+                matTooltipPosition="above"
                 (click)="sync()">
                 <mat-icon>auto_fix_high</mat-icon>
                 <span>
@@ -53,7 +56,7 @@
                 (ngModelChange)="toggleVisibleAll($event)">
                 {{ 'PAC.MODEL.ENTITY.SelectAll' | translate: {Default: "Select All"} }}
             </mat-checkbox>
-        </mat-toolbar>
+        </div>
         <ngm-splitter class="flex-1" [type]="SplitterType.Horizontal" size='20rem'>
             <ngm-splitter-pane minSize="35px" size="50%" class="pac-model__sub-area flex flex-col">
                 <div class="pac-sub-toolbar px-2 pt-2 flex justify-between items-center" displayDensity="compact">

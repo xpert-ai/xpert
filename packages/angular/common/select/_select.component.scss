@@ -74,8 +74,9 @@ $prefix: (ngm, color);
 .ngm-select-panel.mat-mdc-select-panel {
   margin-left: -9px;
   .mat-mdc-option {
+    min-height: 38px;
     .ngm-display-behaviour {
-      min-height: 48px;
+      min-height: 38px;
     }
   }
   .mdc-list-item__primary-text {
@@ -132,8 +133,9 @@ $prefix: (ngm, color);
   }
 
   .mat-mdc-option {
+    min-height: 38px;
     .ngm-display-behaviour {
-      min-height: 48px;
+      min-height: 38px;
     }
   }
 }
