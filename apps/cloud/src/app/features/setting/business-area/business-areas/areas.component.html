@@ -16,7 +16,9 @@
         >
     </ngm-tree-table>
 
-    <div *ngIf="loading" class="emoji-loader h-full w-full"></div>
+  @if (loading()) {
+    <ngm-spin class="absolute top-0 left-0 w-full h-full"/>
+  }
 </div>
 
 <ng-template #nameTempl let-key="key" let-name="name" let-item="raw">

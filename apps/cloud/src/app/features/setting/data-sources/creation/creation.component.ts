@@ -1,11 +1,11 @@
 import { Component, OnInit, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { FormControl, FormGroup, Validators } from '@angular/forms'
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { DataSourceService, DataSourceTypesService } from '@metad/cloud/state'
 import { AuthenticationEnum, IDataSource, IDataSourceType } from '@metad/contracts'
 import { isEmpty, omit } from '@metad/ocap-core'
-import { TranslateService } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
 import {
   LocalAgent,
@@ -15,8 +15,38 @@ import {
   getErrorMessage
 } from '../../../../@core/index'
 import { environment } from 'apps/cloud/src/environments/environment'
+import { CommonModule } from '@angular/common'
+import { DragDropModule } from '@angular/cdk/drag-drop'
+import { MatListModule, MatSelectionList } from '@angular/material/list'
+import { ContentLoaderModule } from '@ngneat/content-loader'
+import { MatButtonModule } from '@angular/material/button'
+import { NgmInputComponent } from '@metad/ocap-angular/common'
+import { MatSlideToggleModule } from '@angular/material/slide-toggle'
+import { FormlyModule } from '@ngx-formly/core'
+import { MatButtonToggleModule } from '@angular/material/button-toggle'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 
 @Component({
+  standalone: true,
+  imports: [
+    CommonModule,
+    DragDropModule,
+    TranslateModule,
+    FormlyModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MatListModule,
+    MatButtonModule,
+    MatSlideToggleModule,
+    MatButtonToggleModule,
+    MatTooltipModule,
+    ContentLoaderModule,
+    NgmInputComponent,
+    ButtonGroupDirective,
+    AppearanceDirective,
+    DensityDirective
+  ],
   selector: 'pac-data-source-creation',
   templateUrl: './creation.component.html',
   styleUrls: ['./creation.component.scss']

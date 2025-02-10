@@ -477,7 +477,8 @@
         "AuthType_None": "无",
         "AuthType_Basic": "基本身份验证",
         "AuthType_None_Description": "系统统一授权，不需要用户提供账号",
-        "AuthType_Basic_Description": "用户需提供账号进行授权"
+        "AuthType_Basic_Description": "用户需提供账号进行授权",
+        "SelectTypeToCreate": "选择一个数据源类型进行创建"
       },
       "Roles": {
         "General": "通用",

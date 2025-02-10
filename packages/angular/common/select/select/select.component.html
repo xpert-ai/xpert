@@ -49,7 +49,7 @@
           disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none opacity-30 hover:opacity-100
           hover:bg-white focus:bg-neutral-50 active:bg-neutral-50 dark:hover:bg-neutral-600 dark:focus:bg-neutral-700 dark:active:bg-neutral-700"
           (click)="clear()">
-          <i class="material-icons">close</i>
+          <i class="ri-close-line"></i>
         </button>
       }
     </div>
@@ -79,12 +79,16 @@
   }
 </mat-autocomplete>
 
-<mat-error class="text-xs h-4">
-  @if (formControl.invalid) {
-    <span>{{formControl.getError('error')}}</span>
-  }
-  <ng-content select="[ngmError]"></ng-content>
-</mat-error>
+<div class="flex items-center">
+  <ng-content select="[help]"></ng-content>
+  <mat-error class="text-xs h-4">
+    @if (formControl.invalid) {
+      <span>{{formControl.getError('error')}}</span>
+    }
+    <ng-content select="[ngmError]"></ng-content>
+  </mat-error>
+</div>
+
 
 <ng-template #optionTemplate let-option>
   <ng-template [ngIf]="_explicitContent" [ngIfElse]="optionTextLabel">

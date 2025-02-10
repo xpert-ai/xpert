@@ -57,7 +57,11 @@
 <div mat-dialog-content class="pac-dialog-content w-[400px] max-h-full overflow-auto">
   <form [formGroup]="formGroup" class="flex flex-col items-stretch p-4 overflow-auto">
     <label class="text-lg">
-        {{ 'PAC.MODEL.DataSource' | translate: { Default: 'Data Source' } }}
+      {{ 'PAC.MODEL.DataSource' | translate: { Default: 'Data Source' } }}
+      <a [routerLink]="['/settings/data-sources/']" target="_blank" rel="noopener noreferrer" class="inline-flex items-center p-1 text-xs !text-primary-400 hover:!text-primary-600">
+        {{'PAC.Xpert.HowtoCreate' | translate: {Default: 'How to create'} }}
+        <i class="ri-external-link-line"></i>
+      </a>
     </label>
     <ngm-selection-table
         appearance="outline"

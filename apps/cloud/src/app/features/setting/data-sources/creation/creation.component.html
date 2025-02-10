@@ -1,98 +1,107 @@
 <div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
-    <div class="w-full flex justify-start items-center mb-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-      <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
-      <span class="text-lg pointer-events-none">
-        {{ 'PAC.ACTIONS.NEW' | translate: {Default: 'New'} }} {{ 'PAC.KEY_WORDS.DataSource' | translate: {Default: 'Data Source'} }}
-      </span>
+  <div class="w-full flex justify-start items-center mb-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    <i class="ri-draggable -ml-2 opacity-0 group-hover:opacity-80"></i>
+    <span class="text-lg pointer-events-none">
+      {{ 'PAC.ACTIONS.NEW' | translate: {Default: 'New'} }} {{ 'PAC.KEY_WORDS.DataSource' | translate: {Default: 'Data Source'} }}
+    </span>
+  </div>
+
+  <form [formGroup]="typeFormGroup" class="flex-1 overflow-auto">
+    <mat-selection-list class="pac-ds-creation__types ngm-nav-list" formControlName="type" disableRipple [multiple]="false"
+      [compareWith]="compareFn"
+    >
+      @if (connectionTypes$ | async; as connectionTypes) {
+        @for (item of connectionTypes; track item.id) {
+          <mat-list-option [value]="item" class="rounded-lg mb-1">
+            <span>
+              <img src="assets/images/db-logos/{{item.type}}.png" width="32" height="32" class="m-0 inline-block">
+              {{item.name}}
+            </span>
+          </mat-list-option>
+        }
+      } @else {
+        <list-content-loader />
+      }
+    </mat-selection-list>
+  </form>
+
+  <div class="flex justify-between items-center">
+    <div ngmButtonGroup>
+      <button mat-raised-button color="accent"
+        [disabled]="loading() || formGroup.pristine || formGroup.invalid"
+        (click)="ping()">
+        {{ 'PAC.ACTIONS.PING' | translate: {Default: 'Ping'} }}
+      </button>
     </div>
-
-    <form [formGroup]="typeFormGroup" class="flex-1 overflow-auto">
-        <mat-selection-list class="pac-ds-creation__types ngm-nav-list" formControlName="type" disableRipple [multiple]="false"
-            [compareWith]="compareFn"
-            >
-          @if (connectionTypes$ | async; as connectionTypes) {
-            @for (item of connectionTypes; track item.id) {
-              <mat-list-option [value]="item" class="rounded-lg mb-1">
-                <span>
-                    <img src="assets/images/db-logos/{{item.type}}.png" width="32" height="32" class="m-0 inline-block">
-                    {{item.name}}
-                </span>
-              </mat-list-option>
-            }
-          } @else {
-            <list-content-loader />
-          }
-        </mat-selection-list>
-    </form>
-
-    <div class="flex justify-between items-center">
-        <div ngmButtonGroup>
-            <button mat-raised-button color="accent"
-                [disabled]="loading() || formGroup.pristine || formGroup.invalid"
-                (click)="ping()">
-                {{ 'PAC.ACTIONS.PING' | translate: {Default: 'Ping'} }}
-            </button>
-        </div>
     
-        <div ngmButtonGroup>
-            <button mat-flat-button (click)="onCancel()">
-                {{ 'PAC.ACTIONS.CANCEL' | translate: {Default: 'Cancel'} }}
-            </button>
-            <button mat-raised-button color="accent" cdkFocusInitial
-                [disabled]="formGroup.pristine || formGroup.invalid"
-                (click)="onSave()">
-                {{ 'PAC.ACTIONS.CREATE' | translate: {Default: 'Create'} }}
-            </button>
-        </div>
+    <div ngmButtonGroup>
+      <button mat-flat-button (click)="onCancel()">
+        {{ 'PAC.ACTIONS.CANCEL' | translate: {Default: 'Cancel'} }}
+      </button>
+      <button mat-raised-button color="accent" cdkFocusInitial
+        [disabled]="formGroup.pristine || formGroup.invalid"
+        (click)="onSave()">
+        {{ 'PAC.ACTIONS.CREATE' | translate: {Default: 'Create'} }}
+      </button>
     </div>
+  </div>
 </div>
 
 <div class="w-[500px] shrink-0 flex flex-col p-4 overflow-y-auto">
-    <div class="text-lg">
-        {{ 'PAC.MENU.DATA_SOURCES.CONFIGURATION' | translate: {Default: 'Configuration'} }}
-    </div>
+  <div class="text-lg">
+    {{ 'PAC.MENU.DATA_SOURCES.CONFIGURATION' | translate: {Default: 'Configuration'} }}
+  </div>
 
-    <form [formGroup]="formGroup" *ngIf="type" class="flex flex-col justify-start items-stretch">
-        <div class="flex justify-center items-center text-lg my-2">
-            <img src="assets/images/db-logos/{{type.type}}.png" width="64" height="64" class="m-0 inline-block">
-            {{type.name}}
+  @if (type) {
+    <form [formGroup]="formGroup" class="flex flex-col justify-start items-stretch">
+      <div class="flex justify-center items-center text-lg my-2">
+        <img src="assets/images/db-logos/{{type.type}}.png" width="64" height="64" class="m-0 inline-block">
+        {{type.name}}
+      </div>
+
+      <ngm-input [ngClass]="{'ngm-input-error': nameCtrl.invalid}" [label]="'PAC.MENU.DATA_SOURCES.NAME' | translate: {Default: 'Name'}"
+        formControlName="name" required>
+        @if (nameCtrl.invalid) {
+          <span ngmError>
+          {{ 'PAC.MENU.DATA_SOURCES.NAME_REQUIRED' | translate: {Default: 'Name Required'} }}
+          </span>
+        }
+      </ngm-input>
+
+      <div class="flex justify-between items-center mx-2 mb-6">
+        @if (enableLocalAgent) {
+          <mat-slide-toggle formControlName="useLocalAgent" disableRipple labelPosition="before">
+            {{ 'PAC.MENU.DATA_SOURCES.USE_LOCAL_AGENT' | translate: {Default: 'Use Local Agent'} }}
+          </mat-slide-toggle>
+        }
+
+        <div class="flex justify-end items-center gap-2">
+          <div>{{ 'PAC.MENU.DATA_SOURCES.AuthType' | translate: {Default: 'Auth Type'} }}</div>
+          <mat-button-toggle-group formControlName="authType" name="authType" ngmAppearance="outline" displayDensity="compact" color="accent">
+            <mat-button-toggle [value]="null"
+              [matTooltip]="'PAC.MENU.DATA_SOURCES.AuthType_None_Description' | translate: {Default: 'Unified system authorization, no need for users to provide accounts.'}"
+            >{{ 'PAC.MENU.DATA_SOURCES.AuthType_None' | translate: {Default: 'None'} }}</mat-button-toggle>
+            <mat-button-toggle [value]="AuthenticationEnum.BASIC"
+              [matTooltip]="'PAC.MENU.DATA_SOURCES.AuthType_Basic_Description' | translate: {Default: 'Users need to provide an account for authorization.'}"
+            >{{ 'PAC.MENU.DATA_SOURCES.AuthType_Basic' | translate: {Default: 'Basic'} }}</mat-button-toggle>
+          </mat-button-toggle-group>
         </div>
+      </div>
 
-        <ngm-input [ngClass]="{'ngm-input-error': nameCtrl.invalid}" [label]="'PAC.MENU.DATA_SOURCES.NAME' | translate: {Default: 'Name'}"
-          formControlName="name" required>
-          @if (nameCtrl.invalid) {
-            <span ngmError>
-            {{ 'PAC.MENU.DATA_SOURCES.NAME_REQUIRED' | translate: {Default: 'Name Required'} }}
-            </span>
-          }
-        </ngm-input>
-
-        <div class="flex justify-between items-center mx-2 mb-6">
-            @if (enableLocalAgent) {
-                <mat-slide-toggle formControlName="useLocalAgent" disableRipple labelPosition="before">
-                    {{ 'PAC.MENU.DATA_SOURCES.USE_LOCAL_AGENT' | translate: {Default: 'Use Local Agent'} }}
-                </mat-slide-toggle>
-            }
-
-            <div class="flex justify-end items-center gap-2">
-                <mat-label>{{ 'PAC.MENU.DATA_SOURCES.AuthType' | translate: {Default: 'Auth Type'} }}</mat-label>
-                <mat-button-toggle-group formControlName="authType" name="authType" ngmAppearance="outline" displayDensity="compact" color="accent">
-                    <mat-button-toggle [value]="null"
-                        [matTooltip]="'PAC.MENU.DATA_SOURCES.AuthType_None_Description' | translate: {Default: 'Unified system authorization, no need for users to provide accounts.'}"
-                    >{{ 'PAC.MENU.DATA_SOURCES.AuthType_None' | translate: {Default: 'None'} }}</mat-button-toggle>
-                    <mat-button-toggle [value]="AuthenticationEnum.BASIC"
-                        [matTooltip]="'PAC.MENU.DATA_SOURCES.AuthType_Basic_Description' | translate: {Default: 'Users need to provide an account for authorization.'}"
-                    >{{ 'PAC.MENU.DATA_SOURCES.AuthType_Basic' | translate: {Default: 'Basic'} }}</mat-button-toggle>
-                </mat-button-toggle-group>
-            </div>
-        </div>
-
-        <formly-form
-            [form]="options"
-            [fields]="fields$ | async"
-            [model]="model"
-            (modelChange)="onModelChange($event)"
-            >
-        </formly-form>
+      <formly-form
+        [form]="options"
+        [fields]="fields$ | async"
+        [model]="model"
+        (modelChange)="onModelChange($event)"
+        >
+      </formly-form>
     </form>
+  } @else {
+    <div class="flex-1 w-full flex flex-col justify-center items-center">
+      <i class="ri-database-2-line text-2xl"></i>
+      <span class="text-text-secondary">
+        {{ 'PAC.MENU.DATA_SOURCES.SelectTypeToCreate' | translate: {Default: 'Select a data source type to create'} }}
+      </span>
+    </div>
+  }
 </div>
