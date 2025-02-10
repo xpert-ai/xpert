@@ -260,7 +260,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					nodes[node.key] = {graph: (state) => {
 						//
 					}, ends: []}
-					conditionalEdges[node.key] = [workflowNode, nextNodes.map((n) => n.key)]
+					conditionalEdges[node.key] = [workflowNode, [...nextNodes.map((n) => n.key), END] ]
 					for await (const nNode of nextNodes ?? []) {
 						await createSubgraph(nNode, null)
 					}
