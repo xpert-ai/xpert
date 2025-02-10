@@ -1,5 +1,4 @@
 import { ChatOllama, ChatOllamaInput } from '@langchain/ollama'
-// import { Ollama } from 'ollama'
 import { Ollama } from 'ollama/dist/browser'
 
 export class NgmChatOllama extends ChatOllama {
