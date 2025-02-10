@@ -1,10 +1,10 @@
 // 同步与：`@metad/server-ai`/copilot/llm.ts
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { ChatOpenAI, ClientOptions } from '@langchain/openai'
 import { ChatAnthropic } from '@langchain/anthropic'
 import { AI_PROVIDERS, AiProtocol, AiProvider, ICopilot, sumTokenUsage } from '@metad/copilot'
 import { NgmChatOllama } from './chat-ollama'
 import { TCopilotCredentials } from '../../types'
+import { NgmChatOpenAI } from './chat-openai'
 
 
 export function createLLM<T = BaseChatModel>(
@@ -22,13 +22,14 @@ export function createLLM<T = BaseChatModel>(
   const modelOptions = copilot.copilotModel.options
 
   if (AI_PROVIDERS[providerName]?.protocol === AiProtocol.OpenAI) {
-    return new ChatOpenAI({
+    return new NgmChatOpenAI({
+      ...(clientOptions ?? {}),
       apiKey: credentials.apiKey,
       model,
       temperature: modelOptions?.['temperature'] ?? 0,
       maxRetries: modelOptions?.['maxRetries'] ?? 2,
       streaming: modelOptions?.['streaming'] ?? true,
-      ...(clientOptions ?? {}),
+      streamUsage: false,
       configuration: {
         baseURL: credentials.apiHost ? (credentials.apiHost + `/${copilot.id}`) : AI_PROVIDERS[providerName]?.apiHost || null,
         ...(clientOptions ?? {})
@@ -40,7 +41,10 @@ export function createLLM<T = BaseChatModel>(
 							copilot,
 							tokenUsed: output.llmOutput?.['totalTokens'] ?? sumTokenUsage(output)
 						})
-          }
+          },
+          handleLLMNewToken(token: string) {
+            console.log({ token });
+          },
         }
       ]
     }) as T

@@ -4,12 +4,19 @@
     <div class="w-full text-lg font-medium p-4 text-left">{{'PAC.ChatBI.NewChatBIModel' | translate: {Default: 'New ChatBI Model'} }}</div>
 
     <form class="flex flex-wrap gap-4 p-4" [formGroup]="formGroup">
-      <ngm-select class="flex-1" [label]="'PAC.ChatBI.SemanticModel' | translate: {Default: 'Semantic Model'}" valueKey="key"
-        [displayBehaviour]="DisplayBehaviour.descriptionOnly"
-        formControlName="modelId"
-        searchable
-        [selectOptions]="models()"
-      />
+      <div class="flex-1">
+        <ngm-select class="w-full" [label]="'PAC.ChatBI.SemanticModel' | translate: {Default: 'Semantic Model'}" valueKey="key"
+          [displayBehaviour]="DisplayBehaviour.descriptionOnly"
+          formControlName="modelId"
+          searchable
+          [selectOptions]="models()"
+        >
+          <a help [routerLink]="['/models/']" target="_blank" rel="noopener noreferrer" class="inline-flex items-center p-1 text-xs !text-primary-400 hover:!text-primary-600">
+            {{'PAC.Xpert.HowtoCreate' | translate: {Default: 'How to create'} }}
+            <i class="ri-external-link-line"></i>
+          </a>
+        </ngm-select>
+      </div>
       
       <ngm-select class="flex-1" [label]="'PAC.ChatBI.Entity' | translate: {Default: 'Entity'}" valueKey="key"
         [displayBehaviour]="DisplayBehaviour.descriptionOnly"

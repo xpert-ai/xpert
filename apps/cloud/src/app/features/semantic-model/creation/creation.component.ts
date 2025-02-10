@@ -21,6 +21,7 @@ import { environment } from 'apps/cloud/src/environments/environment'
 import { Observable, Subject, catchError, filter, map, of, startWith, switchMap, tap } from 'rxjs'
 import { IDataSource, getErrorMessage } from '../../../@core'
 import { MaterialModule } from '../../../@shared/material.module'
+import { RouterModule } from '@angular/router'
 
 @Component({
   standalone: true,
@@ -32,6 +33,7 @@ import { MaterialModule } from '../../../@shared/material.module'
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
+    RouterModule,
     MaterialModule,
     TranslateModule,
     DensityDirective,

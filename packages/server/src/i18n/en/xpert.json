@@ -4,6 +4,7 @@
         "EmbeddingCopilotNotFound": "Not found the copilot for role 'embedding'",
         "EmbeddingModelForMemory": "Need to configure embedding model for long-term memory",
         "AgentOutdated": "Agent '{agentKey}' record has been updated, please resynchronize",
-        "FallbackModelNotFound": "Fallback model not found for agent '{agent}'"
+        "FallbackModelNotFound": "Fallback model not found for agent '{agent}'",
+        "CopilotModelConfigError": "Copilot model '{model}' is not configured correctly"
     }
 }

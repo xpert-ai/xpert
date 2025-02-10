@@ -1,16 +1,24 @@
-import { IWFNIfElse, TWFCaseCondition, TXpertGraph, TXpertTeamNode, WorkflowComparisonOperator, WorkflowLogicalOperator, WorkflowNodeTypeEnum } from "@metad/contracts";
-import { AgentStateAnnotation } from "../commands/handlers/types";
-import { isEmpty } from "@metad/server-common";
+import { END } from '@langchain/langgraph'
+import {
+	IWFNIfElse,
+	TWFCaseCondition,
+	TXpertGraph,
+	TXpertTeamNode,
+	WorkflowComparisonOperator,
+	WorkflowLogicalOperator,
+	WorkflowNodeTypeEnum
+} from '@metad/contracts'
+import { isEmpty } from '@metad/server-common'
+import { AgentStateAnnotation } from '../commands/handlers/types'
 
-export function createWorkflowNode(graph: TXpertGraph, node: TXpertTeamNode & {type: 'workflow'}) {
-
+export function createWorkflowNode(graph: TXpertGraph, node: TXpertTeamNode & { type: 'workflow' }) {
 	let workflowNode = null
-	
+
 	if (node.entity.type === WorkflowNodeTypeEnum.IF_ELSE) {
 		const entity = node.entity as IWFNIfElse
 		const evaluateCases = (state: typeof AgentStateAnnotation.State, config) => {
 			const evaluateCondition = (condition: TWFCaseCondition) => {
-				const stateValue = state[condition.variableSelector];
+				const stateValue = state[condition.variableSelector]
 				if (typeof stateValue === 'number') {
 					const conditionValue = Number(condition.value)
 					switch (condition.comparisonOperator) {
@@ -31,28 +39,28 @@ export function createWorkflowNode(graph: TXpertGraph, node: TXpertTeamNode & {t
 						case WorkflowComparisonOperator.NOT_EMPTY:
 							return stateValue != null
 						default:
-							return false;
+							return false
 					}
 				} else if (typeof stateValue === 'string') {
 					switch (condition.comparisonOperator) {
 						case WorkflowComparisonOperator.EQUAL:
-							return stateValue === condition.value;
+							return stateValue === condition.value
 						case WorkflowComparisonOperator.NOT_EQUAL:
-							return stateValue !== condition.value;
+							return stateValue !== condition.value
 						case WorkflowComparisonOperator.CONTAINS:
-							return stateValue.includes(condition.value);
+							return stateValue.includes(condition.value)
 						case WorkflowComparisonOperator.NOT_CONTAINS:
-							return !stateValue.includes(condition.value);
+							return !stateValue.includes(condition.value)
 						case WorkflowComparisonOperator.STARTS_WITH:
-							return stateValue.startsWith(condition.value);
+							return stateValue.startsWith(condition.value)
 						case WorkflowComparisonOperator.ENDS_WITH:
-							return stateValue.endsWith(condition.value);
+							return stateValue.endsWith(condition.value)
 						case WorkflowComparisonOperator.EMPTY:
 							return stateValue == null
 						case WorkflowComparisonOperator.NOT_EMPTY:
 							return stateValue != null
 						default:
-							return false;
+							return false
 					}
 				} else {
 					switch (condition.comparisonOperator) {
@@ -68,11 +76,11 @@ export function createWorkflowNode(graph: TXpertGraph, node: TXpertTeamNode & {t
 
 			const evaluateConditions = (conditions: TWFCaseCondition[], logicalOperator: WorkflowLogicalOperator) => {
 				if (logicalOperator === WorkflowLogicalOperator.AND) {
-					return conditions.every(evaluateCondition);
+					return conditions.every(evaluateCondition)
 				} else if (logicalOperator === WorkflowLogicalOperator.OR) {
-					return conditions.some(evaluateCondition);
+					return conditions.some(evaluateCondition)
 				}
-				return false;
+				return false
 			}
 
 			for (const item of entity.cases) {
@@ -88,7 +96,7 @@ export function createWorkflowNode(graph: TXpertGraph, node: TXpertTeamNode & {t
 
 		workflowNode = async (state: typeof AgentStateAnnotation.State, config) => {
 			const result = evaluateCases(state, config)
-			return graph.connections.find((conn) =>conn.type === 'edge' && conn.from === result)?.to
+			return graph.connections.find((conn) => conn.type === 'edge' && conn.from === result)?.to ?? END
 		}
 	}
 

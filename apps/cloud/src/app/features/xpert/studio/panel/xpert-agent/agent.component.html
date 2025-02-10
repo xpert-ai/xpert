@@ -416,7 +416,7 @@
 </ng-template>
 
 <ng-template #diagramMenu>
-  <div cdkMenu @overlayAnimation1 class="min-w-[100px] min-h-[200px] max-w-xl max-h-[600px] p-4 relative">
+  <div cdkMenu @overlayAnimation1 class="min-w-[100px] min-h-[200px] max-w-xl max-h-[600px] p-4 relative bg-components-panel-bg-blur">
     @if (diagram$ | async; as diagram) {
       @if (diagram.image) {
         <img [src]="diagram.image" alt="Diagram Image">

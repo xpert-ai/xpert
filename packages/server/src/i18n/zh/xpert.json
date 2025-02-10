@@ -4,6 +4,7 @@
         "EmbeddingCopilotNotFound": "未找到'嵌入'角色的智能助理",
         "EmbeddingModelForMemory": "需要为长期记忆配置'嵌入'模型",
         "AgentOutdated": "Agent '{agentKey}' 记录已更新，请重新同步",
-        "FallbackModelNotFound": "未找到'{agent}'的备用模型配置"
+        "FallbackModelNotFound": "未找到'{agent}'的备用模型配置",
+        "CopilotModelConfigError": "智能助理模型‘{model}’未正确配置"
     }
 }

@@ -1,11 +1,11 @@
 import { CommonModule } from '@angular/common'
-import { Component, inject } from '@angular/core'
+import { Component, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
 import { BusinessAreasService } from '@metad/cloud/state'
-import { NgmConfirmDeleteComponent, TreeTableModule } from '@metad/ocap-angular/common'
+import { NgmConfirmDeleteComponent, NgmSpinComponent, TreeTableModule } from '@metad/ocap-angular/common'
 import { DisplayDensity, OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
@@ -30,11 +30,10 @@ import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
     ReactiveFormsModule,
     TranslateModule,
 
-    InlineSearchComponent,
-
     // OCAP Modules
     OcapCoreModule,
-    TreeTableModule
+    TreeTableModule,
+    NgmSpinComponent
   ]
 })
 export class BusinessAreasComponent {
@@ -47,12 +46,12 @@ export class BusinessAreasComponent {
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
 
-  loading = false
+  readonly loading = signal(false)
   private refresh$ = new BehaviorSubject<void>(null)
   public readonly groupTree$ = this.refresh$.pipe(
-    tap(() => (this.loading = true)),
+    tap(() => this.loading.set(true)),
     switchMap(() => this.businessAreasStore.getGroupsTree()),
-    tap(() => (this.loading = false)),
+    tap(() => this.loading.set(false)),
     takeUntilDestroyed(),
     shareReplay(1)
   )

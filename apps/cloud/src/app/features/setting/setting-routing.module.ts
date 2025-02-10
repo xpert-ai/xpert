@@ -49,8 +49,8 @@ const routes: Routes = [
       },
       {
         path: 'data-sources',
-        loadChildren: () => import('./data-sources/data-sources.module').then((m) => m.PACDataSourcesModule),
-        canActivate: [NgxPermissionsGuard],
+        loadChildren: () => import('./data-sources/routing').then((m) => m.default),
+        canActivate: [ NgxPermissionsGuard ],
         data: {
           title: 'settings/data-sources',
           permissions: {
