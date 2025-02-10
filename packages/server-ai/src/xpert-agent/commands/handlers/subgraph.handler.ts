@@ -90,6 +90,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 		// Record ai model info into execution
 		const copilotModel = agent.copilotModel ?? team.copilotModel
+		if (!copilotModel.copilot) {
+			throw new XpertConfigException(await this.i18nService.t('xpert.Error.CopilotModelConfigError', {lang: mapTranslationLanguage(RequestContext.getLanguageCode()), args: {model: copilotModel.model}}))
+		}
 		execution.metadata = {
 			provider: copilotModel.copilot.modelProvider?.providerName,
 			model: copilotModel.model || copilotModel.copilot.copilotModel?.model
