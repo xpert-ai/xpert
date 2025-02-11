@@ -40,12 +40,12 @@
 
 <ng-template #modelTempl let-model>
   <div class="model-temp">
-    <span>{{model.name}}</span>
+    <span>{{model?.name}}</span>
   </div>
 </ng-template>
 
 
-<ng-template #actionTemplate let-id="id" let-entityCaption="entityCaption">
+<ng-template #actionTemplate let-id="id" let-entityCaption="entityCaption" let-entity="entity">
   <div class="flex items-center group">
       <button mat-icon-button class="opacity-50 group-hover:opacity-100"
         [matTooltip]="'PAC.ChatBI.EditModel' | translate: {Default: 'Edit Model'}"
@@ -57,7 +57,7 @@
       <button mat-icon-button class="opacity-50 group-hover:opacity-100"
         ngmAppearance="danger"
         [matTooltip]="'PAC.ChatBI.DeleteModel' | translate: {Default: 'Delete Model'}"
-        (click)="deleteModel(id, entityCaption)"
+        (click)="deleteModel(id, entity, entityCaption)"
       >
         <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
       </button>

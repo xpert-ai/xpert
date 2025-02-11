@@ -19,6 +19,7 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "Required": "必输",
       "All": "所有",
       "Ask": "提问",
       "Certification": "认证",
@@ -1655,7 +1656,8 @@
       "RolesWithPermission": "有权限的角色",
       "IntegrationsWithPermission": "有权限的集成",
       "NewChatBIModel": "新建 ChatBI 模型",
-      "ModelExists": "模型已存在"
+      "ModelExists": "模型已存在",
+      "EntityNotFound": "未找到模型实体"
     },
     "Home": {
       "Insight": {
