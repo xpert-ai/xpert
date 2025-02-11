@@ -90,7 +90,7 @@ export class NgmSelectComponent implements ControlValueAccessor
     transform: booleanAttribute
   })
 
-  readonly validators = input<ValidatorFn | ValidatorFn[] | null>()
+  // readonly validators = input<ValidatorFn | ValidatorFn[] | null>()
 
   readonly multiple = input<boolean, string | boolean>(false, {
     transform: booleanAttribute

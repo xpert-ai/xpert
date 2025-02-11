@@ -15,6 +15,10 @@
             {{'PAC.Xpert.HowtoCreate' | translate: {Default: 'How to create'} }}
             <i class="ri-external-link-line"></i>
           </a>
+
+          @if (modelIdRequiredError) {
+            <div ngmError>{{'PAC.KEY_WORDS.Required' | translate: {Default: 'Required'} }}</div>
+          }
         </ngm-select>
       </div>
       
@@ -23,7 +27,13 @@
         formControlName="entity"
         searchable
         [selectOptions]="entities()"
-      />
+      >
+        @if (entityRequiredError) {
+          <div ngmError>{{'PAC.KEY_WORDS.Required' | translate: {Default: 'Required'} }}</div>
+        } @else if (entityNotFound()) {
+          <div ngmError>{{'PAC.ChatBI.EntityNotFound' | translate: {Default: 'Entity not found'} }}</div>
+        }
+      </ngm-select>
           
       <ngm-input class="flex-1 min-w-full" [label]="'PAC.ChatBI.Caption' | translate: {Default: 'Caption'}" valueKey="key"
         formControlName="entityCaption"
@@ -45,7 +55,7 @@
       <div></div>
       <div ngmButtonGroup>
         <button mat-button (click)="close()">{{'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}</button>
-        <button mat-raised-button color="primary" [disabled]="loading() || formGroup.invalid || formGroup.pristine"
+        <button mat-raised-button color="primary" [disabled]="loading() || formGroup.invalid || formGroup.pristine || entityNotFound()"
           (click)="saveAll()"
         >{{'PAC.KEY_WORDS.Save' | translate: {Default: 'Save'} }}</button>
       </div>

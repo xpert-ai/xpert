@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { FormBuilder, FormControl, ReactiveFormsModule } from '@angular/forms'
+import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatInputModule } from '@angular/material/input'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
@@ -56,11 +56,18 @@ export class ChatBIModelComponent implements IsDirty {
   )
 
   readonly formGroup = this.fb.group({
-    modelId: new FormControl<string>(null),
-    entity: new FormControl(null),
+    modelId: new FormControl<string>(null, [Validators.required]),
+    entity: new FormControl(null, [Validators.required]),
     entityCaption: new FormControl(null),
     entityDescription: new FormControl(null)
   })
+
+  get modelIdRequiredError() {
+    return this.formGroup.get('modelId').errors?.required;
+  }
+  get entityRequiredError() {
+    return this.formGroup.get('entity').errors?.required;
+  }
 
   readonly modelId = toSignal(this.formGroup.get('modelId').valueChanges.pipe(startWith(this.formGroup.value?.modelId)))
 
@@ -91,6 +98,7 @@ export class ChatBIModelComponent implements IsDirty {
 
   readonly cubeName = toSignal(this.formGroup.get('entity').valueChanges.pipe(startWith(this.formGroup.value?.entity)))
   readonly selectedCube = computed(() => this.entities()?.find((item) => item.key === this.cubeName())?.value)
+  readonly entityNotFound = computed(() => this.cubeName() && !this.selectedCube())
 
   readonly loading = signal(true)
 

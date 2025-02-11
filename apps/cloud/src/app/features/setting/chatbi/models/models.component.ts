@@ -70,11 +70,11 @@ export class ChatBIModelsComponent extends TranslationBaseComponent {
     this.router.navigate([id], { relativeTo: this.route })
   }
 
-  deleteModel(id: string, cubeCaption: string) {
+  deleteModel(id: string, entity: string, cubeCaption: string) {
     this.dialog
       .open(CdkConfirmDeleteComponent, {
         data: {
-          value: id,
+          value: entity,
           information: cubeCaption
         }
       })
