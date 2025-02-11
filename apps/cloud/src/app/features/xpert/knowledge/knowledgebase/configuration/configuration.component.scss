@@ -1,0 +1,24 @@
+:host {
+  @apply w-full flex p-8;
+}
+
+:host::ng-deep {
+  .knowledgebase-avatar {
+    width: 10rem;
+    height: 10rem;
+    border-radius: 2rem;
+    overflow: hidden;
+  
+    .emoji-mart-emoji-native {
+      span {
+        font-size: 5rem !important;
+      }
+    }
+    .emoji-mart-emoji {
+      span {
+        width: 5rem !important;
+        height: 5rem !important;
+      }
+    }
+  }
+}

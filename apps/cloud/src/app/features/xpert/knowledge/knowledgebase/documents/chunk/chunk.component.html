@@ -1,0 +1,29 @@
+<div class="flex justify-between items-center p-4">
+  <div>{{'PAC.Knowledgebase.Chunks' | translate: {Default: 'Chunks'} }}: {{total()}}</div>
+  <div ngmButtonGroup>
+    <button mat-button (click)="close()">{{'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}</button>
+  </div>
+</div>
+
+<div class="p-4 overflow-auto"
+  waIntersectionObserver
+  waIntersectionThreshold="0.5">
+  <mat-list class="example-list-wrapping m-2">
+    @for (chunk of chunks(); track chunk.id) {
+      <mat-list-item lines="5" class="p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/10">
+        <span matListItemTitle>
+          <div class="flex justify-between items-center" >
+            <button mat-icon-button ngmAppearance="danger" displayDensity="compact"
+              [matTooltip]="'PAC.Knowledgebase.DeleteChunk' | translate: {Default:'Delete Chunk'} "
+              (click)="deleteChunk(chunk)">
+              <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
+            </button>
+          </div>
+        </span>
+        <span>{{chunk.content}}</span>
+      </mat-list-item>
+    }
+
+    <div (waIntersectionObservee)="onIntersection()" class="p-4"></div>
+  </mat-list>
+</div>

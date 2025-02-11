@@ -1,0 +1,30 @@
+<div class="flex items-center px-12 py-4 text-lg font-semibold text-gray-500 uppercase">
+  <div class="mr-3">{{ 'PAC.Xpert.BuiltinToolsets' | translate: { Default: 'Builtin Toolsets' } }}</div>
+  <div class="grow w-0 h-px bg-divider-regular"></div>
+</div>
+
+<div class="xpert-card-container"
+  ngmDynamicGrid colWidth="280"
+  box="content-box">
+  @for (toolset of builtinToolsets(); track toolset.id) {
+    <xpert-toolset-card class="col-span-1 min-h-[160px] cursor-pointer bg-components-card-bg"
+      [toolset]="toolset"
+      (click)="navigateTo(toolset)"
+    />
+  }
+</div>
+
+<div class="flex items-center px-12 py-4 text-lg font-semibold text-gray-500 uppercase">
+  <div class="mr-3">{{ 'PAC.Xpert.ToolProviders' | translate: { Default: 'Tool Providers' } }}</div>
+  <div class="grow w-0 h-px bg-divider-regular"></div>
+</div>
+
+<div class="xpert-card-container"
+  ngmDynamicGrid colWidth="280"
+  box="content-box">
+  @for (provider of builtinToolProviders(); track provider.name) {
+    <xpert-tool-provider-card [provider]="provider"
+      [builtinTags]="builtinTags()"
+      (click)="configureToolBuiltin(provider)" />
+  }
+</div>

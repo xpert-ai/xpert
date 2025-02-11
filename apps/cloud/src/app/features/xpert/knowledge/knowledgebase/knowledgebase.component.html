@@ -1,0 +1,65 @@
+<div class="pac-page-header overflow-hidden">
+
+  <div class="flex justify-start items-center gap-4 overflow-hidden">
+    <!-- <pac-avatar class="shrink-0 w-16 h-16 rounded-full overflow-hidden" [avatar]="knowledgebase()?.avatar"></pac-avatar> -->
+    <emoji-avatar [avatar]="knowledgebase()?.avatar" large class="shrink-0 rounded-md overflow-hidden shadow-sm" />
+
+    <div class="flex flex-col items-start overflow-hidden text-ellipsis">
+      <h2 class="pac-page-title">{{ knowledgebase()?.name }}</h2>
+
+      <span class="overflow-hidden text-ellipsis whitespace-nowrap opacity-80">{{knowledgebase()?.description}}</span>
+    </div>
+  </div>
+
+  <nav
+    mat-tab-nav-bar
+    class="pac-tab-nav-bar"
+    displayDensity="cosy"
+    color="accent"
+    mat-align-tabs="start"
+    mat-stretch-tabs="false"
+    disableRipple
+    [tabPanel]="tabPanel"
+  >
+    <span
+      mat-tab-link
+      [routerLink]="['./documents']"
+      routerLinkActive
+      #rla1="routerLinkActive"
+      [routerLinkActiveOptions]="{ exact: false }"
+      [active]="rla1.isActive"
+    >
+      <mat-icon fontSet="material-icons-round">document_scanner</mat-icon>
+      <span class="ml-1">{{ 'PAC.Knowledgebase.Documents' | translate: { Default: 'Documents' } }}</span>
+    </span>
+    <span
+      mat-tab-link
+      [routerLink]="['./test']"
+      routerLinkActive
+      #rla2="routerLinkActive"
+      [routerLinkActiveOptions]="{ exact: true }"
+      [active]="rla2.isActive"
+    >
+      <mat-icon fontSet="material-icons-outlined">quiz</mat-icon>
+      <span class="ml-1">{{ 'PAC.Knowledgebase.Test' | translate: { Default: 'Test' } }}</span>
+    </span>
+    <span
+      mat-tab-link
+      [routerLink]="['./configuration']"
+      routerLinkActive
+      #rla3="routerLinkActive"
+      [routerLinkActiveOptions]="{ exact: true }"
+      [active]="rla3.isActive"
+    >
+      <mat-icon fontSet="material-icons-outlined">manufacturing</mat-icon>
+      <span class="ml-1">{{ 'PAC.Knowledgebase.Configuration' | translate: { Default: 'Configuration' } }}</span>
+    </span>
+  </nav>
+</div>
+
+<mat-divider></mat-divider>
+  
+<mat-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center"
+  [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">
+  <router-outlet #o="outlet"></router-outlet>
+</mat-tab-nav-panel>

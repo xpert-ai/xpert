@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import { IStorageFile } from '@metad/contracts'
-import { API_PREFIX, OrganizationBaseCrudService } from '@metad/cloud/state'
+import { API_PREFIX } from '@metad/cloud/state'
 
 export const C_API_STORAGEFILE = API_PREFIX + '/storage-file'
 

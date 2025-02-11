@@ -1,0 +1,22 @@
+<div class="flex items-center px-12 py-4 text-lg font-semibold text-gray-500 uppercase">
+  <div class="mr-3">{{ 'PAC.Xpert.CustomToolset' | translate: { Default: 'Custom Toolset' } }}</div>
+  <div class="grow w-0 h-px bg-divider-regular"></div>
+</div>
+
+<div class="xpert-card-container"
+  ngmDynamicGrid colWidth="280"
+  box="content-box">
+
+  <ngm-card-create [title]="'PAC.Xpert.CreateCustomTool' | translate: {Default: 'Create Custom Toolset'}"
+    [helpTitle]="'PAC.Xpert.LearnCreateCustomTool' | translate: {Default: 'Learn more about Xpert custom toolset'}"
+    helpUrl="/docs/ai/tool/custom/"
+    (create)="createTool()"
+  />
+
+  @for (toolset of apiToolsets(); track toolset.id) {
+    <xpert-toolset-card class="col-span-1 min-h-[160px] cursor-pointer bg-components-card-bg"
+      [toolset]="toolset"
+      (click)="navigateTo(toolset)"
+    />
+  }
+</div>

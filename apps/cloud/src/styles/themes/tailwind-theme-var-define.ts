@@ -61,7 +61,8 @@ const vars = {
   'components-input-border-active': 'var(--color-components-input-border-active)',
   'components-input-text-placeholder': 'var(--color-components-input-text-placeholder)',
   'components-list-option-bg': 'var(--color-components-list-option-bg)',
-  'components-list-option-active-bg': 'var(--color-components-list-option-active-bg)'
+  'components-list-option-active-bg': 'var(--color-components-list-option-active-bg)',
+  'surface-container-bg': 'var(--ngm-color-surface-container)'
 }
 
 export default vars

@@ -1,4 +1,4 @@
-import { DocumentParserConfig, IKnowledgebase, IKnowledgeDocument, IStorageFile } from '@metad/contracts'
+import { DocumentParserConfig, IKnowledgebase, IKnowledgeDocument, IStorageFile, KDocumentSourceType } from '@metad/contracts'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsDate, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
@@ -64,12 +64,12 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@IsString()
 	@Optional()
 	@Column({ nullable: true, length: 20 })
-	sourceType?: 'local' | 'url'
+	sourceType?: KDocumentSourceType
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@Optional()
-	@Column({ nullable: true, length: 20 })
+	@Column({ nullable: true })
 	type: string
 
 	@ApiPropertyOptional({ type: () => String })

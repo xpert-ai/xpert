@@ -1906,6 +1906,10 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "Expert": "专家",
+      "DigitalExpert": "数字专家",
+      "Knowledgebase": "知识库",
+      "Knowledgebases": "知识库",
       "RetryOnFailure": "失败时重试",
       "StopAfterAttempt": "尝试后停止",
       "StopAfterAttemptTip": "尝试多少次后停止",

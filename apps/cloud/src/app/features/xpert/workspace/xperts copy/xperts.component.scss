@@ -1,0 +1,7 @@
+:host {
+  @apply flex flex-col w-full overflow-auto;
+}
+
+.xpert-card-container {
+  @apply relative content-start gap-4 px-12 pt-2 pb-4 grow shrink-0;
+}

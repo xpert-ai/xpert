@@ -1,4 +1,4 @@
-import { ICopilotModel, IKnowledgebase, KnowledgebaseParserConfig, KnowledgebasePermission, TAvatar } from '@metad/contracts'
+import { ICopilotModel, IKnowledgebase, KnowledgebaseParserConfig, KnowledgebasePermission, KnowledgebaseTypeEnum, TAvatar } from '@metad/contracts'
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsNumber, IsOptional, IsString, IsEnum } from 'class-validator'
@@ -12,6 +12,11 @@ export class Knowledgebase extends TenantOrganizationBaseEntity implements IKnow
 	@IsString()
 	@Column()
 	name: string
+
+	@ApiPropertyOptional({ enum: KnowledgebaseTypeEnum, enumName: 'KnowledgebaseTypeEnum' })
+	@IsString()
+	@Column({ nullable: true, length: 20 })
+	type: KnowledgebaseTypeEnum
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()

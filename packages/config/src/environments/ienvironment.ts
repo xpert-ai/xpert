@@ -1,4 +1,4 @@
-import { FileStorageProviderEnum } from '@metad/contracts';
+import { FileStorageProviderEnum, VectorTypeEnum } from '@metad/contracts';
 import {
 	IAuth0Config,
 	IAWSConfig,
@@ -89,4 +89,7 @@ export interface IEnvironment {
 	unleashConfig?: IUnleashConfig;
 	
 	demo: boolean;
+
+	// Rag
+	vectorStore?: VectorTypeEnum | string
 }

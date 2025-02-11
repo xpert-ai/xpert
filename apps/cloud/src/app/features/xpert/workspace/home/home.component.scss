@@ -1,5 +1,5 @@
 :host {
-  @apply relative w-full flex flex-col;
+  @apply relative w-full flex flex-col overflow-auto;
 }
 
 .xpert-list-option {
