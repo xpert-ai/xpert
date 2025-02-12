@@ -88,6 +88,7 @@ export async function loadFromExcel(runner: DBQueryRunner, sheets: CreationTable
 					file: {
 						buffer: dataBuffer
 					} as File,
+					data: _sheet.data,
 					format: 'json',
 					mergeType: sheet.mergeType
 				},
