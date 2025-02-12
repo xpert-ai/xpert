@@ -144,7 +144,9 @@ export function typeToPGDB(type: string, isKey: boolean, length: number) {
       return 'DATE'
     case 'Datetime':
     case 'datetime':
-      return 'DATETIME'
+      return 'TIMESTAMP'
+    case 'Time':
+      return 'TIME'
     case 'boolean':
     case 'Boolean':
       return 'BOOLEAN'
