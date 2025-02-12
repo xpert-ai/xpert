@@ -37,7 +37,6 @@ import {
 } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { formatRelative } from 'date-fns/formatRelative'
-import { FilesUploadDialogComponent } from 'apps/cloud/src/app/@shared/files'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
@@ -180,33 +179,7 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   }
 
   uploadDocuments() {
-
     this.#router.navigate(['create'], { relativeTo: this.#route })
-
-    // this.#dialog
-    //   .open(FilesUploadDialogComponent, {
-    //     panelClass: 'medium',
-    //     data: {}
-    //   })
-    //   .afterClosed()
-    //   .pipe(
-    //     switchMap((files: IStorageFile[]) =>
-    //       files
-    //         ? this.knowledgeDocumentService.createBulk(
-    //             files.map((file) => ({
-    //               knowledgebaseId: this.knowledgebase().id,
-    //               storageFileId: file.id
-    //             }))
-    //           )
-    //         : EMPTY
-    //     )
-    //   )
-    //   .subscribe({
-    //     next: (files: IKnowledgeDocument[]) => {
-    //       this.refresh()
-    //     },
-    //     error: (err) => {}
-    //   })
   }
 
   deleteDocument(id: string, storageFile: IStorageFile) {

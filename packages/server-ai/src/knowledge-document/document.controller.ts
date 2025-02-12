@@ -1,6 +1,14 @@
 import { IKnowledgeDocument } from '@metad/contracts'
+import {
+	CrudController,
+	PaginationParams,
+	ParseJsonPipe,
+	RequestContext,
+	TransformInterceptor
+} from '@metad/server-core'
 import { InjectQueue } from '@nestjs/bull'
 import {
+	BadRequestException,
 	Body,
 	ClassSerializerInterceptor,
 	Controller,
@@ -9,17 +17,18 @@ import {
 	Logger,
 	Param,
 	Post,
-	UseInterceptors,
-	Query
+	Query,
+	UseInterceptors
 } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { Queue } from 'bull'
 import { In } from 'typeorm'
-import { CrudController, PaginationParams, ParseJsonPipe, RequestContext, TransformInterceptor } from '@metad/server-core'
 import { KnowledgeDocument } from './document.entity'
 import { KnowledgeDocumentService } from './document.service'
 import { DocumentChunkDTO } from './dto'
+import { KnowledgeDocLoadCommand } from './commands'
+import { getErrorMessage } from '@metad/server-common'
 
 @ApiTags('KnowledgeDocument')
 @ApiBearerAuth()
@@ -66,6 +75,25 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 		return await this.service.save(docs)
 	}
 
+	@Post('estimate')
+	async estimate(@Body() entity: Partial<IKnowledgeDocument>) {
+		try {
+			return await this.commandBus.execute(new KnowledgeDocLoadCommand({doc: entity as IKnowledgeDocument}))
+		} catch(err) {
+			throw new BadRequestException(getErrorMessage(err))
+		}
+	}
+
+	@Get('status')
+	async getStatus(@Query('ids') _ids: string) {
+		const ids = _ids.split(',').map((id) => id.trim())
+		const {items} = await this.service.findAll({
+			select: ['id', 'status', 'processMsg'],
+			where: {id: In(ids)}
+		})
+		return items
+	}
+
 	@Delete(':id/job')
 	async stopJob(@Param('id') id: string) {
 		const knowledgeDocument = await this.service.findOne(id)
@@ -79,7 +107,9 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 					await job.moveToFailed({ message: 'Job stopped by user' }, true)
 				}
 			}
-		} catch(err) {}
+		} catch (err) {
+			//
+		}
 
 		knowledgeDocument.jobId = null
 		knowledgeDocument.status = 'cancel'
@@ -90,7 +120,10 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 
 	@UseInterceptors(ClassSerializerInterceptor)
 	@Get(':id/chunk')
-	async getChunks(@Param('id') id: string, @Query('data', ParseJsonPipe) params: PaginationParams<IKnowledgeDocument>) {
+	async getChunks(
+		@Param('id') id: string,
+		@Query('data', ParseJsonPipe) params: PaginationParams<IKnowledgeDocument>
+	) {
 		const result = await this.service.getChunks(id, params)
 		return {
 			...result,

@@ -10,6 +10,7 @@ import { KnowledgeDocumentService } from './document.service'
 import { KnowledgeDocumentConsumer } from './document.job'
 import { CopilotModule } from '../copilot'
 import { KnowledgebaseModule } from '../knowledgebase/knowledgebase.module'
+import { CommandHandlers } from './commands/handlers'
 
 @Module({
 	imports: [
@@ -27,7 +28,7 @@ import { KnowledgebaseModule } from '../knowledgebase/knowledgebase.module'
 		  })
 	],
 	controllers: [KnowledgeDocumentController],
-	providers: [KnowledgeDocumentService, KnowledgeDocumentConsumer ],
+	providers: [KnowledgeDocumentService, KnowledgeDocumentConsumer, ...CommandHandlers],
 	exports: [KnowledgeDocumentService]
 })
 export class KnowledgeDocumentModule {}

@@ -1,8 +1,9 @@
-import { HttpClient } from '@angular/common/http'
+import { HttpClient, HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
 import { IDocumentChunk, IKnowledgeDocument } from '@metad/contracts'
 import { NGXLogger } from 'ngx-logger'
+import { Document } from 'langchain/document'
 import { API_KNOWLEDGE_DOCUMENT } from '../constants/app.constants'
 
 @Injectable({ providedIn: 'root' })
@@ -18,9 +19,9 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     return this.httpClient.post<IKnowledgeDocument[]>(this.apiBaseUrl + '/bulk', entites)
   }
 
-  startParsing(id: string) {
+  startParsing(id: string | string[]) {
     return this.httpClient.post<IKnowledgeDocument[]>(this.apiBaseUrl + '/process', {
-      ids: [id]
+      ids: Array.isArray(id) ? id : id ? [id] : []
     })
   }
 
@@ -36,5 +37,15 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
 
   deleteChunk(documentId: string, id: string) {
     return this.httpClient.delete<void>(this.apiBaseUrl + `/` + documentId + '/chunk/' + id)
+  }
+
+  estimate(doc: Partial<IKnowledgeDocument>) {
+    return this.httpClient.post<Document[]>(this.apiBaseUrl + `/estimate`, doc)
+  }
+
+  getStatus(ids: string[]) {
+    return this.httpClient.get<IKnowledgeDocument[]>(this.apiBaseUrl + `/status`, {
+      params: new HttpParams().append(`ids`, ids.join(','))
+    })
   }
 }

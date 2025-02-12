@@ -15,7 +15,7 @@ import { ToolsetCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { isNil, omitBy } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { BehaviorSubject } from 'rxjs'
+import { BehaviorSubject, EMPTY } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 import {
   IXpertToolset,
@@ -85,7 +85,8 @@ export class XpertWorkspaceApiToolsComponent {
       category: this.type()
       // type: 'openapi'
     }
-    const workspaceId = this.workspace().id
+    const workspaceId = this.workspace()?.id
+    if (!workspaceId) return EMPTY
     return this.refresh$.pipe(
       switchMap(() =>
         this.toolsetService.getAllByWorkspace(workspaceId, {

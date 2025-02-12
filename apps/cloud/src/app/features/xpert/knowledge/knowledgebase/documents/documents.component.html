@@ -139,4 +139,8 @@
 </div>
 <mat-paginator [length]="total()" [pageSize]="pageSize()" [pageSizeOptions]="[10, 20, 50, 100]" />
 
+@if (isLoading()) {
+  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+}
+
 <router-outlet #o="outlet"></router-outlet>
