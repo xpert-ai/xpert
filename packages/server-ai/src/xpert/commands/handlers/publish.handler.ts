@@ -262,6 +262,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 		xpert.graph = pick(draft, 'nodes', 'connections') as TXpertGraph
 		xpert.publishAt = new Date()
 		xpert.active = true
+		xpert.agent = undefined // Avoid updating the primary agent again and causing `updatedAt` inconsistency
 
 		return await this.xpertService.save(xpert)
 	}
