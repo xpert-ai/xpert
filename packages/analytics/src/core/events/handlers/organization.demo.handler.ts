@@ -548,7 +548,7 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 			relations: ['dataSource', 'dataSource.type', 'roles']
 		})
 
-		updateXmlaCatalogContent(this.redisClient, model)
+		await updateXmlaCatalogContent(this.redisClient, model)
 
 		return model
 	}

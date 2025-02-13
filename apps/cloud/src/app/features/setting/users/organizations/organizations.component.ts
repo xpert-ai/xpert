@@ -8,9 +8,10 @@ import { map, shareReplay, switchMap } from 'rxjs/operators'
 import { IOrganization, OrganizationsService, ToastrService, UsersOrganizationsService } from '../../../../@core'
 import { PACEditUserComponent } from '../edit-user/edit-user.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { MatButtonModule } from '@angular/material/button'
 
 @Component({
   standalone: true,
@@ -25,7 +26,7 @@ import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
       }
     `
   ],
-  imports: [SharedModule, MaterialModule, UserProfileInlineComponent, NgmTableComponent]
+  imports: [SharedModule, CdkMenuModule, MatButtonModule, UserProfileInlineComponent, NgmTableComponent]
 })
 export class PACUserOrganizationsComponent extends TranslationBaseComponent {
   private readonly refresh$ = new BehaviorSubject<void>(null)

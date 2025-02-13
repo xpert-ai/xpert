@@ -58,8 +58,8 @@ export class UsersService {
     return this.http.put<IUser>(`${this.API_URL}/me`, updateInput)
   }
 
-  delete(userId, user) {
-    return this.http.delete(`${this.API_URL}/${userId}`, user)
+  delete(userId: string,) {
+    return this.http.delete(`${this.API_URL}/${userId}`)
   }
 
   password(userId: string, input: IUserPasswordInput) {

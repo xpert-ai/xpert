@@ -1,12 +1,13 @@
-<header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="mb-2">
+<header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="mb-2 px-2">
   <div class="cursor-move text-2xl font-medium text-text-primary">
     {{ 'PAC.MENU.InviteUsers' | translate: {Default: 'Invite Users'} }}
   </div>
 </header>
 
-<div class="flex-1 overflow-auto">
+<div class="flex-1 p-2 overflow-auto">
   <pac-email-invite-form #emailInviteForm
-	[invitationType]="invitationType" />
+	  [invitationType]="invitationType"
+  />
 </div>
 
 <div class="w-full flex justify-end">

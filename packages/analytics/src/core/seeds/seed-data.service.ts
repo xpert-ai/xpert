@@ -270,7 +270,7 @@ export class SeedDataService extends SeedServerDataService {
 			relations: ['dataSource', 'dataSource.type', 'roles']
 		})
 
-		updateXmlaCatalogContent(this.redisClient, model)
+		await updateXmlaCatalogContent(this.redisClient, model)
 
 		return model
 	}

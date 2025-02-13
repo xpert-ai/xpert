@@ -1,10 +1,10 @@
 <header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="p-4 cursor-move">
-  <h4 class="text-xl">
-    {{ 'PAC.USERS_PAGE.ADD_USER' | translate }}
+  <h4 class="text-xl font-medium">
+    {{ 'PAC.USERS_PAGE.ADD_USER' | translate: {Default: 'Add User'} }}
   </h4>
 </header>
 
-<div class="flex flex-col w-full p-4">
+<div class="flex flex-col w-full px-8 py-4">
   <pac-user-basic-info-form [password]="true"
     [isAdmin]="isAdmin"
     [isSuperAdmin]="isSuperAdmin"
