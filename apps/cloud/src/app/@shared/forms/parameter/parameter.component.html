@@ -1,6 +1,60 @@
 @switch(type()) {
   @case(eParameterTypeEnum.STRING) {
-    <input class="flex h-9 w-full py-1 px-2 rounded-lg text-xs leading-normal bg-gray-100 caret-primary-600 hover:bg-gray-100 focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-gray-50 placeholder:text-gray-400" 
-        [placeholder]="schema().placeholder | i18n" type="text" value="">
+    <div class="flex py-[7px]">
+      <div class="flex items-center h-[18px] text-[13px] font-medium text-gray-900">{{schema().label | i18n}}</div>
+      <div class="ml-0.5 w-5 h-5 flex justify-center items-center"
+        [matTooltip]="schema().description | i18n"
+        matTooltipPosition="above">
+        <i class="ri-question-line text-text-quaternary hover:text-text-tertiary"></i>
+      </div>
+    </div>
+    <input class="flex h-9 w-full py-1 px-2 rounded-lg text-sm leading-normal bg-gray-100 caret-primary-600 hover:bg-gray-100 focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-gray-50 placeholder:text-gray-400" 
+      [placeholder]="schema().placeholder | i18n" type="text" [(ngModel)]="value$">
   }
+  @case(eParameterTypeEnum.NUMBER) {
+    <div class="flex py-[7px]">
+      <div class="flex items-center h-[18px] text-[13px] font-medium text-gray-900">{{schema().label | i18n}}</div>
+      <div class="ml-0.5 w-5 h-5 flex justify-center items-center"
+        [matTooltip]="schema().description | i18n"
+        matTooltipPosition="above">
+        <i class="ri-question-line text-text-quaternary hover:text-text-tertiary"></i>
+      </div>
+    </div>
+    <input class="flex h-9 w-full py-1 px-2 rounded-lg text-sm leading-normal bg-gray-100 caret-primary-600 hover:bg-gray-100 focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-gray-50 placeholder:text-gray-400" 
+      [placeholder]="schema().placeholder | i18n" type="number" [(ngModel)]="value$">
+  }
+  @case(eParameterTypeEnum.SECRET_INPUT) {
+    <div class="flex py-[7px]">
+      <div class="flex items-center h-[18px] text-[13px] font-medium text-gray-900">{{schema().label | i18n}}</div>
+      <div class="ml-0.5 w-5 h-5 flex justify-center items-center"
+        [matTooltip]="schema().description | i18n"
+        matTooltipPosition="above">
+        <i class="ri-question-line text-text-quaternary hover:text-text-tertiary"></i>
+      </div>
+    </div>
+    <input class="flex h-9 w-full py-1 px-2 rounded-lg text-sm leading-normal bg-gray-100 caret-primary-600 hover:bg-gray-100 focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-gray-50 placeholder:text-gray-400" 
+      [placeholder]="schema().placeholder | i18n" type="password" [(ngModel)]="value$">
+  }
+  @case(eParameterTypeEnum.SELECT) {
+    <div class="flex py-[7px]">
+      <div class="flex items-center h-[18px] text-[13px] font-medium text-gray-900">{{schema().label | i18n}}</div>
+      <div class="ml-0.5 w-5 h-5 flex justify-center items-center"
+        [matTooltip]="schema().description | i18n"
+        matTooltipPosition="above">
+        <i class="ri-question-line text-text-quaternary hover:text-text-tertiary"></i>
+      </div>
+    </div>
+    <ngm-select class="flex items-stretch h-9" [selectOptions]="schema().options" [placeholder]="schema().placeholder | i18n" [(ngModel)]="value$" />
+  }
+  @case(eParameterTypeEnum.BOOLEAN) {
+    <div class="mb-2 mt-4 flex justify-start items-center">
+      <ngm-checkbox [label]="schema().label | i18n" [(ngModel)]="value$" />
+      <div class="ml-0.5 w-5 h-5 flex justify-center items-center"
+        [matTooltip]="schema().description | i18n"
+        matTooltipPosition="above">
+        <i class="ri-question-line text-text-quaternary hover:text-text-tertiary"></i>
+      </div>
+    </div>
+  }
+  <!-- Others: file and array -->
 }

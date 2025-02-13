@@ -1,0 +1,114 @@
+<div class="flex justify-center w-full max-h-full h-full overflow-y-auto">
+  <div class="grow shrink-0 h-full max-w-[960px] overflow-y-auto px-14 sm:px-16">
+    <div class="mx-auto max-w-[640px]">
+      <div class="pt-10">
+        <div class="mb-1 text-xl leading-[22px] font-semibold text-text-primary">🎉 文档已上传</div>
+        <div class="mb-7 text-[13px] leading-4 text-text-tertiary">
+          文档已上传至知识库： 标准类型知识库 ，你可以在知识库的文档列表中找到它。
+        </div>
+      </div>
+      <div class="h-5 flex items-center mb-3">
+        <div class="flex items-center justify-between text-gray-900 font-medium text-sm mr-2">嵌入已完成</div>
+      </div>
+      <div class="flex flex-col gap-0.5 pb-2">
+        @for (item of fileList(); track item.doc) {
+          <div class="relative h-[26px] bg-components-progress-bar-bg rounded-md overflow-hidden">
+            <div class="flex gap-1 pl-[6px] pr-2 h-full items-center z-[1]">
+              <svg
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                fill="currentColor"
+                class="remixicon text-[#2684FF] shrink-0 size-4"
+              >
+                <path
+                  d="M16 2L21 7V21.0082C21 21.556 20.5551 22 20.0066 22H3.9934C3.44476 22 3 21.5447 3 21.0082V2.9918C3 2.44405 3.44495 2 3.9934 2H16ZM14 8V12.989L12 11L10.0108 13L10 8H8V16H10L12 14L14 16H16V8H14Z"
+                ></path>
+              </svg>
+              <div
+                class="grow flex items-center gap-1 w-0"
+                [title]="item.storageFile.originalName"
+              >
+                <div class="text-sm truncate">{{item.storageFile.originalName}}</div>
+              </div>
+
+              @if (item.doc?.status === 'running') {
+                <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
+              } @else if (item.doc?.status === 'finish') {
+                <i class="ri-checkbox-circle-fill text-text-success"></i>
+              } @else if (item.doc?.status === 'error') {
+                <i class="ri-close-circle-fill text-text-waring"
+                  [matTooltip]="item.doc?.processMsg"
+                ></i>
+              }
+            </div>
+          </div>
+        }
+      </div>
+      <hr class="my-3 h-[1px] bg-divider-subtle border-0" />
+      <div class="flex flex-col gap-1">
+        <div class="flex items-center gap-1 py-0.5 min-h-5 text-sm">
+          <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
+            分段模式
+          </div>
+          <div class="grow flex items-center gap-1 text-text-secondary">自定义</div>
+        </div>
+        <div class="flex items-center gap-1 py-0.5 min-h-5 text-sm">
+          <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
+            最大分段长度
+          </div>
+          <div class="grow flex items-center gap-1 text-text-secondary">500</div>
+        </div>
+        <div class="flex gap-1 py-0.5 min-h-5 text-sm !items-start pt-1">
+          <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
+            文本预处理规则
+          </div>
+          <div class="grow flex items-center gap-1 text-text-secondary">
+            替换掉连续的空格、换行符和制表符,删除所有 URL 和电子邮件地址
+          </div>
+        </div>
+        <div class="flex items-center gap-1 py-0.5 min-h-5 text-sm">
+          <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
+            索引方式
+          </div>
+          <div class="grow flex items-center gap-1 text-text-secondary">
+            高质量
+          </div>
+        </div>
+        <div class="flex items-center gap-1 py-0.5 min-h-5 text-sm">
+          <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
+            检索设置
+          </div>
+          <div class="grow flex items-center gap-1 text-text-secondary">
+            <i class="ri-bnb-line"></i>
+            向量检索
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 my-10">
+        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium w-fit">
+          <i class="ri-terminal-box-line"></i>
+          <span>Access the API</span></button
+        >
+        <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium w-fit"
+          (click)="apply()">
+          <span>前往文档</span>
+          <i class="ri-arrow-right-line"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="shrink-0 pt-[88px] pr-8 text-sm">
+    <div class="flex flex-col gap-3 w-[328px] p-6 text-text-tertiary bg-gray-50 rounded-xl">
+      <div class="flex justify-center items-center w-10 h-10 bg-components-card-bg rounded-[10px] shadow-lg">
+        <i class="ri-book-open-line text-xl text-purple-500"></i>
+      </div>
+      <div class="text-base font-semibold text-text-secondary">接下来做什么</div>
+      <div class="text-text-tertiary">
+        当文档完成索引处理后，知识库即可集成至应用内作为上下文使用，你可以在提示词编排页找到上下文设置。你也可以创建成可独立使用的
+        ChatGPT 索引插件发布。
+      </div>
+    </div>
+  </div>
+</div>

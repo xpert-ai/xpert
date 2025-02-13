@@ -1,0 +1,37 @@
+:host {
+  --mdc-linear-progress-track-height: 2px;
+  --mdc-linear-progress-active-indicator-height: 2px;
+  @apply flex;
+}
+
+.type-option.active {
+  @apply shadow-md border-2 border-primary-400;
+}
+
+.ngm-fileover {
+  @apply shadow-sm bg-gray-100;
+}
+
+.mat-mdc-progress-bar {
+  @apply absolute bottom-0;
+}
+
+.step {
+  @apply cursor-pointer;
+  .step-num {
+    @apply border border-gray-200 rounded-full bg-gray-50;
+  }
+  &.active {
+    @apply text-primary-500;
+    .step-num {
+      @apply bg-primary-500 text-white;
+    }
+    .ri-arrow-right-double-line {
+      @apply stroke-primary-600;
+    }
+  }
+}
+
+.web-option.active {
+  @apply bg-primary-50 text-primary-600;
+}

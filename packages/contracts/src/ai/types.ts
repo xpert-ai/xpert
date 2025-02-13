@@ -27,6 +27,7 @@ export type TParameter = {
   name: string
   label: I18nObject
   placeholder?: I18nObject
+  description?: I18nObject
   type: ParameterTypeEnum
   required?: boolean
   default?: number | string
@@ -36,6 +37,7 @@ export type TParameter = {
   items?: {
     type: ParameterTypeEnum
   }
+  when?: Record<string, unknown[]>
 
   /**
    * Is visible for parameters

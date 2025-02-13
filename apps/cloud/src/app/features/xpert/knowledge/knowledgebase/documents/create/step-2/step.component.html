@@ -1,0 +1,154 @@
+<div class="py-4 flex w-full grow overflow-hidden">
+  <div class="grow max-w-[50%] flex flex-col px-8 py-4 overflow-auto">
+    <div class="system-md-semibold mb-1">分段设置</div>
+
+    <div class="rounded-xl shadow-xs border-[1.5px] mb-2">
+      <div class="flex overflow-hidden rounded-t-xl relative cursor-pointer">
+        <div class="px-2 flex justify-center items-center">
+          <div class="w-8 h-8 flex items-center justify-center relative overflow-hidden shadow-md rounded-lg bg-gray-100">
+            <i class="ri-equalizer-3-line"></i>
+          </div>
+        </div>
+        
+        <div class="flex-1 space-y-0.5 py-3 pr-4">
+          <div class="text-text-secondary system-md-semibold">通用</div>
+          <div class="text-text-tertiary system-xs-regular">通用文本分块模式，检索和回忆的块是相同的</div>
+        </div>
+      </div>
+      <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">
+        <div class="flex flex-col gap-y-4">
+          <div class="flex gap-3">
+            <div class="space-y-2 flex-1">
+              <ngm-input label="分段标识符" [(ngModel)]="delimiter" />
+            </div>
+            <div class="space-y-2 flex-1">
+              <ngm-input label="分段最大长度" type="number" [(ngModel)]="chunkSize" />
+            </div>
+            <div class="space-y-2 flex-1">
+              <ngm-input label="分段重叠长度" type="number" [(ngModel)]="chunkOverlap" />
+            </div>
+          </div>
+          <div class="w-full flex flex-col">
+            <div class="flex items-center gap-x-2">
+              <div class="inline-flex shrink-0">
+                <label class="text-text-secondary system-sm-semibold">文本预处理规则</label>
+              </div>
+              <div class="w-full h-[0.5px] my-2 bg-gradient-to-r from-divider-regular grow"></div>
+            </div>
+            <div class="mt-1">
+              <ngm-checkbox label="替换掉连续的空格、换行符和制表符" class="mb-4" />
+              <ngm-checkbox label="删除所有 URL 和电子邮件地址" class="mb-2" />
+
+              <div class="w-full h-[0.5px] my-4 bg-divider-subtle"></div>
+
+              <div class="flex items-center py-0.5">
+
+                <ngm-checkbox label="使用 Q&amp;A 分段，语言" />
+
+                <ngm-select class="ml-2 w-36" placeholder="选择语言"
+                  [selectOptions]="[
+                    {
+                      value: 'Chinese',
+                      label: {
+                        en_US: 'Chinese'
+                      }
+                    },
+                    {
+                      value: 'English',
+                      label: {
+                        en_US: 'English'
+                      }
+                    }
+                  ]"/>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium">
+            <i class="ri-search-eye-line"></i>
+            预览块</button>
+          <button type="button" class="btn disabled:btn-disabled btn-ghost btn-medium">重置</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center mt-8 py-2">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium">
+        <i class="ri-arrow-left-line mr-1"></i>
+        上一步
+      </button>
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium ml-auto"
+        (click)="save()"
+      >保存并处理</button>
+    </div>
+  </div>
+
+  <div class="grow max-w-[50%] relative flex flex-col pl-4 py-4 border-l border-y border-solid border-divider-regular rounded-xl">
+    <header class="pl-5 pt-4 pr-4 pb-3 border-b border-divider-subtle">
+      <div class="">
+        <div class="text-text-accent system-2xs-semibold-uppercase uppercase px-1 mb-1">预览</div>
+        <div class="flex items-center gap-1">
+          <div class="flex items-center h-6 px-1 rounded-md hover:bg-state-base-hover select-none"
+            [cdkMenuTriggerFor]="files"
+          >
+            <div class="flex items-center space-x-0.5">
+              @if (selectedFile()) {
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="remixicon shrink-0 w-5 h-5 text-[#2684FF]">
+                  <path d="M16 2L21 7V21.0082C21 21.556 20.5551 22 20.0066 22H3.9934C3.44476 22 3 21.5447 3 21.0082V2.9918C3 2.44405 3.44495 2 3.9934 2H16ZM14 8V12.989L12 11L10.0108 13L10 8H8V16H10L12 14L14 16H16V8H14Z"></path>
+                </svg>
+                <span class="system-md-semibold max-w-[200px] truncate text-text-primary">
+                  {{selectedFile().file.name}}
+                </span>
+              } @else {
+                <div>
+                  选择文件进行预览
+                </div>
+              }
+              <i class="ri-arrow-down-s-line"></i>
+            </div>
+          </div>
+          @if (estimateFile()) {
+            <div class="inline-flex items-center px-[5px] h-5 rounded-[5px] border border-divider-deep leading-3 text-text-tertiary system-2xs-medium-uppercase">{{estimateFile().docs.length}} 预估块</div>
+          }
+        </div>
+      </div>
+    </header>
+
+    <main class="py-5 px-6 w-full grow space-y-6 overflow-auto">
+      @for (chunk of estimateFile()?.docs; track chunk; let i = $index) {
+        <div class="space-y-2">
+          <div class="flex items-center text-text-secondary text-sm font-medium">
+            <i class="ri-text-block mr-1"></i>
+            <p class="flex gap-2 ml-0.5">
+              <span>Chunk-{{i}}</span>
+              <span>·</span>
+              <span>{{chunk.pageContent.length}} characters</span>
+            </p>
+          </div>
+          <div class="text-text-primary text-sm">{{chunk.pageContent}}</div>
+        </div>
+      } @empty {
+        @if (estimateFile()?.error) {
+          <div class="text-text-warning">
+            {{estimateFile()?.error}}
+          </div>
+        }
+      }
+    </main>
+
+    @if (estimating()) {
+      <ngm-spin class="absolute w-full h-full left-0 top-0"/>
+    }
+  </div>
+</div>
+
+<ng-template #files>
+  <div cdkMenu class="cdk-menu__medium">
+    @for (file of fileList(); track file) {
+      <div cdkMenuItem (click)="selectedFile.set(file)">
+        {{ file.file.name }}
+      </div>
+    }
+  </div>
+</ng-template>
