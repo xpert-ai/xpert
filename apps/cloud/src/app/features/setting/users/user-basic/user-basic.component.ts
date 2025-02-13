@@ -7,9 +7,9 @@ import { ToastrService, User } from '../../../../@core'
 import { BasicInfoFormComponent, UserFormsModule } from '../../../../@shared/user/forms'
 import { PACEditUserComponent } from '../edit-user/edit-user.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 import { CreatedByPipe } from 'apps/cloud/src/app/@shared/pipes'
+import { MatButtonModule } from '@angular/material/button'
 
 @Component({
   standalone: true,
@@ -25,7 +25,7 @@ import { CreatedByPipe } from 'apps/cloud/src/app/@shared/pipes'
       }
     `
   ],
-  imports: [SharedModule, MaterialModule, NgmCommonModule, UserFormsModule]
+  imports: [SharedModule, MatButtonModule, NgmCommonModule, UserFormsModule]
 })
 export class UserBasicComponent extends TranslationBaseComponent {
   @Input() allowRoleChange: boolean

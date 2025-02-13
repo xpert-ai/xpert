@@ -100,7 +100,7 @@ export class ManageUserComponent extends TranslationBaseComponent {
     )
     if (confirm) {
       try {
-        await firstValueFrom(this.userService.delete(user.id, user))
+        await firstValueFrom(this.userService.delete(user.id,))
         this.toastrService.success('PAC.NOTES.USERS.UserDelete', {
           name: userLabel(user)
         })

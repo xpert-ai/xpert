@@ -11,6 +11,7 @@ import { TranslationBaseComponent } from '../../../language/'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { FORMLY_W_FULL } from '@metad/formly'
 import { timezones } from 'apps/cloud/src/app/@core/constants'
+import { TranslateService } from '@ngx-translate/core'
 
 @Component({
   selector: 'pac-user-basic-info-form',
@@ -30,6 +31,7 @@ export class BasicInfoFormComponent extends TranslationBaseComponent implements 
   readonly #store = inject(Store)
   readonly #roleService = inject(RoleService)
   readonly #authService = inject(AuthService)
+  readonly #translate = inject(TranslateService)
 
   UPLOADER_PLACEHOLDER = 'FORM.PLACEHOLDERS.UPLOADER_PLACEHOLDER'
 
@@ -89,7 +91,9 @@ export class BasicInfoFormComponent extends TranslationBaseComponent implements 
               label: TRANSLATES?.Passwrod ?? 'Passwrod',
               placeholder: '',
               type: 'password',
-              appearance: 'fill'
+              required: true,
+              appearance: 'fill',
+              minLength: 8
             }
           },
           {
@@ -100,7 +104,19 @@ export class BasicInfoFormComponent extends TranslationBaseComponent implements 
               label: TRANSLATES?.RepeatPasswrod ?? 'Repeat Passwrod',
               placeholder: '',
               type: 'password',
-              appearance: 'fill'
+              required: true,
+              appearance: 'fill',
+              minLength: 8
+            },
+            validators: {
+              fieldMatch: {
+                expression: (control) => {
+                  const password = control.parent?.get('password')?.value
+                  const confirmPassword = control.value
+                  return password === confirmPassword
+                },
+                message: (error, field: FormlyFieldConfig) => this.#translate.instant('PAC.KEY_WORDS.PasswordsNotMatch', {Default: 'Passwords do not match'}),
+              }
             }
           }
         ]
@@ -181,16 +197,13 @@ export class BasicInfoFormComponent extends TranslationBaseComponent implements 
             }
           }
         ],
-        validators: {
-          validation: this.password ? [matchValidator('password', 'confirmPassword')] : []
-        }
       },
       {
         className: FORMLY_W_1_2,
         key: 'imageUrl',
         type: 'input',
         props: {
-          label: TRANSLATES?.ImageURL ?? 'Image URL (optional)',
+          label: TRANSLATES?.AvatarUrl ?? 'Avatar Url',
           placeholder: 'Image',
           appearance: 'fill'
         }

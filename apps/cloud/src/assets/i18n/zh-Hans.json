@@ -19,6 +19,7 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "PasswordsNotMatch": "密码不匹配",
       "Required": "必输",
       "All": "所有",
       "Ask": "提问",
@@ -487,7 +488,11 @@
       }
     },
     "USERS_PAGE": {
-      "ADD_USER": "添加用户"
+      "ADD_USER": "添加用户",
+      "NoRole": "无角色",
+      "DeleteUser": "删除此用户",
+      "DeleteUserDesc": "删除此用户及其关联数据",
+      "UserDeletedSuccessfully": "用户删除成功"
     },
     "ACTIONS": {
       "Add": "添加",
@@ -1190,7 +1195,7 @@
         "RepeatPasswrod": "重复密码",
         "Role": "角色",
         "PreferredLanguage": "首选语言",
-        "ImageURL": "图片链接 (可选)",
+        "AvatarUrl": "头像链接",
         "TimeZone": "时区",
         "SelectTimeZone": "选择一个时区"
       },

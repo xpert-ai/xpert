@@ -209,7 +209,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
         } else if (type === 'Time') {
           return row[name].toISOString().slice(11, 19)
         }
-        return row[name].toISOString()
+        return length ? row[name].toISOString().slice(0, length) : row[name].toISOString()
       }
       if (type === 'Date' || type === 'Datetime') {
         try {

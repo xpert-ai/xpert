@@ -1,4 +1,5 @@
 import { importProvidersFrom } from '@angular/core'
+import { AbstractControl } from '@angular/forms'
 import { PacFormlyColorsComponent } from '@metad/formly/colors'
 import { NgmFormlyToggleComponent } from '@metad/formly/mat-toggle'
 import { FORMLY_CONFIG, FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
@@ -7,6 +8,23 @@ import { TranslateService } from '@ngx-translate/core'
 
 export function provideFormly() {
   return { provide: FORMLY_CONFIG, multi: true, useFactory: formlyValidationConfig, deps: [TranslateService] }
+}
+
+export function fieldMatchValidator(control: AbstractControl, field: FormlyFieldConfig, options = {password: 'password', passwordConfirm: 'passwordConfirm'}) {
+  const password = control.value[options.password]
+  const passwordConfirm = control.value[options.passwordConfirm]
+
+  // avoid displaying the message error when values are empty
+  if (!passwordConfirm || !password) {
+    return null;
+  }
+
+  if (passwordConfirm === password) {
+    return null;
+  }
+  console.log(passwordConfirm, password)
+
+  return { fieldMatch: { message: 'Password Not Matching' } };
 }
 
 export function formlyValidationConfig(translate: TranslateService) {
@@ -53,13 +71,16 @@ export function formlyValidationConfig(translate: TranslateService) {
             max: field.props.max
           })
         }
-      }
+      },
     ],
     types: [
       {
         name: 'colors',
         component: PacFormlyColorsComponent
       }
+    ],
+    validators: [
+      { name: 'fieldMatch', validation: fieldMatchValidator },
     ]
   }
 }

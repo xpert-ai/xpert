@@ -12,7 +12,7 @@ import {
   InvitationExpirationEnum,
   InvitationTypeEnum,
   RolesEnum
-} from '@metad/contracts'
+} from '../../../../@core/types'
 import { TranslateService } from '@ngx-translate/core'
 import { AuthService, InviteService } from '@metad/cloud/state'
 import { firstValueFrom } from 'rxjs'
@@ -76,7 +76,6 @@ export class EmailInviteFormComponent extends TranslationBaseComponent implement
     )
   }
 
-  // @ViewChild(NbTagInputDirective, { read: ElementRef })
   tagInput: ElementRef<HTMLInputElement>
 
   user: IUser

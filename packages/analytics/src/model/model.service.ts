@@ -1,9 +1,10 @@
-import { BusinessAreaRole, IUser } from '@metad/contracts'
+import { BusinessAreaRole, IUser, SemanticModelStatusEnum } from '@metad/contracts'
 import { FindOptionsWhere, ITryRequest, REDIS_CLIENT, RequestContext, User } from '@metad/server-core'
 import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
 import * as _axios from 'axios'
+import * as chalk from 'chalk'
 import { RedisClientType } from 'redis'
 import { FindConditions, FindManyOptions, ILike, ObjectLiteral, Repository } from 'typeorm'
 import { Md5 } from '../core/helper'
@@ -16,6 +17,7 @@ import { BusinessArea, BusinessAreaService } from '../business-area'
 import { SemanticModelQueryDTO } from './dto'
 import { updateXmlaCatalogContent } from './helper'
 import { NgmDSCoreService, registerSemanticModel } from './ocap'
+import { getErrorMessage } from '@metad/server-common'
 
 const axios = _axios.default
 
@@ -70,16 +72,31 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	async seedIfEmpty() {
 		const { items } = await this.findAll({
+			where: {
+				status: SemanticModelStatusEnum.Progressing
+			},
 			relations: ['dataSource', 'dataSource.type', 'roles']
 		})
 		
+		let seeds = items.length
 		await Promise.all(
-			items.map((model) => this.updateCatalogContent(model.id).catch((error) => console.error(error)))
+			items.map((model) => this.updateCatalogContent(model.id).catch((error) => {
+				seeds--
+				console.log(chalk.red(`When update model '${model.id}' xmla schema: ${getErrorMessage(error)}`))
+			}))
 		)
+		if (seeds)
+			console.log(chalk.green(`Seed '${seeds}' models xmla schema`))
+		if (items.length - seeds)
+			console.log(chalk.red(`Fail seed '${items.length - seeds}' models xmla schema`))
 
 		// Register semantic models
 		items.forEach((model) => {
-			registerSemanticModel(model, this.dsCoreService)
+			try {
+				registerSemanticModel(model, this.dsCoreService)
+			} catch (err) {
+				console.log(chalk.red(`Error registering semantic model: ${err.message}`))
+			}
 		})
 	}
 
@@ -95,7 +112,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		})
 
 		// Update Xmla Schema into Redis for model
-		updateXmlaCatalogContent(this.redisClient, model)
+		await updateXmlaCatalogContent(this.redisClient, model)
 
 		// Clear cache for model
 		try {

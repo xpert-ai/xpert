@@ -93,12 +93,12 @@ export enum RoleTypeEnum {
 
 export enum SemanticModelStatusEnum {
   /**
-   * 使用中
+   * Using
    */
-  Progressing = 'Progressing',
+  Progressing = 'progressing',
 
   /**
-   * 存档
+   * Archived
    */
-  Archived = 'Archived'
+  Archived = 'archived'
 }

@@ -86,7 +86,7 @@ export function parseSchema(input: string) {
 
 export const XMLA_CONNECTION_KEY = 'XmlaConnection'
 
-export function updateXmlaCatalogContent(redisClient: RedisClientType, model: SemanticModel) {
+export async function updateXmlaCatalogContent(redisClient: RedisClientType, model: SemanticModel) {
   if (
     model.type?.toLowerCase() === 'xmla' &&
     model.dataSource?.type.protocol === 'sql' &&
@@ -99,8 +99,8 @@ export function updateXmlaCatalogContent(redisClient: RedisClientType, model: Se
 
     const query_runner = createQueryRunnerByType(model.dataSource.type.type, <AdapterBaseOptions><unknown>(model.dataSource.options ?? {}))
     const name = model.id
-    redisClient.sAdd(XMLA_CONNECTION_KEY, name)
-    redisClient.hSet(XMLA_CONNECTION_KEY + ':' + name, {
+    await redisClient.sAdd(XMLA_CONNECTION_KEY, name)
+    await redisClient.hSet(XMLA_CONNECTION_KEY + ':' + name, {
       _class: 'com.pangolin.olap.repository.XmlaConnection',
       id: name,
       jdbcDriver: query_runner.jdbcDriver,
