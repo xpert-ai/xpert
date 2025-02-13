@@ -42,3 +42,15 @@ export type TranslateOptions = {
   };
   debug?: boolean;
 }
+
+/**
+ * Select option type
+ */
+export type TSelectOption<T = string | number | boolean> = {
+  key?: string
+  value: T
+
+  label?: I18nObject | string
+  description?: I18nObject | string
+  icon?: string
+}

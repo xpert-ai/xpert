@@ -17,6 +17,7 @@
     "@langchain/google-genai": "0.1.6",
     "@langchain/ollama": "0.1.5",
     "@langchain/xai": "0.0.1",
+    "@mendable/firecrawl-js": "^1.16.0",
     "@nestjs/schedule": "4.1.2",
     "@openapi-contrib/openapi-schema-to-json-schema": "^5.1.0",
     "@sap_oss/odata-library": "2.4.0",
@@ -30,6 +31,7 @@
     "langchain": "0.3.15",
     "mime-types": "2.1.35",
     "pdf-parse": "^1.1.1",
+    "playwright": "^1.50.1",
     "zod-to-json-schema": "^3.23.2"
   },
   "devDependencies": {

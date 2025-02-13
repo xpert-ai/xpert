@@ -1,10 +1,18 @@
-import { DocumentParserConfig, IKnowledgebase, IKnowledgeDocument, IStorageFile, KDocumentSourceType } from '@metad/contracts'
+import {
+	DocumentParserConfig,
+	DocumentWebOptions,
+	IKnowledgebase,
+	IKnowledgeDocument,
+	IKnowledgeDocumentPage,
+	IStorageFile,
+	KDocumentSourceType
+} from '@metad/contracts'
+import { StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsDate, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, JoinColumn, ManyToOne, OneToOne, RelationId } from 'typeorm'
-import { Knowledgebase } from '../core/entities/internal'
-import { StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
+import { Knowledgebase, KnowledgeDocumentPage } from '../core/entities/internal'
 
 @Entity('knowledge_document')
 export class KnowledgeDocument extends TenantOrganizationBaseEntity implements IKnowledgeDocument {
@@ -143,4 +151,19 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@Optional()
 	@Column({ nullable: true })
 	jobId?: string
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	options?: DocumentWebOptions
+
+	/*
+    |--------------------------------------------------------------------------
+    | @OneToMany 
+    |--------------------------------------------------------------------------
+    */
+	@ApiProperty({ type: () => KnowledgeDocumentPage, isArray: true })
+	@OneToMany(() => KnowledgeDocumentPage, (page) => page.document)
+	pages?: IKnowledgeDocumentPage[]
 }

@@ -153,10 +153,61 @@
       }
 
       @if (sourceType()[0] === eKDocumentSourceType.WEB) {
-        <div class="my-6 w-full flex flex-wrap gap-2">
-          @for (type of webTypes; track type) {
-            <div class="w-40 h-20 p-4 rounded-lg border border-solid border-divider-regular shadow-sm hover:bg-gray-50">
-              {{type.label | i18n}}</div>
+        <div class="my-6 w-full flex flex-col gap-2">
+
+          <div class="mb-4">
+            <div class="font-medium text-gray-700 mb-2 h-6">选择提供商</div>
+            <ul class="flex flex-wrap gap-2" cdkListbox [(ngModel)]="webTypes" [cdkListboxCompareWith]="webTypeCompareWith">
+              @for (type of webTypeOptions; track type) {
+                <button class="web-option flex items-center px-4 py-2 text-base font-medium rounded-md
+                  bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  [class.active]="webTypes()[0]?.value === type.value"
+                  [cdkOption]="type"
+                >
+                  @if (type.icon) {
+                    <div [innerHTML]="type.icon | safe: 'html'" class="shrink-0 w-6 h-6 mr-1"></div>
+                  }
+                  {{type.label | i18n}}
+                </button>
+              }
+            </ul>
+          </div>
+
+          @if (webOptions(); as webOptions) {
+            <div class="flex h-6 items-center justify-between">
+              <div class="flex items-center">
+                <div class="text-base font-semibold text-text-primary">使用 {{webOptions.type}} 提取网页内容</div>
+                <div class="ml-2 mr-1 w-px h-3.5 bg-gray-200"></div>
+                <div class="p-1 rounded-md hover:bg-black/5 cursor-pointer">
+                </div>
+              </div>
+              @if (webOptions.helpUrl) {
+                <a [href]="webOptions.helpUrl" target="_blank" rel="noopener noreferrer" class="flex items-center text-sm text-primary-500 hover:text-primary-600">
+                  <i class="ri-book-open-line text-lg mr-1"></i>
+                  {{webTypes()[0].label | i18n}} 文档
+                </a>
+              }
+            </div>
+
+            <div class="border border-solid border-divider-regular rounded-xl p-2">
+
+              <div class="flex items-end justify-between">
+                <div class="grow flex flex-col gap-1">
+                  @for (param of webOptions.options; track param.name) {
+                    <parameter [schema]="param" />
+                  }
+                </div>
+                <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium ml-2">运行</button>
+              </div>
+
+              <div class="mt-4 mb-3">
+                <div class="flex justify-between items-center h-[26px] py-1 cursor-pointer select-none">
+                  <div class="flex items-center text-gray-700">
+                    <div class="text-[13px] font-semibold text-gray-800 uppercase">选项</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           }
         </div>
       }

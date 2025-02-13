@@ -28,6 +28,7 @@ import { ChatMessageModule } from './chat-message'
 import { ChatMessageFeedbackModule } from './chat-message-feedback'
 import { XpertTemplateModule } from './xpert-template/xpert-template.module'
 import { XpertTaskModule } from './xpert-task'
+import { RagWebModule } from './rag-web/rag-web.module'
 
 @Module({
 	imports: [
@@ -58,7 +59,8 @@ import { XpertTaskModule } from './xpert-task'
 		XpertWorkspaceModule,
 		XpertTemplateModule,
 		XpertTaskModule,
-		IntegrationLarkModule
+		IntegrationLarkModule,
+		RagWebModule
 	],
 	controllers: [],
 	providers: [...EventHandlers]

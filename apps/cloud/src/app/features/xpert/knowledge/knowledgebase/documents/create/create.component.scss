@@ -31,3 +31,7 @@
     }
   }
 }
+
+.web-option.active {
+  @apply bg-primary-50 text-primary-600;
+}

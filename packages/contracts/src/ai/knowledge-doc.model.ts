@@ -14,6 +14,10 @@ export enum KDocumentSourceType {
   WEB = 'web'
 }
 
+export type DocumentWebOptions = {
+  url: string
+}
+
 export type TKnowledgeDocument = {
   knowledgebaseId?: string
   knowledgebase?: IKnowledgebase
@@ -71,6 +75,8 @@ export type TKnowledgeDocument = {
    * The background job id
    */
   jobId?: string
+
+  options?: DocumentWebOptions
 }
 
 export interface IKnowledgeDocument extends TKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {

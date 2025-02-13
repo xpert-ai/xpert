@@ -20,7 +20,7 @@ import {
 	Query,
 	UseInterceptors
 } from '@nestjs/common'
-import { CommandBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { Queue } from 'bull'
 import { In } from 'typeorm'
@@ -29,6 +29,7 @@ import { KnowledgeDocumentService } from './document.service'
 import { DocumentChunkDTO } from './dto'
 import { KnowledgeDocLoadCommand } from './commands'
 import { getErrorMessage } from '@metad/server-common'
+import { GetRagWebOptionsQuery } from '../rag-web/queries/get-options.query'
 
 @ApiTags('KnowledgeDocument')
 @ApiBearerAuth()
@@ -39,6 +40,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 	constructor(
 		private readonly service: KnowledgeDocumentService,
 		private readonly commandBus: CommandBus,
+		private readonly queryBus: QueryBus,
 		@InjectQueue('embedding-document') private docQueue: Queue
 	) {
 		super(service)
@@ -92,6 +94,12 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 			where: {id: In(ids)}
 		})
 		return items
+	}
+
+	@Get('web/:type/options')
+	async getWebOptions(@Param('type') type: string) {
+		console.log(type)
+		return await this.queryBus.execute(new GetRagWebOptionsQuery(type))
 	}
 
 	@Delete(':id/job')

@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
-import { IDocumentChunk, IKnowledgeDocument } from '@metad/contracts'
+import { IDocumentChunk, IKnowledgeDocument, TKDocumentWebSchema } from '../types'
 import { NGXLogger } from 'ngx-logger'
 import { Document } from 'langchain/document'
 import { API_KNOWLEDGE_DOCUMENT } from '../constants/app.constants'
@@ -47,5 +47,9 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     return this.httpClient.get<IKnowledgeDocument[]>(this.apiBaseUrl + `/status`, {
       params: new HttpParams().append(`ids`, ids.join(','))
     })
+  }
+
+  getWebOptions(type: string) {
+    return this.httpClient.get<TKDocumentWebSchema>(this.apiBaseUrl + `/web/${type}/options`)
   }
 }

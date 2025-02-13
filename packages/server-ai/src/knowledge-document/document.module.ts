@@ -11,11 +11,12 @@ import { KnowledgeDocumentConsumer } from './document.job'
 import { CopilotModule } from '../copilot'
 import { KnowledgebaseModule } from '../knowledgebase/knowledgebase.module'
 import { CommandHandlers } from './commands/handlers'
+import { KnowledgeDocumentPage } from './page/document-page.entity'
 
 @Module({
 	imports: [
 		RouterModule.forRoutes([{ path: '/knowledge-document', module: KnowledgeDocumentModule }]),
-		TypeOrmModule.forFeature([KnowledgeDocument]),
+		TypeOrmModule.forFeature([KnowledgeDocument, KnowledgeDocumentPage]),
 		TenantModule,
 		CqrsModule,
 		UserModule,

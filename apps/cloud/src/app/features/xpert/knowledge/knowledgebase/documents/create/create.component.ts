@@ -7,7 +7,7 @@ import { FormsModule } from '@angular/forms'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
-import { NgmDndDirective } from '@metad/core'
+import { NgmDndDirective, SafePipe } from '@metad/core'
 import { NgmCheckboxComponent, NgmInputComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
@@ -36,12 +36,15 @@ import {
   IStorageFile,
   KDocumentSourceType,
   KDocumentWebTypeEnum,
+  KDocumentWebTypeOptions,
   KnowledgeDocumentService,
   StorageFileService,
   ToastrService
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../documents.component'
+import { CommonModule } from '@angular/common'
+import { ParameterComponent } from 'apps/cloud/src/app/@shared/forms'
 
 type TFileItem = {
   storageFile?: IStorageFile
@@ -59,6 +62,7 @@ type TFileItem = {
   templateUrl: './create.component.html',
   styleUrls: ['./create.component.scss'],
   imports: [
+    CommonModule,
     FormsModule,
     TranslateModule,
     CdkMenuModule,
@@ -71,7 +75,9 @@ type TFileItem = {
     NgmCheckboxComponent,
     NgmSelectComponent,
     NgmSpinComponent,
-    NgmInputComponent
+    NgmInputComponent,
+    SafePipe,
+    ParameterComponent
   ]
 })
 export class KnowledgeDocumentCreateComponent {
@@ -115,12 +121,17 @@ export class KnowledgeDocumentCreateComponent {
     }
   ]
 
-  readonly webTypes = Object.keys(KDocumentWebTypeEnum).map((key) => ({
-    value: KDocumentWebTypeEnum[key],
-    label: {
-      en_US: KDocumentWebTypeEnum[key],
-    }
-  }))
+  readonly webTypeOptions: TSelectOption[] = KDocumentWebTypeOptions
+  readonly webTypes = model<TSelectOption<KDocumentWebTypeEnum>[]>([])
+
+  readonly webOptions = derivedFrom([this.webTypes], pipe(
+    switchMap(([types]) => {
+      if (types[0]) {
+        return this.knowledgeDocumentService.getWebOptions(types[0].value)
+      }
+      return of(null)
+    })
+  ))
 
   readonly fileList = signal<TFileItem[]>([])
   readonly previewFile = signal<TFileItem>(null)
@@ -206,6 +217,10 @@ export class KnowledgeDocumentCreateComponent {
     })
 
     this.delayRefresh$.pipe(takeUntilDestroyed(), debounceTime(5000)).subscribe(() => this.refresh())
+  }
+
+  webTypeCompareWith(a, b) {
+    return a?.value === b?.value
   }
 
   refresh() {

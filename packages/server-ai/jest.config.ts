@@ -1,6 +1,6 @@
 /* eslint-disable */
 export default {
-	displayName: 'server',
+	displayName: 'server-ai',
 	preset: '../../jest.preset.js',
 	globals: {},
 	testEnvironment: 'node',
