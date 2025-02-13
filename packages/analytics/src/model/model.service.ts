@@ -74,16 +74,15 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		})
 
 		let seeds = items.length
-		console.log(`Found ${seeds} models in system`)
-		await Promise.allSettled(
-			items.map((model) =>
-				this.updateCatalogContent(model.id).catch((error) => {
-					seeds--
-					console.log(chalk.red(`When update model '${model.id}' xmla schema: ${getErrorMessage(error)}`))
-					return null
-				})
-			)
-		)
+		console.log(`Found ${seeds} active models in system`)
+		for await (const model of items) {
+			try {
+				await this.updateCatalogContent(model.id)
+			} catch(error) {
+				seeds--
+				console.log(chalk.red(`When update model '${model.id}' xmla schema: ${getErrorMessage(error)}`))
+			}
+		}
 		if (seeds) {
 			console.log(chalk.green(`Seed '${seeds}' models xmla schema`))
 		}
