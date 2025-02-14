@@ -29,7 +29,7 @@ export class KnowledgeDocumentPage extends TenantOrganizationBaseEntity implemen
 	@IsString()
 	@Optional()
 	@Column({ nullable: true })
-	pageContent?: string
+	pageContent: string
 
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()

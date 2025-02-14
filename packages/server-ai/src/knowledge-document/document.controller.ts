@@ -1,6 +1,7 @@
-import { IKnowledgeDocument } from '@metad/contracts'
+import { IIntegration, IKnowledgeDocument, TRagWebOptions } from '@metad/contracts'
 import {
 	CrudController,
+	IntegrationService,
 	PaginationParams,
 	ParseJsonPipe,
 	RequestContext,
@@ -30,6 +31,7 @@ import { DocumentChunkDTO } from './dto'
 import { KnowledgeDocLoadCommand } from './commands'
 import { getErrorMessage } from '@metad/server-common'
 import { GetRagWebOptionsQuery } from '../rag-web/queries/get-options.query'
+import { RagWebLoadCommand } from '../rag-web/commands'
 
 @ApiTags('KnowledgeDocument')
 @ApiBearerAuth()
@@ -39,6 +41,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 	readonly #logger = new Logger(KnowledgeDocumentController.name)
 	constructor(
 		private readonly service: KnowledgeDocumentService,
+		private readonly integrationService: IntegrationService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
 		@InjectQueue('embedding-document') private docQueue: Queue
@@ -98,8 +101,16 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 
 	@Get('web/:type/options')
 	async getWebOptions(@Param('type') type: string) {
-		console.log(type)
 		return await this.queryBus.execute(new GetRagWebOptionsQuery(type))
+	}
+
+	@Post('web/:type/load')
+	async loadRagWeb(@Param('type') type: string, @Body() body: {webOptions: TRagWebOptions; integration: IIntegration}) {
+		if (body.integration) {
+			body.integration = await this.integrationService.findOne(body.integration.id)
+		}
+		const docs = await this.commandBus.execute(new RagWebLoadCommand(type, body))
+		return docs
 	}
 
 	@Delete(':id/job')

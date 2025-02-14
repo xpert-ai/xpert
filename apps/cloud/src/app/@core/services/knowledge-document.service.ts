@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
-import { IDocumentChunk, IKnowledgeDocument, TKDocumentWebSchema } from '../types'
+import { IDocumentChunk, IIntegration, IKnowledgeDocument, IKnowledgeDocumentPage, TKDocumentWebSchema, TRagWebOptions, TRagWebResult } from '../types'
 import { NGXLogger } from 'ngx-logger'
 import { Document } from 'langchain/document'
 import { API_KNOWLEDGE_DOCUMENT } from '../constants/app.constants'
@@ -51,5 +51,9 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
 
   getWebOptions(type: string) {
     return this.httpClient.get<TKDocumentWebSchema>(this.apiBaseUrl + `/web/${type}/options`)
+  }
+
+  loadRagWebPages(type: string, webOptions: TRagWebOptions, integration: IIntegration) {
+    return this.httpClient.post<TRagWebResult>(this.apiBaseUrl + `/web/${type}/load`, {webOptions, integration})
   }
 }

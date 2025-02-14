@@ -575,6 +575,7 @@
       "SavedSuccessfully": "保存成功",
       "UpdatedSuccessfully": "更新成功",
       "UploadSuccessfully": "上传成功",
+      "TestSuccessfully": "测试成功",
       "ArchivedSuccessfully": "已成功归档",
       "NoRecordsFoundinFile": "文件中未找到记录",
       "UnsavedChanges": "未保存的更改",
@@ -1213,6 +1214,10 @@
       },
       "AuthBottomSheet": {
         "Title": "为数据源 {{name}} 提供账号"
+      },
+      "Card": {
+        "ProFeature": "这是一个专业版功能",
+        "ViewMore": "查看更多"
       }
     },
     "INVITE_PAGE": {

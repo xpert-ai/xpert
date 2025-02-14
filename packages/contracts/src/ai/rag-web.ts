@@ -1,16 +1,30 @@
-import { TSelectOption } from "../types";
-import { TParameter } from "./types";
+import { IntegrationEnum } from "../integration.model";
+import { TParameter, TSelectOption } from "../types";
+import { IKnowledgeDocumentPage } from "./knowledge-doc-page.model";
 
 export enum KDocumentWebTypeEnum {
   Playwright = 'playwright',
   FireCraw = 'firecraw'
 }
 
+export type TRagWebOptions = {
+  url: string
+  params?: Record<string, unknown>
+}
+
 export type TKDocumentWebSchema = {
   type: KDocumentWebTypeEnum,
 	helpUrl: string,
-  urls: string[],
   options: TParameter[]
+  /**
+   * Need to provide integration of provider
+   */
+  integrationProvider?: IntegrationEnum
+}
+
+export type TRagWebResult = {
+  docs: IKnowledgeDocumentPage[]
+  duration: number
 }
 
 export const KDocumentWebTypeOptions: TSelectOption<KDocumentWebTypeEnum>[] = [
@@ -34,6 +48,6 @@ export const KDocumentWebTypeOptions: TSelectOption<KDocumentWebTypeEnum>[] = [
     label: {
       en_US: 'FireCraw'
     },
-    icon: `🔥`
+    icon: `🔥`,
   }
 ]

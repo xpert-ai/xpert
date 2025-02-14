@@ -1,4 +1,4 @@
-<div class="px-8 py-4 w-[640px]">
+<div class="px-8 py-4 w-[640px] shrink-0 overflow-auto">
   <div class="z-10 mb-4 font-semibold text-lg text-text-primary">选择文件源</div>
 
   <ol class="flex flex-wrap gap-2 items-start" cdkListbox [(ngModel)]="sourceType">
@@ -127,56 +127,108 @@
         </ul>
       </div>
 
-      @if (webOptions(); as webOptions) {
+      @if (webOptionSchema(); as optionSchema) {
         <div class="flex h-6 items-center justify-between">
           <div class="flex items-center">
-            <div class="text-base font-semibold text-text-primary">使用 {{webOptions.type}} 提取网页内容</div>
+            <div class="text-base font-semibold text-text-primary">使用 {{optionSchema.type}} 提取网页内容</div>
             <div class="ml-2 mr-1 w-px h-3.5 bg-gray-200"></div>
-            <div class="p-1 rounded-md hover:bg-black/5 cursor-pointer">
-            </div>
+            @if (optionSchema.integrationProvider) {
+              <div class="px-2 py-1 text-sm rounded-md border-[0.5px] border-solid border-divider-deep bg-gray-50 hover:bg-black/5 cursor-pointer"
+                [class.border-orange-500]="!integration()"
+                [cdkMenuTriggerFor]="inteMenu">
+                <i class="ri-settings-4-line mr-1"></i>
+                @if (integration(); as integration) {
+                  <span>{{integration.name}}</span>
+                } @else {
+                  集成连接
+                }
+              </div>
+            }
           </div>
-          @if (webOptions.helpUrl) {
-            <a [href]="webOptions.helpUrl" target="_blank" rel="noopener noreferrer" class="flex items-center text-sm text-primary-500 hover:text-primary-600">
+          @if (optionSchema.helpUrl) {
+            <a [href]="optionSchema.helpUrl" target="_blank" rel="noopener noreferrer" class="flex items-center text-sm text-primary-500 hover:text-primary-600">
               <i class="ri-book-open-line text-lg mr-1"></i>
               {{webTypes()[0].label | i18n}} 文档
             </a>
           }
         </div>
 
-        <div class="border border-solid border-divider-regular rounded-xl p-2">
-
-          <div class="flex items-end justify-between">
-            <input class="flex h-9 grow py-1 px-2 rounded-lg text-xs leading-normal bg-gray-100 caret-primary-600 hover:bg-gray-100 focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-gray-50 placeholder:text-gray-400"
-              placeholder="https://mtda.cloud/" type="text" value="">
-            <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium ml-2 shrink-0">运行</button>
-          </div>
-
-          <div class="mt-4 mb-3">
-            <div class="flex justify-between items-center h-[26px] py-1 cursor-pointer select-none"
-              (click)="toggleExpand()"
-            >
-              <div class="flex items-center text-gray-700">
-                <i class="ri-equalizer-2-line text-lg mr-1"></i>
-                <div class="text-[13px] font-semibold text-gray-800 uppercase">选项</div>
-              </div>
-
-              <i class="ri-arrow-right-s-line text-lg text-text-secondary"
-                [class.rotate-90]="expand()"
-              ></i>
+        <div class="border border-solid border-divider-deep rounded-xl">
+          <div class="p-4">
+            <div class="flex items-end justify-between">
+              <input class="flex h-9 grow py-1 px-2 rounded-lg text-sm leading-normal bg-gray-100 caret-primary-600 hover:bg-gray-100 focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-gray-50 placeholder:text-gray-400"
+                placeholder="https://mtda.cloud/" type="text" [ngModel]="webOptions()?.url" (ngModelChange)="updateWebUrl($event)">
+              <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium ml-2 shrink-0"
+                [disabled]="optionSchema.integrationProvider && !integration()"
+                (click)="loadRagWebPages()">运行</button>
             </div>
+  
+            <div class="mt-4 mb-3">
+              <div class="flex justify-between items-center h-[26px] py-1 cursor-pointer select-none"
+                (click)="toggleExpand()"
+              >
+                <div class="flex items-center text-gray-700">
+                  <i class="ri-equalizer-2-line text-lg mr-1"></i>
+                  <div class="text-[13px] font-semibold text-gray-800 uppercase">选项</div>
+                </div>
+  
+                <i class="ri-arrow-right-s-line text-lg text-text-secondary"
+                  [class.rotate-90]="expand()"
+                ></i>
+              </div>
+            </div>
+  
+            @if (expand()) {
+              <div class="grid grid-cols-2 gap-2 mb-8">
+                @for (param of webParams(); track param.name) {
+                  <parameter [ngClass]="{'col-span-1': param.span === 1, 'col-span-2': param.span === 2,}"
+                    [schema]="param"
+                    [ngModel]="parametersValue()?.[param.name]"
+                    (ngModelChange)="updateParamValue(param.name, $event)"
+                  />
+                }
+              </div>
+            }
           </div>
 
-          @if (expand()) {
-            <div class="grid grid-cols-2 gap-2">
-              @for (param of webParams(); track param.name) {
-                <parameter [ngClass]="{'col-span-1': param.span === 1, 'col-span-2': param.span === 2,}"
-                  [schema]="param"
-                  [ngModel]="parametersValue()[param.name]"
-                  (ngModelChange)="updateParamValue(param.name, $event)"
-                />
+          <div class="my-2 border-t border-gray-200">
+            <div class="flex items-center justify-between h-[34px] px-4 bg-gray-50 shadow-xs border-b-[0.5px] border-black/8 text-sm font-normal text-gray-700">
+              <div>
+                @if (loadingWeb()) {
+                  <span>正在抓取</span>
+                } @else {
+                  <span>抓取结果</span>
+                }
+              </div>
+              <div>
+                @if (!loadingWeb() && webDocs()) {
+                  总共在 {{duration()}} 秒 内抓取了 {{webDocs().length}} 个页面
+                }
+              </div>
+            </div>
+            <div class="p-4">
+              @if (loadingWeb()) {
+                <list-content-loader class="my-4"></list-content-loader>
+              } @else {
+                @for (page of webDocs(); track page) {
+                  <div class="group hover:bg-gray-100 rounded-md px-2 py-[5px] cursor-pointer border border-transparent">
+                    <div class="flex justify-between items-center h-5">
+                      <ngm-checkbox [label]="page.metadata.title" />
+                      
+                      <div class="hidden group-hover:flex items-center h-6 px-2 text-xs rounded-md font-medium text-gray-500 uppercase hover:bg-gray-50"
+                        (click)="previewDoc.set(page)"
+                      >
+                        预览
+                      </div>
+                    </div>
+                    <div class="mt-0.5 truncate pl-6 leading-[18px] text-xs font-normal text-gray-500"
+                      [title]="page.metadata.sourceURL">
+                      {{page.metadata.sourceURL}}</div>
+                  </div>
+                }
               }
             </div>
-          }
+          </div>
         </div>
       }
     </div>
@@ -207,3 +259,40 @@
     </div>
   </div>
 }
+
+@if (previewDoc(); as preview) {
+  <div class="h-full w-[1px] bg-divider-deep"></div>
+  <div class="grow h-full overflow-y-auto">
+    <div class="sticky top-0 bg-components-card-bg">
+      <div class="file-preview_title__9Og6B">
+        <span>页面预览</span>
+        <div class="flex items-center justify-center w-6 h-6 cursor-pointer"
+          (click)="closePreviewWeb()"
+        >
+          <i class="ri-close-line"></i>
+        </div>
+      </div>
+      <div class="leading-5 text-sm font-medium text-gray-900 break-words">{{preview.metadata.title}}</div>
+      <div class="truncate leading-[18px] text-xs font-normal text-gray-500"
+        [title]="preview.metadata.sourceURL"
+      >
+        {{preview.metadata.sourceURL}}
+      </div>
+    </div>
+    <div class="px-4">
+      <div class="whitespace-pre-line break-all font-normal">
+        {{preview.pageContent}}
+      </div>
+    </div>
+  </div>
+}
+
+<ng-template #inteMenu>
+  <div cdkMenu class="cdk-menu__medium">
+    @for (item of integrations(); track item.id) {
+      <div cdkMenuItem (click)="integration.set(item)">
+        {{ item.name }}
+      </div>
+    }
+  </div>
+</ng-template>

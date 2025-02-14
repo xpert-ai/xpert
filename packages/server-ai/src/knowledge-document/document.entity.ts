@@ -1,13 +1,14 @@
 import {
 	DocumentParserConfig,
-	DocumentWebOptions,
+	TDocumentWebOptions,
+	IIntegration,
 	IKnowledgebase,
 	IKnowledgeDocument,
 	IKnowledgeDocumentPage,
 	IStorageFile,
 	KDocumentSourceType
 } from '@metad/contracts'
-import { StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
+import { Integration, StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsDate, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
@@ -156,7 +157,28 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@IsJSON()
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
-	options?: DocumentWebOptions
+	options?: TDocumentWebOptions
+
+	/*
+    |--------------------------------------------------------------------------
+    | @OneToOne
+    |--------------------------------------------------------------------------
+    */
+	@ApiProperty({ type: () => Integration, readOnly: true })
+	@OneToOne(() => Integration, {
+		nullable: true,
+		onDelete: 'SET NULL'
+	})
+	@JoinColumn()
+	@IsOptional()
+	integration?: IIntegration
+
+	@ApiProperty({ type: () => String, readOnly: true })
+	@RelationId((it: KnowledgeDocument) => it.integration)
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	integrationId?: string
 
 	/*
     |--------------------------------------------------------------------------

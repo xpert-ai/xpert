@@ -14,6 +14,14 @@
         "Status_error": "Error",
         "ActionSessionTimedOut": "The action does not exist or the session has timed out!",
         "Error_BotPermission": "Maybe the bot capabilities or permissions have not been added",
-        "Error_SelectAIntegration": "Please select an integration"
+        "Error_SelectAIntegration": "Please select an integration",
+        "Error": {
+            "CredentialsFailed": "Credentials verification failed"
+        }
+    },
+    "Firecrawl": {
+        "Error": {
+            "CredentialsFailed": "Credentials verification failed"
+        }
     }
 }

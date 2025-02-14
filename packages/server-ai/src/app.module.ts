@@ -29,6 +29,7 @@ import { ChatMessageFeedbackModule } from './chat-message-feedback'
 import { XpertTemplateModule } from './xpert-template/xpert-template.module'
 import { XpertTaskModule } from './xpert-task'
 import { RagWebModule } from './rag-web/rag-web.module'
+import { IntegrationFirecrawlModule } from './integration-firecrawl/firecrawl.module'
 
 @Module({
 	imports: [
@@ -60,6 +61,7 @@ import { RagWebModule } from './rag-web/rag-web.module'
 		XpertTemplateModule,
 		XpertTaskModule,
 		IntegrationLarkModule,
+		IntegrationFirecrawlModule,
 		RagWebModule
 	],
 	controllers: [],

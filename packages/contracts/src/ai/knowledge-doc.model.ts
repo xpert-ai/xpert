@@ -1,6 +1,8 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
+import { IIntegration } from '../integration.model'
 import { IStorageFile } from '../storage-file.model'
 import { IKnowledgebase } from './knowledgebase.model'
+import { TRagWebOptions } from './rag-web'
 
 export type DocumentParserConfig = {
   pages?: number[][]
@@ -14,8 +16,8 @@ export enum KDocumentSourceType {
   WEB = 'web'
 }
 
-export type DocumentWebOptions = {
-  url: string
+export type TDocumentWebOptions = TRagWebOptions & {
+  //
 }
 
 export type TKnowledgeDocument = {
@@ -76,7 +78,10 @@ export type TKnowledgeDocument = {
    */
   jobId?: string
 
-  options?: DocumentWebOptions
+  options?: TDocumentWebOptions
+
+  integrationId?: string
+  integration?: IIntegration
 }
 
 export interface IKnowledgeDocument extends TKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {
@@ -93,4 +98,4 @@ export interface IDocumentChunk {
   collection_id: string
 }
 
-export type Metadata = Record<string, unknown>
+export type Metadata = Record<string, any>

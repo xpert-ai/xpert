@@ -2,6 +2,7 @@ import { TenantModule } from '@metad/server-core'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { QueryHandlers } from './queries/handlers'
+import { CommandHandlers } from './commands/handlers'
 
 @Module({
 	imports: [
@@ -9,7 +10,7 @@ import { QueryHandlers } from './queries/handlers'
 		CqrsModule,
 	],
 	controllers: [],
-	providers: [...QueryHandlers],
+	providers: [...QueryHandlers, ...CommandHandlers],
 	exports: []
 })
 export class RagWebModule {}

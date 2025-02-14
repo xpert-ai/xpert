@@ -47,19 +47,26 @@ export class LarkHooksController {
 
 	@Post('test')
 	async connect(@Body() integration: IIntegration) {
-		const botInfo = await this.larkService.test(integration)
-		if (!botInfo) {
-			const error = await this.i18n.translate('integration.Lark.Error_BotPermission', {
-				lang: TranslationLanguageMap[RequestContext.getLanguageCode()] || RequestContext.getLanguageCode()
-			})
-			throw new ForbiddenException(error)
-		}
-		if (!integration.avatar) {
-			integration.avatar = {
-				url: botInfo.avatar_url
+		try {
+			const botInfo = await this.larkService.test(integration)
+			if (!botInfo) {
+				const error = await this.i18n.translate('integration.Lark.Error_BotPermission', {
+					lang: TranslationLanguageMap[RequestContext.getLanguageCode()] || RequestContext.getLanguageCode()
+				})
+				throw new ForbiddenException(error)
 			}
+			if (!integration.avatar) {
+				integration.avatar = {
+					url: botInfo.avatar_url
+				}
+			}
+			return integration
+		} catch(err) {
+			const errorMessage = await this.i18n.translate('integration.Lark.Error.CredentialsFailed', {
+				lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+			})
+			throw new ForbiddenException(`${errorMessage}: ${err.message}`);
 		}
-		return integration
 	}
 
 	@Get('chat-select-options')

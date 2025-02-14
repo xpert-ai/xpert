@@ -3,7 +3,7 @@ import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { BullModule } from '@nestjs/bull'
 import { RouterModule } from 'nest-router'
-import { StorageFileModule, TenantModule, UserModule } from '@metad/server-core'
+import { IntegrationModule, StorageFileModule, TenantModule, UserModule } from '@metad/server-core'
 import { KnowledgeDocumentController } from './document.controller'
 import { KnowledgeDocument } from './document.entity'
 import { KnowledgeDocumentService } from './document.service'
@@ -23,6 +23,7 @@ import { KnowledgeDocumentPage } from './page/document-page.entity'
 		StorageFileModule,
 		CopilotModule,
 		KnowledgebaseModule,
+		IntegrationModule,
 
 		BullModule.registerQueue({
 			name: 'embedding-document',
