@@ -66,6 +66,6 @@ export class XpertWorkspaceMembersComponent {
     this.workspaceService.updateMembers(
       this.workspaceId(),
       this.members().map((user) => user.id)
-    )
+    ).subscribe()
   }
 }

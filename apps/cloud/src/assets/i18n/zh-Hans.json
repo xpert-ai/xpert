@@ -492,7 +492,8 @@
       "NoRole": "无角色",
       "DeleteUser": "删除此用户",
       "DeleteUserDesc": "删除此用户及其关联数据",
-      "UserDeletedSuccessfully": "用户删除成功"
+      "UserDeletedSuccessfully": "用户删除成功",
+      "ConfirmDeleteInvite": "删除后，被邀请的用户将无法再确认邀请"
     },
     "ACTIONS": {
       "Add": "添加",
@@ -1206,10 +1207,12 @@
         "Host": "域名",
         "Port": "端口",
         "Secure": "安全",
+        "EmailAddress": "邮件地址",
         "Username": "用户名",
         "Password": "密码",
         "True": "是",
-        "False": "否"
+        "False": "否",
+        "VerifyFailed": "验证失败"
       },
       "Assets": {
         "RecentlyViewed": "最近访问",

@@ -3,7 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { ICustomSmtp } from '@metad/contracts';
 import { ISMTPConfig } from '@metad/server-common';
 import { Exclude, Expose } from 'class-transformer';
-import { IsNotEmpty } from 'class-validator';
+import { IsBoolean, IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { TenantOrganizationBaseEntity } from '../core/entities/internal';
 import { IsSecret, WrapSecrets } from './../core/decorators';
 
@@ -11,15 +11,24 @@ import { IsSecret, WrapSecrets } from './../core/decorators';
 export class CustomSmtp
 	extends TenantOrganizationBaseEntity
 	implements ICustomSmtp {
+
+	@ApiProperty({ type: () => String, examples: ['noreply@domain.com'] })
+	@IsEmail()
+	@Column({ nullable: true })
+	fromAddress?: string
+	
 	@ApiProperty({ type: () => String })
+	@IsString()
 	@Column()
 	host: string;
 
 	@ApiProperty({ type: () => Number })
+	@IsNumber()
 	@Column()
 	port: number;
 
 	@ApiProperty({ type: () => Boolean })
+	@IsBoolean()
 	@Column()
 	secure: boolean;
 
@@ -36,6 +45,8 @@ export class CustomSmtp
 	password: string;
 
 	@ApiProperty({ type: () => Boolean, default: false })
+	@IsOptional()
+	@IsBoolean()
 	@Column({ default: false })
 	isValidate?: boolean;
 
@@ -59,8 +70,14 @@ export class CustomSmtp
 		WrapSecrets(this, this);
 	}
 
-	getSmtpTransporter?() {
+	/**
+	 * Get SMTP transporter configuration
+	 *
+	 * @returns
+	 */
+	getSmtpTransporter?(): ISMTPConfig {
 		return {
+			fromAddress: this.fromAddress,
 			host: this.host,
 			port: this.port,
 			secure: this.secure || false, // true for 465, false for other ports
@@ -68,6 +85,6 @@ export class CustomSmtp
 				user: this.username,
 				pass: this.password
 			}
-		} as ISMTPConfig
+		} as ISMTPConfig;
 	}
 }

@@ -62,6 +62,7 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
       host: ['', Validators.compose([Validators.required, Validators.pattern(patterns.host)])],
       port: [],
       secure: [],
+      fromAddress: [],
       username: [],
       password: [],
       isValidate: [false]
@@ -147,6 +148,14 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
                       label: SMTP.True
                     }
                   ]
+                }
+              },
+              {
+                className: 'ngm-formly__col ngm-formly__col-2',
+                key: 'fromAddress',
+                type: 'input',
+                props: {
+                  label: SMTP.EmailAddress || 'Email Address'
                 }
               },
               {
@@ -250,6 +259,7 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
         host: this.customSmtp.host,
         port: this.customSmtp.port,
         secure: this.customSmtp.secure,
+        fromAddress: this.customSmtp.fromAddress,
         username: this.customSmtp.username,
         password: this.customSmtp.password,
         isValidate: this.customSmtp.isValidate
@@ -265,12 +275,15 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
       host: setting.host,
       port: setting.port,
       secure: setting.secure,
+      fromAddress: setting.fromAddress,
       username: setting['auth']['user'],
       password: setting['auth']['pass']
     })
   }
 
-  onFormChange(model) {}
+  onFormChange(model) {
+    this.isValidated.set(false)
+  }
 
   onSubmit() {
     if (this.form.invalid) {
@@ -324,12 +337,16 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
   async validateSmtp() {
     try {
       const smtp = this.form.getRawValue()
-      await this.customSmtpService.validateSMTPSetting(smtp)
-      this.isValidated.set(true)
-      this.toastrService.success(this.getTranslation('TOASTR.TITLE.SUCCESS', { Default: 'Success' }))
+      const isValidated = await this.customSmtpService.validateSMTPSetting(smtp)
+      this.isValidated.set(isValidated)
+      if (isValidated) {
+        this.toastrService.success(this.getTranslation('TOASTR.TITLE.SUCCESS', { Default: 'Success' }))
+      } else {
+        this.toastrService.error('PAC.SHARED.SMTP.VerifyFailed', '', {Default: 'Verify failed'})
+      }
     } catch (error) {
       this.isValidated.set(false)
-      this.toastrService.error(this.getTranslation('TOASTR.MESSAGE.ERRORS', { Default: 'Errors' }))
+      this.toastrService.error('PAC.SHARED.SMTP.VerifyFailed', '', {Default: 'Verify failed'})
     }
   }
 }
