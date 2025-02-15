@@ -96,11 +96,8 @@ export class InviteService {
 		);
 	}
 
-	delete(id: string): Promise<any> {
-		return firstValueFrom(
-			this.http
-			.delete(`${API_PREFIX}/invite/${id}`)
-		);
+	delete(id: string) {
+		return this.http.delete(`${API_PREFIX}/invite/${id}`)
 	}
 
 	inviteOrganizationContact(

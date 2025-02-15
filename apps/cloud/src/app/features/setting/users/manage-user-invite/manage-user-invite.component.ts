@@ -1,21 +1,22 @@
-import { DatePipe, Location } from '@angular/common'
-import { Component, Inject, LOCALE_ID, inject } from '@angular/core'
+import { CommonModule, DatePipe, Location } from '@angular/common'
+import { Component, Inject, inject, LOCALE_ID } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { MatButtonModule } from '@angular/material/button'
 import { MatDialog } from '@angular/material/dialog'
+import { MatIconModule } from '@angular/material/icon'
 import { InviteService, Store, ToastrService } from '@metad/cloud/state'
 import { InvitationExpirationEnum, InvitationTypeEnum } from '@metad/contracts'
+import { injectConfirmDelete, NgmTableComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, OcapCoreModule } from '@metad/ocap-angular/core'
+import { getErrorMessage } from 'apps/cloud/src/app/@core'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
+import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
 import { formatDistanceToNow, isAfter } from 'date-fns'
 import { BehaviorSubject, combineLatestWith, firstValueFrom, map, switchMap, withLatestFrom } from 'rxjs'
 import { InviteMutationComponent } from '../../../../@shared/invite'
 import { PACUsersComponent } from '../users.component'
-import { NgmTableComponent } from '@metad/ocap-angular/common'
-import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
-import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
-import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
-import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
+import { TranslateModule } from '@ngx-translate/core'
 
 @Component({
   standalone: true,
@@ -23,11 +24,12 @@ import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
   templateUrl: './manage-user-invite.component.html',
   styleUrls: ['./manage-user-invite.component.scss'],
   imports: [
-    SharedModule,
-    MaterialModule,
+    CommonModule,
+    MatButtonModule,
+    MatIconModule,
+    TranslateModule,
     // Standard components
     ButtonGroupDirective,
-    InlineSearchComponent,
     // OCAP Modules
     OcapCoreModule,
     UserProfileInlineComponent,
@@ -37,6 +39,8 @@ import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
 export class ManageUserInviteComponent extends TranslationBaseComponent {
   userLabel = userLabel
   invitationTypeEnum = InvitationTypeEnum
+
+  readonly confirmDelete = injectConfirmDelete()
 
   private readonly usersComponent = inject(PACUsersComponent)
 
@@ -103,12 +107,21 @@ export class ManageUserInviteComponent extends TranslationBaseComponent {
     }
   }
 
-  async deleteInvite(id, email) {
-    await this.inviteService.delete(id)
-    this.toastrService.success('TOASTR.MESSAGE.INVITES_DELETE', {
-      email: email,
-      Default: "Invite '" + email + "' delete"
+  async deleteInvite(id: string, email: string) {
+    this.confirmDelete({
+      value: email,
+      information: this.translateService.instant('PAC.USERS_PAGE.ConfirmDeleteInvite', {Default: 'After deletion, the invited user will no longer be able to confirm the invitation'})
+    }, this.inviteService.delete(id)).subscribe({
+      next: () => {
+        this.toastrService.success('TOASTR.MESSAGE.INVITES_DELETE', {
+          email: email,
+          Default: "Invite '" + email + "' delete"
+        })
+        this.refresh$.next()
+      },
+      error: (err) => {
+        this.toastrService.error(getErrorMessage(err))
+      }
     })
-    this.refresh$.next()
   }
 }

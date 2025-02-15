@@ -9,9 +9,14 @@
   }
 </div>
 
-<div class="flex-1 p-4 flex flex-col overflow-auto">
+<div class="flex justify-start items-center px-4 py-2">
+  <div class="font-semibold mr-2">{{'PAC.KEY_WORDS.Language' | translate: {Default: 'Language'} }}:</div>
   <ngm-tags [tags]="languages()" selectable large [(ngModel)]="languageCodes" />
+</div>
 
+<div class="w-full my-2 border-t border-solid border-divider-regular"></div>
+
+<div class="flex-1 px-4 flex flex-col overflow-auto">
   <nav class="min-h-full content-start gap-4 px-4 pt-4 grow shrink-0 pb-4 overflow-auto"
     ngmDynamicGrid colWidth="280"
     box="content-box">
@@ -60,20 +65,6 @@
     }
   </nav>
 </div>
-<!-- 
-<ngm-table class="flex-1 overflow-hidden" displayDensity="cosy" paging
-  [columns]="[
-    {
-      name: 'name',
-      caption: 'Name'
-    },
-    {
-      name: 'languageCode',
-      caption: 'Language Code'
-    }
-  ]"
-  [data]="emailTemplates()"
-/> -->
 
 @if (opened()) {
   <div class="absolute top-0 left-0 w-full h-full flex flex-col z-[900] bg-black/10 backdrop-blur-[2px]">

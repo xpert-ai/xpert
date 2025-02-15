@@ -1,27 +1,31 @@
 import {
 	EmailTemplateEnum,
+	IBasePerTenantAndOrganizationEntityModel,
 	IEmailTemplate,
 	IInviteUserModel,
 	IJoinEmployeeModel,
 	IOrganization,
 	IUser,
+	IVerifySMTPTransport,
 	LanguagesEnum,
+	mapTranslationLanguage,
 	TranslationLanguageMap,
 } from '@metad/contracts';
-import { forwardRef, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as Email from 'email-templates';
 import * as Handlebars from 'handlebars';
 import * as nodemailer from 'nodemailer';
 import { Repository, IsNull } from 'typeorm';
 import { environment as env } from '@metad/server-config';
-import { ISMTPConfig } from '@metad/server-common';
+import { isEmpty, ISMTPConfig } from '@metad/server-common';
 import { TenantAwareCrudService } from './../core/crud';
 import { Email as IEmail } from './email.entity';
 import { Email as EmailEntity } from './email.entity';
 import { RequestContext } from '../core/context';
-import { EmailTemplate, Organization, User } from './../core/entities/internal';
+import { CustomSmtp, EmailTemplate, Organization, User } from './../core/entities/internal';
 import { CustomSmtpService } from '../custom-smtp/custom-smtp.service';
+import { SMTPUtils } from '../email-send/utils';
 
 const DISALLOW_EMAIL_SERVER_DOMAIN: string[] = ['@example.com'];
 
@@ -80,68 +84,108 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 	 * @param tenantId 
 	 * @returns 
 	 */
-	 private async getEmailInstance(
-		organizationId?: string,
-		tenantId?: string
-	): Promise<Email<any>> {
-		const currentTenantId = tenantId || RequestContext.currentTenantId();
-		let smtpConfig: ISMTPConfig;
+	public async getEmailInstance({
+        organizationId,
+        tenantId = RequestContext.currentTenantId()
+    }: IBasePerTenantAndOrganizationEntityModel) {
+        let smtpTransporter: CustomSmtp;
+        try {
+            smtpTransporter = await this.customSmtpService.findOneByOptions({
+                where: {
+                    organizationId: isEmpty(organizationId) ? IsNull() : organizationId,
+                    tenantId: isEmpty(tenantId) ? IsNull() : tenantId
+                },
+                order: {
+                    createdAt: 'DESC'
+                }
+            });
+            // console.log('Custom SMTP configuration for organization: %s', smtpTransporter);
+            const smtpConfig: ISMTPConfig = smtpTransporter.getSmtpTransporter();
+            const transport: IVerifySMTPTransport = SMTPUtils.convertSmtpToTransporter(smtpConfig);
 
-		try {
-			const smtpTransporter = await this.customSmtpService.findOneByOptions({
-				where: {
-					tenantId: currentTenantId,
-					organizationId
-				}
-			});
-			smtpConfig = smtpTransporter.getSmtpTransporter() as ISMTPConfig;
-		} catch (error) {
-			try {
-				if (error instanceof NotFoundException) {
-					const smtpTransporter = await this.customSmtpService.findOneByOptions({
-						where: {
-							tenantId: currentTenantId,
-							organizationId: IsNull()
-						}
-					});
-					smtpConfig = smtpTransporter.getSmtpTransporter() as ISMTPConfig;
-				}
-			} catch (error) {
-				this.logger.debug(`Can't found custom smtp, and use default smtp`)
-				smtpConfig = this.customSmtpService.defaultSMTPTransporter() as ISMTPConfig;
-			}
-		}
+            /** Verifies SMTP configuration */
+            if (await SMTPUtils.verifyTransporter(transport)) {
+                return this.getEmailConfig(smtpConfig);
+            } else {
+                console.log('SMTP configuration is not set for this tenant / organization: [%s, %s]', organizationId, tenantId);
+                throw new BadRequestException('SMTP configuration is not set for this tenant / organization');
+            }
+        } catch (error) {
+            try {
+                if (error instanceof NotFoundException) {
+                    smtpTransporter = await this.customSmtpService.findOneByOptions({
+                        where: {
+                            organizationId: IsNull(),
+                            tenantId: isEmpty(tenantId) ? IsNull() : tenantId
+                        },
+                        order: {
+                            createdAt: 'DESC'
+                        }
+                    });
+                    // console.log('Custom SMTP configuration for tenant: %s', smtpTransporter);
 
-		const config: Email.EmailConfig<any> = {
-			message: {
-				from: smtpConfig.auth.user || env.smtpConfig.from || 'no-reply@metad.com'
-			},
+                    const smtpConfig: ISMTPConfig = smtpTransporter.getSmtpTransporter();
+                    const transport: IVerifySMTPTransport = SMTPUtils.convertSmtpToTransporter(smtpConfig);
 
-			// if you want to send emails in development or test environments, set options.send to true.
-			send: true,
-			transport: smtpConfig || this.customSmtpService.defaultSMTPTransporter() as ISMTPConfig,
-			i18n: {},
-			views: {
-				options: {
-					extension: 'hbs'
-				}
-			},
-			render: this.render
-		};
+                    // /** Verifies SMTP configuration */
+                    if (await SMTPUtils.verifyTransporter(transport)) {
+                        return this.getEmailConfig(smtpConfig);
+                    } else {
+                        console.log('SMTP configuration is not set for this tenant: %s', organizationId);
+                        throw new BadRequestException('SMTP configuration is not set for this tenant');
+                    }
+                }
+            } catch (error) {
+                const smtpConfig: ISMTPConfig = SMTPUtils.defaultSMTPTransporter();
+                const transport: IVerifySMTPTransport = SMTPUtils.convertSmtpToTransporter(smtpConfig);
 
-		/* TODO: uncomment this after we figure out issues with dev / prod in the environment.*.ts */
-		// if (!env.production && !env.demo) {
-		// 	config.preview = {
-		// 		open: {
-		// 			app: 'firefox',
-		// 			wait: false
-		// 		}
-		// 	};
-		// }
+                // console.log('Default SMTP configuration: %s', transport);
 
-		return new Email(config);
-	}
+                /** Verifies SMTP configuration */
+                if (await SMTPUtils.verifyTransporter(transport)) {
+                    return this.getEmailConfig(smtpConfig);
+                } else {
+                    console.log('Error while retrieving tenant/organization smtp configuration: %s', error?.message);
+                    throw new InternalServerErrorException('Error while retrieving tenant/organization smtp configuration');
+                }
+            }
+        }
+    }
 
+	/**
+     *
+     * @param smtpConfig
+     * @returns
+     */
+    private getEmailConfig(smtpConfig: ISMTPConfig): Email<any> {
+        const config: Email.EmailConfig<any> = {
+            message: {
+                from: smtpConfig.fromAddress || 'noreply@gauzy.co'
+            },
+            // if you want to send emails in development or test environments, set options.send to true.
+            send: true,
+            transport: smtpConfig,
+            i18n: {},
+            views: {
+                options: {
+                    extension: 'hbs'
+                }
+            },
+            render: this.render
+        };
+        /**
+         * TODO: uncomment this after we figure out issues with dev / prod in the environment.*.ts
+         */
+        // if (!environment.production && !environment.demo) {
+        //     config.preview = {
+        //         open: {
+        //             app: 'firefox',
+        //             wait: false
+        //         }
+        //     };
+        // }
+        return new Email(config);
+    }
 
 	private render = (view, locals) => {
 		return new Promise(async (resolve, reject) => {
@@ -228,7 +272,7 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 			const match = !!DISALLOW_EMAIL_SERVER_DOMAIN.find((server) => body.email.includes(server));
 			if (!match) {
 				try {
-					const send = await (await this.getEmailInstance(organizationId, tenantId)).send(sendOptions);
+					const send = await (await this.getEmailInstance({organizationId, tenantId})).send(sendOptions);
 					body['message'] = send.originalMessage;
 				} catch (error) {
 					console.error(error);
@@ -277,7 +321,7 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 			const match = !!DISALLOW_EMAIL_SERVER_DOMAIN.find((server) => body.email.includes(server));
 			if (!match) {
 				try {
-					const send = await (await this.getEmailInstance(organizationId, tenantId)).send(sendOptions);
+					const send = await (await this.getEmailInstance({organizationId, tenantId})).send(sendOptions);
 					body['message'] = send.originalMessage;
 				} catch (error) {
 					console.error(error);
@@ -331,7 +375,7 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 				try {
 
 					this.logger.debug(`try to send email:`, body)
-					const email = await this.getEmailInstance(organizationId, tenantId)
+					const email = await this.getEmailInstance({organizationId, tenantId})
 					this.logger.debug(`Got email instance`)
 					const send = await email.send(sendOptions);
 					this.logger.debug(`Sent email`)
@@ -388,7 +432,7 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 			const match = !!DISALLOW_EMAIL_SERVER_DOMAIN.find((server) => body.email.includes(server));
 			if (!match) {
 				try {
-					const send = await (await this.getEmailInstance(organizationId, tenantId)).send(sendOptions);
+					const send = await (await this.getEmailInstance({organizationId, tenantId})).send(sendOptions);
 					body['message'] = send.originalMessage;
 				} catch (error) {
 					console.error(error);
@@ -440,7 +484,7 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 			const match = !!DISALLOW_EMAIL_SERVER_DOMAIN.find((server) => body.email.includes(server));
 			if (!match) {
 				try {
-					const send = await (await this.getEmailInstance(organizationId, tenantId)).send(sendOptions);
+					const send = await (await this.getEmailInstance({organizationId, tenantId})).send(sendOptions);
 					body['message'] = send.originalMessage;
 				} catch (error) {
 					console.error(error);
@@ -472,7 +516,7 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
 		const tenantId = (organization) ? organization.tenantId : RequestContext.currentTenantId();
 		const emailTemplate = await this.emailTemplateRepository.findOne({
 			name: template + '/html',
-			languageCode
+			languageCode: mapTranslationLanguage(languageCode)
 		});
 		emailEntity.name = message.subject;
 		emailEntity.email = email;
