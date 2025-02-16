@@ -186,6 +186,8 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
     |--------------------------------------------------------------------------
     */
 	@ApiProperty({ type: () => KnowledgeDocumentPage, isArray: true })
-	@OneToMany(() => KnowledgeDocumentPage, (page) => page.document)
+	@OneToMany(() => KnowledgeDocumentPage, (page) => page.document, {
+		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+	})
 	pages?: IKnowledgeDocumentPage[]
 }

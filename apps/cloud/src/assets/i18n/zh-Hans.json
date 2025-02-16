@@ -1899,7 +1899,8 @@
       "Permission_Organization": "组织内",
       "Permission_Public": "公开",
       "AddKnowledgebase": "添加知识库",
-      "AddKnowledgebaseHelp": "了解更多关于自定义知识库的信息"
+      "AddKnowledgebaseHelp": "了解更多关于自定义知识库的信息",
+      "Pages": "页面"
     },
     "Integration": {
       "Integration": "集成",

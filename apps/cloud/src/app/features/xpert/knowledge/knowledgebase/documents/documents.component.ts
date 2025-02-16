@@ -7,8 +7,8 @@ import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator'
 import { MatSort, MatSortModule } from '@angular/material/sort'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import {
+  injectConfirmDelete,
   NgmCommonModule,
-  NgmConfirmDeleteComponent,
   NgmCountdownConfirmationComponent
 } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
@@ -28,7 +28,9 @@ import {
 } from 'rxjs'
 import {
   getDateLocale,
+  getErrorMessage,
   IKnowledgeDocument,
+  injectToastr,
   IStorageFile,
   KnowledgeDocumentService,
   OrderTypeEnum,
@@ -70,6 +72,8 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
+  readonly confirmDelete = injectConfirmDelete()
+  readonly #toastr = injectToastr()
 
   readonly paginator = viewChild(MatPaginator)
   readonly sort = viewChild(MatSort)
@@ -130,7 +134,7 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
               },
               take: this.pageSize(),
               skip: this.paginator().pageIndex,
-              relations: ['storageFile'],
+              relations: ['storageFile', 'pages'],
               order
             }).pipe(catchError(() => observableOf(null)))
           }),
@@ -183,21 +187,18 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   }
 
   deleteDocument(id: string, storageFile: IStorageFile) {
-    this.#dialog
-      .open(NgmConfirmDeleteComponent, {
-        data: {
-          value: id,
-          information: `${storageFile.originalName}`
-        }
-      })
-      .afterClosed()
-      .pipe(switchMap((confirm) => (confirm ? this.knowledgeDocumentService.delete(id) : EMPTY)))
-      .subscribe({
-        next: () => {
-          this.refresh()
-        },
-        error: (err) => {}
-      })
+    this.confirmDelete({
+      value: id,
+      information: storageFile ? `${storageFile.originalName}` : ''
+    }, this.knowledgeDocumentService.delete(id))
+    .subscribe({
+      next: () => {
+        this.refresh()
+      },
+      error: (err) => {
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
   }
 
   updateParserConfig(document: IKnowledgeDocument, config: Partial<IKnowledgeDocument['parserConfig']>) {
@@ -207,7 +208,9 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
       })
       .subscribe({
         next: () => {},
-        error: (err) => {}
+        error: (err) => {
+          this.#toastr.error(getErrorMessage(err))
+        }
       })
   }
 
@@ -217,7 +220,9 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
       next: () => {
         this.refresh()
       },
-      error: (err) => {}
+      error: (err) => {
+        this.#toastr.error(getErrorMessage(err))
+      }
     })
   }
 
@@ -234,7 +239,9 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
         next: () => {
           this.refresh()
         },
-        error: (err) => {}
+        error: (err) => {
+          this.#toastr.error(getErrorMessage(err))
+        }
       })
   }
 
@@ -251,7 +258,9 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
         next: () => {
           this.refresh()
         },
-        error: (err) => {}
+        error: (err) => {
+          this.#toastr.error(getErrorMessage(err))
+        }
       })
   }
 }

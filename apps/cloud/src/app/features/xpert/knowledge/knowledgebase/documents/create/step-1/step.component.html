@@ -1,9 +1,9 @@
 <div class="px-8 py-4 w-[640px] shrink-0 overflow-auto">
-  <div class="z-10 mb-4 font-semibold text-lg text-text-primary">选择文件源</div>
+  <div class="z-10 mb-4 font-semibold text-lg text-text-primary">选择文档源</div>
 
   <ol class="flex flex-wrap gap-2 items-start" cdkListbox [(ngModel)]="sourceType">
     @for (option of fileTypeOptions; track option.value) {
-      <li #opt="cdkOption" class="type-option relative flex flex-col w-80 h-32 max-w-xs border border-solid border-gray-200 rounded-2xl p-4 cursor-pointer
+      <li #opt="cdkOption" class="type-option relative flex flex-col w-80 h-28 max-w-xs border border-solid border-gray-200 rounded-2xl p-4 cursor-pointer
         hover:bg-gray-50 hover:shadow-sm"
         [cdkOption]="option.value"
         [class.active]="opt.isSelected()"
@@ -20,13 +20,17 @@
         <p class="grow text-sm font-normal text-gray-500 transition-all duration-500 leading-5 mb-4 line-clamp-2">
           {{option.description | i18n}}
         </p>
-        <a href="javascript:;" class="group flex items-center gap-2 text-sm font-light text-text-primary transition-all duration-100 hover:text-primary-500">
-          Read More
-          <i class="ri-external-link-line transition-all group-hover:translate-x-1"></i>
-        </a>
       </li>
     }
   </ol>
+
+  <div class="w-full flex justify-end px-4 py-2">
+    <a class="group flex items-center gap-2 text-sm font-light text-text-primary transition-all duration-100 hover:text-primary-500"
+      [href]="website() + '/docs/ai/knowledge/import'" target="_blank">
+      Read More
+      <i class="ri-external-link-line transition-all group-hover:translate-x-1"></i>
+    </a>
+  </div>
 
   @if (sourceType()[0] === eKDocumentSourceType.FILE) {
     <div class="my-6 w-full">
@@ -49,30 +53,12 @@
           <div class="relative flex items-center h-14 max-w-[640px] text-sm leading-3 text-text-tertiary border-[0.5px] rounded-lg hover:shadow-sm hover:bg-gray-50"
             (click)="selectFile(item)"
           >
-            <div class="shrink-0 flex justify-center items-center w-12 text-[#2684FF]">
-              @switch (item.extension) {
-                @case ('docx') {
-                  <i class="ri-file-word-fill text-lg"></i>
-                }
-                @case ('doc') {
-                  <i class="ri-file-word-fill text-lg"></i>
-                }
-                @case ('txt') {
-                  <i class="ri-file-text-fill text-lg"></i>
-                }
-                @case ('pdf') {
-                  <i class="ri-file-pdf-2-fill text-lg"></i>
-                }
-                @default {
-                  <i class="ri-file-text-fill text-lg"></i>
-                }
+            <div class="grow shrink flex flex-col gap-0.5 px-2">
+              @if (item.doc) {
+                <knowledge-doc-id [doc]="item.doc" />
               }
-            </div>
-            <div class="grow shrink flex flex-col gap-0.5">
-              <div class="flex w-full">
-                <div class="text-sm leading-4 text-text-secondary w-0 grow truncate">{{item.file.name}}</div>
-              </div>
-              <div class="w-full leading-3 truncate text-text-tertiary">
+
+              <div class="w-full px-2 leading-3 truncate text-text-tertiary">
                 <span class="uppercase">{{item.file.name.split('.').pop()}}</span>
                 <span class="px-1 text-text-quaternary">·</span>
                 <span>{{item.file.size}}</span>
@@ -93,16 +79,6 @@
           </div>
         }
       </div>
-    </div>
-
-    <div class="flex justify-end gap-2 max-w-[640px]">
-      <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
-        (click)="nextStep()">
-        <span class="flex gap-0.5 px-[10px]">
-          <span class="px-0.5">下一步</span>
-          <i class="ri-arrow-right-line"></i>
-        </span>
-      </button>
     </div>
   }
 
@@ -159,7 +135,7 @@
               <input class="flex h-9 grow py-1 px-2 rounded-lg text-sm leading-normal bg-gray-100 caret-primary-600 hover:bg-gray-100 focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-gray-50 placeholder:text-gray-400"
                 placeholder="https://mtda.cloud/" type="text" [ngModel]="webOptions()?.url" (ngModelChange)="updateWebUrl($event)">
               <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium ml-2 shrink-0"
-                [disabled]="optionSchema.integrationProvider && !integration()"
+                [disabled]="loadingWeb() || optionSchema.integrationProvider && !integration()"
                 (click)="loadRagWebPages()">运行</button>
             </div>
   
@@ -179,7 +155,7 @@
             </div>
   
             @if (expand()) {
-              <div class="grid grid-cols-2 gap-2 mb-8">
+              <div class="grid grid-cols-2 gap-2 mb-4">
                 @for (param of webParams(); track param.name) {
                   <parameter [ngClass]="{'col-span-1': param.span === 1, 'col-span-2': param.span === 2,}"
                     [schema]="param"
@@ -209,21 +185,26 @@
             <div class="p-4">
               @if (loadingWeb()) {
                 <list-content-loader class="my-4"></list-content-loader>
+              } @else if (webError()) {
+                <i class="ri-alarm-warning-line text-xl p-2 text-text-warning"></i>
+                <div class="text-sm p-2 text-text-warning">{{webError()}}</div>
               } @else {
                 @for (page of webDocs(); track page) {
-                  <div class="group hover:bg-gray-100 rounded-md px-2 py-[5px] cursor-pointer border border-transparent">
+                  <div class="page-item group hover:bg-gray-100 rounded-md px-2 py-[5px] cursor-pointer border border-transparent"
+                    [class.active]="previewDoc()?.metadata?.scrapeId === page.metadata.scrapeId"
+                  >
                     <div class="flex justify-between items-center h-5">
-                      <ngm-checkbox [label]="page.metadata.title" />
+                      <ngm-checkbox class="grow" [label]="page.metadata.title" [ngModel]="isSelectedPage(page)" (ngModelChange)="togglePage(page, $event)"/>
                       
-                      <div class="hidden group-hover:flex items-center h-6 px-2 text-xs rounded-md font-medium text-gray-500 uppercase hover:bg-gray-50"
+                      <div class="hidden group-hover:flex items-center h-6 px-2 text-sm rounded-md font-medium text-gray-500 uppercase hover:bg-gray-50"
                         (click)="previewDoc.set(page)"
                       >
                         预览
                       </div>
                     </div>
                     <div class="mt-0.5 truncate pl-6 leading-[18px] text-xs font-normal text-gray-500"
-                      [title]="page.metadata.sourceURL">
-                      {{page.metadata.sourceURL}}</div>
+                      [title]="page.metadata.url">
+                      {{page.metadata.url}}</div>
                   </div>
                 }
               }
@@ -233,6 +214,17 @@
       }
     </div>
   }
+
+  <div class="flex justify-end gap-2 max-w-[640px]">
+    <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
+      [disabled]="loadingWeb()"
+      (click)="nextStep()">
+      <span class="flex gap-0.5 px-[10px]">
+        <span class="px-0.5">下一步</span>
+        <i class="ri-arrow-right-line"></i>
+      </span>
+    </button>
+  </div>
 </div>
 
 @if (previewFile(); as item) {
@@ -248,13 +240,12 @@
             <i class="ri-close-line"></i>
           </div>
         </div>
-        <div class="file-preview_fileName__cj3IL">
-          <span>{{item.storageFile.file}},</span>
-          <span class="">.{{item.storageFile.mimetype}}</span>
+        <div class="">
+          <span>{{item.doc.storageFile.originalName}},</span>
         </div>
       </div>
       <div class="">
-        <div class="">导入员工</div>
+        <div class="">Preview Content...</div>
       </div>
     </div>
   </div>
@@ -263,9 +254,9 @@
 @if (previewDoc(); as preview) {
   <div class="h-full w-[1px] bg-divider-deep"></div>
   <div class="grow h-full overflow-y-auto">
-    <div class="sticky top-0 bg-components-card-bg">
-      <div class="file-preview_title__9Og6B">
-        <span>页面预览</span>
+    <div class="sticky top-0 mx-8 mt-8 pb-2 border-b border-solid border-divider-regular bg-components-card-bg">
+      <div class="flex justify-between items-center">
+        <span class="text-lg font-semibold">页面预览</span>
         <div class="flex items-center justify-center w-6 h-6 cursor-pointer"
           (click)="closePreviewWeb()"
         >
@@ -274,12 +265,12 @@
       </div>
       <div class="leading-5 text-sm font-medium text-gray-900 break-words">{{preview.metadata.title}}</div>
       <div class="truncate leading-[18px] text-xs font-normal text-gray-500"
-        [title]="preview.metadata.sourceURL"
+        [title]="preview.metadata.url"
       >
-        {{preview.metadata.sourceURL}}
+        {{preview.metadata.url}}
       </div>
     </div>
-    <div class="px-4">
+    <div class="px-8 py-4">
       <div class="whitespace-pre-line break-all font-normal">
         {{preview.pageContent}}
       </div>

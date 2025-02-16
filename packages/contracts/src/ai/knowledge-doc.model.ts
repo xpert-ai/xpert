@@ -1,6 +1,7 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IIntegration } from '../integration.model'
 import { IStorageFile } from '../storage-file.model'
+import { IKnowledgeDocumentPage } from './knowledge-doc-page.model'
 import { IKnowledgebase } from './knowledgebase.model'
 import { TRagWebOptions } from './rag-web'
 
@@ -82,6 +83,8 @@ export type TKnowledgeDocument = {
 
   integrationId?: string
   integration?: IIntegration
+
+  pages?: IKnowledgeDocumentPage[]
 }
 
 export interface IKnowledgeDocument extends TKnowledgeDocument, IBasePerTenantAndOrganizationEntityModel {

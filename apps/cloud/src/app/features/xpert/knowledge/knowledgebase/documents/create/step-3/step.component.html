@@ -11,38 +11,25 @@
         <div class="flex items-center justify-between text-gray-900 font-medium text-sm mr-2">嵌入已完成</div>
       </div>
       <div class="flex flex-col gap-0.5 pb-2">
-        @for (item of fileList(); track item.doc) {
+        @for (item of documents(); track item.id) {
           <div class="relative h-[26px] bg-components-progress-bar-bg rounded-md overflow-hidden">
             <div class="flex gap-1 pl-[6px] pr-2 h-full items-center z-[1]">
-              <svg
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                fill="currentColor"
-                class="remixicon text-[#2684FF] shrink-0 size-4"
-              >
-                <path
-                  d="M16 2L21 7V21.0082C21 21.556 20.5551 22 20.0066 22H3.9934C3.44476 22 3 21.5447 3 21.0082V2.9918C3 2.44405 3.44495 2 3.9934 2H16ZM14 8V12.989L12 11L10.0108 13L10 8H8V16H10L12 14L14 16H16V8H14Z"
-                ></path>
-              </svg>
-              <div
-                class="grow flex items-center gap-1 w-0"
-                [title]="item.storageFile.originalName"
-              >
-                <div class="text-sm truncate">{{item.storageFile.originalName}}</div>
-              </div>
+              <knowledge-doc-id [doc]="item" class="grow" />
 
-              @if (item.doc?.status === 'running') {
+              @if (item.status === 'running') {
                 <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
-              } @else if (item.doc?.status === 'finish') {
+              } @else if (item.status === 'finish') {
                 <i class="ri-checkbox-circle-fill text-text-success"></i>
-              } @else if (item.doc?.status === 'error') {
+              } @else if (item.status === 'error') {
                 <i class="ri-close-circle-fill text-text-waring"
-                  [matTooltip]="item.doc?.processMsg"
+                  [matTooltip]="item.processMsg"
                 ></i>
               }
             </div>
+
+            @if (item.status === 'running') {
+              <mat-progress-bar class="absolute bottom-0 left-0 w-full" mode="determinate" [value]="item.progress" [color]="item.progress === 100 ? 'primary' : 'accent'" />
+            }
           </div>
         }
       </div>

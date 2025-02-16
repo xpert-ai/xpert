@@ -1,51 +1,29 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { HttpEventType } from '@angular/common/http'
-import { Component, effect, inject, model, signal } from '@angular/core'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { CommonModule } from '@angular/common'
+import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
-import { NgmDndDirective, SafePipe } from '@metad/core'
 import { NgmCheckboxComponent, NgmInputComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
-import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { Document } from 'langchain/document'
-import { compact } from 'lodash-es'
 import { derivedFrom } from 'ngxtension/derived-from'
+import { BehaviorSubject, catchError, combineLatest, debounceTime, EMPTY, map, of, pipe, switchMap, tap } from 'rxjs'
 import {
-  BehaviorSubject,
-  catchError,
-  combineLatest,
-  debounceTime,
-  EMPTY,
-  map,
-  of,
-  pipe,
-  Subject,
-  switchMap,
-  tap
-} from 'rxjs'
-import {
-  DocumentParserConfig,
   getErrorMessage,
-  IKnowledgeDocument,
-  IStorageFile,
+  IKnowledgeDocumentPage,
   KDocumentSourceType,
-  KDocumentWebTypeEnum,
-  KDocumentWebTypeOptions,
   KnowledgeDocumentService,
   StorageFileService,
   ToastrService
 } from '../../../../../../../@core'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../../documents.component'
-import { CommonModule } from '@angular/common'
-import { ParameterComponent } from 'apps/cloud/src/app/@shared/forms'
 import { KnowledgeDocumentCreateComponent, TFileItem } from '../create.component'
+import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
 
 @Component({
   standalone: true,
@@ -60,14 +38,11 @@ import { KnowledgeDocumentCreateComponent, TFileItem } from '../create.component
     CdkListboxModule,
     MatTooltipModule,
     MatProgressBarModule,
-    NgmI18nPipe,
-    NgmDndDirective,
     NgmCheckboxComponent,
     NgmSelectComponent,
     NgmSpinComponent,
     NgmInputComponent,
-    SafePipe,
-    ParameterComponent
+    KnowledgeDocIdComponent
   ]
 })
 export class KnowledgeDocumentCreateStep2Component {
@@ -89,24 +64,36 @@ export class KnowledgeDocumentCreateStep2Component {
   readonly loading = signal(false)
 
   readonly fileList = this.createComponent.fileList
-  // readonly previewFile = signal<TFileItem>(null)
+  readonly webResult = this.createComponent.webResult
+  readonly selectedWebPages = this.createComponent.selectedWebPages
+  readonly webDocs = computed(() => this.selectedWebPages().map((id) => 
+    this.webResult()?.docs.find((doc) => doc.metadata.scrapeId === id)))
   readonly selectedFile = signal<TFileItem>(null)
+  readonly selectedWebDoc = signal<IKnowledgeDocumentPage>(null)
   readonly estimateFiles = signal<Record<string, { error?: string; docs?: Document[] }>>({})
   readonly estimating = signal<boolean>(false)
 
+  // Estimate embedding for file or webpage
   readonly estimateFile = derivedFrom(
-    [this.selectedFile, this.estimateFiles],
+    [this.selectedFile, this.selectedWebDoc, this.estimateFiles],
     pipe(
-      switchMap(([selectedFile, estimateFiles]) => {
+      debounceTime(300),
+      switchMap(([selectedFile, selectedWebDoc, estimateFiles]) => {
+        const storageFileId = selectedFile?.doc?.storageFile?.id
+        if (selectedFile && estimateFiles[storageFileId]) {
+          return of(estimateFiles[storageFileId])
+        }
+        const scrapeId = selectedWebDoc?.metadata?.scrapeId
+        if (selectedWebDoc && estimateFiles[scrapeId]) {
+          return of(estimateFiles[scrapeId])
+        }
+
         if (selectedFile) {
-          if (estimateFiles[selectedFile.storageFile.id]) {
-            return of(estimateFiles[selectedFile.storageFile.id])
-          }
           this.estimating.set(true)
           return this.knowledgeDocumentService
             .estimate({
               parserConfig: this.parserConfig(),
-              storageFile: selectedFile.storageFile
+              storageFileId: selectedFile.doc.storageFile.id
             })
             .pipe(
               catchError((err) => {
@@ -114,23 +101,50 @@ export class KnowledgeDocumentCreateStep2Component {
                 this.estimating.set(false),
                   this.estimateFiles.update((state) => ({
                     ...state,
-                    [selectedFile.storageFile.id]: { error: getErrorMessage(err) }
+                    [storageFileId]: { error: getErrorMessage(err) }
                   }))
                 return EMPTY
               }),
               map((docs) => {
                 this.estimating.set(false),
-                  this.estimateFiles.update((state) => ({ ...state, [selectedFile.storageFile.id]: { docs } }))
+                  this.estimateFiles.update((state) => ({ ...state, [storageFileId]: { docs } }))
                 return { docs, error: null }
               })
             )
         }
+
+        if (selectedWebDoc) {
+          this.estimating.set(true)
+          return this.knowledgeDocumentService
+            .estimate({
+              parserConfig: this.parserConfig(),
+              pages: [{metadata: selectedWebDoc.metadata, pageContent: ''}]
+            })
+            .pipe(
+              catchError((err) => {
+                this.#toastr.error(getErrorMessage(err))
+                this.estimating.set(false),
+                  this.estimateFiles.update((state) => ({
+                    ...state,
+                    [scrapeId]: { error: getErrorMessage(err) }
+                  }))
+                return EMPTY
+              }),
+              map((docs) => {
+                this.estimating.set(false),
+                  this.estimateFiles.update((state) => ({ ...state, [scrapeId]: { docs } }))
+                return { docs, error: null }
+              })
+            )
+
+        }
         return of(null)
       })
-    )
+    ),
+    { initialValue: null }
   )
 
-  readonly parserConfig = model<DocumentParserConfig>({} as DocumentParserConfig)
+  readonly parserConfig = this.createComponent.parserConfig
   get delimiter() {
     return this.parserConfig().delimiter
   }
@@ -164,28 +178,47 @@ export class KnowledgeDocumentCreateStep2Component {
   }
 
   save() {
-    this.knowledgeDocumentService
-      .createBulk(
-        this.fileList().map((item) => ({
-          knowledgebaseId: this.knowledgebase().id,
-          storageFileId: item.storageFile.id,
-          parserConfig: this.parserConfig()
-        }))
-      )
+    combineLatest([
+      this.fileList()?.length ? 
+        this.knowledgeDocumentService
+          .createBulk(
+            this.fileList().map((item) => ({
+              knowledgebaseId: this.knowledgebase().id,
+              storageFileId: item.doc.storageFile.id,
+              parserConfig: this.parserConfig()
+            }))
+          ) : of([]),
+      this.webDocs()?.length ?
+        this.knowledgeDocumentService.createBulk(
+          [
+            {
+              knowledgebaseId: this.knowledgebase().id,
+              parserConfig: this.parserConfig(),
+              options: this.createComponent.webOptions(),
+              pages: this.webDocs().map((doc) => ({
+                ...doc,
+                status: 'finish'
+              }))
+            }
+          ]
+        ) : of([])
+    ])
       .pipe(
-        switchMap((docs) => {
+        switchMap(([files, docs]) => {
           this.fileList.update((state) => {
             return state.map((item, i) => {
               return {
                 ...item,
-                doc: docs[i]
+                doc: files[i]
               }
             })
           })
 
-          return this.knowledgeDocumentService.startParsing(docs.map((doc) => doc.id)).pipe(
-            tap((docs) => this.createComponent.updateDocs(docs))
-          )
+          this.createComponent.documents.set([...files, ...docs])
+
+          return this.knowledgeDocumentService
+            .startParsing([...files, ...docs].map((doc) => doc.id))
+            .pipe(tap((docs) => this.createComponent.updateDocs(docs)))
         })
       )
       .subscribe({
@@ -196,5 +229,9 @@ export class KnowledgeDocumentCreateStep2Component {
           this.#toastr.error(getErrorMessage(err))
         }
       })
+  }
+
+  prevStep() {
+    this.createComponent.prevStep()
   }
 }

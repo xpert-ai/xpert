@@ -74,7 +74,8 @@
     </div>
 
     <div class="flex items-center mt-8 py-2">
-      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium"
+        (click)="prevStep()">
         <i class="ri-arrow-left-line mr-1"></i>
         上一步
       </button>
@@ -94,13 +95,13 @@
           >
             <div class="flex items-center space-x-0.5">
               @if (selectedFile()) {
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="remixicon shrink-0 w-5 h-5 text-[#2684FF]">
-                  <path d="M16 2L21 7V21.0082C21 21.556 20.5551 22 20.0066 22H3.9934C3.44476 22 3 21.5447 3 21.0082V2.9918C3 2.44405 3.44495 2 3.9934 2H16ZM14 8V12.989L12 11L10.0108 13L10 8H8V16H10L12 14L14 16H16V8H14Z"></path>
-                </svg>
-                <span class="system-md-semibold max-w-[200px] truncate text-text-primary">
-                  {{selectedFile().file.name}}
-                </span>
-              } @else {
+                @if (selectedFile().doc) {
+                  <knowledge-doc-id [doc]="selectedFile().doc" />
+                }
+              } @else if(selectedWebDoc()) {
+                <div>{{selectedWebDoc().metadata.title}}</div>
+              }
+              @else {
                 <div>
                   选择文件进行预览
                 </div>
@@ -146,8 +147,16 @@
 <ng-template #files>
   <div cdkMenu class="cdk-menu__medium">
     @for (file of fileList(); track file) {
-      <div cdkMenuItem (click)="selectedFile.set(file)">
+      <div cdkMenuItem (click)="selectedWebDoc.set(null);selectedFile.set(file)">
         {{ file.file.name }}
+      </div>
+    }
+    @for (doc of webDocs(); track doc) {
+      <div cdkMenuItem (click)="selectedFile.set(null);selectedWebDoc.set(doc)">
+        <div class="w-full flex flex-col items-start">
+          <div>{{ doc.metadata.title }}</div>
+          <div class="text-xs text-text-secondary">{{ doc.metadata.url }}</div>
+        </div>
       </div>
     }
   </div>

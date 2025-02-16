@@ -15,6 +15,7 @@ import {
 	Controller,
 	Delete,
 	Get,
+	InternalServerErrorException,
 	Logger,
 	Param,
 	Post,
@@ -109,8 +110,13 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 		if (body.integration) {
 			body.integration = await this.integrationService.findOne(body.integration.id)
 		}
-		const docs = await this.commandBus.execute(new RagWebLoadCommand(type, body))
-		return docs
+
+		try {
+			const docs = await this.commandBus.execute(new RagWebLoadCommand(type, body))
+			return docs
+		} catch(err) {
+			throw new InternalServerErrorException(err.message)
+		}
 	}
 
 	@Delete(':id/job')

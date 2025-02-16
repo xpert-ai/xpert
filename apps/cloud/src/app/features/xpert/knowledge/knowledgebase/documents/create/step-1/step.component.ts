@@ -17,7 +17,9 @@ import { BehaviorSubject, catchError, of, pipe, switchMap, tap, map } from 'rxjs
 import {
   getErrorMessage,
   IIntegration,
+  IKnowledgeDocument,
   IKnowledgeDocumentPage,
+  injectHelpWebsite,
   IntegrationService,
   IStorageFile,
   KDocumentSourceType,
@@ -36,6 +38,8 @@ import { KnowledgeDocumentsComponent } from '../../documents.component'
 import { KnowledgeDocumentCreateComponent, TFileItem } from '../create.component'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { ContentLoaderModule } from '@ngneat/content-loader'
+import { uniq } from 'lodash'
+import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
 
 @Component({
   standalone: true,
@@ -56,7 +60,8 @@ import { ContentLoaderModule } from '@ngneat/content-loader'
     NgmSpinComponent,
     SafePipe,
     ParameterComponent,
-    NgmCheckboxComponent
+    NgmCheckboxComponent,
+    KnowledgeDocIdComponent
   ]
 })
 export class KnowledgeDocumentCreateStep1Component {
@@ -71,6 +76,7 @@ export class KnowledgeDocumentCreateStep1Component {
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly documentsComponent = inject(KnowledgeDocumentsComponent)
   readonly createComponent = inject(KnowledgeDocumentCreateComponent)
+  readonly website = injectHelpWebsite()
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
 
@@ -79,7 +85,7 @@ export class KnowledgeDocumentCreateStep1Component {
   readonly loading = signal(false)
 
   readonly step = signal(0)
-  readonly sourceType = model<KDocumentSourceType[]>([KDocumentSourceType.FILE])
+  readonly sourceType = this.createComponent.sourceType
 
   readonly fileTypeOptions: TSelectOption[] = [
     {
@@ -87,6 +93,10 @@ export class KnowledgeDocumentCreateStep1Component {
       label: {
         zh_Hans: '文件',
         en_US: 'File'
+      },
+      description: {
+        zh_Hans: '上传本地文档',
+        en_US: 'Upload local files'
       }
     },
     {
@@ -96,14 +106,14 @@ export class KnowledgeDocumentCreateStep1Component {
         en_US: 'Web'
       },
       description: {
-        zh_Hans: '网络',
-        en_US: 'Web'
+        zh_Hans: '抓取网络页面文本',
+        en_US: 'Scrape web page text'
       }
     }
   ]
 
   readonly webTypeOptions: TSelectOption[] = KDocumentWebTypeOptions
-  readonly webTypes = model<TSelectOption<KDocumentWebTypeEnum>[]>([])
+  readonly webTypes = this.createComponent.webTypes
 
   readonly webOptionSchema = derivedFrom(
     [this.webTypes],
@@ -114,7 +124,8 @@ export class KnowledgeDocumentCreateStep1Component {
         }
         return of(null)
       })
-    )
+    ),
+    { initialValue: null }
   )
 
   readonly fileList = this.createComponent.fileList
@@ -124,7 +135,6 @@ export class KnowledgeDocumentCreateStep1Component {
 
   readonly expand = signal(false)
 
-  // readonly parametersValue = model<Record<string, unknown>>({})
   readonly webParams = computed(() => {
     const parametersValue = this.parametersValue()
     return this.webOptionSchema()?.options?.filter((option) => {
@@ -147,15 +157,17 @@ export class KnowledgeDocumentCreateStep1Component {
     }).pipe(map(({items}) => items)) : of(null)
   })
 
-  readonly integration = model<IIntegration>(null)
+  readonly integration = this.createComponent.integration
 
-  readonly webOptions = model<TDocumentWebOptions>(null)
+  readonly webOptions = this.createComponent.webOptions
   readonly parametersValue = computed(() => this.webOptions()?.params)
   readonly loadingWeb = signal(false)
 
-  readonly webResult = signal<TRagWebResult>(null)
+  readonly webResult = this.createComponent.webResult
+  readonly selectedWebPages = this.createComponent.selectedWebPages
   readonly webDocs = computed(() => this.webResult()?.docs)
   readonly duration = computed(() => this.webResult()?.duration)
+  readonly webError = signal('')
 
   constructor() {
     effect(() => {
@@ -216,8 +228,12 @@ export class KnowledgeDocumentCreateStep1Component {
       .subscribe({
         complete: () => {
           item.loading = false
-          item.storageFile = storageFile
-          this.fileList.update((state) => [...state])
+          item.doc = {
+            storageFile,
+            sourceType: KDocumentSourceType.FILE,
+            type: item.file.name.split('.').pop().toLowerCase()
+          } as IKnowledgeDocument
+          this.fileList.update((state) => state.map((_) => ({..._})))
         }
       })
   }
@@ -225,7 +241,7 @@ export class KnowledgeDocumentCreateStep1Component {
   removeFile(item: TFileItem) {
     item.loading = true
     this.fileList.update((state) => [...state])
-    this.storageFileService.delete(item.storageFile.id).subscribe({
+    this.storageFileService.delete(item.doc.storageFile.id).subscribe({
       next: () => {
         this.fileList.update((state) => {
           const index = state.indexOf(item)
@@ -271,21 +287,33 @@ export class KnowledgeDocumentCreateStep1Component {
   }
 
   loadRagWebPages() {
+    this.webError.set(null)
     this.loadingWeb.set(true)
     this.knowledgeDocumentService.loadRagWebPages(this.webTypes()[0].value, this.webOptions(), this.integration())
       .subscribe({
         next: (result) => {
           this.loadingWeb.set(false)
           this.webResult.set(result)
+          this.selectedWebPages.set(result.docs.map((doc) => doc.metadata.scrapeId))
         },
         error: (err) => {
+          this.webError.set(getErrorMessage(err))
           this.loadingWeb.set(false)
-          this.#toastr.error(getErrorMessage(err))
         }
       })
   }
 
   closePreviewWeb() {
     this.previewDoc.set(null)
+  }
+
+  isSelectedPage(page: IKnowledgeDocumentPage) {
+    return this.selectedWebPages().includes(page.metadata.scrapeId)
+  }
+
+  togglePage(page: IKnowledgeDocumentPage, value: boolean) {
+    this.selectedWebPages.update((state) => {
+      return value ? uniq([...state, page.metadata.scrapeId]) : state.filter((id) => id !== page.metadata.scrapeId)
+    })
   }
 }

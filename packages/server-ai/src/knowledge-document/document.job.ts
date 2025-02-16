@@ -1,20 +1,16 @@
-import { DocxLoader } from '@langchain/community/document_loaders/fs/docx'
-import { EPubLoader } from '@langchain/community/document_loaders/fs/epub'
-import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
+
 import { IKnowledgebase, IKnowledgeDocument } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
 import { Inject, Logger, Scope } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { Job } from 'bull'
-import { Document } from 'langchain/document'
-import { TextLoader } from 'langchain/document_loaders/fs/text'
-import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter'
-import { FileStorage, Provider } from '@metad/server-core'
+import { estimateTokenUsage } from '@metad/copilot'
+import { Provider } from '@metad/server-core'
 import { KnowledgebaseService, KnowledgeDocumentVectorStore } from '../knowledgebase/index'
 import { KnowledgeDocumentService } from './document.service'
 import { CopilotTokenRecordCommand } from '../copilot-user'
-import { estimateTokenUsage } from '@metad/copilot'
+import { KnowledgeDocLoadCommand } from './commands'
 
 @Processor({
 	name: 'embedding-document',
@@ -61,30 +57,13 @@ export class KnowledgeDocumentConsumer {
 		}
 
 		for await (const doc of job.data.docs) {
-			const document = await this.service.findOne(doc.id, { relations: ['storageFile'] })
+			const document = await this.service.findOne(doc.id, { relations: ['pages'] })
 
 			try {
-				this.storageProvider = new FileStorage()
-					.setProvider(document.storageFile.storageProvider)
-					.getProviderInstance()
-				let data: Document<Record<string, any>>[]
-				switch (document.type.toLowerCase()) {
-					case 'md':
-						data = await this.processMarkdown(document)
-						break
-					case 'pdf':
-						data = await this.processPdf(document)
-						break
-					case 'epub':
-						data = await this.processEpub(document)
-						break
-					case 'docx':
-						data = await this.processDocx(document)
-						break
-				}
+				const data = await this.commandBus.execute(new KnowledgeDocLoadCommand({doc: document}))
 
 				if (data) {
-					this.logger.debug(`Embeddings document '${document.storageFile.originalName}' size: ${data.length}`)
+					this.logger.debug(`Embeddings document '${document.storageFile?.originalName || document.options?.url}' size: ${data.length}`)
 					// Clear history chunks
 					await vectorStore.deleteKnowledgeDocument(document)
 					const batchSize = this.knowledgebase.parserConfig?.embeddingBatchSize || 10
@@ -109,7 +88,7 @@ export class KnowledgeDocumentConsumer {
 								? 100
 								: (((batchSize * count) / data.length) * 100).toFixed(1)
 						this.logger.debug(
-							`Embeddings document '${document.storageFile.originalName}' progress: ${progress}%`
+							`Embeddings document '${document.storageFile?.originalName || document.options?.url}' progress: ${progress}%`
 						)
 						if (await this.checkIfJobCancelled(doc.id)) {
 							this.logger.debug(
@@ -135,61 +114,6 @@ export class KnowledgeDocumentConsumer {
 		}
 
 		return {}
-	}
-
-	async processMarkdown(document: IKnowledgeDocument): Promise<Document<Record<string, any>>[]> {
-		const fileBuffer = await this.storageProvider.getFile(document.storageFile.file)
-
-		const loader = new TextLoader(new Blob([fileBuffer], { type: 'text/plain' }))
-		const data = await loader.load()
-
-		return await this.splitDocuments(document, data)
-	}
-
-	async processPdf(document: IKnowledgeDocument): Promise<Document<Record<string, any>>[]> {
-		const fileBuffer = await this.storageProvider.getFile(document.storageFile.file)
-		const loader = new PDFLoader(new Blob([fileBuffer], { type: 'pdf' }))
-		const data = await loader.load()
-
-		return await this.splitDocuments(document, data)
-	}
-
-	async processEpub(document: IKnowledgeDocument): Promise<Document<Record<string, any>>[]> {
-		const filePath = this.storageProvider.path(document.storageFile.file)
-		const loader = new EPubLoader(filePath, { splitChapters: false })
-		const data = await loader.load()
-
-		return await this.splitDocuments(document, data)
-	}
-
-	async processDocx(document: IKnowledgeDocument): Promise<Document<Record<string, any>>[]> {
-		const filePath = this.storageProvider.path(document.storageFile.file)
-		const loader = new DocxLoader(filePath)
-		const data = await loader.load()
-
-		return await this.splitDocuments(document, data)
-	}
-
-	async splitDocuments(document: IKnowledgeDocument, data: Document[]) {
-		let chunkSize: number, chunkOverlap: number
-		if (document.parserConfig?.chunkSize) {
-			chunkSize = Number(document.parserConfig.chunkSize)
-			chunkOverlap = Number(document.parserConfig.chunkOverlap ?? chunkSize / 10)
-		} else if (this.knowledgebase.parserConfig?.chunkSize) {
-			chunkSize = Number(this.knowledgebase.parserConfig.chunkSize)
-			chunkOverlap = Number(this.knowledgebase.parserConfig.chunkOverlap ?? chunkSize / 10)
-		} else {
-			chunkSize = 1000
-			chunkOverlap = 100
-		}
-		const delimiter = document.parserConfig?.delimiter || this.knowledgebase.parserConfig?.delimiter
-		const textSplitter = new RecursiveCharacterTextSplitter({
-			chunkSize,
-			chunkOverlap,
-			separators: delimiter?.split(' ')
-		})
-
-		return await textSplitter.splitDocuments(data)
 	}
 
 	async checkIfJobCancelled(docId: string): Promise<boolean> {

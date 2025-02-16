@@ -3,8 +3,8 @@
   
   <div ngmButtonGroup >
     <button mat-mini-fab [matTooltip]=" 'PAC.Knowledgebase.NewFiles' | translate: {Default: 'New Files' }"
-        (click)="uploadDocuments()">
-        <mat-icon fontSet="material-icons-outlined">add</mat-icon>
+      (click)="uploadDocuments()">
+      <mat-icon fontSet="material-icons-outlined">add</mat-icon>
     </button>
   </div>
 </div>
@@ -17,7 +17,7 @@
         <th mat-header-cell *matHeaderCellDef mat-sort-header> {{'PAC.KEY_WORDS.' + column.caption | translate: {Default: column.caption} }} </th>
         <td mat-cell *matCellDef="let element">
           @if (column.name === 'name') {
-            <a [routerLink]="['.', element.id]">{{element.storageFile.originalName}}</a>
+            <a [routerLink]="['.', element.id]">{{element.storageFile?.originalName || element.options?.url}}</a>
           } @else {
             {{getValue(element, column.name)}}
           }</td>
@@ -101,28 +101,40 @@
           <div class="example-element-diagram flex flex-col justify-center items-center border-2 border-solid border-neutral-500">
             <div class="uppercase text-lg"> {{element.type}} </div>
           </div>
-          <div class="example-element-description flex-1 flex flex-wrap gap-2">
-            <ngm-slider-input [label]=" 'PAC.Knowledgebase.ChunkSize' | translate: {Default: 'Chunk Size'} "
-              class="w-[300px]"
-              [ngModel]="element.parserConfig.chunkSize"
-              (ngModelChange)="element.parserConfig.chunkSize = $event"
-              (changeEnd)="updateParserConfig(element, {chunkSize: element.parserConfig.chunkSize})"
-              [min]="0"
-              [max]="10000"
-            />
 
-            <ngm-slider-input [label]=" 'PAC.Knowledgebase.ChunkOverlap' | translate: {Default: 'Chunk Overlap'} "
-              class="w-[300px]"
-              [ngModel]="element.parserConfig.chunkOverlap"
-              (ngModelChange)="element.parserConfig.chunkOverlap = $event"
-              (changeEnd)="updateParserConfig(element, {chunkOverlap: element.parserConfig.chunkOverlap})"
-              [min]="0"
-              [max]="1000"
-            />
+          <div class="w-full flex flex-col p-4">
+            <div class="flex-1 flex flex-wrap gap-2">
+              <ngm-slider-input [label]=" 'PAC.Knowledgebase.ChunkSize' | translate: {Default: 'Chunk Size'} "
+                class="w-[300px]"
+                [ngModel]="element.parserConfig.chunkSize"
+                (ngModelChange)="element.parserConfig.chunkSize = $event"
+                (changeEnd)="updateParserConfig(element, {chunkSize: element.parserConfig.chunkSize})"
+                [min]="0"
+                [max]="10000"
+              />
+  
+              <ngm-slider-input [label]=" 'PAC.Knowledgebase.ChunkOverlap' | translate: {Default: 'Chunk Overlap'} "
+                class="w-[300px]"
+                [ngModel]="element.parserConfig.chunkOverlap"
+                (ngModelChange)="element.parserConfig.chunkOverlap = $event"
+                (changeEnd)="updateParserConfig(element, {chunkOverlap: element.parserConfig.chunkOverlap})"
+                [min]="0"
+                [max]="1000"
+              />
+  
+              <ngm-input [label]="'PAC.Knowledgebase.Delimiter' | translate: {Default: 'Delimiter'}"
+                class="w-[200px]"
+                [ngModel]="element.parserConfig.delimiter" (ngModelChange)="updateParserConfig(element, {delimiter: $event})" />
+            </div>
 
-            <ngm-input [label]="'PAC.Knowledgebase.Delimiter' | translate: {Default: 'Delimiter'}"
-              class="w-[200px]"
-              [ngModel]="element.parserConfig.delimiter" (ngModelChange)="updateParserConfig(element, {delimiter: $event})" />
+            @if (element.pages?.length) {
+              <div>{{'PAC.Knowledgebase.Pages' | translate: {Default: 'Pages'} }}</div>
+              <ul class="flex flex-col gap-1">
+                @for (page of element.pages; track page.id) {
+                  <li class="text-sm rounded-md px-2 py-1 text-text-secondary hover:bg-hover-bg">{{page.metadata?.title}}</li>
+                }
+              </ul>
+            }
           </div>
         </div>
       </td>

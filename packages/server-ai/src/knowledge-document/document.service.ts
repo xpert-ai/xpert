@@ -22,11 +22,14 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 	}
 
 	async createDocument(document: Partial<IKnowledgeDocument>): Promise<KnowledgeDocument> {
-		const storageFile = await this.storageFileService.findOne(document.storageFileId)
-		const fileType = storageFile.originalName.split('.').pop()
+		// Complete file type
+		if (!document.type && document.storageFileId) {
+			const storageFile = await this.storageFileService.findOne(document.storageFileId)
+			const fileType = storageFile.originalName.split('.').pop()
+			document.type = fileType
+		}
 		return await this.create({
 			...document,
-			type: document.type ?? fileType
 		})
 	}
 
