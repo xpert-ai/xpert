@@ -4,7 +4,8 @@ import { IKnowledgeDocumentPage } from "./knowledge-doc-page.model";
 
 export enum KDocumentWebTypeEnum {
   Playwright = 'playwright',
-  FireCraw = 'firecraw'
+  FireCraw = 'firecraw',
+  Notion = 'notion'
 }
 
 export type TRagWebOptions = {
