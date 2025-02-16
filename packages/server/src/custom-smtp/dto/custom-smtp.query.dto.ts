@@ -11,6 +11,6 @@ export class CustomSmtpQueryDTO implements ICustomSmtpFindInput {
 	@ApiPropertyOptional({ type: () => String })
 	@IsOptional()
 	@IsUUID()
-	@IsOrganizationBelongsToUser()
+	// @IsOrganizationBelongsToUser()
 	readonly organizationId: IOrganization['id'];
 }
