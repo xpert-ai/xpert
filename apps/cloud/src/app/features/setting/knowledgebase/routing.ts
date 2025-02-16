@@ -19,6 +19,7 @@ export default [
   },
   {
     path: ':id',
-    loadChildren: () => import('./knowledgebase/routing').then((m) => m.default)
+    // loadChildren: () => import('./knowledgebase/routing').then((m) => m.default)
+    loadChildren: () => import('../../xpert/knowledge/knowledgebase/routing').then((m) => m.default)
   }
 ] as Routes

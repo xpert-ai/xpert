@@ -1,13 +1,13 @@
 import { ICopilotModel, IKnowledgebase, KnowledgebaseParserConfig, KnowledgebasePermission, KnowledgebaseTypeEnum, TAvatar } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsNumber, IsOptional, IsString, IsEnum } from 'class-validator'
 import { Column, Entity, Index, JoinColumn, OneToOne, RelationId } from 'typeorm'
 import { CopilotModel } from '../core/entities/internal'
+import { WorkspaceBaseEntity } from '../core/entities/base.entity'
 
 @Entity('knowledgebase')
 @Index(['tenantId', 'organizationId', 'name'], { unique: true })
-export class Knowledgebase extends TenantOrganizationBaseEntity implements IKnowledgebase {
+export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase {
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@Column()

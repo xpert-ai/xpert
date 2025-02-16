@@ -5,8 +5,8 @@
   <ngm-card-create
     [title]=" 'PAC.Knowledgebase.AddKnowledgebase' | translate: {Default: 'Add knowledgebase'} "
     [helpTitle]="'PAC.Knowledgebase.AddKnowledgebaseHelp' | translate: {Default: 'Learn more about custom knowledgebases'}"
-    helpUrl="/docs/ai/knowledgebase/"
-    description="Import your own text, pdf, markdown, word data."
+    helpUrl="/docs/ai/knowledge/"
+    [description]="'PAC.Knowledgebase.AddKnowledgebaseDesc' | translate: {Default: 'Import your own text data or online web content data to enhance the context of LLM.'}"
     (create)="newKnowledgebase()"
   />
 
@@ -28,9 +28,11 @@
           <div class="flex flex-col items-start overflow-hidden">
             <p class="text-xs flex items-center text-token-text-secondary opacity-80">
               @if (item.permission === KnowledgebasePermission.Public || item.permission === KnowledgebasePermission.Organization) {
-                <mat-icon class="mr-1 scale-75" displayDensity="compact" fontSet="material-icons-round">public</mat-icon> {{ 'PAC.Knowledgebase.Permission_Public' | translate: {Default:'Public'} }}
+                <i class="ri-earth-line mr-1"></i>
+                {{ 'PAC.Knowledgebase.Permission_Public' | translate: {Default:'Public'} }}
               } @else {
-                <mat-icon class="mr-1 scale-75" displayDensity="compact" fontSet="material-icons-round">lock</mat-icon> {{ 'PAC.Knowledgebase.Permission_Private' | translate: {Default:'Private'} }}
+                <i class="ri-git-repository-private-line mr-1"></i>
+                {{ 'PAC.Knowledgebase.Permission_Private' | translate: {Default:'Private'} }}
               }
             </p>
             <div class="max-w-full font-bold text-base truncate" [title]="item.name">{{item.name}}</div>
@@ -54,10 +56,8 @@
               dark:text-zinc-200 dark:hover:bg-neutral-700 dark:active:bg-neutral-500"
             type="button">
             {{'PAC.KEY_WORDS.Open' | translate: {Default: 'Open'} }}
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-              stroke="currentColor" class="w-4 h-4">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"></path>
-            </svg>
+
+            <i class="ri-arrow-right-line ml-2"></i>
           </button>
         </a>
       </div>

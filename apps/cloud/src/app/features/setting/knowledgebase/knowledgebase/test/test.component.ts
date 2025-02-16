@@ -9,6 +9,9 @@ import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
+/**
+ * @deprecated use xpert's Knowledges
+ */
 @Component({
   standalone: true,
   selector: 'pac-settings-knowledgebase-test',

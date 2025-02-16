@@ -160,4 +160,9 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 	async deleteChunk(@Param('docId') docId: string, @Param('id') id: string) {
 		await this.service.deleteChunk(docId, id)
 	}
+
+	@Delete(':id/page/:pageId')
+	async deletePage(@Param('id') docId: string, @Param('pageId') id: string) {
+		await this.service.deletePage(docId, id)
+	}
 }

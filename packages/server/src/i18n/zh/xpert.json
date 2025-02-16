@@ -5,6 +5,7 @@
         "EmbeddingModelForMemory": "需要为长期记忆配置'嵌入'模型",
         "AgentOutdated": "Agent '{agentKey}' 记录已更新，请重新同步",
         "FallbackModelNotFound": "未找到'{agent}'的备用模型配置",
-        "CopilotModelConfigError": "智能助理模型‘{model}’未正确配置"
+        "CopilotModelConfigError": "智能助理模型‘{model}’未正确配置",
+        "NameExists": "名称已存在"
     }
 }

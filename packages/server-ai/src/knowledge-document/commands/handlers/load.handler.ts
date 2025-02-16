@@ -35,11 +35,11 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 		const docs = []
 		for await (const page of doc.pages) {
 			if (page.id) {
-				docs.push(page)
+				docs.push({...page, metadata: { ...page.metadata, docPageId: page.id }})
 			} else {
 				// From cache when scraping web pages
 				const _docs = await this.queryBus.execute(new GetRagWebDocCacheQuery(page.metadata.scrapeId))
-				docs.push(..._docs)
+				docs.push(..._docs.map((doc) => ({...doc, metadata: { ...doc.metadata, docPageId: page.id }})))
 			}
 		}
 

@@ -54,7 +54,7 @@
     <ng-container matColumnDef="expand">
       <th mat-header-cell *matHeaderCellDef aria-label="row actions">&nbsp;</th>
       <td mat-cell *matCellDef="let element">
-        <div class="flex items-center gap-2" displayDensity="cosy" >
+        <div class="flex items-center gap-2 opacity-50 group-hover:opacity-100" displayDensity="cosy" >
           <button mat-icon-button aria-label="expand row" (click)="(expandedElement = expandedElement?.id === element.id ? null : element); $event.stopPropagation()">
             @if (expandedElement?.id === element.id) {
               <mat-icon>keyboard_arrow_up</mat-icon>
@@ -131,7 +131,13 @@
               <div>{{'PAC.Knowledgebase.Pages' | translate: {Default: 'Pages'} }}</div>
               <ul class="flex flex-col gap-1">
                 @for (page of element.pages; track page.id) {
-                  <li class="text-sm rounded-md px-2 py-1 text-text-secondary hover:bg-hover-bg">{{page.metadata?.title}}</li>
+                  <li class="flex justify-between items-center text-sm rounded-md px-2 py-1 text-text-secondary hover:bg-hover-bg">
+                    <span>{{page.metadata?.title}}</span>
+
+                    <button type="button" class="btn danger btn-small w-6 h-6 justify-center" (click)="removePage(element, page)">
+                      <i class="ri-delete-bin-line"></i>
+                    </button>
+                  </li>
                 }
               </ul>
             }
@@ -142,7 +148,7 @@
 
     <tr mat-header-row *matHeaderRowDef="columnsToDisplayWithExpand"></tr>
     <tr mat-row *matRowDef="let element; columns: columnsToDisplayWithExpand;"
-        class="example-element-row"
+        class="example-element-row group"
         [class.example-expanded-row]="expandedElement?.id === element.id"
       >
     </tr>

@@ -30,6 +30,7 @@ import {
   getDateLocale,
   getErrorMessage,
   IKnowledgeDocument,
+  IKnowledgeDocumentPage,
   injectToastr,
   IStorageFile,
   KnowledgeDocumentService,
@@ -262,5 +263,26 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
           this.#toastr.error(getErrorMessage(err))
         }
       })
+  }
+
+  removePage(doc: IKnowledgeDocument , page: IKnowledgeDocumentPage) {
+    this.knowledgeDocumentService.removePage(doc, page).subscribe({
+      next: () => {
+        this.data.update((docs) => {
+          return docs.map((doc) => {
+            if (doc.pages?.some((_) => _.id === page.id)) {
+              return {
+                ...doc,
+                pages: doc.pages.filter((_) => _.id !== page.id)
+              }
+            }
+            return doc
+          })
+        })
+      },
+      error: (err) => {
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
   }
 }

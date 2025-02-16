@@ -23,10 +23,14 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
 	async createDocument(document: Partial<IKnowledgeDocument>): Promise<KnowledgeDocument> {
 		// Complete file type
-		if (!document.type && document.storageFileId) {
-			const storageFile = await this.storageFileService.findOne(document.storageFileId)
-			const fileType = storageFile.originalName.split('.').pop()
-			document.type = fileType
+		if (!document.type) {
+			if (document.storageFileId) {
+				const storageFile = await this.storageFileService.findOne(document.storageFileId)
+				const fileType = storageFile.originalName.split('.').pop()
+				document.type = fileType
+			} else if (document.options?.url) {
+				document.type = 'html'
+			}
 		}
 		return await this.create({
 			...document,
@@ -51,64 +55,19 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 	}
 
 	async deleteChunk(documentId: string, id: string) {
-		const document = await this.findOne(id, { relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot'] })
+		const document = await this.findOne(documentId, { relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot'] })
 		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase)
 		// const vectorStore = new KnowledgeDocumentVectorStore(document.knowledgebase, this.pgPool)
 		return await vectorStore.deleteChunk(id)
 	}
 
-	// async similaritySearch(
-	// 	query: string,
-	// 	options?: {
-	// 		role?: AiBusinessRole
-	// 		k: number
-	// 		filter: KnowledgeDocumentVectorStore['filter']
-	// 		score?: number
-	// 		tenantId?: string
-	// 		organizationId?: string
-	// 	}
-	// ) {
-	// 	const { role, k, score, filter } = options ?? {}
-	// 	const tenantId = options?.tenantId ?? RequestContext.currentTenantId()
-	// 	const organizationId = options?.organizationId ?? RequestContext.getOrganizationId()
+	async deletePage(documentId: string, id: string) {
+		const document = await this.findOne(documentId, { relations: ['pages', 'knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot'] })
+		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase)
+		await vectorStore.delete({filter: {docPageId: id, knowledgeId: documentId}})
 
-	// 	const { record: copilotRole, success } = await this.roleService.findOneOrFail({ where: { name: role } })
-	// 	let knowledgebases: IKnowledgebase[] = []
-	// 	if (!success) {
-	// 		const result = await this.knowledgebaseService.findAll()
-	// 		knowledgebases = result.items
-	// 	} else {
-	// 		//
-	// 	}
+		document.pages = document.pages.filter((_) => _.id !== id)
+		await this.save(document)
+	}
 
-	// 	const documents = []
-	// 	const kbs = await Promise.all(
-	// 		knowledgebases.map((kb) => {
-	// 			return this.knowledgebaseService.getVectorStore(kb, tenantId, organizationId).then((vectorStore) => {
-	// 				return vectorStore.similaritySearchWithScore(query, k, filter)
-	// 			})
-	// 		})
-	// 	)
-
-	// 	kbs.forEach((kb) => {
-	// 		kb.forEach(([doc, score]) => {
-	// 			documents.push(doc)
-	// 		})
-	// 	})
-
-	// 	return documents
-	// }
-
-	// async maxMarginalRelevanceSearch(
-	// 	query: string,
-	// 	options?: {
-	// 		role?: AiBusinessRole
-	// 		k: number
-	// 		filter: Record<string, any>
-	// 		tenantId?: string
-	// 		organizationId?: string
-	// 	}
-	// ) {
-	// 	//
-	// }
 }

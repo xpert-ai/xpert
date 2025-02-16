@@ -1,6 +1,7 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { ICopilotModel } from './copilot-model.model'
 import { TAvatar } from '../types'
+import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 
 export enum KnowledgebaseTypeEnum {
   Standard = 'standard',
@@ -74,7 +75,7 @@ export type TKnowledgebase = {
 /**
  * Knowledgebase Entity
  */
-export interface IKnowledgebase extends TKnowledgebase, IBasePerTenantAndOrganizationEntityModel {
+export interface IKnowledgebase extends TKnowledgebase, IBasePerWorkspaceEntityModel {
   //
 }
 

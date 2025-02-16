@@ -1,4 +1,4 @@
-import { IKnowledgebase, TAvatar } from '@metad/contracts'
+import { IKnowledgebase, IUser, KnowledgebasePermission, TAvatar } from '@metad/contracts'
 import { Exclude, Expose } from 'class-transformer'
 import { Knowledgebase } from '../knowledgebase.entity'
 
@@ -21,6 +21,12 @@ export class KnowledgebasePublicDTO extends Knowledgebase {
 
 	@Expose()
 	declare status: string
+
+	@Expose()
+	declare permission?: KnowledgebasePermission
+
+	@Expose()
+	declare createdBy?: IUser
 
 	constructor(partial: IKnowledgebase) {
 		super()

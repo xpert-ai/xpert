@@ -97,21 +97,21 @@ const routes: Routes = [
         }
       },
 
-      {
-        path: 'notification-destinations',
-        loadChildren: () =>
-          import('./notification-destination/notification-destination.module').then(
-            (m) => m.NotificationDestinationModule
-          ),
-        canActivate: [NgxPermissionsGuard],
-        data: {
-          title: 'settings/notification-destinations',
-          permissions: {
-            only: [AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT],
-            redirectTo
-          }
-        }
-      },
+      // {
+      //   path: 'notification-destinations',
+      //   loadChildren: () =>
+      //     import('./notification-destination/notification-destination.module').then(
+      //       (m) => m.NotificationDestinationModule
+      //     ),
+      //   canActivate: [NgxPermissionsGuard],
+      //   data: {
+      //     title: 'settings/notification-destinations',
+      //     permissions: {
+      //       only: [AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT],
+      //       redirectTo
+      //     }
+      //   }
+      // },
 
       {
         path: 'roles',
@@ -182,13 +182,19 @@ const routes: Routes = [
       {
         path: 'knowledgebase',
         loadChildren: () => import('./knowledgebase/routing').then((m) => m.default),
+        canActivate: [NgxPermissionsGuard],
         data: {
-          title: 'settings/knowledgebase'
+          title: 'settings/knowledgebase',
+          permissions: {
+            only: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN],
+            redirectTo
+          }
         }
       },
       {
         path: 'integration',
         loadChildren: () => import('./integration/routing').then((m) => m.default),
+        canActivate: [NgxPermissionsGuard],
         data: {
           title: 'settings/integration',
           permissions: {
@@ -196,7 +202,6 @@ const routes: Routes = [
             redirectTo
           }
         },
-        canActivate: [NgxPermissionsGuard]
       }
     ]
   }

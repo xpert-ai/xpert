@@ -89,6 +89,7 @@ export class XpertWorkspaceXpertsComponent {
       type: this.type(),
       latest: true
     }
+    if (!this.workspace()) return null
     const workspaceId = this.workspace().id
     return this.refresh$.pipe(
       switchMap(() =>

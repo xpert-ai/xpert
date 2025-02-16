@@ -1,12 +1,12 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, computed, inject } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { DynamicGridDirective } from '@metad/core'
+import { DynamicGridDirective, nonBlank } from '@metad/core'
 import { injectConfirmDelete, injectConfirmUnique } from '@metad/ocap-angular/common'
 import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { BehaviorSubject, map, switchMap } from 'rxjs'
+import { BehaviorSubject, filter, map, switchMap } from 'rxjs'
 import {
   getErrorMessage,
   IKnowledgebase,
@@ -59,13 +59,22 @@ export class XpertWorkspaceKnowledgesComponent {
   readonly organizationId$ = this.#store.selectOrganizationId()
 
   readonly workspace = this.homeComponent.workspace
+  readonly workspaceId = computed(() => this.workspace()?.id)
   readonly searchText = this.homeComponent.searchText
   readonly refresh$ = new BehaviorSubject<boolean>(true)
 
   readonly #knowledgebases = toSignal(
-    this.refresh$.pipe(
-      switchMap(() =>
-        this.knowledgebaseService.getAllInOrg({ relations: ['createdBy'], order: { updatedAt: OrderTypeEnum.DESC } })
+    toObservable(this.workspaceId).pipe(
+      filter(nonBlank),
+      switchMap((workspaceId) =>
+        this.refresh$.pipe(
+          switchMap(() =>
+            this.knowledgebaseService.getAllByWorkspace(workspaceId, {
+              relations: ['createdBy'],
+              order: { updatedAt: OrderTypeEnum.DESC }
+            })
+          )
+        )
       ),
       map(({ items }) => items)
     )
@@ -95,7 +104,8 @@ export class XpertWorkspaceKnowledgesComponent {
       },
       (name: string) =>
         this.knowledgebaseService.create({
-          name
+          name,
+          workspaceId: this.workspaceId()
         })
     ).subscribe({
       next: (result) => {
@@ -109,7 +119,7 @@ export class XpertWorkspaceKnowledgesComponent {
   }
 
   edit(item: IKnowledgebase) {
-    this.#router.navigate([item.id, 'configuration'], { relativeTo: this.#route })
+    this.#router.navigate(['/xpert/knowledges/', item.id, 'configuration'],)
   }
 
   remove(item: IKnowledgebase) {

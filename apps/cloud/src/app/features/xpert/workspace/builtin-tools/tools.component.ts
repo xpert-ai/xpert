@@ -85,6 +85,7 @@ export class XpertWorkspaceBuiltinToolsComponent {
       category: this.type()
       // type: 'openapi'
     }
+    if (!this.workspace()) return null
     const workspaceId = this.workspace().id
     return this.refresh$.pipe(
       switchMap(() =>

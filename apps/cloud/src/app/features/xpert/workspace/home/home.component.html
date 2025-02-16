@@ -11,6 +11,7 @@
       <i class="ri-arrow-down-s-line text-token-text-tertiary"></i>
     </div>
 
+    @if (workspace()) {
     <ul class="relative flex flex-wrap" cdkListbox [cdkListboxDisabled]="!workspace()" [(ngModel)]="types">
       <li
         [cdkOption]="null"
@@ -26,7 +27,8 @@
       </li>
       <li
         [cdkOption]="XpertRoleTypeEnum.Agent"
-        class="xpert-list-option" [ngClass]="{active: type() === XpertRoleTypeEnum.Agent }"
+        class="xpert-list-option"
+        [ngClass]="{active: type() === XpertRoleTypeEnum.Agent }"
         [routerLink]="['xperts']"
       >
         @if (type() === XpertRoleTypeEnum.Agent) {
@@ -38,7 +40,8 @@
       </li>
       <li
         [cdkOption]="XpertRoleTypeEnum.Copilot"
-        class="xpert-list-option" [ngClass]="{active: type() === XpertRoleTypeEnum.Copilot }"
+        class="xpert-list-option"
+        [ngClass]="{active: type() === XpertRoleTypeEnum.Copilot }"
         [routerLink]="['xperts']"
       >
         @if (type() === XpertRoleTypeEnum.Copilot) {
@@ -51,8 +54,10 @@
       </li>
 
       <li [cdkOption]="XpertToolsetCategory.BUILTIN"
-        class="xpert-list-option" [ngClass]="{active: type() === XpertToolsetCategory.BUILTIN }"
+        class="xpert-list-option"
         [routerLink]="['builtin']"
+        routerLinkActive="active"
+        #rla3="routerLinkActive"
       >
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-[14px] h-[14px] mr-1">
           <g id="Icon">
@@ -72,8 +77,10 @@
         {{ 'PAC.Xpert.BuiltinTool' | translate: {Default: 'Built-in Tool'} }}
       </li>
       <li [cdkOption]="XpertToolsetCategory.API"
-        class="xpert-list-option" [ngClass]="{active: type() === XpertToolsetCategory.API}"
+        class="xpert-list-option"
         [routerLink]="['custom']"
+        routerLinkActive="active"
+        #rla2="routerLinkActive"
       >
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-[14px] h-[14px] mr-1">
           <g id="colors" clip-path="url(#clip0_18499_53582)">
@@ -85,10 +92,11 @@
       </li>
       <li [cdkOption]="'knowledgebase'"
         class="xpert-list-option"
-        [ngClass]="{active: type() === 'knowledgebase' }"
         [routerLink]="['knowledges']"
+        routerLinkActive="active"
+        #rla1="routerLinkActive"
       >
-        @if (type() === 'knowledgebase') {
+        @if (rla1.isActive) {
           <i class="ri-book-shelf-fill text-lg mr-1"></i>
         } @else {
           <i class="ri-book-shelf-line text-lg mr-1"></i>
@@ -96,6 +104,7 @@
         {{ 'PAC.Xpert.Knowledgebase' | translate: {Default: 'Knowledgebase'} }}
       </li>
     </ul>
+    }
   </div>
 
   <div class="flex items-center gap-2">

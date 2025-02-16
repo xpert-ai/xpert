@@ -1,8 +1,7 @@
 import { DocumentInterface } from '@langchain/core/documents'
-import { AiBusinessRole, IKnowledgebase, Metadata } from '@metad/contracts'
-import { DATABASE_POOL_TOKEN, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
-import { Inject, Injectable, Logger } from '@nestjs/common'
-import { QueryBus } from '@nestjs/cqrs'
+import { AiBusinessRole, IKnowledgebase, mapTranslationLanguage, Metadata } from '@metad/contracts'
+import { DATABASE_POOL_TOKEN, RequestContext } from '@metad/server-core'
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { assign, sortBy } from 'lodash'
 import { Pool } from 'pg'
@@ -14,19 +13,38 @@ import { KnowledgeDocumentVectorStore } from './vector-store'
 import { AiModelNotFoundException, CopilotModelNotFoundException, CopilotNotFoundException } from '../core/errors'
 import { Embeddings } from '@langchain/core/embeddings'
 import { CopilotModelGetEmbeddingsQuery } from '../copilot-model/queries/index'
+import { XpertWorkspaceBaseService } from '../xpert-workspace'
+import { I18nService } from 'nestjs-i18n'
 
 @Injectable()
-export class KnowledgebaseService extends TenantOrganizationAwareCrudService<Knowledgebase> {
+export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
 	readonly #logger = new Logger(KnowledgebaseService.name)
+
+	@Inject(I18nService)
+	private readonly i18nService: I18nService
 
 	constructor(
 		@InjectRepository(Knowledgebase)
 		repository: Repository<Knowledgebase>,
 		private readonly copilotService: CopilotService,
-		private readonly queryBus: QueryBus,
-		@Inject(DATABASE_POOL_TOKEN) private readonly pgPool: Pool
+		@Inject(DATABASE_POOL_TOKEN) private readonly pgPool: Pool,
+		
 	) {
 		super(repository)
+	}
+
+	async create(entity: Partial<IKnowledgebase>) {
+		// Check name
+		const exist = await super.findOneOrFail({
+			where: {name: entity.name}
+		})
+		if (exist.success) {
+			throw new BadRequestException(
+				await this.i18nService.t('xpert.Error.NameExists', {lang: mapTranslationLanguage(RequestContext.getLanguageCode())})
+			)
+		}
+		
+		return await super.create(entity)
 	}
 
 	/**
