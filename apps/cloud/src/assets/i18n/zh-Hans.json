@@ -1961,6 +1961,12 @@
       "GotoWorkspace": "前往工作空间",
       "StopEmbed": "终止嵌入，如需再次潜入则从零开始",
       "EmbedCancelled": "嵌入已取消",
+      "RecallSettings": "召回设置",
+      "RecallParams": "召回设置",
+      "Threshold": "阈值",
+      "TopKTooltip": "用于筛选与用户问题相似度最高的文本片段。",
+      "ScoreTooltip": "用于设置文本块筛选的相似度阈值",
+      "WeightTooltip": "在多知识库组合中的权重",
       "Chunk": "分块"
     },
     "Integration": {
@@ -2400,7 +2406,9 @@
       "OutputVariable": "输出变量",
       "CustomOutputStructureTip": "是否自定义输出结构",
       "GenerateContent": "生成内容",
-      "StateVariable": "状态变量"
+      "StateVariable": "状态变量",
+      "TopKTooltip": "用于筛选与用户问题相似度最高的文本片段。",
+      "RecallSettings": "召回设置"
     },
     "title": {
       "short": "Xpert AI"

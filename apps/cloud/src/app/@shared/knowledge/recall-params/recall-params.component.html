@@ -1,0 +1,125 @@
+<div class="flex justify-between items-center">
+  <div class="flex items-center h-6">
+    <div class="font-semibold uppercase text-sm text-text-primary">
+      {{ 'PAC.Knowledgebase.RecallParams' | translate: {Default: 'Recall Params'} }}
+    </div>
+  </div>
+</div>
+
+<div class="border-b border-solid border-divider-regular my-2"></div>
+
+<div class="flex items-center justify-between">
+  <div class="flex items-center h-6">
+    <span class="mr-1 text-text-secondary system-sm-semibold">Top K</span>
+    <div class="shrink-0 text-text-tertiary hover:text-text-secondary"
+      [matTooltip]="'PAC.Knowledgebase.TopKTooltip' | translate: {Default: 'Used to filter text chunks that are most similar to user questions.'}"
+      matTooltipPosition="above"
+      >
+      <i class="ri-question-line"></i>
+    </div>
+  </div>
+</div>
+<div class="mt-1 flex items-center">
+  <div class="mr-3 flex shrink-0 items-center">
+    <div class="flex">
+      <div class="relative w-full">
+        <input
+          class="py-1.5 bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular w-[72px]"
+          step="1"
+          max="20"
+          min="1"
+          type="number"
+          tabindex="-1"
+          [ngModel]="topK()"
+          (ngModelChange)="update({topK: $event})"
+        />
+      </div>
+    </div>
+  </div>
+  <div class="flex items-center grow">
+    <mat-slider class="w-full" ngm-density="small" [max]="20" [min]="1" [step]="1" showTickMarks discrete >
+      <input matSliderThumb 
+        [ngModel]="topK()"
+        (dragEnd)="update({topK: $event.value})"
+      >
+    </mat-slider>
+  </div>
+</div>
+ 
+<div class="flex items-center justify-between">
+  <div class="flex items-center h-6">
+    <span class="mr-1 text-text-secondary system-sm-semibold">Score {{ 'PAC.Knowledgebase.Threshold' | translate: {Default: 'Threshold'} }}</span>
+    <div class="shrink-0 text-text-tertiary hover:text-text-secondary"
+      [matTooltip]="'PAC.Knowledgebase.ScoreTooltip' | translate: {Default: 'Used to set the similarity threshold for text chunk filtering.'}"
+      matTooltipPosition="above"
+      >
+      <i class="ri-question-line"></i>
+    </div>
+  </div>
+</div>
+<div class="mt-1 flex items-center">
+  <div class="mr-3 flex shrink-0 items-center">
+    <div class="flex">
+      <div class="relative w-full">
+        <input
+          class="py-1.5 bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular w-[72px]"
+          step="0.1"
+          max="1"
+          min="0"
+          type="number"
+          tabindex="-1"
+          [ngModel]="score()"
+          (ngModelChange)="update({score: $event})"
+        />
+      </div>
+    </div>
+  </div>
+  <div class="flex items-center grow">
+    <mat-slider class="w-full" ngm-density="small" [max]="1" [min]="0" [step]="0.1" showTickMarks discrete >
+      <input matSliderThumb
+        [ngModel]="score()"
+        (dragEnd)="update({score: $event.value})" 
+      >
+    </mat-slider>
+  </div>
+</div>
+
+@if (enableWeight()) {
+  <div class="flex items-center justify-between">
+    <div class="flex items-center h-6">
+      <span class="mr-1 text-text-secondary system-sm-semibold">{{'PAC.Knowledgebase.Weight' | translate: {Default: 'Weight'} }}</span>
+      <div class="shrink-0 text-text-tertiary hover:text-text-secondary"
+        [matTooltip]="'PAC.Knowledgebase.WeightTooltip' | translate: {Default: 'Weight in the combination of multiple knowledgebases.'}"
+        matTooltipPosition="above"
+        >
+        <i class="ri-question-line"></i>
+      </div>
+    </div>
+  </div>
+  <div class="mt-1 flex items-center">
+    <div class="mr-3 flex shrink-0 items-center">
+      <div class="flex">
+        <div class="relative w-full">
+          <input
+            class="py-1.5 bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular w-[72px]"
+            step="0.1"
+            max="1"
+            min="0"
+            type="number"
+            tabindex="-1"
+            [ngModel]="weight()"
+            (ngModelChange)="update({weight: $event})"
+          />
+        </div>
+      </div>
+    </div>
+    <div class="flex items-center grow">
+      <mat-slider class="w-full" ngm-density="small" [max]="1" [min]="0" [step]="0.1" showTickMarks discrete >
+        <input matSliderThumb
+          [ngModel]="weight()"
+          (dragEnd)="update({weight: $event.value})" 
+        >
+      </mat-slider>
+    </div>
+  </div>
+}

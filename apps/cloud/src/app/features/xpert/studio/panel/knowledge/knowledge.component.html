@@ -41,7 +41,11 @@
   }
 </div>
 
-@if (!knowledgebase()?.id) {
+<div class="w-full flex flex-col p-4">
+  <knowledge-recall-params class="w-full" [enableWeight]="true" [ngModel]="recall()" (ngModelChange)="updateRecall($event)" />
+</div>
+
+@if (!loading() && !knowledgebase()?.id) {
   <div class="flex flex-col justify-start items-stretch p-4 space-y-4 w-full">
     <button class="btn btn-large btn-primary self-center" (click)="gotoKnowledgebase()">
       {{ 'PAC.Xpert.Reconfigure' | translate: {Default: 'Reconfigure'} }}

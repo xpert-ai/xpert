@@ -84,3 +84,22 @@ export enum KnowledgebasePermission {
   Organization = 'organization',
   Public = 'public'
 }
+
+/**
+ * Recall parameters
+ */
+export type TKBRecallParams = {
+  /**
+   * Top K of result chunks
+   */
+  topK?: number
+  /**
+   * At least the similarity threshold
+   */
+  score?: number
+
+  /**
+   * Weight in EnsembleRetriever
+   */
+  weight?: number
+}

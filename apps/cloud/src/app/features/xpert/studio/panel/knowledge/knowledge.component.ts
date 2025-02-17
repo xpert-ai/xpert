@@ -3,17 +3,20 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { CloseSvgComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { IKnowledgebase, TXpertTeamNode, KnowledgebaseService, AiModelTypeEnum } from 'apps/cloud/src/app/@core'
+import { IKnowledgebase, TXpertTeamNode, KnowledgebaseService, AiModelTypeEnum, getErrorMessage, TKBRecallParams } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertKnowledgeTestComponent } from './test/test.component'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { catchError, of } from 'rxjs'
+import { catchError, map, of, startWith } from 'rxjs'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { XpertStudioApiService } from '../../domain'
 import { omit } from 'lodash-es'
 import { Router } from '@angular/router'
+import { MatSliderModule } from '@angular/material/slider'
+import { KnowledgeRecallParamsComponent } from 'apps/cloud/src/app/@shared/knowledge'
+import { FormsModule } from '@angular/forms'
 
 @Component({
   selector: 'xpert-studio-panel-knowledge',
@@ -23,12 +26,15 @@ import { Router } from '@angular/router'
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
+    FormsModule,
     TranslateModule,
     MatTooltipModule,
+    MatSliderModule,
     CloseSvgComponent,
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
     XpertKnowledgeTestComponent,
+    KnowledgeRecallParamsComponent
   ],
   host: {
     tabindex: '-1'
@@ -47,11 +53,16 @@ export class XpertStudioPanelKnowledgeComponent {
   
   // States
   readonly id = computed(() => this.node()?.key)
-  readonly knowledgebase = derivedAsync(() =>
+  readonly name = computed(() => (<IKnowledgebase>this.node()?.entity)?.name)
+  readonly #knowledgebase = derivedAsync<{loading?: boolean; error?: string; knowledgebase?: IKnowledgebase;}>(() =>
     this.id() ? this.knowledgebaseService.getOneById(this.id(), { relations: ['copilotModel'] }).pipe(
-      catchError((err) => of(omit(this.node()?.entity, 'id') as IKnowledgebase))
-    ) : of(this.node()?.entity as IKnowledgebase)
+      map((knowledgebase) => ({knowledgebase})),
+      catchError((err) => of({error: getErrorMessage(err), knowledgebase: omit(this.node()?.entity, 'id') as IKnowledgebase})),
+      startWith({loading: true})
+    ) : of({knowledgebase: this.node()?.entity as IKnowledgebase}), {initialValue: null}
   )
+  readonly knowledgebase = computed(() => this.#knowledgebase()?.knowledgebase)
+  readonly loading = computed(() => this.#knowledgebase()?.loading)
 
   readonly copilotModel = computed(() => this.knowledgebase()?.copilotModel)
 
@@ -59,9 +70,15 @@ export class XpertStudioPanelKnowledgeComponent {
 
   readonly knowledgebases = toSignal(this.studioService.knowledgebases$)
 
+  readonly xpert = computed(() => this.studioService.xpert())
+
+  readonly recalls = computed(() => this.xpert()?.agentConfig?.recalls)
+  readonly recall = computed(() => this.recalls()?.[this.id()])
+
   openTest() {
     this.openedTest.set(true)
   }
+
   closeTest() {
     this.openedTest.set(false)
   }
@@ -71,10 +88,14 @@ export class XpertStudioPanelKnowledgeComponent {
   }
 
   gotoKnowledgebase() {
-    this.#router.navigate(['/settings/knowledgebase'])
+    this.#router.navigate(['/xpert/w/', this.xpert().workspaceId ,'knowledges'])
   }
 
   useKnowledgebase(k: IKnowledgebase) {
     this.studioService.replaceKnowledgebase(this.id(), k)
+  }
+
+  updateRecall(value: TKBRecallParams) {
+    this.studioService.updateXpertAgentConfig({recalls: {...(this.recalls() ?? {}), [this.id()]: value}})
   }
 }
