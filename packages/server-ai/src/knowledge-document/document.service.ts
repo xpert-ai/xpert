@@ -1,11 +1,13 @@
 import { IDocumentChunk, IKnowledgeDocument } from '@metad/contracts'
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
+import { StorageFileService, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { BadRequestException, Injectable, Logger } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Pool } from 'pg'
+import { Document } from 'langchain/document'
 import { Repository } from 'typeorm'
-import { TenantOrganizationAwareCrudService, DATABASE_POOL_TOKEN, StorageFileService } from '@metad/server-core'
-import { KnowledgeDocument } from './document.entity'
 import { KnowledgebaseService, TVectorSearchParams } from '../knowledgebase'
+import { LoadStorageFileCommand } from './commands'
+import { KnowledgeDocument } from './document.entity'
 
 @Injectable()
 export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService<KnowledgeDocument> {
@@ -16,7 +18,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		repository: Repository<KnowledgeDocument>,
 		private readonly storageFileService: StorageFileService,
 		private readonly knowledgebaseService: KnowledgebaseService,
-		@Inject(DATABASE_POOL_TOKEN) private readonly pgPool: Pool
+		private readonly commandBus: CommandBus
 	) {
 		super(repository)
 	}
@@ -33,7 +35,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 			}
 		}
 		return await this.create({
-			...document,
+			...document
 		})
 	}
 
@@ -48,22 +50,26 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 	}
 
 	async deletePage(documentId: string, id: string) {
-		const document = await this.findOne(documentId, { relations: ['pages', 'knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot'] })
+		const document = await this.findOne(documentId, {
+			relations: ['pages', 'knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
+		})
 		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase)
-		await vectorStore.delete({filter: {docPageId: id, knowledgeId: documentId}})
+		await vectorStore.delete({ filter: { docPageId: id, knowledgeId: documentId } })
 
 		document.pages = document.pages.filter((_) => _.id !== id)
 		await this.save(document)
 	}
 
 	async getChunks(id: string, params: TVectorSearchParams) {
-		const document = await this.findOne(id, { relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot'] })
+		const document = await this.findOne(id, {
+			relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
+		})
 		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase)
 		return await vectorStore.getChunks(id, params)
 	}
 
 	async createChunk(id: string, entity: IDocumentChunk) {
-		const {vectorStore, document} = await this.getDocumentVectorStore(id)
+		const { vectorStore, document } = await this.getDocumentVectorStore(id)
 		await vectorStore.addKnowledgeDocument(document, [
 			{
 				metadata: entity.metadata ?? {},
@@ -74,24 +80,41 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
 	async updateChunk(documentId: string, id: string, entity: IDocumentChunk) {
 		try {
-			const {vectorStore, document} = await this.getDocumentVectorStore(documentId)
+			const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
 			return await vectorStore.updateChunk(id, {
 				metadata: entity.metadata,
 				pageContent: entity.content
 			})
-		} catch(err) {
+		} catch (err) {
 			throw new BadRequestException(err.message)
 		}
 	}
 
 	async deleteChunk(documentId: string, id: string) {
-		const {vectorStore, document} = await this.getDocumentVectorStore(documentId)
+		const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
 		return await vectorStore.deleteChunk(id)
 	}
 
 	async getDocumentVectorStore(id: string) {
-		const document = await this.findOne(id, { relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot'] })
+		const document = await this.findOne(id, {
+			relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
+		})
 		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase)
-		return {document, vectorStore}
+		return { document, vectorStore }
+	}
+
+	async previewFile(id: string) {
+		try {
+			const docs = await this.commandBus.execute<LoadStorageFileCommand, Document[]>(
+				new LoadStorageFileCommand(id)
+			)
+			// Limit the size of the data returned for preview
+			return docs.map((doc) => ({
+				...doc,
+				pageContent: doc.pageContent.length > 10000 ? doc.pageContent.slice(0, 10000) + ' ...' : doc.pageContent
+			}))
+		} catch (err) {
+			throw new BadRequestException(err.message)
+		}
 	}
 }

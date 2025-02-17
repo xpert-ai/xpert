@@ -13,7 +13,8 @@ import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ParameterComponent } from 'apps/cloud/src/app/@shared/forms'
 import { derivedFrom } from 'ngxtension/derived-from'
-import { BehaviorSubject, catchError, of, pipe, switchMap, tap, map } from 'rxjs'
+import { BehaviorSubject, catchError, of, pipe, switchMap, tap, map, startWith } from 'rxjs'
+import { Document } from 'langchain/document'
 import {
   getErrorMessage,
   IIntegration,
@@ -132,8 +133,11 @@ export class KnowledgeDocumentCreateStep1Component {
   readonly previewFile = signal<TFileItem>(null)
   readonly selectedFile = signal<TFileItem>(null)
   readonly previewDoc = signal<IKnowledgeDocumentPage>(null)
-  readonly previewFileDocs = derivedAsync(() => {
-    return this.previewFile()?.doc?.storageFile?.id ? this.knowledgeDocumentService.previewFile(this.previewFile().doc.storageFile.id) : of(null)
+  readonly previewFileDocs = derivedAsync<{docs?: Document[]; loading: boolean;}>(() => {
+    return this.previewFile()?.doc?.storageFile?.id ? this.knowledgeDocumentService.previewFile(this.previewFile().doc.storageFile.id).pipe(
+      map((docs) => ({docs, loading: false})),
+      startWith({loading: true}),
+    ) : of(null)
   })
 
   readonly expand = signal(false)

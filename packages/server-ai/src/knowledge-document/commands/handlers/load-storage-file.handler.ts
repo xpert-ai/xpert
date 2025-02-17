@@ -7,6 +7,7 @@ import { TextLoader } from 'langchain/document_loaders/fs/text'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Document } from 'langchain/document'
 import { LoadStorageFileCommand } from '../load-storage-file.command'
+import { PPTXLoader } from "@langchain/community/document_loaders/fs/pptx";
 
 @CommandHandler(LoadStorageFileCommand)
 export class LoadStorageFileHandler implements ICommandHandler<LoadStorageFileCommand> {
@@ -40,6 +41,17 @@ export class LoadStorageFileHandler implements ICommandHandler<LoadStorageFileCo
 			case 'docx':
 				data = await this.processDocx(storageFile)
 				break
+			case 'pptx':
+				data = await this.processPPT(storageFile)
+				break
+			case 'xlsx':
+				data = await this.processExcel(storageFile)
+				break
+			case 'odt':
+			case 'ods':
+			case 'odp':
+				data = await this.processOpenDocument(storageFile)
+				break
 			default:
 				data = await this.processText(storageFile)
 				break
@@ -60,15 +72,13 @@ export class LoadStorageFileHandler implements ICommandHandler<LoadStorageFileCo
 	}
 
 	async processEpub(storageFile: StorageFile): Promise<Document<Record<string, any>>[]> {
-		const storageProvider = new FileStorage().setProvider(storageFile.storageProvider).getProviderInstance()
-		const filePath = storageProvider.path(storageFile.file)
+		const filePath = this.getFilePath(storageFile)
 		const loader = new EPubLoader(filePath, { splitChapters: false })
 		return await loader.load()
 	}
 
 	async processDocx(storageFile: StorageFile): Promise<Document<Record<string, any>>[]> {
-		const storageProvider = new FileStorage().setProvider(storageFile.storageProvider).getProviderInstance()
-		const filePath = storageProvider.path(storageFile.file)
+		const filePath = this.getFilePath(storageFile)
 		const loader = new DocxLoader(filePath)
 		return await loader.load()
 	}
@@ -81,4 +91,26 @@ export class LoadStorageFileHandler implements ICommandHandler<LoadStorageFileCo
 		return await loader.load()
 	}
 
+	async processPPT(storageFile: StorageFile): Promise<Document<Record<string, any>>[]> {
+		const path = this.getFilePath(storageFile)
+		const loader = new PPTXLoader(path)
+		return await loader.load()
+	}
+
+	async processExcel(storageFile: StorageFile): Promise<Document<Record<string, any>>[]> {
+		const path = this.getFilePath(storageFile)
+		const loader = new PPTXLoader(path)
+		return await loader.load()
+	}
+	async processOpenDocument(storageFile: StorageFile): Promise<Document<Record<string, any>>[]> {
+		const path = this.getFilePath(storageFile)
+		const loader = new PPTXLoader(path)
+		return await loader.load()
+	}
+
+	getFilePath(storageFile: StorageFile) {
+		const storageProvider = new FileStorage().setProvider(storageFile.storageProvider).getProviderInstance()
+		const filePath = storageProvider.path(storageFile.file)
+		return filePath
+	}
 }

@@ -36,7 +36,7 @@
 
   @if (sourceType()[0] === eKDocumentSourceType.FILE) {
     <div class="my-6 w-full">
-      <input id="fileUploader" #fileDropRef class="invisible" multiple accept=".txt,.markdown,.md,.mdx,.pdf,.html,.htm,.xlsx,.xls,.docx,.csv,.TXT,.MARKDOWN,.MD,.MDX,.PDF,.HTML,.HTM,.XLSX,.XLS,.DOCX,.CSV" type="file"
+      <input id="fileUploader" #fileDropRef class="invisible" multiple accept=".txt,.markdown,.md,.mdx,.pdf,.html,.htm,.xlsx,.xls,.docx,.pptx,.csv,.epub,.odt,.odp,.ods,.TXT,.MARKDOWN,.MD,.MDX,.PDF,.HTML,.HTM,.XLSX,.XLS,.DOCX,.PPTX,.CSV,.EPUB,.csv,.ODT,.ODP,.ODS" type="file"
         (change)="fileBrowseHandler($event.target)"
         (click)="fileDropRef.value=null;">
       <div class="text-text-tertiary text-base font-semibold leading-6 mb-2">
@@ -50,7 +50,7 @@
           <span>{{ 'PAC.Knowledgebase.DragDropOr' | translate: {Default: 'Drag and drop files here, or'} }}
             <label for="fileUploader" class="ml-1 text-text-accent cursor-pointer">{{ 'PAC.Knowledgebase.SelectFiles' | translate: {Default: 'select files'} }}</label></span>
         </div>
-        <div>{{ 'PAC.Knowledgebase.SupportFiles' | translate: {Default: 'Supports TXT, MARKDOWN, MDX, PDF, HTML, XLSX, XLS, DOCX, CSV, MD, HTM, and each file does not exceed 15MB.'} }}</div>
+        <div>{{ 'PAC.Knowledgebase.SupportFiles' | translate: {Default: 'Supports TXT, MARKDOWN, MDX, PDF, HTML, XLSX, XLS, DOCX, PPTX, CSV, EPUB, MD, HTM, CSV, ODT, ODP, ODS and each file does not exceed 15MB.'} }}</div>
       </div>
 
       <div class="space-y-1 max-w-[640px] cursor-default">
@@ -247,7 +247,7 @@
 @if (previewFile(); as item) {
   <div class="h-full w-[1px] bg-divider-deep"></div>
   <div class="grow h-full overflow-y-auto">
-    <div class="h-full">
+    <div class="h-full relative">
       <div class="p-4">
         <div class="w-full flex justify-between items-center">
           <span>{{ 'PAC.Knowledgebase.FilePreview' | translate: {Default: 'File Preview'} }}</span>
@@ -261,11 +261,17 @@
           <span>{{item.doc.storageFile.originalName}},</span>
         </div>
       </div>
-      <div class="p-4 overflow-auto flex flex-col gap-4">
-        @for (doc of previewFileDocs(); track doc) {
-          <div class="text-sm text-text-secondary">{{doc.pageContent}}</div>
+      @if (previewFileDocs(); as preview) {
+        @if (preview.loading) {
+          <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+        } @else {
+          <div class="p-4 overflow-auto flex flex-col gap-4">
+            @for (doc of preview.docs; track doc) {
+              <div class="text-sm text-text-secondary">{{doc.pageContent}}</div>
+            }
+          </div>
         }
-      </div>
+      }
     </div>
   </div>
 }

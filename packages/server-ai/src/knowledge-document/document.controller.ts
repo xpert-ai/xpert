@@ -2,7 +2,6 @@ import { IDocumentChunk, IIntegration, IKnowledgeDocument, TRagWebOptions } from
 import {
 	CrudController,
 	IntegrationService,
-	PaginationParams,
 	ParseJsonPipe,
 	RequestContext,
 	TransformInterceptor
@@ -86,7 +85,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 
 	@Get('preview-file/:id') 
 	async previewFile(@Param('id') id: string): Promise<Document[]> {
-		return await this.commandBus.execute(new LoadStorageFileCommand(id))
+		return await this.service.previewFile(id)
 	}
 
 	@Post('estimate')

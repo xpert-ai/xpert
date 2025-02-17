@@ -1919,7 +1919,7 @@
       "Finish": "完成",
       "DragDropOr": "拖拽文件至此，或者",
       "SelectFiles": "选择文件",
-      "SupportFiles": "已支持 TXT、 MARKDOWN、 MDX、 PDF、 HTML、 XLSX、 XLS、 DOCX、 CSV、 MD、 HTM，每个文件不超过 15MB。",
+      "SupportFiles": "已支持 TXT, MARKDOWN, MDX, PDF, HTML, XLSX, XLS, DOCX, PPTX, CSV, EPUB, MD, HTM, CSV, ODT, ODP, ODS 每个文件不超过 15MB。",
       "ChooseaProvider": "选择提供商",
       "Use": "使用",
       "ExtractWebContent": "提取网页内容",
