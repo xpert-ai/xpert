@@ -59,7 +59,7 @@ export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
     name: new FormControl('', [Validators.required]),
     description: new FormControl(''),
     avatar: new FormControl(null),
-    language: new FormControl(null, [Validators.required]),
+    language: new FormControl(null),
     permission: new FormControl<KnowledgebasePermission>(null),
     // copilotId: new FormControl(null),
     // embeddingModelId: new FormControl(null),
