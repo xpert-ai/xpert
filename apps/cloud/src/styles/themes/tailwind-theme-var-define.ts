@@ -62,6 +62,9 @@ const vars = {
   'components-input-text-placeholder': 'var(--color-components-input-text-placeholder)',
   'components-list-option-bg': 'var(--color-components-list-option-bg)',
   'components-list-option-active-bg': 'var(--color-components-list-option-active-bg)',
+  'components-toggle-bg': 'var(--color-components-toggle-bg)',
+  'components-toggle-bg-unchecked': 'var(--color-components-toggle-bg-unchecked)',
+  'components-toggle-knob': 'var(--color-components-toggle-knob)',
   'surface-container-bg': 'var(--ngm-color-surface-container)'
 }
 

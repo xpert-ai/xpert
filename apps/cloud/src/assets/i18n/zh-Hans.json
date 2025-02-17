@@ -1901,7 +1901,16 @@
       "AddKnowledgebase": "添加知识库",
       "AddKnowledgebaseHelp": "了解更多关于自定义知识库的信息",
       "AddKnowledgebaseDesc": "导入您自己的文本数据或在线网页内容数据以增强 LLM 的上下文。",
-      "Pages": "页面"
+      "Pages": "页面",
+      "AddChunk": "添加分块",
+      "Available": "可用",
+      "Search": "搜索",
+      "Characters": "字符",
+      "Disabled": "未启用",
+      "Enabled": "已启用",
+      "EditChunk": "编辑分块",
+      "AddContentHere": "在这里添加内容",
+      "Chunk": "分块"
     },
     "Integration": {
       "Integration": "集成",

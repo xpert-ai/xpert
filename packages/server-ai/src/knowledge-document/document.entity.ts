@@ -11,12 +11,18 @@ import {
 import { Integration, StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsDate, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
+import { IsBoolean, IsDate, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
 import { Knowledgebase, KnowledgeDocumentPage } from '../core/entities/internal'
 
 @Entity('knowledge_document')
 export class KnowledgeDocument extends TenantOrganizationBaseEntity implements IKnowledgeDocument {
+	@ApiProperty({ type: () => Boolean })
+	@IsBoolean()
+	@IsOptional()
+	@Column({ nullable: true })
+	disabled?: boolean
+
 	@ApiProperty({ type: () => Knowledgebase, readOnly: true })
 	@ManyToOne(() => Knowledgebase, {
 		nullable: true,

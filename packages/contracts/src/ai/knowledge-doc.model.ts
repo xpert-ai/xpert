@@ -22,6 +22,8 @@ export type TDocumentWebOptions = TRagWebOptions & {
 }
 
 export type TKnowledgeDocument = {
+  disabled?: boolean
+  
   knowledgebaseId?: string
   knowledgebase?: IKnowledgebase
 

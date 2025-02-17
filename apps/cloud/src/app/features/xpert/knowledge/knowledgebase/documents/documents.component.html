@@ -17,7 +17,7 @@
         <th mat-header-cell *matHeaderCellDef mat-sort-header> {{'PAC.KEY_WORDS.' + column.caption | translate: {Default: column.caption} }} </th>
         <td mat-cell *matCellDef="let element">
           @if (column.name === 'name') {
-            <a [routerLink]="['.', element.id]">{{element.storageFile?.originalName || element.options?.url}}</a>
+            <a [routerLink]="['.', element.id]" >{{element.storageFile?.originalName || element.options?.url}}</a>
           } @else {
             {{getValue(element, column.name)}}
           }</td>

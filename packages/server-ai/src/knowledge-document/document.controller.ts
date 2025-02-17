@@ -1,4 +1,4 @@
-import { IIntegration, IKnowledgeDocument, TRagWebOptions } from '@metad/contracts'
+import { IDocumentChunk, IIntegration, IKnowledgeDocument, TRagWebOptions } from '@metad/contracts'
 import {
 	CrudController,
 	IntegrationService,
@@ -19,6 +19,7 @@ import {
 	Logger,
 	Param,
 	Post,
+	Put,
 	Query,
 	UseInterceptors
 } from '@nestjs/common'
@@ -33,6 +34,7 @@ import { KnowledgeDocLoadCommand } from './commands'
 import { getErrorMessage } from '@metad/server-common'
 import { GetRagWebOptionsQuery } from '../rag-web/queries/get-options.query'
 import { RagWebLoadCommand } from '../rag-web/commands'
+import { TVectorSearchParams } from '../knowledgebase'
 
 @ApiTags('KnowledgeDocument')
 @ApiBearerAuth()
@@ -143,11 +145,16 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 		return await this.service.save(knowledgeDocument)
 	}
 
+	@Delete(':id/page/:pageId')
+	async deletePage(@Param('id') docId: string, @Param('pageId') id: string) {
+		await this.service.deletePage(docId, id)
+	}
+
 	@UseInterceptors(ClassSerializerInterceptor)
 	@Get(':id/chunk')
 	async getChunks(
 		@Param('id') id: string,
-		@Query('data', ParseJsonPipe) params: PaginationParams<IKnowledgeDocument>
+		@Query('data', ParseJsonPipe) params: TVectorSearchParams
 	) {
 		const result = await this.service.getChunks(id, params)
 		return {
@@ -156,13 +163,19 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 		}
 	}
 
+	@Post(':id/chunk')
+	async createChunk(@Param('id') docId: string, @Body() entity: IDocumentChunk) {
+		return await this.service.createChunk(docId, entity)
+	}
+
+	@Put(':docId/chunk/:id')
+	async updateChunk(@Param('docId') docId: string, @Param('id') id: string, @Body() entity: IDocumentChunk) {
+		await this.service.updateChunk(docId, id, entity)
+	}
+
 	@Delete(':docId/chunk/:id')
 	async deleteChunk(@Param('docId') docId: string, @Param('id') id: string) {
 		await this.service.deleteChunk(docId, id)
 	}
-
-	@Delete(':id/page/:pageId')
-	async deletePage(@Param('id') docId: string, @Param('pageId') id: string) {
-		await this.service.deletePage(docId, id)
-	}
+	
 }

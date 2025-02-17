@@ -28,16 +28,6 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     return this.httpClient.delete<IKnowledgeDocument[]>(this.apiBaseUrl + '/' + id + '/job')
   }
 
-  getChunks(id: string, params: PaginationParams<any>) {
-    return this.httpClient.get<{items: IDocumentChunk[]; total: number;}>(this.apiBaseUrl + `/${id}` + '/chunk', {
-      params: toHttpParams(params)
-    })
-  }
-
-  deleteChunk(documentId: string, id: string) {
-    return this.httpClient.delete<void>(this.apiBaseUrl + `/` + documentId + '/chunk/' + id)
-  }
-
   estimate(doc: Partial<IKnowledgeDocument>) {
     return this.httpClient.post<Document[]>(this.apiBaseUrl + `/estimate`, doc)
   }
@@ -58,5 +48,23 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
 
   removePage(kd: IKnowledgeDocument, page: IKnowledgeDocumentPage) {
     return this.httpClient.delete(this.apiBaseUrl + `/${kd.id}/page/${page.id}`)
+  }
+
+  getChunks(id: string, params: {take: number; skip: number; search?: string}) {
+    return this.httpClient.get<{items: IDocumentChunk[]; total: number;}>(this.apiBaseUrl + `/${id}` + '/chunk', {
+      params: new HttpParams().append('data', JSON.stringify(params))
+    })
+  }
+
+  deleteChunk(documentId: string, id: string) {
+    return this.httpClient.delete<void>(this.apiBaseUrl + `/` + documentId + '/chunk/' + id)
+  }
+
+  createChunk(documentId: string, chunk: Partial<IDocumentChunk>) {
+    return this.httpClient.post<IDocumentChunk>(this.apiBaseUrl + `/` + documentId + '/chunk', chunk)
+  }
+
+  updateChunk(documentId: string, id: string, chunk: Partial<IDocumentChunk>) {
+    return this.httpClient.put<void>(this.apiBaseUrl + `/` + documentId + '/chunk/' + id, chunk)
   }
 }
