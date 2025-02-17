@@ -14,8 +14,17 @@
       <div class="h-5 flex items-center mb-3">
         <div class="flex items-center justify-between text-gray-900 font-medium text-sm mr-2">
           @if (running()) {
+            <button type="button" class="btn btn-small pressable danger w-7 h-7 justify-center mr-1"
+              [matTooltip]="'PAC.Knowledgebase.StopEmbed' | translate: {Default: 'Terminate embedding and start from scratch if you need to embed again'}"
+              matTooltipPosition="above"
+              (click)="stopJob()" >
+              <i class="ri-stop-circle-line text-lg"></i>
+            </button>
             {{ 'PAC.Knowledgebase.Embedding' | translate: {Default: 'Embedding'} }}...
-          } @else {
+          } @else if (cancel()) {
+            {{ 'PAC.Knowledgebase.EmbedCancelled' | translate: {Default: 'Embed Cancelled'} }}
+          }
+          @else {
             {{ 'PAC.Knowledgebase.EmbedCompleted' | translate: {Default: 'Embed Completed'} }}
           }
         </div>
@@ -24,7 +33,7 @@
         @for (item of documents(); track item.id) {
           <div class="relative h-[26px] bg-components-progress-bar-bg rounded-md overflow-hidden">
             <div class="flex gap-1 pl-[6px] pr-2 h-full items-center z-[1]">
-              <knowledge-doc-id [doc]="item" class="grow" />
+              <knowledge-doc-id [doc]="item" class="grow text-text-secondary" />
 
               @if (item.status === 'running') {
                 <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>

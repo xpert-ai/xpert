@@ -1959,6 +1959,8 @@
       "WhatDoNext": "接下来做什么",
       "DoNextDesc": "当文档完成索引处理后，知识库即可添加至数字专家智能体内作为上下文使用。",
       "GotoWorkspace": "前往工作空间",
+      "StopEmbed": "终止嵌入，如需再次潜入则从零开始",
+      "EmbedCancelled": "嵌入已取消",
       "Chunk": "分块"
     },
     "Integration": {

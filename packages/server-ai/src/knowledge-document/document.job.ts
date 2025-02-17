@@ -58,7 +58,7 @@ export class KnowledgeDocumentConsumer {
 				const data = await this.commandBus.execute(new KnowledgeDocLoadCommand({doc: document}))
 
 				if (data) {
-					this.logger.debug(`Embeddings document '${document.storageFile?.originalName || document.options?.url}' size: ${data.length}`)
+					this.logger.debug(`Embeddings document '${document.name}' size: ${data.length}`)
 					// Clear history chunks
 					await vectorStore.deleteKnowledgeDocument(document)
 					const batchSize = knowledgebase.parserConfig?.embeddingBatchSize || 10
@@ -83,7 +83,7 @@ export class KnowledgeDocumentConsumer {
 								? 100
 								: (((batchSize * count) / data.length) * 100).toFixed(1)
 						this.logger.debug(
-							`Embeddings document '${document.storageFile?.originalName || document.options?.url}' progress: ${progress}%`
+							`Embeddings document '${document.name}' progress: ${progress}%`
 						)
 						if (await this.checkIfJobCancelled(doc.id)) {
 							this.logger.debug(

@@ -10,7 +10,7 @@ import { ActivatedRoute, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { compact } from 'lodash-es'
 import { BehaviorSubject, debounceTime, Subject } from 'rxjs'
-import { KDocumentSourceType, KnowledgeDocumentService, ToastrService } from '../../../../../../../@core'
+import { getErrorMessage, IKnowledgeDocument, KDocumentSourceType, KnowledgeDocumentService, ToastrService } from '../../../../../../../@core'
 import { KnowledgeDocumentCreateComponent } from '../create.component'
 import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
@@ -56,11 +56,11 @@ export class KnowledgeDocumentCreateStep3Component {
 
   // Waiting job
   readonly running = computed(() => this.documents()?.some((_) => _.status === 'running'))
+  readonly cancel = computed(() => this.documents()?.some((_) => _.status === 'cancel'))
   readonly delayRefresh$ = new Subject<boolean>()
 
   constructor() {
     effect(() => {
-      console.log(this.documents())
       if (this.documents()?.some((item) => item.status === 'running')) {
         this.delayRefresh$.next(true)
       }
@@ -77,6 +77,30 @@ export class KnowledgeDocumentCreateStep3Component {
           this.createComponent.updateDocs(docs)
         }
       })
+  }
+
+  stopJob() {
+    const doc = this.documents().find((_) => _.status === 'running')
+    if (doc) {
+      this.documents.update((docs) => {
+        return docs.map((_) => {
+          if (_.jobId === doc.jobId) {
+            return {
+              ..._,
+              status: 'cancel',
+              progress: 0,
+            }
+          }
+          return _
+        })
+      })
+      this.knowledgeDocumentService.stopParsing(doc.id).subscribe({
+        next: () => {},
+        error: (err) => {
+          this.#toastr.error(getErrorMessage(err))
+        },
+      })
+    }
   }
 
   apply() {
