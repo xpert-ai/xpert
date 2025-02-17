@@ -11,7 +11,7 @@
   />
 
   @for (item of knowledgebases(); track item.id) {
-    <div class="ngm-card min-h-[160px] flex-1 flex flex-col p-4 group bg-gray-50 hover:bg-white">
+    <div class="ngm-card min-h-[160px] flex-1 flex flex-col p-4 group bg-components-card-bg hover:bg-white">
       <button class="ngm-card__menu transition-opacity h-8 w-8 rounded-md border-none opacity-0 group-hover:opacity-100" displayDensity="cosy"
         #mt="cdkMenuTriggerFor"
         [cdkMenuTriggerFor]="menu"

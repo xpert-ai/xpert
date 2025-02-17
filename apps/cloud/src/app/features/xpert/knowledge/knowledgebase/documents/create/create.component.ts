@@ -1,7 +1,7 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, inject, model, signal } from '@angular/core'
+import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -89,9 +89,11 @@ export class KnowledgeDocumentCreateComponent {
 
   // Step 2
   readonly parserConfig = model<DocumentParserConfig>({} as DocumentParserConfig)
+  readonly step2Avaiable = computed(() => this.fileList()?.length || this.webResult()?.docs?.length)
 
   // Step 3
   readonly documents = signal<IKnowledgeDocument[]>([])
+  readonly step3Avaiable = computed(() => this.step2Avaiable())
 
   constructor() {}
 

@@ -12,6 +12,7 @@ import { CopilotModule } from '../copilot'
 import { KnowledgebaseModule } from '../knowledgebase/knowledgebase.module'
 import { CommandHandlers } from './commands/handlers'
 import { KnowledgeDocumentPage } from './page/document-page.entity'
+import { QueryHandlers } from './queries/handlers'
 
 @Module({
 	imports: [
@@ -30,7 +31,7 @@ import { KnowledgeDocumentPage } from './page/document-page.entity'
 		  })
 	],
 	controllers: [KnowledgeDocumentController],
-	providers: [KnowledgeDocumentService, KnowledgeDocumentConsumer, ...CommandHandlers],
+	providers: [KnowledgeDocumentService, KnowledgeDocumentConsumer, ...CommandHandlers, ...QueryHandlers],
 	exports: [KnowledgeDocumentService]
 })
 export class KnowledgeDocumentModule {}

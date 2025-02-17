@@ -132,6 +132,9 @@ export class KnowledgeDocumentCreateStep1Component {
   readonly previewFile = signal<TFileItem>(null)
   readonly selectedFile = signal<TFileItem>(null)
   readonly previewDoc = signal<IKnowledgeDocumentPage>(null)
+  readonly previewFileDocs = derivedAsync(() => {
+    return this.previewFile()?.doc?.storageFile?.id ? this.knowledgeDocumentService.previewFile(this.previewFile().doc.storageFile.id) : of(null)
+  })
 
   readonly expand = signal(false)
 

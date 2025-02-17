@@ -25,14 +25,15 @@ import {
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
+import { Document } from 'langchain/document'
 import { Queue } from 'bull'
 import { In } from 'typeorm'
 import { KnowledgeDocument } from './document.entity'
 import { KnowledgeDocumentService } from './document.service'
 import { DocumentChunkDTO } from './dto'
-import { KnowledgeDocLoadCommand } from './commands'
+import { KnowledgeDocLoadCommand, LoadStorageFileCommand } from './commands'
 import { getErrorMessage } from '@metad/server-common'
-import { GetRagWebOptionsQuery } from '../rag-web/queries/get-options.query'
+import { GetRagWebOptionsQuery } from '../rag-web/queries/'
 import { RagWebLoadCommand } from '../rag-web/commands'
 import { TVectorSearchParams } from '../knowledgebase'
 
@@ -83,6 +84,11 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 		return await this.service.save(docs)
 	}
 
+	@Get('preview-file/:id') 
+	async previewFile(@Param('id') id: string): Promise<Document[]> {
+		return await this.commandBus.execute(new LoadStorageFileCommand(id))
+	}
+
 	@Post('estimate')
 	async estimate(@Body() entity: Partial<IKnowledgeDocument>) {
 		try {
@@ -96,7 +102,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 	async getStatus(@Query('ids') _ids: string) {
 		const ids = _ids.split(',').map((id) => id.trim())
 		const {items} = await this.service.findAll({
-			select: ['id', 'status', 'processMsg'],
+			select: ['id', 'status', 'progress', 'processMsg'],
 			where: {id: In(ids)}
 		})
 		return items

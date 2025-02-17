@@ -20,7 +20,7 @@ export class KnowledgeDocIdComponent {
   readonly sourceType = computed(() => this.doc().sourceType)
   readonly type = computed(() => this.doc().type)
   readonly storageFile = computed(() => this.doc().storageFile)
-  readonly label = computed(() => this.storageFile()?.originalName || this.doc().options?.url)
+  readonly label = computed(() => this.doc().name || this.storageFile()?.originalName || this.doc().options?.url)
 
   constructor() {
     effect(() => {

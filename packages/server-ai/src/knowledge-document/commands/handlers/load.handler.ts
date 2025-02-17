@@ -1,21 +1,17 @@
-import { DocxLoader } from '@langchain/community/document_loaders/fs/docx'
-import { EPubLoader } from '@langchain/community/document_loaders/fs/epub'
-import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
 import { DocumentParserConfig, IKnowledgeDocument } from '@metad/contracts'
-import { FileStorage, StorageFileService } from '@metad/server-core'
-import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Document } from 'langchain/document'
-import { TextLoader } from 'langchain/document_loaders/fs/text'
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter'
 import { GetRagWebDocCacheQuery } from '../../../rag-web'
 import { KnowledgeDocumentService } from '../../document.service'
 import { KnowledgeDocLoadCommand } from '../load.command'
+import { LoadStorageFileCommand } from '../load-storage-file.command'
 
 @CommandHandler(KnowledgeDocLoadCommand)
 export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoadCommand> {
 	constructor(
 		private readonly service: KnowledgeDocumentService,
-		private readonly storageFileService: StorageFileService,
+		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
 	) {}
 
@@ -23,9 +19,8 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 		const { doc } = command.input
 
 		if (doc.storageFileId) {
-			const storageFile = await this.storageFileService.findOne(doc.storageFileId)
-			
-			return this.loadFile({...doc, storageFile})
+			const docs = await this.commandBus.execute(new LoadStorageFileCommand(doc.storageFileId))
+			return await this.splitDocuments(doc, docs)
 		}
 
 		return this.loadWeb(doc)
@@ -35,42 +30,32 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 		const docs = []
 		for await (const page of doc.pages) {
 			if (page.id) {
-				docs.push({...page, metadata: { ...page.metadata, docPageId: page.id }})
+				docs.push({ ...page, metadata: { ...page.metadata, docPageId: page.id } })
 			} else {
 				// From cache when scraping web pages
 				const _docs = await this.queryBus.execute(new GetRagWebDocCacheQuery(page.metadata.scrapeId))
-				docs.push(..._docs.map((doc) => ({...doc, metadata: { ...doc.metadata, docPageId: page.id }})))
+				docs.push(..._docs.map((doc) => ({ ...doc, metadata: { ...doc.metadata, docPageId: page.id } })))
 			}
 		}
 
 		return await this.splitDocuments(doc, docs)
 	}
 
-	async loadFile(doc: IKnowledgeDocument) {
-		const type = doc.type || doc.storageFile.originalName.split('.').pop()
-		let data: Document[]
-		switch (type.toLowerCase()) {
-			case 'md':
-				data = await this.processMarkdown(doc)
-				break
-			case 'pdf':
-				data = await this.processPdf(doc)
-				break
-			case 'epub':
-				data = await this.processEpub(doc)
-				break
-			case 'docx':
-				data = await this.processDocx(doc)
-				break
-			default:
-				data = await this.processText(doc)
-				break
+	async splitDocuments(document: IKnowledgeDocument, data: Document[], parserConfig?: DocumentParserConfig) {
+		// Text Preprocessing
+		if (document.parserConfig?.replaceWhitespace) {
+			data.forEach(doc => {
+				doc.pageContent = doc.pageContent.replace(/[\s\n\t]+/g, ' ') // Replace consecutive spaces, newlines, and tabs
+			})
+		}
+		if (document.parserConfig?.removeSensitive) {
+			data.forEach(doc => {
+				doc.pageContent = doc.pageContent.replace(/https?:\/\/[^\s]+/g, '') // Remove URLs
+				doc.pageContent = doc.pageContent.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '') // Remove email addresses
+			})
 		}
 
-		return await this.splitDocuments(doc, data)
-	}
-
-	async splitDocuments(document: IKnowledgeDocument, data: Document[], parserConfig?: DocumentParserConfig) {
+		// Process the document in chunks
 		let chunkSize: number, chunkOverlap: number
 		if (document.parserConfig?.chunkSize) {
 			chunkSize = Number(document.parserConfig.chunkSize)
@@ -90,54 +75,5 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 		})
 
 		return await textSplitter.splitDocuments(data)
-	}
-
-	async processMarkdown(document: IKnowledgeDocument): Promise<Document<Record<string, any>>[]> {
-		return this.processText(document)
-	}
-
-	async processPdf(document: IKnowledgeDocument): Promise<Document<Record<string, any>>[]> {
-		const storageProvider = new FileStorage()
-			.setProvider(document.storageFile.storageProvider)
-			.getProviderInstance()
-		const fileBuffer = await storageProvider.getFile(document.storageFile.file)
-		const loader = new PDFLoader(new Blob([fileBuffer], { type: 'pdf' }))
-		const data = await loader.load()
-
-		return await this.splitDocuments(document, data)
-	}
-
-	async processEpub(document: IKnowledgeDocument): Promise<Document<Record<string, any>>[]> {
-		const storageProvider = new FileStorage()
-			.setProvider(document.storageFile.storageProvider)
-			.getProviderInstance()
-		const filePath = storageProvider.path(document.storageFile.file)
-		const loader = new EPubLoader(filePath, { splitChapters: false })
-		const data = await loader.load()
-
-		return await this.splitDocuments(document, data)
-	}
-
-	async processDocx(document: IKnowledgeDocument): Promise<Document<Record<string, any>>[]> {
-		const storageProvider = new FileStorage()
-			.setProvider(document.storageFile.storageProvider)
-			.getProviderInstance()
-		const filePath = storageProvider.path(document.storageFile.file)
-		const loader = new DocxLoader(filePath)
-		const data = await loader.load()
-
-		return await this.splitDocuments(document, data)
-	}
-
-	async processText(document: IKnowledgeDocument): Promise<Document<Record<string, any>>[]> {
-		const storageProvider = new FileStorage()
-			.setProvider(document.storageFile.storageProvider)
-			.getProviderInstance()
-		const fileBuffer = await storageProvider.getFile(document.storageFile.file)
-
-		const loader = new TextLoader(new Blob([fileBuffer], { type: 'text/plain' }))
-		const data = await loader.load()
-
-		return await this.splitDocuments(document, data)
 	}
 }

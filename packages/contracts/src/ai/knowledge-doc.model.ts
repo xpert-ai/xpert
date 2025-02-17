@@ -10,6 +10,8 @@ export type DocumentParserConfig = {
   delimiter: string
   chunkSize: number | null
   chunkOverlap: number | null
+  replaceWhitespace?: boolean
+  removeSensitive?: boolean
 }
 
 export enum KDocumentSourceType {
@@ -49,7 +51,7 @@ export type TKnowledgeDocument = {
    */
   type: string
   /**
-   * file name
+   * file name or web url
    */
   name: string
   /**

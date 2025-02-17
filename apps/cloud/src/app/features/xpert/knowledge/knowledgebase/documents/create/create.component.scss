@@ -17,7 +17,6 @@
 }
 
 .step {
-  @apply cursor-pointer;
   .step-num {
     @apply border border-gray-200 rounded-full bg-gray-50;
   }

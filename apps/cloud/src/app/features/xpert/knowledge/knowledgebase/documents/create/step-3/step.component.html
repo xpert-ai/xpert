@@ -2,13 +2,23 @@
   <div class="grow shrink-0 h-full max-w-[960px] overflow-y-auto px-14 sm:px-16">
     <div class="mx-auto max-w-[640px]">
       <div class="pt-10">
-        <div class="mb-1 text-xl leading-[22px] font-semibold text-text-primary">🎉 文档已上传</div>
+        <div class="mb-1 text-xl leading-[22px] font-semibold text-text-primary">
+          🎉 {{ 'PAC.Knowledgebase.DocumentUploaded' | translate: {Default: 'Document uploaded'} }}
+        </div>
         <div class="mb-7 text-[13px] leading-4 text-text-tertiary">
-          文档已上传至知识库： 标准类型知识库 ，你可以在知识库的文档列表中找到它。
+          {{ 'PAC.Knowledgebase.DocumentUploadedKB' | translate: {Default: 'Documents have been uploaded to the knowledgebase:'} }}
+          {{knowledgebase().name}}
+          {{ 'PAC.Knowledgebase.YouFindItIn' | translate: {Default: ', you can find it in the document list of the knowledgebase.'} }}
         </div>
       </div>
       <div class="h-5 flex items-center mb-3">
-        <div class="flex items-center justify-between text-gray-900 font-medium text-sm mr-2">嵌入已完成</div>
+        <div class="flex items-center justify-between text-gray-900 font-medium text-sm mr-2">
+          @if (running()) {
+            {{ 'PAC.Knowledgebase.Embedding' | translate: {Default: 'Embedding'} }}...
+          } @else {
+            {{ 'PAC.Knowledgebase.EmbedCompleted' | translate: {Default: 'Embed Completed'} }}
+          }
+        </div>
       </div>
       <div class="flex flex-col gap-0.5 pb-2">
         @for (item of documents(); track item.id) {
@@ -37,50 +47,64 @@
       <div class="flex flex-col gap-1">
         <div class="flex items-center gap-1 py-0.5 min-h-5 text-sm">
           <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
-            分段模式
+            {{ 'PAC.Knowledgebase.ChunkMode' | translate: {Default: 'Chunk Mode'} }}
           </div>
-          <div class="grow flex items-center gap-1 text-text-secondary">自定义</div>
+          <div class="grow flex items-center gap-1 text-text-secondary">
+            @if (chunkModeStandard()) {
+              {{ 'PAC.Knowledgebase.ChunkModeStandard' | translate: {Default: 'Standard'} }}
+            } @else {
+              {{ 'PAC.Knowledgebase.ChunkModeCustom' | translate: {Default: 'Custom'} }}
+            }
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1 py-0.5 min-h-5 text-sm">
+          <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
+            {{ 'PAC.Knowledgebase.ChunkDelimiter' | translate: {Default: 'Delimiter'} }}
+          </div>
+          <div class="grow flex items-center gap-1 text-text-secondary">
+            {{ parserConfig()?.delimiter }}
+          </div>
         </div>
         <div class="flex items-center gap-1 py-0.5 min-h-5 text-sm">
           <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
-            最大分段长度
+            {{ 'PAC.Knowledgebase.ChunkSize' | translate: {Default: 'Chunk Size'} }}
           </div>
-          <div class="grow flex items-center gap-1 text-text-secondary">500</div>
+          <div class="grow flex items-center gap-1 text-text-secondary">
+            {{ parserConfig()?.chunkSize }}
+          </div>
         </div>
+        <div class="flex items-center gap-1 py-0.5 min-h-5 text-sm">
+          <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
+            {{ 'PAC.Knowledgebase.ChunkOverlap' | translate: {Default: 'Chunk Overlap'} }}
+          </div>
+          <div class="grow flex items-center gap-1 text-text-secondary">
+            {{ parserConfig()?.chunkOverlap }}
+          </div>
+        </div>
+
         <div class="flex gap-1 py-0.5 min-h-5 text-sm !items-start pt-1">
           <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
-            文本预处理规则
+            {{ 'PAC.Knowledgebase.TextPreprocessingRules' | translate: {Default: 'Text preprocessing rules'} }}
           </div>
           <div class="grow flex items-center gap-1 text-text-secondary">
-            替换掉连续的空格、换行符和制表符,删除所有 URL 和电子邮件地址
-          </div>
-        </div>
-        <div class="flex items-center gap-1 py-0.5 min-h-5 text-sm">
-          <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
-            索引方式
-          </div>
-          <div class="grow flex items-center gap-1 text-text-secondary">
-            高质量
-          </div>
-        </div>
-        <div class="flex items-center gap-1 py-0.5 min-h-5 text-sm">
-          <div class="w-[200px] text-text-tertiary overflow-hidden text-ellipsis whitespace-nowrap shrink-0">
-            检索设置
-          </div>
-          <div class="grow flex items-center gap-1 text-text-secondary">
-            <i class="ri-bnb-line"></i>
-            向量检索
+            @if (parserConfig()?.replaceWhitespace) {
+              <span>{{ 'PAC.Knowledgebase.ReplaceWhiteChar' | translate: {Default: 'Replace consecutive spaces, newlines, and tabs'} }}. </span>
+            }
+            @if (parserConfig()?.removeSensitive) {
+              <span>{{ 'PAC.Knowledgebase.RemoveEmailUrls' | translate: {Default: 'Remove all URLs and email addresses'} }}</span>
+            }
           </div>
         </div>
       </div>
       <div class="flex items-center gap-2 my-10">
-        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium w-fit">
+        <!-- <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium w-fit">
           <i class="ri-terminal-box-line"></i>
           <span>Access the API</span></button
-        >
+        > -->
         <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium w-fit"
           (click)="apply()">
-          <span>前往文档</span>
+          <span>{{'PAC.Knowledgebase.GotoDocuments' | translate: {Default: 'Goto documents'} }}</span>
           <i class="ri-arrow-right-line"></i>
         </button>
       </div>
@@ -91,10 +115,18 @@
       <div class="flex justify-center items-center w-10 h-10 bg-components-card-bg rounded-[10px] shadow-lg">
         <i class="ri-book-open-line text-xl text-purple-500"></i>
       </div>
-      <div class="text-base font-semibold text-text-secondary">接下来做什么</div>
+      <div class="text-base font-semibold text-text-secondary">
+        {{ 'PAC.Knowledgebase.WhatDoNext' | translate: {Default: 'What to do next'} }}
+      </div>
       <div class="text-text-tertiary">
-        当文档完成索引处理后，知识库即可集成至应用内作为上下文使用，你可以在提示词编排页找到上下文设置。你也可以创建成可独立使用的
-        ChatGPT 索引插件发布。
+        {{ 'PAC.Knowledgebase.DoNextDesc' | translate: {Default: 'Once the documents have been embedded, the knowledgebase can be added to the digital expert agents for use as context.'} }}
+      </div>
+      <div class="w-full flex justify-end pt-2">
+        <a class="group flex items-center gap-2 text-sm font-light text-text-primary transition-all duration-100 hover:text-primary-500"
+          [href]="'/xpert/w/'+workspaceId()" target="_blank">
+          {{ 'PAC.Knowledgebase.GotoWorkspace' | translate: {Default: 'Goto workspace'} }}
+          <i class="ri-external-link-line transition-all group-hover:translate-x-1"></i>
+        </a>
       </div>
     </div>
   </div>

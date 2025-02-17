@@ -166,6 +166,19 @@ export class KnowledgeDocumentCreateStep2Component {
     this.parserConfig.update((state) => ({ ...state, chunkOverlap }))
   }
 
+  get replaceWhitespace() {
+    return this.parserConfig().replaceWhitespace
+  }
+  set replaceWhitespace(replaceWhitespace) {
+    this.parserConfig.update((state) => ({ ...state, replaceWhitespace }))
+  }
+  get removeSensitive() {
+    return this.parserConfig().removeSensitive
+  }
+  set removeSensitive(removeSensitive) {
+    this.parserConfig.update((state) => ({ ...state, removeSensitive }))
+  }
+
   constructor() {
     effect(
       () => {
@@ -184,8 +197,10 @@ export class KnowledgeDocumentCreateStep2Component {
           .createBulk(
             this.fileList().map((item) => ({
               knowledgebaseId: this.knowledgebase().id,
+              sourceType: KDocumentSourceType.FILE,
               storageFileId: item.doc.storageFile.id,
-              parserConfig: this.parserConfig()
+              parserConfig: this.parserConfig(),
+              name: item.doc.storageFile.originalName
             }))
           ) : of([]),
       this.webDocs()?.length ?
@@ -194,6 +209,8 @@ export class KnowledgeDocumentCreateStep2Component {
             {
               knowledgebaseId: this.knowledgebase().id,
               parserConfig: this.parserConfig(),
+              sourceType: KDocumentSourceType.WEB,
+              name: this.createComponent.webOptions().url,
               options: this.createComponent.webOptions(),
               pages: this.webDocs().map((doc) => ({
                 ...doc,
@@ -233,5 +250,15 @@ export class KnowledgeDocumentCreateStep2Component {
 
   prevStep() {
     this.createComponent.prevStep()
+  }
+
+  preview() {
+    if (!this.selectedWebDoc() && !this.selectedFile()) {
+      if (this.fileList().length) {
+        this.selectedFile.set(this.fileList()[0])
+      } else if (this.webDocs().length) {
+        this.selectedWebDoc.set(this.webDocs()[0])
+      }
+    }
   }
 }

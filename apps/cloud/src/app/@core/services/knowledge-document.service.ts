@@ -28,6 +28,10 @@ export class KnowledgeDocumentService extends OrganizationBaseCrudService<IKnowl
     return this.httpClient.delete<IKnowledgeDocument[]>(this.apiBaseUrl + '/' + id + '/job')
   }
 
+  previewFile(id: string) {
+    return this.httpClient.get<Document[]>(this.apiBaseUrl + `/preview-file/${id}`)
+  }
+
   estimate(doc: Partial<IKnowledgeDocument>) {
     return this.httpClient.post<Document[]>(this.apiBaseUrl + `/estimate`, doc)
   }

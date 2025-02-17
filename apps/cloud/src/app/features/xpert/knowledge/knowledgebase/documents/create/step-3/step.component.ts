@@ -1,7 +1,7 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, effect, inject, signal } from '@angular/core'
+import { Component, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
@@ -13,6 +13,7 @@ import { BehaviorSubject, debounceTime, Subject } from 'rxjs'
 import { KDocumentSourceType, KnowledgeDocumentService, ToastrService } from '../../../../../../../@core'
 import { KnowledgeDocumentCreateComponent } from '../create.component'
 import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
+import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 
 @Component({
   standalone: true,
@@ -38,18 +39,28 @@ export class KnowledgeDocumentCreateStep3Component {
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
   readonly createComponent = inject(KnowledgeDocumentCreateComponent)
+  readonly kbComponent = inject(KnowledgebaseComponent)
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
 
   readonly loading = signal(false)
 
+  readonly knowledgebase = this.kbComponent.knowledgebase
+  readonly workspaceId = computed(() => this.knowledgebase()?.workspaceId ?? '')
   readonly documents = this.createComponent.documents
+  readonly parserConfig = this.createComponent.parserConfig
+
+  readonly chunkModeStandard = computed(() => {
+    return !this.parserConfig()?.chunkOverlap && !this.parserConfig()?.chunkSize && !this.parserConfig()?.delimiter
+  })
 
   // Waiting job
+  readonly running = computed(() => this.documents()?.some((_) => _.status === 'running'))
   readonly delayRefresh$ = new Subject<boolean>()
 
   constructor() {
     effect(() => {
+      console.log(this.documents())
       if (this.documents()?.some((item) => item.status === 'running')) {
         this.delayRefresh$.next(true)
       }

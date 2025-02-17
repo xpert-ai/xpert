@@ -1,6 +1,8 @@
 <div class="py-4 flex w-full grow overflow-hidden">
   <div class="grow max-w-[50%] flex flex-col px-8 py-4 overflow-auto">
-    <div class="system-md-semibold mb-1">分段设置</div>
+    <div class="system-md-semibold mb-1">
+      {{ 'PAC.Knowledgebase.ChunkSettings' | translate: {Default: 'Chunk Settings'} }}
+    </div>
 
     <div class="rounded-xl shadow-xs border-[1.5px] mb-2">
       <div class="flex overflow-hidden rounded-t-xl relative cursor-pointer">
@@ -11,36 +13,45 @@
         </div>
         
         <div class="flex-1 space-y-0.5 py-3 pr-4">
-          <div class="text-text-secondary system-md-semibold">通用</div>
-          <div class="text-text-tertiary system-xs-regular">通用文本分块模式，检索和回忆的块是相同的</div>
+          <div class="text-text-secondary system-md-semibold">
+            {{ 'PAC.Knowledgebase.General' | translate: {Default: 'General'} }}
+          </div>
+          <div class="text-text-tertiary system-xs-regular">
+            {{ 'PAC.Knowledgebase.GeneralDesc' | translate: {Default: 'General text chunking pattern, the chunks for retrieval and recall are the same'} }}
+          </div>
         </div>
       </div>
       <div class="py-3 px-4 bg-components-panel-bg rounded-b-xl">
         <div class="flex flex-col gap-y-4">
           <div class="flex gap-3">
             <div class="space-y-2 flex-1">
-              <ngm-input label="分段标识符" [(ngModel)]="delimiter" />
+              <ngm-input [label]="'PAC.Knowledgebase.ChunkDelimiter' | translate: {Default: 'Delimiter'}" [(ngModel)]="delimiter" />
             </div>
             <div class="space-y-2 flex-1">
-              <ngm-input label="分段最大长度" type="number" [(ngModel)]="chunkSize" />
+              <ngm-input [label]="'PAC.Knowledgebase.ChunkSize' | translate: {Default: 'Chunk Size'}" type="number" [(ngModel)]="chunkSize" />
             </div>
             <div class="space-y-2 flex-1">
-              <ngm-input label="分段重叠长度" type="number" [(ngModel)]="chunkOverlap" />
+              <ngm-input [label]="'PAC.Knowledgebase.ChunkOverlap' | translate: {Default: 'Chunk Overlap'}" type="number" [(ngModel)]="chunkOverlap" />
             </div>
           </div>
           <div class="w-full flex flex-col">
             <div class="flex items-center gap-x-2">
               <div class="inline-flex shrink-0">
-                <label class="text-text-secondary system-sm-semibold">文本预处理规则</label>
+                <label class="text-text-secondary system-sm-semibold">
+                  {{ 'PAC.Knowledgebase.TextPreprocessingRules' | translate: {Default: 'Text preprocessing rules'} }}
+                </label>
               </div>
               <div class="w-full h-[0.5px] my-2 bg-gradient-to-r from-divider-regular grow"></div>
             </div>
             <div class="mt-1">
-              <ngm-checkbox label="替换掉连续的空格、换行符和制表符" class="mb-4" />
-              <ngm-checkbox label="删除所有 URL 和电子邮件地址" class="mb-2" />
+              <ngm-checkbox [label]="'PAC.Knowledgebase.ReplaceWhiteChar' | translate: {Default: 'Replace consecutive spaces, newlines, and tabs'} " class="mb-4"
+                [(ngModel)]="replaceWhitespace" />
+              <ngm-checkbox [label]="'PAC.Knowledgebase.RemoveEmailUrls' | translate: {Default: 'Remove all URLs and email addresses'}" class="mb-2"
+                [(ngModel)]="removeSensitive"
+              />
 
               <div class="w-full h-[0.5px] my-4 bg-divider-subtle"></div>
-
+<!-- 
               <div class="flex items-center py-0.5">
 
                 <ngm-checkbox label="使用 Q&amp;A 分段，语言" />
@@ -60,15 +71,19 @@
                       }
                     }
                   ]"/>
-              </div>
+              </div> -->
             </div>
           </div>
         </div>
         <div class="flex gap-2 mt-4">
-          <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium">
+          <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium"
+            (click)="preview()">
             <i class="ri-search-eye-line"></i>
-            预览块</button>
-          <button type="button" class="btn disabled:btn-disabled btn-ghost btn-medium">重置</button>
+            {{ 'PAC.Knowledgebase.PreviewChunk' | translate: {Default: 'Preview Chunk'} }}
+          </button>
+          <!-- <button type="button" class="btn disabled:btn-disabled btn-ghost btn-medium">
+            {{ 'PAC.Knowledgebase.Reset' | translate: {Default: 'Reset'} }}
+          </button> -->
         </div>
       </div>
     </div>
@@ -77,20 +92,22 @@
       <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium"
         (click)="prevStep()">
         <i class="ri-arrow-left-line mr-1"></i>
-        上一步
+        {{ 'PAC.Knowledgebase.PrevStep' | translate: {Default: 'Previous'} }}
       </button>
       <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium ml-auto"
         (click)="save()"
-      >保存并处理</button>
+      >{{ 'PAC.Knowledgebase.SaveProcess' | translate: {Default: 'Save and process'} }}</button>
     </div>
   </div>
 
   <div class="grow max-w-[50%] relative flex flex-col pl-4 py-4 border-l border-y border-solid border-divider-regular rounded-xl">
     <header class="pl-5 pt-4 pr-4 pb-3 border-b border-divider-subtle">
       <div class="">
-        <div class="text-text-accent system-2xs-semibold-uppercase uppercase px-1 mb-1">预览</div>
+        <div class="text-text-accent system-2xs-semibold-uppercase uppercase px-1 mb-1">
+          {{ 'PAC.Knowledgebase.Preview' | translate: {Default: 'Preview'} }}
+        </div>
         <div class="flex items-center gap-1">
-          <div class="flex items-center h-6 px-1 rounded-md hover:bg-state-base-hover select-none"
+          <div class="flex items-center h-6 px-1 rounded-md hover:bg-state-base-hover select-none text-text-secondary"
             [cdkMenuTriggerFor]="files"
           >
             <div class="flex items-center space-x-0.5">
@@ -102,15 +119,15 @@
                 <div>{{selectedWebDoc().metadata.title}}</div>
               }
               @else {
-                <div>
-                  选择文件进行预览
-                </div>
+                <div>{{ 'PAC.Knowledgebase.SelectFilePreview' | translate: {Default: 'Select file to preview'} }}</div>
               }
               <i class="ri-arrow-down-s-line"></i>
             </div>
           </div>
           @if (estimateFile()) {
-            <div class="inline-flex items-center px-[5px] h-5 rounded-[5px] border border-divider-deep leading-3 text-text-tertiary system-2xs-medium-uppercase">{{estimateFile().docs.length}} 预估块</div>
+            <div class="inline-flex items-center px-[5px] h-5 rounded-[5px] border border-divider-deep leading-3 text-text-tertiary system-2xs-medium-uppercase">
+              {{estimateFile().docs.length}} {{'PAC.Knowledgebase.EstimationChunk' | translate: {Default: 'Estimation Chunk'} }}
+            </div>
           }
         </div>
       </div>

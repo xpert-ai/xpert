@@ -5,41 +5,51 @@
     <div class="p-2 font-semibold">
       <i class="ri-arrow-left-line text-text-primary"></i>
     </div>
-    <p class="text-text-primary system-sm-semibold-uppercase">文档</p>
+    <p class="text-text-primary system-sm-semibold-uppercase">
+      {{ 'PAC.Knowledgebase.Documents' | translate: {Default: 'Documents'} }}
+    </p>
   </a>
 
   <ol class="lg:flex justify-center items-center w-full space-y-4 lg:space-y-0 lg:space-x-4">
-    <li class="relative step flex items-center font-medium"
+    <button class="relative step flex items-center font-medium"
       [class.active]="step() === 0"
       (click)="step.set(0)"
     >
       <span class="step-num w-6 h-6 flex justify-center items-center mr-3 text-sm lg:w-8 lg:h-8"> 1 </span>
       <div class="block">
-        <h4 class="text-base">文件源</h4>
+        <h4 class="text-base">
+          {{ 'PAC.Knowledgebase.DocumentSource' | translate: {Default: 'Document Source'} }}
+        </h4>
       </div>
 
       <i class="ri-arrow-right-double-line text-lg ml-2 sm:ml-4"></i>
-    </li>
-    <li class="relative step flex items-center font-medium"
+    </button>
+    <button class="relative step flex items-center font-medium disabled:cursor-not-allowed"
       [class.active]="step() === 1"
+      [disabled]="!step2Avaiable()"
       (click)="step.set(1)"
     >
       <span class="step-num w-6 h-6 flex justify-center items-center mr-3 text-sm lg:w-8 lg:h-8">2</span>
       <div class="block">
-        <h4 class="text-base">文本处理</h4>
+        <h4 class="text-base">
+          {{ 'PAC.Knowledgebase.TextProcessing' | translate: {Default: 'Text Processing'} }}
+        </h4>
       </div>
 
       <i class="ri-arrow-right-double-line text-lg ml-2 sm:ml-4"></i>
-    </li>
-    <li class="relative step flex items-center font-medium"
+    </button>
+    <button class="relative step flex items-center font-medium disabled:cursor-not-allowed"
       [class.active]="step() === 2"
+      [disabled]="!step3Avaiable()"
       (click)="step.set(2)"
     >
       <span class="step-num w-6 h-6 flex justify-center items-center mr-3 text-sm lg:w-8 lg:h-8">3</span>
       <div class="block">
-        <h4 class="text-base">完成</h4>
+        <h4 class="text-base">
+          {{ 'PAC.Knowledgebase.Finish' | translate: {Default: 'Finish'} }}
+        </h4>
       </div>
-    </li>
+    </button>
   </ol>
 </div>
 

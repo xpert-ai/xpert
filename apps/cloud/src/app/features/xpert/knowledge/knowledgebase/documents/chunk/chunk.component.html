@@ -43,7 +43,7 @@
     </div>
     <div class="w-[1px] h-full mx-2 bg-divider-regular"></div>
     <div class="flex items-center px-3 py-2 rounded-lg border-[0.5px] ">
-      <span class='w-2 h-2 mr-1 rounded-[4px] bg-emerald-500 flex'></span>
+      <span class='w-2 h-2 mr-1 rounded-[3px] bg-emerald-500 flex'></span>
       <span class="">{{ 'PAC.Knowledgebase.Available' | translate: {Default: 'Available'} }}</span>
       <div class="flex justify-between items-center ml-1.5">
         <ngm-slide-toggle [(ngModel)]="docEnabled" (ngModelChange)="updateDoc({disabled: !$event})"/>
@@ -56,7 +56,7 @@
 <div class="grow flex justify-between overflow-hidden">
   <div class="grow shrink-1 flex flex-col justify-start overflow-hidden">
     <div class="flex justify-between items-center px-8 py-4">
-      <div>{{'PAC.Knowledgebase.Chunks' | translate: {Default: 'Chunks'} }}: {{total()}}</div>
+      <div>{{'PAC.Knowledgebase.Chunks' | translate: {Default: 'Chunks'} }}: {{total()}} {{'PAC.Knowledgebase.Pieces' | translate: {Default: 'Pieces'} }}</div>
 
       <div class="flex gap-2">
         <div class="relative w-52">
@@ -98,12 +98,12 @@
               <div class="flex items-center">
                 <div class="flex items-center flex-row-reverse gap-1">
                   @if (chunk.metadata?.disabled) {
-                    <span class='w-2 h-2 mr-1 rounded-[4px] bg-gray-300 flex'></span>
+                    <span class='w-2 h-2 mr-1 rounded-[3px] bg-gray-300 flex'></span>
                     <span class="text-sm text-text-tertiary system-xs-regular">
                       {{'PAC.Knowledgebase.Disabled' | translate: {Default: 'Disabled'} }}
                     </span>
                   } @else {
-                    <span class='w-2 h-2 mr-1 rounded-[4px] bg-emerald-500 flex'></span>
+                    <span class='w-2 h-2 mr-1 rounded-[3px] bg-emerald-500 flex'></span>
                     <span class="text-sm text-text-tertiary system-xs-regular">
                       {{'PAC.Knowledgebase.Enabled' | translate: {Default: 'Enabled'} }}
                     </span>
@@ -183,7 +183,7 @@
               <span class="text-components-button-secondary-text system-sm-medium">
                 {{'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}
               </span>
-              <span class="px-[1px] bg-gray-100 rounded-[4px] text-text-tertiary text-sm">ESC</span>
+              <span class="px-[1px] bg-gray-100 rounded-[3px] text-text-tertiary text-sm">ESC</span>
             </div>
           </button>
           <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"

@@ -1,12 +1,11 @@
 
-import { IKnowledgebase, IKnowledgeDocument } from '@metad/contracts'
+import { IKnowledgeDocument } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
 import { Inject, Logger, Scope } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { Job } from 'bull'
 import { estimateTokenUsage } from '@metad/copilot'
-import { Provider } from '@metad/server-core'
 import { KnowledgebaseService, KnowledgeDocumentVectorStore } from '../knowledgebase/index'
 import { KnowledgeDocumentService } from './document.service'
 import { CopilotTokenRecordCommand } from '../copilot-user'
@@ -18,12 +17,7 @@ import { KnowledgeDocLoadCommand } from './commands'
 })
 export class KnowledgeDocumentConsumer {
 	private readonly logger = new Logger(KnowledgeDocumentConsumer.name)
-
-	private knowledgebase: IKnowledgebase
-	get copilot() {
-		return this.knowledgebase?.copilotModel?.copilot
-	}
-	storageProvider: Provider<any>
+	
 	constructor(
 		@Inject(JOB_REF) jobRef: Job,
 		private readonly knowledgebaseService: KnowledgebaseService,
@@ -35,13 +29,14 @@ export class KnowledgeDocumentConsumer {
 	async process(job: Job<{ userId: string; docs: IKnowledgeDocument[] }>) {
 		const userId = job.data.userId
 		const knowledgebaseId = job.data.docs[0]?.knowledgebaseId
-		this.knowledgebase = await this.knowledgebaseService.findOne(knowledgebaseId, { relations: ['copilotModel', 'copilotModel.copilot', 'copilotModel.copilot.modelProvider'] })
+		const knowledgebase = await this.knowledgebaseService.findOne(knowledgebaseId, { relations: ['copilotModel', 'copilotModel.copilot', 'copilotModel.copilot.modelProvider'] })
+		const copilot = knowledgebase?.copilotModel?.copilot
 		let vectorStore: KnowledgeDocumentVectorStore
 		try {
 			const doc = job.data.docs[0]
 
 			vectorStore = await this.knowledgebaseService.getVectorStore(
-				this.knowledgebase,
+				knowledgebase,
 				true,
 				doc.tenantId,
 				doc.organizationId
@@ -66,7 +61,7 @@ export class KnowledgeDocumentConsumer {
 					this.logger.debug(`Embeddings document '${document.storageFile?.originalName || document.options?.url}' size: ${data.length}`)
 					// Clear history chunks
 					await vectorStore.deleteKnowledgeDocument(document)
-					const batchSize = this.knowledgebase.parserConfig?.embeddingBatchSize || 10
+					const batchSize = knowledgebase.parserConfig?.embeddingBatchSize || 10
 					let count = 0
 					while (batchSize * count < data.length) {
 						const batch = data.slice(batchSize * count, batchSize * (count + 1))
@@ -74,10 +69,10 @@ export class KnowledgeDocumentConsumer {
 						const tokenUsed = batch.reduce((total, doc) => total + estimateTokenUsage(doc.pageContent), 0)
 						await this.commandBus.execute(
 							new CopilotTokenRecordCommand({
-								tenantId: this.knowledgebase.tenantId,
-								organizationId: this.knowledgebase.organizationId,
+								tenantId: knowledgebase.tenantId,
+								organizationId: knowledgebase.organizationId,
 								userId,
-								copilotId: this.copilot.id,
+								copilotId: copilot.id,
 								tokenUsed
 							})
 						)

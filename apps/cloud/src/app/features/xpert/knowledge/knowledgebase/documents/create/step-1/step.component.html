@@ -1,5 +1,7 @@
 <div class="px-8 py-4 w-[640px] shrink-0 overflow-auto">
-  <div class="z-10 mb-4 font-semibold text-lg text-text-primary">选择文档源</div>
+  <div class="z-10 mb-4 font-semibold text-lg text-text-primary">
+    {{ 'PAC.Knowledgebase.SelectDocumentSource' | translate: {Default: 'Select Document Source'} }}
+  </div>
 
   <ol class="flex flex-wrap gap-2 items-start" cdkListbox [(ngModel)]="sourceType">
     @for (option of fileTypeOptions; track option.value) {
@@ -26,8 +28,8 @@
 
   <div class="w-full flex justify-end px-4 py-2">
     <a class="group flex items-center gap-2 text-sm font-light text-text-primary transition-all duration-100 hover:text-primary-500"
-      [href]="website() + '/docs/ai/knowledge/import'" target="_blank">
-      Read More
+      [href]="website() + '/docs/ai/knowledge/documents'" target="_blank">
+      {{ 'PAC.Knowledgebase.ReadMore' | translate: {Default: 'Read More'} }}
       <i class="ri-external-link-line transition-all group-hover:translate-x-1"></i>
     </a>
   </div>
@@ -37,15 +39,18 @@
       <input id="fileUploader" #fileDropRef class="invisible" multiple accept=".txt,.markdown,.md,.mdx,.pdf,.html,.htm,.xlsx,.xls,.docx,.csv,.TXT,.MARKDOWN,.MD,.MDX,.PDF,.HTML,.HTM,.XLSX,.XLS,.DOCX,.CSV" type="file"
         (change)="fileBrowseHandler($event.target)"
         (click)="fileDropRef.value=null;">
-      <div class="text-text-tertiary text-base font-semibold leading-6 mb-2">上传文本文件</div>
+      <div class="text-text-tertiary text-base font-semibold leading-6 mb-2">
+        {{ 'PAC.Knowledgebase.UploadTextFile' | translate: {Default: 'Upload text file'} }}
+      </div>
       <div class="relative box-border flex flex-col justify-center items-center gap-1 mb-2 px-4 py-3 max-w-[640px] min-h-20 text-sm text-text-tertiary border border-dashed border-components-dropzone-border rounded-xl bg-gray-50"
         ngmDnd (fileDropped)="onFileDropped($event)"
       >
         <div class="flex justify-center items-center min-h-5 text-sm leading-4 text-text-secondary">
-          <i class="ri-upload-cloud-line"></i>
-          <span>拖拽文件至此，或者<label for="fileUploader" class="ml-1 text-text-accent cursor-pointer">选择文件</label></span>
+          <i class="ri-upload-cloud-line text-lg mr-1"></i>
+          <span>{{ 'PAC.Knowledgebase.DragDropOr' | translate: {Default: 'Drag and drop files here, or'} }}
+            <label for="fileUploader" class="ml-1 text-text-accent cursor-pointer">{{ 'PAC.Knowledgebase.SelectFiles' | translate: {Default: 'select files'} }}</label></span>
         </div>
-        <div>已支持 TXT、 MARKDOWN、 MDX、 PDF、 HTML、 XLSX、 XLS、 DOCX、 CSV、 MD、 HTM，每个文件不超过 15MB。</div>
+        <div>{{ 'PAC.Knowledgebase.SupportFiles' | translate: {Default: 'Supports TXT, MARKDOWN, MDX, PDF, HTML, XLSX, XLS, DOCX, CSV, MD, HTM, and each file does not exceed 15MB.'} }}</div>
       </div>
 
       <div class="space-y-1 max-w-[640px] cursor-default">
@@ -86,7 +91,9 @@
     <div class="my-6 w-full flex flex-col gap-2">
 
       <div class="mb-4">
-        <div class="font-medium text-gray-700 mb-2 h-6">选择提供商</div>
+        <div class="font-medium text-gray-700 mb-2 h-6">
+          {{ 'PAC.Knowledgebase.ChooseaProvider' | translate: {Default: 'Choose a Provider'} }}
+        </div>
         <ul class="flex flex-wrap gap-2" cdkListbox [(ngModel)]="webTypes" [cdkListboxCompareWith]="webTypeCompareWith">
           @for (type of webTypeOptions; track type) {
             <button class="web-option flex items-center px-4 py-2 text-base font-medium rounded-md
@@ -106,7 +113,11 @@
       @if (webOptionSchema(); as optionSchema) {
         <div class="flex h-6 items-center justify-between">
           <div class="flex items-center">
-            <div class="text-base font-semibold text-text-primary">使用 {{optionSchema.type}} 提取网页内容</div>
+            <div class="text-base font-semibold text-text-primary">
+              {{ 'PAC.Knowledgebase.Use' | translate: {Default: 'Use'} }}
+              {{optionSchema.type}} 
+              {{ 'PAC.Knowledgebase.ExtractWebContent' | translate: {Default: 'extract web content'} }}
+            </div>
             <div class="ml-2 mr-1 w-px h-3.5 bg-gray-200"></div>
             @if (optionSchema.integrationProvider) {
               <div class="px-2 py-1 text-sm rounded-md border-[0.5px] border-solid border-divider-deep bg-gray-50 hover:bg-black/5 cursor-pointer"
@@ -116,7 +127,7 @@
                 @if (integration(); as integration) {
                   <span>{{integration.name}}</span>
                 } @else {
-                  集成连接
+                  {{ 'PAC.Knowledgebase.Integration' | translate: {Default: 'Integration'} }}
                 }
               </div>
             }
@@ -124,7 +135,7 @@
           @if (optionSchema.helpUrl) {
             <a [href]="optionSchema.helpUrl" target="_blank" rel="noopener noreferrer" class="flex items-center text-sm text-primary-500 hover:text-primary-600">
               <i class="ri-book-open-line text-lg mr-1"></i>
-              {{webTypes()[0].label | i18n}} 文档
+              {{webTypes()[0].label | i18n}} {{ 'PAC.Knowledgebase.Document' | translate: {Default: 'Document'} }}
             </a>
           }
         </div>
@@ -136,7 +147,9 @@
                 placeholder="https://mtda.cloud/" type="text" [ngModel]="webOptions()?.url" (ngModelChange)="updateWebUrl($event)">
               <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium ml-2 shrink-0"
                 [disabled]="loadingWeb() || optionSchema.integrationProvider && !integration()"
-                (click)="loadRagWebPages()">运行</button>
+                (click)="loadRagWebPages()">
+                {{ 'PAC.Knowledgebase.Load' | translate: {Default: 'Load'} }}
+              </button>
             </div>
   
             <div class="mt-4 mb-3">
@@ -145,7 +158,9 @@
               >
                 <div class="flex items-center text-gray-700">
                   <i class="ri-equalizer-2-line text-lg mr-1"></i>
-                  <div class="text-[13px] font-semibold text-gray-800 uppercase">选项</div>
+                  <div class="text-[13px] font-semibold text-gray-800 uppercase">
+                    {{ 'PAC.Knowledgebase.Settings' | translate: {Default: 'Settings'} }}
+                  </div>
                 </div>
   
                 <i class="ri-arrow-right-s-line text-lg text-text-secondary"
@@ -171,14 +186,18 @@
             <div class="flex items-center justify-between h-[34px] px-4 bg-gray-50 shadow-xs border-b-[0.5px] border-black/8 text-sm font-normal text-gray-700">
               <div>
                 @if (loadingWeb()) {
-                  <span>正在抓取</span>
+                  <span>{{ 'PAC.Knowledgebase.Crawl' | translate: {Default: 'Crawl'} }}...</span>
                 } @else {
-                  <span>抓取结果</span>
+                  <span>{{ 'PAC.Knowledgebase.CrawlResults' | translate: {Default: 'Crawl results'} }}</span>
                 }
               </div>
               <div>
                 @if (!loadingWeb() && webDocs()) {
-                  总共在 {{duration()}} 秒 内抓取了 {{webDocs().length}} 个页面
+                  {{ 'PAC.Knowledgebase.CrawlDesc' | translate: {
+                    Default: 'A total of' + webDocs().length + ' pages were crawled in ' + duration() + ' seconds',
+                    duration: duration(),
+                    webDocs: webDocs().length
+                    } }}
                 }
               </div>
             </div>
@@ -198,9 +217,7 @@
                       
                       <div class="hidden group-hover:flex items-center h-6 px-2 text-sm rounded-md font-medium text-gray-500 uppercase hover:bg-gray-50"
                         (click)="previewDoc.set(page)"
-                      >
-                        预览
-                      </div>
+                      >{{ 'PAC.Knowledgebase.Preview' | translate: {Default: 'Preview'} }}</div>
                     </div>
                     <div class="mt-0.5 truncate pl-6 leading-[18px] text-xs font-normal text-gray-500"
                       [title]="page.metadata.url">
@@ -220,7 +237,7 @@
       [disabled]="loadingWeb()"
       (click)="nextStep()">
       <span class="flex gap-0.5 px-[10px]">
-        <span class="px-0.5">下一步</span>
+        <span class="px-0.5">{{ 'PAC.Knowledgebase.NextStep' | translate: {Default: 'Next Step'} }}</span>
         <i class="ri-arrow-right-line"></i>
       </span>
     </button>
@@ -229,11 +246,11 @@
 
 @if (previewFile(); as item) {
   <div class="h-full w-[1px] bg-divider-deep"></div>
-  <div class="w-1/2 h-full overflow-y-auto">
+  <div class="grow h-full overflow-y-auto">
     <div class="h-full">
       <div class="p-4">
         <div class="w-full flex justify-between items-center">
-          <span>文件预览</span>
+          <span>{{ 'PAC.Knowledgebase.FilePreview' | translate: {Default: 'File Preview'} }}</span>
           <div class="flex items-center justify-center w-6 h-6 cursor-pointer"
             (click)="closePreview()"
           >
@@ -244,8 +261,10 @@
           <span>{{item.doc.storageFile.originalName}},</span>
         </div>
       </div>
-      <div class="">
-        <div class="">Preview Content...</div>
+      <div class="p-4 overflow-auto flex flex-col gap-4">
+        @for (doc of previewFileDocs(); track doc) {
+          <div class="text-sm text-text-secondary">{{doc.pageContent}}</div>
+        }
       </div>
     </div>
   </div>
@@ -256,7 +275,7 @@
   <div class="grow h-full overflow-y-auto">
     <div class="sticky top-0 mx-8 mt-8 pb-2 border-b border-solid border-divider-regular bg-components-card-bg">
       <div class="flex justify-between items-center">
-        <span class="text-lg font-semibold">页面预览</span>
+        <span class="text-lg font-semibold">{{ 'PAC.Knowledgebase.WebPagePreview' | translate: {Default: 'WebPage Preview'} }}</span>
         <div class="flex items-center justify-center w-6 h-6 cursor-pointer"
           (click)="closePreviewWeb()"
         >
