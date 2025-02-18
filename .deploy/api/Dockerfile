@@ -42,8 +42,6 @@ COPY --chown=node:node .deploy/api/package.json ./
 COPY --chown=node:node yarn.lock ./
 
 RUN npm install --legacy-peer-deps
-# Install Playwright Browser
-RUN npx playwright install
 
 COPY --chown=node:node nx.json ./
 COPY --chown=node:node tsconfig.base.json ./
@@ -86,6 +84,9 @@ COPY --chown=node:node .deploy/api/package-prod.json ./package.json
 # RUN yarn config set network-timeout 300000
 RUN npm install --legacy-peer-deps && \
     touch ormlogs.log && chown -R node:node /srv/pangolin
+
+# Install Playwright Browser
+RUN npx playwright install
 
 USER node:node
 
