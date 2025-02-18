@@ -42,6 +42,8 @@ COPY --chown=node:node .deploy/api/package.json ./
 COPY --chown=node:node yarn.lock ./
 
 RUN npm install --legacy-peer-deps
+# Install Playwright Browser
+RUN npx playwright install
 
 COPY --chown=node:node nx.json ./
 COPY --chown=node:node tsconfig.base.json ./
