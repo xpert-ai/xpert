@@ -42,6 +42,7 @@ import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { formatRelative } from 'date-fns/formatRelative'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { KnowledgeDocIdComponent } from "../../../../../@shared/knowledge/knowledge-doc-id/doc.component";
 
 @Component({
   standalone: true,
@@ -55,8 +56,9 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
     MaterialModule,
     MatSortModule,
     MatPaginatorModule,
-    NgmCommonModule
-  ],
+    NgmCommonModule,
+    KnowledgeDocIdComponent
+],
   animations: [
     trigger('detailExpand', [
       state('collapsed,void', style({ height: '0px', minHeight: '0' })),
@@ -79,7 +81,7 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   readonly paginator = viewChild(MatPaginator)
   readonly sort = viewChild(MatSort)
 
-  readonly pageSize = model(10)
+  readonly pageSize = model(20)
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
   readonly knowledgebase$ = toObservable(this.knowledgebase)
 
@@ -92,12 +94,20 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
       caption: 'Name'
     },
     {
+      name: 'sourceType',
+      caption: 'Source Type'
+    },
+    {
       name: 'type',
       caption: 'Type'
     },
     {
       name: 'createdAtRelative',
       caption: 'Created At'
+    },
+    {
+      name: 'disabled',
+      caption: 'Available'
     },
     {
       name: 'processMsg',
@@ -187,11 +197,11 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
     this.#router.navigate(['create'], { relativeTo: this.#route })
   }
 
-  deleteDocument(id: string, storageFile: IStorageFile) {
+  deleteDocument(doc: IKnowledgeDocument) {
     this.confirmDelete({
-      value: id,
-      information: storageFile ? `${storageFile.originalName}` : ''
-    }, this.knowledgeDocumentService.delete(id))
+      value: doc.id,
+      information: doc.name
+    }, this.knowledgeDocumentService.delete(doc.id))
     .subscribe({
       next: () => {
         this.refresh()

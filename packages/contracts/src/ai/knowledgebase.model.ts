@@ -1,7 +1,7 @@
-import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { ICopilotModel } from './copilot-model.model'
 import { TAvatar } from '../types'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
+import { IKnowledgeDocument } from './knowledge-doc.model'
 
 export enum KnowledgebaseTypeEnum {
   Standard = 'standard',
@@ -70,6 +70,8 @@ export type TKnowledgebase = {
   parserConfig?: KnowledgebaseParserConfig
 
   status?: string
+
+  documents?: IKnowledgeDocument[]
 }
 
 /**

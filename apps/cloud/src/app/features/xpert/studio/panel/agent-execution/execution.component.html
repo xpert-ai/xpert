@@ -86,9 +86,9 @@
     </div>
 
     <div class="flex flex-col gap-2 p-2">
-      @for (item of executions(); track item.agent.key) {
+      @for (item of executions(); track item) {
         <div class="flex items-center my-4 leading-[18px] text-sm font-semibold text-gray-500 uppercase">
-          <div class="flex items-center cursor-pointer rounded-md hover:bg-hover-bg" (click)="toggleExpand(item.agent.key)">
+          <div class="flex items-center cursor-pointer rounded-md hover:bg-hover-bg" (click)="toggleExpand(item.agent?.key)">
             @if (item.expand) {
               <i class="ri-arrow-drop-down-line"></i>
             } @else {

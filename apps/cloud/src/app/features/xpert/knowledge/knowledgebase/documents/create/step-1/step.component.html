@@ -234,7 +234,7 @@
 
   <div class="flex justify-end gap-2 max-w-[640px]">
     <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
-      [disabled]="loadingWeb()"
+      [disabled]="loadingWeb() || !nextStepAvailable()"
       (click)="nextStep()">
       <span class="flex gap-0.5 px-[10px]">
         <span class="px-0.5">{{ 'PAC.Knowledgebase.NextStep' | translate: {Default: 'Next Step'} }}</span>

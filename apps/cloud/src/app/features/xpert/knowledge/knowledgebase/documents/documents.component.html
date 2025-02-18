@@ -2,7 +2,8 @@
   <span class="flex-1"></span>
   
   <div ngmButtonGroup >
-    <button mat-mini-fab [matTooltip]=" 'PAC.Knowledgebase.NewFiles' | translate: {Default: 'New Files' }"
+    <button mat-mini-fab [matTooltip]=" 'PAC.Knowledgebase.NewDocuments' | translate: {Default: 'New Documents' }"
+      matTooltipPosition="before"
       (click)="uploadDocuments()">
       <mat-icon fontSet="material-icons-outlined">add</mat-icon>
     </button>
@@ -16,11 +17,32 @@
       <ng-container matColumnDef="{{column.name}}">
         <th mat-header-cell *matHeaderCellDef mat-sort-header> {{'PAC.KEY_WORDS.' + column.caption | translate: {Default: column.caption} }} </th>
         <td mat-cell *matCellDef="let element">
-          @if (column.name === 'name') {
-            <a [routerLink]="['.', element.id]" >{{element.storageFile?.originalName || element.options?.url}}</a>
-          } @else {
-            {{getValue(element, column.name)}}
-          }</td>
+          @switch (column.name) {
+            @case ('name') {
+              <a [routerLink]="['.', element.id]"><knowledge-doc-id [doc]="element" /></a>
+            }
+            @case ('sourceType') {
+              <span class="uppercase">{{element.sourceType}}</span>
+            }
+            @case ('disabled') {
+              <div class="flex items-center text-sm">
+                @if (element.disabled) {
+                  <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-gray-300 flex'></span>
+                  <span class="">{{ 'PAC.Knowledgebase.Disabled' | translate: {Default: 'Disabled'} }}</span>
+                } @else {
+                  <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex'></span>
+                  <span class="text-emerald-500">{{ 'PAC.Knowledgebase.Available' | translate: {Default: 'Available'} }}</span>
+                }
+              </div>
+            }
+            @case ('processMsg') {
+              <div class="max-w-sm truncate text-sm" [matTooltip]="element.processMsg">{{element.processMsg}}</div>
+            }
+            @default {
+              {{getValue(element, column.name)}}
+            }
+          }
+        </td>
       </ng-container>
     }
 
@@ -85,7 +107,7 @@
 
           <mat-divider vertical style="height: 20px;" />
           <button mat-icon-button ngmAppearance="danger" [matTooltip]="'PAC.Knowledgebase.DeleteKnowledgeDocument' | translate: {Default: 'Delete Knowledge Document'}" matTooltipPosition="above"
-            (click)="deleteDocument(element.id, element.storageFile)"
+            (click)="deleteDocument(element)"
           >
             <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
           </button>
@@ -155,7 +177,7 @@
     <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
   </table>
 </div>
-<mat-paginator [length]="total()" [pageSize]="pageSize()" [pageSizeOptions]="[10, 20, 50, 100]" />
+<mat-paginator [length]="total()" [pageSize]="pageSize()" [pageSizeOptions]="[20, 50, 100, 500, 1000]" />
 
 @if (isLoading()) {
   <ngm-spin class="absolute top-0 left-0 w-full h-full" />

@@ -1,8 +1,8 @@
-import { ICopilotModel, IKnowledgebase, KnowledgebaseParserConfig, KnowledgebasePermission, KnowledgebaseTypeEnum, TAvatar } from '@metad/contracts'
+import { ICopilotModel, IKnowledgebase, IKnowledgeDocument, KnowledgebaseParserConfig, KnowledgebasePermission, KnowledgebaseTypeEnum, TAvatar } from '@metad/contracts'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsNumber, IsOptional, IsString, IsEnum } from 'class-validator'
-import { Column, Entity, Index, JoinColumn, OneToOne, RelationId } from 'typeorm'
-import { CopilotModel } from '../core/entities/internal'
+import { Column, Entity, Index, JoinColumn, OneToMany, OneToOne, RelationId } from 'typeorm'
+import { CopilotModel, KnowledgeDocument } from '../core/entities/internal'
 import { WorkspaceBaseEntity } from '../core/entities/base.entity'
 
 @Entity('knowledgebase')
@@ -104,4 +104,16 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	@IsOptional()
 	@Column({ nullable: true })
 	status?: string
+
+	/*
+    |--------------------------------------------------------------------------
+    | @OneToMany
+    |--------------------------------------------------------------------------
+    */
+	@ApiPropertyOptional({ type: () => KnowledgeDocument, isArray: true })
+	@IsOptional()
+	@OneToMany(() => KnowledgeDocument, (kd) => kd.knowledgebase, {
+		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+	})
+	documents?: IKnowledgeDocument[] | null
 }

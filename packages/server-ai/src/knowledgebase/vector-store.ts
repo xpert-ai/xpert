@@ -1,5 +1,6 @@
 import { PGVectorStore } from '@langchain/community/vectorstores/pgvector'
-import { Document } from '@langchain/core/documents'
+import { Callbacks } from '@langchain/core/callbacks/manager'
+import { Document, DocumentInterface } from '@langchain/core/documents'
 import { Embeddings } from '@langchain/core/embeddings'
 import { IKnowledgebase, IKnowledgeDocument } from '@metad/contracts'
 import { Pool } from 'pg'
@@ -86,6 +87,7 @@ export class KnowledgeDocumentVectorStore extends PGVectorStore {
 		documents: Document<Record<string, any>>[]
 	): Promise<void> {
 		documents.forEach((item) => {
+			item.metadata.enabled = true
 			item.metadata.knowledgeId = knowledgeDocument.id
 			item.metadata.model = this.model
 		})
@@ -137,6 +139,20 @@ export class KnowledgeDocumentVectorStore extends PGVectorStore {
 	async ensureTableInDatabase() {
 		await super.ensureTableInDatabase()
 		await super.ensureCollectionTableInDatabase()
+	}
+
+	async similaritySearchWithScore(query: string, k?: number, filter?: this["FilterType"] | undefined, _callbacks?: Callbacks | undefined): Promise<[DocumentInterface, number][]> {
+		const _filter = (filter ?? {}) as any
+		if (!_filter.knowledgeId && this.knowledgebase.documents?.length) {
+			_filter.knowledgeId = {
+				in: this.knowledgebase.documents.filter((doc) => !doc.disabled).map((doc) => doc.id)
+			}
+		}
+		if (_filter.enabled == null) {
+			_filter.enabled = true
+		}
+
+		return super.similaritySearchWithScore(query, k, _filter, _callbacks)
 	}
 }
 

@@ -19,7 +19,7 @@
     >
       <button
         type="button"
-        class="inline-flex items-center px-2.5 py-2 rounded-l-lg border-r-[1px] border-r-divider-subtle hover:bg-state-base-hover disabled:cursor-not-allowed disabled:hover:bg-transparent"
+        class="inline-flex items-center px-2.5 py-2 rounded-l-lg hover:bg-state-base-hover disabled:cursor-not-allowed disabled:hover:bg-transparent"
         (click)="addChunk()"
       >
         <i class="ri-file-add-line"></i>
@@ -27,8 +27,8 @@
           {{ 'PAC.Knowledgebase.AddChunk' | translate: {Default: 'Add Chunk'} }}
         </span>
       </button>
-      <div class="relative">
-        <!-- <div>
+     <!--  <div class="relative">
+        <div>
           <button
             class="group inline-flex items-center bg-components-button-secondary-bg px-3 py-2 rounded-lg text-base font-medium hover:bg-components-button-secondary-bg-hover hover:border-components-button-secondary-border-hover focus:outline-none !p-2 !rounded-l-none !rounded-r-lg !hover:bg-state-base-hover backdrop-blur-[5px] disabled:cursor-not-allowed disabled:bg-transparent disabled:hover:bg-transparent"
             type="button"
@@ -38,13 +38,21 @@
               <i class="ri-arrow-down-s-line"></i>
             </div>
           </button>
-        </div> -->
-      </div>
+        </div> 
+      </div>-->
     </div>
-    <div class="w-[1px] h-full mx-2 bg-divider-regular"></div>
+    
+    <div class="w-[1px] h-4 mx-2 bg-divider-regular"></div>
+
     <div class="flex items-center px-3 py-2 rounded-lg border-[0.5px] ">
-      <span class='w-2 h-2 mr-1 rounded-[3px] bg-emerald-500 flex'></span>
-      <span class="">{{ 'PAC.Knowledgebase.Available' | translate: {Default: 'Available'} }}</span>
+      @if (docEnabled()) {
+        <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex'></span>
+        <span class="">{{ 'PAC.Knowledgebase.Available' | translate: {Default: 'Available'} }}</span>
+      } @else {
+        <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-gray-300 flex'></span>
+        <span class="">{{ 'PAC.Knowledgebase.Disabled' | translate: {Default: 'Disabled'} }}</span>
+      }
+      
       <div class="flex justify-between items-center ml-1.5">
         <ngm-slide-toggle [(ngModel)]="docEnabled" (ngModelChange)="updateDoc({disabled: !$event})"/>
       </div>
@@ -97,15 +105,15 @@
               </div>
               <div class="flex items-center">
                 <div class="flex items-center flex-row-reverse gap-1">
-                  @if (chunk.metadata?.disabled) {
-                    <span class='w-2 h-2 mr-1 rounded-[3px] bg-gray-300 flex'></span>
-                    <span class="text-sm text-text-tertiary system-xs-regular">
-                      {{'PAC.Knowledgebase.Disabled' | translate: {Default: 'Disabled'} }}
-                    </span>
-                  } @else {
-                    <span class='w-2 h-2 mr-1 rounded-[3px] bg-emerald-500 flex'></span>
+                  @if (chunk.metadata?.enabled) {
+                    <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex'></span>
                     <span class="text-sm text-text-tertiary system-xs-regular">
                       {{'PAC.Knowledgebase.Enabled' | translate: {Default: 'Enabled'} }}
+                    </span>
+                  } @else {
+                    <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-gray-300 flex'></span>
+                    <span class="text-sm text-text-tertiary system-xs-regular">
+                      {{'PAC.Knowledgebase.Disabled' | translate: {Default: 'Disabled'} }}
                     </span>
                   }
                 </div>
@@ -124,7 +132,7 @@
               </div>
               <div class="w-[1px] mx-2 h-3.5 bg-divider-deep"></div>
               <div class="flex items-center">
-                <ngm-slide-toggle [ngModel]="!chunk.metadata?.disabled" (ngModelChange)="enableChunk(chunk, $event)"/>
+                <ngm-slide-toggle [ngModel]="chunk.metadata?.enabled" (ngModelChange)="enableChunk(chunk, $event)"/>
               </div>
             </div>
           
@@ -183,7 +191,7 @@
               <span class="text-components-button-secondary-text system-sm-medium">
                 {{'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}
               </span>
-              <span class="px-[1px] bg-gray-100 rounded-[3px] text-text-tertiary text-sm">ESC</span>
+              <span class="px-[1px] bg-gray-100 rounded-[2.5px] shadow-md text-text-tertiary text-sm">ESC</span>
             </div>
           </button>
           <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"

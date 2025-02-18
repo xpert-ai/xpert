@@ -17,29 +17,25 @@ import { BehaviorSubject, catchError, of, pipe, switchMap, tap, map, startWith }
 import { Document } from 'langchain/document'
 import {
   getErrorMessage,
-  IIntegration,
   IKnowledgeDocument,
   IKnowledgeDocumentPage,
   injectHelpWebsite,
   IntegrationService,
   IStorageFile,
   KDocumentSourceType,
-  KDocumentWebTypeEnum,
   KDocumentWebTypeOptions,
   KnowledgeDocumentService,
   ParameterTypeEnum,
   StorageFileService,
-  TDocumentWebOptions,
   ToastrService,
   TRagWebOptions,
-  TRagWebResult
 } from '../../../../../../../@core'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../../documents.component'
 import { KnowledgeDocumentCreateComponent, TFileItem } from '../create.component'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { ContentLoaderModule } from '@ngneat/content-loader'
-import { uniq } from 'lodash'
+import { uniq } from 'lodash-es'
 import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
 
 @Component({
@@ -175,6 +171,15 @@ export class KnowledgeDocumentCreateStep1Component {
   readonly webDocs = computed(() => this.webResult()?.docs)
   readonly duration = computed(() => this.webResult()?.duration)
   readonly webError = signal('')
+
+  // Available
+  readonly nextStepAvailable = computed(() => {
+    return this.sourceType()[0] === KDocumentSourceType.FILE 
+      ? this.fileList()?.length > 0 
+      : this.sourceType()[0] === KDocumentSourceType.WEB 
+        ? this.webDocs()?.length > 0 
+        : false
+  })
 
   constructor() {
     effect(() => {

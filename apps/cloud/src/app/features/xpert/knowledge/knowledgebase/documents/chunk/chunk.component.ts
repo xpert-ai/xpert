@@ -201,7 +201,7 @@ export class KnowledgeDocumentChunkComponent {
 
   enableChunk(chunk: IDocumentChunk, event: boolean) {
     this.loading.set(true)
-    this.knowledgeDocumentService.updateChunk(this.documentId(), chunk.id, {metadata: {disabled: !event}}).subscribe({
+    this.knowledgeDocumentService.updateChunk(this.documentId(), chunk.id, {metadata: {enabled: event}}).subscribe({
       next: () => {
         this.loading.set(false)
         this.chunks.update((chunks) => {
@@ -211,7 +211,7 @@ export class KnowledgeDocumentChunkComponent {
                 ..._,
                 metadata: {
                   ..._.metadata,
-                  disabled: !event
+                  enabled: event
                 }
               }
             }

@@ -63,7 +63,7 @@
         (click)="onSelectNode($event, node)"
 
         [floatUi]="executionPopper"
-        [disabled]="!agentExecutions()[node.key]"
+        [disabled]="!executions()[node.key]"
         [showTrigger]="eNgxFloatUiTriggers.hover"
         [hideOnClickOutside]="false"
         [hideOnMouseLeave]="false"
@@ -104,8 +104,8 @@
         }
 
         <float-ui-content #executionPopper (click)="$event.stopPropagation()" (wheel)="$event.stopPropagation()">
-          @if (agentExecutions()[node.key]) {
-            @for (execution of agentExecutions()[node.key]; track execution.id) {
+          @if (executions()[node.key]) {
+            @for (execution of executions()[node.key]; track execution.id) {
               <xpert-agent-execution-status class="p-2 w-96" [execution]="execution" />
               <xpert-agent-execution-log class="p-2 w-96 max-h-[400px] overflow-y-auto overflow-x-hidden"
                 [execution]="execution"

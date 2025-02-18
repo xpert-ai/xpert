@@ -287,7 +287,9 @@
       "EndUser": "终端用户",
       "Title": "标题",
       "MessageCount": "消息数",
-      "TimeZone": "时区"
+      "TimeZone": "时区",
+      "Source Type": "源类型",
+      "Available": "可用"
     },
     "Workflow": {
       "And": "且",
@@ -1873,6 +1875,7 @@
       "Test": "测试",
       "Configuration": "配置",
       "NewFiles": "新增文件",
+      "NewDocuments": "新增文档",
       "EmbeddingModel": "嵌入模型",
       "Chunks": "分块",
       "DeleteChunk": "删除块",
@@ -1904,9 +1907,10 @@
       "Pages": "页面",
       "AddChunk": "添加分块",
       "Available": "可用",
+      "NotAvailable": "不可用",
       "Search": "搜索",
       "Characters": "字符",
-      "Disabled": "未启用",
+      "Disabled": "已禁用",
       "Enabled": "已启用",
       "EditChunk": "编辑分块",
       "AddContentHere": "在这里添加内容",
