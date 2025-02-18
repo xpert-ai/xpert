@@ -194,7 +194,7 @@
               <div>
                 @if (!loadingWeb() && webDocs()) {
                   {{ 'PAC.Knowledgebase.CrawlDesc' | translate: {
-                    Default: 'A total of' + webDocs().length + ' pages were crawled in ' + duration() + ' seconds',
+                    Default: 'A total of ' + webDocs().length + ' pages were crawled in ' + duration() + ' seconds',
                     duration: duration(),
                     webDocs: webDocs().length
                     } }}
@@ -205,8 +205,8 @@
               @if (loadingWeb()) {
                 <list-content-loader class="my-4"></list-content-loader>
               } @else if (webError()) {
-                <i class="ri-alarm-warning-line text-xl p-2 text-text-warning"></i>
-                <div class="text-sm p-2 text-text-warning">{{webError()}}</div>
+                <i class="ri-alarm-warning-line text-xl p-2 text-text-destructive"></i>
+                <div class="text-sm p-2 whitespace-pre-wrap overflow-auto text-text-destructive">{{webError()}}</div>
               } @else {
                 @for (page of webDocs(); track page) {
                   <div class="page-item group hover:bg-gray-100 rounded-md px-2 py-[5px] cursor-pointer border border-transparent"

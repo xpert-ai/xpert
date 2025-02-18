@@ -5,6 +5,7 @@ export class RagWebLoadCommand implements ICommand {
 	static readonly type = '[Rag Web] Load'
 
 	static readonly prefix = 'rag_web'
+	static readonly providerPrefix = 'rag_web_provider'
 
 	constructor(
 		public readonly type: string,
