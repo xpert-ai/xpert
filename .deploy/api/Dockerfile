@@ -74,6 +74,7 @@ WORKDIR /srv/pangolin
 
 RUN npm install pm2 -g
 
+COPY --chown=node:node wait ./
 # COPY dist and dependencies
 COPY --chown=node:node --from=build /srv/pangolin/dist/packages ./packages
 COPY --chown=node:node --from=build /srv/pangolin/dist/apps/api .
@@ -81,15 +82,19 @@ COPY --chown=node:node --from=build /srv/pangolin/tsconfig.base.json ./
 COPY --chown=node:node --from=build /srv/pangolin/package-lock.json .
 COPY --chown=node:node .deploy/api/package-prod.json ./package.json
 
+COPY --chown=node:node .deploy/api/entrypoint.compose.sh ./
+COPY --chown=node:node .deploy/api/entrypoint.prod.sh ./
+RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
+
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
 # RUN yarn config set network-timeout 300000
 RUN npm install --legacy-peer-deps && \
     touch ormlogs.log && chown -R node:node /srv/pangolin
-
-# Install Playwright Browser
-RUN npx playwright install
 
 USER node:node
 
 EXPOSE ${PORT}
 
+ENTRYPOINT [ "sh", "./entrypoint.prod.sh" ]
 CMD [ "pm2-runtime", "main.js" ]

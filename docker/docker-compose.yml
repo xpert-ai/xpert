@@ -68,6 +68,7 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
     env_file:
       - .env
+    entrypoint: './entrypoint.compose.sh'
     command: ['node', 'main.js']
     restart: on-failure
     depends_on:

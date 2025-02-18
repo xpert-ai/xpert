@@ -66,7 +66,7 @@
               <div class="w-full px-2 leading-3 truncate text-text-tertiary">
                 <span class="uppercase">{{item.file.name.split('.').pop()}}</span>
                 <span class="px-1 text-text-quaternary">·</span>
-                <span>{{item.file.size}}</span>
+                <span>{{item.file.size / 1024 | number:'0.0-1'}}KB</span>
               </div>
             </div>
 
