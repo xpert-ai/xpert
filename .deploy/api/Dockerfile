@@ -87,7 +87,8 @@ COPY --chown=node:node .deploy/api/entrypoint.prod.sh ./
 RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
 
 RUN mkdir -p /ms-playwright && \
-    chown -R node:node /ms-playwright
+    chown -R node:node /ms-playwright && \
+    chmod -R 777 /ms-playwright
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # RUN yarn config set network-timeout 300000

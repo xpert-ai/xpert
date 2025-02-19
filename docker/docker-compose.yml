@@ -69,7 +69,7 @@ services:
     env_file:
       - .env
     entrypoint: './entrypoint.compose.sh'
-    command: ['node', 'main.js']
+    # command: ['node', 'main.js']
     restart: on-failure
     depends_on:
       - db
@@ -80,6 +80,7 @@ services:
       - '3000:${API_PORT:-3000}'
     volumes:
       - ./volumes/api/public:/srv/pangolin/public
+      - ./volumes/api/ms-playwright:/ms-playwright
     networks:
       - default
 
