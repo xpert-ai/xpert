@@ -72,6 +72,22 @@ ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=2048"} \
 
 WORKDIR /srv/pangolin
 
+RUN apk add --no-cache \
+    nss \
+    atk \
+    libx11 \
+    libxcomposite \
+    libxdamage \
+    libxrandr \
+    liberation-fonts \
+    libappindicator-gtk3 \
+    alsa-lib \
+    atk1.0 \
+    cups-libs \
+    nspr \
+    libxss \
+    xdg-utils
+
 RUN npm install pm2 -g
 
 COPY --chown=node:node wait ./
