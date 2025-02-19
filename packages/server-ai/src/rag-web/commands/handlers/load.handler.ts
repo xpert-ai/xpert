@@ -41,7 +41,7 @@ export class RagWebLoadHandler implements ICommandHandler<RagWebLoadCommand> {
 				duration
 			}
 		} catch (err) {
-			if (err.message?.includes('yarn playwright install')) {
+			if (err.message?.includes('playwright install')) {
 				const result = await this.cacheManager.get<{ installing: boolean; fail?: boolean; }>(
 					`${RagWebLoadCommand.providerPrefix}:playwright`
 				)
