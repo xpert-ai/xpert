@@ -50,7 +50,7 @@ COPY --chown=node:node apps/api ./apps/api
 RUN yarn nx build api
 
 #////////////////////////////////////////////////////////////////////////////////
-FROM node:18-alpine AS production
+FROM node:18 AS production
 
 ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=2048"} \
     NODE_ENV=${NODE_ENV:-production} \
@@ -72,22 +72,6 @@ ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=2048"} \
 
 WORKDIR /srv/pangolin
 
-RUN apk add --no-cache \
-    nss \
-    atk \
-    libx11 \
-    libxcomposite \
-    libxdamage \
-    libxrandr \
-    liberation-fonts \
-    libappindicator-gtk3 \
-    alsa-lib \
-    atk1.0 \
-    cups-libs \
-    nspr \
-    libxss \
-    xdg-utils
-
 RUN npm install pm2 -g
 
 COPY --chown=node:node wait ./
@@ -102,9 +86,6 @@ COPY --chown=node:node .deploy/api/entrypoint.compose.sh ./
 COPY --chown=node:node .deploy/api/entrypoint.prod.sh ./
 RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
 
-RUN mkdir -p /ms-playwright && \
-    chown -R node:node /ms-playwright && \
-    chmod -R 777 /ms-playwright
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # RUN yarn config set network-timeout 300000
