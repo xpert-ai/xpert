@@ -380,7 +380,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		return tool(
 			async (params, config: LangGraphRunnableConfig): Promise<string> => {
 				const { configurable } = config ?? {}
-				const { subscriber } = configurable ?? {}
+				const { subscriber, language } = configurable ?? {}
 				const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 				this.logger.debug(`Execute tool '${ChatBIToolsEnum.ANSWER_QUESTION}':`, JSON.stringify(params, null, 2))
 
@@ -406,7 +406,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				if (answer.dimensions?.length || answer.measures?.length) {
 					const { data, members } = await this.drawChartMessage(
 						answer as ChatAnswer,
-						{ ...context, entityType },
+						{ ...context, entityType, language },
 						subscriber
 					)
 
@@ -444,7 +444,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 	}
 
 	async drawChartMessage(answer: ChatAnswer, context: ChatBIContext, subscriber: Subscriber<MessageEvent>): Promise<any> {
-		const { dsCoreService, entityType, chatbi } = context
+		const { dsCoreService, entityType, chatbi, language } = context
 		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 
 		const lang = currentState[STATE_VARIABLE_SYS_LANGUAGE]
@@ -509,7 +509,8 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			}
 			chartSettings = {
 				universalTransition: true,
-				chartTypes
+				chartTypes,
+				locale: language
 			}
 		}
 
