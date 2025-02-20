@@ -1,7 +1,7 @@
 <button mat-icon-button class="opacity-80 hover:opacity-100 hover:scale-110 transition-transform duration-200"
   [matTooltip]="'PAC.KEY_WORDS.Notification' | translate: {Default: 'Notification'}"
   matTooltipPosition="right"
-  [matMenuTriggerFor]="statusNotifMenu"
+  [cdkMenuTriggerFor]="statusNotifMenu"
 >
   <mat-icon fontSet="material-icons-round">notifications</mat-icon>
 </button>
@@ -13,9 +13,9 @@
   </span>
 }
 
-
-<mat-menu #statusNotifMenu="matMenu" class="ngm-menu-card" xPosition="after" yPosition="above">
-  <div class="max-h-[70vh] w-[300px] max-w-full flex flex-col justify-start items-stretch overflow-hidden" (click)="$event.stopPropagation()">
+<ng-template #statusNotifMenu>
+  <div cdkMenu class="max-h-[70vh] w-[300px] cdk-menu__medium"
+    (click)="$event.stopPropagation()">
     <div class="flex justify-between items-center px-2">
       <h5 class="mb-2 text-lg font-bold tracking-tight">
         {{'PAC.KEY_WORDS.Notification' | translate: {Default: 'Notification'} }}
@@ -47,4 +47,4 @@
       </mat-list>
     </div>
   </div>
-</mat-menu>
+</ng-template>

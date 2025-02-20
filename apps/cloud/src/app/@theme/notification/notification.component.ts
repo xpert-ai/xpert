@@ -1,3 +1,4 @@
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
@@ -24,6 +25,7 @@ import { merge } from 'rxjs'
     CommonModule,
     FormsModule,
     TranslateModule,
+    CdkMenuModule,
     MatIconModule,
     MatTooltipModule,
     MatButtonModule,
