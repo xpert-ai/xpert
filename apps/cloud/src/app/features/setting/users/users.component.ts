@@ -93,7 +93,7 @@ export class PACUsersComponent<T extends IUser = IUser> extends TranslationBaseC
   async invite() {
     const result = await firstValueFrom(this._dialog.open<{total: number}>(InviteMutationComponent).closed)
 
-    // 成功邀请人数
+    // Number of successful invites
     if (result?.total) {
       this.invitedEvent.next()
       this.router.navigate(['invites'], { relativeTo: this._route })
@@ -102,7 +102,10 @@ export class PACUsersComponent<T extends IUser = IUser> extends TranslationBaseC
 
   async addUser() {
     const result = await firstValueFrom(
-      this._dialog.open<{user: IUser;}>(UserMutationComponent, { data: { isAdmin: true } }).closed
+      this._dialog.open<{user: IUser;}>(UserMutationComponent, { 
+        disableClose: true,
+        data: { isAdmin: true }
+      }).closed
     )
     if (result?.user) {
       this.router.navigate(['.', result.user.id], { relativeTo: this._route })

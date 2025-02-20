@@ -41,7 +41,7 @@ input.mat-mdc-input-element {
 }
 
 .pac-upload-preview__length {
-  @apply w-12 text-right rounded-sm hover:bg-slate-200 focus:bg-slate-300 dark:hover:bg-white/10 focus:bg-white/20;
+  @apply text-right rounded-sm hover:bg-slate-200 focus:bg-slate-300 dark:hover:bg-white/10 focus:bg-white/20;
 }
 
 :host::ng-deep {

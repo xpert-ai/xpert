@@ -1,92 +1,94 @@
 <div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
-    <div class="w-full flex justify-start items-center mb-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-      <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
-      <span class="text-lg pointer-events-none">
-        {{ 'PAC.MENU.MODEL.CREATE_MODEL' | translate: { Default: 'Create Model' } }}
-      </span>
+  <div class="w-full flex justify-start items-center mb-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
+    <span class="text-lg pointer-events-none">
+      {{ 'PAC.MENU.MODEL.CREATE_MODEL' | translate: { Default: 'Create Model' } }}
+    </span>
+  </div>
+
+  <form [formGroup]="formGroup" class="flex-1 flex flex-col justify-start items-stretch">
+    <mat-form-field appearance="fill" color="accent" floatLabel="always">
+      <mat-label>
+        {{ 'PAC.KEY_WORDS.NAME' | translate: { Default: 'Name' } }}
+      </mat-label>
+      <input
+        matInput
+        [placeholder]="'PAC.MODEL.ModelName' | translate: { Default: 'Model Name' }"
+        formControlName="name"
+        required
+      />
+    </mat-form-field>
+    <mat-form-field appearance="fill" color="accent" floatLabel="always">
+      <mat-label>
+        {{ 'PAC.KEY_WORDS.Description' | translate: { Default: 'Description' } }}
+      </mat-label>
+      <textarea
+        matInput
+        formControlName="description"
+        placeholder="{{
+          'PAC.MODEL.DescriptionPlaceholder' | translate: { Default: 'Optional, desciption of the semantic model' }
+        }}"
+      ></textarea>
+    </mat-form-field>
+
+    <ngm-tree-select class="w-full" appearance="fill" formControlName="businessAreaId"
+      [label]=" 'PAC.KEY_WORDS.BUSINESS_AREA' | translate: {Default: 'Business Area'} "
+      [treeNodes]="businessAreas$ | async"
+      displayBehaviour="descriptionOnly"
+      searchable
+    ></ngm-tree-select>
+
+    <mat-checkbox *ngIf="enableMDX" class="m-2" formControlName="mdx">
+      {{ 'PAC.MENU.MODEL.USE_MDX' | translate: { Default: 'Use MDX' } }}
+    </mat-checkbox>
+  </form>
+
+  <div class="flex justify-start">
+    <div ngmButtonGroup>
+      <button mat-raised-button color="accent" cdkFocusInitial [disabled]="formGroup.invalid || formGroup.pristine" (click)="create()">
+        <span>
+          {{ 'Story.Common.Save' | translate: { Default: 'Save' } }}
+        </span>
+      </button>
     </div>
-
-    <form [formGroup]="formGroup" class="flex-1 flex flex-col justify-start items-stretch">
-      <mat-form-field appearance="fill" color="accent" floatLabel="always">
-        <mat-label>
-          {{ 'PAC.KEY_WORDS.NAME' | translate: { Default: 'Name' } }}
-        </mat-label>
-        <input
-          matInput
-          [placeholder]="'PAC.MODEL.ModelName' | translate: { Default: 'Model Name' }"
-          formControlName="name"
-          required
-        />
-      </mat-form-field>
-      <mat-form-field appearance="fill" color="accent" floatLabel="always">
-        <mat-label>
-          {{ 'PAC.KEY_WORDS.Description' | translate: { Default: 'Description' } }}
-        </mat-label>
-        <textarea
-          matInput
-          formControlName="description"
-          placeholder="{{
-            'PAC.MODEL.DescriptionPlaceholder' | translate: { Default: 'Optional, desciption of the semantic model' }
-          }}"
-        ></textarea>
-      </mat-form-field>
-
-      <ngm-tree-select class="w-full" appearance="fill" formControlName="businessAreaId"
-        [label]=" 'PAC.KEY_WORDS.BUSINESS_AREA' | translate: {Default: 'Business Area'} "
-        [treeNodes]="businessAreas$ | async"
-        displayBehaviour="descriptionOnly"
-        searchable
-      ></ngm-tree-select>
-
-      <mat-checkbox *ngIf="enableMDX" class="m-2" formControlName="mdx">
-          {{ 'PAC.MENU.MODEL.USE_MDX' | translate: { Default: 'Use MDX' } }}
-      </mat-checkbox>
-    </form>
-
-    <div class="flex justify-start">
-        <div ngmButtonGroup>
-          <button mat-raised-button color="accent" cdkFocusInitial [disabled]="formGroup.invalid || formGroup.pristine" (click)="create()">
-            <span>
-              {{ 'Story.Common.Save' | translate: { Default: 'Save' } }}
-            </span>
-          </button>
-        </div>
-    </div>
+  </div>
 </div>
 
 <div mat-dialog-content class="pac-dialog-content w-[400px] max-h-full overflow-auto">
   <form [formGroup]="formGroup" class="flex flex-col items-stretch p-4 overflow-auto">
     <label class="text-lg">
-      {{ 'PAC.MODEL.DataSource' | translate: { Default: 'Data Source' } }}
+      <span class="text-red-500">*</span>{{ 'PAC.MODEL.DataSource' | translate: { Default: 'Data Source' } }}
       <a [routerLink]="['/settings/data-sources/']" target="_blank" rel="noopener noreferrer" class="inline-flex items-center p-1 text-xs !text-primary-400 hover:!text-primary-600">
         {{'PAC.Xpert.HowtoCreate' | translate: {Default: 'How to create'} }}
         <i class="ri-external-link-line"></i>
       </a>
     </label>
     <ngm-selection-table
-        appearance="outline"
-        displayDensity="compact"
-        grid
-        [data]="connections$ | async"
-        [columns]="dataSourceColumns()"
-        formControlName="dataSource"
+      appearance="outline"
+      displayDensity="compact"
+      grid
+      [data]="connections$ | async"
+      [columns]="dataSourceColumns()"
+      key="id"
+      formControlName="dataSource"
     >
     </ngm-selection-table>
 
     <label class="text-lg mt-4">
-        {{ 'PAC.MENU.MODEL.SELECT_CATALOG' | translate: { Default: 'Select Catalog' } }}
+      <span class="text-red-500">*</span>{{ 'PAC.MENU.MODEL.SELECT_CATALOG' | translate: { Default: 'Select Catalog' } }}
     </label>
     @if (catalogsLoading()) {
-      <mat-progress-bar mode="query"></mat-progress-bar>
+      <mat-progress-bar mode="query" />
     }
     <div class="relative flex flex-col">
       <ngm-selection-table class="z-0"
-          appearance="outline"
-          displayDensity="compact"
-          grid
-          [data]="catalogs$ | async"
-          [columns]="catalogColumns$ | async"
-          formControlName="catalog"
+        appearance="outline"
+        displayDensity="compact"
+        grid
+        [data]="catalogs$ | async"
+        [columns]="catalogColumns$ | async"
+        key="name"
+        formControlName="catalog"
       >
       </ngm-selection-table>
       @if (discoverDBCatalogsError()) {

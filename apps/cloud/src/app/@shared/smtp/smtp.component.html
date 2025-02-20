@@ -5,14 +5,16 @@
   (modelChange)="onFormChange(customSmtp)">
 </formly-form>
 
-<div ngmButtonGroup>
-  <button mat-stroked-button displayDensity="cosy" color="accent" [disabled]="isValidated()"
-    (click)="validateSmtp()">
-    {{ 'PAC.ACTIONS.Validate' | translate: {Default: 'Validate'} }}
-  </button>
-
-  <button mat-raised-button displayDensity="cosy" color="primary" [disabled]="!isValidated() || form.invalid"
-    (click)="onSubmit()">
-    {{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}
-  </button>
+<div class="flex justify-start">
+  <div ngmButtonGroup>
+    <button mat-stroked-button displayDensity="cosy" color="accent" [disabled]="isValidated()"
+      (click)="validateSmtp()">
+      {{ 'PAC.ACTIONS.Validate' | translate: {Default: 'Validate'} }}
+    </button>
+  
+    <button mat-raised-button displayDensity="cosy" color="primary" [disabled]="!isValidated() || form.invalid || form.pristine"
+      (click)="onSubmit()">
+      {{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}
+    </button>
+  </div>
 </div>

@@ -1,24 +1,25 @@
-import { BusinessAreaRole, IUser } from '@metad/contracts'
+import { BusinessAreaRole, IUser, SemanticModelStatusEnum } from '@metad/contracts'
+import { getErrorMessage } from '@metad/server-common'
 import { FindOptionsWhere, ITryRequest, REDIS_CLIENT, RequestContext, User } from '@metad/server-core'
 import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import * as _axios from 'axios'
+import * as chalk from 'chalk'
 import { RedisClientType } from 'redis'
-import { FindConditions, FindManyOptions, ILike, ObjectLiteral, Repository } from 'typeorm'
-import { Md5 } from '../core/helper'
+import { FindManyOptions, ILike, Repository } from 'typeorm'
+import { BusinessArea, BusinessAreaService } from '../business-area'
 import { BusinessAreaAwareCrudService } from '../core/crud/index'
+import { Md5 } from '../core/helper'
 import { DataSourceService } from '../data-source/data-source.service'
 import { SemanticModelCacheService } from './cache/cache.service'
-import { SemanticModel } from './model.entity'
-import { CommandBus } from '@nestjs/cqrs'
-import { BusinessArea, BusinessAreaService } from '../business-area'
 import { SemanticModelQueryDTO } from './dto'
 import { updateXmlaCatalogContent } from './helper'
+import { SemanticModel } from './model.entity'
 import { NgmDSCoreService, registerSemanticModel } from './ocap'
 
 const axios = _axios.default
-
 
 @Injectable()
 export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticModel> {
@@ -42,52 +43,68 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	/**
 	 * Semantic model 涉及到通常是使用 id 直接访问接口而没有使用 orgnizationId 所以这里去掉了 orgnizationId 强制过滤
-	 * 
-	 * @param user 
-	 * @returns 
+	 *
+	 * @param user
+	 * @returns
 	 */
-	protected findConditionsWithTenantByUser(
-		user: User
-	): FindOptionsWhere<SemanticModel> {
+	protected findConditionsWithTenantByUser(user: User): FindOptionsWhere<SemanticModel> {
 		const organizationId = RequestContext.getOrganizationId()
 		const organizationWhere = organizationId
 			? {
 					organization: {
-						id: organizationId,
-					},
-			  }
-			: {
-				
-			}
+						id: organizationId
+					}
+				}
+			: {}
 
 		return {
 			tenant: {
-				id: user.tenantId,
+				id: user.tenantId
 			},
-			...organizationWhere,
+			...organizationWhere
 		}
 	}
 
 	async seedIfEmpty() {
 		const { items } = await this.findAll({
+			where: {
+				status: SemanticModelStatusEnum.Progressing
+			},
 			relations: ['dataSource', 'dataSource.type', 'roles']
 		})
-		
-		await Promise.all(
-			items.map((model) => this.updateCatalogContent(model.id).catch((error) => console.error(error)))
-		)
+
+		let seeds = items.length
+		console.log(`Found ${seeds} active models in system`)
+		for await (const model of items) {
+			try {
+				await this.updateCatalogContent(model.id)
+			} catch(error) {
+				seeds--
+				console.log(chalk.red(`When update model '${model.id}' xmla schema: ${getErrorMessage(error)}`))
+			}
+		}
+		if (seeds) {
+			console.log(chalk.green(`Seed '${seeds}' models xmla schema`))
+		}
+		if (items.length - seeds) {
+			console.log(chalk.red(`Fail seed '${items.length - seeds}' models xmla schema`))
+		}
 
 		// Register semantic models
 		items.forEach((model) => {
-			registerSemanticModel(model, this.dsCoreService)
+			try {
+				registerSemanticModel(model, this.dsCoreService)
+			} catch (err) {
+				console.log(chalk.red(`Error registering semantic model: ${err.message}`))
+			}
 		})
 	}
 
 	/**
 	 * Update the xmla catalog content for olap engine
-	 * 
+	 *
 	 * @param id Model id
-	 * @returns 
+	 * @returns
 	 */
 	async updateCatalogContent(id: string) {
 		const model = await this.repository.findOne(id, {
@@ -95,12 +112,12 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		})
 
 		// Update Xmla Schema into Redis for model
-		updateXmlaCatalogContent(this.redisClient, model)
+		await updateXmlaCatalogContent(this.redisClient, model)
 
 		// Clear cache for model
 		try {
 			await this.cacheService.delete({ modelId: model.id })
-		} catch(err) {
+		} catch (err) {
 			//
 		}
 	}
@@ -119,28 +136,27 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		const model = await this.repository.findOne(modelId, {
 			relations: ['dataSource', 'dataSource.type']
 		})
-		return this.dsService.import(model.dataSourceId, body, {catalog: model.catalog})
+		return this.dsService.import(model.dataSourceId, body, { catalog: model.catalog })
 	}
 
 	async dropTable(modelId: string, tableName: string) {
 		const model = await this.repository.findOne(modelId, {
 			relations: ['dataSource', 'dataSource.type']
 		})
-		return this.dsService.dropTable(model.dataSourceId, tableName, {catalog: model.catalog})
+		return this.dsService.dropTable(model.dataSourceId, tableName, { catalog: model.catalog })
 	}
 
 	/**
 	 * 针对 Semantic Model 的单个 Xmla 请求
-	 * 
+	 *
 	 * @deprecated use {@link ModelOlapQuery} instead
-	 * 
+	 *
 	 * @param modelId 模型 ID
 	 * @param query 查询 XML Body 数据
 	 * @param options 选项
-	 * @returns 
+	 * @returns
 	 */
 	async olap(modelId: string, query: string, options?: { acceptLanguage?: string; forceRefresh?: boolean }) {
-
 		this.logger.warn(`@deprecated use {@link ModelOlapQuery} instead`)
 
 		let key = ''
@@ -151,7 +167,9 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 		// Access controls
 		const currentUserId = RequestContext.currentUserId()
-		const roleNames = model.roles.filter((role) => role.users.find((user) => user.id === currentUserId)).map((role) => role.name)
+		const roleNames = model.roles
+			.filter((role) => role.users.find((user) => user.id === currentUserId))
+			.map((role) => role.name)
 
 		// Query
 		//   Cache
@@ -188,13 +206,13 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 			}
 
 			// Proccess ASCII "\u0000", don't know how generated in olap service
-			const queryData = queryResult.data.replace(/\u0000/g, '-');
+			const queryData = queryResult.data.replace(/\u0000/g, '-')
 
 			if (model.preferences?.enableCache) {
 				if (cache?.success) {
 					try {
 						await this.cacheService.delete(cache.record.id)
-					} catch(err) {
+					} catch (err) {
 						// 可能已被其他线程删除
 					}
 				}
@@ -215,7 +233,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 				data: queryData,
 				cache: false
 			}
-		} catch(error) {
+		} catch (error) {
 			return Promise.reject(error)
 		}
 	}
@@ -227,15 +245,15 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		const headers = {
 			Accept: 'text/xml, application/xml, application/soap+xml',
 			'Accept-Language': language || '',
-			'Content-Type': 'text/xml',
+			'Content-Type': 'text/xml'
 		}
 		if (roleNames?.length) {
 			headers['mondrian-role'] = roleNames.join(',')
 		}
 
 		try {
-			return await axios.post(`http://${olapHost}:${olapPort}/xmla`, query, {headers})
-		} catch(err) {
+			return await axios.post(`http://${olapHost}:${olapPort}/xmla`, query, { headers })
+		} catch (err) {
 			throw new Error(`Can't connect olap service`)
 		}
 	}
@@ -247,7 +265,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 			where = [
 				{
 					name: ILike(text)
-				},
+				}
 			]
 		}
 		const condition = await this.myBusinessAreaConditions({
@@ -269,14 +287,13 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	/**
 	 * 获取我有权限的模型
-	 * 
-	 * @param conditions 
-	 * @returns 
+	 *
+	 * @param conditions
+	 * @returns
 	 */
 	async findMy(conditions?: FindManyOptions<SemanticModel>) {
-		
 		const condition = await this.myBusinessAreaConditions(conditions, BusinessAreaRole.Modeler)
-		
+
 		const [items, total] = await this.repository.findAndCount(condition)
 
 		return {
@@ -287,8 +304,8 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	/**
 	 * 获取我自己创建的模型
-	 * 
-	 * @returns 
+	 *
+	 * @returns
 	 */
 	async findMyOwn() {
 		const me = RequestContext.currentUser()
@@ -327,20 +344,19 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		} else if (model.createdById !== userId) {
 			throw new UnauthorizedException('Not yours')
 		}
-
 	}
 
 	async updateMembers(id: string, members: string[]) {
 		const project = await this.findOne(id)
-		project.members = members.map((id) => ({ id } as IUser))
+		project.members = members.map((id) => ({ id }) as IUser)
 		await this.repository.save(project)
 
-		return await this.findOne(id, {relations: [ 'members' ]})
+		return await this.findOne(id, { relations: ['members'] })
 	}
 
 	async deleteMember(id: string, memberId: string) {
-		const project = await this.findOne(id, {relations: [ 'members' ]})
-		project.members = project.members.filter(({id}) => id !== memberId)
+		const project = await this.findOne(id, { relations: ['members'] })
+		project.members = project.members.filter(({ id }) => id !== memberId)
 		await this.repository.save(project)
 	}
 

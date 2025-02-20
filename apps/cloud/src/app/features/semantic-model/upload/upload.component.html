@@ -120,7 +120,10 @@
                         <th mat-header-cell *matHeaderCellDef [cdkContextMenuTriggerFor]="context_menu">
                             <div class="p-2 flex flex-col justify-start items-start">
                                 <div class="flex justify-start items-center gap-2">
-                                    <mat-checkbox [(ngModel)]="header.isKey" [matTooltip]="'PAC.KEY_WORDS.PrimaryKey' | translate: {Default: 'Primary Key'}"></mat-checkbox>
+                                    <mat-checkbox [(ngModel)]="header.isKey"
+                                        [matTooltip]="'PAC.KEY_WORDS.PrimaryKey' | translate: {Default: 'Primary Key'}"
+                                        matTooltipPosition="above"
+                                    />
                                     <select [(ngModel)]="header.type" class="ngm-select">
                                         <option value="String">String</option>
                                         <option value="Number">Integer</option>
@@ -129,26 +132,30 @@
                                         <option value="Time">Time</option>
                                         <option value="Datetime">Datetime</option>
                                     </select>
-                                    <input matInput [(ngModel)]="header.length" class="pac-upload-preview__length"
+                                    <input matInput [(ngModel)]="header.length" class="pac-upload-preview__length w-20 text-sm p-1"
                                         type="number"
                                         [placeholder]="'PAC.KEY_WORDS.Length' | translate: {Default: 'Length'}" />
                                 </div>
 
-                                <input matInput [(ngModel)]="header.fieldName" class="ngm-input"/>
+                                <input matInput [(ngModel)]="header.fieldName" class="w-full py-2 bg-gray-50 border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-md system-sm-regular h-9"/>
                             </div>
                         </th>
                         <td mat-cell *matCellDef="let element"> {{element[header.name]}} </td>
 
                         <ng-template #context_menu>
-                            <div cdkMenu>
-                                <button cdkMenuItem (click)="moveLeft(sheet, i)" *ngIf="i > 0">
-                                    <mat-icon>keyboard_arrow_left</mat-icon>
-                                    <span>{{ 'PAC.ACTIONS.MoveLeft' | translate: {Default: 'Move Left'} }}</span>
+                            <div cdkMenu class="cdk-menu__medium">
+                              @if (i > 0) {
+                                <button cdkMenuItem (click)="moveLeft(sheet, i)">
+                                  <mat-icon>keyboard_arrow_left</mat-icon>
+                                  <span>{{ 'PAC.MODEL.MoveLeft' | translate: {Default: 'Move Left'} }}</span>
                                 </button>
-                                <button cdkMenuItem (click)="moveRight(sheet, i)" *ngIf="i < sheet.columns.length - 1">
+                              }
+                              @if (i < sheet.columns.length - 1) {
+                                <button cdkMenuItem (click)="moveRight(sheet, i)">
                                     <mat-icon>keyboard_arrow_right</mat-icon>
-                                    <span>{{ 'PAC.ACTIONS.MoveRight' | translate: {Default: 'Move Right'} }}</span>
+                                    <span>{{ 'PAC.MODEL.MoveRight' | translate: {Default: 'Move Right'} }}</span>
                                 </button>
+                              }
                             </div>
                         </ng-template>
                     </ng-container>

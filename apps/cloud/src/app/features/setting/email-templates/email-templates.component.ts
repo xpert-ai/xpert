@@ -7,7 +7,7 @@ import { RouterModule } from '@angular/router'
 import { DynamicGridDirective } from '@metad/core'
 import { NgmSelectComponent, NgmTagsComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { map } from 'rxjs/operators'
+import { map, switchMap } from 'rxjs/operators'
 import { EmailTemplateNameEnum, getErrorMessage } from '../../../@core/types'
 import { EmailTemplateService, injectToastr, LanguagesService } from '../../../@core/services'
 import { groupBy } from 'lodash-es'
@@ -18,7 +18,7 @@ import { EmailTemplateComponent } from './template/template.component'
 import { MatIconModule } from '@angular/material/icon'
 import { MatButtonModule } from '@angular/material/button'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
-import { combineLatest } from 'rxjs'
+import { BehaviorSubject, combineLatest } from 'rxjs'
 import { CardCreateComponent } from '../../../@shared/card'
 import { LanguageSelectorComponent } from '../../../@shared/language'
 
@@ -54,8 +54,14 @@ export class EmailTemplatesComponent {
   readonly #toastr = injectToastr()
   readonly organization = injectOrganization()
 
-  readonly emailTemplates = toSignal(this.emailTemplateService.getAllInOrg().pipe(map(({ items }) => items)))
-  readonly allLanguages = toSignal(this.languagesService.getAll().pipe(map(({items}) => items)))
+  // States
+  readonly refresh$ = new BehaviorSubject<void>(null) 
+  readonly emailTemplates = toSignal(
+    this.refresh$.pipe(switchMap(() => this.emailTemplateService.getAllInOrg().pipe(map(({ items }) => items))))
+  )
+  readonly allLanguages = toSignal(
+    this.refresh$.pipe(switchMap(() => this.languagesService.getAll().pipe(map(({items}) => items))))
+  )
 
   readonly langGroup = computed(() => {
     const languages = groupBy(this.emailTemplates(), 'languageCode')
@@ -159,12 +165,13 @@ export class EmailTemplatesComponent {
       this.emailTemplateService.delete(item.html.id),
     ]).subscribe({
       next: () => {
-        
+        //
       }
     })
   }
 
   close() {
     this.opened.set(false)
+    this.refresh$.next()
   }
 }

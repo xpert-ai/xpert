@@ -19,6 +19,8 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "PasswordsNotMatch": "密码不匹配",
+      "Required": "必输",
       "All": "所有",
       "Ask": "提问",
       "Certification": "认证",
@@ -488,7 +490,12 @@
       }
     },
     "USERS_PAGE": {
-      "ADD_USER": "添加用户"
+      "ADD_USER": "添加用户",
+      "NoRole": "无角色",
+      "DeleteUser": "删除此用户",
+      "DeleteUserDesc": "删除此用户及其关联数据",
+      "UserDeletedSuccessfully": "用户删除成功",
+      "ConfirmDeleteInvite": "删除后，被邀请的用户将无法再确认邀请"
     },
     "ACTIONS": {
       "Add": "添加",
@@ -795,6 +802,8 @@
       "Variables": "参数变量",
       "OpenCubeDesigner": "打开多维数据集属性编辑器",
       "IsDefault": "是默认",
+      "MoveLeft": "左移",
+      "MoveRight": "右移",
 
       "QUERY": {
         "TITLE": "查询实验室",
@@ -1190,7 +1199,7 @@
         "RepeatPasswrod": "重复密码",
         "Role": "角色",
         "PreferredLanguage": "首选语言",
-        "ImageURL": "图片链接 (可选)",
+        "AvatarUrl": "头像链接",
         "TimeZone": "时区",
         "SelectTimeZone": "选择一个时区"
       },
@@ -1201,10 +1210,12 @@
         "Host": "域名",
         "Port": "端口",
         "Secure": "安全",
+        "EmailAddress": "邮件地址",
         "Username": "用户名",
         "Password": "密码",
         "True": "是",
-        "False": "否"
+        "False": "否",
+        "VerifyFailed": "验证失败"
       },
       "Assets": {
         "RecentlyViewed": "最近访问",
@@ -1662,7 +1673,8 @@
       "RolesWithPermission": "有权限的角色",
       "IntegrationsWithPermission": "有权限的集成",
       "NewChatBIModel": "新建 ChatBI 模型",
-      "ModelExists": "模型已存在"
+      "ModelExists": "模型已存在",
+      "EntityNotFound": "未找到模型实体"
     },
     "Home": {
       "Insight": {

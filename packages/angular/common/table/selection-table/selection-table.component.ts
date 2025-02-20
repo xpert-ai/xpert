@@ -1,7 +1,7 @@
 import { coerceBooleanProperty } from '@angular/cdk/coercion'
 import { SelectionModel } from '@angular/cdk/collections'
 import { CommonModule } from '@angular/common'
-import { Component, forwardRef, Input, model, OnChanges, OnInit, SimpleChanges, TemplateRef, ViewChild } from '@angular/core'
+import { ChangeDetectionStrategy, Component, effect, forwardRef, input, Input, model, OnInit, TemplateRef, ViewChild } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatCheckboxModule } from '@angular/material/checkbox'
@@ -45,6 +45,7 @@ export type SelectionTableColumn = {
     DensityDirective,
     NgmSearchComponent
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
@@ -53,11 +54,12 @@ export type SelectionTableColumn = {
     }
   ]
 })
-export class NgmSelectionTableComponent implements OnInit, OnChanges, ControlValueAccessor {
+export class NgmSelectionTableComponent implements OnInit, ControlValueAccessor {
   get = get
   
   @Input() displayDensity: DisplayDensity | string = DisplayDensity.comfortable
-  @Input() data: Array<any>
+  readonly data = input<Array<any>>()
+  readonly key = input.required<string>()
 
   @Input() columns: SelectionTableColumn[]
 
@@ -84,10 +86,19 @@ export class NgmSelectionTableComponent implements OnInit, OnChanges, ControlVal
 
   displayedColumns: string[]
 
-  selection = new SelectionModel<any>(false, [])
+  selection = new SelectionModel<any>(false, [], true, (a, b) => {
+    return a[this.key()] === b[this.key()]
+  })
 
   dataSource = new MatTableDataSource([])
   readonly searchText = model('')
+
+  constructor() {
+    effect(() => {
+      this.dataSource.data = this.data() || []
+    }, { allowSignalWrites: true })
+  }
+
   /**
    * Invoked when the model has been changed
    */
@@ -98,10 +109,10 @@ export class NgmSelectionTableComponent implements OnInit, OnChanges, ControlVal
   onTouched: () => void = () => {}
 
   ngOnInit(): void {
-    this.dataSource.data = this.data || []
-
     if (this.multiple) {
-      this.selection = new SelectionModel<any>(true, [])
+      this.selection = new SelectionModel<any>(true, [], true, (a, b) => {
+        return a[this.key()] === b[this.key()]
+      })
     }
     this.displayedColumns = ['select', ...this.columns.map(({ value }) => value)]
     this.selection.changed.subscribe(() => {
@@ -111,12 +122,6 @@ export class NgmSelectionTableComponent implements OnInit, OnChanges, ControlVal
         this.onChange(this.selection.selected[0])
       }
     })
-  }
-
-  ngOnChanges({ data }: SimpleChanges): void {
-    if (data) {
-      this.dataSource.data = data.currentValue || []
-    }
   }
 
   ngAfterViewInit() {
@@ -131,7 +136,11 @@ export class NgmSelectionTableComponent implements OnInit, OnChanges, ControlVal
   }
 
   writeValue(obj: any): void {
-    this.selection.select(obj)
+    if (obj) {
+      this.selection.select(obj)
+    } else {
+      this.selection.clear()
+    }
   }
   registerOnChange(fn: any): void {
     this.onChange = fn

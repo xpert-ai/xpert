@@ -69,7 +69,7 @@ export class ModelCreationComponent implements ControlValueAccessor {
     businessAreaId: new FormControl(null),
     mdx: new FormControl(true),
     dataSource: new FormControl(null, [Validators.required]),
-    catalog: new FormControl()
+    catalog: new FormControl(null, [Validators.required])
   })
 
   get dataSource() {
@@ -135,7 +135,7 @@ export class ModelCreationComponent implements ControlValueAccessor {
   )
 
   public readonly connections$: Observable<Array<IDataSource>> = this.dataSourceService.getAll(['type']).pipe(
-    map((data: any) =>
+    map((data: IDataSource[]) =>
       data.filter((item) => {
         if (this.data?.type === 'mdx') {
           return item.type?.protocol === 'xmla' || (item.type?.protocol === 'sql' && !item.useLocalAgent)

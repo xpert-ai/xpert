@@ -2,35 +2,39 @@
   <ngm-search [(ngModel)]="search" />
 
   <div class="flex justify-start items-center gap-4">
-    <label>{{ 'PAC.KEY_WORDS.Role' | translate: {Default: 'Role'} }}:</label>
+    <label class="shrink-0 whitespace-nowrap">{{ 'PAC.KEY_WORDS.Role' | translate: {Default: 'Role'} }}:</label>
     <mtx-checkbox-group [items]="ROLES" [(ngModel)]="roles" />
   </div>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
   @for (user of users$ | async; track user.id) {
-    <div class="flex flex-col px-2 py-3 border-[0.5px] border-solid border-gray-200 rounded-xl shadow-sm bg-gray-50 hover:bg-white hover:shadow-lg">
+    <div class="group flex flex-col px-2 py-3 border-[0.5px] border-solid border-gray-200 rounded-xl shadow-sm bg-gray-50 hover:bg-white hover:shadow-lg">
       <pac-user-profile-inline [user]="user" [routerLink]="['/settings/users/', user.id]" class="cursor-pointer"/>
       <div class="p-2 flex justify-start items-center">
-        <span class="mr-2 text-text-secondary">{{'PAC.KEY_WORDS.Role' | translate: {Default: 'Role'} }}:</span>
-        <span class="text-xs inline-flex items-center font-bold leading-sm uppercase px-2 py-1 rounded-lg"
-          [ngClass]="{
-            'bg-blue-100 text-blue-500': user.role.name === 'VIEWER',
-            'bg-yellow-100 text-yellow-500': user.role.name === 'ADMIN',
-            'bg-red-100 text-red-500': user.role.name=== 'SUPER_ADMIN',
-            'bg-green-100 text-green-500': !['VIEWER', 'ADMIN', 'SUPER_ADMIN'].includes(user.role.name)
-          }"
-        >
-          {{user.role?.name}}
-        </span>
+        @if (user.role; as role) {
+          <span class="mr-2 text-text-secondary">{{'PAC.KEY_WORDS.Role' | translate: {Default: 'Role'} }}:</span>
+          <span class="text-xs inline-flex items-center font-bold leading-sm uppercase px-2 py-1 rounded-lg"
+            [ngClass]="{
+              'bg-blue-100 text-blue-500': role.name === 'VIEWER',
+              'bg-yellow-100 text-yellow-500': role.name === 'ADMIN',
+              'bg-red-100 text-red-500': role.name=== 'SUPER_ADMIN',
+              'bg-green-100 text-green-500': !['VIEWER', 'ADMIN', 'SUPER_ADMIN'].includes(role.name)
+            }"
+          >
+            {{role.name}}
+          </span>
+        } @else {
+          <span class="text-text-secondary">{{'PAC.USERS_PAGE.NoRole' | translate: {Default: 'No Role'} }}:</span>
+        }
       </div>
 
       <div class="flex justify-end items-end">
-        <button type="button" class="w-6 h-6 flex justify-center items-center rounded-full hover:bg-gray-100"
+        <button type="button" class="w-6 h-6 flex justify-center items-center rounded-full opacity-0 group-hover:opacity-100 hover:bg-gray-100"
           [cdkMenuTriggerFor]="menu"
           [cdkMenuTriggerData]="{user: user}"
         >
-          <i class="ri-more-2-line"></i>
+          <i class="ri-more-line"></i>
         </button>
       </div>
     </div>

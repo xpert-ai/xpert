@@ -249,6 +249,7 @@ export class UserService extends TenantAwareCrudService<User> {
 				.leftJoinAndSelect('organizations.organization', 'organization')
 				.where(new Brackets((qb: WhereExpressionBuilder) => { 
 					qb.orWhere('user.email LIKE :searchText')
+					qb.orWhere('user.username LIKE :searchText')
 					qb.orWhere('user.firstName LIKE :searchText')
 					qb.orWhere('user.lastName LIKE :searchText')
 				}), { searchText: `%${text.split('%').join('')}%` })

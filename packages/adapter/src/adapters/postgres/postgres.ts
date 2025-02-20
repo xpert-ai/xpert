@@ -200,15 +200,26 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
     const createTableStatement = `CREATE TABLE IF NOT EXISTS ${tableName} (${columns
       .map((col) => `"${col.fieldName}" ${typeToPGDB(col.type, col.isKey, col.length)}${col.isKey ? ' PRIMARY KEY' : ''}`)
       .join(', ')})`
-    const values = data.map((row) => columns.map(({ name, type, length }) => {
-      if (type === 'Date') {
-        return row[name]
-      } else {
-        if (row[name] instanceof Date) {
+    const values = data.map((row, index) => columns.map(({ name, type, length }) => {
+      if (row[name] instanceof Date) {
+        if (type === 'Date') {
           return row[name].toISOString().slice(0, length ?? 10)
+        } else if (type === 'Datetime') {
+          return row[name].toISOString()
+        } else if (type === 'Time') {
+          return row[name].toISOString().slice(11, 19)
         }
-        return row[name]
+        return length ? row[name].toISOString().slice(0, length) : row[name].toISOString()
       }
+      if (type === 'Date' || type === 'Datetime') {
+        try {
+          const value = new Date(row[name]).toISOString()
+          return type === 'Datetime' ? value : value.slice(0, length ?? 10)
+        } catch(err) {
+          throw new Error(`Converting the value '${row[name]}' in row ${index} column '${name}' to date: ${(<Error>err).message}`)
+        }
+      }
+      return row[name]
     }))
     const batchSize = 10000; // Define batch size
     let insertStatement = ''

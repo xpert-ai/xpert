@@ -1,5 +1,43 @@
-<pac-user-basic class="p-4"
-  [allowRoleChange]="RolesEnum.ADMIN === me.role.name || RolesEnum.SUPER_ADMIN === me.role.name"
-/>
+<div class="px-8 py-4">
+  <div class="text-xl font-semibold pb-2">
+    {{ 'PAC.MENU.USER.BASIC' | translate: { Default: 'Basic' } }}
+  </div>
 
-<pac-user-organizations class="p-4" />
+  <pac-user-basic class="border border-solid border-divider-regular rounded-xl"
+    [allowRoleChange]="RolesEnum.ADMIN === me.role.name || RolesEnum.SUPER_ADMIN === me.role.name"
+  />
+</div>
+
+<div class="px-8 py-4">
+  <div class="text-xl font-semibold pb-2">
+    {{ 'PAC.MENU.ORGANIZATIONS' | translate: {Default: "Organizations"} }}
+  </div>
+  <pac-user-organizations class="border border-solid border-divider-regular rounded-xl" />
+</div>
+
+<div class="px-8 py-4">
+  <div class="text-xl font-semibold text-orange-500 pb-2">
+    {{ 'PAC.KEY_WORDS.DangerZone' | translate: {Default: 'Danger zone'} }}
+  </div>
+
+  <div class="border border-solid border-orange-500 rounded-xl flex flex-col">
+    <div class="w-full flex justify-between items-center p-4">
+      <div class="flex flex-col">
+        <div class="font-semibold">
+          {{ 'PAC.USERS_PAGE.DeleteUser' | translate: {Default: 'Delete this user'} }}
+        </div>
+        <div>
+          {{ 'PAC.USERS_PAGE.DeleteUserDesc' | translate: {Default: 'Delete this user and its associated data'} }}.
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-large danger pressable" (click)="deleteUser()">
+        {{ 'PAC.USERS_PAGE.DeleteUser' | translate: {Default: 'Delete this user'} }}
+      </button>
+    </div>
+  </div>
+</div>
+
+@if (loading()) {
+  <ngm-spin class="absolute w-full h-full top-0 left-0" />
+}

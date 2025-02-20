@@ -1,28 +1,31 @@
 <form [formGroup]="form" autocomplete-off class="flex flex-col justify-around items-stretch">
+  <pac-form-field-emails
+    [label]="'FORM.LABELS.EMAILS' | translate: { Default: 'Emails' }"
+    [removable]="true"
+    formControlName="emails"
+  ></pac-form-field-emails>
 
-	<pac-form-field-emails [label]=" 'FORM.LABELS.EMAILS' | translate: {Default: 'Emails'} "
-		[removable]="true"
-		formControlName="emails"
-	></pac-form-field-emails>
+  <div>
+    <pac-role-form-field
+      id="role"
+      formControlName="role"
+      [placeholder]="'FORM.PLACEHOLDERS.ROLE' | translate: { Default: 'Select Role' }"
+      [label]="'FORM.LABELS.ROLE' | translate: { Default: 'Role' }"
+      [excludes]="excludes"
+      (selectedChange)="onSelectionChange($event)"
+    ></pac-role-form-field>
+  </div>
 
-	<div>
-		<pac-role-form-field
-			id="role"
-			formControlName="role"
-			[placeholder]="'FORM.PLACEHOLDERS.ROLE' | translate: {Default: 'Select Role'}"
-			[label]="'FORM.LABELS.ROLE' | translate: {Default: 'Role'}"
-			[excludes]="excludes"
-			(selectedChange)="onSelectionChange($event)"
-		></pac-role-form-field>
-	</div>
-	
-	<div>
-		<mat-form-field *ngIf="invitationExpiryOptions.length > 0">
-			<mat-label>{{ 'FORM.LABELS.INVITATION_EXPIRATION' | translate: {Default: 'Invitation Expiry Period'} }}</mat-label>
-			<mat-select formControlName="invitationExpirationPeriod">
-				<mat-option *ngFor="let option of invitationExpiryOptions"
-					[value]="option?.value">{{ option?.label }}</mat-option>
-			</mat-select>
-		</mat-form-field>
-	</div>
+  <div>
+    <mat-form-field *ngIf="invitationExpiryOptions.length > 0">
+      <mat-label>{{
+        'FORM.LABELS.INVITATION_EXPIRATION' | translate: { Default: 'Invitation Expiry Period' }
+      }}</mat-label>
+      <mat-select formControlName="invitationExpirationPeriod">
+        <mat-option *ngFor="let option of invitationExpiryOptions" [value]="option?.value">{{
+          option?.label
+        }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
 </form>

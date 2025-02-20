@@ -12,7 +12,7 @@
   [class.ngm-select-error]="error() || formControl.invalid"
 >
   @if (formControl.invalid) {
-    <formly-validation-message ngmError [field]="field"></formly-validation-message>
+    <formly-validation-message ngmError [field]="field" />
   }
   @if (error()) {
     <span ngmError>{{error()}}</span>
