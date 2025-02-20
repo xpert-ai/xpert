@@ -4,7 +4,7 @@
     [src]="user()?.imageUrl || '/assets/images/avatar-default.svg'"
     alt="{{user() | user}}"
   />
-  @if (user().deletedAt) {
+  @if (user()?.deletedAt) {
     <span class="status absolute right-0 bottom-0 h-2 w-2 rounded-full bg-neutral-600 ring ring-neutral-100"></span>
   } @else {
     <span class="status absolute right-0 bottom-0 h-2 w-2 rounded-full bg-green-400 ring ring-white"></span>

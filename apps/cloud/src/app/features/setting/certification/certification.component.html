@@ -45,7 +45,9 @@
           </div>
 
           <div class="flex-1 m-0">
-            <pac-user-profile-inline [user]="certification.owner" small />
+            @if (certification.owner) {
+              <pac-user-profile-inline [user]="certification.owner" small />
+            }
           </div>
 
           <div class="w-full flex justify-end">
