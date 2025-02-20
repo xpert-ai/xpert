@@ -70,6 +70,13 @@ ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=2048"} \
     DEMO=${DEMO:-false} \
     LOG_LEVEL=${LOG_LEVEL}
 
+# Install sudo package
+RUN apt-get update && apt-get install -y sudo
+RUN usermod -aG sudo node
+RUN echo "node ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/node
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN mkdir -p /ms-playwright && chown -R node:node /ms-playwright
+
 WORKDIR /srv/pangolin
 
 RUN npm install pm2 -g
@@ -85,8 +92,6 @@ COPY --chown=node:node .deploy/api/package-prod.json ./package.json
 COPY --chown=node:node .deploy/api/entrypoint.compose.sh ./
 COPY --chown=node:node .deploy/api/entrypoint.prod.sh ./
 RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
-
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # RUN yarn config set network-timeout 300000
 RUN npm install --legacy-peer-deps && \
