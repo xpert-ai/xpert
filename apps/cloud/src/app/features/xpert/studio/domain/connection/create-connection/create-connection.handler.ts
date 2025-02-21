@@ -37,7 +37,7 @@ export class CreateConnectionHandler implements IHandler<CreateConnectionRequest
         const key = outputId + '/' + inputId
         if (!draft.connections.some((item) => item.key === key)) {
           draft.connections.push({
-            type: request.outputId.endsWith('/edge') ? 'edge' : targetNode.type,
+            type: (targetNode.type === 'agent' || targetNode.type === 'workflow') && request.outputId.endsWith('/edge') ? 'edge' : targetNode.type,
             key,
             from: outputId,
             to: inputId
