@@ -92,7 +92,9 @@ export function putFilter(filters: Array<ISlicer>, value: ISlicer | ISlicer[], m
       return item
     }
 
-    if (item.dimension && getPropertyHierarchy(item.dimension) === getPropertyHierarchy(value.dimension)) {
+    if (item.dimension && 
+      item.dimension.parameter ? item.dimension.parameter === value.dimension?.parameter
+        : getPropertyHierarchy(item.dimension) === getPropertyHierarchy(value.dimension) ) {
       existed = true
       if (item.dimension.name === value.dimension.name) {
         // path 的 hierarchy 和 name 相同则覆盖

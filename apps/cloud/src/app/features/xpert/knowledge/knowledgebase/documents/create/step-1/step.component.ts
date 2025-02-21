@@ -245,7 +245,12 @@ export class KnowledgeDocumentCreateStep1Component {
             sourceType: KDocumentSourceType.FILE,
             type: item.file.name.split('.').pop().toLowerCase()
           } as IKnowledgeDocument
-          this.fileList.update((state) => state.map((_) => ({..._})))
+          this.fileList.update((state) => state.map((_) => {
+            if (_ === item) { // Refresh current item
+              return {..._}
+            }
+            return _
+          }))
         }
       })
   }
