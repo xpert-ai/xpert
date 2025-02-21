@@ -1,7 +1,8 @@
 import { Semantics } from './annotations'
-import { putFilter, TimeGranularity, TimeRangesSlicer, TimeRangeType, workOutTimeRangeSlicers } from './filter'
+import { putFilter } from './filter'
 import { ENTITY_TYPE_SALESORDER } from './mock'
-import { AggregationRole, EntityType } from './models/index'
+import { AggregationRole, EntityType, TimeGranularity, TimeRangesSlicer, TimeRangeType, workOutTimeRangeSlicers } from './models/index'
+import { ISlicer } from './types'
 
 const entityType: EntityType = {
   name: 'Sales',
@@ -22,7 +23,7 @@ describe('Time Range slicers', () => {
       dimension: {
         dimension: '[Time]'
       },
-      currentDate: new Date().toString(),
+      currentDate: 'TODAY',
       ranges: [
         {
           type: TimeRangeType.Standard,
@@ -42,7 +43,7 @@ describe('Time Range slicers', () => {
         dimension: '[Time]'
       },
       members: [
-        { value: '202205' }
+        { key: '202205', "value": "202205" }
       ]
     }])
   })
@@ -52,7 +53,7 @@ describe('Time Range slicers', () => {
       dimension: {
         dimension: 'Time'
       },
-      currentDate: new Date().toString(),
+      currentDate: 'TODAY',
       ranges: [
         {
           type: TimeRangeType.Standard,
@@ -68,7 +69,7 @@ describe('Time Range slicers', () => {
         timeRange,
         entityType
       )
-    ).toEqual([{ dimension: { dimension: 'Time' }, members: [{ value: '2022.05' }] }])
+    ).toEqual([{ dimension: { dimension: 'Time' }, members: [{ key: '2022.05', value: '2022.05' }] }])
   })
 
   it('#WorkOutTimeRangeSlicers with Semantics', () => {
@@ -76,7 +77,7 @@ describe('Time Range slicers', () => {
       dimension: {
         dimension: 'Time'
       },
-      currentDate: new Date().toString(),
+      currentDate: 'TODAY',
       ranges: [
         {
           type: TimeRangeType.Standard,
@@ -119,7 +120,7 @@ describe('Time Range slicers', () => {
           }
         }
       )
-    ).toEqual([{ dimension: { dimension: 'Time' }, members: [{ value: '[2022].[05]' }] }])
+    ).toEqual([{ dimension: { dimension: 'Time' }, members: [{ key: '[2022].[05]', value: '[2022].[05]' }] }])
   })
 })
 
@@ -137,6 +138,59 @@ describe('Slicers', () => {
         dimension: {
           dimension: 'Department'
         }
+      }
+    ])
+  })
+
+  it('putFilter with parameters', () => {
+    let filters: ISlicer[] = [
+      {
+        dimension: {
+          dimension: 'Department',
+          parameter: 'variable1'
+        },
+        members: [
+          {
+            key: 'dep1'
+          }
+        ]
+      }
+    ]
+
+    filters = putFilter(filters, {
+      dimension: {
+        dimension: 'Department',
+        parameter: 'variable2'
+      },
+      members: [
+        {
+          key: 'dep2'
+        }
+      ]
+    })
+
+    expect(filters).toEqual([
+      {
+        dimension: {
+          dimension: 'Department',
+          parameter: 'variable1'
+        },
+        members: [
+          {
+            key: 'dep1'
+          }
+        ]
+      },
+      {
+        dimension: {
+          dimension: 'Department',
+          parameter: 'variable2'
+        },
+        members: [
+          {
+            key: 'dep2'
+          }
+        ]
       }
     ])
   })
