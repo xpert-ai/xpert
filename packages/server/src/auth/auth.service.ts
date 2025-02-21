@@ -8,13 +8,15 @@ import {
 	IRolePermission,
 	IUserRegistrationInput,
 	LanguagesEnum,
+	mapTranslationLanguage,
 } from '@metad/contracts'
 import { SocialAuthService } from '@metad/server-auth'
 import { environment as env, environment, IEnvironment } from '@metad/server-config'
 import * as bcrypt from 'bcrypt'
 import { nanoid } from 'nanoid'
+import { I18nService } from 'nestjs-i18n'
 import { JsonWebTokenError, sign, verify } from 'jsonwebtoken'
-import { getManager } from 'typeorm'
+import { FindConditions, getManager } from 'typeorm'
 import { EmailService } from '../email/email.service'
 import { UserOrganizationService } from '../user-organization/user-organization.services'
 import { User } from '../user/user.entity'
@@ -35,6 +37,7 @@ export class AuthService extends SocialAuthService {
 		private readonly roleService: RoleService,
 		private emailService: EmailService,
 		private userOrganizationService: UserOrganizationService,
+		private readonly i18n: I18nService,
 		private readonly _configService: ConfigService<IEnvironment>,
 		private readonly commandBus: CommandBus,
 	) {
@@ -256,6 +259,37 @@ export class AuthService extends SocialAuthService {
 			tenant = creatingUser.tenant
 		}
 
+		
+		// Uniqueness Check
+		const where: FindConditions<User>[] = []
+		if (input.user.email) {
+			where.push({
+				tenantId: tenant.id,
+				email: input.user.email.toLowerCase()
+			})
+		}
+		if (input.user.username) {
+			where.push({
+				tenantId: tenant.id,
+				email: input.user.username.toLowerCase()
+			})
+		}
+		const exist = await this.userService.findOneOrFail({
+			where
+		})
+
+		if (exist.success) {
+			throw new BadRequestException(
+				await this.i18n.translate(
+					'core.User.Error.AccountAlreadyExists',
+					{
+						lang: mapTranslationLanguage(languageCode),
+					}
+				)
+			)
+		}
+
+		// Create User
 		const _user = await this.userService.create({
 			...input.user,
 			email: input.user.email?.toLowerCase(),
@@ -263,7 +297,7 @@ export class AuthService extends SocialAuthService {
 			tenant,
 			...(input.password
 				? {
-						hash: await this.getPasswordHash(input.password),
+					hash: await this.getPasswordHash(input.password),
 				  }
 				: {}),
 			emailVerified: true

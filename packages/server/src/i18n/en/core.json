@@ -1,0 +1,7 @@
+{
+    "User": {
+        "Error": {
+            "AccountAlreadyExists": "Account already exists"
+        }
+    }
+}

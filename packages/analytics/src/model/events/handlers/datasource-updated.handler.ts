@@ -1,7 +1,7 @@
+import { Logger } from '@nestjs/common'
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs'
 import { DataSourceService, DataSourceUpdatedEvent } from '../../../data-source'
 import { SemanticModelService } from '../../model.service'
-import { Logger } from '@nestjs/common'
 
 @EventsHandler(DataSourceUpdatedEvent)
 export class DataSourceUpdatedHandler implements IEventHandler<DataSourceUpdatedEvent> {
@@ -21,7 +21,7 @@ export class DataSourceUpdatedHandler implements IEventHandler<DataSourceUpdated
 		for (const model of dataSource.models) {
 			try {
 				await this.modelService.updateCatalogContent(model.id)
-			} catch(err) {
+			} catch (err) {
 				this.#logger.error(err)
 			}
 		}

@@ -3,10 +3,10 @@ import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { MatDialog } from '@angular/material/dialog'
 import { Router, RouterModule } from '@angular/router'
-import { NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
-import { TranslateModule } from '@ngx-translate/core'
+import { injectConfirmDelete, NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom, map, shareReplay, switchMap } from 'rxjs'
-import { IOrganization, OrganizationsService, ToastrService } from '../../../../@core'
+import { getErrorMessage, IOrganization, OrganizationsService, ToastrService } from '../../../../@core'
 import { OrganizationsComponent } from '../organizations.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
@@ -25,6 +25,8 @@ import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
 })
 export class AllOrganizationsComponent extends TranslationBaseComponent {
   readonly #organizationsComponent = inject(OrganizationsComponent)
+  readonly #translate = inject(TranslateService)
+  readonly confirmDelete = injectConfirmDelete()
 
   readonly refresh$ = this.#organizationsComponent.refresh$
   public readonly organizations$ = this.refresh$.pipe(
@@ -71,33 +73,23 @@ export class AllOrganizationsComponent extends TranslationBaseComponent {
   async deleteOrganization(id: string) {
     const organizations = await firstValueFrom(this.organizations$)
     const organization = organizations.find((item) => item.id === id)
-    const information = await firstValueFrom(
-      this.getTranslation('PAC.NOTES.ORGANIZATIONS.DELETE_CONFIRM', {
+    const information = this.#translate.instant('PAC.NOTES.ORGANIZATIONS.DELETE_CONFIRM', {
         Default: 'Confirm to delete the org from server?'
       })
-    )
-    const confirm = await firstValueFrom(
-      this._dialog
-        .open(NgmConfirmDeleteComponent, {
-          data: {
-            value: organization?.name,
-            information
-          }
-        })
-        .afterClosed()
-    )
-
-    if (confirm) {
-      try {
-        await firstValueFrom(this.organizationsService.delete(organization.id))
+    this.confirmDelete({
+      value: organization?.name,
+      information
+    }, this.organizationsService.delete(organization.id)).subscribe({
+      next: () => {
         this._toastrService.success('PAC.NOTES.ORGANIZATIONS.DELETE_ORGANIZATION', {
           Default: `Organization '{{ name }}' was removed`,
           name: organization.name
         })
         this.refresh$.next()
-      } catch (err) {
-        this._toastrService.error(err)
+      },
+      error: (err) => {
+        this._toastrService.error(getErrorMessage(err))
       }
-    }
+    })
   }
 }

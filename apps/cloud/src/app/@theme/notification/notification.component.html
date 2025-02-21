@@ -14,7 +14,7 @@
 }
 
 <ng-template #statusNotifMenu>
-  <div cdkMenu class="max-h-[70vh] w-[300px] cdk-menu__medium"
+  <div cdkMenu class="max-h-[70vh] w-[300px] cdk-menu__medium rounded-xl"
     (click)="$event.stopPropagation()">
     <div class="flex justify-between items-center px-2">
       <h5 class="mb-2 text-lg font-bold tracking-tight">
@@ -25,6 +25,7 @@
 
       <button mat-icon-button displayDensity="cosy" class="ml-6"
         [matTooltip]="'PAC.KEY_WORDS.ClearAll' | translate: {Default: 'Clear All'}"
+        matTooltipPosition="above"
         (click)="clearErrors()">
         <mat-icon fontSet="material-icons-round">clear_all</mat-icon>
       </button>

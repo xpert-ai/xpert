@@ -35,7 +35,9 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		readonly commandBus: CommandBus,
 		@Inject(REDIS_CLIENT)
 		private readonly redisClient: RedisClientType,
-
+		/**
+		 * Core service of ocap framework
+		 */
 		private readonly dsCoreService: NgmDSCoreService
 	) {
 		super(modelRepository, commandBus)
@@ -102,6 +104,8 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	/**
 	 * Update the xmla catalog content for olap engine
+	 * 
+	 * @deprecated use SemanticModelUpdatedEvent
 	 *
 	 * @param id Model id
 	 * @returns
