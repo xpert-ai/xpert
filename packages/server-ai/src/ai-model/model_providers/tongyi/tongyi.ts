@@ -2,7 +2,11 @@
 import { Injectable, Module } from '@nestjs/common'
 import { ModelProvider } from '../../ai-provider'
 import { TongyiLargeLanguageModel } from './llm/llm'
-import { TongyiCredentials } from './types'
+import { toCredentialKwargs, TongyiCredentials } from './types'
+import { AiModelTypeEnum } from '@metad/contracts'
+import { CredentialsValidateFailedError } from '../errors'
+import { PROVIDE_AI_MODEL_TEXT_EMBEDDING } from '../../types/types'
+import { TongyiTextEmbeddingModel } from './text-embedding/text-embedding'
 
 @Injectable()
 export class TongyiProvider extends ModelProvider {
@@ -11,15 +15,27 @@ export class TongyiProvider extends ModelProvider {
 	}
 
 	getBaseUrl(credentials: TongyiCredentials): string {
-		return ``
+		const params = toCredentialKwargs(credentials)
+		return params.configuration.baseURL
 	}
 
 	getAuthorization(credentials: TongyiCredentials): string {
-		return null
+		return `Bearer ${credentials.dashscope_api_key}`
 	}
 
 	async validateProviderCredentials(credentials: TongyiCredentials): Promise<void> {
-		return
+		try {
+			const modelInstance = this.getModelManager(AiModelTypeEnum.LLM)
+
+			await modelInstance.validateCredentials('qwen-turbo', credentials)
+		} catch (ex) {
+			if (ex instanceof CredentialsValidateFailedError) {
+				throw ex
+			} else {
+				this.logger.error(`${this.getProviderSchema().provider}: credentials verification failed`, ex.stack)
+				throw ex
+			}
+		}
 	}
 }
 
@@ -30,7 +46,11 @@ export class TongyiProvider extends ModelProvider {
 			provide: ModelProvider,
 			useExisting: TongyiProvider
 		},
-		TongyiLargeLanguageModel
+		TongyiLargeLanguageModel,
+		{
+			provide: PROVIDE_AI_MODEL_TEXT_EMBEDDING,
+			useClass: TongyiTextEmbeddingModel
+		}
 	],
 	exports: [TongyiProvider]
 })
