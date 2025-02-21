@@ -495,7 +495,9 @@
       "DeleteUser": "删除此用户",
       "DeleteUserDesc": "删除此用户及其关联数据",
       "UserDeletedSuccessfully": "用户删除成功",
-      "ConfirmDeleteInvite": "删除后，被邀请的用户将无法再确认邀请"
+      "ConfirmDeleteInvite": "删除后，被邀请的用户将无法再确认邀请",
+      "RemoveUserFromOrg": "从此组织内移除此用户",
+      "RemoveDelUserFromOrg": "从此组织内移除并删除此用户"
     },
     "ACTIONS": {
       "Add": "添加",

@@ -13,7 +13,7 @@
 <div class="p-2">
   <ngm-table class="overflow-hidden rounded-lg border border-gray-200 mt-2"
     paging
-    [data]="userOrganizations$ | async"
+    [data]="userOrganizations()"
     [columns]="[
       {
         name: 'organization.name',
