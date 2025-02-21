@@ -53,7 +53,7 @@ export class RagWebLoadHandler implements ICommandHandler<RagWebLoadCommand> {
 				}
 				await this.cacheManager.set(`${RagWebLoadCommand.providerPrefix}:playwright`, { installing: true })
 				const callback = () => {
-					const installProcess = spawn('npx', ['playwright', 'install', '--with-deps', '--only-shell', 'chromium'])
+					const installProcess = spawn('npx', ['playwright', 'install', '--only-shell', 'chromium'])
 
 					installProcess.stdout.on('data', (data) => {
 						console.log(data.toString())
