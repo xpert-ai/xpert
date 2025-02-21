@@ -76,6 +76,8 @@ RUN usermod -aG sudo node
 RUN echo "node ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/node
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 RUN mkdir -p /ms-playwright && chown -R node:node /ms-playwright
+# Install os dependencies but no browsers
+RUN npx playwright install-deps
 
 WORKDIR /srv/pangolin
 
