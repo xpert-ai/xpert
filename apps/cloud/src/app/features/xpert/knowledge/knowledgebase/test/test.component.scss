@@ -1,0 +1,16 @@
+:host {
+  @apply flex-1 w-full flex overflow-hidden;
+}
+
+.pac-knowledgebase__test-container {
+  background-color: var(--ngm-color-surface-container-low);
+}
+
+:host::ng-deep {
+  .mdc-list-item {
+    padding: 1rem;
+  }
+  .mdc-list-item__secondary-text {
+    white-space: pre-wrap;
+  }
+}

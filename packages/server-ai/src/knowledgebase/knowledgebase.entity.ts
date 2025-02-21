@@ -1,17 +1,22 @@
-import { ICopilotModel, IKnowledgebase, KnowledgebaseParserConfig, KnowledgebasePermission, TAvatar } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { ICopilotModel, IKnowledgebase, IKnowledgeDocument, KnowledgebaseParserConfig, KnowledgebasePermission, KnowledgebaseTypeEnum, TAvatar } from '@metad/contracts'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsNumber, IsOptional, IsString, IsEnum } from 'class-validator'
-import { Column, Entity, Index, JoinColumn, OneToOne, RelationId } from 'typeorm'
-import { CopilotModel } from '../core/entities/internal'
+import { Column, Entity, Index, JoinColumn, OneToMany, OneToOne, RelationId } from 'typeorm'
+import { CopilotModel, KnowledgeDocument } from '../core/entities/internal'
+import { WorkspaceBaseEntity } from '../core/entities/base.entity'
 
 @Entity('knowledgebase')
 @Index(['tenantId', 'organizationId', 'name'], { unique: true })
-export class Knowledgebase extends TenantOrganizationBaseEntity implements IKnowledgebase {
+export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase {
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@Column()
 	name: string
+
+	@ApiPropertyOptional({ enum: KnowledgebaseTypeEnum, enumName: 'KnowledgebaseTypeEnum' })
+	@IsString()
+	@Column({ nullable: true, length: 20 })
+	type: KnowledgebaseTypeEnum
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
@@ -99,4 +104,16 @@ export class Knowledgebase extends TenantOrganizationBaseEntity implements IKnow
 	@IsOptional()
 	@Column({ nullable: true })
 	status?: string
+
+	/*
+    |--------------------------------------------------------------------------
+    | @OneToMany
+    |--------------------------------------------------------------------------
+    */
+	@ApiPropertyOptional({ type: () => KnowledgeDocument, isArray: true })
+	@IsOptional()
+	@OneToMany(() => KnowledgeDocument, (kd) => kd.knowledgebase, {
+		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+	})
+	documents?: IKnowledgeDocument[] | null
 }

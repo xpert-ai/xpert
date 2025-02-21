@@ -6,6 +6,7 @@ import { QueryBus } from '@nestjs/cqrs'
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch"
 import { getErrorMessage } from '@metad/server-common'
 import { KnowledgeSearchQuery } from './queries'
+import { TKBRecallParams } from '@metad/contracts'
 
 /**
  * Docs Retriever for signle Knowledgebase
@@ -20,7 +21,8 @@ export class KnowledgeRetriever extends BaseRetriever {
 
 	constructor(
 		private readonly queryBus: QueryBus,
-		private readonly knowledgebaseId: string
+		private readonly knowledgebaseId: string,
+		private readonly options?: TKBRecallParams
 	) {
 		super()
 	}
@@ -45,8 +47,8 @@ export class KnowledgeRetriever extends BaseRetriever {
 					query
 				})
 			)
-
-			return results.map(({ doc }) => doc)
+			const docs = results.filter(({score}) => this.options?.score ? score >= this.options.score : true).map(({ doc }) => doc)
+			return this.options?.topK ? docs.slice(0, this.options.topK) : docs
 		} catch(error) {
 			await dispatchCustomEvent("on_retriever_error", {knowledgebaseId: this.knowledgebaseId, error: getErrorMessage(error)})
 			throw error
@@ -54,15 +56,15 @@ export class KnowledgeRetriever extends BaseRetriever {
 	}
 }
 
-export function createKnowledgeRetriever(queryBus: QueryBus, knowledgebaseId: string) {
+export function createKnowledgeRetriever(queryBus: QueryBus, knowledgebaseId: string, options?: TKBRecallParams) {
 	class DynamicKnowledgeRetriever extends KnowledgeRetriever {
 		// To enable langchain to obtain the actual knowledgebaseId of the Retriever as the event name
 		static lc_name(): string {
 			return knowledgebaseId
 		}
-		constructor(queryBus: QueryBus, knowledgebaseId: string) {
-			super(queryBus, knowledgebaseId)
+		constructor(queryBus: QueryBus, knowledgebaseId: string, options?: TKBRecallParams) {
+			super(queryBus, knowledgebaseId, options)
 		}
 	}
-	return new DynamicKnowledgeRetriever(queryBus, knowledgebaseId) as KnowledgeRetriever
+	return new DynamicKnowledgeRetriever(queryBus, knowledgebaseId, options) as KnowledgeRetriever
 }

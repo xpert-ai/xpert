@@ -32,6 +32,31 @@ export class XpertExecutionService {
   })
 
   readonly #agentExecutions = signal<Record<string, IXpertAgentExecution[]>>({})
+
+  readonly executions = computed<Record<string, IXpertAgentExecution[]>>(() => {
+      const agentExecutions = {}
+      Object.values(this.#agentExecutions() ?? {}).forEach((executions) => {
+        executions.forEach((execution) => {
+          execution.subExecutions?.forEach((item) => {
+            if (item.agentKey) {
+              agentExecutions[item.agentKey] ??= []
+              agentExecutions[item.agentKey] = agentExecutions[item.agentKey].filter((_) => _.id !== item.id).concat(item)
+            }
+          })
+          if (execution.agentKey) {
+            agentExecutions[execution.agentKey] ??= []
+            agentExecutions[execution.agentKey] = agentExecutions[execution.agentKey].filter((_) => _.id !== execution.id).concat(execution)
+          }
+        })
+      })
+  
+      Object.keys(this.knowledgeExecutions() ?? {}).forEach((id) => {
+        agentExecutions[id] = this.knowledgeExecutions()[id]
+      })
+  
+      return agentExecutions
+    })
+
   readonly agentExecutions = computed<Record<string, IXpertAgentExecution[]>>(() => {
     const agentExecutions = {}
     Object.values(this.#agentExecutions() ?? {}).forEach((executions) => {
@@ -48,11 +73,6 @@ export class XpertExecutionService {
         }
       })
     })
-
-    Object.keys(this.knowledgeExecutions() ?? {}).forEach((id) => {
-      agentExecutions[id] = this.knowledgeExecutions()[id]
-    })
-
     return agentExecutions
   })
 

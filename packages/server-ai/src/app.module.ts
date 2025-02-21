@@ -1,7 +1,9 @@
-import { UserModule } from '@metad/server-core'
-import { Module, forwardRef } from '@nestjs/common'
+import { REDIS_OPTIONS, RedisModule, UserModule } from '@metad/server-core'
+import { CacheModule, CacheStore, Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { ScheduleModule } from '@nestjs/schedule'
+import { redisStore } from 'cache-manager-redis-yet'
+import { RedisOptions } from 'ioredis'
 import { AIModule } from './ai'
 import { ChatModule } from './chat'
 import { ChatConversationModule } from './chat-conversation'
@@ -28,12 +30,36 @@ import { ChatMessageModule } from './chat-message'
 import { ChatMessageFeedbackModule } from './chat-message-feedback'
 import { XpertTemplateModule } from './xpert-template/xpert-template.module'
 import { XpertTaskModule } from './xpert-task'
+import { RagWebModule } from './rag-web/rag-web.module'
+import { IntegrationFirecrawlModule } from './integration-firecrawl/firecrawl.module'
 
 @Module({
 	imports: [
 		forwardRef(() => CqrsModule),
 		forwardRef(() => UserModule),
 		ScheduleModule.forRoot(),
+		RedisModule,
+		CacheModule.registerAsync({
+			isGlobal: true,
+			imports: [RedisModule],
+			useFactory: async (redisOptions: RedisOptions) => {
+				const store = await redisStore({
+					socket: {
+						host: redisOptions.host,
+						port: redisOptions.port
+					},
+					username: redisOptions.username,
+					password: redisOptions.password
+				})
+
+				return {
+					store: store as unknown as CacheStore,
+					ttl: 3 * 60000 // 3 minutes (milliseconds)
+					// ttl: configService.get('CACHE_TTL'),
+				}
+			},
+			inject: [REDIS_OPTIONS]
+		}),
 		KnowledgebaseModule,
 		KnowledgeDocumentModule,
 		ChatModule,
@@ -58,7 +84,9 @@ import { XpertTaskModule } from './xpert-task'
 		XpertWorkspaceModule,
 		XpertTemplateModule,
 		XpertTaskModule,
-		IntegrationLarkModule
+		IntegrationLarkModule,
+		IntegrationFirecrawlModule,
+		RagWebModule
 	],
 	controllers: [],
 	providers: [...EventHandlers]

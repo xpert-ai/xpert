@@ -58,7 +58,10 @@ export class PACSettingComponent {
         icon: 'school',
         data: {
           featureKey: AiFeatureEnum.FEATURE_COPILOT_KNOWLEDGEBASE,
-          permissionKeys: [AIPermissionsEnum.KNOWLEDGEBASE_EDIT]
+          permissionKeys: [
+            RolesEnum.SUPER_ADMIN,
+            RolesEnum.ADMIN
+          ]
         }
       },
       {

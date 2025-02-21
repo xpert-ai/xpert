@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-import { FileStorageProviderEnum } from '@metad/contracts';
+import { FileStorageProviderEnum, VectorTypeEnum } from '@metad/contracts';
 import { IEnvironment, IPACFeatures, LogLevel } from './ienvironment';
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000'
@@ -185,7 +185,9 @@ export const prodEnvironment: IEnvironment = {
 		metricsInterval: parseInt(process.env.UNLEASH_METRICS_INTERVAL) || 1000
 	},
 
-	demo: process.env.DEMO === 'true' ? true : false
+	demo: process.env.DEMO === 'true' ? true : false,
+	
+	vectorStore: process.env.VECTOR_STORE || VectorTypeEnum.PGVECTOR,
 };
 
 export const prodToggleFeatures: IPACFeatures = {

@@ -42,3 +42,71 @@ export type TranslateOptions = {
   };
   debug?: boolean;
 }
+
+/**
+ * Select option type
+ */
+export type TSelectOption<T = string | number | boolean> = {
+  key?: string
+  value: T
+
+  label?: I18nObject | string
+  description?: I18nObject | string
+  icon?: string
+}
+
+// Parameters
+export enum ParameterTypeEnum {
+  STRING = 'string',
+  NUMBER = 'number',
+  BOOLEAN = 'boolean',
+  ARRAY = 'array',
+  SELECT = 'select',
+  SECRET_INPUT = 'secret-input',
+  FILE = 'file'
+}
+
+export type TParameterOption = {
+  value: string
+  label: I18nObject
+}
+
+export type TParameterHelpInfo = {
+  title: I18nObject;
+  url: I18nObject;
+}
+
+export type TParameter = {
+  name: string
+  label: I18nObject
+  placeholder?: I18nObject
+  description?: I18nObject
+  type: ParameterTypeEnum
+  required?: boolean
+  default?: number | string
+  min?: number
+  max?: number
+  options?: TParameterOption[]
+  items?: {
+    type: ParameterTypeEnum
+  }
+  when?: Record<string, unknown[]>
+
+  /**
+   * Is visible for parameters
+   */
+  visible?: boolean
+
+  help?: TParameterHelpInfo
+}
+
+export type TParameterSchema = {
+  type: 'object' | 'array'
+  required?: string[]
+  secret?: string[]
+  /**
+   * @deprecated use parameters
+   */
+  properties?: any
+  parameters?: TParameter[]
+}

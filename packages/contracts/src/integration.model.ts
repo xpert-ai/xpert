@@ -4,7 +4,7 @@ import {
 import { IOrganizationProjectsUpdateInput } from './organization-projects.model';
 import { IOrganizationUpdateInput } from './organization.model';
 import { ITag } from './tag-entity.model';
-import { I18nObject, TAvatar } from './types';
+import { I18nObject, TAvatar, TParameterSchema } from './types';
 
 // export interface IIntegrationSetting
 // 	extends IBasePerTenantAndOrganizationEntityModel {
@@ -95,7 +95,9 @@ export enum IntegrationEnum {
 	HUBSTAFF = 'Hubstaff',
 	LARK = 'Lark',
 	DINGTALK = 'DingTalk',
-	WECOM = 'WeCom'
+	WECOM = 'WeCom',
+	FIRECRAWL = 'firecrawl',
+	KNOWLEDGEBASE = 'knowledgebase'
 }
 
 // export enum IntegrationEntity {
@@ -197,7 +199,9 @@ export type TIntegrationProvider = {
 	name: string
 	label: I18nObject
 	avatar: string
-	schema?: any
+	
+	schema?: TParameterSchema
+	
 	webhookUrl?: (integration: IIntegration, baseUrl: string) => string
 	pro?: boolean
 }

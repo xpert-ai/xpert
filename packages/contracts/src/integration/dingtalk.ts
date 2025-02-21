@@ -8,6 +8,7 @@ export const IntegrationDingTalkProvider: TIntegrationProvider = {
   },
   avatar: 'dingtalk.png',
   schema: {
+    type: 'object',
     properties: {}
   },
   pro: true

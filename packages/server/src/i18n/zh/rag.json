@@ -1,0 +1,7 @@
+{
+    "Error": {
+        "InstallingPlaywright": "正在安装 playwright 请稍后重试！",
+        "PlaywrightNotInstalled": "监测到 playwright 未安装，将安装 playwright ，请稍后重试！",
+        "ErrorReinstallPlaywright": "Playwright 安装失败，将重新安装，请稍后重试！"
+    }
+}

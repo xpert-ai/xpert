@@ -1,0 +1,18 @@
+<div id="alert-pro-feature" class="p-4 mb-4 text-yellow-800 border border-yellow-300 rounded-xl bg-yellow-50 dark:bg-gray-800 dark:text-yellow-300 dark:border-yellow-800" role="alert">
+  <div class="flex items-center">
+    <i class="ri-vip-crown-2-line text-lg shrink-0 me-2"></i>
+    <span class="sr-only">Pro</span>
+    <h3 class="text-lg font-medium">
+      {{ 'PAC.SHARED.Card.ProFeature' | translate: {Default: 'This is a pro feature'} }}
+    </h3>
+  </div>
+  <div class="mt-2 mb-4 text-sm">
+    {{description() | i18n}}
+  </div>
+  <div class="flex">
+    <a [href]="helpWebsite() + helpUrl()" target="_blank" class="text-white bg-yellow-800 hover:bg-yellow-900 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-medium rounded-lg text-sm px-3 py-1.5 me-2 text-center inline-flex items-center dark:bg-yellow-300 dark:text-gray-800 dark:hover:bg-yellow-400 dark:focus:ring-yellow-800">
+      <i class="ri-shopping-cart-line me-2"></i>
+      {{ 'PAC.SHARED.Card.ViewMore' | translate: {Default: 'View more'} }}
+    </a>
+  </div>
+</div>

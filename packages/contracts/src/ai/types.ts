@@ -1,8 +1,8 @@
-import { BaseMessage } from "@langchain/core/messages"
+import { BaseMessage } from '@langchain/core/messages'
 
 export const CONTEXT_VARIABLE_CURRENTSTATE = 'currentState'
 
 export type TMessageChannel = {
-	messages: BaseMessage[]
-	summary?: string
+  messages: BaseMessage[]
+  summary?: string
 }

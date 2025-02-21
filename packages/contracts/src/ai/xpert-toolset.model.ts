@@ -11,6 +11,9 @@ import { I18nObject } from '../types'
 export enum XpertToolsetCategoryEnum {
   BUILTIN = 'builtin',
   API = 'api',
+  /**
+   * @deprecated
+   */
   WORKFLOW = 'workflow'
 }
 

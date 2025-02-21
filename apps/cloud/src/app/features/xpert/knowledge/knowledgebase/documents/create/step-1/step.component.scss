@@ -1,0 +1,25 @@
+:host {
+  --mdc-linear-progress-track-height: 2px;
+  --mdc-linear-progress-active-indicator-height: 2px;
+  @apply flex;
+}
+
+.type-option.active {
+  @apply shadow-md border-2 border-primary-400 bg-primary-25;
+}
+
+.ngm-fileover {
+  @apply shadow-sm bg-gray-100;
+}
+
+.mat-mdc-progress-bar {
+  @apply absolute bottom-0;
+}
+
+.web-option.active {
+  @apply bg-primary-50 text-primary-600;
+}
+
+.page-item.active {
+  @apply bg-primary-50;
+}

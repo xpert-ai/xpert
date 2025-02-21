@@ -186,7 +186,7 @@ export class XpertStudioComponent {
   readonly hoverNode = signal<string>(null)
 
   // Agent Execution Running status
-  readonly agentExecutions = this.executionService.agentExecutions
+  readonly executions = this.executionService.executions
   readonly sidePanel = model<"preview" | "variables">()
 
   constructor() {
@@ -311,7 +311,7 @@ export class XpertStudioComponent {
   }
 
   selectAgentStatus(key: string) {
-    const executions = this.agentExecutions()[key]
+    const executions = this.executions()[key]
     return executions ? executions[executions.length - 1]?.status : null
   }
 

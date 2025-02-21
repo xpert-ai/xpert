@@ -1,13 +1,28 @@
-import { DocumentParserConfig, IKnowledgebase, IKnowledgeDocument, IStorageFile } from '@metad/contracts'
+import {
+	DocumentParserConfig,
+	TDocumentWebOptions,
+	IIntegration,
+	IKnowledgebase,
+	IKnowledgeDocument,
+	IKnowledgeDocumentPage,
+	IStorageFile,
+	KDocumentSourceType
+} from '@metad/contracts'
+import { Integration, StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsDate, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, JoinColumn, ManyToOne, OneToOne, RelationId } from 'typeorm'
-import { Knowledgebase } from '../core/entities/internal'
-import { StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
+import { IsBoolean, IsDate, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
+import { Knowledgebase, KnowledgeDocumentPage } from '../core/entities/internal'
 
 @Entity('knowledge_document')
 export class KnowledgeDocument extends TenantOrganizationBaseEntity implements IKnowledgeDocument {
+	@ApiProperty({ type: () => Boolean })
+	@IsBoolean()
+	@IsOptional()
+	@Column({ nullable: true })
+	disabled?: boolean
+
 	@ApiProperty({ type: () => Knowledgebase, readOnly: true })
 	@ManyToOne(() => Knowledgebase, {
 		nullable: true,
@@ -64,12 +79,12 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@IsString()
 	@Optional()
 	@Column({ nullable: true, length: 20 })
-	sourceType?: 'local' | 'url'
+	sourceType?: KDocumentSourceType
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@Optional()
-	@Column({ nullable: true, length: 20 })
+	@Column({ nullable: true })
 	type: string
 
 	@ApiPropertyOptional({ type: () => String })
@@ -143,4 +158,42 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@Optional()
 	@Column({ nullable: true })
 	jobId?: string
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	options?: TDocumentWebOptions
+
+	/*
+    |--------------------------------------------------------------------------
+    | @OneToOne
+    |--------------------------------------------------------------------------
+    */
+	@ApiProperty({ type: () => Integration, readOnly: true })
+	@OneToOne(() => Integration, {
+		nullable: true,
+		onDelete: 'SET NULL'
+	})
+	@JoinColumn()
+	@IsOptional()
+	integration?: IIntegration
+
+	@ApiProperty({ type: () => String, readOnly: true })
+	@RelationId((it: KnowledgeDocument) => it.integration)
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	integrationId?: string
+
+	/*
+    |--------------------------------------------------------------------------
+    | @OneToMany 
+    |--------------------------------------------------------------------------
+    */
+	@ApiProperty({ type: () => KnowledgeDocumentPage, isArray: true })
+	@OneToMany(() => KnowledgeDocumentPage, (page) => page.document, {
+		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+	})
+	pages?: IKnowledgeDocumentPage[]
 }

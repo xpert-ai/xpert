@@ -44,7 +44,7 @@ import {
 	UsePipes,
 	ValidationPipe
 } from '@nestjs/common'
-import { CommandBus } from '@nestjs/cqrs'
+import { CommandBus, EventBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Request, Response } from 'express'
 import { FindOneOptions } from 'typeorm'
@@ -53,6 +53,7 @@ import { SemanticModelCacheDeleteCommand, SemanticModelCreateCommand, SemanticMo
 import { CreateSemanticModelDTO, SemanticModelDTO, SemanticModelPublicDTO, UpdateSemanticModelDTO } from './dto/index'
 import { SemanticModel } from './model.entity'
 import { SemanticModelService } from './model.service'
+import { SemanticModelUpdatedEvent } from './events'
 
 
 @ApiTags('SemanticModel')
@@ -60,7 +61,11 @@ import { SemanticModelService } from './model.service'
 @UseInterceptors(ClassSerializerInterceptor)
 @Controller()
 export class ModelController extends CrudController<SemanticModel> {
-	constructor(private readonly modelService: SemanticModelService, private readonly commandBus: CommandBus) {
+	constructor(
+		private readonly modelService: SemanticModelService,
+		private readonly commandBus: CommandBus,
+		private readonly eventBus: EventBus
+	) {
 		super(modelService)
 	}
 
@@ -90,12 +95,14 @@ export class ModelController extends CrudController<SemanticModel> {
 			})
 		)
 
-		// Update Xmla Schema
-		try {
-			await this.modelService.updateCatalogContent(model.id)
-		} catch (error) {
-			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
-		}
+		// // Update Xmla Schema
+		// try {
+		// 	await this.modelService.updateCatalogContent(model.id)
+		// } catch (error) {
+		// 	throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
+		// }
+
+		this.eventBus.publish(new SemanticModelUpdatedEvent(model.id))
 
 		return model
 	}
@@ -168,12 +175,14 @@ export class ModelController extends CrudController<SemanticModel> {
 			new SemanticModelUpdateCommand({ id, ...entity }, relations?.split(','))
 		)
 
-		// Update Xmla Schema
-		try {
-			await this.modelService.updateCatalogContent(id)
-		} catch (error) {
-			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
-		}
+		// // Update Xmla Schema
+		// try {
+		// 	await this.modelService.updateCatalogContent(id)
+		// } catch (error) {
+		// 	throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
+		// }
+
+		this.eventBus.publish(new SemanticModelUpdatedEvent(id))
 
 		return model
 	}

@@ -1,0 +1,38 @@
+@use '@angular/material/core/tokens/token-utils';
+@use '@angular/material/core/style/sass-utils';
+
+$global-prefix: ngm;
+$prefix: (ngm, document-chunk);
+$prefix-color: (#{$prefix}, color);
+
+@function get-unthemable-tokens() {
+  @return (primary-container-rounded: var(--#{$global-prefix}-primary-container-rounded));
+}
+
+@function get-color-tokens() {
+  @return (color-surface: var(--#{$global-prefix}-color-surface));
+}
+
+@function get-token-slots() {
+  @return sass-utils.deep-merge-all(get-unthemable-tokens(), get-color-tokens());
+}
+
+:host {
+  @include token-utils.create-token-values($prefix, get-token-slots());
+  @apply flex flex-col items-stretch overflow-hidden;
+}
+
+@include token-utils.use-tokens($prefix, get-token-slots()) {
+  :host {
+    background-color: var(#{token-utils.get-token-variable(color-surface)});
+  }
+}
+
+:host::ng-deep {
+  .mdc-list-item {
+    padding: 1rem;
+  }
+  .mdc-list-item__secondary-text {
+    white-space: pre-wrap;
+  }
+}

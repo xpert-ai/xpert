@@ -142,10 +142,6 @@ export class XpertStudioPanelAgentExecutionComponent {
         this.parameterValue.set(this.execution().inputs)
       }
     }, { allowSignalWrites: true })
-
-    effect(() => {
-      console.log(this.#expandAgents())
-    })
   }
 
   clearStatus() {

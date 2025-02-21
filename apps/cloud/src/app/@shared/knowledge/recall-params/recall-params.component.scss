@@ -1,0 +1,7 @@
+:host {
+  @apply flex flex-col;
+}
+
+.mat-mdc-slider {
+  @apply min-w-[200px] w-full;
+}

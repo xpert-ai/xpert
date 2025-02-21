@@ -8,6 +8,7 @@ export const IntegrationWeComProvider: TIntegrationProvider = {
   },
   avatar: 'wecom.png',
   schema: {
+    type: 'object',
     properties: {}
   },
   pro: true

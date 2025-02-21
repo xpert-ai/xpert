@@ -14,7 +14,7 @@ import {
 	START,
 	StateGraph
 } from '@langchain/langgraph'
-import { agentLabel, agentUniqueName, channelName, ChatMessageEventTypeEnum, ChatMessageTypeEnum, convertToUrlPath, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, agentUniqueName, channelName, ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -42,6 +42,7 @@ import { RequestContext } from '@metad/server-core'
 import { createWorkflowNode } from '../../workflow/cases'
 import { FakeStreamingChatModel } from '../../agent'
 import { stringifyMessageContent } from '@metad/copilot'
+import { tool } from '@langchain/core/tools'
 
 
 
@@ -127,17 +128,22 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		// Knowledgebases
 		const knowledgebaseIds = options?.knowledgebases ?? agent.knowledgebaseIds
 		if (knowledgebaseIds?.length) {
-			const retrievers = knowledgebaseIds.map((id) => createKnowledgeRetriever(this.queryBus, id))
+			const recalls = team.agentConfig?.recalls
+			const recall = agent.options?.recall
+			const retrievers = knowledgebaseIds.map((id) => ({
+				retriever: createKnowledgeRetriever(this.queryBus, id, {...(recalls?.[id] ?? {}), ...(recall ?? {})}),
+				weight: recalls?.[id]?.weight
+			}))
 			const retriever = new EnsembleRetriever({
-				retrievers: retrievers,
-				weights: retrievers.map(() => 0.5),
+				retrievers: retrievers.map(({retriever}) => retriever),
+				weights: retrievers.map(({weight}) => weight ?? 0.5),
 			  })
 			tools.push({
 				caller: agent.key,
 				tool: retriever.asTool({
 					name: "knowledge_retriever",
-					description: "Get information about question.",
-					schema: z.string(),
+					description: "Get knowledges about question.",
+					schema: z.string().describe(`key information of question`),
 				  })
 			})
 		}

@@ -18,28 +18,15 @@
         <div class="text-sm font-semibold text-gray-800">{{ 'PAC.Xpert.Context' | translate: {Default: 'Context'} }}</div>
       </div>
       <div class="flex gap-2 items-center">
-        <div>
-          <div class="flex items-center gap-1">
-            <!-- <div
-              class="flex items-center rounded-md h-7 px-3 space-x-1 text-gray-700 cursor-pointer hover:bg-gray-200 select-none"
-            >
-              <div>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  aria-hidden="true"
-                  class="w-3.5 h-3.5"
-                >
-                  <path
-                    d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"
-                  ></path>
-                </svg>
-              </div>
-              <div class="text-xs font-medium">{{ 'PAC.ACTIONS.Add' | translate: {Default: 'Add'} }}</div>
-            </div> -->
-          </div>
-        </div>
+        <button type="button" class="btn disabled:btn-disabled btn-ghost btn-small" [cdkMenuTriggerFor]="recallMenu">
+          <i class="ri-equalizer-2-line"></i>
+          <span class="mr-1">{{ 'PAC.Xpert.RecallSettings' | translate: {Default: 'Recall Settings'} }}</span>
+
+          @if (recall()?.topK) {
+            <span class="font-semibold text-primary-500">{{recall().topK}}</span>/
+          }
+          <span class="text-text-warning">{{recall()?.score}}</span>
+        </button>
       </div>
     </div>
   </div>
@@ -120,3 +107,9 @@
       }
     </div>
   </div>
+
+<ng-template #recallMenu>
+  <div cdkMenu class="p-4">
+    <knowledge-recall-params [ngModel]="recall()" (ngModelChange)="updateRecall($event)" />
+  </div>
+</ng-template>

@@ -1,0 +1,56 @@
+<div class="pac-knowledgebase__test-container max-w-full lg:w-[400px] lg:max-w-[400px] rounded-lg flex flex-col gap-8 m-4 p-4">
+  <h2>{{ 'PAC.Knowledgebase.RetrievalTest' | translate: {Default: 'Retrieval Test'} }}</h2>
+
+  <mat-divider></mat-divider>
+
+  <ngm-slider-input [label]=" 'PAC.Knowledgebase.SimilarityThreshold' | translate: {Default: 'Similarity Threshold'}"
+    [(ngModel)]="score" 
+    [min]="0" [max]="1" [step]="0.01">
+    <span class="font-notoColorEmoji" [matTooltip]="'PAC.Knowledgebase.SimilarityThresholdInfo' | translate: {Default: 'If the similarity between the query and the chunk is less than this threshold, the chunk will be filtered out.'}"
+      >💡</span>
+  </ngm-slider-input>
+
+  <ngm-slider-input [label]="'PAC.Knowledgebase.TopK' | translate: {Default: 'Top Count'}"
+    [(ngModel)]="topK"
+    [min]="1" [max]="100" [step]="1"></ngm-slider-input>
+  <!-- <ngm-slider-input [label]="'关键字相似度权重'" [min]="0" [max]="1" [step]="0.01"></ngm-slider-input> -->
+
+  <mat-divider></mat-divider>
+
+  <div class="flex flex-col items-end gap-4">
+    <div class="flex-1 min-w-full flex flex-col">
+      <label class="ngm-input-label shrink-0">{{'PAC.Knowledgebase.Input' | translate: {Default: 'Input'} }}</label>
+      <textarea class="ngm-input-element" matInput [(ngModel)]="query" [disabled]="loading()"
+        cdkTextareaAutosize
+        cdkAutosizeMinRows="2"
+        cdkAutosizeMaxRows="5">
+      </textarea>
+    </div>
+
+    <button mat-flat-button color="primary" [disabled]="loading() || !query()" (click)="test()">{{'PAC.Knowledgebase.Test' | translate: {Default: 'Test'} }}</button>
+  </div>
+</div>
+
+<div class="flex-1 flex flex-col relative overflow-hidden">
+  <div class="flex-1 overflow-y-auto">
+    <mat-list class="m-4">
+      @for (item of results(); track item.doc.id) {
+        <mat-list-item lines="5" class="p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/10">
+          <span matListItemTitle>
+            <div class="flex justify-between items-center" >
+              <span></span>
+              <ngm-tags class="text-sm" [tags]="[{caption: 'Score: '+(1 - item.score).toFixed(2)}]" color="green" />
+            </div>
+          </span>
+          <span>{{item.doc.pageContent}}</span>
+        </mat-list-item>
+      }
+    </mat-list>
+  </div>
+
+@if (loading()) {
+  <div class="absolute left-0 top-0 w-full h-full flex justify-center items-center">
+    <mat-progress-spinner [mode]="'indeterminate'" [diameter]="22" color="accent" />
+  </div>
+}
+</div>

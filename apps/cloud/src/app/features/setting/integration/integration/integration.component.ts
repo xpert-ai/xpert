@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core'
+import { Component, computed, effect, inject, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
@@ -10,7 +10,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { IsDirty } from '@metad/core'
 import { NgmInputComponent, NgmSelectComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
-import { assign, DisplayBehaviour } from '@metad/ocap-core'
+import { DisplayBehaviour } from '@metad/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -27,10 +27,12 @@ import {
   IntegrationService,
   routeAnimations,
   Store,
+  TIntegrationProvider,
   ToastrService,
-  toFormlySchema
 } from '../../../../@core'
 import { TextFieldModule } from '@angular/cdk/text-field'
+import { ParameterFormComponent } from 'apps/cloud/src/app/@shared/forms'
+import { CardProComponent } from 'apps/cloud/src/app/@shared/card'
 
 @Component({
   standalone: true,
@@ -53,7 +55,9 @@ import { TextFieldModule } from '@angular/cdk/text-field'
     NgmSelectComponent,
     NgmInputComponent,
     NgmSpinComponent,
-    EmojiAvatarComponent
+    EmojiAvatarComponent,
+    ParameterFormComponent,
+    CardProComponent
   ],
   animations: [routeAnimations]
 })
@@ -73,6 +77,10 @@ export class IntegrationComponent implements IsDirty {
 
   readonly paramId = injectParams('id')
 
+  // Childs
+  readonly optionsForm = viewChild('optionsForm', {read: ParameterFormComponent})
+
+  // States
   readonly organizationId$ = this.#store.selectOrganizationId()
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
@@ -91,24 +99,26 @@ export class IntegrationComponent implements IsDirty {
     description: new FormControl(null),
     slug: new FormControl(null),
     provider: new FormControl(null),
-    options: new FormGroup({})
+    options: new FormControl(null),
   })
 
-  get optionsForm() {
-    return this.formGroup.get('options') as FormGroup
+  get optionsControl() {
+    return this.formGroup.get('options') as FormControl
+  }
+
+  get optionsInvalid() {
+    return this.optionsForm()?.invalid
   }
 
   readonly provider = this.formGroup.get('provider')
-  readonly integrationProvider = toSignal(
+  readonly integrationProvider = toSignal<TIntegrationProvider>(
     this.provider.valueChanges.pipe(
       startWith(this.provider.value),
       map((provider) => INTEGRATION_PROVIDERS[provider])
     )
   )
 
-  readonly schema = computed(() =>
-    this.integrationProvider() ? toFormlySchema(this.integrationProvider().schema, this.i18n) : null
-  )
+  readonly schema = computed(() => this.integrationProvider()?.schema)
 
   readonly integration = derivedFrom(
     [this.paramId],
@@ -124,18 +134,14 @@ export class IntegrationComponent implements IsDirty {
   readonly loading = signal(true)
 
   readonly webhookUrl = computed(() =>
-    this.integration() ? this.integrationProvider()?.webhookUrl(this.integration(), this.apiBaseUrl) : null
+    this.integration() && this.integrationProvider()?.webhookUrl ? this.integrationProvider().webhookUrl(this.integration(), this.apiBaseUrl) : null
   )
-
-  optionsModel = {}
-  formOptions = {}
 
   constructor() {
     effect(
       () => {
         if (this.integration()) {
           this.formGroup.patchValue(this.integration())
-          assign(this.optionsModel, this.integration().options)
         } else {
           this.formGroup.reset()
         }
@@ -161,6 +167,7 @@ export class IntegrationComponent implements IsDirty {
         this.formGroup.patchValue(result)
         this.formGroup.markAsDirty()
         this.loading.set(false)
+        this.#toastr.success('PAC.Messages.TestSuccessfully', {Default: 'Test successfully!'})
       },
       error: (error) => {
         this.#toastr.danger(getErrorMessage(error))
@@ -170,7 +177,7 @@ export class IntegrationComponent implements IsDirty {
   }
 
   upsert() {
-    ;(this.formGroup.value.id
+    (this.formGroup.value.id
       ? this.integrationService.update(this.formGroup.value.id, {
           ...this.formGroup.value
         })
@@ -194,4 +201,5 @@ export class IntegrationComponent implements IsDirty {
   close(refresh = false) {
     this.#router.navigate(['../'], { relativeTo: this.#route })
   }
+
 }

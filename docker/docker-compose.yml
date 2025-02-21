@@ -68,7 +68,8 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
     env_file:
       - .env
-    command: ['node', 'main.js']
+    entrypoint: './entrypoint.compose.sh'
+    # command: ['node', 'main.js']
     restart: on-failure
     depends_on:
       - db
@@ -79,6 +80,7 @@ services:
       - '3000:${API_PORT:-3000}'
     volumes:
       - ./volumes/api/public:/srv/pangolin/public
+      - ./volumes/api/ms-playwright:/ms-playwright
     networks:
       - default
 

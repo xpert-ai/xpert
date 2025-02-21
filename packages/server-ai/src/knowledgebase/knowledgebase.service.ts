@@ -1,32 +1,49 @@
 import { DocumentInterface } from '@langchain/core/documents'
-import { AiBusinessRole, IKnowledgebase, Metadata } from '@metad/contracts'
-import { DATABASE_POOL_TOKEN, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
-import { Inject, Injectable, Logger } from '@nestjs/common'
-import { QueryBus } from '@nestjs/cqrs'
+import { Embeddings } from '@langchain/core/embeddings'
+import { AiBusinessRole, IKnowledgebase, mapTranslationLanguage, Metadata } from '@metad/contracts'
+import { DATABASE_POOL_TOKEN, RequestContext } from '@metad/server-core'
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { assign, sortBy } from 'lodash'
+import { I18nService } from 'nestjs-i18n'
 import { Pool } from 'pg'
 import { In, IsNull, Not, Repository } from 'typeorm'
-import { CopilotService } from '../copilot'
+import { CopilotModelGetEmbeddingsQuery } from '../copilot-model/queries/index'
+import { AiModelNotFoundException, CopilotModelNotFoundException, CopilotNotFoundException } from '../core/errors'
+import { XpertWorkspaceBaseService } from '../xpert-workspace'
 import { Knowledgebase } from './knowledgebase.entity'
 import { KnowledgeSearchQuery } from './queries'
 import { KnowledgeDocumentVectorStore } from './vector-store'
-import { AiModelNotFoundException, CopilotModelNotFoundException, CopilotNotFoundException } from '../core/errors'
-import { Embeddings } from '@langchain/core/embeddings'
-import { CopilotModelGetEmbeddingsQuery } from '../copilot-model/queries/index'
 
 @Injectable()
-export class KnowledgebaseService extends TenantOrganizationAwareCrudService<Knowledgebase> {
+export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
 	readonly #logger = new Logger(KnowledgebaseService.name)
+
+	@Inject(I18nService)
+	private readonly i18nService: I18nService
 
 	constructor(
 		@InjectRepository(Knowledgebase)
 		repository: Repository<Knowledgebase>,
-		private readonly copilotService: CopilotService,
-		private readonly queryBus: QueryBus,
 		@Inject(DATABASE_POOL_TOKEN) private readonly pgPool: Pool
 	) {
 		super(repository)
+	}
+
+	async create(entity: Partial<IKnowledgebase>) {
+		// Check name
+		const exist = await super.findOneOrFail({
+			where: { name: entity.name }
+		})
+		if (exist.success) {
+			throw new BadRequestException(
+				await this.i18nService.t('xpert.Error.NameExists', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+				})
+			)
+		}
+
+		return await super.create(entity)
 	}
 
 	/**
@@ -55,13 +72,20 @@ export class KnowledgebaseService extends TenantOrganizationAwareCrudService<Kno
 		return results
 	}
 
-	async getVectorStore(knowledgebaseId: IKnowledgebase | string, requiredEmbeddings = false, tenantId?: string, organizationId?: string) {
+	async getVectorStore(
+		knowledgebaseId: IKnowledgebase | string,
+		requiredEmbeddings = false,
+		tenantId?: string,
+		organizationId?: string
+	) {
 		let knowledgebase: IKnowledgebase
 		if (typeof knowledgebaseId === 'string') {
 			if (requiredEmbeddings) {
-			  knowledgebase = await this.findOne(knowledgebaseId, { relations: ['copilotModel', 'copilotModel.copilot', 'copilotModel.copilot.modelProvider']})
+				knowledgebase = await this.findOne(knowledgebaseId, {
+					relations: ['copilotModel', 'copilotModel.copilot', 'copilotModel.copilot.modelProvider', 'documents']
+				})
 			} else {
-			  knowledgebase = await this.findOne(knowledgebaseId, { relations: ['copilotModel']})
+				knowledgebase = await this.findOne(knowledgebaseId, { relations: ['copilotModel'] })
 			}
 		} else {
 			knowledgebase = knowledgebaseId
@@ -79,14 +103,18 @@ export class KnowledgebaseService extends TenantOrganizationAwareCrudService<Kno
 		let embeddings = null
 		if (copilotModel && copilot?.modelProvider) {
 			embeddings = await this.queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
-				new CopilotModelGetEmbeddingsQuery(copilot, copilotModel, {tokenCallback: (token) => {
-					// execution.tokens += (token ?? 0)
-				}})
+				new CopilotModelGetEmbeddingsQuery(copilot, copilotModel, {
+					tokenCallback: (token) => {
+						// execution.tokens += (token ?? 0)
+					}
+				})
 			)
 		}
 
 		if (requiredEmbeddings && !embeddings) {
-			throw new AiModelNotFoundException(`Embeddings model '${copilotModel.model || copilot?.copilotModel?.model}' not found for knowledgebase '${knowledgebase.name}'`)
+			throw new AiModelNotFoundException(
+				`Embeddings model '${copilotModel.model || copilot?.copilotModel?.model}' not found for knowledgebase '${knowledgebase.name}'`
+			)
 		}
 
 		const vectorStore = new KnowledgeDocumentVectorStore(knowledgebase, this.pgPool, embeddings)
@@ -100,7 +128,6 @@ export class KnowledgebaseService extends TenantOrganizationAwareCrudService<Kno
 	async similaritySearch(
 		query: string,
 		options?: {
-			// role?: AiBusinessRole
 			k?: number
 			filter?: KnowledgeDocumentVectorStore['filter']
 			score?: number

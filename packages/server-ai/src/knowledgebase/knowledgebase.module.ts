@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { RouterModule } from 'nest-router'
@@ -9,6 +9,7 @@ import { KnowledgebaseController } from './knowledgebase.controller'
 import { KnowledgebaseService } from './knowledgebase.service'
 import { QueryHandlers } from './queries/handlers'
 import { CommandHandlers } from './commands/handlers'
+import { XpertWorkspaceModule } from '../xpert-workspace'
 
 @Module({
 	imports: [
@@ -18,7 +19,8 @@ import { CommandHandlers } from './commands/handlers'
 		CqrsModule,
 		UserModule,
 		CopilotModule,
-		DatabaseModule
+		DatabaseModule,
+		forwardRef(() => XpertWorkspaceModule),
 	],
 	controllers: [KnowledgebaseController],
 	providers: [KnowledgebaseService, ...QueryHandlers, ...CommandHandlers],

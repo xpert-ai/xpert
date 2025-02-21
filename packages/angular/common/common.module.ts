@@ -19,6 +19,8 @@ import { NgmHierarchySelectComponent } from './hierarchy-select/hierarchy-select
 import { NgmDrawerContainerComponent } from './drawer'
 import { NgmObjectNumberComponent } from './object-number/object-number.component'
 import { NgmSpinComponent } from './spin/spin.component'
+import { NgmCheckboxComponent } from './checkbox/checkbox.component'
+import { NgmSlideToggleComponent } from './slide-toggle/slide-toggle.component'
 
 @NgModule({
   imports: [
@@ -48,7 +50,9 @@ import { NgmSpinComponent } from './spin/spin.component'
     NgmHierarchySelectComponent,
     NgmDrawerContainerComponent,
     NgmObjectNumberComponent,
-    NgmSpinComponent
+    NgmSpinComponent,
+    NgmCheckboxComponent,
+    NgmSlideToggleComponent
   ],
   exports: [
     ResizerModule,
@@ -75,7 +79,9 @@ import { NgmSpinComponent } from './spin/spin.component'
     NgmHierarchySelectComponent,
     NgmDrawerContainerComponent,
     NgmObjectNumberComponent,
-    NgmSpinComponent
+    NgmSpinComponent,
+    NgmCheckboxComponent,
+    NgmSlideToggleComponent
   ],
   declarations: [],
   providers: []

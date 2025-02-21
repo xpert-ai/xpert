@@ -1,6 +1,6 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { ICopilotModel, TCopilotModel } from './copilot-model.model'
-import { IKnowledgebase } from './knowledgebase.model'
+import { IKnowledgebase, TKBRecallParams } from './knowledgebase.model'
 import { I18nObject, TAvatar } from '../types'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IXpert, ToolCall, TXpertParameter } from './xpert.model'
@@ -129,6 +129,11 @@ export type TXpertAgentOptions = {
     defaultValue?: string
     failBranch?: string
   }
+
+  /**
+   * Recall params for kbs
+   */
+  recall?: TKBRecallParams
 }
 
 export type TAgentPromptTemplate = {

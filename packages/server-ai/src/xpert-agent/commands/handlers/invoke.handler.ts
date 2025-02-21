@@ -46,6 +46,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		const organizationId = RequestContext.getOrganizationId()
 		const userId = RequestContext.currentUserId()
 		const user = RequestContext.currentUser()
+		const languageCode = RequestContext.getLanguageCode()
 
 		const abortController = new AbortController()
 		// Create graph by command
@@ -92,6 +93,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 						...config,
 						tenantId: tenantId,
 						organizationId: organizationId,
+						language: languageCode,
 						userId,
 						subscriber
 					},

@@ -606,7 +606,9 @@ export class FeaturesComponent implements OnInit {
             link: '/settings/knowledgebase',
             data: {
               translationKey: 'Knowledgebase',
-              permissionKeys: [AIPermissionsEnum.KNOWLEDGEBASE_EDIT],
+              permissionKeys: [
+                RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN
+              ],
               featureKey: AiFeatureEnum.FEATURE_COPILOT_KNOWLEDGEBASE
             }
           },

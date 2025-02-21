@@ -22,6 +22,9 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
+/**
+ * @deprecated use xpert's Knowledges
+ */
 @Component({
   standalone: true,
   selector: 'pac-settings-knowledgebase-configuration',

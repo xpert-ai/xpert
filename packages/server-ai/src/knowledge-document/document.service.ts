@@ -1,11 +1,13 @@
-import { IKnowledgeDocument } from '@metad/contracts'
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import { IDocumentChunk, IKnowledgeDocument } from '@metad/contracts'
+import { StorageFileService, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { BadRequestException, Injectable, Logger } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Pool } from 'pg'
+import { Document } from 'langchain/document'
 import { Repository } from 'typeorm'
-import { TenantOrganizationAwareCrudService, DATABASE_POOL_TOKEN, StorageFileService, PaginationParams } from '@metad/server-core'
+import { KnowledgebaseService, TVectorSearchParams } from '../knowledgebase'
+import { LoadStorageFileCommand } from './commands'
 import { KnowledgeDocument } from './document.entity'
-import { KnowledgebaseService } from '../knowledgebase'
 
 @Injectable()
 export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService<KnowledgeDocument> {
@@ -16,17 +18,24 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 		repository: Repository<KnowledgeDocument>,
 		private readonly storageFileService: StorageFileService,
 		private readonly knowledgebaseService: KnowledgebaseService,
-		@Inject(DATABASE_POOL_TOKEN) private readonly pgPool: Pool
+		private readonly commandBus: CommandBus
 	) {
 		super(repository)
 	}
 
 	async createDocument(document: Partial<IKnowledgeDocument>): Promise<KnowledgeDocument> {
-		const storageFile = await this.storageFileService.findOne(document.storageFileId)
-		const fileType = storageFile.originalName.split('.').pop()
+		// Complete file type
+		if (!document.type) {
+			if (document.storageFileId) {
+				const storageFile = await this.storageFileService.findOne(document.storageFileId)
+				const fileType = storageFile.originalName.split('.').pop()
+				document.type = fileType
+			} else if (document.options?.url) {
+				document.type = 'html'
+			}
+		}
 		return await this.create({
-			...document,
-			type: document.type ?? fileType
+			...document
 		})
 	}
 
@@ -40,72 +49,72 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 			: await this.repository.save(document)
 	}
 
-	async getChunks(id: string, params: PaginationParams<IKnowledgeDocument>) {
-		const document = await this.findOne(id, { relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot'] })
+	async deletePage(documentId: string, id: string) {
+		const document = await this.findOne(documentId, {
+			relations: ['pages', 'knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
+		})
 		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase)
-		// const vectorStore = new KnowledgeDocumentVectorStore(document.knowledgebase, this.pgPool)
+		await vectorStore.delete({ filter: { docPageId: id, knowledgeId: documentId } })
+
+		document.pages = document.pages.filter((_) => _.id !== id)
+		await this.save(document)
+	}
+
+	async getChunks(id: string, params: TVectorSearchParams) {
+		const document = await this.findOne(id, {
+			relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
+		})
+		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase)
 		return await vectorStore.getChunks(id, params)
 	}
 
+	async createChunk(id: string, entity: IDocumentChunk) {
+		const { vectorStore, document } = await this.getDocumentVectorStore(id)
+		await vectorStore.addKnowledgeDocument(document, [
+			{
+				metadata: entity.metadata ?? {},
+				pageContent: entity.content
+			}
+		])
+	}
+
+	async updateChunk(documentId: string, id: string, entity: IDocumentChunk) {
+		try {
+			const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
+			return await vectorStore.updateChunk(id, {
+				metadata: entity.metadata,
+				pageContent: entity.content
+			})
+		} catch (err) {
+			throw new BadRequestException(err.message)
+		}
+	}
+
 	async deleteChunk(documentId: string, id: string) {
-		const document = await this.findOne(id, { relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot'] })
-		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase)
-		// const vectorStore = new KnowledgeDocumentVectorStore(document.knowledgebase, this.pgPool)
+		const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
 		return await vectorStore.deleteChunk(id)
 	}
 
-	// async similaritySearch(
-	// 	query: string,
-	// 	options?: {
-	// 		role?: AiBusinessRole
-	// 		k: number
-	// 		filter: KnowledgeDocumentVectorStore['filter']
-	// 		score?: number
-	// 		tenantId?: string
-	// 		organizationId?: string
-	// 	}
-	// ) {
-	// 	const { role, k, score, filter } = options ?? {}
-	// 	const tenantId = options?.tenantId ?? RequestContext.currentTenantId()
-	// 	const organizationId = options?.organizationId ?? RequestContext.getOrganizationId()
+	async getDocumentVectorStore(id: string) {
+		const document = await this.findOne(id, {
+			relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
+		})
+		const vectorStore = await this.knowledgebaseService.getVectorStore(document.knowledgebase)
+		return { document, vectorStore }
+	}
 
-	// 	const { record: copilotRole, success } = await this.roleService.findOneOrFail({ where: { name: role } })
-	// 	let knowledgebases: IKnowledgebase[] = []
-	// 	if (!success) {
-	// 		const result = await this.knowledgebaseService.findAll()
-	// 		knowledgebases = result.items
-	// 	} else {
-	// 		//
-	// 	}
-
-	// 	const documents = []
-	// 	const kbs = await Promise.all(
-	// 		knowledgebases.map((kb) => {
-	// 			return this.knowledgebaseService.getVectorStore(kb, tenantId, organizationId).then((vectorStore) => {
-	// 				return vectorStore.similaritySearchWithScore(query, k, filter)
-	// 			})
-	// 		})
-	// 	)
-
-	// 	kbs.forEach((kb) => {
-	// 		kb.forEach(([doc, score]) => {
-	// 			documents.push(doc)
-	// 		})
-	// 	})
-
-	// 	return documents
-	// }
-
-	// async maxMarginalRelevanceSearch(
-	// 	query: string,
-	// 	options?: {
-	// 		role?: AiBusinessRole
-	// 		k: number
-	// 		filter: Record<string, any>
-	// 		tenantId?: string
-	// 		organizationId?: string
-	// 	}
-	// ) {
-	// 	//
-	// }
+	async previewFile(id: string) {
+		try {
+			const docs = await this.commandBus.execute<LoadStorageFileCommand, Document[]>(
+				new LoadStorageFileCommand(id)
+			)
+			// Limit the size of the data returned for preview
+			return docs.map((doc) => ({
+				...doc,
+				pageContent: doc.pageContent.length > 10000 ? doc.pageContent.slice(0, 10000) + ' ...' : doc.pageContent
+			}))
+		} catch (err) {
+			throw new BadRequestException(err.message)
+		}
+	}
 }

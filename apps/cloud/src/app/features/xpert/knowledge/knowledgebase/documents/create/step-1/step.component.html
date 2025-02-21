@@ -1,0 +1,314 @@
+<div class="px-8 py-4 w-[640px] shrink-0 overflow-auto">
+  <div class="z-10 mb-4 font-semibold text-lg text-text-primary">
+    {{ 'PAC.Knowledgebase.SelectDocumentSource' | translate: {Default: 'Select Document Source'} }}
+  </div>
+
+  <ol class="flex flex-wrap gap-2 items-start" cdkListbox [(ngModel)]="sourceType">
+    @for (option of fileTypeOptions; track option.value) {
+      <li #opt="cdkOption" class="type-option relative flex flex-col w-80 h-28 max-w-xs border border-solid border-gray-200 rounded-2xl p-4 cursor-pointer
+        hover:bg-gray-50 hover:shadow-sm"
+        [cdkOption]="option.value"
+        [class.active]="opt.isSelected()"
+      >
+        <div class="flex justify-start items-center gap-1 mb-2">
+          @if (opt.isSelected()) {
+            <i class="ri-checkbox-circle-line text-2xl leading-none text-primary-500"></i>
+          }
+          <h4 class="text-base font-semibold text-gray-900 capitalize transition-all duration-500 ">
+            {{option.label | i18n}}
+          </h4>
+        </div>
+        
+        <p class="grow text-sm font-normal text-gray-500 transition-all duration-500 leading-5 mb-4 line-clamp-2">
+          {{option.description | i18n}}
+        </p>
+      </li>
+    }
+  </ol>
+
+  <div class="w-full flex justify-end px-4 py-2">
+    <a class="group flex items-center gap-2 text-sm font-light text-text-primary transition-all duration-100 hover:text-primary-500"
+      [href]="website() + '/docs/ai/knowledge/documents'" target="_blank">
+      {{ 'PAC.Knowledgebase.ReadMore' | translate: {Default: 'Read More'} }}
+      <i class="ri-external-link-line transition-all group-hover:translate-x-1"></i>
+    </a>
+  </div>
+
+  @if (sourceType()[0] === eKDocumentSourceType.FILE) {
+    <div class="my-6 w-full">
+      <input id="fileUploader" #fileDropRef class="invisible" multiple accept=".txt,.markdown,.md,.mdx,.pdf,.html,.htm,.xlsx,.xls,.docx,.pptx,.csv,.epub,.odt,.odp,.ods,.TXT,.MARKDOWN,.MD,.MDX,.PDF,.HTML,.HTM,.XLSX,.XLS,.DOCX,.PPTX,.CSV,.EPUB,.csv,.ODT,.ODP,.ODS" type="file"
+        (change)="fileBrowseHandler($event.target)"
+        (click)="fileDropRef.value=null;">
+      <div class="text-text-tertiary text-base font-semibold leading-6 mb-2">
+        {{ 'PAC.Knowledgebase.UploadTextFile' | translate: {Default: 'Upload text file'} }}
+      </div>
+      <div class="relative box-border flex flex-col justify-center items-center gap-1 mb-2 px-4 py-3 max-w-[640px] min-h-20 text-sm text-text-tertiary border border-dashed border-components-dropzone-border rounded-xl bg-gray-50"
+        ngmDnd (fileDropped)="onFileDropped($event)"
+      >
+        <div class="flex justify-center items-center min-h-5 text-sm leading-4 text-text-secondary">
+          <i class="ri-upload-cloud-line text-lg mr-1"></i>
+          <span>{{ 'PAC.Knowledgebase.DragDropOr' | translate: {Default: 'Drag and drop files here, or'} }}
+            <label for="fileUploader" class="ml-1 text-text-accent cursor-pointer">{{ 'PAC.Knowledgebase.SelectFiles' | translate: {Default: 'select files'} }}</label></span>
+        </div>
+        <div>{{ 'PAC.Knowledgebase.SupportFiles' | translate: {Default: 'Supports TXT, MARKDOWN, MDX, PDF, HTML, XLSX, XLS, DOCX, PPTX, CSV, EPUB, MD, HTM, CSV, ODT, ODP, ODS and each file does not exceed 15MB.'} }}</div>
+      </div>
+
+      <div class="space-y-1 max-w-[640px] cursor-default">
+        @for (item of fileList(); track item) {
+          <div class="relative flex items-center h-14 max-w-[640px] text-sm leading-3 text-text-tertiary border-[0.5px] rounded-lg hover:shadow-sm hover:bg-gray-50"
+            (click)="selectFile(item)"
+          >
+            <div class="grow shrink flex flex-col gap-0.5 px-2">
+              @if (item.doc) {
+                <knowledge-doc-id [doc]="item.doc" />
+              }
+
+              <div class="w-full px-2 leading-3 truncate text-text-tertiary">
+                <span class="uppercase">{{item.file.name.split('.').pop()}}</span>
+                <span class="px-1 text-text-quaternary">·</span>
+                <span>{{item.file.size / 1024 | number:'0.0-1'}}KB</span>
+              </div>
+            </div>
+
+            @if (item.loading) {
+              <ngm-spin small class="mr-4"/>
+            } @else {
+              <button type="button" class="btn danger shrink-0 flex items-center justify-center w-6 h-6 mr-4 rounded-md"
+                (click)="removeFile(item)"
+              >
+                <i class="ri-delete-bin-line"></i>
+              </button>
+            }
+
+            <mat-progress-bar class="absolute bottom-0 left-0 w-full" mode="determinate" [value]="item.progress" [color]="item.progress === 100 ? 'primary' : 'accent'" />
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  @if (sourceType()[0] === eKDocumentSourceType.WEB) {
+    <div class="my-6 w-full flex flex-col gap-2">
+
+      <div class="mb-4">
+        <div class="font-medium text-gray-700 mb-2 h-6">
+          {{ 'PAC.Knowledgebase.ChooseaProvider' | translate: {Default: 'Choose a Provider'} }}
+        </div>
+        <ul class="flex flex-wrap gap-2" cdkListbox [(ngModel)]="webTypes" [cdkListboxCompareWith]="webTypeCompareWith">
+          @for (type of webTypeOptions; track type) {
+            <button class="web-option flex items-center px-4 py-2 text-base font-medium rounded-md
+              bg-gray-100 text-gray-600 hover:bg-gray-200"
+              [class.active]="webTypes()[0]?.value === type.value"
+              [cdkOption]="type"
+            >
+              @if (type.icon) {
+                <div [innerHTML]="type.icon | safe: 'html'" class="shrink-0 w-6 h-6 mr-1"></div>
+              }
+              {{type.label | i18n}}
+            </button>
+          }
+        </ul>
+      </div>
+
+      @if (webOptionSchema(); as optionSchema) {
+        <div class="flex h-6 items-center justify-between">
+          <div class="flex items-center">
+            <div class="text-base font-semibold text-text-primary">
+              {{ 'PAC.Knowledgebase.Use' | translate: {Default: 'Use'} }}
+              {{optionSchema.type}} 
+              {{ 'PAC.Knowledgebase.ExtractWebContent' | translate: {Default: 'extract web content'} }}
+            </div>
+            <div class="ml-2 mr-1 w-px h-3.5 bg-gray-200"></div>
+            @if (optionSchema.integrationProvider) {
+              <div class="px-2 py-1 text-sm rounded-md border-[0.5px] border-solid border-divider-deep bg-gray-50 hover:bg-black/5 cursor-pointer"
+                [class.border-orange-500]="!integration()"
+                [cdkMenuTriggerFor]="inteMenu">
+                <i class="ri-settings-4-line mr-1"></i>
+                @if (integration(); as integration) {
+                  <span>{{integration.name}}</span>
+                } @else {
+                  {{ 'PAC.Knowledgebase.Integration' | translate: {Default: 'Integration'} }}
+                }
+              </div>
+            }
+          </div>
+          @if (optionSchema.helpUrl) {
+            <a [href]="optionSchema.helpUrl" target="_blank" rel="noopener noreferrer" class="flex items-center text-sm text-primary-500 hover:text-primary-600">
+              <i class="ri-book-open-line text-lg mr-1"></i>
+              {{webTypes()[0].label | i18n}} {{ 'PAC.Knowledgebase.Document' | translate: {Default: 'Document'} }}
+            </a>
+          }
+        </div>
+
+        <div class="border border-solid border-divider-deep rounded-xl">
+          <div class="p-4">
+            <div class="flex items-end justify-between">
+              <input class="flex h-9 grow py-1 px-2 rounded-lg text-sm leading-normal bg-gray-100 caret-primary-600 hover:bg-gray-100 focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-gray-50 placeholder:text-gray-400"
+                placeholder="https://mtda.cloud/" type="text" [ngModel]="webOptions()?.url" (ngModelChange)="updateWebUrl($event)">
+              <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium ml-2 shrink-0"
+                [disabled]="loadingWeb() || optionSchema.integrationProvider && !integration()"
+                (click)="loadRagWebPages()">
+                {{ 'PAC.Knowledgebase.Load' | translate: {Default: 'Load'} }}
+              </button>
+            </div>
+  
+            <div class="mt-4 mb-3">
+              <div class="flex justify-between items-center h-[26px] py-1 cursor-pointer select-none"
+                (click)="toggleExpand()"
+              >
+                <div class="flex items-center text-gray-700">
+                  <i class="ri-equalizer-2-line text-lg mr-1"></i>
+                  <div class="text-[13px] font-semibold text-gray-800 uppercase">
+                    {{ 'PAC.Knowledgebase.Settings' | translate: {Default: 'Settings'} }}
+                  </div>
+                </div>
+  
+                <i class="ri-arrow-right-s-line text-lg text-text-secondary"
+                  [class.rotate-90]="expand()"
+                ></i>
+              </div>
+            </div>
+  
+            @if (expand()) {
+              <div class="grid grid-cols-2 gap-2 mb-4">
+                @for (param of webParams(); track param.name) {
+                  <parameter [ngClass]="{'col-span-1': param.span === 1, 'col-span-2': param.span === 2,}"
+                    [schema]="param"
+                    [ngModel]="parametersValue()?.[param.name]"
+                    (ngModelChange)="updateParamValue(param.name, $event)"
+                  />
+                }
+              </div>
+            }
+          </div>
+
+          <div class="my-2 border-t border-gray-200">
+            <div class="flex items-center justify-between h-[34px] px-4 bg-gray-50 shadow-xs border-b-[0.5px] border-black/8 text-sm font-normal text-gray-700">
+              <div>
+                @if (loadingWeb()) {
+                  <span>{{ 'PAC.Knowledgebase.Crawl' | translate: {Default: 'Crawl'} }}...</span>
+                } @else {
+                  <span>{{ 'PAC.Knowledgebase.CrawlResults' | translate: {Default: 'Crawl results'} }}</span>
+                }
+              </div>
+              <div>
+                @if (!loadingWeb() && webDocs()) {
+                  {{ 'PAC.Knowledgebase.CrawlDesc' | translate: {
+                    Default: 'A total of ' + webDocs().length + ' pages were crawled in ' + duration() + ' seconds',
+                    duration: duration(),
+                    webDocs: webDocs().length
+                    } }}
+                }
+              </div>
+            </div>
+            <div class="p-4">
+              @if (loadingWeb()) {
+                <list-content-loader class="my-4"></list-content-loader>
+              } @else if (webError()) {
+                <i class="ri-alarm-warning-line text-xl p-2 text-text-destructive"></i>
+                <div class="text-sm p-2 whitespace-pre-wrap overflow-auto text-text-destructive">{{webError()}}</div>
+              } @else {
+                @for (page of webDocs(); track page) {
+                  <div class="page-item group hover:bg-gray-100 rounded-md px-2 py-[5px] cursor-pointer border border-transparent"
+                    [class.active]="previewDoc()?.metadata?.scrapeId === page.metadata.scrapeId"
+                  >
+                    <div class="flex justify-between items-center h-5">
+                      <ngm-checkbox class="grow" [label]="page.metadata.title" [ngModel]="isSelectedPage(page)" (ngModelChange)="togglePage(page, $event)"/>
+                      
+                      <div class="hidden group-hover:flex items-center h-6 px-2 text-sm rounded-md font-medium text-gray-500 uppercase hover:bg-gray-50"
+                        (click)="previewDoc.set(page)"
+                      >{{ 'PAC.Knowledgebase.Preview' | translate: {Default: 'Preview'} }}</div>
+                    </div>
+                    <div class="mt-0.5 truncate pl-6 leading-[18px] text-xs font-normal text-gray-500"
+                      [title]="page.metadata.url">
+                      {{page.metadata.url}}</div>
+                  </div>
+                }
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <div class="flex justify-end gap-2 max-w-[640px]">
+    <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
+      [disabled]="loadingWeb() || !nextStepAvailable()"
+      (click)="nextStep()">
+      <span class="flex gap-0.5 px-[10px]">
+        <span class="px-0.5">{{ 'PAC.Knowledgebase.NextStep' | translate: {Default: 'Next Step'} }}</span>
+        <i class="ri-arrow-right-line"></i>
+      </span>
+    </button>
+  </div>
+</div>
+
+@if (previewFile(); as item) {
+  <div class="h-full w-[1px] bg-divider-deep"></div>
+  <div class="grow h-full overflow-y-auto">
+    <div class="h-full relative">
+      <div class="p-4">
+        <div class="w-full flex justify-between items-center">
+          <span>{{ 'PAC.Knowledgebase.FilePreview' | translate: {Default: 'File Preview'} }}</span>
+          <div class="flex items-center justify-center w-6 h-6 cursor-pointer"
+            (click)="closePreview()"
+          >
+            <i class="ri-close-line"></i>
+          </div>
+        </div>
+        <div class="">
+          <span>{{item.doc.storageFile.originalName}},</span>
+        </div>
+      </div>
+      @if (previewFileDocs(); as preview) {
+        @if (preview.loading) {
+          <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+        } @else {
+          <div class="p-4 overflow-auto flex flex-col gap-4">
+            @for (doc of preview.docs; track doc) {
+              <div class="text-sm text-text-secondary">{{doc.pageContent}}</div>
+            }
+          </div>
+        }
+      }
+    </div>
+  </div>
+}
+
+@if (previewDoc(); as preview) {
+  <div class="h-full w-[1px] bg-divider-deep"></div>
+  <div class="grow h-full overflow-y-auto">
+    <div class="sticky top-0 mx-8 mt-8 pb-2 border-b border-solid border-divider-regular bg-components-card-bg">
+      <div class="flex justify-between items-center">
+        <span class="text-lg font-semibold">{{ 'PAC.Knowledgebase.WebPagePreview' | translate: {Default: 'WebPage Preview'} }}</span>
+        <div class="flex items-center justify-center w-6 h-6 cursor-pointer"
+          (click)="closePreviewWeb()"
+        >
+          <i class="ri-close-line"></i>
+        </div>
+      </div>
+      <div class="leading-5 text-sm font-medium text-gray-900 break-words">{{preview.metadata.title}}</div>
+      <div class="truncate leading-[18px] text-xs font-normal text-gray-500"
+        [title]="preview.metadata.url"
+      >
+        {{preview.metadata.url}}
+      </div>
+    </div>
+    <div class="px-8 py-4">
+      <div class="whitespace-pre-line break-all font-normal">
+        {{preview.pageContent}}
+      </div>
+    </div>
+  </div>
+}
+
+<ng-template #inteMenu>
+  <div cdkMenu class="cdk-menu__medium">
+    @for (item of integrations(); track item.id) {
+      <div cdkMenuItem (click)="integration.set(item)">
+        {{ item.name }}
+      </div>
+    }
+  </div>
+</ng-template>

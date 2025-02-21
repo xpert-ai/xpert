@@ -1,0 +1,35 @@
+<div class="shrink-0 flex justify-center items-center w-6">
+@switch(sourceType()) {
+  @case(eKDocumentSourceType.FILE) {
+    @switch (type()) {
+      @case ('docx') {
+        <i class="ri-file-word-fill text-lg text-blue-500"></i>
+      }
+      @case ('doc') {
+        <i class="ri-file-word-fill text-lg text-blue-500"></i>
+      }
+      @case ('txt') {
+        <i class="ri-file-text-fill text-lg"></i>
+      }
+      @case ('pdf') {
+        <i class="ri-file-pdf-2-fill text-lg text-red-500"></i>
+      }
+      @case ('html') {
+        <i class="ri-html5-fill text-lg text-orange-500"></i>
+      }
+      @default {
+        <i class="ri-file-text-fill text-lg"></i>
+      }
+    }
+  }
+  @case(eKDocumentSourceType.WEB) {
+    <i class="ri-html5-line text-lg text-orange-500"></i>
+  }
+}
+</div>
+
+<div class="grow flex items-center gap-1"
+  [title]="label()"
+>
+  <div class="text-sm truncate">{{label()}}</div>
+</div>

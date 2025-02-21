@@ -60,7 +60,7 @@
 cd xpert
 cd docker
 cp .env.example .env
-docker compose up -d
+docker compose -f docker-compose.cn.yml up -d
 ```
 
 运行后，您可以在浏览器中访问 Xpert 仪表盘，地址为 [http://localhost/onboarding](http://localhost/onboarding)，并开始初始化过程。

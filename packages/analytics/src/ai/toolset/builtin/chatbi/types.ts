@@ -30,6 +30,7 @@ import { omit } from '@metad/server-common'
 import { upperFirst } from 'lodash'
 import { z } from 'zod'
 import { AbstractChatBIToolset } from './chatbi-toolset'
+import { LanguagesEnum } from '@metad/contracts'
 
 export enum ChatBIToolsEnum {
 	SHOW_INDICATORS = 'show_indicators',
@@ -50,6 +51,7 @@ export type ChatBIContext = {
 	chatbi: AbstractChatBIToolset
 	dsCoreService: DSCoreService
 	entityType?: EntityType
+	language?: LanguagesEnum
 }
 
 export type ChatAnswer = {

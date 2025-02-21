@@ -30,6 +30,8 @@ import { In, Not } from 'typeorm'
 import { Knowledgebase } from './knowledgebase.entity'
 import { KnowledgebaseService } from './knowledgebase.service'
 import { StatisticsKnowledgebasesQuery } from './queries'
+import { WorkspaceGuard } from '../xpert-workspace'
+import { KnowledgebasePublicDTO } from './dto'
 
 
 @ApiTags('Knowledgebase')
@@ -72,6 +74,20 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 				}
 			]
 		})
+	}
+
+	@UseGuards(WorkspaceGuard)
+	@Get('by-workspace/:workspaceId')
+	async getAllByWorkspace(
+		@Param('workspaceId') workspaceId: string,
+		@Query('data', ParseJsonPipe) data: PaginationParams<Knowledgebase>,
+		@Query('published') published?: boolean
+	) {
+		const result = await this.service.getAllByWorkspace(workspaceId, data, published, RequestContext.currentUser())
+		return {
+			...result,
+			items: result.items.map((item) => new KnowledgebasePublicDTO(item))
+		}
 	}
 
 	@ApiOperation({ summary: 'find all' })

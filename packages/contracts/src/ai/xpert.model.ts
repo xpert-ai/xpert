@@ -2,7 +2,7 @@ import { ToolCall as LToolCall } from '@langchain/core/dist/messages/tool'
 import { ITag } from '../tag-entity.model'
 import { IUser } from '../user.model'
 import { ICopilotModel, TCopilotModel } from './copilot-model.model'
-import { IKnowledgebase } from './knowledgebase.model'
+import { IKnowledgebase, TKBRecallParams } from './knowledgebase.model'
 import { I18nObject, TAvatar } from '../types'
 import { IXpertAgent } from './xpert-agent.model'
 import { IXpertToolset } from './xpert-toolset.model'
@@ -180,6 +180,11 @@ export type TXpertAgentConfig = {
    * Disable agent's output
    */
   disableOutputs?: string[]
+
+  /**
+   * Recall params
+   */
+  recalls?: Record<string, TKBRecallParams>
 }
 
 export type TStateVariable<ValueType = any, UpdateType = ValueType> = {

@@ -47,6 +47,8 @@ import { XpertWorkspaceSettingsComponent } from '../settings/settings.component'
 import { concat } from 'lodash-es';
 import { TagFilterComponent } from 'apps/cloud/src/app/@shared/tag';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { XpertWorkspaceWelcomeComponent } from '../welcome/welcome.component';
+import { injectParams } from 'ngxtension/inject-params';
 
 export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
 
@@ -67,7 +69,8 @@ export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
     MatTooltipModule,
 
     NgmCommonModule,
-    TagFilterComponent
+    TagFilterComponent,
+    XpertWorkspaceWelcomeComponent
   ],
   selector: 'pac-xpert-home',
   templateUrl: './home.component.html',
@@ -93,7 +96,8 @@ export class XpertWorkspaceHomeComponent {
   // Xpert's tags
   readonly xpertTags = injectTags(TagCategoryEnum.XPERT)
   readonly me = injectUser()
-  readonly confirmUnique = injectConfirmUnique();
+  readonly confirmUnique = injectConfirmUnique()
+  readonly paramId = injectParams('id')
 
   readonly contentContainer = viewChild('contentContainer', { read: ElementRef })
 
@@ -117,7 +121,7 @@ export class XpertWorkspaceHomeComponent {
   readonly refresh$ = new BehaviorSubject<void>(null)
 
   // Xpert or tool type filter
-  readonly types = model<XpertTypeEnum>(null)
+  readonly types = model<Array<XpertTypeEnum | XpertToolsetCategoryEnum | 'knowledgebase'>>(null)
   readonly type = computed(() => this.types()?.[0])
 
   // TagFilter's state
@@ -159,6 +163,12 @@ export class XpertWorkspaceHomeComponent {
     effect(() => {
       if (this.selectedWorkspaces()[0]) {
         this.router.navigate(['/xpert/w/', this.selectedWorkspaces()[0]])
+      }
+    }, { allowSignalWrites: true })
+
+    effect(() => {
+      if (this.paramId()) {
+        this.selectedWorkspaces.set([this.paramId()])
       }
     }, { allowSignalWrites: true })
   }

@@ -2,17 +2,17 @@ import { HttpClient, HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import { DocumentInterface } from '@langchain/core/documents'
 import { MaxMarginalRelevanceSearchOptions, VectorStoreInterface } from '@langchain/core/vectorstores'
-import { API_PREFIX, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
+import { API_PREFIX, PaginationParams, toHttpParams } from '@metad/cloud/state'
 import { IKnowledgebase } from '@metad/contracts'
 import { NGXLogger } from 'ngx-logger'
 import { switchMap } from 'rxjs/operators'
+import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 
 const API_KNOWLEDGEBASE = API_PREFIX + '/knowledgebase'
 
 @Injectable({ providedIn: 'root' })
-export class KnowledgebaseService extends OrganizationBaseCrudService<IKnowledgebase> {
+export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowledgebase> {
   readonly #logger = inject(NGXLogger)
-  readonly httpClient = inject(HttpClient)
 
   constructor() {
     super(API_KNOWLEDGEBASE)

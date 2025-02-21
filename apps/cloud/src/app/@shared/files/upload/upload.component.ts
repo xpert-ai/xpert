@@ -30,14 +30,19 @@ export type UploadFile = {
   styleUrls: ['./upload.component.scss']
 })
 export class UploadComponent {
+
+  // Inputs
   readonly files = input<UploadFile[]>([])
+  readonly description = input<string>()
 
   readonly multiple = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
 
+  // Outputs
   readonly filesChange = output<FileList>()
   readonly removeFileChange = output<UploadFile[]>()
+
 
   /**
    * on file drop handler

@@ -41,6 +41,9 @@ import { FilesUploadDialogComponent } from 'apps/cloud/src/app/@shared/files'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 
+/**
+ * @deprecated use xpert's Knowledges
+ */
 @Component({
   standalone: true,
   selector: 'pac-settings-knowledgebase-documents',
