@@ -12,18 +12,21 @@ import {
   TVariableAssigner,
   TXpertTeamNode,
   XpertService,
+  XpertToolsetCategoryEnum,
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { omit, uniq } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, map, of } from 'rxjs'
-import { injectConfigureBuiltin, XpertToolTestComponent } from '../../../tools'
+import { injectConfigureBuiltin, XpertToolConfigureBuiltinComponent, XpertToolTestComponent } from '../../../tools'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertVariablesAssignerComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { CommonModule } from '@angular/common'
+import { Router } from '@angular/router'
+import { Dialog } from '@angular/cdk/dialog'
 
 @Component({
   selector: 'xpert-studio-panel-toolset',
@@ -53,6 +56,8 @@ export class XpertStudioPanelToolsetComponent {
   readonly toolsetService = inject(XpertToolsetService)
   readonly studioService = inject(XpertStudioApiService)
   readonly xpertService = inject(XpertService)
+  readonly router = inject(Router)
+  readonly dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly configureBuiltin = injectConfigureBuiltin()
 
@@ -202,5 +207,26 @@ export class XpertStudioPanelToolsetComponent {
 
   closePanel() {
     this.panelComponent.close()
+  }
+
+  edit() {
+    const toolset = this.toolsetDetail()
+    if (toolset.category === XpertToolsetCategoryEnum.API) {
+      this.router.navigate(['/xpert/tool', toolset.id])
+    } else {
+      this.dialog.open(XpertToolConfigureBuiltinComponent, {
+        disableClose: true,
+        data: {
+          toolset,
+          providerName: toolset.type,
+          workspaceId: this.workspaceId()
+        }
+      }).closed
+        .subscribe((result) => {
+          if (result) {
+            this.refresh()
+          }
+        })
+    }
   }
 }

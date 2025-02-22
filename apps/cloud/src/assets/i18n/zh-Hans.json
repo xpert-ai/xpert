@@ -2315,6 +2315,7 @@
       "XpertPublished": "专家已发布成功",
       "XpertPublishDeleted": "专家发布已删除",
       "RefreshToolset": "刷新，同步工具集配置",
+      "EditToolset": "编辑工具集配置",
       "End": "终点",
       "EndTool": "终点工具，完成时对话运行结束",
       "EndAgentTip": "终点智能体，完成时对话运行结束",
@@ -2427,7 +2428,8 @@
       "GenerateContent": "生成内容",
       "StateVariable": "状态变量",
       "TopKTooltip": "用于筛选与用户问题相似度最高的文本片段。",
-      "RecallSettings": "召回设置"
+      "RecallSettings": "召回设置",
+      "AtLeastOneTool": "至少启用一个工具"
     },
     "title": {
       "short": "Xpert AI"

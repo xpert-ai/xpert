@@ -66,4 +66,10 @@
       }
     </div>
   }
+
+  @if (availableTools() && !atLeastOne()) {
+    <div class="flex items-center gap-1 px-2 py-0.5 border-[0.5px] border-solid border-text-destructive rounded-lg text-sm text-text-destructive">
+      <i class="ri-spam-2-line text-lg"></i>
+      {{'PAC.Xpert.AtLeastOneTool' | translate: {Default: 'Enable at least one tool'} }}</div>
+  }
 </div>

@@ -108,11 +108,16 @@
 }
 
 <div class="sticky bottom-0 flex justify-end p-4 bg-components-card-bg">
+  @if (!atLeastOne()) {
+    <div class="flex items-center gap-1 mr-2 text-sm text-text-warning">
+      <i class="ri-alarm-warning-line"></i>
+      {{'PAC.Xpert.AtLeastOneTool' | translate: {Default: 'Enable at least one tool'} }}</div>
+  }
   <div class="flex space-x-2">
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium"
       (click)="cancel($event)">{{'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}</button>
     <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
-      [disabled]="!dirty() || !toolsetId()"
+      [disabled]="!dirty() || !toolsetId() || !atLeastOne()"
       (click)="save()"
     >{{'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}</button>
   </div>
