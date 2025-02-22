@@ -153,10 +153,11 @@
               <div>{{'PAC.Knowledgebase.Pages' | translate: {Default: 'Pages'} }}</div>
               <ul class="flex flex-col gap-1">
                 @for (page of element.pages; track page.id) {
-                  <li class="flex justify-between items-center text-sm rounded-md px-2 py-1 text-text-secondary hover:bg-hover-bg">
-                    <span>{{page.metadata?.title}}</span>
+                  <li class="group flex justify-between items-center text-sm rounded-md px-2 py-1 text-text-secondary hover:bg-hover-bg">
+                    <span class="group-hover:text-text-primary">{{page.metadata?.title}}</span>
 
-                    <button type="button" class="btn danger btn-small w-6 h-6 justify-center" (click)="removePage(element, page)">
+                    <button type="button" class="opacity-0 group-hover:opacity-100 btn danger btn-small w-6 h-6 justify-center"
+                      (click)="removePage(element, page)">
                       <i class="ri-delete-bin-line"></i>
                     </button>
                   </li>

@@ -10,7 +10,7 @@ export const load = async (webOptions: TRagWebOptions, integration: IIntegration
 		apiUrl: integration.options.apiUrl,
 		mode: params.mode as 'crawl' | 'scrape' | 'map',
 		params: {
-			maxDepth: params.maxDepth ?? 1,
+			maxDepth: params.maxDepth ?? 2,
 			includePaths: params.includePaths,
 			limit: params.limit,
 			ignoreSitemap: params.ignoreSitemap,

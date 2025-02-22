@@ -1985,6 +1985,7 @@
       "TopKTooltip": "用于筛选与用户问题相似度最高的文本片段。",
       "ScoreTooltip": "用于设置文本块筛选的相似度阈值",
       "WeightTooltip": "在多知识库组合中的权重",
+      "NewIntegration": "新建集成连接",
       "Chunk": "分块"
     },
     "Integration": {

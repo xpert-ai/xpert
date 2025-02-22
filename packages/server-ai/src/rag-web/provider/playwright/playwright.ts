@@ -11,6 +11,10 @@ export const load = async (webOptions: TRagWebOptions) => {
 	const turndownService = new TurndownService()
 
 	const loader = new CustomPlaywrightWebBaseLoader(webOptions.url, {
+		mode: params.mode,
+		limit: params.limit,
+		maxDepth: params.maxDepth,
+		timeout: params.timeout,
 		launchOptions: {
 			headless: true
 		},
@@ -47,7 +51,7 @@ export const load = async (webOptions: TRagWebOptions) => {
 				scrapeId: uuidv4()
 			}
 		},
-		// /** Pass custom evaluate, in this case you get page and browser instances */
+		/** Pass custom evaluate, in this case you get page and browser instances */
 		async evaluate(page: Page, browser: Browser, response: Response | null) {
 			const result = await page.evaluate(() => document.body.innerHTML)
 			return turndownService.turndown(result)
