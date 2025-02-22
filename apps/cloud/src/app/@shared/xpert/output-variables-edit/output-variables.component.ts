@@ -12,7 +12,10 @@ import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { TAgentOutputVariable, VariableOperations, XpertParameterTypeEnum } from '../../../@core'
+import { TAgentOutputVariable, TXpertParameter, VariableOperations, XpertParameterTypeEnum } from '../../../@core'
+import { XpertParameterFormComponent } from '../parameter-edit-form/form.component'
+import { XpertParameterMenuItemComponent } from '../parameter-menu/menu-item.component'
+import { XpertParameterIconComponent } from '../parameter-icon/icon.component'
 
 @Component({
   standalone: true,
@@ -31,7 +34,9 @@ import { TAgentOutputVariable, VariableOperations, XpertParameterTypeEnum } from
     MatSlideToggleModule,
     MatInputModule,
 
-    NgmDensityDirective
+    XpertParameterFormComponent,
+    XpertParameterIconComponent,
+    XpertParameterMenuItemComponent
   ],
 
   hostDirectives: [NgxControlValueAccessor]
@@ -87,6 +92,7 @@ export class XpertOutputVariablesEditComponent {
         maximum: this.#fb.control(param.maximum),
         options: this.#fb.control(param.options),
         operation: this.#fb.control(param.operation),
+        item: this.#fb.control(param.item),
         variableSelector: this.#fb.control(param.variableSelector)
       })
     )
@@ -94,6 +100,12 @@ export class XpertOutputVariablesEditComponent {
     if (isNil(options?.emitEvent) || options.emitEvent) {
       this.onChange()
     }
+  }
+
+  setParameter(index: number, value: TXpertParameter) {
+    this.parameters.at(index).setValue(value, { emitEvent: true })
+    this.form.markAsDirty()
+    this.onChange()
   }
 
   updateParameter(index: number, name: string, value: string) {

@@ -1,0 +1,13 @@
+<div class="relative w-full flex h-8 p-1">
+  <div class="grow flex justify-end items-center">
+    <div class="text-[12px] font-semibold text-text-primary uppercase">
+      {{ 'PAC.Xpert.Item' | translate: {Default: 'Item'} }}
+    </div>
+  </div>
+
+  <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" class="right group">
+    <div class="inner-dot cursor-crosshair">
+      <ngm-plus-svg class="w-2 h-2 text-white" />
+    </div>
+  </div>
+</div>

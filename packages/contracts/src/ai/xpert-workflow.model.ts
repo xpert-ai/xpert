@@ -5,6 +5,7 @@ import { TStateVariable } from "./xpert.model"
 export enum WorkflowNodeTypeEnum {
   ASSIGNER = 'assigner',
   IF_ELSE = 'if-else',
+  SPLITTER = 'splitter',
   NOTE = 'note'
 }
 
@@ -48,6 +49,10 @@ export interface IWFNAssigner extends IWorkflowNode {
 export interface IWFNIfElse extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.IF_ELSE
   cases: TWFCase[]
+}
+
+export interface IWFNSplitter extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.SPLITTER
 }
 
 export enum WorkflowLogicalOperator {

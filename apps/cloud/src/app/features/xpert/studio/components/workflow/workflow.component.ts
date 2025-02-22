@@ -13,6 +13,7 @@ import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioNodeWorkflowIfelseComponent } from './ifelse/ifelse.component'
+import { XpertStudioNodeWorkflowSplitterComponent } from './splitter/splitter.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -20,7 +21,7 @@ import { XpertStudioNodeWorkflowIfelseComponent } from './ifelse/ifelse.componen
   styleUrls: ['./workflow.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, CdkMenuModule, MatTooltipModule, TranslateModule, XpertStudioNodeWorkflowIfelseComponent],
+  imports: [FFlowModule, CdkMenuModule, MatTooltipModule, TranslateModule, XpertStudioNodeWorkflowIfelseComponent, XpertStudioNodeWorkflowSplitterComponent],
   host: {
     tabindex: '-1',
     '(contextmenu)': 'emitSelectionChangeEvent($event)'

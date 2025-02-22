@@ -13,7 +13,7 @@ import { concat, filter, from, lastValueFrom, Observable, of, reduce, Subscriber
 import { AgentState } from '../../../copilot'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
-import { createParameters, XpertAgentExecuteCommand } from '../execute.command'
+import { XpertAgentExecuteCommand } from '../execute.command'
 import { GetXpertAgentQuery, GetXpertChatModelQuery } from '../../../xpert/queries'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
@@ -27,6 +27,7 @@ import { AgentStateAnnotation, parseXmlString, STATE_VARIABLE_SYS_LANGUAGE, STAT
 import { CompleteToolCallsQuery } from '../../queries'
 import { memoryPrompt } from '../../../copilot-store/utils'
 import { assignExecutionUsage } from '../../../xpert-agent-execution/types'
+import { createParameters } from '../../workflow/parameter'
 
 
 @CommandHandler(XpertAgentExecuteCommand)

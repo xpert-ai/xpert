@@ -251,6 +251,8 @@ export enum XpertParameterTypeEnum {
   PARAGRAPH = 'paragraph',
   SELECT = 'select',
   NUMBER = 'number',
+  ARRAY_STRING = 'array[string]',
+  ARRAY = 'array[object]',
 }
 
 export type TXpertParameter = {
@@ -261,6 +263,7 @@ export type TXpertParameter = {
   optional?: boolean
   maximum?: number
   options?: string[]
+  item?: TXpertParameter[]
 }
 
 export type TChatApp = {
