@@ -203,7 +203,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const withTools = [...tools.map((item) => item.tool), ...Object.keys(subAgents ?? {}).map((name) => subAgents[name].tool)]
 		const summarize = ensureSummarize(team.summarize)
 		// Next agent
-		let nextNodeKey = END
+		let nextNodeKey: string[] | string = END
 		let failNodeKey = END
 		const agentKeys = new Set([agent.key])
 		const nodes: Record<string, {ends: string[]; graph: RunnableLike;}> = {}
@@ -299,15 +299,16 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			}
 
 			if (next?.length || fail?.length) {
-				await createSubgraph(next?.[0], fail?.[0], agentKey)
-				nextNodeKey = next?.[0]?.key
+				console.log(next)
+				const pathMap = [...withTools.map((tool) => tool.name)]
+				for await (const nextNode of next) {
+					await createSubgraph(nextNode, fail?.[0], agentKey)
+					pathMap.push(nextNode.key)
+				}
+				
+				nextNodeKey = next?.map((n) => n.key)
 				if (fail?.length) {
 					failNodeKey = fail?.[0]?.key
-				}
-
-				const pathMap = [...withTools.map((tool) => tool.name)]
-				if (next?.length) {
-					pathMap.push(next?.[0]?.key)
 				}
 				if (fail?.length) {
 					pathMap.push(fail?.[0]?.key)
@@ -315,7 +316,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				if (summarizeTitle) {
 					pathMap.push('title_conversation')
 				}
-				conditionalEdges[agentKey] = [createAgentNavigator(channelName(agentKey), summarize, summarizeTitle, next?.[0]?.key), pathMap]
+				conditionalEdges[agentKey] = [
+					createAgentNavigator(channelName(agentKey), summarize, summarizeTitle, next?.map((n) => n.key)),
+					pathMap
+				]
 			}
 		}
 		if (leaderKey) {
@@ -508,14 +512,35 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			const name = tool.name
 			subgraphBuilder
 				.addNode(name, new ToolNode([tool], { caller, variables }))
-				.addEdge(name, endNodes?.includes(tool.name) ? nextNodeKey : agentKey)
+			if (endNodes?.includes(tool.name)) {
+				if (Array.isArray(nextNodeKey)) {
+					subgraphBuilder.addConditionalEdges(name, (state, config) => {
+						return nextNodeKey.map((n) => new Send(n, state))
+					})
+				} else {
+					subgraphBuilder.addEdge(name, nextNodeKey)
+				}
+			} else {
+				subgraphBuilder.addEdge(name, agentKey)
+			}
 		})
 
 		// Subgraphs
 		if (subAgents) {
 			Object.keys(subAgents).forEach((name) => {
 				subgraphBuilder.addNode(name, subAgents[name].stateGraph)
-					.addEdge(name, endNodes?.includes(name) ? nextNodeKey : agentKey)
+
+				if (endNodes?.includes(name)) {
+					if (Array.isArray(nextNodeKey)) {
+						subgraphBuilder.addConditionalEdges(name, (state, config) => {
+							return nextNodeKey.map((n) => new Send(n, state))
+						})
+					} else {
+						subgraphBuilder.addEdge(name, nextNodeKey)
+					}
+				} else {
+					subgraphBuilder.addEdge(name, agentKey)
+				}
 			})
 		}
 
@@ -533,7 +558,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		if (!Object.keys(nodes).length) {
-			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(agentChannel, summarize, summarizeTitle, null))
+			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(agentChannel, summarize, summarizeTitle))
 		} else {
 			// Next nodes
 			Object.keys(nodes).forEach((name) => subgraphBuilder.addNode(name, nodes[name].graph, {ends: nodes[name].ends}))
@@ -839,7 +864,16 @@ function ensureSummarize(summarize?: TSummarize) {
 	)
 }
 
-function createAgentNavigator(agentChannel: string, summarize: TSummarize, summarizeTitle: boolean, next?: (string | ((state, config) => string))) {
+/**
+ * Create conditionalEdges function for agent
+ * 
+ * @param agentChannel 
+ * @param summarize 
+ * @param summarizeTitle 
+ * @param nextNodes 
+ * @returns conditionalEdgesFun
+ */
+function createAgentNavigator(agentChannel: string, summarize: TSummarize, summarizeTitle: boolean, nextNodes?: (string[] | ((state, config) => string))) {
 	return (state: typeof AgentStateAnnotation.State, config) => {
 		const { title } = state
 		const messages = (<TMessageChannel>state[agentChannel])?.messages ?? []
@@ -854,11 +888,11 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 					nexts.push(new Send("title_conversation", state))
 				}
 
-				if (next) {
-					if (typeof next === 'string') {
-						nexts.push(new Send(next, state))
+				if (nextNodes) {
+					if (Array.isArray(nextNodes)) {
+						nexts.push(...nextNodes.map((name) => new Send(name, state)))
 					} else {
-						nexts.push(new Send(next(state, config), state))
+						nexts.push(new Send(nextNodes(state, config), state))
 					}
 				}
 
@@ -872,13 +906,14 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 			return lastMessage.tool_calls.map((toolCall) => new Send(toolCall.name, { ...state, toolCall }))
 		}
 
-		if (next) {
-			if (typeof next === 'string') {
-				return next
+		if (nextNodes) {
+			if (Array.isArray(nextNodes)) {
+				return nextNodes.map((name) => new Send(name, state))
 			} else {
-				return next(state, config)
+				return new Send(nextNodes(state, config), state)
 			}
 		}
+
 		return END
 	}
 }
