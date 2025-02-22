@@ -15,6 +15,11 @@
 </div>
 
 <div class="mt-1 mb-4 border-t-[0.5px] border-t-gray-100"></div>
+
+@if (error()) {
+  <div class="p-2 text-sm text-text-destructive">{{error()}}</div>
+}
+
 <div class="sticky bottom-0 flex justify-between items-center mt-2 -mx-2 pt-4 px-2 pb-6 flex-wrap gap-y-2 bg-white">
   @if (help()) {
     <a
@@ -49,7 +54,6 @@
     <button
       type="button"
       class="btn disabled:btn-disabled btn-secondary btn-large mr-2"
-      [disabled]="loading()"
       (click)="cancel()"
     >{{'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}</button>
     <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"

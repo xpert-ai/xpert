@@ -85,6 +85,7 @@ export class CopilotProviderModelComponent {
   readonly help = computed(() => this.copilotProvider()?.provider?.help)
 
   readonly loading = signal(false)
+  readonly error = signal('')
 
   // models
   readonly credentials = model({})
@@ -137,6 +138,7 @@ export class CopilotProviderModelComponent {
       return this.updateModel()
     }
     this.loading.set(true)
+    this.error.set('')
     this.#copilotProviderService.createModel(this.copilotProvider().id, {
       providerName: this.copilotProvider().providerName,
       modelType: this.modelTypes()[0],
@@ -150,6 +152,7 @@ export class CopilotProviderModelComponent {
       },
       error: (err) => {
         this.loading.set(false)
+        this.error.set(getErrorMessage(err))
         this.#toastr.error(getErrorMessage(err))
       }
     })
@@ -157,6 +160,7 @@ export class CopilotProviderModelComponent {
 
   updateModel() {
     this.loading.set(true)
+    this.error.set('')
     this.#copilotProviderService.updateModel(this.copilotProvider().id, this.modelId(), {
       modelType: this.modelTypes()[0],
       modelName: this.modelName(),
@@ -169,6 +173,7 @@ export class CopilotProviderModelComponent {
       },
       error: (err) => {
         this.loading.set(false)
+        this.error.set(getErrorMessage(err))
         this.#toastr.error(getErrorMessage(err))
       }
     })
