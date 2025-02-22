@@ -20,7 +20,13 @@
         <i class="ri-scissors-cut-fill"></i>
       </div>
     }
-    
+    @case (eWorkflowNodeTypeEnum.ITERATING) {
+      <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-indigo-500
+        w-6 h-6 rounded-lg shadow-sm
+        shrink-0 mr-2">
+        <i class="ri-repeat-2-line"></i>
+      </div>
+    }
     @case (eWorkflowNodeTypeEnum.NOTE) {
       <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-orange-500
         w-6 h-6 rounded-lg shadow-sm
@@ -44,6 +50,9 @@
   }
   @case (eWorkflowNodeTypeEnum.SPLITTER) {
     <xpert-studio-node-workflow-splitter class="px-3" [node]="node()" [entity]="entity()" />
+  }
+  @case (eWorkflowNodeTypeEnum.ITERATING) {
+    <xpert-studio-node-workflow-iterating class="px-3" [node]="node()" [entity]="entity()" />
   }
   @case (eWorkflowNodeTypeEnum.NOTE) {
   }

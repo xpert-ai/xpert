@@ -6,6 +6,7 @@ export enum WorkflowNodeTypeEnum {
   ASSIGNER = 'assigner',
   IF_ELSE = 'if-else',
   SPLITTER = 'splitter',
+  ITERATING = 'iterating',
   NOTE = 'note'
 }
 
@@ -53,6 +54,10 @@ export interface IWFNIfElse extends IWorkflowNode {
 
 export interface IWFNSplitter extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.SPLITTER
+}
+
+export interface IWFNIterating extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.ITERATING
 }
 
 export enum WorkflowLogicalOperator {

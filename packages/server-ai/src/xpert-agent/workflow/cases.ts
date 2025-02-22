@@ -90,8 +90,16 @@ export function createCasesNode(graph: TXpertGraph, node: TXpertTeamNode & { typ
 		return node.key + '/else'
 	}
 
-	return async (state: typeof AgentStateAnnotation.State, config) => {
-		const result = evaluateCases(state, config)
-		return graph.connections.find((conn) => conn.type === 'edge' && conn.from === result)?.to ?? END
+	return {
+		workflowNode: {
+			graph: () => {
+				//
+			},
+			ends: []
+		},
+		navigator: async (state: typeof AgentStateAnnotation.State, config) => {
+			const result = evaluateCases(state, config)
+			return graph.connections.find((conn) => conn.type === 'edge' && conn.from === result)?.to ?? END
+		}
 	}
 }
