@@ -160,10 +160,20 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   clearMemory(id: string) {
     return this.httpClient.delete<TDeleteResult>(this.apiBaseUrl + `/${id}/memory`)
   }
-
+  
+  /**
+   * Get avaiable variables for agent or global variables
+   */
   getVariables(id: string, agentKey?: string) {
     return agentKey ? this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/agent/${agentKey}/variables`)
     : this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/variables`)
+  }
+
+  /**
+   * Get avaiable variables for workflow node
+   */
+  getWorkflowVariables(id: string, nodeKey: string) {
+    return this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/workflow/${nodeKey}/variables`)
   }
 
   getChatApp(id: string) {

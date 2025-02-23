@@ -8,13 +8,14 @@ import {
 	WorkflowLogicalOperator
 } from '@metad/contracts'
 import { isEmpty } from '@metad/server-common'
+import { get } from 'lodash'
 import { AgentStateAnnotation } from '../commands/handlers/types'
 
 export function createCasesNode(graph: TXpertGraph, node: TXpertTeamNode & { type: 'workflow' }) {
 	const entity = node.entity as IWFNIfElse
 	const evaluateCases = (state: typeof AgentStateAnnotation.State, config) => {
 		const evaluateCondition = (condition: TWFCaseCondition) => {
-			const stateValue = state[condition.variableSelector]
+			const stateValue = get(state, condition.variableSelector)
 			if (typeof stateValue === 'number') {
 				const conditionValue = Number(condition.value)
 				switch (condition.comparisonOperator) {

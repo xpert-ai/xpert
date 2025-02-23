@@ -3,7 +3,7 @@ import { isCommand } from '@langchain/langgraph'
 import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
-import { agentLabel, ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpertAgent } from '@metad/contracts'
+import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpertAgent, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { AgentStateAnnotation } from './commands/handlers/types'
@@ -236,7 +236,6 @@ export function createProcessStreamEvents(
 	}
 }
 
-
 export class FakeStreamingChatModel extends BaseChatModel {
 	sleep?: number = 50;
   
@@ -314,4 +313,39 @@ export class FakeStreamingChatModel extends BaseChatModel {
 		}
 	  }
 	}
-  }
+}
+
+export function getAgentVarGroup(key: string, graph: TXpertGraph): TWorkflowVarGroup {
+	const agent = graph.nodes.find((_) => _.type === 'agent' && _.key === key) as TXpertTeamNode & {type: 'agent'}
+
+	const variables = []
+	const varGroup = {
+		agent: {
+			title: agent.entity.title,
+			description: agent.entity.description,
+			name: agent.entity.name || agent.entity.key,
+			key: channelName(agent.key)
+		},
+		variables
+	}
+
+	variables.push({
+		name: `output`,
+		type: 'string',
+		description: {
+			zh_Hans: `输出`,
+			en_US: `Output`
+		}
+	})
+	if ((<IXpertAgent>agent.entity).outputVariables) {
+		(<IXpertAgent>agent.entity).outputVariables.forEach((variable) => {
+			variables.push({
+				name: variable.name,
+				type: variable.type as TStateVariable['type'],
+				description: variable.description
+			})
+		})
+	}
+
+	return varGroup
+}

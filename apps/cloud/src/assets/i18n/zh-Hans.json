@@ -291,7 +291,8 @@
       "MessageCount": "消息数",
       "TimeZone": "时区",
       "Source Type": "源类型",
-      "Available": "可用"
+      "Available": "可用",
+      "PleaseEnter": "请输入"
     },
     "Workflow": {
       "And": "且",
@@ -2433,7 +2434,15 @@
       "StateVariable": "状态变量",
       "TopKTooltip": "用于筛选与用户问题相似度最高的文本片段。",
       "RecallSettings": "召回设置",
-      "AtLeastOneTool": "至少启用一个工具"
+      "AtLeastOneTool": "至少启用一个工具",
+      "Iterating": "迭代",
+      "Next": "下一步",
+      "ErrorModePlaceholder": "选择一种响应错误的方式",
+      "Parallelization": "并行",
+      "MaximumParallel": "最大并行数",
+      "ErrorMode": "错误响应方法",
+      "ParallelizationTooltip": "在并行模式下，迭代中的任务支持并行执行",
+      "MaximumParallelTooltip": "最大并行数，用于控制单次迭代中同时执行的任务数量"
     },
     "title": {
       "short": "Xpert AI"

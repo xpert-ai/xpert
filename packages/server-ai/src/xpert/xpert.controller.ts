@@ -325,7 +325,7 @@ export class XpertController extends CrudController<Xpert> {
 	@Get(':id/variables')
 	async getVariables(@Param('id') id: string) {
 		try {
-			return await this.queryBus.execute(new XpertAgentVariablesQuery(id, null, true))
+			return await this.queryBus.execute(new XpertAgentVariablesQuery({xpertId: id, isDraft: true}))
 		} catch (err) {
 			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
 		}
@@ -334,7 +334,16 @@ export class XpertController extends CrudController<Xpert> {
 	@Get(':id/agent/:agent/variables')
 	async getAgentVariables(@Param('id') id: string, @Param('agent') agentKey: string,) {
 		try {
-			return await this.queryBus.execute(new XpertAgentVariablesQuery(id, agentKey, true))
+			return await this.queryBus.execute(new XpertAgentVariablesQuery({xpertId: id, type: 'agent', nodeKey: agentKey, isDraft: true}))
+		} catch (err) {
+			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
+		}
+	}
+
+	@Get(':id/workflow/:key/variables')
+	async getWorkflowVariables(@Param('id') id: string, @Param('key') nodeKey: string,) {
+		try {
+			return await this.queryBus.execute(new XpertAgentVariablesQuery({xpertId: id, type: 'workflow', nodeKey, isDraft: true}))
 		} catch (err) {
 			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
 		}

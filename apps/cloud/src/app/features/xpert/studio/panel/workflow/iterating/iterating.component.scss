@@ -1,3 +1,7 @@
 :host {
-  @apply flex flex-col justify-start items-stretch;
+  @apply flex flex-col justify-start items-stretch gap-2;
+}
+
+.mat-mdc-slider {
+  @apply min-w-[200px] w-full;
 }

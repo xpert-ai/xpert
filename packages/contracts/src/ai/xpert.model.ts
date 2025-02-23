@@ -187,10 +187,10 @@ export type TXpertAgentConfig = {
   recalls?: Record<string, TKBRecallParams>
 }
 
-export type TStateVariable<ValueType = any, UpdateType = ValueType> = {
-  name: string
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array[string]' | 'array[number]' | 'array[object]'
-  description: I18nObject | string
+/**
+ */
+export type TStateVariable<ValueType = any, UpdateType = ValueType> = TXpertParameter & {
+  type: XpertParameterTypeEnum | 'object' | 'array[string]' | 'array[number]' | 'array[object]'
   default?: any
   reducer?: (a: ValueType, b: UpdateType) => ValueType
   operation?: VariableOperationEnum
@@ -253,13 +253,16 @@ export enum XpertParameterTypeEnum {
   NUMBER = 'number',
   ARRAY_STRING = 'array[string]',
   ARRAY = 'array[object]',
+
+  STRING = 'string',
+  BOOLEAN = 'boolean'
 }
 
 export type TXpertParameter = {
   type: XpertParameterTypeEnum
   name: string
   title?: string
-  description?: string
+  description?: string | I18nObject
   optional?: boolean
   maximum?: number
   options?: string[]

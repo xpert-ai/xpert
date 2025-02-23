@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { agentLabel, TStateVariable, TWorkflowVarGroup } from '../../../@core/types'
+import { agentLabel, TStateVariable, TWorkflowVarGroup, XpertParameterTypeEnum } from '../../../@core/types'
 
 /**
  *
@@ -19,6 +19,7 @@ import { agentLabel, TStateVariable, TWorkflowVarGroup } from '../../../@core/ty
   hostDirectives: [NgxControlValueAccessor]
 })
 export class StateVariableSelectComponent {
+  eXpertParameterTypeEnum = XpertParameterTypeEnum
   agentLabel = agentLabel
 
   protected cva = inject<NgxControlValueAccessor<string>>(NgxControlValueAccessor)

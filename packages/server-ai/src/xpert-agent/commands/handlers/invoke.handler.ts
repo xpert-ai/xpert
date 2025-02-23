@@ -81,10 +81,6 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 							[STATE_VARIABLE_USER_EMAIL]: user.email,
 							[STATE_VARIABLE_USER_TIMEZONE]: user.timeZone || options.timeZone,
 							memories,
-							// messages: [new HumanMessage(input.input)],
-							// [channelName(agent.key)]: {
-							// 	messages: [new HumanMessage(input.input)],
-							// }
 						}
 					: null,
 				{

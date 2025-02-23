@@ -4,7 +4,7 @@ import { Runnable, RunnableLike, RunnableToolLike } from '@langchain/core/runnab
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { Annotation, messagesStateReducer } from '@langchain/langgraph'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
-import { channelName, IXpertAgent, TMessageChannel, TStateVariable, TVariableAssigner, TXpertGraph, TXpertTeamNode, VariableOperationEnum } from '@metad/contracts'
+import { channelName, IXpertAgent, TMessageChannel, TStateVariable, TVariableAssigner, TXpertGraph, TXpertTeamNode, VariableOperationEnum, XpertParameterTypeEnum } from '@metad/contracts'
 
 export const STATE_VARIABLE_SYS_LANGUAGE = 'sys_language'
 export const STATE_VARIABLE_USER_EMAIL = 'user_email'
@@ -91,7 +91,7 @@ export type TGraphTool = {
 
 export function stateVariable(variable: TStateVariable) {
 	return {
-		default: () => variable.type === 'string' ? variable.default : variable.default ? JSON.parse(variable.default) : null,
+		default: () => [XpertParameterTypeEnum.STRING, XpertParameterTypeEnum.TEXT, XpertParameterTypeEnum.PARAGRAPH].includes(variable.type) ? variable.default : variable.default ? JSON.parse(variable.default) : null,
 		reducer: (left, right) => {
 			if (variable.type.startsWith('array')) {
 				left ??= []
@@ -107,7 +107,7 @@ export function stateVariable(variable: TStateVariable) {
 					default:
 						return right
 				}
-			} else if (variable.type === 'number') {
+			} else if (variable.type === XpertParameterTypeEnum.NUMBER) {
 				switch (variable.operation) {
 					case VariableOperationEnum.APPEND:
 						return left == null ? Number(right) : left + Number(right)
@@ -116,7 +116,11 @@ export function stateVariable(variable: TStateVariable) {
 					default:
 						return right
 				}
-			} else if (variable.type === 'string') {
+			} else if (
+				variable.type === XpertParameterTypeEnum.STRING
+			     || variable.type === XpertParameterTypeEnum.TEXT
+			     || variable.type === XpertParameterTypeEnum.PARAGRAPH
+				) {
 				switch (variable.operation) {
 					case VariableOperationEnum.APPEND:
 						return left == null ? right : left + right
@@ -125,6 +129,8 @@ export function stateVariable(variable: TStateVariable) {
 					default:
 						return right
 				}
+			} else {
+				return right
 			}
 		}
 	}

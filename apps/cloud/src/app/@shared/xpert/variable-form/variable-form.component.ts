@@ -21,7 +21,7 @@ export class XpertVariableFormComponent {
   readonly variable = input<TStateVariable>()
 
   // Outputs
-  readonly saved = output<Partial<TStateVariable>>()
+  readonly saved = output<any>()
   readonly cancel = output<void>()
 
   readonly form = this.#fb.group<TStateVariable>({
@@ -35,7 +35,7 @@ export class XpertVariableFormComponent {
   constructor() {
     effect(() => {
       if (this.variable()) {
-        this.form.patchValue(this.variable())
+        this.form.patchValue(this.variable() as any)
       }
     }, { allowSignalWrites: true })
   }

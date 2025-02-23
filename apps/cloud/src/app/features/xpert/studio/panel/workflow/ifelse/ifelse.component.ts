@@ -57,8 +57,9 @@ export class XpertStudioPanelWorkflowIfelseComponent {
 
   readonly variables = derivedAsync(() => {
     const xpertId = this.xpertId()
-    return xpertId
-      ? this.xpertService.getVariables(xpertId).pipe(
+    const nodeKey = this.key()
+    return xpertId && nodeKey
+      ? this.xpertService.getWorkflowVariables(xpertId, nodeKey).pipe(
           catchError((error) => {
             this.#toastr.error(getErrorMessage(error))
             return of([])

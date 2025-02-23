@@ -1,6 +1,6 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
-import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, isAIMessage, isAIMessageChunk, isBaseMessage, isBaseMessageChunk, RemoveMessage, ToolMessage } from '@langchain/core/messages'
+import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, isAIMessage, isAIMessageChunk, isBaseMessage, isBaseMessageChunk, isToolMessage, RemoveMessage, ToolMessage } from '@langchain/core/messages'
 import { HumanMessagePromptTemplate, SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Runnable, RunnableConfig, RunnableLambda, RunnableLike } from '@langchain/core/runnables'
 import {
@@ -38,10 +38,10 @@ import { ChatOpenAI } from '@langchain/openai'
 import { isNil } from 'lodash'
 import { XpertConfigException } from '../../../core/errors'
 import { RequestContext } from '@metad/server-core'
-import { createWorkflowNode } from '../../workflow/'
 import { FakeStreamingChatModel } from '../../agent'
 import { stringifyMessageContent } from '@metad/copilot'
 import { createParameters } from '../../workflow/parameter'
+import { CreateWorkflowNodeCommand } from '../create-workflow.command'
 
 
 
@@ -59,7 +59,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 	public async execute(command: XpertAgentSubgraphCommand): Promise<{
 		agent: IXpertAgent; graph: CompiledStateGraph<unknown, unknown, any>; nextNodes: TXpertTeamNode[]; failNode: TXpertTeamNode}> {
 		const { agentKeyOrName, xpert, options } = command
-		const { isStart, execution, leaderKey, summarizeTitle, subscriber, rootController, signal } = options
+		const { isStart, execution, leaderKey, summarizeTitle, subscriber, rootController, signal, disableCheckpointer, variables } = options
 
 		// Signal controller in this subgraph
 		const abortController = new AbortController()
@@ -264,7 +264,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						await createSubgraph(nextNodes?.[0], failNode)
 					}
 				} else if(node?.type === 'workflow') {
-					const { workflowNode, navigator, nextNodes } = createWorkflowNode(graph, node,)
+					const { workflowNode, navigator, nextNodes } = await this.commandBus.execute(
+						new CreateWorkflowNodeCommand(xpert.id, graph, node, parentKey, {
+							isDraft: options.isDraft,
+							subscriber,
+							rootExecutionId: options.rootExecutionId
+						}))
 					nodes[node.key] = {
 						...workflowNode
 					}
@@ -298,7 +303,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			}
 
 			if (next?.length || fail?.length) {
-				console.log(next)
 				const pathMap = [...withTools.map((tool) => tool.name)]
 				for await (const nextNode of next) {
 					await createSubgraph(nextNode, fail?.[0], agentKey)
@@ -354,7 +358,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						agent: identifyAgent(agent),
 						messages: []})
 				})
-			]))
+			])),
+			// Temp parameters
+			...(variables?.reduce((state, schema) => {
+				state[schema.name] = Annotation(stateVariable(schema))
+				return state
+			}, {}) ?? {})
 		})
 
 		const enableMessageHistory = !agent.options?.disableMessageHistory
@@ -375,24 +384,28 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 			this.#logger.verbose(`SystemMessage:`, systemMessage.content)
 
-			let humanMessages = []
-			const humanTemplates = agent.promptTemplates?.filter((_) => !!_.text?.trim())
-			if (humanTemplates?.length) {
-				humanMessages = humanMessages.concat(await Promise.all(
-					humanTemplates.map((temp) =>
-						HumanMessagePromptTemplate.fromTemplate(temp.text, {
+			const humanMessages: HumanMessage[] = []
+			const messageHistory = (<TMessageChannel>state[agentChannel])?.messages ?? []
+			// Determine whether it is Agent reflection (last message is ToolMessage)
+			if (!(isBaseMessage(messageHistory[messageHistory.length - 1])
+				&& isToolMessage(messageHistory[messageHistory.length - 1]))) {
+				// Is new human input: use message templates or input message
+				const humanTemplates = agent.promptTemplates?.filter((_) => !!_.text?.trim())
+				if (humanTemplates?.length) {
+					for await (const temp of humanTemplates) {
+						humanMessages.push(await HumanMessagePromptTemplate.fromTemplate(temp.text, {
 							templateFormat: 'mustache'
-						}).format(parameters)
-					)
-				))
-			}
-			if (!humanMessages.length && state.input) {
-				humanMessages.push(new HumanMessage(state.input))
+						}).format(parameters))
+					}
+				}
+				if (!humanMessages.length && state.input) {
+					humanMessages.push(new HumanMessage(state.input))
+				}
 			}
 
 			return {
 				systemMessage,
-				messageHistory: (<TMessageChannel>state[agentChannel])?.messages ?? [],
+				messageHistory,
 				humanMessages
 			}
 		}
@@ -451,22 +464,21 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			}
 
 			const {systemMessage, messageHistory, humanMessages} = await stateModifier(state)
-			const deleteMessages = enableMessageHistory ? [] : messageHistory.map((m) => new RemoveMessage({ id: m.id as string }))
+			// Disable history and new human request then remove history
+			const deleteMessages = (!enableMessageHistory && humanMessages.length) ? messageHistory.map((m) => new RemoveMessage({ id: m.id as string })) : []
 			try {
-				const message = await withFallbackModel.invoke([systemMessage, ...(enableMessageHistory ? messageHistory : []), ...humanMessages], {...config, signal: abortController.signal})
-				// if (isCommand(message)) {
-				// 	return message
-				// }
+				const message = await withFallbackModel.invoke([
+					systemMessage, ...((enableMessageHistory || !humanMessages.length) ? messageHistory : []), ...humanMessages
+				], {...config, signal: abortController.signal})
+
 				const nState: Record<string, any> = {
-					[STATE_VARIABLE_INPUT]: '',
+					// [STATE_VARIABLE_INPUT]: '',
 					messages: [],
-					// [`${agentKey}.messages`]: [...humanMessages],
 					[channelName(agentKey)]: {messages: [...deleteMessages, ...humanMessages]}
 				}
 				if ((isBaseMessage(message) && isAIMessage(message))
 					|| isBaseMessageChunk(message) && isAIMessageChunk(message)) {
 					nState.messages.push(message)
-					// nState[`${agentKey}.messages`].push(message)
 					nState[channelName(agentKey)].messages.push(message)
 					nState[channelName(agentKey)].output = stringifyMessageContent(message.content)
 				} else {
@@ -568,7 +580,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		return {
 			agent,
 			graph: subgraphBuilder.compile({
-				checkpointer: this.copilotCheckpointSaver,
+				checkpointer: disableCheckpointer ? false : this.copilotCheckpointSaver,
 				interruptBefore
 			}),
 			nextNodes: next,

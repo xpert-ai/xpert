@@ -180,6 +180,7 @@ export class XpertStudioPanelAgentComponent {
     )
   })
 
+  // Fetch avaiable variables for this agent from server
   readonly variables = derivedAsync(() => {
     const xpertId = this.xpertId()
     const agentKey = this.key()

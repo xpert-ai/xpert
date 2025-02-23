@@ -58,6 +58,29 @@ export interface IWFNSplitter extends IWorkflowNode {
 
 export interface IWFNIterating extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.ITERATING
+  /**
+   * Variable name of input array in state
+   */
+  inputVariable: string
+  /**
+   * Variable name of output in state
+   */
+  outputVariable: string
+  /**
+   * Execute in parallel, otherwise execute sequentially
+   */
+  parallel?: boolean
+  /**
+   * Maximum number of parallel task
+   */
+  maximum?: number
+
+  /**
+   * - terminate: terminate on error
+   * - ignore: ignore error and continue
+   * - remove: remove error output
+   */
+  errorMode?: 'terminate' | 'ignore' | 'remove'
 }
 
 export enum WorkflowLogicalOperator {

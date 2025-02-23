@@ -405,8 +405,8 @@ export class XpertStudioApiService {
     event && this.#reload.next(event)
   }
   // Role node
-  public createAgent(position: IPoint): void {
-    new CreateNodeHandler(this.store).handle(new CreateNodeRequest('agent', position))
+  public createAgent(position: IPoint, agent?: Partial<IXpertAgent>): void {
+    new CreateNodeHandler(this.store).handle(new CreateNodeRequest('agent', position, agent))
     this.#reload.next(EReloadReason.AGENT_CREATED)
   }
   public async createCollaborator(position: IPoint, team: IXpert) {

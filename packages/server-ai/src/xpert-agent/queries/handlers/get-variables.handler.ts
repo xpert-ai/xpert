@@ -1,14 +1,13 @@
 import {
-	channelName,
 	IXpertAgent,
 	TStateVariable,
 	TWorkflowVarGroup,
+	TXpertGraph,
 	TXpertParameter,
-	TXpertTeamNode
+	XpertParameterTypeEnum,
 } from '@metad/contracts'
-import { pick } from '@metad/server-common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { omit } from 'lodash'
+import { omit, uniq } from 'lodash'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertAgentQuery } from '../../../xpert/queries/'
 import { XpertService } from '../../../xpert/xpert.service'
@@ -19,6 +18,7 @@ import {
 	STATE_VARIABLE_USER_TIMEZONE
 } from '../../commands/handlers/types'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
+import { getAgentVarGroup } from '../../agent'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
@@ -29,7 +29,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 	) {}
 
 	public async execute(command: XpertAgentVariablesQuery): Promise<TWorkflowVarGroup[]> {
-		const { xpertId, agentKey, isDraft } = command
+		const { xpertId, type, nodeKey, isDraft } = command.options
 
 		const xpert = await this.xpertService.findOne(xpertId, { select: ['agentConfig', 'draft', 'graph'] })
 
@@ -38,7 +38,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				variables: [
 					{
 						name: STATE_VARIABLE_INPUT,
-						type: 'string',
+						type: XpertParameterTypeEnum.STRING,
 						description: {
 							en_US: 'Input',
 							zh_Hans: '输入'
@@ -46,7 +46,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 					},
 					{
 						name: STATE_VARIABLE_SYS_LANGUAGE,
-						type: 'string',
+						type: XpertParameterTypeEnum.STRING,
 						description: {
 							en_US: 'Language',
 							zh_Hans: '语言'
@@ -54,7 +54,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 					},
 					{
 						name: STATE_VARIABLE_USER_EMAIL,
-						type: 'string',
+						type: XpertParameterTypeEnum.STRING,
 						description: {
 							en_US: 'User email',
 							zh_Hans: '用户邮箱'
@@ -62,7 +62,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 					},
 					{
 						name: STATE_VARIABLE_USER_TIMEZONE,
-						type: 'string',
+						type: XpertParameterTypeEnum.STRING,
 						description: {
 							en_US: 'User time zone',
 							zh_Hans: '用户时区'
@@ -79,62 +79,53 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		}
 
 		// All agents output
-		const graph = isDraft ? {...(xpert.graph ?? {}), ...(xpert.draft ?? {})} : xpert.graph
-		const agents = graph?.nodes?.filter((_) => _.type === 'agent' && _.key !== agentKey) as Array<
-			TXpertTeamNode & { type: 'agent' }
-		>
-		agents?.forEach((_) => {
-			const variables = []
-			varGroups.push({
-				agent: {...pick(_.entity, 'name', 'title', 'description'), key: channelName(_.key)},
-				variables
-			})
-			variables.push({
-				name: `output`,
-				type: 'string',
-				description: {
-					zh_Hans: `输出`,
-					en_US: `Output`
-				}
-			})
-			if ((<IXpertAgent>_.entity).outputVariables) {
-				(<IXpertAgent>_.entity).outputVariables.forEach((variable) => {
-					variables.push({
-						name: variable.name,
-						type: variable.type as TStateVariable['type'],
-						description: variable.description
-					})
-				})
-			}
-		})
+		const graph = isDraft ? {...(xpert.graph ?? {}), ...(xpert.draft ?? {})} as TXpertGraph : xpert.graph
 
-		const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
-			new GetXpertAgentQuery(xpertId, agentKey, isDraft)
-		)
-		if (!agent) {
-			return varGroups
+		if (type === 'agent') {
+			 graph?.nodes?.filter((_) => _.type === 'agent' && _.key !== nodeKey)
+				.forEach((node) => {
+					const g = getAgentVarGroup(node.key, graph)
+					varGroups.push(g)
+				})
+
+			const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
+				new GetXpertAgentQuery(xpertId, nodeKey, isDraft)
+			)
+			if (!agent) {
+				return varGroups
+			}
+
+			if (nodeKey) {
+				const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
+					new ToolsetGetToolsCommand(agent.toolsetIds)
+				)
+
+				if (nodeKey && agent.parameters) {
+					varGroups[0].variables.push(...agent.parameters.map(xpertParameterToVariable))
+				}
+
+				for await (const toolset of toolsets) {
+					await toolset.initTools()
+					const toolVars = toolset.getVariables()
+					if (toolVars) {
+						varGroups[0].variables.push(...toolVars.map(toolsetVariableToVariable))
+					}
+				}
+			}
 		}
 
-		if (agentKey) {
-			const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
-				new ToolsetGetToolsCommand(agent.toolsetIds)
-			)
-
-			if (agentKey && agent.parameters) {
-				varGroups[0].variables.push(...agent.parameters.map(xpertParameterToVariable))
-			}
-
-			for await (const toolset of toolsets) {
-				await toolset.initTools()
-				const toolVars = toolset.getVariables()
-				if (toolVars) {
-					varGroups[0].variables.push(...toolVars.map(toolsetVariableToVariable))
-				}
-			}
+		if (type === 'workflow' && graph) {
+			uniq(graph.connections.filter((con) => con.type === 'edge' && con.to === nodeKey)
+				.map((con) => con.from))
+				.forEach((agentKey) => {
+					const g = getAgentVarGroup(agentKey, graph)
+					varGroups.push(g)
+				})
 		}
 
 		return varGroups
 	}
+
 }
 
 function xpertParameterToVariable(parameter: TXpertParameter) {
