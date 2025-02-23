@@ -28,6 +28,7 @@
         fStartColor="var(--connection-gradient-1)" fEndColor="var(--connection-gradient-2)"
         [cdkContextMenuTriggerFor]="connContextMenu"
         [cdkContextMenuTriggerData]="{connection: connComp}"
+        [class.connecting]="connection.running"
       >
         @if (connection.type === 'edge') {
           <svg viewBox="0 0 6 7" fMarker [type]="eMarkerType.END" class="connection-marker"

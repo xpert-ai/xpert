@@ -224,3 +224,17 @@ f-flow {
     cursor: nwse-resize;
   }
 }
+
+.f-component.f-connection.connecting {
+  stroke-dasharray: 4, 2;
+  animation: dash-flow 2s linear infinite;
+}
+
+@keyframes dash-flow {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}

@@ -34,7 +34,7 @@ import {
   FZoomDirective
 } from '@foblex/flow'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { DisplayBehaviour, isEqual } from '@metad/ocap-core'
 import { effectAction } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
@@ -44,6 +44,7 @@ import { debounce, debounceTime, delay, map, pairwise, tap } from 'rxjs/operator
 import {
   AiModelTypeEnum,
   IXpert,
+  IXpertToolset,
   ToastrService,
   TXpertAgentConfig,
   TXpertTeamNode,
@@ -60,7 +61,8 @@ import {
   XpertStudioContextMenuComponent,
   XpertStudioNodeAgentComponent,
   XpertStudioNodeKnowledgeComponent,
-  XpertStudioNodeToolsetComponent
+  XpertStudioNodeToolsetComponent,
+  XpertStudioNodeWorkflowComponent
 } from './components'
 import { EReloadReason, SelectionService, XpertStudioApiService } from './domain'
 import { XpertStudioHeaderComponent } from './header/header.component'
@@ -68,7 +70,6 @@ import { XpertStudioPanelComponent } from './panel/panel.component'
 import { XpertExecutionService } from './services/execution.service'
 import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
-import { XpertStudioNodeWorkflowComponent } from './components/workflow/workflow.component'
 
 
 @Component({
@@ -162,7 +163,7 @@ export class XpertStudioComponent {
     extractXpertGroup(xperts, this.viewModel()?.nodes)
     return xperts
   })
-  readonly connections = computed(() => {
+  readonly #connections = computed(() => {
     const viewModelConnections = [...(this.viewModel()?.connections ?? [])]
     this.viewModel()
       ?.nodes?.filter((_) => _.type === 'xpert')
@@ -172,6 +173,22 @@ export class XpertStudioComponent {
         }
       })
     return viewModelConnections
+  })
+
+  readonly connections = computed(() => {
+    return this.#connections().map((conn) => {
+      if (conn.type === 'toolset') {
+        return {
+          ...conn,
+          running: this.runningToolsets().some((_) => _.key === conn.to && _.running)
+        }
+      } else {
+        return {
+          ...conn,
+          running: this.executions()[conn.to]?.some((_) => _.status === XpertAgentExecutionStatusEnum.RUNNING)
+        }
+      }
+    })
   })
 
   public isSingleSelection: boolean = true
@@ -187,7 +204,21 @@ export class XpertStudioComponent {
 
   // Agent Execution Running status
   readonly executions = this.executionService.executions
+  readonly toolExecutions = this.executionService.toolExecutions
   readonly sidePanel = model<"preview" | "variables">()
+
+  readonly runningToolsets = computed(() => {
+    const executions = this.toolExecutions()
+    const toolsetNodes = this.viewModel().nodes.filter((n) => n.type === 'toolset')
+    return toolsetNodes.map((node) => {
+      return {
+        key: node.key,
+        running: (<IXpertToolset>node.entity).tools.some((t) => {
+          return Object.values(executions[t.name] ?? {}).some((exec) => exec.status === XpertAgentExecutionStatusEnum.RUNNING)
+        })
+      }
+    })
+  }, { equal: isEqual })
 
   constructor() {
     effect(() => {
