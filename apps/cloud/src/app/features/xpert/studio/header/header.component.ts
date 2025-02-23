@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, model, signal, ViewContainerRef } from '@angular/core'
+import { Component, computed, HostListener, inject, model, signal, ViewContainerRef } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { OverlayAnimations } from '@metad/core'
@@ -16,7 +16,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { formatRelative } from 'date-fns'
-import { BehaviorSubject, distinctUntilChanged, filter, map,publish,  Observable, of, shareReplay, switchMap, startWith, combineLatestWith, tap, catchError } from 'rxjs'
+import { BehaviorSubject, distinctUntilChanged, filter, map, Observable, of, shareReplay, switchMap, startWith, combineLatestWith, tap, catchError } from 'rxjs'
 import { getDateLocale, TXpertAgentConfig } from '../../../../@core'
 import { XpertStudioApiService } from '../domain'
 import { XpertExecutionService } from '../services/execution.service'
@@ -126,7 +126,7 @@ export class XpertStudioHeaderComponent {
     shareReplay(1)
   )
 
-  save() {
+  saveDraft() {
     this.apiService.saveDraft().subscribe()
   }
 
@@ -213,4 +213,13 @@ export class XpertStudioHeaderComponent {
       }
     }).closed.subscribe({})
   }
+
+  @HostListener('window:keydown', ['$event'])
+  handleCtrlS(event: KeyboardEvent) {
+    if ((event.metaKey || event.ctrlKey) && event.key === 's') {
+      event.preventDefault(); // Prevent the default save dialog
+      this.saveDraft()
+    }
+  }
+
 }
