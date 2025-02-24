@@ -2442,7 +2442,8 @@
       "MaximumParallel": "最大并行数",
       "ErrorMode": "错误响应方法",
       "ParallelizationTooltip": "在并行模式下，迭代中的任务支持并行执行",
-      "MaximumParallelTooltip": "最大并行数，用于控制单次迭代中同时执行的任务数量"
+      "MaximumParallelTooltip": "最大并行数，用于控制单次迭代中同时执行的任务数量",
+      "Router": "路由"
     },
     "title": {
       "short": "Xpert AI"

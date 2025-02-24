@@ -39,11 +39,10 @@ import { effectAction } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { NGXLogger } from 'ngx-logger'
-import { Observable, of, Subscription, timer } from 'rxjs'
-import { debounce, debounceTime, delay, map, pairwise, tap } from 'rxjs/operators'
+import { Observable, of, Subscription } from 'rxjs'
+import { debounceTime, delay, map, tap } from 'rxjs/operators'
 import {
   AiModelTypeEnum,
-  IXpert,
   IXpertToolset,
   ToastrService,
   TXpertAgentConfig,
@@ -70,6 +69,7 @@ import { XpertStudioPanelComponent } from './panel/panel.component'
 import { XpertExecutionService } from './services/execution.service'
 import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
+import { isWorkflowKey } from '../utils'
 
 
 @Component({
@@ -176,17 +176,23 @@ export class XpertStudioComponent {
   })
 
   readonly connections = computed(() => {
+    const connections = this.#connections()
+    const agentExecutions = this.executions()
     return this.#connections().map((conn) => {
+      let running = false
       if (conn.type === 'toolset') {
-        return {
-          ...conn,
-          running: this.runningToolsets().some((_) => _.key === conn.to && _.running)
-        }
+        running = this.runningToolsets().some((_) => _.key === conn.to && _.running)
       } else {
-        return {
-          ...conn,
-          running: this.executions()[conn.to]?.some((_) => _.status === XpertAgentExecutionStatusEnum.RUNNING)
+        if (isWorkflowKey(conn.to)) {
+          running = connections.filter((_) => _.from.startsWith(conn.to)).some((_) =>
+            agentExecutions[_.to]?.some((_) => _.status === XpertAgentExecutionStatusEnum.RUNNING))
+        } else {
+          running = agentExecutions[conn.to]?.some((_) => _.status === XpertAgentExecutionStatusEnum.RUNNING)
         }
+      }
+      return {
+        ...conn,
+        running
       }
     })
   })
