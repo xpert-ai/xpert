@@ -4,7 +4,7 @@ import { IKnowledgeDocumentPage } from "./knowledge-doc-page.model";
 
 export enum KDocumentWebTypeEnum {
   Playwright = 'playwright',
-  FireCraw = 'firecraw',
+  FireCrawl = 'firecrawl',
   Notion = 'notion'
 }
 
@@ -45,9 +45,9 @@ export const KDocumentWebTypeOptions: TSelectOption<KDocumentWebTypeEnum>[] = [
 </svg>`
   },
   {
-    value: KDocumentWebTypeEnum.FireCraw,
+    value: KDocumentWebTypeEnum.FireCrawl,
     label: {
-      en_US: 'FireCraw'
+      en_US: 'FireCrawl'
     },
     icon: `🔥`,
   }

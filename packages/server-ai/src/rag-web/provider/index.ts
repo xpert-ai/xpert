@@ -1,7 +1,7 @@
 import { Document } from '@langchain/core/documents'
 import { IIntegration, KDocumentWebTypeEnum, TKDocumentWebSchema, TRagWebOptions } from '@metad/contracts'
 
-import FireCraw from './firecrawl/schema'
+import FireCrawl from './firecrawl/schema'
 import Playwright from './playwright/schema'
 import Notion from './playwright/schema'
 
@@ -14,8 +14,8 @@ export const Providers = {
 		schema: Playwright,
 		load: PlaywrightLoad
 	},
-	[KDocumentWebTypeEnum.FireCraw]: {
-		schema: FireCraw,
+	[KDocumentWebTypeEnum.FireCrawl]: {
+		schema: FireCrawl,
         load: FirecrawlLoad
 	},
 	[KDocumentWebTypeEnum.Notion]: {

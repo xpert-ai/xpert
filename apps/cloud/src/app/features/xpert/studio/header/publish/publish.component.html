@@ -39,9 +39,9 @@
       <li class="group flex justify-between items-center px-4 py-2 rounded-lg text-sm hover:bg-hover-bg">
         <div class="flex items-center">
           @if (item.version) {
-            <span class="mx-1" [matTooltip]="item.releaseNotes">v{{item.version}}</span>
+            <span class="mr-1" [matTooltip]="item.releaseNotes">v{{item.version}}</span>
           } @else {
-            <span class="mx-1">{{ 'PAC.Xpert.Draft' | translate: {Default: 'Draft'} }}</span>
+            <span class="mr-1">{{ 'PAC.Xpert.Draft' | translate: {Default: 'Draft'} }}</span>
           }
           @if (item.version === version()) {
             <i class="ri-checkbox-circle-fill text-lg mx-1 text-primary-500" [matTooltip]="'PAC.Xpert.CurrentVersion' | translate: {Default: 'Current Version'}"></i>

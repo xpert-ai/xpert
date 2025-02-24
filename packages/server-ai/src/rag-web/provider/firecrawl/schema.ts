@@ -1,7 +1,7 @@
 import { IntegrationEnum, KDocumentWebTypeEnum, ParameterTypeEnum, TKDocumentWebSchema } from '@metad/contracts'
 
 export default {
-	type: KDocumentWebTypeEnum.FireCraw,
+	type: KDocumentWebTypeEnum.FireCrawl,
 	helpUrl: `https://docs.firecrawl.dev/introduction`,
 	options: [
 		{
