@@ -63,6 +63,7 @@ import { nonBlank } from '@metad/copilot'
 import { PACCopilotService } from '../../../services'
 import { CreateWorkflowNodeRequest, CreateWorkflowNodeHandler, UpdateWorkflowNodeHandler, UpdateWorkflowNodeRequest } from './workflow'
 import { derivedAsync } from 'ngxtension/derived-async'
+import { ActivatedRoute, Router } from '@angular/router'
 
 
 @Injectable()
@@ -75,6 +76,8 @@ export class XpertStudioApiService {
   readonly xpertComponent = inject(XpertComponent)
   readonly getXpertTeam = injectGetXpertTeam()
   readonly getXpertsByWorkspace = injectGetXpertsByWorkspace()
+  readonly #router = inject(Router)
+  readonly #route = inject(ActivatedRoute)
 
   readonly store = createStore({ name: 'xpertStudio' }, withProps<IStudioStore>({ draft: null }))
   readonly #stateHistory = stateHistory<Store, IStudioStore>(this.store, {
@@ -496,6 +499,10 @@ export class XpertStudioApiService {
   public autoLayout() {
     new LayoutHandler(this.store).handle(new LayoutRequest('TB'))
     // this.#reload.next(EReloadReason.AUTO_LAYOUT)
+  }
+
+  gotoWorkspace() {
+    this.#router.navigate(['/xpert/w', this.workspaceId()])
   }
 
   // Templates

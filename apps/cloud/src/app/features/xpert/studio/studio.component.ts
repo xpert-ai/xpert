@@ -219,7 +219,7 @@ export class XpertStudioComponent {
     return toolsetNodes.map((node) => {
       return {
         key: node.key,
-        running: (<IXpertToolset>node.entity).tools.some((t) => {
+        running: (<IXpertToolset>node.entity).tools?.some((t) => {
           return Object.values(executions[t.name] ?? {}).some((exec) => exec.status === XpertAgentExecutionStatusEnum.RUNNING)
         })
       }

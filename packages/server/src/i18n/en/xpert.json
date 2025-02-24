@@ -8,6 +8,7 @@
         "CopilotModelConfigError": "Copilot model '{model}' is not configured correctly",
         "NameExists": "Name Exist",
         "MultiNodeNotSupported": "Multi-node execution is not supported yet",
-        "NoChildNodeForLoop": "No child node found for loop"
+        "NoChildNodeForLoop": "No child node found for loop",
+        "ForbiddenDeleteLatest": "You cannot delete the latest version directly, please delete other versions first"
     }
 }

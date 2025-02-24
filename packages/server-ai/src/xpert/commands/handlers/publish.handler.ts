@@ -22,7 +22,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 	) {}
 
 	public async execute(command: XpertPublishCommand): Promise<Xpert> {
-		const id = command.id
+		const {id, newVersion, notes} = command
 		const xpert = await this.xpertService.findOne(id, { relations: ['agent', 'copilotModel', 'agents', 'agents.copilotModel', 'knowledgebases', 'toolsets'] })
 
 		if (!xpert.draft) {
@@ -45,8 +45,9 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 		}
 
 		const currentVersion = xpert.version
-		let version = null
-		if (currentVersion) {
+		// Current version or init version 1
+		let version = currentVersion || '1'
+		if (newVersion && currentVersion) {
 			const versions = currentVersion.split('.')
 			versions[versions.length - 1] = `${Number(versions[versions.length - 1]) + 1}`
 			version = versions.join('.')
@@ -55,34 +56,24 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 				index++
 				version = currentVersion + '.' + index
 			}
-		} else {
-			// 初始没有版本，直接保存
-			version = '1'
 		}
 
 		// Check
 		const draft = xpert.draft
 		this.check(draft)
 
-		// // await this.repository.queryRunner.connect()
-		// // await this.repository.queryRunner.startTransaction()
-		// // try {
-			// Back up the current version
-		if (currentVersion) {
+		// Back up the current version
+		if (newVersion && currentVersion) {
 			await this.saveTeamVersion(xpert, version)
 		}
 
-		return await this.publish(xpert, version, draft)
-		// 	// await this.repository.queryRunner.commitTransaction()
-		// // } catch (err) {
-		// 	// since we have errors lets rollback the changes we made
-		// 	// await this.repository.queryRunner.rollbackTransaction()
-		// // } finally {
-		// 	// you need to release a queryRunner which was manually instantiated
-		// 	// await this.repository.queryRunner.release()
-		// // }
+		if (newVersion) {
+			xpert.releaseNotes = ''
+		}
+		xpert.releaseNotes ??= ''
+		xpert.releaseNotes += (xpert.releaseNotes ? '\n\n' : '') + notes
 
-		// return null		
+		return await this.publish(xpert, version, draft)
 	}
 
 	/**

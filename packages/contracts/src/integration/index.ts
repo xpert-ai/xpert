@@ -12,5 +12,5 @@ export const INTEGRATION_PROVIDERS = {
   [IntegrationEnum.DINGTALK]: IntegrationDingTalkProvider,
   [IntegrationEnum.WECOM]: IntegrationWeComProvider,
   [IntegrationEnum.FIRECRAWL]: IntegrationFirecrawlProvider,
-  [IntegrationEnum.KNOWLEDGEBASE]: IntegrationKnowledgebaseProvider
+  // [IntegrationEnum.KNOWLEDGEBASE]: IntegrationKnowledgebaseProvider
 }

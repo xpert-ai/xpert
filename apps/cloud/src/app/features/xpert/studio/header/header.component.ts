@@ -29,6 +29,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatInputModule } from '@angular/material/input'
 import { MatSliderModule } from '@angular/material/slider'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { XpertPublishVersionComponent } from './publish/publish.component'
 
 @Component({
   selector: 'xpert-studio-header',
@@ -94,8 +95,6 @@ export class XpertStudioHeaderComponent {
   readonly maxConcurrency = computed(() => this.agentConfig()?.maxConcurrency)
   readonly recursionLimit = computed(() => this.agentConfig()?.recursionLimit)
 
-  readonly publishing = signal(false)
-
   // Executions
   readonly xpertId$ = toObservable(this.team).pipe(
     map((xpert) => xpert?.id),
@@ -131,25 +130,11 @@ export class XpertStudioHeaderComponent {
   }
 
   publish() {
-    this.publishing.set(true)
-    // Check if the draft has been saved
-    const obser: Observable<any> = this.unsaved() ? this.apiService.saveDraft() : of(true)
-    obser.pipe(switchMap(() => this.xpertService.publish(this.xpertStudioComponent.id())))
-      .subscribe({
-        next: (result) => {
-          this.#toastr.success(
-            `PAC.Xpert.PublishedSuccessfully`,
-            { Default: 'Published successfully' },
-            `v${result.version}`
-          )
-          this.publishing.set(false)
-          this.apiService.refresh()
-        },
-        error: (error) => {
-          this.#toastr.error(getErrorMessage(error))
-          this.publishing.set(false)
-        }
-      })
+    this.#dialog.open(XpertPublishVersionComponent,
+      {
+        viewContainerRef: this.#viewContainerRef
+      }
+    )
   }
 
   resume() {

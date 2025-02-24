@@ -1,0 +1,24 @@
+<header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="pb-2 cursor-move">
+  <h4 class="text-xl pointer-events-none">
+    @if (title()) {
+      {{ title() }}
+    } @else {
+      {{ 'COMPONENTS.CONFIRM.DELETE' | translate: {Default: 'Confirm Delete'} }}
+    }
+  </h4>
+</header>
+
+<div class="mat-typography min-h-[100px] py-4">
+  <div class="whitespace-pre-line">{{information()}}</div>
+</div>
+
+<div class="w-full flex justify-end">
+  <div ngmButtonGroup>
+    <button mat-button (click)="dialogRef.close()">
+      {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
+    </button>
+    <button mat-raised-button color="primary" cdkFocusInitial (click)="dialogRef.close(true)">
+      {{ 'COMPONENTS.COMMON.Confirm' | translate: {Default: 'Confirm'} }}
+    </button>
+  </div>
+</div>

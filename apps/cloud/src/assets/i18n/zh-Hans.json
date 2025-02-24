@@ -2443,7 +2443,19 @@
       "ErrorMode": "错误响应方法",
       "ParallelizationTooltip": "在并行模式下，迭代中的任务支持并行执行",
       "MaximumParallelTooltip": "最大并行数，用于控制单次迭代中同时执行的任务数量",
-      "Router": "路由"
+      "Router": "路由",
+      "Release": "发布",
+      "CreateNewVersion": "创建新版本",
+      "NewVersionDesc": "基于当前版本创建后续版本号",
+      "UpdateCurrentVersion": "直接更新当前版本中的内容",
+      "CurrentVersion": "当前版本",
+      "LatestVersion": "最新版本",
+      "AddReleaseNotes": "添加发布说明",
+      "ReleaseNotesLess": "发布说明太少",
+      "SetAsLatest": "设为最新",
+      "LatestDefaultVersion": "设置此版本为最新，打开数字专家时的默认版本",
+      "VersionHistory": "历史版本",
+      "DeleteThisVersion": "删除此版本，不影响其他版本的使用"
     },
     "title": {
       "short": "Xpert AI"

@@ -54,6 +54,10 @@ export type TXpert = {
    * Is latest version
    */
   latest?: boolean
+  /**
+   * Release notes
+   */
+  releaseNotes?: string
 
   /**
    * 当前版本上的草稿

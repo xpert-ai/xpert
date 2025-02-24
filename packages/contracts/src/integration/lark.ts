@@ -16,6 +16,7 @@ export const IntegrationLarkProvider: TIntegrationProvider = {
     zh_Hans: '飞书'
   },
   avatar: 'lark.png',
+  webhook: true,
   schema: {
     type: 'object',
     properties: {

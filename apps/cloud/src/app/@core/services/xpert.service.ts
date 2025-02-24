@@ -66,9 +66,13 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   }
 
   getVersions(id: string) {
-    return this.httpClient.get<{ id: string; version: string; latest: boolean; publishAt: Date }[]>(
+    return this.httpClient.get<{ id: string; version: string; latest: boolean; publishAt: Date; releaseNotes: string }[]>(
       this.apiBaseUrl + `/${id}/version`
     )
+  }
+
+  setAsLatest(id: string) {
+    return this.httpClient.post(this.apiBaseUrl + `/${id}/latest`, {})
   }
 
   saveDraft(id: string, draft: TXpertTeamDraft) {
@@ -79,8 +83,10 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.put<TXpertTeamDraft>(this.apiBaseUrl + `/${id}/draft`, draft)
   }
 
-  publish(id: string) {
-    return this.httpClient.post<IXpert>(this.apiBaseUrl + `/${id}/publish`, {})
+  publish(id: string, newVersion: boolean, body: {releaseNotes: string}) {
+    return this.httpClient.post<IXpert>(this.apiBaseUrl + `/${id}/publish`, body, {
+      params: new HttpParams().append('newVersion', newVersion)
+    })
   }
   publishIntegration(id: string, integration: Partial<IIntegration>) {
     return this.httpClient.post<IIntegration>(this.apiBaseUrl + `/${id}/publish/integration`, integration)

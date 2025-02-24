@@ -185,7 +185,6 @@
 
   <button class="no-underline group cursor-pointer relative shadow-2xl rounded-lg pl-4 pr-2 py-1 text-sm font-semibold leading-6 inline-block
     bg-primary-500 shadow-zinc-900 text-white"
-    [disabled]="publishing()"
     [cdkMenuTriggerFor]="publishMenu"
   >
     <span>{{ 'PAC.Xpert.Publish' | translate: {Default: 'Publish'} }}</span>
@@ -202,7 +201,7 @@
       <div class="flex items-center h-6 font-medium uppercase mb-2 text-sm">
         {{ 'PAC.Xpert.LatestPublish' | translate: {Default: 'Latest Publish'} }}
       </div>
-      <div cdkMenuItem class="flex justify-between items-center p-2"
+      <div cdkMenuItem class="flex justify-between items-center px-2 py-1"
         [cdkMenuTriggerFor]="versionMenu"
         [cdkMenuPosition]="[
           {
@@ -218,9 +217,10 @@
           @if (version()) {
             {{ 'PAC.KEY_WORDS.Version' | translate: {Default: 'Version'} }}: {{version()}}
             @if (latest()) {
-              <div class="ml-1 text-xs inline-flex items-center font-bold leading-sm uppercase px-3 py-1 bg-green-200 text-green-700 rounded-lg">
-                {{ 'PAC.Xpert.Latest' | translate: {Default: 'latest'} }}
-              </div>
+              <i class="ri-lightbulb-flash-fill text-lg mx-1 text-text-success" 
+                [matTooltip]="'PAC.Xpert.LatestVersion' | translate: {Default: 'Latest Version'}"
+                matTooltipPosition="right"
+              ></i>
             }
           } @else {
             <span class="text-xs inline-flex items-center font-bold leading-sm uppercase px-3 py-1 bg-orange-200 text-orange-700 rounded-lg">
@@ -250,11 +250,12 @@
       <button class="mt-2 no-underline group cursor-pointer relative shadow-2xl rounded-lg p-2 text-base font-semibold leading-6 inline-block
         bg-primary-500 shadow-zinc-900 text-white
         disabled:bg-primary-100 disabled:shadow-none disabled:cursor-not-allowed"
-        [disabled]="publishing() || !draft()"
+        [disabled]="!draft()"
         (click)="publish()"
       >
-        <span>{{ 'PAC.Xpert.ReleaseNewVersion' | translate: {Default: 'Release as new version'} }}</span>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="inline-block w-4 h-4 ml-0.5">
+        <span>{{ 'PAC.Xpert.Release' | translate: {Default: 'Release'} }}</span>
+
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="inline-block w-4 h-4 ml-1">
           <path d="M21.7267 2.95694L16.2734 22.0432C16.1225 22.5716 15.7979 22.5956 15.5563 22.1126L11 13L1.9229 9.36919C1.41322 9.16532 1.41953 8.86022 1.95695 8.68108L21.0432 2.31901C21.5716 2.14285 21.8747 2.43866 21.7267 2.95694ZM19.0353 5.09647L6.81221 9.17085L12.4488 11.4255L15.4895 17.5068L19.0353 5.09647Z"></path>
         </svg>
       </button>
@@ -290,16 +291,26 @@
         matTooltipPosition="before"
         [matTooltipDisabled]="!item.publishAt"
         (click)="selectVersion(item.id)">
-        @if (item.version) {
-          v{{item.version}}
-        } @else {
-          {{ 'PAC.Xpert.Draft' | translate: {Default: 'Draft'} }}
-        }
-        @if (item.version === version()) {
-          <div class="ml-4 text-xs inline-flex items-center px-2 font-bold leading-sm uppercase text-primary-600 rounded-lg">
-            current
-          </div>
-        }
+        <div class="min-w-[100px] flex items-center">
+          @if (item.version) {
+            <span class="mx-1" [matTooltip]="item.releaseNotes" matTooltipPosition="above">v{{item.version}}</span>
+          } @else {
+            <span class="mx-1">{{ 'PAC.Xpert.Draft' | translate: {Default: 'Draft'} }}</span>
+          }
+          @if (item.version === version()) {
+            <i class="ri-checkbox-circle-fill text-lg mx-1 text-primary-500" 
+              [matTooltip]="'PAC.Xpert.CurrentVersion' | translate: {Default: 'Current Version'}"
+              matTooltipPosition="right"
+            ></i>
+          }
+  
+          @if (item.latest) {
+            <i class="ri-lightbulb-flash-fill text-lg mx-1 text-text-success" 
+              [matTooltip]="'PAC.Xpert.LatestVersion' | translate: {Default: 'Latest Version'}"
+              matTooltipPosition="right"
+            ></i>
+          }
+        </div>
       </button>
     }
   </div>

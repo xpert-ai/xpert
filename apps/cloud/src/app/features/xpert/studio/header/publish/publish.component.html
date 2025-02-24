@@ -1,0 +1,85 @@
+<h3 class="text-xl font-semibold text-text-primary cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  {{ 'PAC.Xpert.Release' | translate: {Default: 'Release'} }}
+</h3>
+
+<div class="absolute right-3 top-3 z-[10] w-8 h-8 flex items-center justify-center p-2 cursor-pointer rounded-[10px] pressable hover:bg-hover-bg"
+  (click)="close()">
+  <i class="ri-close-line"></i>
+</div>
+
+<div class="relative flex flex-col p-4 gap-2">
+  <div class="my-2">{{ 'PAC.Xpert.CurrentVersion' | translate: {Default: 'Current Version'} }}: {{version() ? 'v'+version() : ('PAC.Xpert.Draft' | translate: {Default: 'Draft'})}}</div>
+
+  <mat-slide-toggle [(ngModel)]="newVersion">{{ 'PAC.Xpert.CreateNewVersion' | translate: {Default: 'Create a new version'} }}</mat-slide-toggle>
+
+  <div class="relative my-3 text-sm text-text-secondary">
+    @if (newVersion()) {
+      <div @slideUpAnimation>{{ 'PAC.Xpert.NewVersionDesc' | translate: {Default: 'Create a subsequent version number based on the current version'} }}</div>
+    } @else {
+      <div @slideUpAnimation>{{ 'PAC.Xpert.UpdateCurrentVersion' | translate: {Default: 'Directly update the content in the current version'} }}</div>
+    }
+  </div>
+
+  <div>
+    <textarea rows="3" [placeholder]="'PAC.Xpert.AddReleaseNotes' | translate: {Default: 'Add release notes'}" 
+      class="w-full p-2 text-sm text-gray-900 leading-[18px] bg-neutral-50
+      appearance-none outline-none resize-none rounded-lg border border-solid border-transparent
+      placeholder:text-gray-400 caret-[#295EFF]"
+      [class.border-red-300]="releaseNotesError()"
+      [(ngModel)]="releaseNotes"
+    ></textarea>
+    @if (releaseNotesError()) {
+      <div class="text-sm p-1 text-text-destructive">{{releaseNotesError()}}</div>
+    }
+  </div>
+
+  <div>{{ 'PAC.Xpert.VersionHistory' | translate: {Default: 'Version History'} }}</div>
+  <ul class="w-full max-h-80 overflow-auto">
+    @for (item of versions(); track version) {
+      <li class="group flex justify-between items-center px-4 py-2 rounded-lg text-sm hover:bg-hover-bg">
+        <div class="flex items-center">
+          @if (item.version) {
+            <span class="mx-1" [matTooltip]="item.releaseNotes">v{{item.version}}</span>
+          } @else {
+            <span class="mx-1">{{ 'PAC.Xpert.Draft' | translate: {Default: 'Draft'} }}</span>
+          }
+          @if (item.version === version()) {
+            <i class="ri-checkbox-circle-fill text-lg mx-1 text-primary-500" [matTooltip]="'PAC.Xpert.CurrentVersion' | translate: {Default: 'Current Version'}"></i>
+          }
+
+          @if (item.latest) {
+            <i class="ri-lightbulb-flash-fill text-lg mx-1 text-text-success" [matTooltip]="'PAC.Xpert.LatestVersion' | translate: {Default: 'Latest Version'}"></i>
+          }
+
+          <span class="mx-1 text-xs">{{ item.publishAt | date: 'short' }}</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          @if (!item.latest) {
+            <button class="btn btn-small h-7 justify-center opacity-0 group-hover:opacity-100"
+              (click)="setAsLatest(item)">
+              <i class="ri-lightbulb-flash-fill mr-1 text-text-success"></i>{{'PAC.Xpert.SetAsLatest' | translate: {Default: 'Set as latest'} }}
+            </button>
+            <button class="btn btn-small danger w-6 h-6 justify-center opacity-0 group-hover:opacity-100" (click)="deleteVer(item)">
+              <i class="ri-delete-bin-3-line"></i>
+            </button>
+          }
+        </div>
+      </li>
+    }
+  </ul>
+
+  @if (loading()) {
+    <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  }
+</div>
+  
+<div class="w-full flex justify-end p-2">
+  <button type="button"
+    class="btn disabled:btn-disabled btn-medium flex flex-shrink-0 justify-center mt-4 btn-primary w-20 h-9 text-base"
+    [disabled]="releaseNotesError()"
+    (click)="publish()"
+  >
+    {{ 'PAC.Xpert.Release' | translate: {Default: 'Release'} }}
+  </button>
+</div>
