@@ -70,7 +70,7 @@ export function createProcessStreamEvents(
 					eventStack.pop()
 				}
 				if (prevEvent !== 'on_chat_model_stream') {
-					if (tags.includes(thread_id)) {
+					if (!disableOutputs?.some((key) => tags.includes(key))) {
 						const msg = data.output as AIMessageChunk
 						return msg.content
 					}

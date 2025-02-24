@@ -40,18 +40,6 @@ export function genXpertIteratingKey() {
   return letterStartSUID('Iterating_')
 }
 
-export function isAgentKey(key: string) {
-  return key?.toLowerCase().startsWith('agent_')
-}
-
-export function isRouterKey(key: string) {
-  return key?.toLowerCase().startsWith('router_')
-}
-
-export function isIteratingKey(key: string) {
-  return key?.toLowerCase().startsWith('iterating_')
-}
-
-export function isWorkflowKey(key: string) {
-  return isRouterKey(key) || isIteratingKey(key)
+export function genXpertAnswerKey() {
+  return letterStartSUID('Answer_')
 }

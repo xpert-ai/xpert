@@ -43,6 +43,7 @@ import { Observable, of, Subscription } from 'rxjs'
 import { debounceTime, delay, map, tap } from 'rxjs/operators'
 import {
   AiModelTypeEnum,
+  isWorkflowKey,
   IXpertToolset,
   ToastrService,
   TXpertAgentConfig,
@@ -69,7 +70,6 @@ import { XpertStudioPanelComponent } from './panel/panel.component'
 import { XpertExecutionService } from './services/execution.service'
 import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
-import { isWorkflowKey } from '../utils'
 
 
 @Component({

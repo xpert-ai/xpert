@@ -137,6 +137,17 @@
       <div class="text-sm text-text-secondary">{{'PAC.Xpert.Iterating' | translate: {Default: 'Iterating'} }}</div>
     </div>
 
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowAnswer()"
+    >
+      <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-lime-500
+        w-5 h-5 rounded-md
+        shrink-0 mr-2">
+        <i class="ri-chat-ai-fill text-sm"></i>
+      </div>
+      <div class="text-sm text-text-secondary">{{'PAC.Xpert.Answer' | translate: {Default: 'Answer'} }}</div>
+    </div>
+
     <div class="flex items-start px-2 mt-2 text-sm font-medium text-text-tertiary">
       {{ 'PAC.Xpert.Others' | translate: {Default: 'Others'} }}
     </div>

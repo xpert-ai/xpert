@@ -7,6 +7,7 @@ export enum WorkflowNodeTypeEnum {
   IF_ELSE = 'if-else',
   SPLITTER = 'splitter',
   ITERATING = 'iterating',
+  ANSWER = 'answer',
   NOTE = 'note'
 }
 
@@ -83,6 +84,11 @@ export interface IWFNIterating extends IWorkflowNode {
   errorMode?: 'terminate' | 'ignore' | 'remove'
 }
 
+export interface IWFNAnswer extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.ANSWER
+  promptTemplate: string
+}
+
 export enum WorkflowLogicalOperator {
   AND = 'and',
   OR = 'or'
@@ -131,4 +137,21 @@ export type TWorkflowVarGroup = {
 
 export function channelName(name: string) {
 	return name.toLowerCase() + '_channel'
+}
+
+
+export function isAgentKey(key: string) {
+  return key?.toLowerCase().startsWith('agent_')
+}
+
+export function isRouterKey(key: string) {
+  return key?.toLowerCase().startsWith('router_')
+}
+
+export function isIteratingKey(key: string) {
+  return key?.toLowerCase().startsWith('iterating_')
+}
+
+export function isWorkflowKey(key: string) {
+  return isRouterKey(key) || isIteratingKey(key)
 }

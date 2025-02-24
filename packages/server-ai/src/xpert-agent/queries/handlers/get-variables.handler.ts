@@ -1,4 +1,5 @@
 import {
+	isAgentKey,
 	IXpertAgent,
 	TStateVariable,
 	TWorkflowVarGroup,
@@ -82,12 +83,6 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		const graph = isDraft ? {...(xpert.graph ?? {}), ...(xpert.draft ?? {})} as TXpertGraph : xpert.graph
 
 		if (type === 'agent') {
-			 graph?.nodes?.filter((_) => _.type === 'agent' && _.key !== nodeKey)
-				.forEach((node) => {
-					const g = getAgentVarGroup(node.key, graph)
-					varGroups.push(g)
-				})
-
 			const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
 				new GetXpertAgentQuery(xpertId, nodeKey, isDraft)
 			)
@@ -114,14 +109,20 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			}
 		}
 
-		if (type === 'workflow' && graph) {
-			uniq(graph.connections.filter((con) => con.type === 'edge' && con.to === nodeKey)
-				.map((con) => con.from))
-				.forEach((agentKey) => {
-					const g = getAgentVarGroup(agentKey, graph)
-					varGroups.push(g)
-				})
-		}
+		graph?.nodes?.filter((_) => _.type === 'agent' && _.key !== nodeKey)
+			.forEach((node) => {
+				const g = getAgentVarGroup(node.key, graph)
+				varGroups.push(g)
+			})
+
+		// if (type === 'workflow' && graph) {
+		// 	uniq(graph.connections.filter((con) => con.type === 'edge' && con.to === nodeKey && isAgentKey(con.from))
+		// 		.map((con) => con.from))
+		// 		.forEach((agentKey) => {
+		// 			const g = getAgentVarGroup(agentKey, graph)
+		// 			varGroups.push(g)
+		// 		})
+		// }
 
 		return varGroups
 	}

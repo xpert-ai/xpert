@@ -5,6 +5,7 @@ import { createCasesNode } from '../../workflow'
 import { createSplitterNode } from '../../workflow/splitter'
 import { CreateWorkflowNodeCommand } from '../create-workflow.command'
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
+import { CreateWNAnswerCommand } from '../create-wn-answer.command'
 
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {
@@ -25,6 +26,10 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 			}
 			case WorkflowNodeTypeEnum.ITERATING: {
 				workflow = await this.commandBus.execute(new CreateWNIteratingCommand(xpertId, graph, node, options))
+				break
+			}
+			case WorkflowNodeTypeEnum.ANSWER: {
+				workflow = await this.commandBus.execute(new CreateWNAnswerCommand(xpertId, graph, node, options))
 				break
 			}
 			case WorkflowNodeTypeEnum.SPLITTER: {
