@@ -4,11 +4,11 @@ import { Component, computed, effect, inject, model, signal, TemplateRef, viewCh
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { DynamicGridDirective } from '@metad/core'
+import { DisappearFadeOut, DynamicGridDirective } from '@metad/core'
 import { NgmSelectComponent, NgmTagsComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { map, switchMap } from 'rxjs/operators'
-import { EmailTemplateNameEnum, getErrorMessage } from '../../../@core/types'
+import { EmailTemplateNameEnum } from '../../../@core/types'
 import { EmailTemplateService, injectToastr, LanguagesService } from '../../../@core/services'
 import { groupBy } from 'lodash-es'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
@@ -45,7 +45,8 @@ import { LanguageSelectorComponent } from '../../../@shared/language'
     EmailTemplateComponent
   ],
   templateUrl: './email-templates.component.html',
-  styleUrls: ['./email-templates.component.scss']
+  styleUrls: ['./email-templates.component.scss'],
+  animations: [DisappearFadeOut]
 })
 export class EmailTemplatesComponent {
   readonly emailTemplateService = inject(EmailTemplateService)

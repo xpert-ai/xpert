@@ -1,13 +1,19 @@
 <form [formGroup]="form" class="w-full h-full flex flex-col justify-start items-stretch">
   <div class="pac-page-header">
 	<div class="flex flex-col">
-	  <div class="pac-page-title">{{ 'PAC.MENU.Email Template' | translate: {Default: "Email Template"} }}</div>
+	  <div class="text-xl font-semibold">{{ 'PAC.MENU.Email Template' | translate: {Default: "Email Template"} }}</div>
 	  <div class="pac-page-subtitle">{{ 'PAC.MENU.ForOrganization' | translate: {Default: "For Organization"} }}:
 		{{ organization?.name }}
 	  </div>
 	</div>
 
 	<div class="flex justify-between items-end px-4 gap-4" displayDensity="cosy">
+
+	  <button type="button" class="btn rounded-xl justify-center w-8 h-8"
+		(click)="close()">
+		<i class="ri-close-line"></i>
+	  </button>
+
 	  <!-- <pac-language-selector class="w-48"
 		formControlName="languageCode"
 		(ngModelChange)="subject$.next(true)"

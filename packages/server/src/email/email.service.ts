@@ -160,7 +160,7 @@ export class EmailService extends TenantAwareCrudService<IEmail> {
     private getEmailConfig(smtpConfig: ISMTPConfig): Email<any> {
         const config: Email.EmailConfig<any> = {
             message: {
-                from: smtpConfig.fromAddress || 'noreply@gauzy.co'
+                from: smtpConfig.fromAddress || 'service@mtda.cloud'
             },
             // if you want to send emails in development or test environments, set options.send to true.
             send: true,
