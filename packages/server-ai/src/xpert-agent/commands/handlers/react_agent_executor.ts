@@ -22,7 +22,7 @@ import { AnnotationRoot, StateDefinition, UpdateType } from "@langchain/langgrap
 import { channelName, TMessageChannel, TSummarize } from "@metad/contracts";
 import { v4 as uuidv4 } from "uuid";
 import { ToolNode } from "./tool_node";
-import { AgentStateAnnotation, STATE_VARIABLE_SYS_LANGUAGE, TGraphTool, TSubAgent } from "./types";
+import { AgentStateAnnotation, TGraphTool, TSubAgent } from "./types";
 
 
 function _getStateModifierRunnable(
@@ -142,7 +142,7 @@ export function createReactAgent(
     tags,
     summarizeTitle
   } = props;
-  const summarize = ensureSummarize(props.summarize)
+  // const summarize = ensureSummarize(props.summarize)
 
   const toolClasses: (StructuredToolInterface | DynamicTool | RunnableToolLike)[] = []
   if (tools) {
@@ -169,11 +169,11 @@ export function createReactAgent(
       if (!lastMessage.tool_calls || lastMessage.tool_calls.length === 0) {
 
         // If there are more than six messages, then we summarize the conversation
-        if (summarize?.enabled && messages.length > summarize.maxMessages) {
-          return "summarize_conversation";
-        } else if (!title && summarizeTitle) {
-          return "title_conversation"
-        }
+        // if (summarize?.enabled && messages.length > summarize.maxMessages) {
+        //   return "summarize_conversation";
+        // } else if (!title && summarizeTitle) {
+        //   return "title_conversation"
+        // }
 
         return END;
       }
@@ -197,10 +197,10 @@ export function createReactAgent(
     .addEdge(START, "agent")
     .addConditionalEdges("agent", shouldContinue,)
   
-  if (summarizeTitle) {
-    workflow.addNode("title_conversation", createTitleAgent(llm))
-      .addEdge("title_conversation", END)
-  }
+  // if (summarizeTitle) {
+  //   workflow.addNode("title_conversation", createTitleAgent(llm))
+  //     .addEdge("title_conversation", END)
+  // }
 
   if (subAgents) {
     Object.keys(subAgents).forEach((name) => {
@@ -214,10 +214,10 @@ export function createReactAgent(
       .addEdge(name, endNodes?.includes(tool.name) ? END : "agent")
   })
 
-  if (summarize?.enabled) {
-    workflow.addNode("summarize_conversation", createSummarizeAgent(llm, summarize))
-      .addEdge("summarize_conversation", END)
-  }
+  // if (summarize?.enabled) {
+  //   workflow.addNode("summarize_conversation", createSummarizeAgent(llm, summarize))
+  //     .addEdge("summarize_conversation", END)
+  // }
 
   return workflow
   // .compile({
@@ -267,38 +267,5 @@ export function createSummarizeAgent(model: BaseChatModel, summarize: TSummarize
         messages: deleteMessages
       }
     };
-  }
-}
-
-/**
- * @deprecated
- */
-export function createTitleAgent(model: BaseChatModel, agentKey?: string) {
-  return async (state: typeof AgentStateAnnotation.State): Promise<any> => {
-    const channel = channelName(agentKey)
-    // Title the conversation
-    const messages = (<TMessageChannel>state[channel]).messages
-    const language = state[STATE_VARIABLE_SYS_LANGUAGE]
-  
-    const allMessages = [...messages, new HumanMessage({
-      id: uuidv4(),
-      content: `Create a short title${language ? ` in language '${language}'` : ''} for the conversation above, without adding any extra phrases like 'Conversation Title:':`,
-    })]
-    const response = await model.invoke(allMessages, {tags: ['title_conversation']});
-    if (typeof response.content !== "string") {
-      throw new Error("Expected a string response from the model");
-    }
-    return { title: response.content.replace(/^"/g, '').replace(/"$/g, '') }
-  }
-}
-
-/**
- * @deprecated
- */
-function ensureSummarize(summarize?: TSummarize) {
-  return summarize && {
-    ...summarize,
-    maxMessages: summarize.maxMessages ?? 100,
-    retainMessages: summarize.retainMessages ?? 90
   }
 }

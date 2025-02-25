@@ -1,5 +1,4 @@
 import {
-	isAgentKey,
 	IXpertAgent,
 	TStateVariable,
 	TWorkflowVarGroup,
@@ -8,15 +7,13 @@ import {
 	XpertParameterTypeEnum,
 } from '@metad/contracts'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { omit, uniq } from 'lodash'
+import { omit } from 'lodash'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertAgentQuery } from '../../../xpert/queries/'
 import { XpertService } from '../../../xpert/xpert.service'
 import {
 	STATE_VARIABLE_INPUT,
-	STATE_VARIABLE_SYS_LANGUAGE,
-	STATE_VARIABLE_USER_EMAIL,
-	STATE_VARIABLE_USER_TIMEZONE
+	STATE_VARIABLE_SYS,
 } from '../../commands/handlers/types'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
 import { getAgentVarGroup } from '../../agent'
@@ -46,7 +43,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 						}
 					},
 					{
-						name: STATE_VARIABLE_SYS_LANGUAGE,
+						name: `${STATE_VARIABLE_SYS}.language`,
 						type: XpertParameterTypeEnum.STRING,
 						description: {
 							en_US: 'Language',
@@ -54,7 +51,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 						}
 					},
 					{
-						name: STATE_VARIABLE_USER_EMAIL,
+						name: `${STATE_VARIABLE_SYS}.user_email`,
 						type: XpertParameterTypeEnum.STRING,
 						description: {
 							en_US: 'User email',
@@ -62,11 +59,35 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 						}
 					},
 					{
-						name: STATE_VARIABLE_USER_TIMEZONE,
+						name: `${STATE_VARIABLE_SYS}.timezone`,
 						type: XpertParameterTypeEnum.STRING,
 						description: {
 							en_US: 'User time zone',
 							zh_Hans: '用户时区'
+						}
+					},
+					{
+						name: `${STATE_VARIABLE_SYS}.date`,
+						type: XpertParameterTypeEnum.STRING,
+						description: {
+							en_US: 'Current Date',
+							zh_Hans: '当前日期'
+						}
+					},
+					{
+						name: `${STATE_VARIABLE_SYS}.datetime`,
+						type: XpertParameterTypeEnum.STRING,
+						description: {
+							en_US: 'Current Datetime',
+							zh_Hans: '当前时间'
+						}
+					},
+					{
+						name: `${STATE_VARIABLE_SYS}.common_times`,
+						type: XpertParameterTypeEnum.STRING,
+						description: {
+							en_US: 'Common Times',
+							zh_Hans: '常用时间'
 						}
 					}
 				]

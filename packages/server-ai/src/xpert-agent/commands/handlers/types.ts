@@ -6,11 +6,21 @@ import { Annotation, messagesStateReducer } from '@langchain/langgraph'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
 import { channelName, IXpertAgent, TMessageChannel, TStateVariable, TVariableAssigner, TXpertGraph, TXpertTeamNode, VariableOperationEnum, XpertParameterTypeEnum } from '@metad/contracts'
 
-export const STATE_VARIABLE_SYS_LANGUAGE = 'sys_language'
-export const STATE_VARIABLE_USER_EMAIL = 'user_email'
-export const STATE_VARIABLE_USER_TIMEZONE = 'user_timezone'
+// export const STATE_VARIABLE_SYS_LANGUAGE = 'sys_language'
+export const STATE_VARIABLE_SYS = 'sys'
+// export const STATE_VARIABLE_USER_EMAIL = 'user_email'
+// export const STATE_VARIABLE_USER_TIMEZONE = 'user_timezone'
 export const STATE_VARIABLE_INPUT = 'input'
 export const STATE_VARIABLE_TITLE_CHANNEL = channelName('title')
+
+export type TSystemState = {
+	language: string
+	user_email: string
+	timezone: string
+	date: string
+	datetime: string
+	common_times: string
+}
 
 export const AgentStateAnnotation = Annotation.Root({
 	messages: Annotation<BaseMessage[]>({
@@ -21,17 +31,16 @@ export const AgentStateAnnotation = Annotation.Root({
 		reducer: (a, b) => b ?? a,
 		default: () => ''
 	}),
-	[STATE_VARIABLE_SYS_LANGUAGE]: Annotation<string>({
-		reducer: (a, b) => b ?? a,
-		default: () => null
-	}),
-	[STATE_VARIABLE_USER_EMAIL]: Annotation<string>({
-		reducer: (a, b) => b ?? a,
-		default: () => null
-	}),
-	[STATE_VARIABLE_USER_TIMEZONE]: Annotation<string>({
-		reducer: (a, b) => b ?? a,
-		default: () => null
+	[STATE_VARIABLE_SYS]: Annotation<TSystemState>({
+		reducer: (a, b) => {
+			return b ? {
+				...a,
+				...b,
+			} : a
+		},
+		default: () => ({
+			common_times: commonTimes()
+		} as TSystemState)
 	}),
 	toolCall: Annotation<ToolCall>({
 		reducer: (a, b) => b ?? a,
@@ -149,4 +158,43 @@ export function identifyAgent(agent: IXpertAgent) {
 		description: agent.description,
 		avatar: agent.avatar,
 	}
+}
+
+export function commonTimes() {
+	const currentDate = new Date();
+
+	// Get the current year
+	const currentYear = currentDate.getFullYear();
+
+	// Get the current month (starts from 0, so add 1)
+	const currentMonth = currentDate.getMonth() + 1;
+
+	// Get the current day
+	const currentDay = currentDate.getDate();
+
+	// Calculate last year and the year before last
+	const lastYear = currentYear - 1;
+	const yearBeforeLast = currentYear - 2;
+
+	// Calculate last month (need to check if the current month is January, if so, go back to December of the previous year)
+	let lastMonth = currentMonth - 1;
+	let lastMonthYear = currentYear;
+	if (lastMonth === 0) {
+		lastMonth = 12;
+		lastMonthYear -= 1;
+	}
+
+	// Format the date as 2025-01
+	const lastMonthFormatted = `${lastMonthYear}-${String(lastMonth).padStart(2, '0')}`;
+
+	// Generate common relative times
+	const relativeTimes = {
+		"This Year": currentYear,
+		"Last Year": lastYear,
+		"The Year Before Last": yearBeforeLast,
+		"Last Month": lastMonthFormatted,
+		"Today": `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`
+	};
+
+	return Object.keys(relativeTimes).map((time) => `${time}: ${relativeTimes[time]}`).join('; ')
 }

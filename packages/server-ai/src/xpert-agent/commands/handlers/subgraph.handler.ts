@@ -29,7 +29,7 @@ import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertWorkflowQuery, GetXpertChatModelQuery } from '../../../xpert/queries'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
-import { AgentStateAnnotation, allAgentsKey, identifyAgent, parseXmlString, STATE_VARIABLE_SYS_LANGUAGE, STATE_VARIABLE_TITLE_CHANNEL, stateVariable, TGraphTool, TSubAgent } from './types'
+import { AgentStateAnnotation, allAgentsKey, identifyAgent, parseXmlString, STATE_VARIABLE_SYS, STATE_VARIABLE_TITLE_CHANNEL, stateVariable, TGraphTool, TSubAgent } from './types'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { createSummarizeAgent } from './react_agent_executor'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
@@ -828,7 +828,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			try {
 				// Title the conversation
 				const messages = (<TMessageChannel>state[channelName(agentKey)]).messages
-				const language = state[STATE_VARIABLE_SYS_LANGUAGE]
+				const language = state[STATE_VARIABLE_SYS]?.language
 			
 				const allMessages = [...messages, new HumanMessage({
 					id: uuidv4(),
