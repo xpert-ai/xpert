@@ -1,4 +1,4 @@
-import { IChatConversation, ICopilotStore, IIntegration, LanguagesEnum, OrderTypeEnum, RolesEnum, TChatApi, TChatApp, TChatOptions, TChatRequest, TXpertTeamDraft, UserType, xpertLabel } from '@metad/contracts'
+import { IChatConversation, ICopilotStore, IIntegration, LanguagesEnum, mapTranslationLanguage, OrderTypeEnum, RolesEnum, TChatApi, TChatApp, TChatOptions, TChatRequest, TXpertTeamDraft, UserType, xpertLabel } from '@metad/contracts'
 import {
 	CrudController,
 	OptionParams,
@@ -41,7 +41,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Request, Response } from 'express'
 import { Between, DeleteResult, FindConditions, In, IsNull, Like, Not } from 'typeorm'
-import { I18nLang } from 'nestjs-i18n'
+import { I18nLang, I18nService } from 'nestjs-i18n'
 import { v4 as uuidv4 } from 'uuid'
 import { ChatConversation, XpertAgentExecution } from '../core/entities/internal'
 import { FindExecutionsByXpertQuery } from '../xpert-agent-execution/queries'
@@ -69,6 +69,7 @@ export class XpertController extends CrudController<Xpert> {
 	constructor(
 		private readonly service: XpertService,
 		private readonly storeService: CopilotStoreService,
+		private readonly i18n: I18nService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
 	) {
@@ -168,6 +169,11 @@ export class XpertController extends CrudController<Xpert> {
 		return this.service.allVersions(id)
 	}
 
+	@Post(':id/latest')
+	async setAsLatest(@Param('id') id: string) {
+		return this.service.setAsLatest(id)
+	}
+
 	@UseGuards(XpertGuard)
 	@Post(':id/draft')
 	async saveDraft(@Param('id') id: string, @Body() draft: TXpertTeamDraft) {
@@ -188,8 +194,12 @@ export class XpertController extends CrudController<Xpert> {
 
 	@UseGuards(XpertGuard)
 	@Post(':id/publish')
-	async publish(@Param('id') id: string) {
-		return this.service.publish(id)
+	async publish(
+		@Param('id') id: string, 
+		@Query('newVersion') newVersion: string,
+		@Body() body: {releaseNotes: string}
+	) {
+		return this.service.publish(id, newVersion === 'true', body.releaseNotes)
 	}
 
 	@UseGuards(XpertGuard)
@@ -263,8 +273,22 @@ export class XpertController extends CrudController<Xpert> {
 	})
 	@HttpCode(HttpStatus.ACCEPTED)
 	@Delete(':id')
-	async delete(@Param('id', UUIDValidationPipe) id: string, ...options: any[]): Promise<Xpert | DeleteResult> {
-		// return this.service.deleteXpert(id)
+	async delete(
+		@I18nLang() language: LanguagesEnum,
+		@Param('id', UUIDValidationPipe) id: string, ...options: any[]): Promise<Xpert | DeleteResult> {
+		const xpert = await this.service.findOne(id)
+		const others = await this.service.findAll({
+			where: {
+				type: xpert.type,
+				slug: xpert.slug,
+				id: Not(xpert.id)
+			}
+		})
+		if (xpert.latest && others.total) {
+			throw new ForbiddenException(
+				await this.i18n.translate('xpert.Error.ForbiddenDeleteLatest', {lang: mapTranslationLanguage(language)})
+			)
+		}
 		return this.service.delete(id)
 	}
 
@@ -325,7 +349,7 @@ export class XpertController extends CrudController<Xpert> {
 	@Get(':id/variables')
 	async getVariables(@Param('id') id: string) {
 		try {
-			return await this.queryBus.execute(new XpertAgentVariablesQuery(id, null, true))
+			return await this.queryBus.execute(new XpertAgentVariablesQuery({xpertId: id, isDraft: true}))
 		} catch (err) {
 			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
 		}
@@ -334,7 +358,16 @@ export class XpertController extends CrudController<Xpert> {
 	@Get(':id/agent/:agent/variables')
 	async getAgentVariables(@Param('id') id: string, @Param('agent') agentKey: string,) {
 		try {
-			return await this.queryBus.execute(new XpertAgentVariablesQuery(id, agentKey, true))
+			return await this.queryBus.execute(new XpertAgentVariablesQuery({xpertId: id, type: 'agent', nodeKey: agentKey, isDraft: true}))
+		} catch (err) {
+			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
+		}
+	}
+
+	@Get(':id/workflow/:key/variables')
+	async getWorkflowVariables(@Param('id') id: string, @Param('key') nodeKey: string,) {
+		try {
+			return await this.queryBus.execute(new XpertAgentVariablesQuery({xpertId: id, type: 'workflow', nodeKey, isDraft: true}))
 		} catch (err) {
 			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
 		}

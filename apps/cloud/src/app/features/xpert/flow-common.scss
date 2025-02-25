@@ -114,8 +114,8 @@
 }
 @mixin connectors {
   position: absolute;
-  width: 8px;
-  height: 8px;
+  // width: 8px;
+  // height: 8px;
   border-radius: 50%;
   background-color: var(--node-background-color);
   &.left {
@@ -131,6 +131,8 @@
     top: -6px;
     left: 50%;
     transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
   }
   &.top-left {
     top: -8px;
@@ -141,7 +143,7 @@
     right: -8px;
   }
   &.bottom {
-    bottom: -8px;
+    bottom: -4px;
     left: 50%;
     transform: translateX(-50%);
   }

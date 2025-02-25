@@ -67,15 +67,13 @@
 </div>
 
 @if (opened()) {
-  <div class="absolute top-0 left-0 w-full h-full flex flex-col z-[900] bg-black/10 backdrop-blur-[2px]">
+  <div @fadeOut class="absolute top-0 left-0 w-full h-full flex flex-col z-[900] bg-black/10 backdrop-blur-[2px]">
     <div class="shrink-0 w-full h-28" (click)="close()"></div>
-
     <div class="w-full flex-1 flex justify-start rounded-t-3xl bg-gray-50 overflow-auto">
-      <pac-email-template />
+      <pac-email-template (closed)="close()" />
     </div>
   </div>
 }
-
 
 <ng-template #newTempl>
   <div class="flex flex-col p-4 bg-components-card-bg rounded-2xl">

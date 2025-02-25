@@ -13,7 +13,7 @@ import { concat, filter, from, lastValueFrom, Observable, of, reduce, Subscriber
 import { AgentState } from '../../../copilot'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
-import { createParameters, XpertAgentExecuteCommand } from '../execute.command'
+import { XpertAgentExecuteCommand } from '../execute.command'
 import { GetXpertAgentQuery, GetXpertChatModelQuery } from '../../../xpert/queries'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
@@ -23,10 +23,11 @@ import { createReactAgent } from './react_agent_executor'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { getErrorMessage, takeUntilAbort } from '@metad/server-common'
-import { AgentStateAnnotation, parseXmlString, STATE_VARIABLE_SYS_LANGUAGE, STATE_VARIABLE_USER_EMAIL, STATE_VARIABLE_USER_TIMEZONE, stateVariable, TGraphTool, TSubAgent } from './types'
+import { AgentStateAnnotation, parseXmlString, stateVariable, TGraphTool, TSubAgent } from './types'
 import { CompleteToolCallsQuery } from '../../queries'
 import { memoryPrompt } from '../../../copilot-store/utils'
 import { assignExecutionUsage } from '../../../xpert-agent-execution/types'
+import { createParameters } from '../../workflow/parameter'
 
 
 @CommandHandler(XpertAgentExecuteCommand)
@@ -235,9 +236,9 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 			graph.streamEvents(
 				input?.input ? {
 					...input,
-					[STATE_VARIABLE_SYS_LANGUAGE]: options.language || user.preferredLanguage,
-					[STATE_VARIABLE_USER_EMAIL]: user.email,
-					[STATE_VARIABLE_USER_TIMEZONE]: user.timeZone || options.timeZone,
+					// [STATE_VARIABLE_SYS_LANGUAGE]: options.language || user.preferredLanguage,
+					// [STATE_VARIABLE_USER_EMAIL]: user.email,
+					// [STATE_VARIABLE_USER_TIMEZONE]: user.timeZone || options.timeZone,
 					memories,
 					messages: [new HumanMessage(input.input)]
 				} : null,

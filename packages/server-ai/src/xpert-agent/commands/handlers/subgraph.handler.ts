@@ -1,6 +1,6 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
-import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, isAIMessage, isAIMessageChunk, isBaseMessage, isBaseMessageChunk, RemoveMessage, ToolMessage } from '@langchain/core/messages'
+import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, isAIMessage, isAIMessageChunk, isBaseMessage, isBaseMessageChunk, isToolMessage, RemoveMessage, ToolMessage } from '@langchain/core/messages'
 import { HumanMessagePromptTemplate, SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Runnable, RunnableConfig, RunnableLambda, RunnableLike } from '@langchain/core/runnables'
 import {
@@ -27,10 +27,9 @@ import { memoryPrompt } from '../../../copilot-store/utils'
 import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertWorkflowQuery, GetXpertChatModelQuery } from '../../../xpert/queries'
-import { createParameters } from '../execute.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
-import { AgentStateAnnotation, allAgentsKey, identifyAgent, parseXmlString, STATE_VARIABLE_INPUT, STATE_VARIABLE_SYS_LANGUAGE, STATE_VARIABLE_TITLE_CHANNEL, stateVariable, TGraphTool, TSubAgent } from './types'
+import { AgentStateAnnotation, allAgentsKey, identifyAgent, parseXmlString, STATE_VARIABLE_SYS, STATE_VARIABLE_TITLE_CHANNEL, stateVariable, TGraphTool, TSubAgent } from './types'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { createSummarizeAgent } from './react_agent_executor'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
@@ -39,10 +38,10 @@ import { ChatOpenAI } from '@langchain/openai'
 import { isNil } from 'lodash'
 import { XpertConfigException } from '../../../core/errors'
 import { RequestContext } from '@metad/server-core'
-import { createWorkflowNode } from '../../workflow/cases'
 import { FakeStreamingChatModel } from '../../agent'
 import { stringifyMessageContent } from '@metad/copilot'
-import { tool } from '@langchain/core/tools'
+import { createParameters } from '../../workflow/parameter'
+import { CreateWorkflowNodeCommand } from '../create-workflow.command'
 
 
 
@@ -60,7 +59,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 	public async execute(command: XpertAgentSubgraphCommand): Promise<{
 		agent: IXpertAgent; graph: CompiledStateGraph<unknown, unknown, any>; nextNodes: TXpertTeamNode[]; failNode: TXpertTeamNode}> {
 		const { agentKeyOrName, xpert, options } = command
-		const { isStart, execution, leaderKey, summarizeTitle, subscriber, rootController, signal } = options
+		const { isStart, execution, leaderKey, summarizeTitle, subscriber, rootController, signal, disableCheckpointer, variables } = options
 
 		// Signal controller in this subgraph
 		const abortController = new AbortController()
@@ -203,7 +202,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const withTools = [...tools.map((item) => item.tool), ...Object.keys(subAgents ?? {}).map((name) => subAgents[name].tool)]
 		const summarize = ensureSummarize(team.summarize)
 		// Next agent
-		let nextNodeKey = END
+		let nextNodeKey: string[] = [END]
 		let failNodeKey = END
 		const agentKeys = new Set([agent.key])
 		const nodes: Record<string, {ends: string[]; graph: RunnableLike;}> = {}
@@ -265,11 +264,16 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						await createSubgraph(nextNodes?.[0], failNode)
 					}
 				} else if(node?.type === 'workflow') {
-					const { workflowNode, nextNodes } = createWorkflowNode(graph, node,)
-					nodes[node.key] = {graph: (state) => {
-						//
-					}, ends: []}
-					conditionalEdges[node.key] = [workflowNode, [...nextNodes.map((n) => n.key), END] ]
+					const { workflowNode, navigator, nextNodes } = await this.commandBus.execute(
+						new CreateWorkflowNodeCommand(xpert.id, graph, node, parentKey, {
+							isDraft: options.isDraft,
+							subscriber,
+							rootExecutionId: options.rootExecutionId
+						}))
+					nodes[node.key] = {
+						...workflowNode
+					}
+					conditionalEdges[node.key] = [navigator, [...nextNodes.map((n) => n.key), END] ]
 					for await (const nNode of nextNodes ?? []) {
 						await createSubgraph(nNode, null)
 					}
@@ -299,15 +303,15 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			}
 
 			if (next?.length || fail?.length) {
-				await createSubgraph(next?.[0], fail?.[0], agentKey)
-				nextNodeKey = next?.[0]?.key
+				const pathMap = [...withTools.map((tool) => tool.name)]
+				for await (const nextNode of next) {
+					await createSubgraph(nextNode, fail?.[0], agentKey)
+					pathMap.push(nextNode.key)
+				}
+				
+				nextNodeKey = next?.map((n) => n.key)
 				if (fail?.length) {
 					failNodeKey = fail?.[0]?.key
-				}
-
-				const pathMap = [...withTools.map((tool) => tool.name)]
-				if (next?.length) {
-					pathMap.push(next?.[0]?.key)
 				}
 				if (fail?.length) {
 					pathMap.push(fail?.[0]?.key)
@@ -315,7 +319,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				if (summarizeTitle) {
 					pathMap.push('title_conversation')
 				}
-				conditionalEdges[agentKey] = [createAgentNavigator(channelName(agentKey), summarize, summarizeTitle, next?.[0]?.key), pathMap]
+				conditionalEdges[agentKey] = [
+					createAgentNavigator(channelName(agentKey), summarize, summarizeTitle, next?.map((n) => n.key)),
+					pathMap
+				]
 			}
 		}
 		if (leaderKey) {
@@ -336,6 +343,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				  })
 				return acc
 			}, {}) ?? {}),
+			...(agent.parameters?.reduce((acc, parameter) => {
+				acc[parameter.name] = Annotation(stateVariable(parameter))
+				return acc
+			}, {}) ?? {}),
 			// Channels for agents
 			...Object.fromEntries(agents.map((agent) => [
 				channelName(agent.key),
@@ -351,7 +362,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						agent: identifyAgent(agent),
 						messages: []})
 				})
-			]))
+			])),
+			// Temp parameters
+			...(variables?.reduce((state, schema) => {
+				state[schema.name] = Annotation(stateVariable(schema))
+				return state
+			}, {}) ?? {})
 		})
 
 		const enableMessageHistory = !agent.options?.disableMessageHistory
@@ -372,24 +388,28 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 			this.#logger.verbose(`SystemMessage:`, systemMessage.content)
 
-			let humanMessages = []
-			const humanTemplates = agent.promptTemplates?.filter((_) => !!_.text?.trim())
-			if (humanTemplates?.length) {
-				humanMessages = humanMessages.concat(await Promise.all(
-					humanTemplates.map((temp) =>
-						HumanMessagePromptTemplate.fromTemplate(temp.text, {
+			const humanMessages: HumanMessage[] = []
+			const messageHistory = (<TMessageChannel>state[agentChannel])?.messages ?? []
+			// Determine whether it is Agent reflection (last message is ToolMessage)
+			if (!(isBaseMessage(messageHistory[messageHistory.length - 1])
+				&& isToolMessage(messageHistory[messageHistory.length - 1]))) {
+				// Is new human input: use message templates or input message
+				const humanTemplates = agent.promptTemplates?.filter((_) => !!_.text?.trim())
+				if (humanTemplates?.length) {
+					for await (const temp of humanTemplates) {
+						humanMessages.push(await HumanMessagePromptTemplate.fromTemplate(temp.text, {
 							templateFormat: 'mustache'
-						}).format(parameters)
-					)
-				))
-			}
-			if (!humanMessages.length && state.input) {
-				humanMessages.push(new HumanMessage(state.input))
+						}).format(parameters))
+					}
+				}
+				if (!humanMessages.length && state.input) {
+					humanMessages.push(new HumanMessage(state.input))
+				}
 			}
 
 			return {
 				systemMessage,
-				messageHistory: (<TMessageChannel>state[agentChannel])?.messages ?? [],
+				messageHistory,
 				humanMessages
 			}
 		}
@@ -448,22 +468,21 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			}
 
 			const {systemMessage, messageHistory, humanMessages} = await stateModifier(state)
-			const deleteMessages = enableMessageHistory ? [] : messageHistory.map((m) => new RemoveMessage({ id: m.id as string }))
+			// Disable history and new human request then remove history
+			const deleteMessages = (!enableMessageHistory && humanMessages.length) ? messageHistory.map((m) => new RemoveMessage({ id: m.id as string })) : []
 			try {
-				const message = await withFallbackModel.invoke([systemMessage, ...(enableMessageHistory ? messageHistory : []), ...humanMessages], {...config, signal: abortController.signal})
-				// if (isCommand(message)) {
-				// 	return message
-				// }
+				const message = await withFallbackModel.invoke([
+					systemMessage, ...((enableMessageHistory || !humanMessages.length) ? messageHistory : []), ...humanMessages
+				], {...config, signal: abortController.signal})
+
 				const nState: Record<string, any> = {
-					[STATE_VARIABLE_INPUT]: '',
+					// [STATE_VARIABLE_INPUT]: '',
 					messages: [],
-					// [`${agentKey}.messages`]: [...humanMessages],
 					[channelName(agentKey)]: {messages: [...deleteMessages, ...humanMessages]}
 				}
 				if ((isBaseMessage(message) && isAIMessage(message))
 					|| isBaseMessageChunk(message) && isAIMessageChunk(message)) {
 					nState.messages.push(message)
-					// nState[`${agentKey}.messages`].push(message)
 					nState[channelName(agentKey)].messages.push(message)
 					nState[channelName(agentKey)].output = stringifyMessageContent(message.content)
 				} else {
@@ -508,14 +527,35 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			const name = tool.name
 			subgraphBuilder
 				.addNode(name, new ToolNode([tool], { caller, variables }))
-				.addEdge(name, endNodes?.includes(tool.name) ? nextNodeKey : agentKey)
+			if (endNodes?.includes(tool.name)) {
+				if (Array.isArray(nextNodeKey)) {
+					subgraphBuilder.addConditionalEdges(name, (state, config) => {
+						return nextNodeKey.map((n) => new Send(n, state))
+					})
+				} else {
+					subgraphBuilder.addEdge(name, nextNodeKey)
+				}
+			} else {
+				subgraphBuilder.addEdge(name, agentKey)
+			}
 		})
 
 		// Subgraphs
 		if (subAgents) {
 			Object.keys(subAgents).forEach((name) => {
 				subgraphBuilder.addNode(name, subAgents[name].stateGraph)
-					.addEdge(name, endNodes?.includes(name) ? nextNodeKey : agentKey)
+
+				if (endNodes?.includes(name)) {
+					if (Array.isArray(nextNodeKey)) {
+						subgraphBuilder.addConditionalEdges(name, (state, config) => {
+							return nextNodeKey.map((n) => new Send(n, state))
+						})
+					} else {
+						subgraphBuilder.addEdge(name, nextNodeKey)
+					}
+				} else {
+					subgraphBuilder.addEdge(name, agentKey)
+				}
 			})
 		}
 
@@ -533,7 +573,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		if (!Object.keys(nodes).length) {
-			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(agentChannel, summarize, summarizeTitle, null))
+			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(agentChannel, summarize, summarizeTitle))
 		} else {
 			// Next nodes
 			Object.keys(nodes).forEach((name) => subgraphBuilder.addNode(name, nodes[name].graph, {ends: nodes[name].ends}))
@@ -544,7 +584,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		return {
 			agent,
 			graph: subgraphBuilder.compile({
-				checkpointer: this.copilotCheckpointSaver,
+				checkpointer: disableCheckpointer ? false : this.copilotCheckpointSaver,
 				interruptBefore
 			}),
 			nextNodes: next,
@@ -609,14 +649,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 		const stateGraph = RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config: LangGraphRunnableConfig): Promise<Partial<typeof AgentStateAnnotation.State>> => {
 			const call = state.toolCall
-			execution.threadId = config.configurable.thread_id
-			execution.checkpointNs = config.configurable.checkpoint_ns
 
 			// Record start time
 			const timeStart = Date.now()
 			const _execution = await this.commandBus.execute(
 				new XpertAgentExecutionUpsertCommand({
 					...execution,
+					threadId: config.configurable.thread_id,
+					checkpointNs: config.configurable.checkpoint_ns,
 					xpert: { id: xpert.id } as IXpert,
 					agentKey: agent.key,
 					inputs: call?.args,
@@ -692,14 +732,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				await finalize()
 
 				const nState: Record<string, any> = isTool ? {
-					[`${leaderKey}.messages`]: [
-						new ToolMessage({
-							content: lastMessage.content,
-							name: call.name,
-							tool_call_id: call.id ?? "",
-						})
-					],
-					[`${agent.key}.messages`]: [lastMessage],
+					// [`${leaderKey}.messages`]: [
+					// 	new ToolMessage({
+					// 		content: lastMessage.content,
+					// 		name: call.name,
+					// 		tool_call_id: call.id ?? "",
+					// 	})
+					// ],
+					// [`${agent.key}.messages`]: [lastMessage],
 					[channelName(leaderKey)]: {
 						messages: [
 							new ToolMessage({
@@ -710,12 +750,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						]
 					},
 					[channelName(agent.key)]: {
+						...output[channelName(agent.key)],
 						messages: [lastMessage]
 					}
 				} : {
 					messages: [lastMessage],
-					[`${agent.key}.messages`]: [lastMessage],
+					// [`${agent.key}.messages`]: [lastMessage],
 					[channelName(agent.key)]: {
+						...output[channelName(agent.key)],
 						messages: [lastMessage],
 						output: stringifyMessageContent(lastMessage.content)
 					}
@@ -786,7 +828,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			try {
 				// Title the conversation
 				const messages = (<TMessageChannel>state[channelName(agentKey)]).messages
-				const language = state[STATE_VARIABLE_SYS_LANGUAGE]
+				const language = state[STATE_VARIABLE_SYS]?.language
 			
 				const allMessages = [...messages, new HumanMessage({
 					id: uuidv4(),
@@ -839,7 +881,16 @@ function ensureSummarize(summarize?: TSummarize) {
 	)
 }
 
-function createAgentNavigator(agentChannel: string, summarize: TSummarize, summarizeTitle: boolean, next?: (string | ((state, config) => string))) {
+/**
+ * Create conditionalEdges function for agent
+ * 
+ * @param agentChannel 
+ * @param summarize 
+ * @param summarizeTitle 
+ * @param nextNodes 
+ * @returns conditionalEdgesFun
+ */
+function createAgentNavigator(agentChannel: string, summarize: TSummarize, summarizeTitle: boolean, nextNodes?: (string[] | ((state, config) => string))) {
 	return (state: typeof AgentStateAnnotation.State, config) => {
 		const { title } = state
 		const messages = (<TMessageChannel>state[agentChannel])?.messages ?? []
@@ -854,11 +905,11 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 					nexts.push(new Send("title_conversation", state))
 				}
 
-				if (next) {
-					if (typeof next === 'string') {
-						nexts.push(new Send(next, state))
+				if (nextNodes) {
+					if (Array.isArray(nextNodes)) {
+						nexts.push(...nextNodes.map((name) => new Send(name, state)))
 					} else {
-						nexts.push(new Send(next(state, config), state))
+						nexts.push(new Send(nextNodes(state, config), state))
 					}
 				}
 
@@ -872,13 +923,14 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 			return lastMessage.tool_calls.map((toolCall) => new Send(toolCall.name, { ...state, toolCall }))
 		}
 
-		if (next) {
-			if (typeof next === 'string') {
-				return next
+		if (nextNodes) {
+			if (Array.isArray(nextNodes)) {
+				return nextNodes.map((name) => new Send(name, state))
 			} else {
-				return next(state, config)
+				return new Send(nextNodes(state, config), state)
 			}
 		}
+
 		return END
 	}
 }

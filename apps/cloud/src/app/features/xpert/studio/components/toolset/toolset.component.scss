@@ -1,11 +1,3 @@
 :host {
   @apply flex flex-col justify-start items-start;
 }
-
-.f-component.f-node-input {
-  border-radius: 0;
-  width: 10px;
-  height: 3px;
-  border: none;
-  @apply bg-blue-500;
-}

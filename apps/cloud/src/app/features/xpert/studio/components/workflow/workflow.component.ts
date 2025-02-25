@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, HostBinding, inject, input } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { TranslateModule } from '@ngx-translate/core'
@@ -13,6 +13,9 @@ import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioNodeWorkflowIfelseComponent } from './ifelse/ifelse.component'
+import { XpertStudioNodeWorkflowSplitterComponent } from './splitter/splitter.component'
+import { XpertStudioNodeWorkflowIteratingComponent } from './iterating/iterating.component'
+import { XpertStudioNodeWorkflowAnswerComponent } from './answer/answer.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -20,9 +23,14 @@ import { XpertStudioNodeWorkflowIfelseComponent } from './ifelse/ifelse.componen
   styleUrls: ['./workflow.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, CdkMenuModule, MatTooltipModule, TranslateModule, XpertStudioNodeWorkflowIfelseComponent],
+  imports: [FFlowModule, CdkMenuModule, MatTooltipModule, TranslateModule, XpertStudioNodeWorkflowIfelseComponent, 
+    XpertStudioNodeWorkflowIteratingComponent,
+    XpertStudioNodeWorkflowSplitterComponent,
+    XpertStudioNodeWorkflowAnswerComponent
+  ],
   host: {
     tabindex: '-1',
+    '[class]': 'type()',
     '(contextmenu)': 'emitSelectionChangeEvent($event)'
   }
 })
@@ -40,6 +48,7 @@ export class XpertStudioNodeWorkflowComponent {
 
   // States
   readonly entity = computed(() => this.node()?.entity as IWorkflowNode)
+
   readonly type = computed(() => this.entity()?.type)
   readonly title = computed(() => this.entity()?.title)
   readonly description = computed(() => this.entity()?.description)

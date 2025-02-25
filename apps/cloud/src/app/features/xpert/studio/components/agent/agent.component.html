@@ -64,7 +64,7 @@
       [copilotModel]="copilotModel()"
     />
 
-    <div class="edge absolute -right-[4px] top-[7px]" fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right">
+    <div class="edge absolute -right-[4px] top-[7px]" fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" [fOutputMultiple]="true">
       <div class="inner-dot cursor-crosshair">
         <ngm-plus-svg class="w-2 h-2 text-white" />
       </div>

@@ -26,7 +26,7 @@ import { createProcessStreamEvents } from '../../agent'
 import { CompleteToolCallsQuery } from '../../queries'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
-import { STATE_VARIABLE_SYS_LANGUAGE, STATE_VARIABLE_USER_EMAIL, STATE_VARIABLE_USER_TIMEZONE } from './types'
+import { STATE_VARIABLE_SYS } from './types'
 import { GetCopilotCheckpointsByParentQuery } from '../../../copilot-checkpoint/queries'
 import { XpertSensitiveOperationException } from '../../../core/errors'
 
@@ -46,7 +46,6 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		const organizationId = RequestContext.getOrganizationId()
 		const userId = RequestContext.currentUserId()
 		const user = RequestContext.currentUser()
-		const languageCode = RequestContext.getLanguageCode()
 
 		const abortController = new AbortController()
 		// Create graph by command
@@ -72,20 +71,21 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 			await this.updateToolCalls(graph, config, operation)
 		}
 
+		const languageCode = options.language || user.preferredLanguage
 		const contentStream = from(
 			graph.streamEvents(
 				input?.input
 					? {
-							...input,
-							[STATE_VARIABLE_SYS_LANGUAGE]: options.language || user.preferredLanguage,
-							[STATE_VARIABLE_USER_EMAIL]: user.email,
-							[STATE_VARIABLE_USER_TIMEZONE]: user.timeZone || options.timeZone,
-							memories,
-							// messages: [new HumanMessage(input.input)],
-							// [channelName(agent.key)]: {
-							// 	messages: [new HumanMessage(input.input)],
-							// }
-						}
+						...input,
+						[STATE_VARIABLE_SYS]: {
+							language: languageCode,
+							user_email: user.email,
+							timezone: user.timeZone || options.timeZone,
+							date: new Intl.DateTimeFormat(languageCode).format(new Date()).replace(/\//g, '-'),
+							datetime: new Date().toLocaleString(languageCode)
+						},
+						memories,
+					}
 					: null,
 				{
 					version: 'v2',

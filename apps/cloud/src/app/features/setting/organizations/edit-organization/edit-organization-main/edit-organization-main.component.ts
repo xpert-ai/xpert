@@ -3,17 +3,21 @@ import { UntypedFormGroup } from '@angular/forms'
 import { Router } from '@angular/router'
 import { IOrganization } from '@metad/contracts'
 import { getErrorMessage } from '@metad/core'
-import { FormlyFieldConfig } from '@ngx-formly/core'
+import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
-import { OrganizationsService, ToastrService } from '../../../../../../@core'
-import { timezones } from '../../../../../../@core/constants'
-import { EditOrganizationComponent } from '../../edit-organization.component'
+import { OrganizationsService, ToastrService } from '../../../../../@core'
+import { timezones } from '../../../../../@core/constants'
+import { EditOrganizationComponent } from '../edit-organization.component'
 import { FORMLY_ROW, FORMLY_W_1_2 } from '@metad/story/designer'
 import { FORMLY_W_FULL } from '@metad/formly'
+import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
+import { CommonModule } from '@angular/common'
 
 
 @Component({
+  standalone: true,
+  imports: [SharedModule, CommonModule, FormlyModule],
   selector: 'pac-edit-org-main',
   templateUrl: './edit-organization-main.component.html',
   styleUrls: ['./edit-organization-main.component.scss']
@@ -129,6 +133,16 @@ export class EditOrganizationMainComponent {
                 label: Organization?.InviteExpiryPeriod ?? 'Invite Expiry Period',
                 placeholder: Organization?.InviteExpiryPeriod ?? 'Invite Expiry Period (in Days)',
                 type: 'number',
+              }
+            },
+            {
+              className,
+              key: 'currency',
+              type: 'input',
+              props: {
+                label: Organization?.Currency ?? 'Currency',
+                placeholder: Organization?.Currency ?? 'Currency',
+                type: 'text',
               }
             },
             {

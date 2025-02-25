@@ -199,7 +199,7 @@ export type TIntegrationProvider = {
 	name: string
 	label: I18nObject
 	avatar: string
-	
+	webhook?: boolean
 	schema?: TParameterSchema
 	
 	webhookUrl?: (integration: IIntegration, baseUrl: string) => string

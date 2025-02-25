@@ -193,16 +193,17 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 		return xpert.draft
 	}
 
-	async publish(id: string) {
-		return await this.commandBus.execute(new XpertPublishCommand(id))
+	async publish(id: string, newVersion: boolean, notes: string) {
+		return await this.commandBus.execute(new XpertPublishCommand(id, newVersion, notes))
 	}
 
 	async allVersions(id: string) {
-		const role = await this.findOne(id)
+		const xpert = await this.findOne(id)
 		const { items: allVersions } = await this.findAll({
 			where: {
-				workspaceId: role.workspaceId ?? IsNull(),
-				name: role.name
+				workspaceId: xpert.workspaceId ?? IsNull(),
+				type: xpert.type,
+				slug: xpert.slug,
 			}
 		})
 
@@ -210,8 +211,27 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 			id: item.id,
 			version: item.version,
 			latest: item.latest,
-			publishAt: item.publishAt
+			publishAt: item.publishAt,
+			releaseNotes: item.releaseNotes,
 		}))
+	}
+
+	async setAsLatest(id: string) {
+		const xpert = await this.findOne(id)
+		if (!xpert.latest) {
+			const { items: xperts } = await this.findAll({
+				where: {
+					workspaceId: xpert.workspaceId ?? IsNull(),
+					type: xpert.type,
+					slug: xpert.slug,
+					latest: true
+				}
+			})
+
+			xperts.forEach((item) => item.latest = false)
+			xpert.latest = true
+			await this.repository.save([...xperts, xpert])
+		}
 	}
 
 	async deleteXpert(id: string) {

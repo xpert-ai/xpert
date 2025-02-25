@@ -6,6 +6,10 @@
         "AgentOutdated": "Agent '{agentKey}' record has been updated, please resynchronize",
         "FallbackModelNotFound": "Fallback model not found for agent '{agent}'",
         "CopilotModelConfigError": "Copilot model '{model}' is not configured correctly",
-        "NameExists": "Name Exist"
+        "NameExists": "Name Exist",
+        "MultiNodeNotSupported": "Multi-node execution is not supported yet",
+        "NoChildNodeForLoop": "No child node found for loop",
+        "ForbiddenDeleteLatest": "You cannot delete the latest version directly, please delete other versions first",
+        "XpertCopilotNotFound": "The ai model for the Digital Expert or Agent node is not configured"
     }
 }

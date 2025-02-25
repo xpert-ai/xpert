@@ -31,3 +31,15 @@ export function injectGetXpertsByWorkspace() {
 export function genAgentKey() {
   return letterStartSUID('Agent_')
 }
+
+export function genXpertRouterKey() {
+  return letterStartSUID('Router_')
+}
+
+export function genXpertIteratingKey() {
+  return letterStartSUID('Iterating_')
+}
+
+export function genXpertAnswerKey() {
+  return letterStartSUID('Answer_')
+}

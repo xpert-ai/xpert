@@ -1,9 +1,9 @@
 import { ToolCall } from '@langchain/core/dist/messages/tool'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
-import { IXpert, IXpertAgentExecution, TChatOptions, TXpertParameter, XpertParameterTypeEnum } from '@metad/contracts'
+import { IXpert, IXpertAgentExecution, TChatOptions } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
-import { z } from 'zod'
+
 
 /**
  * @deprecated use XpertAgentSubgraphCommand
@@ -42,40 +42,4 @@ export class XpertAgentExecuteCommand implements ICommand {
 			memories?: SearchItem[]
 		}
 	) {}
-}
-
-/**
- * Create zod schema for custom parameters of agent
- *
- * @param parameters
- * @returns
- */
-export function createParameters(parameters: TXpertParameter[]) {
-	return parameters?.reduce((schema, parameter) => {
-		let value = null
-		switch (parameter.type) {
-			case XpertParameterTypeEnum.TEXT:
-			case XpertParameterTypeEnum.PARAGRAPH: {
-				value = z.string()
-				break
-			}
-			case XpertParameterTypeEnum.NUMBER: {
-				value = z.number()
-				break
-			}
-			case XpertParameterTypeEnum.SELECT: {
-				value = z.enum(parameter.options as any)
-			}
-		}
-
-		if (value) {
-			if (parameter.optional) {
-				schema[parameter.name] = value.optional().describe(parameter.description)
-			} else {
-				schema[parameter.name] = value.describe(parameter.description)
-			}
-		}
-
-		return schema
-	}, {})
 }

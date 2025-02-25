@@ -8,12 +8,11 @@ import { TranslateService } from '@ngx-translate/core'
 import { distinctUntilChanged, filter, map, switchMap } from 'rxjs/operators'
 import { OrganizationsService, Store } from '../../../../@core'
 import { OrganizationsComponent } from '../organizations.component'
-import { EditOrganizationSettingsModule } from './edit-organization-settings/edit-organization-settings.module'
 import { OrganizationDemoComponent } from '../organization-demo/organization-demo.component'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { OrgAvatarEditorComponent, OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 import { TagMaintainComponent } from 'apps/cloud/src/app/@shared/tag'
+import { EditOrganizationMainComponent } from './edit-organization-main/edit-organization-main.component'
 
 
 @Component({
@@ -22,12 +21,11 @@ import { TagMaintainComponent } from 'apps/cloud/src/app/@shared/tag'
   styleUrls: ['./edit-organization.component.scss'],
   imports: [
     SharedModule,
-    MaterialModule,
     FormsModule,
     ReactiveFormsModule,
     OrgAvatarEditorComponent,
     OrgAvatarComponent,
-    EditOrganizationSettingsModule,
+    EditOrganizationMainComponent,
     OrganizationDemoComponent,
     TagMaintainComponent
   ]

@@ -12,6 +12,24 @@
           </svg>
         </div>
       }
+      @case (eWorkflowNodeTypeEnum.ITERATING) {
+        <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-indigo-500
+              w-7 h-7 rounded-lg shadow-sm
+              shrink-0 mr-1"
+          [matTooltip]="key()"
+          matTooltipPosition="above">
+          <i class="ri-repeat-2-line"></i>
+        </div>
+      }
+      @case (eWorkflowNodeTypeEnum.ANSWER) {
+        <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-lime-500
+              w-7 h-7 rounded-lg shadow-sm
+              shrink-0 mr-1"
+          [matTooltip]="key()"
+          matTooltipPosition="above">
+          <i class="ri-chat-ai-fill"></i>
+        </div>
+      }
       @case (eWorkflowNodeTypeEnum.NOTE) {
         <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-orange-500
           w-6 h-6 rounded-lg shadow-sm
@@ -28,7 +46,7 @@
           [(ngModel)]="title"
         >
     <div class="shrink-0 flex items-center text-gray-500">
-      <a [href]="helpUrl() + '/docs/ai/workflow/node/ifelse'" target="_blank" class="flex items-center justify-center mr-1 w-6 h-6"
+      <a [href]="helpUrl() + '/docs/ai/workflow/' + type()" target="_blank" class="flex items-center justify-center mr-1 w-6 h-6"
         [matTooltip]="'PAC.Xpert.HelpDocs' | translate: {Default: 'Help docs'}"
         matTooltipPosition="above">
         <i class="ri-book-open-line text-gray-500"></i>
@@ -47,15 +65,11 @@
     </div>
   </div>
   <div class="p-2">
-    <div class="group flex px-2 py-[5px] max-h-[60px] rounded-lg overflow-y-auto border border-transparent hover:bg-gray-50 leading-0">
-      <textarea matInput rows="1"
+    <div class="group flex pl-2 py-[5px] max-h-[60px] rounded-lg overflow-y-auto border border-transparent hover:bg-gray-50 leading-0">
+      <textarea rows="3"
         class="w-full text-sm text-gray-900 leading-[18px] bg-transparent appearance-none outline-none resize-none
       placeholder:text-gray-400 caret-[#295EFF]" 
-        style="resize: none; height: 18px;"
         placeholder="{{'PAC.Xpert.AddDescription' | translate: {Default: 'Add description'} }}..."
-        cdkTextareaAutosize
-        cdkAutosizeMinRows="1"
-        cdkAutosizeMaxRows="5"
         [(ngModel)]="description"
       ></textarea>
     </div>
@@ -65,6 +79,12 @@
 @switch (type()) {
   @case (eWorkflowNodeTypeEnum.IF_ELSE) {
     <xpert-studio-panel-workflow-ifelse [node]="node()" [entity]="wfNode()" />
+  }
+  @case (eWorkflowNodeTypeEnum.ITERATING) {
+    <xpert-studio-panel-workflow-iterating [node]="node()" [entity]="wfNode()" />
+  }
+  @case (eWorkflowNodeTypeEnum.ANSWER) {
+    <xpert-studio-panel-workflow-answer [node]="node()" [entity]="wfNode()" />
   }
 }
 

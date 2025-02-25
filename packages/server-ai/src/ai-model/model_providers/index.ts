@@ -15,8 +15,11 @@ import { OllamaProviderModule } from './ollama/ollama'
 import { OpenAIProviderModule } from './openai/openai'
 import { OAICompatProviderModule } from './openai_api_compatible/openai_api_compatible'
 import { OpenRouterProviderModule } from './openrouter/openrouter'
+import { SiliconflowProviderModule } from './siliconflow/siliconflow'
+import { SparkProviderModule } from './spark/spark'
 import { TogetherAIProviderModule } from './togetherai/togetherai'
 import { TongyiProviderModule } from './tongyi/tongyi'
+import { VolcengineMaaSProviderModule } from './volcengine_maas/volcengine_maas'
 import { XAIProviderModule } from './x/x'
 import { ZhipuaiProviderModule } from './zhipuai/zhipuai'
 
@@ -39,5 +42,8 @@ export const ProviderModules = [
 	HuggingfaceHubProviderModule,
 	XAIProviderModule,
 	OpenRouterProviderModule,
-	OAICompatProviderModule
+	OAICompatProviderModule,
+	VolcengineMaaSProviderModule,
+	SparkProviderModule,
+	SiliconflowProviderModule
 ]

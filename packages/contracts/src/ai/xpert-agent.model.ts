@@ -3,7 +3,7 @@ import { ICopilotModel, TCopilotModel } from './copilot-model.model'
 import { IKnowledgebase, TKBRecallParams } from './knowledgebase.model'
 import { I18nObject, TAvatar } from '../types'
 import { IXpertToolset } from './xpert-toolset.model'
-import { IXpert, ToolCall, TXpertParameter } from './xpert.model'
+import { IXpert, TXpertParameter } from './xpert.model'
 import { TVariableAssigner } from './xpert-workflow.model'
 import { TSensitiveOperation } from './chat.model'
 

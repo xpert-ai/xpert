@@ -1,0 +1,115 @@
+<div class="px-4 pb-4 space-y-2 mt-2">
+  <div class="flex justify-between items-center">
+    <div class="flex items-center h-6">
+      <div class="system-sm-semibold-uppercase text-text-secondary">
+        {{ 'PAC.Xpert.Input' | translate: {Default: 'Input'} }}
+      </div>
+    </div>
+    <div class="flex items-center h-[18px] px-1 border border-divider-deep rounded-[5px] text-xs font-medium text-text-tertiary capitalize">
+      Array
+    </div>
+  </div>
+
+  <xpert-state-variable-select class="w-full mt-1 opacity-90 hover:opacity-100"
+    [variables]="variables()"
+    [ngModel]="inputVariable()"
+    (ngModelChange)="updateEntity('inputVariable', $event)"
+  />
+
+  <div class="flex justify-between items-center">
+    <div class="flex items-center h-6">
+      <div class="system-sm-semibold-uppercase text-text-secondary">
+        {{ 'PAC.Xpert.Output' | translate: {Default: 'Output'} }}
+      </div>
+    </div>
+    <div class="flex items-center h-[18px] px-1 border border-divider-deep rounded-[5px] text-xs font-medium text-text-tertiary capitalize">
+      Array
+    </div>
+  </div>
+  <xpert-state-variable-select class="w-full mt-1 opacity-90 hover:opacity-100"
+    [variables]="variables()"
+    [ngModel]="outputVariable()"
+    (ngModelChange)="updateEntity('outputVariable', $event)"
+  />
+</div>
+
+<div class="px-4 pb-2 mt-2">
+  <div class="flex justify-between items-center w-full">
+    <div class="flex justify-between items-center">
+      <div class="flex items-center h-6">
+        <div class="system-sm-semibold-uppercase text-text-secondary">
+          {{ 'PAC.Xpert.Parallelization' | translate: {Default: 'Parallelization'} }}
+        </div>
+        <i class="ri-question-line ml-1 text-text-quaternary hover:text-text-tertiary"
+          [matTooltip]="'PAC.Xpert.ParallelizationTooltip' | translate: {Default: 'In parallel mode, tasks in an iteration support parallel execution'}"
+          matTooltipPosition="above"
+        ></i>
+      </div>
+      <div class="flex"></div>
+    </div>
+
+    <ngm-slide-toggle [ngModel]="parallel()" (ngModelChange)="updateEntity('parallel', $event)"/>
+  </div>
+</div>
+
+<div class="px-4 pb-2">
+  <div class="">
+    <div class="flex justify-between items-center">
+      <div class="flex items-center h-6">
+        <div class="system-xs-medium-uppercase text-text-tertiary">
+          {{ 'PAC.Xpert.MaximumParallel' | translate: {Default: 'Maximum Parallel'} }}
+        </div>
+        <i class="ri-question-line ml-1 text-text-quaternary hover:text-text-tertiary"
+          [matTooltip]="'PAC.Xpert.MaximumParallelTooltip' | translate: {Default: 'The maximum number of parallel tasks is used to control the number of tasks executed simultaneously in a single iteration.'}"
+          matTooltipPosition="above"></i>
+      </div>
+      <div class="flex"></div>
+    </div>
+    <div class="mt-1">
+      <div class="flex row">
+        <div class="relative flex items-center w-20 mr-4">
+          <input
+            class="w-full py-1 bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular"
+            [placeholder]="'PAC.KEY_WORDS.PleaseEnter' | translate: {Default: 'Please enter'}"
+            max="10"
+            min="1"
+            type="number"
+            [ngModel]="maximum()"
+            (ngModelChange)="updateEntity('maximum', $event)"
+          />
+        </div>
+        
+        <div class="flex items-center grow">
+          <mat-slider class="w-full" ngm-density="small" [max]="10" [min]="1" [step]="1" showTickMarks discrete >
+            <input matSliderThumb
+              [ngModel]="maximum()"
+              (dragEnd)="updateEntity('maximum', $event.value)" 
+            >
+          </mat-slider>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="my-2 h-[1px] bg-divider-subtle"></div>
+
+<div class="px-4 py-2">
+  <div class="">
+    <div class="flex justify-between items-center">
+      <div class="flex items-center h-6">
+        <div class="system-sm-semibold-uppercase text-text-secondary">
+          {{ 'PAC.Xpert.ErrorMode' | translate: {Default: 'Error Mode'} }}
+        </div>
+      </div>
+      <div class="flex"></div>
+    </div>
+    <div class="mt-1">
+      <ngm-select [placeholder]="'PAC.Xpert.ErrorModePlaceholder' | translate: {Default: 'Choose a way to respond to an error'}"
+        [selectOptions]="errorModeOptions" [ngModel]="errorMode()" (ngModelChange)="updateEntity('errorMode', $event)" />
+    </div>
+  </div>
+</div>
+
+
+<div class="my-2 h-[1px] bg-divider-subtle"></div>

@@ -35,7 +35,7 @@ import { KnowledgeDocumentsComponent } from '../../documents.component'
 import { KnowledgeDocumentCreateComponent, TFileItem } from '../create.component'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { ContentLoaderModule } from '@ngneat/content-loader'
-import { uniq } from 'lodash-es'
+import { isNil, uniq } from 'lodash-es'
 import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
 
 @Component({
@@ -139,6 +139,7 @@ export class KnowledgeDocumentCreateStep1Component {
   readonly expand = signal(false)
 
   readonly webParams = computed(() => {
+    // Params value or default values
     const parametersValue = this.parametersValue()
     return this.webOptionSchema()?.options?.filter((option) => {
       if (option.when) {
@@ -163,7 +164,16 @@ export class KnowledgeDocumentCreateStep1Component {
   readonly integration = this.createComponent.integration
 
   readonly webOptions = this.createComponent.webOptions
-  readonly parametersValue = computed(() => this.webOptions()?.params)
+  /**
+   * Actual value or default value
+   */
+  readonly parametersValue = computed(() => this.webOptions()?.params
+    ?? this.webOptionSchema()?.options?.reduce((params, curr) => {
+      if (!isNil(curr.default)) {
+        params[curr.name] = curr.default
+      }
+      return params
+    }, {}))
   readonly loadingWeb = signal(false)
 
   readonly webResult = this.createComponent.webResult
@@ -292,7 +302,7 @@ export class KnowledgeDocumentCreateStep1Component {
       return {
         ...(state ?? {}),
         params: {
-          ...(state?.params ?? {}),
+          ...this.parametersValue(),
           [name]: value
         }
       } as TRagWebOptions

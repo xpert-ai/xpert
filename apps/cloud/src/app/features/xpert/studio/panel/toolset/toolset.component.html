@@ -8,8 +8,16 @@
   <div class="flex-1"></div>
 
   <div class="flex justify-between items-center gap-1">
+
     @if(!isTemplate()) {
-      <button type="button" class="action-btn action-btn-sm justify-center w-6 h-6 p-0.5 rounded-md pressable"
+      <button type="button" class="action-btn action-btn-sm justify-center w-7 h-7 rounded-md pressable"
+        [matTooltip]="'PAC.Xpert.EditToolset' | translate: {Default: 'Edit toolset configuration'}"
+        matTooltipPosition="above"
+        (click)="edit()">
+        <i class="ri-settings-4-line"></i>
+      </button>
+
+      <button type="button" class="action-btn action-btn-sm justify-center w-7 h-7 rounded-md pressable"
         [matTooltip]="'PAC.Xpert.RefreshToolset' | translate: {Default: 'Refresh, sync toolset configuration'}"
         matTooltipPosition="above"
         (click)="refresh()">

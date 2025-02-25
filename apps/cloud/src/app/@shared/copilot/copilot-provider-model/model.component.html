@@ -55,6 +55,9 @@
   </div>
 
   <div class="mt-1 mb-4 border-t-[0.5px] border-t-gray-100"></div>
+  @if (error()) {
+    <div class="p-2 text-sm text-text-destructive">{{error()}}</div>
+  }
 </div>
 
 <div class="sticky bottom-0 flex justify-between items-center mt-2 px-8 py-4 flex-wrap gap-y-2 bg-white">

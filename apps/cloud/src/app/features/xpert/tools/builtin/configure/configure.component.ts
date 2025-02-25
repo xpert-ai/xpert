@@ -99,6 +99,12 @@ export class XpertToolConfigureBuiltinComponent {
 
   readonly dirty = signal<boolean>(false)
 
+  // Check
+  /**
+   * At least one tool enabled
+   */
+  readonly atLeastOne = computed(() => this.tools()?.some((t) => t.enabled))
+
   // Subscriptions
   private toolsSub = toObservable(this.toolsetId)
     .pipe(
@@ -154,19 +160,16 @@ export class XpertToolConfigureBuiltinComponent {
   }
 
   setToolEnabled(name: string, enabled: boolean, schema: IBuiltinTool) {
-    const tool = this.tools()?.find((_) => _.name === name)
-    if (tool) {
-      tool.enabled = enabled
-      tool.schema ??= schema
-    } else {
-      this.tools.update((state) => {
-        return [...(state ?? []), {
-          name,
-          enabled,
-          schema
-        }]
-      })
-    }
+    this.tools.update((state) => {
+      const existingTool = state?.find((tool) => tool.name === name);
+      if (existingTool) {
+        existingTool.enabled = enabled;
+        existingTool.schema = existingTool.schema || schema;
+        return [...state];
+      } else {
+        return [...(state ?? []), { name, enabled, schema }];
+      }
+    })
 
     this.dirty.set(true)
   }

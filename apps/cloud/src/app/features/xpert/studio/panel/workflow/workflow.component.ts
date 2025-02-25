@@ -19,6 +19,8 @@ import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertStudioPanelWorkflowIfelseComponent } from './ifelse/ifelse.component'
+import { XpertStudioPanelWorkflowIteratingComponent } from './iterating/iterating.component'
+import { XpertStudioPanelWorkflowAnswerComponent } from './answer/answer.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -36,7 +38,9 @@ import { XpertStudioPanelWorkflowIfelseComponent } from './ifelse/ifelse.compone
     TextFieldModule,
     NgmDensityDirective,
     NgmSpinComponent,
-    XpertStudioPanelWorkflowIfelseComponent
+    XpertStudioPanelWorkflowIfelseComponent,
+    XpertStudioPanelWorkflowIteratingComponent,
+    XpertStudioPanelWorkflowAnswerComponent
   ]
 })
 export class XpertStudioPanelWorkflowComponent {

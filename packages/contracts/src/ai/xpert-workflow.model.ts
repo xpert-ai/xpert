@@ -5,6 +5,9 @@ import { TStateVariable } from "./xpert.model"
 export enum WorkflowNodeTypeEnum {
   ASSIGNER = 'assigner',
   IF_ELSE = 'if-else',
+  SPLITTER = 'splitter',
+  ITERATING = 'iterating',
+  ANSWER = 'answer',
   NOTE = 'note'
 }
 
@@ -48,6 +51,42 @@ export interface IWFNAssigner extends IWorkflowNode {
 export interface IWFNIfElse extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.IF_ELSE
   cases: TWFCase[]
+}
+
+export interface IWFNSplitter extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.SPLITTER
+}
+
+export interface IWFNIterating extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.ITERATING
+  /**
+   * Variable name of input array in state
+   */
+  inputVariable: string
+  /**
+   * Variable name of output in state
+   */
+  outputVariable: string
+  /**
+   * Execute in parallel, otherwise execute sequentially
+   */
+  parallel?: boolean
+  /**
+   * Maximum number of parallel task
+   */
+  maximum?: number
+
+  /**
+   * - terminate: terminate on error
+   * - ignore: ignore error and continue
+   * - remove: remove error output
+   */
+  errorMode?: 'terminate' | 'ignore' | 'remove'
+}
+
+export interface IWFNAnswer extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.ANSWER
+  promptTemplate: string
 }
 
 export enum WorkflowLogicalOperator {
@@ -98,4 +137,21 @@ export type TWorkflowVarGroup = {
 
 export function channelName(name: string) {
 	return name.toLowerCase() + '_channel'
+}
+
+
+export function isAgentKey(key: string) {
+  return key?.toLowerCase().startsWith('agent_')
+}
+
+export function isRouterKey(key: string) {
+  return key?.toLowerCase().startsWith('router_')
+}
+
+export function isIteratingKey(key: string) {
+  return key?.toLowerCase().startsWith('iterating_')
+}
+
+export function isWorkflowKey(key: string) {
+  return isRouterKey(key) || isIteratingKey(key)
 }

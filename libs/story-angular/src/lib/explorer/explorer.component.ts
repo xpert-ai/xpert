@@ -175,7 +175,7 @@ export class StoryExplorerComponent {
             if (!curr.dimension) {
               return acc
             }
-            acc[curr.dimension.dimension] = curr
+            acc[curr.dimension.parameter || curr.dimension.dimension] = curr
             return acc
           }, {} as Record<string, ISlicer>)
         )

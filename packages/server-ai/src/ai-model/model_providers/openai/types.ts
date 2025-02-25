@@ -21,7 +21,7 @@ export function toCredentialKwargs(credentials: OpenAICredentials): OpenAIBaseIn
     const configuration: ClientOptions = {}
 
     if (credentials.openai_api_base) {
-        const openaiApiBase = credentials.openai_api_base.replace(/\/$/, '')
+        const openaiApiBase = credentials.openai_api_base.replace(/\/$/, '').replace(/\/v1$/, '')
         configuration.baseURL = `${openaiApiBase}/v1`
     }
 

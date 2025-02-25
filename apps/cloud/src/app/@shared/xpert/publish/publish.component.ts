@@ -60,7 +60,7 @@ export class XpertPublishComponent {
 
   readonly loading = signal(false)
 
-  readonly providers = signal(Object.keys(INTEGRATION_PROVIDERS).map((name) => INTEGRATION_PROVIDERS[name]))
+  readonly providers = signal(Object.keys(INTEGRATION_PROVIDERS).map((name) => INTEGRATION_PROVIDERS[name]).filter((p) => p.webhook))
 
   readonly xpert = derivedAsync(() => {
     return this.xpertId() ? this.xpertService.getById(this.xpertId(), { relations: ['integrations'] }) : of(null)

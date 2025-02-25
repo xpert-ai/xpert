@@ -1,7 +1,7 @@
-import { AfterViewInit, ChangeDetectorRef, Component, computed, inject, OnDestroy, SecurityContext, signal } from '@angular/core'
+import { AfterViewInit, ChangeDetectorRef, Component, computed, inject, output, SecurityContext, signal } from '@angular/core'
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser'
-import { EmailTemplateNameEnum, IOrganization, LanguagesEnum, LanguagesMap } from '@metad/contracts'
+import { EmailTemplateNameEnum, IOrganization, LanguagesMap } from '../../../../@core/types'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { isEqual } from 'lodash-es'
 import { Subject, combineLatest } from 'rxjs'
@@ -13,7 +13,6 @@ import { EditorThemeMap } from '@metad/ocap-angular/formula'
 import { CommonModule } from '@angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
-import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { MatButtonModule } from '@angular/material/button'
 import { MatIconModule } from '@angular/material/icon'
 import { EmailTemplatesComponent } from '../email-templates.component'
@@ -32,7 +31,6 @@ import { EmailTemplatesComponent } from '../email-templates.component'
 		MonacoEditorModule,
 		
 		ButtonGroupDirective,
-		NgmSelectComponent
   ],
   selector: 'pac-email-template',
   templateUrl: './template.component.html',
@@ -41,6 +39,9 @@ import { EmailTemplatesComponent } from '../email-templates.component'
 export class EmailTemplateComponent extends TranslationBaseComponent implements AfterViewInit {
 
   readonly homeComponent = inject(EmailTemplatesComponent)
+
+  // Outputs
+  readonly closed = output<void>()
 
   // Signals
   readonly languageCode = computed(() =>
@@ -206,5 +207,9 @@ export class EmailTemplateComponent extends TranslationBaseComponent implements 
     } catch (error) {
       this.toastrService.danger(error)
     }
+  }
+
+  close() {
+    this.closed.emit()
   }
 }

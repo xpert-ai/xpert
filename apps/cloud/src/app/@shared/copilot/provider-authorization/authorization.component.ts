@@ -11,6 +11,7 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { CopilotProviderService, getErrorMessage, IAiProviderEntity, ICopilot, ToastrService } from '../../../@core'
 import { CopilotCredentialFormComponent } from '../credential-form/form.component'
 import { isEqual } from 'lodash-es'
+import { Subscription } from 'rxjs'
 
 @Component({
   standalone: true,
@@ -55,7 +56,10 @@ export class CopilotAiProviderAuthComponent {
   readonly help = computed(() => this.provider()?.help)
 
   readonly loading = signal(false)
+  readonly error = signal('')
   readonly dirty = computed(() => !isEqual(this.copilotProvider()?.credentials, this.credentials()))
+
+  #subscription: Subscription = null
 
   constructor() {
     effect(() => {
@@ -66,6 +70,9 @@ export class CopilotAiProviderAuthComponent {
   }
 
   cancel() {
+    if (!this.#subscription?.closed) {
+      this.#subscription?.unsubscribe()
+    }
     this.#dialogRef.close()
   }
 
@@ -75,7 +82,8 @@ export class CopilotAiProviderAuthComponent {
     }
 
     this.loading.set(true)
-    this.#copilotProviderService
+    this.error.set('')
+    this.#subscription = this.#copilotProviderService
       .create({
         copilotId: this.copilot().id,
         providerName: this.provider().provider,
@@ -91,6 +99,7 @@ export class CopilotAiProviderAuthComponent {
         },
         error: (err) => {
           this.loading.set(false)
+          this.error.set(getErrorMessage(err))
           this.#toastr.error(getErrorMessage(err))
         }
       })
@@ -98,7 +107,8 @@ export class CopilotAiProviderAuthComponent {
 
   update() {
     this.loading.set(true)
-    this.#copilotProviderService
+    this.error.set('')
+    this.#subscription = this.#copilotProviderService
       .update(this.providerId(), {
         copilotId: this.copilot().id,
         providerName: this.provider().provider,
@@ -114,6 +124,7 @@ export class CopilotAiProviderAuthComponent {
         },
         error: (err) => {
           this.loading.set(false)
+          this.error.set(getErrorMessage(err))
           this.#toastr.error(getErrorMessage(err))
         }
       })

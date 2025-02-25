@@ -66,9 +66,13 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   }
 
   getVersions(id: string) {
-    return this.httpClient.get<{ id: string; version: string; latest: boolean; publishAt: Date }[]>(
+    return this.httpClient.get<{ id: string; version: string; latest: boolean; publishAt: Date; releaseNotes: string }[]>(
       this.apiBaseUrl + `/${id}/version`
     )
+  }
+
+  setAsLatest(id: string) {
+    return this.httpClient.post(this.apiBaseUrl + `/${id}/latest`, {})
   }
 
   saveDraft(id: string, draft: TXpertTeamDraft) {
@@ -79,8 +83,10 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.put<TXpertTeamDraft>(this.apiBaseUrl + `/${id}/draft`, draft)
   }
 
-  publish(id: string) {
-    return this.httpClient.post<IXpert>(this.apiBaseUrl + `/${id}/publish`, {})
+  publish(id: string, newVersion: boolean, body: {releaseNotes: string}) {
+    return this.httpClient.post<IXpert>(this.apiBaseUrl + `/${id}/publish`, body, {
+      params: new HttpParams().append('newVersion', newVersion)
+    })
   }
   publishIntegration(id: string, integration: Partial<IIntegration>) {
     return this.httpClient.post<IIntegration>(this.apiBaseUrl + `/${id}/publish/integration`, integration)
@@ -160,10 +166,20 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   clearMemory(id: string) {
     return this.httpClient.delete<TDeleteResult>(this.apiBaseUrl + `/${id}/memory`)
   }
-
+  
+  /**
+   * Get avaiable variables for agent or global variables
+   */
   getVariables(id: string, agentKey?: string) {
     return agentKey ? this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/agent/${agentKey}/variables`)
     : this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/variables`)
+  }
+
+  /**
+   * Get avaiable variables for workflow node
+   */
+  getWorkflowVariables(id: string, nodeKey: string) {
+    return this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/workflow/${nodeKey}/variables`)
   }
 
   getChatApp(id: string) {

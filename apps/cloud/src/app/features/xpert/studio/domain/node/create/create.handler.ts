@@ -26,6 +26,10 @@ export class CreateNodeHandler implements IHandler<CreateNodeRequest> {
             type: XpertTypeEnum.Agent,
             key,
           }
+
+          draft.team.agentConfig ??= {} 
+          draft.team.agentConfig.disableOutputs ??= []
+          draft.team.agentConfig.disableOutputs.push(key)
         }
       }
 

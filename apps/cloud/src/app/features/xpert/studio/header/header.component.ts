@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, model, signal, ViewContainerRef } from '@angular/core'
+import { Component, computed, HostListener, inject, model, signal, ViewContainerRef } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { OverlayAnimations } from '@metad/core'
@@ -16,7 +16,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { formatRelative } from 'date-fns'
-import { BehaviorSubject, distinctUntilChanged, filter, map,publish,  Observable, of, shareReplay, switchMap, startWith, combineLatestWith, tap, catchError } from 'rxjs'
+import { BehaviorSubject, distinctUntilChanged, filter, map, Observable, of, shareReplay, switchMap, startWith, combineLatestWith, tap, catchError } from 'rxjs'
 import { getDateLocale, TXpertAgentConfig } from '../../../../@core'
 import { XpertStudioApiService } from '../domain'
 import { XpertExecutionService } from '../services/execution.service'
@@ -29,6 +29,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatInputModule } from '@angular/material/input'
 import { MatSliderModule } from '@angular/material/slider'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { XpertPublishVersionComponent } from './publish/publish.component'
 
 @Component({
   selector: 'xpert-studio-header',
@@ -94,8 +95,6 @@ export class XpertStudioHeaderComponent {
   readonly maxConcurrency = computed(() => this.agentConfig()?.maxConcurrency)
   readonly recursionLimit = computed(() => this.agentConfig()?.recursionLimit)
 
-  readonly publishing = signal(false)
-
   // Executions
   readonly xpertId$ = toObservable(this.team).pipe(
     map((xpert) => xpert?.id),
@@ -126,30 +125,16 @@ export class XpertStudioHeaderComponent {
     shareReplay(1)
   )
 
-  save() {
+  saveDraft() {
     this.apiService.saveDraft().subscribe()
   }
 
   publish() {
-    this.publishing.set(true)
-    // Check if the draft has been saved
-    const obser: Observable<any> = this.unsaved() ? this.apiService.saveDraft() : of(true)
-    obser.pipe(switchMap(() => this.xpertService.publish(this.xpertStudioComponent.id())))
-      .subscribe({
-        next: (result) => {
-          this.#toastr.success(
-            `PAC.Xpert.PublishedSuccessfully`,
-            { Default: 'Published successfully' },
-            `v${result.version}`
-          )
-          this.publishing.set(false)
-          this.apiService.refresh()
-        },
-        error: (error) => {
-          this.#toastr.error(getErrorMessage(error))
-          this.publishing.set(false)
-        }
-      })
+    this.#dialog.open(XpertPublishVersionComponent,
+      {
+        viewContainerRef: this.#viewContainerRef
+      }
+    )
   }
 
   resume() {
@@ -213,4 +198,13 @@ export class XpertStudioHeaderComponent {
       }
     }).closed.subscribe({})
   }
+
+  @HostListener('window:keydown', ['$event'])
+  handleCtrlS(event: KeyboardEvent) {
+    if ((event.metaKey || event.ctrlKey) && event.key === 's') {
+      event.preventDefault(); // Prevent the default save dialog
+      this.saveDraft()
+    }
+  }
+
 }

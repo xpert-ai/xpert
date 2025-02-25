@@ -146,7 +146,7 @@
               <input class="flex h-9 grow py-1 px-2 rounded-lg text-sm leading-normal bg-gray-100 caret-primary-600 hover:bg-gray-100 focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-gray-50 placeholder:text-gray-400"
                 placeholder="https://mtda.cloud/" type="text" [ngModel]="webOptions()?.url" (ngModelChange)="updateWebUrl($event)">
               <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium ml-2 shrink-0"
-                [disabled]="loadingWeb() || optionSchema.integrationProvider && !integration()"
+                [disabled]="loadingWeb() || !webOptions()?.url || optionSchema.integrationProvider && !integration()"
                 (click)="loadRagWebPages()">
                 {{ 'PAC.Knowledgebase.Load' | translate: {Default: 'Load'} }}
               </button>
@@ -158,7 +158,7 @@
               >
                 <div class="flex items-center text-gray-700">
                   <i class="ri-equalizer-2-line text-lg mr-1"></i>
-                  <div class="text-[13px] font-semibold text-gray-800 uppercase">
+                  <div class="text-[13px] font-semibold text-gray-800">
                     {{ 'PAC.Knowledgebase.Settings' | translate: {Default: 'Settings'} }}
                   </div>
                 </div>
@@ -192,7 +192,7 @@
                 }
               </div>
               <div>
-                @if (!loadingWeb() && webDocs()) {
+                @if (!loadingWeb() && !webError() && webDocs()) {
                   {{ 'PAC.Knowledgebase.CrawlDesc' | translate: {
                     Default: 'A total of ' + webDocs().length + ' pages were crawled in ' + duration() + ' seconds',
                     duration: duration(),
@@ -215,7 +215,7 @@
                     <div class="flex justify-between items-center h-5">
                       <ngm-checkbox class="grow" [label]="page.metadata.title" [ngModel]="isSelectedPage(page)" (ngModelChange)="togglePage(page, $event)"/>
                       
-                      <div class="hidden group-hover:flex items-center h-6 px-2 text-sm rounded-md font-medium text-gray-500 uppercase hover:bg-gray-50"
+                      <div class="hidden group-hover:flex shrink-0 items-center h-6 px-2 text-sm rounded-md font-medium text-gray-500 uppercase hover:bg-gray-50"
                         (click)="previewDoc.set(page)"
                       >{{ 'PAC.Knowledgebase.Preview' | translate: {Default: 'Preview'} }}</div>
                     </div>
@@ -309,6 +309,21 @@
       <div cdkMenuItem (click)="integration.set(item)">
         {{ item.name }}
       </div>
+    } @empty {
+      <div class="flex justify-center px-4 py-2 text-token-text-secondary">
+        <i class="ri-battery-line"></i>
+        {{ 'PAC.KEY_WORDS.Empty' | translate: { Default: 'Empty' } }}
+      </div>
     }
+
+    <div class="border-b border-solid border-divider-regular my-1"></div>
+
+    <div class="p-2 flex justify-end">
+      <a class="group flex items-center gap-2 text-sm font-light text-text-primary transition-all duration-100 hover:text-primary-500"
+        href="/settings/integration" target="_blank">
+        {{ 'PAC.Knowledgebase.NewIntegration' | translate: {Default: 'New Integration'} }}
+        <i class="ri-external-link-line transition-all group-hover:translate-x-1"></i>
+      </a>
+    </div>
   </div>
 </ng-template>

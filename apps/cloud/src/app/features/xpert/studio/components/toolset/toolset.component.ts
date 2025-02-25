@@ -71,6 +71,11 @@ export class XpertStudioNodeToolsetComponent {
     }))
   })
 
+  /**
+   * At least one tool enabled
+   */
+  readonly atLeastOne = computed(() => this.availableTools()?.some((t) => t.enabled))
+
   private get hostElement(): HTMLElement {
     return this.elementRef.nativeElement
   }

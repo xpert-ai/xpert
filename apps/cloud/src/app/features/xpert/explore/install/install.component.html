@@ -30,7 +30,7 @@
 
 <div class="flex flex-row-reverse">
   <button type="button" class="btn disabled:btn-disabled btn-primary btn-large justify-center w-24 ml-2"
-    [disabled]="basicForm.invalid() || loading()"
+    [disabled]="!workspace() || basicForm.invalid() || loading()"
     (click)="create()"
   >{{ 'PAC.Xpert.Create' | translate: {Default: 'Create'} }}</button>
   <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large justify-center w-24"

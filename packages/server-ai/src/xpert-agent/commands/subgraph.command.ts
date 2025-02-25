@@ -1,4 +1,4 @@
-import { IXpert, IXpertAgentExecution, TChatOptions } from '@metad/contracts'
+import { IXpert, IXpertAgentExecution, TChatOptions, TXpertParameter } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 
@@ -31,6 +31,11 @@ export class XpertAgentSubgraphCommand implements ICommand {
 			 */
 			rootController: AbortController
 			signal: AbortSignal
+			disableCheckpointer?: boolean
+			/**
+			 * Temporary parameters (state variables)
+			 */
+			variables?: TXpertParameter[]
 		}
 	) {}
 }

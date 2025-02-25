@@ -38,7 +38,7 @@ import {
 	tryFixVariableSlicer,
 	workOutTimeRangeSlicers
 } from '@metad/ocap-core'
-import { BuiltinToolset, STATE_VARIABLE_SYS_LANGUAGE, ToolNotSupportedError, ToolProviderCredentialValidationError } from '@metad/server-ai'
+import { BuiltinToolset, STATE_VARIABLE_SYS, ToolNotSupportedError, ToolProviderCredentialValidationError } from '@metad/server-ai'
 import { omit, race, shortuuid, TimeoutError } from '@metad/server-common'
 import { groupBy } from 'lodash'
 import { firstValueFrom, Subject, Subscriber, switchMap, takeUntil } from 'rxjs'
@@ -447,7 +447,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		const { dsCoreService, entityType, chatbi, language } = context
 		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 
-		const lang = currentState[STATE_VARIABLE_SYS_LANGUAGE]
+		const lang = currentState[STATE_VARIABLE_SYS]?.language
 		const indicators = currentState[ChatBIVariableEnum.INDICATORS]?.map((_) => omit(_, 'default', 'reducer'))
 		const chartService = new ChartBusinessService(dsCoreService)
 		const destroy$ = new Subject<void>()

@@ -69,7 +69,7 @@ export class CompleteToolCallsHandler implements IQueryHandler<CompleteToolCalls
 				subAgents[toolCall.name].parameters?.forEach((param) => parameters.push({
 					name: param.name,
 					title: param.title,
-					description: param.description,
+					description: param.description as string,
 					type: param.type
 				}))
 				return {

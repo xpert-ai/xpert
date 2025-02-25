@@ -291,7 +291,8 @@
       "MessageCount": "消息数",
       "TimeZone": "时区",
       "Source Type": "源类型",
-      "Available": "可用"
+      "Available": "可用",
+      "PleaseEnter": "请输入"
     },
     "Workflow": {
       "And": "且",
@@ -1625,6 +1626,7 @@
       "Reasoning": "推理"
     },
     "ChatBI": {
+      "DeprecationNotes": "ChatBI 功能请使用数字专家智能体中的 ChatBI 工具集！",
       "Title": "ChatBI-数据分析与洞察",
       "TransformData": "利用人工智能将数据转化为洞察力。",
       "InputPlaceholder": "针对数据集询问问题，按 Enter 发送",
@@ -1985,6 +1987,7 @@
       "TopKTooltip": "用于筛选与用户问题相似度最高的文本片段。",
       "ScoreTooltip": "用于设置文本块筛选的相似度阈值",
       "WeightTooltip": "在多知识库组合中的权重",
+      "NewIntegration": "新建集成连接",
       "Chunk": "分块"
     },
     "Integration": {
@@ -2031,6 +2034,8 @@
       "CommunicateDifferentChannels": "与团队成员、贡献者和开发者在不同频道中交流",
       "Summary": "总结",
       "Logic": "逻辑",
+      "Splitter": "分割",
+      "Item": "项",
       "Note": "注释",
       "Others": "其他",
       "VariableReducer": "变量归约",
@@ -2060,10 +2065,12 @@
       "ParameterType_Paragraph": "段落",
       "ParameterType_Select": "下拉选项",
       "ParameterType_Number": "数字",
+      "ParameterType_ArrayString": "字符串数组",
+      "ParameterType_Array": "对象数组",
       "EditParameter": "编辑参数",
       "ParameterType": "参数类型",
       "ParameterKey": "技术名称",
-      "ParameterName": "显示名称",
+      "ParameterName": "技术名称",
       "ParameterTitle": "标题",
       "ParameterDescription": "描述",
       "ExecutionsHistories": "执行记录",
@@ -2314,6 +2321,7 @@
       "XpertPublished": "专家已发布成功",
       "XpertPublishDeleted": "专家发布已删除",
       "RefreshToolset": "刷新，同步工具集配置",
+      "EditToolset": "编辑工具集配置",
       "End": "终点",
       "EndTool": "终点工具，完成时对话运行结束",
       "EndAgentTip": "终点智能体，完成时对话运行结束",
@@ -2426,7 +2434,30 @@
       "GenerateContent": "生成内容",
       "StateVariable": "状态变量",
       "TopKTooltip": "用于筛选与用户问题相似度最高的文本片段。",
-      "RecallSettings": "召回设置"
+      "RecallSettings": "召回设置",
+      "AtLeastOneTool": "至少启用一个工具",
+      "Iterating": "迭代",
+      "Next": "下一步",
+      "ErrorModePlaceholder": "选择一种响应错误的方式",
+      "Parallelization": "并行",
+      "MaximumParallel": "最大并行数",
+      "ErrorMode": "错误响应方法",
+      "ParallelizationTooltip": "在并行模式下，迭代中的任务支持并行执行",
+      "MaximumParallelTooltip": "最大并行数，用于控制单次迭代中同时执行的任务数量",
+      "Router": "路由",
+      "Release": "发布",
+      "CreateNewVersion": "创建新版本",
+      "NewVersionDesc": "基于当前版本创建后续版本号",
+      "UpdateCurrentVersion": "直接更新当前版本中的内容",
+      "CurrentVersion": "当前版本",
+      "LatestVersion": "最新版本",
+      "AddReleaseNotes": "添加发布说明",
+      "ReleaseNotesLess": "发布说明太少",
+      "SetAsLatest": "设为最新",
+      "LatestDefaultVersion": "设置此版本为最新，打开数字专家时的默认版本",
+      "VersionHistory": "历史版本",
+      "DeleteThisVersion": "删除此版本，不影响其他版本的使用",
+      "Answer": "回答"
     },
     "title": {
       "short": "Xpert AI"
@@ -2619,7 +2650,8 @@
         "DataNetworkDescription": "服务端将从此网络存储地址下载相应的数据文件进行演示数据的导入",
         "FileUrl": "文件链接",
         "TimeZone": "时区",
-        "SelectTimeZone": "选择一个时区"
+        "SelectTimeZone": "选择一个时区",
+        "Currency": "币种"
       }
     }
   },

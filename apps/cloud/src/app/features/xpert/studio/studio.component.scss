@@ -108,6 +108,19 @@
       @apply bg-blue-500;
     }
   }
+
+  .node-output-bottom {
+    .f-component.f-node-output {
+      position: relative;
+      bottom: 0;
+      left: initial;
+      border-radius: 0;
+      width: var(--output-size);
+      height: 3px;
+      @apply bg-blue-500;
+    }
+  }
+  
 }
 
 .f-node.f-component, .f-group.f-component {
@@ -209,5 +222,19 @@ f-flow {
     bottom: var(--resize-handle-offset);
     right: var(--resize-handle-offset);
     cursor: nwse-resize;
+  }
+}
+
+.f-component.f-connection.connecting {
+  stroke-dasharray: 4, 2;
+  animation: dash-flow 2s linear infinite;
+}
+
+@keyframes dash-flow {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  100% {
+    stroke-dashoffset: 0;
   }
 }
