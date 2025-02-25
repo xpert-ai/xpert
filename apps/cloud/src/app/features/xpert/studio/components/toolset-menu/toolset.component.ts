@@ -8,10 +8,10 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { NgmHighlightDirective, NgmSearchComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { debounceTime, map, startWith } from 'rxjs'
 import { IToolProvider, IXpertToolset, uuid, XpertToolsetCategoryEnum } from 'apps/cloud/src/app/@core'
 import { ToolProviderCardComponent, ToolsetCardComponent } from 'apps/cloud/src/app/@shared/xpert'
-import { debounceTime, map, startWith } from 'rxjs'
-import { EmojiAvatarComponent } from '../../../../../@shared/avatar/emoji-avatar/avatar.component'
+import { EmojiAvatarComponent } from '../../../../../@shared/avatar'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 
@@ -32,6 +32,7 @@ import { XpertStudioComponent } from '../../studio.component'
     
     NgmSearchComponent,
     NgmHighlightDirective,
+    NgmI18nPipe,
     EmojiAvatarComponent,
     ToolsetCardComponent,
     ToolProviderCardComponent
