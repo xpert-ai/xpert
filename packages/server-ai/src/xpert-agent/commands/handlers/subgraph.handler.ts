@@ -202,7 +202,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const withTools = [...tools.map((item) => item.tool), ...Object.keys(subAgents ?? {}).map((name) => subAgents[name].tool)]
 		const summarize = ensureSummarize(team.summarize)
 		// Next agent
-		let nextNodeKey: string[] | string = END
+		let nextNodeKey: string[] = [END]
 		let failNodeKey = END
 		const agentKeys = new Set([agent.key])
 		const nodes: Record<string, {ends: string[]; graph: RunnableLike;}> = {}
