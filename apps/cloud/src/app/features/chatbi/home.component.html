@@ -24,9 +24,10 @@
             {{cube() ? cube().caption || cube().name : ('PAC.ChatBI.SelectCube' | translate: {Default: 'Select Cube' })}}</a>
         }
       </h1>
-      <p class="text-xs md:text-sm text-zinc-500 dark:text-zinc-300">
-        {{ 'PAC.ChatBI.TransformData' | translate: {Default: 'Transform data into insights with AI.' } }}
-      </p>
+      <div class="flex items-center gap-1 text-xs md:text-sm text-text-destructive">
+        <i class="ri-spam-2-fill text-xl"></i>
+        {{ 'PAC.ChatBI.DeprecationNotes' | translate: {Default: 'For ChatBI functionality, please use the ChatBI toolset in the Digital Expert Agent!' } }}
+      </div>
     </div>
 
     <div class="body w-full flex-1 flex flex-col lg:flex-row-reverse justify-between items-stretch overflow-hidden">

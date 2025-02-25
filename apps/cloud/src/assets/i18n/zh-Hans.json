@@ -1626,6 +1626,7 @@
       "Reasoning": "推理"
     },
     "ChatBI": {
+      "DeprecationNotes": "ChatBI 功能请使用数字专家智能体中的 ChatBI 工具集！",
       "Title": "ChatBI-数据分析与洞察",
       "TransformData": "利用人工智能将数据转化为洞察力。",
       "InputPlaceholder": "针对数据集询问问题，按 Enter 发送",
