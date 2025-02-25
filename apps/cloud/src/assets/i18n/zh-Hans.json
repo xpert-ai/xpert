@@ -2455,7 +2455,8 @@
       "SetAsLatest": "设为最新",
       "LatestDefaultVersion": "设置此版本为最新，打开数字专家时的默认版本",
       "VersionHistory": "历史版本",
-      "DeleteThisVersion": "删除此版本，不影响其他版本的使用"
+      "DeleteThisVersion": "删除此版本，不影响其他版本的使用",
+      "Answer": "回答"
     },
     "title": {
       "short": "Xpert AI"

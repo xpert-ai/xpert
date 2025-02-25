@@ -343,6 +343,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				  })
 				return acc
 			}, {}) ?? {}),
+			...(agent.parameters?.reduce((acc, parameter) => {
+				acc[parameter.name] = Annotation(stateVariable(parameter))
+				return acc
+			}, {}) ?? {}),
 			// Channels for agents
 			...Object.fromEntries(agents.map((agent) => [
 				channelName(agent.key),
@@ -645,14 +649,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 		const stateGraph = RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config: LangGraphRunnableConfig): Promise<Partial<typeof AgentStateAnnotation.State>> => {
 			const call = state.toolCall
-			execution.threadId = config.configurable.thread_id
-			execution.checkpointNs = config.configurable.checkpoint_ns
 
 			// Record start time
 			const timeStart = Date.now()
 			const _execution = await this.commandBus.execute(
 				new XpertAgentExecutionUpsertCommand({
 					...execution,
+					threadId: config.configurable.thread_id,
+					checkpointNs: config.configurable.checkpoint_ns,
 					xpert: { id: xpert.id } as IXpert,
 					agentKey: agent.key,
 					inputs: call?.args,
@@ -728,14 +732,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				await finalize()
 
 				const nState: Record<string, any> = isTool ? {
-					[`${leaderKey}.messages`]: [
-						new ToolMessage({
-							content: lastMessage.content,
-							name: call.name,
-							tool_call_id: call.id ?? "",
-						})
-					],
-					[`${agent.key}.messages`]: [lastMessage],
+					// [`${leaderKey}.messages`]: [
+					// 	new ToolMessage({
+					// 		content: lastMessage.content,
+					// 		name: call.name,
+					// 		tool_call_id: call.id ?? "",
+					// 	})
+					// ],
+					// [`${agent.key}.messages`]: [lastMessage],
 					[channelName(leaderKey)]: {
 						messages: [
 							new ToolMessage({
@@ -746,12 +750,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						]
 					},
 					[channelName(agent.key)]: {
+						...output[channelName(agent.key)],
 						messages: [lastMessage]
 					}
 				} : {
 					messages: [lastMessage],
-					[`${agent.key}.messages`]: [lastMessage],
+					// [`${agent.key}.messages`]: [lastMessage],
 					[channelName(agent.key)]: {
+						...output[channelName(agent.key)],
 						messages: [lastMessage],
 						output: stringifyMessageContent(lastMessage.content)
 					}
