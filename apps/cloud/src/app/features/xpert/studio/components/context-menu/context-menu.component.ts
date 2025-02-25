@@ -2,7 +2,7 @@ import { CdkMenu, CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectorRef, Component, inject, TemplateRef, ViewChild } from '@angular/core'
 import { MatTabsModule } from '@angular/material/tabs'
-import { IXpert, uuid, WorkflowNodeTypeEnum } from 'apps/cloud/src/app/@core'
+import { IWFNIfElse, IXpert, uuid, WorkflowNodeTypeEnum } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { Subscription } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
@@ -85,8 +85,14 @@ export class XpertStudioContextMenuComponent {
   addWorkflowRouter() {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.IF_ELSE,
-      key: genXpertRouterKey()
-    })
+      key: genXpertRouterKey(),
+      cases: [
+        {
+          caseId: uuid(),
+          conditions: []
+        }
+      ]
+    } as IWFNIfElse)
   }
 
   addWorkflowIterating() {
