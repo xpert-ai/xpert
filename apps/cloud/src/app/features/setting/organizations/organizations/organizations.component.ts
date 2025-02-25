@@ -1,9 +1,8 @@
 import { SelectionModel } from '@angular/cdk/collections'
 import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
-import { MatDialog } from '@angular/material/dialog'
 import { Router, RouterModule } from '@angular/router'
-import { injectConfirmDelete, NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
+import { injectConfirmDelete } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom, map, shareReplay, switchMap } from 'rxjs'
 import { getErrorMessage, IOrganization, OrganizationsService, ToastrService } from '../../../../@core'
@@ -39,7 +38,6 @@ export class AllOrganizationsComponent extends TranslationBaseComponent {
   constructor(
     private readonly organizationsService: OrganizationsService,
     private readonly router: Router,
-    private readonly _dialog: MatDialog,
     private _toastrService: ToastrService
   ) {
     super()

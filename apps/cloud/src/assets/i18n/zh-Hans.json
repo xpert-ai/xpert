@@ -2650,7 +2650,8 @@
         "DataNetworkDescription": "服务端将从此网络存储地址下载相应的数据文件进行演示数据的导入",
         "FileUrl": "文件链接",
         "TimeZone": "时区",
-        "SelectTimeZone": "选择一个时区"
+        "SelectTimeZone": "选择一个时区",
+        "Currency": "币种"
       }
     }
   },
