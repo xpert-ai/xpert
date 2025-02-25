@@ -1,42 +1,36 @@
-<mat-card class="w-full">
-  <mat-card-header>
-    <mat-card-title>{{ 'PAC.KEY_WORDS.ORGANIZATION' | translate: {Default: 'Organization'} }}</mat-card-title>
-  </mat-card-header>
-  <mat-card-content >
-    <div class="w-full flex flex-col justify-center items-center">
-      <pac-org-avatar-editor [org]="selectedOrg"></pac-org-avatar-editor>
-      <div>{{ selectedOrg?.name }}</div>
-    </div>
-  </mat-card-content>
-</mat-card>
+<div class="px-8 py-4">
+  <div class="text-xl font-semibold pb-2">
+    {{ 'PAC.KEY_WORDS.ORGANIZATION' | translate: {Default: 'Organization'} }}
+  </div>
 
-<mat-card class="w-full">
-  <mat-card-header>
-    <mat-card-title>{{ 'PAC.ORGANIZATIONS_PAGE.Organization.MAIN' | translate: {Default: "Main"} }}</mat-card-title>
-  </mat-card-header>
-  <mat-card-content >
-    <div class="w-full flex justify-center">
-      <pac-edit-org-main></pac-edit-org-main>
-    </div>
-  </mat-card-content>
-</mat-card>
+  <div class="w-full flex flex-col justify-center p-4 items-center border border-solid border-divider-regular rounded-xl">
+    <pac-org-avatar-editor [org]="selectedOrg" />
+    <div>{{ selectedOrg?.name }}</div>
+  </div>
+</div>
 
-<mat-card class="w-full">
-  <mat-card-header>
-    <mat-card-title>{{ 'PAC.KEY_WORDS.Tags' | translate: {Default: "Tags"} }}</mat-card-title>
-  </mat-card-header>
-  <mat-card-content >
-    <tag-maintain class="w-full" />
-  </mat-card-content>
-</mat-card>
+<div class="px-8 py-4">
+  <div class="text-xl font-semibold pb-2">
+    {{ 'PAC.ORGANIZATIONS_PAGE.Organization.MAIN' | translate: {Default: "Main"} }}
+  </div>
 
-<mat-card class="w-full">
-  <mat-card-header>
-    <mat-card-title>{{ 'PAC.ORGANIZATIONS_PAGE.Organization.DEMO' | translate: {Default: "Demo"} }}</mat-card-title>
-  </mat-card-header>
-  <mat-card-content >
-    <div class="w-full flex justify-start">
-      <pac-organization-demo />
-    </div>
-  </mat-card-content>
-</mat-card>
+  <div class="w-full flex flex-col justify-center p-4 items-center border border-solid border-divider-regular rounded-xl">
+    <pac-edit-org-main />
+  </div>
+</div>
+
+<div class="px-8 py-4">
+  <div class="text-xl font-semibold pb-2">
+    {{ 'PAC.KEY_WORDS.Tags' | translate: {Default: "Tags"} }}
+  </div>
+
+  <tag-maintain class="w-full p-4 border border-solid border-divider-regular rounded-xl" />
+</div>
+
+<div class="px-8 py-4">
+  <div class="text-xl font-semibold pb-2">
+    {{ 'PAC.ORGANIZATIONS_PAGE.Organization.DEMO' | translate: {Default: "Demo"} }}
+  </div>
+
+  <pac-organization-demo class="w-full flex flex-col justify-center p-4 items-center border border-solid border-divider-regular rounded-xl" />
+</div>
