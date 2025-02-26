@@ -2,14 +2,15 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
-import { RouterModule } from '@angular/router'
+import { ActivatedRoute, RouterModule } from '@angular/router'
 import { DynamicGridDirective } from '@metad/core'
 import { NgmCommonModule, NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
+import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { debounceTime, tap } from 'rxjs'
 import { IXpertTemplate, XpertTemplateService, XpertTypeEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
@@ -44,11 +45,12 @@ export class XpertExploreComponent {
 
   readonly templateService = inject(XpertTemplateService)
   readonly #dialog = inject(Dialog)
+  readonly route = inject(ActivatedRoute)
+  readonly querySearch = injectQueryParams('search')
 
+  // States
   readonly loading = signal(true)
-  readonly templates = toSignal(this.templateService.getAll().pipe(
-    tap(() => this.loading.set(false))
-  ))
+  readonly templates = toSignal(this.templateService.getAll().pipe(tap(() => this.loading.set(false))))
 
   readonly categories = computed(() => this.templates()?.categories)
   readonly category = model<string[]>(['recommended'])
@@ -72,11 +74,21 @@ export class XpertExploreComponent {
   readonly searchControl = new FormControl<string>('')
   readonly searchText = toSignal(this.searchControl.valueChanges.pipe(debounceTime(300)), { initialValue: '' })
 
-  install(app: IXpertTemplate) {
-    this.#dialog.open(XpertInstallComponent, {
-      data: app
-    }).closed.subscribe({
-      next: () => {}
+  constructor() {
+    effect(() => {
+      if (this.querySearch()) {
+        this.searchControl.setValue(this.querySearch())
+      }
     })
+  }
+
+  install(app: IXpertTemplate) {
+    this.#dialog
+      .open(XpertInstallComponent, {
+        data: app
+      })
+      .closed.subscribe({
+        next: () => {}
+      })
   }
 }
