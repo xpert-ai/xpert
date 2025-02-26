@@ -18,7 +18,7 @@ import { ChatLarkContext, isConfirmAction, isEndAction, isRejectAction } from '.
 export class LarkConversationService implements OnModuleDestroy {
 	readonly #logger = new Logger(LarkConversationService.name)
 
-	public readonly prefix = 'chat'
+	public static readonly prefix = 'chat'
 
 	private userQueues: Map<string, Queue> = new Map()
 
@@ -34,11 +34,14 @@ export class LarkConversationService implements OnModuleDestroy {
 	) {}
 
 	async getConversation(userId: string, xpertId: string) {
-		return await this.cacheManager.get<string>(this.prefix + `/${userId}/${xpertId}`)
+		const key = LarkConversationService.prefix + `:${userId}:${xpertId}`
+		return await this.cacheManager.get<string>(key)
 	}
 
 	async setConversation(userId: string, xpertId: string, conversationId: string) {
-		return await this.cacheManager.set(this.prefix + `/${userId}/${xpertId}`, conversationId, 1000 * 60 * 10)
+		const key = LarkConversationService.prefix + `:${userId}:${xpertId}`
+		await this.cacheManager.set(key, conversationId, { ttl: 60 * 10 })
+		await this.cacheManager.get<string>(key)
 	}
 
 	async ask(xpertId: string, content: string, message: ChatLarkMessage) {
@@ -90,7 +93,7 @@ export class LarkConversationService implements OnModuleDestroy {
 		)
 		if (isEndAction(action)) {
 			await prevMessage.end()
-			await this.cacheManager.del(this.prefix + `/${userId}/${xpertId}`)
+			await this.cacheManager.del(LarkConversationService.prefix + `:${userId}:${xpertId}`)
 		} else if (isConfirmAction(action)) {
 			await prevMessage.done()
 			await this.commandBus.execute(

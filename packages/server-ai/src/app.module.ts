@@ -54,7 +54,7 @@ import { IntegrationFirecrawlModule } from './integration-firecrawl/firecrawl.mo
 
 				return {
 					store: store as unknown as CacheStore,
-					ttl: 3 * 60000 // 3 minutes (milliseconds)
+					ttl: 3 * 60 // 3 minutes
 					// ttl: configService.get('CACHE_TTL'),
 				}
 			},
