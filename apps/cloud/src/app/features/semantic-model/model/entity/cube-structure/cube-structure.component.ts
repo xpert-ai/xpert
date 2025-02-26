@@ -214,7 +214,6 @@ export class ModelCubeStructureComponent {
       filter(isEntityType)
     )
     .subscribe((entityType) => {
-      console.log(entityType)
       // Sync original dimensions and measures when that is empty
       if (!this.entityService.dimensions()?.length) {
         this.entityService.updateCube({

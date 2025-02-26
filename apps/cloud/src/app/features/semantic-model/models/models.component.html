@@ -146,3 +146,7 @@
     </div>
   }
 </ng-template>
+
+<ng-template #descTempl let-item="raw">
+  <div class="max-w-xs truncate text-sm" [title]="item.description">{{item.description}}</div>
+</ng-template>
