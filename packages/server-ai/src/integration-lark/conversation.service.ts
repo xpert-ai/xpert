@@ -1,5 +1,5 @@
 import { IChatConversation } from '@metad/contracts'
-import { REDIS_OPTIONS, RequestContext } from '@metad/server-core'
+import { REDIS_OPTIONS, RequestContext, runWithRequestContext, UserService } from '@metad/server-core'
 import { CACHE_MANAGER, forwardRef, Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import * as Bull from 'bull'
@@ -23,6 +23,7 @@ export class LarkConversationService implements OnModuleDestroy {
 	private userQueues: Map<string, Queue> = new Map()
 
 	constructor(
+		private readonly userService: UserService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
 		@Inject(CACHE_MANAGER)
@@ -135,8 +136,17 @@ export class LarkConversationService implements OnModuleDestroy {
 			 * Bind processing logic, maximum concurrency is one
 			 */
 			queue.process(1, async (job) => {
-				await this.commandBus.execute<LarkMessageCommand, Observable<any>>(new LarkMessageCommand(job.data))
-				return `Processed message: ${job.id}`
+				const user = await this.userService.findOne(job.data.userId, {relations: ['role']})
+
+				runWithRequestContext(
+					{ user, headers: { ['organization-id']: job.data.organizationId } }, async () => {
+					try {
+						await this.commandBus.execute<LarkMessageCommand, Observable<any>>(new LarkMessageCommand(job.data))
+						return `Processed message: ${job.id}`
+					} catch(err) {
+						this.#logger.error(err)
+					}
+				})
 			})
 
 			// completed event
