@@ -74,10 +74,9 @@ export function createCasesNode(graph: TXpertGraph, node: TXpertTeamNode & { typ
 		const evaluateConditions = (conditions: TWFCaseCondition[], logicalOperator: WorkflowLogicalOperator) => {
 			if (logicalOperator === WorkflowLogicalOperator.AND) {
 				return conditions.every(evaluateCondition)
-			} else if (logicalOperator === WorkflowLogicalOperator.OR) {
+			} else {
 				return conditions.some(evaluateCondition)
 			}
-			return false
 		}
 
 		for (const item of entity.cases) {
