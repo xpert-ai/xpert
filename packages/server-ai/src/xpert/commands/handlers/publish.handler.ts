@@ -230,6 +230,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 				xpertOptions[node.type][node.key].position = node.position
 				xpertOptions[node.type][node.key].size = node.size
 			})
+			xpert.graph = pick(draft, 'nodes', 'connections') as TXpertGraph
 		}
 
 		// Update basic info
@@ -250,7 +251,6 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 		// Update new version
 		xpert.version = version
 		xpert.draft = null
-		xpert.graph = pick(draft, 'nodes', 'connections') as TXpertGraph
 		xpert.publishAt = new Date()
 		xpert.active = true
 		xpert.agent = undefined // Avoid updating the primary agent again and causing `updatedAt` inconsistency
