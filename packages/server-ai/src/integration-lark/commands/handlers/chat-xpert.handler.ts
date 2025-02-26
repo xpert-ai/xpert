@@ -41,7 +41,8 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 				},
 				{
 					from: 'feishu',
-					fromEndUserId: userId
+					fromEndUserId: userId,
+					language: larkMessage.language
 				}
 			)
 		)

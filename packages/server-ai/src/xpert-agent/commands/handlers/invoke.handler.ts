@@ -29,6 +29,7 @@ import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { STATE_VARIABLE_SYS } from './types'
 import { GetCopilotCheckpointsByParentQuery } from '../../../copilot-checkpoint/queries'
 import { XpertSensitiveOperationException } from '../../../core/errors'
+import { format } from 'date-fns/format'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -71,7 +72,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 			await this.updateToolCalls(graph, config, operation)
 		}
 
-		const languageCode = options.language || user.preferredLanguage
+		const languageCode = options.language || user.preferredLanguage || 'en-US'
 		const contentStream = from(
 			graph.streamEvents(
 				input?.input
@@ -81,8 +82,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 							language: languageCode,
 							user_email: user.email,
 							timezone: user.timeZone || options.timeZone,
-							date: new Intl.DateTimeFormat(languageCode).format(new Date()).replace(/\//g, '-'),
-							datetime: new Date().toLocaleString(languageCode)
+							date: format(new Date(), 'yyyy-MM-dd'),
+							datetime: new Date().toLocaleString()
 						},
 						memories,
 					}
