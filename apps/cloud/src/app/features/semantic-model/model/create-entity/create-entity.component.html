@@ -126,6 +126,12 @@
           </mat-list-item>
         }
       </mat-list>
+      @if (modelType === MODEL_TYPE.XMLA) {
+        <div class="flex-1 w-full flex justify-center items-center gap-1">
+          <i class="ri-information-2-line text-lg"></i>
+          {{ 'PAC.MODEL.XmlaSyncInfo' | translate: {Default: 'Dimensions and measures are automatically synchronized after creation'} }}
+        </div>
+      }
     } @case(SemanticModelEntityType.DIMENSION) {
       <div class="px-4 flex gap-4">
         <span class="w-12 text-center">

@@ -129,7 +129,8 @@ export class ModelComponent extends TranslationBaseComponent implements IsDirty 
     shareReplay(1)
   )
 
-  public readonly entities$ = this.modelService.entities$
+  readonly entities$ = this.modelService.entities$
+  readonly cubes = this.modelService.cubes
 
   // For tables or cubes in data source
   readonly loadingTables = signal(false)
@@ -330,6 +331,11 @@ export class ModelComponent extends TranslationBaseComponent implements IsDirty 
     const modelType = this.modelService.modelType()
     const entitySets = this.tables()
     if (modelType === MODEL_TYPE.XMLA) {
+      // Check cube exist
+      if (entity?.name && this.cubes().some((_) => _.name === entity.name)) {
+        this.toastrService.error('PAC.MODEL.Error_EntityExists', '', {Default: 'Entity already exists!'})
+        return
+      }
       const result = await firstValueFrom(
         this._dialog
           .open<ModelCreateEntityComponent, CreateEntityDialogDataType, CreateEntityDialogRetType>(
