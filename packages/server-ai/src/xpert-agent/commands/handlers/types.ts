@@ -145,6 +145,18 @@ export function stateVariable(variable: TStateVariable) {
 	}
 }
 
+export function stateToParameters(state: typeof AgentStateAnnotation.State,) {
+	return Object.keys(state).reduce((acc, key) => {
+		const value = state[key]
+		if (Array.isArray(value)) {
+			acc[key] = value.map((item) => typeof item === 'string' ? item : JSON.stringify(item)).join('\n\n')
+		} else {
+			acc[key] = value
+		}
+		return acc
+	}, {})
+}
+
 export function allAgentsKey(graph: TXpertGraph,): IXpertAgent[] {
 	return graph.nodes.filter((n) => n.type === 'agent').map((_) => _.entity as IXpertAgent)
 }

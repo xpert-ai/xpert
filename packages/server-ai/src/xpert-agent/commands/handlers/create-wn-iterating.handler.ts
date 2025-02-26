@@ -118,6 +118,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 							const taskPool = new Set();
 							let index = 0
 							for await (const item of parameterValue) {
+								const i = index
 								// If the task pool is full, wait for one task to complete
 								if (taskPool.size >= maximum) {
 									await Promise.race(taskPool)
@@ -126,7 +127,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 								// Create a new task and add it to the pool
 								const task = subgraph.invoke({ ...state, ...item }, { ...config })
 									.then(retState => {
-										outputs[index] = retState[channelName(agentNode.key)].output
+										outputs[i] = retState[channelName(agentNode.key)].output
 									})
 									.catch((err) => {
 										switch(errorMode) {
@@ -185,7 +186,6 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 
 					const status = XpertAgentExecutionStatusEnum.SUCCESS
 					const error = null
-					const result = ''
 					const finalize = async () => {
 						const timeEnd = Date.now()
 						// Record End time
@@ -197,7 +197,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 								status,
 								error,
 								outputs: {
-									output: result
+									output: outputs
 								}
 							})
 						)

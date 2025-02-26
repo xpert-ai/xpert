@@ -29,7 +29,7 @@ import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertWorkflowQuery, GetXpertChatModelQuery } from '../../../xpert/queries'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
-import { AgentStateAnnotation, allAgentsKey, identifyAgent, parseXmlString, STATE_VARIABLE_SYS, STATE_VARIABLE_TITLE_CHANNEL, stateVariable, TGraphTool, TSubAgent } from './types'
+import { AgentStateAnnotation, allAgentsKey, identifyAgent, parseXmlString, STATE_VARIABLE_SYS, STATE_VARIABLE_TITLE_CHANNEL, stateToParameters, stateVariable, TGraphTool, TSubAgent } from './types'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { createSummarizeAgent } from './react_agent_executor'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
@@ -933,21 +933,4 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 
 		return END
 	}
-}
-
-function stateToParameters(state: typeof AgentStateAnnotation.State,) {
-	return Object.keys(state).reduce((acc, key) => {
-		acc[key] = state[key]
-		// if (key.endsWith('.messages')) {
-		// 	if (Array.isArray(state[key])) {
-		// 		const lastMessage = state[key][state[key].length - 1]
-		// 		if (lastMessage && isAIMessage(lastMessage)) {
-		// 			acc[key.replace('.messages', '')] = {
-		// 				output: lastMessage.content
-		// 			}
-		// 		}
-		// 	}
-		// }
-		return acc
-	}, {})
 }
