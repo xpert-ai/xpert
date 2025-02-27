@@ -45,7 +45,7 @@ export function createShowIndicatorsTool(context: ChatBIContext, credentials: TC
 				indicators: z.array(
 					z.object({
 						cube: z.string().describe(`Entity which is the indicator belong to`),
-						indicator: z.string().describe(`The code or id of indicator`)
+						indicator: z.string().describe(`The name of indicator`)
 					})
 				)
 			})

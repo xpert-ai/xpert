@@ -1,14 +1,15 @@
-import { EntityType, getDimensionHierarchies, getEntityDimensions, getEntityMeasures, getEntityVariables, getHierarchyLevels, RuntimeLevelType, VariableEntryType } from "../models";
+import { EntityType, getDimensionHierarchies, getEntityDimensions, getEntityIndicators, getEntityMeasures, getEntityVariables, getHierarchyLevels, RuntimeLevelType, VariableEntryType } from "../models";
 import { nonBlank } from "../utils";
 import { MEMBER_RETRIEVER_TOOL_NAME } from "./constants"
 
 export function prepend(prefix: string, text: string) {
-    return text?.split('\n').map(line => prefix + line).join('\n') ?? ''
-  }
+  return text?.split('\n').map(line => prefix + line).join('\n') ?? ''
+}
 
 export function markdownEntityType(entityType: EntityType) {
-    const variables = getEntityVariables(entityType)
-    return `The cube definition for (${entityType.name}) is as follows:
+
+  const variables = getEntityVariables(entityType)
+  let context = `The cube definition for (${entityType.name}) is as follows:
   name: ${entityType.name}
   caption: ${entityType.caption || ''}
   description: >
@@ -35,7 +36,7 @@ export function markdownEntityType(entityType: EntityType) {
   `        levels:
   ${getHierarchyLevels(item).filter((level) => level.levelType !== RuntimeLevelType.ALL).map((item) =>
   [
-  `          - name: "${item.name}"`,
+  `        - name: "${item.name}"`,
   `            caption: "${item.caption || ''}"`,
   item.description && item.description !== item.caption ?
   `            description: >
@@ -45,45 +46,68 @@ export function markdownEntityType(entityType: EntityType) {
   item.semantics?.formatter ? 
   `            time_formatter: "${item.semantics.formatter}"` : null,
   ].filter(nonBlank).join('\n')).join('\n')}
-  `].join('\n')).join('\n') ?? ''
+  `].join('\n')).join('\n')
   ).join('\n')}
-  measures:
-  ${getEntityMeasures(entityType).map((item) => 
-    [
-      `  - name: "${item.name}"`,
-      `    caption: ${item.caption || ''}`,
-      item.description && item.description !== item.caption ? 
-      `    description: >
-  ${prepend('      ', item.description)}` : null,
-      item.formatting?.unit ?
-      `    unit: ${item.formatting.unit}` : null
-    ].filter(nonBlank).join(`\n`)
-  ).join('\n')}
-  ` + (variables.length ? 
-  `sap variables in this cube are:
-  ${variables.map((variable) =>
-    [
-    `  - name: ${variable.name}`,
-    `    caption: ${variable.caption}`,
-    `    referenceDimension: ${variable.referenceDimension}`,
-    `    referenceHierarchy: ${variable.referenceHierarchy}`,
-    variable.variableEntryType === VariableEntryType.Required?
-    `    required: true` : null,
-    variable.defaultLow?
-    `    defaultValueKey: ${variable.defaultLow}` : null,
-    variable.defaultLowCaption?
-    `    defaultValueCaption: ${variable.defaultLowCaption}` : null,
-    ``,
-    ].filter(nonBlank).join(`\n`)
-  ).join('\n')}`
-  : '')
-  }
-  
-  export function markdownModelCube({modelId, dataSource, cube}: {modelId: string; dataSource: string; cube: EntityType}) {
-    return `The model id is: ${modelId || 'N\\A'}` + `\nThe dataSource is: ${dataSource || 'N\\A'}` +
-      `\n` + (cube ? markdownEntityType(cube) : '')
+`
+
+  const indicators = getEntityIndicators(entityType)
+  const measures = getEntityMeasures(entityType).filter((_) => !indicators.some((indicator) => indicator.name === _.name))
+  if (measures.length) {
+    context += `  measures:\n`
+    + measures.map((item) => 
+      [
+        `  - name: "${item.name}"`,
+        `    caption: ${item.caption || ''}`,
+        item.description && item.description !== item.caption ? 
+        `    description: >
+    ${prepend('      ', item.description)}` : null,
+        item.formatting?.unit ?
+        `    unit: ${item.formatting.unit}` : null,
+      ].filter(nonBlank).join(`\n`)
+    ).join('\n')
   }
 
+  if (indicators.length) {
+    context += `\n  indicators:\n` +
+    indicators.map((item) =>
+      [
+        `   - name: "${item.name}"`,
+        `     caption: ${item.caption || ''}`,
+        item.description && item.description !== item.caption ? 
+        `     description: >
+    ${prepend('       ', item.description)}` : null,
+        item.formatting?.unit ?
+        `     unit: ${item.formatting.unit}` : null,
+      ].filter(nonBlank).join(`\n`)
+    ).join('\n')
+  }
+
+  if (variables.length) {
+    context += `sap variables in this cube are:
+    ${variables.map((variable) =>
+      [
+      `  - name: ${variable.name}`,
+      `    caption: ${variable.caption}`,
+      `    referenceDimension: ${variable.referenceDimension}`,
+      `    referenceHierarchy: ${variable.referenceHierarchy}`,
+      variable.variableEntryType === VariableEntryType.Required?
+      `    required: true` : null,
+      variable.defaultLow?
+      `    defaultValueKey: ${variable.defaultLow}` : null,
+      variable.defaultLowCaption?
+      `    defaultValueCaption: ${variable.defaultLowCaption}` : null,
+      ``,
+      ].filter(nonBlank).join(`\n`)
+    ).join('\n')}`
+  }
+
+  return context
+}
+  
+export function markdownModelCube({modelId, dataSource, cube}: {modelId: string; dataSource: string; cube: EntityType}) {
+  return `The model id is: ${modelId || 'N\\A'}` + `\nThe dataSource is: ${dataSource || 'N\\A'}` +
+      `\n` + (cube ? markdownEntityType(cube) : '')
+}
 
 export const CubeVariablePrompt = `If the cube has sap variables then all variables is required are added to the 'variables' parameter of tool, where each variable has the format:
 {

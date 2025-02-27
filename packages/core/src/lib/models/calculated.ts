@@ -108,6 +108,11 @@ export interface RestrictedMeasureProperty extends CalculationProperty {
    * Constant Dimensions
    */
   constantDimensions?: Array<Dimension>
+  
+  formatting?: {
+    unit?: string;
+    decimal?: number;
+  }
 }
 
 export interface AggregationProperty extends CalculationProperty {
