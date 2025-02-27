@@ -282,9 +282,9 @@
 </div>
 
 <ng-template #addDimensionsTempl>
-  <div class="flex flex-col overflow-hidden p-2 rounded-lg bg-components-card-bg">
+  <div class="flex flex-col max-h-[90vh] overflow-hidden p-2 rounded-lg bg-components-card-bg">
     <header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="px-2 pb-2">
-      <h4 style="pointer-events: none;" class="mb-0">
+      <h4 class="mb-0 text-xl font-semibold">
         {{ 'Story.Explorer.AddDimensions' | translate: { Default: 'Add dimensions' } }}
       </h4>
     </header>

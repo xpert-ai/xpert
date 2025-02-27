@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http'
-import { AfterViewInit, Component, Inject, TemplateRef, ViewChild } from '@angular/core'
+import { AfterViewInit, Component, Inject, TemplateRef, viewChild, ViewChild } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
@@ -76,7 +76,9 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
   }
   private type$ = new BehaviorSubject<string>('my')
 
+  // Children
   @ViewChild('actions') actions: TemplateRef<any>
+  readonly descTempl = viewChild('descTempl', {read: TemplateRef})
 
   uploadForm = new FormGroup({
     name: new FormControl(),
@@ -128,6 +130,11 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
       {
         name: 'dataSource',
         caption: this.getTranslation('PAC.MODEL.DataSource', { Default: 'Data Source' })
+      },
+      {
+        name: 'description',
+        caption: this.getTranslation('PAC.KEY_WORDS.Description', { Default: 'Description' }),
+        cellTemplate: this.descTempl()
       },
       {
         name: 'createdBy',

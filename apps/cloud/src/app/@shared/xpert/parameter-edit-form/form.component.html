@@ -159,9 +159,7 @@
     @case (eXpertParameterTypeEnum.ARRAY) {
       <div class="flex flex-col p-2 rounded-lg border-[0.5px] border-solid border-divider-regular">
         <div class="flex justify-between items-center">
-          <div>元素</div>
-
-
+          <div>{{'PAC.Xpert.Item' | translate: {Default: 'Item'} }}</div>
           <div class="flex items-center rounded-md h-7 px-3 space-x-1 cursor-pointer select-none text-text-secondary hover:bg-state-base-hover"
             [cdkMenuTriggerFor]="parameterTypeMenu">
             <i class="ri-add-line"></i>
@@ -216,7 +214,7 @@
   }
 
   <div>
-    <div class="leading-8 text-[13px] font-medium text-gray-700"> {{ 'PAC.Xpert.Required' | translate: {Default: 'Required'} }}</div>
+    <div class="leading-8 text-[13px] font-medium text-gray-700"> {{ 'PAC.Xpert.Optional' | translate: {Default: 'Optional'} }}</div>
     <div>
       <mat-slide-toggle ngm-density="xs" 
         [ngModel]="optional()"

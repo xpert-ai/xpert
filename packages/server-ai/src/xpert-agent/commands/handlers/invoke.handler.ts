@@ -1,6 +1,8 @@
 import {
 	isAIMessage,
 	isAIMessageChunk,
+	isBaseMessage,
+	isBaseMessageChunk,
 	isToolMessage,
 	MessageContent,
 	ToolMessage
@@ -146,7 +148,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 						const nextAgents = state.next.filter((_) => _ !== 'title_conversation')
 												.map((key) => state.values[channelName(key)]?.agent)
 												.filter((_) => !!_)
-						if (isAIMessageChunk(lastMessage)) {
+						if (isBaseMessageChunk(lastMessage) && isAIMessageChunk(lastMessage)) {
 							this.#logger.debug(`Interrupted chat [${agentLabel(agent)}].`)
 							const operation = await this.queryBus.execute<CompleteToolCallsQuery, TSensitiveOperation>(
 								new CompleteToolCallsQuery(xpert.id, agent.key, lastMessage, options.isDraft)
@@ -160,7 +162,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 							} as MessageEvent)
 							throw new NodeInterrupt(`Confirm tool calls`)
 						}
-					} else if (isToolMessage(lastMessage)) {
+					} else if (isBaseMessage(lastMessage) && isToolMessage(lastMessage)) {
 						// return lastMessage.content
 					} else {
 						this.#logger.debug(`End chat [${agentLabel(agent)}].`)

@@ -807,6 +807,8 @@
       "IsDefault": "是默认",
       "MoveLeft": "左移",
       "MoveRight": "右移",
+      "Error_EntityExists": "实体已存在",
+      "XmlaSyncInfo": "创建后将自动同步维度和度量",
 
       "QUERY": {
         "TITLE": "查询实验室",

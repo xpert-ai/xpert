@@ -6,7 +6,7 @@ import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/c
 import { I18nService } from 'nestjs-i18n'
 import { FakeStreamingChatModel } from '../../agent'
 import { CreateWNAnswerCommand } from '../create-wn-answer.command'
-import { AgentStateAnnotation } from './types'
+import { AgentStateAnnotation, stateToParameters } from './types'
 
 @CommandHandler(CreateWNAnswerCommand)
 export class CreateWNAnswerHandler implements ICommandHandler<CreateWNAnswerCommand> {
@@ -26,9 +26,10 @@ export class CreateWNAnswerHandler implements ICommandHandler<CreateWNAnswerComm
 		return {
 			workflowNode: {
 				graph: async (state: typeof AgentStateAnnotation.State, config: LangGraphRunnableConfig) => {
+
 					const aiMessage = await AIMessagePromptTemplate.fromTemplate(entity.promptTemplate, {
 						templateFormat: 'mustache'
-					}).format(state)
+					}).format(stateToParameters(state))
 
 					await new FakeStreamingChatModel({ responses: [aiMessage] }).invoke([], config)
 				},
