@@ -36,14 +36,20 @@
       
     </span>
   
-    <button mat-icon-button displayDensity="cosy" [matTooltip]=" 'PAC.MODEL.QUERY.New' | translate: {Default: 'New Query'} "
-      (click)="addQuery()">
-      <mat-icon>add</mat-icon>
-    </button>
-    <button mat-icon-button displayDensity="cosy" [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} "
-      (click)="aiAddQuery()">
-      <mat-icon fontSet="material-icons-outlined">auto_fix_high</mat-icon>
-    </button>
+    <div class="w-6 h-6 flex justify-center items-center rounded-lg mx-2 cursor-pointer hover:bg-hover-bg"
+      [matTooltip]=" 'PAC.MODEL.QUERY.New' | translate: {Default: 'New Query'} " matTooltipPosition="above"
+      (click)="addQuery()"
+    >
+      <i class="ri-add-line"></i>
+    </div>
+
+    <div class="w-6 h-6 flex justify-center items-center rounded-lg mx-1 cursor-pointer text-white opacity-80 hover:opacity-100 bg-gradient-to-br from-pink-400 from-40% to-fuchsia-700"
+      [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " matTooltipPosition="above"
+      (click)="aiAddQuery()"
+    >
+      <i class="ri-magic-line"></i>
+    </div>
+    
   </nav>
 </mat-toolbar>
 
