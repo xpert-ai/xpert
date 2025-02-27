@@ -942,7 +942,8 @@
         "EditAttributes": "编辑属性",
         "SameLevelAlreadyExists": "相同层级已存在",
         "DimensionNotFound": "维度未找到！",
-        "ShowMemberKey": "显示成员键"
+        "ShowMemberKey": "显示成员键",
+        "NewHierarchy": "新增层次结构"
       },
       "UPLOAD": {
         "Title": "上传数据文件",

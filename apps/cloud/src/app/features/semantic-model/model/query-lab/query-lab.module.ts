@@ -11,11 +11,13 @@ import { QueryLabComponent } from './query-lab.component'
 import { QueryComponent } from './query/query.component'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { CdkMenuModule } from '@angular/cdk/menu'
 
 @NgModule({
   imports: [
     SharedModule,
     MaterialModule,
+    CdkMenuModule,
     ReactiveFormsModule,
 
     NgmTableComponent,

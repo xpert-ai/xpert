@@ -25,14 +25,17 @@
                 >
                     <mat-nav-list class="max-h-full overflow-hidden hover:overflow-y-auto" displayDensity="compact">
                       @for (level of levels(); track level.__id__; let i = $index) {
-                        <mat-list-item [activated]="(level.__id__ ?? i) === designerComponentId()"
+                        <mat-list-item class="group relative"
+                            [activated]="(level.__id__ ?? i) === designerComponentId()"
                             cdkDrag
                             [cdkDragData]="level"
                             (click)="onLevelSelect(level.__id__ ?? i)"
                         >
                             <ngm-display-behaviour [option]="{value: level.name, label: level.caption}"
-                                [displayBehaviour]="DisplayBehaviour.descriptionAndId">
-                            </ngm-display-behaviour>
+                                [displayBehaviour]="DisplayBehaviour.descriptionAndId" />
+                            <button class="btn btn-small danger absolute right-1 top-1 w-6 h-6 justify-center opacity-0 group-hover:opacity-100" (click)="deleteLevel(level.__id__)">
+                                <i class="ri-delete-bin-3-line"></i>
+                            </button>
                         </mat-list-item>
                       }
                     </mat-nav-list>

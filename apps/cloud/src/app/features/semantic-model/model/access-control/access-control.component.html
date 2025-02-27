@@ -22,8 +22,8 @@
                 {{ role.name }}
             </span>
             <button mat-icon-button displayDensity="compact" class="pac-nav-tab__close"
-                [matMenuTriggerFor]="roleMenu"
-                [matMenuTriggerData]="{role: role}"
+                [cdkMenuTriggerFor]="roleMenu"
+                [cdkMenuTriggerData]="{role: role}"
             >
                 <mat-icon>more_vert</mat-icon>
             </button>
@@ -43,21 +43,19 @@
     <router-outlet #o="outlet"></router-outlet>
 </mat-tab-nav-panel>
 
-
-<mat-menu #roleMenu="matMenu" class="ngm-density__compact">
-    <ng-template matMenuContent let-role="role">
-      <button mat-menu-item (click)="duplicate(role)">
-        <mat-icon fontSet="material-icons-outlined">content_copy</mat-icon>
-        <span>{{ 'PAC.ACTIONS.Duplicate' | translate: {Default: "Duplicate"} }}</span>
-      </button>
+<ng-template #roleMenu let-role="role">
+  <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem (click)="duplicate(role)">
+      <i class="ri-file-copy-line mr-1"></i>
+      <span>{{ 'PAC.ACTIONS.Duplicate' | translate: {Default: "Duplicate"} }}</span>
+    </button>
     
-      <button mat-menu-item ngmAppearance="danger" (click)="remove(role)">
-        <mat-icon fontSet="material-icons-round">delete_forever</mat-icon>
-        <span>{{ 'PAC.KEY_WORDS.DELETE' | translate: {Default: "Delete"} }}</span>
-      </button>
-    </ng-template>
-</mat-menu>
-
+    <button cdkMenuItem class="danger" (click)="remove(role)">
+      <i class="ri-delete-bin-4-line mr-1"></i>
+      <span>{{ 'PAC.KEY_WORDS.DELETE' | translate: {Default: "Delete"} }}</span>
+    </button>
+  </div>
+</ng-template>
 
 <ng-template #creatTmpl let-data>
     <ngm-dialog [title]=" 'PAC.MODEL.AccessControl.NewRole' | translate: {Default: 'New Role'} " [form]="creatFormGroup"

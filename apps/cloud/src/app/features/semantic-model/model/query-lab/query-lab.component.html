@@ -26,10 +26,10 @@
       </span>
   
       <button mat-icon-button displayDensity="compact" class="pac-nav-tab__close"
-        [matMenuTriggerFor]="menu"
-        [matMenuTriggerData]="{key: query.key}"
-        #mt="matMenuTrigger"
-        [class.active]="mt.menuOpen"
+        [cdkMenuTriggerFor]="menu"
+        [cdkMenuTriggerData]="{key: query.key}"
+        #mt="cdkMenuTriggerFor"
+        [class.active]="mt.isOpen()"
       >
         <mat-icon>more_vert</mat-icon>
       </button>
@@ -51,16 +51,16 @@
   <router-outlet #o="outlet"></router-outlet>
 </mat-tab-nav-panel>
 
-<mat-menu #menu="matMenu" class="ngm-density__compact">
-  <ng-template matMenuContent let-key="key">
-    <button mat-menu-item (click)="renameQuery(key)">
-      <mat-icon fontSet="material-icons-outlined">drive_file_rename_outline</mat-icon>
+<ng-template #menu let-key="key">
+  <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem (click)="renameQuery(key)">
+      <i class="ri-edit-line mr-1"></i>
       <span>{{ 'PAC.KEY_WORDS.RENAME' | translate: {Default: "Rename"} }}</span>
     </button>
   
-    <button mat-menu-item ngmAppearance="danger" (click)="deleteQuery(key)">
-      <mat-icon fontSet="material-icons-round">delete_forever</mat-icon>
+    <button cdkMenuItem class="danger" (click)="deleteQuery(key)">
+      <i class="ri-delete-bin-4-line mr-1"></i>
       <span>{{ 'PAC.KEY_WORDS.DELETE' | translate: {Default: "Delete"} }}</span>
     </button>
-  </ng-template>
-</mat-menu>
+  </div>
+</ng-template>

@@ -1,41 +1,50 @@
 <mat-toolbar class="pac-nav-toolbar pac-model__shell-bar flex items-center pl-2" displayDensity="compact">
-    <button mat-icon-button displayDensity="cosy" [color]="mt.menuOpen?'accent':''"
-        [matMenuTriggerFor]="menu"
-        #mt="matMenuTrigger"
-        >
-        <mat-icon [color]="mt.menuOpen?'accent':''">more_vert</mat-icon>
-    </button>
-    <nav mat-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple class="flex-1" mat-stretch-tabs="false" mat-align-tabs="start">
-      @for (tab of hierarchies(); track tab.__id__; let i = $index) {
-        <span mat-tab-link class="relative"
-            [routerLink]="['hierarchy', tab.__id__]"
-            routerLinkActive #rla="routerLinkActive"
-            [active]="rla.isActive"
-        >
-          {{tab.caption}}
+  <button mat-icon-button displayDensity="cosy" [color]="mt.isOpen() ? 'accent':''"
+    [cdkMenuTriggerFor]="menu"
+    #mt="cdkMenuTriggerFor"
+  >
+    <mat-icon [color]="mt.isOpen() ? 'accent':''">more_vert</mat-icon>
+  </button>
+  <nav mat-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple class="flex-1" mat-stretch-tabs="false" mat-align-tabs="start">
+    @for (tab of hierarchies(); track tab.__id__; let i = $index) {
+      <span mat-tab-link class="relative"
+          [routerLink]="['hierarchy', tab.__id__]"
+          routerLinkActive #rla="routerLinkActive"
+          [active]="rla.isActive"
+      >
+        {{tab.caption}}
 
-          @if (dirty() && isDirty(tab.__id__)) {
-            <span class="ping-badge pointer-events-none absolute -left-2 top-2 flex h-2 w-2">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2 w-2"></span>
-            </span>
-          }
-            <button mat-icon-button displayDensity="compact" class="pac-nav-tab__close"
-                [matMenuTriggerFor]="hMenu"
-                [matMenuTriggerData]="{key: tab.__id__}"
-                #mt="matMenuTrigger"
-                [class.active]="mt.menuOpen"
-                >
-                <mat-icon>more_vert</mat-icon>
-            </button>
-        </span>
-      }
+        @if (dirty() && isDirty(tab.__id__)) {
+          <span class="ping-badge pointer-events-none absolute -left-2 top-2 flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2"></span>
+          </span>
+        }
+          <button mat-icon-button displayDensity="compact" class="pac-nav-tab__close"
+              [cdkMenuTriggerFor]="hMenu"
+              [cdkMenuTriggerData]="{key: tab.__id__}"
+              #mt="cdkMenuTriggerFor"
+              [class.active]="mt.isOpen()"
+              >
+              <mat-icon>more_vert</mat-icon>
+          </button>
+      </span>
+    }
 
-        <button mat-icon-button [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} "
-          (click)="newHierarchy()">
-          <mat-icon fontSet="material-icons-outlined">auto_fix_high</mat-icon>
-        </button>
-    </nav>
+    <div class="w-6 h-6 flex justify-center items-center rounded-lg mx-2 cursor-pointer hover:bg-hover-bg"
+      [matTooltip]=" 'PAC.MODEL.DIMENSION.NewHierarchy' | translate: {Default: 'New Hierarchy'} " matTooltipPosition="above"
+      (click)="newHierarchy()"
+    >
+      <i class="ri-add-line"></i>
+    </div>
+
+    <div class="w-6 h-6 flex justify-center items-center rounded-lg mx-1 cursor-pointer text-white opacity-80 hover:opacity-100 bg-gradient-to-br from-pink-400 from-40% to-fuchsia-700"
+      [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " matTooltipPosition="above"
+      (click)="generateWithAI()"
+    >
+      <i class="ri-magic-line"></i>
+    </div>
+  </nav>
 
     <div class="flex justify-around items-center">
         <button mat-button displayDensity="cosy" [color]="detailsOpen()?'accent':''"
@@ -84,28 +93,30 @@
   </div>
 }
 
-<mat-menu #menu="matMenu" class="ngm-density__compact">
-    <button mat-menu-item (click)="editDimension()">
-        <mat-icon fontSet="material-icons-round">drive_file_rename_outline</mat-icon>
-        <span>{{ 'PAC.KEY_WORDS.DIMENSION' | translate: {Default: "Dimension"} }}</span>
+<ng-template #menu >
+  <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem (click)="editDimension()">
+      <i class="ri-equalizer-3-line mr-1"></i>
+      <span>{{ 'PAC.KEY_WORDS.DIMENSION' | translate: {Default: "Dimension"} }}</span>
     </button>
-</mat-menu>
+  </div>
+</ng-template>
 
-<mat-menu #hMenu="matMenu" class="ngm-density__compact">
-    <ng-template matMenuContent let-key="key">
-      <button mat-menu-item (click)="editHierarchy(key)">
-        <mat-icon fontSet="material-icons-outlined">drive_file_rename_outline</mat-icon>
-        <span>{{ 'PAC.MODEL.DIMENSION.EditAttributes' | translate: {Default: "Edit Attributes"} }}</span>
-      </button>
+<ng-template #hMenu let-key="key">
+  <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem (click)="editHierarchy(key)">
+      <i class="ri-equalizer-3-line mr-1"></i>
+      <span>{{ 'PAC.MODEL.DIMENSION.EditAttributes' | translate: {Default: "Edit Attributes"} }}</span>
+    </button>
 
-      <button mat-menu-item (click)="duplicateHierarchy(key)">
-        <mat-icon fontSet="material-icons-outlined">content_copy</mat-icon>
-        <span>{{ 'PAC.ACTIONS.Duplicate' | translate: {Default: "Duplicate"} }}</span>
-      </button>
-    
-      <button mat-menu-item ngmAppearance="danger" (click)="removeHierarchy(key)">
-        <mat-icon fontSet="material-icons-round">delete_forever</mat-icon>
-        <span>{{ 'PAC.KEY_WORDS.DELETE' | translate: {Default: "Delete"} }}</span>
-      </button>
-    </ng-template>
-</mat-menu>
+    <button cdkMenuItem (click)="duplicateHierarchy(key)">
+      <i class="ri-file-copy-line mr-1"></i>
+      <span>{{ 'PAC.ACTIONS.Duplicate' | translate: {Default: "Duplicate"} }}</span>
+    </button>
+  
+    <button cdkMenuItem class="danger" (click)="removeHierarchy(key)">
+      <i class="ri-delete-bin-4-line mr-1"></i>
+      <span>{{ 'PAC.KEY_WORDS.DELETE' | translate: {Default: "Delete"} }}</span>
+    </button>
+  </div>
+</ng-template>
