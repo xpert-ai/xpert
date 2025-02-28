@@ -202,7 +202,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const withTools = [...tools.map((item) => item.tool), ...Object.keys(subAgents ?? {}).map((name) => subAgents[name].tool)]
 		const summarize = ensureSummarize(team.summarize)
 		// Next agent
-		let nextNodeKey: string[] = [END]
+		let nextNodeKey: string[] = []
 		let failNodeKey = END
 		const agentKeys = new Set([agent.key])
 		const nodes: Record<string, {ends: string[]; graph: RunnableLike;}> = {}
@@ -528,12 +528,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			subgraphBuilder
 				.addNode(name, new ToolNode([tool], { caller, variables }))
 			if (endNodes?.includes(tool.name)) {
-				if (Array.isArray(nextNodeKey)) {
+				if (nextNodeKey?.length) {
 					subgraphBuilder.addConditionalEdges(name, (state, config) => {
 						return nextNodeKey.map((n) => new Send(n, state))
 					})
 				} else {
-					subgraphBuilder.addEdge(name, nextNodeKey)
+					subgraphBuilder.addEdge(name, END)
 				}
 			} else {
 				subgraphBuilder.addEdge(name, agentKey)
@@ -546,12 +546,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				subgraphBuilder.addNode(name, subAgents[name].stateGraph)
 
 				if (endNodes?.includes(name)) {
-					if (Array.isArray(nextNodeKey)) {
+					if (nextNodeKey?.length) {
 						subgraphBuilder.addConditionalEdges(name, (state, config) => {
 							return nextNodeKey.map((n) => new Send(n, state))
 						})
 					} else {
-						subgraphBuilder.addEdge(name, nextNodeKey)
+						subgraphBuilder.addEdge(name, END)
 					}
 				} else {
 					subgraphBuilder.addEdge(name, agentKey)
