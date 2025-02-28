@@ -310,6 +310,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				}
 				
 				nextNodeKey = next?.map((n) => n.key)
+				if (nextNodeKey?.some((_) => !_)) {
+					console.error(`There is an empty nextNodeKey in Agent`)
+				}
 				if (fail?.length) {
 					failNodeKey = fail?.[0]?.key
 				}
@@ -529,8 +532,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				.addNode(name, new ToolNode([tool], { caller, variables }))
 			if (endNodes?.includes(tool.name)) {
 				if (nextNodeKey?.length) {
+					if (nextNodeKey.some((_) => !_)) {
+						console.error(`There is an empty nextNodeKey in tools`)
+					}
 					subgraphBuilder.addConditionalEdges(name, (state, config) => {
-						return nextNodeKey.map((n) => new Send(n, state))
+						return nextNodeKey.filter((_) => !!_).map((n) => new Send(n, state))
 					})
 				} else {
 					subgraphBuilder.addEdge(name, END)
@@ -547,8 +553,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 				if (endNodes?.includes(name)) {
 					if (nextNodeKey?.length) {
+						if (nextNodeKey.some((_) => !_)) {
+							console.error(`There is an empty nextNodeKey in tools`)
+						}
 						subgraphBuilder.addConditionalEdges(name, (state, config) => {
-							return nextNodeKey.map((n) => new Send(n, state))
+							return nextNodeKey.filter((_) => !!_).map((n) => new Send(n, state))
 						})
 					} else {
 						subgraphBuilder.addEdge(name, END)
@@ -907,7 +916,10 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 
 				if (nextNodes) {
 					if (Array.isArray(nextNodes)) {
-						nexts.push(...nextNodes.map((name) => new Send(name, state)))
+						if (nextNodes.some((_) => !_)) {
+							console.error(`There is an empty nextNodes in createAgentNavigator`)
+						}
+						nexts.push(...nextNodes.filter((_) => !!_).map((name) => new Send(name, state)))
 					} else {
 						nexts.push(new Send(nextNodes(state, config), state))
 					}
