@@ -22,16 +22,16 @@ import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { pick } from 'lodash'
-import { concat, filter, from, Observable, of, switchMap, tap } from 'rxjs'
+import { catchError, concat, filter, from, Observable, of, switchMap, tap } from 'rxjs'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { createProcessStreamEvents } from '../../agent'
 import { CompleteToolCallsQuery } from '../../queries'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { STATE_VARIABLE_SYS } from './types'
-import { GetCopilotCheckpointsByParentQuery } from '../../../copilot-checkpoint/queries'
 import { XpertSensitiveOperationException } from '../../../core/errors'
 import { format } from 'date-fns/format'
+import { CopilotCheckpointSaver, GetCopilotCheckpointsByParentQuery } from '../../../copilot-checkpoint'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -39,7 +39,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
 	constructor(
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
+		private readonly queryBus: QueryBus,
+		private readonly checkpointSaver: CopilotCheckpointSaver,
 	) {}
 
 	public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
@@ -73,8 +74,42 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		} else if (operation?.toolCalls) {
 			await this.updateToolCalls(graph, config, operation)
 		}
-
 		const languageCode = options.language || user.preferredLanguage || 'en-US'
+
+		const recordLastState = async () => {
+			const state = await graph.getState({
+				configurable: {
+					...config
+				}
+			})
+
+			const {checkpoint, pendingWrites} = await this.checkpointSaver.getCopilotCheckpoint(state.config ?? state.parentConfig)
+
+			// const checkpoints = await this.queryBus.execute(new GetCopilotCheckpointsByParentQuery(pick(
+			// 	state.parentConfig?.configurable,
+			// 	'thread_id',
+			// 	'checkpoint_ns',
+			// 	'checkpoint_id'
+			// )))
+
+			// @todo checkpoint_id The source of the value should be wrong
+			execution.checkpointNs =
+				state.config?.configurable?.checkpoint_ns ?? checkpoint?.checkpoint_ns
+			execution.checkpointId =
+				state.config?.configurable?.checkpoint_id ?? checkpoint?.checkpoint_id
+
+			if (pendingWrites?.length) {
+				execution.checkpointNs = pendingWrites[0].checkpoint_ns
+				execution.checkpointId = pendingWrites[0].checkpoint_id
+			}
+			// Update execution title from graph states
+			if (state.values.title) {
+				execution.title = state.values.title
+			}
+
+			return state
+		}
+
 		const contentStream = from(
 			graph.streamEvents(
 				input?.input
@@ -110,7 +145,11 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 			switchMap(createProcessStreamEvents(this.#logger, thread_id, subscriber, {
 				disableOutputs: [...(team.agentConfig?.disableOutputs ?? []), 'title_conversation', 'summarize_conversation'],
 				agent
-			}))
+			})),
+			// record last state when exception
+			catchError((err) => from(recordLastState()).pipe(
+				tap(() => {throw err})
+			))
 		)
 
 		return concat(
@@ -118,29 +157,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 			of(1).pipe(
 				// Then do the final async work after the graph events stream
 				switchMap(async () => {
-					const state = await graph.getState({
-						configurable: {
-							...config
-						}
-					})
-
-					const checkpoints = await this.queryBus.execute(new GetCopilotCheckpointsByParentQuery(pick(
-						state.parentConfig?.configurable,
-						'thread_id',
-						'checkpoint_ns',
-						'checkpoint_id'
-					)))
-
-					// @todo checkpoint_id The source of the value should be wrong
-					execution.checkpointNs =
-						state.config?.configurable?.checkpoint_ns ?? checkpoints[0]?.checkpoint_ns
-					execution.checkpointId =
-						state.config?.configurable?.checkpoint_id ?? checkpoints[0]?.checkpoint_id
-
-					// Update execution title from graph states
-					if (state.values.title) {
-						execution.title = state.values.title
-					}
+					// record last state when finish
+					const state = await recordLastState()
 
 					const messages = state.values.messages
 					const lastMessage = messages[messages.length - 1]

@@ -16,7 +16,7 @@ import {
 } from '@langchain/langgraph'
 import { agentLabel, agentUniqueName, channelName, ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
-import { Logger, NotFoundException } from '@nestjs/common'
+import { InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
@@ -533,7 +533,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			if (endNodes?.includes(tool.name)) {
 				if (nextNodeKey?.length) {
 					if (nextNodeKey.some((_) => !_)) {
-						console.error(`There is an empty nextNodeKey in tools`)
+						throw new InternalServerErrorException(`There is an empty nextNodeKey in tools`)
 					}
 					subgraphBuilder.addConditionalEdges(name, (state, config) => {
 						return nextNodeKey.filter((_) => !!_).map((n) => new Send(n, state))
@@ -554,7 +554,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				if (endNodes?.includes(name)) {
 					if (nextNodeKey?.length) {
 						if (nextNodeKey.some((_) => !_)) {
-							console.error(`There is an empty nextNodeKey in tools`)
+							throw new InternalServerErrorException(`There is an empty nextNodeKey in tools`)
 						}
 						subgraphBuilder.addConditionalEdges(name, (state, config) => {
 							return nextNodeKey.filter((_) => !!_).map((n) => new Send(n, state))
@@ -917,7 +917,7 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 				if (nextNodes) {
 					if (Array.isArray(nextNodes)) {
 						if (nextNodes.some((_) => !_)) {
-							console.error(`There is an empty nextNodes in createAgentNavigator`)
+							throw new InternalServerErrorException(`There is an empty nextNodes in createAgentNavigator`)
 						}
 						nexts.push(...nextNodes.filter((_) => !!_).map((name) => new Send(name, state)))
 					} else {
@@ -932,7 +932,12 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 				return END
 			}
 
-			return lastMessage.tool_calls.map((toolCall) => new Send(toolCall.name, { ...state, toolCall }))
+			return lastMessage.tool_calls.map((toolCall) => {
+				if (!toolCall.name) {
+					throw new InternalServerErrorException(`tool_call's name is empty in '${agentChannel}'.`)
+				}
+				return new Send(toolCall.name, { ...state, toolCall })
+			})
 		}
 
 		if (nextNodes) {
