@@ -1,7 +1,7 @@
 import { ClientOptions, OpenAIBaseInput } from '@langchain/openai'
 import { ICopilotModel } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { TChatModelOptions } from '../../../types/types'
 import { CredentialsValidateFailedError } from '../../errors'
 import { OAIAPICompatLargeLanguageModel } from '../../openai_api_compatible/llm/llm'
@@ -27,6 +27,9 @@ export class OpenRouterLargeLanguageModel extends OAIAPICompatLargeLanguageModel
 				}
 			])
 		} catch (err) {
+			if (Logger.isLevelEnabled('verbose')) {
+				console.error(err)
+			}
 			throw new CredentialsValidateFailedError(getErrorMessage(err))
 		}
 	}

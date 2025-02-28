@@ -154,9 +154,14 @@
             </ngm-splitter-pane>
             <ngm-splitter-pane class="relative flex flex-col justify-start items-stretch">
                 <mat-toolbar class="pac-nav-toolbar" displayDensity="compact">
-                    <button mat-icon-button displayDensity="compact" class="pac-nav-tab__close" [matMenuTriggerFor]="menu">
+                    @if (!results?.length) {
+                      <div>{{ 'PAC.MODEL.QUERY.QueryResults' | translate: {Default: 'Query Results'} }}</div>
+                    } @else {
+                      <button mat-icon-button displayDensity="compact" class="pac-nav-tab__close"
+                        [cdkMenuTriggerFor]="menu">
                         <mat-icon>more_vert</mat-icon>
-                    </button>
+                      </button>
+                    }
 
                     <nav mat-tab-nav-bar id="pac-model__query-results" color="accent" mat-stretch-tabs="false" mat-align-tabs="start" class="flex-1"
                         [tabPanel]="tabPanel"
@@ -254,20 +259,21 @@
     </mat-drawer-content>
 </mat-drawer-container>
 
-<mat-menu #menu="matMenu" class="ngm-density__compact ngm-density__compact">
-    <button mat-menu-item (click)="export()">
-        <mat-icon>file_download</mat-icon>
-        <span>{{ 'PAC.KEY_WORDS.EXPORT' | translate: {Default: 'Export'} }}</span>
+<ng-template #menu let-key="key">
+  <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem (click)="export()">
+      <i class="ri-download-2-line mr-1"></i>
+      <span>{{ 'PAC.KEY_WORDS.EXPORT' | translate: {Default: 'Export'} }}</span>
     </button>
 
-    <mat-divider></mat-divider>
+    <div class="border-b border-solid border-divider-regular my-1"></div>
 
-    <button mat-menu-item ngmAppearance="danger" (click)="closeAllResults()">
-        <mat-icon>close</mat-icon>
-        <span>{{ 'PAC.KEY_WORDS.CLOSE_ALL' | translate: {Default: "Close All"} }}</span>
+    <button cdkMenuItem class="danger" (click)="closeAllResults()">
+      <i class="ri-close-line mr-1"></i>
+      <span>{{ 'PAC.KEY_WORDS.CLOSE_ALL' | translate: {Default: "Close All"} }}</span>
     </button>
-</mat-menu>
-
+  </div>
+</ng-template>
 
 <ng-template #tableTemplate let-message="message">
   @if (message.data['header']) {

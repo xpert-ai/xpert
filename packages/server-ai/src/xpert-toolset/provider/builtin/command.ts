@@ -2,7 +2,6 @@ import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { ToolParams } from '@langchain/core/tools'
 import { IBuiltinTool, IXpertTool, ToolParameterForm, TToolParameter } from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { BaseTool } from '../../toolset'
 import { ApiBasedToolSchemaParser } from '../../utils/parser'
@@ -57,24 +56,20 @@ export class BaseCommandTool extends BaseTool {
 		parentConfig?: RunnableConfig
 	): Promise<any> {
 		const configurable = parentConfig.configurable ?? {}
-		try {
-			return await this.getToolsetService().executeCommand(
-				this.command,
-				{
-					...arg
-				},
-				runManager,
-				{
-					...parentConfig,
-					configurable: {
-						...(parentConfig.configurable ?? {}),
-						tenantId: configurable.tenantId ?? RequestContext.currentTenantId(),
-						organizationId: configurable.organizationId ?? RequestContext.getOrganizationId()
-					}
+		return await this.getToolsetService().executeCommand(
+			this.command,
+			{
+				...arg
+			},
+			runManager,
+			{
+				...parentConfig,
+				configurable: {
+					...(parentConfig.configurable ?? {}),
+					tenantId: configurable.tenantId ?? RequestContext.currentTenantId(),
+					organizationId: configurable.organizationId ?? RequestContext.getOrganizationId()
 				}
-			)
-		} catch (error) {
-			return `Error: ${getErrorMessage(error)}`
-		}
+			}
+		)
 	}
 }

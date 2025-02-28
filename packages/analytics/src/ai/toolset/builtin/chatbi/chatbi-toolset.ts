@@ -39,7 +39,7 @@ import {
 	workOutTimeRangeSlicers
 } from '@metad/ocap-core'
 import { BuiltinToolset, STATE_VARIABLE_SYS, ToolNotSupportedError, ToolProviderCredentialValidationError } from '@metad/server-ai'
-import { omit, race, shortuuid, TimeoutError } from '@metad/server-common'
+import { getErrorMessage, omit, race, shortuuid, TimeoutError } from '@metad/server-common'
 import { groupBy } from 'lodash'
 import { firstValueFrom, Subject, Subscriber, switchMap, takeUntil } from 'rxjs'
 import { In } from 'typeorm'
@@ -404,32 +404,36 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 
 				// Fetch data for chart or table or kpi
 				if (answer.dimensions?.length || answer.measures?.length) {
-					const { data, members } = await this.drawChartMessage(
-						answer as ChatAnswer,
-						{ ...context, entityType, language },
-						subscriber
-					)
+					try {
+						const { data, members } = await this.drawChartMessage(
+							answer as ChatAnswer,
+							{ ...context, entityType, language },
+							subscriber
+						)
 
-					// Max limit 20 members
-					let results = ''
-					if (dataPermission) {
-						results = data ? JSON.stringify(Object.values(data).slice(0, 20)) : 'Empty'
-					} else {
-						if (members) {
-							Object.keys(members).forEach((key) => {
-								results += `Members of dimension '${key}':]\n`
-								results += Object.values(members[key])
-									.slice(0, 20)
-									.map((member) => JSON.stringify(member))
-									.join('\n')
-								results += '\n\n'
-							})
+						// Max limit 20 members
+						let results = ''
+						if (dataPermission) {
+							results = data ? JSON.stringify(Object.values(data).slice(0, 20)) : 'Empty'
 						} else {
-							results = 'Empty'
+							if (members) {
+								Object.keys(members).forEach((key) => {
+									results += `Members of dimension '${key}':]\n`
+									results += Object.values(members[key])
+										.slice(0, 20)
+										.map((member) => JSON.stringify(member))
+										.join('\n')
+									results += '\n\n'
+								})
+							} else {
+								results = 'Empty'
+							}
 						}
-					}
 
-					return `The data are:\n${results}\n`
+						return `The data are:\n${results}\n`
+					} catch(err) {
+						throw new Error(getErrorMessage(err))
+					}
 				}
 
 				return `The chart answer has already been provided to the user, please do not repeat the response.`

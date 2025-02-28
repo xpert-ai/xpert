@@ -34,7 +34,6 @@ export class QuerySchemaHandler implements ICommandHandler<QuerySchemaCommand> {
 				const tableSchema = await runner.getSchema(schema, tableName)
 				// Query samples data
 				const data = await runner.runQuery(`SELECT * FROM ${table} LIMIT 10`, { catalog: schema })
-				// result += `Sample data:\n` + JSON.stringify(data) + '\n\n'
 
 				const _table = tableSchema[0]?.tables[0]
 				if (!_table) {
@@ -42,7 +41,7 @@ export class QuerySchemaHandler implements ICommandHandler<QuerySchemaCommand> {
 				}
 				results.push({
 					..._table,
-					sample_data: data
+					sample_data: data?.data
 				})
 			}
 

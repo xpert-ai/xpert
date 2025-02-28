@@ -824,7 +824,8 @@
           "Nl2SQL": "自然语言转SQL",
           "Explain": "解释",
           "Optimize": "优化"
-        }
+        },
+        "QueryResults": "查询结果"
       },
       "TOASTR": {
         "MODEL_UPDATE": "模型更新",
@@ -942,7 +943,8 @@
         "EditAttributes": "编辑属性",
         "SameLevelAlreadyExists": "相同层级已存在",
         "DimensionNotFound": "维度未找到！",
-        "ShowMemberKey": "显示成员键"
+        "ShowMemberKey": "显示成员键",
+        "NewHierarchy": "新增层次结构"
       },
       "UPLOAD": {
         "Title": "上传数据文件",
@@ -2404,7 +2406,7 @@
         "Writing": "✍️ 写作",
         "Assistant": "🤖 助手",
         "Agent": "🕵️‍♂️ Agent",
-        "DataAnalysis": "📊 数据分析"
+        "Analysis": "📊 数据分析"
       },
       "SelectAWorkspace": "选择一个工作空间",
       "Checking": "检查中",

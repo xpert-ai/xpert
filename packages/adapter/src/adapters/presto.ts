@@ -1,6 +1,6 @@
-import { DBProtocolEnum, DBSyntaxEnum, IDSSchema } from '../types'
+import { DBProtocolEnum, DBSyntaxEnum, IDSSchema, QueryResult } from '../types'
 import { Client } from 'presto-client'
-import { BaseSQLQueryRunner, QueryResult, register, SQLAdapterOptions } from '../base'
+import { BaseSQLQueryRunner, register, SQLAdapterOptions } from '../base'
 import { convertPGSchema, getPGSchemaQuery, pgTypeMap } from '../helpers'
 
 export interface PrestoAdapterOptions extends SQLAdapterOptions {

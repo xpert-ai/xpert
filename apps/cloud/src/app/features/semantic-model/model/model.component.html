@@ -41,10 +41,10 @@
     </div>
 
     <div class="flex justify-between items-center">
-        <button mat-icon-button displayDensity="cosy" (click)="toggleFullscreen()">
+        <!-- <button mat-icon-button displayDensity="cosy" (click)="toggleFullscreen()">
             <mat-icon *ngIf="!isFullscreen" fontSet="material-icons-round">fullscreen</mat-icon>
             <mat-icon *ngIf="isFullscreen" fontSet="material-icons-round">fullscreen_exit</mat-icon>
-        </button>
+        </button> -->
         <!-- <button mat-icon-button *ngIf="copilotEnabled$ | async" class="pac-model__copilot-trigger font-notoColorEmoji"
             displayDensity="cosy"
             [class.active]="copilotDrawer.opened"
@@ -77,12 +77,13 @@
 
                     <span class="flex-1"></span>
                     
-                    <button mat-icon-button displayDensity="cosy" class="ngm-copilot-command-button ngm-toolbar__action"
-                        [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} "
-                        matTooltipPosition="above"
-                        (click)="aiCreateEntity()">
-                        <mat-icon fontSet="material-icons-outlined">auto_fix_high</mat-icon>
-                    </button>
+                    <div class="w-6 h-6 flex justify-center items-center rounded-lg mx-1 cursor-pointer text-white opacity-80 hover:opacity-100 bg-gradient-to-br from-pink-400 from-40% to-fuchsia-700"
+                        [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " matTooltipPosition="above"
+                        (click)="aiCreateEntity()"
+                    >
+                        <i class="ri-magic-line"></i>
+                    </div>
+                    
                     <button mat-icon-button displayDensity="cosy" class="ngm-toolbar__action"
                         [matTooltip]=" 'PAC.MODEL.MODEL.New' | translate: {Default: 'New'} "
                         matTooltipPosition="above"

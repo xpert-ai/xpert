@@ -26,6 +26,7 @@ import { ModelDimensionService } from './dimension.service'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { CdkMenuModule } from '@angular/cdk/menu'
 
 @Component({
   standalone: true,
@@ -39,6 +40,7 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
     CommonModule,
     SharedModule,
     MaterialModule,
+    CdkMenuModule,
     ContentLoaderModule,
 
     NxDesignerModule,
@@ -196,6 +198,10 @@ export class ModelDimensionComponent extends TranslationBaseComponent implements
   }
 
   newHierarchy() {
+    this.dimensionService.newHierarchy(null)
+  }
+
+  generateWithAI() {
     this.dialog
       .open(CommandDialogComponent, {
         backdropClass: 'bg-transparent',

@@ -159,6 +159,14 @@ export enum DBProtocolEnum {
   XMLA = 'xmla'
 }
 
+export interface QueryResult {
+  status: 'OK' | 'ERROR'
+  data?: Array<unknown>
+  columns?: Array<IColumnDef>
+  stats?: any
+  error?: string
+}
+
 /**
  * Duties:
  * - Convert error messages into a unified format
@@ -187,7 +195,7 @@ export interface DBQueryRunner {
    * @param query
    * @param options
    */
-  runQuery(query: string, options?: QueryOptions): Promise<unknown>
+  runQuery(query: string, options?: QueryOptions): Promise<QueryResult | any>
   /**
    * Get catalog (schema or database) list in data source
    */

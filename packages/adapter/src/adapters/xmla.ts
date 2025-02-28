@@ -86,7 +86,7 @@ export class XMLA extends BaseHTTPQueryRunner<XmlaAdapterOptions> {
     return this.authenticating
   }
 
-  override async runQuery(query: string, options?: Record<string, any>) {
+  override async runQuery(query: string, options?: Record<string, any>): Promise<any> {
     const _headers = {
       ...(options?.headers || {}),
       Accept: 'text/xml, application/xml, application/soap+xml',

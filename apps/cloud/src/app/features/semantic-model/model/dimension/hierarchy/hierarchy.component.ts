@@ -405,6 +405,10 @@ export class ModelHierarchyComponent implements AfterViewInit {
     this.hierarchyService.removeLevel(event.item.data.__id__)
   }
 
+  deleteLevel(id: string) {
+    this.hierarchyService.removeLevel(id)
+  }
+
   tableRemovePredicate(item: CdkDrag<EntitySchemaNode>) {
     return (
       item.dropContainer.id === CdkDragDropContainers.HierarchyTable && item.data.type === EntitySchemaType.Entity

@@ -14,7 +14,9 @@
 <div class="container flex items-center px-1 h-8 rounded-lg border border-gray-100 hover:border-gray-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:border-zinc-600">
   <div class="flex-1 relative flex items-center overflow-hidden"
     #menuTrigger
+    #mt="cdkMenuTriggerFor"
     [cdkMenuTriggerFor]="readonly() ? null : modelsMenu"
+    [cdkMenuTriggerData]="{mt: mt}"
   >
     @if (isInherit()) {
       <i class="ri-skip-up-line mx-1" [matTooltip]="'PAC.Copilot.Inherited' | translate: {Default: 'Inherited'}"></i>
@@ -130,13 +132,13 @@
   </div>
 </ng-template>
 
-<ng-template #modelsMenu>
+<ng-template #modelsMenu let-mt="mt">
   <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu pl-2 pb-2" [style.width.px]="menuTrigger.offsetWidth">
     <div class="p-1 sticky top-0 w-full bg-components-card-bg border-b border-solid border-divider-deep">
       <ngm-search class="w-full mt-1 rounded-lg overflow-hidden" [formControl]="searchControl" />
     </div>
 
-    <ul cdkListbox class="">
+    <ul class="">
       @for (copilot of searchedModels(); track copilot.id) {
         <div class="text-base px-4 my-4 font-semibold flex justify-start items-center">
           <span class="uppercase">{{ ('PAC.Copilot.Role_' + copilot.role) | translate: {Default: copilot.role} }}</span>
@@ -147,9 +149,9 @@
           {{copilot.providerWithModels?.label | i18n }}
         </div>
         @for (item of copilot.providerWithModels?.models; track item.model) {
-          <li cdkMenuItem class="flex justify-start items-center gap-2 px-4 py-2 rounded-xl cursor-pointer hover:bg-primary-100/50 hover:text-primary-500"
+          <li class="flex justify-start items-center gap-2 px-4 py-2 rounded-xl cursor-pointer hover:bg-primary-100/50 hover:text-primary-500"
             [ngClass]="(model() === item.model && modelType() === item.model_type) ? 'bg-primary-100 text-primary-600 font-semibold' : ''"
-            (click)="setModel(copilot, item.model);"
+            (click)="setModel(copilot, item.model);mt.close()"
           >
             <span [ngmHighlight]="searchText()"
               [content]="item.model"
@@ -161,24 +163,7 @@
             }
             @if (item.features?.includes(eModelFeature.VISION)) {
               <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default mr-0.5 w-[18px] justify-center">
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 12 12"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="w-3 h-3"
-                >
-                  <g id="eye-sparkle, magic eyes">
-                    <path
-                      id="Icon"
-                      fill-rule="evenodd"
-                      clip-rule="evenodd"
-                      d="M11.0338 5.05688C9.75366 3.05335 7.90203 1.99999 6.00017 2C4.09831 2.00001 2.24669 3.05341 0.966566 5.05693C0.599687 5.63113 0.599686 6.36892 0.966566 6.94312C2.24669 8.94665 4.09832 10 6.00018 10C7.90204 9.99999 9.75366 8.94659 11.0338 6.94307C11.4007 6.36887 11.4007 5.63108 11.0338 5.05688ZM5.77639 4.44721L5.3706 5.2588C5.34641 5.30718 5.30718 5.34641 5.2588 5.3706L4.44721 5.77639C4.26295 5.86852 4.26295 6.13148 4.44721 6.22361L5.2588 6.6294C5.30718 6.65359 5.34641 6.69282 5.3706 6.7412L5.77639 7.55279C5.86852 7.73705 6.13148 7.73705 6.22361 7.55279L6.6294 6.7412C6.65359 6.69282 6.69282 6.65359 6.7412 6.6294L7.55279 6.22361C7.73705 6.13148 7.73705 5.86852 7.55279 5.77639L6.7412 5.3706C6.69282 5.34641 6.65359 5.30718 6.6294 5.2588L6.22361 4.44721C6.13148 4.26295 5.86852 4.26295 5.77639 4.44721Z"
-                      fill="currentColor"
-                    ></path>
-                  </g>
-                </svg>
+                <i class="ri-eye-fill"></i>
               </div>
             }
           </li>

@@ -5,9 +5,9 @@ import {
   BatchExecuteStatementCommandOutput,
   GetStatementResultCommand
 } from '@aws-sdk/client-redshift-data'
-import { BaseSQLQueryRunner, QueryResult, SQLAdapterOptions, register } from '../../base'
+import { BaseSQLQueryRunner, SQLAdapterOptions, register } from '../../base'
 import { randomUUID } from 'crypto'
-import { IColumnDef, IDSSchema, QueryOptions } from '../../types'
+import { IColumnDef, IDSSchema, QueryResult, QueryOptions } from '../../types'
 import { convertPGSchema, getPGSchemaQuery } from '../../helpers'
 
 const REDSHIFT_TYPE = 'redshift'
