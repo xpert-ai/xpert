@@ -1,5 +1,5 @@
 import * as _axios from 'axios'
-import { AdapterBaseOptions, DBProtocolEnum, DBQueryRunner, DBQueryRunnerType, DBSyntaxEnum, IColumnDef, IDSSchema, IDSTable, QueryOptions } from './types'
+import { AdapterBaseOptions, DBProtocolEnum, DBQueryRunner, DBQueryRunnerType, DBSyntaxEnum, IDSSchema, IDSTable, QueryOptions, QueryResult } from './types'
 
 const axios = _axios.default
 
@@ -7,14 +7,6 @@ export const QUERY_RUNNERS: Record<
   string,
   DBQueryRunnerType
 > = {}
-
-export interface QueryResult {
-  status: 'OK' | 'ERROR'
-  data?: Array<unknown>
-  columns?: Array<IColumnDef>
-  stats?: any
-  error?: string
-}
 
 export abstract class BaseQueryRunner<T extends AdapterBaseOptions = AdapterBaseOptions> implements DBQueryRunner {
   type: string

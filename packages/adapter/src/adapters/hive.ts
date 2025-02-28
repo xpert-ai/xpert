@@ -1,7 +1,7 @@
-import { DBProtocolEnum, DBSyntaxEnum, IColumnDef, IDSSchema, IDSTable, QueryOptions } from '../types'
+import { DBProtocolEnum, DBSyntaxEnum, IColumnDef, IDSSchema, IDSTable, QueryOptions, QueryResult } from '../types'
 import { auth, connections, HiveClient, HiveUtils, thrift } from 'hive-driver'
 import { ColumnRequest, TablesRequest } from 'hive-driver/dist/contracts/IHiveSession'
-import { BaseSQLQueryRunner, QueryResult, register, SQLAdapterOptions } from '../base'
+import { BaseSQLQueryRunner, register, SQLAdapterOptions } from '../base'
 import { groupBy } from '../helpers'
 
 const { TCLIService, TCLIService_types } = thrift
