@@ -332,6 +332,7 @@ export interface ParameterProperty extends EntityProperty {
 export enum VariableEntryType {
   Default,
   Required,
+  Optional
 }
 export enum VariableSelectionType {
   Default,

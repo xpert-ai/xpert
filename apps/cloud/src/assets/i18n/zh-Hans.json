@@ -292,7 +292,9 @@
       "TimeZone": "时区",
       "Source Type": "源类型",
       "Available": "可用",
-      "PleaseEnter": "请输入"
+      "PleaseEnter": "请输入",
+      "SemanticType": "语义类型",
+      "Visible": "可见"
     },
     "Workflow": {
       "And": "且",

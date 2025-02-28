@@ -8,7 +8,6 @@ export function prepend(prefix: string, text: string) {
 
 export function markdownEntityType(entityType: EntityType) {
 
-  const variables = getEntityVariables(entityType)
   let context = `The cube definition for (${entityType.name}) is as follows:
   name: ${entityType.name}
   caption: ${entityType.caption || ''}
@@ -82,6 +81,7 @@ export function markdownEntityType(entityType: EntityType) {
     ).join('\n')
   }
 
+  const variables = getEntityVariables(entityType).filter((_) => _.visible)
   if (variables.length) {
     context += `sap variables in this cube are:
     ${variables.map((variable) =>
