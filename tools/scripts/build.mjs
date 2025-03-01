@@ -1,6 +1,38 @@
 import { execSync } from 'child_process';
 import fs from 'fs'
 import path from 'path'
+import archiver from 'archiver';
+
+// 复制文件
+const copyDir = (src, dest) => {
+    fs.mkdirSync(dest, { recursive: true });
+    fs.readdirSync(src).forEach(file => {
+        const srcPath = path.join(src, file);
+        const destPath = path.join(dest, file);
+        if (fs.lstatSync(srcPath).isDirectory()) {
+            copyDir(srcPath, destPath);
+        } else {
+            fs.copyFileSync(srcPath, destPath);
+        }
+    });
+};
+
+// 压缩目录成 zip 文件
+const createZip = (sourceDir, zipFileName) => {
+    return new Promise((resolve, reject) => {
+        const output = fs.createWriteStream(zipFileName);
+        const archive = archiver('zip', {
+            zlib: { level: 9 }
+        });
+
+        output.on('close', () => resolve());
+        archive.on('error', (err) => reject(err));
+
+        archive.pipe(output);
+        archive.directory(sourceDir, false);
+        archive.finalize();
+    });
+};
 
 try {
     execSync('yarn build', { stdio: 'inherit' });
@@ -8,32 +40,29 @@ try {
     // 编译后端
     execSync('yarn nx build api', { stdio: 'inherit' });
     
-    // 复制文件
-    const copyDir = (src, dest) => {
-        fs.mkdirSync(dest, { recursive: true });
-        fs.readdirSync(src).forEach(file => {
-            const srcPath = path.join(src, file);
-            const destPath = path.join(dest, file);
-            if (fs.lstatSync(srcPath).isDirectory()) {
-                copyDir(srcPath, destPath);
-            } else {
-                fs.copyFileSync(srcPath, destPath);
-            }
-        });
-    };
-    
-    copyDir('dist/packages', 'dist/apps/api/');
+    // copyDir('dist/packages', 'dist/apps/api/packages');
     fs.copyFileSync('.deploy/api/package-prod.json', 'dist/apps/api/package.json');
-    fs.copyFileSync('tsconfig.base.json', 'dist/apps/api/');
-    fs.copyFileSync('yarn.lock', 'dist/apps/api/');
+    fs.copyFileSync('tsconfig.base.json', 'dist/apps/api/tsconfig.json');
+    fs.copyFileSync('yarn.lock', 'dist/apps/api/yarn.lock');
     
+    // 切换到 dist/apps/api 目录并执行 yarn install
+    process.chdir('dist/apps/api');
     execSync('yarn install', { stdio: 'inherit' });
+    // execSync('npm install ../../packages/analytics --force', { stdio: 'inherit' });
+    
+    // 切换回原始目录（可选，如果你需要在原目录继续后续操作）
+    process.chdir('../../..');
     
     // 编译前端
     process.env.NODE_OPTIONS = '--max_old_space_size=8192';
     execSync('yarn nx build cloud --configuration=production', { stdio: 'inherit' });
     
     console.log('Build completed successfully!');
+
+    console.log('Creating zip files...');
+    await createZip('dist', 'dist/dist.zip');
+
+    console.log('Build and compression completed successfully!');
 } catch (error) {
     console.error('Build failed:', error);
     process.exit(1);
