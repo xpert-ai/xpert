@@ -65,8 +65,9 @@ An agile data analysis platform based on cloud computing for multidimensional mo
 
 > Before installing Xpert, make sure your machine meets the following minimum system requirements:
 > 
->- CPU >= 2 Core
->- RAM >= 4 GiB
+> - CPU >= 2 Core
+> - RAM >= 4 GiB
+> - Node.js (ESM and CommonJS) - 18.x, 19.x, 20.x, 22.x
 
 </br>
 
