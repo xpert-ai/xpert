@@ -236,6 +236,7 @@
     "@typescript-eslint/eslint-plugin": "7.9.0",
     "@typescript-eslint/parser": "7.9.0",
     "ajv-formats": "^2.1.1",
+    "archiver": "^7.0.1",
     "autoprefixer": "^10.4.0",
     "axios-mock-adapter": "^2.1.0",
     "concurrently": "^7.1.0",
