@@ -38,7 +38,29 @@ sed -i "s#DOCKER_DEFAULT_CURRENCY#$DEFAULT_CURRENCY#g" *.js
 sed -i "s#DOCKER_CHATWOOT_SDK_TOKEN#$CHATWOOT_SDK_TOKEN#g" *.js
 sed -i "s#DOCKER_DEMO#$DEMO#g" *.js
 
-rm -rf /srv/pangolin/
-cp -r apps/api/ /srv/pangolin/
+# 如果 XPERT_AI_HOME 没有值则使用默认值 xpertai
+XPERT_AI_HOME=${XPERT_AI_HOME:-xpertai}
+
+# Move the api/.env file out temporarily
+# Check if the .env file exists before moving it
+if [ -f /srv/${XPERT_AI_HOME}/api/.env ]; then
+    mv /srv/${XPERT_AI_HOME}/api/.env /tmp/api.env
+fi
+
+# Remove existing directories
+rm -rf /srv/${XPERT_AI_HOME}/api/
+rm -rf /srv/${XPERT_AI_HOME}/cloud/
+
+# Copy new directories
+cp -r apps/api/ /srv/${XPERT_AI_HOME}/api/
+cp -r apps/cloud/ /srv/${XPERT_AI_HOME}/cloud/
+
+# Move the api/.env file back
+# Check if the temporary api.env file exists before moving it back
+if [ -f /tmp/api.env ]; then
+    mv /tmp/api.env /srv/${XPERT_AI_HOME}/api/.env
+else
+    mv .env /srv/${XPERT_AI_HOME}/api/.env
+fi
 
 echo "操作完成！"

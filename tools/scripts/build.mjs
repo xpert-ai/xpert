@@ -60,7 +60,7 @@ try {
     
     console.log('Build completed successfully!');
 
-    fs.copyFileSync('docker/.env.example', 'dist/.env.example');
+    fs.copyFileSync('docker/.env.example', 'dist/.env');
     fs.copyFileSync('tools/scripts/install.sh', 'dist/install.sh');
 
     console.log('Creating zip files...');
