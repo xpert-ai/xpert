@@ -60,7 +60,7 @@ try {
     console.log('Build completed successfully!');
 
     console.log('Creating zip files...');
-    await createZip('dist', 'dist/dist.zip');
+    await createZip('dist', 'xpertai.zip');
 
     console.log('Build and compression completed successfully!');
 } catch (error) {
