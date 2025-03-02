@@ -48,6 +48,7 @@ rm -rf /srv/${XPERT_AI_HOME}/cloud/
 # Copy new directories
 cp -r apps/api/ /srv/${XPERT_AI_HOME}/api/
 cp -r apps/cloud/ /srv/${XPERT_AI_HOME}/cloud/
+cp apps/olap.jar /srv/${XPERT_AI_HOME}/olap.jar
 
 # Move the api/.env file back
 # Check if the temporary api.env file exists before moving it back
