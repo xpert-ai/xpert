@@ -57,6 +57,11 @@ try {
     // 编译前端
     process.env.NODE_OPTIONS = '--max_old_space_size=8192';
     execSync('yarn nx build cloud --configuration=production', { stdio: 'inherit' });
+
+    // 编译计算引擎
+    process.chdir('packages/olap');
+    execSync('mvn package', { stdio: 'inherit' });
+    process.chdir('../..');
     
     console.log('Build completed successfully!');
 
