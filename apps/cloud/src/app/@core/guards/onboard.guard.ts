@@ -7,7 +7,16 @@ export function onboardGuard() {
   const tenantService = inject(TenantService)
   const router = inject(Router)
   return tenantService.getOnboard().pipe(
-	  // can onboard or navigate to home
-    map((onboard) => !onboard || router.navigate(['/home/'])),
+    // can onboard or navigate to home
+    map((onboard) => {
+      if (onboard.tenant) {
+        router.navigate(['/home/'])
+        return false
+      } else if (onboard.error) {
+        router.navigate(['/onboarding/unknown'])
+        return false
+      }
+      return true
+    })
   )
 }

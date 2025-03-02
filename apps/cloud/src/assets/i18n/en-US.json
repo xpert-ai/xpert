@@ -127,10 +127,10 @@
     "Languages": {
       "en": "English",
       "en-US": "US English",
-      "zh": "Chinese",
-      "zh-CN": "Chinese",
-      "zh-Hans": "Simplied Chinese",
-      "zh-Hant": "Traditional Chinese"
+      "zh": "中文",
+      "zh-CN": "中文",
+      "zh-Hans": "简体中文",
+      "zh-Hant": "繁体中文"
     },
     "title": {
       "short": "Analytics Cloud"
