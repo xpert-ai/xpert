@@ -60,7 +60,12 @@ try {
 
     // 编译计算引擎
     process.chdir('packages/olap');
-    execSync('mvn package', { stdio: 'inherit' });
+    if (fs.existsSync('target/olap-1.0.0.jar')) {
+        fs.copyFileSync('target/olap-1.0.0.jar', '../../dist/apps/olap.jar');
+    } else {
+        execSync('mvn package', { stdio: 'inherit' });
+        fs.copyFileSync('target/olap-1.0.0.jar', '../../dist/apps/olap.jar');
+    }
     process.chdir('../..');
     
     console.log('Build completed successfully!');
