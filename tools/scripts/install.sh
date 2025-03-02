@@ -24,19 +24,10 @@ else
 fi
 
 # In production we should replace some values in generated JS code
-sed -i "s#DOCKER_API_BASE_URL#$API_BASE_URL#g" *.js
-sed -i "s#\"DOCKER_ENABLE_LOCAL_AGENT\"#$ENABLE_LOCAL_AGENT#g" *.js
-sed -i "s#DOCKER_CLIENT_BASE_URL#$CLIENT_BASE_URL#g" *.js
-sed -i "s#DOCKER_SENTRY_DSN#$SENTRY_DSN#g" *.js
-sed -i "s#DOCKER_CLOUDINARY_CLOUD_NAME#$CLOUDINARY_CLOUD_NAME#g" *.js
-sed -i "s#DOCKER_CLOUDINARY_API_KEY#$CLOUDINARY_API_KEY#g" *.js
-sed -i "s#DOCKER_GOOGLE_MAPS_API_KEY#$GOOGLE_MAPS_API_KEY#g" *.js
-sed -i "s#DOCKER_GOOGLE_PLACE_AUTOCOMPLETE#$GOOGLE_PLACE_AUTOCOMPLETE#g" *.js
-sed -i "s#DOCKER_DEFAULT_LATITUDE#$DEFAULT_LATITUDE#g" *.js
-sed -i "s#DOCKER_DEFAULT_LONGITUDE#$DEFAULT_LONGITUDE#g" *.js
-sed -i "s#DOCKER_DEFAULT_CURRENCY#$DEFAULT_CURRENCY#g" *.js
-sed -i "s#DOCKER_CHATWOOT_SDK_TOKEN#$CHATWOOT_SDK_TOKEN#g" *.js
-sed -i "s#DOCKER_DEMO#$DEMO#g" *.js
+find . -type f -name "*.js" -exec sed -i'' -e "s#DOCKER_API_BASE_URL#${API_BASE_URL}#g" {} +
+find . -type f -name "*.js" -exec sed -i'' -e "s#\"DOCKER_ENABLE_LOCAL_AGENT\"#$ENABLE_LOCAL_AGENT#g" {} +
+find . -type f -name "*.js" -exec sed -i'' -e "s#DOCKER_CLIENT_BASE_URL#$CLIENT_BASE_URL#g" {} +
+find . -type f -name "*.js" -exec sed -i'' -e "s#DOCKER_DEMO#${DEMO}#g" {} +
 
 # 如果 XPERT_AI_HOME 没有值则使用默认值 xpertai
 XPERT_AI_HOME=${XPERT_AI_HOME:-xpertai}
@@ -48,6 +39,9 @@ if [ -f /srv/${XPERT_AI_HOME}/api/.env ]; then
 fi
 
 # Remove existing directories
+mkdir -p /srv/${XPERT_AI_HOME}/api/
+touch /srv/${XPERT_AI_HOME}/api/ormlogs.log
+mkdir -p /srv/${XPERT_AI_HOME}/cloud/
 rm -rf /srv/${XPERT_AI_HOME}/api/
 rm -rf /srv/${XPERT_AI_HOME}/cloud/
 
@@ -60,7 +54,11 @@ cp -r apps/cloud/ /srv/${XPERT_AI_HOME}/cloud/
 if [ -f /tmp/api.env ]; then
     mv /tmp/api.env /srv/${XPERT_AI_HOME}/api/.env
 else
-    mv .env /srv/${XPERT_AI_HOME}/api/.env
+    cp .env /srv/${XPERT_AI_HOME}/api/.env
 fi
 
-echo "操作完成！"
+if [ ! -f /etc/nginx/nginx.conf ]; then
+    cp webapp.prod.conf /etc/nginx/nginx.conf
+fi
+
+echo "安装完成！"
