@@ -7,29 +7,28 @@ import {
 import { ConnectionOptions } from 'typeorm';
 import * as path from 'path';
 
-// let assetPath;
-// let assetPublicPath;
-// let serverRoot;
+let assetPath;
+let assetPublicPath;
+let serverRoot;
 
 console.log('Plugin Config -> __dirname: ' + __dirname);
 console.log('Plugin Config -> process.cwd: ' + process.cwd());
 
 // TODO: maybe better to use process.cwd() instead of __dirname?
 
-const serverRoot = process.cwd()
-const assetPath = path.join(serverRoot, 'assets')
-const assetPublicPath = path.join(serverRoot, '..', 'public')
-
-// // for Docker
-// if (__dirname.startsWith('/srv/pangolin')) {
-// 	serverRoot = '/srv/pangolin/';
-// 	assetPath = serverRoot + 'assets';
-// 	assetPublicPath = serverRoot + 'public';
-// } else {
-// 	serverRoot = path.resolve(__dirname, '../../../')
-// 	assetPath = path.join(serverRoot, ...['apps', 'api', 'src', 'assets'])
-// 	assetPublicPath = path.join(serverRoot, ...['apps', 'api', 'public'])
-// }
+if (process.env.IS_DOCKER) {
+	serverRoot = '/srv/pangolin/';
+	assetPath = serverRoot + 'assets';
+	assetPublicPath = serverRoot + 'public';
+} else if (process.env.NODE_ENV === 'production') {
+	serverRoot = process.cwd()
+	assetPath = path.join(serverRoot, 'assets')
+	assetPublicPath = path.join(serverRoot, '..', 'public')
+} else {
+	serverRoot = path.resolve(__dirname, '../../../')
+	assetPath = path.join(serverRoot, ...['apps', 'api', 'src', 'assets'])
+	assetPublicPath = path.join(serverRoot, ...['apps', 'api', 'public'])
+}
 
 console.log('Plugin Config -> assetPath: ' + assetPath);
 console.log('Plugin Config -> assetPublicPath: ' + assetPublicPath);
