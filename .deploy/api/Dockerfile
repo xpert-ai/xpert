@@ -54,8 +54,8 @@ FROM node:18 AS production
 
 ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=2048"} \
     NODE_ENV=${NODE_ENV:-production} \
-    API_HOST=${API_HOST:-api} \
-    API_PORT=${API_PORT:-3000} \
+    # API_HOST=${API_HOST:-api} \
+    # API_PORT=${API_PORT:-3000} \
     API_BASE_URL=${API_BASE_URL:-http://localhost:3000} \
     SENTRY_DSN=${SENTRY_DSN} \
     DB_HOST=${DB_HOST:-db} \

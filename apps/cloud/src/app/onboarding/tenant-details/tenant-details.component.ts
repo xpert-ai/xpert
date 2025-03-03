@@ -32,6 +32,7 @@ import {
   ToastrService,
   convertConfigurationSchema,
   getErrorMessage,
+  injectHelpWebsite,
   injectLanguage
 } from '../../@core'
 import { WelcomeComponent } from '../welcome/welcome.component'
@@ -72,6 +73,7 @@ export class TenantDetailsComponent {
   private readonly translateService = inject(TranslateService)
   private readonly toastrService = inject(ToastrService)
   readonly currentLanguage = injectLanguage()
+  readonly helpWebsite = injectHelpWebsite()
 
   @ViewChild('stepper') stepper: MatStepper
 

@@ -1747,11 +1747,13 @@
       "TakeMetoMetadAnalyticsPlatform": "带我去 Metad 分析平台",
       "TakeMetoXpertAiPlatform": "带我去 Xpert AI 平台",
       "SelectNetwork": "选择所需网络",
-      "GenerateDemoSuccess": "演示数据和样例生成成功！"
+      "GenerateDemoSuccess": "演示数据和样例生成成功！",
+      "UnknownSystemStatus": "无法获取系统状态，请检查安装配置的环境参数。",
+      "faqs_domain": "常见问题 （域名配置）"
     },
     "Languages": {
-      "en": "英文",
-      "en-US": "美国英文",
+      "en": "English",
+      "en-US": "US English",
       "zh": "中文",
       "zh-CN": "中文",
       "zh-Hans": "简体中文",

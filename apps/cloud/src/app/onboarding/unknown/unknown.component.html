@@ -1,0 +1,11 @@
+<div class="w-96 -mt-32 flex flex-col justify-start items-start gap-2 text-text-warning">
+  <i class="ri-alarm-warning-line text-2xl"></i>
+  <div class="">
+    {{ 'PAC.Onboarding.UnknownSystemStatus' | translate: {Default: 'Unable to get system status, please check the environment parameters of the installation configuration.'} }}
+  </div>
+  <a class="group flex items-center gap-1 text-sm font-light text-text-primary transition-all duration-100 hover:text-primary-500" 
+    [href]="helpWebsite() + '/docs/getting-started/community/faqs'" target="_blank">
+    {{ 'PAC.Onboarding.faqs_domain' | translate: {Default: 'FAQs (Domain Configuration)'} }}
+    <i class="ri-external-link-line transition-all group-hover:translate-x-1"></i>
+  </a>
+</div>

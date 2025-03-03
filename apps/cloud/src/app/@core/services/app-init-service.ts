@@ -68,11 +68,14 @@ export class AppInitService {
         Sentry.setUser({ id: this.user.id, email: this.user.email, username: this.user.username })
       } else {
         const onboarded = await firstValueFrom(this.tenantService.getOnboard())
-        if (onboarded) {
-          this.store.tenantSettings = onboarded.settings.reduce((acc, item) => {
+        if (onboarded.tenant) {
+          this.store.tenantSettings = onboarded.tenant?.settings.reduce((acc, item) => {
             acc[item.name] = item.value
             return acc
           }, {})
+        } else if (onboarded.error) {
+          this.router.navigate(['/onboarding/unknown'])
+          return
         } else {
           this.router.navigate(['/onboarding/'])
           return

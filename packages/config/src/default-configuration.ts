@@ -22,10 +22,14 @@ console.log('Plugin Config -> process.cwd: ' + process.cwd());
 // TODO: maybe better to use process.cwd() instead of __dirname?
 
 // for Docker
-if (__dirname.startsWith('/srv/pangolin')) {
+if (process.env.IS_DOCKER && process.env.IS_DOCKER.toLowerCase() === 'true') {
 	serverRoot = '/srv/pangolin/';
 	assetPath = serverRoot + 'assets';
 	assetPublicPath = serverRoot + 'public';
+} else if (process.env.NODE_ENV === 'production') {
+	serverRoot = process.cwd()
+	assetPath = path.join(serverRoot, 'assets')
+	assetPublicPath = path.join(serverRoot, '..', 'public')
 } else {
 	serverRoot = path.resolve(__dirname, '../../../')
 	assetPath = path.join(serverRoot, ...['apps', 'api', 'src', 'assets'])
