@@ -16,7 +16,7 @@ console.log('Plugin Config -> process.cwd: ' + process.cwd());
 
 // TODO: maybe better to use process.cwd() instead of __dirname?
 
-if (process.env.IS_DOCKER) {
+if (process.env.IS_DOCKER && process.env.IS_DOCKER.toLowerCase() === 'true') {
 	serverRoot = '/srv/pangolin/';
 	assetPath = serverRoot + 'assets';
 	assetPublicPath = serverRoot + 'public';
