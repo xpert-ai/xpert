@@ -36,6 +36,10 @@ const createZip = (sourceDir, zipFileName) => {
 
 try {
     execSync('yarn build', { stdio: 'inherit' });
+
+    // 编译前端
+    process.env.NODE_OPTIONS = '--max_old_space_size=8192';
+    execSync('yarn nx build cloud --configuration=production', { stdio: 'inherit' });
     
     // 编译后端
     execSync('yarn nx build api', { stdio: 'inherit' });
@@ -49,14 +53,8 @@ try {
     process.chdir('dist/apps/api');
     execSync('mv ../../packages ./packages', { stdio: 'inherit' });
     execSync('yarn install', { stdio: 'inherit' });
-    // execSync('npm install ./packages/analytics --legacy-peer-deps', { stdio: 'inherit' });
-    
     // 切换回原始目录（可选，如果你需要在原目录继续后续操作）
     process.chdir('../../..');
-    
-    // 编译前端
-    process.env.NODE_OPTIONS = '--max_old_space_size=8192';
-    execSync('yarn nx build cloud --configuration=production', { stdio: 'inherit' });
 
     // 编译计算引擎
     process.chdir('packages/olap');
