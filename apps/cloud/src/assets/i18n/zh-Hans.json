@@ -294,7 +294,8 @@
       "Available": "可用",
       "PleaseEnter": "请输入",
       "SemanticType": "语义类型",
-      "Visible": "可见"
+      "Visible": "可见",
+      "DefaultValue": "默认值"
     },
     "Workflow": {
       "And": "且",
@@ -804,6 +805,7 @@
       "SynchronizationJobCreatedSuccessfully": "同步任务创建成功!",
       "StopSyncJob": "终止同步任务",
       "EditCubeVariable": "编辑立方体变量",
+      "EditVariable": "编辑变量",
       "Variables": "参数变量",
       "OpenCubeDesigner": "打开多维数据集属性编辑器",
       "IsDefault": "是默认",

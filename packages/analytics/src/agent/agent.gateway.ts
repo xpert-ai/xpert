@@ -18,6 +18,7 @@ import { map } from 'rxjs/operators'
 import { Server, Socket } from 'socket.io'
 import { DataSourceOlapQuery } from '../data-source'
 import { ModelOlapQuery } from '../model'
+import { ModelCubeQuery } from '../model/queries/cube.query'
 
 @WebSocketGateway({
 	cors: {
@@ -42,20 +43,37 @@ export class EventsGateway implements OnGatewayDisconnect {
 		try {
 			let result = null
 			if (modelId) {
-				result = await this.queryBus.execute(
-					new ModelOlapQuery(
-						{
-							id,
-							sessionId: client.id,
-							dataSourceId,
-							modelId,
-							body,
-							acceptLanguage,
-							forceRefresh
-						},
-						user
+				if (typeof body === 'string') {
+					result = await this.queryBus.execute(
+						new ModelOlapQuery(
+							{
+								id,
+								sessionId: client.id,
+								dataSourceId,
+								modelId,
+								body,
+								acceptLanguage,
+								forceRefresh
+							},
+							user
+						)
 					)
-				)
+				} else {
+					result = await this.queryBus.execute(
+						new ModelCubeQuery(
+							{
+								id,
+								sessionId: client.id,
+								dataSourceId,
+								modelId,
+								body,
+								acceptLanguage,
+								forceRefresh
+							},
+							user
+						)
+					)
+				}
 			} else {
 				result = await this.queryBus.execute(
 					new DataSourceOlapQuery(

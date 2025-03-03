@@ -1,6 +1,6 @@
 <header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="pb-2 cursor-move">
-  <h4 class="text-xl font-semibold pointer-events-none">
-    {{ 'PAC.MODEL.EditCubeVariable' | translate: {Default: 'Edit cube variable'} }}
+  <h4 class="text-xl font-semibold uppercase pointer-events-none">
+    {{ 'PAC.MODEL.EditVariable' | translate: {Default: 'Edit Variable'} }}
   </h4>
 </header>
 
@@ -16,11 +16,14 @@
   </div>
 
   @if (!semantic()) {
-    <ngm-variable [label]="variable().caption" displayDensity="cosy"
-      [dataSettings]="dataSettings()"
-      [variable]="variable()"
-      [(ngModel)]="defaultLow"
-    />
+    <div class="mt-2">
+      <div class="mb-1">{{'PAC.KEY_WORDS.DefaultValue' | translate: {Default: 'Default Value'} }}</div>
+      <ngm-variable [label]="variable().caption" displayDensity="cosy"
+        [dataSettings]="dataSettings()"
+        [variable]="variable()"
+        [(ngModel)]="defaultLow"
+      />
+    </div>
   }
 
   <div class="mt-2">

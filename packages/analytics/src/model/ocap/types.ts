@@ -30,6 +30,7 @@ export function registerSemanticModel(model: ISemanticModel, dsCoreService: DSCo
 		catalog,
 		dialect,
 		agentType,
+		mode: 'server',
 		settings: {
 			dataSourceInfo: model.dataSource?.options?.data_source_info as string
 		} as any,

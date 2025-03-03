@@ -20,6 +20,9 @@ export type ServerSocketEventType = {
   forceRefresh: boolean
 }
 
+/**
+ * Responsible for proxying the olap data requests of page components to the server through the websocket interface
+ */
 @Injectable()
 export class ServerSocketAgent extends AbstractAgent implements Agent {
   readonly #agentService = inject(AgentService)

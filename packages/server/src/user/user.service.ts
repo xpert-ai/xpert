@@ -88,6 +88,7 @@ export class UserService extends TenantAwareCrudService<User> {
 		return await this.repository
 			.createQueryBuilder('user')
 			.where('user.id = :id', { id })
+			.leftJoinAndSelect('user.role', 'role')
 			.getOne();
 	}
 
@@ -95,6 +96,7 @@ export class UserService extends TenantAwareCrudService<User> {
 		return await this.repository
 			.createQueryBuilder('user')
 			.where('user.thirdPartyId = :thirdPartyId', { thirdPartyId })
+			.leftJoinAndSelect('user.role', 'role')
 			.getOne();
 	}
 

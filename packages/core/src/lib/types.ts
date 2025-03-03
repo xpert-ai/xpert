@@ -257,6 +257,7 @@ export type EntityKey<T> =
  * Entity query 的选项
  */
 export interface QueryOptions<T = any> {
+  cube?: string
   parameters?: EntityKey<T>
   rows?: Array<Dimension | Measure>
   columns?: Array<Dimension | Measure>
