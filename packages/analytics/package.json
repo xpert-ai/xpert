@@ -30,6 +30,7 @@
 		"reflect-metadata": "^0.1.13",
 		"socket.io-redis": "6.1.1",
 		"typeorm": "^0.2.37",
+		"web-streams-polyfill": "^4.1.0",
 		"xml2js": "^0.4.23"
 	},
 	"devDependencies": {

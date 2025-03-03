@@ -1,4 +1,5 @@
 import { DEFAULT_TENANT, IPagination, ITenant, ITenantCreateInput, RolesEnum } from '@metad/contracts';
+import { Request } from 'express';
 import {
 	BadRequestException,
 	Body,
