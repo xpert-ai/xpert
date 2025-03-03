@@ -52,7 +52,7 @@ try {
     // 切换到 dist/apps/api 目录并执行 yarn install
     process.chdir('dist/apps/api');
     execSync('mv ../../packages ./packages', { stdio: 'inherit' });
-    execSync('yarn install', { stdio: 'inherit' });
+    execSync('yarn install --ignore-engines', { stdio: 'inherit' });
     // 切换回原始目录（可选，如果你需要在原目录继续后续操作）
     process.chdir('../../..');
 
