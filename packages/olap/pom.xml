@@ -10,9 +10,9 @@
 	</parent>
 	<groupId>com.pangolin</groupId>
 	<artifactId>olap</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<name>olap</name>
-	<description>OLAP project for Pangolin Analytics Cloud</description>
+	<description>OLAP project for XpertAI</description>
 	<packaging>jar</packaging>
 
 	<properties>

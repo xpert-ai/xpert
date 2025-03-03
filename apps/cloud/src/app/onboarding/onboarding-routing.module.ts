@@ -1,8 +1,8 @@
 import { NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
-
 import { OnboardingComponent } from './onboarding.component'
 import { WelcomeComponent } from './welcome/welcome.component'
+import { onboardGuard } from '../@core/guards'
 
 const routes: Routes = [
   {
@@ -11,17 +11,18 @@ const routes: Routes = [
     children: [
       {
         path: '',
-        component: WelcomeComponent
+        component: WelcomeComponent,
+        canActivate: [onboardGuard]
       },
       {
         path: 'tenant',
-        loadComponent: () => import('./tenant-details/tenant-details.component').then((m) => m.TenantDetailsComponent)
+        loadComponent: () => import('./tenant-details/tenant-details.component').then((m) => m.TenantDetailsComponent),
+        canActivate: [onboardGuard]
+      },
+      {
+        path: 'unknown',
+        loadComponent: () => import('./unknown/unknown.component').then((m) => m.OnboardingUnknownComponent)
       }
-      // {
-      //   path: 'complete',
-      //   loadChildren: () =>
-      //     import('./onboarding-complete/onboarding-complete.module').then((m) => m.OnboardingCompleteModule)
-      // }
     ]
   }
 ]

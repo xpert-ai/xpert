@@ -1,7 +1,6 @@
 import { NgModule } from '@angular/core'
 import { ExtraOptions, PreloadAllModules, RouterModule, Routes } from '@angular/router'
 import { SignInSuccessComponent } from './@core/auth/signin-success'
-import { onboardGuard } from './@core'
 
 const routes: Routes = [
   {
@@ -11,7 +10,6 @@ const routes: Routes = [
   {
 		path: 'onboarding',
 		loadChildren: () => import('./onboarding/onboarding.module').then((m) => m.OnboardingModule),
-		canActivate: [onboardGuard]
 	},
   {
     path: 'auth',

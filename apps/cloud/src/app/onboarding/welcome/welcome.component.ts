@@ -1,8 +1,8 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, inject } from '@angular/core'
 import { Router } from '@angular/router'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { injectLanguage, LanguagesEnum } from '../../@core'
+import { TranslateModule } from '@ngx-translate/core'
+import { injectHelpWebsite } from '../../@core'
 
 @Component({
   standalone: true,
@@ -12,18 +12,11 @@ import { injectLanguage, LanguagesEnum } from '../../@core'
   imports: [TranslateModule, CdkMenuModule]
 })
 export class WelcomeComponent {
-  private translate = inject(TranslateService)
   private router = inject(Router)
-  private route = inject(Router)
-  readonly currentLanguage = injectLanguage()
-
-  Languages = Object.values(LanguagesEnum).filter((lang) => lang !== LanguagesEnum.Chinese)
+  readonly helpWebsite = injectHelpWebsite()
 
   navigateTenant() {
     this.router.navigate(['onboarding', 'tenant'])
   }
 
-  selectLang(selectLang: LanguagesEnum) {
-    this.translate.use(selectLang)
-  }
 }

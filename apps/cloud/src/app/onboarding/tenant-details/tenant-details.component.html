@@ -1,32 +1,10 @@
-<div class="w-full p-2 flex justify-center">
-	<img src="/assets/logo.svg" class="w-12 h-12">
+<div class="w-full p-4 flex justify-center">
+	<img src="/assets/logo.png" class="w-12 h-12 rounded-full">
 </div>
 
 <div class="w-full border-b border-solid border-divider-regular"></div>
 
 <mat-vertical-stepper class="w-[600px] max-w-full my-4 shadow-lg rounded-lg" [linear]="true" #stepper>
-  <!-- <mat-step [stepControl]="preferredLanguageFormGroup" [editable]="!tenantCompleted() && !loading()">
-    <form [formGroup]="preferredLanguageFormGroup">
-      <ng-template matStepLabel>
-        {{ 'PAC.Onboarding.WhatsPreferredLanguage' | translate: {Default: 'What\'s your preferred Language'} }}
-      </ng-template>
-
-      <p class="description">{{ 'PAC.Onboarding.PreferredLanguageDescription' | translate: {Default: 'This language will be used throughout Metad analytics platform and will be the default for new users.'} }}</p>
-
-      <mat-selection-list [multiple]="false" formControlName="preferredLanguage">
-        <mat-list-option *ngFor="let language of Languages" [value]="language">
-          {{ 'PAC.Languages.' + language | translate: {Default: language } }}
-        </mat-list-option>
-      </mat-selection-list>
-
-      <div>
-        <button mat-flat-button color="primary" matStepperNext>
-          {{ 'PAC.Onboarding.Next' | translate: {Default: 'Next'} }}
-        </button>
-      </div>
-    </form>
-  </mat-step> -->
-
   <mat-step [stepControl]="userFormGroup" [editable]="!tenantCompleted() && !loading()">
     <form [formGroup]="userFormGroup" class="flex flex-col gap-4">
       <ng-template matStepLabel> {{ 'PAC.Onboarding.WhatCallYou' | translate: {Default: 'What should we call you'} }}?</ng-template>
@@ -188,7 +166,7 @@
 
 <div class="p-4 my-8">
   {{ 'PAC.Onboarding.FeelStuck' | translate: {Default: 'If you feel stuck'} }}
-  , <a href="https://www.mtda.cloud/docs/deploy/" class="text-bluegray-500 italic">
+  , <a [href]="helpWebsite() + '/docs/getting-started/onboarding/'" class="text-bluegray-500 italic">
       {{ 'PAC.Onboarding.OurGuide' | translate: {Default: 'our getting started guide'} }}
       </a> {{ 'PAC.Onboarding.ClickAway' | translate: {Default: 'is just a click away'} }}.
 </div>

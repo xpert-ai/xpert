@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import { API_PREFIX } from '@metad/cloud/state'
 import { ITenant, ITenantCreateInput, ITenantSetting } from '@metad/contracts'
-import { firstValueFrom } from 'rxjs'
+import { catchError, firstValueFrom, map, of, shareReplay } from 'rxjs'
 
 @Injectable({ providedIn: 'root' })
 export class TenantService {
@@ -10,11 +10,17 @@ export class TenantService {
 
   API_URL = `${API_PREFIX}/tenant`
 
+  readonly #isOnboarded = this.http.get(`${this.API_URL}/onboard`).pipe(
+    map((result) => ({tenant: result})),
+    catchError((err) => of({error: err})),
+    shareReplay<{tenant?: ITenant; error?: Error}>(1)
+  )
+
   create(createInput: ITenantCreateInput): Promise<ITenant> {
     return firstValueFrom(this.http.post<ITenant>(`${this.API_URL}`, createInput))
   }
   getOnboard() {
-    return this.http.get<ITenant>(`${this.API_URL}/onboard`)
+    return this.#isOnboarded
   }
   onboard(createInput: ITenantCreateInput): Promise<ITenant> {
     return firstValueFrom(this.http.post<ITenant>(`${this.API_URL}/onboard`, createInput))

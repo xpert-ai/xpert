@@ -49,8 +49,9 @@
 
 > 在安装 Xpert 之前，请确保您的计算机满足以下最低系统要求：
 > 
->- CPU >= 2 核
->- RAM >= 4 GiB
+> - CPU >= 2 核
+> - RAM >= 4 GiB
+> - Node.js (ESM and CommonJS) - 18.x, 19.x, 20.x, 22.x
 
 </br>
 
