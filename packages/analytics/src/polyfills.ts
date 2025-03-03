@@ -16,7 +16,7 @@ if (typeof global.ReadableStream === 'undefined') {
 }
 
 if (typeof global.WritableStream === 'undefined') {
-  global.WritableStream = WritableStream;
+  global.WritableStream = WritableStream as any;
   console.log('WritableStream polyfill applied');
 }
 
