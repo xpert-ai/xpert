@@ -39,7 +39,7 @@ try {
 
     // 编译前端
     process.env.NODE_OPTIONS = '--max_old_space_size=8192';
-    execSync('yarn nx build cloud --configuration=production', { stdio: 'inherit' });
+    execSync('yarn nx build cloud --configuration=production --skip-nx-cache', { stdio: 'inherit' });
     
     // 编译后端
     execSync('yarn nx build api', { stdio: 'inherit' });
