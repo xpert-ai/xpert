@@ -23,7 +23,7 @@ FROM adoptopenjdk:11-jre-hotspot AS webapp
 
 WORKDIR /app
 
-COPY --from=build /app/target/olap-0.0.1-SNAPSHOT.jar /app/app.jar
+COPY --from=build /app/target/olap-1.0.0.jar /app/app.jar
 
 EXPOSE 8080
 
