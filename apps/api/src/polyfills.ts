@@ -10,13 +10,6 @@
 
 import { ReadableStream, WritableStream, TransformStream } from 'web-streams-polyfill';
 import fetch, {
-  Blob,
-  blobFrom,
-  blobFromSync,
-  File,
-  fileFrom,
-  fileFromSync,
-  FormData,
   Headers,
   Request,
   Response,
