@@ -61,13 +61,13 @@ export class CubeVariableFormComponent {
   readonly required = model(this.variable().variableEntryType === VariableEntryType.Required)
 
   readonly SemanticOptions: TSelectOption<Semantics>[] = [
-    {
-      value: Semantics.Calendar,
-      label: {
-        zh_Hans: '日历',
-        en_US: 'Calendar'
-      }
-    },
+    // {
+    //   value: Semantics.Calendar,
+    //   label: {
+    //     zh_Hans: '日历',
+    //     en_US: 'Calendar'
+    //   }
+    // },
     {
       value: Semantics['Sys.UserName'],
       label: {
@@ -87,6 +87,20 @@ export class CubeVariableFormComponent {
       label: {
         zh_Hans: '用户角色',
         en_US: 'User Role'
+      }
+    },
+    {
+      value: Semantics['Sys.UserID'],
+      label: {
+        zh_Hans: '用户ID',
+        en_US: 'User ID'
+      }
+    },
+    {
+      value: Semantics['Sys.UserThirdPartyId'],
+      label: {
+        zh_Hans: '用户第三方ID',
+        en_US: 'User Third Party Id'
       }
     }
   ]

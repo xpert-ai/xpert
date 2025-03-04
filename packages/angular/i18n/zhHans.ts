@@ -30,7 +30,8 @@ export const ZhHans = {
       DisplayBehaviour: '显示行为',
       DisplayBehaviour_IDOnly: '编码',
       ClearDrillDown: "清空下钻",
-      Description: "描述"
+      Description: "描述",
+      Step: '步骤'
     },
     AnalyticalCard: {
       Screenshot: '截图',

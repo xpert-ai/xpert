@@ -10,7 +10,7 @@ export function getSemanticModelKey(model: ISemanticModel) {
 	return model.id
 }
 
-export function registerSemanticModel(model: ISemanticModel, dsCoreService: DSCoreService) {
+export function registerSemanticModel(model: ISemanticModel, dsCoreService: DSCoreService, settings?: {language: string}) {
 	const modelKey = getSemanticModelKey(model)
 	const agentType = isNil(model.dataSource)
 		? AgentType.Wasm
@@ -32,7 +32,8 @@ export function registerSemanticModel(model: ISemanticModel, dsCoreService: DSCo
 		agentType,
 		mode: 'server',
 		settings: {
-			dataSourceInfo: model.dataSource?.options?.data_source_info as string
+			dataSourceInfo: model.dataSource?.options?.data_source_info as string,
+			...(settings ?? {})
 		} as any,
 		schema: {
 			...(model.options?.schema ?? {}),

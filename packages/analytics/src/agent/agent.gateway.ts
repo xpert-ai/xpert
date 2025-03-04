@@ -1,6 +1,6 @@
 import { ICopilot, IUser } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
-import { WsJWTGuard, WsUser } from '@metad/server-core'
+import { runWithRequestContext, WsJWTGuard, WsUser } from '@metad/server-core'
 import { CopilotTokenRecordCommand } from '@metad/server-ai'
 import { UseGuards } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -17,8 +17,7 @@ import { Observable, from } from 'rxjs'
 import { map } from 'rxjs/operators'
 import { Server, Socket } from 'socket.io'
 import { DataSourceOlapQuery } from '../data-source'
-import { ModelOlapQuery } from '../model'
-import { ModelCubeQuery } from '../model/queries/cube.query'
+import { ModelOlapQuery, ModelCubeQuery } from '../model'
 
 @WebSocketGateway({
 	cors: {
@@ -38,70 +37,73 @@ export class EventsGateway implements OnGatewayDisconnect {
 		@ConnectedSocket() client: Socket,
 		@WsUser() user: IUser
 	): Promise<WsResponse<any>> {
-		const { id, dataSourceId, modelId, body, acceptLanguage, forceRefresh } = data
-
-		try {
-			let result = null
-			if (modelId) {
-				if (typeof body === 'string') {
-					result = await this.queryBus.execute(
-						new ModelOlapQuery(
-							{
-								id,
-								sessionId: client.id,
-								dataSourceId,
-								modelId,
-								body,
-								acceptLanguage,
-								forceRefresh
-							},
-							user
+		const { id, organizationId, dataSourceId, modelId, body, acceptLanguage, forceRefresh } = data
+		return new Promise((resolve, reject) => {
+			runWithRequestContext({ user: user, headers: { ['organization-id']: organizationId } }, async () => {
+				try {
+					let result = null
+					if (modelId) {
+						if (typeof body === 'string') {
+							result = await this.queryBus.execute(
+								new ModelOlapQuery(
+									{
+										id,
+										sessionId: client.id,
+										dataSourceId,
+										modelId,
+										body,
+										acceptLanguage,
+										forceRefresh
+									},
+									user
+								)
+							)
+						} else {
+							result = await this.queryBus.execute(
+								new ModelCubeQuery(
+									{
+										id,
+										sessionId: client.id,
+										dataSourceId,
+										modelId,
+										body,
+										acceptLanguage,
+										forceRefresh
+									},
+									user
+								)
+							)
+						}
+					} else {
+						result = await this.queryBus.execute(
+							new DataSourceOlapQuery(
+								{ id, sessionId: client.id, dataSourceId, body, forceRefresh, acceptLanguage },
+								user
+							)
 						)
-					)
-				} else {
-					result = await this.queryBus.execute(
-						new ModelCubeQuery(
-							{
-								id,
-								sessionId: client.id,
-								dataSourceId,
-								modelId,
-								body,
-								acceptLanguage,
-								forceRefresh
-							},
-							user
-						)
-					)
+					}
+					return resolve({
+						event: 'olap',
+						data: {
+							id,
+							status: 200,
+							data: result.data,
+							cache: result.cache
+						}
+					})
+				} catch (error) {
+					return resolve({
+						event: 'olap',
+						data: {
+							id,
+							status: 500,
+							statusText: error.message ?? 'Internal Server Error',
+							data: getErrorMessage(error)
+						}
+					})
 				}
-			} else {
-				result = await this.queryBus.execute(
-					new DataSourceOlapQuery(
-						{ id, sessionId: client.id, dataSourceId, body, forceRefresh, acceptLanguage },
-						user
-					)
-				)
-			}
-			return {
-				event: 'olap',
-				data: {
-					id,
-					status: 200,
-					data: result.data,
-					cache: result.cache
-				}
-			}
-		} catch (error) {
-			return {
-				event: 'olap',
-				data: {
-					id,
-					status: 500,
-					statusText: error.message ?? 'Internal Server Error',
-					data: getErrorMessage(error)
-				}
-			}
-		}
+			})
+		})
 	}
 
 	@UseGuards(WsJWTGuard)

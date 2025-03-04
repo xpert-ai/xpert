@@ -93,22 +93,14 @@ export interface IUserCreateInput {
 	imageUrl?: string;
 	tags?: ITag[];
 	preferredLanguage?: LanguagesEnum;
-	// preferredComponentLayout?: ComponentLayoutStyleEnum;
+	timeZone?: string
+	thirdPartyId?: string
+	roleName?: string
 }
 
-export interface IUserUpdateInput {
-	firstName?: string;
-	lastName?: string;
-	email?: string;
-	username?: string;
-	role?: IRole;
-	roleId?: string;
-	hash?: string;
-	imageUrl?: string;
-	tags?: ITag[];
-	preferredLanguage?: LanguagesEnum;
-	timeZone?: string
-	// preferredComponentLayout?: ComponentLayoutStyleEnum;
+export interface IUserUpdateInput extends Omit<IUserCreateInput, 'type'> {
+    password?: string;
+    confirmPassword?: string
 }
 
 export interface IUserPasswordInput {

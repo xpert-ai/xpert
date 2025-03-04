@@ -195,18 +195,29 @@ export class BasicInfoFormComponent extends TranslationBaseComponent implements 
               options: LANGUAGES,
               appearance: 'fill'
             }
-          }
+          },
+          {
+            className: FORMLY_W_1_2,
+            key: 'thirdPartyId',
+            type: 'input',
+            props: {
+              label: TRANSLATES?.ThirdPartyId ?? 'Third Party Id',
+              placeholder: '',
+              appearance: 'fill',
+              disabled: !this.isSuperAdmin && !this.isAdmin,
+            }
+          },
+          {
+            className: FORMLY_W_1_2,
+            key: 'imageUrl',
+            type: 'input',
+            props: {
+              label: TRANSLATES?.AvatarUrl ?? 'Avatar Url',
+              placeholder: 'Image',
+              appearance: 'fill'
+            }
+          },
         ],
-      },
-      {
-        className: FORMLY_W_1_2,
-        key: 'imageUrl',
-        type: 'input',
-        props: {
-          label: TRANSLATES?.AvatarUrl ?? 'Avatar Url',
-          placeholder: 'Image',
-          appearance: 'fill'
-        }
       },
       {
         className: FORMLY_W_FULL,

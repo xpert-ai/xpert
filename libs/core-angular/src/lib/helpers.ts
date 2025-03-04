@@ -548,3 +548,83 @@ export function camelCaseObject(obj: Record<string, any>) {
 
   return newObj
 }
+
+export type WorkBook = any
+export async function readExcelWorkSheets<T = unknown>(file: File) {
+  const XLSX = await import('xlsx')
+  return new Promise<T[]>((resolve, reject) => {
+    const reader: FileReader = new FileReader()
+
+    reader.onload = async (e: any) => {
+      const data: ArrayBuffer = e.target.result
+      let wBook: WorkBook
+      if (file.type === 'text/csv') {
+        const decoder = new TextDecoder('utf-8')
+        const decodedData = decoder.decode(data)
+        wBook = XLSX.read(decodedData, { type: 'string' })
+      } else {
+        wBook = XLSX.read(data, { type: 'array' })
+      }
+
+      try {
+        resolve(await readExcelJson(wBook, file.name))
+      } catch (err) {
+        reject(err)
+      }
+    }
+
+    reader.readAsArrayBuffer(file)
+  })
+}
+
+export async function readExcelJson<T = unknown>(wSheet: WorkBook, fileName = ''): Promise<T[]> {
+  const XLSX = await import('xlsx')
+
+  const name = fileName
+    .replace(/\.xlsx$/, '')
+    .replace(/\.xls$/, '')
+    .replace(/\.csv$/, '')
+
+  // AOA : array of array
+  type AOA = any[][]
+
+  // const sheetCellRange = XLSX.utils.decode_range(wSheet['!ref'])
+  // const sheetMaxRow = sheetCellRange.e.r
+
+  return wSheet.SheetNames.map((sheetName) => {
+    const origExcelData = <AOA>XLSX.utils.sheet_to_json(wSheet.Sheets[sheetName], {
+      header: 1,
+      range: wSheet['!ref'],
+      raw: true
+    })
+
+    const refExcelData = origExcelData.slice(1).map((value) => Object.assign([], value))
+    const excelTransformNum = origExcelData[0].map((col) => `${col}`.trim())
+
+    /* Combine to JSON */
+    const excelDataEncodeToJson = refExcelData.slice(0).map((item, row) =>
+      item.reduce((obj, val, i) => {
+        if (!excelTransformNum[i]) {
+          throw new Error(`No column name found for cell at row ${row + 2}, column ${i + 1}`)
+        }
+        obj[excelTransformNum[i].trim()] = val
+        return obj
+      }, {})
+    )
+
+    const columns = excelTransformNum.map((column, i) => {
+      const item = excelDataEncodeToJson.find((item) => typeof item[column] !== 'undefined')
+      return {
+        name: column,
+        fieldName: column,
+      }
+    })
+
+    return {
+      fileName,
+      name: wSheet.SheetNames.length > 1 ? sheetName : name,
+      columns: columns.filter((col) => !!col),
+      data: excelDataEncodeToJson,
+    }
+  })
+}

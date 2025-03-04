@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http'
 import { Inject, Injectable, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { MatBottomSheet } from '@angular/material/bottom-sheet'
-import { API_DATA_SOURCE, DataSourceService } from '@metad/cloud/state'
+import { API_DATA_SOURCE, DataSourceService, injectOrganizationId, Store } from '@metad/cloud/state'
 import { AuthenticationEnum, IDataSource, IDataSourceAuthentication, ISemanticModel } from '@metad/contracts'
 import { nonNullable } from '@metad/core'
 import { Agent, AgentStatus, AgentType, DataSourceOptions, UUID } from '@metad/ocap-core'
@@ -26,6 +26,7 @@ export type ServerSocketEventType = {
 @Injectable()
 export class ServerSocketAgent extends AbstractAgent implements Agent {
   readonly #agentService = inject(AgentService)
+  readonly #organizationId = injectOrganizationId()
 
   type = AgentType.Server
 
@@ -204,6 +205,7 @@ export class ServerSocketAgent extends AbstractAgent implements Agent {
         return new Promise((resolve, reject) => {
           const message = {
             id,
+            organizationId: this.#organizationId(),
             dataSourceId,
             modelId,
             body,

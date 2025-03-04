@@ -1,0 +1,3 @@
+.step:not(.last) {
+  @apply after:content-['']  after:w-0.5 after:h-full  after:bg-indigo-600 after:inline-block after:absolute after:-bottom-11 after:left-4 lg:after:left-5;
+}

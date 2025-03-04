@@ -1,7 +1,8 @@
 {
     "User": {
         "Error": {
-            "AccountAlreadyExists": "Account already exists"
+            "AccountAlreadyExists": "Account already exists",
+            "RoleError": "Role error"
         }
     }
 }

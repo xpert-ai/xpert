@@ -2,14 +2,14 @@ import { Dialog } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { ActivatedRoute, Router } from '@angular/router'
 import { injectOrganization, Store } from '@metad/cloud/state'
-import { Subject, firstValueFrom, map } from 'rxjs'
+import { BehaviorSubject, Subject, firstValueFrom, map } from 'rxjs'
 import { Group, IUser, ROUTE_ANIMATIONS_ELEMENTS, routeAnimations } from '../../../@core/index'
 import { InviteMutationComponent } from '../../../@shared/invite'
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { MaterialModule } from '../../../@shared/material.module'
 import { userLabel } from '../../../@shared/pipes'
 import { SharedModule } from '../../../@shared/shared.module'
-import { UserMutationComponent } from '../../../@shared/user'
+import { UserMutationComponent, UserUploadComponent } from '../../../@shared/user'
 
 @Component({
   standalone: true,
@@ -37,7 +37,9 @@ export class PACUsersComponent<T extends IUser = IUser> extends TranslationBaseC
 
   public readonly invitedEvent = new Subject<void>()
 
-  readonly invitesAllowed = computed(() => this.organization()?.invitesAllowed) 
+  readonly invitesAllowed = computed(() => this.organization()?.invitesAllowed)
+
+  readonly refresh$ = new BehaviorSubject<void>(null)
 
   constructor() {
     super()
@@ -110,5 +112,15 @@ export class PACUsersComponent<T extends IUser = IUser> extends TranslationBaseC
     if (result?.user) {
       this.router.navigate(['.', result.user.id], { relativeTo: this._route })
     }
+  }
+
+  batImport() {
+    this._dialog.open(UserUploadComponent, {disableClose: true}).closed.subscribe({
+      next: (users) => {
+        if (users) {
+          this.refresh$.next()
+        }
+      }
+    })
   }
 }

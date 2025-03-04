@@ -11,6 +11,7 @@ import { TenantModule } from '../tenant/tenant.module';
 import { FactoryResetModule } from './factory-reset/factory-reset.module';
 import { EventHandlers } from './events/handlers';
 import { EmailVerification } from './email-verification/email-verification.entity';
+import { RoleModule } from '../role';
 
 @Module({
 	imports: [
@@ -21,6 +22,7 @@ import { EmailVerification } from './email-verification/email-verification.entit
 		forwardRef(() => TenantModule),
 		SharedModule,
 		CqrsModule,
+		RoleModule,
 		FactoryResetModule,
 		CacheModule.register({ isGlobal: true })
 	],

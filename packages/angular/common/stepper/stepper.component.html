@@ -1,0 +1,27 @@
+<ol class="overflow-hidden space-y-8" cdkListbox [(ngModel)]="current" (ngModelChange)="onChange($event[0])">
+  @for (step of steps(); track step; let i = $index; let last = $last) {
+    <li class="step relative flex-1"
+      [class.last]="last"
+      [cdkOption]="i+1">
+      <a class="flex items-center font-medium w-full">
+        @if (current()[0] === i+1) {
+          <span class="w-8 h-8 bg-primary-50  border-2 border-primary-600 rounded-full flex justify-center items-center mr-3 text-sm text-primary-600 lg:w-10 lg:h-10">
+            {{i+1}}</span>
+        } @else if(current()[0] > i) {
+          <span class="w-8 h-8 bg-primary-600 border-2 border-transparent rounded-full flex justify-center items-center mr-3 text-sm text-white lg:w-10 lg:h-10">
+            <i class="ri-check-line text-white"></i>
+          </span>
+        } @else {
+          <span class="w-8 h-8 bg-gray-50 border-2 border-gray-200 rounded-full flex justify-center items-center mr-3 text-sm  lg:w-10 lg:h-10">
+            {{i+1}}
+          </span>
+        }
+        <div class="block">
+          <h4 class="text-lg text-primary-600" [class.text-primary-600]="current()[0] > i">
+            {{'Ngm.Common.Step' | translate: {Default: 'Step'} }} {{i + 1}}</h4>
+          <span class="text-sm">{{step.title | i18n}}</span>
+        </div>
+      </a>
+    </li>
+  }
+</ol>

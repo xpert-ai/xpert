@@ -58,7 +58,9 @@ export enum Semantics {
 
   'Sys.UserName' = 'Sys.UserName',
   'Sys.UserRole' = 'Sys.UserRole',
-  'Sys.UserEmail' = 'Sys.UserEmail'
+  'Sys.UserEmail' = 'Sys.UserEmail',
+  'Sys.UserID' = 'Sys.UserID',
+  'Sys.UserThirdPartyId' = 'Sys.UserThirdPartyId',
   // ... more
 }
 
