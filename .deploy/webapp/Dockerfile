@@ -1,19 +1,8 @@
 ARG NODE_OPTIONS
 ARG NODE_ENV
 ARG API_BASE_URL
-ARG API_HOST
-ARG API_PORT
 ARG SENTRY_DSN
-ARG DB_HOST
-ARG DB_NAME
-ARG DB_PORT
-ARG DB_USER
-ARG DB_PASS
-ARG DB_TYPE
-ARG DB_SSL_MODE
 ARG DEMO
-ARG HOST
-ARG PORT
 
 # ==================================================== Stage ==========================================================#
 # Copy package.json, Install npm dependencies and Build
@@ -24,7 +13,7 @@ LABEL maintainer="meta.digital.cloud@gmail.com"
 ENV CI=true
 
 RUN apk --update add bash && \
-    apk add --no-cache --virtual build-dependencies dos2unix gcc g++ git make python3 vips-dev && \
+    # apk add --no-cache --virtual build-dependencies dos2unix gcc g++ git make python3 vips-dev && \
     mkdir /srv/pangolin && chown -R node:node /srv/pangolin
 
 COPY wait .deploy/api/entrypoint.prod.sh .deploy/api/entrypoint.compose.sh /
