@@ -1,8 +1,9 @@
 import { Injectable, Module } from '@nestjs/common'
 import { ModelProvider } from '../../ai-provider'
-import { PROVIDE_AI_MODEL_LLM } from '../../types/types'
+import { PROVIDE_AI_MODEL_LLM, PROVIDE_AI_MODEL_TEXT_EMBEDDING } from '../../types/types'
 import { OpenAICompatCredentials } from './types'
 import { OAIAPICompatLargeLanguageModel } from './llm/llm'
+import { OAIAPICompatTextEmbeddingModel } from './text-embedding/text-embedding'
 
 @Injectable()
 export class OAICompatProvider extends ModelProvider {
@@ -33,6 +34,10 @@ export class OAICompatProvider extends ModelProvider {
 		{
 			provide: PROVIDE_AI_MODEL_LLM,
 			useClass: OAIAPICompatLargeLanguageModel
+		},
+		{
+			provide: PROVIDE_AI_MODEL_TEXT_EMBEDDING,
+			useClass: OAIAPICompatTextEmbeddingModel
 		}
 	],
 	exports: [ModelProvider, OAICompatProvider]
