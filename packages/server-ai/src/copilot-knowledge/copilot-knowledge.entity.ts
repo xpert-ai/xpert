@@ -10,7 +10,7 @@ export class CopilotKnowledge extends TenantOrganizationBaseEntity implements IC
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true, length: 20 })
+	@Column({ nullable: true, length: 100 })
 	provider?: AiProvider | string
 
 	@ApiPropertyOptional({ type: () => String })
