@@ -9,6 +9,7 @@ import { GoogleProviderModule } from './google/google'
 import { GroqProviderModule } from './groq/groq'
 import { HuggingfaceHubProviderModule } from './huggingface_hub/huggingface_hub'
 import { HunyuanProviderModule } from './hunyuan/hunyuan'
+import { JinaProviderModule } from './jina/jina'
 import { MistralAIProviderModule } from './mistralai/mistralai'
 import { MoonshotProviderModule } from './moonshot/moonshot'
 import { OllamaProviderModule } from './ollama/ollama'
@@ -45,5 +46,6 @@ export const ProviderModules = [
 	OAICompatProviderModule,
 	VolcengineMaaSProviderModule,
 	SparkProviderModule,
-	SiliconflowProviderModule
+	SiliconflowProviderModule,
+	JinaProviderModule
 ]

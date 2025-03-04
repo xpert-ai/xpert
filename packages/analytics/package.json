@@ -21,15 +21,18 @@
 		"@nestjs/typeorm": "^8.0.3",
 		"@nestjs/websockets": "^8.1.2",
 		"axios": "^0.24.0",
+		"core-js": "3.41.0",
 		"bull": "^4.12.6",
 		"date-fns": "^3.0.4",
 		"decompress": "4.2.1",
 		"immer": "^9.0.6",
 		"nestjs-i18n": "^8.1.6",
+		"node-fetch": "2",
 		"redis": "^4.6.13",
 		"reflect-metadata": "^0.1.13",
 		"socket.io-redis": "6.1.1",
 		"typeorm": "^0.2.37",
+		"web-streams-polyfill": "^4.1.0",
 		"xml2js": "^0.4.23"
 	},
 	"devDependencies": {

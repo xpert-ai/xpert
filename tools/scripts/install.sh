@@ -24,10 +24,10 @@ else
 fi
 
 # In production we should replace some values in generated JS code
-find . -type f -name "*.js" -exec sed -i'' -e "s#DOCKER_API_BASE_URL#${API_BASE_URL}#g" {} +
-find . -type f -name "*.js" -exec sed -i'' -e "s#\"DOCKER_ENABLE_LOCAL_AGENT\"#$ENABLE_LOCAL_AGENT#g" {} +
-find . -type f -name "*.js" -exec sed -i'' -e "s#DOCKER_CLIENT_BASE_URL#$CLIENT_BASE_URL#g" {} +
-find . -type f -name "*.js" -exec sed -i'' -e "s#DOCKER_DEMO#${DEMO}#g" {} +
+find ./apps/cloud/ -type f -name "*.js" -exec sed -i'' -e "s#DOCKER_API_BASE_URL#${API_BASE_URL}#g" {} +
+find ./apps/cloud/ -type f -name "*.js" -exec sed -i'' -e "s#\"DOCKER_ENABLE_LOCAL_AGENT\"#$ENABLE_LOCAL_AGENT#g" {} +
+find ./apps/cloud/ -type f -name "*.js" -exec sed -i'' -e "s#DOCKER_CLIENT_BASE_URL#$CLIENT_BASE_URL#g" {} +
+find ./apps/cloud/ -type f -name "*.js" -exec sed -i'' -e "s#DOCKER_DEMO#${DEMO}#g" {} +
 
 # 如果 XPERT_AI_HOME 没有值则使用默认值 xpertai
 XPERT_AI_HOME=${XPERT_AI_HOME:-xpertai}
