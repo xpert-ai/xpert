@@ -292,7 +292,10 @@
       "TimeZone": "时区",
       "Source Type": "源类型",
       "Available": "可用",
-      "PleaseEnter": "请输入"
+      "PleaseEnter": "请输入",
+      "SemanticType": "语义类型",
+      "Visible": "可见",
+      "DefaultValue": "默认值"
     },
     "Workflow": {
       "And": "且",
@@ -498,7 +501,8 @@
       "UserDeletedSuccessfully": "用户删除成功",
       "ConfirmDeleteInvite": "删除后，被邀请的用户将无法再确认邀请",
       "RemoveUserFromOrg": "从此组织内移除此用户",
-      "RemoveDelUserFromOrg": "从此组织内移除并删除此用户"
+      "RemoveDelUserFromOrg": "从此组织内移除并删除此用户",
+      "BatchImport": "批量导入"
     },
     "ACTIONS": {
       "Add": "添加",
@@ -802,6 +806,7 @@
       "SynchronizationJobCreatedSuccessfully": "同步任务创建成功!",
       "StopSyncJob": "终止同步任务",
       "EditCubeVariable": "编辑立方体变量",
+      "EditVariable": "编辑变量",
       "Variables": "参数变量",
       "OpenCubeDesigner": "打开多维数据集属性编辑器",
       "IsDefault": "是默认",
@@ -1208,10 +1213,13 @@
         "PreferredLanguage": "首选语言",
         "AvatarUrl": "头像链接",
         "TimeZone": "时区",
-        "SelectTimeZone": "选择一个时区"
+        "SelectTimeZone": "选择一个时区",
+        "ThirdPartyId": "第三方ID"
       },
       "User": {
-        "NameEmail": "名称,邮箱"
+        "NameEmail": "名称,邮箱",
+        "CreateAccounts": "批量创建账号",
+        "DownloadTemplate": "下载模板"
       },
       "SMTP": {
         "Host": "域名",

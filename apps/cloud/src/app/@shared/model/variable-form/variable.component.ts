@@ -3,16 +3,17 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, model, signal } from '@angular/core'
+import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
-import { NgmInputComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmCheckboxComponent, NgmInputComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmVariableComponent } from '@metad/ocap-angular/controls'
 import { ButtonGroupDirective, isNotNil, NgmI18nPipe } from '@metad/ocap-angular/core'
-import { DataSettings, VariableProperty } from '@metad/ocap-core'
+import { DataSettings, Semantics, VariableEntryType, VariableProperty } from '@metad/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
-import { injectApiBaseUrl, injectToastr } from '../../../@core'
+import { injectApiBaseUrl, injectToastr, TSelectOption } from '../../../@core'
+import { NgmSelectComponent } from '../../common'
 
 @Component({
   standalone: true,
@@ -29,7 +30,9 @@ import { injectApiBaseUrl, injectToastr } from '../../../@core'
     ButtonGroupDirective,
     NgmInputComponent,
     NgmSpinComponent,
-    NgmVariableComponent
+    NgmVariableComponent,
+    NgmSelectComponent,
+    NgmCheckboxComponent
   ],
   selector: 'model-cube-variable-form',
   templateUrl: 'variable.component.html',
@@ -53,6 +56,61 @@ export class CubeVariableFormComponent {
     members: isNotNil(this.variable().defaultLow) ? [{ key: this.variable().defaultLow }] : []
   })
 
+  readonly semantic = model(this.variable().semantics?.semantic)
+  readonly visible = model(this.variable().visible)
+  readonly required = model(this.variable().variableEntryType === VariableEntryType.Required)
+
+  readonly SemanticOptions: TSelectOption<Semantics>[] = [
+    // {
+    //   value: Semantics.Calendar,
+    //   label: {
+    //     zh_Hans: '日历',
+    //     en_US: 'Calendar'
+    //   }
+    // },
+    {
+      value: Semantics['Sys.UserName'],
+      label: {
+        zh_Hans: '用户名称',
+        en_US: 'User Name'
+      }
+    },
+    {
+      value: Semantics['Sys.UserEmail'],
+      label: {
+        zh_Hans: '用户邮箱',
+        en_US: 'User Email'
+      }
+    },
+    {
+      value: Semantics['Sys.UserRole'],
+      label: {
+        zh_Hans: '用户角色',
+        en_US: 'User Role'
+      }
+    },
+    {
+      value: Semantics['Sys.UserID'],
+      label: {
+        zh_Hans: '用户ID',
+        en_US: 'User ID'
+      }
+    },
+    {
+      value: Semantics['Sys.UserThirdPartyId'],
+      label: {
+        zh_Hans: '用户第三方ID',
+        en_US: 'User Third Party Id'
+      }
+    }
+  ]
+
+  constructor() {
+    effect(() => {
+      console.log(this.variable())
+    })
+  }
+
   cancel() {
     this.#dialogRef.close()
   }
@@ -60,7 +118,10 @@ export class CubeVariableFormComponent {
     this.#dialogRef.close({
       ...this.variable(),
       caption: this.caption(),
-      defaultLow: this.defaultLow()?.members?.[0]?.key
+      defaultLow: this.defaultLow()?.members?.[0]?.key,
+      visible: this.visible(),
+      variableEntryType: this.required() ? VariableEntryType.Required : VariableEntryType.Optional,
+      semantics: this.semantic() ? {semantic: this.semantic()} : null
     })
   }
 }

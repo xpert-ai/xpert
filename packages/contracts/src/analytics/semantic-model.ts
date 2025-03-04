@@ -26,6 +26,11 @@ export interface ISemanticModelPreferences {
   exposeXmla?: boolean
 }
 
+export type TSemanticModelOptions<T> = {
+  schema?: T
+  settings?: any
+}
+
 export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel {
   key?: string
   name?: string
@@ -43,10 +48,7 @@ export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel
   catalog?: string
   cube?: string
   // 存放语义元数据
-  options?: {
-    schema?: MDX.Schema
-    settings?: any
-  }
+  options?: TSemanticModelOptions<any>
   // 存放模型配置
   preferences?: ISemanticModelPreferences
 

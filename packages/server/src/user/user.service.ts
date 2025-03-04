@@ -38,20 +38,26 @@ export class UserService extends TenantAwareCrudService<User> {
 	async getIfExistsUser(user: IUser): Promise<IUser> {
 		let _user: IUser = null
 		if (user.email) {
-			const userExists = await this.findOneOrFail({email: user.email})
+			const userExists = await this.findOneOrFail({where: {email: user.email}})
 			if (userExists.success) {
 				_user = userExists.record
 			}
 		}
 		
 		if (!_user && user.mobile) {
-			const userExists = await this.findOneOrFail({mobile: user.mobile})
+			const userExists = await this.findOneOrFail({where: {mobile: user.mobile}})
 			if (userExists.success) {
 				_user = userExists.record
 			}
 		}
 		if (!_user && user.thirdPartyId) {
-			const userExists = await this.findOneOrFail({thirdPartyId: user.thirdPartyId})
+			const userExists = await this.findOneOrFail({where: {thirdPartyId: user.thirdPartyId}})
+			if (userExists.success) {
+				_user = userExists.record
+			}
+		}
+		if (!_user && user.username) {
+			const userExists = await this.findOneOrFail({where: {username: user.username}})
 			if (userExists.success) {
 				_user = userExists.record
 			}
@@ -88,6 +94,7 @@ export class UserService extends TenantAwareCrudService<User> {
 		return await this.repository
 			.createQueryBuilder('user')
 			.where('user.id = :id', { id })
+			.leftJoinAndSelect('user.role', 'role')
 			.getOne();
 	}
 
@@ -95,6 +102,7 @@ export class UserService extends TenantAwareCrudService<User> {
 		return await this.repository
 			.createQueryBuilder('user')
 			.where('user.thirdPartyId = :thirdPartyId', { thirdPartyId })
+			.leftJoinAndSelect('user.role', 'role')
 			.getOne();
 	}
 

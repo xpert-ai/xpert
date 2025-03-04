@@ -12,7 +12,7 @@ import { EventHandlers } from './events/handlers'
 import { ModelController } from './model.controller'
 import { SemanticModel } from './model.entity'
 import { SemanticModelService } from './model.service'
-import { OcapModule } from './ocap'
+import { provideOcap } from './ocap'
 import { QueryHandlers } from './queries/handlers'
 import { SemanticModelRoleModule } from './role/role.module'
 
@@ -32,10 +32,9 @@ import { SemanticModelRoleModule } from './role/role.module'
 		BusinessAreaUserModule,
 		BusinessAreaModule,
 		RedisModule,
-		OcapModule
 	],
 	controllers: [ModelController],
-	providers: [SemanticModelService, ...CommandHandlers, ...QueryHandlers, ...EventHandlers],
+	providers: [SemanticModelService, ...CommandHandlers, ...QueryHandlers, ...EventHandlers, ...provideOcap()],
 	exports: [TypeOrmModule, SemanticModelService]
 })
 export class SemanticModelModule {}

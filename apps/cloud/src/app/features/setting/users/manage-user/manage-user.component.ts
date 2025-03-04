@@ -87,6 +87,10 @@ export class ManageUserComponent extends TranslationBaseComponent {
     })
   )
 
+  private refreshSub = this.usersComponent.refresh$.subscribe(() => {
+    this.refresh$.next()
+  })
+
   async add() {
     await this.usersComponent.addUser()
   }

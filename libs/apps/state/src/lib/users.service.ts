@@ -77,4 +77,8 @@ export class UsersService {
   updatePreferredComponentLayout(userId: string, updateInput: IUserUpdateInput) {
     return firstValueFrom(this.http.put(`${this.API_URL}/preferred-layout/${userId}`, updateInput))
   }
+
+  createBulk(users: IUserUpdateInput[]) {
+    return this.http.post<IUser[]>(this.API_URL + `/bulk`, users)
+  }
 }

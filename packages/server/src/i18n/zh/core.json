@@ -1,7 +1,8 @@
 {
     "User": {
         "Error": {
-            "AccountAlreadyExists": "账号已存在"
+            "AccountAlreadyExists": "账号已存在",
+            "RoleError": "角色错误"
         }
     }
 }

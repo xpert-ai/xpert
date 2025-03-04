@@ -21,6 +21,7 @@ import { NgmObjectNumberComponent } from './object-number/object-number.componen
 import { NgmSpinComponent } from './spin/spin.component'
 import { NgmCheckboxComponent } from './checkbox/checkbox.component'
 import { NgmSlideToggleComponent } from './slide-toggle/slide-toggle.component'
+import { NgmStepperComponent } from './stepper/stepper.component'
 
 @NgModule({
   imports: [
@@ -52,7 +53,8 @@ import { NgmSlideToggleComponent } from './slide-toggle/slide-toggle.component'
     NgmObjectNumberComponent,
     NgmSpinComponent,
     NgmCheckboxComponent,
-    NgmSlideToggleComponent
+    NgmSlideToggleComponent,
+    NgmStepperComponent
   ],
   exports: [
     ResizerModule,
@@ -81,7 +83,8 @@ import { NgmSlideToggleComponent } from './slide-toggle/slide-toggle.component'
     NgmObjectNumberComponent,
     NgmSpinComponent,
     NgmCheckboxComponent,
-    NgmSlideToggleComponent
+    NgmSlideToggleComponent,
+    NgmStepperComponent
   ],
   declarations: [],
   providers: []

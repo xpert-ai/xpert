@@ -24,7 +24,7 @@ export class CopilotCheckpointSaver extends BaseCheckpointSaver {
 		super()
 	}
 
-	async getTuple(config: RunnableConfig): Promise<CheckpointTuple | undefined> {
+	async getCopilotCheckpoint(config: RunnableConfig): Promise<{checkpoint?: CopilotCheckpoint; pendingWrites?: CopilotCheckpointWrites[]}> {
 		const { thread_id, checkpoint_ns = '', checkpoint_id } = config.configurable || {}
 		let row = null
 		if (checkpoint_id) {
@@ -52,7 +52,7 @@ export class CopilotCheckpointSaver extends BaseCheckpointSaver {
 		}
 
 		if (!row) {
-			return undefined
+			return {}
 		}
 
 		let finalConfig = config
@@ -73,13 +73,28 @@ export class CopilotCheckpointSaver extends BaseCheckpointSaver {
 		}
 
 		// find any pending writes
-		const pendingWritesRows = await this.wRepository.find({
+		const pendingWrites = await this.wRepository.find({
 			where: {
 				thread_id: finalConfig.configurable.thread_id.toString(),
 				checkpoint_ns,
 				checkpoint_id: finalConfig.configurable.checkpoint_id.toString()
 			}
 		})
+
+		return {
+			checkpoint: row,
+			pendingWrites
+		}
+	}
+
+	async getTuple(config: RunnableConfig): Promise<CheckpointTuple | undefined> {
+		const { thread_id, checkpoint_ns = '', checkpoint_id } = config.configurable || {}
+		const {checkpoint, pendingWrites: pendingWritesRows} = await this.getCopilotCheckpoint(config)
+
+		if (!checkpoint) {
+			return undefined
+		}
+		
 		const pendingWrites = await Promise.all(
 			pendingWritesRows.map(async (row) => {
 				return [row.task_id, row.channel, await this.serde.loadsTyped(row.type ?? 'json', row.value ?? '')] as [
@@ -92,14 +107,14 @@ export class CopilotCheckpointSaver extends BaseCheckpointSaver {
 
 		return {
 			config,
-			checkpoint: (await this.serde.loadsTyped(row.type ?? 'json', row.checkpoint)) as Checkpoint,
-			metadata: (await this.serde.loadsTyped(row.type ?? 'json', row.metadata)) as CheckpointMetadata,
-			parentConfig: row.parent_id
+			checkpoint: (await this.serde.loadsTyped(checkpoint.type ?? 'json', checkpoint.checkpoint)) as Checkpoint,
+			metadata: (await this.serde.loadsTyped(checkpoint.type ?? 'json', checkpoint.metadata)) as CheckpointMetadata,
+			parentConfig: checkpoint.parent_id
 				? {
 						configurable: {
 							thread_id,
 							checkpoint_ns,
-							checkpoint_id: row.parent_id
+							checkpoint_id: checkpoint.parent_id
 						}
 					}
 				: undefined,

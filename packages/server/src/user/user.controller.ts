@@ -26,21 +26,21 @@ import {
 import { CommandBus } from '@nestjs/cqrs';
 import {
 	IPagination,
-	IUser,
 	PermissionsEnum,
 	IUserCreateInput,
 	IUserUpdateInput,
-	UserType
+	UserType,
+	RolesEnum
 } from '@metad/contracts';
 import { CrudController, PaginationParams } from './../core/crud';
 import { TransformInterceptor } from './../core/interceptors';
 import { RequestContext } from '../core/context';
 import { UUIDValidationPipe, ParseJsonPipe } from './../shared/pipes';
-import { PermissionGuard, TenantPermissionGuard } from './../shared/guards';
-import { Permissions } from './../shared/decorators';
+import { PermissionGuard, RoleGuard, TenantPermissionGuard } from './../shared/guards';
+import { Permissions, Roles } from './../shared/decorators';
 import { User, UserPreferredLanguageDTO } from './user.entity';
 import { UserService } from './user.service';
-import { UserCreateCommand } from './commands';
+import { UserBulkCreateCommand, UserCreateCommand } from './commands';
 import { FactoryResetService } from './factory-reset/factory-reset.service';
 import { UserDeleteCommand } from './commands/user.delete.command';
 import { Like, Not } from 'typeorm';
@@ -367,5 +367,12 @@ export class UserController extends CrudController<User> {
 		@Param('id', UUIDValidationPipe) id: string
 	){
 		return this.factoryResetService.reset(id);
+	}
+
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN)
+	@Post('bulk')
+	async createBulk(@Body() users: IUserCreateInput[]) {
+		return await this.commandBus.execute(new UserBulkCreateCommand(users))
 	}
 }

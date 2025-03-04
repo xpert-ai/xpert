@@ -5,17 +5,20 @@
       <div class="pac-page-subtitle">{{ 'PAC.MENU.ManageUsersAndInvites' | translate: {Default: 'Manage Users & Invites'} }}</div>
     </div>
 
-    <div ngmButtonGroup>
-      <button mat-raised-button displayDensity="cosy" color="accent" (click)="invite()">
-        <div class="flex items-center">
-          <mat-icon fontSet="material-icons-outlined">person_add</mat-icon>{{ 'PAC.ACTIONS.INVITE' | translate: {Default: "Invite"} }}
-        </div>
-      </button>
-
-      <button mat-raised-button color="primary" displayDensity="cosy" (click)="addUser()">
-        <mat-icon fontSet="material-icons-outlined">add</mat-icon>
-        {{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }}
-      </button>
+    <div class="flex items-center gap-1">
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-secondary btn-large mr-2"
+        (click)="batImport()"
+      ><i class="ri-contacts-book-upload-line font-normal mr-1"></i>{{ 'PAC.USERS_PAGE.BatchImport' | translate: {Default: "Batch Import"} }}</button>
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-secondary btn-large mr-2"
+        (click)="invite()"
+      ><i class="ri-user-shared-line font-normal mr-1"></i>{{ 'PAC.ACTIONS.INVITE' | translate: {Default: "Invite"} }}</button>
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+        (click)="addUser()"
+      ><i class="ri-add-line mr-1"></i>{{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }}</button>
     </div>
   </div>
 

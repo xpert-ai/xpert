@@ -79,6 +79,12 @@ export interface DataSourceOptions extends SemanticModel {
   settings?: DataSourceSettings
   authMethod?: string
   useLocalAgent?: boolean
+  /**
+   * Default: client
+   * - client: in client send query options to server
+   * - server: query xmla
+   */
+  mode?: 'client' | 'server'
 }
 
 /**

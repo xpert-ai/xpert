@@ -104,6 +104,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 
 		where = {
 			...(<FindConditions<Xpert>>where),
+			publishAt: Not(IsNull()),
 			createdById: userId
 		};
 
@@ -123,13 +124,15 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 				baseQuery.addOrderBy(`xpert.${name}`, order[name])
 			})
 		}
-		const xpertsManagedByUser = await baseQuery.where(params.where ?? {})
+		const xpertsManagedByUser = await baseQuery.where(
+			{...(params.where ?? {}), publishAt: Not(IsNull()),})
 			.take(take)
 			.getMany();
 
 		const xpertsInUserWorkspaces = await this.repository.find({
 			where: {
 				...(params.where ?? {}),
+				publishAt: Not(IsNull()),
 				workspaceId: In(userWorkspaces.map(workspace => workspace.id))
 			},
 			relations,

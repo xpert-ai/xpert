@@ -18,7 +18,7 @@ import {
   Semantics,
   serializeArgs,
 } from '@metad/ocap-core'
-import { BehaviorSubject, EMPTY, firstValueFrom, from, Observable, of } from 'rxjs'
+import { BehaviorSubject, EMPTY, from, Observable, of } from 'rxjs'
 import { catchError, map } from 'rxjs/operators'
 import { XmlaDataSource, XMLA_TEXT_FIELD_SUFFIX } from './ds-xmla.service'
 import {
@@ -127,82 +127,90 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
           }
         }
 
-        return from(
-          this.execute(this.dataSource.options.name, mdx, this.dataSource.options.settings?.language || '', {
-            skip: options.force
-          })
-        ).pipe(
-          map(({ rows, columns, data, cellset, columnAxes }) => {
-            const fields = [...mdxQuery.rows, ...mdxQuery.columns]
-            // for SAP BW escaped property name _
-            if (dialect === MDXDialect.SAPBW) {
-              fields.forEach((field) => {
-                field.properties?.forEach((property) => {
-                  const escaped = escapeBWSlash(field.dimension, property)
-                  data.forEach((element) => {
-                    element[property] = element[escaped]
+        const headers: HttpHeaders = {}
+        const language = this.dataSource.options.settings?.language || ''
+        if (language) {
+          headers['Accept-Language'] = language
+        }
+
+        if (this.dataSource.options?.mode === 'server') {
+          return this.dataSource.xmlaService.execute(mdx, { headers, forceRefresh: options.force }).pipe(
+            map((dataset) => fetchDataFromMultidimensionalTuple(dataset, this.entityType, mdx)),
+            map(({ rows, columns, data, cellset, columnAxes }) => {
+              const fields = [...mdxQuery.rows, ...mdxQuery.columns]
+              // for SAP BW escaped property name _
+              if (dialect === MDXDialect.SAPBW) {
+                fields.forEach((field) => {
+                  field.properties?.forEach((property) => {
+                    const escaped = escapeBWSlash(field.dimension, property)
+                    data.forEach((element) => {
+                      element[property] = element[escaped]
+                    })
                   })
                 })
-              })
-            }
-
-            let results = data.map((item) => {
-              const _item = { ...item }
-              fields.forEach((property) => {
-                if (property.hierarchy && property.dimension) {
-                  _item[property.dimension] = _item[property.hierarchy]
-                  if (_item[property.hierarchy + XMLA_TEXT_FIELD_SUFFIX]) {
-                    _item[property.dimension + XMLA_TEXT_FIELD_SUFFIX] =
-                      _item[property.hierarchy + XMLA_TEXT_FIELD_SUFFIX]
+              }
+  
+              let results = data.map((item) => {
+                const _item = { ...item }
+                fields.forEach((property) => {
+                  if (property.hierarchy && property.dimension) {
+                    _item[property.dimension] = _item[property.hierarchy]
+                    if (_item[property.hierarchy + XMLA_TEXT_FIELD_SUFFIX]) {
+                      _item[property.dimension + XMLA_TEXT_FIELD_SUFFIX] =
+                        _item[property.hierarchy + XMLA_TEXT_FIELD_SUFFIX]
+                    }
                   }
+                })
+                return _item
+              })
+  
+              // 排除无值成员
+              mdxQuery.rows?.forEach((row) => {
+                if (!row.unbookedData) {
+                  results = results.filter((item) => item[row.dimension] !== '[#]')
                 }
               })
-              return _item
-            })
-
-            // 排除无值成员
-            mdxQuery.rows?.forEach((row) => {
-              if (!row.unbookedData) {
-                results = results.filter((item) => item[row.dimension] !== '[#]')
+  
+              return {
+                data: results,
+                schema: {
+                  rows,
+                  columns,
+                  recursiveHierarchy,
+                  rowHierarchy: hRow?.hierarchy,
+                  columnAxes
+                },
+                cellset,
+                stats: {
+                  statements: [
+                    mdx
+                  ]
+                }
               }
+            }),
+            catchError((error, caught) => {
+              return of({
+                status: 'ERROR' as QueryReturn<T>['status'],
+                error: simplifyErrorMessage(error.exception ? getExceptionMessage(error.exception) ?? getErrorMessage(error) : getErrorMessage(error)),
+                stats: {
+                  statements: [
+                    mdx
+                  ]
+                }
+              } as any)
             })
-
-            return {
-              data: results,
-              schema: {
-                rows,
-                columns,
-                recursiveHierarchy,
-                rowHierarchy: hRow?.hierarchy,
-                columnAxes
-              },
-              cellset,
-              stats: {
-                statements: [
-                  mdx
-                ]
-              }
-            }
-          }),
-          catchError((error, caught) => {
-            // console.group('MDX Query')
-            // console.debug(`MDX EntityType:`, this.entityType)
-            // console.debug(`MDX options:`, options)
-            // console.debug(`MDX Query:`, mdxQuery)
-            // console.error(`MDX:`, mdx, '\nError\n', error)
-            // console.groupEnd()
-
-            return of({
-              status: 'ERROR' as QueryReturn<T>['status'],
-              error: simplifyErrorMessage(error.exception ? getExceptionMessage(error.exception) ?? getErrorMessage(error) : getErrorMessage(error)),
-              stats: {
-                statements: [
-                  mdx
-                ]
-              }
+          )
+        } else {
+          return from(
+            this.execute({
+              modelName: this.dataSource.options.name,
+              mdx,
+              language: this.dataSource.options.settings?.language || '',
+              skip: options.force,
+              query: {...options, cube: this.entitySet}
             })
-          })
-        )
+          )
+        }
       }
 
       // console.debug(`MDX:`, mdx, '\n==>\n', [])
@@ -221,7 +229,8 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
     }
   }
 
-  async execute(modelName: string, mdx: string, language = '', options: { skip: boolean | void }): Promise<any> {
+  async execute(options: {modelName: string; query: QueryOptions; mdx: string; language: string; skip: boolean | void}): Promise<any> {
+    const {modelName, query, mdx, language = '', skip} = options
     const headers: HttpHeaders = {}
     if (language) {
       headers['Accept-Language'] = language
@@ -241,10 +250,13 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
       return cache
     }
 
-    const dataset = await firstValueFrom(this.dataSource.xmlaService.execute(mdx, { headers, forceRefresh: options?.skip }))
-    const result = fetchDataFromMultidimensionalTuple(dataset, this.entityType, mdx)
-    this.dataSource.cacheService?.setCache(cacheOptions, result)
-    return result
+    return await this.dataSource.agent.request(this.dataSource.options, {
+      headers,
+      forceRefresh: skip,
+      body: {
+        mdx,
+        query,
+      }})
   }
 
   /**

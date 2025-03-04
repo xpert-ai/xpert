@@ -23,6 +23,9 @@ import { SEMANTIC_MODEL, SEMANTIC_MODEL_NAME, SEMANTIC_MODEL_ROLES } from './sem
 import { BusinessAreaRole, IModelRole } from '@metad/contracts'
 import { CommandBus, ICommand } from '@nestjs/cqrs'
 
+/**
+ * @deprecated
+ */
 export async function seedTenantDefaultData(
 	dstService: DataSourceTypeService,
 	dsRepository: Repository<DataSource>,
@@ -96,7 +99,7 @@ export async function seedTenantDefaultData(
 	semanticModel.name = SEMANTIC_MODEL_NAME
 	semanticModel.type = 'XMLA'
 	semanticModel.catalog = 'foodmart'
-	semanticModel.options = SEMANTIC_MODEL
+	// semanticModel.options = SEMANTIC_MODEL
 
 	// Save Model
 	semanticModel = await modelRepository.save(semanticModel)

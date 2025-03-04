@@ -11,7 +11,7 @@ import {
   nonNullable,
   Syntax
 } from '@metad/ocap-core'
-import { pick } from 'lodash-es'
+import { floor, pick } from 'lodash-es'
 import {
   BehaviorSubject,
   catchError,
@@ -94,9 +94,9 @@ export class SlicersComponent extends BaseSlicersComponent implements ControlVal
   )
   readonly variables$ = this.entityType$.pipe(
     filter(nonNullable),
+    map((entityType) => getEntityVariables(entityType).filter((_) => _.visible)),
     combineLatestWith(this.searchControl.valueChanges.pipe(startWith(''))),
-    map(([entityType, search]) => {
-      const variables = getEntityVariables(entityType)
+    map(([variables, search]) => {
       const text = search?.trim().toLowerCase()
       return text
         ? variables.filter(

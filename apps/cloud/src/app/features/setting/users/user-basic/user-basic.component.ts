@@ -52,7 +52,7 @@ export class UserBasicComponent extends TranslationBaseComponent {
   // }
 
   async save() {
-    const { email, username, firstName, lastName, tags, preferredLanguage, password, imageUrl, roleId } = this.user
+    const { email, username, firstName, lastName, tags, preferredLanguage, password, imageUrl, roleId, thirdPartyId } = this.user
     let request: IUserUpdateInput = {
       email,
       username,
@@ -60,7 +60,8 @@ export class UserBasicComponent extends TranslationBaseComponent {
       lastName,
       tags,
       preferredLanguage: preferredLanguage as LanguagesEnum,
-      imageUrl
+      imageUrl,
+      thirdPartyId
     }
 
     if (password) {
@@ -73,7 +74,7 @@ export class UserBasicComponent extends TranslationBaseComponent {
     if (this.allowRoleChange) {
       request = {
         ...request,
-        roleId: this.user.roleId
+        roleId
       }
     }
 

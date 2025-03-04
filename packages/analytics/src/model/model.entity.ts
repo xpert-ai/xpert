@@ -15,6 +15,7 @@ import {
 	IVisit,
 	ModelTypeEnum,
 	SemanticModelStatusEnum,
+	TSemanticModelOptions,
 	Visibility
 } from '@metad/contracts'
 import { Tag, TenantOrganizationBaseEntity, User } from '@metad/server-core'
@@ -34,6 +35,7 @@ import {
 	Story,
 	Visit
 } from '../core/entities/internal'
+import { Schema } from '@metad/ocap-core'
 
 /**
  * 语义模型
@@ -80,7 +82,7 @@ export class SemanticModel extends TenantOrganizationBaseEntity implements ISema
 	@IsJSON()
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
-	options?: any
+	options?: TSemanticModelOptions<Schema>
 
 	@ApiProperty({ type: () => String, enum: SemanticModelStatusEnum })
 	@Column({ nullable: true, default: SemanticModelStatusEnum.Progressing })

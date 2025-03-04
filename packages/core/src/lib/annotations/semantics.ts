@@ -54,8 +54,13 @@ export enum Semantics {
 
   // This annotation identifies a human-readable text that is not necessarily language-dependent.
   Text = 'Text',
-  UnitOfMeasure = 'UnitOfMeasure'
+  UnitOfMeasure = 'UnitOfMeasure',
 
+  'Sys.UserName' = 'Sys.UserName',
+  'Sys.UserRole' = 'Sys.UserRole',
+  'Sys.UserEmail' = 'Sys.UserEmail',
+  'Sys.UserID' = 'Sys.UserID',
+  'Sys.UserThirdPartyId' = 'Sys.UserThirdPartyId',
   // ... more
 }
 
