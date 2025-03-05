@@ -13,6 +13,7 @@ import { IOrganization, PermissionsEnum, Store, UsersOrganizationsService } from
 import { NgxPermissionsService } from 'ngx-permissions'
 import { OrgAvatarComponent } from '../../../@shared/organization'
 import { TranslationBaseComponent } from '../../../@shared/language'
+import { TranslateModule } from '@ngx-translate/core'
 
 
 @Component({
@@ -26,6 +27,7 @@ import { TranslationBaseComponent } from '../../../@shared/language'
   imports: [
     CommonModule,
     FormsModule,
+    TranslateModule,
     MatSelectModule,
     MatMenuModule,
     MatIconModule,
@@ -120,11 +122,18 @@ export class OrganizationSelectorComponent extends TranslationBaseComponent impl
       .subscribe()
   }
 
+  /**
+   * Toggle another organization
+   * 
+   * @param organization 
+   */
   selectOrganization(organization: IOrganization) {
     if (organization?.id) {
       this.store.selectedOrganization = organization
       this.store.organizationId = organization.id
       this.store.selectedEmployee = null
+      // reload page
+      window.location.reload();
     } else {
       this.store.selectedOrganization = null
       this.store.organizationId = null

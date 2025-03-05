@@ -1276,7 +1276,8 @@
     },
     "Header": {
       "Organization": {
-        "AllOrg": "所有组织"
+        "AllOrg": "所有组织",
+        "SwitchOrganization": "切换组织"
       }
     },
     "DataSources": {
