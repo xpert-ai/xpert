@@ -9,6 +9,7 @@ import { getErrorMessage, IOrganization, OrganizationsService, ToastrService } f
 import { OrganizationsComponent } from '../organizations.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
+import { MatTooltipModule } from '@angular/material/tooltip'
 
 @Component({
   standalone: true,
@@ -19,6 +20,7 @@ import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
     CommonModule,
     TranslateModule,
     RouterModule,
+    MatTooltipModule,
     OrgAvatarComponent,
   ]
 })

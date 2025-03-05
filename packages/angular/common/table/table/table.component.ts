@@ -4,6 +4,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   Injectable,
   Injector,
@@ -124,6 +125,7 @@ export class MyCustomPaginatorIntl implements MatPaginatorIntl {
 })
 export class NgmTableComponent {
   readonly #injector = inject(Injector)
+  readonly #cdr = inject(ChangeDetectorRef)
 
   isSignal = isSignal
 
@@ -183,7 +185,10 @@ export class NgmTableComponent {
   })
 
   constructor() {
-    this.selection.changed.subscribe(() => this.rowSelectionChanging.emit(this.selection.selected))
+    this.selection.changed.subscribe(() => {
+      this.#cdr.detectChanges()
+      this.rowSelectionChanging.emit(this.selection.selected)
+    })
 
     afterNextRender(() => {
       this.dataSource.paginator = this.paginator()
