@@ -2,18 +2,24 @@ import { BehaviorSubject, combineLatest, filter, map, Observable, of, Subject, t
 import { PeriodFunctions } from './annotations'
 import { DataSource } from './data-source'
 import { EntityService } from './entity'
-import { EntityType, IDimensionMember, isEntityType, Property, PropertyMeasure, QueryReturn } from './models'
+import { EntityType, IDimensionMember, isEntityType, Property, QueryReturn, CalculatedProperty } from './models'
 import { Annotation, Dimension, QueryOptions, uuid } from './types'
 
 /**
- * 公共抽象实体服务类, 包含一些常用的公共能力如: 合并自定义 Entity 属性, 支持简易的 JavaScript 实体字段计算表达式
+ * Public abstract entity service class, including some commonly used public capabilities such as: 
+ * - Merging custom Entity attributes
+ * - Supporting simple JavaScript entity field calculation expressions
+ * - Provisional indicator definition
  */
 export abstract class AbstractEntityService<T> implements EntityService<T> {
   public __id__: string
   private destroySubject$ = new Subject<void>()
   public readonly destroy$ = this.destroySubject$.asObservable()
 
-  protected registerMeasures$ = new BehaviorSubject({})
+  /**
+   * Provisional indicators definition
+   */
+  protected registerMeasures$ = new BehaviorSubject<Record<string, CalculatedProperty>>({})
 
   protected _entityType$ = new BehaviorSubject<EntityType>(null)
   // 合并数据源端和用户自定义 entityType 后的
@@ -24,6 +30,7 @@ export abstract class AbstractEntityService<T> implements EntityService<T> {
 
   constructor(public readonly dataSource: DataSource, public readonly entitySet: string) {
     this.__id__ = uuid()
+    // Merge entity type with provisional indicators
     combineLatest([this.dataSource.selectEntityType(this.entitySet), this.registerMeasures$])
       .pipe(
         map(([entityType, registerMeasures]) => {
@@ -44,7 +51,6 @@ export abstract class AbstractEntityService<T> implements EntityService<T> {
         takeUntil(this.destroy$)
       )
       .subscribe((entityType) => {
-        // console.log(`Entity ${this.__id__} entityType inited!`, entityType)
         this._entityType$.next(entityType)
       })
   }
@@ -77,7 +83,7 @@ export abstract class AbstractEntityService<T> implements EntityService<T> {
     return this.dataSource.getIndicator(id, this.entitySet)
   }
 
-  registerMeasure(name: string, property: PropertyMeasure) {
+  registerMeasure(name: string, property: CalculatedProperty) {
     const registerMeasures = this.registerMeasures$.value
     this.registerMeasures$.next({
       ...registerMeasures,

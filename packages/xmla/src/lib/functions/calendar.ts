@@ -13,7 +13,7 @@ import {
 import { Aggregate, CoalesceEmpty, CurrentMember, ParallelPeriod, Periodstodate, PrevMember, Tuple } from './common'
 
 export function CURRENT(name: string, property: PropertyMeasure) {
-  return property
+  return property as CalculatedProperty
 }
 
 function convertXTD(name: string, mProperty: Property, time: string, level: string): string {

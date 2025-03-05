@@ -94,6 +94,10 @@ export class ModelCubeQueryHandler implements IQueryHandler<ModelCubeQuery> {
 
 		const entityService = await firstValueFrom(dsCoreService.getEntityService(modelId, query.cube))
 
+		query.calculatedMeasures?.forEach((measure) => {
+			entityService.registerMeasure(measure.name, measure)
+		})
+
 		const result = await race(
 			QUERY_MAX_WAIT_TIME,
 			firstValueFrom(entityService.selectEntityType().pipe(switchMap(() => entityService.selectQuery(query))))

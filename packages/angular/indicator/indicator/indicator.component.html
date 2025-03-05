@@ -10,11 +10,16 @@
     </div>
   </div>
 
-  <div class="w-28 h-12 px-2" ngmSparkLine [indicator]="indicator" [statisticalType]="statisticalType"
-    [trend]="trend()"
-    [trends]="trends()"
-  ></div>
-
+  @if (error()) {
+    <div class="text-xs w-28 h-12 px-2 whitespace-normal line-clamp-3" [title]="error()">
+      {{error()}}
+    </div>
+  } @else {
+    <div class="w-28 h-12 px-2" ngmSparkLine [indicator]="indicator" [statisticalType]="statisticalType"
+      [trend]="trend()"
+      [trends]="trends()"
+    ></div>
+  }
 
   <div class="w-16 flex flex-col justify-around items-end z-10">
     <div>

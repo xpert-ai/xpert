@@ -1,7 +1,7 @@
 import { Observable } from 'rxjs'
 import { PeriodFunctions } from './annotations'
 import { DataSource } from './data-source'
-import { EntityType, IDimensionMember, Indicator, Property, QueryReturn } from './models'
+import { CalculatedProperty, EntityType, IDimensionMember, Indicator, Property, QueryReturn } from './models'
 import { Annotation, AnnotationTerm, Dimension, QueryOptions } from './types'
 
 /**
@@ -46,6 +46,14 @@ export interface EntityService<T> {
    */
   getMembers(property: Dimension): Observable<Array<IDimensionMember>>
   selectMembers(property: Dimension): Observable<Array<IDimensionMember>>
+
+  /**
+   * Register a provisional indicator definition to measure
+   * 
+   * @param name measure name
+   * @param property indicator definition
+   */
+  registerMeasure(name: string, property: CalculatedProperty): void
 
   /**
    * 获取常用函数生成的计算度量成员

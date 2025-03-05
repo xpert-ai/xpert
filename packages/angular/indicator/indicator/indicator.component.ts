@@ -72,6 +72,7 @@ export class NgmIndicatorComponent {
   readonly main = computed(() => this.data()?.data)
   readonly trend = computed(() => this.data()?.trend)
   readonly trends = computed(() => this.data()?.trends)
+  readonly error = computed(() => this.data()?.error)
 
   readonly currentLang = toSignal(
     this.#translate.onLangChange.pipe(

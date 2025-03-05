@@ -363,7 +363,8 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
   }
 
   /**
-   * 这里只负责 merge 运行时的 EntitySet 设置, 不负责 Cube 的类型编译, Cube 类型编译放在 getEntityType 获取原始类型时.
+   * This is only responsible for the EntitySet setting during merge runtime, not for Cube type compilation,
+   *  which is done when getEntityType gets the original type.
    *
    * @param entity
    * @returns

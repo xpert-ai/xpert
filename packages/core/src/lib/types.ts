@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import { OrderBy, OrderDirection } from './orderby'
 import { formatNumber, formatShortNumber, isNil, isString, strToNumber } from './utils/index'
+import { CalculatedProperty } from './models'
 
 export type HttpHeaders = { [key: string]: string | string[] }
 export type PrimitiveType = number | string | boolean | null | undefined
@@ -254,7 +255,7 @@ export type EntityKey<T> =
   | number
 
 /**
- * Entity query 的选项
+ * Query params of entity
  */
 export interface QueryOptions<T = any> {
   cube?: string
@@ -282,7 +283,11 @@ export interface QueryOptions<T = any> {
     after?: string
     last?: number
   }
-  // 原始 SQL MDX 语句
+  /**
+   * Provisional calculated measures (includes indicators) definition
+   */
+  calculatedMeasures?: CalculatedProperty[]
+  // Raw SQL or MDX query statement
   statement?: string
   // force refresh
   force?: boolean | void
