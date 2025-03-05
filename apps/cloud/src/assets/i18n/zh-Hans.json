@@ -760,7 +760,8 @@
       "DeleteSelectedIndicators": "删除选中指标",
       "DeletedSelectedIndicators": "已删除选中指标",
       "SaveAll": "保存全部",
-      "New": "新建"
+      "New": "新建",
+      "BatchDelete": "批量删除{{value}}个指标"
     },
     "MODEL": {
       "ModelOverview": "语义模型概览",
@@ -1246,6 +1247,9 @@
       "Card": {
         "ProFeature": "这是一个专业版功能",
         "ViewMore": "查看更多"
+      },
+      "Notification": {
+        "NoNotificationYet": "暂无通知"
       }
     },
     "INVITE_PAGE": {
@@ -1272,7 +1276,8 @@
     },
     "Header": {
       "Organization": {
-        "AllOrg": "所有组织"
+        "AllOrg": "所有组织",
+        "SwitchOrganization": "切换组织"
       }
     },
     "DataSources": {

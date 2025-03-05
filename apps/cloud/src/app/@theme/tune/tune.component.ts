@@ -18,6 +18,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { environment } from 'apps/cloud/src/environments/environment'
 import { Observable, of } from 'rxjs'
 import { AbstractAgent, LocalAgent, ServerSocketAgent, Store, ToastrService } from '../../@core'
+import { CdkMenuModule } from '@angular/cdk/menu'
 
 @Component({
   standalone: true,
@@ -31,10 +32,10 @@ import { AbstractAgent, LocalAgent, ServerSocketAgent, Store, ToastrService } fr
     CommonModule,
     FormsModule,
     TranslateModule,
+    CdkMenuModule,
     MatIconModule,
     MatTooltipModule,
     MatButtonModule,
-    MatMenuModule,
     MatTabsModule,
     MatListModule,
     MatSliderModule,

@@ -1,33 +1,37 @@
 import { CommonModule } from '@angular/common'
-import { Component, OnDestroy, inject } from '@angular/core'
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { MatDialog } from '@angular/material/dialog'
 import { RouterModule } from '@angular/router'
-import { IndicatorsService } from '@metad/cloud/state'
-import { NgmConfirmDeleteComponent, NgmTableComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { TranslateModule } from '@ngx-translate/core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-import { firstValueFrom } from 'rxjs'
-import { IIndicator, ToastrService, isUUID } from '../../../../@core/index'
+import { convertIndicatorResult, IndicatorsService } from '@metad/cloud/state'
+import { injectConfirmDelete, NgmSpinComponent, NgmTableComponent } from '@metad/ocap-angular/common'
+import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ProjectService } from '../../project.service'
 import { ProjectIndicatorsComponent } from '../indicators.component'
+import { MatCheckboxModule } from '@angular/material/checkbox'
+import { MatButtonModule } from '@angular/material/button'
+import { IIndicator, ToastrService, isUUID } from '../../../../@core/index'
+import { combineLatest, tap } from 'rxjs'
+import { saveAsYaml } from '@metad/core'
+import { exportIndicator } from '../../types'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     RouterModule,
+    MatCheckboxModule,
+    MatButtonModule,
     TranslateModule,
-    MaterialModule,
-    ButtonGroupDirective,
     DensityDirective,
     AppearanceDirective,
-    NgmTableComponent
+    NgmTableComponent,
+    NgmSpinComponent
   ],
   selector: 'pac-indicator-all',
   templateUrl: './all.component.html',
-  styleUrls: ['./all.component.scss']
+  styleUrls: ['./all.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AllIndicatorComponent implements OnDestroy {
   isUUID = isUUID
@@ -35,25 +39,49 @@ export class AllIndicatorComponent implements OnDestroy {
   private projectService = inject(ProjectService)
   private indicatorsService = inject(IndicatorsService)
   private toastrService = inject(ToastrService)
-  private _dialog = inject(MatDialog)
+  readonly #cdr = inject(ChangeDetectorRef)
+  readonly #translate = inject(TranslateService)
+  readonly confirmDelete = injectConfirmDelete()
 
   readonly indicators = toSignal(this.projectService.indicators$)
+  readonly selectedIndicators = signal<IIndicator[]>([])
+  readonly hasSelected = computed(() => this.selectedIndicators()?.length)
+  readonly loading = signal(false)
 
-  async onDelete(indicator: IIndicator) {
-    const cofirm = await firstValueFrom(
-      this._dialog.open(NgmConfirmDeleteComponent, { data: { value: indicator.name } }).afterClosed()
-    )
-    if (!cofirm) {
-      return
-    }
+  onDelete(indicator: IIndicator) {
+    this.loading.set(true)
+    this.confirmDelete({ value: indicator.name, information: '' }, this.indicatorsService.delete(indicator.id)).subscribe({
+      next: () => {
+        this.loading.set(false)
+        this.toastrService.success('PAC.Messages.DeletedSuccessfully', {Default: 'Deleted Successfully'})
+        this.projectService.removeIndicator(indicator.id)
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.toastrService.error(err)
+      }
+    })
+  }
 
-    try {
-      await firstValueFrom(this.indicatorsService.delete(indicator.id))
-      this.toastrService.success('PAC.INDICATOR.DeleteIndicator')
-      this.projectService.removeIndicator(indicator.id)
-    } catch (err) {
-      this.toastrService.error(err)
-    }
+  bulkDelete(indicators: IIndicator[]) {
+    this.loading.set(true)
+    this.confirmDelete({ value: '', information: this.#translate.instant('PAC.INDICATOR.BatchDelete', {
+        Default: `Batch delete ${indicators.length} indicators`,
+        value: indicators.length
+      }) }, this.projectService.deleteIndicators(this.selectedIndicators().map((item) => item.id))
+    ).subscribe({
+      next: () => {
+        this.loading.set(false)
+        this.selectedIndicators.set([])
+        this.toastrService.success('PAC.INDICATOR.DeletedSelectedIndicators', {
+          Default: 'Selected indicators deleted!'
+        })
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.toastrService.error(err)
+      }
+    })
   }
 
   trackByName(_: number, item: IIndicator): string {
@@ -69,7 +97,19 @@ export class AllIndicatorComponent implements OnDestroy {
   }
 
   onRowSelectionChanging(rows: any) {
-    this.indicatorsComponent.selectedIndicators.set(rows)
+    this.selectedIndicators.set([...rows])
+    this.indicatorsComponent.selectedIndicators.set([...rows])
+    this.#cdr.detectChanges()
+  }
+
+  export() {
+    const project = this.projectService.project()
+    const indicators = this.selectedIndicators().length ? this.selectedIndicators() : project.indicators
+    const indicatorsFileName = this.#translate.instant('PAC.INDICATOR.Indicators', { Default: 'Indicators' })
+    saveAsYaml(
+      `${indicatorsFileName}.yaml`,
+      indicators.map((item) => exportIndicator(convertIndicatorResult(item)))
+    )
   }
 
   ngOnDestroy(): void {

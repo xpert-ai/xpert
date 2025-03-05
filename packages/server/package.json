@@ -22,7 +22,7 @@
     "apollo-server-core": "^3.3.0",
     "aws-sdk": "^2.995.0",
     "ali-oss": "6.17.1",
-    "bcrypt": "^5.0.1",
+    "bcryptjs": "^3.0.2",
     "bull": "^4.12.6",
     "chalk": "4.1.2",
     "class-transformer": "^0.5.1",

@@ -1,5 +1,5 @@
 import { Connection } from 'typeorm';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { environment as env } from '@metad/server-config';
 import * as faker from 'faker';
 import {

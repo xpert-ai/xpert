@@ -12,7 +12,7 @@ import {
 } from '@metad/contracts'
 import { SocialAuthService } from '@metad/server-auth'
 import { environment as env, environment, IEnvironment } from '@metad/server-config'
-import * as bcrypt from 'bcrypt'
+import * as bcrypt from 'bcryptjs'
 import { nanoid } from 'nanoid'
 import { I18nService } from 'nestjs-i18n'
 import { JsonWebTokenError, sign, verify } from 'jsonwebtoken'

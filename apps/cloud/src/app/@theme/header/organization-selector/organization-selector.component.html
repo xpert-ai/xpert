@@ -1,5 +1,6 @@
 <mat-select [(ngModel)]="selectedOrganization" [compareWith]="compareWith" panelWidth="200px"
-  [matTooltip]="selectedOrganization?.name"
+  [matTooltip]="('PAC.Header.Organization.SwitchOrganization' | translate: {Default: 'Switch Organization'}) + (selectedOrganization?.name || '')"
+  matTooltipPosition="after"
   [matTooltipDisabled]="!isCollapsed"
   (ngModelChange)="selectOrganization($event)">
   <mat-select-trigger>

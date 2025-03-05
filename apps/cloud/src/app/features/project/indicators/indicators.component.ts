@@ -52,6 +52,9 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
   readonly toastrService = inject(ToastrService)
   readonly fetchModelDetails = injectFetchModelDetails()
 
+  /**
+   * @deprecated
+   */
   readonly selectedIndicators = signal<IIndicator[]>([])
   readonly hasDirty = this.projectService.hasDirty
 
@@ -83,6 +86,9 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
     super.removeOpenedLink(link)
   }
 
+  /**
+   * @deprecated
+   */
   async export() {
     const project = this.projectService.project()
     const indicators = this.selectedIndicators().length ? this.selectedIndicators() : project.indicators
@@ -93,6 +99,9 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
     )
   }
 
+  /**
+   * @deprecated
+   */
   deleteSelected() {
     this.#dialog.open(CdkConfirmDeleteComponent, {
         data: {

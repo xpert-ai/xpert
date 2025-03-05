@@ -10,15 +10,15 @@ LABEL org.opencontainers.image.source https://github.com/xpert-ai/xpert
 ENV CI=true
 
 # Set Python interpreter for `node-gyp` to use
-ENV PYTHON /usr/bin/python
+# ENV PYTHON /usr/bin/python
 
-RUN apk --update add bash && npm i -g npm \
-    && apk add --no-cache --virtual build-dependencies dos2unix gcc g++ git make python3 vips-dev
+RUN apk --update add bash && npm i -g npm 
+# && apk add --no-cache --virtual build-dependencies dos2unix gcc g++ git make python3 vips-dev
 
 # Output Python3 version
-RUN python3 --version
+# RUN python3 --version
 
-RUN npm install --quiet node-gyp@9.3.1 -g
+# RUN npm install --quiet node-gyp@9.3.1 -g
 RUN npm install yarn -g --force
 RUN mkdir /srv/pangolin && chown -R node:node /srv/pangolin
 

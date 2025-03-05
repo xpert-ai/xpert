@@ -5,23 +5,31 @@
     </h2>
 
     <div class="flex gap-2 ml-auto">
+
       <input #fileUpload type="file" class="file-input invisible"
         (change)="handleUploadChange($event)"
         (click)="fileUpload.value=null;">
       <div ngmButtonGroup>
-        <button mat-icon-button displayDensity="cosy" class="ngm-copilot-command-button ngm-toolbar__action"
-          [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} "
-          (click)="aiRegister()">
-          <mat-icon fontSet="material-icons-outlined">auto_fix_high</mat-icon>
-        </button>
 
-        <button mat-raised-button displayDensity="cosy" color="primary"
-          (click)="register()">
+        <div class="w-8 h-8 flex justify-center items-center rounded-2xl mx-1 text-xl cursor-pointer text-white opacity-80 hover:opacity-100 bg-gradient-to-br from-pink-400 from-40% to-fuchsia-700"
+          [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " matTooltipPosition="above"
+          (click)="aiRegister()"
+        >
+          <i class="ri-magic-line"></i>
+        </div>
+
+        <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+          (click)="register()"
+        >
+          <i class="ri-function-add-line mr-1"></i>
           {{ 'PAC.INDICATOR.MY_INDICATORS.REGISTER' | translate: {Default: "Register"} }}
         </button>
         
         @if (hasDirty()) {
-          <button mat-flat-button displayDensity="cosy" (click)="saveAll()">
+          <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+            (click)="saveAll()"
+          >
+            <i class="ri-save-line mr-1"></i>
             {{ 'PAC.INDICATOR.SaveAll' | translate: {Default: "Save All"} }}
           </button>
         }

@@ -1,6 +1,6 @@
 <div class="relative overflow-x-auto">
   <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-    <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+    <thead class="text-base text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
       <tr>
         <th scope="col" class="px-4 py-2">
           {{ 'PAC.KEY_WORDS.IsDefault' | translate: {Default: 'Is Default'} }}
@@ -24,10 +24,10 @@
     </thead>
     <tbody>
       @for (row of organizations$ | async; track row.id) {
-        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+        <tr class="group bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-neutral-50">
           <th scope="row" class="px-4 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
             @if (row.isDefault) {
-              <span>✅</span>
+              <i class="ri-shield-star-line text-lg text-gray-500" [matTooltip]="'PAC.KEY_WORDS.IsDefault' | translate: {Default: 'Is Default'}"></i>
             }
           </th>
           <td class="px-4 py-2">
@@ -43,13 +43,13 @@
             {{ row.timeZone }}
           </td>
           <td class="px-4 py-2">
-            <div class="flex items-center gap-1">
-              <button type="button" class="btn action-btn w-6 h-6 rounded-lg flex justify-center items-center"
+            <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100">
+              <button type="button" class="btn action-btn w-7 h-7 rounded-lg flex justify-center items-center"
                 (click)="editOrganization(row.id)">
                 <i class="ri-edit-box-line"></i>
               </button>
           
-              <button type="button" class="btn action-btn danger w-6 h-6 rounded-lg flex justify-center items-center"
+              <button type="button" class="btn action-btn danger w-7 h-7 rounded-lg flex justify-center items-center"
                 (click)="deleteOrganization(row.id)">
                 <i class="ri-delete-bin-2-line"></i>
               </button>

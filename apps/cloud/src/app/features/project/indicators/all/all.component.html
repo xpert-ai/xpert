@@ -46,12 +46,31 @@
     }
   ]"
   (rowSelectionChanging)="onRowSelectionChanging($event)"
-></ngm-table>
+/>
 
-<!-- <div *ngIf="loading" class="absolute top-1/2 left-1/2 -mt-4 -ml-4 z-10">
-  <mat-spinner diameter="30" strokeWidth="2">
-  </mat-spinner>
-</div> -->
+@if (hasSelected()) {
+  <div class="absolute bottom-12 w-full px-16 py-2 z-10">
+    <div class="rounded-xl flex justify-center items-center gap-4 p-2 shadow-lg border-[0.5px] border-solid border-divider-deep bg-components-card-bg">
+      <div>
+        {{selectedIndicators().length}} {{ 'PAC.Project.Indicators' | translate: {Default: 'Indicators'} }}
+      </div>
+      <button type="button" class="btn btn-large" 
+        (click)="export()">
+        <i class="ri-download-2-line mr-1"></i>
+        {{ 'PAC.INDICATOR.MY_INDICATORS.EXPORT' | translate: {Default: "Export"} }}
+      </button>
+      <button type="button" class="btn btn-large danger" (click)="bulkDelete(selectedIndicators())">
+        <i class="ri-delete-bin-line mr-1"></i>
+        {{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} }}
+      </button>
+    </div>
+  </div>
+}
+
+@if (loading()) {
+  <ngm-spin class="absolute w-full h-full top-0 left-0"/>
+}
+
 
 <ng-template #nameTempl let-id="id" let-name="name">
   @if (isUUID(id)) {
@@ -75,12 +94,12 @@
   <div class="pac__table-actions flex gap-2 group">
     <button mat-icon-button displayDensity="cosy" class="text-slate-500 opacity-50 group-hover:opacity-100"
       [routerLink]="['/project/indicators/', id]">
-      <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+      <i class="ri-pencil-line"></i>
     </button>
     
     <button mat-icon-button displayDensity="cosy" ngmAppearance="danger" class="text-slate-500 opacity-50 group-hover:opacity-100 duration-300"
       (click)="onDelete({id, name})">
-      <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
+      <i class="ri-delete-bin-line"></i>
     </button>
   </div>
 </ng-template>

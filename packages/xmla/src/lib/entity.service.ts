@@ -9,9 +9,9 @@ import {
   getEntityHierarchy,
   getEntityProperty,
   HttpHeaders,
+  isCalculatedProperty,
   PeriodFunctions,
   Property,
-  PropertyMeasure,
   QueryOptions,
   QueryReturn,
   RecursiveHierarchyType,
@@ -207,7 +207,11 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
               mdx,
               language: this.dataSource.options.settings?.language || '',
               skip: options.force,
-              query: {...options, cube: this.entitySet}
+              query: {
+                ...options,
+                cube: this.entitySet,
+                calculatedMeasures: Object.values(this.registerMeasures$.value).filter((measure) => isCalculatedProperty(measure))
+              }
             })
           )
         }
@@ -290,7 +294,7 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
     const calendarHierarchy = calendar ? getEntityHierarchy(this.entityType, { hierarchy: calendar }) : 
       getDefaultHierarchy(getCalendarDimension(this.entityType))
     
-    let property: PropertyMeasure
+    let property: CalculatedProperty
     switch (type) {
       case PeriodFunctions.CURRENT:
         property = CURRENT(measure, measureProperty)
@@ -346,7 +350,7 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
     }
 
     if (property) {
-      this.registerMeasure(property.name, property as CalculatedProperty)
+      this.registerMeasure(property.name, property)
     }
 
     return property
