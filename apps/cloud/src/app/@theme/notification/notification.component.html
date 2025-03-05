@@ -44,6 +44,10 @@
               </button>
             </div>
           </mat-list-item>
+        } @empty {
+          <div class="flex justify-center items-center">
+            {{ 'PAC.SHARED.Notification.NoNotificationYet' | translate: {Default: 'No notification yet'} }}
+          </div>
         }
       </mat-list>
     </div>

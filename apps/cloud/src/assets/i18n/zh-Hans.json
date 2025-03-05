@@ -1247,6 +1247,9 @@
       "Card": {
         "ProFeature": "这是一个专业版功能",
         "ViewMore": "查看更多"
+      },
+      "Notification": {
+        "NoNotificationYet": "暂无通知"
       }
     },
     "INVITE_PAGE": {
