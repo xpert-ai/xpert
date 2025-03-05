@@ -7,6 +7,7 @@ import { IntegrationController } from './integration.controller'
 import { Integration } from './integration.entity'
 import { IntegrationService } from './integration.service'
 import { CommandHandlers } from './commands/handlers'
+import { QueryHandlers } from './queries/handlers'
 
 @Module({
 	imports: [
@@ -16,7 +17,7 @@ import { CommandHandlers } from './commands/handlers'
 		CqrsModule
 	],
 	controllers: [IntegrationController],
-	providers: [IntegrationService, ...CommandHandlers],
+	providers: [IntegrationService, ...CommandHandlers, ...QueryHandlers],
 	exports: [IntegrationService]
 })
 export class IntegrationModule {}
