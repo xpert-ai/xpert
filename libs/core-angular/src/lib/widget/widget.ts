@@ -163,6 +163,9 @@ export class AbstractStoryWidget<T, S extends StoryWidgetState<T> = StoryWidgetS
     this._options$.next(cloneDeep(value))
   }
   private _options$ = new BehaviorSubject(null)
+  /**
+   * @deprecated use optionsSignal
+   */
   public options$ = this.select((state) => state.options).pipe(filter(nonNullable))
   public readonly optionsSignal = toSignal<T>(this.options$, {initialValue: null})
 

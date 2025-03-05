@@ -8,6 +8,7 @@ import {
   FilterSelectionType,
   getEntityProperty,
   getPropertyHierarchy,
+  isCalendarProperty,
   isDimension,
   isMeasureControlProperty,
   isParameterProperty,
@@ -69,7 +70,7 @@ export function determineControlType(propertyName: Dimension, entityType: Entity
   // }
 
   // 3. Date picker
-  if (property?.semantics?.semantic === Semantics.Calendar) {
+  if (isCalendarProperty(property)) {
     return controlType ?? FilterControlType.Datepicker
   }
 

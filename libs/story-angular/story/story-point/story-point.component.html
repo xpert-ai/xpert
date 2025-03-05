@@ -1,16 +1,16 @@
 @if (unfetched$ | async) {
   <facebook-content-loader class="absolute w-full h-full dark:opacity-20"
-    [animate]="true">
-  </facebook-content-loader>
+    [animate]="true"
+  />
 }
 
 @switch (point.type) {
   @case(STORY_POINT_TYPE.Responsive) {
     @if (responsive$ | async; as responsive) {
         <ngm-flex-layout class="ngm-story-point__responsive" 
-            [editable]="editable()"
-            [flexLayout]="responsive">
-        </ngm-flex-layout>
+          [editable]="editable()"
+          [flexLayout]="responsive"
+        />
     }
   }
   @default {
@@ -112,7 +112,7 @@
             {{ 'Story.Story.Share' | translate: {Default: "Share"} }}
         </button>
         <ng-container *ngIf="editable()">
-            <mat-divider></mat-divider>
+            <div class="w-full border-b border-solid border-divider-deep my-1"></div>
 
             <button cdkMenuItem (click)="openEditAttributes()">
                 <mat-icon fontSet="material-icons-outlined">edit_attributes</mat-icon>
@@ -155,10 +155,10 @@
                 {{ 'Story.Story.Upload' | translate: {Default: "Upload"} }}
             </button>
 
-            <mat-divider></mat-divider>
-            <button cdkMenuItem class="ngm-cdk-menu__danger" (click)="remove()">
-                <mat-icon>delete_forever</mat-icon>
-                {{ 'Story.Story.Delete' | translate: {Default: "Delete"} }}
+            <div class="w-full border-b border-solid border-divider-deep my-1"></div>
+            <button cdkMenuItem class="danger" (click)="remove()">
+              <i class="ri-delete-bin-line text-lg mr-1"></i>
+              {{ 'Story.Story.Delete' | translate: {Default: "Delete"} }}
             </button>
         </ng-container>
     </div>

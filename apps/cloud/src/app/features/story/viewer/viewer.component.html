@@ -31,7 +31,7 @@
   }
 
     <button mat-icon-button displayDensity="cosy" matTooltip="{{ 'PAC.Story.AutoRefresh' | translate: {Default: 'Auto Refresh'} }}" matTooltipPosition="right"
-        [matMenuTriggerFor]="timerMenu">
+        [cdkMenuTriggerFor]="timerMenu">
         <mat-icon fontSet="material-icons-outlined">update</mat-icon>
     </button>
 
@@ -118,66 +118,76 @@
 }
 
 @if (showExplorer()) {
-    <ngm-story-explorer class="absolute top-0 left-0 w-full h-full z-50"
-        cdkDropListGroup
-        [data]="explore()"
-        (closed)="closeExplorer($event)"
-    ></ngm-story-explorer>
+  <ngm-story-explorer class="absolute top-0 left-0 w-full h-full z-50"
+    cdkDropListGroup
+    [data]="explore()"
+    (closed)="closeExplorer($event)"
+  />
 }
 
-<mat-menu #timerMenu="matMenu" class="ngm-density__compact mat-color-accent">
-    <button mat-menu-item [matMenuTriggerFor]="dataMenu">
-        <mat-icon fontSet="material-icons-round" class="shrink-0">autorenew</mat-icon>{{ 'Story.Toolbar.Data' | translate: {Default: 'Data'} }}
-    </button>
-    <button *ngIf="multiplePages" mat-menu-item [matMenuTriggerFor]="pagesMenu">
-        <mat-icon fontSet="material-icons-outlined" class="shrink-0">auto_stories</mat-icon>{{ 'Story.Toolbar.Pages' | translate: {Default: 'Pages'} }}
-    </button>
-</mat-menu>
 
-<mat-menu #pagesMenu="matMenu" class="ngm-density__compact mat-color-accent">
-    <div class="text-xs uppercase px-4 py-2">
-        {{ 'Story.Toolbar.AutoPaging' | translate: {Default: 'Auto Paging'} }}
-    </div>
-    <button mat-menu-item (click)="timerPageDown(null)">
-        <mat-icon *ngIf="!pageTimer" class="ngm-density__compact">done</mat-icon> {{ 'PAC.KEY_WORDS.Off' | translate: {Default: 'Off'} }}
+<ng-template #timerMenu>
+  <div cdkMenu class="cdk-menu__medium" displayDensity="cosy">
+    <button cdkMenuItem [cdkMenuTriggerFor]="dataMenu">
+      <mat-icon fontSet="material-icons-round" class="shrink-0 mr-1">autorenew</mat-icon>{{ 'Story.Toolbar.Data' | translate: {Default: 'Data'} }}
     </button>
-    <button mat-menu-item *ngFor="let t of Schedulers" (click)="timerPageDown(t)">
-        <mat-icon *ngIf="pageTimer===t" class="ngm-density__compact">done</mat-icon>{{t}} {{ 'PAC.KEY_WORDS.Minute' | translate: {Default: 'Minutes'} }}
-    </button>
-</mat-menu>
-<mat-menu #dataMenu="matMenu" class="ngm-density__compact mat-color-accent">
-    <div class="text-xs uppercase px-4 py-2">
+    @if (multiplePages) {
+      <button cdkMenuItem [cdkMenuTriggerFor]="pagesMenu">
+        <mat-icon fontSet="material-icons-outlined" class="shrink-0 mr-1">auto_stories</mat-icon>{{ 'Story.Toolbar.Pages' | translate: {Default: 'Pages'} }}
+      </button>
+    }
+  </div>
+</ng-template>
+
+<ng-template #dataMenu>
+  <div cdkMenu class="cdk-menu__medium" displayDensity="cosy">
+    <div class="text-sm uppercase px-4 py-2">
         {{ 'PAC.KEY_WORDS.AutoRefresh' | translate: {Default: 'Auto Refresh'} }}
     </div>
-    <button mat-menu-item (click)="timerUpdate(null)">
-        <mat-icon *ngIf="!dataTimer" class="ngm-density__compact">done</mat-icon> {{ 'PAC.KEY_WORDS.Off' | translate: {Default: 'Off'} }}
+    <button cdkMenuItem (click)="timerUpdate(null)">
+        <mat-icon *ngIf="!dataTimer" class="ngm-density__compact mr-1">done</mat-icon> {{ 'PAC.KEY_WORDS.Off' | translate: {Default: 'Off'} }}
     </button>
-    <button mat-menu-item *ngFor="let t of Schedulers" (click)="timerUpdate(t)">
-        <mat-icon *ngIf="dataTimer===t" class="ngm-density__compact">done</mat-icon>{{t}} {{ 'PAC.KEY_WORDS.Minute' | translate: {Default: 'Minutes'} }}
+    <button cdkMenuItem *ngFor="let t of Schedulers" (click)="timerUpdate(t)">
+        <mat-icon *ngIf="dataTimer===t" class="ngm-density__compact mr-1">done</mat-icon>{{t}} {{ 'PAC.KEY_WORDS.Minute' | translate: {Default: 'Minutes'} }}
     </button>
-</mat-menu>
+  </div>
+</ng-template>
+
+<ng-template #pagesMenu>
+  <div cdkMenu class="cdk-menu__medium" displayDensity="cosy">
+    <div class="text-sm uppercase px-4 py-2">
+      {{ 'Story.Toolbar.AutoPaging' | translate: {Default: 'Auto Paging'} }}
+    </div>
+    <button cdkMenuItem (click)="timerPageDown(null)">
+      <mat-icon *ngIf="!pageTimer" class="ngm-density__compact mr-1">done</mat-icon> {{ 'PAC.KEY_WORDS.Off' | translate: {Default: 'Off'} }}
+    </button>
+    <button cdkMenuItem *ngFor="let t of Schedulers" (click)="timerPageDown(t)">
+      <mat-icon *ngIf="pageTimer===t" class="ngm-density__compact mr-1">done</mat-icon>{{t}} {{ 'PAC.KEY_WORDS.Minute' | translate: {Default: 'Minutes'} }}
+    </button>
+  </div>
+</ng-template>
 
 <ng-template #scaleMenu>
-    <div cdkMenu displayDensity="cosy">
-        <button cdkMenuItem (click)="resetScalePan()">
-            <mat-icon>center_focus_strong</mat-icon>
-            <span class="flex-1">
-                {{ 'Story.Toolbar.Scale_Unset' | translate: {Default: 'Unset'} }}
-            </span>
+  <div cdkMenu class="cdk-menu__medium" displayDensity="cosy">
+    <button cdkMenuItem (click)="resetScalePan()">
+      <mat-icon class="mr-1">center_focus_strong</mat-icon>
+      <span class="flex-1">
+        {{ 'Story.Toolbar.Scale_Unset' | translate: {Default: 'Unset'} }}
+      </span>
 
-            <span class="text-sm font-bold ml-4">
-                Alt + Esc
-            </span>
-        </button>
-      @for (item of StoryScales; track item.value) {
-        <button cdkMenuItem class="pac-story-bar__scale-item group"
-            [class.active]="scale() === item.value"
-            (click)="setScale(item.value)">
-            <span class="pac-story-bar__scale-point inline-flex items-center justify-center w-2 h-2 ml-2 mr-4 text-xs font-semibold bg-gray-200 rounded-full group-hover:bg-yellow-500">
-            </span>
-            
-            <span>{{item.name}}</span>
-        </button>
-      }
-    </div>
+      <span class="text-sm font-bold ml-4">
+        Alt + Esc
+      </span>
+    </button>
+    @for (item of StoryScales; track item.value) {
+      <button cdkMenuItem class="pac-story-bar__scale-item group"
+        [class.active]="scale() === item.value"
+        (click)="setScale(item.value)">
+        <span class="pac-story-bar__scale-point inline-flex items-center justify-center w-2 h-2 ml-2 mr-4 text-xs font-semibold bg-gray-200 rounded-full group-hover:bg-yellow-500">
+        </span>
+        
+        <span>{{item.name}}</span>
+      </button>
+    }
+  </div>
 </ng-template>

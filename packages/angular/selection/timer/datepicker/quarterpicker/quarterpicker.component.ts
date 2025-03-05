@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, forwardRef, input } from '@angular/core'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MAT_DATE_FORMATS } from '@angular/material/core'
+import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
 import { MatDatepicker, MatDatepickerInputEvent, MatDatepickerModule } from '@angular/material/datepicker'
 import { MatInputModule } from '@angular/material/input'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
@@ -14,20 +14,17 @@ import { getMonth, getYear, setMonth, setYear } from 'date-fns'
   templateUrl: './quarterpicker.component.html',
   styleUrls: ['./quarterpicker.component.scss'],
   providers: [
-    {
-      provide: MAT_DATE_FORMATS,
-      useValue: {
-        parse: {
-          dateInput: `yyyy'Q'Q`
-        },
-        display: {
-          dateInput: `yyyy'Q'Q`,
-          monthYearLabel: 'LLL y',
-          dateA11yLabel: 'MMMM d, y',
-          monthYearA11yLabel: 'MMMM y'
-        }
+    provideDateFnsAdapter({
+      parse: {
+        dateInput: `yyyy'Q'Q`
+      },
+      display: {
+        dateInput: `yyyy'Q'Q`,
+        monthYearLabel: 'LLL y',
+        dateA11yLabel: 'MMMM d, y',
+        monthYearA11yLabel: 'MMMM y'
       }
-    },
+    }),
     {
       provide: NG_VALUE_ACCESSOR,
       useExisting: forwardRef(() => NgmQuarterpickerComponent),

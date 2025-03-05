@@ -2,7 +2,7 @@
   <label>{{label()}}</label>
 }
 
-<div class="relative flex items-center">
+<div class="group-month relative flex items-center">
   <input matInput class="ngm-input-element w-full"
     [matDatepicker]="dp" [formControl]="date"
     (dateChange)="onDateChange($event)" />
@@ -13,8 +13,8 @@
     (monthSelected)="chosenMonthHandler($event, dp)"
   ></mat-datepicker>
 
-  <div class="absolute right-0 h-full flex items-center">
-    <mat-datepicker-toggle [for]="dp" ></mat-datepicker-toggle>
+  <div class="absolute right-0 h-full flex items-center opacity-50 group-hover/month:opacity-100">
+    <mat-datepicker-toggle [for]="dp" />
     <ng-content select="[ngmSuffix]"></ng-content>
   </div>
 </div>

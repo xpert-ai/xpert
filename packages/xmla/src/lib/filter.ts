@@ -12,11 +12,11 @@ import {
   Measure,
   FilterOperator,
   IFilter,
-  getMemberValue,
   Cube,
   formatCalculatedMemberName,
   CalculatedMember,
   pick,
+  getMemberKey,
 } from '@metad/ocap-core'
 import { flatten, includes, isArray, isNil } from 'lodash'
 import { WithMemberType } from './calculation'
@@ -68,24 +68,24 @@ export function mapMDXFilterToStatement(oFilter: MDXHierarchyFilter, cube: Cube,
   switch (oFilter.operator) {
     case FilterOperator.BT:
       if (isArray(oFilter.members)) {
-        return `${oFilter.members.map((member) => wrapHierarchyValue(path, getMemberValue(member))).join(':')}`
+        return oFilter.members.slice(0,2).map((member) => wrapHierarchyValue(path, getMemberKey(member))).join(':')
       }
       break
     case FilterOperator.NE:
       // 会不会出现 hierarchy 没有 [All] 成员的情况
       // 用 Children 和 Members 的区别
-      return Except(Children(oFilter.hierarchy), MemberSet(...oFilter.members.map((member) => wrapHierarchyValue(path, getMemberValue(member)))))
+      return Except(Children(oFilter.hierarchy), MemberSet(...oFilter.members.map((member) => wrapHierarchyValue(path, getMemberKey(member)))))
     case FilterOperator.Contains:
       if (includes(oFilter.properties, 'MEMBER_CAPTION')) {
         return Filter(
           oFilter.hierarchy,
-          `${InStr(`${oFilter.hierarchy}.CURRENTMEMBER.MEMBER_CAPTION`, `"${getMemberValue(oFilter.members[0])}"`)} > 0`
+          `${InStr(`${oFilter.hierarchy}.CURRENTMEMBER.MEMBER_CAPTION`, `"${getMemberKey(oFilter.members[0])}"`)} > 0`
         )
       }
       // 默认也是取 Caption 符合搜索条件
       return Filter(
         oFilter.hierarchy,
-        `${InStr(`${oFilter.hierarchy}.CURRENTMEMBER.MEMBER_CAPTION`, `"${getMemberValue(oFilter.members[0])}"`)} > 0`
+        `${InStr(`${oFilter.hierarchy}.CURRENTMEMBER.MEMBER_CAPTION`, `"${getMemberKey(oFilter.members[0])}"`)} > 0`
         // `InStr(${oFilter.hierarchy}.CURRENTMEMBER.MEMBER_CAPTION, "${oFilter.members}") > 0`
       )
     case FilterOperator.StartsWith: {
@@ -102,7 +102,7 @@ export function mapMDXFilterToStatement(oFilter: MDXHierarchyFilter, cube: Cube,
     default: {
       // filter value 中有带有 hierarchy 的情况
       let statement = MemberSet(...oFilter.members.map((member) => {
-        const memberKey = getMemberValue(member)
+        const memberKey = getMemberKey(member)
         const hierarchyValue = wrapHierarchyValue(path, memberKey)
         const calculatedMember = cube?.calculatedMembers?.find((item) => item.name === memberKey && item.hierarchy === oFilter.hierarchy)
         if (calculatedMember) {
@@ -178,7 +178,7 @@ function _generateAdvancedFilterStatement(entityType: EntityType, slicer: IAdvan
     let statement = Parenthesis(
       OR(
         ...slicer.members.map((member) =>
-          IS(CurrentMember(hierarchy), wrapHierarchyValue(hierarchy, getMemberValue(member)))
+          IS(CurrentMember(hierarchy), wrapHierarchyValue(hierarchy, getMemberKey(member)))
         )
       )
     )

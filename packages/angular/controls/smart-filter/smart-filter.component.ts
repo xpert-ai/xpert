@@ -1,14 +1,13 @@
-import { coerceBooleanProperty } from '@angular/cdk/coercion'
 import { COMMA, ENTER } from '@angular/cdk/keycodes'
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling'
 import { FlatTreeControl } from '@angular/cdk/tree'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   EventEmitter,
-  Input,
   Output,
   ViewChild,
   ViewContainerRef,
@@ -34,7 +33,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { DisplayDensity, ISelectOption, NgmAppearance, OcapCoreModule } from '@metad/ocap-angular/core'
+import { DateVariableEnum, DisplayDensity, injectTranslate, ISelectOption, NgmAppearance, NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
   DataSettings,
   Dimension,
@@ -44,13 +43,17 @@ import {
   IDimensionMember,
   IMember,
   ISlicer,
+  TimeRange,
   TreeNodeInterface,
   filterTreeNodes,
-  getEntityProperty
+  getEntityProperty,
+  isCalendarProperty,
+  isTimeRangesSlicer,
+  omit,
+  timeRangesSlicerAsString
 } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
-  BehaviorSubject,
   combineLatest,
   combineLatestWith,
   distinctUntilChanged,
@@ -64,6 +67,8 @@ import { NgmSmartFilterService } from '../smart-filter.service'
 import { ControlOptions } from '../types'
 import { NgmValueHelpComponent } from '../value-help/value-help.component'
 import { MatRadioModule } from '@angular/material/radio'
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { NgmTimeFilterEditorComponent } from '@metad/ocap-angular/selection'
 
 export interface SmartFilterOptions extends ControlOptions {
   maxTagCount?: number
@@ -97,6 +102,7 @@ export interface SmartFilterState {
     FormsModule,
     TranslateModule,
     ReactiveFormsModule,
+    CdkMenuModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
@@ -115,20 +121,30 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
   private smartFilterService = inject(NgmSmartFilterService)
   private _dialog = inject(MatDialog)
   private _viewContainerRef = inject(ViewContainerRef)
+  private _cdr = inject(ChangeDetectorRef)
+  public coreService = inject(NgmOcapCoreService)
+  readonly i18nSelection = injectTranslate('Ngm.Selection')
 
+  // Inputs
   readonly label = input<string>()
 
   readonly dataSettings = input<DataSettings>(null)
   readonly dimension = input<Dimension>()
   readonly options = input<SmartFilterOptions>()
 
-  get slicer() {
-    return this.slicer$.value
-  }
-  set slicer(value) {
-    this.slicer$.next(value)
-  }
-  public readonly slicer$ = new BehaviorSubject<ISlicer>({})
+  // /**
+  //  * @deprecated use slicerSignal
+  //  */
+  // get slicer() {
+  //   return this.slicer$.value
+  // }
+  // set slicer(value) {
+  //   this.slicer$.next(value)
+  // }
+  // /**
+  //  * @deprecated use slicerSignal
+  //  */
+  // public readonly slicer$ = new BehaviorSubject<ISlicer>({})
 
   public members = signal<IMember[]>(null)
 
@@ -142,8 +158,6 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
 
   readonly _disabled = model<boolean>(false)
 
-  readonly disabled$ = computed(() => this.disabled() || this._disabled())
-
   @Output() loadingChanging = new EventEmitter<boolean>()
 
   @ViewChild(CdkVirtualScrollViewport, { static: false })
@@ -151,9 +165,9 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
 
   @ViewChild('search') searchInput: ElementRef<HTMLInputElement>
 
-  get multiple() {
-    return this.options()?.multiple
-  }
+  // States
+  readonly disabled$ = computed(() => this.disabled() || this._disabled())
+  readonly slicerSignal = signal<ISlicer>(null)
 
   readonly hierarchy = model<string>()
 
@@ -196,6 +210,7 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
 
   private readonly entityType = toSignal(this.smartFilterService.selectEntityType())
   public readonly options$ = toObservable(this.options)
+  // readonly slicerSignal = toSignal(this.slicer$)
 
   readonly _dimension = computed(() => this.dimension() ? {
     ...this.dimension(),
@@ -209,16 +224,32 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
   readonly _label = computed(() => this.label() ?? (this.options()?.label || this.property()?.caption || this.property()?.name))
 
   public readonly placeholder$ = this.options$.pipe(map((options) => options?.placeholder))
-  public readonly selectionType$ = this.options$.pipe(map((options) => options?.selectionType))
-  public readonly multiple$ = this.selectionType$.pipe(
-    map((selectionType) => selectionType === FilterSelectionType.Multiple)
+
+  readonly maxTagCount = computed(() =>
+    this.selectionType() === FilterSelectionType.SingleRange ? 2 : this.options()?.maxTagCount ?? 1
   )
-  // public readonly maxTagCount$ = this.options$.pipe(map((options) => options?.maxTagCount ?? 1))
-  public readonly maxTagCount = computed(() => this.options()?.maxTagCount ?? 1)
   public readonly autoActiveFirst$ = this.options$.pipe(map((options) => options?.autoActiveFirst))
 
-  public readonly members$ = combineLatest([
-    this.slicer$.pipe(map((slicer) => slicer?.members)),
+  readonly selectionType = computed(() => this.options()?.selectionType)
+  readonly isSingleRange = computed(() => this.selectionType() === FilterSelectionType.SingleRange)
+  readonly multiple = computed(() => this.selectionType() === FilterSelectionType.Multiple || this.selectionType() === FilterSelectionType.SingleRange)
+  readonly isCalendar = computed(() => isCalendarProperty(this.property()))
+  readonly dateVariables = this.coreService.getDateVariables().filter((variable) => !!variable.dateRange)
+  readonly isTimeRangesSlicer = computed(() => isTimeRangesSlicer(this.slicerSignal()))
+  readonly slicerLabel = computed(() => {
+    const slicer = this.slicerSignal()
+    const members = this.membersSignal() ?? []
+    const SELECTION = this.i18nSelection()
+    if (isTimeRangesSlicer(slicer)) {
+      return timeRangesSlicerAsString(slicer, SELECTION?.TimeRanges || 'Time Ranges')
+    }
+    if (this.isSingleRange() && this.membersSignal()?.length) {
+      return `${(members[0]?.caption || members[0]?.key) || '?'} : ${(members[1]?.caption || members[1]?.key) || '?'}`
+    }
+    return null
+  })
+
+  public readonly members$ = combineLatest([toObservable(this.slicerSignal).pipe(map((slicer) => slicer?.members)),
     this.smartFilterService.selectOptions$
   ]).pipe(
     map(([members, selectOptions]) => {
@@ -279,8 +310,11 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
     .subscribe(() => {
       this.smartFilterService.refresh()
     })
-  private slicerSub = this.slicer$.pipe(takeUntilDestroyed()).subscribe((slicer) => {
+  private slicerSub = toObservable(this.slicerSignal).pipe(takeUntilDestroyed()).subscribe((slicer) => {
     slicer.dimension = this._dimension()
+    if (this.isSingleRange()) {
+      slicer.selectionType = this.selectionType()
+    }
     this.onChange?.(slicer)
   })
 
@@ -314,6 +348,10 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
     })
 
   constructor() {
+    effect(() => {
+      // console.log(this.slicerSignal())
+    })
+
     // 由于 set dataSettings 会同步执行至 toSignal entityType，所以需要使用 allowSignalWrites 设置
     effect(
       () => {
@@ -333,12 +371,12 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
 
     effect(() => {
       if (this.options()?.defaultMembers) {
-        this.slicer = {
-          ...this.slicer,
+        this.slicerSignal.update((slicer) => ({
+          ...(slicer ?? {}),
           members: [...this.options().defaultMembers]
-        }
+        }))
       }
-    })
+    }, { allowSignalWrites: true })
 
     effect(() => {
       if (this._displayDensity()) {
@@ -377,7 +415,7 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
 
   writeValue(obj: any): void {
     if (obj) {
-      this.slicer = obj
+      this.slicerSignal.set(obj)
     }
   }
   registerOnChange(fn: any): void {
@@ -405,7 +443,7 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
   }
 
   isSelected(option: FlatTreeNode<unknown>) {
-    return this.slicer.members?.some((member) => member.key === option.key)
+    return this.slicerSignal().members?.some((member) => member.key === option.key)
   }
 
   onCheckboxChange(event: MatCheckboxChange, option: FlatTreeNode<any>) {
@@ -425,17 +463,17 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
   }
 
   removeMember({ key }: IMember) {
-    this.slicer = {
-      ...this.slicer,
-      members: this.slicer.members.filter((member) => member.key !== key)
-    }
+    this.slicerSignal.update((slicer) => ({
+      ...(slicer ?? {}),
+      members: slicer?.members?.filter((member) => member.key !== key)
+    }))
   }
 
   clearMembers() {
-    this.slicer = {
-      ...this.slicer,
-      members: []
-    }
+    this.slicerSignal.update((slicer) => ({
+      ...omit(slicer, 'members', 'ranges'),
+      members: [],
+    }))
   }
 
   selectMember(event: MatAutocompleteSelectedEvent) {
@@ -450,45 +488,9 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
     this.searchInput.nativeElement.blur()
   }
 
-  onMemberSelect({ event, member }: { event: MatCheckboxChange; member: IMember }) {
-    let members = this.slicer.members ?? []
-
-    if (event.checked) {
-      if (this.options()?.multiple || this.options()?.selectionType === FilterSelectionType.Multiple) {
-        const index = members.findIndex((item) => item.key === member.key)
-        if (index > -1) {
-          members.splice(index, 1)
-        }
-        members.push({
-          key: member.key,
-          value: member.value,
-          label: member.caption
-        })
-      } else {
-        members = [
-          {
-            key: member.key,
-            value: member.value,
-            label: member.caption
-          }
-        ]
-      }
-    } else {
-      const index = members.findIndex((item) => item.key === member.key)
-      if (index > -1) {
-        members.splice(index, 1)
-      }
-    }
-
-    this.slicer = {
-      ...this.slicer,
-      members
-    }
-  }
-
   toggleMember(member: IMember) {
-    let members = this.slicer.members ? [...this.slicer.members] : []
-    if (this.options()?.multiple || this.options()?.selectionType === FilterSelectionType.Multiple) {
+    let members = this.slicerSignal()?.members ? [...this.slicerSignal().members] : []
+    if (this.multiple()) {
       const index = members.findIndex((item) => item.key === member.key)
       if (index > -1) {
         members.splice(index, 1)
@@ -498,6 +500,10 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
           value: member.value,
           caption: member.caption
         })
+
+        if (this.selectionType() === FilterSelectionType.SingleRange) {
+          members.splice(0, members.length - 2)
+        }
       }
     } else {
       members = [
@@ -509,13 +515,13 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
       ]
     }
 
-    this.slicer = {
-      ...this.slicer,
+    this.slicerSignal.set({
+      ...(this.slicerSignal() ?? {}),
       members
-    }
+    })
   }
 
-  async openValueHelp(event) {
+  async openValueHelp() {
     const slicer = await firstValueFrom(
       this._dialog
         .open(NgmValueHelpComponent, {
@@ -526,11 +532,11 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
             options: {
               ...(this.options() ?? {}),
               selectionType:
-                this.options()?.selectionType ?? (this.options()?.multiple ? FilterSelectionType.Multiple : null),
+                this.selectionType() ?? (this.options()?.multiple ? FilterSelectionType.Multiple : null),
               searchable: true,
               initialLevel: 1
             },
-            slicer: this.slicer
+            slicer: this.slicerSignal()
           }
         })
         .afterClosed()
@@ -539,15 +545,45 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
     if (slicer) {
       this.hierarchy.set(slicer.dimension.hierarchy)
       this.displayBehaviour.set(slicer.dimension.displayBehaviour)
-      this.slicer = {
-        ...this.slicer,
+
+      this.slicerSignal.update((state) => ({
+        ...omit(state, 'ranges', 'currentDate'),
         members: slicer.members ?? [],
         exclude: slicer.exclude
-      }
+      }))
     }
   }
 
   onAutocompleteOpened() {
     this.cdkVirtualScrollViewPort?.checkViewportSize()
+  }
+
+  /**
+   * Open dialog for create dynamic date ranges of dimension
+   *
+   * @param property property of dimension
+   * @param variable dynamic time variable
+   */
+  openDynamicDateHelp(variable?: TimeRange) {
+    this._dialog
+      .open(NgmTimeFilterEditorComponent, {
+        viewContainerRef: this._viewContainerRef,
+        data: {
+          currentDate: 'SYSTEMTIME',
+          dataSettings: this.dataSettings(),
+          entityType: this.entityType(),
+          slicer: {
+            dimension: this._dimension(),
+            currentDate: DateVariableEnum.TODAY,
+            ranges: variable ? [variable] : []
+          }
+        }
+      })
+      .afterClosed().subscribe((timeRangesSlicer) => {
+        if (timeRangesSlicer) {
+          this.slicerSignal.set({...timeRangesSlicer})
+          this._cdr.detectChanges()
+        }
+      })
   }
 }

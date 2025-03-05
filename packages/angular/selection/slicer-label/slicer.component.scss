@@ -1,0 +1,36 @@
+:host {
+  display: block;
+
+  .mat-chip-list {
+    display: block;
+  }
+
+  .ngm-slicer__remove {
+    opacity: 0;
+  }
+  &:hover {
+    .ngm-slicer__remove {
+      opacity: 1;
+    }
+  }
+
+  .ngm-slicer__label {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+}
+
+.mat-mdc-chip.mat-mdc-standard-chip {
+  --mdc-chip-container-height: auto;
+}
+
+:host::ng-deep {
+  .mat-mdc-standard-chip {
+    .mdc-evolution-chip__cell--primary,
+    .mdc-evolution-chip__action--primary,
+    .mat-mdc-chip-action-label {
+      overflow: hidden;
+    }
+  }
+}

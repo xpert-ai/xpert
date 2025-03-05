@@ -15,7 +15,7 @@ import { NgmControlsModule } from '@metad/ocap-angular/controls'
 import { DensityDirective } from '@metad/ocap-angular/core'
 import { NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
 import { NgmParameterComponent } from '@metad/ocap-angular/parameter'
-import { NgmMemberDatepickerModule } from '@metad/ocap-angular/selection'
+import { NgmMemberDatepickerModule, SlicerLabelComponent } from '@metad/ocap-angular/selection'
 import { TranslateModule } from '@ngx-translate/core'
 import { NxInputControlComponent } from './input-control.component'
 import { InputControlPlaceholderComponent } from './placeholder/placeholder.component'
@@ -39,13 +39,13 @@ import { InputControlPlaceholderComponent } from './placeholder/placeholder.comp
     TranslateModule,
 
     DensityDirective,
-    // NxEntityModule,
     NgmMemberDatepickerModule,
     NgmCommonModule,
     NgmParameterComponent,
     NgmEntityPropertyComponent,
     NgmControlsModule,
-    InputControlPlaceholderComponent
+    InputControlPlaceholderComponent,
+    SlicerLabelComponent
   ],
   exports: [NxInputControlComponent]
 })

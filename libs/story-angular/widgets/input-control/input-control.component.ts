@@ -209,7 +209,7 @@ export class NxInputControlComponent extends AbstractStoryWidget<
   public readonly _dataSettings = toSignal(this.dataSettings$)
   public members = computed(() => this._slicer()?.members ?? [])
   readonly displayBehaviour = computed(() => this.dimension()?.displayBehaviour)
-  public readonly displayMembers = computed(() => {
+  readonly displayMembers = computed(() => {
     const members = [...this.members(), ...(<IMember[]>this.parameter()?.members ?? [])]
     const maxTagCount = this.maxTagCount() || 1
 
@@ -276,6 +276,11 @@ export class NxInputControlComponent extends AbstractStoryWidget<
 
   constructor() {
     super()
+
+    effect(() => {
+      // console.log(this.optionsSignal())
+    })
+
     effect(
       () => {
         if (this.measureControlProperty()?.value && !this.measureControl()) {

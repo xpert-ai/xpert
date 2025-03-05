@@ -7,6 +7,7 @@ import {
   Drill,
   EntityType,
   FilterOperator,
+  FilterSelectionType,
   getEntityDimensions,
   getEntityHierarchy,
   getEntityLevel,
@@ -325,6 +326,10 @@ export function convertFilter2Hierarchy(entityType: EntityType, ftr: ISlicer): M
     if (ftr.exclude) {
       dim.operator = FilterOperator.NE
     }
+
+    if (ftr.selectionType === FilterSelectionType.SingleRange) {
+      dim.operator = FilterOperator.BT
+    }
   }
 
   // TODO for variables
@@ -334,8 +339,6 @@ export function convertFilter2Hierarchy(entityType: EntityType, ftr: ISlicer): M
   // if (parameter) {
   //   dim.parameter = parameter
   // }
-
-
 
   return omitBy(dim, isNil)
 }

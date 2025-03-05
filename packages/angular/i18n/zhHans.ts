@@ -16,6 +16,7 @@ export const ZhHans = {
       DisplayBehaviour_Auto: '自动',
       SelectionType_Single: '单选',
       SelectionType_Multiple: '多选',
+      SelectionType_SingleRange: '单区间',
       Presentation_Flat: '平铺',
       Presentation_Hierarchy: '层级',
       HierarchySelectionMode_Individual: '单个',

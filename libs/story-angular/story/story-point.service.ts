@@ -4,7 +4,7 @@ import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-i
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { createSubStore, dirtyCheckWith, isNotEmpty, isNotEqual, write } from '@metad/core'
 import { effectAction } from '@metad/ocap-angular/core'
-import { ISlicer, isAdvancedFilter, nonNullable } from '@metad/ocap-core'
+import { ISlicer, isAdvancedFilter, isTimeRangesSlicer, nonNullable } from '@metad/ocap-core'
 import {
   ID,
   LinkedAnalysisEvent,
@@ -316,7 +316,8 @@ export class NxStoryPointService {
           return (
             !isEmpty(
               event.slicers?.filter((slicer) =>
-                isAdvancedFilter(slicer) ? !isEmpty(slicer?.children) : !isEmpty(slicer?.members)
+                isTimeRangesSlicer(slicer) ||
+                (isAdvancedFilter(slicer) ? !isEmpty(slicer?.children) : !isEmpty(slicer?.members))
               )
             ) &&
             (isNil(event.linkedWidgets)

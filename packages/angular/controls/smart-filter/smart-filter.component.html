@@ -5,21 +5,31 @@
 <div class="w-full relative flex items-center rounded-md">
   <div class="absolute left-0 max-w-[75%] overflow-hidden flex items-center px-1">
     <ng-content select="[ngmPrefix]"></ng-content>
+    @if (slicerLabel()) {
+      <div class="inline-block text-sm px-1 truncate py-[0.5px] rounded-lg border-[0.5px] border-solid border-divider-deep">
+        {{slicerLabel()}}
+      </div>
+    } @else {
+      @if (isNotInitial()) {
+        <ngm-tags class="overflow-hidden"
+          [tags]="chips$ | async"
+          [exclude]="slicerSignal()?.exclude"
+          color="primary">
+        </ngm-tags>
 
-    <ng-container *ngIf="isNotInitial()">
-      <ngm-tags class="overflow-hidden"
-        [tags]="chips$ | async"
-        [exclude]="slicer?.exclude"
-        color="primary">
-      </ngm-tags>
+        @if (restChips().length) {
+          <span class="cursor-pointer shrink-0" [matTooltip]="restChips().join('; ')">
+            +{{restChips().length}}
+          </span>
+        }
+      }
+    }
 
-      <span *ngIf="restChips().length" class="cursor-pointer shrink-0" [matTooltip]="restChips().join('; ')">
-        +{{restChips().length}}
-      </span>
+    @if (slicerLabel() || isNotInitial()) {
       <mat-icon class="cursor-pointer shrink-0 text-neutral-400" displayDensity="compact" ngmAppearance="danger"
         [class.cursor-not-allowed]="disabled$()"
         (click)="disabled$() ? null : clearMembers()">close</mat-icon>
-    </ng-container>
+    }
   </div>
 
   <input #search matInput class="ngm-input-element ngm-w-full"
@@ -29,30 +39,41 @@
     [matAutocomplete]="auto"
   >
   <div class="ngm-smart-filter__suffix flex items-center">
-    <mat-spinner *ngIf="loading$ | async" [color]="appearance()?.color" strokeWidth="1" diameter="20"></mat-spinner>
+    @if (loading$ | async) {
+      <mat-spinner [color]="appearance()?.color" strokeWidth="1" diameter="20"/>
+    }
 
     <button mat-icon-button *ngIf="hierarchies()?.length > 1" class="ngm-actionable-opacity"
       displayDensity="compact"
       [disabled]="disabled$()"
-      [matMenuTriggerFor]="hierarchiesMenu"
-      #mt="matMenuTrigger"
-      [class.active]="mt.menuOpen"
+      [cdkMenuTriggerFor]="hierarchiesMenu"
+      #mt="cdkMenuTriggerFor"
+      [class.active]="mt.isOpen()"
       (click)="$event.stopPropagation();$event.preventDefault();">
       <mat-icon fontSet="material-icons-outlined">account_tree</mat-icon>
     </button>
     <button mat-icon-button type="button" class="ngm-actionable-opacity" displayDensity="compact"
       [disabled]="disabled$()"
-      (click)="$event.stopPropagation();$event.preventDefault();openValueHelp($event)"
+      (click)="$event.stopPropagation();$event.preventDefault();openValueHelp()"
     >
       <mat-icon>help_outline</mat-icon>
     </button>
 
+    @if (isCalendar()) {
+      <button mat-icon-button type="button" class="ngm-actionable-opacity" displayDensity="compact"
+        [disabled]="disabled$()"
+        [cdkMenuTriggerFor]="calendarMenu"
+        (click)="$event.stopPropagation();$event.preventDefault();"
+      >
+        <i class="ri-time-line"></i>
+      </button>
+    }
     <ng-content select="[ngmSuffix]"></ng-content>
   </div>
 </div>
 
 <mat-autocomplete #auto="matAutocomplete" class="ngm-tree-select__panel"
-  [class]="'ngm-autocomplete-panel ' + (multiple ? 'multiple' : '') + ' ' + (_displayDensity() === 'compact' ? 'ngm-density__compact' : '') + ' ' + (_displayDensity()==='cosy' ? 'ngm-density__cosy' : '')"
+  [class]="'ngm-autocomplete-panel ' + (multiple() ? 'multiple' : '') + ' ' + (_displayDensity() === 'compact' ? 'ngm-density__compact' : '') + ' ' + (_displayDensity()==='cosy' ? 'ngm-density__cosy' : '')"
   [autoActiveFirstOption]="options()?.autoActiveFirst"
   [displayWith]="displayWithCaption"
   (opened)="onAutocompleteOpened()"
@@ -63,7 +84,6 @@
     <mat-option *cdkVirtualFor="let option of selectOptions$ | async; trackBy: trackByKey" [value]="option"
       [class.mat-selected]="isSelected(option)"
     >
-
       <div class="flex-1 flex justify-start items-center" >
         <button mat-icon-button [displayDensity]="_displayDensity()"
           [style.visibility]="!option.expandable ? 'hidden' : ''"
@@ -74,35 +94,54 @@
           </mat-icon>
         </button>
 
-        <mat-checkbox *ngIf="options()?.multiple" class="flex-1"
-          [checked]="isSelected(option)"
-          (click)="$event.stopPropagation()"
-          (change)="onCheckboxChange($event, option)"
-        >
-          <ngm-display-behaviour [option]="option"
+        @if (multiple()) {
+          <mat-checkbox class="flex-1"
+            [checked]="isSelected(option)"
+            (click)="$event.stopPropagation()"
+            (change)="onCheckboxChange($event, option)"
+          >
+            <ngm-display-behaviour [option]="option"
+              [displayBehaviour]="displayBehaviour()"
+              [highlight]="searchHighlight">
+            </ngm-display-behaviour>
+          </mat-checkbox>
+        } @else {
+          <ngm-display-behaviour class="flex-1"
+            [option]="option"
             [displayBehaviour]="displayBehaviour()"
-            [highlight]="searchHighlight">
-          </ngm-display-behaviour>
-        </mat-checkbox>
-
-        <ngm-display-behaviour *ngIf="!options()?.multiple" class="flex-1"
-          [option]="option"
-          [displayBehaviour]="displayBehaviour()"
-          [highlight]="searchHighlight">
-        </ngm-display-behaviour>
+            [highlight]="searchHighlight" />
+        }
       </div>
 
     </mat-option>
   </cdk-virtual-scroll-viewport>
 </mat-autocomplete>
 
-<mat-radio-group [(ngModel)]="hierarchy">
-  <mat-menu #hierarchiesMenu="matMenu" class="ngm-density__compact">
-    <button mat-menu-item disableRipple *ngFor="let property of hierarchies(); trackBy: trackByName"
-      (click)="$event.stopPropagation();">
-      <mat-radio-button class="ngm-radio-button__property flex-1" [value]="property.name">
-        <ngm-property class="flex-1" hiddenIcon [property]="property" />
-      </mat-radio-button>
+
+<ng-template #hierarchiesMenu>
+  <div cdkMenu class="cdk-menu__large ngm-density__compact">
+    <mat-radio-group [(ngModel)]="hierarchy">
+      @for (property of hierarchies(); track property.name) {
+        <mat-radio-button class="ngm-radio-button__property flex-1" [value]="property.name">
+          <ngm-property class="flex-1" hiddenIcon [property]="property" />
+        </mat-radio-button>
+      }
+    </mat-radio-group>
+  </div>
+</ng-template>
+
+<ng-template #calendarMenu>
+  <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem (click)="openValueHelp()">
+      <mat-icon fontSet="material-icons-outlined" class="mr-1">people_outline</mat-icon>
+      {{ 'Ngm.Selection.DimensionMembers' | translate: {Default: 'Dimension Members'} }}
     </button>
-  </mat-menu>
-</mat-radio-group>
+    
+    @for (variable of dateVariables; track variable.id) {
+      <button cdkMenuItem class=""
+        (click)="openDynamicDateHelp(variable.dateRange)">
+        {{ 'DateVariable.' + variable.id | translate: {Default: variable.id} }}
+      </button>
+    }
+  </div>
+</ng-template>

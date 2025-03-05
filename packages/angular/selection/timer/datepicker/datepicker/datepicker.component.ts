@@ -4,7 +4,6 @@ import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModu
 import { MatNativeDateModule } from '@angular/material/core'
 import { MatDatepickerInputEvent, MatDatepickerModule } from '@angular/material/datepicker'
 import { MatInputModule } from '@angular/material/input'
-import { NgmInputComponent } from '@metad/ocap-angular/common'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 
 @Component({
@@ -16,7 +15,6 @@ import { OcapCoreModule } from '@metad/ocap-angular/core'
     MatInputModule,
     MatNativeDateModule,
     OcapCoreModule,
-    NgmInputComponent
   ],
   selector: 'ngm-datepicker',
   templateUrl: './datepicker.component.html',
