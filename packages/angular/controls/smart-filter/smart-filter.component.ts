@@ -68,7 +68,7 @@ import { ControlOptions } from '../types'
 import { NgmValueHelpComponent } from '../value-help/value-help.component'
 import { MatRadioModule } from '@angular/material/radio'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { NgmTimeFilterEditorComponent } from '@metad/ocap-angular/selection'
+import { NgmTimeFilterEditorComponent } from '../timer'
 
 export interface SmartFilterOptions extends ControlOptions {
   maxTagCount?: number
