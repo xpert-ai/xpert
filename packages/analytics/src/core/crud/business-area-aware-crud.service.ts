@@ -26,15 +26,26 @@ export abstract class BusinessAreaAwareCrudService<
 		super(repository)
 	}
 
+	/**
+	 * Add my business areas and i created query conditions:
+	 * 
+	 * - Entities under the business areas I have authority over
+	 * - Entities I created
+	 * 
+	 * @param conditions 
+	 * @param role 
+	 * @returns 
+	 */
 	async myBusinessAreaConditions(conditions?: FindManyOptions<T>, role?: BusinessAreaRole) {
 		const user = RequestContext.currentUser()
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
+
 		const areas = await this.commandBus.execute<BusinessAreaMyCommand, BusinessArea[]>(new BusinessAreaMyCommand(user, role))
 
 		return {
 			...(conditions ?? {}),
 			where: (query: SelectQueryBuilder<T>) => {
-				const tenantId = RequestContext.currentTenantId()
-				const organizationId = RequestContext.getOrganizationId()
 				query.andWhere(
 					new Brackets((qb: WhereExpressionBuilder) => { 
 						qb.andWhere(`"${query.alias}"."tenantId" = :tenantId`, { tenantId });
