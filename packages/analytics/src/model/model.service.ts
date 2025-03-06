@@ -307,7 +307,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 	}
 
 	/**
-	 * 获取我自己创建的模型
+	 * Get the models I created
 	 *
 	 * @returns
 	 */

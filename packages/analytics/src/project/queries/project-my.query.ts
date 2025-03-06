@@ -3,7 +3,7 @@ import { FindManyOptions } from 'typeorm'
 import { Project } from '../project.entity'
 
 /**
- * 查询我有权限的项目列表
+ * Query the list of projects I have permission to
  */
 export class ProjectMyQuery implements IQuery {
 	static readonly type = '[Project] My'

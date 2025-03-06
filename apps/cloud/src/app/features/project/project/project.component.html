@@ -53,11 +53,10 @@
         <span class="">
           {{ 'PAC.Project.Collections' | translate: {Default: 'Collections'} }}
         </span>
-        <button  mat-icon-button displayDensity="cosy" [matMenuTriggerFor]="collectionsMenu"
-          #mt="matMenuTrigger"
-          [class.active]="mt.menuOpen"
-        >
-          <mat-icon fontSet="material-icons-outlined">more_horiz</mat-icon>
+        <button  mat-icon-button displayDensity="cosy" [cdkMenuTriggerFor]="collectionsMenu"
+          #mt="cdkMenuTriggerFor"
+          [class.active]="mt.isOpen()"
+        ><i class="ri-more-line"></i>
         </button>
       </div>
 
@@ -82,13 +81,13 @@
               <span class="flex flex-1"></span>
               <button class="opacity-0 group-hover:opacity-50"
                 mat-icon-button displayDensity="cosy"
-                [matMenuTriggerFor]="collectionMenu"
-                [matMenuTriggerData]="node"
-                #mt="matMenuTrigger"
-                [class.active]="mt.menuOpen"
+                [cdkMenuTriggerFor]="collectionMenu"
+                [cdkMenuTriggerData]="node"
+                #mt="cdkMenuTriggerFor"
+                [class.active]="mt.isOpen()"
                 (click)="$event.stopPropagation()"
               >
-                <mat-icon fontSet="material-icons-outlined">more_horiz</mat-icon>
+              <i class="ri-more-line"></i>
               </button>
             }
             @case('story') {
@@ -100,13 +99,13 @@
               <span class="flex flex-1"></span>
               <button class="opacity-0 group-hover:opacity-50"
                 mat-icon-button displayDensity="cosy"
-                [matMenuTriggerFor]="storyMenu"
-                [matMenuTriggerData]="node"
-                #mt="matMenuTrigger"
-                [class.active]="mt.menuOpen"
+                [cdkMenuTriggerFor]="storyMenu"
+                [cdkMenuTriggerData]="node"
+                #mt="cdkMenuTriggerFor"
+                [class.active]="mt.isOpen()"
                 (click)="$event.stopPropagation()"
                 >
-                <mat-icon fontSet="material-icons-outlined">more_horiz</mat-icon>
+                <i class="ri-more-line"></i>
               </button>
             }
           }
@@ -129,12 +128,12 @@
           <span class="flex flex-1"></span>
           <button *ngIf="node.raw.__type__ === 'collection'" class="opacity-0 group-hover:opacity-50"
             mat-icon-button displayDensity="cosy"
-            [matMenuTriggerFor]="collectionMenu"
-            [matMenuTriggerData]="node"
-            #mt="matMenuTrigger"
-            [class.active]="mt.menuOpen"
+            [cdkMenuTriggerFor]="collectionMenu"
+            [cdkMenuTriggerData]="node"
+            #mt="cdkMenuTriggerFor"
+            [class.active]="mt.isOpen()"
           >
-            <mat-icon fontSet="material-icons-outlined">more_horiz</mat-icon>
+            <i class="ri-more-line"></i>
           </button>
         </cdk-tree-node>
       </cdk-tree>
@@ -167,13 +166,13 @@
           [cdkDragData]="model"
           >
           <div class="w-full flex items-center">
-            <mat-icon class="shrink-0 cursor-pointer opacity-0 group-hover:opacity-50">drag_indicator</mat-icon>
+            <i class="ri-draggable text-lg mx-1 shrink-0 cursor-pointer opacity-0 group-hover:opacity-100"></i>
             <span class="whitespace-nowrap text-ellipsis overflow-hidden">
               {{ model.name }}
             </span>
   
             <span class="flex flex-1"></span>
-            <button mat-icon-button ngmAppearance="danger" displayDensity="cosy" class="opacity-0 group-hover:opacity-80 "
+            <button mat-icon-button ngmAppearance="danger" displayDensity="cosy" class="mx-1 opacity-0 group-hover:opacity-80 "
               matTooltip="{{ 'PAC.Project.RemoveModel' | translate: {Default: 'Remove Model'} }}" matTooltipPosition="right"
               (click)="$event.stopPropagation();removeModel(model)"
             >
@@ -229,140 +228,129 @@
   </mat-drawer-content>
 </mat-drawer-container>
 
-<mat-menu #collectionsMenu="matMenu" class="ngm-density__compact">
-  <ng-template matMenuContent>
-    <button mat-menu-item (click)="newCollection()">
+<ng-template #collectionsMenu>
+  <div cdkMenu class="cdk-menu__large ngm-density__compact">
+    <button cdkMenuItem (click)="newCollection()">
+      <i class="ri-folder-add-line text-lg mr-1"></i>
+      {{ 'PAC.Project.NewCollection' | translate: {Default: 'New Collection'} }}
+    </button>
+    <button cdkMenuItem (click)="newStory()">
+      <i class="ri-dashboard-line text-lg mr-1"></i>
+      {{ 'PAC.Project.NewStory' | translate: {Default: 'New Story'} }}
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #collectionMenu let-key="key" let-raw="raw">
+  <div cdkMenu class="cdk-menu__large ngm-density__compact">
+    <button cdkMenuItem *ngIf="raw?.id !== DefaultCollection.id" (click)="newCollection(key)">
       <mat-icon fontSet="material-icons-outlined">create_new_folder</mat-icon>
       {{ 'PAC.Project.NewCollection' | translate: {Default: 'New Collection'} }}
     </button>
-    <button mat-menu-item (click)="newStory()">
-      <mat-icon fontSet="material-icons-outlined">collections</mat-icon>
-      {{ 'PAC.Project.NewStory' | translate: {Default: 'New Story'} }}
-    </button>
-  </ng-template>
-</mat-menu>
-
-<mat-menu #collectionMenu="matMenu" class="ngm-density__compact">
-  <ng-template matMenuContent let-key="key" let-raw="raw">
-    <button mat-menu-item *ngIf="raw?.id !== DefaultCollection.id" (click)="newCollection(key)">
-      <mat-icon fontSet="material-icons-outlined">create_new_folder</mat-icon>
-      {{ 'PAC.Project.NewCollection' | translate: {Default: 'New Collection'} }}
-    </button>
-    <button mat-menu-item (click)="newStory(key)">
+    <button cdkMenuItem (click)="newStory(key)">
       <mat-icon fontSet="material-icons-outlined">collections</mat-icon>
       {{ 'PAC.Project.NewStory' | translate: {Default: 'New Story'} }}
     </button>
 
-    <button mat-menu-item *ngIf="raw?.id !== DefaultCollection.id" ngmAppearance="danger" (click)="deleteCollection(key)">
+    <button cdkMenuItem *ngIf="raw?.id !== DefaultCollection.id" ngmAppearance="danger" (click)="deleteCollection(key)">
       <mat-icon fontSet="material-icons-outlined">folder_delete</mat-icon>
       {{ 'PAC.Project.RemoveCollection' | translate: {Default: 'Remove Collection'} }}
     </button>
-  </ng-template>
-</mat-menu>
+  </div>
+</ng-template>
 
-<mat-menu #storyMenu="matMenu" class="ngm-density__compact">
-  <ng-template matMenuContent let-story="raw">
+<ng-template #storyMenu let-story="raw">
+  <div cdkMenu class="cdk-menu__large ngm-density__compact">
     @switch (story.status) {
       @case(StoryStatusEnum.RELEASED) {
-        <button mat-menu-item
+        <button cdkMenuItem
           (click)="releaseStory(story)">
-          <mat-icon>rocket_launch</mat-icon>
+          <i class="ri-send-plane-line text-lg mr-1"></i>
           {{ 'PAC.Project.Rerelease' | translate: {Default: 'Rerelease'} }}
         </button>
 
-        <button mat-menu-item
+        <button cdkMenuItem
           (click)="archiveStory(story)">
-          <mat-icon>archive</mat-icon>
+          <i class="ri-inbox-archive-line text-lg mr-1"></i>
           {{ 'PAC.Project.Archive' | translate: {Default: 'Archive'} }}
         </button>
       }
       @default {
-        <button mat-menu-item (click)="releaseStory(story)">
-          <mat-icon>rocket_launch</mat-icon>
+        <button cdkMenuItem (click)="releaseStory(story)">
+          <i class="ri-send-plane-line text-lg mr-1"></i>
           {{ 'PAC.Project.Release' | translate: {Default: 'Release'} }}
         </button>
       }
     }
 
-    <button mat-menu-item (click)="editStory(story)">
-      <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+    <button cdkMenuItem (click)="editStory(story)">
+      <i class="ri-edit-box-line text-lg mr-1"></i>
       {{ 'PAC.KEY_WORDS.Edit' | translate: {Default: 'Edit'} }}
     </button>
 
-    <button mat-menu-item (click)="copy(story)">
-      <mat-icon fontSet="material-icons-outlined">copy</mat-icon>
+    <button cdkMenuItem (click)="copy(story)">
+      <i class="ri-file-copy-line text-lg mr-1"></i>
       {{ 'PAC.Project.Copy' | translate: {Default: 'Copy'} }}
     </button>
-    <button mat-menu-item (click)="moveStory(story)">
-      <mat-icon fontSet="material-icons-outlined">drive_file_move</mat-icon>
+    <button cdkMenuItem (click)="moveStory(story)">
+      <i class="ri-folder-shared-line text-lg mr-1"></i>
       {{ 'PAC.Project.MoveTo' | translate: {Default: 'Move to'} }}
     </button>
 
-    <button mat-menu-item ngmAppearance="danger" (click)="deleteStory(story)">
-      <mat-icon>delete</mat-icon>
+    <button cdkMenuItem class="danger" (click)="deleteStory(story)">
+      <i class="ri-delete-bin-line text-lg mr-1"></i>
       {{ 'PAC.Project.Remove' | translate: {Default: 'Remove'} }}
     </button>
-  </ng-template>
-</mat-menu>
-
-<mat-menu #modelsMenu="matMenu" class="ngm-density__compact">
-  <ng-template matMenuContent let-story="raw">
-    <button mat-menu-item (click)="addModel()">
-      <mat-icon>add_link</mat-icon>
-      {{ 'PAC.Project.AddModel' | translate: {Default: 'Add Model'} }}
-    </button>
-  </ng-template>
-</mat-menu>
-
-
-<ng-template #collectionCreation>
-<div class="flex flex-col">
-  <header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <h4 style="pointer-events: none;" class="mb-0">
-      {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
-      {{ 'PAC.Project.Collection' | translate: { Default: 'Collection' } }}
-    </h4>
-  </header>
-
-  <div mat-dialog-content class="mat-dialog-content mat-typography w-96">
-    <form class="flex flex-col justify-start items-stretch" [formGroup]="form"
-      (ngSubmit)="createCollection()">
-      <mat-form-field appearance="fill" floatLabel="always" displayDensity="cosy">
-        <mat-label>{{ 'PAC.Project.CollectionName' | translate: { Default: 'Name' } }}</mat-label>
-        <input matInput formControlName="name" required
-          placeholder="{{ 'PAC.Project.WhatIsTheCollectionName' | translate: { Default: 'What is the name of your collection' } }}?"
-        />
-      </mat-form-field>
-
-      <ngm-tree-select appearance="fill" floatLabel="always" formControlName="parentId"
-        label="{{ 'PAC.Project.ParentCollection' | translate: { Default: 'Parent Collection' } }}"
-        displayBehaviour="descriptionOnly"
-        [treeNodes]="collections()"
-      ></ngm-tree-select>
-
-      <button [disabled]="form.invalid"></button>
-    </form>
   </div>
-
-  <mat-dialog-actions align="end">
-    <div ngmButtonGroup>
-      <button mat-button mat-dialog-close>
-        {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
-      </button>
-
-      <button
-        mat-raised-button
-        color="accent"
-        [disabled]="form.invalid"
-        (click)="createCollection()"
-      >
-        {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
-      </button>
-    </div>
-  </mat-dialog-actions>
-</div>
 </ng-template>
 
+<ng-template #collectionCreation>
+  <div class="flex flex-col">
+    <header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+      <h4 style="pointer-events: none;" class="mb-0">
+        {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
+        {{ 'PAC.Project.Collection' | translate: { Default: 'Collection' } }}
+      </h4>
+    </header>
+
+    <div mat-dialog-content class="mat-dialog-content mat-typography w-96">
+      <form class="flex flex-col justify-start items-stretch" [formGroup]="form"
+        (ngSubmit)="createCollection()">
+        <mat-form-field appearance="fill" floatLabel="always" displayDensity="cosy">
+          <mat-label>{{ 'PAC.Project.CollectionName' | translate: { Default: 'Name' } }}</mat-label>
+          <input matInput formControlName="name" required
+            placeholder="{{ 'PAC.Project.WhatIsTheCollectionName' | translate: { Default: 'What is the name of your collection' } }}?"
+          />
+        </mat-form-field>
+
+        <ngm-tree-select appearance="fill" floatLabel="always" formControlName="parentId"
+          label="{{ 'PAC.Project.ParentCollection' | translate: { Default: 'Parent Collection' } }}"
+          displayBehaviour="descriptionOnly"
+          [treeNodes]="collections()"
+        ></ngm-tree-select>
+
+        <button [disabled]="form.invalid"></button>
+      </form>
+    </div>
+
+    <mat-dialog-actions align="end">
+      <div ngmButtonGroup>
+        <button mat-button mat-dialog-close>
+          {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+        </button>
+
+        <button
+          mat-raised-button
+          color="accent"
+          [disabled]="form.invalid"
+          (click)="createCollection()"
+        >
+          {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
+        </button>
+      </div>
+    </mat-dialog-actions>
+  </div>
+</ng-template>
 
 <ng-template #moveTo>
   <div class="flex flex-col">

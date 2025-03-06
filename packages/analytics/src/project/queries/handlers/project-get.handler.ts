@@ -12,6 +12,7 @@ import { CertificationMyQuery } from '../../../certification'
 @QueryHandler(ProjectGetQuery)
 export class ProjectGetHandler implements IQueryHandler<ProjectGetQuery> {
 	private readonly logger = new Logger(ProjectGetHandler.name)
+	
 	constructor(
 		private readonly queryBus: QueryBus,
 		@InjectRepository(Project)
