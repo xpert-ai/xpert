@@ -43,54 +43,54 @@ export class ModelCubeQueryHandler implements IQueryHandler<ModelCubeQuery> {
 
 		registerSemanticModel(model, dsCoreService, { language: acceptLanguage })
 
-		// Make sure
-		const cubeSchema = model.options?.schema?.cubes?.find((_) => _.name === query.cube)
-		if (cubeSchema) {
-			cubeSchema.variables
-				?.filter((_) => !_.visible && _.variableEntryType === VariableEntryType.Required)
-				.forEach((_) => {
-					let key = null
-					if (_.semantics?.semantic) {
-						switch (_.semantics.semantic) {
-							case Semantics['Sys.UserEmail']: {
-								key = user?.email
-								break
-							}
-							case Semantics['Sys.UserName']: {
-								key = user?.username
-								break
-							}
-							case Semantics['Sys.UserRole']: {
-								key = user?.role?.name
-								break
-							}
-							case Semantics['Sys.UserID']: {
-								key = user?.id
-								break
-							}
-							case Semantics['Sys.UserThirdPartyId']: {
-								key = user?.thirdPartyId
-								break
-							}
-						}
-					}
+		// // Make sure
+		// const cubeSchema = model.options?.schema?.cubes?.find((_) => _.name === query.cube)
+		// if (cubeSchema) {
+		// 	cubeSchema.variables
+		// 		?.filter((_) => !_.visible && _.variableEntryType === VariableEntryType.Required)
+		// 		.forEach((_) => {
+		// 			let key = null
+		// 			if (_.semantics?.semantic) {
+		// 				switch (_.semantics.semantic) {
+		// 					case Semantics['Sys.UserEmail']: {
+		// 						key = user?.email
+		// 						break
+		// 					}
+		// 					case Semantics['Sys.UserName']: {
+		// 						key = user?.username
+		// 						break
+		// 					}
+		// 					case Semantics['Sys.UserRole']: {
+		// 						key = user?.role?.name
+		// 						break
+		// 					}
+		// 					case Semantics['Sys.UserID']: {
+		// 						key = user?.id
+		// 						break
+		// 					}
+		// 					case Semantics['Sys.UserThirdPartyId']: {
+		// 						key = user?.thirdPartyId
+		// 						break
+		// 					}
+		// 				}
+		// 			}
 
-					if (key) {
-						query.filters.push({
-							dimension: {
-								parameter: _.name,
-								dimension: _.referenceDimension,
-								hierarchy: _.referenceHierarchy
-							},
-							members: [
-								{
-									key
-								}
-							]
-						} as ISlicer)
-					}
-				})
-		}
+		// 			if (key) {
+		// 				query.filters.push({
+		// 					dimension: {
+		// 						parameter: _.name,
+		// 						dimension: _.referenceDimension,
+		// 						hierarchy: _.referenceHierarchy
+		// 					},
+		// 					members: [
+		// 						{
+		// 							key
+		// 						}
+		// 					]
+		// 				} as ISlicer)
+		// 			}
+		// 		})
+		// }
 
 		const entityService = await firstValueFrom(dsCoreService.getEntityService(modelId, query.cube))
 
