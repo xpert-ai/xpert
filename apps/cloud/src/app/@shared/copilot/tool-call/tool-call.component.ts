@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common'
-import { computeMsgId } from '@angular/compiler'
 import { Component, computed, input } from '@angular/core'
+import { TranslateModule } from '@ngx-translate/core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslateModule],
   selector: 'copilot-message-tool-call',
   templateUrl: 'tool-call.component.html',
   styleUrls: ['tool-call.component.scss']

@@ -8,7 +8,6 @@ import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@me
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatest, firstValueFrom, map, switchMap } from 'rxjs'
 import { ICertification, IProject, IUser, ProjectsService, Store, ToastrService } from '../../../@core'
-import { InlineSearchComponent } from '../../../@shared/form-fields'
 import { ProjectComponent } from '../project/project.component'
 import { uniq } from 'lodash-es'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
@@ -16,7 +15,8 @@ import { NgmConfirmDeleteComponent, NgmTableComponent } from '@metad/ocap-angula
 import { CertificationSelectComponent } from '../../../@shared/certification'
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { userLabel } from '../../../@shared/pipes'
-import { UserRoleSelectComponent, UserProfileComponent, UserProfileInlineComponent } from '../../../@shared/user'
+import { UserProfileComponent, UserProfileInlineComponent, UserRoleSelectComponent } from '../../../@shared/user'
+import { Dialog } from '@angular/cdk/dialog'
 
 
 @Component({
@@ -27,8 +27,6 @@ import { UserRoleSelectComponent, UserProfileComponent, UserProfileInlineCompone
     MatIconModule,
     MatButtonModule,
     TranslateModule,
-    UserRoleSelectComponent,
-    InlineSearchComponent,
     UserProfileComponent,
     UserProfileInlineComponent,
     ButtonGroupDirective,
@@ -58,6 +56,7 @@ export class ProjectMembersComponent extends TranslationBaseComponent {
   private projectComponent = inject(ProjectComponent)
   private store = inject(Store)
   private _dialog = inject(MatDialog)
+  readonly #dialog = inject(Dialog)
   private _cdr = inject(ChangeDetectorRef)
   private _toastrService = inject(ToastrService)
 
@@ -117,9 +116,9 @@ export class ProjectMembersComponent extends TranslationBaseComponent {
 
   async transferOwner() {
     const value = await firstValueFrom(
-      this._dialog
-        .open<UserRoleSelectComponent, any, { users: IUser[] }>(UserRoleSelectComponent, { data: { single: true } })
-        .afterClosed()
+      this.#dialog
+        .open<{ users: IUser[] }>(UserRoleSelectComponent, { data: { single: true } })
+        .closed
     )
     const user = value?.users?.[0]
     if (user) {
@@ -132,7 +131,7 @@ export class ProjectMembersComponent extends TranslationBaseComponent {
 
   async openMemberSelect() {
     const value = await firstValueFrom(
-      this._dialog.open<UserRoleSelectComponent, any, { users: IUser[] }>(UserRoleSelectComponent).afterClosed()
+      this.#dialog.open<{ users: IUser[] }>(UserRoleSelectComponent).closed
     )
     if (value) {
       this.addMembers(value.users.map(({ id }) => id))

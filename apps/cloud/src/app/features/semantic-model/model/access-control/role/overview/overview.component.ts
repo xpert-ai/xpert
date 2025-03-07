@@ -2,14 +2,14 @@ import { CdkDragDrop } from '@angular/cdk/drag-drop'
 import { Component, inject } from '@angular/core'
 import { FormControl } from '@angular/forms'
 import { MatButtonToggleChange } from '@angular/material/button-toggle'
-import { MatDialog } from '@angular/material/dialog'
-import { IModelRole, MDX, RoleTypeEnum } from 'apps/cloud/src/app/@core'
+import { IModelRole, IUser, MDX, RoleTypeEnum } from 'apps/cloud/src/app/@core'
 import { combineLatestWith, debounceTime, map, startWith, withLatestFrom } from 'rxjs/operators'
 import { AccessControlStateService } from '../../access-control.service'
 import { RoleStateService } from '../role.service'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
+import { Dialog } from '@angular/cdk/dialog'
 
 
 @Component({
@@ -23,7 +23,7 @@ export class RoleOverviewComponent {
 
   private roleState = inject(RoleStateService)
   private accessControlState = inject(AccessControlStateService)
-  private _dialog = inject(MatDialog)
+  private _dialog = inject(Dialog)
 
   searchControl = new FormControl()
   displayedColumns: string[] = ['user', 'action']
@@ -60,8 +60,8 @@ export class RoleOverviewComponent {
 
   onAddUser() {
     this._dialog
-      .open(UserRoleSelectComponent)
-      .afterClosed()
+      .open<{users: IUser[]}>(UserRoleSelectComponent)
+      .closed
       .subscribe((value) => {
         if (value) {
           this.roleState.addUsers(value.users)

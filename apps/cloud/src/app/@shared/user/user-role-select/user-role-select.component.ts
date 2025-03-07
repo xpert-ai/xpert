@@ -1,38 +1,31 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { COMMA, ENTER } from '@angular/cdk/keycodes'
-import { Component, ElementRef, Inject, Input, ViewChild } from '@angular/core'
-import { FormControl } from '@angular/forms'
-import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog'
-import { ISelectOption } from '@metad/ocap-angular/core'
-import { UsersService } from '@metad/cloud/state'
 import { CommonModule } from '@angular/common'
-import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatAutocompleteModule } from '@angular/material/autocomplete'
+import { Component, ElementRef, inject, Input, ViewChild } from '@angular/core'
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
 import { MatButtonModule } from '@angular/material/button'
-import { MatDialogModule } from '@angular/material/dialog'
+import { MatChipsModule } from '@angular/material/chips'
 import { MatFormFieldModule } from '@angular/material/form-field'
-import {MatProgressSpinnerModule} from '@angular/material/progress-spinner'
-import { MatInputModule } from '@angular/material/input'
-import {MatChipsModule} from '@angular/material/chips'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { TranslateModule } from '@ngx-translate/core'
 import { MatIconModule } from '@angular/material/icon'
-import { SharedModule } from '../../shared.module'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
+import { MatInputModule } from '@angular/material/input'
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { MatRadioModule } from '@angular/material/radio'
+import { UsersService } from '@metad/cloud/state'
+import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { catchError, debounceTime, EMPTY, filter, of, switchMap, tap } from 'rxjs'
 import { IUser } from '../../../@core'
-import { userLabel } from '../../pipes'
+import { userLabel, UserPipe } from '../../pipes'
 
 @Component({
   standalone: true,
   imports: [
-    SharedModule,
-    
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
 
-    MatDialogModule,
     MatButtonModule,
     MatAutocompleteModule,
     MatFormFieldModule,
@@ -40,12 +33,12 @@ import { userLabel } from '../../pipes'
     MatChipsModule,
     MatIconModule,
     MatProgressSpinnerModule,
-
+    MatRadioModule,
     TranslateModule,
 
     ButtonGroupDirective,
-
-    NgmCommonModule
+    NgmCommonModule,
+    UserPipe
   ],
   selector: 'pac-user-role-select',
   templateUrl: 'user-role-select.component.html',
@@ -55,9 +48,13 @@ export class UserRoleSelectComponent {
   separatorKeysCodes: number[] = [ENTER, COMMA]
   userLabel = userLabel
 
+  private userService = inject(UsersService)
+  public data: { role: string; roles: ISelectOption[]; single?: boolean } = inject(DIALOG_DATA)
+  private _dialogRef = inject(DialogRef)
+
   @Input() single: boolean
 
-  role = null
+  role: string = null
   users: IUser[] = []
   loading = false
   searchControl = new FormControl()
@@ -78,16 +75,11 @@ export class UserRoleSelectComponent {
       }
       return of([])
     }),
-    tap((items) => (this.loading = false)),
+    tap((items) => (this.loading = false))
   )
 
-  constructor(
-    @Inject(MAT_DIALOG_DATA)
-    public data: { role: string; roles: ISelectOption[], single?: boolean },
-    private _dialogRef: MatDialogRef<UserRoleSelectComponent>,
-    private userService: UsersService,
-  ) {
-    this.role = data?.role
+  constructor() {
+    this.role = this.data?.role
     this.single = this.data?.single
   }
 
@@ -116,6 +108,31 @@ export class UserRoleSelectComponent {
     }
     this.userInput.nativeElement.value = ''
     this.searchControl.setValue(null)
+  }
+
+  onPaste(event: ClipboardEvent) {
+    // todo
+    // // 获取粘贴的文本内容
+    // const pastedText = event.clipboardData.getData('text');
+
+    // const pastedLines = pastedText.split('\n');
+    // pastedLines.forEach(line => {
+    //   // 查找与每行粘贴内容匹配的选项（忽略大小写）
+    //   const matchingOption = this.options.find(option => 
+    //     option.toLowerCase() === line.toLowerCase().trim()
+    //   );
+
+    //   if (matchingOption) {
+    //     // 如果找到匹配项，插入选项
+    //     this.insertOption(matchingOption);
+    //   } else {
+    //     // 如果没有匹配项，可以选择不处理或提示用户
+    //     console.log('未找到匹配的选项:', line);
+    //   }
+    // });
+
+    // // 阻止默认粘贴行为（可选）
+    // event.preventDefault();
   }
 
   onApply() {

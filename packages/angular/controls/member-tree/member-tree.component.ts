@@ -27,6 +27,7 @@ import {
   DataSettings,
   Dimension,
   DisplayBehaviour,
+  FilterSelectionType,
   filterTreeNodes,
   FlatTreeNode,
   hierarchize,
@@ -151,6 +152,9 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
           }) as IMember
       )
     }
+    if (this.isSingleRange()) {
+      slicer.selectionType = this.selectionType()
+    }
     return slicer
   })
 
@@ -166,6 +170,8 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
     )
   )
   readonly autoActiveFirst = computed(() => this.options()?.autoActiveFirst)
+  readonly selectionType = computed(() => this.options()?.selectionType)
+  readonly isSingleRange = computed(() => this.selectionType() === FilterSelectionType.SingleRange)
   readonly initial = signal(true)
 
   /**
@@ -253,6 +259,7 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
     effect(
       () => {
         const options = this.options()
+
         if (options) {
           this.smartFilterService.options = { ...options, dimension: this.dimension() }
 
@@ -410,7 +417,11 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
 
   toggleMemberKey(key: string) {
     this.memberKeys.update((members) => {
-      return members.includes(key) ? members.filter((member) => member !== key) : [...members, key]
+      members = members.includes(key) ? members.filter((member) => member !== key) : [...members, key]
+      if (this.isSingleRange()) {
+        members.splice(0, members.length - 2)
+      }
+      return members
     })
   }
 
@@ -425,28 +436,27 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
   itemSelectionToggle(node: TreeItemFlatNode<T>, event: MatCheckboxChange) {
     const member = node.raw.memberKey
     this.toggleMemberKey(member)
-    // this.selectionModel.toggle(member)
+    
     const level = this.treeControl.getLevel(node)
 
-    if (
-      this.options()?.treeSelectionMode === TreeSelectionMode.ChildrenOnly ||
-      this.options()?.treeSelectionMode === TreeSelectionMode.SelfChildren
-    ) {
-      const children = this.treeControl
-        .getDescendants(node)
-        .filter((node) => node.level === level + 1)
-        .map((node) => node.raw.memberKey)
+    if (!this.isSingleRange()) {
+      if (
+        this.options()?.treeSelectionMode === TreeSelectionMode.ChildrenOnly ||
+        this.options()?.treeSelectionMode === TreeSelectionMode.SelfChildren
+      ) {
+        const children = this.treeControl
+          .getDescendants(node)
+          .filter((node) => node.level === level + 1)
+          .map((node) => node.raw.memberKey)
 
-      this.isSelected(node.raw) ? this.selectMembers(...children) : this.deselectMembers(...children)
-    } else if (
-      this.options()?.treeSelectionMode === TreeSelectionMode.SelfDescendants ||
-      this.options()?.treeSelectionMode === TreeSelectionMode.DescendantsOnly
-    ) {
-      const descendants = this.treeControl.getDescendants(node).map((node) => node.raw.memberKey)
-      this.isSelected(node.raw) ? this.selectMembers(...descendants) : this.deselectMembers(...descendants)
-    } else {
-      // TreeSelectionMode.Individual
-      // this.checklistSelection.toggle(member)
+        this.isSelected(node.raw) ? this.selectMembers(...children) : this.deselectMembers(...children)
+      } else if (
+        this.options()?.treeSelectionMode === TreeSelectionMode.SelfDescendants ||
+        this.options()?.treeSelectionMode === TreeSelectionMode.DescendantsOnly
+      ) {
+        const descendants = this.treeControl.getDescendants(node).map((node) => node.raw.memberKey)
+        this.isSelected(node.raw) ? this.selectMembers(...descendants) : this.deselectMembers(...descendants)
+      }
     }
 
     this.onChange(this.slicer())

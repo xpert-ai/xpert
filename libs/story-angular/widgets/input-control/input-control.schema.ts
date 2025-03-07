@@ -16,7 +16,6 @@ import {
   AccordionWrappers,
   ColorOptions,
   DataSettingsSchemaService,
-  DataTable,
   dateFilterOptions,
   FORMLY_ROW,
   FORMLY_W_1_2,

@@ -5,15 +5,15 @@
 @switch (selectionType) {
   @case (FilterType.SingleRange) {
     <div class="flex items-center">
-    @switch (granularity) {
+    @switch (granularity()) {
       @case (TimeGranularity.Year) {
         <ngm-yearpicker class="flex flex-1 mr-2" [formControl]="fromDateControl"
           [label]="'Ngm.DatePicker.From' | translate: {Default: 'From'}"/>
 
         <ngm-yearpicker class="flex flex-1" [formControl]="dateControl" [label]="'Ngm.DatePicker.To' | translate: {Default: 'To'}">
-          <button ngmSuffix mat-icon-button [matMenuTriggerFor]="granularityMenu"
+          <button ngmSuffix mat-icon-button [cdkMenuTriggerFor]="granularityMenu"
             (click)="$event.stopPropagation();$event.preventDefault();">
-              <mat-icon>more_vert</mat-icon>
+            <mat-icon>more_vert</mat-icon>
           </button>
         </ngm-yearpicker>
       }
@@ -22,7 +22,7 @@
           [label]="'Ngm.DatePicker.From' | translate: {Default: 'From'}" />
 
         <ngm-quarterpicker class="flex flex-1" [formControl]="dateControl" [label]="'Ngm.DatePicker.To' | translate: {Default: 'To'}">
-          <button ngmSuffix mat-icon-button [matMenuTriggerFor]="granularityMenu"
+          <button ngmSuffix mat-icon-button [cdkMenuTriggerFor]="granularityMenu"
             (click)="$event.stopPropagation();$event.preventDefault();">
               <mat-icon>more_vert</mat-icon>
           </button>
@@ -33,7 +33,7 @@
           [label]="'Ngm.DatePicker.From' | translate: {Default: 'From'}" />
 
         <ngm-monthpicker class="flex flex-1" [formControl]="dateControl" [label]="'Ngm.DatePicker.To' | translate: {Default: 'To'}">
-          <button ngmSuffix mat-icon-button [matMenuTriggerFor]="granularityMenu"
+          <button ngmSuffix mat-icon-button [cdkMenuTriggerFor]="granularityMenu"
             (click)="$event.stopPropagation();$event.preventDefault();">
               <mat-icon>more_vert</mat-icon>
           </button>
@@ -44,9 +44,9 @@
           [label]="'Ngm.DatePicker.From' | translate: {Default: 'From'}" />
 
         <ngm-datepicker class="flex flex-1" [formControl]="dateControl" [label]="'Ngm.DatePicker.To' | translate: {Default: 'To'}">
-          <button ngmSuffix mat-icon-button [matMenuTriggerFor]="granularityMenu"
+          <button ngmSuffix mat-icon-button [cdkMenuTriggerFor]="granularityMenu"
             (click)="$event.stopPropagation();$event.preventDefault();">
-              <mat-icon>more_vert</mat-icon>
+            <mat-icon>more_vert</mat-icon>
           </button>
         </ngm-datepicker>
       }
@@ -54,10 +54,10 @@
     </div>
   }
   @default {
-    @switch (granularity) {
+    @switch (granularity()) {
       @case (TimeGranularity.Year) {
         <ngm-yearpicker [formControl]="dateControl">
-          <button ngmSuffix mat-icon-button displayDensity="compact" [matMenuTriggerFor]="granularityMenu"
+          <button ngmSuffix mat-icon-button displayDensity="compact" [cdkMenuTriggerFor]="granularityMenu"
             (click)="$event.stopPropagation();$event.preventDefault();">
               <mat-icon>more_vert</mat-icon>
           </button>
@@ -65,7 +65,7 @@
       }
       @case (TimeGranularity.Quarter) {
         <ngm-quarterpicker [formControl]="dateControl">
-          <button ngmSuffix mat-icon-button displayDensity="compact" [matMenuTriggerFor]="granularityMenu"
+          <button ngmSuffix mat-icon-button displayDensity="compact" [cdkMenuTriggerFor]="granularityMenu"
             (click)="$event.stopPropagation();$event.preventDefault();">
               <mat-icon>more_vert</mat-icon>
           </button>
@@ -73,7 +73,7 @@
       }
       @case (TimeGranularity.Month) {
         <ngm-monthpicker [formControl]="dateControl">
-          <button ngmSuffix mat-icon-button displayDensity="compact" [matMenuTriggerFor]="granularityMenu"
+          <button ngmSuffix mat-icon-button displayDensity="compact" [cdkMenuTriggerFor]="granularityMenu"
             (click)="$event.stopPropagation();$event.preventDefault();">
               <mat-icon>more_vert</mat-icon>
           </button>
@@ -81,7 +81,7 @@
       }
       @default {
         <ngm-datepicker [formControl]="dateControl">
-          <button ngmSuffix mat-icon-button displayDensity="compact" [matMenuTriggerFor]="granularityMenu"
+          <button ngmSuffix mat-icon-button displayDensity="compact" [cdkMenuTriggerFor]="granularityMenu"
             (click)="$event.stopPropagation();$event.preventDefault();">
               <mat-icon>more_vert</mat-icon>
           </button>
@@ -91,13 +91,14 @@
   }
 }
 
-<mat-radio-group [(ngModel)]="granularity">
-  <mat-menu #granularityMenu="matMenu" class="ngm-formly ngm-density__compact">
-    <button mat-menu-item disableRipple *ngFor="let value of TIME_GRANULARITY_SEQUENCES[granularitySequence ?? 2]"
-      (click)="$event.stopPropagation();">
-      <mat-radio-button [value]="value">
-        {{ 'Ngm.DatePicker.' + value | translate: {Default: value} }}
-      </mat-radio-button>
-    </button>
-  </mat-menu>
-</mat-radio-group>
+<ng-template #granularityMenu>
+  <div cdkMenu class="cdk-menu__large ngm-density__compact">
+    <mat-radio-group [(ngModel)]="granularity" class="flex flex-col">
+      @for (value of TIME_GRANULARITY_SEQUENCES[granularitySequence ?? 2]; track value) {
+        <mat-radio-button [value]="value">
+          {{ 'Ngm.DatePicker.' + value | translate: {Default: value} }}
+        </mat-radio-button>
+      }
+    </mat-radio-group>
+  </div>
+</ng-template>

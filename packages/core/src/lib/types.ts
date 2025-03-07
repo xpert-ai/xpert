@@ -153,6 +153,9 @@ export enum Drill {
 export enum FilterSelectionType {
   Multiple = 'Multiple',
   Single = 'Single',
+  /**
+   * @deprecated use SingleRange only ?
+   */
   SingleInterval = 'SingleInterval',
   SingleRange = 'SingleRange'
 }

@@ -93,7 +93,7 @@
       }
     </ng-container>
     
-    <mat-divider></mat-divider>
+    <div class="w-full border-b border-solid border-divider-deep my-1"></div>
     
     <button cdkMenuItem (click)="refresh(true)">
       <mat-icon fontSet="material-icons-round" class="mr-1">refresh</mat-icon>
@@ -125,7 +125,7 @@
     </button>
 
     <ng-container *ngIf="editable()">
-      <mat-divider></mat-divider>
+      <div class="w-full border-b border-solid border-divider-deep my-1"></div>
       <ng-container *ngIf="allowMultiLayer$ | async">
         <button cdkMenuItem (click)="bringForward()">
           <mat-icon fontSet="material-icons-outlined" class="mr-1">flip_to_front</mat-icon>
@@ -145,7 +145,7 @@
         </button>
       </ng-container>
 
-      <mat-divider></mat-divider>
+      <div class="w-full border-b border-solid border-divider-deep my-1"></div>
       <button cdkMenuItem class="ngm-copilot-command-button" (click)="generateWithAI()">
         <mat-icon fontSet="material-icons-outlined" class="mr-1">auto_fix_high</mat-icon>
         {{ 'Copilot.GenerateWithAI' | translate: {Default: "Generate with AI"} }}
@@ -173,7 +173,7 @@
         {{ 'Story.Widget.Download' | translate: {Default: "Download"} }}
       </button>
       <button cdkMenuItem class="ngm-cdk-menu__danger" (click)="removeWidget()">
-        <mat-icon fontSet="material-icons-outlined" class="mr-1">delete_forever</mat-icon>
+        <i class="ri-delete-bin-line text-lg mr-1"></i>
         {{ 'Story.Story.Delete' | translate: {Default: "Delete"} }}
       </button>
     </ng-container>
@@ -206,7 +206,7 @@
       {{ 'Story.Story.NewCanvasPage' | translate: {Default: "New Canvas Page"} }}
     </button>
   
-    <mat-divider></mat-divider>
+    <div class="w-full border-b border-solid border-divider-deep my-1"></div>
     @for (point of pointList(); track point.key) {
       <button cdkMenuItem
         (click)="onMoveTo(point.key)">{{ point.name }}</button>
@@ -223,7 +223,7 @@
       {{ 'Story.Story.NewCanvasPage' | translate: {Default: "New Canvas Page"} }}
     </button>
   
-    <mat-divider></mat-divider>
+    <div class="w-full border-b border-solid border-divider-deep my-1"></div>
     
     @for (point of pointList(); track point.key) {
       <button cdkMenuItem

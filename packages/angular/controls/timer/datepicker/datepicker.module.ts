@@ -7,7 +7,6 @@ import { MatDatepickerModule } from '@angular/material/datepicker'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
-import { MatMenuModule } from '@angular/material/menu'
 import { MatRadioModule } from '@angular/material/radio'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmMemberDatepickerComponent } from './datepicker.component'
@@ -15,6 +14,7 @@ import { NgmDatepickerComponent } from './datepicker/datepicker.component'
 import { NgmMonthpickerComponent } from './monthpicker/monthpicker.component'
 import { NgmQuarterpickerComponent } from './quarterpicker/quarterpicker.component'
 import { NgmYearpickerComponent } from './yearpicker/yearpicker.component'
+import { CdkMenuModule } from '@angular/cdk/menu'
 
 @NgModule({
   declarations: [NgmMemberDatepickerComponent],
@@ -23,11 +23,11 @@ import { NgmYearpickerComponent } from './yearpicker/yearpicker.component'
     FormsModule,
     ReactiveFormsModule,
 
+    CdkMenuModule,
     MatDatepickerModule,
     MatNativeDateModule,
     MatFormFieldModule,
     MatButtonModule,
-    MatMenuModule,
     MatInputModule,
     MatRadioModule,
     MatIconModule,

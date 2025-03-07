@@ -16,6 +16,7 @@ import { SerperToolset } from './serper/serper'
 import { SlackToolset } from './slack/slack'
 import { TaskToolset } from './task/task'
 import { TavilyToolset } from './tavily/tavily'
+import { FirecrawlToolset } from './firecrawl/firecrawl'
 
 export * from './builtin-tool'
 export * from './builtin-toolset'
@@ -34,6 +35,7 @@ export const BUILTIN_TOOLSET_REPOSITORY: {
 			SerpAPIToolset,
 			EmailToolset,
 			FeishuMessageToolset,
+			FirecrawlToolset,
 			DuckDuckGoToolset,
 			BingToolset,
 			DingTalkToolset,

@@ -78,7 +78,7 @@ export class NgmTimeFilterEditorComponent implements OnInit {
     currentDate: new FormControl(),
     ranges: new FormArray([]),
     allowModifySelections: new FormControl<boolean>(null),
-    selctionType: new FormControl()
+    selectionType: new FormControl()
   })
 
   public property$: Observable<Property> = combineLatest([

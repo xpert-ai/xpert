@@ -1,34 +1,30 @@
 import { CommonModule } from '@angular/common'
 import { Component, forwardRef, input } from '@angular/core'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MAT_DATE_FORMATS } from '@angular/material/core'
+import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
 import { MatDatepicker, MatDatepickerInputEvent, MatDatepickerModule } from '@angular/material/datepicker'
 import { MatInputModule } from '@angular/material/input'
-import { NgmInputComponent } from '@metad/ocap-angular/common'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { getMonth, getYear, setMonth, setYear } from 'date-fns'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MatDatepickerModule, MatInputModule, OcapCoreModule, NgmInputComponent],
+  imports: [CommonModule, ReactiveFormsModule, MatDatepickerModule, MatInputModule, OcapCoreModule],
   selector: 'ngm-monthpicker',
   templateUrl: './monthpicker.component.html',
   styleUrls: ['./monthpicker.component.scss'],
   providers: [
-    {
-      provide: MAT_DATE_FORMATS,
-      useValue: {
-        parse: {
-          dateInput: `yyyyMM`
-        },
-        display: {
-          dateInput: `yyyyMM`,
-          monthYearLabel: 'LLL y',
-          dateA11yLabel: 'MMMM d, y',
-          monthYearA11yLabel: 'MMMM y'
-        }
+    provideDateFnsAdapter({
+      parse: {
+        dateInput: `yyyyMM`
+      },
+      display: {
+        dateInput: `yyyyMM`,
+        monthYearLabel: 'LLL y',
+        dateA11yLabel: 'MMMM d, y',
+        monthYearA11yLabel: 'MMMM y'
       }
-    },
+    }),
     {
       provide: NG_VALUE_ACCESSOR,
       useExisting: forwardRef(() => NgmMonthpickerComponent),

@@ -290,7 +290,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 	}
 
 	/**
-	 * 获取我有权限的模型
+	 * Get the models I have permission to
 	 *
 	 * @param conditions
 	 * @returns
@@ -307,7 +307,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 	}
 
 	/**
-	 * 获取我自己创建的模型
+	 * Get the models I created
 	 *
 	 * @returns
 	 */

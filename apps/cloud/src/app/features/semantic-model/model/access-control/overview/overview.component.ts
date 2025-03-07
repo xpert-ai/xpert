@@ -1,12 +1,12 @@
-import { Component } from '@angular/core'
+import { Component, inject } from '@angular/core'
 import { FormControl } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { IUser, RoleTypeEnum } from '@metad/contracts'
 import { BehaviorSubject } from 'rxjs'
 import { combineLatestWith, debounceTime, map, startWith } from 'rxjs/operators'
 import { AccessControlStateService } from '../access-control.service'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
+import { Dialog } from '@angular/cdk/dialog'
 
 @Component({
   selector: 'pac-model-access-overview',
@@ -17,6 +17,11 @@ export class AccessOverviewComponent {
   RoleTypeEnum = RoleTypeEnum
   roleDisplayedColumns: string[] = ['name', 'type', 'action']
   displayedColumns: string[] = ['user', 'roles', 'action']
+
+  private accessControlState = inject(AccessControlStateService) 
+  readonly #dialog = inject(Dialog)
+
+  
   searchControl = new FormControl()
 
   public readonly roles$ = this.accessControlState.state$
@@ -72,12 +77,11 @@ export class AccessOverviewComponent {
       return userRoles
     })
   )
-  constructor(private accessControlState: AccessControlStateService, private _dialog: MatDialog) {}
 
   onAddUser() {
-    this._dialog
-      .open(UserRoleSelectComponent)
-      .afterClosed()
+    this.#dialog
+      .open<{users: IUser[]}>(UserRoleSelectComponent)
+      .closed
       .subscribe((value) => {
         if (value) {
           this.newUsers$.next([...this.newUsers$.value, ...value.users])

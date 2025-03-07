@@ -1,4 +1,5 @@
-import { Component, forwardRef, inject, Input, OnChanges, OnInit, output, SimpleChanges } from '@angular/core'
+import { Component, computed, effect, forwardRef, inject, input, Input, model, OnChanges, OnInit, output, SimpleChanges } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { MatFormFieldAppearance } from '@angular/material/form-field'
 import { NgmSmartFilterService } from '@metad/ocap-angular/controls'
@@ -15,18 +16,20 @@ import {
   TimeRangeType,
   calcRange,
   mapTimeGranularitySemantic,
+  getEntityProperty2,
+  Semantics,
+  mapSemanticTimeGranularity,
+  getEntityHierarchy,
 } from '@metad/ocap-core'
 import { isEqual } from 'lodash-es'
 import {
-  BehaviorSubject,
   catchError,
   combineLatest,
   distinctUntilChanged,
   EMPTY,
   filter,
-  firstValueFrom,
+  map,
   startWith,
-  switchMap,
 } from 'rxjs'
 
 
@@ -61,13 +64,8 @@ export class NgmMemberDatepickerComponent implements OnInit, OnChanges, ControlV
 
   @Input() dataSettings: DataSettings
 
-  @Input() get dimension() {
-    return this._dimension$.value
-  }
-  set dimension(value) {
-    this._dimension$.next(value)
-  }
-  private _dimension$ = new BehaviorSubject<Dimension>(null)
+  readonly dimension = input<Dimension>()
+  readonly granularity = model<TimeGranularity>(TimeGranularity.Month)
 
   private _date: Date[]
   @Input() set date(dat: Date[]) {
@@ -79,14 +77,6 @@ export class NgmMemberDatepickerComponent implements OnInit, OnChanges, ControlV
     return this._date
   }
 
-  @Input() get granularity() {
-    return this._timeGranularity.value
-  }
-  set granularity(value) {
-    this._timeGranularity.next(value)
-  }
-  private _timeGranularity = new BehaviorSubject(TimeGranularity.Month)
-
   @Input() granularitySequence = 0
   @Input() defaultValue: string
   @Input() selectionType: FilterSelectionType
@@ -95,7 +85,10 @@ export class NgmMemberDatepickerComponent implements OnInit, OnChanges, ControlV
 
   readonly dateChange = output<Date[]>()
 
-  private entityType$ = this.dataService.selectEntityType()
+  // States
+  readonly entityType = toSignal(this.dataService.selectEntityType())
+  readonly property = computed(() => this.entityType() ? getEntityProperty2(this.entityType(), this.dimension()) : null)
+  readonly hierarchy = computed(() => this.entityType() ? getEntityHierarchy(this.entityType(), this.dimension()) : null)
 
   fromDateControl = new FormControl()
   dateControl = new FormControl()
@@ -112,12 +105,12 @@ export class NgmMemberDatepickerComponent implements OnInit, OnChanges, ControlV
   |--------------------------------------------------------------------------
   */
   private svSubscriber = this.dateControl.valueChanges.pipe(
-    startWith(null),
-    filter(() => this.selectionType !== FilterSelectionType.SingleRange),
-    switchMap(async (value) => {
-      const entityType = await firstValueFrom(this.entityType$)
-      const dimension = await firstValueFrom(this._dimension$)
-      const timeGranularity = this.granularity
+    startWith(this.dateControl.value),
+    filter((value) => this.selectionType !== FilterSelectionType.SingleRange && value),
+    map((value) => {
+      const entityType = this.entityType()
+      const dimension = this.dimension()
+      const timeGranularity = this.granularity()
       if (!(entityType && dimension && timeGranularity)) {
         return null
       }
@@ -167,11 +160,11 @@ export class NgmMemberDatepickerComponent implements OnInit, OnChanges, ControlV
   private srSubscriber = combineLatest([this.fromDateControl.valueChanges, this.dateControl.valueChanges])
     .pipe(
       startWith([this.fromDateControl.value, this.dateControl.value]),
-      filter(() => this.selectionType === FilterSelectionType.SingleRange),
-      switchMap(async ([from, to]) => {
-        const entityType = await firstValueFrom(this.entityType$)
-        const dimension = await firstValueFrom(this._dimension$)
-        const timeGranularity = this.granularity
+      filter(([from, to]) => this.selectionType === FilterSelectionType.SingleRange && from && to),
+      map(([from, to]) => {
+        const entityType = this.entityType()
+        const dimension = this.dimension()
+        const timeGranularity = this.granularity()
         if (!(entityType && dimension && timeGranularity)) {
           return null
         }
@@ -228,6 +221,19 @@ export class NgmMemberDatepickerComponent implements OnInit, OnChanges, ControlV
       this.dateChange.emit([this.fromDateControl.value, this.dateControl.value])
     })
 
+  constructor() {
+    effect(() => {
+      if (!this.granularity()) {
+        const level = this.property()?.semantics?.semantic?.startsWith(Semantics.Calendar) ? 
+          this.property() : this.hierarchy()?.levels?.length ? this.hierarchy().levels[this.hierarchy().levels.length - 1]
+          : null
+        if (level?.semantics?.semantic) {
+          this.granularity.set(mapSemanticTimeGranularity(level.semantics?.semantic))
+        }
+      }
+    }, { allowSignalWrites: true })
+  }
+
   ngOnInit() {
     if (this.disabled) {
       this.dateControl.disable()
@@ -251,7 +257,9 @@ export class NgmMemberDatepickerComponent implements OnInit, OnChanges, ControlV
     }
   }
 
-  writeValue(obj: any): void {}
+  writeValue(obj: any): void {
+    //
+  }
   registerOnChange(fn: any): void {
     this._onChange = fn
   }

@@ -17,6 +17,7 @@ import { ModelComponent } from '../model.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { UserRoleSelectComponent, UserProfileComponent, UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
+import { Dialog } from '@angular/cdk/dialog'
 
 @Component({
   standalone: true,
@@ -26,7 +27,6 @@ import { UserRoleSelectComponent, UserProfileComponent, UserProfileInlineCompone
     MatIconModule,
     MatButtonModule,
     TranslateModule,
-    UserRoleSelectComponent,
     UserProfileComponent,
     UserProfileInlineComponent,
     ButtonGroupDirective,
@@ -47,6 +47,7 @@ export class ModelAdminComponent extends TranslationBaseComponent {
   private store = inject(Store)
   private route = inject(ActivatedRoute)
   readonly #model = inject(ModelComponent)
+  readonly #dialog = inject(Dialog)
 
   searchControl = new FormControl()
 
@@ -102,9 +103,9 @@ export class ModelAdminComponent extends TranslationBaseComponent {
 
   async transferOwner() {
     const value = await firstValueFrom(
-      this._dialog
-        .open<UserRoleSelectComponent, any, { users: IUser[] }>(UserRoleSelectComponent, { data: { single: true } })
-        .afterClosed()
+      this.#dialog
+        .open<{ users: IUser[] }>(UserRoleSelectComponent, { data: { single: true } })
+        .closed
     )
     const user = value?.users?.[0]
     if (user) {
@@ -121,7 +122,7 @@ export class ModelAdminComponent extends TranslationBaseComponent {
 
   async openMemberSelect() {
     const value = await firstValueFrom(
-      this._dialog.open<UserRoleSelectComponent, any, { users: IUser[] }>(UserRoleSelectComponent).afterClosed()
+      this.#dialog.open<{ users: IUser[] }>(UserRoleSelectComponent).closed
     )
     if (value) {
       this.addMembers(value.users.map(({ id }) => id))

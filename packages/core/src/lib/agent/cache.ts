@@ -110,6 +110,7 @@ export class DSCacheService implements OcapCache {
 
   changeCacheLevel(level: number): void {
     CACHE_OPTIONS.level = level
+    this.options.level = level
   }
 
   getCacheLevel() {

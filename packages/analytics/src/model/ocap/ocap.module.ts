@@ -3,6 +3,9 @@ import { CqrsModule } from '@nestjs/cqrs'
 import { NgmDSCoreService } from './core.service'
 import { provideOcap } from './providers'
 
+/**
+ * @deprecated
+ */
 @Module({
 	imports: [CqrsModule],
 	controllers: [],

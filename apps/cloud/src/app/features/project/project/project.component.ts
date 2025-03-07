@@ -63,6 +63,7 @@ import { collectionId, injectFetchModelDetails, treeDataSourceFactory } from '..
 import { ProjectService } from '../project.service'
 import { MaterialModule } from '../../../@shared/material.module'
 import { StoryCreationComponent } from '../../../@shared/story'
+import { CdkMenuModule } from '@angular/cdk/menu'
 
 @Component({
   standalone: true,
@@ -71,6 +72,7 @@ import { StoryCreationComponent } from '../../../@shared/story'
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
+    CdkMenuModule,
     CdkTreeModule,
     RouterModule,
     MaterialModule,

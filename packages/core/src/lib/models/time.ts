@@ -88,6 +88,21 @@ export function mapTimeGranularitySemantic(granularity: TimeGranularity): Semant
   }
 }
 
+export function mapSemanticTimeGranularity(semantic: Semantics): TimeGranularity {
+  switch (semantic) {
+    case Semantics['Calendar.Year']:
+      return TimeGranularity.Year
+    case Semantics['Calendar.Quarter']:
+      return TimeGranularity.Quarter
+    case Semantics['Calendar.Month']:
+      return TimeGranularity.Month
+    case Semantics['Calendar.Day']:
+      return TimeGranularity.Day
+    default:
+      throw new Error(`Can't found granularity for semantic ${semantic}`)
+  }
+}
+
 export function formatCurrentPeriod(current: number | Date, granularity: TimeGranularity, formatter?: string) {
   if (granularity === null || current === null) {
     return null

@@ -6,7 +6,7 @@ import { TimeGranularity } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { AbstractStoryWidget } from '@metad/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { NgmTimeFilterModule } from '@metad/ocap-angular/selection'
+import { NgmTimeFilterModule } from '@metad/ocap-angular/controls'
 
 export interface TodayWidgetOptions {
   granularity: TimeGranularity

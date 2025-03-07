@@ -1,3 +1,4 @@
+import { Semantics } from '../annotations'
 import {
   C_MEASURES,
   Dimension,
@@ -224,6 +225,7 @@ export const isIndicatorMeasureProperty = (toBe): toBe is RestrictedMeasurePrope
   isCalculationProperty(toBe) && toBe.calculationType === CalculationType.Indicator
 
 export const isParameterProperty = (toBe): toBe is ParameterProperty => !isNil(toBe?.paramType)
+export const isCalendarProperty = (toBe) => toBe?.semantics?.semantic === Semantics.Calendar
 
 export function getMeasurePropertyUnit(property: Property) {
   if (isVarianceMeasureProperty(property)) {

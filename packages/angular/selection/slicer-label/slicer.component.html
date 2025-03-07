@@ -1,0 +1,14 @@
+@if (advancedSlicer()) {
+  <span>{{advancedSlicer()}}</span>
+} @else {
+  @for (member of members(); track member.key; let i = $index; let last = $last) {
+    <span>{{member.caption || member.key}}</span>
+    @if (!last) {
+      <span>,</span>
+    }
+  }
+
+  @if (more()) {
+    <span>+{{ more() }}</span>
+  }
+}

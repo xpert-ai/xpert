@@ -3,7 +3,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
@@ -13,6 +12,7 @@ import { switchMap, tap } from 'rxjs/operators'
 import { XpertComponent } from '../xpert.component'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
+import { Dialog } from '@angular/cdk/dialog'
 
 @Component({
   standalone: true,
@@ -37,7 +37,7 @@ export class XpertAuthorizationComponent {
   readonly workspaceService = injectWorkspaceService()
   readonly xpertComponent = inject(XpertComponent)
   readonly me = injectUser()
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
 
   readonly xpert = this.xpertComponent.xpert
@@ -65,10 +65,10 @@ export class XpertAuthorizationComponent {
 
   openAddUser() {
     this.#dialog
-      .open(UserRoleSelectComponent, {
+      .open<{users: IUser[]}>(UserRoleSelectComponent, {
         data: {}
       })
-      .afterClosed()
+      .closed
       .pipe(switchMap((result) => (result ? this.addManagers(result.users) : EMPTY)))
       .subscribe()
   }

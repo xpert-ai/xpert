@@ -121,9 +121,9 @@ export class NgmMemberTableComponent<T> implements ControlValueAccessor {
   dataSource = new TableVirtualScrollDataSource<T>([])
 
   public readonly options$ = toObservable(this._options)
-  public readonly selctionType$ = this.options$.pipe(map((options) => options?.selectionType))
-  public readonly multiple$ = this.selctionType$.pipe(
-    map((selctionType) => selctionType === FilterSelectionType.Multiple)
+  public readonly selectionType$ = this.options$.pipe(map((options) => options?.selectionType))
+  public readonly multiple$ = this.selectionType$.pipe(
+    map((selectionType) => selectionType === FilterSelectionType.Multiple)
   )
   public readonly slicer$ = toObservable(this.slicer)
 

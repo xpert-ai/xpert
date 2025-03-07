@@ -1,7 +1,7 @@
 import { booleanAttribute, Directive, inject, Input, input, signal, ViewContainerRef } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { MatDialog } from '@angular/material/dialog'
-import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
+import { NgmTimeFilterEditorComponent, NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import { DateVariableEnum, NgmOcapCoreService } from '@metad/ocap-angular/core'
 import {
   AdvancedSlicer,
@@ -26,7 +26,6 @@ import { pick } from 'lodash-es'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
 import { NgmAdvancedFilterComponent } from './advanced-filter'
 import { NgmAdvancedSlicerComponent } from './advanced-slicer/advanced-slicer.component'
-import { NgmTimeFilterEditorComponent } from './timer/'
 import { SlicersCapacity } from './types'
 
 @Directive({})

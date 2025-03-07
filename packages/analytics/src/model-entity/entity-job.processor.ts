@@ -9,6 +9,7 @@ import { SemanticModelService } from '../model/model.service'
 import { estimateTokenUsage } from '@metad/copilot'
 import { CopilotNotFoundException, CopilotOneByRoleQuery, CopilotTokenRecordCommand } from '@metad/server-ai'
 import { AiProviderRole } from '@metad/contracts'
+import { GetDimensionMembersCommand } from '../model-member/commands'
 
 const batchSize = 50
 
@@ -49,8 +50,8 @@ export class EntityMemberProcessor {
 					entityType,
 					members,
 					statistics
-			} = await this.memberService.syncMembers(model, cube, hierarchies, {id: entityId, createdById})
-
+				} = await this.commandBus.execute(new GetDimensionMembersCommand(model, cube, hierarchies, entityId))
+				// await this.memberService.syncMembers(model, cube, hierarchies, {id: entityId, createdById})
 
 			// the copilot of the organization where the semantic model is located
 			const copilot = await this.queryBus.execute(new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Embedding))

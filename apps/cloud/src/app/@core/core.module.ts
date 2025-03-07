@@ -17,6 +17,8 @@ import { AuthModule } from './auth/auth.module'
 import { throwIfAlreadyLoaded } from './module-import-guard'
 import { HttpLoaderFactory } from './theme'
 import { NgmMissingTranslationHandler } from '@metad/ocap-angular/core'
+import { MAT_DATE_LOCALE } from '@angular/material/core'
+import { zhCN } from 'date-fns/locale'
 
 
 @NgModule({
@@ -58,7 +60,9 @@ export class CoreModule {
   static forRoot(): ModuleWithProviders<CoreModule> {
     return {
       ngModule: CoreModule,
-      providers: []
+      providers: [
+        { provide: MAT_DATE_LOCALE, useValue: zhCN }, // 设置正确的语言环境
+      ]
     }
   }
 }
