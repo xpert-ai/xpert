@@ -25,6 +25,7 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
+import { Dialog } from '@angular/cdk/dialog'
 
 @Component({
   standalone: true,
@@ -45,6 +46,7 @@ export class BusinessAreaUsersComponent extends TranslationBaseComponent {
   userLabel = userLabel
 
   private _toastrService = inject(ToastrService)
+  readonly #dialog = inject(Dialog)
 
   searchControl = new FormControl()
 
@@ -121,8 +123,8 @@ export class BusinessAreaUsersComponent extends TranslationBaseComponent {
       Default: { Modeler: 'Modeler', Viewer: 'Viewer' }
     })
     const value = await firstValueFrom(
-      this._dialog
-        .open(UserRoleSelectComponent, {
+      this.#dialog
+        .open<{users: IUser[]; role: string;}>(UserRoleSelectComponent, {
           data: {
             roles: [
               {
@@ -136,7 +138,7 @@ export class BusinessAreaUsersComponent extends TranslationBaseComponent {
             ]
           }
         })
-        .afterClosed()
+        .closed
     )
     if (value) {
       const businessArea = this.businessArea()

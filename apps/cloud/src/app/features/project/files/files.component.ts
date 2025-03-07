@@ -4,34 +4,17 @@ import { Component, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
-import { NgmTableComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, map, switchMap } from 'rxjs'
 import { IStorageFile, ProjectsService, Store, ToastrService } from '../../../@core'
-import { InlineSearchComponent } from '../../../@shared/form-fields'
-import { ProjectComponent } from '../project/project.component'
 import { MaterialModule } from '../../../@shared/material.module'
 import { userLabel } from '../../../@shared/pipes'
 import { ProjectFilesDialogComponent } from '../../../@shared/project'
-import { UserRoleSelectComponent, UserProfileComponent, UserProfileInlineComponent } from '../../../@shared/user'
+import { ProjectComponent } from '../project/project.component'
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MaterialModule,
-    TranslateModule,
-    UserRoleSelectComponent,
-    InlineSearchComponent,
-    UserProfileComponent,
-    UserProfileInlineComponent,
-    ButtonGroupDirective,
-    DensityDirective,
-    AppearanceDirective,
-    NgmTableComponent
-  ],
+  imports: [CommonModule, ReactiveFormsModule, MaterialModule, TranslateModule],
   selector: 'pac-project-files',
   templateUrl: 'files.component.html',
   styleUrl: 'files.component.scss',
@@ -74,7 +57,7 @@ export class ProjectFilesComponent {
     { name: 'createdAt', label: 'Created At' },
     { name: 'createdByUser', label: 'Created by User' }
   ]
-  readonly columnsToDisplayWithExpand = [...this.columnsToDisplay.map(({name}) => name), 'expand']
+  readonly columnsToDisplayWithExpand = [...this.columnsToDisplay.map(({ name }) => name), 'expand']
   expandedElement: IStorageFile[] | null
 
   #projectFilesSub = this.refresh$

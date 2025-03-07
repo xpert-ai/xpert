@@ -10,6 +10,7 @@ import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/
 import { uniqBy } from 'lodash-es'
 import { EMPTY, filter, switchMap } from 'rxjs'
 import { UserPipe } from 'apps/cloud/src/app/@shared/pipes'
+import { Dialog } from '@angular/cdk/dialog'
 
 @Component({
   selector: 'xpert-workspace-members',
@@ -20,7 +21,7 @@ import { UserPipe } from 'apps/cloud/src/app/@shared/pipes'
 })
 export class XpertWorkspaceMembersComponent {
   readonly workspaceService = inject(XpertWorkspaceService)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(Dialog)
   readonly me = injectUser()
 
   // Inputs
@@ -53,10 +54,10 @@ export class XpertWorkspaceMembersComponent {
 
   openAddUser() {
     this.#dialog
-      .open(UserRoleSelectComponent, {
+      .open<{users: IUser[]}>(UserRoleSelectComponent, {
         data: {}
       })
-      .afterClosed()
+      .closed
       .pipe(switchMap((result) => (result ? this.updateMembers(result.users) : EMPTY)))
       .subscribe()
   }

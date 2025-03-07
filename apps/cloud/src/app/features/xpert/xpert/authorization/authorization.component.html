@@ -36,7 +36,7 @@
       </div>
       <div class="min-w-[480px] relative">
         @for (item of members(); track item) {
-          <div class="flex items-center border-b p-2 border-gray-100 hover:bg-hover-bg">
+          <div class="group flex items-center border-b p-2 border-gray-100 hover:bg-hover-bg">
             <pac-user-profile-inline class="grow" [user]="item.user" [isMe]="me().id === item.user.id" />
           
             <div class="shrink-0 w-24 px-3 flex items-center">
@@ -48,8 +48,10 @@
                 </div>
               }
               @else {
-                <button type="button" class="btn btn-secondary btn-danger pressable px-2 py-1 text-sm"
-                  (click)="removeManager(item.user)">{{'PAC.ACTIONS.Remove' | translate: {Default: 'Remove'} }}</button>
+                <button type="button" class="btn btn-secondary btn-danger pressable px-2 py-1 text-sm opacity-0 group-hover:opacity-100"
+                  (click)="removeManager(item.user)">
+                  {{'PAC.ACTIONS.Remove' | translate: {Default: 'Remove'} }}
+                </button>
               }
             </div>
           </div>
