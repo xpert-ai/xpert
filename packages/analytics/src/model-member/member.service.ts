@@ -18,10 +18,9 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Pool } from 'pg'
 import { firstValueFrom } from 'rxjs'
 import { DeepPartial, FindConditions, FindManyOptions, In, Repository } from 'typeorm'
-import { SemanticModel } from '../model/model.entity'
 import { NgmDSCoreService, getSemanticModelKey } from '../model/ocap'
 import { SemanticModelMember } from './member.entity'
-import { CopilotModelGetEmbeddingsQuery, CopilotNotFoundException, CopilotOneByRoleQuery, CopilotService } from '@metad/server-ai'
+import { CopilotModelGetEmbeddingsQuery, CopilotNotFoundException, CopilotOneByRoleQuery } from '@metad/server-ai'
 import { QueryBus } from '@nestjs/cqrs'
 
 @Injectable()
@@ -33,12 +32,6 @@ export class SemanticModelMemberService extends TenantOrganizationAwareCrudServi
 	constructor(
 		@InjectRepository(SemanticModelMember)
 		modelCacheRepository: Repository<SemanticModelMember>,
-
-		@InjectRepository(SemanticModel)
-		private modelRepository: Repository<SemanticModel>,
-
-		private copilotService: CopilotService,
-
 		private readonly dsCoreService: NgmDSCoreService,
 		private readonly queryBus: QueryBus,
 
@@ -53,49 +46,49 @@ export class SemanticModelMemberService extends TenantOrganizationAwareCrudServi
 	 * @param modelId
 	 * @param body Cube name and it's hierarchies
 	 */
-	async syncMembers(model: ISemanticModel, cube: string, hierarchies: string[], { id, createdById }: Partial<ISemanticModelEntity>) {
-		// const model = await this.modelRepository.findOne(modelId, {
-		// 	relations: ['dataSource', 'dataSource.type', 'roles']
-		// })
-		const modelKey = getSemanticModelKey(model)
-		const modelDataSource = await this.dsCoreService._getDataSource(modelKey)
+	// async syncMembers(model: ISemanticModel, cube: string, hierarchies: string[], { id, createdById }: Partial<ISemanticModelEntity>) {
+	// 	// const model = await this.modelRepository.findOne(modelId, {
+	// 	// 	relations: ['dataSource', 'dataSource.type', 'roles']
+	// 	// })
+	// 	const modelKey = getSemanticModelKey(model)
+	// 	const modelDataSource = await this.dsCoreService._getDataSource(modelKey)
 
-		this.logger.debug(`Sync members for dimensions: ${hierarchies} in cube: ${cube} of model: ${model.name} ...`)
+	// 	this.logger.debug(`Sync members for dimensions: ${hierarchies} in cube: ${cube} of model: ${model.name} ...`)
 
-		const entityType = await firstValueFrom(modelDataSource.selectEntityType(cube))
-		if (!isEntityType(entityType)) {
-			throw entityType
-		}
+	// 	const entityType = await firstValueFrom(modelDataSource.selectEntityType(cube))
+	// 	if (!isEntityType(entityType)) {
+	// 		throw entityType
+	// 	}
 
-		this.logger.debug(`Got entity type: ${entityType.name}`)
+	// 	this.logger.debug(`Got entity type: ${entityType.name}`)
 
-		const statistics = {}
-		let members = []
-		for (const hierarchy of hierarchies) {
-			const hierarchyProperty = getEntityHierarchy(entityType, hierarchy)
-			const _members = await firstValueFrom(
-				modelDataSource.selectMembers(cube, {
-					dimension: hierarchyProperty.dimension,
-					hierarchy: hierarchyProperty.name
-				})
-			)
+	// 	const statistics = {}
+	// 	let members = []
+	// 	for (const hierarchy of hierarchies) {
+	// 		const hierarchyProperty = getEntityHierarchy(entityType, hierarchy)
+	// 		const _members = await firstValueFrom(
+	// 			modelDataSource.selectMembers(cube, {
+	// 				dimension: hierarchyProperty.dimension,
+	// 				hierarchy: hierarchyProperty.name
+	// 			})
+	// 		)
 
-			statistics[hierarchy] = _members.length
-			members = members.concat(_members.map((item) => ({ ...item, modelId: model.id, entityId: id, cube })))
-		}
+	// 		statistics[hierarchy] = _members.length
+	// 		members = members.concat(_members.map((item) => ({ ...item, modelId: model.id, entityId: id, cube })))
+	// 	}
 
-		this.logger.debug(`Got entity members: ${members.length}`)
+	// 	this.logger.debug(`Got entity members: ${members.length}`)
 
-		// if (members.length) {
-		// 	await this.storeMembers(model, cube, members.map((member) => ({...member, createdById })), entityType)
-		// }
+	// 	// if (members.length) {
+	// 	// 	await this.storeMembers(model, cube, members.map((member) => ({...member, createdById })), entityType)
+	// 	// }
 
-		return {
-			entityType,
-			members,
-			statistics
-		}
-	}
+	// 	return {
+	// 		entityType,
+	// 		members,
+	// 		statistics
+	// 	}
+	// }
 
 	// /**
 	//  * Store the members of specified dimension using Cube as the smallest unit.

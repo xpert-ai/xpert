@@ -455,6 +455,8 @@ export function allocateAxesFilter(
       // for measures
       return item
     }
+    const currentLevel = getEntityLevel(entityType, item)
+    const currentHierarchy = getEntityHierarchy(entityType, item)
 
     // for dimensions TODO 增加 parameter 逻辑
     const {
@@ -555,7 +557,12 @@ export function allocateAxesFilter(
         } else {
           // 下钻时只用下钻成员？ 下钻到指定层级, 例如：去年每个月的销售额
           if (isNil(slicers[0].drill)) {
-            statement = Descendants(MemberSet(...slicers.map((item) => mapMDXFilterToStatement(item, entityType.cube, withMembers, dialect))), level)
+            if (currentHierarchy.levels.filter((level) => level.levelType !== RuntimeLevelType.ALL).length > 1) {
+              statement = Descendants(MemberSet(...slicers.map((item) => mapMDXFilterToStatement(item, entityType.cube, withMembers, dialect))), level)
+            } else {
+              // No need to drill down if only one level
+              statement = MemberSet(...slicers.map((item) => mapMDXFilterToStatement(item, entityType.cube, withMembers, dialect)))
+            }
           } else {
             statement = MemberSet(...slicers.map((item) => mapMDXFilterToStatement(item, entityType.cube, withMembers, dialect)))
           }
@@ -608,8 +615,7 @@ export function allocateAxesFilter(
     }
 
     if (item.displayHierarchy) {
-      const currentLevel = getEntityLevel(entityType, item)
-      const currentHierarchy = getEntityHierarchy(entityType, item)
+      
       mdxProperty.properties.push(
         IntrinsicMemberProperties[IntrinsicMemberProperties.PARENT_UNIQUE_NAME],
         IntrinsicMemberProperties[IntrinsicMemberProperties.CHILDREN_CARDINALITY]

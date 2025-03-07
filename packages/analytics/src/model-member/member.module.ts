@@ -5,11 +5,12 @@ import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { RouterModule } from 'nest-router'
 import { SemanticModelModule } from '../model/model.module'
-import { OcapModule } from '../model/ocap'
 import { ModelMemberController } from './member.controller'
 import { SemanticModelMember } from './member.entity'
 import { SemanticModelMemberService } from './member.service'
 import { QueryHandlers } from './queries/handlers'
+import { provideOcap } from '../model/ocap'
+import { CommandHandlers } from './commands/handlers'
 
 @Module({
 	imports: [
@@ -21,10 +22,9 @@ import { QueryHandlers } from './queries/handlers'
 		forwardRef(() => SemanticModelModule),
 		forwardRef(() => CopilotModule),
 		DatabaseModule,
-		OcapModule
 	],
 	controllers: [ModelMemberController],
-	providers: [SemanticModelMemberService, ...QueryHandlers],
+	providers: [SemanticModelMemberService, ...QueryHandlers, ...CommandHandlers, ...provideOcap()],
 	exports: [SemanticModelMemberService]
 })
 export class SemanticModelMemberModule {}
