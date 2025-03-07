@@ -17,7 +17,7 @@
 [![Gitpod Ready-to-Code](https://img.shields.io/badge/Gitpod-Ready--to--Code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/xpert-ai/xpert)
 
 
-**Xpert AI** 是一个开源的企业级 AI 系统，完美融合了智能体编排和数据分析两大平台。
+**Xpert AI (专业版)** 是一个的企业级 AI 系统，完美融合了智能体编排和数据分析两大平台。
 
 ## 💡 新功能
 
