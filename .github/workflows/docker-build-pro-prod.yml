@@ -1,26 +1,27 @@
-name: Build and Publish Docker Images Demo
+name: Build and Publish Docker Images Prod
 
 on:
   push:
-    branches: [ "develop" ]
-  pull_request:
-    branches: [ "develop" ]
+    branches: [ "main" ]
+    tags:
+      - '*'
 
 permissions:
   contents: read
   packages: write
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && !contains(github.ref, 'beta')
     environment: production
     strategy:
       fail-fast: false
       matrix:
         service:
-          - { name: "xpert-api", context: ".deploy/api", image_name: "xpert-api-demo" }
-          - { name: "xpert-webapp", context: ".deploy/webapp", image_name: "xpert-webapp-demo" }
+          - { name: "xpert-api", context: ".deploy/api", image_name: "xpert-pro-api" }
+          - { name: "xpert-webapp", context: ".deploy/webapp", image_name: "xpert-pro-webapp" }
+          - { name: "ocap-olap", context: ".deploy/olap", image_name: "ocap-pro-olap" }
     steps:
       - uses: actions/checkout@v4
 
@@ -48,15 +49,19 @@ jobs:
         run: |
           sudo docker image list
 
-      - name: Login to DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # - name: Login to DockerHub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ vars.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Push to Docker Hub Registry
-        run: |
-          docker push metadc/${{ matrix.service.image_name }}:latest
+      # - name: Push to Docker Hub Registry
+      #   env:
+      #     GITHUB_REF_NAME: ${{ github.ref_name }}
+      #   run: |
+      #     docker push metadc/${{ matrix.service.image_name }}:latest
+      #     docker tag metadc/${{ matrix.service.image_name }}:latest metadc/${{ matrix.service.image_name }}:$GITHUB_REF_NAME
+      #     docker push metadc/${{ matrix.service.image_name }}:$GITHUB_REF_NAME
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -66,8 +71,12 @@ jobs:
             password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push to GitHub Container Registry
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
         run: |
           docker push ghcr.io/xpert-ai/${{ matrix.service.image_name }}:latest
+          docker tag ghcr.io/xpert-ai/${{ matrix.service.image_name }}:latest ghcr.io/xpert-ai/${{ matrix.service.image_name }}:$GITHUB_REF_NAME
+          docker push ghcr.io/xpert-ai/${{ matrix.service.image_name }}:$GITHUB_REF_NAME
 
       - name: Login to Aliyun arc
         uses: aliyun/acr-login@v1
@@ -77,5 +86,9 @@ jobs:
           password: "${{ secrets.ACR_PASSWORD }}"
 
       - name: Push to Aliyun arc
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
         run: |
           docker push registry.cn-hangzhou.aliyuncs.com/metad/${{ matrix.service.image_name }}:latest
+          docker tag registry.cn-hangzhou.aliyuncs.com/metad/${{ matrix.service.image_name }}:latest registry.cn-hangzhou.aliyuncs.com/metad/${{ matrix.service.image_name }}:$GITHUB_REF_NAME
+          docker push registry.cn-hangzhou.aliyuncs.com/metad/${{ matrix.service.image_name }}:$GITHUB_REF_NAME
