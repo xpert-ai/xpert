@@ -1,0 +1,13 @@
+identity:
+  name: list_plans
+  author: XpertAI
+  label:
+    en_US: List plans
+    zh_Hans: 列出所有计划
+  icon: icon.svg
+description:
+  human:
+    en_US: List all plans
+    zh_Hans: 列出所有计划
+  llm: A tool for listing all plans.
+parameters:

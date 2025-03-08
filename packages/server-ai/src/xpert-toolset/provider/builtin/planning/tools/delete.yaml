@@ -1,0 +1,22 @@
+identity:
+  name: delete_plan
+  author: XpertAI
+  label:
+    en_US: Delete a plan
+    zh_Hans: 删除一个计划
+  icon: icon.svg
+description:
+  human:
+    en_US: Delete a plan
+    zh_Hans: 删除一个计划
+  llm: A tool for deleting a plan.
+parameters:
+  - name: id
+    type: string
+    label:
+      en_US: Task id
+      zh_Hans: 任务ID
+    human_description:
+      en_US: Task id
+      zh_Hans: 任务ID
+    form: llm

@@ -1,0 +1,14 @@
+identity:
+  author: XpertAI
+  name: planning
+  label:
+    en_US: Planning
+    zh_Hans: 规划
+  description:
+    en_US: Creating and maintaining scheduled tasks.
+    zh_Hans: 创建和维护规划任务。
+  icon: icon.svg
+  tags:
+    - productivity
+    - utilities
+credentials_for_provider:

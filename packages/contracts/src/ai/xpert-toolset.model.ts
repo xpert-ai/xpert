@@ -166,6 +166,7 @@ export interface IToolTag {
 
 export interface IToolProvider {
   not_implemented?: boolean
+  pro?: boolean
   id: string;
   author: string;
   name: string; // identifier

@@ -24,6 +24,7 @@ import { BehaviorSubject, of } from 'rxjs'
 import { distinctUntilChanged, map, switchMap } from 'rxjs/operators'
 import { XpertToolBuiltinAuthorizeComponent } from '../authorize/authorize.component'
 import { XpertToolBuiltinToolComponent } from '../tool/tool.component'
+import { CardUpgradeComponent } from 'apps/cloud/src/app/@shared/card'
 
 /**
  * If toolset and tool do not have id, they are considered as templates.
@@ -39,6 +40,7 @@ import { XpertToolBuiltinToolComponent } from '../tool/tool.component'
     EmojiAvatarComponent,
     NgmI18nPipe,
 
+    CardUpgradeComponent,
     XpertToolBuiltinAuthorizeComponent,
     XpertToolBuiltinToolComponent
   ],
@@ -74,6 +76,7 @@ export class XpertToolConfigureBuiltinComponent {
     this.providerName() ? this.#toolsetService.getProvider(this.providerName()) : of(null)
   )
   readonly notImplemented = computed(() => this.provider()?.not_implemented)
+  readonly pro = computed(() => this.provider()?.pro)
 
   readonly builtinTools = derivedAsync(() => {
     if (this.providerName()) {
