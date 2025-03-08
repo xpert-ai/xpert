@@ -2,8 +2,8 @@
   <formly-form [form]="form"
     [options]="formOptions"
     [fields]="fields"
-    [model]="optionsModel"
-    (modelChange)="updateValues()"
+    [model]="value$()"
+    (modelChange)="updateValues($event)"
   />
 } @else {
   @for (param of parameters(); track param.name) {
