@@ -9,7 +9,7 @@ jobs:
   ocap-olap:
 
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    if: github.repository == 'xpert-ai/xpert' && github.event_name == 'push'
     steps:
     - uses: actions/checkout@v4
     - name: Build

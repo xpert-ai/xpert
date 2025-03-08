@@ -14,7 +14,7 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && !contains(github.ref, 'beta')
+    if: github.repository == 'xpert-ai/xpert' && github.event_name == 'push' && !contains(github.ref, 'beta')
     environment: production
     steps:
       - uses: actions/checkout@v4
