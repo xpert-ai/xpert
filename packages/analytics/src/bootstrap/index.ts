@@ -35,7 +35,7 @@ export async function bootstrap(options: {title: string; version: string}) {
 	const headersForOpenAI =
 		'x-stainless-os, x-stainless-lang, x-stainless-package-version, x-stainless-runtime, x-stainless-arch, x-stainless-runtime-version, x-stainless-retry-count'
 	app.enableCors({
-		origin: [...origins(env.clientBaseUrl), '*'],
+		origin: [...origins(env.clientBaseUrl)],
 		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
 		credentials: true,
 		allowedHeaders:
