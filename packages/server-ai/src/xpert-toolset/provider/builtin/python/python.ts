@@ -17,11 +17,10 @@ export class PythonToolset extends BuiltinToolset {
 		if (this.toolset?.tools) {
 			this.toolset?.tools.filter((_) => _.enabled).forEach((tool) => {
 				// switch(tool.name) {
-				// 	case (PlanningToolEnum.CREATE_PLAN): {
-				// 		this.tools.push(new PlanningCreateTool(this))
+				// 	case (PythonToolEnum.PYTHON_EXECUTE): {
+				// 		this.tools.push(new PythonExecuteTool(this))
 				// 		break
 				// 	}
-	
 				// }
 			})
 

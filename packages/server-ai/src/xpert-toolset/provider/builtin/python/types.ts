@@ -1,3 +1,3 @@
 export enum PythonToolEnum {
-    UPDATE_PLAN_STEP = 'update_plan_step',
+    PYTHON_EXECUTE = 'python_execute',
 }

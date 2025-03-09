@@ -1,0 +1,23 @@
+identity:
+  name: bash_execute
+  author: XpertAI
+  label:
+    en_US: Bash execute
+    zh_Hans: 命令行执行
+description:
+  human:
+    en_US: Execute command in Bash.
+    zh_Hans: 在命令行中执行命令。
+  llm: This tool .
+parameters:
+  - name: command
+    type: string
+    required: true
+    label:
+      en_US: Command
+      zh_Hans: 命令
+    human_description:
+      en_US: Command.
+      zh_Hans: 命令。
+    llm_description: The command to execute in Bash.
+    form: llm

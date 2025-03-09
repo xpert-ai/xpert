@@ -21,10 +21,11 @@ import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { omit } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, of } from 'rxjs'
-import { distinctUntilChanged, map, switchMap } from 'rxjs/operators'
+import { distinctUntilChanged, map, startWith, switchMap } from 'rxjs/operators'
 import { XpertToolBuiltinAuthorizeComponent } from '../authorize/authorize.component'
 import { XpertToolBuiltinToolComponent } from '../tool/tool.component'
 import { CardUpgradeComponent } from 'apps/cloud/src/app/@shared/card'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 
 /**
  * If toolset and tool do not have id, they are considered as templates.
@@ -39,7 +40,7 @@ import { CardUpgradeComponent } from 'apps/cloud/src/app/@shared/card'
     MatTooltipModule,
     EmojiAvatarComponent,
     NgmI18nPipe,
-
+    NgmSpinComponent,
     CardUpgradeComponent,
     XpertToolBuiltinAuthorizeComponent,
     XpertToolBuiltinToolComponent
@@ -72,9 +73,17 @@ export class XpertToolConfigureBuiltinComponent {
   readonly workspaceId = signal(this.#data.workspaceId)
   readonly toolsetId = computed(() => this.toolset()?.id)
 
-  readonly provider = derivedAsync(() =>
-    this.providerName() ? this.#toolsetService.getProvider(this.providerName()) : of(null)
+  readonly #provider = derivedAsync(() =>
+    this.providerName() ? this.#toolsetService.getProvider(this.providerName()).pipe(
+      map((provider) => ({provider, loading: false})),
+      startWith({
+        loading: true,
+        provider: null
+      })
+    ) : of(null)
   )
+  readonly provider = computed(() => this.#provider()?.provider)
+  readonly pvLoading = computed(() => this.#provider()?.loading)
   readonly notImplemented = computed(() => this.provider()?.not_implemented)
   readonly pro = computed(() => this.provider()?.pro)
 

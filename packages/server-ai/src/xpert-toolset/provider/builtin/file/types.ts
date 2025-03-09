@@ -1,3 +1,5 @@
 export enum FileToolEnum {
-    UPDATE_PLAN_STEP = 'update_plan_step',
+    CREATE_FILE = 'create_file',
+    UPDATE_FILE = 'update_file',
+    DELETE_FILE = 'delete_file',
 }

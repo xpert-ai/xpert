@@ -1,0 +1,33 @@
+identity:
+  name: update_file
+  author: XpertAI
+  label:
+    en_US: Update File
+    zh_Hans: 更新文件
+description:
+  human:
+    en_US: Update a file with content.
+    zh_Hans: 更新文件内容。
+  llm: This tool can update a file with content.
+parameters:
+  - name: path
+    type: string
+    required: true
+    label:
+      en_US: File Path
+      zh_Hans: 文件路径
+    human_description:
+      en_US: File Path.
+      zh_Hans: 文件路径。
+    llm_description: The file path.
+    form: llm
+  - name: content
+    type: string
+    label:
+      en_US: File Content
+      zh_Hans: 文件内容
+    human_description:
+      en_US: File content.
+      zh_Hans: 文件内容。
+    llm_description: The file content.
+    form: llm

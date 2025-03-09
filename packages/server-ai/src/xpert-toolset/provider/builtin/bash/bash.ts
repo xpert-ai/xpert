@@ -1,4 +1,4 @@
-import { IXpertToolset, TStateVariable, TStateVariableType, TToolCredentials } from '@metad/contracts'
+import { IXpertToolset, TToolCredentials } from '@metad/contracts'
 import { BuiltinTool } from '../builtin-tool'
 import { BuiltinToolset, TBuiltinToolsetParams } from '../builtin-toolset'
 
@@ -17,11 +17,10 @@ export class BashToolset extends BuiltinToolset {
 		if (this.toolset?.tools) {
 			this.toolset?.tools.filter((_) => _.enabled).forEach((tool) => {
 				// switch(tool.name) {
-				// 	case (PlanningToolEnum.CREATE_PLAN): {
-				// 		this.tools.push(new PlanningCreateTool(this))
+				// 	 case (BASH_EXECUTE.BASH_EXECUTE): {
+				// 		this.tools.push(new BashExecuteTool(this))
 				// 		break
-				// 	}
-	
+				// 	 }
 				// }
 			})
 

@@ -58,7 +58,7 @@
             </span>
           </a>
         } @else if (pro()) {
-          <card-upgrade class="ngm-card-border-gradient"/>
+          <card-upgrade class="ngm-card-border-gradient shadow-lg"/>
         } @else {
           <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium shrink-0 my-3 w-full text-center"
             (click)="openAuthorize()">
@@ -108,6 +108,8 @@
     </div>
   </div>
 </div>
+} @else if (pvLoading()) {
+  <ngm-spin class="w-full h-28 mt-12"/>
 }
 
 <div class="sticky bottom-0 flex justify-end p-4 bg-components-card-bg">
