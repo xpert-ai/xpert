@@ -9,16 +9,8 @@ LABEL org.opencontainers.image.source https://github.com/xpert-ai/xpert
 
 ENV CI=true
 
-# Set Python interpreter for `node-gyp` to use
-# ENV PYTHON /usr/bin/python
+RUN apk --update add bash && npm i -g npm
 
-RUN apk --update add bash && npm i -g npm 
-# && apk add --no-cache --virtual build-dependencies dos2unix gcc g++ git make python3 vips-dev
-
-# Output Python3 version
-# RUN python3 --version
-
-# RUN npm install --quiet node-gyp@9.3.1 -g
 RUN npm install yarn -g --force
 RUN mkdir /srv/pangolin && chown -R node:node /srv/pangolin
 
@@ -54,8 +46,6 @@ FROM node:18 AS production
 
 ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=2048"} \
     NODE_ENV=${NODE_ENV:-production} \
-    # API_HOST=${API_HOST:-api} \
-    # API_PORT=${API_PORT:-3000} \
     API_BASE_URL=${API_BASE_URL:-http://localhost:3000} \
     SENTRY_DSN=${SENTRY_DSN} \
     DB_HOST=${DB_HOST:-db} \
@@ -78,8 +68,6 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 RUN mkdir -p /ms-playwright && chown -R node:node /ms-playwright
 # Install os dependencies but no browsers
 RUN npx playwright install-deps
-
-RUN mkdir -p /srv/pangolin/public && chown -R node:node /srv/pangolin/public
 
 WORKDIR /srv/pangolin
 
