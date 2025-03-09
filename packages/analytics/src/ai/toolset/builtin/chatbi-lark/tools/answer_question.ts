@@ -4,12 +4,12 @@ import { ChatBILarkContext, TABLE_PAGE_SIZE } from '../types'
 import { ChartAnnotation, ChartBusinessService, ChartDimensionRoleType, EntityType, FilteringLogic, formatNumber, formatShortNumber, getChartSeries, getEntityHierarchy, getEntityProperty, getPropertyHierarchy, getPropertyMeasure, isBlank, ISlicer, isNil, isTimeRangesSlicer, PresentationVariant, PropertyHierarchy, PropertyMeasure, slicerAsString, timeRangesSlicerAsString, toAdvancedFilter, tryFixDimension, tryFixSlicer, tryFixVariableSlicer, workOutTimeRangeSlicers } from '@metad/ocap-core'
 import { ChatLarkMessage } from '@metad/server-ai'
 import { createDualAxisChart, createSeriesChart } from '../charts/combination'
-import { createBaseChart } from '../charts/chart'
+import { createBaseChart, FeishuMessageChartType } from '../charts/chart'
 import { getErrorMessage, race, shortuuid } from '@metad/server-common'
 import { ChatMessageTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from '@metad/contracts'
-import { ChatAnswer, ChatAnswerSchema, ChatBIToolsEnum, ChatBIVariableEnum, TChatBICredentials, tryFixChartType } from '../../chatbi/types'
 import { Logger } from '@nestjs/common'
 import { getContextVariable } from '@langchain/core/context'
+import { ChatAnswer, ChatAnswerSchema, ChatBIToolsEnum, ChatBIVariableEnum, TChatBICredentials, tryFixChartType } from '../../chatbi/types'
 
 
 export function createChatAnswerTool(
@@ -254,7 +254,7 @@ function createLineChart(
 	let unit = ''
 	// let categoryField = 'xField'
 	let valueField = 'yField'
-	let type = 'bar'
+	let type: FeishuMessageChartType = 'bar'
 	if (chartAnnotation.chartType?.type === 'Line') {
 		type = 'line'
 	} else if (chartAnnotation.chartType?.type === 'Pie') {

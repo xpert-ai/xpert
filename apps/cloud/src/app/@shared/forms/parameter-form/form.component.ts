@@ -42,7 +42,7 @@ export class ParameterFormComponent {
   readonly value$ = this.cva.value$
 
   readonly form = new FormGroup({})
-  optionsModel = {}
+  // optionsModel = {}
   formOptions = {}
 
   readonly #invalid = computed(() => {
@@ -55,9 +55,11 @@ export class ParameterFormComponent {
   constructor() {
     effect(
       () => {
-        if (this.fields() && this.value$()) {
-          assign(this.optionsModel, this.value$())
-        }
+        // if (this.fields() && this.value$()) {
+        //   console.log(this.schema())
+        //   this.form.patchValue(this.value$)
+        //   assign(this.optionsModel, this.value$())
+        // }
       },
       { allowSignalWrites: true }
     )
@@ -67,8 +69,8 @@ export class ParameterFormComponent {
     this.value$.update((state) => ({ ...(state ?? {}), [name]: value }))
   }
 
-  updateValues() {
-    this.value$.update((state) => ({ ...(state ?? {}), ...this.optionsModel }))
+  updateValues(value) {
+    this.value$.update((state) => ({ ...(state ?? {}), ...value }))
   }
 
   isRequired(name: string) {
