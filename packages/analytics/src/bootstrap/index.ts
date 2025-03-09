@@ -38,10 +38,9 @@ export async function bootstrap(options: {title: string; version: string}) {
 		origin: [...origins(env.clientBaseUrl)],
 		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
 		credentials: true,
-		allowedHeaders: '*'
-		// allowedHeaders:
-		// 	'Authorization, Language, Time-Zone, Tenant-Id, Organization-Id, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Language, Accept, Accept-Language, Observe, last-event-id, ' +
-		// 	headersForOpenAI
+		allowedHeaders:
+			'Authorization, Language, Time-Zone, Tenant-Id, Organization-Id, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Length, Content-Language, Accept, Accept-Language, Observe, last-event-id, ' +
+			headersForOpenAI
 	})
 
 	// Sessions
