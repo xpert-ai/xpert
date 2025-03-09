@@ -36,7 +36,7 @@ export class ListBuiltinToolsHandler implements IQueryHandler<ListBuiltinToolsQu
 
 		const providerPath = this.getProviderServerPath(provider)
 		const toolPath = path.join(providerPath, 'tools')
-		const toolFiles = fs.readdirSync(toolPath).filter((file) => file.endsWith('.yaml') && !file.startsWith('__'))
+		const toolFiles = fs.readdirSync(toolPath).filter((file) => (file.endsWith('.yaml') || file.endsWith('.yml')) && !file.startsWith('__'))
 
 		const positionMap = getPositionMap(providerPath)
 

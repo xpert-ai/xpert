@@ -22,7 +22,7 @@
       (close)="closeAuthorize($event)"
     />
   } @else {
-    <div class="flex gap-1 border-b-[0.5px] border-black/5">
+    <div class="flex flex-col gap-1 border-b-[0.5px] border-black/5">
       @if (toolset()) {
         <button type="button" class="open-authorize-btn btn disabled:btn-disabled btn-medium shrink-0 my-3 w-full border border-solid border-transparent bg-white"
           [class.tempalte]="!toolset().id"
@@ -37,6 +37,7 @@
           
         </button>
       } @else {
+        
         @if (notImplemented()) {
           <a type="button" class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm shrink-0"
             [matTooltip]="'PAC.Copilot.HowToContribute' | translate: {Default: 'In just a few steps, contribute code and create a better future together'}"
@@ -56,6 +57,8 @@
               {{'PAC.Copilot.Support' | translate: {Default: 'Support'} }}
             </span>
           </a>
+        } @else if (pro()) {
+          <card-upgrade class="ngm-card-border-gradient shadow-lg"/>
         } @else {
           <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium shrink-0 my-3 w-full text-center"
             (click)="openAuthorize()">
@@ -105,6 +108,8 @@
     </div>
   </div>
 </div>
+} @else if (pvLoading()) {
+  <ngm-spin class="w-full h-28 mt-12"/>
 }
 
 <div class="sticky bottom-0 flex justify-end p-4 bg-components-card-bg">

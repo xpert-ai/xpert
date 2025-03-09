@@ -17,6 +17,10 @@ import { SlackToolset } from './slack/slack'
 import { TaskToolset } from './task/task'
 import { TavilyToolset } from './tavily/tavily'
 import { FirecrawlToolset } from './firecrawl/firecrawl'
+import { PlanningToolset } from './planning/planning'
+import { BashToolset } from './bash/bash'
+import { FileToolset } from './file/file'
+import { PythonToolset } from './python/python'
 
 export * from './builtin-tool'
 export * from './builtin-toolset'
@@ -30,6 +34,10 @@ export const BUILTIN_TOOLSET_REPOSITORY: {
 		baseUrl: ToolsetFolderPath,
 		providers: [
 			TaskToolset,
+			PlanningToolset,
+			BashToolset,
+			FileToolset,
+			PythonToolset,
 			TavilyToolset,
 			SearchAPIToolset,
 			SerpAPIToolset,
@@ -42,7 +50,7 @@ export const BUILTIN_TOOLSET_REPOSITORY: {
 			SlackToolset,
 			GithubToolset,
 			DiscordToolset,
-			SerperToolset
+			SerperToolset,
 		]
 	}
 ]

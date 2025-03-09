@@ -1,0 +1,23 @@
+identity:
+  name: delete_file
+  author: XpertAI
+  label:
+    en_US: Delete File
+    zh_Hans: 删除文件
+description:
+  human:
+    en_US: Delete the file.
+    zh_Hans: 删除文件。
+  llm: This tool can delete a file.
+parameters:
+  - name: path
+    type: string
+    required: true
+    label:
+      en_US: File Path
+      zh_Hans: 文件路径
+    human_description:
+      en_US: File Path.
+      zh_Hans: 文件路径。
+    llm_description: The file path.
+    form: llm

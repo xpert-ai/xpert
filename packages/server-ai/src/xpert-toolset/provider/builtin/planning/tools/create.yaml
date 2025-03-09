@@ -1,0 +1,37 @@
+identity:
+  name: create_plan
+  author: XpertAI
+  label:
+    en_US: Create a plan
+    zh_Hans: 创建一个计划
+  icon: icon.svg
+description:
+  human:
+    en_US: Create a plan
+    zh_Hans: 创建一个计划
+  llm: A tool for creating a plan.
+parameters:
+  - name: title
+    type: string
+    required: true
+    label:
+      en_US: Plan title
+      zh_Hans: 计划标题
+    human_description:
+      en_US: Title for the plan. Required for create command, optional for update command.
+      zh_Hans: 计划的标题。对于创建命令是必需的，对于更新命令是可选的。
+    llm: Plan title
+    form: llm
+  - name: steps
+    type: array
+    item:
+      type: string
+    required: true
+    label:
+      en_US: Steps
+      zh_Hans: 步骤
+    human_description:
+      en_US: Plan steps
+      zh_Hans: 计划步骤
+    llm: Plan steps
+    form: llm
