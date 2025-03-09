@@ -18,19 +18,22 @@ import {
   output,
   signal,
   TemplateRef,
+  viewChild,
   ViewChild,
   ViewContainerRef
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { NgmHighlightVarDirective } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { effectAction, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { CopilotPromptGeneratorComponent } from '../prompt-generator/generator.component'
 import { agentLabel, TStateVariable, TWorkflowVarGroup } from '../../../@core'
 import { switchMap, tap } from 'rxjs/operators'
 import { timer } from 'rxjs'
+import { MonacoEditorModule } from 'ngx-monaco-editor'
+
+declare var monaco: any
 
 @Component({
   selector: 'copilot-prompt-editor',
@@ -38,7 +41,15 @@ import { timer } from 'rxjs'
   styleUrls: ['./editor.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, MatTooltipModule, NgmI18nPipe, NgmHighlightVarDirective],
+  imports: [
+    CommonModule,
+    CdkMenuModule,
+    FormsModule,
+    TranslateModule,
+    MonacoEditorModule,
+    MatTooltipModule,
+    NgmI18nPipe,
+  ],
   host: {
     '[class.fullscreen]': 'fullscreen()'
   }
@@ -71,6 +82,7 @@ export class CopilotPromptEditorComponent {
   // Children
   @ViewChild('editablePrompt', { static: true }) editablePrompt!: ElementRef
   @ViewChild('suggestionsTemplate', { static: true }) suggestionsTemplate!: TemplateRef<any>
+  readonly suggestionsMenu = viewChild('suggestions', {read: ElementRef})
   overlayRef: OverlayRef | null = null
 
   // States
@@ -81,6 +93,19 @@ export class CopilotPromptEditorComponent {
   private startY = 0
   private startHeight = 0
   readonly copied = signal(false)
+
+  editorOptions: any = {
+    theme: 'vs',
+    automaticLayout: true,
+    language: 'markdown',
+    lineNumbers: 'off',
+    glyphMargin: 0,
+    minimap: {
+      enabled: false
+    }
+  }
+
+  readonly #editor = signal(null)
 
   constructor(private overlay: Overlay) {
     effect(() => {
@@ -105,6 +130,9 @@ export class CopilotPromptEditorComponent {
       })
   }
 
+  /**
+   * @deprecated
+   */
   onPromptChange(editor: HTMLDivElement) {
     this.prompt.set(formatInnerHTML(editor.innerHTML))
   }
@@ -124,6 +152,45 @@ export class CopilotPromptEditorComponent {
     }
   }
 
+  setVariable(g: string, variable: TStateVariable) {
+    // Get the current cursor position
+    const position = this.getPosition();
+
+    // Get the content of the current line
+    const lineContent = this.#editor().getModel().getLineContent(position.lineNumber);
+
+    // Checks if the character before the cursor is { or {{
+    const beforeCursor = lineContent.substring(0, position.column - 1);
+    const regex = /{{?$/
+    const match = beforeCursor.match(regex);
+
+    // If it matches, replace { or {{ and also release after } or }}
+    const afterCursor = lineContent.substring(position.column - 1);
+    const endRegex = /^}}?/;
+    const endMatch = afterCursor.match(endRegex);
+
+    // If it matches, replace { or {{
+    const range = new monaco.Range(
+      position.lineNumber,
+      match ? (position.column - match[0].length) : position.column,
+      position.lineNumber,
+      endMatch ? (position.column + endMatch[0].length) : position.column
+    );
+    const text = `{{${variable.name}}}`
+
+    const operation = {
+      range: range,
+      text: text
+    };
+
+    // Performing Edit Operations
+    this.#editor().executeEdits("insert-string", [operation])
+    this.hideSuggestions()
+  }
+
+  /**
+   * @deprecated
+   */
   selectVariable(g: string, variable: TStateVariable) {
     const editablePrompt: HTMLDivElement = this.editablePrompt.nativeElement
     const text = editablePrompt.innerText
@@ -142,26 +209,14 @@ export class CopilotPromptEditorComponent {
     selection.addRange(range)
   }
 
-  getCaretCoordinates(): { top: number; left: number } {
-    const selection = window.getSelection()
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0).cloneRange()
-      const rect = range.getClientRects()[0]
-      if (rect) {
-        return { top: rect.top, left: rect.left }
-      }
-    }
-    return { top: 0, left: 0 }
-  }
-
   showSuggestions() {
     if (!this.variables()?.length) {
       return
     }
-    const caretCoords = this.getCaretCoordinates()
+    const caretCoords = this.getCursorPagePosition()
     const positionStrategy = this.overlay
       .position()
-      .flexibleConnectedTo(caretCoords.left ? { x: caretCoords.left, y: caretCoords.top } : this.editablePrompt.nativeElement)
+      .flexibleConnectedTo(caretCoords)
       .withPositions([{ originX: 'start', originY: 'top', overlayX: 'start', overlayY: 'bottom' }])
 
     if (!this.overlayRef) {
@@ -171,6 +226,7 @@ export class CopilotPromptEditorComponent {
     } else {
       this.overlayRef.updatePositionStrategy(positionStrategy)
     }
+    this.suggestionsMenu().nativeElement.focus()
   }
 
   hideSuggestions() {
@@ -206,7 +262,9 @@ export class CopilotPromptEditorComponent {
     if (this.isResizing) {
       const offset = event.clientY - this.startY
       this.height = this.startHeight + offset
-      if (this.height < 50) this.height = 50 // 设置最小高度
+      if (this.height < 50) this.height = 50 // Set minimum height
+
+      this.onResized()
       event.preventDefault()
     }
   }
@@ -215,8 +273,57 @@ export class CopilotPromptEditorComponent {
   onMouseUp(): void {
     this.isResizing = false
   }
+
+  // Editor
+  onInit(editor: any) {
+    this.#editor.set(editor)
+    this.#editor().onDidChangeCursorSelection((e) => {
+      // this.cursorSelection$.next(e)
+    })
+
+    editor.onDidChangeModelContent((event) => {
+      event.changes.forEach((change) => {
+        if (change.text === '{' || change.text === '{}') {
+          this.showSuggestions()
+        }
+      });
+  });
+  }
+
+  onResized() {
+    this.#editor()?.layout()
+  }
+
+  getPosition() {
+    return this.#editor().getPosition()
+  }
+
+  getCursorPagePosition() {
+    const editor = this.#editor()
+    // Get the cursor position
+    const position = editor.getPosition();
+    
+    // Get the cursor coordinates within the editor content
+    const cursorCoords = editor.getScrolledVisiblePosition(position);
+    
+    // Get the editor DOM element and content container
+    const editorDom = editor.getDomNode();
+    const viewLines = editorDom.querySelector('.view-lines');
+    
+    // Get the position of the content container on the page
+    const rect = viewLines.getBoundingClientRect();
+    
+    // Calculate the absolute coordinates of the cursor on the page
+    const cursorX = rect.left + cursorCoords.left;
+    const cursorY = rect.top + cursorCoords.top;
+    
+    return { x: cursorX, y: cursorY };
+  }
 }
 
+/**
+ * @deprecated
+ */
 function formatInnerHTML(htmlContent: string) {
   // Step 1: 处理段落 <p> 标签并替换为换行符
   let formattedText = htmlContent
