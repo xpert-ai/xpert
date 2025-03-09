@@ -79,6 +79,8 @@ RUN mkdir -p /ms-playwright && chown -R node:node /ms-playwright
 # Install os dependencies but no browsers
 RUN npx playwright install-deps
 
+RUN mkdir -p /srv/pangolin/public && chown -R node:node /srv/pangolin/public
+
 WORKDIR /srv/pangolin
 
 RUN npm install pm2 -g
