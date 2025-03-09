@@ -1,0 +1,15 @@
+identity:
+  pro: true
+  author: XpertAI
+  name: browser
+  label:
+    en_US: Browser
+    zh_Hans: 浏览器
+  description:
+    en_US: Browser tool.
+    zh_Hans: 浏览器工具。
+  icon: icon.svg
+  tags:
+    - productivity
+    - utilities
+credentials_for_provider:

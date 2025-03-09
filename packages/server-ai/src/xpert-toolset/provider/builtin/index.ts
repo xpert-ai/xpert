@@ -21,6 +21,7 @@ import { PlanningToolset } from './planning/planning'
 import { BashToolset } from './bash/bash'
 import { FileToolset } from './file/file'
 import { PythonToolset } from './python/python'
+import { BrowserToolset } from './browser/browser'
 
 export * from './builtin-tool'
 export * from './builtin-toolset'
@@ -38,6 +39,7 @@ export const BUILTIN_TOOLSET_REPOSITORY: {
 			BashToolset,
 			FileToolset,
 			PythonToolset,
+			BrowserToolset,
 			TavilyToolset,
 			SearchAPIToolset,
 			SerpAPIToolset,

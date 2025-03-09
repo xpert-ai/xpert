@@ -1,0 +1,23 @@
+identity:
+  name: browser_click
+  author: XpertAI
+  label:
+    en_US: Click
+    zh_Hans: 点击
+description:
+  human:
+    en_US: Click a element.
+    zh_Hans: 点击元素
+  llm: This tool can click a element in browser.
+parameters:
+  - name: index
+    type: string
+    required: true
+    label:
+      en_US: Index
+      zh_Hans: 索引
+    human_description:
+      en_US: Index of element.
+      zh_Hans: 元素索引。
+    llm_description: Index of a element in page.
+    form: llm
