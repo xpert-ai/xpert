@@ -1,7 +1,9 @@
 import { PropertyMeasure } from '@metad/ocap-core'
 import { formatDataValues } from './utils'
 
-export function createBaseChart(type: string, x: string, measures: PropertyMeasure[], data: any[]) {
+export type FeishuMessageChartType = 'bar' | 'line' | 'pie'
+
+export function createBaseChart(type: FeishuMessageChartType, x: string, measures: PropertyMeasure[], data: any[]) {
 	const data0 = []
 	measures.forEach((measure) => {
 		data.forEach((d) => {
@@ -15,24 +17,30 @@ export function createBaseChart(type: string, x: string, measures: PropertyMeasu
 
 	const { unit } = formatDataValues(data0, 'y')
 
-	const chartSpec = {
+	const chartSpec: any = {
 		type: type,
 		data: [
 			{
 				values: data0
 			}
 		],
-		xField: ['x'],
-		yField: 'y',
-		seriesField: 'type',
 		legends: {
 			visible: true
 		},
-		axes: [
-			{
-				orient: 'left'
-			}
-		]
+	}
+
+	if (type === 'pie') {
+		chartSpec.categoryField = 'x'
+		chartSpec.valueField = 'y'
+	} else {
+		chartSpec.xField = ['x']
+		chartSpec.yField = 'y'
+		chartSpec.seriesField = 'type'
+		chartSpec.axes = [
+				{
+					orient: 'left'
+				}
+			]
 	}
 
 	return {
