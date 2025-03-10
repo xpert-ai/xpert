@@ -22,6 +22,7 @@ import { BashToolset } from './bash/bash'
 import { FileToolset } from './file/file'
 import { PythonToolset } from './python/python'
 import { BrowserToolset } from './browser/browser'
+import { BrowserUseToolset } from './browser-use/browser-use'
 
 export * from './builtin-tool'
 export * from './builtin-toolset'
@@ -40,6 +41,7 @@ export const BUILTIN_TOOLSET_REPOSITORY: {
 			FileToolset,
 			PythonToolset,
 			BrowserToolset,
+			BrowserUseToolset,
 			TavilyToolset,
 			SearchAPIToolset,
 			SerpAPIToolset,

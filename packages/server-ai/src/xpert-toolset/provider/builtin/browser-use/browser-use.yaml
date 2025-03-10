@@ -1,0 +1,24 @@
+identity:
+  author: XpertAI
+  name: browser-use
+  label:
+    en_US: Browser Use
+    zh_Hans: 浏览器使用
+  description:
+    en_US: Browser-use tool.
+    zh_Hans: 浏览器使用工具。
+  icon: icon.svg
+  tags:
+    - productivity
+    - utilities
+credentials_for_provider:
+  integration:
+    type: copilot-model
+    required: true
+    label:
+      en_US: AI Model
+      zh_Hans: LLM 模型
+    placeholder:
+      en_US: Please select a ai model
+      zh_Hans: 请选择一个大语言模型
+    url: /settings/copilot/basic

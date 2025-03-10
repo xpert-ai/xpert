@@ -84,6 +84,7 @@ export enum CredentialsType {
   TEXT_INPUT = 'text-input',
   SELECT = 'select',
   REMOTE_SELECT = 'remote-select',
+  COPILOT_MODEL = 'copilot-model',
   BOOLEAN = 'boolean'
 }
 
