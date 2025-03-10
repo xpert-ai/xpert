@@ -5,6 +5,7 @@ import {
   addWeeks,
   addYears,
   format,
+  parse,
   subDays,
   subMonths,
   subQuarters,
@@ -55,9 +56,18 @@ export interface TimeRange {
   current?: Exclude<TimeOffSet, 'granularity'>
   lookBack?: number
   lookAhead?: number
+  /**
+   * Start period
+   * yyyy, yyyyMM, yyyyMMdd, yyyy'Q'Q, yyyy'W'W
+   */
+  start?: string
+  /**
+   * End period
+   */
+  end?: string
   selected?: boolean
   /**
-   * 时间值的格式化字符串
+   * Format string for time value
    */
   formatter?: string
 }
@@ -126,6 +136,30 @@ export function formatCurrentPeriod(current: number | Date, granularity: TimeGra
   return format(current, formatter || _format)
 }
 
+export function reformat(currentDate: Date, dat: string, granularity: TimeGranularity, target: string) {
+  switch (granularity) {
+    case TimeGranularity.Year:
+      return format(parse(dat, 'yyyy', currentDate), target)
+    case TimeGranularity.Month:
+      return format(parse(dat, 'yyyyMM', currentDate), target)
+    case TimeGranularity.Quarter:
+      return format(parse(dat, `yyyy'Q'Q`, currentDate), target)
+    // Not supported yet
+    // case TimeGranularity.Week:
+      // return format(parse(dat, `yyyyw`, currentDate), target)
+    case TimeGranularity.Day:
+      return format(parse(dat, `yyyyMMdd`, currentDate), target)
+  }
+  return dat
+}
+
+/**
+ * Calculate relative offset time
+ * 
+ * @param currentDate 
+ * @param param1 direction granularity amount
+ * @returns Date
+ */
 export function calcOffset(currentDate: Date, { direction, granularity, amount }: Partial<TimeOffSet>): Date {
   amount = amount || 0
   switch (granularity) {
@@ -172,7 +206,14 @@ export function formatRangeCurrentPeriod(current: Date, range: TimeRange) {
   return formatCurrentPeriod(current, range.granularity, range.formatter)
 }
 
-export function calcRange(current: Date, range: TimeRange) {
+export function calcStartEndRange(current: Date, range: TimeRange) {
+  return [
+    reformat(current, range.start, range.granularity, range.formatter),
+    reformat(current, range.end, range.granularity, range.formatter),
+  ]
+}
+
+export function calcOffsetRange(current: Date, range: TimeRange) {
   // 为了支持 AI 不能理解复杂规则， 所以主动适应 AI 的理解
   let from = range.lookBack ?? -range.lookAhead
   let to = range.lookAhead ?? -range.lookBack
@@ -223,10 +264,14 @@ export function workOutTimeRangeSlicers(
   return timeSlicer.ranges.map((range) => {
     const calendarSemantic = mapTimeGranularitySemantic(range.granularity)
     const calendarLevel = property?.levels?.find((level) => level.semantics?.semantic === calendarSemantic)
-    const results = calcRange(currentDate || new Date(), {
-      ...range,
-      formatter: range.formatter || calendarLevel?.semantics?.formatter
-    })
+    const results = range.start ? calcStartEndRange(currentDate || new Date(), {
+        ...range,
+        formatter: range.formatter || calendarLevel?.semantics?.formatter
+      })
+      : calcOffsetRange(currentDate || new Date(), {
+        ...range,
+        formatter: range.formatter || calendarLevel?.semantics?.formatter
+      })
 
     if (results[0] === results[1]) {
       return {

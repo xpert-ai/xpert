@@ -1,7 +1,7 @@
 import { BehaviorSubject, combineLatest, EMPTY, filter, map, Observable, withLatestFrom } from 'rxjs'
 import { PeriodFunctions, Semantics } from '../annotations'
 import {
-  calcRange,
+  calcOffsetRange,
   EntityType,
   getEntityCalendar,
   getEntityDimensions,
@@ -153,7 +153,7 @@ export class SmartIndicatorDataService<
     const currentTime = this.dsCoreService.getToday()
     if (currentTime) {
       if (this.calendarLevel) {
-        timeRange = calcRange(currentTime?.today || new Date(), {
+        timeRange = calcOffsetRange(currentTime?.today || new Date(), {
           type: TimeRangeType.Standard,
           granularity: this.timeGranularity,
           formatter: this.calendarLevel.semantics?.formatter,

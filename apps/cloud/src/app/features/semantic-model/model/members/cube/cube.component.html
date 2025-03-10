@@ -4,17 +4,21 @@
     <mat-panel-description>
       @if (entity()?.job?.status === 'processing' || entity()?.job?.status === 'completed') {
         <div class="flex items-center gap-1" [matTooltip]="'PAC.MODEL.EmbeddingProgress' | translate: {Default: 'Embedding progress'}" matTooltipPosition="above">
-          <mat-progress-spinner
-            mode="determinate" diameter="24" color="accent"
-            [value]="entity()?.job.progress">
-          </mat-progress-spinner>
+          @if (entity().job.progress < 100) {
+            <mat-progress-spinner
+              mode="determinate" diameter="24" color="accent"
+              [value]="entity()?.job.progress" 
+            />
+          } @else {
+            <i class="ri-check-double-line text-lg text-text-success"></i>
+          }
 
           <span>{{entity()?.job.progress}}%</span>
         </div>
       }
       @if (entity()?.job) {
         @if (entity().job?.error) {
-          <mat-icon fontSet="material-icons-outlined" class="text-red-500"
+          <mat-icon fontSet="material-icons-outlined" class="text-text-destructive"
             [matTooltip]="entity().job.error" matTooltipPosition="above"
           >error</mat-icon>
         } @else if (job()?.status === 'processing') {
@@ -61,7 +65,11 @@
       <thead class=" text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
         <tr>
           <th scope="col" class="py-3 px-4 pe-0">
-            <div class="flex items-center h-5">
+            <ngm-checkbox [disabled]="loading()"
+              [ngModel]="allSelected()"
+              [indeterminate]="someSelected()"
+              (ngModelChange)="setAll($event)" />
+            <!-- <div class="flex items-center h-5">
               <input id="hs-table-search-checkbox-all" type="checkbox" class="border-gray-200 rounded text-blue-600 focus:ring-blue-500 dark:bg-neutral-700 dark:border-neutral-500 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800"
                 [disabled]="loading()"
                 [ngModel]="allSelected()"
@@ -69,10 +77,10 @@
                 (ngModelChange)="setAll($event)"
               >
               <label for="hs-table-search-checkbox-all" class="sr-only">Checkbox</label>
-            </div>
+            </div> -->
           </th>
           <th scope="col" class="px-6 py-3">
-            {{ 'PAC.KEY_WORDS.Label' | translate: {Default: 'Label'} }}
+            {{ 'PAC.KEY_WORDS.Dimension' | translate: {Default: 'Dimension'} }}
           </th>
           <th scope="col" class="px-6 py-3">
             {{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}
@@ -92,18 +100,18 @@
         @for (dimension of dimensions(); track dimension.name) {
           <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
             <td class="py-3 ps-4">
-              <button type="button" class="pressable mr-1 inline-block" (click)="dimension.expand=!dimension.expand">
+              <!-- <button type="button" class="pressable mr-1 inline-block" (click)="dimension.expand=!dimension.expand"> -->
                 @if (dimension.expand) {
-                  <i class="ri-contract-up-down-fill"></i>
+                  <!-- <i class="ri-contract-up-down-fill"></i> -->
                 } @else {
-                  <i class="ri-expand-up-down-fill"></i>
+                  <!-- <i class="ri-expand-up-down-fill"></i> -->
                 }
-              </button>
+              <!-- </button> -->
             </td>
-            <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+            <th scope="row" class="px-6 py-4 font-semibold text-gray-900 whitespace-nowrap dark:text-white">
               {{ dimension.caption }}
             </th>
-            <td class="px-6 py-4">
+            <td class="px-6 py-4 font-semibold">
               {{ dimension.name }}
             </td>
             <td class="px-6 py-4">
@@ -128,16 +136,20 @@
             </td>
           </tr>
 
-          @if (dimension.expand) {
+          <!-- @if (dimension.expand) { -->
             @for (hierarchy of dimension.hierarchies; track hierarchy.name) {
               <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-500">
                 <td class="py-3 ps-4">
                   <div class="flex items-center h-5">
-                    <input id="hs-table-search-checkbox-1" type="checkbox" name="table-selected-checkbox-1" class="border-gray-200 rounded text-blue-600 focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800"
+                    <ngm-checkbox [disabled]="loading()"
+                      [ngModel]="getSelected(hierarchy.name)"
+                      (ngModelChange)="setSelected(hierarchy.name, $event)" 
+                    />
+                    <!-- <input id="hs-table-search-checkbox-1" type="checkbox" name="table-selected-checkbox-1" class="border-gray-200 rounded text-blue-600 focus:ring-blue-500 dark:bg-neutral-800 dark:border-neutral-700 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800"
                       [disabled]="loading()"
                       [ngModel]="getSelected(hierarchy.name)"
                       (ngModelChange)="setSelected(hierarchy.name, $event)"
-                      >
+                      > -->
                     <label for="hs-table-search-checkbox-1" class="sr-only">Checkbox</label>
                   </div>
                 </td>
@@ -153,12 +165,19 @@
                     {{members()[hierarchy.name].length | number: '0.0-0'}}
                   }
                 </td>
-                <td class="px-6 py-4">
-                  <span class="w-16 italic text-sm overflow-hidden text-ellipsis">{{ syncMembers()[hierarchy.name] | number: '0.0-0' }}</span>
+                <td class="px-6 py-4 text-end">
+                  @if (syncMembers()[hierarchy.name]) {
+                    <span class='inline-flex items-center bg-emerald-50 text-emerald-600 font-medium mr-2 pl-1.5 pr-2 rounded-lg py-1'>
+                      <i class="ri-ai-generate-text mr-1"></i>
+                      <span class="italic text-sm overflow-hidden text-ellipsis">
+                        {{ syncMembers()[hierarchy.name] | number: '0.0-0' }}
+                      </span>
+                    </span>
+                  }
                 </td>
               </tr>
             }
-          }
+          <!-- } -->
         }
       </tbody>
     </table>

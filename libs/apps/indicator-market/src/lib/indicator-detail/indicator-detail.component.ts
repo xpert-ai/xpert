@@ -21,7 +21,7 @@ import { convertTableToCSV, nonNullable } from '@metad/core'
 import { DisplayDensity, NgmDSCoreService, NgmLanguageEnum, PERIODS } from '@metad/ocap-angular/core'
 import {
   C_MEASURES,
-  calcRange,
+  calcOffsetRange,
   ChartAnnotation,
   ChartDimensionRoleType,
   ChartOptions,
@@ -210,7 +210,7 @@ export class IndicatorDetailComponent {
     toObservable(this.period)
   ]).pipe(
     map(([{ dimension, hierarchy, level }, timeGranularity, today, lookBack, period]) => {
-      const timeRange = calcRange(today, {
+      const timeRange = calcOffsetRange(today, {
         type: TimeRangeType.Standard,
         granularity: timeGranularity,
         formatter: level?.semantics?.formatter,
