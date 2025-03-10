@@ -9,7 +9,7 @@ import { getErrorMessage, race, shortuuid } from '@metad/server-common'
 import { ChatMessageTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { getContextVariable } from '@langchain/core/context'
-import { ChatAnswer, ChatAnswerSchema, ChatBIToolsEnum, ChatBIVariableEnum, TChatBICredentials, tryFixChartType } from '../../chatbi/types'
+import { ChatAnswer, ChatAnswerSchema, ChatBIToolsEnum, ChatBIVariableEnum, mapTimeSlicer, TChatBICredentials, tryFixChartType } from '../../chatbi/types'
 
 
 export function createChatAnswerTool(
@@ -131,8 +131,8 @@ async function drawChartMessage(
 		slicers.push(...answer.slicers.map((slicer) => tryFixSlicer(slicer, entityType)))
 	}
 	if (answer.timeSlicers) {
-		const timeSlicers = answer.timeSlicers
-			.map((slicer) => workOutTimeRangeSlicers(new Date(), { ...slicer, currentDate: 'TODAY' }, entityType))
+		const timeSlicers = mapTimeSlicer(answer.timeSlicers)
+			.map((slicer) => workOutTimeRangeSlicers(new Date(), slicer, entityType))
 			.map((ranges) => toAdvancedFilter(ranges, FilteringLogic.And))
 		slicers.push(...timeSlicers)
 	}

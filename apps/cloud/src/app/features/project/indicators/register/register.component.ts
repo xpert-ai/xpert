@@ -22,7 +22,6 @@ import { CdkConfirmDeleteComponent, NgmCommonModule } from '@metad/ocap-angular/
 import { ButtonGroupDirective, DensityDirective, PERIODS } from '@metad/ocap-angular/core'
 import {
   C_MEASURES,
-  calcRange,
   ChartDimensionRoleType,
   ChartOrient,
   ChartSettings,
@@ -34,7 +33,8 @@ import {
   negate,
   TimeRangeType,
   Indicator as OCAPIndicator,
-  ChartTypeEnum, 
+  ChartTypeEnum,
+  calcOffsetRange, 
 } from '@metad/ocap-core'
 import { withProps } from '@ngneat/elf'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -152,7 +152,7 @@ export class IndicatorRegisterComponent extends TranslationBaseComponent impleme
       } as undefined as DataSettings & { error?: string }
     }
 
-    const timeRange = calcRange(new Date(), {
+    const timeRange = calcOffsetRange(new Date(), {
       type: TimeRangeType.Standard,
       granularity: timeGranularity,
       formatter: level?.semantics?.formatter,

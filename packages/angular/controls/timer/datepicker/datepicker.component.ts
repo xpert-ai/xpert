@@ -13,7 +13,7 @@ import {
   ISlicer,
   TimeGranularity,
   TimeRangeType,
-  calcRange,
+  calcOffsetRange,
   mapTimeGranularitySemantic,
   getEntityProperty2,
   Semantics,
@@ -121,13 +121,13 @@ export class NgmMemberDatepickerComponent implements OnInit, OnChanges, ControlV
         const calendarSemantic = mapTimeGranularitySemantic(timeGranularity)
         const calendarLevel = calendar.levels?.find((level) => level.semantics?.semantic === calendarSemantic)
 
-        const results = calcRange(value || new Date(), {
+        const results = calcOffsetRange(value || new Date(), {
           type: TimeRangeType.Standard,
           granularity: timeGranularity,
           formatter: this.formatter || calendarLevel?.semantics?.formatter
         })
 
-        const captions = calcRange(value || new Date(), {
+        const captions = calcOffsetRange(value || new Date(), {
           type: TimeRangeType.Standard,
           granularity: timeGranularity,
         })
@@ -175,21 +175,21 @@ export class NgmMemberDatepickerComponent implements OnInit, OnChanges, ControlV
           const calendarSemantic = mapTimeGranularitySemantic(timeGranularity)
           const calendarLevel = calendar.levels?.find((level) => level.semantics?.semantic === calendarSemantic)
 
-          const fromMemberKey = calcRange(from || new Date(), {
+          const fromMemberKey = calcOffsetRange(from || new Date(), {
               type: TimeRangeType.Standard,
               granularity: timeGranularity,
               formatter: this.formatter || calendarLevel?.semantics?.formatter
             })[0]
-          const fromMemberCaption = calcRange(from || new Date(), {
+          const fromMemberCaption = calcOffsetRange(from || new Date(), {
               type: TimeRangeType.Standard,
               granularity: timeGranularity,
             })[0]
-          const toMemberKey = calcRange(to || new Date(), {
+          const toMemberKey = calcOffsetRange(to || new Date(), {
               type: TimeRangeType.Standard,
               granularity: timeGranularity,
               formatter: this.formatter || calendarLevel?.semantics?.formatter
             })[0]
-          const toMemberCaption = calcRange(to || new Date(), {
+          const toMemberCaption = calcOffsetRange(to || new Date(), {
               type: TimeRangeType.Standard,
               granularity: timeGranularity,
             })[0]
