@@ -133,10 +133,10 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		if (tools.find((_) => _.name === 'get_cube_context')) {
 			this.tools.push(this.createCubeContextTool(this.dsCoreService) as unknown as Tool)
 		}
-		if (tools.find((_) => _.name === 'dimension_member_retriever')) {
+		if (tools.find((_) => _.name === ChatBIToolsEnum.MEMBER_RETRIEVER)) {
 			const dimensionMemberRetrieverTool = await this.queryBus.execute(
 				new DimensionMemberRetrieverToolQuery(
-					'dimension_member_retriever',
+					ChatBIToolsEnum.MEMBER_RETRIEVER,
 					this.toolset.tenantId,
 					this.toolset.organizationId
 				)

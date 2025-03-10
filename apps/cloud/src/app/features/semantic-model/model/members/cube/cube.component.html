@@ -4,17 +4,21 @@
     <mat-panel-description>
       @if (entity()?.job?.status === 'processing' || entity()?.job?.status === 'completed') {
         <div class="flex items-center gap-1" [matTooltip]="'PAC.MODEL.EmbeddingProgress' | translate: {Default: 'Embedding progress'}" matTooltipPosition="above">
-          <mat-progress-spinner
-            mode="determinate" diameter="24" color="accent"
-            [value]="entity()?.job.progress">
-          </mat-progress-spinner>
+          @if (entity().job.progress < 100) {
+            <mat-progress-spinner
+              mode="determinate" diameter="24" color="accent"
+              [value]="entity()?.job.progress" 
+            />
+          } @else {
+            <i class="ri-check-double-line text-lg text-text-success"></i>
+          }
 
           <span>{{entity()?.job.progress}}%</span>
         </div>
       }
       @if (entity()?.job) {
         @if (entity().job?.error) {
-          <mat-icon fontSet="material-icons-outlined" class="text-red-500"
+          <mat-icon fontSet="material-icons-outlined" class="text-text-destructive"
             [matTooltip]="entity().job.error" matTooltipPosition="above"
           >error</mat-icon>
         } @else if (job()?.status === 'processing') {

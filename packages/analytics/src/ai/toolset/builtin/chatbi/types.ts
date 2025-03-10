@@ -35,7 +35,8 @@ import { LanguagesEnum } from '@metad/contracts'
 export enum ChatBIToolsEnum {
 	SHOW_INDICATORS = 'show_indicators',
 	ANSWER_QUESTION = 'answer_question',
-	CREATE_INDICATOR = 'create_indicator'
+	CREATE_INDICATOR = 'create_indicator',
+	MEMBER_RETRIEVER = 'dimension_member_retriever'
 }
 
 export enum ChatBIVariableEnum {
