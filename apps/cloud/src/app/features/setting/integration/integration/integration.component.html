@@ -31,7 +31,12 @@
           en_US: 'Integration Scenarios of Professional Edition'
         }"/>
       } @else {
-        <parameter-form #optionsForm [schema]="schema()" [ngModel]="optionsControl.value" (ngModelChange)="optionsControl.setValue($event)" [ngModelOptions]="{standalone: true}" />
+        <parameter-form #optionsForm 
+          [schema]="schema()" 
+          [ngModel]="optionsControl.value" 
+          (ngModelChange)="optionsControl.setValue($event)" 
+          [ngModelOptions]="{standalone: true}"
+        />
       }
     }
 

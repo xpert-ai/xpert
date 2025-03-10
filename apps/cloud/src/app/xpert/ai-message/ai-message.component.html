@@ -3,7 +3,7 @@
 </div>
 
 @if (message()?.event && answering()) {
-  <div class="absolute left-14 top-0 px-2 flex items-center gap-1 rounded-md cursor-pointer text-sm text-token-text-secondary hover:bg-gray-50"
+  <div class="absolute left-14 bottom-0 px-2 flex items-center gap-1 rounded-md cursor-pointer text-sm text-token-text-secondary hover:bg-gray-50"
     [matTooltip]=" message().error "
     matTooltipPosition="above"
   >

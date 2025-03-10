@@ -7,7 +7,7 @@ import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
 import { NgmDSCoreService, NgmLanguageEnum, PERIODS } from '@metad/ocap-angular/core'
 import {
   C_MEASURES,
-  calcRange,
+  calcOffsetRange,
   ChartAnnotation,
   ChartDimensionRoleType,
   DataSettings,
@@ -100,7 +100,7 @@ export class NgmIndicatorExplorerComponent {
     const period = this.period()
     const lookBack = this.lookBack()
 
-    const timeRange = calcRange(today, {
+    const timeRange = calcOffsetRange(today, {
       type: TimeRangeType.Standard,
       granularity: period?.granularity ?? timeGranularity,
       formatter: level?.semantics?.formatter,

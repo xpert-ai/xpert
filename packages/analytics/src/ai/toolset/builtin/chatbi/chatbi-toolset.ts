@@ -46,7 +46,7 @@ import { In } from 'typeorm'
 import { z } from 'zod'
 import { DimensionMemberRetrieverToolQuery } from '../../../../model-member/queries'
 import { getSemanticModelKey, NgmDSCoreService, registerSemanticModel } from '../../../../model/ocap'
-import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, fixMeasure, IndicatorSchema, TChatBICredentials, tryFixChartType, tryFixDimensions } from './types'
+import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, fixMeasure, IndicatorSchema, mapTimeSlicer, TChatBICredentials, tryFixChartType, tryFixDimensions } from './types'
 import { GetBIContextQuery, TBIContext } from '../../../../chatbi'
 
 function cubesReducer(a, b) {
@@ -133,10 +133,10 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		if (tools.find((_) => _.name === 'get_cube_context')) {
 			this.tools.push(this.createCubeContextTool(this.dsCoreService) as unknown as Tool)
 		}
-		if (tools.find((_) => _.name === 'dimension_member_retriever')) {
+		if (tools.find((_) => _.name === ChatBIToolsEnum.MEMBER_RETRIEVER)) {
 			const dimensionMemberRetrieverTool = await this.queryBus.execute(
 				new DimensionMemberRetrieverToolQuery(
-					'dimension_member_retriever',
+					ChatBIToolsEnum.MEMBER_RETRIEVER,
 					this.toolset.tenantId,
 					this.toolset.organizationId
 				)
@@ -479,8 +479,8 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			slicers.push(...answer.slicers.map((slicer) => tryFixSlicer(slicer, entityType)))
 		}
 		if (answer.timeSlicers) {
-			const timeSlicers = answer.timeSlicers
-				.map((slicer) => workOutTimeRangeSlicers(new Date(), { ...slicer, currentDate: 'TODAY' }, entityType))
+			const timeSlicers = mapTimeSlicer(answer.timeSlicers)
+				.map((slicer) => workOutTimeRangeSlicers(new Date(), slicer, entityType))
 				.map((ranges) => toAdvancedFilter(ranges, FilteringLogic.And))
 			slicers.push(...timeSlicers)
 		}

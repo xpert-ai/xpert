@@ -12,7 +12,7 @@ import { MatInputModule } from '@angular/material/input'
 import { MatSelectModule } from '@angular/material/select'
 import { NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
-  calcRange,
+  calcOffsetRange,
   DataSettings,
   EntityType,
   formatRangeCurrentPeriod,
@@ -110,7 +110,7 @@ export class NgmTimeFilterEditorComponent implements OnInit {
       const current = this.coreService.execDateVariables(this.data.slicer.currentDate) as Date
       this.data.slicer.ranges.forEach((range) => {
         const currentPeriod = formatRangeCurrentPeriod(current, range)
-        const result = calcRange(current, range)
+        const result = calcOffsetRange(current, range)
         this.ranges.push(
           this.buildRangeForm({
             ...range,
@@ -130,7 +130,7 @@ export class NgmTimeFilterEditorComponent implements OnInit {
         const current = this.coreService.execDateVariables(value.currentDate) as Date
         value.ranges.forEach((range, i) => {
           const currentPeriod = formatRangeCurrentPeriod(current, range)
-          const result = calcRange(current, range)
+          const result = calcOffsetRange(current, range)
           this.ranges.controls[i].patchValue(
             {
               currentPeriod,

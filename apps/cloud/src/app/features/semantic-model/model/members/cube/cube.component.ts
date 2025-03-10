@@ -8,7 +8,7 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { SemanticModelServerService } from '@metad/cloud/state'
-import { CdkConfirmDeleteComponent } from '@metad/ocap-angular/common'
+import { CdkConfirmDeleteComponent, NgmCheckboxComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { Cube, EntityType, FilterSelectionType, Property, getEntityDimensions, getEntityHierarchy } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -40,6 +40,7 @@ import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
     MatProgressSpinnerModule,
     DensityDirective,
     AppearanceDirective,
+    NgmCheckboxComponent,
   ],
   selector: 'pac-model-members-cube',
   templateUrl: 'cube.component.html',
