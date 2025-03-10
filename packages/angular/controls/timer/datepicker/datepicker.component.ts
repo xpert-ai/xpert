@@ -2,7 +2,6 @@ import { Component, computed, effect, forwardRef, inject, input, Input, model, O
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { MatFormFieldAppearance } from '@angular/material/form-field'
-import { NgmSmartFilterService } from '@metad/ocap-angular/controls'
 import { DisplayDensity, NgmOcapCoreService, TIME_GRANULARITY_SEQUENCES } from '@metad/ocap-angular/core'
 import {
   DataSettings,
@@ -31,6 +30,7 @@ import {
   map,
   startWith,
 } from 'rxjs'
+import { NgmSmartFilterService } from '../../smart-filter.service'
 
 
 @Component({
