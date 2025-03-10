@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, inject, input } from '@angular/core'
+import { booleanAttribute, Component, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -29,7 +29,12 @@ export class NgmCheckboxComponent {
 
   readonly cva = inject(NgxControlValueAccessor)
 
+  // Inputs
   readonly label = input<string>()
+  readonly indeterminate = input<boolean>(false)
+  readonly disabled = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
   readonly value$ = this.cva.value$
 }

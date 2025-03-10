@@ -1,4 +1,5 @@
-<input id="checkbox-{{id}}" type="checkbox" [(ngModel)]="value$" class="w-5 h-5 appearance-none border cursor-pointer border-gray-300 rounded-md mr-2 hover:border-indigo-500 hover:bg-indigo-100 checked:bg-no-repeat checked:bg-center checked:border-indigo-500 checked:bg-indigo-100">
+<input id="checkbox-{{id}}" type="checkbox" class="w-5 h-5 appearance-none border cursor-pointer border-gray-300 rounded-md mr-2 enabled:hover:border-indigo-500 enabled:hover:bg-indigo-100 checked:bg-no-repeat checked:bg-center checked:border-indigo-500 checked:bg-indigo-100 disabled:cursor-not-allowed"
+  [(ngModel)]="value$" [indeterminate]="indeterminate()" [disabled]="disabled()" >
 <label for="checkbox-{{id}}" class="grow font-norma cursor-pointer">
   {{label()}}
 </label>
