@@ -6,7 +6,7 @@ import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { ThemesEnum } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { IUser, LANGUAGES, LanguagesMap, Store } from '../../../@core'
+import { injectHelpWebsite, IUser, LANGUAGES, LanguagesMap, Store } from '../../../@core'
 import { UserPipe } from '../../../@shared/pipes'
 import { UserProfileInlineComponent } from '../../../@shared/user'
 import { AppService } from '../../../app.service'
@@ -48,9 +48,12 @@ export class HeaderUserComponent {
   readonly appService = inject(AppService)
   readonly router = inject(Router)
   readonly #translate = inject(TranslateService)
+  readonly helpWebsite = injectHelpWebsite()
 
+  // Inputs
   readonly user = input<IUser>()
 
+  // States
   readonly preferredTheme$ = toSignal(this.store.preferredTheme$)
   readonly preferredThemeIcon$ = computed(() => THEMES.find((item) => item.key === this.preferredTheme$())?.icon)
 
@@ -73,6 +76,7 @@ export class HeaderUserComponent {
   )
 
   readonly firstLetter = computed(() => new UserPipe().transform(this.user())?.[0].toUpperCase())
+
 
   onLanguageSelect(language: string): void {
     this.store.preferredLanguage = LanguagesMap[language] ?? language

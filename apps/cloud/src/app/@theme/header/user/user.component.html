@@ -65,7 +65,7 @@
 
         <a class="flex items-center w-full h-9 px-3 text-gray-700 text-[14px] rounded-lg font-normal hover:bg-gray-50 cursor-pointer group justify-between" target="_blank" rel="noopener noreferrer" role="menuitem" tabindex="-1"
           cdkMenuItem
-          href="https://mtda.cloud/en/docs/">
+          [href]="helpWebsite()+'/docs/'">
           <div>{{ 'PAC.KEY_WORDS.HelpDocs' | translate: {Default: 'Help'} }}</div>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"
             class="hidden w-[14px] h-[14px] text-gray-500 group-hover:flex">
