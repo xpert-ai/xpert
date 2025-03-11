@@ -529,7 +529,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		tools?.forEach(({ caller, tool, variables }) => {
 			const name = tool.name
 			subgraphBuilder
-				.addNode(name, new ToolNode([tool], { caller, variables }))
+				.addNode(name, new ToolNode([tool], { caller, variables }).withConfig({signal: abortController.signal}))
 			if (endNodes?.includes(tool.name)) {
 				if (nextNodeKey?.length) {
 					if (nextNodeKey.some((_) => !_)) {
