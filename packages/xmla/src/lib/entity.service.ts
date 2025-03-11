@@ -55,14 +55,6 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
     super(dataSource, entitySet)
   }
 
-  // override getAnnotation<AT extends Annotation>(term: string, qualifier: string): Observable<AT> {
-  //   const path = term + (qualifier ? `#${qualifier}` : '')
-  //   const annotations = this.annotations$.getValue()
-  //   return this.dataSource
-  //     .getAnnotation<AT>(this.entitySet, AnnotationTerm[term], qualifier)
-  //     .pipe(map((annotation) => (annotation ? annotation : annotations?.[path]) as AT))
-  // }
-
   selectAssociations(): Observable<[]> {
     throw new Error('Method not implemented.')
   }
@@ -210,7 +202,7 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
               query: {
                 ...options,
                 cube: this.entitySet,
-                calculatedMeasures: Object.values(this.registerMeasures$.value).filter((measure) => isCalculatedProperty(measure))
+                calculatedMeasures: this.getProvisionalMeasures()
               }
             })
           )
@@ -264,7 +256,7 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
   }
 
   /**
-   * 为查询条件添加系统语言过滤器
+   * Add system language filter to query conditions
    *
    * @param options
    * @returns

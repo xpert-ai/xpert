@@ -3,5 +3,5 @@
 }
 
 .line {
-  @apply w-full flex justify-start items-start px-2 py-1 rounded-md text-sm hover:bg-gray-50;
+  @apply w-full flex justify-start items-start cursor-pointer px-2 py-1 rounded-md text-sm border border-solid border-transparent hover:border-neutral-200;
 }

@@ -63,7 +63,7 @@ import { ChatXpertsComponent } from './xperts/xperts.component'
   styleUrl: 'home.component.scss',
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [provideOcapCore(), ChatHomeService, { provide: XpertHomeService, useExisting: ChatHomeService }]
+  providers: [ChatHomeService, { provide: XpertHomeService, useExisting: ChatHomeService }]
 })
 export class ChatHomeComponent {
   DisplayBehaviour = DisplayBehaviour

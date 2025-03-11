@@ -67,13 +67,13 @@ export interface DataSources {
 }
 
 /**
- * 数据源配置项
- * 其实对应一个语义模型而不是一个数据源
+ * Data source configuration items
+ * Actually corresponds to a semantic model rather than a data source
  *
- * @TODO 需要使用 CSDL 的概念进行重新定义
- * * entityTypes 配置此数据源下多个 entity
- *    * entityType 每个 entity 的类型字段配置
- *    * annotations 每个 entity 的 annotations 配置
+ * @TODO needs to be redefined using the CSDL concept
+ * * entityTypes configures multiple entities under this data source
+ * * entityType configures the type field of each entity
+ * * annotations configures the annotations of each entity
  */
 export interface DataSourceOptions extends SemanticModel {
   settings?: DataSourceSettings
@@ -85,13 +85,17 @@ export interface DataSourceOptions extends SemanticModel {
    * - server: query xmla
    */
   mode?: 'client' | 'server'
+  /**
+   * Runtime calculated measures
+   */
+  calculatedMeasures?: Record<string, CalculatedProperty[]>
 }
 
 /**
- * 数据源的抽象接口
- * * options 配置项
- * * createEntityService 创建 entityService
- * * getAnnotation 获取 annotation
+ * Abstract interface of data source
+ * - options configuration items
+ * - createEntityService creates entityService
+ * - getAnnotation gets annotation
  */
 export interface DataSource {
   id: string
@@ -253,6 +257,13 @@ export interface DataSource {
   query(options: { statement: string; forceRefresh?: boolean }): Observable<any>
 
   /**
+   * Subscribe to runtime calculated measures
+   * 
+   * @param cube 
+   */
+  selectCalculatedMeasures(cube: string): Observable<CalculatedProperty[]>
+
+  /**
    * 清除浏览器端缓存
    */
   clearCache(): Promise<void>
@@ -262,7 +273,7 @@ export interface DataSource {
 }
 
 /**
- * 数据源模型的通用功能实现, 包含元数据的获取, 执行一些与具体模型 Entity 无关的操作查询, 创建 Entity Service 等
+ * Implement common functions of the data source model, including obtaining metadata, executing some operations and queries unrelated to specific model entities, creating entity services, etc.
  *
  */
 export abstract class AbstractDataSource<T extends DataSourceOptions> implements DataSource {
@@ -277,6 +288,9 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
   get options() {
     return this.options$.value
   }
+
+  // Runtime calculated measures
+  readonly calculatedMeasures$ = this.options$.pipe(map((options) => options?.calculatedMeasures))
 
   protected _entitySets = {}
   constructor(options: T, public agent: Agent, public cacheService: OcapCache) {
@@ -440,6 +454,10 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
     return this.options.schema?.indicators?.find(
       (indicator) => (indicator.id === id || indicator.code === id) && indicator.entity === entity
     )
+  }
+
+  selectCalculatedMeasures(cube: string) {
+    return this.calculatedMeasures$.pipe(map((measures) => measures?.[cube]), distinctUntilChanged())
   }
 
   async clearCache(key = ''): Promise<void> {
