@@ -1,5 +1,5 @@
 import { MessageContent } from '@langchain/core/messages'
-import { ChatMessageStatusEnum, CopilotMessageType, IChatConversation, IChatMessage, IXpertAgentExecution, TSummaryJob, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { ChatMessageStatusEnum, CopilotMessageType, IChatConversation, IChatMessage, IXpertAgentExecution, TChatMessageStep, TSummaryJob, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
@@ -50,6 +50,12 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
 	thirdPartyMessage?: any
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	steps?: TChatMessageStep[]
 
 	/*
     |--------------------------------------------------------------------------

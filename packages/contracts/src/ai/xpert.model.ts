@@ -377,6 +377,10 @@ export enum ChatMessageEventTypeEnum {
   ON_TOOL_START = 'on_tool_start',
   ON_TOOL_END = 'on_tool_end',
   ON_TOOL_ERROR = 'on_tool_error',
+  /**
+   * Step message in tool call
+   */
+  ON_TOOL_MESSAGE = 'on_tool_message',
   ON_AGENT_START = 'on_agent_start',
   ON_AGENT_END = 'on_agent_end',
   ON_RETRIEVER_START = 'on_retriever_start',

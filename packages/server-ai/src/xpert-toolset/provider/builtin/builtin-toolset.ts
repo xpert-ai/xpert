@@ -58,6 +58,10 @@ export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> {
 
 	abstract _validateCredentials(credentials: TToolCredentials): Promise<void>
 
+	getCredentials() {
+		return this.toolset?.credentials
+	}
+	
 	/**
 	 * Translate language text
 	 * 

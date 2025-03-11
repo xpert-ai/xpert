@@ -226,6 +226,20 @@ export function createProcessStreamEvents(
 						} as MessageEvent)
 						break
 					}
+					case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
+						subscriber.next({
+							data: {
+								type: ChatMessageTypeEnum.EVENT,
+								event: ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+								data: {
+									tags,
+									...rest,
+									...data
+								}
+							}
+						} as MessageEvent)
+						break
+					}
 				}
 				break
 			}

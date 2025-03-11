@@ -56,3 +56,43 @@
     </div>
   </div>
 }
+
+@if (lastStep(); as step) {
+  <div class="flex-1 min-w-0 cursor-pointer" (click)="toggleSteps()">
+    <div
+      class="rounded-xl flex flex-col gap-2 p-1 border border-[var(--border-light)] bg-[var(--fill-tsp-gray-main)] max-w-full clickable hover:bg-[var(--fill-tsp-gray-dark)] dark:hover:bg-white/[0.02]"
+    >
+      @for (step of steps(); track step) {
+        <div @heightChangeAnimation class="relative flex items-center p-1 py-0.5 rounded-lg group/item hover:bg-white">
+          <div class="w-[16px] inline-flex items-center text-[var(--text-primary)]">
+            @if (step.toolset) {
+              <img src="/api/xpert-toolset/builtin-provider/{{step.toolset}}/icon" alt="{{step.toolset}}" class="rounded-md">
+            }
+          </div>
+          <div class="flex-1 h-full min-w-0 flex">
+            <div class="inline-flex items-center h-full rounded-full text-[14px] text-[var(--text-secondary)] max-w-[100%]">
+              <div
+                class="max-w-[100%] text-ellipsis overflow-hidden whitespace-nowrap text-[13px]"
+                [title]="step.message"
+              >
+                <div class="flex items-center">
+                  <span
+                    class="flex-1 min-w-0 rounded-[6px] px-1 ml-1 relative top-[0px] text-[12px] font-mono max-w-full text-ellipsis overflow-hidden whitespace-nowrap text-[var(--text-tertiary)]"
+                    >
+                    {{ step.message }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="absolute -top-4 right-2 float-right transition text-[12px] text-[var(--text-tertiary)] hidden group-hover/item:block"
+          >
+            4 days ago
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}

@@ -1,4 +1,5 @@
 identity:
+  pro: true
   author: XpertAI
   name: browser-use
   label:
@@ -12,7 +13,7 @@ identity:
     - productivity
     - utilities
 credentials_for_provider:
-  integration:
+  copilotModel:
     type: copilot-model
     required: true
     label:
