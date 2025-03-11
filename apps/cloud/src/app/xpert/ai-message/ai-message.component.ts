@@ -31,6 +31,7 @@ import { toObservable } from '@angular/core/rxjs-interop'
 import { filter, map, shareReplay, switchMap, tap } from 'rxjs'
 import { ChatMessageExecutionComponent } from '../../@shared/chat'
 import { CopyComponent } from '../../@shared/common'
+import { ChatConversationComponent } from '../conversation/conversation.component'
 
 @Component({
   standalone: true,
@@ -62,7 +63,8 @@ export class ChatAiMessageComponent {
   eFeedbackRatingEnum = ChatMessageFeedbackRatingEnum
 
   readonly chatService = inject(ChatService)
-  readonly homeService = inject(XpertHomeService)
+  // readonly homeService = inject(XpertHomeService)
+  readonly conversationComponent = inject(ChatConversationComponent)
   readonly messageFeedbackService = inject(ChatMessageFeedbackService)
   readonly agentExecutionService = inject(XpertAgentExecutionService)
   readonly #toastr = injectToastr()
@@ -149,7 +151,7 @@ export class ChatAiMessageComponent {
   }
 
   onRegister(models: { id: string; indicators?: Indicator[] }[]) {
-    this.homeService.registerSemanticModel(models)
+    this.conversationComponent.registerSemanticModel(models)
   }
 
   onCopy(copyButton) {

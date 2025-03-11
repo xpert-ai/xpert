@@ -5,6 +5,9 @@ import { DataSource, DataSourceFactory, DataSourceOptions } from './data-source'
 import { EntitySet, isEntitySet } from './models'
 import { TimeGranularity } from './models/index'
 
+/**
+ * State type of DataSource core service
+ */
 export interface DSState {
   dataSources: DataSourceOptions[]
   today?: Date
@@ -14,7 +17,9 @@ export interface DSState {
 /**
  * DataSource core store
  * 
- * 
+ * - Register semantic model
+ * - Create data source object for model
+ * - Create entity service for cube
  */
 export class DSCoreService extends ComponentStore<DSState> {
   public readonly timeGranularity$ = this.select((state) => state.timeGranularity)

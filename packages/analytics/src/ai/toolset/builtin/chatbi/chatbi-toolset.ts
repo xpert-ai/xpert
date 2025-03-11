@@ -600,7 +600,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 	 */
 	createIndicatorTool(dsCoreService: NgmDSCoreService) {
 		return tool(
-			async (indicator: Indicator & { language: 'zh' | 'en'; query: string}, config: LangGraphRunnableConfig) => {
+			async (indicator: Indicator & { cube: string; language: 'zh' | 'en'; query: string}, config: LangGraphRunnableConfig) => {
 				this.logger.debug(`[ChatBI] [create_indicator] new indicator: ${JSON.stringify(indicator)}`)
 
 				// const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
@@ -619,7 +619,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 					}
 				}
 
-				const _indicator = {...indicator, visible: true}
+				const _indicator = {...indicator, entity: indicator.cube, visible: true}
 
 				await this.updateIndicators(dsCoreService, [_indicator])
 				// Created event
