@@ -156,6 +156,7 @@ export enum ToolTagEnum {
 	ENTERTAINMENT = 'entertainment',
 	UTILITIES = 'utilities',
 	ANALYSIS = 'analysis',
+	SANDBOX = 'sandbox',
 	OTHER = 'other'
 }
 

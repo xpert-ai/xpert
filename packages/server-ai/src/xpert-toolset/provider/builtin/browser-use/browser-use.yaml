@@ -12,6 +12,7 @@ identity:
   tags:
     - productivity
     - utilities
+    - sandbox
 credentials_for_provider:
   copilotModel:
     type: copilot-model
