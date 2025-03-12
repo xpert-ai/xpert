@@ -22,7 +22,7 @@ import { CopilotChatMessageRoleEnum, CopilotEngine, nanoid } from '@metad/copilo
 import { NgmCopilotService, provideCopilotDropAction } from '@metad/copilot-angular'
 import { EntityCapacity, EntitySchemaNode, EntitySchemaType } from '@metad/ocap-angular/entity'
 import { C_MEASURES, Cube, EntityType, nonNullable, PropertyAttributes, uniqBy, VariableProperty, wrapBrackets } from '@metad/ocap-core'
-import { serializeName } from '@metad/ocap-sql'
+import { limitSelect, serializeName } from '@metad/ocap-sql'
 import { ModelQuery, Store } from 'apps/cloud/src/app/@core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language/translation-base.component'
 import { cloneDeep, isEqual, isPlainObject } from 'lodash-es'
@@ -627,7 +627,7 @@ ${calcEntityTypePrompt(entityType)}
             dialect
           )}) FROM ${serializeName(event.item.data.entity, dialect)}`
         } else {
-          statement = `SELECT * FROM ${serializeName(event.item.data.name, dialect)} LIMIT 1000`
+          statement = limitSelect(serializeName(event.item.data.name, dialect), 1000, dialect)
         }
       }
     }

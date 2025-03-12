@@ -40,7 +40,7 @@ export function serializeName(name: string, dialect: string, catalog?: string) {
     return `"${catalog}"."${name}"`
   }
 
-  if (['pg', 'trino', 'presto', 'duckdb', 'hana'].includes(dialect)) {
+  if (['pg', 'trino', 'presto', 'duckdb', 'hana', 'mssql'].includes(dialect)) {
     return `"${name}"`
   }
 
@@ -115,6 +115,14 @@ export function serializeTableAlias(hierarchy: string, table: string) {
 
 export function isSQLDialect(sql: SQL, dialect: string) {
   return !sql.dialect || sql.dialect === 'generic' || sql.dialect === dialect
+}
+
+export function limitSelect(statement: string, limit: number, dialect: string) {
+  if (['mssql'].includes(dialect)) {
+    return `SELECT TOP ${limit} * FROM ${statement}`
+  }
+
+  return `SELECT * FROM ${statement} LIMIT ${limit}`
 }
 
 export function getErrorMessage(err: any): string {
