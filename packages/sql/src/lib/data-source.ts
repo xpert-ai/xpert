@@ -32,10 +32,13 @@ export class SQLDataSource extends AbstractDataSource<SQLDataSourceOptions> {
   private _catalogs$: Observable<Array<Catalog>>
   private _entitySets$: Observable<Array<EntitySet>>
 
-  discoverDBCatalogs(): Observable<DBCatalog[]> {
+  discoverDBCatalogs(options?): Observable<DBCatalog[]> {
     return from(
       this.agent.request(this.options, { method: 'get', url: 'catalogs' }).catch((error) => {
         this.agent.error(error)
+        if (options?.throwError) {
+          throw error
+        }
         return []
       })
     )

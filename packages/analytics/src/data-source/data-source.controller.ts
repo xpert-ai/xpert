@@ -138,7 +138,11 @@ export class DataSourceController extends CrudController<DataSource> {
 
 	@Get('/:id/catalogs')
 	async getCatalogs(@Param('id', UUIDValidationPipe) dataSourceId: string): Promise<IDSSchema[]> {
-		return await this.dsService.getCatalogs(dataSourceId)
+		try {
+			return await this.dsService.getCatalogs(dataSourceId)
+		} catch (error) {
+			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
+		}
 	}
 
 	@Get('/:id/schema')
@@ -148,7 +152,11 @@ export class DataSourceController extends CrudController<DataSource> {
 		@Query('table') table: string,
 		@Query('statement') statement: string
 	): Promise<IDSTable[]> {
-		return await this.dsService.getSchema(dataSourceId, catalog, table, statement)
+		try {
+			return await this.dsService.getSchema(dataSourceId, catalog, table, statement)
+		} catch (error) {
+			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
+		}
 	}
 
 	@Post('/:id/query')
@@ -246,12 +254,16 @@ export class DataSourceController extends CrudController<DataSource> {
 			params: string
 		}
 	) {
-		return this.commandBus.execute(
-			new DataLoadCommand({
-				id: dataSourceId,
-				sheets: JSON.parse(body.params),
-				file: file
-			})
-		)
+		try {
+			return this.commandBus.execute(
+				new DataLoadCommand({
+					id: dataSourceId,
+					sheets: JSON.parse(body.params),
+					file: file
+				})
+			)
+		} catch (error) {
+			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
+		}
 	}
 }

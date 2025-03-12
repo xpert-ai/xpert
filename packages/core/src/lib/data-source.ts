@@ -113,7 +113,7 @@ export interface DataSource {
   /**
    * Discover catalogs or schemas from DataSource's Database
    */
-  discoverDBCatalogs(): Observable<Array<DBCatalog>>
+  discoverDBCatalogs(options?: {throwError?: boolean}): Observable<Array<DBCatalog>>
   /**
    * Discover tables from DataSource's Database
    */
