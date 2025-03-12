@@ -117,24 +117,21 @@ export class MSSQLRunner<T extends MssqlAdapterOptions = MssqlAdapterOptions> ex
   }
 
   async getSchema(schema?: string, tableName?: string): Promise<IDSSchema[]> {
-    const catalog = this.options.database
     let query = ''
-    const tableSchema = catalog
-      ? `TABLE_CATALOG = '${catalog}'`
-      : `TABLE_CATALOG NOT IN ('master', 'tempdb', 'model', 'msdb')`
+    const tableSchema = schema
+      ? `TABLE_SCHEMA = '${schema}'`
+      : `TABLE_SCHEMA IS NOT NULL`
     if (tableName) {
       query =
         'SELECT TABLE_CATALOG AS table_catalog, TABLE_SCHEMA AS table_schema, TABLE_NAME AS table_name, ' +
         'COLUMN_NAME AS column_name, DATA_TYPE AS data_type ' +
         'FROM INFORMATION_SCHEMA.COLUMNS ' +
-        'WHERE ' + tableSchema + ` AND TABLE_NAME = '${tableName}'` +
-        (schema ? ` AND TABLE_SCHEMA = '${schema}'` : '')
+        'WHERE ' + tableSchema + ` AND TABLE_NAME = '${tableName}'`
     } else {
       query =
         'SELECT TABLE_CATALOG AS table_catalog, TABLE_SCHEMA AS table_schema, TABLE_NAME AS table_name, TABLE_TYPE AS table_type ' +
         'FROM INFORMATION_SCHEMA.TABLES ' +
-        'WHERE ' + tableSchema +
-        (schema ? ` AND TABLE_SCHEMA = '${schema}'` : '')
+        'WHERE ' + tableSchema
     }
 
     const { data } = await this.runQuery<any>(query)
