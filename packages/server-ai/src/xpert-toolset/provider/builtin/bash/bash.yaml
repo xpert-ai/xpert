@@ -1,0 +1,16 @@
+identity:
+  pro: true
+  author: XpertAI
+  name: bash
+  label:
+    en_US: Bash
+    zh_Hans: 命令行
+  description:
+    en_US: Bash tool.
+    zh_Hans: 命令行工具。
+  icon: icon.svg
+  tags:
+    - productivity
+    - utilities
+    - sandbox
+credentials_for_provider:

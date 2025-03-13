@@ -1,0 +1,16 @@
+identity:
+  pro: true
+  author: XpertAI
+  name: file
+  label:
+    en_US: File
+    zh_Hans: 文件
+  description:
+    en_US: File tool.
+    zh_Hans: 文件工具。
+  icon: icon.svg
+  tags:
+    - productivity
+    - utilities
+    - sandbox
+credentials_for_provider:

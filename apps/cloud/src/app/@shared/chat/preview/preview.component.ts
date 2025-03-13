@@ -278,6 +278,13 @@ export class ChatConversationPreviewComponent {
                     }))
                     break
                   }
+                  case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
+                    this.currentMessage.update((state) => ({
+                      ...state,
+                      steps: [...(state.steps ?? []), event.data]
+                    }))
+                    break
+                  }
                 }
               }
             }

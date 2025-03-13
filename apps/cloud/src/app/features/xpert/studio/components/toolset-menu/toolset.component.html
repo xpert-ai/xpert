@@ -16,14 +16,14 @@
 
 @if (type()[0]) {
   @for (toolset of toolsets(); track toolset.id) {
-    <div cdkMenuItem class="shrink-0 w-full flex justify-start items-center p-1 rounded-lg overflow-hidden"
+    <div cdkMenuItem class="shrink-0 w-full flex justify-start items-center p-1.5 rounded-lg overflow-hidden"
       (click)="createToolset(toolset)"
       (mouseover)="openToolsetTip(toolset, overlayTrigger)"
       (mouseout)="toolDetailOpen.set(false)"
       cdkOverlayOrigin
       #overlayTrigger="cdkOverlayOrigin"
       >
-      <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-full scale-95"  />
+      <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-lg scale-95"  />
       <div class="flex-1 truncate" [ngmHighlight]="searchText()" [content]="toolset.name">
         {{toolset.name}}
       </div>
@@ -35,7 +35,7 @@
   }
 } @else {
   @for (toolset of toolProviders(); track toolset.id) {
-    <div cdkMenuItem class="shrink-0 w-full flex justify-start items-center p-1 rounded-lg overflow-hidden"
+    <div cdkMenuItem class="shrink-0 w-full flex justify-start items-center p-1.5 rounded-lg overflow-hidden"
       [cdkMenuItemDisabled]="toolset.not_implemented"
       (click)="createBuiltinToolset(toolset)"
       (mouseover)="openBuiltinToolsetTip(toolset, overlayTrigger)"
@@ -43,7 +43,7 @@
       cdkOverlayOrigin
       #overlayTrigger="cdkOverlayOrigin"
       >
-      <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-full scale-95"  />
+      <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-lg scale-95"  />
       <div class="flex-1 truncate" [ngmHighlight]="searchText()" [content]="toolset.label | i18n">
         {{toolset.label | i18n}}
       </div>

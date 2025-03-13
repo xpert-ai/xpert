@@ -84,6 +84,7 @@ export enum CredentialsType {
   TEXT_INPUT = 'text-input',
   SELECT = 'select',
   REMOTE_SELECT = 'remote-select',
+  COPILOT_MODEL = 'copilot-model',
   BOOLEAN = 'boolean'
 }
 
@@ -155,6 +156,8 @@ export enum ToolTagEnum {
 	ENTERTAINMENT = 'entertainment',
 	UTILITIES = 'utilities',
 	ANALYSIS = 'analysis',
+	SANDBOX = 'sandbox',
+	AGENT = 'agent',
 	OTHER = 'other'
 }
 
@@ -162,10 +165,12 @@ export interface IToolTag {
 	name: string
 	label: I18nObject
 	icon: string
+  description?: I18nObject
 }
 
 export interface IToolProvider {
   not_implemented?: boolean
+  pro?: boolean
   id: string;
   author: string;
   name: string; // identifier

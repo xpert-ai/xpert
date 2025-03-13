@@ -1,17 +1,19 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, input, signal } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { HeightChangeAnimation } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { IChatMessage } from 'apps/cloud/src/app/@core'
+import { DateRelativePipe, IChatMessage } from 'apps/cloud/src/app/@core'
 import { MarkdownModule } from 'ngx-markdown'
 import { Copy2Component } from '../../../common'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, MatTooltipModule, MarkdownModule, Copy2Component],
+  imports: [CommonModule, TranslateModule, MatTooltipModule, MarkdownModule, DateRelativePipe, Copy2Component],
   selector: 'xpert-preview-ai-message',
   templateUrl: 'message.component.html',
-  styleUrls: ['message.component.scss']
+  styleUrls: ['message.component.scss'],
+  animations: [HeightChangeAnimation]
 })
 export class XpertPreviewAiMessageComponent {
   readonly message = input<IChatMessage>()
@@ -33,11 +35,27 @@ export class XpertPreviewAiMessageComponent {
 
   readonly thirdPartyMessage = computed(() => this.message().thirdPartyMessage)
   readonly reasoning = computed(() => this.message().reasoning as string)
+  readonly #steps = computed(() => this.message().steps)
+  readonly lastStep = computed(() =>
+    this.message().steps ? this.message().steps[this.message().steps.length - 1] : null
+  )
+  readonly steps = computed(() => {
+    if (this.expandSteps()) {
+      return this.#steps()
+    } else {
+      return [this.lastStep()]
+    }
+  })
   readonly expandReason = signal(false)
+  readonly expandSteps = signal(false)
 
   constructor() {
     effect(() => {
       // console.log(this.message())
     })
+  }
+
+  toggleSteps() {
+    this.expandSteps.update((state) => !state)
   }
 }

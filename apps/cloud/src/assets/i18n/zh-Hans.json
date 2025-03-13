@@ -1,4 +1,9 @@
 {
+  "Pro": {
+    "ContactUs": "联系我们",
+    "UpgradePro": "升级成专业版",
+    "UpgradeNow": "立即升级"
+  },
   "MENU": {
     "TENANT": "集团",
     "ORGANIZATION": "公司",

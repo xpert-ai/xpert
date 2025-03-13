@@ -4,19 +4,16 @@ import {
 	TWorkflowVarGroup,
 	TXpertGraph,
 	TXpertParameter,
-	XpertParameterTypeEnum,
+	XpertParameterTypeEnum
 } from '@metad/contracts'
+import { omit } from '@metad/server-common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { omit } from 'lodash'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertAgentQuery } from '../../../xpert/queries/'
 import { XpertService } from '../../../xpert/xpert.service'
-import {
-	STATE_VARIABLE_INPUT,
-	STATE_VARIABLE_SYS,
-} from '../../commands/handlers/types'
-import { XpertAgentVariablesQuery } from '../get-variables.query'
 import { getAgentVarGroup } from '../../agent'
+import { STATE_VARIABLE_INPUT, STATE_VARIABLE_SYS } from '../../commands/handlers/types'
+import { XpertAgentVariablesQuery } from '../get-variables.query'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
@@ -94,32 +91,34 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			}
 		]
 
-		const agentConfig = isDraft ? xpert.draft?.team?.agentConfig ?? xpert.agentConfig : xpert.agentConfig
+		const agentConfig = isDraft ? (xpert.draft?.team?.agentConfig ?? xpert.agentConfig) : xpert.agentConfig
 		const stateVariables = agentConfig?.stateVariables
 		if (stateVariables) {
 			varGroups[0].variables.push(...stateVariables)
 		}
 
 		// All agents output
-		const graph = isDraft ? {...(xpert.graph ?? {}), ...(xpert.draft ?? {})} as TXpertGraph : xpert.graph
+		const graph = isDraft ? ({ ...(xpert.graph ?? {}), ...(xpert.draft ?? {}) } as TXpertGraph) : xpert.graph
 
 		if (type === 'agent') {
-			const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
-				new GetXpertAgentQuery(xpertId, nodeKey, isDraft)
-			)
-			if (!agent) {
-				return varGroups
-			}
-
 			if (nodeKey) {
+				const variables = await this.getAgentVariables(xpertId, nodeKey, isDraft)
+				varGroups[0].variables.push(...variables)
+			}
+		}
+
+		const agentNodes = graph?.nodes?.filter((_) => _.type === 'agent' && _.key !== nodeKey)
+		if (agentNodes) {
+			for await (const node of agentNodes) {
+				const g = getAgentVarGroup(node.key, graph)
+				varGroups.push(g)
+
+				const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
+					new GetXpertAgentQuery(xpertId, node.key, isDraft)
+				)
 				const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
 					new ToolsetGetToolsCommand(agent.toolsetIds)
 				)
-
-				if (nodeKey && agent.parameters) {
-					varGroups[0].variables.push(...agent.parameters.map(xpertParameterToVariable))
-				}
-
 				for await (const toolset of toolsets) {
 					await toolset.initTools()
 					const toolVars = toolset.getVariables()
@@ -130,24 +129,36 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			}
 		}
 
-		graph?.nodes?.filter((_) => _.type === 'agent' && _.key !== nodeKey)
-			.forEach((node) => {
-				const g = getAgentVarGroup(node.key, graph)
-				varGroups.push(g)
-			})
-
-		// if (type === 'workflow' && graph) {
-		// 	uniq(graph.connections.filter((con) => con.type === 'edge' && con.to === nodeKey && isAgentKey(con.from))
-		// 		.map((con) => con.from))
-		// 		.forEach((agentKey) => {
-		// 			const g = getAgentVarGroup(agentKey, graph)
-		// 			varGroups.push(g)
-		// 		})
-		// }
-
 		return varGroups
 	}
 
+	async getAgentVariables(xpertId: string, key: string, isDraft: boolean) {
+		const variables = []
+		const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
+			new GetXpertAgentQuery(xpertId, key, isDraft)
+		)
+		if (!agent) {
+			return variables
+		}
+
+		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
+			new ToolsetGetToolsCommand(agent.toolsetIds)
+		)
+
+		if (agent.parameters) {
+			variables.push(...agent.parameters.map(xpertParameterToVariable))
+		}
+
+		for await (const toolset of toolsets) {
+			await toolset.initTools()
+			const toolVars = toolset.getVariables()
+			if (toolVars) {
+				variables.push(...toolVars.map(toolsetVariableToVariable))
+			}
+		}
+
+		return variables
+	}
 }
 
 function xpertParameterToVariable(parameter: TXpertParameter) {

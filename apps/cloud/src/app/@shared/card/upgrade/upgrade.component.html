@@ -1,0 +1,12 @@
+<div class="flex justify-between px-6 py-5 h-[88px] shadow-md rounded-xl relative bg-components-panel-bg
+bg-gradient-to-br from-cyan-200 to-blue-200">
+  <div class="leading-[24px] text-base font-semibold">
+    <div>{{ 'Pro.ContactUs' | translate: {Default: 'Contact Us'} }}</div>
+    <div>{{ 'Pro.UpgradePro' | translate: {Default: 'Upgrade to Pro version'} }}</div>
+  </div>
+  <a class="btn btn-small bg-white relative text-nowrap" [href]="helpWebsite() + '/#connect'">
+    <div class="system-xs-medium">
+      <span class="p-1">{{ 'Pro.UpgradeNow' | translate: {Default: 'Upgrade now'} }}</span>
+    </div>
+  </a>
+</div>

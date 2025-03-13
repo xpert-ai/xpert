@@ -7,7 +7,8 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmRemoteSelectComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { CredentialsType, ToolProviderCredentials } from 'apps/cloud/src/app/@core'
+import { AiModelTypeEnum, CredentialsType, ToolProviderCredentials } from 'apps/cloud/src/app/@core'
+import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 
@@ -23,7 +24,8 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
     MatSlideToggleModule,
     NgmI18nPipe,
     NgmRemoteSelectComponent,
-    NgmDensityDirective
+    NgmDensityDirective,
+    CopilotModelSelectComponent
   ],
   selector: 'xpert-tool-builtin-credential',
   templateUrl: './credential.component.html',
@@ -38,6 +40,7 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 })
 export class XpertToolBuiltinCredentialComponent {
   eCredentialsType = CredentialsType
+  eAiModelTypeEnum = AiModelTypeEnum
 
   protected cva = inject<NgxControlValueAccessor<unknown | null>>(NgxControlValueAccessor)
   

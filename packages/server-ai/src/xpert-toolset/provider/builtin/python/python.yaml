@@ -1,0 +1,15 @@
+identity:
+  pro: true
+  author: XpertAI
+  name: python
+  label:
+    en_US: Python
+    zh_Hans: Python
+  description:
+    en_US: Python tool.
+    zh_Hans: Python 工具。
+  icon: icon.svg
+  tags:
+    - productivity
+    - utilities
+credentials_for_provider:

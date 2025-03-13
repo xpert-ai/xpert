@@ -12,6 +12,13 @@ export type TSummaryJob = Record<LongTermMemoryTypeEnum, {
     memoryKey?: string
   }>
 
+export type TChatMessageStep = {
+  toolset?: string
+  tool?: string
+  message?: string
+  created_date?: Date | string
+}
+
 /**
  * 
  */
@@ -23,6 +30,8 @@ export interface IChatMessage extends IBasePerTenantAndOrganizationEntityModel, 
    * the third-party platform's message
    */
   thirdPartyMessage?: any
+
+  steps?: TChatMessageStep[]
 
   // Many to one
   /**

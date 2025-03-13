@@ -1,0 +1,23 @@
+identity:
+  name: python_execute
+  author: XpertAI
+  label:
+    en_US: Execute python code
+    zh_Hans: 运行 Python 代码
+description:
+  human:
+    en_US: Execute a python code.
+    zh_Hans: 运行一段 Python 代码。
+  llm: This tool can execute a python code.
+parameters:
+  - name: code
+    type: string
+    required: true
+    label:
+      en_US: Code
+      zh_Hans: 代码
+    human_description:
+      en_US: Python code.
+      zh_Hans: Python 代码。
+    llm_description: The python code.
+    form: llm

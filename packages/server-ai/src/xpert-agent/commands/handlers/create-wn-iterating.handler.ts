@@ -1,4 +1,6 @@
 import { CompiledStateGraph, END, LangGraphRunnableConfig, Send } from '@langchain/langgraph'
+import { RunnableLambda } from '@langchain/core/runnables'
+import { RequestContext } from '@metad/server-core'
 import { channelName, ChatMessageEventTypeEnum, ChatMessageTypeEnum, IWFNIterating, IXpert, IXpertAgent, mapTranslationLanguage, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { InternalServerErrorException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -9,7 +11,8 @@ import { AgentStateAnnotation } from './types'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
-import { RequestContext } from '@metad/server-core'
+import { setStateVariable } from '../../agent'
+import { XpertAgentVariableSchemaQuery } from '../../queries'
 
 @CommandHandler(CreateWNIteratingCommand)
 export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIteratingCommand> {
@@ -46,15 +49,24 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 		const inputVariable = entity.inputVariable
 		const outputVariable = entity.outputVariable
 		let paramSchema = null
-		const [agentChannelName, variableName] = inputVariable.split('.')
-		if (variableName) {
-			const leaderAgent = graph.nodes.find((n) => n.type === 'agent' && channelName(n.key) === agentChannelName) as TXpertTeamNode & {type: 'agent'}
-			if (leaderAgent) {
-				const variableSchema = leaderAgent.entity.outputVariables.find((_) => _.name === variableName)
-				if (variableSchema.type.startsWith('array')) {
-					paramSchema = variableSchema.item
-				}
+		
+		if (inputVariable) {
+			const variableSchema = await this.queryBus.execute(new XpertAgentVariableSchemaQuery({
+				xpertId,
+				type: 'workflow',
+				isDraft,
+				variable: inputVariable
+			}))
+			if (variableSchema?.type.startsWith('array')) {
+				paramSchema = variableSchema.item
 			}
+			// const leaderAgent = graph.nodes.find((n) => n.type === 'agent' && channelName(n.key) === agentChannelName) as TXpertTeamNode & {type: 'agent'}
+			// if (leaderAgent) {
+			// 	const variableSchema = leaderAgent.entity.outputVariables.find((_) => _.name === variableName)
+			// 	if (variableSchema.type.startsWith('array')) {
+			// 		paramSchema = variableSchema.item
+			// 	}
+			// }
 		}
 
 		const execution = {}
@@ -75,7 +87,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 
 		return {
 			workflowNode: {
-				graph: async (state: typeof AgentStateAnnotation.State, config: LangGraphRunnableConfig) => {
+				graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config: LangGraphRunnableConfig) => {
 					const parameterValue = get(state, entity.inputVariable)
 					let _execution = {
 						...execution,
@@ -107,6 +119,14 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 						}) as MessageEvent
 					)
 					
+					const controller = new AbortController()
+					config.signal.addEventListener('abort', () => {
+						if (!controller.signal.aborted) {
+							try {
+								controller.abort()
+							} catch(err) {}
+						}
+					})
 					const parallel = entity.parallel
 					const maximum = entity.maximum
 					const errorMode = entity.errorMode
@@ -125,7 +145,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 								}
 
 								// Create a new task and add it to the pool
-								const task = subgraph.invoke({ ...state, ...item }, { ...config })
+								const task = subgraph.invoke({ ...state, ...item }, { ...config, signal: controller.signal })
 									.then(retState => {
 										outputs[i] = retState[channelName(agentNode.key)].output
 									})
@@ -157,10 +177,16 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 							await Promise.all(taskPool);
 						} else {
 							// Execute sequentially
-							for (const item of parameterValue) {
+							let index = 0
+							for await (const item of parameterValue) {
+								// Check signal status
+								if (config.signal.aborted) {
+									return
+								}
+								const i = index
 								try {
-									const retState = await subgraph.invoke({ ...state, ...item }, { ...config })
-									outputs.push(retState[channelName(agentNode.key)].output)
+									const retState = await subgraph.invoke({ ...state, ...item }, { ...config, signal: controller.signal })
+									outputs[i] = retState[channelName(agentNode.key)].output
 								} catch(err) {
 									switch(errorMode) {
 										case ('terminate'): {
@@ -175,6 +201,8 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 											break
 										}
 									}
+								} finally {
+									index++
 								}
 							}
 						}
@@ -221,15 +249,11 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 					await finalize()
 
 					const nState = {}
-					const [agentChannelName, variableName] = outputVariable.split('.')
-					if (variableName) {
-						nState[agentChannelName] = {[variableName]: outputs}
-					} else {
-						nState[agentChannelName] = outputs
+					if (outputVariable) {
+						setStateVariable(nState, outputVariable, outputs)
 					}
-					
 					return nState
-				},
+				}),
 				ends: []
 			},
 			navigator: async (state: typeof AgentStateAnnotation.State, config) => {

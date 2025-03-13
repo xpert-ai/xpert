@@ -159,6 +159,7 @@ export class XpertController extends CrudController<Xpert> {
 		}
 	}
 
+	@UseGuards(XpertGuard)
 	@Get(':id/team')
 	async getTeam(@Param('id') id: string, @Query('data', ParseJsonPipe) data: OptionParams<Xpert>) {
 		return this.service.getTeam(id, data)

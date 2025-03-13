@@ -1,0 +1,13 @@
+identity:
+  name: update_plan_step
+  author: XpertAI
+  label:
+    en_US: Update step of plan
+    zh_Hans: 更新计划步骤
+  icon: icon.svg
+description:
+  human:
+    en_US: Update step of plan
+    zh_Hans: 更新计划步骤
+  llm: A tool for updating step of plan.
+parameters:

@@ -1,0 +1,22 @@
+identity:
+  name: delete_plan_step
+  author: XpertAI
+  label:
+    en_US: Delete a step of plan
+    zh_Hans: 删除一个计划步骤
+  icon: icon.svg
+description:
+  human:
+    en_US: Delete a step of plan
+    zh_Hans: 删除一个计划步骤
+  llm: A tool for deleting a step of plan.
+parameters:
+  - name: index
+    type: string
+    label:
+      en_US: Step index
+      zh_Hans: 步骤索引
+    human_description:
+      en_US: Step index in plan
+      zh_Hans: 计划中的步骤索引
+    form: llm

@@ -7,7 +7,7 @@
     "state"
   ],
   "author": "Tiven Wang <i.tiven.wang@gmail.com>",
-  "license": "MIT",
+  "license": "AGPL-3.0",
   "homepage": "https://github.com/meta-d/ocap",
   "repository": {
     "type": "git",

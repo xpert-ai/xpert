@@ -21,7 +21,7 @@ credentials_for_provider:
     placeholder:
       en_US: Please select a feishu integration
       zh_Hans: 请选择一个飞书集成
-    selectUrl: /api/integration/select-options
+    selectUrl: /api/integration/select-options?provider=Lark
     url: /settings/integration
   chat:
     type: remote-select

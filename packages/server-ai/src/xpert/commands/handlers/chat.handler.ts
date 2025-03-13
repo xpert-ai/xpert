@@ -24,7 +24,7 @@ import {
 	GetChatConversationQuery,
 	ScheduleSummaryJobCommand
 } from '../../../chat-conversation/'
-import { ChatMessageUpsertCommand } from '../../../chat-message'
+import { appendMessageSteps, ChatMessageUpsertCommand } from '../../../chat-message'
 import { CreateCopilotStoreCommand } from '../../../copilot-store'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { XpertAgentChatCommand } from '../../../xpert-agent/'
@@ -187,15 +187,22 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 									result += event.data.data
 								}
 							} else if (
-								event.data.type === ChatMessageTypeEnum.EVENT &&
-								event.data.event === ChatMessageEventTypeEnum.ON_AGENT_END
+								event.data.type === ChatMessageTypeEnum.EVENT
 							) {
-								_execution = event.data.data
-							} else if (
-								event.data.type === ChatMessageTypeEnum.EVENT &&
-								event.data.event === ChatMessageEventTypeEnum.ON_INTERRUPT
-							) {
-								operation = event.data.data
+								switch(event.data.event) {
+									case (ChatMessageEventTypeEnum.ON_AGENT_END): {
+										_execution = event.data.data
+										break
+									}
+									case (ChatMessageEventTypeEnum.ON_INTERRUPT): {
+										operation = event.data.data
+										break
+									}
+									case (ChatMessageEventTypeEnum.ON_TOOL_MESSAGE): {
+										appendMessageSteps(aiMessage, [event.data.data])
+										break
+									}
+								}
 							}
 						}
 					}),
