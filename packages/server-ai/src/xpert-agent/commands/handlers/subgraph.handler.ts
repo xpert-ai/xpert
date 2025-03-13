@@ -207,7 +207,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		let nextNodeKey: string[] = []
 		let failNodeKey = END
 		const agentKeys = new Set([agent.key])
-		const nodes: Record<string, {ends: string[]; graph: RunnableLike;}> = {}
+		const nodes: Record<string, {ends: string[]; graph: Runnable;}> = {}
 		// Conditional Edges
 		const conditionalEdges: Record<string, [RunnableLike, string[]?]> = {}
 		// Fixed Edge
@@ -589,7 +589,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(agentChannel, summarize, summarizeTitle))
 		} else {
 			// Next nodes
-			Object.keys(nodes).forEach((name) => subgraphBuilder.addNode(name, nodes[name].graph, {ends: nodes[name].ends}))
+			Object.keys(nodes).forEach((name) => subgraphBuilder.addNode(name, nodes[name].graph.withConfig({signal: abortController.signal}), {ends: nodes[name].ends}))
 			Object.keys(edges).forEach((name) => subgraphBuilder.addEdge(name, edges[name]))
 			Object.keys(conditionalEdges).forEach((name) => subgraphBuilder.addConditionalEdges(name, conditionalEdges[name][0], conditionalEdges[name][1]))
 		}

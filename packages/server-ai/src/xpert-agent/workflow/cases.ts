@@ -1,3 +1,4 @@
+import { RunnableLambda } from '@langchain/core/runnables'
 import { END } from '@langchain/langgraph'
 import {
 	IWFNIfElse,
@@ -92,9 +93,9 @@ export function createCasesNode(graph: TXpertGraph, node: TXpertTeamNode & { typ
 
 	return {
 		workflowNode: {
-			graph: () => {
+			graph: RunnableLambda.from(() => {
 				//
-			},
+			}),
 			ends: []
 		},
 		navigator: async (state: typeof AgentStateAnnotation.State, config) => {

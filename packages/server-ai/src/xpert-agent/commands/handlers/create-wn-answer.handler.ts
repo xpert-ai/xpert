@@ -1,3 +1,4 @@
+import { RunnableLambda } from '@langchain/core/runnables'
 import { AIMessagePromptTemplate } from '@langchain/core/prompts'
 import { END, LangGraphRunnableConfig, Send } from '@langchain/langgraph'
 import { IWFNAnswer } from '@metad/contracts'
@@ -25,14 +26,14 @@ export class CreateWNAnswerHandler implements ICommandHandler<CreateWNAnswerComm
 
 		return {
 			workflowNode: {
-				graph: async (state: typeof AgentStateAnnotation.State, config: LangGraphRunnableConfig) => {
+				graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config: LangGraphRunnableConfig) => {
 
 					const aiMessage = await AIMessagePromptTemplate.fromTemplate(entity.promptTemplate, {
 						templateFormat: 'mustache'
 					}).format(stateToParameters(state))
 
 					await new FakeStreamingChatModel({ responses: [aiMessage] }).invoke([], config)
-				},
+				}),
 				ends: []
 			},
 			navigator: async (state: typeof AgentStateAnnotation.State, config) => {
