@@ -153,7 +153,7 @@ export class ModelCreationComponent implements ControlValueAccessor {
       this.discoverDBCatalogsError.set(null)
     }),
     switchMap((dataSource) =>
-      dataSource.discoverDBCatalogs().pipe(
+      dataSource.discoverDBCatalogs({throwError: true}).pipe(
         catchError((err) => {
           this.catalogsLoading.set(false)
           this.discoverDBCatalogsError.set(getErrorMessage(err))

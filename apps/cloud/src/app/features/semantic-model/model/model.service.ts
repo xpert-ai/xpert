@@ -52,6 +52,7 @@ import {
   initEntitySubState
 } from './types'
 import { upsertHierarchy } from './utils'
+import { limitSelect } from '@metad/ocap-sql'
 
 @Injectable()
 export class SemanticModelService {
@@ -752,7 +753,7 @@ export class SemanticModelService {
       filter(nonNullable),
       take(1),
       switchMap((dataSource) =>
-        dataSource.query({ statement: `SELECT * FROM ${table} LIMIT ${k}`, forceRefresh: true })
+        dataSource.query({ statement: limitSelect(table, k, this.dialect()), forceRefresh: true })
       )
     )
   }

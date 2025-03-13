@@ -4,14 +4,24 @@ import {
   AgentType,
   DataSourceOptions,
   isNil,
+  mapIndicatorToMeasures,
   omit,
   Syntax
 } from '@metad/ocap-core'
-import { NgmSemanticModel } from '@metad/cloud/state'
+import { convertIndicatorResult, NgmSemanticModel } from '@metad/cloud/state'
 import { getSemanticModelKey } from '@metad/story/core'
+import { IIndicator } from '../types'
 
-
-export function registerModel(model: NgmSemanticModel, dsCoreService: NgmDSCoreService, wasmAgent: WasmAgentService) {
+/**
+ * Register semantic model into data soruce.
+ * 
+ * @param model Semantic Model
+ * @param dsCoreService 
+ * @param wasmAgent 
+ * @param indicators Runtime indicators
+ * @returns 
+ */
+export function registerModel(model: NgmSemanticModel, dsCoreService: NgmDSCoreService, wasmAgent: WasmAgentService, indicators?: IIndicator[]) {
   const modelKey = getSemanticModelKey(model)
   const agentType = isNil(model.dataSource)
     ? AgentType.Wasm
@@ -38,7 +48,15 @@ export function registerModel(model: NgmSemanticModel, dsCoreService: NgmDSCoreS
     schema: {
       ...(model.schema ?? {}),
       indicators: model.indicators
-    }
+    },
+    calculatedMeasures: indicators?.reduce((measures, indicator) => {
+      if (indicator.entity) {
+        measures[indicator.entity] ??= []
+        measures[indicator.entity].push(...mapIndicatorToMeasures(convertIndicatorResult(indicator)))
+      }
+      
+      return measures
+      }, {}),
   } as DataSourceOptions
 
   if (model.dataSource?.type?.protocol?.toUpperCase() === 'SQL') {

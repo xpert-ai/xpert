@@ -159,9 +159,9 @@ export enum DBProtocolEnum {
   XMLA = 'xmla'
 }
 
-export interface QueryResult {
+export interface QueryResult<T = unknown> {
   status: 'OK' | 'ERROR'
-  data?: Array<unknown>
+  data?: Array<T>
   columns?: Array<IColumnDef>
   stats?: any
   error?: string

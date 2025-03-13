@@ -125,7 +125,7 @@ export const ChatAnswerSchema = z.object({
 export const IndicatorSchema = z.object({
 	language: LanguageSchema,
 	modelId: z.string().describe('The id of model'),
-	entity: z.string().describe('The cube name'),
+	cube: z.string().describe('The cube name'),
 	code: z.string().describe('The unique code of indicator'),
 	name: z.string().describe(`The caption of indicator in user's language`),
 	formula: z.string().describe('The MDX formula for calculated measure'),

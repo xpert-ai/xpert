@@ -171,6 +171,7 @@ export class ChatService {
 
   chat(options: Partial<{id: string; content: string; confirm: boolean; operation: TSensitiveOperation; reject: boolean; retry: boolean}>) {
     this.answering.set(true)
+    this.conversation.update((state) => ({...(state ?? {}), status: 'busy'} as IChatConversation))
 
     if (options.confirm) {
       this.updateLatestMessage((message) => {

@@ -2,16 +2,6 @@
   <emoji-avatar class="rounded-full overflow-hidden shadow-sm mr-4" [avatar]="role()?.avatar" />
 </div>
 
-@if (message()?.event && answering()) {
-  <div class="absolute left-14 bottom-0 px-2 flex items-center gap-1 rounded-md cursor-pointer text-sm text-token-text-secondary hover:bg-gray-50"
-    [matTooltip]=" message().error "
-    matTooltipPosition="above"
-  >
-    <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
-    {{'PAC.Chat.Event_' + message().event | translate: {Default: message().event.toUpperCase()} }}
-  </div>
-}
-
 <div class="group/message relative flex-1 flex flex-col gap-2 mt-2 pb-10 overflow-hidden">
 
   <!-- executions -->
@@ -196,7 +186,7 @@
           />
         }
         @case ('component') {
-          <chat-component-message class="w-full p-2 rounded-2xl hover:bg-hover-bg"
+          <chat-component-message class="w-full p-2 rounded-2xl hover:bg-neutral-50"
             [message]="message"
             (register)="onRegister($event)"
           />
@@ -321,7 +311,19 @@
       </div>
     </div> -->
   </div>
+
+  @if (message()?.event && answering()) {
+    <div class="w-full px-2 py-1 flex items-center gap-1 rounded-lg cursor-pointer text-sm text-token-text-secondary bg-gray-50 hover:bg-gray-100"
+      [matTooltip]=" message().error "
+      matTooltipPosition="above"
+      matTooltipPositionAtOrigin
+    >
+      <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
+      {{'PAC.Chat.Event_' + message().event | translate: {Default: message().event.toUpperCase()} }}
+    </div>
+  }
 </div>
+
 
 <ng-template #buttonTemplate>
   <!-- <button mat-flat-button displayDensity="compact" class="ngm-rounded-full"
