@@ -5,6 +5,7 @@ import { StructuredToolInterface } from '@langchain/core/tools'
 import { Annotation, messagesStateReducer } from '@langchain/langgraph'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
 import { channelName, IXpertAgent, TMessageChannel, TStateVariable, TVariableAssigner, TXpertGraph, TXpertTeamNode, VariableOperationEnum, XpertParameterTypeEnum } from '@metad/contracts'
+import { isFunction } from '@metad/server-common'
 
 // export const STATE_VARIABLE_SYS_LANGUAGE = 'sys_language'
 export const STATE_VARIABLE_SYS = 'sys'
@@ -99,8 +100,14 @@ export type TGraphTool = {
 }
 
 export function stateVariable(variable: TStateVariable) {
+	const defaultValue = [XpertParameterTypeEnum.STRING, XpertParameterTypeEnum.TEXT, XpertParameterTypeEnum.PARAGRAPH].includes(variable.type) 
+		? variable.default
+		: isFunction(variable.default) ? variable.default 
+			: variable.default ? JSON.parse(variable.default) 
+				: null
+
 	return {
-		default: () => [XpertParameterTypeEnum.STRING, XpertParameterTypeEnum.TEXT, XpertParameterTypeEnum.PARAGRAPH].includes(variable.type) ? variable.default : variable.default ? JSON.parse(variable.default) : null,
+		default: () => defaultValue,
 		reducer: (left, right) => {
 			if (variable.type.startsWith('array')) {
 				left ??= []

@@ -16,7 +16,7 @@
 
 @if (type()[0]) {
   @for (toolset of toolsets(); track toolset.id) {
-    <div cdkMenuItem class="shrink-0 w-full flex justify-start items-center p-1 rounded-lg overflow-hidden"
+    <div cdkMenuItem class="shrink-0 w-full flex justify-start items-center p-1.5 rounded-lg overflow-hidden"
       (click)="createToolset(toolset)"
       (mouseover)="openToolsetTip(toolset, overlayTrigger)"
       (mouseout)="toolDetailOpen.set(false)"
@@ -35,7 +35,7 @@
   }
 } @else {
   @for (toolset of toolProviders(); track toolset.id) {
-    <div cdkMenuItem class="shrink-0 w-full flex justify-start items-center p-1 rounded-lg overflow-hidden"
+    <div cdkMenuItem class="shrink-0 w-full flex justify-start items-center p-1.5 rounded-lg overflow-hidden"
       [cdkMenuItemDisabled]="toolset.not_implemented"
       (click)="createBuiltinToolset(toolset)"
       (mouseover)="openBuiltinToolsetTip(toolset, overlayTrigger)"

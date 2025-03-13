@@ -1,13 +1,13 @@
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
+import { getContextVariable } from '@langchain/core/context'
 import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
+import { CONTEXT_VARIABLE_CURRENTSTATE } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import z from 'zod'
 import { ToolParameterValidationError } from '../../../../errors'
 import { BuiltinTool } from '../../builtin-tool'
 import { PlanningToolset } from '../planning'
 import { PlanningToolEnum, TPlan } from '../types'
-import { getContextVariable } from '@langchain/core/context'
-import { CONTEXT_VARIABLE_CURRENTSTATE } from '@metad/contracts'
 
 export type TPlanningDeleteToolParameters = {
 	id: string
@@ -23,19 +23,19 @@ export class PlanningDeleteTool extends BuiltinTool {
 	description = 'A tool for deleting a plan'
 
 	schema = z.object({
-		id: z.string().describe(`Plan id`),
+		id: z.string().describe(`Plan id`)
 	})
 
 	constructor(private toolset: PlanningToolset) {
 		super()
 
-        this.verboseParsingErrors = true
+		this.verboseParsingErrors = true
 	}
 
 	async _call(
 		parameters: TPlanningDeleteToolParameters,
 		callbacks: CallbackManagerForToolRun,
-		config: LangGraphRunnableConfig & {toolCall}
+		config: LangGraphRunnableConfig & { toolCall }
 	) {
 		if (!parameters.id) {
 			throw new ToolParameterValidationError(`id is empty`)
@@ -48,20 +48,20 @@ export class PlanningDeleteTool extends BuiltinTool {
 
 		plans[parameters.id] = null
 
-        // Populated when a tool is called with a tool call from a model as input
+		// Populated when a tool is called with a tool call from a model as input
 		const toolCallId = config.toolCall?.id
-        return new Command({
-            update: {
-                plans,
-                // update the message history
-                messages: [
-                    {
-                        role: 'tool',
-                        content: `Plan deleted!`,
-                        tool_call_id: toolCallId
-                    }
-                ]
-            }
-        })
+		return new Command({
+			update: {
+				plans,
+				// update the message history
+				messages: [
+					{
+						role: 'tool',
+						content: `Plan deleted!`,
+						tool_call_id: toolCallId
+					}
+				]
+			}
+		})
 	}
 }

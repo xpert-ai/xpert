@@ -26,6 +26,9 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 		const organizationId = RequestContext.getOrganizationId()
 
 		const ids = command.ids
+		if (!ids) {
+			return []
+		}
 		const { items: toolsets } = await this.toolsetService.findAll({
 			where: {
 				id: In(ids)

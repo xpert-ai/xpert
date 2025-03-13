@@ -14,7 +14,7 @@ import {
 	START,
 	StateGraph
 } from '@langchain/langgraph'
-import { agentLabel, agentUniqueName, channelName, ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, agentUniqueName, channelName, ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -107,9 +107,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		)
 		const tools: TGraphTool[] = []
 		const interruptBefore: string[] = []
+		const toolsetVarirables: TStateVariable[] = []
 		const stateVariables: TStateVariable[] = Array.from(team.agentConfig?.stateVariables ?? [])
 		for await (const toolset of toolsets) {
-			stateVariables.push(...(toolset.getVariables() ?? []))
+			toolsetVarirables.push(...(toolset.getVariables() ?? []))
+			stateVariables.push(...toolsetVarirables)
 			const items = await toolset.initTools()
 			items.forEach((tool) => {
 				const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)
@@ -242,7 +244,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						thread_id,
 						rootController,
 						signal,
-						isTool: false
+						isTool: false,
+						variables: toolsetVarirables
 					})
 					
 					// Conditional Edges
@@ -292,7 +295,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						thread_id,
 						rootController,
 						signal,
-						isTool: false
+						isTool: false,
+						variables: toolsetVarirables
 					})
 	
 					nodes[fail.key] = {graph: stateGraph, ends: []}
@@ -335,6 +339,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		// State
 		const agents = allAgentsKey(graph)
 		const SubgraphStateAnnotation = Annotation.Root({
+			// Temp parameters
+			...(variables?.reduce((state, schema) => {
+				state[schema.name] = Annotation(stateVariable(schema))
+				return state
+			}, {}) ?? {}),
 			...AgentStateAnnotation.spec, // Common agent states
 			// Global conversation variables
 			...(stateVariables.reduce((acc, variable) => {
@@ -366,11 +375,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						messages: []})
 				})
 			])),
-			// Temp parameters
-			...(variables?.reduce((state, schema) => {
-				state[schema.name] = Annotation(stateVariable(schema))
-				return state
-			}, {}) ?? {})
 		})
 
 		const enableMessageHistory = !agent.options?.disableMessageHistory
@@ -624,9 +628,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			rootController: AbortController
 			signal: AbortSignal
 			isTool: boolean
+			/**
+			 * Temporary parameters (state variables)
+			 */
+			variables?: TXpertParameter[]
 		}
 	) {
-		const { xpert, options, isTool, thread_id, rootController, signal } = config
+		const { xpert, options, isTool, thread_id, rootController, signal, variables } = config
 		const { subscriber, leaderKey } = options
 		const execution: IXpertAgentExecution = {}
 
@@ -642,7 +650,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				rootExecutionId: config.options.rootExecutionId,
 				isDraft: config.options.isDraft,
 				subscriber,
-				execution
+				execution,
+				variables
 			})
 		)
 

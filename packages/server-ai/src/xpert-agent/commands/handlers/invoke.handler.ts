@@ -22,9 +22,9 @@ import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { pick } from 'lodash'
-import { catchError, concat, filter, from, Observable, of, switchMap, tap } from 'rxjs'
+import { catchError, concat, filter, from, map, Observable, of, switchMap, tap } from 'rxjs'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
-import { createProcessStreamEvents } from '../../agent'
+import { createMapStreamEvents } from '../../agent'
 import { CompleteToolCallsQuery } from '../../queries'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
@@ -142,7 +142,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				}
 			)
 		).pipe(
-			switchMap(createProcessStreamEvents(this.#logger, thread_id, subscriber, {
+			map(createMapStreamEvents(this.#logger, thread_id, subscriber, {
 				disableOutputs: [...(team.agentConfig?.disableOutputs ?? []), 'title_conversation', 'summarize_conversation'],
 				agent
 			})),

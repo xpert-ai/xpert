@@ -1,7 +1,7 @@
-import { IXpertToolset, TStateVariable, TStateVariableType, TToolCredentials } from '@metad/contracts'
+import { IXpertToolset, TStateVariable, TToolCredentials, XpertParameterTypeEnum } from '@metad/contracts'
 import { BuiltinTool } from '../builtin-tool'
 import { BuiltinToolset, TBuiltinToolsetParams } from '../builtin-toolset'
-import { PlanningToolEnum } from './types'
+import { PLAN_STEPS_NAME, PLAN_TITLE_NAME, PlanningToolEnum } from './types'
 import { PlanningCreateTool } from './tools/create'
 import { PlanningListTool } from './tools/list'
 import { PlanningDeleteTool } from './tools/delete'
@@ -20,18 +20,30 @@ export class PlanningToolset extends BuiltinToolset {
 	getVariables() {
 		return [
 			{
-				name: 'plans',
-				type: 'object' as TStateVariableType,
-				description: 'Plans',
-				reducer: (a, b) => {
-					return {
-						...(a ?? {}),
-						...(b ?? {})
+				name: PLAN_TITLE_NAME,
+				type: XpertParameterTypeEnum.STRING,
+				description: 'Plan title',
+				reducer: (a, b) => b ?? a,
+				default: () => '',
+			} as TStateVariable,
+			{
+				name: PLAN_STEPS_NAME,
+				type: 'array[object]',
+				description: 'Plan steps',
+				reducer: (a, b) => b ?? a,
+				default: () => [],
+				item: [
+					{
+						type: XpertParameterTypeEnum.STRING,
+						name: 'index',
+						title: 'Index of step'
+					},
+					{
+						type: XpertParameterTypeEnum.STRING,
+						name: 'content',
+						title: 'Content of step'
 					}
-				},
-				default: () => {
-					return {}
-				}
+				]
 			} as TStateVariable
 		]
 	}
@@ -49,10 +61,10 @@ export class PlanningToolset extends BuiltinToolset {
 						this.tools.push(new PlanningListTool(this))
 						break
 					}
-					case (PlanningToolEnum.DELETE_PLAN): {
-						this.tools.push(new PlanningDeleteTool(this))
-						break
-					}
+					// case (PlanningToolEnum.DELETE_PLAN): {
+					// 	this.tools.push(new PlanningDeleteTool(this))
+					// 	break
+					// }
 					case (PlanningToolEnum.UPDATE_PLAN_STEP): {
 						this.tools.push(new PlanningUpdateStepTool(this))
 						break

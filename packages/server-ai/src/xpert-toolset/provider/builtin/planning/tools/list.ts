@@ -6,7 +6,7 @@ import { Logger } from '@nestjs/common'
 import z from 'zod'
 import { BuiltinTool } from '../../builtin-tool'
 import { PlanningToolset } from '../planning'
-import { PlanningToolEnum, TPlan } from '../types'
+import { PLAN_STEPS_NAME, PLAN_TITLE_NAME, PlanningToolEnum } from '../types'
 
 export type TPlanningListToolParameters = {
 	//
@@ -37,13 +37,12 @@ export class PlanningListTool extends BuiltinTool {
 		const { subscriber } = config?.configurable ?? {}
 
 		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
-		const plans = (currentState['plans'] ?? {}) as Record<string, TPlan>
+		const planSteps = currentState[PLAN_STEPS_NAME]
+		const planTitle = currentState[PLAN_TITLE_NAME]
 
-		return JSON.stringify(
-			Object.values(plans).map((plan) => ({
-				id: plan.id,
-				title: plan.title
-			}))
-		)
+		return JSON.stringify({
+			title: planTitle,
+			steps: planSteps
+		})
 	}
 }

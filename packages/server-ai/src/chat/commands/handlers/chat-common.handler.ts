@@ -17,7 +17,7 @@ import { ChatMessageUpsertCommand } from '../../../chat-message'
 import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { HumanMessage, isToolMessage, MessageContent } from '@langchain/core/messages'
 import { RequestContext } from '@metad/server-core'
-import { createProcessStreamEvents } from '../../../xpert-agent'
+import { createMapStreamEvents } from '../../../xpert-agent'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 import z from 'zod'
@@ -176,7 +176,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 							},
 						)
 					).pipe(
-						switchMap(createProcessStreamEvents(this.#logger, thread_id, subscriber,))
+						map(createMapStreamEvents(this.#logger, thread_id, subscriber,))
 					)
 
 					const timeStart = Date.now()

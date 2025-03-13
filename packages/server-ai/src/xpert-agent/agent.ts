@@ -9,7 +9,7 @@ import { Subscriber } from 'rxjs'
 import { AgentStateAnnotation } from './commands/handlers/types'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 
-export function createProcessStreamEvents(
+export function createMapStreamEvents(
 	logger: Logger,
 	thread_id: string,
 	subscriber: Subscriber<MessageEvent>,
@@ -19,10 +19,12 @@ export function createProcessStreamEvents(
 	}
 ) {
 	const { agent, disableOutputs } = options ?? {}
+	let collectingResult = ''
 	const eventStack: string[] = []
 	let prevEvent = ''
+	let startStream = false
 	const toolsMap: Record<string, string> = {} // For lc_name and name of tool is different
-	return async ({ event, tags, data, ...rest }: any) => {
+	const processFun = ({ event, tags, data, ...rest }: any) => {
 		if (Logger.isLevelEnabled('debug')) {
 			if (event === 'on_chat_model_stream') {
 				if (prevEvent === 'on_chat_model_stream') {
@@ -78,6 +80,9 @@ export function createProcessStreamEvents(
 				return null
 			}
 			case 'on_chat_model_stream': {
+				if (prevEvent !== 'on_chat_model_stream' && collectingResult) {
+					startStream = true
+				}
 				prevEvent = event
 
 				// Only returns the stream events content of the current react agent (filter by tag: thread_id), not events of agent in tool call.
@@ -86,10 +91,15 @@ export function createProcessStreamEvents(
 					const msg = data.chunk as AIMessageChunk
 					if (!msg.tool_call_chunks?.length) {
 						if (msg.content) {
+							let prefix = ''
+							if (startStream) {
+								prefix = '\n\n'
+								startStream = false
+							}
 							if (typeof msg.content === 'string') {
-								return msg.content
+								return prefix + msg.content
 							} else {
-								return msg.content.map((_) => (_.type === 'text' || _.type === 'text_delta') ? _.text : '').join('')
+								return prefix + msg.content.map((_) => (_.type === 'text' || _.type === 'text_delta') ? _.text : '').join('')
 							}
 						}
 						if (msg.additional_kwargs?.reasoning_content) {
@@ -249,6 +259,14 @@ export function createProcessStreamEvents(
 		prevEvent = event
 		return null
 	}
+
+	return (event) => {
+		const content = processFun(event)
+		if (content) {
+			collectingResult += content
+		}
+		return content
+	}
 }
 
 export class FakeStreamingChatModel extends BaseChatModel {
@@ -363,4 +381,23 @@ export function getAgentVarGroup(key: string, graph: TXpertGraph): TWorkflowVarG
 	}
 
 	return varGroup
+}
+
+/**
+ * Set value into variable of state.
+ * 
+ * @param state 
+ * @param varName 
+ * @param value 
+ * @returns 
+ */
+export function setStateVariable(state, varName: string, value: any) {
+	const [agentChannelName, variableName] = varName.split('.')
+	if (variableName) {
+		state[agentChannelName] = {[variableName]: value}
+	} else {
+		state[agentChannelName] = value
+	}
+
+	return state
 }

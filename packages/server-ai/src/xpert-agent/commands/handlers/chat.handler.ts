@@ -89,6 +89,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 							status = XpertAgentExecutionStatusEnum.INTERRUPTED
 							error = null
 						} else {
+							console.error(err)
 							status = XpertAgentExecutionStatusEnum.ERROR
 							error = getErrorMessage(err)
 						}

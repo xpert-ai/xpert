@@ -5,13 +5,18 @@ export enum PlanningToolEnum {
     UPDATE_PLAN_STEP = 'update_plan_step',
 }
 
+export const PLAN_TITLE_NAME = 'plan_title'
+export const PLAN_STEPS_NAME = 'plan_steps'
+
 export type TStepStatus = 'in_progress' | 'completed' | 'blocked'
+export type TPlanStep = {
+    index: number
+    content: string
+    status: TStepStatus
+    notes: string
+}
 export type TPlan = {
-	id: string
+	// id: string
 	title: string
-	steps: {
-        content: string
-        status: TStepStatus
-        notes: string
-    }[]
+	steps: TPlanStep[]
 }
