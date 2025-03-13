@@ -15,6 +15,7 @@ import { MarkdownModule } from 'ngx-markdown'
 import {
   ChatMessageFeedbackRatingEnum,
   ChatMessageFeedbackService,
+  DateRelativePipe,
   getErrorMessage,
   IChatMessage,
   injectToastr,
@@ -31,6 +32,7 @@ import { toObservable } from '@angular/core/rxjs-interop'
 import { filter, map, shareReplay, switchMap, tap } from 'rxjs'
 import { ChatMessageExecutionComponent } from '../../@shared/chat'
 import { CopyComponent } from '../../@shared/common'
+import { HeightChangeAnimation } from '@metad/core'
 
 @Component({
   standalone: true,
@@ -52,11 +54,13 @@ import { CopyComponent } from '../../@shared/common'
     ChatComponentMessageComponent,
     ChatMessageExecutionComponent,
     CopyComponent,
+    DateRelativePipe
   ],
   selector: 'pac-ai-message',
   templateUrl: './ai-message.component.html',
   styleUrl: 'ai-message.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  animations: [HeightChangeAnimation]
 })
 export class ChatAiMessageComponent {
   eFeedbackRatingEnum = ChatMessageFeedbackRatingEnum
@@ -142,6 +146,18 @@ export class ChatAiMessageComponent {
   readonly reasoning = computed(() => this.message().reasoning as string)
   readonly expandReason = signal(true)
 
+  // Steps
+  readonly #steps = computed(() => this.message().steps)
+  readonly lastStep = computed(() => this.#steps() ? this.#steps()[this.#steps().length - 1] : null)
+  readonly steps = computed(() => {
+    if (this.expandSteps()) {
+      return this.#steps()
+    } else {
+      return [this.lastStep()]
+    }
+  })
+  readonly expandSteps = signal(false)
+
   constructor() {
     effect(() => {
       // console.log(this.message()?.status)
@@ -197,5 +213,9 @@ export class ChatAiMessageComponent {
         this.#toastr.error(getErrorMessage(error))
       }
     })
+  }
+
+  toggleSteps() {
+    this.expandSteps.update((state) => !state)
   }
 }

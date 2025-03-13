@@ -269,6 +269,15 @@ export class ChatService {
                     })
                     break
                   }
+                  case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
+                    this.updateLatestMessage((message) => {
+                      return {
+                        ...message,
+                        steps: [...(message.steps ?? []), event.data]
+                      }
+                    })
+                    break
+                  }
                   default:
                     this.updateEvent(event.event, event.data.error)
                 }
