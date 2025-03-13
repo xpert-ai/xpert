@@ -1,7 +1,7 @@
 export enum PlanningToolEnum {
     CREATE_PLAN = 'create_plan',
     LIST_PLANS = 'list_plans',
-    DELETE_PLAN = 'delete_plan',
+    DELETE_PLAN_STEP = 'delete_plan_step',
     UPDATE_PLAN_STEP = 'update_plan_step',
 }
 

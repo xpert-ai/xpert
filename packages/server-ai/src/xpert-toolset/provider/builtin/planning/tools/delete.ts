@@ -7,23 +7,23 @@ import z from 'zod'
 import { ToolParameterValidationError } from '../../../../errors'
 import { BuiltinTool } from '../../builtin-tool'
 import { PlanningToolset } from '../planning'
-import { PlanningToolEnum, TPlan } from '../types'
+import { PLAN_STEPS_NAME, PlanningToolEnum, TPlanStep } from '../types'
 
-export type TPlanningDeleteToolParameters = {
-	id: string
+export type TPlanningDeleteStepToolParameters = {
+	index: number
 }
 
-export class PlanningDeleteTool extends BuiltinTool {
-	readonly #logger = new Logger(PlanningDeleteTool.name)
+export class PlanningDeleteStepTool extends BuiltinTool {
+	readonly #logger = new Logger(PlanningDeleteStepTool.name)
 
 	static lc_name(): string {
-		return PlanningToolEnum.DELETE_PLAN
+		return PlanningToolEnum.DELETE_PLAN_STEP
 	}
-	name = PlanningToolEnum.DELETE_PLAN
-	description = 'A tool for deleting a plan'
+	name = PlanningToolEnum.DELETE_PLAN_STEP
+	description = 'A tool for deleting a step in plan'
 
 	schema = z.object({
-		id: z.string().describe(`Plan id`)
+		index: z.string().describe(`Step index in plan`)
 	})
 
 	constructor(private toolset: PlanningToolset) {
@@ -33,31 +33,35 @@ export class PlanningDeleteTool extends BuiltinTool {
 	}
 
 	async _call(
-		parameters: TPlanningDeleteToolParameters,
+		parameters: TPlanningDeleteStepToolParameters,
 		callbacks: CallbackManagerForToolRun,
 		config: LangGraphRunnableConfig & { toolCall }
 	) {
-		if (!parameters.id) {
-			throw new ToolParameterValidationError(`id is empty`)
+		if (parameters.index == null) {
+			throw new ToolParameterValidationError(`Index of step is empty`)
 		}
 
 		const { subscriber } = config?.configurable ?? {}
 
 		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
-		const plans = (currentState['plans'] ?? {}) as Record<string, TPlan>
+		const planSteps = currentState[PLAN_STEPS_NAME] as TPlanStep[]
 
-		plans[parameters.id] = null
+		if (!planSteps) {
+			throw new ToolParameterValidationError(`Steps of plan is null`)
+		}
+
+		planSteps.splice(parameters.index, 1)
 
 		// Populated when a tool is called with a tool call from a model as input
 		const toolCallId = config.toolCall?.id
 		return new Command({
 			update: {
-				plans,
+				[PLAN_STEPS_NAME]: planSteps.map((_, index) => ({..._, index,})),
 				// update the message history
 				messages: [
 					{
 						role: 'tool',
-						content: `Plan deleted!`,
+						content: `Step deleted!`,
 						tool_call_id: toolCallId
 					}
 				]

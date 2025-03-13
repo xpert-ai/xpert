@@ -4,7 +4,7 @@ import { BuiltinToolset, TBuiltinToolsetParams } from '../builtin-toolset'
 import { PLAN_STEPS_NAME, PLAN_TITLE_NAME, PlanningToolEnum } from './types'
 import { PlanningCreateTool } from './tools/create'
 import { PlanningListTool } from './tools/list'
-import { PlanningDeleteTool } from './tools/delete'
+import { PlanningDeleteStepTool } from './tools/delete'
 import { PlanningUpdateStepTool } from './tools/update-step'
 
 export class PlanningToolset extends BuiltinToolset {
@@ -61,10 +61,10 @@ export class PlanningToolset extends BuiltinToolset {
 						this.tools.push(new PlanningListTool(this))
 						break
 					}
-					// case (PlanningToolEnum.DELETE_PLAN): {
-					// 	this.tools.push(new PlanningDeleteTool(this))
-					// 	break
-					// }
+					case (PlanningToolEnum.DELETE_PLAN_STEP): {
+						this.tools.push(new PlanningDeleteStepTool(this))
+						break
+					}
 					case (PlanningToolEnum.UPDATE_PLAN_STEP): {
 						this.tools.push(new PlanningUpdateStepTool(this))
 						break
