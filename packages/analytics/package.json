@@ -2,7 +2,7 @@
 	"name": "@metad/analytics",
 	"version": "3.1.4",
 	"type": "commonjs",
-	"license": "MIT",
+	"license": "AGPL-3.0",
 	"scripts": {
 		"start": "nodemon",
 		"start:debug": "nodemon --config nodemon-debug.json"
