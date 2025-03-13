@@ -1,5 +1,5 @@
 identity:
-  name: create_file
+  name: file_create
   author: XpertAI
   label:
     en_US: Create File

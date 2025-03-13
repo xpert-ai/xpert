@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, input, output } from '@angular/core'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { upperFirst } from 'lodash-es'
@@ -8,7 +9,7 @@ import { EmojiAvatarComponent } from '../../avatar'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, EmojiAvatarComponent, NgmI18nPipe],
+  imports: [CommonModule, TranslateModule, MatTooltipModule, EmojiAvatarComponent, NgmI18nPipe],
   selector: 'xpert-tool-provider-card',
   templateUrl: 'provider.component.html',
   styleUrls: ['provider.component.scss']
@@ -22,8 +23,13 @@ export class ToolProviderCardComponent {
 
   // States
   readonly tags = computed(() => {
-    return this.provider()?.tags?.map((tag) => 
-      this.builtinTags()?.find((_) => _.name === tag) ?? {id: TagCategoryEnum.TOOLSET + '/' + tag, name: tag, description: upperFirst(tag)}
+    return this.provider()?.tags?.map(
+      (tag) =>
+        this.builtinTags()?.find((_) => _.name === tag) ?? {
+          id: TagCategoryEnum.TOOLSET + '/' + tag,
+          name: tag,
+          description: upperFirst(tag)
+        }
     )
   })
 

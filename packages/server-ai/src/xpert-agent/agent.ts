@@ -234,7 +234,8 @@ export function createProcessStreamEvents(
 								data: {
 									tags,
 									...rest,
-									...data
+									...data,
+									created_date: new Date()
 								}
 							}
 						} as MessageEvent)

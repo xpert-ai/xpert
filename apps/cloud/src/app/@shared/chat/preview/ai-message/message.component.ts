@@ -3,13 +3,13 @@ import { Component, computed, effect, input, signal } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { HeightChangeAnimation } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { IChatMessage } from 'apps/cloud/src/app/@core'
+import { DateRelativePipe, IChatMessage } from 'apps/cloud/src/app/@core'
 import { MarkdownModule } from 'ngx-markdown'
 import { Copy2Component } from '../../../common'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, MatTooltipModule, MarkdownModule, Copy2Component],
+  imports: [CommonModule, TranslateModule, MatTooltipModule, MarkdownModule, DateRelativePipe, Copy2Component],
   selector: 'xpert-preview-ai-message',
   templateUrl: 'message.component.html',
   styleUrls: ['message.component.scss'],

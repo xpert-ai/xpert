@@ -48,6 +48,7 @@ const ICONS = {
 </svg>`,
 	[ToolTagEnum.ANALYSIS]: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3V19H21V21H3V3H5ZM19.9393 5.93934L22.0607 8.06066L16 14.1213L13 11.121L9.06066 15.0607L6.93934 12.9393L13 6.87868L16 9.879L19.9393 5.93934Z"></path></svg>`,
 	[ToolTagEnum.SANDBOX]: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3ZM4 5V19H20V5H4ZM12 15H18V17H12V15ZM8.66685 12L5.83842 9.17157L7.25264 7.75736L11.4953 12L7.25264 16.2426L5.83842 14.8284L8.66685 12Z"></path></svg>`,
+	[ToolTagEnum.AGENT]: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 22H18V20C18 18.3431 16.6569 17 15 17H9C7.34315 17 6 18.3431 6 20V22H4V20C4 17.2386 6.23858 15 9 15H15C17.7614 15 20 17.2386 20 20V22ZM12 13C8.68629 13 6 10.3137 6 7C6 3.68629 8.68629 1 12 1C15.3137 1 18 3.68629 18 7C18 10.3137 15.3137 13 12 13ZM12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z"></path></svg>`,
 	[ToolTagEnum.OTHER]: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
   <path d="M8.00052 0.666748L4.00065 7.33342H12.0007L8.00052 0.666748ZM8.00052 3.25828L9.64572 6.00008H6.35553L8.00052 3.25828ZM4.50065 13.3334C3.48813 13.3334 2.66732 12.5126 2.66732 11.5001C2.66732 10.4875 3.48813 9.66675 4.50065 9.66675C5.51317 9.66675 6.33398 10.4875 6.33398 11.5001C6.33398 12.5126 5.51317 13.3334 4.50065 13.3334ZM4.50065 14.6667C6.24955 14.6667 7.66732 13.249 7.66732 11.5001C7.66732 9.75115 6.24955 8.33342 4.50065 8.33342C2.75175 8.33342 1.33398 9.75115 1.33398 11.5001C1.33398 13.249 2.75175 14.6667 4.50065 14.6667ZM10.0007 10.3334V13.0001H12.6673V10.3334H10.0007ZM8.66732 14.3334V9.00008H14.0007V14.3334H8.66732Z" fill="#344054"/>
 </svg>`
@@ -124,12 +125,29 @@ export const DEFAULT_TOOL_TAG_MAP: { [key in ToolTagEnum]: IToolTag } = {
 	[ToolTagEnum.ANALYSIS]: {
 		name: 'analysis',
 		label: { en_US: 'Data Analysis', zh_Hans: '数据分析' },
-		icon: ICONS[ToolTagEnum.ANALYSIS]
+		icon: ICONS[ToolTagEnum.ANALYSIS],
+		description: {
+			en_US: 'Enterprise-level multidimensional data management and analysis based on a seamlessly integrated data analysis platform.',
+			zh_Hans: '基于无缝集成的数据分析平台进行企业级多维数据管理与分析'
+		}
 	},
 	[ToolTagEnum.SANDBOX]: {
 		name: 'sandbox',
 		label: { en_US: 'Sandbox', zh_Hans: '沙盒' },
-		icon: ICONS[ToolTagEnum.SANDBOX]
+		icon: ICONS[ToolTagEnum.SANDBOX],
+		description: {
+			en_US: 'Running in an isolated, controlled virtual environment to ensure security, prevent unintended impacts on external systems or data, while allowing the agent to perform tasks such as code execution, file analysis, and more.',
+			zh_Hans: '在隔离的、可控的虚拟环境中运行的，以确保安全性，防止对外部系统或数据的意外影响，同时允许智能体执行任务，如代码运行、文件分析等。'
+		}
+	},
+	[ToolTagEnum.AGENT]: {
+		name: 'agent',
+		label: { en_US: 'Agent', zh_Hans: '智能体' },
+		icon: ICONS[ToolTagEnum.AGENT],
+		description: {
+			en_US: `Embedded with an AI Agent within the tool, leveraging the Agent's reasoning, decision-making, or autonomous execution capabilities to accomplish specific tasks.`,
+			zh_Hans: `在工具内部嵌入了智能体（Agent），利用智能体的推理、决策或自主执行能力来完成特定任务的辅助功能。`
+		}
 	},
 	[ToolTagEnum.OTHER]: { name: 'other', label: { en_US: 'Other', zh_Hans: '其他' }, icon: ICONS[ToolTagEnum.OTHER] }
 }

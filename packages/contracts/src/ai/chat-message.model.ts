@@ -16,6 +16,7 @@ export type TChatMessageStep = {
   toolset?: string
   tool?: string
   message?: string
+  created_date?: Date | string
 }
 
 /**

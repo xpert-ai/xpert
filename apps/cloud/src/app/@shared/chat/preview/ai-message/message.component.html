@@ -87,9 +87,9 @@
           </div>
 
           <div
-            class="absolute -top-4 right-2 float-right transition text-[12px] text-[var(--text-tertiary)] hidden group-hover/item:block"
+            class="absolute -top-4 right-2 float-right transition text-xs text-text-tertiary hidden group-hover/item:block"
           >
-            4 days ago
+            {{ step.created_date | relative }}
           </div>
         </div>
       }

@@ -22,7 +22,7 @@
     {{provider().description | i18n }}
   </div>
   <div class="flex items-center shrink-0 mt-1 pt-1 pl-[14px] pr-[6px] pb-[6px] h-[42px]">
-    <div class="relative w-full flex items-center gap-1 py-[7px] rounded-md text-gray-500" title="Image, Productivity">
+    <div class="relative w-full flex items-center gap-1 py-[7px] rounded-md text-gray-500">
       <svg
         width="14"
         height="14"
@@ -49,7 +49,7 @@
       </svg>
       <div class="grow text-sm text-start leading-[18px] font-normal truncate">
         @for (tag of tags(); track tag.id; let last = $last) {
-          {{tag.label | i18n}}
+          <span [matTooltip]="tag.description | i18n">{{tag.label | i18n}}</span>
           @if (!last) {
             ,
           }

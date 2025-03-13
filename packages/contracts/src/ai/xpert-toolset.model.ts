@@ -157,6 +157,7 @@ export enum ToolTagEnum {
 	UTILITIES = 'utilities',
 	ANALYSIS = 'analysis',
 	SANDBOX = 'sandbox',
+	AGENT = 'agent',
 	OTHER = 'other'
 }
 
@@ -164,6 +165,7 @@ export interface IToolTag {
 	name: string
 	label: I18nObject
 	icon: string
+  description?: I18nObject
 }
 
 export interface IToolProvider {

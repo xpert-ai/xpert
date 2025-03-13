@@ -11,8 +11,8 @@ identity:
   icon: icon.svg
   tags:
     - productivity
-    - utilities
     - sandbox
+    - agent
 credentials_for_provider:
   copilotModel:
     type: copilot-model
