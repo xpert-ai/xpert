@@ -60,7 +60,7 @@
           matTooltipPosition="above" />
       </div>
       @if (expandReason()) {
-        <markdown class="ngm-copilot-markdown text-sm text-gray-500"
+        <markdown class="ngm-copilot-markdown block text-sm max-h-52 overflow-auto text-gray-500"
           lineNumbers
           [start]="5"
           [data]="reasoning()"
@@ -206,11 +206,11 @@
 
   @if (lastStep(); as step) {
     <div class="flex-1 min-w-0 cursor-pointer" (click)="toggleSteps()">
-      <div
-        class="rounded-xl flex flex-col gap-2 p-1 border border-[var(--border-light)] bg-[var(--fill-tsp-gray-main)] max-w-full clickable hover:bg-[var(--fill-tsp-gray-dark)] dark:hover:bg-white/[0.02]"
+      <div [@listHeightStagger]="steps()"
+        class="rounded-xl flex flex-col gap-1 p-1 border border-[var(--border-light)] bg-[var(--fill-tsp-gray-main)] max-w-full clickable hover:bg-[var(--fill-tsp-gray-dark)] dark:hover:bg-white/[0.02]"
       >
         @for (step of steps(); track step) {
-          <div @heightChangeAnimation class="relative flex items-center p-1 py-0.5 rounded-lg group/item hover:bg-white">
+          <div class="relative flex items-center p-1 py-1 rounded-lg group/item hover:bg-gray-50">
             <div class="w-[16px] inline-flex items-center text-[var(--text-primary)]">
               @if (step.toolset) {
                 <img src="/api/xpert-toolset/builtin-provider/{{step.toolset}}/icon" alt="{{step.toolset}}" class="rounded-md">
@@ -233,9 +233,7 @@
               </div>
             </div>
 
-            <div
-              class="absolute -top-4 right-2 float-right transition text-xs text-text-tertiary hidden group-hover/item:block"
-            >
+            <div class="absolute -top-3 right-2 float-right transition text-xs text-text-tertiary hidden group-hover/item:block">
               {{ step.created_date | relative }}
             </div>
           </div>

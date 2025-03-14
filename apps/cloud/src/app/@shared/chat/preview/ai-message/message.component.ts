@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, input, signal } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { HeightChangeAnimation } from '@metad/core'
+import { ListHeightStaggerAnimation } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { DateRelativePipe, IChatMessage } from 'apps/cloud/src/app/@core'
 import { MarkdownModule } from 'ngx-markdown'
@@ -13,7 +13,7 @@ import { Copy2Component } from '../../../common'
   selector: 'xpert-preview-ai-message',
   templateUrl: 'message.component.html',
   styleUrls: ['message.component.scss'],
-  animations: [HeightChangeAnimation]
+  animations: [ ListHeightStaggerAnimation ]
 })
 export class XpertPreviewAiMessageComponent {
   readonly message = input<IChatMessage>()

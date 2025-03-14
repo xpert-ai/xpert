@@ -172,12 +172,215 @@
                     "category": "Workflow",
                     "copyright": null,
                     "privacyPolicy": null
+                },
+                {
+                    "name": "Planning and Execution",
+                    "type": "agent",
+                    "title": "Planning and Execution",
+                    "description": "The planning and execution agent is to create detailed plans and coordinate execution steps to efficiently complete tasks.",
+                    "avatar": {
+                        "emoji": {
+                            "id": "memo"
+                        },
+                        "background": "rgba(251, 232, 255, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43311",
+                    "category": "Agent",
+                    "copyright": null,
+                    "privacyPolicy": null
                 }
             ]
         },
         "zh-Hans": {
-            "categories": [],
-            "recommendedApps": []
+            "categories": [
+                "Agent",
+                "Workflow",
+                "HR",
+                "Programming",
+                "Writing",
+                "Assistant",
+                "Analysis"
+            ],
+            "recommendedApps": [
+                {
+                    "name": "ChatBI with Sales Analysis Expert",
+                    "type": "agent",
+                    "title": "ChatBI 分析专家",
+                    "description": "我是一名经验丰富的数据分析专家，擅长通过数据洞察优化销售策略、推动业务增长。熟悉多种数据分析工具和方法，能快速洞察市场趋势和客户需求，为企业提供高效、精准的销售解决方案。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "blush",
+                            "colons": ":blush:",
+                            "unified": "1F60A"
+                        },
+                        "background": "rgba(213, 245, 246, 0.8)"
+                    },
+                    "id": "af7133cb-32b3-47ff-90c1-b144c4d4887e",
+                    "category": "Analysis",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "ChatBI via Feishu",
+                    "type": "agent",
+                    "title": "ChatBI 飞书机器人",
+                    "description": "我是飞书的对话式数据分析机器人代理，擅长通过数据洞察优化公司战略、驱动业务增长。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "dove_of_peace"
+                        },
+                        "background": "rgba(252, 231, 246, 0.8)"
+                    },
+                    "id": "af7133cb-32b3-47ff-90c1-b144c4d48871",
+                    "category": "Analysis",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Text2SQL-ChatDB",
+                    "type": "agent",
+                    "title": "ChatDB (Text2SQL)",
+                    "description": "使用 Text2SQL 方法直接与关系数据库聊天的代理。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "minidisc"
+                        },
+                        "background": "rgba(228, 251, 204, 0.8)"
+                    },
+                    "id": "af7133cb-32b3-47ff-90c1-b144c4d48872",
+                    "category": "Analysis",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "OpenAI Tasks",
+                    "type": "agent",
+                    "title": "复制 OpenAI 任务",
+                    "description": "我实现了与 OpenAI 任务等效的功能，并且可以自由配置代理结构。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "clock7"
+                        },
+                        "background": "rgba(239, 241, 245, 0.8)"
+                    },
+                    "id": "fb8c4d01-3a40-4a84-95ca-030ec22b935a",
+                    "category": "Assistant",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Deep Research with Deepseek r1",
+                    "type": "agent",
+                    "title": "使用 Deepseek r1 进行深入研究",
+                    "description": "一种使用推理来综合大量在线信息并为您完成多步骤研究任务的代理。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "whale"
+                        },
+                        "background": "rgba(252, 231, 246, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43304",
+                    "category": "Writing",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Workflow Evaluator-optimizer",
+                    "type": "agent",
+                    "title": "评估器-优化器",
+                    "description": "在评估器-优化器工作流中，一个 LLM 调用生成一个响应，而另一个调用在循环中提供评估和反馈。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "white_check_mark"
+                        },
+                        "background": "rgba(213, 245, 246, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43305",
+                    "category": "Workflow",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Workflow Prompt Chaining",
+                    "type": "agent",
+                    "title": "提示链",
+                    "description": "在提示链中，每个 LLM 调用都会处理前一个调用的输出。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "juggling"
+                        },
+                        "background": "rgba(209, 224, 255, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43306",
+                    "category": "Workflow",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Workflow Parallelization",
+                    "type": "agent",
+                    "title": "并行化",
+                    "description": "LLM 有时可以同时完成一项任务，并通过编程的方式汇总它们的输出。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "chains"
+                        },
+                        "background": "rgba(213, 217, 235, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43307",
+                    "category": "Workflow",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Workflow Routing",
+                    "type": "agent",
+                    "title": "路由",
+                    "description": "路由对输入进行分类并将其引导至后续任务。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "world_map"
+                        },
+                        "background": "rgba(255, 234, 213, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43308",
+                    "category": "Workflow",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Workflow Orchestrator-Worker",
+                    "type": "agent",
+                    "title": "协调者-工作者",
+                    "description": "协调者-工作者智能体，协调者可以分解任务，并将每个子任务委托给工作者。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "male-construction-worker"
+                        },
+                        "background": "rgba(254, 247, 195, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43309",
+                    "category": "Workflow",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Planning and Execution",
+                    "type": "agent",
+                    "title": "规划与执行",
+                    "description": "计划执行智能体负责制定详细计划，协调执行步骤，以高效完成任务。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "memo"
+                        },
+                        "background": "rgba(251, 232, 255, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43310",
+                    "category": "Agent",
+                    "copyright": null,
+                    "privacyPolicy": null
+                }
+            ]
         },
         "zh-Hant": {
             "categories": [],

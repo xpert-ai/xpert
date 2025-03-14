@@ -59,11 +59,11 @@
 
 @if (lastStep(); as step) {
   <div class="flex-1 min-w-0 cursor-pointer" (click)="toggleSteps()">
-    <div
+    <div [@listHeightStagger]="steps()"
       class="rounded-xl flex flex-col gap-2 p-1 border border-[var(--border-light)] bg-[var(--fill-tsp-gray-main)] max-w-full clickable hover:bg-[var(--fill-tsp-gray-dark)] dark:hover:bg-white/[0.02]"
     >
       @for (step of steps(); track step) {
-        <div @heightChangeAnimation class="relative flex items-center p-1 py-0.5 rounded-lg group/item hover:bg-white">
+        <div class="relative flex items-center p-1 py-0.5 rounded-lg group/item hover:bg-white">
           <div class="w-[16px] inline-flex items-center text-[var(--text-primary)]">
             @if (step.toolset) {
               <img src="/api/xpert-toolset/builtin-provider/{{step.toolset}}/icon" alt="{{step.toolset}}" class="rounded-md">
