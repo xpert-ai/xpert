@@ -94,16 +94,17 @@ export class CopilotPromptEditorComponent {
   private startHeight = 0
   readonly copied = signal(false)
 
-  editorOptions: any = {
+  readonly editorOptions = signal({
     theme: 'vs',
     automaticLayout: true,
     language: 'markdown',
     lineNumbers: 'off',
     glyphMargin: 0,
+    wordWrap: false,
     minimap: {
       enabled: false
     }
-  }
+  })
 
   readonly #editor = signal(null)
 
@@ -113,6 +114,10 @@ export class CopilotPromptEditorComponent {
         this.height = this.initHeight()
       }
     })
+  }
+
+  toggleWrap() {
+    this.editorOptions.update((state) => ({...state, wordWrap: !state.wordWrap}))
   }
 
   generate() {
@@ -287,7 +292,7 @@ export class CopilotPromptEditorComponent {
           this.showSuggestions()
         }
       });
-  });
+    })
   }
 
   onResized() {
@@ -299,7 +304,7 @@ export class CopilotPromptEditorComponent {
   }
 
   getCursorPagePosition() {
-    const editor = this.#editor()
+    const editor = this.#editor();
     // Get the cursor position
     const position = editor.getPosition();
     
@@ -310,8 +315,8 @@ export class CopilotPromptEditorComponent {
     const editorDom = editor.getDomNode();
     const viewLines = editorDom.querySelector('.view-lines');
     
-    // Get the position of the content container on the page
-    const rect = viewLines.getBoundingClientRect();
+    // Check if viewLines exists
+    const rect = viewLines ? viewLines.getBoundingClientRect() : editorDom.getBoundingClientRect();
     
     // Calculate the absolute coordinates of the cursor on the page
     const cursorX = rect.left + cursorCoords.left;

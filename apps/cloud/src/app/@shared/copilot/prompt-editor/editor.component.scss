@@ -1,10 +1,5 @@
 :host {
   @apply relative flex flex-col;
-  &:hover {
-    .container {
-      @apply bg-white;
-    }
-  }
 
   &.fullscreen {
     .content {
@@ -12,6 +7,14 @@
       .edit-container {
         height: 100% !important;
       }
+    }
+  }
+}
+
+:host::ng-deep {
+  .monaco-editor:not(.focused) {
+    .margin, .monaco-editor-background {
+      @apply bg-gray-50;
     }
   }
 }
