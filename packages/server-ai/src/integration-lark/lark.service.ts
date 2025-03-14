@@ -1,5 +1,5 @@
 import * as lark from '@larksuiteoapi/node-sdk'
-import { IIntegration, IUser, TranslateOptions } from '@metad/contracts'
+import { IIntegration, IUser, TIntegrationLarkOptions, TranslateOptions } from '@metad/contracts'
 import { nonNullable } from '@metad/copilot'
 import { ConfigService, IEnvironment } from '@metad/server-config'
 import { UserService, RoleService, RequestContext, IntegrationService } from '@metad/server-core'
@@ -93,12 +93,12 @@ export class LarkService {
 		return this.getOrCreateLarkClient(integration).client
 	}
 
-	createClient(integration: IIntegration) {
+	createClient(integration: IIntegration<TIntegrationLarkOptions>) {
 		return new lark.Client({
 			appId: integration.options.appId,
 			appSecret: integration.options.appSecret,
 			appType: lark.AppType.SelfBuild,
-			domain: lark.Domain.Feishu,
+			domain: integration.options.isLark ? lark.Domain.Lark : lark.Domain.Feishu,
 			loggerLevel: lark.LoggerLevel.debug
 		})
 	}

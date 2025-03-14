@@ -44,7 +44,7 @@ import { I18nObject, TAvatar, TParameterSchema } from './types';
 // 	settings?: IIntegrationSetting[];
 // }
 
-export interface IIntegration extends IBasePerTenantAndOrganizationEntityModel {
+export interface IIntegration<T = any> extends IBasePerTenantAndOrganizationEntityModel {
 	name: string
 	description?: string
 	/**
@@ -58,7 +58,7 @@ export interface IIntegration extends IBasePerTenantAndOrganizationEntityModel {
 	 */
 	type?: string
 
-	options?: any
+	options?: T
 
 	tags?: ITag[]
 }

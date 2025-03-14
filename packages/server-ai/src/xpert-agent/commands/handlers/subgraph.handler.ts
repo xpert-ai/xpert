@@ -425,8 +425,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const withStructured = (chatModel) => {
 			let chatModelWithTools = null
 			if (withTools.length) {
-				if (!isNil(agent.options?.parallelToolCalls) && chatModel instanceof ChatOpenAI) {
-					chatModelWithTools = chatModel.bindTools(withTools, {parallel_tool_calls: agent.options.parallelToolCalls})
+				if (agent.options?.parallelToolCalls === false && chatModel instanceof ChatOpenAI) {
+					chatModelWithTools = chatModel.bindTools(withTools, {parallel_tool_calls: false})
 				} else {
 					chatModelWithTools = chatModel.bindTools(withTools)
 				}
