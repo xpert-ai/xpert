@@ -1,6 +1,7 @@
 import { IIntegration, IntegrationEnum, TIntegrationProvider } from '../integration.model'
 
 export type TIntegrationLarkOptions = {
+  isLark?: boolean
   appId: string
   appSecret: string
   verificationToken: string
@@ -20,6 +21,10 @@ export const IntegrationLarkProvider: TIntegrationProvider = {
   schema: {
     type: 'object',
     properties: {
+      isLark: { type: 'boolean', title: {
+        en_US: 'Is Lark',
+        zh_Hans: '国际版'
+      } },
       appId: { type: 'string', title: 'App ID' },
       appSecret: { type: 'string', title: 'App Secret' },
       verificationToken: { type: 'string', title: 'Verification Token' },
