@@ -1,3 +1,5 @@
+import * as lark from '@larksuiteoapi/node-sdk'
+import { IIntegration, TIntegrationLarkOptions } from '@metad/contracts'
 import { IntegrationService } from '@metad/server-core'
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
@@ -20,19 +22,30 @@ export class LarkTokenStrategy extends PassportStrategy(Strategy, 'lark-token') 
 
 	authenticate(req: express.Request, options: { session: boolean; property: string }) {
 		const integrationId = req.params.id
-		const data = req.body
+		let data = req.body
 
 		this.logger.verbose(`Lark request body:`, data)
 		;(async () => {
 			try {
-				const integration = await this.integrationService.findOne(integrationId, { relations: ['tenant'] })
+				const integration: IIntegration<TIntegrationLarkOptions> = await this.integrationService.findOne(
+					integrationId,
+					{ relations: ['tenant'] }
+				)
 				req.headers['organization-id'] = integration.organizationId
 
-				const integrationClient = this.larkService.getOrCreateLarkClient(integration)
-				
+				if (data.encrypt) {
+					const encryptKey = integration.options.encryptKey
+					if (!encryptKey) {
+						throw new Error(`You need to configure the encrypt Key for Feishu (Lark)`)
+					}
+					data = new lark.AESCipher(encryptKey).decrypt(data.encrypt)
+					data = JSON.parse(data)
+				}
+
 				if (data.type === 'url_verification') {
 					this.success({})
 				} else {
+					const integrationClient = this.larkService.getOrCreateLarkClient(integration)
 					let union_id = null
 					switch (data.header?.event_type) {
 						case 'card.action.trigger': {
@@ -44,7 +57,7 @@ export class LarkTokenStrategy extends PassportStrategy(Strategy, 'lark-token') 
 							break
 						}
 					}
-	
+
 					if (!union_id) {
 						throw new Error(`Can't get union_id from event of lark message`)
 					}
@@ -56,7 +69,6 @@ export class LarkTokenStrategy extends PassportStrategy(Strategy, 'lark-token') 
 					)
 					this.success(user)
 				}
-				
 			} catch (err) {
 				this.logger.error(err, integrationId, data)
 				this.fail(new UnauthorizedException('Invalid user', err.message))
