@@ -60,7 +60,7 @@
           matTooltipPosition="above" />
       </div>
       @if (expandReason()) {
-        <markdown class="ngm-copilot-markdown text-sm text-gray-500"
+        <markdown class="ngm-copilot-markdown block text-sm max-h-52 overflow-auto text-gray-500"
           lineNumbers
           [start]="5"
           [data]="reasoning()"
