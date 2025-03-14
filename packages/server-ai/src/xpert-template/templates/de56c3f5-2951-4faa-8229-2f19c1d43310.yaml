@@ -1,0 +1,350 @@
+team:
+  name: Planning and Execution
+  type: agent
+  title: 规划与执行
+  description: 计划执行智能体负责制定详细计划，协调执行步骤，以高效完成任务。
+  avatar:
+    emoji:
+      id: memo
+      colons: ":memo:"
+      unified: 1F4DD
+    background: rgba(251, 232, 255, 0.8)
+  starters:
+    - 我要把大象放进冰箱
+    - null
+    - null
+    - null
+  options:
+    position:
+      x: 106.11861409743153
+      y: 112.18511897800386
+    scale: 0.8199999999999998
+    agent:
+      Agent_zm7jnDN2qV:
+        position:
+          x: -20
+          y: 20
+      Agent_kZUOAglggf:
+        position:
+          x: 360
+          y: 240
+      Agent_BDdyukOAhc:
+        position:
+          x: 720
+          y: 20
+    toolset:
+      00930607-6084-40de-86b7-a5089042fcd3:
+        position:
+          x: -20
+          y: 480
+      e4554ac9-cc36-4b97-a8db-8197d3bb2d5d:
+        position:
+          x: 500
+          y: 520
+    workflow:
+      Iterating_Obt2ubUnuo:
+        position:
+          x: 360
+          y: 20
+  agentConfig:
+    disableOutputs: []
+  memory: null
+  summarize: null
+  version: "1"
+  agent:
+    key: Agent_zm7jnDN2qV
+    name: null
+    title: 规划者
+    description: 制定详细计划
+    avatar: null
+    prompt: 按用户要求制定完成任务的计划
+    promptTemplates: null
+    parameters: null
+    outputVariables: null
+    options:
+      parallelToolCalls: false
+    copilotModel: null
+    leaderKey: null
+    collaboratorNames: []
+    toolsetIds:
+      - 00930607-6084-40de-86b7-a5089042fcd3
+    knowledgebaseIds: []
+  copilotModel:
+    modelType: llm
+    model: deepseek-chat
+    options: null
+  knowledgebases: []
+  toolsets:
+    - id: e4554ac9-cc36-4b97-a8db-8197d3bb2d5d
+      name: Google 搜索工具
+      type: tavily
+      category: builtin
+      description: 在线搜索工具
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon
+      options:
+        toolPositions:
+          tavily_search: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 74f94aa2-9c19-4bc1-a707-44c286cafc1c
+          name: tavily_search
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    - id: 00930607-6084-40de-86b7-a5089042fcd3
+      name: 规划工具集
+      type: planning
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/planning/icon
+      options:
+        toolPositions:
+          create_plan: 0
+          list_plans: 1
+          update_plan_step: 2
+          delete_plan_step: 3
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 87222ba9-8fa1-4a87-93ec-27e8562db2df
+          name: delete_plan_step
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+        - id: 2768b66e-f7a2-4b3c-8601-0b50a44a5719
+          name: update_plan_step
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+        - id: bf286151-c882-4b1b-9cc2-63eccb5a8faf
+          name: list_plans
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+        - id: 5c4daee8-3944-4740-81c3-4c3458ee0ada
+          name: create_plan
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+  tags: []
+nodes:
+  - type: agent
+    key: Agent_zm7jnDN2qV
+    position:
+      x: -20
+      y: 20
+    entity:
+      key: Agent_zm7jnDN2qV
+      name: null
+      title: 规划者
+      description: 制定详细计划
+      avatar: null
+      prompt: 按用户要求制定完成任务的计划
+      promptTemplates: null
+      parameters: null
+      outputVariables: null
+      options:
+        parallelToolCalls: false
+      copilotModel: null
+      leaderKey: null
+      collaboratorNames: []
+      toolsetIds:
+        - 00930607-6084-40de-86b7-a5089042fcd3
+      knowledgebaseIds: []
+    hash: 8f320ea5d39f137c4b44ceea73bac1ee942beb5c2c2fb8eb65c25fd83d502800
+  - type: toolset
+    key: 00930607-6084-40de-86b7-a5089042fcd3
+    position:
+      x: -20
+      y: 480
+    entity:
+      id: 00930607-6084-40de-86b7-a5089042fcd3
+      name: 规划工具集
+      type: planning
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/planning/icon
+      options:
+        toolPositions:
+          create_plan: 0
+          list_plans: 1
+          update_plan_step: 2
+          delete_plan_step: 3
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 5c4daee8-3944-4740-81c3-4c3458ee0ada
+          name: create_plan
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+        - id: bf286151-c882-4b1b-9cc2-63eccb5a8faf
+          name: list_plans
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+        - id: 2768b66e-f7a2-4b3c-8601-0b50a44a5719
+          name: update_plan_step
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+        - id: 87222ba9-8fa1-4a87-93ec-27e8562db2df
+          name: delete_plan_step
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    hash: 707bffd2bd580cba1ff74dd8733c3bea34ee5227815a757cddf6eb9fc0fcfc1e
+  - type: workflow
+    key: Iterating_Obt2ubUnuo
+    position:
+      x: 360
+      y: 20
+    entity:
+      type: iterating
+      key: Iterating_Obt2ubUnuo
+      title: 按步骤执行
+      description: 按照规划步骤，逐步执行
+      inputVariable: plan_steps
+    hash: 5804cab6c31e81567760cc61a372108e3afc4e975659d62ee640ca36c1ebc71f
+  - type: agent
+    key: Agent_kZUOAglggf
+    position:
+      x: 360
+      y: 240
+    entity:
+      key: Agent_kZUOAglggf
+      title: 工作者
+      description: 执行每个规划步骤，并更新步骤状态
+      prompt: |-
+        你需要完成任务的单个步骤, 并更新步骤状态。
+        在执行任务前你可以在线搜索相关资料。
+      promptTemplates:
+        - id: O014FOjBNN
+          role: human
+          text: |-
+            步骤序号: {{index}}
+            步骤要求内容：
+            {{content}}
+      parameters:
+        - type: number
+          name: index
+          title: 步骤索引
+          description: null
+          optional: null
+          maximum: null
+          options: null
+        - type: text
+          name: content
+          title: 步骤内容
+          description: null
+          optional: null
+          maximum: null
+          options: null
+      options:
+        disableMessageHistory: true
+        parallelToolCalls: false
+      copilotModel: null
+    hash: e0f158152fef2d3ccac38176b7f2a89111e716346acf67e469e212775ae469d1
+  - type: toolset
+    key: e4554ac9-cc36-4b97-a8db-8197d3bb2d5d
+    position:
+      x: 500
+      y: 520
+    entity:
+      id: e4554ac9-cc36-4b97-a8db-8197d3bb2d5d
+      name: Google 搜索工具
+      type: tavily
+      category: builtin
+      description: 在线搜索工具
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon
+      options:
+        toolPositions:
+          tavily_search: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 74f94aa2-9c19-4bc1-a707-44c286cafc1c
+          name: tavily_search
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    hash: 8df72a91f77b892d1569b926d167892c05843af117417d6264a2895af488b50f
+  - type: agent
+    key: Agent_BDdyukOAhc
+    position:
+      x: 720
+      y: 20
+    entity:
+      key: Agent_BDdyukOAhc
+      title: 总结输出
+      description: 总结规划执行情况
+      prompt: |
+        计划如下：
+        计划标题: {{plan_title}}
+
+        详细步骤: {{plan_steps}}
+      promptTemplates:
+        - id: chFfTiAuy4
+          role: human
+          text: 告知我计划完成情况和后续规划
+      options:
+        disableMessageHistory: true
+        parallelToolCalls: false
+      copilotModel:
+        modelType: llm
+        model: deepseek-reasoner
+    hash: c6070d92c64d1d51fd4216e6b36f7f76e9da530964c47d54791f0e8c81687b8b
+connections:
+  - type: toolset
+    key: Agent_zm7jnDN2qV/00930607-6084-40de-86b7-a5089042fcd3
+    from: Agent_zm7jnDN2qV
+    to: 00930607-6084-40de-86b7-a5089042fcd3
+  - type: edge
+    key: Agent_zm7jnDN2qV/Iterating_Obt2ubUnuo
+    from: Agent_zm7jnDN2qV
+    to: Iterating_Obt2ubUnuo
+  - type: agent
+    key: Iterating_Obt2ubUnuo/Agent_kZUOAglggf
+    from: Iterating_Obt2ubUnuo
+    to: Agent_kZUOAglggf
+  - type: toolset
+    key: Agent_kZUOAglggf/00930607-6084-40de-86b7-a5089042fcd3
+    from: Agent_kZUOAglggf
+    to: 00930607-6084-40de-86b7-a5089042fcd3
+  - type: toolset
+    key: Agent_kZUOAglggf/e4554ac9-cc36-4b97-a8db-8197d3bb2d5d
+    from: Agent_kZUOAglggf
+    to: e4554ac9-cc36-4b97-a8db-8197d3bb2d5d
+  - type: edge
+    key: Iterating_Obt2ubUnuo/Agent_BDdyukOAhc
+    from: Iterating_Obt2ubUnuo
+    to: Agent_BDdyukOAhc

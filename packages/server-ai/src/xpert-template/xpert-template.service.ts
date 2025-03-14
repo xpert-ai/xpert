@@ -5,6 +5,8 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import * as fs from 'fs'
 import * as path from 'path'
 
+const currentPath = 'packages/server-ai/src/xpert-template'
+
 @Injectable()
 export class XpertTemplateService {
 	readonly #logger = new Logger(XpertTemplateService.name)
@@ -20,7 +22,7 @@ export class XpertTemplateService {
 	async readTemplatesFile() {
 		const templatesFilePath = path.join(
 			this.configService.assetOptions.serverRoot,
-			'packages/server-ai/src/xpert-template/templates.json'
+			currentPath + '/templates.json'
 		)
 
 		let templatesData: Record<string, unknown>
@@ -38,16 +40,40 @@ export class XpertTemplateService {
 
 	async getAll(language: LanguagesEnum) {
 		const templatesData = await this.readTemplatesFile()
-		if (templatesData.templates[language]?.recommended_apps?.length) {
+		if (templatesData.templates[language]?.recommendedApps?.length) {
 			return templatesData.templates[language]
 		}
 		return templatesData.templates['en-US']
 		
 	}
 
-	async getTemplateDetail(id: string) {
+	async getTemplateDetail(id: string, language: LanguagesEnum) {
 		const templatesData = await this.readTemplatesFile()
+		let details = templatesData.details[id]
+		if (details) {
+			return details
+		}
 
-		return templatesData.details[id]
+		const recommendedApps = templatesData.templates[language]?.recommendedApps?.length
+			? templatesData.templates[language].recommendedApps
+			: templatesData.templates['en-US'].recommendedApps
+		details = recommendedApps.find((_) => _.id === id)
+
+		if (!details) {
+			throw new Error(`Unable to find template for ${id}`)
+		}
+
+		const templateFilePath = path.join(
+			this.configService.assetOptions.serverRoot,
+			currentPath + `/templates/${id}.yaml`
+		)
+
+		try {
+			details.export_data = await fs.promises.readFile(templateFilePath, 'utf8')
+		} catch (err) {
+			throw new Error(`Unable to find template for ${id}`)
+		}
+
+		return details
 	}
 }

@@ -31,7 +31,7 @@ import { toObservable } from '@angular/core/rxjs-interop'
 import { filter, map, shareReplay, switchMap, tap } from 'rxjs'
 import { ChatMessageExecutionComponent } from '../../@shared/chat'
 import { CopyComponent } from '../../@shared/common'
-import { HeightChangeAnimation } from '@metad/core'
+import { ListHeightStaggerAnimation } from '@metad/core'
 import { ChatConversationComponent } from '../conversation/conversation.component'
 
 @Component({
@@ -60,7 +60,7 @@ import { ChatConversationComponent } from '../conversation/conversation.componen
   templateUrl: './ai-message.component.html',
   styleUrl: 'ai-message.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  animations: [HeightChangeAnimation]
+  animations: [ListHeightStaggerAnimation]
 })
 export class ChatAiMessageComponent {
   eFeedbackRatingEnum = ChatMessageFeedbackRatingEnum

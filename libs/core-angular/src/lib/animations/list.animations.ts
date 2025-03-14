@@ -16,3 +16,15 @@ export const listEnterAnimation = trigger('listEnterAnimation', [
     })
   ])
 ])
+
+export const ListHeightStaggerAnimation = trigger('listHeightStagger', [
+  transition('* <=> *', [
+    query(':enter', [
+      style({ height: '0', opacity: 0 }),
+      stagger('60ms', animate('200ms ease-out', style({ height: '*', opacity: 1 })))
+    ]),
+    query(':leave', [
+      style({ height: '0', opacity: 0 })
+    ], { optional: true })
+  ])
+])

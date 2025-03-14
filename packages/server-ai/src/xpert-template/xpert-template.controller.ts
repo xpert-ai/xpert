@@ -25,6 +25,6 @@ export class XpertTemplateController {
 
 	@Get(':id')
 	async getTemplate(@I18nLang() language: LanguagesEnum, @Param('id') id: string) {
-		return await this.service.getTemplateDetail(id)
+		return await this.service.getTemplateDetail(id, language)
 	}
 }

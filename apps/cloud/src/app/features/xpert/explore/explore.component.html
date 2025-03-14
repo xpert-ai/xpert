@@ -76,7 +76,7 @@
           </div>
           <div class="grow w-0 py-[1px]">
             <div class="flex items-center text-base leading-5 font-semibold text-gray-800">
-              <div class="truncate" [title]="app.name" [ngmHighlight]="searchText()" [content]="app.name"></div>
+              <div class="truncate" [title]="app.title || app.name" [ngmHighlight]="searchText()" [content]="app.title || app.name"></div>
             </div>
             <div class="flex items-center text-sm leading-[18px] text-gray-500 font-medium">
               @switch (app.type) {
@@ -91,7 +91,7 @@
           </div>
         </div>
         <div class="description-wrapper h-[90px] px-[14px] text-sm leading-normal text-gray-500">
-          <div class="line-clamp-4 group-hover:line-clamp-2" [ngmHighlight]="searchText()" [content]="app.description">
+          <div class="line-clamp-4 group-hover:line-clamp-2" [title]="app.description" [ngmHighlight]="searchText()" [content]="app.description">
           </div>
         </div>
         <div
