@@ -8,6 +8,7 @@ import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { AgentStateAnnotation } from './commands/handlers/types'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
+import { instanceToPlain } from 'class-transformer'
 
 export function createMapStreamEvents(
 	logger: Logger,
@@ -400,4 +401,14 @@ export function setStateVariable(state, varName: string, value: any) {
 	}
 
 	return state
+}
+
+export function messageEvent(event: ChatMessageEventTypeEnum, data: any) {
+	return {
+		data: {
+			type: ChatMessageTypeEnum.EVENT,
+			event,
+			data: instanceToPlain(data)
+		}
+	} as MessageEvent
 }

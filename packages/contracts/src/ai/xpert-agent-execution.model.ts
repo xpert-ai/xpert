@@ -57,9 +57,10 @@ export type TXpertAgentExecution = {
   // Parent AgentExecution
   parentId?: string
 
-  // Temporary properties
-  // From CopilotCheckpoint
+  // Stored messages or from checkpoints
   messages?: StoredMessage[]
+
+  // Temporary properties
   agent?: IXpertAgent
   totalTokens?: number
   /**
