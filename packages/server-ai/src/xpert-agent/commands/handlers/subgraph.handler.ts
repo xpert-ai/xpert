@@ -35,14 +35,12 @@ import { createSummarizeAgent } from './react_agent_executor'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 import { ChatOpenAI } from '@langchain/openai'
-import { isNil } from 'lodash'
 import { XpertConfigException } from '../../../core/errors'
 import { RequestContext } from '@metad/server-core'
 import { FakeStreamingChatModel } from '../../agent'
 import { stringifyMessageContent } from '@metad/copilot'
 import { createParameters } from '../../workflow/parameter'
 import { CreateWorkflowNodeCommand } from '../create-workflow.command'
-
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -113,7 +111,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			toolsetVarirables.push(...(toolset.getVariables() ?? []))
 			stateVariables.push(...toolsetVarirables)
 			const items = await toolset.initTools()
-			items.forEach((tool) => {
+			// Filter available tools by agent
+			const availableTools = agent.options?.availableTools?.[toolset.getToolset().name] ?? []
+			items.filter((tool) => availableTools.length ? availableTools.includes(tool.name) : true)
+			  .forEach((tool) => {
 				const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)
 				tools.push({ caller: agent.key, tool, variables: team.agentConfig?.toolsMemory?.[lc_name] })
 
@@ -124,7 +125,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			})
 		}
 
-		this.#logger.debug(`Use tools:\n ${[...tools].map((_) => _.tool.name + ': ' + _.tool.description).join('\n')}`)
+		this.#logger.debug(`Use tools:\n${[...tools].map((_, i) => `${i+1}. ` + _.tool.name + ': ' + _.tool.description).join('\n')}`)
 
 		// Knowledgebases
 		const knowledgebaseIds = options?.knowledgebases ?? agent.knowledgebaseIds

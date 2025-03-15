@@ -1,0 +1,10 @@
+@if (connection().type === 'toolset') {
+  <span class="text-sm">
+    {{'PAC.Xpert.ToolsCall' | translate: {Default: 'Tools Call'} }}:
+    @if (selectedAll()) {
+      <span class="mx-1 font-semibold text-text-success">{{ 'PAC.Xpert.All' | translate: {Default: 'All'} }}</span>
+    } @else {
+      <span class="mx-1 font-semibold text-text-warning">{{ 'PAC.Xpert.Partial' | translate: {Default: 'Partial'} }}</span>
+    }
+  </span>
+}

@@ -58,6 +58,8 @@ import {
   XpertAgentExecutionLogComponent
 } from '../../../@shared/xpert'
 import {
+  XpertStudioConnectionMenuComponent,
+  XpertStudioConnectionCenterComponent,
   XpertStudioContextMenuComponent,
   XpertStudioNodeAgentComponent,
   XpertStudioNodeKnowledgeComponent,
@@ -100,7 +102,9 @@ import { EmojiAvatarComponent } from '../../../@shared/avatar'
     XpertStudioHeaderComponent,
     XpertStudioPanelComponent,
     XpertAgentExecutionStatusComponent,
-    XpertAgentExecutionLogComponent
+    XpertAgentExecutionLogComponent,
+    XpertStudioConnectionMenuComponent,
+    XpertStudioConnectionCenterComponent
   ],
   selector: 'pac-xpert-studio',
   templateUrl: './studio.component.html',

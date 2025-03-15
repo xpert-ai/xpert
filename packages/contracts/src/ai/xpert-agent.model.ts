@@ -134,6 +134,12 @@ export type TXpertAgentOptions = {
    * Recall params for kbs
    */
   recall?: TKBRecallParams
+
+  /**
+   * Available tools
+   */
+  availableTools?: Record<string, string[]>
+  
 }
 
 export type TAgentPromptTemplate = {

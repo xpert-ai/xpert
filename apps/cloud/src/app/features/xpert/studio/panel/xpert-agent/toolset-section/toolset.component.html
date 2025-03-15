@@ -72,57 +72,20 @@
     @for (toolset of toolsets(); track toolset.key) {
       <div class="bg-white shadow-xs group relative flex justify-between items-center last-of-type:mb-0 pl-2.5 py-2 pr-3 w-full rounded-lg border-[0.5px] border-gray-200">
         <div class="grow w-0 flex items-center">
-            <emoji-avatar [avatar]="toolset.entity.avatar" small class="rounded-lg overflow-hidden shadow-sm" />
-            <div class="grow w-0 ml-2 text-[13px] font-medium text-gray-800 truncate">
-                <span class="text-gray-800 pr-2">{{toolset.entity.name}}</span>
-                <span class="text-gray-500">{{toolset.entity.description}}</span>
-            </div>
+          <emoji-avatar [avatar]="toolset.entity.avatar" xs class="rounded-lg overflow-hidden shadow-sm" />
+          <div class="grow w-0 ml-2 text-sm font-medium text-gray-800 truncate">
+            <span class="text-gray-800 pr-2">{{toolset.entity.name}}</span>
+            <span class="text-gray-500">{{toolset.entity.description}}</span>
+          </div>
         </div>
         <div class="shrink-0 ml-1 flex items-center">
           <div class="hidden group-hover:flex items-center">
-            <!-- <div class="p-1 rounded-md hover:bg-black/5 cursor-pointer">
-                <svg
-                width="12"
-                height="12"
-                viewBox="0 0 12 12"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                class="w-4 h-4 text-gray-500"
-                >
-                <g id="info-circle" clip-path="url(#clip0_7880_62014)">
-                    <path
-                    id="Icon"
-                    d="M6 8V6M6 4H6.005M11 6C11 8.76142 8.76142 11 6 11C3.23858 11 1 8.76142 1 6C1 3.23858 3.23858 1 6 1C8.76142 1 11 3.23858 11 6Z"
-                    stroke="currentColor"
-                    stroke-width="1.25"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    ></path>
-                </g>
-                <defs>
-                    <clipPath id="clip0_7880_62014"><rect width="12" height="12" fill="white"></rect></clipPath>
-                </defs>
-                </svg>
-            </div> -->
-
             <div class="ml-2 mr-3 w-px h-3.5 bg-gray-200"></div>
 
-            <div class="p-1 rounded-md hover:bg-black/5 cursor-pointer"
+            <button type="button" class="btn w-6 h-6 p-1 justify-center rounded-md hover:bg-black/5 cursor-pointer danger"
               (click)="remove(toolset)">
-              <svg
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                fill="currentColor"
-                class="remixicon w-4 h-4 text-gray-500"
-                >
-                <path
-                    d="M17 6H22V8H20V21C20 21.5523 19.5523 22 19 22H5C4.44772 22 4 21.5523 4 21V8H2V6H7V3C7 2.44772 7.44772 2 8 2H16C16.5523 2 17 2.44772 17 3V6ZM18 8H6V20H18V8ZM9 11H11V17H9V11ZM13 11H15V17H13V11ZM9 4V6H15V4H9Z"
-                ></path>
-              </svg>
-            </div>
-            
+              <i class="ri-delete-bin-line"></i>
+            </button>
           </div>
         </div>
       </div>

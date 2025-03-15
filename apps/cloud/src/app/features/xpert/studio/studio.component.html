@@ -21,13 +21,13 @@
         [fReassignDisabled]="false"
         [fOutputId]="connection.from + '/' + connection.type"
         [fInputId]="connection.to + (connection.type === 'edge' ? '/edge' : '')"
-        class="gradient-color cursor-pointer"
+        class="group/connection gradient-color cursor-pointer"
         [class.f-selected]="connection.from.startsWith(selectedNodeKey()) || connection.to.startsWith(selectedNodeKey())"
         [class.f-hover]="connection.from.startsWith(hoverNode()) || connection.to.startsWith(hoverNode())"
         [ngClass]="connection.type"
         fStartColor="var(--connection-gradient-1)" fEndColor="var(--connection-gradient-2)"
         [cdkContextMenuTriggerFor]="connContextMenu"
-        [cdkContextMenuTriggerData]="{connection: connComp}"
+        [cdkContextMenuTriggerData]="{connection: connection, connectionComponent: connComp}"
         [class.connecting]="connection.running"
       >
         @if (connection.type === 'edge') {
@@ -42,6 +42,9 @@
             <path d="M0.000391006 0L6 3.5L0.000391006 7L0.000391006 0Z"/>
           </svg>
         }
+        <div fConnectionCenter class="opacity-0 group-hover/connection:z-10 group-hover/connection:opacity-100">
+          <xpert-studio-connection-center [connection]="connection" class="w-[100px] text-text-primary" />
+        </div>
       </f-connection>
     }
 
@@ -178,10 +181,9 @@
 
 <xpert-studio-context-menu #menu="menuComponent" />
 
-<ng-template #connContextMenu let-connection="connection">
-  <div cdkMenu class="cdk-menu__large">
-    <div cdkMenuItem class="ngm-cdk-menu-item danger" (click)="removeConnection(connection)">
-      <span>{{ 'PAC.Xpert.Remove' | translate: {Default: 'Remove'} }}</span>
-    </div>
-  </div>
+<ng-template #connContextMenu let-connection="connection" let-connectionComponent="connectionComponent">
+  <xpert-studio-connection-menu cdkMenu class="cdk-menu__medium" 
+    [connection]="connection"
+    [connectionComponent]="connectionComponent"
+  />
 </ng-template>

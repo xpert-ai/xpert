@@ -2186,6 +2186,7 @@
       "AddExternalExpert": "添加外部专家",
       "AddBlock": "添加模块",
       "Remove": "移除",
+      "RemoveConnection": "移除连接",
       "PleaseEnter": "请输入",
       "Query": "查询",
       "Icon": "图标",
@@ -2481,7 +2482,11 @@
       "LatestDefaultVersion": "设置此版本为最新，打开数字专家时的默认版本",
       "VersionHistory": "历史版本",
       "DeleteThisVersion": "删除此版本，不影响其他版本的使用",
-      "Answer": "回答"
+      "Answer": "回答",
+      "AccessTools": "访问工具",
+      "All": "全部",
+      "Partial": "部分",
+      "ToolsCall": "工具调用"
     },
     "title": {
       "short": "Xpert AI"
