@@ -16,8 +16,11 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
       const ctrl = new AbortController()
       const organization = store.selectedOrganization ?? { id: null }
 
+      // For retry 1 when unauthorized.
       let unauthorized = false
       function req() {
+        // Has retry request
+        let haveTry = false
         const token = store.token
         fetchEventSource(url, {
           method: 'POST',
@@ -35,6 +38,7 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
             if (!unauthorized && response.status === 401) {
               unauthorized = true
               await firstValueFrom(auth.refreshToken())
+              haveTry = true
               return req()
             }
 
@@ -51,7 +55,7 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
             subscriber.next(msg)
           },
           onclose() {
-            if (!unauthorized) {
+            if (!haveTry) {
               subscriber.complete()
             }
           },

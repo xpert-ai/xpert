@@ -1,6 +1,6 @@
-<div class="flex items-center mb-1 system-sm-semibold-uppercase text-text-secondary">
-  {{ 'PAC.KEY_WORDS.Tool' | translate: {Default: 'Tool'} }}
-  : {{toolCall().name}}
+<div class="flex items-center gap-1 mb-1 system-sm-semibold-uppercase text-text-secondary">
+  <span>{{ 'PAC.KEY_WORDS.Tool' | translate: {Default: 'Tool'} }}</span>
+  <span class="font-semibold">{{toolCall().name}}</span>
 </div>
 <!-- <div class="mb-2 system-xs-regular text-text-tertiary">{{toolCall().id}}</div> -->
 <div class="mb-2 overflow-auto system-xs-regular text-text-tertiary">{{args()}}</div>
