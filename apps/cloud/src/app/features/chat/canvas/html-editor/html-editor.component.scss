@@ -1,0 +1,7 @@
+:host {
+  @apply block relative overflow-hidden;
+}
+
+.type-radio.active {
+  @apply bg-white;
+}
