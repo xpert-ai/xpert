@@ -24,7 +24,7 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { XpertParametersCardComponent } from '../../../@shared/xpert'
-import { ChatConversationComponent, ChatService } from '../../../xpert'
+import { ChatConversationComponent, ChatService, XpertOcapService } from '../../../xpert'
 import { ChatCanvasComponent } from '../canvas/canvas.component'
 import { ChatInputComponent } from '../chat-input/chat-input.component'
 import { ChatPlatformService } from '../chat.service'
@@ -32,6 +32,7 @@ import { ChatConversationsComponent } from '../conversations/conversations.compo
 import { ChatHomeService } from '../home.service'
 import { ChatHomeComponent } from '../home/home.component'
 import { ChatXpertsComponent } from '../xperts/xperts.component'
+import { provideOcapCore } from '@metad/ocap-angular/core'
 
 @Component({
   standalone: true,
@@ -57,7 +58,12 @@ import { ChatXpertsComponent } from '../xperts/xperts.component'
   styleUrl: 'xpert.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   animations: [DisappearBL],
-  providers: [ChatPlatformService, { provide: ChatService, useExisting: ChatPlatformService }]
+  providers: [
+    ChatPlatformService, 
+    { provide: ChatService, useExisting: ChatPlatformService },
+    provideOcapCore(),
+    XpertOcapService
+  ]
 })
 export class ChatXpertComponent {
   readonly chatService = inject(ChatService)

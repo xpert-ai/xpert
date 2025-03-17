@@ -21,6 +21,7 @@ import { ChatService, groupConversations } from '../chat.service'
 import { ChatConversationComponent } from '../conversation/conversation.component'
 import { MatInputModule } from '@angular/material/input'
 import { XpertHomeService } from '../home.service'
+import { XpertOcapService } from '../ocap.service'
 
 @Component({
   standalone: true,
@@ -60,7 +61,8 @@ import { XpertHomeService } from '../home.service'
     provideOcapCore(),
     XpertHomeService,
     ChatAppService,
-    { provide: ChatService, useExisting: ChatAppService }
+    { provide: ChatService, useExisting: ChatAppService },
+    XpertOcapService
   ]
 })
 export class ChatHomeComponent {

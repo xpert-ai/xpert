@@ -1,0 +1,22 @@
+<div class="flex-1 min-w-0 p-4 flex flex-col gap-3 h-full">
+  <div class="flex items-center gap-2 w-full">
+    <div class="text-text-primary text-lg font-semibold flex-1">Xpert 的电脑</div>
+    <button class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer hover:bg-hover-bg"
+      (click)="close()"
+    >
+      <i class="ri-collapse-diagonal-line"></i>
+    </button>
+  </div>
+
+  @if (contents(); as messages) {
+    @for (message of messages; track message) {
+      @switch (message.type) {
+        @case ('component') {
+          <chat-component-message class="w-full p-2 rounded-2xl hover:bg-neutral-50"
+            [message]="message"
+          />
+        }
+      }
+    }
+  }
+</div>

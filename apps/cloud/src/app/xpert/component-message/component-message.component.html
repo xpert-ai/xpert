@@ -16,6 +16,13 @@
         (click)="openExplorer()">
         <i class="ri-expand-diagonal-2-line"></i>
       </button>
+
+      <button ngmAction class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light"
+        [matTooltip]="'PAC.Chat.OpenCanvas' | translate: {Default: 'Open Canvas'}"
+        matTooltipPosition="above"
+        (click)="openCanvas()">
+        <i class="ri-expand-diagonal-line"></i>
+      </button>
     
       <button ngmAction class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light"
         [matTooltip]="'PAC.Chat.OpenExplain' | translate: {Default: 'Open Explain'}"

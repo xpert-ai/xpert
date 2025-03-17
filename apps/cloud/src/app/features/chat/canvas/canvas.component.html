@@ -1,1 +1,8 @@
-<chat-canvas-computer class="w-full" />
+@switch(canvasType()) {
+  @case ('Dashboard') {
+    <chat-canvas-dashboard class="w-full" />
+  }
+  @case ('Computer') {
+    <chat-canvas-computer class="w-full" />
+  }
+}

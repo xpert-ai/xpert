@@ -31,8 +31,8 @@ import { filter, map, shareReplay, switchMap, tap } from 'rxjs'
 import { ChatMessageExecutionComponent } from '../../@shared/chat'
 import { CopyComponent } from '../../@shared/common'
 import { ListHeightStaggerAnimation } from '@metad/core'
-import { ChatConversationComponent } from '../conversation/conversation.component'
 import { XpertHomeService } from '../home.service'
+import { XpertOcapService } from '../ocap.service'
 
 @Component({
   standalone: true,
@@ -66,7 +66,7 @@ export class ChatAiMessageComponent {
 
   readonly chatService = inject(ChatService)
   readonly homeService = inject(XpertHomeService)
-  readonly conversationComponent = inject(ChatConversationComponent)
+  readonly xpertOcapService = inject(XpertOcapService)
   readonly messageFeedbackService = inject(ChatMessageFeedbackService)
   readonly agentExecutionService = inject(XpertAgentExecutionService)
   readonly #toastr = injectToastr()
@@ -157,7 +157,10 @@ export class ChatAiMessageComponent {
     }
   })
   readonly expandSteps = signal(false)
-  readonly canvasMessageId = this.homeService.canvasOpened
+  readonly canvasMessageId = computed(() =>
+    this.homeService.canvasOpened()?.type === 'Computer' &&
+      this.homeService.canvasOpened()?.messageId
+  )
 
   constructor() {
     effect(() => {
@@ -166,7 +169,7 @@ export class ChatAiMessageComponent {
   }
 
   onRegister(models: { id: string; indicators?: Indicator[] }[]) {
-    this.conversationComponent.registerSemanticModel(models)
+    this.xpertOcapService.registerSemanticModel(models)
   }
 
   onCopy(copyButton) {
@@ -221,6 +224,9 @@ export class ChatAiMessageComponent {
   }
 
   openCanvas() {
-    this.homeService.canvasOpened.set(this.message().id)
+    this.homeService.canvasOpened.set({
+      type: 'Computer',
+      messageId: this.message().id
+    })
   }
 }

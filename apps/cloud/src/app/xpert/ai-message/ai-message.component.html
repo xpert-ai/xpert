@@ -175,19 +175,20 @@
   }
 
   @if (contents(); as messages) {
-    @for (message of messages; track message) {
-      @switch (message.type) {
+    @for (submessage of messages; track submessage) {
+      @switch (submessage.type) {
         @case ('text') {
           <markdown clipboard class="ngm-copilot-markdown flex-1"
             [clipboardButtonTemplate]="buttonTemplate"
             lineNumbers
             [start]="5"
-            [data]="message.text"
+            [data]="submessage.text"
           />
         }
         @case ('component') {
           <chat-component-message class="w-full p-2 rounded-2xl hover:bg-neutral-50"
-            [message]="message"
+            [messageId]="message().id"
+            [message]="submessage"
             (register)="onRegister($event)"
           />
         }
@@ -240,7 +241,8 @@
         }
       </div>
 
-      <a class="absolute top-1 right-2 w-7 h-7 cursor-pointer flex justify-center items-center rounded-lg hover:bg-hover-bg opacity-20 group-hover:opacity-100" (click)="openCanvas()">
+      <a class="absolute top-1 right-2 w-7 h-7 cursor-pointer flex justify-center items-center rounded-lg hover:bg-hover-bg opacity-20 group-hover:opacity-100"
+        (click)="openCanvas()">
         <i class="ri-tv-2-line"></i>
       </a>
     </div>

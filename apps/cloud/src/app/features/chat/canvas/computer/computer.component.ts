@@ -37,7 +37,7 @@ export class ChatCanvasComputerComponent {
   readonly #formatRelative = injectFormatRelative()
 
   // States
-  readonly messageId = this.homeService.canvasOpened
+  readonly messageId = computed(() => this.homeService.canvasOpened()?.type === 'Computer' && this.homeService.canvasOpened()?.messageId)
   readonly steps = computed(() => {
     const conversation = this.homeService.conversation()
     const id = this.messageId()

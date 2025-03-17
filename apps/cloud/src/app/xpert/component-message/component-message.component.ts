@@ -32,6 +32,7 @@ import { IXpertTask, Store } from '../../@core'
 import { ChatComponentIndicatorsComponent } from './indicators/indicators.component'
 import { ChatComponentIndicatorComponent } from './indicator/indicator.component'
 import { ChatComponentTasksComponent } from './tasks/tasks.component'
+import { XpertHomeService } from '../home.service'
 
 @Component({
   standalone: true,
@@ -67,8 +68,12 @@ export class ChatComponentMessageComponent {
   readonly #dialog = inject(Dialog)
   readonly dsCore = inject(NgmDSCoreService)
   readonly #viewContainerRef = inject(ViewContainerRef)
+  readonly homeService = inject(XpertHomeService)
 
   // Inputs
+  // Message ID
+  readonly messageId = input<string>()
+  // Sub component message
   readonly message = input<any>()
 
   // Outputs
@@ -164,5 +169,13 @@ export class ChatComponentMessageComponent {
           }
         }
       })
+  }
+
+  openCanvas() {
+    this.homeService.canvasOpened.set({
+      type: 'Dashboard',
+      messageId: this.messageId(),
+      componentId: this.message().id
+    })
   }
 }
