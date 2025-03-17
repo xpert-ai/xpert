@@ -2,7 +2,7 @@ import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { getContextVariable } from '@langchain/core/context'
 import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageStepType, CONTEXT_VARIABLE_CURRENTSTATE } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import z from 'zod'
 import { ToolParameterValidationError } from '../../../../errors'
@@ -62,8 +62,10 @@ export class PlanningUpdateStepTool extends BuiltinTool {
 
 		// Tool message event
 		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+			type: ChatMessageStepType.ComputerUse,
 			toolset: PlanningToolset.provider,
 			tool: this.name,
+			title: `${planSteps[parameters.step_index]?.content}`,
 			message: `Update ${parameters.step_index} step: ${parameters.step_status}, ${parameters.step_notes}`
 		}).catch((err) => {
 			this.#logger.error(err)

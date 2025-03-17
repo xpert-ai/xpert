@@ -1,4 +1,4 @@
-import { inject, Injectable, signal } from '@angular/core'
+import { computed, inject, Injectable, model, signal } from '@angular/core'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { Observable, shareReplay } from 'rxjs'
 import {
@@ -25,6 +25,11 @@ export class XpertHomeService {
 
   readonly conversations = signal<IChatConversation[]>([])
   readonly conversationId = signal<string>(null)
+
+  readonly conversation = signal<IChatConversation>(null)
+  readonly messages = computed(() => this.conversation()?.messages)
+
+  readonly canvasOpened = signal<string>(null)
 
   // Xperts details
   readonly #xperts: Record<string, Observable<IXpert>> = {}

@@ -1,5 +1,5 @@
-import { Injectable } from '@angular/core'
-import { LanguagesEnum, OrderTypeEnum, XpertTypeEnum } from '../../@core/types'
+import { computed, Injectable, signal } from '@angular/core'
+import { IChatConversation, IXpert, LanguagesEnum, OrderTypeEnum, XpertTypeEnum } from '../../@core/types'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { map, pipe } from 'rxjs'
 import { XpertHomeService } from '../../xpert'
@@ -24,4 +24,9 @@ export class ChatHomeService extends XpertHomeService {
     ),
     { initialValue: null }
   )
+
+  readonly xpert = signal<IXpert>(null)
+  
+  readonly conversationTitle = computed(() => this.conversation()?.title)
+  
 }

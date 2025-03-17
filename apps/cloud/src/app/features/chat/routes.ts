@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router'
-import { ChatHomeComponent } from './home.component'
 import { ChatTasksComponent } from './tasks/tasks.component'
 import { ChatXpertComponent } from './xpert/xpert.component'
+import { ChatHomeComponent } from './home/home.component'
 
 export const routes: Routes = [
   {

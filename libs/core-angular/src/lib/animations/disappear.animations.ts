@@ -14,4 +14,14 @@ export const DisappearSlideDown = trigger('slideDown', [
   ])
 ])
 
-export const DisappearAnimations = [Disappear1, DisappearFadeOut, DisappearSlideDown]
+export const DisappearBL = trigger('bl', [
+  transition(':enter', [
+    style({ transform: 'translate(-80%, 30%) scale(0.2)', opacity: 0 }),
+    animate('200ms ease-out', style({ transform: 'translate(0, 0) scale(1)', opacity: 1 }))
+  ]),
+  transition(':leave', [
+    animate('200ms ease-in', style({ width: '335px', opacity: 0.5, transform: 'translate(-100%, 30%) scale(0.2)' }))
+  ])
+])
+
+export const DisappearAnimations = [Disappear1, DisappearFadeOut, DisappearSlideDown, DisappearBL]

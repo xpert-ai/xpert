@@ -2486,7 +2486,9 @@
       "AccessTools": "访问工具",
       "All": "全部",
       "Partial": "部分",
-      "ToolsCall": "工具调用"
+      "ToolsCall": "工具调用",
+      "Toolset_planning": "规划",
+      "Toolset_bash": "终端"
     },
     "title": {
       "short": "Xpert AI"

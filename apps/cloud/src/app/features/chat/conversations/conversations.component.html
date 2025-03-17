@@ -1,0 +1,218 @@
+<div class="flex items-center gap-3 px-5 border-b border-border h-14">
+  <div class="flex items-center w-full gap-2" >
+    <input
+      placeholder="Search..."
+      class="flex-grow w-full bg-transparent placeholder:text-secondary focus-visible:outline-none"
+      autocomplete="off"
+      autocorrect="off"
+      spellcheck="false"
+      aria-autocomplete="list"
+      role="combobox"
+      aria-expanded="true"
+      aria-controls=":rma:"
+      aria-labelledby=":rmb:"
+      type="text"
+    />
+    <div class="flex-shrink-0" >
+      <i class="ri-search-2-line text-xl text-text-secondary"></i>
+    </div>
+  </div>
+</div>
+
+<div class="relative w-[80vw] h-[80vh]">
+  <div class="grid h-full relative grid-cols-2 xl:grid-cols-5">
+    <div
+      class="col-span-1 xl:col-span-2 h-full overflow-auto space-y-3 p-3 border-r border-border"
+      style="scroll-padding-block: 1rem"
+    >
+      <div class="flex-1 p-2 overflow-auto max-h-fit"
+        waIntersectionObserver
+        waIntersectionThreshold="0.5"
+      >
+        <ul>
+          @for (group of groups(); track groups.name) {
+            <div class="pt-8 text-sm font-semibold text-ellipsis overflow-hidden break-all text-token-text-primary">
+              {{ 'PAC.KEY_WORDS.Date_' + group.name | translate: {Default: group.name} }}
+            </div>
+            @for (item of group.values; track item.id) {
+              <li class="pac-chat__conversation-item relative group flex justify-between items-center cursor-pointer overflow-hidden px-3 py-2 rounded-xl text-text-secondary hover:bg-black/5 dark:hover:bg-white/10"
+                [ngClass]="{active: item.id === conversationId()}"
+                (click)="selectConversation(item)"
+              >
+                @if (editingConversation()  === item.id) {
+                  <input matInput [(ngModel)]="editingTitle" (keydown.enter)="updateTitle(item)" 
+                    (keydown.esc)="exitEdit($event)">
+                } @else {
+                  <div class="truncate">{{item.title || item.id}}</div>
+                }
+
+                <div class="z-20 relative flex items-center">
+                  <span
+                    class="text-secondary whitespace-nowrap ml-2 hidden text-sm group-hover:opacity-0 md:inline md:group-hover/item:hidden md:group-focus/item:hidden md:group-active/item:hidden"
+                    >{{ item.updatedAt | relative }}</span
+                  >
+                  <div class="absolute right-1 flex items-center gap-2 opacity-0 group-hover:opacity-100">
+                    <button
+                      class="btn justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary hover:bg-button-ghost-hover flex items-center gap-3 size-8 rounded-md"
+                      type="button"
+                      tabindex="-1"
+                      [matTooltip]="'New tab'"
+                      (click)="openInTab(item)"
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="stroke-[2] text-primary"
+                      >
+                        <path
+                          d="M15.5074 3.00732H20.9927M20.9927 3.00732L20.9927 8.49261M20.9927 3.00732L13.0932 10.9068"
+                          stroke="currentColor"
+                          stroke-linecap="square"
+                        ></path>
+                        <path
+                          fill-rule="evenodd"
+                          clip-rule="evenodd"
+                          d="M4 7C4 5.34315 5.34315 4 7 4H11V2H7C4.23858 2 2 4.23858 2 7V17C2 19.7614 4.23858 22 7 22H17C19.7618 22 22 19.7597 22 16.9987V16.978V16.9572V16.9365V16.9158V16.8951V16.8744V16.8538V16.8331V16.8125V16.7919V16.7713V16.7507V16.7301V16.7095V16.689V16.6684V16.6479V16.6274V16.6069V16.5864V16.5659V16.5455V16.525V16.5046V16.4842V16.4638V16.4434V16.423V16.4026V16.3823V16.3619V16.3416V16.3213V16.301V16.2807V16.2604V16.2401V16.2199V16.1996V16.1794V16.1592V16.139V16.1188V16.0986V16.0784V16.0583V16.0381V16.018V15.9979V15.9778V15.9577V15.9376V15.9175V15.8974V15.8774V15.8574V15.8373V15.8173V15.7973V15.7773V15.7573V15.7373V15.7174V15.6974V15.6775V15.6575V15.6376V15.6177V15.5978V15.5779V15.558V15.5382V15.5183V15.4985V15.4786V15.4588V15.439V15.4192V15.3994V15.3796V15.3598V15.34V15.3203V15.3005V15.2808V15.2611V15.2413V15.2216V15.2019V15.1822V15.1626V15.1429V15.1232V15.1036V15.0839V15.0643V15.0447V15.025V15.0054V14.9858V14.9662V14.9466V14.9271V14.9075V14.888V14.8684V14.8489V14.8293V14.8098V14.7903V14.7708V14.7513V14.7318V14.7123V14.6928V14.6734V14.6539V14.6345V14.615V14.5956V14.5762V14.5567V14.5373V14.5179V14.4985V14.4791V14.4597V14.4404V14.421V14.4016V14.3823V14.3629V14.3436V14.3243V14.3049V14.2856V14.2663V14.247V14.2277V14.2084V14.1891V14.1698V14.1506V14.1313V14.112V14.0928V14.0735V14.0543V14.035V14.0158V13.9966V13.9774V13.9582V13.9389V13.9197V13.9005V13.8814V13.8622V13.843V13.8238V13.8047V13.7855V13.7663V13.7472V13.728V13.7089V13.6898V13.6706V13.6515V13.6324V13.6133V13.5941V13.575V13.5559V13.5368V13.5177V13.4986V13.4796V13.4605V13.4414V13.4223V13.4033V13.3842V13.3651V13.3461V13.327V13.308V13.2889V13.2699V13.2509V13.2318V13.2128V13.1938V13.1748V13.1557V13.1367V13.1177V13.0987V13.0797V13.0607V13.0417V13.0227V13.0037V13H20V13.0037V13.0227V13.0417V13.0607V13.0797V13.0987V13.1177V13.1367V13.1557V13.1748V13.1938V13.2128V13.2318V13.2509V13.2699V13.2889V13.308V13.327V13.3461V13.3651V13.3842V13.4033V13.4223V13.4414V13.4605V13.4796V13.4986V13.5177V13.5368V13.5559V13.575V13.5941V13.6133V13.6324V13.6515V13.6706V13.6898V13.7089V13.728V13.7472V13.7663V13.7855V13.8047V13.8238V13.843V13.8622V13.8814V13.9005V13.9197V13.9389V13.9582V13.9774V13.9966V14.0158V14.035V14.0543V14.0735V14.0928V14.112V14.1313V14.1506V14.1698V14.1891V14.2084V14.2277V14.247V14.2663V14.2856V14.3049V14.3243V14.3436V14.3629V14.3823V14.4016V14.421V14.4404V14.4597V14.4791V14.4985V14.5179V14.5373V14.5567V14.5762V14.5956V14.615V14.6345V14.6539V14.6734V14.6928V14.7123V14.7318V14.7513V14.7708V14.7903V14.8098V14.8293V14.8489V14.8684V14.888V14.9075V14.9271V14.9466V14.9662V14.9858V15.0054V15.025V15.0447V15.0643V15.0839V15.1036V15.1232V15.1429V15.1626V15.1822V15.2019V15.2216V15.2413V15.2611V15.2808V15.3005V15.3203V15.34V15.3598V15.3796V15.3994V15.4192V15.439V15.4588V15.4786V15.4985V15.5183V15.5382V15.558V15.5779V15.5978V15.6177V15.6376V15.6575V15.6775V15.6974V15.7174V15.7373V15.7573V15.7773V15.7973V15.8173V15.8373V15.8574V15.8774V15.8974V15.9175V15.9376V15.9577V15.9778V15.9979V16.018V16.0381V16.0583V16.0784V16.0986V16.1188V16.139V16.1592V16.1794V16.1996V16.2199V16.2401V16.2604V16.2807V16.301V16.3213V16.3416V16.3619V16.3823V16.4026V16.423V16.4434V16.4638V16.4842V16.5046V16.525V16.5455V16.5659V16.5864V16.6069V16.6274V16.6479V16.6684V16.689V16.7095V16.7301V16.7507V16.7713V16.7919V16.8125V16.8331V16.8538V16.8744V16.8951V16.9158V16.9365V16.9572V16.978V16.9987C20 18.656 18.6564 20 17 20H7C5.34315 20 4 18.6569 4 17V7Z"
+                          fill="currentColor"
+                        ></path>
+                      </svg>
+                    </button>
+                    <button
+                      class="justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary hover:bg-button-ghost-hover flex items-center gap-3 size-8 rounded-md"
+                      type="button"
+                      tabindex="-1"
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="stroke-[2] text-primary"
+                      >
+                        <path
+                          d="M18.25 5.75C16.8693 4.36929 14.6307 4.36929 13.25 5.75L10.125 8.875L5.52404 13.476C4.86236 14.1376 4.45361 15.0104 4.36889 15.9423L4 20.0001L8.0578 19.6311C8.98967 19.5464 9.86234 19.1377 10.524 18.476L18.25 10.75C19.6307 9.36929 19.6307 7.13071 18.25 5.75V5.75Z"
+                          stroke="currentColor"
+                        ></path>
+                        <path d="M12.5 7.5L16.5 11.5" stroke="currentColor"></path>
+                      </svg>
+                    </button>
+                    <button
+                      class="justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary hover:bg-button-ghost-hover flex items-center gap-3 size-8 rounded-md"
+                      type="button"
+                      tabindex="-1"
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="stroke-[2] text-primary"
+                      >
+                        <path d="M2.99561 7H20.9956" stroke="currentColor"></path>
+                        <path d="M9.99561 11V17M13.9956 11V17" stroke="currentColor"></path>
+                        <path
+                          d="M8 6.5L8.68917 4.08792C8.87315 3.44397 9.46173 3 10.1315 3H13.8685C14.5383 3 15.1268 3.44397 15.3108 4.08792L16 6.5"
+                          stroke="currentColor"
+                        ></path>
+                        <path
+                          d="M5 7L5.80098 18.2137C5.91312 19.7837 7.21944 21 8.79336 21H15.2066C16.7806 21 18.0869 19.7837 18.199 18.2137L19 7"
+                          stroke="currentColor"
+                        ></path>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                
+              </li>
+            }
+          }
+        </ul>
+
+        @if (loading()) {
+          <div class="flex justify-center">
+            <ngm-spin />
+          </div>
+        }
+
+        <div (waIntersectionObservee)="onIntersection()" class="p-4"></div>
+      </div>
+     
+      <div class="h-[1px] flex justify-center !m-0 !p-0"></div>
+    </div>
+  </div>
+</div>
+
+<div class="flex items-center w-full h-12 gap-2 px-2 py-1 border-t border-border justify-between">
+  <button
+    class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 hover:bg-button-ghost-hover h-8 w-8 rounded-full transition-colors text-secondary hover:text-primary"
+    type="button"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="lucide lucide-minimize2"
+    >
+      <polyline points="4 14 10 14 10 20"></polyline>
+      <polyline points="20 10 14 10 14 4"></polyline>
+      <line x1="14" x2="21" y1="10" y2="3"></line>
+      <line x1="3" x2="10" y1="21" y2="14"></line>
+    </svg>
+  </button>
+  <div class="flex items-center gap-2">
+    <button
+      class="justify-center whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary hover:bg-button-ghost-hover h-8 rounded-lg px-3 text-xs flex items-center gap-2 pr-1.5 last-of-type:rounded-br-2xl group"
+      type="button"
+    >
+      <span class="whitespace-nowrap text-primary">Go</span
+      ><span
+        class="text-secondary border border-border px-1.5 rounded-md group-last-of-type:group-hover:rounded-br-xl group-last-of-type:group-focus:rounded-br-xl"
+        >⏎</span
+      ></button
+    ><button
+      class="justify-center whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary hover:bg-button-ghost-hover h-8 rounded-lg px-3 text-xs flex items-center gap-2 pr-1.5 last-of-type:rounded-br-2xl group"
+      type="button"
+    >
+      <span class="whitespace-nowrap text-primary">Edit</span
+      ><span
+        class="text-secondary border border-border px-1.5 rounded-md group-last-of-type:group-hover:rounded-br-xl group-last-of-type:group-focus:rounded-br-xl"
+        >⌘ ⇧ E</span
+      ></button
+    ><button
+      class="justify-center whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary hover:bg-button-ghost-hover h-8 rounded-lg px-3 text-xs flex items-center gap-2 pr-1.5 last-of-type:rounded-br-2xl group"
+      type="button"
+    >
+      <span class="whitespace-nowrap text-primary">Delete</span
+      ><span
+        class="text-secondary border border-border px-1.5 rounded-md group-last-of-type:group-hover:rounded-br-xl group-last-of-type:group-focus:rounded-br-xl"
+        >⌘ ⇧ D</span
+      >
+    </button>
+  </div>
+</div>
+
+
+<ng-template #convMenu let-id="id" let-title="title">
+  <div cdkMenu class="cdk-menu__medium">
+    <button cdkMenuItem (click)="editingConversation.set(id);editingTitle.set(title)">
+      <i class="ri-edit-line mr-1"></i>
+      {{ 'PAC.KEY_WORDS.Rename' | translate: {Default: 'Rename'} }}
+    </button>
+
+    <button cdkMenuItem class="danger" (click)="deleteConv(id)">
+      <i class="ri-delete-bin-4-line mr-1"></i>
+      {{ 'PAC.KEY_WORDS.Delete' | translate: {Default: 'Delete'} }}
+    </button>
+  </div>
+</ng-template>

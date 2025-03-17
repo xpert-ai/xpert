@@ -53,7 +53,7 @@ export class ChatConversationComponent {
 
   // Inputs
   readonly xpert = input.required<IXpert>()
-  readonly chatInput = input.required<ChatInputComponent>()
+  // readonly chatInput = input.required<ChatInputComponent>()
   readonly showExecution = input<boolean, string | boolean>(false, {
     transform: booleanAttribute
   })
@@ -104,8 +104,10 @@ export class ChatConversationComponent {
   
   constructor() {
     effect(() => {
-      // console.log(this.messages())
-    })
+      if (this.conversation()) {
+        this.homeService.conversation.set({...this.conversation(), messages: this.messages()})
+      }
+    }, { allowSignalWrites: true })
 
     // Got model details
     effect(

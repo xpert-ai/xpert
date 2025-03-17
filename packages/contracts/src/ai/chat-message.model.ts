@@ -13,12 +13,14 @@ export type TSummaryJob = Record<LongTermMemoryTypeEnum, {
   }>
 
 export enum ChatMessageStepType {
-  File = 'file'
+  File = 'file',
+  ComputerUse = 'computer_use',
 }
 
 export type TChatMessageStep = {
   toolset?: string
   tool?: string
+  title?: string
   message?: string
   created_date?: Date | string
   type?: ChatMessageStepType

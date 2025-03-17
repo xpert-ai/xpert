@@ -77,7 +77,7 @@
           <div class="flex flex-col p-2 rounded-lg text-token-text-secondary bg-token-main-surface-low">
             <div class="flex justify-start items-center">
               @if (message.status === 'thinking') {
-                <mat-progress-spinner [diameter]="16" [mode]="'indeterminate'" color="accent" />
+                <ngm-spin />
               }
               <mat-icon fontSet="material-icons-round" class="mr-2 rounded-md active:scale-95 transition-transform"
                 [cdkMenuTriggerFor]="docs"
@@ -126,7 +126,7 @@
           <div class="flex flex-col p-2 rounded-lg text-token-text-secondary bg-token-main-surface-low">
             <div class="flex justify-start items-center">
               @if (message.status === 'thinking') {
-                <mat-progress-spinner [diameter]="16" [mode]="'indeterminate'" color="accent" />
+                <ngm-spin />
               }
               <mat-icon fontSet="material-icons-round" class="mr-2 rounded-md active:scale-95 transition-transform"
                 [cdkMenuTriggerFor]="stepsMenu"
@@ -205,7 +205,7 @@
   }
 
   @if (lastStep(); as step) {
-    <div class="flex-1 min-w-0 cursor-pointer" (click)="toggleSteps()">
+    <div class="relative group flex-1 min-w-0 cursor-pointer" (click)="toggleSteps()">
       <div [@listHeightStagger]="steps()"
         class="rounded-xl flex flex-col gap-1 p-1 border border-[var(--border-light)] bg-[var(--fill-tsp-gray-main)] max-w-full clickable hover:bg-[var(--fill-tsp-gray-dark)] dark:hover:bg-white/[0.02]"
       >
@@ -239,6 +239,10 @@
           </div>
         }
       </div>
+
+      <a class="absolute top-1 right-2 w-7 h-7 cursor-pointer flex justify-center items-center rounded-lg hover:bg-hover-bg opacity-20 group-hover:opacity-100" (click)="openCanvas()">
+        <i class="ri-tv-2-line"></i>
+      </a>
     </div>
   }
 

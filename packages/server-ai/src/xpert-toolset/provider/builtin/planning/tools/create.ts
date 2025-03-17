@@ -1,7 +1,7 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageStepType } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import z from 'zod'
 import { ToolParameterValidationError } from '../../../../errors'
@@ -42,11 +42,19 @@ export class PlanningCreateTool extends BuiltinTool {
 
 		const { subscriber } = config?.configurable ?? {}
 
+		const plan = {
+			title: parameters.title,
+			steps: parameters.steps.map((content, index) => ({ index, content }))
+		}
+
 		// Tool message event
 		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+			type: ChatMessageStepType.ComputerUse,
 			toolset: PlanningToolset.provider,
 			tool: this.name,
-			message: `Created a plan: ${parameters.title}\n\n${parameters.steps.join('\n')}`
+			message: `Created a plan: ${parameters.title}\n\n${parameters.steps.join('\n')}`,
+			title: parameters.title,
+			data: plan
 		}).catch((err) => {
 			this.#logger.error(err)
 		})
@@ -55,8 +63,8 @@ export class PlanningCreateTool extends BuiltinTool {
 		const toolCallId = config.toolCall?.id
 		return new Command({
 			update: {
-				[PLAN_TITLE_NAME]: parameters.title,
-				[PLAN_STEPS_NAME]: parameters.steps.map((content, index) => ({ index, content })),
+				[PLAN_TITLE_NAME]: plan.title,
+				[PLAN_STEPS_NAME]: plan.steps,
 				// update the message history
 				messages: [
 					{

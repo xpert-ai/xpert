@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, booleanAttribute, computed, effect, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatIconModule } from '@angular/material/icon'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { nonNullable, stringifyMessageContent } from '@metad/copilot'
@@ -33,6 +32,7 @@ import { ChatMessageExecutionComponent } from '../../@shared/chat'
 import { CopyComponent } from '../../@shared/common'
 import { ListHeightStaggerAnimation } from '@metad/core'
 import { ChatConversationComponent } from '../conversation/conversation.component'
+import { XpertHomeService } from '../home.service'
 
 @Component({
   standalone: true,
@@ -47,7 +47,6 @@ import { ChatConversationComponent } from '../conversation/conversation.componen
     CdkMenuModule,
     MarkdownModule,
     MatTooltipModule,
-    MatProgressSpinnerModule,
     MatIconModule,
     NgmCommonModule,
     EmojiAvatarComponent,
@@ -66,7 +65,7 @@ export class ChatAiMessageComponent {
   eFeedbackRatingEnum = ChatMessageFeedbackRatingEnum
 
   readonly chatService = inject(ChatService)
-  // readonly homeService = inject(XpertHomeService)
+  readonly homeService = inject(XpertHomeService)
   readonly conversationComponent = inject(ChatConversationComponent)
   readonly messageFeedbackService = inject(ChatMessageFeedbackService)
   readonly agentExecutionService = inject(XpertAgentExecutionService)
@@ -149,7 +148,7 @@ export class ChatAiMessageComponent {
 
   // Steps
   readonly #steps = computed(() => this.message().steps)
-  readonly lastStep = computed(() => this.#steps() ? this.#steps()[this.#steps().length - 1] : null)
+  readonly lastStep = computed(() => this.canvasMessageId() !== this.message().id && this.#steps() ? this.#steps()[this.#steps().length - 1] : null)
   readonly steps = computed(() => {
     if (this.expandSteps()) {
       return this.#steps()
@@ -158,6 +157,7 @@ export class ChatAiMessageComponent {
     }
   })
   readonly expandSteps = signal(false)
+  readonly canvasMessageId = this.homeService.canvasOpened
 
   constructor() {
     effect(() => {
@@ -218,5 +218,9 @@ export class ChatAiMessageComponent {
 
   toggleSteps() {
     this.expandSteps.update((state) => !state)
+  }
+
+  openCanvas() {
+    this.homeService.canvasOpened.set(this.message().id)
   }
 }

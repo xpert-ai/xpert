@@ -14,29 +14,28 @@ import {
   viewChild
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatListModule } from '@angular/material/list'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav'
+import { MatSidenav } from '@angular/material/sidenav'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { effectAction, provideOcapCore } from '@metad/ocap-angular/core'
+import { effectAction } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { switchMap, tap } from 'rxjs/operators'
-import { ChatConversationService, IChatConversation, injectToastr, OrderTypeEnum, routeAnimations } from '../../@core'
-import { AppService } from '../../app.service'
-import { groupConversations, XpertHomeService } from '../../xpert/'
-import { ChatHomeService } from './home.service'
-import { ChatMoreComponent } from './icons'
-import { ChatSidenavMenuComponent } from './sidenav-menu/sidenav-menu.component'
-import { ChatXpertsComponent } from './xperts/xperts.component'
+import {
+  ChatConversationService,
+  DateRelativePipe,
+  IChatConversation,
+  injectToastr,
+  OrderTypeEnum
+} from '../../../@core'
+import { AppService } from '../../../app.service'
+import { groupConversations } from '../../../xpert'
+import { ChatHomeService } from '../home.service'
+import { DialogRef } from '@angular/cdk/dialog'
 
-/**
- * @deprecated
- */
 @Component({
   standalone: true,
   imports: [
@@ -50,25 +49,18 @@ import { ChatXpertsComponent } from './xperts/xperts.component'
     A11yModule,
     RouterModule,
     TranslateModule,
-    MatSidenavModule,
-    MatProgressSpinnerModule,
-    MatListModule,
     MatTooltipModule,
     WaIntersectionObserver,
     NgmCommonModule,
-
-    ChatMoreComponent,
-    ChatXpertsComponent,
-    ChatSidenavMenuComponent
+    DateRelativePipe
   ],
-  selector: 'pac-chat-home',
-  templateUrl: './home.component.html',
-  styleUrl: 'home.component.scss',
-  animations: [routeAnimations],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [ChatHomeService, { provide: XpertHomeService, useExisting: ChatHomeService }]
+  selector: 'pac-chat-conversations',
+  templateUrl: './conversations.component.html',
+  styleUrl: 'conversations.component.scss',
+  animations: [],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ChatHome1Component {
+export class ChatConversationsComponent {
   DisplayBehaviour = DisplayBehaviour
 
   readonly conversationService = inject(ChatConversationService)
@@ -78,6 +70,7 @@ export class ChatHome1Component {
   readonly route = inject(ActivatedRoute)
   readonly #router = inject(Router)
   readonly logger = inject(NGXLogger)
+  readonly #dialogRef = inject(DialogRef)
   readonly #toastr = injectToastr()
 
   readonly contentContainer = viewChild('contentContainer', { read: ElementRef })
@@ -108,6 +101,7 @@ export class ChatHome1Component {
 
   selectConversation(item: IChatConversation) {
     this.#router.navigate(['/chat/c/', item.id])
+    this.#dialogRef.close()
   }
 
   deleteConv(id: string) {
@@ -167,4 +161,9 @@ export class ChatHome1Component {
     }
   }
 
+  openInTab(conv: IChatConversation) {
+    // This function opens a conversation in a new browser tab using the conversation's threadId.
+    const url = `/chat/x/${conv.xpert.slug}/c/${conv.id}`;
+    window.open(url, '_blank');
+  }
 }

@@ -21,10 +21,10 @@ export const ListHeightStaggerAnimation = trigger('listHeightStagger', [
   transition('* <=> *', [
     query(':enter', [
       style({ height: '0', opacity: 0 }),
-      stagger('60ms', animate('200ms ease-out', style({ height: '*', opacity: 1 })))
-    ]),
+      stagger('20ms', animate('100ms ease-out', style({ height: '*', opacity: 1 })))
+    ], { optional: true }),
     query(':leave', [
-      style({ height: '0', opacity: 0 })
+      stagger('20ms', animate('100ms ease-in', style({ height: '0', opacity: 0 })))
     ], { optional: true })
   ])
 ])

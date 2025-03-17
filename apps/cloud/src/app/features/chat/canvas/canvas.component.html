@@ -1,0 +1,162 @@
+<div class="flex-1 min-w-0 p-4 flex flex-col gap-3 h-full">
+  <div class="flex items-center gap-2 w-full">
+    <div class="text-text-primary text-lg font-semibold flex-1">Xpert 的电脑</div>
+    <button class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer hover:bg-hover-bg"
+      (click)="closed.emit()"
+    >
+      <i class="ri-collapse-diagonal-line"></i>
+    </button>
+  </div>
+
+  @if (step(); as step) {
+    <div class="flex items-center gap-2">
+      <div class="w-[40px] h-[40px] bg-gray-100 rounded-lg flex items-center justify-center text-xl flex-shrink-0 text-text-secondary">
+        @switch (step.toolset) {
+          @case ('planning') {
+            <i class="ri-calendar-check-line"></i>
+          }
+          @case ('bash') {
+            <i class="ri-terminal-box-line"></i>
+          }
+          @default {
+            <i class="ri-hammer-line"></i>
+          }
+        }
+      </div>
+      <div class="flex-1 flex flex-col gap-1 min-w-0">
+        <div class="text-[12px] text-[var(--text-tertiary)]">
+          Xpert 正在使用
+          <span class="text-[var(--text-secondary)]">
+            {{ 'PAC.Xpert.Toolset_' + step.toolset | translate: {Default: step.toolset || 'Toolset'} }}
+          </span>
+        </div>
+
+        <div
+          title="正在执行命令tail -n 30 /home/ubuntu/crm_report.md"
+          class="max-w-[100%] w-[max-content] truncate text-[13px] rounded-full inline-flex items-center px-[10px] py-[3px] border border-[var(--border-light)] bg-neutral-100 text-[var(--text-secondary)]"
+        >
+          正在执行命令
+          <span class="flex-1 min-w-0 px-1 ml-1 text-[12px] font-mono max-w-full text-ellipsis overflow-hidden whitespace-nowrap text-[var(--text-tertiary)]">
+            <code>tail -n 30 /home/ubuntu/crm_report.md</code>
+          </span>
+        </div>
+      </div>
+    </div>
+  }
+  <div
+    class="flex flex-col rounded-[12px] overflow-hidden bg-neutral-100 border border-divider-deep dark:border-black/30 shadow-[0px_4px_32px_0px_rgba(0,0,0,0.04)] flex-1 min-h-0"
+  >
+    @if (step(); as step) {
+      <div
+        class="h-[36px] flex items-center px-3 w-full bg-[var(--background-gray-main)] border-b border-divider-regular rounded-t-[12px] shadow-[inset_0px_1px_0px_0px_#FFFFFF] dark:shadow-[inset_0px_1px_0px_0px_#FFFFFF30]"
+      >
+        <div class="flex-1 flex items-center justify-center">
+          <div class="max-w-[250px] truncate text-[var(--text-tertiary)] text-sm font-medium text-center">
+            {{step.title}}
+          </div>
+        </div>
+      </div>
+      <div class="flex-1 min-h-0 w-full overflow-y-auto">
+        @switch (step.type) {
+          @case (eChatMessageStepType.ComputerUse) {
+            <div class="p-2 text-sm whitespace-pre-line">{{step.message}}</div>
+          }
+          @case (eChatMessageStepType.File) {
+            <div>
+
+            </div>
+          }
+          @default {
+            <div dir="ltr" data-orientation="horizontal" class="flex flex-col flex-1 min-h-0">
+              <div
+                role="tabpanel"
+                tabindex="0"
+                class="py-2 focus-visible:outline-none data-[state=inactive]:hidden flex-1 font-mono text-sm leading-relaxed px-3 outline-none overflow-auto whitespace-pre-wrap break-all"
+              >
+                <code>
+                  <span style="color: rgb(0, 187, 0)">ubuntu&#64;sandbox:~ $</span>
+                  <span>
+                    cd /home/ubuntu &amp;&amp; tail -n 30 /home/ubuntu/crm_report.md 3. User-centric design: Their tagline
+                    "Made for work, designed to love" highlights their focus on creating software that people genuinely enjoy
+                    using, addressing a common</span>
+                  <span style="color: rgb(0, 187, 0)">ubuntu&#64;sandbox:~ $</span>
+                </code>
+              </div>
+            </div>
+          }
+        }
+      </div>
+    }
+
+    @if (steps()) {
+      <div class="mt-auto flex w-full items-center gap-2 px-2 h-[44px] relative bg-components-panel-bg border-t border-divider-regular">
+        <div class="flex items-center mr-1">
+          <button type="button"
+            class="flex items-center justify-center w-[24px] h-[24px] rounded-lg text-text-secondary transition-colors enabled:hover:bg-hover-bg"
+            [disabled]="stepIndex() <= 0"
+            (click)="prevStep()">
+            <i class="ri-skip-back-line"></i>
+          </button>
+          <button type="button" class="flex items-center justify-center w-[24px] h-[24px] rounded-lg text-text-secondary transition-colors enabled:hover:bg-hover-bg"
+            [disabled]="stepIndex() >= stepLength() - 1"
+            (click)="nextStep()">
+            <i class="ri-skip-forward-line"></i>
+          </button>
+        </div>
+        <mat-slider class="flex-1" min="0" [max]="stepLength() - 1" step="1" showTickMarks discrete>
+          <input matSliderThumb [ngModel]="stepIndex()" (dragEnd)="updateStepIndex($event.value)" />
+        </mat-slider>
+      </div>
+    }
+  </div>
+
+  @if (plan()) {
+    <div class="min-h-[36px] relative z-50" style="height: 38px">
+      <div class="flex flex-row items-start justify-between pr-3 clickable border border-black/8 dark:border-[var(--border-main)] bg-[var(--background-menu-white)] rounded-[16px] sm:rounded-[12px] absolute bottom-0 left-0 right-0 shadow-none">
+        <div class="flex-1 min-w-0 relative overflow-hidden">
+          <div class="w-full" style="height: 36px; --offset: -36px">
+            <div class="w-full">
+              <div class="flex items-start gap-2.5 w-full px-4 py-2 truncate">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--function-success)"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="lucide lucide-check relative top-[2px] flex-shrink-0"
+                >
+                  <path d="M20 6 9 17l-5-5"></path>
+                </svg>
+                <div class="flex flex-col w-full gap-[2px] truncate">
+                  <div class="text-sm truncate" title="Deliver final report to user" style="color: var(--text-primary)">
+                    Deliver final report to user
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="flex h-full cursor-pointer justify-center gap-2 hover:opacity-80 flex-shrink-0 items-start py-2.5">
+          <span class="text-xs text-[var(--text-tertiary)] hidden sm:flex">6 / 6</span
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="m18 15-6-6-6 6"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  }
+</div>
