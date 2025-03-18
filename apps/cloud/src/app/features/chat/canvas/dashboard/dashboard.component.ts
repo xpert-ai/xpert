@@ -1,14 +1,19 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
+import { DataSettings } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ChatMessageStepType, injectFormatRelative } from '../../../../@core'
-import { ChatHomeService } from '../../home.service'
 import { ChatComponentMessageComponent } from 'apps/cloud/src/app/xpert/'
+import {
+  ChatMessageStepType,
+  injectFormatRelative,
+  TMessageComponent,
+  TMessageContentComponent
+} from '../../../../@core'
+import { ChatHomeService } from '../../home.service'
 
 @Component({
   standalone: true,
@@ -19,7 +24,6 @@ import { ChatComponentMessageComponent } from 'apps/cloud/src/app/xpert/'
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-    MatSliderModule,
     MatTooltipModule,
     ChatComponentMessageComponent
   ],
@@ -27,6 +31,9 @@ import { ChatComponentMessageComponent } from 'apps/cloud/src/app/xpert/'
   templateUrl: './dashboard.component.html',
   styleUrl: 'dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '[class.expand]': 'expand()'
+  }
 })
 export class ChatCanvasDashboardComponent {
   eChatMessageStepType = ChatMessageStepType
@@ -35,28 +42,69 @@ export class ChatCanvasDashboardComponent {
   readonly #formatRelative = injectFormatRelative()
 
   // States
-  readonly messageId = computed(() => this.homeService.canvasOpened()?.type === 'Dashboard' && this.homeService.canvasOpened()?.messageId)
+  readonly expand = signal(false)
 
-  readonly message = computed(() => {
+  readonly messages = this.homeService.messages
+  readonly messageId = computed(
+    () => this.homeService.canvasOpened()?.type === 'Dashboard' && this.homeService.canvasOpened()?.messageId
+  )
+  readonly componentId = computed(
+    () => this.homeService.canvasOpened()?.type === 'Dashboard' && this.homeService.canvasOpened()?.componentId
+  )
+
+  readonly #messages = computed(() => {
     const conversation = this.homeService.conversation()
     const id = this.messageId()
-    if (conversation?.messages && id) {
-      return conversation.messages.find((_) => _.id === id)
+    if (conversation?.messages) {
+      return id ? conversation.messages.filter((m) => m.id === id) : conversation.messages
     }
     return null
   })
+
   readonly contents = computed(() => {
-    const contents = this.message()?.content
-    if (Array.isArray(contents)) {
-      return contents
-    }
-    return null
+    const messages = this.#messages()
+    const contents = messages.reduce((acc, message) => {
+      const contents = message.content
+      if (Array.isArray(contents)) {
+        acc.push(
+          ...(contents.filter(
+            (content) =>
+              content.type === 'component' &&
+              (<TMessageComponent>content.data)?.category === 'Dashboard' &&
+              (this.componentId() ? content.id === this.componentId() : true)
+          ) as TMessageContentComponent[])
+        )
+      }
+      return acc
+    }, [])
+
+    return contents.slice(contents.length - 1)
   })
+
+  readonly #componentData = computed(
+    () => this.contents()?.[0]?.data as TMessageComponent<{ dataSettings: DataSettings }>
+  )
+
+  // Todo add more components in bi dashboard
 
   constructor() {
     effect(() => {
-      console.log(this.messageId(), this.message(), this.contents())
+      // console.log(this.messageId(), this.message(), this.contents())
     })
+
+    // Update to last component
+    effect(
+      () => {
+        if (this.messages()) {
+          this.homeService.canvasOpened.update((state) => ({ type: 'Dashboard' }))
+        }
+      },
+      { allowSignalWrites: true }
+    )
+  }
+
+  toggleExpand() {
+    this.expand.update((state) => !state)
   }
 
   close() {

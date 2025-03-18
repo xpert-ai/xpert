@@ -2,6 +2,7 @@
   <div class="flex items-center gap-2 w-full">
     <div class="text-text-primary text-lg font-semibold flex-1">Xpert 的电脑</div>
     <button class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer hover:bg-hover-bg"
+      [matTooltip]="'PAC.Chat.CloseCanvas' | translate: {Default: 'Close canvas'}"
       (click)="close()"
     >
       <i class="ri-collapse-diagonal-line"></i>
@@ -92,12 +93,19 @@
                     tabindex="0"
                     class="py-2 focus-visible:outline-none data-[state=inactive]:hidden flex-1 font-mono text-sm leading-relaxed px-3 outline-none overflow-auto whitespace-pre-wrap break-all"
                   >
-                    <code>
-                      <span class="mr-2 font-semibold text-green-600">ubuntu&#64;sandbox:~ $</span>
-                      <span>{{step.data.command}}</span>
-                    </code>
+                    <div>
+                      <code>
+                        <span class="mr-2 font-semibold text-green-600">ubuntu&#64;sandbox:~ $</span>
+                        <span>{{step.data.command}}</span>
+                      </code>
 
-                    <code>{{step.data.output}}</code>
+                      <code>{{step.data.output}}</code>
+                    </div>
+                    <div class="mt-4">
+                      <code>
+                        <span class="mr-2 font-semibold text-green-600">ubuntu&#64;sandbox:~ $</span>
+                      </code>
+                    </div>
                   </div>
                 </div>
               }
@@ -182,8 +190,8 @@
           </div>
         </div>
         <button class="flex h-full cursor-pointer justify-center gap-2 hover:opacity-80 flex-shrink-0 items-start py-2.5">
-          <span class="text-xs text-[var(--text-tertiary)] hidden sm:flex">6 / 6</span
-          ><svg
+          <span class="text-xs text-[var(--text-tertiary)] hidden sm:flex">6 / 6</span>
+          <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
             height="16"

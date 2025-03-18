@@ -99,8 +99,28 @@ export type CopilotChatMessage = CopilotBaseMessage & {
   executionId?: string
 }
 
+/**
+ * @deprecated use data attr in message (subMessages)
+ */
 export interface CopilotMessageGroup extends CopilotBaseMessage {
   messages?: CopilotChatMessage[]
+}
+
+/**
+ * Similar to {@link MessageContentText} | {@link MessageContentImageUrl}, which together form {@link MessageContentComplex}
+ */
+export type TMessageContentComponent = {
+  id: string
+  type: 'component'
+  data: TMessageComponent
+}
+
+/**
+ * Defines the data type of the sub-message of `component` type in the message `content` {@link MessageContentComplex}
+ */
+export type TMessageComponent<T extends object = object> = T & {
+  category: 'Dashboard' | 'Computer'
+  type: string
 }
 
 // Type guards

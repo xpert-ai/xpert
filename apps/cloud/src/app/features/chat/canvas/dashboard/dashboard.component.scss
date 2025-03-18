@@ -1,3 +1,6 @@
 :host {
-    --ngm-monaco-editor-bg: theme(colors.neutral.100);
+  @apply w-full md:w-[400px] lg:w-[535px];
+  &.expand {
+    @apply w-full md:w-[400px] lg:w-[735px] xl:w-[900];
+  }
 }

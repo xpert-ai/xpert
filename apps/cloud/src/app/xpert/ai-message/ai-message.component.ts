@@ -110,7 +110,8 @@ export class ChatAiMessageComponent {
   readonly contents = computed(() => {
     const contents = this.message()?.content
     if (Array.isArray(contents)) {
-      return contents
+      return this.canvasType() === 'Dashboard' ? contents.filter((data) => !(data.type === 'component' && data.data?.category === 'Dashboard'))
+        : contents
     }
     return null
   })
@@ -161,6 +162,7 @@ export class ChatAiMessageComponent {
     this.homeService.canvasOpened()?.type === 'Computer' &&
       this.homeService.canvasOpened()?.messageId
   )
+  readonly canvasType = computed(() => this.homeService.canvasOpened()?.type)
 
   constructor() {
     effect(() => {
