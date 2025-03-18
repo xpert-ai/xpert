@@ -30,4 +30,7 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     })
   }
 
+  getThreadState(id: string) {
+    return this.httpClient.get<any>(this.apiBaseUrl + `/${id}/state`)
+  }
 }

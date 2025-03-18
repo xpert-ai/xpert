@@ -1,6 +1,8 @@
 <div class="flex-1 min-w-0 p-4 flex flex-col gap-3 h-full">
   <div class="flex items-center gap-2 w-full">
-    <div class="text-text-primary text-lg font-semibold flex-1">Xpert 的电脑</div>
+    <div class="text-text-primary text-lg font-semibold flex-1">
+      {{'PAC.Chat.WhosComputer' | translate: {value: 'Xpert', Default: "Xpert's Computer"} }}
+    </div>
     <button class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer hover:bg-hover-bg"
       [matTooltip]="'PAC.Chat.CloseCanvas' | translate: {Default: 'Close canvas'}"
       (click)="close()"
@@ -159,53 +161,73 @@
     }
   </div>
 
-  @if (plan()) {
-    <div class="min-h-[36px] relative z-50" style="height: 38px">
-      <div class="flex flex-row items-start justify-between pr-3 clickable border border-black/8 dark:border-[var(--border-main)] bg-[var(--background-menu-white)] rounded-[16px] sm:rounded-[12px] absolute bottom-0 left-0 right-0 shadow-none">
-        <div class="flex-1 min-w-0 relative overflow-hidden">
-          <div class="w-full" style="height: 36px; --offset: -36px">
-            <div class="w-full">
-              <div class="flex items-start gap-2.5 w-full px-4 py-2 truncate">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="var(--function-success)"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="lucide lucide-check relative top-[2px] flex-shrink-0"
-                >
-                  <path d="M20 6 9 17l-5-5"></path>
-                </svg>
+  @if (hasPlan()) {
+    <div class="min-h-[36px] relative z-50 border border-black/8 rounded-[16px] sm:rounded-[12px]">
+      @if (plan(); as plan) {
+        <div class="flex flex-row items-center justify-between px-3 clickable">
+          <div class="flex items-center gap-2">
+            @if (expandPlan()) {
+              <span class="text-text-primary font-bold">
+                {{ 'PAC.Chat.TaskProgress' | translate: {Default: 'Task Progress'} }}
+              </span>
+            } @else {
+              @switch (plan.status) {
+                @case ('in_progress') {
+                  <i class="ri-progress-2-line text-lg text-yellow-500"></i>
+                }
+                @case ('completed') {
+                  <i class="ri-checkbox-circle-line text-lg text-text-success"></i>
+                }
+                @default {
+                  <i class="ri-checkbox-blank-line text-lg text-text-secondary"></i>
+                }
+              }
+              <div class="text-sm truncate" [title]="plan.title" >
+                {{plan.title}}
+              </div>
+            }
+          </div>
+  
+          <button type="button" class="flex items-center cursor-pointer justify-center gap-2 hover:opacity-80 flex-shrink-0 py-2.5"
+            (click)="togglePlan()"
+          >
+            <span class="text-xs text-[var(--text-tertiary)] hidden sm:flex">{{plan.completed}} / {{plan.total}}</span>
+            @if (expandPlan()) {
+              <i class="ri-arrow-down-s-line"></i>
+            } @else {
+              <i class="ri-arrow-up-s-line"></i>
+            }
+          </button>
+        </div>
+
+        @if (expandPlan()) {
+          <div class="max-h-[600px] overflow-y-auto" @listHeightStagger>
+            @for (step of plan.steps; track step) {
+              <div class="flex items-center gap-2 w-full px-4 py-2 truncate">
+                <span [matTooltip]="step.notes" matTooltipPosition="left">
+                  @switch (step.status) {
+                    @case ('in_progress') {
+                      <i class="ri-progress-2-line text-lg text-yellow-500"></i>
+                    }
+                    @case ('completed') {
+                      <i class="ri-checkbox-circle-line text-lg text-text-success"></i>
+                    }
+                    @default {
+                      <i class="ri-checkbox-blank-line text-lg text-text-secondary"></i>
+                    }
+                  }
+                </span>
+                
                 <div class="flex flex-col w-full gap-[2px] truncate">
-                  <div class="text-sm truncate" title="Deliver final report to user" style="color: var(--text-primary)">
-                    Deliver final report to user
-                  </div>
+                  <div class="text-sm truncate" [title]="step.content">{{step.content}}</div>
                 </div>
               </div>
-            </div>
+            }
           </div>
-        </div>
-        <button class="flex h-full cursor-pointer justify-center gap-2 hover:opacity-80 flex-shrink-0 items-start py-2.5">
-          <span class="text-xs text-[var(--text-tertiary)] hidden sm:flex">6 / 6</span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="m18 15-6-6-6 6"></path>
-          </svg>
-        </button>
-      </div>
+        }
+      } @else {
+        <div class="p-2">{{'PAC.Chat.LoadingTaskProgress' | translate: {Default: 'Loading task progress'} }}...</div>
+      }
     </div>
   }
 </div>
