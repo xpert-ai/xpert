@@ -188,7 +188,7 @@ export class ChatService {
       // })
     }
 
-    this.chatSubscription = this.chatRequest(this.xpert().slug, {
+    this.chatSubscription = this.chatRequest(this.xpert()?.slug, {
         input: {
           ...(this.parametersValue() ?? {}),
           input: options.content,

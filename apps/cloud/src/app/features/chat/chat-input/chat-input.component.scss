@@ -2,7 +2,6 @@
   @apply w-full flex flex-col items-stretch lg:w-[800px] max-w-full;
 }
 
-// Copilot
-.ngm-colpilot__input.mat-mdc-input-element {
-  @apply outline-none bg-transparent;
+.btn-canvas.active {
+  @apply bg-lime-50 text-lime-800;
 }

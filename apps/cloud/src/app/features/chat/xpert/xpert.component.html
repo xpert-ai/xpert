@@ -114,7 +114,8 @@
           <div class="mx-3 mt-12 flex max-w-3xl flex-wrap items-stretch justify-center gap-4 mb-8">
             @for (statement of xpert().starters; track statement) {
               @if (statement) {
-                <button class="relative flex w-40 flex-col gap-2 rounded-2xl border border-token-border-light px-3 pb-4 pt-3 text-start align-top text-[15px] shadow-sm transition enabled:hover:bg-token-main-surface-secondary disabled:cursor-not-allowed"
+                <button class="relative flex w-40 flex-col gap-2 rounded-2xl border border-token-border-light px-3 pb-4 pt-3 text-start align-top text-[15px] shadow-sm transition 
+                  hover:bg-white"
                   (click)="chatInput.ask(statement)"
                 >
                   <div class="line-clamp-3 max-w-full text-balance font-light text-neutral-500 dark:text-neutral-500 break-word">
@@ -171,13 +172,13 @@
   
 </div>
 
-<!-- <div class=""> -->
-  @if (canvasOpened()) {
-    <pac-chat-canvas @bl class="shrink-1 h-full fixed top-0 right-0 z-[1000] max-w-full flex my-auto sm:sticky sm:top-0 sm:right-0 sm:ml-3 sm:py-3 sm:mr-2 bg-components-panel-bg sm:rounded-[22px] shadow-[0px_0px_8px_0px_rgba(0,0,0,0.02)] border border-black/8"
+@if (canvasOpened()) {
+  <div @bl class="shrink-1 h-full flex fixed top-0 right-0 z-[1000] max-w-full sm:sticky sm:top-0 sm:right-0 sm:ml-3 sm:py-3 sm:mr-2">
+    <pac-chat-canvas class="h-full flex flex-col my-auto bg-components-panel-bg sm:rounded-[22px] shadow-[0px_0px_8px_0px_rgba(0,0,0,0.02)] border border-black/8"
       (closed)="canvasOpened.set(null)"
     />
-  }
-<!-- </div> -->
+  </div>
+}
 
 <ng-template #menu>
   <div cdkMenu class="cdk-menu__large text-text-primary">

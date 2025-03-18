@@ -59,9 +59,8 @@
 
             <div class="flex grow gap-1.5 max-w-full" style="transform: none; opacity: 1">
               <div class="grow flex gap-1.5 max-w-full">
-                <button
-                  class="inline-flex gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-text-primary h-9 rounded-full px-3.5 py-2 border border-toggle-border overflow-hidden items-center justify-center bg-transparent hover:bg-lime-50/50"
-                  [class.bg-lime-50]="canvasOpened()"
+                <button class="btn-canvas inline-flex gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-text-primary h-9 rounded-full px-3.5 py-2 border border-toggle-border overflow-hidden items-center justify-center bg-transparent transition-all hover:bg-lime-50/50"
+                  [class.active]="canvasOpened()"
                   type="button"
                   tabindex="0"
                   [matTooltip]="canvasOpened() ? ('PAC.Chat.CloseCanvas' | translate: {Default: 'Close Canvas'})

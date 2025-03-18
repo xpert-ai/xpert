@@ -40,14 +40,6 @@ export class ChatController {
 			})
 		)
 
-		// const keepAliveObservable = new Observable<MessageEvent>((subscriber) => {
-		// 	const intervalId = setInterval(() => {
-		// 		subscriber.next({ data: ': keep-alive' } as MessageEvent)
-		// 	}, 5000) // 每 5 秒发送一次
-
-		// 	return () => clearInterval(intervalId)
-		// })
-
 		return observable.pipe(takeUntilClose(res)) // merge(observable, keepAliveObservable)
 	}
 }
