@@ -85,7 +85,9 @@ export enum CredentialsType {
   SELECT = 'select',
   REMOTE_SELECT = 'remote-select',
   COPILOT_MODEL = 'copilot-model',
-  BOOLEAN = 'boolean'
+  BOOLEAN = 'boolean',
+  INT = 'int',
+  NUMBER = 'number'
 }
 
 export interface ToolCredentialsOption {
@@ -118,6 +120,7 @@ export interface ToolProviderCredentials {
    */
   url?: string
   placeholder?: I18nObject
+  max?: number
 }
 
 export enum ApiProviderAuthType {
