@@ -13,6 +13,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
 import { ChatConversationPublicDTO, ChatConversationSimpleDTO } from './dto'
+import { Like } from 'typeorm'
 
 @ApiTags('ChatConversation')
 @ApiBearerAuth()
@@ -35,13 +36,18 @@ export class ChatConversationController extends CrudController<ChatConversation>
 	@Get('my')
 	async findMyAll(
 		@Query('data', ParseJsonPipe) filter?: PaginationParams<ChatConversation>,
+		@Query('search') search?: string,
 		...options: any[]
 	): Promise<IPagination<ChatConversation>> {
-		return this.service.findAll({ ...filter, where: {
-				...(filter.where ?? {}),
-				createdById: RequestContext.currentUserId()
-			}
-		})
+		const where = {
+			...(filter.where ?? {}),
+			createdById: RequestContext.currentUserId()
+		} as any
+		if (search) {
+			where.title = Like(`%${search}%`)
+		}
+
+		return this.service.findAll({ ...filter, where})
 	}
 
 	@ApiOperation({ summary: 'Find by id' })

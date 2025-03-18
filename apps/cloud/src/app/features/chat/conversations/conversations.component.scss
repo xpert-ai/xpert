@@ -1,3 +1,11 @@
 :host {
   @apply flex flex-col rounded-3xl bg-components-card-bg;
 }
+
+.container.expand {
+  @apply w-[80vw] h-[80vh];
+
+  .conversations {
+    @apply col-span-1 xl:col-span-2;
+  }
+}

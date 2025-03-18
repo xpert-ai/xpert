@@ -1,4 +1,5 @@
 import { A11yModule } from '@angular/cdk/a11y'
+import { DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
@@ -13,20 +14,21 @@ import {
   signal,
   viewChild
 } from '@angular/core'
-import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatSidenav } from '@angular/material/sidenav'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { NgmCommonModule, NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { effectAction } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
-import { switchMap, tap } from 'rxjs/operators'
+import { debounceTime, distinctUntilChanged, switchMap, tap } from 'rxjs/operators'
 import {
   ChatConversationService,
   DateRelativePipe,
+  getErrorMessage,
   IChatConversation,
   injectToastr,
   OrderTypeEnum
@@ -34,7 +36,6 @@ import {
 import { AppService } from '../../../app.service'
 import { groupConversations } from '../../../xpert'
 import { ChatHomeService } from '../home.service'
-import { DialogRef } from '@angular/cdk/dialog'
 
 @Component({
   standalone: true,
@@ -52,7 +53,8 @@ import { DialogRef } from '@angular/cdk/dialog'
     MatTooltipModule,
     WaIntersectionObserver,
     NgmCommonModule,
-    DateRelativePipe
+    DateRelativePipe,
+    NgmHighlightDirective
   ],
   selector: 'pac-chat-conversations',
   templateUrl: './conversations.component.html',
@@ -94,6 +96,20 @@ export class ChatConversationsComponent {
   readonly pageSize = 20
   readonly currentPage = signal(0)
   readonly done = signal(false)
+  
+  readonly expand = signal(false)
+  readonly searchControl = new FormControl()
+  get searchValue() {
+    return this.searchControl.value
+  }
+
+  private searchSub = this.searchControl.valueChanges.pipe(
+      debounceTime(1000),
+      distinctUntilChanged()
+    ).subscribe(() => {
+      this.resetLoadConversations()
+      this.loadConversations()
+    })
 
   constructor() {
     this.loadConversations()
@@ -105,7 +121,16 @@ export class ChatConversationsComponent {
   }
 
   deleteConv(id: string) {
-    this.homeService.deleteConversation(id)
+    this.loading.set(true)
+    this.homeService.deleteConversation(id).subscribe({
+      next: () => {
+        this.loading.set(false)
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
   }
 
   exitEdit(event: Event) {
@@ -125,6 +150,12 @@ export class ChatConversationsComponent {
     })
   }
 
+  resetLoadConversations() {
+    this.currentPage.set(0)
+    this.homeService.conversations.set([])
+    this.done.set(false)
+  }
+
   loadConversations = effectAction((origin$) => {
     return origin$.pipe(
       switchMap(() => {
@@ -137,7 +168,7 @@ export class ChatConversationsComponent {
           where: {
             from: 'platform'
           }
-        })
+        }, this.searchControl.value)
       }),
       tap({
         next: ({ items, total }) => {
@@ -163,7 +194,15 @@ export class ChatConversationsComponent {
 
   openInTab(conv: IChatConversation) {
     // This function opens a conversation in a new browser tab using the conversation's threadId.
-    const url = `/chat/x/${conv.xpert.slug}/c/${conv.id}`;
-    window.open(url, '_blank');
+    const url = `/chat/x/${conv.xpert.slug}/c/${conv.id}`
+    window.open(url, '_blank')
+  }
+
+  toggleExpand() {
+    this.expand.update((state) => !state)
+  }
+
+  clearSearch() {
+    this.searchControl.setValue(null)
   }
 }

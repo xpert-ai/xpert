@@ -1,3 +1,4 @@
+import { HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
 import { API_PREFIX, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
 import { IChatConversation } from '@metad/contracts'
@@ -9,17 +10,24 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     super(API_PREFIX + '/chat-conversation')
   }
 
-  getMyInOrg(options?: PaginationParams<IChatConversation>) {
+  getMyInOrg(options?: PaginationParams<IChatConversation>, search?: string) {
+    let params = toHttpParams(options)
+    if (search) {
+      params = params.append('search', search)
+    }
     return this.selectOrganizationId().pipe(
       switchMap(() =>
         this.httpClient.get<{ items: IChatConversation[]; total: number }>(this.apiBaseUrl + '/my', {
-          params: toHttpParams(options)
+          params
         })
       )
     )
   }
 
   findAllByXpert(xpertId: string, options: PaginationParams<IChatConversation>) {
-    return this.httpClient.get<{items: IChatConversation[]}>(this.apiBaseUrl + `/xpert/${xpertId}`, { params: toHttpParams(options) })
+    return this.httpClient.get<{ items: IChatConversation[] }>(this.apiBaseUrl + `/xpert/${xpertId}`, {
+      params: toHttpParams(options)
+    })
   }
+
 }

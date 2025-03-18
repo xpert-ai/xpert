@@ -56,8 +56,6 @@ export class XpertHomeService {
 
   deleteConversation(id: string) {
     this.conversations.update((items) => items.filter((item) => item.id !== id))
-    this.conversationService.delete(id).subscribe({
-      next: () => {}
-    })
+    return this.conversationService.delete(id)
   }
 }
