@@ -1,6 +1,6 @@
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, effect, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
@@ -44,6 +44,8 @@ export class ChatInputComponent {
   readonly promptControl = new FormControl<string>(null)
   readonly prompt = toSignal(this.promptControl.valueChanges)
   readonly answering = this.chatService.answering
+
+  readonly isComposing = signal(false)
 
   constructor() {
     effect(() => {
@@ -105,5 +107,20 @@ export class ChatInputComponent {
 
   navigateCopilot() {
     this.#router.navigate(['/settings/copilot'])
+  }
+
+  // 输入法开始组合
+  onCompositionStart() {
+    this.isComposing.set(true);
+  }
+
+  // 输入法组合更新
+  onCompositionUpdate(event: CompositionEvent) {
+    // 更新当前值
+  }
+
+  // 输入法组合结束
+  onCompositionEnd(event: CompositionEvent) {
+    this.isComposing.set(false);
   }
 }

@@ -17,7 +17,7 @@ import {
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
-import { DisappearBL } from '@metad/core'
+import { DisappearBL, SlideUpDownAnimation } from '@metad/core'
 import { isNil } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -57,7 +57,7 @@ import { provideOcapCore } from '@metad/ocap-angular/core'
   templateUrl: './xpert.component.html',
   styleUrl: 'xpert.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  animations: [DisappearBL],
+  animations: [DisappearBL, SlideUpDownAnimation],
   providers: [
     ChatPlatformService, 
     { provide: ChatService, useExisting: ChatPlatformService },

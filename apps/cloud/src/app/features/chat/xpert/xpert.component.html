@@ -144,9 +144,27 @@
     }
   </div>
 
-  <chat-input #chatInput cdkTrapFocusAutoCapture class="w-full px-4 lg:w-[800px] lg:px-8 max-w-full m-auto sticky bottom-0 z-10"
-    [disabled]="parameterInvalid()"
-  />
+  <div class="w-full px-4 lg:w-[800px] lg:px-8 max-w-full m-auto sticky bottom-0 z-10">
+    <div class="absolute flex justify-center w-full h-0 pr-8 mx-auto -top-3" style="opacity: 1; transform: none;">
+      <div class="h-0 flex items-end justify-end w-full max-w-[50rem] px-2 z-40">
+        @if (!isBottom()) {
+          <button @slideUpDown class="pressable inline-flex items-center justify-center w-9 h-9 gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default border border-card-border shadow-sm text-text-secondary hover:text-primary rounded-full bg-white backdrop-blur-sm" 
+            type="button"
+            (click)="scrollBottom(true)"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down -mb-0.5">
+              <path d="m6 9 6 6 6-6"></path>
+            </svg>
+          </button>
+        }
+      </div>
+    </div>
+
+    <chat-input #chatInput cdkTrapFocusAutoCapture class=""
+      [disabled]="parameterInvalid()"
+    />
+  </div>
+  
 </div>
 
 <div class="h-full fixed top-0 right-0 z-[1000] sm:sticky sm:top-0 sm:right-0 sm:ml-3 sm:py-3 sm:mr-2">
