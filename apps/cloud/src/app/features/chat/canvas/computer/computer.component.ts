@@ -41,8 +41,8 @@ export class ChatCanvasComputerComponent {
   readonly steps = computed(() => {
     const conversation = this.homeService.conversation()
     const id = this.messageId()
-    if (conversation?.messages && id) {
-      return conversation.messages.find((_) => _.id === id)?.steps
+    if (conversation?.messages) {
+      return id ? conversation.messages.find((_) => _.id === id)?.steps : conversation.messages[conversation.messages.length - 1]?.steps
     }
     return []
   })

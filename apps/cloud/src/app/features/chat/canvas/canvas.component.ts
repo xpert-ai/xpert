@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
@@ -33,4 +33,13 @@ export class ChatCanvasComponent {
   
   readonly canvas = this.homeService.canvasOpened
   readonly canvasType = computed(() => this.canvas()?.type)
+
+  constructor() {
+    effect(() => {
+      const conversation = this.homeService.conversation()
+      if (conversation?.messages && this.canvas()?.messageId && !conversation.messages.some((_) => _.id === this.canvas().messageId)) {
+        this.canvas.update((state) => ({type: state.type}))
+      }
+    }, { allowSignalWrites: true })
+  }
 }

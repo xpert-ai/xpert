@@ -9,6 +9,7 @@ import {
   computed,
   effect,
   ElementRef,
+  HostListener,
   inject,
   model,
   signal,
@@ -33,6 +34,10 @@ import { ChatHomeService } from '../home.service'
 import { ChatHomeComponent } from '../home/home.component'
 import { ChatXpertsComponent } from '../xperts/xperts.component'
 import { provideOcapCore } from '@metad/ocap-angular/core'
+import { IXpert } from '@metad/contracts'
+import { Store } from '@metad/cloud/state'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { UserPipe } from '../../../@shared/pipes'
 
 @Component({
   standalone: true,
@@ -51,7 +56,8 @@ import { provideOcapCore } from '@metad/ocap-angular/core'
     ChatConversationComponent,
     ChatInputComponent,
     ChatXpertsComponent,
-    ChatCanvasComponent
+    ChatCanvasComponent,
+    UserPipe
   ],
   selector: 'pac-chat-xpert',
   templateUrl: './xpert.component.html',
@@ -66,6 +72,7 @@ import { provideOcapCore } from '@metad/ocap-angular/core'
   ]
 })
 export class ChatXpertComponent {
+  readonly #store = inject(Store)
   readonly chatService = inject(ChatService)
   readonly homeService = inject(ChatHomeService)
   readonly chatHomeComponent = inject(ChatHomeComponent)
@@ -77,11 +84,12 @@ export class ChatXpertComponent {
   readonly paramRole = injectParams('role')
   readonly paramConvId = injectParams('id')
 
+  readonly userSignal = toSignal(this.#store.user$)
   readonly conversationId = this.chatService.conversationId
   readonly messages = this.chatService.messages
 
   readonly xpert = derivedAsync(() => {
-    return this.paramRole() && this.paramRole() !== 'common' ? this.homeService.getXpert(this.paramRole()) : null
+    return this.paramRole() && this.paramRole() !== 'common' ? this.homeService.getXpert(this.paramRole()) : this.chatService.xpert()
   })
 
   readonly parameters = computed(() => this.xpert()?.agent?.parameters)
@@ -94,7 +102,25 @@ export class ChatXpertComponent {
   readonly canvasOpened = this.homeService.canvasOpened
   readonly conversationTitle = this.homeService.conversationTitle
 
-  readonly isBottom = signal(false)
+  readonly isBottom = signal(true)
+
+  readonly xperts = this.homeService.sortedXperts
+
+  readonly greeting = computed(() => {
+    const now = new Date();
+    const hours = now.getHours();
+    let greeting = 'Good';
+
+    if (hours >= 5 && hours < 12) {
+      greeting = "Good morning";
+    } else if (hours >= 12 && hours < 18) {
+      greeting = "Good afternoon";
+    } else if (hours >= 18 && hours < 22) {
+      greeting = "Good evening";
+    }
+
+    return greeting;
+  })
 
   constructor() {
     effect(
@@ -155,11 +181,18 @@ export class ChatXpertComponent {
   }
 
   newConv() {
+    this.conversationId.set(null)
+    this.chatService.xpert$.next(null)
     this.#router.navigate(['/chat/'])
   }
 
-  newXpertConv() {
-    this.#router.navigate(['/chat/x/', this.xpert()?.slug])
+  newXpertConv(xpert?: IXpert) {
+    xpert ??= this.xpert()
+    if (xpert) {
+      this.#router.navigate(['/chat/x/', xpert.slug])
+    } else {
+      this.#router.navigate(['/chat'])
+    }
   }
 
   openConversations() {
@@ -187,4 +220,16 @@ export class ChatXpertComponent {
     const container = this.#elementRef.nativeElement
     this.isBottom.set(container.scrollTop + container.clientHeight >= container.scrollHeight - 10)
   }
+
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardEvent(event: KeyboardEvent) {
+    if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+      event.preventDefault(); // Prevent the default action
+      this.openConversations(); // Execute the openConversations method
+    } else if ((event.metaKey || event.ctrlKey) && event.key === 'j') {
+      event.preventDefault(); // Prevent the default action
+      this.newXpertConv(); // Execute the newXpertConv method
+    }
+  }
+
 }

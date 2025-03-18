@@ -21,12 +21,10 @@ import {
   ChatMessageTypeEnum,
   ChatMessageEventTypeEnum,
   XpertAgentExecutionStatusEnum,
-  ToolCall,
   IChatMessageFeedback,
   TChatOptions,
   TChatRequest,
   uuid,
-  ChatMessageStatusEnum,
   TSensitiveOperation,
 } from '../@core'
 import { ChatConversationService, ChatService as ChatServerService, XpertService, ToastrService, ChatMessageFeedbackService } from '../@core/services'
@@ -138,9 +136,7 @@ export class ChatService {
     )
     .subscribe({
       next: ([conversation]) => {
-        if (conversation) {
-          this.xpert$.next(conversation.xpert)
-        }
+        this.xpert$.next(conversation?.xpert)
       },
       error: (error) => {
         this.loadingConv.set(false)

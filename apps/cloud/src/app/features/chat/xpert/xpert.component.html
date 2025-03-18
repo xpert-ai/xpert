@@ -1,4 +1,4 @@
-<div class="flex-1 min-w-0 min-h-full flex flex-col">
+<div class="flex-1 min-h-full flex flex-col">
   <header class="header sm:h-auto sticky top-0 left-0 right-0 z-20">
     <div class="h-[52px] px-5 py-3 items-center flex justify-between bg-[var(--background-gray-main)]">
       <div class="flex flex-row items-center gap-0.5 start-3">
@@ -6,6 +6,7 @@
           class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary hover:bg-button-ghost-hover h-10 w-10 rounded-full
             hover:bg-hover-bg"
           type="button"
+          [matTooltip]="('PAC.Chat.NewChat' | translate: {Default: 'New Chat'}) + ' ⌘J'"
           (click)="newXpertConv()"
         >
           <svg
@@ -29,7 +30,7 @@
             ></path>
           </svg>
         </a>
-        <button
+        <!-- <button
           class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary hover:bg-button-ghost-hover h-10 w-10 rounded-full
             hover:bg-hover-bg"
           type="button"
@@ -52,13 +53,13 @@
                 stroke="currentColor"
               ></path></svg
           ></span>
-        </button>
+        </button> -->
         <button
           class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary 
             hover:bg-hover-bg h-10 w-10 rounded-full"
           type="button"
           aria-label="History"
-          [matTooltip]="'History'"
+          [matTooltip]="('PAC.Chat.History' | translate: {Default: 'History'}) +' ⌘K'"
           (click)="openConversations()"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="stroke-[2]">
@@ -76,7 +77,7 @@
 
       <div class="flex items-center">
         <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary 
-          hover:bg-hover-bg rounded-full px-3.5 py-2 flex-row pl-3 pr-2.5 h-9 sm:px-3 border border-button-outline-border sm:border-0" 
+          hover:bg-hover-bg rounded-xl px-3.5 py-2 flex-row pl-3 pr-2.5 h-9 sm:px-3 border border-button-outline-border sm:border-0" 
           type="button"
           [attr.active]="cmt.isOpen()"
           #cmt="cdkMenuTriggerFor"
@@ -93,8 +94,8 @@
     </div>
   </header>
   
-  <div class="w-full flex flex-col flex-1 px-2 lg:w-[800px] lg:px-8 max-w-full mx-auto">
-    @if (!conversationId() && !messages()?.length ) {
+  <div class="flex flex-col flex-1 px-2 lg:w-[800px] lg:px-8 max-w-full mx-auto">
+    @if (!conversationId() && !messages()?.length) {
       <div class="flex-1 w-full h-full flex flex-col justify-center items-center gap-4">
         @if (xpert()) {
           <emoji-avatar [avatar]="xpert().avatar" large class="rounded-xl overflow-hidden shadow-sm" />
@@ -125,8 +126,11 @@
           </div>
         } @else {
           <div class="flex flex-col items-start justify-center w-full @sm:px-4 px-2 gap-6 @sm:gap-4 @lg:w-4/5 max-w-[50rem] flex-1 @sm:flex-initial pb-24 @sm:pb-0">
-            <h1 class="w-full text-2xl flex-col tracking-tight @sm:text-3xl text-primary flex items-center justify-center text-center">
-              Good morning, Tiven.<span class="text-secondary">How can I help you today?</span>
+            <h1 class="w-full text-2xl flex-col tracking-tight sm:text-3xl !leading-normal text-text-primary flex items-center justify-center text-center">
+              {{'PAC.Chat.Greeting_' + greeting() | translate: {Default: greeting()} }}, {{ userSignal() | user }}.
+              <span class="text-text-secondary">
+                {{ 'PAC.Chat.HowCanHelpYouToday' | translate: {Default: 'How can I help you today?'} }}
+              </span>
             </h1>
 
             <pac-chat-xperts class="w-full @lg:w-4/5 max-w-[50rem] overflow-x-auto no-touch-scrollbar" />
@@ -167,7 +171,8 @@
   
 </div>
 
-<div class="h-full fixed top-0 right-0 z-[1000] sm:sticky sm:top-0 sm:right-0 sm:ml-3 sm:py-3 sm:mr-2">
+
+<div class="shrink-1 h-full fixed top-0 right-0 z-[1000] sm:sticky sm:top-0 sm:right-0 sm:ml-3 sm:py-3 sm:mr-2">
   @if (canvasOpened()) {
     <pac-chat-canvas @bl class="bg-components-panel-bg sm:rounded-[22px] shadow-[0px_0px_8px_0px_rgba(0,0,0,0.02)] border border-black/8 flex h-full w-full my-auto"
       (closed)="canvasOpened.set(null)"
@@ -201,8 +206,16 @@
       {{'PAC.Xpert.NewChat'  | translate: {Default: 'New Chat'} }}
     </button>
 
+    @for (item of xperts(); track item.id) {
+      <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="newXpertConv(item)">
+        <emoji-avatar [avatar]="item.avatar" xs class="shrink-0 rounded-lg overflow-hidden shadow-sm mr-1" />
+        <p class="overflow-hidden whitespace-nowrap text-ellipsis">{{item.title || item.name}}</p>
+      </button>
+    }
+
+    <!-- 
     <label class="px-2 pb-2">{{'PAC.KEY_WORDS.Knowledgebases' | translate: {Default: 'Knowledgebases'} }}</label>
-    <!-- <div class="max-h-64 w-56 overflow-y-auto" (click)="$event.stopPropagation()">
+    <div class="max-h-64 w-56 overflow-y-auto" (click)="$event.stopPropagation()">
       @if (knowledgebaseList()?.length) {
         <pac-knowledgebase-list class="w-full" [disabled]="disabled()" [knowledgebaseList]="knowledgebaseList()" [(knowledgebases)]="knowledgebases" />
       } @else {

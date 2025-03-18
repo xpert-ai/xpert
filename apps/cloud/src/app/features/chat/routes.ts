@@ -11,18 +11,30 @@ export const routes: Routes = [
       {
         path: 'x/:role',
         component: ChatXpertComponent,
+        data: {
+          title: 'Chat Xpert',
+        }
       },
       {
         path: 'c/:id',
         component: ChatXpertComponent,
+        data: {
+          title: 'Chat Conversation',
+        }
       },
       {
         path: 'x/:role/c/:id',
         component: ChatXpertComponent,
+        data: {
+          title: 'Chat Xpert Conversation',
+        }
       },
       {
         path: 'tasks',
-        component: ChatTasksComponent
+        component: ChatTasksComponent,
+        data: {
+          title: 'Chat Tasks',
+        }
       },
       {
         path: '**',
