@@ -9,7 +9,7 @@ import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { uuid } from '../../../@core'
 import { AppService } from '../../../app.service'
-import { ChatService } from '../../../xpert'
+import { ChatService, XpertHomeService } from '../../../xpert'
 import { OverlayAnimations } from '@metad/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 
@@ -34,6 +34,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 })
 export class ChatInputComponent {
   readonly chatService = inject(ChatService)
+  readonly homeService = inject(XpertHomeService)
   readonly appService = inject(AppService)
   readonly #router = inject(Router)
 
@@ -44,6 +45,7 @@ export class ChatInputComponent {
   readonly promptControl = new FormControl<string>(null)
   readonly prompt = toSignal(this.promptControl.valueChanges)
   readonly answering = this.chatService.answering
+  readonly canvasOpened = this.homeService.canvasOpened
 
   readonly isComposing = signal(false)
 
@@ -122,5 +124,9 @@ export class ChatInputComponent {
   // 输入法组合结束
   onCompositionEnd(event: CompositionEvent) {
     this.isComposing.set(false);
+  }
+
+  toggleCanvas() {
+    this.homeService.canvasOpened.update((state) => state ? null : {type: 'Computer'})
   }
 }

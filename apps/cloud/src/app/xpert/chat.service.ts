@@ -136,7 +136,9 @@ export class ChatService {
     )
     .subscribe({
       next: ([conversation]) => {
-        this.xpert$.next(conversation?.xpert)
+        if (conversation) {
+          this.xpert$.next(conversation?.xpert)
+        }
       },
       error: (error) => {
         this.loadingConv.set(false)

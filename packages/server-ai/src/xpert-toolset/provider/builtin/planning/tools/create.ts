@@ -1,9 +1,16 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
+import { getContextVariable } from '@langchain/core/context'
 import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum, ChatMessageStepType } from '@metad/contracts'
+import {
+	ChatMessageEventTypeEnum,
+	ChatMessageStepType,
+	CONTEXT_VARIABLE_CURRENTSTATE,
+	mapTranslationLanguage
+} from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import z from 'zod'
+import { STATE_VARIABLE_SYS } from '../../../../../xpert-agent'
 import { ToolParameterValidationError } from '../../../../errors'
 import { BuiltinTool } from '../../builtin-tool'
 import { PlanningToolset } from '../planning'
@@ -41,18 +48,21 @@ export class PlanningCreateTool extends BuiltinTool {
 		}
 
 		const { subscriber } = config?.configurable ?? {}
+		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
+		const lang = currentState[STATE_VARIABLE_SYS]?.language
 
 		const plan = {
 			title: parameters.title,
 			steps: parameters.steps.map((content, index) => ({ index, content }))
 		}
 
+		const i18n = await this.toolset.translate('toolset.Planning', { lang: mapTranslationLanguage(lang) })
 		// Tool message event
 		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 			type: ChatMessageStepType.ComputerUse,
 			toolset: PlanningToolset.provider,
 			tool: this.name,
-			message: `Created a plan: ${parameters.title}\n\n${parameters.steps.join('\n')}`,
+			message: `${i18n.CreatedAPlan}: ${parameters.title}\n\n${parameters.steps.join('\n')}`,
 			title: parameters.title,
 			data: plan
 		}).catch((err) => {

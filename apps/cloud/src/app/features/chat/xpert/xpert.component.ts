@@ -89,7 +89,7 @@ export class ChatXpertComponent {
   readonly messages = this.chatService.messages
 
   readonly xpert = derivedAsync(() => {
-    return this.paramRole() && this.paramRole() !== 'common' ? this.homeService.getXpert(this.paramRole()) : this.chatService.xpert()
+    return this.paramRole() && this.paramRole() !== 'common' ? this.homeService.getXpert(this.paramRole()) : null
   })
 
   readonly parameters = computed(() => this.xpert()?.agent?.parameters)
@@ -187,7 +187,8 @@ export class ChatXpertComponent {
   }
 
   newXpertConv(xpert?: IXpert) {
-    xpert ??= this.xpert()
+    this.conversationId.set(null)
+    xpert ??= this.xpert() ?? this.chatService.xpert()
     if (xpert) {
       this.#router.navigate(['/chat/x/', xpert.slug])
     } else {

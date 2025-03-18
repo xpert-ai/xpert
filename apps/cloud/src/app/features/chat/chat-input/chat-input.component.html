@@ -56,8 +56,28 @@
                 ></path>
               </svg>
             </button>
+
             <div class="flex grow gap-1.5 max-w-full" style="transform: none; opacity: 1">
               <div class="grow flex gap-1.5 max-w-full">
+                <button
+                  class="inline-flex gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-text-primary h-9 rounded-full px-3.5 py-2 border border-toggle-border overflow-hidden items-center justify-center bg-transparent hover:bg-lime-50/50"
+                  [class.bg-lime-50]="canvasOpened()"
+                  type="button"
+                  tabindex="0"
+                  [matTooltip]="canvasOpened() ? ('PAC.Chat.CloseCanvas' | translate: {Default: 'Close Canvas'})
+                    : ('PAC.Chat.OpenCanvas' | translate: {Default: 'Open Canvas'})"
+                  matTooltipPosition="above"
+                  (click)="toggleCanvas()"
+                >
+                  <svg class="shrink-0 w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M13 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3"/>
+                    <path d="M8 21h8"/>
+                    <path d="M12 17v4"/>
+                    <path d="m17 8 5-5"/>
+                    <path d="M17 3h5v5"/>
+                  </svg>
+                  <span>{{'PAC.Chat.Canvas' | translate: {Default: 'Canvas'} }}</span>
+                </button>
                 <!-- <button
                   class="inline-flex gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full px-3.5 py-2 border border-toggle-border overflow-hidden items-center justify-center bg-transparent hover:bg-toggle-hover"
                   type="button"

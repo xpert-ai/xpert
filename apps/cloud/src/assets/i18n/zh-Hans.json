@@ -1635,6 +1635,8 @@
       "WhosComputer": "{{value}} 的电脑",
       "TaskProgress": "任务进度",
       "LoadingTaskProgress": "加载任务进度",
+      "Canvas": "画布",
+      "OpenCanvas": "打开画布",
       "CloseCanvas": "收起画布",
       "GotoNewXpert": "去新建数字专家",
       "HowCanHelp": "Xpert 如何提供帮助？",

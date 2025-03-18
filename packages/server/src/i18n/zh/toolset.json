@@ -23,5 +23,10 @@
       "Bar": "条形图",
       "Pie": "饼图"
     }
+  },
+  "Planning": {
+    "CreatedAPlan": "创建一个计划",
+    "Update": "更新",
+    "Step": "步骤"
   }
 }

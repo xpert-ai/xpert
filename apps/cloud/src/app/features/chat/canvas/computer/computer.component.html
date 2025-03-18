@@ -162,72 +162,75 @@
   </div>
 
   @if (hasPlan()) {
-    <div class="min-h-[36px] relative z-50 border border-black/8 rounded-[16px] sm:rounded-[12px]">
-      @if (plan(); as plan) {
-        <div class="flex flex-row items-center justify-between px-3 clickable">
-          <div class="flex items-center gap-2">
-            @if (expandPlan()) {
-              <span class="text-text-primary font-bold">
-                {{ 'PAC.Chat.TaskProgress' | translate: {Default: 'Task Progress'} }}
-              </span>
-            } @else {
-              @switch (plan.status) {
-                @case ('in_progress') {
-                  <i class="ri-progress-2-line text-lg text-yellow-500"></i>
-                }
-                @case ('completed') {
-                  <i class="ri-checkbox-circle-line text-lg text-text-success"></i>
-                }
-                @default {
-                  <i class="ri-checkbox-blank-line text-lg text-text-secondary"></i>
-                }
-              }
-              <div class="text-sm truncate" [title]="plan.title" >
-                {{plan.title}}
-              </div>
-            }
-          </div>
-  
-          <button type="button" class="flex items-center cursor-pointer justify-center gap-2 hover:opacity-80 flex-shrink-0 py-2.5"
-            (click)="togglePlan()"
-          >
-            <span class="text-xs text-[var(--text-tertiary)] hidden sm:flex">{{plan.completed}} / {{plan.total}}</span>
-            @if (expandPlan()) {
-              <i class="ri-arrow-down-s-line"></i>
-            } @else {
-              <i class="ri-arrow-up-s-line"></i>
-            }
-          </button>
-        </div>
-
-        @if (expandPlan()) {
-          <div class="max-h-[600px] overflow-y-auto" @listHeightStagger>
-            @for (step of plan.steps; track step) {
-              <div class="flex items-center gap-2 w-full px-4 py-2 truncate">
-                <span [matTooltip]="step.notes" matTooltipPosition="left">
-                  @switch (step.status) {
-                    @case ('in_progress') {
-                      <i class="ri-progress-2-line text-lg text-yellow-500"></i>
-                    }
-                    @case ('completed') {
-                      <i class="ri-checkbox-circle-line text-lg text-text-success"></i>
-                    }
-                    @default {
-                      <i class="ri-checkbox-blank-line text-lg text-text-secondary"></i>
-                    }
-                  }
+    <div class="min-h-[36px] relative z-50">
+      <div class="absolute bottom-0 w-full border border-divider-deep rounded-[16px] sm:rounded-[12px] bg-components-card-bg">
+        @if (plan(); as plan) {
+          <div class="flex flex-row items-center justify-between px-3 py-2 cursor-pointer" (click)="togglePlan()">
+            <div class="flex items-center gap-2">
+              @if (expandPlan()) {
+                <span class="text-text-primary font-bold">
+                  {{ 'PAC.Chat.TaskProgress' | translate: {Default: 'Task Progress'} }}
                 </span>
-                
-                <div class="flex flex-col w-full gap-[2px] truncate">
-                  <div class="text-sm truncate" [title]="step.content">{{step.content}}</div>
+              } @else {
+                @switch (plan.status) {
+                  @case ('in_progress') {
+                    <i class="ri-progress-2-line text-lg text-yellow-500"></i>
+                  }
+                  @case ('completed') {
+                    <i class="ri-checkbox-circle-line text-lg text-text-success"></i>
+                  }
+                  @default {
+                    <i class="ri-checkbox-blank-line text-lg text-text-secondary"></i>
+                  }
+                }
+                <div class="text-sm truncate" [title]="plan.title" >
+                  {{plan.title}}
                 </div>
-              </div>
-            }
+              }
+            </div>
+    
+            <button type="button" class="flex items-center cursor-pointer justify-center gap-2 hover:bg-hover-bg flex-shrink-0 px-1 rounded-lg">
+              <span class="text-xs text-text-tertiary hidden sm:flex">{{plan.completed}} / {{plan.total}}</span>
+              @if (expandPlan()) {
+                <i class="ri-arrow-down-s-line"></i>
+              } @else {
+                <i class="ri-arrow-up-s-line"></i>
+              }
+            </button>
           </div>
+
+          @if (expandPlan()) {
+            <div class="max-h-[600px] overflow-y-auto" @listHeightStagger>
+              @for (step of plan.steps; track step) {
+                <div class="flex items-center gap-1 w-full px-4 py-2 truncate">
+                  <span [matTooltip]="step.notes" matTooltipPosition="left">
+                    @switch (step.status) {
+                      @case ('in_progress') {
+                        <i class="ri-progress-2-line text-lg text-yellow-500"></i>
+                      }
+                      @case ('completed') {
+                        <i class="ri-checkbox-circle-line text-lg text-text-success"></i>
+                      }
+                      @case ('blocked') {
+                        <i class="ri-spam-3-line text-lg text-neutral-500"></i>
+                      }
+                      @default {
+                        <i class="ri-checkbox-blank-line text-lg text-text-secondary"></i>
+                      }
+                    }
+                  </span>
+                  
+                  <div class="flex flex-col w-full gap-[2px] truncate">
+                    <div class="text-sm truncate" [title]="step.content">{{step.content}}</div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        } @else {
+          <div class="p-2">{{'PAC.Chat.LoadingTaskProgress' | translate: {Default: 'Loading task progress'} }}...</div>
         }
-      } @else {
-        <div class="p-2">{{'PAC.Chat.LoadingTaskProgress' | translate: {Default: 'Loading task progress'} }}...</div>
-      }
+      </div>
     </div>
   }
 </div>
