@@ -7,13 +7,15 @@ import {
 	MessageContent,
 	ToolMessage
 } from '@langchain/core/messages'
-import { CompiledStateGraph, NodeInterrupt } from '@langchain/langgraph'
+import { CompiledStateGraph, GraphRecursionError, NodeInterrupt } from '@langchain/langgraph'
 import {
 	agentLabel,
 	channelName,
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
 	IXpertAgent,
+	LanguagesEnum,
+	mapTranslationLanguage,
 	TSensitiveOperation,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
@@ -22,6 +24,7 @@ import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { pick } from 'lodash'
+import { I18nService } from 'nestjs-i18n'
 import { catchError, concat, filter, from, map, Observable, of, switchMap, tap } from 'rxjs'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { createMapStreamEvents } from '../../agent'
@@ -41,6 +44,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
 		private readonly checkpointSaver: CopilotCheckpointSaver,
+		private readonly i18nService: I18nService,
 	) {}
 
 	public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
@@ -76,6 +80,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		}
 		const languageCode = options.language || user.preferredLanguage || 'en-US'
 
+		// i18n prepare
+		const i18nError = await this.i18nService.t('xpert.Error', {lang: mapTranslationLanguage(languageCode as LanguagesEnum)})
+
 		const recordLastState = async () => {
 			const state = await graph.getState({
 				configurable: {
@@ -110,6 +117,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 			return state
 		}
 
+		const recursionLimit = team.agentConfig?.recursionLimit ?? AgentRecursionLimit
 		const contentStream = from(
 			graph.streamEvents(
 				input?.input
@@ -135,7 +143,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 						userId,
 						subscriber
 					},
-					recursionLimit: team.agentConfig?.recursionLimit ?? AgentRecursionLimit,
+					recursionLimit,
 					maxConcurrency: team.agentConfig?.maxConcurrency,
 					signal: abortController.signal
 					// debug: true
@@ -146,10 +154,20 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				disableOutputs: [...(team.agentConfig?.disableOutputs ?? []), 'title_conversation', 'summarize_conversation'],
 				agent
 			})),
-			// record last state when exception
-			catchError((err) => from(recordLastState()).pipe(
-				tap(() => {throw err})
-			))
+			catchError((err) => from((async () => {
+				// Record last state when exception
+				await recordLastState()
+				// Translate recursion limit error
+				if (err instanceof GraphRecursionError) {
+					const recursionLimitReached = await this.i18nService.t('xpert.Error.RecursionLimitReached', {
+						lang: mapTranslationLanguage(languageCode as LanguagesEnum),
+						args: {value: recursionLimit}
+					})
+					throw new Error(recursionLimitReached)
+				}
+
+				throw err
+			})()))
 		)
 
 		return concat(

@@ -125,7 +125,12 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 			})
 		}
 		const xpertsManagedByUser = await baseQuery.where(
-			{...(params.where ?? {}), publishAt: Not(IsNull()),})
+			{
+				...(params.where ?? {}), 
+				publishAt: Not(IsNull()),
+				tenantId: RequestContext.currentTenantId(),
+				organizationId: RequestContext.getOrganizationId()
+			})
 			.take(take)
 			.getMany();
 

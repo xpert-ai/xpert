@@ -164,9 +164,17 @@ export class ChatAiMessageComponent {
   )
   readonly canvasType = computed(() => this.homeService.canvasOpened()?.type)
 
+  // Agents
+  readonly conversation = this.chatService.conversation
+  readonly xpert = this.chatService.xpert
+  readonly agents = computed(() => this.xpert()?.agents?.reduce((acc, agent) => {
+    acc[agent.key] = agent;
+    return acc;
+  }, {}) ?? {})
+
   constructor() {
     effect(() => {
-      // console.log(this.message()?.status)
+      // console.log(this.agents())
     })
   }
 

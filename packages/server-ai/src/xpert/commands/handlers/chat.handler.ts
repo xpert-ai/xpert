@@ -27,7 +27,7 @@ import {
 import { appendMessageSteps, ChatMessageUpsertCommand } from '../../../chat-message'
 import { CreateCopilotStoreCommand } from '../../../copilot-store'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
-import { XpertAgentChatCommand } from '../../../xpert-agent/'
+import { messageContentText, XpertAgentChatCommand } from '../../../xpert-agent/'
 import { GetXpertMemoryEmbeddingsQuery } from '../../queries'
 import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
@@ -183,9 +183,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 						next: (event) => {
 							if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
 								appendMessageContent(aiMessage, event.data.data)
-								if (typeof event.data.data === 'string') {
-									result += event.data.data
-								}
+								result += messageContentText(event.data.data)
 							} else if (
 								event.data.type === ChatMessageTypeEnum.EVENT
 							) {

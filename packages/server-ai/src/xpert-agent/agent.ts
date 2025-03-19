@@ -3,7 +3,7 @@ import { isCommand } from '@langchain/langgraph'
 import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
-import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageTypeEnum, IXpertAgent, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageTypeEnum, isAgentKey, IXpertAgent, TMessageContentComplex, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { AgentStateAnnotation } from './commands/handlers/types'
@@ -20,12 +20,18 @@ export function createMapStreamEvents(
 	}
 ) {
 	const { agent, disableOutputs } = options ?? {}
-	let collectingResult = ''
+	// let collectingResult = ''
 	const eventStack: string[] = []
 	let prevEvent = ''
+	/**
+	 * @deprecated	
+	 */
 	let startStream = false
 	const toolsMap: Record<string, string> = {} // For lc_name and name of tool is different
 	const processFun = ({ event, tags, data, ...rest }: any) => {
+		const langgraph_node = rest.metadata.langgraph_node
+		const agentKey = isAgentKey(langgraph_node) && langgraph_node !== agent.key ? langgraph_node : null
+
 		if (Logger.isLevelEnabled('debug')) {
 			if (event === 'on_chat_model_stream') {
 				if (prevEvent === 'on_chat_model_stream') {
@@ -81,27 +87,36 @@ export function createMapStreamEvents(
 				return null
 			}
 			case 'on_chat_model_stream': {
-				if (prevEvent !== 'on_chat_model_stream' && collectingResult) {
-					startStream = true
-				}
+				// if (prevEvent !== 'on_chat_model_stream' && collectingResult) {
+				// 	startStream = true
+				// }
 				prevEvent = event
 
-				// Only returns the stream events content of the current react agent (filter by tag: thread_id), not events of agent in tool call.
 				if (!disableOutputs?.some((key) => tags.includes(key))) {
-				// if (tags.includes(thread_id)) {
 					const msg = data.chunk as AIMessageChunk
 					if (!msg.tool_call_chunks?.length) {
 						if (msg.content) {
-							let prefix = ''
-							if (startStream) {
-								prefix = '\n\n'
-								startStream = false
+							// let prefix = ''
+							// if (startStream) {
+							// 	prefix = '\n\n'
+							// 	startStream = false
+							// }
+
+							const chunk = {
+								type: "text",
+								text: '',
+								id: msg.id,
+							} as TMessageContentText
+							if (agentKey) {
+								chunk.agentKey = agentKey
 							}
+							
 							if (typeof msg.content === 'string') {
-								return prefix + msg.content
+								chunk.text += msg.content
 							} else {
-								return prefix + msg.content.map((_) => (_.type === 'text' || _.type === 'text_delta') ? _.text : '').join('')
+								chunk.text += msg.content.map((_) => (_.type === 'text' || _.type === 'text_delta') ? _.text : '').join('')
 							}
+							return chunk
 						}
 						if (msg.additional_kwargs?.reasoning_content) {
 							subscriber.next({
@@ -263,9 +278,7 @@ export function createMapStreamEvents(
 
 	return (event) => {
 		const content = processFun(event)
-		if (content) {
-			collectingResult += content
-		}
+		// collectingResult += messageContentText(content)
 		return content
 	}
 }
@@ -411,4 +424,8 @@ export function messageEvent(event: ChatMessageEventTypeEnum, data: any) {
 			data: instanceToPlain(data)
 		}
 	} as MessageEvent
+}
+
+export function messageContentText(content: string | TMessageContentComplex) {
+	return typeof content === 'string' ? content : content.type === 'text' ? content.text : ''
 }

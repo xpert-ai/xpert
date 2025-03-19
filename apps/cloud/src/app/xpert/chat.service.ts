@@ -26,6 +26,7 @@ import {
   TChatRequest,
   uuid,
   TSensitiveOperation,
+  TMessageContent,
 } from '../@core'
 import { ChatConversationService, ChatService as ChatServerService, XpertService, ToastrService, ChatMessageFeedbackService } from '../@core/services'
 import { AppService } from '../app.service'
@@ -156,7 +157,7 @@ export class ChatService {
 
   getConversation(id: string) {
     this.loadingConv.set(true)
-    return this.conversationService.getById(id, { relations: ['xpert', 'xpert.knowledgebases', 'xpert.toolsets', 'messages'] })
+    return this.conversationService.getById(id, { relations: ['xpert', 'xpert.agent', 'xpert.agents', 'xpert.knowledgebases', 'xpert.toolsets', 'messages'] })
   }
 
   getFeedbacks(id: string) {
@@ -346,7 +347,7 @@ export class ChatService {
     } as IChatConversation))
   }
 
-  appendMessageComponent(content: MessageContent) {
+  appendMessageComponent(content: TMessageContent) {
     this.updateLatestMessage((lastM) => {
       appendMessageContent(lastM as any, content)
       return {

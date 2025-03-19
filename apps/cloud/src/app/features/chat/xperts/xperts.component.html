@@ -17,8 +17,8 @@
   }
   
   @if (hasEditXpertPermission()) {
-    <button type="button" class="btn btn-primary px-3 py-2 rounded-2xl border border-input-border"
-      [class.btn-primary]="!xperts()"
+    <button type="button" class="btn px-3 py-2 rounded-2xl border border-input-border"
+      [class.btn-primary]="xperts() && !xperts().length"
       routerLink="/xpert/w"
     >
       {{ 'PAC.Chat.GotoNewXpert' | translate: {Default: 'Go to New Digital Expert'} }}

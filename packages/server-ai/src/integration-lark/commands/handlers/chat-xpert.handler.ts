@@ -1,5 +1,5 @@
 import { SerializedConstructor } from '@langchain/core/load/serializable'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, LanguagesEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
@@ -42,7 +42,7 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 				{
 					from: 'feishu',
 					fromEndUserId: userId,
-					language: larkMessage.language
+					language: larkMessage.language as LanguagesEnum
 				}
 			)
 		)

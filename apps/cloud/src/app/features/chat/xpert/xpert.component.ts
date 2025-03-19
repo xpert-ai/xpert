@@ -170,7 +170,8 @@ export class ChatXpertComponent {
     )
 
     effect(() => {
-      if (this.messages()) {
+      // Follow the latest news
+      if (this.messages() && this.isBottom()) {
         this.scrollBottom()
       }
     })

@@ -179,12 +179,23 @@
     @for (submessage of messages; track submessage) {
       @switch (submessage.type) {
         @case ('text') {
+          @if (submessage.agentKey && agents()[submessage.agentKey]; as agent) {
+            <div class="flex items-center gap-2 mt-4">
+              <emoji-avatar [avatar]="agent.avatar" small class="rounded-xl overflow-hidden" />
+              <div class="font-semibold">{{agent.title || agent.name || agent.key}}</div>
+            </div>
+          }
+          
           <markdown clipboard class="ngm-copilot-markdown flex-1"
             [clipboardButtonTemplate]="buttonTemplate"
             lineNumbers
             [start]="5"
             [data]="submessage.text"
           />
+
+          @if (submessage.agentKey) {
+            <hr class="mt-8 mb-4 border-t border-solid border-divider-deep">
+          }
         }
         @case ('component') {
           <chat-component-message class="w-full p-2 rounded-2xl hover:bg-neutral-50"
@@ -211,7 +222,7 @@
       <div [@listHeightStagger]="steps()"
         class="rounded-xl flex flex-col gap-1 p-1 border border-[var(--border-light)] bg-[var(--fill-tsp-gray-main)] max-w-full clickable hover:bg-[var(--fill-tsp-gray-dark)] dark:hover:bg-white/[0.02]"
       >
-        @for (step of steps(); track step) {
+        @for (step of steps(); track $index) {
           <div class="relative flex items-center p-1 py-1 rounded-lg group/item hover:bg-white">
             <div class="w-[16px] inline-flex items-center text-[var(--text-primary)]">
               @if (step.toolset) {
