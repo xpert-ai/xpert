@@ -264,13 +264,17 @@ export function workOutTimeRangeSlicers(
   return timeSlicer.ranges.map((range) => {
     const calendarSemantic = mapTimeGranularitySemantic(range.granularity)
     const calendarLevel = property?.levels?.find((level) => level.semantics?.semantic === calendarSemantic)
+    const targetFormatter = range.formatter || calendarLevel?.semantics?.formatter
+    if (!targetFormatter) {
+      throw new Error(`Target formatter not set for dimension: ${timeSlicer.dimension?.dimension} and granularity: ${range.granularity}`)
+    }
     const results = range.start ? calcStartEndRange(currentDate || new Date(), {
         ...range,
-        formatter: range.formatter || calendarLevel?.semantics?.formatter
+        formatter: targetFormatter
       })
       : calcOffsetRange(currentDate || new Date(), {
         ...range,
-        formatter: range.formatter || calendarLevel?.semantics?.formatter
+        formatter: targetFormatter
       })
 
     if (results[0] === results[1]) {
