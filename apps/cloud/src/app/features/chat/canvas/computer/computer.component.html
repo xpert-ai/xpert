@@ -91,6 +91,17 @@
               }
             </div>
           }
+          @case (eChatMessageStepCategory.Files) {
+            <div class="flex flex-col overflow-auto h-full px-4 py-3">
+              @for (item of step.data; track item; let first = $first) {
+                <div class="py-3 border-b border-divider-deep" [class.pt-0]="first">
+                  <a [href]="item.url" target="_blank" class="block text-text-primary text-base font-medium hover:underline line-clamp-2 cursor-pointer">
+                    {{item.name}}
+                  </a>
+                </div>
+              }
+            </div>
+          }
           @default {
             @switch (step.toolset) {
               @case ('browser-use') {

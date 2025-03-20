@@ -1,0 +1,16 @@
+identity:
+  pro: true
+  author: XpertAI
+  name: code_project
+  label:
+    en_US: Code Project
+    zh_Hans: 代码项目
+  description:
+    en_US: Code Project toolset.
+    zh_Hans: 代码项目工具集。
+  icon: icon.svg
+  tags:
+    - productivity
+    - utilities
+    - sandbox
+credentials_for_provider:

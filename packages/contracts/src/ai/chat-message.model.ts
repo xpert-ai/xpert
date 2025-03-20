@@ -18,7 +18,8 @@ export enum ChatMessageStepType {
 }
 
 export enum ChatMessageStepCategory {
-  WebSearch = 'web_search'
+  WebSearch = 'web_search',
+  Files = 'files',
 }
 
 export type TChatMessageStep = {
