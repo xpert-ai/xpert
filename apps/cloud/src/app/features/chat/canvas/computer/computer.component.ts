@@ -6,7 +6,7 @@ import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { ChatConversationService, ChatMessageStepType, injectFormatRelative } from '../../../../@core'
+import { ChatConversationService, ChatMessageStepCategory, ChatMessageStepType, injectFormatRelative } from '../../../../@core'
 import { FileEditorComponent } from '../../../../@shared/files'
 import { ChatHomeService } from '../../home.service'
 import { CanvasHtmlEditorComponent } from '../html-editor/html-editor.component'
@@ -36,6 +36,7 @@ import { BehaviorSubject, debounceTime, switchMap } from 'rxjs'
 })
 export class ChatCanvasComputerComponent {
   eChatMessageStepType = ChatMessageStepType
+  eChatMessageStepCategory = ChatMessageStepCategory
 
   readonly homeService = inject(ChatHomeService)
   readonly conversationService = inject(ChatConversationService)

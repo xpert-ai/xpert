@@ -1,14 +1,14 @@
 import { IXpertToolset, TToolCredentials } from '@metad/contracts'
 import { getErrorMessage, omit } from '@metad/server-common'
 import { ToolProviderCredentialValidationError } from '../../../errors'
-import { BuiltinToolset } from '../builtin-toolset'
+import { BuiltinToolset, TBuiltinToolsetParams } from '../builtin-toolset'
 import { TavilySearchResults } from './tools/tavily_search'
 
 export class TavilyToolset extends BuiltinToolset {
 	static provider = 'tavily'
 
-	constructor(protected toolset?: IXpertToolset) {
-		super(TavilyToolset.provider, toolset)
+	constructor(protected toolset?: IXpertToolset, params?: TBuiltinToolsetParams) {
+		super(TavilyToolset.provider, toolset, params)
 
 		if (toolset) {
             const tool = toolset.tools?.[0]
@@ -16,7 +16,7 @@ export class TavilyToolset extends BuiltinToolset {
 				if (!toolset.credentials?.tavily_api_key) {
 					throw new ToolProviderCredentialValidationError(`Credential 'tavily_api_key' not provided`)
 				}
-                const tavilySearchTool = new TavilySearchResults({
+                const tavilySearchTool = new TavilySearchResults(this, {
                     ...(tool.parameters ?? {}),
                     apiKey: toolset.credentials.tavily_api_key as string,
 					kwargs: omit(tool.parameters, 'max_results')
@@ -32,7 +32,7 @@ export class TavilyToolset extends BuiltinToolset {
 
 	async _validateCredentials(credentials: TToolCredentials) {
 		try {
-			const tavilySearch = new TavilySearchResults({
+			const tavilySearch = new TavilySearchResults(this, {
 				apiKey: credentials.tavily_api_key as string,
                 max_results: 1
 			})

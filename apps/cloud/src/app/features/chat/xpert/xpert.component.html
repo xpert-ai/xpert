@@ -1,4 +1,4 @@
-<div class="flex-1 min-h-full flex flex-col max-w-full">
+<div class="flex-1 min-w-0 min-h-full flex flex-col max-w-full">
   <header class="header sm:h-auto sticky top-0 left-0 right-0 z-20">
     <div class="h-[52px] px-2 py-3 sm:px-5 items-center flex justify-between bg-[var(--background-gray-main)]">
       <div class="flex flex-row items-center gap-0.5 start-3">
@@ -96,7 +96,7 @@
   
   <div class="flex flex-col flex-1 px-2 lg:w-[800px] lg:px-8 max-w-full mx-auto">
     @if (!conversationId() && !messages()?.length) {
-      <div class="flex-1 w-full h-full flex flex-col justify-center items-center gap-4">
+      <div class="flex-1 h-full flex flex-col justify-center items-center gap-4">
         @if (xpert()) {
           <emoji-avatar [avatar]="xpert().avatar" large class="rounded-xl overflow-hidden shadow-sm" />
 
@@ -143,7 +143,7 @@
         }
       </div>
     } @else {
-      <chat-conversation class="w-full lg:w-[800px] max-w-full mx-auto py-4 lg:p-8"
+      <chat-conversation class="max-w-full lg:w-[800px] mx-auto py-4 lg:p-8"
         [xpert]="xpert()"
       />
     }
@@ -173,7 +173,7 @@
 </div>
 
 @if (canvasOpened()) {
-  <div @bl class="shrink-1 h-full flex fixed top-0 right-0 z-[1000] max-w-full sm:sticky sm:top-0 sm:right-0 sm:ml-3 sm:py-3 sm:mr-2">
+  <div @bl class="shrink-1 h-full flex fixed top-0 right-0 z-[1000] sm:sticky sm:top-0 sm:right-0 sm:ml-3 sm:py-3 sm:mr-2">
     <pac-chat-canvas class="h-full flex flex-col my-auto bg-components-panel-bg sm:rounded-[22px] shadow-[0px_0px_8px_0px_rgba(0,0,0,0.02)] border border-black/8"
       (closed)="canvasOpened.set(null)"
     />

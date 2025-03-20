@@ -34,14 +34,14 @@
       </div>
       <div class="flex-1 flex flex-col gap-1 min-w-0">
         <div class="text-[12px] text-[var(--text-tertiary)]">
-          Xpert 正在使用
+          {{ 'PAC.Xpert.XpertUsing' | translate: {Default: 'Xpert using'} }}
           <span class="text-[var(--text-secondary)]">
             {{ 'PAC.Xpert.Toolset_' + step.toolset | translate: {Default: step.toolset || 'Toolset'} }}
           </span>
         </div>
 
         <div [title]="step.message"
-          class="max-w-[100%] w-[max-content] truncate text-[13px] rounded-full inline-block px-[10px] py-[3px] border border-[var(--border-light)] bg-neutral-100 text-[var(--text-secondary)]"
+          class="max-w-[100%] w-[max-content] truncate text-sm rounded-full inline-block px-[10px] py-[3px] border border-divider-deep bg-neutral-100 text-zinc-500"
         >{{step.message}}</div>
       </div>
     </div>
@@ -49,10 +49,10 @@
   <div class="flex flex-col rounded-[12px] overflow-hidden bg-neutral-100 border border-divider-deep dark:border-black/30 shadow-[0px_4px_32px_0px_rgba(0,0,0,0.04)] flex-1 min-h-0">
     @if (step(); as step) {
       <div
-        class="h-[36px] flex items-center px-3 w-full bg-[var(--background-gray-main)] border-b border-divider-regular rounded-t-[12px] shadow-[inset_0px_1px_0px_0px_#FFFFFF] dark:shadow-[inset_0px_1px_0px_0px_#FFFFFF30]"
+        class="h-[36px] flex items-center px-3 w-full bg-[var(--background-gray-main)] border-b border-divider-deep rounded-t-[12px] shadow-[inset_0px_1px_0px_0px_#FFFFFF] dark:shadow-[inset_0px_1px_0px_0px_#FFFFFF30]"
       >
         <div class="flex-1 flex items-center justify-center">
-          <div class="max-w-[250px] truncate text-[var(--text-tertiary)] text-sm font-medium text-center">
+          <div class="max-w-[250px] truncate text-zinc-500 text-base font-medium text-center">
             @switch (step.toolset) {
               @case ('browser-use') {
                 @if (step.data.url) {
@@ -76,8 +76,22 @@
         </div>
       </div>
       <div class="flex-1 min-h-0 w-full overflow-y-auto">
-        @switch (step.type) {
-          @case (eChatMessageStepType.ComputerUse) {
+        @switch (step.category) {
+          @case (eChatMessageStepCategory.WebSearch) {
+            <div class="flex flex-col overflow-auto h-full px-4 py-3">
+              @for (item of step.data; track item; let first = $first) {
+                <div class="py-3 border-b border-divider-deep" [class.pt-0]="first">
+                  <a [href]="item.url" target="_blank" class="block text-text-primary text-base font-medium hover:underline line-clamp-2 cursor-pointer">
+                    {{item.title}}
+                  </a>
+                  <div class="text-zinc-500 text-sm mt-0.5 line-clamp-3">
+                    {{item.content}}
+                  </div>
+                </div>
+              }
+            </div>
+          }
+          @default {
             @switch (step.toolset) {
               @case ('browser-use') {
                 @if (step.data?.screenshot) {
@@ -127,13 +141,6 @@
                 <div class="p-2 text-sm whitespace-pre-line">{{step.message}}</div>
               }
             }
-          }
-          @case (eChatMessageStepType.File) {
-            <div>
-            </div>
-          }
-          @default {
-            <div>Not support: {{step | json}}</div>
           }
         }
       </div>

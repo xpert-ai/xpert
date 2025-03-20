@@ -28,5 +28,9 @@
     "CreatedAPlan": "Created a plan",
     "Update": "Update",
     "Step": "Step"
+  },
+  "TavilySearch": {
+    "WebSearch": "Web Search",
+    "Searching": "Searching"
   }
 }

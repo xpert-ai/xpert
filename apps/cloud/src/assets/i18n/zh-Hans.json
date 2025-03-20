@@ -1635,6 +1635,7 @@
       "WhosComputer": "{{value}} 的电脑",
       "TaskProgress": "任务进度",
       "LoadingTaskProgress": "加载任务进度",
+      "XpertUsing": "Xpert 正在使用",
       "Canvas": "画布",
       "OpenCanvas": "打开画布",
       "CloseCanvas": "收起画布",

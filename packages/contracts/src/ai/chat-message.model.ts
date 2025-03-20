@@ -17,13 +17,18 @@ export enum ChatMessageStepType {
   ComputerUse = 'computer_use',
 }
 
+export enum ChatMessageStepCategory {
+  WebSearch = 'web_search'
+}
+
 export type TChatMessageStep = {
+  type?: ChatMessageStepType
+  category?: ChatMessageStepCategory
   toolset?: string
   tool?: string
   title?: string
   message?: string
   created_date?: Date | string
-  type?: ChatMessageStepType
   data?: any
 }
 
