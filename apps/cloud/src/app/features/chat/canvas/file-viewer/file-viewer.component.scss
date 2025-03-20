@@ -1,0 +1,7 @@
+:host {
+  @apply flex flex-col overflow-hidden;
+}
+
+.button-toggle.active {
+  @apply bg-white text-text-primary shadow-sm;
+}

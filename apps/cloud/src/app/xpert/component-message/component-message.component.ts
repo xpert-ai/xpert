@@ -33,6 +33,8 @@ import { ChatComponentIndicatorsComponent } from './indicators/indicators.compon
 import { ChatComponentIndicatorComponent } from './indicator/indicator.component'
 import { ChatComponentTasksComponent } from './tasks/tasks.component'
 import { XpertHomeService } from '../home.service'
+import { ArraySlicePipe, FileTypePipe } from '@metad/core'
+import { ChatFilesDialogComponent } from '../../@shared/chat'
 
 @Component({
   standalone: true,
@@ -51,6 +53,8 @@ import { XpertHomeService } from '../home.service'
     NgmSelectionModule,
     AnalyticalCardModule,
     NxWidgetKpiComponent,
+    FileTypePipe,
+    ArraySlicePipe,
     ChatComponentIndicatorsComponent,
     ChatComponentIndicatorComponent,
     ChatComponentTasksComponent
@@ -100,6 +104,9 @@ export class ChatComponentMessageComponent {
   readonly dataSources = computed(() => compact(uniq<string>(this.indicators()?.map((_) => _.dataSource))))
 
   readonly explains = signal<any[]>([])
+
+  // Files
+  readonly files = computed(() => this.data()?.files as any[])
 
   constructor() {
     effect(
@@ -176,6 +183,25 @@ export class ChatComponentMessageComponent {
       type: 'Dashboard',
       messageId: this.messageId(),
       componentId: this.message().id
+    })
+  }
+
+  openFileViewer(file) {
+    this.homeService.canvasOpened.set({
+      type: 'File',
+      file
+    })
+  }
+
+  openAllFiles() {
+    this.#dialog.open(ChatFilesDialogComponent, {
+      data: {
+        files: this.files()
+      }
+    }).closed.subscribe((file) => {
+      if (file) {
+        this.openFileViewer(file)
+      }
     })
   }
 }

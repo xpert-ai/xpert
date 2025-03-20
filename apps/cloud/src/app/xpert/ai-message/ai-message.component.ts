@@ -53,7 +53,7 @@ import { XpertOcapService } from '../ocap.service'
     ChatComponentMessageComponent,
     ChatMessageExecutionComponent,
     CopyComponent,
-    DateRelativePipe
+    DateRelativePipe,
   ],
   selector: 'pac-ai-message',
   templateUrl: './ai-message.component.html',

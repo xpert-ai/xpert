@@ -11,7 +11,7 @@ import { FileEditorComponent } from '../../../../@shared/files'
 import { ChatHomeService } from '../../home.service'
 import { CanvasHtmlEditorComponent } from '../html-editor/html-editor.component'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { ListHeightStaggerAnimation } from '@metad/core'
+import { FileTypePipe, ListHeightStaggerAnimation } from '@metad/core'
 import { BehaviorSubject, debounceTime, switchMap } from 'rxjs'
 
 @Component({
@@ -25,6 +25,7 @@ import { BehaviorSubject, debounceTime, switchMap } from 'rxjs'
     TranslateModule,
     MatSliderModule,
     MatTooltipModule,
+    FileTypePipe,
     FileEditorComponent,
     CanvasHtmlEditorComponent
   ],

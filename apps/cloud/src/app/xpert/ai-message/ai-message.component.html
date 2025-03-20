@@ -176,7 +176,7 @@
   }
 
   @if (contents(); as messages) {
-    @for (submessage of messages; track submessage) {
+    @for (submessage of messages; track submessage; let last = $last) {
       @switch (submessage.type) {
         @case ('text') {
           @if (submessage.agentKey && agents()[submessage.agentKey]; as agent) {
@@ -193,12 +193,12 @@
             [data]="submessage.text"
           />
 
-          @if (submessage.agentKey) {
+          @if (!last && submessage.agentKey) {
             <hr class="mt-8 mb-4 border-t border-solid border-divider-deep">
           }
         }
         @case ('component') {
-          <chat-component-message class="w-full p-2 rounded-2xl hover:bg-neutral-50"
+          <chat-component-message class="group/ccm w-full p-2 rounded-2xl hover:bg-neutral-50"
             [messageId]="message().id"
             [message]="submessage"
             (register)="onRegister($event)"

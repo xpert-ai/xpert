@@ -8,6 +8,7 @@ import { ChatMessageStepType } from '../../../@core'
 import { ChatCanvasComputerComponent } from './computer/computer.component'
 import { ChatHomeService } from '../home.service'
 import { ChatCanvasDashboardComponent } from './dashboard/dashboard.component'
+import { ChatCanvasFileViewerComponent } from './file-viewer/file-viewer.component'
 
 @Component({
   standalone: true,
@@ -19,7 +20,8 @@ import { ChatCanvasDashboardComponent } from './dashboard/dashboard.component'
     RouterModule,
     TranslateModule,
     ChatCanvasComputerComponent,
-    ChatCanvasDashboardComponent
+    ChatCanvasDashboardComponent,
+    ChatCanvasFileViewerComponent
   ],
   selector: 'pac-chat-canvas',
   templateUrl: './canvas.component.html',

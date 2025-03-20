@@ -1663,7 +1663,19 @@
       "Greeting_Good evening": "晚上好",
       "HowCanHelpYouToday": "今天我可以为您做些什么？",
       "Code": "代码",
-      "Preview": "预览"
+      "Preview": "预览",
+      "FileType_text": "文本",
+      "FileType_code": "代码",
+      "FileType_video": "视频",
+      "FileType_image": "图像",
+      "FileType_unknown": "未知",
+      "ViewAllFilesInTask": "查看此任务中的所有文件",
+      "AllFilesInTask": "此任务中的所有文件",
+      "ExportToPdf": "导出为PDF",
+      "Copy": "复制",
+      "Download": "下载",
+      "FormatCannotPreviewed": "此格式无法预览。",
+      "DownloadFiletoView": "请下载文件以查看其内容。"
     },
     "ChatBI": {
       "DeprecationNotes": "ChatBI 功能请使用数字专家智能体中的 ChatBI 工具集！",
