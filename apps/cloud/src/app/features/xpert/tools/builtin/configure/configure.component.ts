@@ -11,10 +11,12 @@ import {
   getErrorMessage,
   IBuiltinTool,
   injectHelpWebsite,
+  IToolProvider,
   IXpertTool,
   IXpertToolset,
   TagCategoryEnum,
   ToastrService,
+  TXpertToolsetOptions,
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
@@ -73,7 +75,7 @@ export class XpertToolConfigureBuiltinComponent {
   readonly workspaceId = signal(this.#data.workspaceId)
   readonly toolsetId = computed(() => this.toolset()?.id)
 
-  readonly #provider = derivedAsync(() =>
+  readonly #provider = derivedAsync<{loading: boolean; provider: IToolProvider;}>(() =>
     this.providerName() ? this.#toolsetService.getProvider(this.providerName()).pipe(
       map((provider) => ({provider, loading: false})),
       startWith({
@@ -193,8 +195,9 @@ export class XpertToolConfigureBuiltinComponent {
       tools: this.tools(),
       options: {
         ...(this.toolset().options ?? {}),
+        provider: this.provider(),
         toolPositions: this.getToolPositions()
-      }
+      } as TXpertToolsetOptions
     }
     this.#toolsetService
       .update(this.toolset().id, toolset)

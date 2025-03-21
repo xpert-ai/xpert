@@ -6,8 +6,14 @@
   ></i>
 }
 
-<div class="max-w-full flex justify-start items-center px-3 pt-3 pb-2">
+<div class="relative max-w-full flex justify-start items-center px-3 pt-3 pb-2">
   <emoji-avatar [avatar]="toolset().avatar" small class="shrink-0 mr-2 rounded-lg overflow-hidden shadow-sm" />
+  @if (isSandbox()) {
+    <div class="absolute left-7 bottom-1 flex justify-center items-center w-5 h-5 rounded-md shadow-sm bg-white"
+      [matTooltip]="'PAC.Xpert.SandboxToolsetTip' | translate: {Default: 'Tools that need to be run in a sandbox'}">
+      <i class="ri-instance-line text-green-700"></i>
+    </div>
+  }
   <div class="truncate">
     {{toolset().name}}
   </div>

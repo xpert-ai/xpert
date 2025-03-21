@@ -2518,7 +2518,8 @@
       "Partial": "部分",
       "ToolsCall": "工具调用",
       "Toolset_planning": "规划",
-      "Toolset_bash": "终端"
+      "Toolset_bash": "终端",
+      "SandboxToolsetTip": "需要运行在沙盒中的工具"
     },
     "title": {
       "short": "Xpert AI"

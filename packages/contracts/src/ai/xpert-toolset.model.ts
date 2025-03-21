@@ -61,6 +61,7 @@ export type TXpertToolset = {
 export interface IXpertToolset extends IBasePerWorkspaceEntityModel, TXpertToolset {}
 
 export type TXpertToolsetOptions = {
+  provider: IToolProvider
   baseUrl?: string
   toolPositions?: Record<string, number>
   [key: string]: any
@@ -190,7 +191,6 @@ export interface IToolProvider {
   is_team_authorization: boolean
   allow_delete: boolean
   tools?: XpertToolType[]
-  // labels?: ToolTagEnum[]
   tags: ToolTagEnum[];
 }
 
