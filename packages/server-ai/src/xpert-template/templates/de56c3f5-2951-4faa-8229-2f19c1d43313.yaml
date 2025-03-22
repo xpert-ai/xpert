@@ -64,7 +64,7 @@ team:
     key: Agent_46eWziRHx8
     name: agent_master
     title: python 学习指导智能体
-    description: java 学习指导智能体
+    description: python 学习指导智能体
     avatar: null
     prompt: |-
       你是一个 python 学习指导者。你的工作如下：
@@ -248,7 +248,7 @@ nodes:
       key: Agent_46eWziRHx8
       name: agent_master
       title: python 学习指导智能体
-      description: java 学习指导智能体
+      description: python 学习指导智能体
       avatar: null
       prompt: |-
         你是一个 python 学习指导者。你的工作如下：
