@@ -1668,6 +1668,7 @@
       "FileType_code": "代码",
       "FileType_video": "视频",
       "FileType_image": "图像",
+      "FileType_zip": "压缩包",
       "FileType_unknown": "未知",
       "ViewAllFilesInTask": "查看此任务中的所有文件",
       "AllFilesInTask": "此任务中的所有文件",

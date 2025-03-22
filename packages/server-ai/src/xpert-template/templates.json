@@ -203,6 +203,22 @@
             ],
             "recommendedApps": [
                 {
+                    "name": "My Manus Team",
+                    "type": "agent",
+                    "title": "Manus",
+                    "description": "你的首款通用 AI 智能体团队。我可以将您的想法转化为实际行动，通过自动化方式完成从规划到执行的整个流程。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "wave"
+                        },
+                        "background": "rgba(228, 251, 204, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43312",
+                    "category": "Agent",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
                     "name": "ChatBI with Sales Analysis Expert",
                     "type": "agent",
                     "title": "ChatBI 分析专家",
@@ -377,6 +393,22 @@
                     },
                     "id": "de56c3f5-2951-4faa-8229-2f19c1d43310",
                     "category": "Agent",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Python Learning Assistant",
+                    "type": "agent",
+                    "title": "Python 学习助手",
+                    "description": "一个专为 Python 学习者设计的助手。我可以提供 Python 语法讲解、代码示例、调试建议、最佳实践指导，并帮助您解决编程问题，加速 Python 学习过程。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "snake"
+                        },
+                        "background": "rgba(230, 244, 215, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43313",
+                    "category": "Programming",
                     "copyright": null,
                     "privacyPolicy": null
                 }

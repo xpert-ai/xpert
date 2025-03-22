@@ -2,6 +2,7 @@
   <div class="sticky top-0 flex flex-col bg-components-panel-bg w-full border-b-[0.5px] border-black/5 z-10">
     <div class="flex justify-start items-center px-3 pt-3 pb-2">
       <emoji-avatar [avatar]="xpertAgent().avatar" editable small class="shrink-0 mr-2 overflow-hidden rounded-lg shadow-sm"
+        [matTooltip]="xpertAgent().key"
         (avatarChange)="updateAvatar($event)" />
       <div class="flex flex-col items-start">
         <input

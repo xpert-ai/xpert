@@ -1,0 +1,580 @@
+team:
+  name: Python Learning Assistant
+  type: agent
+  title: Python 学习助手
+  description: 一个专为 Python 学习者设计的助手。我可以提供 Python 语法讲解、代码示例、调试建议、最佳实践指导，并帮助您解决编程问题，加速 Python 学习过程。
+  avatar:
+    emoji:
+      id: snake
+    background: rgba(230, 244, 215, 0.8)
+  starters:
+    - 给我做个学习指导
+    - 向我提供一个中等测试
+    - null
+    - null
+  options:
+    position:
+      x: 118.8795246263171
+      y: -215.16742710120172
+    scale: 1.1600000000000001
+    agent:
+      Agent_46eWziRHx8:
+        position:
+          x: 320
+          y: 140
+      Agent_XoAUvUVEDQ:
+        position:
+          x: -140
+          y: 380
+      Agent_H0RcThTx4L:
+        position:
+          x: 120
+          y: 380
+      Agent_qE438kVTMn:
+        position:
+          x: 660
+          y: 380
+      Agent_qiq2uya3DM:
+        position:
+          x: 400
+          y: 380
+    toolset:
+      a3b07769-7438-4244-9691-29e2fc4c65e6:
+        position:
+          x: -60
+          y: 600
+      73b13ae2-1a14-4341-97fe-c7a596288d1e:
+        position:
+          x: 240
+          y: 600
+      96d016ef-11ca-4eed-844a-0821b5b0782a:
+        position:
+          x: 580
+          y: 600
+      25bd3146-e941-4409-a561-a789daf4a181:
+        position:
+          x: 420
+          y: 720
+  agentConfig:
+    disableOutputs:
+  memory: null
+  summarize: null
+  version: "1"
+  agent:
+    key: Agent_46eWziRHx8
+    name: agent_master
+    title: python 学习指导智能体
+    description: java 学习指导智能体
+    avatar: null
+    prompt: |-
+      你是一个 python 学习指导者。你的工作如下：
+      1. 需要你给出合适的学习计划
+      2. 生成学习计划中每个阶段的学习资料，资料中应包含代码 demo。
+      3. 指导学生完成各个阶段的学习计划
+      4. 学生完成学习计划后制定考核计划和评价标准，开始学习结果考核，并判断学生的回答是否正确，对回答进行打分
+      5. 考核完成后，计算学生得分，给出考核结果清单。
+      6. 如果学生考核通过则结束学习过程，否则根据学生的错题分布重新学习和考核，直到学生通过考试。
+    promptTemplates: null
+    parameters: null
+    outputVariables: null
+    options: null
+    copilotModel: null
+    leaderKey: null
+    collaboratorNames: []
+    toolsetIds: []
+    knowledgebaseIds: []
+  copilotModel:
+    modelType: llm
+    model: gpt-4o
+    options: null
+  knowledgebases: []
+  toolsets:
+    - id: a3b07769-7438-4244-9691-29e2fc4c65e6
+      name: browser-use
+      type: browser-use
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/browser-use/icon
+      options:
+        provider:
+          author: XpertAI
+          name: browser-use
+          label:
+            en_US: Browser Use
+            zh_Hans: 浏览器使用
+          description:
+            en_US: Browser-use tool.
+            zh_Hans: 浏览器使用工具。
+          icon: icon.svg
+          tags:
+            - productivity
+            - sandbox
+            - agent
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/browser-use/icon
+        toolPositions:
+          browser_use_task: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 7b99c828-5c35-494d-bfeb-e1dcadaf5d5c
+          name: browser_use_task
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    - id: 73b13ae2-1a14-4341-97fe-c7a596288d1e
+      name: file
+      type: file
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/file/icon
+      options:
+        provider:
+          author: XpertAI
+          name: file
+          label:
+            en_US: File
+            zh_Hans: 文件
+          description:
+            en_US: File tool.
+            zh_Hans: 文件工具。
+          icon: icon.svg
+          tags:
+            - productivity
+            - utilities
+            - sandbox
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/file/icon
+        toolPositions:
+          file_edit: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 1ba4e775-1b04-4f8f-bc09-cb762e6cd633
+          name: file_edit
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    - id: 96d016ef-11ca-4eed-844a-0821b5b0782a
+      name: bash toolset
+      type: bash
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/bash/icon
+      options:
+        provider:
+          author: XpertAI
+          name: bash
+          label:
+            en_US: Bash
+            zh_Hans: 命令行
+          description:
+            en_US: Bash tool.
+            zh_Hans: 命令行工具。
+          icon: icon.svg
+          tags:
+            - productivity
+            - utilities
+            - sandbox
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/bash/icon
+        toolPositions:
+          bash_execute: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 7ca78e42-60e7-49aa-ac49-7960e50d06aa
+          name: bash_execute
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    - id: 25bd3146-e941-4409-a561-a789daf4a181
+      name: python
+      type: python
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/python/icon
+      options:
+        provider:
+          author: XpertAI
+          name: python
+          label:
+            en_US: Python
+            zh_Hans: Python
+          description:
+            en_US: Python tool.
+            zh_Hans: Python 工具。
+          icon: icon.svg
+          tags:
+            - productivity
+            - utilities
+            - sandbox
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/python/icon
+        toolPositions:
+          python_execute: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 8908acce-cfce-4dc6-9b5d-50c48ac9e31e
+          name: python_execute
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+  tags: []
+nodes:
+  - type: agent
+    key: Agent_46eWziRHx8
+    position:
+      x: 320
+      y: 140
+    entity:
+      key: Agent_46eWziRHx8
+      name: agent_master
+      title: python 学习指导智能体
+      description: java 学习指导智能体
+      avatar: null
+      prompt: |-
+        你是一个 python 学习指导者。你的工作如下：
+        1. 需要你给出合适的学习计划
+        2. 生成学习计划中每个阶段的学习资料，资料中应包含代码 demo。
+        3. 指导学生完成各个阶段的学习计划
+        4. 学生完成学习计划后制定考核计划和评价标准，开始学习结果考核，并判断学生的回答是否正确，对回答进行打分
+        5. 考核完成后，计算学生得分，给出考核结果清单。
+        6. 如果学生考核通过则结束学习过程，否则根据学生的错题分布重新学习和考核，直到学生通过考试。
+      promptTemplates: null
+      parameters: null
+      outputVariables: null
+      options: null
+      copilotModel: null
+      leaderKey: null
+      collaboratorNames: []
+      toolsetIds: []
+      knowledgebaseIds: []
+    hash: 33ff5d8320c06ccf84c5fd5241b3a6c81572a1b75b098a9e4e503830b9afa7ae
+  - type: agent
+    key: Agent_XoAUvUVEDQ
+    position:
+      x: -140
+      y: 380
+    entity:
+      key: Agent_XoAUvUVEDQ
+      name: python code demo generator
+      title: 代码 demo 生成者
+      description: python demo 代码生成器
+      avatar: null
+      prompt: 你需要根据需要生成 python 代码学习 demo
+      promptTemplates: null
+      parameters: null
+      outputVariables: null
+      options: null
+      copilotModel: null
+      leaderKey: Agent_46eWziRHx8
+      collaboratorNames: []
+      toolsetIds: []
+      knowledgebaseIds: []
+    hash: 6a5f410e7dab3df702e95cb16f6158d8c093a5885085ae499bf676ef81126e91
+  - type: agent
+    key: Agent_H0RcThTx4L
+    position:
+      x: 120
+      y: 380
+    entity:
+      key: Agent_H0RcThTx4L
+      name: learning planner
+      title: 学习计划制定者
+      description: 负责生成python学习计划
+      avatar: null
+      prompt: |-
+        你负责制定详细的 python 学习计划。
+        你有一个工具 browser-use，用 bing 搜索网上的资料。
+        一定要结合网上的资料和自己的已有知识来制定。
+      promptTemplates: null
+      parameters: null
+      outputVariables: null
+      options: null
+      copilotModel: null
+      leaderKey: Agent_46eWziRHx8
+      collaboratorNames: []
+      toolsetIds:
+        - a3b07769-7438-4244-9691-29e2fc4c65e6
+      knowledgebaseIds: []
+    hash: 64ff3d22be1b07f03910f513ebbcb1d277c52687a50956082850866cf7e02809
+  - type: agent
+    key: Agent_qE438kVTMn
+    position:
+      x: 660
+      y: 380
+    entity:
+      key: Agent_qE438kVTMn
+      name: Learning outcome assessor
+      title: 考核者
+      description: 负责生成考核计划、制定考核标准、执行考核过程和打分、给出考核结果、判断是否通过考核等。
+      avatar: null
+      prompt: |-
+        你负责给出学习计划的考核内容和评价标准，执行考核过程，并负责对每项考核的结果正确性进行判断和打分。
+        在学生完成所有考核题目后给出总评分，并判断是否考核通过。
+      promptTemplates: null
+      parameters: null
+      outputVariables: null
+      options: null
+      copilotModel: null
+      leaderKey: Agent_46eWziRHx8
+      collaboratorNames: []
+      toolsetIds: []
+      knowledgebaseIds: []
+    hash: 8c71b421d276a4742946dc9caca408726cc886ce873e1d7d6669a12756bc8e97
+  - type: agent
+    key: Agent_qiq2uya3DM
+    position:
+      x: 400
+      y: 380
+    entity:
+      key: Agent_qiq2uya3DM
+      name: code executor
+      title: 执行者
+      description: 代码执行者，负责执行python代码，以及负责存储和读取python执行结果。
+      avatar: null
+      prompt: |-
+        你负责执行 python 代码，不要自己判断，一定要去执行。
+        当有需要时也要存储或读取执行结果。
+        你可以调用 file 工具存储执行结果。
+        可以调用 bash toolset 工具读取执行结果。
+      promptTemplates: null
+      parameters: null
+      outputVariables: null
+      options: null
+      copilotModel: null
+      leaderKey: Agent_46eWziRHx8
+      collaboratorNames: []
+      toolsetIds:
+        - 73b13ae2-1a14-4341-97fe-c7a596288d1e
+        - 96d016ef-11ca-4eed-844a-0821b5b0782a
+        - 25bd3146-e941-4409-a561-a789daf4a181
+      knowledgebaseIds: []
+    hash: 9884164412d1646a87cc9071dd4f44a5306e4bbf531ec80a1c4f7832855e9ae5
+  - type: toolset
+    key: a3b07769-7438-4244-9691-29e2fc4c65e6
+    position:
+      x: -60
+      y: 600
+    entity:
+      id: a3b07769-7438-4244-9691-29e2fc4c65e6
+      name: browser-use
+      type: browser-use
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/browser-use/icon
+      options:
+        provider:
+          author: XpertAI
+          name: browser-use
+          label:
+            en_US: Browser Use
+            zh_Hans: 浏览器使用
+          description:
+            en_US: Browser-use tool.
+            zh_Hans: 浏览器使用工具。
+          icon: icon.svg
+          tags:
+            - productivity
+            - sandbox
+            - agent
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/browser-use/icon
+        toolPositions:
+          browser_use_task: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 7b99c828-5c35-494d-bfeb-e1dcadaf5d5c
+          name: browser_use_task
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    hash: 08a92ece4c7c2902d47c6b15f610766c59069c33f643894549c2620e06ac638b
+  - type: toolset
+    key: 73b13ae2-1a14-4341-97fe-c7a596288d1e
+    position:
+      x: 240
+      y: 600
+    entity:
+      id: 73b13ae2-1a14-4341-97fe-c7a596288d1e
+      name: file
+      type: file
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/file/icon
+      options:
+        provider:
+          author: XpertAI
+          name: file
+          label:
+            en_US: File
+            zh_Hans: 文件
+          description:
+            en_US: File tool.
+            zh_Hans: 文件工具。
+          icon: icon.svg
+          tags:
+            - productivity
+            - utilities
+            - sandbox
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/file/icon
+        toolPositions:
+          file_edit: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 1ba4e775-1b04-4f8f-bc09-cb762e6cd633
+          name: file_edit
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    hash: 09ac8556d9b0e67a1aaaae522ca8f9c6ff30f0f1117a7f1c20f8d2fc09e376fd
+  - type: toolset
+    key: 96d016ef-11ca-4eed-844a-0821b5b0782a
+    position:
+      x: 580
+      y: 600
+    entity:
+      id: 96d016ef-11ca-4eed-844a-0821b5b0782a
+      name: bash toolset
+      type: bash
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/bash/icon
+      options:
+        provider:
+          author: XpertAI
+          name: bash
+          label:
+            en_US: Bash
+            zh_Hans: 命令行
+          description:
+            en_US: Bash tool.
+            zh_Hans: 命令行工具。
+          icon: icon.svg
+          tags:
+            - productivity
+            - utilities
+            - sandbox
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/bash/icon
+        toolPositions:
+          bash_execute: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 7ca78e42-60e7-49aa-ac49-7960e50d06aa
+          name: bash_execute
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    hash: 3eb4d86bc181201c465592407b1cd35f70975167547ac8c255c36191505559bc
+  - type: toolset
+    key: 25bd3146-e941-4409-a561-a789daf4a181
+    position:
+      x: 420
+      y: 720
+    entity:
+      id: 25bd3146-e941-4409-a561-a789daf4a181
+      name: python
+      type: python
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/python/icon
+      options:
+        provider:
+          author: XpertAI
+          name: python
+          label:
+            en_US: Python
+            zh_Hans: Python
+          description:
+            en_US: Python tool.
+            zh_Hans: Python 工具。
+          icon: icon.svg
+          tags:
+            - productivity
+            - utilities
+            - sandbox
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/python/icon
+        toolPositions:
+          python_execute: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 8908acce-cfce-4dc6-9b5d-50c48ac9e31e
+          name: python_execute
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    hash: 9c16ab941a74c960da302d3e167602dbaee6adbf34b86959ac95750539c41f16
+connections:
+  - type: agent
+    key: Agent_46eWziRHx8/Agent_XoAUvUVEDQ
+    from: Agent_46eWziRHx8
+    to: Agent_XoAUvUVEDQ
+  - type: agent
+    key: Agent_46eWziRHx8/Agent_H0RcThTx4L
+    from: Agent_46eWziRHx8
+    to: Agent_H0RcThTx4L
+  - type: agent
+    key: Agent_46eWziRHx8/Agent_qE438kVTMn
+    from: Agent_46eWziRHx8
+    to: Agent_qE438kVTMn
+  - type: toolset
+    key: Agent_H0RcThTx4L/a3b07769-7438-4244-9691-29e2fc4c65e6
+    from: Agent_H0RcThTx4L
+    to: a3b07769-7438-4244-9691-29e2fc4c65e6
+  - type: agent
+    key: Agent_46eWziRHx8/Agent_qiq2uya3DM
+    from: Agent_46eWziRHx8
+    to: Agent_qiq2uya3DM
+  - type: toolset
+    key: Agent_qiq2uya3DM/73b13ae2-1a14-4341-97fe-c7a596288d1e
+    from: Agent_qiq2uya3DM
+    to: 73b13ae2-1a14-4341-97fe-c7a596288d1e
+  - type: toolset
+    key: Agent_qiq2uya3DM/96d016ef-11ca-4eed-844a-0821b5b0782a
+    from: Agent_qiq2uya3DM
+    to: 96d016ef-11ca-4eed-844a-0821b5b0782a
+  - type: toolset
+    key: Agent_qiq2uya3DM/25bd3146-e941-4409-a561-a789daf4a181
+    from: Agent_qiq2uya3DM
+    to: 25bd3146-e941-4409-a561-a789daf4a181
