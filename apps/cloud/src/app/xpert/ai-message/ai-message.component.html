@@ -80,10 +80,6 @@
               @if (message.status === 'thinking') {
                 <ngm-spin />
               }
-              <mat-icon fontSet="material-icons-round" class="mr-2 rounded-md active:scale-95 transition-transform"
-                [cdkMenuTriggerFor]="docs"
-                [cdkMenuTriggerData]="message"
-              >school</mat-icon>
               <span class="flex-1">
                 @if (message.status === 'aborted') {
                   {{ 'PAC.KEY_WORDS.Aborted' | translate: {Default: 'Aborted'} }}!
@@ -129,10 +125,7 @@
               @if (message.status === 'thinking') {
                 <ngm-spin />
               }
-              <mat-icon fontSet="material-icons-round" class="mr-2 rounded-md active:scale-95 transition-transform"
-                [cdkMenuTriggerFor]="stepsMenu"
-                [cdkMenuTriggerData]="message"
-              >construction</mat-icon>{{message.name}}
+              {{message.name}}
 
               <span class="flex-1">
                 @if (message.status === 'aborted') {
@@ -180,20 +173,34 @@
       @switch (submessage.type) {
         @case ('text') {
           @if (submessage.agentKey && agents()[submessage.agentKey]; as agent) {
-            <div class="flex items-center gap-2 mt-4">
+            <div class="group flex items-center gap-2 mt-4">
+              @if (submessage.id) {
+                <button type="button" class="absolute left-1 w-6 h-6 flex justify-center items-center rounded-lg z-10 transition-opacity bg-white/2 backdrop-blur-sm opacity-0 group-hover:opacity-100"
+                  (click)="toggleCollapseMessage(submessage)">
+                  @if (collapseMessages()[submessage.id]) {
+                    <i class="ri-arrow-right-s-line"></i>
+                  } @else {
+                    <i class="ri-arrow-down-s-line"></i>
+                  }
+                </button>
+              }
               <emoji-avatar [avatar]="agent.avatar" small class="rounded-xl overflow-hidden" />
               <div class="font-semibold">{{agent.title || agent.name || agent.key}}</div>
             </div>
           }
-          
-          <markdown clipboard class="ngm-copilot-markdown flex-1"
-            [clipboardButtonTemplate]="buttonTemplate"
-            lineNumbers
-            [start]="5"
-            [data]="submessage.text"
-          />
 
-          @if (!last && submessage.agentKey) {
+          @if (submessage.id && collapseMessages()[submessage.id]) {
+            <div class="truncate">{{submessage.text}}</div>
+          } @else {
+            <markdown clipboard class="ngm-copilot-markdown flex-1"
+              [clipboardButtonTemplate]="buttonTemplate"
+              lineNumbers
+              [start]="5"
+              [data]="submessage.text"
+            />
+          }
+
+          @if (!last && submessage.agentKey && !collapseMessages()[submessage.id]) {
             <hr class="mt-8 mb-4 border-t border-solid border-divider-deep">
           }
         }
