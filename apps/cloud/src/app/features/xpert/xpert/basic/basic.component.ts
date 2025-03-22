@@ -28,6 +28,7 @@ import { MatInputModule } from '@angular/material/input'
 import { IsDirty } from '@metad/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { pipe, switchMap, of, tap } from 'rxjs'
+import { ActivatedRoute, Router } from '@angular/router'
 
 @Component({
   selector: 'xpert-basic',
@@ -64,6 +65,8 @@ export class XpertBasicComponent implements IsDirty {
   readonly getXpertTeam = injectGetXpertTeam()
   readonly #fb = inject(FormBuilder)
   readonly #toastr = inject(ToastrService)
+  readonly #router = inject(Router)
+  readonly #route = inject(ActivatedRoute)
 
   readonly xpertId = this.xpertComponent.paramId
 
@@ -162,6 +165,7 @@ export class XpertBasicComponent implements IsDirty {
             this.loading.set(false)
             this.form.markAsPristine()
             this.xpertComponent.refresh()
+            this.#router.navigate(['../agents'], {relativeTo: this.#route})
           },
           error: (err) => {
             this.loading.set(false)
@@ -177,6 +181,7 @@ export class XpertBasicComponent implements IsDirty {
           this.loading.set(false)
           this.form.markAsPristine()
           this.xpertComponent.refresh()
+          this.#router.navigate(['../agents'], {relativeTo: this.#route})
         },
         error: (err) => {
           this.loading.set(false)

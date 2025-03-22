@@ -143,7 +143,7 @@
       <ngm-search class="w-full mt-1 rounded-lg overflow-hidden" [formControl]="searchControl" />
     </div>
 
-    <ul class="">
+    <div class="pr-2">
       @for (copilot of searchedModels(); track copilot.id) {
         <div class="text-base px-4 my-4 font-semibold flex justify-start items-center">
           <span class="uppercase">{{ ('PAC.Copilot.Role_' + copilot.role) | translate: {Default: copilot.role} }}</span>
@@ -154,15 +154,20 @@
           {{copilot.providerWithModels?.label | i18n }}
         </div>
         @for (item of copilot.providerWithModels?.models; track item.model) {
-          <li class="flex justify-start items-center gap-2 px-4 py-2 rounded-xl cursor-pointer hover:bg-primary-100/50 hover:text-primary-500"
-            [ngClass]="(model() === item.model && modelType() === item.model_type) ? 'bg-primary-100 text-primary-600 font-semibold' : ''"
+          <button type="button" class="w-full flex justify-start items-center gap-2 px-4 py-2 rounded-xl cursor-pointer 
+            enabled:hover:bg-neutral-100/50 hover:text-primary-500 disabled:cursor-not-allowed"
+            [ngClass]="(model() === item.model && modelType() === item.model_type) ? 'bg-neutral-100/50 text-primary-600 font-semibold' : ''"
+            [class.opacity-60]="item.deprecated"
+            [matTooltip]="item.deprecated ? ('PAC.Copilot.Deprecated' | translate: {Default: 'Deprecated'}) : ''"
+            matTooltipPosition="before"
+            [disabled]="item.deprecated"
             (click)="setModel(copilot, item.model);mt.close()"
           >
             <span [ngmHighlight]="searchText()"
               [content]="item.model"
               customClasses="text-primary-600">{{item.model}}</span>
             @if (item.model_type === 'llm') {
-              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium text-gray-500 cursor-default">
+              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default">
                 {{'PAC.Copilot.Chat' | translate: {Default: 'Chat'} }}
               </div>
             }
@@ -171,9 +176,9 @@
                 <i class="ri-eye-fill"></i>
               </div>
             }
-          </li>
+          </button>
         }
       }
-    </ul>
+    </div>
   </div>
 </ng-template>
