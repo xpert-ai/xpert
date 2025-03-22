@@ -23,33 +23,35 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 
 		if (draft && xpert.draft) {
 			const draft = xpert.draft
-			const agentNode = draft?.nodes?.find((_) => _.type === 'agent' && (_.key === keyOrName || _.entity.name === keyOrName))
+			const nodes = draft.nodes ?? xpert.graph.nodes
+			const connections = draft.connections ?? xpert.graph.connections
+			const agentNode = nodes?.find((_) => _.type === 'agent' && (_.key === keyOrName || _.entity.name === keyOrName))
 			if (!agentNode) {
 				return null
 			}
 			const agentKey = agentNode.key
 
-			const toolNodes = draft.connections
+			const toolNodes = connections
 				.filter((_) => _.type === 'toolset' && _.from === agentKey)
-				.map((conn) => draft.nodes.find((_) => _.key === conn.to))
+				.map((conn) => nodes.find((_) => _.key === conn.to))
 
-			const knowledgeNodes = draft.connections
+			const knowledgeNodes = connections
 				.filter((_) => _.type === 'knowledge' && _.from === agentKey)
-				.map((conn) => draft.nodes.find((_) => _.key === conn.to))
+				.map((conn) => nodes.find((_) => _.key === conn.to))
 
-			const subAgents = draft.connections
+			const subAgents = connections
 				.filter((_) => _.type === 'agent' && _.from === agentKey)
-				.map((conn) => draft.nodes.find((_) => _.type === 'agent' && _.key === conn.to))
-			const collaborators = draft.connections
+				.map((conn) => nodes.find((_) => _.type === 'agent' && _.key === conn.to))
+			const collaborators = connections
 				.filter((_) => _.type === 'xpert' && _.from === agentKey)
-				.map((conn) => draft.nodes.find((_) => _.type === 'xpert' && _.key === conn.to))
+				.map((conn) => nodes.find((_) => _.type === 'xpert' && _.key === conn.to))
 
-			const next = draft.connections
+			const next = connections
 				.filter((_) => _.type === 'edge' && _.from === agentKey)
-				.map((conn) => draft.nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to))
-			const fail = draft.connections
+				.map((conn) => nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to))
+			const fail = connections
 				.filter((_) => _.type === 'edge' && _.from === (agentKey + '/fail'))
-				.map((conn) => draft.nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to))
+				.map((conn) => nodes.find((_) => (_.type === 'agent' || _.type === 'workflow') && _.key === conn.to))
 			
 			await this.fillCopilot(tenantId, (<IXpertAgent>agentNode.entity).copilotModel)
 			await this.fillCopilot(tenantId, draft.team.copilotModel)
