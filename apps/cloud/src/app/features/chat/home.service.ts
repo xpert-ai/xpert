@@ -1,18 +1,22 @@
 import { computed, Injectable, signal } from '@angular/core'
-import { IChatConversation, IXpert, LanguagesEnum, OrderTypeEnum, XpertTypeEnum } from '../../@core/types'
+import { injectXpertPreferences } from '@metad/cloud/state'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { map, pipe } from 'rxjs'
+import { IXpert, LanguagesEnum, OrderTypeEnum, XpertTypeEnum } from '../../@core/types'
 import { XpertHomeService } from '../../xpert'
-import { injectXpertPreferences } from '@metad/cloud/state'
 
 @Injectable()
 export class ChatHomeService extends XpertHomeService {
   readonly #preferences = injectXpertPreferences()
-  
+
   readonly xperts = derivedFrom(
     [
       this.xpertService
-        .getMyAll({ where: { type: XpertTypeEnum.Agent, latest: true }, order: { createdAt: OrderTypeEnum.DESC } })
+        .getMyAll({
+          relations: ['createdBy'],
+          where: { type: XpertTypeEnum.Agent, latest: true },
+          order: { createdAt: OrderTypeEnum.DESC }
+        })
         .pipe(map(({ items }) => items)),
       this.lang
     ],
@@ -29,9 +33,9 @@ export class ChatHomeService extends XpertHomeService {
   )
 
   readonly xpert = signal<IXpert>(null)
-  
+
   readonly conversationTitle = computed(() => this.conversation()?.title)
-  
+
   readonly sortOrder = computed(() => this.#preferences()?.sortOrder)
 
   readonly sortedXperts = computed(() => {
