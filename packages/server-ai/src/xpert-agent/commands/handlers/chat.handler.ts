@@ -1,9 +1,10 @@
-import { MessageContent } from '@langchain/core/messages'
 import { NodeInterrupt } from '@langchain/langgraph'
 import {
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
 	IXpert,
+	mapTranslationLanguage,
+	TMessageContentComplex,
 	TSensitiveOperation,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
@@ -11,12 +12,14 @@ import { getErrorMessage, omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { instanceToPlain } from 'class-transformer'
+import { I18nService } from 'nestjs-i18n'
 import { catchError, concat, EMPTY, from, map, Observable, of, Subject, switchMap, takeUntil, tap } from 'rxjs'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { XpertAgentChatCommand } from '../chat.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentExecutionDTO } from '../../../xpert-agent-execution/dto'
+import { messageContentText } from '../../agent'
 
 @CommandHandler(XpertAgentChatCommand)
 export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatCommand> {
@@ -24,13 +27,16 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 
 	constructor(
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
+		private readonly queryBus: QueryBus,
+		private readonly i18nService: I18nService,
 	) {}
 
 	public async execute(command: XpertAgentChatCommand): Promise<Observable<MessageEvent>> {
 		const { input, xpert, agentKey, options } = command
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars, prefer-const
-		let { execution, memories } = options
+		let { language, execution, memories } = options
+		const timeStart = Date.now()
+		
 		execution = await this.commandBus.execute(
 			new XpertAgentExecutionUpsertCommand({
 				id: execution?.id,
@@ -42,7 +48,8 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 			})
 		)
 
-		const timeStart = Date.now()
+		// i18n prepare
+		const i18nError = await this.i18nService.t('xpert.Error', {lang: mapTranslationLanguage(language)})
 
 		const thread_id = execution.threadId
 		let operation: TSensitiveOperation = null
@@ -63,7 +70,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 
 			concat(
 				from(
-					this.commandBus.execute<XpertAgentInvokeCommand, Observable<MessageContent>>(
+					this.commandBus.execute<XpertAgentInvokeCommand, Observable<string | TMessageContentComplex>>(
 						new XpertAgentInvokeCommand(input, agentKey, xpert, {
 							...(options ?? {}),
 							rootExecutionId: execution.id,
@@ -75,8 +82,8 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 					)
 				).pipe(
 					switchMap((output) => output),
-					map((messageContent: MessageContent) => {
-						result += messageContent
+					map((messageContent: string | TMessageContentComplex) => {
+						result += messageContentText(messageContent)
 						return {
 							data: {
 								type: ChatMessageTypeEnum.MESSAGE,

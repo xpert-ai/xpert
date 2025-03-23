@@ -8,7 +8,6 @@ export function pick<T, K extends keyof T>(object: T, ...keys: Array<K | K[]>) {
         }
         return obj
       }, obj)
-    }, {} as Record<K, any>) ??
-      {})
+    }, {} as Record<K, any>) ?? {} as T)
   )
 }

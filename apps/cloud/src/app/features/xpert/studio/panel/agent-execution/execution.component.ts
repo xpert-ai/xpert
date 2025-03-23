@@ -315,6 +315,9 @@ export function processEvents(
     case ChatMessageEventTypeEnum.ON_INTERRUPT: {
       break
     }
+    case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
+      break
+    }
     default: {
       console.log(`未处理的事件：`, event)
     }

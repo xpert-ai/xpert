@@ -36,38 +36,8 @@
           },
           {
             "glob": "**/*",
-            "input": "node_modules/monaco-editor/min/vs/basic-languages/javascript",
-            "output": "./assets/monaco-editor/min/vs/basic-languages/javascript"
-          },
-          {
-            "glob": "**/*",
-            "input": "node_modules/monaco-editor/min/vs/basic-languages/sql",
-            "output": "./assets/monaco-editor/min/vs/basic-languages/sql"
-          },
-          {
-            "glob": "**/*",
-            "input": "node_modules/monaco-editor/min/vs/basic-languages/css",
-            "output": "./assets/monaco-editor/min/vs/basic-languages/css"
-          },
-          {
-            "glob": "**/*",
-            "input": "node_modules/monaco-editor/min/vs/basic-languages/markdown",
-            "output": "./assets/monaco-editor/min/vs/basic-languages/markdown"
-          },
-          {
-            "glob": "**/*",
-            "input": "node_modules/monaco-editor/min/vs/basic-languages/python",
-            "output": "./assets/monaco-editor/min/vs/basic-languages/python"
-          },
-          {
-            "glob": "**/*",
-            "input": "node_modules/monaco-editor/min/vs/basic-languages/yaml",
-            "output": "./assets/monaco-editor/min/vs/basic-languages/yaml"
-          },
-          {
-            "glob": "**/*",
-            "input": "node_modules/monaco-editor/min/vs/basic-languages/typescript",
-            "output": "./assets/monaco-editor/min/vs/basic-languages/typescript"
+            "input": "node_modules/monaco-editor/min/vs/basic-languages",
+            "output": "./assets/monaco-editor/min/vs/basic-languages"
           },
           {
             "glob": "loader.js",

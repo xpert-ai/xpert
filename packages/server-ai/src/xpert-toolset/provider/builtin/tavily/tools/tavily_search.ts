@@ -1,7 +1,12 @@
+import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
 import { CallbackManagerForToolRun } from "@langchain/core/callbacks/manager";
 import { Tool, type ToolParams } from "@langchain/core/tools";
 import { getEnvironmentVariable } from "@langchain/core/utils/env";
+import { ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageStepType, mapTranslationLanguage } from "@metad/contracts";
+import { RequestContext } from "@metad/server-core";
+import { Logger } from '@nestjs/common'
 import { BaseTool } from "../../../../toolset";
+import { TavilyToolset } from "../tavily";
 
 /**
  * Options for the TavilySearchResults tool.
@@ -79,6 +84,8 @@ export type TavilySearchAPIRetrieverFields = ToolParams & {
  * </details>
  */
 export class TavilySearchResults extends BaseTool {
+  readonly #logger = new Logger(TavilySearchResults.name)
+
   /**
    * Change the tool name
    */
@@ -97,7 +104,7 @@ export class TavilySearchResults extends BaseTool {
 
   protected kwargs: Record<string, unknown> = {};
 
-  constructor(fields?: TavilySearchAPIRetrieverFields) {
+  constructor(private toolset: TavilyToolset, fields?: TavilySearchAPIRetrieverFields) {
     super(fields);
     this.max_results = fields?.max_results ?? this.max_results;
     this.kwargs = fields?.kwargs ?? this.kwargs;
@@ -136,6 +143,20 @@ export class TavilySearchResults extends BaseTool {
     if (!Array.isArray(json.results)) {
       throw new Error(`Could not parse Tavily results. Please try again.`);
     }
+
+    const i18n = await this.toolset.translate('toolset.TavilySearch', { lang: mapTranslationLanguage(RequestContext.getLanguageCode()) })
+    // Tool message event
+		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+			type: ChatMessageStepType.ComputerUse,
+      category: ChatMessageStepCategory.WebSearch,
+			toolset: TavilyToolset.provider,
+			tool: this.name,
+			message: `${i18n.Searching}: ${input}`,
+			title: i18n.WebSearch,
+			data: json.results
+		}).catch((err) => {
+			this.#logger.error(err)
+		})
     return [JSON.stringify(json.results, null, 2), json.results]
   }
 }

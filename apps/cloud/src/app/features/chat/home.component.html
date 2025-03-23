@@ -1,6 +1,6 @@
 <mat-sidenav-container class="flex-1">
   <mat-sidenav #sidenav [(opened)]="sidenavOpened" [mode]="isMobile() ? 'over' : 'side'" class="w-[400px]">
-    <pac-chat-sidenav-menu class="w-full p-2" [sidenav]="sidenav"/>
+    <pac-chat-sidenav-menu class="w-full p-2" [sidenav]="sidenav" />
 
     <div class="flex-1 p-2 overflow-auto max-h-fit"
       waIntersectionObserver

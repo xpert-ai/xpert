@@ -74,14 +74,14 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 						toolsetService: this.toolsetService,
 						commandBus: this.commandBus,
 						queryBus: this.queryBus,
-						xpertId: parameters.form.xpertId,
-						agentKey: parameters.form.agentKey,
+						xpertId: parameters?.form.xpertId,
+						agentKey: parameters?.form.agentKey,
 					}
 				)
 
 				await builtinToolset.initTools()
 
-				const result = await builtinToolset.getTool(tool.name).invoke(parameters.llm ?? {}, {
+				const result = await builtinToolset.getTool(tool.name).invoke(parameters?.llm ?? {}, {
 					configurable: toolContext
 				})
 

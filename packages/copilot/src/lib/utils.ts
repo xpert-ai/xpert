@@ -1,10 +1,10 @@
-import { AIMessage, MessageContent, MessageContentComplex } from '@langchain/core/messages'
+import { AIMessage, MessageContent, MessageContentComplex, MessageContentText } from '@langchain/core/messages'
 import { ChatGenerationChunk, LLMResult } from '@langchain/core/outputs'
 import { nanoid as _nanoid } from 'nanoid'
 import { ZodType, ZodTypeDef } from 'zod'
 import zodToJsonSchema from 'zod-to-json-schema'
 import { CopilotChatMessage } from './types'
-import { TTokenUsage } from '@metad/contracts'
+import { TMessageContentComplex, TTokenUsage } from '@metad/contracts'
 
 export function zodToAnnotations(obj: ZodType<any, ZodTypeDef, any>) {
   return (<{ properties: any }>zodToJsonSchema(obj)).properties
@@ -102,7 +102,7 @@ export function stringifyMessageContent(content: MessageContent | MessageContent
 }
 
 
-export function appendMessageContent(aiMessage: CopilotChatMessage, content: MessageContent) {
+export function appendMessageContent(aiMessage: CopilotChatMessage, content: string | TMessageContentComplex) {
   aiMessage.status = 'answering'
 	const _content = aiMessage.content
 	if (typeof content === 'string') {
@@ -128,7 +128,17 @@ export function appendMessageContent(aiMessage: CopilotChatMessage, content: Mes
       aiMessage.status = 'reasoning'
     } else {
       if (Array.isArray(_content)) {
-        _content.push(content)
+        // Merge text content by id
+        if (content.type === 'text' && content.id) {
+          const index = _content.findIndex((_) => _.type === 'text' && _.id === content.id)
+          if (index > -1) {
+            (<MessageContentText>_content[index]).text += content.text
+          } else {
+            _content.push(content)
+          }
+        } else {
+          _content.push(content)
+        }
       } else if(_content) {
         aiMessage.content = [
           {

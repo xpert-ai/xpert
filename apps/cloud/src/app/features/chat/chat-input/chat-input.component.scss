@@ -1,0 +1,7 @@
+:host {
+  @apply w-full flex flex-col items-stretch lg:w-[800px] max-w-full;
+}
+
+.btn-canvas.active {
+  @apply bg-lime-50 text-lime-800;
+}

@@ -26,6 +26,17 @@ export const SlideUpAnimation = trigger('slideUpAnimation', [
   ])
 ])
 
+export const SlideUpDownAnimation = trigger('slideUpDown', [
+  transition(':enter', [
+    style({ transform: 'translateY(100%)', opacity: 0 }),
+    animate('100ms ease-in', style({ transform: 'translateY(0)', opacity: 1 }))
+  ]),
+  transition(':leave', [
+    style({ position: 'absolute', }),
+    animate('100ms ease-in', style({ transform: 'translateY(100%)', opacity: 0 }))
+  ])
+])
+
 
 export const IfAnimations = [
   HeightChangeAnimation,

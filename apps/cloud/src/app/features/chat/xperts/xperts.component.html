@@ -1,42 +1,48 @@
-@if (xperts()) {
-  <ul cdkDropList (cdkDropListDropped)="dropSort($event)">
-    @for (xpert of xperts(); track xpert.id) {
-      <li class="xpert-item flex items-center cursor-pointer px-4 py-2 rounded-lg
-        hover:bg-black/5 dark:hover:bg-white/10"
-        cdkDrag cdkDragLockAxis="y"
-        (click)="selectXpert(xpert)"
-      >
-        <emoji-avatar [avatar]="xpert.avatar" xs class="shrink-0 rounded-lg overflow-hidden shadow-sm mr-1" />
-        <span class="truncate">{{xpert.title || xpert.name}}</span>
-      </li>
-    } @empty {
-      @if (hasEditXpertPermission()) {
-        <div class="w-full flex justify-center">
-          <button type="button" class="btn btn-primary px-3 py-1"
-            routerLink="/xpert/w"
-          >
-            {{ 'PAC.Chat.GotoNewXpert' | translate: {Default: 'Go to New Digital Expert'} }}
-            <i class="ri-corner-up-right-fill ml-1 text-lg"></i>
-          </button>
-        </div>
-      }
-    }
-
-    <div class="w-full flex justify-center">
-      @if (hasMore()) {
-        <button type="button" class="btn pressable justify-center rounded-none last:rounded-r-lg first:rounded-l-lg"
-          [matTooltip]="'PAC.Chat.ShowMoreXperts' | translate: {Default: 'Show more experts'}"
-          (click)="showMore()">
-          <i class="ri-arrow-down-wide-line"></i>
-        </button>
-      }
-      @if (xperts().length > pageSize()) {
-        <button type="button" class="btn pressable justify-center rounded-none last:rounded-r-lg first:rounded-l-lg"
-          [matTooltip]="'PAC.Chat.ShowLessXperts' | translate: {Default: 'Show less experts'}"
-          (click)="showLess()">
-          <i class="ri-arrow-up-wide-line"></i>
-        </button>
-      }
+<div class="flex flex-row flex-wrap @sm:flex-nowrap w-full gap-2 @sm:gap-2 justify-center items-center py-2"
+  cdkDropList
+  (cdkDropListDropped)="dropSort($event)"
+>
+  @for (xpert of xperts(); track xpert.id) {
+    <div role="button" class="flex items-center text-primary text-sm font-medium rounded-2xl px-3 py-2 border border-input-border 
+      hover:bg-white cursor-pointer transition-all focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      tabindex="0"
+      [ngmTooltip]="xpertCard"
+      [ngmTooltipContext]="{xpert: xpert}"
+      cdkDrag
+      (click)="selectXpert(xpert)"
+    >
+      <emoji-avatar [avatar]="xpert.avatar" xs class="shrink-0 rounded-lg overflow-hidden shadow-sm mr-1" />
+      <p class="overflow-hidden whitespace-nowrap text-ellipsis">{{xpert.title || xpert.name}}</p>
     </div>
-  </ul>
-}
+  }
+  
+  @if (hasEditXpertPermission()) {
+    <button type="button" class="btn px-3 py-2 rounded-2xl border border-input-border"
+      [class.btn-primary]="xperts() && !xperts().length"
+      routerLink="/xpert/w"
+    >
+      {{ 'PAC.Chat.GotoNewXpert' | translate: {Default: 'Go to New Digital Expert'} }}
+      <i class="ri-corner-up-right-fill ml-1 text-lg"></i>
+    </button>
+  }
+</div>
+<div class="flex justify-center items-center">
+  @if (hasMore()) {
+    <button type="button" class="btn pressable justify-center rounded-none last:rounded-r-lg first:rounded-l-lg"
+      [matTooltip]="'PAC.Chat.ShowMoreXperts' | translate: {Default: 'Show more experts'}"
+      (click)="showMore()">
+      <i class="ri-arrow-down-wide-line"></i>
+    </button>
+  }
+  @if (xperts()?.length > pageSize()) {
+    <button type="button" class="btn pressable justify-center rounded-none last:rounded-r-lg first:rounded-l-lg"
+      [matTooltip]="'PAC.Chat.ShowLessXperts' | translate: {Default: 'Show less experts'}"
+      (click)="showLess()">
+      <i class="ri-arrow-up-wide-line"></i>
+    </button>
+  }
+</div>
+
+<ng-template #xpertCard let-xpert="xpert">
+  <xpert-card @overlayAnimation1 [xpert]="xpert" class="w-96 border border-solid border-divider-deep !rounded-3xl shadow-lg bg-components-card-bg" />
+</ng-template>

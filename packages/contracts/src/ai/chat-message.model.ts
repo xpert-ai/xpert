@@ -1,4 +1,4 @@
-import { MessageContent, MessageType } from '@langchain/core/messages';
+import { MessageContent, MessageContentImageUrl, MessageType } from '@langchain/core/messages';
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IChatConversation } from './chat.model'
 import { LongTermMemoryTypeEnum } from './xpert.model'
@@ -12,11 +12,35 @@ export type TSummaryJob = Record<LongTermMemoryTypeEnum, {
     memoryKey?: string
   }>
 
+export enum ChatMessageStepType {
+  File = 'file',
+  ComputerUse = 'computer_use',
+}
+
+export enum ChatMessageStepCategory {
+  /**
+   * Websearch results
+   */
+  WebSearch = 'web_search',
+  /**
+   * Files creation view or edition
+   */
+  Files = 'files',
+  /**
+   * Program Execution
+   */
+  Program = 'program'
+}
+
 export type TChatMessageStep = {
+  type?: ChatMessageStepType
+  category?: ChatMessageStepCategory
   toolset?: string
   tool?: string
+  title?: string
   message?: string
   created_date?: Date | string
+  data?: any
 }
 
 /**
@@ -65,7 +89,7 @@ export interface CopilotBaseMessage {
    */
   status?: ChatMessageStatusEnum
 
-  content?: string | MessageContent
+  content?: string | TMessageContent
   reasoning?: MessageContent
 
   /**
@@ -91,11 +115,53 @@ export type CopilotChatMessage = CopilotBaseMessage & {
   executionId?: string
 }
 
+/**
+ * @deprecated use data attr in message (subMessages)
+ */
 export interface CopilotMessageGroup extends CopilotBaseMessage {
   messages?: CopilotChatMessage[]
 }
 
+/**
+ * Similar to {@link MessageContentText} | {@link MessageContentImageUrl}, which together form {@link MessageContentComplex}
+ */
+export type TMessageContentComponent = {
+  id: string
+  type: 'component'
+  data: TMessageComponent
+}
+
+/**
+ * Defines the data type of the sub-message of `component` type in the message `content` {@link MessageContentComplex}
+ */
+export type TMessageComponent<T extends object = object> = T & {
+  category: 'Dashboard' | 'Computer'
+  type: string
+}
+
+export type TMessageContentText = {
+  id?: string
+  agentKey?: string
+  type: "text";
+  text: string;
+};
+/**
+ * Enhance {@link MessageContentComplex} in Langchain.js
+ */
+export type TMessageContentComplex = (TMessageContentText | MessageContentImageUrl | TMessageContentComponent | (Record<string, any> & {
+  type?: "text" | "image_url" | string;
+}) | (Record<string, any> & {
+  type?: never;
+})) & {agentKey?: string}
+/**
+ * Enhance {@link MessageContent} in Langchain.js
+ */
+export type TMessageContent = string | TMessageContentComplex[];
+
 // Type guards
+/**
+ * @deprecated use content in message
+ */
 export function isMessageGroup(message: CopilotBaseMessage): message is CopilotMessageGroup {
   return 'messages' in message;
 }

@@ -6,10 +6,10 @@ import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
-import { DeepPartial, Repository } from 'typeorm'
+import { DeepPartial, Like, Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { CreateCopilotStoreCommand } from '../copilot-store'
-import { FindAgentExecutionsQuery } from '../xpert-agent-execution/queries'
+import { FindAgentExecutionsQuery, XpertAgentExecutionStateQuery } from '../xpert-agent-execution/queries'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationPublicDTO } from './dto'
 
@@ -128,5 +128,16 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 
 	async getJob(id: number | string) {
 		return await this.summaryQueue.getJob(id)
+	}
+
+	async getThreadState(id: string) {
+		const conversation = await this.findOne(id, { relations: ['messages']})
+		const lastMessage = conversation.messages[conversation.messages.length - 1]
+		
+		if (lastMessage.executionId) {
+			return await this.queryBus.execute(new XpertAgentExecutionStateQuery(lastMessage.executionId))
+		}
+
+		return null
 	}
 }

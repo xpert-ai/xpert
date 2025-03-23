@@ -3,7 +3,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { TXpertTeamNode, XpertAgentExecutionStatusEnum, IXpertToolset } from 'apps/cloud/src/app/@core'
+import { TXpertTeamNode, XpertAgentExecutionStatusEnum, IXpertToolset, ToolTagEnum } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, of } from 'rxjs'
@@ -75,6 +75,8 @@ export class XpertStudioNodeToolsetComponent {
    * At least one tool enabled
    */
   readonly atLeastOne = computed(() => this.availableTools()?.some((t) => t.enabled))
+
+  readonly isSandbox = computed(() => this.toolset()?.options?.provider?.tags?.includes(ToolTagEnum.SANDBOX))
 
   private get hostElement(): HTMLElement {
     return this.elementRef.nativeElement

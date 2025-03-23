@@ -32,6 +32,9 @@ import { IXpertTask, Store } from '../../@core'
 import { ChatComponentIndicatorsComponent } from './indicators/indicators.component'
 import { ChatComponentIndicatorComponent } from './indicator/indicator.component'
 import { ChatComponentTasksComponent } from './tasks/tasks.component'
+import { XpertHomeService } from '../home.service'
+import { ArraySlicePipe, FileTypePipe } from '@metad/core'
+import { ChatFilesDialogComponent } from '../../@shared/chat'
 
 @Component({
   standalone: true,
@@ -50,6 +53,8 @@ import { ChatComponentTasksComponent } from './tasks/tasks.component'
     NgmSelectionModule,
     AnalyticalCardModule,
     NxWidgetKpiComponent,
+    FileTypePipe,
+    ArraySlicePipe,
     ChatComponentIndicatorsComponent,
     ChatComponentIndicatorComponent,
     ChatComponentTasksComponent
@@ -67,8 +72,12 @@ export class ChatComponentMessageComponent {
   readonly #dialog = inject(Dialog)
   readonly dsCore = inject(NgmDSCoreService)
   readonly #viewContainerRef = inject(ViewContainerRef)
+  readonly homeService = inject(XpertHomeService)
 
   // Inputs
+  // Message ID
+  readonly messageId = input<string>()
+  // Sub component message
   readonly message = input<any>()
 
   // Outputs
@@ -95,6 +104,9 @@ export class ChatComponentMessageComponent {
   readonly dataSources = computed(() => compact(uniq<string>(this.indicators()?.map((_) => _.dataSource))))
 
   readonly explains = signal<any[]>([])
+
+  // Files
+  readonly files = computed(() => this.data()?.files as any[])
 
   constructor() {
     effect(
@@ -164,5 +176,32 @@ export class ChatComponentMessageComponent {
           }
         }
       })
+  }
+
+  openCanvas() {
+    this.homeService.canvasOpened.set({
+      type: 'Dashboard',
+      messageId: this.messageId(),
+      componentId: this.message().id
+    })
+  }
+
+  openFileViewer(file) {
+    this.homeService.canvasOpened.set({
+      type: 'File',
+      file
+    })
+  }
+
+  openAllFiles() {
+    this.#dialog.open(ChatFilesDialogComponent, {
+      data: {
+        files: this.files()
+      }
+    }).closed.subscribe((file) => {
+      if (file) {
+        this.openFileViewer(file)
+      }
+    })
   }
 }

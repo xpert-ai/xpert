@@ -8,4 +8,15 @@ export enum BrowserUseToolEnum {
 
 export type TBrowserUseToolCredentials = {
     copilotModel: ICopilotModel
+    max_steps?: number
+    llm_temperature?: number
+    enable_recording?: boolean
+}
+
+export type TBrowserUseEvent = {
+    url: string
+    screenshot: string
+    thoughts: string
+    final_result: string
+    errors: string
 }

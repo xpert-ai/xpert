@@ -3,16 +3,11 @@ import { effect, inject, Injectable } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { nonNullable } from '@metad/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
-import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
-import { combineLatestWith, distinctUntilChanged, filter, map, pipe, withLatestFrom } from 'rxjs'
-import {
-  IXpert,
-  LanguagesEnum,
-} from '../../@core'
+import { distinctUntilChanged, filter, map, withLatestFrom } from 'rxjs'
+import { IXpert } from '../../@core'
 import { ToastrService } from '../../@core/services'
 import { ChatService } from '../../xpert/'
-import { COMMON_COPILOT_ROLE } from './types'
 import { ChatHomeService } from './home.service'
 
 @Injectable()
@@ -25,28 +20,6 @@ export class ChatPlatformService extends ChatService {
   readonly paramId = injectParams('id')
 
   readonly xperts = this.homeService.xperts
-
-  // readonly xpert = derivedFrom(
-  //   [this.xpert$, this.lang],
-  //   pipe(
-  //     map(([role, lang]) => {
-  //       if (!role) {
-  //         role = {
-  //           ...COMMON_COPILOT_ROLE,
-  //           description: this.#translate.instant('PAC.Chat.CommonRoleDescription', {
-  //             Default:
-  //               'Hi, how can I help? I can chat and search the knowledge base. Please select the appropriate role if you would like to use the tools.'
-  //           })
-  //         }
-  //       }
-  //       if ([LanguagesEnum.SimplifiedChinese, LanguagesEnum.Chinese].includes(lang as LanguagesEnum)) {
-  //         return { ...role, title: role.titleCN || role.title }
-  //       } else {
-  //         return role
-  //       }
-  //     })
-  //   )
-  // )
 
   private roleSub = toObservable(this.xpert)
     .pipe(
@@ -68,13 +41,6 @@ export class ChatPlatformService extends ChatService {
         this.toolsets.set(role?.toolsets ?? [])
       }
     })
-  // private paramRoleSub = toObservable(this.paramRole)
-  //   .pipe(combineLatestWith(toObservable(this.xperts)), takeUntilDestroyed())
-  //   .subscribe(([paramRole, roles]) => {
-  //     if (roles && this.xpert()?.slug !== paramRole) {
-  //       this.xpert$.next(roles.find((item) => item.slug === paramRole))
-  //     }
-  //   })
 
   private conversationSub = toObservable(this.conversation)
     .pipe(

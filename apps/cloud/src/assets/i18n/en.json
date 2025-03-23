@@ -141,7 +141,13 @@
       "Event_on_tool_error": "Tool error",
       "Event_on_retriever_start": "Knowledge retrieve start",
       "Event_on_retriever_end": "Knowledge retrieve end",
-      "Event_on_retriever_error": "Knowledge retrieve error"
+      "Event_on_retriever_error": "Knowledge retrieve error",
+      "FileType_text": "Text",
+      "FileType_code": "Code",
+      "FileType_video": "Video",
+      "FileType_image": "Image",
+      "FileType_zip": "ZIP",
+      "FileType_unknown": "Unknown"
     },
     "title": {
       "short": "Analytics Cloud"

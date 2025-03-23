@@ -1,8 +1,8 @@
 import { IHandler } from '@foblex/mediator'
-import { assign } from 'lodash-es'
 import { UpdateAgentRequest } from './update-agent.request'
 import { Store, StoreDef } from '@ngneat/elf'
 import { IStudioStore } from '../../types'
+import { IXpertAgent } from '../../../../../../@core/types'
 
 export class UpdateAgentHandler implements IHandler<UpdateAgentRequest> {
   constructor(private store: Store<StoreDef, IStudioStore>) {}
@@ -16,7 +16,7 @@ export class UpdateAgentHandler implements IHandler<UpdateAgentRequest> {
       }
 
       node.entity = {
-        ...node.entity,
+        ...(node.entity as IXpertAgent),
         ...request.entity
       }
       return {

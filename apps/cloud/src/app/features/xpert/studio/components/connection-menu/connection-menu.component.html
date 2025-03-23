@@ -1,0 +1,20 @@
+@if (connection().type === 'toolset') {
+  <div class="px-2 pb-1">
+    {{ 'PAC.Xpert.AccessTools' | translate: {Default: 'Access Tools'} }}:
+    @if (selectedAll()) {
+      <span class="mx-1 text-sm font-semibold">{{ 'PAC.Xpert.All' | translate: {Default: 'All'} }}</span>
+    } @else {
+      <span class="mx-1 text-sm font-semibold">{{ 'PAC.Xpert.Partial' | translate: {Default: 'Partial'} }}</span>
+    }
+  </div>
+  <ul cdkListbox cdkListboxMultiple [ngModel]="availableTools()" (ngModelChange)="updateAvailableTools($event)">
+    @for (tool of tools(); track tool.name) {
+      <li [cdkOption]="tool.name" class="tool-option relative flex items-center cursor-pointer rounded-lg pl-6 pr-2 py-1 hover:bg-gray-50 ">{{tool.name}}</li>
+    }
+  </ul>
+}
+<div class="w-full my-1 border-b border-solid border-divider-regular"></div>
+<div cdkMenuItem class="ngm-cdk-menu-item danger" (click)="removeConnection()">
+  <i class="ri-delete-bin-line mr-1"></i>
+  <span>{{ 'PAC.Xpert.RemoveConnection' | translate: {Default: 'Remove connection'} }}</span>
+</div>

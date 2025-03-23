@@ -1,0 +1,771 @@
+team:
+  name: My Manus Team
+  type: agent
+  title: Manus
+  description: 你的首款通用 AI 智能体团队。我可以将您的想法转化为实际行动，通过自动化方式完成从规划到执行的整个流程。
+  avatar:
+    emoji:
+      id: wave
+    background: rgba(228, 251, 204, 0.8)
+  starters:
+    - 我需要一份 4 月 15 日至 23 日从西雅图出发的日本 7 日行程，预算为 2500 至 5000
+      美元，供我和我的未婚妻使用。我们喜欢历史遗迹、隐藏的瑰宝和日本文化（剑道、茶道、禅修）。我们想看奈良的鹿并徒步探索城市。我计划在这次旅行中求婚，需要特别的地点推荐。请提供详细的行程和简单的
+      HTML 旅行手册，其中包含地图、景点描述、基本日语短语和旅行提示，我们可以在整个旅程中参考。
+    - 编写一个网页版贪吃蛇小游戏。
+    - null
+    - null
+  options:
+    position:
+      x: 437.5441399274689
+      y: 248.7603374042696
+    scale: 0.5600000000000002
+    agent:
+      Agent_zm7jnDN2qV:
+        position:
+          x: 380
+          y: -120
+      Agent_kZUOAglggf:
+        position:
+          x: 360
+          y: 300
+      Agent_BDdyukOAhc:
+        position:
+          x: 800
+          y: 20
+      Agent_ofRiMQMYVu:
+        position:
+          x: -580
+          y: 280
+      Agent_UN2XNbk31L:
+        position:
+          x: 200
+          y: 280
+      Agent_ghbDKZJKl9:
+        position:
+          x: -380
+          y: 60
+      Agent_rE9Y0RrhhW:
+        position:
+          x: -160
+          y: 280
+    toolset:
+      00930607-6084-40de-86b7-a5089042fcd3:
+        position:
+          x: 560
+          y: 280
+      e4554ac9-cc36-4b97-a8db-8197d3bb2d5d:
+        position:
+          x: 700
+          y: 640
+      8fedb271-7897-4163-9bc7-5e118143c92b:
+        position:
+          x: -20
+          y: 680
+      167d4bbc-c18e-405e-8d7b-1862290da856:
+        position:
+          x: -760
+          y: 660
+      2b840fd3-d462-4d37-9fdf-4b4d124dc3d3:
+        position:
+          x: -420
+          y: 660
+      7e8dafb3-574b-4055-99ac-facfe2edde2a:
+        position:
+          x: 300
+          y: 660
+      b01d71f7-8d4c-41ec-b819-2382233707a2:
+        position:
+          x: 880
+          y: 200
+      953732ce-483f-4283-a77e-aae85ffe8170:
+        position:
+          x: -380
+          y: 640
+      77f75dfd-9b77-447f-b120-8a4667b8e291:
+        position:
+          x: -760
+          y: 640
+      b3904bec-0cd9-48ef-b72c-b0e0603ab7b6:
+        position:
+          x: -20
+          y: 640
+      9a805909-8456-4758-aa81-fb7036c3a474:
+        position:
+          x: 340
+          y: 640
+      db3ff696-3885-4703-8a34-7b430de180ee:
+        position:
+          x: 900
+          y: 280
+    workflow:
+      Iterating_Obt2ubUnuo:
+        position:
+          x: 320
+          y: 60
+  agentConfig:
+    disableOutputs:
+      - Agent_CYJNRAoy1L
+    recursionLimit: 50
+    maxConcurrency: 10
+  memory: null
+  summarize: null
+  version: "1"
+  agent:
+    key: Agent_zm7jnDN2qV
+    name: null
+    title: 规划者
+    description: 制定详细计划
+    avatar:
+      emoji:
+        id: person_in_tuxedo
+    prompt: >
+      你是 Manus Xpert，一个全能的人工智能助手，旨在解决用户提出的任何任务。
+
+      按用户要求制定完成任务的计划（最多三步）, 并逐步分配给团队成员完成各个步骤。
+
+      团队成员包括：
+
+      - code team leader 可以帮你编写代码
+
+      - search agent 可以搜索和生产报告
+
+
+      如果有调研报告生产请将报告路径告知 code team leader 作为开发参考。
+
+      如果是网页项目则最后使用 deploy 工具部署，并将部署后的文件中是首页的地址以链接形式返回用户，方便用户打开访问首页。
+
+      请使用 {{sys.language}} 语言回答。
+    promptTemplates: []
+    parameters: null
+    outputVariables: null
+    options:
+      parallelToolCalls: false
+    copilotModel: null
+    leaderKey: null
+    collaboratorNames: []
+    toolsetIds:
+      - 00930607-6084-40de-86b7-a5089042fcd3
+      - db3ff696-3885-4703-8a34-7b430de180ee
+    knowledgebaseIds: []
+  copilotModel:
+    modelType: llm
+    model: gpt-4o
+    options: null
+  tags: []
+nodes:
+  - type: agent
+    key: Agent_zm7jnDN2qV
+    position:
+      x: 380
+      y: -120
+    entity:
+      key: Agent_zm7jnDN2qV
+      name: null
+      title: 规划者
+      description: 制定详细计划
+      avatar:
+        emoji:
+          id: person_in_tuxedo
+      prompt: >
+        你是 Manus Xpert，一个全能的人工智能助手，旨在解决用户提出的任何任务。
+
+        按用户要求制定完成任务的计划（最多三步）, 并逐步分配给团队成员完成各个步骤。
+
+        团队成员包括：
+
+        - code team leader 可以帮你编写代码
+
+        - search agent 可以搜索和生产报告
+
+
+        如果有调研报告生产请将报告路径告知 code team leader 作为开发参考。
+
+        如果是网页项目则最后使用 deploy 工具部署，并将部署后的文件中是首页的地址以链接形式返回用户，方便用户打开访问首页。
+
+        请使用 {{sys.language}} 语言回答。
+      promptTemplates: []
+      parameters: null
+      outputVariables: null
+      options:
+        parallelToolCalls: false
+      copilotModel: null
+      leaderKey: null
+      collaboratorNames: []
+      toolsetIds:
+        - 00930607-6084-40de-86b7-a5089042fcd3
+        - db3ff696-3885-4703-8a34-7b430de180ee
+      knowledgebaseIds: []
+    hash: fe5c7692becfe0406f8e474a5b61e95491c8262b7466ffc8a556b2b61582fd60
+  - type: toolset
+    key: 00930607-6084-40de-86b7-a5089042fcd3
+    position:
+      x: 560
+      y: 280
+    entity:
+      id: 00930607-6084-40de-86b7-a5089042fcd3
+      name: 规划工具集
+      type: planning
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/planning/icon
+      options:
+        toolPositions:
+          create_plan: 0
+          list_plans: 1
+          update_plan_step: 2
+          delete_plan_step: 3
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 5c4daee8-3944-4740-81c3-4c3458ee0ada
+          name: create_plan
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+        - id: bf286151-c882-4b1b-9cc2-63eccb5a8faf
+          name: list_plans
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+        - id: 2768b66e-f7a2-4b3c-8601-0b50a44a5719
+          name: update_plan_step
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+        - id: 87222ba9-8fa1-4a87-93ec-27e8562db2df
+          name: delete_plan_step
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    hash: 5cc3e1bcdc9b94aa2204809243caaa4278c87f1c0ddcf2d5160fbab40f3bd0fc
+  - type: toolset
+    key: e4554ac9-cc36-4b97-a8db-8197d3bb2d5d
+    position:
+      x: 700
+      y: 640
+    entity:
+      id: e4554ac9-cc36-4b97-a8db-8197d3bb2d5d
+      name: Google 搜索工具
+      type: tavily
+      category: builtin
+      description: 在线搜索工具
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon
+      options:
+        toolPositions:
+          tavily_search: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 74f94aa2-9c19-4bc1-a707-44c286cafc1c
+          name: tavily_search
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    hash: 3ce6c836c78a5ce7b93cbab9b48d20e14b1c1a7f56daa3e8068fdcc7ed144559
+  - type: toolset
+    key: 77f75dfd-9b77-447f-b120-8a4667b8e291
+    position:
+      x: -760
+      y: 640
+    entity:
+      id: 77f75dfd-9b77-447f-b120-8a4667b8e291
+      name: 执行 Bash 命令工具
+      type: bash
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/bash/icon
+      options:
+        provider:
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/bash/icon
+          icon: icon.svg
+          tags:
+            - productivity
+            - utilities
+            - sandbox
+          author: XpertAI
+          name: bash
+          label:
+            en_US: Bash
+            zh_Hans: 命令行
+          description:
+            en_US: Bash tool.
+            zh_Hans: 命令行工具。
+        toolPositions:
+          bash_execute: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 79cb01e4-919c-427c-8ff1-b9a9164e592b
+          name: bash_execute
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    hash: 31674beda5bf2de28cbf936527b2165c8b0ee902757ab04fbe0a6d44c38a893f
+  - type: toolset
+    key: b3904bec-0cd9-48ef-b72c-b0e0603ab7b6
+    position:
+      x: -20
+      y: 640
+    entity:
+      id: b3904bec-0cd9-48ef-b72c-b0e0603ab7b6
+      name: 运行 Python 代码工具
+      type: python
+      category: builtin
+      description: 运行 Python 代码工具
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/python/icon
+      options:
+        provider:
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/python/icon
+          icon: icon.svg
+          tags:
+            - productivity
+            - utilities
+            - sandbox
+          author: XpertAI
+          name: python
+          label:
+            en_US: Python
+            zh_Hans: Python
+          description:
+            en_US: Python tool.
+            zh_Hans: Python 工具。
+        toolPositions:
+          python_execute: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: fd021274-99cd-4903-a97e-75222649fb7f
+          name: python_execute
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    hash: 6e003fb531249823cabdd4c53540fd0811ff121ddc15f0e9c98ac950b99b93b5
+  - type: toolset
+    key: 9a805909-8456-4758-aa81-fb7036c3a474
+    position:
+      x: 340
+      y: 640
+    entity:
+      id: 9a805909-8456-4758-aa81-fb7036c3a474
+      name: 浏览器使用工具
+      type: browser-use
+      category: builtin
+      description: 浏览器使用工具
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/browser-use/icon
+      options:
+        provider:
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/browser-use/icon
+          icon: icon.svg
+          tags:
+            - productivity
+            - sandbox
+            - agent
+          author: XpertAI
+          name: browser-use
+          label:
+            en_US: Browser Use
+            zh_Hans: 浏览器使用
+          description:
+            en_US: Browser-use tool.
+            zh_Hans: 浏览器使用工具。
+        toolPositions:
+          browser_use_task: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: d975358d-6f90-49db-a296-fbb4320a90d4
+          name: browser_use_task
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    hash: c98001a429c172affc5c5e9e14847b4dd51602acd1a272b45c976fcee306600d
+  - type: agent
+    key: Agent_ofRiMQMYVu
+    position:
+      x: -580
+      y: 280
+    entity:
+      key: Agent_ofRiMQMYVu
+      name: Coding Agent
+      title: 程序员
+      description: 我可以为任务编写静态页面
+      avatar:
+        emoji:
+          id: female-technologist
+          set: ""
+          colons: ":female-technologist:"
+          unified: 1F469-200D-1F4BB
+        background: rgba(236, 233, 254, 0.8)
+        url: null
+      prompt: >-
+        你擅长网页端开发，你可以使用以下工具：
+
+        - file_edit 操作属于你的虚拟 ubuntu 环境进行代码编辑开发，文件路径请使用相对于目录 {{project}} 的路径。
+
+        - bash 可以在 ubuntu 虚拟环境中执行命令，使用此工具可以查看当前目录下有哪些文件已存在。
+
+
+        项目的总体目标是：
+
+        {{goals}}
+
+
+        请按要求完成属于你的步骤任务。如果有参考报告请使用 file_list 查询具体的文件，并用 file_edit view command
+        读取该文件的内容作为开发参考。
+
+        返回已完成的网页链接。
+
+        file_edit tool 当 command = view 时可以读取 path 指定的文件的内容。
+
+
+        回复一个任务的简单总结。
+
+        请使用 {{sys.language}} 语言回答。
+      promptTemplates: null
+      parameters:
+        - type: text
+          name: goals
+          title: Planning long-term goals
+          description: null
+          optional: null
+          maximum: null
+          options: null
+        - type: text
+          name: project
+          title: Folder name of Project
+          description: null
+          optional: null
+          maximum: null
+          options: null
+      outputVariables: null
+      options:
+        availableTools:
+          规划工具集:
+            - list_plans
+            - update_plan_step
+        parallelToolCalls: false
+      copilotModel: null
+      leaderKey: Agent_ghbDKZJKl9
+      collaboratorNames: []
+      toolsetIds:
+        - 77f75dfd-9b77-447f-b120-8a4667b8e291
+        - 953732ce-483f-4283-a77e-aae85ffe8170
+      knowledgebaseIds: []
+    hash: 5c4e768c6c737133b69b9a6806ff99431e1285e45e4f3e3b705917543cece142
+  - type: agent
+    key: Agent_UN2XNbk31L
+    position:
+      x: 200
+      y: 280
+    entity:
+      key: Agent_UN2XNbk31L
+      name: Search Agent
+      title: 搜索调研
+      description: 搜索和编写报告
+      avatar:
+        emoji:
+          id: memo
+          set: ""
+          colons: ":memo:"
+          unified: 1F4DD
+        background: rgba(255, 234, 213, 0.8)
+        url: null
+      prompt: >-
+        你擅长使用浏览器或者网络搜索内容，请按要求编写报告。将编写的报告通过 
+
+        file_edit 工具写入属于你们团队的虚拟 ubuntu 环境中 markdown 文件,路径请使用相对于目录 {{project}}
+        的路径。
+
+        其他工具：
+
+        browser_use_task：打开，浏览和使用Web浏览器。如果打开本地HTML文件，则必须提供文件的绝对路径。
+
+        tavily_search：执行 Web 信息检索。
+
+
+        项目的总体目标是：
+
+        {{goals}}
+
+
+        请按要求完成属于你的步骤任务。
+
+        file_edit tool 当 command = view 时可以读取 path 指定的文件的内容。
+
+
+        回复任务的完成情况的简单总结。
+
+        请使用 {{sys.language}} 语言回答。
+      promptTemplates: null
+      parameters:
+        - type: text
+          name: goals
+          title: Planning long-term goals
+          description: null
+          optional: null
+          maximum: null
+          options: null
+        - type: text
+          name: project
+          title: Folder name of Project
+          description: null
+          optional: null
+          maximum: null
+          options: null
+      outputVariables: null
+      options:
+        parallelToolCalls: true
+      copilotModel: null
+      leaderKey: Agent_zm7jnDN2qV
+      collaboratorNames: []
+      toolsetIds:
+        - 9a805909-8456-4758-aa81-fb7036c3a474
+        - e4554ac9-cc36-4b97-a8db-8197d3bb2d5d
+        - 953732ce-483f-4283-a77e-aae85ffe8170
+      knowledgebaseIds: []
+    hash: 506e5cdb6631b92109a781ac2286fedde6dbc2cf4202b81813625cc4027263ea
+  - type: agent
+    key: Agent_ghbDKZJKl9
+    position:
+      x: -380
+      y: 60
+    entity:
+      key: Agent_ghbDKZJKl9
+      name: Code team leader
+      title: 开发组长
+      description: 我可以为任务编写静态网页
+      avatar:
+        emoji:
+          id: male-technologist
+          set: ""
+          colons: ":male-technologist:"
+          unified: 1F468-200D-1F4BB
+        background: rgba(213, 245, 246, 0.8)
+        url: null
+      prompt: |-
+        你是一个开发团队 leader，围绕计划目标 {{plan_title}}
+        指导你的团队成员完成当前编程任务。
+        完成开发后让程序测试。
+        回复任务的一个简单总结。
+        如果有调研报告参考请告知程序员报告路径作为参考。
+        请使用 {{sys.language}} 语言回答。
+      promptTemplates: null
+      parameters: null
+      outputVariables: null
+      options: null
+      copilotModel: null
+      leaderKey: Agent_zm7jnDN2qV
+      collaboratorNames: []
+      toolsetIds: []
+      knowledgebaseIds: []
+    hash: 7d6c4abae9a9fad707b7d9b6ef2f7becdb5215b292aab229f6065c4b62c9e718
+  - type: agent
+    key: Agent_rE9Y0RrhhW
+    position:
+      x: -160
+      y: 280
+    entity:
+      key: Agent_rE9Y0RrhhW
+      name: program test
+      title: 程序测试
+      description: 我可以对项目代码进行整体测试
+      avatar:
+        emoji:
+          id: hourglass
+          set: ""
+          colons: ":hourglass:"
+          unified: 231B
+        background: rgba(213, 245, 246, 0.8)
+        url: null
+      prompt: |-
+        对领导要求进行测试。假设你测试完成,请回复一个简短的模拟正确测试的结果：例如“程序测试已通过”
+        请使用 {{sys.language}} 语言回答。
+      promptTemplates: null
+      parameters: null
+      outputVariables: null
+      options: null
+      copilotModel: null
+      leaderKey: Agent_ghbDKZJKl9
+      collaboratorNames: []
+      toolsetIds:
+        - 77f75dfd-9b77-447f-b120-8a4667b8e291
+        - b3904bec-0cd9-48ef-b72c-b0e0603ab7b6
+      knowledgebaseIds: []
+    hash: 40018be24db1dd55294d4eb84066580ab9dddade3064fbe579d40f4feda78409
+  - type: toolset
+    key: db3ff696-3885-4703-8a34-7b430de180ee
+    position:
+      x: 900
+      y: 280
+    entity:
+      id: db3ff696-3885-4703-8a34-7b430de180ee
+      name: 代码项目工具
+      type: code_project
+      category: builtin
+      description: 代码项目工具
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/code_project/icon
+      options:
+        provider:
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/code_project/icon
+          icon: icon.svg
+          tags:
+            - productivity
+            - utilities
+            - sandbox
+          author: XpertAI
+          name: code_project
+          label:
+            en_US: Code Project
+            zh_Hans: 代码项目
+          description:
+            en_US: Code Project toolset.
+            zh_Hans: 代码项目工具集。
+        toolPositions:
+          code_project_deploy: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: c145c90f-4f2a-4446-94ca-e29a019fbef3
+          name: code_project_deploy
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    hash: 6dbcb17505e156e1b6b844ed211b4fa7d0488258fcf7104e4eb50a1a3705b0d3
+  - type: toolset
+    key: 953732ce-483f-4283-a77e-aae85ffe8170
+    position:
+      x: -380
+      y: 640
+    entity:
+      id: 953732ce-483f-4283-a77e-aae85ffe8170
+      name: 文件工具集
+      type: file
+      category: builtin
+      description: 文件操作工具集
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/file/icon
+      privacyPolicy: null
+      customDisclaimer: null
+      tags:
+        - id: toolset/productivity
+          category: toolset
+          name: productivity
+          label:
+            en_US: Productivity
+            zh_Hans: 生产力
+          icon: >-
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+            viewBox="0 0 16 16" fill="none">
+              <path d="M6.64807 11.9999H9.35062C9.43862 11.1989 9.84742 10.5376 10.5111 9.81499C10.5858 9.73365 11.0652 9.23752 11.1221 9.16665C11.6872 8.46199 11.9993 7.58992 11.9993 6.66659C11.9993 4.45745 10.2085 2.66659 7.99935 2.66659C5.79021 2.66659 3.99935 4.45745 3.99935 6.66659C3.99935 7.58945 4.31118 8.46105 4.87576 9.16552C4.93271 9.23659 5.41322 9.73405 5.48704 9.81445C6.15112 10.5375 6.56004 11.1989 6.64807 11.9999ZM9.33268 13.3333H6.66602V13.9999H9.33268V13.3333ZM3.83532 9.99939C3.10365 9.08639 2.66602 7.92759 2.66602 6.66659C2.66602 3.72107 5.05383 1.33325 7.99935 1.33325C10.9449 1.33325 13.3327 3.72107 13.3327 6.66659C13.3327 7.92825 12.8945 9.08759 12.1622 10.0009C11.7487 10.5165 10.666 11.3333 10.666 12.3333V13.9999C10.666 14.7363 10.0691 15.3333 9.33268 15.3333H6.66602C5.92964 15.3333 5.33268 14.7363 5.33268 13.9999V12.3333C5.33268 11.3333 4.24907 10.5157 3.83532 9.99939ZM8.66602 6.66979H10.3327L7.33268 10.6698V8.00312H5.66602L8.66602 3.99992V6.66979Z" fill="#344054"/>
+            </svg>
+        - id: toolset/utilities
+          category: toolset
+          name: utilities
+          label:
+            en_US: Utilities
+            zh_Hans: 工具
+          icon: >-
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="15"
+            viewBox="0 0 13 15" fill="none">
+              <path d="M12.3346 0.333252C12.7028 0.333252 13.0013 0.631732 13.0013 0.999919V4.33325C13.0013 4.70144 12.7028 4.99992 12.3346 4.99992H9.0013V13.6666C9.0013 14.0348 8.70284 14.3333 8.33463 14.3333H5.66797C5.29978 14.3333 5.0013 14.0348 5.0013 13.6666V4.99992H1.33464C0.966449 4.99992 0.667969 4.70144 0.667969 4.33325V2.74527C0.667969 2.49276 0.810635 2.26192 1.0365 2.14899L4.66797 0.333252H12.3346ZM9.0013 1.66659H4.98273L2.0013 3.1573V3.66659H6.33464V12.9999H7.66797V3.66659H9.0013V1.66659ZM11.668 1.66659H10.3346V3.66659H11.668V1.66659Z" fill="#344054"/>
+            </svg>
+        - id: toolset/sandbox
+          category: toolset
+          name: sandbox
+          label:
+            en_US: Sandbox
+            zh_Hans: 沙盒
+          icon: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+            fill="currentColor"><path d="M3 3H21C21.5523 3 22 3.44772 22 4V20C22
+            20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772
+            2.44772 3 3 3ZM4 5V19H20V5H4ZM12 15H18V17H12V15ZM8.66685 12L5.83842
+            9.17157L7.25264 7.75736L11.4953 12L7.25264 16.2426L5.83842
+            14.8284L8.66685 12Z"></path></svg>
+    hash: 956749c2c758bc31c812f760eccc95277db327308657d16fd0c69396e27ed87f
+connections:
+  - type: toolset
+    key: Agent_zm7jnDN2qV/00930607-6084-40de-86b7-a5089042fcd3
+    from: Agent_zm7jnDN2qV
+    to: 00930607-6084-40de-86b7-a5089042fcd3
+  - type: toolset
+    key: Agent_UN2XNbk31L/9a805909-8456-4758-aa81-fb7036c3a474
+    from: Agent_UN2XNbk31L
+    to: 9a805909-8456-4758-aa81-fb7036c3a474
+  - type: toolset
+    key: Agent_UN2XNbk31L/e4554ac9-cc36-4b97-a8db-8197d3bb2d5d
+    from: Agent_UN2XNbk31L
+    to: e4554ac9-cc36-4b97-a8db-8197d3bb2d5d
+  - type: agent
+    key: Agent_zm7jnDN2qV/Agent_UN2XNbk31L
+    from: Agent_zm7jnDN2qV
+    to: Agent_UN2XNbk31L
+  - type: toolset
+    key: Agent_ofRiMQMYVu/77f75dfd-9b77-447f-b120-8a4667b8e291
+    from: Agent_ofRiMQMYVu
+    to: 77f75dfd-9b77-447f-b120-8a4667b8e291
+  - type: agent
+    key: Agent_zm7jnDN2qV/Agent_ghbDKZJKl9
+    from: Agent_zm7jnDN2qV
+    to: Agent_ghbDKZJKl9
+  - type: agent
+    key: Agent_ghbDKZJKl9/Agent_ofRiMQMYVu
+    from: Agent_ghbDKZJKl9
+    to: Agent_ofRiMQMYVu
+  - type: agent
+    key: Agent_ghbDKZJKl9/Agent_rE9Y0RrhhW
+    from: Agent_ghbDKZJKl9
+    to: Agent_rE9Y0RrhhW
+  - type: toolset
+    key: Agent_rE9Y0RrhhW/77f75dfd-9b77-447f-b120-8a4667b8e291
+    from: Agent_rE9Y0RrhhW
+    to: 77f75dfd-9b77-447f-b120-8a4667b8e291
+  - type: toolset
+    key: Agent_rE9Y0RrhhW/b3904bec-0cd9-48ef-b72c-b0e0603ab7b6
+    from: Agent_rE9Y0RrhhW
+    to: b3904bec-0cd9-48ef-b72c-b0e0603ab7b6
+  - type: toolset
+    key: Agent_zm7jnDN2qV/db3ff696-3885-4703-8a34-7b430de180ee
+    from: Agent_zm7jnDN2qV
+    to: db3ff696-3885-4703-8a34-7b430de180ee
+  - type: toolset
+    key: Agent_ofRiMQMYVu/953732ce-483f-4283-a77e-aae85ffe8170
+    from: Agent_ofRiMQMYVu
+    to: 953732ce-483f-4283-a77e-aae85ffe8170
+  - type: toolset
+    key: Agent_UN2XNbk31L/953732ce-483f-4283-a77e-aae85ffe8170
+    from: Agent_UN2XNbk31L
+    to: 953732ce-483f-4283-a77e-aae85ffe8170

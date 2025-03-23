@@ -3,7 +3,7 @@ import { Component, computed, effect, input, signal } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ListHeightStaggerAnimation } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { DateRelativePipe, IChatMessage } from 'apps/cloud/src/app/@core'
+import { ChatMessageStepType, DateRelativePipe, IChatMessage } from 'apps/cloud/src/app/@core'
 import { MarkdownModule } from 'ngx-markdown'
 import { Copy2Component } from '../../../common'
 
@@ -16,6 +16,8 @@ import { Copy2Component } from '../../../common'
   animations: [ ListHeightStaggerAnimation ]
 })
 export class XpertPreviewAiMessageComponent {
+  eChatMessageStepType = ChatMessageStepType
+  
   readonly message = input<IChatMessage>()
 
   readonly contents = computed(() => {

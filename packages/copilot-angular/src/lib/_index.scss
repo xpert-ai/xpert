@@ -1,5 +1,6 @@
 markdown.ngm-copilot-markdown {
   --ngm-copilot-table-radius: .375rem;
+  --ngm-copilot-link: hsl(214.6 60 45%);
   --hot-pink: oklch(59.91% 0.239 8.14);
   --hot-red: oklch(61.42% 0.238 15.34);
   --orange-red: oklch(63.32% 0.24 31.68);
@@ -168,6 +169,14 @@ markdown.ngm-copilot-markdown {
       td:last-child {
         border-bottom-right-radius: var(--ngm-copilot-table-radius);
       }
+    }
+  }
+
+  a {
+    color: var(--ngm-copilot-link);
+    font-weight: 500;
+    &:hover {
+      text-decoration: underline;
     }
   }
 }

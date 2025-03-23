@@ -1,13 +1,14 @@
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { getContextVariable } from '@langchain/core/context'
 import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
-import { CONTEXT_VARIABLE_CURRENTSTATE } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageStepType, CONTEXT_VARIABLE_CURRENTSTATE } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import z from 'zod'
 import { ToolParameterValidationError } from '../../../../errors'
 import { BuiltinTool } from '../../builtin-tool'
 import { PlanningToolset } from '../planning'
 import { PLAN_STEPS_NAME, PlanningToolEnum, TPlanStep } from '../types'
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 
 export type TPlanningDeleteStepToolParameters = {
 	index: number
@@ -50,7 +51,18 @@ export class PlanningDeleteStepTool extends BuiltinTool {
 			throw new ToolParameterValidationError(`Steps of plan is null`)
 		}
 
-		planSteps.splice(parameters.index, 1)
+		const _delSteps = planSteps.splice(parameters.index, 1)
+
+		// Tool message event
+		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+			type: ChatMessageStepType.ComputerUse,
+			toolset: PlanningToolset.provider,
+			tool: this.name,
+			title: `❌ ${_delSteps[0]?.content}`,
+			message: `Deleted ${parameters.index} step: ${_delSteps[0]?.content}`
+		}).catch((err) => {
+			this.#logger.error(err)
+		})
 
 		// Populated when a tool is called with a tool call from a model as input
 		const toolCallId = config.toolCall?.id

@@ -1,15 +1,22 @@
-import { Injectable } from '@angular/core'
-import { LanguagesEnum, OrderTypeEnum, XpertTypeEnum } from '../../@core/types'
+import { computed, Injectable, signal } from '@angular/core'
+import { injectXpertPreferences } from '@metad/cloud/state'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { map, pipe } from 'rxjs'
+import { IXpert, LanguagesEnum, OrderTypeEnum, XpertTypeEnum } from '../../@core/types'
 import { XpertHomeService } from '../../xpert'
 
 @Injectable()
 export class ChatHomeService extends XpertHomeService {
+  readonly #preferences = injectXpertPreferences()
+
   readonly xperts = derivedFrom(
     [
       this.xpertService
-        .getMyAll({ where: { type: XpertTypeEnum.Agent, latest: true }, order: { createdAt: OrderTypeEnum.DESC } })
+        .getMyAll({
+          relations: ['createdBy'],
+          where: { type: XpertTypeEnum.Agent, latest: true },
+          order: { createdAt: OrderTypeEnum.DESC }
+        })
         .pipe(map(({ items }) => items)),
       this.lang
     ],
@@ -24,4 +31,25 @@ export class ChatHomeService extends XpertHomeService {
     ),
     { initialValue: null }
   )
+
+  readonly xpert = signal<IXpert>(null)
+
+  readonly conversationTitle = computed(() => this.conversation()?.title)
+
+  readonly sortOrder = computed(() => this.#preferences()?.sortOrder)
+
+  readonly sortedXperts = computed(() => {
+    const xperts = this.xperts()
+    const sortOrder = this.sortOrder()
+    if (xperts && sortOrder) {
+      const sortOrderMap = new Map(sortOrder.map((id, index) => [id, index]))
+      return [...xperts].sort(
+        (a, b) =>
+          (sortOrderMap.get(a.id) ?? 0) - (sortOrderMap.get(b.id) ?? 0) ||
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      )
+    }
+
+    return xperts
+  })
 }

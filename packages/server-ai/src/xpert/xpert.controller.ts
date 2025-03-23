@@ -142,7 +142,7 @@ export class XpertController extends CrudController<Xpert> {
 	
 	@Get('slug/:slug')
 	async getOneBySlug(@Param('slug') slug: string,) {
-		const xpert = await this.service.findBySlug(slug, ['agent'])
+		const xpert = await this.service.findBySlug(slug, ['agent', 'agents'])
 		return xpert ? new XpertPublicDTO(xpert) : null
 	}
 

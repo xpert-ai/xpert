@@ -1,0 +1,11 @@
+@switch(canvasType()) {
+  @case ('Dashboard') {
+    <chat-canvas-dashboard class="w-full max-w-full flex-1" />
+  }
+  @case ('Computer') {
+    <chat-canvas-computer class="w-full max-w-full flex-1" />
+  }
+  @case ('File') {
+    <chat-canvas-file-viewer class="w-full sm:w-[80%] md:w-[400px] lg:w-[500px] xl:w-[600px] max-w-full flex-1" />
+  }
+}

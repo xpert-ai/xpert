@@ -419,7 +419,7 @@
         <div class="flex items-center gap-6 w-[240px]">
           <mat-slider class="relative slider grow" disableRipple discrete
             min="1"
-            max="30"
+            max="99"
             step="1" >
             <input matSliderThumb [value]="recursionLimit()" (dragEnd)="updateAgentConfig({recursionLimit: $event.value})">
           </mat-slider>

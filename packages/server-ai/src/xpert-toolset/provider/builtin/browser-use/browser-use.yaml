@@ -24,3 +24,29 @@ credentials_for_provider:
       en_US: Please select a ai model
       zh_Hans: 请选择一个大语言模型
     url: /settings/copilot/basic
+  max_steps:
+    type: int
+    label:
+      en_US: Max Steps
+      zh_Hans: 最大步数
+    placeholder:
+      en_US: Max steps to run
+      zh_Hans: 执行的最大步数
+  llm_temperature:
+    type: number
+    max: 1
+    label:
+      en_US: LLM temperature
+      zh_Hans: 模型温度
+    placeholder:
+      en_US: LLM temperature (Default 0.5)
+      zh_Hans: 模型温度（默认 0.5）
+  enable_recording:
+    type: boolean
+    default: true
+    label:
+      en_US: Recording
+      zh_Hans: 录屏
+    placeholder:
+      en_US: Enable Recording (Default true)
+      zh_Hans: 启用录屏（默认 启用）

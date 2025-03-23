@@ -1,0 +1,40 @@
+<div class="flex items-center flex-shrink-0 absolute top-2 right-0 z-10 bg-none pl-1.5 pr-4">
+  <div
+    role="group"
+    dir="ltr"
+    class="inline-flex p-0.5 items-center gap-0.5 rounded-lg bg-black/5 backdrop-blur-3xl"
+    tabindex="0"
+    style="outline: none"
+  >
+    <button
+      type="button"
+      role="radio"
+      class="type-radio inline-flex items-center justify-center rounded-md px-3 py-1 text-xs transition-colors text-text-tertiary
+        hover:cursor-pointer hover:bg-white"
+      tabindex="-1"
+      [class.active]="!preview()"
+      (click)="preview.set(false)"
+    >
+      {{ 'PAC.Chat.Code' | translate: {Default: 'Code'} }}
+    </button>
+    <button
+      type="button"
+      role="radio"
+      class="type-radio inline-flex items-center justify-center rounded-md px-3 py-1 text-xs transition-colors text-text-tertiary
+        hover:cursor-pointer hover:bg-white"
+      tabindex="-1"
+      [class.active]="preview()"
+      (click)="preview.set(true)"
+    >
+      {{ 'PAC.Chat.Preview' | translate: {Default: 'Preview'} }}
+    </button>
+  </div>
+</div>
+
+<pac-file-editor class="h-full" [fileName]="url()" 
+  [content]="content()"
+/>
+
+@if (preview()) {
+  <iframe [src]="url() | safe:'resourceUrl'" class="absolute top-0 left-0 w-full h-full border-none bg-components-panel-bg"></iframe>
+}

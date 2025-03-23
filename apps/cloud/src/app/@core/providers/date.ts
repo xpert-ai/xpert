@@ -30,6 +30,6 @@ export class DateRelativePipe implements PipeTransform {
   readonly _formatRelative = injectFormatRelative()
 
   transform(value: Date | string): string | null {
-    return this._formatRelative(value)
+    return value ? this._formatRelative(value) : null
   }
 }

@@ -51,6 +51,14 @@
       </div>
 
       <button type="button" class="action-btn action-btn-m w-7 h-7"
+        [class.text-primary-500]="editorOptions().wordWrap"
+        (click)="toggleWrap()"
+      >
+        <i class="ri-text-wrap"></i>
+      </button>
+      
+
+      <button type="button" class="action-btn action-btn-m w-7 h-7"
         (click)="showSuggestions()"
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4">
@@ -79,11 +87,11 @@
   </div>
 
   <div class="content gow relative overflow-auto">
-    <div class="edit-container pt-2 rounded-t-xl text-sm overflow-hidden text-gray-700"
+    <div class="edit-container pt-2 -ml-4 rounded-t-xl text-sm overflow-hidden text-gray-700"
       [style.height.px]="height"
       >
       <ngx-monaco-editor class="!h-full w-full max-h-full"
-        [options]="editorOptions"
+        [options]="editorOptions()"
         [ngModel]="prompt()"
         (ngModelChange)="prompt.set($event);elementRef.nativeElement.blur()"
         (resized)="onResized()"

@@ -21,13 +21,12 @@ import {
   ChatMessageTypeEnum,
   ChatMessageEventTypeEnum,
   XpertAgentExecutionStatusEnum,
-  ToolCall,
   IChatMessageFeedback,
   TChatOptions,
   TChatRequest,
   uuid,
-  ChatMessageStatusEnum,
   TSensitiveOperation,
+  TMessageContent,
 } from '../@core'
 import { ChatConversationService, ChatService as ChatServerService, XpertService, ToastrService, ChatMessageFeedbackService } from '../@core/services'
 import { AppService } from '../app.service'
@@ -139,7 +138,7 @@ export class ChatService {
     .subscribe({
       next: ([conversation]) => {
         if (conversation) {
-          this.xpert$.next(conversation.xpert)
+          this.xpert$.next(conversation?.xpert)
         }
       },
       error: (error) => {
@@ -158,7 +157,7 @@ export class ChatService {
 
   getConversation(id: string) {
     this.loadingConv.set(true)
-    return this.conversationService.getById(id, { relations: ['xpert', 'xpert.knowledgebases', 'xpert.toolsets', 'messages'] })
+    return this.conversationService.getById(id, { relations: ['xpert', 'xpert.agent', 'xpert.agents', 'xpert.knowledgebases', 'xpert.toolsets', 'messages'] })
   }
 
   getFeedbacks(id: string) {
@@ -190,7 +189,7 @@ export class ChatService {
       // })
     }
 
-    this.chatSubscription = this.chatRequest(this.xpert().slug, {
+    this.chatSubscription = this.chatRequest(this.xpert()?.slug, {
         input: {
           ...(this.parametersValue() ?? {}),
           input: options.content,
@@ -348,7 +347,7 @@ export class ChatService {
     } as IChatConversation))
   }
 
-  appendMessageComponent(content: MessageContent) {
+  appendMessageComponent(content: TMessageContent) {
     this.updateLatestMessage((lastM) => {
       appendMessageContent(lastM as any, content)
       return {

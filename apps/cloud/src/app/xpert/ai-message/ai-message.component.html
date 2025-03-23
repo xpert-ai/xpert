@@ -1,5 +1,6 @@
-<div>
-  <emoji-avatar class="rounded-full overflow-hidden shadow-sm mr-4" [avatar]="role()?.avatar" />
+<div class="flex items-center">
+  <emoji-avatar class="rounded-full overflow-hidden shadow-sm mr-2" [avatar]="role()?.avatar" />
+  <div class="text-text-secondary">{{role()?.title || role()?.name}}</div>
 </div>
 
 <div class="group/message relative flex-1 flex flex-col gap-2 mt-2 pb-10 overflow-hidden">
@@ -77,12 +78,8 @@
           <div class="flex flex-col p-2 rounded-lg text-token-text-secondary bg-token-main-surface-low">
             <div class="flex justify-start items-center">
               @if (message.status === 'thinking') {
-                <mat-progress-spinner [diameter]="16" [mode]="'indeterminate'" color="accent" />
+                <ngm-spin />
               }
-              <mat-icon fontSet="material-icons-round" class="mr-2 rounded-md active:scale-95 transition-transform"
-                [cdkMenuTriggerFor]="docs"
-                [cdkMenuTriggerData]="message"
-              >school</mat-icon>
               <span class="flex-1">
                 @if (message.status === 'aborted') {
                   {{ 'PAC.KEY_WORDS.Aborted' | translate: {Default: 'Aborted'} }}!
@@ -126,12 +123,9 @@
           <div class="flex flex-col p-2 rounded-lg text-token-text-secondary bg-token-main-surface-low">
             <div class="flex justify-start items-center">
               @if (message.status === 'thinking') {
-                <mat-progress-spinner [diameter]="16" [mode]="'indeterminate'" color="accent" />
+                <ngm-spin />
               }
-              <mat-icon fontSet="material-icons-round" class="mr-2 rounded-md active:scale-95 transition-transform"
-                [cdkMenuTriggerFor]="stepsMenu"
-                [cdkMenuTriggerData]="message"
-              >construction</mat-icon>{{message.name}}
+              {{message.name}}
 
               <span class="flex-1">
                 @if (message.status === 'aborted') {
@@ -175,19 +169,45 @@
   }
 
   @if (contents(); as messages) {
-    @for (message of messages; track message) {
-      @switch (message.type) {
+    @for (submessage of messages; track submessage; let last = $last) {
+      @switch (submessage.type) {
         @case ('text') {
-          <markdown clipboard class="ngm-copilot-markdown flex-1"
-            [clipboardButtonTemplate]="buttonTemplate"
-            lineNumbers
-            [start]="5"
-            [data]="message.text"
-          />
+          @if (submessage.agentKey && agents()[submessage.agentKey]; as agent) {
+            <div class="group flex items-center gap-2 mt-4">
+              @if (submessage.id) {
+                <button type="button" class="absolute left-1 w-6 h-6 flex justify-center items-center rounded-lg z-10 transition-opacity bg-white/2 backdrop-blur-sm opacity-0 group-hover:opacity-100"
+                  (click)="toggleCollapseMessage(submessage)">
+                  @if (collapseMessages()[submessage.id]) {
+                    <i class="ri-arrow-right-s-line"></i>
+                  } @else {
+                    <i class="ri-arrow-down-s-line"></i>
+                  }
+                </button>
+              }
+              <emoji-avatar [avatar]="agent.avatar" small class="rounded-xl overflow-hidden" />
+              <div class="font-semibold">{{agent.title || agent.name || agent.key}}</div>
+            </div>
+          }
+
+          @if (submessage.id && collapseMessages()[submessage.id]) {
+            <div class="truncate">{{submessage.text}}</div>
+          } @else {
+            <markdown clipboard class="ngm-copilot-markdown flex-1"
+              [clipboardButtonTemplate]="buttonTemplate"
+              lineNumbers
+              [start]="5"
+              [data]="submessage.text"
+            />
+          }
+
+          @if (!last && submessage.agentKey && !collapseMessages()[submessage.id]) {
+            <hr class="mt-8 mb-4 border-t border-solid border-divider-deep">
+          }
         }
         @case ('component') {
-          <chat-component-message class="w-full p-2 rounded-2xl hover:bg-neutral-50"
-            [message]="message"
+          <chat-component-message class="group/ccm w-full p-2 rounded-2xl hover:bg-neutral-50"
+            [messageId]="message().id"
+            [message]="submessage"
             (register)="onRegister($event)"
           />
         }
@@ -205,12 +225,12 @@
   }
 
   @if (lastStep(); as step) {
-    <div class="flex-1 min-w-0 cursor-pointer" (click)="toggleSteps()">
+    <div class="relative group flex-1 min-w-0 cursor-pointer" (click)="toggleSteps()">
       <div [@listHeightStagger]="steps()"
         class="rounded-xl flex flex-col gap-1 p-1 border border-[var(--border-light)] bg-[var(--fill-tsp-gray-main)] max-w-full clickable hover:bg-[var(--fill-tsp-gray-dark)] dark:hover:bg-white/[0.02]"
       >
-        @for (step of steps(); track step) {
-          <div class="relative flex items-center p-1 py-1 rounded-lg group/item hover:bg-gray-50">
+        @for (step of steps(); track $index) {
+          <div class="relative flex items-center p-1 py-1 rounded-lg group/item hover:bg-white">
             <div class="w-[16px] inline-flex items-center text-[var(--text-primary)]">
               @if (step.toolset) {
                 <img src="/api/xpert-toolset/builtin-provider/{{step.toolset}}/icon" alt="{{step.toolset}}" class="rounded-md">
@@ -220,13 +240,13 @@
               <div class="inline-flex items-center h-full rounded-full text-[14px] text-[var(--text-secondary)] max-w-[100%]">
                 <div
                   class="max-w-[100%] text-ellipsis overflow-hidden whitespace-nowrap text-[13px]"
-                  [title]="step.message"
+                  [title]="step.message || step.title"
                 >
                   <div class="flex items-center">
                     <span
                       class="flex-1 min-w-0 rounded-[6px] px-1 ml-1 relative top-[0px] text-[12px] font-mono max-w-full text-ellipsis overflow-hidden whitespace-nowrap text-[var(--text-tertiary)]"
                       >
-                      {{ step.message }}
+                      {{ step.message || step.title }}
                     </span>
                   </div>
                 </div>
@@ -239,6 +259,20 @@
           </div>
         }
       </div>
+
+      <a class="absolute top-1 right-2 w-8 h-8 cursor-pointer flex justify-center items-center rounded-lg 
+        hover:bg-hover-bg opacity-70 group-hover:opacity-100 bg-black/5 backdrop-blur-3xl"
+        [matTooltip]="'PAC.Chat.OpenInCanvas' | translate: {Default: 'Open in canvas'}"
+        matTooltipPosition="above"
+        (click)="openCanvas()">
+        <svg class="shrink-0 w-5 h-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3"/>
+          <path d="M8 21h8"/>
+          <path d="M12 17v4"/>
+          <path d="m17 8 5-5"/>
+          <path d="M17 3h5v5"/>
+        </svg>
+      </a>
     </div>
   }
 

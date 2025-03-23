@@ -10,7 +10,7 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, map, switchMap } from 'rxjs'
 import { getErrorMessage, injectToastr, IXpertTask, OrderTypeEnum, XpertTaskService, XpertTaskStatus } from '../../../@core'
 import { XpertTaskDialogComponent } from '../../../@shared/chat'
-import { EmojiAvatarComponent } from "../../../@shared/avatar/emoji-avatar/avatar.component";
+import { EmojiAvatarComponent } from "../../../@shared/avatar";
 import { MatTooltipModule } from '@angular/material/tooltip'
 
 @Component({

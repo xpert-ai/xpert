@@ -2,13 +2,14 @@ import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { getContextVariable } from '@langchain/core/context'
 import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageStepType, CONTEXT_VARIABLE_CURRENTSTATE, mapTranslationLanguage } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import z from 'zod'
 import { ToolParameterValidationError } from '../../../../errors'
 import { BuiltinTool } from '../../builtin-tool'
 import { PlanningToolset } from '../planning'
 import { PLAN_STEPS_NAME, PlanningToolEnum, TStepStatus } from '../types'
+import { STATE_VARIABLE_SYS } from '../../../../../xpert-agent'
 
 export type TPlanUpdateStepToolParameters = {
 	// id: string
@@ -48,6 +49,7 @@ export class PlanningUpdateStepTool extends BuiltinTool {
 		}
 
 		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
+		const language = currentState[STATE_VARIABLE_SYS]?.language
 		const planSteps = currentState[PLAN_STEPS_NAME]
 
 		if (!planSteps) {
@@ -60,11 +62,14 @@ export class PlanningUpdateStepTool extends BuiltinTool {
 			)
 		}
 
+		const i18n = await this.toolset.translate('toolset.Planning', { lang: mapTranslationLanguage(language) })
 		// Tool message event
 		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+			type: ChatMessageStepType.ComputerUse,
 			toolset: PlanningToolset.provider,
 			tool: this.name,
-			message: `Update ${parameters.step_index} step: ${parameters.step_status}, ${parameters.step_notes}`
+			title: `${planSteps[parameters.step_index]?.content}`,
+			message: `${i18n.Update} ${parameters.step_index} ${i18n.Step}: ${parameters.step_status}, ${parameters.step_notes}`
 		}).catch((err) => {
 			this.#logger.error(err)
 		})

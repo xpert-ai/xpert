@@ -34,6 +34,9 @@ import { ChatMoreComponent } from './icons'
 import { ChatSidenavMenuComponent } from './sidenav-menu/sidenav-menu.component'
 import { ChatXpertsComponent } from './xperts/xperts.component'
 
+/**
+ * @deprecated
+ */
 @Component({
   standalone: true,
   imports: [
@@ -65,7 +68,7 @@ import { ChatXpertsComponent } from './xperts/xperts.component'
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [ChatHomeService, { provide: XpertHomeService, useExisting: ChatHomeService }]
 })
-export class ChatHomeComponent {
+export class ChatHome1Component {
   DisplayBehaviour = DisplayBehaviour
 
   readonly conversationService = inject(ChatConversationService)

@@ -13,6 +13,9 @@ import { map } from 'rxjs'
 import { AIPermissionsEnum, IXpert } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { ChatHomeService } from '../home.service'
+import { NgmTooltipDirective } from '@metad/ocap-angular/core'
+import { XpertCardComponent } from '../../../@shared/xpert'
+import { OverlayAnimations } from '@metad/core'
 
 @Component({
   standalone: true,
@@ -25,41 +28,27 @@ import { ChatHomeService } from '../home.service'
     CdkListboxModule,
     DragDropModule,
     MatTooltipModule,
-    EmojiAvatarComponent
+    EmojiAvatarComponent,
+    NgmTooltipDirective,
+    XpertCardComponent
   ],
   selector: 'pac-chat-xperts',
   templateUrl: './xperts.component.html',
   styleUrl: 'xperts.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  animations: [ OverlayAnimations ]
 })
 export class ChatXpertsComponent {
   readonly chatService = inject(ChatHomeService)
   readonly permissionsService = inject(NgxPermissionsService)
-  readonly #preferences = injectXpertPreferences()
   readonly #store = inject(Store)
   readonly #router = inject(Router)
 
-  readonly sortOrder = computed(() => this.#preferences()?.sortOrder)
-  readonly pageSize = signal(5)
+  readonly pageSize = signal(10)
   readonly pageNo = signal(1)
 
-  readonly #sortedXperts = computed(() => {
-    const xperts = this.chatService.xperts()
-    const sortOrder = this.sortOrder()
-    if (xperts && sortOrder) {
-      const sortOrderMap = new Map(sortOrder.map((id, index) => [id, index]))
-      return [...xperts].sort(
-        (a, b) =>
-          (sortOrderMap.get(a.id) ?? 0) - (sortOrderMap.get(b.id) ?? 0) ||
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-      )
-    }
-
-    return xperts
-  })
-
   readonly xperts = computed(() => {
-    const xperts = this.#sortedXperts()
+    const xperts = this.chatService.sortedXperts()
     return xperts?.slice(0, this.pageNo() * this.pageSize())
   })
 
@@ -83,7 +72,7 @@ export class ChatXpertsComponent {
   }
 
   showLess() {
-    this.pageNo.update((state) => state - 1)
+    this.pageNo.set(1)
   }
 
   selectXpert(xpert: IXpert) {
@@ -92,7 +81,7 @@ export class ChatXpertsComponent {
   }
 
   dropSort(event: CdkDragDrop<IXpert[]>) {
-    const xperts = this.#sortedXperts().map(({ id }) => id)
+    const xperts = this.chatService.sortedXperts().map(({ id }) => id)
     moveItemInArray(xperts, event.previousIndex, event.currentIndex)
     this.#store.updateXpert({ sortOrder: xperts })
   }

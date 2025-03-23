@@ -10,6 +10,7 @@ import {
 import { Controller, Get, HttpStatus, Param, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { Like } from 'typeorm'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
 import { ChatConversationPublicDTO, ChatConversationSimpleDTO } from './dto'
@@ -35,13 +36,18 @@ export class ChatConversationController extends CrudController<ChatConversation>
 	@Get('my')
 	async findMyAll(
 		@Query('data', ParseJsonPipe) filter?: PaginationParams<ChatConversation>,
+		@Query('search') search?: string,
 		...options: any[]
 	): Promise<IPagination<ChatConversation>> {
-		return this.service.findAll({ ...filter, where: {
-				...(filter.where ?? {}),
-				createdById: RequestContext.currentUserId()
-			}
-		})
+		const where = {
+			...(filter.where ?? {}),
+			createdById: RequestContext.currentUserId()
+		} as any
+		if (search) {
+			where.title = Like(`%${search}%`)
+		}
+
+		return this.service.findAll({ ...filter, where})
 	}
 
 	@ApiOperation({ summary: 'Find by id' })
@@ -61,6 +67,11 @@ export class ChatConversationController extends CrudController<ChatConversation>
 		...options: any[]
 	): Promise<ChatConversationPublicDTO> {
 		return await this.service.findOneDetail(id, { select, relations })
+	}
+
+	@Get(':id/state')
+	async getThreadState(@Param('id', UUIDValidationPipe) id: string,): Promise<any> {
+		return await this.service.getThreadState(id)
 	}
 
 	@Get('xpert/:id')

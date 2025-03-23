@@ -1,6 +1,6 @@
 import { ToolCall as LToolCall } from '@langchain/core/dist/messages/tool'
 import { ITag } from '../tag-entity.model'
-import { IUser } from '../user.model'
+import { IUser, LanguagesEnum } from '../user.model'
 import { ICopilotModel, TCopilotModel } from './copilot-model.model'
 import { IKnowledgebase, TKBRecallParams } from './knowledgebase.model'
 import { I18nObject, TAvatar } from '../types'
@@ -411,7 +411,7 @@ export type TChatOptions = {
   /**
    * The language used by the current browser page
    */
-  language?: string
+  language?: LanguagesEnum
   /**
    * The browser's time zone
    */

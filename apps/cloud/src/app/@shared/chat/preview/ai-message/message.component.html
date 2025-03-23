@@ -73,15 +73,26 @@
             <div class="inline-flex items-center h-full rounded-full text-[14px] text-[var(--text-secondary)] max-w-[100%]">
               <div
                 class="max-w-[100%] text-ellipsis overflow-hidden whitespace-nowrap text-[13px]"
-                [title]="step.message"
+                [title]="step.message || step.title"
               >
-                <div class="flex items-center">
-                  <span
-                    class="flex-1 min-w-0 rounded-[6px] px-1 ml-1 relative top-[0px] text-[12px] font-mono max-w-full text-ellipsis overflow-hidden whitespace-nowrap text-[var(--text-tertiary)]"
-                    >
-                    {{ step.message }}
-                  </span>
-                </div>
+                @switch (step.type) {
+                  @case (eChatMessageStepType.File) {
+                    <div class="flex items-center">
+                      <span class="mr-1">{{step.type}}: </span>
+                      <a [href]="step.data" target="_blank" class="hover:underline hover:text-text-primary"
+                        (click)="$event.stopPropagation()">{{step.data}}</a>
+                    </div>
+                  }
+                  @default {
+                    <div class="flex items-center">
+                      <span
+                        class="flex-1 min-w-0 rounded-[6px] px-1 ml-1 relative top-[0px] text-[12px] font-mono max-w-full text-ellipsis overflow-hidden whitespace-nowrap text-[var(--text-tertiary)]"
+                        >
+                        {{ step.message || step.title }}
+                      </span>
+                    </div>
+                  }
+                }
               </div>
             </div>
           </div>

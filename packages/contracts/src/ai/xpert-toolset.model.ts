@@ -61,6 +61,7 @@ export type TXpertToolset = {
 export interface IXpertToolset extends IBasePerWorkspaceEntityModel, TXpertToolset {}
 
 export type TXpertToolsetOptions = {
+  provider: IToolProvider
   baseUrl?: string
   toolPositions?: Record<string, number>
   [key: string]: any
@@ -85,7 +86,9 @@ export enum CredentialsType {
   SELECT = 'select',
   REMOTE_SELECT = 'remote-select',
   COPILOT_MODEL = 'copilot-model',
-  BOOLEAN = 'boolean'
+  BOOLEAN = 'boolean',
+  INT = 'int',
+  NUMBER = 'number'
 }
 
 export interface ToolCredentialsOption {
@@ -118,6 +121,7 @@ export interface ToolProviderCredentials {
    */
   url?: string
   placeholder?: I18nObject
+  max?: number
 }
 
 export enum ApiProviderAuthType {
@@ -187,7 +191,6 @@ export interface IToolProvider {
   is_team_authorization: boolean
   allow_delete: boolean
   tools?: XpertToolType[]
-  // labels?: ToolTagEnum[]
   tags: ToolTagEnum[];
 }
 

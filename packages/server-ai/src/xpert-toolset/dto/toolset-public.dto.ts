@@ -1,4 +1,4 @@
-import { IUser, IXpertToolset, TToolCredentials } from '@metad/contracts'
+import { IUser, IXpertToolset, TToolCredentials, TXpertToolsetOptions } from '@metad/contracts'
 import { UserPublicDTO } from '@metad/server-core'
 import { Exclude, Expose, Transform } from 'class-transformer'
 
@@ -7,7 +7,7 @@ export class ToolsetPublicDTO implements IXpertToolset {
 	name: string
 	
 	@Exclude()
-	declare options: Record<string, any>
+	declare options: TXpertToolsetOptions
 
 	@Exclude()
 	declare credentials?: TToolCredentials

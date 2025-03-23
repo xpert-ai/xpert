@@ -3,6 +3,7 @@ import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsNumber, IsOptional, IsString, IsEnum } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, RelationId } from 'typeorm'
+import { StoredMessage } from '@langchain/core/messages'
 import { Xpert } from '../core/entities/internal'
 
 @Entity('xpert_agent_execution')
@@ -30,6 +31,12 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
 	outputs?: any
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	messages?: StoredMessage[]
 
 	@ApiProperty({ type: () => String, enum: XpertAgentExecutionStatusEnum })
 	@IsEnum(XpertAgentExecutionStatusEnum)

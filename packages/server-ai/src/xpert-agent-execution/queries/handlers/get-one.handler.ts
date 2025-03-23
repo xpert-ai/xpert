@@ -29,11 +29,13 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 	}
 
 	async expandExecutionLatestCheckpoint(execution: IXpertAgentExecution, parent?: IXpertAgentExecution) {
-		if (!execution.threadId) {
-			return execution
+		let agent = null
+		if (execution.xpertId && execution.agentKey) {
+			agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(new GetXpertAgentQuery(execution.xpertId, execution.agentKey, true))
 		}
-
-		const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(new GetXpertAgentQuery(execution.xpertId, execution.agentKey, true))
+		if (!execution.threadId) {
+			return {...execution, agent}
+		}
 
 		const tuple = await this.queryBus.execute(
 			new CopilotCheckpointGetTupleQuery({
@@ -47,7 +49,7 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 		const messages = tuple?.checkpoint?.channel_values?.[channel]?.messages ?? tuple?.checkpoint?.channel_values?.messages
 		return new XpertAgentExecutionDTO({
 			...execution,
-			messages: messages ? mapChatMessagesToStoredMessages(messages) : null,
+			messages: messages ? mapChatMessagesToStoredMessages(messages) : execution.messages,
 			totalTokens: execution.totalTokens,
 			summary: tuple?.checkpoint?.channel_values?.[channel]?.summary,
 			agent

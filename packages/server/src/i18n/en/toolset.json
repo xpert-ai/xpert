@@ -23,5 +23,21 @@
       "Bar": "Bar",
       "Pie": "Pie"
     }
+  },
+  "Planning": {
+    "CreatedAPlan": "Created a plan",
+    "Update": "Update",
+    "Step": "Step"
+  },
+  "TavilySearch": {
+    "WebSearch": "Web Search",
+    "Searching": "Searching"
+  },
+  "CodeProject": {
+    "Deploy": "Deploy",
+    "DeploytoServer": "Deploy to server"
+  },
+  "Python": {
+    "ExecPythonCode": "Executing Python code"
   }
 }

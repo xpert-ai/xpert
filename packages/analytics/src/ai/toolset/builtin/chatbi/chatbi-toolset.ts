@@ -8,6 +8,7 @@ import {
 	IIndicator,
 	JSONValue,
 	OrderTypeEnum,
+	TMessageComponent,
 	TranslateOptions,
 	TranslationLanguageMap,
 	TStateVariable,
@@ -534,6 +535,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 							id: shortuuid(),
 							type: 'component',
 							data: {
+								category: 'Dashboard',
 								type: 'KPI',
 								dataSettings: {
 									...omit(dataSettings, 'chartAnnotation'),
@@ -546,7 +548,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 								slicers,
 								title: answer.preface,
 								// indicator
-							} as unknown as JSONValue
+							} as TMessageComponent
 						}
 					}
 				} as MessageEvent)
@@ -558,13 +560,14 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 							id: shortuuid(),
 							type: 'component',
 							data: {
+								category: 'Dashboard',
 								type: 'AnalyticalCard',
 								dataSettings,
 								chartSettings,
 								slicers,
 								title: answer.preface,
 								indicators
-							} as unknown as JSONValue
+							} as TMessageComponent
 						}
 					}
 				} as MessageEvent)
@@ -665,9 +668,10 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 					id: shortuuid(),
 					type: 'component',
 					data: {
+						category: 'Dashboard',
 						type: 'NewIndicator',
 						indicator
-					} as unknown as JSONValue
+					} as TMessageComponent
 				}
 			}
 		} as MessageEvent)

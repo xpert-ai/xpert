@@ -27,11 +27,11 @@ import { MatDialog } from '@angular/material/dialog'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import { effectAction, NgmI18nPipe } from '@metad/ocap-angular/core'
-import { CopilotPromptGeneratorComponent } from '../prompt-generator/generator.component'
-import { agentLabel, TStateVariable, TWorkflowVarGroup } from '../../../@core'
 import { switchMap, tap } from 'rxjs/operators'
 import { timer } from 'rxjs'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
+import { agentLabel, TStateVariable, TWorkflowVarGroup } from '../../../@core'
+import { CopilotPromptGeneratorComponent } from '../prompt-generator/generator.component'
 
 declare var monaco: any
 
@@ -94,16 +94,17 @@ export class CopilotPromptEditorComponent {
   private startHeight = 0
   readonly copied = signal(false)
 
-  editorOptions: any = {
+  readonly editorOptions = signal({
     theme: 'vs',
     automaticLayout: true,
     language: 'markdown',
     lineNumbers: 'off',
     glyphMargin: 0,
+    wordWrap: false,
     minimap: {
       enabled: false
     }
-  }
+  })
 
   readonly #editor = signal(null)
 
@@ -113,6 +114,10 @@ export class CopilotPromptEditorComponent {
         this.height = this.initHeight()
       }
     })
+  }
+
+  toggleWrap() {
+    this.editorOptions.update((state) => ({...state, wordWrap: !state.wordWrap}))
   }
 
   generate() {
@@ -128,13 +133,6 @@ export class CopilotPromptEditorComponent {
           }
         }
       })
-  }
-
-  /**
-   * @deprecated
-   */
-  onPromptChange(editor: HTMLDivElement) {
-    this.prompt.set(formatInnerHTML(editor.innerHTML))
   }
 
   onKeyup(event: KeyboardEvent) {
@@ -176,7 +174,7 @@ export class CopilotPromptEditorComponent {
       position.lineNumber,
       endMatch ? (position.column + endMatch[0].length) : position.column
     );
-    const text = `{{${variable.name}}}`
+    const text = g ? `{{${g}.${variable.name}}}` : `{{${variable.name}}}`
 
     const operation = {
       range: range,
@@ -186,27 +184,6 @@ export class CopilotPromptEditorComponent {
     // Performing Edit Operations
     this.#editor().executeEdits("insert-string", [operation])
     this.hideSuggestions()
-  }
-
-  /**
-   * @deprecated
-   */
-  selectVariable(g: string, variable: TStateVariable) {
-    const editablePrompt: HTMLDivElement = this.editablePrompt.nativeElement
-    const text = editablePrompt.innerText
-    const regex = /{{(?=\s+\S*)|{{$/
-    const updatedText = text.replace(regex, g ? `{{${g}.${variable.name}}}` : `{{${variable.name}}}`)
-    editablePrompt.innerText = updatedText
-    this.hideSuggestions()
-
-    // focus the edit div and insert cursor in end
-    editablePrompt.focus()
-    const range = document.createRange()
-    const selection = window.getSelection()
-    range.selectNodeContents(editablePrompt)
-    range.collapse(false)
-    selection.removeAllRanges()
-    selection.addRange(range)
   }
 
   showSuggestions() {
@@ -287,7 +264,7 @@ export class CopilotPromptEditorComponent {
           this.showSuggestions()
         }
       });
-  });
+    })
   }
 
   onResized() {
@@ -299,7 +276,7 @@ export class CopilotPromptEditorComponent {
   }
 
   getCursorPagePosition() {
-    const editor = this.#editor()
+    const editor = this.#editor();
     // Get the cursor position
     const position = editor.getPosition();
     
@@ -310,8 +287,8 @@ export class CopilotPromptEditorComponent {
     const editorDom = editor.getDomNode();
     const viewLines = editorDom.querySelector('.view-lines');
     
-    // Get the position of the content container on the page
-    const rect = viewLines.getBoundingClientRect();
+    // Check if viewLines exists
+    const rect = viewLines ? viewLines.getBoundingClientRect() : editorDom.getBoundingClientRect();
     
     // Calculate the absolute coordinates of the cursor on the page
     const cursorX = rect.left + cursorCoords.left;
@@ -319,25 +296,4 @@ export class CopilotPromptEditorComponent {
     
     return { x: cursorX, y: cursorY };
   }
-}
-
-/**
- * @deprecated
- */
-function formatInnerHTML(htmlContent: string) {
-  // Step 1: 处理段落 <p> 标签并替换为换行符
-  let formattedText = htmlContent
-    .replace(/<\/p>\s*<p[^>]*>/gi, '\n') // 替换段落间的换行
-    .replace(/<div><br\s*\/?><\/div>/gi, '\n') // 替换 <br> 标签为换行
-    .replace(/<br\s*\/?>/gi, '\n') // 替换 <br> 标签为换行
-    .replace(/<\/?p[^>]*>/gi, '') // 移除 <p> 标签
-    .replace(/<\/?span[^>]*>/gi, '') // 移除 <span> 标签
-    .replace(/<mark[^>]*>(.*?)<\/mark>/gi, '$1') // 保留 <mark> 内的内容
-    .replace(/<\/div><div>/gi, '\n') // 将 </div><div> 替换成换行符
-    .replace(/<\/div>/gi, '\n') // 将 </div> 替换成换行符
-
-  formattedText = formattedText.replace(/\n<div[^>]*>/gi, '\n')
-    .replace(/<div[^>]*>/gi, '\n')
-
-  return formattedText.trimEnd()
 }
