@@ -8,6 +8,9 @@ import { channelName, IXpertAgent, TMessageChannel, TStateVariable, TVariableAss
 import { isFunction } from '@metad/server-common'
 
 // export const STATE_VARIABLE_SYS_LANGUAGE = 'sys_language'
+/**
+ * @deprecated use STATE_VARIABLE_SYS in contracts
+ */
 export const STATE_VARIABLE_SYS = 'sys'
 // export const STATE_VARIABLE_USER_EMAIL = 'user_email'
 // export const STATE_VARIABLE_USER_TIMEZONE = 'user_timezone'

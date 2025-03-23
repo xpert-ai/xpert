@@ -48,9 +48,7 @@
   }
   <div class="flex flex-col rounded-[12px] overflow-hidden bg-neutral-100 border border-divider-deep dark:border-black/30 shadow-[0px_4px_32px_0px_rgba(0,0,0,0.04)] flex-1 min-h-0">
     @if (step(); as step) {
-      <div
-        class="h-[36px] flex items-center px-3 w-full bg-[var(--background-gray-main)] border-b border-divider-deep rounded-t-[12px] shadow-[inset_0px_1px_0px_0px_#FFFFFF] dark:shadow-[inset_0px_1px_0px_0px_#FFFFFF30]"
-      >
+      <div class="h-[36px] flex items-center px-3 w-full bg-[var(--background-gray-main)] border-b border-divider-deep rounded-t-[12px] shadow-[inset_0px_1px_0px_0px_#FFFFFF] dark:shadow-[inset_0px_1px_0px_0px_#FFFFFF30]">
         <div class="flex-1 flex items-center justify-center">
           <div class="max-w-[250px] truncate text-zinc-500 text-base font-medium text-center">
             @switch (step.toolset) {
@@ -110,6 +108,17 @@
                     {{item.name}}
                   </a>
                 </div>
+              }
+            </div>
+          }
+          @case (eChatMessageStepCategory.Program) {
+            <div class="flex flex-col overflow-auto h-full px-4 py-3">
+              <div>{{step.data.code}}</div>
+              @if (step.data.output) {
+                <div class="mt-4">{{step.data.output}}</div>
+              }
+              @if (step.data.error) {
+                <div class="mt-4 text-text-destructive">{{step.data.error}}</div>
               }
             </div>
           }

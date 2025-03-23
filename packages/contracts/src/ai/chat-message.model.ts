@@ -18,8 +18,18 @@ export enum ChatMessageStepType {
 }
 
 export enum ChatMessageStepCategory {
+  /**
+   * Websearch results
+   */
   WebSearch = 'web_search',
+  /**
+   * Files creation view or edition
+   */
   Files = 'files',
+  /**
+   * Program Execution
+   */
+  Program = 'program'
 }
 
 export type TChatMessageStep = {
