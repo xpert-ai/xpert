@@ -33,7 +33,10 @@ import { BehaviorSubject, debounceTime, switchMap } from 'rxjs'
   templateUrl: './computer.component.html',
   styleUrl: 'computer.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  animations: [ListHeightStaggerAnimation]
+  animations: [ListHeightStaggerAnimation],
+  host: {
+    '[class.expand]': 'expand()'
+  }
 })
 export class ChatCanvasComputerComponent {
   eChatMessageStepType = ChatMessageStepType
@@ -44,6 +47,7 @@ export class ChatCanvasComputerComponent {
   readonly #formatRelative = injectFormatRelative()
 
   // States
+  readonly expand = signal(false)
   readonly messageId = computed(() => this.homeService.canvasOpened()?.type === 'Computer' && this.homeService.canvasOpened()?.messageId)
   readonly steps = computed(() => {
     const conversation = this.homeService.conversation()
@@ -126,5 +130,9 @@ export class ChatCanvasComputerComponent {
   
   togglePlan() {
     this.expandPlan.update((state) => !state)
+  }
+
+  toggleExpand() {
+    this.expand.update((state) => !state)
   }
 }

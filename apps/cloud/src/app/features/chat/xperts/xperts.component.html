@@ -3,7 +3,7 @@
   (cdkDropListDropped)="dropSort($event)"
 >
   @for (xpert of xperts(); track xpert.id) {
-    <div role="button" class="flex items-center text-primary text-sm font-medium rounded-2xl px-3 py-2 border border-input-border 
+    <div role="button" class="flex items-center max-w-xs text-primary text-sm font-medium rounded-2xl px-3 py-2 border border-input-border 
       hover:bg-white cursor-pointer transition-all focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       tabindex="0"
       [ngmTooltip]="xpertCard"
