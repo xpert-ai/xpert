@@ -63,6 +63,9 @@ export class ChatCanvasDashboardComponent {
 
   readonly contents = computed(() => {
     const messages = this.#messages()
+    if (!messages?.length) {
+      return []
+    }
     const contents = messages.reduce((acc, message) => {
       const contents = message.content
       if (Array.isArray(contents)) {

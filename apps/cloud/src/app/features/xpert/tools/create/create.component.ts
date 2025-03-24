@@ -1,8 +1,8 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, model, signal, viewChild } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { routeAnimations } from '@metad/core'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -13,11 +13,12 @@ import {
   ToastrService,
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { isNil, omitBy } from 'lodash-es'
 import { XpertConfigureToolComponent } from '../api-tool/types'
 import { XpertStudioConfigureODataComponent } from '../odata/'
 import { XpertStudioConfigureToolComponent } from '../openapi/'
+import { MatButtonModule } from '@angular/material/button'
+import { DragDropModule } from '@angular/cdk/drag-drop'
 
 @Component({
   standalone: true,
@@ -26,8 +27,9 @@ import { XpertStudioConfigureToolComponent } from '../openapi/'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MaterialModule,
+    DragDropModule,
     CdkListboxModule,
+    MatButtonModule,
     ButtonGroupDirective,
     XpertStudioConfigureToolComponent,
     XpertStudioConfigureODataComponent
@@ -41,8 +43,8 @@ import { XpertStudioConfigureToolComponent } from '../openapi/'
 export class XpertStudioCreateToolComponent {
   private readonly xpertToolsetService = inject(XpertToolsetService)
   readonly #toastr = inject(ToastrService)
-  readonly #dialogRef = inject(MatDialogRef)
-  readonly #data = inject<{ workspace: IXpertWorkspace }>(MAT_DIALOG_DATA)
+  readonly #dialogRef = inject(DialogRef)
+  readonly #data = inject<{ workspace: IXpertWorkspace }>(DIALOG_DATA)
 
   readonly configure = viewChild('configure', { read: XpertConfigureToolComponent })
 
@@ -73,5 +75,9 @@ export class XpertStudioCreateToolComponent {
           this.#toastr.error(getErrorMessage(error))
         }
       })
+  }
+
+  cancel() {
+    this.#dialogRef.close()
   }
 }
