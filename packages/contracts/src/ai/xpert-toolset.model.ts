@@ -12,6 +12,10 @@ export enum XpertToolsetCategoryEnum {
   BUILTIN = 'builtin',
   API = 'api',
   /**
+   * [Anthropic Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction)
+   */
+  MCP = 'mcp',
+  /**
    * @deprecated
    */
   WORKFLOW = 'workflow'
