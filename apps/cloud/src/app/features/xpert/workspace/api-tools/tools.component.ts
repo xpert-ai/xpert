@@ -114,6 +114,7 @@ export class XpertWorkspaceApiToolsComponent {
   })
 
   readonly apiToolsets = computed(() => this.toolsets()?.filter((_) => _.category === XpertToolsetCategoryEnum.API))
+  readonly mcpToolsets = computed(() => this.toolsets()?.filter((_) => _.category === XpertToolsetCategoryEnum.MCP))
 
   constructor() {
     //
@@ -142,6 +143,10 @@ export class XpertWorkspaceApiToolsComponent {
 
   navigateTo(toolset: IXpertToolset) {
     if (toolset.category === XpertToolsetCategoryEnum.API) {
+      this.router.navigate(['/xpert/tool', toolset.id])
+    }
+
+    if (toolset.category === XpertToolsetCategoryEnum.MCP) {
       this.router.navigate(['/xpert/tool', toolset.id])
     }
   }

@@ -11,6 +11,7 @@ import {
   IXpertTool,
   IXpertToolset,
   OrderTypeEnum,
+  TMCPSchema,
   ToolProviderCredentials,
   TToolCredentials,
   TXpertToolEntity,
@@ -91,6 +92,12 @@ export class XpertToolsetService extends XpertWorkspaceBaseCrudService<IXpertToo
       tools: TXpertToolEntity[]
     }>(this.apiBaseUrl + `/provider/odata/schema`, {
       schema
+    })
+  }
+
+  getMCPToolsBySchema(schema: TMCPSchema) {
+    return this.httpClient.post<{schema: string; tools: TXpertToolEntity[]}>(this.apiBaseUrl + `/provider/mcp/tools`, {
+      schema,
     })
   }
 

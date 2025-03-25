@@ -2158,6 +2158,7 @@
       "EnterToolsetName": "输入工具集名称",
       "ViewOpenAPISwaggerSpec": "查看 OpenAPI-Swagger 规范",
       "ViewODataSpec": "查看 OData 规范",
+      "ViewMCPSpec": "查看 MCP 规范",
       "AvailableTools": "可用工具",
       "EnterYourOpenAPISchema": "在此处输入您的 OpenAPI Schema",
       "EnterYourODataMetadata": "在此处输入您的 OData Metadata",

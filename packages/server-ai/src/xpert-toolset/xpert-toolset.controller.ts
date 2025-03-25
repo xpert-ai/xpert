@@ -1,4 +1,4 @@
-import { IPagination, IXpertTool, IXpertToolset } from '@metad/contracts'
+import { IPagination, IXpertTool, IXpertToolset, TMCPSchema } from '@metad/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -27,7 +27,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { ServerResponse } from 'http'
 import { TestOpenAPICommand } from '../xpert-tool/commands/'
-import { ParserODataSchemaCommand, ParserOpenAPISchemaCommand } from './commands/'
+import { MCPToolsBySchemaCommand, ParserODataSchemaCommand, ParserOpenAPISchemaCommand } from './commands/'
 import { ToolProviderDTO, ToolsetPublicDTO } from './dto'
 import {
 	GetODataRemoteMetadataQuery,
@@ -182,6 +182,11 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 	@Post('provider/odata/schema')
 	async parseODataSchema(@Body() { schema }: { schema: string }) {
 		return this.commandBus.execute(new ParserODataSchemaCommand(schema))
+	}
+
+	@Post('provider/mcp/tools')
+	async getMCPTools(@Body() { schema }: { schema: TMCPSchema }) {
+		return this.commandBus.execute(new MCPToolsBySchemaCommand(schema))
 	}
 
 	// Single Toolset

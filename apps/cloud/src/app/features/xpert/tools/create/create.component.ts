@@ -1,8 +1,10 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, model, signal, viewChild } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { MatButtonModule } from '@angular/material/button'
 import { routeAnimations } from '@metad/core'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -17,8 +19,7 @@ import { isNil, omitBy } from 'lodash-es'
 import { XpertConfigureToolComponent } from '../api-tool/types'
 import { XpertStudioConfigureODataComponent } from '../odata/'
 import { XpertStudioConfigureToolComponent } from '../openapi/'
-import { MatButtonModule } from '@angular/material/button'
-import { DragDropModule } from '@angular/cdk/drag-drop'
+import { XpertStudioConfigureMCPComponent } from '../mcp'
 
 @Component({
   standalone: true,
@@ -32,7 +33,8 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
     MatButtonModule,
     ButtonGroupDirective,
     XpertStudioConfigureToolComponent,
-    XpertStudioConfigureODataComponent
+    XpertStudioConfigureODataComponent,
+    XpertStudioConfigureMCPComponent
   ],
   selector: 'pac-xpert-tool-create',
   templateUrl: './create.component.html',
@@ -52,7 +54,7 @@ export class XpertStudioCreateToolComponent {
 
   readonly loading = signal(false)
 
-  readonly providerTypes = model<string[]>(['openapi'])
+  readonly providerTypes = model<('mcp' | 'openapi' | 'odata')[]>(['mcp'])
 
   readonly toolset = model<IXpertToolset>()
 
