@@ -21,7 +21,7 @@ services:
       - ./volumes/db/data:/var/lib/postgresql/data
       - ./.scripts/initdb.d/:/docker-entrypoint-initdb.d/:ro
     networks:
-      - default
+      - overlay
 
   redis:
     image: redis/redis-stack:latest
@@ -30,7 +30,7 @@ services:
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     networks:
-      - default
+      - overlay
 
   # OLAP Services
   olap:
@@ -54,7 +54,7 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     networks:
-      - default
+      - overlay
 
   api:
     image: ghcr.io/xpert-ai/xpert-api:latest
@@ -85,7 +85,7 @@ services:
       - api_data:/srv/pangolin/public
       - ./volumes/api/ms-playwright:/ms-playwright
     networks:
-      - default
+      - overlay
 
   webapp:
     image: ghcr.io/xpert-ai/xpert-webapp:latest
@@ -116,7 +116,7 @@ services:
     volumes:
       - ./volumes/webapp/:/webapp/
     networks:
-      - default
+      - overlay
 
 networks:
   overlay:

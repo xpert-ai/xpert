@@ -18,7 +18,7 @@ services:
       - ./volumes/db/data:/var/lib/postgresql/data
       - ./.scripts/initdb.d/:/docker-entrypoint-initdb.d/:ro
     networks:
-      - default
+      - overlay
 
   redis:
     image: registry.cn-hangzhou.aliyuncs.com/metad/redis-stack:6.2.6-v15-x86_64
@@ -27,7 +27,7 @@ services:
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     networks:
-      - default
+      - overlay
 
   # OLAP Services
   olap:
@@ -51,7 +51,7 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     networks:
-      - default
+      - overlay
 
   api:
     image: registry.cn-hangzhou.aliyuncs.com/metad/xpert-api:latest
@@ -82,7 +82,7 @@ services:
       - ./volumes/api/public:/srv/pangolin/public
       - ./volumes/api/ms-playwright:/ms-playwright
     networks:
-      - default
+      - overlay
 
   webapp:
     image: registry.cn-hangzhou.aliyuncs.com/metad/xpert-webapp:latest
@@ -113,7 +113,7 @@ services:
     volumes:
       - ./volumes/webapp/:/webapp/
     networks:
-      - default
+      - overlay
 
 networks:
   overlay:
