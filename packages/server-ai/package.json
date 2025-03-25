@@ -14,6 +14,7 @@
     "@langchain/core": "0.3.36",
     "@langchain/community": "0.3.27",
     "@langchain/langgraph": "0.2.41",
+    "@langchain/mcp-adapters": "0.3.4",
     "@langchain/google-genai": "0.1.6",
     "@langchain/ollama": "0.1.5",
     "@langchain/xai": "0.0.1",
