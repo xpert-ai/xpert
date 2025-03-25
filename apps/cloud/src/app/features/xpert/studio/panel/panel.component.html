@@ -1,5 +1,6 @@
 @for (node of selectedNodes(); track node.key) {
-  <div class="relative mr-2 h-full flex w-[420px] 2xl:w-[460px]" @listFadeIn>
+  <div class="relative mr-2 h-full flex" @listFadeIn
+    [style.width.px]="panelWidth()">
     @if (node.entity) {
       @switch (node.type) {
         @case('agent') {
@@ -29,6 +30,11 @@
         }
       }
     }
+
+    <div class="absolute top-1/2 -translate-y-1/2 -left-2 w-4 h-8 cursor-col-resize resize-x"
+      (mousedown)="onResizeMouseDown($event)">
+      <div class="w-1 h-7 bg-divider-deep rounded-sm"></div>
+    </div>
 
     <div class="absolute top-2 right-2 z-20 opacity-50 hover:opacity-100" displayDensity="compact">
       <!-- <button mat-icon-button (click)="close()">
