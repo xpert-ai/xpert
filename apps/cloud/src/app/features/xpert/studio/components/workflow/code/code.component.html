@@ -1,0 +1,53 @@
+<div class="relative w-full flex h-8 p-1">
+  <div class="grow flex justify-end items-center">
+    <div class="text-[12px] font-semibold text-text-primary uppercase">
+      {{ 'PAC.Xpert.Next' | translate: {Default: 'Next'} }}
+    </div>
+  </div>
+
+  <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" class="right group" [fOutputMultiple]="true">
+    <div class="inner-dot cursor-crosshair">
+      <ngm-plus-svg class="w-2 h-2 text-white" />
+    </div>
+  </div>
+</div>
+
+@if (retry()?.enabled && retry().stopAfterAttempt) {
+  <div class="w-full flex items-center justify-between px-[5px] py-1 bg-gray-100 border-[0.5px] border-transparent rounded-md uppercase font-medium text-sm text-text-tertiary">
+    <div class="flex items-center">
+      {{'PAC.Xpert.RetryTimes' | translate: {
+          Default: 'Retry '+(retry().stopAfterAttempt - 1)+' times on failure',
+          times: retry().stopAfterAttempt - 1
+        }
+      }}
+    </div>
+  </div>
+}
+
+@if (errorHandling()?.type) {
+  <div class="w-full relative mt-2">
+    <div class="relative flex items-center justify-between px-[5px] h-7 bg-gray-100 rounded-md">
+      <div class="text-sm font-medium uppercase text-text-tertiary">
+        {{'PAC.Xpert.OnFailure' | translate: {Default: 'On Failure'} }}
+      </div>
+      @if (errorHandling().type === 'defaultValue') {
+        <div class="system-xs-medium text-gray-500">
+          {{'PAC.Xpert.OutputDefaultValue' | translate: {Default: 'Output Default Value'} }}
+        </div>
+      }
+      @if (errorHandling().type === 'failBranch') {
+        <div class="system-xs-medium text-gray-500">
+          {{'PAC.Xpert.FailBranch' | translate: {Default: 'Fail Branch'} }}
+        </div>
+      }
+    </div>
+
+    @if (errorHandling().type === 'failBranch') {
+      <div class="edge danger right group" fNodeOutput [fOutputId]="node().key + '/fail/edge'" fOutputConnectableSide="right">
+        <div class="inner-dot cursor-crosshair">
+          <ngm-plus-svg class="w-2 h-2 text-white" />
+        </div>
+      </div>
+    }
+  </div>
+}

@@ -1,0 +1,145 @@
+<div class="p-4">
+  <div class="flex justify-between items-center">
+    <div class="flex items-center h-6">
+      <div class="system-sm-semibold-uppercase text-text-secondary">输入变量</div>
+    </div>
+    <div class="flex">
+      <div class="w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none
+        pressable"
+        (click)="addInput()"
+      >
+        <i class="ri-add-line"></i>
+      </div>
+    </div>
+  </div>
+  
+  <div class="mt-1">
+    <div class="space-y-2">
+      @for (param of inputs(); track param; let i = $index) {
+        <div class="flex items-center space-x-1">
+          <div class="relative w-[120px]">
+            <input class="w-full py-1.5 bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular" 
+              placeholder="变量名"
+              [ngModel]="param.name"
+            >
+          </div>
+          <div class="grow cursor-pointer">
+            <div class="!flex group/picker-trigger-wrap relative">
+              <div class="border-gray-100 relative group/wrap flex items-center w-full h-9 p-1 rounded-lg bg-components-input-bg-normal">
+                <div class="grow h-full">
+                  <xpert-state-variable-select [variables]="variables()" [ngModel]="param.variable" (ngModelChange)="updateInput(i, 'variable', $event)"/>
+                </div>
+                <button type="button" class="btn invisible group-hover/wrap:visible absolute w-7 h-7 justify-center right-1 top-[50%] translate-y-[-50%] group p-1 rounded-md hover:bg-black/5 cursor-pointer danger"
+                  (click)="removeInput(param)">
+                  <i class="ri-delete-bin-line"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<div class="px-2 py-1">
+  <xpert-workflow-code-editor class="border border-solid border-divider-regular rounded-xl shadow-sm" 
+    [(language)]="language"
+    [(code)]="code"
+  />
+</div>
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<div class="p-4">
+  <div class="flex justify-between items-center">
+    <div class="flex items-center h-6">
+      <div class="system-sm-semibold-uppercase text-text-secondary">输出变量</div>
+    </div>
+    <div class="flex">
+      <div class="w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none
+        pressable"
+        (click)="addOutput()"
+      >
+        <i class="ri-add-line"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-1">
+    <div class="space-y-2">
+      @for (output of outputs(); track output) {
+        <div class="flex items-center space-x-1">
+          <div class="relative w-full grow">
+            <input
+              class="w-full py-1.5 bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 system-sm-regular rounded-lg"
+              placeholder="请输入"
+              [ngModel]="output.name"
+            />
+          </div>
+          <ngm-select class="w-24" [nullable]="false" [selectOptions]="OutputSelectOptions" 
+            [ngModel]="output.type"
+            (ngModelChange)="updateOutput(output, 'type', $event)"
+          />
+          <div class="flex justify-center items-center w-7 h-7 shrink-0 cursor-pointer rounded-md pressable danger hover:bg-black/5 text-gray-500 hover:text-text-destructive"
+            (click)="removeOutput(output)"
+          >
+            <i class="ri-delete-bin-line"></i>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+  
+</div>
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<div class="pt-2">
+  <div class="flex items-center justify-between px-4 py-2 h-10">
+    <div class="flex items-center">
+      <div class="mr-0.5 system-sm-semibold-uppercase text-text-secondary">失败时重试</div>
+    </div>
+
+    <ngm-slide-toggle [ngModel]="enabledRetry()" (ngModelChange)="updateRetry({enabled: $event})" />
+  </div>
+
+  @if (enabledRetry()) {
+    <div class="w-full flex justify-between items-center px-4">
+      <div class="grow text-sm">
+        {{'PAC.Xpert.StopAfterAttempt' | translate: {Default: 'Stop After Attempt'} }}
+        <i class="ri-information-line opacity-20 hover:opacity-100"
+          [matTooltip]="'PAC.Xpert.StopAfterAttemptTip' | translate: {Default: 'How many times to try before stopping'}"
+          matTooltipPosition="above"
+        ></i>
+      </div>
+
+      <mat-slider class="w-[200px] grow" ngm-density small color="accent"
+        [min]="1"
+        [max]="10"
+        discrete
+      >
+        <input matSliderThumb [value]="stopAfterAttempt()"
+          (dragEnd)="updateRetry({stopAfterAttempt: $event.value})" >
+      </mat-slider>
+
+      <input class="shrink-0 block ml-4 pl-3 w-16 h-8 appearance-none outline-none rounded-lg bg-gray-100 text-[13px] text-gra-900" 
+        [min]="1"
+        [max]="10"
+        [step]="1"
+        type="number"
+        [ngModel]="stopAfterAttempt()"
+        (ngModelChange)="updateRetry({stopAfterAttempt: $event})"
+      >
+    </div>
+  }
+</div>
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<xpert-workflow-error-handling class="p-4" [defaultValueSchema]="outputs()"
+  [ngModel]="errorHandling()"
+  (ngModelChange)="updateEntity('errorHandling', $event)"
+/>

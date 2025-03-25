@@ -21,6 +21,7 @@ import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertStudioPanelWorkflowIfelseComponent } from './ifelse/ifelse.component'
 import { XpertStudioPanelWorkflowIteratingComponent } from './iterating/iterating.component'
 import { XpertStudioPanelWorkflowAnswerComponent } from './answer/answer.component'
+import { XpertStudioPanelWorkflowCodeComponent } from './code/code.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -40,7 +41,8 @@ import { XpertStudioPanelWorkflowAnswerComponent } from './answer/answer.compone
     NgmSpinComponent,
     XpertStudioPanelWorkflowIfelseComponent,
     XpertStudioPanelWorkflowIteratingComponent,
-    XpertStudioPanelWorkflowAnswerComponent
+    XpertStudioPanelWorkflowAnswerComponent,
+    XpertStudioPanelWorkflowCodeComponent
   ]
 })
 export class XpertStudioPanelWorkflowComponent {

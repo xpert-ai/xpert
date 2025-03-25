@@ -1,6 +1,6 @@
 import { I18nObject } from "../types"
 import { IXpertAgent } from "./xpert-agent.model"
-import { TStateVariable } from "./xpert.model"
+import { TStateVariable, TXpertParameter } from "./xpert.model"
 
 export enum WorkflowNodeTypeEnum {
   ASSIGNER = 'assigner',
@@ -8,6 +8,7 @@ export enum WorkflowNodeTypeEnum {
   SPLITTER = 'splitter',
   ITERATING = 'iterating',
   ANSWER = 'answer',
+  CODE = 'code',
   NOTE = 'note'
 }
 
@@ -130,9 +131,32 @@ export type TWorkflowVarGroup = {
   agent?: Partial<IXpertAgent>
   group?: {
     name: string
-    description: I18nObject
+    description: string | I18nObject
   }
   variables: TStateVariable[]
+}
+
+export interface IWFNCode extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.CODE
+  language: 'python' | 'nodejs'
+  code: string
+  inputs: {name: string; variable?: string}[]
+  outputs: TXpertParameter[]
+  /**
+   * Retry on failure
+   */
+  retry?: {
+    enabled?: boolean
+    stopAfterAttempt?: number
+  }
+  /**
+   * Error handling
+   */
+  errorHandling?: {
+    type?: null | 'defaultValue' | 'failBranch'
+    defaultValue?: string
+    failBranch?: string
+  }
 }
 
 export function channelName(name: string) {

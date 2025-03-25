@@ -11,7 +11,7 @@ import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioKnowledgeMenuComponent } from '../knowledge-menu/knowledge.component'
 import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.component'
 import { TranslateModule } from '@ngx-translate/core'
-import { genXpertAnswerKey, genXpertIteratingKey, genXpertRouterKey } from '../../../utils'
+import { genXpertAnswerKey, genXpertCodeKey, genXpertIteratingKey, genXpertRouterKey } from '../../../utils'
 
 @Component({
   selector: 'xpert-studio-context-menu',
@@ -106,6 +106,13 @@ export class XpertStudioContextMenuComponent {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.ANSWER,
       key: genXpertAnswerKey()
+    })
+  }
+
+  addWorkflowCode() {
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.CODE,
+      key: genXpertCodeKey()
     })
   }
 

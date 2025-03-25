@@ -43,3 +43,7 @@ export function genXpertIteratingKey() {
 export function genXpertAnswerKey() {
   return letterStartSUID('Answer_')
 }
+
+export function genXpertCodeKey() {
+  return letterStartSUID('Code_')
+}

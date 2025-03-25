@@ -1,5 +1,5 @@
 import { AIMessage, AIMessageChunk, BaseMessage } from '@langchain/core/messages'
-import { isCommand } from '@langchain/langgraph'
+import { BaseChannel, isCommand } from '@langchain/langgraph'
 import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
@@ -366,12 +366,18 @@ export function getAgentVarGroup(key: string, graph: TXpertGraph): TWorkflowVarG
 	const agent = graph.nodes.find((_) => _.type === 'agent' && _.key === key) as TXpertTeamNode & {type: 'agent'}
 
 	const variables = []
-	const varGroup = {
+	const varGroup: TWorkflowVarGroup = {
 		agent: {
 			title: agent.entity.title,
 			description: agent.entity.description,
 			name: agent.entity.name || agent.entity.key,
 			key: channelName(agent.key)
+		},
+		group: {
+			name: channelName(agent.key),
+			description: {
+				en_US: agentLabel(agent.entity)
+			},
 		},
 		variables
 	}
@@ -428,4 +434,9 @@ export function messageEvent(event: ChatMessageEventTypeEnum, data: any) {
 
 export function messageContentText(content: string | TMessageContentComplex) {
 	return typeof content === 'string' ? content : content.type === 'text' ? content.text : ''
+}
+
+export type TStateChannel = {
+	name: string
+	annotation: BaseChannel
 }

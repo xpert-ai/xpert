@@ -37,7 +37,7 @@ import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 import { ChatOpenAI } from '@langchain/openai'
 import { XpertConfigException } from '../../../core/errors'
 import { RequestContext } from '@metad/server-core'
-import { FakeStreamingChatModel } from '../../agent'
+import { FakeStreamingChatModel, TStateChannel } from '../../agent'
 import { stringifyMessageContent } from '@metad/copilot'
 import { createParameters } from '../../workflow/parameter'
 import { CreateWorkflowNodeCommand } from '../create-workflow.command'
@@ -213,6 +213,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const conditionalEdges: Record<string, [RunnableLike, string[]?]> = {}
 		// Fixed Edge
 		const edges: Record<string, string> = {}
+		// Channels of workflow
+		const channels: TStateChannel[] = []
 		if (isStart) {
 			/**
 			 * The root node is responsible for the overall workflow
@@ -268,12 +270,15 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						await createSubgraph(nextNodes?.[0], failNode)
 					}
 				} else if(node?.type === 'workflow') {
-					const { workflowNode, navigator, nextNodes } = await this.commandBus.execute(
+					const { workflowNode, navigator, nextNodes, channel } = await this.commandBus.execute(
 						new CreateWorkflowNodeCommand(xpert.id, graph, node, parentKey, {
 							isDraft: options.isDraft,
 							subscriber,
 							rootExecutionId: options.rootExecutionId
 						}))
+					if (channel) {
+						channels.push(channel)
+					}
 					nodes[node.key] = {
 						...workflowNode
 					}
@@ -360,6 +365,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				acc[parameter.name] = Annotation(stateVariable(parameter))
 				return acc
 			}, {}) ?? {}),
+			// Channels for workflow nodes
+			...channels.reduce((state, channel) => {
+				state[channel.name] = channel.annotation
+				return state
+			}, {}),
 			// Channels for agents
 			...Object.fromEntries(agents.map((agent) => [
 				channelName(agent.key),
