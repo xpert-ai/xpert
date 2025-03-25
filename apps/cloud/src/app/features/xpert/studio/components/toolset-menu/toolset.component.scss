@@ -1,5 +1,5 @@
 :host {
-  @apply flex flex-col justify-start items-start;
+  @apply flex flex-col justify-start items-start min-w-[320px];
 }
 
 .ngm-cdk-menu {

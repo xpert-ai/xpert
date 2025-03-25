@@ -6,6 +6,7 @@ import { IXpertToolset } from './xpert-toolset.model'
 import { IXpert, TXpertParameter } from './xpert.model'
 import { TVariableAssigner } from './xpert-workflow.model'
 import { TSensitiveOperation } from './chat.model'
+import { TErrorHandling } from './types'
 
 export type TXpertAgent = {
   key: string
@@ -124,11 +125,7 @@ export type TXpertAgentOptions = {
   /**
    * Error handling
    */
-  errorHandling?: {
-    type?: null | 'defaultValue' | 'failBranch'
-    defaultValue?: string
-    failBranch?: string
-  }
+  errorHandling?: TErrorHandling
 
   /**
    * Recall params for kbs

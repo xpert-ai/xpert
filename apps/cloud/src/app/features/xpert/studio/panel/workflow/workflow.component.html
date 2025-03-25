@@ -30,6 +30,15 @@
           <i class="ri-chat-ai-fill"></i>
         </div>
       }
+      @case (eWorkflowNodeTypeEnum.CODE) {
+        <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-400
+              w-7 h-7 rounded-lg shadow-sm
+              shrink-0 mr-1"
+          [matTooltip]="key()"
+          matTooltipPosition="above">
+          <i class="ri-code-s-slash-line"></i>
+        </div>
+      }
       @case (eWorkflowNodeTypeEnum.NOTE) {
         <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-orange-500
           w-6 h-6 rounded-lg shadow-sm
@@ -85,6 +94,9 @@
   }
   @case (eWorkflowNodeTypeEnum.ANSWER) {
     <xpert-studio-panel-workflow-answer [node]="node()" [entity]="wfNode()" />
+  }
+  @case (eWorkflowNodeTypeEnum.CODE) {
+    <xpert-studio-panel-workflow-code [node]="node()" [wfNode]="wfNode()" />
   }
 }
 

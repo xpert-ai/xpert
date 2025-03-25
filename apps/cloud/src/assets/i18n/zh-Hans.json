@@ -2521,7 +2521,9 @@
       "ToolsCall": "工具调用",
       "Toolset_planning": "规划",
       "Toolset_bash": "终端",
-      "SandboxToolsetTip": "需要运行在沙盒中的工具"
+      "SandboxToolsetTip": "需要运行在沙盒中的工具",
+      "InputVariables": "输入变量",
+      "OutputVariables": "输出变量"
     },
     "title": {
       "short": "Xpert AI"

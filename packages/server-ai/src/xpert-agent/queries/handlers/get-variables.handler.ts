@@ -1,9 +1,14 @@
 import {
+	channelName,
+	IWFNCode,
+	IWorkflowNode,
 	IXpertAgent,
+	STATE_VARIABLE_SYS,
 	TStateVariable,
 	TWorkflowVarGroup,
 	TXpertGraph,
 	TXpertParameter,
+	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
 } from '@metad/contracts'
 import { omit } from '@metad/server-common'
@@ -12,7 +17,7 @@ import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertAgentQuery } from '../../../xpert/queries/'
 import { XpertService } from '../../../xpert/xpert.service'
 import { getAgentVarGroup } from '../../agent'
-import { STATE_VARIABLE_INPUT, STATE_VARIABLE_SYS } from '../../commands/handlers/types'
+import { STATE_VARIABLE_INPUT } from '../../commands/handlers/types'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
 
 @QueryHandler(XpertAgentVariablesQuery)
@@ -129,6 +134,35 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			}
 		}
 
+		const workflowNodes = graph?.nodes?.filter((_) => _.type === 'workflow' && _.key !== nodeKey)
+		if (workflowNodes) {
+			for await (const node of workflowNodes) {
+				const entity = node.entity as IWorkflowNode
+				if (entity.type === WorkflowNodeTypeEnum.CODE) {
+					const variables: TXpertParameter[] = []
+					const varGroup: TWorkflowVarGroup = {
+						group: {
+							name: channelName(entity.key),
+							description: entity.title || {
+								en_US: entity.key,
+							},
+						},
+						variables
+					}
+					varGroups.push(varGroup);
+					variables.push(...((<IWFNCode>entity).outputs ?? []))
+					variables.push({
+						type: XpertParameterTypeEnum.STRING,
+  						name: 'error',
+						title: 'Error',
+						description: {
+							en_US: 'Error info',
+							zh_Hans: '错误信息'
+						}
+					})
+				}
+			}
+		}
 		return varGroups
 	}
 

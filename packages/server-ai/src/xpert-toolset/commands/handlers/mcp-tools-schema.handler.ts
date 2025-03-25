@@ -1,4 +1,4 @@
-import { MultiServerMCPClient } from '@langchain/mcp-adapters'
+// import { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { MCPToolsBySchemaCommand } from '../mcp-tools-schema.command'
@@ -14,25 +14,25 @@ export class MCPToolsBySchemaHandler implements ICommandHandler<MCPToolsBySchema
 
 		console.log(schema)
 
-		// Create a client
-		const client = new MultiServerMCPClient()
+		// // Create a client
+		// const client = new MultiServerMCPClient()
 
-		// Connect to a remote server via SSE
-		for await (const name of Object.keys(schema.servers)) {
-			const server = schema.servers[name]
-			await client.connectToServerViaSSE(
-				name, // Server name
-				server.url // SSE endpoint URL
-			)
-		}
+		// // Connect to a remote server via SSE
+		// for await (const name of Object.keys(schema.servers)) {
+		// 	const server = schema.servers[name]
+		// 	await client.connectToServerViaSSE(
+		// 		name, // Server name
+		// 		server.url // SSE endpoint URL
+		// 	)
+		// }
 
-		return {
-			tools: client.getTools().map((tool) => {
-				return {
-					name: tool.name,
-					description: tool.description
-				}
-			})
-		}
+		// return {
+		// 	tools: client.getTools().map((tool) => {
+		// 		return {
+		// 			name: tool.name,
+		// 			description: tool.description
+		// 		}
+		// 	})
+		// }
 	}
 }

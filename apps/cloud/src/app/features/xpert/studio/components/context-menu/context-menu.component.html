@@ -146,6 +146,20 @@
       <div class="text-text-secondary">{{'PAC.Xpert.Answer' | translate: {Default: 'Answer'} }}</div>
     </div>
 
+    <div class="flex items-start px-2 mt-2 text-base font-medium text-text-tertiary">
+      {{ 'PAC.Xpert.Transform' | translate: {Default: 'Transform'} }}
+    </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowCode()"
+    >
+      <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-400
+        w-5 h-5 rounded-md
+        shrink-0 mr-2">
+        <i class="ri-code-s-slash-line text-sm"></i>
+      </div>
+      <div class="text-text-secondary">{{'PAC.Xpert.Code' | translate: {Default: 'Code'} }}</div>
+    </div>
+
     <div class="flex items-start px-2 mt-2 font-medium text-text-tertiary">
       {{ 'PAC.Xpert.Others' | translate: {Default: 'Others'} }}
     </div>

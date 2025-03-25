@@ -7,3 +7,10 @@ export type TMessageChannel = {
   messages: BaseMessage[]
   summary?: string
 }
+
+
+export type TErrorHandling = {
+  type?: null | 'defaultValue' | 'failBranch'
+  defaultValue?: {content?: string}
+  failBranch?: string
+}

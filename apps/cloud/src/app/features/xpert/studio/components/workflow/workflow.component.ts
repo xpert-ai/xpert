@@ -16,6 +16,7 @@ import { XpertStudioNodeWorkflowIfelseComponent } from './ifelse/ifelse.componen
 import { XpertStudioNodeWorkflowSplitterComponent } from './splitter/splitter.component'
 import { XpertStudioNodeWorkflowIteratingComponent } from './iterating/iterating.component'
 import { XpertStudioNodeWorkflowAnswerComponent } from './answer/answer.component'
+import { XpertStudioNodeWorkflowCodeComponent } from './code/code.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -26,7 +27,8 @@ import { XpertStudioNodeWorkflowAnswerComponent } from './answer/answer.componen
   imports: [FFlowModule, CdkMenuModule, MatTooltipModule, TranslateModule, XpertStudioNodeWorkflowIfelseComponent, 
     XpertStudioNodeWorkflowIteratingComponent,
     XpertStudioNodeWorkflowSplitterComponent,
-    XpertStudioNodeWorkflowAnswerComponent
+    XpertStudioNodeWorkflowAnswerComponent,
+    XpertStudioNodeWorkflowCodeComponent
   ],
   host: {
     tabindex: '-1',

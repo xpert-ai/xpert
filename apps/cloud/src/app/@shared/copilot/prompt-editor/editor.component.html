@@ -133,11 +133,11 @@
     
     <ul class="overflow-auto">
       @for (g of variables(); track g) {
-        @if (g.agent) {
-          <div class="p-1 mt-2 text-sm text-text-secondary">{{agentLabel(g.agent)}}</div>
+        @if (g.group) {
+          <div class="p-1 mt-2 text-sm text-text-secondary">{{g.group.description | i18n}}</div>
         }
         @for (variable of g.variables; track variable.name) {
-          <li cdkMenuItem class="max-w-sm space-x-2 truncate" (click)="setVariable(g.agent?.key, variable)">
+          <li cdkMenuItem class="max-w-sm space-x-2 truncate" (click)="setVariable(g.group?.name, variable)">
             <span class="text-sm mr-1">{{ variable.name }}</span>
             <span class="flex-1 text-xs italic truncate text-text-secondary">{{variable.description | i18n}}</span>
             <span class="ml-4 px-1 text-sm rounded-md bg-gray-50 text-primary-300">{{variable.type}}</span>
