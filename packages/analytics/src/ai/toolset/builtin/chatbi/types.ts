@@ -87,7 +87,7 @@ export const TimeSlicerSchema = z.object({
 	dimension: z
 	  .object({
 		dimension: z.string().describe('The name of the dimension'),
-		hierarchy: z.string().optional().describe('The name of the hierarchy in the dimension')
+		hierarchy: z.string().optional().nullable().describe('The name of the hierarchy in the dimension')
 	  })
 	  .describe('the time dimension'),
 	granularity: z
@@ -100,9 +100,9 @@ export const TimeSlicerSchema = z.object({
 		])
 		.describe('The granularity of the time range'),
 	start: z.string().describe('The start period in granularity, example: 20210101, 2022, 202101, 2022Q1, 2021W1'),
-	end: z.string().optional().describe('The end period in granularity, example: 20210101, 2022, 202101, 2022Q1, 2021W1'),
-	// lookBack: z.number().optional().describe('The look back period in granularity'),
-	// lookAhead: z.number().optional().describe('The look ahead period in granularity')
+	end: z.string().optional().nullable().describe('The end period in granularity, example: 20210101, 2022, 202101, 2022Q1, 2021W1'),
+	// lookBack: z.number().optional().nullable().describe('The look back period in granularity'),
+	// lookAhead: z.number().optional().nullable().describe('The look ahead period in granularity')
   })
 
 export const ChatAnswerSchema = z.object({
@@ -110,16 +110,16 @@ export const ChatAnswerSchema = z.object({
 	preface: z.string().describe('preface of the answer'),
 	visualType: z
 		.enum(['ColumnChart', 'LineChart', 'PieChart', 'BarChart', 'Table', 'KPI'])
-		.optional()
+		.optional().nullable()
 		.describe('Visual type of result'),
-	dataSettings: DataSettingsSchema.optional().describe('The data settings of the widget'),
-	dimensions: z.array(ChartDimensionSchema).optional().describe('The dimensions used by the chart'),
-	measures: z.array(ChartMeasureSchema).optional().describe('The measures used by the chart'),
-	orders: z.array(OrderBySchema).optional().describe('The orders used by the chart'),
-	top: z.number().optional().describe('The number of top members'),
-	slicers: z.array(SlicerSchema).optional().describe('The slicers to filter data'),
-	timeSlicers: z.array(TimeSlicerSchema).optional().describe('The time slicers to filter data'),
-	variables: z.array(VariableSchema).optional().describe('The variables to the query of cube')
+	dataSettings: DataSettingsSchema.optional().nullable().describe('The data settings of the widget'),
+	dimensions: z.array(ChartDimensionSchema).optional().nullable().describe('The dimensions used by the chart'),
+	measures: z.array(ChartMeasureSchema).optional().nullable().describe('The measures used by the chart'),
+	orders: z.array(OrderBySchema).optional().nullable().describe('The orders used by the chart'),
+	top: z.number().optional().nullable().describe('The number of top members'),
+	slicers: z.array(SlicerSchema).optional().nullable().describe('The slicers to filter data'),
+	timeSlicers: z.array(TimeSlicerSchema).optional().nullable().describe('The time slicers to filter data'),
+	variables: z.array(VariableSchema).optional().nullable().describe('The variables to the query of cube')
 })
 
 export const IndicatorSchema = z.object({
@@ -129,7 +129,7 @@ export const IndicatorSchema = z.object({
 	code: z.string().describe('The unique code of indicator'),
 	name: z.string().describe(`The caption of indicator in user's language`),
 	formula: z.string().describe('The MDX formula for calculated measure'),
-	unit: z.string().optional().describe(`The unit of measure, '%' or orthers`),
+	unit: z.string().optional().nullable().describe(`The unit of measure, '%' or orthers`),
 	description: z
 		.string()
 		.describe(

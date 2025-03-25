@@ -66,7 +66,7 @@ export class XpertStudioNodeToolsetComponent {
     return tools?.map((tool) => ({
       tool,
       executions: Object.values(executions?.[tool.name] ?? {}).sort(
-        (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+        (a, b) => a.createdAt?.getTime() - b.createdAt?.getTime()
       )
     }))
   })
