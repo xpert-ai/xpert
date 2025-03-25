@@ -301,7 +301,12 @@
 
     <div class="h-[0.5px] bg-divider-subtle"></div>
 
-    <xpert-error-handling class="px-2"
+    <!-- <xpert-error-handling class="px-2"
+      [ngModel]="errorHandling()"
+      (ngModelChange)="updateErrorHandling($event)"
+    /> -->
+
+    <xpert-workflow-error-handling class="p-4" [defaultValueSchema]="defaultValueSchema"
       [ngModel]="errorHandling()"
       (ngModelChange)="updateErrorHandling($event)"
     />

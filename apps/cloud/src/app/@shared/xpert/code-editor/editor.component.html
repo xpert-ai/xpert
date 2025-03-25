@@ -17,7 +17,7 @@
     <div class="flex items-center">
       <div class="h-[18px] leading-[18px] px-1 rounded-md bg-gray-100 text-xs text-gray-500">{{codeLength()}}</div>
 
-      <div class="flex space-x-1 items-center px-2 py-0.5 rounded-lg text-sm cursor-pointer group hover:bg-state-base-hover"
+      <!-- <div class="flex space-x-1 items-center px-2 py-0.5 rounded-lg text-sm cursor-pointer group hover:bg-state-base-hover"
         (click)="generate()">
         <svg
           width="14"
@@ -41,7 +41,7 @@
         <span class="font-semibold text-indigo-500 group-hover:text-indigo-600">
           {{'PAC.Copilot.Generate' | translate: {Default: 'Generate'} }}
         </span>
-      </div>
+      </div> -->
 
       <button type="button" class="action-btn action-btn-m w-7 h-7"
         [class.text-primary-500]="editorOptions().wordWrap"
@@ -71,6 +71,9 @@
   </div>
 
   <div class="content gow relative overflow-auto">
+    @if (language() === 'javascript') {
+      <div class="px-2 text-text-secondary">function main(&#123; <span class="font-semibold text-text-primary">{{args()}}</span> &#125;) &#123;</div>
+    }
     <div class="edit-container pt-2 -ml-4 rounded-t-xl text-sm overflow-hidden text-gray-700"
       [style.height.px]="height"
       >
@@ -82,6 +85,9 @@
         (onInit)="onInit($event)"
       />
     </div>
+    @if (language() === 'javascript') {
+      <div class="px-2 text-text-secondary">&#125;</div>
+    }
 
     <div class="absolute bottom-0 left-0 w-full flex justify-center h-2 cursor-row-resize"
       (mousedown)="onMouseDown($event)">
@@ -95,8 +101,8 @@
     <div cdkMenuItem (click)="setLanguage('javascript')">
       JavaScript
     </div>
-    <div cdkMenuItem (click)="setLanguage('python')">
+    <!-- <div cdkMenuItem (click)="setLanguage('python')">
       Python
-    </div>
+    </div> -->
   </div>
 </ng-template>

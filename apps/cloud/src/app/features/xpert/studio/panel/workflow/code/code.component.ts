@@ -152,14 +152,14 @@ export class XpertStudioPanelWorkflowCodeComponent {
     this.updateEntity('outputs', [...outputs])
   }
 
-  removeOutput(param) {
+  removeOutput(index: number) {
     const outputs = this.outputs() ?? []
-    this.updateEntity('outputs', outputs.filter((item) => item.name !== param.name)) 
+    outputs.splice(index, 1)
+    this.updateEntity('outputs', [...outputs]) 
   }
 
-  updateOutput(param, name: string, value: string) {
+  updateOutput(index: number, name: string, value: string) {
     const outputs = this.outputs() ?? []
-    const index = outputs.indexOf(param)
     if (index > -1) {
       outputs[index] = {
         ...outputs[index],

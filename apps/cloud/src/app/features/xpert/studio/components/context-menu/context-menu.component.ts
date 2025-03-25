@@ -2,7 +2,7 @@ import { CdkMenu, CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectorRef, Component, inject, TemplateRef, ViewChild } from '@angular/core'
 import { MatTabsModule } from '@angular/material/tabs'
-import { IWFNIfElse, IXpert, uuid, WorkflowNodeTypeEnum } from 'apps/cloud/src/app/@core'
+import { IWFNCode, IWFNIfElse, IXpert, uuid, WorkflowNodeTypeEnum, XpertParameterTypeEnum } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { Subscription } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
@@ -112,8 +112,26 @@ export class XpertStudioContextMenuComponent {
   addWorkflowCode() {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.CODE,
-      key: genXpertCodeKey()
-    })
+      key: genXpertCodeKey(),
+      language: 'javascript',
+      code: `return {result: arg1 + arg2};`,
+      inputs: [
+        {
+          name: 'arg1',
+          variable: null
+        },
+        {
+          name: 'arg2',
+          variable: null
+        }
+      ],
+      outputs: [
+        {
+          type: XpertParameterTypeEnum.STRING,
+          name: 'result'
+        }
+      ]
+    } as IWFNCode)
   }
 
   public dispose(): void {

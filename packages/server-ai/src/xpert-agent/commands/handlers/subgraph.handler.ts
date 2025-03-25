@@ -481,7 +481,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			const errorHandling = agent.options?.errorHandling
 			if (errorHandling?.type === 'defaultValue') {
 				withFallbackModel = withFallbackModel.withFallbacks([
-					new FakeStreamingChatModel({responses: [new AIMessage(errorHandling.defaultValue)]})
+					new FakeStreamingChatModel({responses: [new AIMessage(errorHandling.defaultValue?.content)]})
 				])
 			}
 

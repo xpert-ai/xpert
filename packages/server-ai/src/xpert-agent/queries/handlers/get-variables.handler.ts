@@ -139,7 +139,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			for await (const node of workflowNodes) {
 				const entity = node.entity as IWorkflowNode
 				if (entity.type === WorkflowNodeTypeEnum.CODE) {
-					const variables = []
+					const variables: TXpertParameter[] = []
 					const varGroup: TWorkflowVarGroup = {
 						group: {
 							name: channelName(entity.key),
@@ -151,6 +151,15 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 					}
 					varGroups.push(varGroup);
 					variables.push(...((<IWFNCode>entity).outputs ?? []))
+					variables.push({
+						type: XpertParameterTypeEnum.STRING,
+  						name: 'error',
+						title: 'Error',
+						description: {
+							en_US: 'Error info',
+							zh_Hans: '错误信息'
+						}
+					})
 				}
 			}
 		}

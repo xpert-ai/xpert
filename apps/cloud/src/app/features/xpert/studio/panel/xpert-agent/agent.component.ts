@@ -33,7 +33,8 @@ import {
   TVariableAssigner,
   XpertAgentService,
   TXpertAgentOptions,
-  injectHelpWebsite
+  injectHelpWebsite,
+  XpertParameterTypeEnum
 } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { XpertStudioApiService } from '../../domain'
@@ -55,7 +56,7 @@ import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { OverlayAnimations } from '@metad/core'
 import { MatSliderModule } from '@angular/material/slider'
-import { XpertErrorHandlingComponent } from './error-handling/error-handling.component'
+import { XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/workflow'
 
 @Component({
   selector: 'xpert-studio-panel-agent',
@@ -84,7 +85,7 @@ import { XpertErrorHandlingComponent } from './error-handling/error-handling.com
     XpertStudioPanelKnowledgeSectionComponent,
     XpertOutputVariablesEditComponent,
     XpertVariablesAssignerComponent,
-    XpertErrorHandlingComponent
+    XpertWorkflowErrorHandlingComponent
   ],
   host: {
     tabindex: '-1',
@@ -206,6 +207,14 @@ export class XpertStudioPanelAgentComponent {
     ),
     shareReplay(1)
   )
+
+  readonly defaultValueSchema = [
+    {
+      type: XpertParameterTypeEnum.STRING,
+      name: 'content',
+      title: 'Text'
+    }
+  ]
 
   constructor() {
     effect(

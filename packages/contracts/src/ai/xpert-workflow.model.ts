@@ -1,4 +1,5 @@
 import { I18nObject } from "../types"
+import { TErrorHandling } from "./types"
 import { IXpertAgent } from "./xpert-agent.model"
 import { TStateVariable, TXpertParameter } from "./xpert.model"
 
@@ -138,7 +139,7 @@ export type TWorkflowVarGroup = {
 
 export interface IWFNCode extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.CODE
-  language: 'python' | 'nodejs'
+  language: 'python' | 'javascript'
   code: string
   inputs: {name: string; variable?: string}[]
   outputs: TXpertParameter[]
@@ -152,11 +153,7 @@ export interface IWFNCode extends IWorkflowNode {
   /**
    * Error handling
    */
-  errorHandling?: {
-    type?: null | 'defaultValue' | 'failBranch'
-    defaultValue?: string
-    failBranch?: string
-  }
+  errorHandling?: TErrorHandling
 }
 
 export function channelName(name: string) {

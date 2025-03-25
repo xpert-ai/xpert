@@ -7,6 +7,8 @@ import { get } from 'lodash'
 import { SandboxVMCommand } from '../../sandbox'
 import { AgentStateAnnotation } from '../commands/handlers/types'
 
+const ErrorChannelName = 'error'
+
 export function createCodeNode(
 	commandBus: CommandBus,
 	graph: TXpertGraph,
@@ -21,8 +23,6 @@ export function createCodeNode(
 					acc[param.name] = get(state, param.variable)
 					return acc
 				}, {})
-
-				console.log(inputs)
 
 				try {
 					const results = await commandBus.execute(new SandboxVMCommand(entity.code, inputs))
@@ -41,7 +41,7 @@ export function createCodeNode(
 					if (entity.errorHandling?.type === 'failBranch') {
 						return {
 							[channelName(node.key)]: {
-								__error__: getErrorMessage(err)
+								[ErrorChannelName]: getErrorMessage(err)
 							}
 						}
 					}
@@ -51,7 +51,7 @@ export function createCodeNode(
 			ends: []
 		},
 		navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-			if (state[channelName(node.key)]['__error__']) {
+			if (state[channelName(node.key)][ErrorChannelName]) {
 				return (
 					graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)
 						?.to ?? END
