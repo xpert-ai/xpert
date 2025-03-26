@@ -194,7 +194,7 @@ export function createWelcomeTool(chatbi: AbstractChatBIToolset, context: Partia
 								modelId: z.string().describe('The model id'),
 								cubeName: z.string().describe('The name of cube')
 							})
-							.optional()
+							.optional().nullable()
 							.describe('Model cube')
 					)
 					.describe('The more models')
