@@ -1,5 +1,8 @@
 name: xpert-ai
 
+volumes:
+  api_data:
+
 services:
   db:
     image: registry.cn-hangzhou.aliyuncs.com/metad/pgvector:pg12
@@ -77,9 +80,9 @@ services:
     links:
       - db:${DB_HOST:-db}
     ports:
-      - '3000:${API_PORT:-3000}'
+      - '${API_PORT:-3000}:3000'
     volumes:
-      - ./volumes/api/public:/srv/pangolin/public
+      - api_data:/srv/pangolin/public
       - ./volumes/api/ms-playwright:/ms-playwright
     networks:
       - overlay
