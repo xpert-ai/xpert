@@ -67,7 +67,7 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 						...pick(xpert, 'id', 'tenantId', 'organizationId')
 					}
 				} as IXpertAgent,
-				graph: xpert.draft,
+				graph: {nodes, connections},
 				next,
 				fail
 			}

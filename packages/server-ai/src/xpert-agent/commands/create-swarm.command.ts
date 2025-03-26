@@ -1,13 +1,12 @@
-import { DynamicStructuredTool } from '@langchain/core/tools'
-import { IXpert, IXpertAgentExecution, TChatOptions, TXpertParameter } from '@metad/contracts'
+import { IXpert, IXpertAgentExecution, TChatOptions } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 
 /**
- * Create graph for agent
+ * Create swarm for agents
  */
-export class XpertAgentSubgraphCommand implements ICommand {
-	static readonly type = '[Xpert Agent] Subgraph'
+export class XpertAgentSwarmCommand implements ICommand {
+	static readonly type = '[Xpert Agent] Swarm'
 
 	constructor(
 		public readonly agentKeyOrName: string,
@@ -32,14 +31,8 @@ export class XpertAgentSubgraphCommand implements ICommand {
 			 */
 			rootController: AbortController
 			signal: AbortSignal
-			disableCheckpointer?: boolean
-			/**
-			 * Temporary parameters (state variables)
-			 */
-			variables?: TXpertParameter[]
-			channel: string
-			partners?: string[]
-			handoffTools?: DynamicStructuredTool<any>[]
+
+			partners: string[]
 		}
 	) {}
 }

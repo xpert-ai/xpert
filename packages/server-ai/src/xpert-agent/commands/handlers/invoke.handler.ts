@@ -16,25 +16,28 @@ import {
 	IXpertAgent,
 	LanguagesEnum,
 	mapTranslationLanguage,
+	STATE_VARIABLE_SYS,
 	TSensitiveOperation,
+	TXpertGraph,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
-import { Logger } from '@nestjs/common'
+import { Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { pick } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { catchError, concat, filter, from, map, Observable, of, switchMap, tap } from 'rxjs'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
-import { createMapStreamEvents } from '../../agent'
+import { createMapStreamEvents, getSwarmPartners } from '../../agent'
 import { CompleteToolCallsQuery } from '../../queries'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
-import { STATE_VARIABLE_SYS } from './types'
 import { XpertSensitiveOperationException } from '../../../core/errors'
 import { format } from 'date-fns/format'
 import { CopilotCheckpointSaver, GetCopilotCheckpointsByParentQuery } from '../../../copilot-checkpoint'
+import { XpertAgentSwarmCommand } from '../create-swarm.command'
+import { GetXpertWorkflowQuery } from '../../../xpert/queries'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -56,16 +59,44 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		const user = RequestContext.currentUser()
 
 		const abortController = new AbortController()
-		// Create graph by command
-		const { agent, graph } = await this.commandBus.execute<XpertAgentSubgraphCommand, {agent: IXpertAgent; graph: CompiledStateGraph<any, any, any>}>(
-			new XpertAgentSubgraphCommand(agentKeyOrName, xpert, {
-				...options,
-				isStart: true,
-				rootController: abortController,
-				signal: abortController.signal
-			})
+
+		// Agent & Graph
+		const {agent, graph: xpertGraph} = await this.queryBus.execute<GetXpertWorkflowQuery, {agent: IXpertAgent; graph: TXpertGraph;}>(
+			new GetXpertWorkflowQuery(xpert.id, agentKeyOrName, command.options?.isDraft)
 		)
-	
+		if (!agent) {
+			throw new NotFoundException(
+				`Xpert agent not found for '${xpert.name}' and key or name '${agentKeyOrName}', draft is ${command.options?.isDraft}`
+			)
+		}
+		const partners = []
+		getSwarmPartners(xpertGraph, agent.key, partners)
+		let swarmOrGraph = null
+		if (partners.length > 1) {
+			// Swarm
+			swarmOrGraph = await this.commandBus.execute<XpertAgentSwarmCommand, {agent: IXpertAgent; graph: CompiledStateGraph<any, any, any>}>(
+				new XpertAgentSwarmCommand(agentKeyOrName, xpert, {
+					...options,
+					isStart: true,
+					rootController: abortController,
+					signal: abortController.signal,
+					partners
+				})
+			)
+		} else {
+			// Create graph by command
+			swarmOrGraph = await this.commandBus.execute<XpertAgentSubgraphCommand, {agent: IXpertAgent; graph: CompiledStateGraph<any, any, any>}>(
+				new XpertAgentSubgraphCommand(agentKeyOrName, xpert, {
+					...options,
+					isStart: true,
+					rootController: abortController,
+					signal: abortController.signal,
+					channel: channelName(agent.key),
+					partners: []
+				})
+			)
+		}
+		const { graph } = swarmOrGraph
 		const team = agent.team
 
 		const thread_id = command.options.thread_id

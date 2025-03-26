@@ -3,7 +3,7 @@ import { BaseChannel, isCommand } from '@langchain/langgraph'
 import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
-import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageTypeEnum, isAgentKey, IXpertAgent, TMessageContentComplex, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageTypeEnum, isAgentKey, IXpertAgent, TMessageChannel, TMessageContentComplex, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { AgentStateAnnotation } from './commands/handlers/types'
@@ -439,4 +439,30 @@ export function messageContentText(content: string | TMessageContentComplex) {
 export type TStateChannel = {
 	name: string
 	annotation: BaseChannel
+}
+
+export function getChannelState(state, channel: string): TMessageChannel {
+	return channel ? state[channel] : state
+}
+
+// Swarm
+/**
+ * Get swarm partners of agent in team
+ * 
+ * @param graph 
+ * @param agentKey 
+ */
+export function getSwarmPartners(graph: TXpertGraph, agentKey: string, partners: string[], leaderKey?: string) {
+//   console.log(JSON.stringify(graph, null, 2), agentKey)
+  const connections = graph.connections.filter((conn) => conn.type === 'agent' && conn.to === agentKey && (leaderKey ? conn.from !== leaderKey : true)
+		&& graph.connections.some((_) => _.type === 'agent' && _.to === conn.from && _.from === agentKey))
+
+  connections.forEach((conn) => {
+	const key = conn.from
+	if (partners.indexOf(key) < 0) {
+		partners.push(key)
+		getSwarmPartners(graph, key, partners)
+	}
+  })
+  return partners
 }

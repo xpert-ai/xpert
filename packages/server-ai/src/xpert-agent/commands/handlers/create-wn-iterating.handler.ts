@@ -97,7 +97,9 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 					execution,
 					subscriber,
 					disableCheckpointer: true,
-					variables: paramSchema
+					variables: paramSchema,
+					channel: channelName(agentNode.key),
+					partners: []
 				}
 			)
 		)

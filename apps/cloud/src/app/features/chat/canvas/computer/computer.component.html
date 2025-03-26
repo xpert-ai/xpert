@@ -40,7 +40,7 @@
       </div>
       <div class="flex-1 flex flex-col gap-1 min-w-0">
         <div class="text-[12px] text-[var(--text-tertiary)]">
-          {{ 'PAC.Xpert.XpertUsing' | translate: {Default: 'Xpert using'} }}
+          {{ 'PAC.Chat.XpertUsing' | translate: {Default: 'Xpert using'} }}
           <span class="text-[var(--text-secondary)]">
             {{ 'PAC.Xpert.Toolset_' + step.toolset | translate: {Default: step.toolset || 'Toolset'} }}
           </span>
@@ -188,13 +188,13 @@
         <div class="flex items-center mr-1">
           <button type="button"
             class="flex items-center justify-center w-[24px] h-[24px] rounded-lg text-text-secondary transition-colors
-              pressable enabled:hover:text-text-primary enabled:hover:bg-hover-bg disabled:cursor-not-allowed"
+              enabled:pressable enabled:hover:text-text-primary enabled:hover:bg-hover-bg disabled:cursor-not-allowed"
             [disabled]="stepIndex() <= 0"
             (click)="prevStep()">
             <i class="ri-skip-back-line"></i>
           </button>
           <button type="button" class="flex items-center justify-center w-[24px] h-[24px] rounded-lg text-text-secondary transition-colors
-            pressable enabled:hover:text-text-primary enabled:hover:bg-hover-bg disabled:cursor-not-allowed"
+            enabled:pressable enabled:hover:text-text-primary enabled:hover:bg-hover-bg disabled:cursor-not-allowed"
             [disabled]="stepIndex() >= stepLength() - 1"
             (click)="nextStep()">
             <i class="ri-skip-forward-line"></i>

@@ -2055,6 +2055,7 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "MainAgentTip": "主智能体, 负责接收消息",
       "Expert": "专家",
       "DigitalExpert": "数字专家",
       "Knowledgebase": "知识库",

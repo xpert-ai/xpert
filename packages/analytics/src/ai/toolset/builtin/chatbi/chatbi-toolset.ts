@@ -8,6 +8,7 @@ import {
 	IIndicator,
 	JSONValue,
 	OrderTypeEnum,
+	STATE_VARIABLE_SYS,
 	TMessageComponent,
 	TranslateOptions,
 	TranslationLanguageMap,
@@ -39,7 +40,7 @@ import {
 	tryFixVariableSlicer,
 	workOutTimeRangeSlicers
 } from '@metad/ocap-core'
-import { BuiltinToolset, STATE_VARIABLE_SYS, ToolNotSupportedError, ToolProviderCredentialValidationError } from '@metad/server-ai'
+import { BuiltinToolset, ToolNotSupportedError, ToolProviderCredentialValidationError } from '@metad/server-ai'
 import { getErrorMessage, omit, race, shortuuid, TimeoutError } from '@metad/server-common'
 import { groupBy } from 'lodash'
 import { firstValueFrom, Subject, Subscriber, switchMap, takeUntil } from 'rxjs'

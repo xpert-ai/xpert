@@ -5696,10 +5696,10 @@
     zod "^3.22.3"
     zod-to-json-schema "^3.22.5"
 
-"@langchain/core@0.3.36":
-  version "0.3.36"
-  resolved "https://registry.yarnpkg.com/@langchain/core/-/core-0.3.36.tgz#00824a3b32e8eaf8f2d8fc8f0d97d513d2771e45"
-  integrity sha512-lOS6f5o2MarjGPomHPhzde9xI3lZW2NIOEdCv0dvjb1ZChWhwXWHtAMHSZmuSB53ySzDWAMkimimHd+Yqz5MwQ==
+"@langchain/core@0.3.40":
+  version "0.3.40"
+  resolved "https://registry.yarnpkg.com/@langchain/core/-/core-0.3.40.tgz#e5f41f8b4288672d73aa98bcdaf6b32df0480db8"
+  integrity sha512-RGhJOTzJv6H+3veBAnDlH2KXuZ68CXMEg6B6DPTzL3IGDyd+vLxXG4FIttzUwjdeQKjrrFBwlXpJDl7bkoApzQ==
   dependencies:
     "@cfworker/json-schema" "^4.0.2"
     ansi-styles "^5.0.0"
@@ -5737,10 +5737,10 @@
     "@google/generative-ai" "^0.21.0"
     zod-to-json-schema "^3.22.4"
 
-"@langchain/langgraph-checkpoint@~0.0.13":
-  version "0.0.13"
-  resolved "https://registry.yarnpkg.com/@langchain/langgraph-checkpoint/-/langgraph-checkpoint-0.0.13.tgz#b349f1518184e1b154227d1fead2bec1e27707fd"
-  integrity sha512-amdmBcNT8a9xP2VwcEWxqArng4gtRDcnVyVI4DsQIo1Aaz8e8+hH17zSwrUF3pt1pIYztngIfYnBOim31mtKMg==
+"@langchain/langgraph-checkpoint@~0.0.15":
+  version "0.0.16"
+  resolved "https://registry.yarnpkg.com/@langchain/langgraph-checkpoint/-/langgraph-checkpoint-0.0.16.tgz#e996f31d5da8ce67b2a9bf3dc64c4c0e05f01d72"
+  integrity sha512-B50l7w9o9353drHsdsD01vhQrCJw0eqvYeXid7oKeoj1Yye+qY90r97xuhiflaYCZHM5VEo2oaizs8oknerZsQ==
   dependencies:
     uuid "^10.0.0"
 
@@ -5754,12 +5754,19 @@
     p-retry "4"
     uuid "^9.0.0"
 
-"@langchain/langgraph@0.2.41":
-  version "0.2.41"
-  resolved "https://registry.yarnpkg.com/@langchain/langgraph/-/langgraph-0.2.41.tgz#bb753dd64231ad8b91d53a3e8f8e738ae5a4faac"
-  integrity sha512-NeNizWP4k9voEwJxuFtfopF02Lx1isuEsdZKYCN3ueJpOnkVg0iGx8woPBsQpYcrWcySkIt3zOkgtUsrNHqo3g==
+"@langchain/langgraph-swarm@0.0.3":
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/@langchain/langgraph-swarm/-/langgraph-swarm-0.0.3.tgz#0625a55642713dd3c00f32e428534f87e89eebf3"
+  integrity sha512-6ctP1KGj344KXeY5c08LzvfayCWPA2I52pw7a6t4tcaQ3Y39h3aDvYl94wEqxv20KXIccdzvtAFX1ndxRBrP2Q==
   dependencies:
-    "@langchain/langgraph-checkpoint" "~0.0.13"
+    zod "^3.23.8"
+
+"@langchain/langgraph@0.2.53":
+  version "0.2.53"
+  resolved "https://registry.yarnpkg.com/@langchain/langgraph/-/langgraph-0.2.53.tgz#9a338976627dd3f804ba5898f3ce57703363e92b"
+  integrity sha512-1LDG9eyO4whN0UuECTRKzfbnr/DjFG+OW57k1N3gXl8u6+f6Fw2W4yY+Jd92pY/mq3OS9FAB9Y5go16AjEn1lA==
+  dependencies:
+    "@langchain/langgraph-checkpoint" "~0.0.15"
     "@langchain/langgraph-sdk" "~0.0.32"
     uuid "^10.0.0"
     zod "^3.23.8"
@@ -26945,6 +26952,16 @@ raw-body@2.5.2:
     bytes "3.1.2"
     http-errors "2.0.0"
     iconv-lite "0.4.24"
+    unpipe "1.0.0"
+
+raw-body@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/raw-body/-/raw-body-3.0.0.tgz#25b3476f07a51600619dae3fe82ddc28a36e5e0f"
+  integrity sha512-RmkhL8CAyCRPXCE28MMH0z2PNWQBNk2Q09ZdxM9IOOXwxwZbN+qbWaatPkdkWIKL2ZVDImrN/pK5HTRz2PcS4g==
+  dependencies:
+    bytes "3.1.2"
+    http-errors "2.0.0"
+    iconv-lite "0.6.3"
     unpipe "1.0.0"
 
 rc@^1.2.7, rc@^1.2.8:

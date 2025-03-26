@@ -4,16 +4,20 @@ import { Runnable, RunnableLike, RunnableToolLike } from '@langchain/core/runnab
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { Annotation, messagesStateReducer } from '@langchain/langgraph'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
-import { channelName, IXpertAgent, TMessageChannel, TStateVariable, TVariableAssigner, TXpertGraph, TXpertTeamNode, VariableOperationEnum, XpertParameterTypeEnum } from '@metad/contracts'
+import {
+	channelName,
+	IXpertAgent,
+	STATE_VARIABLE_SYS,
+	TMessageChannel,
+	TStateVariable,
+	TVariableAssigner,
+	TXpertGraph,
+	TXpertTeamNode,
+	VariableOperationEnum,
+	XpertParameterTypeEnum
+} from '@metad/contracts'
 import { isFunction } from '@metad/server-common'
 
-// export const STATE_VARIABLE_SYS_LANGUAGE = 'sys_language'
-/**
- * @deprecated use STATE_VARIABLE_SYS in contracts
- */
-export const STATE_VARIABLE_SYS = 'sys'
-// export const STATE_VARIABLE_USER_EMAIL = 'user_email'
-// export const STATE_VARIABLE_USER_TIMEZONE = 'user_timezone'
 export const STATE_VARIABLE_INPUT = 'input'
 export const STATE_VARIABLE_TITLE_CHANNEL = channelName('title')
 
@@ -37,14 +41,17 @@ export const AgentStateAnnotation = Annotation.Root({
 	}),
 	[STATE_VARIABLE_SYS]: Annotation<TSystemState>({
 		reducer: (a, b) => {
-			return b ? {
-				...a,
-				...b,
-			} : a
+			return b
+				? {
+						...a,
+						...b
+					}
+				: a
 		},
-		default: () => ({
-			common_times: commonTimes()
-		} as TSystemState)
+		default: () =>
+			({
+				common_times: commonTimes()
+			}) as TSystemState
 	}),
 	toolCall: Annotation<ToolCall>({
 		reducer: (a, b) => b ?? a,
@@ -59,13 +66,15 @@ export const AgentStateAnnotation = Annotation.Root({
 	}),
 	[STATE_VARIABLE_TITLE_CHANNEL]: Annotation<TMessageChannel & Record<string, unknown>>({
 		reducer: (a, b) => {
-			return b ? {
-				...a,
-				...b,
-				messages: b.messages ? messagesStateReducer(a.messages, b.messages) : a.messages
-			} : a
+			return b
+				? {
+						...a,
+						...b,
+						messages: b.messages ? messagesStateReducer(a.messages, b.messages) : a.messages
+					}
+				: a
 		},
-		default: () => ({messages: []})
+		default: () => ({ messages: [] })
 	}),
 	/**
 	 * Summarizing past conversations if it's too long
@@ -103,10 +112,16 @@ export type TGraphTool = {
 }
 
 export function stateVariable(variable: TStateVariable) {
-	const defaultValue = [XpertParameterTypeEnum.STRING, XpertParameterTypeEnum.TEXT, XpertParameterTypeEnum.PARAGRAPH].includes(variable.type) 
+	const defaultValue = [
+		XpertParameterTypeEnum.STRING,
+		XpertParameterTypeEnum.TEXT,
+		XpertParameterTypeEnum.PARAGRAPH
+	].includes(variable.type)
 		? variable.default
-		: isFunction(variable.default) ? variable.default 
-			: variable.default ? JSON.parse(variable.default) 
+		: isFunction(variable.default)
+			? variable.default
+			: variable.default
+				? JSON.parse(variable.default)
 				: null
 
 	return {
@@ -136,10 +151,10 @@ export function stateVariable(variable: TStateVariable) {
 						return right
 				}
 			} else if (
-				variable.type === XpertParameterTypeEnum.STRING
-			     || variable.type === XpertParameterTypeEnum.TEXT
-			     || variable.type === XpertParameterTypeEnum.PARAGRAPH
-				) {
+				variable.type === XpertParameterTypeEnum.STRING ||
+				variable.type === XpertParameterTypeEnum.TEXT ||
+				variable.type === XpertParameterTypeEnum.PARAGRAPH
+			) {
 				switch (variable.operation) {
 					case VariableOperationEnum.APPEND:
 						return left == null ? right : left + right
@@ -155,11 +170,11 @@ export function stateVariable(variable: TStateVariable) {
 	}
 }
 
-export function stateToParameters(state: typeof AgentStateAnnotation.State,) {
+export function stateToParameters(state: typeof AgentStateAnnotation.State) {
 	return Object.keys(state).reduce((acc, key) => {
 		const value = state[key]
 		if (Array.isArray(value)) {
-			acc[key] = value.map((item) => typeof item === 'string' ? item : JSON.stringify(item)).join('\n\n')
+			acc[key] = value.map((item) => (typeof item === 'string' ? item : JSON.stringify(item))).join('\n\n')
 		} else {
 			acc[key] = value
 		}
@@ -167,7 +182,7 @@ export function stateToParameters(state: typeof AgentStateAnnotation.State,) {
 	}, {})
 }
 
-export function allAgentsKey(graph: TXpertGraph,): IXpertAgent[] {
+export function allAgentsKey(graph: TXpertGraph): IXpertAgent[] {
 	return graph.nodes.filter((n) => n.type === 'agent').map((_) => _.entity as IXpertAgent)
 }
 
@@ -178,45 +193,47 @@ export function identifyAgent(agent: IXpertAgent) {
 		name: agent.name,
 		title: agent.title,
 		description: agent.description,
-		avatar: agent.avatar,
+		avatar: agent.avatar
 	}
 }
 
 export function commonTimes() {
-	const currentDate = new Date();
+	const currentDate = new Date()
 
 	// Get the current year
-	const currentYear = currentDate.getFullYear();
+	const currentYear = currentDate.getFullYear()
 
 	// Get the current month (starts from 0, so add 1)
-	const currentMonth = currentDate.getMonth() + 1;
+	const currentMonth = currentDate.getMonth() + 1
 
 	// Get the current day
-	const currentDay = currentDate.getDate();
+	const currentDay = currentDate.getDate()
 
 	// Calculate last year and the year before last
-	const lastYear = currentYear - 1;
-	const yearBeforeLast = currentYear - 2;
+	const lastYear = currentYear - 1
+	const yearBeforeLast = currentYear - 2
 
 	// Calculate last month (need to check if the current month is January, if so, go back to December of the previous year)
-	let lastMonth = currentMonth - 1;
-	let lastMonthYear = currentYear;
+	let lastMonth = currentMonth - 1
+	let lastMonthYear = currentYear
 	if (lastMonth === 0) {
-		lastMonth = 12;
-		lastMonthYear -= 1;
+		lastMonth = 12
+		lastMonthYear -= 1
 	}
 
 	// Format the date as 2025-01
-	const lastMonthFormatted = `${lastMonthYear}-${String(lastMonth).padStart(2, '0')}`;
+	const lastMonthFormatted = `${lastMonthYear}-${String(lastMonth).padStart(2, '0')}`
 
 	// Generate common relative times
 	const relativeTimes = {
-		"This Year": currentYear,
-		"Last Year": lastYear,
-		"The Year Before Last": yearBeforeLast,
-		"Last Month": lastMonthFormatted,
-		"Today": `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`
-	};
+		'This Year': currentYear,
+		'Last Year': lastYear,
+		'The Year Before Last': yearBeforeLast,
+		'Last Month': lastMonthFormatted,
+		Today: `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`
+	}
 
-	return Object.keys(relativeTimes).map((time) => `${time}: ${relativeTimes[time]}`).join('; ')
+	return Object.keys(relativeTimes)
+		.map((time) => `${time}: ${relativeTimes[time]}`)
+		.join('; ')
 }

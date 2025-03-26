@@ -1,6 +1,6 @@
-@if (!isRoot()) {
+<!-- @if (!isRoot()) { -->
   <div fNodeInput [fInputId]="node().key" fInputConnectableSide="top" class="top"></div>
-}
+<!-- } -->
 
 <div fNodeInput [fInputId]="node().key + '/edge'" fInputConnectableSide="left" class="left"></div>
 
@@ -28,8 +28,16 @@
 </div>
 
 @if (xpertAgent()) {
-  <div class="max-w-full flex justify-start items-center px-3 pt-3 pb-2 overflow-hidden">
+  <div class="relative max-w-full flex justify-start items-center px-3 pt-3 pb-2 overflow-hidden">
     <emoji-avatar [avatar]="xpertAgent().avatar" small class="shrink-0 mr-2 rounded-lg overflow-hidden shadow-sm" />
+    @if (isRoot()) {
+      <div class="absolute left-2 top-1 w-[1.1rem] h-[1.1rem] rounded-[5px] flex justify-center items-center bg-gray-100 shadow-md"
+        [matTooltip]="'PAC.Xpert.MainAgentTip' | translate: {Default: 'Main agent, responsible for receiving messages'}"
+        matTooltipPosition="above"
+      >
+        <i class="ri-vip-crown-2-fill text-sm text-amber-500"></i>
+      </div>
+    }
     @if(isSensitive()) {
       <i class="ri-shield-keyhole-line mr-1 text-lg text-text-warning"
         [matTooltip]="'PAC.Xpert.SensitiveAgentTip' | translate: {Default: 'Sensitive agents require user confirmation before execution'}"

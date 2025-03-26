@@ -53,8 +53,9 @@ export class ToolNode<T = any> extends Runnable<T, T> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected async run(input: any, config: RunnableConfig): Promise<T> {
     const message = Array.isArray(input)
-      ? input[input.length - 1] : input[this.channel]?.messages ?
-       input[this.channel].messages[input[this.channel].messages.length - 1] : null
+      ? input[input.length - 1] : this.channel ?
+       input[this.channel].messages[input[this.channel].messages.length - 1]
+         : input.messages[input.messages.length - 1]
 
     if (message?._getType() !== "ai") {
       throw new Error("ToolNode only accepts AIMessages as input.");
@@ -140,17 +141,18 @@ export class ToolNode<T = any> extends Runnable<T, T> {
             toolCall: call,
             error: getErrorMessage(e)
           })
+
+          const toolMessage = new ToolMessage({
+            content: `Error: ${e.message}\n Please fix your mistakes.`,
+            name: call.name,
+            tool_call_id: call.id ?? "",
+          })
           // Return back to caller agent when error
           return new Command({
             goto: this.caller,
             update: {
-              [this.channel]: {messages: [
-                new ToolMessage({
-                  content: `Error: ${e.message}\n Please fix your mistakes.`,
-                  name: call.name,
-                  tool_call_id: call.id ?? "",
-                })
-              ]},
+              messages: [toolMessage],
+              [this.channel]: {messages: [toolMessage]},
             }
           })
         }
@@ -159,7 +161,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
 
      // Preserve existing behavior for non-command tool outputs for backwards compatibility
      if (!outputs.some(isCommand)) {
-      return (Array.isArray(input) ? outputs : { [this.channel]: {messages: outputs} }) as T;
+      return (Array.isArray(input) ? outputs : { messages: outputs, [this.channel]: {messages: outputs} }) as T;
     }
 
     // Handle mixed Command and non-Command outputs
@@ -167,7 +169,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
       if (isCommand(output)) {
         return output;
       }
-      return Array.isArray(input) ? [output] : { [this.channel]: {messages: [output]} };
+      return Array.isArray(input) ? [output] : { messages: [output], [this.channel]: {messages: [output]} };
     });
     return combinedOutputs as T;
   }

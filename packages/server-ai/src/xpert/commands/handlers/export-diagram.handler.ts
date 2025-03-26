@@ -1,4 +1,5 @@
 import { CompiledStateGraph } from '@langchain/langgraph'
+import { channelName } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { XpertAgentSubgraphCommand } from '../../../xpert-agent'
@@ -32,7 +33,8 @@ export class XpertExportDiagramHandler implements ICommandHandler<XpertExportDia
 				isStart: true,
 				execution: {},
 				rootController: controller,
-				signal: controller.signal
+				signal: controller.signal,
+				channel: channelName(agentKey ?? xpert.agent.key)
 			})
 		)
 		const _graph = await graph.getGraphAsync()
