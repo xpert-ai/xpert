@@ -250,6 +250,7 @@ export class ChatAiMessageComponent {
 
   openCanvas() {
     this.homeService.canvasOpened.set({
+      opened: true,
       type: 'Computer',
       messageId: this.message().id
     })

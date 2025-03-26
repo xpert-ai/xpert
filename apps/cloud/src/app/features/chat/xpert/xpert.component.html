@@ -175,9 +175,7 @@
 
 @if (canvasOpened()) {
   <div @bl class="shrink-1 h-full flex max-w-full fixed top-0 right-0 z-[1000] sm:sticky sm:top-0 sm:right-0 sm:ml-3 sm:py-3 sm:mr-2">
-    <pac-chat-canvas class="max-w-full h-full flex flex-col my-auto bg-components-panel-bg sm:rounded-[22px] shadow-[0px_0px_8px_0px_rgba(0,0,0,0.02)] border border-black/8"
-      (closed)="canvasOpened.set(null)"
-    />
+    <pac-chat-canvas class="max-w-full h-full flex flex-col my-auto bg-components-panel-bg sm:rounded-[22px] shadow-[0px_0px_8px_0px_rgba(0,0,0,0.02)] border border-black/8" />
   </div>
 }
 

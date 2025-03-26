@@ -23,7 +23,7 @@ import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { omit } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, of } from 'rxjs'
-import { distinctUntilChanged, map, startWith, switchMap } from 'rxjs/operators'
+import { catchError, distinctUntilChanged, map, startWith, switchMap } from 'rxjs/operators'
 import { XpertToolBuiltinAuthorizeComponent } from '../authorize/authorize.component'
 import { XpertToolBuiltinToolComponent } from '../tool/tool.component'
 import { CardUpgradeComponent } from 'apps/cloud/src/app/@shared/card'
@@ -75,9 +75,16 @@ export class XpertToolConfigureBuiltinComponent {
   readonly workspaceId = signal(this.#data.workspaceId)
   readonly toolsetId = computed(() => this.toolset()?.id)
 
-  readonly #provider = derivedAsync<{loading: boolean; provider: IToolProvider;}>(() =>
+  readonly #provider = derivedAsync<{error?: string; loading: boolean; provider: IToolProvider;}>(() =>
     this.providerName() ? this.#toolsetService.getProvider(this.providerName()).pipe(
       map((provider) => ({provider, loading: false})),
+      catchError((err,) => {
+        return of({
+          error: getErrorMessage(err),
+          loading: false,
+          provider: null
+        })
+      }),
       startWith({
         loading: true,
         provider: null
@@ -86,6 +93,7 @@ export class XpertToolConfigureBuiltinComponent {
   )
   readonly provider = computed(() => this.#provider()?.provider)
   readonly pvLoading = computed(() => this.#provider()?.loading)
+  readonly error = computed(() => this.#provider()?.error)
   readonly notImplemented = computed(() => this.provider()?.not_implemented)
   readonly pro = computed(() => this.provider()?.pro)
 

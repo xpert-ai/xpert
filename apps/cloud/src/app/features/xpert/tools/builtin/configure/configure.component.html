@@ -112,6 +112,8 @@
   </div>
 } @else if (pvLoading()) {
   <ngm-spin class="w-full h-28 mt-12"/>
+} @else if (error()) {
+  <div class="p-4 text-text-destructive">{{error()}}</div>
 }
 
 <div class="sticky bottom-0 flex justify-end p-4 bg-components-card-bg">

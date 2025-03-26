@@ -99,7 +99,7 @@ export class ChatCanvasDashboardComponent {
     effect(
       () => {
         if (this.messages()) {
-          this.homeService.canvasOpened.update((state) => ({ type: 'Dashboard' }))
+          this.homeService.canvasOpened.update((state) => ({ opened: true, type: 'Dashboard' }))
         }
       },
       { allowSignalWrites: true }

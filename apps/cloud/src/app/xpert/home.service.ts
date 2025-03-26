@@ -29,7 +29,13 @@ export class XpertHomeService {
   readonly conversation = signal<IChatConversation>(null)
   readonly messages = computed(() => this.conversation()?.messages)
 
-  readonly canvasOpened = signal<{type: 'Dashboard' | 'Computer' | 'File'; messageId?: string; componentId?: string; file?: any}>(null)
+  readonly canvasOpened = signal<{
+    opened: boolean;
+    type: 'Dashboard' | 'Computer' | 'File'; 
+    messageId?: string; 
+    componentId?: string; 
+    file?: any
+  }>(null)
 
   // Xperts details
   readonly #xperts: Record<string, Observable<IXpert>> = {}

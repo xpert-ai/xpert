@@ -1,17 +1,17 @@
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
+import { OverlayAnimations } from '@metad/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { uuid } from '../../../@core'
 import { AppService } from '../../../app.service'
 import { ChatService, XpertHomeService } from '../../../xpert'
-import { OverlayAnimations } from '@metad/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 
 @Component({
   standalone: true,
@@ -24,7 +24,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
     TranslateModule,
     MatInputModule,
     MatTooltipModule,
-    NgmCommonModule,
+    NgmCommonModule
   ],
   selector: 'chat-input',
   templateUrl: './chat-input.component.html',
@@ -45,7 +45,7 @@ export class ChatInputComponent {
   readonly promptControl = new FormControl<string>(null)
   readonly prompt = toSignal(this.promptControl.valueChanges)
   readonly answering = this.chatService.answering
-  readonly canvasOpened = this.homeService.canvasOpened
+  readonly canvasOpened = computed(() => this.homeService.canvasOpened()?.opened)
 
   readonly isComposing = signal(false)
 
@@ -111,22 +111,24 @@ export class ChatInputComponent {
     this.#router.navigate(['/settings/copilot'])
   }
 
-  // 输入法开始组合
+  // Input method composition started
   onCompositionStart() {
-    this.isComposing.set(true);
+    this.isComposing.set(true)
   }
 
-  // 输入法组合更新
+  // Input method composition updated
   onCompositionUpdate(event: CompositionEvent) {
-    // 更新当前值
+    // Update current value
   }
 
-  // 输入法组合结束
+  // Input method composition ended
   onCompositionEnd(event: CompositionEvent) {
-    this.isComposing.set(false);
+    this.isComposing.set(false)
   }
 
   toggleCanvas() {
-    this.homeService.canvasOpened.update((state) => state ? null : {type: 'Computer'})
+    this.homeService.canvasOpened.update((state) =>
+      state ? { ...state, opened: !state.opened } : { opened: true, type: 'Computer' }
+    )
   }
 }

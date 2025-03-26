@@ -23,7 +23,7 @@ import { FileToolset } from './file/file'
 import { PythonToolset } from './python/python'
 import { BrowserToolset } from './browser/browser'
 import { BrowserUseToolset } from './browser-use/browser-use'
-import { CodeProjectToolset } from './code_project/code_project'
+import { CodeProjectToolset } from './code-project/code-project'
 
 export * from './builtin-tool'
 export * from './builtin-toolset'
