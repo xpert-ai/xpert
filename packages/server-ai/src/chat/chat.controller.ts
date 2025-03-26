@@ -1,7 +1,7 @@
 import { LanguagesEnum, TChatOptions, TChatRequest } from '@metad/contracts'
-import { takeUntilClose } from '@metad/server-common'
+import { keepAlive, takeUntilClose } from '@metad/server-common'
 import { RequestContext, TimeZone } from '@metad/server-core'
-import { Body, Controller, Header, Logger, Post, Sse, Res } from '@nestjs/common'
+import { Body, Controller, Header, Logger, Post, Res, Sse } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { Response } from 'express'
@@ -26,7 +26,7 @@ export class ChatController {
 		@Res() res: Response,
 		@I18nLang() language: LanguagesEnum,
 		@TimeZone() timeZone: string,
-		@Body() body: { request: TChatRequest; options: TChatOptions },
+		@Body() body: { request: TChatRequest; options: TChatOptions }
 	) {
 		const observable = await this.commandBus.execute(
 			new ChatCommand(body.request, {
@@ -40,6 +40,10 @@ export class ChatController {
 			})
 		)
 
-		return observable.pipe(takeUntilClose(res)) // merge(observable, keepAliveObservable)
+		return observable.pipe(
+			// Add an operator to send a comment event periodically (30s) to keep the connection alive
+			keepAlive(30000),
+			takeUntilClose(res)
+		)
 	}
 }

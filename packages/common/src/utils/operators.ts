@@ -42,3 +42,19 @@ export function takeUntilAbort<T>(signal: AbortSignal): OperatorFunction<T, T> {
       }
     })
 }
+
+// Every 30 seconds
+export function keepAlive(time = 30000): OperatorFunction<string, string> {
+  return (source: Observable<string>) =>
+    new Observable<string>((subscriber) => {
+      const subscription = source.subscribe(subscriber)
+      const intervalId = setInterval(() => {
+        subscriber.next(': keep-alive\n\n') // Send a comment event
+      }, time)
+
+      return () => {
+        clearInterval(intervalId)
+        subscription.unsubscribe()
+      }
+    })
+}
