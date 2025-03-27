@@ -416,22 +416,29 @@
 </ng-template>
 
 <ng-template #manageMenu>
-    <div cdkMenu class="p-2">
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" [routerLink]="['.']">
-            <mat-icon fontSet="material-icons-outlined">hub</mat-icon>
-            <span class="ml-2">{{ 'PAC.MODEL.ModelOverview' | translate: {Default: "Model Overview"} }}</span>
-        </button>
+  <div cdkMenu class="cdk-menu__large">
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" [routerLink]="['.']" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="active" >
+      <mat-icon fontSet="material-icons-outlined">hub</mat-icon>
+      <span class="ml-2">{{ 'PAC.MODEL.ModelOverview' | translate: {Default: "Model Overview"} }}</span>
+    </button>
     
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" [routerLink]="['./admin']">
-            <mat-icon fontSet="material-icons-outlined">admin_panel_settings</mat-icon>
-            <span class="ml-2">{{ 'PAC.KEY_WORDS.Admin' | translate: {Default: "Admin"} }}</span>
-        </button>
-    
-        <button cdkMenuItem *ngIf="isOlap$()" [routerLink]="['./access']" class="px-2 py-1 rounded-lg">
-            <mat-icon fontSet="material-icons-outlined">manage_accounts</mat-icon>
-            <span class="ml-2">{{ 'PAC.MODEL.AccessControl.Title' | translate: {Default: "Access Control"} }}</span>
-        </button>
-    </div>
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" [routerLink]="['./admin']" routerLinkActive="active" >
+      <mat-icon fontSet="material-icons-outlined">admin_panel_settings</mat-icon>
+      <span class="ml-2">{{ 'PAC.KEY_WORDS.Admin' | translate: {Default: "Admin"} }}</span>
+    </button>
+
+  @if (isOlap$()) {
+    <button cdkMenuItem [routerLink]="['./access']" routerLinkActive="active" class="px-2 py-1 rounded-lg">
+      <mat-icon fontSet="material-icons-outlined">manage_accounts</mat-icon>
+      <span class="ml-2">{{ 'PAC.MODEL.AccessControl.Title' | translate: {Default: "Access Control"} }}</span>
+    </button>
+  }
+
+    <button cdkMenuItem [routerLink]="['./logs']" routerLinkActive="active" class="px-2 py-1 rounded-lg">
+      <i class="ri-history-line text-xl mr-1 text-text-secondary"></i>
+      <span class="ml-2">{{ 'PAC.MODEL.Logs' | translate: {Default: "Logs"} }}</span>
+    </button>
+  </div>
 </ng-template>
 
 <ng-template #entityMenu let-entity="entity">

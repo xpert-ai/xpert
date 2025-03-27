@@ -769,7 +769,7 @@
       "BatchDelete": "批量删除{{value}}个指标"
     },
     "MODEL": {
-      "ModelOverview": "语义模型概览",
+      "ModelOverview": "模型概览",
       "UploadSemanticModel": "上传语义模型文件",
       "SharedDimensions": "公共维度",
       "Cubes": "多维数据集",
@@ -820,6 +820,17 @@
       "MoveRight": "右移",
       "Error_EntityExists": "实体已存在",
       "XmlaSyncInfo": "创建后将自动同步维度和度量",
+      "Logs": "日志",
+      "Cube": "多维数据集",
+      "QueryStatement": "查询语句",
+      "QueryOptions": "查询条件",
+      "QueryResult": "查询结果",
+      "WaitingTime": "等待时间",
+      "ExecutionTime": "执行时间",
+      "Running": "执行中",
+      "Failure": "失败",
+      "Pending": "等待",
+      "Success": "成功",
 
       "QUERY": {
         "TITLE": "查询实验室",
@@ -2524,7 +2535,9 @@
       "Toolset_bash": "终端",
       "SandboxToolsetTip": "需要运行在沙盒中的工具",
       "InputVariables": "输入变量",
-      "OutputVariables": "输出变量"
+      "OutputVariables": "输出变量",
+      "Transform": "转换",
+      "Code": "代码执行"
     },
     "title": {
       "short": "Xpert AI"

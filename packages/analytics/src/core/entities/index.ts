@@ -32,6 +32,7 @@ import { IndicatorApp } from '../../indicator-app/indicator-app.entity'
 import { SemanticModelEntity } from '../../model-entity/entity.entity'
 import { ChatBIConversation } from '../../chatbi-conversation/conversation.entity'
 import { ChatBIModel } from '../../chatbi-model/chatbi-model.entity'
+import { SemanticModelQueryLog } from './internal'
 
 
 export const ALL_ENTITIES = [
@@ -43,6 +44,7 @@ export const ALL_ENTITIES = [
 	SemanticModelMember,
 	SemanticModelRole,
 	SemanticModelEntity,
+	SemanticModelQueryLog,
 	Story,
 	StoryPoint,
 	StoryWidget,

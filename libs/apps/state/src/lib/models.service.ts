@@ -1,16 +1,16 @@
 /* eslint-disable @typescript-eslint/member-ordering */
 import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
-import { IDataSource, ISemanticModel } from '@metad/contracts'
+import { IDataSource, ISemanticModel, ISemanticModelQueryLog } from '@metad/contracts'
 import { hierarchize, Indicator, omit, pick, SemanticModel as OcapSemanticModel, Cube } from '@metad/ocap-core'
 import { StoryModel } from '@metad/story/core'
 import { Observable, zip } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 import { BusinessAreasService } from './business-area.service'
 import { C_URI_API_MODELS, C_URI_API_MODEL_MEMBERS } from './constants'
-import { convertIndicatorResult, convertStoryModel } from './types'
+import { convertIndicatorResult, convertStoryModel, timeRangeToParams } from './types'
 import { OrganizationBaseCrudService } from './organization-base-crud.service'
-import { PaginationParams } from './crud.service'
+import { PaginationParams, toHttpParams } from './crud.service'
 
 @Injectable({
   providedIn: 'root'
@@ -219,6 +219,13 @@ export class SemanticModelServerService extends OrganizationBaseCrudService<ISem
 
   getRelevantMembers(modelId: string, cube: string, query: string, k = 10) {
     return this.httpClient.post<any[]>(C_URI_API_MODEL_MEMBERS + `/${modelId}/retrieve`, { cube, query, k })
+  }
+
+  getLogs(id: string, options: PaginationParams<ISemanticModelQueryLog>, timeRange: string[]) {
+    const params = toHttpParams(options)
+    return this.httpClient.get<{items: ISemanticModelQueryLog[]; total: number;}>(C_URI_API_MODELS + `/${id}/logs`, {
+      params: timeRangeToParams(params, timeRange)
+    })
   }
 }
 

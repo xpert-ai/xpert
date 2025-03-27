@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
-import { PaginationParams, toHttpParams } from '@metad/cloud/state'
+import { PaginationParams, timeRangeToParams, toHttpParams } from '@metad/cloud/state'
 import { toParams } from '@metad/ocap-angular/core'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, catchError, Observable, tap, throwError } from 'rxjs'
@@ -202,7 +202,7 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     const params = toHttpParams(options)
 
     return this.httpClient.get<{items: TChatConversationLog[]; total: number;}>(this.apiBaseUrl + `/${id}/conversations`, {
-      params: this.timeRangeToParams(params, timeRange)
+      params: timeRangeToParams(params, timeRange)
     })
   }
 
@@ -260,91 +260,82 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   getDailyConversations(id: string, timeRange: string[]) {
     return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/daily-conversations`, {
-      params: this.timeRangeToParams(new HttpParams(), timeRange)
+      params: timeRangeToParams(new HttpParams(), timeRange)
     })
   }
 
   getDailyEndUsers(id: string, timeRange: string[]) {
     return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/daily-end-users`, {
-      params: this.timeRangeToParams(new HttpParams(),timeRange)
+      params: timeRangeToParams(new HttpParams(),timeRange)
     })
   }
 
   getAverageSessionInteractions(id: string, timeRange: string[]) {
     return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/average-session-interactions`, {
-      params: this.timeRangeToParams(new HttpParams(), timeRange)
+      params: timeRangeToParams(new HttpParams(), timeRange)
     })
   }
 
   getDailyMessages(id: string, timeRange: string[]) {
     return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/daily-messages`, {
-      params: this.timeRangeToParams(new HttpParams(), timeRange)
+      params: timeRangeToParams(new HttpParams(), timeRange)
     })
   }
   
   getStatisticsTokensPerSecond(id: string, timeRange: string[]) {
     return this.httpClient.get<{ date: string; count: number }[]>(this.apiBaseUrl + `/${id}/statistics/tokens-per-second`, {
-      params: this.timeRangeToParams(new HttpParams(), timeRange)
+      params: timeRangeToParams(new HttpParams(), timeRange)
     })
   }
 
   getStatisticsTokenCost(id: string, timeRange: string[]) {
     return this.httpClient.get<{ date: string; tokens: number; price: number; model: string; currency: string;}[]>(this.apiBaseUrl + `/${id}/statistics/token-costs`, {
-      params: this.timeRangeToParams(new HttpParams(), timeRange)
+      params: timeRangeToParams(new HttpParams(), timeRange)
     })
   }
   
   getStatisticsUserSatisfactionRate(id: string, timeRange: string[]) {
     return this.httpClient.get<{ date: string; tokens: number; price: number; model: string; currency: string;}[]>(
       this.apiBaseUrl + `/${id}/statistics/user-satisfaction-rate`, {
-      params: this.timeRangeToParams(new HttpParams(), timeRange)
+      params: timeRangeToParams(new HttpParams(), timeRange)
     })
   }
 
   getStatisticsXperts(timeRange: string[]) {
     return this.httpClient.get<{ count: number;}[]>(
       this.apiBaseUrl + `/statistics/xperts`, {
-      params: this.timeRangeToParams(new HttpParams(), timeRange)
+      params: timeRangeToParams(new HttpParams(), timeRange)
     })
   }
 
   getStatisticsXpertConv(timeRange: string[]) {
     return this.httpClient.get<{ slug: string; count: number;}[]>(
       this.apiBaseUrl + `/statistics/xpert-conversations`, {
-      params: this.timeRangeToParams(new HttpParams(), timeRange)
+      params: timeRangeToParams(new HttpParams(), timeRange)
     })
   }
 
   getStatisticsXpertMessages(timeRange: string[]) {
     return this.httpClient.get<{ slug: string; count: number;}[]>(
       this.apiBaseUrl + `/statistics/xpert-messages`, {
-      params: this.timeRangeToParams(new HttpParams(), timeRange)
+      params: timeRangeToParams(new HttpParams(), timeRange)
     })
   }
 
   getStatisticsXpertTokens(timeRange: string[]) {
     return this.httpClient.get<{ slug: string; count: number;}[]>(
       this.apiBaseUrl + `/statistics/xpert-tokens`, {
-      params: this.timeRangeToParams(new HttpParams(), timeRange)
+      params: timeRangeToParams(new HttpParams(), timeRange)
     })
   }
   
   getStatisticsXpertIntegrations(timeRange: string[]) {
     return this.httpClient.get<{ slug: string; count: number;}[]>(
       this.apiBaseUrl + `/statistics/xpert-integrations`, {
-      params: this.timeRangeToParams(new HttpParams(), timeRange)
+      params: timeRangeToParams(new HttpParams(), timeRange)
     })
   }
 
-  timeRangeToParams(params: HttpParams, timeRange: string[]) {
-    if (timeRange[0]) {
-      params = params.set('start', timeRange[0])
-    }
-    if (timeRange[1]) {
-      params = params.set('end', timeRange[1])
-    }
-    return params
-  }
 }
 
 export function injectXpertService() {

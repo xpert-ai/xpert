@@ -1,7 +1,7 @@
 import { ICopilot, IUser } from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
-import { runWithRequestContext, WsJWTGuard, WsUser } from '@metad/server-core'
 import { CopilotTokenRecordCommand } from '@metad/server-ai'
+import { WsJWTGuard, WsUser } from '@metad/server-core'
+import { InjectQueue } from '@nestjs/bull'
 import { UseGuards } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import {
@@ -13,11 +13,12 @@ import {
 	WebSocketServer,
 	WsResponse
 } from '@nestjs/websockets'
-import { Observable, from } from 'rxjs'
+import { Queue } from 'bull'
+import { from, Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
 import { Server, Socket } from 'socket.io'
-import { DataSourceOlapQuery } from '../data-source'
-import { ModelOlapQuery, ModelCubeQuery } from '../model'
+import { SemanticModelQueryCommand } from '../model/commands'
+import { QUERY_QUEUE_NAME, TGatewayQuery } from '../model/types'
 
 @WebSocketGateway({
 	cors: {
@@ -28,96 +29,40 @@ export class EventsGateway implements OnGatewayDisconnect {
 	@WebSocketServer()
 	server: Server
 
-	constructor(private readonly queryBus: QueryBus, private readonly commandBus: CommandBus) {}
+	constructor(
+		@InjectQueue(QUERY_QUEUE_NAME) private readonly queryQueue: Queue,
+		private readonly queryBus: QueryBus,
+		private readonly commandBus: CommandBus
+	) {}
 
 	@UseGuards(WsJWTGuard)
 	@SubscribeMessage('olap')
 	async olap(
-		@MessageBody() data: any,
+		@MessageBody() data: TGatewayQuery,
 		@ConnectedSocket() client: Socket,
 		@WsUser() user: IUser
 	): Promise<WsResponse<any>> {
-		const { id, organizationId, dataSourceId, modelId, body, acceptLanguage, forceRefresh } = data
-		return new Promise((resolve, reject) => {
-			runWithRequestContext({ user: user, headers: { ['organization-id']: organizationId } }, async () => {
-				try {
-					let result = null
-					if (modelId) {
-						if (typeof body === 'string') {
-							result = await this.queryBus.execute(
-								new ModelOlapQuery(
-									{
-										id,
-										sessionId: client.id,
-										dataSourceId,
-										modelId,
-										body,
-										acceptLanguage,
-										forceRefresh
-									},
-									user
-								)
-							)
-						} else {
-							result = await this.queryBus.execute(
-								new ModelCubeQuery(
-									{
-										id,
-										sessionId: client.id,
-										dataSourceId,
-										modelId,
-										body,
-										acceptLanguage,
-										forceRefresh
-									},
-									user
-								)
-							)
-						}
-					} else {
-						result = await this.queryBus.execute(
-							new DataSourceOlapQuery(
-								{ id, sessionId: client.id, dataSourceId, body, forceRefresh, acceptLanguage },
-								user
-							)
-						)
-					}
-					return resolve({
-						event: 'olap',
-						data: {
-							id,
-							status: 200,
-							data: result.data,
-							cache: result.cache
-						}
-					})
-				} catch (error) {
-					return resolve({
-						event: 'olap',
-						data: {
-							id,
-							status: 500,
-							statusText: error.message ?? 'Internal Server Error',
-							data: getErrorMessage(error)
-						}
-					})
-				}
-			})
-		})
+		await this.commandBus.execute(new SemanticModelQueryCommand({ sessionId: client.id, userId: user.id, data }))
+		return
 	}
 
 	@UseGuards(WsJWTGuard)
 	@SubscribeMessage('copilot')
-	async copilot(@MessageBody() data: Partial<{organizationId: string; copilot: ICopilot; tokenUsed: number}>, @WsUser() user: IUser): Promise<void> {
+	async copilot(
+		@MessageBody() data: Partial<{ organizationId: string; copilot: ICopilot; tokenUsed: number }>,
+		@WsUser() user: IUser
+	): Promise<void> {
 		try {
-			await this.commandBus.execute(new CopilotTokenRecordCommand({
-				...data, 
-				tenantId: user.tenantId,
-				userId: user.id,
-				copilotId: data.copilot?.id
-			}))
+			await this.commandBus.execute(
+				new CopilotTokenRecordCommand({
+					...data,
+					tenantId: user.tenantId,
+					userId: user.id,
+					copilotId: data.copilot?.id
+				})
+			)
 		} catch (error) {
-			console.log(error);
+			console.log(error)
 		}
 	}
 
@@ -135,5 +80,9 @@ export class EventsGateway implements OnGatewayDisconnect {
 
 	handleDisconnect(client: Socket) {
 		// console.log(`disconnect `, client.id)
+	}
+
+	sendQueryResult(sessionId: string, data: any) {
+		this.server.to(sessionId).emit('olap', data)
 	}
 }

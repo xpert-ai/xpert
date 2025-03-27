@@ -1,6 +1,6 @@
-import { BusinessAreaRole, IUser, SemanticModelStatusEnum } from '@metad/contracts'
+import { BusinessAreaRole, ISemanticModelQueryLog, IUser, SemanticModelStatusEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
-import { FindOptionsWhere, ITryRequest, REDIS_CLIENT, RequestContext, User } from '@metad/server-core'
+import { FindOptionsWhere, ITryRequest, PaginationParams, REDIS_CLIENT, RequestContext, User } from '@metad/server-core'
 import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { CommandBus } from '@nestjs/cqrs'
@@ -18,6 +18,8 @@ import { SemanticModelQueryDTO } from './dto'
 import { updateXmlaCatalogContent } from './helper'
 import { SemanticModel } from './model.entity'
 import { NgmDSCoreService, registerSemanticModel } from './ocap'
+import { ModelQueryLogService } from '../model-query-log'
+import { SemanticModelQueryLog } from '../core/entities/internal'
 
 const axios = _axios.default
 
@@ -32,6 +34,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		private readonly cacheService: SemanticModelCacheService,
 		private readonly configService: ConfigService,
 		private readonly businessAreaService: BusinessAreaService,
+		private readonly logService: ModelQueryLogService,
 		readonly commandBus: CommandBus,
 		@Inject(REDIS_CLIENT)
 		private readonly redisClient: RedisClientType,
@@ -367,5 +370,9 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 	async getCubes(id: string) {
 		const model = await this.findOne(id)
 		return model.options?.schema?.cubes
+	}
+
+	async getLogs(data: PaginationParams<SemanticModelQueryLog>) {
+		return this.logService.findAll(data)
 	}
 }
