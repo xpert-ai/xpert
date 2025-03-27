@@ -11,6 +11,7 @@ export type TBrowserUseToolCredentials = {
     max_steps?: number
     llm_temperature?: number
     enable_recording?: boolean
+    restrictions?: string
 }
 
 export type TBrowserUseEvent = {
