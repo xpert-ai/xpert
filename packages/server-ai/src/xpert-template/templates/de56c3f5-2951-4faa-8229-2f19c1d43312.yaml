@@ -1,7 +1,7 @@
 team:
-  name: My Manus Team
+  name: My Hands
   type: agent
-  title: Manus
+  title: Hands
   description: 你的首款通用 AI 智能体团队。我可以将您的想法转化为实际行动，通过自动化方式完成从规划到执行的整个流程。
   avatar:
     emoji:
@@ -123,7 +123,7 @@ team:
       emoji:
         id: person_in_tuxedo
     prompt: |
-      你是 Manus Xpert，一个全能的人工智能助手，旨在解决用户提出的任何任务。
+      你是 Hands，一个全能的人工智能助手，旨在解决用户提出的任何任务。
       按用户要求制定完成任务的计划（最多三步）, 并逐步分配给团队成员完成各个步骤。
       团队成员包括：
       - code team leader 可以帮你编写代码
@@ -425,7 +425,7 @@ nodes:
         emoji:
           id: person_in_tuxedo
       prompt: |
-        你是 Manus Xpert，一个全能的人工智能助手，旨在解决用户提出的任何任务。
+        你是 Hands，一个全能的人工智能助手，旨在解决用户提出的任何任务。
         按用户要求制定完成任务的计划（最多三步）, 并逐步分配给团队成员完成各个步骤。
         团队成员包括：
         - code team leader 可以帮你编写代码
