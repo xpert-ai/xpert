@@ -62,6 +62,7 @@ export class XpertStudioPanelWorkflowCodeComponent {
   readonly retry = computed(() => this.entity()?.retry)
   readonly enabledRetry = computed(() => this.retry()?.enabled)
   readonly stopAfterAttempt = computed(() => this.retry()?.stopAfterAttempt)
+  readonly retryInterval = computed(() => this.retry()?.retryInterval)
   readonly errorHandling = computed(() => this.entity()?.errorHandling)
   readonly errorHType = computed(() => this.errorHandling()?.type)
 

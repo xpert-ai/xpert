@@ -143,6 +143,35 @@
         (ngModelChange)="updateRetry({stopAfterAttempt: $event})"
       >
     </div>
+
+    <div class="w-full flex justify-between items-center px-4">
+      <div class="grow text-sm">
+        {{'PAC.Xpert.RetryInterval' | translate: {Default: 'Retry Interval'} }}
+        <i class="ri-information-line opacity-20 hover:opacity-100"
+          [matTooltip]="'PAC.Xpert.RetryIntervalTip' | translate: {Default: 'How many seconds between retries?'}"
+          matTooltipPosition="above"
+        ></i>
+      </div>
+
+      <mat-slider class="w-[200px] grow" ngm-density small color="accent"
+        [min]="1"
+        [max]="10"
+        discrete
+      >
+        <input matSliderThumb [value]="retryInterval()"
+          (dragEnd)="updateRetry({retryInterval: $event.value})" >
+      </mat-slider>
+
+      <input class="shrink-0 block ml-4 pl-3 w-16 h-8 appearance-none outline-none rounded-lg bg-gray-100 text-[13px] text-gra-900" 
+        [min]="1"
+        [max]="10"
+        [step]="1"
+        type="number"
+        [ngModel]="retryInterval()"
+        (ngModelChange)="updateRetry({retryInterval: $event})"
+      >
+    </div>
+
   }
 </div>
 

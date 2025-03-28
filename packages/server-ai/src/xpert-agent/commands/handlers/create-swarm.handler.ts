@@ -40,8 +40,7 @@ export class XpertAgentSwarmHandler implements ICommandHandler<XpertAgentSwarmCo
 		graph: CompiledStateGraph<unknown, unknown, any>
 	}> {
 		const { agentKeyOrName, xpert, options } = command
-		const { isStart, isDraft, execution, leaderKey, summarizeTitle, subscriber, rootController, signal, partners } =
-			options
+		const { isDraft, execution, summarizeTitle, subscriber, rootController, signal, partners } = options
 
 		// Signal controller in this subgraph
 		const abortController = new AbortController()

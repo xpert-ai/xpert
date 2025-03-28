@@ -12,11 +12,6 @@ export class XpertAgentSwarmCommand implements ICommand {
 		public readonly agentKeyOrName: string,
 		public readonly xpert: Partial<IXpert>,
 		public readonly options: TChatOptions & {
-			isStart: boolean
-			/**
-			 * Agent key who calls me
-			 */
-			leaderKey?: string
 			// The id of root agent execution
 			rootExecutionId?: string
 			// Langgraph thread id

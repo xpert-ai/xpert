@@ -50,7 +50,7 @@ export function createCodeNode(
 							throw err
 						}
 						
-						await new Promise(resolve => setTimeout(resolve, 1000))
+						await new Promise(resolve => setTimeout(resolve, (entity.retry?.retryInterval ?? 1) * 1000))
 					}
 				}
 				

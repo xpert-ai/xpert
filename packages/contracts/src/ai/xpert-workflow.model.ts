@@ -149,6 +149,7 @@ export interface IWFNCode extends IWorkflowNode {
   retry?: {
     enabled?: boolean
     stopAfterAttempt?: number
+    retryInterval?: number // second
   }
   /**
    * Error handling

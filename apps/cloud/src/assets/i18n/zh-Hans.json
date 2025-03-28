@@ -2074,6 +2074,8 @@
       "RetryOnFailure": "失败时重试",
       "StopAfterAttempt": "尝试后停止",
       "StopAfterAttemptTip": "尝试多少次后停止",
+      "RetryInterval": "重试间隔",
+      "RetryIntervalTip": "重试间隔多少秒？",
       "FallbackModel": "备用模型",
       "FallbackModelTip": "当智能体模型出错时使用此备用模型",
       "ErrorHandling": "异常处理",

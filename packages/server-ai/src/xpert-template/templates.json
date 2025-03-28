@@ -12,6 +12,22 @@
             ],
             "recommendedApps": [
                 {
+                    "name": "Customer Support Swarm",
+                    "type": "agent",
+                    "title": "Customer Support Swarm",
+                    "description": "The core idea of ​​the architecture \"agents can pass requests to each other and share state\" is demonstrated through a customer support system (including a flight assistant, a hotel assistant, and a ride-hailing assistant)",
+                    "avatar": {
+                        "emoji": {
+                            "id": "bellhop_bell"
+                        },
+                        "background": "rgba(213, 245, 246, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43314",
+                    "category": "Assistant",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
                     "name": "ChatBI with Sales Analysis Expert",
                     "type": "agent",
                     "title": "Sales Analysis Expert",
@@ -202,6 +218,22 @@
                 "Analysis"
             ],
             "recommendedApps": [
+                {
+                    "name": "Customer Support Swarm",
+                    "type": "agent",
+                    "title": "客户支持群",
+                    "description": "蜂群架构的核心理念“智能体可以相互传递请求并共享状态”通过客户支持系统（包括航班助手、酒店助手和叫车助手）得以展示",
+                    "avatar": {
+                        "emoji": {
+                            "id": "bellhop_bell"
+                        },
+                        "background": "rgba(213, 245, 246, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43314",
+                    "category": "Assistant",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
                 {
                     "name": "My Manus Team",
                     "type": "agent",
