@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, input } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { NgxJsonViewerModule } from 'ngx-json-viewer'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [CommonModule, TranslateModule, NgxJsonViewerModule],
   selector: 'copilot-message-tool-call',
   templateUrl: 'tool-call.component.html',
   styleUrls: ['tool-call.component.scss']
@@ -19,8 +20,5 @@ export class CopilotMessageToolCallComponent {
     type: string
   }>()
 
-  readonly args = computed(() => {
-    const args = this.toolCall()?.args
-    return typeof args === 'string' ? args : JSON.stringify(args)
-  })
+  readonly args = computed(() => this.toolCall()?.args)
 }
