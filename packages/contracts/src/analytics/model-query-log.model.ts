@@ -8,22 +8,32 @@ export type TQueryOptions = {
 } & Record<string, any>
 
 export enum QueryStatusEnum {
-  PENDING = 'pending', // 查询已提交，等待执行
-  RUNNING = 'running', // 查询正在执行
-  SUCCESS = 'success', // 查询成功
-  FAILED = 'failed',   // 查询失败
+  PENDING = 'pending', // Query submitted, waiting for execution
+  RUNNING = 'running', // Query is executing
+  SUCCESS = 'success', // Query succeeded
+  FAILED = 'failed',   // Query failed
 }
 
 
 export interface ISemanticModelQueryLog extends IBasePerTenantAndOrganizationEntityModel {
+  /**
+   * Unique ID of the client query
+   */
+  key?: string
   modelId: string
   model?: ISemanticModel
   cube?: string
   status: QueryStatusEnum
+  /**
+   * Structural parameters for query
+   */
   params: TQueryOptions
+  /**
+   * Statement of query
+   */
   query?: string
   result: any
-  executionTime: number; // 执行时间（毫秒）
-  waitingTime: number; // 查询等待时间（毫秒）
+  executionTime: number; // Execution time (milliseconds)
+  waitingTime: number; // Query waiting time (milliseconds)
   error?: string
 }

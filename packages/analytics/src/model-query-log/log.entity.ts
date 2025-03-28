@@ -33,6 +33,12 @@ export class SemanticModelQueryLog extends TenantOrganizationBaseEntity implemen
 	@Column({ nullable: true })
 	cube?: string
 
+	@ApiProperty({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	key?: string
+
 	@Column({ type: 'float', nullable: true })
 	executionTime: number
 	@Column({ type: 'float', nullable: true })

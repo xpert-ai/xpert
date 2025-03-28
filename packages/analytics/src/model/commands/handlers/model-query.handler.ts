@@ -47,7 +47,8 @@ export class SemanticModelQueryHandler implements ICommandHandler<SemanticModelQ
 				status: QueryStatusEnum.PENDING,
 				createdById: userId,
 				tenantId: user.tenantId,
-				organizationId
+				organizationId,
+				key: id
 			})
 		)
 
