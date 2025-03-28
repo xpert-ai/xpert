@@ -4,7 +4,7 @@ import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { SemanticModelServerService } from '@metad/cloud/state'
-import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@metad/core'
+import { calcTimeRange, OverlayAnimations, TimeRangeEnum, TimeRangeOptions } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { effectAction } from '@metad/ocap-angular/core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
@@ -35,7 +35,7 @@ import { NgxJsonViewerModule } from 'ngx-json-viewer';
   selector: 'semanctic-model-logs',
   templateUrl: './logs.component.html',
   styleUrl: 'logs.component.scss',
-  animations: [routeAnimations],
+  animations: [routeAnimations, ...OverlayAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SemancticModelLogsComponent {

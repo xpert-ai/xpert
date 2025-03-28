@@ -1,5 +1,5 @@
 <div class="mb-3 flex justify-between items-center">
-  <div class="h-[41px] flex items-center text-lg font-semibold text-gray-900">
+  <div class="h-[41px] flex items-center text-xl font-semibold text-gray-900">
     {{ 'PAC.MODEL.Logs' | translate: {Default: 'Logs'} }}
   </div>
 </div>
@@ -12,28 +12,28 @@
   waIntersectionObserver
   waIntersectionThreshold="0.5">
   <table class="table-fixed w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+    <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
       <tr>
         <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-36 truncate">
           {{ 'PAC.MODEL.Cube' | translate: {Default: 'Cube'} }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-28">
+          {{ 'PAC.KEY_WORDS.Status' | translate: {Default: 'Status'} }}
+        </th>
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-48">
+          {{ 'PAC.KEY_WORDS.UpdatedAt' | translate: {Default: 'Updated At'} }}
+        </th>
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
           {{ 'PAC.KEY_WORDS.CreatedBy' | translate: {Default: 'Created By'} }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
-          {{ 'PAC.MODEL.QueryStatement' | translate: {Default: 'Query Statement'} }}
-        </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
           {{ 'PAC.MODEL.WaitingTime' | translate: {Default: 'Waiting Time'} }}
         </th>
         <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
           {{ 'PAC.MODEL.ExecutionTime' | translate: {Default: 'Execution Time'} }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
-          {{ 'PAC.KEY_WORDS.Status' | translate: {Default: 'Status'} }}
-        </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
-          {{ 'PAC.KEY_WORDS.UpdatedAt' | translate: {Default: 'Updated At'} }}
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 ">
+          {{ 'PAC.MODEL.QueryStatement' | translate: {Default: 'Query Statement'} }}
         </th>
       </tr>
     </thead>
@@ -46,10 +46,11 @@
             {{log.cube}}
           </td>
           <td class="px-4 py-2">
-            {{log.createdBy | user }}
+            <ng-container *ngTemplateOutlet="statusTempl; context: { $implicit: log }"></ng-container>
           </td>
+          <td class="px-4 py-2">{{ log.updatedAt | relative }}</td>
           <td class="px-4 py-2">
-            {{log.query }}
+            {{log.createdBy | user }}
           </td>
           <td class="px-4 py-2">
             {{log.waitingTime / 1000 }}s
@@ -58,9 +59,8 @@
             {{log.executionTime / 1000}}s
           </td>
           <td class="px-4 py-2">
-            <ng-container *ngTemplateOutlet="statusTempl; context: { $implicit: log }"></ng-container>
+            {{log.query }}
           </td>
-          <td class="px-4 py-2">{{ log.updatedAt | relative }}</td>
         </tr>
       }
     </tbody>
@@ -83,7 +83,7 @@
 </div>
 
 @if (preview(); as log) {
-  <div class="absolute right-0 top-2 bottom-2 flex flex-col w-[500px] max-w-full bg-components-card-bg rounded-l-3xl shadow-md border border-solid border-divider-deep overflow-auto">
+  <div @slideLeftRight class="absolute right-0 top-2 bottom-2 flex flex-col w-[500px] max-w-full bg-components-card-bg rounded-l-3xl shadow-md border border-solid border-divider-deep border-r-0 overflow-auto">
     <div class="flex justify-between p-4 pr-1 sticky top-0 bg-components-card-bg z-20">
       <div class="text-lg font-semibold">{{log.key}}</div>
 

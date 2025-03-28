@@ -11,6 +11,18 @@ export const OverlayAnimation1 = trigger('overlayAnimation1', [
     ]),
   ])
 
+export const SlideLeftRightAnimation = trigger('slideLeftRight', [
+  transition(':enter', [
+    style({ transform: 'translateX(50%)', opacity: 0 }),
+    animate('200ms ease-in', style({ transform: 'translateX(0)', opacity: 1 }))
+  ]),
+  transition(':leave', [
+    style({ position: 'absolute', }),
+    animate('200ms ease-out', style({ transform: 'translateX(50%)', opacity: 0 }))
+  ])
+])
+
 export const OverlayAnimations = [
-    OverlayAnimation1
+  OverlayAnimation1,
+  SlideLeftRightAnimation
 ]
