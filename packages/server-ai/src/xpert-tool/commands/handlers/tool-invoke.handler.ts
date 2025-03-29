@@ -116,11 +116,15 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 			}
 			case XpertToolsetCategoryEnum.MCP: {
 				const mcpToolset = new MCPToolset({ ...toolset, tools: [tool] })
-				await mcpToolset.initTools()
-				const toolRuntime = mcpToolset.getTool(tool.name)
-				return await toolRuntime.invoke(parameters?.llm, {
-					configurable: toolContext
-				})
+				try {
+					await mcpToolset.initTools()
+					const toolRuntime = mcpToolset.getTool(tool.name)
+					return await toolRuntime.invoke(parameters?.llm, {
+						configurable: toolContext
+					})
+				} finally {
+					mcpToolset.close().catch((err) => this.#logger.debug(err))
+				}
 			}
 		}
 

@@ -107,6 +107,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				agentKey
 			})
 		)
+		abortController.signal.addEventListener('abort', () => {
+			for (const toolset of toolsets) {
+				toolset.close().catch((err) => this.#logger.debug(err))
+			}
+		})
 		const tools: TGraphTool[] = []
 		const interruptBefore: string[] = []
 		const toolsetVarirables: TStateVariable[] = []

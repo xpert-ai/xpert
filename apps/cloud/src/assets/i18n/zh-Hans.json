@@ -2149,6 +2149,7 @@
       "Tools": "工具",
       "ToolsetTooltip": "使用工具可以扩展 LLM 的功能，例如搜索互联网或执行科学计算",
       "DisableToolDefault": "默认禁用工具",
+      "LoadTools": "加载工具",
       "InputParameters": "输入参数",
       "AskQuestion": "提问问题",
       "StartRun": "开始运行",

@@ -1,5 +1,10 @@
+export enum MCPServerTransport {
+  SSE = 'sse',
+  STDIO = 'stdio'
+}
+
 export type TMCPServer = {
-  transport: 'sse' | 'stdio',
+  transport: MCPServerTransport,
   command?: string
   args?: string[]
   env?: Record<string, string>

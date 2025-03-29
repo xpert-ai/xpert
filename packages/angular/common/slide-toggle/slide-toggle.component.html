@@ -1,6 +1,7 @@
 <button class="h-4 w-7  relative inline-flex flex-shrink-0 cursor-pointer rounded-[5px] border-2 border-transparent transition-colors duration-200 ease-in-out" role="switch" type="button" tabindex="0"
   [ngClass]="{'bg-components-toggle-bg-unchecked': !value$(), 'bg-components-toggle-bg': value$()}"
   [attr.aria-checked]="value$()"
+  [disabled]="disabled()"
   (click)="toggle()"
 >
   <span aria-hidden="true" class="h-3 w-3 pointer-events-none inline-block transform rounded-[3px] bg-components-toggle-knob shadow ring-0 transition duration-200 ease-in-out"

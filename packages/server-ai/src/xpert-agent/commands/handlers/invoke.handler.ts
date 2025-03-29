@@ -264,6 +264,10 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 					} catch (err) {
 						//
 					}
+				},
+				finalize: () => {
+					// For cleanup toolset...
+					abortController.abort()
 				}
 			})
 		)

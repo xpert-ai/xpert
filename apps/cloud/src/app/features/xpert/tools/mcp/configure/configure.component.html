@@ -39,7 +39,7 @@
       <div class="flex-1"></div>
 
       <div class="relative">
-        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small space-x-1"
+        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
           (click)="setSample()">
           <i class="ri-database-line mr-1"></i>
           <div class="text-sm font-medium">{{ 'PAC.Xpert.Samples' | translate: {Default: 'Samples'} }}</div>
@@ -54,37 +54,28 @@
       [ngClass]="{error: schema.invalid && (schema.dirty || schema.touched)}"
     ></textarea>
 
-    <div formGroupName="options" >
-      <div class="py-2 leading-5 text-sm font-medium text-gray-900">
-        {{'PAC.Xpert.BaseUrl' | translate: {Default: 'Base Url'} }}
-      </div>
-      <input matInput class="w-full h-10 px-3 text-sm font-normal bg-gray-100 rounded-lg grow"
-        [placeholder]=" 'PAC.Xpert.EnterBaseUrl' | translate: {Default: 'Please enter base url'} "
-        formControlName="baseUrl"
-        >
-    </div>
-
     @if (loading()) {
       <ngm-spin class="absolute top-0 left-0 w-full h-full" />
     }
   </div>
 
-  <div class="flex items-center gap-2">
-    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small space-x-1"
+  <div class="flex items-center my-2">
+    <button type="button" class="btn btn-primary disabled:btn-disabled btn-secondary btn-medium space-x-1"
       (click)="getMetadata()">
       <div class="text-sm font-medium text-zinc-700">
-        {{ 'PAC.Xpert.ImportFromURL' | translate: {Default: 'Import from URL'} }}
+        {{ 'PAC.Xpert.LoadTools' | translate: {Default: 'Load Tools'} }}
       </div>
     </button>
-
-    <mat-slide-toggle class="text-sm" ngm-density small [formControl]="disableToolDefault">
-      {{'PAC.Xpert.DisableToolDefault' | translate: {Default: 'Disable tools by default'} }}
-    </mat-slide-toggle>
   </div>
+
   @if (!toolset()) {
     <div>
-      <div class="py-2 leading-5 text-base font-medium text-gray-900">
+      <div class="flex items-center gap-2 py-2 leading-5 text-base font-medium text-gray-900">
         {{ 'PAC.Xpert.AvailableTools' | translate: {Default: 'Available Tools'} }}
+
+        <mat-slide-toggle class="text-sm" ngm-density small [formControl]="disableToolDefault">
+          {{'PAC.Xpert.DisableToolDefault' | translate: {Default: 'Disable tools by default'} }}
+        </mat-slide-toggle>
       </div>
 
       <xpert-tool-mcp-config-tools class="rounded-lg border border-gray-200 w-full overflow-x-auto" 

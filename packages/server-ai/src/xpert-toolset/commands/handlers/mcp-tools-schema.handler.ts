@@ -1,8 +1,8 @@
-import { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
-import { MCPToolsBySchemaCommand } from '../mcp-tools-schema.command'
+import { createMCPClient } from '../../provider/mcp/types'
 import { ToolSchemaParser } from '../../utils/parser'
+import { MCPToolsBySchemaCommand } from '../mcp-tools-schema.command'
 
 @CommandHandler(MCPToolsBySchemaCommand)
 export class MCPToolsBySchemaHandler implements ICommandHandler<MCPToolsBySchemaCommand> {
@@ -13,28 +13,21 @@ export class MCPToolsBySchemaHandler implements ICommandHandler<MCPToolsBySchema
 	public async execute(command: MCPToolsBySchemaCommand): Promise<any> {
 		const schema = command.schema
 
-		console.log(schema)
-
 		// Create a client
-		const client = new MultiServerMCPClient()
+		const client = await createMCPClient(schema)
 
-		// Connect to a remote server via SSE
-		for await (const name of Object.keys(schema.servers)) {
-			const server = schema.servers[name]
-			await client.connectToServerViaSSE(
-				name, // Server name
-				server.url // SSE endpoint URL
-			)
-		}
-
-		return {
-			tools: client.getTools().map((tool) => {
-				return {
-					name: tool.name,
-					description: tool.description,
-					schema: ToolSchemaParser.parseZodToJsonSchema(tool.schema)
-				}
-			})
+		try {
+			return {
+				tools: client.getTools().map((tool) => {
+					return {
+						name: tool.name,
+						description: tool.description,
+						schema: ToolSchemaParser.parseZodToJsonSchema(tool.schema)
+					}
+				})
+			}
+		} finally {
+			client.close().catch((err) => this.#logger.debug(err))
 		}
 	}
 }

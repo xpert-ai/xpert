@@ -40,14 +40,15 @@
         <div class="ngm-card-shadow mb-2 px-4 py-3 rounded-xl bg-gray-25 border-[0.5px] border-gary-200 cursor-pointer"
           (click)="selectTool(tool)">
           <div class="flex items-center gap-2 text-gray-800 font-semibold text-sm leading-5">
-            @if (tool.enabled) {
-              <span class="inline-block w-2 h-2 rounded-full bg-green-500 shadow-md shadow-green-100">
-              </span>
-            } @else {
+            @if (tool.disabled) {
               <span class="inline-block w-2 h-2 rounded-full bg-gray-200 shadow-md shadow-gray-100">
               </span>
+            } @else {
+              <span class="inline-block w-2 h-2 rounded-full bg-green-500 shadow-md shadow-green-100">
+              </span>
             }
-            {{tool.name}}</div>
+            {{tool.name}}
+          </div>
           <div class="mt-0.5 text-sm leading-[18px] text-gray-500 line-clamp-2" [title]="tool.description">{{tool.description}}</div>
         </div>
       }
@@ -93,9 +94,9 @@
                 (ngModelChange)="updateTool(tool.id, {name: $event})"/>
             </div>
           </div>
-          <div class="flex items-center">
-            <mat-slide-toggle [ngModel]="tool.enabled" ngm-density small
-              (ngModelChange)="updateTool(tool.id, {enabled: $event})"
+          <div class="flex items-center text-sm">
+            <mat-slide-toggle [ngModel]="!tool.disabled" ngm-density small
+              (ngModelChange)="updateTool(tool.id, {disabled: !$event})"
             >{{'PAC.Xpert.Enabled' | translate: {Default: 'Enabled'} }}</mat-slide-toggle>
           </div>
         </div>

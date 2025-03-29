@@ -71,6 +71,13 @@ export abstract class BaseToolset<T extends StructuredToolInterface = Structured
 	getVariables(): TStateVariable[] {
 		return null
 	}
+
+	/**
+     * Close all (connections).
+     */
+    async close(): Promise<void> {
+		//
+	}
 }
 
 export interface IBaseTool extends IBuiltinTool {

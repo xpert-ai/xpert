@@ -207,8 +207,8 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
   }
 
   setSample() {
-    this.schema.setValue(JSON.stringify(Samples))
-    this.getMetadata()
+    this.schema.setValue(JSON.stringify(Samples, null, 2))
+    // this.getMetadata()
   }
 
   // Get Metadata

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, inject, input } from '@angular/core'
+import { booleanAttribute, Component, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -30,6 +30,9 @@ export class NgmSlideToggleComponent {
   readonly cva = inject(NgxControlValueAccessor)
 
   readonly label = input<string>()
+  readonly disabled = input<boolean, string | boolean>(false, {
+    transform: booleanAttribute
+  })
 
   readonly value$ = this.cva.value$
 

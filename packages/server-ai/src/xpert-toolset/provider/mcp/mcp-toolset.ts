@@ -1,6 +1,7 @@
 import { IXpertToolset, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import { BaseToolset } from '../../toolset'
+import { createMCPClient } from './types'
 
 export class MCPToolset extends BaseToolset {
 	providerType = XpertToolsetCategoryEnum.MCP
@@ -12,15 +13,7 @@ export class MCPToolset extends BaseToolset {
 	}
 
 	async initTools() {
-		const servers = JSON.parse(this.toolset.schema)
-		// Connect to a remote server via SSE
-		for await (const name of Object.keys(servers)) {
-			const server = servers[name]
-			await this.client.connectToServerViaSSE(
-				name, // Server name
-				server.url // SSE endpoint URL
-			)
-		}
+		this.client = await createMCPClient({servers: JSON.parse(this.toolset.schema)})
 
 		this.tools = this.client.getTools()
 		return this.tools
@@ -42,5 +35,10 @@ export class MCPToolset extends BaseToolset {
 		}
 
 		throw new Error(`tool ${toolName} not found`)
+	}
+
+	async close() {
+		console.log(`close mcp toolset.`)
+		await this.client.close()
 	}
 }

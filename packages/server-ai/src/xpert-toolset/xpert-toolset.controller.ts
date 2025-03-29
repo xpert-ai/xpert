@@ -21,7 +21,8 @@ import {
 	UseInterceptors,
 	Inject,
 	UseGuards,
-	InternalServerErrorException
+	InternalServerErrorException,
+	BadRequestException
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
@@ -186,7 +187,11 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 
 	@Post('provider/mcp/tools')
 	async getMCPTools(@Body() { schema }: { schema: TMCPSchema }) {
-		return this.commandBus.execute(new MCPToolsBySchemaCommand(schema))
+		try {
+			return await this.commandBus.execute(new MCPToolsBySchemaCommand(schema))
+		} catch(err) {
+			throw new BadRequestException(err.message)
+		}
 	}
 
 	// Single Toolset
