@@ -47,13 +47,13 @@ import { XpertWorkspaceHomeComponent } from '../home/home.component'
     CardCreateComponent,
     ToolsetCardComponent
   ],
-  selector: 'xpert-workspace-api-tools',
+  selector: 'xpert-workspace-mcp-tools',
   templateUrl: './tools.component.html',
   styleUrl: 'tools.component.scss',
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class XpertWorkspaceApiToolsComponent {
+export class XpertWorkspaceMCPToolsComponent {
   DisplayBehaviour = DisplayBehaviour
   eXpertTypeEnum = XpertTypeEnum
 
@@ -112,8 +112,6 @@ export class XpertWorkspaceApiToolsComponent {
       )
   })
 
-  readonly apiToolsets = computed(() => this.toolsets()?.filter((_) => _.category === XpertToolsetCategoryEnum.API))
-
   constructor() {
     //
   }
@@ -128,7 +126,7 @@ export class XpertWorkspaceApiToolsComponent {
         disableClose: true,
         data: {
           workspace: this.workspace(),
-          type: 'openapi'
+          type: 'mcp'
         }
       })
       .closed.subscribe({
@@ -141,7 +139,7 @@ export class XpertWorkspaceApiToolsComponent {
   }
 
   navigateTo(toolset: IXpertToolset) {
-    if (toolset.category === XpertToolsetCategoryEnum.API) {
+    if (toolset.category === XpertToolsetCategoryEnum.MCP) {
       this.router.navigate(['/xpert/tool', toolset.id])
     }
   }

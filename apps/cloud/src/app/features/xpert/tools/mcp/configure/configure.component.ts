@@ -5,13 +5,14 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  computed,
   effect,
   inject,
   input,
   model,
   signal
 } from '@angular/core'
-import { outputFromObservable } from '@angular/core/rxjs-interop'
+import { outputFromObservable, toSignal } from '@angular/core/rxjs-interop'
 import {
   FormArray,
   FormBuilder,
@@ -32,6 +33,7 @@ import {
   getErrorMessage,
   IXpertToolset,
   TagCategoryEnum,
+  TMCPSchema,
   ToastrService,
   XpertToolsetCategoryEnum,
   XpertToolsetService,
@@ -43,6 +45,7 @@ import { XpertConfigureToolComponent } from '../../api-tool/types'
 import { XpertToolAuthorizationInputComponent } from '../../authorization'
 import { XpertMCPToolsComponent } from '../tools/tools.component'
 import { Samples } from '../types'
+import { combineLatestWith, map } from 'rxjs/operators'
 
 @Component({
   standalone: true,
@@ -92,7 +95,9 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
   readonly formGroup = new FormGroup({
     id: this.#formBuilder.control(null),
     name: new FormControl(null, [Validators.required]),
-    avatar: new FormControl(null),
+    avatar: new FormControl({
+      url: '/assets/icons/mcp.png'
+    }),
     description: new FormControl(null),
     schema: new FormControl<string>(null, [Validators.required]),
     type: this.#formBuilder.control('sse'),
@@ -118,12 +123,12 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
   readonly loading = signal(false)
   readonly url = model('')
 
-  isValid() {
-    return this.formGroup.valid
-  }
-  isDirty() {
-    return this.formGroup.dirty
-  }
+  readonly isValid = toSignal(this.formGroup.valueChanges.pipe(
+    combineLatestWith(this.refresh$),
+    map(() => this.formGroup.valid)))
+  readonly isDirty = toSignal(this.formGroup.valueChanges.pipe(
+    combineLatestWith(this.refresh$),
+    map(() => this.formGroup.dirty)))
 
   get name() {
     return this.formGroup.get('name')
@@ -158,6 +163,9 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
   get disableToolDefault() {
     return this.options.get('disableToolDefault') as FormControl
   }
+
+  readonly #schema = signal<{schema: TMCPSchema; error?: string;}>(null)
+  readonly error = computed(() => this.#schema()?.error)
 
   constructor() {
     super()
@@ -215,7 +223,7 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
   getMetadata() {
     this.loading.set(true)
     const schema = JSON.parse(this.schema.value)
-    this.toolsetService.getMCPToolsBySchema({ servers: schema }).subscribe({
+    this.toolsetService.getMCPToolsBySchema(schema).subscribe({
       next: (result) => {
         this.loading.set(false)
         result.tools.forEach((tool) => this.addTool(tool))
@@ -226,5 +234,14 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
         // Handle the error scenario here
       }
     })
+  }
+
+  onBlur() {
+    try {
+      this.#schema.set({schema: JSON.parse(this.schema.value)})
+      this.schema.setValue(JSON.stringify(this.#schema().schema, null, 4))
+    } catch(err) {
+      this.#schema.set({error: getErrorMessage(err), schema: null})
+    }
   }
 }

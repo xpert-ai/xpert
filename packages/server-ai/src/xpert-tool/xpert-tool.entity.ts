@@ -16,7 +16,7 @@ export class XpertTool extends TenantOrganizationBaseEntity implements IXpertToo
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true, length: 500 })
+	@Column({ nullable: true })
 	description?: string
 
 	@ApiPropertyOptional({ type: () => Object })
@@ -25,6 +25,9 @@ export class XpertTool extends TenantOrganizationBaseEntity implements IXpertToo
 	@Column({ type: 'json', nullable: true })
 	avatar?: TAvatar
 
+	/**
+	 * @deprecated use disabled
+	 */
 	@ApiPropertyOptional({ type: () => Boolean })
 	@IsBoolean()
 	@Column({ nullable: true })

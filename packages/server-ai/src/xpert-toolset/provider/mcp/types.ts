@@ -5,9 +5,10 @@ export async function createMCPClient(schema: TMCPSchema) {
 	// Create a client
 	const client = new MultiServerMCPClient()
 
+	const servers = schema.servers ?? schema.mcpServers
 	// Connect to a remote server via SSE
-	for await (const name of Object.keys(schema.servers)) {
-		const server = schema.servers[name]
+	for await (const name of Object.keys(servers)) {
+		const server = servers[name]
 		const transport = server.transport?.toLowerCase()
 		if (transport === MCPServerTransport.SSE || (!transport && server.url)) {
 			await client.connectToServerViaSSE(

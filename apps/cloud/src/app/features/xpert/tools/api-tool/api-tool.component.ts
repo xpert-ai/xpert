@@ -102,6 +102,9 @@ export class XpertStudioAPIToolComponent {
   })
 
   readonly toolsDirty = signal(false)
+  readonly isDirty = computed(() => {
+    return this.configure()?.isDirty() || this.toolsDirty()
+  })
 
   readonly loading = signal(false)
 
@@ -125,10 +128,6 @@ export class XpertStudioAPIToolComponent {
     effect(() => {
       // console.log(this.selectedTools())
     })
-  }
-
-  isDirty() {
-    return this.configure()?.isDirty() || this.toolsDirty()
   }
 
   isValid() {
@@ -155,6 +154,7 @@ export class XpertStudioAPIToolComponent {
         this.loading.set(false)
         this.toolsDirty.set(false)
         this.configure()?.formGroup.markAsPristine()
+        this.configure()?.refreshForm()
         this.#cdr.detectChanges()
       },
       error: (error) => {

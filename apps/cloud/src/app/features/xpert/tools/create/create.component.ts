@@ -42,7 +42,7 @@ export class XpertStudioCreateToolComponent {
   private readonly xpertToolsetService = inject(XpertToolsetService)
   readonly #toastr = inject(ToastrService)
   readonly #dialogRef = inject(DialogRef)
-  readonly #data = inject<{ workspace: IXpertWorkspace }>(DIALOG_DATA)
+  readonly #data = inject<{ workspace: IXpertWorkspace; type: 'mcp' | 'openapi' | 'odata' }>(DIALOG_DATA)
 
   readonly configure = viewChild('configure', { read: XpertConfigureToolComponent })
 
@@ -50,7 +50,7 @@ export class XpertStudioCreateToolComponent {
 
   readonly loading = signal(false)
 
-  readonly providerTypes = model<('mcp' | 'openapi' | 'odata')[]>(['mcp'])
+  readonly providerTypes = model<('mcp' | 'openapi' | 'odata')[]>([this.#data.type || 'mcp'])
 
   readonly toolset = model<IXpertToolset>()
 

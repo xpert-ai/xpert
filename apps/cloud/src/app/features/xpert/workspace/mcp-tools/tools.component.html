@@ -1,5 +1,5 @@
 <div class="flex items-center px-12 py-4 text-lg font-semibold text-gray-500 uppercase">
-  <div class="mr-3">{{ 'PAC.Xpert.APIToolset' | translate: { Default: 'API Toolset' } }}</div>
+  <div class="mr-3">{{ 'PAC.Xpert.MCPToolset' | translate: { Default: 'MCP Toolset' } }}</div>
   <div class="grow w-0 h-px bg-divider-regular"></div>
 </div>
 
@@ -7,13 +7,13 @@
   ngmDynamicGrid colWidth="280"
   box="content-box">
 
-  <ngm-card-create [title]="'PAC.Xpert.CreateAPITool' | translate: {Default: 'Create API Toolset'}"
-    [helpTitle]="'PAC.Xpert.LearnCreateAPITool' | translate: {Default: 'Learn more about API toolset'}"
-    helpUrl="/docs/ai/tool/custom/"
+  <ngm-card-create [title]="'PAC.Xpert.CreateMCPTool' | translate: {Default: 'Create MCP Toolset'}"
+    [helpTitle]="'PAC.Xpert.LearnCreateMCPTool' | translate: {Default: 'Learn more about Xpert MCP toolset'}"
+    helpUrl="/docs/ai/tool/mcp/"
     (create)="createTool()"
   />
 
-  @for (toolset of apiToolsets(); track toolset.id) {
+  @for (toolset of toolsets(); track toolset.id) {
     <xpert-toolset-card class="col-span-1 min-h-[160px] cursor-pointer bg-components-card-bg"
       [toolset]="toolset"
       (click)="navigateTo(toolset)"

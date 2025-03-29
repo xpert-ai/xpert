@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, input, signal } from '@angular/core'
+import { Component, computed, effect, inject, input, signal } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { StoredMessage } from '@langchain/core/messages'
 import { TranslateModule } from '@ngx-translate/core'
@@ -52,5 +52,12 @@ export class CopilotStoredMessageComponent {
     return text
   })
 
+
   readonly expandReason = signal(false)
+
+  constructor() {
+    effect(() => {
+      // console.log(this.content())
+    })
+  }
 }

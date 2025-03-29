@@ -35,7 +35,7 @@ export class XpertMCPToolsComponent {
 
   constructor() {
     effect(() => {
-      console.log(this.tools())
+      // console.log(this.tools())
     })
   }
 

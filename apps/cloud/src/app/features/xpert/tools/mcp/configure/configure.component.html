@@ -52,7 +52,11 @@
       [placeholder]="'PAC.Xpert.EnterYourODataMetadata' | translate: {Default: 'Enter your OData metadata here'}"
       formControlName="schema"
       [ngClass]="{error: schema.invalid && (schema.dirty || schema.touched)}"
+      (blur)="onBlur()"
     ></textarea>
+    @if (error()) {
+      <div class="px-2 text-sm text-text-destructive">{{error()}}</div>
+    }
 
     @if (loading()) {
       <ngm-spin class="absolute top-0 left-0 w-full h-full" />

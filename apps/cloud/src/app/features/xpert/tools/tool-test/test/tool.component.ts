@@ -87,7 +87,7 @@ export class XpertToolsetToolTestComponent {
 
   constructor() {
     effect(() => {
-      console.log(this.schema())
+      // console.log(this.schema())
     })
   }
 

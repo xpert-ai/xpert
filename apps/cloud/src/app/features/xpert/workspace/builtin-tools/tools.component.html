@@ -11,6 +11,11 @@
       [toolset]="toolset"
       (click)="navigateTo(toolset)"
     />
+  } @empty {
+    <div class="px-4 text-text-secondary">
+      <i class="ri-information-2-line text-lg mr-1"></i>
+      <span>{{'PAC.Xpert.CreateBuiltinToolsetTip' | translate: { Default: 'Select a tool provider below to configure.' } }}</span>
+    </div>
   }
 </div>
 

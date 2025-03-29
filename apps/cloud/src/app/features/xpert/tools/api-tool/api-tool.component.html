@@ -7,7 +7,7 @@
         <emoji-avatar [avatar]="avatar()" class="rounded-lg overflow-hidden" />
       </div>
       <div class="grow w-0 py-[1px]">
-        <div class="flex items-center text-md leading-6 font-semibold text-gray-900">
+        <div class="flex items-center text-lg leading-6 font-semibold text-gray-900">
           <div class="truncate" [title]="toolset.name">{{toolset.name}}</div>
         </div>
       </div>
@@ -32,7 +32,7 @@
   </div>
 
   <div class="flex-1 flex flex-col px-4 overflow-y-auto">
-    <div class="sticky top-0 text-sm font-medium leading-6 border-b-[0.5px] border-black/5 text-gray-500">
+    <div class="sticky top-0 text-sm font-medium leading-6 border-b-[0.5px] border-black/5 text-gray-500 bg-components-panel-bg">
       <span class="uppercase">{{toolset.tools.length}} {{'PAC.Xpert.ToolsIncluded' | translate: {Default: 'Tools Included'} }}</span>
     </div>
     <div class="pt-3">

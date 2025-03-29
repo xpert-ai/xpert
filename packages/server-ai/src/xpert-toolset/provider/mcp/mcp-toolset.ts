@@ -13,7 +13,7 @@ export class MCPToolset extends BaseToolset {
 	}
 
 	async initTools() {
-		this.client = await createMCPClient({servers: JSON.parse(this.toolset.schema)})
+		this.client = await createMCPClient(JSON.parse(this.toolset.schema))
 
 		this.tools = this.client.getTools()
 		return this.tools

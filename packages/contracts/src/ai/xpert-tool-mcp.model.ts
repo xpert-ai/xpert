@@ -27,5 +27,6 @@ export type TMCPServer = {
 }
 
 export type TMCPSchema = {
-  servers: Record<string, TMCPServer>
+  servers?: Record<string, TMCPServer>
+  mcpServers?: Record<string, TMCPServer>
 }

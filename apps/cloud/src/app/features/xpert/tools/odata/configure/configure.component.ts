@@ -27,7 +27,7 @@ import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { Samples } from '../types'
-import { outputFromObservable } from '@angular/core/rxjs-interop'
+import { outputFromObservable, toSignal } from '@angular/core/rxjs-interop'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { XpertToolAuthorizationInputComponent } from '../../authorization'
@@ -36,6 +36,7 @@ import { XpertConfigureToolComponent } from '../../api-tool/types'
 import { Dialog, DialogModule } from '@angular/cdk/dialog'
 import { TagSelectComponent } from 'apps/cloud/src/app/@shared/tag'
 import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { combineLatestWith, map } from 'rxjs/operators'
 
 
 @Component({
@@ -107,12 +108,12 @@ export class XpertStudioConfigureODataComponent extends XpertConfigureToolCompon
 
   readonly valueChange = outputFromObservable(this.formGroup.valueChanges)
 
-  isValid() {
-    return this.formGroup.valid
-  }
-  isDirty() {
-    return this.formGroup.dirty
-  }
+  readonly isValid = toSignal(this.formGroup.valueChanges.pipe(
+    combineLatestWith(this.refresh$),
+    map(() => this.formGroup.valid)))
+  readonly isDirty = toSignal(this.formGroup.valueChanges.pipe(
+    combineLatestWith(this.refresh$),
+    map(() => this.formGroup.dirty)))
 
   get name() {
     return this.formGroup.get('name')

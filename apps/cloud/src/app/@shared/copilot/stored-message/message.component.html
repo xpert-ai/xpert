@@ -57,11 +57,12 @@
       <div class="flex items-center mb-1">Tool: {{toolMessage().name}}</div>
       <!-- <div class="mb-2">{{toolMessage().tool_call_id}}</div> -->
 
-      <markdown class="ngm-copilot-markdown block"
+      <copilot-message-content [content]="toolResponse()" />
+      <!-- <markdown class="ngm-copilot-markdown block"
         lineNumbers
         [start]="5"
         [data]="toolMessage().content"
-      />
+      /> -->
     }
   }
 </div>
