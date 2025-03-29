@@ -10,10 +10,18 @@
   <emoji-avatar [avatar]="toolset().avatar" small class="shrink-0 mr-2 rounded-lg overflow-hidden shadow-sm" />
   @if (isSandbox()) {
     <div class="absolute left-7 bottom-1 flex justify-center items-center w-5 h-5 rounded-md shadow-sm bg-white"
-      [matTooltip]="'PAC.Xpert.SandboxToolsetTip' | translate: {Default: 'Tools that need to be run in a sandbox'}">
+      [matTooltip]="'PAC.Xpert.SandboxToolsetTip' | translate: {Default: 'Tools that to be run in a sandbox'}">
       <i class="ri-instance-line text-green-700"></i>
     </div>
   }
+
+  @if (needSandbox()) {
+    <div class="absolute left-7 bottom-1 flex justify-center items-center w-5 h-5 rounded-md shadow-sm bg-white"
+      [matTooltip]="'PAC.Xpert.NeedSandboxToolsetTip' | translate: {Default: 'For security reasons, please upgrade to the pro version to run this toolset safely in a sandbox'}">
+      <i class="ri-alarm-warning-fill mb-0.5 text-orange-500"></i>
+    </div>
+  }
+
   <div class="truncate">
     {{toolset().name}}
   </div>
@@ -23,6 +31,7 @@
   [title]="toolset().description">{{toolset().description}}</div>
 
 <div class="w-full flex flex-col justify-start items-stretch p-2 gap-1 max-h-48 overflow-y-auto"
+  [class.max-h-48]="!expandTools()"
   (wheel)="$event.stopPropagation()"
 >
   @for (item of tools(); track item.tool.id) {
@@ -79,3 +88,17 @@
       {{'PAC.Xpert.AtLeastOneTool' | translate: {Default: 'Enable at least one tool'} }}</div>
   }
 </div>
+
+@if (tools()?.length > 5) {
+  <div class="absolute bottom-0 w-full flex justify-center">
+    <div class="w-5 h-5 flex justify-center items-center rounded-md hover:bg-hover-bg cursor-pointer
+      opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary hover:text-text-primary"
+      (click)="toggleExpandTools($event)">
+      @if (expandTools()) {
+        <i class="ri-skip-up-line text-sm"></i>
+      } @else {
+        <i class="ri-skip-down-line text-sm"></i>
+      }
+    </div>
+  </div>
+}

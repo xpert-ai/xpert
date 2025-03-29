@@ -68,6 +68,7 @@ export type TXpertToolsetOptions = {
   provider: IToolProvider
   baseUrl?: string
   toolPositions?: Record<string, number>
+  needSandbox?: boolean
   [key: string]: any
 }
 

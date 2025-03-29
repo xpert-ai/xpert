@@ -32,6 +32,7 @@ import {
   ApiProviderAuthType,
   getErrorMessage,
   IXpertToolset,
+  MCPServerTransport,
   TagCategoryEnum,
   TMCPSchema,
   ToastrService,
@@ -113,7 +114,8 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
     options: this.#formBuilder.group({
       baseUrl: this.#fb.control(''),
       // Whether dynamically loaded tools are disabled by default
-      disableToolDefault: this.#fb.control('')
+      disableToolDefault: this.#fb.control(''),
+      needSandbox: this.#fb.control(false),
     })
   })
   // Outputs
@@ -162,6 +164,9 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
   }
   get disableToolDefault() {
     return this.options.get('disableToolDefault') as FormControl
+  }
+  get needSandbox() {
+    return this.options.get('needSandbox') as FormControl
   }
 
   readonly #schema = signal<{schema: TMCPSchema; error?: string;}>(null)
@@ -222,11 +227,13 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
   // Get Metadata
   getMetadata() {
     this.loading.set(true)
-    const schema = JSON.parse(this.schema.value)
+    const schema = JSON.parse(this.schema.value) as TMCPSchema
+    const servers = schema.mcpServers ?? schema.servers
     this.toolsetService.getMCPToolsBySchema(schema).subscribe({
       next: (result) => {
         this.loading.set(false)
         result.tools.forEach((tool) => this.addTool(tool))
+        this.needSandbox.setValue(Object.values(servers).some((server) => server.transport === MCPServerTransport.STDIO || server.command))
       },
       error: (err) => {
         this.#toastr.error(getErrorMessage(err))

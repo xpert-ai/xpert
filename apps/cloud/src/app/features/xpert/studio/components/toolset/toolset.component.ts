@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -75,8 +75,10 @@ export class XpertStudioNodeToolsetComponent {
    * At least one tool enabled
    */
   readonly atLeastOne = computed(() => this.toolsetDetail()?.tools?.some((t) => !t.disabled))
+  readonly expandTools = signal(false)
 
   readonly isSandbox = computed(() => this.toolset()?.options?.provider?.tags?.includes(ToolTagEnum.SANDBOX))
+  readonly needSandbox = computed(() => this.toolsetDetail()?.options?.needSandbox)
 
   private get hostElement(): HTMLElement {
     return this.elementRef.nativeElement
@@ -106,5 +108,10 @@ export class XpertStudioNodeToolsetComponent {
 
   hasMemory(name: string) {
     return this.agentConfig()?.toolsMemory?.[name]
+  }
+
+  toggleExpandTools(event: Event) {
+    event.stopPropagation()
+    this.expandTools.update((state) => !state)
   }
 }

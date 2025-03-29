@@ -58,6 +58,13 @@
       <div class="px-2 text-sm text-text-destructive">{{error()}}</div>
     }
 
+    @if (needSandbox.value) {
+      <div class="flex items-center my-2">
+        <i class="ri-alarm-warning-fill mb-0.5 mr-1 text-orange-500"></i>
+        <span class="text-sm text-text-secondary">{{ 'PAC.Xpert.NeedSandboxToolsetTip' | translate: {Default: 'For security reasons, please upgrade to the pro version to run this toolset safely in a sandbox'} }}</span>
+      </div>
+    }
+
     @if (loading()) {
       <ngm-spin class="absolute top-0 left-0 w-full h-full" />
     }
