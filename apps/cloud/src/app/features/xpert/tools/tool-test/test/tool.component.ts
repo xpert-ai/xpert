@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   Component,
   computed,
   effect,
@@ -26,8 +25,10 @@ import {
   XpertToolService,
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
+import { JSONSchemaFormComponent } from 'apps/cloud/src/app/@shared/forms'
 import { isNil } from 'lodash-es'
 import { Subscription } from 'rxjs'
+import { JsonSchema7ObjectType } from 'zod-to-json-schema'
 
 
 @Component({
@@ -40,7 +41,8 @@ import { Subscription } from 'rxjs'
     MatTooltipModule,
     MatSlideToggleModule,
     NgmDensityDirective,
-    NgmSpinComponent
+    NgmSpinComponent,
+    JSONSchemaFormComponent
   ],
   selector: 'xpert-toolset-tool-test',
   templateUrl: './tool.component.html',
@@ -51,7 +53,6 @@ export class XpertToolsetToolTestComponent {
   readonly toolsetService = inject(XpertToolsetService)
   readonly #formBuilder = inject(FormBuilder)
   readonly #toastr = inject(ToastrService)
-  readonly #cdr = inject(ChangeDetectorRef)
   readonly toolService = inject(XpertToolService)
 
   // Inputs
@@ -69,8 +70,11 @@ export class XpertToolsetToolTestComponent {
   readonly toolId = computed(() => this.tool()?.id)
 
   readonly toolAvatar = computed(() => this.tool()?.avatar)
+
+  readonly schema = computed(() => this.tool()?.schema)
+  readonly jsonSchema = computed(() => this.tool()?.schema as JsonSchema7ObjectType)
   readonly parameterList = computed<TToolParameter[]>(() => {
-    const parameters = this.tool()?.schema?.parameters ?? this.tool()?.provider?.parameters
+    const parameters = this.schema()?.parameters ?? this.tool()?.provider?.parameters
     return parameters?.filter((_) => isNil(_.visible) || _.visible || this.visibleAll())
   })
 
@@ -83,7 +87,7 @@ export class XpertToolsetToolTestComponent {
 
   constructor() {
     effect(() => {
-      // console.log(this.tool())
+      console.log(this.schema())
     })
   }
 

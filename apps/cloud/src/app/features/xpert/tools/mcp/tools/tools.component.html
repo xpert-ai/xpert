@@ -1,0 +1,36 @@
+<table class="w-full leading-[18px] text-sm text-gray-700 font-normal">
+  <thead class="text-gray-500 uppercase">
+    <tr class="border-gray-200">
+      <th class="">{{'PAC.KEY_WORDS.Enabled' | translate: {Default: 'Enabled'} }}</th>
+      <th class="">{{'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}</th>
+      <th class=" w-[236px]">{{'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</th>
+      <th class=" w-[54px]">{{'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}</th>
+    </tr>
+  </thead>
+  <tbody >
+    @for (tool of tools(); track i; let i = $index) {
+      <tr class="tool-row border-gray-200" [class.disabled]="(tool.disabled ?? disableToolDefault())">
+        <td class="p-2 pl-3 font-medium">
+          <mat-slide-toggle ngm-density="xs" 
+            [ngModel]="!(tool.disabled ?? disableToolDefault())"
+            (ngModelChange)="updateTool(i, 'disabled', !$event)"
+          />
+        </td>
+        <td class="p-2 pl-3 font-medium">
+          <xpert-tool-name-input [ngModel]="tool.name" (ngModelChange)="updateTool(i, 'name', $event)" />
+        </td>
+        <td class="p-2 pl-3 font-medium">
+          <input class="w-full ngm-input-inline ngm-input-sm hover:bg-hover-bg"
+            [ngModel]="tool.description" (ngModelChange)="updateTool(i, 'description', $event)">
+        </td>
+        <td class="pl-3 font-medium">
+          <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small space-x-1"
+            (click)="openToolTest(tool)"
+          >
+            <div class="text-sm font-medium">{{ 'PAC.Xpert.Test' | translate: {Default: 'Test'} }}</div>
+          </button>
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>

@@ -15,14 +15,14 @@ import { toObservable } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
+import { injectConfirmDelete } from '@metad/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { omit } from 'lodash-es'
 import { injectParams } from 'ngxtension/inject-params'
-import { EMPTY, of } from 'rxjs'
+import { of } from 'rxjs'
 import { distinctUntilChanged, switchMap } from 'rxjs/operators'
 import {
   getErrorMessage,
@@ -37,8 +37,9 @@ import {
 import { XpertStudioConfigureMCPComponent } from '../mcp'
 import { XpertStudioConfigureODataComponent } from '../odata'
 import { XpertStudioConfigureToolComponent } from '../openapi/'
-import { XpertToolsetToolTestComponent } from '../tool-test/test/tool.component'
+import { XpertToolsetToolTestComponent } from '../tool-test/'
 import { XpertConfigureToolComponent } from './types'
+import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 
 @Component({
   standalone: true,
@@ -47,6 +48,7 @@ import { XpertConfigureToolComponent } from './types'
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
+    MatSlideToggleModule,
     MatTooltipModule,
     TranslateModule,
     NgmI18nPipe,
@@ -76,6 +78,7 @@ export class XpertStudioAPIToolComponent {
   readonly #fb = inject(FormBuilder)
   readonly #cdr = inject(ChangeDetectorRef)
   readonly #translate = inject(TranslateService)
+  readonly confirmDelete = injectConfirmDelete()
 
   // Inputs
   readonly toolset = model<IXpertToolset>(null)
@@ -85,6 +88,7 @@ export class XpertStudioAPIToolComponent {
 
   // Inner states
   readonly avatar = computed(() => this.toolset()?.avatar)
+  readonly disableToolDefault = computed(() => this.toolset()?.options?.disableToolDefault)
   // Single tool
   readonly selectedToolIds = signal<string[]>([])
   readonly selectedTools = computed(() =>
@@ -262,19 +266,14 @@ export class XpertStudioAPIToolComponent {
 
   deleteToolset() {
     const toolset = this.toolset()
-    this.#dialog
-      .open(NgmConfirmDeleteComponent, {
-        data: {
-          value: toolset.name,
-          information: this.#translate.instant('PAC.Xpert.DeleteAllTools', { Default: 'Delete all tools of toolset' })
-        }
-      })
-      .afterClosed()
-      .pipe(switchMap((confirm) => (confirm ? this.toolsetService.delete(toolset.id) : EMPTY)))
+    this.confirmDelete({
+      value: toolset.name,
+      information: this.#translate.instant('PAC.Xpert.DeleteAllTools', { Default: 'Delete all tools of toolset' })
+    }, this.toolsetService.delete(toolset.id))
       .subscribe({
         next: () => {
           this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, toolset.name)
-          this.#router.navigate(['/xpert'])
+          this.close()
         },
         error: (error) => {
           this.#toastr.error(getErrorMessage(error))
@@ -282,8 +281,12 @@ export class XpertStudioAPIToolComponent {
       })
   }
 
-  cancel() {
+  close() {
     // Back to workspace
     this.#router.navigate(['/xpert/w', this.toolset().workspaceId])
+  }
+
+  cancel() {
+    this.close()
   }
 }

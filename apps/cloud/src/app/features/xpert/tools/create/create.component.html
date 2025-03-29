@@ -7,11 +7,11 @@
     cdkListbox
     [(ngModel)]="providerTypes"
     >
-    <!-- <li #option1="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
+    <li #option1="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
       [ngClass]="option1.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
       [cdkOption]="'mcp'">
       <i class="ri-route-line"></i> &nbsp; MCP
-    </li> -->
+    </li>
     <li #option2="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
       [ngClass]="option2.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
       [cdkOption]="'openapi'">
@@ -46,13 +46,19 @@
   }
 </div>
 
-<div class="w-full flex justify-end p-2">
-  <div ngmButtonGroup>
-    <button mat-stroked-button cdkFocusInitial (click)="cancel()">
+<div class="w-full flex justify-end p-4">
+  <div class="flex items-center gap-2">
+    <button type="button" class="btn disabled:btn-disabled btn-large"
+      (click)="cancel()"
+    >
       {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
-    <button mat-raised-button color="accent" [disabled]="!configure()?.isValid()"
-      (click)="createTool()">
+
+    <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+      [disabled]="!configure()?.isValid()"
+      (click)="createTool()"
+    >
+      <i class="ri-save-line mr-1"></i>
       {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
     </button>
   </div>

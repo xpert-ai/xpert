@@ -49,7 +49,7 @@ export class XpertStudioNodeToolsetComponent {
 
   readonly availableTools = computed(() => {
     const positions = this.positions()
-    const tools = this.toolsetDetail()?.tools.filter((_) => _.enabled)
+    const tools = this.toolsetDetail()?.tools.filter((_) => !_.disabled)
 
     return positions && tools
       ? tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
@@ -74,7 +74,7 @@ export class XpertStudioNodeToolsetComponent {
   /**
    * At least one tool enabled
    */
-  readonly atLeastOne = computed(() => this.availableTools()?.some((t) => t.enabled))
+  readonly atLeastOne = computed(() => this.toolsetDetail()?.tools?.some((t) => !t.disabled))
 
   readonly isSandbox = computed(() => this.toolset()?.options?.provider?.tags?.includes(ToolTagEnum.SANDBOX))
 

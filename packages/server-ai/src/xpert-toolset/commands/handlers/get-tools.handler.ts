@@ -5,7 +5,7 @@ import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { In } from 'typeorm'
 import { ToolProviderNotFoundError } from '../../errors'
-import { createBuiltinToolset, ODataToolset } from '../../provider'
+import { createBuiltinToolset, MCPToolset, ODataToolset } from '../../provider'
 import { OpenAPIToolset } from '../../provider/openapi/openapi-toolset'
 import { BaseToolset } from '../../toolset'
 import { XpertToolsetService } from '../../xpert-toolset.service'
@@ -61,6 +61,9 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 							throw new ToolProviderNotFoundError(`API Tool type '${toolset.type}' not found`)
 						}
 					}
+				}
+				case XpertToolsetCategoryEnum.MCP: {
+					return new MCPToolset(toolset)
 				}
 				default: {
 					throw new ToolProviderNotFoundError(`Tool category '${toolset.category}' not found`)

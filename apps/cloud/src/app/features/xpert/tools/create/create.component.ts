@@ -4,9 +4,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, model, signal, viewChild } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
 import { routeAnimations } from '@metad/core'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
@@ -30,8 +28,6 @@ import { XpertStudioConfigureMCPComponent } from '../mcp'
     TranslateModule,
     DragDropModule,
     CdkListboxModule,
-    MatButtonModule,
-    ButtonGroupDirective,
     XpertStudioConfigureToolComponent,
     XpertStudioConfigureODataComponent,
     XpertStudioConfigureMCPComponent

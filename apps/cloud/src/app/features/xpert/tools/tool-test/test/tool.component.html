@@ -8,31 +8,35 @@
       {{ 'PAC.Xpert.SaveAsDefault' | translate: { Default: 'Save as default' } }}</button>
   </div>
   
-  <div class="rounded-lg border border-gray-200 max-h-80 overflow-y-auto">
-    <table class="w-full leading-[18px] text-sm text-gray-700 font-normal">
-      <thead class="text-gray-500 uppercase">
-        <tr class="border-b border-gray-200">
-          <th class="p-2 pl-3 font-medium text-left">{{ 'PAC.Xpert.Parameters' | translate: { Default: 'Parameters' } }}</th>
-          <th class="p-2 pl-3 font-medium text-left">{{ 'PAC.Xpert.Value' | translate: { Default: 'Value' } }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (parameter of parameterList(); track parameter.name) {
-          <tr class="border-b last:border-0 border-gray-200">
-            <td class="py-2 pl-3 pr-2.5">{{parameter.name}}
-              @if (parameter.required) {
-                <span class="inline-block text-sm font-medium text-[#EC4A0A]">*</span>
-              }
-            </td>
-            <td class="">
-              <input class="ngm-input-inline ngm-input-sm w-full" [type]="parameter.type || 'text' "
-                [ngModel]="parameters()?.[parameter.name]"
-                (ngModelChange)="onParameter(parameter.name, $event)">
-            </td>
+  <div class="rounded-lg border border-gray-200 max-h-80 p-2 overflow-y-auto">
+    @if (parameterList()) {
+      <table class="w-full leading-[18px] text-sm text-gray-700 font-normal">
+        <thead class="text-gray-500 uppercase">
+          <tr class="border-b border-gray-200">
+            <th class="p-2 pl-3 font-medium text-left">{{ 'PAC.Xpert.Parameters' | translate: { Default: 'Parameters' } }}</th>
+            <th class="p-2 pl-3 font-medium text-left">{{ 'PAC.Xpert.Value' | translate: { Default: 'Value' } }}</th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (parameter of parameterList(); track parameter.name) {
+            <tr class="border-b last:border-0 border-gray-200">
+              <td class="py-2 pl-3 pr-2.5">{{parameter.name}}
+                @if (parameter.required) {
+                  <span class="inline-block text-sm font-medium text-[#EC4A0A]">*</span>
+                }
+              </td>
+              <td class="">
+                <input class="ngm-input-inline ngm-input-sm w-full" [type]="parameter.type || 'text' "
+                  [ngModel]="parameters()?.[parameter.name]"
+                  (ngModelChange)="onParameter(parameter.name, $event)">
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else if(jsonSchema()) {
+      <json-schema-form [schema]="jsonSchema()" [(ngModel)]="parameters" />
+    }
   </div>
 </div>
 

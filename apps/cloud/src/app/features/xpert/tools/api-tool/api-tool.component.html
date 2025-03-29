@@ -94,7 +94,7 @@
             </div>
           </div>
           <div class="flex items-center">
-            <mat-slide-toggle [ngModel]="tool.enabled" ngm-density="small"
+            <mat-slide-toggle [ngModel]="tool.enabled" ngm-density small
               (ngModelChange)="updateTool(tool.id, {enabled: $event})"
             >{{'PAC.Xpert.Enabled' | translate: {Default: 'Enabled'} }}</mat-slide-toggle>
           </div>
@@ -151,7 +151,9 @@
           <div class="grow h-px bg-gradient-to-r from-neutral-300 to-white"></div>
         </div>
 
-        <xpert-toolset-tool-test [tool]="tool" class="flex-1" (saveParameters)="saveParametersAsDefault(tool, $event)" />
+        <xpert-toolset-tool-test [tool]="tool" class="flex-1" 
+          (saveParameters)="saveParametersAsDefault(tool, $event)"
+        />
       </div>
     </div>
   } @empty {

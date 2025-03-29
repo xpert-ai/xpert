@@ -14,10 +14,18 @@ export type XpertToolType = {
   description?: string
   avatar?: TAvatar
   /**
-   * Is enabled in toolset
+   * @deprecated use disabled
    */
   enabled?: boolean
+  /**
+   * Is disabled in toolset
+   */
+  disabled?: boolean
+  
   options?: Record<string, any>
+  /**
+   * Schema of tool
+   */
   schema?: Record<string, any> | TXpertToolEntity | IBuiltinTool
   /**
    * Default input parameters of tool

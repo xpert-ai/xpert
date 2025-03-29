@@ -7,6 +7,7 @@ import { Subject } from 'rxjs'
 import {
 	ApiBasedToolSchemaParser,
 	createBuiltinToolset,
+	MCPToolset,
 	ODataToolset,
 	OpenAPIToolset,
 	ToolNotSupportedError,
@@ -40,7 +41,7 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 				)
 			}
 			return acc
-		}, {llm: {}, form: {}})
+		}, {llm: {}, form: {}}) ?? {llm: command.tool.parameters}
 
 		const events = []
 		const subscriber = new Subject()
@@ -112,6 +113,14 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 					}
 				}
 				break
+			}
+			case XpertToolsetCategoryEnum.MCP: {
+				const mcpToolset = new MCPToolset({ ...toolset, tools: [tool] })
+				await mcpToolset.initTools()
+				const toolRuntime = mcpToolset.getTool(tool.name)
+				return await toolRuntime.invoke(parameters?.llm, {
+					configurable: toolContext
+				})
 			}
 		}
 
