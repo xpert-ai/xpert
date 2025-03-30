@@ -16,6 +16,7 @@ export type TBuiltinToolsetParams = {
 	queryBus: QueryBus
 	xpertId?: string
 	agentKey?: string
+	signal?: AbortSignal
 }
 
 export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> {

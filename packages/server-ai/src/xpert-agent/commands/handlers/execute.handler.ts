@@ -73,7 +73,8 @@ export class XpertAgentExecuteHandler implements ICommandHandler<XpertAgentExecu
 		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
 			new ToolsetGetToolsCommand(options?.toolsets ?? agent.toolsetIds, {
 				xpertId: xpert.id,
-				agentKey
+				agentKey,
+				signal: abortController.signal
 			})
 		)
 		const tools: TGraphTool[] = []

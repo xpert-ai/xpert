@@ -104,7 +104,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
 			new ToolsetGetToolsCommand(options?.toolsets ?? agent.toolsetIds, {
 				xpertId: xpert.id,
-				agentKey
+				agentKey,
+				signal: abortController.signal
 			})
 		)
 		abortController.signal.addEventListener('abort', () => {

@@ -3,6 +3,7 @@ import { IXpertToolset, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { BaseToolset } from '../../toolset'
 import { createMCPClient } from './types'
+import { TBuiltinToolsetParams } from '../builtin'
 
 export class MCPToolset extends BaseToolset {
 	providerType = XpertToolsetCategoryEnum.MCP
@@ -11,7 +12,10 @@ export class MCPToolset extends BaseToolset {
 
 	// MCP Client
 	protected client = new MultiServerMCPClient()
-	constructor(protected toolset?: IXpertToolset) {
+	constructor(
+		protected toolset?: IXpertToolset,
+		protected params?: TBuiltinToolsetParams
+	) {
 		super(toolset)
 	}
 
