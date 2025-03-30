@@ -1,17 +1,20 @@
-import { ICopilotModel, IXpertAgent, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { ICopilotModel, IXpertAgent, mapTranslationLanguage, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { nonNullable } from '@metad/copilot'
 import { pick } from '@metad/server-common'
 import { IQueryHandler, QueryHandler, QueryBus } from '@nestjs/cqrs'
+import { I18nService } from 'nestjs-i18n'
 import { XpertService } from '../../xpert.service'
 import { CopilotGetOneQuery } from '../../../copilot'
 import { GetXpertWorkflowQuery } from '../get-xpert-workflow.query'
+import { RequestContext } from '@metad/server-core'
 
 
 @QueryHandler(GetXpertWorkflowQuery)
 export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQuery> {
 	constructor(
 		private readonly service: XpertService,
-		private readonly queryBus: QueryBus
+		private readonly i18nService: I18nService,
+		private readonly queryBus: QueryBus,
 	) {}
 
 	public async execute(command: GetXpertWorkflowQuery): Promise<{agent?: IXpertAgent; graph: TXpertGraph; next?: TXpertTeamNode[]; fail?: TXpertTeamNode[]}> {
@@ -27,7 +30,12 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 			const connections = draft.connections ?? xpert.graph.connections
 			const agentNode = nodes?.find((_) => _.type === 'agent' && (_.key === keyOrName || _.entity.name === keyOrName))
 			if (!agentNode) {
-				return null
+				throw new Error(await this.i18nService.translate('xpert.Error.NoAgentInGraph', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+					args: {
+						value: keyOrName
+					}
+				}))
 			}
 			const agentKey = agentNode.key
 
