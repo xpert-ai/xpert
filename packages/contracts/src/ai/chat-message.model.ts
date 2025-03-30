@@ -152,7 +152,7 @@ export type TMessageContentComplex = (TMessageContentText | MessageContentImageU
   type?: "text" | "image_url" | string;
 }) | (Record<string, any> & {
   type?: never;
-})) & {agentKey?: string}
+})) & {agentKey?: string; created_date?: Date | string}
 /**
  * Enhance {@link MessageContent} in Langchain.js
  */

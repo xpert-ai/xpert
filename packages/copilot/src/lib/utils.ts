@@ -101,7 +101,12 @@ export function stringifyMessageContent(content: MessageContent | MessageContent
   return ''
 }
 
-
+/**
+ * Append content into AI Message
+ * 
+ * @param aiMessage 
+ * @param content 
+ */
 export function appendMessageContent(aiMessage: CopilotChatMessage, content: string | TMessageContentComplex) {
   aiMessage.status = 'answering'
 	const _content = aiMessage.content

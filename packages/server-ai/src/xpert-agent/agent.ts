@@ -106,6 +106,7 @@ export function createMapStreamEvents(
 								type: "text",
 								text: '',
 								id: msg.id,
+								created_date: new Date()
 							} as TMessageContentText
 							if (agentKey) {
 								chunk.agentKey = agentKey

@@ -1,10 +1,13 @@
-import { IXpertToolset, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
+import { IXpertToolset, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { Logger } from '@nestjs/common'
 import { BaseToolset } from '../../toolset'
 import { createMCPClient } from './types'
 
 export class MCPToolset extends BaseToolset {
 	providerType = XpertToolsetCategoryEnum.MCP
+
+	readonly #logger = new Logger(MCPToolset.name)
 
 	// MCP Client
 	protected client = new MultiServerMCPClient()
@@ -14,8 +17,11 @@ export class MCPToolset extends BaseToolset {
 
 	async initTools() {
 		this.client = await createMCPClient(JSON.parse(this.toolset.schema))
-
-		this.tools = this.client.getTools()
+		const tools = this.client.getTools()
+		const disableToolDefault = this.toolset.options?.disableToolDefault
+		this.tools = tools.filter((tool) =>
+			disableToolDefault ? this.toolset.tools.some((_) => _.name === tool.name && !_.disabled) : true
+		)
 		return this.tools
 	}
 
@@ -38,7 +44,7 @@ export class MCPToolset extends BaseToolset {
 	}
 
 	async close() {
-		console.log(`close mcp toolset.`)
 		await this.client.close()
+		this.#logger.debug(`closed mcp toolset '${this.toolset.name}'.`)
 	}
 }

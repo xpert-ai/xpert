@@ -244,11 +244,14 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
   }
 
   onBlur() {
-    try {
-      this.#schema.set({schema: JSON.parse(this.schema.value)})
-      this.schema.setValue(JSON.stringify(this.#schema().schema, null, 4))
-    } catch(err) {
-      this.#schema.set({error: getErrorMessage(err), schema: null})
+    const value = this.schema.value?.trim()
+    if (value) {
+      try {
+        this.#schema.set({schema: JSON.parse(value)})
+        this.schema.setValue(this.#schema()?.schema ? JSON.stringify(this.#schema().schema, null, 4) : '')
+      } catch(err) {
+        this.#schema.set({error: getErrorMessage(err), schema: null})
+      }
     }
   }
 }
