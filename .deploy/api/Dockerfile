@@ -69,6 +69,10 @@ RUN mkdir -p /ms-playwright && chown -R node:node /ms-playwright
 # Install os dependencies but no browsers
 RUN npx playwright install-deps
 
+# Install python uvx
+RUN apt-get install -y python3-pip && \
+    python3 -m pip install uv --break-system-packages
+
 WORKDIR /srv/pangolin
 
 RUN npm install pm2 -g
@@ -88,6 +92,10 @@ RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
 # RUN yarn config set network-timeout 300000
 RUN npm install --legacy-peer-deps && \
     touch ormlogs.log && chown -R node:node /srv/pangolin
+
+# Fix Error [ERR_REQUIRE_ESM]: require() of ES Module in MCP SDK
+COPY --chown=node:node tools/scripts/patch-mcp-sdk.js ./
+RUN node patch-mcp-sdk.js
 
 USER node:node
 
