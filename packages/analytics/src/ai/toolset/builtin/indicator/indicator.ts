@@ -22,7 +22,7 @@ export class IndicatorToolset extends BuiltinToolset {
 		super(IndicatorToolset.provider, toolset, params)
 	}
 
-	getVariables() {
+	async getVariables() {
 		return [
 			{
 				name: 'tool.indicators',
@@ -40,7 +40,7 @@ export class IndicatorToolset extends BuiltinToolset {
 
 	async initTools(): Promise<BuiltinTool[]> {
 		this.tools = []
-		const tools = this.toolset.tools.filter((tool) => tool.enabled)
+		const tools = this.toolset.tools.filter((_) => !(_.disabled ?? !_.enabled))
 		if (tools.some((_) => _.name === IndicatorToolsEnum.CREATE_INDICATOR)) {
 			this.tools.push(createIndicatorTool({ logger: this.logger, conversation: null }))
 		}

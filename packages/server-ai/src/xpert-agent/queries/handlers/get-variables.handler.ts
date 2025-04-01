@@ -125,8 +125,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 					new ToolsetGetToolsCommand(agent.toolsetIds)
 				)
 				for await (const toolset of toolsets) {
-					await toolset.initTools()
-					const toolVars = toolset.getVariables()
+					const toolVars = await toolset.getVariables()
 					if (toolVars) {
 						varGroups[0].variables.push(...toolVars.map(toolsetVariableToVariable))
 					}
@@ -184,8 +183,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		}
 
 		for await (const toolset of toolsets) {
-			await toolset.initTools()
-			const toolVars = toolset.getVariables()
+			const toolVars = await toolset.getVariables()
 			if (toolVars) {
 				variables.push(...toolVars.map(toolsetVariableToVariable))
 			}

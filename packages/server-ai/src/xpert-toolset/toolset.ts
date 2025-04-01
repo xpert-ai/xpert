@@ -68,7 +68,7 @@ export abstract class BaseToolset<T extends StructuredToolInterface = Structured
 	 *
 	 * @returns State variables
 	 */
-	getVariables(): TStateVariable[] {
+	async getVariables(): Promise<TStateVariable[]> {
 		return null
 	}
 

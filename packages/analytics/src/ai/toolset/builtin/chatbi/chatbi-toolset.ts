@@ -74,7 +74,15 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 
 	protected models: IChatBIModel[]
 
-	getVariables() {
+	private async initModels() {
+		this.biContext = await this.queryBus.execute<GetBIContextQuery, TBIContext>(new GetBIContextQuery())
+		this.models = await this.registerChatModels(this.toolset.credentials.models)
+	}
+
+	async getVariables() {
+		if (!this.models) {
+			await this.initModels()
+		}
 		return [
 			{
 				name: 'chatbi_models',
@@ -119,14 +127,13 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		if (!this.toolset) {
 			throw new ToolNotSupportedError(`Toolset not provided for '${this.constructor.prototype.provider}'`)
 		}
-		const tools = this.toolset.tools.filter((_) => _.enabled)
+		const tools = this.toolset.tools.filter((_) => !(_.disabled ?? !_.enabled))
 
 		if (!tools.length) {
 			throw new ToolNotSupportedError(`Tools not be enabled for '${this.constructor.prototype.provider}'`)
 		}
 
-		this.biContext = await this.queryBus.execute<GetBIContextQuery, TBIContext>(new GetBIContextQuery())
-		this.models = await this.registerChatModels(this.toolset.credentials.models)
+		await this.initModels()
 
 		this.tools = []
 		if (tools.find((_) => _.name === 'get_available_cubes')) {
