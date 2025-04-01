@@ -48,6 +48,8 @@ import { XpertConfigureToolComponent } from '../../api-tool/types'
 import { XpertMCPToolsComponent } from '../tools/tools.component'
 import { Samples } from '../types'
 import { combineLatestWith, map } from 'rxjs/operators'
+import { CdkListboxModule } from '@angular/cdk/listbox'
+import { FileEditorComponent } from 'apps/cloud/src/app/@shared/files'
 
 @Component({
   standalone: true,
@@ -57,6 +59,7 @@ import { combineLatestWith, map } from 'rxjs/operators'
     ReactiveFormsModule,
     CdkMenuModule,
     DialogModule,
+    CdkListboxModule,
     TranslateModule,
     MatSlideToggleModule,
 
@@ -64,7 +67,7 @@ import { combineLatestWith, map } from 'rxjs/operators'
     TagSelectComponent,
     NgmSpinComponent,
     NgmDensityDirective,
-
+    FileEditorComponent,
     XpertMCPToolsComponent
   ],
   selector: 'xpert-tool-mcp-configure',
@@ -102,6 +105,7 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
     description: new FormControl(null),
     schema: new FormControl<string>(null, [Validators.required]),
     type: this.#formBuilder.control('sse'),
+    types: this.#formBuilder.control(['sse']),
     category: this.#formBuilder.control(XpertToolsetCategoryEnum.MCP),
     tools: new FormControl([]),
     credentials: this.#formBuilder.control({
@@ -142,6 +146,9 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
   set avatar(avatar) {
     this.formGroup.patchValue({ avatar })
   }
+  get types() {
+    return this.formGroup.get('types') as FormControl
+  }
   get schema() {
     return this.formGroup.get('schema')
   }
@@ -169,6 +176,13 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
   get needSandbox() {
     return this.options.get('needSandbox') as FormControl
   }
+  get _schema() {
+    return this.schema.value
+  }
+  set _schema(value) {
+    this.schema.setValue(value)
+  }
+
 
   readonly #schema = signal<{schema: TMCPSchema; error?: string;}>(null)
   readonly error = computed(() => this.#schema()?.error)
@@ -228,13 +242,14 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
   // Get Metadata
   getMetadata() {
     this.loading.set(true)
-    const schema = JSON.parse(this.schema.value) as TMCPSchema
-    const servers = schema.mcpServers ?? schema.servers
+    const schema = this.schema.value
+    // const schema = JSON.parse(this.schema.value) as TMCPSchema
+    // const servers = schema.mcpServers ?? schema.servers
     this.toolsetService.getMCPToolsBySchema(schema).subscribe({
       next: (result) => {
         this.loading.set(false)
         result.tools.forEach((tool) => this.addTool(tool))
-        this.needSandbox.setValue(Object.values(servers).some((server) => server.transport === MCPServerTransport.STDIO || server.command))
+        // this.needSandbox.setValue(Object.values(servers).some((server) => server.transport === MCPServerTransport.STDIO || server.command))
         this.toolsChange.emit(result.tools)
       },
       error: (err) => {

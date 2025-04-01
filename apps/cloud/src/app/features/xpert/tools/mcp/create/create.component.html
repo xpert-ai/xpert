@@ -1,0 +1,23 @@
+<header class="flex justify-between items-center p-4 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    <div class="text-xl font-semibold">{{ 'PAC.Xpert.CreateMCPToolset' | translate: { Default: 'Create MCP Toolset' } }}</div>
+</header>
+
+<xpert-tool-mcp-configure #configure class="overflow-auto p-4"
+  (valueChange)="onValueChange($event)"
+/>
+<div class="w-full flex justify-end p-4">
+    <div class="flex items-center gap-2">
+      <button type="button" class="btn disabled:btn-disabled btn-large"
+        (click)="cancel()"
+      >
+        {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+      </button>
+  
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+        (click)="createTool()"
+      >
+        <i class="ri-save-line mr-1"></i>
+        {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
+      </button>
+    </div>
+  </div>

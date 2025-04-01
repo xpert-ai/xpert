@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, input } from '@angular/core'
+import { booleanAttribute, Component, computed, input, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
@@ -14,7 +14,10 @@ import { MonacoEditorModule } from 'ngx-monaco-editor'
 export class FileEditorComponent {
   // Inputs
   readonly fileName = input<string>()
-  readonly content = input<string>()
+  readonly content = model<string>()
+  readonly editable = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
   // States
   readonly defaultOptions = {
@@ -26,16 +29,31 @@ export class FileEditorComponent {
     wordWrap: false,
     minimap: {
       enabled: false
-    },
-    readOnly: true
+    }
   }
 
   readonly editorOptions = computed(() => {
     return {
       ...this.defaultOptions,
-      language: this.fileName() ? this.mapFileLanguage(this.fileName()) : 'markdown'
+      language: this.fileName() ? this.mapFileLanguage(this.fileName()) : 'markdown',
+      readOnly: !this.editable()
     }
   })
+
+  readonly #editor = signal(null)
+
+  // Editor
+  onInit(editor: any) {
+    this.#editor.set(editor)
+  }
+
+  onChange(event: string) {
+    this.content.set(event)
+  }
+
+  onResized() {
+    this.#editor()?.layout()
+  }
 
   mapFileLanguage(url: string) {
     const extension = url.split('.').pop()?.toLowerCase()
