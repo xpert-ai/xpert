@@ -49,7 +49,7 @@
     
     <textarea class="ngm-input w-full h-[240px] px-3 py-2 leading-5 text-sm font-normal rounded-lg overflow-y-auto
       text-gray-600 bg-gray-100"
-      [placeholder]="'PAC.Xpert.EnterYourODataMetadata' | translate: {Default: 'Enter your OData metadata here'}"
+      [placeholder]="'PAC.Xpert.EnterYourMCPSchema' | translate: {Default: 'Enter your MCP schema here'}"
       formControlName="schema"
       [ngClass]="{error: schema.invalid && (schema.dirty || schema.touched)}"
       (blur)="onBlur()"
@@ -97,13 +97,13 @@
     </div>
   }
 
-  <xpert-tool-authorization-input formControlName="credentials" />
+  <!-- <xpert-tool-authorization-input formControlName="credentials" /> -->
 
   <div>
     <div class="py-2 leading-5 text-sm font-medium text-gray-900">
       {{'PAC.KEY_WORDS.Tags' | translate: {Default: 'Tags'} }}
     </div>
-    <tag-select optional [category]="eTagCategoryEnum.TOOLSET" [formControl]="tags"></tag-select>
+    <tag-select optional [category]="eTagCategoryEnum.TOOLSET" [formControl]="tags" />
   </div>
   <div>
     <div class="py-2 leading-5 text-sm font-medium text-gray-900">

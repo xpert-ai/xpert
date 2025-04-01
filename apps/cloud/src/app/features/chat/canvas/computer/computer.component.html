@@ -119,9 +119,14 @@
           }
           @case (eChatMessageStepCategory.Program) {
             <div class="flex flex-col overflow-auto h-full px-4 py-3">
-              <div>{{step.data.code}}</div>
+              <div class="whitespace-pre">{{step.data.code}}</div>
               @if (step.data.output) {
-                <div class="mt-4">{{step.data.output}}</div>
+                <div class="w-full mt-4 flex flex-col bg-gray-200">
+                  <div class="p-1 border-b border-solid border-neutral-300">console</div>
+                  <div class="whitespace-pre-line">
+                    {{step.data.output}}
+                  </div>
+                </div>
               }
               @if (step.data.error) {
                 <div class="mt-4 text-text-destructive">{{step.data.error}}</div>
