@@ -14,7 +14,7 @@ import {
 	START,
 	StateGraph
 } from '@langchain/langgraph'
-import { agentLabel, agentUniqueName, channelName, ChatMessageEventTypeEnum, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_SYS, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, agentUniqueName, channelName, ChatMessageEventTypeEnum, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_SYS, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -348,7 +348,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					pathMap.push(fail?.[0]?.key)
 				}
 				if (summarizeTitle) {
-					pathMap.push('title_conversation')
+					pathMap.push(GRAPH_NODE_TITLE_CONVERSATION)
+				}
+				if (summarize?.enabled) {
+					pathMap.push(GRAPH_NODE_SUMMARIZE_CONVERSATION)
 				}
 				conditionalEdges[agentKey] = [
 					createAgentNavigator(channelName(agentKey), summarize, summarizeTitle, next?.map((n) => n.key)),
@@ -610,16 +613,16 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		if (summarizeTitle) {
-			subgraphBuilder.addNode("title_conversation", await this.createTitleAgent(team, {
+			subgraphBuilder.addNode(GRAPH_NODE_TITLE_CONVERSATION, await this.createTitleAgent(team, {
 					rootController,
 					rootExecutionId: command.options.rootExecutionId,
 					agentKey,
 				}))
-				.addEdge("title_conversation", END)
+				.addEdge(GRAPH_NODE_TITLE_CONVERSATION, END)
 		}
 		if (summarize?.enabled) {
-			subgraphBuilder.addNode("summarize_conversation", createSummarizeAgent(chatModel, summarize, agentKey))
-				.addEdge("summarize_conversation", END)
+			subgraphBuilder.addNode(GRAPH_NODE_SUMMARIZE_CONVERSATION, createSummarizeAgent(chatModel, summarize, agentKey))
+				.addEdge(GRAPH_NODE_SUMMARIZE_CONVERSATION, END)
 		}
 
 		if (!Object.keys(nodes).length) {
@@ -875,7 +878,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					id: uuidv4(),
 					content: `Create a short title${language ? ` in language '${language}'` : ''} for the conversation above, without adding any extra phrases like 'Conversation Title:':`,
 				})]
-				const response = await chatModel.invoke(allMessages, {tags: ['title_conversation']});
+				const response = await chatModel.invoke(allMessages, {tags: [GRAPH_NODE_TITLE_CONVERSATION]});
 				result = response.content
 				if (typeof response.content !== "string") {
 					throw new Error("Expected a string response from the model");
@@ -941,9 +944,9 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 				const nexts: Send[] = []
 				// If there are more than six messages, then we summarize the conversation
 				if (summarize?.enabled && messages.length > summarize.maxMessages) {
-					nexts.push(new Send("summarize_conversation", state))
+					nexts.push(new Send(GRAPH_NODE_SUMMARIZE_CONVERSATION, state))
 				} else if (!title && summarizeTitle) {
-					nexts.push(new Send("title_conversation", state))
+					nexts.push(new Send(GRAPH_NODE_TITLE_CONVERSATION, state))
 				}
 
 				if (nextNodes) {

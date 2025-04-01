@@ -32,6 +32,7 @@
     "packages/*"
   ],
   "resolutions": {
-    "@langchain/core": "0.3.40"
+    "@langchain/core": "0.3.40",
+    "pkce-challenge": "5.0.0"
   }
 }
