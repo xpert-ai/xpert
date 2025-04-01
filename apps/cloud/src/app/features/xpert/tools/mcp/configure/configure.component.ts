@@ -10,7 +10,8 @@ import {
   inject,
   input,
   model,
-  signal
+  signal,
+  output
 } from '@angular/core'
 import { outputFromObservable, toSignal } from '@angular/core/rxjs-interop'
 import {
@@ -31,6 +32,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import {
   ApiProviderAuthType,
   getErrorMessage,
+  IXpertTool,
   IXpertToolset,
   MCPServerTransport,
   TagCategoryEnum,
@@ -43,7 +45,6 @@ import {
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { TagSelectComponent } from 'apps/cloud/src/app/@shared/tag'
 import { XpertConfigureToolComponent } from '../../api-tool/types'
-import { XpertToolAuthorizationInputComponent } from '../../authorization'
 import { XpertMCPToolsComponent } from '../tools/tools.component'
 import { Samples } from '../types'
 import { combineLatestWith, map } from 'rxjs/operators'
@@ -64,7 +65,6 @@ import { combineLatestWith, map } from 'rxjs/operators'
     NgmSpinComponent,
     NgmDensityDirective,
 
-    XpertToolAuthorizationInputComponent,
     XpertMCPToolsComponent
   ],
   selector: 'xpert-tool-mcp-configure',
@@ -120,6 +120,7 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
   })
   // Outputs
   readonly valueChange = outputFromObservable(this.formGroup.valueChanges)
+  readonly toolsChange = output<IXpertTool[]>()
 
   // States
   readonly loading = signal(false)
@@ -234,6 +235,7 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
         this.loading.set(false)
         result.tools.forEach((tool) => this.addTool(tool))
         this.needSandbox.setValue(Object.values(servers).some((server) => server.transport === MCPServerTransport.STDIO || server.command))
+        this.toolsChange.emit(result.tools)
       },
       error: (err) => {
         this.#toastr.error(getErrorMessage(err))

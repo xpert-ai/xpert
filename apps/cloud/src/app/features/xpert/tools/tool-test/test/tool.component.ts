@@ -20,13 +20,14 @@ import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
   IXpertTool,
+  IXpertToolset,
   ToastrService,
   TToolParameter,
   XpertToolService,
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
 import { JSONSchemaFormComponent } from 'apps/cloud/src/app/@shared/forms'
-import { isNil } from 'lodash-es'
+import { isNil, omit } from 'lodash-es'
 import { Subscription } from 'rxjs'
 import { JsonSchema7ObjectType } from 'zod-to-json-schema'
 
@@ -57,6 +58,7 @@ export class XpertToolsetToolTestComponent {
 
   // Inputs
   readonly tool = input<IXpertTool>()
+  readonly toolset = input<IXpertToolset>()
   readonly disabled = input<boolean>(false)
   readonly visibleAll = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
@@ -108,7 +110,8 @@ export class XpertToolsetToolTestComponent {
     this.#testSubscription = this.toolService
       .test({
         ...this.tool(),
-        parameters: this.parameters()
+        toolset: this.toolset() ? omit(this.toolset(), 'tools') : this.tool().toolset,
+        parameters: this.parameters(),
       })
       .subscribe({
         next: (result) => {

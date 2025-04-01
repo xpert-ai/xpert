@@ -38,9 +38,11 @@
     <div class="pt-3">
       @for (tool of tools(); track tool.name) {
         <div class="ngm-card-shadow mb-2 px-4 py-3 rounded-xl bg-gray-25 border-[0.5px] border-gary-200 cursor-pointer"
-          (click)="selectTool(tool)">
+          [class.removed]="tool.deletedAt"
+          (click)="selectTool(tool)"
+        >
           <div class="flex items-center gap-2 text-gray-800 font-semibold text-sm leading-5">
-            @if (tool.disabled) {
+            @if (tool.disabled ?? disableToolDefault()) {
               <span class="inline-block w-2 h-2 rounded-full bg-gray-200 shadow-md shadow-gray-100">
               </span>
             } @else {
@@ -56,7 +58,7 @@
   </div>
 
   <div class="flex justify-between items-center px-4 py-2">
-    <button type="button" class="btn disabled:btn-disabled btn-danger btn-medium"
+    <button type="button" class="btn disabled:btn-disabled btn-danger btn-large"
       (click)="deleteToolset()">{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</button>
 
     <div class="flex items-center gap-2">
@@ -152,7 +154,8 @@
           <div class="grow h-px bg-gradient-to-r from-neutral-300 to-white"></div>
         </div>
 
-        <xpert-toolset-tool-test [tool]="tool" class="flex-1" 
+        <xpert-toolset-tool-test [tool]="tool" class="flex-1"
+          [toolset]="toolset()"
           (saveParameters)="saveParametersAsDefault(tool, $event)"
         />
       </div>
@@ -163,6 +166,7 @@
         @case(eXpertToolsetCategoryEnum.MCP) {
           <xpert-tool-mcp-configure #configure class="w-[600px] max-w-full mx-auto"
             [toolset]="toolset()"
+            (toolsChange)="onToolsChange($event)"
           />
         }
         @case(eXpertToolsetCategoryEnum.API) {

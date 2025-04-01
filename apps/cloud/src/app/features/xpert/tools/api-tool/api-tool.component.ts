@@ -98,7 +98,7 @@ export class XpertStudioAPIToolComponent {
   readonly testResult = signal(null)
 
   readonly tools = computed(() => {
-    return this.toolset() ? this.toolset().tools.sort((a, b) => (a.enabled === b.enabled ? 0 : a.enabled ? -1 : 1)) : []
+    return this.toolset()?.tools ? this.toolset().tools.sort((a, b) => (a.disabled === b.disabled ? 0 : a.disabled ? 1 : -1)) : []
   })
 
   readonly toolsDirty = signal(false)
@@ -162,6 +162,43 @@ export class XpertStudioAPIToolComponent {
         this.loading.set(false)
       }
     })
+  }
+
+  /**
+   * Sync update the latest tool list
+   */
+  onToolsChange(tools: IXpertTool[]) {
+    console.log(tools)
+    this.toolset.update((state) => {
+      if (state.tools?.length) {
+        tools.forEach((tool) => {
+          const index = state.tools.findIndex((item) => item.name === tool.name)
+          if (index > -1) {
+            state.tools[index] = {
+              ...state.tools[index],
+              ...tool
+            }
+          } else {
+            state.tools.push(tool)
+          }
+        })
+
+        state.tools.forEach((tool) => {
+          if (!tools.some((_) => _.name === tool.name)) {
+            tool.deletedAt = new Date()
+          }
+        })
+      } else {
+        state.tools = tools
+      }
+
+      return {
+        ...state,
+        tools: [...state.tools]
+      }
+    })
+    this.toolsDirty.set(true)
+    this.#cdr.detectChanges()
   }
 
   selectTool(tool?: IXpertTool) {
