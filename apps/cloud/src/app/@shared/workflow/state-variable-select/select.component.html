@@ -1,12 +1,12 @@
-<div class="flex justify-start items-center text-sm px-2 p-1 rounded-lg bg-gray-100 hover:bg-gray-200"
+<div class="group flex justify-start items-center text-sm px-2 p-1 rounded-lg bg-gray-100 hover:bg-gray-200"
   [cdkMenuTriggerFor]="varsMenu"
 >
+  <i class="ri-chat-thread-line mr-1 text-primary-400 group-hover:text-primary-500 "></i>
   @if (variable()) {
-    <i class="ri-chat-thread-line"></i>
-    @if (group()?.agent) {
+    @if (group()?.group) {
       <div class="max-w-[60px] truncate font-medium"
-        [title]="''"
-      >{{agentLabel(group()?.agent)}}</div>
+        [title]="group().group.name"
+      >{{group().group.description | i18n}}</div>
       <span class="mx-1">/</span>
     }
     <div class="grow flex items-center truncate ml-0.5 text-text-accent font-medium">
@@ -57,11 +57,11 @@
   <div cdkMenu class="cdk-menu__medium">
     <ul>
       @for (g of variables(); track g) {
-        @if (g.agent) {
-          <div class="p-1 mt-2 text-sm text-text-secondary uppercase">{{agentLabel(g.agent)}}</div>
+        @if (g.group) {
+          <div class="p-1 mt-2 text-sm text-text-secondary uppercase">{{g.group.description | i18n}}</div>
         }
         @for (variable of g.variables; track variable.name) {
-          <li cdkMenuItem class="max-w-sm space-x-2 truncate" (click)="selectVariable(g.agent?.key, variable)">
+          <li cdkMenuItem class="max-w-sm space-x-2 truncate" (click)="selectVariable(g.group?.name, variable)">
             <span class="text-sm mr-1">{{ variable.name }}</span>
             <span class="flex-1 text-xs italic truncate text-text-secondary">{{variable.description | i18n}}</span>
             <span class="ml-4 px-1 text-sm rounded-md bg-gray-50 text-primary-300">{{variable.type}}</span>

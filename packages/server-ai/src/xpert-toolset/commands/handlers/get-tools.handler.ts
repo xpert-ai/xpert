@@ -5,7 +5,7 @@ import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { In } from 'typeorm'
 import { ToolProviderNotFoundError } from '../../errors'
-import { createBuiltinToolset, ODataToolset } from '../../provider'
+import { createBuiltinToolset, MCPToolset, ODataToolset } from '../../provider'
 import { OpenAPIToolset } from '../../provider/openapi/openapi-toolset'
 import { BaseToolset } from '../../toolset'
 import { XpertToolsetService } from '../../xpert-toolset.service'
@@ -36,18 +36,21 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 			relations: ['tools']
 		})
 
+		const context = {
+			tenantId,
+			organizationId,
+			toolsetService: this.toolsetService,
+			commandBus: this.commandBus,
+			queryBus: this.queryBus,
+			xpertId: command.environment?.xpertId,
+			agentKey: command.environment?.agentKey,
+			signal: command.environment?.signal
+		}
+
 		return toolsets.map((toolset) => {
 			switch (toolset.category) {
 				case XpertToolsetCategoryEnum.BUILTIN: {
-					return createBuiltinToolset(toolset.type, toolset, {
-						tenantId,
-						organizationId,
-						toolsetService: this.toolsetService,
-						commandBus: this.commandBus,
-						queryBus: this.queryBus,
-						xpertId: command.environment?.xpertId,
-						agentKey: command.environment?.agentKey,
-					})
+					return createBuiltinToolset(toolset.type, toolset, context)
 				}
 				case XpertToolsetCategoryEnum.API: {
 					switch (toolset.type) {
@@ -61,6 +64,9 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 							throw new ToolProviderNotFoundError(`API Tool type '${toolset.type}' not found`)
 						}
 					}
+				}
+				case XpertToolsetCategoryEnum.MCP: {
+					return new MCPToolset(toolset, context)
 				}
 				default: {
 					throw new ToolProviderNotFoundError(`Tool category '${toolset.category}' not found`)

@@ -1,6 +1,7 @@
 :host {
   --ngm-monaco-editor-bg: theme(colors.neutral.100);
-  width: 535px;
-  display: block;
-  overflow: hidden;
+  @apply block overflow-hidden w-[535px] sm:w-[360px] md:w-[400px] lg:w-[535px] transition-all;
+  &.expand {
+    @apply w-full sm:w-[400px] md:w-[500px] lg:w-[700px] xl:w-[900px];
+  }
 }

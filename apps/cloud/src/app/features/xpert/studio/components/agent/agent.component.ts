@@ -72,5 +72,6 @@ export class XpertStudioNodeAgentComponent {
   protected emitSelectionChangeEvent(event: MouseEvent): void {
     this.hostElement.focus()
     event.preventDefault()
+    event.stopPropagation()
   }
 }

@@ -3,7 +3,6 @@ import { CacheModule, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { ChatBIModelModule } from '../chatbi-model'
 import { SemanticModelMemberModule } from '../model-member/index'
-import { OcapModule } from '../model/ocap'
 import { provideOcap } from '../model/ocap/'
 import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
@@ -17,7 +16,6 @@ import { QueryHandlers } from './queries/handlers'
 		CqrsModule,
 		CopilotModule,
 		SemanticModelMemberModule,
-		OcapModule,
 		ChatBIModelModule,
 		CopilotCheckpointModule,
 		CopilotKnowledgeModule,

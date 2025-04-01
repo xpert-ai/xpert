@@ -17,7 +17,7 @@ export class PlanningToolset extends BuiltinToolset {
 		super(PlanningToolset.provider, toolset, params)
 	}
 
-	getVariables() {
+	async getVariables() {
 		return [
 			{
 				name: PLAN_TITLE_NAME,

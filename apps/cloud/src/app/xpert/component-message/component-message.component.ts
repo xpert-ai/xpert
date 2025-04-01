@@ -180,6 +180,7 @@ export class ChatComponentMessageComponent {
 
   openCanvas() {
     this.homeService.canvasOpened.set({
+      opened: true,
       type: 'Dashboard',
       messageId: this.messageId(),
       componentId: this.message().id
@@ -188,6 +189,7 @@ export class ChatComponentMessageComponent {
 
   openFileViewer(file) {
     this.homeService.canvasOpened.set({
+      opened: true,
       type: 'File',
       file
     })

@@ -38,6 +38,13 @@
   {{toolset()?.description}}
 </div>
 
+@if (needSandbox()) {
+  <div class="flex items-center px-4">
+    <i class="ri-alarm-warning-fill mb-0.5 mr-1 text-orange-500"></i>
+    <span class="text-sm text-text-secondary truncate">{{ 'PAC.Xpert.NeedSandboxToolsetTip' | translate: {Default: 'For security reasons, please upgrade to the pro version to run this toolset safely in a sandbox'} }}</span>
+  </div>
+}
+
 @if (isTemplate()) {
   <div class="flex flex-col justify-start items-stretch p-4 space-y-4 w-full">
     <button class="btn btn-large btn-primary self-center" (click)="configureToolBuiltin()">

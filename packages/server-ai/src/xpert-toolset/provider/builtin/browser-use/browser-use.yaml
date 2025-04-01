@@ -50,3 +50,11 @@ credentials_for_provider:
     placeholder:
       en_US: Enable Recording (Default true)
       zh_Hans: 启用录屏（默认 启用）
+  restrictions:
+    type: text-input
+    label:
+      en_US: Task Restrictions
+      zh_Hans: 任务限制条件
+    placeholder:
+      en_US: Task Prefix Restrictions
+      zh_Hans: 任务前缀限制条件

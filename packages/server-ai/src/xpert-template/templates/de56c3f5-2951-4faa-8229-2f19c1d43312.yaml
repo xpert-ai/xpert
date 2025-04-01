@@ -1,7 +1,7 @@
 team:
-  name: My Manus Team
+  name: My Hands
   type: agent
-  title: Manus
+  title: Hands
   description: 你的首款通用 AI 智能体团队。我可以将您的想法转化为实际行动，通过自动化方式完成从规划到执行的整个流程。
   avatar:
     emoji:
@@ -16,13 +16,13 @@ team:
     - null
   options:
     position:
-      x: 437.5441399274689
-      y: 248.7603374042696
-    scale: 0.5600000000000002
+      x: 478.0435517450942
+      y: 172.08100847536176
+    scale: 0.6200000000000001
     agent:
       Agent_zm7jnDN2qV:
         position:
-          x: 380
+          x: 80
           y: -120
       Agent_kZUOAglggf:
         position:
@@ -97,6 +97,10 @@ team:
         position:
           x: 900
           y: 280
+      2e385e5f-e3f4-4067-a277-90604336158a:
+        position:
+          x: 950.8140358438053
+          y: 264.71368320666136
     workflow:
       Iterating_Obt2ubUnuo:
         position:
@@ -118,22 +122,15 @@ team:
     avatar:
       emoji:
         id: person_in_tuxedo
-    prompt: >
-      你是 Manus Xpert，一个全能的人工智能助手，旨在解决用户提出的任何任务。
-
+    prompt: |
+      你是 Hands，一个全能的人工智能助手，旨在解决用户提出的任何任务。
       按用户要求制定完成任务的计划（最多三步）, 并逐步分配给团队成员完成各个步骤。
-
       团队成员包括：
-
       - code team leader 可以帮你编写代码
-
       - search agent 可以搜索和生产报告
 
-
       如果有调研报告生产请将报告路径告知 code team leader 作为开发参考。
-
       如果是网页项目则最后使用 deploy 工具部署，并将部署后的文件中是首页的地址以链接形式返回用户，方便用户打开访问首页。
-
       请使用 {{sys.language}} 语言回答。
     promptTemplates: []
     parameters: null
@@ -145,18 +142,279 @@ team:
     collaboratorNames: []
     toolsetIds:
       - 00930607-6084-40de-86b7-a5089042fcd3
-      - db3ff696-3885-4703-8a34-7b430de180ee
+      - 2e385e5f-e3f4-4067-a277-90604336158a
     knowledgebaseIds: []
   copilotModel:
     modelType: llm
     model: gpt-4o
     options: null
+  knowledgebases: []
+  toolsets:
+    - id: 2e385e5f-e3f4-4067-a277-90604336158a
+      name: code-project
+      type: code-project
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/code-project/icon
+      options:
+        provider:
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/code-project/icon
+          icon: icon.svg
+          tags:
+            - productivity
+            - utilities
+            - sandbox
+          author: XpertAI
+          name: code-project
+          label:
+            en_US: Code Project
+            zh_Hans: 代码项目
+          description:
+            en_US: Code Project toolset.
+            zh_Hans: 代码项目工具集。
+        toolPositions:
+          code_project_deploy: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: f9d9676d-c57b-4339-9d15-9f3db9557c80
+          name: code_project_deploy
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    - id: 953732ce-483f-4283-a77e-aae85ffe8170
+      name: File edit 工具集
+      type: file
+      category: builtin
+      description: 文件操作工具集
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/file/icon
+      options:
+        provider:
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/file/icon
+          icon: icon.svg
+          tags:
+            - productivity
+            - utilities
+            - sandbox
+          author: XpertAI
+          name: file
+          label:
+            en_US: File
+            zh_Hans: 文件
+          description:
+            en_US: File tool.
+            zh_Hans: 文件工具。
+        toolPositions:
+          file_edit: 0
+          file_list: 1
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 07070de6-603f-4eac-8acd-b0a058143334
+          name: file_list
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+        - id: 51bbc4f3-dab7-4490-9297-272f8ddf9613
+          name: file_edit
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    - id: 77f75dfd-9b77-447f-b120-8a4667b8e291
+      name: 执行 Bash 命令工具
+      type: bash
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/bash/icon
+      options:
+        provider:
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/bash/icon
+          icon: icon.svg
+          tags:
+            - productivity
+            - utilities
+            - sandbox
+          author: XpertAI
+          name: bash
+          label:
+            en_US: Bash
+            zh_Hans: 命令行
+          description:
+            en_US: Bash tool.
+            zh_Hans: 命令行工具。
+        toolPositions:
+          bash_execute: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 79cb01e4-919c-427c-8ff1-b9a9164e592b
+          name: bash_execute
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    - id: 00930607-6084-40de-86b7-a5089042fcd3
+      name: 规划工具集
+      type: planning
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/planning/icon
+      options:
+        toolPositions:
+          create_plan: 0
+          list_plans: 1
+          update_plan_step: 2
+          delete_plan_step: 3
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 5c4daee8-3944-4740-81c3-4c3458ee0ada
+          name: create_plan
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+        - id: bf286151-c882-4b1b-9cc2-63eccb5a8faf
+          name: list_plans
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+        - id: 2768b66e-f7a2-4b3c-8601-0b50a44a5719
+          name: update_plan_step
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+        - id: 87222ba9-8fa1-4a87-93ec-27e8562db2df
+          name: delete_plan_step
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    - id: e4554ac9-cc36-4b97-a8db-8197d3bb2d5d
+      name: Google 搜索工具
+      type: tavily
+      category: builtin
+      description: 在线搜索工具
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon
+      options:
+        toolPositions:
+          tavily_search: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 74f94aa2-9c19-4bc1-a707-44c286cafc1c
+          name: tavily_search
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    - id: 9a805909-8456-4758-aa81-fb7036c3a474
+      name: 浏览器使用工具
+      type: browser-use
+      category: builtin
+      description: 浏览器使用工具
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/browser-use/icon
+      options:
+        provider:
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/browser-use/icon
+          icon: icon.svg
+          tags:
+            - productivity
+            - sandbox
+            - agent
+          author: XpertAI
+          name: browser-use
+          label:
+            en_US: Browser Use
+            zh_Hans: 浏览器使用
+          description:
+            en_US: Browser-use tool.
+            zh_Hans: 浏览器使用工具。
+        toolPositions:
+          browser_use_task: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: d975358d-6f90-49db-a296-fbb4320a90d4
+          name: browser_use_task
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    - id: b3904bec-0cd9-48ef-b72c-b0e0603ab7b6
+      name: 运行 Python 代码工具
+      type: python
+      category: builtin
+      description: 运行 Python 代码工具
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/python/icon
+      options:
+        provider:
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/python/icon
+          icon: icon.svg
+          tags:
+            - productivity
+            - utilities
+            - sandbox
+          author: XpertAI
+          name: python
+          label:
+            en_US: Python
+            zh_Hans: Python
+          description:
+            en_US: Python tool.
+            zh_Hans: Python 工具。
+        toolPositions:
+          python_execute: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: fd021274-99cd-4903-a97e-75222649fb7f
+          name: python_execute
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
   tags: []
 nodes:
   - type: agent
     key: Agent_zm7jnDN2qV
     position:
-      x: 380
+      x: 80
       y: -120
     entity:
       key: Agent_zm7jnDN2qV
@@ -166,22 +424,15 @@ nodes:
       avatar:
         emoji:
           id: person_in_tuxedo
-      prompt: >
-        你是 Manus Xpert，一个全能的人工智能助手，旨在解决用户提出的任何任务。
-
+      prompt: |
+        你是 Hands，一个全能的人工智能助手，旨在解决用户提出的任何任务。
         按用户要求制定完成任务的计划（最多三步）, 并逐步分配给团队成员完成各个步骤。
-
         团队成员包括：
-
         - code team leader 可以帮你编写代码
-
         - search agent 可以搜索和生产报告
 
-
         如果有调研报告生产请将报告路径告知 code team leader 作为开发参考。
-
         如果是网页项目则最后使用 deploy 工具部署，并将部署后的文件中是首页的地址以链接形式返回用户，方便用户打开访问首页。
-
         请使用 {{sys.language}} 语言回答。
       promptTemplates: []
       parameters: null
@@ -193,9 +444,9 @@ nodes:
       collaboratorNames: []
       toolsetIds:
         - 00930607-6084-40de-86b7-a5089042fcd3
-        - db3ff696-3885-4703-8a34-7b430de180ee
+        - 2e385e5f-e3f4-4067-a277-90604336158a
       knowledgebaseIds: []
-    hash: fe5c7692becfe0406f8e474a5b61e95491c8262b7466ffc8a556b2b61582fd60
+    hash: c5da7808f8235e3ea096d1e180d0f35c9378329559adb342634d3c94d7ee3385
   - type: toolset
     key: 00930607-6084-40de-86b7-a5089042fcd3
     position:
@@ -447,9 +698,43 @@ nodes:
         file_edit tool 当 command = view 时可以读取 path 指定的文件的内容。
 
 
-        回复一个任务的简单总结。
+        对于html 页面请使用 Tailwind CSS 进行样式美化。
 
-        请使用 {{sys.language}} 语言回答。
+
+        请使用 Tailwind CSS 编写一个美观的 Landing Page。页面应包含：
+
+
+        一个固定在顶部的导航栏（带 Logo 和导航链接）
+
+
+        一个 Hero Section（大标题、CTA 按钮）
+
+
+        一个产品展示区（使用 grid 布局）
+
+
+        一个用户评价区（卡片式设计）
+
+
+        一个简洁的页脚
+
+
+        要求：
+
+
+        设计风格现代简洁，使用 shadow-lg、rounded-xl、bg-gradient-to-r 等类增强美感
+
+
+        响应式布局（flex-col md:flex-row）
+
+
+        按钮带 hover:bg-opacity-80 效果
+
+
+        使用 Glassmorphism 风格（backdrop-blur-md bg-opacity-30）
+
+
+        请使用 {{sys.language}} 语言回复一个任务的简单总结。
       promptTemplates: null
       parameters:
         - type: text
@@ -519,12 +804,11 @@ nodes:
 
         请按要求完成属于你的步骤任务。
 
-        file_edit tool 当 command = view 时可以读取 path 指定的文件的内容。
+
+        可以尝试先用 browser_use_task 打开 bing 搜索任务相关信息，然后用 tavily_search 搜索更多内容。
 
 
-        回复任务的完成情况的简单总结。
-
-        请使用 {{sys.language}} 语言回答。
+        请使用 {{sys.language}} 语言回复任务的完成情况的简单总结。
       promptTemplates: null
       parameters:
         - type: text
@@ -574,10 +858,11 @@ nodes:
       prompt: |-
         你是一个开发团队 leader，围绕计划目标 {{plan_title}}
         指导你的团队成员完成当前编程任务。
-        完成开发后让程序测试。
-        回复任务的一个简单总结。
+        完成开发后让 program test 测试。
+
         如果有调研报告参考请告知程序员报告路径作为参考。
-        请使用 {{sys.language}} 语言回答。
+
+        请使用 {{sys.language}} 语言回复任务的一个简单总结。
       promptTemplates: null
       parameters: null
       outputVariables: null
@@ -621,50 +906,6 @@ nodes:
         - b3904bec-0cd9-48ef-b72c-b0e0603ab7b6
       knowledgebaseIds: []
     hash: 40018be24db1dd55294d4eb84066580ab9dddade3064fbe579d40f4feda78409
-  - type: toolset
-    key: db3ff696-3885-4703-8a34-7b430de180ee
-    position:
-      x: 900
-      y: 280
-    entity:
-      id: db3ff696-3885-4703-8a34-7b430de180ee
-      name: 代码项目工具
-      type: code_project
-      category: builtin
-      description: 代码项目工具
-      avatar:
-        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/code_project/icon
-      options:
-        provider:
-          avatar:
-            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/code_project/icon
-          icon: icon.svg
-          tags:
-            - productivity
-            - utilities
-            - sandbox
-          author: XpertAI
-          name: code_project
-          label:
-            en_US: Code Project
-            zh_Hans: 代码项目
-          description:
-            en_US: Code Project toolset.
-            zh_Hans: 代码项目工具集。
-        toolPositions:
-          code_project_deploy: 0
-      privacyPolicy: null
-      customDisclaimer: null
-      tags: []
-      tools:
-        - id: c145c90f-4f2a-4446-94ca-e29a019fbef3
-          name: code_project_deploy
-          description: null
-          avatar: null
-          enabled: true
-          parameters: null
-          options: null
-    hash: 6dbcb17505e156e1b6b844ed211b4fa7d0488258fcf7104e4eb50a1a3705b0d3
   - type: toolset
     key: 953732ce-483f-4283-a77e-aae85ffe8170
     position:
@@ -716,6 +957,50 @@ nodes:
             9.17157L7.25264 7.75736L11.4953 12L7.25264 16.2426L5.83842
             14.8284L8.66685 12Z"></path></svg>
     hash: 956749c2c758bc31c812f760eccc95277db327308657d16fd0c69396e27ed87f
+  - type: toolset
+    key: 2e385e5f-e3f4-4067-a277-90604336158a
+    position:
+      x: 950.8140358438053
+      y: 264.71368320666136
+    entity:
+      id: 2e385e5f-e3f4-4067-a277-90604336158a
+      name: 代码项目
+      type: code-project
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/code-project/icon
+      options:
+        provider:
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/code-project/icon
+          icon: icon.svg
+          tags:
+            - productivity
+            - utilities
+            - sandbox
+          author: XpertAI
+          name: code-project
+          label:
+            en_US: Code Project
+            zh_Hans: 代码项目
+          description:
+            en_US: Code Project toolset.
+            zh_Hans: 代码项目工具集。
+        toolPositions:
+          code_project_deploy: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: f9d9676d-c57b-4339-9d15-9f3db9557c80
+          name: code_project_deploy
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    hash: 11da0fe6978e1c4f6b8ff0ed09f200e22be8058ded1351cb4c66526076c3ac19
 connections:
   - type: toolset
     key: Agent_zm7jnDN2qV/00930607-6084-40de-86b7-a5089042fcd3
@@ -758,10 +1043,6 @@ connections:
     from: Agent_rE9Y0RrhhW
     to: b3904bec-0cd9-48ef-b72c-b0e0603ab7b6
   - type: toolset
-    key: Agent_zm7jnDN2qV/db3ff696-3885-4703-8a34-7b430de180ee
-    from: Agent_zm7jnDN2qV
-    to: db3ff696-3885-4703-8a34-7b430de180ee
-  - type: toolset
     key: Agent_ofRiMQMYVu/953732ce-483f-4283-a77e-aae85ffe8170
     from: Agent_ofRiMQMYVu
     to: 953732ce-483f-4283-a77e-aae85ffe8170
@@ -769,3 +1050,7 @@ connections:
     key: Agent_UN2XNbk31L/953732ce-483f-4283-a77e-aae85ffe8170
     from: Agent_UN2XNbk31L
     to: 953732ce-483f-4283-a77e-aae85ffe8170
+  - type: toolset
+    key: Agent_zm7jnDN2qV/2e385e5f-e3f4-4067-a277-90604336158a
+    from: Agent_zm7jnDN2qV
+    to: 2e385e5f-e3f4-4067-a277-90604336158a

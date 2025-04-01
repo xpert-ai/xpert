@@ -1,9 +1,10 @@
+import { DynamicStructuredTool } from '@langchain/core/tools'
 import { IXpert, IXpertAgentExecution, TChatOptions, TXpertParameter } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 
 /**
- * Create graph for agent
+ * Create ReAct graph for agent
  */
 export class XpertAgentSubgraphCommand implements ICommand {
 	static readonly type = '[Xpert Agent] Subgraph'
@@ -36,6 +37,9 @@ export class XpertAgentSubgraphCommand implements ICommand {
 			 * Temporary parameters (state variables)
 			 */
 			variables?: TXpertParameter[]
+			channel: string
+			partners?: string[]
+			handoffTools?: DynamicStructuredTool<any>[]
 		}
 	) {}
 }

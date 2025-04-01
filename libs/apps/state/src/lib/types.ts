@@ -3,6 +3,7 @@ import { IDataSource, IIndicator, ISemanticModel, IStory, IStoryWidget, Indicato
 import { Indicator as OCAPIndicator, SemanticModel, isNil, omit, omitBy, pick } from '@metad/ocap-core'
 import { Story, StoryConnection, StoryModel, StoryPoint, StoryWidget, uuid } from '@metad/story/core'
 import { convertNewSemanticModelResult } from './models.service'
+import { HttpParams } from '@angular/common/http'
 
 
 export const SystemPrivacyFields = [
@@ -166,4 +167,14 @@ export function convertIndicatorResult(result: IIndicator): any {
     description: result.business,
     ...(result.options ?? {})
   } as any
+}
+
+export function timeRangeToParams(params: HttpParams, timeRange: string[]) {
+  if (timeRange[0]) {
+    params = params.set('start', timeRange[0])
+  }
+  if (timeRange[1]) {
+    params = params.set('end', timeRange[1])
+  }
+  return params
 }

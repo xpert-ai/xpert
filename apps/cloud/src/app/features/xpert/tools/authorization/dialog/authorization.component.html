@@ -1,5 +1,5 @@
-<header class="px-4 pt-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-  <h4 class="text-xl cursor-move">
+<header class="px-4 pt-2" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  <h4 class="text-xl font-semibold cursor-move">
     {{ 'PAC.Xpert.AuthorizationMethod' | translate: { Default: 'Authorization method' } }}
   </h4>
 </header>
@@ -32,14 +32,16 @@
         <input class="ngm-input w-full h-10 px-3 text-sm font-normal rounded-lg grow"
           [placeholder]="'PAC.KEY_WORDS.EnterUsername' | translate: {Default: 'Enter username'}"
           type="text"
-          formControlName="username">
+          formControlName="username"
+          autocomplete="username">
       </div>
       <div>
         <div class="py-2 leading-5 text-sm font-medium">{{'PAC.KEY_WORDS.Password' | translate: {Default: 'Password'} }}</div>
         <input class="ngm-input w-full h-10 px-3 text-sm font-normal rounded-lg grow"
           [placeholder]="'PAC.KEY_WORDS.EnterPassword' | translate: {Default: 'Enter password'}"
           type="password"
-          formControlName="password">
+          formControlName="password"
+          autocomplete="current-password">
       </div>
 
     } @else if (authType === eApiProviderAuthType.API_KEY) {
@@ -70,7 +72,9 @@
           </div>
         </div>
         <input class="ngm-input w-full h-10 px-3 text-sm font-normal rounded-lg grow" placeholder="HTTP header name for API Key"
-          formControlName="api_key_header">
+          formControlName="api_key_header"
+          autocomplete="off"
+        >
       </div>
       <div>
         <div class="py-2 leading-5 text-sm font-medium">
@@ -79,18 +83,25 @@
         <input class="ngm-input w-full h-10 px-3 text-sm font-normal rounded-lg grow"
           [placeholder]="'PAC.Xpert.EnterAPIKey' | translate: {Default: 'Enter API Key'}"
           type="password"
-          formControlName="api_key_value">
+          formControlName="api_key_value"
+          autocomplete="current-password">
       </div>
     }
   </form>
 </div>
 
 <div class="w-full flex justify-end p-2">
-  <div ngmButtonGroup>
-    <button mat-stroked-button cdkFocusInitial (click)="cancel()">
+  <div class="flex items-center gap-2">
+    <button type="button" class="btn disabled:btn-disabled btn-large"
+      (click)="cancel()"
+    >
       {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
-    <button mat-raised-button color="accent" (click)="save()">
+
+    <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+      (click)="save()"
+    >
+      <i class="ri-save-line mr-1"></i>
       {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
     </button>
   </div>

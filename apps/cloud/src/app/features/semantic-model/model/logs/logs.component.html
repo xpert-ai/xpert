@@ -1,0 +1,211 @@
+<div class="mb-3 flex justify-between items-center">
+  <div class="h-[41px] flex items-center text-xl font-semibold text-gray-900">
+    {{ 'PAC.MODEL.Logs' | translate: {Default: 'Logs'} }}
+  </div>
+</div>
+
+<div class="flex items-center mb-2 gap-2">
+  <ngm-select placeholder="select time range" icon="ri-calendar-line" [selectOptions]="TimeRanges" [(ngModel)]="timeRangeValue" class="min-w-[150px] rounded-lg shadow-sm" />
+</div>
+
+<div class="w-full relative overflow-auto flex-1"
+  waIntersectionObserver
+  waIntersectionThreshold="0.5">
+  <table class="table-fixed w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+    <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+      <tr>
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-36 truncate">
+          {{ 'PAC.MODEL.Cube' | translate: {Default: 'Cube'} }}
+        </th>
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-28">
+          {{ 'PAC.KEY_WORDS.Status' | translate: {Default: 'Status'} }}
+        </th>
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-48">
+          {{ 'PAC.KEY_WORDS.UpdatedAt' | translate: {Default: 'Updated At'} }}
+        </th>
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
+          {{ 'PAC.KEY_WORDS.CreatedBy' | translate: {Default: 'Created By'} }}
+        </th>
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
+          {{ 'PAC.MODEL.WaitingTime' | translate: {Default: 'Waiting Time'} }}
+        </th>
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
+          {{ 'PAC.MODEL.ExecutionTime' | translate: {Default: 'Execution Time'} }}
+        </th>
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 ">
+          {{ 'PAC.MODEL.QueryStatement' | translate: {Default: 'Query Statement'} }}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (log of logs(); track log.id) {
+        <tr class="row cursor-pointer bg-white border-b dark:bg-gray-800 dark:border-gray-700"
+          (click)="preview.set(log)"
+        >
+          <td class="px-4 py-2 whitespace-nowrap truncate">
+            {{log.cube}}
+          </td>
+          <td class="px-4 py-2">
+            <ng-container *ngTemplateOutlet="statusTempl; context: { $implicit: log }"></ng-container>
+          </td>
+          <td class="px-4 py-2">{{ log.updatedAt | relative }}</td>
+          <td class="px-4 py-2">
+            {{log.createdBy | user }}
+          </td>
+          <td class="px-4 py-2">
+            {{log.waitingTime / 1000 }}s
+          </td>
+          <td class="px-4 py-2">
+            {{log.executionTime / 1000}}s
+          </td>
+          <td class="px-4 py-2">
+            {{log.query }}
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  @if (loading()) {
+    <div class="flex justify-center">
+      <ngm-spin />
+    </div>
+  }
+
+  @if (!done()) {
+    <button (waIntersectionObservee)="onIntersection()" class="w-full flex justify-center p-2 cursor-pointer hover:bg-gray-100"
+      [disabled]="loading()"
+      (click)="onIntersection()"
+    >
+      <i class="ri-arrow-down-wide-line"></i>
+    </button>
+  }
+</div>
+
+@if (preview(); as log) {
+  <div @slideLeftRight class="absolute right-0 top-2 bottom-2 flex flex-col w-[500px] max-w-full bg-components-card-bg rounded-l-3xl shadow-md border border-solid border-divider-deep border-r-0 overflow-auto">
+    <div class="flex justify-between p-4 pr-1 sticky top-0 bg-components-card-bg z-20">
+      <div class="text-lg font-semibold">{{log.key}}</div>
+
+      <div class="flex items-center gap-2">
+        <div class="text-sm">{{log.updatedAt | relative}}</div>
+        <div class="action-btn action-btn-sm danger z-10" (click)="preview.set(null)">
+          <i class="ri-close-large-line w-4 h-4 flex justify-center items-center text-sm"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-2 p-4">
+      <div class=""><span>{{ 'PAC.MODEL.Cube' | translate: {Default: 'Cube'} }}:</span> {{log.cube}}</div>
+      @if (log.status === eQueryStatusEnum.FAILED) {
+        <div class="system-xs-regular relative break-all rounded-xl border px-3 py-2.5
+        border-[rgba(240,68,56,0.8)] bg-workflow-display-error-bg text-text-warning shadow-[inset_2px_2px_0_0_rgba(255,255,255,0.5),inset_0_1px_3px_0_rgba(0,0,0,0.12),inset_0_2px_24px_0_rgba(240,68,56,0.2),0_1px_2px_0_rgba(9,9,11,0.05),0_0_0_1px_rgba(0,0,0,0.05)]
+          bg-[url(/assets/images/illustrations/bg-line-error.svg)]">
+          <div class="flex">
+            <div class="max-w-[120px] flex-[33%]">
+              <div class="system-2xs-medium-uppercase mb-1 text-text-tertiary">{{ 'PAC.KEY_WORDS.Status' | translate: {Default: 'Status'} }}</div>
+              <div class="system-xs-semibold-uppercase flex items-center gap-1 text-util-colors-red-red-600">
+                <div class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-red-400 border-red-600 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
+                <span>{{ 'PAC.MODEL.Failure' | translate: {Default: 'Failure'} }}</span>
+              </div>
+            </div>
+            <div class="max-w-[152px] flex-[33%]">
+              <div class="system-2xs-medium-uppercase mb-1 text-text-tertiary">{{ 'PAC.MODEL.WaitingTime' | translate: {Default: 'Waiting Time'} }}</div>
+              <div class="system-sm-medium flex items-center gap-1 text-text-secondary">
+                <span>{{log.waitingTime / 1000}}s</span>
+              </div>
+            </div>
+            <div class="flex-[33%]">
+              <div class="system-2xs-medium-uppercase mb-1 text-text-tertiary">{{ 'PAC.MODEL.ExecutionTime' | translate: {Default: 'Execution Time'} }}</div>
+              <div class="system-sm-medium flex items-center gap-1 text-text-secondary">
+                <span>{{log.executionTime / 1000}}s</span>
+              </div>
+            </div>
+          </div>
+          <div class="my-2 h-[0.5px] bg-divider-subtle"></div>
+          <div class="system-xs-regular text-text-destructive">
+            {{log.error}}
+          </div>
+        </div>
+      } @else {
+        <div class="flex justify-between items-center">
+          <ng-container *ngTemplateOutlet="statusTempl; context: { $implicit: log }"></ng-container>
+        </div>
+        
+        <div class=""><span>{{ 'PAC.MODEL.WaitingTime' | translate: {Default: 'Waiting Time'} }}:</span> {{log.waitingTime / 1000}}s</div>
+        <div class="">
+          <span>{{ 'PAC.MODEL.ExecutionTime' | translate: {Default: 'Execution Time'} }}:</span>
+          {{log.executionTime / 1000}}s
+        </div>
+      }
+      
+      <div class="text-text-secondary mt-2">
+        {{ 'PAC.MODEL.QueryStatement' | translate: {Default: 'Query Statement'} }}
+      </div>
+      <div class="relative text-sm">
+        <div class="whitespace-pre overflow-auto min-h-[60px] p-2 rounded-lg text-gray-500 bg-gray-50">
+          {{log.query}}
+        </div>
+        <copy2 [content]="log.query" class="absolute top-2 right-2 flex justify-center items-center w-6 h-6 rounded-md hover:bg-hover-bg" />
+      </div>
+      <div class="text-text-secondary mt-2">
+        {{ 'PAC.MODEL.QueryOptions' | translate: {Default: 'Query Options'} }}
+      </div>
+      <div class="relative text-sm p-2 rounded-lg bg-gray-50">
+        @if(log.params) {
+          <ngx-json-viewer [json]="log.params" [depth]="1" />
+          <copy2 [content]="log.params" class="absolute top-2 right-2 flex justify-center items-center w-6 h-6 rounded-md hover:bg-hover-bg" />
+        }
+      </div>
+      <div class="text-text-secondary mt-2">
+        {{ 'PAC.MODEL.QueryResult' | translate: {Default: 'Query Result'} }}
+      </div>
+      <div class="relative text-sm p-2 rounded-lg bg-gray-50">
+        @if(log.result) {
+          <ngx-json-viewer [json]="log.result" [depth]="1" />
+          <copy2 [content]="log.result" class="absolute top-2 right-2 flex justify-center items-center w-6 h-6 rounded-md hover:bg-hover-bg" />
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<ng-template #statusTempl let-log>
+  @switch (log.status) {
+    @case (eQueryStatusEnum.RUNNING) {
+      <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+        <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
+        <span class="">
+          {{ 'PAC.MODEL.Running' | translate: {Default: 'Running'} }}
+        </span>
+      </div>
+    }
+    @case (eQueryStatusEnum.FAILED) {
+      <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+        <div class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-red-400 border-red-600 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
+        <span class="text-red-600">
+          {{ 'PAC.MODEL.Failure' | translate: {Default: 'Failure'} }}
+        </span>
+      </div>
+    }
+    @case (eQueryStatusEnum.PENDING) {
+      <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+        <div class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-neutral-500 border-neutral-800 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
+        <span class="">
+          {{ 'PAC.MODEL.Pending' | translate: {Default: 'Pending'} }}
+        </span>
+      </div>
+    }
+    @case (eQueryStatusEnum.SUCCESS) {
+      <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
+        <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex'></span>
+        <span class="">
+          {{ 'PAC.MODEL.Success' | translate: {Default: 'Success'} }}
+        </span>
+      </div>
+    }
+    @default {
+      {{log.status}}
+    }
+  }
+</ng-template>

@@ -1,7 +1,10 @@
+import { Dialog } from '@angular/cdk/dialog'
+import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { Router } from '@angular/router'
 import { CloseSvgComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -16,6 +19,7 @@ import {
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
+import { XpertVariablesAssignerComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { omit, uniq } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, map, of } from 'rxjs'
@@ -23,10 +27,6 @@ import { injectConfigureBuiltin, XpertToolConfigureBuiltinComponent, XpertToolTe
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
-import { XpertVariablesAssignerComponent } from 'apps/cloud/src/app/@shared/xpert'
-import { CommonModule } from '@angular/common'
-import { Router } from '@angular/router'
-import { Dialog } from '@angular/cdk/dialog'
 
 @Component({
   selector: 'xpert-studio-panel-toolset',
@@ -74,27 +74,30 @@ export class XpertStudioPanelToolsetComponent {
   readonly positions = computed(() => this.toolset()?.options?.toolPositions)
 
   readonly toolsetDetail = derivedAsync(() => {
-    return this.toolsetId() ? this.studioService.getToolset(this.toolsetId()).pipe(
-      catchError((err) => of(null))
-    ) : of(null)
+    return this.toolsetId()
+      ? this.studioService.getToolset(this.toolsetId()).pipe(catchError((err) => of(null)))
+      : of(null)
   })
+
+  readonly needSandbox = computed(() => this.toolsetDetail()?.options?.needSandbox)
 
   // Not initialized, needs to be reconfigured
   readonly isTemplate = computed(() => this.toolsetId() && !this.toolsetDetail())
   readonly providerName = computed(() => this.toolset().type)
   readonly toolsets = derivedAsync(() => {
     if (this.providerName() && this.isTemplate()) {
-      return this.toolsetService.getBuiltinToolInstances(this.workspaceId(), this.providerName()).pipe(
-        map(({ items }) => items)
-      )
+      return this.toolsetService
+        .getBuiltinToolInstances(this.workspaceId(), this.providerName())
+        .pipe(map(({ items }) => items))
     }
     return null
   })
 
   readonly tools = computed(() => {
     const positions = this.positions()
-    const tools = this.toolsetDetail()?.tools?.filter((_) => _.enabled)
-    return positions && tools ? tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
+    const tools = this.toolsetDetail()?.tools?.filter((_) => !_.disabled)
+    return positions && tools
+      ? tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
       : tools
   })
 
@@ -102,19 +105,21 @@ export class XpertStudioPanelToolsetComponent {
 
   readonly variables = derivedAsync(() => {
     const xpertId = this.xpertId()
-    return xpertId ? this.xpertService.getVariables(xpertId).pipe(
-      catchError((error) => {
-        this.#toastr.error(getErrorMessage(error))
-        return of([])
-      })
-    ) : of(null)
+    return xpertId
+      ? this.xpertService.getVariables(xpertId).pipe(
+          catchError((error) => {
+            this.#toastr.error(getErrorMessage(error))
+            return of([])
+          })
+        )
+      : of(null)
   })
 
   readonly loading = signal(false)
 
   refresh() {
     this.loading.set(true)
-    this.toolsetService.getOneById(this.toolsetId(), {relations: ['tools']}).subscribe({
+    this.toolsetService.getOneById(this.toolsetId(), { relations: ['tools'] }).subscribe({
       next: (toolset) => {
         this.loading.set(false)
         this.studioService.updateToolset(this.node().key, toolset)
@@ -155,41 +160,46 @@ export class XpertStudioPanelToolsetComponent {
   }
 
   toggleToolMemory(name: string, value: boolean) {
-    this.xpertStudioComponent.updateXpertAgentConfig({ toolsMemory: {
-      ...(this.agentConfig()?.toolsMemory ?? {}),
-      [name]: value ? [] : null
-    } })
+    this.xpertStudioComponent.updateXpertAgentConfig({
+      toolsMemory: {
+        ...(this.agentConfig()?.toolsMemory ?? {}),
+        [name]: value ? [] : null
+      }
+    })
   }
 
   updateToolMemory(name: string, value: TVariableAssigner[]) {
-    this.xpertStudioComponent.updateXpertAgentConfig({ toolsMemory: {
-      ...(this.agentConfig()?.toolsMemory ?? {}),
-      [name]: value
-    } })
+    this.xpertStudioComponent.updateXpertAgentConfig({
+      toolsMemory: {
+        ...(this.agentConfig()?.toolsMemory ?? {}),
+        [name]: value
+      }
+    })
   }
 
   configureToolBuiltin() {
     const providerName = this.toolset().type
-    this.configureBuiltin(providerName, this.xpert().workspaceId, 
+    this.configureBuiltin(
+      providerName,
+      this.xpert().workspaceId,
       omit(this.toolset(), 'id', 'tools'),
       this.toolset().tools?.map((tool) => omit(tool, 'id', 'toolsetId'))
-    )
-      .subscribe((toolset) => {
-        if (toolset && toolset.id) {
-          this.useToolset(toolset)
-        }
-      })
+    ).subscribe((toolset) => {
+      if (toolset && toolset.id) {
+        this.useToolset(toolset)
+      }
+    })
   }
 
   /**
    * Use the toolset to replace toolset template
-   * 
-   * @param toolset 
+   *
+   * @param toolset
    */
   useToolset(toolset: IXpertToolset) {
     this.loading.set(true)
     // Get the toolset details (with tools)
-    this.toolsetService.getOneById(toolset.id, {relations: ['tools']}).subscribe({
+    this.toolsetService.getOneById(toolset.id, { relations: ['tools'] }).subscribe({
       next: (toolset) => {
         this.loading.set(false)
         this.studioService.replaceToolset(this.toolset().id, toolset)
@@ -202,7 +212,7 @@ export class XpertStudioPanelToolsetComponent {
   }
 
   toggleExpand(name: string) {
-    this.expandTools.update((state) => ({...state, [name]: !state[name]}))
+    this.expandTools.update((state) => ({ ...state, [name]: !state[name] }))
   }
 
   closePanel() {
@@ -213,16 +223,19 @@ export class XpertStudioPanelToolsetComponent {
     const toolset = this.toolsetDetail()
     if (toolset.category === XpertToolsetCategoryEnum.API) {
       this.router.navigate(['/xpert/tool', toolset.id])
+    } else if (toolset.category === XpertToolsetCategoryEnum.MCP) {
+      this.router.navigate(['/xpert/tool', toolset.id])
     } else {
-      this.dialog.open(XpertToolConfigureBuiltinComponent, {
-        disableClose: true,
-        data: {
-          toolset,
-          providerName: toolset.type,
-          workspaceId: this.workspaceId()
-        }
-      }).closed
-        .subscribe((result) => {
+      this.dialog
+        .open(XpertToolConfigureBuiltinComponent, {
+          disableClose: true,
+          data: {
+            toolset,
+            providerName: toolset.type,
+            workspaceId: this.workspaceId()
+          }
+        })
+        .closed.subscribe((result) => {
           if (result) {
             this.refresh()
           }

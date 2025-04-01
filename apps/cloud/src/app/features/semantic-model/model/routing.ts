@@ -6,6 +6,7 @@ import { ModelMembersComponent } from './members/members.component'
 import { ModelComponent } from './model.component'
 import { ModelOverviewComponent } from './overview/overview.component'
 import { semanticModelResolver } from './story-model.resolver'
+import { SemancticModelLogsComponent } from './logs/logs.component'
 
 export const routes: Routes = [
   {
@@ -71,6 +72,13 @@ export const routes: Routes = [
         component: ModelMembersComponent,
         data: {
           title: 'Model / Member Retriever'
+        }
+      },
+      {
+        path: 'logs',
+        component: SemancticModelLogsComponent,
+        data: {
+          title: 'Model / Logs'
         }
       }
     ]

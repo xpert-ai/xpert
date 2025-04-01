@@ -1,0 +1,7 @@
+:host {
+  @apply block pt-2;
+}
+
+.tool-row.disabled {
+  @apply bg-gray-50 text-text-secondary;
+}

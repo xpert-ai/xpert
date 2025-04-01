@@ -1,27 +1,38 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-  <h4 style="pointer-events: none;">
-    {{ 'PAC.Xpert.CreateToolset' | translate: { Default: 'Create Toolset' } }}
-  </h4>
+<header class="flex justify-between items-center p-4 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  <div class="text-xl font-semibold">{{ 'PAC.Xpert.CreateToolset' | translate: { Default: 'Create Toolset' } }}</div>
+</header>
 
-  <ul class="w-80 mx-auto p-1 flex items-center justify-center gap-2 bg-hover-bg rounded-xl"
+<div class="flex justify-center pb-2">
+  <ul class="w-80 p-1 flex items-center justify-center gap-2 bg-hover-bg rounded-xl"
     cdkListbox
     [(ngModel)]="providerTypes"
-  >
+    >
     <li #option1="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
       [ngClass]="option1.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
+      [cdkOption]="'mcp'">
+      <i class="ri-route-line"></i> &nbsp; MCP
+    </li>
+    <li #option2="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
+      [ngClass]="option2.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
       [cdkOption]="'openapi'">
       <i class="ri-links-line"></i> &nbsp; OpenAPI
     </li>
 
-    <li #option2="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
-      [ngClass]="option2.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
+    <li #option3="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
+      [ngClass]="option3.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
       [cdkOption]="'odata'">
-      <i class="ri-exchange-2-line"></i> &nbsp; OData</li>
-    </ul>
-</header>
+      <i class="ri-exchange-2-line"></i> &nbsp; OData
+    </li>
+  </ul>
+</div>
 
-<div mat-dialog-content>
+<div class="block px-8 py-2 overflow-auto">
   @switch (providerTypes()[0]) {
+    @case ('mcp') {
+      <xpert-tool-mcp-configure #configure
+        (valueChange)="onValueChange($event)"
+      />
+    }
     @case ('openapi') {
       <xpert-tool-openapi-configure #configure
         (valueChange)="onValueChange($event)"
@@ -35,13 +46,19 @@
   }
 </div>
 
-<div mat-dialog-actions align="end">
-  <div ngmButtonGroup>
-    <button mat-stroked-button mat-dialog-close cdkFocusInitial>
+<div class="w-full flex justify-end p-4">
+  <div class="flex items-center gap-2">
+    <button type="button" class="btn disabled:btn-disabled btn-large"
+      (click)="cancel()"
+    >
       {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
-    <button mat-raised-button color="accent" [disabled]="!configure()?.isValid()"
-      (click)="createTool()">
+
+    <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+      [disabled]="!configure()?.isValid()"
+      (click)="createTool()"
+    >
+      <i class="ri-save-line mr-1"></i>
       {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
     </button>
   </div>

@@ -1,28 +1,40 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
-import { TranslateModule } from '@ngx-translate/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { CommonModule } from '@angular/common'
-import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { TXpertAgentOptions } from '@metad/contracts'
-import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
+import { CommonModule } from '@angular/common'
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { injectHelpWebsite } from 'apps/cloud/src/app/@core'
-
+import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
+import { TErrorHandling, TXpertAgentOptions, TXpertParameter } from '../../../@core/types'
+import { XpertParametersFormComponent } from '../../xpert'
 
 @Component({
-  selector: 'xpert-error-handling',
+  selector: 'xpert-workflow-error-handling',
   templateUrl: './error-handling.component.html',
   styleUrls: ['./error-handling.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, CdkMenuModule, TranslateModule, MatTooltipModule, NgmI18nPipe],
+  imports: [
+    CommonModule,
+    FormsModule,
+    CdkMenuModule,
+    TranslateModule,
+    MatTooltipModule,
+    NgmI18nPipe,
+    XpertParametersFormComponent
+  ],
   hostDirectives: [NgxControlValueAccessor]
 })
-export class XpertErrorHandlingComponent {
+export class XpertWorkflowErrorHandlingComponent {
   readonly helpWebsite = injectHelpWebsite()
-  protected cva = inject<NgxControlValueAccessor<TXpertAgentOptions['errorHandling']>>(NgxControlValueAccessor)
+  protected cva = inject<NgxControlValueAccessor<TErrorHandling>>(NgxControlValueAccessor)
 
+  // Inputs
+  readonly defaultValueSchema = input<TXpertParameter[]>()
+
+  // States
   readonly value$ = this.cva.value$
 
   readonly type = computed(() => this.value$()?.type)
@@ -80,7 +92,7 @@ export class XpertErrorHandlingComponent {
     }))
   }
 
-  updateDefaultValue(value: string) {
+  updateDefaultValue(value: Record<string, unknown>) {
     this.value$.update((state) => ({
       ...(state ?? {}),
       defaultValue: value

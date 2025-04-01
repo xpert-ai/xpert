@@ -41,6 +41,13 @@
         <i class="ri-sticky-note-add-line"></i>
       </div>
     }
+    @case (eWorkflowNodeTypeEnum.CODE) {
+      <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-400
+        w-6 h-6 rounded-lg shadow-sm
+        shrink-0 mr-2">
+        <i class="ri-code-s-slash-line"></i>
+      </div>
+    }
     @default {
       <div>Unimplement type ({{type()}})</div>
     }
@@ -63,6 +70,9 @@
   }
   @case (eWorkflowNodeTypeEnum.ANSWER) {
     <xpert-studio-node-workflow-answer class="px-3" [node]="node()" [entity]="entity()" />
+  }
+  @case (eWorkflowNodeTypeEnum.CODE) {
+    <xpert-studio-node-workflow-code class="px-3" [node]="node()" [entity]="entity()" />
   }
   @case (eWorkflowNodeTypeEnum.NOTE) {
   }

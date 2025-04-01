@@ -5,6 +5,7 @@ import { XpertWorkspaceBuiltinToolsComponent } from './builtin-tools/tools.compo
 import { XpertWorkspaceHomeComponent } from './home/home.component'
 import { XpertWorkspaceKnowledgesComponent } from './knowledges/knowledges.component'
 import { XpertWorkspaceXpertsComponent } from './xperts/xperts.component'
+import { XpertWorkspaceMCPToolsComponent } from './mcp-tools/tools.component'
 
 export default [
   {
@@ -40,6 +41,10 @@ export default [
       {
         path: 'builtin',
         component: XpertWorkspaceBuiltinToolsComponent
+      },
+      {
+        path: 'mcp',
+        component: XpertWorkspaceMCPToolsComponent
       }
     ]
   }

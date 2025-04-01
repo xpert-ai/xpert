@@ -4,7 +4,7 @@ import { BuiltinToolset, TBuiltinToolsetParams } from '../builtin-toolset'
 import { CodeProjectToolEnum } from './types'
 
 export class CodeProjectToolset extends BuiltinToolset {
-	static provider = 'code_project'
+	static provider = 'code-project'
 
 	constructor(
 		protected toolset?: IXpertToolset,

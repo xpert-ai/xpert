@@ -242,6 +242,10 @@ export class ChatConversationPreviewComponent {
             this.onChatError(msg.data)
           } else {
             if (msg.data) {
+              // Ignore non-data events 
+              if (msg.data.startsWith(':')) {
+                return
+              }
               const event = JSON.parse(msg.data)
               if (event.type === ChatMessageTypeEnum.MESSAGE) {
                 this.currentMessage.update((message) => {

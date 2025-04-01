@@ -8,6 +8,7 @@ export class ToolsetGetToolsCommand implements ICommand {
 		public readonly environment?: {
 			xpertId: string
 			agentKey?: string
+			signal: AbortSignal
 		}
 	) {}
 }

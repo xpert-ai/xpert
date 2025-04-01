@@ -1,9 +1,9 @@
 <div class="flex items-center">
-  <emoji-avatar class="rounded-full overflow-hidden shadow-sm mr-2" [avatar]="role()?.avatar" />
-  <div class="text-text-secondary">{{role()?.title || role()?.name}}</div>
+  <emoji-avatar class="shrink-0 rounded-full overflow-hidden shadow-sm mr-2" [avatar]="role()?.avatar" />
+  <div class="truncate text-text-secondary">{{role()?.title || role()?.name}}</div>
 </div>
 
-<div class="group/message relative flex-1 flex flex-col gap-2 mt-2 pb-10 overflow-hidden">
+<div class="group/message relative flex-1 flex flex-col gap-2 pt-2 pb-10 overflow-hidden">
 
   <!-- executions -->
   @if (showExecution()) {
@@ -192,12 +192,19 @@
           @if (submessage.id && collapseMessages()[submessage.id]) {
             <div class="truncate">{{submessage.text}}</div>
           } @else {
-            <markdown clipboard class="ngm-copilot-markdown flex-1"
-              [clipboardButtonTemplate]="buttonTemplate"
-              lineNumbers
-              [start]="5"
-              [data]="submessage.text"
-            />
+            <div class="group/content relative w-full">
+              <markdown clipboard class="ngm-copilot-markdown flex-1"
+                [clipboardButtonTemplate]="buttonTemplate"
+                lineNumbers
+                [start]="5"
+                [data]="submessage.text"
+              />
+              
+              <div class="absolute -top-3 right-4 flex items-center gap-2 text-sm text-text-secondary opacity-0 group-hover/content:opacity-100 transition-opacity duration-100">
+                <copy2 [content]="submessage.text" class="pressable" />
+                <span>{{submessage.created_date | relative}}</span>
+              </div>
+            </div>
           }
 
           @if (!last && submessage.agentKey && !collapseMessages()[submessage.id]) {

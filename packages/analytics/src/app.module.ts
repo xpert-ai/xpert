@@ -39,6 +39,7 @@ import { SemanticModelMemberModule } from './model-member'
 import { ChatBIConversationModule } from './chatbi-conversation/conversation.module'
 import { ChatBIModule } from './chatbi'
 import { ChatBIModelModule } from './chatbi-model'
+import { ModelQueryLogModule } from './model-query-log'
 
 @Module({
 	imports: [
@@ -74,6 +75,7 @@ import { ChatBIModelModule } from './chatbi-model'
 		SemanticModelModule,
 		SemanticModelEntityModule,
 		SemanticModelMemberModule,
+		ModelQueryLogModule,
 		DataSourceModule,
 		DataSourceTypeModule,
 		StoryPointModule,

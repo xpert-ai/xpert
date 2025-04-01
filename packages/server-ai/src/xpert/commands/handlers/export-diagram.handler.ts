@@ -1,7 +1,8 @@
 import { CompiledStateGraph } from '@langchain/langgraph'
+import { IXpertAgent } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { XpertAgentSubgraphCommand } from '../../../xpert-agent'
+import { CompileGraphCommand } from '../../../xpert-agent/commands'
 import { XpertService } from '../../xpert.service'
 import { XpertExportDiagramCommand } from '../export-diagram.command'
 
@@ -18,23 +19,21 @@ export class XpertExportDiagramHandler implements ICommandHandler<XpertExportDia
 	public async execute(command: XpertExportDiagramCommand): Promise<Blob> {
 		const { id, isDraft, agentKey } = command
 		const xpert = await this.xpertService.findOne(id, { relations: ['agent'] })
-
 		// Create graph by command
 		const controller = new AbortController()
-		const { graph } = await this.commandBus.execute<
-			XpertAgentSubgraphCommand,
-			{
-				graph: CompiledStateGraph<unknown, unknown>
-			}
+		// Agent & Graph
+		const { graph, agent } = await this.commandBus.execute<
+			CompileGraphCommand,
+			{ graph: CompiledStateGraph<unknown, unknown>; agent: IXpertAgent }
 		>(
-			new XpertAgentSubgraphCommand(agentKey ?? xpert.agent.key, xpert, {
+			new CompileGraphCommand(agentKey ?? xpert.agent.key, xpert, {
 				isDraft,
-				isStart: true,
-				execution: {},
 				rootController: controller,
-				signal: controller.signal
+				signal: controller.signal,
+				execution: {}
 			})
 		)
+
 		const _graph = await graph.getGraphAsync()
 		return await _graph.drawMermaidPng()
 	}

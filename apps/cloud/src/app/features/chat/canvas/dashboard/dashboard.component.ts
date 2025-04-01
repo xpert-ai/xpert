@@ -63,6 +63,9 @@ export class ChatCanvasDashboardComponent {
 
   readonly contents = computed(() => {
     const messages = this.#messages()
+    if (!messages?.length) {
+      return []
+    }
     const contents = messages.reduce((acc, message) => {
       const contents = message.content
       if (Array.isArray(contents)) {
@@ -96,7 +99,7 @@ export class ChatCanvasDashboardComponent {
     effect(
       () => {
         if (this.messages()) {
-          this.homeService.canvasOpened.update((state) => ({ type: 'Dashboard' }))
+          this.homeService.canvasOpened.update((state) => ({ opened: true, type: 'Dashboard' }))
         }
       },
       { allowSignalWrites: true }

@@ -1,10 +1,10 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, model, signal, viewChild } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { routeAnimations } from '@metad/core'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
@@ -13,11 +13,11 @@ import {
   ToastrService,
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { isNil, omitBy } from 'lodash-es'
 import { XpertConfigureToolComponent } from '../api-tool/types'
 import { XpertStudioConfigureODataComponent } from '../odata/'
 import { XpertStudioConfigureToolComponent } from '../openapi/'
+import { XpertStudioConfigureMCPComponent } from '../mcp'
 
 @Component({
   standalone: true,
@@ -26,11 +26,11 @@ import { XpertStudioConfigureToolComponent } from '../openapi/'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MaterialModule,
+    DragDropModule,
     CdkListboxModule,
-    ButtonGroupDirective,
     XpertStudioConfigureToolComponent,
-    XpertStudioConfigureODataComponent
+    XpertStudioConfigureODataComponent,
+    XpertStudioConfigureMCPComponent
   ],
   selector: 'pac-xpert-tool-create',
   templateUrl: './create.component.html',
@@ -41,8 +41,8 @@ import { XpertStudioConfigureToolComponent } from '../openapi/'
 export class XpertStudioCreateToolComponent {
   private readonly xpertToolsetService = inject(XpertToolsetService)
   readonly #toastr = inject(ToastrService)
-  readonly #dialogRef = inject(MatDialogRef)
-  readonly #data = inject<{ workspace: IXpertWorkspace }>(MAT_DIALOG_DATA)
+  readonly #dialogRef = inject(DialogRef)
+  readonly #data = inject<{ workspace: IXpertWorkspace; type: 'mcp' | 'openapi' | 'odata' }>(DIALOG_DATA)
 
   readonly configure = viewChild('configure', { read: XpertConfigureToolComponent })
 
@@ -50,7 +50,7 @@ export class XpertStudioCreateToolComponent {
 
   readonly loading = signal(false)
 
-  readonly providerTypes = model<string[]>(['openapi'])
+  readonly providerTypes = model<('mcp' | 'openapi' | 'odata')[]>([this.#data.type || 'mcp'])
 
   readonly toolset = model<IXpertToolset>()
 
@@ -73,5 +73,9 @@ export class XpertStudioCreateToolComponent {
           this.#toastr.error(getErrorMessage(error))
         }
       })
+  }
+
+  cancel() {
+    this.#dialogRef.close()
   }
 }

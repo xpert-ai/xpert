@@ -141,4 +141,8 @@ export class UserRoleSelectComponent {
       users: this.users
     })
   }
+
+  onCancel() {
+    this._dialogRef.close()
+  }
 }

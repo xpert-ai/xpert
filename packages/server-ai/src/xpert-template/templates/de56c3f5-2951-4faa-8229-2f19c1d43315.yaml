@@ -1,0 +1,175 @@
+team:
+  name: Supervisor mode Agents
+  type: agent
+  title: Supervisor
+  description: The supervisor is responsible for interacting with users and managing multiple specialized worker agents. These workers have their own strengths and focus on specific types of tasks.
+  avatar:
+    emoji:
+      id: male_superhero
+      set: ""
+      colons: ":male_superhero:"
+      unified: 1F9B8-200D-2642-FE0F
+    background: rgba(211, 248, 223, 0.8)
+    url: null
+  starters:
+    - what's the combined headcount of the FAANG companies in 2024?
+    - null
+    - null
+    - null
+  options:
+    position:
+      x: 317
+      y: 119
+    scale: 1
+    agent:
+      Agent_ElknkNac9B:
+        position:
+          x: 10
+          y: 40
+      Agent_aRuR7KNxVn:
+        position:
+          x: -200
+          y: 280
+      Agent_GRZ1N0h9Zf:
+        position:
+          x: 260
+          y: 280
+  agentConfig:
+    disableOutputs:
+      - Agent_aRuR7KNxVn
+      - Agent_GRZ1N0h9Zf
+  memory: null
+  summarize: null
+  version: "1"
+  agent:
+    key: Agent_ElknkNac9B
+    name: Supervisor
+    title: Supervisor
+    description: null
+    avatar:
+      emoji:
+        id: male_superhero
+        set: ""
+        colons: ":male_superhero:"
+        unified: 1F9B8-200D-2642-FE0F
+      background: rgba(213, 245, 246, 0.8)
+      url: null
+    prompt: |-
+      You are a team supervisor managing a research expert and a math expert.
+      For current events, use research_agent.
+      For math problems, use math_agent.
+    promptTemplates: null
+    parameters: null
+    outputVariables: null
+    options: null
+    copilotModel: null
+    leaderKey: null
+    collaboratorNames: []
+    toolsetIds: []
+    knowledgebaseIds: []
+  copilotModel:
+    modelType: llm
+    model: gpt-4o
+    options: null
+  knowledgebases: []
+  toolsets: []
+  tags: []
+nodes:
+  - type: agent
+    key: Agent_ElknkNac9B
+    position:
+      x: 10
+      y: 40
+    entity:
+      key: Agent_ElknkNac9B
+      name: Supervisor
+      title: Supervisor
+      description: null
+      avatar:
+        emoji:
+          id: male_superhero
+          set: ""
+          colons: ":male_superhero:"
+          unified: 1F9B8-200D-2642-FE0F
+        background: rgba(213, 245, 246, 0.8)
+        url: null
+      prompt: |-
+        You are a team supervisor managing a research expert and a math expert.
+        For current events, use research_agent.
+        For math problems, use math_agent.
+      promptTemplates: null
+      parameters: null
+      outputVariables: null
+      options: null
+      copilotModel: null
+      leaderKey: null
+      collaboratorNames: []
+      toolsetIds: []
+      knowledgebaseIds: []
+  - type: agent
+    key: Agent_aRuR7KNxVn
+    position:
+      x: -200
+      y: 280
+    entity:
+      key: Agent_aRuR7KNxVn
+      name: Math Expert
+      title: Math
+      description: Calculate math problem
+      avatar:
+        emoji:
+          id: abacus
+          set: ""
+          colons: ":abacus:"
+          unified: 1F9EE
+        background: rgba(228, 251, 204, 0.8)
+        url: null
+      prompt: You are a math expert. Always use one tool at a time.
+      copilotModel: null
+    hash: bc2097c42c0d1821247e4c6576930aabb1f88d6fa4acfa2a897ad1428e02f660
+  - type: agent
+    key: Agent_GRZ1N0h9Zf
+    position:
+      x: 260
+      y: 280
+    entity:
+      key: Agent_GRZ1N0h9Zf
+      name: Research Expert
+      description: Research to generate report
+      avatar:
+        emoji:
+          id: globe_with_meridians
+          set: ""
+          colons: ":globe_with_meridians:"
+          unified: 1F310
+        background: rgba(209, 233, 255, 0.8)
+        url: null
+      prompt: >-
+        You are a world class researcher with access to web search. Do not do
+        any math.
+
+
+        return the message:
+
+        "Here are the headcounts for each of the FAANG companies in 2024:\n" +
+
+        "1. **Facebook (Meta)**: 67,317 employees.\n" +
+
+        "2. **Apple**: 164,000 employees.\n" +
+
+        "3. **Amazon**: 1,551,000 employees.\n" +
+
+        "4. **Netflix**: 14,000 employees.\n" +
+
+        "5. **Google (Alphabet)**: 181,269 employees."
+      copilotModel: null
+    hash: 40b8d1e5868e7da31121cbefa2096afea3b03b6e26b65d96880438c16450ae3f
+connections:
+  - type: agent
+    key: Agent_ElknkNac9B/Agent_aRuR7KNxVn
+    from: Agent_ElknkNac9B
+    to: Agent_aRuR7KNxVn
+  - type: agent
+    key: Agent_ElknkNac9B/Agent_GRZ1N0h9Zf
+    from: Agent_ElknkNac9B
+    to: Agent_GRZ1N0h9Zf

@@ -12,6 +12,38 @@
             ],
             "recommendedApps": [
                 {
+                    "name": "Customer Support Swarm",
+                    "type": "agent",
+                    "title": "Customer Support Swarm",
+                    "description": "The core idea of ​​the architecture \"agents can pass requests to each other and share state\" is demonstrated through a customer support system (including a flight assistant, a hotel assistant, and a ride-hailing assistant)",
+                    "avatar": {
+                        "emoji": {
+                            "id": "bellhop_bell"
+                        },
+                        "background": "rgba(213, 245, 246, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43314",
+                    "category": "Assistant",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Supervisor mode Agents",
+                    "type": "agent",
+                    "title": "Supervisor",
+                    "description": "The supervisor is responsible for interacting with users and managing multiple specialized worker agents. These workers have their own strengths and focus on specific types of tasks.",
+                    "avatar": {
+                        "emoji": {
+                            "id": "male_superhero"
+                        },
+                        "background": "rgba(211, 248, 223, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43315",
+                    "category": "Agent",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
                     "name": "ChatBI with Sales Analysis Expert",
                     "type": "agent",
                     "title": "Sales Analysis Expert",
@@ -203,9 +235,41 @@
             ],
             "recommendedApps": [
                 {
-                    "name": "My Manus Team",
+                    "name": "Customer Support Swarm",
                     "type": "agent",
-                    "title": "Manus",
+                    "title": "客户支持群",
+                    "description": "蜂群架构的核心理念“智能体可以相互传递请求并共享状态”通过客户支持系统（包括航班助手、酒店助手和叫车助手）得以展示",
+                    "avatar": {
+                        "emoji": {
+                            "id": "bellhop_bell"
+                        },
+                        "background": "rgba(213, 245, 246, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43314",
+                    "category": "Agent",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "Supervisor mode Agents",
+                    "type": "agent",
+                    "title": "监督者",
+                    "description": "监管者负责与用户互动并管理多个专业工作者智能体。这些工作者各有所长，专注于特定类型的任务。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "male_superhero"
+                        },
+                        "background": "rgba(211, 248, 223, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43315",
+                    "category": "Agent",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
+                    "name": "My Hands",
+                    "type": "agent",
+                    "title": "Hands",
                     "description": "你的首款通用 AI 智能体团队。我可以将您的想法转化为实际行动，通过自动化方式完成从规划到执行的整个流程。",
                     "avatar": {
                         "emoji": {

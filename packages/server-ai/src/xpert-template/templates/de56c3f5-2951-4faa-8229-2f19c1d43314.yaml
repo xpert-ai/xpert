@@ -1,0 +1,374 @@
+team:
+  name: Customer Support Swarm
+  type: agent
+  title: Customer Support Swarm
+  description: The core idea of ​​the architecture "agents can pass requests to
+    each other and share state" is demonstrated through a customer support
+    system (including a flight assistant, a hotel assistant, and a ride-hailing
+    assistant)
+  avatar:
+    emoji:
+      id: bellhop_bell
+      set: ""
+      colons: ":bellhop_bell:"
+      unified: 1F6CE-FE0F
+    background: rgba(213, 245, 246, 0.8)
+    url: null
+  starters:
+    - Can you book me a flight from Los Angeles to Chicago for next Friday, then
+      arrange a ride from the airport to my hotel?
+    - I need a hotel in San Francisco for this weekend, and how do I get from
+      there to the Golden Gate Bridge?
+    - I’m landing in Miami tomorrow at 3 PM—can you get me a ride to my hotel?
+    - Book me a flight to London, a hotel near the city center?
+  options:
+    position:
+      x: 185.21964243236624
+      y: 134.92173799769677
+    scale: 0.8599999999999999
+    agent:
+      Agent_0Pwnh0yVtu:
+        position:
+          x: -60
+          y: 60
+      Agent_wDPbYKCcr5:
+        position:
+          x: 200
+          y: 380
+      Agent_V2azSA4iJv:
+        position:
+          x: 480
+          y: 60
+    toolset:
+      b1013d33-4a9a-4821-94ea-346b1fcd50aa:
+        position:
+          x: 560
+          y: 540
+  agentConfig:
+    disableOutputs: []
+  memory: null
+  summarize: null
+  version: "1"
+  agent:
+    key: Agent_0Pwnh0yVtu
+    name: Hotel Assistant
+    title: Hotel Assistant
+    description: books the hotel
+    avatar:
+      emoji:
+        id: hotel
+        set: ""
+        colons: ":hotel:"
+        unified: 1F3E8
+      background: rgba(230, 244, 215, 0.8)
+      url: null
+    prompt: >
+      You can books the hotel (Search the web and simulate a booking result to
+      answer).
+
+
+      For other tasks, you must hand off to only one assistant at a time,
+      following these rules:
+
+      - If the task is to arrange transportation, hand off to the Ride-Hailing
+      Assistant.
+
+      - If the task is to book a flight, hand off to the Flight Assistant.
+
+
+      If there are two tasks at the same time (e.g., booking a flight and
+      arranging a ride), hand off to any one assistant first (e.g., Flight
+      Assistant or Ride-Hailing Assistant), and that assistant will then hand
+      off the remaining task to the appropriate subsequent assistant.
+
+
+      Answer in {{sys.language}} language.
+    promptTemplates: null
+    parameters: null
+    outputVariables: null
+    options:
+      parallelToolCalls: false
+    copilotModel: null
+    leaderKey: null
+    collaboratorNames: []
+    toolsetIds:
+      - b1013d33-4a9a-4821-94ea-346b1fcd50aa
+    knowledgebaseIds: []
+  copilotModel:
+    modelType: llm
+    model: gpt-4o
+    options: null
+  knowledgebases: []
+  toolsets:
+    - id: b1013d33-4a9a-4821-94ea-346b1fcd50aa
+      name: WebSearch Tool
+      type: tavily
+      category: builtin
+      description: Web Search Tool
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon
+      options:
+        provider:
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon
+          icon: icon.png
+          tags:
+            - search
+          author: Xpert AI
+          name: tavily
+          label:
+            en_US: Tavily
+            zh_Hans: Tavily
+            pt_BR: Tavily
+          description:
+            en_US: Tavily
+            zh_Hans: Tavily
+            pt_BR: Tavily
+        toolPositions:
+          tavily_search: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: fab34f4e-88d3-4d27-b1db-c0971a16ea83
+          name: tavily_search
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+  tags: []
+nodes:
+  - type: agent
+    key: Agent_0Pwnh0yVtu
+    position:
+      x: -60
+      y: 60
+    entity:
+      key: Agent_0Pwnh0yVtu
+      name: Hotel Assistant
+      title: Hotel Assistant
+      description: books the hotel
+      avatar:
+        emoji:
+          id: hotel
+          set: ""
+          colons: ":hotel:"
+          unified: 1F3E8
+        background: rgba(230, 244, 215, 0.8)
+        url: null
+      prompt: >
+        You can books the hotel (Search the web and simulate a booking result to
+        answer).
+
+
+        For other tasks, you must hand off to only one assistant at a time,
+        following these rules:
+
+        - If the task is to arrange transportation, hand off to the Ride-Hailing
+        Assistant.
+
+        - If the task is to book a flight, hand off to the Flight Assistant.
+
+
+        If there are two tasks at the same time (e.g., booking a flight and
+        arranging a ride), hand off to any one assistant first (e.g., Flight
+        Assistant or Ride-Hailing Assistant), and that assistant will then hand
+        off the remaining task to the appropriate subsequent assistant.
+
+
+        Answer in {{sys.language}} language.
+      promptTemplates: null
+      parameters: null
+      outputVariables: null
+      options:
+        parallelToolCalls: false
+      copilotModel: null
+      leaderKey: null
+      collaboratorNames: []
+      toolsetIds:
+        - b1013d33-4a9a-4821-94ea-346b1fcd50aa
+      knowledgebaseIds: []
+    hash: 5ea3a884700bab46d1f2593b9d87b93f53753e7d2922fdeb07a4be4b50197be4
+  - type: agent
+    key: Agent_wDPbYKCcr5
+    position:
+      x: 200
+      y: 380
+    entity:
+      key: Agent_wDPbYKCcr5
+      name: Ride-Hailing Assistant
+      title: Ride-Hailing Assistant
+      description: arranges the ride
+      avatar:
+        emoji:
+          id: oncoming_taxi
+          set: ""
+          colons: ":oncoming_taxi:"
+          unified: 1F696
+        background: rgba(224, 234, 255, 0.8)
+        url: null
+      prompt: >
+        You can arrange the ride  (Search the web and simulate a booking result
+        to answer).
+
+
+        For other tasks, you must hand off to only one assistant at a time,
+        following these rules:
+
+        - If the task is to book a flight, hand off to the Flight Assistant.
+
+        - If the task is to book a hotel, hand off to the Hotel Assistant.
+
+
+        If there are two tasks at the same time (e.g., booking a flight and book
+        a hotel), hand off to any one assistant first (e.g., Flight Assistant or
+        Hotel Assistant), and that assistant will then hand off the remaining
+        task to the appropriate subsequent assistant.
+
+
+        Answer in {{sys.language}} language.
+      promptTemplates: null
+      parameters: null
+      outputVariables: null
+      options:
+        parallelToolCalls: false
+      copilotModel: null
+      leaderKey: Agent_0Pwnh0yVtu
+      collaboratorNames: []
+      toolsetIds:
+        - b1013d33-4a9a-4821-94ea-346b1fcd50aa
+      knowledgebaseIds: []
+    hash: 31d5f02e09ae95003fa9003fe42669ac40b64dbf36af1354d5da6b93df148918
+  - type: agent
+    key: Agent_V2azSA4iJv
+    position:
+      x: 480
+      y: 60
+    entity:
+      key: Agent_V2azSA4iJv
+      name: Flight Assistant
+      title: Flight Assistant
+      description: booking the flight
+      avatar:
+        emoji:
+          id: airplane
+          set: ""
+          colons: ":airplane:"
+          unified: 2708-FE0F
+        background: rgba(254, 247, 195, 0.8)
+        url: null
+      prompt: >-
+        You can book the flight (Search the web and simulate a booking result to
+        answer).
+
+
+        For other tasks, you must hand off to only one assistant at a time,
+        following these rules:
+
+        - If the task is to arrange transportation, hand off to the Ride-Hailing
+        Assistant.
+
+        - If the task is to book a hotel, hand off to the Hotel Assistant.
+
+
+        If there are two tasks at the same time (e.g., booking a hotel and
+        arranging a ride), hand off to any one assistant first (e.g., Hotel
+        Assistant or Ride-Hailing Assistant), and that assistant will then hand
+        off the remaining task to the appropriate subsequent assistant.
+
+
+        Answer in {{sys.language}} language.
+      promptTemplates: null
+      parameters: null
+      outputVariables: null
+      options:
+        parallelToolCalls: false
+      copilotModel: null
+      leaderKey: Agent_0Pwnh0yVtu
+      collaboratorNames: []
+      toolsetIds:
+        - b1013d33-4a9a-4821-94ea-346b1fcd50aa
+      knowledgebaseIds: []
+    hash: d1e96744fea43293d3e2d279fd071056635ca52232784d0e950ba01ca5a3bc24
+  - type: toolset
+    key: b1013d33-4a9a-4821-94ea-346b1fcd50aa
+    position:
+      x: 560
+      y: 540
+    entity:
+      id: b1013d33-4a9a-4821-94ea-346b1fcd50aa
+      name: WebSearch Tool
+      type: tavily
+      category: builtin
+      description: Web Search Tool
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon
+      options:
+        provider:
+          avatar:
+            url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon
+          icon: icon.png
+          tags:
+            - search
+          author: Xpert AI
+          name: tavily
+          label:
+            en_US: Tavily
+            zh_Hans: Tavily
+            pt_BR: Tavily
+          description:
+            en_US: Tavily
+            zh_Hans: Tavily
+            pt_BR: Tavily
+        toolPositions:
+          tavily_search: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: fab34f4e-88d3-4d27-b1db-c0971a16ea83
+          name: tavily_search
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    hash: 9fa41b64e930a37162b53760620365eb292273a2868b550fdd5dcac5b1d05bee
+connections:
+  - type: agent
+    key: Agent_0Pwnh0yVtu/Agent_wDPbYKCcr5
+    from: Agent_0Pwnh0yVtu
+    to: Agent_wDPbYKCcr5
+  - type: agent
+    key: Agent_0Pwnh0yVtu/Agent_V2azSA4iJv
+    from: Agent_0Pwnh0yVtu
+    to: Agent_V2azSA4iJv
+  - type: agent
+    key: Agent_V2azSA4iJv/Agent_0Pwnh0yVtu
+    from: Agent_V2azSA4iJv
+    to: Agent_0Pwnh0yVtu
+  - type: agent
+    key: Agent_wDPbYKCcr5/Agent_0Pwnh0yVtu
+    from: Agent_wDPbYKCcr5
+    to: Agent_0Pwnh0yVtu
+  - type: agent
+    key: Agent_wDPbYKCcr5/Agent_V2azSA4iJv
+    from: Agent_wDPbYKCcr5
+    to: Agent_V2azSA4iJv
+  - type: agent
+    key: Agent_V2azSA4iJv/Agent_wDPbYKCcr5
+    from: Agent_V2azSA4iJv
+    to: Agent_wDPbYKCcr5
+  - type: toolset
+    key: Agent_V2azSA4iJv/b1013d33-4a9a-4821-94ea-346b1fcd50aa
+    from: Agent_V2azSA4iJv
+    to: b1013d33-4a9a-4821-94ea-346b1fcd50aa
+  - type: toolset
+    key: Agent_0Pwnh0yVtu/b1013d33-4a9a-4821-94ea-346b1fcd50aa
+    from: Agent_0Pwnh0yVtu
+    to: b1013d33-4a9a-4821-94ea-346b1fcd50aa
+  - type: toolset
+    key: Agent_wDPbYKCcr5/b1013d33-4a9a-4821-94ea-346b1fcd50aa
+    from: Agent_wDPbYKCcr5
+    to: b1013d33-4a9a-4821-94ea-346b1fcd50aa

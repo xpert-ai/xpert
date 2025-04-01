@@ -16,5 +16,9 @@
         <div class="mb-2 system-xs-regular text-text-tertiary">{{item.input}}</div>
       </div>
     }
+
+    @case ('image_url') {
+      <img [src]="item.image_url.url" >
+    }
   }
 }

@@ -58,6 +58,10 @@ export class XpertStudioToolsetMenuComponent {
       label: 'Builtin'
     },
     {
+      value: XpertToolsetCategoryEnum.MCP,
+      label: 'MCP'
+    },
+    {
       value: XpertToolsetCategoryEnum.API,
       label: 'Custom'
     }

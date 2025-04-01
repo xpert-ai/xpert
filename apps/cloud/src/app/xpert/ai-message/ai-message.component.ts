@@ -36,7 +36,7 @@ import {
 } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar'
 import { ChatMessageExecutionComponent } from '../../@shared/chat'
-import { CopyComponent } from '../../@shared/common'
+import { Copy2Component, CopyComponent } from '../../@shared/common'
 import { ChatService } from '../chat.service'
 import { ChatComponentMessageComponent } from '../component-message/component-message.component'
 import { XpertHomeService } from '../home.service'
@@ -61,7 +61,8 @@ import { TCopilotChatMessage } from '../types'
     ChatComponentMessageComponent,
     ChatMessageExecutionComponent,
     CopyComponent,
-    DateRelativePipe
+    DateRelativePipe,
+    Copy2Component
   ],
   selector: 'pac-ai-message',
   templateUrl: './ai-message.component.html',
@@ -250,6 +251,7 @@ export class ChatAiMessageComponent {
 
   openCanvas() {
     this.homeService.canvasOpened.set({
+      opened: true,
       type: 'Computer',
       messageId: this.message().id
     })

@@ -1,9 +1,15 @@
 <div class="flex-1 min-w-0 p-4 flex flex-col gap-3 h-full">
   <div class="flex items-center gap-2 w-full">
+    <button class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer pressable hover:bg-hover-bg"
+      [matTooltip]="'PAC.Chat.ExpandCanvas' | translate: {Default: 'Expand canvas'}"
+      (click)="toggleExpand()"
+    >
+      <i class="ri-expand-left-line transition-transform" [class.rotate-180]="expand()"></i>
+    </button>
     <div class="text-text-primary text-lg font-semibold flex-1">
       {{'PAC.Chat.WhosComputer' | translate: {value: 'Xpert', Default: "Xpert's Computer"} }}
     </div>
-    <button class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer hover:bg-hover-bg"
+    <button class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer pressable hover:bg-hover-bg"
       [matTooltip]="'PAC.Chat.CloseCanvas' | translate: {Default: 'Close canvas'}"
       (click)="close()"
     >
@@ -34,7 +40,7 @@
       </div>
       <div class="flex-1 flex flex-col gap-1 min-w-0">
         <div class="text-[12px] text-[var(--text-tertiary)]">
-          {{ 'PAC.Xpert.XpertUsing' | translate: {Default: 'Xpert using'} }}
+          {{ 'PAC.Chat.XpertUsing' | translate: {Default: 'Xpert using'} }}
           <span class="text-[var(--text-secondary)]">
             {{ 'PAC.Xpert.Toolset_' + step.toolset | translate: {Default: step.toolset || 'Toolset'} }}
           </span>
@@ -113,9 +119,14 @@
           }
           @case (eChatMessageStepCategory.Program) {
             <div class="flex flex-col overflow-auto h-full px-4 py-3">
-              <div>{{step.data.code}}</div>
+              <div class="whitespace-pre">{{step.data.code}}</div>
               @if (step.data.output) {
-                <div class="mt-4">{{step.data.output}}</div>
+                <div class="w-full mt-4 flex flex-col bg-gray-200">
+                  <div class="p-1 border-b border-solid border-neutral-300">console</div>
+                  <div class="whitespace-pre-line">
+                    {{step.data.output}}
+                  </div>
+                </div>
               }
               @if (step.data.error) {
                 <div class="mt-4 text-text-destructive">{{step.data.error}}</div>
@@ -181,12 +192,14 @@
       <div class="mt-auto flex w-full items-center gap-2 px-2 h-[44px] relative bg-components-panel-bg border-t border-divider-regular">
         <div class="flex items-center mr-1">
           <button type="button"
-            class="flex items-center justify-center w-[24px] h-[24px] rounded-lg text-text-secondary transition-colors enabled:hover:bg-hover-bg"
+            class="flex items-center justify-center w-[24px] h-[24px] rounded-lg text-text-secondary transition-colors
+              enabled:pressable enabled:hover:text-text-primary enabled:hover:bg-hover-bg disabled:cursor-not-allowed"
             [disabled]="stepIndex() <= 0"
             (click)="prevStep()">
             <i class="ri-skip-back-line"></i>
           </button>
-          <button type="button" class="flex items-center justify-center w-[24px] h-[24px] rounded-lg text-text-secondary transition-colors enabled:hover:bg-hover-bg"
+          <button type="button" class="flex items-center justify-center w-[24px] h-[24px] rounded-lg text-text-secondary transition-colors
+            enabled:pressable enabled:hover:text-text-primary enabled:hover:bg-hover-bg disabled:cursor-not-allowed"
             [disabled]="stepIndex() >= stepLength() - 1"
             (click)="nextStep()">
             <i class="ri-skip-forward-line"></i>

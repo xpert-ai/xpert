@@ -36,7 +36,7 @@ import {
 	InternalServerErrorException,
 	Res
 } from '@nestjs/common'
-import { getErrorMessage, takeUntilClose } from '@metad/server-common'
+import { getErrorMessage, keepAlive, takeUntilClose } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Request, Response } from 'express'
@@ -255,12 +255,17 @@ export class XpertController extends CrudController<Xpert> {
 			}
 		}
 	) {
-		return (await this.commandBus.execute(new XpertChatCommand(body.request, {
+		const observable = await this.commandBus.execute(new XpertChatCommand(body.request, {
 			...body.options,
 			language,
 			timeZone,
 			from: 'debugger'
-		}))).pipe(takeUntilClose(res))
+		}))
+		return observable.pipe(
+			// Add an operator to send a comment event periodically (30s) to keep the connection alive
+			keepAlive(30000),
+			takeUntilClose(res)
+		)
 	}
 
 	@ApiOperation({ summary: 'Delete record' })
@@ -515,12 +520,17 @@ export class XpertController extends CrudController<Xpert> {
 	async chatApp(@Res() res: Response, @Param('name') name: string, @I18nLang() language: LanguagesEnum,
 		@Body() body: { request: TChatRequest; options: TChatOptions }) {
 		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
-		return (await this.commandBus.execute(new XpertChatCommand(body.request, {
+		const observable = await this.commandBus.execute(new XpertChatCommand(body.request, {
 			...body.options,
 			language,
 			from: 'webapp',
 			fromEndUserId
-		}))).pipe(takeUntilClose(res))
+		}))
+		return observable.pipe(
+			// Add an operator to send a comment event periodically (30s) to keep the connection alive
+			keepAlive(30000),
+			takeUntilClose(res)
+		)
 	}
 
 	// Statistics

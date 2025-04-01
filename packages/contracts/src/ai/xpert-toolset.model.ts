@@ -12,6 +12,10 @@ export enum XpertToolsetCategoryEnum {
   BUILTIN = 'builtin',
   API = 'api',
   /**
+   * [Anthropic Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction)
+   */
+  MCP = 'mcp',
+  /**
    * @deprecated
    */
   WORKFLOW = 'workflow'
@@ -64,6 +68,8 @@ export type TXpertToolsetOptions = {
   provider: IToolProvider
   baseUrl?: string
   toolPositions?: Record<string, number>
+  disableToolDefault?: boolean
+  needSandbox?: boolean
   [key: string]: any
 }
 

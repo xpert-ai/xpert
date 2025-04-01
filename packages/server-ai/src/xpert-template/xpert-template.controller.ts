@@ -1,4 +1,4 @@
-import { LanguagesEnum } from '@metad/contracts'
+import { LanguagesEnum, LanguagesMap } from '@metad/contracts'
 import { TransformInterceptor } from '@metad/server-core'
 import { Controller, Get, Logger, Param, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -20,11 +20,11 @@ export class XpertTemplateController {
 
 	@Get()
 	async getAll(@I18nLang() language: LanguagesEnum) {
-		return this.service.getAll(language)
+		return this.service.getAll(LanguagesMap[language] ?? language)
 	}
 
 	@Get(':id')
 	async getTemplate(@I18nLang() language: LanguagesEnum, @Param('id') id: string) {
-		return await this.service.getTemplateDetail(id, language)
+		return await this.service.getTemplateDetail(id, LanguagesMap[language] ?? language)
 	}
 }

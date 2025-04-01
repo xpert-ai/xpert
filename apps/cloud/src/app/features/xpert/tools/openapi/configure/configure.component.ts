@@ -25,7 +25,7 @@ import {
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
-import { distinctUntilChanged, filter, of, switchMap } from 'rxjs'
+import { combineLatestWith, distinctUntilChanged, filter, map, of, switchMap } from 'rxjs'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Samples } from '../types'
 import { XpertToolAuthorizationInputComponent } from '../../authorization'
@@ -101,12 +101,12 @@ export class XpertStudioConfigureToolComponent extends XpertConfigureToolCompone
 
   readonly valueChange = outputFromObservable(this.formGroup.valueChanges)
 
-  isValid() {
-    return this.formGroup.valid
-  }
-  isDirty() {
-    return this.formGroup.dirty
-  }
+  readonly isValid = toSignal(this.formGroup.valueChanges.pipe(
+    combineLatestWith(this.refresh$),
+    map(() => this.formGroup.valid)))
+  readonly isDirty = toSignal(this.formGroup.valueChanges.pipe(
+    combineLatestWith(this.refresh$),
+    map(() => this.formGroup.dirty)))
   
   get name() {
     return this.formGroup.get('name')

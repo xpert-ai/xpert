@@ -1,5 +1,5 @@
 <div class="flex items-center px-12 py-4 text-lg font-semibold text-gray-500 uppercase">
-  <div class="mr-3">{{ 'PAC.Xpert.CustomToolset' | translate: { Default: 'Custom Toolset' } }}</div>
+  <div class="mr-3">{{ 'PAC.Xpert.APIToolset' | translate: { Default: 'API Toolset' } }}</div>
   <div class="grow w-0 h-px bg-divider-regular"></div>
 </div>
 
@@ -7,8 +7,8 @@
   ngmDynamicGrid colWidth="280"
   box="content-box">
 
-  <ngm-card-create [title]="'PAC.Xpert.CreateCustomTool' | translate: {Default: 'Create Custom Toolset'}"
-    [helpTitle]="'PAC.Xpert.LearnCreateCustomTool' | translate: {Default: 'Learn more about Xpert custom toolset'}"
+  <ngm-card-create [title]="'PAC.Xpert.CreateAPITool' | translate: {Default: 'Create API Toolset'}"
+    [helpTitle]="'PAC.Xpert.LearnCreateAPITool' | translate: {Default: 'Learn more about API toolset'}"
     helpUrl="/docs/ai/tool/custom/"
     (create)="createTool()"
   />

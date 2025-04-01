@@ -34,4 +34,5 @@ export * from './screenshot.model'
 export * from './certification.model'
 export * from './chatbi-conversation.model'
 export * from './chatbi-model.model'
+export * from './model-query-log.model'
 export { MDX }

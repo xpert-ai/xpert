@@ -11,6 +11,7 @@ import {
 import {
 	CrudController,
 	CurrentUser,
+	PaginationParams,
 	ParseJsonPipe,
 	PermissionGuard,
 	Permissions,
@@ -47,13 +48,14 @@ import {
 import { CommandBus, EventBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Request, Response } from 'express'
-import { FindOneOptions } from 'typeorm'
+import { Between, FindOneOptions } from 'typeorm'
 import { VisitCreateCommand } from '../visit/commands'
 import { SemanticModelCacheDeleteCommand, SemanticModelCreateCommand, SemanticModelUpdateCommand } from './commands'
 import { CreateSemanticModelDTO, SemanticModelDTO, SemanticModelPublicDTO, UpdateSemanticModelDTO } from './dto/index'
 import { SemanticModel } from './model.entity'
 import { SemanticModelService } from './model.service'
 import { SemanticModelUpdatedEvent } from './events'
+import { SemanticModelQueryLog } from '../core/entities/internal'
 
 
 @ApiTags('SemanticModel')
@@ -363,5 +365,22 @@ export class ModelController extends CrudController<SemanticModel> {
 	@Delete(':id/members/:memberId')
 	async deleteMember(@Param('id') id: string, @Param('memberId') memberId: string) {
 		await this.modelService.deleteMember(id, memberId)
+	}
+
+	@Get(':id/logs')
+	async getLogs(@Param('id') id: string, 
+		@Query('data', ParseJsonPipe) data: PaginationParams<SemanticModelQueryLog>,
+		@Query('start') start: string,
+		@Query('end') end: string) {
+		
+		const {where} = data
+		return this.modelService.getLogs({
+			...data,
+			where: {
+				...(where ?? {}),
+				modelId: id,
+				createdAt: Between(start, end)
+			},
+		})
 	}
 }

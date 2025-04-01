@@ -21,6 +21,16 @@
             (ngModelChange)="updateParameter(parameter.name, $event)"
         />
       }
+      @case (eXpertParameterTypeEnum.STRING) {
+        <input
+            class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+            [placeholder]="(parameter.description || parameter.title || parameter.name) + (parameter.optional ? '(' + ('PAC.KEY_WORDS.Optional' | translate: {Default: 'Optional'}) + ')' : '')"
+            type="text"
+            [disabled]="readonly()"
+            [ngModel]="getParameter(parameter.name)"
+            (ngModelChange)="updateParameter(parameter.name, $event)"
+        />
+      }
       @case (eXpertParameterTypeEnum.NUMBER) {
         <input
             class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"

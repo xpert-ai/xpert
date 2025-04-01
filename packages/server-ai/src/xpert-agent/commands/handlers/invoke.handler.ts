@@ -16,6 +16,7 @@ import {
 	IXpertAgent,
 	LanguagesEnum,
 	mapTranslationLanguage,
+	STATE_VARIABLE_SYS,
 	TSensitiveOperation,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
@@ -23,18 +24,17 @@ import { AgentRecursionLimit, isNil } from '@metad/copilot'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { format } from 'date-fns/format'
 import { pick } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { catchError, concat, filter, from, map, Observable, of, switchMap, tap } from 'rxjs'
+import { CopilotCheckpointSaver, GetCopilotCheckpointsByParentQuery } from '../../../copilot-checkpoint'
+import { XpertSensitiveOperationException } from '../../../core/errors'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { createMapStreamEvents } from '../../agent'
 import { CompleteToolCallsQuery } from '../../queries'
+import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
-import { XpertAgentSubgraphCommand } from '../subgraph.command'
-import { STATE_VARIABLE_SYS } from './types'
-import { XpertSensitiveOperationException } from '../../../core/errors'
-import { format } from 'date-fns/format'
-import { CopilotCheckpointSaver, GetCopilotCheckpointsByParentQuery } from '../../../copilot-checkpoint'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -44,7 +44,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
 		private readonly checkpointSaver: CopilotCheckpointSaver,
-		private readonly i18nService: I18nService,
+		private readonly i18nService: I18nService
 	) {}
 
 	public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
@@ -56,22 +56,24 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		const user = RequestContext.currentUser()
 
 		const abortController = new AbortController()
-		// Create graph by command
-		const { agent, graph } = await this.commandBus.execute<XpertAgentSubgraphCommand, {agent: IXpertAgent; graph: CompiledStateGraph<any, any, any>}>(
-			new XpertAgentSubgraphCommand(agentKeyOrName, xpert, {
+		const { graph, agent } = await this.commandBus.execute<
+			CompileGraphCommand,
+			{ graph: CompiledStateGraph<unknown, unknown>; agent: IXpertAgent }
+		>(
+			new CompileGraphCommand(agentKeyOrName, xpert, {
 				...options,
-				isStart: true,
+				execution,
 				rootController: abortController,
 				signal: abortController.signal
 			})
 		)
-	
+		
 		const team = agent.team
 
 		const thread_id = command.options.thread_id
 		const config = {
 			thread_id,
-			checkpoint_ns: '',
+			checkpoint_ns: ''
 		}
 		if (reject) {
 			await this.reject(graph, config, operation)
@@ -81,7 +83,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		const languageCode = options.language || user.preferredLanguage || 'en-US'
 
 		// i18n prepare
-		const i18nError = await this.i18nService.t('xpert.Error', {lang: mapTranslationLanguage(languageCode as LanguagesEnum)})
+		// const i18nError = await this.i18nService.t('xpert.Error', {
+		// 	lang: mapTranslationLanguage(languageCode as LanguagesEnum)
+		// })
 
 		const recordLastState = async () => {
 			const state = await graph.getState({
@@ -90,7 +94,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				}
 			})
 
-			const {checkpoint, pendingWrites} = await this.checkpointSaver.getCopilotCheckpoint(state.config ?? state.parentConfig)
+			const { checkpoint, pendingWrites } = await this.checkpointSaver.getCopilotCheckpoint(
+				state.config ?? state.parentConfig
+			)
 
 			// const checkpoints = await this.queryBus.execute(new GetCopilotCheckpointsByParentQuery(pick(
 			// 	state.parentConfig?.configurable,
@@ -100,10 +106,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 			// )))
 
 			// @todo checkpoint_id The source of the value should be wrong
-			execution.checkpointNs =
-				state.config?.configurable?.checkpoint_ns ?? checkpoint?.checkpoint_ns
-			execution.checkpointId =
-				state.config?.configurable?.checkpoint_id ?? checkpoint?.checkpoint_id
+			execution.checkpointNs = state.config?.configurable?.checkpoint_ns ?? checkpoint?.checkpoint_ns
+			execution.checkpointId = state.config?.configurable?.checkpoint_id ?? checkpoint?.checkpoint_id
 
 			if (pendingWrites?.length) {
 				execution.checkpointNs = pendingWrites[0].checkpoint_ns
@@ -122,16 +126,16 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 			graph.streamEvents(
 				input?.input
 					? {
-						...input,
-						[STATE_VARIABLE_SYS]: {
-							language: languageCode,
-							user_email: user.email,
-							timezone: user.timeZone || options.timeZone,
-							date: format(new Date(), 'yyyy-MM-dd'),
-							datetime: new Date().toLocaleString()
-						},
-						memories,
-					}
+							...input,
+							[STATE_VARIABLE_SYS]: {
+								language: languageCode,
+								user_email: user.email,
+								timezone: user.timeZone || options.timeZone,
+								date: format(new Date(), 'yyyy-MM-dd'),
+								datetime: new Date().toLocaleString()
+							},
+							memories
+						}
 					: null,
 				{
 					version: 'v2',
@@ -150,24 +154,37 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				}
 			)
 		).pipe(
-			map(createMapStreamEvents(this.#logger, thread_id, subscriber, {
-				disableOutputs: [...(team.agentConfig?.disableOutputs ?? []), 'title_conversation', 'summarize_conversation'],
-				agent
-			})),
-			catchError((err) => from((async () => {
-				// Record last state when exception
-				await recordLastState()
-				// Translate recursion limit error
-				if (err instanceof GraphRecursionError) {
-					const recursionLimitReached = await this.i18nService.t('xpert.Error.RecursionLimitReached', {
-						lang: mapTranslationLanguage(languageCode as LanguagesEnum),
-						args: {value: recursionLimit}
-					})
-					throw new Error(recursionLimitReached)
-				}
+			map(
+				createMapStreamEvents(this.#logger, thread_id, subscriber, {
+					disableOutputs: [
+						...(team.agentConfig?.disableOutputs ?? []),
+						'title_conversation',
+						'summarize_conversation'
+					],
+					agent
+				})
+			),
+			catchError((err) =>
+				from(
+					(async () => {
+						// Record last state when exception
+						await recordLastState()
+						// Translate recursion limit error
+						if (err instanceof GraphRecursionError) {
+							const recursionLimitReached = await this.i18nService.t(
+								'xpert.Error.RecursionLimitReached',
+								{
+									lang: mapTranslationLanguage(languageCode as LanguagesEnum),
+									args: { value: recursionLimit }
+								}
+							)
+							throw new Error(recursionLimitReached)
+						}
 
-				throw err
-			})()))
+						throw err
+					})()
+				)
+			)
 		)
 
 		return concat(
@@ -181,9 +198,10 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 					const messages = state.values.messages
 					const lastMessage = messages[messages.length - 1]
 					if (state.next?.[0]) {
-						const nextAgents = state.next.filter((_) => _ !== 'title_conversation')
-												.map((key) => state.values[channelName(key)]?.agent)
-												.filter((_) => !!_)
+						const nextAgents = state.next
+							.filter((_) => _ !== 'title_conversation')
+							.map((key) => state.values[channelName(key)]?.agent)
+							.filter((_) => !!_)
 						if (isBaseMessageChunk(lastMessage) && isAIMessageChunk(lastMessage)) {
 							this.#logger.debug(`Interrupted chat [${agentLabel(agent)}].`)
 							const operation = await this.queryBus.execute<CompleteToolCallsQuery, TSensitiveOperation>(
@@ -193,7 +211,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 								data: {
 									type: ChatMessageTypeEnum.EVENT,
 									event: ChatMessageEventTypeEnum.ON_INTERRUPT,
-									data: {...operation, nextAgents}
+									data: { ...operation, nextAgents }
 								}
 							} as MessageEvent)
 							throw new NodeInterrupt(`Confirm tool calls`)
@@ -217,35 +235,39 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 					if (!abortController.signal.aborted) {
 						try {
 							abortController.abort()
-						} catch(err) {
+						} catch (err) {
 							//
 						}
 					}
-					
+
 					try {
 						const state = await graph.getState({
 							configurable: {
 								...config
 							}
 						})
-						const checkpoints = await this.queryBus.execute(new GetCopilotCheckpointsByParentQuery(pick(
-							state.parentConfig?.configurable,
-							'thread_id',
-							'checkpoint_ns',
-							'checkpoint_id'
-						)))
-	
+						const checkpoints = await this.queryBus.execute(
+							new GetCopilotCheckpointsByParentQuery(
+								pick(state.parentConfig?.configurable, 'thread_id', 'checkpoint_ns', 'checkpoint_id')
+							)
+						)
+
 						await this.commandBus.execute(
 							new XpertAgentExecutionUpsertCommand({
 								id: execution.id,
-								checkpointId: state.config?.configurable?.checkpoint_id ?? checkpoints[0]?.checkpoint_id,
+								checkpointId:
+									state.config?.configurable?.checkpoint_id ?? checkpoints[0]?.checkpoint_id,
 								status: XpertAgentExecutionStatusEnum.ERROR,
-								error: 'Aborted!',
+								error: 'Aborted!'
 							})
 						)
-					} catch(err) {
+					} catch (err) {
 						//
 					}
+				},
+				finalize: () => {
+					// For cleanup toolset...
+					abortController.abort()
 				}
 			})
 		)
@@ -294,12 +316,16 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				role: 'assistant',
 				content: lastMessage.content,
 				tool_calls: lastMessage.tool_calls.map((toolCall) => {
-					const newToolCall = operation.toolCalls.find(({call}) => call.id === toolCall.id)
+					const newToolCall = operation.toolCalls.find(({ call }) => call.id === toolCall.id)
 					return { ...toolCall, args: { ...toolCall.args, ...(newToolCall?.call.args ?? {}) } }
 				}),
 				id: lastMessage.id
 			}
-			await graph.updateState({ configurable: config }, { [channel]: { messages: [newMessage] }}, operation.agent.key)
+			await graph.updateState(
+				{ configurable: config },
+				{ [channel]: { messages: [newMessage] } },
+				operation.agent.key
+			)
 		}
 	}
 }

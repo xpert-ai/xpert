@@ -1,0 +1,7 @@
+:host {
+  @apply min-w-[600px] grow space-y-4 flex flex-col;
+}
+
+tr th {
+  @apply p-2 pl-3 font-medium text-left;
+}

@@ -49,8 +49,8 @@ export class XpertAgentVariableSchemaHandler implements IQueryHandler<XpertAgent
 				)
 	
 				for await (const toolset of toolsets) {
-					await toolset.initTools()
-					const toolVars = toolset.getVariables()
+					// await toolset.initTools()
+					const toolVars = await toolset.getVariables()
 					if (toolVars) {
 						variableSchema = toolVars.find((_) => _.name === variableName)
 						if (variableSchema) {

@@ -2,5 +2,8 @@
   <span>{{ 'PAC.KEY_WORDS.Tool' | translate: {Default: 'Tool'} }}</span>
   <span class="font-semibold">{{toolCall().name}}</span>
 </div>
-<!-- <div class="mb-2 system-xs-regular text-text-tertiary">{{toolCall().id}}</div> -->
-<div class="mb-2 overflow-auto system-xs-regular text-text-tertiary">{{args()}}</div>
+<div class="mb-2 overflow-auto system-xs-regular text-text-tertiary">
+  @if (args()) {
+    <ngx-json-viewer [json]="args()" [depth]="1" />
+  }
+</div>

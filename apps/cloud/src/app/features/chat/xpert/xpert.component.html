@@ -71,24 +71,25 @@
           </svg>
         </button>
       </div>
-      <div class="text-lg font-medium text-[var(--text-primary)] flex-1 min-w-0 text-center hidden sm:block overflow-hidden text-ellipsis whitespace-nowrap">
+      <div class="text-lg font-medium flex-1 min-w-0 mx-4 text-center hidden sm:block overflow-hidden text-ellipsis whitespace-nowrap">
         {{conversationTitle()}}
       </div>
 
       <div class="flex items-center">
-        <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary 
-          hover:bg-hover-bg rounded-xl px-3.5 py-2 flex-row pl-3 pr-2.5 h-9 sm:px-3 border border-button-outline-border sm:border-0" 
+        <button class="inline-flex items-center justify-center gap-2 max-w-[160px] whitespace-nowrap text-base font-medium leading-[normal] truncate cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary 
+          hover:bg-hover-bg rounded-xl px-3.5 py-2 flex-row pl-3 pr-2.5 h-9 sm:px-3 border border-button-outline-border sm:border-0
+          text-text-secondary hover:text-text-primary" 
           type="button"
           [attr.active]="cmt.isOpen()"
           #cmt="cdkMenuTriggerFor"
           [cdkMenuTriggerFor]="menu"
         >
           @if (xpert()) {
-            <div class="text-token-text-secondary">{{xpert()?.title || xpert()?.name}} <span class="text-token-text-secondary"></span></div>
+            <div class="truncate">{{xpert()?.title || xpert()?.name}}</div>
           } @else {
-            <div class="text-token-text-secondary">{{ 'PAC.Chat.Common' | translate: {Default: 'Common'} }}</div>
+            <div class="truncate">{{ 'PAC.Chat.Common' | translate: {Default: 'Common'} }}</div>
           }
-          <i class="ri-arrow-down-s-line transition-transform text-token-text-tertiary" [class.rotate-180]="cmt.isOpen()"></i>
+          <i class="ri-arrow-down-s-line transition-transform text-text-secondary" [class.rotate-180]="cmt.isOpen()"></i>
         </button>
       </div>
     </div>
@@ -100,9 +101,9 @@
         @if (xpert()) {
           <emoji-avatar [avatar]="xpert().avatar" large class="rounded-xl overflow-hidden shadow-sm" />
 
-          <div class="w-full flex flex-col items-center gap-2">
+          <div class="w-full flex flex-col items-center gap-2 text-center">
             <p class="text-xl">{{xpert().title || xpert().name}}</p>
-            <p class="w-96 text-center text-text-secondary line-clamp-5" [title]="xpert().description">{{xpert().description}}</p>
+            <p class="w-96 text-text-secondary line-clamp-5" [title]="xpert().description">{{xpert().description}}</p>
           </div>
 
           @if (parameters()?.length) {
@@ -173,15 +174,13 @@
 </div>
 
 @if (canvasOpened()) {
-  <div @bl class="shrink-1 h-full flex fixed top-0 right-0 z-[1000] sm:sticky sm:top-0 sm:right-0 sm:ml-3 sm:py-3 sm:mr-2">
-    <pac-chat-canvas class="h-full flex flex-col my-auto bg-components-panel-bg sm:rounded-[22px] shadow-[0px_0px_8px_0px_rgba(0,0,0,0.02)] border border-black/8"
-      (closed)="canvasOpened.set(null)"
-    />
+  <div @bl class="shrink-1 h-full flex max-w-full fixed top-0 right-0 z-[1000] sm:sticky sm:top-0 sm:right-0 sm:ml-3 sm:py-3 sm:mr-2">
+    <pac-chat-canvas class="max-w-full h-full flex flex-col my-auto bg-components-panel-bg sm:rounded-[22px] shadow-[0px_0px_8px_0px_rgba(0,0,0,0.02)] border border-black/8" />
   </div>
 }
 
 <ng-template #menu>
-  <div cdkMenu class="cdk-menu__large text-text-primary">
+  <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary">
     <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="newConv()">
       <svg
         width="20"

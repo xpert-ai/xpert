@@ -1,5 +1,4 @@
 import { inject, Injectable } from '@angular/core'
-import { pick } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject } from 'rxjs'
 import { API_XPERT_AGENT } from '../constants/app.constants'
@@ -24,5 +23,9 @@ export class XpertAgentService extends XpertWorkspaceBaseCrudService<IXpertAgent
     return this.fetchEventSource(this.baseUrl + this.apiBaseUrl + `/chat`, JSON.stringify({
       ...data,
     }))
+  }
+
+  test(xpertId: string, nodeKey: string, parameters: any) {
+    return this.httpClient.post(this.apiBaseUrl + `/xpert/${xpertId}/test/${nodeKey}`, {parameters})
   }
 }

@@ -99,7 +99,7 @@ export class ChatXpertComponent {
     return this.parameters()?.some((param) => !param.optional && isNil(this.parametersValue()?.[param.name]))
   })
 
-  readonly canvasOpened = this.homeService.canvasOpened
+  readonly canvasOpened = computed(() => this.homeService.canvasOpened()?.opened)
   readonly conversationTitle = this.homeService.conversationTitle
 
   readonly isBottom = signal(true)

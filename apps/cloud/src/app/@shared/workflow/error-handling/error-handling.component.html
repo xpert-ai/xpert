@@ -27,22 +27,9 @@
         <a [href]="helpWebsite() + '/docs/ai/workflow/error-handling'" target="_blank" class="text-text-accent opacity-70 hover:opacity-100">
           {{'PAC.Xpert.LearnMore' | translate: {Default: 'Learn More'} }}
         </a></div>
-      <div class="space-y-1">
-        <div class="py-1">
-          <div class="flex items-center mb-1">
-            <div class="mr-1 text-base text-text-primary">Text</div>
-            <div class="text-sm text-text-tertiary">string</div>
-          </div>
-          <div class="relative w-full">
-            <input class="w-full py-[7px] bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular"
-              placeholder="{{'PAC.Xpert.PleaseEnter' | translate: {Default: 'Please enter'} }}"
-              type="string"
-              [ngModel]="defaultValue()"
-              (ngModelChange)="updateDefaultValue($event)"
-            >
-          </div>
-        </div>
-      </div>
+      <xpert-parameters-form [parameters]="defaultValueSchema()" 
+        [ngModel]="defaultValue()"
+        (ngModelChange)="updateDefaultValue($event)"/>
     </div>
   }
   @case('failBranch') {

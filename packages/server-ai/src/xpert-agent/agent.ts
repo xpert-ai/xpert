@@ -1,9 +1,9 @@
 import { AIMessage, AIMessageChunk, BaseMessage } from '@langchain/core/messages'
-import { isCommand } from '@langchain/langgraph'
+import { BaseChannel, isCommand } from '@langchain/langgraph'
 import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
-import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageTypeEnum, isAgentKey, IXpertAgent, TMessageContentComplex, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageTypeEnum, isAgentKey, IXpertAgent, TMessageChannel, TMessageContentComplex, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { AgentStateAnnotation } from './commands/handlers/types'
@@ -106,6 +106,7 @@ export function createMapStreamEvents(
 								type: "text",
 								text: '',
 								id: msg.id,
+								created_date: new Date()
 							} as TMessageContentText
 							if (agentKey) {
 								chunk.agentKey = agentKey
@@ -366,12 +367,18 @@ export function getAgentVarGroup(key: string, graph: TXpertGraph): TWorkflowVarG
 	const agent = graph.nodes.find((_) => _.type === 'agent' && _.key === key) as TXpertTeamNode & {type: 'agent'}
 
 	const variables = []
-	const varGroup = {
+	const varGroup: TWorkflowVarGroup = {
 		agent: {
 			title: agent.entity.title,
 			description: agent.entity.description,
 			name: agent.entity.name || agent.entity.key,
 			key: channelName(agent.key)
+		},
+		group: {
+			name: channelName(agent.key),
+			description: {
+				en_US: agentLabel(agent.entity)
+			},
 		},
 		variables
 	}
@@ -428,4 +435,35 @@ export function messageEvent(event: ChatMessageEventTypeEnum, data: any) {
 
 export function messageContentText(content: string | TMessageContentComplex) {
 	return typeof content === 'string' ? content : content.type === 'text' ? content.text : ''
+}
+
+export type TStateChannel = {
+	name: string
+	annotation: BaseChannel
+}
+
+export function getChannelState(state, channel: string): TMessageChannel {
+	return channel ? state[channel] : state
+}
+
+// Swarm
+/**
+ * Get swarm partners of agent in team
+ * 
+ * @param graph 
+ * @param agentKey 
+ */
+export function getSwarmPartners(graph: TXpertGraph, agentKey: string, partners: string[], leaderKey?: string) {
+//   console.log(JSON.stringify(graph, null, 2), agentKey)
+  const connections = graph.connections.filter((conn) => conn.type === 'agent' && conn.to === agentKey && (leaderKey ? conn.from !== leaderKey : true)
+		&& graph.connections.some((_) => _.type === 'agent' && _.to === conn.from && _.from === agentKey))
+
+  connections.forEach((conn) => {
+	const key = conn.from
+	if (partners.indexOf(key) < 0) {
+		partners.push(key)
+		getSwarmPartners(graph, key, partners)
+	}
+  })
+  return partners
 }

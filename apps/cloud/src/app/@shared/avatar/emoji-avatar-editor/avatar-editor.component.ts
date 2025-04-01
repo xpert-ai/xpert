@@ -99,10 +99,11 @@ export class EmojiAvatarEditorComponent {
   }
 
   apply() {
-    this.#dialogRef.close({
+    this.#dialogRef.close(this.type() === 'image' ? {
+      url: this.imageUrl()
+    } : {
       emoji: this.emoji(),
       background: this.background(),
-      url: this.imageUrl()
     })
   }
 }

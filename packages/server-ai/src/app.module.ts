@@ -32,6 +32,7 @@ import { XpertTemplateModule } from './xpert-template/xpert-template.module'
 import { XpertTaskModule } from './xpert-task'
 import { RagWebModule } from './rag-web/rag-web.module'
 import { IntegrationFirecrawlModule } from './integration-firecrawl/firecrawl.module'
+import { SandboxModule } from './sandbox/sandbox.module'
 
 @Module({
 	imports: [
@@ -86,7 +87,8 @@ import { IntegrationFirecrawlModule } from './integration-firecrawl/firecrawl.mo
 		XpertTaskModule,
 		IntegrationLarkModule,
 		IntegrationFirecrawlModule,
-		RagWebModule
+		RagWebModule,
+		SandboxModule
 	],
 	controllers: [],
 	providers: [...EventHandlers]

@@ -1,6 +1,6 @@
 {
   "name": "@metad/server-ai",
-  "version": "3.1.5",
+  "version": "3.1.6",
   "type": "commonjs",
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.0",
@@ -11,9 +11,11 @@
     "@langchain/exa": "0.1.0",
     "@langchain/openai": "0.4.2",
     "@langchain/mistralai": "0.1.1",
-    "@langchain/core": "0.3.36",
+    "@langchain/core": "0.3.40",
     "@langchain/community": "0.3.27",
-    "@langchain/langgraph": "0.2.41",
+    "@langchain/langgraph": "0.2.53",
+    "@langchain/langgraph-swarm": "0.0.3",
+    "@langchain/mcp-adapters": "0.3.4",
     "@langchain/google-genai": "0.1.6",
     "@langchain/ollama": "0.1.5",
     "@langchain/xai": "0.0.1",
@@ -28,6 +30,7 @@
     "cronstrue": "2.53.0",
     "epub2": "^3.0.2",
     "html-to-text": "^7.1.2",
+    "isolated-vm": "5.0.4",
     "json-schema-to-zod": "^2.4.0",
     "langchain": "0.3.15",
     "mime-types": "2.1.35",
@@ -35,6 +38,7 @@
     "officeparser": "5.1.1",
     "pdf-parse": "^1.1.1",
     "playwright": "^1.50.1",
+    "python-shell": "5.0.0",
     "turndown": "7.2.0",
     "zod-to-json-schema": "^3.23.2"
   },

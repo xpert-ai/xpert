@@ -1,14 +1,14 @@
 import { LanguagesEnum, TChatAgentParams } from '@metad/contracts'
-import { takeUntilClose } from '@metad/server-common'
+import { getErrorMessage, keepAlive, takeUntilClose } from '@metad/server-common'
 import { CrudController, TimeZone, TransformInterceptor } from '@metad/server-core'
-import { Body, Controller, Header, Logger, Post, Res, Sse, UseInterceptors } from '@nestjs/common'
+import { Body, Controller, Header, HttpException, HttpStatus, Logger, Param, Post, Res, Sse, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { Response } from 'express'
 import { I18nLang } from 'nestjs-i18n'
-import { Observable } from 'rxjs'
 import { XpertAgent } from './xpert-agent.entity'
 import { XpertAgentService } from './xpert-agent.service'
+import { WorkflowTestNodeCommand } from './workflow'
 
 @ApiTags('XpertAgent')
 @ApiBearerAuth()
@@ -33,12 +33,24 @@ export class XpertAgentController extends CrudController<XpertAgent> {
 		@Body() body: TChatAgentParams,
 		@I18nLang() language: LanguagesEnum,
 		@TimeZone() timeZone: string
-	): Promise<Observable<MessageEvent>> {
-		return (
-			await this.service.chatAgent(body, {
-				language,
-				timeZone
-			})
-		).pipe(takeUntilClose(res))
+	) {
+		const observable = await this.service.chatAgent(body, {
+			language,
+			timeZone
+		})
+		return observable.pipe(
+			// Add an operator to send a comment event periodically (30s) to keep the connection alive
+			keepAlive(30000),
+			takeUntilClose(res)
+		)
+	}
+
+	@Post('xpert/:id/test/:key')
+	async testNode(@Param('id') id: string, @Param('key') key: string, @Body() body: {parameters: any}) {
+		try {
+			return await this.commandBus.execute(new WorkflowTestNodeCommand(id, key, body.parameters))
+		} catch(err) {
+			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
+		}
 	}
 }

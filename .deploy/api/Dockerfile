@@ -69,6 +69,10 @@ RUN mkdir -p /ms-playwright && chown -R node:node /ms-playwright
 # Install os dependencies but no browsers
 RUN npx playwright install-deps
 
+# Install python uvx
+RUN apt-get install -y python3-pip && \
+    python3 -m pip install uv --break-system-packages
+
 WORKDIR /srv/pangolin
 
 RUN npm install pm2 -g

@@ -8,6 +8,7 @@ import { XpertWorkspaceApiToolsComponent } from '../api-tools/tools.component'
 import { XpertWorkspaceBuiltinToolsComponent } from '../builtin-tools/tools.component'
 import { XpertWorkspaceXpertsComponent } from '../xperts/xperts.component'
 import { XpertWorkspaceKnowledgesComponent } from '../knowledges/knowledges.component'
+import { XpertWorkspaceMCPToolsComponent } from '../mcp-tools/tools.component'
 
 @Component({
   standalone: true,
@@ -20,7 +21,8 @@ import { XpertWorkspaceKnowledgesComponent } from '../knowledges/knowledges.comp
     XpertWorkspaceXpertsComponent,
     XpertWorkspaceKnowledgesComponent,
     XpertWorkspaceApiToolsComponent,
-    XpertWorkspaceBuiltinToolsComponent
+    XpertWorkspaceBuiltinToolsComponent,
+    XpertWorkspaceMCPToolsComponent
   ],
   selector: 'xpert-workspace-all',
   templateUrl: './all.component.html',

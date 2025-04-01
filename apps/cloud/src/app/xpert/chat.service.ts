@@ -211,6 +211,10 @@ export class ChatService {
             this.#toastr.error(msg.data)
           } else {
             if (msg.data) {
+              // Ignore non-data events 
+              if (msg.data.startsWith(':')) {
+                return
+              }
               const event = JSON.parse(msg.data)
               if (event.type === ChatMessageTypeEnum.MESSAGE) {
                 if (typeof event.data === 'string') {
@@ -276,6 +280,10 @@ export class ChatService {
                         steps: [...(message.steps ?? []), event.data]
                       }
                     })
+
+                    if (event.data && !this.homeService.canvasOpened()) {
+                      this.homeService.canvasOpened.set({type: 'Computer', opened: true})
+                    }
                     break
                   }
                   default:

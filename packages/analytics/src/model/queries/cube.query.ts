@@ -1,7 +1,10 @@
 import { IUser } from '@metad/contracts'
-import { QueryOptions } from '@metad/ocap-core'
 import { IQuery } from '@nestjs/cqrs'
+import { TGatewayQuery } from '../types'
 
+/**
+ * Execute structured queries from the client
+ */
 export class ModelCubeQuery implements IQuery {
 	static readonly type = '[SemanticModel] Cube query'
 
@@ -11,10 +14,7 @@ export class ModelCubeQuery implements IQuery {
 			sessionId: string
 			dataSourceId: string;
 			modelId: string
-			body: {
-				mdx: string
-				query: QueryOptions
-			}
+			body: TGatewayQuery['body']
 			forceRefresh: boolean
 			acceptLanguage?: string
 		},

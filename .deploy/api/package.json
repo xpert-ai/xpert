@@ -32,8 +32,8 @@
   },
   "dependencies": {
     "@langchain/community": "0.3.27",
-    "@langchain/core": "0.3.36",
-    "@langchain/langgraph": "0.2.41",
+    "@langchain/core": "0.3.40",
+    "@langchain/langgraph": "0.2.53",
     "@langchain/ollama": "0.1.5",
     "@langchain/openai": "0.4.2",
     "@nestjs/common": "^8.0.0",
@@ -79,6 +79,6 @@
     "packages/*"
   ],
   "resolutions": {
-    "@langchain/core": "0.3.36"
+    "@langchain/core": "0.3.40"
   }
 }

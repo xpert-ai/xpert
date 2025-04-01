@@ -82,8 +82,7 @@ export class XpertWorkspaceApiToolsComponent {
 
   readonly #toolsets = derivedAsync(() => {
     const where = {
-      category: this.type()
-      // type: 'openapi'
+      category: XpertToolsetCategoryEnum.MCP
     }
     const workspaceId = this.workspace()?.id
     if (!workspaceId) return EMPTY
@@ -128,7 +127,8 @@ export class XpertWorkspaceApiToolsComponent {
       .open(XpertStudioCreateToolComponent, {
         disableClose: true,
         data: {
-          workspace: this.workspace()
+          workspace: this.workspace(),
+          type: 'openapi'
         }
       })
       .closed.subscribe({

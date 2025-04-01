@@ -34,13 +34,14 @@ export class ChatCanvasComponent {
   readonly homeService = inject(ChatHomeService)
   
   readonly canvas = this.homeService.canvasOpened
+  readonly opened = computed(() => this.canvas()?.opened)
   readonly canvasType = computed(() => this.canvas()?.type)
 
   constructor() {
     effect(() => {
       const conversation = this.homeService.conversation()
       if (conversation?.messages && this.canvas()?.messageId && !conversation.messages.some((_) => _.id === this.canvas().messageId)) {
-        this.canvas.update((state) => ({type: state.type}))
+        this.canvas.update((state) => ({opened: true, type: state.type}))
       }
     }, { allowSignalWrites: true })
   }

@@ -260,7 +260,8 @@ export enum XpertParameterTypeEnum {
   ARRAY = 'array[object]',
 
   STRING = 'string',
-  BOOLEAN = 'boolean'
+  BOOLEAN = 'boolean',
+  OBJECT = 'object'
 }
 
 export type TXpertParameter = {
