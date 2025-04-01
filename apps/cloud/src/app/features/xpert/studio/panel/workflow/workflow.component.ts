@@ -9,6 +9,7 @@ import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
+  IfAnimation,
   injectHelpWebsite,
   injectToastr,
   IWorkflowNode,
@@ -22,6 +23,7 @@ import { XpertStudioPanelWorkflowIfelseComponent } from './ifelse/ifelse.compone
 import { XpertStudioPanelWorkflowIteratingComponent } from './iterating/iterating.component'
 import { XpertStudioPanelWorkflowAnswerComponent } from './answer/answer.component'
 import { XpertStudioPanelWorkflowCodeComponent } from './code/code.component'
+import { XpertWorkflowCodeTestComponent } from './code-test/code.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -42,8 +44,10 @@ import { XpertStudioPanelWorkflowCodeComponent } from './code/code.component'
     XpertStudioPanelWorkflowIfelseComponent,
     XpertStudioPanelWorkflowIteratingComponent,
     XpertStudioPanelWorkflowAnswerComponent,
-    XpertStudioPanelWorkflowCodeComponent
-  ]
+    XpertStudioPanelWorkflowCodeComponent,
+    XpertWorkflowCodeTestComponent
+  ],
+  animations: [IfAnimation,]
 })
 export class XpertStudioPanelWorkflowComponent {
   eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
@@ -90,6 +94,12 @@ export class XpertStudioPanelWorkflowComponent {
         description: value
       }
     })
+  }
+
+  readonly testing = signal(false)
+
+  openTest() {
+    this.testing.set(true)
   }
 
   remove() {

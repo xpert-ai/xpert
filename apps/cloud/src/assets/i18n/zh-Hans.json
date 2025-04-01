@@ -2551,7 +2551,9 @@
       "InputVariables": "输入变量",
       "OutputVariables": "输出变量",
       "Transform": "转换",
-      "Code": "代码执行"
+      "Code": "代码执行",
+      "TestWorkflowNode": "测试工作流节点",
+      "TestRun": "测试运行"
     },
     "title": {
       "short": "Xpert AI"

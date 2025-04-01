@@ -55,17 +55,23 @@
           [(ngModel)]="title"
         >
     <div class="shrink-0 flex items-center text-gray-500">
+      <div class="flex items-center justify-center mr-1 w-7 h-7 rounded-md cursor-pointer hover:text-base-content
+        hover:bg-hover-bg"
+        [matTooltip]="'PAC.Xpert.TestWorkflowNode' | translate: { Default: 'Test Workflow Node' }"
+        matTooltipPosition="above"
+        (click)="openTest()"
+      >
+        <i class="ri-play-large-line"></i>
+      </div>
       <a [href]="helpUrl() + '/docs/ai/workflow/' + type()" target="_blank" class="flex items-center justify-center mr-1 w-6 h-6"
         [matTooltip]="'PAC.Xpert.HelpDocs' | translate: {Default: 'Help docs'}"
         matTooltipPosition="above">
-        <i class="ri-book-open-line text-gray-500"></i>
+        <i class="ri-book-open-line"></i>
       </a>
-      <div class="inline-block">
-        <div class="flex items-center justify-center w-6 h-6 rounded-md cursor-pointer hover:bg-black/5"
-          [cdkMenuTriggerFor]="moreMenu"
-        >
-          <i class="ri-more-line"></i>
-        </div>
+      <div class="flex items-center justify-center w-7 h-7 rounded-md cursor-pointer hover:bg-black/5"
+        [cdkMenuTriggerFor]="moreMenu"
+      >
+        <i class="ri-more-line"></i>
       </div>
       <div class="mx-3 w-[1px] h-3.5 bg-divider-regular"></div>
       <div class="flex items-center justify-center w-6 h-6 cursor-pointer" (click)="closePanel()">
@@ -102,6 +108,28 @@
 
 @if (loading()) {
   <ngm-spin class="absolute top-0 left-0 w-full h-full"/>
+}
+
+@if (testing()) {
+  <div class="absolute top-0 left-0 w-full h-full z-50 bg-black/20 dark:bg-neutral-500/50 backdrop-blur-[2px]" @ifAnimationTrigger 
+    (click)="testing.set(false)">
+    <div class="absolute top-14 left-0 bottom-0 w-full rounded-t-xl bg-components-panel-bg" (click)="$event.stopPropagation()">
+      <div class="flex h-8 shrink-0 items-center justify-between pl-4 pr-3 pt-3">
+        <div class="truncate text-base font-semibold text-gray-900">{{'PAC.Xpert.TestRun' | translate: {Default: 'Test Run'} }} {{title || key()}}</div>
+        <div class="ml-2 shrink-0 cursor-pointer p-1 w-7 h-7 rounded-md flex justify-center items-center hover:bg-hover-bg" (click)="testing.set(false)">
+          <i class="ri-close-line"></i>
+        </div>
+      </div>
+
+      <div class="p-4">
+        @switch (type()) {
+          @case (eWorkflowNodeTypeEnum.CODE) {
+            <xpert-workflow-code-test [node]="node()" [wfNode]="wfNode()" />
+          }
+        }
+      </div>
+    </div>
+  </div>
 }
 
 <ng-template #moreMenu>

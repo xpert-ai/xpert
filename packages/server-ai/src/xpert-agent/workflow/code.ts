@@ -29,7 +29,7 @@ export function createCodeNode(
 				while (tryCount <= maxRetry) {
 					tryCount++
 					try {
-						const results = await commandBus.execute(new SandboxVMCommand(entity.code, inputs))
+						const results = await commandBus.execute(new SandboxVMCommand(entity.code, inputs, null, entity.language))
 						return {
 							[channelName(node.key)]: results ?? {}
 						}

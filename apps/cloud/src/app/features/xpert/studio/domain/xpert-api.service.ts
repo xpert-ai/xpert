@@ -33,7 +33,6 @@ import {
   TXpertOptions,
   TXpertTeamDraft,
   TXpertTeamNode,
-  WorkflowNodeTypeEnum
 } from '../../../../@core/types'
 import { CreateConnectionHandler, CreateConnectionRequest, ToConnectionViewModelHandler } from './connection'
 import { LayoutHandler, LayoutRequest } from './layout'
@@ -65,6 +64,8 @@ import { CreateWorkflowNodeRequest, CreateWorkflowNodeHandler, UpdateWorkflowNod
 import { derivedAsync } from 'ngxtension/derived-async'
 import { ActivatedRoute, Router } from '@angular/router'
 
+
+const SaveDraftDebounceTime = 1 // s
 
 @Injectable()
 export class XpertStudioApiService {
@@ -210,7 +211,7 @@ export class XpertStudioApiService {
       map(() => calculateHash(JSON.stringify(this.storage))),
       distinctUntilChanged(),
       tap(() => this.unsaved.set(true)),
-      debounceTime(5 * 1000),
+      debounceTime(SaveDraftDebounceTime * 1000),
       switchMap(() => this.saveDraft()),
       catchError((err) => {
         this.#toastr.error(getErrorMessage(err))

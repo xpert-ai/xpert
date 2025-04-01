@@ -38,6 +38,7 @@
     "officeparser": "5.1.1",
     "pdf-parse": "^1.1.1",
     "playwright": "^1.50.1",
+    "python-shell": "5.0.0",
     "turndown": "7.2.0",
     "zod-to-json-schema": "^3.23.2"
   },

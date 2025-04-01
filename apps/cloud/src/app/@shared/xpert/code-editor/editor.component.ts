@@ -55,7 +55,7 @@ export class XpertWorkflowCodeEditorComponent {
   // Inputs
   readonly language = model<string>('javascript')
   readonly code = model<string>()
-  readonly parameters = input<{name: string}[]>()
+  readonly parameters = input<{name: string;}[]>()
   readonly initHeight = input<number, number | string>(210, {
     transform: numberAttribute
   })
@@ -100,7 +100,8 @@ export class XpertWorkflowCodeEditorComponent {
   readonly #editor = signal(null)
 
   // parameters of function
-  readonly args = computed(() => this.parameters()?.map(({name}) => name).join(', '))
+  readonly argNames = computed(() => this.parameters()?.map(({name}) => name).join(', '))
+  readonly argsNameType = computed(() => this.parameters()?.map(({name}) => `${name}: str`).join(', '))
 
   constructor(private overlay: Overlay) {
     effect(() => {

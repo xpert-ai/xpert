@@ -11,6 +11,7 @@ import { CopilotCheckpointModule } from '../copilot-checkpoint'
 import { XpertAgentExecutionModule } from '../xpert-agent-execution'
 import { QueryHandlers } from './queries/handlers'
 import { XpertModule } from '../xpert/xpert.module'
+import { WorkflowCommandHandlers } from './workflow/handlers'
 
 @Module({
 	imports: [
@@ -24,7 +25,7 @@ import { XpertModule } from '../xpert/xpert.module'
 		forwardRef(() => XpertModule),
 	],
 	controllers: [XpertAgentController],
-	providers: [XpertAgentService, ...CommandHandlers, ...QueryHandlers],
+	providers: [XpertAgentService, ...CommandHandlers, ...WorkflowCommandHandlers, ...QueryHandlers],
 	exports: [XpertAgentService]
 })
 export class XpertAgentModule {}
