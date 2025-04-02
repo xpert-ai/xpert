@@ -19,11 +19,16 @@ export async function createMCPClient(id: string, schema: TMCPSchema) {
 				server.reconnect
 			)
 		} else if (transport === MCPServerType.STDIO || (!transport && server.command)) {
+			const args = server.args?.map((_) => _.split(' ').filter((_) => !!_)).flat()
+			let env = server.env
+			if (Object.keys(env ?? {}).length === 0) {
+				env = null
+			}
 			await client.connectToServerViaStdio(
 				name, // Server name
 				server.command,
-				server.args,
-				server.env,
+				args,
+				env,
 				server.restart
 			)
 		}

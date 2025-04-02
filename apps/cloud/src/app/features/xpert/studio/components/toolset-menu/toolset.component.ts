@@ -51,7 +51,7 @@ export class XpertStudioToolsetMenuComponent {
   readonly TYPES = [
     {
       value: null,
-      label: 'All'
+      label: 'Provider'
     },
     {
       value: XpertToolsetCategoryEnum.BUILTIN,
@@ -63,7 +63,7 @@ export class XpertStudioToolsetMenuComponent {
     },
     {
       value: XpertToolsetCategoryEnum.API,
-      label: 'Custom'
+      label: 'API'
     }
   ]
 

@@ -14,6 +14,25 @@ export interface StdioConnection {
   env?: Record<string, string>;
   encoding?: string;
   encodingErrorHandler?: "strict" | "ignore" | "replace";
+}
+
+/**
+ * Configuration for SSE transport connection
+ */
+export interface SSEConnection {
+  transport: "sse";
+  url: string;
+  headers?: Record<string, string>;
+  useNodeEventSource?: boolean;
+}
+
+export type TMCPServer = {
+  type: MCPServerType
+  command?: string
+  args?: string[]
+  env?: Record<string, string>
+  encoding?: string
+  encodingErrorHandler?: string
   /**
    * Additional restart settings
    */
@@ -31,16 +50,10 @@ export interface StdioConnection {
      */
     delayMs?: number;
   };
-}
 
-/**
- * Configuration for SSE transport connection
- */
-export interface SSEConnection {
-  transport: "sse";
-  url: string;
-  headers?: Record<string, string>;
-  useNodeEventSource?: boolean;
+  url?: string,
+  headers?: Record<string, string>
+  useNodeEventSource?: boolean
   /**
    * Additional reconnection settings
    */
@@ -58,29 +71,6 @@ export interface SSEConnection {
      */
     delayMs?: number;
   };
-}
-
-export type TMCPServer = {
-  type: MCPServerType
-  command?: string
-  args?: string[]
-  env?: Record<string, string>
-  encoding?: string
-  encodingErrorHandler?: string
-  restart: {
-    "enabled": true,
-    "maxAttempts": 3,
-    "delayMs": 1000
-  }
-
-  url?: string,
-  headers?: Record<string, string>
-  useNodeEventSource?: boolean
-  reconnect: {
-    "enabled": true,
-    "maxAttempts": 3,
-    "delayMs": 1000
-  }
 
   files?: {name: string; content: string}[]
 }

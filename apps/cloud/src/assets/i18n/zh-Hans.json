@@ -2273,8 +2273,10 @@
       "NoExternalExpert": "无外部专家",
       "DeleteAllDataXpert": "删除专家‘{{value}}’所有数据？",
       "ToolsetType_All": "所有",
+      "ToolsetType_Provider": "提供商",
       "ToolsetType_Builtin": "内置",
       "ToolsetType_Custom": "自定义",
+      "ToolsetType_API": "API",
       "ChatHistory": "聊天记录",
       "NoChatHistory": "暂无聊天记录",
       "ReleaseNewVersion": "发布为新版本",
@@ -2559,7 +2561,21 @@
       "Connect": "连接",
       "Connected": "已连接",
       "Connecting": "连接中...",
-      "Error": "错误"
+      "Error": "错误",
+      "BasicInfo": "基础信息",
+      "Configuration": "配置",
+      "Complete": "完成",
+      "CreateMCPToolset": "创建 MCP 工具集",
+      "Url": "链接",
+      "Headers": "Headers",
+      "Name": "名称",
+      "Value": "值",
+      "Code": "代码",
+      "Tools": "工具",
+      "Command": "命令",
+      "Args": "参数",
+      "Env": "环境变量",
+      "NextStep": "下一步"
     },
     "title": {
       "short": "Xpert AI"

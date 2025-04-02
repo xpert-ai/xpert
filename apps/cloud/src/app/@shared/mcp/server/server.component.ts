@@ -2,12 +2,15 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, output, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { EntriesPipe } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { omit } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { ToastrService, XpertToolsetService } from '../../../@core'
 import {
   getErrorMessage,
   IXpertTool,
+  IXpertToolset,
   MCPServerType,
   TMCPServer,
   uuid,
@@ -28,7 +31,8 @@ import { MCPToolsComponent } from '../tools/tools.component'
     TranslateModule,
     CdkListboxModule,
     CodeEditorComponent,
-    MCPToolsComponent
+    MCPToolsComponent,
+    EntriesPipe
   ],
   hostDirectives: [NgxControlValueAccessor]
 })
@@ -40,6 +44,10 @@ export class MCPServerFormComponent {
   protected cva = inject<NgxControlValueAccessor<Partial<TMCPServer> | null>>(NgxControlValueAccessor)
 
   readonly value$ = this.cva.value$
+
+  // Inputs
+  readonly toolset = model<IXpertToolset>()
+  readonly tools = model<IXpertTool[]>()
 
   // Output
   readonly toolsChange = output<IXpertTool[]>()
@@ -55,6 +63,12 @@ export class MCPServerFormComponent {
   }
   set command(value: string) {
     this.value$.update((state) => ({ ...(state ?? {}), command: value }))
+  }
+  get url() {
+    return this.value$()?.url
+  }
+  set url(value: string) {
+    this.value$.update((state) => ({ ...(state ?? {}), url: value }))
   }
 
   get args() {
@@ -78,11 +92,11 @@ export class MCPServerFormComponent {
   readonly loading = signal(false)
   readonly #tempId = signal(uuid())
 
-  readonly tools = model<IXpertTool[]>([])
   readonly error = signal<string>(null)
 
   readonly files = computed(() => this.value$()?.files)
-
+  readonly env = computed(() => this.value$()?.env ?? {})
+  readonly headers = computed(() => this.value$()?.headers ?? {})
 
   constructor() {
     effect(
@@ -99,12 +113,24 @@ export class MCPServerFormComponent {
       { allowSignalWrites: true }
     )
 
-    effect(() => {
-      console.log(this.fileIndex(), this.files())
-    })
-  }
+    effect(
+      () => {
+        if (this.value$()?.type) {
+          this.types.set([this.value$().type])
+        }
+      },
+      { allowSignalWrites: true }
+    )
 
-  setSample() {}
+    effect(
+      () => {
+        if (this.value$() && this.types()[0] !== this.value$().type) {
+          this.value$.update((state) => ({ ...(state ?? {}), type: this.types()[0] }))
+        }
+      },
+      { allowSignalWrites: true }
+    )
+  }
 
   initFiles() {
     return [
@@ -193,5 +219,97 @@ if __name__ == "__main__":
           // Handle the error scenario here
         }
       })
+  }
+
+  addHeader() {
+    this.value$.update((state) => ({
+      ...(state ?? {}),
+      headers: {
+        ...(state?.headers ?? {}),
+        ['']: ''
+      }
+    }))
+  }
+
+  updateHeaderName(origin: string, name: string) {
+    this.value$.update((state) => {
+      const value = state.headers[origin]
+      return {
+        ...state,
+        headers: {
+          ...omit(state.headers, origin),
+          [name]: value
+        }
+      }
+    })
+  }
+
+  updateHeaderValue(name: string, value: string) {
+    this.value$.update((state) => {
+      return {
+        ...state,
+        headers: {
+          ...omit(state.headers, origin),
+          [name]: value
+        }
+      }
+    })
+  }
+
+  removeHeader(name: string) {
+    this.value$.update((state) => {
+      return {
+        ...state,
+        headers: {
+          ...omit(state.headers, name)
+        }
+      }
+    })
+  }
+
+  addEnv() {
+    this.value$.update((state) => ({
+      ...(state ?? {}),
+      env: {
+        ...(state?.env ?? {}),
+        ['']: ''
+      }
+    }))
+  }
+
+  updateEnvName(origin: string, name: string) {
+    this.value$.update((state) => {
+      const value = state.env[origin]
+      return {
+        ...state,
+        env: {
+          ...omit(state.env, origin),
+          [name]: value
+        }
+      }
+    })
+  }
+
+  updateEnvValue(name: string, value: string) {
+    this.value$.update((state) => {
+      return {
+        ...state,
+        env: {
+          ...omit(state.env, origin),
+          [name]: value
+        }
+      }
+    })
+  }
+
+  removeEnv(name: string) {
+    this.value$.update((state) => {
+      return {
+        ...state,
+        env: {
+          ...omit(state.env, name)
+        }
+      }
+    })
   }
 }

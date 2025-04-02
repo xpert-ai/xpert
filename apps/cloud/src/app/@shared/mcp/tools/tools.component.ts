@@ -8,6 +8,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { IXpertTool, IXpertToolset } from 'apps/cloud/src/app/@core/types'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { MCPToolTestDialogComponent } from '../tool-test'
 
 /**
  *
@@ -49,19 +50,18 @@ export class MCPToolsComponent {
   }
 
   openToolTest(tool: Partial<IXpertTool>) {
-    // this.#dialog
-    //   .open(XpertToolTestDialogComponent, {
-    //     panelClass: 'medium',
-    //     data: {
-    //       tool: {
-    //         ...tool,
-    //         toolset: this.toolset()
-    //       },
-    //       enableAuthorization: true
-    //     }
-    //   })
-    //   .closed.subscribe({
-    //     next: (result) => {}
-    //   })
+    this.#dialog
+      .open(MCPToolTestDialogComponent, {
+        panelClass: 'medium',
+        data: {
+          tool: {
+            ...tool,
+            toolset: this.toolset()
+          },
+        }
+      })
+      .closed.subscribe({
+        next: (result) => {}
+      })
   }
 }

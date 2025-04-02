@@ -13,7 +13,6 @@ import {
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { injectConfirmDelete } from '@metad/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -29,6 +28,8 @@ import {
   IXpertTool,
   IXpertToolset,
   routeAnimations,
+  TMCPSchema,
+  TMCPServer,
   ToastrService,
   TToolParameter,
   XpertToolsetCategoryEnum,
@@ -40,6 +41,7 @@ import { XpertStudioConfigureToolComponent } from '../openapi/'
 import { XpertToolsetToolTestComponent } from '../tool-test/'
 import { XpertConfigureToolComponent } from './types'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
+import { MCPServerFormComponent } from 'apps/cloud/src/app/@shared/mcp'
 
 @Component({
   standalone: true,
@@ -58,7 +60,8 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle'
     XpertStudioConfigureODataComponent,
     XpertStudioConfigureMCPComponent,
     XpertToolsetToolTestComponent,
-    XpertToolNameInputComponent
+    XpertToolNameInputComponent,
+    MCPServerFormComponent
   ],
   selector: 'pac-xpert-api-tool',
   templateUrl: './api-tool.component.html',
@@ -72,7 +75,6 @@ export class XpertStudioAPIToolComponent {
   readonly paramId = injectParams('id')
   readonly toolsetService = inject(XpertToolsetService)
   readonly #toastr = inject(ToastrService)
-  readonly #dialog = inject(MatDialog)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
   readonly #fb = inject(FormBuilder)
@@ -99,6 +101,15 @@ export class XpertStudioAPIToolComponent {
 
   readonly tools = computed(() => {
     return this.toolset()?.tools ? this.toolset().tools.sort((a, b) => (a.disabled === b.disabled ? 0 : a.disabled ? 1 : -1)) : []
+  })
+
+  readonly mcpServer = computed(() => {
+    if (!this.toolset()?.schema) {
+      return null
+    }
+    const schema = JSON.parse(this.toolset().schema) as TMCPSchema
+
+    return schema.mcpServers?.['']
   })
 
   readonly toolsDirty = signal(false)
@@ -325,5 +336,21 @@ export class XpertStudioAPIToolComponent {
 
   cancel() {
     this.close()
+  }
+
+  updateMcpServer(event: TMCPServer) {
+    this.toolset.update((toolset) => {
+      return {
+        ...toolset,
+        schema: JSON.stringify({mcpServers: {'': event}})
+      }
+    })
+  }
+
+  updateToolset(event: Partial<IXpertToolset>) {
+    this.toolset.update((state) => ({
+      ...state,
+      ...event
+    }))
   }
 }

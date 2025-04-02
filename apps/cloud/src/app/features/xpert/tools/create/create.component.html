@@ -7,11 +7,6 @@
     cdkListbox
     [(ngModel)]="providerTypes"
     >
-    <li #option1="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
-      [ngClass]="option1.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
-      [cdkOption]="'mcp'">
-      <i class="ri-route-line"></i> &nbsp; MCP
-    </li>
     <li #option2="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
       [ngClass]="option2.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
       [cdkOption]="'openapi'">
@@ -28,11 +23,6 @@
 
 <div class="block px-8 py-2 overflow-auto">
   @switch (providerTypes()[0]) {
-    @case ('mcp') {
-      <xpert-tool-mcp-configure #configure
-        (valueChange)="onValueChange($event)"
-      />
-    }
     @case ('openapi') {
       <xpert-tool-openapi-configure #configure
         (valueChange)="onValueChange($event)"
