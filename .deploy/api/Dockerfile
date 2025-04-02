@@ -93,6 +93,10 @@ RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
 RUN npm install --legacy-peer-deps && \
     touch ormlogs.log && chown -R node:node /srv/pangolin
 
+# Fix Error [ERR_REQUIRE_ESM]: require() of ES Module in MCP SDK
+COPY --chown=node:node tools/scripts/patch-mcp-sdk.js ./
+RUN node patch-mcp-sdk.js
+
 USER node:node
 
 EXPOSE ${PORT}
