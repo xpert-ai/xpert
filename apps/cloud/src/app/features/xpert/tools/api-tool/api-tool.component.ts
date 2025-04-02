@@ -19,7 +19,7 @@ import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
-import { omit } from 'lodash-es'
+import { isEqual, omit } from 'lodash-es'
 import { injectParams } from 'ngxtension/inject-params'
 import { of } from 'rxjs'
 import { distinctUntilChanged, switchMap } from 'rxjs/operators'
@@ -110,7 +110,7 @@ export class XpertStudioAPIToolComponent {
     const schema = JSON.parse(this.toolset().schema) as TMCPSchema
 
     return schema.mcpServers?.['']
-  })
+  }, { equal: isEqual })
 
   readonly toolsDirty = signal(false)
   readonly isDirty = computed(() => {
@@ -179,7 +179,6 @@ export class XpertStudioAPIToolComponent {
    * Sync update the latest tool list
    */
   onToolsChange(tools: IXpertTool[]) {
-    console.log(tools)
     this.toolset.update((state) => {
       if (state.tools?.length) {
         tools.forEach((tool) => {

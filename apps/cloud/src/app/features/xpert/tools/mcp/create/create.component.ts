@@ -48,7 +48,7 @@ export class XpertToolMCPCreateComponent {
 
   readonly loading = signal(false)
 
-  readonly toolset = model<IXpertToolset>()
+  readonly toolset = model<Partial<IXpertToolset>>()
   readonly mcpServer = model<TMCPServer>({type: MCPServerType.SSE})
   readonly tools = model<IXpertTool[]>()
   readonly steps = model<number[]>([0])

@@ -149,10 +149,6 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
     return this.options.get('disableToolDefault') as FormControl
   }
 
-  // private valueChangeSub = this.formGroup.valueChanges.pipe(distinctUntilChanged(isEqual)).subscribe((value) => {
-  //   this.cva.value$.set(value)
-  // })
-
   constructor() {
     super()
 
@@ -165,7 +161,7 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
 
     effect(
       () => {
-        if (this.cva.value$() && !this.formGroup.value.id) {
+        if (this.cva.value$() && !this.formGroup.value.id && !isEqual(this.cva.value$(), this.formGroup.value)) {
           this.formGroup.patchValue({
             ...pick(
               this.cva.value$(),
@@ -179,8 +175,6 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
               'privacyPolicy',
               'customDisclaimer'
             ),
-            credentials: this.cva.value$().credentials ?? {},
-            tools: []
           } as any)
           this.#cdr.detectChanges()
         }

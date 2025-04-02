@@ -28,12 +28,14 @@
 
 <div class="overflow-auto px-8 py-4">
   <xpert-tool-mcp-configure #basic class="step-content hidden" [class.active]="steps()[0] === 0"
-    [(ngModel)]="toolset"
+    [ngModel]="toolset()"
+    (valueChange)="toolset.set($event)"
   />
 
   <mcp-server-form class="step-content hidden w-[90vw] md:w-[80vw]" [class.active]="steps()[0] === 1" 
     [(ngModel)]="mcpServer"
     [(tools)]="tools"
+    [toolset]="toolset()"
   />
 </div>
 

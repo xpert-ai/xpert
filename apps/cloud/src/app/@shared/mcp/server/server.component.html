@@ -3,6 +3,7 @@
   <ul class="w-80 p-1 flex items-center justify-center gap-2 bg-hover-bg rounded-xl"
     cdkListbox
     [(ngModel)]="types"
+    (ngModelChange)="updateType($event)"
   >
     <li #option1="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
       [ngClass]="option1.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
@@ -266,7 +267,7 @@
     <div class="hidden" role="tabpanel"
       class="view-tab hidden"
       [class.active]="view2.isSelected()">
-      <mcp-config-tools [(ngModel)]="tools" [toolset]="toolset()"/>
+      <mcp-config-tools [(ngModel)]="tools" [toolset]="_toolset()"/>
     </div>
   </div>
 </div>

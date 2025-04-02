@@ -46,7 +46,7 @@ export class MCPServerFormComponent {
   readonly value$ = this.cva.value$
 
   // Inputs
-  readonly toolset = model<IXpertToolset>()
+  readonly toolset = model<Partial<IXpertToolset>>()
   readonly tools = model<IXpertTool[]>()
 
   // Output
@@ -91,6 +91,21 @@ export class MCPServerFormComponent {
   // States
   readonly loading = signal(false)
   readonly #tempId = signal(uuid())
+  readonly _toolset = computed(() => {
+    return {
+      category: XpertToolsetCategoryEnum.MCP,
+      type: this.types()[0],
+      id: this.#tempId(),
+      schema: JSON.stringify({
+        mcpServers: {
+          '': {
+            ...this.value$(),
+            type: this.types()[0]
+          }
+        }
+      })
+    }
+  })
 
   readonly error = signal<string>(null)
 
@@ -115,21 +130,24 @@ export class MCPServerFormComponent {
 
     effect(
       () => {
-        if (this.value$()?.type) {
+        if (this.value$()?.type && this.value$().type !== this.types()[0]) {
           this.types.set([this.value$().type])
         }
       },
       { allowSignalWrites: true }
     )
 
-    effect(
-      () => {
-        if (this.value$() && this.types()[0] !== this.value$().type) {
-          this.value$.update((state) => ({ ...(state ?? {}), type: this.types()[0] }))
+    effect(() => {
+        if (this.views()[0] === 'code' && !this.fileIndex()?.length) {
+          this.fileIndex.set([0])
         }
       },
       { allowSignalWrites: true }
     )
+  }
+
+  updateType(types: MCPServerType[]) {
+    this.value$.update((state) => ({ ...(state ?? {}), type: types[0] }))
   }
 
   initFiles() {
@@ -190,19 +208,7 @@ if __name__ == "__main__":
     this.loading.set(true)
     this.error.set(null)
     this.toolsetService
-      .getMCPToolsBySchema({
-        category: XpertToolsetCategoryEnum.MCP,
-        type: this.types()[0],
-        id: this.#tempId(),
-        schema: JSON.stringify({
-          mcpServers: {
-            xxxxxx: {
-              ...this.value$(),
-              type: this.types()[0]
-            }
-          }
-        })
-      })
+      .getMCPToolsBySchema(this._toolset())
       .subscribe({
         next: (result) => {
           this.loading.set(false)
