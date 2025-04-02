@@ -65,7 +65,7 @@ export type TXpertToolset = {
 export interface IXpertToolset extends IBasePerWorkspaceEntityModel, TXpertToolset {}
 
 export type TXpertToolsetOptions = {
-  provider: IToolProvider
+  provider?: IToolProvider
   baseUrl?: string
   toolPositions?: Record<string, number>
   disableToolDefault?: boolean

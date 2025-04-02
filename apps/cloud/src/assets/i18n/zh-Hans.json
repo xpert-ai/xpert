@@ -2555,6 +2555,12 @@
       "TestWorkflowNode": "测试工作流节点",
       "TestRun": "测试运行"
     },
+    "MCP": {
+      "Connect": "连接",
+      "Connected": "已连接",
+      "Connecting": "连接中...",
+      "Error": "错误"
+    },
     "title": {
       "short": "Xpert AI"
     },

@@ -20,7 +20,8 @@ export class MCPToolset extends BaseToolset {
 	}
 
 	async initTools() {
-		this.client = await createMCPClient(JSON.parse(this.toolset.schema))
+		const {client} = await createMCPClient(this.toolset.id, JSON.parse(this.toolset.schema))
+		this.client = client
 		const tools = this.client.getTools()
 		const disableToolDefault = this.toolset.options?.disableToolDefault
 		this.tools = tools.filter((tool) =>

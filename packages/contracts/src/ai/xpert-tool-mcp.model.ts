@@ -1,6 +1,7 @@
-export enum MCPServerTransport {
+export enum MCPServerType {
   SSE = 'sse',
-  STDIO = 'stdio'
+  STDIO = 'stdio',
+  CODE = 'code'
 }
 
 /**
@@ -60,7 +61,7 @@ export interface SSEConnection {
 }
 
 export type TMCPServer = {
-  transport: MCPServerTransport,
+  type: MCPServerType
   command?: string
   args?: string[]
   env?: Record<string, string>
@@ -80,6 +81,8 @@ export type TMCPServer = {
     "maxAttempts": 3,
     "delayMs": 1000
   }
+
+  files?: {name: string; content: string}[]
 }
 
 export type TMCPSchema = {

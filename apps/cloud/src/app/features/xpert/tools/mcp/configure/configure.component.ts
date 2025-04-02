@@ -34,10 +34,10 @@ import {
   getErrorMessage,
   IXpertTool,
   IXpertToolset,
-  MCPServerTransport,
   TagCategoryEnum,
   TMCPSchema,
   ToastrService,
+  uuid,
   XpertToolsetCategoryEnum,
   XpertToolsetService,
   XpertToolType
@@ -49,7 +49,7 @@ import { XpertMCPToolsComponent } from '../tools/tools.component'
 import { Samples } from '../types'
 import { combineLatestWith, map } from 'rxjs/operators'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { FileEditorComponent } from 'apps/cloud/src/app/@shared/files'
+import { omit } from 'lodash-es'
 
 @Component({
   standalone: true,
@@ -67,7 +67,6 @@ import { FileEditorComponent } from 'apps/cloud/src/app/@shared/files'
     TagSelectComponent,
     NgmSpinComponent,
     NgmDensityDirective,
-    FileEditorComponent,
     XpertMCPToolsComponent
   ],
   selector: 'xpert-tool-mcp-configure',
@@ -118,8 +117,9 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
     options: this.#formBuilder.group({
       baseUrl: this.#fb.control(''),
       // Whether dynamically loaded tools are disabled by default
-      disableToolDefault: this.#fb.control(''),
+      disableToolDefault: this.#fb.control(null),
       needSandbox: this.#fb.control(false),
+      code: this.#fb.control(''),
     })
   })
   // Outputs
@@ -176,16 +176,17 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
   get needSandbox() {
     return this.options.get('needSandbox') as FormControl
   }
-  get _schema() {
-    return this.schema.value
+  get code() {
+    return this.options.get('code').value
   }
-  set _schema(value) {
-    this.schema.setValue(value)
+  set code(value) {
+    this.options.get('code').setValue(value)
   }
-
 
   readonly #schema = signal<{schema: TMCPSchema; error?: string;}>(null)
   readonly error = computed(() => this.#schema()?.error)
+
+  readonly #tempId = signal(uuid())
 
   constructor() {
     super()
@@ -234,19 +235,23 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
     this.tools.setValue([...tools])
   }
 
-  setSample() {
-    this.schema.setValue(JSON.stringify(Samples, null, 2))
-    // this.getMetadata()
-  }
+
 
   // Get Metadata
   getMetadata() {
     this.loading.set(true)
-    const schema = this.schema.value
+    // const schema = this.schema.value
     // const schema = JSON.parse(this.schema.value) as TMCPSchema
     // const servers = schema.mcpServers ?? schema.servers
-    this.toolsetService.getMCPToolsBySchema(schema).subscribe({
+    const toolset = omit(structuredClone(this.formGroup.value), 'types')
+
+    this.toolsetService.getMCPToolsBySchema({
+      ...toolset,
+      type: this.formGroup.value.types[0],
+      id: this.#tempId()
+    }).subscribe({
       next: (result) => {
+        console.log(result)
         this.loading.set(false)
         result.tools.forEach((tool) => this.addTool(tool))
         // this.needSandbox.setValue(Object.values(servers).some((server) => server.transport === MCPServerTransport.STDIO || server.command))

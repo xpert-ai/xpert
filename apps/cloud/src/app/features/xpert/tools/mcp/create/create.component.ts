@@ -15,6 +15,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { isNil, omitBy } from 'lodash-es'
 import { XpertStudioConfigureMCPComponent } from '../configure/configure.component'
+import { MCPServerFormComponent } from 'apps/cloud/src/app/@shared/mcp'
 
 @Component({
   standalone: true,
@@ -25,6 +26,7 @@ import { XpertStudioConfigureMCPComponent } from '../configure/configure.compone
     TranslateModule,
     DragDropModule,
     CdkListboxModule,
+    MCPServerFormComponent,
     XpertStudioConfigureMCPComponent
   ],
   selector: 'xpert-tool-mcp-create',
@@ -46,6 +48,7 @@ export class XpertToolMCPCreateComponent {
   readonly providerTypes = model<('mcp' | 'openapi' | 'odata')[]>([this.#data.type || 'mcp'])
 
   readonly toolset = model<IXpertToolset>()
+  readonly steps = model<number[]>([0])
 
   onValueChange(event: any) {
     this.toolset.set(event)

@@ -186,9 +186,9 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 	}
 
 	@Post('provider/mcp/tools')
-	async getMCPTools(@Body() { schema }: { schema: TMCPSchema }) {
+	async getMCPTools(@Body() toolset: Partial<IXpertToolset>) {
 		try {
-			return await this.commandBus.execute(new MCPToolsBySchemaCommand(schema))
+			return await this.commandBus.execute(new MCPToolsBySchemaCommand(toolset))
 		} catch(err) {
 			throw new BadRequestException(err.message)
 		}

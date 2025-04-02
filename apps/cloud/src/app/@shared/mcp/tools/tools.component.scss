@@ -1,0 +1,15 @@
+:host {
+  @apply block pt-2;
+}
+
+.tool-row.disabled {
+  @apply bg-gray-50 text-text-secondary;
+}
+
+thead tr {
+  @apply text-left;
+
+  th {
+    @apply px-4;
+  }
+}

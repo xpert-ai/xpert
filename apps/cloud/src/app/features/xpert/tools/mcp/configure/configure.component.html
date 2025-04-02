@@ -49,96 +49,9 @@
       >
   </div>
 
-<div class="flex justify-center pb-2">
-  <ul class="w-80 p-1 flex items-center justify-center gap-2 bg-hover-bg rounded-xl"
-    cdkListbox
-    formControlName="types"
-    >
-    <li #option1="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
-      [ngClass]="option1.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
-      [cdkOption]="'sse'">
-      <i class="ri-route-line"></i> &nbsp; SSE
-    </li>
-    <li #option2="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
-      [ngClass]="option2.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
-      [cdkOption]="'stdio'">
-      <i class="ri-links-line"></i> &nbsp; StandIO
-    </li>
-
-    <li #option3="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
-      [ngClass]="option3.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
-      [cdkOption]="'code'">
-      <i class="ri-exchange-2-line"></i> &nbsp; Code
-    </li>
-  </ul>
-</div>
-
-@switch (types.value[0]) {
-  @case ('sse') {
-    <div class="select-none relative">
-      <div class="flex justify-between items-center">
-        <div class="py-2 leading-5 font-medium">
-          {{ 'PAC.Xpert.Schema' | translate: {Default: 'Schema'} }}
-          <span class="ml-1 text-red-500">*</span>
-        </div>
-        <div class="mx-2 w-px h-3 bg-black/5"></div>
-        <a href="https://modelcontextprotocol.io/introduction" target="_blank" rel="noopener noreferrer"
-          class="group flex items-center h-[18px] space-x-1 text-[#155EEF] hover:text-primary-600">
-          <div class="text-xs font-normal">{{ 'PAC.Xpert.ViewMCPSpec' | translate: {Default: 'View the MCP Specification'} }}</div>
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 transition-transform group-hover:translate-x-2">
-            <g id="link-external-02">
-              <path id="Icon" d="M10.5 4.5L10.5 1.5M10.5 1.5H7.49999M10.5 1.5L6 6M5 1.5H3.9C3.05992 1.5 2.63988 1.5 2.31901 1.66349C2.03677 1.8073 1.8073 2.03677 1.66349 2.31901C1.5 2.63988 1.5 3.05992 1.5 3.9V8.1C1.5 8.94008 1.5 9.36012 1.66349 9.68099C1.8073 9.96323 2.03677 10.1927 2.31901 10.3365C2.63988 10.5 3.05992 10.5 3.9 10.5H8.1C8.94008 10.5 9.36012 10.5 9.68099 10.3365C9.96323 10.1927 10.1927 9.96323 10.3365 9.68099C10.5 9.36012 10.5 8.94008 10.5 8.1V7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"></path>
-            </g>
-          </svg>
-        </a>
-  
-        <div class="flex-1"></div>
-  
-        <div class="relative">
-          <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
-            (click)="setSample()">
-            <i class="ri-database-line mr-1"></i>
-            <div class="text-sm font-medium">{{ 'PAC.Xpert.Samples' | translate: {Default: 'Samples'} }}</div>
-          </button>
-        </div>
-      </div>
-      
-      <textarea class="ngm-input w-full h-[240px] px-3 py-2 leading-5 text-sm font-normal rounded-lg overflow-y-auto
-        text-gray-600 bg-gray-100"
-        [placeholder]="'PAC.Xpert.EnterYourMCPSchema' | translate: {Default: 'Enter your MCP schema here'}"
-        formControlName="schema"
-        [ngClass]="{error: schema.invalid && (schema.dirty || schema.touched)}"
-        (blur)="onBlur()"
-      ></textarea>
-      @if (error()) {
-        <div class="px-2 text-sm text-text-destructive">{{error()}}</div>
-      }
-  
-      <!-- @if (needSandbox.value) {
-        <div class="flex items-center my-2">
-          <i class="ri-alarm-warning-fill mb-0.5 mr-1 text-orange-500"></i>
-          <span class="text-sm text-text-secondary">{{ 'PAC.Xpert.NeedSandboxToolsetTip' | translate: {Default: 'For security reasons, please upgrade to the pro version to run this toolset safely in a sandbox'} }}</span>
-        </div>
-      } -->
-  
-      @if (loading()) {
-        <ngm-spin class="absolute top-0 left-0 w-full h-full" />
-      }
-    </div>
+  @if (loading()) {
+    <ngm-spin class="absolute top-0 left-0 w-full h-full" />
   }
-  @case ('stdio') {
-
-  }
-  @case ('code') {
-    <div>
-      Coding
-
-      <pac-file-editor class="h-[400px]" fileName="file.py" [(content)]="_schema" editable />
-    </div>
-  }
-}
-
-
 
 <div class="flex items-center my-2">
   <button type="button" class="btn btn-primary disabled:btn-disabled btn-secondary btn-medium space-x-1"

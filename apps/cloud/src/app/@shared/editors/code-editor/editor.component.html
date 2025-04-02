@@ -1,0 +1,7 @@
+<ngx-monaco-editor class="!h-full w-full max-h-full"
+  [options]="editorOptions()"
+  [ngModel]="value$()"
+  (ngModelChange)="onChange($event)"
+  (resized)="onResized()"
+  (onInit)="onInit($event)"
+/>
