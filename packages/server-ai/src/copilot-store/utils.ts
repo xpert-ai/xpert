@@ -314,13 +314,15 @@ export function decodeNsBytes(namespace: string | Uint8Array | any[]): string[] 
 }
 
 export function memoryPrompt(memory: SearchItem[],) {
+  console.log(memory)
   return memory.map((item) => {
     if (item.value.profile) {
-      return `<profile>\n${item.value.profile}\n</profile>`
+      return `<memory>\n  <memoryId>${item.key}</memoryId>\n  <profile>\n${item.value.profile}\n</profile>\n</memory>`
     } else if (item.value.output) {
       return `<example>
-<input>${item.value.input}</input>
-<output>${item.value.output}</output>
+  <memoryId>${item.key}</memoryId>
+  <question>${item.value.question}</question>
+  <answer>${item.value.answer}</answer>
 </example>`
     } else {
       return ''

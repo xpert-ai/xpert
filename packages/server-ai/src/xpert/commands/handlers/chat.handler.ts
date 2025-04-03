@@ -101,7 +101,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				)
 
 				// Remember
-				memories = await this.getLongTermMemory(memoryStore, xpertId, input.input)
+				memories = await getLongTermMemory(memoryStore, xpertId, input.input)
 			}
 
 			// New execution (Run) in thread
@@ -386,42 +386,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		return store
 	}
 
-	async getLongTermMemory(store: BaseStore, xpertId: string, input: string) {
-		return await store?.search([xpertId, LongTermMemoryTypeEnum.PROFILE], { query: input })
-	}
 }
 
-// export function appendMessageContent(aiMessage: CopilotChatMessage, content: MessageContent) {
-// 	const _content = aiMessage.content
-// 	if (typeof content === 'string') {
-// 		if (typeof _content === 'string') {
-// 			aiMessage.content = _content + content
-// 		} else if (Array.isArray(_content)) {
-// 			const lastContent = _content[_content.length - 1]
-// 			if (lastContent.type === 'text') {
-// 				lastContent.text = lastContent.text + content
-// 			} else {
-// 				_content.push({
-// 					type: 'text',
-// 					text: content
-// 				})
-// 			}
-// 		} else {
-// 			aiMessage.content = content
-// 		}
-// 	} else {
-// 		if (Array.isArray(_content)) {
-// 			_content.push(content)
-// 		} else if (_content) {
-// 			aiMessage.content = [
-// 				{
-// 					type: 'text',
-// 					text: _content
-// 				},
-// 				content
-// 			]
-// 		} else {
-// 			aiMessage.content = [content]
-// 		}
-// 	}
-// }
+async function getLongTermMemory(store: BaseStore, xpertId: string, input: string) {
+	return await store?.search([xpertId, LongTermMemoryTypeEnum.PROFILE], { query: input })
+}
