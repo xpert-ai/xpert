@@ -150,7 +150,8 @@ export class XpertStudioAPIToolComponent {
     let value: Partial<IXpertToolset> = {}
     if (this.configure()) {
       value = {
-        ...this.configure().formGroup.value
+        ...this.configure().formGroup.value,
+        schema: this.configure().formGroup.value.schema ?? this.toolset().schema
       }
     }
     if (this.toolsDirty()) {
@@ -344,6 +345,9 @@ export class XpertStudioAPIToolComponent {
         schema: JSON.stringify({mcpServers: {'': event}})
       }
     })
+    // Mark basic info as dirty
+    this.configure().formGroup.markAsDirty()
+    this.configure().refreshForm()
   }
 
   updateToolset(event: Partial<IXpertToolset>) {
