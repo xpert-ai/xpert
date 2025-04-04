@@ -1,14 +1,15 @@
-<div class="w-10 h-10 rounded-xl hover:bg-hover-bg"
+<div class="rounded-xl hover:bg-hover-bg"
   [matTooltip]="('PAC.Header.Organization.SwitchOrganization' | translate: {Default: 'Switch Organization'}) + (organization()?.name || '')"
   matTooltipPosition="after"
-  [matTooltipDisabled]="!isCollapsed"
+  [matTooltipDisabled]="!isCollapsed()"
   [cdkMenuTriggerFor]="menu"
 >
   @if (organization()) {
     <div class="flex justify-start items-center">
       <pac-org-avatar [organization]="organization()" class="shrink-0 w-8 h-8 rounded-full overflow-hidden block m-1"/>
-      @if (!isCollapsed) {
-        <span class="flex-1 text-ellipsis overflow-hidden">{{ organization().name }}</span>
+      
+      @if (!isCollapsed()) {
+        <div class="flex-1 truncate mr-2">{{ organization().name }}</div>
       }
     </div>
   }

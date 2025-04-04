@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, DestroyRef, inject, Input, model, OnInit } from '@angular/core'
+import { Component, DestroyRef, inject, input, model, OnInit } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -30,7 +30,7 @@ export class OrganizationSelectorComponent extends TranslationBaseComponent impl
   private readonly permissionsService = inject(NgxPermissionsService)
   private readonly destroyRef = inject(DestroyRef)
 
-  @Input() isCollapsed = false
+  readonly isCollapsed = input<boolean>(false)
 
   // selectedOrganization: IOrganization
   readonly organization = model<IOrganization>(null)
