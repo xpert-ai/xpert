@@ -36,7 +36,9 @@ export enum ChatMessageStepCategory {
   /**
    * Program Execution
    */
-  Program = 'program'
+  Program = 'program',
+
+  Memory = 'memory'
 }
 
 export type TChatMessageStep = {
@@ -152,10 +154,16 @@ export type TMessageContentText = {
   type: "text";
   text: string;
 };
+export type TMessageContentMemory = {
+  id?: string
+  agentKey?: string
+  type: "memory";
+  data: any[];
+};
 /**
  * Enhance {@link MessageContentComplex} in Langchain.js
  */
-export type TMessageContentComplex = (TMessageContentText | MessageContentImageUrl | TMessageContentComponent | (Record<string, any> & {
+export type TMessageContentComplex = (TMessageContentText | MessageContentImageUrl | TMessageContentComponent | TMessageContentMemory | (Record<string, any> & {
   type?: "text" | "image_url" | string;
 }) | (Record<string, any> & {
   type?: never;

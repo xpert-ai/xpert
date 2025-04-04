@@ -4,7 +4,7 @@ import { BaseStore, LangGraphRunnableConfig } from "@langchain/langgraph";
 import { v4 as uuidv4 } from "uuid";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { ChatMessageEventTypeEnum, ChatMessageStepType, LongTermMemoryTypeEnum, TChatMessageStep } from "@metad/contracts";
+import { ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageStepType, LongTermMemoryTypeEnum, TChatMessageStep } from "@metad/contracts";
 import { Logger } from "@nestjs/common";
 import { formatMemories } from "./utils";
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
@@ -46,17 +46,20 @@ export function initializeMemoryTools(store: BaseStore, xpertId: string) {
     const { query } = opts;
     const items = await store.search([xpertId, LongTermMemoryTypeEnum.QA], {query: query})
 
-    // Step tool message
-		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-			type: ChatMessageStepType.Notice,
-			toolset: `memories`,
-			tool: `search_recall_memories`,
-			message: `Recall memories`,
-			title: `Recall memories`,
-			data: items
-		} as TChatMessageStep).catch((err) => {
-			logger.error(err)
-		})
+    if (items.length > 0) {
+      // Step tool message
+      dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+        type: ChatMessageStepType.Notice,
+        category: ChatMessageStepCategory.Memory,
+        toolset: `memories`,
+        tool: `search_recall_memories`,
+        message: `Recall memories`,
+        title: `Recall memories`,
+        data: items
+      } as TChatMessageStep).catch((err) => {
+        logger.error(err)
+      })
+    }
 
     return [formatMemories(items), items]
   }

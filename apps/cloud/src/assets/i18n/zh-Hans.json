@@ -2555,7 +2555,9 @@
       "Transform": "转换",
       "Code": "代码执行",
       "TestWorkflowNode": "测试工作流节点",
-      "TestRun": "测试运行"
+      "TestRun": "测试运行",
+      "Question": "问题",
+      "SearchRecallMemories": "搜寻回忆"
     },
     "MCP": {
       "Connect": "连接",

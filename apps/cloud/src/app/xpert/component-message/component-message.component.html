@@ -110,5 +110,8 @@
     @case ('Tasks') {
       <chat-component-tasks [tasks]="tasks()" class="dark"/>
     }
+    @case (eChatMessageStepCategory.Memory) {
+      <chat-component-memories [memories]="data().data" />
+    }
   }
 }

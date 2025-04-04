@@ -3,7 +3,7 @@ import { BaseChannel, isCommand } from '@langchain/langgraph'
 import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
-import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageTypeEnum, isAgentKey, IXpertAgent, TMessageChannel, TMessageContentComplex, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpertAgent, TMessageChannel, TMessageContentComplex, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { AgentStateAnnotation } from './commands/handlers/types'
@@ -258,18 +258,39 @@ export function createMapStreamEvents(
 						break
 					}
 					case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
-						subscriber.next({
-							data: {
-								type: ChatMessageTypeEnum.EVENT,
-								event: ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+						if (data.type === ChatMessageStepType.Notice) {
+							/**
+							 * Notification messages from tool calling are displayed in component messages
+							 */
+							subscriber.next({
 								data: {
-									tags,
-									...rest,
-									...data,
-									created_date: new Date()
+									type: ChatMessageTypeEnum.MESSAGE,
+									data: {
+										type: 'component',
+										data: {
+											type: data.category,
+											data: data.data
+										}
+									}
 								}
-							}
-						} as MessageEvent)
+							} as MessageEvent)
+						} else {
+							/**
+							 * Others are displayed as execution steps (event) temporarily
+							 */
+							subscriber.next({
+								data: {
+									type: ChatMessageTypeEnum.EVENT,
+									event: ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+									data: {
+										tags,
+										...rest,
+										...data,
+										created_date: new Date()
+									}
+								}
+							} as MessageEvent)
+						}
 						break
 					}
 				}
