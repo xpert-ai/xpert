@@ -12,11 +12,18 @@ export type TSummaryJob = Record<LongTermMemoryTypeEnum, {
     memoryKey?: string
   }>
 
+/**
+ * Message step type: determines the type of canvas
+ */
 export enum ChatMessageStepType {
-  File = 'file',
   ComputerUse = 'computer_use',
+  File = 'file',
+  Notice = 'notice'
 }
 
+/**
+ * Category of step message: determines the display components of computer use
+ */
 export enum ChatMessageStepCategory {
   /**
    * Websearch results

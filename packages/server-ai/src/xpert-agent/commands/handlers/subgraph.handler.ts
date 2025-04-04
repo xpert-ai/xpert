@@ -15,7 +15,7 @@ import {
 	START,
 	StateGraph
 } from '@langchain/langgraph'
-import { agentLabel, agentUniqueName, channelName, ChatMessageEventTypeEnum, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_SYS, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, agentUniqueName, channelName, ChatMessageEventTypeEnum, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_SYS, TAgentRunnableConfigurable, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -710,19 +710,21 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 		const stateGraph = RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config: LangGraphRunnableConfig): Promise<Partial<typeof AgentStateAnnotation.State>> => {
 			const call = state.toolCall
+			const configurable: TAgentRunnableConfigurable = config.configurable as TAgentRunnableConfigurable
 
 			// Record start time
 			const timeStart = Date.now()
 			const _execution = await this.commandBus.execute(
 				new XpertAgentExecutionUpsertCommand({
 					...execution,
-					threadId: config.configurable.thread_id,
-					checkpointNs: config.configurable.checkpoint_ns,
+					threadId: configurable.thread_id,
+					checkpointNs: configurable.checkpoint_ns,
 					xpert: { id: xpert.id } as IXpert,
 					agentKey: agent.key,
 					inputs: call?.args,
 					parentId: options.rootExecutionId,
-					status: XpertAgentExecutionStatusEnum.RUNNING
+					status: XpertAgentExecutionStatusEnum.RUNNING,
+					predecessor: configurable.agentKey
 				})
 			)
 
@@ -767,7 +769,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						[`${agent.key}.messages`]: [new HumanMessage(call.args.input)]
 					} : {}),
 				}
-				const output = await graph.invoke(subState, {...config, signal})
+				const output = await graph.invoke(subState, {...config, signal, configurable: {...config.configurable, agentKey: agent.key}})
 
 				const lastMessage = output.messages[output.messages.length - 1]
 				if (lastMessage && isAIMessage(lastMessage)) {

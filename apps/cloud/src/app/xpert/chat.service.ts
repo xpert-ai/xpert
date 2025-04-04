@@ -33,14 +33,8 @@ import { AppService } from '../app.service'
 import { NGXLogger } from 'ngx-logger'
 import { sortBy } from 'lodash-es'
 import { HttpErrorResponse } from '@angular/common/http'
-import { format } from 'date-fns/format'
-import { isToday } from 'date-fns/isToday'
-import { isWithinInterval } from 'date-fns/isWithinInterval'
-import { isYesterday } from 'date-fns/isYesterday'
-import { subDays } from 'date-fns/subDays'
 import { XpertHomeService } from './home.service'
 import { TCopilotChatMessage } from './types'
-import { MessageContent } from '@langchain/core/messages'
 import { appendMessageContent } from '@metad/copilot'
 
 /**
@@ -287,7 +281,7 @@ export class ChatService {
                     break
                   }
                   default:
-                    this.updateEvent(event.event, event.data.error)
+                    this.updateEvent(event)
                 }
               }
             }
@@ -410,13 +404,6 @@ export class ChatService {
   abortMessage(id: string) {
     this.updateLatestMessage((lastMessage) => {
       if (lastMessage.id === id) {
-        // lastMessage.messages = lastMessage.messages?.map((m) => {
-        //   if (m.status === 'thinking') {
-        //     return { ...m, status: 'aborted' }
-        //   }
-        //   return m
-        // })
-
         return { ...lastMessage, status: 'aborted' }
       }
       return lastMessage
@@ -430,51 +417,17 @@ export class ChatService {
     ])
   }
 
-  updateEvent(event: string, error: string) {
+  updateEvent(event) {
+    console.log(event)
     this.updateLatestMessage((lastMessage) => {
       return {
         ...lastMessage,
-        event: event === ChatMessageEventTypeEnum.ON_AGENT_END ? null : event,
-        error
+        event: event.event === ChatMessageEventTypeEnum.ON_AGENT_END ? null : {
+          name: event.event,
+          message: event.data.name
+        },
+        error: event.data.error
       }
     })
   }
-}
-
-export function groupConversations(conversations: IChatConversation[]) {
-  // 定义分组时间段
-  const startOfToday = new Date()
-  const startOfLast7Days = subDays(startOfToday, 7)
-  const startOfLast30Days = subDays(startOfToday, 30)
-  const groups: { name: string; values: IChatConversation[] }[] = []
-  let currentGroup: (typeof groups)[0] = null
-  conversations.forEach((item) => {
-    const recordDate = new Date(item.updatedAt)
-    let name = ''
-    if (isToday(recordDate)) {
-      name = 'Today'
-    } else if (isYesterday(recordDate)) {
-      name = 'Yesterday'
-    } else if (isWithinInterval(recordDate, { start: startOfLast7Days, end: startOfToday })) {
-      name = 'Last7Days'
-    } else if (isWithinInterval(recordDate, { start: startOfLast30Days, end: startOfLast7Days })) {
-      name = 'Last30Days'
-    } else {
-      // 按月份分组
-      const monthKey = format(recordDate, 'yyyy-MM') //{locale: eoLocale});
-      name = monthKey
-    }
-
-    if (name !== currentGroup?.name) {
-      currentGroup = {
-        name,
-        values: [item]
-      }
-      groups.push(currentGroup)
-    } else {
-      currentGroup.values.push(item)
-    }
-  })
-
-  return groups
 }

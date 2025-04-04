@@ -185,13 +185,13 @@ export class XpertStudioComponent {
     return this.#connections().map((conn) => {
       let running = false
       if (conn.type === 'toolset') {
-        running = this.runningToolsets().some((_) => _.key === conn.to && _.running)
+        running = this.runningToolsets().some((_) => _.key === conn.to && _.agentKey === conn.from && _.running)
       } else {
         if (isWorkflowKey(conn.to)) {
           running = connections.filter((_) => _.from.startsWith(conn.to)).some((_) =>
             agentExecutions[_.to]?.some((_) => _.status === XpertAgentExecutionStatusEnum.RUNNING))
         } else {
-          running = agentExecutions[conn.to]?.some((_) => _.status === XpertAgentExecutionStatusEnum.RUNNING)
+          running = agentExecutions[conn.to]?.some((_) => _.status === XpertAgentExecutionStatusEnum.RUNNING && _.predecessor === conn.from)
         }
       }
       return {
@@ -217,22 +217,28 @@ export class XpertStudioComponent {
   readonly toolExecutions = this.executionService.toolExecutions
   readonly sidePanel = model<"preview" | "variables">()
 
-  readonly runningToolsets = computed(() => {
+  readonly runningToolsets = computed<Array<{key: string; agentKey: string; running: boolean}>>(() => {
     const executions = this.toolExecutions()
-    const toolsetNodes = this.viewModel().nodes.filter((n) => n.type === 'toolset')
-    return toolsetNodes.map((node) => {
-      return {
-        key: node.key,
-        running: (<IXpertToolset>node.entity).tools?.some((t) => {
-          return Object.values(executions[t.name] ?? {}).some((exec) => exec.status === XpertAgentExecutionStatusEnum.RUNNING)
-        })
-      }
+    const toolsetNodes = this.viewModel()?.nodes.filter((n) => n.type === 'toolset')
+    const running = []
+    toolsetNodes?.forEach((node) => {
+      (<IXpertToolset>node.entity).tools?.forEach((t) => {
+        Object.values(executions[t.name] ?? {}).filter((exec) => exec.status === XpertAgentExecutionStatusEnum.RUNNING)
+          .forEach((execution) => {
+            running.push({
+              key: node.key,
+              agentKey: execution.agentKey,
+              running: true,
+            })
+          })
+      })
     })
+    return running
   }, { equal: isEqual })
 
   constructor() {
     effect(() => {
-      // console.log('Studio:', this.viewModel())
+      // console.log('Agent Executions:', this.executions())
     })
   }
 

@@ -150,13 +150,17 @@ export function createMapStreamEvents(
 			case 'on_tool_start': {
 				eventStack.push(event)
 				toolsMap[rest.metadata.langgraph_node] = rest.name
+				// Hack out agent key
+				const agentKey = rest.metadata.checkpoint_ns?.split(':')[0]
 				subscriber.next({
 					data: {
 						type: ChatMessageTypeEnum.EVENT,
 						event: ChatMessageEventTypeEnum.ON_TOOL_START,
 						data: {
 							data,
-							...rest
+							tags,
+							...rest,
+							agentKey
 						}
 					}
 				} as MessageEvent)

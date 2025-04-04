@@ -17,6 +17,14 @@
         fill: var(--connection-color);
       }
     }
+    &.connecting {
+      stroke-dasharray: 4, 2;
+      animation: dash-flow 2s linear infinite;
+    
+      .f-connection-path {
+        stroke: var(--f-component-hover-border);
+      }
+    }
     &.f-selected {
       z-index: 1;
       .f-connection-path {
@@ -223,11 +231,6 @@ f-flow {
     right: var(--resize-handle-offset);
     cursor: nwse-resize;
   }
-}
-
-.f-component.f-connection.connecting {
-  stroke-dasharray: 4, 2;
-  animation: dash-flow 2s linear infinite;
 }
 
 @keyframes dash-flow {

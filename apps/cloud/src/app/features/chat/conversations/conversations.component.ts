@@ -34,8 +34,8 @@ import {
   OrderTypeEnum
 } from '../../../@core'
 import { AppService } from '../../../app.service'
-import { groupConversations } from '../../../xpert'
 import { ChatHomeService } from '../home.service'
+import { groupConversations } from '../../../xpert/types'
 
 @Component({
   standalone: true,

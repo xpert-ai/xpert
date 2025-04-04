@@ -351,15 +351,20 @@
     </div> -->
   </div>
 
-  @if (message()?.event && answering()) {
-    <div class="w-full px-2 py-1 flex items-center gap-1 rounded-lg cursor-pointer text-sm text-token-text-secondary bg-gray-50 hover:bg-gray-100"
-      [matTooltip]=" message().error "
-      matTooltipPosition="above"
-      matTooltipPositionAtOrigin
-    >
-      <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
-      {{'PAC.Chat.Event_' + message().event | translate: {Default: message().event.toUpperCase()} }}
-    </div>
+  @if (answering()) {
+    @if (message()?.event; as event) {
+      <div class="w-full px-2 py-1 flex items-center gap-1 rounded-lg cursor-pointer text-sm text-token-text-secondary bg-gray-50 hover:bg-gray-100"
+        [matTooltip]=" message().error "
+        matTooltipPosition="above"
+        matTooltipPositionAtOrigin
+      >
+        <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
+        {{'PAC.Chat.Event_' + event.name | translate: {Default: event.name.toUpperCase()} }}
+        @if (event.message) {
+          : {{'PAC.Chat.Event_' + event.message | translate: {Default: event.message.toUpperCase()} }}
+        }
+      </div>
+    }
   }
 </div>
 

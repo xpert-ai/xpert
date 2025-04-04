@@ -266,7 +266,8 @@ export function processEvents(
     case ChatMessageEventTypeEnum.ON_TOOL_START: {
       executionService.updateToolExecution(event.data.name, event.data.metadata?.langgraph_checkpoint_ns, {
         status: XpertAgentExecutionStatusEnum.RUNNING,
-        createdAt: new Date()
+        createdAt: new Date(),
+        agentKey: event.data.agentKey
       })
       break
     }
@@ -278,14 +279,16 @@ export function processEvents(
         },
         outputs: {
           output: event.data.data?.output?.content
-        }
+        },
+        agentKey: event.data.agentKey
       })
       break
     }
     case ChatMessageEventTypeEnum.ON_TOOL_ERROR: {
       executionService.updateToolExecution(event.data.name, event.data.metadata?.langgraph_checkpoint_ns, {
         status: XpertAgentExecutionStatusEnum.ERROR,
-        error: event.data.error
+        error: event.data.error,
+        agentKey: event.data.agentKey
       })
       break
     }

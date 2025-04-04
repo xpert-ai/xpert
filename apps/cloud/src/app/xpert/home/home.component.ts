@@ -17,11 +17,12 @@ import { ChatConversationService, OrderTypeEnum, routeAnimations, XpertService, 
 import { EmojiAvatarComponent } from '../../@shared/avatar/'
 import { ChatAppService } from '../chat-app.service'
 import { ChatInputComponent } from '../chat-input/chat-input.component'
-import { ChatService, groupConversations } from '../chat.service'
+import { ChatService } from '../chat.service'
 import { ChatConversationComponent } from '../conversation/conversation.component'
 import { MatInputModule } from '@angular/material/input'
 import { XpertHomeService } from '../home.service'
 import { XpertOcapService } from '../ocap.service'
+import { groupConversations } from '../types'
 
 @Component({
   standalone: true,
