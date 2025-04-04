@@ -1,0 +1,9 @@
+:host {
+  @apply shadow-sm border-[0.5px] rounded-xl overflow-hidden border-gray-200;
+}
+
+.download {
+  position: relative;
+  color: #155eef;
+  @apply text-sm;
+}

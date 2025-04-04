@@ -1,10 +1,8 @@
 :host {
   --mat-sidenav-container-width: 16rem;
   --mat-sidenav-container-divider-color: var(--color-divider-regular);
-  @apply block w-full h-full;
-}
-.mat-drawer.mat-sidenav {
   border-top-left-radius: var(--ngm-primary-container-rounded);
+  @apply relative flex justify-start w-full h-full overflow-hidden;
 }
 
 .router-menu-item {

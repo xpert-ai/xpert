@@ -63,7 +63,8 @@
   }
   .btn-secondary {
     @apply border-[0.5px] border-[--color-components-button-secondary-border] bg-[--color-components-button-secondary-bg] shadow-sm
-      hover:border-[--color-components-button-secondary-border-hover] hover:bg-[--color-components-button-secondary-bg-hover];
+      hover:border-[--color-components-button-secondary-border-hover] hover:bg-[--color-components-button-secondary-bg-hover]
+      text-zinc-600;
   }
 
   .btn-tertiary {

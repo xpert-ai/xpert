@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, signal } from '@angular/core'
+import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -13,6 +13,7 @@ import { injectTranslate } from 'apps/cloud/src/app/@core'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { NgmTooltipDirective } from '@metad/ocap-angular/core'
+import { isNil } from '@metad/copilot'
 
 @Component({
   selector: 'xpert-studio-features-memory',
@@ -81,19 +82,13 @@ export class XpertStudioFeaturesMemoryComponent {
     this.updateQA({ prompt: value })
   }
 
-  // readonly options = computed(() => {
-  //   const i18n = this.i18n()
-  //   return [
-  //     {
-  //       key: LongTermMemoryTypeEnum.PROFILE,
-  //       caption: i18n.Profile || 'Profile'
-  //     },
-  //     {
-  //       key: LongTermMemoryTypeEnum.QA,
-  //       caption: i18n.QuestionAnswer || 'Question/Answer'
-  //     }
-  //   ]
-  // })
+  constructor() {
+    effect(() => {
+      if (this.profile()?.enabled && isNil(this.profile().afterSeconds)) {
+        this.afterSeconds = 10
+      }
+    }, { allowSignalWrites: true })
+  }
 
   formatLabel(value: number): string {
     return `${value}s`;

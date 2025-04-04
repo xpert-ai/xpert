@@ -1,0 +1,126 @@
+<div class="px-6 py-5 bg-primary-50 bg-opacity-40 rounded-lg">
+  <div class="mb-2.5 flex flex-row items-start justify-between">
+    <div class="flex items-start p-1">
+      <emoji-avatar [avatar]="avatar()" class="shrink-0 mr-3 rounded-lg shadow-sm overflow-hidden"/>
+      
+      <div class="group">
+        <div
+          class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+        >
+          {{ xpert()?.title || xpert()?.name }}
+        </div>
+        <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+          {{ 'PAC.Xpert.ReadyAIWebApp' | translate: {Default: 'Ready-to-use AI WebApp'} }}
+        </div>
+        <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
+      </div>
+    </div>
+    <div class="flex flex-row items-center h-9">
+      @if (enabledApp()) {
+        <div class="px-2.5 py-px text-xs leading-5 rounded-md inline-flex items-center flex-shrink-0 text-green-800 bg-green-100 mr-2">
+          {{ 'PAC.KEY_WORDS.InService' | translate: {Default: 'In Service'} }}
+        </div>
+      } @else {
+        <div class="px-2.5 py-px text-xs leading-5 rounded-md inline-flex items-center flex-shrink-0 text-yellow-800 bg-yellow-100 mr-2">
+          {{ 'PAC.KEY_WORDS.Disabled' | translate: {Default: 'Disabled'} }}
+        </div>
+      }
+
+      <label class="inline-flex items-center cursor-pointer"
+        [matTooltip]="(!published() ? ('PAC.Xpert.AfterPublish' | translate: {Default: 'After publish'}) + ' : ' : '') + ('PAC.Xpert.EnableXpertChatApp' | translate: {Default: 'Enable or disable chat app for xpert'})"
+        matTooltipPosition="above">
+        <input type="checkbox" value="" class="sr-only peer" 
+          [disabled]="!published()"
+          [ngModel]="enabledApp()"
+          (ngModelChange)="updateApp({enabled: $event})">
+        <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600
+          peer-disabled:opacity-60"></div>
+      </label>
+    </div>
+  </div>
+  <div class="flex flex-col justify-center py-2">
+    <div class="py-1">
+      <div class="pb-1 text-sm text-gray-500">
+        {{ 'PAC.KEY_WORDS.PublicURL' | translate: {Default: 'Public URL'} }}
+      </div>
+      <div
+        class="w-full h-9 pl-2 pr-0.5 py-0.5 bg-black bg-opacity-2 rounded-lg border border-black border-opacity-5 justify-start items-center inline-flex"
+      >
+        <div class="px-2 justify-start items-start gap-2 flex flex-1 min-w-0">
+          <div class="text-gray-700 text-sm font-medium text-ellipsis overflow-hidden whitespace-nowrap">
+            {{appUrl()}}
+          </div>
+        </div>
+        <div class="border-r border-solid mx-2 border-divider-deep !h-3.5 shrink-0"></div>
+        <div class="w-8 h-8 cursor-pointer rounded-lg flex justify-center items-center text-text-secondary hover:bg-gray-200 hover:text-text-primary"
+          [matTooltip]="'PAC.Xpert.QRCodeSharing' | translate: {Default: 'QR code sharing'}"
+          matTooltipPosition="above"
+          [cdkMenuTriggerFor]="qrcode"
+        >
+          <i class="ri-qr-code-line text-lg"></i>
+        </div>
+        <div class="w-8 h-8 cursor-pointer rounded-lg flex justify-center items-center text-text-secondary hover:bg-gray-200 hover:text-text-primary"
+          [matTooltip]="'PAC.KEY_WORDS.Copy' | translate: {Default: 'Copy'}"
+          matTooltipPosition="above"
+          (click)="copy(appUrl())"
+        >
+          <i class="ri-clipboard-line text-lg"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="pt-2 flex flex-row items-center flex-wrap gap-y-2">
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium mr-2"
+      [disabled]="!enabledApp()"
+      (click)="preview()">
+      <div class="flex flex-row items-center">
+        <i class="ri-slideshow-3-line text-lg mr-1.5"></i>
+        <span class="text-[13px]">{{ 'PAC.KEY_WORDS.Preview' | translate: {Default: 'Preview'} }}</span>
+      </div>
+    </button>
+    <!-- <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium mr-2">
+      <div class="flex flex-row items-center">
+        <i class="ri-quill-pen-ai-line text-lg mr-1.5"></i>
+        <span class="text-[13px]">{{ 'PAC.KEY_WORDS.Customize' | translate: {Default: 'Customize'} }}</span>
+      </div>
+    </button> -->
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium mr-2"
+      [disabled]="!enabledApp()"
+      (click)="openEmbedded()"
+    >
+      <div class="flex flex-row items-center">
+        <i class="ri-terminal-window-line text-lg mr-1.5"></i>
+        <span class="text-[13px]">{{ 'PAC.KEY_WORDS.Embedded' | translate: {Default: 'Embedded'} }}</span>
+      </div>
+    </button>
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium mr-2"
+      [disabled]="!enabledApp()"
+      (click)="openChatApp()"
+    >
+      <div class="flex flex-row items-center">
+        <i class="ri-settings-4-line text-lg mr-1.5"></i>
+        <span class="text-[13px]">{{ 'PAC.KEY_WORDS.Settings' | translate: {Default: 'Settings'} }}</span>
+      </div>
+    </button>
+  </div>
+</div>
+
+@if (loading()) {
+  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+}
+
+<ng-template #qrcode>
+  <div cdkMenu class="pb-2">
+    <qrcode #qrc [qrdata]="appUrl()" [width]="200"/>
+
+    <div class="flex justify-center items-center">
+      <div class="text-sm text-gray-500">
+        {{ 'PAC.Xpert.ShareQRCode' | translate: {Default: 'Scan QR to share App'} }}
+      </div>
+      <div class="text-sm mx-1 text-gray-500">·</div>
+      <div class="download cursor-pointer hover:underline" (click)="qrc.downloadQRCode()">
+        {{ 'PAC.Xpert.DownloadQRCode' | translate: {Default: 'Download QR Code'} }}
+      </div>
+    </div>
+  </div>
+</ng-template>

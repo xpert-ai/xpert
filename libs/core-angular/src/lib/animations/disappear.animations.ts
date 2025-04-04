@@ -14,6 +14,12 @@ export const DisappearSlideDown = trigger('slideDown', [
   ])
 ])
 
+export const DisappearSlideLeft = trigger('slideLeft', [
+  transition(':leave', [
+    animate('500ms', style({ opacity: 0, transform: 'translateX(-60%)' }))
+  ])
+])
+
 export const DisappearBL = trigger('bl', [
   transition(':enter', [
     style({ transform: 'translate(-80%, 30%) scale(0.2)', opacity: 0 }),

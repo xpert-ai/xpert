@@ -2,20 +2,23 @@ import { Clipboard } from '@angular/cdk/clipboard'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { OverlayAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmTooltipDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
-import { injectApiBaseUrl, injectToastr, routeAnimations, XpertService } from '../../../../@core'
-import { XpertAPIComponent } from '../api/api.component'
-import { XpertAppComponent } from '../app/app.component'
+import {
+  getErrorMessage,
+  injectApiBaseUrl,
+  injectToastr,
+  routeAnimations,
+  TChatApi,
+  XpertService
+} from '../../../../@core'
+import { XpertDevelopApiKeyComponent } from '../develop'
 import { XpertComponent } from '../xpert.component'
-import { XpertStatisticsComponent } from './statistics/statistics.component'
 
 @Component({
   standalone: true,
@@ -27,20 +30,15 @@ import { XpertStatisticsComponent } from './statistics/statistics.component'
     RouterModule,
     CdkMenuModule,
     MatTooltipModule,
-    NgmSpinComponent,
-    NgmTooltipDirective,
-    InDevelopmentComponent,
-    XpertAppComponent,
-    XpertAPIComponent,
-    XpertStatisticsComponent
+    NgmSpinComponent
   ],
-  selector: 'xpert-monitor',
-  templateUrl: './monitor.component.html',
-  styleUrl: 'monitor.component.scss',
+  selector: 'xpert-api',
+  templateUrl: './api.component.html',
+  styleUrl: 'api.component.scss',
   animations: [routeAnimations, ...OverlayAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class XpertMonitorComponent {
+export class XpertAPIComponent {
   readonly xpertService = inject(XpertService)
   readonly #toastr = injectToastr()
   readonly xpertComponent = inject(XpertComponent)
@@ -52,10 +50,46 @@ export class XpertMonitorComponent {
 
   readonly xpert = this.xpertComponent.latestXpert
 
+  readonly avatar = computed(() => this.xpert()?.avatar)
+  readonly apiUrl = computed(() => this.apiBaseUrl + '/api/ai/')
+  readonly api = computed(() => this.xpert()?.api)
+  readonly enabledApi = computed(() => !this.api()?.disabled)
+
   readonly loading = signal(false)
+
+  updateApi(value: Partial<TChatApi>) {
+    this.loading.set(true)
+    const api = { ...(this.api() ?? {}), ...value }
+    this.xpertService.updateChatApi(this.xpert().id, api).subscribe({
+      next: () => {
+        this.loading.set(false)
+        this.xpertComponent.latestXpert.update((state) => ({ ...state, api }))
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
 
   copy(content: string) {
     this.#clipboard.copy(content)
     this.#toastr.info({ code: 'PAC.Xpert.Copied', default: 'Copied' })
+  }
+
+  openApiReference() {
+    this.#router.navigate(['xpert', this.xpert().id, 'develop'])
+  }
+
+  openApiKey() {
+    this.#dialog
+      .open(XpertDevelopApiKeyComponent, {
+        data: {
+          xpertId: this.xpert().id
+        }
+      })
+      .closed.subscribe({
+        next: () => {}
+      })
   }
 }

@@ -176,10 +176,11 @@
 <xpert-studio-header class="absolute top-0 left-0 z-20 flex items-center justify-between w-full"
   [(sidePanel)]="sidePanel" />
 
-<xpert-studio-panel class="absolute top-14 right-0 bottom-2 flex z-10 outline-none"
-  [(sidePanel)]="sidePanel" />
+<xpert-studio-panel class="absolute top-14 right-0 bottom-2 flex z-10 !w-0 shrink outline-none"
+  [(sidePanel)]="sidePanel" 
+/>
 
-<xpert-studio-context-menu #menu="menuComponent" />
+<xpert-studio-context-menu #menu="menuComponent" class="absolute" />
 
 <ng-template #connContextMenu let-connection="connection" let-connectionComponent="connectionComponent">
   <xpert-studio-connection-menu cdkMenu class="cdk-menu__medium" 

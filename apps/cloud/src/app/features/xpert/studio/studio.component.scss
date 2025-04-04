@@ -1,7 +1,7 @@
 @use '../flow-common';
 
 :host {
-  @apply w-full h-full;
+  @apply flex w-full h-full bg-gray-100;
   --output-size: 14px;
   --f-component-hover-border: theme('colors.primary.300');
 }

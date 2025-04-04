@@ -2330,8 +2330,8 @@
       "ImportError": "DSL文件导入失败",
       "ChangeXpertName": "更改专家名称",
       "ImportDSL": "导入 DSL 文件",
-      "ExportDSLVersion": "导出 DSL (当前版本)",
-      "ExportDSLDraft": "导出 DSL (草稿)",
+      "ExportDSLVersion": "导出",
+      "ExportDSLDraft": "导出(草稿)",
       "CommandExamples": "命令示例",
       "Command": "命令",
       "Input": "输入",
@@ -2557,7 +2557,10 @@
       "TestWorkflowNode": "测试工作流节点",
       "TestRun": "测试运行",
       "Question": "问题",
-      "SearchRecallMemories": "搜寻回忆"
+      "SearchRecallMemories": "搜寻回忆",
+      "DuplicateSuccess": "复制成功",
+      "DuplicateError": "复制失败",
+      "AfterPublish": "发布后"
     },
     "MCP": {
       "Connect": "连接",

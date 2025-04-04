@@ -186,9 +186,6 @@ export class XpertStudioHeaderComponent {
         )
       }
     })
-
-    // const draft = isDraft ? this.apiService.store.getValue().draft : this.apiService.getInitialDraft()
-    // const result = stringify(instanceToPlain(new XpertDraftDslDTO(draft)))
   }
 
   publishToIntegration() {
