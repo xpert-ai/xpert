@@ -19,8 +19,7 @@ import { Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { v4 as uuidv4 } from 'uuid'
 import z from 'zod'
-import { CreateCopilotStoreCommand } from '../../../copilot-store'
-import { memoryPrompt } from '../../../copilot-store/utils'
+import { CreateCopilotStoreCommand, formatMemories } from '../../../copilot-store'
 import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { XpertAgentExecutionStateQuery } from '../../../xpert-agent-execution/queries'
 import { AgentStateAnnotation } from '../../../xpert-agent/commands/handlers/types'
@@ -216,7 +215,7 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 			}
 		}
 
-		prompt += `\nThe following are existing memories:\n<memory>\n${memoryPrompt(items)}\n</memory>`
+		prompt += `\nThe following are existing memories:\n<memories>\n${formatMemories(items)}\n</memories>`
 
 		const experiences = await chatModel
 			.withStructuredOutput(schema)

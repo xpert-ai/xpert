@@ -7,7 +7,6 @@ import {
 	IChatConversation,
 	IXpert,
 	LongTermMemoryTypeEnum,
-	mapTranslationLanguage,
 	TChatConversationStatus,
 	TSensitiveOperation,
 	XpertAgentExecutionStatusEnum
@@ -25,14 +24,12 @@ import {
 	ScheduleSummaryJobCommand
 } from '../../../chat-conversation/'
 import { appendMessageSteps, ChatMessageUpsertCommand } from '../../../chat-message'
-import { CreateCopilotStoreCommand } from '../../../copilot-store'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { messageContentText, XpertAgentChatCommand } from '../../../xpert-agent/'
-import { GetXpertMemoryEmbeddingsQuery } from '../../queries'
 import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
-import { CopilotNotFoundException } from '../../../core/errors'
 import { appendMessageContent } from '@metad/copilot'
+import { CreateMemoryStoreCommand } from '../create-memory-store.command'
 
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
@@ -56,7 +53,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		const xpert = await this.xpertService.findOne(xpertId, { relations: ['agent'] })
 		const latestXpert = figureOutXpert(xpert, options?.isDraft)
 		const memory = latestXpert.memory
-		const memoryStore = await this.createMemoryStore(latestXpert, userId)
+		const memoryStore = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore>(new CreateMemoryStoreCommand(latestXpert, userId))
+		// await this.createMemoryStore(latestXpert, userId)
 		let memories = null
 
 		let conversation: IChatConversation
@@ -344,47 +342,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		})
 	}
 
-	/**
-	 * Create memory store for xpert if memory is enabled
-	 * 
-	 * @param xpert 
-	 * @param userId 
-	 * @returns 
-	 */
-	async createMemoryStore(xpert: Partial<IXpert>, userId: string) {
-		const { tenantId, organizationId } = xpert
-		const memory = xpert.memory
-		if (!memory?.enabled) {
-			return null
-		}
-
-		const embeddings = await this.queryBus.execute(
-			new GetXpertMemoryEmbeddingsQuery(tenantId, organizationId, memory, {})
-		)
-
-		if (!embeddings) {
-			throw new CopilotNotFoundException(
-				await this.i18nService.t('xpert.Error.EmbeddingModelForMemory', {
-					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-				})
-			)
-		}
-
-		const store = await this.commandBus.execute<CreateCopilotStoreCommand, BaseStore>(
-			new CreateCopilotStoreCommand({
-				tenantId,
-				organizationId,
-				userId,
-				index: {
-					dims: null,
-					embeddings
-					// fields
-				}
-			})
-		)
-
-		return store
-	}
 
 }
 

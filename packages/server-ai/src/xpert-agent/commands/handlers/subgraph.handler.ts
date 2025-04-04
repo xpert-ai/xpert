@@ -5,6 +5,7 @@ import { HumanMessagePromptTemplate, SystemMessagePromptTemplate } from '@langch
 import { Runnable, RunnableConfig, RunnableLambda, RunnableLike } from '@langchain/core/runnables'
 import {
 	Annotation,
+	BaseStore,
 	Command,
 	CompiledStateGraph,
 	END,
@@ -23,7 +24,6 @@ import { Subscriber } from 'rxjs'
 import z from 'zod'
 import { v4 as uuidv4 } from "uuid"
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
-import { memoryPrompt } from '../../../copilot-store/utils'
 import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertWorkflowQuery, GetXpertChatModelQuery } from '../../../xpert/queries'
@@ -41,6 +41,8 @@ import { FakeStreamingChatModel, getChannelState, messageEvent, TStateChannel } 
 import { stringifyMessageContent } from '@metad/copilot'
 import { createParameters } from '../../workflow/parameter'
 import { CreateWorkflowNodeCommand } from '../create-workflow.command'
+import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
+import { CreateMemoryStoreCommand } from '../../../xpert/commands'
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -62,6 +64,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 	}> {
 		const { agentKeyOrName, xpert, options } = command
 		const { isStart, execution, leaderKey, channel: agentChannel, summarizeTitle, subscriber, rootController, signal, disableCheckpointer, variables, partners, handoffTools } = options
+		const userId = RequestContext.currentUserId()
 
 		// Signal controller in this subgraph
 		const abortController = new AbortController()
@@ -100,6 +103,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			model: copilotModel.model || copilotModel.copilot.copilotModel?.model
 		}
 
+		// Create memory store
+		const store = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore>(new CreateMemoryStoreCommand(xpert, userId))
+
 		// Create tools
 		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
 			new ToolsetGetToolsCommand(options?.toolsets ?? agent.toolsetIds, {
@@ -134,6 +140,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					interruptBefore.push(tool.name)
 				}
 			})
+		}
+
+		// Memory tools
+		if (team.memory?.qa?.enabled) {
+			tools.push(...initializeMemoryTools(store, xpert.id).map((tool) => ({
+				caller: agent.key,
+				tool
+			})))
 		}
 
 		this.#logger.debug(`Use tools:\n${[...tools].map((_, i) => `${i+1}. ` + _.tool.name + ': ' + _.tool.description).join('\n')}`)
@@ -416,7 +430,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			const parameters = stateToParameters(state)
 			let systemTemplate = `Current time: ${new Date().toISOString()}\n${parseXmlString(agent.prompt) ?? ''}`
 			if (memories?.length) {
-				systemTemplate += `\n\n<memory>\n${memoryPrompt(memories)}\n</memory>`
+				systemTemplate += `\n\n<memories>\n${formatMemories(memories)}\n</memories>`
 			}
 			if (summary) {
 				systemTemplate += `\nSummary of conversation earlier: \n${summary}`
@@ -453,25 +467,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			}
 		}
 		
-		// Fill tools or structured output into chatModel
-		const withStructured = (chatModel) => {
-			let chatModelWithTools = null
-			if (withTools.length) {
-				if (agent.options?.parallelToolCalls === false && chatModel instanceof ChatOpenAI) {
-					chatModelWithTools = chatModel.bindTools(withTools, {parallel_tool_calls: false})
-				} else {
-					chatModelWithTools = chatModel.bindTools(withTools)
-				}
-			} else {
-				chatModelWithTools = agent.outputVariables?.length ? chatModel.withStructuredOutput(z.object({
-					...createParameters(agent.outputVariables),
-				})) : chatModel
-			}
-			return chatModelWithTools
-		}
 		// Execute agent
 		const callModel = async (state: typeof SubgraphStateAnnotation.State, config?: RunnableConfig) => {
-			const structuredChatModel = withStructured(chatModel)
+			const structuredChatModel = withStructured(chatModel, agent, withTools)
 			let withFallbackModel: Runnable = structuredChatModel
 			if (agent.options?.retry?.enabled) {
 				withFallbackModel = withFallbackModel.withRetry({stopAfterAttempt: agent.options.retry.stopAfterAttempt ?? 2})
@@ -494,7 +492,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						usageCallback: assignExecutionUsage(execution)
 					})
 				)
-				fallbackChatModel = withStructured(fallbackChatModel)
+				fallbackChatModel = withStructured(fallbackChatModel, agent, withTools)
 				withFallbackModel = withFallbackModel.withFallbacks([fallbackChatModel])
 			}
 
@@ -639,7 +637,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			graph: subgraphBuilder.compile({
 				checkpointer: disableCheckpointer ? false : this.copilotCheckpointSaver,
 				interruptBefore,
-				name: agentKey
+				name: agentKey,
+				store
 			}),
 			nextNodes: next,
 			failNode: fail?.[0],
@@ -985,4 +984,21 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 
 		return END
 	}
+}
+
+// Fill tools or structured output into chatModel
+function withStructured(chatModel: BaseChatModel, agent: IXpertAgent, withTools,) {
+	let chatModelWithTools = null
+	if (withTools.length) {
+		if (agent.options?.parallelToolCalls === false && chatModel instanceof ChatOpenAI) {
+			chatModelWithTools = chatModel.bindTools(withTools, {parallel_tool_calls: false})
+		} else {
+			chatModelWithTools = chatModel.bindTools(withTools)
+		}
+	} else {
+		chatModelWithTools = agent.outputVariables?.length ? chatModel.withStructuredOutput(z.object({
+			...createParameters(agent.outputVariables),
+		})) : chatModel
+	}
+	return chatModelWithTools
 }
