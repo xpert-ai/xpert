@@ -63,7 +63,9 @@ export class XpertStudioHeaderComponent {
   readonly route = inject(ActivatedRoute)
   readonly #viewContainerRef = inject(ViewContainerRef)
 
+  // Inputs
   readonly sidePanel = model<'preview' | 'variables'>(null)
+  readonly showFeatures = model(false)
 
   readonly team = computed(() => this.xpertStudioComponent.team())
   readonly xpert = this.xpertStudioComponent.xpert
@@ -154,9 +156,10 @@ export class XpertStudioHeaderComponent {
   }
 
   toggleFeatures() {
-    this.#dialog.open(XpertStudioFeaturesComponent, {
-      viewContainerRef: this.#viewContainerRef
-    })
+    // this.#dialog.open(XpertStudioFeaturesComponent, {
+    //   viewContainerRef: this.#viewContainerRef
+    // })
+    this.showFeatures.update((state) => !state)
   }
 
   updateAgentConfig(config: Partial<TXpertAgentConfig>) {

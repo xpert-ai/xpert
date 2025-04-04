@@ -1,20 +1,17 @@
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, DestroyRef, Input, OnInit, inject } from '@angular/core'
+import { Component, DestroyRef, inject, Input, model, OnInit } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatIconModule } from '@angular/material/icon'
-import { MatMenuModule } from '@angular/material/menu'
-import { MatSelectModule } from '@angular/material/select'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { nonNullable } from '@metad/core'
+import { nonNullable, OverlayAnimation1 } from '@metad/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { uniqBy } from 'lodash-es'
+import { NgxPermissionsService } from 'ngx-permissions'
 import { combineLatestWith, filter, from, map, shareReplay, switchMap, tap } from 'rxjs'
 import { IOrganization, PermissionsEnum, Store, UsersOrganizationsService } from '../../../@core'
-import { NgxPermissionsService } from 'ngx-permissions'
-import { OrgAvatarComponent } from '../../../@shared/organization'
 import { TranslationBaseComponent } from '../../../@shared/language'
-import { TranslateModule } from '@ngx-translate/core'
-
+import { OrgAvatarComponent } from '../../../@shared/organization'
 
 @Component({
   standalone: true,
@@ -24,16 +21,8 @@ import { TranslateModule } from '@ngx-translate/core'
   host: {
     class: 'pac-organization-selector'
   },
-  imports: [
-    CommonModule,
-    FormsModule,
-    TranslateModule,
-    MatSelectModule,
-    MatMenuModule,
-    MatIconModule,
-    MatTooltipModule,
-    OrgAvatarComponent
-  ]
+  imports: [CommonModule, FormsModule, TranslateModule, CdkMenuModule, MatTooltipModule, OrgAvatarComponent],
+  animations: [OverlayAnimation1]
 })
 export class OrganizationSelectorComponent extends TranslationBaseComponent implements OnInit {
   private readonly store = inject(Store)
@@ -42,8 +31,9 @@ export class OrganizationSelectorComponent extends TranslationBaseComponent impl
   private readonly destroyRef = inject(DestroyRef)
 
   @Input() isCollapsed = false
-  
-  selectedOrganization: IOrganization
+
+  // selectedOrganization: IOrganization
+  readonly organization = model<IOrganization>(null)
 
   public readonly organizations$ = this.store.user$
     .pipe(
@@ -86,7 +76,8 @@ export class OrganizationSelectorComponent extends TranslationBaseComponent impl
       }),
       combineLatestWith(from(this.permissionsService.hasPermission(PermissionsEnum.SUPER_ADMIN_EDIT))),
       map(([organizations, canAllOrgEdit]) => {
-        return canAllOrgEdit ? [
+        return canAllOrgEdit
+          ? [
               {
                 name: this.getTranslation('PAC.KEY_WORDS.Tenant', { Default: 'Tenant' }),
                 id: null
@@ -114,7 +105,7 @@ export class OrganizationSelectorComponent extends TranslationBaseComponent impl
       .pipe(
         filter((organization) => !!organization),
         tap((organization: IOrganization) => {
-          this.selectedOrganization = organization
+          this.organization.set(organization)
           this.store.featureOrganizations = organization.featureOrganizations ?? []
         }),
         takeUntilDestroyed(this.destroyRef)
@@ -124,8 +115,8 @@ export class OrganizationSelectorComponent extends TranslationBaseComponent impl
 
   /**
    * Toggle another organization
-   * 
-   * @param organization 
+   *
+   * @param organization
    */
   selectOrganization(organization: IOrganization) {
     if (organization?.id) {
@@ -133,15 +124,15 @@ export class OrganizationSelectorComponent extends TranslationBaseComponent impl
       this.store.organizationId = organization.id
       this.store.selectedEmployee = null
       // reload page
-      window.location.reload();
+      window.location.reload()
     } else {
       this.store.selectedOrganization = null
       this.store.organizationId = null
       this.store.selectedEmployee = null
-      this.selectedOrganization = {
+      this.organization.set({
         name: this.getTranslation('PAC.Header.Organization.AllOrg', { Default: 'All Org' }),
         id: null
-      } as IOrganization
+      } as IOrganization)
     }
 
     // Reset selected project when organization is changed

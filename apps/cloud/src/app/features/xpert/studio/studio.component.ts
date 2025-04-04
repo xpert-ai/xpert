@@ -72,6 +72,7 @@ import { XpertStudioPanelComponent } from './panel/panel.component'
 import { XpertExecutionService } from './services/execution.service'
 import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
+import { XpertStudioFeaturesComponent } from './features/features.component'
 
 
 @Component({
@@ -93,6 +94,7 @@ import { EmojiAvatarComponent } from '../../../@shared/avatar'
     NgmCommonModule,
 
     EmojiAvatarComponent,
+    XpertStudioFeaturesComponent,
     XpertStudioToolbarComponent,
     XpertStudioContextMenuComponent,
     XpertStudioNodeAgentComponent,
@@ -216,6 +218,7 @@ export class XpertStudioComponent {
   readonly executions = this.executionService.executions
   readonly toolExecutions = this.executionService.toolExecutions
   readonly sidePanel = model<"preview" | "variables">()
+  readonly showFeatures = model(false)
 
   readonly runningToolsets = computed<Array<{key: string; agentKey: string; running: boolean}>>(() => {
     const executions = this.toolExecutions()

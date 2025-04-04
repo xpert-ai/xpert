@@ -21,7 +21,7 @@
 </button>
 
 <ng-template #menu>
-  <div class="z-50 dark:text-white" cdkMenu>
+  <div class="z-50 dark:text-white" cdkMenu @overlayAnimation1>
     <div class="p-2 border-b flex items-center border-gray-200 rounded-t-lg dark:border-gray-600">
       <pac-user-profile-inline [user]="user()" />
     </div>

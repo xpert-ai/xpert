@@ -1,4 +1,4 @@
-<div class="flex flex-col w-16 shrink-0 transition-all bg-neutral-50"
+<div class="flex flex-col w-16 max-w-[240px] shrink-0 transition-all bg-neutral-50"
   [class.w-[240px]]="sideMenuOpened()"
 >
   <div class="flex flex-col p-2 mx-2 mt-2 rounded-xl hover:bg-gray-100 pressable cursor-pointer"
@@ -173,11 +173,11 @@
   </nav>
 
   <div class="shrink-0 py-3 px-4">
-    <div class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-gray-500 hover:bg-hover-bg" (click)="toggleSideMenu()">
+    <div class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-500 hover:bg-hover-bg" (click)="toggleSideMenu()">
       @if (sideMenuOpened()) {
-        <i class="ri-sidebar-fold-line text-xl"></i>
+        <i class="ri-sidebar-fold-line text-2xl"></i>
       } @else {
-        <i class="ri-sidebar-unfold-line text-xl"></i>
+        <i class="ri-sidebar-unfold-line text-2xl"></i>
       }
     </div>
   </div>
