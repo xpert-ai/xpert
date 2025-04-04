@@ -4,13 +4,15 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormArray, FormBuilder, FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { MatInputModule } from '@angular/material/input'
+import { IsDirty } from '@metad/core'
 import { NgmInputComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
+  AiModelTypeEnum,
   getErrorMessage,
   IfAnimation,
-  AiModelTypeEnum,
   omitXpertRelations,
   TagCategoryEnum,
   ToastrService,
@@ -20,15 +22,13 @@ import {
   XpertTypeEnum
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
-import { XpertComponent } from '../xpert.component'
-import { injectGetXpertTeam } from '../../utils'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { TagSelectComponent } from 'apps/cloud/src/app/@shared/tag'
-import { MatInputModule } from '@angular/material/input'
-import { IsDirty } from '@metad/core'
 import { derivedFrom } from 'ngxtension/derived-from'
-import { pipe, switchMap, of, tap } from 'rxjs'
-import { ActivatedRoute, Router } from '@angular/router'
+import { of, pipe, switchMap, tap } from 'rxjs'
+import { injectGetXpertTeam } from '../../utils'
+import { XpertComponent } from '../xpert.component'
+import { DialogRef } from '@angular/cdk/dialog'
 
 @Component({
   selector: 'xpert-basic',
@@ -48,7 +48,7 @@ import { ActivatedRoute, Router } from '@angular/router'
     CopilotModelSelectComponent,
     TagSelectComponent,
     NgmInputComponent,
-    NgmSpinComponent,
+    NgmSpinComponent
   ],
   templateUrl: './basic.component.html',
   styleUrl: './basic.component.scss',
@@ -65,30 +65,33 @@ export class XpertBasicComponent implements IsDirty {
   readonly getXpertTeam = injectGetXpertTeam()
   readonly #fb = inject(FormBuilder)
   readonly #toastr = inject(ToastrService)
-  readonly #router = inject(Router)
-  readonly #route = inject(ActivatedRoute)
+  readonly #dialogRef = inject(DialogRef)
 
   readonly xpertId = this.xpertComponent.paramId
 
   readonly loading = signal(false)
-  readonly xpert = derivedFrom([this.xpertId], pipe(
-    switchMap(([id]) => {
-      if (id) {
-        this.loading.set(true)
-        return this.getXpertTeam(this.xpertId()).pipe(tap(() => this.loading.set(false)))
-      }
-      return of(null)
-    })
-  ), {initialValue: null})
-  
+  readonly xpert = derivedFrom(
+    [this.xpertId],
+    pipe(
+      switchMap(([id]) => {
+        if (id) {
+          this.loading.set(true)
+          return this.getXpertTeam(this.xpertId()).pipe(tap(() => this.loading.set(false)))
+        }
+        return of(null)
+      })
+    ),
+    { initialValue: null }
+  )
+
   readonly draft = computed(() => {
     if (this.xpert()) {
-      return this.xpert().draft ?? {team: omitXpertRelations(this.xpert())}
+      return this.xpert().draft ?? { team: omitXpertRelations(this.xpert()) }
     }
     return null
   })
   readonly type = computed(() => this.xpert()?.type)
-  readonly team = computed(() => this.type() === XpertTypeEnum.Agent ? this.draft()?.team : this.xpert())
+  readonly team = computed(() => (this.type() === XpertTypeEnum.Agent ? this.draft()?.team : this.xpert()))
 
   readonly isExpanded = model<boolean>(false)
 
@@ -165,7 +168,8 @@ export class XpertBasicComponent implements IsDirty {
             this.loading.set(false)
             this.form.markAsPristine()
             this.xpertComponent.refresh()
-            this.#router.navigate(['../agents'], {relativeTo: this.#route})
+            this.#dialogRef.close()
+            // this.#router.navigate(['../agents'], { relativeTo: this.#route })
           },
           error: (err) => {
             this.loading.set(false)
@@ -173,21 +177,24 @@ export class XpertBasicComponent implements IsDirty {
           }
         })
     } else {
-      this.xpertService.update(this.xpertId(), {
-        ...this.form.value
-      }).subscribe({
-        next: (value) => {
-          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully!' })
-          this.loading.set(false)
-          this.form.markAsPristine()
-          this.xpertComponent.refresh()
-          this.#router.navigate(['../agents'], {relativeTo: this.#route})
-        },
-        error: (err) => {
-          this.loading.set(false)
-          this.#toastr.error(getErrorMessage(err))
-        }
-      })
+      this.xpertService
+        .update(this.xpertId(), {
+          ...this.form.value
+        })
+        .subscribe({
+          next: (value) => {
+            this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated successfully!' })
+            this.loading.set(false)
+            this.form.markAsPristine()
+            this.xpertComponent.refresh()
+            this.#dialogRef.close()
+            // this.#router.navigate(['../agents'], { relativeTo: this.#route })
+          },
+          error: (err) => {
+            this.loading.set(false)
+            this.#toastr.error(getErrorMessage(err))
+          }
+        })
     }
   }
 }

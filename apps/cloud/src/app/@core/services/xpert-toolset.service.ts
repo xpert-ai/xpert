@@ -95,10 +95,8 @@ export class XpertToolsetService extends XpertWorkspaceBaseCrudService<IXpertToo
     })
   }
 
-  getMCPToolsBySchema(schema: TMCPSchema) {
-    return this.httpClient.post<{schema: string; tools: TXpertToolEntity[]}>(this.apiBaseUrl + `/provider/mcp/tools`, {
-      schema,
-    })
+  getMCPToolsBySchema(toolset: Partial<IXpertToolset>) {
+    return this.httpClient.post<{schema: string; tools: TXpertToolEntity[]}>(this.apiBaseUrl + `/provider/mcp/tools`, toolset)
   }
 
   getToolsetTools(id: string,) {

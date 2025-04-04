@@ -1,0 +1,58 @@
+<div class="flex shrink-0 flex-col items-start justify-center gap-3 self-stretch p-4">
+  <div class="flex items-center gap-3 self-stretch">
+    <emoji-avatar [avatar]="avatar()" class="shrink-0 rounded-lg overflow-hidden" />
+    <div class="flex w-full grow flex-col items-start justify-center">
+      <div class="system-md-semibold w-full truncate text-zinc-500">{{xpert().title || xpert().name}}</div>
+      <div class="system-2xs-medium-uppercase text-text-tertiary">{{xpertType()}}</div>
+    </div>
+  </div>
+  <div class="flex flex-wrap items-center gap-2 self-stretch">
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small gap-[1px]"
+      (click)="openBasic()">
+      <i class="ri-edit-line text-lg mr-1"></i>
+      <span class="text-sm font-medium ">
+        {{ 'PAC.Xpert.BasicInfo' | translate: {Default: 'Basic Info'} }}
+      </span>
+    </button>
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small gap-[1px]"
+      (click)="duplicate()">
+      <i class="ri-file-copy-2-line text-lg mr-1"></i>
+      <span class="text-sm font-medium ">
+        {{ 'PAC.ACTIONS.Duplicate' | translate: {Default: 'Duplicate'} }}
+      </span>
+    </button>
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small gap-[1px]"
+      (click)="export(true)">
+      <i class="ri-file-download-line text-lg mr-1"></i>
+      <span class="text-sm font-medium ">
+        {{ 'PAC.Xpert.ExportDSLDraft' | translate: {Default: 'Export (draft)'} }}
+      </span>
+    </button>
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small gap-[1px]"
+      (click)="export()">
+      <i class="ri-download-2-line text-lg mr-1"></i>
+      <span class="text-sm font-medium ">
+        {{ 'PAC.Xpert.ExportDSLVersion' | translate: {Default: 'Export'} }}
+      </span>
+    </button>
+  </div>
+</div>
+
+<div class="flex flex-1">
+  <div class="flex grow flex-col gap-2 overflow-auto px-2 py-1">
+    <xpert-app class="w-full max-w-full rounded-xl" />
+    <xpert-api class="w-full max-w-full rounded-xl" />
+  </div>
+</div>
+
+<div class="flex min-h-fit shrink-0 flex-col items-start justify-center gap-3 self-stretch border-t-[0.5px] border-divider-subtle p-2">
+  <button type="button" class="btn disabled:btn-disabled btn-ghost btn-medium danger gap-0.5 text-text-tertiary hover:text-text-primary"
+    (click)="delete()">
+    <i class="ri-delete-bin-line text-lg mr-1 "></i>
+    <span class="system-sm-medium">{{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} }}</span>
+  </button>
+</div>
+
+@if (loading()) {
+  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+}

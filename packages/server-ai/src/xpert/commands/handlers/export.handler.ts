@@ -5,7 +5,7 @@ import {
 	TXpertTeamConnection,
 	TXpertTeamDraft
 } from '@metad/contracts'
-import { omit, yaml } from '@metad/server-common'
+import { omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { instanceToPlain } from 'class-transformer'
@@ -14,6 +14,7 @@ import { XpertService } from '../../xpert.service'
 import { XpertExportCommand } from '../export.command'
 
 /**
+ * 
  */
 @CommandHandler(XpertExportCommand)
 export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
@@ -25,10 +26,14 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
 		private readonly queryBus: QueryBus
 	) {}
 
-	public async execute(command: XpertExportCommand): Promise<{ data: string }> {
+	public async execute(command: XpertExportCommand): Promise<Record<string, any>> {
 		const { id, isDraft } = command
 
-		const relations = isDraft ? [] : [
+		const relations = isDraft ? [
+				'agent',
+				'agent.copilotModel',
+			] 
+			: [
 			'agent',
 			'agent.copilotModel',
 			'agents',
@@ -44,11 +49,11 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
 		const xpert = await this.xpertService.findOne(id, {relations})
 
 		const draft = isDraft ? xpert.draft : this.getInitialDraft(xpert)
-		const result = yaml.stringify(instanceToPlain(new XpertDraftDslDTO(draft)))
-
-		return {
-			data: result
+		// In some cases, there is no primary agent in the draft.
+		if (!draft.team.agent) {
+			draft.team.agent = xpert.agent
 		}
+		return instanceToPlain(new XpertDraftDslDTO(draft))
 	}
 
 	getInitialDraft(xpert: IXpert) {

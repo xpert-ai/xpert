@@ -98,7 +98,10 @@ export class AppService extends ComponentStore<PACAppState> {
     }
   })
 
+  // In a data project
   readonly inProject = signal(false)
+  // In a xpert workspace
+  readonly inWorkspace = signal(false)
 
   // Obserables
   readonly preferredLanguage$ = this.store.preferredLanguage$.pipe(map((lang) => lang ?? this.translate.currentLang))

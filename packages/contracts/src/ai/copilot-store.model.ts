@@ -20,3 +20,15 @@ export type TCopilotStoreVector = {
 
 export const MEMORY_QA_PROMPT = `Summarize the experience of the above conversation and output a short question and answer.`
 export const MEMORY_PROFILE_PROMPT = `Extract new user profile information from the above conversation in one short sentence. If no new information is available, return nothing.`
+
+export type TMemory = {
+  memoryId?: string
+}
+export type TMemoryUserProfile = TMemory & {
+  profile: string
+  context?: string
+}
+export type TMemoryQA = TMemory & {
+  question: string
+  answer: string
+}

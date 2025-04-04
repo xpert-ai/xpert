@@ -8,6 +8,7 @@ import {
 	IXpert,
 	IXpertAgent,
 	IXpertAgentExecution,
+	TAgentRunnableConfigurable,
 	TXpertGraph,
 	TXpertTeamNode,
 	XpertAgentExecutionStatusEnum
@@ -104,6 +105,7 @@ export class XpertAgentSwarmHandler implements ICommandHandler<XpertAgentSwarmCo
 
 			const runnable = new RunnableLambda({
 				func: async (state: typeof AgentStateAnnotation.spec, config) => {
+					const configurable: TAgentRunnableConfigurable = config.configurable
 					// Record start time
 					const timeStart = Date.now()
 					const __execution = await this.commandBus.execute(
@@ -115,7 +117,8 @@ export class XpertAgentSwarmHandler implements ICommandHandler<XpertAgentSwarmCo
 							agentKey: member,
 							inputs: { input: state.input },
 							parentId: options.rootExecutionId,
-							status: XpertAgentExecutionStatusEnum.RUNNING
+							status: XpertAgentExecutionStatusEnum.RUNNING,
+							predecessor: configurable.agentKey
 						})
 					)
 
@@ -153,7 +156,7 @@ export class XpertAgentSwarmHandler implements ICommandHandler<XpertAgentSwarmCo
 						subscriber.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_END, fullExecution))
 					}
 					try {
-						const output = await graph.invoke(state, config)
+						const output = await graph.invoke(state, {...config, configurable: {...config.configurable, agentKey: member}} )
 
 						const lastMessage = output.messages[output.messages.length - 1]
 						if (lastMessage && isAIMessage(lastMessage)) {

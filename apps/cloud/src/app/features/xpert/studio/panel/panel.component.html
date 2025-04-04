@@ -1,66 +1,68 @@
-@for (node of selectedNodes(); track node.key) {
-  <div class="relative mr-2 h-full flex" @listFadeIn
-    [style.width.px]="panelWidth()">
-    @if (node.entity) {
-      @switch (node.type) {
-        @case('agent') {
-          <xpert-studio-panel-agent class="w-full h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto"
-            [key]="node.key"
-          />
-        }
-        @case ('xpert') {
-          <xpert-studio-panel-xpert class="w-full h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto"
-            [node]="node"
-          />
-        }
-        @case ('toolset') {
-          <xpert-studio-panel-toolset class="w-full h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto"
-            [node]="node"
-          />
-        }
-        @case ('knowledge') {
-          <xpert-studio-panel-knowledge class="w-full h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto"
-            [node]="node"
-          />
-        }
-        @case ('workflow') {
-          <xpert-studio-panel-workflow class="w-full h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto"
-            [node]="node"
-          />
+<div class="absolute top-0 right-0 h-full flex gap-2">
+  @for (node of selectedNodes(); track node.key) {
+    <div class="h-full flex" @listFadeIn
+      [style.width.px]="panelWidth()">
+      @if (node.entity) {
+        @switch (node.type) {
+          @case('agent') {
+            <xpert-studio-panel-agent class="w-full h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto"
+              [key]="node.key"
+            />
+          }
+          @case ('xpert') {
+            <xpert-studio-panel-xpert class="w-full h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto"
+              [node]="node"
+            />
+          }
+          @case ('toolset') {
+            <xpert-studio-panel-toolset class="w-full h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto"
+              [node]="node"
+            />
+          }
+          @case ('knowledge') {
+            <xpert-studio-panel-knowledge class="w-full h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto"
+              [node]="node"
+            />
+          }
+          @case ('workflow') {
+            <xpert-studio-panel-workflow class="w-full h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto"
+              [node]="node"
+            />
+          }
         }
       }
-    }
 
-    <div class="absolute top-1/2 -translate-y-1/2 -left-2 w-4 h-8 cursor-col-resize resize-x"
-      (mousedown)="onResizeMouseDown($event)">
-      <div class="w-1 h-7 bg-divider-deep rounded-sm"></div>
+      <div class="absolute top-1/2 -translate-y-1/2 -left-2 w-4 h-8 cursor-col-resize resize-x"
+        (mousedown)="onResizeMouseDown($event)">
+        <div class="w-1 h-7 bg-divider-deep rounded-sm"></div>
+      </div>
+
+      <div class="absolute top-2 right-2 z-20 opacity-50 hover:opacity-100" displayDensity="compact">
+        <!-- <button mat-icon-button (click)="close()">
+          <mat-icon>close</mat-icon>
+        </button> -->
+      </div>
     </div>
+  }
 
-    <div class="absolute top-2 right-2 z-20 opacity-50 hover:opacity-100" displayDensity="compact">
-      <!-- <button mat-icon-button (click)="close()">
-        <mat-icon>close</mat-icon>
-      </button> -->
-    </div>
-  </div>
-}
-
-@if (sidePanel(); as sidePanel) {
-  <div class="flex gap-2">
-    @switch (sidePanel) {
-      @case ('preview') {
-        @if (executionId()) {
-          <xpert-studio-panel-execution [id]="executionId()" class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto
-            w-[420px] 2xl:w-[460px]"
-            (close)="closeExecution()"
-          />
+  @if (sidePanel(); as sidePanel) {
+    <div class="flex gap-2">
+      @switch (sidePanel) {
+        @case ('preview') {
+          @if (executionId()) {
+            <xpert-studio-panel-execution [id]="executionId()" class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto
+              w-[420px] 2xl:w-[460px]"
+              (close)="closeExecution()"
+            />
+          }
+          <xpert-studio-panel-preview (execution)="executionId.set($event)"/>
         }
-        <xpert-studio-panel-preview (execution)="executionId.set($event)"/>
+
+        @case ('variables') {
+          <xpert-studio-panel-variables />
+        }
       }
 
-      @case ('variables') {
-        <xpert-studio-panel-variables />
-      }
-    }
-
-  </div>
-}
+    </div>
+  }
+</div>

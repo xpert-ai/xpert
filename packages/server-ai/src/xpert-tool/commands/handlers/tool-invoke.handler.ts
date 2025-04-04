@@ -56,6 +56,16 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 			subscriber
 		}
 
+		const context = {
+			tenantId,
+			organizationId,
+			toolsetService: this.toolsetService,
+			commandBus: this.commandBus,
+			queryBus: this.queryBus,
+			xpertId: parameters?.form?.xpertId,
+			agentKey: parameters?.form?.agentKey,
+		}
+
 		switch (toolset.category) {
 			case XpertToolsetCategoryEnum.BUILTIN: {
 				const builtinToolset = createBuiltinToolset(
@@ -69,15 +79,7 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 							}
 						]
 					},
-					{
-						tenantId,
-						organizationId,
-						toolsetService: this.toolsetService,
-						commandBus: this.commandBus,
-						queryBus: this.queryBus,
-						xpertId: parameters?.form.xpertId,
-						agentKey: parameters?.form.agentKey,
-					}
+					context
 				)
 
 				await builtinToolset.initTools()
@@ -115,7 +117,7 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 				break
 			}
 			case XpertToolsetCategoryEnum.MCP: {
-				const mcpToolset = new MCPToolset({ ...toolset, tools: [tool] })
+				const mcpToolset = new MCPToolset({ ...toolset, tools: [tool] }, context)
 				try {
 					await mcpToolset.initTools()
 					const toolRuntime = mcpToolset.getTool(tool.name)

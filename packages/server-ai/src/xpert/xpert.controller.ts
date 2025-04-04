@@ -1,4 +1,4 @@
-import { IChatConversation, ICopilotStore, IIntegration, LanguagesEnum, mapTranslationLanguage, OrderTypeEnum, RolesEnum, TChatApi, TChatApp, TChatOptions, TChatRequest, TXpertTeamDraft, UserType, xpertLabel } from '@metad/contracts'
+import { IChatConversation, ICopilotStore, IIntegration, IXpert, LanguagesEnum, mapTranslationLanguage, OrderTypeEnum, RolesEnum, TChatApi, TChatApp, TChatOptions, TChatRequest, TXpertTeamDraft, UserType, xpertLabel } from '@metad/contracts'
 import {
 	CrudController,
 	OptionParams,
@@ -34,9 +34,10 @@ import {
 	HttpException,
 	ForbiddenException,
 	InternalServerErrorException,
-	Res
+	Res,
+	NotFoundException
 } from '@nestjs/common'
-import { getErrorMessage, keepAlive, takeUntilClose } from '@metad/server-common'
+import { getErrorMessage, keepAlive, takeUntilClose, yaml } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Request, Response } from 'express'
@@ -153,7 +154,10 @@ export class XpertController extends CrudController<Xpert> {
 		@Query('isDraft') isDraft: string,
 		@Query('data', ParseJsonPipe) params: PaginationParams<Xpert>) {
 		try {
-			return await this.commandBus.execute(new XpertExportCommand(xpertId, isDraft === 'true'))
+			const xpert = await this.commandBus.execute(new XpertExportCommand(xpertId, isDraft === 'true'))
+			return {
+				data: yaml.stringify(xpert)
+			}
 		} catch(err) {
 			throw new InternalServerErrorException(err.message)
 		}
@@ -409,6 +413,16 @@ export class XpertController extends CrudController<Xpert> {
 		}
 	}
 
+	@Post(':id/duplicate')
+	async duplicate(@Param('id') id: string, @Body() body: {basic: Partial<IXpert>; isDraft: boolean}) {
+		try {
+			const dsl = await this.commandBus.execute(new XpertExportCommand(id, body.isDraft))
+			return await this.commandBus.execute(new XpertImportCommand({...dsl, team: {...dsl.team, ...body.basic}}))
+		} catch(err) {
+			throw new InternalServerErrorException(err.message)
+		}
+	}
+
 	// Conversations
 
 	@UseGuards(XpertGuard)
@@ -443,6 +457,10 @@ export class XpertController extends CrudController<Xpert> {
 	@Get(':name/app')
 	async getChatApp(@Param('name') name: string,) {
 		const xpert = await this.service.findBySlug(name)
+		if (!xpert) {
+			throw new NotFoundException(`Not found xpert '${name}'`)
+		}
+		
 		if (!xpert.app?.enabled) {
 			throw new ForbiddenException(name)
 		}

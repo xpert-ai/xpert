@@ -1,25 +1,28 @@
-<mat-select [(ngModel)]="selectedOrganization" [compareWith]="compareWith" panelWidth="200px"
-  [matTooltip]="('PAC.Header.Organization.SwitchOrganization' | translate: {Default: 'Switch Organization'}) + (selectedOrganization?.name || '')"
+<div class="w-10 h-10 rounded-xl hover:bg-hover-bg"
+  [matTooltip]="('PAC.Header.Organization.SwitchOrganization' | translate: {Default: 'Switch Organization'}) + (organization()?.name || '')"
   matTooltipPosition="after"
   [matTooltipDisabled]="!isCollapsed"
-  (ngModelChange)="selectOrganization($event)">
-  <mat-select-trigger>
-    @if (selectedOrganization) {
-      <div class="flex justify-start items-center">
-        <pac-org-avatar [organization]="selectedOrganization" class="shrink-0 w-8 h-8 rounded-full overflow-hidden block m-1"/>
-        @if (!isCollapsed) {
-          <span class="flex-1 text-ellipsis overflow-hidden">{{ selectedOrganization.name }}</span>
-        }
+  [cdkMenuTriggerFor]="menu"
+>
+  @if (organization()) {
+    <div class="flex justify-start items-center">
+      <pac-org-avatar [organization]="organization()" class="shrink-0 w-8 h-8 rounded-full overflow-hidden block m-1"/>
+      @if (!isCollapsed) {
+        <span class="flex-1 text-ellipsis overflow-hidden">{{ organization().name }}</span>
+      }
+    </div>
+  }
+</div>
+
+<ng-template #menu>
+  <div cdkMenu class="cdk-menu__large" @overlayAnimation1>
+    @for (org of organizations$ | async; track org.id) {
+      <div cdkMenuItem (click)="selectOrganization(org)">
+        <div class="flex justify-start items-center overflow-hidden text-ellipsis">
+          <pac-org-avatar [organization]="org" class="shrink-0 w-6 h-6 rounded-full overflow-hidden block mr-2" />
+          <span class="whitespace-nowrap" [title]="org.name">{{org.name}}</span>
+        </div>
       </div>
     }
-  </mat-select-trigger>
-
-  @for (org of organizations$ | async; track org.id) {
-    <mat-option [value]="org">
-      <div class="flex justify-start items-center overflow-hidden text-ellipsis">
-        <pac-org-avatar [organization]="org" class="shrink-0 w-6 h-6 rounded-full overflow-hidden block mr-2" />
-        <span class="whitespace-nowrap" [title]="org.name">{{org.name}}</span>
-      </div>
-    </mat-option>
-  }
-</mat-select>
+  </div>
+</ng-template>

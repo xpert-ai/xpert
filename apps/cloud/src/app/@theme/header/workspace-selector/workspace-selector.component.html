@@ -1,0 +1,34 @@
+<div class="h-9 flex items-center p-0.5 rounded-xl hover:bg-hover-bg"
+  [cdkMenuTriggerFor]="menu">
+  <div class="relative group/back w-8 h-8 rounded-lg flex justify-center items-center bg-primary-50 text-primary-500"
+    (click)="$event.stopPropagation();routeWorkspace(selectedWorkspace())">
+    <div>W</div>
+    <div class="absolute w-full h-full rounded-lg flex justify-center items-center top-0 left-0 font-extrabold transition-opacity bg-primary-50 text-primary-500 opacity-0 group-hover/back:opacity-100">
+      <i class="ri-arrow-left-line"></i>
+    </div>
+  </div>
+
+  <div class="font-light text-text-secondary mr-1">/</div>
+
+  <div class="h-full flex justify-center items-center">
+    <span>{{ selectedWorkspace()?.name || 'Select Workspace' }}</span>
+    <i class="ri-arrow-down-s-line mr-1"></i>
+  </div>
+</div>
+
+<ng-template #menu>
+  <div cdkMenu class="cdk-menu__large" @overlayAnimation1>
+    <div class="px-2 py-1">{{ 'PAC.KEY_WORDS.Workspace' | translate: {Default: 'Workspace'} }}</div>
+    @for (item of workspaces(); track item.id) {
+      <div cdkMenuItem class="workspace-item" [class.active]="item.id === selectedWorkspace()?.id" (click)="selectWorkspace(item)">
+        <div class="flex-1 truncate">
+          @if (me().id === item.ownerId) {
+            <i class="ri-user-2-fill mr-1 text-text-secondary" [matTooltip]="'PAC.Xpert.YouAreOwner' | translate: {Default: 'You are owner'}"
+                matTooltipPosition="left"></i>
+          }
+          <span>{{ item.name }}</span>
+        </div>
+      </div>
+    }
+  </div>
+</ng-template>

@@ -1,4 +1,5 @@
 import { SearchItem } from "@langchain/langgraph-checkpoint";
+import { LongTermMemoryTypeEnum } from "@metad/contracts";
 
 /**
  * Tokenize a JSON path into parts.
@@ -313,17 +314,28 @@ export function decodeNsBytes(namespace: string | Uint8Array | any[]): string[] 
   return namespace.split(":");
 }
 
-export function memoryPrompt(memory: SearchItem[],) {
+export function formatMemories(memory: SearchItem[],) {
   return memory.map((item) => {
-    if (item.value.profile) {
-      return `<profile>\n${item.value.profile}\n</profile>`
-    } else if (item.value.output) {
-      return `<example>
-<input>${item.value.input}</input>
-<output>${item.value.output}</output>
-</example>`
+    if (item.namespace[1] === LongTermMemoryTypeEnum.PROFILE) {
+      return formatProfileMemory(item)
+    } else if (item.namespace[1] === LongTermMemoryTypeEnum.QA) {
+      return formatQAMemory(item)
     } else {
       return ''
     }
   }).join('\n')
+}
+
+export function formatProfileMemory(item: SearchItem) {
+  return `<memory>
+  <memoryId>${item.key}</memoryId>
+  <profile>${item.value.profile}</profile>
+</memory>`
+}
+export function formatQAMemory(item: SearchItem) {
+  return `<memory>
+  <memoryId>${item.key}</memoryId>
+  <question>${item.value.question}</question>
+  <answer>${item.value.answer}</answer>
+</memory>`
 }

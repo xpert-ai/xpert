@@ -13,8 +13,8 @@
         <pac-sidenav-navigator [mode]="sidenavMode()" class="w-14 h-14 flex justify-center items-center"/>
       </button>
       <pac-organization-selector class="overflow-hidden flex-1 flex justify-center items-center hover:text-yellow-600 transition-colors"
-        [class.pl-[12px]]="isCollapsed"
-        [isCollapsed]="isCollapsed"/>
+        [isCollapsed]="isCollapsed"
+      />
     </div>
 
     <!-- @if (AbilityActions.Manage | able:'Story') {
@@ -87,6 +87,10 @@
           <div class="flex items-center text-sm overflow-hidden">
             @if (appService.inProject()) {
               <pac-header-project class="h-full rounded-none"/>
+            }
+
+            @if (appService.inWorkspace()) {
+              <pac-workspace-selector class="rounded-xl hover:bg-gray-50" />
             }
             <span class="font-bold flex items-center cursor-pointer
             text-neutral-600 hover:text-neutral-800 dark:text-neutral-300 dark:hover:text-neutral-200"

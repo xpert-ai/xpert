@@ -28,13 +28,14 @@ import { NxWidgetKpiComponent } from '@metad/story/widgets/kpi'
 import { TranslateModule } from '@ngx-translate/core'
 import { compact, uniq } from 'lodash-es'
 import { MarkdownModule } from 'ngx-markdown'
-import { IXpertTask, Store } from '../../@core'
+import { ChatMessageStepCategory, IXpertTask, Store } from '../../@core'
 import { ChatComponentIndicatorsComponent } from './indicators/indicators.component'
 import { ChatComponentIndicatorComponent } from './indicator/indicator.component'
 import { ChatComponentTasksComponent } from './tasks/tasks.component'
 import { XpertHomeService } from '../home.service'
 import { ArraySlicePipe, FileTypePipe } from '@metad/core'
 import { ChatFilesDialogComponent } from '../../@shared/chat'
+import { ChatComponentMemoriesComponent } from './memories/memories.component'
 
 @Component({
   standalone: true,
@@ -57,7 +58,8 @@ import { ChatFilesDialogComponent } from '../../@shared/chat'
     ArraySlicePipe,
     ChatComponentIndicatorsComponent,
     ChatComponentIndicatorComponent,
-    ChatComponentTasksComponent
+    ChatComponentTasksComponent,
+    ChatComponentMemoriesComponent
   ],
   selector: 'chat-component-message',
   templateUrl: './component-message.component.html',
@@ -67,6 +69,7 @@ import { ChatFilesDialogComponent } from '../../@shared/chat'
 export class ChatComponentMessageComponent {
   eSlicersCapacity = SlicersCapacity
   eTimeGranularity = TimeGranularity
+  eChatMessageStepCategory = ChatMessageStepCategory
 
   readonly #store = inject(Store)
   readonly #dialog = inject(Dialog)

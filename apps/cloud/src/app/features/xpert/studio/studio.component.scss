@@ -1,7 +1,7 @@
 @use '../flow-common';
 
 :host {
-  @apply w-full h-full;
+  @apply flex w-full h-full bg-gray-100;
   --output-size: 14px;
   --f-component-hover-border: theme('colors.primary.300');
 }
@@ -15,6 +15,14 @@
     .connection-marker {
       circle, rect, path {
         fill: var(--connection-color);
+      }
+    }
+    &.connecting {
+      stroke-dasharray: 4, 2;
+      animation: dash-flow 2s linear infinite;
+    
+      .f-connection-path {
+        stroke: var(--f-component-hover-border);
       }
     }
     &.f-selected {
@@ -223,11 +231,6 @@ f-flow {
     right: var(--resize-handle-offset);
     cursor: nwse-resize;
   }
-}
-
-.f-component.f-connection.connecting {
-  stroke-dasharray: 4, 2;
-  animation: dash-flow 2s linear infinite;
 }
 
 @keyframes dash-flow {

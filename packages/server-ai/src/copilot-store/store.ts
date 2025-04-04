@@ -247,13 +247,13 @@ export class CopilotMemoryStore extends BaseStore {
 			const embeddingRequestParams: Array<[string, string, string, string]> = []
 
 			// First handle main store insertions
-      let index = 1;
+			let index = 1;
 			for (const op of inserts) {
 				values.push(
 					`('${this.options?.tenantId}', '${this.options?.organizationId}', '${this.options?.userId}', '${op.namespace.join(':')}', '${op.key}', $${index}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`
 				)
-        index++
-        insertionParams.push(JSON.stringify(op.value))
+				index++
+				insertionParams.push(JSON.stringify(op.value))
 			}
 
 			// Then handle embeddings if configured
@@ -345,7 +345,7 @@ export class CopilotMemoryStore extends BaseStore {
 				} else {
 					scoreOperator = scoreOperator.replace('%s', vectorType)
 				}
-        scoreOperator = scoreOperator.replace('vector::?', '$5')
+				scoreOperator = scoreOperator.replace('vector::?', '$5')
 
 				const vectorsPerDocEstimate = 1 // this._indexConfig.__estimatedNumVectors
 				const expandedLimit = op.limit * vectorsPerDocEstimate * 2 + 1
@@ -360,6 +360,9 @@ export class CopilotMemoryStore extends BaseStore {
 				} else if (filterStr) {
 					prefixFilterStr = `WHERE ${filterStr} `
 				}
+
+				prefixFilterStr += prefixFilterStr ? `AND ` : 'WHERE '
+				prefixFilterStr += `"createdById" = '${this.options.userId}'`
 
 				const baseQuery = `
           WITH scored AS (
@@ -406,7 +409,7 @@ export class CopilotMemoryStore extends BaseStore {
 				baseQuery += ' LIMIT $2 OFFSET $3'
 				params.push(op.limit, op.offset)
 
-        params.push(this.options.userId)
+				params.push(this.options.userId)
 
 				queries.push([baseQuery, params])
 			}

@@ -2,7 +2,7 @@ import { DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, signal } from '@angular/core'
+import { Component, computed, inject, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -33,8 +33,11 @@ import { XpertStudioFeaturesSummaryComponent } from './summary/summary.component
   animations: [...IfAnimations]
 })
 export class XpertStudioFeaturesComponent {
-  readonly #dialogRef = inject(DialogRef)
+  // readonly #dialogRef = inject(DialogRef)
   readonly apiService = inject(XpertStudioApiService)
+
+  // Outputs
+  readonly close = output()
 
   readonly view = signal<'summarize' | 'image_upload' | 'memory'>(null)
   readonly xpert = this.apiService.xpert
@@ -43,9 +46,6 @@ export class XpertStudioFeaturesComponent {
   readonly memory = computed(() => this.xpert()?.memory)
   readonly enabledMemory = computed(() => this.memory()?.enabled)
 
-  close() {
-    this.#dialogRef.close()
-  }
 
   toggleView(view: 'summarize' | 'image_upload' | 'memory') {
     this.view.update((state) => (state === view ? null : view))

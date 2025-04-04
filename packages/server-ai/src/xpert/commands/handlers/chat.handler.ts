@@ -7,7 +7,6 @@ import {
 	IChatConversation,
 	IXpert,
 	LongTermMemoryTypeEnum,
-	mapTranslationLanguage,
 	TChatConversationStatus,
 	TSensitiveOperation,
 	XpertAgentExecutionStatusEnum
@@ -25,14 +24,12 @@ import {
 	ScheduleSummaryJobCommand
 } from '../../../chat-conversation/'
 import { appendMessageSteps, ChatMessageUpsertCommand } from '../../../chat-message'
-import { CreateCopilotStoreCommand } from '../../../copilot-store'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { messageContentText, XpertAgentChatCommand } from '../../../xpert-agent/'
-import { GetXpertMemoryEmbeddingsQuery } from '../../queries'
 import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
-import { CopilotNotFoundException } from '../../../core/errors'
 import { appendMessageContent } from '@metad/copilot'
+import { CreateMemoryStoreCommand } from '../create-memory-store.command'
 
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
@@ -56,7 +53,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		const xpert = await this.xpertService.findOne(xpertId, { relations: ['agent'] })
 		const latestXpert = figureOutXpert(xpert, options?.isDraft)
 		const memory = latestXpert.memory
-		const memoryStore = await this.createMemoryStore(latestXpert, userId)
+		const memoryStore = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore>(new CreateMemoryStoreCommand(latestXpert, userId))
+		// await this.createMemoryStore(latestXpert, userId)
 		let memories = null
 
 		let conversation: IChatConversation
@@ -101,7 +99,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				)
 
 				// Remember
-				memories = await this.getLongTermMemory(memoryStore, xpertId, input.input)
+				memories = await getLongTermMemory(memoryStore, xpertId, input.input)
 			}
 
 			// New execution (Run) in thread
@@ -344,84 +342,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		})
 	}
 
-	/**
-	 * Create memory store for xpert if memory is enabled
-	 * 
-	 * @param xpert 
-	 * @param userId 
-	 * @returns 
-	 */
-	async createMemoryStore(xpert: Partial<IXpert>, userId: string) {
-		const { tenantId, organizationId } = xpert
-		const memory = xpert.memory
-		if (!memory?.enabled) {
-			return null
-		}
 
-		const embeddings = await this.queryBus.execute(
-			new GetXpertMemoryEmbeddingsQuery(tenantId, organizationId, memory, {})
-		)
-
-		if (!embeddings) {
-			throw new CopilotNotFoundException(
-				await this.i18nService.t('xpert.Error.EmbeddingModelForMemory', {
-					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-				})
-			)
-		}
-
-		const store = await this.commandBus.execute<CreateCopilotStoreCommand, BaseStore>(
-			new CreateCopilotStoreCommand({
-				tenantId,
-				organizationId,
-				userId,
-				index: {
-					dims: null,
-					embeddings
-					// fields
-				}
-			})
-		)
-
-		return store
-	}
-
-	async getLongTermMemory(store: BaseStore, xpertId: string, input: string) {
-		return await store?.search([xpertId, LongTermMemoryTypeEnum.PROFILE], { query: input })
-	}
 }
 
-// export function appendMessageContent(aiMessage: CopilotChatMessage, content: MessageContent) {
-// 	const _content = aiMessage.content
-// 	if (typeof content === 'string') {
-// 		if (typeof _content === 'string') {
-// 			aiMessage.content = _content + content
-// 		} else if (Array.isArray(_content)) {
-// 			const lastContent = _content[_content.length - 1]
-// 			if (lastContent.type === 'text') {
-// 				lastContent.text = lastContent.text + content
-// 			} else {
-// 				_content.push({
-// 					type: 'text',
-// 					text: content
-// 				})
-// 			}
-// 		} else {
-// 			aiMessage.content = content
-// 		}
-// 	} else {
-// 		if (Array.isArray(_content)) {
-// 			_content.push(content)
-// 		} else if (_content) {
-// 			aiMessage.content = [
-// 				{
-// 					type: 'text',
-// 					text: _content
-// 				},
-// 				content
-// 			]
-// 		} else {
-// 			aiMessage.content = [content]
-// 		}
-// 	}
-// }
+async function getLongTermMemory(store: BaseStore, xpertId: string, input: string) {
+	return await store?.search([xpertId, LongTermMemoryTypeEnum.PROFILE], { query: input })
+}

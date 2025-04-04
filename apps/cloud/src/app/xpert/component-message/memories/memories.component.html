@@ -1,0 +1,19 @@
+<div class="cursor-pointer px-1 flex items-center text-text-primary opacity-50 hover:opacity-100" (click)="toggleExand()">
+  <i class="ri-brain-line mr-1 text-lg text-primary-500"></i>
+  {{ 'PAC.Xpert.SearchRecallMemories' | translate: {Default: 'Search recall memories'} }}: ({{memories()?.length}})</div>
+
+@if (expand()) {
+  <ul class="px-2 mt-2 text-xs">
+    @for (memory of memories(); track memory.key) {
+      <li>
+        <div class="flex items-center gap-1">
+          <div>{{ 'PAC.Xpert.Question' | translate: {Default: 'Question'} }}: </div>
+          <div>{{memory.value.question}}</div>
+        </div>
+        <div class="flex items-center mt-1">
+          <div>{{memory.value.answer}}</div>
+        </div>
+      </li>
+    }
+  </ul>
+}

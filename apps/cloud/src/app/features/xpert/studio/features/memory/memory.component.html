@@ -21,6 +21,7 @@
     </div>
   
     <copilot-prompt-editor @heightChangeAnimation class="relative ngm-card-border-gradient self-stretch"
+      role="system"
       [tooltip]="'PAC.Xpert.ProfileMemoryPromptTooltip' | translate: {Default: 'Prompt guide AI to extract user information through instructions and constraints'}"
       [(prompt)]="profilePrompt"
       initHeight="100"
@@ -36,6 +37,7 @@
 
   @if (qaEnabled) {
     <copilot-prompt-editor @heightChangeAnimation class="relative shadow-sm ngm-card-border-gradient self-stretch"
+      role="system"
       [tooltip]="'PAC.Xpert.QAMemoryPromptTooltip' | translate: {Default: 'Prompt to use instructions and constraints to guide AI to summarize successful experiences of conversation question and answer'}"
       [(prompt)]="qaPrompt"
       initHeight="100"
@@ -47,7 +49,7 @@
 <section class="memory-section"
   [ngmTooltip]="customInDevelopment"
   [hideDelay]="100">
-  <mat-checkbox class="memory-checkbox" >
+  <mat-checkbox class="memory-checkbox" [disabled]="true">
     {{ 'PAC.Xpert.LongTermMemoryTypeEnum.Custom' | translate: {Default: 'Custom'} }}
   </mat-checkbox>
 </section>

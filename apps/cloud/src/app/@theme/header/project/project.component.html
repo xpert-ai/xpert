@@ -1,16 +1,24 @@
-<button mat-button color="accent"
+<div class="h-9 flex items-center p-0.5 rounded-xl hover:bg-hover-bg"
   [cdkMenuTriggerFor]="projectMenu">
-  <span class="flex items-center">
-    {{ project().name }}
-    <svg width="20" height="20" fill="currentColor" style="margin-left: -2px; flex-shrink: 0;">
-      <path d="M9.261 12.697l-2.955-2.93a1.029 1.029 0 010-1.464 1.051 1.051 0 011.478 0L10 10.5l2.216-2.197a1.051 1.051 0 011.478 0 1.03 1.03 0 010 1.465l-2.955 2.929a1.051 1.051 0 01-1.478 0z"></path>
-    </svg>
-  </span>
-</button>
+  <div class="relative group/back w-8 h-8 rounded-lg flex justify-center items-center bg-primary-50 text-primary-500"
+    (click)="$event.stopPropagation();routeProject(project())">
+    <div>P</div>
+    <div class="absolute w-full h-full rounded-lg flex justify-center items-center top-0 left-0 font-extrabold transition-opacity bg-primary-50 text-primary-500 opacity-0 group-hover/back:opacity-100">
+      <i class="ri-arrow-left-line"></i>
+    </div>
+  </div>
+
+  <div class="font-light text-text-secondary mr-1">/</div>
+
+  <div class="h-full flex justify-center items-center">
+    <span>{{ project()?.name || 'Select Workspace' }}</span>
+    <i class="ri-arrow-down-s-line mr-1"></i>
+  </div>
+</div>
 
 <ng-template #projectMenu xPosition="before">
-  <div cdkMenu class="cdk-menu__medium">
-    <pac-inline-search class="mx-2 rounded-xl mb-2"
+  <div cdkMenu class="cdk-menu__large">
+    <ngm-search class="mx-2 rounded-xl mb-2"
       [formControl]="searchControl"
       (click)="$event.stopPropagation()"
     />
@@ -19,7 +27,7 @@
       <button cdkMenuItem role="menuitemradio"
         [class.active]="project().id === item.id"
         (click)="selectProject(item)">
-        {{ item.name }}
+        <div [ngmHighlight]="search" [content]="item.name">{{ item.name }}</div>
       </button>
     }
 

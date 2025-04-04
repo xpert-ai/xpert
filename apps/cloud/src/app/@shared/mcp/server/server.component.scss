@@ -1,0 +1,15 @@
+:host {
+  @apply gap-2;
+}
+
+.view-option.active {
+  @apply border-primary-600 text-primary-600;
+}
+
+.view-tab.active {
+  @apply block;
+}
+
+.file-option.active {
+  @apply shadow-sm border-divider-regular bg-gray-100;
+}

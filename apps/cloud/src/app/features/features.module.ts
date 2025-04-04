@@ -21,7 +21,7 @@ import { environment } from '../../environments/environment'
 import { DirtyCheckGuard, LocalAgent, ServerAgent, ServerSocketAgent, provideLogger } from '../@core/index'
 import { AssetsComponent } from '../@shared/assets/assets.component'
 import { NotificationComponent, TuneComponent } from '../@theme'
-import { HeaderUserComponent, ProjectSelectorComponent } from '../@theme/header'
+import { HeaderUserComponent, ProjectSelectorComponent, WorkspaceSelectorComponent } from '../@theme/header'
 import { PACThemeModule } from '../@theme/theme.module'
 import { StoryFeedService, StoryModelService, StoryStoreService } from '../services/index'
 import { FeaturesRoutingModule } from './features-routing.module'
@@ -73,7 +73,8 @@ registerEChartsThemes()
     NotificationComponent,
     TuneComponent,
     EmojiAvatarComponent,
-    HeaderUserComponent
+    HeaderUserComponent,
+    WorkspaceSelectorComponent
   ],
   providers: [
     DirtyCheckGuard,

@@ -29,6 +29,7 @@ import {
 import { AppService } from '../../../../app.service'
 import { XpertStudioCreateToolComponent } from '../../tools/create/create.component'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
+import { XpertToolMCPCreateComponent } from '../../tools/mcp/create/create.component'
 
 @Component({
   standalone: true,
@@ -122,7 +123,7 @@ export class XpertWorkspaceMCPToolsComponent {
 
   createTool() {
     this.dialog
-      .open(XpertStudioCreateToolComponent, {
+      .open(XpertToolMCPCreateComponent, {
         disableClose: true,
         data: {
           workspace: this.workspace(),

@@ -10,6 +10,7 @@ import { injectHelpWebsite, IUser, LANGUAGES, LanguagesMap, Store } from '../../
 import { UserPipe } from '../../../@shared/pipes'
 import { UserProfileInlineComponent } from '../../../@shared/user'
 import { AppService } from '../../../app.service'
+import { OverlayAnimation1 } from '@metad/core'
 
 const THEMES = [
   {
@@ -38,7 +39,8 @@ const THEMES = [
   standalone: true,
   imports: [CommonModule, FormsModule, CdkMenuModule, TranslateModule, UserPipe, UserProfileInlineComponent],
   selector: 'pac-header-user',
-  templateUrl: './user.component.html'
+  templateUrl: './user.component.html',
+  animations: [OverlayAnimation1]
 })
 export class HeaderUserComponent {
   languages = LANGUAGES
