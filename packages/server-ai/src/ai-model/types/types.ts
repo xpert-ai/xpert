@@ -56,3 +56,10 @@ export const CommonParameterRules = [
         name: 'maxRetries',
     },
 ]
+
+export function mergeCredentials(credentials, modelProperties) {
+    return {
+        ...(credentials ?? {}),
+        ...(modelProperties ?? {}),
+    }
+}

@@ -22,6 +22,7 @@ import { TogetherAIProviderModule } from './togetherai/togetherai'
 import { TongyiProviderModule } from './tongyi/tongyi'
 import { VolcengineMaaSProviderModule } from './volcengine_maas/volcengine_maas'
 import { XAIProviderModule } from './x/x'
+import { XinferenceProviderModule } from './xinference/xinference'
 import { ZhipuaiProviderModule } from './zhipuai/zhipuai'
 
 export const ProviderModules = [
@@ -47,5 +48,6 @@ export const ProviderModules = [
 	VolcengineMaaSProviderModule,
 	SparkProviderModule,
 	SiliconflowProviderModule,
-	JinaProviderModule
+	JinaProviderModule,
+	XinferenceProviderModule
 ]
