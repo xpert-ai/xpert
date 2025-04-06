@@ -112,6 +112,24 @@ export class XpertStudioPanelWorkflowCodeComponent {
       label: {
         en_US: 'Object'
       }
+    },
+    {
+      value: 'array[object]',
+      label: {
+        en_US: 'Object[]'
+      }
+    },
+    {
+      value: 'array[string]',
+      label: {
+        en_US: 'String[]'
+      }
+    },
+    {
+      value: 'array[number]',
+      label: {
+        en_US: 'Number[]'
+      }
     }
   ]
 
