@@ -1,22 +1,23 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, signal, ViewContainerRef } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { Router } from '@angular/router'
+import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { pick } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { getErrorMessage, IfAnimation, injectToastr, IXpert, XpertService } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
-import { XpertComponent } from '../xpert.component'
-import { Dialog } from '@angular/cdk/dialog'
-import { Router } from '@angular/router'
-import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { switchMap } from 'rxjs/operators'
-import { EMPTY } from 'rxjs'
-import { XpertAppComponent } from '../app/app.component'
-import { XpertAPIComponent } from '../api/api.component'
-import { XpertBasicComponent } from '../basic/basic.component'
 import { XpertBasicDialogComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { EMPTY } from 'rxjs'
+import { switchMap } from 'rxjs/operators'
+import { XpertAPIComponent } from '../api/api.component'
+import { XpertAppComponent } from '../app/app.component'
+import { XpertBasicComponent } from '../basic/basic.component'
+import { XpertComponent } from '../xpert.component'
 
 @Component({
   selector: 'xpert-basic-manage',
@@ -56,11 +57,13 @@ export class XpertBasicManageComponent {
   readonly loading = signal(false)
 
   openBasic() {
-    this.#dialog.open(XpertBasicComponent, {
-      viewContainerRef: this.#viewContainerRef
-    }).closed.subscribe({
-      next: ()=> {}
-    })
+    this.#dialog
+      .open(XpertBasicComponent, {
+        viewContainerRef: this.#viewContainerRef
+      })
+      .closed.subscribe({
+        next: () => {}
+      })
   }
 
   delete() {
@@ -90,19 +93,16 @@ export class XpertBasicManageComponent {
   export(isDraft = false) {
     this.#xpertService.exportDSL(this.xpert().id, isDraft).subscribe({
       next: (result) => {
-        const blob = new Blob([result.data], { type: 'text/plain;charset=utf-8' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
+        const blob = new Blob([result.data], { type: 'text/plain;charset=utf-8' })
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
         a.download = `xpert-${this.xpert().slug}.yaml`
-        a.click();
-        window.URL.revokeObjectURL(url);
+        a.click()
+        window.URL.revokeObjectURL(url)
       },
       error: (err) => {
-        this.#toastr.error(
-          `PAC.Xpert.ExportFailed`,
-          getErrorMessage(err)
-        )
+        this.#toastr.error(`PAC.Xpert.ExportFailed`, getErrorMessage(err))
       }
     })
   }
@@ -114,40 +114,43 @@ export class XpertBasicManageComponent {
         data: {
           name: xpert.name,
           avatar: xpert.avatar,
-          description: xpert.description
+          title: xpert.title,
+          description: xpert.description,
+          copilotModel: xpert.copilotModel
         }
       })
       .closed.pipe(
-          switchMap((basic) => {
-            if (basic) {
-              this.loading.set(true)
-              return this.#xpertService.duplicate(this.xpert().id, {
-                basic: {
-                  ...basic,
-                  workspaceId: this.xpert().workspaceId
-                },
-                isDraft: true
-              })
-            }
-            return EMPTY
-          })
-        )
-        .subscribe({
-          next: (xpert) => {
-            this.loading.set(false)
-            this.#router.navigate(['/xpert/', xpert.id])
-            this.#toastr.success(
-              this.#translate.instant('PAC.Xpert.DuplicateSuccess', { Default: 'Duplicate successfully' })
-            )
-          },
-          error: (err) => {
-            this.loading.set(false)
-            this.#toastr.error(
-              this.#translate.instant('PAC.Xpert.DuplicateError', { Default: 'Failed to duplicate xpert' }) +
-                ': ' +
-                getErrorMessage(err)
-            )
+        switchMap((basic) => {
+          if (basic) {
+            this.loading.set(true)
+            return this.#xpertService.duplicate(this.xpert().id, {
+              basic: {
+                ...basic,
+                copilotModel: pick(basic.copilotModel, 'copilotId', 'model', 'modelType', 'options', 'referencedId'),
+                workspaceId: this.xpert().workspaceId
+              },
+              isDraft: true
+            })
           }
+          return EMPTY
         })
+      )
+      .subscribe({
+        next: (xpert) => {
+          this.loading.set(false)
+          this.#router.navigate(['/xpert/', xpert.id])
+          this.#toastr.success(
+            this.#translate.instant('PAC.Xpert.DuplicateSuccess', { Default: 'Duplicate successfully' })
+          )
+        },
+        error: (err) => {
+          this.loading.set(false)
+          this.#toastr.error(
+            this.#translate.instant('PAC.Xpert.DuplicateError', { Default: 'Failed to duplicate xpert' }) +
+              ': ' +
+              getErrorMessage(err)
+          )
+        }
+      })
   }
 }
