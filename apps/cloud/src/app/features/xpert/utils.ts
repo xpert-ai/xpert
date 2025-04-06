@@ -47,3 +47,7 @@ export function genXpertAnswerKey() {
 export function genXpertCodeKey() {
   return letterStartSUID('Code_')
 }
+
+export function genXpertHttpKey() {
+  return letterStartSUID('Http_')
+}

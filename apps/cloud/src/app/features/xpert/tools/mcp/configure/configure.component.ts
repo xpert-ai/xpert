@@ -19,7 +19,7 @@ import { routeAnimations } from '@metad/core'
 import { isEqual, pick } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
-  ApiProviderAuthType,
+  ApiAuthType,
   IXpertToolset,
   TagCategoryEnum,
   ToastrService,
@@ -83,7 +83,7 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
     description: new FormControl(null),
     category: this.#formBuilder.control(XpertToolsetCategoryEnum.MCP),
     credentials: this.#formBuilder.control({
-      auth_type: ApiProviderAuthType.NONE
+      auth_type: ApiAuthType.NONE
     }),
     tags: this.#formBuilder.control(null),
     privacyPolicy: this.#formBuilder.control(null),

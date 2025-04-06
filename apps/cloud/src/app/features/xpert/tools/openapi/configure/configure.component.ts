@@ -14,7 +14,7 @@ import { EntriesPipe, routeAnimations } from '@metad/core'
 import { pick } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
-  ApiProviderAuthType,
+  ApiAuthType,
   ApiToolBundle,
   getErrorMessage,
   IXpertTool,
@@ -88,7 +88,7 @@ export class XpertStudioConfigureToolComponent extends XpertConfigureToolCompone
     category: this.#fb.control(XpertToolsetCategoryEnum.API),
     tools: new FormArray([]),
     credentials: this.#fb.control({
-      auth_type: ApiProviderAuthType.NONE
+      auth_type: ApiAuthType.NONE
     }),
     tags: this.#fb.control(null),
     privacyPolicy: this.#fb.control(null),

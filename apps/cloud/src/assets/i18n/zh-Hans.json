@@ -300,7 +300,10 @@
       "PleaseEnter": "请输入",
       "SemanticType": "语义类型",
       "Visible": "可见",
-      "DefaultValue": "默认值"
+      "DefaultValue": "默认值",
+      "Params": "参数",
+      "Key": "键",
+      "Value": "值"
     },
     "Workflow": {
       "And": "且",
@@ -308,7 +311,22 @@
       "InputValue": "输入值",
       "AddCondition": "添加条件",
       "Remove": "移除",
-      "ElseInfo": "用于定义当 if 条件不满足时应执行的逻辑。"
+      "ElseInfo": "用于定义当 if 条件不满足时应执行的逻辑。",
+      "TypeInsertVariable": "键入 / 插入变量",
+      "PressKeyToInsertVar": "按下 / 键插入变量",
+      "HttpMethod": "Http 方法",
+      "Timeout": "超时时间",
+      "ConnectionTimeout": "连接超时",
+      "ConnectionTimeoutDesc": "输入连接超时时间（秒数）",
+      "ReadTimeout": "读取超时",
+      "ReadTimeoutDesc": "输入读取超时时间（秒数）",
+      "WriteTimeout": "写入超时",
+      "WriteTimeoutDesc": "输入写入超时时间（秒数）",
+      "OutputVariables": "输出变量",
+      "ResponseContent": "返回内容",
+      "ResponseStatusCode": "返回状态码",
+      "ResponseHeaderJson": "返回头(JSON)",
+      "NotSupportedYet": "暂不支持！"
     },
     "MENU": {
       "Certification": "认证",

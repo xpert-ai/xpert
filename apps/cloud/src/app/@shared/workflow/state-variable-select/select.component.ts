@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, input } from '@angular/core'
+import { booleanAttribute, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -16,7 +16,11 @@ import { agentLabel, TStateVariable, TWorkflowVarGroup, XpertParameterTypeEnum }
   selector: 'xpert-state-variable-select',
   templateUrl: 'select.component.html',
   styleUrls: ['select.component.scss'],
-  hostDirectives: [NgxControlValueAccessor]
+  hostDirectives: [NgxControlValueAccessor],
+  host: {
+    tabindex: '-1',
+    '[class.inline]': 'inline()'
+  }
 })
 export class StateVariableSelectComponent {
   eXpertParameterTypeEnum = XpertParameterTypeEnum
@@ -26,6 +30,9 @@ export class StateVariableSelectComponent {
   
   // Inputs
   readonly variables = input<TWorkflowVarGroup[]>()
+  readonly inline = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
   // States
   readonly group = computed(() => {

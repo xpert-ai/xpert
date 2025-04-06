@@ -1,0 +1,67 @@
+<div class="flex items-center justify-between px-4 py-2 h-10">
+  <div class="flex items-center">
+    <div class="mr-0.5 system-sm-semibold-uppercase text-text-secondary">
+      {{ 'PAC.Xpert.RetryOnFailure' | translate: {Default: 'Retry on failure'} }}
+    </div>
+  </div>
+
+  <ngm-slide-toggle [(ngModel)]="enabledRetry" />
+</div>
+
+@if (enabledRetry()) {
+  <div class="w-full flex justify-between items-center px-4">
+    <div class="grow text-sm">
+      {{'PAC.Xpert.StopAfterAttempt' | translate: {Default: 'Stop After Attempt'} }}
+      <i class="ri-information-line opacity-20 hover:opacity-100"
+        [matTooltip]="'PAC.Xpert.StopAfterAttemptTip' | translate: {Default: 'How many times to try before stopping'}"
+        matTooltipPosition="above"
+      ></i>
+    </div>
+
+    <mat-slider class="w-[200px] grow" ngm-density small color="accent"
+      [min]="1"
+      [max]="10"
+      discrete
+    >
+      <input matSliderThumb [value]="stopAfterAttempt()"
+        (dragEnd)="stopAfterAttempt.set($event.value)" >
+    </mat-slider>
+
+    <input class="shrink-0 block ml-4 pl-3 w-16 h-8 appearance-none outline-none rounded-lg bg-gray-100 text-[13px] text-gra-900" 
+      [min]="1"
+      [max]="10"
+      [step]="1"
+      type="number"
+      [ngModel]="stopAfterAttempt()"
+      (ngModelChange)="stopAfterAttempt.set($event)"
+    >
+  </div>
+
+  <div class="w-full flex justify-between items-center px-4">
+    <div class="grow text-sm">
+      {{'PAC.Xpert.RetryInterval' | translate: {Default: 'Retry Interval'} }}
+      <i class="ri-information-line opacity-20 hover:opacity-100"
+        [matTooltip]="'PAC.Xpert.RetryIntervalTip' | translate: {Default: 'How many seconds between retries?'}"
+        matTooltipPosition="above"
+      ></i>
+    </div>
+
+    <mat-slider class="w-[200px] grow" ngm-density small color="accent"
+      [min]="1"
+      [max]="10"
+      discrete
+    >
+      <input matSliderThumb [value]="retryInterval()"
+        (dragEnd)="retryInterval.set($event.value)" >
+    </mat-slider>
+
+    <input class="shrink-0 block ml-4 pl-3 w-16 h-8 appearance-none outline-none rounded-lg bg-gray-100 text-[13px] text-gra-900" 
+      [min]="1"
+      [max]="10"
+      [step]="1"
+      type="number"
+      [ngModel]="retryInterval()"
+      (ngModelChange)="retryInterval.set($event)"
+    >
+  </div>
+}

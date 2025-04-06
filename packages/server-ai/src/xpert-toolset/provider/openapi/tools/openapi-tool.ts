@@ -1,7 +1,7 @@
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { ToolParams } from '@langchain/core/tools'
-import { ApiProviderAuthType, ApiToolBundle, IXpertTool, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { ApiAuthType, ApiToolBundle, IXpertTool, XpertToolsetCategoryEnum } from '@metad/contracts'
 import axios, { AxiosResponse } from 'axios'
 import { ToolParameterValidationError, ToolProviderCredentialValidationError } from '../../../errors'
 import { BaseTool } from '../../../toolset'
@@ -60,8 +60,8 @@ export class OpenAPITool extends BaseTool {
 			throw new ToolProviderCredentialValidationError('Missing auth_type')
 		}
 
-		if (credentials.auth_type === ApiProviderAuthType.API_KEY) {
-			let api_key_header = ApiProviderAuthType.API_KEY
+		if (credentials.auth_type === ApiAuthType.API_KEY) {
+			let api_key_header = ApiAuthType.API_KEY
 
 			if (credentials.api_key_header) {
 				api_key_header = credentials.api_key_header

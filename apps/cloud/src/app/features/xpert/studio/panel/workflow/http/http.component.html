@@ -1,0 +1,343 @@
+<div class="p-4">
+  <div class="flex items-center justify-between">
+    <div class="flex h-6 items-center"><div class="system-sm-semibold-uppercase text-text-secondary">API</div></div>
+    <div class="flex">
+      <div class="flex">
+        <div class="cursor-pointer hover:bg-gray-50 flex h-7 items-center space-x-1 rounded-md px-2 text-gray-500"
+          (click)="openAuth()">
+          <i class="ri-settings-3-line"></i>
+          <div class="text-sm font-medium text-gray-500">
+            {{'PAC.KEY_WORDS.Authorization' | translate: {Default: 'Authorization'} }}<span class="uppercase ml-1 text-gray-700">{{authType()}}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="mt-1">
+    <div class="flex items-start space-x-1">
+      <ngm-select [selectOptions]="HttpOptions" class="shrink-0 w-24" 
+        [placeholder]="'PAC.Workflow.HttpMethod' | translate: {Default: 'Http Method'}"
+        [(ngModel)]="method" 
+      />
+      <div class="border-gray-100 bg-gray-100 w-0 grow rounded-lg border relative">
+        <xpert-variable-input class="relative min-h-[24px] text-sm px-2 py-1" 
+          [variables]="variables()" 
+          [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
+          [(ngModel)]="url" />
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="p-4">
+  <div class="flex items-center justify-between">
+    <div class="flex h-6 items-center">
+      <div class="text-sm font-semibold uppercase text-text-secondary">Headers</div>
+    </div>
+    <div class="flex"></div>
+  </div>
+  <div class="mt-1">
+    <div class="overflow-hidden rounded-lg border border-divider-regular">
+      <div class="text-sm font-semibold uppercase flex h-7 items-center leading-7 text-text-tertiary">
+        <div class="h-full border-r border-divider-regular pl-3 w-1/2">
+          {{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}
+        </div>
+        <div class="h-full items-center justify-between pl-3 pr-1 w-1/2">
+          {{ 'PAC.KEY_WORDS.Value' | translate: {Default: 'Value'} }}
+        </div>
+      </div>
+      @for (header of headers(); track i; let i = $index) {
+        <div class="h-min-7 group flex border-t border-gray-200">
+          <div class="shrink-0 border-r border-divider-regular w-1/2">
+            <div class="hover:cursor-text hover:bg-gray-50 relative flex h-full">
+              <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden" 
+                [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
+                [variables]="variables()" 
+                [ngModel]="header.name"
+                (ngModelChange)="updateHeader(i, {name: $event})"
+              />
+            </div>
+          </div>
+          <div class="w-1/2">
+            <div class="hover:cursor-text hover:bg-gray-50 relative flex h-full">
+              <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden"
+                [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
+                [variables]="variables()" 
+                [ngModel]="header.value" 
+                (ngModelChange)="updateHeaderVal(i, $event)"
+              />
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-small w-6 h-6 danger justify-center opacity-0 group-hover:opacity-100"
+            (click)="removeHeader(i)">
+            <i class="ri-delete-bin-line"></i>
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+
+<div class="p-4">
+  <div class="flex items-center justify-between">
+    <div class="flex h-6 items-center">
+      <div class="text-sm font-semibold uppercase text-text-secondary">
+        {{ 'PAC.KEY_WORDS.Params' | translate: {Default: 'Params'} }}
+      </div>
+    </div>
+    <div class="flex"></div>
+  </div>
+  <div class="mt-1">
+    <div class="overflow-hidden rounded-lg border border-divider-regular">
+      <div class="text-sm font-semibold uppercase flex h-7 items-center leading-7 text-text-tertiary">
+        <div class="h-full border-r border-divider-regular pl-3 w-1/2">
+          {{ 'PAC.KEY_WORDS.Key' | translate: {Default: 'Key'} }}
+        </div>
+        <div class="h-full items-center justify-between pl-3 pr-1 w-1/2">
+          {{ 'PAC.KEY_WORDS.Value' | translate: {Default: 'Value'} }}
+        </div>
+      </div>
+      @for (param of params(); track i; let i = $index) {
+        <div class="h-min-7 group flex border-t border-gray-200">
+          <div class="shrink-0 border-r border-divider-regular w-1/2">
+            <div class="hover:cursor-text hover:bg-gray-50 relative flex h-full">
+              <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden" 
+                [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
+                [variables]="variables()" 
+                [ngModel]="param.key"
+                (ngModelChange)="updateParam(i, {key: $event})"
+              />
+            </div>
+          </div>
+          <div class="w-1/2">
+            <div class="hover:cursor-text hover:bg-gray-50 relative flex h-full">
+              <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden"
+                [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
+                [variables]="variables()" 
+                [ngModel]="param.value" 
+                (ngModelChange)="updateParamVal(i, $event)"
+              />
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-small w-6 h-6 danger justify-center opacity-0 group-hover:opacity-100"
+            (click)="removeParam(i)">
+            <i class="ri-delete-bin-line"></i>
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<div class="p-4">
+  <div class="flex items-center justify-between">
+    <div class="flex h-6 items-center">
+      <div class="text-sm font-semibold uppercase text-text-secondary">Body</div>
+    </div>
+    <div class="flex"></div>
+  </div>
+  <div class="mt-1">
+    <ngm-radio-select simple [selectOptions]="BodyTypeOptions" 
+      [(ngModel)]="bodyType"/>
+  </div>
+
+  @switch (bodyType()) {
+    @case ('x-www-form-urlencoded') {
+      <div class="mt-1">
+        <div class="overflow-hidden rounded-lg border border-divider-regular">
+          <div class="text-sm font-semibold uppercase flex h-7 items-center leading-7 text-text-tertiary">
+            <div class="h-full border-r border-divider-regular pl-3 w-1/2">
+              {{ 'PAC.KEY_WORDS.Key' | translate: {Default: 'Key'} }}
+            </div>
+            <div class="h-full items-center justify-between pl-3 pr-1 w-1/2">
+              {{ 'PAC.KEY_WORDS.Value' | translate: {Default: 'Value'} }}
+            </div>
+          </div>
+          @for (param of encodedForm(); track i; let i = $index) {
+            <div class="h-min-7 group flex border-t border-gray-200">
+              <div class="shrink-0 border-r border-divider-regular w-1/2">
+                <div class="hover:cursor-text hover:bg-gray-50 relative flex h-full">
+                  <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden" 
+                    [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
+                    [variables]="variables()" 
+                    [ngModel]="param.key"
+                    (ngModelChange)="updateEncodedForm(i, {key: $event})"
+                  />
+                </div>
+              </div>
+              <div class="w-1/2">
+                <div class="hover:cursor-text hover:bg-gray-50 relative flex h-full">
+                  <xpert-variable-input class="relative grow min-h-[24px] text-sm px-2 py-1 overflow-hidden"
+                    [placeholder]="'PAC.Workflow.TypeInsertVariable' | translate: {Default: 'type / to insert variable'} "
+                    [variables]="variables()" 
+                    [ngModel]="param.value" 
+                    (ngModelChange)="updateEncodedFormVal(i, $event)"
+                  />
+                </div>
+              </div>
+    
+              <button type="button" class="btn btn-small w-6 h-6 danger justify-center opacity-0 group-hover:opacity-100"
+                (click)="removeEncodedForm(i)">
+                <i class="ri-delete-bin-line"></i>
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    }
+    @case ('json') {
+      <pac-code-editor-card title="json" fileName=".json" [(ngModel)]="body" />
+    }
+    @case ('raw') {
+      <pac-code-editor-card title="raw text" fileName=".txt" [(ngModel)]="body" />
+    }
+  }
+</div>
+
+<div class="h-[0.5px] bg-divider-subtle"></div>
+
+<div class="p-4">
+  <div class="flex items-center">
+    <div class="h-4 w-4 shrink-0 flex justify-center items-center text-text-secondary">
+      <i class="ri-arrow-right-s-line" [class.rotate-90]="expandTimeout()"></i>
+    </div>
+    <div class="system-sm-semibold-uppercase flex h-6 cursor-pointer items-center text-text-secondary"
+      (click)="toggleTimeout()">
+      {{ 'PAC.Workflow.Timeout' | translate: {Default: 'Timeout'} }}
+    </div>
+  </div>
+  @if (expandTimeout()) {
+    <div class="px-4">
+      <div class="mt-2 space-y-1">
+        <div class="space-y-3">
+          <div class="space-y-1">
+            <div class="flex h-[18px] items-center space-x-2">
+              <span class="text-[13px] font-medium text-gray-900">
+                {{ 'PAC.Workflow.ConnectionTimeout' | translate: {Default: 'Connection Timeout'} }}
+              </span>
+              <span class="text-xs font-normal text-gray-500">
+                {{ 'PAC.Workflow.ConnectionTimeoutDesc' | translate: {Default: 'Enter connection timeout in seconds'} }}
+              </span>
+            </div>
+            <div class="relative w-full">
+              <input
+                class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular"
+                [placeholder]="'PAC.Workflow.ConnectionTimeoutDesc' | translate: {Default: 'Enter connection timeout in seconds'}" 
+                min="1" max="300"
+                type="number"
+                [(ngModel)]="connectionTimeout"
+              >
+            </div>
+          </div>
+          <div class="space-y-1">
+            <div class="flex h-[18px] items-center space-x-2">
+              <span class="text-[13px] font-medium text-gray-900">
+                {{ 'PAC.Workflow.ReadTimeout' | translate: {Default: 'Read Timeout'} }}
+              </span>
+              <span class="text-xs font-normal text-gray-500">
+                {{ 'PAC.Workflow.ReadTimeoutDesc' | translate: {Default: 'Enter read timeout in seconds'} }}
+              </span>
+            </div>
+            <div class="relative w-full">
+              <input
+                class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular"
+                [placeholder]="'PAC.Workflow.ReadTimeoutDesc' | translate: {Default: 'Enter read timeout in seconds'}" 
+                min="1" max="600"
+                type="number"
+                [(ngModel)]="readTimeout"
+                >
+            </div>
+          </div>
+          <div class="space-y-1">
+            <div class="flex h-[18px] items-center space-x-2">
+              <span class="text-[13px] font-medium text-gray-900">
+                {{ 'PAC.Workflow.WriteTimeout' | translate: {Default: 'Write Timeout'} }}
+              </span>
+              <span class="text-xs font-normal text-gray-500">
+                {{ 'PAC.Workflow.WriteTimeoutDesc' | translate: {Default: 'Enter write timeout in seconds'} }}
+              </span>
+            </div>
+            <div class="relative w-full">
+              <input
+                class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular"
+                [placeholder]="'PAC.Workflow.WriteTimeoutDesc' | translate: {Default: 'Enter write timeout in seconds'}"
+                min="1" max="600"
+                type="number"
+                [(ngModel)]="writeTimeout"
+                  >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+<div class="h-[0.5px] bg-divider-subtle"></div>
+
+<div class="p-4">
+  <div class="py-4">
+      <div class="flex items-center">
+        <div class="h-4 w-4 shrink-0 flex justify-center items-center text-text-secondary">
+          <i class="ri-arrow-right-s-line" [class.rotate-90]="expandOutputVariables()"></i>
+        </div>
+        <div class="system-sm-semibold-uppercase flex h-6 cursor-pointer items-center text-text-secondary"
+          (click)="toggleOutput()"
+        >{{ 'PAC.Workflow.OutputVariables' | translate: {Default: 'Output Variables'} }}
+        </div>
+      </div>
+    @if (expandOutputVariables()) {
+      <div class="px-4">
+        <div class="py-1">
+          <div class="flex items-center leading-[18px]">
+            <div class="code-sm-semibold text-text-secondary">body</div>
+            <div class="system-xs-regular ml-2 capitalize text-text-tertiary">string</div>
+          </div>
+          <div class="system-xs-regular mt-0.5 text-text-tertiary">
+            {{ 'PAC.Workflow.ResponseContent' | translate: {Default: 'Response Content'} }}
+          </div>
+        </div>
+        <div class="py-1">
+          <div class="flex items-center leading-[18px]">
+            <div class="code-sm-semibold text-text-secondary">status_code</div>
+            <div class="system-xs-regular ml-2 capitalize text-text-tertiary">number</div>
+          </div>
+          <div class="system-xs-regular mt-0.5 text-text-tertiary">
+            {{ 'PAC.Workflow.ResponseStatusCode' | translate: {Default: 'Response Status Code'} }}
+          </div>
+        </div>
+        <div class="py-1">
+          <div class="flex items-center leading-[18px]">
+            <div class="code-sm-semibold text-text-secondary">headers</div>
+            <div class="system-xs-regular ml-2 capitalize text-text-tertiary">object</div>
+          </div>
+          <div class="system-xs-regular mt-0.5 text-text-tertiary">
+            {{ 'PAC.Workflow.ResponseHeaderJson' | translate: {Default: 'Response Header (JSON)'} }}
+          </div>
+        </div>
+          <!-- <div class="py-1">
+              <div class="flex items-center leading-[18px]">
+                  <div class="code-sm-semibold text-text-secondary">files</div>
+                  <div class="system-xs-regular ml-2 capitalize text-text-tertiary">Array[File]</div>
+              </div>
+              <div class="system-xs-regular mt-0.5 text-text-tertiary">Files List</div>
+          </div> -->
+      </div>
+    }
+  </div>
+</div>
+
+<div class="h-[0.5px] bg-divider-subtle"></div>
+
+<xpert-workflow-retry [(ngModel)]="retry" class="py-4"/>
+
+<div class="h-[0.5px] bg-divider-subtle"></div>
+
+<xpert-workflow-error-handling class="p-4" 
+  [defaultValueSchema]="outputs()"
+  [(ngModel)]="errorHandling"
+/>

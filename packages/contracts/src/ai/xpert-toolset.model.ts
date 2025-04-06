@@ -130,15 +130,6 @@ export interface ToolProviderCredentials {
   max?: number
 }
 
-export enum ApiProviderAuthType {
-  /**
-   * Enum class for api provider auth type.
-   */
-  NONE = "none",
-  API_KEY = "api_key",
-  BASIC = 'basic'
-}
-
 export enum ApiProviderSchemaType {
   /**
    * Enum class for api provider schema type.

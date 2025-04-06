@@ -40,9 +40,9 @@ import { RequestContext } from '@metad/server-core'
 import { FakeStreamingChatModel, getChannelState, messageEvent, TStateChannel } from '../../agent'
 import { stringifyMessageContent } from '@metad/copilot'
 import { createParameters } from '../../workflow/parameter'
-import { CreateWorkflowNodeCommand } from '../create-workflow.command'
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateMemoryStoreCommand } from '../../../xpert/commands'
+import { CreateWorkflowNodeCommand } from '../../workflow'
 
 
 @CommandHandler(XpertAgentSubgraphCommand)

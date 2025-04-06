@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, HostBinding, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { TranslateModule } from '@ngx-translate/core'
@@ -12,11 +12,13 @@ import {
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
-import { XpertStudioNodeWorkflowIfelseComponent } from './ifelse/ifelse.component'
-import { XpertStudioNodeWorkflowSplitterComponent } from './splitter/splitter.component'
-import { XpertStudioNodeWorkflowIteratingComponent } from './iterating/iterating.component'
 import { XpertStudioNodeWorkflowAnswerComponent } from './answer/answer.component'
 import { XpertStudioNodeWorkflowCodeComponent } from './code/code.component'
+import { XpertStudioNodeWorkflowIfelseComponent } from './ifelse/ifelse.component'
+import { XpertStudioNodeWorkflowIteratingComponent } from './iterating/iterating.component'
+import { XpertStudioNodeWorkflowSplitterComponent } from './splitter/splitter.component'
+import { XpertStudioNodeWorkflowHttpComponent } from './http/http.component'
+import { XpertWorkflowIconComponent } from './icon/icon.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -24,11 +26,18 @@ import { XpertStudioNodeWorkflowCodeComponent } from './code/code.component'
   styleUrls: ['./workflow.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, CdkMenuModule, MatTooltipModule, TranslateModule, XpertStudioNodeWorkflowIfelseComponent, 
+  imports: [
+    FFlowModule,
+    CdkMenuModule,
+    MatTooltipModule,
+    TranslateModule,
+    XpertWorkflowIconComponent,
+    XpertStudioNodeWorkflowIfelseComponent,
     XpertStudioNodeWorkflowIteratingComponent,
     XpertStudioNodeWorkflowSplitterComponent,
     XpertStudioNodeWorkflowAnswerComponent,
-    XpertStudioNodeWorkflowCodeComponent
+    XpertStudioNodeWorkflowCodeComponent,
+    XpertStudioNodeWorkflowHttpComponent
   ],
   host: {
     tabindex: '-1',
@@ -50,6 +59,7 @@ export class XpertStudioNodeWorkflowComponent {
 
   // States
   readonly entity = computed(() => this.node()?.entity as IWorkflowNode)
+  readonly key = computed(() => this.node()?.key)
 
   readonly type = computed(() => this.entity()?.type)
   readonly title = computed(() => this.entity()?.title)

@@ -1,4 +1,4 @@
-import { ApiProviderAuthType, IXpertToolset, TXpertToolEntity } from '@metad/contracts'
+import { ApiAuthType, IXpertToolset, TXpertToolEntity } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { ConfigService } from '@metad/server-config'
 import { Inject, Logger } from '@nestjs/common'
@@ -21,7 +21,7 @@ export class GetODataRemoteMetadataHandler implements IQueryHandler<GetODataRemo
 
 		const formattedUrl = url.endsWith('/') ? `${url}$metadata` : `${url}/$metadata`
 		let authorization = null
-		if (credentials.auth_type === ApiProviderAuthType.BASIC) {
+		if (credentials.auth_type === ApiAuthType.BASIC) {
 			authorization = 'Basic ' + Buffer.from(`${credentials.username}:${credentials.password}`).toString('base64')
 		}
 		try {

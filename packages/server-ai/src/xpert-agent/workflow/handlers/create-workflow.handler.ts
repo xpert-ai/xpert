@@ -9,6 +9,7 @@ import { CreateWNAnswerCommand } from '../create-wn-answer.command'
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { CreateWorkflowNodeCommand } from '../create-workflow.command'
 import { TStateChannel } from '../../agent'
+import { createHttpNode } from '../http'
 
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {
@@ -42,6 +43,24 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 			}
 			case WorkflowNodeTypeEnum.CODE: {
 				workflow = createCodeNode(this.commandBus, graph, node)
+				channel = {
+					name: channelName(node.key),
+					annotation: Annotation<Record<string, unknown>>({
+						reducer: (a, b) => {
+							return b
+								? {
+										...a,
+										...b
+									}
+								: a
+						},
+						default: () => ({})
+					})
+				}
+				break
+			}
+			case WorkflowNodeTypeEnum.HTTP: {
+				workflow = createHttpNode(this.commandBus, graph, node)
 				channel = {
 					name: channelName(node.key),
 					annotation: Annotation<Record<string, unknown>>({

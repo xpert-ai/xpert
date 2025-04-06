@@ -1,0 +1,50 @@
+<div class="container grow flex flex-col rounded-xl bg-neutral-50 overflow-hidden shadow-sm border border-solid border-gray-200">
+  <div class="shrink-0 flex justify-between items-center h-9 pl-3 pr-2 bg-gray-50 rounded-t-xl">
+    <div class="flex items-center space-x-1">
+      @if (title()) {
+        <div class="uppercase">{{title()}}</div>
+      }
+      @if (tooltip()) {
+        <div class="p-[1px] w-4 h-4 flex items-center shrink-0 text-text-quaternary hover:text-text-tertiary"
+          [matTooltip]="tooltip()"
+          matTooltipPosition="above"
+        >
+          <i class="ri-question-line"></i>
+        </div>
+      }
+    </div>
+
+    <div class="flex items-center">
+      <button type="button" class="action-btn action-btn-m w-7 h-7"
+        [class.text-primary-500]="wordWrap()"
+        (click)="toggleWrap()"
+      >
+        <i class="ri-text-wrap"></i>
+      </button>
+
+      <button type="button" class="action-btn action-btn-m danger w-7 h-7"
+        (click)="clear()"
+      >
+        <i class="ri-delete-bin-2-line"></i>
+      </button>
+
+      <button type="button" class="action-btn action-btn-m w-7 h-7">
+        <copy2 [content]="cva.value$()"/>
+      </button>
+
+      <ng-content></ng-content>
+    </div>
+  </div>
+
+  <div class="content gow relative overflow-auto" [style.height.px]="height">
+    <pac-code-editor #editor class="h-full w-full"
+      [(ngModel)]="value$" [fileName]="fileName()" [lineNumbers]="lineNumbers()"
+      editable
+    />
+
+    <div class="absolute bottom-0 left-0 w-full flex justify-center h-2 cursor-row-resize"
+      (mousedown)="onMouseDown($event)">
+      <div class="w-5 h-[3px] rounded-sm bg-gray-300"></div>
+    </div>
+  </div>
+</div>

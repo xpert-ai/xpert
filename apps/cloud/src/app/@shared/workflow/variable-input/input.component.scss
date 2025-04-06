@@ -1,0 +1,8 @@
+:host {
+  @apply block relative;
+  &:hover {
+    .variable-tip {
+      @apply opacity-100
+    }
+  }
+}

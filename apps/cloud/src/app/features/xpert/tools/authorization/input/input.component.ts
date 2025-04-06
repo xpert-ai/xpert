@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { ApiProviderAuthType } from 'apps/cloud/src/app/@core'
+import { ApiAuthType } from 'apps/cloud/src/app/@core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { XpertToolAuthorizationComponent } from '../dialog/authorization.component'
 import { Dialog } from '@angular/cdk/dialog'
@@ -21,7 +21,7 @@ import { Dialog } from '@angular/cdk/dialog'
   hostDirectives: [NgxControlValueAccessor]
 })
 export class XpertToolAuthorizationInputComponent {
-  eApiProviderAuthType = ApiProviderAuthType
+  eApiProviderAuthType = ApiAuthType
 
   readonly #dialog = inject(Dialog)
   protected cva = inject<NgxControlValueAccessor<Record<string, string> | null>>(NgxControlValueAccessor)

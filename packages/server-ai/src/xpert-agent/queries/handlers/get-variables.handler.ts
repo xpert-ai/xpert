@@ -19,6 +19,7 @@ import { XpertService } from '../../../xpert/xpert.service'
 import { getAgentVarGroup } from '../../agent'
 import { STATE_VARIABLE_INPUT } from '../../commands/handlers/types'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
+import { HeadersChannelName, ReqBodyChannelName, ReqMethodChannelName, ReqUrlChannelName, StatusCodeChannelName } from '../../workflow/http'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
@@ -137,28 +138,99 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		if (workflowNodes) {
 			for await (const node of workflowNodes) {
 				const entity = node.entity as IWorkflowNode
-				if (entity.type === WorkflowNodeTypeEnum.CODE) {
-					const variables: TXpertParameter[] = []
-					const varGroup: TWorkflowVarGroup = {
-						group: {
-							name: channelName(entity.key),
-							description: entity.title || {
-								en_US: entity.key,
-							},
-						},
-						variables
-					}
-					varGroups.push(varGroup);
-					variables.push(...((<IWFNCode>entity).outputs ?? []))
-					variables.push({
-						type: XpertParameterTypeEnum.STRING,
-  						name: 'error',
-						title: 'Error',
-						description: {
-							en_US: 'Error info',
-							zh_Hans: '错误信息'
+				const variables: TXpertParameter[] = []
+				const varGroup: TWorkflowVarGroup = {
+					group: {
+						name: channelName(entity.key),
+						description: entity.title || {
+							en_US: entity.key
 						}
-					})
+					},
+					variables
+				}
+
+				switch (entity.type) {
+					case WorkflowNodeTypeEnum.CODE: {
+						variables.push(...((<IWFNCode>entity).outputs ?? []))
+						variables.push({
+							type: XpertParameterTypeEnum.STRING,
+							name: 'error',
+							title: 'Error',
+							description: {
+								en_US: 'Error info',
+								zh_Hans: '错误信息'
+							}
+						})
+						varGroups.push(varGroup)
+						break
+					}
+					case WorkflowNodeTypeEnum.HTTP: {
+						variables.push({
+							type: XpertParameterTypeEnum.NUMBER,
+							name: StatusCodeChannelName,
+							title: 'Status Code',
+							description: {
+								en_US: 'Status Code',
+								zh_Hans: '状态码'
+							}
+						}, 
+						{
+							type: XpertParameterTypeEnum.OBJECT,
+							name: HeadersChannelName,
+							title: 'Headers',
+							description: {
+								en_US: 'Response Headers',
+								zh_Hans: '响应头'
+							}
+						},
+						{
+							type: XpertParameterTypeEnum.STRING,
+							name: 'body',
+							title: 'Body',
+							description: {
+								en_US: 'Body',
+								zh_Hans: '返回体'
+							}
+						}, 
+						{
+							type: XpertParameterTypeEnum.STRING,
+							name: 'error',
+							title: 'Error',
+							description: {
+								en_US: 'Error info',
+								zh_Hans: '错误信息'
+							}
+						}, 
+						{
+							type: XpertParameterTypeEnum.STRING,
+							name: ReqUrlChannelName,
+							title: 'Url',
+							description: {
+								en_US: 'Url',
+								zh_Hans: '链接'
+							}
+						}, 
+						{
+							type: XpertParameterTypeEnum.STRING,
+							name: ReqMethodChannelName,
+							title: 'Request Method',
+							description: {
+								en_US: 'Request Method',
+								zh_Hans: '请求方法'
+							}
+						},
+						{
+							type: XpertParameterTypeEnum.STRING,
+							name: ReqBodyChannelName,
+							title: 'Request Body',
+							description: {
+								en_US: 'Request Body',
+								zh_Hans: '请求体'
+							}
+						})
+						varGroups.push(varGroup)
+						break
+					}
 				}
 			}
 		}
