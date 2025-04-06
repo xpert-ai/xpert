@@ -51,3 +51,7 @@ export function genXpertCodeKey() {
 export function genXpertHttpKey() {
   return letterStartSUID('Http_')
 }
+
+export function genXpertNoteKey() {
+  return letterStartSUID('Note_')
+}
