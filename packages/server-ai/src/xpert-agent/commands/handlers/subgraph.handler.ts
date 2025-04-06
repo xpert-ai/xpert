@@ -35,7 +35,7 @@ import { createSummarizeAgent } from './react_agent_executor'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 import { ChatOpenAI } from '@langchain/openai'
-import { XpertConfigException } from '../../../core/errors'
+import { XpertConfigException, XpertCopilotNotFoundException } from '../../../core/errors'
 import { RequestContext } from '@metad/server-core'
 import { FakeStreamingChatModel, getChannelState, messageEvent, TStateChannel } from '../../agent'
 import { stringifyMessageContent } from '@metad/copilot'
@@ -842,6 +842,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const {rootController, rootExecutionId, agentKey} = options
 		const execution = {} as TXpertAgentExecution
 		const copilotModel = xpert.copilotModel
+		if (!copilotModel) {
+			throw new XpertCopilotNotFoundException(await this.i18nService.t('xpert.Error.XpertCopilotNotFound', {
+				lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+			}))
+		}
 		execution.metadata = {
 			provider: copilotModel.copilot.modelProvider?.providerName,
 			model: copilotModel.model || copilotModel.copilot.copilotModel?.model

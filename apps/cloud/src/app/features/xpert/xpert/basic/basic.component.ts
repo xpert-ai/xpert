@@ -168,7 +168,7 @@ export class XpertBasicComponent implements IsDirty {
             this.loading.set(false)
             this.form.markAsPristine()
             this.xpertComponent.refresh()
-            this.#dialogRef.close()
+            this.close()
             // this.#router.navigate(['../agents'], { relativeTo: this.#route })
           },
           error: (err) => {
@@ -187,7 +187,7 @@ export class XpertBasicComponent implements IsDirty {
             this.loading.set(false)
             this.form.markAsPristine()
             this.xpertComponent.refresh()
-            this.#dialogRef.close()
+            this.close()
             // this.#router.navigate(['../agents'], { relativeTo: this.#route })
           },
           error: (err) => {
@@ -196,5 +196,9 @@ export class XpertBasicComponent implements IsDirty {
           }
         })
     }
+  }
+
+  close() {
+    this.#dialogRef.close()
   }
 }

@@ -5,7 +5,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { injectToastr, TAvatar, XpertService } from 'apps/cloud/src/app/@core'
+import { ICopilotModel, injectToastr, TAvatar, XpertService } from 'apps/cloud/src/app/@core'
 import { XpertBasicFormComponent } from '../basic-form/basic-form.component'
 
 @Component({
@@ -26,7 +26,7 @@ import { XpertBasicFormComponent } from '../basic-form/basic-form.component'
   providers: []
 })
 export class XpertBasicDialogComponent {
-  readonly #data = inject<{ name: string; avatar: TAvatar; description: string }>(DIALOG_DATA)
+  readonly #data = inject<{ name: string; avatar: TAvatar; description: string; title: string; copilotModel: ICopilotModel }>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef)
   readonly xpertService = inject(XpertService)
   readonly #fb = inject(FormBuilder)
@@ -46,6 +46,20 @@ export class XpertBasicDialogComponent {
   }
   set avatar(value) {
     this.formGroup.patchValue({ avatar: value })
+  }
+
+  get copilotModel() {
+    return this.formGroup.value.copilotModel
+  }
+  set copilotModel(value) {
+    this.formGroup.patchValue({ copilotModel: value })
+  }
+
+  get title() {
+    return this.formGroup.value.title
+  }
+  set title(value) {
+    this.formGroup.patchValue({ title: value })
   }
 
   get description() {

@@ -8,9 +8,10 @@ import { FormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
 import { nonBlank } from '@metad/copilot'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { convertToUrlPath, injectToastr, TAvatar, XpertService } from 'apps/cloud/src/app/@core'
+import { AiModelTypeEnum, convertToUrlPath, ICopilotModel, injectToastr, TAvatar, XpertService } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { debounceTime, filter, switchMap, tap } from 'rxjs/operators'
+import { CopilotModelSelectComponent } from '../../copilot'
 
 @Component({
   standalone: true,
@@ -22,7 +23,8 @@ import { debounceTime, filter, switchMap, tap } from 'rxjs/operators'
     CdkMenuModule,
     CdkListboxModule,
     TextFieldModule,
-    EmojiAvatarComponent
+    EmojiAvatarComponent,
+    CopilotModelSelectComponent
   ],
   selector: 'xpert-basic-form',
   templateUrl: 'basic-form.component.html',
@@ -32,14 +34,17 @@ import { debounceTime, filter, switchMap, tap } from 'rxjs/operators'
   providers: []
 })
 export class XpertBasicFormComponent {
+  eAiModelTypeEnum = AiModelTypeEnum
   readonly xpertService = inject(XpertService)
   readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()
 
   // Models
-  readonly name = model<string>()
-  readonly description = model<string>()
   readonly avatar = model<TAvatar>()
+  readonly name = model<string>()
+  readonly title = model<string>()
+  readonly description = model<string>()
+  readonly copilotModel = model<ICopilotModel>()
 
   readonly invalid = computed(() => this.checking() || this.error())
   readonly checking = signal(false)
