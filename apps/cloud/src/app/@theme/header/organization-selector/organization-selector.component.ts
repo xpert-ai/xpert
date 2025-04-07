@@ -1,7 +1,7 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, DestroyRef, inject, input, model, OnInit } from '@angular/core'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { nonNullable, OverlayAnimation1 } from '@metad/core'
@@ -90,7 +90,7 @@ export class OrganizationSelectorComponent extends TranslationBaseComponent impl
       shareReplay(1)
     )
 
-  public readonly canSelectOrg$ = this.organizations$.pipe(map((organizations) => organizations?.length > 1))
+  readonly canSelectOrg = toSignal(this.organizations$.pipe(map((organizations) => organizations?.length > 1)))
 
   ngOnInit() {
     this.loadSelectedOrganization()
@@ -119,6 +119,9 @@ export class OrganizationSelectorComponent extends TranslationBaseComponent impl
    * @param organization
    */
   selectOrganization(organization: IOrganization) {
+    if (organization?.id === this.organization()?.id) {
+      return
+    }
     if (organization?.id) {
       this.store.selectedOrganization = organization
       this.store.organizationId = organization.id

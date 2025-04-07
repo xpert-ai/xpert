@@ -150,13 +150,13 @@ export class MSSQLRunner<T extends MssqlAdapterOptions = MssqlAdapterOptions> ex
 
       if (table) {
         if (row.column_name) {
-          table.columns.push({ name: row.column_name, type: row.data_type })
+          table.columns.push({ name: row.column_name, dataType: row.data_type })
         }
       } else {
         schema.tables.push({
           name: row.table_name,
           type: row.table_type,
-          columns: row.column_name ? [{ name: row.column_name, type: row.data_type }] : []
+          columns: row.column_name ? [{ name: row.column_name, dataType: row.data_type }] : []
         })
       }
     })

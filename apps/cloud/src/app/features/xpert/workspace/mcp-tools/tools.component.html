@@ -30,7 +30,7 @@
     {{ 'PAC.Xpert.Discover' | translate: {Default: 'Discover'} }}
     @for (category of categories(); track category; let last = $last) {
       <a href="" [routerLink]="['/xpert/w/', workspaceId(), 'mcp']" [queryParams]="{category: category}">
-        <span class="relative ml-2 text-text-primary after:absolute after:bottom-0 after:left-0 after:h-2 after:w-full after:bg-primary-500/20 after:content-['']">
+        <span class="relative ml-2 text-text-primary after:absolute after:bottom-0 after:left-0 after:h-2 after:w-full after:bg-primary-500/10 hover:after:bg-primary-500/30 hover:after:h-2.5 after:content-[''] after:transition-all">
           {{  'PAC.Xpert.Categories.' + category | translate: {Default: category} }}
         </span>
       </a>

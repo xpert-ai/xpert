@@ -18,7 +18,7 @@
 <ng-template #menu>
   <div cdkMenu class="cdk-menu__large" @overlayAnimation1>
     @for (org of organizations$ | async; track org.id) {
-      <div cdkMenuItem (click)="selectOrganization(org)">
+      <div cdkMenuItem [class.active]="org.id === organization()?.id" (click)="selectOrganization(org)">
         <div class="flex justify-start items-center overflow-hidden text-ellipsis">
           <pac-org-avatar [organization]="org" class="shrink-0 w-6 h-6 rounded-full overflow-hidden block mr-2" />
           <span class="whitespace-nowrap" [title]="org.name">{{org.name}}</span>

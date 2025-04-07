@@ -26,6 +26,21 @@ export interface SSEConnection {
   useNodeEventSource?: boolean;
 }
 
+export type TMCPServerReconnect = {
+  /**
+   * Whether to automatically restart the process if it exits
+   */
+  enabled?: boolean;
+  /**
+    * Maximum number of restart attempts
+    */
+  maxAttempts?: number;
+  /**
+    * Delay in milliseconds between restart attempts
+    */
+  delayMs?: number;
+}
+
 export type TMCPServer = {
   type: MCPServerType
   command?: string
@@ -34,45 +49,17 @@ export type TMCPServer = {
   encoding?: string
   encodingErrorHandler?: string
   /**
-   * Additional restart settings
+   * Additional reconnection settings
    */
-  restart?: {
-    /**
-     * Whether to automatically restart the process if it exits
-     */
-    enabled?: boolean;
-    /**
-     * Maximum number of restart attempts
-     */
-    maxAttempts?: number;
-    /**
-     * Delay in milliseconds between restart attempts
-     */
-    delayMs?: number;
-  };
+  reconnect?: TMCPServerReconnect
 
   url?: string,
   headers?: Record<string, string>
   useNodeEventSource?: boolean
-  /**
-   * Additional reconnection settings
-   */
-  reconnect?: {
-    /**
-     * Whether to automatically reconnect if the connection is lost
-     */
-    enabled?: boolean;
-    /**
-     * Maximum number of reconnection attempts
-     */
-    maxAttempts?: number;
-    /**
-     * Delay in milliseconds between reconnection attempts
-     */
-    delayMs?: number;
-  };
 
   files?: {name: string; content: string}[]
+
+  toolNamePrefix?: string
 }
 
 export type TMCPSchema = {

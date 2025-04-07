@@ -18,12 +18,14 @@ import {
 } from '../../../@core/types'
 import { CodeEditorComponent } from '../../editors'
 import { MCPToolsComponent } from '../tools/tools.component'
+import { NgmCommonModule } from "../../../../../../../packages/angular/common/common.module";
+import { NgmSlideToggleComponent } from "../../../../../../../packages/angular/common/slide-toggle/slide-toggle.component";
 
 @Component({
   standalone: true,
   selector: 'mcp-server-form',
   templateUrl: './server.component.html',
-  styleUrls: ['server.component.scss'],
+  styleUrl: 'server.component.scss',
   imports: [
     CommonModule,
     FormsModule,
@@ -32,7 +34,9 @@ import { MCPToolsComponent } from '../tools/tools.component'
     CdkListboxModule,
     CodeEditorComponent,
     MCPToolsComponent,
-    EntriesPipe
+    EntriesPipe,
+    NgmCommonModule,
+    NgmSlideToggleComponent
   ],
   hostDirectives: [NgxControlValueAccessor]
 })
@@ -58,6 +62,16 @@ export class MCPServerFormComponent {
   readonly fileIndex = model<number[]>([])
   readonly isCode = computed(() => this.types()[0] === MCPServerType.CODE)
 
+  readonly toolNamePrefix = linkedModel({
+    initialValue: 'mcp',
+    compute: () => {
+      return this.value$()?.toolNamePrefix
+    },
+    update: (toolNamePrefix) => {
+      this.value$.update((state) => ({ ...(state ?? {}), toolNamePrefix }))
+    }
+  })
+  
   readonly args = linkedModel({
     initialValue: [],
     compute: () => {
@@ -65,6 +79,46 @@ export class MCPServerFormComponent {
     },
     update: (args) => {
       this.value$.update((state) => ({ ...(state ?? {}), args }))
+    }
+  })
+
+  readonly reconnect = linkedModel({
+    initialValue: null,
+    compute: () => {
+      return this.value$()?.reconnect
+    },
+    update: (reconnect) => {
+      this.value$.update((state) => ({ ...(state ?? {}), reconnect }))
+    }
+  })
+
+  readonly reconnectEnabled = linkedModel({
+    initialValue: null,
+    compute: () => {
+      return this.reconnect()?.enabled
+    },
+    update: (enabled) => {
+      this.reconnect.update((state) => ({ ...(state ?? {}), enabled }))
+    }
+  })
+
+  readonly maxAttempts = linkedModel({
+    initialValue: null,
+    compute: () => {
+      return this.reconnect()?.maxAttempts
+    },
+    update: (maxAttempts) => {
+      this.reconnect.update((state) => ({ ...(state ?? {}), maxAttempts }))
+    }
+  })
+
+  readonly delayMs = linkedModel({
+    initialValue: null,
+    compute: () => {
+      return this.reconnect()?.delayMs
+    },
+    update: (delayMs) => {
+      this.reconnect.update((state) => ({ ...(state ?? {}), delayMs }))
     }
   })
 

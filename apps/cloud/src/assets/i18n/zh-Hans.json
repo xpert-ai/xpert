@@ -303,7 +303,8 @@
       "DefaultValue": "默认值",
       "Params": "参数",
       "Key": "键",
-      "Value": "值"
+      "Value": "值",
+      "SelectWorkspace": "选择工作空间"
     },
     "Workflow": {
       "And": "且",
@@ -2611,7 +2612,11 @@
       "Env": "环境变量",
       "NextStep": "下一步",
       "Details": "详情",
-      "Install": "安装"
+      "Install": "安装",
+      "Reconnect": "重新连接",
+      "ReconnectMaxAttempts": "最大尝试连接次数",
+      "ReconnectDelayMs": "重启尝试之间的延迟（以毫秒为单位）",
+      "ToolNamePrefix": "工具名前缀"
     },
     "title": {
       "short": "Xpert AI"

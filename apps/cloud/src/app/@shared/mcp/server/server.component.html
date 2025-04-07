@@ -126,7 +126,7 @@
       </div>
     </div>
   
-    <div class="">
+    <div class="my-4">
       <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
         <div class="truncate">{{'PAC.MCP.Args' | translate: {Default: 'Args'} }}</div>
 
@@ -195,6 +195,45 @@
     }
   }
 
+  <!-- @if (types()[0] !== eMCPServerType.STDIO) { -->
+    <div class="my-4">
+      <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
+        <div class="truncate">{{'PAC.MCP.Reconnect' | translate: {Default: 'Reconnect'} }}</div>
+
+        <ngm-slide-toggle [(ngModel)]="reconnectEnabled"/>
+      </div>
+
+      @if (reconnectEnabled()) {
+        <div class="flex items-center gap-2">
+          <input class="grow appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+            type="number"
+            [placeholder]="'PAC.MCP.ReconnectMaxAttempts' | translate: {Default: 'Maximum number of connection attempts'}"
+            [(ngModel)]="maxAttempts"
+          />
+
+          <input class="grow appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+            type="number"
+            [placeholder]="'PAC.MCP.ReconnectDelayMs' | translate: {Default: 'Delay in milliseconds between restart attempts'}"
+            [(ngModel)]="delayMs"
+          />
+        </div>
+      }
+    </div>
+  <!-- } -->
+
+  <div class="my-2">
+    <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
+      <div class="truncate">{{'PAC.MCP.ToolNamePrefix' | translate: {Default: 'Tool Name Prefix'} }}</div>
+    </div>
+    <div class="grow">
+      <div class="relative w-full">
+        <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+          [(ngModel)]="toolNamePrefix"
+        />
+      </div>
+    </div>
+  </div>
+
   <button type="button" class="shrink-0 w-full btn disabled:btn-disabled btn-primary btn-large justify-center shadow-sm"
     [disabled]="loading()"
     (click)="connect()"
@@ -257,8 +296,7 @@
       </div>
     }
     @if (types()[0] === 'code') {
-      <div role="tabpanel"
-        class="view-tab hidden"
+      <div role="tabpanel" class="view-tab hidden"
         [class.active]="views()[0] === 'code'">
         <div>
           <ul cdkListbox [(ngModel)]="fileIndex" class="shrink-0 flex justify-start items-center gap-2 mb-2">
@@ -278,8 +316,7 @@
         </div>
       </div>
     }
-    <div class="hidden" role="tabpanel"
-      class="view-tab hidden"
+    <div role="tabpanel" class="view-tab hidden"
       [class.active]="view2.isSelected()">
       <mcp-config-tools class="overflow-auto" [(ngModel)]="tools" [toolset]="_toolset()"/>
     </div>

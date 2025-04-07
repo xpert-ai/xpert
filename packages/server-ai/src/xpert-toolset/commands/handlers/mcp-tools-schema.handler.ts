@@ -3,6 +3,7 @@ import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { createMCPClient } from '../../provider/mcp/types'
 import { ToolSchemaParser } from '../../utils/parser'
 import { MCPToolsBySchemaCommand } from '../mcp-tools-schema.command'
+// import { createProMCPClient } from '../../provider/mcp/pro'
 
 @CommandHandler(MCPToolsBySchemaCommand)
 export class MCPToolsBySchemaHandler implements ICommandHandler<MCPToolsBySchemaCommand> {
@@ -15,10 +16,11 @@ export class MCPToolsBySchemaHandler implements ICommandHandler<MCPToolsBySchema
 
 		// Create a client
 		const {client} = await createMCPClient(command.toolset.id, schema)
-
+		// const {client, destroy} = await createProMCPClient(command.toolset, null, this.commandBus, schema)
+		const tools = await client.getTools()
 		try {
 			return {
-				tools: client.getTools().map((tool) => {
+				tools: tools.map((tool) => {
 					return {
 						name: tool.name,
 						description: tool.description,
