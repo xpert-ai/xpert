@@ -1,4 +1,14 @@
-<form class="mx-4 lg:mx-auto my-8 flex flex-col justify-start lg:w-[600px]" [formGroup]="form">
+<div class="pt-6 px-6 text-xl font-semibold" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  {{ 'PAC.Xpert.BasicInfo' | translate: {Default: 'Basic Info'} }}
+</div>
+
+<button type="button" class="absolute right-5 top-5 p-2 danger btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+  (click)="close()">
+  <i class="ri-close-line"></i>
+</button>
+
+<form class="mx-4 lg:mx-auto flex flex-col justify-start px-6 lg:w-[600px] overflow-auto" 
+  [formGroup]="form">
   <div class="pt-2">
     <div class="py-2 font-medium leading-[20px] text-gray-900">{{ 'PAC.Xpert.Icon' | translate: {Default: 'Icon'} }} &amp; {{ 'PAC.Xpert.Name' | translate: {Default: 'Name'} }}</div>
     <div class="flex items-center justify-between space-x-2">
@@ -57,30 +67,30 @@
       [placeholder]="'PAC.Copilot.Roles.FrequentlyQuestion' | translate: {Default: 'Frequently asked questions by users'}"
     />
   </div>
-
-  <div class="flex justify-center items-center mt-8">
-    <button class="mt-2 no-underline group cursor-pointer relative shadow-2xl rounded-lg p-2 text-base font-semibold leading-6 inline-block
-      bg-primary-500 shadow-zinc-900 text-white
-      disabled:bg-primary-100 disabled:shadow-none disabled:cursor-not-allowed"
-      [disabled]="form.invalid || form.pristine || loading()"
-      (click)="saveDraft()"
-    >
-      @if (type() === eXpertTypeEnum.Agent) {
-        <span>
-        {{ 'PAC.Xpert.SaveDraft' | translate: {Default: 'Save draft'} }}
-        </span>
-      } @else {
-        <span>
-          {{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}
-        </span>
-      }
-
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="inline-block w-4 h-4 ml-0.5">
-        <path d="M20 2C20.5523 2 21 2.44772 21 3V6.757L19 8.757V4H5V20H19V17.242L21 15.242V21C21 21.5523 20.5523 22 20 22H4C3.44772 22 3 21.5523 3 21V3C3 2.44772 3.44772 2 4 2H20ZM21.7782 8.80761L23.1924 10.2218L15.4142 18L13.9979 17.9979L14 16.5858L21.7782 8.80761ZM13 12V14H8V12H13ZM16 8V10H8V8H16Z"></path>
-      </svg>
-    </button>
-  </div>
 </form>
+
+<div class="flex justify-end items-center mt-4 px-4 pb-4">
+  <button class="mt-2 no-underline group cursor-pointer relative shadow-2xl rounded-xl px-3 py-2 items-center text-base font-semibold leading-6 inline-block
+    bg-primary-500 shadow-zinc-900 text-white
+    disabled:bg-primary-100 disabled:shadow-none disabled:cursor-not-allowed"
+    [disabled]="form.invalid || form.pristine || loading()"
+    (click)="saveDraft()"
+  >
+    @if (type() === eXpertTypeEnum.Agent) {
+      <span>
+      {{ 'PAC.Xpert.SaveDraft' | translate: {Default: 'Save draft'} }}
+      </span>
+    } @else {
+      <span>
+        {{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}
+      </span>
+    }
+
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="inline-block w-4 h-4 ml-0.5">
+      <path d="M20 2C20.5523 2 21 2.44772 21 3V6.757L19 8.757V4H5V20H19V17.242L21 15.242V21C21 21.5523 20.5523 22 20 22H4C3.44772 22 3 21.5523 3 21V3C3 2.44772 3.44772 2 4 2H20ZM21.7782 8.80761L23.1924 10.2218L15.4142 18L13.9979 17.9979L14 16.5858L21.7782 8.80761ZM13 12V14H8V12H13ZM16 8V10H8V8H16Z"></path>
+    </svg>
+  </button>
+</div>
 
 @if (loading()) {
   <ngm-spin class="absolute top-0 left-0 w-full h-full" />

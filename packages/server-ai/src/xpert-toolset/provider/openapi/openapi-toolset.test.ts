@@ -2,7 +2,7 @@ import { OpenAPIToolset } from './openapi-toolset'
 import { OpenAPITool } from './openapi/openapi-tool'
 import * as fs from 'fs'
 import * as path from 'path';
-import { ApiProviderAuthType, ApiToolBundle, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { ApiAuthType, ApiToolBundle, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { ApiBasedToolSchemaParser } from '../../utils/parser';
 import MockAdapter from 'axios-mock-adapter';
 import axios from 'axios'
@@ -27,7 +27,7 @@ describe('OpenAPIToolset', () => {
 			type: 'openapi',
 			category: XpertToolsetCategoryEnum.API,
 			credentials: {
-				auth_type: ApiProviderAuthType.NONE
+				auth_type: ApiAuthType.NONE
 			},
 			schema: oas,
 			schemaType: 'openapi_yaml',

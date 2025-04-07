@@ -32,6 +32,7 @@ import {
   injectTags,
   injectUser,
   ITag,
+  IXpertWorkspace,
   OrderTypeEnum,
   routeAnimations,
   TagCategoryEnum,
@@ -49,6 +50,7 @@ import { TagFilterComponent } from 'apps/cloud/src/app/@shared/tag';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { XpertWorkspaceWelcomeComponent } from '../welcome/welcome.component';
 import { injectParams } from 'ngxtension/inject-params';
+import { injectWorkspace, Store } from '@metad/cloud/state';
 
 export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
 
@@ -83,6 +85,7 @@ export class XpertWorkspaceHomeComponent {
   XpertRoleTypeEnum = XpertTypeEnum
   XpertToolsetCategory = XpertToolsetCategoryEnum
 
+  readonly store = inject(Store)
   readonly appService = inject(AppService)
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
@@ -98,6 +101,7 @@ export class XpertWorkspaceHomeComponent {
   readonly me = injectUser()
   readonly confirmUnique = injectConfirmUnique()
   readonly paramId = injectParams('id')
+  readonly selectedWorkspace = injectWorkspace()
 
   readonly contentContainer = viewChild('contentContainer', { read: ElementRef })
 
@@ -113,8 +117,7 @@ export class XpertWorkspaceHomeComponent {
       ),
     {initialValue: null}
   )
-  readonly selectedWorkspaces = model<string[]>([])
-  readonly workspace = computed(() => this.workspaces()?.find((_) => _.id === this.selectedWorkspaces()[0]), {
+  readonly workspace = computed(() => this.workspaces()?.find((_) => _.id === this.selectedWorkspace()?.id), {
     equal: (a, b) => a?.id === b?.id
   })
 
@@ -159,18 +162,9 @@ export class XpertWorkspaceHomeComponent {
 
   readonly inDevelopmentOpen = signal(false)
 
-  constructor() {
-    effect(() => {
-      if (this.selectedWorkspaces()[0]) {
-        this.router.navigate(['/xpert/w/', this.selectedWorkspaces()[0]])
-      }
-    }, { allowSignalWrites: true })
-
-    effect(() => {
-      if (this.paramId()) {
-        this.selectedWorkspaces.set([this.paramId()])
-      }
-    }, { allowSignalWrites: true })
+  selectWorkspace(ws: IXpertWorkspace) {
+    this.router.navigate(['/xpert/w/', ws.id])
+    this.store.setWorkspace(ws)
   }
 
   newWorkspace() {
@@ -184,7 +178,8 @@ export class XpertWorkspaceHomeComponent {
         next: (workspace) => {
           this.loading.set(false)
           this.workspaceService.refresh()
-          this.selectedWorkspaces.set([workspace.id])
+          this.selectWorkspace(workspace)
+          // this.selectedWorkspaces.set([workspace.id])
           this.#toastr.success(`PAC.Messages.CreatedSuccessfully`, { Default: 'Created Successfully!' })
         },
         error: (error) => {
@@ -202,7 +197,7 @@ export class XpertWorkspaceHomeComponent {
     this.#dialog
       .open(XpertWorkspaceSettingsComponent, {
         data: {
-          id: this.selectedWorkspaces()[0]
+          id: this.selectedWorkspace()?.id
         }
       })
       .afterClosed()

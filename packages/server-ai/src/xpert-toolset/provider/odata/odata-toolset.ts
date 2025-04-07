@@ -1,4 +1,4 @@
-import { ApiProviderAuthType, IXpertTool, IXpertToolset, TXpertToolEntity, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { ApiAuthType, IXpertTool, IXpertToolset, TXpertToolEntity, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { Service } from '@sap_oss/odata-library'
 import { uniq } from 'lodash'
 import { ToolProviderCredentialValidationError } from '../../errors'
@@ -45,7 +45,7 @@ export class ODataToolset extends BaseToolset<ODataTool> {
 		}
 
 		let auth = null
-		if (credentials?.auth_type === ApiProviderAuthType.BASIC) {
+		if (credentials?.auth_type === ApiAuthType.BASIC) {
 			auth = {
 				type: 'basic',
 				username: credentials.username,

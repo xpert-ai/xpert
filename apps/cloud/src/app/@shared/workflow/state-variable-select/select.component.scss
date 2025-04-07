@@ -1,3 +1,9 @@
 :host {
-    @apply block;
+  @apply block;
+  &.inline {
+    @apply inline-block;
+    .menu-trigger {
+      @apply px-0.5 py-0 border border-solid border-divider-deep;
+    }
+  }
 }

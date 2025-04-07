@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective, OcapCoreModule } from '@metad/ocap-angular/core'
 import { NgmBreadcrumbBarComponent } from './breadcrumb/breadcrumb.component'
-import { ResizeObserverDirective } from './directives'
+import { NgmHighlightDirective, ResizeObserverDirective } from './directives'
 import { NgmDisplayBehaviourComponent } from './display-behaviour'
 import { NgmInputModule } from './input/input.module'
 import { ResizerModule } from './resizer/resizer.module'
@@ -29,6 +29,7 @@ import { NgmStepperComponent } from './stepper/stepper.component'
     SplitterModule,
 
     OcapCoreModule,
+    NgmHighlightDirective,
     ResizeObserverDirective,
     NgmBreadcrumbBarComponent,
     NgmSearchComponent,
@@ -59,6 +60,7 @@ import { NgmStepperComponent } from './stepper/stepper.component'
   exports: [
     ResizerModule,
     SplitterModule,
+    NgmHighlightDirective,
     NgmBreadcrumbBarComponent,
     ResizeObserverDirective,
     NgmDisplayBehaviourComponent,

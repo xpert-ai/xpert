@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model } from '@angular/core'
+import { booleanAttribute, ChangeDetectionStrategy, Component, computed, effect, inject, input, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TSelectOption, NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -13,7 +13,8 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'ngm-radio-select',
-    '[attr.disabled]': 'isDisabled || null'
+    '[attr.disabled]': 'isDisabled || null',
+    '[class.simple]': 'simple()',
   },
   hostDirectives: [
     {
@@ -29,6 +30,11 @@ export class NgmRadioSelectComponent {
   protected cva = inject<NgxControlValueAccessor<any | null>>(NgxControlValueAccessor)
 
   readonly selectOptions = input<TSelectOption[]>()
+
+  readonly simple = input<boolean, string | boolean>(false, {
+    transform: booleanAttribute
+  })
+
   readonly options = computed(() => this.selectOptions()?.map((option) => ({...option, key: option.key ?? option.value})))
 
   readonly value = model(null)

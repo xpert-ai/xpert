@@ -9,7 +9,6 @@ import { TSensitiveOperation } from './chat.model'
  */
 export type TXpertAgentExecution = {
   title?: string
-  processData?: any
   inputs?: any
   outputs?: any
   status?: XpertAgentExecutionStatusEnum
@@ -52,6 +51,7 @@ export type TXpertAgentExecution = {
 
   // Many to one
   agentKey?: string
+  predecessor?: string
   xpert?: IXpert
   xpertId?: string
   // Parent AgentExecution

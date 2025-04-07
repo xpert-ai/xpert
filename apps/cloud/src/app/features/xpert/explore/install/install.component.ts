@@ -7,9 +7,10 @@ import { FormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
 import { parseYAML } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
+  ICopilotModel,
   injectToastr,
   IXpertTemplate,
   TAvatar,
@@ -47,7 +48,6 @@ export class XpertInstallComponent {
   readonly workspaceService = inject(XpertWorkspaceService)
   readonly templateService = inject(XpertTemplateService)
   readonly xpertService = inject(XpertService)
-  readonly #translate = inject(TranslateService)
   readonly #router = inject(Router)
   readonly #toastr = injectToastr()
 
@@ -66,6 +66,8 @@ export class XpertInstallComponent {
   readonly name = model<string>(this.#data.name)
   readonly description = model<string>(this.#data.description)
   readonly avatar = model<TAvatar>(this.#data.avatar)
+  readonly title = model<string>()
+  readonly copilotModel = model<ICopilotModel>()
 
   readonly loading = signal(false)
 
@@ -77,9 +79,11 @@ export class XpertInstallComponent {
   async create() {
     const xpert = {
       workspaceId: this.workspace(),
+      avatar: this.avatar(),
       name: this.name(),
       description: this.description(),
-      avatar: this.avatar()
+      title: this.title(),
+      copilotModel: this.copilotModel(),
     }
 
     this.loading.set(true)

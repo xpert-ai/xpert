@@ -65,7 +65,7 @@ export type TXpertToolset = {
 export interface IXpertToolset extends IBasePerWorkspaceEntityModel, TXpertToolset {}
 
 export type TXpertToolsetOptions = {
-  provider: IToolProvider
+  provider?: IToolProvider
   baseUrl?: string
   toolPositions?: Record<string, number>
   disableToolDefault?: boolean
@@ -128,15 +128,6 @@ export interface ToolProviderCredentials {
   url?: string
   placeholder?: I18nObject
   max?: number
-}
-
-export enum ApiProviderAuthType {
-  /**
-   * Enum class for api provider auth type.
-   */
-  NONE = "none",
-  API_KEY = "api_key",
-  BASIC = 'basic'
 }
 
 export enum ApiProviderSchemaType {

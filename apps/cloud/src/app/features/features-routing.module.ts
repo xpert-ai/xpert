@@ -1,9 +1,10 @@
-import { NgModule } from '@angular/core'
+import { inject, NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
 import { NgxPermissionsGuard } from 'ngx-permissions'
 import { AnalyticsPermissionsEnum, AuthGuard } from '../@core'
 import { FeaturesComponent } from './features.component'
 import { NotFoundComponent } from '../@shared/not-found'
+import { AppService } from '../app.service'
 
 export function redirectTo() {
   return '/chat'
@@ -39,7 +40,19 @@ const routes: Routes = [
       {
         path: 'xpert',
         loadChildren: () => import('./xpert/routes').then(m => m.routes),
-        canActivate: [AuthGuard],
+        canActivate: [
+          AuthGuard,
+          () => {
+            const appService = inject(AppService)
+            appService.inWorkspace.set(true)
+          }
+        ],
+        canDeactivate: [
+          () => {
+            const appService = inject(AppService)
+            appService.inWorkspace.set(false)
+          }
+        ],
         data: {
           title: 'Xpert Agent',
         }

@@ -47,3 +47,11 @@ export function genXpertAnswerKey() {
 export function genXpertCodeKey() {
   return letterStartSUID('Code_')
 }
+
+export function genXpertHttpKey() {
+  return letterStartSUID('Http_')
+}
+
+export function genXpertNoteKey() {
+  return letterStartSUID('Note_')
+}

@@ -3,12 +3,11 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { Component, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
 import { MatInputModule } from '@angular/material/input'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
+  ICopilotModel,
   IXpert,
   IXpertWorkspace,
   TAvatar,
@@ -28,8 +27,6 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
     TranslateModule,
     DragDropModule,
     MatInputModule,
-    MatButtonModule,
-    ButtonGroupDirective,
     FormsModule,
     CdkListboxModule,
     XpertBasicFormComponent
@@ -48,48 +45,17 @@ export class XpertNewBlankComponent {
   readonly name = model<string>()
   readonly description = model<string>()
   readonly avatar = model<TAvatar>()
-
-  // readonly checking = signal(false)
-  // readonly validateName = toSignal<{available: boolean; error?: string;}>(
-  //   toObservable(this.name).pipe(
-  //     debounceTime(500),
-  //     switchMap((title) => {
-  //       if (title) {
-  //         const isValidTitle = /^[a-zA-Z0-9 _-]+$/.test(title)
-  //         if (!isValidTitle) {
-  //           return of({
-  //             available: false,
-  //             error: this.#translate.instant('PAC.Xpert.NameOnlyContain', {Default: 'Name can only contain [a-zA-Z0-9 _-]'})
-  //           })
-  //         }
-
-  //         return this._validateName(title).pipe(
-  //           map((available) => ({
-  //             available,
-  //             error: available ? '' : this.#translate.instant('PAC.Xpert.NameExisted', {Default: 'Name existed!'})
-  //           }))
-  //         )
-  //       }
-
-  //       return of({
-  //         available: true,
-  //         error: null
-  //       })
-  //     })
-  //   )
-  // )
-
-  // _validateName(name: string) {
-  //   this.checking.set(true)
-  //   return this.xpertService.validateName(name).pipe(tap(() => this.checking.set(false)))
-  // }
+  readonly title = model<string>()
+  readonly copilotModel = model<ICopilotModel>()
 
   create() {
     this.xpertService
       .create({
         type: this.types()[0],
         name: this.name(),
+        title: this.title(),
         description: this.description(),
+        copilotModel: this.copilotModel(),
         latest: true,
         workspaceId: this.#dialogData?.workspace?.id,
         avatar: this.avatar(),

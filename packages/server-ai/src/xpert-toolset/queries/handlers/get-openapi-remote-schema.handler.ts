@@ -1,4 +1,4 @@
-import { ApiProviderAuthType } from '@metad/contracts'
+import { ApiAuthType } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { ConfigService } from '@metad/server-config'
 import { Inject, Logger } from '@nestjs/common'
@@ -23,7 +23,7 @@ export class GetOpenAPIRemoteSchemaHandler implements IQueryHandler<GetOpenAPIRe
 		const { url, credentials } = command
 
 		let authorization = null
-		if (credentials.auth_type === ApiProviderAuthType.BASIC) {
+		if (credentials.auth_type === ApiAuthType.BASIC) {
 			authorization = 'Basic ' + Buffer.from(`${credentials.username}:${credentials.password}`).toString('base64')
 		}
 		try {

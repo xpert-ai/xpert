@@ -1,0 +1,67 @@
+<header class="flex justify-between items-center p-4 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  <div class="text-xl font-semibold">{{ 'PAC.MCP.CreateMCPToolset' | translate: { Default: 'Create MCP Toolset' } }}</div>
+</header>
+
+<ol class="flex items-center w-full p-3 space-x-2 text-sm font-medium text-center text-gray-500 bg-white rounded-lg shadow-xs dark:text-gray-400 sm:text-base dark:bg-gray-800 dark:border-gray-700 
+  sm:px-8 sm:space-x-4 rtl:space-x-reverse"
+  cdkListbox
+  [(ngModel)]="steps">
+  <li class="step-option flex items-center cursor-pointer"
+    [cdkOption]="0"
+    [class.active]="steps()[0]===0"
+  >
+    <span class="step-number flex items-center justify-center w-5 h-5 me-2 text-sm border border-gray-500 rounded-full shrink-0 dark:border-gray-400">
+      1
+    </span>
+    {{'PAC.MCP.BasicInfo' | translate: {Default: 'Basic Info'} }}
+    <i class="ri-arrow-right-double-line ml-4"></i>
+  </li>
+  <li class="step-option flex items-center cursor-pointer"
+    [cdkOption]="1"
+    [class.active]="steps()[0]===1">
+    <span class="step-number flex items-center justify-center w-5 h-5 me-2 text-sm border border-gray-500 rounded-full shrink-0 dark:border-gray-400">
+      2
+    </span>
+    {{'PAC.MCP.Configuration' | translate: {Default: 'Configuration'} }}
+  </li>
+</ol>
+
+<div class="flex flex-col px-8 py-4 overflow-hidden">
+  <xpert-tool-mcp-configure #basic class="step-content hidden" [class.active]="steps()[0] === 0"
+    [ngModel]="toolset()"
+    (valueChange)="toolset.set($event)"
+  />
+
+  <mcp-server-form class="step-content hidden w-full overflow-hidden" [class.active]="steps()[0] === 1" 
+    [(ngModel)]="mcpServer"
+    [(tools)]="tools"
+    [toolset]="toolset()"
+  />
+</div>
+
+<div class="w-full flex justify-end p-4">
+  <div class="flex items-center gap-2">
+    <button type="button" class="btn disabled:btn-disabled btn-large"
+      (click)="cancel()"
+    >
+      {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+    </button>
+  
+    @if (steps()[0] === 0) {
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+        [disabled]="basic.inValid()"
+        (click)="steps.set([1])"
+      >
+        <i class="ri-arrow-right-line mr-1"></i>
+        {{ 'PAC.MCP.NextStep' | translate: { Default: 'Next Step' } }}
+      </button>
+    } @else {
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+        (click)="createTool()"
+      >
+        <i class="ri-save-line mr-1"></i>
+        {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
+      </button>
+    }
+  </div>
+</div>

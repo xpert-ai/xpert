@@ -152,6 +152,10 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.post<IXpert>(this.apiBaseUrl + `/import`, dslObject)
   }
 
+  duplicate(id: string, options: {basic: Partial<IXpert>; isDraft: boolean }) {
+    return this.httpClient.post<IXpert>(this.apiBaseUrl + `/${id}/duplicate`, options)
+  }
+
   getAllMemory(id: string, types: string[]) {
     return this.httpClient.get<{ items: ICopilotStore[] }>(this.apiBaseUrl + `/${id}/memory`, {
       params: {

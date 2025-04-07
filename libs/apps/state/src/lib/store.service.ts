@@ -13,7 +13,8 @@ import {
 	FeatureEnum,
 	OrganizationPermissionsEnum,
 	AnalyticsFeatures,
-	ITenantSetting
+	ITenantSetting,
+	IXpertWorkspace
 } from '@metad/contracts';
 import { Injectable, inject } from '@angular/core';
 import { StoreConfig, Store as AkitaStore, Query } from '@datorama/akita';
@@ -32,6 +33,7 @@ export interface AppState {
 	selectedEmployee: ISelectedEmployee;
 	selectedProject: IProject;
 	selectedDate: Date;
+	selectedWorkspace: IXpertWorkspace;
 	systemLanguages: ILanguage[];
 	featureToggles: IFeatureToggle[];
 	featureOrganizations: IFeatureOrganization[];
@@ -41,6 +43,7 @@ export interface AppState {
 
 export interface PersistState {
 	organizationId?: string;
+	workspaceId?: string;
 	/**
 	 * @deprecated unused
 	 */
@@ -158,6 +161,8 @@ export class Store {
 	);
 	selectedProject$ = this.appQuery.select((state) => state.selectedProject);
 	selectedEmployee$ = this.appQuery.select((state) => state.selectedEmployee);
+	selectedWorkspace$ = this.appQuery.select((state) => state.selectedWorkspace);
+	workspaceId$ = this.persistQuery.select((state) => state.workspaceId);
 	
 	selectedDate$ = this.appQuery.select((state) => state.selectedDate);
 	userRolePermissions$ = this.appQuery.select(
@@ -537,6 +542,21 @@ export class Store {
 			return {...state}
 		})
 	}
+
+	setWorkspace(workspace: IXpertWorkspace) {
+		this.persistStore.update((state) => {
+			return {
+				...state,
+				workspaceId: workspace.id,
+			}
+		})
+		this.appStore.update((state) => {
+			return {
+				...state,
+				selectedWorkspace: workspace
+			}
+		})
+	}
 }
 
 export function injectOrganizationId() {
@@ -552,4 +572,14 @@ export function injectOrganization() {
 export function injectXpertPreferences() {
 	const store = inject(Store)
 	return store.xpert
+}
+
+export function injectWorkspace() {
+	const store = inject(Store)
+	return toSignal(store.selectedWorkspace$)
+}
+
+export function injectWorkspaceId() {
+	const store = inject(Store)
+	return toSignal(store.workspaceId$)
 }

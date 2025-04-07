@@ -1,6 +1,7 @@
-export enum MCPServerTransport {
+export enum MCPServerType {
   SSE = 'sse',
-  STDIO = 'stdio'
+  STDIO = 'stdio',
+  CODE = 'code'
 }
 
 /**
@@ -13,23 +14,6 @@ export interface StdioConnection {
   env?: Record<string, string>;
   encoding?: string;
   encodingErrorHandler?: "strict" | "ignore" | "replace";
-  /**
-   * Additional restart settings
-   */
-  restart?: {
-    /**
-     * Whether to automatically restart the process if it exits
-     */
-    enabled?: boolean;
-    /**
-     * Maximum number of restart attempts
-     */
-    maxAttempts?: number;
-    /**
-     * Delay in milliseconds between restart attempts
-     */
-    delayMs?: number;
-  };
 }
 
 /**
@@ -40,46 +24,42 @@ export interface SSEConnection {
   url: string;
   headers?: Record<string, string>;
   useNodeEventSource?: boolean;
+}
+
+export type TMCPServerReconnect = {
   /**
-   * Additional reconnection settings
+   * Whether to automatically restart the process if it exits
    */
-  reconnect?: {
-    /**
-     * Whether to automatically reconnect if the connection is lost
-     */
-    enabled?: boolean;
-    /**
-     * Maximum number of reconnection attempts
-     */
-    maxAttempts?: number;
-    /**
-     * Delay in milliseconds between reconnection attempts
-     */
-    delayMs?: number;
-  };
+  enabled?: boolean;
+  /**
+    * Maximum number of restart attempts
+    */
+  maxAttempts?: number;
+  /**
+    * Delay in milliseconds between restart attempts
+    */
+  delayMs?: number;
 }
 
 export type TMCPServer = {
-  transport: MCPServerTransport,
+  type: MCPServerType
   command?: string
   args?: string[]
   env?: Record<string, string>
   encoding?: string
   encodingErrorHandler?: string
-  restart: {
-    "enabled": true,
-    "maxAttempts": 3,
-    "delayMs": 1000
-  }
+  /**
+   * Additional reconnection settings
+   */
+  reconnect?: TMCPServerReconnect
 
   url?: string,
   headers?: Record<string, string>
   useNodeEventSource?: boolean
-  reconnect: {
-    "enabled": true,
-    "maxAttempts": 3,
-    "delayMs": 1000
-  }
+
+  files?: {name: string; content: string}[]
+
+  toolNamePrefix?: string
 }
 
 export type TMCPSchema = {

@@ -76,4 +76,43 @@ export class XpertTemplateService {
 
 		return details
 	}
+
+	async readMCPTemplates() {
+		const templatesFilePath = path.join(
+			this.configService.assetOptions.serverRoot,
+			currentPath + '/mcp-templates.json'
+		)
+
+		let templatesData: Record<string, unknown>
+
+		try {
+			const data = fs.readFileSync(templatesFilePath, 'utf8')
+			templatesData = JSON.parse(data)
+		} catch (err) {
+			this.#logger.error('Error reading mcp-templates.json:', err)
+			throw new Error('Failed to read mcp-templates.json')
+		}
+
+		return templatesData
+	}
+
+	async getMCPTemplates(language: LanguagesEnum) {
+		const data = await this.readMCPTemplates()
+
+		if (data[language]?.['templates']?.length) {
+			return data[language]
+		}
+		return data['en-US']
+	}
+
+	async getMCPTemplate(language: LanguagesEnum, id: string) {
+		const data = await this.readMCPTemplates()
+		let templates = null
+		if (data[language]?.['templates']?.length) {
+			templates = data[language]['templates']
+		} else {
+			templates = data['en-US']['templates']
+		}
+		return templates?.find((_) => _.id === id)
+	}
 }

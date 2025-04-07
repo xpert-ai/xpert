@@ -19,6 +19,12 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 	@IsOptional()
 	@Column({ nullable: true, length: 100 })
 	agentKey?: string
+	
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	predecessor?: string
 
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()

@@ -165,7 +165,13 @@
       @switch (toolset()?.category) {
         @case(eXpertToolsetCategoryEnum.MCP) {
           <xpert-tool-mcp-configure #configure class="w-[600px] max-w-full mx-auto"
-            [toolset]="toolset()"
+            [ngModel]="toolset()" (valueChange)="updateToolset($event)" 
+          />
+
+          <mcp-server-form class="w-[600px] max-w-full mx-auto flex flex-col items-stretch" 
+            [ngModel]="mcpServer()" 
+            (ngModelChange)="updateMcpServer($event)"
+            [tools]="tools()"
             (toolsChange)="onToolsChange($event)"
           />
         }

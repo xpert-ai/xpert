@@ -1,3 +1,3 @@
 :host {
-  @apply relative flex flex-col min-h-full bg-components-panel-bg;
+  @apply relative flex flex-col min-h-full rounded-2xl max-h-screen overflow-auto bg-components-panel-bg;
 }

@@ -63,7 +63,8 @@
   }
   .btn-secondary {
     @apply border-[0.5px] border-[--color-components-button-secondary-border] bg-[--color-components-button-secondary-bg] shadow-sm
-      hover:border-[--color-components-button-secondary-border-hover] hover:bg-[--color-components-button-secondary-bg-hover];
+      hover:border-[--color-components-button-secondary-border-hover] hover:bg-[--color-components-button-secondary-bg-hover]
+      text-zinc-600;
   }
 
   .btn-tertiary {
@@ -111,21 +112,5 @@
     &.btn-danger, &.danger {
       @apply text-red-500 border-red-50 hover:border-red-500 hover:bg-red-50;
     }
-  }
-
-  .system-xl-semibold {
-    @apply text-xl font-semibold;
-  }
-  .system-sm-semibold {
-    @apply text-sm font-semibold;
-  }
-  .system-sm-regular {
-    @apply text-sm;
-  }
-  .system-xs-regular {
-    @apply text-sm;
-  }
-  .system-xs-medium {
-    @apply text-xs font-medium;
   }
 }

@@ -183,6 +183,7 @@ export class CopilotPromptEditorComponent {
 
     // Performing Edit Operations
     this.#editor().executeEdits("insert-string", [operation])
+    this.#editor().focus()
     this.hideSuggestions()
   }
 
@@ -227,36 +228,9 @@ export class CopilotPromptEditorComponent {
       tap(() => this.copied.set(false))
     ))
 
-  onMouseDown(event: MouseEvent): void {
-    this.isResizing = true
-    this.startY = event.clientY
-    this.startHeight = this.height
-    event.preventDefault()
-  }
-
-  @HostListener('document:mousemove', ['$event'])
-  onMouseMove(event: MouseEvent): void {
-    if (this.isResizing) {
-      const offset = event.clientY - this.startY
-      this.height = this.startHeight + offset
-      if (this.height < 50) this.height = 50 // Set minimum height
-
-      this.onResized()
-      event.preventDefault()
-    }
-  }
-
-  @HostListener('document:mouseup')
-  onMouseUp(): void {
-    this.isResizing = false
-  }
-
   // Editor
   onInit(editor: any) {
     this.#editor.set(editor)
-    this.#editor().onDidChangeCursorSelection((e) => {
-      // this.cursorSelection$.next(e)
-    })
 
     editor.onDidChangeModelContent((event) => {
       event.changes.forEach((change) => {
@@ -296,4 +270,35 @@ export class CopilotPromptEditorComponent {
     
     return { x: cursorX, y: cursorY };
   }
+
+  onMouseDown(event: MouseEvent): void {
+    this.isResizing = true
+    this.startY = event.clientY
+    this.startHeight = this.height
+    event.preventDefault()
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onMouseMove(event: MouseEvent): void {
+    if (this.isResizing) {
+      const offset = event.clientY - this.startY
+      this.height = this.startHeight + offset
+      if (this.height < 50) this.height = 50 // Set minimum height
+
+      this.onResized()
+      event.preventDefault()
+    }
+  }
+
+  @HostListener('document:mouseup')
+  onMouseUp(): void {
+    this.isResizing = false
+  }
+
+  @HostListener('document:keydown.escape', ['$event'])
+  handleEscapeKey(event: KeyboardEvent) {
+    this.hideSuggestions()
+    this.#editor()?.focus()
+  }
+
 }

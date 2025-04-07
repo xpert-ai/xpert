@@ -23,6 +23,16 @@ export class XpertTemplateController {
 		return this.service.getAll(LanguagesMap[language] ?? language)
 	}
 
+	@Get('mcps')
+	async getMCPTemplates(@I18nLang() language: LanguagesEnum) {
+		return await this.service.getMCPTemplates(LanguagesMap[language] ?? language)
+	}
+
+	@Get('mcps/:id')
+	async getMCPTemplate(@I18nLang() language: LanguagesEnum, @Param('id') id: string) {
+		return await this.service.getTemplateDetail(id, LanguagesMap[language] ?? language)
+	}
+
 	@Get(':id')
 	async getTemplate(@I18nLang() language: LanguagesEnum, @Param('id') id: string) {
 		return await this.service.getTemplateDetail(id, LanguagesMap[language] ?? language)

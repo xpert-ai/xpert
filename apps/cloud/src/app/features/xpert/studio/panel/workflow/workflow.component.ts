@@ -24,6 +24,8 @@ import { XpertStudioPanelWorkflowIteratingComponent } from './iterating/iteratin
 import { XpertStudioPanelWorkflowAnswerComponent } from './answer/answer.component'
 import { XpertStudioPanelWorkflowCodeComponent } from './code/code.component'
 import { XpertWorkflowCodeTestComponent } from './code-test/code.component'
+import { XpertWorkflowHttpComponent } from './http/http.component'
+import { XpertWorkflowIconComponent } from '../../components/workflow/icon/icon.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -45,7 +47,9 @@ import { XpertWorkflowCodeTestComponent } from './code-test/code.component'
     XpertStudioPanelWorkflowIteratingComponent,
     XpertStudioPanelWorkflowAnswerComponent,
     XpertStudioPanelWorkflowCodeComponent,
-    XpertWorkflowCodeTestComponent
+    XpertWorkflowCodeTestComponent,
+    XpertWorkflowHttpComponent,
+    XpertWorkflowIconComponent
   ],
   animations: [IfAnimation,]
 })

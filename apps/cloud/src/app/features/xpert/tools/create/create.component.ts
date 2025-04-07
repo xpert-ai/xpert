@@ -17,7 +17,6 @@ import { isNil, omitBy } from 'lodash-es'
 import { XpertConfigureToolComponent } from '../api-tool/types'
 import { XpertStudioConfigureODataComponent } from '../odata/'
 import { XpertStudioConfigureToolComponent } from '../openapi/'
-import { XpertStudioConfigureMCPComponent } from '../mcp'
 
 @Component({
   standalone: true,
@@ -30,7 +29,6 @@ import { XpertStudioConfigureMCPComponent } from '../mcp'
     CdkListboxModule,
     XpertStudioConfigureToolComponent,
     XpertStudioConfigureODataComponent,
-    XpertStudioConfigureMCPComponent
   ],
   selector: 'pac-xpert-tool-create',
   templateUrl: './create.component.html',
@@ -42,7 +40,7 @@ export class XpertStudioCreateToolComponent {
   private readonly xpertToolsetService = inject(XpertToolsetService)
   readonly #toastr = inject(ToastrService)
   readonly #dialogRef = inject(DialogRef)
-  readonly #data = inject<{ workspace: IXpertWorkspace; type: 'mcp' | 'openapi' | 'odata' }>(DIALOG_DATA)
+  readonly #data = inject<{ workspace: IXpertWorkspace; type: 'openapi' | 'odata' }>(DIALOG_DATA)
 
   readonly configure = viewChild('configure', { read: XpertConfigureToolComponent })
 
@@ -50,7 +48,7 @@ export class XpertStudioCreateToolComponent {
 
   readonly loading = signal(false)
 
-  readonly providerTypes = model<('mcp' | 'openapi' | 'odata')[]>([this.#data.type || 'mcp'])
+  readonly providerTypes = model<('openapi' | 'odata')[]>([this.#data.type || 'openapi'])
 
   readonly toolset = model<IXpertToolset>()
 

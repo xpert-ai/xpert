@@ -1,0 +1,7 @@
+:host.simple {
+  .ngm-radio-select {
+    .cdk-option {
+      @apply border-0 bg-transparent shadow-none;
+    }
+  }
+}

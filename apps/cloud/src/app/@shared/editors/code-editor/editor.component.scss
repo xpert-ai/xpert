@@ -1,0 +1,11 @@
+:host {
+  @apply block;
+}
+
+:host::ng-deep {
+  .monaco-editor {
+    .margin, .monaco-editor-background {
+      background-color: var(--ngm-monaco-editor-bg, --sidebar-surface-primary);
+    }
+  }
+}

@@ -18,14 +18,14 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        redirectTo: 'basic',
+        redirectTo: 'agents',
         pathMatch: 'full'
       },
-      {
-        path: 'basic',
-        component: XpertBasicComponent,
-        canDeactivate: [dirtyCheckGuard]
-      },
+      // {
+      //   path: 'basic',
+      //   component: XpertBasicComponent,
+      //   canDeactivate: [dirtyCheckGuard]
+      // },
       {
         path: 'agents',
         component: XpertStudioComponent

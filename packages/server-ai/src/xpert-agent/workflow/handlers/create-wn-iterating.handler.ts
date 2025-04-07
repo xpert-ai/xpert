@@ -23,8 +23,8 @@ import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/quer
 import { messageEvent, setStateVariable } from '../../agent'
 import { XpertAgentVariableSchemaQuery } from '../../queries'
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
-import { XpertAgentSubgraphCommand } from '../subgraph.command'
-import { AgentStateAnnotation } from './types'
+import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
+import { AgentStateAnnotation } from '../../commands/handlers/types'
 
 
 @CommandHandler(CreateWNIteratingCommand)

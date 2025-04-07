@@ -2,4 +2,28 @@
   .border-light {
     @apply border-[0.5px] border-solid border-gray-200 dark:border-neutral-600;
   }
+
+  .system-sm-semibold-uppercase {
+    @apply text-sm font-semibold uppercase;
+  }
+
+  .radius-md {
+    @apply rounded-lg;
+  }
+
+  .system-xl-semibold {
+    @apply text-xl font-semibold;
+  }
+  .system-sm-semibold {
+    @apply text-sm font-semibold;
+  }
+  .system-sm-regular {
+    @apply text-sm;
+  }
+  .system-xs-regular {
+    @apply text-sm;
+  }
+  .system-xs-medium {
+    @apply text-xs font-medium;
+  }
 }

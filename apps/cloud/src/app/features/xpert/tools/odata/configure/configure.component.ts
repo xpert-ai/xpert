@@ -13,7 +13,7 @@ import { EntriesPipe, routeAnimations } from '@metad/core'
 import { pick } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
-  ApiProviderAuthType,
+  ApiAuthType,
   getErrorMessage,
   IXpertTool,
   IXpertToolset,
@@ -95,7 +95,7 @@ export class XpertStudioConfigureODataComponent extends XpertConfigureToolCompon
     category: this.#formBuilder.control(XpertToolsetCategoryEnum.API),
     tools: new FormArray([]),
     credentials: this.#formBuilder.control({
-      auth_type: ApiProviderAuthType.NONE
+      auth_type: ApiAuthType.NONE
     }),
     tags: this.#formBuilder.control(null),
     privacyPolicy: this.#formBuilder.control(null),

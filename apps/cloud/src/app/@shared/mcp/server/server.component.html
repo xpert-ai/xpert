@@ -1,0 +1,324 @@
+<div class="min-w-[200px] md:min-w-[300px] lg:min-w-[400px] flex flex-col gap-2 p-2 overflow-auto">
+  <div class="flex justify-center pb-2">
+    <ul class="w-80 p-1 flex items-center justify-center gap-2 bg-hover-bg rounded-xl"
+      cdkListbox
+      [(ngModel)]="types"
+      (ngModelChange)="updateType($event)"
+    >
+      <li #option1="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
+        [ngClass]="option1.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
+        [cdkOption]="eMCPServerType.SSE">
+        <i class="ri-route-line"></i> &nbsp; SSE
+      </li>
+      <li #option2="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
+        [ngClass]="option2.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
+        [cdkOption]="eMCPServerType.STDIO">
+        <i class="ri-links-line"></i> &nbsp; StandIO
+      </li>
+    
+      <!-- <li #option3="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
+        [ngClass]="option3.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
+        [cdkOption]="eMCPServerType.CODE">
+        <i class="ri-exchange-2-line"></i> &nbsp; Code
+      </li> -->
+    </ul>
+  </div>
+
+  <div class="select-none relative">
+    <div class="flex justify-between items-center">
+      <div class="py-2 leading-5 font-medium">
+        {{ 'PAC.Xpert.Schema' | translate: {Default: 'Schema'} }}
+        <span class="ml-1 text-red-500">*</span>
+      </div>
+      <div class="mx-2 w-px h-3 bg-black/5"></div>
+      <a href="https://modelcontextprotocol.io/introduction" target="_blank" rel="noopener noreferrer"
+        class="group flex items-center h-[18px] space-x-1 text-[#155EEF] hover:text-primary-600">
+        <div class="text-xs font-normal">{{ 'PAC.Xpert.ViewMCPSpec' | translate: {Default: 'View the MCP Specification'} }}</div>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 transition-transform group-hover:translate-x-2">
+          <g id="link-external-02">
+            <path id="Icon" d="M10.5 4.5L10.5 1.5M10.5 1.5H7.49999M10.5 1.5L6 6M5 1.5H3.9C3.05992 1.5 2.63988 1.5 2.31901 1.66349C2.03677 1.8073 1.8073 2.03677 1.66349 2.31901C1.5 2.63988 1.5 3.05992 1.5 3.9V8.1C1.5 8.94008 1.5 9.36012 1.66349 9.68099C1.8073 9.96323 2.03677 10.1927 2.31901 10.3365C2.63988 10.5 3.05992 10.5 3.9 10.5H8.1C8.94008 10.5 9.36012 10.5 9.68099 10.3365C9.96323 10.1927 10.1927 9.96323 10.3365 9.68099C10.5 9.36012 10.5 8.94008 10.5 8.1V7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"></path>
+          </g>
+        </svg>
+      </a>
+  
+      <div class="flex-1"></div>
+  
+      <!-- <div class="relative">
+        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
+          (click)="setSample()">
+          <i class="ri-database-line mr-1"></i>
+          <div class="text-sm font-medium">{{ 'PAC.Xpert.Samples' | translate: {Default: 'Samples'} }}</div>
+        </button>
+      </div> -->
+    </div>
+  
+    <!-- @if (needSandbox.value) {
+      <div class="flex items-center my-2">
+        <i class="ri-alarm-warning-fill mb-0.5 mr-1 text-orange-500"></i>
+        <span class="text-sm text-text-secondary">{{ 'PAC.Xpert.NeedSandboxToolsetTip' | translate: {Default: 'For security reasons, please upgrade to the pro version to run this toolset safely in a sandbox'} }}</span>
+      </div>
+    } -->
+  </div>
+
+  @if (types()[0] === eMCPServerType.SSE) {
+    <div class="">
+      <div class="text-semibold mb-1 flex h-6 items-center gap-1 text-text-secondary">
+        <div class="truncate">{{'PAC.MCP.Url' | translate: {Default: 'Url'} }}</div>
+      </div>
+      <div class="grow">
+        <div class="relative w-full">
+          <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+            [(ngModel)]="url"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="my-4">
+      <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
+        <div class="truncate">{{'PAC.MCP.Headers' | translate: {Default: 'Headers'} }}</div>
+
+        <div class="w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none
+          pressable"
+          (click)="addHeader()"
+        >
+          <i class="ri-add-line"></i>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3">
+        <div class="col-span-1">{{'PAC.MCP.Name' | translate: {Default: 'Name'} }}</div>
+        <div class="col-span-2">{{'PAC.MCP.Value' | translate: {Default: 'Value'} }}</div>
+        @for (row of headers() | entries; track row[0]) {
+          <div class="col-span-1">
+            <input #input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+              [ngModel]="row[0]"
+              (blur)="updateHeaderName(row[0], input.value)"
+            />
+          </div>
+          <div class="col-span-2 flex items-center gap-1">
+            <input #input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+              [ngModel]="row[1]"
+              (blur)="updateHeaderValue(row[0], input.value)"
+            />
+            <div class="w-7 h-7 btn flex justify-center items-center rounded-lg cursor-pointer hover:bg-hover-bg select-none danger
+              pressable"
+              (click)="removeHeader(row[0])"
+            >
+              <i class="ri-close-line"></i>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="">
+      <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
+        <div class="truncate">{{'PAC.MCP.Command' | translate: {Default: 'Command'} }}</div>
+      </div>
+      <div class="grow">
+        <div class="relative w-full">
+          <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+            [(ngModel)]="command"
+            [disabled]="isCode()"
+          />
+        </div>
+      </div>
+    </div>
+  
+    <div class="my-4">
+      <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
+        <div class="truncate">{{'PAC.MCP.Args' | translate: {Default: 'Args'} }}</div>
+
+        <div class="pressable w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none"
+          (click)="addArg()"
+        >
+          <i class="ri-add-line"></i>
+        </div>
+      </div>
+      <div class="grow space-y-2">
+        @for (item of args(); track i; let i = $index) {
+          <div class="relative w-full flex items-center gap-1">
+            <input class="grow appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+              [ngModel]="item"
+              [disabled]="isCode()"
+              (ngModelChange)="updateArg(i, $event)"
+            />
+            <div class="pressable w-7 h-7 shrink-0 btn flex justify-center items-center rounded-lg cursor-pointer hover:bg-hover-bg select-none danger"
+              (click)="removeArg(i)"
+            >
+              <i class="ri-close-line"></i>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    @if (types()[0] === 'stdio') {
+      <div class="my-4">
+        <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
+          <div class="truncate">{{'PAC.MCP.Env' | translate: {Default: 'Env'} }}</div>
+
+          <div class="w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none
+            pressable"
+            (click)="addEnv()"
+          >
+            <i class="ri-add-line"></i>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div class="col-span-1">{{'PAC.MCP.Name' | translate: {Default: 'Name'} }}</div>
+          <div class="col-span-2">{{'PAC.MCP.Value' | translate: {Default: 'Value'} }}</div>
+          @for (row of env() | entries; track row[0]) {
+            <div class="col-span-1">
+              <input #input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+                [ngModel]="row[0]"
+                (blur)="updateEnvName(row[0], input.value)"
+              />
+            </div>
+            <div class="col-span-2 flex items-center gap-1">
+              <input #input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+                [ngModel]="row[1]"
+                (blur)="updateEnvValue(row[0], input.value)"
+              />
+              <div class="w-7 h-7 btn flex justify-center items-center rounded-lg cursor-pointer hover:bg-hover-bg select-none danger
+                pressable"
+                (click)="removeEnv(row[0])"
+              >
+                <i class="ri-close-line"></i>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
+
+  <!-- @if (types()[0] !== eMCPServerType.STDIO) { -->
+    <div class="my-4">
+      <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
+        <div class="truncate">{{'PAC.MCP.Reconnect' | translate: {Default: 'Reconnect'} }}</div>
+
+        <ngm-slide-toggle [(ngModel)]="reconnectEnabled"/>
+      </div>
+
+      @if (reconnectEnabled()) {
+        <div class="flex items-center gap-2">
+          <input class="grow appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+            type="number"
+            [placeholder]="'PAC.MCP.ReconnectMaxAttempts' | translate: {Default: 'Maximum number of connection attempts'}"
+            [(ngModel)]="maxAttempts"
+          />
+
+          <input class="grow appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+            type="number"
+            [placeholder]="'PAC.MCP.ReconnectDelayMs' | translate: {Default: 'Delay in milliseconds between restart attempts'}"
+            [(ngModel)]="delayMs"
+          />
+        </div>
+      }
+    </div>
+  <!-- } -->
+
+  <div class="my-2">
+    <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
+      <div class="truncate">{{'PAC.MCP.ToolNamePrefix' | translate: {Default: 'Tool Name Prefix'} }}</div>
+    </div>
+    <div class="grow">
+      <div class="relative w-full">
+        <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+          [(ngModel)]="toolNamePrefix"
+        />
+      </div>
+    </div>
+  </div>
+
+  <button type="button" class="shrink-0 w-full btn disabled:btn-disabled btn-primary btn-large justify-center shadow-sm"
+    [disabled]="loading()"
+    (click)="connect()"
+  >
+    <i class="ri-play-large-line mr-1"></i>
+    {{ 'PAC.MCP.Connect' | translate: { Default: 'Connect' } }}
+  </button>
+  <div class="flex justify-center items-center gap-2 p-2">
+    @if (loading()) {
+        <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-orange-500 flex'></span>
+        {{ 'PAC.MCP.Connecting' | translate: { Default: 'Connecting' } }}
+    } @else if(tools()?.length) {
+      <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex'></span>
+      {{ 'PAC.MCP.Connected' | translate: { Default: 'Connected' } }}
+    } @else if (error()) {
+        <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-red-500 flex'></span>
+        {{ 'PAC.MCP.Error' | translate: { Default: 'Error' } }}
+    }
+  </div>
+
+  @if (error()) {
+    <div class="p-4 text-sm text-text-destructive whitespace-pre break-all rounded-xl bg-gray-50">
+      {{error()}}
+    </div>
+  }
+</div>
+
+<div class="border-l border-solid border-divider-regular my-2"></div>
+
+<div class="flex-1 overflow-auto">
+  <div class="border-b border-gray-200">
+    <nav class="flex gap-x-1" aria-label="Tabs" role="tablist" aria-orientation="horizontal"
+      cdkListbox
+      [(ngModel)]="views"
+    >
+      @if (types()[0] === 'code') {
+        <button #view1="cdkOption" type="button" class="view-option p-2 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none active" id="tabs-with-icons-item-1" aria-selected="true" data-hs-tab="#tabs-with-icons-1" aria-controls="tabs-with-icons-1" role="tab"
+          [cdkOption]="'code'"
+          [class.active]="view1.isSelected()"
+        >
+          <i class="ri-code-s-slash-line text-lg"></i>
+          {{'PAC.MCP.Code' | translate: {Default: 'Code'} }}
+        </button>
+      }
+      <button #view2="cdkOption" type="button" class="view-option p-2 pr-4 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" id="tabs-with-icons-item-2" aria-selected="false" data-hs-tab="#tabs-with-icons-2" aria-controls="tabs-with-icons-2" role="tab"
+          [cdkOption]="'tools'"
+          [class.active]="view2.isSelected()"
+      >
+        <i class="ri-hammer-line text-lg"></i>
+        {{'PAC.MCP.Tools' | translate: {Default: 'Tools'} }}
+      </button>
+    </nav>
+  </div>
+      
+  <div class="mt-3">
+    @if (types()[0] === 'stdio' || types()[0] === 'code') {
+      <div class="flex items-center px-4 mb-2">
+        <i class="ri-alarm-warning-fill mb-0.5 mr-1 text-orange-500"></i>
+        <span class="text-sm text-text-secondary truncate">{{ 'PAC.Xpert.NeedSandboxToolsetTip' | translate: {Default: 'For security reasons, please upgrade to the pro version to run this toolset safely in a sandbox'} }}</span>
+      </div>
+    }
+    @if (types()[0] === 'code') {
+      <div role="tabpanel" class="view-tab hidden"
+        [class.active]="views()[0] === 'code'">
+        <div>
+          <ul cdkListbox [(ngModel)]="fileIndex" class="shrink-0 flex justify-start items-center gap-2 mb-2">
+            @for (file of files(); track file; let i = $index) {
+              <li class="file-option px-2 py-0.5 rounded-lg cursor-pointer border border-solid border-transparent hover:bg-hover-bg"
+                [cdkOption]="i"
+                [class.active]="i === fileIndex()[0]"
+              >{{file.name}}</li>
+            }
+          </ul>
+          @for (index of fileIndex(); track index) {
+            <pac-code-editor class="h-[400px]" [fileName]="files()[index].name" lineNumbers [editable]="!loading()"
+              [ngModel]="files()[index].content"
+              (ngModelChange)="updateFile(index, {content: $event})"
+            />
+          }
+        </div>
+      </div>
+    }
+    <div role="tabpanel" class="view-tab hidden"
+      [class.active]="view2.isSelected()">
+      <mcp-config-tools class="overflow-auto" [(ngModel)]="tools" [toolset]="_toolset()"/>
+    </div>
+  </div>
+</div>

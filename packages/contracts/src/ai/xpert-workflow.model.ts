@@ -1,5 +1,5 @@
 import { I18nObject } from "../types"
-import { TErrorHandling } from "./types"
+import { ApiAuthType, TErrorHandling } from "./types"
 import { IXpertAgent } from "./xpert-agent.model"
 import { TStateVariable, TXpertParameter } from "./xpert.model"
 
@@ -10,6 +10,7 @@ export enum WorkflowNodeTypeEnum {
   ITERATING = 'iterating',
   ANSWER = 'answer',
   CODE = 'code',
+  HTTP = 'http',
   NOTE = 'note'
 }
 
@@ -137,6 +138,12 @@ export type TWorkflowVarGroup = {
   variables: TStateVariable[]
 }
 
+export type TWorkflowRetry = {
+  enabled?: boolean
+  stopAfterAttempt?: number
+  retryInterval?: number // second
+}
+
 export interface IWFNCode extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.CODE
   language: 'python' | 'javascript'
@@ -146,11 +153,52 @@ export interface IWFNCode extends IWorkflowNode {
   /**
    * Retry on failure
    */
-  retry?: {
-    enabled?: boolean
-    stopAfterAttempt?: number
-    retryInterval?: number // second
+  retry?: TWorkflowRetry
+  /**
+   * Error handling
+   */
+  errorHandling?: TErrorHandling
+}
+
+// Http workflow node
+export type BodyType = 'none' | 'form-data' | 'x-www-form-urlencoded' | 'json' | 'raw' | 'binary';
+interface HttpParam {
+  key: string;
+  value: string;
+}
+interface HttpHeader {
+  name: string;
+  value: string;
+}
+
+export type TWorkflowAuthorization = {
+  auth_type?: ApiAuthType
+  api_key_type?: '' | 'bearar' | 'custom'
+  api_key_header?: string
+  api_key_value?: string
+  username?: string
+  password?: string
+}
+
+export interface IWFNHttp extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.HTTP
+  authorization?: TWorkflowAuthorization
+  method: 'get' | 'post' | 'put' | 'delete' | 'patch' | 'head'
+  url: string
+  headers: HttpHeader[]
+  params: HttpParam[]
+  body: {
+    type?: BodyType
+    body?: string; // 如果是 JSON 类型
+    encodedForm?: HttpParam[]
   }
+  connectionTimeout?: number
+  readTimeout?: number
+  writeTimeout?: number
+  /**
+   * Retry on failure
+   */
+  retry?: TWorkflowRetry
   /**
    * Error handling
    */

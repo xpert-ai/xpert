@@ -24,7 +24,9 @@
   </div>
   <div class="grow w-0 py-[1px]">
     <div class="flex items-center text-base leading-5 font-semibold text-gray-800">
-      <div class="truncate" [title]="xpert().title || xpert().name">{{ xpert().title || xpert().name }}</div>
+      <div class="truncate" [title]="xpert().title || xpert().name"
+        [ngmHighlight]="highlight()"
+        [content]="xpert().title || xpert().name">{{ xpert().title || xpert().name }}</div>
     </div>
     <div class="flex items-center text-xs leading-[18px] text-gray-500 font-medium">
       <div class="truncate">{{'PAC.KEY_WORDS.By' | translate: {Default: 'By'} }}&nbsp;{{xpert().createdBy | user}}</div>
@@ -34,6 +36,8 @@
 <div
   class="grow mb-2 px-[14px] max-h-[72px] text-sm leading-normal text-gray-500 line-clamp-2 group-hover:line-clamp-2 group-hover:max-h-[36px]"
   title="{{ xpert().description }}"
+  [ngmHighlight]="highlight()"
+  [content]="xpert().description"
 >
   {{ xpert().description }}
 </div>

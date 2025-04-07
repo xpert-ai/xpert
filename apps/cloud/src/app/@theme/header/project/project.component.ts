@@ -4,15 +4,14 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { Router } from '@angular/router'
+import { NgmHighlightDirective, NgmSearchComponent } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { computedAsync } from 'ngxtension/computed-async'
+import { derivedAsync } from 'ngxtension/derived-async'
 import { firstValueFrom } from 'rxjs'
 import { map, startWith, switchMap } from 'rxjs/operators'
 import { DefaultProject, IProject, ProjectsService, Store, ToastrService } from '../../../@core'
-import { InlineSearchComponent } from '../../../@shared/form-fields'
 import { ProjectCreationComponent } from './creation/creation.component'
 
 @Component({
@@ -23,10 +22,10 @@ import { ProjectCreationComponent } from './creation/creation.component'
     ReactiveFormsModule,
     DragDropModule,
     CdkMenuModule,
-    MatButtonModule,
     MatDialogModule,
     TranslateModule,
-    InlineSearchComponent
+    NgmSearchComponent,
+    NgmHighlightDirective
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-header-project',
@@ -46,9 +45,12 @@ export class ProjectSelectorComponent {
   })
 
   searchControl = new FormControl('')
+  get search() {
+    return this.searchControl.value
+  }
 
   readonly selectedOrganizationId = toSignal(this.store.selectedOrganization$.pipe(map((org) => org?.id)))
-  readonly projects = computedAsync(() => {
+  readonly projects = derivedAsync(() => {
     const orgId = this.selectedOrganizationId()
     return this.projectService.onRefresh().pipe(
       switchMap(() => this.projectService.getMy()),
@@ -94,6 +96,10 @@ export class ProjectSelectorComponent {
       })
     }
   })
+
+  routeProject(project: Partial<IProject>) {
+    this._router.navigate(['/project/'])
+  }
 
   selectProject(project: IProject) {
     this.store.selectedProject = project

@@ -1,4 +1,4 @@
-import { ApiProviderAuthType, ApiToolBundle, IXpertTool } from '@metad/contracts'
+import { ApiAuthType, ApiToolBundle, IXpertTool } from '@metad/contracts'
 import axios from 'axios'
 import MockAdapter from 'axios-mock-adapter'
 import * as fs from 'fs'
@@ -38,7 +38,7 @@ describe('OpenAPITool', () => {
 	test('validate_credentials should return empty string when format_only is true', async () => {
 		const result = await tool.validate_credentials(
 			{
-				auth_type: ApiProviderAuthType.API_KEY,
+				auth_type: ApiAuthType.API_KEY,
 				api_key_value: 'xxxxx'
 			},
 			{},
@@ -96,7 +96,7 @@ describe('OpenAPITool: Open Meteo', () => {
 	test('validate_credentials should return empty string', async () => {
 		const result = await tool.validate_credentials(
 			{
-				auth_type: ApiProviderAuthType.API_KEY,
+				auth_type: ApiAuthType.API_KEY,
 				api_key_value: 'xxxxx'
 			},
 			{

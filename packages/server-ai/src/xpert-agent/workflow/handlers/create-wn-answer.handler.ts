@@ -7,7 +7,7 @@ import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/c
 import { I18nService } from 'nestjs-i18n'
 import { FakeStreamingChatModel } from '../../agent'
 import { CreateWNAnswerCommand } from '../create-wn-answer.command'
-import { AgentStateAnnotation, stateToParameters } from './types'
+import { AgentStateAnnotation, stateToParameters } from '../../commands/handlers/types'
 
 @CommandHandler(CreateWNAnswerCommand)
 export class CreateWNAnswerHandler implements ICommandHandler<CreateWNAnswerCommand> {

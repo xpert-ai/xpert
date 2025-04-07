@@ -492,8 +492,27 @@ export class XpertStudioApiService {
     this.#reload.next(EReloadReason.XPERT_UPDATED)
   }
 
+  /**
+   * @deprecated Use updateWorkflowNode
+   */
   updateBlock(key: string, node: Partial<TXpertTeamNode>) {
     new UpdateWorkflowNodeHandler(this.store).handle(new UpdateWorkflowNodeRequest(key, node))
+    this.#reload.next(EReloadReason.XPERT_UPDATED)
+  }
+
+  updateWorkflowNode(key: string, fn: (source: Partial<IWorkflowNode>) => IWorkflowNode) {
+    this.store.update((state) => {
+      const draft = structuredClone(state.draft)
+      const index = draft.nodes.findIndex((item) => item.type === 'workflow' && item.key === key)
+      if (index === -1) {
+        throw new Error(`Workflow node with key ${key} not found`)
+      }
+      const node = draft.nodes[index] as TXpertTeamNode & {type: 'workflow'}
+      node.entity = fn(node.entity)
+      return {
+        draft
+      }
+    })
     this.#reload.next(EReloadReason.XPERT_UPDATED)
   }
 

@@ -1,17 +1,33 @@
 import { CdkMenu, CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectorRef, Component, inject, TemplateRef, ViewChild } from '@angular/core'
+import { ChangeDetectorRef, Component, computed, inject, TemplateRef, ViewChild } from '@angular/core'
 import { MatTabsModule } from '@angular/material/tabs'
-import { IWFNCode, IWFNIfElse, IXpert, uuid, WorkflowNodeTypeEnum, XpertParameterTypeEnum } from 'apps/cloud/src/app/@core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import {
+  IWFNCode,
+  IWFNHttp,
+  IWFNIfElse,
+  IWorkflowNode,
+  IXpert,
+  uuid,
+  WorkflowNodeTypeEnum,
+  XpertParameterTypeEnum
+} from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { Subscription } from 'rxjs'
+import {
+  genXpertAnswerKey,
+  genXpertCodeKey,
+  genXpertHttpKey,
+  genXpertIteratingKey,
+  genXpertNoteKey,
+  genXpertRouterKey
+} from '../../../utils'
 import { XpertStudioApiService } from '../../domain'
 import { SelectionService } from '../../domain/selection.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioKnowledgeMenuComponent } from '../knowledge-menu/knowledge.component'
 import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.component'
-import { TranslateModule } from '@ngx-translate/core'
-import { genXpertAnswerKey, genXpertCodeKey, genXpertIteratingKey, genXpertRouterKey } from '../../../utils'
 
 @Component({
   selector: 'xpert-studio-context-menu',
@@ -31,11 +47,12 @@ import { genXpertAnswerKey, genXpertCodeKey, genXpertIteratingKey, genXpertRoute
 })
 export class XpertStudioContextMenuComponent {
   eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
-  
+
   readonly apiService = inject(XpertStudioApiService)
   readonly selectionService = inject(SelectionService)
   private root = inject(XpertStudioComponent)
   readonly #cdr = inject(ChangeDetectorRef)
+  readonly #translate = inject(TranslateService)
 
   @ViewChild(TemplateRef, { static: true })
   public template!: TemplateRef<CdkMenu>
@@ -45,6 +62,7 @@ export class XpertStudioContextMenuComponent {
   public node: string | null = null
 
   readonly collaborators$ = this.apiService.collaborators$
+  readonly agents = computed(() => this.root.viewModel()?.nodes?.filter((n) => n.type === 'agent'))
 
   public ngOnInit(): void {
     this.subscriptions.add(this.subscribeToSelectionChanges())
@@ -62,9 +80,11 @@ export class XpertStudioContextMenuComponent {
     })
   }
 
-  public createAgent(menu: CdkMenu): void {
+  async createAgent(menu: CdkMenu) {
     menu.menuStack.closeAll()
-    this.apiService.createAgent(this.root.contextMenuPosition)
+    this.apiService.createAgent(this.root.contextMenuPosition, {
+      title: (await this.#translate.instant('PAC.Workflow.Agent', { Default: 'Agent' })) + ' ' + (this.agents()?.length ?? 1)
+    })
   }
 
   public addCollaborator(xpert: IXpert): void {
@@ -78,14 +98,19 @@ export class XpertStudioContextMenuComponent {
     }
   }
 
-  addWorkflowBlock(type: WorkflowNodeTypeEnum) {
-    this.apiService.addBlock(this.root.contextMenuPosition, {type, key: uuid()})
+  async addWorkflowNote() {
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.NOTE,
+      key: genXpertNoteKey(),
+      title: await this.#translate.instant('PAC.Workflow.Note', { Default: 'Note' }),
+    } as IWorkflowNode)
   }
 
-  addWorkflowRouter() {
+  async addWorkflowRouter() {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.IF_ELSE,
       key: genXpertRouterKey(),
+      title: await this.#translate.instant('PAC.Workflow.Router', { Default: 'Router' }),
       cases: [
         {
           caseId: uuid(),
@@ -95,24 +120,27 @@ export class XpertStudioContextMenuComponent {
     } as IWFNIfElse)
   }
 
-  addWorkflowIterating() {
+  async addWorkflowIterating() {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.ITERATING,
-      key: genXpertIteratingKey()
+      key: genXpertIteratingKey(),
+      title: await this.#translate.instant('PAC.Workflow.Iterating', { Default: 'Iterating' })
     })
   }
 
-  addWorkflowAnswer() {
+  async addWorkflowAnswer() {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.ANSWER,
-      key: genXpertAnswerKey()
+      key: genXpertAnswerKey(),
+      title: await this.#translate.instant('PAC.Workflow.Answer', { Default: 'Answer' })
     })
   }
 
-  addWorkflowCode() {
+  async addWorkflowCode() {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.CODE,
       key: genXpertCodeKey(),
+      title: await this.#translate.instant('PAC.Workflow.CodeExecution', { Default: 'Code Execution' }),
       language: 'javascript',
       code: `return {result: arg1 + arg2};`,
       inputs: [
@@ -132,6 +160,15 @@ export class XpertStudioContextMenuComponent {
         }
       ]
     } as IWFNCode)
+  }
+
+  async addWorkflowHttp() {
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.HTTP,
+      key: genXpertHttpKey(),
+      method: 'get',
+      title: await this.#translate.instant('PAC.Workflow.HTTPRequest', { Default: 'HTTP Request' })
+    } as IWFNHttp)
   }
 
   public dispose(): void {

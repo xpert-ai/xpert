@@ -6,9 +6,8 @@ import { Component, inject } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ApiProviderAuthType } from 'apps/cloud/src/app/@core'
+import { ApiAuthType } from 'apps/cloud/src/app/@core/types'
 
 @Component({
   standalone: true,
@@ -19,7 +18,6 @@ import { ApiProviderAuthType } from 'apps/cloud/src/app/@core'
     ReactiveFormsModule,
     CdkListboxModule,
     DragDropModule,
-    ButtonGroupDirective,
     MatTooltipModule,
     MatButtonModule
   ],
@@ -28,14 +26,14 @@ import { ApiProviderAuthType } from 'apps/cloud/src/app/@core'
   styleUrls: ['authorization.component.scss']
 })
 export class XpertToolAuthorizationComponent {
-  eApiProviderAuthType = ApiProviderAuthType
+  eApiProviderAuthType = ApiAuthType
 
   readonly data = inject(DIALOG_DATA)
   readonly #formBuilder = inject(FormBuilder)
   readonly #dialogRef = inject(DialogRef)
     
   readonly formGroup = this.#formBuilder.group({
-    auth_type: this.#formBuilder.control(ApiProviderAuthType.NONE),
+    auth_type: this.#formBuilder.control(ApiAuthType.NONE),
     api_key_header_prefix: this.#formBuilder.control<'' | 'bearar' | 'custom'>(''),
     api_key_header: this.#formBuilder.control('Authorization'),
     api_key_value: this.#formBuilder.control(null),

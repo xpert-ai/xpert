@@ -1,11 +1,12 @@
-<mat-sidenav-container class="flex-1 h-full" autosize>
-  <mat-sidenav #sidenav [(opened)]="sideMenuOpened" [mode]="isMobile() ? 'over' : 'side'" >
-
-    <div class="flex p-2 mx-2 mt-2 rounded-xl hover:bg-gray-100 cursor-pointer active:scale-98 origin-bottom"
-      [cdkMenuTriggerFor]="menu"
-    >
-      <div class="relative shrink-0 mr-2">
-        <emoji-avatar [avatar]="avatar()" class="rounded-lg overflow-hidden" />
+<div class="flex flex-col w-16 max-w-[240px] shrink-0 transition-all bg-neutral-50"
+  [class.w-[240px]]="sideMenuOpened()"
+>
+  <div class="flex flex-col p-2 mx-2 mt-2 rounded-xl hover:bg-gray-100 pressable cursor-pointer"
+    (click)="manageOpened.set(true)"
+  >
+    <div class="flex justify-between items-center gap-2" [class.flex-col]="!sideMenuOpened()">
+      <div class="relative shrink-0" >
+        <emoji-avatar [avatar]="avatar()" [small]="!sideMenuOpened()" class="rounded-lg overflow-hidden" />
         <span class="absolute bottom-[-3px] right-[-3px] w-4 h-4 p-0.5 bg-white rounded border-[0.5px] border-[rgba(0,0,0,0.02)] shadow-sm">
           @switch (xpert()?.type) {
             @case (eXpertTypeEnum.Copilot) {
@@ -27,154 +28,171 @@
           }
         </span>
       </div>
+  
+      <i class="ri-equalizer-2-line text-text-secondary"></i>
+    </div>
 
-      <div class="grow w-0">
+    @if (sideMenuOpened()) {
+      <div class="grow mt-2">
         <div class="flex justify-between items-center text-base leading-5 font-medium text-text-secondary">
-          <div class="truncate" [title]="xpert()?.name">{{xpert()?.title || xpert()?.name}}</div>
-          <!-- <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="shrink-0 ml-[2px] w-3 h-3 transition-transform text-gray-500">
-            <path d="M11.9999 13.1714L16.9497 8.22168L18.3639 9.63589L11.9999 15.9999L5.63599 9.63589L7.0502 8.22168L11.9999 13.1714Z"></path>
-          </svg> -->
+          <div class="truncate" [title]="latestXpert()?.title || latestXpert()?.name">{{latestXpert()?.title || latestXpert()?.name}}</div>
         </div>
         <div class="flex items-center text-xs leading-[18px] font-medium text-gray-500 gap-1">
           <div class="shrink-0 px-1 border uppercase rounded-[5px] truncate">{{xpert()?.type}}</div>
         </div>
       </div>
+    }
+  </div>
+
+  <div class="px-4"><div class="mx-auto mt-1 h-[1px] bg-divider-subtle"></div></div>
+
+  <nav class="grow space-y-1 px-2 py-4">
+    <!-- <a class="router-menu-item"
+      [title]="'Basic'"
+      [routerLink]="['./', 'basic']"
+      [routerLinkActiveOptions]="{ exact: false }"
+      routerLinkActive
+      #rla="routerLinkActive"
+      [class.active]="rla.isActive"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5 flex-shrink-0 mr-2">
+        <path d="M11.9999 17C15.6623 17 18.8649 18.5751 20.607 20.9247L18.765 21.796C17.3473 20.1157 14.8473 19 11.9999 19C9.15248 19 6.65252 20.1157 5.23479 21.796L3.39355 20.9238C5.13576 18.5747 8.33796 17 11.9999 17ZM11.9999 2C14.7613 2 16.9999 4.23858 16.9999 7V10C16.9999 12.6888 14.8776 14.8818 12.2168 14.9954L11.9999 15C9.23847 15 6.9999 12.7614 6.9999 10V7C6.9999 4.31125 9.1222 2.11818 11.783 2.00462L11.9999 2ZM11.9999 4C10.4022 4 9.09623 5.24892 9.00499 6.82373L8.9999 7V10C8.9999 11.6569 10.343 13 11.9999 13C13.5976 13 14.9036 11.7511 14.9948 10.1763L14.9999 10V7C14.9999 5.34315 13.6567 4 11.9999 4Z"></path>
+      </svg>
+
+      @if (sideMenuOpened()) {
+        {{ 'PAC.Xpert.BasicInfo' | translate: {Default: 'Basic Info'} }}
+      }
+    </a> -->
+  @if (xpertType() === eXpertTypeEnum.Agent) {
+    <a class="router-menu-item"
+      title=""
+      [routerLink]="['./', 'agents']"
+      [routerLinkActiveOptions]="{ exact: false }"
+      routerLinkActive
+      #rla2="routerLinkActive"
+      [class.active]="rla2.isActive"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5 flex-shrink-0 mr-2">
+        <path d="M12 11C14.7614 11 17 13.2386 17 16V22H15V16C15 14.4023 13.7511 13.0963 12.1763 13.0051L12 13C10.4023 13 9.09634 14.2489 9.00509 15.8237L9 16V22H7V16C7 13.2386 9.23858 11 12 11ZM5.5 14C5.77885 14 6.05009 14.0326 6.3101 14.0942C6.14202 14.594 6.03873 15.122 6.00896 15.6693L6 16L6.0007 16.0856C5.88757 16.0456 5.76821 16.0187 5.64446 16.0069L5.5 16C4.7203 16 4.07955 16.5949 4.00687 17.3555L4 17.5V22H2V17.5C2 15.567 3.567 14 5.5 14ZM18.5 14C20.433 14 22 15.567 22 17.5V22H20V17.5C20 16.7203 19.4051 16.0796 18.6445 16.0069L18.5 16C18.3248 16 18.1566 16.03 18.0003 16.0852L18 16C18 15.3343 17.8916 14.694 17.6915 14.0956C17.9499 14.0326 18.2211 14 18.5 14ZM5.5 8C6.88071 8 8 9.11929 8 10.5C8 11.8807 6.88071 13 5.5 13C4.11929 13 3 11.8807 3 10.5C3 9.11929 4.11929 8 5.5 8ZM18.5 8C19.8807 8 21 9.11929 21 10.5C21 11.8807 19.8807 13 18.5 13C17.1193 13 16 11.8807 16 10.5C16 9.11929 17.1193 8 18.5 8ZM5.5 10C5.22386 10 5 10.2239 5 10.5C5 10.7761 5.22386 11 5.5 11C5.77614 11 6 10.7761 6 10.5C6 10.2239 5.77614 10 5.5 10ZM18.5 10C18.2239 10 18 10.2239 18 10.5C18 10.7761 18.2239 11 18.5 11C18.7761 11 19 10.7761 19 10.5C19 10.2239 18.7761 10 18.5 10ZM12 2C14.2091 2 16 3.79086 16 6C16 8.20914 14.2091 10 12 10C9.79086 10 8 8.20914 8 6C8 3.79086 9.79086 2 12 2ZM12 4C10.8954 4 10 4.89543 10 6C10 7.10457 10.8954 8 12 8C13.1046 8 14 7.10457 14 6C14 4.89543 13.1046 4 12 4Z"></path>
+      </svg>
+      @if (sideMenuOpened()) {
+        {{ 'PAC.Xpert.Agents' | translate: {Default: 'Agents'} }}
+      }
+    </a>
+  } @else {
+    <a class="router-menu-item"
+      title=""
+      [routerLink]="['./', 'copilot']"
+      [routerLinkActiveOptions]="{ exact: false }"
+      routerLinkActive
+      #rla2="routerLinkActive"
+      [class.active]="rla2.isActive"
+    >
+      <i class="ri-copilot-fill mr-2 text-xl"></i>
+      @if (sideMenuOpened()) {
+        {{ 'PAC.Xpert.Copilot' | translate: {Default: 'Copilot'} }}
+      }
+    </a>
+  }
+
+    <a class="router-menu-item"
+      title=""
+      [routerLink]="['./', 'auth']"
+      [routerLinkActiveOptions]="{ exact: false }"
+      routerLinkActive
+      #rla6="routerLinkActive"
+      [class.active]="rla6.isActive"
+    >
+      <i class="ri-user-add-line mr-2 text-xl"></i>
+      @if (sideMenuOpened()) {
+        {{ 'PAC.Xpert.Authorization' | translate: {Default: 'Authorization'} }}
+      }
+    </a>
+
+  @if (xpertType() === eXpertTypeEnum.Agent) {
+    <a class="router-menu-item"
+      title="Long-term Memory"
+      [routerLink]="['./', 'memory']"
+      [routerLinkActiveOptions]="{ exact: false }"
+      routerLinkActive
+      #rla7="routerLinkActive"
+      [class.active]="rla7.isActive"
+    ><i class="ri-brain-line mr-2 text-xl"></i>
+    @if (sideMenuOpened()) {
+      {{ 'PAC.Xpert.Memory' | translate: {Default: 'Memory'} }}
+    }
+    </a>
+  }
+
+  @if (xpertType() === eXpertTypeEnum.Agent) {
+    <a class="router-menu-item"
+      title=""
+      [routerLink]="['./', 'develop']"
+      [routerLinkActiveOptions]="{ exact: false }"
+      routerLinkActive
+      #rla3="routerLinkActive"
+      [class.active]="rla3.isActive"
+    >
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="h-5 w-5 flex-shrink-0 mr-2">
+        <path d="M3 3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3ZM4 5V19H20V5H4ZM12 15H18V17H12V15ZM8.66685 12L5.83842 9.17157L7.25264 7.75736L11.4953 12L7.25264 16.2426L5.83842 14.8284L8.66685 12Z"></path>
+      </svg>
+      @if (sideMenuOpened()) {
+        {{ 'PAC.Xpert.APIAccess' | translate: {Default: 'API Access'} }}
+      }
+    </a>
+    <a class="router-menu-item"
+      title=""
+      [routerLink]="['./', 'logs']"
+      [routerLinkActiveOptions]="{ exact: false }"
+      routerLinkActive
+      #rla4="routerLinkActive"
+      [class.active]="rla4.isActive"
+      >
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="h-5 w-5 flex-shrink-0 mr-2">
+        <path d="M19 22H5C3.34315 22 2 20.6569 2 19V3C2 2.44772 2.44772 2 3 2H17C17.5523 2 18 2.44772 18 3V15H22V19C22 20.6569 20.6569 22 19 22ZM18 17V19C18 19.5523 18.4477 20 19 20C19.5523 20 20 19.5523 20 19V17H18ZM16 20V4H4V19C4 19.5523 4.44772 20 5 20H16ZM6 7H14V9H6V7ZM6 11H14V13H6V11ZM6 15H11V17H6V15Z"></path>
+      </svg>
+      @if (sideMenuOpened()) {
+        {{ 'PAC.Xpert.Logs' | translate: {Default: 'Logs'} }}
+      }
+    </a>
+  }
+    <a class="router-menu-item"
+      [routerLink]="['./', 'monitor']"
+      [routerLinkActiveOptions]="{ exact: false }"
+      routerLinkActive
+      #rla5="routerLinkActive"
+      [class.active]="rla5.isActive"
+    >
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="h-5 w-5 flex-shrink-0 mr-2">
+        <path d="M12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2ZM12 5C8.13401 5 5 8.13401 5 12C5 13.8525 5.71957 15.5368 6.89445 16.7889L7.05025 16.9497L8.46447 15.5355C7.55964 14.6307 7 13.3807 7 12C7 9.23858 9.23858 7 12 7C12.448 7 12.8822 7.05892 13.2954 7.16944L14.8579 5.60806C13.9852 5.21731 13.018 5 12 5ZM18.3924 9.14312L16.8306 10.7046C16.9411 11.1178 17 11.552 17 12C17 13.3807 16.4404 14.6307 15.5355 15.5355L16.9497 16.9497C18.2165 15.683 19 13.933 19 12C19 10.9824 18.7829 10.0155 18.3924 9.14312ZM16.2426 6.34315L12.517 10.0675C12.3521 10.0235 12.1788 10 12 10C10.8954 10 10 10.8954 10 12C10 13.1046 10.8954 14 12 14C13.1046 14 14 13.1046 14 12C14 11.8212 13.9765 11.6479 13.9325 11.483L17.6569 7.75736L16.2426 6.34315Z"></path>
+      </svg>
+      @if (sideMenuOpened()) {
+        {{ 'PAC.Xpert.Monitoring' | translate: {Default: 'Monitoring'} }}
+      }
+    </a>
+  </nav>
+
+  <div class="shrink-0 py-3 px-4">
+    <div class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-500 hover:bg-hover-bg" (click)="toggleSideMenu()">
+      @if (sideMenuOpened()) {
+        <i class="ri-sidebar-fold-line text-2xl"></i>
+      } @else {
+        <i class="ri-sidebar-unfold-line text-2xl"></i>
+      }
+    </div>
+  </div>
+</div>
+
+<div class="flex-1 relative flex" [@routeAnimations]="o.isActivated && o.activatedRouteData?.title">
+  <router-outlet #o="outlet"></router-outlet>
+</div>
+
+@if (manageOpened()) {
+  <div @slideLeft class="absolute w-full h-full p-3 z-20 overflow-hidden">
+    <div class="absolute inset-0 w-full bg-[linear-gradient(270deg,rgba(0,0,0,0),rgba(16,24,40,0.01)_8%,rgba(16,24,40,0.18)_100%)] duration-300 ease-in"
+      (click)="manageOpened.set(false)">
     </div>
 
-    <nav class="grow space-y-1 px-2 py-4">
-      <a class="router-menu-item"
-        [title]="'Basic'"
-        [routerLink]="['./', 'basic']"
-        [routerLinkActiveOptions]="{ exact: false }"
-        routerLinkActive
-        #rla="routerLinkActive"
-        [class.active]="rla.isActive"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5 flex-shrink-0 mr-2">
-          <path d="M11.9999 17C15.6623 17 18.8649 18.5751 20.607 20.9247L18.765 21.796C17.3473 20.1157 14.8473 19 11.9999 19C9.15248 19 6.65252 20.1157 5.23479 21.796L3.39355 20.9238C5.13576 18.5747 8.33796 17 11.9999 17ZM11.9999 2C14.7613 2 16.9999 4.23858 16.9999 7V10C16.9999 12.6888 14.8776 14.8818 12.2168 14.9954L11.9999 15C9.23847 15 6.9999 12.7614 6.9999 10V7C6.9999 4.31125 9.1222 2.11818 11.783 2.00462L11.9999 2ZM11.9999 4C10.4022 4 9.09623 5.24892 9.00499 6.82373L8.9999 7V10C8.9999 11.6569 10.343 13 11.9999 13C13.5976 13 14.9036 11.7511 14.9948 10.1763L14.9999 10V7C14.9999 5.34315 13.6567 4 11.9999 4Z"></path>
-        </svg>
-        {{ 'PAC.Xpert.BasicInfo' | translate: {Default: 'Basic Info'} }}
-      </a>
-    @if (xpertType() === eXpertTypeEnum.Agent) {
-      <a class="router-menu-item"
-        title=""
-        [routerLink]="['./', 'agents']"
-        [routerLinkActiveOptions]="{ exact: false }"
-        routerLinkActive
-        #rla2="routerLinkActive"
-        [class.active]="rla2.isActive"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5 flex-shrink-0 mr-2">
-          <path d="M12 11C14.7614 11 17 13.2386 17 16V22H15V16C15 14.4023 13.7511 13.0963 12.1763 13.0051L12 13C10.4023 13 9.09634 14.2489 9.00509 15.8237L9 16V22H7V16C7 13.2386 9.23858 11 12 11ZM5.5 14C5.77885 14 6.05009 14.0326 6.3101 14.0942C6.14202 14.594 6.03873 15.122 6.00896 15.6693L6 16L6.0007 16.0856C5.88757 16.0456 5.76821 16.0187 5.64446 16.0069L5.5 16C4.7203 16 4.07955 16.5949 4.00687 17.3555L4 17.5V22H2V17.5C2 15.567 3.567 14 5.5 14ZM18.5 14C20.433 14 22 15.567 22 17.5V22H20V17.5C20 16.7203 19.4051 16.0796 18.6445 16.0069L18.5 16C18.3248 16 18.1566 16.03 18.0003 16.0852L18 16C18 15.3343 17.8916 14.694 17.6915 14.0956C17.9499 14.0326 18.2211 14 18.5 14ZM5.5 8C6.88071 8 8 9.11929 8 10.5C8 11.8807 6.88071 13 5.5 13C4.11929 13 3 11.8807 3 10.5C3 9.11929 4.11929 8 5.5 8ZM18.5 8C19.8807 8 21 9.11929 21 10.5C21 11.8807 19.8807 13 18.5 13C17.1193 13 16 11.8807 16 10.5C16 9.11929 17.1193 8 18.5 8ZM5.5 10C5.22386 10 5 10.2239 5 10.5C5 10.7761 5.22386 11 5.5 11C5.77614 11 6 10.7761 6 10.5C6 10.2239 5.77614 10 5.5 10ZM18.5 10C18.2239 10 18 10.2239 18 10.5C18 10.7761 18.2239 11 18.5 11C18.7761 11 19 10.7761 19 10.5C19 10.2239 18.7761 10 18.5 10ZM12 2C14.2091 2 16 3.79086 16 6C16 8.20914 14.2091 10 12 10C9.79086 10 8 8.20914 8 6C8 3.79086 9.79086 2 12 2ZM12 4C10.8954 4 10 4.89543 10 6C10 7.10457 10.8954 8 12 8C13.1046 8 14 7.10457 14 6C14 4.89543 13.1046 4 12 4Z"></path>
-        </svg>
-        {{ 'PAC.Xpert.Agents' | translate: {Default: 'Agents'} }}</a>
-    } @else {
-      <a class="router-menu-item"
-        title=""
-        [routerLink]="['./', 'copilot']"
-        [routerLinkActiveOptions]="{ exact: false }"
-        routerLinkActive
-        #rla2="routerLinkActive"
-        [class.active]="rla2.isActive"
-      >
-        <i class="ri-copilot-fill mr-2 text-xl"></i>
-        {{ 'PAC.Xpert.Copilot' | translate: {Default: 'Copilot'} }}</a>
-    }
-
-      <a class="router-menu-item"
-        title=""
-        [routerLink]="['./', 'auth']"
-        [routerLinkActiveOptions]="{ exact: false }"
-        routerLinkActive
-        #rla6="routerLinkActive"
-        [class.active]="rla6.isActive"
-      >
-        <i class="ri-user-add-line mr-2 text-xl"></i>
-        {{ 'PAC.Xpert.Authorization' | translate: {Default: 'Authorization'} }}</a>
-    
-    @if (xpertType() === eXpertTypeEnum.Agent) {
-      <a class="router-menu-item"
-        title="Long-term Memory"
-        [routerLink]="['./', 'memory']"
-        [routerLinkActiveOptions]="{ exact: false }"
-        routerLinkActive
-        #rla7="routerLinkActive"
-        [class.active]="rla7.isActive"
-      ><i class="ri-brain-line mr-2 text-xl"></i>
-        {{ 'PAC.Xpert.Memory' | translate: {Default: 'Memory'} }}
-      </a>
-    }
-
-    @if (xpertType() === eXpertTypeEnum.Agent) {
-      <a class="router-menu-item"
-        title=""
-        [routerLink]="['./', 'develop']"
-        [routerLinkActiveOptions]="{ exact: false }"
-        routerLinkActive
-        #rla3="routerLinkActive"
-        [class.active]="rla3.isActive"
-      >
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="h-5 w-5 flex-shrink-0 mr-2">
-          <path d="M3 3H21C21.5523 3 22 3.44772 22 4V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V4C2 3.44772 2.44772 3 3 3ZM4 5V19H20V5H4ZM12 15H18V17H12V15ZM8.66685 12L5.83842 9.17157L7.25264 7.75736L11.4953 12L7.25264 16.2426L5.83842 14.8284L8.66685 12Z"></path>
-        </svg>
-        {{ 'PAC.Xpert.APIAccess' | translate: {Default: 'API Access'} }}
-      </a>
-      <a class="router-menu-item"
-        title=""
-        [routerLink]="['./', 'logs']"
-        [routerLinkActiveOptions]="{ exact: false }"
-        routerLinkActive
-        #rla4="routerLinkActive"
-        [class.active]="rla4.isActive"
-        >
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="h-5 w-5 flex-shrink-0 mr-2">
-          <path d="M19 22H5C3.34315 22 2 20.6569 2 19V3C2 2.44772 2.44772 2 3 2H17C17.5523 2 18 2.44772 18 3V15H22V19C22 20.6569 20.6569 22 19 22ZM18 17V19C18 19.5523 18.4477 20 19 20C19.5523 20 20 19.5523 20 19V17H18ZM16 20V4H4V19C4 19.5523 4.44772 20 5 20H16ZM6 7H14V9H6V7ZM6 11H14V13H6V11ZM6 15H11V17H6V15Z"></path>
-        </svg>
-        {{ 'PAC.Xpert.Logs' | translate: {Default: 'Logs'} }}
-      </a>
-    }
-      <a class="router-menu-item"
-        [routerLink]="['./', 'monitor']"
-        [routerLinkActiveOptions]="{ exact: false }"
-        routerLinkActive
-        #rla5="routerLinkActive"
-        [class.active]="rla5.isActive"
-      >
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="h-5 w-5 flex-shrink-0 mr-2">
-          <path d="M12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2ZM12 5C8.13401 5 5 8.13401 5 12C5 13.8525 5.71957 15.5368 6.89445 16.7889L7.05025 16.9497L8.46447 15.5355C7.55964 14.6307 7 13.3807 7 12C7 9.23858 9.23858 7 12 7C12.448 7 12.8822 7.05892 13.2954 7.16944L14.8579 5.60806C13.9852 5.21731 13.018 5 12 5ZM18.3924 9.14312L16.8306 10.7046C16.9411 11.1178 17 11.552 17 12C17 13.3807 16.4404 14.6307 15.5355 15.5355L16.9497 16.9497C18.2165 15.683 19 13.933 19 12C19 10.9824 18.7829 10.0155 18.3924 9.14312ZM16.2426 6.34315L12.517 10.0675C12.3521 10.0235 12.1788 10 12 10C10.8954 10 10 10.8954 10 12C10 13.1046 10.8954 14 12 14C13.1046 14 14 13.1046 14 12C14 11.8212 13.9765 11.6479 13.9325 11.483L17.6569 7.75736L16.2426 6.34315Z"></path>
-        </svg>
-        {{ 'PAC.Xpert.Monitoring' | translate: {Default: 'Monitoring'} }}
-      </a>
-    </nav>
-  </mat-sidenav>
-  <mat-sidenav-content>
-    <router-outlet #o="outlet"></router-outlet>
-
-    <ngm-drawer-trigger class="absolute -left-2 top-1/2 -translate-y-1/2 z-40"
-      [(opened)]="sideMenuOpened" 
-      [matTooltip]="'PAC.KEY_WORDS.SettingsNavigation' | translate: {Default: 'Settings Navigation'}"
-      matTooltipPosition="after"
-    />
-  </mat-sidenav-content>
-</mat-sidenav-container>
-
-<ng-template #menu>
-  <div cdkMenu @overlayAnimation1 class="cdk-menu__large w-60">
-
-    <div class="border-b border-solid border-divider-regular my-1"></div>
-
-    <div cdkMenuItem class="danger" (click)="delete()">{{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} }}</div>
+    <xpert-basic-manage class="w-[420px] rounded-2xl bg-gray-50 max-h-full" />
   </div>
-</ng-template>
-
-<ng-template #developInDevelopment >
-  <pac-in-development @overlayAnimation1 feature="API access for development" class="w-80" />
-</ng-template>
-
-<ng-template #logsInDevelopment >
-  <pac-in-development @overlayAnimation1 feature="Xpert access logs" class="w-80" />
-</ng-template>
-
-<ng-template #monitorInDevelopment >
-  <pac-in-development @overlayAnimation1 feature="Xpert's monitor" class="w-80" />
-</ng-template>
+}

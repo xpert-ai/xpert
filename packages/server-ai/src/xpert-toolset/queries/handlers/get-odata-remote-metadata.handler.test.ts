@@ -1,4 +1,4 @@
-import { ApiProviderAuthType } from '@metad/contracts'
+import { ApiAuthType } from '@metad/contracts'
 import { ConfigService } from '@metad/server-config'
 import { QueryBus } from '@nestjs/cqrs'
 import { Test, TestingModule } from '@nestjs/testing'
@@ -37,7 +37,7 @@ describe('GetODataRemoteMetadataHandler', () => {
 	it('should handle REAL API with BASIC auth type', async () => {
 		const sapPurchaseOrderOdataUrl = process.env.ODATA_TOOL_SAP_SYSTEM + `/sap/opu/odata/sap/API_PURCHASEORDER_PROCESS_SRV`
 		const credentials = {
-			auth_type: ApiProviderAuthType.BASIC,
+			auth_type: ApiAuthType.BASIC,
 			username: process.env.ODATA_TOOL_SAP_USERNAME,
 			password: process.env.ODATA_TOOL_SAP_PASSWORD
 		}
