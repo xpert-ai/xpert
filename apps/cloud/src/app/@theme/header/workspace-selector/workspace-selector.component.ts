@@ -4,13 +4,12 @@ import { Component, DestroyRef, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { Router } from '@angular/router'
 import { injectWorkspace } from '@metad/cloud/state'
+import { OverlayAnimation1 } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgxPermissionsService } from 'ngx-permissions'
 import { map, tap } from 'rxjs/operators'
 import { injectUser, IXpertWorkspace, OrderTypeEnum, Store, XpertWorkspaceService } from '../../../@core'
-import { OverlayAnimation1 } from '@metad/core'
-import { Router } from '@angular/router'
 
 @Component({
   standalone: true,
@@ -25,7 +24,6 @@ import { Router } from '@angular/router'
 })
 export class WorkspaceSelectorComponent {
   private readonly store = inject(Store)
-  private readonly permissionsService = inject(NgxPermissionsService)
   private readonly destroyRef = inject(DestroyRef)
   readonly workspaceService = inject(XpertWorkspaceService)
   readonly router = inject(Router)

@@ -130,36 +130,25 @@
 <router-outlet></router-outlet>
 
 <ng-template #workspaceMenu>
-  <div class="ngm-cdk-menu p-2" cdkMenu displayDensity="cosy">
+  <div class="cdk-menu__large" cdkMenu displayDensity="cosy">
     <label class="px-2 pb-2 font-semibold">{{ 'PAC.KEY_WORDS.Workspaces' | translate: { Default: 'Workspaces' } }}</label>
     <div class="max-h-64 w-56 overflow-y-auto" (click)="$event.stopPropagation()">
-      <ul class="ngm-cdk-listbox" cdkListbox [(ngModel)]="selectedWorkspaces">
-        @for (item of workspaces(); track item.name) {
-          <li [cdkOption]="item.id" #option="cdkOption" class="ngm-cdk-option p-2 flex items-center cursor-pointer rounded-md active:scale-95 transition-transform hover:bg-black/5 dark:hover:bg-white/10"
-            [ngClass]="{active: option.isSelected()}"
-          >
-            <div class="flex-1 truncate">
-              @if (me().id === item.ownerId) {
-                <i class="ri-user-2-fill" [matTooltip]="'PAC.Xpert.YouAreOwner' | translate: {Default: 'You are owner'}"></i>
-              }
-              {{ item.name }}
-            </div>
-
-            @if (option.isSelected()) {
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"
-                 class="shrink-0 w-4 h-4">
-                 <g id="check"><path id="Icon" d="M13.3334 4L6.00008 11.3333L2.66675 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                </g>
-              </svg>
+      @for (item of workspaces(); track item.name) {
+        <div cdkMenuItem class="workspace-item" [class.active]="item.id === selectedWorkspace()?.id" (click)="selectWorkspace(item)">
+          <div class="flex-1 truncate">
+            @if (me().id === item.ownerId) {
+              <i class="ri-user-2-fill mr-1 text-text-secondary" [matTooltip]="'PAC.Xpert.YouAreOwner' | translate: {Default: 'You are owner'}"
+                  matTooltipPosition="left"></i>
             }
-          </li>
-        } @empty {
-          <div class="flex justify-center p-4 text-token-text-secondary">
-            <i class="ri-battery-line"></i>
-            {{ 'PAC.KEY_WORDS.Empty' | translate: { Default: 'Empty' } }}
+            <span>{{ item.name }}</span>
           </div>
-        }
-      </ul>
+        </div>
+      } @empty {
+        <div class="flex justify-center p-4 text-token-text-secondary">
+          <i class="ri-battery-line"></i>
+          {{ 'PAC.KEY_WORDS.Empty' | translate: { Default: 'Empty' } }}
+        </div>
+      }
     </div>
 
     <div class="border-b border-divider-regular w-full my-1"></div>

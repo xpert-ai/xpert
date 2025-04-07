@@ -18,8 +18,14 @@ import { GetXpertAgentQuery } from '../../../xpert/queries/'
 import { XpertService } from '../../../xpert/xpert.service'
 import { getAgentVarGroup } from '../../agent'
 import { STATE_VARIABLE_INPUT } from '../../commands/handlers/types'
+import {
+	HeadersChannelName,
+	ReqBodyChannelName,
+	ReqMethodChannelName,
+	ReqUrlChannelName,
+	StatusCodeChannelName
+} from '../../workflow/http'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
-import { HeadersChannelName, ReqBodyChannelName, ReqMethodChannelName, ReqUrlChannelName, StatusCodeChannelName } from '../../workflow/http'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
@@ -32,7 +38,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 	public async execute(command: XpertAgentVariablesQuery): Promise<TWorkflowVarGroup[]> {
 		const { xpertId, type, nodeKey, isDraft } = command.options
 
-		const xpert = await this.xpertService.findOne(xpertId, { select: ['agentConfig', 'draft', 'graph'] })
+		const xpert = await this.xpertService.findOne(xpertId, { select: ['id', 'agentConfig', 'draft', 'graph'] })
 
 		const varGroups: TWorkflowVarGroup[] = [
 			{
@@ -165,69 +171,71 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 						break
 					}
 					case WorkflowNodeTypeEnum.HTTP: {
-						variables.push({
-							type: XpertParameterTypeEnum.NUMBER,
-							name: StatusCodeChannelName,
-							title: 'Status Code',
-							description: {
-								en_US: 'Status Code',
-								zh_Hans: '状态码'
+						variables.push(
+							{
+								type: XpertParameterTypeEnum.NUMBER,
+								name: StatusCodeChannelName,
+								title: 'Status Code',
+								description: {
+									en_US: 'Status Code',
+									zh_Hans: '状态码'
+								}
+							},
+							{
+								type: XpertParameterTypeEnum.OBJECT,
+								name: HeadersChannelName,
+								title: 'Headers',
+								description: {
+									en_US: 'Response Headers',
+									zh_Hans: '响应头'
+								}
+							},
+							{
+								type: XpertParameterTypeEnum.STRING,
+								name: 'body',
+								title: 'Body',
+								description: {
+									en_US: 'Body',
+									zh_Hans: '返回体'
+								}
+							},
+							{
+								type: XpertParameterTypeEnum.STRING,
+								name: 'error',
+								title: 'Error',
+								description: {
+									en_US: 'Error info',
+									zh_Hans: '错误信息'
+								}
+							},
+							{
+								type: XpertParameterTypeEnum.STRING,
+								name: ReqUrlChannelName,
+								title: 'Url',
+								description: {
+									en_US: 'Url',
+									zh_Hans: '链接'
+								}
+							},
+							{
+								type: XpertParameterTypeEnum.STRING,
+								name: ReqMethodChannelName,
+								title: 'Request Method',
+								description: {
+									en_US: 'Request Method',
+									zh_Hans: '请求方法'
+								}
+							},
+							{
+								type: XpertParameterTypeEnum.STRING,
+								name: ReqBodyChannelName,
+								title: 'Request Body',
+								description: {
+									en_US: 'Request Body',
+									zh_Hans: '请求体'
+								}
 							}
-						}, 
-						{
-							type: XpertParameterTypeEnum.OBJECT,
-							name: HeadersChannelName,
-							title: 'Headers',
-							description: {
-								en_US: 'Response Headers',
-								zh_Hans: '响应头'
-							}
-						},
-						{
-							type: XpertParameterTypeEnum.STRING,
-							name: 'body',
-							title: 'Body',
-							description: {
-								en_US: 'Body',
-								zh_Hans: '返回体'
-							}
-						}, 
-						{
-							type: XpertParameterTypeEnum.STRING,
-							name: 'error',
-							title: 'Error',
-							description: {
-								en_US: 'Error info',
-								zh_Hans: '错误信息'
-							}
-						}, 
-						{
-							type: XpertParameterTypeEnum.STRING,
-							name: ReqUrlChannelName,
-							title: 'Url',
-							description: {
-								en_US: 'Url',
-								zh_Hans: '链接'
-							}
-						}, 
-						{
-							type: XpertParameterTypeEnum.STRING,
-							name: ReqMethodChannelName,
-							title: 'Request Method',
-							description: {
-								en_US: 'Request Method',
-								zh_Hans: '请求方法'
-							}
-						},
-						{
-							type: XpertParameterTypeEnum.STRING,
-							name: ReqBodyChannelName,
-							title: 'Request Body',
-							description: {
-								en_US: 'Request Body',
-								zh_Hans: '请求体'
-							}
-						})
+						)
 						varGroups.push(varGroup)
 						break
 					}
