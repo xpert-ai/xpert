@@ -33,6 +33,7 @@ import { XpertTaskModule } from './xpert-task'
 import { RagWebModule } from './rag-web/rag-web.module'
 import { IntegrationFirecrawlModule } from './integration-firecrawl/firecrawl.module'
 import { SandboxModule } from './sandbox/sandbox.module'
+import { EnvironmentModule } from './environment/environment.module'
 
 @Module({
 	imports: [
@@ -88,7 +89,8 @@ import { SandboxModule } from './sandbox/sandbox.module'
 		IntegrationLarkModule,
 		IntegrationFirecrawlModule,
 		RagWebModule,
-		SandboxModule
+		SandboxModule,
+		EnvironmentModule
 	],
 	controllers: [],
 	providers: [...EventHandlers]

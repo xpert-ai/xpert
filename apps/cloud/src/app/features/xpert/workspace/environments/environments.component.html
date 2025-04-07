@@ -1,0 +1,21 @@
+<div class="flex items-center py-4 text-lg font-semibold text-gray-500 uppercase">
+  <div class="mr-3">{{ 'PAC.Xpert.Environments' | translate: { Default: 'Environments' } }}</div>
+  <div class="grow w-0 h-px bg-divider-regular"></div>
+</div>
+  
+<div class="xpert-card-container"
+  ngmDynamicGrid colWidth="280"
+  box="content-box"
+>
+  <ngm-card-create [title]="'PAC.Xpert.CreateEnvironment' | translate: {Default: 'Create Environment'}"
+    [helpTitle]="'PAC.Xpert.LearnCreateEnvironment' | translate: {Default: 'Learn more about Environment'}"
+    helpUrl="/docs/ai/tool/mcp/"
+    (click)="createEnvironment()"
+  />
+  
+  @for (environment of environments(); track environment.id) {
+    <div>
+      {{environment | json}}
+    </div>
+  }
+</div>

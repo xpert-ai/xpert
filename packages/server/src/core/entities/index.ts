@@ -28,7 +28,7 @@ import {
 	Language,
 	StorageFile,
 	SecretToken,
-	Integration
+	Integration,
 } from './internal';
 
 export const coreEntities = [

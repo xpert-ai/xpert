@@ -66,7 +66,6 @@ export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
     CdkListboxModule,
     CdkMenuModule,
     OverlayModule,
-    RouterModule,
     TranslateModule,
     MatTooltipModule,
 

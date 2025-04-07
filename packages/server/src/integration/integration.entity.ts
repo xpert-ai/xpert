@@ -21,7 +21,7 @@ export class Integration extends TenantOrganizationBaseEntity implements IIntegr
 	description?: string
 
 	@ApiPropertyOptional({ type: () => Object })
-	@IsString()
+	@IsJSON()
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
 	avatar?: TAvatar

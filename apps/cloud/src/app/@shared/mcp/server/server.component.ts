@@ -18,8 +18,6 @@ import {
 } from '../../../@core/types'
 import { CodeEditorComponent } from '../../editors'
 import { MCPToolsComponent } from '../tools/tools.component'
-import { NgmCommonModule } from "../../../../../../../packages/angular/common/common.module";
-import { NgmSlideToggleComponent } from "../../../../../../../packages/angular/common/slide-toggle/slide-toggle.component";
 
 @Component({
   standalone: true,
@@ -35,8 +33,6 @@ import { NgmSlideToggleComponent } from "../../../../../../../packages/angular/c
     CodeEditorComponent,
     MCPToolsComponent,
     EntriesPipe,
-    NgmCommonModule,
-    NgmSlideToggleComponent
   ],
   hostDirectives: [NgxControlValueAccessor]
 })
