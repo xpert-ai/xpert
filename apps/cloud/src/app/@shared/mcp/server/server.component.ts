@@ -2,7 +2,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, output, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { EntriesPipe } from '@metad/core'
+import { EntriesPipe, linkedModel } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -58,6 +58,16 @@ export class MCPServerFormComponent {
   readonly fileIndex = model<number[]>([])
   readonly isCode = computed(() => this.types()[0] === MCPServerType.CODE)
 
+  readonly args = linkedModel({
+    initialValue: [],
+    compute: () => {
+      return this.value$()?.args
+    },
+    update: (args) => {
+      this.value$.update((state) => ({ ...(state ?? {}), args }))
+    }
+  })
+
   get command() {
     return this.value$()?.command
   }
@@ -69,13 +79,6 @@ export class MCPServerFormComponent {
   }
   set url(value: string) {
     this.value$.update((state) => ({ ...(state ?? {}), url: value }))
-  }
-
-  get args() {
-    return this.value$()?.args?.[0]
-  }
-  set args(value: string) {
-    this.value$.update((state) => ({ ...(state ?? {}), args: value ? [value] : [] }))
   }
 
   get mainFile() {
@@ -122,7 +125,7 @@ export class MCPServerFormComponent {
             this.fileIndex.set([0])
           }
           this.command = 'python3'
-          this.args = 'main.py'
+          this.args.set(['main.py'])
         }
       },
       { allowSignalWrites: true }
@@ -270,6 +273,27 @@ if __name__ == "__main__":
           ...omit(state.headers, name)
         }
       }
+    })
+  }
+
+  addArg() {
+    this.args.update((state) => {
+      state ??= []
+      return [...state, '']
+    })
+  }
+
+  updateArg(index: number, value: string) {
+    this.args.update((state) => {
+      state[index] = value
+      return [...state]
+    })
+  }
+
+  removeArg(index: number) {
+    this.args.update((state) => {
+      state.splice(index, 1)
+      return [...state]
     })
   }
 

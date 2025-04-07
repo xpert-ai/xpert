@@ -85,6 +85,7 @@
   @for (xpert of xperts(); track xpert.name) {
     <xpert-card class="ngm-card-shadow group relative col-span-1 border-2 border-solid border-transparent rounded-xl min-h-[160px] flex flex-col cursor-pointer
                         bg-components-card-bg"
+      [highlight]="searchText()"
       [xpert]="xpert"
       (delete)="deleteXpert(xpert)"
       [routerLink]="['/xpert/', xpert.id]"

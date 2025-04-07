@@ -3,7 +3,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
-import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective } from '@metad/core'
 import { injectConfirmUnique, NgmCommonModule } from '@metad/ocap-angular/common'
@@ -16,20 +16,23 @@ import { isNil, omitBy } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, EMPTY } from 'rxjs'
-import { map, switchMap } from 'rxjs/operators'
+import { debounceTime, map, switchMap } from 'rxjs/operators'
 import {
+  IXpertMCPTemplate,
   IXpertToolset,
   OrderTypeEnum,
   routeAnimations,
+  TMCPServer,
   ToastrService,
+  XpertTemplateService,
   XpertToolsetCategoryEnum,
   XpertToolsetService,
   XpertTypeEnum
 } from '../../../../@core'
 import { AppService } from '../../../../app.service'
-import { XpertStudioCreateToolComponent } from '../../tools/create/create.component'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { XpertToolMCPCreateComponent } from '../../tools/mcp/create/create.component'
+import { injectQueryParams } from 'ngxtension/inject-query-params'
 
 @Component({
   standalone: true,
@@ -66,14 +69,17 @@ export class XpertWorkspaceMCPToolsComponent {
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly toolsetService = inject(XpertToolsetService)
+  readonly templateService = inject(XpertTemplateService)
   readonly homeComponent = inject(XpertWorkspaceHomeComponent)
   readonly i18n = new NgmI18nPipe()
+  readonly queryCategory = injectQueryParams('category')
   readonly confirmUnique = injectConfirmUnique()
 
   readonly isMobile = this.appService.isMobile
   readonly lang = this.appService.lang
 
   readonly workspace = this.homeComponent.workspace
+  readonly workspaceId = computed(() => this.workspace()?.id)
   readonly type = this.homeComponent.type
   readonly tags = this.homeComponent.tags
   readonly builtinTags = this.homeComponent.toolTags
@@ -113,6 +119,23 @@ export class XpertWorkspaceMCPToolsComponent {
       )
   })
 
+  readonly #templates = derivedAsync(() => {
+    return this.templateService.getAllMCP()
+  })
+
+  readonly categories = computed(() => this.#templates()?.categories)
+  readonly #catTemplates = computed(() => {
+    const templates = this.#templates()?.templates ?? []
+    return this.queryCategory() ? templates.filter((_) => _.category === this.queryCategory()) : templates
+  })
+  readonly templates = computed(() => {
+    const searchText = this.searchText()?.toLowerCase()
+    const templates = this.#catTemplates()
+    return templates.filter((_) => searchText
+      ? _.name.toLowerCase().includes(searchText) || _.title?.toLowerCase().includes(searchText) || _.description?.toLowerCase().includes(searchText)
+      : true)
+  })
+  
   constructor() {
     //
   }
@@ -121,13 +144,31 @@ export class XpertWorkspaceMCPToolsComponent {
     this.refresh$.next()
   }
 
-  createTool() {
+  createTool(template?: IXpertMCPTemplate) {
+    let toolset: Partial<IXpertToolset> = null
+    let mcpServer: TMCPServer = null
+    if (template) {
+      toolset = {
+        name: template.name,
+        description: template.description,
+        category: XpertToolsetCategoryEnum.MCP,
+        type: template.server.type,
+      }
+      if (template.icon) {
+        toolset.avatar = {
+          url: template.icon
+        }
+      }
+      mcpServer = template.server
+    }
     this.dialog
       .open(XpertToolMCPCreateComponent, {
         disableClose: true,
+        panelClass: 'large',
         data: {
           workspace: this.workspace(),
-          type: 'mcp'
+          toolset,
+          mcpServer
         }
       })
       .closed.subscribe({
@@ -139,9 +180,14 @@ export class XpertWorkspaceMCPToolsComponent {
       })
   }
 
+  install(template: IXpertMCPTemplate) {
+    this.createTool(template)
+  }
+
   navigateTo(toolset: IXpertToolset) {
     if (toolset.category === XpertToolsetCategoryEnum.MCP) {
       this.router.navigate(['/xpert/tool', toolset.id])
     }
   }
+
 }

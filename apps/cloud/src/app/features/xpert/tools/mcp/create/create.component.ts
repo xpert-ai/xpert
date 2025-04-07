@@ -17,8 +17,8 @@ import {
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
 import { isNil, omitBy } from 'lodash-es'
-import { XpertStudioConfigureMCPComponent } from '../configure/configure.component'
 import { MCPServerFormComponent } from 'apps/cloud/src/app/@shared/mcp'
+import { XpertStudioConfigureMCPComponent } from '../configure/configure.component'
 
 @Component({
   standalone: true,
@@ -42,14 +42,14 @@ export class XpertToolMCPCreateComponent {
   private readonly xpertToolsetService = inject(XpertToolsetService)
   readonly #toastr = inject(ToastrService)
   readonly #dialogRef = inject(DialogRef)
-  readonly #data = inject<{ workspace: IXpertWorkspace;}>(DIALOG_DATA)
+  readonly #data = inject<{ workspace: IXpertWorkspace; toolset?: Partial<IXpertToolset>; mcpServer?: TMCPServer;}>(DIALOG_DATA)
 
   readonly workspace = signal(this.#data.workspace)
 
   readonly loading = signal(false)
 
-  readonly toolset = model<Partial<IXpertToolset>>()
-  readonly mcpServer = model<TMCPServer>({type: MCPServerType.SSE})
+  readonly toolset = model<Partial<IXpertToolset>>(this.#data.toolset)
+  readonly mcpServer = model<TMCPServer>(this.#data.mcpServer ?? {type: MCPServerType.SSE})
   readonly tools = model<IXpertTool[]>()
   readonly steps = model<number[]>([0])
 

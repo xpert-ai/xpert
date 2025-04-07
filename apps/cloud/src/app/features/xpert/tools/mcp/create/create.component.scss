@@ -1,6 +1,6 @@
 :host {
-    @apply max-h-full flex flex-col rounded-2xl overflow-hidden bg-components-card-bg;
-  }
+  @apply max-h-full flex flex-col rounded-2xl overflow-hidden bg-components-card-bg;
+}
 
 .step-option.active {
   @apply text-blue-600 dark:text-blue-500;

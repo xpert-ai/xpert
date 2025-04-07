@@ -15,8 +15,108 @@
 
   @for (toolset of toolsets(); track toolset.id) {
     <xpert-toolset-card class="col-span-1 min-h-[160px] cursor-pointer bg-components-card-bg"
+      [highlight]="searchText()"
       [toolset]="toolset"
       (click)="navigateTo(toolset)"
     />
+  }
+</div>
+
+<div class="sticky top-0 z-10 bg-background-default-subtle pb-3 pt-5 px-14">
+  <div class="text-lg font-semibold bg-gradient-to-r from-[rgba(11,165,236,0.95)] to-[rgba(21,90,239,0.95)] bg-clip-text text-transparent">
+    {{ 'PAC.Xpert.MoreMCPFromMarketplace' | translate: {Default: 'More MCP Toolsets from Marketplace'} }}
+  </div>
+  <div class="text-sm flex items-center text-center text-text-tertiary">
+    {{ 'PAC.Xpert.Discover' | translate: {Default: 'Discover'} }}
+    @for (category of categories(); track category; let last = $last) {
+      <a href="" [routerLink]="['/xpert/w/', workspaceId(), 'mcp']" [queryParams]="{category: category}">
+        <span class="relative ml-2 text-text-primary after:absolute after:bottom-0 after:left-0 after:h-2 after:w-full after:bg-primary-500/20 after:content-['']">
+          {{  'PAC.Xpert.Categories.' + category | translate: {Default: category} }}
+        </span>
+      </a>
+      @if (!last) {
+        ,
+      }
+    }
+  </div>
+</div>
+
+<div class="xpert-card-container"
+  ngmDynamicGrid colWidth="280"
+  box="content-box">
+  @for (template of templates(); track template) {
+    <div class="group relative cursor-pointer rounded-xl hover:bg-components-panel-on-panel-item-bg-hover">
+      <div class="relative rounded-xl border-[0.5px] border-components-panel-border bg-components-panel-on-panel-item-bg p-4 pb-3 shadow-xs
+            bg-components-card-bg">
+          <div class="absolute right-0 top-0 flex pl-[13px] ">
+            <svg width="13" height="20" viewBox="0 0 13 20" fill="none"
+              xmlns="http://www.w3.org/2000/svg" class="text-gray-50"
+            >
+              <path id="Shape" d="M0 0H13V20C9.98017 20 7.26458 18.1615 6.14305 15.3576L0 0Z"
+                fill="currentColor"></path>
+            </svg>
+            <div class="text-xs font-semibold uppercase h-6 rounded-tr-xl bg-gray-50 pr-2 leading-6 text-text-tertiary"
+            >Tool</div>
+          </div>
+          <div class="flex">
+            <div class="relative shrink-0 rounded-2xl bg-contain bg-center bg-no-repeat overflow-hidden w-10 h-10"
+              style="background-image: url({{template.icon}});"></div>
+            <div class="ml-3 w-0 grow">
+              <div class="flex h-5 items-center">
+                <div class="system-md-semibold truncate text-text-secondary" [ngmHighlight]="searchText()" [content]="template.title">
+                  {{template.title}}
+                </div>
+              </div>
+              <div class="flex h-4 items-center space-x-0.5 mt-0.5">
+                <span class="system-xs-regular shrink-0 text-text-tertiary">{{template.author}}</span>
+                <span class="system-xs-regular shrink-0 text-text-quaternary">/</span>
+                <span class="system-xs-regular w-0 shrink-0 grow truncate text-text-tertiary">{{template.id}}</span>
+              </div>
+            </div>
+          </div>
+          <div class="system-xs-regular text-text-tertiary h-10 line-clamp-2 mt-3">
+            {{template.description}}
+          </div>
+          <div>
+            <div class="flex h-5 items-center">
+              <div class="flex items-center space-x-1 text-text-tertiary">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24"
+                  height="24" fill="currentColor" class="h-3 w-3 shrink-0">
+                  <path
+                      d="M9 2V4H5L4.999 14H18.999L19 4H15V2H20C20.5523 2 21 2.44772 21 3V21C21 21.5523 20.5523 22 20 22H4C3.44772 22 3 21.5523 3 21V3C3 2.44772 3.44772 2 4 2H9ZM18.999 16H4.999L5 20H19L18.999 16ZM17 17V19H15V17H17ZM13 2V7H16L12 11L8 7H11V2H13Z"></path>
+                </svg>
+                <div class="system-xs-regular">0</div>
+              </div>
+              <div class="system-xs-regular mx-2 text-text-quaternary">·</div>
+              <div class="flex flex-wrap space-x-2 overflow-hidden">
+                <div class="system-xs-regular flex max-w-[120px] space-x-1 overflow-hidden"
+                  title="# Search">
+                  <span class="text-text-quaternary">#</span>
+                  <span class="truncate text-text-tertiary">Tags</span>
+                </div>
+              </div>
+            </div>
+          </div>
+      </div>
+      <div
+          class="absolute bottom-0 hidden w-full items-center space-x-2 rounded-b-xl bg-gradient-to-tr from-components-panel-on-panel-item-bg to-background-gradient-mask-transparent px-4 pb-4 pt-8 
+            group-hover:flex">
+          <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium w-[calc(50%-4px)]"
+            (click)="install(template)"
+          >{{'PAC.MCP.Install' | translate: {Default: 'Install'} }}</button>
+          <a [href]="template.explore"
+            target="_blank" class="block w-[calc(50%-4px)] flex-1 shrink-0">
+            <button type="button"
+              class="btn disabled:btn-disabled btn-secondary btn-medium w-full gap-0.5"
+            >{{'PAC.MCP.Details' | translate: {Default: 'Details'} }}
+              <svg
+                viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                fill="currentColor" class="ml-1 h-4 w-4">
+                <path d="M16.0037 9.41421L7.39712 18.0208L5.98291 16.6066L14.5895 8H7.00373V6H18.0037V17H16.0037V9.41421Z"></path>
+              </svg>
+            </button>
+          </a>
+      </div>
+    </div>
   }
 </div>
