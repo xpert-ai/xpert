@@ -21,6 +21,13 @@ export class Environment extends WorkspaceBaseEntity implements IEnvironment {
 	variables: TEnvironmentVariable[]
 
 	@ApiPropertyOptional({ type: () => Boolean })
+	@IsOptional()
+	@IsBoolean()
+	@Column({ nullable: true })
+	isDefault?: boolean
+
+	@ApiPropertyOptional({ type: () => Boolean })
+	@IsOptional()
 	@IsBoolean()
 	@Column({ nullable: true })
 	isArchived?: boolean

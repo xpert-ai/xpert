@@ -64,7 +64,7 @@ export class XpertStudioHeaderComponent {
   readonly #viewContainerRef = inject(ViewContainerRef)
 
   // Inputs
-  readonly sidePanel = model<'preview' | 'variables'>(null)
+  readonly sidePanel = model<'preview' | 'variables' | 'environments'>(null)
   readonly showFeatures = model(false)
 
   readonly team = computed(() => this.xpertStudioComponent.team())
@@ -154,11 +154,11 @@ export class XpertStudioHeaderComponent {
   toggleVariables() {
     this.sidePanel.update((state) => state === 'variables' ? null : 'variables')
   }
+  toggleEnvs() {
+    this.sidePanel.update((state) => state === 'environments' ? null : 'environments')
+  }
 
   toggleFeatures() {
-    // this.#dialog.open(XpertStudioFeaturesComponent, {
-    //   viewContainerRef: this.#viewContainerRef
-    // })
     this.showFeatures.update((state) => !state)
   }
 

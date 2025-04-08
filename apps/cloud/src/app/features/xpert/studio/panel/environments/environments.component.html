@@ -1,0 +1,149 @@
+<div class="shrink-0 flex items-center justify-between p-4 pb-0">
+  <div class="text-text-primary system-xl-semibold">
+    {{'PAC.Xpert.Env' | translate: {Default: 'Env'} }}</div>
+
+  <div class="flex items-center gap-2 text-text-secondary">
+    <button class="group inline-flex h-8 w-full items-center justify-center rounded-[10px] px-2 text-base font-semibold" type="button" 
+      [cdkMenuTriggerFor]="envsMenu">
+      <div class="max-w-[180px] truncate">{{environment()?.name || 'Select env'}}</div>
+      <i class="ri-arrow-down-s-line"></i>
+    </button>
+
+    <a [href]="helpUrl() + '/docs/ai/workflow/environments'" target="_blank" class="flex items-center justify-center mr-1 w-6 h-6"
+      [matTooltip]="'PAC.Xpert.HelpDocs' | translate: {Default: 'Help docs'}"
+      matTooltipPosition="above"
+    >
+      <i class="ri-book-open-line text-gray-500"></i>
+    </a>
+
+    <div class="mx-1 w-[1px] h-3.5 bg-divider-deep"></div>
+
+    <div class="flex items-center justify-center w-6 h-6 cursor-pointer"
+      (click)="closePanel()"
+    >
+      <i class="ri-close-line"></i>
+    </div>
+  </div>
+</div>
+
+<div class="shrink-0 px-4 pt-2 pb-3">
+  <div class="inline-block" >
+    <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
+      [cdkMenuTriggerFor]="variableMenu"
+      [cdkMenuTriggerData]="{trigger: trigger}"
+      #trigger="cdkMenuTriggerFor"
+    >
+      <i class="ri-add-line mr-1"></i>
+      <span class="system-sm-medium">
+        {{'PAC.Xpert.AddVariable' | translate: {Default: 'Add Variable'} }}
+      </span>
+    </button>
+  </div>
+</div>
+
+<div class="variable-list grow px-4 rounded-b-2xl overflow-y-auto" cdkDropList (cdkDropListDropped)="drop($event)">
+  @for (item of variables(); track item.variable.name; let index = $index) {
+    <div class="variable-list-item relative group mb-1 pl-6 pr-2.5 py-2 rounded-xl bg-components-card-bg border shadow-sm hover:bg-gray-50"
+      [class.danger]="item.__hover__"
+      cdkDrag cdkDragLockAxis="y"
+    >
+      <i class="ri-draggable absolute top-2 left-1 cursor-pointer opacity-0 group-hover:opacity-100"></i>
+      <div class="flex items-center justify-between">
+        <div class="grow flex gap-1 items-center">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-4 h-4 text-green-700"
+          >
+            <g id="Icon L">
+              <g id="Vector">
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M3.33463 3.33333C2.96643 3.33333 2.66796 3.63181 2.66796 4V10.6667C2.66796 11.0349 2.96643 11.3333 3.33463 11.3333H4.66796C5.03615 11.3333 5.33463 11.6318 5.33463 12V12.8225L7.65833 11.4283C7.76194 11.3662 7.8805 11.3333 8.00132 11.3333H12.0013C12.3695 11.3333 12.668 11.0349 12.668 10.6667C12.668 10.2985 12.9665 10 13.3347 10C13.7028 10 14.0013 10.2985 14.0013 10.6667C14.0013 11.7713 13.1058 12.6667 12.0013 12.6667H8.18598L5.01095 14.5717C4.805 14.6952 4.5485 14.6985 4.33949 14.5801C4.13049 14.4618 4.00129 14.2402 4.00129 14V12.6667H3.33463C2.23006 12.6667 1.33463 11.7713 1.33463 10.6667V4C1.33463 2.89543 2.23006 2 3.33463 2H6.66798C7.03617 2 7.33464 2.29848 7.33464 2.66667C7.33464 3.03486 7.03617 3.33333 6.66798 3.33333H3.33463Z"
+                  fill="currentColor"
+                ></path>
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M8.74113 2.66667C8.74113 2.29848 9.03961 2 9.4078 2H10.331C10.9721 2 11.5177 2.43571 11.6859 3.04075L11.933 3.93004L12.8986 2.77189C13.3045 2.28508 13.9018 2 14.536 2H14.5954C14.9636 2 15.2621 2.29848 15.2621 2.66667C15.2621 3.03486 14.9636 3.33333 14.5954 3.33333H14.536C14.3048 3.33333 14.08 3.43702 13.9227 3.6257L12.367 5.49165L12.8609 7.2689C12.8746 7.31803 12.9105 7.33333 12.9312 7.33333H13.8543C14.2225 7.33333 14.521 7.63181 14.521 8C14.521 8.36819 14.2225 8.66667 13.8543 8.66667H12.9312C12.29 8.66667 11.7444 8.23095 11.5763 7.62591L11.3291 6.73654L10.3634 7.89478C9.95758 8.38159 9.36022 8.66667 8.72604 8.66667H8.66666C8.29847 8.66667 7.99999 8.36819 7.99999 8C7.99999 7.63181 8.29847 7.33333 8.66666 7.33333H8.72604C8.95723 7.33333 9.18204 7.22965 9.33935 7.04096L10.8951 5.17493L10.4012 3.39777C10.3876 3.34863 10.3516 3.33333 10.331 3.33333H9.4078C9.03961 3.33333 8.74113 3.03486 8.74113 2.66667Z"
+                  fill="currentColor"
+                ></path>
+              </g>
+            </g>
+          </svg>
+          <div class="text-text-primary system-sm-medium">{{item.variable.name}}</div>
+          <div class="text-text-tertiary system-xs-medium">{{item.variable.type}}</div>
+        </div>
+
+        <div class="shrink-0 flex gap-1 items-center text-text-tertiary">
+          <button type="button" class="btn p-1 rounded-lg cursor-pointer hover:bg-hover-bg hover:text-text-secondary"
+            [cdkMenuTriggerFor]="variableMenu"
+            [cdkMenuTriggerData]="{trigger: trigger, index: index, }"
+            #trigger="cdkMenuTriggerFor"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              fill="currentColor"
+              class="w-4 h-4"
+            >
+              <path
+                d="M6.41421 15.89L16.5563 5.74785L15.1421 4.33363L5 14.4758V15.89H6.41421ZM7.24264 17.89H3V13.6473L14.435 2.21231C14.8256 1.82179 15.4587 1.82179 15.8492 2.21231L18.6777 5.04074C19.0682 5.43126 19.0682 6.06443 18.6777 6.45495L7.24264 17.89ZM3 19.89H21V21.89H3V19.89Z"
+              ></path>
+            </svg>
+          </button>
+          <button type="button" class="btn p-1 rounded-lg cursor-pointer hover:bg-hover-bg hover:text-red-500"
+            (mouseover)="item.__hover__ = true"
+            (mouseleave)="item.__hover__ = false"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              fill="currentColor"
+              class="w-4 h-4"
+            >
+              <path
+                d="M17 6H22V8H20V21C20 21.5523 19.5523 22 19 22H5C4.44772 22 4 21.5523 4 21V8H2V6H7V3C7 2.44772 7.44772 2 8 2H16C16.5523 2 17 2.44772 17 3V6ZM18 8H6V20H18V8ZM9 11H11V17H9V11ZM13 11H15V17H13V11ZM9 4V6H15V4H9Z"
+              ></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="text-text-tertiary system-xs-regular truncate">{{item.variable.description}}</div>
+    </div>
+  }
+</div>
+
+<ng-template #variableMenu let-trigger="trigger" let-index="index">
+  <xpert-variable-form class="flex flex-col w-[360px] bg-components-panel-bg rounded-2xl h-full border-[0.5px] border-components-panel-border shadow-2xl"
+    cdkTrapFocusAutoCapture
+    cdkTrapFocus
+    [variable]="variables()?.[index]?.variable"
+    (cancel)="trigger.close()"
+    (saved)="addVar($event, index);trigger.close()"
+    >
+  </xpert-variable-form>
+</ng-template>
+
+<ng-template #envsMenu>
+  <div cdkMenu class="cdk-menu__large">
+    @for (env of environments(); track env.id) {
+      <div cdkMenuItem (click)="selectEnv(env)">
+        {{env.name}}
+      </div>
+    }
+
+    <button cdkMenuItem>
+      <i class="ri-mail-settings-line mr-1" ></i>
+      {{'Manage envs'}}
+    </button>
+  </div>
+</ng-template>

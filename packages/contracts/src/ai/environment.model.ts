@@ -8,6 +8,7 @@ export type TEnvironmentVariable = {
 
 export interface IEnvironment extends IBasePerWorkspaceEntityModel {
     name: string
+    isDefault?: boolean
     isArchived?: boolean
     variables: TEnvironmentVariable[]
 }

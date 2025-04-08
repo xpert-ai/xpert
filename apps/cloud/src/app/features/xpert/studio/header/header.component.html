@@ -52,8 +52,8 @@
   </button>
 
   <button type="button" class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium p-2"
-    [ngmTooltip]="envInDevelopment"
-    [hideDelay]="100"
+    [ngClass]="sidePanel() === 'environments' ? 'text-primary-500' : ''"
+    (click)="toggleEnvs()"
   >
     <svg
       width="16"

@@ -4,7 +4,7 @@ import { IPoint, IRect } from '@foblex/2d'
 import { nonNullable, debounceUntilChanged } from '@metad/core'
 import { createStore, Store, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
-import { KnowledgebaseService, ToastrService, XpertService, XpertToolsetService } from 'apps/cloud/src/app/@core'
+import { EnvironmentService, KnowledgebaseService, ToastrService, XpertService, XpertToolsetService } from 'apps/cloud/src/app/@core'
 import { isEqual, negate, omit } from 'lodash-es'
 import {
   BehaviorSubject,
@@ -16,6 +16,7 @@ import {
   filter,
   map,
   Observable,
+  of,
   shareReplay,
   Subject,
   switchMap,
@@ -73,6 +74,7 @@ export class XpertStudioApiService {
   readonly knowledgebaseService = inject(KnowledgebaseService)
   readonly toolsetService = inject(XpertToolsetService)
   readonly copilotService = inject(PACCopilotService)
+  readonly environmentService = inject(EnvironmentService)
   readonly #toastr = inject(ToastrService)
   readonly xpertComponent = inject(XpertComponent)
   readonly getXpertTeam = injectGetXpertTeam()
@@ -155,6 +157,15 @@ export class XpertStudioApiService {
     distinctUntilChanged(),
     switchMap((id) => this.getXpertsByWorkspace(id)),
     map(({ items }) => items.filter((_) => _.id !== this.team().id)),
+    shareReplay(1)
+  )
+
+  readonly environments$ = toObservable(this.workspaceId).pipe(
+    filter(nonNullable),
+    switchMap((workspaceId) =>  this.environmentService.getAllInOrg({
+      where: {workspaceId}
+    })),
+    map(({items}) => items),
     shareReplay(1)
   )
 

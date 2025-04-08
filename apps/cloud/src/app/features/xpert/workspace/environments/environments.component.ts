@@ -13,6 +13,7 @@ import { CardCreateComponent } from 'apps/cloud/src/app/@shared/card'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { map } from 'rxjs/operators'
+import { injectConfirmUnique } from '@metad/ocap-angular/common'
 
 @Component({
   standalone: true,
@@ -38,6 +39,7 @@ import { map } from 'rxjs/operators'
 export class XpertWorkspaceEnvironmentsComponent {
   readonly environmentService = inject(EnvironmentService)
   readonly homeComponent = inject(XpertWorkspaceHomeComponent)
+  readonly confirmName = injectConfirmUnique()
 
   readonly workspace = this.homeComponent.workspace
   readonly environments = derivedAsync(() => {
@@ -49,6 +51,12 @@ export class XpertWorkspaceEnvironmentsComponent {
   })
 
   createEnvironment() {
-    
+    this.confirmName({}, (name: string) => {
+      return this.environmentService.create({name, workspaceId: this.workspace().id})
+    }).subscribe({
+      next: (env) => {
+        console.log(env)
+      }
+    })
   }
 }
