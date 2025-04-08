@@ -336,6 +336,11 @@
       "Agent": "智能体",
       "Note": "注释"
     },
+    "Environment": {
+      "Environments": "环境",
+      "SetAsDefault": "设置为默认",
+      "Variables": "变量"
+    },
     "MENU": {
       "Certification": "认证",
       "Chat": "聊天",

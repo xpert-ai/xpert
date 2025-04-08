@@ -16,6 +16,7 @@ import { XpertVariableFormComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { injectHelpWebsite } from 'apps/cloud/src/app/@core'
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { toSignal } from '@angular/core/rxjs-interop'
+import { XpertEnvironmentManageComponent } from '@cloud/app/@shared/environment'
 
 @Component({
   selector: 'xpert-studio-panel-environments',
@@ -54,6 +55,7 @@ export class XpertStudioPanelEnvironmentsComponent {
   )
 
   // States
+  readonly workspaceId = this.studioService.workspaceId
   readonly environments = toSignal(this.studioService.environments$)
   readonly environment = signal<IEnvironment>(null)
 
@@ -73,6 +75,19 @@ export class XpertStudioPanelEnvironmentsComponent {
     this.panelComponent.sidePanel.set(null)
   }
 
+  openManageEnvs() {
+    this.#dialog.open(XpertEnvironmentManageComponent, {
+      backdropClass: 'backdrop-blur-md-white',
+      data: {
+        workspaceId: this.workspaceId()
+      }
+    }).closed.subscribe({
+      next: () => {
+        console.log(`=====`)
+      }
+    })
+  }
+
   addVar(value: Partial<TStateVariable>, index?: number) {
     const stateVariables = this.stateVariables() ?? []
     if (isNil(index)) {
@@ -83,8 +98,6 @@ export class XpertStudioPanelEnvironmentsComponent {
 
     this.studioService.updateXpertAgentConfig({ stateVariables: [...stateVariables] })
   }
-
- 
 
   drop(event: CdkDragDrop<string[]>) {
     if (event.previousContainer === event.container) {

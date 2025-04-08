@@ -1,0 +1,128 @@
+<div class="flex w-[44px] flex-col border-r border-divider-burn pl-4 pr-6 sm:w-[224px]">
+  <div class="text-2xl font-semibold mb-8 mt-6 px-3 py-2 text-text-primary">
+    {{ 'PAC.Environment.Environments' | translate: {Default: 'Environments'} }}
+  </div>
+  <div class="w-full">
+    <div class="mb-2">
+      @for (env of environments(); track env.id) {
+        <div class="group relative mb-0.5 flex h-[37px] cursor-pointer items-center rounded-lg p-1 pl-3 text-sm system-sm-medium hover:bg-hover-bg"
+          [title]="env.name"
+          (click)="setEnvironment(env)"
+        >
+          <div class="truncate">{{env.name}}</div>
+          <div class="absolute right-2">
+            @if (env.isDefault) {
+              <i class="ri-checkbox-circle-fill text-xl text-green-700"></i>
+            } @else {
+              <i class="ri-checkbox-circle-line text-xl opacity-0 group-hover:opacity-100" 
+                [matTooltip]="'PAC.Environment.SetAsDefault' | translate: {Default: 'Set as Default'}"
+                (click)="setDefault(env)"
+              ></i>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="flex justify-end">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium"
+        (click)="addEnvironment()">
+        <i class="ri-add-line mr-1"></i>
+        <span class="system-sm-medium">
+          {{'PAC.Environment.AddEnvironment' | translate: {Default: 'Add Environment'} }}
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<div class="relative flex w-[824px]">
+  <div class="absolute -right-11 top-6 z-[9999] flex flex-col items-center">
+    <button type="button" class="btn disabled:btn-disabled btn-tertiary btn-large px-2"
+      (click)="close()">
+      <i class="ri-close-large-line"></i>
+    </button>
+    <div class="system-2xs-medium-uppercase mt-1 text-text-tertiary">ESC</div>
+  </div>
+
+  <div class="w-full overflow-y-auto bg-components-panel-bg pb-4">
+    <div class="sticky top-0 z-20 mx-8 mb-[18px] flex items-center bg-components-panel-bg pb-2 pt-[27px]">
+      <div class="text-2xl font-semibold shrink-0 text-text-primary">
+        {{ 'PAC.Environment.Variables' | translate: {Default: 'Variables'} }}
+      </div>
+    </div>
+    <div class="px-4 pt-2 sm:px-8">
+      @if (environment(); as environment) {
+        <div class="flex flex-col">
+          <div class="mb-4 flex items-center gap-3 rounded-xl border-l-[0.5px] border-t-[0.5px] border-divider-subtle 
+            bg-gradient-to-r from-gray-100 to-gray-50 p-3 pr-5">
+            
+            <div class="grow">
+              <div class="system-md-semibold text-text-secondary">
+                {{ environment.name }}
+              </div>
+              <div class="text-sm font-medium mt-1 text-text-tertiary">
+                <div class="flex space-x-1">
+                  <div>{{ 'PAC.Environment.Variables' | translate: {Default: 'Variables'} }}</div>
+                  <div class="">{{environment.variables?.length || 0}}</div>
+                </div>
+              </div>
+            </div>
+
+            <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium shrink-0"
+              (click)="addVar()">
+              <i class="ri-add-line mr-1"></i>
+              Add
+            </button>
+          </div>
+          <div class="overflow-visible lg:overflow-visible">
+            <div class="flex min-w-[480px] items-center border-b border-divider-regular py-[7px]">
+              <div class="system-xs-medium-uppercase w-[204px] shrink-0 text-text-tertiary">NAME</div>
+              <div class="system-xs-medium-uppercase w-[104px] shrink-0 text-text-tertiary">Type</div>
+              <div class="system-xs-medium-uppercase grow px-3 text-text-tertiary">Value</div>
+            </div>
+            <div class="relative min-w-[480px]">
+              @for (item of environment.variables; track i; let i = $index) {
+                <div class="flex border-b border-divider-subtle">
+                  <div class="flex w-[204px] shrink-0 items-center px-3 py-2">
+                    <input tabindex="-1" class="block h-9 w-full appearance-none rounded-lg border border-transparent bg-components-input-bg-normal px-3 text-sm
+                      text-components-input-text-filled caret-primary-600 outline-none
+                      placeholder:text-sm placeholder:text-text-tertiary
+                      hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active
+                      focus:bg-components-input-bg-active focus:shadow-xs" 
+                      placeholder="Variable Name" type="text"
+                      [ngModel]="item.name"
+                      (ngModelChange)="updateVar(i, {name: $event})"
+                    >
+                  </div>
+                  <div class="system-sm-regular flex w-[104px] shrink-0 items-center py-2 text-text-secondary">
+                    <ngm-select [selectOptions]="VariableTypeOptions" [nullable]="false"
+                      [ngModel]="item.type"
+                      (ngModelChange)="updateVar(i, {type: $event})"/>
+                  </div>
+                  <div class="flex grow items-center">
+                    <input tabindex="-1" class="block h-9 w-full appearance-none rounded-lg border border-transparent bg-components-input-bg-normal px-3 text-sm
+                      text-components-input-text-filled caret-primary-600 outline-none
+                      placeholder:text-sm placeholder:text-text-tertiary
+                      hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active
+                      focus:bg-components-input-bg-active focus:shadow-xs" 
+                      placeholder="Variable Value" type="text"
+                      [ngModel]="item.value"
+                      (ngModelChange)="updateVar(i, {value: $event})"
+                    >
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+    
+  @if (loading()) {
+    <ngm-spin class="absolute w-full h-full left-0 top-0" />
+  }
+
+</div>
