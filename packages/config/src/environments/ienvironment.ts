@@ -15,7 +15,8 @@ import {
 	IUpworkConfig,
 	IDingtalkConfig,
 	IAliyunConfig,
-	ILarkConfig
+	ILarkConfig,
+	IWecomConfig
 } from '@metad/server-common';
 
 export type LogLevel = 'verbose' | 'debug' | 'log' | 'warn' | 'error';
@@ -73,6 +74,7 @@ export interface IEnvironment {
 	auth0Config: IAuth0Config;
 	dingtalkConfig: IDingtalkConfig;
 	larkConfig: ILarkConfig;
+	wecomConfig: IWecomConfig;
 
 	sentry?: {
 		dns: string;

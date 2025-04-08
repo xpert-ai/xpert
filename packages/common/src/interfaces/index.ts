@@ -22,3 +22,4 @@ export * from './IUnleashConfig';
 export * from './IDingtalkConfig'
 export * from './IAliyunConfig'
 export * from './ILarkConfig'
+export * from './IWecomConfig'
