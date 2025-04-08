@@ -62,7 +62,7 @@
   </div>
 
   @for (integration of selectedIntegrations(); track integration) {
-    <pac-integration-form #form [integration]="integration" (integrationChange)="updateIntegration($event)" />
+    <pac-integration-form #form class="grow" [integration]="integration" (integrationChange)="updateIntegration($event)" />
 
     <div class="mt-2 shrink-0 flex py-4 px-6 rounded-b-[10px] bg-gray-50 border-t border-black/5">
 

@@ -16,6 +16,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@cloud/*": ["apps/cloud/src/*"],
       "@metad/adapter": ["packages/adapter/src/index.ts"],
       "@metad/analytics": ["packages/analytics/src/index.ts"],
       "@metad/cloud/auth": ["libs/apps/auth/src/index.ts"],

@@ -11,6 +11,7 @@ export type IEnvironment = {
      * Is Demo system
      */
     DEMO: boolean
+    pro?: boolean
 
     API_BASE_URL: string
 
