@@ -156,15 +156,18 @@ export type TAgentOutputVariable = TXpertParameter & {
   operation: 'append' | 'extends' | 'overwrite' | 'clear'
 }
 
+/**
+ * @deprecated use TChatRequest
+ */
 export type TChatAgentParams = {
   input: {
     input?: string
     [key: string]: unknown
   }
-  // agent: IXpertAgent
   agentKey: string
   xpertId: string
   executionId?: string
+  environmentId?: string
   /**
    * Message to update parameters of last tool call message
    */

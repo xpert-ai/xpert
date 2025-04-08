@@ -92,6 +92,7 @@ export class XpertStudioHeaderComponent {
     }
     return null
   })
+  readonly environment = this.apiService.environment
 
   readonly agentConfig = computed(() => this.xpert()?.agentConfig)
   readonly maxConcurrency = computed(() => this.agentConfig()?.maxConcurrency)

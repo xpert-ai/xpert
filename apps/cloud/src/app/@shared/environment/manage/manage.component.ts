@@ -3,18 +3,29 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, inject, signal, ViewContainerRef } from '@angular/core'
+import { Component, effect, inject, signal, ViewContainerRef } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
-import { EnvironmentService, getErrorMessage, IEnvironment, IfAnimation, injectToastr, OrderTypeEnum, TEnvironmentVariable, TSelectOption } from '@cloud/app/@core'
+import {
+  EnvironmentService,
+  getErrorMessage,
+  IEnvironment,
+  IfAnimation,
+  injectToastr,
+  OrderTypeEnum,
+  TEnvironmentVariable,
+  TSelectOption
+} from '@cloud/app/@core'
 import { linkedModel } from '@metad/core'
 import { injectConfirmUnique, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { effectAction } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
-import { BehaviorSubject, pipe } from 'rxjs'
-import { combineLatestWith, map, startWith, switchMap, tap } from 'rxjs/operators'
+import { BehaviorSubject, EMPTY, Observable, pipe } from 'rxjs'
+import { catchError, combineLatestWith, debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
 import { NgmSelectComponent } from '../../common'
+import { VariableTypeOptions } from '../types'
 
 @Component({
   selector: 'xpert-environment-manage',
@@ -44,14 +55,14 @@ export class XpertEnvironmentManageComponent {
   readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()
   readonly #router = inject(Router)
-  readonly #viewContainerRef = inject(ViewContainerRef)
   readonly confirmName = injectConfirmUnique()
 
   readonly workspaceId = signal(this.#data.workspaceId)
   readonly loading = signal(false)
   readonly #refresh$ = new BehaviorSubject<void>(null)
 
-  readonly #environments = derivedFrom([this.workspaceId],
+  readonly #environments = derivedFrom(
+    [this.workspaceId],
     pipe(
       combineLatestWith(this.#refresh$),
       tap(() => this.loading.set(true)),
@@ -92,25 +103,22 @@ export class XpertEnvironmentManageComponent {
         }
         return [...state]
       })
+      this.saveEnvironment(value)
     }
   })
 
-  readonly VariableTypeOptions: TSelectOption<TEnvironmentVariable['type']>[] = [
-    {
-      value: 'default',
-      label: {
-        en_US: 'Default',
-        zh_Hans: '默认'
-      }
-    },
-    {
-      value: 'secret',
-      label: {
-        en_US: 'Secret',
-        zh_Hans: '密钥'
-      }
-    }
-  ]
+  readonly VariableTypeOptions = VariableTypeOptions
+
+  constructor() {
+    effect(
+      () => {
+        if (!this.environment() && this.environments()?.length) {
+          this.environment.set(this.environments().find((_) => _.isDefault))
+        }
+      },
+      { allowSignalWrites: true }
+    )
+  }
 
   addEnvironment() {
     this.confirmName({}, (name: string) => {
@@ -150,11 +158,14 @@ export class XpertEnvironmentManageComponent {
     this.environment.update((env) => {
       return {
         ...env,
-        variables: [...(env.variables ?? []), {
-          name: '',
-          value: '',
-          type: 'default',
-        }]
+        variables: [
+          ...(env.variables ?? []),
+          {
+            name: '',
+            value: '',
+            type: 'default'
+          }
+        ]
       }
     })
   }
@@ -171,6 +182,19 @@ export class XpertEnvironmentManageComponent {
       }
     })
   }
+
+  saveEnvironment = effectAction((origin: Observable<IEnvironment>) => {
+    return origin.pipe(
+      debounceTime(1000),
+      tap(() => this.loading.set(true)),
+      switchMap((env) => this.environmentService.update(env.id, env)),
+      tap(() => this.loading.set(false)),
+      catchError(() => {
+        this.loading.set(false)
+        return EMPTY
+      })
+    )
+  })
 
   close() {
     this.#dialogRef.close()

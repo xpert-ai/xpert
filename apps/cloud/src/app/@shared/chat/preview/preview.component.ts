@@ -83,6 +83,7 @@ export class ChatConversationPreviewComponent {
   readonly conversationId = model<string>()
   readonly xpert = model<Partial<IXpert>>()
   readonly input = model<string>()
+  readonly environmentId = model<string>()
   readonly parameters = model<TXpertParameter[]>()
   readonly readonly = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
@@ -224,6 +225,7 @@ export class ChatConversationPreviewComponent {
           },
           conversationId: this.conversation()?.id,
           xpertId: this.xpert().id,
+          environmentId: this.environmentId(),
           operation: (options?.reject || this.toolCalls()) ? {
             ...this.operation(),
             toolCalls: this.toolCalls()?.map((call) => ({call}))

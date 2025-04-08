@@ -22,6 +22,7 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 
 	public async execute(command: CreateWorkflowNodeCommand) {
 		const { xpertId, graph, node, leaderKey, options } = command
+		
 		let workflow = {} as any
 		let channel: TStateChannel = null
 		switch (node.entity.type) {

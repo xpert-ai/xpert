@@ -27,6 +27,7 @@ import { of } from 'rxjs'
 import { NgmRadioSelectComponent } from '@metad/ocap-angular/common'
 import { CodeEditorCardComponent } from 'apps/cloud/src/app/@shared/editors'
 import { Dialog } from '@angular/cdk/dialog'
+import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 
 @Component({
   standalone: true,
@@ -43,7 +44,7 @@ import { Dialog } from '@angular/cdk/dialog'
     tabindex: '-1'
   }
 })
-export class XpertWorkflowHttpComponent {
+export class XpertWorkflowHttpComponent extends XpertWorkflowBaseComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
   eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
 
@@ -55,13 +56,9 @@ export class XpertWorkflowHttpComponent {
   readonly #toastr = injectToastr()
 
   // Inputs
-  readonly node = input<TXpertTeamNode>()
   readonly wfNode = input<IWorkflowNode>()
 
   // States
-  readonly key = computed(() => this.node()?.key)
-  readonly xpert = this.xpertStudioComponent.xpert
-  readonly xpertId = computed(() => this.xpert()?.id)
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
   readonly entity = computed(() => this.wfNode() as IWFNHttp)
 
@@ -185,20 +182,6 @@ export class XpertWorkflowHttpComponent {
     }
   })
 
-  // Fetch avaiable variables for this agent from server
-  readonly variables = derivedAsync(() => {
-    const xpertId = this.xpertId()
-    const nodeKey = this.key()
-    return xpertId && nodeKey
-      ? this.xpertService.getWorkflowVariables(xpertId, nodeKey).pipe(
-          catchError((error) => {
-            this.#toastr.error(getErrorMessage(error))
-            return of([])
-          })
-        )
-      : of(null)
-  })
-
   readonly HttpOptions: TSelectOption<IWFNHttp['method']>[] = [
     {
       value: 'get',
@@ -276,9 +259,6 @@ readonly BodyTypeOptions: TSelectOption<BodyType>[] = [
   readonly expandTimeout = signal(false)
   readonly expandOutputVariables = signal(false)
 
-  constructor() {
-    // effect(() => console.log(this.#body()))
-  }
 
   updateEntity(name: string, value: string | number | any) {
     this.studioService.updateWorkflowNode(this.key(), (entity) => {

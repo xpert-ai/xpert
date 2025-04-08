@@ -195,7 +195,9 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 							if (!controller.signal.aborted) {
 								try {
 									controller.abort()
-								} catch (err) {}
+								} catch (err) {
+									//
+								}
 							}
 						})
 

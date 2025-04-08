@@ -106,7 +106,7 @@ export class XpertStudioPanelToolsetComponent {
   readonly variables = derivedAsync(() => {
     const xpertId = this.xpertId()
     return xpertId
-      ? this.xpertService.getVariables(xpertId).pipe(
+      ? this.studioService.getVariables({}).pipe(
           catchError((error) => {
             this.#toastr.error(getErrorMessage(error))
             return of([])

@@ -10,6 +10,7 @@ import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 import { IIntegration } from '../integration.model'
 import { TChatFrom, TSensitiveOperation } from './chat.model'
 import { IWorkflowNode, TVariableAssigner, VariableOperationEnum } from './xpert-workflow.model'
+import { IEnvironment } from './environment.model'
 
 export type ToolCall = LToolCall
 
@@ -261,7 +262,8 @@ export enum XpertParameterTypeEnum {
 
   STRING = 'string',
   BOOLEAN = 'boolean',
-  OBJECT = 'object'
+  OBJECT = 'object',
+  SECRET = 'secret',
 }
 
 export type TXpertParameter = {
@@ -391,17 +393,26 @@ export enum ChatMessageEventTypeEnum {
   ON_ERROR = 'on_error',
 }
 
+
 export type TChatRequest = {
   input: {
     input?: string
     [key: string]: unknown
   }
   xpertId: string
+  agentKey?: string
   conversationId?: string
+  environmentId?: string
   id?: string
-  // toolCalls?: ToolCall[]
+  executionId?: string
   confirm?: boolean
+  /**
+   * Reject the sensitive tool calls
+   */
   reject?: boolean
+  /**
+   * Message to update parameters of last tool call message
+   */
   operation?: TSensitiveOperation
   retry?: boolean
 }
@@ -425,6 +436,8 @@ export type TChatOptions = {
    * Whether to summarize the conversation title
    */
   summarizeTitle?: boolean
+  
+  environment?: IEnvironment
 }
 
 // Helpers

@@ -26,87 +26,110 @@ import {
 	StatusCodeChannelName
 } from '../../workflow/http'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
+import { EnvironmentService } from '../../../environment'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
 	constructor(
 		private readonly xpertService: XpertService,
+		private readonly environmentService: EnvironmentService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
 	) {}
 
 	public async execute(command: XpertAgentVariablesQuery): Promise<TWorkflowVarGroup[]> {
-		const { xpertId, type, nodeKey, isDraft } = command.options
+		const { xpertId, type, nodeKey, isDraft, environmentId } = command.options
 
 		const xpert = await this.xpertService.findOne(xpertId, { select: ['id', 'agentConfig', 'draft', 'graph'] })
-
-		const varGroups: TWorkflowVarGroup[] = [
-			{
-				variables: [
-					{
-						name: STATE_VARIABLE_INPUT,
-						type: XpertParameterTypeEnum.STRING,
-						description: {
-							en_US: 'Input',
-							zh_Hans: '输入'
-						}
-					},
-					{
-						name: `${STATE_VARIABLE_SYS}.language`,
-						type: XpertParameterTypeEnum.STRING,
-						description: {
-							en_US: 'Language',
-							zh_Hans: '语言'
-						}
-					},
-					{
-						name: `${STATE_VARIABLE_SYS}.user_email`,
-						type: XpertParameterTypeEnum.STRING,
-						description: {
-							en_US: 'User email',
-							zh_Hans: '用户邮箱'
-						}
-					},
-					{
-						name: `${STATE_VARIABLE_SYS}.timezone`,
-						type: XpertParameterTypeEnum.STRING,
-						description: {
-							en_US: 'User time zone',
-							zh_Hans: '用户时区'
-						}
-					},
-					{
-						name: `${STATE_VARIABLE_SYS}.date`,
-						type: XpertParameterTypeEnum.STRING,
-						description: {
-							en_US: 'Current Date',
-							zh_Hans: '当前日期'
-						}
-					},
-					{
-						name: `${STATE_VARIABLE_SYS}.datetime`,
-						type: XpertParameterTypeEnum.STRING,
-						description: {
-							en_US: 'Current Datetime',
-							zh_Hans: '当前时间'
-						}
-					},
-					{
-						name: `${STATE_VARIABLE_SYS}.common_times`,
-						type: XpertParameterTypeEnum.STRING,
-						description: {
-							en_US: 'Common Times',
-							zh_Hans: '常用时间'
-						}
+		
+		const varGroups: TWorkflowVarGroup[] = []
+		if (environmentId) {
+			const environment = await this.environmentService.findOne(environmentId)
+			varGroups.push({
+				group: {
+					name: 'env',
+					description: {
+						en_US: 'Environment',
+						zh_Hans: '环境变量'
 					}
-				]
+				  },
+				variables: environment.variables.map((_) => ({
+					name: _.name,
+					type: _.type === 'secret' ? XpertParameterTypeEnum.SECRET : XpertParameterTypeEnum.STRING,
+					description: {
+						en_US: '',
+					}
+				}))
+			})
+		}
+
+		const variables: TStateVariable[] = [
+			{
+				name: STATE_VARIABLE_INPUT,
+				type: XpertParameterTypeEnum.STRING,
+				description: {
+					en_US: 'Input',
+					zh_Hans: '输入'
+				}
+			},
+			{
+				name: `${STATE_VARIABLE_SYS}.language`,
+				type: XpertParameterTypeEnum.STRING,
+				description: {
+					en_US: 'Language',
+					zh_Hans: '语言'
+				}
+			},
+			{
+				name: `${STATE_VARIABLE_SYS}.user_email`,
+				type: XpertParameterTypeEnum.STRING,
+				description: {
+					en_US: 'User email',
+					zh_Hans: '用户邮箱'
+				}
+			},
+			{
+				name: `${STATE_VARIABLE_SYS}.timezone`,
+				type: XpertParameterTypeEnum.STRING,
+				description: {
+					en_US: 'User time zone',
+					zh_Hans: '用户时区'
+				}
+			},
+			{
+				name: `${STATE_VARIABLE_SYS}.date`,
+				type: XpertParameterTypeEnum.STRING,
+				description: {
+					en_US: 'Current Date',
+					zh_Hans: '当前日期'
+				}
+			},
+			{
+				name: `${STATE_VARIABLE_SYS}.datetime`,
+				type: XpertParameterTypeEnum.STRING,
+				description: {
+					en_US: 'Current Datetime',
+					zh_Hans: '当前时间'
+				}
+			},
+			{
+				name: `${STATE_VARIABLE_SYS}.common_times`,
+				type: XpertParameterTypeEnum.STRING,
+				description: {
+					en_US: 'Common Times',
+					zh_Hans: '常用时间'
+				}
 			}
 		]
+		
+		varGroups.push({
+			variables
+		})
 
 		const agentConfig = isDraft ? (xpert.draft?.team?.agentConfig ?? xpert.agentConfig) : xpert.agentConfig
 		const stateVariables = agentConfig?.stateVariables
 		if (stateVariables) {
-			varGroups[0].variables.push(...stateVariables)
+			variables.push(...stateVariables)
 		}
 
 		// All agents output
@@ -114,8 +137,8 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 
 		if (type === 'agent') {
 			if (nodeKey) {
-				const variables = await this.getAgentVariables(xpertId, nodeKey, isDraft)
-				varGroups[0].variables.push(...variables)
+				const _variables = await this.getAgentVariables(xpertId, nodeKey, isDraft)
+				variables.push(..._variables)
 			}
 		}
 
@@ -134,7 +157,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				for await (const toolset of toolsets) {
 					const toolVars = await toolset.getVariables()
 					if (toolVars) {
-						varGroups[0].variables.push(...toolVars.map(toolsetVariableToVariable))
+						variables.push(...toolVars.map(toolsetVariableToVariable))
 					}
 				}
 			}

@@ -14,6 +14,6 @@ import { EnvironmentService } from './environment.service'
 	],
 	controllers: [EnvironmentController],
 	providers: [EnvironmentService],
-	exports: [TypeOrmModule]
+	exports: [TypeOrmModule, EnvironmentService]
 })
 export class EnvironmentModule {}

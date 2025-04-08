@@ -6,6 +6,7 @@ import { Annotation, messagesStateReducer } from '@langchain/langgraph'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
 import {
 	channelName,
+	IEnvironment,
 	IXpertAgent,
 	STATE_VARIABLE_SYS,
 	TMessageChannel,
@@ -170,7 +171,14 @@ export function stateVariable(variable: TStateVariable) {
 	}
 }
 
-export function stateToParameters(state: typeof AgentStateAnnotation.State) {
+export function stateToParameters(state: typeof AgentStateAnnotation.State, environment: IEnvironment) {
+	const initValue: Record<string, any> = {}
+	if (environment) {
+		initValue.env = environment.variables.reduce((state, variable) => {
+			state[variable.name] = variable.value
+			return state
+		}, {})
+	}
 	return Object.keys(state).reduce((acc, key) => {
 		const value = state[key]
 		if (Array.isArray(value)) {
@@ -179,7 +187,7 @@ export function stateToParameters(state: typeof AgentStateAnnotation.State) {
 			acc[key] = value
 		}
 		return acc
-	}, {})
+	}, initValue)
 }
 
 export function allAgentsKey(graph: TXpertGraph): IXpertAgent[] {

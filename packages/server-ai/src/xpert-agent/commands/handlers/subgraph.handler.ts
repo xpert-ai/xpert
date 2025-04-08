@@ -63,7 +63,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		failNode: TXpertTeamNode
 	}> {
 		const { agentKeyOrName, xpert, options } = command
-		const { isStart, execution, leaderKey, channel: agentChannel, summarizeTitle, subscriber, rootController, signal, disableCheckpointer, variables, partners, handoffTools } = options
+		const { isStart, execution, leaderKey, channel: agentChannel, summarizeTitle, subscriber, rootController, signal, disableCheckpointer, variables, partners, handoffTools, environment } = options
 		const userId = RequestContext.currentUserId()
 
 		// Signal controller in this subgraph
@@ -305,7 +305,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						new CreateWorkflowNodeCommand(xpert.id, graph, node, parentKey, {
 							isDraft: options.isDraft,
 							subscriber,
-							rootExecutionId: options.rootExecutionId
+							rootExecutionId: options.rootExecutionId,
+							environment
 						}))
 					if (channel) {
 						channels.push(channel)
@@ -427,7 +428,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const stateModifier = async (state: typeof AgentStateAnnotation.State) => {
 			const { memories } = state
 			const summary = getChannelState(state, agentChannel)?.summary
-			const parameters = stateToParameters(state)
+			const parameters = stateToParameters(state, environment)
 			let systemTemplate = `Current time: ${new Date().toISOString()}\n${parseXmlString(agent.prompt) ?? ''}`
 			if (memories?.length) {
 				systemTemplate += `\n\n<memories>\n${formatMemories(memories)}\n</memories>`

@@ -339,7 +339,8 @@
     "Environment": {
       "Environments": "环境",
       "SetAsDefault": "设置为默认",
-      "Variables": "变量"
+      "Variables": "变量",
+      "IsDefault": "是默认"
     },
     "MENU": {
       "Certification": "认证",
@@ -1499,6 +1500,7 @@
     "Copilot": {
       "Copilot": "智能助理",
       "ConversationVariables": "会话变量",
+      "SystemVariables": "系统变量",
       "AICopilot": "AI 智能助理",
       "EnableCopilot": "启用智能助理",
       "GetYourApiKey": "获取你的 API Key",

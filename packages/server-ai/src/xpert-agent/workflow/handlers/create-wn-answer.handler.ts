@@ -20,7 +20,8 @@ export class CreateWNAnswerHandler implements ICommandHandler<CreateWNAnswerComm
 	) {}
 
 	public async execute(command: CreateWNAnswerCommand) {
-		const { graph, node } = command
+		const { graph, node, } = command
+		const { environment } = command.options
 
 		const entity = node.entity as IWFNAnswer
 
@@ -30,7 +31,7 @@ export class CreateWNAnswerHandler implements ICommandHandler<CreateWNAnswerComm
 
 					const aiMessage = await AIMessagePromptTemplate.fromTemplate(entity.promptTemplate, {
 						templateFormat: 'mustache'
-					}).format(stateToParameters(state))
+					}).format(stateToParameters(state, environment))
 
 					await new FakeStreamingChatModel({ responses: [aiMessage] }).invoke([], config)
 				}),

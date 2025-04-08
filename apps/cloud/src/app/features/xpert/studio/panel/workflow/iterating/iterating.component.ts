@@ -21,6 +21,7 @@ import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
 import { MatSliderModule } from '@angular/material/slider'
 import { NgmDensityDirective, TSelectOption } from '@metad/ocap-angular/core'
 import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
+import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow-iterating',
@@ -33,7 +34,7 @@ import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
     tabindex: '-1'
   }
 })
-export class XpertStudioPanelWorkflowIteratingComponent {
+export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBaseComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
   eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
 
@@ -44,13 +45,9 @@ export class XpertStudioPanelWorkflowIteratingComponent {
   readonly #toastr = injectToastr()
 
   // Inputs
-  readonly node = input<TXpertTeamNode>()
   readonly entity = input<IWorkflowNode>()
 
   // States
-  readonly key = computed(() => this.node()?.key)
-  readonly xpert = this.xpertStudioComponent.xpert
-  readonly xpertId = computed(() => this.xpert()?.id)
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
   readonly iteratingEntity = computed(() => this.entity() as IWFNIterating)
   readonly inputVariable = computed(() => this.iteratingEntity()?.inputVariable)
@@ -58,18 +55,6 @@ export class XpertStudioPanelWorkflowIteratingComponent {
   readonly parallel = computed(() => this.iteratingEntity()?.parallel)
   readonly maximum = computed(() => this.iteratingEntity()?.maximum)
   readonly errorMode = computed(() => this.iteratingEntity()?.errorMode)
-
-   // Fetch avaiable variables for this agent from server
-   readonly variables = derivedAsync(() => {
-    const xpertId = this.xpertId()
-    const nodeKey = this.key()
-    return xpertId && nodeKey ? this.xpertService.getWorkflowVariables(xpertId, nodeKey).pipe(
-      catchError((error) => {
-        this.#toastr.error(getErrorMessage(error))
-        return of([])
-      })
-    ) : of(null)
-  })
 
   readonly errorModeOptions: TSelectOption<IWFNIterating['errorMode']>[] = [
     {
@@ -95,9 +80,6 @@ export class XpertStudioPanelWorkflowIteratingComponent {
     }
   ]
 
-  constructor() {
-    // effect(() => console.log(this.variables()))
-  }
 
   updateEntity(name: string, value: string | number) {
     const entity = {...(this.iteratingEntity() ?? {})} as IWFNIterating

@@ -23,6 +23,7 @@ import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
 import { StateVariableSelectComponent, XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/workflow'
 import { MatSliderModule } from '@angular/material/slider'
+import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow-code',
@@ -37,7 +38,7 @@ import { MatSliderModule } from '@angular/material/slider'
     tabindex: '-1'
   }
 })
-export class XpertStudioPanelWorkflowCodeComponent {
+export class XpertStudioPanelWorkflowCodeComponent extends XpertWorkflowBaseComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
   eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
 
@@ -48,13 +49,9 @@ export class XpertStudioPanelWorkflowCodeComponent {
   readonly #toastr = injectToastr()
 
   // Inputs
-  readonly node = input<TXpertTeamNode>()
   readonly wfNode = input<IWorkflowNode>()
 
   // States
-  readonly key = computed(() => this.node()?.key)
-  readonly xpert = this.xpertStudioComponent.xpert
-  readonly xpertId = computed(() => this.xpert()?.id)
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
   readonly entity = computed(() => this.wfNode() as IWFNCode)
   readonly inputs = computed(() => this.entity()?.inputs)
@@ -65,20 +62,6 @@ export class XpertStudioPanelWorkflowCodeComponent {
   readonly retryInterval = computed(() => this.retry()?.retryInterval)
   readonly errorHandling = computed(() => this.entity()?.errorHandling)
   readonly errorHType = computed(() => this.errorHandling()?.type)
-
-  // Fetch avaiable variables for this agent from server
-  readonly variables = derivedAsync(() => {
-    const xpertId = this.xpertId()
-    const nodeKey = this.key()
-    return xpertId && nodeKey
-      ? this.xpertService.getWorkflowVariables(xpertId, nodeKey).pipe(
-          catchError((error) => {
-            this.#toastr.error(getErrorMessage(error))
-            return of([])
-          })
-        )
-      : of(null)
-  })
 
   get language() {
     return this.entity()?.language ?? 'javascript'
@@ -133,9 +116,6 @@ export class XpertStudioPanelWorkflowCodeComponent {
     }
   ]
 
-  constructor() {
-    // effect(() => console.log(this.variables()))
-  }
 
   updateEntity(name: string, value: string | number | any) {
     const entity = { ...(this.entity() ?? {}) } as IWFNCode

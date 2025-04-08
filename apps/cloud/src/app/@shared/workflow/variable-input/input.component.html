@@ -54,6 +54,8 @@
         @for (g of variables(); track g) {
           @if (g.group) {
             <div class="p-1 mt-2 text-sm text-text-secondary">{{g.group.description | i18n}}</div>
+          } @else {
+            <div class="p-1 mt-2 text-sm text-text-secondary">{{'PAC.Copilot.SystemVariables' | translate: {Default: 'System Variables'} }}</div>
           }
           @for (variable of g.variables; track variable.name) {
             <li cdkMenuItem class="max-w-sm space-x-2 truncate" (click)="setVariable(g.group?.name, variable)">

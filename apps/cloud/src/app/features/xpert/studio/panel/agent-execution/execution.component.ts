@@ -113,6 +113,7 @@ export class XpertStudioPanelAgentExecutionComponent {
   readonly status = computed(() => this.execution()?.status)
   readonly operation = computed(() => this.execution()?.operation)
   readonly #toolCalls = signal<ToolCall[]>(null)
+  readonly environment = this.apiService.environment
 
   readonly loading = signal(false)
   #agentSubscription: Subscription = null
@@ -174,6 +175,7 @@ export class XpertStudioPanelAgentExecutionComponent {
         agentKey: this.xpertAgent().key,
         xpertId: this.xpert().id,
         executionId,
+        environmentId: this.environment()?.id,
         operation: (options?.reject || this.#toolCalls()) ? {
           ...this.operation(),
           toolCalls: this.#toolCalls()?.map((call) => ({call}))
