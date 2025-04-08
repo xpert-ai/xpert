@@ -308,7 +308,7 @@ if __name__ == "__main__":
       return {
         ...state,
         headers: {
-          ...omit(state.headers, origin),
+          ...state.headers,
           [name]: value
         }
       }
@@ -375,7 +375,7 @@ if __name__ == "__main__":
       return {
         ...state,
         env: {
-          ...omit(state.env, origin),
+          ...state.env,
           [name]: value
         }
       }

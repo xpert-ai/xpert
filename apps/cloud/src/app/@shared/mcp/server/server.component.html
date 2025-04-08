@@ -91,15 +91,15 @@
         <div class="col-span-2">{{'PAC.MCP.Value' | translate: {Default: 'Value'} }}</div>
         @for (row of headers() | entries; track row[0]) {
           <div class="col-span-1">
-            <input #input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+            <input #input1 class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
               [ngModel]="row[0]"
-              (blur)="updateHeaderName(row[0], input.value)"
+              (blur)="updateHeaderName(row[0], input1.value)"
             />
           </div>
           <div class="col-span-2 flex items-center gap-1">
-            <input #input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+            <input #input2 class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
               [ngModel]="row[1]"
-              (blur)="updateHeaderValue(row[0], input.value)"
+              (blur)="updateHeaderValue(row[0], input2.value)"
             />
             <div class="w-7 h-7 btn flex justify-center items-center rounded-lg cursor-pointer hover:bg-hover-bg select-none danger
               pressable"
@@ -172,15 +172,15 @@
           <div class="col-span-2">{{'PAC.MCP.Value' | translate: {Default: 'Value'} }}</div>
           @for (row of env() | entries; track row[0]) {
             <div class="col-span-1">
-              <input #input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+              <input #input1 class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
                 [ngModel]="row[0]"
-                (blur)="updateEnvName(row[0], input.value)"
+                (blur)="updateEnvName(row[0], input1.value)"
               />
             </div>
             <div class="col-span-2 flex items-center gap-1">
-              <input #input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+              <input #input2 class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
                 [ngModel]="row[1]"
-                (blur)="updateEnvValue(row[0], input.value)"
+                (blur)="updateEnvValue(row[0], input2.value)"
               />
               <div class="w-7 h-7 btn flex justify-center items-center rounded-lg cursor-pointer hover:bg-hover-bg select-none danger
                 pressable"
