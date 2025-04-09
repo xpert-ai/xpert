@@ -18,7 +18,7 @@ export class ChatBIToolset extends AbstractChatBIToolset {
 	async initTools() {
 		await super.initTools()
 
-		const tools = this.toolset.tools.filter((_) => _.enabled)
+		const tools = this.toolset.tools.filter((_) => !(_.disabled ?? !_.enabled))
 
 		if (tools.find((_) => _.name === ChatBIToolsEnum.SHOW_INDICATORS)) {
 			this.tools.push(

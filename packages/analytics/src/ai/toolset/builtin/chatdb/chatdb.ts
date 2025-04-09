@@ -13,8 +13,7 @@ export class ChatDBToolset extends BuiltinToolset {
 		super(ChatDBToolset.provider, toolset, params)
 
 		if (toolset) {
-			this.tools = toolset.tools
-				.filter((tool) => tool.enabled)
+			this.tools = toolset.tools.filter((_) => !(_.disabled ?? !_.enabled))
 				.map((tool) => {
 					// Provide specific tool name to tool class
 					const DynamicCommandTool = class extends ChatDBCommandTool {
