@@ -15,7 +15,6 @@ import {
   injectToastr,
   OrderTypeEnum,
   TEnvironmentVariable,
-  TSelectOption
 } from '@cloud/app/@core'
 import { linkedModel } from '@metad/core'
 import { injectConfirmUnique, NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -113,7 +112,7 @@ export class XpertEnvironmentManageComponent {
     effect(
       () => {
         if (!this.environment() && this.environments()?.length) {
-          this.environment.set(this.environments().find((_) => _.isDefault))
+          this.environmentId.set(this.environments().find((_) => _.isDefault)?.id)
         }
       },
       { allowSignalWrites: true }
