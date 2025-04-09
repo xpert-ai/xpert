@@ -1,6 +1,7 @@
 {
   "name": "@metad/contracts",
   "version": "3.1.7",
+  "license": "AGPL-3.0",
   "scripts": {
     "docs": "yarn typedoc --out ./.docs"
   }

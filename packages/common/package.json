@@ -2,6 +2,7 @@
   "name": "@metad/server-common",
   "version": "3.1.7",
   "type": "commonjs",
+  "license": "AGPL-3.0",
   "dependencies": {
     "@nestjs/typeorm": "^8.0.3",
     "short-unique-id": "^4.4.4",
