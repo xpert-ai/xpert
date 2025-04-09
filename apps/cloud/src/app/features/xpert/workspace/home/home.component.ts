@@ -7,7 +7,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   ElementRef,
   inject,
   model,
@@ -25,8 +24,8 @@ import {
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
-import { BehaviorSubject, EMPTY } from 'rxjs'
-import { debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
+import { BehaviorSubject } from 'rxjs'
+import { debounceTime, map, startWith, tap } from 'rxjs/operators'
 import {
   getErrorMessage,
   injectTags,

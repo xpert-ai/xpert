@@ -130,8 +130,10 @@ export class XpertWorkspaceXpertsComponent {
         }
       })
       .closed.subscribe((xpert) => {
-        if (xpert) {
-          this.router.navigate(['/xpert/', xpert.id])
+        if (xpert?.type === XpertTypeEnum.Agent) {
+          this.router.navigate(['/xpert/', xpert.id, 'agents'])
+        } else if (xpert?.type === XpertTypeEnum.Copilot) {
+          this.router.navigate(['/xpert/', xpert.id, 'copilot'])
         }
       })
   }
