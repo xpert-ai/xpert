@@ -29,6 +29,8 @@ export type TAgentRunnableConfigurable = {
   // Caller
   agentKey: string
   subscriber: Subscriber<any>
+
+  signal?: AbortSignal
 }
 
 export enum ApiAuthType {

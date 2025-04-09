@@ -1,4 +1,7 @@
+import debug from 'debug'
 import { Exception } from './xmla/types'
+
+export const log = debug('ocap:xmla')
 
 /**
  * Get error message text tentatively

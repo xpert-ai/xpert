@@ -1,0 +1,34 @@
+identity:
+  pro: true
+  author: Xpert AI
+  name: chatbi-wecom
+  label:
+    en_US: ChatBI for WeCom
+    zh_Hans: 与企业微信对话 BI
+  description:
+    en_US: Chat with BI on WeCom
+    zh_Hans: 与企业微信进行对话式 BI
+  icon: icon.jpg
+  tags:
+    - analysis
+credentials_for_provider:
+  models:
+    type: remote-select
+    required: true
+    label:
+      en_US: Chat Models
+      zh_Hans: 对话模型
+    placeholder:
+      en_US: Please select your chat models
+      zh_Hans: 请选择你的对话模型
+    selectUrl: /api/chatbi-model/model-select-options
+    url: /settings/chatbi/models
+    multi: true
+  dataPermission:
+    type: boolean
+    label:
+      en_US: Data Permission
+      zh_Hans: 数据权限
+    placeholder:
+      en_US: Enable data access permission for AI models
+      zh_Hans: 启用 AI 模型的数据访问权限

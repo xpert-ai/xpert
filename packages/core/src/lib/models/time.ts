@@ -209,7 +209,7 @@ export function formatRangeCurrentPeriod(current: Date, range: TimeRange) {
 export function calcStartEndRange(current: Date, range: TimeRange) {
   return [
     reformat(current, range.start, range.granularity, range.formatter),
-    reformat(current, range.end, range.granularity, range.formatter),
+    range.end ? reformat(current, range.end, range.granularity, range.formatter) : null,
   ]
 }
 
@@ -277,7 +277,7 @@ export function workOutTimeRangeSlicers(
         formatter: targetFormatter
       })
 
-    if (results[0] === results[1]) {
+    if (!results[1] || results[0] === results[1]) {
       return {
         dimension: timeSlicer.dimension,
         members: [

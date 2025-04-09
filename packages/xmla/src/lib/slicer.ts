@@ -45,6 +45,7 @@ import {
   TopSum
 } from './functions'
 import { EngineAxis, MDXDialect, wrapHierarchyValue } from './types/index'
+import { log } from './utils'
 
 /**
  * dimensions:
@@ -228,7 +229,10 @@ export function generateSlicersStatement(slicers: Array<MDXHierarchyFilter>, cub
 
   const statement = Object.keys(dimSlicerFilters)
     .map((dimension) => {
+      log(`generateSlicersStatement: `)
+      log(`slicers: `, dimSlicerFilters[dimension])
       const slicerStatements = dimSlicerFilters[dimension].map((item) => mapMDXFilterToStatement(item, cube, withMembers, dialect))
+      log(`slicerStatements: `, slicerStatements)
       // 先简单去重
       return uniq(slicerStatements).join(',')
     })

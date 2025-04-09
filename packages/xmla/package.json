@@ -9,6 +9,7 @@
   "typings": "./src/index.d.ts",
   "peerDependencies": {
     "@metad/ocap-core": "^2.7.0",
+    "debug": "^4.4.0",
     "xmldom": "^0.6.0"
   }
 }
