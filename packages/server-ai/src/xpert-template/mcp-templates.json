@@ -17,10 +17,15 @@
                 "author": "microsoft",
                 "id": "playwright-mcp",
                 "category": "Browser",
+                "type": "stdio",
                 "icon": "https://avatars.githubusercontent.com/u/6154722?v=4",
                 "explore": "https://mcp.so/server/playwright-mcp/microsoft",
                 "copyright": null,
                 "privacyPolicy": null,
+                "tags": [
+                    "browser",
+                    "productivity"
+                ],
                 "server": {
                     "type": "stdio",
                     "command": "npx",
@@ -29,6 +34,112 @@
                         "@playwright/mcp@latest",
                         "--headless"
                     ]
+                }
+            },
+            {
+                "name": "Baidu Map",
+                "title": "Baidu Map",
+                "description": "Baidu Maps' core API is now fully compatible with the MCP protocol, making it the first map service provider in China to be compatible with the MCP protocol.",
+                "author": "baidu-maps",
+                "id": "baidu-maps-mcp",
+                "category": "Browser",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/2o0lb5g7r-1742872465843.png",
+                "explore": "https://mcp.so/server/baidu-map/baidu-maps",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "map",
+                    "productivity"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@baidumap/mcp-server-baidu-map",
+                        "--headless"
+                    ],
+                    "env": {
+                        "BAIDU_MAP_API_KEY": "xxxxxxxxxx"
+                    }
+                }
+            },
+            {
+                "name": "Fetch",
+                "title": "Fetch",
+                "description": "Web content fetching and conversion for efficient LLM usage.",
+                "author": "modelcontextprotocol",
+                "id": "fetch-mcp",
+                "category": "Utils",
+                "type": "sse",
+                "icon": "https://r2.trys.ai/imgs/35rqzgsie-1733449087570.png",
+                "explore": "https://mcp.so/server/fetch/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities",
+                    "productivity"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "uvx",
+                    "args": [
+                        "-i",
+                        "https://pypi.tuna.tsinghua.edu.cn/simple",
+                        "mcp-server-fetch"
+                    ]
+                }
+            },
+            {
+                "name": "Time Server",
+                "title": "Time MCP Server",
+                "description": "A Model Context Protocol server that provides time and timezone conversion capabilities. This server enables LLMs to get current time information and perform timezone conversions using IANA timezone names, with automatic system timezone detection.",
+                "author": "modelcontextprotocol",
+                "id": "mcp-server-time",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/1htutybr5-1742188467049.png",
+                "explore": "https://mcp.so/server/time/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "uvx",
+                    "args": [
+                        "mcp-server-time"
+                    ]
+                }
+            },
+            {
+                "name": "Slack Server",
+                "title": "Slack MCP Server",
+                "description": "Channel management and messaging capabilities.",
+                "author": "modelcontextprotocol",
+                "id": "mcp-slack-server",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/3e6b71g5l-1733450233614.png",
+                "explore": "https://mcp.so/server/slack/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@modelcontextprotocol/server-slack"
+                    ],
+                    "env": {
+                        "SLACK_BOT_TOKEN": "your-bot-token",
+                        "SLACK_TEAM_ID": "T01234567"
+                    }
                 }
             }
         ]
@@ -44,7 +155,140 @@
             "Analysis"
         ],
         "templates": [
-            
+            {
+                "name": "Playwright Mcp",
+                "title": "Playwright Mcp",
+                "description": "Playwright MCP is a Model Context Protocol server that provides browser automation capabilities using Playwright. It allows large language models (LLMs) to interact with web pages through structured accessibility snapshots, eliminating the need for screenshots or visually-tuned models.",
+                "author": "microsoft",
+                "id": "playwright-mcp",
+                "category": "Browser",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/6154722?v=4",
+                "explore": "https://mcp.so/server/playwright-mcp/microsoft",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "browser",
+                    "productivity"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@playwright/mcp@latest",
+                        "--headless"
+                    ]
+                }
+            },
+            {
+                "name": "Baidu Map",
+                "title": "百度地图",
+                "description": "百度地图核心API现已全面兼容MCP协议，是国内首家兼容MCP协议的地图服务商。",
+                "author": "baidu-maps",
+                "id": "baidu-maps-mcp",
+                "category": "Browser",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/2o0lb5g7r-1742872465843.png",
+                "explore": "https://mcp.so/server/baidu-map/baidu-maps",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "map",
+                    "productivity"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@baidumap/mcp-server-baidu-map",
+                        "--headless"
+                    ],
+                    "env": {
+                        "BAIDU_MAP_API_KEY": "xxxxxxxxxx"
+                    }
+                }
+            },
+            {
+                "name": "Fetch",
+                "title": "Fetch",
+                "description": "Web content fetching and conversion for efficient LLM usage.",
+                "author": "modelcontextprotocol",
+                "id": "fetch-mcp",
+                "category": "Utils",
+                "type": "sse",
+                "icon": "https://r2.trys.ai/imgs/35rqzgsie-1733449087570.png",
+                "explore": "https://mcp.so/server/fetch/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities",
+                    "productivity"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "uvx",
+                    "args": [
+                        "-i",
+                        "https://pypi.tuna.tsinghua.edu.cn/simple",
+                        "mcp-server-fetch"
+                    ]
+                }
+            },
+            {
+                "name": "Time Server",
+                "title": "时间服务器",
+                "description": "提供时间和时区转换功能的模型上下文协议 (MLM) 服务器。该服务器使 LLM 能够获取当前时间信息，并使用 IANA 时区名称执行时区转换，并自动检测系统时区。",
+                "author": "modelcontextprotocol",
+                "id": "mcp-server-time",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/1htutybr5-1742188467049.png",
+                "explore": "https://mcp.so/server/time/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "uvx",
+                    "args": [
+                        "-i",
+                        "https://pypi.tuna.tsinghua.edu.cn/simple",
+                        "mcp-server-time"
+                    ]
+                }
+            },
+            {
+                "name": "Slack Server",
+                "title": "Slack MCP 服务器",
+                "description": "频道管理和消息传递功能。",
+                "author": "modelcontextprotocol",
+                "id": "mcp-slack-server",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/3e6b71g5l-1733450233614.png",
+                "explore": "https://mcp.so/server/slack/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@modelcontextprotocol/server-slack"
+                    ],
+                    "env": {
+                        "SLACK_BOT_TOKEN": "your-bot-token",
+                        "SLACK_TEAM_ID": "T01234567"
+                    }
+                }
+            }
         ]
     }
 }
