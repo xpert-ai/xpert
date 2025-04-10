@@ -288,6 +288,85 @@
                         "SLACK_TEAM_ID": "T01234567"
                     }
                 }
+            },
+            {
+                "name": "Memory",
+                "title": "记忆服务器",
+                "description": "存储和管理系统运行过程中产生的数据或状态信息，以便在需要时快速访问和恢复。",
+                "author": "modelcontextprotocol",
+                "id": "mcp-server-memory",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/25bfnwb0l-1733449927671.png",
+                "explore": "https://mcp.so/server/memory",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "prompt": "Follow these steps for each interaction:\n\n                1. User Identification:\n                   - You should assume that you are interacting with default_user\n                   - If you have not identified default_user, proactively try to do so.\n                \n                2. Memory Retrieval:\n                   - Always begin your chat by saying only \"Remembering...\" and retrieve all relevant information from your knowledge graph\n                   - Always refer to your knowledge graph as your \"memory\"\n                \n                3. Memory\n                   - While conversing with the user, be attentive to any new information that falls into these categories:\n                     a) Basic Identity (age, gender, location, job title, education level, etc.)\n                     b) Behaviors (interests, habits, etc.)\n                     c) Preferences (communication style, preferred language, etc.)\n                     d) Goals (goals, targets, aspirations, etc.)\n                     e) Relationships (personal and professional relationships up to 3 degrees of separation)\n                \n                4. Memory Update:\n                   - If any new information was gathered during the interaction, update your memory as follows:\n                     a) Create entities for recurring organizations, people, and significant events\n                     b) Connect them to the current entities using relations\n                     c) Store facts about them as observations",
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@modelcontextprotocol/server-memory"
+                    ]
+                }
+            },
+            {
+                "name": "GitHub",
+                "title": "GitHub",
+                "description": "用于 GitHub API，支持文件操作、代码仓库管理、搜索功能等多种功能。",
+                "author": "modelcontextprotocol",
+                "id": "mcp-github-server",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/206yyoqjn-1733449547133.png",
+                "explore": "https://mcp.so/server/github/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                    "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@modelcontextprotocol/server-github"
+                    ],
+                    "env": {
+                        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_TOKEN>"
+                    }
+                }
+            },
+            {
+                "name": "Firecrawl",
+                "title": "Firecrawl",
+                "description": "提供强大的网页抓取和数据提取功能",
+                "author": "mendableai",
+                "id": "firecrawl-mcp",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/135057108?v=4",
+                "explore": "https://mcp.so/server/firecrawl-mcp-server/mendableai",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                    "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "firecrawl-mcp"
+                    ],
+                    "env": {
+                        "FIRECRAWL_API_KEY": "<YOUR-API-KEY>"
+                    }
+                }
             }
         ]
     }
