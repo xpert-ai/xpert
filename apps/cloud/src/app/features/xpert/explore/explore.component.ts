@@ -12,7 +12,7 @@ import { NgmCommonModule, NgmHighlightDirective } from '@metad/ocap-angular/comm
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { debounceTime, tap } from 'rxjs'
-import { IXpertTemplate, XpertTemplateService, XpertTypeEnum } from '../../../@core'
+import { TXpertTemplate, XpertTemplateService, XpertTypeEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { XpertInstallComponent } from './install/install.component'
 
@@ -82,7 +82,7 @@ export class XpertExploreComponent {
     })
   }
 
-  install(app: IXpertTemplate) {
+  install(app: TXpertTemplate) {
     this.#dialog
       .open(XpertInstallComponent, {
         data: app

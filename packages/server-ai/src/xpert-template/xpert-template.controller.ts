@@ -1,10 +1,11 @@
 import { LanguagesEnum, LanguagesMap } from '@metad/contracts'
-import { TransformInterceptor } from '@metad/server-core'
-import { Controller, Get, Logger, Param, UseInterceptors } from '@nestjs/common'
+import { PaginationParams, ParseJsonPipe, TransformInterceptor } from '@metad/server-core'
+import { Controller, Get, Logger, Param, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { I18nLang } from 'nestjs-i18n'
 import { XpertTemplateService } from './xpert-template.service'
+import { XpertTemplate } from './xpert-template.entity'
 
 @ApiTags('XpertTemplate')
 @ApiBearerAuth()
@@ -24,13 +25,13 @@ export class XpertTemplateController {
 	}
 
 	@Get('mcps')
-	async getMCPTemplates(@I18nLang() language: LanguagesEnum) {
-		return await this.service.getMCPTemplates(LanguagesMap[language] ?? language)
+	async getMCPTemplates(@I18nLang() language: LanguagesEnum, @Query('data', ParseJsonPipe) paginationParams: PaginationParams<XpertTemplate>) {
+		return await this.service.getMCPTemplates(LanguagesMap[language] ?? language, paginationParams)
 	}
 
-	@Get('mcps/:id')
-	async getMCPTemplate(@I18nLang() language: LanguagesEnum, @Param('id') id: string) {
-		return await this.service.getTemplateDetail(id, LanguagesMap[language] ?? language)
+	@Get('mcps/:key')
+	async getMCPTemplate(@I18nLang() language: LanguagesEnum, @Param('key') key: string) {
+		return await this.service.getMCPTemplate(LanguagesMap[language] ?? language, key)
 	}
 
 	@Get(':id')

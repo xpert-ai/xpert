@@ -56,7 +56,7 @@
                 fill="currentColor"></path>
             </svg>
             <div class="text-xs font-semibold uppercase h-6 rounded-tr-xl bg-gray-50 pr-2 leading-6 text-text-tertiary"
-            >Tool</div>
+            >{{template.type || 'Tool'}}</div>
           </div>
           <div class="flex">
             <div class="relative shrink-0 rounded-2xl bg-contain bg-center bg-no-repeat overflow-hidden w-10 h-10"
@@ -85,21 +85,23 @@
                   <path
                       d="M9 2V4H5L4.999 14H18.999L19 4H15V2H20C20.5523 2 21 2.44772 21 3V21C21 21.5523 20.5523 22 20 22H4C3.44772 22 3 21.5523 3 21V3C3 2.44772 3.44772 2 4 2H9ZM18.999 16H4.999L5 20H19L18.999 16ZM17 17V19H15V17H17ZM13 2V7H16L12 11L8 7H11V2H13Z"></path>
                 </svg>
-                <div class="system-xs-regular">0</div>
+                <div class="system-xs-regular">{{template.visitCount | number}}</div>
               </div>
               <div class="system-xs-regular mx-2 text-text-quaternary">·</div>
               <div class="flex flex-wrap space-x-2 overflow-hidden">
-                <div class="system-xs-regular flex max-w-[120px] space-x-1 overflow-hidden"
-                  title="# Search">
-                  <span class="text-text-quaternary">#</span>
-                  <span class="truncate text-text-tertiary">Tags</span>
-                </div>
+                @for (tag of template.tags; track tag) {
+                  <div class="system-xs-regular flex max-w-[120px] space-x-1 overflow-hidden"
+                    [title]="'# ' + tag">
+                    <span class="text-text-quaternary">#</span>
+                    <span class="truncate text-text-tertiary">{{tag | capitalize}}</span>
+                  </div>
+                }
               </div>
             </div>
           </div>
       </div>
-      <div
-          class="absolute bottom-0 hidden w-full items-center space-x-2 rounded-b-xl bg-gradient-to-tr from-components-panel-on-panel-item-bg to-background-gradient-mask-transparent px-4 pb-4 pt-8 
+      <div class="absolute bottom-0 hidden w-full items-center space-x-2 rounded-b-xl 
+        bg-gradient-to-tr from-white to-white/0 px-4 pb-4 pt-8 
             group-hover:flex">
           <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium w-[calc(50%-4px)]"
             (click)="install(template)"
@@ -120,3 +122,14 @@
     </div>
   }
 </div>
+
+@if (inline()) {
+  <div class="w-full flex justify-center cursor-pointer text-text-secondary hover:text-text-primary hover:underline"
+    [routerLink]="['/xpert/w/', workspaceId(), 'mcp']">
+    {{ 'PAC.MCP.MoreMCPTools' | translate: {Default: 'More MCP Tools'} }}...
+  </div>
+}
+
+@if (loading()) {
+  <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+}

@@ -12,7 +12,7 @@ import {
   getErrorMessage,
   ICopilotModel,
   injectToastr,
-  IXpertTemplate,
+  TXpertTemplate,
   TAvatar,
   TXpertTeamDraft,
   XpertService,
@@ -43,7 +43,7 @@ import { map, switchMap } from 'rxjs/operators'
   providers: []
 })
 export class XpertInstallComponent {
-  readonly #data = inject<IXpertTemplate>(DIALOG_DATA)
+  readonly #data = inject<TXpertTemplate>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef)
   readonly workspaceService = inject(XpertWorkspaceService)
   readonly templateService = inject(XpertTemplateService)

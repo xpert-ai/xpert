@@ -2623,7 +2623,8 @@
       "Reconnect": "重新连接",
       "ReconnectMaxAttempts": "最大尝试连接次数",
       "ReconnectDelayMs": "重启尝试之间的延迟（以毫秒为单位）",
-      "ToolNamePrefix": "工具名前缀"
+      "ToolNamePrefix": "工具名前缀",
+      "MoreMCPTools": "更多 MCP 工具"
     },
     "title": {
       "short": "Xpert AI"

@@ -1,8 +1,16 @@
-import { TAvatar } from '../types'
+import { IBasePerTenantEntityModel } from '../base-entity.model'
 import { MCPServerType, TMCPServer } from './xpert-tool-mcp.model'
 import { XpertTypeEnum } from './xpert.model'
+import { TAvatar } from '../types'
 
-export interface IXpertTemplate {
+export interface IXpertTemplate extends IBasePerTenantEntityModel {
+  key: string
+  name?: string
+  visitCount: number
+  lastVisitedAt?: Date
+}
+
+export type TXpertTemplate = {
   id: string
   name: string
   title: string
@@ -16,6 +24,7 @@ export interface IXpertTemplate {
 }
 
 export interface IXpertMCPTemplate {
+  type: MCPServerType
   name: string
   title: string
   description: string
@@ -28,5 +37,7 @@ export interface IXpertMCPTemplate {
   explore: string
   copyright: string | null
   privacyPolicy?: string | null
+  tags?: string[]
+  visitCount?: number
   server: TMCPServer
 }
