@@ -8,7 +8,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { effectAction, OCAP_AGENT_TOKEN, provideOcapCore } from '@metad/ocap-angular/core'
+import { effectAction, provideOcapCore } from '@metad/ocap-angular/core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { provideMarkdown } from 'ngx-markdown'
@@ -23,6 +23,8 @@ import { MatInputModule } from '@angular/material/input'
 import { XpertHomeService } from '../home.service'
 import { XpertOcapService } from '../ocap.service'
 import { groupConversations } from '../types'
+import { provideOcap } from '@cloud/app/@core/providers/ocap'
+import { provideECharts } from '@cloud/app/@core/providers/echarts'
 
 @Component({
   standalone: true,
@@ -52,18 +54,16 @@ import { groupConversations } from '../types'
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
-    ServerSocketAgent,
-    {
-      provide: OCAP_AGENT_TOKEN,
-      useExisting: ServerSocketAgent,
-      multi: true
-    },
     provideMarkdown({}),
     provideOcapCore(),
     XpertHomeService,
     ChatAppService,
     { provide: ChatService, useExisting: ChatAppService },
-    XpertOcapService
+    XpertOcapService,
+    provideOcap(),
+    provideECharts({
+      echarts: () => import('echarts')
+    })
   ]
 })
 export class ChatHomeComponent {

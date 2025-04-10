@@ -17,7 +17,7 @@ export class HierarchyAttributesSchema extends HierarchySchemaService {
         const dimensionModeling = DimensionModeling(
           SCHEMA,
           this.getTranslationFun(),
-          this.hierarchyOptions$,
+          this.hierarchies$,
           this.fields$,
           this.otherDimensions()
         )

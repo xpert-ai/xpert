@@ -25,16 +25,16 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
   readonly hierarchies$ = this.select((state) => state.hierarchies)
   readonly hierarchy$ = this.select((state) => state.modeling?.hierarchy)
 
-  readonly hierarchyOptions$ = combineLatest([this.dimensionName$, this.hierarchies$]).pipe(
-    map(
-      ([dimensionName, hierarchies]) =>
-        hierarchies?.map((hierarchy) => ({
-          key: serializeUniqueName(dimensionName, hierarchy.name),
-          value: serializeUniqueName(dimensionName, hierarchy.name),
-          caption: hierarchy.caption
-        })) ?? []
-    )
-  )
+  // readonly hierarchyOptions$ = combineLatest([this.dimensionName$, this.hierarchies$]).pipe(
+  //   map(
+  //     ([dimensionName, hierarchies]) =>
+  //       hierarchies?.map((hierarchy) => ({
+  //         key: serializeUniqueName(dimensionName, hierarchy.name),
+  //         value: serializeUniqueName(dimensionName, hierarchy.name),
+  //         caption: hierarchy.caption
+  //       })) ?? []
+  //   )
+  // )
 
   readonly otherHierarchies = toSignal(
     this.select((state) => state.hierarchies?.filter((item) => item.__id__ !== state.modeling?.hierarchy?.__id__))
@@ -92,7 +92,7 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
         const dimensionModeling = DimensionModeling(
           SCHEMA,
           this.getTranslationFun(),
-          this.hierarchyOptions$,
+          this.hierarchies$,
           this.fields$,
           this.otherDimensions()
         )
