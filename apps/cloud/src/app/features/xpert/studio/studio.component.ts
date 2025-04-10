@@ -15,7 +15,6 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { IPoint, IRect, PointExtensions } from '@foblex/2d'
@@ -73,6 +72,7 @@ import { XpertExecutionService } from './services/execution.service'
 import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { XpertStudioFeaturesComponent } from './features/features.component'
+import { XpertComponent } from '../xpert'
 
 
 @Component({
@@ -128,13 +128,13 @@ export class XpertStudioComponent {
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
   readonly logger = inject(NGXLogger)
-  readonly #dialog = inject(MatDialog)
   readonly #toastr = inject(ToastrService)
   readonly workspaceService = inject(XpertWorkspaceService)
   readonly xpertRoleService = inject(XpertService)
   readonly apiService = inject(XpertStudioApiService)
   readonly selectionService = inject(SelectionService)
   readonly executionService = inject(XpertExecutionService)
+  readonly xpertComponent = inject(XpertComponent)
   readonly #cdr = inject(ChangeDetectorRef)
 
   readonly fFlowComponent = viewChild(FFlowComponent)
@@ -241,7 +241,9 @@ export class XpertStudioComponent {
 
   constructor() {
     effect(() => {
-      // console.log('Agent Executions:', this.executions())
+      if (this.xpertComponent.xpert()) {
+        this.apiService.refresh()
+      }
     })
   }
 

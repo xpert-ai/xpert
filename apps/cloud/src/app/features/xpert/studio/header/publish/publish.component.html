@@ -69,6 +69,15 @@
     }
   </ul>
 
+  @if (environments()?.length) {
+    <div class="text-text-secondary mt-2">{{ 'PAC.Environment.Environment' | translate: {Default: 'Environment'} }}</div>
+    <div class="flex items-center gap-2">
+      <div>{{ 'PAC.Xpert.PublishBinding' | translate: {Default: 'Publish binding'} }}</div>
+      <ngm-select class="w-36" [placeholder]="'PAC.Xpert.SelectAEnv' | translate: {Default: 'Select a environment'}"
+        [selectOptions]="environments()" [(ngModel)]="environmentId"/>
+    </div>
+  }
+
   @if (loading()) {
     <ngm-spin class="absolute top-0 left-0 w-full h-full" />
   }

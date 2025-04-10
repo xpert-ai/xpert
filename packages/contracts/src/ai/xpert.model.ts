@@ -111,7 +111,8 @@ export type TXpert = {
  * Digital Expert
  */
 export interface IXpert extends IBasePerWorkspaceEntityModel, TXpert {
-  
+  environmentId?: string
+	environment?: IEnvironment
 }
 
 export type TXpertOptions = {

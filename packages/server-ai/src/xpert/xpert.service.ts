@@ -201,8 +201,8 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 		return xpert.draft
 	}
 
-	async publish(id: string, newVersion: boolean, notes: string) {
-		return await this.commandBus.execute(new XpertPublishCommand(id, newVersion, notes))
+	async publish(id: string, newVersion: boolean, environmentId: string, notes: string) {
+		return await this.commandBus.execute(new XpertPublishCommand(id, newVersion, environmentId, notes))
 	}
 
 	async allVersions(id: string) {

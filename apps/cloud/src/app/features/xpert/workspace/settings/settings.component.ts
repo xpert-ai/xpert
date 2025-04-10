@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, model, signal } from '@angular/core';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { IfAnimation, XpertWorkspaceService } from 'apps/cloud/src/app/@core';
 import { derivedAsync } from 'ngxtension/derived-async';
 import { XpertWorkspaceMembersComponent } from './members/members.component';
@@ -9,6 +8,7 @@ import { FormsModule } from '@angular/forms';
 import { XpertWorkspaceModelsComponent } from './models/models.component';
 import { TranslateModule } from '@ngx-translate/core';
 import { XpertWorkspaceSettingsGeneralComponent } from './general/general.component';
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 
 @Component({
   selector: 'xpert-workspace-settings',
@@ -23,8 +23,8 @@ import { XpertWorkspaceSettingsGeneralComponent } from './general/general.compon
 export class XpertWorkspaceSettingsComponent {
   readonly workspaceService = inject(XpertWorkspaceService)
 
-  readonly #data = inject<{id: string;}>(MAT_DIALOG_DATA)
-  readonly #dialogRef = inject(MatDialogRef)
+  readonly #data = inject<{id: string;}>(DIALOG_DATA)
+  readonly #dialogRef = inject(DialogRef)
 
   readonly workspaceId = signal(this.#data.id)
 

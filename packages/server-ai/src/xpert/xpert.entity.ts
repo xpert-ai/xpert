@@ -1,6 +1,7 @@
 import {
 	AiBusinessRole,
 	ICopilotModel,
+	IEnvironment,
 	IIntegration,
 	IKnowledgebase,
 	ITag,
@@ -24,7 +25,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
 import { WorkspaceBaseEntity } from '../core/entities/base.entity'
-import { CopilotModel, Knowledgebase, XpertAgent, XpertToolset } from '../core/entities/internal'
+import { CopilotModel, Environment, Knowledgebase, XpertAgent, XpertToolset } from '../core/entities/internal'
 
 
 @Entity('xpert')
@@ -148,12 +149,24 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 	@Column({ type: 'json', nullable: true })
 	app?: TChatApp
 
+	/*
+    |--------------------------------------------------------------------------
+    | @ManyToOne
+    |--------------------------------------------------------------------------
+    */
 	@Column({ nullable: true })
 	userId?: string
 
 	@ManyToOne(() => User, { nullable: true })
 	@JoinColumn()
 	user?: User
+
+	@Column({ nullable: true })
+	environmentId?: string
+
+	@ManyToOne(() => Environment, { nullable: true })
+	@JoinColumn()
+	environment?: IEnvironment
 
 	/*
     |--------------------------------------------------------------------------

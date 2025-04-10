@@ -53,7 +53,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 						zh_Hans: '环境变量'
 					}
 				  },
-				variables: environment.variables.map((_) => ({
+				variables: environment.variables?.filter((_) => _.name).map((_) => ({
 					name: _.name,
 					type: _.type === 'secret' ? XpertParameterTypeEnum.SECRET : XpertParameterTypeEnum.STRING,
 					description: {

@@ -204,9 +204,9 @@ export class XpertController extends CrudController<Xpert> {
 	async publish(
 		@Param('id') id: string, 
 		@Query('newVersion') newVersion: string,
-		@Body() body: {releaseNotes: string}
+		@Body() body: {environmentId: string; releaseNotes: string}
 	) {
-		return this.service.publish(id, newVersion === 'true', body.releaseNotes)
+		return this.service.publish(id, newVersion === 'true', body.environmentId, body.releaseNotes)
 	}
 
 	@UseGuards(XpertGuard)

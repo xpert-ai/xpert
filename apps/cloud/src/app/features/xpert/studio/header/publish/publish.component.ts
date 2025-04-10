@@ -5,13 +5,13 @@ import { ChangeDetectionStrategy, Component, computed, inject, model, signal } f
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { IXpert } from '@metad/contracts'
 import { nonBlank, SlideUpAnimation } from '@metad/core'
 import { injectConfirm, injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { getErrorMessage, ToastrService, XpertService } from 'apps/cloud/src/app/@core'
+import { getErrorMessage, IXpert, ToastrService, TSelectOption, XpertService } from '@cloud/app/@core'
 import { Observable, of, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
+import { NgmSelectComponent } from '@cloud/app/@shared/common'
 
 @Component({
   standalone: true,
@@ -23,7 +23,8 @@ import { XpertStudioApiService } from '../../domain'
     TranslateModule,
     MatSlideToggleModule,
     MatTooltipModule,
-    NgmSpinComponent
+    NgmSpinComponent,
+    NgmSelectComponent
   ],
   selector: 'xpert-publish',
   templateUrl: './publish.component.html',
@@ -58,6 +59,17 @@ export class XpertPublishVersionComponent {
     }
     return null
   })
+
+  readonly environments = computed(() => {
+    return this.studioService.environments()?.map((env) => {
+      return {
+        value: env.id,
+        label: env.name
+      } as TSelectOption
+    })
+  })
+
+  readonly environmentId = model<string>(this.xpert().environmentId)
 
   readonly loading = signal(false)
 
@@ -114,7 +126,8 @@ export class XpertPublishVersionComponent {
     this.loading.set(true)
     // Check if the draft has been saved
     const obser: Observable<any> = this.studioService.unsaved() ? this.studioService.saveDraft() : of(true)
-    obser.pipe(switchMap(() => this.xpertService.publish(this.xpert().id, this.newVersion(), {releaseNotes: this.releaseNotes()}))).subscribe({
+    obser.pipe(switchMap(() => this.xpertService.publish(this.xpert().id, this.newVersion(), {
+      environmentId: this.environmentId(), releaseNotes: this.releaseNotes()}))).subscribe({
       next: (result) => {
         this.#toastr.success(
           `PAC.Xpert.PublishedSuccessfully`,

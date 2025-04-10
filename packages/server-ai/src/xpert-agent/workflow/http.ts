@@ -5,7 +5,7 @@ import { ApiAuthType, channelName, IWFNHttp, TXpertGraph, TXpertTeamNode } from 
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus } from '@nestjs/cqrs'
 import axios from 'axios'
-import https from 'https'
+import * as https from 'https'
 import { AgentStateAnnotation } from '../commands/handlers/types'
 import { XpertConfigException } from '../../core'
 
@@ -26,8 +26,6 @@ export function createHttpNode(
 	return {
 		workflowNode: {
 			graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
-				console.log(entity)
-
 				if (!entity.url) {
 					throw new XpertConfigException(`Url of http node '${node.key}' is empty!`)
 				}
@@ -35,17 +33,20 @@ export function createHttpNode(
 
 				const params = {}
 				if (entity.params) {
-				for await (const param of entity.params)
-				  if (param.key) {
-					const key = await PromptTemplate.fromTemplate(param.key, {templateFormat: 'mustache'}).format(state)
-					params[key] = await PromptTemplate.fromTemplate(param.value, {templateFormat: 'mustache'}).format(state)
-				  }
+					for await (const param of entity.params) {
+						if (param.key) {
+							const key = await PromptTemplate.fromTemplate(param.key, {templateFormat: 'mustache'}).format(state)
+							params[key] = await PromptTemplate.fromTemplate(param.value, {templateFormat: 'mustache'}).format(state)
+						}
+					}
 				}
 				const headers: Record<string, string> = {}
-				for await (const header of entity.headers) {
-					if (header.name) {
-					  const name = await PromptTemplate.fromTemplate(header.name, {templateFormat: 'mustache'}).format(state)
-					  headers[name] = await PromptTemplate.fromTemplate(header.value, {templateFormat: 'mustache'}).format(state)
+				if (entity.headers) {
+					for await (const header of entity.headers) {
+						if (header.name) {
+						const name = await PromptTemplate.fromTemplate(header.name, {templateFormat: 'mustache'}).format(state)
+						headers[name] = await PromptTemplate.fromTemplate(header.value, {templateFormat: 'mustache'}).format(state)
+						}
 					}
 				}
 				if (entity.authorization?.auth_type === ApiAuthType.BASIC) {
@@ -134,7 +135,8 @@ export function createHttpNode(
 									}
 								}
 							}
-							throw err
+							console.error(err)
+							throw new Error(getErrorMessage(err))
 						}
 						
 						await new Promise(resolve => setTimeout(resolve, (entity.retry?.retryInterval ?? 1) * 1000))

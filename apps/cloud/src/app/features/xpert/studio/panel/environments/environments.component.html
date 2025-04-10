@@ -1,6 +1,7 @@
 <div class="shrink-0 flex items-center justify-between p-4 pb-0">
   <div class="text-text-primary system-xl-semibold">
-    {{'PAC.Xpert.Env' | translate: {Default: 'Env'} }}</div>
+    {{ 'PAC.Environment.Environment' | translate: {Default: 'Environment'} }}
+  </div>
 
   <div class="flex items-center gap-2 text-text-secondary">
     <button class="group inline-flex h-8 w-full items-center justify-center rounded-[10px] px-2 text-base font-semibold" type="button" 
@@ -133,9 +134,12 @@
       </div>
     }
 
-    <button cdkMenuItem (click)="openManageEnvs()">
-      <i class="ri-mail-settings-line mr-1" ></i>
-      {{'Manage envs'}}
+    <div class="border-b border-solid border-divider-regular my-2"></div>
+
+    <button cdkMenuItem class="flex items-center" 
+      (click)="openManageEnvs()">
+      <i class="ri-braces-line mr-1"></i>
+      {{ 'PAC.Environment.Manage' | translate: {Default: 'Manage'} }}
     </button>
   </div>
 </ng-template>

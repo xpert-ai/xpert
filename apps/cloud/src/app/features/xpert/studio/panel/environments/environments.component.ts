@@ -88,7 +88,6 @@ export class XpertStudioPanelEnvironmentsComponent {
       })
       .closed.subscribe({
         next: () => {
-          console.log(`=====`)
         }
       })
   }

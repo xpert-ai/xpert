@@ -9,7 +9,6 @@ import { XpertWorkspaceBuiltinToolsComponent } from '../builtin-tools/tools.comp
 import { XpertWorkspaceXpertsComponent } from '../xperts/xperts.component'
 import { XpertWorkspaceKnowledgesComponent } from '../knowledges/knowledges.component'
 import { XpertWorkspaceMCPToolsComponent } from '../mcp-tools/tools.component'
-import { XpertWorkspaceEnvironmentsComponent } from '../environments/environments.component'
 
 @Component({
   standalone: true,
@@ -24,7 +23,6 @@ import { XpertWorkspaceEnvironmentsComponent } from '../environments/environment
     XpertWorkspaceApiToolsComponent,
     XpertWorkspaceBuiltinToolsComponent,
     XpertWorkspaceMCPToolsComponent,
-    XpertWorkspaceEnvironmentsComponent
   ],
   selector: 'xpert-workspace-all',
   templateUrl: './all.component.html',

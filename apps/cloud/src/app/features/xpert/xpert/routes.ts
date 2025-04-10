@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router'
 import { XpertStudioComponent } from '../studio/studio.component'
 import { XpertAuthorizationComponent } from './authorization/authorization.component'
-import { XpertBasicComponent } from './basic/basic.component'
 import { XpertCopilotKnowledgeNewBlankComponent } from './copilot/blank/blank.component'
 import { XpertCopilotComponent } from './copilot/copilot.component'
 import { XpertCopilotKnowledgeTestingComponent } from './copilot/testing/testing.component'
@@ -21,11 +20,6 @@ export const routes: Routes = [
         redirectTo: 'agents',
         pathMatch: 'full'
       },
-      // {
-      //   path: 'basic',
-      //   component: XpertBasicComponent,
-      //   canDeactivate: [dirtyCheckGuard]
-      // },
       {
         path: 'agents',
         component: XpertStudioComponent

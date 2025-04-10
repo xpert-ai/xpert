@@ -182,9 +182,19 @@ export class XpertEnvironmentManageComponent {
     })
   }
 
+  removeVar(index: number) {
+    this.environment.update((env) => {
+      env.variables.splice(index, 1)
+      return {
+        ...env,
+        variables: [...env.variables]
+      }
+    })
+  }
+
   saveEnvironment = effectAction((origin: Observable<IEnvironment>) => {
     return origin.pipe(
-      debounceTime(1000),
+      debounceTime(3000),
       tap(() => this.loading.set(true)),
       switchMap((env) => this.environmentService.update(env.id, env)),
       tap(() => this.loading.set(false)),

@@ -109,11 +109,7 @@
         {{ 'PAC.Xpert.Knowledgebase' | translate: {Default: 'Knowledgebase'} }}
       </li>
 
-      <li [cdkOption]="'environment'"
-        class="xpert-list-option"
-        [routerLink]="['environments']"
-        routerLinkActive="active"
-      >
+      <li class="xpert-list-option" (click)="openEnvs()">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1">
           <g id="env">
             <g id="Vector">
@@ -125,7 +121,7 @@
             </g>
           </g>
         </svg>
-        {{ 'PAC.Xpert.Environment' | translate: {Default: 'Environment'} }}
+        {{ 'PAC.Environment.Environments' | translate: {Default: 'Environments'} }}
       </li>
       
     </ul>

@@ -337,10 +337,19 @@
       "Note": "注释"
     },
     "Environment": {
+      "Environment": "环境",
       "Environments": "环境",
       "SetAsDefault": "设置为默认",
       "Variables": "变量",
-      "IsDefault": "是默认"
+      "IsDefault": "是默认",
+      "Total": "共",
+      "Add": "添加",
+      "Value": "值",
+      "Type": "类型",
+      "Name": "名称",
+      "KeepUniqueInEnv": "保持环境内唯一",
+      "AddEnvironment": "添加环境",
+      "Manage": "管理"
     },
     "MENU": {
       "Certification": "认证",
@@ -2102,6 +2111,8 @@
       "MoreMCPFromMarketplace": "来自市场的更多 MCP 工具集",
       "Discover": "探索",
       "MainAgentTip": "主智能体, 负责接收消息",
+      "PublishBinding": "发布绑定",
+      "SelectAEnv": "选择一个环境",
       "Expert": "专家",
       "DigitalExpert": "数字专家",
       "Knowledgebase": "知识库",

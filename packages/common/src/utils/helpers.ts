@@ -2,7 +2,7 @@ export function getErrorMessage(err: any): string {
   let error: string
   if (typeof err === 'string') {
     error = err
-  } else if (err && err.constructor.name === "AggregateError") {
+  } else if (err && (err.name === "AggregateError" || err.constructor.name === "AggregateError")) {
     return err.errors.map((_) => getErrorMessage(_)).join('\n\n')
   } else if (err instanceof Error) {
     error = err?.message
