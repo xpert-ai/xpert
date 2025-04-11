@@ -33,7 +33,6 @@ import { XpertTaskModule } from './xpert-task'
 import { RagWebModule } from './rag-web/rag-web.module'
 import { IntegrationFirecrawlModule } from './integration-firecrawl/firecrawl.module'
 import { SandboxModule } from './sandbox/sandbox.module'
-import { EnvironmentModule } from './environment/environment.module'
 
 @Module({
 	imports: [
@@ -41,27 +40,27 @@ import { EnvironmentModule } from './environment/environment.module'
 		forwardRef(() => UserModule),
 		ScheduleModule.forRoot(),
 		RedisModule,
-		CacheModule.registerAsync({
-			isGlobal: true,
-			imports: [RedisModule],
-			useFactory: async (redisOptions: RedisOptions) => {
-				const store = await redisStore({
-					socket: {
-						host: redisOptions.host,
-						port: redisOptions.port
-					},
-					username: redisOptions.username,
-					password: redisOptions.password
-				})
+		// CacheModule.registerAsync({
+		// 	isGlobal: true,
+		// 	imports: [RedisModule],
+		// 	useFactory: async (redisOptions: RedisOptions) => {
+		// 		const store = await redisStore({
+		// 			socket: {
+		// 				host: redisOptions.host,
+		// 				port: redisOptions.port
+		// 			},
+		// 			username: redisOptions.username,
+		// 			password: redisOptions.password
+		// 		})
 
-				return {
-					store: store as unknown as CacheStore,
-					ttl: 3 * 60 // 3 minutes
-					// ttl: configService.get('CACHE_TTL'),
-				}
-			},
-			inject: [REDIS_OPTIONS]
-		}),
+		// 		return {
+		// 			store: store as unknown as CacheStore,
+		// 			ttl: 3 * 60 // 3 minutes
+		// 			// ttl: configService.get('CACHE_TTL'),
+		// 		}
+		// 	},
+		// 	inject: [REDIS_OPTIONS]
+		// }),
 		KnowledgebaseModule,
 		KnowledgeDocumentModule,
 		ChatModule,
@@ -89,8 +88,7 @@ import { EnvironmentModule } from './environment/environment.module'
 		IntegrationLarkModule,
 		IntegrationFirecrawlModule,
 		RagWebModule,
-		SandboxModule,
-		EnvironmentModule
+		SandboxModule
 	],
 	controllers: [],
 	providers: [...EventHandlers]

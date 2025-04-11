@@ -8,9 +8,13 @@ import { ConfigModule, getConfig } from '@metad/server-config';
 import { ServerAppModule } from './../server.module';
 import { HealthIndicatorModule } from '../health-indicator';
 import { Logger, LoggerModule } from '../logger';
+import { provideCacheModule } from './cache';
+import { provideBullModule } from './bull';
 
 @Module({
 	imports: [
+		provideCacheModule(),
+		provideBullModule(),
 		ConfigModule,
 		ServerAppModule,
 		LoggerModule.forRoot(),
