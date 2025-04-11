@@ -72,7 +72,7 @@
                 "author": "modelcontextprotocol",
                 "id": "fetch-mcp",
                 "category": "Utils",
-                "type": "sse",
+                "type": "stdio",
                 "icon": "https://r2.trys.ai/imgs/35rqzgsie-1733449087570.png",
                 "explore": "https://mcp.so/server/fetch/modelcontextprotocol",
                 "copyright": null,
@@ -139,6 +139,166 @@
                     "env": {
                         "SLACK_BOT_TOKEN": "your-bot-token",
                         "SLACK_TEAM_ID": "T01234567"
+                    }
+                }
+            },
+            {
+                "name": "Memory",
+                "title": "Memory Server",
+                "description": "Stores and manages data or state information generated during system operation for quick access and recovery when needed.",
+                "author": "modelcontextprotocol",
+                "id": "mcp-server-memory",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/25bfnwb0l-1733449927671.png",
+                "explore": "https://mcp.so/server/memory",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "prompt": "Follow these steps for each interaction:\n\n                1. User Identification:\n                   - You should assume that you are interacting with default_user\n                   - If you have not identified default_user, proactively try to do so.\n                \n                2. Memory Retrieval:\n                   - Always begin your chat by saying only \"Remembering...\" and retrieve all relevant information from your knowledge graph\n                   - Always refer to your knowledge graph as your \"memory\"\n                \n                3. Memory\n                   - While conversing with the user, be attentive to any new information that falls into these categories:\n                     a) Basic Identity (age, gender, location, job title, education level, etc.)\n                     b) Behaviors (interests, habits, etc.)\n                     c) Preferences (communication style, preferred language, etc.)\n                     d) Goals (goals, targets, aspirations, etc.)\n                     e) Relationships (personal and professional relationships up to 3 degrees of separation)\n                \n                4. Memory Update:\n                   - If any new information was gathered during the interaction, update your memory as follows:\n                     a) Create entities for recurring organizations, people, and significant events\n                     b) Connect them to the current entities using relations\n                     c) Store facts about them as observations",
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@modelcontextprotocol/server-memory"
+                    ]
+                }
+            },
+            {
+                "name": "GitHub",
+                "title": "GitHub",
+                "description": "Used for the GitHub API, supporting file operations, code repository management, search functions, and more.",
+                "author": "modelcontextprotocol",
+                "id": "mcp-github-server",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/206yyoqjn-1733449547133.png",
+                "explore": "https://mcp.so/server/github/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@modelcontextprotocol/server-github"
+                    ],
+                    "env": {
+                        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_TOKEN>"
+                    }
+                }
+            },
+            {
+                "name": "Firecrawl",
+                "title": "Firecrawl",
+                "description": "Provides powerful web scraping and data extraction capabilities.",
+                "author": "mendableai",
+                "id": "firecrawl-mcp",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/135057108?v=4",
+                "explore": "https://mcp.so/server/firecrawl-mcp-server/mendableai",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "firecrawl-mcp"
+                    ],
+                    "env": {
+                        "FIRECRAWL_API_KEY": "<YOUR-API-KEY>"
+                    }
+                }
+            },
+            {
+                "name": "Perplexity",
+                "title": "Perplexity",
+                "description": "Uses Perplexity AI to assist with research and document writing.",
+                "author": "ppl-ai",
+                "id": "server-perplexity-ask",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/110299016?s=200&v=4",
+                "explore": "https://github.com/ppl-ai/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "server-perplexity-ask"
+                    ],
+                    "env": {
+                        "PERPLEXITY_API_KEY": "YOUR_API_KEY_HERE"
+                    }
+                }
+            },
+            {
+                "name": "Tavily",
+                "title": "Tavily",
+                "description": "Tavily is a search engine optimized for large language models (LLMs), designed to provide efficient, fast, and reliable search results.",
+                "author": "ppl-ai",
+                "id": "tavily-mcp",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/170207473?v=4",
+                "explore": "https://mcp.so/en/server/tavily-mcp/tavily-ai",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "tavily-mcp@0.1.4"
+                    ],
+                    "env": {
+                        "TAVILY_API_KEY": "your-api-key-here"
+                    }
+                }
+            },
+            {
+                "name": "Amap",
+                "title": "AMap",
+                "description": "Supports any client using the MCP protocol, enabling convenient use of the AMap MCP server.",
+                "author": "amap",
+                "id": "amap-maps",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/zbu4ptrd-1742910186713.png",
+                "explore": "https://mcp.so/server/amap-maps/amap",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@amap/amap-maps-mcp-server"
+                    ],
+                    "env": {
+                        "AMAP_MAPS_API_KEY": "The key you applied for on the AMap official website"
                     }
                 }
             }
@@ -217,7 +377,7 @@
                 "author": "modelcontextprotocol",
                 "id": "fetch-mcp",
                 "category": "Utils",
-                "type": "sse",
+                "type": "stdio",
                 "icon": "https://r2.trys.ai/imgs/35rqzgsie-1733449087570.png",
                 "explore": "https://mcp.so/server/fetch/modelcontextprotocol",
                 "copyright": null,
@@ -365,6 +525,87 @@
                     ],
                     "env": {
                         "FIRECRAWL_API_KEY": "<YOUR-API-KEY>"
+                    }
+                }
+            },
+            {
+                "name": "Perplexity",
+                "title": "Perplexity",
+                "description": "使用 Perplexity AI 协助进行研究和文档编写",
+                "author": "ppl-ai",
+                "id": "server-perplexity-ask",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/110299016?s=200&v=4",
+                "explore": "https://github.com/ppl-ai/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "server-perplexity-ask"
+                    ],
+                    "env": {
+                        "PERPLEXITY_API_KEY": "YOUR_API_KEY_HERE"
+                    }
+                }
+            },
+            {
+                "name": "Tavily",
+                "title": "Tavily",
+                "description": "Tavily 是一个为大型语言模型（LLMs）优化的搜索引擎，旨在提供高效、快速且持久的搜索结果。",
+                "author": "ppl-ai",
+                "id": "tavily-mcp",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/170207473?v=4",
+                "explore": "https://mcp.so/zh/server/tavily-mcp/tavily-ai",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "tavily-mcp@0.1.4"
+                    ],
+                    "env": {
+                        "TAVILY_API_KEY": "your-api-key-here"
+                    }
+                }
+            },
+            {
+                "name": "Amap",
+                "title": "高德地图",
+                "description": "支持任意 MCP 协议的客户端，可方便使用高德地图 MCP server。",
+                "author": "amap",
+                "id": "amap-maps",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/zbu4ptrd-1742910186713.png",
+                "explore": "https://mcp.so/server/amap-maps/amap",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@amap/amap-maps-mcp-server"
+                    ],
+                    "env": {
+                        "AMAP_MAPS_API_KEY": "您在高德官网上申请的 key"
                     }
                 }
             }

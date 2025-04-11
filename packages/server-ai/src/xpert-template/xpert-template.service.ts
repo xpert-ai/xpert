@@ -89,7 +89,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 
 	async readMCPTemplates() {
 		let templatesData: { templates: IXpertMCPTemplate[] }
-		const cacheKey = `mcp-templates`
+		const cacheKey = `xpert:mcp-templates`
 		templatesData = await this.cacheManager.get(cacheKey)
 		if (templatesData) {
 			return templatesData
@@ -108,7 +108,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 			throw new Error('Failed to read mcp-templates.json')
 		}
 
-		await this.cacheManager.set(cacheKey, templatesData, 10 * 1000)
+		await this.cacheManager.set(cacheKey, templatesData, 10 * 1000 /** 10s timeout */)
 
 		return templatesData
 	}
