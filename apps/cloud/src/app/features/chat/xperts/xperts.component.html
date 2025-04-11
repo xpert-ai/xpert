@@ -3,13 +3,13 @@
   (cdkDropListDropped)="dropSort($event)"
 >
   @for (xpert of xperts(); track xpert.id) {
-    <div role="button" class="flex items-center max-w-xs text-primary text-sm font-medium rounded-2xl px-3 py-2 border border-input-border 
+    <div #element role="button" class="flex items-center max-w-xs text-primary text-sm font-medium rounded-2xl px-3 py-2 border border-input-border 
       hover:bg-white cursor-pointer transition-all focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       tabindex="0"
-      [ngmTooltip]="xpertCard"
-      [ngmTooltipContext]="{xpert: xpert}"
       cdkDrag
       (click)="selectXpert(xpert)"
+      (mouseenter)="showTooltip(xpert, element)"
+      (mouseleave)="hideTooltip()"
     >
       <emoji-avatar [avatar]="xpert.avatar" xs class="shrink-0 rounded-lg overflow-hidden shadow-sm mr-1" />
       <p class="overflow-hidden whitespace-nowrap text-ellipsis">{{xpert.title || xpert.name}}</p>
@@ -44,5 +44,9 @@
 </div>
 
 <ng-template #xpertCard let-xpert="xpert">
-  <xpert-card @overlayAnimation1 [xpert]="xpert" class="w-96 border border-solid border-divider-deep !rounded-3xl shadow-lg bg-components-card-bg" />
+  <xpert-card @overlayAnimation1 [xpert]="xpert" [editable]="hasEditXpertPermission()"
+    class="w-96 border border-solid border-divider-deep !rounded-3xl shadow-lg bg-white/90 backdrop-blur-sm" 
+    (mouseenter)="mouseenterTooltip()"
+    (mouseleave)="hoverTooltip.set(false)"
+  />
 </ng-template>

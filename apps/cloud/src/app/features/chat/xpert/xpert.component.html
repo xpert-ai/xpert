@@ -1,5 +1,7 @@
 <xpert-webapp (openHistories)="openConversations()">
-  <pac-chat-xperts class="w-full @lg:w-4/5 max-w-[50rem] overflow-x-auto no-touch-scrollbar" />
+  @if (!xpert()) {
+    <pac-chat-xperts class="w-full @lg:w-4/5 max-w-[50rem] overflow-x-auto no-touch-scrollbar" />
+  }
 
   <button action class="inline-flex items-center justify-center gap-2 max-w-[160px] whitespace-nowrap text-base font-medium leading-[normal] truncate cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary 
     hover:bg-hover-bg rounded-xl px-3.5 py-2 flex-row pl-3 pr-2.5 h-9 sm:px-3 border border-button-outline-border sm:border-0
@@ -72,4 +74,4 @@
         </button>
       } -->
     </div>
-  </ng-template>
+</ng-template>

@@ -33,6 +33,7 @@
     </div>
   </div>
 </div>
+
 <div
   class="grow mb-2 px-[14px] max-h-[72px] text-sm leading-normal text-gray-500 line-clamp-2 group-hover:line-clamp-2 group-hover:max-h-[36px]"
   title="{{ xpert().description }}"
@@ -98,6 +99,13 @@
     </div>
   </div>
 </div>
+
+@if (editable()) {
+  <button type="button" class="btn rounded-xl justify-center w-8 h-8 absolute right-4 bottom-4"
+    (click)="edit()">
+    <i class="ri-edit-line"></i>
+  </button>
+}
 
 <ng-template #cardMenu let-xpert="xpert">
   <div class="ngm-cdk-menu p-2" cdkMenu >
