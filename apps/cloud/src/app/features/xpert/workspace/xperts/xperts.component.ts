@@ -193,7 +193,9 @@ export class XpertWorkspaceXpertsComponent {
         data: {
           name: dsl.team.name,
           avatar: dsl.team.avatar,
-          description: dsl.team.description
+          description: dsl.team.description,
+          title: dsl.team.title,
+          copilotModel: dsl.team.copilotModel
         }
       })
       .closed.pipe(
