@@ -12,7 +12,7 @@ import { XpertStudioPanelVariablesComponent } from './variables/variables.compon
 import { XpertStudioPanelWorkflowComponent } from './workflow/workflow.component'
 import { XpertStudioPanelAgentComponent } from './xpert-agent/agent.component'
 import { XpertStudioPanelXpertComponent } from './xpert/xpert.component'
-import { XpertStudioPanelEnvironmentsComponent } from './environments/environments.component'
+import { XpertStudioPanelEnvironmentComponent } from './environment/environment.component'
 
 @Component({
   selector: 'xpert-studio-panel',
@@ -28,7 +28,7 @@ import { XpertStudioPanelEnvironmentsComponent } from './environments/environmen
     XpertStudioPanelExecutionComponent,
     XpertStudioPanelVariablesComponent,
     XpertStudioPanelWorkflowComponent,
-    XpertStudioPanelEnvironmentsComponent
+    XpertStudioPanelEnvironmentComponent
   ],
   templateUrl: './panel.component.html',
   styleUrl: './panel.component.scss',

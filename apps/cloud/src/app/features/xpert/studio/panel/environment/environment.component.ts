@@ -18,9 +18,9 @@ import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
 
 @Component({
-  selector: 'xpert-studio-panel-environments',
-  templateUrl: './environments.component.html',
-  styleUrls: ['./environments.component.scss'],
+  selector: 'xpert-studio-panel-environment',
+  templateUrl: './environment.component.html',
+  styleUrls: ['./environment.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
@@ -37,7 +37,7 @@ import { XpertStudioPanelComponent } from '../panel.component'
     XpertEnvVariableFormComponent
   ]
 })
-export class XpertStudioPanelEnvironmentsComponent {
+export class XpertStudioPanelEnvironmentComponent {
   eVariableOperationEnum = VariableOperationEnum
 
   readonly elementRef = inject(ElementRef)

@@ -33,6 +33,7 @@
       [cdkMenuTriggerFor]="variableMenu"
       [cdkMenuTriggerData]="{trigger: trigger}"
       #trigger="cdkMenuTriggerFor"
+      [disabled]="!environments()?.length"
     >
       <i class="ri-add-line mr-1"></i>
       <span class="system-sm-medium">
@@ -42,7 +43,7 @@
   </div>
 </div>
 
-<div class="variable-list grow px-4 rounded-b-2xl overflow-y-auto" cdkDropList (cdkDropListDropped)="drop($event)">
+<div class="variable-list grow flex flex-col px-4 rounded-b-2xl overflow-y-auto" cdkDropList (cdkDropListDropped)="drop($event)">
   @for (item of variables(); track item.name; let index = $index) {
     <div class="variable-list-item relative group mb-1 pl-6 pr-2.5 py-2 rounded-xl bg-components-card-bg border shadow-sm hover:bg-gray-50"
       [class.danger]="hoverDelete() === index"
@@ -108,7 +109,19 @@
         }
       </div>
     </div>
-  } 
+  }
+
+  @if (!environments()?.length) {
+    <div class="grow flex justify-center items-center">
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+        (click)="openManageEnvs()">
+        <i class="ri-add-line mr-1"></i>
+        <span class="system-sm-medium">
+          {{ 'PAC.Environment.NewEnvironment' | translate: {Default: 'New Environment'} }}
+        </span>
+      </button>
+    </div>
+  }
 </div>
 
 @if (loading()) {
@@ -138,7 +151,7 @@
 
     <button cdkMenuItem class="flex items-center" 
       (click)="openManageEnvs()">
-      <i class="ri-braces-line mr-1"></i>
+      <i class="ri-mail-settings-line mr-1"></i>
       {{ 'PAC.Environment.Manage' | translate: {Default: 'Manage'} }}
     </button>
   </div>

@@ -2,7 +2,7 @@ import { Clipboard } from '@angular/cdk/clipboard'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
@@ -54,6 +54,9 @@ export class XpertAPIComponent {
   readonly apiUrl = computed(() => this.apiBaseUrl + '/api/ai/')
   readonly api = computed(() => this.xpert()?.api)
   readonly enabledApi = computed(() => !this.api()?.disabled)
+  readonly small = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
   readonly loading = signal(false)
 

@@ -26,6 +26,8 @@ import { catchError, combineLatestWith, debounceTime, map, startWith, switchMap,
 import { NgmSelectComponent } from '../../common'
 import { VariableTypeOptions } from '../types'
 
+const AutoSaveDebounceTime = 2000
+
 @Component({
   selector: 'xpert-environment-manage',
   standalone: true,
@@ -194,7 +196,7 @@ export class XpertEnvironmentManageComponent {
 
   saveEnvironment = effectAction((origin: Observable<IEnvironment>) => {
     return origin.pipe(
-      debounceTime(3000),
+      debounceTime(AutoSaveDebounceTime),
       tap(() => this.loading.set(true)),
       switchMap((env) => this.environmentService.update(env.id, env)),
       tap(() => this.loading.set(false)),

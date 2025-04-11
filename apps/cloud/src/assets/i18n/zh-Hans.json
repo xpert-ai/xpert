@@ -350,6 +350,8 @@
       "KeepUniqueInEnv": "保持环境内唯一",
       "AddEnvironment": "添加环境",
       "AddVariable": "添加变量",
+      "NewEnvironment": "新建环境",
+      "ManageEnvironments": "管理环境",
       "Manage": "管理"
     },
     "MENU": {
