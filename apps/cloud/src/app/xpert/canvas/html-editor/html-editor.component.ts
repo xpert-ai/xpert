@@ -3,7 +3,7 @@ import { Component, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { SafePipe } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { FileEditorComponent } from 'apps/cloud/src/app/@shared/files'
+import { FileEditorComponent } from '@cloud/app/@shared/files'
 
 @Component({
   standalone: true,

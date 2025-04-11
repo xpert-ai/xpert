@@ -6,13 +6,13 @@ import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { ChatConversationService, ChatMessageStepCategory, ChatMessageStepType, injectFormatRelative } from '../../../../@core'
-import { FileEditorComponent } from '../../../../@shared/files'
-import { ChatHomeService } from '../../home.service'
+import { ChatConversationService, ChatMessageStepCategory, ChatMessageStepType, injectFormatRelative } from '@cloud/app/@core'
+import { FileEditorComponent } from '@cloud/app/@shared/files'
 import { CanvasHtmlEditorComponent } from '../html-editor/html-editor.component'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { FileTypePipe, ListHeightStaggerAnimation } from '@metad/core'
 import { BehaviorSubject, debounceTime, switchMap } from 'rxjs'
+import { XpertHomeService } from '../../home.service'
 
 @Component({
   standalone: true,
@@ -42,7 +42,7 @@ export class ChatCanvasComputerComponent {
   eChatMessageStepType = ChatMessageStepType
   eChatMessageStepCategory = ChatMessageStepCategory
 
-  readonly homeService = inject(ChatHomeService)
+  readonly homeService = inject(XpertHomeService)
   readonly conversationService = inject(ChatConversationService)
   readonly #formatRelative = injectFormatRelative()
 

@@ -7,9 +7,9 @@ import { TranslateModule } from '@ngx-translate/core'
 import { FileEditorComponent } from 'apps/cloud/src/app/@shared/files'
 import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { ChatHomeService } from '../../home.service'
-import { CopyComponent } from 'apps/cloud/src/app/@shared/common'
+import { CopyComponent } from '@cloud/app/@shared/common'
 import { FileTypePipe, SafePipe } from '@metad/core'
+import { XpertHomeService } from '../../home.service'
 
 @Component({
   standalone: true,
@@ -20,7 +20,7 @@ import { FileTypePipe, SafePipe } from '@metad/core'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatCanvasFileViewerComponent {
-  readonly homeService = inject(ChatHomeService)
+  readonly homeService = inject(XpertHomeService)
   readonly httpClient = inject(HttpClient)
 
   // States

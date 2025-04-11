@@ -475,6 +475,12 @@ export class XpertController extends CrudController<Xpert> {
 		return new XpertPublicDTO(xpert)
 	}
 
+	private getPublicUserCondition() {
+		const userId = RequestContext.currentUserId()
+		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
+		return userId ? {createdById: userId} : {fromEndUserId}
+	}
+
 	@Public()
 	@UseGuards(AnonymousXpertAuthGuard)
 	@Get(':name/conversation/:id')
@@ -482,8 +488,10 @@ export class XpertController extends CrudController<Xpert> {
 		@Query('$relations', ParseJsonPipe) relations?: PaginationParams<ChatConversation>['relations'],
 		@Query('$select', ParseJsonPipe) select?: PaginationParams<ChatConversation>['select'],
 	) {
-		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
-		const conversation = await this.queryBus.execute(new GetChatConversationQuery({id, fromEndUserId}, relations))
+		const conversation = await this.queryBus.execute(new GetChatConversationQuery({
+			id,
+			...this.getPublicUserCondition(),
+		}, relations))
 		return conversation
 	}
 
@@ -491,9 +499,8 @@ export class XpertController extends CrudController<Xpert> {
 	@UseGuards(AnonymousXpertAuthGuard)
 	@Delete(':name/conversation/:id')
 	async deleteAppConversation(@Param('name') slug: string, @Param('id') id: string,) {
-		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
-		await this.queryBus.execute(new GetChatConversationQuery({id, fromEndUserId}))
-		await this.commandBus.execute(new ChatConversationDeleteCommand({id, fromEndUserId}))
+		await this.queryBus.execute(new GetChatConversationQuery({id, ...this.getPublicUserCondition(),}))
+		await this.commandBus.execute(new ChatConversationDeleteCommand({id, ...this.getPublicUserCondition(),}))
 	}
 
 	@Public()
@@ -503,10 +510,9 @@ export class XpertController extends CrudController<Xpert> {
 		@Query('data', ParseJsonPipe) paginationOptions?: PaginationParams<ChatConversation>,
 	) {
 		const xpert = await this.service.findBySlug(slug)
-		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
 		const conversation = await this.queryBus.execute(new FindChatConversationQuery({
 				...(paginationOptions.where ?? {}),
-				fromEndUserId,
+				...this.getPublicUserCondition(),
 				xpertId: xpert.id
 			}, paginationOptions))
 		return conversation
@@ -516,8 +522,7 @@ export class XpertController extends CrudController<Xpert> {
 	@UseGuards(AnonymousXpertAuthGuard)
 	@Put(':name/conversation/:id')
 	async updateAppConversation(@Param('name') slug: string, @Param('id') id: string, @Body() entity: Partial<IChatConversation>) {
-		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
-		await this.queryBus.execute(new FindChatConversationQuery({id, fromEndUserId}))
+		await this.queryBus.execute(new FindChatConversationQuery({id, ...this.getPublicUserCondition(),}))
 		await this.commandBus.execute(new ChatConversationUpsertCommand({
 			id,
 			...entity
@@ -531,8 +536,7 @@ export class XpertController extends CrudController<Xpert> {
 		@Query('$relations', ParseJsonPipe) relations?: PaginationParams<ChatConversation>['relations'],
 		@Query('$select', ParseJsonPipe) select?: PaginationParams<ChatConversation>['select'],
 	) {
-		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
-		const conversation = await this.queryBus.execute(new FindChatConversationQuery({id, fromEndUserId}, {relations}))
+		const conversation = await this.queryBus.execute(new FindChatConversationQuery({id, ...this.getPublicUserCondition(),}, {relations}))
 		return await this.queryBus.execute(new FindMessageFeedbackQuery({conversationId: conversation.id}, relations))
 	}
 

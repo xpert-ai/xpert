@@ -1,33 +1,41 @@
+import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, effect, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
+import { OverlayAnimations } from '@metad/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { uuid } from '../../@core'
-import { AppService } from '../../app.service'
+import { uuid } from '@cloud/app/@core'
+import { AppService } from '@cloud/app/app.service'
 import { ChatService } from '../chat.service'
+import { XpertHomeService } from '../home.service'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     FormsModule,
+    TextFieldModule,
     ReactiveFormsModule,
     RouterModule,
     TranslateModule,
     MatInputModule,
+    MatTooltipModule,
     NgmCommonModule
   ],
   selector: 'chat-input',
   templateUrl: './chat-input.component.html',
   styleUrl: 'chat-input.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  animations: [...OverlayAnimations]
 })
 export class ChatInputComponent {
   readonly chatService = inject(ChatService)
+  readonly homeService = inject(XpertHomeService)
   readonly appService = inject(AppService)
   readonly #router = inject(Router)
 
@@ -38,6 +46,9 @@ export class ChatInputComponent {
   readonly promptControl = new FormControl<string>(null)
   readonly prompt = toSignal(this.promptControl.valueChanges)
   readonly answering = this.chatService.answering
+  readonly canvasOpened = computed(() => this.homeService.canvasOpened()?.opened)
+
+  readonly isComposing = signal(false)
 
   constructor() {
     effect(() => {
@@ -99,5 +110,26 @@ export class ChatInputComponent {
 
   navigateCopilot() {
     this.#router.navigate(['/settings/copilot'])
+  }
+
+  // Input method composition started
+  onCompositionStart() {
+    this.isComposing.set(true)
+  }
+
+  // Input method composition updated
+  onCompositionUpdate(event: CompositionEvent) {
+    // Update current value
+  }
+
+  // Input method composition ended
+  onCompositionEnd(event: CompositionEvent) {
+    this.isComposing.set(false)
+  }
+
+  toggleCanvas() {
+    this.homeService.canvasOpened.update((state) =>
+      state ? { ...state, opened: !state.opened } : { opened: true, type: 'Computer' }
+    )
   }
 }

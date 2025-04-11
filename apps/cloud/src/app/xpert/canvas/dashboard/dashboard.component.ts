@@ -6,14 +6,13 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { DataSettings } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ChatComponentMessageComponent } from 'apps/cloud/src/app/xpert/'
+import { ChatComponentMessageComponent, XpertHomeService } from '@cloud/app/xpert/'
 import {
   ChatMessageStepType,
   injectFormatRelative,
   TMessageComponent,
   TMessageContentComponent
-} from '../../../../@core'
-import { ChatHomeService } from '../../home.service'
+} from '@cloud/app/@core'
 
 @Component({
   standalone: true,
@@ -38,7 +37,7 @@ import { ChatHomeService } from '../../home.service'
 export class ChatCanvasDashboardComponent {
   eChatMessageStepType = ChatMessageStepType
 
-  readonly homeService = inject(ChatHomeService)
+  readonly homeService = inject(XpertHomeService)
   readonly #formatRelative = injectFormatRelative()
 
   // States

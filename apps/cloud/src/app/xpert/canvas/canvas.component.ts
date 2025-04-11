@@ -4,11 +4,11 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@a
 import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { ChatMessageStepType } from '../../../@core'
+import { ChatMessageStepType } from '../../@core'
 import { ChatCanvasComputerComponent } from './computer/computer.component'
-import { ChatHomeService } from '../home.service'
 import { ChatCanvasDashboardComponent } from './dashboard/dashboard.component'
 import { ChatCanvasFileViewerComponent } from './file-viewer/file-viewer.component'
+import { XpertHomeService } from '../home.service'
 
 @Component({
   standalone: true,
@@ -31,7 +31,7 @@ import { ChatCanvasFileViewerComponent } from './file-viewer/file-viewer.compone
 export class ChatCanvasComponent {
   eChatMessageStepType = ChatMessageStepType
   
-  readonly homeService = inject(ChatHomeService)
+  readonly homeService = inject(XpertHomeService)
   
   readonly canvas = this.homeService.canvasOpened
   readonly opened = computed(() => this.canvas()?.opened)

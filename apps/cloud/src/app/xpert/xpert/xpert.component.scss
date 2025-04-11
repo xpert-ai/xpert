@@ -1,0 +1,7 @@
+:host {
+  @apply max-w-full flex-1 w-full h-full flex flex-row items-start overflow-y-auto overflow-x-hidden;
+}
+
+chat-input, .header {
+  background-color: var(--ngm-shell-primary-container-bg-color);
+}

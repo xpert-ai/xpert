@@ -7,6 +7,7 @@ import {
   effect,
   inject,
   input,
+  output,
   signal
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -56,6 +57,9 @@ export class ChatConversationComponent {
     transform: booleanAttribute
   })
 
+  // Outputs
+  readonly chat = output<string>()
+
   // States
   readonly messages = this.chatService.messages
   readonly conversation = this.chatService.conversation
@@ -81,6 +85,10 @@ export class ChatConversationComponent {
       },
       { allowSignalWrites: true }
     )
+  }
+
+  onChat(statement: string) {
+    this.chat.emit(statement)
   }
 
   onToolCalls(toolCalls: ToolCall[]) {

@@ -2,7 +2,7 @@ import { Location } from '@angular/common'
 import { effect, inject, Injectable } from '@angular/core'
 import { ChatService } from './chat.service'
 import { TChatOptions, TChatRequest, XpertTypeEnum } from '../@core'
-import { ActivatedRoute } from '@angular/router'
+import { ActivatedRoute, Router } from '@angular/router'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { distinctUntilChanged, filter, map, withLatestFrom } from 'rxjs'
 import { nonNullable } from '@metad/core'
@@ -15,6 +15,7 @@ import { injectParams } from 'ngxtension/inject-params'
 export class ChatAppService extends ChatService {
   readonly route = inject(ActivatedRoute)
   readonly #location = inject(Location)
+  readonly #router = inject(Router)
   readonly paramRole = injectParams('name')
   readonly paramId = injectParams('id')
 
@@ -66,14 +67,16 @@ export class ChatAppService extends ChatService {
   constructor() {
     super()
 
-    effect(
-      () => {
-        if (this.paramId()) {
-          this.conversationId.set(this.paramId())
-        }
-      },
-      { allowSignalWrites: true }
-    )
+    // effect(
+    //   () => {
+    //     if (this.paramId()) {
+    //       setTimeout(() => {
+    //         this.conversationId.set(this.paramId())
+    //       }, 1000)
+    //     }
+    //   },
+    //   { allowSignalWrites: true }
+    // )
     
     this.route.data.pipe(takeUntilDestroyed()).subscribe((data) => {
       this.xpert$.next(data.xpert)
@@ -90,5 +93,13 @@ export class ChatAppService extends ChatService {
 
   chatRequest(name: string, request: TChatRequest, options: TChatOptions) {
     return this.xpertService.chatApp(name, request, options)
+  }
+
+  newConv(slug?: string) {
+    if (slug) {
+      this.#router.navigate(['/x/', slug])
+    } else {
+      this.#router.navigate(['/x'])
+    }
   }
 }

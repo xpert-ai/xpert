@@ -1,5 +1,5 @@
 import { A11yModule } from '@angular/cdk/a11y'
-import { DialogRef } from '@angular/cdk/dialog'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
@@ -31,11 +31,12 @@ import {
   getErrorMessage,
   IChatConversation,
   injectToastr,
-  OrderTypeEnum
-} from '../../../@core'
-import { AppService } from '../../../app.service'
-import { ChatHomeService } from '../home.service'
-import { groupConversations } from '../../../xpert/types'
+  OrderTypeEnum,
+  XpertService
+} from '../../@core'
+import { AppService } from '../../app.service'
+import { XpertHomeService } from '../home.service'
+import { groupConversations } from '../types'
 
 @Component({
   standalone: true,
@@ -56,7 +57,7 @@ import { groupConversations } from '../../../xpert/types'
     DateRelativePipe,
     NgmHighlightDirective
   ],
-  selector: 'pac-chat-conversations',
+  selector: 'xpert-chat-conversations',
   templateUrl: './conversations.component.html',
   styleUrl: 'conversations.component.scss',
   animations: [],
@@ -66,14 +67,15 @@ export class ChatConversationsComponent {
   DisplayBehaviour = DisplayBehaviour
 
   readonly conversationService = inject(ChatConversationService)
-
-  readonly homeService = inject(ChatHomeService)
+  readonly homeService = inject(XpertHomeService)
   readonly appService = inject(AppService)
   readonly route = inject(ActivatedRoute)
   readonly #router = inject(Router)
   readonly logger = inject(NGXLogger)
   readonly #dialogRef = inject(DialogRef)
+  readonly xpertService = inject(XpertService)
   readonly #toastr = injectToastr()
+  readonly #data = inject<{xpertSlug: string; basePath: string}>(DIALOG_DATA)
 
   readonly contentContainer = viewChild('contentContainer', { read: ElementRef })
   readonly sidenav = viewChild('sidenav', { read: MatSidenav })
@@ -82,6 +84,7 @@ export class ChatConversationsComponent {
   readonly lang = this.appService.lang
 
   readonly conversationId = this.homeService.conversationId
+  readonly xpertSlug = signal(this.#data.xpertSlug)
 
   readonly sidenavOpened = model(!this.isMobile())
   readonly groups = computed(() => {
@@ -94,8 +97,8 @@ export class ChatConversationsComponent {
 
   readonly loading = signal(false)
   readonly pageSize = 20
-  readonly currentPage = signal(0)
-  readonly done = signal(false)
+  readonly currentPage = this.homeService.currentPage
+  readonly pagesCompleted = this.homeService.pagesCompleted
   
   readonly expand = signal(false)
   readonly searchControl = new FormControl()
@@ -112,11 +115,15 @@ export class ChatConversationsComponent {
     })
 
   constructor() {
-    this.loadConversations()
+    this.onIntersection()
   }
 
   selectConversation(item: IChatConversation) {
-    this.#router.navigate(['/chat/c/', item.id])
+    if (this.xpertSlug()) {
+      this.#router.navigate([this.#data.basePath, 'x', this.xpertSlug(), 'c', item.id])
+    } else {
+      this.#router.navigate([this.#data.basePath, 'c', item.id])
+    }
     this.#dialogRef.close()
   }
 
@@ -153,29 +160,42 @@ export class ChatConversationsComponent {
   resetLoadConversations() {
     this.currentPage.set(0)
     this.homeService.conversations.set([])
-    this.done.set(false)
+    this.pagesCompleted.set(false)
   }
 
   loadConversations = effectAction((origin$) => {
     return origin$.pipe(
       switchMap(() => {
         this.loading.set(true)
-        return this.conversationService.getMyInOrg({
-          select: ['id', 'threadId', 'title', 'updatedAt', 'from'],
-          order: { updatedAt: OrderTypeEnum.DESC },
-          take: this.pageSize,
-          skip: this.currentPage() * this.pageSize,
-          where: {
-            from: 'platform'
-          }
-        }, this.searchControl.value)
+        // @todo temporarily determine whether it is a webapp
+        if (this.xpertSlug()) {
+          return this.xpertService.getAppConversations(this.xpertSlug(), {
+            select: ['id', 'threadId', 'title', 'updatedAt', 'from'],
+            order: { updatedAt: OrderTypeEnum.DESC },
+            take: this.pageSize,
+            skip: this.currentPage() * this.pageSize,
+            where: {
+              from: 'webapp'
+            }
+          })
+        } else {
+          return this.conversationService.getMyInOrg({
+            select: ['id', 'threadId', 'title', 'updatedAt', 'from'],
+            order: { updatedAt: OrderTypeEnum.DESC },
+            take: this.pageSize,
+            skip: this.currentPage() * this.pageSize,
+            where: {
+              from: 'platform'
+            }
+          }, this.searchControl.value)
+        }
       }),
       tap({
         next: ({ items, total }) => {
           this.homeService.conversations.update((state) => [...state, ...items])
           this.currentPage.update((state) => ++state)
           if (items.length < this.pageSize || this.currentPage() * this.pageSize >= total) {
-            this.done.set(true)
+            this.pagesCompleted.set(true)
           }
           this.loading.set(false)
         },
@@ -187,14 +207,19 @@ export class ChatConversationsComponent {
   })
 
   onIntersection() {
-    if (!this.loading() && !this.done()) {
+    if (!this.loading() && !this.pagesCompleted()) {
       this.loadConversations()
     }
   }
 
   openInTab(conv: IChatConversation) {
     // This function opens a conversation in a new browser tab using the conversation's threadId.
-    const url = `/chat/x/${conv.xpert.slug}/c/${conv.id}`
+    let url = ''
+    if (this.xpertSlug()) {
+      url = `${this.#data.basePath}x/${this.xpertSlug()}/c/${conv.id}`
+    } else {
+      url = `${this.#data.basePath}c/${conv.id}`  
+    }
     window.open(url, '_blank')
   }
 

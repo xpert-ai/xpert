@@ -1,4 +1,4 @@
-import { computed, DestroyRef, inject, Injectable, model, signal } from '@angular/core'
+import { computed, DestroyRef, effect, inject, Injectable, model, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { nonNullable } from '@metad/ocap-core'
 import {
@@ -41,7 +41,7 @@ import { appendMessageContent } from '@metad/copilot'
  * The context of a single chat is not shared between conversations
  */
 @Injectable()
-export class ChatService {
+export abstract class ChatService {
   readonly chatService = inject(ChatServerService)
   readonly conversationService = inject(ChatConversationService)
   readonly feedbackService = inject(ChatMessageFeedbackService)
@@ -52,8 +52,8 @@ export class ChatService {
   readonly #toastr = inject(ToastrService)
   readonly #destroyRef = inject(DestroyRef)
 
-
-  readonly conversationId = this.homeService.conversationId // signal<string>(null)
+  
+  readonly conversationId = this.homeService.conversationId
   readonly xpert$ = new BehaviorSubject<IXpert>(null)
   readonly parametersValue = signal<Record<string, unknown>>(null)
   /**
@@ -146,6 +146,10 @@ export class ChatService {
       if (this.answering() && this.conversation()?.id) {
         this.cancelMessage()
       }
+    })
+
+    effect(() => {
+      console.log(this.conversationId())
     })
   }
 
@@ -430,4 +434,7 @@ export class ChatService {
       }
     })
   }
+
+  //
+  abstract newConv(slug?: string): void
 }
