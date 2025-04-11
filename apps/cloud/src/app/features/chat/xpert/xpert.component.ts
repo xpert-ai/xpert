@@ -2,7 +2,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, ViewContainerRef } from '@angular/core'
 import { RouterModule } from '@angular/router'
-import { ChatService, XpertChatAppComponent } from '@cloud/app/xpert'
+import { ChatService, XpertChatAppComponent, XpertOcapService } from '@cloud/app/xpert'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatPlatformService } from '../chat.service'
 import { ChatXpertsComponent } from '../xperts/xperts.component'
@@ -11,6 +11,8 @@ import { IXpert } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { Dialog } from '@angular/cdk/dialog'
 import { ChatConversationsComponent } from '@cloud/app/xpert'
+import { provideOcapCore } from '@metad/ocap-angular/core'
+import { provideOcap } from '@cloud/app/@core/providers/ocap'
 
 /**
  */
@@ -22,7 +24,13 @@ import { ChatConversationsComponent } from '@cloud/app/xpert'
   styleUrl: 'xpert.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   animations: [],
-  providers: [ChatPlatformService, { provide: ChatService, useExisting: ChatPlatformService }]
+  providers: [
+    ChatPlatformService, 
+    { provide: ChatService, useExisting: ChatPlatformService },
+    provideOcapCore(),
+    provideOcap(),
+    XpertOcapService
+  ]
 })
 export class ChatXpertComponent {
   readonly chatService = inject(ChatPlatformService)
@@ -38,7 +46,7 @@ export class ChatXpertComponent {
   }
 
   newXpertConv(xpert?: IXpert) {
-    this.chatService.newConv(xpert?.slug)
+    this.chatService.newConv(xpert)
   }
 
   openConversations() {

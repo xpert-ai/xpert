@@ -19,7 +19,7 @@ import {
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
-import { DisappearBL, SlideUpDownAnimation } from '@metad/core'
+import { DisappearBL, IfAnimation, SlideUpDownAnimation } from '@metad/core'
 import { isNil } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -28,12 +28,10 @@ import { EmojiAvatarComponent } from '../../@shared/avatar'
 import { XpertParametersCardComponent } from '../../@shared/xpert'
 import { ChatCanvasComponent } from '../canvas/canvas.component'
 import { ChatInputComponent } from '../chat-input/chat-input.component'
-import { provideOcapCore } from '@metad/ocap-angular/core'
 import { IXpert } from '@metad/contracts'
 import { Store } from '@metad/cloud/state'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { UserPipe } from '../../@shared/pipes'
-import { XpertOcapService } from '../ocap.service'
 import { ChatService } from '../chat.service'
 import { XpertHomeService } from '../home.service'
 import { ChatConversationComponent } from '../conversation/conversation.component'
@@ -61,11 +59,7 @@ import { ChatConversationComponent } from '../conversation/conversation.componen
   templateUrl: './xpert.component.html',
   styleUrl: 'xpert.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  animations: [DisappearBL, SlideUpDownAnimation],
-  providers: [
-    provideOcapCore(),
-    XpertOcapService
-  ]
+  animations: [IfAnimation, DisappearBL, SlideUpDownAnimation],
 })
 export class XpertChatAppComponent {
   readonly #store = inject(Store)
@@ -100,7 +94,7 @@ export class XpertChatAppComponent {
   })
 
   readonly canvasOpened = computed(() => this.homeService.canvasOpened()?.opened)
-  // readonly conversationTitle = this.homeService.conversationTitle
+  readonly conversationTitle = this.homeService.conversationTitle
 
   readonly isBottom = signal(true)
 
@@ -125,23 +119,10 @@ export class XpertChatAppComponent {
   constructor() {
     effect(
       () => {
-        this.chatService.xpert$.next(this.xpert())
+        this.chatService.xpert.set(this.xpert())
       },
       { allowSignalWrites: true }
     )
-
-    effect(
-      () => {
-        // this.homeService.xpert.set(this.xpert())
-      },
-      { allowSignalWrites: true }
-    )
-
-    effect(() => {
-      setTimeout(() => {
-        this.chatService.conversationId.set(this.paramConvId())
-      }, 100)
-    }, { allowSignalWrites: true })
 
     effect(
       () => {
@@ -186,15 +167,12 @@ export class XpertChatAppComponent {
   }
 
   newConv() {
-    this.conversationId.set(null)
-    this.chatService.xpert$.next(null)
     this.chatService.newConv()
   }
 
   newXpertConv(xpert?: IXpert) {
-    this.conversationId.set(null)
     xpert ??= this.xpert() ?? this.chatService.xpert()
-    this.chatService.newConv(xpert?.slug)
+    this.chatService.newConv(xpert)
   }
 
   openConversations() {

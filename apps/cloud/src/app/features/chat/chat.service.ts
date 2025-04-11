@@ -84,14 +84,16 @@ export class ChatPlatformService extends ChatService {
     )
   }
 
-  async newConversation(xpert?: IXpert) {
-    await super.newConversation()
-    this.xpert$.next(xpert)
-  }
+  // async newConversation(xpert?: IXpert) {
+  //   await super.newConversation()
+  //   this.xpert$.next(xpert)
+  // }
 
-  newConv(slug?: string) {
-    if (slug) {
-      this.#router.navigate(['/chat/x', slug])
+  newConv(xpert?: IXpert) {
+    this.conversationId.set(null)
+    this.conversation.set(null)
+    if (xpert?.slug) {
+      this.#router.navigate(['/chat/x', xpert.slug])
     } else {
       this.#router.navigate(['/chat'])
     }

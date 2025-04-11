@@ -349,6 +349,7 @@
       "Name": "名称",
       "KeepUniqueInEnv": "保持环境内唯一",
       "AddEnvironment": "添加环境",
+      "AddVariable": "添加变量",
       "Manage": "管理"
     },
     "MENU": {

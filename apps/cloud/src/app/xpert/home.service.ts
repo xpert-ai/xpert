@@ -32,6 +32,7 @@ export class XpertHomeService {
   readonly conversationId = signal<string>(null)
 
   readonly conversation = signal<IChatConversation>(null)
+  readonly conversationTitle = computed(() => this.conversation()?.title)
   readonly messages = computed(() => this.conversation()?.messages)
 
   readonly canvasOpened = signal<{

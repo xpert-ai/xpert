@@ -192,7 +192,11 @@ export class ChatConversationsComponent {
       }),
       tap({
         next: ({ items, total }) => {
-          this.homeService.conversations.update((state) => [...state, ...items])
+          if (this.currentPage()) {
+            this.homeService.conversations.update((state) => [...state, ...items])
+          } else {
+            this.homeService.conversations.update((state) => [...items])
+          }
           this.currentPage.update((state) => ++state)
           if (items.length < this.pageSize || this.currentPage() * this.pageSize >= total) {
             this.pagesCompleted.set(true)

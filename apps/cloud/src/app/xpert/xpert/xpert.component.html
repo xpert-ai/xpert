@@ -72,7 +72,7 @@
         </button>
       </div>
       <div class="text-lg font-medium flex-1 min-w-0 mx-4 text-center hidden sm:block overflow-hidden text-ellipsis whitespace-nowrap">
-        <!-- {{conversationTitle()}} -->
+        {{conversationTitle()}}
       </div>
 
       <div class="flex items-center">
@@ -81,9 +81,9 @@
     </div>
   </header>
   
-  <div class="flex flex-col flex-1 px-2 lg:w-[800px] lg:px-8 max-w-full mx-auto">
+  <div class="relative flex flex-col flex-1 px-2 lg:w-[800px] lg:px-8 max-w-full mx-auto">
     @if (!conversationId() && !messages()?.length) {
-      <div class="flex-1 h-full flex flex-col justify-center items-center gap-4">
+      <div @ifAnimationTrigger class="flex-1 h-full flex flex-col justify-center items-center gap-4">
         @if (xpert()) {
           <emoji-avatar [avatar]="xpert().avatar" large class="rounded-xl overflow-hidden shadow-sm" />
 
@@ -132,7 +132,7 @@
         }
       </div>
     } @else {
-      <chat-conversation class="flex-1 max-w-full lg:w-[800px] mx-auto py-4 lg:p-8"
+      <chat-conversation @ifAnimationTrigger class="flex-1 max-w-full lg:w-[800px] mx-auto py-4 lg:p-8"
         [xpert]="xpert()"
         (chat)="chatInput.ask($event)"
       />

@@ -34,8 +34,6 @@ export class ChatHomeService extends XpertHomeService {
 
   readonly xpert = signal<IXpert>(null)
 
-  readonly conversationTitle = computed(() => this.conversation()?.title)
-
   readonly sortOrder = computed(() => this.#preferences()?.sortOrder)
 
   readonly sortedXperts = computed(() => {
