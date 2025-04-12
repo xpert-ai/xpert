@@ -2111,6 +2111,11 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "ConnectWorkflow": "连接工作流",
+      "ConnectKnowledgebases": "连接知识库",
+      "ConnectToolsets": "连接工具集",
+      "ConnectXperts": "连接数字专家",
+      "ConnectAgents": "连接智能体",
       "MoreMCPFromMarketplace": "来自市场的更多 MCP 工具集",
       "Discover": "探索",
       "MainAgentTip": "主智能体, 负责接收消息",
