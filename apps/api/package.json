@@ -1,7 +1,7 @@
 {
-  "name": "@metad/ocap-api",
-  "version": "2.3.1",
-  "description": "Metad OCAP API",
+  "name": "@metad/xpert-api",
+  "version": "3.1.8",
+  "description": "Xpert API",
   "license": "AGPL-3.0",
   "homepage": "https://mtda.cloud",
   "repository": {
