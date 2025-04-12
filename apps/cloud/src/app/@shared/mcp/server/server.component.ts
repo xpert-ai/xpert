@@ -18,6 +18,8 @@ import {
 } from '../../../@core/types'
 import { CodeEditorComponent } from '../../editors'
 import { MCPToolsComponent } from '../tools/tools.component'
+import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
+import { Subscription } from 'rxjs'
 
 @Component({
   standalone: true,
@@ -33,6 +35,7 @@ import { MCPToolsComponent } from '../tools/tools.component'
     CodeEditorComponent,
     MCPToolsComponent,
     EntriesPipe,
+    NgmSlideToggleComponent
   ],
   hostDirectives: [NgxControlValueAccessor]
 })
@@ -48,9 +51,6 @@ export class MCPServerFormComponent {
   // Inputs
   readonly toolset = model<Partial<IXpertToolset>>()
   readonly tools = model<IXpertTool[]>()
-
-  // Output
-  readonly toolsChange = output<IXpertTool[]>()
 
   // States
   readonly types = model<MCPServerType[]>([MCPServerType.SSE])
@@ -166,6 +166,8 @@ export class MCPServerFormComponent {
   readonly env = computed(() => this.value$()?.env ?? {})
   readonly headers = computed(() => this.value$()?.headers ?? {})
 
+  private connectSub: Subscription = null
+
   constructor() {
     effect(
       () => {
@@ -260,14 +262,13 @@ if __name__ == "__main__":
   connect() {
     this.loading.set(true)
     this.error.set(null)
-    this.toolsetService
+    this.connectSub?.unsubscribe()
+    this.connectSub = this.toolsetService
       .getMCPToolsBySchema(this._toolset())
       .subscribe({
         next: (result) => {
           this.loading.set(false)
           this.tools.set(result.tools)
-          // this.needSandbox.setValue(Object.values(servers).some((server) => server.transport === MCPServerTransport.STDIO || server.command))
-          this.toolsChange.emit(result.tools)
           this.views.set(['tools'])
         },
         error: (err) => {
@@ -278,6 +279,13 @@ if __name__ == "__main__":
           // Handle the error scenario here
         }
       })
+  }
+
+  stopConnect() {
+    this.connectSub?.unsubscribe()
+    this.connectSub = null
+    this.loading.set(false)
+    this.error.set(null)
   }
 
   addHeader() {
@@ -358,14 +366,19 @@ if __name__ == "__main__":
   }
 
   updateEnvName(origin: string, name: string) {
+    if (origin === name) return
     this.value$.update((state) => {
-      const value = state.env[origin]
       return {
         ...state,
-        env: {
-          ...omit(state.env, origin),
-          [name]: value
-        }
+        // To ensure the order of env names
+        env: Object.keys(state.env).reduce((target, key) => {
+          if (key === origin) {
+            target[name] = state.env[origin]
+          } else {
+            target[key] = state.env[key]
+          }
+          return target
+        }, {})
       }
     })
   }

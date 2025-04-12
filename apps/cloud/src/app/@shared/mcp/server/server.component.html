@@ -154,7 +154,7 @@
       </div>
     </div>
 
-    @if (types()[0] === 'stdio') {
+    @if (types()[0] === 'sse') {
       <div class="my-4">
         <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
           <div class="truncate">{{'PAC.MCP.Env' | translate: {Default: 'Env'} }}</div>
@@ -234,13 +234,26 @@
     </div>
   </div>
 
-  <button type="button" class="shrink-0 w-full btn disabled:btn-disabled btn-primary btn-large justify-center shadow-sm"
-    [disabled]="loading()"
-    (click)="connect()"
-  >
-    <i class="ri-play-large-line mr-1"></i>
-    {{ 'PAC.MCP.Connect' | translate: { Default: 'Connect' } }}
-  </button>
+  <div class="w-full mt-4 flex justify-between space-x-2">
+    <button type="button" class="shrink-0 grow btn disabled:btn-disabled btn-primary btn-large justify-center shadow-sm"
+      [disabled]="loading()"
+      (click)="connect()"
+    >
+      <i class="ri-play-large-line mr-1"></i>
+      {{ 'PAC.MCP.Connect' | translate: { Default: 'Connect' } }}
+    </button>
+
+    @if (loading()) {
+      <button type="button" class="btn disabled:btn-disabled h-10 btn-danger pressable"
+        (click)="stopConnect()"
+      >
+        <div class="w-full text-center">
+          <i class="ri-stop-line"></i>
+          {{ 'PAC.Xpert.Stop' | translate: { Default: 'Stop' } }}
+        </div>
+      </button>
+    }
+  </div>
   <div class="flex justify-center items-center gap-2 p-2">
     @if (loading()) {
         <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-orange-500 flex'></span>

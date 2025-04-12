@@ -100,7 +100,7 @@ export class XpertStudioAPIToolComponent {
   readonly testResult = signal(null)
 
   readonly tools = computed(() => {
-    return this.toolset()?.tools ? this.toolset().tools.sort((a, b) => (a.disabled === b.disabled ? 0 : a.disabled ? 1 : -1)) : []
+    return this.toolset()?.tools ? this.toolset().tools.filter((_) => !_.deletedAt).sort((a, b) => (a.disabled === b.disabled ? 0 : a.disabled ? 1 : -1)) : []
   })
 
   readonly mcpServer = computed(() => {
@@ -155,7 +155,7 @@ export class XpertStudioAPIToolComponent {
       }
     }
     if (this.toolsDirty()) {
-      value.tools = this.toolset().tools
+      value.tools = this.toolset().tools.filter((_) => !_.deletedAt)
     } else {
       value = omit(value, 'tools')
     }

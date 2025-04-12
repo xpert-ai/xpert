@@ -32,7 +32,7 @@
 
 @layer components {
   .ngm-btn, .btn {
-    @apply flex items-center cursor-pointer rounded-xl px-2
+    @apply flex justify-center items-center cursor-pointer rounded-xl px-2
       active:scale-95 origin-bottom transition-all
       disabled:shadow-none disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
     bg-gray-100 border border-gray-100 hover:border-gray-200;
