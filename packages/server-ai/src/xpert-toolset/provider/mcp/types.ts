@@ -11,7 +11,10 @@ export async function createMCPClient(id: string, schema: TMCPSchema) {
 		server = servers[name]
 		const transport = server.type?.toLowerCase()
 		if (transport === MCPServerType.SSE || (!transport && server.url)) {
-			mcpServers[name] = server
+			mcpServers[name] = {
+				...server,
+				useNodeEventSource: true,
+			}
 			
 		} else if (transport === MCPServerType.STDIO || (!transport && server.command)) {
 			const args = server.args?.map((_) => _.split(' ').filter((_) => !!_)).flat()

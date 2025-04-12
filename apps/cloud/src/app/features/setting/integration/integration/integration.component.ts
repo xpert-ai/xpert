@@ -33,6 +33,7 @@ import {
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { ParameterFormComponent } from 'apps/cloud/src/app/@shared/forms'
 import { CardProComponent } from 'apps/cloud/src/app/@shared/card'
+import { environment } from '@cloud/environments/environment'
 
 @Component({
   standalone: true,
@@ -63,6 +64,7 @@ import { CardProComponent } from 'apps/cloud/src/app/@shared/card'
 })
 export class IntegrationComponent implements IsDirty {
   DisplayBehaviour = DisplayBehaviour
+  pro = environment.pro
 
   readonly integrationService = inject(IntegrationService)
   readonly #toastr = inject(ToastrService)
