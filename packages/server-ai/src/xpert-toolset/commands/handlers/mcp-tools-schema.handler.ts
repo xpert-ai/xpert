@@ -17,8 +17,9 @@ export class MCPToolsBySchemaHandler implements ICommandHandler<MCPToolsBySchema
 		// Create a client
 		const {client} = await createMCPClient(command.toolset.id, schema)
 		// const {client, destroy} = await createProMCPClient(command.toolset, null, this.commandBus, schema)
-		const tools = await client.getTools()
+		
 		try {
+			const tools = await client.getTools()
 			return {
 				tools: tools.map((tool) => {
 					return {

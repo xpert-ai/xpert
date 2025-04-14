@@ -5771,14 +5771,15 @@
     uuid "^10.0.0"
     zod "^3.23.8"
 
-"@langchain/mcp-adapters@0.3.4":
-  version "0.3.4"
-  resolved "https://registry.yarnpkg.com/@langchain/mcp-adapters/-/mcp-adapters-0.3.4.tgz#ed994a74d60e3c665dd3f731e85778350d83d411"
-  integrity sha512-NzRth5iD7lYPW+8DilnccuBNIvPxhJlNJRop1mohlGeAtWC0nKw+2gBaCgddeieUnfqOAdJJv2gV9RGzp1Im7g==
+"@langchain/mcp-adapters@0.4.0":
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/@langchain/mcp-adapters/-/mcp-adapters-0.4.0.tgz#6a26d7a75fb648850bdfa527a32c92ced8a1ea19"
+  integrity sha512-0nR7DQY6fGYvPZ0kGWPoetJB8zDygTqoPpwjLdOAZjqzrLvPBIrAbHzvf9j5/xjlUIcHH8/RXEOvw2AL82RJ+w==
   dependencies:
     "@dmitryrechkin/json-schema-to-zod" "^1.0.1"
     "@modelcontextprotocol/sdk" "^1.7.0"
     debug "^4.4.0"
+    zod "^3.24.2"
   optionalDependencies:
     extended-eventsource "^1.x"
 
@@ -32107,6 +32108,11 @@ zod@^3.24.1:
   version "3.24.1"
   resolved "https://registry.yarnpkg.com/zod/-/zod-3.24.1.tgz#27445c912738c8ad1e9de1bea0359fa44d9d35ee"
   integrity sha512-muH7gBL9sI1nciMZV67X5fTKKBLtwpZ5VBp1vsOQzj1MhrBZ4wlVCm3gedKZWLp0Oyel8sIGfeiz54Su+OVT+A==
+
+zod@^3.24.2:
+  version "3.24.2"
+  resolved "https://registry.yarnpkg.com/zod/-/zod-3.24.2.tgz#8efa74126287c675e92f46871cfc8d15c34372b3"
+  integrity sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ==
 
 zone.js@~0.14.0:
   version "0.14.10"

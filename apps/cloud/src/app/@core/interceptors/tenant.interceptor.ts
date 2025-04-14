@@ -36,7 +36,7 @@ export class TenantInterceptor implements HttpInterceptor {
           }
         })
 
-        if (organization) {
+        if (organization?.id) {
           request = request.clone({
             setHeaders: {
               'Organization-Id': `${organization.id}`

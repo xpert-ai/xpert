@@ -30,7 +30,16 @@ export class CopilotOrganization extends TenantBaseEntity implements ICopilotOrg
 	@ApiPropertyOptional({ type: () => Number })
 	@IsNumber()
 	@IsOptional()
-	@Column({ type: 'numeric', precision: 10, scale: 7, nullable: true })
+	@Column({ 
+		type: 'numeric', 
+		precision: 10, 
+		scale: 7, 
+		nullable: true,
+		transformer: {
+			to: (value?: number) => value,
+			from: (value: string | null) => value !== null ? parseFloat(value) : null,
+		},
+	 })
 	priceLimit?: number
 
 	@ApiPropertyOptional({ type: () => Number })
@@ -48,13 +57,31 @@ export class CopilotOrganization extends TenantBaseEntity implements ICopilotOrg
 	@ApiPropertyOptional({ type: () => Number })
 	@IsNumber()
 	@IsOptional()
-	@Column({ type: 'numeric', precision: 10, scale: 7, nullable: true })
+	@Column({ 
+		type: 'numeric', 
+		precision: 10, 
+		scale: 7, 
+		nullable: true,
+		transformer: {
+			to: (value?: number) => value,
+			from: (value: string | null) => value !== null ? parseFloat(value) : null,
+		},
+	 })
 	priceUsed?: number
 
 	@ApiPropertyOptional({ type: () => Number })
 	@IsNumber()
 	@IsOptional()
-	@Column({ type: 'numeric', precision: 10, scale: 7, nullable: true })
+	@Column({ 
+		type: 'numeric', 
+		precision: 10, 
+		scale: 7, 
+		nullable: true,
+		transformer: {
+			to: (value?: number) => value,
+			from: (value: string | null) => value !== null ? parseFloat(value) : null,
+		},
+	 })
 	priceTotalUsed?: number
 
 	@ApiPropertyOptional({ type: () => String })

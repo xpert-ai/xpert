@@ -83,7 +83,7 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.put<TXpertTeamDraft>(this.apiBaseUrl + `/${id}/draft`, draft)
   }
 
-  publish(id: string, newVersion: boolean, body: {releaseNotes: string}) {
+  publish(id: string, newVersion: boolean, body: {environmentId: string; releaseNotes: string}) {
     return this.httpClient.post<IXpert>(this.apiBaseUrl + `/${id}/publish`, body, {
       params: new HttpParams().append('newVersion', newVersion)
     })
@@ -174,21 +174,29 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   /**
    * Get avaiable variables for agent or global variables
    */
-  getVariables(id: string, agentKey?: string) {
-    return agentKey ? this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/agent/${agentKey}/variables`)
-    : this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/variables`)
+  getVariables(id: string, agentKey?: string, environmentId?: string) {
+    let params = new HttpParams()
+    if (environmentId) {
+      params = params.append('environment', environmentId)
+    }
+    return agentKey ? this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/agent/${agentKey}/variables`, {params})
+    : this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/variables`, {params})
   }
 
   /**
    * Get avaiable variables for workflow node
    */
-  getWorkflowVariables(id: string, nodeKey: string) {
-    return this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/workflow/${nodeKey}/variables`)
+  getWorkflowVariables1(id: string, nodeKey: string, environmentId?: string) {
+    let params = new HttpParams()
+    if (environmentId) {
+      params = params.append('environment', environmentId)
+    }
+    return this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/workflow/${nodeKey}/variables`, {params})
   }
 
-  getChatApp(id: string) {
-    return this.httpClient.get<{ user: IUser; token: string; refreshToken: string; xpert: IXpert }>(
-      this.apiBaseUrl + `/${id}/app`,
+  getChatApp(slug: string) {
+    return this.httpClient.get<IXpert>(
+      this.apiBaseUrl + `/${slug}/app`,
       { withCredentials: true }
     )
   }

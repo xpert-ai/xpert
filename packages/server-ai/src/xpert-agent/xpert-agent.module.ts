@@ -12,6 +12,7 @@ import { XpertAgentExecutionModule } from '../xpert-agent-execution'
 import { QueryHandlers } from './queries/handlers'
 import { XpertModule } from '../xpert/xpert.module'
 import { WorkflowCommandHandlers } from './workflow/handlers'
+import { EnvironmentModule } from '../environment'
 
 @Module({
 	imports: [
@@ -23,6 +24,7 @@ import { WorkflowCommandHandlers } from './workflow/handlers'
 		CopilotCheckpointModule,
 		XpertAgentExecutionModule,
 		forwardRef(() => XpertModule),
+		forwardRef(() => EnvironmentModule),
 	],
 	controllers: [XpertAgentController],
 	providers: [XpertAgentService, ...CommandHandlers, ...WorkflowCommandHandlers, ...QueryHandlers],

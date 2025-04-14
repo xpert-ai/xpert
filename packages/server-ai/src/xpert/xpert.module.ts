@@ -14,6 +14,7 @@ import { XpertWorkspaceModule } from '../xpert-workspace'
 import { CopilotCheckpointModule } from '../copilot-checkpoint'
 import { CopilotStoreModule } from '../copilot-store/copilot-store.module'
 import { AnonymousStrategy } from './auth/anonymous.strategy'
+import { EnvironmentModule } from '../environment'
 
 @Module({
     imports: [
@@ -25,6 +26,7 @@ import { AnonymousStrategy } from './auth/anonymous.strategy'
         forwardRef(() => XpertAgentModule),
         forwardRef(() => UserModule),
         forwardRef(() => XpertWorkspaceModule),
+        forwardRef(() => EnvironmentModule),
         CopilotCheckpointModule,
         CopilotStoreModule,
     ],

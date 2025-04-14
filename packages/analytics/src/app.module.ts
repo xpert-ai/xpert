@@ -1,7 +1,6 @@
 import { OrganizationModule, RedisModule, TenantModule } from '@metad/server-core'
-import { BullModule } from '@nestjs/bull'
 import { Module, forwardRef, CacheModule } from '@nestjs/common'
-import { ConfigModule, ConfigService } from '@nestjs/config'
+import { ConfigModule } from '@nestjs/config'
 import { CqrsModule } from '@nestjs/cqrs'
 import { AgentModule } from './agent/index'
 import { AppController } from './app.controller'
@@ -46,23 +45,23 @@ import { ModelQueryLogModule } from './model-query-log'
 		ConfigModule.forRoot({
 			isGlobal: true
 		}),
-		BullModule.forRootAsync({
-			imports: [ConfigModule],
-			useFactory: async (configService: ConfigService) => {
-				const host = configService.get('REDIS_HOST') || 'localhost'
-				const port = configService.get('REDIS_PORT') || 6379
-				const password = configService.get('REDIS_PASSWORD') || ''
-				return {
-					redis: {
-						host,
-						port,
-						password
-					},
-				}
-			},
-			inject: [ConfigService],
-		  }),
-		CacheModule.register(),
+		// BullModule.forRootAsync({
+		// 	imports: [ConfigModule],
+		// 	useFactory: async (configService: ConfigService) => {
+		// 		const host = configService.get('REDIS_HOST') || 'localhost'
+		// 		const port = configService.get('REDIS_PORT') || 6379
+		// 		const password = configService.get('REDIS_PASSWORD') || ''
+		// 		return {
+		// 			redis: {
+		// 				host,
+		// 				port,
+		// 				password
+		// 			},
+		// 		}
+		// 	},
+		// 	inject: [ConfigService],
+		//   }),
+		// CacheModule.register(),
 		CqrsModule,
 		forwardRef(() => TenantModule),
 		forwardRef(() => OrganizationModule),

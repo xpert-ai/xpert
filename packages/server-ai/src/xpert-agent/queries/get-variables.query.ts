@@ -15,6 +15,7 @@ export class XpertAgentVariablesQuery implements IQuery {
 			 * Draft First
 			 */
 			isDraft?: boolean,
+			environmentId?: string
 		},
 	) {}
 }

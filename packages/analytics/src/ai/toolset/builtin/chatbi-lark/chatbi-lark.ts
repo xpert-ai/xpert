@@ -23,7 +23,7 @@ export class ChatBILarkToolset extends AbstractChatBIToolset {
 	async initTools() {
 		await super.initTools()
 
-		const tools = this.toolset.tools.filter((_) => _.enabled)
+		const tools = this.toolset.tools.filter((_) => !(_.disabled ?? !_.enabled))
 		if (tools.find((_) => _.name === ChatBILarkToolsEnum.WELCOME)) {
 			this.tools.push(
 				createWelcomeTool(this, {

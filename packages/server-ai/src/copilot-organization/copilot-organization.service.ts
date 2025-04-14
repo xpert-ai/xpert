@@ -62,7 +62,7 @@ export class CopilotOrganizationService extends TenantAwareCrudService<CopilotOr
 			}
 		})
 		record.tokenTotalUsed += record.tokenUsed
-		record.priceTotalUsed += Number(record.priceUsed ?? 0)
+		record.priceTotalUsed = Number(record.priceTotalUsed ?? 0) + Number(record.priceUsed ?? 0)
 		record.tokenUsed = 0
 		record.priceUsed = 0
 		record.tokenLimit = entity.tokenLimit

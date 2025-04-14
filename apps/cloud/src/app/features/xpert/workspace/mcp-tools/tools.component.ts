@@ -2,10 +2,10 @@ import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
-import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
+import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { DynamicGridDirective } from '@metad/core'
+import { CapitalizePipe, DynamicGridDirective } from '@metad/core'
 import { injectConfirmUnique, NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
@@ -16,8 +16,9 @@ import { isNil, omitBy } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, EMPTY } from 'rxjs'
-import { debounceTime, map, switchMap } from 'rxjs/operators'
+import { map, switchMap } from 'rxjs/operators'
 import {
+  getErrorMessage,
   IXpertMCPTemplate,
   IXpertToolset,
   OrderTypeEnum,
@@ -34,6 +35,8 @@ import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { XpertToolMCPCreateComponent } from '../../tools/mcp/create/create.component'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 
+const InlineTemplateCount = 8
+
 @Component({
   standalone: true,
   imports: [
@@ -46,6 +49,7 @@ import { injectQueryParams } from 'ngxtension/inject-query-params'
     RouterModule,
     TranslateModule,
 
+    CapitalizePipe,
     DynamicGridDirective,
     NgmCommonModule,
     CardCreateComponent,
@@ -75,6 +79,12 @@ export class XpertWorkspaceMCPToolsComponent {
   readonly queryCategory = injectQueryParams('category')
   readonly confirmUnique = injectConfirmUnique()
 
+  // Inputs
+  readonly inline = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
+
+  // States
   readonly isMobile = this.appService.isMobile
   readonly lang = this.appService.lang
 
@@ -120,7 +130,8 @@ export class XpertWorkspaceMCPToolsComponent {
   })
 
   readonly #templates = derivedAsync(() => {
-    return this.templateService.getAllMCP()
+    const params = this.inline() ? {take: InlineTemplateCount} : null
+    return this.templateService.getAllMCP(params)
   })
 
   readonly categories = computed(() => this.#templates()?.categories)
@@ -135,6 +146,8 @@ export class XpertWorkspaceMCPToolsComponent {
       ? _.name.toLowerCase().includes(searchText) || _.title?.toLowerCase().includes(searchText) || _.description?.toLowerCase().includes(searchText)
       : true)
   })
+  
+  readonly loading = signal(false)
   
   constructor() {
     //
@@ -181,7 +194,17 @@ export class XpertWorkspaceMCPToolsComponent {
   }
 
   install(template: IXpertMCPTemplate) {
-    this.createTool(template)
+    this.loading.set(true)
+    this.templateService.getMCPTemplate(template.id).subscribe({
+      next: (temp) => {
+        this.loading.set(false)
+        this.createTool(temp)
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
   }
 
   navigateTo(toolset: IXpertToolset) {

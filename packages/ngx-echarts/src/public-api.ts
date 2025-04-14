@@ -3,3 +3,4 @@
  */
 
 export * from './lib/ngx-echarts.module';
+export * from './lib/ngx-echarts.directive'

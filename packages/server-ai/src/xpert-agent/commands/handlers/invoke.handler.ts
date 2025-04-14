@@ -35,6 +35,7 @@ import { createMapStreamEvents } from '../../agent'
 import { CompleteToolCallsQuery } from '../../queries'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
+import { EnvironmentService } from '../../../environment'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -44,6 +45,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
 		private readonly checkpointSaver: CopilotCheckpointSaver,
+		private readonly envService: EnvironmentService,
 		private readonly i18nService: I18nService
 	) {}
 
@@ -54,6 +56,12 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		const organizationId = RequestContext.getOrganizationId()
 		const userId = RequestContext.currentUserId()
 		const user = RequestContext.currentUser()
+
+		// Env
+		if (!options.environment && xpert.environmentId) {
+			const environment = await this.envService.findOne(xpert.environmentId)
+			options.environment = environment
+		}
 
 		const abortController = new AbortController()
 		const { graph, agent } = await this.commandBus.execute<

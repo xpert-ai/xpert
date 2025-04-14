@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common'
 import { Component, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertTool, IXpertToolset } from 'apps/cloud/src/app/@core/types'
-import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { MCPToolTestDialogComponent } from '../tool-test'
 
 /**
@@ -15,7 +16,15 @@ import { MCPToolTestDialogComponent } from '../tool-test'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, MatSlideToggleModule, NgmDensityDirective, XpertToolNameInputComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    MatSlideToggleModule,
+    MatTooltipModule,
+    NgmDensityDirective,
+    XpertToolNameInputComponent
+  ],
   selector: 'mcp-config-tools',
   templateUrl: 'tools.component.html',
   styleUrls: ['tools.component.scss'],
@@ -57,11 +66,17 @@ export class MCPToolsComponent {
           tool: {
             ...tool,
             toolset: this.toolset()
-          },
+          }
         }
       })
       .closed.subscribe({
         next: (result) => {}
       })
+  }
+
+  remove(tool: IXpertTool) {
+    this.tools.update((tools) => {
+      return tools.filter((_) => _.name !== tool.name)
+    })
   }
 }

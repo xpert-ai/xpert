@@ -60,6 +60,7 @@ export class XpertStudioPreviewComponent {
 
   readonly xpert = this.studioComponent.xpert
   readonly parameters = computed(() => this.apiService.primaryAgent()?.parameters)
+  readonly environmentId = this.apiService.environmentId
 
   readonly input = model<string>()
   readonly inputLength = computed(() => this.input()?.length)

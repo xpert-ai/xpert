@@ -17,7 +17,7 @@ import {
 } from '@langchain/langgraph'
 import { agentLabel, agentUniqueName, channelName, ChatMessageEventTypeEnum, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_SYS, TAgentRunnableConfigurable, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
-import { InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
@@ -63,12 +63,15 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		failNode: TXpertTeamNode
 	}> {
 		const { agentKeyOrName, xpert, options } = command
-		const { isStart, execution, leaderKey, channel: agentChannel, summarizeTitle, subscriber, rootController, signal, disableCheckpointer, variables, partners, handoffTools } = options
+		const { isStart, execution, leaderKey, channel: agentChannel, summarizeTitle, subscriber, rootController, signal, disableCheckpointer, variables, partners, handoffTools, environment } = options
 		const userId = RequestContext.currentUserId()
 
 		// Signal controller in this subgraph
 		const abortController = new AbortController()
 		signal?.addEventListener('abort', () => abortController.abort())
+
+		// I8n
+		const i18n = await this.i18nService.t('xpert.Error', {lang: mapTranslationLanguage(RequestContext.getLanguageCode())})
 
 		const {agent, graph, next, fail} = await this.queryBus.execute<GetXpertWorkflowQuery, {agent: IXpertAgent; graph: TXpertGraph; next: TXpertTeamNode[]; fail: TXpertTeamNode[]}>(
 			new GetXpertWorkflowQuery(xpert.id, agentKeyOrName, command.options?.isDraft)
@@ -305,7 +308,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						new CreateWorkflowNodeCommand(xpert.id, graph, node, parentKey, {
 							isDraft: options.isDraft,
 							subscriber,
-							rootExecutionId: options.rootExecutionId
+							rootExecutionId: options.rootExecutionId,
+							environment
 						}))
 					if (channel) {
 						channels.push(channel)
@@ -406,28 +410,33 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				return state
 			}, {}),
 			// Channels for agents
-			...Object.fromEntries(agents.map((agent) => [
-				channelName(agent.key),
-				Annotation<{messages: BaseMessage[]} & Record<string, unknown>>({
-					reducer: (a, b) => {
-						return b ? {
-							...a,
-							...b,
-							messages: b.messages ? messagesStateReducer(a.messages, b.messages) : a.messages
-						} : a
-					},
-					default: () => ({
-						agent: identifyAgent(agent),
-						messages: []})
-				})
-			])),
+			...Object.fromEntries(agents.map((agent) => {
+				if (!agent.key) {
+					throw new BadRequestException(i18n?.AgentMissingKey + agentLabel(agent))
+				}
+				return [
+					channelName(agent.key),
+					Annotation<{messages: BaseMessage[]} & Record<string, unknown>>({
+						reducer: (a, b) => {
+							return b ? {
+								...a,
+								...b,
+								messages: b.messages ? messagesStateReducer(a.messages, b.messages) : a.messages
+							} : a
+						},
+						default: () => ({
+							agent: identifyAgent(agent),
+							messages: []})
+					})
+				]
+			})),
 		})
 
 		const enableMessageHistory = !agent.options?.disableMessageHistory
 		const stateModifier = async (state: typeof AgentStateAnnotation.State) => {
 			const { memories } = state
 			const summary = getChannelState(state, agentChannel)?.summary
-			const parameters = stateToParameters(state)
+			const parameters = stateToParameters(state, environment)
 			let systemTemplate = `Current time: ${new Date().toISOString()}\n${parseXmlString(agent.prompt) ?? ''}`
 			if (memories?.length) {
 				systemTemplate += `\n\n<memories>\n${formatMemories(memories)}\n</memories>`

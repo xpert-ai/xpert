@@ -24,9 +24,15 @@ export class XpertHomeService {
   readonly lang = this.appService.lang
 
   readonly conversations = signal<IChatConversation[]>([])
+  readonly currentPage = signal(0)
+  readonly pagesCompleted = signal(false)
+  /**
+   * The ID of the current conversation
+   */
   readonly conversationId = signal<string>(null)
 
   readonly conversation = signal<IChatConversation>(null)
+  readonly conversationTitle = computed(() => this.conversation()?.title)
   readonly messages = computed(() => this.conversation()?.messages)
 
   readonly canvasOpened = signal<{
@@ -55,7 +61,7 @@ export class XpertHomeService {
 
   getXpert(slug: string) {
     if (!this.#xperts[slug]) {
-      this.#xperts[slug] = this.xpertService.getBySlug(slug).pipe(shareReplay(1))
+      this.#xperts[slug] = this.xpertService.getChatApp(slug).pipe(shareReplay(1))
     }
     return this.#xperts[slug]
   }

@@ -3,7 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { AbstractControl } from '@angular/forms'
 import { nonBlank, nonNullable } from '@metad/core'
 import { ISelectOption } from '@metad/ocap-angular/core'
-import { DimensionType, EntityProperty, PropertyDimension, serializeUniqueName } from '@metad/ocap-core'
+import { DimensionType, EntityProperty, PropertyDimension, PropertyHierarchy, serializeUniqueName } from '@metad/ocap-core'
 import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { Observable, combineLatest, firstValueFrom } from 'rxjs'
@@ -27,16 +27,16 @@ export class DimensionSchemaService<T extends EntityProperty = PropertyDimension
       state.hierarchies ?? state.cube.dimensions?.find((item) => item.__id__ === state.modeling.__id__)?.hierarchies
   )
 
-  readonly hierarchyOptions$ = combineLatest([this.dimensionName$, this.hierarchies$]).pipe(
-    map(
-      ([dimensionName, hierarchies]) =>
-        hierarchies?.map((hierarchy) => ({
-          key: serializeUniqueName(dimensionName, hierarchy.name),
-          value: serializeUniqueName(dimensionName, hierarchy.name),
-          caption: hierarchy.caption
-        })) ?? []
-    )
-  )
+  // readonly hierarchyOptions$ = combineLatest([this.dimensionName$, this.hierarchies$]).pipe(
+  //   map(
+  //     ([dimensionName, hierarchies]) =>
+  //       hierarchies?.map((hierarchy) => ({
+  //         key: serializeUniqueName(dimensionName, hierarchy.name),
+  //         value: serializeUniqueName(dimensionName, hierarchy.name),
+  //         caption: hierarchy.caption
+  //       })) ?? []
+  //   )
+  // )
 
   readonly otherDimensions = toSignal(
     combineLatest([
@@ -81,7 +81,7 @@ export class DimensionSchemaService<T extends EntityProperty = PropertyDimension
         DimensionModeling(
           this.SCHEMA,
           this.getTranslationFun(),
-          this.hierarchyOptions$,
+          this.hierarchies$,
           this.factFields$,
           this.otherDimensions(),
           this.rt,
@@ -104,7 +104,7 @@ export class DimensionSchemaService<T extends EntityProperty = PropertyDimension
 export function DimensionModeling(
   i18n,
   translate,
-  hierarchies$: Observable<ISelectOption[]>,
+  hierarchies$: Observable<PropertyHierarchy[]>,
   factColumns$: Observable<ISelectOption[]>,
   dimensions: PropertyDimension[],
   rt = false,
@@ -220,15 +220,24 @@ export function DimensionModeling(
             }
           },
           // Default Hierarchy 在 shared dimension 一对多 cubes 的情况下无法区分，所以暂时先停用此功能
-          // {
-          //   className,
-          //   key: 'defaultHierarchy',
-          //   type: 'select',
-          //   props: {
-          //     label: DIMENSION?.DefaultHierarchy ?? 'Default Hierarchy',
-          //     options: hierarchies$
-          //   }
-          // }
+          {
+            className,
+            key: 'defaultHierarchy',
+            type: 'select',
+            props: {
+              label: DIMENSION?.DefaultHierarchy ?? 'Default Hierarchy',
+              options: hierarchies$.pipe(
+                map(
+                  (hierarchies) =>
+                    hierarchies?.map((hierarchy) => ({
+                      key: hierarchy.name || '',
+                      value: hierarchy.name || '',
+                      caption: hierarchy.caption
+                    })) ?? []
+                )
+              )
+            }
+          }
         ]
       },
       // Dimension 应该没有 KeyExpression

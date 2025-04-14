@@ -17,11 +17,13 @@ import {
 	KnowledgeDocumentPage,
 	Xpert,
 	XpertAgent,
+	XpertAgentExecution,
+	XpertTemplate,
 	XpertTool,
 	XpertToolset,
+	XpertTask,
 	XpertWorkspace,
-	XpertAgentExecution,
-	XpertTask
+	Environment,
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
@@ -43,9 +45,11 @@ export const ALL_AI_ENTITIES = [
 	KnowledgeDocumentPage,
 	Xpert,
 	XpertAgent,
+	XpertAgentExecution,
+	XpertTemplate,
 	XpertTool,
 	XpertToolset,
+	XpertTask,
 	XpertWorkspace,
-	XpertAgentExecution,
-	XpertTask
+	Environment,
 ]

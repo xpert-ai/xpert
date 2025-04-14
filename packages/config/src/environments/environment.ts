@@ -145,6 +145,16 @@ export const devEnvironment: IEnvironment = {
 		roleName: process.env.LARK_ROLE_NAME,
 	},
 
+	wecomConfig: {
+		token: process.env.WECOM_TOKEN,
+		encodingAESKey: process.env.WECOM_AES_KEY,
+		corpId: process.env.WECOM_CORP_ID,
+		agentId: process.env.WECOM_AGENT_ID,
+		secret: process.env.WECOM_SECRET,
+
+		roleName: process.env.WECOM_ROLE_NAME,
+	},
+
 	dingtalkConfig: {
 		clientId: process.env.DINGTALK_CLIENT_ID,
 		clientSecret: process.env.DINGTALK_CLIENT_SECRET,

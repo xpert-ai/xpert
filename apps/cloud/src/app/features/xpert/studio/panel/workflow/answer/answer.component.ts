@@ -17,6 +17,7 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, of } from 'rxjs'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
+import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow-answer',
@@ -29,7 +30,7 @@ import { XpertStudioComponent } from '../../../studio.component'
     tabindex: '-1'
   }
 })
-export class XpertStudioPanelWorkflowAnswerComponent {
+export class XpertStudioPanelWorkflowAnswerComponent extends XpertWorkflowBaseComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
   eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
 
@@ -40,35 +41,13 @@ export class XpertStudioPanelWorkflowAnswerComponent {
   readonly #toastr = injectToastr()
 
   // Inputs
-  readonly node = input<TXpertTeamNode>()
   readonly entity = input<IWorkflowNode>()
 
   // States
-  readonly key = computed(() => this.node()?.key)
-  readonly xpert = this.xpertStudioComponent.xpert
-  readonly xpertId = computed(() => this.xpert()?.id)
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
   readonly answerEntity = computed(() => this.entity() as IWFNAnswer)
   readonly promptTemplate = computed(() => this.answerEntity()?.promptTemplate)
-
-  // Fetch avaiable variables for this agent from server
-  readonly variables = derivedAsync(() => {
-    const xpertId = this.xpertId()
-    const nodeKey = this.key()
-    return xpertId && nodeKey
-      ? this.xpertService.getWorkflowVariables(xpertId, nodeKey).pipe(
-          catchError((error) => {
-            this.#toastr.error(getErrorMessage(error))
-            return of([])
-          })
-        )
-      : of(null)
-  })
-
-  constructor() {
-    // effect(() => console.log(this.variables()))
-  }
-
+  
   updateEntity(name: string, value: string | number) {
     const entity = { ...(this.answerEntity() ?? {}) } as IWFNAnswer
     entity[name] = value

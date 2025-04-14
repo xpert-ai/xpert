@@ -1,10 +1,10 @@
 import { Location } from '@angular/common'
 import { effect, inject, Injectable } from '@angular/core'
 import { ChatService } from './chat.service'
-import { TChatOptions, TChatRequest, XpertTypeEnum } from '../@core'
-import { ActivatedRoute } from '@angular/router'
+import { IXpert, TChatOptions, TChatRequest } from '../@core'
+import { ActivatedRoute, Router } from '@angular/router'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
-import { distinctUntilChanged, filter, map, withLatestFrom } from 'rxjs'
+import { distinctUntilChanged, filter, map, of, withLatestFrom } from 'rxjs'
 import { nonNullable } from '@metad/core'
 import { injectParams } from 'ngxtension/inject-params'
 
@@ -15,10 +15,11 @@ import { injectParams } from 'ngxtension/inject-params'
 export class ChatAppService extends ChatService {
   readonly route = inject(ActivatedRoute)
   readonly #location = inject(Location)
+  readonly #router = inject(Router)
   readonly paramRole = injectParams('name')
   readonly paramId = injectParams('id')
 
-  private roleSub = this.xpert$
+  private roleSub = toObservable(this.xpert)
     .pipe(
       withLatestFrom(toObservable(this.paramRole)),
       filter(() => !this.conversationId()),
@@ -50,11 +51,11 @@ export class ChatAppService extends ChatService {
       const roleName = this.paramRole()
       const paramId = this.paramId()
       // if (paramId !== id) {
-      if (this.xpert$.value?.slug) {
+      if (this.xpert()?.slug) {
         if (id) {
-          this.#location.replaceState('/x/' + this.xpert$.value.slug + '/c/' + id)
+          this.#location.replaceState('/x/' + this.xpert().slug + '/c/' + id)
         } else {
-          this.#location.replaceState('/x/' + this.xpert$.value.slug)
+          this.#location.replaceState('/x/' + this.xpert().slug)
         }
       } else if (id) {
         this.#location.replaceState('/x/c/' + id)
@@ -63,32 +64,36 @@ export class ChatAppService extends ChatService {
       }
       // }
     })
+
   constructor() {
     super()
-
-    effect(
-      () => {
-        if (this.paramId()) {
-          this.conversationId.set(this.paramId())
-        }
-      },
-      { allowSignalWrites: true }
-    )
     
     this.route.data.pipe(takeUntilDestroyed()).subscribe((data) => {
-      this.xpert$.next(data.xpert)
+      this.xpert.set(data.xpert)
+      this.conversationId.set(this.paramId())
     })
   }
   
   getConversation(id: string) {
-    return this.xpertService.getAppConversation(this.xpert().slug, id, { relations: ['xpert', 'xpert.knowledgebases', 'xpert.toolsets', 'messages'] })
+    return this.xpert() ? this.xpertService.getAppConversation(this.xpert().slug, id, { relations: ['xpert', 'xpert.knowledgebases', 'xpert.toolsets', 'messages'] })
+     : of(null)
   }
 
   getFeedbacks(id: string) {
-    return this.xpertService.getAppFeedbacks(this.xpert().slug, id)
+    return this.xpert() ? this.xpertService.getAppFeedbacks(this.xpert().slug, id) : of(null)
   }
 
   chatRequest(name: string, request: TChatRequest, options: TChatOptions) {
     return this.xpertService.chatApp(name, request, options)
+  }
+
+  newConv(xpert?: IXpert) {
+    this.conversationId.set(null)
+    this.conversation.set(null)
+    if (xpert?.slug) {
+      this.#router.navigate(['/x/', xpert.slug])
+    } else {
+      this.#router.navigate(['/x'])
+    }
   }
 }

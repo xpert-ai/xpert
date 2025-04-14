@@ -1,7 +1,8 @@
 {
   "name": "@metad/server-core",
-  "version": "3.1.7",
+  "version": "3.1.8",
   "type": "commonjs",
+  "license": "AGPL-3.0",
   "dependencies": {
     "@casl/ability": "^5.4.3",
     "@larksuiteoapi/node-sdk": "^1.30.0",

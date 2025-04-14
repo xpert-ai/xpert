@@ -1,7 +1,7 @@
 <div class="flex flex-col w-16 max-w-[240px] shrink-0 transition-all bg-neutral-50"
   [class.w-[240px]]="sideMenuOpened()"
 >
-  <div class="flex flex-col p-2 mx-2 mt-2 rounded-xl hover:bg-gray-100 pressable cursor-pointer"
+  <div class="group flex flex-col p-2 mx-2 mt-2 rounded-xl hover:bg-gray-100 pressable cursor-pointer"
     (click)="manageOpened.set(true)"
   >
     <div class="flex justify-between items-center gap-2" [class.flex-col]="!sideMenuOpened()">
@@ -29,7 +29,7 @@
         </span>
       </div>
   
-      <i class="ri-equalizer-2-line text-text-secondary"></i>
+      <i class="ri-equalizer-2-line text-lg text-text-secondary group-hover:text-text-primary"></i>
     </div>
 
     @if (sideMenuOpened()) {
@@ -183,7 +183,7 @@
   </div>
 </div>
 
-<div class="flex-1 relative flex" [@routeAnimations]="o.isActivated && o.activatedRouteData?.title">
+<div class="flex-1 relative flex overflow-hidden" [@routeAnimations]="o.isActivated && o.activatedRouteData?.title">
   <router-outlet #o="outlet"></router-outlet>
 </div>
 

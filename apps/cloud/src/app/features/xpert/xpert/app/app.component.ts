@@ -2,7 +2,7 @@ import { Clipboard } from '@angular/cdk/clipboard'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
@@ -52,6 +52,10 @@ export class XpertAppComponent {
   readonly #clipboard = inject(Clipboard)
   readonly #dialog = inject(Dialog)
   readonly apiBaseUrl = injectApiBaseUrl()
+
+  readonly small = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
   readonly xpert = this.xpertComponent.latestXpert
 

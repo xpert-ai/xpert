@@ -1,12 +1,14 @@
 import { ConnectedPosition, Overlay, OverlayPositionBuilder, OverlayRef } from '@angular/cdk/overlay'
 import { TemplatePortal } from '@angular/cdk/portal'
-import { Directive, effect, ElementRef, HostListener, input, OnDestroy, TemplateRef, ViewContainerRef } from '@angular/core'
+import { DestroyRef, Directive, effect, ElementRef, HostListener, inject, input, TemplateRef, ViewContainerRef } from '@angular/core'
 
 @Directive({
   selector: '[ngmTooltip]',
   standalone: true
 })
-export class NgmTooltipDirective implements OnDestroy {
+export class NgmTooltipDirective {
+  readonly destroyRef = inject(DestroyRef);
+
   // Inputs
   readonly ngmTooltip = input<TemplateRef<any>>()
   readonly ngmTooltipContext = input<any>()
@@ -18,6 +20,12 @@ export class NgmTooltipDirective implements OnDestroy {
 
 //   private attachTimeoutId: any
   private detachTimeoutId: any
+
+  // register a destroy callback
+  readonly unregisterFn = this.destroyRef.onDestroy(() => {
+    clearTimeout(this.detachTimeoutId) // 确保组件销毁时清理计时器
+    this.overlayRef.dispose()
+  })
 
   constructor(
     private overlay: Overlay,
@@ -50,6 +58,7 @@ export class NgmTooltipDirective implements OnDestroy {
         this.detachTimeoutId = null
       }
 
+      this.overlayRef.detach()
       const portal = new TemplatePortal(this.ngmTooltip(), this.viewContainerRef, this.ngmTooltipContext())
       this.overlayRef.attach(portal)
     }
@@ -60,10 +69,5 @@ export class NgmTooltipDirective implements OnDestroy {
     this.detachTimeoutId = setTimeout(() => {
       this.overlayRef.detach()
     }, this.hideDelay() ?? 0)
-  }
-
-  ngOnDestroy() {
-    clearTimeout(this.detachTimeoutId) // 确保组件销毁时清理计时器
-    this.overlayRef.dispose()
   }
 }

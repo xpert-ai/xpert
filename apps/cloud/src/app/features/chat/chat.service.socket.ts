@@ -49,7 +49,7 @@ export class ChatWebsocketService {
   readonly #toastr = inject(ToastrService)
   readonly #location = inject(Location)
   readonly #destroyRef = inject(DestroyRef)
-  readonly paramRole = injectParams('role')
+  readonly paramRole = injectParams('name')
   readonly paramId = injectParams('id')
 
   readonly conversationId = signal<string>(null)

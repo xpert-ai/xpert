@@ -130,8 +130,10 @@ export class XpertWorkspaceXpertsComponent {
         }
       })
       .closed.subscribe((xpert) => {
-        if (xpert) {
-          this.router.navigate(['/xpert/', xpert.id])
+        if (xpert?.type === XpertTypeEnum.Agent) {
+          this.router.navigate(['/xpert/', xpert.id, 'agents'])
+        } else if (xpert?.type === XpertTypeEnum.Copilot) {
+          this.router.navigate(['/xpert/', xpert.id, 'copilot'])
         }
       })
   }
@@ -191,7 +193,9 @@ export class XpertWorkspaceXpertsComponent {
         data: {
           name: dsl.team.name,
           avatar: dsl.team.avatar,
-          description: dsl.team.description
+          description: dsl.team.description,
+          title: dsl.team.title,
+          copilotModel: dsl.team.copilotModel
         }
       })
       .closed.pipe(

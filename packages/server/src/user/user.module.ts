@@ -24,10 +24,10 @@ import { RoleModule } from '../role';
 		CqrsModule,
 		RoleModule,
 		FactoryResetModule,
-		CacheModule.register({ isGlobal: true })
+		// CacheModule.register({ isGlobal: true })
 	],
 	controllers: [UserController],
 	providers: [UserService, ...CommandHandlers, ...EventHandlers],
-	exports: [TypeOrmModule, UserService, CacheModule, CqrsModule]
+	exports: [TypeOrmModule, UserService, CqrsModule]
 })
 export class UserModule {}

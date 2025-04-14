@@ -1,6 +1,7 @@
 {
   "name": "@metad/ocap-olap",
   "version": "1.0.0",
+  "license": "AGPL-3.0",
   "scripts": {
     "build": "rimraf target && mvn install && yarn run docker-build",
     "mvn": "mvn install",

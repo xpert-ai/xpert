@@ -1,4 +1,4 @@
-<div class="min-w-[200px] md:min-w-[300px] lg:min-w-[400px] flex flex-col gap-2 p-2 overflow-auto">
+<div class="min-w-[200px] md:min-w-[300px] lg:min-w-[400px] max-w-[500px] flex flex-col gap-2 p-2 overflow-auto">
   <div class="flex justify-center pb-2">
     <ul class="w-80 p-1 flex items-center justify-center gap-2 bg-hover-bg rounded-xl"
       cdkListbox
@@ -91,15 +91,15 @@
         <div class="col-span-2">{{'PAC.MCP.Value' | translate: {Default: 'Value'} }}</div>
         @for (row of headers() | entries; track row[0]) {
           <div class="col-span-1">
-            <input #input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+            <input #input1 class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
               [ngModel]="row[0]"
-              (blur)="updateHeaderName(row[0], input.value)"
+              (blur)="updateHeaderName(row[0], input1.value)"
             />
           </div>
           <div class="col-span-2 flex items-center gap-1">
-            <input #input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+            <input #input2 class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
               [ngModel]="row[1]"
-              (blur)="updateHeaderValue(row[0], input.value)"
+              (blur)="updateHeaderValue(row[0], input2.value)"
             />
             <div class="w-7 h-7 btn flex justify-center items-center rounded-lg cursor-pointer hover:bg-hover-bg select-none danger
               pressable"
@@ -154,7 +154,7 @@
       </div>
     </div>
 
-    @if (types()[0] === 'stdio') {
+    @if (types()[0] !== 'sse') {
       <div class="my-4">
         <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
           <div class="truncate">{{'PAC.MCP.Env' | translate: {Default: 'Env'} }}</div>
@@ -172,15 +172,15 @@
           <div class="col-span-2">{{'PAC.MCP.Value' | translate: {Default: 'Value'} }}</div>
           @for (row of env() | entries; track row[0]) {
             <div class="col-span-1">
-              <input #input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+              <input #input1 class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
                 [ngModel]="row[0]"
-                (blur)="updateEnvName(row[0], input.value)"
+                (blur)="updateEnvName(row[0], input1.value)"
               />
             </div>
             <div class="col-span-2 flex items-center gap-1">
-              <input #input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+              <input #input2 class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
                 [ngModel]="row[1]"
-                (blur)="updateEnvValue(row[0], input.value)"
+                (blur)="updateEnvValue(row[0], input2.value)"
               />
               <div class="w-7 h-7 btn flex justify-center items-center rounded-lg cursor-pointer hover:bg-hover-bg select-none danger
                 pressable"
@@ -234,13 +234,26 @@
     </div>
   </div>
 
-  <button type="button" class="shrink-0 w-full btn disabled:btn-disabled btn-primary btn-large justify-center shadow-sm"
-    [disabled]="loading()"
-    (click)="connect()"
-  >
-    <i class="ri-play-large-line mr-1"></i>
-    {{ 'PAC.MCP.Connect' | translate: { Default: 'Connect' } }}
-  </button>
+  <div class="w-full mt-4 flex justify-between space-x-2">
+    <button type="button" class="shrink-0 grow btn disabled:btn-disabled btn-primary btn-large justify-center shadow-sm"
+      [disabled]="loading()"
+      (click)="connect()"
+    >
+      <i class="ri-play-large-line mr-1"></i>
+      {{ 'PAC.MCP.Connect' | translate: { Default: 'Connect' } }}
+    </button>
+
+    @if (loading()) {
+      <button type="button" class="btn disabled:btn-disabled h-10 btn-danger pressable"
+        (click)="stopConnect()"
+      >
+        <div class="w-full text-center">
+          <i class="ri-stop-line"></i>
+          {{ 'PAC.Xpert.Stop' | translate: { Default: 'Stop' } }}
+        </div>
+      </button>
+    }
+  </div>
   <div class="flex justify-center items-center gap-2 p-2">
     @if (loading()) {
         <span class='w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-orange-500 flex'></span>
@@ -255,7 +268,7 @@
   </div>
 
   @if (error()) {
-    <div class="p-4 text-sm text-text-destructive whitespace-pre break-all rounded-xl bg-gray-50">
+    <div class="p-4 text-sm text-text-destructive whitespace-pre-line break-all rounded-xl bg-gray-50">
       {{error()}}
     </div>
   }

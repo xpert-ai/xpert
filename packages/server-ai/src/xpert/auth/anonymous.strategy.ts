@@ -28,9 +28,9 @@ export class AnonymousStrategy extends PassportStrategy(Strategy, 'xpert') {
 						this.success({ ...user, thirdPartyId: anonymousId })
 					}
 				} else {
-					this.fail('x', 401)
+					this.fail(401)
 				}
 			})
-			.catch((err) => this.fail('x', 404))
+			.catch((err) => this.fail(404))
 	}
 }

@@ -9,6 +9,7 @@ export class XpertPublishCommand implements ICommand {
 	constructor(
 		public readonly id: string,
 		public readonly newVersion: boolean,
+		public readonly environmentId: string,
 		public readonly notes: string,
 	) { }
 }

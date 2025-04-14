@@ -22,15 +22,18 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
         // Has retry request
         let haveTry = false
         const token = store.token
+        const headers = {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          Language: lang(),
+          'Time-Zone': Intl.DateTimeFormat().resolvedOptions().timeZone
+        }
+        if (organization?.id) {
+          headers['Organization-Id'] = organization.id
+        }
         fetchEventSource(url, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-            'Organization-Id': `${organization.id}`,
-            Language: lang(),
-            'Time-Zone': Intl.DateTimeFormat().resolvedOptions().timeZone
-          },
+          headers,
           body: data,
           openWhenHidden: true,
           signal: ctrl.signal,

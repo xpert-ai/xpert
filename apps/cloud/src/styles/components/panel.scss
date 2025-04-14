@@ -56,6 +56,10 @@
   min-height: 40vh;
 }
 
+.cdk-overlay-backdrop.backdrop-blur-md-white {
+  @apply backdrop-blur-md transition-all duration-100 ease-in bg-white/50;
+}
+
 .mat-mdc-autocomplete-panel {
   .mdc-list-item__primary-text {
     width: 100%;

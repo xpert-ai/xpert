@@ -24,6 +24,8 @@ import {
 } from '../../../@core'
 import { EmojiAvatarComponent } from '../../avatar'
 import { IntegrationFormComponent } from '../../integration'
+import { environment } from '@cloud/environments/environment'
+
 
 @Component({
   standalone: true,
@@ -103,17 +105,18 @@ export class XpertPublishComponent {
   }
 
   addIntegration(provider: TIntegrationProvider) {
-    if (!provider.pro) {
-      const integration = {
-        provider: provider.name,
-        name: this.#data.xpert.name,
-        description: this.#data.xpert.description,
-        avatar: this.#data.xpert.avatar
-      } as IIntegration
-
-      this.selectedIntegrations.set([integration])
-      this.integrations.update((state) => [...state, integration])
+    if (!environment.pro && provider.pro) {
+      return
     }
+    const integration = {
+      provider: provider.name,
+      name: this.#data.xpert.name,
+      description: this.#data.xpert.description,
+      avatar: this.#data.xpert.avatar
+    } as IIntegration
+
+    this.selectedIntegrations.set([integration])
+    this.integrations.update((state) => [...state, integration])
   }
 
   updateIntegration(integration: IIntegration) {

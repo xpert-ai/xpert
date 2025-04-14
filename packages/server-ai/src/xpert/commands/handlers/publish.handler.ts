@@ -22,7 +22,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 	) {}
 
 	public async execute(command: XpertPublishCommand): Promise<Xpert> {
-		const {id, newVersion, notes} = command
+		const {id, newVersion, environmentId, notes} = command
 		const xpert = await this.xpertService.findOne(id, { relations: ['agent', 'copilotModel', 'agents', 'agents.copilotModel', 'knowledgebases', 'toolsets'] })
 
 		if (!xpert.draft) {
@@ -67,11 +67,15 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 			await this.saveTeamVersion(xpert, version)
 		}
 
+		// Release notes
 		if (newVersion) {
 			xpert.releaseNotes = ''
 		}
 		xpert.releaseNotes ??= ''
 		xpert.releaseNotes += (xpert.releaseNotes ? '\n\n' : '') + notes
+		
+		// Env
+		xpert.environmentId = environmentId
 
 		return await this.publish(xpert, version, draft)
 	}

@@ -1,10 +1,10 @@
 import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { IPoint, IRect } from '@foblex/2d'
-import { nonNullable, debounceUntilChanged } from '@metad/core'
+import { nonNullable, debounceUntilChanged, linkedModel } from '@metad/core'
 import { createStore, Store, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
-import { KnowledgebaseService, ToastrService, XpertService, XpertToolsetService } from 'apps/cloud/src/app/@core'
+import { EnvironmentService, KnowledgebaseService, ToastrService, XpertService, XpertToolsetService } from 'apps/cloud/src/app/@core'
 import { isEqual, negate, omit } from 'lodash-es'
 import {
   BehaviorSubject,
@@ -16,6 +16,7 @@ import {
   filter,
   map,
   Observable,
+  of,
   shareReplay,
   Subject,
   switchMap,
@@ -23,6 +24,7 @@ import {
 } from 'rxjs'
 import {
   getErrorMessage,
+  IEnvironment,
   IKnowledgebase,
   IWorkflowNode,
   IXpert,
@@ -63,6 +65,7 @@ import { PACCopilotService } from '../../../services'
 import { CreateWorkflowNodeRequest, CreateWorkflowNodeHandler, UpdateWorkflowNodeHandler, UpdateWorkflowNodeRequest } from './workflow'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { ActivatedRoute, Router } from '@angular/router'
+import { effectAction } from '@metad/ocap-angular/core'
 
 
 const SaveDraftDebounceTime = 1 // s
@@ -73,6 +76,7 @@ export class XpertStudioApiService {
   readonly knowledgebaseService = inject(KnowledgebaseService)
   readonly toolsetService = inject(XpertToolsetService)
   readonly copilotService = inject(PACCopilotService)
+  readonly environmentService = inject(EnvironmentService)
   readonly #toastr = inject(ToastrService)
   readonly xpertComponent = inject(XpertComponent)
   readonly getXpertTeam = injectGetXpertTeam()
@@ -158,6 +162,26 @@ export class XpertStudioApiService {
     shareReplay(1)
   )
 
+  readonly environments$ = toObservable(this.workspaceId).pipe(
+    filter(nonNullable),
+    switchMap((workspaceId) =>  this.environmentService.getAllInOrg({
+      where: {workspaceId}
+    })),
+    map(({items}) => items),
+    shareReplay(1)
+  )
+
+  readonly environments = toSignal(this.environments$)
+  readonly environmentId = signal<string>(null)
+
+  readonly environment = linkedModel({
+    initialValue: null,
+    compute: () => this.environments()?.find((_) => _.id === this.environmentId()),
+    update: (env, origin) => {
+      this.saveEnvironment({ id: env.id, variables: env.variables })
+    }
+  })
+
   private saveDraftSub = this.#refresh$
     .pipe(
       switchMap(() =>
@@ -221,9 +245,15 @@ export class XpertStudioApiService {
     .subscribe()
 
   constructor() {
-    effect(() => {
-      // console.log('API service:', this.viewModel())
-    })
+    effect(
+      () => {
+        if (this.environment() == null && this.environments()?.length) {
+          this.environmentId.set(
+            this.environments().find((_) => _.isDefault)?.id ?? this.environments()[0]?.id)
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
   
   getInitialDraft() {
@@ -273,6 +303,19 @@ export class XpertStudioApiService {
       })
     )
   }
+
+  saveEnvironment = effectAction((origin: Observable<Partial<IEnvironment>>) => {
+    return origin.pipe(
+      debounceTime(1000),
+      // tap(() => this.loading.set(true)),
+      switchMap((env) => this.environmentService.update(env.id, env)),
+      // tap(() => this.loading.set(false)),
+      catchError(() => {
+        // this.loading.set(false)
+        return EMPTY
+      })
+    )
+  })
 
   public getNode(key: string) {
     return this.viewModel().nodes.find((item) => item.key === key)
@@ -550,5 +593,13 @@ export class XpertStudioApiService {
       this.knowledgebases.set(id, this.knowledgebaseService.getOneById(id, { relations: ['tools']}).pipe(shareReplay(1)))
     }
     return this.knowledgebases.get(id)
+  }
+
+  getVariables(options: {workflowKey?: string; agentKey?: string; }) {
+    if (options.workflowKey) {
+      return this.xpertService.getWorkflowVariables1(this.xpert().id, options.workflowKey, this.environmentId())
+    } else {
+      return this.xpertService.getVariables(this.xpert().id, options.agentKey, this.environmentId())
+    }
   }
 }

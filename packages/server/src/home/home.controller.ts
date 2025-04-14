@@ -10,7 +10,7 @@ export class HomeController {
 	async home(@Res() res: Response) {
 		return res.status(HttpStatus.OK).json({
 			status: HttpStatus.OK,
-			message: `Metad API`
+			message: `Xpert API`
 		});
 	}
 }

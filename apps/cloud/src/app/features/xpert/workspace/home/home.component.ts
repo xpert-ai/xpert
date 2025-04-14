@@ -16,7 +16,6 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import {
   injectConfirmUnique,
@@ -25,8 +24,8 @@ import {
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
-import { BehaviorSubject, EMPTY } from 'rxjs'
-import { debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
+import { BehaviorSubject } from 'rxjs'
+import { debounceTime, map, startWith, tap } from 'rxjs/operators'
 import {
   getErrorMessage,
   injectTags,
@@ -51,6 +50,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { XpertWorkspaceWelcomeComponent } from '../welcome/welcome.component';
 import { injectParams } from 'ngxtension/inject-params';
 import { injectWorkspace, Store } from '@metad/cloud/state';
+import { XpertEnvironmentManageComponent } from '@cloud/app/@shared/environment';
+import { Dialog } from '@angular/cdk/dialog';
 
 export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
 
@@ -66,7 +67,6 @@ export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
     CdkListboxModule,
     CdkMenuModule,
     OverlayModule,
-    RouterModule,
     TranslateModule,
     MatTooltipModule,
 
@@ -90,7 +90,8 @@ export class XpertWorkspaceHomeComponent {
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
   readonly logger = inject(NGXLogger)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(Dialog)
+  // readonly #dialog = inject(MatDialog)
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly workspaceService = inject(XpertWorkspaceService)
@@ -162,6 +163,16 @@ export class XpertWorkspaceHomeComponent {
 
   readonly inDevelopmentOpen = signal(false)
 
+  constructor() {
+    effect(() => {
+      if (this.selectedWorkspace()) {
+        if (this.router.url === '/xpert/w/' || this.router.url === '/xpert/w') {
+          this.router.navigate(['/xpert/w/', this.selectedWorkspace().id])
+        }
+      }
+    }, { allowSignalWrites: true })
+  }
+
   selectWorkspace(ws: IXpertWorkspace) {
     this.router.navigate(['/xpert/w/', ws.id])
     this.store.setWorkspace(ws)
@@ -200,11 +211,26 @@ export class XpertWorkspaceHomeComponent {
           id: this.selectedWorkspace()?.id
         }
       })
-      .afterClosed()
+      .closed
       .subscribe((event) => {
         if (event === 'deleted' || event === 'archived') {
           this.workspaceService.refresh()
           this.router.navigate(['/xpert/w'])
+        }
+      })
+  }
+
+  openEnvs() {
+    this.#dialog
+      .open(XpertEnvironmentManageComponent, {
+        backdropClass: 'backdrop-blur-md-white',
+        data: {
+          workspaceId: this.selectedWorkspace()?.id
+        }
+      })
+      .closed.subscribe({
+        next: () => {
+          console.log(`=====`)
         }
       })
   }

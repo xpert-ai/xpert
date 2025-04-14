@@ -1,0 +1,25 @@
+:host {
+  @apply relative flex flex-col w-[420px] bg-gray-50 rounded-l-2xl h-full border border-components-panel-border shadow-sm;
+}
+
+.variable-list-item.danger {
+  @apply border-red-300 bg-red-50;
+}
+
+.cdk-drag-preview {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0;
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.variable-list.cdk-drop-list-dragging .variable-list-item:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}

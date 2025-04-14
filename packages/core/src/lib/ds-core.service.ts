@@ -98,7 +98,7 @@ export class DSCoreService extends ComponentStore<DSState> {
   }
 
   private async createDataSource(options: DataSourceOptions) {
-    const provider = this.factories.find(({ type }) => type === options?.type)
+    const provider = this.factories?.find(({ type }) => type === options?.type)
     if (!provider) {
       throw new Error(`Can't found provider for dataSource type: '${options.type}'`)
     }

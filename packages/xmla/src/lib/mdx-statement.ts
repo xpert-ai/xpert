@@ -27,6 +27,7 @@ import {
   MDXQuery,
   MDXRank,
 } from './types/index'
+import { log } from './utils'
 
 /**
  * 将 MDXQuery 生成相应的 MDX 语句
@@ -115,6 +116,8 @@ export function generateMDXStatement(query: MDXQuery, entityType: EntityType, di
     })
     mdx = `WITH ${withMembers}\n${mdx}`
   }
+
+  log(`mdx: `, mdx)
 
   return mdx
 }

@@ -52,8 +52,8 @@
   </button>
 
   <button type="button" class="studio-action-btn btn disabled:btn-disabled btn-secondary btn-medium p-2"
-    [ngmTooltip]="envInDevelopment"
-    [hideDelay]="100"
+    [ngClass]="sidePanel() === 'environments' ? 'text-primary-500' : ''"
+    (click)="toggleEnvs()"
   >
     <svg
       width="16"
@@ -61,7 +61,7 @@
       viewBox="0 0 16 16"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      class="w-4 h-4 text-components-button-secondary-text"
+      class="w-4 h-4 mr-1 text-components-button-secondary-text"
     >
       <g id="env">
         <g id="Vector">
@@ -98,6 +98,8 @@
         </g>
       </g>
     </svg>
+
+    <span>{{environment()?.name}}</span>
   </button>
   
   <div class="w-[1px] h-3.5 bg-gray-200"></div>
@@ -457,10 +459,6 @@
       <i class="ri-restart-line"></i>
     </button>
   </div>
-</ng-template>
-
-<ng-template #varInDevelopment>
-  <pac-in-development @overlayAnimation1 feature="State variables" class="w-96" />
 </ng-template>
 
 <ng-template #envInDevelopment>

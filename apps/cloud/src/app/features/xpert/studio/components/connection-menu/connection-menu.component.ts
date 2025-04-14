@@ -63,7 +63,7 @@ export class XpertStudioConnectionMenuComponent {
 
   readonly tools = computed(() => {
     const positions = this.positions()
-    const tools = this.toolsetDetail()?.tools.filter((_) => _.enabled)
+    const tools = this.toolsetDetail()?.tools.filter((_) => _.enabled ?? !_.disabled)
 
     return positions && tools
       ? tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))

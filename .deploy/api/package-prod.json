@@ -33,6 +33,6 @@
   ],
   "resolutions": {
     "@langchain/core": "0.3.40",
-    "pkce-challenge": "5.0.0"
+    "@modelcontextprotocol/sdk": "1.9.0"
   }
 }

@@ -2,6 +2,7 @@
   <chat-conversation-preview #preview class="w-[420px]"
     [(conversationId)]="conversationId"
     [xpert]="xpert()"
+    [environmentId]="environmentId()"
     [parameters]="parameters()"
     (close)="close()"
     (restart)="restart()"

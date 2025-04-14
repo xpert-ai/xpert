@@ -336,6 +336,24 @@
       "Agent": "智能体",
       "Note": "注释"
     },
+    "Environment": {
+      "Environment": "环境",
+      "Environments": "环境",
+      "SetAsDefault": "设置为默认",
+      "Variables": "变量",
+      "IsDefault": "是默认",
+      "Total": "共",
+      "Add": "添加",
+      "Value": "值",
+      "Type": "类型",
+      "Name": "名称",
+      "KeepUniqueInEnv": "保持环境内唯一",
+      "AddEnvironment": "添加环境",
+      "AddVariable": "添加变量",
+      "NewEnvironment": "新建环境",
+      "ManageEnvironments": "管理环境",
+      "Manage": "管理"
+    },
     "MENU": {
       "Certification": "认证",
       "Chat": "聊天",
@@ -1494,6 +1512,7 @@
     "Copilot": {
       "Copilot": "智能助理",
       "ConversationVariables": "会话变量",
+      "SystemVariables": "系统变量",
       "AICopilot": "AI 智能助理",
       "EnableCopilot": "启用智能助理",
       "GetYourApiKey": "获取你的 API Key",
@@ -2092,9 +2111,16 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "ConnectWorkflow": "连接工作流",
+      "ConnectKnowledgebases": "连接知识库",
+      "ConnectToolsets": "连接工具集",
+      "ConnectXperts": "连接数字专家",
+      "ConnectAgents": "连接智能体",
       "MoreMCPFromMarketplace": "来自市场的更多 MCP 工具集",
       "Discover": "探索",
       "MainAgentTip": "主智能体, 负责接收消息",
+      "PublishBinding": "发布绑定",
+      "SelectAEnv": "选择一个环境",
       "Expert": "专家",
       "DigitalExpert": "数字专家",
       "Knowledgebase": "知识库",
@@ -2515,6 +2541,8 @@
         "Writing": "✍️ 写作",
         "Assistant": "🤖 助手",
         "Agent": "🕵️‍♂️ Agent",
+        "Thinking": "🧠 思索",
+        "Utils": "🛠️ 实用程序",
         "Analysis": "📊 数据分析",
         "Browser": "🧭 浏览器"
       },
@@ -2616,7 +2644,8 @@
       "Reconnect": "重新连接",
       "ReconnectMaxAttempts": "最大尝试连接次数",
       "ReconnectDelayMs": "重启尝试之间的延迟（以毫秒为单位）",
-      "ToolNamePrefix": "工具名前缀"
+      "ToolNamePrefix": "工具名前缀",
+      "MoreMCPTools": "更多 MCP 工具"
     },
     "title": {
       "short": "Xpert AI"

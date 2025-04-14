@@ -22,7 +22,7 @@ import { XpertWorkspaceMCPToolsComponent } from '../mcp-tools/tools.component'
     XpertWorkspaceKnowledgesComponent,
     XpertWorkspaceApiToolsComponent,
     XpertWorkspaceBuiltinToolsComponent,
-    XpertWorkspaceMCPToolsComponent
+    XpertWorkspaceMCPToolsComponent,
   ],
   selector: 'xpert-workspace-all',
   templateUrl: './all.component.html',

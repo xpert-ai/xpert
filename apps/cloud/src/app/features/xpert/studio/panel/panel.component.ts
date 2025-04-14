@@ -12,6 +12,7 @@ import { XpertStudioPanelVariablesComponent } from './variables/variables.compon
 import { XpertStudioPanelWorkflowComponent } from './workflow/workflow.component'
 import { XpertStudioPanelAgentComponent } from './xpert-agent/agent.component'
 import { XpertStudioPanelXpertComponent } from './xpert/xpert.component'
+import { XpertStudioPanelEnvironmentComponent } from './environment/environment.component'
 
 @Component({
   selector: 'xpert-studio-panel',
@@ -26,7 +27,8 @@ import { XpertStudioPanelXpertComponent } from './xpert/xpert.component'
     XpertStudioPreviewComponent,
     XpertStudioPanelExecutionComponent,
     XpertStudioPanelVariablesComponent,
-    XpertStudioPanelWorkflowComponent
+    XpertStudioPanelWorkflowComponent,
+    XpertStudioPanelEnvironmentComponent
   ],
   templateUrl: './panel.component.html',
   styleUrl: './panel.component.scss',
@@ -37,7 +39,7 @@ export class XpertStudioPanelComponent {
   readonly selectionService = inject(SelectionService)
 
   // Inputs
-  readonly sidePanel = model<'preview' | 'variables'>(null)
+  readonly sidePanel = model<'preview' | 'variables' | 'environments'>(null)
   readonly executionId = model<string>()
 
   // States

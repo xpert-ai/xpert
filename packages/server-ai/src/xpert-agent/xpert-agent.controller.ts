@@ -9,6 +9,7 @@ import { I18nLang } from 'nestjs-i18n'
 import { XpertAgent } from './xpert-agent.entity'
 import { XpertAgentService } from './xpert-agent.service'
 import { WorkflowTestNodeCommand } from './workflow'
+import { EnvironmentService } from '../environment'
 
 @ApiTags('XpertAgent')
 @ApiBearerAuth()
@@ -19,6 +20,7 @@ export class XpertAgentController extends CrudController<XpertAgent> {
 
 	constructor(
 		private readonly service: XpertAgentService,
+		private readonly environmentService: EnvironmentService,
 		private readonly commandBus: CommandBus
 	) {
 		super(service)
@@ -34,9 +36,14 @@ export class XpertAgentController extends CrudController<XpertAgent> {
 		@I18nLang() language: LanguagesEnum,
 		@TimeZone() timeZone: string
 	) {
+		let environment = null
+		if (body.environmentId) {
+			environment = await this.environmentService.findOne(body.environmentId)
+		}
 		const observable = await this.service.chatAgent(body, {
 			language,
-			timeZone
+			timeZone,
+			environment
 		})
 		return observable.pipe(
 			// Add an operator to send a comment event periodically (30s) to keep the connection alive

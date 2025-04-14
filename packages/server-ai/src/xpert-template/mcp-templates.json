@@ -5,11 +5,37 @@
             "Workflow",
             "Browser",
             "Programming",
-            "Writing",
+            "Thinking",
             "Assistant",
+            "Utils",
             "Analysis"
         ],
         "templates": [
+            {
+                "name": "Sequential Thinking",
+                "title": "Sequential Thinking",
+                "description": "An MCP server implementation that provides a tool for dynamic and reflective problem-solving through a structured thinking process.",
+                "author": "modelcontextprotocol",
+                "id": "server-sequential-thinking",
+                "category": "Thinking",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/33zouerce-1741876955447.png",
+                "explore": "https://mcp.so/server/sequentialthinking/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "thinking",
+                    "problem-solving"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@modelcontextprotocol/server-sequential-thinking"
+                    ]
+                }
+            },
             {
                 "name": "Playwright Mcp",
                 "title": "Playwright Mcp",
@@ -17,10 +43,15 @@
                 "author": "microsoft",
                 "id": "playwright-mcp",
                 "category": "Browser",
+                "type": "stdio",
                 "icon": "https://avatars.githubusercontent.com/u/6154722?v=4",
                 "explore": "https://mcp.so/server/playwright-mcp/microsoft",
                 "copyright": null,
                 "privacyPolicy": null,
+                "tags": [
+                    "browser",
+                    "productivity"
+                ],
                 "server": {
                     "type": "stdio",
                     "command": "npx",
@@ -28,6 +59,391 @@
                         "-y",
                         "@playwright/mcp@latest",
                         "--headless"
+                    ]
+                }
+            },
+            {
+                "name": "Baidu Map",
+                "title": "Baidu Map",
+                "description": "Baidu Maps' core API is now fully compatible with the MCP protocol, making it the first map service provider in China to be compatible with the MCP protocol.",
+                "author": "baidu-maps",
+                "id": "baidu-maps-mcp",
+                "category": "Browser",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/2o0lb5g7r-1742872465843.png",
+                "explore": "https://mcp.so/server/baidu-map/baidu-maps",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "map",
+                    "productivity"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@baidumap/mcp-server-baidu-map",
+                        "--headless"
+                    ],
+                    "env": {
+                        "BAIDU_MAP_API_KEY": "xxxxxxxxxx"
+                    }
+                }
+            },
+            {
+                "name": "Fetch",
+                "title": "Fetch",
+                "description": "Web content fetching and conversion for efficient LLM usage.",
+                "author": "modelcontextprotocol",
+                "id": "fetch-mcp",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/35rqzgsie-1733449087570.png",
+                "explore": "https://mcp.so/server/fetch/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities",
+                    "productivity"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "uvx",
+                    "args": [
+                        "-i",
+                        "https://pypi.tuna.tsinghua.edu.cn/simple",
+                        "mcp-server-fetch"
+                    ]
+                }
+            },
+            {
+                "name": "Time Server",
+                "title": "Time MCP Server",
+                "description": "A Model Context Protocol server that provides time and timezone conversion capabilities. This server enables LLMs to get current time information and perform timezone conversions using IANA timezone names, with automatic system timezone detection.",
+                "author": "modelcontextprotocol",
+                "id": "mcp-server-time",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/1htutybr5-1742188467049.png",
+                "explore": "https://mcp.so/server/time/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "uvx",
+                    "args": [
+                        "mcp-server-time"
+                    ]
+                }
+            },
+            {
+                "name": "Slack Server",
+                "title": "Slack MCP Server",
+                "description": "Channel management and messaging capabilities.",
+                "author": "modelcontextprotocol",
+                "id": "mcp-slack-server",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/3e6b71g5l-1733450233614.png",
+                "explore": "https://mcp.so/server/slack/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@modelcontextprotocol/server-slack"
+                    ],
+                    "env": {
+                        "SLACK_BOT_TOKEN": "your-bot-token",
+                        "SLACK_TEAM_ID": "T01234567"
+                    }
+                }
+            },
+            {
+                "name": "Memory",
+                "title": "Memory Server",
+                "description": "Stores and manages data or state information generated during system operation for quick access and recovery when needed.",
+                "author": "modelcontextprotocol",
+                "id": "mcp-server-memory",
+                "category": "Thinking",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/25bfnwb0l-1733449927671.png",
+                "explore": "https://mcp.so/server/memory",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "prompt": "Follow these steps for each interaction:\n\n                1. User Identification:\n                   - You should assume that you are interacting with default_user\n                   - If you have not identified default_user, proactively try to do so.\n                \n                2. Memory Retrieval:\n                   - Always begin your chat by saying only \"Remembering...\" and retrieve all relevant information from your knowledge graph\n                   - Always refer to your knowledge graph as your \"memory\"\n                \n                3. Memory\n                   - While conversing with the user, be attentive to any new information that falls into these categories:\n                     a) Basic Identity (age, gender, location, job title, education level, etc.)\n                     b) Behaviors (interests, habits, etc.)\n                     c) Preferences (communication style, preferred language, etc.)\n                     d) Goals (goals, targets, aspirations, etc.)\n                     e) Relationships (personal and professional relationships up to 3 degrees of separation)\n                \n                4. Memory Update:\n                   - If any new information was gathered during the interaction, update your memory as follows:\n                     a) Create entities for recurring organizations, people, and significant events\n                     b) Connect them to the current entities using relations\n                     c) Store facts about them as observations",
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@modelcontextprotocol/server-memory"
+                    ]
+                }
+            },
+            {
+                "name": "GitHub",
+                "title": "GitHub",
+                "description": "Used for the GitHub API, supporting file operations, code repository management, search functions, and more.",
+                "author": "modelcontextprotocol",
+                "id": "mcp-github-server",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/206yyoqjn-1733449547133.png",
+                "explore": "https://mcp.so/server/github/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@modelcontextprotocol/server-github"
+                    ],
+                    "env": {
+                        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_TOKEN>"
+                    }
+                }
+            },
+            {
+                "name": "Firecrawl",
+                "title": "Firecrawl",
+                "description": "Provides powerful web scraping and data extraction capabilities.",
+                "author": "mendableai",
+                "id": "firecrawl-mcp",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/135057108?v=4",
+                "explore": "https://mcp.so/server/firecrawl-mcp-server/mendableai",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "firecrawl-mcp"
+                    ],
+                    "env": {
+                        "FIRECRAWL_API_KEY": "<YOUR-API-KEY>"
+                    }
+                }
+            },
+            {
+                "name": "Perplexity",
+                "title": "Perplexity",
+                "description": "Uses Perplexity AI to assist with research and document writing.",
+                "author": "ppl-ai",
+                "id": "server-perplexity-ask",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/110299016?s=200&v=4",
+                "explore": "https://github.com/ppl-ai/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "server-perplexity-ask"
+                    ],
+                    "env": {
+                        "PERPLEXITY_API_KEY": "YOUR_API_KEY_HERE"
+                    }
+                }
+            },
+            {
+                "name": "Tavily",
+                "title": "Tavily",
+                "description": "Tavily is a search engine optimized for large language models (LLMs), designed to provide efficient, fast, and reliable search results.",
+                "author": "ppl-ai",
+                "id": "tavily-mcp",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/170207473?v=4",
+                "explore": "https://mcp.so/en/server/tavily-mcp/tavily-ai",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "tavily-mcp@0.1.4"
+                    ],
+                    "env": {
+                        "TAVILY_API_KEY": "your-api-key-here"
+                    }
+                }
+            },
+            {
+                "name": "Amap",
+                "title": "AMap",
+                "description": "Supports any client using the MCP protocol, enabling convenient use of the AMap MCP server.",
+                "author": "amap",
+                "id": "amap-maps",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/zbu4ptrd-1742910186713.png",
+                "explore": "https://mcp.so/server/amap-maps/amap",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@amap/amap-maps-mcp-server"
+                    ],
+                    "env": {
+                        "AMAP_MAPS_API_KEY": "The key you applied for on the AMap official website"
+                    }
+                }
+            },
+            {
+                "name": "Dify Knowledge",
+                "title": "Dify Knowledgebase",
+                "description": "The MCP tool is designed specifically for searching the Dify knowledge base and is efficiently connected to the Dify platform through the MCP protocol. It allows developers to quickly query the knowledge base content through a standardized interface and easily obtain documents and information.",
+                "author": "xpert-ai",
+                "id": "dify-knowledge-mcp",
+                "category": "Utils",
+                "type": "code",
+                "icon": "/assets/icons/dify.avif",
+                "explore": "#",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "code",
+                    "command": "python3",
+                    "args": [
+                        "main.py"
+                    ],
+                    "toolNamePrefix": "mcp_dify",
+                    "env": {
+                        "DIFY_API_KEY": "xxxxxxx",
+                        "DIFY_DATASET_ID": "yyyyyyyy",
+                        "DIFY_TOP_K": "5",
+                        "DIFY_SCORE_THRESHOLD_ENABLED": "true",
+                        "DIFY_SCORE_THRESHOLD": 0.5
+                    },
+                    "files": [
+                        {
+                            "name": "main.py",
+                            "content": "import requests\nimport json\nfrom typing import Optional, List\nfrom mcp.server.fastmcp import FastMCP\nimport os\n\n# Create a server\nmcp = FastMCP(name=\"Dify Knowledgebase\", port=int(os.getenv(\"PORT\", 8000)))\n\n@mcp.tool()\ndef retrieve_Knowledges(query: str) -> Optional[str]:\n    \"\"\"\n    <详细描述此工具的功能，大模型会看到>\n    如: 调用Dify.ai 知识库检索 API\n      :param query: 要检索的查询文本\n    \"\"\"\n    try:\n        # 从环境变量获取必要配置\n        dataset_id = os.getenv(\"DIFY_DATASET_ID\", \"\")\n        api_key = os.getenv(\"DIFY_API_KEY\", \"\")\n\n        print(dataset_id)\n        print(api_key)\n\n        # 验证必要配置是否存在\n        if not dataset_id:\n            raise ValueError(\"缺少必要环境变量: DIFY_DATASET_ID\")\n        if not api_key:\n            raise ValueError(\"缺少必要环境变量: DIFY_API_KEY\")\n\n        # 从环境变量获取检索模型配置\n        retrieval_config = {\n            \"search_method\": os.getenv(\"DIFY_SEARCH_METHOD\", \"keyword_search\"),\n            \"reranking_enable\": os.getenv(\"DIFY_RERANKING_ENABLE\", \"false\").lower() == \"true\",\n            \"reranking_mode\": os.getenv(\"DIFY_RERANKING_MODE\"),\n            \"reranking_model\": {\n                \"reranking_provider_name\": os.getenv(\"DIFY_RERANKING_PROVIDER_NAME\", \"\"),\n                \"reranking_model_name\": os.getenv(\"DIFY_RERANKING_MODEL_NAME\", \"\")\n            },\n            \"weights\": os.getenv(\"DIFY_WEIGHTS\"),\n            \"top_k\": int(os.getenv(\"DIFY_TOP_K\", \"10\")),\n            \"score_threshold_enabled\": os.getenv(\"DIFY_SCORE_THRESHOLD_ENABLED\", \"false\").lower() == \"true\",\n            \"score_threshold\": float(os.getenv(\"DIFY_SCORE_THRESHOLD\"))\n        }\n\n        # 清理None值\n        retrieval_config = {k: v for k, v in retrieval_config.items() if v is not None}\n        if retrieval_config[\"reranking_model\"][\"reranking_provider_name\"] == \"\":\n            retrieval_config[\"reranking_model\"] = None\n\n        # 构建请求URL和请求体\n        url = f\"https://api.dify.ai/v1/datasets/{dataset_id}/retrieve\"\n        headers = {\n            \"Authorization\": f\"Bearer {api_key}\",\n            \"Content-Type\": \"application/json\"\n        }\n        payload = {\n            \"query\": query,\n            \"retrieval_model\": retrieval_config\n        }\n\n        # 发送请求\n        response = requests.post(url, headers=headers, data=json.dumps(payload))\n        response.raise_for_status()\n\n        # 解析响应并提取所有contents\n        result = response.json()\n        records: List[dict] = result.get(\"records\", [])\n\n        if not records:\n            print(\"警告：未检索到任何记录\")\n            return None\n\n        contents = []\n        for record in records:\n            segment = record.get(\"segment\", {})\n            if \"content\" in segment and segment[\"content\"]:\n                contents.append(segment[\"content\"])\n\n        if not contents:\n            print(\"警告：记录中未找到任何content字段\")\n            return None\n\n        return \"\".join(contents)\n    except requests.exceptions.RequestException as e:\n        print(f\"API请求失败: {str(e)}\")\n        return None\n    except json.JSONDecodeError:\n        print(\"错误：无法解析API响应\")\n        return None\n    except Exception as e:\n        print(f\"发生意外错误: {str(e)}\")\n        return None\n\n# Run the server with SSE transport\nif __name__ == \"__main__\":\n    mcp.run(transport=\"sse\")"
+                        },
+                        {
+                            "name": "requirements.txt",
+                            "content": "mcp==1.6.0\nrequests"
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Dify Workflow",
+                "title": "Dify Workflow",
+                "description": "The MCP tool is designed specifically for calling Dify Workflow and is seamlessly integrated with the Dify platform through the MCP protocol. It allows developers to quickly trigger and execute Workflow through standardized interfaces, and automatically process complex business logic and data flows.",
+                "author": "xpert-ai",
+                "id": "dify-workflow-mcp",
+                "category": "Utils",
+                "type": "code",
+                "icon": "/assets/icons/dify.avif",
+                "explore": "#",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "code",
+                    "command": "python3",
+                    "args": [
+                        "main.py"
+                    ],
+                    "toolNamePrefix": "mcp_dify",
+                    "env": {
+                        "DIFY_API_KEY": "xxxxxxx",
+                        "DIFY_USER_ID": "yyyyyyyy",
+                        "DIFY_RESPONSE_MODE": "blocking"
+                    },
+                    "files": [
+                        {
+                            "name": "main.py",
+                            "content": "import os\nimport requests\nfrom typing import Optional\nfrom mcp.server.fastmcp import FastMCP\n\nmcp = FastMCP(name=\"Dify Workflow\", port=int(os.getenv(\"PORT\", 8000)))\n\n@mcp.tool()\ndef run_workflow(input: str=\"\") -> Optional[str]:\n    \"\"\"\n    <详细描述此工具的作用，大模型会看到>\n    \"\"\"\n    # 从环境变量获取配置\n    api_key = os.getenv('DIFY_API_KEY', '')\n    user_id = os.getenv('DIFY_USER_ID', '')\n    response_mode = os.getenv('DIFY_RESPONSE_MODE', 'blocking')  # 默认值为'blocking'\n\n    # 验证必要配置是否存在\n    if not api_key:\n        raise ValueError(\"缺少必要环境变量: DIFY_API_KEY\")\n    if not user_id:\n        raise ValueError(\"缺少必要环境变量: DIFY_USER_ID\")\n    if not response_mode:\n        raise ValueError(\"缺少必要环境变量: DIFY_RESPONSE_MODE\")\n\n    url = \"https://api.dify.ai/v1/workflows/run\"\n    headers = {\n        \"Authorization\": f\"Bearer {api_key}\",\n        \"Content-Type\": \"application/json\"\n    }\n    payload = {\n        \"inputs\": {\n            \"input\": input\n        },\n        \"response_mode\": response_mode,\n        \"user\": user_id\n    }\n\n    try:\n        print(\"start request Dify.ai API...\")\n        response = requests.post(url, json=payload, headers=headers)\n        response.raise_for_status()  # 如果请求失败会抛出HTTPError\n        result = response.json()\n\n        if result is not None:\n            print(\"success！\")\n            return result\n        else:\n            print(\"返回结果为空\")\n            return \"返回结果为空\"\n    except requests.exceptions.RequestException as e:\n        print(f\"API请求失败: {e}\")\n        return None\n    except Exception as e:\n        print(f\"发生意外错误: {str(e)}\")\n        return None\n\n\nif __name__ == \"__main__\":\n    mcp.run(transport=\"sse\")"
+                        },
+                        {
+                            "name": "requirements.txt",
+                            "content": "mcp==1.6.0\nrequests"
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Dify Chatflow",
+                "title": "Dify Chatflow",
+                "description": "The MCP tool is designed specifically for calling Dify Chatflow and efficiently connects to the Dify platform through the MCP protocol. It allows developers to quickly start and manage Chatflow through a standardized interface and build intelligent conversations and interactive experiences.",
+                "author": "xpert-ai",
+                "id": "dify-chatflow-mcp",
+                "category": "Utils",
+                "type": "code",
+                "icon": "/assets/icons/dify.avif",
+                "explore": "#",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "code",
+                    "command": "python3",
+                    "args": [
+                        "main.py"
+                    ],
+                    "toolNamePrefix": "mcp_dify",
+                    "env": {
+                        "DIFY_API_KEY": "xxxxxxx",
+                        "DIFY_USER_ID": "yyyyyyyy",
+                        "DIFY_RESPONSE_MODE": "blocking"
+                    },
+                    "files": [
+                        {
+                            "name": "main.py",
+                            "content": "import os\nimport requests\nfrom typing import Optional\nfrom mcp.server.fastmcp import FastMCP\n\nmcp = FastMCP(name=\"Dify Chatflow\", port=int(os.getenv(\"PORT\", 8000)))\n\n@mcp.tool()\ndef run_chatflow(input: str=\"\") -> Optional[str]:\n    \"\"\"\n    Different types of exception handling flow.\n    \"\"\"\n    # 从环境变量获取配置\n    api_key = os.getenv('DIFY_API_KEY', '')\n    user_id = os.getenv('DIFY_USER_ID', '')\n    response_mode = os.getenv('DIFY_RESPONSE_MODE', 'blocking')  # 默认值为'blocking'\n\n    # 验证必要配置是否存在\n    if not api_key:\n        raise ValueError(\"缺少必要环境变量: DIFY_API_KEY\")\n    if not user_id:\n        raise ValueError(\"缺少必要环境变量: DIFY_USER_ID\")\n    if not response_mode:\n        raise ValueError(\"缺少必要环境变量: DIFY_RESPONSE_MODE\")\n\n    url = \"https://api.dify.ai/v1/chat-messages\"\n    headers = {\n        \"Authorization\": f\"Bearer {api_key}\",\n        \"Content-Type\": \"application/json\"\n    }\n    payload = {\n        \"inputs\": {\n        },\n        \"query\": input,\n        \"response_mode\": response_mode,\n        \"user\": user_id\n    }\n\n    try:\n        print(\"start request Dify.ai API...\")\n        response = requests.post(url, json=payload, headers=headers)\n        response.raise_for_status()  # 如果请求失败会抛出HTTPError\n        result = response.json()\n\n        if result is not None:\n            print(\"success！\")\n            return result\n        else:\n            print(\"返回结果为空\")\n            return \"返回结果为空\"\n    except requests.exceptions.RequestException as e:\n        print(f\"API请求失败: {e}\")\n        return None\n    except Exception as e:\n        print(f\"发生意外错误: {str(e)}\")\n        return None\n\n\nif __name__ == \"__main__\":\n    mcp.run(transport=\"sse\")"
+                        },
+                        {
+                            "name": "requirements.txt",
+                            "content": "mcp==1.6.0\nrequests"
+                        }
                     ]
                 }
             }
@@ -39,12 +455,450 @@
             "Workflow",
             "Browser",
             "Programming",
-            "Writing",
+            "Thinking",
             "Assistant",
+            "Utils",
             "Analysis"
         ],
         "templates": [
-            
+            {
+                "name": "Sequential Thinking",
+                "title": "顺序思维",
+                "description": "一个MCP服务器实现，提供了一种通过结构化思维过程进行动态和反思性问题解决的工具。",
+                "author": "modelcontextprotocol",
+                "id": "server-sequential-thinking",
+                "category": "Thinking",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/33zouerce-1741876955447.png",
+                "explore": "https://mcp.so/server/sequentialthinking/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "thinking",
+                    "problem-solving"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@modelcontextprotocol/server-sequential-thinking"
+                    ]
+                }
+            },
+            {
+                "name": "Playwright Mcp",
+                "title": "Playwright Mcp",
+                "description": "Playwright MCP is a Model Context Protocol server that provides browser automation capabilities using Playwright. It allows large language models (LLMs) to interact with web pages through structured accessibility snapshots, eliminating the need for screenshots or visually-tuned models.",
+                "author": "microsoft",
+                "id": "playwright-mcp",
+                "category": "Browser",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/6154722?v=4",
+                "explore": "https://mcp.so/server/playwright-mcp/microsoft",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "browser",
+                    "productivity"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@playwright/mcp@latest",
+                        "--headless"
+                    ]
+                }
+            },
+            {
+                "name": "Baidu Map",
+                "title": "百度地图",
+                "description": "百度地图核心API现已全面兼容MCP协议，是国内首家兼容MCP协议的地图服务商。",
+                "author": "baidu-maps",
+                "id": "baidu-maps-mcp",
+                "category": "Browser",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/2o0lb5g7r-1742872465843.png",
+                "explore": "https://mcp.so/server/baidu-map/baidu-maps",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "map",
+                    "productivity"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@baidumap/mcp-server-baidu-map",
+                        "--headless"
+                    ],
+                    "env": {
+                        "BAIDU_MAP_API_KEY": "xxxxxxxxxx"
+                    }
+                }
+            },
+            {
+                "name": "Fetch",
+                "title": "Fetch",
+                "description": "Web content fetching and conversion for efficient LLM usage.",
+                "author": "modelcontextprotocol",
+                "id": "fetch-mcp",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/35rqzgsie-1733449087570.png",
+                "explore": "https://mcp.so/server/fetch/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities",
+                    "productivity"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "uvx",
+                    "args": [
+                        "-i",
+                        "https://pypi.tuna.tsinghua.edu.cn/simple",
+                        "mcp-server-fetch"
+                    ]
+                }
+            },
+            {
+                "name": "Time Server",
+                "title": "时间服务器",
+                "description": "提供时间和时区转换功能的模型上下文协议 (MLM) 服务器。该服务器使 LLM 能够获取当前时间信息，并使用 IANA 时区名称执行时区转换，并自动检测系统时区。",
+                "author": "modelcontextprotocol",
+                "id": "mcp-server-time",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/1htutybr5-1742188467049.png",
+                "explore": "https://mcp.so/server/time/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "uvx",
+                    "args": [
+                        "-i",
+                        "https://pypi.tuna.tsinghua.edu.cn/simple",
+                        "mcp-server-time"
+                    ]
+                }
+            },
+            {
+                "name": "Slack Server",
+                "title": "Slack MCP 服务器",
+                "description": "频道管理和消息传递功能。",
+                "author": "modelcontextprotocol",
+                "id": "mcp-slack-server",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/3e6b71g5l-1733450233614.png",
+                "explore": "https://mcp.so/server/slack/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@modelcontextprotocol/server-slack"
+                    ],
+                    "env": {
+                        "SLACK_BOT_TOKEN": "your-bot-token",
+                        "SLACK_TEAM_ID": "T01234567"
+                    }
+                }
+            },
+            {
+                "name": "Memory",
+                "title": "记忆服务器",
+                "description": "存储和管理系统运行过程中产生的数据或状态信息，以便在需要时快速访问和恢复。",
+                "author": "modelcontextprotocol",
+                "id": "mcp-server-memory",
+                "category": "Thinking",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/25bfnwb0l-1733449927671.png",
+                "explore": "https://mcp.so/server/memory",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "prompt": "Follow these steps for each interaction:\n\n                1. User Identification:\n                   - You should assume that you are interacting with default_user\n                   - If you have not identified default_user, proactively try to do so.\n                \n                2. Memory Retrieval:\n                   - Always begin your chat by saying only \"Remembering...\" and retrieve all relevant information from your knowledge graph\n                   - Always refer to your knowledge graph as your \"memory\"\n                \n                3. Memory\n                   - While conversing with the user, be attentive to any new information that falls into these categories:\n                     a) Basic Identity (age, gender, location, job title, education level, etc.)\n                     b) Behaviors (interests, habits, etc.)\n                     c) Preferences (communication style, preferred language, etc.)\n                     d) Goals (goals, targets, aspirations, etc.)\n                     e) Relationships (personal and professional relationships up to 3 degrees of separation)\n                \n                4. Memory Update:\n                   - If any new information was gathered during the interaction, update your memory as follows:\n                     a) Create entities for recurring organizations, people, and significant events\n                     b) Connect them to the current entities using relations\n                     c) Store facts about them as observations",
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@modelcontextprotocol/server-memory"
+                    ]
+                }
+            },
+            {
+                "name": "GitHub",
+                "title": "GitHub",
+                "description": "用于 GitHub API，支持文件操作、代码仓库管理、搜索功能等多种功能。",
+                "author": "modelcontextprotocol",
+                "id": "mcp-github-server",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/206yyoqjn-1733449547133.png",
+                "explore": "https://mcp.so/server/github/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                    "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@modelcontextprotocol/server-github"
+                    ],
+                    "env": {
+                        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_TOKEN>"
+                    }
+                }
+            },
+            {
+                "name": "Firecrawl",
+                "title": "Firecrawl",
+                "description": "提供强大的网页抓取和数据提取功能",
+                "author": "mendableai",
+                "id": "firecrawl-mcp",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/135057108?v=4",
+                "explore": "https://mcp.so/server/firecrawl-mcp-server/mendableai",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                    "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "firecrawl-mcp"
+                    ],
+                    "env": {
+                        "FIRECRAWL_API_KEY": "<YOUR-API-KEY>"
+                    }
+                }
+            },
+            {
+                "name": "Perplexity",
+                "title": "Perplexity",
+                "description": "使用 Perplexity AI 协助进行研究和文档编写",
+                "author": "ppl-ai",
+                "id": "server-perplexity-ask",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/110299016?s=200&v=4",
+                "explore": "https://github.com/ppl-ai/modelcontextprotocol",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "server-perplexity-ask"
+                    ],
+                    "env": {
+                        "PERPLEXITY_API_KEY": "YOUR_API_KEY_HERE"
+                    }
+                }
+            },
+            {
+                "name": "Tavily",
+                "title": "Tavily",
+                "description": "Tavily 是一个为大型语言模型（LLMs）优化的搜索引擎，旨在提供高效、快速且持久的搜索结果。",
+                "author": "ppl-ai",
+                "id": "tavily-mcp",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/170207473?v=4",
+                "explore": "https://mcp.so/zh/server/tavily-mcp/tavily-ai",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "tavily-mcp@0.1.4"
+                    ],
+                    "env": {
+                        "TAVILY_API_KEY": "your-api-key-here"
+                    }
+                }
+            },
+            {
+                "name": "Amap",
+                "title": "高德地图",
+                "description": "支持任意 MCP 协议的客户端，可方便使用高德地图 MCP server。",
+                "author": "amap",
+                "id": "amap-maps",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://r2.trys.ai/imgs/zbu4ptrd-1742910186713.png",
+                "explore": "https://mcp.so/server/amap-maps/amap",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@amap/amap-maps-mcp-server"
+                    ],
+                    "env": {
+                        "AMAP_MAPS_API_KEY": "您在高德官网上申请的 key"
+                    }
+                }
+            },
+            {
+                "name": "Dify Knowledge",
+                "title": "Dify 知识库",
+                "description": "专为检索 Dify 知识库设计的 MCP 工具，通过 MCP 协议与 Dify 平台高效对接。它允许开发者通过标准化接口快速查询知识库内容，轻松获取文档和信息。",
+                "author": "xpert-ai",
+                "id": "dify-knowledge-mcp",
+                "category": "Utils",
+                "type": "code",
+                "icon": "/assets/icons/dify.avif",
+                "explore": "#",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "code",
+                    "command": "python3",
+                    "args": [
+                        "main.py"
+                    ],
+                    "toolNamePrefix": "mcp_dify",
+                    "env": {
+                        "DIFY_API_KEY": "xxxxxxx",
+                        "DIFY_DATASET_ID": "yyyyyyyy",
+                        "DIFY_TOP_K": "5",
+                        "DIFY_SCORE_THRESHOLD_ENABLED": "true",
+                        "DIFY_SCORE_THRESHOLD": 0.5
+                    },
+                    "files": [
+                        {
+                            "name": "main.py",
+                            "content": "import requests\nimport json\nfrom typing import Optional, List\nfrom mcp.server.fastmcp import FastMCP\nimport os\n\n# Create a server\nmcp = FastMCP(name=\"Dify Knowledgebase\", port=int(os.getenv(\"PORT\", 8000)))\n\n@mcp.tool()\ndef retrieve_Knowledges(query: str) -> Optional[str]:\n    \"\"\"\n    <详细描述此工具的功能，大模型会看到>\n    如: 调用Dify.ai 知识库检索 API\n      :param query: 要检索的查询文本\n    \"\"\"\n    try:\n        # 从环境变量获取必要配置\n        dataset_id = os.getenv(\"DIFY_DATASET_ID\", \"\")\n        api_key = os.getenv(\"DIFY_API_KEY\", \"\")\n\n        print(dataset_id)\n        print(api_key)\n\n        # 验证必要配置是否存在\n        if not dataset_id:\n            raise ValueError(\"缺少必要环境变量: DIFY_DATASET_ID\")\n        if not api_key:\n            raise ValueError(\"缺少必要环境变量: DIFY_API_KEY\")\n\n        # 从环境变量获取检索模型配置\n        retrieval_config = {\n            \"search_method\": os.getenv(\"DIFY_SEARCH_METHOD\", \"keyword_search\"),\n            \"reranking_enable\": os.getenv(\"DIFY_RERANKING_ENABLE\", \"false\").lower() == \"true\",\n            \"reranking_mode\": os.getenv(\"DIFY_RERANKING_MODE\"),\n            \"reranking_model\": {\n                \"reranking_provider_name\": os.getenv(\"DIFY_RERANKING_PROVIDER_NAME\", \"\"),\n                \"reranking_model_name\": os.getenv(\"DIFY_RERANKING_MODEL_NAME\", \"\")\n            },\n            \"weights\": os.getenv(\"DIFY_WEIGHTS\"),\n            \"top_k\": int(os.getenv(\"DIFY_TOP_K\", \"10\")),\n            \"score_threshold_enabled\": os.getenv(\"DIFY_SCORE_THRESHOLD_ENABLED\", \"false\").lower() == \"true\",\n            \"score_threshold\": float(os.getenv(\"DIFY_SCORE_THRESHOLD\"))\n        }\n\n        # 清理None值\n        retrieval_config = {k: v for k, v in retrieval_config.items() if v is not None}\n        if retrieval_config[\"reranking_model\"][\"reranking_provider_name\"] == \"\":\n            retrieval_config[\"reranking_model\"] = None\n\n        # 构建请求URL和请求体\n        url = f\"https://api.dify.ai/v1/datasets/{dataset_id}/retrieve\"\n        headers = {\n            \"Authorization\": f\"Bearer {api_key}\",\n            \"Content-Type\": \"application/json\"\n        }\n        payload = {\n            \"query\": query,\n            \"retrieval_model\": retrieval_config\n        }\n\n        # 发送请求\n        response = requests.post(url, headers=headers, data=json.dumps(payload))\n        response.raise_for_status()\n\n        # 解析响应并提取所有contents\n        result = response.json()\n        records: List[dict] = result.get(\"records\", [])\n\n        if not records:\n            print(\"警告：未检索到任何记录\")\n            return None\n\n        contents = []\n        for record in records:\n            segment = record.get(\"segment\", {})\n            if \"content\" in segment and segment[\"content\"]:\n                contents.append(segment[\"content\"])\n\n        if not contents:\n            print(\"警告：记录中未找到任何content字段\")\n            return None\n\n        return \"\".join(contents)\n    except requests.exceptions.RequestException as e:\n        print(f\"API请求失败: {str(e)}\")\n        return None\n    except json.JSONDecodeError:\n        print(\"错误：无法解析API响应\")\n        return None\n    except Exception as e:\n        print(f\"发生意外错误: {str(e)}\")\n        return None\n\n# Run the server with SSE transport\nif __name__ == \"__main__\":\n    mcp.run(transport=\"sse\")"
+                        },
+                        {
+                            "name": "requirements.txt",
+                            "content": "mcp==1.6.0\nrequests"
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Dify Workflow",
+                "title": "Dify 工作流",
+                "description": "import os\nimport requests\nimport logging\nfrom typing import Optional\nfrom mcp.server.fastmcp import FastMCP\n\nlogging.basicConfig(\n    level=logging.DEBUG,  # DEBUG 比 INFO 更详细\n    format='%(asctime)s [%(levelname)s] %(message)s',\n    handlers=[\n        logging.FileHandler(\"app.log\"),\n        logging.StreamHandler()\n    ]\n)\n\nmcp = FastMCP(name=\"Dify Workflow\", port=int(os.getenv(\"PORT\", 8000)))\n\n@mcp.tool()\ndef run_workflow(input: str) -> Optional[str]:\n    \"\"\"\n    <详细描述此工具的作用，大模型会看到>\n    ：params input 输入要查询的问题\n    \"\"\"\n    # 从环境变量获取配置\n    api_key = os.getenv('DIFY_API_KEY', '')\n    user_id = os.getenv('DIFY_USER_ID', '')\n    response_mode = os.getenv('DIFY_RESPONSE_MODE', 'blocking')  # 默认值为'blocking'\n\n    # 验证必要配置是否存在\n    if not api_key:\n        raise ValueError(\"缺少必要环境变量: DIFY_API_KEY\")\n    if not user_id:\n        raise ValueError(\"缺少必要环境变量: DIFY_USER_ID\")\n    if not response_mode:\n        raise ValueError(\"缺少必要环境变量: DIFY_RESPONSE_MODE\")\n\n    url = \"https://api.dify.ai/v1/workflows/run\"\n    headers = {\n        \"Authorization\": f\"Bearer {api_key}\",\n        \"Content-Type\": \"application/json\"\n    }\n    payload = {\n        \"inputs\": {\n            \"Question\": input\n        },\n        \"response_mode\": response_mode,\n        \"user\": user_id\n    }\n\n    logging.debug(f\"请求数据: {payload}\")\n\n    try:\n        logging.debug(\"start request Dify.ai API...\")\n        response = requests.post(url, json=payload, headers=headers)\n        response.raise_for_status()  # 如果请求失败会抛出HTTPError\n        result = response.json()\n\n        if result is not None:\n            logging.debug(result)\n            return result\n        else:\n            logging.debug(\"返回结果为空\")\n            return \"返回结果为空\"\n    except requests.exceptions.RequestException as e:\n        logging.error(f\"API请求失败: {e}\")\n        return None\n    except Exception as e:\n        logging.error(f\"发生意外错误: {str(e)}\")\n        return None\n\n\nif __name__ == \"__main__\":\n    mcp.run(transport=\"sse\")",
+                "author": "xpert-ai",
+                "id": "dify-workflow-mcp",
+                "category": "Utils",
+                "type": "code",
+                "icon": "/assets/icons/dify.avif",
+                "explore": "#",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "code",
+                    "command": "python3",
+                    "args": [
+                        "main.py"
+                    ],
+                    "toolNamePrefix": "mcp_dify",
+                    "env": {
+                        "DIFY_API_KEY": "xxxxxxx",
+                        "DIFY_USER_ID": "yyyyyyyy",
+                        "DIFY_RESPONSE_MODE": "blocking"
+                    },
+                    "files": [
+                        {
+                            "name": "main.py",
+                            "content": "import os\nimport requests\nfrom typing import Optional\nfrom mcp.server.fastmcp import FastMCP\n\nmcp = FastMCP(name=\"Dify Workflow\", port=int(os.getenv(\"PORT\", 8000)))\n\n@mcp.tool()\ndef run_workflow(input: str=\"\") -> Optional[str]:\n    \"\"\"\n    <详细描述此工具的作用，大模型会看到>\n    \"\"\"\n    # 从环境变量获取配置\n    api_key = os.getenv('DIFY_API_KEY', '')\n    user_id = os.getenv('DIFY_USER_ID', '')\n    response_mode = os.getenv('DIFY_RESPONSE_MODE', 'blocking')  # 默认值为'blocking'\n\n    # 验证必要配置是否存在\n    if not api_key:\n        raise ValueError(\"缺少必要环境变量: DIFY_API_KEY\")\n    if not user_id:\n        raise ValueError(\"缺少必要环境变量: DIFY_USER_ID\")\n    if not response_mode:\n        raise ValueError(\"缺少必要环境变量: DIFY_RESPONSE_MODE\")\n\n    url = \"https://api.dify.ai/v1/workflows/run\"\n    headers = {\n        \"Authorization\": f\"Bearer {api_key}\",\n        \"Content-Type\": \"application/json\"\n    }\n    payload = {\n        \"inputs\": {\n            \"input\": input\n        },\n        \"response_mode\": response_mode,\n        \"user\": user_id\n    }\n\n    try:\n        print(\"start request Dify.ai API...\")\n        response = requests.post(url, json=payload, headers=headers)\n        response.raise_for_status()  # 如果请求失败会抛出HTTPError\n        result = response.json()\n\n        if result is not None:\n            print(\"success！\")\n            return result\n        else:\n            print(\"返回结果为空\")\n            return \"返回结果为空\"\n    except requests.exceptions.RequestException as e:\n        print(f\"API请求失败: {e}\")\n        return None\n    except Exception as e:\n        print(f\"发生意外错误: {str(e)}\")\n        return None\n\n\nif __name__ == \"__main__\":\n    mcp.run(transport=\"sse\")"
+                        },
+                        {
+                            "name": "requirements.txt",
+                            "content": "mcp==1.6.0\nrequests"
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Dify Chatflow",
+                "title": "Dify 对话流",
+                "description": "专为调用 Dify Chatflow 设计的 MCP 工具，通过 MCP 协议与 Dify 平台高效连接。它允许开发者通过标准化接口快速启动和管理 Chatflow，构建智能对话和交互体验。",
+                "author": "xpert-ai",
+                "id": "dify-chatflow-mcp",
+                "category": "Utils",
+                "type": "code",
+                "icon": "/assets/icons/dify.avif",
+                "explore": "#",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "code",
+                    "command": "python3",
+                    "args": [
+                        "main.py"
+                    ],
+                    "toolNamePrefix": "mcp_dify",
+                    "env": {
+                        "DIFY_API_KEY": "xxxxxxx",
+                        "DIFY_USER_ID": "yyyyyyyy",
+                        "DIFY_RESPONSE_MODE": "blocking"
+                    },
+                    "files": [
+                        {
+                            "name": "main.py",
+                            "content": "import os\nimport requests\nimport logging\nfrom typing import Optional\nfrom mcp.server.fastmcp import FastMCP\n\nlogging.basicConfig(\n    level=logging.DEBUG,  # DEBUG 比 INFO 更详细\n    format='%(asctime)s [%(levelname)s] %(message)s',\n    handlers=[\n        logging.FileHandler(\"app.log\"),\n        logging.StreamHandler()\n    ]\n)\n\nmcp = FastMCP(name=\"Dify Chatflow\", port=int(os.getenv(\"PORT\", 8000)))\n\n@mcp.tool()\ndef run_chatflow(input: str) -> Optional[str]:\n    \"\"\"\n    I can analyze and process different types of exception information.\n    :input the description of exception\n    \"\"\"\n    # 从环境变量获取配置\n    api_key = os.getenv('DIFY_API_KEY', '')\n    user_id = os.getenv('DIFY_USER_ID', '')\n    response_mode = os.getenv('DIFY_RESPONSE_MODE', 'blocking')  # 默认值为'blocking'\n\n    # 验证必要配置是否存在\n    if not api_key:\n        raise ValueError(\"缺少必要环境变量: DIFY_API_KEY\")\n    if not user_id:\n        raise ValueError(\"缺少必要环境变量: DIFY_USER_ID\")\n    if not response_mode:\n        raise ValueError(\"缺少必要环境变量: DIFY_RESPONSE_MODE\")\n\n    url = \"https://api.dify.ai/v1/chat-messages\"\n    headers = {\n        \"Authorization\": f\"Bearer {api_key}\",\n        \"Content-Type\": \"application/json\"\n    }\n    payload = {\n        \"inputs\": {\n        },\n        \"query\": input,\n        \"response_mode\": response_mode,\n        \"user\": user_id\n    }\n\n    logging.debug(f\"请求数据: {payload}\")\n\n    try:\n        logging.debug(\"start request Dify.ai API...\")\n        response = requests.post(url, json=payload, headers=headers)\n        response.raise_for_status()  # 如果请求失败会抛出HTTPError\n        result = response.json()\n\n        if result is not None:\n            logging.debug(\"success！\")\n            return result\n        else:\n            logging.debug(\"返回结果为空\")\n            return \"返回结果为空\"\n    except requests.exceptions.RequestException as e:\n        logging.error(f\"API请求失败: {e}\")\n        return None\n    except Exception as e:\n        logging.error(f\"发生意外错误: {str(e)}\")\n        return None\n\n\nif __name__ == \"__main__\":\n    mcp.run(transport=\"sse\")"
+                        },
+                        {
+                            "name": "requirements.txt",
+                            "content": "mcp==1.6.0\nrequests"
+                        }
+                    ]
+                }
+            }
         ]
     }
 }

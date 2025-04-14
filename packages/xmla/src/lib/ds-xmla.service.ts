@@ -932,6 +932,13 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
       }
     })
 
+    // Use dimension name to merge the default hierarchy of the shared dimension to get the actual default hierarchy
+    dimensions.forEach((dimension) => {
+      if (dimension.defaultHierarchy) {
+        dimension.defaultHierarchy = serializeUniqueName(dimension.name, dimension.defaultHierarchy)
+      }
+    })
+
     const properties = { ...rtEntityType.properties }
     dimensions.forEach((dimension) => {
       const dName = wrapBrackets(dimension.name)

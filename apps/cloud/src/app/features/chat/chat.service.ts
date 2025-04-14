@@ -9,14 +9,16 @@ import { IXpert } from '../../@core'
 import { ToastrService } from '../../@core/services'
 import { ChatService } from '../../xpert/'
 import { ChatHomeService } from './home.service'
+import { Router } from '@angular/router'
 
 @Injectable()
 export class ChatPlatformService extends ChatService {
   readonly #translate = inject(TranslateService)
   readonly homeService = inject(ChatHomeService)
   readonly #toastr = inject(ToastrService)
+  readonly #router = inject(Router)
   readonly #location = inject(Location)
-  readonly paramRole = injectParams('role')
+  readonly paramRole = injectParams('name')
   readonly paramId = injectParams('id')
 
   readonly xperts = this.homeService.xperts
@@ -82,8 +84,18 @@ export class ChatPlatformService extends ChatService {
     )
   }
 
-  async newConversation(xpert?: IXpert) {
-    await super.newConversation()
-    this.xpert$.next(xpert)
+  // async newConversation(xpert?: IXpert) {
+  //   await super.newConversation()
+  //   this.xpert$.next(xpert)
+  // }
+
+  newConv(xpert?: IXpert) {
+    this.conversationId.set(null)
+    this.conversation.set(null)
+    if (xpert?.slug) {
+      this.#router.navigate(['/chat/x', xpert.slug])
+    } else {
+      this.#router.navigate(['/chat'])
+    }
   }
 }

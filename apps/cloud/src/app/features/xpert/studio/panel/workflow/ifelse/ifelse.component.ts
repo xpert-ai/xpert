@@ -21,6 +21,7 @@ import { catchError, of } from 'rxjs'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
+import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow-ifelse',
@@ -33,7 +34,7 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
     tabindex: '-1'
   }
 })
-export class XpertStudioPanelWorkflowIfelseComponent {
+export class XpertStudioPanelWorkflowIfelseComponent extends XpertWorkflowBaseComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
   eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
 
@@ -44,29 +45,12 @@ export class XpertStudioPanelWorkflowIfelseComponent {
   readonly #toastr = injectToastr()
 
   // Inputs
-  readonly node = input<TXpertTeamNode>()
   readonly entity = input<IWorkflowNode>()
 
   // States
-  readonly key = computed(() => this.node()?.key)
-  readonly xpert = this.xpertStudioComponent.xpert
-  readonly xpertId = computed(() => this.xpert()?.id)
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
   readonly ifElseEntity = computed(() => this.entity() as IWFNIfElse)
   readonly cases = computed(() => this.ifElseEntity()?.cases)
-
-  readonly variables = derivedAsync(() => {
-    const xpertId = this.xpertId()
-    const nodeKey = this.key()
-    return xpertId && nodeKey
-      ? this.xpertService.getWorkflowVariables(xpertId, nodeKey).pipe(
-          catchError((error) => {
-            this.#toastr.error(getErrorMessage(error))
-            return of([])
-          })
-        )
-      : of(null)
-  })
 
   addCase() {
     const entity: IWFNIfElse = {

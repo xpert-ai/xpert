@@ -1,4 +1,4 @@
-import { TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { IEnvironment, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 
@@ -14,6 +14,7 @@ export class CreateWNAnswerCommand implements ICommand {
             // The subscriber response to client
 			subscriber: Subscriber<MessageEvent>
             rootExecutionId: string
+            environment: IEnvironment
         }
     ) {}
 }

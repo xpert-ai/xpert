@@ -28,6 +28,7 @@ import {
 	VariableSchema
 } from '@metad/ocap-core'
 import { omit } from '@metad/server-common'
+import { Logger } from '@nestjs/common'
 import { upperFirst } from 'lodash'
 import { z } from 'zod'
 import { AbstractChatBIToolset } from './chatbi-toolset'
@@ -54,6 +55,7 @@ export type ChatBIContext = {
 	dsCoreService: DSCoreService
 	entityType?: EntityType
 	language?: LanguagesEnum
+	logger?: Logger
 }
 
 export type ChatAnswer = {

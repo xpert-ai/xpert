@@ -162,9 +162,14 @@ async function drawChartMessage(
 
 	return new Promise((resolve, reject) => {
 		chartService.selectResult().subscribe((result) => {
+			destroy$.next()
+			destroy$.complete()
+
 			if (result.error) {
 				reject(result.error)
-			} else {
+			}
+
+			try {
 				const { card, categoryMembers } =
 					answer.visualType === 'Table'
 						? createTableMessage(answer, chartAnnotation, context.entityType, result.data, header)
@@ -189,9 +194,9 @@ async function drawChartMessage(
                 } as MessageEvent)
 
 				resolve({ categoryMembers, data: result.data })
+			} catch(err) {
+				reject(err)
 			}
-			destroy$.next()
-			destroy$.complete()
 		})
 
 		chartService

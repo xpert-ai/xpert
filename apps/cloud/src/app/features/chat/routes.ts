@@ -9,7 +9,7 @@ export const routes: Routes = [
     component: ChatHomeComponent,
     children: [
       {
-        path: 'x/:role',
+        path: 'x/:name',
         component: ChatXpertComponent,
         data: {
           title: 'Chat Xpert',
@@ -23,7 +23,7 @@ export const routes: Routes = [
         }
       },
       {
-        path: 'x/:role/c/:id',
+        path: 'x/:name/c/:id',
         component: ChatXpertComponent,
         data: {
           title: 'Chat Xpert Conversation',

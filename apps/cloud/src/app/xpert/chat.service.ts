@@ -1,4 +1,4 @@
-import { computed, DestroyRef, inject, Injectable, model, signal } from '@angular/core'
+import { computed, DestroyRef, effect, inject, Injectable, model, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { nonNullable } from '@metad/ocap-core'
 import {
@@ -6,8 +6,10 @@ import {
   catchError,
   combineLatest,
   filter,
+  map,
   of,
   skip,
+  startWith,
   Subscription,
   switchMap,
   tap,
@@ -31,17 +33,19 @@ import {
 import { ChatConversationService, ChatService as ChatServerService, XpertService, ToastrService, ChatMessageFeedbackService } from '../@core/services'
 import { AppService } from '../app.service'
 import { NGXLogger } from 'ngx-logger'
-import { sortBy } from 'lodash-es'
+import { omit, sortBy } from 'lodash-es'
 import { HttpErrorResponse } from '@angular/common/http'
 import { XpertHomeService } from './home.service'
 import { TCopilotChatMessage } from './types'
 import { appendMessageContent } from '@metad/copilot'
+import { derivedAsync } from 'ngxtension/derived-async'
+import { linkedModel } from '@metad/core'
 
 /**
  * The context of a single chat is not shared between conversations
  */
 @Injectable()
-export class ChatService {
+export abstract class ChatService {
   readonly chatService = inject(ChatServerService)
   readonly conversationService = inject(ChatConversationService)
   readonly feedbackService = inject(ChatMessageFeedbackService)
@@ -52,15 +56,12 @@ export class ChatService {
   readonly #toastr = inject(ToastrService)
   readonly #destroyRef = inject(DestroyRef)
 
+  // Current conv id
+  readonly conversationId = this.homeService.conversationId
 
-  readonly conversationId = this.homeService.conversationId // signal<string>(null)
-  readonly xpert$ = new BehaviorSubject<IXpert>(null)
-  readonly parametersValue = signal<Record<string, unknown>>(null)
-  /**
-   * The conversation
-   */
-  readonly conversation = signal<IChatConversation>(null)
-  readonly loadingConv = signal(false)
+  // readonly xpert$ = new BehaviorSubject<IXpert>(null)
+
+
   /**
    * User feedbacks for messages of the conversation
    */
@@ -69,77 +70,161 @@ export class ChatService {
   /**
    * Messages in the conversation
    */
-  readonly #messages = signal<TCopilotChatMessage[]>([])
-  readonly messages = computed(() => this.#messages() ?? [])
+  // readonly #messages = signal<TCopilotChatMessage[]>([])
+  // readonly messages = computed(() => this.#messages() ?? [])
 
+  /**
+   * @deprecated 需重构使用方式
+   */
   readonly knowledgebases = signal<IKnowledgebase[]>([])
+  /**
+   * @deprecated 需重构使用方式
+   */
   readonly toolsets = signal<IXpertToolset[]>([])
 
   readonly answering = signal<boolean>(false)
   protected chatSubscription: Subscription = null
 
   readonly lang = this.appService.lang
-  readonly xpert = toSignal(this.xpert$)
+  // readonly xpert = toSignal(this.xpert$)
 
-  private idSub = toObservable(this.conversationId)
-    .pipe(
-      skip(1),
-      filter((id) => !this.conversation() || this.conversation().id !== id),
-      switchMap((id) =>
-        id ? combineLatest([
-            this.getConversation(id)
-            .pipe(
-              catchError((httpError: HttpErrorResponse) => {
-                if (httpError.status === 404) {
-                  this.#toastr.error('PAC.Messages.NoPermissionOrNotExist', 'PAC.KEY_WORDS.Conversation', {Default: 'No permission or does not exist'})
-                } else {
-                  this.#toastr.error(getErrorMessage(httpError))
-                }
-                return of(null)
-              })
-            ),
-          this.getFeedbacks(id)
-        ]).pipe(
-          catchError((error) => {
-            this.#toastr.error(getErrorMessage(error))
-            return of([])
-          }), 
-        ) : of([])
-      ),
-      tap(([conv, feedbacks]) => {
-        this.loadingConv.set(false)
-        if (conv) {
-          this.conversation.set(conv)
-          this.#messages.set(sortBy(conv.messages, 'createdAt'))
-          this.parametersValue.set(conv.options?.parameters ?? {})
-          this.knowledgebases.set(
-            conv.options?.knowledgebases?.map((id) => conv.xpert?.knowledgebases?.find((item) => item.id === id)).filter(nonNullable)
-          )
-          this.toolsets.set(conv.options?.toolsets?.map((id) => conv.xpert?.toolsets?.find((item) => item.id === id)))
-        } else {
-          // New empty conversation
-          this.conversation.set({} as IChatConversation)
-          this.#messages.set([])
+  // loading conversation from remote by id
+  readonly #conversation = derivedAsync<{conversation?: IChatConversation; feedbacks?: Record<string, IChatMessageFeedback>; loading: boolean}>(() => {
+    const id = this.conversationId()
+    return id ? combineLatest([
+        this.getConversation(id)
+          .pipe(
+            catchError((httpError: HttpErrorResponse) => {
+              if (httpError.status === 404) {
+                this.#toastr.error('PAC.Messages.NoPermissionOrNotExist', 'PAC.KEY_WORDS.Conversation', {Default: 'No permission or does not exist'})
+              } else {
+                this.#toastr.error(getErrorMessage(httpError))
+              }
+              return of(null)
+            })
+          ),
+      this.getFeedbacks(id).pipe(map((feedbacks) => feedbacks?.items.reduce((acc, feedback) => {
+        acc[feedback.messageId] = feedback
+        return acc
+      }, {})))
+    ]).pipe(
+      map(([conversation, feedbacks]) => {
+        return {
+          conversation,
+          feedbacks,
+          loading: false
         }
-
-        this.feedbacks.set(feedbacks?.items.reduce((acc, feedback) => {
-          acc[feedback.messageId] = feedback
-          return acc
-        }, {}))
       }),
-      takeUntilDestroyed()
-    )
-    .subscribe({
-      next: ([conversation]) => {
-        if (conversation) {
-          this.xpert$.next(conversation?.xpert)
-        }
-      },
-      error: (error) => {
-        this.loadingConv.set(false)
+      catchError((error) => {
         this.#toastr.error(getErrorMessage(error))
-      }
-    })
+        return of({loading: false})
+      }),
+      startWith({
+        loading: true
+      })
+    ) : of({loading: false})
+  })
+
+  /**
+   * The conversation
+   */
+  readonly conversation = linkedModel({
+    initialValue: null,
+    compute: () => {
+      return this.#conversation()?.conversation
+    },
+    update: () => {}
+  })
+  readonly loadingConv = linkedModel({
+    initialValue: null,
+    compute: () => {
+      return this.#conversation()?.loading
+    },
+    update: () => {}
+  })
+
+  readonly #messages = linkedModel<TCopilotChatMessage[]>({
+    initialValue: null,
+    compute: () => this.conversation()?.messages ?? [],
+    update: (value) => {
+      this.conversation.update((state) => ({...(state ?? {}), messages: value} as IChatConversation))
+    }
+  })
+
+  readonly messages = computed(() => this.#messages() ?? [])
+
+  readonly parametersValue = linkedModel<Record<string, unknown>>({
+    initialValue: null,
+    compute: () => this.conversation()?.options?.parameters ?? {},
+    update: (value) => {
+      this.conversation.update((state) => ({...(state ?? {}), options: {
+        ...(state?.options ?? {}),
+        parameters: value
+      }} as IChatConversation))
+    }
+  })
+
+  readonly xpert = signal<IXpert>(null)
+
+  // private idSub = toObservable(this.conversationId)
+  //   .pipe(
+  //     skip(1),
+  //     filter((id) => false && (!this.conversation() || this.conversation().id !== id)),
+  //     switchMap((id) =>
+  //       id ? combineLatest([
+  //           this.getConversation(id)
+  //           .pipe(
+  //             catchError((httpError: HttpErrorResponse) => {
+  //               if (httpError.status === 404) {
+  //                 this.#toastr.error('PAC.Messages.NoPermissionOrNotExist', 'PAC.KEY_WORDS.Conversation', {Default: 'No permission or does not exist'})
+  //               } else {
+  //                 this.#toastr.error(getErrorMessage(httpError))
+  //               }
+  //               return of(null)
+  //             })
+  //           ),
+  //         this.getFeedbacks(id)
+  //       ]).pipe(
+  //         catchError((error) => {
+  //           this.#toastr.error(getErrorMessage(error))
+  //           return of([])
+  //         }), 
+  //       ) : of([])
+  //     ),
+  //     tap(([conv, feedbacks]) => {
+  //       this.loadingConv.set(false)
+  //       if (conv) {
+  //         this.conversation.set(conv)
+  //         this.#messages.set(sortBy(conv.messages, 'createdAt'))
+  //         this.parametersValue.set(conv.options?.parameters ?? {})
+  //         this.knowledgebases.set(
+  //           conv.options?.knowledgebases?.map((id) => conv.xpert?.knowledgebases?.find((item) => item.id === id)).filter(nonNullable)
+  //         )
+  //         this.toolsets.set(conv.options?.toolsets?.map((id) => conv.xpert?.toolsets?.find((item) => item.id === id)))
+  //       } else {
+  //         // New empty conversation
+  //         this.conversation.set({} as IChatConversation)
+  //         this.#messages.set([])
+  //       }
+
+  //       this.feedbacks.set(feedbacks?.items.reduce((acc, feedback) => {
+  //         acc[feedback.messageId] = feedback
+  //         return acc
+  //       }, {}))
+  //     }),
+  //     takeUntilDestroyed()
+  //   )
+  //   .subscribe({
+  //     next: ([conversation]) => {
+  //       if (conversation) {
+  //         this.xpert$.next(conversation?.xpert)
+  //       }
+  //     },
+  //     error: (error) => {
+  //       this.loadingConv.set(false)
+  //       this.#toastr.error(getErrorMessage(error))
+  //     }
+  //   })
 
   constructor() {
     this.#destroyRef.onDestroy(() => {
@@ -147,10 +232,16 @@ export class ChatService {
         this.cancelMessage()
       }
     })
+
+    effect(() => {
+      if (this.conversation()?.xpert && !this.xpert()) {
+        this.xpert.set(this.conversation().xpert)
+      }
+    }, { allowSignalWrites: true })
   }
 
   getConversation(id: string) {
-    this.loadingConv.set(true)
+    // this.loadingConv.set(true)
     return this.conversationService.getById(id, { relations: ['xpert', 'xpert.agent', 'xpert.agents', 'xpert.knowledgebases', 'xpert.toolsets', 'messages'] })
   }
 
@@ -220,7 +311,7 @@ export class ChatService {
                 switch(event.event) {
                   case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
                   case ChatMessageEventTypeEnum.ON_CONVERSATION_END:
-                    this.updateConversation(event.data)
+                    this.updateConversation(omit(event.data, 'messages'))
                     if (event.data.status === 'error') {
                       this.updateLatestMessage((lastM) => {
                         return {
@@ -323,7 +414,7 @@ export class ChatService {
     })
   }
 
-  async newConversation(xpert?: IXpert) {
+  async newConversation1(xpert?: IXpert) {
     if (this.answering() && this.conversation()?.id) {
       this.cancelMessage()
     }
@@ -345,7 +436,6 @@ export class ChatService {
     this.conversation.update((state) => ({
       ...(state ?? {}),
       ...data,
-      messages: null
     } as IChatConversation))
   }
 
@@ -418,7 +508,7 @@ export class ChatService {
   }
 
   updateEvent(event) {
-    console.log(event)
+    // console.log(event)
     this.updateLatestMessage((lastMessage) => {
       return {
         ...lastMessage,
@@ -430,4 +520,7 @@ export class ChatService {
       }
     })
   }
+
+  //
+  abstract newConv(xpert?: IXpert): void
 }

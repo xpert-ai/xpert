@@ -17,18 +17,27 @@
           />
         </td>
         <td class="p-2 pl-3 font-medium">
-          <xpert-tool-name-input [ngModel]="tool.name" (ngModelChange)="updateTool(i, 'name', $event)" />
+          <xpert-tool-name-input disabled [ngModel]="tool.name" (ngModelChange)="updateTool(i, 'name', $event)" />
         </td>
         <td class="p-2 pl-3 font-medium">
           <input class="w-full ngm-input-inline ngm-input-sm hover:bg-hover-bg"
-            [ngModel]="tool.description" (ngModelChange)="updateTool(i, 'description', $event)">
+            disabled [ngModel]="tool.description" (ngModelChange)="updateTool(i, 'description', $event)">
         </td>
         <td class="pl-3 font-medium">
-          <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small space-x-1"
-            (click)="openToolTest(tool)"
-          >
-            <div class="text-sm font-medium">{{ 'PAC.Xpert.Test' | translate: {Default: 'Test'} }}</div>
-          </button>
+          <div class="flex items-center gap-2">
+            <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small space-x-1 shrink-0"
+              (click)="openToolTest(tool)"
+            >
+              <div class="text-sm font-medium">{{ 'PAC.Xpert.Test' | translate: {Default: 'Test'} }}</div>
+            </button>
+            <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small danger space-x-1 shrink-0"
+              [matTooltip]="'PAC.Xpert.Remove' | translate: {Default: 'Remove'}"
+              matTooltipPosition="after"
+              (click)="remove(tool)"
+            >
+              <i class="ri-delete-bin-line"></i>
+            </button>
+          </div>
         </td>
       </tr>
     }

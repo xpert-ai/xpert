@@ -31,6 +31,6 @@ export class XpertWorkspaceWelcomeComponent {
   }
 
   navigate(workspace: IXpertWorkspace) {
-    this.#router.navigate(['/xpert/w/', workspace.id])
+    this.homeComponent.selectWorkspace(workspace)
   }
 }
