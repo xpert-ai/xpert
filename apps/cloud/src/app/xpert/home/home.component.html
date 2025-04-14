@@ -1,7 +1,5 @@
 <xpert-webapp (openHistories)="openConversations()">
   <pac-organization-selector action />
-  <pac-header-user action />
-     
   @if (user(); as user) {
     <pac-header-user [user]="user" action />
   }
