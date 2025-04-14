@@ -17,11 +17,11 @@
           />
         </td>
         <td class="p-2 pl-3 font-medium">
-          <xpert-tool-name-input [ngModel]="tool.name" (ngModelChange)="updateTool(i, 'name', $event)" />
+          <xpert-tool-name-input disabled [ngModel]="tool.name" (ngModelChange)="updateTool(i, 'name', $event)" />
         </td>
         <td class="p-2 pl-3 font-medium">
           <input class="w-full ngm-input-inline ngm-input-sm hover:bg-hover-bg"
-            [ngModel]="tool.description" (ngModelChange)="updateTool(i, 'description', $event)">
+            disabled [ngModel]="tool.description" (ngModelChange)="updateTool(i, 'description', $event)">
         </td>
         <td class="pl-3 font-medium">
           <div class="flex items-center gap-2">

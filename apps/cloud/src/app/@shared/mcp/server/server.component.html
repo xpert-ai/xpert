@@ -154,7 +154,7 @@
       </div>
     </div>
 
-    @if (types()[0] === 'sse') {
+    @if (types()[0] !== 'sse') {
       <div class="my-4">
         <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
           <div class="truncate">{{'PAC.MCP.Env' | translate: {Default: 'Env'} }}</div>
