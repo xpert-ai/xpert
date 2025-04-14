@@ -6,6 +6,9 @@ import { MaterialModule } from '../@shared/material.module'
 import { SidenavNavigatorComponent } from './header'
 import { OrganizationSelectorComponent } from './header/organization-selector/organization-selector.component'
 
+/**
+ * @deprecated use components dep
+ */
 @NgModule({
   imports: [
     CommonModule,

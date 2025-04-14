@@ -21,6 +21,7 @@ import { ChatConversationsComponent } from '../conversations/conversations.compo
 import { XpertHomeService } from '../home.service'
 import { XpertOcapService } from '../ocap.service'
 import { XpertChatAppComponent } from '../xpert/xpert.component'
+import { OrganizationSelectorComponent } from '@cloud/app/@theme/header'
 
 @Component({
   standalone: true,
@@ -37,7 +38,8 @@ import { XpertChatAppComponent } from '../xpert/xpert.component'
     TranslateModule,
     WaIntersectionObserver,
     MatTooltipModule,
-    XpertChatAppComponent
+    OrganizationSelectorComponent,
+    XpertChatAppComponent,
   ],
   selector: 'chat-home',
   templateUrl: './home.component.html',
