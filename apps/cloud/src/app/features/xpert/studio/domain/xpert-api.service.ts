@@ -599,7 +599,7 @@ export class XpertStudioApiService {
     if (options.workflowKey) {
       return this.xpertService.getWorkflowVariables1(this.xpert().id, options.workflowKey, this.environmentId())
     } else {
-      return this.xpertService.getVariables1(this.xpert().id, options.agentKey, this.environmentId())
+      return this.xpertService.getVariables(this.xpert().id, options.agentKey, this.environmentId())
     }
   }
 }

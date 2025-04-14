@@ -174,7 +174,7 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   /**
    * Get avaiable variables for agent or global variables
    */
-  getVariables1(id: string, agentKey?: string, environmentId?: string) {
+  getVariables(id: string, agentKey?: string, environmentId?: string) {
     let params = new HttpParams()
     if (environmentId) {
       params = params.append('environment', environmentId)
@@ -194,9 +194,9 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/workflow/${nodeKey}/variables`, {params})
   }
 
-  getChatApp(id: string) {
-    return this.httpClient.get<{ user: IUser; token: string; refreshToken: string; xpert: IXpert }>(
-      this.apiBaseUrl + `/${id}/app`,
+  getChatApp(slug: string) {
+    return this.httpClient.get<IXpert>(
+      this.apiBaseUrl + `/${slug}/app`,
       { withCredentials: true }
     )
   }

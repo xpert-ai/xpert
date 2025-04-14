@@ -61,7 +61,7 @@ export class XpertHomeService {
 
   getXpert(slug: string) {
     if (!this.#xperts[slug]) {
-      this.#xperts[slug] = this.xpertService.getBySlug(slug).pipe(shareReplay(1))
+      this.#xperts[slug] = this.xpertService.getChatApp(slug).pipe(shareReplay(1))
     }
     return this.#xperts[slug]
   }

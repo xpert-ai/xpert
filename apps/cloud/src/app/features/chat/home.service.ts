@@ -1,7 +1,7 @@
 import { computed, Injectable, signal } from '@angular/core'
 import { injectXpertPreferences } from '@metad/cloud/state'
 import { derivedFrom } from 'ngxtension/derived-from'
-import { map, pipe } from 'rxjs'
+import { map, Observable, pipe, shareReplay } from 'rxjs'
 import { IXpert, LanguagesEnum, OrderTypeEnum, XpertTypeEnum } from '../../@core/types'
 import { XpertHomeService } from '../../xpert'
 
@@ -50,4 +50,14 @@ export class ChatHomeService extends XpertHomeService {
 
     return xperts
   })
+
+  // Xperts details
+  readonly #xperts: Record<string, Observable<IXpert>> = {}
+
+  getXpert(slug: string) {
+    if (!this.#xperts[slug]) {
+      this.#xperts[slug] = this.xpertService.getBySlug(slug).pipe(shareReplay(1))
+    }
+    return this.#xperts[slug]
+  }
 }

@@ -14,14 +14,15 @@ import { provideOcapCore } from '@metad/ocap-angular/core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { provideMarkdown } from 'ngx-markdown'
-import { ChatConversationService, injectToastr, routeAnimations, XpertService } from '../../@core'
+import { ChatConversationService, injectToastr, routeAnimations, Store, XpertService } from '../../@core'
 import { ChatAppService } from '../chat-app.service'
 import { ChatService } from '../chat.service'
 import { ChatConversationsComponent } from '../conversations/conversations.component'
 import { XpertHomeService } from '../home.service'
 import { XpertOcapService } from '../ocap.service'
 import { XpertChatAppComponent } from '../xpert/xpert.component'
-import { OrganizationSelectorComponent } from '@cloud/app/@theme/header'
+import { HeaderUserComponent, OrganizationSelectorComponent } from '@cloud/app/@theme/header'
+import { toSignal } from '@angular/core/rxjs-interop'
 
 @Component({
   standalone: true,
@@ -39,6 +40,7 @@ import { OrganizationSelectorComponent } from '@cloud/app/@theme/header'
     WaIntersectionObserver,
     MatTooltipModule,
     OrganizationSelectorComponent,
+    HeaderUserComponent,
     XpertChatAppComponent,
   ],
   selector: 'chat-home',
@@ -60,6 +62,7 @@ import { OrganizationSelectorComponent } from '@cloud/app/@theme/header'
   ]
 })
 export class ChatHomeComponent {
+  readonly store = inject(Store)
   readonly chatService = inject(ChatService)
   readonly conversationService = inject(ChatConversationService)
   readonly xpertService = inject(XpertService)
@@ -69,6 +72,7 @@ export class ChatHomeComponent {
 
   readonly xpert = this.chatService.xpert
   readonly conversationId = this.chatService.conversationId
+  readonly user = toSignal(this.store.user$)
 
   readonly loading = signal(false)
 
