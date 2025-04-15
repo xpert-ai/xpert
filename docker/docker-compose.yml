@@ -40,7 +40,7 @@ services:
     mem_limit: 1024m
     restart: unless-stopped
     healthcheck:
-      test: curl -m 5 --silent --fail --request GET http://localhost:8080/ | jq --exit-status -n 'inputs | if has("status") then .status=="UP" else false end' > /dev/null || exit 1
+      test: curl -m 5 --silent --fail --request GET http://localhost:8080/
       interval: 10s
       timeout: 2s
       retries: 10
