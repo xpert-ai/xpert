@@ -41,6 +41,11 @@
             }
           </mat-radio-group>
         }
+        @case (eParameterType.BOOLEAN) {
+          <mat-slide-toggle [formControlName]="credential.variable"
+            ngm-density="xs"
+          />
+        }
       }
     </div>
   }

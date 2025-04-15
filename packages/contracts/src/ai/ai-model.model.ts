@@ -98,18 +98,21 @@ export interface ProviderCredentialSchema {
   credential_form_schemas: CredentialFormSchema[];
 }
 
+/**
+ * @todo Use JSON Schema to implement
+ */
 export enum CredentialFormTypeEnum {
   TEXT_INPUT = "text-input",
   SECRET_INPUT = "secret-input",
   SELECT = "select",
   RADIO = "radio",
-  SWITCH = "switch",
+  // SWITCH = "switch", // use ParameterType.BOOLEAN
 }
 
 export interface CredentialFormSchema {
   variable: string;
   label: I18nObject;
-  type: CredentialFormTypeEnum;
+  type: CredentialFormTypeEnum | ParameterType
   required: boolean;
   default?: number | string | boolean
   options?: {
@@ -159,6 +162,9 @@ export enum ConfigurateMethod {
   CUSTOMIZABLE_MODEL = 'customizable-model'
 }
 
+/**
+ * @todo Use JSON Schema to implement
+ */
 export enum ParameterType {
   FLOAT = "float",
   INT = "int",
@@ -167,6 +173,9 @@ export enum ParameterType {
   TEXT = "text"
 }
 
+/**
+ * @todo Use JSON Schema to implement
+ */
 export interface ParameterRule {
   name?: string;
   useTemplate?: string;

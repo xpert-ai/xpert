@@ -1,18 +1,22 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
+import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
 import { MatRadioModule } from '@angular/material/radio'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { isNil } from '@metad/copilot'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { CredentialFormSchema } from '../../../@core'
+import { CredentialFormSchema, CredentialFormTypeEnum, ParameterType } from '../../../@core'
 import { NgmSelectComponent } from '../../common'
 
+/**
+ * @todo Use JSON Schema to implement
+ */
 @Component({
   standalone: true,
   selector: 'copilot-credential-form',
@@ -29,12 +33,17 @@ import { NgmSelectComponent } from '../../common'
     MatTooltipModule,
     MatInputModule,
     MatRadioModule,
+    MatSlideToggleModule,
+    NgmDensityDirective,
     NgmI18nPipe,
     NgmSelectComponent
   ],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class CopilotCredentialFormComponent {
+  eCredentialFormTypeEnum = CredentialFormTypeEnum
+  eParameterType = ParameterType
+  
   readonly #translate = inject(TranslateService)
   readonly #fb = inject(FormBuilder)
   readonly #i18n = new NgmI18nPipe()

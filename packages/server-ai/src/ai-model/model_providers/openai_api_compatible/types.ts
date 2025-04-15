@@ -13,12 +13,14 @@ export interface OpenAICompatModelCredentials {
 	max_tokens_to_sample: string
 	vision_support: 'support' | 'no_support'
 	voices?: string
+	streaming?: boolean
 }
 
 export function toCredentialKwargs(credentials: OpenAICompatModelCredentials, model?: string): OpenAIBaseInput & { configuration: ClientOptions } {
 	const credentialsKwargs: OpenAIBaseInput = {
 		apiKey: credentials.api_key,
-		model
+		model,
+		streaming: credentials.streaming
 	} as OpenAIBaseInput
 	const configuration: ClientOptions = {}
 

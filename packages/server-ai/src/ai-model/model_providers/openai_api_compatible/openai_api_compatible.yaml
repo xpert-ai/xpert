@@ -107,6 +107,15 @@ model_credential_schema:
           value: llm
       default: "4096"
       type: text-input
+    - variable: streaming
+      label:
+        zh_Hans: 流式输出
+        en_US: Streaming
+      show_on:
+        - variable: __model_type
+          value: llm
+      default: true
+      type: boolean
     - variable: function_calling_type
       show_on:
         - variable: __model_type
