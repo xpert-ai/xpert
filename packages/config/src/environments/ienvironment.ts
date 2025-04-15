@@ -50,7 +50,8 @@ export interface IEnvironment {
 	envName: string;
 
 	env?: Env;
-
+	pro?: boolean
+	
 	EXPRESS_SESSION_SECRET: string;
 	USER_PASSWORD_BCRYPT_SALT_ROUNDS?: number;
 	JWT_SECRET?: string;

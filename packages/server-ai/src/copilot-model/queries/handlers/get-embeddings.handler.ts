@@ -1,5 +1,7 @@
-import { AiModelTypeEnum, ILLMUsage } from '@metad/contracts'
+import { AiModelTypeEnum, ILLMUsage, mapTranslationLanguage } from '@metad/contracts'
+import { RequestContext } from '@metad/server-core'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
+import { I18nService } from 'nestjs-i18n'
 import { CopilotModelInvalidException } from '../../../core/errors'
 import { CopilotModelGetChatModelQuery } from '../get-chat-model.query'
 import { CopilotModelGetEmbeddingsQuery } from '../get-embeddings.query'
@@ -8,14 +10,17 @@ import { CopilotModelGetEmbeddingsQuery } from '../get-embeddings.query'
 export class CopilotModelGetEmbeddingsHandler implements IQueryHandler<CopilotModelGetEmbeddingsQuery> {
 	constructor(
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
+		private readonly queryBus: QueryBus,
+		private readonly i18nService: I18nService
 	) {}
 
 	public async execute(command: CopilotModelGetEmbeddingsQuery) {
 		const copilotModel = command.copilotModel ?? command.copilot.copilotModel
 		if (copilotModel?.modelType !== AiModelTypeEnum.TEXT_EMBEDDING) {
 			throw new CopilotModelInvalidException(
-				`Should select a text embedding model, current is '${copilotModel?.model}: ${copilotModel?.modelType}'`
+				await this.i18nService.t('copilot.Error.NoTextEmbeddingModel', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+				})
 			)
 		}
 

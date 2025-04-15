@@ -1,4 +1,4 @@
-import { CredentialFormSchema, CredentialFormTypeEnum } from "@metad/contracts";
+import { CredentialFormSchema, CredentialFormTypeEnum, ParameterType } from "@metad/contracts";
 
 
 export class CommonValidator {
@@ -57,13 +57,13 @@ export class CommonValidator {
             throw new Error(`Variable ${credentialFormSchema.variable} should be string`);
         }
 
-        if ([CredentialFormTypeEnum.SELECT, CredentialFormTypeEnum.RADIO].includes(credentialFormSchema.type)) {
+        if ([CredentialFormTypeEnum.SELECT, CredentialFormTypeEnum.RADIO].includes(credentialFormSchema.type as CredentialFormTypeEnum)) {
             if (credentialFormSchema.options && !credentialFormSchema.options.some(option => option.value === value)) {
                 throw new Error(`Variable ${credentialFormSchema.variable} is not in options`);
             }
         }
 
-        if (credentialFormSchema.type === CredentialFormTypeEnum.SWITCH) {
+        if (credentialFormSchema.type === ParameterType.BOOLEAN) {
             if (!['true', 'false'].includes(value.toLowerCase())) {
                 throw new Error(`Variable ${credentialFormSchema.variable} should be true or false`);
             }

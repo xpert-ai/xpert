@@ -1,16 +1,20 @@
+import { mapTranslationLanguage } from '@metad/contracts'
+import { InvalidConfigurationException, RequestContext } from '@metad/server-core'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { I18nService } from 'nestjs-i18n'
 import { CopilotOrganizationService } from '../../../copilot-organization/index'
-import { CopilotUserService } from '../../copilot-user.service'
-import { CopilotTokenRecordCommand } from '../token-record.command'
 import { CopilotGetOneQuery } from '../../../copilot/queries'
 import { ExceedingLimitException } from '../../../core/errors'
+import { CopilotUserService } from '../../copilot-user.service'
+import { CopilotTokenRecordCommand } from '../token-record.command'
 
 @CommandHandler(CopilotTokenRecordCommand)
 export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRecordCommand> {
 	constructor(
 		private readonly queryBus: QueryBus,
 		private readonly copilotUserService: CopilotUserService,
-		private readonly copilotOrganizationService: CopilotOrganizationService
+		private readonly copilotOrganizationService: CopilotOrganizationService,
+		private readonly i18nService: I18nService
 	) {}
 
 	public async execute(command: CopilotTokenRecordCommand): Promise<void> {
@@ -18,8 +22,18 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
 		const { organizationId, userId, model, tokenUsed } = input
 		const copilotId = input.copilotId ?? input.copilot?.id
 
+		if (!model) {
+			throw new InvalidConfigurationException(
+				await this.i18nService.t('copilot.Error.TokenNoModel', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+				})
+			)
+		}
+
 		if (tokenUsed > 0) {
-			const copilot = await this.queryBus.execute(new CopilotGetOneQuery(input.tenantId, copilotId, ['modelProvider']))
+			const copilot = await this.queryBus.execute(
+				new CopilotGetOneQuery(input.tenantId, copilotId, ['modelProvider'])
+			)
 			// Record the token used by the organization or globally for the user
 			const record = await this.copilotUserService.upsert({
 				copilotId,

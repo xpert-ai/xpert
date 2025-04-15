@@ -33,6 +33,9 @@ import { combineLatestWith, distinctUntilChanged, map, startWith } from 'rxjs/op
 import { XpertConfigureToolComponent } from '../../api-tool/types'
 import { Samples } from '../types'
 
+/**
+ * @deprecated use XpertMCPManageComponent
+ */
 @Component({
   standalone: true,
   imports: [

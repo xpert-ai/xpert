@@ -20,6 +20,9 @@ import { isNil, omitBy } from 'lodash-es'
 import { MCPServerFormComponent } from 'apps/cloud/src/app/@shared/mcp'
 import { XpertStudioConfigureMCPComponent } from '../configure/configure.component'
 
+/**
+ * @deprecated use XpertMCPManageComponent
+ */
 @Component({
   standalone: true,
   imports: [

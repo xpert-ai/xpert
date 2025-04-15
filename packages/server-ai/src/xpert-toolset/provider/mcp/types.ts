@@ -41,5 +41,5 @@ export async function createMCPClient(id: string, schema: TMCPSchema) {
 		mcpServers
 	})
 
-    return {client}
+    return {client, destroy: null}
 }

@@ -2,22 +2,32 @@ import { Component, inject, model, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
+import { MatIconModule } from '@angular/material/icon'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayBehaviour, formatNumber, isNil } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
 import { isNumber } from 'lodash-es'
 import { CopilotUsageService, ICopilotOrganization, injectFormatRelative, ToastrService } from '../../../../@core'
-import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
 
 @Component({
   standalone: true,
   selector: 'pac-settings-copilot-usages',
   templateUrl: './usages.component.html',
   styleUrls: ['./usages.component.scss'],
-  imports: [RouterModule, TranslateModule, MaterialModule, FormsModule, ReactiveFormsModule, NgmCommonModule, OrgAvatarComponent]
+  imports: [
+    RouterModule,
+    TranslateModule,
+    FormsModule,
+    ReactiveFormsModule,
+    MatTooltipModule,
+    MatIconModule,
+    NgmCommonModule,
+    OrgAvatarComponent
+  ]
 })
 export class CopilotUsagesComponent extends TranslationBaseComponent {
   DisplayBehaviour = DisplayBehaviour
@@ -38,7 +48,7 @@ export class CopilotUsagesComponent extends TranslationBaseComponent {
   readonly loading = signal<boolean>(false)
 
   private dataSub = this.usageService
-    .getOrgUsages()
+    .getOrgUsages({})
     .pipe(takeUntilDestroyed())
     .subscribe((usages) => {
       this.usages.set(usages)

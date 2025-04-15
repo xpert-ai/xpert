@@ -30,7 +30,7 @@ export class OAIAPICompatLargeLanguageModel extends LargeLanguageModel {
 			const chatModel = this.createChatModel({
 				...params,
 				temperature: 0,
-				maxTokens: 5
+				maxTokens: 5,
 			})
 			await chatModel.invoke([
 				{

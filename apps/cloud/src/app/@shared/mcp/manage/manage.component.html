@@ -1,0 +1,216 @@
+<div class="shrink-0 flex w-[44px] flex-col border-r border-divider-burn sm:w-[324px]">
+  <div class="text-2xl font-semibold mb-8 mt-6 px-3 py-2 text-text-primary">
+    {{ 'PAC.Xpert.Toolset' | translate: {Default: 'Toolset'} }}
+  </div>
+  <div class="w-full flex flex-col px-4 overflow-auto">
+    <div>
+      <div class="py-2 leading-5 font-medium">
+        {{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}
+        <span class="ml-1 text-red-500">*</span>
+      </div>
+      <div class="flex items-center justify-between gap-3">
+        <emoji-avatar class="rounded-lg overflow-hidden"
+          [(avatar)]="avatar" editable />
+        <input class="ngm-input h-10 px-3 text-base font-normal grow"
+          [placeholder]="'PAC.Xpert.EnterToolsetName' | translate: {Default: 'Enter the toolset name'}"
+          [(ngModel)]="name"
+        >
+      </div>
+  
+      <textarea class="w-full px-2 py-1 mt-2 text-sm outline-none rounded-lg border border-solid border-transparent active:border-divider-regular focus-within:border-divider-regular
+          bg-gray-50 focus-within:bg-gray-100"
+        [placeholder]="'PAC.Xpert.EnterToolsetDescription' | translate: {Default: 'Enter toolset description'} "
+        [(ngModel)]="description"
+      ></textarea>
+      <div>
+        <div class="py-2 leading-5 text-sm font-medium text-gray-900">
+          {{'PAC.KEY_WORDS.Tags' | translate: {Default: 'Tags'} }}
+        </div>
+        <tag-select optional [category]="eTagCategoryEnum.TOOLSET" [(ngModel)]="tags" />
+      </div>
+      <div>
+        <div class="py-2 leading-5 text-sm font-medium text-gray-900">
+          {{'PAC.Xpert.PrivacyPolicy' | translate: {Default: 'Privacy Policy'} }}
+        </div>
+        <input class="w-full h-10 px-3 text-sm font-normal bg-gray-100 rounded-lg grow"
+          [placeholder]=" 'PAC.Xpert.EnterPrivacyPolicy' | translate: {Default: 'Please enter privacy policy'} "
+          [(ngModel)]="privacyPolicy"
+          >
+      </div>
+      <div>
+        <div class="py-2 leading-5 text-sm font-medium text-gray-900">
+          {{'PAC.Xpert.CustomDisclaimer' | translate: {Default: 'Custom Disclaimer'} }}
+        </div>
+        <input class="w-full h-10 px-3 text-sm font-normal bg-gray-100 rounded-lg grow"
+          [placeholder]=" 'PAC.Xpert.EnterCustomDisclaimer' | translate: {Default: 'Please enter custom disclaimer'} "
+          [(ngModel)]="customDisclaimer"
+          >
+      </div>
+    </div>
+    <div class="flex gap-1">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium shrink-0 my-3 w-full"
+        (click)="selectTool(null)">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" class="mr-1 w-4 h-4 text-gray-500">
+          <g id="Left Icon" clip-path="url(#clip0_11961_30603)">
+            <g id="Icon">
+              <path d="M6.99935 8.74984C7.96585 8.74984 8.74935 7.96634 8.74935 6.99984C8.74935 6.03334 7.96585 5.24984 6.99935 5.24984C6.03285 5.24984 5.24935 6.03334 5.24935 6.99984C5.24935 7.96634 6.03285 8.74984 6.99935 8.74984Z" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"></path>
+              <path d="M10.9236 8.59075C10.853 8.75069 10.8319 8.92812 10.8631 9.10015C10.8943 9.27218 10.9763 9.43092 11.0986 9.5559L11.1304 9.58772C11.229 9.68622 11.3073 9.80319 11.3606 9.93195C11.414 10.0607 11.4415 10.1987 11.4415 10.3381C11.4415 10.4775 11.414 10.6155 11.3606 10.7442C11.3073 10.873 11.229 10.99 11.1304 11.0885C11.0319 11.1871 10.9149 11.2653 10.7862 11.3187C10.6574 11.3721 10.5194 11.3995 10.38 11.3995C10.2407 11.3995 10.1026 11.3721 9.97388 11.3187C9.84513 11.2653 9.72815 11.1871 9.62965 11.0885L9.59783 11.0567C9.47285 10.9344 9.31411 10.8524 9.14209 10.8212C8.97006 10.79 8.79263 10.8111 8.63268 10.8817C8.47583 10.9489 8.34207 11.0605 8.24785 11.2028C8.15362 11.345 8.10306 11.5118 8.10238 11.6824V11.7726C8.10238 12.0539 7.99064 12.3236 7.79173 12.5225C7.59283 12.7214 7.32306 12.8332 7.04177 12.8332C6.76048 12.8332 6.49071 12.7214 6.29181 12.5225C6.09291 12.3236 5.98117 12.0539 5.98117 11.7726V11.7248C5.97706 11.5493 5.92025 11.3791 5.8181 11.2363C5.71596 11.0935 5.57322 10.9847 5.40844 10.9241C5.24849 10.8535 5.07106 10.8324 4.89904 10.8636C4.72701 10.8948 4.56827 10.9768 4.44329 11.0991L4.41147 11.1309C4.31297 11.2295 4.196 11.3077 4.06724 11.3611C3.93848 11.4145 3.80047 11.442 3.66109 11.442C3.52171 11.442 3.3837 11.4145 3.25494 11.3611C3.12619 11.3077 3.00921 11.2295 2.91071 11.1309C2.8121 11.0324 2.73387 10.9154 2.6805 10.7867C2.62712 10.6579 2.59965 10.5199 2.59965 10.3805C2.59965 10.2411 2.62712 10.1031 2.6805 9.97437C2.73387 9.84561 2.8121 9.72864 2.91071 9.63014L2.94253 9.59832C3.06479 9.47334 3.1468 9.3146 3.17799 9.14257C3.20918 8.97055 3.18812 8.79312 3.11753 8.63317C3.05031 8.47632 2.93869 8.34256 2.79641 8.24833C2.65414 8.15411 2.48742 8.10355 2.31677 8.10287H2.22662C1.94533 8.10287 1.67556 7.99112 1.47666 7.79222C1.27776 7.59332 1.16602 7.32355 1.16602 7.04226C1.16602 6.76097 1.27776 6.4912 1.47666 6.2923C1.67556 6.0934 1.94533 5.98166 2.22662 5.98166H2.27435C2.44988 5.97755 2.62011 5.92073 2.76292 5.81859C2.90572 5.71645 3.0145 5.57371 3.07511 5.40893C3.1457 5.24898 3.16676 5.07155 3.13556 4.89953C3.10437 4.7275 3.02236 4.56876 2.90011 4.44378L2.86829 4.41196C2.76968 4.31346 2.69145 4.19648 2.63807 4.06773C2.5847 3.93897 2.55723 3.80096 2.55723 3.66158C2.55723 3.5222 2.5847 3.38419 2.63807 3.25543C2.69145 3.12668 2.76968 3.0097 2.86829 2.9112C2.96679 2.81259 3.08376 2.73436 3.21252 2.68099C3.34127 2.62761 3.47929 2.60014 3.61867 2.60014C3.75805 2.60014 3.89606 2.62761 4.02482 2.68099C4.15357 2.73436 4.27054 2.81259 4.36905 2.9112L4.40086 2.94302C4.52585 3.06527 4.68458 3.14728 4.85661 3.17848C5.02864 3.20967 5.20607 3.18861 5.36602 3.11802H5.40844C5.56529 3.0508 5.69906 2.93918 5.79328 2.7969C5.8875 2.65463 5.93806 2.48791 5.93874 2.31726V2.22711C5.93874 1.94582 6.05049 1.67605 6.24939 1.47715C6.44829 1.27825 6.71806 1.1665 6.99935 1.1665C7.28064 1.1665 7.55041 1.27825 7.74931 1.47715C7.94821 1.67605 8.05995 1.94582 8.05995 2.22711V2.27484C8.06064 2.44548 8.1112 2.6122 8.20542 2.75448C8.29964 2.89675 8.43341 3.00837 8.59026 3.07559C8.75021 3.14619 8.92763 3.16724 9.09966 3.13605C9.27169 3.10486 9.43043 3.02285 9.55541 2.90059L9.58723 2.86878C9.68573 2.77017 9.8027 2.69194 9.93146 2.63856C10.0602 2.58519 10.1982 2.55772 10.3376 2.55772C10.477 2.55772 10.615 2.58519 10.7438 2.63856C10.8725 2.69194 10.9895 2.77017 11.088 2.86878C11.1866 2.96728 11.2648 3.08425 11.3182 3.21301C11.3716 3.34176 11.399 3.47978 11.399 3.61916C11.399 3.75854 11.3716 3.89655 11.3182 4.0253C11.2648 4.15406 11.1866 4.27103 11.088 4.36953L11.0562 4.40135C10.9339 4.52633 10.8519 4.68507 10.8207 4.8571C10.7895 5.02913 10.8106 5.20656 10.8812 5.3665V5.40893C10.9484 5.56578 11.06 5.69954 11.2023 5.79377C11.3446 5.88799 11.5113 5.93855 11.6819 5.93923H11.7721C12.0534 5.93923 12.3231 6.05097 12.522 6.24988C12.7209 6.44878 12.8327 6.71855 12.8327 6.99984C12.8327 7.28113 12.7209 7.5509 12.522 7.7498C12.3231 7.9487 12.0534 8.06044 11.7721 8.06044H11.7243C11.5537 8.06112 11.387 8.11169 11.2447 8.20591C11.1024 8.30013 10.9908 8.4339 10.9236 8.59075Z" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"></path></g></g><defs><clipPath id="clip0_11961_30603"><rect width="14" height="14" fill="white"></rect></clipPath></defs>
+        </svg>
+        <div class="leading-5 text-sm font-medium text-gray-700">
+          {{'PAC.Xpert.Configure' | translate: {Default: 'Configure'} }}
+        </div>
+      </button>
+    </div>
+
+    <div class="flex-1 flex flex-col overflow-y-auto">
+      <div class="sticky top-0 text-sm font-medium leading-6 px-2 border-b-[0.5px] border-black/5 text-gray-500 bg-components-panel-bg">
+        <span class="uppercase">{{toolset()?.tools?.length}} {{'PAC.Xpert.ToolsIncluded' | translate: {Default: 'Tools Included'} }}</span>
+      </div>
+      <div class="pt-3">
+        @for (tool of tools(); track tool.name) {
+          <div class="mb-2 px-4 py-3 rounded-xl bg-gray-25 border-[0.5px] border-gary-200 cursor-pointer hover:bg-white hover:shadow-sm"
+            [class.removed]="tool.deletedAt"
+            (click)="selectTool(tool)"
+          >
+            <div class="flex items-center gap-2 text-gray-800 font-semibold text-sm leading-5">
+              @if (tool.disabled ?? disableToolDefault()) {
+                <span class="inline-block w-2 h-2 rounded-full bg-gray-200 shadow-md shadow-gray-100">
+                </span>
+              } @else {
+                <span class="inline-block w-2 h-2 rounded-full bg-green-500 shadow-md shadow-green-100">
+                </span>
+              }
+              {{tool.name}}
+            </div>
+            <div class="mt-0.5 text-sm leading-[18px] text-gray-500 line-clamp-2" [title]="tool.description">{{tool.description}}</div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="flex justify-between items-center mb-8">
+      <button type="button" class="btn disabled:btn-disabled btn-danger btn-large"
+        [disabled]="!toolset()?.id"
+        (click)="deleteToolset()">{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+      </button>
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+        [disabled]="!canSave() || !toolsDirty()"
+        (click)="upsertToolset()">
+        <i class="ri-save-line mr-1"></i>
+        <span class="system-sm-medium">
+          {{'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="relative flex w-[824px]">
+  <div class="absolute -right-11 top-6 z-[9999] flex flex-col items-center">
+    <button type="button" class="btn disabled:btn-disabled btn-tertiary btn-large px-2"
+      (click)="close()">
+      <i class="ri-close-large-line"></i>
+    </button>
+    <div class="system-2xs-medium-uppercase mt-1 text-text-tertiary">ESC</div>
+  </div>
+
+  <div class="w-full overflow-y-auto bg-components-panel-bg pb-4">
+    @if (tool(); as tool) {
+      <div class="flex-1 flex flex-col overflow-auto">
+        <div class="sticky top-0 z-20 !border-b-black/5 shrink-0 border-b border-b-gray-100 p-4 bg-components-panel-bg">
+          <div class="flex justify-between items-center h-6">
+            <div class="text-base font-semibold text-gray-900">
+              <div class="flex items-center">
+                <xpert-tool-name-input class="ml-2 leading-6 text-base font-semibold text-gray-900"
+                  disabled
+                  [ngModel]="tool.name"
+                  (ngModelChange)="updateTool({name: $event})"
+                />
+              </div>
+            </div>
+            <div class="flex items-center text-sm">
+              <mat-slide-toggle [ngModel]="!tool.disabled" ngm-density small
+                (ngModelChange)="updateTool({disabled: !$event})"
+              >{{'PAC.Xpert.Enabled' | translate: {Default: 'Enabled'} }}</mat-slide-toggle>
+            </div>
+          </div>
+        </div>
+        <div class="flex flex-col px-4 mt-4">
+          <div class="py-1 leading-5 text-base font-medium text-gray-500">
+            {{'PAC.Xpert.Description' | translate: {Default: 'Description'} }}
+          </div>
+          <textarea class="w-full px-2 py-1 mt-2 text-sm outline-none rounded-lg border border-solid border-transparent active:border-divider-regular focus-within:border-divider-regular
+              text-zinc-500 bg-gray-50 focus-within:bg-gray-100"
+            [placeholder]=" 'PAC.Xpert.EnterToolDescription' | translate: {Default: 'Please enter tool description'} "
+            [ngModel]="tool.description"
+            (ngModelChange)="updateTool({description: $event})"
+          ></textarea>
+        </div>
+     
+        <div class="flex flex-col p-4">
+          <!-- <div class="mt-6">
+            <div class="flex items-center mb-4 leading-5 text-base font-semibold text-gray-500 uppercase">
+              <div class="mr-3">{{'PAC.Xpert.Parameters' | translate: {Default: 'Parameters'} }}</div>
+              <div class="grow w-0 h-px bg-gradient-to-r from-neutral-300 to-white"></div>
+            </div>
+            <div class="px-2 space-y-4 max-h-60 overflow-y-auto">
+              @for (parameter of tool.schema?.parameters; track parameter.name) {
+                <div class="flex justify-start items-start">
+                  <mat-slide-toggle ngm-density="xs" [matTooltip]="'PAC.Xpert.IsVisible' | translate: {Default: 'Is visible'}"
+                    [ngModel]="parameter.visible" 
+                    (ngModelChange)="updateParameter(parameter.name, {visible: $event})"/>
+  
+                  <div>
+                    <div class="flex items-center space-x-2 leading-[18px]">
+                      <div class="text-[13px] font-semibold text-gray-900">{{parameter.name}}</div>
+                      <div class="text-sm font-medium text-gray-500">{{parameter.type}}</div>
+                      @if (parameter.required) {
+                        <div class="text-sm font-medium text-[#EC4A0A]">
+                          {{'PAC.Xpert.Required' | translate: {Default: 'Required'} }}
+                        </div>
+                      }
+                    </div>
+                    <div class="mt-1 leading-[18px] text-xs font-normal text-text-tertiary">
+                      {{parameter.human_description | i18n}}
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div> -->
+  
+          <div class="flex items-center mt-6">
+            <div class="mr-3 shrink-0 leading-5 font-semibold uppercase text-gray-500">
+              {{ 'PAC.Xpert.Test' | translate: {Default: 'Test'} }}
+            </div>
+            <div class="grow h-px bg-gradient-to-r from-neutral-300 to-white"></div>
+          </div>
+  
+          <mcp-toolset-tool-test [tool]="tool" class="flex-1"
+            [toolset]="toolset()"
+            (saveParameters)="saveParametersAsDefault($event)"
+          />
+        </div>
+      </div>
+    } @else {
+      <div class="sticky top-0 z-20 mx-8 mb-[18px] flex items-center bg-components-panel-bg pb-2 pt-[27px]">
+        <div class="text-2xl font-semibold shrink-0 text-text-primary">
+          {{'PAC.Xpert.Configure' | translate: {Default: 'Configure'} }}
+        </div>
+      </div>
+      <div class="px-4 pt-2 sm:px-8">
+        <mcp-server-form class="w-full flex flex-col items-stretch" 
+          [ngModel]="mcpServer()" 
+          (ngModelChange)="updateMcpServer($event)"
+          [tools]="tools()"
+          (toolsChange)="onToolsChange($event)"
+        />
+      </div>
+    }
+  </div>
+    
+  @if (loading()) {
+    <ngm-spin class="absolute w-full h-full left-0 top-0" />
+  }
+
+</div>

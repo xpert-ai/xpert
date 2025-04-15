@@ -689,6 +689,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const execution: IXpertAgentExecution = {}
 
 		// Subgraph
+		if (!agent.key) {
+			throw new Error(`Key of Agent ${agentLabel(agent)} is empty!`)
+		}
 		const {graph, nextNodes, failNode} = await this.commandBus.execute<XpertAgentSubgraphCommand, {
 			graph: CompiledStateGraph<unknown, unknown>; nextNodes: TXpertTeamNode[]; failNode: TXpertTeamNode}>(
 			new XpertAgentSubgraphCommand(agent.key, xpert, {

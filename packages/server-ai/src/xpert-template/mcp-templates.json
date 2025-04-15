@@ -355,7 +355,7 @@
                         "DIFY_DATASET_ID": "yyyyyyyy",
                         "DIFY_TOP_K": "5",
                         "DIFY_SCORE_THRESHOLD_ENABLED": "true",
-                        "DIFY_SCORE_THRESHOLD": 0.5
+                        "DIFY_SCORE_THRESHOLD": "0.5"
                     },
                     "files": [
                         {
@@ -807,7 +807,7 @@
                         "DIFY_DATASET_ID": "yyyyyyyy",
                         "DIFY_TOP_K": "5",
                         "DIFY_SCORE_THRESHOLD_ENABLED": "true",
-                        "DIFY_SCORE_THRESHOLD": 0.5
+                        "DIFY_SCORE_THRESHOLD": "0.5"
                     },
                     "files": [
                         {

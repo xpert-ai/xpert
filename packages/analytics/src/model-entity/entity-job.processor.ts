@@ -7,7 +7,7 @@ import { ModelEntityUpdateCommand } from './commands'
 import { SemanticModelEntityService } from './entity.service'
 import { SemanticModelService } from '../model/model.service'
 import { estimateTokenUsage } from '@metad/copilot'
-import { CopilotNotFoundException, CopilotOneByRoleQuery, CopilotTokenRecordCommand } from '@metad/server-ai'
+import { CopilotNotFoundException, CopilotOneByRoleQuery, CopilotTokenRecordCommand, getCopilotModel } from '@metad/server-ai'
 import { AiProviderRole } from '@metad/contracts'
 import { GetDimensionMembersCommand } from '../model-member/commands'
 
@@ -74,7 +74,8 @@ export class EntityMemberProcessor {
 						organizationId,
 						userId: createdById,
 						copilotId: copilot.id,
-						tokenUsed
+						tokenUsed,
+						model: getCopilotModel(copilot)
 					})
 				)
 

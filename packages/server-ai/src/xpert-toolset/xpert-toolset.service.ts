@@ -160,4 +160,8 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 	async translate(key: string, options: translateOptions) {
 		return await this.i18n.t(key, options)
 	}
+
+	isPro() {
+		return this.configService.get('pro')
+	}
 }

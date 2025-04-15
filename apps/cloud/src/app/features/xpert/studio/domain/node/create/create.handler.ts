@@ -1,6 +1,6 @@
 import { IHandler } from '@foblex/mediator'
 import { Store, StoreDef } from '@ngneat/elf'
-import { TXpertTeamNode, XpertTypeEnum } from 'apps/cloud/src/app/@core'
+import { TXpertTeamNode, XpertTypeEnum } from '@cloud/app/@core'
 import { IStudioStore } from '../../types'
 import { CreateNodeRequest } from './create.request'
 import { genAgentKey } from '../../../../utils'
@@ -25,11 +25,16 @@ export class CreateNodeHandler implements IHandler<CreateNodeRequest> {
           entity = {
             type: XpertTypeEnum.Agent,
             key,
+            ...(request.entity ?? {})
           }
 
           draft.team.agentConfig ??= {} 
           draft.team.agentConfig.disableOutputs ??= []
           draft.team.agentConfig.disableOutputs.push(key)
+          break
+        }
+        default: {
+          entity = request.entity
         }
       }
 
@@ -37,7 +42,7 @@ export class CreateNodeHandler implements IHandler<CreateNodeRequest> {
         type: request.type,
         key,
         position: request.position,
-        entity: request.entity ?? entity
+        entity
       } as TXpertTeamNode
 
       draft.nodes.push(node)

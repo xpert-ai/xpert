@@ -16,6 +16,7 @@ export const prodEnvironment: IEnvironment = {
 	env: {
 		LOG_LEVEL: (process.env.LOG_LEVEL || 'log') as LogLevel
 	},
+	pro: process.env.PRO === 'true',
 
 	EXPRESS_SESSION_SECRET: 'pangolin',
 	USER_PASSWORD_BCRYPT_SALT_ROUNDS: 12,

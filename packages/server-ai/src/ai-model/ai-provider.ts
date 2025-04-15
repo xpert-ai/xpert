@@ -117,14 +117,19 @@ export abstract class ModelProvider {
 		return this.getModelManager(AiModelTypeEnum.LLM)?.getChatModel(copilotModel, options)
 	}
 
-	getModelInstance(
+	async getModelInstance(
 		type: AiModelTypeEnum,
 		copilotModel: ICopilotModel,
 		options?: TChatModelOptions
-	): BaseLanguageModel | BaseChatModel | Embeddings {
+	): Promise<BaseLanguageModel | BaseChatModel | Embeddings> {
 		if (type === AiModelTypeEnum.LLM) {
 			return this.getModelManager(type)?.getChatModel(copilotModel, options)
 		} else if (type === AiModelTypeEnum.TEXT_EMBEDDING) {
+			if (!copilotModel.options) {
+				const predefinedModels = await this.getModels(AiModelTypeEnum.TEXT_EMBEDDING)
+				const modelName = copilotModel.model || copilotModel.copilot.copilotModel?.model
+				copilotModel.options = predefinedModels.find((_) => _.model === modelName)?.model_properties
+			}
 			return this.getModelManager<TextEmbeddingModelManager>(type)?.getEmbeddingInstance(copilotModel, options)
 		}
 		return null

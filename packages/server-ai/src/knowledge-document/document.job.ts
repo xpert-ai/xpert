@@ -73,7 +73,8 @@ export class KnowledgeDocumentConsumer {
 								organizationId: knowledgebase.organizationId,
 								userId,
 								copilotId: copilot.id,
-								tokenUsed
+								tokenUsed,
+								model: vectorStore.embeddingModel
 							})
 						)
 						await vectorStore.addKnowledgeDocument(document, batch)

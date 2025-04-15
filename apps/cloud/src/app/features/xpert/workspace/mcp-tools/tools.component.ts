@@ -32,8 +32,8 @@ import {
 } from '../../../../@core'
 import { AppService } from '../../../../app.service'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
-import { XpertToolMCPCreateComponent } from '../../tools/mcp/create/create.component'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
+import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 
 const InlineTemplateCount = 8
 
@@ -69,7 +69,7 @@ export class XpertWorkspaceMCPToolsComponent {
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
   readonly logger = inject(NGXLogger)
-  readonly dialog = inject(Dialog)
+  readonly #dialog = inject(Dialog)
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly toolsetService = inject(XpertToolsetService)
@@ -161,32 +161,32 @@ export class XpertWorkspaceMCPToolsComponent {
     let toolset: Partial<IXpertToolset> = null
     let mcpServer: TMCPServer = null
     if (template) {
+      mcpServer = template.server
       toolset = {
         name: template.name,
         description: template.description,
         category: XpertToolsetCategoryEnum.MCP,
         type: template.server.type,
+        schema: JSON.stringify({mcpServers: {'': mcpServer}}),
       }
       if (template.icon) {
         toolset.avatar = {
           url: template.icon
         }
       }
-      mcpServer = template.server
     }
-    this.dialog
-      .open(XpertToolMCPCreateComponent, {
+    this.#dialog
+      .open(XpertMCPManageComponent, {
+        backdropClass: 'backdrop-blur-lg-white',
         disableClose: true,
-        panelClass: 'large',
         data: {
-          workspace: this.workspace(),
+          workspaceId: this.workspaceId(),
           toolset,
-          mcpServer
         }
       })
       .closed.subscribe({
-        next: (toolset) => {
-          if (toolset) {
+        next: (saved) => {
+          if (saved) {
             this.refresh()
           }
         }
@@ -207,10 +207,23 @@ export class XpertWorkspaceMCPToolsComponent {
     })
   }
 
-  navigateTo(toolset: IXpertToolset) {
-    if (toolset.category === XpertToolsetCategoryEnum.MCP) {
-      this.router.navigate(['/xpert/tool', toolset.id])
-    }
+  openToolset(toolset: IXpertToolset) {
+    this.#dialog
+      .open(XpertMCPManageComponent, {
+        backdropClass: 'backdrop-blur-lg-white',
+        disableClose: true,
+        data: {
+          workspaceId: this.workspaceId(),
+          toolsetId: toolset.id
+        }
+      })
+      .closed.subscribe({
+        next: (saved) => {
+          if (saved) {
+            this.refresh()
+          }
+        }
+      })
   }
 
 }

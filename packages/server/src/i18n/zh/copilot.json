@@ -1,0 +1,6 @@
+{
+    "Error": {
+        "TokenNoModel": "记录 Token 使用量时未提供 Model 信息",
+        "NoTextEmbeddingModel": "未正确配置嵌入模型或默认嵌入模型"
+    }
+}
