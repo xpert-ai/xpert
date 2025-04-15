@@ -88,7 +88,11 @@
       </div>
     </div>
 
-    <div class="flex justify-end mb-8">
+    <div class="flex justify-between items-center mb-8">
+      <button type="button" class="btn disabled:btn-disabled btn-danger btn-large"
+        [disabled]="!toolset()?.id"
+        (click)="deleteToolset()">{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+      </button>
       <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
         [disabled]="!canSave() || !toolsDirty()"
         (click)="upsertToolset()">

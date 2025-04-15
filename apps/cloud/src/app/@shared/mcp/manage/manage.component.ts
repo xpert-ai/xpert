@@ -21,8 +21,7 @@ import {
   XpertToolsetService
 } from '@cloud/app/@core'
 import { attrModel, linkedModel } from '@metad/core'
-import { injectConfirmUnique, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { injectConfirmDelete, injectConfirmUnique, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isEqual, omit } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -69,6 +68,7 @@ export class XpertMCPManageComponent {
   readonly #toastr = injectToastr()
   readonly #router = inject(Router)
   readonly confirmName = injectConfirmUnique()
+  readonly confirmDelete = injectConfirmDelete()
 
   readonly workspaceId = signal(this.#data.workspaceId)
   readonly toolsetId = signal(this.#data.toolsetId)
@@ -148,7 +148,7 @@ export class XpertMCPManageComponent {
 
   readonly selectedTool = signal<string>(null)
   readonly toolsDirty = signal(false)
-
+  
   readonly tool = linkedModel({
     initialValue: null,
     compute: () => this.toolset()?.tools?.find((_) => _.id === this.selectedTool()),
@@ -164,6 +164,7 @@ export class XpertMCPManageComponent {
 
   // Status
   readonly canSave = computed(() => this.tools()?.length)
+  readonly saved = signal(false)
 
   constructor() {
     // effect(() => {}, { allowSignalWrites: true })
@@ -266,6 +267,7 @@ export class XpertMCPManageComponent {
         this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated Successfully!' })
         this.loading.set(false)
         this.toolsDirty.set(false)
+        this.saved.set(true)
       },
       error: (error) => {
         this.#toastr.error(getErrorMessage(error))
@@ -289,8 +291,26 @@ export class XpertMCPManageComponent {
     return this.toolsetService.update(this.toolset().id, value)
   }
 
+  deleteToolset() {
+    const toolset = this.toolset()
+    this.confirmDelete({
+      value: toolset.name,
+      information: this.#translate.instant('PAC.Xpert.DeleteAllTools', { Default: 'Delete all tools of toolset' })
+    }, this.toolsetService.delete(toolset.id))
+      .subscribe({
+        next: () => {
+          this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, toolset.name)
+          this.saved.set(true)
+          this.close()
+        },
+        error: (error) => {
+          this.#toastr.error(getErrorMessage(error))
+        }
+      })
+  }
+
   close() {
-    this.#dialogRef.close()
+    this.#dialogRef.close(this.saved())
   }
 
   @HostListener('document:keydown.escape', ['$event'])

@@ -32,7 +32,6 @@ import {
 } from '../../../../@core'
 import { AppService } from '../../../../app.service'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
-import { XpertToolMCPCreateComponent } from '../../tools/mcp/create/create.component'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 
@@ -186,8 +185,8 @@ export class XpertWorkspaceMCPToolsComponent {
         }
       })
       .closed.subscribe({
-        next: (toolset) => {
-          if (toolset) {
+        next: (saved) => {
+          if (saved) {
             this.refresh()
           }
         }
@@ -219,7 +218,10 @@ export class XpertWorkspaceMCPToolsComponent {
         }
       })
       .closed.subscribe({
-        next: () => {
+        next: (saved) => {
+          if (saved) {
+            this.refresh()
+          }
         }
       })
   }
