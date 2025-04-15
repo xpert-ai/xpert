@@ -89,10 +89,10 @@
     </div>
 
     <div class="flex justify-end mb-8">
-      <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
         [disabled]="!canSave() || !toolsDirty()"
         (click)="upsertToolset()">
-        <i class="ri-add-line mr-1"></i>
+        <i class="ri-save-line mr-1"></i>
         <span class="system-sm-medium">
           {{'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}
         </span>
@@ -195,7 +195,7 @@
         </div>
       </div>
       <div class="px-4 pt-2 sm:px-8">
-        <mcp-server-form class="w-[600px] max-w-full mx-auto flex flex-col items-stretch" 
+        <mcp-server-form class="w-full flex flex-col items-stretch" 
           [ngModel]="mcpServer()" 
           (ngModelChange)="updateMcpServer($event)"
           [tools]="tools()"

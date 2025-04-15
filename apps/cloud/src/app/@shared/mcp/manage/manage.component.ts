@@ -49,7 +49,6 @@ import { TagSelectComponent } from '../../tag'
 
     EmojiAvatarComponent,
     NgmSpinComponent,
-    NgmI18nPipe,
     TagSelectComponent,
     MCPServerFormComponent,
     MCPToolsetToolTestComponent,
