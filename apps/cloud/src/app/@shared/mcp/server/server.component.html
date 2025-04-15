@@ -1,26 +1,34 @@
-<div class="min-w-[200px] md:min-w-[300px] lg:min-w-[400px] max-w-[500px] flex flex-col gap-2 p-2 overflow-auto">
+<div class="flex flex-col gap-2 p-2 overflow-auto">
   <div class="flex justify-center pb-2">
     <ul class="w-80 p-1 flex items-center justify-center gap-2 bg-hover-bg rounded-xl"
       cdkListbox
       [(ngModel)]="types"
       (ngModelChange)="updateType($event)"
     >
-      <li #option1="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
+      <li #option1="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer hover:bg-white"
         [ngClass]="option1.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
         [cdkOption]="eMCPServerType.SSE">
         <i class="ri-route-line"></i> &nbsp; SSE
       </li>
-      <li #option2="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
+      <li #option2="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer hover:bg-white"
         [ngClass]="option2.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
         [cdkOption]="eMCPServerType.STDIO">
         <i class="ri-links-line"></i> &nbsp; StandIO
       </li>
     
-      <!-- <li #option3="cdkOption" class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
+      <li #option3="cdkOption" class="relative p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer enabled:hover:bg-white"
         [ngClass]="option3.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
-        [cdkOption]="eMCPServerType.CODE">
+        [cdkOption]="eMCPServerType.CODE"
+        [cdkOptionDisabled]="!pro"
+        >
         <i class="ri-exchange-2-line"></i> &nbsp; Code
-      </li> -->
+        @if (!pro) {
+          <div class="absolute -right-1 -top-1 w-5 h-5 flex justify-center items-center shadow-sm rounded-md bg-white text-orange-500"
+            [matTooltip]="'PRO'" matTooltipPosition="above">
+            <i class="ri-shining-2-fill"></i>
+          </div>
+        }
+      </li>
     </ul>
   </div>
 
@@ -276,7 +284,7 @@
 
 <div class="border-l border-solid border-divider-regular my-2"></div>
 
-<div class="flex-1 overflow-auto">
+<div class="flex-1">
   <div class="border-b border-gray-200">
     <nav class="flex gap-x-1" aria-label="Tabs" role="tablist" aria-orientation="horizontal"
       cdkListbox

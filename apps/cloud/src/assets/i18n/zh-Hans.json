@@ -2259,6 +2259,7 @@
       "LearnCreateAPITool": "了解更多关于 API 工具集的信息",
       "LearnCreateMCPTool": "了解更多关于 MCP 工具集的信息",
       "EnterToolsetDescription": "输入工具集描述",
+      "Toolset": "工具集",
       "BaseUrl": "基础网址",
       "ToolsIncluded": "工具包含",
       "Configure": "配置",

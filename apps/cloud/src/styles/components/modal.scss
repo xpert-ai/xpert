@@ -1,3 +1,25 @@
 .ngm-modal-sidenav {
     @apply bg-bluegray-700 text-white dark:bg-bluegray-900;
 }
+
+/* for dialog container */
+.cdk-overlay-pane.mat-mdc-dialog-panel.large {
+  --mat-dialog-container-min-width: 80vw;
+  min-height: 80vh;
+}
+.cdk-overlay-pane.mat-mdc-dialog-panel.medium {
+  --mat-dialog-container-min-width: 60vw;
+  min-height: 60vh;
+}
+.cdk-overlay-pane.mat-mdc-dialog-panel.small {
+  --mat-dialog-container-min-width: 40vw;
+  min-height: 40vh;
+}
+
+.cdk-overlay-backdrop.backdrop-blur-md-white {
+  @apply backdrop-blur-md transition-all duration-100 ease-in bg-white/50;
+}
+
+.cdk-overlay-backdrop.backdrop-blur-lg-white {
+  @apply backdrop-blur-lg transition-all duration-100 ease-in bg-white/60;
+}

@@ -1,11 +1,15 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, model, output, signal } from '@angular/core'
+import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { environment } from '@cloud/environments/environment'
 import { EntriesPipe, linkedModel } from '@metad/core'
+import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
+import { Subscription } from 'rxjs'
 import { ToastrService, XpertToolsetService } from '../../../@core'
 import {
   getErrorMessage,
@@ -18,8 +22,6 @@ import {
 } from '../../../@core/types'
 import { CodeEditorComponent } from '../../editors'
 import { MCPToolsComponent } from '../tools/tools.component'
-import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
-import { Subscription } from 'rxjs'
 
 @Component({
   standalone: true,
@@ -33,6 +35,7 @@ import { Subscription } from 'rxjs'
     TranslateModule,
     CdkListboxModule,
     CodeEditorComponent,
+    MatTooltipModule,
     MCPToolsComponent,
     EntriesPipe,
     NgmSlideToggleComponent
@@ -41,6 +44,7 @@ import { Subscription } from 'rxjs'
 })
 export class MCPServerFormComponent {
   eMCPServerType = MCPServerType
+  pro = environment.pro
 
   readonly toolsetService = inject(XpertToolsetService)
   readonly #toastr = inject(ToastrService)
@@ -67,7 +71,7 @@ export class MCPServerFormComponent {
       this.value$.update((state) => ({ ...(state ?? {}), toolNamePrefix }))
     }
   })
-  
+
   readonly args = linkedModel({
     initialValue: [],
     compute: () => {
@@ -192,7 +196,8 @@ export class MCPServerFormComponent {
       { allowSignalWrites: true }
     )
 
-    effect(() => {
+    effect(
+      () => {
         if (this.views()[0] === 'code' && !this.fileIndex()?.length) {
           this.fileIndex.set([0])
         }
@@ -263,22 +268,20 @@ if __name__ == "__main__":
     this.loading.set(true)
     this.error.set(null)
     this.connectSub?.unsubscribe()
-    this.connectSub = this.toolsetService
-      .getMCPToolsBySchema(this._toolset())
-      .subscribe({
-        next: (result) => {
-          this.loading.set(false)
-          this.tools.set(result.tools)
-          this.views.set(['tools'])
-        },
-        error: (err) => {
-          this.error.set(getErrorMessage(err))
-          this.tools.set([])
-          this.#toastr.error(getErrorMessage(err))
-          this.loading.set(false)
-          // Handle the error scenario here
-        }
-      })
+    this.connectSub = this.toolsetService.getMCPToolsBySchema(this._toolset()).subscribe({
+      next: (result) => {
+        this.loading.set(false)
+        this.tools.set(result.tools)
+        this.views.set(['tools'])
+      },
+      error: (err) => {
+        this.error.set(getErrorMessage(err))
+        this.tools.set([])
+        this.#toastr.error(getErrorMessage(err))
+        this.loading.set(false)
+        // Handle the error scenario here
+      }
+    })
   }
 
   stopConnect() {

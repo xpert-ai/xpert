@@ -58,7 +58,7 @@ export class MCPToolsetToolTestComponent {
 
   // Inputs
   readonly tool = input<IXpertTool>()
-  readonly toolset = input<IXpertToolset>()
+  readonly toolset = input<Partial<IXpertToolset>>()
   readonly disabled = input<boolean>(false)
   readonly visibleAll = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
@@ -89,7 +89,7 @@ export class MCPToolsetToolTestComponent {
 
   constructor() {
     effect(() => {
-      // console.log(this.schema())
+      console.log(this.schema())
     })
   }
 
@@ -110,7 +110,7 @@ export class MCPToolsetToolTestComponent {
     this.#testSubscription = this.toolService
       .test({
         ...this.tool(),
-        toolset: this.toolset() ? omit(this.toolset(), 'tools') : this.tool().toolset,
+        toolset: (this.toolset() ? omit(this.toolset(), 'tools') : this.tool().toolset) as IXpertToolset,
         parameters: this.parameters(),
       })
       .subscribe({
