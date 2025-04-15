@@ -12,6 +12,11 @@ export interface QWenModelCredentials extends CommonChatModelParameters {
 	frequency_penalty?: number
 }
 
+export interface TongyiTextEmbeddingModelOptions {
+	context_size: number
+    max_chunks: number
+}
+
 export function toCredentialKwargs(credentials: TongyiCredentials) {
 	const credentialsKwargs: OpenAIBaseInput = {
 		apiKey: credentials.dashscope_api_key

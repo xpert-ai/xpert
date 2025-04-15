@@ -1,11 +1,11 @@
-import { OllamaEmbeddings } from '@langchain/ollama'
+import { OllamaCamelCaseOptions, OllamaEmbeddings } from '@langchain/ollama'
 import { AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { Injectable } from '@nestjs/common'
 import { ModelProvider } from '../../../ai-provider'
 import { TextEmbeddingModelManager } from '../../../types/text-embedding-model'
 import { CredentialsValidateFailedError } from '../../errors'
-import { OllamaCredentials } from '../types'
+import { OllamaCredentials, OllamaModelCredentials } from '../types'
 import { TChatModelOptions } from '../../../types/types'
 
 @Injectable()
@@ -15,10 +15,16 @@ export class OllamaTextEmbeddingModel extends TextEmbeddingModelManager {
 	}
 
 	getEmbeddingInstance(copilotModel: ICopilotModel, options?: TChatModelOptions): OllamaEmbeddings {
-		const modelProperties = options.modelProperties as OllamaCredentials
+		const ollamaCredentials =  copilotModel.copilot.modelProvider?.credentials as OllamaCredentials
+		const modelProperties = options.modelProperties as OllamaModelCredentials
+		const requestOptions = {} as OllamaCamelCaseOptions
+		if (modelProperties?.context_size) {
+			requestOptions.numCtx = Number(modelProperties.context_size)
+		}
 		return new OllamaEmbeddings({
-			baseUrl: modelProperties.base_url,
-			model: copilotModel.model || copilotModel.copilot.copilotModel?.model
+			baseUrl: ollamaCredentials?.base_url,
+			model: copilotModel.model || copilotModel.copilot.copilotModel?.model,
+			requestOptions
 		})
 	}
 

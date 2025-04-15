@@ -1,5 +1,6 @@
 {
     "Error": {
-        "TokenNoModel": "No model was provided when logging token usage"
+        "TokenNoModel": "No model was provided when recording token usage",
+        "NoTextEmbeddingModel": "The embedding model or the default embedding model is not configured correctly"
     }
 }

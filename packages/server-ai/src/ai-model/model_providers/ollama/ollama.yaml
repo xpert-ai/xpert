@@ -46,6 +46,15 @@ model_credential_schema:
           label:
             en_US: Chat
             zh_Hans: 对话
+    - variable: streaming
+      label:
+        zh_Hans: 流式输出
+        en_US: Streaming
+      show_on:
+        - variable: __model_type
+          value: llm
+      default: true
+      type: boolean
     - variable: context_size
       label:
         zh_Hans: 模型上下文长度

@@ -5,7 +5,7 @@ import { Injectable } from '@nestjs/common'
 import { ModelProvider } from '../../../ai-provider'
 import { TextEmbeddingModelManager } from '../../../types/text-embedding-model'
 import { CredentialsValidateFailedError } from '../../errors'
-import { toCredentialKwargs, TongyiCredentials } from '../types'
+import { toCredentialKwargs, TongyiCredentials, TongyiTextEmbeddingModelOptions } from '../types'
 
 @Injectable()
 export class TongyiTextEmbeddingModel extends TextEmbeddingModelManager {
@@ -16,12 +16,13 @@ export class TongyiTextEmbeddingModel extends TextEmbeddingModelManager {
 	getEmbeddingInstance(copilotModel: ICopilotModel): OpenAIEmbeddings {
 		const { copilot } = copilotModel
 		const { modelProvider } = copilot
+		const options = copilotModel.options as TongyiTextEmbeddingModelOptions
 		const params = toCredentialKwargs(modelProvider.credentials as TongyiCredentials)
-
+		
 		return new OpenAIEmbeddings({
 			...params,
-			// batchSize: 512, // Default value if omitted is 512. Max is 2048
 			model: copilotModel.model || copilotModel.copilot.copilotModel?.model,
+			batchSize: options?.max_chunks
 		})
 	}
 
@@ -31,7 +32,6 @@ export class TongyiTextEmbeddingModel extends TextEmbeddingModelManager {
 			const params = toCredentialKwargs(credentials as TongyiCredentials)
 			const embeddings = new OpenAIEmbeddings({
 				...params,
-				// batchSize: 512, // Default value if omitted is 512. Max is 2048
 				model,
 			})
 
