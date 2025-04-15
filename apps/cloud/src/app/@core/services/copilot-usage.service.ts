@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
-import { toHttpParams } from '@metad/cloud/state'
+import { PaginationParams, toHttpParams } from '@metad/cloud/state'
 import { ICopilotOrganization, ICopilotUser, OrderTypeEnum } from '@metad/contracts'
 import { NGXLogger } from 'ngx-logger'
 import { map } from 'rxjs'
@@ -11,14 +11,15 @@ export class CopilotUsageService {
   readonly #logger = inject(NGXLogger)
   readonly httpClient = inject(HttpClient)
 
-  getOrgUsages() {
+  getOrgUsages(params: PaginationParams<ICopilotOrganization>) {
     return this.httpClient
       .get<{ items: ICopilotOrganization[] }>(API_COPILOT_ORGANIZATION, {
         params: toHttpParams({
           relations: ['organization'],
           order: {
             updatedAt: OrderTypeEnum.DESC
-          }
+          },
+          ...(params ?? {})
         })
       })
       .pipe(map(({ items }) => items))
