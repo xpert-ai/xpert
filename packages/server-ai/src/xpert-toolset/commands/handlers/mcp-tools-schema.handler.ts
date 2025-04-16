@@ -22,7 +22,8 @@ export class MCPToolsBySchemaHandler implements ICommandHandler<MCPToolsBySchema
 		const envState = await this.queryBus.execute(new EnvStateQuery(command.toolset.workspaceId))
 
 		// Create a client
-		const {client, destroy} = this.toolsetService.isPro() ? await createProMCPClient(command.toolset, null, this.commandBus, schema)
+		const {client, destroy} = this.toolsetService.isPro()
+			? await createProMCPClient(command.toolset, null, this.commandBus, schema, envState)
 			: await createMCPClient(command.toolset.id, schema, envState)
 		
 		try {
