@@ -15,9 +15,11 @@ import {
 	IVisit,
 	ModelTypeEnum,
 	SemanticModelStatusEnum,
+	TSemanticModelDraft,
 	TSemanticModelOptions,
 	Visibility
 } from '@metad/contracts'
+import { Schema } from '@metad/ocap-core'
 import { Tag, TenantOrganizationBaseEntity, User } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsEnum, IsJSON, IsNotEmpty, IsOptional, IsString } from 'class-validator'
@@ -35,13 +37,19 @@ import {
 	Story,
 	Visit
 } from '../core/entities/internal'
-import { Schema } from '@metad/ocap-core'
 
 /**
  * 语义模型
  */
 @Entity('semantic_model')
 export class SemanticModel extends TenantOrganizationBaseEntity implements ISemanticModel {
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsJSON()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	draft?: TSemanticModelDraft
+
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()

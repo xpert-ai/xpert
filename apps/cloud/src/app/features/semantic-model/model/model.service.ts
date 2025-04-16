@@ -67,10 +67,10 @@ export class SemanticModelService {
   | Store
   |--------------------------------------------------------------------------
   */
-  readonly store = createStore({ name: 'semantic_model' }, withProps<SemanticModelState>({ model: null }))
+  readonly store = createStore({ name: 'semantic_model' }, withProps<SemanticModelState>({ model: null, draft: null }))
   readonly pristineStore = createStore(
     { name: 'semantic_model_pristine' },
-    withProps<SemanticModelState>({ model: null })
+    withProps<SemanticModelState>({ model: null, draft: null })
   )
   readonly #stateHistory = stateHistory<Store, SemanticModelState>(this.store, {
     comparatorFn: negate(isEqual)
@@ -79,6 +79,8 @@ export class SemanticModelService {
    * Dirty check for whole model
    */
   readonly dirtyCheckResult = dirtyCheckWith(this.store, this.pristineStore, { comparator: negate(isEqual) })
+
+  
   /**
    * Dirty for every entity
    */

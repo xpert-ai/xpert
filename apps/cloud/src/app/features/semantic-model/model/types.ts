@@ -1,5 +1,4 @@
 import { NgmSemanticModel } from '@metad/cloud/state'
-import { IStory } from '@metad/contracts'
 import {
   Cube,
   Dimension,
@@ -12,7 +11,7 @@ import {
   Schema,
   SemanticModel
 } from '@metad/ocap-core'
-import { ModelQuery, uuid } from '../../../@core'
+import { IStory, ModelQuery, TSemanticModel, TSemanticModelDraft, uuid } from '../../../@core'
 
 export enum MODEL_TYPE {
   /**
@@ -68,6 +67,7 @@ export interface QueryResult {
 
 export type SemanticModelState = {
   model: NgmSemanticModel
+  draft?: TSemanticModelDraft
 }
 
 export interface ModelQueryState {
