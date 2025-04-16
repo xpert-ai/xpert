@@ -1,3 +1,4 @@
+import { DynamicStructuredTool } from '@langchain/core/tools'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import { IXpertToolset, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
@@ -36,6 +37,7 @@ export class MCPToolset extends BaseToolset {
 		this.tools = tools.filter((tool) =>
 			disableToolDefault ? this.toolset.tools.some((_) => _.name === tool.name && !_.disabled) : true
 		)
+		this.tools.forEach((tool) => (<DynamicStructuredTool>tool).verboseParsingErrors = true)
 		return this.tools
 	}
 

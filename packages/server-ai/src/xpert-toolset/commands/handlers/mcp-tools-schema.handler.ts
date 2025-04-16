@@ -6,6 +6,7 @@ import { MCPToolsBySchemaCommand } from '../mcp-tools-schema.command'
 import { XpertToolsetService } from '../../xpert-toolset.service'
 import { createProMCPClient } from '../../provider/mcp/pro'
 import { EnvStateQuery } from '../../../environment'
+import { DynamicStructuredTool } from '@langchain/core/tools'
 
 @CommandHandler(MCPToolsBySchemaCommand)
 export class MCPToolsBySchemaHandler implements ICommandHandler<MCPToolsBySchemaCommand> {
@@ -30,10 +31,12 @@ export class MCPToolsBySchemaHandler implements ICommandHandler<MCPToolsBySchema
 			const tools = await client.getTools()
 			return {
 				tools: tools.map((tool) => {
+					(<DynamicStructuredTool>tool).verboseParsingErrors = true;
 					return {
 						name: tool.name,
 						description: tool.description,
-						schema: ToolSchemaParser.parseZodToJsonSchema(tool.schema)
+						schema: (<DynamicStructuredTool>tool).lc_kwargs?.schema ??
+							ToolSchemaParser.parseZodToJsonSchema(tool.schema)
 					}
 				})
 			}
