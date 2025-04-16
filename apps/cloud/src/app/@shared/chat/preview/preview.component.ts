@@ -46,6 +46,7 @@ import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
 import { effectAction } from '@metad/ocap-angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { injectConfirmDelete } from '@metad/ocap-angular/common'
+import { MatInputModule } from '@angular/material/input'
 
 @Component({
   standalone: true,
@@ -56,6 +57,7 @@ import { injectConfirmDelete } from '@metad/ocap-angular/common'
     TextFieldModule,
     MatTooltipModule,
     MarkdownModule,
+    MatInputModule,
     EmojiAvatarComponent,
     XpertParametersCardComponent,
     XpertPreviewAiMessageComponent,
