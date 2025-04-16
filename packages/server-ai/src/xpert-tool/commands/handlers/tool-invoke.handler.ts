@@ -10,10 +10,12 @@ import {
 	MCPToolset,
 	ODataToolset,
 	OpenAPIToolset,
+	TBuiltinToolsetParams,
 	ToolNotSupportedError,
 	XpertToolsetService
 } from '../../../xpert-toolset'
 import { ToolInvokeCommand } from '../tool-invoke.command'
+import { EnvStateQuery } from '../../../environment'
 
 @CommandHandler(ToolInvokeCommand)
 export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
@@ -56,7 +58,8 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 			subscriber
 		}
 
-		const context = {
+		const envState = await this.queryBus.execute(new EnvStateQuery(toolset.workspaceId))
+		const context: TBuiltinToolsetParams = {
 			tenantId,
 			organizationId,
 			toolsetService: this.toolsetService,
@@ -64,6 +67,7 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 			queryBus: this.queryBus,
 			xpertId: parameters?.form?.xpertId,
 			agentKey: parameters?.form?.agentKey,
+			env: envState
 		}
 
 		switch (toolset.category) {

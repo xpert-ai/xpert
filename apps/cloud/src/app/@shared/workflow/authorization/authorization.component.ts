@@ -10,7 +10,7 @@ import { linkedModel } from '@metad/core'
 import { NgmRadioSelectComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { ApiAuthType, TSelectOption, TWorkflowAuthorization, TWorkflowVarGroup } from '../../../@core/types'
-import { XpertVariableInputComponent } from '../variable-input/input.component'
+import { XpertVariableInputComponent } from '../../agent'
 
 @Component({
   selector: 'xpert-workflow-authorization',

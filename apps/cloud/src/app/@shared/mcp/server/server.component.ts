@@ -1,6 +1,6 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, model, signal } from '@angular/core'
+import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { environment } from '@cloud/environments/environment'
@@ -13,15 +13,19 @@ import { Subscription } from 'rxjs'
 import { ToastrService, XpertToolsetService } from '../../../@core'
 import {
   getErrorMessage,
+  IEnvironment,
   IXpertTool,
   IXpertToolset,
   MCPServerType,
   TMCPServer,
+  TWorkflowVarGroup,
   uuid,
+  XpertParameterTypeEnum,
   XpertToolsetCategoryEnum
 } from '../../../@core/types'
 import { CodeEditorComponent } from '../../editors'
 import { MCPToolsComponent } from '../tools/tools.component'
+import { XpertEnvVarInputComponent } from '../../environment'
 
 @Component({
   standalone: true,
@@ -38,7 +42,8 @@ import { MCPToolsComponent } from '../tools/tools.component'
     MatTooltipModule,
     MCPToolsComponent,
     EntriesPipe,
-    NgmSlideToggleComponent
+    NgmSlideToggleComponent,
+    XpertEnvVarInputComponent
   ],
   hostDirectives: [NgxControlValueAccessor]
 })
@@ -53,8 +58,10 @@ export class MCPServerFormComponent {
   readonly value$ = this.cva.value$
 
   // Inputs
+  readonly workspaceId = input<string>()
   readonly toolset = model<Partial<IXpertToolset>>()
   readonly tools = model<IXpertTool[]>()
+  readonly environment = input<IEnvironment>()
 
   // States
   readonly types = model<MCPServerType[]>([MCPServerType.SSE])
@@ -150,6 +157,7 @@ export class MCPServerFormComponent {
   readonly #tempId = signal(uuid())
   readonly _toolset = computed(() => {
     return {
+      workspaceId: this.workspaceId(),
       category: XpertToolsetCategoryEnum.MCP,
       type: this.types()[0],
       id: this.#tempId(),
@@ -171,6 +179,28 @@ export class MCPServerFormComponent {
   readonly headers = computed(() => this.value$()?.headers ?? {})
 
   private connectSub: Subscription = null
+
+  // Env
+  readonly variables = computed(() => {
+    const environment = this.environment()
+    if (environment) {
+      return [{
+        group: {
+          name: 'env',
+          description: {
+            en_US: 'Environment',
+            zh_Hans: '环境变量'
+          }
+        },
+        variables: environment.variables?.map((_) => ({
+          name: _.name,
+          type: _.type === 'secret' ? XpertParameterTypeEnum.SECRET : XpertParameterTypeEnum.STRING,
+          title: _.name,
+        }))
+      } as TWorkflowVarGroup]
+    }
+    return null
+  })
 
   constructor() {
     effect(
@@ -315,6 +345,7 @@ if __name__ == "__main__":
   }
 
   updateHeaderValue(name: string, value: string) {
+    if (value === this.headers()[name]) return
     this.value$.update((state) => {
       return {
         ...state,
@@ -387,6 +418,7 @@ if __name__ == "__main__":
   }
 
   updateEnvValue(name: string, value: string) {
+    if (value === this.env()[name]) return
     this.value$.update((state) => {
       return {
         ...state,

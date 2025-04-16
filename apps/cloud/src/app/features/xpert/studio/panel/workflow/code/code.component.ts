@@ -1,28 +1,25 @@
-import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
+import { Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { TranslateModule } from '@ngx-translate/core'
 import {
-  getErrorMessage,
   injectToastr,
   IWFNCode,
   IWorkflowNode,
   TSelectOption,
-  TXpertTeamNode,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
   XpertParameterTypeEnum,
   XpertService
-} from 'apps/cloud/src/app/@core'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { catchError, of } from 'rxjs'
+} from '@cloud/app/@core'
+import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
+import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { XpertWorkflowErrorHandlingComponent } from '@cloud/app/@shared/workflow'
+import { XpertWorkflowCodeEditorComponent } from '@cloud/app/@shared/xpert'
+import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
+import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
-import { XpertWorkflowCodeEditorComponent } from 'apps/cloud/src/app/@shared/xpert'
-import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
-import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
-import { StateVariableSelectComponent, XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/workflow'
-import { MatSliderModule } from '@angular/material/slider'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 
 @Component({
@@ -30,7 +27,14 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   templateUrl: './code.component.html',
   styleUrls: ['./code.component.scss'],
   standalone: true,
-  imports: [FormsModule, MatTooltipModule, TranslateModule, MatSliderModule, XpertWorkflowCodeEditorComponent, NgmSelectComponent, NgmSlideToggleComponent,
+  imports: [
+    FormsModule,
+    MatTooltipModule,
+    TranslateModule,
+    MatSliderModule,
+    XpertWorkflowCodeEditorComponent,
+    NgmSelectComponent,
+    NgmSlideToggleComponent,
     XpertWorkflowErrorHandlingComponent,
     StateVariableSelectComponent
   ],
@@ -116,7 +120,6 @@ export class XpertStudioPanelWorkflowCodeComponent extends XpertWorkflowBaseComp
     }
   ]
 
-
   updateEntity(name: string, value: string | number | any) {
     const entity = { ...(this.entity() ?? {}) } as IWFNCode
     entity[name] = value
@@ -125,13 +128,16 @@ export class XpertStudioPanelWorkflowCodeComponent extends XpertWorkflowBaseComp
 
   addInput() {
     const inputs = this.inputs() ?? []
-    inputs.push({name: 'arg' + (inputs.length + 1)})
+    inputs.push({ name: 'arg' + (inputs.length + 1) })
     this.updateEntity('inputs', [...inputs])
   }
 
   removeInput(param) {
     const inputs = this.inputs() ?? []
-    this.updateEntity('inputs', inputs.filter((item) => item.name !== param.name)) 
+    this.updateEntity(
+      'inputs',
+      inputs.filter((item) => item.name !== param.name)
+    )
   }
 
   updateInput(index: number, name: string, value: string) {
@@ -141,20 +147,20 @@ export class XpertStudioPanelWorkflowCodeComponent extends XpertWorkflowBaseComp
         ...inputs[index],
         [name]: value
       }
-      this.updateEntity('inputs',[...inputs])
+      this.updateEntity('inputs', [...inputs])
     }
   }
 
   addOutput() {
     const outputs = this.outputs() ?? []
-    outputs.push({name: 'result' + (outputs.length + 1), type: XpertParameterTypeEnum.STRING})
+    outputs.push({ name: 'result' + (outputs.length + 1), type: XpertParameterTypeEnum.STRING })
     this.updateEntity('outputs', [...outputs])
   }
 
   removeOutput(index: number) {
     const outputs = this.outputs() ?? []
     outputs.splice(index, 1)
-    this.updateEntity('outputs', [...outputs]) 
+    this.updateEntity('outputs', [...outputs])
   }
 
   updateOutput(index: number, name: string, value: string) {
@@ -164,12 +170,12 @@ export class XpertStudioPanelWorkflowCodeComponent extends XpertWorkflowBaseComp
         ...outputs[index],
         [name]: value
       }
-      this.updateEntity('outputs',[...outputs])
+      this.updateEntity('outputs', [...outputs])
     }
   }
 
   updateRetry(value: Partial<IWFNCode['retry']>) {
     const retry = this.retry() ?? {}
-    this.updateEntity('retry', {...retry, ...value})
+    this.updateEntity('retry', { ...retry, ...value })
   }
 }

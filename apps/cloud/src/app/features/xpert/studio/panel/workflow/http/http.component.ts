@@ -1,39 +1,43 @@
-import { Component, computed, effect, ElementRef, inject, input, signal } from '@angular/core'
+import { Dialog } from '@angular/cdk/dialog'
+import { Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { XpertVariableInputComponent } from '@cloud/app/@shared/agent'
+import {
+  XpertWorkflowAuthorizationComponent,
+  XpertWorkflowErrorHandlingComponent,
+  XpertWorkflowRetryComponent
+} from '@cloud/app/@shared/workflow'
+import { linkedModel } from '@metad/core'
+import { NgmRadioSelectComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   BodyType,
-  getErrorMessage,
   injectToastr,
   IWFNHttp,
   IWorkflowNode,
   TSelectOption,
   TXpertParameter,
-  TXpertTeamNode,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
   XpertParameterTypeEnum,
   XpertService
 } from 'apps/cloud/src/app/@core'
+import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
+import { CodeEditorCardComponent } from 'apps/cloud/src/app/@shared/editors'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
-import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
-import { linkedModel } from '@metad/core'
-import { XpertVariableInputComponent, XpertWorkflowAuthorizationComponent, XpertWorkflowErrorHandlingComponent, XpertWorkflowRetryComponent } from 'apps/cloud/src/app/@shared/workflow'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { catchError } from 'rxjs/operators'
-import { of } from 'rxjs'
-import { NgmRadioSelectComponent } from '@metad/ocap-angular/common'
-import { CodeEditorCardComponent } from 'apps/cloud/src/app/@shared/editors'
-import { Dialog } from '@angular/cdk/dialog'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 
 @Component({
   standalone: true,
   selector: 'xpert-workflow-http',
   templateUrl: './http.component.html',
-  imports: [FormsModule, MatTooltipModule, TranslateModule, NgmSelectComponent,
+  imports: [
+    FormsModule,
+    MatTooltipModule,
+    TranslateModule,
+    NgmSelectComponent,
     NgmRadioSelectComponent,
     CodeEditorCardComponent,
     XpertVariableInputComponent,
@@ -96,7 +100,7 @@ export class XpertWorkflowHttpComponent extends XpertWorkflowBaseComponent {
     }
   })
 
-  readonly headers = computed(() => this.#headers()?.length ? this.#headers() : [{name: '', value: ''}])
+  readonly headers = computed(() => (this.#headers()?.length ? this.#headers() : [{ name: '', value: '' }]))
 
   readonly #params = linkedModel({
     initialValue: null,
@@ -106,7 +110,7 @@ export class XpertWorkflowHttpComponent extends XpertWorkflowBaseComponent {
     }
   })
 
-  readonly params = computed(() => this.#params()?.length ? this.#params() : [{key: '', value: ''}])
+  readonly params = computed(() => (this.#params()?.length ? this.#params() : [{ key: '', value: '' }]))
 
   readonly #body = linkedModel({
     initialValue: null,
@@ -120,7 +124,7 @@ export class XpertWorkflowHttpComponent extends XpertWorkflowBaseComponent {
     initialValue: null,
     compute: () => this.#body()?.type,
     update: (newValue) => {
-      this.#body.update((state) => ({...(state ?? {}), type: newValue}))
+      this.#body.update((state) => ({ ...(state ?? {}), type: newValue }))
     }
   })
 
@@ -128,17 +132,17 @@ export class XpertWorkflowHttpComponent extends XpertWorkflowBaseComponent {
     initialValue: null,
     compute: () => this.#body()?.encodedForm,
     update: (newValue) => {
-      this.#body.update((state) => ({...(state ?? {}), encodedForm: newValue}))
+      this.#body.update((state) => ({ ...(state ?? {}), encodedForm: newValue }))
     }
   })
 
-  readonly encodedForm = computed(() => this.#encodedForm()?.length ? this.#encodedForm() : [{key: '', value: ''}])
+  readonly encodedForm = computed(() => (this.#encodedForm()?.length ? this.#encodedForm() : [{ key: '', value: '' }]))
 
   readonly body = linkedModel({
     initialValue: null,
     compute: () => this.#body()?.body,
     update: (newValue) => {
-      this.#body.update((state) => ({...(state ?? {}), body: newValue}))
+      this.#body.update((state) => ({ ...(state ?? {}), body: newValue }))
     }
   })
 
@@ -207,34 +211,34 @@ export class XpertWorkflowHttpComponent extends XpertWorkflowBaseComponent {
       value: 'head',
       label: 'Head'
     }
-]
+  ]
 
-readonly BodyTypeOptions: TSelectOption<BodyType>[] = [
-  {
-    value: 'none',
-    label: 'None'
-  },
-  // {
-  //   value: 'form-data',
-  //   label: 'form-data'
-  // },
-  {
-    value: 'x-www-form-urlencoded',
-    label: 'x-www-form-urlencoded'
-  },
-  {
-    value: 'json',
-    label: 'JSON'
-  },
-  {
-    value: 'raw',
-    label: 'RAW'
-  },
-  // {
-  //   value: 'binary',
-  //   label: 'BINARY'
-  // }
-]
+  readonly BodyTypeOptions: TSelectOption<BodyType>[] = [
+    {
+      value: 'none',
+      label: 'None'
+    },
+    // {
+    //   value: 'form-data',
+    //   label: 'form-data'
+    // },
+    {
+      value: 'x-www-form-urlencoded',
+      label: 'x-www-form-urlencoded'
+    },
+    {
+      value: 'json',
+      label: 'JSON'
+    },
+    {
+      value: 'raw',
+      label: 'RAW'
+    }
+    // {
+    //   value: 'binary',
+    //   label: 'BINARY'
+    // }
+  ]
 
   readonly outputs = signal<TXpertParameter[]>([
     {
@@ -251,14 +255,12 @@ readonly BodyTypeOptions: TSelectOption<BodyType>[] = [
       type: XpertParameterTypeEnum.OBJECT,
       name: 'headers',
       title: 'Headers',
-      item: [
-      ]
-    },
+      item: []
+    }
   ])
 
   readonly expandTimeout = signal(false)
   readonly expandOutputVariables = signal(false)
-
 
   updateEntity(name: string, value: string | number | any) {
     this.studioService.updateWorkflowNode(this.key(), (entity) => {
@@ -272,16 +274,16 @@ readonly BodyTypeOptions: TSelectOption<BodyType>[] = [
       state ??= []
       state[index] = {
         ...(state[index] ?? {}),
-        ...value,
+        ...value
       }
       return [...state]
     })
   }
 
   updateHeaderVal(index: number, value) {
-    this.updateHeader(index, {value})
+    this.updateHeader(index, { value })
     if (index === this.headers().length - 1) {
-      this.#headers.update((state) => [...state, {name: '', value: ''}])
+      this.#headers.update((state) => [...state, { name: '', value: '' }])
     }
   }
 
@@ -297,16 +299,16 @@ readonly BodyTypeOptions: TSelectOption<BodyType>[] = [
       state ??= []
       state[index] = {
         ...(state[index] ?? {}),
-        ...value,
+        ...value
       }
       return [...state]
     })
   }
 
   updateParamVal(index: number, value) {
-    this.updateParam(index, {value})
+    this.updateParam(index, { value })
     if (index === this.params().length - 1) {
-      this.#params.update((state) => [...state, {key: '', value: ''}])
+      this.#params.update((state) => [...state, { key: '', value: '' }])
     }
   }
 
@@ -322,16 +324,16 @@ readonly BodyTypeOptions: TSelectOption<BodyType>[] = [
       state ??= []
       state[index] = {
         ...(state[index] ?? {}),
-        ...value,
+        ...value
       }
       return [...state]
     })
   }
 
   updateEncodedFormVal(index: number, value) {
-    this.updateEncodedForm(index, {value})
+    this.updateEncodedForm(index, { value })
     if (index === this.encodedForm().length - 1) {
-      this.#encodedForm.update((state) => [...state, {key: '', value: ''}])
+      this.#encodedForm.update((state) => [...state, { key: '', value: '' }])
     }
   }
 
@@ -351,17 +353,19 @@ readonly BodyTypeOptions: TSelectOption<BodyType>[] = [
   }
 
   openAuth() {
-    this.#dialog.open(XpertWorkflowAuthorizationComponent, {
-      data: {
-        authorization: this.authorization(),
-        variables: this.variables()
-      }
-    }).closed.subscribe({
-      next: (authorization) => {
-        if (authorization) {
-          this.authorization.set(authorization)
+    this.#dialog
+      .open(XpertWorkflowAuthorizationComponent, {
+        data: {
+          authorization: this.authorization(),
+          variables: this.variables()
         }
-      }
-    })
+      })
+      .closed.subscribe({
+        next: (authorization) => {
+          if (authorization) {
+            this.authorization.set(authorization)
+          }
+        }
+      })
   }
 }

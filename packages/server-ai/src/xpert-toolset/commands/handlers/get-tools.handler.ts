@@ -5,7 +5,7 @@ import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { In } from 'typeorm'
 import { ToolProviderNotFoundError } from '../../errors'
-import { createBuiltinToolset, MCPToolset, ODataToolset } from '../../provider'
+import { createBuiltinToolset, MCPToolset, ODataToolset, TBuiltinToolsetParams } from '../../provider'
 import { OpenAPIToolset } from '../../provider/openapi/openapi-toolset'
 import { BaseToolset } from '../../toolset'
 import { XpertToolsetService } from '../../xpert-toolset.service'
@@ -36,7 +36,7 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 			relations: ['tools']
 		})
 
-		const context = {
+		const context: TBuiltinToolsetParams = {
 			tenantId,
 			organizationId,
 			toolsetService: this.toolsetService,
@@ -44,7 +44,8 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 			queryBus: this.queryBus,
 			xpertId: command.environment?.xpertId,
 			agentKey: command.environment?.agentKey,
-			signal: command.environment?.signal
+			signal: command.environment?.signal,
+			env: command.environment?.env
 		}
 
 		return toolsets.map((toolset) => {

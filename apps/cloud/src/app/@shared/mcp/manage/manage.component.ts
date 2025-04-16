@@ -3,13 +3,15 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, HostListener, inject, signal } from '@angular/core'
+import { Component, computed, HostListener, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
 import {
+  EnvironmentService,
   getErrorMessage,
+  IEnvironment,
   IfAnimation,
   injectToastr,
   IXpertTool,
@@ -27,10 +29,10 @@ import { isEqual, omit } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, of, tap } from 'rxjs'
 import { EmojiAvatarComponent } from '../../avatar'
+import { TagSelectComponent } from '../../tag'
 import { XpertToolNameInputComponent } from '../../xpert'
 import { MCPServerFormComponent } from '../server/server.component'
 import { MCPToolsetToolTestComponent } from '../tool-test'
-import { TagSelectComponent } from '../../tag'
 
 @Component({
   selector: 'xpert-mcp-manage',
@@ -59,11 +61,12 @@ import { TagSelectComponent } from '../../tag'
 })
 export class XpertMCPManageComponent {
   eTagCategoryEnum = TagCategoryEnum
-  
+
   readonly #dialog = inject(Dialog)
   readonly #dialogRef = inject(DialogRef)
   readonly #data = inject<{ workspaceId: string; toolsetId: string; toolset: Partial<IXpertToolset> }>(DIALOG_DATA)
   readonly toolsetService = inject(XpertToolsetService)
+  readonly environmentService = inject(EnvironmentService)
   readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()
   readonly #router = inject(Router)
@@ -77,6 +80,9 @@ export class XpertMCPManageComponent {
 
   readonly #toolset = derivedAsync<Partial<IXpertToolset>>(() =>
     this.toolsetId() ? this.toolsetService.getOneById(this.toolsetId(), { relations: ['tools'] }) : of(null)
+  )
+  readonly environment = derivedAsync<IEnvironment>(() =>
+    this.workspaceId() ? this.environmentService.getDefaultByWorkspace(this.workspaceId()) : of(null)
   )
 
   readonly toolset = linkedModel({
@@ -148,7 +154,7 @@ export class XpertMCPManageComponent {
 
   readonly selectedTool = signal<string>(null)
   readonly toolsDirty = signal(false)
-  
+
   readonly tool = linkedModel({
     initialValue: null,
     compute: () => this.toolset()?.tools?.find((_) => _.id === this.selectedTool()),
@@ -259,10 +265,11 @@ export class XpertMCPManageComponent {
   }
 
   upsertToolset() {
-    this.loading.set(true);
-    (this.toolset().id ? this.saveToolset() : this.createToolset().pipe(
-      tap((toolset) => this.toolset.update((state) => ({...state, id: toolset.id})))
-    )).subscribe({
+    this.loading.set(true)
+    ;(this.toolset().id
+      ? this.saveToolset()
+      : this.createToolset().pipe(tap((toolset) => this.toolset.update((state) => ({ ...state, id: toolset.id }))))
+    ).subscribe({
       next: () => {
         this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated Successfully!' })
         this.loading.set(false)
@@ -277,7 +284,7 @@ export class XpertMCPManageComponent {
   }
 
   createToolset() {
-    return this.toolsetService.create({...this.toolset(), workspaceId: this.workspaceId()})
+    return this.toolsetService.create({ ...this.toolset(), workspaceId: this.workspaceId() })
   }
 
   saveToolset() {
@@ -293,20 +300,22 @@ export class XpertMCPManageComponent {
 
   deleteToolset() {
     const toolset = this.toolset()
-    this.confirmDelete({
-      value: toolset.name,
-      information: this.#translate.instant('PAC.Xpert.DeleteAllTools', { Default: 'Delete all tools of toolset' })
-    }, this.toolsetService.delete(toolset.id))
-      .subscribe({
-        next: () => {
-          this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, toolset.name)
-          this.saved.set(true)
-          this.close()
-        },
-        error: (error) => {
-          this.#toastr.error(getErrorMessage(error))
-        }
-      })
+    this.confirmDelete(
+      {
+        value: toolset.name,
+        information: this.#translate.instant('PAC.Xpert.DeleteAllTools', { Default: 'Delete all tools of toolset' })
+      },
+      this.toolsetService.delete(toolset.id)
+    ).subscribe({
+      next: () => {
+        this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, toolset.name)
+        this.saved.set(true)
+        this.close()
+      },
+      error: (error) => {
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
   }
 
   close() {

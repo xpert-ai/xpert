@@ -6,7 +6,7 @@ import { TSelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { TAgentOutputVariable, TVariableAssigner, TWorkflowVarGroup, TXpertParameter, uuid, VariableOperations } from '../../../@core/types'
 import { NgmSelectComponent } from '../../common'
-import { StateVariableSelectComponent } from '../../workflow'
+import { StateVariableSelectComponent } from '../../agent'
 
 /**
  *

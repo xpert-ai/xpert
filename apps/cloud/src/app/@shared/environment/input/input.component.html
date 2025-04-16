@@ -1,0 +1,12 @@
+<xpert-variable-input class="w-full appearance-none px-2 py-1 border border-transparent bg-components-input-bg-normal text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs rounded-lg system-sm-regular"
+  [placeholder]="placeholder()"
+  [type]="type()"
+  [autocomplete]="autocomplete()"
+  [disabled]="disabled()"
+  [variables]="variables()"
+  [(ngModel)]="value$"
+  [matTooltip]="value$()"
+  matTooltipPosition="above"
+  cdkMonitorSubtreeFocus
+  (cdkFocusChange)="onFocusChange($event)"
+/>

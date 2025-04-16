@@ -1,5 +1,5 @@
 :host {
-  @apply block relative;
+  @apply inline-flex flex-wrap relative;
   &:hover {
     .variable-tip {
       @apply opacity-100

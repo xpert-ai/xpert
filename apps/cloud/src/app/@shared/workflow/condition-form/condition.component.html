@@ -29,13 +29,11 @@
   </div>
 
   <div class="px-2 pt-1 max-h-[100px] border-t border-t-divider-deep overflow-y-auto">
-    <textarea matInput class="w-full outline-none leading-5 text-[13px] text-gray-700 bg-transparent focus:bg-white"
-      [(ngModel)]="value"
+    <xpert-variable-input #input2 class="w-full text-sm leading-5 text-gray-700 bg-transparent focus:bg-white"
       [placeholder]="'PAC.Workflow.InputValue' | translate: {Default: 'Input value'}"
-      cdkTextareaAutosize
-      cdkAutosizeMinRows="1"
-      cdkAutosizeMaxRows="5"
-    ></textarea>
+      [variables]="envVariables()"
+      [(ngModel)]="value"
+    />
   </div>
 </div>
 
@@ -52,11 +50,13 @@
 <ng-template #varMenu>
   <div cdkMenu class="cdk-menu__medium">
     @for (g of groupVariables(); track g) {
-      @if (g.agent) {
-        <div class="p-2 text-sm text-text-secondary uppercase mt-2">{{agentLabel(g.agent)}}</div>
+      @if (g.group) {
+        <div class="p-1 mt-2 text-sm text-text-secondary uppercase">{{g.group.description | i18n}}</div>
+      } @else {
+        <div class="p-1 mt-2 text-sm text-text-secondary">{{'PAC.Copilot.SystemVariables' | translate: {Default: 'System Variables'} }}</div>
       }
       @for (variable of g.variables; track variable.name) {
-        <div cdkMenuItem class="flex items-center" (click)="selectVariable(g.agent?.key, variable)">
+        <div cdkMenuItem class="flex items-center" (click)="selectVariable(g.group?.name, variable)">
           <span class="text-sm mr-1">{{ variable.name }}</span>
           <span class="flex-1 text-xs leading-3 italic truncate text-text-secondary">{{variable.description | i18n}}</span>
           <span class="ml-4 px-1 text-sm rounded-md bg-gray-50 text-primary-300">{{variable.type}}</span>

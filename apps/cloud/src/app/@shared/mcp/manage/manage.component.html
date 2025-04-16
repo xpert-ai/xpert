@@ -199,7 +199,9 @@
         </div>
       </div>
       <div class="px-4 pt-2 sm:px-8">
-        <mcp-server-form class="w-full flex flex-col items-stretch" 
+        <mcp-server-form class="w-full flex flex-col items-stretch"
+          [workspaceId]="workspaceId()"
+          [environment]="environment()"
           [ngModel]="mcpServer()" 
           (ngModelChange)="updateMcpServer($event)"
           [tools]="tools()"

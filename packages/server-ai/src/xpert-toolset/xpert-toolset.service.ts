@@ -15,6 +15,7 @@ import { ToolProviderDTO } from './dto'
 import { ConfigService } from '@metad/server-config'
 import { I18nService, translateOptions } from 'nestjs-i18n';
 import { BuiltinToolset, createBuiltinToolset } from './provider/builtin'
+import { EnvStateQuery } from '../environment'
 
 @Injectable()
 export class XpertToolsetService extends TenantOrganizationAwareCrudService<XpertToolset> {
@@ -102,12 +103,14 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 			throw new ToolProviderNotFoundError(`Builtin tool provider '${provider}' not found!`)
 		}
 
+		const envState = await this.queryBus.execute(new EnvStateQuery(entity.workspaceId))
 		const toolproviderController: BuiltinToolset = createBuiltinToolset(provider, null, {
 			tenantId,
 			organizationId,
 			toolsetService: this,
 			commandBus: this.commandBus,
-			queryBus: this.queryBus
+			queryBus: this.queryBus,
+			env: envState
 		})
 		// validate credentials
 		await toolproviderController.validateCredentials(entity.credentials)

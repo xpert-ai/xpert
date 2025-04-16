@@ -17,6 +17,7 @@ export type TBuiltinToolsetParams = {
 	xpertId?: string
 	agentKey?: string
 	signal?: AbortSignal
+	env: Record<string, unknown>
 }
 
 export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> {

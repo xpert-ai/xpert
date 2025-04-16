@@ -9,6 +9,7 @@ export class ToolsetGetToolsCommand implements ICommand {
 			xpertId: string
 			agentKey?: string
 			signal: AbortSignal
+			env: Record<string, unknown>
 		}
 	) {}
 }

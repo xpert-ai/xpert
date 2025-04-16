@@ -105,9 +105,9 @@
             />
           </div>
           <div class="col-span-2 flex items-center gap-1">
-            <input #input2 class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+            <xpert-env-input #input2 class="grow" [variables]="variables()"
               [ngModel]="row[1]"
-              (blur)="updateHeaderValue(row[0], input2.value)"
+              (blur)="updateHeaderValue(row[0], input2.value$())"
             />
             <div class="w-7 h-7 btn flex justify-center items-center rounded-lg cursor-pointer hover:bg-hover-bg select-none danger
               pressable"
@@ -147,11 +147,13 @@
       <div class="grow space-y-2">
         @for (item of args(); track i; let i = $index) {
           <div class="relative w-full flex items-center gap-1">
-            <input class="grow appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+
+            <xpert-env-input class="grow" [variables]="variables()"
               [ngModel]="item"
               [disabled]="isCode()"
               (ngModelChange)="updateArg(i, $event)"
             />
+
             <div class="pressable w-7 h-7 shrink-0 btn flex justify-center items-center rounded-lg cursor-pointer hover:bg-hover-bg select-none danger"
               (click)="removeArg(i)"
             >
@@ -186,9 +188,9 @@
               />
             </div>
             <div class="col-span-2 flex items-center gap-1">
-              <input #input2 class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular"
+              <xpert-env-input #input2 class="grow" [variables]="variables()"
                 [ngModel]="row[1]"
-                (blur)="updateEnvValue(row[0], input2.value)"
+                (blur)="updateEnvValue(row[0], input2.value$())"
               />
               <div class="w-7 h-7 btn flex justify-center items-center rounded-lg cursor-pointer hover:bg-hover-bg select-none danger
                 pressable"
