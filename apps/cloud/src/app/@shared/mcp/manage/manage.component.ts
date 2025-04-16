@@ -27,7 +27,7 @@ import { injectConfirmDelete, injectConfirmUnique, NgmSpinComponent } from '@met
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isEqual, omit } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { BehaviorSubject, of, tap } from 'rxjs'
+import { map, of, startWith, tap } from 'rxjs'
 import { EmojiAvatarComponent } from '../../avatar'
 import { TagSelectComponent } from '../../tag'
 import { XpertToolNameInputComponent } from '../../xpert'
@@ -75,19 +75,23 @@ export class XpertMCPManageComponent {
 
   readonly workspaceId = signal(this.#data.workspaceId)
   readonly toolsetId = signal(this.#data.toolsetId)
-  readonly loading = signal(false)
-  readonly #refresh$ = new BehaviorSubject<void>(null)
+  readonly #loading = signal(false)
 
-  readonly #toolset = derivedAsync<Partial<IXpertToolset>>(() =>
-    this.toolsetId() ? this.toolsetService.getOneById(this.toolsetId(), { relations: ['tools'] }) : of(null)
+  readonly #toolset = derivedAsync<{toolset: IXpertToolset; loading: boolean;}>(() =>
+    this.toolsetId() ? this.toolsetService.getOneById(this.toolsetId(), { relations: ['tools'] }).pipe(
+      map((toolset) => ({toolset, loading: false})),
+      startWith({toolset: null, loading: true})
+    ) : of(null)
   )
   readonly environment = derivedAsync<IEnvironment>(() =>
     this.workspaceId() ? this.environmentService.getDefaultByWorkspace(this.workspaceId()) : of(null)
   )
 
+  readonly loading = computed(() => this.#loading() || this.#toolset()?.loading)
+
   readonly toolset = linkedModel({
     initialValue: null,
-    compute: () => this.#toolset() ?? this.#data.toolset,
+    compute: () => this.#toolset()?.toolset ?? this.#data.toolset,
     update: (value) => {}
   })
 
@@ -265,20 +269,20 @@ export class XpertMCPManageComponent {
   }
 
   upsertToolset() {
-    this.loading.set(true)
+    this.#loading.set(true)
     ;(this.toolset().id
       ? this.saveToolset()
       : this.createToolset().pipe(tap((toolset) => this.toolset.update((state) => ({ ...state, id: toolset.id }))))
     ).subscribe({
       next: () => {
         this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated Successfully!' })
-        this.loading.set(false)
+        this.#loading.set(false)
         this.toolsDirty.set(false)
         this.saved.set(true)
       },
       error: (error) => {
         this.#toastr.error(getErrorMessage(error))
-        this.loading.set(false)
+        this.#loading.set(false)
       }
     })
   }
