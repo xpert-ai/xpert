@@ -138,9 +138,11 @@
     </div>
 
     <div class="flex justify-start items-center px-4">
-      <button type="button" class="btn disabled:btn-disabled btn-danger btn-large"
-        (click)="delete()">{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
-      </button>
+      @if (environment()) {
+        <button type="button" class="btn disabled:btn-disabled btn-danger btn-large"
+          (click)="delete()">{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+        </button>
+      }
     </div>
   </div>
     
