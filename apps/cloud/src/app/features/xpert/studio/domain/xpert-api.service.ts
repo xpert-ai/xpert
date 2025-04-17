@@ -54,7 +54,7 @@ import {
   UpdateNodeRequest
 } from './node'
 import { CreateTeamHandler, CreateTeamRequest, UpdateXpertHandler, UpdateXpertRequest, UpdateXpertTeamHandler, UpdateXpertTeamRequest } from './xpert'
-import { calculateHash, EReloadReason, IStudioStore, TStateHistory } from './types'
+import { EReloadReason, IStudioStore, TStateHistory } from './types'
 import { ExpandTeamHandler } from './xpert/expand/expand.handler'
 import { ExpandTeamRequest } from './xpert/expand/expand.request'
 import { injectGetXpertsByWorkspace, injectGetXpertTeam } from '../../utils'
@@ -66,6 +66,7 @@ import { CreateWorkflowNodeRequest, CreateWorkflowNodeHandler, UpdateWorkflowNod
 import { derivedAsync } from 'ngxtension/derived-async'
 import { ActivatedRoute, Router } from '@angular/router'
 import { effectAction } from '@metad/ocap-angular/core'
+import { calculateHash } from '@cloud/app/@shared/utils'
 
 
 const SaveDraftDebounceTime = 1 // s

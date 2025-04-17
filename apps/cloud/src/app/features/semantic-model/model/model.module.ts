@@ -44,6 +44,7 @@ import { ModelDesignerType } from './types'
 import { DirtyBadgeComponent } from '../../../@shared/badge'
 import { MaterialModule } from '../../../@shared/material.module'
 import { CreatedByPipe, UserPipe } from '../../../@shared/pipes'
+import { DateRelativePipe } from '@cloud/app/@core'
 
 @NgModule({
   declarations: [ModelComponent, ModelOverviewComponent, ModelCreateEntityComponent, ModelPreferencesComponent],
@@ -78,6 +79,9 @@ import { CreatedByPipe, UserPipe } from '../../../@shared/pipes'
     MonacoEditorModule.forRoot(),
     ContentLoaderModule,
     FormlyModule,
+
+    // 
+    DateRelativePipe
   ],
   providers: [
     provideOcapCore(),

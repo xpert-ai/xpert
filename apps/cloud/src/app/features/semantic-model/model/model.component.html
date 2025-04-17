@@ -1,287 +1,302 @@
 <div class="pac__toolbar pac-model__shell-bar flex justify-between items-center px-2 py-1">
-    <div class="flex justify-start items-center" cdkMenuBar>
-      @if (isMobile()) {
-        <button cdkMenuItem class="pac-model__page-trigger flex-1"
-            [cdkMenuTriggerFor]="mobileMenu">
-            <mat-icon fontSet="material-icons-outlined">more_horiz</mat-icon>
+  <div class="flex justify-start items-center" cdkMenuBar>
+    @if (isMobile()) {
+      <button cdkMenuItem class="pac-model__page-trigger flex-1"
+          [cdkMenuTriggerFor]="mobileMenu">
+          <mat-icon fontSet="material-icons-outlined">more_horiz</mat-icon>
+      </button>
+    }
+    @if (!isMobile()) {
+      <button cdkMenuItem [cdkMenuTriggerFor]="generalMenu" class="relative flex items-center">
+        <span>{{ 'PAC.KEY_WORDS.GENERAL' | translate: {Default: "General"} }}</span>
+        <i class="ri-arrow-drop-down-line text-xl"></i>
+        @if (isDirty()) {
+          <pac-dirty-badge class="absolute left-2 top-2"/>
+        }
+      </button>
+      <button cdkMenuItem [cdkMenuTriggerFor]="editMenu" class="flex items-center">
+        <span>{{ 'PAC.KEY_WORDS.EDIT' | translate: {Default: "Edit"} }}</span>
+        <i class="ri-arrow-drop-down-line text-xl"></i>
+      </button>
+      <button cdkMenuItem [cdkMenuTriggerFor]="dataMenu" class="flex items-center">
+        <span>{{ 'PAC.KEY_WORDS.DATA' | translate: {Default: "Data"} }}</span>
+        <i class="ri-arrow-drop-down-line text-xl"></i>
+      </button>
+      <button cdkMenuItem [cdkMenuTriggerFor]="manageMenu" class="flex items-center">
+        <span>{{ 'PAC.KEY_WORDS.Management' | translate: {Default: "Management"} }}</span>
+        <i class="ri-arrow-drop-down-line text-xl"></i>
+      </button>
+    }
+      <div [routerLink]="['./access']" routerLinkActive #rla="routerLinkActive">
+        <button *ngIf="rla.isActive" mat-button [color]="'accent'">
+          <span class="font-notoColorEmoji">🔏</span>{{ 'PAC.MODEL.AccessControl.Title' | translate: {Default: "Access Control"} }}
         </button>
-      }
-      @if (!isMobile()) {
-        <button cdkMenuItem [cdkMenuTriggerFor]="generalMenu" class="relative flex items-center">
-          <span>{{ 'PAC.KEY_WORDS.GENERAL' | translate: {Default: "General"} }}</span>
-          <i class="ri-arrow-drop-down-line text-xl"></i>
-          @if (isDirty()) {
-            <pac-dirty-badge class="absolute left-2 top-2"/>
-          }
+      </div>
+  
+      <div [routerLink]="['./query']" routerLinkActive #rla2="routerLinkActive">
+        <button mat-button [color]="rla2.isActive?'accent':''">
+          <span class="font-notoColorEmoji">🧪</span>{{ 'PAC.MODEL.QUERY.TITLE' | translate: {Default: "Query Lab"} }}
         </button>
-        <button cdkMenuItem [cdkMenuTriggerFor]="editMenu" class="flex items-center">
-          <span>{{ 'PAC.KEY_WORDS.EDIT' | translate: {Default: "Edit"} }}</span>
-          <i class="ri-arrow-drop-down-line text-xl"></i>
-        </button>
-        <button cdkMenuItem [cdkMenuTriggerFor]="dataMenu" class="flex items-center">
-          <span>{{ 'PAC.KEY_WORDS.DATA' | translate: {Default: "Data"} }}</span>
-          <i class="ri-arrow-drop-down-line text-xl"></i>
-        </button>
-        <button cdkMenuItem [cdkMenuTriggerFor]="manageMenu" class="flex items-center">
-          <span>{{ 'PAC.KEY_WORDS.Management' | translate: {Default: "Management"} }}</span>
-          <i class="ri-arrow-drop-down-line text-xl"></i>
-        </button>
-      }
-        <div [routerLink]="['./access']" routerLinkActive #rla="routerLinkActive">
-          <button *ngIf="rla.isActive" mat-button [color]="'accent'">
-            <span class="font-notoColorEmoji">🔏</span>{{ 'PAC.MODEL.AccessControl.Title' | translate: {Default: "Access Control"} }}
-          </button>
-        </div>
-    
-        <div [routerLink]="['./query']" routerLinkActive #rla2="routerLinkActive">
-          <button mat-button [color]="rla2.isActive?'accent':''">
-            <span class="font-notoColorEmoji">🧪</span>{{ 'PAC.MODEL.QUERY.TITLE' | translate: {Default: "Query Lab"} }}
-          </button>
-        </div>
-    </div>
+      </div>
+  </div>
 
-    <div class="flex justify-between items-center">
-        <!-- <button mat-icon-button displayDensity="cosy" (click)="toggleFullscreen()">
-            <mat-icon *ngIf="!isFullscreen" fontSet="material-icons-round">fullscreen</mat-icon>
-            <mat-icon *ngIf="isFullscreen" fontSet="material-icons-round">fullscreen_exit</mat-icon>
-        </button> -->
-        <!-- <button mat-icon-button *ngIf="copilotEnabled$ | async" class="pac-model__copilot-trigger font-notoColorEmoji"
-            displayDensity="cosy"
-            [class.active]="copilotDrawer.opened"
-            [color]="copilotDrawer.opened?'accent':''"
-            (click)="copilotDrawer.toggle()"
+  <div class="flex justify-between items-center">
+    <div class="flex items-center gap-2 h-[2rem] text-sm truncate opacity-50 mr-2">
+      @if (unsaved()) {
+        <span class="w-2 h-2 shrink-0 rounded-full cursor-pointer bg-green-500 shadow-md shadow-green-400"
+          [matTooltip]=" 'PAC.Messages.UnsavedChanges' | translate: {Default: 'Unsaved changes'} "
+          matTooltipPosition="above"
+          (click)="saveDraft()"
         >
-            <div class="flex justify-center items-center text-xl">🤖</div>
-        </button> -->
+        </span>
+      }
+      @if (draftSavedDate()) {
+        <span class="truncate">{{ 'PAC.Xpert.AutoSave' | translate: {Default: 'Auto save'} }} {{draftSavedDate() | relative}}</span>
+      }
+      @if (latestPublishDate()) {
+        <span class="flex items-center mx-1">·</span>
+        {{ 'PAC.Xpert.Published' | translate: {Default: 'Published'} }} {{latestPublishDate() | relative}}
+      }
     </div>
-
+    <div class="inline-block">
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium p-2"
+        [disabled]="publishing()"
+        [cdkMenuTriggerFor]="publishMenu">
+        @if (publishing()) {
+          <ngm-spin class="mr-1"/>
+        }
+        Publish
+        <i class="ri-arrow-down-s-line ml-1"></i>
+      </button>
+    </div>
+  </div>
+  
 </div>
 
 <mat-drawer-container class="flex-1" autosize>
-    <mat-drawer #drawer class="ngm-story__designer-drawer ngm-sidenav-container-bg-transparent mat-elevation-z"
-        [(opened)]="sideMenuOpened"
-        [mode]="isMobile() ? 'over' : 'side'"
-        ngmResizer [resizerWidth]="230"
-    >
-        <ngm-splitter class="h-full mr-1" [type]="1">
-            <ngm-splitter-pane size='50%' class="flex flex-col justify-items-stretch items-stretch">
-                <mat-toolbar displayDensity="compact" class="shrink-0 flex justify-between items-center">
+  <mat-drawer #drawer class="ngm-story__designer-drawer ngm-sidenav-container-bg-transparent mat-elevation-z"
+      [(opened)]="sideMenuOpened"
+      [mode]="isMobile() ? 'over' : 'side'"
+      ngmResizer [resizerWidth]="230"
+  >
+      <ngm-splitter class="h-full mr-1" [type]="1">
+          <ngm-splitter-pane size='50%' class="flex flex-col justify-items-stretch items-stretch">
+              <mat-toolbar displayDensity="compact" class="shrink-0 flex justify-between items-center">
 
-                    <button mat-icon-button class="text-neutral-600" (click)="closeSidebar()">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" class="icon-xl-heavy">
-                            <path fill="currentColor" fill-rule="evenodd" d="M8.857 3h6.286c1.084 0 1.958 0 2.666.058.729.06 1.369.185 1.961.487a5 5 0 0 1 2.185 2.185c.302.592.428 1.233.487 1.961.058.708.058 1.582.058 2.666v3.286c0 1.084 0 1.958-.058 2.666-.06.729-.185 1.369-.487 1.961a5 5 0 0 1-2.185 2.185c-.592.302-1.232.428-1.961.487C17.1 21 16.227 21 15.143 21H8.857c-1.084 0-1.958 0-2.666-.058-.728-.06-1.369-.185-1.96-.487a5 5 0 0 1-2.186-2.185c-.302-.592-.428-1.232-.487-1.961C1.5 15.6 1.5 14.727 1.5 13.643v-3.286c0-1.084 0-1.958.058-2.666.06-.728.185-1.369.487-1.96A5 5 0 0 1 4.23 3.544c.592-.302 1.233-.428 1.961-.487C6.9 3 7.773 3 8.857 3M6.354 5.051c-.605.05-.953.142-1.216.276a3 3 0 0 0-1.311 1.311c-.134.263-.226.611-.276 1.216-.05.617-.051 1.41-.051 2.546v3.2c0 1.137 0 1.929.051 2.546.05.605.142.953.276 1.216a3 3 0 0 0 1.311 1.311c.263.134.611.226 1.216.276.617.05 1.41.051 2.546.051h.6V5h-.6c-1.137 0-1.929 0-2.546.051M11.5 5v14h3.6c1.137 0 1.929 0 2.546-.051.605-.05.953-.142 1.216-.276a3 3 0 0 0 1.311-1.311c.134-.263.226-.611.276-1.216.05-.617.051-1.41.051-2.546v-3.2c0-1.137 0-1.929-.051-2.546-.05-.605-.142-.953-.276-1.216a3 3 0 0 0-1.311-1.311c-.263-.134-.611-.226-1.216-.276C17.029 5.001 16.236 5 15.1 5zM5 8.5a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1M5 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1" clip-rule="evenodd"></path>
-                        </svg>
-                    </button>
+                  <button mat-icon-button class="text-neutral-600" (click)="closeSidebar()">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" class="icon-xl-heavy">
+                          <path fill="currentColor" fill-rule="evenodd" d="M8.857 3h6.286c1.084 0 1.958 0 2.666.058.729.06 1.369.185 1.961.487a5 5 0 0 1 2.185 2.185c.302.592.428 1.233.487 1.961.058.708.058 1.582.058 2.666v3.286c0 1.084 0 1.958-.058 2.666-.06.729-.185 1.369-.487 1.961a5 5 0 0 1-2.185 2.185c-.592.302-1.232.428-1.961.487C17.1 21 16.227 21 15.143 21H8.857c-1.084 0-1.958 0-2.666-.058-.728-.06-1.369-.185-1.96-.487a5 5 0 0 1-2.186-2.185c-.302-.592-.428-1.232-.487-1.961C1.5 15.6 1.5 14.727 1.5 13.643v-3.286c0-1.084 0-1.958.058-2.666.06-.728.185-1.369.487-1.96A5 5 0 0 1 4.23 3.544c.592-.302 1.233-.428 1.961-.487C6.9 3 7.773 3 8.857 3M6.354 5.051c-.605.05-.953.142-1.216.276a3 3 0 0 0-1.311 1.311c-.134.263-.226.611-.276 1.216-.05.617-.051 1.41-.051 2.546v3.2c0 1.137 0 1.929.051 2.546.05.605.142.953.276 1.216a3 3 0 0 0 1.311 1.311c.263.134.611.226 1.216.276.617.05 1.41.051 2.546.051h.6V5h-.6c-1.137 0-1.929 0-2.546.051M11.5 5v14h3.6c1.137 0 1.929 0 2.546-.051.605-.05.953-.142 1.216-.276a3 3 0 0 0 1.311-1.311c.134-.263.226-.611.276-1.216.05-.617.051-1.41.051-2.546v-3.2c0-1.137 0-1.929-.051-2.546-.05-.605-.142-.953-.276-1.216a3 3 0 0 0-1.311-1.311c-.263-.134-.611-.226-1.216-.276C17.029 5.001 16.236 5 15.1 5zM5 8.5a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1M5 12a1 1 0 0 1 1-1h1a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1" clip-rule="evenodd"></path>
+                      </svg>
+                  </button>
 
-                    <span>{{ 'PAC.MODEL.MODEL.Entities' | translate: {Default: "Entities"} }}</span>
+                  <span>{{ 'PAC.MODEL.MODEL.Entities' | translate: {Default: "Entities"} }}</span>
 
-                    <span class="flex-1"></span>
-                    
-                    <div class="w-6 h-6 flex justify-center items-center rounded-lg mx-1 cursor-pointer text-white opacity-80 hover:opacity-100 bg-gradient-to-br from-pink-400 from-40% to-fuchsia-700"
-                        [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " matTooltipPosition="above"
-                        (click)="aiCreateEntity()"
-                    >
-                        <i class="ri-magic-line"></i>
-                    </div>
-                    
-                    <button mat-icon-button displayDensity="cosy" class="ngm-toolbar__action"
-                        [matTooltip]=" 'PAC.MODEL.MODEL.New' | translate: {Default: 'New'} "
-                        matTooltipPosition="above"
-                        (click)="createEntity()"
-                    >
-                        <mat-icon>add</mat-icon>
-                    </button>
-                </mat-toolbar>
-
-                <mat-nav-list displayDensity="compact" disableRipple class="pac-model__nav-list pac-cdk-drop__list"
-                    id="pac-model-entities"
-                    cdkDropList
-                    [cdkDropListData]="entities$ | async"
-                    (cdkDropListDropped)="drop($event)"
-                    [cdkDropListEnterPredicate]="entityPredicate"
-                >
-                  <div class="max-h-full overflow-hidden hover:overflow-y-auto">
-                    @for (entity of entities$ | async; track entity.id) {
-                        <a mat-list-item class="pac-model__nav-item relative"
-                            [class.selected]="rla.isActive"
-                            [routerLink]="[entity.type === SemanticModelEntityType.CUBE ? 'entity' : 'dimension', entity.id]"
-                            routerLinkActive #rla="routerLinkActive"
-                            cdkDrag
-                            [cdkDragData]="entity"
-                        >
-                          @if (cube() === entity.name) {
-                            <i class="ri-star-fill" [matTooltip]="'PAC.MODEL.IsDefault' | translate: {Default: 'Is default'}"></i>
-                          }
-                          @switch (entity.type) {
-                            @case(SemanticModelEntityType.CUBE) {
-                                <mat-icon class="pac-model__nav-icon"
-                                    displayDensity="compact" fontSet="material-icons-outlined">deployed_code</mat-icon>
-                            }
-                            @case(SemanticModelEntityType.DIMENSION) {
-                                <mat-icon class="pac-model__nav-icon"
-                                    displayDensity="compact" fontSet="material-icons-outlined">account_tree</mat-icon>
-                            }
-                          }
-                            
-                            <ngm-display-behaviour class="flex-1 overflow-hidden"
-                                [option]="{key: entity.name, caption: entity.caption}">
-                            </ngm-display-behaviour>
-
-                          @if (isDirty(entity.id)) {
-                            <pac-dirty-badge class="absolute left-2 top-2"/>
-                          }
-
-                            <button mat-icon-button displayDensity="compact" class="pac-model__nav-action"
-                                [cdkMenuTriggerFor]="entityMenu"
-                                [cdkMenuTriggerData]="{entity: entity}"
-                                #mt="cdkMenuTriggerFor"
-                                [class.active]="mt.isOpen()"
-                                (click)="$event.stopPropagation();$event.preventDefault()">
-                                <mat-icon>more_vert</mat-icon>
-                            </button>
-                        </a>
-                    }
-
-                    <a mat-list-item *ngFor="let entity of virtualCubes$ | async; trackBy: trackById"
-                        [routerLink]="['virtual-cube', entity.__id__]"
-                        routerLinkActive #rla="routerLinkActive"
-                        [class.selected]="rla.isActive"
-                        cdkDrag
-                        [cdkDragData]="entity"
-                        (mouseenter)="actionStrip.show()"
-                        (mouseleave)="actionStrip.hide()">
-                        <mat-icon class="pac-model__nav-icon" displayDensity="compact" fontSet="material-icons-outlined">dataset_linked</mat-icon>
-                        <ngm-display-behaviour class="flex-1"
-                            [option]="{key: entity.name, caption: entity.caption}" />
-                        <ngm-action-strip #actionStrip [hidden]="true">
-                            <button mat-icon-button color="warn" displayDensity="cosy"
-                                (click)="$event.stopPropagation();$event.preventDefault();deleteEntity(entity.__id__)">
-                                <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
-                            </button>
-                        </ngm-action-strip>
-                    </a>
+                  <span class="flex-1"></span>
+                  
+                  <div class="w-6 h-6 flex justify-center items-center rounded-lg mx-1 cursor-pointer text-white opacity-80 hover:opacity-100 bg-gradient-to-br from-pink-400 from-40% to-fuchsia-700"
+                      [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " matTooltipPosition="above"
+                      (click)="aiCreateEntity()"
+                  >
+                      <i class="ri-magic-line"></i>
                   </div>
-                </mat-nav-list>
-            </ngm-splitter-pane>
+                  
+                  <button mat-icon-button displayDensity="cosy" class="ngm-toolbar__action"
+                      [matTooltip]=" 'PAC.MODEL.MODEL.New' | translate: {Default: 'New'} "
+                      matTooltipPosition="above"
+                      (click)="createEntity()"
+                  >
+                      <mat-icon>add</mat-icon>
+                  </button>
+              </mat-toolbar>
 
-            <ngm-splitter-pane class="relative flex flex-col justify-start items-stretch">
-                <mat-toolbar displayDensity="compact" class="shrink-0">
-                    <mat-toolbar-row class="flex justify-between items-center">
-                        <span>{{ 'PAC.MODEL.MODEL.TABLES' | translate: {Default: "Tables"} }}</span>
+              <mat-nav-list displayDensity="compact" disableRipple class="pac-model__nav-list pac-cdk-drop__list"
+                  id="pac-model-entities"
+                  cdkDropList
+                  [cdkDropListData]="entities$ | async"
+                  (cdkDropListDropped)="drop($event)"
+                  [cdkDropListEnterPredicate]="entityPredicate"
+              >
+                <div class="max-h-full overflow-hidden hover:overflow-y-auto">
+                  @for (entity of entities$ | async; track entity.id) {
+                      <a mat-list-item class="pac-model__nav-item relative"
+                          [class.selected]="rla.isActive"
+                          [routerLink]="[entity.type === SemanticModelEntityType.CUBE ? 'entity' : 'dimension', entity.id]"
+                          routerLinkActive #rla="routerLinkActive"
+                          cdkDrag
+                          [cdkDragData]="entity"
+                      >
+                        @if (cube() === entity.name) {
+                          <i class="ri-star-fill" [matTooltip]="'PAC.MODEL.IsDefault' | translate: {Default: 'Is default'}"></i>
+                        }
+                        @switch (entity.type) {
+                          @case(SemanticModelEntityType.CUBE) {
+                              <mat-icon class="pac-model__nav-icon"
+                                  displayDensity="compact" fontSet="material-icons-outlined">deployed_code</mat-icon>
+                          }
+                          @case(SemanticModelEntityType.DIMENSION) {
+                              <mat-icon class="pac-model__nav-icon"
+                                  displayDensity="compact" fontSet="material-icons-outlined">account_tree</mat-icon>
+                          }
+                        }
+                          
+                          <ngm-display-behaviour class="flex-1 overflow-hidden"
+                              [option]="{key: entity.name, caption: entity.caption}">
+                          </ngm-display-behaviour>
 
-                        <div class="flex">
-                            <button mat-icon-button color="warn" displayDensity="cosy" class="pac-cdk-drop__recycle-bin"
-                                cdkDropList
-                                [cdkDropListEnterPredicate]="tableRemovePredicate"
-                                (cdkDropListDropped)="dropTable($event)"
-                            >
-                                <mat-icon color="warn" fontSet="material-icons-round">delete_forever</mat-icon>
-                            </button>
-                            <button mat-icon-button displayDensity="cosy" class="ngm-toolbar__action"
-                                [matTooltip]=" 'PAC.MODEL.MODEL.RefreshSchema' | translate: {Default: 'Refresh Schema'} "
-                                (click)="refreshSchema()">
-                                <mat-icon fontSet="material-icons-round">refresh</mat-icon>
-                            </button>
-                            <button *ngIf="isWasm$()" mat-icon-button displayDensity="cosy" class="ngm-toolbar__action"
-                                [matTooltip]=" 'PAC.MODEL.MODEL.NewTable' | translate: {Default: 'New Table'} "
-                                (click)="addTable()">
-                                <mat-icon fontSet="material-icons-round">add</mat-icon>
-                            </button>
-                            <button *ngIf="writable$()" mat-icon-button displayDensity="cosy" class="ngm-toolbar__action"
-                                [matTooltip]=" 'PAC.MODEL.MODEL.UploadTable' | translate: {Default: 'Upload Table'} "
-                                (click)="uploadTable()">
-                                <mat-icon fontSet="material-icons-round">upload</mat-icon>
-                            </button>
-                            <button *ngIf="dbInitialization" mat-icon-button displayDensity="cosy" class="ngm-toolbar__action"
-                                [matTooltip]=" 'PAC.MODEL.MODEL.RemoveDBInitScript' | translate: {Default: 'Remove DB Init Script'} "
-                                (click)="removeDBInit()">
-                                <mat-icon fontSet="material-icons-round">playlist_remove</mat-icon>
-                            </button>
-                        </div>
+                        @if (isDirty(entity.id)) {
+                          <pac-dirty-badge class="absolute left-2 top-2"/>
+                        }
 
-                    </mat-toolbar-row>
-                    <mat-toolbar-row>
-                        <ngm-search class="pac-model__search" [formControl]="searchControl"></ngm-search>
-                    </mat-toolbar-row>
-                </mat-toolbar>
+                          <button mat-icon-button displayDensity="compact" class="pac-model__nav-action"
+                              [cdkMenuTriggerFor]="entityMenu"
+                              [cdkMenuTriggerData]="{entity: entity}"
+                              #mt="cdkMenuTriggerFor"
+                              [class.active]="mt.isOpen()"
+                              (click)="$event.stopPropagation();$event.preventDefault()">
+                              <mat-icon>more_vert</mat-icon>
+                          </button>
+                      </a>
+                  }
 
-                <div class="relative flex-1">
-                    
-                    @if (entitySets$ | async; as entities) {
-                        <cdk-virtual-scroll-viewport class="pac-model__tables-viewport flex-1 h-full overflow-hidden hover:overflow-y-auto"
-                            itemSize="30" minBufferPx="360" maxBufferPx="1000"
-                        >
-                            <mat-nav-list displayDensity="compact" disableRipple class="pac-model__nav-list ngm-list"
-                                id="pac-model-entitysets"
-                                #tableList="cdkDropList"
-                                cdkDropList
-                                [cdkDropListData]="entities"
-                                (cdkDropListDropped)="drop($event)"
-                                >
-                                <mat-list-item *cdkVirtualFor="let entity of entities"
-                                    cdkDrag
-                                    [cdkDragData]="entity"
-                                    (cdkDragReleased)="onDragReleased($event)"
-                                    (mouseenter)="actionStrip.show()"
-                                    (mouseleave)="actionStrip.hide()">
-                                    <ngm-display-behaviour class="flex-1 overflow-hidden"
-                                        [option]="{value: entity.name, label: entity.caption || entity.label}"
-                                        [highlight]="searchControl.value"
-                                        >
-                                    </ngm-display-behaviour>
-
-                                    <ngm-action-strip #actionStrip [hidden]="true">
-                                        <button mat-icon-button *ngIf="isWasm$() && entity.sourceUrl" displayDensity="compact"
-                                            (click)="$event.stopPropagation();$event.preventDefault();editTable(entity)">
-                                            <mat-icon>edit</mat-icon>
-                                        </button>
-                                        <button mat-icon-button *ngIf="isWasm$() && entity.sourceUrl" color="warn" displayDensity="compact"
-                                            (click)="$event.stopPropagation();$event.preventDefault();deleteTable(entity)">
-                                            <mat-icon>delete</mat-icon>
-                                        </button>
-                                    </ngm-action-strip>
-                                </mat-list-item>
-                            </mat-nav-list>
-                        </cdk-virtual-scroll-viewport>
-                      @if (loadingTables()) {
-                        <div class="absolute top-1/2 left-1/2 -ml-2 -mt-2 flex">
-                            <mat-progress-spinner color="accent" mode="indeterminate" [diameter]="23" [strokeWidth]="2" />
-                        </div>
-                      }
-                    } @else {
-                        <bullet-list-content-loader class="dark:opacity-20"/>
-                    }
-
-                    @if (dbTablesError()) {
-                        <div class="pac-result w-full h-full absolute top-0 left-0 text-sm">
-                            <div class="bug font-notoColorEmoji">🐞</div>
-                            <div class="description flex-1 basis-0">
-                                {{dbTablesError()}}
-                            </div>
-                        </div>
-                    }
+                  <a mat-list-item *ngFor="let entity of virtualCubes$ | async; trackBy: trackById"
+                      [routerLink]="['virtual-cube', entity.__id__]"
+                      routerLinkActive #rla="routerLinkActive"
+                      [class.selected]="rla.isActive"
+                      cdkDrag
+                      [cdkDragData]="entity"
+                      (mouseenter)="actionStrip.show()"
+                      (mouseleave)="actionStrip.hide()">
+                      <mat-icon class="pac-model__nav-icon" displayDensity="compact" fontSet="material-icons-outlined">dataset_linked</mat-icon>
+                      <ngm-display-behaviour class="flex-1"
+                          [option]="{key: entity.name, caption: entity.caption}" />
+                      <ngm-action-strip #actionStrip [hidden]="true">
+                          <button mat-icon-button color="warn" displayDensity="cosy"
+                              (click)="$event.stopPropagation();$event.preventDefault();deleteEntity(entity.__id__)">
+                              <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
+                          </button>
+                      </ngm-action-strip>
+                  </a>
                 </div>
-                
-            </ngm-splitter-pane>
-        </ngm-splitter>
+              </mat-nav-list>
+          </ngm-splitter-pane>
 
-        <div ngmResizerBar resizerBarPosition="right"
-            cdkDrag
-            cdkDragLockAxis="x"
-        ></div>
-    </mat-drawer>
-    <mat-drawer-content>
-      <div class="pac-model-content w-full flex-1 overflow-auto">
-        <router-outlet #o="outlet"></router-outlet>
-      </div>
+          <ngm-splitter-pane class="relative flex flex-col justify-start items-stretch">
+              <mat-toolbar displayDensity="compact" class="shrink-0">
+                  <mat-toolbar-row class="flex justify-between items-center">
+                      <span>{{ 'PAC.MODEL.MODEL.TABLES' | translate: {Default: "Tables"} }}</span>
 
-      <!-- <ngm-drawer-trigger class="absolute -left-1 top-6 -translate-y-1/2 z-40"
-        [(opened)]="sideMenuOpened"
-        [matTooltip]="'PAC.MODEL.MODEL.ModelStructure' | translate: {Default: 'Model Structure'}"
-        matTooltipPosition="after" /> -->
-    </mat-drawer-content>
+                      <div class="flex">
+                          <button mat-icon-button color="warn" displayDensity="cosy" class="pac-cdk-drop__recycle-bin"
+                              cdkDropList
+                              [cdkDropListEnterPredicate]="tableRemovePredicate"
+                              (cdkDropListDropped)="dropTable($event)"
+                          >
+                              <mat-icon color="warn" fontSet="material-icons-round">delete_forever</mat-icon>
+                          </button>
+                          <button mat-icon-button displayDensity="cosy" class="ngm-toolbar__action"
+                              [matTooltip]=" 'PAC.MODEL.MODEL.RefreshSchema' | translate: {Default: 'Refresh Schema'} "
+                              (click)="refreshSchema()">
+                              <mat-icon fontSet="material-icons-round">refresh</mat-icon>
+                          </button>
+                          <button *ngIf="isWasm$()" mat-icon-button displayDensity="cosy" class="ngm-toolbar__action"
+                              [matTooltip]=" 'PAC.MODEL.MODEL.NewTable' | translate: {Default: 'New Table'} "
+                              (click)="addTable()">
+                              <mat-icon fontSet="material-icons-round">add</mat-icon>
+                          </button>
+                          <button *ngIf="writable$()" mat-icon-button displayDensity="cosy" class="ngm-toolbar__action"
+                              [matTooltip]=" 'PAC.MODEL.MODEL.UploadTable' | translate: {Default: 'Upload Table'} "
+                              (click)="uploadTable()">
+                              <mat-icon fontSet="material-icons-round">upload</mat-icon>
+                          </button>
+                          <button *ngIf="dbInitialization" mat-icon-button displayDensity="cosy" class="ngm-toolbar__action"
+                              [matTooltip]=" 'PAC.MODEL.MODEL.RemoveDBInitScript' | translate: {Default: 'Remove DB Init Script'} "
+                              (click)="removeDBInit()">
+                              <mat-icon fontSet="material-icons-round">playlist_remove</mat-icon>
+                          </button>
+                      </div>
+
+                  </mat-toolbar-row>
+                  <mat-toolbar-row>
+                      <ngm-search class="pac-model__search" [formControl]="searchControl"></ngm-search>
+                  </mat-toolbar-row>
+              </mat-toolbar>
+
+              <div class="relative flex-1">
+                  
+                  @if (entitySets$ | async; as entities) {
+                      <cdk-virtual-scroll-viewport class="pac-model__tables-viewport flex-1 h-full overflow-hidden hover:overflow-y-auto"
+                          itemSize="30" minBufferPx="360" maxBufferPx="1000"
+                      >
+                          <mat-nav-list displayDensity="compact" disableRipple class="pac-model__nav-list ngm-list"
+                              id="pac-model-entitysets"
+                              #tableList="cdkDropList"
+                              cdkDropList
+                              [cdkDropListData]="entities"
+                              (cdkDropListDropped)="drop($event)"
+                              >
+                              <mat-list-item *cdkVirtualFor="let entity of entities"
+                                  cdkDrag
+                                  [cdkDragData]="entity"
+                                  (cdkDragReleased)="onDragReleased($event)"
+                                  (mouseenter)="actionStrip.show()"
+                                  (mouseleave)="actionStrip.hide()">
+                                  <ngm-display-behaviour class="flex-1 overflow-hidden"
+                                      [option]="{value: entity.name, label: entity.caption || entity.label}"
+                                      [highlight]="searchControl.value"
+                                      >
+                                  </ngm-display-behaviour>
+
+                                  <ngm-action-strip #actionStrip [hidden]="true">
+                                      <button mat-icon-button *ngIf="isWasm$() && entity.sourceUrl" displayDensity="compact"
+                                          (click)="$event.stopPropagation();$event.preventDefault();editTable(entity)">
+                                          <mat-icon>edit</mat-icon>
+                                      </button>
+                                      <button mat-icon-button *ngIf="isWasm$() && entity.sourceUrl" color="warn" displayDensity="compact"
+                                          (click)="$event.stopPropagation();$event.preventDefault();deleteTable(entity)">
+                                          <mat-icon>delete</mat-icon>
+                                      </button>
+                                  </ngm-action-strip>
+                              </mat-list-item>
+                          </mat-nav-list>
+                      </cdk-virtual-scroll-viewport>
+                    @if (loadingTables()) {
+                      <div class="absolute top-1/2 left-1/2 -ml-2 -mt-2 flex">
+                          <mat-progress-spinner color="accent" mode="indeterminate" [diameter]="23" [strokeWidth]="2" />
+                      </div>
+                    }
+                  } @else {
+                      <bullet-list-content-loader class="dark:opacity-20"/>
+                  }
+
+                  @if (dbTablesError()) {
+                      <div class="pac-result w-full h-full absolute top-0 left-0 text-sm">
+                          <div class="bug font-notoColorEmoji">🐞</div>
+                          <div class="description flex-1 basis-0">
+                              {{dbTablesError()}}
+                          </div>
+                      </div>
+                  }
+              </div>
+              
+          </ngm-splitter-pane>
+      </ngm-splitter>
+
+      <div ngmResizerBar resizerBarPosition="right"
+          cdkDrag
+          cdkDragLockAxis="x"
+      ></div>
+  </mat-drawer>
+  <mat-drawer-content>
+    <div class="pac-model-content w-full flex-1 overflow-auto">
+      <router-outlet #o="outlet"></router-outlet>
+    </div>
+
+    <!-- <ngm-drawer-trigger class="absolute -left-1 top-6 -translate-y-1/2 z-40"
+      [(opened)]="sideMenuOpened"
+      [matTooltip]="'PAC.MODEL.MODEL.ModelStructure' | translate: {Default: 'Model Structure'}"
+      matTooltipPosition="after" /> -->
+  </mat-drawer-content>
 </mat-drawer-container>
-    
 
 <ng-template #mobileMenu>
     <div cdkMenu class="p-2">
@@ -472,4 +487,29 @@
         paging
         [pageSizeOptions]="[10, 20, 50, 100]"
     ></ngm-table>
+</ng-template>
+
+
+<ng-template #publishMenu>
+  <div cdkMenu class="cdk-menu__large rounded-xl">
+    <div class="p-2">
+      <div class="system-xs-medium-uppercase flex h-6 items-center text-text-tertiary">Latest Published</div>
+      <div class="flex items-center justify-between">
+        <div class="system-sm-medium flex items-center text-text-secondary">Published {{latestPublishDate() | relative}}</div>
+      </div>
+    
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium mt-3 w-full"
+        [disabled]="!canPublish()"
+        (click)="publish()">
+        <div class="flex items-center gap-1">
+          <span>{{ 'PAC.ACTIONS.Publish' | translate: {Default: "Publish"} }} Update</span>
+          <div class="flex gap-0.5">
+            <span class="system-kbd h-4 w-4 rounded-[4px] bg-components-kbd-bg-white text-text-primary-on-surface">⌘</span>
+            <span class="system-kbd h-4 w-4 rounded-[4px] bg-components-kbd-bg-white text-text-primary-on-surface">⇧</span>
+            <span class="system-kbd h-4 w-4 rounded-[4px] bg-components-kbd-bg-white text-text-primary-on-surface">P</span>
+          </div>
+        </div>
+      </button>
+    </div>
+  </div>
 </ng-template>

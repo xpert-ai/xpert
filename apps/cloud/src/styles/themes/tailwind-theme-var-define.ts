@@ -65,6 +65,7 @@ const vars = {
   'components-toggle-bg': 'var(--color-components-toggle-bg)',
   'components-toggle-bg-unchecked': 'var(--color-components-toggle-bg-unchecked)',
   'components-toggle-knob': 'var(--color-components-toggle-knob)',
+  'components-kbd-bg-white': 'var(--color-components-kbd-bg-white)',
   'surface-container-bg': 'var(--ngm-color-surface-container)'
 }
 

@@ -6,7 +6,6 @@ import {
 	CONTEXT_VARIABLE_CURRENTSTATE,
 	IChatBIModel,
 	IIndicator,
-	JSONValue,
 	OrderTypeEnum,
 	STATE_VARIABLE_SYS,
 	TMessageComponent,
@@ -205,7 +204,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		})
 
 		// Register all models
-		items.forEach((item) => registerSemanticModel(item.model, this.dsCoreService))
+		items.forEach((item) => registerSemanticModel(item.model, false, this.dsCoreService))
 
 		return items
 	}

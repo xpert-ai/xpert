@@ -1,4 +1,3 @@
-import * as CryptoJS from 'crypto-js'
 import { IXpert, letterStartSUID, TXpertTeamDraft } from 'apps/cloud/src/app/@core'
 
 export interface IStudioStore {
@@ -33,8 +32,4 @@ export type TStateHistory = {
 
 export function getXpertRoleKey(role: IXpert) {
   return role.id
-}
-
-export function calculateHash(jsonString: string): string {
-  return CryptoJS.SHA256(jsonString).toString(CryptoJS.enc.Hex)
 }

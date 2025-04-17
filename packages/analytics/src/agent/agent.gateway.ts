@@ -1,4 +1,4 @@
-import { ICopilot, IUser } from '@metad/contracts'
+import { ICopilot, IUser, TGatewayQueryEvent } from '@metad/contracts'
 import { CopilotTokenRecordCommand } from '@metad/server-ai'
 import { WsJWTGuard, WsUser } from '@metad/server-core'
 import { InjectQueue } from '@nestjs/bull'
@@ -18,7 +18,7 @@ import { from, Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
 import { Server, Socket } from 'socket.io'
 import { SemanticModelQueryCommand } from '../model/commands'
-import { QUERY_QUEUE_NAME, TGatewayQuery } from '../model/types'
+import { QUERY_QUEUE_NAME } from '../model/types'
 
 @WebSocketGateway({
 	cors: {
@@ -38,7 +38,7 @@ export class EventsGateway implements OnGatewayDisconnect {
 	@UseGuards(WsJWTGuard)
 	@SubscribeMessage('olap')
 	async olap(
-		@MessageBody() data: TGatewayQuery,
+		@MessageBody() data: TGatewayQueryEvent,
 		@ConnectedSocket() client: Socket,
 		@WsUser() user: IUser
 	): Promise<WsResponse<any>> {

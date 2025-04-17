@@ -89,6 +89,11 @@ export interface DataSourceOptions extends SemanticModel {
    * Runtime calculated measures
    */
   calculatedMeasures?: Record<string, CalculatedProperty[]>
+
+  /**
+   * Is draft semantic model
+   */
+  isDraft: boolean
 }
 
 /**

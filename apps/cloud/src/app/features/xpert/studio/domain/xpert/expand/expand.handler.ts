@@ -1,8 +1,9 @@
 import { IHandler } from '@foblex/mediator'
 import { Store, StoreDef } from '@ngneat/elf'
 import { createXpertGraph, TXpertTeamDraft } from 'apps/cloud/src/app/@core'
+import { calculateHash } from '@cloud/app/@shared/utils'
 import { firstValueFrom } from 'rxjs'
-import { calculateHash, IStudioStore } from '../../types'
+import { IStudioStore } from '../../types'
 import { XpertStudioApiService } from '../../xpert-api.service'
 import { ExpandTeamRequest } from './expand.request'
 

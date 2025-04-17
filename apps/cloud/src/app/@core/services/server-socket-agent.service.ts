@@ -2,8 +2,8 @@ import { HttpClient, HttpParams } from '@angular/common/http'
 import { Inject, Injectable, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { MatBottomSheet } from '@angular/material/bottom-sheet'
-import { API_DATA_SOURCE, DataSourceService, injectOrganizationId, Store } from '@metad/cloud/state'
-import { AuthenticationEnum, IDataSource, IDataSourceAuthentication, ISemanticModel } from '@metad/contracts'
+import { API_DATA_SOURCE, DataSourceService, injectOrganizationId } from '@metad/cloud/state'
+import { AuthenticationEnum, IDataSource, IDataSourceAuthentication, ISemanticModel, TGatewayQueryEvent } from '../types'
 import { nonNullable } from '@metad/core'
 import { Agent, AgentStatus, AgentType, DataSourceOptions, UUID } from '@metad/ocap-core'
 import { Observable, Subject, bufferToggle, filter, firstValueFrom, from, merge, mergeMap, windowToggle } from 'rxjs'
@@ -12,13 +12,14 @@ import { getErrorMessage, uuid } from '../types'
 import { AgentService } from './agent.service'
 import { PAC_SERVER_AGENT_DEFAULT_OPTIONS, PacServerAgentDefaultOptions } from './server-agent.service'
 
-export type ServerSocketEventType = {
-  id: UUID
-  dataSourceId: string
-  modelId: string
-  body: string
-  forceRefresh: boolean
-}
+// export type ServerSocketEventType = {
+//   id: UUID
+//   organizationId: string
+//   dataSourceId: string
+//   modelId: string
+//   body: string
+//   forceRefresh: boolean
+// }
 
 /**
  * Responsible for proxying the olap data requests of page components to the server through the websocket interface
@@ -36,10 +37,10 @@ export class ServerSocketAgent extends AbstractAgent implements Agent {
   readonly queuePool = signal<
     Record<
       UUID,
-      { resolve: (value) => void; reject: (reason?: any) => void; request: ServerSocketEventType; complete?: boolean }
+      { resolve: (value) => void; reject: (reason?: any) => void; request: TGatewayQueryEvent; complete?: boolean }
     >
   >({})
-  readonly request$ = new Subject<ServerSocketEventType>()
+  readonly request$ = new Subject<TGatewayQueryEvent>()
 
   readonly bufferSize = computed(() => Object.keys(this.queuePool()).length)
   readonly completeSize = computed(() => Object.values(this.queuePool()).filter((x) => x.complete).length)
@@ -203,13 +204,14 @@ export class ServerSocketAgent extends AbstractAgent implements Agent {
         // method = 'POST'
 
         return new Promise((resolve, reject) => {
-          const message = {
+          const message: TGatewayQueryEvent = {
             id,
             organizationId: this.#organizationId(),
             dataSourceId,
             modelId,
             body,
-            forceRefresh: options.forceRefresh
+            forceRefresh: options.forceRefresh,
+            isDraft: semanticModel.isDraft
           }
           this.queuePool.update((state) => {
             return {

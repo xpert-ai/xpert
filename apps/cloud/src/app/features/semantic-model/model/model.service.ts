@@ -27,16 +27,19 @@ import { Store, createStore, select, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
 import { cloneDeep, isEqual, negate } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
-import { BehaviorSubject, Observable, Subject, combineLatest, from } from 'rxjs'
-import { combineLatestWith, debounceTime, distinctUntilChanged, filter, map, shareReplay, switchMap, take, tap } from 'rxjs/operators'
+import { BehaviorSubject, EMPTY, Observable, Subject, combineLatest, from } from 'rxjs'
+import { catchError, combineLatestWith, debounceTime, distinctUntilChanged, filter, map, shareReplay, skip, switchMap, take, tap } from 'rxjs/operators'
 import {
   ISemanticModel,
   MDX,
   ToastrService,
+  extractSemanticModelDraft,
+  getErrorMessage,
   getSQLSourceName,
   getXmlaSourceName,
   registerModel,
-  uuid
+  uuid,
+  TSemanticModelDraft
 } from '../../../@core'
 import { dirtyCheckWith, write } from '../store'
 import { CreateEntityDialogRetType } from './create-entity/create-entity.component'
@@ -53,6 +56,9 @@ import {
 } from './types'
 import { upsertHierarchy } from './utils'
 import { limitSelect } from '@metad/ocap-sql'
+import { calculateHash } from '@cloud/app/@shared/utils'
+
+const SaveDraftDebounceTime = 2 // s
 
 @Injectable()
 export class SemanticModelService {
@@ -61,6 +67,7 @@ export class SemanticModelService {
   private readonly destroyRef = inject(DestroyRef)
   private readonly logger = inject(NGXLogger)
   readonly #toastr = inject(ToastrService)
+  readonly #modelsService = inject(SemanticModelsService)
 
   /**
   |--------------------------------------------------------------------------
@@ -78,8 +85,7 @@ export class SemanticModelService {
   /**
    * Dirty check for whole model
    */
-  readonly dirtyCheckResult = dirtyCheckWith(this.store, this.pristineStore, { comparator: negate(isEqual) })
-
+  readonly dirtyCheckResult = dirtyCheckWith(this.store, this.pristineStore, { comparator: (a, b) => !isEqual(a.draft, b.draft)})
   
   /**
    * Dirty for every entity
@@ -90,13 +96,19 @@ export class SemanticModelService {
     select((state) => state.model),
     filter(nonNullable)
   )
-  readonly cubeStates$ = this.model$.pipe(map(initEntitySubState))
-  readonly dimensionStates$ = this.model$.pipe(map(initDimensionSubState))
   readonly modelSignal = toSignal(this.model$)
-  readonly dimensions = computed(() => this.modelSignal()?.schema?.dimensions ?? [])
-  readonly cubes = computed(() => this.modelSignal()?.schema?.cubes ?? [])
+  readonly draft$ = this.store.pipe(
+    select((state) => state.draft),
+    filter(nonNullable)
+  )
+  readonly draftSignal = toSignal(this.draft$)
+  readonly cubeStates$ = this.draft$.pipe(map(initEntitySubState))
+  readonly dimensionStates$ = this.draft$.pipe(map(initDimensionSubState))
+  
+  readonly dimensions = computed(() => this.draftSignal()?.schema?.dimensions ?? [])
+  readonly cubes = computed(() => this.draftSignal()?.schema?.cubes ?? [])
 
-  readonly schema$ = this.model$.pipe(
+  readonly schema$ = this.draft$.pipe(
     select((state) => state?.schema),
     filter(nonNullable)
   )
@@ -108,7 +120,7 @@ export class SemanticModelService {
   // readonly dialect$ = this.model$.pipe(map((model) => model?.dataSource?.type?.type))
   readonly isLocalAgent$ = this.model$.pipe(map((model) => model?.dataSource?.type?.type === 'agent'))
 
-  readonly tables = computed(() => this.modelSignal()?.tables)
+  readonly tables = computed(() => this.draftSignal()?.tables)
 
   readonly viewEditor = signal({ wordWrap: false })
   readonly currentEntity = signal<string | null>(null)
@@ -119,11 +131,11 @@ export class SemanticModelService {
   |--------------------------------------------------------------------------
   */
   private refreshDBTables$ = new BehaviorSubject<boolean>(null)
-  public readonly tables$ = this.model$.pipe(map((model) => model?.tables))
-  public readonly sharedDimensions$ = this.dimensionStates$.pipe(
+  readonly tables$ = this.draft$.pipe(map((draft) => draft?.tables))
+  readonly sharedDimensions$ = this.dimensionStates$.pipe(
     map((states) => states?.map((state) => state.dimension))
   )
-  public readonly entities$: Observable<SemanticModelEntity[]> = combineLatest([
+  readonly entities$: Observable<SemanticModelEntity[]> = combineLatest([
     this.cubeStates$,
     this.dimensionStates$
   ]).pipe(
@@ -224,6 +236,30 @@ export class SemanticModelService {
   readonly modelType = toSignal(this.modelType$)
   readonly dialect = toSignal(this.model$.pipe(map((model) => model?.dataSource?.type?.type)))
   readonly isDirty = this.dirtyCheckResult.dirty
+  readonly unsaved = signal(false)
+  readonly #savedAt = signal<Date>(null)
+  readonly latestPublishDate = computed(() => this.model().publishAt)
+  readonly draftSavedDate = computed(() => this.#savedAt() ?? this.draftSignal().savedAt)
+
+  readonly canPublish = computed(() => !!(this.model().draft || this.#savedAt()))
+
+  // Subscriptions
+  private saveDraftSub = this.draft$.pipe(
+    skip(1),
+    map(() => calculateHash(JSON.stringify(this.draftSignal()))),
+    distinctUntilChanged(),
+    tap(() => this.unsaved.set(true)),
+    debounceTime(SaveDraftDebounceTime * 1000),
+    switchMap(() => this.saveDraft()),
+    catchError((err) => {
+      this.#toastr.error(getErrorMessage(err))
+      return EMPTY
+    })
+  ).subscribe({
+    next: () => {
+
+    }
+  })
 
   constructor(
     private modelsService: SemanticModelsService,
@@ -278,14 +314,31 @@ export class SemanticModelService {
     // })
   }
 
+  /**
+   * Initialize the entire state service using the semantic model
+   * @param model original record in database
+   */
   initModel(model: ISemanticModel) {
     // New store
     this.stories.set(model.stories)
     const semanticModel = convertNewSemanticModelResult(model)
-    this.store.update(() => ({ model: semanticModel }))
-    this.pristineStore.update(() => ({ model: cloneDeep(semanticModel) }))
+    this.store.update(() => ({ model: semanticModel, draft: model.draft ?? extractSemanticModelDraft(model) }))
+    this.pristineStore.update(() => ({ model: cloneDeep(semanticModel), draft: cloneDeep(this.store.value.draft) }))
     // Resume state history after model is loaded
     // this.#stateHistory.resume()
+  }
+
+  saveDraft() {
+    const draft = this.store.value.draft
+    return this.#modelsService.saveDraft(this.modelSignal().id, draft).pipe(
+      tap((draft) => {
+        this.unsaved.set(false)
+        this.#savedAt.set(draft.savedAt)
+        this.dataSource$.value?.clearCache()
+        // Register model after saved to refresh metadata of entity
+        this.registerModel()
+      })
+    )
   }
 
   getHistoryCursor() {
@@ -305,14 +358,14 @@ export class SemanticModelService {
   }
 
   updater<ProvidedType = void, OriginType = ProvidedType>(
-    fn: (state: NgmSemanticModel, ...params: OriginType[]) => NgmSemanticModel | void
+    fn: (state: TSemanticModelDraft, ...params: OriginType[]) => TSemanticModelDraft | void
   ) {
     return (...params: OriginType[]) => {
       this.store.update(
         write((state) => {
-          const model = fn(state.model, ...params)
-          if (model) {
-            state.model = model
+          const draft = fn(state.draft, ...params)
+          if (draft) {
+            state.draft = draft
           }
           return state
         })
@@ -326,8 +379,9 @@ export class SemanticModelService {
   registerModel() {
     const model = this.modelSignal()
     this.logger.debug(`Model changed => call registerModel`, getSemanticModelKey(model))
+    const draftModel = {...model, ...this.draftSignal()}
     // Not contain indicators when building model
-    registerModel(omit(model, 'indicators'), this.dsCoreService, this.wasmAgent)
+    registerModel(omit(draftModel, 'indicators'), true, this.dsCoreService, this.wasmAgent)
   }
 
   saveModel = effectAction((origin$: Observable<void>) => {

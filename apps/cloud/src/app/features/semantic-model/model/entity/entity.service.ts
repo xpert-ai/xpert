@@ -1,5 +1,5 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
-import { DestroyRef, Injectable, computed, effect, inject, output, signal } from '@angular/core'
+import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { nonNullable } from '@metad/core'
@@ -26,7 +26,7 @@ import {
 import { NxSettingsPanelService } from '@metad/story/designer'
 import { select, withProps } from '@ngneat/elf'
 import { uuid } from 'apps/cloud/src/app/@core'
-import { assign, cloneDeep, isEqual, negate, omit, omitBy } from 'lodash-es'
+import { assign, isEqual, negate, omit, omitBy } from 'lodash-es'
 import {
   EMPTY,
   Observable,
@@ -46,6 +46,9 @@ import { SemanticModelService } from '../model.service'
 import { DEBOUNCE_TIME, EntityPreview, MODEL_TYPE, ModelDesignerType } from '../types'
 import { CubeDimensionType, CubeEventType, newDimensionFromColumn, newDimensionFromTable } from './types'
 
+/**
+ * State servcie for Cube
+ */
 @Injectable()
 export class ModelEntityService {
   #modelService = inject(SemanticModelService)
@@ -159,7 +162,7 @@ export class ModelEntityService {
     const sharedDimensions = this.sharedDimensions()
     const dimensions = this.dimensions()
     return [...(dimensionUsages?.map((usage) => {
-      const dimension = sharedDimensions.find((d) => d.name === usage.source)
+      const dimension = sharedDimensions?.find((d) => d.name === usage.source)
       if (dimension) {
         return {
           ...dimension,
@@ -245,12 +248,12 @@ export class ModelEntityService {
   }
 
   public init(entity: string) {
-    const state = this.store.connect(['model', 'schema', 'cubes', entity]).getValue()
+    const state = this.store.connect(['draft', 'schema', 'cubes', entity]).getValue()
     if (!state.__id__) {
       this.#router.navigate(['../404'], { relativeTo: this.#route })
       return
     }
-    this.pristineStore.connect(['model', 'schema', 'cubes', entity])
+    this.pristineStore.connect(['draft', 'schema', 'cubes', entity])
   }
 
   query(statement: string) {

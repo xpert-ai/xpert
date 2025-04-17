@@ -4,6 +4,7 @@ import {
 	ISemanticModel,
 	IUser,
 	RolesEnum,
+	TSemanticModelDraft,
 	Visibility,
 	VisitEntityEnum,
 	VisitTypeEnum
@@ -50,7 +51,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { Request, Response } from 'express'
 import { Between, FindOneOptions } from 'typeorm'
 import { VisitCreateCommand } from '../visit/commands'
-import { SemanticModelCacheDeleteCommand, SemanticModelCreateCommand, SemanticModelUpdateCommand } from './commands'
+import { SemanticModelCacheDeleteCommand, SemanticModelCreateCommand, SemanticModelPublishCommand, SemanticModelUpdateCommand } from './commands'
 import { CreateSemanticModelDTO, SemanticModelDTO, SemanticModelPublicDTO, UpdateSemanticModelDTO } from './dto/index'
 import { SemanticModel } from './model.entity'
 import { SemanticModelService } from './model.service'
@@ -193,6 +194,25 @@ export class ModelController extends CrudController<SemanticModel> {
 	async getCubes(@Param('id', UUIDValidationPipe) modelId: string, ) {
 		return this.modelService.getCubes(modelId)
 	}
+
+	@Post(':id/draft')
+	async saveDraft(@Param('id') id: string, @Body() draft: TSemanticModelDraft) {
+		// todo 检查有权限编辑此 model
+		draft.savedAt = new Date()
+		// Save draft
+		const result = await this.modelService.saveDraft(id, draft)
+		this.eventBus.publish(new SemanticModelUpdatedEvent(id))
+		return result
+	}
+
+	@Post(':id/publish')
+	async publish(
+		@Param('id') id: string, 
+		@Body() body: {releaseNotes: string}
+	) {
+		return await this.commandBus.execute(new SemanticModelPublishCommand(id, body.releaseNotes))
+	}
+
 
 	@Post('/:id/query')
 	async query(

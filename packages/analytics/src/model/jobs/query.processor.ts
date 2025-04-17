@@ -1,4 +1,4 @@
-import { ISemanticModelQueryLog, QueryStatusEnum } from '@metad/contracts'
+import { ISemanticModelQueryLog, QueryStatusEnum, TGatewayQueryEvent } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { runWithRequestContext, UserService } from '@metad/server-core'
 import { Process, Processor } from '@nestjs/bull'
@@ -10,7 +10,7 @@ import { DataSourceOlapQuery } from '../../data-source'
 import { LogOneQuery } from '../../model-query-log'
 import { ModelQueryLogUpsertCommand } from '../../model-query-log/commands'
 import { ModelCubeQuery, ModelOlapQuery } from '../queries'
-import { QUERY_QUEUE_NAME, TGatewayQuery } from '../types'
+import { QUERY_QUEUE_NAME } from '../types'
 
 @Processor(QUERY_QUEUE_NAME)
 export class ModelQueryProcessor {
@@ -23,9 +23,9 @@ export class ModelQueryProcessor {
 	) {}
 
 	@Process({concurrency: 20})
-	async handleQuery(job: Job<{ sessionId: string; userId: string; logId: string; data: TGatewayQuery }>) {
+	async handleQuery(job: Job<{ sessionId: string; userId: string; logId: string; data: TGatewayQueryEvent }>) {
 		const { sessionId, userId, logId, data } = job.data
-		const { id, organizationId, dataSourceId, modelId, body, acceptLanguage, forceRefresh } = data
+		const { id, organizationId, dataSourceId, modelId, body, acceptLanguage, forceRefresh, isDraft } = data
 		const user = await this.userService.findOne(userId)
 
 		const timeStart = Date.now()
@@ -51,12 +51,14 @@ export class ModelQueryProcessor {
 							new ModelOlapQuery(
 								{
 									id,
+									organizationId,
 									sessionId,
 									dataSourceId,
 									modelId,
 									body,
 									acceptLanguage,
-									forceRefresh
+									forceRefresh,
+									isDraft
 								},
 								user
 							)
@@ -66,12 +68,14 @@ export class ModelQueryProcessor {
 							new ModelCubeQuery(
 								{
 									id,
+									organizationId,
 									sessionId,
 									dataSourceId,
 									modelId,
 									body,
 									acceptLanguage,
-									forceRefresh
+									forceRefresh,
+									isDraft
 								},
 								user
 							)

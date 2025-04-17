@@ -2,8 +2,9 @@
 import { IDataSource, IIndicator, ISemanticModel, IStory, IStoryWidget, IndicatorOptionFields } from '@metad/contracts'
 import { Indicator as OCAPIndicator, SemanticModel, isNil, omit, omitBy, pick } from '@metad/ocap-core'
 import { Story, StoryConnection, StoryModel, StoryPoint, StoryWidget, uuid } from '@metad/story/core'
-import { convertNewSemanticModelResult } from './models.service'
 import { HttpParams } from '@angular/common/http'
+export * from '@metad/contracts'
+import { convertNewSemanticModelResult } from './models.service'
 
 
 export const SystemPrivacyFields = [
@@ -67,13 +68,14 @@ export function convertStoryModel(model: Partial<StoryModel>): ISemanticModel {
  * @param result
  * @returns
  */
-export function convertStoryModelResult(result: ISemanticModel): StoryModel {
+export function convertStoryModelResult1(result: ISemanticModel): StoryModel {
   return {
     ...result.options,
     ...result,
     type: result.type as SemanticModel['type'],
     dataSource: result.dataSource as StoryConnection,
-    indicators: result.indicators?.map(convertIndicatorResult)
+    indicators: result.indicators?.map(convertIndicatorResult),
+    isDraft: false
   }
 }
 

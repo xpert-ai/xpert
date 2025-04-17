@@ -26,4 +26,7 @@
   .system-xs-medium {
     @apply text-xs font-medium;
   }
+  .system-kbd {
+    @apply text-sm font-medium leading-4;
+  }
 }

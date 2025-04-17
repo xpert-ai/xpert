@@ -38,7 +38,18 @@ export const semanticModelResolver: ResolveFn<ISemanticModel> = (
   state: RouterStateSnapshot,
 ) => {
   const router = inject(Router)
-  return inject(SemanticModelServerService).getById(route.paramMap.get('id')!, {
+  return resolveSemanticModel(inject(SemanticModelServerService), route.paramMap.get('id')!)
+    .pipe(
+      catchError((err) => {
+        console.error(err)
+        router.navigate(['/404'])
+        return EMPTY
+      })
+    )
+}
+
+export function resolveSemanticModel(modelsService: SemanticModelServerService, id: string) {
+  return modelsService.getById(id, {
     relations: [
       'dataSource',
       'dataSource.type',
@@ -50,11 +61,5 @@ export const semanticModelResolver: ResolveFn<ISemanticModel> = (
       'indicators.createdBy',
       // 'queries'
     ]
-  }).pipe(
-    catchError((err) => {
-      console.error(err)
-      router.navigate(['/404'])
-      return EMPTY
-    })
-  )
+  })
 }

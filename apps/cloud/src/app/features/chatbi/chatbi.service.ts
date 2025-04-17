@@ -222,7 +222,7 @@ export class ChatbiService {
   }
 
   private registerModel(model: NgmSemanticModel) {
-    registerModel(omit(model, 'indicators'), this.#dsCoreService, this.#wasmAgent)
+    registerModel(omit(model, 'indicators'), false, this.#dsCoreService, this.#wasmAgent)
   }
 
   newConversation() {
