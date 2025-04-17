@@ -43,6 +43,7 @@ import { createParameters } from '../../workflow/parameter'
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateMemoryStoreCommand } from '../../../xpert/commands'
 import { CreateWorkflowNodeCommand } from '../../workflow'
+import { toEnvState } from '../../../environment'
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -114,7 +115,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			new ToolsetGetToolsCommand(options?.toolsets ?? agent.toolsetIds, {
 				xpertId: xpert.id,
 				agentKey,
-				signal: abortController.signal
+				signal: abortController.signal,
+				env: toEnvState(environment)
 			})
 		)
 		abortController.signal.addEventListener('abort', () => {

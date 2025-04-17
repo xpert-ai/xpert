@@ -5,7 +5,8 @@ export async function createProMCPClient(
 	toolset: Partial<IXpertToolset>,
 	signal: AbortSignal,
 	commandBus: CommandBus,
-	schema: TMCPSchema
+	schema: TMCPSchema,
+	envState: Record<string, unknown>
 ) {
     // PRO
     return {client: null, destroy: null}

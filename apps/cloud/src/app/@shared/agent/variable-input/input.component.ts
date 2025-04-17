@@ -1,20 +1,39 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
+import { Overlay, OverlayRef } from '@angular/cdk/overlay'
+import { TemplatePortal } from '@angular/cdk/portal'
 import { CommonModule } from '@angular/common'
-import { Component, inject, input, signal, effect, viewChild, TemplateRef, ViewContainerRef, ElementRef, HostListener } from '@angular/core'
+import {
+  Component,
+  effect,
+  ElementRef,
+  HostListener,
+  inject,
+  input,
+  signal,
+  TemplateRef,
+  viewChild,
+  ViewContainerRef
+} from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { linkedModel } from '@metad/core'
+import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { TStateVariable, TWorkflowVarGroup } from '../../../@core/types'
 import { StateVariableSelectComponent } from '../state-variable-select/select.component'
-import { Overlay, OverlayRef } from '@angular/cdk/overlay'
-import { TemplatePortal } from '@angular/cdk/portal'
-import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, CdkMenuModule, TranslateModule, MatTooltipModule, NgmI18nPipe, StateVariableSelectComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    CdkMenuModule,
+    TranslateModule,
+    MatTooltipModule,
+    NgmI18nPipe,
+    StateVariableSelectComponent
+  ],
   selector: 'xpert-variable-input',
   templateUrl: './input.component.html',
   styleUrls: ['./input.component.scss'],
@@ -32,8 +51,8 @@ export class XpertVariableInputComponent {
   readonly autocomplete = input<string>()
 
   // Children
-  readonly suggestionsTemplate = viewChild('suggestionsTemplate', {read: TemplateRef<any>} )
-  readonly suggestionsMenu = viewChild('suggestions', {read: ElementRef})
+  readonly suggestionsTemplate = viewChild('suggestionsTemplate', { read: TemplateRef<any> })
+  readonly suggestionsMenu = viewChild('suggestions', { read: ElementRef })
 
   // States
   readonly currentIndex = signal(0)
@@ -45,17 +64,17 @@ export class XpertVariableInputComponent {
     initialValue: null,
     compute: () => {
       const content = this.cva.value$()
-      return content ? parseTemplateString(content) : [{type: 'text', value: ''}]
+      return content ? parseTemplateString(content) : [{ type: 'text', value: '' }]
     },
     update: (value) => {
-      this.cva.writeValue(value.map(({ type, value }) => type === 'text' ? value : `{{${value}}}`).join(''))
+      this.cva.writeValue(value.map(({ type, value }) => (type === 'text' ? value : `{{${value}}}`)).join(''))
     }
   })
 
   constructor() {
-    effect(() => {
-      // console.log(this.cva.value$(), this.currentIndex(), this.cursorIndex())
-    })
+    // effect(() => {
+    //   console.log(this.cva.value$(), this.currentIndex(), this.cursorIndex())
+    // })
   }
 
   update(index: number, value: string) {
@@ -79,12 +98,12 @@ export class XpertVariableInputComponent {
 
   onKeydown(event: KeyboardEvent, input: HTMLInputElement) {
     if (event.key === 'Backspace' && input.value === '') {
-      const currentIndex = this.currentIndex();
+      const currentIndex = this.currentIndex()
       if (currentIndex > 0 && this.items()[currentIndex - 1].type === 'variable') {
         this.items.update((state) => {
-          state.splice(currentIndex - 1, 1);
-          return [...state];
-        });
+          state.splice(currentIndex - 1, 1)
+          return [...state]
+        })
         this.currentIndex.set(currentIndex - 1)
       }
     }
@@ -132,12 +151,12 @@ export class XpertVariableInputComponent {
   getCursorPosition() {
     // Check if viewLines exists
     const rect = this.currentElement().getBoundingClientRect()
-    
+
     // Calculate the absolute coordinates of the cursor on the page
-    const cursorX = rect.left ;
-    const cursorY = rect.top ;
-    
-    return { x: cursorX, y: cursorY };
+    const cursorX = rect.left
+    const cursorY = rect.top
+
+    return { x: cursorX, y: cursorY }
   }
 
   setVariable(g: string, variable: TStateVariable) {
@@ -147,19 +166,26 @@ export class XpertVariableInputComponent {
       const prefix = item.value.slice(0, this.cursorIndex() - 1)
       const after = item.value.slice(this.cursorIndex())
       this.items.update((state) => {
-        state.splice(this.currentIndex(), 1, {
-          type: 'text',
-          value: prefix
-        }, {
-          type: 'variable',
-          value: g ? `${g}.${variable.name}` : `${variable.name}`
-        }, {
-          type: 'text',
-          value: after
-        },)
+        state.splice(
+          this.currentIndex(),
+          1,
+          {
+            type: 'text',
+            value: prefix
+          },
+          {
+            type: 'variable',
+            value: g ? `${g}.${variable.name}` : `${variable.name}`
+          },
+          {
+            type: 'text',
+            value: after
+          }
+        )
         return [...state]
       })
     }
+    this.currentElement()?.focus()
   }
 
   @HostListener('document:keydown.escape', ['$event'])

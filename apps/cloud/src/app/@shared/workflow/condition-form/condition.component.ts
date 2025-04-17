@@ -2,7 +2,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { Component, computed, effect, ElementRef, inject, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -14,13 +13,14 @@ import {
   TWorkflowVarGroup,
   WorkflowComparisonOperator
 } from 'apps/cloud/src/app/@core'
+import { XpertVariableInputComponent } from '../../agent'
 
 @Component({
   standalone: true,
   selector: 'xpert-workflow-condition-form',
   templateUrl: './condition.component.html',
   styleUrls: ['./condition.component.scss'],
-  imports: [FormsModule, CdkMenuModule, TranslateModule, MatTooltipModule, MatInputModule, TextFieldModule, NgmI18nPipe]
+  imports: [FormsModule, CdkMenuModule, TranslateModule, MatTooltipModule, TextFieldModule, NgmI18nPipe, XpertVariableInputComponent]
 })
 export class XpertWorkflowConditionFormComponent {
   agentLabel = agentLabel
@@ -54,6 +54,7 @@ export class XpertWorkflowConditionFormComponent {
   readonly groupVariables = computed(() => {
     return this.variables()
   })
+  readonly envVariables = computed(() => this.variables()?.filter((g) => g.group?.name === 'env'))
 
   readonly hoverDelete = signal(false)
 

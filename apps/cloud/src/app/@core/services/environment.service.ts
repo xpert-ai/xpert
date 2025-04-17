@@ -3,7 +3,6 @@ import { API_PREFIX } from '@metad/cloud/state'
 import { IEnvironment } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 
-
 export const API_ENVIRONMENT = API_PREFIX + '/environment'
 
 @Injectable({
@@ -16,5 +15,9 @@ export class EnvironmentService extends XpertWorkspaceBaseCrudService<IEnvironme
 
   setDefault(envId: string) {
     return this.httpClient.put(this.apiBaseUrl + `/${envId}/as-default`, {})
+  }
+
+  getDefaultByWorkspace(workspaceId: string) {
+    return this.httpClient.get<IEnvironment>(this.apiBaseUrl + `/default/${workspaceId}`)
   }
 }

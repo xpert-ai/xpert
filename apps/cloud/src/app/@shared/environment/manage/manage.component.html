@@ -27,8 +27,8 @@
       }
     </div>
 
-    <div class="flex justify-end">
-      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium"
+    <div class="flex justify-end items-center mb-8">
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
         (click)="addEnvironment()">
         <i class="ri-add-line mr-1"></i>
         <span class="system-sm-medium">
@@ -49,13 +49,13 @@
     <div class="system-2xs-medium-uppercase mt-1 text-text-tertiary">ESC</div>
   </div>
 
-  <div class="w-full overflow-y-auto bg-components-panel-bg pb-4">
+  <div class="w-full flex flex-col overflow-y-auto bg-components-panel-bg pb-4">
     <div class="sticky top-0 z-20 mx-8 mb-[18px] flex items-center bg-components-panel-bg pb-2 pt-[27px]">
       <div class="text-2xl font-semibold shrink-0 text-text-primary">
         {{ 'PAC.Environment.Variables' | translate: {Default: 'Variables'} }}
       </div>
     </div>
-    <div class="px-4 pt-2 sm:px-8">
+    <div class="grow px-4 pt-2 sm:px-8">
       @if (environment(); as environment) {
         <div class="flex flex-col">
           <div class="mb-4 flex items-center gap-3 rounded-xl border-l-[0.5px] border-t-[0.5px] border-divider-subtle 
@@ -134,6 +134,14 @@
             </div>
           </div>
         </div>
+      }
+    </div>
+
+    <div class="flex justify-start items-center px-4">
+      @if (environment()) {
+        <button type="button" class="btn disabled:btn-disabled btn-danger btn-large"
+          (click)="delete()">{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+        </button>
       }
     </div>
   </div>

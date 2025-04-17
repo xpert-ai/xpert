@@ -17,9 +17,9 @@ import {
   XpertService,
   XpertToolsetCategoryEnum,
   XpertToolsetService
-} from 'apps/cloud/src/app/@core'
-import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
-import { XpertVariablesAssignerComponent } from 'apps/cloud/src/app/@shared/xpert'
+} from '@cloud/app/@core'
+import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
+import { XpertVariablesAssignerComponent } from '@cloud/app/@shared/xpert'
 import { omit, uniq } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, map, of } from 'rxjs'
@@ -27,6 +27,7 @@ import { injectConfigureBuiltin, XpertToolConfigureBuiltinComponent, XpertToolTe
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
+import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 
 @Component({
   selector: 'xpert-studio-panel-toolset',
@@ -224,7 +225,23 @@ export class XpertStudioPanelToolsetComponent {
     if (toolset.category === XpertToolsetCategoryEnum.API) {
       this.router.navigate(['/xpert/tool', toolset.id])
     } else if (toolset.category === XpertToolsetCategoryEnum.MCP) {
-      this.router.navigate(['/xpert/tool', toolset.id])
+      this.dialog
+        .open(XpertMCPManageComponent, {
+          backdropClass: 'backdrop-blur-lg-white',
+          disableClose: true,
+          data: {
+            workspaceId: this.workspaceId(),
+            toolsetId: toolset.id
+          }
+        })
+        .closed.subscribe({
+          next: (saved) => {
+            if (saved) {
+              this.refresh()
+            }
+          }
+        })
+      // this.router.navigate(['/xpert/tool', toolset.id])
     } else {
       this.dialog
         .open(XpertToolConfigureBuiltinComponent, {

@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
-import { Environment } from './environment.entity'
+import { IsNull, Not, Repository } from 'typeorm'
 import { XpertWorkspaceBaseService } from '../xpert-workspace'
+import { Environment } from './environment.entity'
 
 @Injectable()
 export class EnvironmentService extends XpertWorkspaceBaseService<Environment> {
@@ -20,10 +20,25 @@ export class EnvironmentService extends XpertWorkspaceBaseService<Environment> {
 		if (env.isDefault) {
 			return
 		}
-		const {items} = await this.findAll({where: {workspaceId: env.workspaceId, isDefault: true}})
+		const { items } = await this.findAll({ where: { workspaceId: env.workspaceId, isDefault: true } })
 		for await (const other of items) {
-			await this.update(other.id, {isDefault: false})
+			await this.update(other.id, { isDefault: false })
 		}
-		await this.update(env.id, {isDefault: true})
+		await this.update(env.id, { isDefault: true })
+	}
+
+	async getDefaultByWorkspace(workspaceId: string) {
+		const { items } = await this.findAll({
+			where: [
+				{ workspaceId, isDefault: true, isArchived: false },
+				{ workspaceId, isDefault: true, isArchived: IsNull() }
+			]
+		})
+		if (items.length > 0) {
+			return items[0]
+		} else {
+			this.logger.warn(`No default environment found for workspaceId: ${workspaceId}`)
+			return null
+		}
 	}
 }

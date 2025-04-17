@@ -9,6 +9,9 @@ import { IModelQuery } from './model-query'
 import * as MDX from './schema'
 import { IStory } from './story'
 
+/**
+ * Data agent types
+ */
 export enum AgentType {
   Local = 'local',
   Browser = 'browser',
@@ -16,6 +19,9 @@ export enum AgentType {
   Wasm = 'wasm'
 }
 
+/**
+ * Preferences of semantic model
+ */
 export interface ISemanticModelPreferences {
   // Cache
   enableCache?: boolean
@@ -31,24 +37,38 @@ export type TSemanticModelOptions<T> = {
   settings?: any
 }
 
-export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel {
+export type TSemanticModel = {
   key?: string
   name?: string
   description?: string
   type?: string
   agentType?: AgentType
-  tags?: ITag[]
 
   dataSourceId?: string
-  dataSource?: IDataSource
-
   businessAreaId?: string
-  businessArea?: IBusinessArea
 
   catalog?: string
   cube?: string
   // 存放语义元数据
   options?: TSemanticModelOptions<any>
+}
+
+export type TSemanticModelDraft = TSemanticModel & {
+  savedAt?: Date
+}
+
+export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel, TSemanticModel {
+  /**
+   * 当前版本上的草稿
+   */
+  draft?: TSemanticModelDraft
+
+  tags?: ITag[]
+  
+  dataSource?: IDataSource
+  
+  businessArea?: IBusinessArea
+  
   // 存放模型配置
   preferences?: ISemanticModelPreferences
 
@@ -72,11 +92,17 @@ export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel
   roles?: Array<IModelRole>
 }
 
+/**
+ * Types of semantic model
+ */
 export enum ModelTypeEnum {
   XMLA = 'XMLA',
   SQL = 'SQL'
 }
 
+/**
+ * Role in semantic model
+ */
 export interface IModelRole extends IBasePerTenantAndOrganizationEntityModel {
   modelId: string
   model?: ISemanticModel
@@ -88,11 +114,17 @@ export interface IModelRole extends IBasePerTenantAndOrganizationEntityModel {
   users?: IUser[]
 }
 
+/**
+ * Role types
+ */
 export enum RoleTypeEnum {
   single = 'single',
   union = 'union'
 }
 
+/**
+ * Status of semantic model
+ */
 export enum SemanticModelStatusEnum {
   /**
    * Using

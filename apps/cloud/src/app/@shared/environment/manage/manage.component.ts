@@ -17,7 +17,7 @@ import {
   TEnvironmentVariable,
 } from '@cloud/app/@core'
 import { linkedModel } from '@metad/core'
-import { injectConfirmUnique, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { injectConfirmDelete, injectConfirmUnique, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { effectAction } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
@@ -57,6 +57,7 @@ export class XpertEnvironmentManageComponent {
   readonly #toastr = injectToastr()
   readonly #router = inject(Router)
   readonly confirmName = injectConfirmUnique()
+  readonly confirmDelete = injectConfirmDelete()
 
   readonly workspaceId = signal(this.#data.workspaceId)
   readonly loading = signal(false)
@@ -124,7 +125,11 @@ export class XpertEnvironmentManageComponent {
   addEnvironment() {
     this.confirmName({}, (name: string) => {
       this.loading.set(true)
-      return this.environmentService.create({ workspaceId: this.workspaceId(), name })
+      return this.environmentService.create({ 
+        workspaceId: this.workspaceId(), 
+        name,
+        isDefault: !this.environments()?.length
+      })
     }).subscribe({
       next: (env) => {
         this.loading.set(false)
@@ -206,6 +211,18 @@ export class XpertEnvironmentManageComponent {
       })
     )
   })
+
+  async delete() {
+    this.confirmDelete({
+      value: this.environment().name,
+      information: await this.#translate.instant('PAC.Environment.DeleteEnv', {Default: 'Delete the environment and all its environment variables'})
+    }, this.environmentService.delete(this.environment().id)).subscribe({
+      next: () => {
+        this.environments.update((envs) => envs.filter((_) => _.id !== this.environment().id))
+        this.environmentId.set(this.environments()[0]?.id)
+      }
+    })
+  }
 
   close() {
     this.#dialogRef.close()

@@ -1,26 +1,22 @@
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
+import { FormsModule } from '@angular/forms'
+import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
+import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
+import { NgmDensityDirective, TSelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
-  getErrorMessage,
   injectToastr,
   IWFNIterating,
   IWorkflowNode,
-  TXpertTeamNode,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
   XpertService
-} from 'apps/cloud/src/app/@core'
+} from '@cloud/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
-import { catchError, of } from 'rxjs'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { StateVariableSelectComponent } from 'apps/cloud/src/app/@shared/workflow'
-import { FormsModule } from '@angular/forms'
-import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
-import { MatSliderModule } from '@angular/material/slider'
-import { NgmDensityDirective, TSelectOption } from '@metad/ocap-angular/core'
-import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 
 @Component({
@@ -29,7 +25,16 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   styleUrls: ['./iterating.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, MatTooltipModule, TranslateModule, MatSliderModule, NgmSlideToggleComponent, NgmDensityDirective, NgmSelectComponent, StateVariableSelectComponent],
+  imports: [
+    FormsModule,
+    MatTooltipModule,
+    TranslateModule,
+    MatSliderModule,
+    NgmSlideToggleComponent,
+    NgmDensityDirective,
+    NgmSelectComponent,
+    StateVariableSelectComponent
+  ],
   host: {
     tabindex: '-1'
   }
@@ -80,9 +85,8 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
     }
   ]
 
-
   updateEntity(name: string, value: string | number) {
-    const entity = {...(this.iteratingEntity() ?? {})} as IWFNIterating
+    const entity = { ...(this.iteratingEntity() ?? {}) } as IWFNIterating
     entity[name] = value
     this.studioService.updateBlock(this.key(), { entity })
   }

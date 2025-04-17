@@ -352,7 +352,8 @@
       "AddVariable": "添加变量",
       "NewEnvironment": "新建环境",
       "ManageEnvironments": "管理环境",
-      "Manage": "管理"
+      "Manage": "管理",
+      "DeleteEnv": "删除此环境及其所有的环境变量"
     },
     "MENU": {
       "Certification": "认证",
