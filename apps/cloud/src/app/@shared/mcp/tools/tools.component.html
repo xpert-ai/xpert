@@ -1,15 +1,20 @@
 <table class="w-full leading-[18px] text-sm text-gray-700 font-normal">
   <thead class="text-gray-500 uppercase">
     <tr class="border-gray-200">
+      <th class="p-0"></th>
       <th class="">{{'PAC.KEY_WORDS.Enabled' | translate: {Default: 'Enabled'} }}</th>
       <th class="">{{'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}</th>
       <th class=" w-[236px]">{{'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</th>
       <th class=" w-[54px]">{{'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}</th>
     </tr>
   </thead>
-  <tbody >
+  <tbody cdkDropList (cdkDropListDropped)="drop($event)">
     @for (tool of tools(); track i; let i = $index) {
-      <tr class="tool-row border-gray-200" [class.disabled]="(tool.disabled ?? disableToolDefault())">
+      <tr class="tool-row border-gray-200" [class.disabled]="(tool.disabled ?? disableToolDefault())"
+        cdkDrag cdkDragLockAxis="y">
+        <td class="p-2">
+          <i class="ri-draggable cursor-pointer" cdkDragHandle></i>
+        </td>
         <td class="p-2 pl-3 font-medium">
           <mat-slide-toggle ngm-density="xs" 
             [ngModel]="!(tool.disabled ?? disableToolDefault())"
@@ -21,7 +26,9 @@
         </td>
         <td class="p-2 pl-3 font-medium">
           <input class="w-full ngm-input-inline ngm-input-sm hover:bg-hover-bg"
-            disabled [ngModel]="tool.description" (ngModelChange)="updateTool(i, 'description', $event)">
+            [ngModel]="tool.description"
+            (ngModelChange)="updateTool(i, 'description', $event)"
+          >
         </td>
         <td class="pl-3 font-medium">
           <div class="flex items-center gap-2">

@@ -91,14 +91,14 @@
       </div>
 
     @if (expandTools()[tool.name]) {
-      <div class="px-2 text-text-secondary line-clamp-3">{{tool.description | i18n}}</div>
+      <div class="px-2 my-2 text-sm text-text-secondary line-clamp-3">{{tool.description | i18n}}</div>
 
       <div class="w-full flex justify-end px-2 mb-4">
         <mat-slide-toggle [ngModel]="getSensitive(tool.name)" (ngModelChange)="updateSensitive(tool.name, $event)"
           labelPosition="before"
           ngm-density="xs"
           [matTooltip]="'PAC.Xpert.SensitiveToolsTip' | translate: {Default: 'Sensitive tools require user confirmation before execution'}"
-          matTooltipPosition="above"
+          matTooltipPosition="left"
         >{{'PAC.Xpert.Sensitive' | translate: {Default: 'Sensitive'} }}</mat-slide-toggle>
       </div>
 
@@ -107,7 +107,7 @@
           labelPosition="before"
           ngm-density="xs"
           [matTooltip]="'PAC.Xpert.EndTool' | translate: {Default: 'End point tool, the conversation ends when tool completed'}"
-          matTooltipPosition="above"
+          matTooltipPosition="left"
         >{{'PAC.Xpert.End' | translate: {Default: 'End'} }}</mat-slide-toggle>
       </div>
 
@@ -116,7 +116,7 @@
           labelPosition="before"
           ngm-density="xs"
           [matTooltip]="'PAC.Xpert.ToolMemoryTip' | translate: {Default: 'Tool memory, storing tool results in agent state variables'}"
-          matTooltipPosition="above"
+          matTooltipPosition="left"
         >{{'PAC.Xpert.ToolMemory' | translate: {Default: 'Tool Memory'} }}</mat-slide-toggle>
       </div>
 
