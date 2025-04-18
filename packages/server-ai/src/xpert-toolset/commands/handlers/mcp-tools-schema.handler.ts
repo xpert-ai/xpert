@@ -1,3 +1,4 @@
+import { DynamicStructuredTool } from '@langchain/core/tools'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { createMCPClient } from '../../provider/mcp/types'
@@ -6,7 +7,6 @@ import { MCPToolsBySchemaCommand } from '../mcp-tools-schema.command'
 import { XpertToolsetService } from '../../xpert-toolset.service'
 import { createProMCPClient } from '../../provider/mcp/pro'
 import { EnvStateQuery } from '../../../environment'
-import { DynamicStructuredTool } from '@langchain/core/tools'
 
 @CommandHandler(MCPToolsBySchemaCommand)
 export class MCPToolsBySchemaHandler implements ICommandHandler<MCPToolsBySchemaCommand> {
@@ -25,7 +25,7 @@ export class MCPToolsBySchemaHandler implements ICommandHandler<MCPToolsBySchema
 		// Create a client
 		const {client, destroy} = this.toolsetService.isPro()
 			? await createProMCPClient(command.toolset, null, this.commandBus, schema, envState)
-			: await createMCPClient(command.toolset.id, schema, envState)
+			: await createMCPClient(command.toolset, schema, envState)
 		
 		try {
 			const tools = await client.getTools()
