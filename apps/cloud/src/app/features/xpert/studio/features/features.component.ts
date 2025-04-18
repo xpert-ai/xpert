@@ -1,5 +1,3 @@
-import { DialogRef } from '@angular/cdk/dialog'
-import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, output, signal } from '@angular/core'
@@ -20,7 +18,6 @@ import { XpertStudioFeaturesSummaryComponent } from './summary/summary.component
     CommonModule,
     FormsModule,
     CdkMenuModule,
-    DragDropModule,
     TranslateModule,
     MatSlideToggleModule,
     MatTooltipModule,

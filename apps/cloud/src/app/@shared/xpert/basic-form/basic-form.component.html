@@ -1,11 +1,11 @@
 <div class="pt-2">
   <div class="py-2 text-sm font-medium leading-[20px] text-gray-900">
-    {{ 'PAC.Xpert.Avatar' | translate: {Default: 'Avatar'} }} &amp; {{ 'PAC.Xpert.ID' | translate: {Default: 'ID'} }}
+    <span class="text-red-500">*</span>{{ 'PAC.Xpert.Avatar' | translate: {Default: 'Avatar'} }} &amp; {{ 'PAC.Xpert.ID' | translate: {Default: 'ID'} }}
   </div>
   <div class="flex items-center justify-between space-x-2">
     <emoji-avatar editable [(avatar)]="avatar" class="rounded-lg overflow-hidden shadow-sm shrink-0" />
     <div class="relative w-full">
-      <input matInput
+      <input
         class="w-full py-[7px] bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover
             focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-sm
             placeholder:text-components-input-text-placeholder
@@ -16,13 +16,15 @@
     </div>
   </div>
   @if (error()) {
-    <div class="pl-10 text-sm text-red-500">
-        {{error() || 'Error'}}
+    <div class="pl-12 text-sm text-red-500">
+      {{error() || 'Error'}}
     </div>
   } @else if (checking()) {
-    <div class="pl-10 text-sm text-text-secondary">
-        {{ 'PAC.Xpert.Checking' | translate: {Default: 'Checking'} }}...
+    <div class="pl-12 text-sm text-text-secondary">
+      {{ 'PAC.Xpert.Checking' | translate: {Default: 'Checking'} }}...
     </div>
+  } @else if (name()) {
+    <i class="ri-checkbox-circle-fill pl-12 text-text-success"></i>
   }
 </div>
 
@@ -37,7 +39,11 @@
   />
 </div>
 
-<copilot-model-select class="w-full mt-2"
+<div class="mt-2 text-sm font-medium leading-[20px] text-gray-900">
+  <span class="text-red-500">*</span>
+  {{ 'PAC.KEY_WORDS.Model' | translate: {Default: 'Model'} }}
+</div>
+<copilot-model-select class="w-full" hiddenLabel
   [modelType]="eAiModelTypeEnum.LLM"
   [(ngModel)]="copilotModel"
 />

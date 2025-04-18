@@ -12,7 +12,6 @@ import {
   EnvironmentService,
   getErrorMessage,
   IEnvironment,
-  IfAnimation,
   injectToastr,
   IXpertTool,
   IXpertToolset,
@@ -20,10 +19,12 @@ import {
   TMCPSchema,
   TMCPServer,
   TToolParameter,
+  XpertToolsetCategoryEnum,
   XpertToolsetService
 } from '@cloud/app/@core'
-import { attrModel, linkedModel } from '@metad/core'
-import { injectConfirmDelete, injectConfirmUnique, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { attrModel, linkedModel, ListSlideStaggerAnimation } from '@metad/core'
+import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { injectConfirmDelete, injectConfirmUnique, NgmSlideToggleComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isEqual, omit } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -50,6 +51,8 @@ import { MCPToolsetToolTestComponent } from '../tool-test'
 
     EmojiAvatarComponent,
     NgmSpinComponent,
+    NgmSlideToggleComponent,
+    NgmDensityDirective,
     TagSelectComponent,
     MCPServerFormComponent,
     MCPToolsetToolTestComponent,
@@ -57,7 +60,7 @@ import { MCPToolsetToolTestComponent } from '../tool-test'
   ],
   templateUrl: './manage.component.html',
   styleUrl: './manage.component.scss',
-  animations: [IfAnimation]
+  animations: [ListSlideStaggerAnimation]
 })
 export class XpertMCPManageComponent {
   eTagCategoryEnum = TagCategoryEnum
@@ -79,7 +82,13 @@ export class XpertMCPManageComponent {
 
   readonly #toolset = derivedAsync<{toolset: IXpertToolset; loading: boolean;}>(() =>
     this.toolsetId() ? this.toolsetService.getOneById(this.toolsetId(), { relations: ['tools'] }).pipe(
-      map((toolset) => ({toolset, loading: false})),
+      map((toolset) => {
+        const positions = toolset.options?.toolPositions
+        toolset.tools = positions && toolset.tools
+          ? toolset.tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
+          : toolset.tools
+        return {toolset, loading: false}
+      }),
       startWith({toolset: null, loading: true})
     ) : of(null)
   )
@@ -88,11 +97,14 @@ export class XpertMCPManageComponent {
   )
 
   readonly loading = computed(() => this.#loading() || this.#toolset()?.loading)
+  readonly dirty = signal(false)
 
   readonly toolset = linkedModel({
     initialValue: null,
     compute: () => this.#toolset()?.toolset ?? this.#data.toolset,
-    update: (value) => {}
+    update: (value) => {
+      this.dirty.set(true)
+    }
   })
 
   readonly avatar = linkedModel({
@@ -130,7 +142,7 @@ export class XpertMCPManageComponent {
 
   readonly tools = linkedModel({
     initialValue: null,
-    compute: () => this.toolset()?.tools,
+    compute: () => this.toolset()?.tools?.filter((_) => !_.deletedAt),
     update: (tools) => {
       this.toolset.update((state) => ({ ...(state ?? {}), tools }))
     }
@@ -141,6 +153,14 @@ export class XpertMCPManageComponent {
     compute: () => this.toolset()?.options?.disableToolDefault,
     update: (disableToolDefault) => {
       this.toolset.update((state) => ({ ...(state ?? {}), options: { ...(state?.options ?? {}), disableToolDefault } }))
+    }
+  })
+
+  readonly toolPositions = linkedModel({
+    initialValue: null,
+    compute: () => this.toolset()?.options?.toolPositions,
+    update: (value) => {
+      this.toolset.update((state) => ({ ...(state ?? {}), options: { ...(state?.options ?? {}), toolPositions: value } }))
     }
   })
 
@@ -161,7 +181,7 @@ export class XpertMCPManageComponent {
 
   readonly tool = linkedModel({
     initialValue: null,
-    compute: () => this.toolset()?.tools?.find((_) => _.id === this.selectedTool()),
+    compute: () => this.selectedTool() ? this.toolset()?.tools?.find((_) => _.id === this.selectedTool()) : null,
     update: (tool) => {
       this.toolset.update((state) => {
         const tools = [...(state.tools ?? [])]
@@ -173,7 +193,7 @@ export class XpertMCPManageComponent {
   })
 
   // Status
-  readonly canSave = computed(() => this.tools()?.length)
+  readonly canSave = computed(() => this.name() && this.tools()?.length)
   readonly saved = signal(false)
 
   constructor() {
@@ -277,6 +297,7 @@ export class XpertMCPManageComponent {
       next: () => {
         this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated Successfully!' })
         this.#loading.set(false)
+        this.dirty.set(false)
         this.toolsDirty.set(false)
         this.saved.set(true)
       },
@@ -288,13 +309,26 @@ export class XpertMCPManageComponent {
   }
 
   createToolset() {
-    return this.toolsetService.create({ ...this.toolset(), workspaceId: this.workspaceId() })
+    return this.toolsetService.create({ 
+      ...this.toolset(), 
+      workspaceId: this.workspaceId(),
+      category: XpertToolsetCategoryEnum.MCP,
+      type: this.mcpServer()?.type,
+    })
   }
 
   saveToolset() {
     let value: Partial<IXpertToolset> = this.toolset()
     if (this.toolsDirty()) {
       value.tools = this.toolset().tools.filter((_) => !_.deletedAt)
+      const toolPositions = {}
+      value.tools.forEach((_, index) => {
+        toolPositions[_.name] = index
+      })
+      value.options = {
+        ...(value.options ?? {}),
+        toolPositions
+      }
     } else {
       value = omit(value, 'tools')
     }
