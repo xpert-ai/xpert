@@ -6,11 +6,19 @@ import { ChangeDetectionStrategy, Component, computed, inject, model, signal } f
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
+import {
+  AiModelTypeEnum,
+  convertToUrlPath,
+  getErrorMessage,
+  ICopilotModel,
+  injectToastr,
+  TAvatar,
+  XpertService
+} from '@cloud/app/@core'
+import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { nonBlank } from '@metad/copilot'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { AiModelTypeEnum, convertToUrlPath, ICopilotModel, injectToastr, TAvatar, XpertService } from 'apps/cloud/src/app/@core'
-import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
-import { debounceTime, filter, switchMap, tap } from 'rxjs/operators'
+import { debounceTime, filter, map, switchMap } from 'rxjs/operators'
 import { CopilotModelSelectComponent } from '../../copilot'
 
 @Component({
@@ -46,15 +54,14 @@ export class XpertBasicFormComponent {
   readonly description = model<string>()
   readonly copilotModel = model<ICopilotModel>()
 
-  readonly invalid = computed(() => this.checking() || this.error())
+  readonly invalid = computed(() => this.checking() || this.error() || !this.copilotModel()?.copilotId)
   readonly checking = signal(false)
   readonly error = signal<string>('')
 
   private nameSub = toObservable(this.name)
     .pipe(
-      tap((name) => {
+      map((name) => {
         this.error.set(null)
-        this.checking.set(true)
         const slug = convertToUrlPath(name || '')
         if (slug.length < 5) {
           this.error.set(this.#translate.instant('PAC.Xpert.TooShort', { Default: 'Too short' }))
@@ -69,15 +76,26 @@ export class XpertBasicFormComponent {
           )
           return null
         }
+
+        return name
       }),
       filter(nonBlank),
       debounceTime(500),
-      switchMap((name) => this.xpertService.validateName(name))
+      switchMap((name) => {
+        this.checking.set(true)
+        return this.xpertService.validateName(name)
+      })
     )
-    .subscribe((valid) => {
-      if (!valid) {
-        this.error.set(this.#translate.instant('PAC.Xpert.NameNotAvailable', { Default: 'Name not available' }))
+    .subscribe({
+      next: (valid) => {
+        this.checking.set(false)
+        if (!valid) {
+          this.error.set(this.#translate.instant('PAC.Xpert.IDNotAvailable', { Default: 'ID not available' }))
+        }
+      },
+      error: (err) => {
+        this.checking.set(false)
+        this.#toastr.error(getErrorMessage(err))
       }
-      this.checking.set(false)
     })
 }

@@ -28,3 +28,20 @@ export const ListHeightStaggerAnimation = trigger('listHeightStagger', [
     ], { optional: true })
   ])
 ])
+
+export const ListSlideStaggerAnimation = trigger('listSlideStagger', [
+  transition('* <=> *', [
+    query(':enter', [
+      style({ transform: 'translateX(-20px)', opacity: 0.5 }),
+      stagger('50ms', [
+        animate('100ms ease-out', style({ transform: 'translateX(0)', opacity: 1 }))
+      ])
+    ], { optional: true }),
+
+    query(':leave', [
+      stagger('50ms', [
+        animate('300ms ease-in', style({ transform: 'translateX(-20px)', opacity: 0 }))
+      ])
+    ], { optional: true })
+  ])
+])

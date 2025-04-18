@@ -1,9 +1,10 @@
 import { ChangeDetectorRef, Component, inject } from '@angular/core'
-import { AbstractControl, FormControl, FormGroup, ValidationErrors, Validators } from '@angular/forms'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { FormControl, FormGroup, Validators } from '@angular/forms'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { Router } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
-import { delay, tap } from 'rxjs'
+import { delay, map, tap } from 'rxjs'
 import { PAC_AUTH_OPTIONS } from '../auth.options'
 import { getDeepFromObject } from '../helpers'
 import { PacAuthResult, PacAuthService, PasswordStrengthEnum, matchValidator, passwordStrength } from '../services'
@@ -26,12 +27,12 @@ export class ResetPasswordComponent {
     {
       password: new FormControl<string | null>(null, [
         Validators.required,
-        Validators.minLength(8),
-        (control: AbstractControl): ValidationErrors | null => {
-          const value: string = control.value || ''
-          const status = passwordStrength(value).value
-          return status === PasswordStrengthEnum.Strong ? null : { strength: status }
-        }
+        Validators.minLength(8)
+        // (control: AbstractControl): ValidationErrors | null => {
+        //   const value: string = control.value || ''
+        //   const status = passwordStrength(value).value
+        //   return status === PasswordStrengthEnum.Weak ? null : { strength: status }
+        // }
       ]),
       confirmPassword: new FormControl<string>(null)
     },
@@ -65,13 +66,22 @@ export class ResetPasswordComponent {
     return this.form.get('password')
   }
 
-  get strength() {
-    return this.passwordControl.getError('strength') ?? PasswordStrengthEnum.Strong
-  }
+  // get strength() {
+  //   return this.passwordControl.getError('strength') ?? PasswordStrengthEnum.Strong
+  // }
 
   get mismatch() {
     return this.form.hasError('mismatch') && this.form.get('confirmPassword').dirty
   }
+
+  readonly strength = toSignal(
+    this.passwordControl.valueChanges.pipe(
+      map((password) => {
+        const value: string = password || ''
+        return passwordStrength(value).value
+      })
+    )
+  )
 
   resetPass() {
     this.submitted = true

@@ -341,7 +341,11 @@
     }
     <div role="tabpanel" class="view-tab hidden"
       [class.active]="view2.isSelected()">
-      <mcp-config-tools class="overflow-auto" [(ngModel)]="tools" [toolset]="_toolset()"/>
+      <mcp-config-tools class="overflow-auto" 
+        [(ngModel)]="tools" 
+        [toolset]="_toolset()"
+        [disableToolDefault]="toolset()?.options?.disableToolDefault"
+      />
     </div>
   </div>
 </div>

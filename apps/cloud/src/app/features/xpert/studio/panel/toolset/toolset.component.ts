@@ -11,6 +11,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
   injectToastr,
+  isEnableTool,
   IXpertToolset,
   TVariableAssigner,
   TXpertTeamNode,
@@ -95,8 +96,9 @@ export class XpertStudioPanelToolsetComponent {
   })
 
   readonly tools = computed(() => {
+    const toolset = this.toolsetDetail()
     const positions = this.positions()
-    const tools = this.toolsetDetail()?.tools?.filter((_) => !_.disabled)
+    const tools = this.toolsetDetail()?.tools?.filter((_) => isEnableTool(_, toolset))
     return positions && tools
       ? tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
       : tools
