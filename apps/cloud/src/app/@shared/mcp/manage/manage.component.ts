@@ -181,7 +181,7 @@ export class XpertMCPManageComponent {
 
   readonly tool = linkedModel({
     initialValue: null,
-    compute: () => this.toolset()?.tools?.find((_) => _.id === this.selectedTool()),
+    compute: () => this.selectedTool() ? this.toolset()?.tools?.find((_) => _.id === this.selectedTool()) : null,
     update: (tool) => {
       this.toolset.update((state) => {
         const tools = [...(state.tools ?? [])]
