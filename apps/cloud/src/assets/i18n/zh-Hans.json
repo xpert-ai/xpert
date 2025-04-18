@@ -2522,6 +2522,7 @@
       "TooShort": "太短",
       "NameContainsNonAlpha": "名称包含非（字母 | - | 空格）的字符",
       "NameNotAvailable": "名称不可用",
+      "IDNotAvailable": "ID不可用",
       "TokenUsage": "费用消耗",
       "TokenUsageTooltip": "反应每日此专家请求 AI 模型的 Token 使用量，用于成本控制",
       "ConsumedTokens": "已消耗 Token",
