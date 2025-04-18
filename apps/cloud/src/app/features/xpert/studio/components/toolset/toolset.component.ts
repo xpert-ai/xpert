@@ -49,7 +49,7 @@ export class XpertStudioNodeToolsetComponent {
 
   readonly availableTools = computed(() => {
     const positions = this.positions()
-    const toolset = this.toolset()
+    const toolset = this.toolsetDetail()
     const tools = this.toolsetDetail()?.tools.filter((_) => isEnableTool(_, toolset))
     return positions && tools
       ? tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
@@ -85,9 +85,9 @@ export class XpertStudioNodeToolsetComponent {
   }
 
   constructor() {
-    // effect(() => {
-      // console.log(this.node())
-    // })
+    effect(() => {
+      // console.log(this.toolset())
+    })
   }
 
   protected emitSelectionChangeEvent(event: MouseEvent): void {
