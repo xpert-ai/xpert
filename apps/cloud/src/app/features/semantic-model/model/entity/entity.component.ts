@@ -145,6 +145,10 @@ export class ModelEntityComponent implements OnInit {
     this.settingsService.setEditable(opened)
   }
 
+  toggleDesignPanel() {
+    this.detailsOpen.update((state) => !state)
+  }
+
   toggleCubeDesigner() {
     if (this.detailsOpen() && !this.entityService.selectedProperty()) {
       this.detailsOpen.set(false)

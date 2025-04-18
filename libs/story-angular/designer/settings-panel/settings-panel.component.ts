@@ -3,24 +3,22 @@ import { ComponentPortal } from '@angular/cdk/portal'
 import {
   ChangeDetectorRef,
   Component,
-  EventEmitter,
   Injector,
   Input,
   OnChanges,
-  Output,
   SimpleChanges,
   ViewChild,
   ViewContainerRef,
   effect,
   inject,
+  model
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { MatTabGroup } from '@angular/material/tabs'
 import { nonNullable } from '@metad/core'
 import { debounceTime, filter, map } from 'rxjs/operators'
-import { NxSettingsPanelService } from './settings-panel.service'
 import { STORY_DESIGNER_FORM, STORY_DESIGNER_LIVE_MODE, STORY_DESIGNER_SCHEMA } from '../types'
-
+import { NxSettingsPanelService } from './settings-panel.service'
 
 @Component({
   selector: 'ngm-settings-panel',
@@ -36,6 +34,8 @@ export class NgmSettingsPanelComponent implements OnChanges {
   private _viewContainerRef = inject(ViewContainerRef)
   protected injector = inject(Injector)
 
+  readonly opened = model<boolean>(false)
+
   @Input()
   get liveMode(): boolean {
     return this._liveMode
@@ -46,10 +46,6 @@ export class NgmSettingsPanelComponent implements OnChanges {
   }
   private _liveMode = false
 
-  @Input() opened: boolean
-
-  @Output() openedChange = new EventEmitter()
-
   @ViewChild('tabGroup') tabGroup: MatTabGroup
 
   settingsPortal: ComponentPortal<unknown>
@@ -57,7 +53,7 @@ export class NgmSettingsPanelComponent implements OnChanges {
   settingsPortals: Array<{ icon?: string; label: string; portal: ComponentPortal<unknown> }>
 
   /**
-   * 第二辅助面板
+   * Second auxiliary panel
    */
   drawerOpened = false
   drawerPortal: ComponentPortal<unknown>
@@ -89,16 +85,18 @@ export class NgmSettingsPanelComponent implements OnChanges {
                   ],
                   parent: this.injector
                 })
-  
+
                 const injector2 = Injector.create({
                   providers: [
                     [
-                      ...(schema ? [
-                        {
-                          provide: STORY_DESIGNER_SCHEMA,
-                          useClass: schema
-                        }
-                      ] : []),
+                      ...(schema
+                        ? [
+                            {
+                              provide: STORY_DESIGNER_SCHEMA,
+                              useClass: schema
+                            }
+                          ]
+                        : []),
                       {
                         provide: STORY_DESIGNER_LIVE_MODE,
                         useValue: settingsComponent.liveMode ?? this.liveMode
@@ -107,7 +105,7 @@ export class NgmSettingsPanelComponent implements OnChanges {
                   ],
                   parent: injector
                 })
-  
+
                 return {
                   icon,
                   label,
@@ -127,16 +125,18 @@ export class NgmSettingsPanelComponent implements OnChanges {
               ],
               parent: this.injector
             })
-  
+
             const injector2 = Injector.create({
               providers: [
                 [
-                  ...(settingsComponent.schema ? [
-                    {
-                      provide: STORY_DESIGNER_SCHEMA,
-                      useClass: settingsComponent.schema
-                    }
-                  ] : []),
+                  ...(settingsComponent.schema
+                    ? [
+                        {
+                          provide: STORY_DESIGNER_SCHEMA,
+                          useClass: settingsComponent.schema
+                        }
+                      ]
+                    : []),
                   {
                     provide: STORY_DESIGNER_LIVE_MODE,
                     useValue: settingsComponent.liveMode ?? this.liveMode
@@ -145,7 +145,7 @@ export class NgmSettingsPanelComponent implements OnChanges {
               ],
               parent: injector
             })
-  
+
             settingsComponent.settingsPortals = new ComponentPortal(
               settingsComponent.container,
               this._viewContainerRef,
@@ -184,17 +184,18 @@ export class NgmSettingsPanelComponent implements OnChanges {
     if (this.drawerOpened) {
       this.closeDrawer()
     } else {
-      this.openedChange.emit(false)
+      this.opened.set(false)
     }
     this._cdr.detectChanges()
   })
 
   constructor() {
-    effect(() => {
-      const editable = this.editable()
-      this.opened = editable
-      this.openedChange.emit(editable)
-    })
+    effect(
+      () => {
+        this.opened.set(this.editable())
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   ngOnChanges({ opened }: SimpleChanges): void {
