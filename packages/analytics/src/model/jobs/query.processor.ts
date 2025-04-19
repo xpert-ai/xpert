@@ -39,7 +39,7 @@ export class ModelQueryProcessor {
 			})
 		)
 
-		runWithRequestContext({ user: user, headers: { ['organization-id']: organizationId } }, async () => {
+		runWithRequestContext({ user: user, headers: { ['organization-id']: organizationId, language: acceptLanguage } }, async () => {
 			let error = null
 			let status = QueryStatusEnum.SUCCESS
 			let data = null

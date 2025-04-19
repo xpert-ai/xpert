@@ -1,0 +1,5 @@
+{
+    "Error": {
+        "NoPropertyFoundFor": "在数据集‘{{cube}}’中未找到‘{{path}}’相关的属性"
+    }
+}

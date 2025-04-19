@@ -11,21 +11,15 @@ import { AbstractAgent, AuthInfoType } from '../auth'
 import { getErrorMessage, uuid } from '../types'
 import { AgentService } from './agent.service'
 import { PAC_SERVER_AGENT_DEFAULT_OPTIONS, PacServerAgentDefaultOptions } from './server-agent.service'
+import { I18nService } from '@cloud/app/@shared/i18n'
 
-// export type ServerSocketEventType = {
-//   id: UUID
-//   organizationId: string
-//   dataSourceId: string
-//   modelId: string
-//   body: string
-//   forceRefresh: boolean
-// }
 
 /**
  * Responsible for proxying the olap data requests of page components to the server through the websocket interface
  */
 @Injectable()
 export class ServerSocketAgent extends AbstractAgent implements Agent {
+  readonly #i18n = inject(I18nService)
   readonly #agentService = inject(AgentService)
   readonly #organizationId = injectOrganizationId()
 
@@ -211,7 +205,8 @@ export class ServerSocketAgent extends AbstractAgent implements Agent {
             modelId,
             body,
             forceRefresh: options.forceRefresh,
-            isDraft: semanticModel.isDraft
+            isDraft: semanticModel.isDraft,
+            acceptLanguage: this.#i18n.currentLanguage
           }
           this.queuePool.update((state) => {
             return {

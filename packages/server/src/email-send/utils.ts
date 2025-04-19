@@ -1,4 +1,4 @@
-import * as nodemailer from 'nodemailer';
+import nodemailer from 'nodemailer';
 import { environment } from "@metad/server-config";
 import { ISMTPConfig } from "@metad/server-common";
 import { IVerifySMTPTransport } from "@metad/contracts";

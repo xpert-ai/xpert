@@ -11,7 +11,7 @@ import { MulterModuleOptions } from '@nestjs/platform-express';
 import { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
 import { MULTER_MODULE_OPTIONS } from '@nestjs/platform-express/multer/files.constants';
 import { transformException } from '@nestjs/platform-express/multer/multer/multer.utils';
-import * as multer from 'multer';
+import multer from 'multer';
 import { Observable } from 'rxjs';
   
 type MulterInstance = any;

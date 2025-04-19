@@ -14,6 +14,7 @@
     "url": "git+https://github.com/meta-d/ocap.git"
   },
   "peerDependencies": {
+    "i18next": "^23.14.0",
     "rxjs": "~7.8.0"
   },
   "scripts": {

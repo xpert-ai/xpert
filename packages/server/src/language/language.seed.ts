@@ -1,8 +1,8 @@
 import { Connection } from 'typeorm';
 import { ILanguage, LanguagesEnum } from '@metad/contracts';
-import * as faker from 'faker';
+import faker from 'faker';
 import { Language } from './language.entity';
-import  allLanguages from './all-languages';
+import allLanguages from './all-languages';
 
 export const createLanguages = async (
 	connection: Connection

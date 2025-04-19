@@ -21,6 +21,7 @@
     "date-fns": "^3.0.4",
     "echarts": "^5.4.2",
     "echarts-gl": "^2.0.9",
+    "i18next": "^23.14.0",
     "lodash-es": "^4.17.21",
     "rxjs": "~7.8.0",
     "topojson-client": "^3.1.0"

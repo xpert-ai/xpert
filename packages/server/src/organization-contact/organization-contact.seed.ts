@@ -1,7 +1,7 @@
 import { Connection } from 'typeorm';
-import * as faker from 'faker';
+import faker from 'faker';
 import { ContactOrganizationInviteStatus, ContactType, IContact, IEmployee, IOrganization, IOrganizationContact, ITag, ITenant, OrganizationContactBudgetTypeEnum } from '@metad/contracts';
-import * as _ from 'underscore';
+import _ from 'underscore';
 import { getDummyImage } from '../core';
 import { Contact, Organization, OrganizationContact, Tag } from './../core/entities/internal';
 

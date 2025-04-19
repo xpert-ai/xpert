@@ -1,5 +1,5 @@
 import { DeepPartial, Repository } from 'typeorm';
-import * as _ from 'underscore';
+import _ from 'underscore';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

@@ -1,0 +1,6 @@
+{
+    "Error": {
+        "NoCustomSQLProvided": "No custom SQL provided",
+        "NoMetadata4Entity": "Failed to retrieve runtime metadata for entity '{{entity}}'"
+    }
+}

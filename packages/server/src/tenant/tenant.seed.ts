@@ -1,7 +1,7 @@
 import { DEFAULT_TENANT, ITenant } from '@metad/contracts';
 import { Connection } from 'typeorm';
 import { Tenant } from './tenant.entity';
-import * as faker from 'faker';
+import faker from 'faker';
 
 export const getDefaultTenant = async (
 	connection: Connection,

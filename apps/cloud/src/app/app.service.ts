@@ -11,6 +11,7 @@ import { includes, some } from 'lodash-es'
 import { combineLatest } from 'rxjs'
 import { filter, map, shareReplay, startWith } from 'rxjs/operators'
 import { LanguagesEnum, mapDateLocale, MenuCatalog, navigatorLanguage, Store } from './@core'
+import { I18nService } from './@shared/i18n'
 
 export interface PACAppState {
   insight: boolean
@@ -29,6 +30,7 @@ export interface PACAppState {
 })
 export class AppService extends ComponentStore<PACAppState> {
   readonly translate = inject(TranslateService)
+  readonly #i18n = inject(I18nService)
   readonly #document = inject(DOCUMENT)
 
   readonly tenantSettings = toSignal(this.store.tenantSettings$)
@@ -104,7 +106,7 @@ export class AppService extends ComponentStore<PACAppState> {
   readonly inWorkspace = signal(false)
 
   // Obserables
-  readonly preferredLanguage$ = this.store.preferredLanguage$.pipe(map((lang) => lang ?? this.translate.currentLang))
+  readonly preferredLanguage$ = this.#i18n.preferredLanguage$
 
   constructor(
     private store: Store,

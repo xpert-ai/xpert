@@ -1,9 +1,9 @@
 import { FileStorageOption, FileStorageProviderEnum, UploadedFile } from '@metad/contracts';
-import * as multerS3 from 'multer-s3';
+import multerS3 from 'multer-s3';
 import { basename, join } from 'path';
-import * as moment from 'moment';
+import moment from 'moment';
 import { environment } from '@metad/server-config';
-import * as AWS from 'aws-sdk';
+import AWS from 'aws-sdk';
 import { StorageEngine } from 'multer';
 import { Provider } from './provider';
 import { RequestContext } from '../../context';

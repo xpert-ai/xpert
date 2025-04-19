@@ -1,0 +1,6 @@
+{
+    "Error": {
+        "NoCustomSQLProvided": "未提供自定义SQL",
+        "NoMetadata4Entity": "未能获取到实体‘{{entity}}’的运行时元数据"
+    }
+}

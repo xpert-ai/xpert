@@ -18,6 +18,7 @@ import {
   Semantics,
   serializeArgs,
 } from '@metad/ocap-core'
+import { t } from 'i18next'
 import { BehaviorSubject, EMPTY, from, Observable, of } from 'rxjs'
 import { catchError, map } from 'rxjs/operators'
 import { XmlaDataSource, XMLA_TEXT_FIELD_SUFFIX } from './ds-xmla.service'
@@ -46,6 +47,8 @@ import { IntrinsicMemberProperties } from './reference'
 import { escapeBWSlash, LANGUAGE_CODES_SAPBW, MDXDialect, wrapHierarchyValue } from './types'
 import { getErrorMessage, getExceptionMessage, simplifyErrorMessage } from './utils'
 import { fetchDataFromMultidimensionalTuple } from './xmla/multidimensional'
+
+// throw new Error(t('Error.NoPropertyFoundFor', {ns: 'xmla',}))
 
 export class XmlaEntityService<T> extends AbstractEntityService<T> implements EntityService<T> {
 
@@ -220,7 +223,7 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
 
       return of({
         status: 'ERROR',
-        error: err as unknown as string
+        error: getErrorMessage(err)
       })
     }
   }

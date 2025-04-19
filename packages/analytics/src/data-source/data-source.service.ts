@@ -1,5 +1,5 @@
 import { AdapterBaseOptions, createQueryRunnerByType, DBQueryRunner } from '@metad/adapter'
-import { DataSourceProtocolEnum, IDataSource, IDSSchema, IDSTable } from '@metad/contracts'
+import { DataSourceProtocolEnum, IDataSource, IDSSchema } from '@metad/contracts'
 import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
@@ -65,13 +65,17 @@ export class DataSourceService extends TenantOrganizationAwareCrudService<DataSo
 		}
 	}
 
-	async getSchema(id: string, catalog?: string, table?: string, statement?: string): Promise<IDSTable[]> {
+	async getSchema(id: string, catalog?: string, table?: string, statement?: string): Promise<IDSSchema[]> {
 		const dataSource = await this.prepareDataSource(id)
 		const runner = createQueryRunnerByType(dataSource.type.type, dataSource.options)
 
 		try {
 			if (statement) {
-				return [await runner.describe(catalog, statement)]
+				const tableSchema = await runner.describe(catalog, statement)
+				return [{
+					name: catalog,
+					tables: [tableSchema]
+				}]
 			}
 			return await runner.getSchema(catalog, table)
 		} finally {

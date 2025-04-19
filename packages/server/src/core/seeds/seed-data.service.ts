@@ -1,5 +1,5 @@
 import { rimraf } from 'rimraf';
-import * as path from 'path';
+import path from 'path';
 import { Injectable } from '@nestjs/common';
 import {
 	Connection,
@@ -8,8 +8,8 @@ import {
 	getConnection,
 	getManager
 } from 'typeorm';
-import * as chalk from 'chalk';
-import * as moment from 'moment';
+import chalk from 'chalk';
+import moment from 'moment';
 import { IPluginConfig, SEEDER_DB_CONNECTION } from '@metad/server-common';
 import { environment as env, getConfig, ConfigService } from '@metad/server-config';
 import {

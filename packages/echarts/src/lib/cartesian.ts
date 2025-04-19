@@ -15,6 +15,7 @@ import {
   QueryReturn
 } from '@metad/ocap-core'
 import { LinearGradient } from 'echarts/lib/util/graphic'
+import {t} from 'i18next'
 import { includes, indexOf, sumBy } from 'lodash-es'
 import { axisOrient, getMeasureAxis } from './components/axis'
 import { formatMeasureNumber } from './common'
@@ -85,7 +86,7 @@ export function cartesianCoordinate(context: EChartsContext, data: Array<Record<
     category = getChartSeries(chartAnnotation)
   }
   if (!category) {
-    throw new Error(`'Category' dimension not found`)
+    throw new Error(t('Error.CategoryDimensionNotProvided', {ns: 'echarts'}))
   }
   const categoryMemberCaption = getDimensionMemberCaption(category, entityType)
 

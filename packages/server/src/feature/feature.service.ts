@@ -1,7 +1,7 @@
 import { IFeature, IPagination } from '@metad/contracts'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import * as chalk from 'chalk'
+import chalk from 'chalk'
 import { IsNull, Repository } from 'typeorm'
 import { CrudService } from '../core/crud/crud.service'
 import { DEFAULT_FEATURES } from './default-features'

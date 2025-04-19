@@ -1,3 +1,8 @@
+/**
+ * Here is the intermediate type definition converted from the actual schema type to the xmla file format.
+ * But the type definition here can also be referenced by the actual schema definition.
+ */
+
 export interface Schema {
   name: string
   description?: string

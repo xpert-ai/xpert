@@ -16,7 +16,17 @@ export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaS
 
   public readonly cube$ = this.select((state) => state.cube)
   public readonly cubeName$ = this.cube$.pipe(map((cube) => cube?.name))
-  public readonly factName$ = this.cube$.pipe(map((cube) => cube?.tables?.[0]?.name))
+  // 
+  public readonly factName$ = this.cube$.pipe(map((cube) => {
+      if (cube.fact?.type === 'table') {
+        return cube.fact.table?.name
+      } else if (cube.fact?.type === 'view') {
+        return cube.fact.view?.alias
+      } else {
+        return cube?.tables?.[0]?.name
+      }
+    })
+  )
 
   public readonly measures$ = this.cube$.pipe(
     map((cube) => {
@@ -52,7 +62,7 @@ export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaS
   )
 
   /**
-   * 原始 Fact 数据表字段
+   * Original Fact table fields
    */
   public readonly factFields$ = this.factName$.pipe(
     filter(nonBlank),

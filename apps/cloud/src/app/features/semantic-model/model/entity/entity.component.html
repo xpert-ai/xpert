@@ -10,11 +10,12 @@
     <div class="flex items-center px-4">
       @if (cube()) {
         <span class="text-lg">{{ cube().caption || cube().name}}</span>
-        <button mat-icon-button [matTooltip]="'PAC.MODEL.OpenCubeDesigner' | translate: {Default: 'Open cube designer'}"
+
+        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small ml-2"
+          [matTooltip]="'PAC.MODEL.OpenCubeDesigner' | translate: {Default: 'Open cube designer'}"
           matTooltipPosition="above"
-          (click)="toggleCubeDesigner()"
-        >
-          <mat-icon fontSet="material-icons-outlined">settings</mat-icon>
+          (click)="toggleCubeDesigner()">
+          <i class="ri-equalizer-2-line"></i>
         </button>
       }
     </div>

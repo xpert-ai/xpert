@@ -1,5 +1,5 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
-import * as cls from 'cls-hooked';
+import cls from 'cls-hooked';
 
 import { RequestContext } from './request-context';
 

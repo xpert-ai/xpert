@@ -1,5 +1,5 @@
 import yargs from 'yargs';
-import * as chalk from 'chalk';
+import chalk from 'chalk';
 
 import { NestFactory } from '@nestjs/core';
 import { IPluginConfig } from '@metad/server-common';

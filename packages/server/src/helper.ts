@@ -1,4 +1,4 @@
-import * as path from 'path';
+import path from 'path';
 import { ConfigService, environment } from '@metad/server-config';
 import { ServeStaticModuleOptions } from '@nestjs/serve-static';
 

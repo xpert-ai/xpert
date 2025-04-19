@@ -1,10 +1,10 @@
-// import * as csurf from 'csurf';
+// import csurf from 'csurf';
 import { INestApplication, Type } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 // import { SentryService } from '@ntegral/nestjs-sentry';
-import * as expressSession from 'express-session';
-import * as helmet from 'helmet';
+import expressSession from 'express-session';
+import helmet from 'helmet';
 import chalk from 'chalk';
 import { urlencoded, json } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -142,3 +142,5 @@ export async function registerAllEntities(
 
 export * from './cache'
 export * from './bull'
+export * from './i18n'
+export * from './i18next'

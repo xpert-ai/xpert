@@ -1,22 +1,30 @@
 import { environment as env } from '@metad/server-config'
-import { AppService, AuthGuard, ServerAppModule } from '@metad/server-core'
+import { AppService, AuthGuard, initI18next, ServerAppModule } from '@metad/server-core'
 import { Logger, LogLevel } from '@nestjs/common'
 import { NestFactory, Reflector } from '@nestjs/core'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
-import * as cookieParser from 'cookie-parser'
+import cookieParser from 'cookie-parser'
 import { json, text, urlencoded } from 'express'
-import * as expressSession from 'express-session'
+import expressSession from 'express-session'
+import * as path from 'path'
+import i18next from 'i18next'
+import * as middleware from 'i18next-http-middleware'
 import { AnalyticsModule } from '../app.module'
 import { AnalyticsService } from '../app.service'
 import { BootstrapModule } from './bootstrap.module'
 
+const baseDir = path.join(__dirname, '../../../')
 const LOGGER_LEVELS = ['error', 'warn', 'log', 'debug', 'verbose'] as LogLevel[]
 const LoggerIndex = LOGGER_LEVELS.findIndex((value) => value === (process.env.LOG_LEVEL || 'warn'))
 
 export async function bootstrap(options: {title: string; version: string}) {
+	await initI18next(baseDir)
+	
 	const app = await NestFactory.create(BootstrapModule, {
 		logger: LOGGER_LEVELS.slice(0, LoggerIndex + 1)
 	})
+
+	app.use(middleware.handle(i18next)); // attach i18next middleware
 
 	// This will lockdown all routes and make them accessible by authenticated users only.
 	const reflector = app.get(Reflector)

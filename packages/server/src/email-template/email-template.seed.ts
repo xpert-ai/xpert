@@ -1,8 +1,8 @@
-import * as fs from 'fs';
+import fs from 'fs';
 import { Connection } from 'typeorm';
 import { EmailTemplate } from './email-template.entity';
-import * as mjml2html from 'mjml';
-import * as path from 'path';
+import mjml2html from 'mjml';
+import path from 'path';
 import { ITenant } from '@metad/contracts';
 
 /**

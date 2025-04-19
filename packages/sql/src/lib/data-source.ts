@@ -20,6 +20,7 @@ import {
   QueryReturn,
   uuid,
 } from '@metad/ocap-core'
+import { t } from 'i18next'
 import { catchError, combineLatest, distinctUntilChanged, filter, from, map, Observable, shareReplay, switchMap } from 'rxjs'
 import { compileCubeSchema } from './cube'
 import { compileDimensionSchema, DimensionMembers } from './dimension'
@@ -155,11 +156,6 @@ export class SQLDataSource extends AbstractDataSource<SQLDataSourceOptions> {
         url: 'schema',
         catalog
       })
-      // 给 Client 获取 Exception 的机会
-      // .catch((error) => {
-      //   this.agent.error(error)
-      //   return []
-      // })
   }
 
   async fetchTableSchema(modelName: string, catalog: string, table: string, statement?: string): Promise<SQLSchema[]> {
@@ -173,7 +169,7 @@ export class SQLDataSource extends AbstractDataSource<SQLDataSourceOptions> {
   }
 
   /**
-   * 从数据源获取实体的类型
+   * Get the entity type from the data source
    *
    * @param entity
    * @returns
@@ -183,7 +179,7 @@ export class SQLDataSource extends AbstractDataSource<SQLDataSourceOptions> {
       .pipe(
         map((schema) => {
           // Find schema defination for the entity
-          const cube = schema?.cubes?.find((item) => item.name === entity)
+          let cube = schema?.cubes?.find((item) => item.name === entity)
           if (cube) {
             const dimensions = cube.dimensionUsages?.map((usage) => {
               const dimension = schema.dimensions.find((item) => item.name === usage.source)
@@ -207,6 +203,16 @@ export class SQLDataSource extends AbstractDataSource<SQLDataSourceOptions> {
               dimension
             }
           }
+
+          // View
+          cube = schema?.cubes?.find((item) => item.fact?.type === 'view' && item.fact.view?.alias === entity)
+          if (cube) {
+            return {
+              type: 'VIEW',
+              cube
+            }
+          }
+
           return {}
         }),
         distinctUntilChanged(isEqual)
@@ -233,29 +239,22 @@ export class SQLDataSource extends AbstractDataSource<SQLDataSourceOptions> {
             }
 
             // Entity is cube, compile cube defination to EntityType
-            if (cube) {
+            if (type === 'CUBE' && cube) {
               return compileCubeSchema(entity, cube, dimensions, this.options.dialect)
             }
 
             // Other Entity is raw table
             let schemas: SQLSchema[]
-            if (entity && !cube) {
+            if (type === 'VIEW') {
+              schemas = await this.fetchTableSchema(this.options.name, this.options.catalog || '', entity, cube.fact?.view?.sql?.content)
+            } else if (!cube) {
               schemas = await this.fetchTableSchema(this.options.name, this.options.catalog || '', entity)
             }
-            // else if (cube) {
-            //   // 如果 entityType 为 null, 则 entitySet 为运行时指定的表名, 直接取 entitySet 相应的运行时元数据
-            //   const statement =
-            //     cube.expression || (cube.tables?.length ? serializeCubeFact(cube, this.options.dialect) : null)
-            //   if (!statement) {
-            //     return null
-            //   }
-            //   schemas = await this.fetchTableSchema(this.options.name, this.options.catalog || '', null, statement)
-            // }
-
+            
             const table = schemas[0]?.tables?.[0]
 
             if (!table) {
-              throw new Error(`未能获取到实体 '${entity}' 的运行时元数据`)
+              throw new Error(t('Error.NoMetadata4Entity', {ns: 'sql', entity}))
             }
 
             // this.updateCube(mapTableToCube(entity, table))

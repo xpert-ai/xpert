@@ -210,8 +210,8 @@ export class SemanticModelService {
 
   /**
    * Original data source:
-   * * MDX Model 中用于直接计算数据库信息
-   * * SQL Model 中同 dataSource 相等
+   * - Used in MDX Model to directly calculate database information
+   * - Equivalent to dataSource in SQL Model
    */
   readonly originalDataSource$ = new BehaviorSubject<DataSource>(null)
   public get originalDataSource() {
@@ -751,7 +751,8 @@ export class SemanticModelService {
 
   private _originalEntityTypes = new Map<string, Observable<EntityType>>()
   /**
-   * 获取原始表实体的类型定义 (针对如从 xmla 接口获取原始 Cube 信息的情况)
+   * Get the type definition of the original table entity 
+   * for example, when getting the original Cube information from the xmla interface
    *
    * @param entityName
    * @returns
@@ -773,7 +774,7 @@ export class SemanticModelService {
   }
 
   /**
-   * 获取原始表实体的字段列表
+   * Get the field list of the original table entity
    *
    * @param entityName
    * @returns
