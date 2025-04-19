@@ -1,14 +1,15 @@
 import { PromptTemplate } from '@langchain/core/prompts'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
-import { MCPServerType, TMCPSchema, TMCPServer } from '@metad/contracts'
+import { IXpertToolset, MCPServerType, TMCPSchema, TMCPServer } from '@metad/contracts'
 
-export async function createMCPClient(id: string, schema: TMCPSchema, envState: Record<string, unknown>) {
+export async function createMCPClient(toolset: Partial<IXpertToolset>, schema: TMCPSchema, envState: Record<string, unknown>) {
 	const mcpServers = {}
 	let server: TMCPServer = null
 	const servers = schema.servers ?? schema.mcpServers
 	// Connect to a remote server via SSE
-	for await (const name of Object.keys(servers)) {
-		server = servers[name]
+	for await (const serverName of Object.keys(servers)) {
+		server = servers[serverName]
+		const name = serverName || toolset.name
 		const transport = server.type?.toLowerCase()
 		if (transport === MCPServerType.SSE || (!transport && server.url)) {
 			let headers = server.headers

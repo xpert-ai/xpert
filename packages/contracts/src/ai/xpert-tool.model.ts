@@ -146,3 +146,30 @@ export type TXpertToolEntity = {
 }
 
 export const TOOL_NAME_REGEX = /^[a-zA-Z0-9_-]+$/;
+
+/**
+ * Tool is enabled?
+ * 
+ * @param tool 
+ * @param toolset 
+ * @returns 
+ */
+export function isEnableTool(tool: IXpertTool, toolset: IXpertToolset) {
+  let disabled = tool.disabled
+  if (disabled == null && tool.enabled != null) {
+    disabled = !tool.enabled
+  }
+  if (disabled == null) {
+    disabled = toolset.options?.disableToolDefault
+  }
+  return !disabled
+}
+
+export function getEnabledTools(toolset: IXpertToolset) {
+  if (!toolset) return null
+  const positions = toolset?.options?.toolPositions
+  const tools = toolset?.tools?.filter((_) => isEnableTool(_, toolset))
+  return positions && tools
+    ? tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
+    : tools
+}

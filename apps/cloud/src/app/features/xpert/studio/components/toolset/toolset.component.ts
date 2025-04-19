@@ -3,8 +3,8 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { TXpertTeamNode, XpertAgentExecutionStatusEnum, IXpertToolset, ToolTagEnum } from 'apps/cloud/src/app/@core'
-import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
+import { TXpertTeamNode, XpertAgentExecutionStatusEnum, IXpertToolset, ToolTagEnum, getEnabledTools } from '@cloud/app/@core'
+import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, of } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
@@ -42,19 +42,12 @@ export class XpertStudioNodeToolsetComponent {
 
   // Retrieve the latest information about the toolset
   readonly toolsetDetail = derivedAsync(() => {
-    return this.toolset() ? this.apiService.getToolset(this.toolset().id).pipe(catchError((err) => of(null))) : of(null)
+    return this.toolset() ? this.apiService.getToolset(this.toolset().id).toolset$.pipe(catchError((err) => of(null))) : of(null)
   })
 
   readonly status = computed<XpertStudioNodeStatus>(() => this.toolset() && !this.toolsetDetail() ? 'template' : null)
 
-  readonly availableTools = computed(() => {
-    const positions = this.positions()
-    const tools = this.toolsetDetail()?.tools.filter((_) => !_.disabled)
-
-    return positions && tools
-      ? tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
-      : tools
-  })
+  readonly availableTools = computed(() => getEnabledTools(this.toolsetDetail()))
   readonly xpert = this.xpertStudioComponent.xpert
   readonly agentConfig = computed(() => this.xpert()?.agentConfig)
 
@@ -85,9 +78,9 @@ export class XpertStudioNodeToolsetComponent {
   }
 
   constructor() {
-    // effect(() => {
-      // console.log(this.node())
-    // })
+    effect(() => {
+      // console.log(this.toolset())
+    })
   }
 
   protected emitSelectionChangeEvent(event: MouseEvent): void {

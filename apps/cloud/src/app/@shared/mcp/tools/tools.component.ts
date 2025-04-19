@@ -1,13 +1,14 @@
 import { Dialog } from '@angular/cdk/dialog'
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { Component, effect, inject, input } from '@angular/core'
+import { Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { IXpertTool, IXpertToolset } from 'apps/cloud/src/app/@core/types'
-import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { IXpertTool, IXpertToolset } from '@cloud/app/@core/types'
+import { XpertToolNameInputComponent } from '@cloud/app/@shared/xpert'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { MCPToolTestDialogComponent } from '../tool-test'
 
@@ -20,6 +21,7 @@ import { MCPToolTestDialogComponent } from '../tool-test'
     CommonModule,
     FormsModule,
     TranslateModule,
+    DragDropModule,
     MatSlideToggleModule,
     MatTooltipModule,
     NgmDensityDirective,
@@ -78,5 +80,14 @@ export class MCPToolsComponent {
     this.tools.update((tools) => {
       return tools.filter((_) => _.name !== tool.name)
     })
+  }
+
+  drop(event: CdkDragDrop<string[]>) {
+    if (event.previousContainer === event.container) {
+      this.tools.update((tools) => {
+        moveItemInArray(tools, event.previousIndex, event.currentIndex)
+        return [...tools]
+      })
+    }
   }
 }

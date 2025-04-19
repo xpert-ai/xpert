@@ -230,7 +230,7 @@ export class XpertWorkspaceHomeComponent {
       })
       .closed.subscribe({
         next: () => {
-          console.log(`=====`)
+          //
         }
       })
   }

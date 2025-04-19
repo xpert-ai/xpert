@@ -291,8 +291,9 @@ export class XpertController extends CrudController<Xpert> {
 	@HttpCode(HttpStatus.ACCEPTED)
 	@Delete(':id')
 	async delete(
+		@Param('id', UUIDValidationPipe) id: string,
 		@I18nLang() language: LanguagesEnum,
-		@Param('id', UUIDValidationPipe) id: string, ...options: any[]): Promise<Xpert | DeleteResult> {
+	): Promise<Xpert | DeleteResult> {
 		const xpert = await this.service.findOne(id)
 		const others = await this.service.findAll({
 			where: {
