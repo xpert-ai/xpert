@@ -25,6 +25,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatIconModule } from '@angular/material/icon'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatTabsModule } from '@angular/material/tabs'
+import { ModelCubeFactComponent } from './fact/fact.component'
 
 @Component({
   standalone: true,
@@ -45,7 +46,8 @@ import { MatTabsModule } from '@angular/material/tabs'
     MatTabsModule,
     NgmCommonModule,
     NxDesignerModule,
-    ModelCubeStructureComponent
+    ModelCubeStructureComponent,
+    ModelCubeFactComponent
   ],
   animations: [routeAnimations]
 })

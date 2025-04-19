@@ -1,0 +1,105 @@
+<div class="p-2">
+  <span class="text-lg font-semibold">{{ 'PAC.MODEL.ENTITY.SourceFields' | translate: {Default: "Source Fields"} }}</span>
+</div>
+
+<div class="flex items-center px-2 py-1" displayDensity="compact">
+  @if (isSQLSource()) {
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small ml-2"
+      [matTooltip]=" 'PAC.MODEL.ENTITY.OnekeyGenerateModel' | translate: {Default: 'One-key generate model by table fields'} "
+      matTooltipPosition="above"
+      [disabled]="visibleEmpty()"
+      (click)="generate()">
+      <i class="ri-brush-ai-line mr-1"></i>
+      <span>{{ 'PAC.MODEL.ENTITY.OnekeyGeneration' | translate: {Default: "One-key Generation"} }}</span>
+    </button>
+
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small ml-2"
+      [matTooltip]=" 'PAC.MODEL.ENTITY.CreateDimension' | translate: {Default: 'Create dimension'}"
+      matTooltipPosition="above"
+      [disabled]="visibleEmpty()"
+      (click)="createDimension()">
+      <i class="ri-hashtag mr-1"></i>
+      <span>{{ 'PAC.MODEL.ENTITY.CreateDimension' | translate: {Default: "Create an dimension"} }}</span>
+    </button>
+  }
+
+  @if (isXmla()) {
+    <button [disabled]="visibleEmpty()" mat-button displayDensity="compact" class="opacity-50 hover:opacity-100"
+      [matTooltip]=" 'PAC.MODEL.ENTITY.OnekeySyncModel' | translate: {Default: 'One-key sync model by source cube defination'} "
+      matTooltipPosition="above"
+      (click)="sync()"
+    >
+      <mat-icon>auto_fix_high</mat-icon>
+      <span>{{ 'PAC.MODEL.ENTITY.OnekeySync' | translate: {Default: "One-key Sync"} }}</span>
+    </button>
+  }
+
+  <mat-checkbox displayDensity="cosy" [indeterminate]="visibleIndeterminate()" [ngModel]="allVisible()"
+    (ngModelChange)="toggleVisibleAll($event)">
+    {{ 'PAC.MODEL.ENTITY.SelectAll' | translate: {Default: "Select All"} }}
+  </mat-checkbox>
+</div>
+
+<div class="px-2 pt-2 flex justify-between items-center">
+  <span class="leading-tight text-lg">{{ 'PAC.MENU.DIMENSIONS' | translate: {Default: "Dimensions"} }}</span>
+</div>
+
+<div id="list-table-dimensions" class="pac-model__sub-area-content pac-cdk-drop__list flex-1 flex flex-col overflow-hidden hover:overflow-y-auto"
+  cdkDropList
+  [cdkDropListData]="dimensions()"
+  [cdkDropListEnterPredicate]="dropEnterPredicate"
+  (cdkDropListDropped)="dropProperty($event)"
+>
+  <ul displayDensity="compact">
+    @for (property of dimensions(); track property.name) {
+      <li class="flex justify-between px-2 hover:bg-hover-bg"
+        cdkDrag
+        [cdkDragData]="property"
+        (cdkDragReleased)="onDragReleased($event)">
+        <mat-checkbox class="flex-1" [ngModel]="property.visible" (ngModelChange)="toggleDimVisible(property, $event)">
+          <ngm-entity-property class="flex-1" [property]="property" hiddenIcon></ngm-entity-property>
+        </mat-checkbox>
+
+        <span class="pac-data-type-tag ml-2 h-6 my-auto">{{property.dataType}}</span>
+      </li>
+    }
+  </ul>
+  @if (loading()) {
+    <ngm-spin class="absolute top-0 left-0 w-full h-full"/>
+  }
+</div>
+
+<div class="px-2 pt-2 flex justify-between items-center">
+  <span class="leading-tight text-lg">{{ 'PAC.MENU.MEASURES' | translate: {Default: "Measures"} }}</span>
+</div>
+
+<div id="list-table-measures" class="pac-model__sub-area-content pac-cdk-drop__list flex-1 flex flex-col overflow-hidden hover:overflow-y-auto"
+  cdkDropList
+  [cdkDropListData]="measures()"
+  [cdkDropListEnterPredicate]="dropEnterPredicate"
+  (cdkDropListDropped)="dropProperty($event)">
+  <mat-list displayDensity="compact">
+    @for (property of measures(); track property.name) {
+      <mat-list-item class="flex justify-between"
+        cdkDrag
+        [cdkDragData]="property"
+        (cdkDragReleased)="onDragReleased($event)"
+      >
+        <div matLine>
+          <div class="flex justify-between items-center gap-2">
+            <mat-checkbox class="flex-1" [ngModel]="property.visible" (ngModelChange)="toggleMeasureVisible(property, $event)">
+              <ngm-entity-property class="flex-1" [property]="property" hiddenIcon />
+            </mat-checkbox>
+            <span class="pac-data-type-tag">{{property.dataType}}</span>
+          </div>
+        </div>
+      </mat-list-item>
+    }
+  </mat-list>
+
+  @if (loading()) {
+    <div class="absolute top-1/2 left-1/2 -ml-2 -mt-2 flex">
+      <mat-progress-spinner color="accent" mode="indeterminate" [diameter]="23" [strokeWidth]="2" />
+    </div>
+  }
+</div>

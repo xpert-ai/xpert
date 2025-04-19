@@ -111,8 +111,11 @@ export class ModelEntityService {
    */
   readonly tableMeasures = signal<Property[] | null>(null)
 
-  public readonly tables$ = this.cube$.pipe(map((cube) => cube?.tables))
-  public readonly entityType$ = this.entityName$.pipe(
+  /**
+   * @deprecated use `fact`
+   */
+  readonly tables$ = this.cube$.pipe(map((cube) => cube?.tables))
+  readonly entityType$ = this.entityName$.pipe(
     switchMap((name) => this.#modelService.selectEntityType(name)),
     takeUntilDestroyed(),
     shareReplay(1)
@@ -125,14 +128,14 @@ export class ModelEntityService {
     shareReplay(1)
   )
 
-  public readonly originalEntityType$ = this.entityName$.pipe(
+  readonly originalEntityType$ = this.entityName$.pipe(
     switchMap((name) => this.#modelService.selectOriginalEntityType(name)),
     takeUntilDestroyed(),
     shareReplay(1)
   )
 
-  public readonly measures$ = this.cube$.pipe(map((cube) => cube?.measures))
-  public readonly calculatedMembers$ = this.cube$.pipe(map((cube) => cube?.calculatedMembers))
+  readonly measures$ = this.cube$.pipe(map((cube) => cube?.measures))
+  readonly calculatedMembers$ = this.cube$.pipe(map((cube) => cube?.calculatedMembers))
 
   /**
   |--------------------------------------------------------------------------

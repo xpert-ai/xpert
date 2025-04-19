@@ -1,0 +1,30 @@
+:host {
+  @apply flex flex-col;
+}
+
+.mdc-list-item {
+  &:hover {
+    background-color: var(--ngm-color-primary-container-variant);
+  }
+}
+
+.pac-cube-structure-drop {
+  @apply rounded-xl m-1 border border-dashed border-slate-200 p-4 dark:border-neutral-800;
+}
+
+.pac-data-type-tag {
+  border-color: var(--ngm-color-outline);
+  @apply text-xs leading-3 inline-flex items-center px-3 py-1 rounded-full overflow-hidden text-ellipsis border border-solid;
+}
+
+:host::ng-deep {
+  .mat-mdc-checkbox {
+    .mat-internal-form-field {
+      width: 100%;
+    }
+
+    .mdc-form-field > label {
+      flex: 1;
+    }
+  }
+}

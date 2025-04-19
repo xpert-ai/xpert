@@ -23,29 +23,29 @@
     <span class="flex-1 flex"></span>
     
     <nav mat-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple mat-stretch-tabs="false" mat-align-tabs="start">
-        <span mat-tab-link [routerLink]="['./structure']" routerLinkActive #rlaStructure="routerLinkActive"
-            [routerLinkActiveOptions]="{exact: true}"
-            [active]="rlaStructure.isActive"
-            >{{ 'PAC.MENU.STRUCTURE' | translate: {Default: "Structure"} }}</span>
-        <span mat-tab-link [routerLink]="['./preview']" routerLinkActive #rlaPreview="routerLinkActive"
-            [routerLinkActiveOptions]="{exact: true}"
-            [active]="rlaPreview.isActive"
-            >{{ 'PAC.MENU.Preview' | translate: {Default: "Preview"} }}</span>
-        <span mat-tab-link [routerLink]="['./query']" routerLinkActive #rlaQuery="routerLinkActive"
-            [routerLinkActiveOptions]="{exact: true}"
-            [active]="rlaQuery.isActive"
-            >{{ 'PAC.MENU.QL_LAB' | translate: {Default: "Query Lab"} }}</span>
-        
-        <span mat-tab-link [matTooltip]="'PAC.ACTIONS.OpenAttributesPanel' | translate: {Default: 'Open attributes panel'}"
-            matTooltipPosition="left"
-            [active]="detailsOpen()"
-            (click)="toggleDesignPanel()"
-        >
-            <mat-icon fontSet="material-icons-outlined" [color]="detailsOpen() ? 'accent' : ''">edit_attributes</mat-icon>
-            @if (!isMobile()) {
-              <span>{{ 'PAC.MENU.Attributes' | translate: {Default: "Attributes"} }}</span>
-            }
-        </span>
+      <span mat-tab-link [routerLink]="['./structure']" routerLinkActive #rlaStructure="routerLinkActive"
+        [routerLinkActiveOptions]="{exact: true}"
+        [active]="rlaStructure.isActive"
+      >{{ 'PAC.MENU.STRUCTURE' | translate: {Default: "Structure"} }}</span>
+      <span mat-tab-link [routerLink]="['./preview']" routerLinkActive #rlaPreview="routerLinkActive"
+        [routerLinkActiveOptions]="{exact: true}"
+        [active]="rlaPreview.isActive"
+      >{{ 'PAC.MENU.Preview' | translate: {Default: "Preview"} }}</span>
+      <span mat-tab-link [routerLink]="['./query']" routerLinkActive #rlaQuery="routerLinkActive"
+        [routerLinkActiveOptions]="{exact: true}"
+        [active]="rlaQuery.isActive"
+      >{{ 'PAC.MENU.QL_LAB' | translate: {Default: "Query Lab"} }}</span>
+      
+      <span mat-tab-link [matTooltip]="'PAC.ACTIONS.OpenAttributesPanel' | translate: {Default: 'Open attributes panel'}"
+        matTooltipPosition="left"
+        [active]="detailsOpen()"
+        (click)="toggleDesignPanel()"
+      >
+        <mat-icon fontSet="material-icons-outlined" [color]="detailsOpen() ? 'accent' : ''">edit_attributes</mat-icon>
+        @if (!isMobile()) {
+          <span>{{ 'PAC.MENU.Attributes' | translate: {Default: "Attributes"} }}</span>
+        }
+      </span>
     </nav>
 </div>
 
@@ -75,7 +75,7 @@
     </mat-drawer-content>
   </mat-drawer-container>
 
-  <div class="absolute top-0 bottom-0 right-0 m-1 z-10 block"
+  <div class="absolute top-0 bottom-0 right-0 m-1 z-10 flex gap-2"
     [class.hidden]="!detailsOpen()"
     ngmResizer [resizerWidth]="380"
   >
@@ -83,8 +83,10 @@
       cdkDrag
       cdkDragLockAxis="x"
     ></div>
+
+    <pac-model-cube-fact class="shrink-0 w-[340px] shadow-xl rounded-2xl border border-solid border-divider-deep overflow-hidden bg-components-panel-bg" />
     
-    <ngm-settings-panel class="pac-model__settings-container w-full shadow-xl rounded-2xl border border-solid border-divider-deep overflow-hidden"
+    <ngm-settings-panel class="grow shadow-xl rounded-2xl border border-solid border-divider-deep overflow-hidden"
       displayDensity="compact"
       liveMode
     />
