@@ -1,17 +1,14 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
-import { CloseSvgComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
-import { TranslateModule } from '@ngx-translate/core'
 import {
+  getEnabledTools,
   getErrorMessage,
   injectToastr,
-  isEnableTool,
   IXpertToolset,
   TVariableAssigner,
   TXpertTeamNode,
@@ -20,7 +17,11 @@ import {
   XpertToolsetService
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
+import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 import { XpertVariablesAssignerComponent } from '@cloud/app/@shared/xpert'
+import { CloseSvgComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { omit, uniq } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, map, of } from 'rxjs'
@@ -28,7 +29,6 @@ import { injectConfigureBuiltin, XpertToolConfigureBuiltinComponent, XpertToolTe
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
-import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 
 @Component({
   selector: 'xpert-studio-panel-toolset',
@@ -75,9 +75,12 @@ export class XpertStudioPanelToolsetComponent {
   readonly agentConfig = computed(() => this.xpert()?.agentConfig)
   readonly positions = computed(() => this.toolset()?.options?.toolPositions)
 
+  // Refresh toolset details
   readonly toolsetDetail = derivedAsync(() => {
     return this.toolsetId()
-      ? this.studioService.getToolset(this.toolsetId()).pipe(catchError((err) => of(null)))
+      ? this.studioService.getToolset(this.toolsetId()).toolset$.pipe(
+          catchError((err) => of(null))
+        )
       : of(null)
   })
 
@@ -95,14 +98,7 @@ export class XpertStudioPanelToolsetComponent {
     return null
   })
 
-  readonly tools = computed(() => {
-    const toolset = this.toolsetDetail()
-    const positions = this.positions()
-    const tools = this.toolsetDetail()?.tools?.filter((_) => isEnableTool(_, toolset))
-    return positions && tools
-      ? tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
-      : tools
-  })
+  readonly tools = computed(() => getEnabledTools(this.toolsetDetail()))
 
   readonly expandTools = signal<Record<string, boolean>>({})
 
@@ -120,9 +116,16 @@ export class XpertStudioPanelToolsetComponent {
 
   readonly loading = signal(false)
 
+  constructor() {
+    effect(() => {
+      console.log(this.toolsetDetail())
+    })
+  }
+
   refresh() {
     this.loading.set(true)
-    this.toolsetService.getOneById(this.toolsetId(), { relations: ['tools'] }).subscribe({
+    this.studioService.refreshToolset(this.toolsetId())
+    this.toolsetService.getOneById(this.toolsetId(), { }).subscribe({
       next: (toolset) => {
         this.loading.set(false)
         this.studioService.updateToolset(this.node().key, toolset)
@@ -202,7 +205,7 @@ export class XpertStudioPanelToolsetComponent {
   useToolset(toolset: IXpertToolset) {
     this.loading.set(true)
     // Get the toolset details (with tools)
-    this.toolsetService.getOneById(toolset.id, { relations: ['tools'] }).subscribe({
+    this.toolsetService.getOneById(toolset.id, { }).subscribe({
       next: (toolset) => {
         this.loading.set(false)
         this.studioService.replaceToolset(this.toolset().id, toolset)
