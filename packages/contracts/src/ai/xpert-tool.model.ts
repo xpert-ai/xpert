@@ -164,3 +164,12 @@ export function isEnableTool(tool: IXpertTool, toolset: IXpertToolset) {
   }
   return !disabled
 }
+
+export function getEnabledTools(toolset: IXpertToolset) {
+  if (!toolset) return null
+  const positions = toolset?.options?.toolPositions
+  const tools = toolset?.tools?.filter((_) => isEnableTool(_, toolset))
+  return positions && tools
+    ? tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
+    : tools
+}

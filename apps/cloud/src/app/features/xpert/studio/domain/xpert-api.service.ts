@@ -580,12 +580,19 @@ export class XpertStudioApiService {
   }
 
   // Get toolset detail from cache or remote
-  private readonly toolsets = new Map<string, Observable<IXpertToolset>>()
-  getToolset(id: string) {
+  private readonly toolsets = new Map<string, {toolset$: Observable<IXpertToolset>; refresh$: BehaviorSubject<void>}>()
+  getToolset(id: string): {toolset$: Observable<IXpertToolset>; refresh$: BehaviorSubject<void>} {
     if (!this.toolsets.get(id)) {
-      this.toolsets.set(id, this.toolsetService.getOneById(id, { relations: ['tools']}).pipe(shareReplay(1)))
+      const refresh$ = new BehaviorSubject<void>(null)
+      this.toolsets.set(id, {
+        toolset$: refresh$.pipe(switchMap(() => this.toolsetService.getOneById(id, { relations: ['tools']})), shareReplay(1)),
+        refresh$
+      })
     }
     return this.toolsets.get(id)
+  }
+  refreshToolset(id: string) {
+    this.toolsets.get(id)?.refresh$.next()
   }
 
   private readonly knowledgebases = new Map<string, Observable<IKnowledgebase>>()

@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { IXpertAgent, IXpertToolset, TXpertTeamConnection, TXpertTeamNode } from 'apps/cloud/src/app/@core/types'
+import { getEnabledTools, IXpertAgent, IXpertToolset, TXpertTeamConnection, TXpertTeamNode } from '@cloud/app/@core/types'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, of } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
@@ -53,19 +53,12 @@ export class XpertStudioConnectionCenterComponent {
   // Retrieve the latest information about the toolset
   readonly toolsetDetail = derivedAsync(() => {
     return this.toolsetId()
-      ? this.studioService.getToolset(this.toolsetId()).pipe(catchError((err) => of(null)))
+      ? this.studioService.getToolset(this.toolsetId()).toolset$.pipe(catchError((err) => of(null)))
       : of(null)
   })
   readonly toolsetName = computed(() => this.toolsetDetail()?.name)
 
-  readonly tools = computed(() => {
-    const positions = this.positions()
-    const tools = this.toolsetDetail()?.tools.filter((_) => _.enabled)
-
-    return positions && tools
-      ? tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
-      : tools
-  })
+  readonly tools = computed(() => getEnabledTools(this.toolsetDetail()))
 
   readonly #allTools = computed(() => this.tools()?.map((_) => _.name))
 
