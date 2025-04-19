@@ -470,11 +470,12 @@ export class SemanticModelService {
     }
 
     if (table) {
-      cube.tables = [
-        {
+      cube.fact = {
+        type: 'table',
+        table: {
           name: table
         }
-      ]
+      }
     }
 
     columns?.forEach((column) => {

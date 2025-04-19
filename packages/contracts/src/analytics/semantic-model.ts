@@ -153,6 +153,16 @@ export enum SemanticModelStatusEnum {
   Archived = 'archived'
 }
 
+export type TVirtualCube = {
+  name: string
+  caption?: string
+  description?: string
+  cubeUsages: MDX.CubeUsage[]
+  virtualCubeDimensions: MDX.VirtualCubeDimension[]
+  virtualCubeMeasures: MDX.VirtualCubeMeasure[]
+  calculatedMembers: MDX.CalculatedMember[]
+}
+
 export function extractSemanticModelDraft(model: TSemanticModel): TSemanticModelDraft {
   return {
     key: model.key,

@@ -45,6 +45,7 @@ import { DirtyBadgeComponent } from '../../../@shared/badge'
 import { MaterialModule } from '../../../@shared/material.module'
 import { CreatedByPipe, UserPipe } from '../../../@shared/pipes'
 import { DateRelativePipe } from '@cloud/app/@core'
+import { NgmFormlyFactModule } from '../formly/fact'
 
 @NgModule({
   declarations: [ModelComponent, ModelOverviewComponent, ModelCreateEntityComponent, ModelPreferencesComponent],
@@ -79,6 +80,7 @@ import { DateRelativePipe } from '@cloud/app/@core'
     MonacoEditorModule.forRoot(),
     ContentLoaderModule,
     FormlyModule,
+    NgmFormlyFactModule,
 
     // 
     DateRelativePipe

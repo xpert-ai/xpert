@@ -85,26 +85,39 @@ export function parseSchema(input: string) {
 /**
  * 将 OCAP 协议的 schema 转成 Mondrian 格式的 Schema 进而生成 XML Schema
  */
-export function convertSchemaToXmla(model: ISemanticModel, schema: any): MDX.Schema {
+export function convertSchemaToXmla(model: ISemanticModel, schema: Schema): MDX.Schema {
 	return {
 		name: model.name ?? schema.name,
 		description: model.description,
 		Dimension: schema.dimensions?.map(convertDimensionToXmla),
-		Cube: schema.cubes?.map(
-			(cube: any) =>
-				({
-					...pick(cube, ['name', 'caption', 'description', 'defaultMeasure', 'visible', 'enabled', 'cache']),
-					Table: cube.tables,
-					DimensionUsage: cube.dimensionUsages?.map((usage) => ({
-						...usage
-					})),
-					Dimension: cube.dimensions?.map(convertDimensionToXmla),
-					Measure: cube.measures?.map(convertMeasureToXmla),
-					CalculatedMember: cube.calculatedMembers?.map(convertCalculatedMemberToXmla)
-				} as MDX.Cube)
-		),
-		VirtualCube: schema.virtualCubes?.map((virtualCube: MDX.VirtualCube) => ({
+		Cube: schema.cubes?.map((cube) => {
+			const fact = {} as Partial<MDX.Cube>
+			if (cube.fact?.type) {
+				if (cube.fact.type === 'table') {
+					fact.Table = cube.fact.table
+				} else if (cube.fact.type === 'view') {
+					const view = convertSQLExpressionToXmla(cube.fact.view) as MDX.View
+					view.alias = cube.fact.view.alias
+					fact.View = view
+				}
+			} else {
+				fact.Table = cube.tables
+			}
+			
+			return {
+				...pick(cube, ['name', 'caption', 'description', 'defaultMeasure', 'visible', 'enabled', 'cache']),
+				...fact,
+				DimensionUsage: cube.dimensionUsages?.map((usage) => ({
+					...usage
+				})),
+				Dimension: cube.dimensions?.map(convertDimensionToXmla),
+				Measure: cube.measures?.map(convertMeasureToXmla),
+				CalculatedMember: cube.calculatedMembers?.map(convertCalculatedMemberToXmla)
+			} as MDX.Cube
+		}),
+		VirtualCube: schema.virtualCubes?.map((virtualCube) => ({
 			...omit(virtualCube, ['cubeUsages', 'virtualCubeDimensions', 'virtualCubeMeasures', 'calculatedMembers']),
+			name: virtualCube.name,
 			CubeUsages: {
 				CubeUsage: virtualCube.cubeUsages,
 			},
@@ -117,7 +130,7 @@ export function convertSchemaToXmla(model: ISemanticModel, schema: any): MDX.Sch
 				...omit(item, ['formula']),
 				Formula: item.formula
 			}))
-		}))
+		} as MDX.VirtualCube))
 	}
 }
 
@@ -196,10 +209,11 @@ export function convertCalculatedMemberToXmla(calculatedMember: any): MDX.Calcul
  * @param input 
  * @returns 
  */
-export function convertSQLExpressionToXmla(input: any): MDX.SQLExpression {
-	if (Array.isArray(input?.sql)) {
+export function convertSQLExpressionToXmla(input: SQLExpression): MDX.SQLExpression {
+	const sqls = input?.sql
+	if (Array.isArray(sqls)) {
 		return {
-			SQL: input.sql.map((item) => ({
+			SQL: sqls.map((item) => ({
 				dialect: item.dialect,
 				_: item.content || item._
 			}))

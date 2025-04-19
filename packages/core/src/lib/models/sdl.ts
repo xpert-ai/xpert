@@ -58,7 +58,16 @@ export interface Schema {
 export interface Cube extends Entity {
   __id__?: string
   expression?: string
+  /**
+   * @deprecated use `table` in `fact` attribute
+   */
   tables?: Table[]
+  fact?: {
+    type?: 'table' | 'view',
+    table?: Table
+    view?: View
+    // views?: View[] // Not supported yet
+  }
   dimensionUsages?: DimensionUsage[]
   dimensions?: PropertyDimension[]
   measures?: PropertyMeasure[]
@@ -67,10 +76,25 @@ export interface Cube extends Entity {
   defaultMeasure?: string
 }
 
+export interface SQL {
+  dialect?: string
+  content?: string
+  _?: string
+}
+
+export interface SQLExpression {
+  sql: SQL
+}
+
 export interface Table {
   __id__?: string
   name: string
   join?: Join
+}
+
+export interface View extends SQLExpression {
+  __id__?: string
+  alias?: string
 }
 
 export interface Join {
@@ -88,15 +112,6 @@ export interface Join {
 export interface JoinField {
   leftKey: string
   rightKey: string
-}
-
-export interface SQL {
-  dialect?: string
-  content?: string
-}
-
-export interface SQLExpression {
-  sql: SQL
 }
 
 export type KeyExpression = SQLExpression

@@ -7,8 +7,7 @@ import { MatDialog } from '@angular/material/dialog'
 import { MatSlideToggleChange } from '@angular/material/slide-toggle'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { ActivatedRoute } from '@angular/router'
-import { NgmDialogComponent } from '@metad/components/dialog'
-import { MDX } from '@metad/contracts'
+import { MDX, TVirtualCube } from '@cloud/app/@core/types'
 import { calcEntityTypePrompt, nonBlank } from '@metad/core'
 import { NgmCommonModule, ResizerModule } from '@metad/ocap-angular/common'
 import { injectCopilotCommand } from '@metad/copilot-angular'
@@ -41,8 +40,6 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
     NgmEntitySchemaComponent,
     ResizerModule,
     NgmCommonModule,
-
-    NgmDialogComponent,
     NgmCalculatedMeasureComponent
   ]
 })
@@ -71,7 +68,7 @@ export class VirtualCubeComponent {
   public readonly calculatedMembers$ = this.virtualCubeState.calculatedMembers$
 
   selectedCube: string
-  readonly virtualCube = signal<MDX.VirtualCube>(null)
+  readonly virtualCube = signal<TVirtualCube>(null)
   calcMemberFormGroup = new FormGroup({
     name: new FormControl('', [Validators.required]),
     caption: new FormControl(),
@@ -192,7 +189,7 @@ ${calcEntityTypePrompt(this.entityType())}
     return item.cubeName
   }
 
-  editVirtualCube(cube: MDX.VirtualCube) {
+  editVirtualCube(cube: TVirtualCube) {
     this.virtualCube.set({ ...cube })
   }
 

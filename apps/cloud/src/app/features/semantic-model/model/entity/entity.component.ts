@@ -10,7 +10,6 @@ import { NX_STORY_STORE, NxStoryStore, Story, StoryModel } from '@metad/story/co
 import { NxDesignerModule, NxSettingsPanelService } from '@metad/story/designer'
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService } from 'apps/cloud/src/app/@core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { isNil, negate } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom, of } from 'rxjs'
@@ -21,6 +20,11 @@ import { ModelComponent } from '../model.component'
 import { SemanticModelService } from '../model.service'
 import { ModelCubeStructureComponent } from './cube-structure/cube-structure.component'
 import { ModelEntityService } from './entity.service'
+import { MatButtonModule } from '@angular/material/button'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { MatIconModule } from '@angular/material/icon'
+import { MatSidenavModule } from '@angular/material/sidenav'
+import { MatTabsModule } from '@angular/material/tabs'
 
 @Component({
   standalone: true,
@@ -32,9 +36,13 @@ import { ModelEntityService } from './entity.service'
   imports: [
     CommonModule,
     FormsModule,
-    MaterialModule,
     RouterModule,
     TranslateModule,
+    MatButtonModule,
+    MatTooltipModule,
+    MatIconModule,
+    MatSidenavModule,
+    MatTabsModule,
     NgmCommonModule,
     NxDesignerModule,
     ModelCubeStructureComponent
@@ -146,6 +154,9 @@ export class ModelEntityComponent implements OnInit {
   }
 
   toggleDesignPanel() {
+    if (!this.detailsOpen()) {
+      this.settingsService.setEditable(true)
+    }
     this.detailsOpen.update((state) => !state)
   }
 

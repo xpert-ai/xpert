@@ -12,6 +12,7 @@ export interface Cube {
   name: string
   caption?: string
   Table: Table[] | Table
+  View: View[] | View
   DimensionUsage?: DimensionUsage[]
   Dimension: Dimension[]
   Measure: Measure[]
@@ -20,6 +21,11 @@ export interface Cube {
 
 export interface Table {
   name: string
+}
+
+export interface View extends SQLExpression {
+  alias: string
+  _?: string
 }
 
 /**
@@ -88,7 +94,7 @@ export interface Level {
 }
 
 export interface SQLExpression {
-  SQL: SQL
+  SQL: SQL | SQL[]
 }
 
 export interface KeyExpression {
@@ -113,7 +119,7 @@ export interface ParentExpression {
 
 export interface SQL {
   dialect: string
-  _: string
+  _?: string
 }
 
 export interface Property {
@@ -186,15 +192,17 @@ export interface VirtualCube {
   name: string
   caption?: string
   description?: string
-  cubeUsages: CubeUsage[]
-  virtualCubeDimensions: VirtualCubeDimension[]
-  virtualCubeMeasures: VirtualCubeMeasure[]
-  calculatedMembers: CalculatedMember[]
+  CubeUsages: {
+    CubeUsage: CubeUsage[] | CubeUsage
+  }
+  VirtualCubeDimension: VirtualCubeDimension[] | VirtualCubeDimension
+  VirtualCubeMeasure: VirtualCubeMeasure[] | VirtualCubeMeasure
+  CalculatedMember: CalculatedMember[] | CalculatedMember
 }
 
 export interface CubeUsage {
   cubeName: string
-  ignoreUnrelatedDimensions: boolean
+  ignoreUnrelatedDimensions?: boolean
 }
 
 export interface VirtualCubeDimension {
