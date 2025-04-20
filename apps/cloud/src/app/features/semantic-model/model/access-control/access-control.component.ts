@@ -18,7 +18,7 @@ import { MatListModule } from '@angular/material/list'
 import { ActivatedRoute, Router } from '@angular/router'
 import { IModelRole } from '@metad/contracts'
 import { NgmDisplayBehaviourComponent, NgmSearchComponent } from '@metad/ocap-angular/common'
-import { injectCopilotCommand } from '@metad/copilot-angular'
+import { CommandDialogComponent, injectCopilotCommand } from '@metad/copilot-angular'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { cloneDeep } from '@metad/ocap-core'
 import { uuid } from 'apps/cloud/src/app/@core'
@@ -170,6 +170,19 @@ export class AccessControlComponent extends TranslationBaseComponent {
     this.creatFormGroup.reset()
     this.#newDialogRef?.close()
     this.#newDialogRef = null
+  }
+
+  aiCreate() {
+    this.#dialog
+      .open(CommandDialogComponent, {
+        backdropClass: 'bg-transparent',
+        disableClose: true,
+        data: {
+          commands: ['role',]
+        }
+      })
+      .afterClosed()
+      .subscribe((result) => {})
   }
 
   remove(role: IModelRole) {

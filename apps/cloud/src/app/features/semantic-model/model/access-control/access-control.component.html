@@ -36,9 +36,16 @@
     </span>
   }
 
-  <button mat-icon-button displayDensity="cosy" [matTooltip]="'PAC.MODEL.AccessControl.NewRole' | translate: {Default: 'New Role'}"
+  <button type="button" disabled class="w-6 h-6 flex justify-center items-center rounded-lg mx-1 cursor-pointer text-white opacity-80 hover:opacity-100 bg-gradient-to-br from-pink-400 from-40% to-fuchsia-700"
+    [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} "
+    (click)="aiCreate()"
+  >
+    <i class="ri-magic-line"></i>
+  </button>
+  <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
+    [matTooltip]="'PAC.MODEL.AccessControl.NewRole' | translate: {Default: 'New Role'}"
     (click)="openCreate()">
-    <mat-icon>add_circle_outline</mat-icon>
+    <i class="ri-user-add-line"></i>
   </button>
 </mat-toolbar>
 
