@@ -221,7 +221,7 @@ export function getMDXProperty(entityType: EntityType, path: string | Dimension)
   }
   const dProperty = dimensions.find((item) => item.name === path.dimension)
   if (!dProperty) {
-    throw new Error(`Can't find dimension '${path.dimension}' in entity '${entityType.name}'`)
+    throw new Error(t('Error.NoDimensionFoundFor', {ns: 'xmla', dimension: path.dimension, cube: entityType.name}))
   }
   hierarchy =
     isDimension(path) && !isNil(path.hierarchy)

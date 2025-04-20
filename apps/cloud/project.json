@@ -76,6 +76,11 @@
           },
           {
             "glob": "**/*.json",
+            "input": "packages/core/src/i18n/",
+            "output": "./assets/locales/core/"
+          },
+          {
+            "glob": "**/*.json",
             "input": "packages/sql/src/i18n/",
             "output": "./assets/locales/sql/"
           },

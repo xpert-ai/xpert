@@ -32,6 +32,9 @@ import { ChatbiModelsComponent } from './models/models.component'
 import { QuestionAnswer } from './types'
 import { StoryExplorerComponent } from '@metad/story'
 
+/**
+ * @deprecated use ChatBI toolset.
+ */
 @Component({
   standalone: true,
   imports: [

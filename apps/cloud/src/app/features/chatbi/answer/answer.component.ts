@@ -36,6 +36,9 @@ import { ChatbiInputComponent } from '../input/input.component'
 import { ChatLoadingComponent } from '../../../@shared/copilot'
 import { StorySelectorComponent } from '../../../@shared/story'
 
+/**
+ * @deprecated use ChatBI toolset.
+ */
 @Component({
   standalone: true,
   imports: [

@@ -1,5 +1,7 @@
 {
     "Error": {
-        "CategoryDimensionNotProvided": "类别维度未提供"
+        "CategoryDimensionNotProvided": "类别维度未提供",
+        "NoChartType": "未提供图形类型",
+        "UnimplementChartType": "未实现图形类型‘{{type}}’"
     }
 }

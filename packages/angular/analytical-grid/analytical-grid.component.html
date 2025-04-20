@@ -23,7 +23,7 @@
       <button mat-icon-button class="ngm-analytical-grid__refresh" displayDensity="cosy"
         [style.opacity]="(isLoading$ | async) ? '0' : '1'"
         [style.visibility]="(isLoading$ | async) ? 'hidden' : 'visible'"
-        (click)="refresh()">
+        (click)="refresh(true)">
         <mat-icon fontSet="material-icons-outlined">refresh</mat-icon>
       </button>
       

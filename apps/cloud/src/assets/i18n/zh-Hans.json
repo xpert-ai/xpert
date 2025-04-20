@@ -1018,7 +1018,10 @@
         "PleaseSelectFields": "请选择字段！",
         "CubeNotFound": "多维数据集未找到！",
         "CreateDimension": "创建维度",
-        "CubeStructure": "立方体结构"
+        "CubeStructure": "立方体结构",
+        "DragDimensionHere": "拖动维度至此",
+        "DragMeasureHere": "拖动度量至此",
+        "DataPreview": "数据预览"
       },
       "DIMENSION": {
         "Levels": "层级",

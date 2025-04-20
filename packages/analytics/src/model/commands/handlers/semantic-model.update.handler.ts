@@ -1,17 +1,19 @@
 import { ISemanticModel } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs'
 import { pick } from 'lodash'
 import { SemanticModel } from '../../model.entity'
 import { SemanticModelService } from '../../model.service'
 import { SemanticModelRoleService } from '../../role/role.service'
 import { SemanticModelUpdateCommand } from '../semantic-model.update.command'
+import { SemanticModelUpdatedEvent } from '../../events'
 
 @CommandHandler(SemanticModelUpdateCommand)
 export class SemanticModelUpdateHandler implements ICommandHandler<SemanticModelUpdateCommand> {
 	constructor(
 		private readonly modelService: SemanticModelService,
-		private readonly roleService: SemanticModelRoleService
+		private readonly roleService: SemanticModelRoleService,
+		private readonly eventBus: EventBus
 		) {}
 
 	public async execute(command: SemanticModelUpdateCommand): Promise<ISemanticModel> {
@@ -51,6 +53,8 @@ export class SemanticModelUpdateHandler implements ICommandHandler<SemanticModel
 				...request,
 				id,
 			} as SemanticModel)
+
+			this.eventBus.publish(new SemanticModelUpdatedEvent(id))
 		}
 
 		return await this.modelService.findOneByIdString(id, {relations})

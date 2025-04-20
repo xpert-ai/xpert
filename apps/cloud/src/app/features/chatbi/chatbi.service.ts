@@ -24,6 +24,9 @@ import {
 import { ChatBIConversationService, ChatbiConverstion, registerModel } from '../../@core'
 import { QuestionAnswer } from './types'
 
+/**
+ * @deprecated use ChatBI toolset.
+ */
 @Injectable()
 export class ChatbiService {
   readonly #modelsService = inject(SemanticModelServerService)

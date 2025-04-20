@@ -1,13 +1,17 @@
 import { ISemanticModel } from '@metad/contracts'
 import { omit, pick } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs'
 import { SemanticModelService } from '../../model.service'
 import { SemanticModelCreateCommand } from '../semantic-model.create.command'
+import { SemanticModelUpdatedEvent } from '../../events'
 
 @CommandHandler(SemanticModelCreateCommand)
 export class SemanticModelCreateHandler implements ICommandHandler<SemanticModelCreateCommand> {
-	constructor(private readonly modelService: SemanticModelService) {}
+	constructor(
+		private readonly modelService: SemanticModelService,
+		private readonly eventBus: EventBus
+	) {}
 
 	public async execute(command: SemanticModelCreateCommand): Promise<ISemanticModel> {
 		const { input } = command
@@ -37,6 +41,8 @@ export class SemanticModelCreateHandler implements ICommandHandler<SemanticModel
 
 			return await this.modelService.create(request as any)
 		}
+
+		this.eventBus.publish(new SemanticModelUpdatedEvent(model.id))
 
 		return null
 	}

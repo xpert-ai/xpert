@@ -1,4 +1,5 @@
 import { combineLatestWith, distinctUntilChanged, filter, map, Observable } from 'rxjs'
+import { t } from 'i18next'
 import { AnalyticsAnnotation } from '../annotations'
 import { getEntityHierarchy, getEntityProperty, QueryReturn } from '../models'
 import { isBaseProperty, isMeasure, QueryOptions } from '../types'
@@ -51,7 +52,7 @@ export class AnalyticsBusinessService<T> extends SmartBusinessService<T> {
     }
 
     if (!this.isMeetRequired(analyticsAnnotation)) {
-      throw new Error(`Analytics rows or columns is required`)
+      throw new Error(t('Error.NoAnalyticsRowsOrColumns', {ns: 'core'}))
     }
     options = options ?? {}
     options.rows = analyticsAnnotation.rows

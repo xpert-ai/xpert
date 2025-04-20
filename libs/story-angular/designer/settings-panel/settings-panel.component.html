@@ -1,17 +1,17 @@
 <ng-template [cdkPortalOutlet]="settingsPortal"></ng-template>
 
 @if (settingsPortals(); as settingsPortals) {
-  <div class="flex justify-center pb-2">
-    <ul class="w-80 p-1 flex items-center justify-center gap-2 bg-hover-bg rounded-xl">
+  <div class="flex justify-center p-2">
+    <ul class="p-1 flex items-center justify-center gap-2 bg-hover-bg rounded-xl">
       @for (settingsPortal of settingsPortals; track i; let i = $index) {
-        <li class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer hover:bg-white"
+        <li class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 whitespace-nowrap cursor-pointer hover:bg-white"
           [ngClass]="tabPortalIndex() === i ? 'shadow-md bg-components-card-bg' : ''"
           (click)="tabPortalIndex.set(i)"
         >
           @if (settingsPortal.icon) {
-            <mat-icon fontSet="material-icons-outlined">{{settingsPortal.icon}}</mat-icon>
+            <mat-icon fontSet="material-icons-outlined" class="scale-75 origin-center text-zinc-500">{{settingsPortal.icon}}</mat-icon>
           }
-          <span>{{settingsPortal.label | translate: {Default: settingsPortal.label} }}</span>
+          <span class="ml-1">{{settingsPortal.label | translate: {Default: settingsPortal.label} }}</span>
         </li>
       }
     </ul>

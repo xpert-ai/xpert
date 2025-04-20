@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { assign, cloneDeep } from '@metad/ocap-core'
 import { PreferencesSchema, StoryPreferencesFields } from '@metad/story'
 import { NxStoryService, StoryPreferences } from '@metad/story/core'
@@ -10,9 +9,7 @@ import { FORMLY_W_1_2 } from '@metad/story/designer'
 import { FormlyFieldConfig, FormlyFormOptions, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { combineLatest, debounceTime, map, startWith } from 'rxjs'
-import { DesignerWidgetComponent } from '../widget/widget.component'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
+import { MatTabsModule } from '@angular/material/tabs'
 
 @Component({
   standalone: true,
@@ -21,14 +18,8 @@ import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MaterialModule,
+    MatTabsModule,
     FormlyModule,
-    InlineSearchComponent,
-
-    AppearanceDirective,
-    DensityDirective,
-
-    DesignerWidgetComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-story-designer',

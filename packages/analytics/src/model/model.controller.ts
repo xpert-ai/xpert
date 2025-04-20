@@ -98,8 +98,6 @@ export class ModelController extends CrudController<SemanticModel> {
 			})
 		)
 
-		this.eventBus.publish(new SemanticModelUpdatedEvent(model.id))
-
 		return model
 	}
 
@@ -170,9 +168,7 @@ export class ModelController extends CrudController<SemanticModel> {
 		const model = await this.commandBus.execute(
 			new SemanticModelUpdateCommand({ id, ...entity }, relations?.split(','))
 		)
-
-		this.eventBus.publish(new SemanticModelUpdatedEvent(id))
-
+		
 		return model
 	}
 

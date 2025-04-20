@@ -505,9 +505,9 @@ export class AnalyticalCardComponent extends ComponentStore<AnalyticalCardState>
   }
 
   /**
-   * 刷新数据
+   * Refresh data
    * 
-   * @param force 强制刷新
+   * @param force Force refresh
    */
   refresh(force?: boolean) {
     this.businessService.refresh(force)
