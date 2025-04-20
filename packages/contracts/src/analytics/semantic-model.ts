@@ -54,6 +54,9 @@ export type TSemanticModel = {
   cube?: string
   // 存放语义元数据
   options?: TSemanticModelOptions<any>
+
+  // Roles
+  roles?: Array<IModelRole>
 }
 
 export type TSemanticModelDraft<T = any> = TSemanticModel & {
@@ -104,8 +107,6 @@ export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel
   indicators?: Array<IIndicator>
   // Query
   queries?: Array<IModelQuery>
-  // Roles
-  roles?: Array<IModelRole>
 }
 
 /**
@@ -179,6 +180,7 @@ export function extractSemanticModelDraft(model: TSemanticModel): TSemanticModel
     // 存放语义元数据
     // options: model.options,
     schema: model.options?.schema,
-    settings: model.options?.settings
+    settings: model.options?.settings,
+    roles: model.roles,
   }
 }

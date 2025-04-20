@@ -7,7 +7,7 @@ import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, RelationI
 import { SemanticModel } from '../model.entity'
 
 /**
- * 语义模型角色
+ * Semantic Model Roles
  */
 @Entity('model_role')
 export class SemanticModelRole extends TenantOrganizationBaseEntity implements IModelRole {

@@ -2,7 +2,7 @@ import { Cube, Join, PropertyDimension, Schema, SQLExpression } from '@metad/oca
 import { IModelRole, ISemanticModel, MDX, RoleTypeEnum } from '@metad/contracts'
 import { camelCase, cloneDeep, cloneDeepWith, forIn, isArray, isNil, isObject, isString, omit, pick } from 'lodash'
 import { Observable } from 'rxjs'
-import * as xml2js from 'xml2js'
+import xml2js from 'xml2js'
 
 export function serializeUniqueName(dimension: string, hierarchy?: string, level?: string) {
 	const name = !!hierarchy && dimension !== hierarchy ? `[${dimension}.${hierarchy}]` : `[${dimension}]`
@@ -83,7 +83,7 @@ export function parseSchema(input: string) {
 }
 
 /**
- * 将 OCAP 协议的 schema 转成 Mondrian 格式的 Schema 进而生成 XML Schema
+ * Convert the OCAP protocol schema to Mondrian format schema and then generate XMLA Schema
  */
 export function convertSchemaToXmla(model: ISemanticModel, schema: Schema): MDX.Schema {
 	return {

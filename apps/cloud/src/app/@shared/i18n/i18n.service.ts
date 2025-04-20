@@ -47,4 +47,11 @@ export class I18nService {
   stream(key: string | Array<string>, interpolateParams?: Object) {
     return this.#translate.stream(key, interpolateParams)
   }
+
+  /**
+   * instant translation in `@ngx-translate/core`
+   */
+  instant(key: string | Array<string>, interpolateParams?: Object) {
+    return this.#translate.instant(key, interpolateParams)
+  }
 }

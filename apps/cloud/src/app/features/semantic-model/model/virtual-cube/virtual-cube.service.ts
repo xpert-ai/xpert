@@ -45,9 +45,8 @@ export class VirtualCubeStateService {
   readonly virtualCube = toSignal(this.store)
 
   init(key: string) {
-    // this.connect(this.modelService, { parent: ['model', 'schema', 'virtualCubes', key], arrayKey: '__id__' })
-    this.store.connect(['model', 'schema', 'virtualCubes', key])
-    this.pristineStore.connect(['model', 'schema', 'virtualCubes', key])
+    this.store.connect(['draft', 'schema', 'virtualCubes', key])
+    this.pristineStore.connect(['draft', 'schema', 'virtualCubes', key])
   }
 
   updater<ProvidedType = void, OriginType = ProvidedType>(

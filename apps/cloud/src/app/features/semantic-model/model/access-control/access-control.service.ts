@@ -39,8 +39,8 @@ export class AccessControlStateService {
   readonly roles$ = this.state$
 
   constructor() {
-    this.store.connect(['model', 'roles'])
-    this.pristineStore.connect(['model', 'roles'])
+    this.store.connect(['draft', 'roles'])
+    this.pristineStore.connect(['draft', 'roles'])
   }
 
   updater<ProvidedType = void, OriginType = ProvidedType>(

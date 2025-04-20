@@ -64,10 +64,10 @@ export class RoleComponent {
 
   selectedCube: string
   selectedHierarchy: string
-
+  
   searchRoleControl = new FormControl()
 
-  public readonly roles$ = this.accessControlState.roles$.pipe(
+  readonly roles$ = this.accessControlState.roles$.pipe(
     combineLatestWith(
       this.roleState.state$.pipe(
         map((role) => role.name),

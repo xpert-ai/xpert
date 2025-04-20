@@ -1,5 +1,5 @@
 import { CdkDropList, DropListRef, moveItemInArray } from '@angular/cdk/drag-drop'
-import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
+import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { SemanticModelServerService as SemanticModelsService, NgmSemanticModel, convertNewSemanticModelResult } from '@metad/cloud/state'
@@ -322,7 +322,8 @@ export class SemanticModelService {
     // New store
     this.stories.set(model.stories)
     const semanticModel = convertNewSemanticModelResult(model)
-    this.store.update(() => ({ model: semanticModel, draft: model.draft ?? extractSemanticModelDraft(model) }))
+    const draft = model.draft ?? extractSemanticModelDraft(model)
+    this.store.update(() => ({ model: semanticModel, draft: {...draft, roles: draft.roles ?? []} }))
     this.pristineStore.update(() => ({ model: cloneDeep(semanticModel), draft: cloneDeep(this.store.value.draft) }))
     // Resume state history after model is loaded
     // this.#stateHistory.resume()

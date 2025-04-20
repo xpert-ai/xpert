@@ -60,6 +60,9 @@ export class SubStore<SDef extends StoreDef = any, State = SDef['state']> extend
       return this
     }
 
+    // When reconnect
+    this.#initialized = false
+
     this.#upbackSubscription?.unsubscribe()
     this.#upbackSubscription = this.pipe(distinctUntilChanged(), filter(() => this.#initialized), takeUntilDestroyed(this.#destroyRef)).subscribe(
       (newValue) => {

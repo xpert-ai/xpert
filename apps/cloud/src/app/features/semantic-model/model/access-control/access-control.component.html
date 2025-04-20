@@ -6,7 +6,8 @@
         </svg>
     </button>
   }
-    <nav *ngIf="roles?.length" mat-tab-nav-bar color="accent" disableRipple mat-stretch-tabs="false" mat-align-tabs="start"
+  @if (roles?.length) {
+    <nav mat-tab-nav-bar color="accent" disableRipple mat-stretch-tabs="false" mat-align-tabs="start"
         class="pac-model-access__nav flex-1"
         [tabPanel]="tabPanel"
         cdkDropList cdkDropListOrientation="horizontal"
@@ -29,14 +30,16 @@
             </button>
         </span>
     </nav>
-
-    <span *ngIf="!roles?.length" class="pl-4">
-        {{ 'PAC.MODEL.AccessControl.NewRole' | translate: {Default: 'New Role'} }}
+  } @else {
+    <span class="pl-4">
+      {{ 'PAC.MODEL.AccessControl.NewRole' | translate: {Default: 'New Role'} }}
     </span>
-    <button mat-icon-button displayDensity="cosy" [matTooltip]="'PAC.MODEL.AccessControl.NewRole' | translate: {Default: 'New Role'}"
-        (click)="openCreate()">
-        <mat-icon>add_circle_outline</mat-icon>
-    </button>
+  }
+
+  <button mat-icon-button displayDensity="cosy" [matTooltip]="'PAC.MODEL.AccessControl.NewRole' | translate: {Default: 'New Role'}"
+    (click)="openCreate()">
+    <mat-icon>add_circle_outline</mat-icon>
+  </button>
 </mat-toolbar>
 
 <mat-tab-nav-panel #tabPanel class="overflow-hidden">

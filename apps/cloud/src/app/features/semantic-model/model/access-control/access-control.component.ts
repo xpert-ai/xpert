@@ -158,7 +158,7 @@ export class AccessControlComponent extends TranslationBaseComponent {
     this.#newDialogRef = this.#dialog.open(this.creatTmpl)
   }
 
-  async onCreate() {
+  onCreate() {
     const key = uuid()
     this.#accessControlState.addRole({
       ...this.creatFormGroup.value,

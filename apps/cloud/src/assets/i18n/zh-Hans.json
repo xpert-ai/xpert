@@ -1225,7 +1225,11 @@
         "DimensionHierarchyAlreadyExists": "维度或层次结构已存在！",
         "MemberAlreadyExists": "成员已存在！",
         "MeasureAlreadyExists": "度量已存在！",
-        "DragandDropAddDimension": "拖放以添加维度"
+        "DragandDropAddDimension": "拖放以添加维度",
+        "CubeExists": "多维数据集已存在",
+        "RoleExists": "角色已存在",
+        "UserExists": "用户已存在",
+        "RoleNotExists": "角色不存在"
       },
       "VirtualCube": {
         "VirtualCube": "虚拟多维数据集",

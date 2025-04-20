@@ -98,13 +98,6 @@ export class ModelController extends CrudController<SemanticModel> {
 			})
 		)
 
-		// // Update Xmla Schema
-		// try {
-		// 	await this.modelService.updateCatalogContent(model.id)
-		// } catch (error) {
-		// 	throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
-		// }
-
 		this.eventBus.publish(new SemanticModelUpdatedEvent(model.id))
 
 		return model
@@ -177,13 +170,6 @@ export class ModelController extends CrudController<SemanticModel> {
 		const model = await this.commandBus.execute(
 			new SemanticModelUpdateCommand({ id, ...entity }, relations?.split(','))
 		)
-
-		// // Update Xmla Schema
-		// try {
-		// 	await this.modelService.updateCatalogContent(id)
-		// } catch (error) {
-		// 	throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
-		// }
 
 		this.eventBus.publish(new SemanticModelUpdatedEvent(id))
 
