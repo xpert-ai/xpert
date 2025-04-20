@@ -521,7 +521,7 @@ ${calcEntityTypePrompt(entityType)}
 
   async saveAsDBScript() {
     const statement: string = this.editor.getSelectText()?.trim() || this.statement
-    this.modelService.updateModel({ dbInitialization: statement })
+    this.modelService.updateDraft({ dbInitialization: statement })
   }
 
   dropEntity(event: CdkDragDrop<{ name: string }[]>) {

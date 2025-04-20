@@ -177,6 +177,10 @@ export class SemanticModelServerService extends OrganizationBaseCrudService<ISem
     return this.httpClient.put<ISemanticModel>(C_URI_API_MODELS + `/${id}`, convertNewSemanticModel(input), { params })
   }
 
+  updateModel(id: string, input: Partial<ISemanticModel>) {
+    return this.httpClient.put<ISemanticModel>(C_URI_API_MODELS + `/${id}`, input)
+  }
+
   delete(id: string) {
     return this.httpClient.delete(`${C_URI_API_MODELS}/${id}`)
   }

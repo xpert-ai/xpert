@@ -68,6 +68,10 @@ export type TSemanticModelDraft<T = any> = TSemanticModel & {
    * @legacy Table defination for wasm database
    */
   tables?: any[] // Array<TableEntity>
+  /**
+   * @legacy DB Initialization for wasm database
+   */
+  dbInitialization?: string
 }
 
 export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel, TSemanticModel {

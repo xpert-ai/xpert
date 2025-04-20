@@ -418,7 +418,7 @@ export class ModelComponent extends TranslationBaseComponent implements IsDirty 
   }
 
   saveAsDefaultCube(name: string) {
-    this.modelService.updateModel({
+    this.modelService.updateDraft({
       cube: name
     })
   }
@@ -538,24 +538,25 @@ export class ModelComponent extends TranslationBaseComponent implements IsDirty 
   }
 
   async removeDBInit() {
-    this.modelService.updateModel({
+    this.modelService.updateDraft({
       dbInitialization: null
     })
   }
 
-  async openPreferences(event) {
-    const model = await firstValueFrom(this.modelService.model$)
-    const result: Partial<NgmSemanticModel> = await firstValueFrom(
-      this._dialog
-        .open(ModelPreferencesComponent, {
-          data: pick(model, 'id', 'name', 'description', 'dataSourceId', 'catalog', 'visibility', 'preferences')
-        })
-        .afterClosed()
-    )
-
-    if (result) {
-      this.modelService.updateModel(result)
-    }
+  async openPreferences() {
+    const model = this.modelService.modelSignal()
+    this._dialog
+      .open(ModelPreferencesComponent, {
+        data: pick(model, 'id', 'key', 'name', 'description', 'dataSourceId', 'catalog', 'visibility', 'preferences')
+      })
+      .afterClosed()
+      .subscribe({
+        next: (result) => {
+          if (result) {
+            this.modelService.updateModel(result)
+          }
+        }
+      })
   }
 
   undo() {

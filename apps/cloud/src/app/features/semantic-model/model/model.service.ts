@@ -400,8 +400,6 @@ export class SemanticModelService {
           })
           .pipe(
             tap((model) => {
-              // this.updateModel({roles: sortBy(model.roles, 'index')})
-              // this._saved$.next()
               this.resetPristine()
               this.clearDirty()
               this.dataSource$.value?.clearCache()
@@ -421,12 +419,23 @@ export class SemanticModelService {
     this.currentEntity.set(id)
   }
 
-  readonly updateModel = this.updater((state, model: Partial<NgmSemanticModel>) => {
+  readonly updateDraft = this.updater((state, model: Partial<TSemanticModelDraft>) => {
     return {
       ...state,
       ...model
     }
   })
+
+  updateModel(model: Partial<NgmSemanticModel & ISemanticModel>) {
+    this.store.update(write((state) => {
+        state.model = {
+          ...state.model,
+          ...model
+        }
+        return state
+      })
+    )
+  }
 
   readonly addTable = this.updater((state, table: TableEntity) => {
     state.tables = state.tables ?? []

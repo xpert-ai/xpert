@@ -2,17 +2,14 @@
   <div class="flex justify-start items-center" cdkMenuBar>
     @if (isMobile()) {
       <button cdkMenuItem class="pac-model__page-trigger flex-1"
-          [cdkMenuTriggerFor]="mobileMenu">
-          <mat-icon fontSet="material-icons-outlined">more_horiz</mat-icon>
+        [cdkMenuTriggerFor]="mobileMenu">
+        <mat-icon fontSet="material-icons-outlined">more_horiz</mat-icon>
       </button>
     }
     @if (!isMobile()) {
       <button cdkMenuItem [cdkMenuTriggerFor]="generalMenu" class="relative flex items-center">
         <span>{{ 'PAC.KEY_WORDS.GENERAL' | translate: {Default: "General"} }}</span>
         <i class="ri-arrow-drop-down-line text-xl"></i>
-        @if (isDirty()) {
-          <pac-dirty-badge class="absolute left-2 top-2"/>
-        }
       </button>
       <button cdkMenuItem [cdkMenuTriggerFor]="editMenu" class="flex items-center">
         <span>{{ 'PAC.KEY_WORDS.EDIT' | translate: {Default: "Edit"} }}</span>
@@ -140,7 +137,7 @@
                         }
                           
                           <ngm-display-behaviour class="flex-1 overflow-hidden"
-                              [option]="{key: entity.name, caption: entity.caption}">
+                            [option]="{key: entity.name, caption: entity.caption}">
                           </ngm-display-behaviour>
 
                         @if (isDirty(entity.id)) {
@@ -299,133 +296,130 @@
 </mat-drawer-container>
 
 <ng-template #mobileMenu>
-    <div cdkMenu class="p-2">
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="generalMenu" class="relative">
-            <span>{{ 'PAC.KEY_WORDS.GENERAL' | translate: {Default: "General"} }}</span>
-            <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
-          @if (isDirty()) {
-            <pac-dirty-badge class="absolute left-2 top-2"/>
-          }
-        </button>
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="editMenu">
-            <span>{{ 'PAC.KEY_WORDS.EDIT' | translate: {Default: "Edit"} }}</span>
-            <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
-        </button>
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="dataMenu">
-            <span>{{ 'PAC.KEY_WORDS.DATA' | translate: {Default: "Data"} }}</span>
-            <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
-        </button>
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="manageMenu">
-            <span>{{ 'PAC.KEY_WORDS.Management' | translate: {Default: "Management"} }}</span>
-            <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
-        </button>
-    </div>
+  <div cdkMenu class="p-2">
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="generalMenu" class="relative">
+      <span>{{ 'PAC.KEY_WORDS.GENERAL' | translate: {Default: "General"} }}</span>
+      <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
+    </button>
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="editMenu">
+      <span>{{ 'PAC.KEY_WORDS.EDIT' | translate: {Default: "Edit"} }}</span>
+      <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
+    </button>
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="dataMenu">
+      <span>{{ 'PAC.KEY_WORDS.DATA' | translate: {Default: "Data"} }}</span>
+      <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
+    </button>
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="manageMenu">
+      <span>{{ 'PAC.KEY_WORDS.Management' | translate: {Default: "Management"} }}</span>
+      <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
+    </button>
+  </div>
 </ng-template>
 
 <ng-template #generalMenu>
   <div cdkMenu class="p-2">
-    <button cdkMenuItem class="px-2 py-1 rounded-lg" [disabled]="!isDirty()" (click)="saveModel()">
-        <mat-icon fontSet="material-icons-outlined" [color]="isDirty() ?'accent':''">save</mat-icon>
-        <span class="ml-2">{{ 'PAC.ACTIONS.SAVE' | translate: {Default: "Save"} }}</span>
-    </button>
+    <!-- <button cdkMenuItem class="px-2 py-1 rounded-lg" [disabled]="!isDirty()" (click)="saveModel()">
+      <mat-icon fontSet="material-icons-outlined" [color]="isDirty() ?'accent':''">save</mat-icon>
+      <span class="ml-2">{{ 'PAC.ACTIONS.SAVE' | translate: {Default: "Save"} }}</span>
+    </button> -->
 
-    <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="openPreferences($event)">
-        <mat-icon fontSet="material-icons-outlined">settings_suggest</mat-icon>
-        <span class="ml-2">{{ 'PAC.KEY_WORDS.PREFERENCES' | translate: {Default: "Preferences"} }}</span>
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="openPreferences()">
+      <mat-icon fontSet="material-icons-outlined">settings_suggest</mat-icon>
+      <span class="ml-2">{{ 'PAC.KEY_WORDS.PREFERENCES' | translate: {Default: "Preferences"} }}</span>
     </button>
 
     <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="onDownload()">
-        <mat-icon fontSet="material-icons-outlined">file_download</mat-icon>
-        <span class="ml-2">{{ 'PAC.ACTIONS.Download' | translate: {Default: 'Download'} }}</span>
+      <mat-icon fontSet="material-icons-outlined">file_download</mat-icon>
+      <span class="ml-2">{{ 'PAC.ACTIONS.Download' | translate: {Default: 'Download'} }}</span>
     </button>
 
     <div class="border-b border-solid border-divider-regular my-1"></div>
     <button cdkMenuItem class="flex justify-between items-center px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="storyMenu">
-        <span>
-            {{ 'PAC.MENU.STORY_LIST' | translate: {Default: "Story List"} }}
-        </span>
-        <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
+      <span>
+        {{ 'PAC.MENU.STORY_LIST' | translate: {Default: "Story List"} }}
+      </span>
+      <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
     </button>
   </div>
 </ng-template>
 
 <ng-template #editMenu>
-    <div cdkMenu class="p-2">
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="undo()">
-            <mat-icon fontSet="material-icons-outlined">undo</mat-icon>
-            <span class="ml-2">{{ 'PAC.KEY_WORDS.Undo' | translate: {Default: "Undo"} }}</span>
-        </button>
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="redo()">
-            <mat-icon fontSet="material-icons-outlined">redo</mat-icon>
-            <span class="ml-2">{{ 'PAC.KEY_WORDS.Redo' | translate: {Default: "Redo"} }}</span>
-        </button>
+  <div cdkMenu class="p-2">
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="undo()">
+      <mat-icon fontSet="material-icons-outlined">undo</mat-icon>
+      <span class="ml-2">{{ 'PAC.KEY_WORDS.Undo' | translate: {Default: "Undo"} }}</span>
+    </button>
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="redo()">
+      <mat-icon fontSet="material-icons-outlined">redo</mat-icon>
+      <span class="ml-2">{{ 'PAC.KEY_WORDS.Redo' | translate: {Default: "Redo"} }}</span>
+    </button>
 
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="createStory()">
-            <mat-icon fontSet="material-icons-outlined">auto_stories</mat-icon>
-            <span class="ml-2">{{ 'PAC.ACTIONS.CREATE_STORY' | translate: {Default: "Create Story"} }}</span>
-        </button>
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="createIndicator()">
-            <mat-icon fontSet="material-icons-outlined">trending_up</mat-icon>
-            <span class="ml-2">{{ 'PAC.ACTIONS.CreateIndicator' | translate: {Default: "Create Indicator"} }}</span>
-        </button>
-    
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="reset()">
-            <mat-icon fontSet="material-icons-outlined">restart_alt</mat-icon>
-            <span class="ml-2">{{ 'PAC.MODEL.Reset' | translate: {Default: "Reset"} }}</span>
-        </button>
-    
-        <!-- <button mat-menu-item>
-            <mat-icon fontSet="material-icons-outlined">functions</mat-icon>
-            {{ 'PAC.ACTIONS.ADD_CALCULATED_MEMBER' | translate: {Default: "Add Calculated Member"} }}
-        </button>
-        <button mat-menu-item>
-            <mat-icon fontSet="material-icons-outlined">content_copy</mat-icon>
-            {{ 'PAC.ACTIONS.COPY' | translate: {Default: "Copy"} }}
-        </button>
-    
-        <button mat-menu-item>
-            <mat-icon fontSet="material-icons-outlined">low_priority</mat-icon>
-            {{ 'PAC.ACTIONS.TOGGLE_CALCULATION_PRIORITIZATION_MODE' | translate: {Default: "Toggle Calculation Prioritization Mode"} }}
-        </button> -->
-    </div>
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="createStory()">
+      <mat-icon fontSet="material-icons-outlined">auto_stories</mat-icon>
+      <span class="ml-2">{{ 'PAC.ACTIONS.CREATE_STORY' | translate: {Default: "Create Story"} }}</span>
+    </button>
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="createIndicator()">
+      <mat-icon fontSet="material-icons-outlined">trending_up</mat-icon>
+      <span class="ml-2">{{ 'PAC.ACTIONS.CreateIndicator' | translate: {Default: "Create Indicator"} }}</span>
+    </button>
+
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="reset()">
+      <mat-icon fontSet="material-icons-outlined">restart_alt</mat-icon>
+      <span class="ml-2">{{ 'PAC.MODEL.Reset' | translate: {Default: "Reset"} }}</span>
+    </button>
+  
+      <!-- <button mat-menu-item>
+          <mat-icon fontSet="material-icons-outlined">functions</mat-icon>
+          {{ 'PAC.ACTIONS.ADD_CALCULATED_MEMBER' | translate: {Default: "Add Calculated Member"} }}
+      </button>
+      <button mat-menu-item>
+          <mat-icon fontSet="material-icons-outlined">content_copy</mat-icon>
+          {{ 'PAC.ACTIONS.COPY' | translate: {Default: "Copy"} }}
+      </button>
+  
+      <button mat-menu-item>
+          <mat-icon fontSet="material-icons-outlined">low_priority</mat-icon>
+          {{ 'PAC.ACTIONS.TOGGLE_CALCULATION_PRIORITIZATION_MODE' | translate: {Default: "Toggle Calculation Prioritization Mode"} }}
+      </button> -->
+  </div>
 </ng-template>
 
 <ng-template #dataMenu>
-    <div cdkMenu class="p-2">
-        <!-- <button mat-menu-item>
-            <mat-icon fontSet="material-icons-outlined">code</mat-icon>
-            {{ 'PAC.KEY_WORDS.VARIABLES' | translate: {Default: "Variables"} }}
-        </button> -->
-        
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="refreshSchema()">
-            <mat-icon fontSet="material-icons-outlined">model_training</mat-icon>
-            <span class="ml-2">{{ 'PAC.ACTIONS.REFRESH_DATA_SOURCE_SCHEMA' | translate: {Default: "Refresh Data Source Schema"} }}</span>
-        </button>
+  <div cdkMenu class="p-2">
+      <!-- <button mat-menu-item>
+          <mat-icon fontSet="material-icons-outlined">code</mat-icon>
+          {{ 'PAC.KEY_WORDS.VARIABLES' | translate: {Default: "Variables"} }}
+      </button> -->
+      
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="refreshSchema()">
+      <mat-icon fontSet="material-icons-outlined">model_training</mat-icon>
+      <span class="ml-2">{{ 'PAC.ACTIONS.REFRESH_DATA_SOURCE_SCHEMA' | translate: {Default: "Refresh Data Source Schema"} }}</span>
+    </button>
 
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" [disabled]="clearingServerCache" (click)="clearServerCache()">
-            <mat-icon fontSet="material-icons-outlined">clear_all</mat-icon>
-            <span class="ml-2">{{ 'PAC.MODEL.ClearServerCache' | translate: {Default: "Clear Server Cache"} }}</span>
-        </button>
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" [disabled]="clearingServerCache" (click)="clearServerCache()">
+      <mat-icon fontSet="material-icons-outlined">clear_all</mat-icon>
+      <span class="ml-2">{{ 'PAC.MODEL.ClearServerCache' | translate: {Default: "Clear Server Cache"} }}</span>
+    </button>
 
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" [routerLink]="['./member-retriever']">
-            <mat-icon fontSet="material-icons-outlined">tag</mat-icon>
-            <span class="ml-2">{{ 'PAC.KEY_WORDS.MemberRetriever' | translate: {Default: "Member Retriever"} }}</span>
-        </button>
-    </div>
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" [routerLink]="['./member-retriever']">
+      <mat-icon fontSet="material-icons-outlined">tag</mat-icon>
+      <span class="ml-2">{{ 'PAC.KEY_WORDS.MemberRetriever' | translate: {Default: "Member Retriever"} }}</span>
+    </button>
+  </div>
 </ng-template>
 
 <ng-template #storyMenu>
   <div cdkMenu class="p-2">
     <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="createStory()">
-        <mat-icon fontSet="material-icons-outlined">dashboard</mat-icon>
-        <span class="ml-2">{{ 'PAC.ACTIONS.CREATE_STORY' | translate: {Default: "Create Story"} }}</span>
+      <mat-icon fontSet="material-icons-outlined">dashboard</mat-icon>
+      <span class="ml-2">{{ 'PAC.ACTIONS.CREATE_STORY' | translate: {Default: "Create Story"} }}</span>
     </button>
 
     <div class="border-b border-solid border-divider-regular my-1"></div>
 
     <button cdkMenuItem *ngFor="let story of stories$ | async" class="px-2 py-1 rounded-lg"
-        (click)="openStory(story.id)">
-        {{story.name}}
+      (click)="openStory(story.id)">
+      {{story.name}}
     </button>
   </div>
 </ng-template>
@@ -481,12 +475,12 @@
   @if (message.data['header']) {
     <div >{{message.data['header']}}</div>
   }
-    <ngm-table class="max-w-full rounded-lg border overflow-hidden"
-        [columns]="message.data['columns']"
-        [data]="message.data['content']"
-        paging
-        [pageSizeOptions]="[10, 20, 50, 100]"
-    ></ngm-table>
+  <ngm-table class="max-w-full rounded-lg border overflow-hidden"
+    [columns]="message.data['columns']"
+    [data]="message.data['content']"
+    paging
+    [pageSizeOptions]="[10, 20, 50, 100]"
+  />
 </ng-template>
 
 
