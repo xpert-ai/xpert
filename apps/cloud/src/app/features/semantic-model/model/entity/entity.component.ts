@@ -1,6 +1,6 @@
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, HostBinding, OnInit, inject, model } from '@angular/core'
+import { ChangeDetectionStrategy, Component, HostBinding, OnInit, inject, model, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, NavigationEnd, Router, RouterModule, UrlSegment } from '@angular/router'
@@ -97,6 +97,7 @@ export class ModelEntityComponent implements OnInit {
   public readonly modelType$ = this.modelService.modelType$
   readonly entityType = this.entityService.entityType
   readonly cube = toSignal(this.entityService.cube$)
+  readonly openedFact = signal(false)
 
   /**
   |--------------------------------------------------------------------------
@@ -170,6 +171,10 @@ export class ModelEntityComponent implements OnInit {
       this.settingsService.setEditable(true)
       this.detailsOpen.set(true)
     }
+  }
+
+  toggleFact() {
+    this.openedFact.update((state) => !state)
   }
 
   openSub(event) {

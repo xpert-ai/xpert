@@ -18,6 +18,14 @@
           <i class="ri-equalizer-2-line"></i>
         </button>
       }
+
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small ml-2"
+        [matTooltip]="'PAC.MODEL.OpenFact' | translate: {Default: 'Open fact'}"
+        matTooltipPosition="above"
+        (click)="toggleFact()">
+        <i class="ri-database-line"></i>
+      </button>
+      
     </div>
 
     <span class="flex-1 flex"></span>
@@ -76,17 +84,21 @@
   </mat-drawer-container>
 
   <div class="absolute top-0 bottom-0 right-0 m-1 z-10 flex gap-2"
-    [class.hidden]="!detailsOpen()"
-    ngmResizer [resizerWidth]="380"
+    [class.hidden]="!detailsOpen() && !openedFact()"
+    ngmResizer
   >
     <div class="z-10" ngmResizerBar resizerBarPosition="left"
       cdkDrag
       cdkDragLockAxis="x"
     ></div>
 
-    <pac-model-cube-fact class="shrink-0 w-[340px] shadow-xl rounded-2xl border border-solid border-divider-deep overflow-hidden bg-components-panel-bg" />
+    @if (openedFact()) {
+      <pac-model-cube-fact class="shrink-0 w-[340px] shadow-xl rounded-2xl border border-solid border-divider-deep overflow-hidden bg-components-panel-bg" 
+        (close)="toggleFact()"/>
+    }
     
-    <ngm-settings-panel class="grow shadow-xl rounded-2xl border border-solid border-divider-deep overflow-hidden"
+    <ngm-settings-panel class="grow shrink-0 w-[360px] shadow-xl rounded-2xl border border-solid border-divider-deep overflow-hidden"
+      [class.hidden]="!detailsOpen()"
       displayDensity="compact"
       liveMode
     />

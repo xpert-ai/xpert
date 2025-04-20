@@ -9,6 +9,7 @@ import {
   computed,
   effect,
   inject,
+  output,
   signal
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
@@ -75,6 +76,9 @@ export class ModelCubeFactComponent {
   private readonly _destroyRef = inject(DestroyRef)
   readonly #logger = inject(NGXLogger)
   readonly injector = inject(Injector)
+
+  // Outputs
+  readonly close = output<void>()
 
   /**
   |--------------------------------------------------------------------------
