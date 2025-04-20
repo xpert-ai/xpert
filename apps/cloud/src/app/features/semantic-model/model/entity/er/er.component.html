@@ -137,20 +137,20 @@
 </div>
 
 <div class="flex items-center absolute top-0 right-0 p-1">
-    <div ngmButtonGroup displayDensity="cosy">
-        <button mat-icon-button (click)="zoomIn()">
-            <mat-icon fontSet="material-icons-round">zoom_in</mat-icon>
-        </button>
-        <span>
-            {{ areaScale() * 100 | number: '1.0-0' }}%
-        </span>
-        <button mat-icon-button (click)="zoomOut()">
-            <mat-icon fontSet="material-icons-round">zoom_out</mat-icon>
-        </button>
-    </div>
-    <button mat-icon-button color="primary" displayDensity="cosy"
-        [matTooltip]="'PAC.KEY_WORDS.AutoArrange' | translate: {Default: 'Auto Arrange'}"
-        (click)="autoLayout()">
-        <mat-icon fontSet="material-icons-round">hub</mat-icon>
+  <div ngmButtonGroup displayDensity="cosy">
+    <button mat-icon-button (click)="zoomIn()">
+      <mat-icon fontSet="material-icons-round">zoom_in</mat-icon>
     </button>
+    <span>
+      {{ areaScale() * 100 | number: '1.0-0' }}%
+    </span>
+    <button mat-icon-button (click)="zoomOut()">
+      <mat-icon fontSet="material-icons-round">zoom_out</mat-icon>
+    </button>
+  </div>
+  <button mat-icon-button color="primary" displayDensity="cosy"
+    [matTooltip]="'PAC.MODEL.AutoArrange' | translate: {Default: 'Auto Arrange'}"
+    (click)="autoLayout()">
+    <i class="ri-align-vertically"></i>
+  </button>
 </div>

@@ -18,7 +18,7 @@
 
       &:hover,
       &:focus {
-        background-color: color.change(mat.get-color-from-palette($primary), $alpha: 0.1);
+        background-color: color.change(mat.get-color-from-palette($primary), $alpha: 0.05);
         color: mat.get-color-from-palette($primary);
 
         .ngm-display-behaviour__option-value {

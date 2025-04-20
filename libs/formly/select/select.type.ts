@@ -93,8 +93,6 @@ export class PACFormlySelectComponent extends FieldType implements OnInit {
           takeUntilDestroyed(this.#destroyRef)
         )
         .subscribe((event) => {
-          // Reset errors
-          // this.valueFormControl.setErrors(null)
           this.selectOptions.set(event)
         })
     } else if (this.props?.options) {

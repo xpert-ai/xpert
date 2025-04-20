@@ -2,8 +2,10 @@ import { FlatTreeControl } from '@angular/cdk/tree'
 import { CommonModule } from '@angular/common'
 import { Component, effect, inject, input, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
-import { NxActionStripModule } from '@metad/components/action-strip'
+import { MatButtonModule } from '@angular/material/button'
+import { MatIconModule } from '@angular/material/icon'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { MatTreeFlatDataSource, MatTreeFlattener, MatTreeModule } from '@angular/material/tree'
 import { NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
 import {
   AggregationRole,
@@ -15,11 +17,10 @@ import {
   PropertyAttributes,
   PropertyDimension
 } from '@metad/ocap-core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { TranslateModule } from '@ngx-translate/core'
 import { ModelEntityService } from '../../entity.service'
 import { mapDimensionToTreeItemNode, TreeItemFlatNode, TreeItemNode } from '../types'
-
-
+import { DragDropModule } from '@angular/cdk/drag-drop'
 
 @Component({
   standalone: true,
@@ -29,10 +30,20 @@ import { mapDimensionToTreeItemNode, TreeItemFlatNode, TreeItemNode } from '../t
   host: {
     class: 'pac-inline-dimension'
   },
-  imports: [CommonModule, FormsModule, MaterialModule, NgmEntityPropertyComponent, NxActionStripModule]
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    DragDropModule,
+    MatTreeModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
+    NgmEntityPropertyComponent
+  ]
 })
 export class InlineDimensionComponent {
-  AGGREGATION_ROLE = AggregationRole
+  eAggregationRole = AggregationRole
   isVisible = isVisible
 
   readonly cubeState = inject(ModelEntityService)
@@ -42,7 +53,7 @@ export class InlineDimensionComponent {
   readonly readonly = input<boolean>()
 
   readonly delete = output<string>()
-  readonly newItem = output<{id: string; role: AggregationRole}>()
+  readonly newItem = output<{ id: string; role: AggregationRole }>()
 
   /** The selection for checklist */
   flatNodeMap = new Map<TreeItemFlatNode, TreeItemNode>()
@@ -100,7 +111,7 @@ export class InlineDimensionComponent {
     event.stopPropagation()
     if (!isNil(node)) {
       this.treeControl.expand(node)
-        this.newItem.emit({ id: node.id, role: node?.role })
+      this.newItem.emit({ id: node.id, role: node?.role })
     }
   }
 

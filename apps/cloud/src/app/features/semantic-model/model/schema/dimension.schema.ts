@@ -3,11 +3,11 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { AbstractControl } from '@angular/forms'
 import { nonBlank, nonNullable } from '@metad/core'
 import { ISelectOption } from '@metad/ocap-angular/core'
-import { DimensionType, EntityProperty, PropertyDimension, PropertyHierarchy, serializeUniqueName } from '@metad/ocap-core'
+import { DimensionType, EntityProperty, PropertyDimension, PropertyHierarchy } from '@metad/ocap-core'
 import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { Observable, combineLatest, firstValueFrom } from 'rxjs'
-import { distinctUntilChanged, filter, map, switchMap } from 'rxjs/operators'
+import { distinctUntilChanged, filter, map, switchMap, tap } from 'rxjs/operators'
 import { SemanticsAccordionWrapper } from './common'
 import { CubeSchemaService } from './cube.schema'
 
@@ -22,21 +22,10 @@ export class DimensionSchemaService<T extends EntityProperty = PropertyDimension
   )
 
   // 兼容在 Dimension Designer 中和在 Cube Designer 中
-  public readonly hierarchies$ = this.select(
+  readonly hierarchies$ = this.select(
     (state) =>
       state.hierarchies ?? state.cube.dimensions?.find((item) => item.__id__ === state.modeling.__id__)?.hierarchies
   )
-
-  // readonly hierarchyOptions$ = combineLatest([this.dimensionName$, this.hierarchies$]).pipe(
-  //   map(
-  //     ([dimensionName, hierarchies]) =>
-  //       hierarchies?.map((hierarchy) => ({
-  //         key: serializeUniqueName(dimensionName, hierarchy.name),
-  //         value: serializeUniqueName(dimensionName, hierarchy.name),
-  //         caption: hierarchy.caption
-  //       })) ?? []
-  //   )
-  // )
 
   readonly otherDimensions = toSignal(
     combineLatest([
@@ -207,10 +196,11 @@ export function DimensionModeling(
                   value: DimensionType.TimeDimension,
                   label: 'Time'
                 },
-                {
-                  value: DimensionType.MeasuresDimension,
-                  label: 'Measures'
-                }
+                // Not figured out how to use
+                // {
+                //   value: DimensionType.MeasuresDimension,
+                //   label: 'Measures'
+                // }
                 // Mondrian 不支持其他维度类型, 需要用 Semantic 属性来实现
                 // {
                 //   value: 'GeographyDimension',
@@ -219,7 +209,7 @@ export function DimensionModeling(
               ]
             }
           },
-          // Default Hierarchy 在 shared dimension 一对多 cubes 的情况下无法区分，所以暂时先停用此功能
+          // Default Hierarchy: use source name
           {
             className,
             key: 'defaultHierarchy',
@@ -234,7 +224,7 @@ export function DimensionModeling(
                       value: hierarchy.name || '',
                       caption: hierarchy.caption
                     })) ?? []
-                )
+                ),
               )
             }
           }

@@ -9,11 +9,9 @@
     matTreeNodeToggle
     matTreeNodePaddingIndent="20"
     matTreeNodePadding
-    class="ngm-list-item"
+    class="ngm-list-item group/item relative"
     [ngClass]="isSelected(node) ? 'selected' : ''"
     (click)="onSelect(node)"
-    (mouseenter)="(node.readonly && !node.isUsage) || actionStrip.show()"
-    (mouseleave)="(node.readonly && !node.isUsage) || actionStrip.hide()"
     cdkDrag
     [cdkDragData]="node"
   >
@@ -21,23 +19,23 @@
 
     <ngm-entity-property [property]="node" [displayBehaviour]="displayBehaviour()" />
 
-    <ngm-action-strip #actionStrip [hidden]="true">
-      <button mat-icon-button *ngIf="node.role==='dimension'" displayDensity="cosy" color="warn"
-        (click)="onDelete($event, node)">
-        <mat-icon>delete</mat-icon>
-      </button>
-    </ngm-action-strip>
+    <div class="absolute right-1 flex items-center rounded-2xl opacity-0 group-hover/item:opacity-100 bg-components-card-bg">
+      @if (node.role==='dimension') {
+        <button mat-icon-button displayDensity="cosy" color="warn"
+          (click)="onDelete($event, node)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      }
+    </div>
   </mat-tree-node>
 
   <mat-tree-node
     *matTreeNodeDef="let node; when: hasChild"
     matTreeNodePaddingIndent="20"
     matTreeNodePadding
-    class="ngm-list-item"
+    class="ngm-list-item group/item relative"
     [ngClass]="isSelected(node) ? 'selected' : ''"
     (click)="onSelect(node)"
-    (mouseenter)="actionStrip.show()"
-    (mouseleave)="actionStrip.hide()"
     cdkDrag
     [cdkDragData]="node"
   >
@@ -47,20 +45,31 @@
       </mat-icon>
     </button>
     
-    <ngm-entity-property [property]="node" [displayBehaviour]="displayBehaviour()"></ngm-entity-property>
+    <ngm-entity-property [property]="node" [displayBehaviour]="displayBehaviour()" />
 
-    <ngm-action-strip #actionStrip [hidden]="true">
+    <div class="absolute right-1 flex items-center rounded-2xl opacity-0 group-hover/item:opacity-100 bg-components-card-bg">
       @if (node.role==='dimension') {
-        <button mat-icon-button displayDensity="compact"
-          (click)="toDimension.emit()">
-          <mat-icon displayDensity="compact" fontSet="material-icons-outlined">share</mat-icon>
+        <button type="button" class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-primary hover:bg-hover-bg"
+          [matTooltip]="'PAC.MODEL.ConfigureAssociation' | translate: {Default: 'Configure association'}"
+          matTooltipPosition="above"
+          (click)="$event.stopPropagation();onSelect(node)">
+          <i class="ri-equalizer-2-line"></i>
         </button>
 
-        <button mat-icon-button displayDensity="cosy" color="warn"
+        <button type="button" class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-primary hover:bg-hover-bg"
+          [matTooltip]="'PAC.MODEL.EditSharedDimension' | translate: {Default: 'Edit shared dimension'}"
+          matTooltipPosition="above"
+          (click)="toDimension.emit()">
+          <i class="ri-edit-line"></i>
+        </button>
+
+        <button type="button" class="w-7 h-7 rounded-full flex justify-center items-center danger text-text-secondary hover:text-text-primary hover:bg-hover-bg"
+          [matTooltip]="'PAC.MODEL.UnlinkSharedDimension' | translate: {Default: 'Unlink shared dimension'}"
+          matTooltipPosition="above"
           (click)="onDelete($event, node)">
-          <mat-icon>delete</mat-icon>
+          <i class="ri-link-unlink-m"></i>
         </button>
       }
-    </ngm-action-strip>
+    </div>
   </mat-tree-node>
 </mat-tree>

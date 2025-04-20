@@ -1,8 +1,8 @@
 .ngm-tree_selection.cdk-tree {
   .cdk-tree-node {
-    @apply hover:bg-black/10 dark:hover:bg-white/20;
+    @apply hover:bg-black/5 dark:hover:bg-white/20;
     &.selected {
-      @apply bg-black/5 dark:bg-white/10;
+      @apply bg-black/10 dark:bg-white/10;
     }
   }
 }

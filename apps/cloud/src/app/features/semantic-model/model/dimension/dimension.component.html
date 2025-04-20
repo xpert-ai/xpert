@@ -12,7 +12,7 @@
           routerLinkActive #rla="routerLinkActive"
           [active]="rla.isActive"
       >
-        {{tab.caption}}
+        <span>{{tab.caption}}</span>
 
         @if (dirty() && isDirty(tab.__id__)) {
           <span class="ping-badge pointer-events-none absolute -left-2 top-2 flex h-2 w-2">
@@ -46,43 +46,45 @@
     </div>
   </nav>
 
-    <div class="flex justify-around items-center">
-        <button mat-button displayDensity="cosy" [color]="detailsOpen()?'accent':''"
-          [matTooltip]="'PAC.ACTIONS.OpenAttributesPanel' | translate: {Default: 'Open attributes panel'}"
-          matTooltipPosition="above"
-          (click)="drawer.toggle()"
-        >
-          <div class="flex justify-start items-center">
-            <mat-icon fontSet="material-icons-outlined" [color]="detailsOpen()?'accent':''">edit_attributes</mat-icon>
-            @if (!isMobile()) {
-              <span >{{ 'PAC.MENU.Attributes' | translate: {Default: "Attributes"} }}</span>
-            }    
-          </div>
-        </button>
-    </div>
+  <div class="flex justify-around items-center">
+    <button mat-button displayDensity="cosy" [color]="detailsOpen()?'accent':''"
+      [matTooltip]="'PAC.ACTIONS.OpenAttributesPanel' | translate: {Default: 'Open attributes panel'}"
+      matTooltipPosition="above"
+      (click)="drawer.toggle()"
+    >
+      <div class="flex justify-start items-center">
+        <mat-icon fontSet="material-icons-outlined" [color]="detailsOpen()?'accent':''">edit_attributes</mat-icon>
+        @if (!isMobile()) {
+          <span >{{ 'PAC.MENU.Attributes' | translate: {Default: "Attributes"} }}</span>
+        }    
+      </div>
+    </button>
+  </div>
 </mat-toolbar>
 
 <mat-drawer-container class="flex-1" [hasBackdrop]="false" [autosize]="true">
-    <mat-drawer #drawer class="ngm-story__designer-drawer mat-elevation-z"
-        autosize position="end"
-        [mode]="isMobile() ? 'over' : 'side'"
-        [(opened)]="detailsOpen"
-        ngmResizer [resizerWidth]="380"
-    >
-        <ngm-settings-panel class="pac-model__settings-container m-2 rounded-lg shadow-lg overflow-hidden"
-            liveMode (opened)="detailsOpen.set(true)">
-        </ngm-settings-panel>
+  <mat-drawer #drawer class="ngm-story__designer-drawer mat-elevation-z"
+    autosize position="end"
+    [mode]="isMobile() ? 'over' : 'side'"
+    [(opened)]="detailsOpen"
+    ngmResizer [resizerWidth]="380"
+  >
+    <ngm-settings-panel class="pac-model__settings-container m-2 rounded-lg shadow-lg overflow-hidden"
+      displayDensity="compact"
+      liveMode
+      (opened)="detailsOpen.set(true)"
+    />
 
-        <div ngmResizerBar resizerBarPosition="left" style="z-index: 1;"
-            cdkDrag
-            cdkDragLockAxis="x"
-        ></div>
-    </mat-drawer>
-    <mat-drawer-content>
-        <mat-tab-nav-panel #tabPanel class="h-full w-full flex-1 overflow-hidden">
-            <router-outlet #o="outlet"></router-outlet>
-        </mat-tab-nav-panel>
-    </mat-drawer-content>
+    <div ngmResizerBar resizerBarPosition="left" style="z-index: 1;"
+      cdkDrag
+      cdkDragLockAxis="x"
+    ></div>
+  </mat-drawer>
+  <mat-drawer-content>
+    <mat-tab-nav-panel #tabPanel class="h-full w-full flex-1 overflow-hidden">
+      <router-outlet #o="outlet"></router-outlet>
+    </mat-tab-nav-panel>
+  </mat-drawer-content>
 </mat-drawer-container>
 
 @if (!dimension()) {

@@ -15,7 +15,7 @@
     >
       <mat-select-trigger *ngIf="selectTrigger()" class="flex items-center overflow-hidden">
         <span class="flex-1">
-          {{selectTrigger().caption || selectTrigger().label || selectTrigger()[valueKey()] || placeholder}}
+          {{selectTrigger().caption || selectTrigger().label || selectTrigger()[valueKey()] || placeholder()}}
         </span>
       </mat-select-trigger>
       @for (option of selectOptions(); track option[valueKey()]) {

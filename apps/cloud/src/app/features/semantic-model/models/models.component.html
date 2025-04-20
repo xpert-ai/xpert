@@ -66,15 +66,20 @@
 }
 
 <ng-template #nameTempl let-key="key" let-name="name" let-item="raw">
-  <div class="max-w-[300px] inline-flex justify-start items-center overflow-hidden whitespace-nowrap text-ellipsis">
-    <a *ngIf="item.__isModel__" [routerLink]="['/models', key]" class="flex justify-start items-center">
-      <span class="font-notoColorEmoji">🧊</span>
-      <mat-icon *ngIf="item.agentType==='wasm'" fontSet="material-icons-round" displayDensity="compact" class="shrink-0 text-emerald-600">memory</mat-icon>
-      <span class="text-ellipsis overflow-hidden">{{name}}</span>
-    </a>
-    <span *ngIf="!item.__isModel__">
-      {{name}}
-    </span>
+  <div class="group max-w-[300px] inline-flex justify-start items-center overflow-hidden whitespace-nowrap text-ellipsis">
+    @if (item.__isModel__) {
+      <a [routerLink]="['/models', key]" class="flex justify-start items-center hover:underline">
+        <i class="ri-instance-line mr-1 text-lg text-text-secondary group-hover:text-text-primary"></i>
+        @if (item.agentType === 'wasm') {
+          <mat-icon fontSet="material-icons-round" displayDensity="compact" class="shrink-0 text-emerald-600">memory</mat-icon>
+        }
+        <span class="text-ellipsis overflow-hidden">{{name}}</span>
+      </a>
+    } @else {
+      <span>
+        {{name}}
+      </span>
+    }
   </div>
 </ng-template>
 

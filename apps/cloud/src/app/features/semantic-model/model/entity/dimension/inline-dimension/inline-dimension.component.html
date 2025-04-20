@@ -9,11 +9,10 @@
     matTreeNodeToggle
     matTreeNodePaddingIndent="20"
     matTreeNodePadding
-    class="ngm-list-item"
+    class="ngm-list-item group/item relative"
+    [class.bg-orange-100]="!node.name && node.role !== eAggregationRole.hierarchy"
     [ngClass]="isSelected(node) ? 'selected' : ''"
     (click)="onSelect(node)"
-    (mouseenter)="(node.readonly && !node.isUsage) || actionStrip.show()"
-    (mouseleave)="(node.readonly && !node.isUsage) || actionStrip.hide()"
     cdkDrag
     [cdkDragData]="node"
   >
@@ -21,33 +20,36 @@
 
     <ngm-entity-property [property]="node" [displayBehaviour]="displayBehaviour()" />
 
-    <ngm-action-strip #actionStrip [hidden]="true">
-      <button
-        mat-icon-button displayDensity="cosy"
-        *ngIf="!readonly() &&
-          (node.role === AGGREGATION_ROLE.dimension || node.role === AGGREGATION_ROLE.hierarchy)
-        "
-        (click)="addNewItem($event, node)"
-      >
-        <mat-icon fontSet="material-icons-round">add_circle_outline</mat-icon>
-      </button>
+    <div class="absolute right-1 flex items-center rounded-2xl opacity-0 group-hover/item:opacity-100 bg-components-card-bg">
+      @if (!readonly() && (node.role === eAggregationRole.dimension || node.role === eAggregationRole.hierarchy)) {
+        <button type="button" class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-primary hover:bg-hover-bg"
+          [matTooltip]="node.role === eAggregationRole.dimension ? ('PAC.MODEL.AddHierarchy' | translate: {Default: 'Add hierarchy'})
+            : ('PAC.MODEL.AddLevel' | translate: {Default: 'Add level'})"
+          matTooltipPosition="above"
+          (click)="addNewItem($event, node)">
+          <i class="ri-add-circle-line"></i>
+        </button>
+      }
 
-      <button mat-icon-button displayDensity="cosy" color="warn"
+      <button type="button" class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-destructive hover:bg-hover-bg"
+        [matTooltip]="node.role === eAggregationRole.dimension ? ('PAC.MODEL.RemoveDimension' | translate: {Default: 'Remove dimension'})
+          : node.role === eAggregationRole.hierarchy ? ('PAC.MODEL.RemoveHierarchy' | translate: {Default: 'Remove hierarchy'})
+          : ('PAC.MODEL.RemoveLevel' | translate: {Default: 'Remove level'})"
+        matTooltipPosition="above"
         (click)="onDelete($event, node)">
-        <mat-icon>delete</mat-icon>
+        <i class="ri-delete-bin-line"></i>
       </button>
-    </ngm-action-strip>
+    </div>
   </mat-tree-node>
 
   <mat-tree-node
     *matTreeNodeDef="let node; when: hasChild"
     matTreeNodePaddingIndent="20"
     matTreeNodePadding
-    class="ngm-list-item"
+    class="ngm-list-item group/item relative"
+    [class.bg-orange-100]="!node.name && node.role !== eAggregationRole.hierarchy"
     [ngClass]="isSelected(node) ? 'selected' : ''"
     (click)="onSelect(node)"
-    (mouseenter)="actionStrip.show()"
-    (mouseleave)="actionStrip.hide()"
     cdkDrag
     [cdkDragData]="node"
   >
@@ -57,19 +59,26 @@
       </mat-icon>
     </button>
     
-    <ngm-entity-property [property]="node" [displayBehaviour]="displayBehaviour()"></ngm-entity-property>
+    <ngm-entity-property [property]="node" [displayBehaviour]="displayBehaviour()" />
 
-    <ngm-action-strip #actionStrip [hidden]="true">
+    <div class="absolute right-1 flex items-center rounded-2xl opacity-0 group-hover/item:opacity-100 bg-components-card-bg">
       @if (!readonly()) {
-        <button mat-icon-button displayDensity="cosy" (click)="addNewItem($event, node)">
-          <mat-icon fontSet="material-icons-round">add_circle_outline</mat-icon>
+        <button type="button" class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-primary hover:bg-hover-bg"
+          [matTooltip]="node.role === eAggregationRole.dimension ? ('PAC.MODEL.AddHierarchy' | translate: {Default: 'Add hierarchy'})
+            : ('PAC.MODEL.AddLevel' | translate: {Default: 'Add level'})"
+          matTooltipPosition="above"
+          (click)="addNewItem($event, node)">
+          <i class="ri-add-circle-line"></i>
         </button>
       }
 
-      <button mat-icon-button displayDensity="cosy" color="warn"
+      <button type="button" class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-destructive hover:bg-hover-bg"
+        [matTooltip]="node.role === eAggregationRole.dimension ? ('PAC.MODEL.RemoveDimension' | translate: {Default: 'Remove dimension'})
+          : ('PAC.MODEL.RemoveHierarhcy' | translate: {Default: 'Remove hierarchy'})"
+        matTooltipPosition="above"
         (click)="onDelete($event, node)">
-        <mat-icon>delete</mat-icon>
+        <i class="ri-delete-bin-line"></i>
       </button>
-    </ngm-action-strip>
+    </div>
   </mat-tree-node>
 </mat-tree>

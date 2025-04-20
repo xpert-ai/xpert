@@ -25,23 +25,12 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
   readonly hierarchies$ = this.select((state) => state.hierarchies)
   readonly hierarchy$ = this.select((state) => state.modeling?.hierarchy)
 
-  // readonly hierarchyOptions$ = combineLatest([this.dimensionName$, this.hierarchies$]).pipe(
-  //   map(
-  //     ([dimensionName, hierarchies]) =>
-  //       hierarchies?.map((hierarchy) => ({
-  //         key: serializeUniqueName(dimensionName, hierarchy.name),
-  //         value: serializeUniqueName(dimensionName, hierarchy.name),
-  //         caption: hierarchy.caption
-  //       })) ?? []
-  //   )
-  // )
-
   readonly otherHierarchies = toSignal(
     this.select((state) => state.hierarchies?.filter((item) => item.__id__ !== state.modeling?.hierarchy?.__id__))
   )
 
   /**
-   * 多张表关联的维度, 需要为 Hierarchy 指定 `primaryKeyTable`
+   * For dimensions that relate multiple tables, you need to specify `primaryKeyTable` for the Hierarchy
    */
   readonly hierarchyTables$ = this.hierarchy$.pipe(
     map((hierarchy) => hierarchy?.tables?.map((table) => ({
@@ -75,7 +64,7 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
           hierarchy: serializeUniqueName(dimension, hierarchy)
         })
         .pipe(
-          // selectMembers 存在频繁刷新, 导致 ngm-select 组件显示异常
+          // selectMembers Frequent refreshes cause abnormal display of ngm-select components
           take(1)
         )
     )
@@ -109,13 +98,14 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
                 },
                 fieldGroup: [this.hierarchy]
               },
-              {
-                props: {
-                  label: SCHEMA?.DIMENSION?.TITLE ?? 'Dimension',
-                  icon: 'account_tree'
-                },
-                fieldGroup: [dimensionModeling]
-              }
+              // Simplify and reduce complexity
+              // {
+              //   props: {
+              //     label: SCHEMA?.DIMENSION?.TITLE ?? 'Dimension',
+              //     icon: 'account_tree'
+              //   },
+              //   fieldGroup: [dimensionModeling]
+              // }
             ] as FormlyFieldConfig[]
           }
         ]

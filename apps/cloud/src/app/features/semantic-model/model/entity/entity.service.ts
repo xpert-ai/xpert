@@ -400,11 +400,14 @@ export class ModelEntityService {
 
   readonly newHierarchy = this.updater((state, { id, name }: { id: string; name: string }) => {
     const dimension = state.dimensions.find((item) => item.__id__ === id)
-    dimension.hierarchies = dimension.hierarchies ?? []
-    dimension.hierarchies.push({
-      __id__: uuid(),
-      name
-    } as PropertyHierarchy)
+    // Check if the new entry already exists
+    if (dimension && !dimension.hierarchies?.find((item) => item.name === name)) {
+      dimension.hierarchies = dimension.hierarchies ?? []
+      dimension.hierarchies.push({
+        __id__: uuid(),
+        name
+      } as PropertyHierarchy)
+    }
   })
 
   readonly newLevel = this.updater(
@@ -419,7 +422,7 @@ export class ModelEntityService {
       }: { id: string; index?: number; name: string; column?: string; caption?: string }
     ) => {
       const hierarchy = getHierarchyById(state, id)
-      // 检查是否已经存在新建条目
+      // Check if the new entry already exists
       if (hierarchy && !hierarchy.levels?.find((item) => item.name === name)) {
         hierarchy.levels = hierarchy.levels ?? []
         hierarchy.levels.splice(index ?? hierarchy.levels.length, 0, {

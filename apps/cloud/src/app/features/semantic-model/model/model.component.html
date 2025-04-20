@@ -51,11 +51,11 @@
         </span>
       }
       @if (draftSavedDate()) {
-        <span class="truncate">{{ 'PAC.Xpert.AutoSave' | translate: {Default: 'Auto save'} }} {{draftSavedDate() | relative}}</span>
+        <span class="truncate">{{ 'PAC.MODEL.AutoSave' | translate: {Default: 'Auto save'} }} {{draftSavedDate() | relative}}</span>
       }
       @if (latestPublishDate()) {
         <span class="flex items-center mx-1">·</span>
-        {{ 'PAC.Xpert.Published' | translate: {Default: 'Published'} }} {{latestPublishDate() | relative}}
+        {{ 'PAC.MODEL.Published' | translate: {Default: 'Published'} }} {{latestPublishDate() | relative}}
       }
     </div>
     <div class="inline-block">
@@ -65,7 +65,7 @@
         @if (publishing()) {
           <ngm-spin class="mr-1"/>
         }
-        Publish
+        <span>{{ 'PAC.MODEL.Publish' | translate: {Default: 'Publish'} }}</span>
         <i class="ri-arrow-down-s-line ml-1"></i>
       </button>
     </div>
@@ -75,9 +75,9 @@
 
 <mat-drawer-container class="flex-1" autosize>
   <mat-drawer #drawer class="ngm-story__designer-drawer ngm-sidenav-container-bg-transparent mat-elevation-z"
-      [(opened)]="sideMenuOpened"
-      [mode]="isMobile() ? 'over' : 'side'"
-      ngmResizer [resizerWidth]="230"
+    [(opened)]="sideMenuOpened"
+    [mode]="isMobile() ? 'over' : 'side'"
+    ngmResizer [resizerWidth]="230"
   >
       <ngm-splitter class="h-full mr-1" [type]="1">
           <ngm-splitter-pane size='50%' class="flex flex-col justify-items-stretch items-stretch">
@@ -493,16 +493,21 @@
 <ng-template #publishMenu>
   <div cdkMenu class="cdk-menu__large rounded-xl">
     <div class="p-2">
-      <div class="system-xs-medium-uppercase flex h-6 items-center text-text-tertiary">Latest Published</div>
+      <div class="system-xs-medium-uppercase flex h-6 items-center text-text-tertiary">
+        {{ 'PAC.MODEL.LatestPublished' | translate: {Default: 'Latest Published'} }}
+      </div>
       <div class="flex items-center justify-between">
-        <div class="system-sm-medium flex items-center text-text-secondary">Published {{latestPublishDate() | relative}}</div>
+        <div class="system-sm-medium flex items-center text-text-secondary">
+          {{ 'PAC.MODEL.Published' | translate: {Default: 'Published'} }}
+          {{latestPublishDate() | relative}}
+        </div>
       </div>
     
       <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium mt-3 w-full"
         [disabled]="!canPublish()"
         (click)="publish()">
         <div class="flex items-center gap-1">
-          <span>{{ 'PAC.ACTIONS.Publish' | translate: {Default: "Publish"} }} Update</span>
+          <span>{{ 'PAC.MODEL.PublishUpdate' | translate: {Default: "Publish Update"} }}</span>
           <div class="flex gap-0.5">
             <span class="system-kbd h-4 w-4 rounded-[4px] bg-components-kbd-bg-white text-text-primary-on-surface">⌘</span>
             <span class="system-kbd h-4 w-4 rounded-[4px] bg-components-kbd-bg-white text-text-primary-on-surface">⇧</span>

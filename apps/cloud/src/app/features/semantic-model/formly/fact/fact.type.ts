@@ -7,12 +7,13 @@ import { NgmRadioSelectComponent } from '@metad/ocap-angular/common'
 import { TSelectOption } from '@metad/ocap-angular/core'
 import { Cube } from '@metad/ocap-core'
 import { FieldType } from '@ngx-formly/core'
+import { TranslateModule } from '@ngx-translate/core'
 
 /**
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, NgmRadioSelectComponent, NgmSelectComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, NgmRadioSelectComponent, NgmSelectComponent],
   selector: 'ngm-formly-fact',
   templateUrl: `fact.type.html`,
   host: {
@@ -26,11 +27,17 @@ export class NgmFactComponent extends FieldType implements OnInit {
   readonly selectOptions = signal<TSelectOption[]>([
     {
       value: 'table',
-      label: 'Table'
+      label: {
+        en_US: 'Table',
+        zh_Hans: '表'
+      }
     },
     {
       value: 'view',
-      label: 'View'
+      label: {
+        en_US: 'View',
+        zh_Hans: '视图'
+      }
     }
   ])
 
