@@ -1,8 +1,6 @@
 :host {
-  --mat-sidenav-content-background-color: var(--ngm-color-surface);
-  --mat-expansion-container-background-color: var(--ngm-color-surface);
-
-  display: block;
+  background-color: var(--ngm-color-surface);
+  @apply block relative overflow-y-auto;
 }
 
 .ngm-settings-panel__drawer {

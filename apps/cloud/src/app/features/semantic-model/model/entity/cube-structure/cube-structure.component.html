@@ -66,7 +66,6 @@
         <li class="group/item flex items-center px-2 py-1.5 hover:bg-hover-bg"
           [class.selected]="isSelected(ModelDesignerType.measure, member.__id__)"
           cdkDragBoundary=".pac-model-entity" cdkDrag [cdkDragData]="member"
-          (click)="onSelect(ModelDesignerType.measure, member)"
         >
           <ngm-entity-property class="flex-1" [property]="member" [role]="AGGREGATION_ROLE.measure" />
 

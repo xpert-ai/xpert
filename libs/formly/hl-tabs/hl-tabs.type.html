@@ -1,0 +1,19 @@
+<div class="flex justify-center p-2">
+  <ul class="p-1 flex items-center justify-center gap-2 bg-hover-bg rounded-xl text-text-secondary">
+  @for (tab of field.fieldGroup; track i; let i = $index;let last = $last) {
+    <li class="tab p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer hover:bg-white"
+      [ngClass]="tabIndex() === i ? 'shadow-md bg-components-card-bg text-text-primary font-medium' : ''"
+      (click)="tabIndex.set(i)"
+    >
+      @if (tab.templateOptions?.['icon']) {
+        <mat-icon fontSet="material-icons-outlined">{{tab.templateOptions?.['icon']}}</mat-icon>
+      }
+      {{tab.templateOptions?.label}}
+    </li>
+  }
+  </ul>
+</div>
+
+<div class="flex-1">
+  <formly-field [field]="tabField()" />
+</div>

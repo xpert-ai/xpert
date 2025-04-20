@@ -9,9 +9,11 @@ import {
   SimpleChanges,
   ViewChild,
   ViewContainerRef,
+  computed,
   effect,
   inject,
-  model
+  model,
+  signal
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { MatTabGroup } from '@angular/material/tabs'
@@ -50,12 +52,14 @@ export class NgmSettingsPanelComponent implements OnChanges {
 
   settingsPortal: ComponentPortal<unknown>
 
-  settingsPortals: Array<{ icon?: string; label: string; portal: ComponentPortal<unknown> }>
+  readonly settingsPortals = signal<Array<{ icon?: string; label: string; portal: ComponentPortal<unknown> }>>(null)
+  readonly tabPortalIndex = signal<number>(null)
+  readonly tabPortal = computed(() => this.settingsPortals()?.[this.tabPortalIndex()])
 
   /**
    * Second auxiliary panel
    */
-  drawerOpened = false
+  readonly drawerOpened = model<boolean>(false)
   drawerPortal: ComponentPortal<unknown>
   drawerTitle: string
 
@@ -161,18 +165,19 @@ export class NgmSettingsPanelComponent implements OnChanges {
     )
     .subscribe(({ settingsPortals, drawer, title }) => {
       if (drawer) {
-        this.drawerOpened = true
+        this.drawerOpened.set(true)
         this.drawerPortal = settingsPortals as ComponentPortal<unknown>
         this.drawerTitle = title
       } else {
-        this.drawerOpened = false
+        this.drawerOpened.set(false)
         this.drawerPortal = null
         if (Array.isArray(settingsPortals)) {
           this.settingsPortal = null
-          this.settingsPortals = settingsPortals
+          this.settingsPortals.set(settingsPortals)
+          this.tabPortalIndex.set(0)
         } else {
           this.settingsPortal = settingsPortals
-          this.settingsPortals = null
+          this.settingsPortals.set(null)
         }
       }
 
@@ -181,7 +186,7 @@ export class NgmSettingsPanelComponent implements OnChanges {
     })
 
   private _closeSub = this.settingsService.close$.pipe(takeUntilDestroyed()).subscribe(() => {
-    if (this.drawerOpened) {
+    if (this.drawerOpened()) {
       this.closeDrawer()
     } else {
       this.opened.set(false)
@@ -208,7 +213,7 @@ export class NgmSettingsPanelComponent implements OnChanges {
   }
 
   closeDrawer() {
-    this.drawerOpened = false
+    this.drawerOpened.set(false)
   }
 
   submitDrawer() {
@@ -216,7 +221,7 @@ export class NgmSettingsPanelComponent implements OnChanges {
     this.closeDrawer()
   }
 
-  onResize(event) {
+  onResize() {
     this.tabGroup?.realignInkBar()
   }
 
