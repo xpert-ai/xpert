@@ -141,6 +141,7 @@ export class ModelEntityComponent implements OnInit {
     })
 
   ngOnInit() {
+    this.settingsService.setEditable(true)
     this.entityService.setSelectedProperty(null)
   }
 

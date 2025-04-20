@@ -19,7 +19,7 @@ import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { NxActionStripModule } from '@metad/components/action-strip'
 import { CommandDialogComponent } from '@metad/copilot-angular'
-import { CdkConfirmDeleteComponent, CdkConfirmOptionsComponent, NgmCommonModule, SplitterType } from '@metad/ocap-angular/common'
+import { CdkConfirmDeleteComponent, NgmCommonModule, SplitterType } from '@metad/ocap-angular/common'
 import { NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
 import {
   AggregationRole,
@@ -36,8 +36,7 @@ import {
   isVisible
 } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { injectToastr, uuid } from 'apps/cloud/src/app/@core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { injectToastr, uuid } from '@cloud/app/@core'
 import { NGXLogger } from 'ngx-logger'
 import { combineLatest, combineLatestWith, filter, map, switchMap, withLatestFrom } from 'rxjs'
 import { SemanticModelService } from '../../model.service'
@@ -51,7 +50,11 @@ import {
 import { InlineDimensionComponent, UsageDimensionComponent } from '../dimension'
 import { ModelEntityService } from '../entity.service'
 import { CubeEventType } from '../types'
-import { CubeVariableFormComponent } from 'apps/cloud/src/app/@shared/model'
+import { CubeVariableFormComponent } from '@cloud/app/@shared/model'
+import { MatButtonModule } from '@angular/material/button'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { MatIconModule } from '@angular/material/icon'
+import { MatListModule } from '@angular/material/list'
 
 /**
  * 展示和编辑多维分析模型的字段列表
@@ -69,8 +72,11 @@ import { CubeVariableFormComponent } from 'apps/cloud/src/app/@shared/model'
   imports: [
     CommonModule,
     FormsModule,
-    MaterialModule,
     TranslateModule,
+    MatButtonModule,
+    MatTooltipModule,
+    MatIconModule,
+    MatListModule,
     NgmCommonModule,
 
     InlineDimensionComponent,

@@ -30,8 +30,14 @@ export class NxSettingsPanelService {
 
   private _settingsComponents: { [key: string]: LocalSettingsComponent } = {}
 
+  /**
+   * @deprecated Why need editable?
+   */
   private _editable$ = new BehaviorSubject<boolean>(false)
-  public readonly editable$ = this._editable$.asObservable().pipe(distinctUntilChanged())
+  /**
+   * @deprecated Why need editable?
+   */
+  readonly editable$ = this._editable$.asObservable().pipe(distinctUntilChanged())
 
   get settingsComponent() {
     return this._settingsComponent$.value

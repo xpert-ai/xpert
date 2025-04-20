@@ -7,9 +7,9 @@
   </button>  
 </div>
 
-<div class="flex items-center px-2 py-1" displayDensity="compact">
+<div class="flex items-center gap-2 px-2 py-1" displayDensity="compact">
   @if (isSQLSource()) {
-    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small ml-2"
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
       [matTooltip]=" 'PAC.MODEL.ENTITY.OnekeyGenerateModel' | translate: {Default: 'One-key generate model by table fields'} "
       matTooltipPosition="above"
       [disabled]="visibleEmpty()"
@@ -18,7 +18,7 @@
       <span>{{ 'PAC.MODEL.ENTITY.OnekeyGeneration' | translate: {Default: "One-key Generation"} }}</span>
     </button>
 
-    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small ml-2"
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
       [matTooltip]=" 'PAC.MODEL.ENTITY.CreateDimension' | translate: {Default: 'Create dimension'}"
       matTooltipPosition="above"
       [disabled]="visibleEmpty()"
@@ -29,7 +29,7 @@
   }
 
   @if (isXmla()) {
-    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small ml-2"
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
       [matTooltip]=" 'PAC.MODEL.ENTITY.OnekeySyncModel' | translate: {Default: 'One-key sync model by source cube defination'} "
       matTooltipPosition="above"
       [disabled]="visibleEmpty()"

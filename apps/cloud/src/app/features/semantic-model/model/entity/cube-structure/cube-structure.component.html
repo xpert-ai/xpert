@@ -1,8 +1,6 @@
 <div class="flex flex-col group">
   <div class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10" displayDensity="compact">
-    <span>
-      {{ 'PAC.MENU.DIMENSIONS' | translate: {Default: "Dimensions"} }}
-    </span>
+    <span>{{ 'PAC.MENU.DIMENSIONS' | translate: {Default: "Dimensions"} }}</span>
 
     <ngm-search [(ngModel)]="search" class="flex-1 ml-4" />
 
@@ -63,30 +61,32 @@
     [cdkDropListEnterPredicate]="measureEnterPredicate"
     (cdkDropListDropped)="dropMeasure($event)"
   >
-    <mat-list disableRipple displayDensity="compact" class="ngm-list-base flex-1 flex flex-col overflow-auto">
+    <ul>
       @for (member of measures(); track member.__id__) {
-        <mat-list-item cdkDragBoundary=".pac-model-entity" cdkDrag [cdkDragData]="member"
-          class="ngm-list-item"
+        <li class="group/item flex items-center px-2 py-1.5 hover:bg-hover-bg"
           [class.selected]="isSelected(ModelDesignerType.measure, member.__id__)"
+          cdkDragBoundary=".pac-model-entity" cdkDrag [cdkDragData]="member"
           (click)="onSelect(ModelDesignerType.measure, member)"
-          (mouseenter)="actionStrip.show()"
-          (mouseleave)="actionStrip.hide()"
         >
-          <div class="w-full flex items-center">
-            <ngm-entity-property class="flex-1" [property]="member" [role]="AGGREGATION_ROLE.measure"/>
-            
-            <ngm-action-strip #actionStrip [hidden]="true">
-              <button *ngIf="!member.rt" mat-icon-button color="warn" displayDensity="cosy" (click)="onDeleteMeasure($event, member)">
-                <mat-icon>delete</mat-icon>
+          <ngm-entity-property class="flex-1" [property]="member" [role]="AGGREGATION_ROLE.measure" />
+
+          <div class="absolute right-1 flex items-center gap-0.5 p-0.5 rounded-lg bg-components-card-bg opacity-0 group-hover/item:opacity-100">
+            <button type="button" class="btn btn-small w-6 h-6 justify-center"
+              (click)="onSelect(ModelDesignerType.measure, member)">
+              <i class="ri-equalizer-2-line"></i>
+            </button>
+            @if (!member.rt) {
+              <button type="button" class="btn btn-small danger w-6 h-6 justify-center"
+                (click)="onDeleteMeasure($event, member)">
+                <i class="ri-delete-bin-line"></i>
               </button>
-            </ngm-action-strip>
+            }
           </div>
-
+          
           <div class="pac-cdk-drop__placeholder" *cdkDragPlaceholder></div>
-
-        </mat-list-item>
+        </li>
       }
-    </mat-list>
+    </ul>
   </div>
 </div>
 
@@ -125,8 +125,7 @@
         [cdkDragData]="member"
       >
         <div class="w-full flex items-center">
-          <ngm-entity-property class="flex-1" [property]="$any(member)">
-          </ngm-entity-property>
+          <ngm-entity-property class="flex-1" [property]="$any(member)" />
 
           <ngm-action-strip #actionStrip [hidden]="true">
             <button mat-icon-button displayDensity="cosy"

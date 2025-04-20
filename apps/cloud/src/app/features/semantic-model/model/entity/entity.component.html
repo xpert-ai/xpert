@@ -85,23 +85,23 @@
 
   <div class="absolute top-0 bottom-0 right-0 m-1 z-10 flex gap-2"
     [class.hidden]="!detailsOpen() && !openedFact()"
-    ngmResizer
   >
-    <div class="z-10" ngmResizerBar resizerBarPosition="left"
-      cdkDrag
-      cdkDragLockAxis="x"
-    ></div>
-
     @if (openedFact()) {
       <pac-model-cube-fact class="shrink-0 w-[340px] shadow-xl rounded-2xl border border-solid border-divider-deep overflow-hidden bg-components-panel-bg" 
-        (close)="toggleFact()"/>
+        (close)="toggleFact()"
+      />
     }
     
-    <ngm-settings-panel class="grow shrink-0 w-[360px] shadow-xl rounded-2xl border border-solid border-divider-deep overflow-hidden"
-      [class.hidden]="!detailsOpen()"
-      displayDensity="compact"
-      liveMode
-    />
+    <div ngmResizer [resizerWidth]="360" class="" [class.hidden]="!detailsOpen()">
+      <div class="z-10" ngmResizerBar resizerBarPosition="left"
+        cdkDrag
+        cdkDragLockAxis="x"
+      ></div>
+      <ngm-settings-panel class="w-full h-full shadow-xl rounded-2xl border border-solid border-divider-deep overflow-hidden"
+        displayDensity="compact"
+        liveMode
+      />
+    </div>
   </div>
 </div>
 
