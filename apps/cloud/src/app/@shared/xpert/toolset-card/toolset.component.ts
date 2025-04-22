@@ -31,6 +31,9 @@ export class ToolsetCardComponent {
     transform: booleanAttribute
   })
   readonly highlight = input<string>()
+  readonly editable = input<boolean, string | boolean>(false, {
+    transform: booleanAttribute
+  })
 
   readonly tags = computed(() => this.toolset()?.tags)
   readonly tagsTitle = computed(() =>

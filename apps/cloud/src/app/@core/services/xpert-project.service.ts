@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core'
 import {
   IChatConversation,
   IXpert,
+  IXpertToolset,
   OrganizationBaseCrudService,
   PaginationParams,
   toHttpParams
@@ -33,6 +34,10 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
     )
   }
 
+  getConversations(id: string) {
+    return this.httpClient.get<{ items: IChatConversation[]; total: number }>(this.apiBaseUrl + `/${id}/conversations`)
+  }
+
   getXperts(id: string, params: PaginationParams<IXpertProject>) {
     return this.httpClient.get<{ items: IXpert[]; total: number }>(this.apiBaseUrl + `/${id}/xperts`, {
       params: toHttpParams(params)
@@ -47,8 +52,16 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
     return this.httpClient.delete(this.apiBaseUrl + `/${id}/xperts/${xpertId}`)
   }
 
-  getConversations(id: string) {
-    return this.httpClient.get<{ items: IChatConversation[]; total: number }>(this.apiBaseUrl + `/${id}/conversations`)
+  getToolsets(id: string,) {
+    return this.httpClient.get<{ items: IXpertToolset[]; total: number }>(this.apiBaseUrl + `/${id}/toolsets`)
+  }
+
+  addToolset(id: string, toolsetId: string) {
+    return this.httpClient.put(this.apiBaseUrl + `/${id}/toolsets/${toolsetId}`, {})
+  }
+
+  removeToolset(id: string, toolsetId: string) {
+    return this.httpClient.delete(this.apiBaseUrl + `/${id}/toolsets/${toolsetId}`)
   }
 }
 

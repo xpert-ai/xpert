@@ -1,9 +1,12 @@
-import { IXpertProject } from '@metad/contracts'
+import { IXpertProject, IXpertToolset } from '@metad/contracts'
 import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
+import { FindXpertToolsetsQuery } from '../xpert-toolset'
+import { ToolsetPublicDTO } from '../xpert-toolset/dto'
+import { XpertIdentiDto } from '../xpert/dto'
 import { FindXpertQuery } from '../xpert/queries'
 import { XpertProject } from './project.entity'
 
@@ -33,10 +36,10 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 		})
 
 		const total = project.xperts.length
-		const xperts = params.take ? project.xperts.slice(params.skip, params.skip + params.take) : project.xperts
+		const xperts = params?.take ? project.xperts.slice(params.skip, params.skip + params.take) : project.xperts
 
 		return {
-			items: xperts,
+			items: xperts.map((_) => new XpertIdentiDto(_)),
 			total
 		}
 	}
@@ -78,4 +81,64 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 
 		return project
 	}
+
+	async getToolsets(id: string, params: PaginationParams<IXpertToolset>) {
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
+		const project = await this.repository.findOne({
+			where: {
+				id,
+				tenantId,
+				organizationId
+			},
+			relations: ['toolsets']
+		})
+
+		const total = project.toolsets.length
+		const toolsets = params?.take ? project.toolsets.slice(params.skip, params.skip + params.take) : project.toolsets
+
+		return {
+			items: toolsets.map((_) => new ToolsetPublicDTO(_)),
+			total
+		}
+	}
+
+	async addToolset(id: string, toolsetId: string) {
+		const project = await this.findOne({
+			where: { id },
+			relations: ['toolsets']
+		})
+
+		const exists = project.toolsets.some((_) => _.id === toolsetId)
+		if (exists) {
+			this.#logger.warn(`Toolset with id ${toolsetId} already exists in project ${id}`)
+			return project
+		}
+
+		const toolsets = await this.queryBus.execute(new FindXpertToolsetsQuery([toolsetId]))
+
+		project.toolsets.push(...toolsets) // Assuming toolset is an entity with at least an id field
+		await this.repository.save(project)
+
+		return project
+	}
+
+	async removeToolset(id: string, toolsetId: string) {
+		const project = await this.findOne({
+			where: { id },
+			relations: ['toolsets']
+		})
+
+		const index = project.toolsets.findIndex((_) => _.id === toolsetId)
+		if (index === -1) {
+			this.#logger.warn(`Toolset with id ${toolsetId} does not exist in project ${id}`)
+			return project
+		}
+
+		project.toolsets.splice(index, 1)
+		await this.repository.save(project)
+
+		return project
+	}
+	
 }

@@ -3,7 +3,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
-import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { CapitalizePipe, DynamicGridDirective } from '@metad/core'
 import { injectConfirmUnique, NgmCommonModule } from '@metad/ocap-angular/common'
@@ -16,23 +16,22 @@ import { isNil, omitBy } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, EMPTY } from 'rxjs'
-import { map, switchMap } from 'rxjs/operators'
+import { map, startWith, switchMap } from 'rxjs/operators'
 import {
   IXpertMCPTemplate,
   IXpertToolset,
+  IXpertWorkspace,
   OrderTypeEnum,
   routeAnimations,
   TMCPServer,
   ToastrService,
-  XpertTemplateService,
   XpertToolsetCategoryEnum,
   XpertToolsetService,
   XpertTypeEnum
-} from '../../../../@core'
-import { AppService } from '../../../../app.service'
-import { XpertWorkspaceHomeComponent } from '../home/home.component'
-import { injectQueryParams } from 'ngxtension/inject-query-params'
-import { MCPMarketplaceComponent, XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
+} from '@cloud/app/@core'
+import { AppService } from '@cloud/app/app.service'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { XpertMCPManageComponent } from '../manage/manage.component'
 
 @Component({
   standalone: true,
@@ -46,20 +45,18 @@ import { MCPMarketplaceComponent, XpertMCPManageComponent } from '@cloud/app/@sh
     RouterModule,
     TranslateModule,
 
-    CapitalizePipe,
     DynamicGridDirective,
     NgmCommonModule,
     CardCreateComponent,
     ToolsetCardComponent,
-    MCPMarketplaceComponent
   ],
-  selector: 'xpert-workspace-mcp-tools',
-  templateUrl: './tools.component.html',
-  styleUrl: 'tools.component.scss',
+  selector: 'mcp-toolsets',
+  templateUrl: './toolsets.component.html',
+  styleUrl: 'toolsets.component.scss',
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class XpertWorkspaceMCPToolsComponent {
+export class MCPToolsetsComponent {
   DisplayBehaviour = DisplayBehaviour
   eXpertTypeEnum = XpertTypeEnum
 
@@ -71,27 +68,19 @@ export class XpertWorkspaceMCPToolsComponent {
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly toolsetService = inject(XpertToolsetService)
-  readonly templateService = inject(XpertTemplateService)
-  readonly homeComponent = inject(XpertWorkspaceHomeComponent)
   readonly i18n = new NgmI18nPipe()
-  readonly queryCategory = injectQueryParams('category')
   readonly confirmUnique = injectConfirmUnique()
 
   // Inputs
-  readonly inline = input<boolean, boolean | string>(false, {
-    transform: booleanAttribute
-  })
+  readonly workspace = input<IXpertWorkspace>()
 
   // States
   readonly isMobile = this.appService.isMobile
   readonly lang = this.appService.lang
 
-  readonly workspace = this.homeComponent.workspace
   readonly workspaceId = computed(() => this.workspace()?.id)
-  readonly type = this.homeComponent.type
-  readonly tags = this.homeComponent.tags
-  readonly builtinTags = this.homeComponent.toolTags
-  readonly searchText = this.homeComponent.searchText
+  readonly formControl = new FormControl()
+  readonly searchText = toSignal(this.formControl.valueChanges.pipe(startWith(this.formControl.value)))
 
   readonly refresh$ = new BehaviorSubject<void>(null)
 
@@ -99,7 +88,7 @@ export class XpertWorkspaceMCPToolsComponent {
     const where = {
       category: XpertToolsetCategoryEnum.MCP
     }
-    const workspaceId = this.workspace()?.id
+    const workspaceId = this.workspaceId()
     if (!workspaceId) return EMPTY
     return this.refresh$.pipe(
       switchMap(() =>
@@ -117,10 +106,7 @@ export class XpertWorkspaceMCPToolsComponent {
 
   readonly toolsets = computed(() => {
     const searchText = this.searchText()?.toLowerCase()
-    const tags = this.tags()
-    return this.#toolsets()
-      ?.filter((toolset) => (tags?.length ? tags.some((t) => toolset.tags.some((tt) => tt.name === t.name)) : true))
-      .filter((toolset) =>
+    return this.#toolsets()?.filter((toolset) =>
         searchText
           ? toolset.name.toLowerCase().includes(searchText) || toolset.description?.toLowerCase().includes(searchText)
           : true

@@ -18,6 +18,7 @@ import {
 	GRAPH_NODE_TITLE_CONVERSATION,
 	IChatConversation,
 	IChatMessage,
+	IEnvironment,
 	IXpert,
 	IXpertAgent,
 	IXpertAgentExecution,
@@ -26,6 +27,7 @@ import {
 	STATE_VARIABLE_SYS,
 	TAgentRunnableConfigurable,
 	TChatConversationStatus,
+	TStateVariable,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
 import { AgentRecursionLimit, appendMessageContent, isNil } from '@metad/copilot'
@@ -64,6 +66,8 @@ import {
 	OutputMode,
 	PROVIDERS_WITH_PARALLEL_TOOL_CALLS_PARAM
 } from './supervisor'
+import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
+import { toEnvState } from '../../../environment'
 
 @CommandHandler(ChatCommonCommand)
 export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
@@ -429,7 +433,43 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		// Project
 		let project: IXpertProject
 		if (projectId) {
-			project = await this.projectService.findOne(projectId, { relations: ['xperts', 'xperts.agent'] })
+			project = await this.projectService.findOne(projectId, { relations: ['xperts', 'xperts.agent', 'toolsets', 'workspace', 'workspace.environments'] })
+		}
+
+		// Env
+		let environment: IEnvironment
+		if (project.workspace?.environments?.length > 0) {
+			environment = project.workspace.environments.find((_) => _.isDefault)
+		}
+
+		// Create tools
+		const tools = []
+		if (project.toolsets.length > 0) {
+			const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
+				new ToolsetGetToolsCommand(project.toolsets.map(({id}) => id), {
+					xpertId: null,
+					signal: abortController.signal,
+					env: toEnvState(environment)
+				})
+			)
+			abortController.signal.addEventListener('abort', () => {
+				for (const toolset of toolsets) {
+					toolset.close().catch((err) => this.#logger.debug(err))
+				}
+			})
+			// const interruptBefore: string[] = []
+			const toolsetVarirables: TStateVariable[] = []
+			const stateVariables: TStateVariable[] = []
+			for await (const toolset of toolsets) {
+				const _variables = await toolset.getVariables()
+				toolsetVarirables.push(...(_variables ?? []))
+				stateVariables.push(...toolsetVarirables)
+				const items = await toolset.initTools()
+				items.forEach((tool) => {
+					// const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)
+					tools.push(tool)
+				})
+			}
 		}
 
 		// Find an available copilot
@@ -442,7 +482,6 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			})
 		)
 
-		const tools = []
 		const supervisorName = 'general_agent'
 		// Xperts
 		const xperts = []

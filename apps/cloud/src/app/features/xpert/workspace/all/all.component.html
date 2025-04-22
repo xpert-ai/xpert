@@ -7,5 +7,10 @@
 <xpert-workspace-knowledges class="" />
 
 <xpert-workspace-mcp-tools inline />
+<div class="w-full flex justify-center cursor-pointer text-text-secondary hover:text-text-primary hover:underline"
+  [routerLink]="['/xpert/w/', workspaceId(), 'mcp']">
+  {{ 'PAC.MCP.MoreMCPTools' | translate: {Default: 'More MCP Tools'} }}...
+</div>
+
 <xpert-workspace-api-tools />
 <xpert-workspace-builtin-tools />

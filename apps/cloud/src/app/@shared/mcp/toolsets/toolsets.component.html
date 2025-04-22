@@ -1,9 +1,9 @@
-<div class="flex items-center px-12 py-4 text-lg font-semibold text-gray-500 uppercase">
+<div class="flex items-center py-4 text-lg font-semibold text-gray-500 uppercase">
   <div class="mr-3">{{ 'PAC.Xpert.MCPToolset' | translate: { Default: 'MCP Toolset' } }}</div>
   <div class="grow w-0 h-px bg-divider-regular"></div>
 </div>
 
-<div class="xpert-card-container"
+<div class="relative content-start gap-4 pt-2 pb-4 grow shrink-0"
   ngmDynamicGrid colWidth="280"
   box="content-box">
 
@@ -14,12 +14,10 @@
   />
 
   @for (toolset of toolsets(); track toolset.id) {
-    <xpert-toolset-card class="col-span-1 min-h-[160px] cursor-pointer bg-components-card-bg"
+    <xpert-toolset-card class="col-span-1 min-h-[140px] cursor-pointer bg-components-card-bg"
       [highlight]="searchText()"
       [toolset]="toolset"
       (click)="openToolset(toolset)"
     />
   }
 </div>
-
-<mcp-marketplace class="px-12" [workspace]="workspace()" [inline]="inline()" (refresh)="refresh()"/>

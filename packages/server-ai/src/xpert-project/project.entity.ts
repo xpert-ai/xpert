@@ -3,6 +3,8 @@ import {
 	IUser,
 	IXpert,
 	IXpertProject,
+	IXpertToolset,
+	IXpertWorkspace,
 	TXpertProjectSettings,
 	TXpertProjectStatus
 } from '@metad/contracts'
@@ -10,7 +12,8 @@ import { StorageFile, TenantOrganizationBaseEntity, User } from '@metad/server-c
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, RelationId } from 'typeorm'
-import { Xpert } from '../core/entities/internal'
+import { Xpert, XpertToolset, XpertWorkspace } from '../core/entities/internal'
+import { WorkspaceBaseEntity } from '../core/entities/base.entity'
 
 @Entity('xpert_project')
 export class XpertProject extends TenantOrganizationBaseEntity implements IXpertProject {
@@ -53,6 +56,23 @@ export class XpertProject extends TenantOrganizationBaseEntity implements IXpert
 	@Column({ nullable: true })
 	ownerId: string
 
+	@ApiProperty({ type: () => XpertWorkspace, readOnly: true })
+	@ManyToOne(() => XpertWorkspace, {
+		nullable: true,
+		onUpdate: 'CASCADE',
+		onDelete: 'CASCADE'
+	})
+	@JoinColumn()
+	@IsOptional()
+	workspace?: IXpertWorkspace
+
+	@ApiProperty({ type: () => String, readOnly: true })
+	@RelationId((it: WorkspaceBaseEntity) => it.workspace)
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	workspaceId?: string
+
 	/*
     |--------------------------------------------------------------------------
     | @ManyToMany 
@@ -78,4 +98,11 @@ export class XpertProject extends TenantOrganizationBaseEntity implements IXpert
 		name: 'xpert_project_file'
 	})
 	files?: IStorageFile[]
+
+	// Project's tools
+	@ManyToMany(() => XpertToolset)
+	@JoinTable({
+		name: 'xpert_project_toolset'
+	})
+	toolsets?: IXpertToolset[]
 }

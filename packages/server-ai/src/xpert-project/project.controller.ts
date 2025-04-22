@@ -1,12 +1,12 @@
-import { IXpertProject, OrderTypeEnum } from '@metad/contracts'
+import { IXpertProject, IXpertToolset, OrderTypeEnum } from '@metad/contracts'
 import { CrudController, PaginationParams, ParseJsonPipe, TransformInterceptor } from '@metad/server-core'
 import { Controller, Delete, Get, Logger, Param, Put, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { FindChatConversationQuery } from '../chat-conversation'
+import { ChatConversationPublicDTO } from '../chat-conversation/dto'
 import { XpertProject } from './project.entity'
 import { XpertProjectService } from './project.service'
-import { ChatConversationPublicDTO } from '../chat-conversation/dto'
 
 @ApiTags('XpertProject')
 @ApiBearerAuth()
@@ -39,12 +39,30 @@ export class XpertProjectController extends CrudController<XpertProject> {
 
 	@Get(':id/conversations')
 	async getConversations(@Param('id') id: string) {
-		const {items, total} = await this.queryBus.execute(new FindChatConversationQuery(
-			{ projectId: id },
-			{relations: ['createdBy'], order: {updatedAt: OrderTypeEnum.DESC}}))
+		const { items, total } = await this.queryBus.execute(
+			new FindChatConversationQuery(
+				{ projectId: id },
+				{ relations: ['createdBy'], order: { updatedAt: OrderTypeEnum.DESC } }
+			)
+		)
 		return {
 			items: items.map((_) => new ChatConversationPublicDTO(_)),
 			total
 		}
+	}
+
+	@Get(':id/toolsets')
+	async getToolsets(@Param('id') id: string, @Query('data', ParseJsonPipe) params: PaginationParams<IXpertToolset>) {
+		return this.service.getToolsets(id, params)
+	}
+
+	@Put(':id/toolsets/:toolset')
+	async updateToolsets(@Param('id') id: string, @Param('toolset') toolsetId: string) {
+		return this.service.addToolset(id, toolsetId)
+	}
+	
+	@Delete(':id/toolsets/:toolset')
+	async removeToolset(@Param('id') id: string, @Param('toolset') toolsetId: string) {
+		return this.service.removeToolset(id, toolsetId)
 	}
 }

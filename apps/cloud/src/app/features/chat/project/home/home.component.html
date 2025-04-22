@@ -1,4 +1,4 @@
-<div class="flex-1 flex gap-6 h-full flex-col justify-between items-stretch overflow-hidden">
+<div class="flex-1 flex gap-6 h-full flex-col justify-between items-stretch">
   <div class="flex flex-col sm:flex-row items-start gap-6 sm:gap-2 w-full p-1">
     <div class="flex-1 flex items-center gap-1 sm:gap-2 justify-start group min-w-0 w-full">
       <emoji-avatar editable class="rounded-xl overflow-hidden" 
@@ -34,7 +34,7 @@
     </button>
   </div>
 
-  <div class="flex-1 overflow-auto flex gap-6 flex-col">
+  <div class="flex-1 flex gap-6 flex-col">
 
     <pac-chat-project-xperts class="mt-12" />
 
@@ -96,13 +96,45 @@
                       <i class="ri-arrow-down-s-line"></i>
                     </button>
                   </div>
-                  <button
-                    class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full px-3.5 py-2 group/think-toggle transition-colors duration-100 relative overflow-hidden border bg-transparent hover:bg-button-ghost-hover border-border-l2"
+                  <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full px-3.5 py-2 group/think-toggle transition-colors duration-100 relative overflow-hidden border bg-transparent hover:bg-button-ghost-hover border-border-l2"
                     type="button"
                     tabindex="0"
                   >
                     <i class="ri-lightbulb-flash-line text-lg"></i><span>Think</span>
                   </button>
+
+                  <div class="flex ring-1 rounded-full items-center max-h-[36px] box-border transition-colors duration-100 relative overflow-hidden ring-inset ring-zinc-200">
+                    <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full px-3.5 py-2 group/ds-toggle transition-colors duration-100 focus-visible:ring-transparent box-border relative overflow-hidden rounded-r-none pr-3 bg-transparent hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
+                      type="button"
+                      tabindex="0"
+                      (click)="routeWorkspace()"
+                    >
+                      <i class="ri-hammer-line"></i>
+                      <span>
+                        @if (workspace()) {
+                          {{workspace().name}}
+                        } @else {
+                          Select workspace
+                        }
+                      </span>
+                    </button>
+                    <div class="h-4 w-[1px] bg-divider-deep focus:outline-none" tabindex="-1"></div>
+                    <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full px-3.5 py-2 transition-colors duration-100 relative overflow-hidden focus-visible:ring-transparent rounded-l-none pl-2 pr-3 bg-transparent hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
+                      type="button"
+                      [cdkMenuTriggerFor]="toolsMenu"
+                      [cdkMenuPosition]="[
+                        {
+                          originX: 'end',
+                          originY: 'bottom',
+                          overlayX: 'end',
+                          overlayY: 'center',
+                          offsetX: 3,
+                        }
+                      ]"
+                    >
+                      <i class="ri-arrow-down-s-line"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
               <div class="ml-auto flex flex-row items-end gap-1">
@@ -163,7 +195,7 @@
       </div>
     </div>
 
-    <div dir="ltr" data-orientation="horizontal" class="flex-1 overflow-hidden flex flex-col relative pt-1">
+    <div dir="ltr" data-orientation="horizontal" class="flex-1 flex flex-col relative pt-1">
       <div class="flex justify-between sm:ms-1">
         <div
           role="tablist"
@@ -171,7 +203,7 @@
           class="inline-flex items-center justify-center rounded-lg bg-ivory dark:bg-jet/20 p-1 text-secondary place-self-start !bg-transparent bg-none"
           tabindex="0"
         >
-          <button type="button" class="view-option p-2 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+          <button type="button" class="view-option pl-2 pr-4 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
             [class.active]="viewType() === 'attachments'"
             (click)="viewType.set('attachments')"
           >
@@ -179,7 +211,15 @@
             {{'PAC.XProject.Attachments' | translate: {Default: 'Attachments'} }}
           </button>
 
-          <button type="button" class="view-option p-2 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+          <button type="button" class="view-option pl-2 pr-4 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+            [class.active]="viewType() === 'tools'"
+            (click)="viewType.set('tools')"
+          >
+            <i class="ri-hammer-line text-lg"></i>
+            {{'PAC.XProject.Tools' | translate: {Default: 'Tools'} }}
+          </button>
+
+          <button type="button" class="view-option pl-2 pr-4 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
             [class.active]="viewType() === 'conversations'"
             (click)="viewType.set('conversations')"
           >
@@ -187,7 +227,7 @@
             {{'PAC.XProject.Conversations' | translate: {Default: 'Conversations'} }}
           </button>
 
-          <button type="button" class="view-option p-2 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+          <button type="button" class="view-option pl-2 pr-4 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
             [class.active]="viewType() === 'members'"
             (click)="viewType.set('members')"
           >
@@ -241,6 +281,9 @@
             </section>
           </div>
         }
+        @case ('tools') {
+          <chat-project-tools />
+        }
         @case ('conversations') {
           <div role="tabpanel" tabindex="0" class="mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 overflow-auto pb-5">
             <div class="flex-1 flex flex-col gap-1 h-full py-2 overflow-y-auto">
@@ -276,8 +319,17 @@
           </div>
         }
       }
-      
     </div>
-
   </div>
 </div>
+
+
+<ng-template #toolsMenu>
+  <div cdkMenu class="cdk-menu__large">
+    @for (workspace of workspaces(); track workspace.id) {
+      <div cdkMenuItem (click)="selectWorkspace(workspace)">
+        {{ workspace.name }}
+      </div>
+    }
+  </div>
+</ng-template>
