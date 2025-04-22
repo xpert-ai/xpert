@@ -3,14 +3,15 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, effect, inject, signal, ViewContainerRef } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
-import { injectProjectService } from '@cloud/app/@core'
+import { DateRelativePipe, injectProjectService } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { UserPipe } from '@cloud/app/@shared/pipes'
 import { attrModel } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { shareReplay, switchMap, map } from 'rxjs'
 import { injectParams } from 'ngxtension/inject-params'
 import { ChatProjectComponent } from '../project.component'
 import { ChatProjectXpertsComponent } from '../xperts/xperts.component'
@@ -30,6 +31,7 @@ import { ChatProjectXpertsComponent } from '../xperts/xperts.component'
     TranslateModule,
     EmojiAvatarComponent,
     UserPipe,
+    DateRelativePipe,
     ChatProjectXpertsComponent
   ],
   selector: 'pac-chat-project-home',
@@ -51,6 +53,13 @@ export class ChatProjectHomeComponent {
 
   readonly avatar = attrModel(this.project, 'avatar')
   readonly name = attrModel(this.project, 'name')
+
+  // Conversations
+  readonly conversations$ = toObservable(this.id).pipe(
+    switchMap((id) => this.projectSercice.getConversations(id)),
+    map(({items}) => items),
+    shareReplay(1)
+  )
 
   // View
   readonly viewType = signal<'attachments' | 'conversations' | 'members'>('attachments')

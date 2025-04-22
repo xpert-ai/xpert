@@ -6,9 +6,10 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'
 import { IXpert, XpertAgentExecutionService, XpertAgentExecutionStatusEnum } from '../../../@core'
 import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } from '../../xpert'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 @Component({
-  selector: 'chat-message-execution',
+  selector: 'chat-message-execution-panel',
   templateUrl: './execution.component.html',
   styleUrls: ['./execution.component.scss'],
   standalone: true,
@@ -24,11 +25,13 @@ import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } f
 export class ChatMessageExecutionPanelComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
 
+  readonly #data = inject<{id: string; xpert: IXpert}>(DIALOG_DATA, {optional: true})
+  readonly #dialogRef = inject(DialogRef, {optional: true})
   readonly agentExecutionService = inject(XpertAgentExecutionService)
 
   // Inputs
-  readonly id = input<string>()
-  readonly xpert = input<Partial<IXpert>>()
+  readonly id = input<string>(this.#data?.id) // ID of XpertAgentExecution
+  readonly xpert = input<Partial<IXpert>>(this.#data?.xpert)
 
   // Output
   readonly close = output<void>()
@@ -45,7 +48,7 @@ export class ChatMessageExecutionPanelComponent {
     return []
   })
 
-  readonly pageType = signal<'overview' | 'steps'>('overview')
+  readonly pageType = signal<'primary' | 'members'>('primary')
 
   readonly execution = computed(() => {
     const execution = this.#execution()
@@ -57,6 +60,7 @@ export class ChatMessageExecutionPanelComponent {
         }
       : null
   })
+
   readonly executions = computed(() => {
     const agents = this.agents()
     return this.#execution()?.subExecutions?.map((exec) => ({
@@ -64,4 +68,9 @@ export class ChatMessageExecutionPanelComponent {
       agent: exec.agent ?? agents.find((node) => node.key === exec.agentKey)
     }))
   })
+
+  onClose() {
+    this.close.emit()
+    this.#dialogRef?.close()
+  }
 }

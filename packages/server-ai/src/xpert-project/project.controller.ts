@@ -1,10 +1,12 @@
-import { IXpertProject } from '@metad/contracts'
+import { IXpertProject, OrderTypeEnum } from '@metad/contracts'
 import { CrudController, PaginationParams, ParseJsonPipe, TransformInterceptor } from '@metad/server-core'
 import { Controller, Delete, Get, Logger, Param, Put, Query, UseInterceptors } from '@nestjs/common'
-import { CommandBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
+import { FindChatConversationQuery } from '../chat-conversation'
 import { XpertProject } from './project.entity'
 import { XpertProjectService } from './project.service'
+import { ChatConversationPublicDTO } from '../chat-conversation/dto'
 
 @ApiTags('XpertProject')
 @ApiBearerAuth()
@@ -14,7 +16,8 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	readonly #logger = new Logger(XpertProjectController.name)
 	constructor(
 		private readonly service: XpertProjectService,
-		private readonly commandBus: CommandBus
+		private readonly commandBus: CommandBus,
+		private readonly queryBus: QueryBus
 	) {
 		super(service)
 	}
@@ -32,5 +35,16 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	@Delete(':id/xperts/:xpert')
 	async removeXpert(@Param('id') id: string, @Param('xpert') xpertId: string) {
 		return this.service.removeXpert(id, xpertId)
+	}
+
+	@Get(':id/conversations')
+	async getConversations(@Param('id') id: string) {
+		const {items, total} = await this.queryBus.execute(new FindChatConversationQuery(
+			{ projectId: id },
+			{relations: ['createdBy'], order: {updatedAt: OrderTypeEnum.DESC}}))
+		return {
+			items: items.map((_) => new ChatConversationPublicDTO(_)),
+			total
+		}
 	}
 }

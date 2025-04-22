@@ -35,13 +35,14 @@ import {
   XpertAgentExecutionStatusEnum
 } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar'
-import { ChatMessageExecutionComponent } from '../../@shared/chat'
+import { ChatMessageExecutionComponent, ChatMessageExecutionPanelComponent } from '../../@shared/chat'
 import { Copy2Component, CopyComponent } from '../../@shared/common'
 import { ChatService } from '../chat.service'
 import { ChatComponentMessageComponent } from '../component-message/component-message.component'
 import { XpertHomeService } from '../home.service'
 import { XpertOcapService } from '../ocap.service'
 import { TCopilotChatMessage } from '../types'
+import { Dialog } from '@angular/cdk/dialog'
 
 @Component({
   standalone: true,
@@ -79,6 +80,7 @@ export class ChatAiMessageComponent {
   readonly messageFeedbackService = inject(ChatMessageFeedbackService)
   readonly agentExecutionService = inject(XpertAgentExecutionService)
   readonly #toastr = injectToastr()
+  readonly #dialog = inject(Dialog)
 
   // Inputs
   readonly message = input<TCopilotChatMessage>()
@@ -87,7 +89,7 @@ export class ChatAiMessageComponent {
   })
 
   // States
-  readonly role = this.chatService.xpert
+  readonly xpert = this.chatService.xpert
   readonly feedbacks = this.chatService.feedbacks
   readonly executionId = computed(() => this.message()?.executionId)
   readonly status = computed(() => this.message()?.status)
@@ -178,7 +180,6 @@ export class ChatAiMessageComponent {
 
   // Agents
   readonly conversation = this.chatService.conversation
-  readonly xpert = this.chatService.xpert
   readonly agents = computed(
     () =>
       this.xpert()?.agents?.reduce((acc, agent) => {
@@ -261,5 +262,19 @@ export class ChatAiMessageComponent {
     if (message.type === 'text') {
       this.collapseMessages.update((state) => ({ ...state, [message.id]: !state[message.id] }))
     }
+  }
+
+  openLogs() {
+    this.#dialog.open(ChatMessageExecutionPanelComponent, {
+      panelClass: 'chat-message-executions-dialog',
+      data: {
+        id: this.message().executionId,
+        xpert: this.xpert()
+      }
+    }).closed.subscribe({
+      next: () => {
+        
+      }
+    })
   }
 }

@@ -852,6 +852,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		} as TSubAgent
 	}
 
+	/**
+	 * @deprecated use CreateSummarizeTitleAgentCommand
+	 */
 	async createTitleAgent(xpert: IXpert, options: {rootController: AbortController; rootExecutionId: string; agentKey?: string;}) {
 		const {rootController, rootExecutionId, agentKey} = options
 		const execution = {} as TXpertAgentExecution

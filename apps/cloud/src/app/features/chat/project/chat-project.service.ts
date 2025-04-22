@@ -21,6 +21,7 @@ export class ChatProjectService extends ChatService {
   readonly paramId = injectParams('c')
 
   readonly xperts = this.homeService.xperts
+  readonly project = this.projectService.project
 
   private roleSub = toObservable(this.xpert)
     .pipe(
@@ -92,9 +93,9 @@ export class ChatProjectService extends ChatService {
     this.conversationId.set(null)
     this.conversation.set(null)
     if (xpert?.slug) {
-      this.#router.navigate(['/chat/x', xpert.slug])
+      this.#router.navigate(['/chat/p', this.project().id,'/x', xpert.slug])
     } else {
-      this.#router.navigate(['/chat'])
+      this.#router.navigate(['/chat/p', this.project().id])
     }
   }
 }

@@ -4,6 +4,7 @@ import {
 	ChatMessageTypeEnum,
 	IXpert,
 	mapTranslationLanguage,
+	messageContentText,
 	TMessageContentComplex,
 	TSensitiveOperation,
 	XpertAgentExecutionStatusEnum
@@ -19,7 +20,6 @@ import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/quer
 import { XpertAgentChatCommand } from '../chat.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentExecutionDTO } from '../../../xpert-agent-execution/dto'
-import { messageContentText } from '../../agent'
 
 @CommandHandler(XpertAgentChatCommand)
 export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatCommand> {

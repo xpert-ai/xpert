@@ -28,7 +28,7 @@ export class XpertAgentExecutionDTO {
 	@Expose()
 	summary?: string
 
-	@Transform(({value}) => new XpertAgentIdentiDto(value))
+	@Transform(({value}) => value ? new XpertAgentIdentiDto(value) : null)
 	@Expose()
 	agent?: IXpertAgent
 

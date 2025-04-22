@@ -1,5 +1,11 @@
 import { inject, Injectable } from '@angular/core'
-import { IXpert, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
+import {
+  IChatConversation,
+  IXpert,
+  OrganizationBaseCrudService,
+  PaginationParams,
+  toHttpParams
+} from '@metad/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, switchMap } from 'rxjs'
 import { API_XPERT_PROJECT } from '../constants/app.constants'
@@ -28,7 +34,9 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
   }
 
   getXperts(id: string, params: PaginationParams<IXpertProject>) {
-    return this.httpClient.get<{items: IXpert[]; total: number;}>(this.apiBaseUrl + `/${id}/xperts`, {params: toHttpParams(params)})
+    return this.httpClient.get<{ items: IXpert[]; total: number }>(this.apiBaseUrl + `/${id}/xperts`, {
+      params: toHttpParams(params)
+    })
   }
 
   addXpert(id: string, xpertId: string) {
@@ -37,6 +45,10 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
 
   removeXpert(id: string, xpertId: string) {
     return this.httpClient.delete(this.apiBaseUrl + `/${id}/xperts/${xpertId}`)
+  }
+
+  getConversations(id: string) {
+    return this.httpClient.get<{ items: IChatConversation[]; total: number }>(this.apiBaseUrl + `/${id}/conversations`)
   }
 }
 

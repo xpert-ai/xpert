@@ -19,9 +19,18 @@ import {
 } from '@metad/contracts'
 import { isFunction } from '@metad/server-common'
 
+/**
+ * @deprecated move to contracts package
+ */
 export const STATE_VARIABLE_INPUT = 'input'
+/**
+ * @deprecated move to contracts package
+ */
 export const STATE_VARIABLE_TITLE_CHANNEL = channelName('title')
 
+/**
+ * @deprecated move to contracts package
+ */
 export type TSystemState = {
 	language: string
 	user_email: string
@@ -31,6 +40,9 @@ export type TSystemState = {
 	common_times: string
 }
 
+/**
+ * @deprecated move to contracts package
+ */
 export const AgentStateAnnotation = Annotation.Root({
 	messages: Annotation<BaseMessage[]>({
 		reducer: messagesStateReducer,

@@ -88,7 +88,7 @@
                     >
                       <i class="ri-menu-search-line text-lg"></i><span>DeepSearch</span>
                     </button>
-                    <div class="h-4 w-[1px] bg-divider-regular focus:outline-none" tabindex="-1"></div>
+                    <div class="h-4 w-[1px] bg-divider-deep focus:outline-none" tabindex="-1"></div>
                     <button
                       class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full px-3.5 py-2 transition-colors duration-100 relative overflow-hidden focus-visible:ring-transparent rounded-l-none pl-2 pr-3 bg-transparent hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
                       type="button"
@@ -201,10 +201,6 @@
           type="button"
           aria-label="Attach"
           tabindex="0"
-          id="radix-:r103:"
-          aria-haspopup="menu"
-          aria-expanded="false"
-          data-state="closed"
         >
           <i class="ri-attachment-line text-lg"></i>
           Attach
@@ -247,32 +243,26 @@
         }
         @case ('conversations') {
           <div role="tabpanel" tabindex="0" class="mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 overflow-auto pb-5">
-            <div
-              class="flex-1 flex flex-col gap-1 h-full overflow-y-auto [mask-image:linear-gradient(to_bottom,transparent,black_8px,black_calc(100%_-_8px),transparent)] [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_8px,black_calc(100%_-_8px),transparent)] py-2"
-            >
-              <div>
+            <div class="flex-1 flex flex-col gap-1 h-full py-2 overflow-y-auto">
+              @for (conversation of conversations$ | async; track conversation.id) {
                 <div class="h-[48px] rounded-2xl grid grid-cols-1 grid-rows-1 hover:bg-button-ghost-hover">
-                  <a
-                    class="col-start-1 col-end-2 row-start-1 row-end-2 block z-10"
-                    href="/chat/3e2b3f7f-3830-42db-85e9-cf5a1cdc5070"
+                  <a class="col-start-1 col-end-2 row-start-1 row-end-2 block z-10"
+                    [routerLink]="['/chat/p', id(), 'c', conversation.id]"
                   ></a>
-                  <div
-                    class="flex cursor-pointer items-center gap-2 col-start-1 col-end-2 row-start-1 row-end-2 p-4 rounded-2xl"
-                  >
+                  <div class="flex cursor-pointer items-center gap-2 col-start-1 col-end-2 row-start-1 row-end-2 p-4 rounded-2xl">
                     <div class="flex-grow min-w-0">
                       <div class="flex items-center gap-2 w-full">
-                        <div class="truncate text-primary">xxxxxxx</div>
+                        <div class="truncate text-primary">{{ conversation.title || (conversation.createdBy | user) }}</div>
                       </div>
                     </div>
                     <div class="z-20">
-                      <span
-                        class="text-secondary whitespace-nowrap ml-2 hidden text-sm md:inline md:group-hover/item:hidden md:group-focus/item:hidden md:group-active/item:hidden"
-                        >1 hour ago</span
-                      >
+                      <span class="text-secondary whitespace-nowrap ml-2 hidden text-sm md:inline md:group-hover/item:hidden md:group-focus/item:hidden md:group-active/item:hidden">
+                        {{ conversation.createdAt | relative }}
+                      </span>
                     </div>
                   </div>
                 </div>
-              </div>
+              }
             </div>
           </div>
         }

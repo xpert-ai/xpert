@@ -7,6 +7,7 @@ import {
 	IChatConversation,
 	IXpert,
 	LongTermMemoryTypeEnum,
+	messageContentText,
 	TChatConversationStatus,
 	TSensitiveOperation,
 	XpertAgentExecutionStatusEnum
@@ -25,7 +26,7 @@ import {
 } from '../../../chat-conversation/'
 import { appendMessageSteps, ChatMessageUpsertCommand } from '../../../chat-message'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
-import { messageContentText, XpertAgentChatCommand } from '../../../xpert-agent/'
+import { XpertAgentChatCommand } from '../../../xpert-agent/'
 import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
 import { appendMessageContent } from '@metad/copilot'
