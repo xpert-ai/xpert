@@ -15,6 +15,7 @@
     "@langchain/core": "0.3.40",
     "@langchain/community": "0.3.27",
     "@langchain/langgraph": "0.2.53",
+    "@langchain/langgraph-supervisor": "0.0.11",
     "@langchain/langgraph-swarm": "0.0.3",
     "@langchain/mcp-adapters": "0.4.2",
     "@langchain/google-genai": "0.1.6",

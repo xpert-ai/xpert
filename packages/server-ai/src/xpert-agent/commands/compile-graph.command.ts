@@ -24,7 +24,7 @@ export class CompileGraphCommand implements ICommand {
 			// Use xpert's draft
 			isDraft?: boolean
 			// The subscriber response to client
-			subscriber?: Subscriber<MessageEvent>
+			subscriber: Subscriber<MessageEvent>
 			/**
 			 * Control the entire graph
 			 */

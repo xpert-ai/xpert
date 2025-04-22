@@ -1,45 +1,37 @@
-import { computed, DestroyRef, effect, inject, Injectable, model, signal } from '@angular/core'
-import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { nonNullable } from '@metad/ocap-core'
+import { HttpErrorResponse } from '@angular/common/http'
+import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core'
+import { appendMessageContent } from '@metad/copilot'
+import { linkedModel } from '@metad/core'
+import { omit } from 'lodash-es'
+import { NGXLogger } from 'ngx-logger'
+import { derivedAsync } from 'ngxtension/derived-async'
+import { catchError, combineLatest, map, of, startWith, Subscription } from 'rxjs'
 import {
-  BehaviorSubject,
-  catchError,
-  combineLatest,
-  filter,
-  map,
-  of,
-  skip,
-  startWith,
-  Subscription,
-  switchMap,
-  tap,
-} from 'rxjs'
-import {
+  ChatMessageEventTypeEnum,
+  ChatMessageTypeEnum,
   getErrorMessage,
   IChatConversation,
+  IChatMessageFeedback,
+  IKnowledgebase,
   IXpert,
   IXpertToolset,
-  IKnowledgebase,
-  ChatMessageTypeEnum,
-  ChatMessageEventTypeEnum,
-  XpertAgentExecutionStatusEnum,
-  IChatMessageFeedback,
   TChatOptions,
   TChatRequest,
-  uuid,
-  TSensitiveOperation,
   TMessageContent,
+  TSensitiveOperation,
+  uuid,
+  XpertAgentExecutionStatusEnum
 } from '../@core'
-import { ChatConversationService, ChatService as ChatServerService, XpertService, ToastrService, ChatMessageFeedbackService } from '../@core/services'
+import {
+  ChatConversationService,
+  ChatMessageFeedbackService,
+  ChatService as ChatServerService,
+  ToastrService,
+  XpertService
+} from '../@core/services'
 import { AppService } from '../app.service'
-import { NGXLogger } from 'ngx-logger'
-import { omit, sortBy } from 'lodash-es'
-import { HttpErrorResponse } from '@angular/common/http'
 import { XpertHomeService } from './home.service'
 import { TCopilotChatMessage } from './types'
-import { appendMessageContent } from '@metad/copilot'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { linkedModel } from '@metad/core'
 
 /**
  * The context of a single chat is not shared between conversations
@@ -59,19 +51,10 @@ export abstract class ChatService {
   // Current conv id
   readonly conversationId = this.homeService.conversationId
 
-  // readonly xpert$ = new BehaviorSubject<IXpert>(null)
-
-
   /**
    * User feedbacks for messages of the conversation
    */
   readonly feedbacks = signal<Record<string, IChatMessageFeedback>>(null)
-
-  /**
-   * Messages in the conversation
-   */
-  // readonly #messages = signal<TCopilotChatMessage[]>([])
-  // readonly messages = computed(() => this.#messages() ?? [])
 
   /**
    * @deprecated 需重构使用方式
@@ -86,43 +69,53 @@ export abstract class ChatService {
   protected chatSubscription: Subscription = null
 
   readonly lang = this.appService.lang
-  // readonly xpert = toSignal(this.xpert$)
 
   // loading conversation from remote by id
-  readonly #conversation = derivedAsync<{conversation?: IChatConversation; feedbacks?: Record<string, IChatMessageFeedback>; loading: boolean}>(() => {
+  readonly #conversation = derivedAsync<{
+    conversation?: IChatConversation
+    feedbacks?: Record<string, IChatMessageFeedback>
+    loading: boolean
+  }>(() => {
     const id = this.conversationId()
-    return id ? combineLatest([
-        this.getConversation(id)
-          .pipe(
+    return id
+      ? combineLatest([
+          this.getConversation(id).pipe(
             catchError((httpError: HttpErrorResponse) => {
               if (httpError.status === 404) {
-                this.#toastr.error('PAC.Messages.NoPermissionOrNotExist', 'PAC.KEY_WORDS.Conversation', {Default: 'No permission or does not exist'})
+                this.#toastr.error('PAC.Messages.NoPermissionOrNotExist', 'PAC.KEY_WORDS.Conversation', {
+                  Default: 'No permission or does not exist'
+                })
               } else {
                 this.#toastr.error(getErrorMessage(httpError))
               }
               return of(null)
             })
           ),
-      this.getFeedbacks(id).pipe(map((feedbacks) => feedbacks?.items.reduce((acc, feedback) => {
-        acc[feedback.messageId] = feedback
-        return acc
-      }, {})))
-    ]).pipe(
-      map(([conversation, feedbacks]) => {
-        return {
-          conversation,
-          feedbacks,
-          loading: false
-        }
-      }),
-      catchError((error) => {
-        this.#toastr.error(getErrorMessage(error))
-        return of({loading: false})
-      }),
-      startWith({
-        loading: true
-      })
-    ) : of({loading: false})
+          this.getFeedbacks(id).pipe(
+            map((feedbacks) =>
+              feedbacks?.items.reduce((acc, feedback) => {
+                acc[feedback.messageId] = feedback
+                return acc
+              }, {})
+            )
+          )
+        ]).pipe(
+          map(([conversation, feedbacks]) => {
+            return {
+              conversation,
+              feedbacks,
+              loading: false
+            }
+          }),
+          catchError((error) => {
+            this.#toastr.error(getErrorMessage(error))
+            return of({ loading: false })
+          }),
+          startWith({
+            loading: true
+          })
+        )
+      : of({ loading: false })
   })
 
   /**
@@ -147,7 +140,7 @@ export abstract class ChatService {
     initialValue: null,
     compute: () => this.conversation()?.messages ?? [],
     update: (value) => {
-      this.conversation.update((state) => ({...(state ?? {}), messages: value} as IChatConversation))
+      this.conversation.update((state) => ({ ...(state ?? {}), messages: value }) as IChatConversation)
     }
   })
 
@@ -157,74 +150,20 @@ export abstract class ChatService {
     initialValue: null,
     compute: () => this.conversation()?.options?.parameters ?? {},
     update: (value) => {
-      this.conversation.update((state) => ({...(state ?? {}), options: {
-        ...(state?.options ?? {}),
-        parameters: value
-      }} as IChatConversation))
+      this.conversation.update(
+        (state) =>
+          ({
+            ...(state ?? {}),
+            options: {
+              ...(state?.options ?? {}),
+              parameters: value
+            }
+          }) as IChatConversation
+      )
     }
   })
 
   readonly xpert = signal<IXpert>(null)
-
-  // private idSub = toObservable(this.conversationId)
-  //   .pipe(
-  //     skip(1),
-  //     filter((id) => false && (!this.conversation() || this.conversation().id !== id)),
-  //     switchMap((id) =>
-  //       id ? combineLatest([
-  //           this.getConversation(id)
-  //           .pipe(
-  //             catchError((httpError: HttpErrorResponse) => {
-  //               if (httpError.status === 404) {
-  //                 this.#toastr.error('PAC.Messages.NoPermissionOrNotExist', 'PAC.KEY_WORDS.Conversation', {Default: 'No permission or does not exist'})
-  //               } else {
-  //                 this.#toastr.error(getErrorMessage(httpError))
-  //               }
-  //               return of(null)
-  //             })
-  //           ),
-  //         this.getFeedbacks(id)
-  //       ]).pipe(
-  //         catchError((error) => {
-  //           this.#toastr.error(getErrorMessage(error))
-  //           return of([])
-  //         }), 
-  //       ) : of([])
-  //     ),
-  //     tap(([conv, feedbacks]) => {
-  //       this.loadingConv.set(false)
-  //       if (conv) {
-  //         this.conversation.set(conv)
-  //         this.#messages.set(sortBy(conv.messages, 'createdAt'))
-  //         this.parametersValue.set(conv.options?.parameters ?? {})
-  //         this.knowledgebases.set(
-  //           conv.options?.knowledgebases?.map((id) => conv.xpert?.knowledgebases?.find((item) => item.id === id)).filter(nonNullable)
-  //         )
-  //         this.toolsets.set(conv.options?.toolsets?.map((id) => conv.xpert?.toolsets?.find((item) => item.id === id)))
-  //       } else {
-  //         // New empty conversation
-  //         this.conversation.set({} as IChatConversation)
-  //         this.#messages.set([])
-  //       }
-
-  //       this.feedbacks.set(feedbacks?.items.reduce((acc, feedback) => {
-  //         acc[feedback.messageId] = feedback
-  //         return acc
-  //       }, {}))
-  //     }),
-  //     takeUntilDestroyed()
-  //   )
-  //   .subscribe({
-  //     next: ([conversation]) => {
-  //       if (conversation) {
-  //         this.xpert$.next(conversation?.xpert)
-  //       }
-  //     },
-  //     error: (error) => {
-  //       this.loadingConv.set(false)
-  //       this.#toastr.error(getErrorMessage(error))
-  //     }
-  //   })
 
   constructor() {
     this.#destroyRef.onDestroy(() => {
@@ -233,33 +172,57 @@ export abstract class ChatService {
       }
     })
 
-    effect(() => {
-      if (this.conversation()?.xpert && !this.xpert()) {
-        this.xpert.set(this.conversation().xpert)
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        if (this.conversation()?.xpert && !this.xpert()) {
+          this.xpert.set(this.conversation().xpert)
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   getConversation(id: string) {
-    // this.loadingConv.set(true)
-    return this.conversationService.getById(id, { relations: ['xpert', 'xpert.agent', 'xpert.agents', 'xpert.knowledgebases', 'xpert.toolsets', 'messages'] })
+    return this.conversationService.getById(id, {
+      relations: ['xpert', 'xpert.agent', 'xpert.agents', 'xpert.knowledgebases', 'xpert.toolsets', 'messages']
+    })
   }
 
   getFeedbacks(id: string) {
-    return this.feedbackService.getMyAll({ where: { conversationId: id, } })
+    return this.feedbackService.getMyAll({ where: { conversationId: id } })
+  }
+
+  ask(content: string) {
+    const id = uuid()
+    this.appendMessage({
+      id,
+      role: 'user',
+      content
+    })
+    // Send message
+    this.chat({ id, content })
   }
 
   chatRequest(name: string, request: TChatRequest, options: TChatOptions) {
     return this.chatService.chat(request, options)
   }
 
-  chat(options: Partial<{id: string; content: string; confirm: boolean; operation: TSensitiveOperation; reject: boolean; retry: boolean}>) {
+  chat(
+    options: Partial<{
+      id: string
+      content: string
+      confirm: boolean
+      operation: TSensitiveOperation
+      reject: boolean
+      retry: boolean
+    }>
+  ) {
     this.answering.set(true)
-    this.conversation.update((state) => ({...(state ?? {}), status: 'busy'} as IChatConversation))
+    this.conversation.update((state) => ({ ...(state ?? {}), status: 'busy' }) as IChatConversation)
 
     if (options.confirm) {
       this.updateLatestMessage((message) => {
-        return{
+        return {
           ...message,
           status: 'thinking'
         }
@@ -274,10 +237,12 @@ export abstract class ChatService {
       // })
     }
 
-    this.chatSubscription = this.chatRequest(this.xpert()?.slug, {
+    this.chatSubscription = this.chatRequest(
+      this.xpert()?.slug,
+      {
         input: {
           ...(this.parametersValue() ?? {}),
-          input: options.content,
+          input: options.content
         },
         xpertId: this.xpert()?.id,
         conversationId: this.conversation()?.id,
@@ -285,121 +250,122 @@ export abstract class ChatService {
         operation: options.operation,
         confirm: options.confirm,
         reject: options.reject,
-        retry: options.retry,
-      }, {
+        retry: options.retry
+      },
+      {
         knowledgebases: this.knowledgebases()?.map(({ id }) => id),
         toolsets: this.toolsets()?.map(({ id }) => id)
-      })
-      .subscribe({
-        next: (msg) => {
-          if (msg.event === 'error') {
-            this.#toastr.error(msg.data)
-          } else {
-            if (msg.data) {
-              // Ignore non-data events 
-              if (msg.data.startsWith(':')) {
-                return
+      }
+    ).subscribe({
+      next: (msg) => {
+        if (msg.event === 'error') {
+          this.#toastr.error(msg.data)
+        } else {
+          if (msg.data) {
+            // Ignore non-data events
+            if (msg.data.startsWith(':')) {
+              return
+            }
+            const event = JSON.parse(msg.data)
+            if (event.type === ChatMessageTypeEnum.MESSAGE) {
+              if (typeof event.data === 'string') {
+                this.appendStreamMessage(event.data)
+              } else {
+                this.appendMessageComponent(event.data)
               }
-              const event = JSON.parse(msg.data)
-              if (event.type === ChatMessageTypeEnum.MESSAGE) {
-                if (typeof event.data === 'string') {
-                  this.appendStreamMessage(event.data)
-                } else {
-                  this.appendMessageComponent(event.data)
-                }
-              } else if (event.type === ChatMessageTypeEnum.EVENT) {
-                switch(event.event) {
-                  case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
-                  case ChatMessageEventTypeEnum.ON_CONVERSATION_END:
-                    this.updateConversation(omit(event.data, 'messages'))
-                    if (event.data.status === 'error') {
-                      this.updateLatestMessage((lastM) => {
-                        return {
-                          ...lastM,
-                          status: XpertAgentExecutionStatusEnum.ERROR
-                        }
-                      })
-                    }
-                    break
-                  case ChatMessageEventTypeEnum.ON_MESSAGE_START:
-                    if (options.content) {
-                      this.appendMessage({
-                        id: uuid(),
-                        role: 'ai',
-                        content: ``,
-                        status: 'thinking'
-                      })
-                    }
+            } else if (event.type === ChatMessageTypeEnum.EVENT) {
+              switch (event.event) {
+                case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
+                case ChatMessageEventTypeEnum.ON_CONVERSATION_END:
+                  this.updateConversation(omit(event.data, 'messages'))
+                  if (event.data.status === 'error') {
                     this.updateLatestMessage((lastM) => {
                       return {
                         ...lastM,
-                        ...event.data
+                        status: XpertAgentExecutionStatusEnum.ERROR
                       }
                     })
-                    break;
-                  case ChatMessageEventTypeEnum.ON_MESSAGE_END:
-                    this.updateLatestMessage((lastM) => {
-                      return {
-                        ...lastM,
-                        status: event.data.status,
-                        error: event.data.error,
-                      }
-                    })
-                    break;
-                  case ChatMessageEventTypeEnum.ON_AGENT_START:
-                  case ChatMessageEventTypeEnum.ON_AGENT_END: {
-                    const execution = event.data
-                    this.updateLatestMessage((message) => {
-                      const executions = (message.executions ?? []).filter((_) => _.id !== execution.id)
-                      return {
-                        ...message,
-                        executions: executions.concat(execution)
-                      }
-                    })
-                    break
                   }
-                  case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
-                    this.updateLatestMessage((message) => {
-                      return {
-                        ...message,
-                        steps: [...(message.steps ?? []), event.data]
-                      }
+                  break
+                case ChatMessageEventTypeEnum.ON_MESSAGE_START:
+                  if (options.content) {
+                    this.appendMessage({
+                      id: uuid(),
+                      role: 'ai',
+                      content: ``,
+                      status: 'thinking'
                     })
+                  }
+                  this.updateLatestMessage((lastM) => {
+                    return {
+                      ...lastM,
+                      ...event.data
+                    }
+                  })
+                  break
+                case ChatMessageEventTypeEnum.ON_MESSAGE_END:
+                  this.updateLatestMessage((lastM) => {
+                    return {
+                      ...lastM,
+                      status: event.data.status,
+                      error: event.data.error
+                    }
+                  })
+                  break
+                case ChatMessageEventTypeEnum.ON_AGENT_START:
+                case ChatMessageEventTypeEnum.ON_AGENT_END: {
+                  const execution = event.data
+                  this.updateLatestMessage((message) => {
+                    const executions = (message.executions ?? []).filter((_) => _.id !== execution.id)
+                    return {
+                      ...message,
+                      executions: executions.concat(execution)
+                    }
+                  })
+                  break
+                }
+                case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
+                  this.updateLatestMessage((message) => {
+                    return {
+                      ...message,
+                      steps: [...(message.steps ?? []), event.data]
+                    }
+                  })
 
-                    if (event.data && !this.homeService.canvasOpened()) {
-                      this.homeService.canvasOpened.set({type: 'Computer', opened: true})
-                    }
-                    break
+                  if (event.data && !this.homeService.canvasOpened()) {
+                    this.homeService.canvasOpened.set({ type: 'Computer', opened: true })
                   }
-                  default:
-                    this.updateEvent(event)
+                  break
                 }
+                default:
+                  this.updateEvent(event)
               }
             }
           }
-        },
-        error: (error) => {
-          this.answering.set(false)
-          this.#toastr.error(getErrorMessage(error))
-          this.updateLatestMessage((message) => {
-            return {
-              ...message,
-              status: XpertAgentExecutionStatusEnum.ERROR,
-              error: getErrorMessage(error)
-            }
-          })
-        },
-        complete: () => {
-          this.answering.set(false)
-          this.updateLatestMessage((message) => {
-            return {
-              ...message,
-              status: XpertAgentExecutionStatusEnum.SUCCESS,
-              error: null
-            }
-          })
         }
-      })
+      },
+      error: (error) => {
+        this.answering.set(false)
+        this.#toastr.error(getErrorMessage(error))
+        this.updateLatestMessage((message) => {
+          return {
+            ...message,
+            status: XpertAgentExecutionStatusEnum.ERROR,
+            error: getErrorMessage(error)
+          }
+        })
+      },
+      complete: () => {
+        this.answering.set(false)
+        this.updateLatestMessage((message) => {
+          return {
+            ...message,
+            status: XpertAgentExecutionStatusEnum.SUCCESS,
+            error: null
+          }
+        })
+      }
+    })
   }
 
   cancelMessage() {
@@ -433,10 +399,13 @@ export abstract class ChatService {
   }
 
   updateConversation(data: Partial<IChatConversation>) {
-    this.conversation.update((state) => ({
-      ...(state ?? {}),
-      ...data,
-    } as IChatConversation))
+    this.conversation.update(
+      (state) =>
+        ({
+          ...(state ?? {}),
+          ...data
+        }) as IChatConversation
+    )
   }
 
   appendMessageComponent(content: TMessageContent) {
@@ -461,9 +430,7 @@ export abstract class ChatService {
             ...lastContent,
             text: lastContent.text + text
           }
-          lastM.content = [
-            ...content,
-          ]
+          lastM.content = [...content]
         } else {
           lastM.content = [
             ...content,
@@ -501,10 +468,7 @@ export abstract class ChatService {
   }
 
   appendMessage(message: TCopilotChatMessage) {
-    this.#messages.update((messages) => [
-      ...(messages ?? []),
-      message
-    ])
+    this.#messages.update((messages) => [...(messages ?? []), message])
   }
 
   updateEvent(event) {
@@ -512,10 +476,13 @@ export abstract class ChatService {
     this.updateLatestMessage((lastMessage) => {
       return {
         ...lastMessage,
-        event: event.event === ChatMessageEventTypeEnum.ON_AGENT_END ? null : {
-          name: event.event,
-          message: event.data.name
-        },
+        event:
+          event.event === ChatMessageEventTypeEnum.ON_AGENT_END
+            ? null
+            : {
+                name: event.event,
+                message: event.data.name
+              },
         error: event.data.error
       }
     })

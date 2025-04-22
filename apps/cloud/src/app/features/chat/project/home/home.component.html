@@ -1,0 +1,293 @@
+<div class="flex-1 flex gap-6 h-full flex-col justify-between items-stretch overflow-hidden">
+  <div class="flex flex-col sm:flex-row items-start gap-6 sm:gap-2 w-full p-1">
+    <div class="flex-1 flex items-center gap-1 sm:gap-2 justify-start group min-w-0 w-full">
+      <emoji-avatar editable class="rounded-xl overflow-hidden" 
+        [(ngModel)]="avatar" />
+
+      <div class="flex-1 flex gap-2 justify-between items-center min-w-0">
+        <input
+          class="flex-1 bg-transparent text-2xl focus-visible:outline-none"
+          type="text"
+          [(ngModel)]="name"
+        />
+        <button
+          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-full"
+          type="submit"
+          (click)="saveProject()"
+        >
+          <i class="ri-check-line text-lg"></i>
+        </button>
+    </div>
+
+      <button
+        class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-3xl m-[1px]"
+        type="button"
+      >
+        <i class="ri-more-line text-lg"></i>
+      </button>
+    </div>
+    <button
+      class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 bg-surface-base border border-border-l2 hover:text-fg-primary hover:bg-hover-bg h-9 rounded-full px-3.5 py-2 group text-fg-primary"
+      type="button"
+    >
+      <i class="ri-equalizer-2-line text-lg mr-1"></i>Instruction
+    </button>
+  </div>
+
+  <div class="flex-1 overflow-auto flex gap-6 flex-col">
+
+    <pac-chat-project-xperts class="mt-12" />
+
+    <div class="relative">
+      <form class="bottom-0 w-full text-base flex flex-col gap-2 items-center justify-center relative z-10"
+        [formGroup]="form"
+        (ngSubmit)="onSubmit()">
+        <div class="flex flex-row gap-2 justify-center w-full relative">
+          <input class="hidden" multiple="" type="file" name="files" />
+          <div class="query-bar group bg-components-card-bg ring-zinc-100 hover:ring-zinc-200 focus-within:ring-zinc-300 hover:focus-within:ring-zinc-300 duration-100 relative w-full overflow-hidden @container/input shadow shadow-black/5 max-w-[51rem] ring-1 ring-inset focus-within:ring-1 pb-12 px-2 @[480px]/input:px-3 rounded-3xl">
+            <div
+              class="w-full flex-row gap-2 mt-3 px-1 whitespace-nowrap hidden flex-wrap will-change-[mask-image] @sm:[mask-image:none] [mask-image:linear-gradient(to_right,transparent_0,black_0px,black_calc(100%_-_40px),transparent_100%)]"
+              style="opacity: 1; transform: none"
+            ></div>
+            <div class="relative z-10">
+              <textarea [placeholder]="'Start a conversation in this project'"
+                dir="auto"
+                class="w-full px-2 @[480px]/input:px-3 bg-transparent focus:outline-none text-fg-primary align-bottom min-h-14 pt-5 my-0 mb-5"
+                style="resize: none; height: 44px !important"
+                formControlName="input"
+                cdkTextareaAutosize
+                cdkAutosizeMinRows="2"
+                cdkAutosizeMaxRows="10"
+                (keydown)="triggerFun($event)"
+                (compositionstart)="onCompositionStart()"
+                (compositionupdate)="onCompositionUpdate($event)"
+                (compositionend)="onCompositionEnd($event)"
+              ></textarea>
+            </div>
+
+            <div
+              class="flex gap-1.5 absolute inset-x-0 bottom-0 border-2 border-transparent p-2 @[480px]/input:p-2 max-w-full"
+            >
+              <button
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 h-9 rounded-full py-2 relative px-2 transition-all duration-150 bg-transparent border w-9 aspect-square border-toggle-border text-secondary hover:text-primary hover:bg-toggle-hover"
+                type="button"
+                aria-label="Attach"
+                tabindex="0"
+              >
+                <i class="ri-attachment-line text-lg"></i>
+              </button>
+              <div class="flex grow gap-1.5 max-w-full" style="transform: none; opacity: 1">
+                <div class="grow flex gap-1.5 max-w-full">
+                  <div
+                    class="flex ring-1 rounded-full items-center max-h-[36px] box-border transition-colors duration-100 relative overflow-hidden ring-inset ring-zinc-200"
+                  >
+                    <button
+                      class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full px-3.5 py-2 group/ds-toggle transition-colors duration-100 focus-visible:ring-transparent box-border relative overflow-hidden rounded-r-none pr-3 bg-transparent hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
+                      type="button"
+                      tabindex="0"
+                    >
+                      <i class="ri-menu-search-line text-lg"></i><span>DeepSearch</span>
+                    </button>
+                    <div class="h-4 w-[1px] bg-divider-regular focus:outline-none" tabindex="-1"></div>
+                    <button
+                      class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full px-3.5 py-2 transition-colors duration-100 relative overflow-hidden focus-visible:ring-transparent rounded-l-none pl-2 pr-3 bg-transparent hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
+                      type="button"
+                    >
+                      <i class="ri-arrow-down-s-line"></i>
+                    </button>
+                  </div>
+                  <button
+                    class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full px-3.5 py-2 group/think-toggle transition-colors duration-100 relative overflow-hidden border bg-transparent hover:bg-button-ghost-hover border-border-l2"
+                    type="button"
+                    tabindex="0"
+                  >
+                    <i class="ri-lightbulb-flash-line text-lg"></i><span>Think</span>
+                  </button>
+                </div>
+              </div>
+              <div class="ml-auto flex flex-row items-end gap-1">
+                <button type="button" class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1
+                  bg-black disabled:opacity-10 disabled:text-gray-400 enabled:bg-black text-white dark:border-white dark:bg-white bottom-1.5 transition-transform
+                    origin-center enabled:hover:scale-110"
+                  [disabled]="!input()"
+                  (click)="onSubmit()"
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-white dark:text-black">
+                    <path d="M7 11L12 6L17 11M12 18V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+      <div
+        class="text-card-foreground absolute inset-0 flex flex-col items-center gap-1 border justify-center rounded-3xl bg-surface-l1 transition-opacity duration-300 ease-in-out opacity-0 pointer-events-none z-20"
+      >
+        <div class="flex items-center justify-center w-8 h-8">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-file-up absolute transition-all duration-300 ease-in-out opacity-0 scale-75"
+          >
+            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+            <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+            <path d="M12 12v6"></path>
+            <path d="m15 15-3-3-3 3"></path></svg
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-files absolute transition-all duration-300 ease-in-out opacity-100 scale-100"
+          >
+            <path d="M20 7h-3a2 2 0 0 1-2-2V2"></path>
+            <path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"></path>
+            <path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"></path>
+          </svg>
+        </div>
+        <span class="font-semibold">Attach to query</span
+        ><span class="text-secondary">Drop here to add files to query</span>
+      </div>
+    </div>
+
+    <div dir="ltr" data-orientation="horizontal" class="flex-1 overflow-hidden flex flex-col relative pt-1">
+      <div class="flex justify-between sm:ms-1">
+        <div
+          role="tablist"
+          aria-orientation="horizontal"
+          class="inline-flex items-center justify-center rounded-lg bg-ivory dark:bg-jet/20 p-1 text-secondary place-self-start !bg-transparent bg-none"
+          tabindex="0"
+        >
+          <button type="button" class="view-option p-2 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+            [class.active]="viewType() === 'attachments'"
+            (click)="viewType.set('attachments')"
+          >
+            <i class="ri-attachment-line text-lg"></i>
+            {{'PAC.XProject.Attachments' | translate: {Default: 'Attachments'} }}
+          </button>
+
+          <button type="button" class="view-option p-2 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+            [class.active]="viewType() === 'conversations'"
+            (click)="viewType.set('conversations')"
+          >
+            <i class="ri-chat-thread-line text-lg"></i>
+            {{'PAC.XProject.Conversations' | translate: {Default: 'Conversations'} }}
+          </button>
+
+          <button type="button" class="view-option p-2 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+            [class.active]="viewType() === 'members'"
+            (click)="viewType.set('members')"
+          >
+            <i class="ri-group-line text-lg"></i>
+            {{'PAC.XProject.Members' | translate: {Default: 'Members'} }}
+          </button>
+        </div>
+
+        <button
+          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full py-2 group/attach-button relative transition-colors duration-100 bg-transparent border aspect-square border-border-l2 hover:bg-button-ghost-hover px-3 w-auto"
+          type="button"
+          aria-label="Attach"
+          tabindex="0"
+          id="radix-:r103:"
+          aria-haspopup="menu"
+          aria-expanded="false"
+          data-state="closed"
+        >
+          <i class="ri-attachment-line text-lg"></i>
+          Attach
+        </button>
+        <input class="hidden" multiple="" data-testid="file-input" type="file" />
+      </div>
+
+      @switch (viewType()) {
+        @case ('attachments') {
+          <div
+            role="tabpanel"
+            tabindex="0"
+            class="mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 overflow-hidden flex-1 pb-5"
+            >
+            <section class="flex-1 w-full h-full flex flex-col gap-2 relative">
+              <div
+                class="flex-1 flex flex-col gap-1 h-full overflow-y-auto [mask-image:linear-gradient(to_bottom,transparent,black_8px,black_calc(100%_-_8px),transparent)] [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_8px,black_calc(100%_-_8px),transparent)] py-2"
+                >
+                <div class="flex-1 flex flex-col gap-1 @sm:grid @sm:grid-cols-2 @sm:auto-rows-max">
+                  <div class="max-w-full" style="opacity: 1; transform: none">
+                    <div
+                      class="flex flex-row items-center text-sm transition ease-in-out gap-2 relative group/chip cursor-pointer text-primary bg-chip border border-border-l1 hover:bg-button-secondary-hover px-3 rounded-xl h-10 justify-between pr-1.5"
+                    >
+                      <figure class="grid aspect-square place-items-center bg-fg-primary/10 rounded-s-xl shrink-0 -ms-3 w-10">
+                        <i class="ri-file-word-2-line"></i>
+                      </figure>
+                      <span class="truncate max-w-full me-auto sm:max-w-full flex-1">xxxxxx.docx</span>
+                      <button
+                        class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-button-ghost-hover disabled:hover:text-secondary disabled:hover:bg-inherit h-6 w-6 rounded-full ml-1 p-0.5 flex-shrink-0"
+                        type="button"
+                        >
+                        <i class="ri-close-line"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        }
+        @case ('conversations') {
+          <div role="tabpanel" tabindex="0" class="mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 overflow-auto pb-5">
+            <div
+              class="flex-1 flex flex-col gap-1 h-full overflow-y-auto [mask-image:linear-gradient(to_bottom,transparent,black_8px,black_calc(100%_-_8px),transparent)] [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_8px,black_calc(100%_-_8px),transparent)] py-2"
+            >
+              <div>
+                <div class="h-[48px] rounded-2xl grid grid-cols-1 grid-rows-1 hover:bg-button-ghost-hover">
+                  <a
+                    class="col-start-1 col-end-2 row-start-1 row-end-2 block z-10"
+                    href="/chat/3e2b3f7f-3830-42db-85e9-cf5a1cdc5070"
+                  ></a>
+                  <div
+                    class="flex cursor-pointer items-center gap-2 col-start-1 col-end-2 row-start-1 row-end-2 p-4 rounded-2xl"
+                  >
+                    <div class="flex-grow min-w-0">
+                      <div class="flex items-center gap-2 w-full">
+                        <div class="truncate text-primary">xxxxxxx</div>
+                      </div>
+                    </div>
+                    <div class="z-20">
+                      <span
+                        class="text-secondary whitespace-nowrap ml-2 hidden text-sm md:inline md:group-hover/item:hidden md:group-focus/item:hidden md:group-active/item:hidden"
+                        >1 hour ago</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+        @case ('members') {
+          <div role="tabpanel" tabindex="0" class="mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 overflow-auto pb-5">
+            <ul>
+              <li>
+                {{ project()?.owner | user }}
+              </li>
+            </ul>
+          </div>
+        }
+      }
+      
+    </div>
+
+  </div>
+</div>

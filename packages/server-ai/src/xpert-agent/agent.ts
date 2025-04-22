@@ -30,7 +30,7 @@ export function createMapStreamEvents(
 	const toolsMap: Record<string, string> = {} // For lc_name and name of tool is different
 	const processFun = ({ event, tags, data, ...rest }: any) => {
 		const langgraph_node = rest.metadata.langgraph_node
-		const agentKey = isAgentKey(langgraph_node) && langgraph_node !== agent.key ? langgraph_node : null
+		const agentKey = isAgentKey(langgraph_node) && langgraph_node !== agent?.key ? langgraph_node : null
 
 		if (Logger.isLevelEnabled('debug')) {
 			if (event === 'on_chat_model_stream') {

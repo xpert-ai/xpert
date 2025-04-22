@@ -87,7 +87,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				conversation = await this.commandBus.execute(
 					new ChatConversationUpsertCommand({
 						xpert,
-						// title: input.input, // 改成 AI 自动总结标题
 						options: {
 							parameters: input,
 							knowledgebases: options?.knowledgebases,

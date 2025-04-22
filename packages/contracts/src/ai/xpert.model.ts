@@ -402,6 +402,7 @@ export type TChatRequest = {
   }
   xpertId: string
   agentKey?: string
+  projectId?: string
   conversationId?: string
   environmentId?: string
   id?: string

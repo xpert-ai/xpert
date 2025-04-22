@@ -100,12 +100,15 @@
   </div>
 </div>
 
-@if (editable()) {
-  <button type="button" class="btn rounded-xl justify-center w-8 h-8 absolute right-4 bottom-4"
-    (click)="edit()">
-    <i class="ri-edit-line"></i>
-  </button>
-}
+<div class="absolute right-4 bottom-4 flex items-center gap-2">
+  @if (editable()) {
+    <button type="button" class="btn rounded-xl justify-center w-8 h-8"
+      (click)="edit()">
+      <i class="ri-edit-line"></i>
+    </button>
+  }
+  <ng-content select="[action]"></ng-content>
+</div>
 
 <ng-template #cardMenu let-xpert="xpert">
   <div class="ngm-cdk-menu p-2" cdkMenu >

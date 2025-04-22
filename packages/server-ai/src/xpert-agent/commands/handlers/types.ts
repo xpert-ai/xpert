@@ -171,7 +171,7 @@ export function stateVariable(variable: TStateVariable) {
 	}
 }
 
-export function stateToParameters(state: typeof AgentStateAnnotation.State, environment: IEnvironment) {
+export function stateToParameters(state: typeof AgentStateAnnotation.State, environment?: IEnvironment) {
 	const initValue: Record<string, any> = {}
 	if (environment) {
 		initValue.env = environment.variables.reduce((state, variable) => {

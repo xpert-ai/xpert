@@ -70,6 +70,8 @@
             <path d="M3 19H7" stroke="currentColor" stroke-linecap="square" stroke-linejoin="round"></path>
           </svg>
         </button>
+
+        <ng-content select="[header]"></ng-content>
       </div>
       <div class="text-lg font-medium flex-1 min-w-0 mx-4 text-center hidden sm:block overflow-hidden text-ellipsis whitespace-nowrap">
         {{conversationTitle()}}

@@ -1,16 +1,21 @@
-import { HumanMessage, isToolMessage, MessageContent } from '@langchain/core/messages'
-import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
-import { NodeInterrupt } from '@langchain/langgraph'
+import { HumanMessage, isAIMessage, isToolMessage, MessageContent } from '@langchain/core/messages'
+import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
+import { CompiledStateGraph, isCommand, isParentCommand, NodeInterrupt, START, StateGraph } from '@langchain/langgraph'
+import { createSupervisor } from "@langchain/langgraph-supervisor";
 import {
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
 	IChatConversation,
 	IChatMessage,
+	IXpert,
+	IXpertAgent,
 	IXpertAgentExecution,
+	IXpertProject,
+	TAgentRunnableConfigurable,
 	TChatConversationStatus,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
-import { AgentRecursionLimit, appendMessageContent, isNil, NgmLanguageEnum } from '@metad/copilot'
+import { AgentRecursionLimit, appendMessageContent, isNil } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
@@ -24,11 +29,13 @@ import { CopilotGetChatQuery } from '../../../copilot'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
-import { createMapStreamEvents } from '../../../xpert-agent'
-import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
-import { createReactAgent } from '../../../xpert-agent/commands/handlers/react_agent_executor'
-import { AgentStateAnnotation } from '../../../xpert-agent/commands/handlers/types'
+import { CompileGraphCommand, createMapStreamEvents, messageEvent } from '../../../xpert-agent'
+import { assignExecutionUsage, XpertAgentExecutionOneQuery, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
+import { AgentStateAnnotation, stateToParameters } from '../../../xpert-agent/commands/handlers/types'
 import { ChatCommonCommand } from '../chat-common.command'
+import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
+import { XpertProjectService } from '../../../xpert-project/'
+
 
 @CommandHandler(ChatCommonCommand)
 export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
@@ -36,6 +43,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 	constructor(
 		private readonly copilotCheckpointSaver: CopilotCheckpointSaver,
+		private readonly projectService: XpertProjectService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
 	) {}
@@ -117,6 +125,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			)
 		}
 
+		const abortController = new AbortController()
 		const executionId = execution.id
 		let status = XpertAgentExecutionStatusEnum.SUCCESS
 		return new Observable<MessageEvent>((subscriber) => {
@@ -137,33 +146,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				let graph: any = null
 
 				try {
-					// Find an available copilot
-					const copilot = await this.queryBus.execute(new CopilotGetChatQuery(tenantId, organizationId))
-
-					const abortController = new AbortController()
-					const chatModel = await this.queryBus.execute(
-						new CopilotModelGetChatModelQuery(copilot, null, {
-							abortController,
-							usageCallback: assignExecutionUsage(execution)
-						})
-					)
-
 					const thread_id = execution.threadId
-					graph = createReactAgent({
-						tags: [ thread_id ],
-						llm: chatModel,
-						tools,
-						stateModifier: async (state: typeof AgentStateAnnotation.State) => {
-							const systemTemplate = `Current time: ${new Date().toISOString()}\n`
-							const systemMessage = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
-								templateFormat: 'mustache'
-							}).format({ ...state })
-							return [systemMessage, ...state.messages]
-						}
-					}).compile({
-						checkpointer: this.copilotCheckpointSaver,
-					})
-
+					graph = await this.createReactAgent(command, execution, abortController, subscriber)
 					// Run
 					const config = {
 						thread_id,
@@ -234,6 +218,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 								} as MessageEvent
 							}),
 							catchError((err) => {
+								console.error(err)
 								if (err instanceof NodeInterrupt) {
 									status = XpertAgentExecutionStatusEnum.INTERRUPTED
 									error = null
@@ -361,7 +346,164 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		)
 	}
 
-	private languagePrompt(language: string) {
-		return `Please answer in language ${Object.entries(NgmLanguageEnum).find((item) => item[1] === language)?.[0] ?? 'English'}`
+	async createReactAgent(
+		command: ChatCommonCommand,
+		execution: IXpertAgentExecution,
+		abortController: AbortController,
+		subscriber
+	) {
+		const { projectId } = command.request
+		const { tenantId, organizationId } = command.options
+
+		// Project
+		let project: IXpertProject
+		if (projectId) {
+			project = await this.projectService.findOne(projectId, {relations: ['xperts', 'xperts.agent']})
+		}
+
+		// Xperts
+		console.log(project?.xperts)
+
+		// Find an available copilot
+		const copilot = await this.queryBus.execute(new CopilotGetChatQuery(tenantId, organizationId))
+
+		const chatModel = await this.queryBus.execute(
+			new CopilotModelGetChatModelQuery(copilot, null, {
+				abortController,
+				usageCallback: assignExecutionUsage(execution)
+			})
+		)
+
+		const thread_id = execution.threadId
+		const callModel = async (state: typeof AgentStateAnnotation.State, config?: RunnableConfig) => {
+			const parameters = stateToParameters(state)
+			const systemTemplate = project?.settings?.instruction || ''
+			const systemMessage = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
+				templateFormat: 'mustache'
+			}).format(parameters)
+			return { messages: [await chatModel.invoke([systemMessage, ...state.messages], config)] }
+		}
+
+		let graphBuilder: StateGraph<any, any, any, any>
+		// Create Supervisor
+		if (project?.xperts.length) {
+			const agents = []
+			for await (const xpert of project.xperts) {
+				const graph = await this.createXpertAgent(xpert, abortController, execution, subscriber)
+				agents.push(graph)
+			}
+			// Create supervisor workflow
+			graphBuilder = createSupervisor({
+				agents,
+				llm: chatModel,
+				prompt: 
+					"您是一位团队主管，管理以下专家，请安排他们任务以解决用户的问题：" +
+					project.xperts.reduce((prompt, xpert) => {
+						prompt += `- xpert_${xpert.slug}: ${xpert.description}\n\n`
+						return prompt
+					}, '')
+			});
+		} else {
+			graphBuilder = new StateGraph(AgentStateAnnotation).addNode(
+				'common',
+				new RunnableLambda({ func: callModel }).withConfig({ runName: 'common', tags: [thread_id, projectId] })
+			)
+			.addEdge(START, 'common')
+		}
+
+		return graphBuilder.compile({
+			checkpointer: this.copilotCheckpointSaver
+		})
+	}
+
+	async createXpertAgent(xpert: IXpert, abortController: AbortController, execution: IXpertAgentExecution, subscriber) {
+		const { graph, agent } = await this.commandBus.execute<
+			CompileGraphCommand,
+			{ graph: CompiledStateGraph<unknown, unknown>; agent: IXpertAgent }
+		>(
+			new CompileGraphCommand(xpert.agent.key, xpert, {
+				execution,
+				rootController: abortController,
+				signal: abortController.signal,
+				subscriber
+			})
+		)
+		const _execution = {}
+		const runnable = new RunnableLambda({
+			func: async (state: typeof AgentStateAnnotation.spec, config) => {
+				const configurable: TAgentRunnableConfigurable = config.configurable
+				const {subscriber} = configurable
+				// Record start time
+				const timeStart = Date.now()
+				const __execution = await this.commandBus.execute(
+					new XpertAgentExecutionUpsertCommand({
+						..._execution,
+						threadId: config.configurable.thread_id,
+						checkpointNs: config.configurable.checkpoint_ns,
+						xpert: { id: xpert.id } as IXpert,
+						agentKey: xpert.agent.key,
+						inputs: { input: state.input },
+						parentId: execution.id,
+						status: XpertAgentExecutionStatusEnum.RUNNING,
+						predecessor: configurable.agentKey
+					})
+				)
+
+				// Start agent execution event
+				subscriber.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_START, __execution))
+
+				// Exec
+				let status = XpertAgentExecutionStatusEnum.SUCCESS
+				let error = null
+				let result = ''
+				const finalize = async () => {
+					const _state = await graph.getState(config)
+
+					const timeEnd = Date.now()
+					// Record End time
+					const ___execution = await this.commandBus.execute(
+						new XpertAgentExecutionUpsertCommand({
+							..._execution,
+							id: __execution.id,
+							checkpointId: _state.config.configurable.checkpoint_id,
+							elapsedTime: timeEnd - timeStart,
+							status,
+							error,
+							outputs: {
+								output: result
+							}
+						})
+					)
+
+					const fullExecution = await this.queryBus.execute(
+						new XpertAgentExecutionOneQuery(___execution.id)
+					)
+
+					// End agent execution event
+					subscriber.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_END, fullExecution))
+				}
+				try {
+					const output = await graph.invoke(state, {...config, configurable: {...config.configurable, agentKey: ''}} )
+
+					const lastMessage = output.messages[output.messages.length - 1]
+					if (lastMessage && isAIMessage(lastMessage)) {
+						result = lastMessage.content as string
+					}
+
+					return output
+				} catch (err) {
+					if (!isParentCommand(err) && !isCommand(err)) {
+						error = getErrorMessage(err)
+						status = XpertAgentExecutionStatusEnum.ERROR
+					}
+					throw err
+				} finally {
+					// End agent execution event
+					await finalize()
+				}
+			}
+		})
+		runnable.name = `xpert_` + xpert.slug
+		return runnable
 	}
 }

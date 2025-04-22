@@ -1,4 +1,3 @@
-import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
@@ -14,7 +13,6 @@ import {
   model,
   signal,
   output,
-  ViewContainerRef
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -66,8 +64,6 @@ export class XpertChatAppComponent {
   readonly chatService = inject(ChatService)
   readonly homeService = inject(XpertHomeService)
   readonly #router = inject(Router)
-  readonly #dialog = inject(Dialog)
-  readonly #vcr = inject(ViewContainerRef)
   readonly #elementRef = inject(ElementRef)
 
   readonly paramRole = injectParams('name')

@@ -1,0 +1,25 @@
+:host {
+  @apply relative;
+}
+
+.cdk-drag-preview {
+  @apply bg-components-card-bg border-none box-border rounded-lg shadow-md;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0;
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drop-list.cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drop-list:not(.cdk-drop-list-dragging) {
+  .xpert-item {
+    @apply active:scale-95;
+  }
+}
