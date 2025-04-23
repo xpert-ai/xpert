@@ -25,14 +25,22 @@
     <xpert-toolset-card class="group/card col-span-1 min-h-[140px] cursor-pointer bg-components-card-bg"
       [toolset]="item.toolset"
     >
-      <button action type="button" class="btn rounded-xl justify-center w-8 h-8 opacity-0 group-hover/card:opacity-100"
-        [class.hidden]="item.added"
-        [matTooltip]="'PAC.XProject.AddTool' | translate: {Default: 'Add tool'}"
-        matTooltipPosition="right"
-        (click)="addTool(item.toolset)"
-      >
-        <i class="ri-apps-2-add-line"></i>
-      </button>
+      @if (item.added) {
+        <button action type="button" class="btn rounded-xl justify-center w-8 h-8 text-text-success"
+          [matTooltip]="'PAC.XProject.AddedTool' | translate: {Default: 'Added tool'}"
+          matTooltipPosition="right"
+        >
+          <i class="ri-checkbox-circle-line"></i>
+        </button>
+      } @else {
+        <button action type="button" class="btn rounded-xl justify-center w-8 h-8 opacity-0 group-hover/card:opacity-100"
+          [matTooltip]="'PAC.XProject.AddTool' | translate: {Default: 'Add tool'}"
+          matTooltipPosition="right"
+          (click)="addTool(item.toolset)"
+        >
+          <i class="ri-apps-2-add-line"></i>
+        </button>
+      }
     </xpert-toolset-card>
   }
 </div>

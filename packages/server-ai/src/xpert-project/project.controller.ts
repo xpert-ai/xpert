@@ -5,7 +5,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { FindChatConversationQuery } from '../chat-conversation'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
-import { XpertProject } from './project.entity'
+import { XpertProject } from './entities/project.entity'
 import { XpertProjectService } from './project.service'
 
 @ApiTags('XpertProject')

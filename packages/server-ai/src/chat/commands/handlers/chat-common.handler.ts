@@ -57,7 +57,7 @@ import {
 	XpertAgentExecutionUpsertCommand
 } from '../../../xpert-agent-execution'
 import { AgentStateAnnotation, stateToParameters } from '../../../xpert-agent/commands/handlers/types'
-import { XpertProjectService } from '../../../xpert-project/'
+import { CreateToolsetCommand, ProjectToolset, XpertProjectService } from '../../../xpert-project/'
 import { ChatCommonCommand } from '../chat-common.command'
 import { createHandoffBackMessages, createHandoffTool } from './handoff'
 import {
@@ -443,7 +443,22 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		}
 
 		// Create tools
+		const stateVariables: TStateVariable[] = []
+		const toolsetVarirables: TStateVariable[] = []
 		const tools = []
+		if (project) {
+			const projectToolset = await this.commandBus.execute<CreateToolsetCommand, ProjectToolset>(new CreateToolsetCommand(projectId))
+			const _variables = await projectToolset.getVariables()
+			toolsetVarirables.push(...(_variables ?? []))
+			// stateVariables.push(...toolsetVarirables)
+			const items = await projectToolset.initTools()
+
+			items.forEach((tool) => {
+				console.log(tool.schema)
+			})
+			tools.push(...items)
+		}
+
 		if (project.toolsets.length > 0) {
 			const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
 				new ToolsetGetToolsCommand(project.toolsets.map(({id}) => id), {
@@ -458,12 +473,10 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				}
 			})
 			// const interruptBefore: string[] = []
-			const toolsetVarirables: TStateVariable[] = []
-			const stateVariables: TStateVariable[] = []
+			
 			for await (const toolset of toolsets) {
 				const _variables = await toolset.getVariables()
 				toolsetVarirables.push(...(_variables ?? []))
-				stateVariables.push(...toolsetVarirables)
 				const items = await toolset.initTools()
 				items.forEach((tool) => {
 					// const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)
@@ -472,6 +485,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			}
 		}
 
+		stateVariables.push(...toolsetVarirables)
 		// Find an available copilot
 		const copilot = await this.queryBus.execute(new CopilotGetChatQuery(tenantId, organizationId))
 

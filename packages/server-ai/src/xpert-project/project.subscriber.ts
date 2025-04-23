@@ -1,5 +1,5 @@
 import { EntitySubscriberInterface, EventSubscriber, LoadEvent } from 'typeorm'
-import { XpertProject } from './project.entity'
+import { XpertProject } from './entities/project.entity'
 
 @EventSubscriber()
 export class XpertProjectSubscriber implements EntitySubscriberInterface<XpertProject> {

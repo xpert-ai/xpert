@@ -12,8 +12,8 @@ import { StorageFile, TenantOrganizationBaseEntity, User } from '@metad/server-c
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, RelationId } from 'typeorm'
-import { Xpert, XpertToolset, XpertWorkspace } from '../core/entities/internal'
-import { WorkspaceBaseEntity } from '../core/entities/base.entity'
+import { Xpert, XpertToolset, XpertWorkspace } from '../../core/entities/internal'
+import { WorkspaceBaseEntity } from '../../core/entities/base.entity'
 
 @Entity('xpert_project')
 export class XpertProject extends TenantOrganizationBaseEntity implements IXpertProject {

@@ -36,3 +36,27 @@ export interface IXpertProject extends TXpertProject, IBasePerTenantAndOrganizat
   members?: IUser[]
   files?: IStorageFile[]
 }
+
+export interface IBasePerXpertProjectEntityModel extends IBasePerTenantAndOrganizationEntityModel {
+  projectId?: string
+  project?: IXpertProject
+}
+
+export interface IXpertProjectTask extends IBasePerXpertProjectEntityModel {
+  name: string;
+  type?: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed'
+}
+
+export interface IXpertProjectTaskStep extends IBasePerXpertProjectEntityModel {
+  taskId: string;
+  stepIndex: number;
+  description: string;
+  status: 'pending' | 'running' | 'done' | 'failed';
+}
+
+export interface IXpertProjectTaskLog extends IBasePerXpertProjectEntityModel {
+  stepId: string;
+  logType: 'input' | 'output' | 'error';
+  content: string;
+}

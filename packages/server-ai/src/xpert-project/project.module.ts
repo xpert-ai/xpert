@@ -3,19 +3,29 @@ import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { RouterModule } from 'nest-router'
-import { XpertProject } from './project.entity'
+import { XpertProject } from './entities/project.entity'
 import { XpertProjectController } from './project.controller'
 import { XpertProjectService } from './project.service'
+import { XpertProjectTask } from './entities/project-task.entity'
+import { XpertProjectTaskStep } from './entities/project-task-step.entity'
+import { XpertProjectTaskLog } from './entities/project-task-log.entity'
+import { CommandHandlers } from './commands/handlers'
+import { XpertProjectTaskService } from './services/project-task.service'
 
 @Module({
 	imports: [
 		RouterModule.forRoutes([{ path: '/xpert-project', module: XpertProjectModule }]),
-		TypeOrmModule.forFeature([XpertProject]),
+		TypeOrmModule.forFeature([
+			XpertProject,
+			XpertProjectTask,
+			XpertProjectTaskStep,
+			XpertProjectTaskLog,
+		]),
 		TenantModule,
 		CqrsModule,
 	],
 	controllers: [XpertProjectController],
-	providers: [XpertProjectService,],
+	providers: [XpertProjectService, XpertProjectTaskService, ...CommandHandlers],
 	exports: [XpertProjectService]
 })
 export class XpertProjectModule {}
