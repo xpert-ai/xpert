@@ -2,21 +2,31 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, ViewContainerRef } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
-import { DateRelativePipe, getErrorMessage, injectProjectService, injectToastr, IXpertWorkspace, OrderTypeEnum, XpertWorkspaceService } from '@cloud/app/@core'
+import {
+  DateRelativePipe,
+  getErrorMessage,
+  injectProjectService,
+  injectToastr,
+  IXpertWorkspace,
+  OrderTypeEnum,
+  XpertWorkspaceService
+} from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
+import { I18nService } from '@cloud/app/@shared/i18n'
 import { UserPipe } from '@cloud/app/@shared/pipes'
 import { attrModel, linkedModel } from '@metad/core'
+import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { shareReplay, switchMap, map, tap, of } from 'rxjs'
-import { injectParams } from 'ngxtension/inject-params'
-import { ChatProjectComponent } from '../project.component'
-import { ChatProjectXpertsComponent } from '../xperts/xperts.component'
-import { ChatProjectToolsComponent } from '../tools/tools.component'
 import { derivedAsync } from 'ngxtension/derived-async'
+import { injectParams } from 'ngxtension/inject-params'
+import { EMPTY, map, of, shareReplay, switchMap, tap } from 'rxjs'
+import { ChatProjectComponent } from '../project.component'
+import { ChatProjectToolsComponent } from '../tools/tools.component'
+import { ChatProjectXpertsComponent } from '../xperts/xperts.component'
 
 /**
  *
@@ -31,6 +41,7 @@ import { derivedAsync } from 'ngxtension/derived-async'
     CdkMenuModule,
     TextFieldModule,
     TranslateModule,
+    NgmSpinComponent,
     EmojiAvatarComponent,
     UserPipe,
     DateRelativePipe,
@@ -49,7 +60,9 @@ export class ChatProjectHomeComponent {
   readonly projectSercice = injectProjectService()
   readonly #projectComponent = inject(ChatProjectComponent)
   readonly workspaceService = inject(XpertWorkspaceService)
+  readonly i18nService = inject(I18nService)
   readonly #toastr = injectToastr()
+  readonly confirmDelete = injectConfirmDelete()
 
   readonly id = injectParams('id')
 
@@ -61,11 +74,11 @@ export class ChatProjectHomeComponent {
   // Conversations
   readonly conversations$ = toObservable(this.id).pipe(
     switchMap((id) => this.projectSercice.getConversations(id)),
-    map(({items}) => items),
+    map(({ items }) => items),
     shareReplay(1)
   )
 
-  readonly #toolsets = derivedAsync(() => this.id() ? this.projectSercice.getToolsets(this.id()) : of(null))
+  readonly #toolsets = derivedAsync(() => (this.id() ? this.projectSercice.getToolsets(this.id()) : of(null)))
   readonly toolsets = linkedModel({
     initialValue: null,
     compute: () => this.#toolsets()?.items,
@@ -83,6 +96,7 @@ export class ChatProjectHomeComponent {
 
   readonly answering = signal(false)
   readonly isComposing = signal(false)
+  readonly editing = signal(false)
 
   // Workspaces
   readonly loading = signal(true)
@@ -94,7 +108,9 @@ export class ChatProjectHomeComponent {
     { initialValue: null }
   )
   readonly workspaceId = computed(() => this.project()?.workspaceId)
-  readonly workspace = derivedAsync(() => this.workspaceId() ? this.workspaceService.getById(this.workspaceId()) : of(null))
+  readonly workspace = derivedAsync(() =>
+    this.workspaceId() ? this.workspaceService.getById(this.workspaceId()) : of(null)
+  )
 
   constructor() {
     effect(() => {
@@ -102,7 +118,19 @@ export class ChatProjectHomeComponent {
     })
   }
 
-  saveProject() {}
+  saveProject() {
+    this.loading.set(true)
+    this.projectSercice.update(this.id(), { avatar: this.avatar(), name: this.name() }).subscribe({
+      next: () => {
+        this.loading.set(false)
+        this.editing.set(false)
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
 
   onSubmit(text?: string) {
     const input = text || this.form.value.input
@@ -144,14 +172,12 @@ export class ChatProjectHomeComponent {
     this.isComposing.set(false)
   }
 
-  addTool() {}
-
   selectWorkspace(ws: IXpertWorkspace) {
     this.loading.set(true)
-    this.projectSercice.update(this.project().id, {workspaceId: ws.id}).subscribe({
+    this.projectSercice.update(this.project().id, { workspaceId: ws.id }).subscribe({
       next: () => {
         this.loading.set(false)
-        this.project.update((state) => ({...state, workspaceId: ws.id}))
+        this.project.update((state) => ({ ...state, workspaceId: ws.id }))
       },
       error: (err) => {
         this.loading.set(false)
@@ -162,5 +188,38 @@ export class ChatProjectHomeComponent {
 
   routeWorkspace() {
     this.viewType.set('tools')
+  }
+
+  rename() {
+    this.editing.set(true)
+  }
+
+  removeProject() {
+    this.confirmDelete({
+      value: this.name(),
+      information: this.i18nService.instant('PAC.XProject.DeleteProjectAndAll', {
+        Default: 'Delete the project and all the materials in it'
+      })
+    })
+      .pipe(
+        switchMap((confirm) => {
+          if (confirm) {
+            this.loading.set(true)
+            return this.projectSercice.delete(this.id())
+          } else {
+            return EMPTY
+          }
+        })
+      )
+      .subscribe({
+        next: () => {
+          this.loading.set(false)
+          this.#router.navigate(['/chat/'])
+        },
+        error: (err) => {
+          this.loading.set(false)
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
   }
 }

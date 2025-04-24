@@ -31,12 +31,19 @@ import { MarkdownModule } from 'ngx-markdown'
 import { ChatMessageStepCategory, IXpertTask, Store } from '../../@core'
 import { ChatComponentIndicatorsComponent } from './indicators/indicators.component'
 import { ChatComponentIndicatorComponent } from './indicator/indicator.component'
-import { ChatComponentTasksComponent } from './tasks/tasks.component'
+import { ChatComponentScheduleTasksComponent } from './schedule-tasks/tasks.component'
 import { XpertHomeService } from '../home.service'
-import { ArraySlicePipe, FileTypePipe } from '@metad/core'
 import { ChatFilesDialogComponent } from '../../@shared/chat'
 import { ChatComponentMemoriesComponent } from './memories/memories.component'
+import { ChatComponentMessageFilesComponent } from './files/files.component'
+import { ChatComponentMessageTasksComponent } from './tasks/tasks.component'
 
+
+/**
+ * A component that uniformly displays different types of component messages.
+ * Currently has two categories: `Computer` and `Dashboard`
+ * 
+ */
 @Component({
   standalone: true,
   imports: [
@@ -54,12 +61,13 @@ import { ChatComponentMemoriesComponent } from './memories/memories.component'
     NgmSelectionModule,
     AnalyticalCardModule,
     NxWidgetKpiComponent,
-    FileTypePipe,
-    ArraySlicePipe,
+
+    ChatComponentMessageTasksComponent,
     ChatComponentIndicatorsComponent,
     ChatComponentIndicatorComponent,
-    ChatComponentTasksComponent,
-    ChatComponentMemoriesComponent
+    ChatComponentScheduleTasksComponent,
+    ChatComponentMemoriesComponent,
+    ChatComponentMessageFilesComponent
   ],
   selector: 'chat-component-message',
   templateUrl: './component-message.component.html',
@@ -107,9 +115,6 @@ export class ChatComponentMessageComponent {
   readonly dataSources = computed(() => compact(uniq<string>(this.indicators()?.map((_) => _.dataSource))))
 
   readonly explains = signal<any[]>([])
-
-  // Files
-  readonly files = computed(() => this.data()?.files as any[])
 
   constructor() {
     effect(
@@ -175,7 +180,7 @@ export class ChatComponentMessageComponent {
       .closed.subscribe({
         next: (result) => {
           if (result) {
-            console.log(result)
+            // console.log(result)
           }
         }
       })
@@ -190,23 +195,4 @@ export class ChatComponentMessageComponent {
     })
   }
 
-  openFileViewer(file) {
-    this.homeService.canvasOpened.set({
-      opened: true,
-      type: 'File',
-      file
-    })
-  }
-
-  openAllFiles() {
-    this.#dialog.open(ChatFilesDialogComponent, {
-      data: {
-        files: this.files()
-      }
-    }).closed.subscribe((file) => {
-      if (file) {
-        this.openFileViewer(file)
-      }
-    })
-  }
 }

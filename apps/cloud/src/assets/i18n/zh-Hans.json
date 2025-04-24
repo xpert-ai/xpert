@@ -306,6 +306,9 @@
       "Value": "值",
       "SelectWorkspace": "选择工作空间"
     },
+    "XProject": {
+      "DeleteProjectAndAll": "删除项目及其中所有的材料"
+    },
     "Workflow": {
       "And": "且",
       "Or": "或",

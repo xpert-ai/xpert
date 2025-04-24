@@ -1,27 +1,30 @@
 <div class="flex-1 flex gap-6 flex-col justify-between items-stretch">
   <div class="flex flex-col sm:flex-row items-start gap-6 sm:gap-2 w-full p-1 sticky top-0 bg-surface-container z-20">
     <div class="flex-1 flex items-center gap-1 sm:gap-2 justify-start group min-w-0 w-full">
-      <emoji-avatar editable class="rounded-xl overflow-hidden" 
-        [(ngModel)]="avatar" />
+      <emoji-avatar [editable]="editing()" class="rounded-xl overflow-hidden" 
+        [(ngModel)]="avatar" 
+      />
 
       <div class="flex-1 flex gap-2 justify-between items-center min-w-0">
-        <input
-          class="flex-1 bg-transparent text-2xl focus-visible:outline-none"
-          type="text"
-          [(ngModel)]="name"
-        />
-        <button
-          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-full"
-          type="submit"
-          (click)="saveProject()"
-        >
-          <i class="ri-check-line text-lg"></i>
-        </button>
-    </div>
+        @if (editing()) {
+          <input class="flex-1 bg-transparent text-2xl focus-visible:outline-none"
+            type="text"
+            [(ngModel)]="name"
+          />
+          <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-full"
+            type="button"
+            (click)="saveProject()"
+          >
+            <i class="ri-check-line text-lg"></i>
+          </button>
+        } @else {
+          <span class="text-2xl">{{name()}}</span>
+        }
+      </div>
 
-      <button
-        class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-3xl m-[1px]"
+      <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-3xl m-[1px]"
         type="button"
+        [cdkMenuTriggerFor]="editMenu"
       >
         <i class="ri-more-line text-lg"></i>
       </button>
@@ -32,6 +35,10 @@
     >
       <i class="ri-equalizer-2-line text-lg mr-1"></i>Instruction
     </button>
+
+    @if (loading()) {
+      <ngm-spin class="absolute left-0 top-0 w-full h-full"/>
+    }
   </div>
 
   <div class="flex-1 flex gap-6 flex-col">
@@ -331,5 +338,18 @@
         {{ workspace.name }}
       </div>
     }
+  </div>
+</ng-template>
+
+<ng-template #editMenu>
+  <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItem (click)="rename()">
+      <i class="ri-pencil-line mr-1"></i>
+      <span>{{ 'PAC.XProject.Rename' | translate: {Default: 'Rename'} }}</span>
+    </div>
+    <div cdkMenuItem class="danger" (click)="removeProject()">
+      <i class="ri-delete-bin-7-line mr-1"></i>
+      <span>{{ 'PAC.XProject.RemoveProject' | translate: {Default: 'Remove project'} }}</span>
+    </div>
   </div>
 </ng-template>

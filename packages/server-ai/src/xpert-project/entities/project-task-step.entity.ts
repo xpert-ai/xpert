@@ -18,7 +18,7 @@ export class XpertProjectTaskStep extends XpertProjectBaseEntity implements IXpe
 	@Column()
 	description: string
 
-	@Column()
+	@Column({ nullable: true })
 	agentRole: string
 
 	@Column({ type: 'enum', enum: ['pending', 'running', 'done', 'failed'], default: 'pending' })

@@ -15,6 +15,7 @@ import {
 	channelName,
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
+	CopilotChatMessage,
 	GRAPH_NODE_TITLE_CONVERSATION,
 	IChatConversation,
 	IChatMessage,
@@ -27,6 +28,7 @@ import {
 	STATE_VARIABLE_SYS,
 	TAgentRunnableConfigurable,
 	TChatConversationStatus,
+	TSensitiveOperation,
 	TStateVariable,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
@@ -40,7 +42,7 @@ import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 import { concat, filter, from, map, Observable, of, Subscriber, switchMap, tap } from 'rxjs'
 import z from 'zod'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation'
-import { ChatMessageUpsertCommand } from '../../../chat-message'
+import { appendMessageSteps, ChatMessageUpsertCommand } from '../../../chat-message'
 import { CopilotGetChatQuery } from '../../../copilot'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
@@ -61,6 +63,7 @@ import { CreateToolsetCommand, ProjectToolset, XpertProjectService } from '../..
 import { ChatCommonCommand } from '../chat-common.command'
 import { createHandoffBackMessages, createHandoffTool } from './handoff'
 import {
+	Instruction,
 	isChatModelWithBindTools,
 	isChatModelWithParallelToolCallsParam,
 	OutputMode,
@@ -161,7 +164,12 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 		const abortController = new AbortController()
 		const executionId = execution.id
+		const timeStart = Date.now()
 		let status = XpertAgentExecutionStatusEnum.SUCCESS
+		let result = ''
+		let error = null
+		let _execution = null
+		let operation: TSensitiveOperation = null
 		return new Observable<MessageEvent>((subscriber) => {
 			;(async () => {
 				subscriber.next({
@@ -218,9 +226,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 						)
 					).pipe(map(createMapStreamEvents(this.#logger, thread_id, subscriber)))
 
-					const timeStart = Date.now()
-					let result = ''
-					let error = null
+					
 
 					const recordLastState = async () => {
 						const state = await graph.getState({
@@ -401,8 +407,24 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			tap({
 				next: (event) => {
 					if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
-						if (aiMessage) {
-							appendMessageContent(aiMessage as any, event.data.data)
+						appendMessageContent(aiMessage as CopilotChatMessage, event.data.data)
+						result += messageContentText(event.data.data)
+					} else if (
+						event.data.type === ChatMessageTypeEnum.EVENT
+					) {
+						switch(event.data.event) {
+							case (ChatMessageEventTypeEnum.ON_AGENT_END): {
+								_execution = event.data.data
+								break
+							}
+							case (ChatMessageEventTypeEnum.ON_INTERRUPT): {
+								operation = event.data.data
+								break
+							}
+							case (ChatMessageEventTypeEnum.ON_TOOL_MESSAGE): {
+								appendMessageSteps(aiMessage, [event.data.data])
+								break
+							}
 						}
 					}
 				},
@@ -578,7 +600,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 		const callModel = async (state: typeof AgentStateAnnotation.State, config?: RunnableConfig) => {
 			const parameters = stateToParameters(state)
-			const systemTemplate = (project?.settings?.instruction || '') + supervisorPrompt
+			const systemTemplate = (project?.settings?.instruction || '') + supervisorPrompt + '\n' + Instruction
 			const systemMessage = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
 				templateFormat: 'mustache'
 			}).format(parameters)

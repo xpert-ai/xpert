@@ -31,3 +31,5 @@ export function isChatModelWithParallelToolCallsParam(
 ): llm is ChatModelWithParallelToolCallsParam {
 	return llm.bindTools.length >= 2
 }
+
+export const Instruction = `Please answer in '{{sys.language}}'`

@@ -41,6 +41,9 @@ export enum ChatMessageStepCategory {
   Memory = 'memory'
 }
 
+/**
+ * Step message type, in canvas and ai message.
+ */
 export type TChatMessageStep = {
   type?: ChatMessageStepType
   category?: ChatMessageStepCategory
@@ -53,7 +56,7 @@ export type TChatMessageStep = {
 }
 
 /**
- * 
+ * Chat message entity type
  */
 export interface IChatMessage extends IBasePerTenantAndOrganizationEntityModel, Omit<Omit<CopilotBaseMessage, 'createdAt'>, 'id'> {
 
@@ -64,6 +67,9 @@ export interface IChatMessage extends IBasePerTenantAndOrganizationEntityModel, 
    */
   thirdPartyMessage?: any
 
+  /**
+   * Step messages from tools or others
+   */
   steps?: TChatMessageStep[]
 
   // Many to one

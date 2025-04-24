@@ -1,8 +1,9 @@
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { tool } from '@langchain/core/tools'
+import { ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, IXpertProjectTask, TMessageContentComponent } from '@metad/contracts'
+import { shortuuid } from '@metad/server-common'
 import { z } from 'zod'
 import { XpertProjectTaskService } from '../services/project-task.service'
-import { ChatMessageEventTypeEnum, ChatMessageStepType, IXpertProjectTask } from '@metad/contracts'
-import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 
 export const createCreateTasksTool = ({
 	projectId,
@@ -13,11 +14,25 @@ export const createCreateTasksTool = ({
 }) => {
 	const createTasksTool = tool(
 		async (_, config) => {
+			const { configurable } = config ?? {}
+			const { subscriber } = configurable ?? {}
+
 			console.log(_)
-			await service.saveAll(..._.tasks.map((task) => ({...task, projectId, status: 'in_progress'} as IXpertProjectTask)))
+
+			const tasks = await service.saveAll(
+				..._.tasks.map(
+					(task) =>
+						({
+							...task,
+							projectId,
+							status: 'in_progress',
+							steps: task.steps?.map((step, i) => ({ ...step, stepIndex: i + 1, status: 'pending' }))
+						}) as IXpertProjectTask
+				)
+			)
 
 			// Tool message event
-			dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 				type: ChatMessageStepType.ComputerUse,
 				toolset: 'planning',
 				tool: 'create_plan',
@@ -25,22 +40,42 @@ export const createCreateTasksTool = ({
 				title: `Creating tasks`,
 				data: {
 					title: 'Tasks',
-					plan_steps: _.tasks.map((_) => ({..._, content: _.name,}))
+					plan_steps: _.tasks.map((_) => ({ ..._, content: _.name }))
 				}
-			}).catch((err) => {
-				console.error(err)
 			})
+
+			subscriber?.next({
+				data: {
+					type: ChatMessageTypeEnum.MESSAGE,
+					data: {
+						id: shortuuid(),
+						type: 'component',
+						data: {
+							category: 'Computer',
+							type: 'Tasks',
+							tasks
+						}
+					} as TMessageContentComponent
+				}
+			} as MessageEvent)
 			return `Tasks created!`
 		},
 		{
 			name: `project_create_tasks`,
 			schema: z.object({
-				tasks: z.array(
-					z.object({
-						name: z.string().describe(`Task name`),
-						type: z.enum(['research', 'report', 'deploy']).describe(`Task type`)
-					})
-				).describe('Tasks to create')
+				tasks: z
+					.array(
+						z.object({
+							name: z.string().describe(`Task name`),
+							type: z.enum(['research', 'report', 'deploy']).describe(`Task type`),
+							steps: z.array(
+								z.object({
+									description: z.string().describe('Description of individual step')
+								})
+							)
+						})
+					)
+					.describe('Tasks to create')
 			}),
 			description: 'Create tasks in project.'
 		}
