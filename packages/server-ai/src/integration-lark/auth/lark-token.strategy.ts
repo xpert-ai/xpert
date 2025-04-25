@@ -67,6 +67,9 @@ export class LarkTokenStrategy extends PassportStrategy(Strategy, 'lark-token') 
 						integration.tenantId,
 						union_id
 					)
+
+					// Set language header
+					req.headers['language'] = integration.options?.preferLanguage || user.preferredLanguage
 					this.success(user)
 				}
 			} catch (err) {

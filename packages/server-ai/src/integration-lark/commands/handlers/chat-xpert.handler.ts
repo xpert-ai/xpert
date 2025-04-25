@@ -1,5 +1,5 @@
 import { SerializedConstructor } from '@langchain/core/load/serializable'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, LanguagesEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, LanguagesEnum, messageContentText, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
@@ -54,13 +54,14 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 					if (event.data) {
 						const message = event.data
 						if (message.type === ChatMessageTypeEnum.MESSAGE) {
+							responseMessageContent += messageContentText(message.data)
 							if (typeof message.data === 'string') {
-								responseMessageContent += message.data
-							} else {
-								if (message.data?.type === 'update') {
+								//
+							} else if (message.data) {
+								if (message.data.type === 'update') {
 									larkMessage.update(message.data.data)
-								} else {
-									console.log(`未处理的消息：`, message)
+								} else if (message.data.type !== 'text') {
+									this.#logger.warn(`Unprocessed messages: `, message)
 								}
 							}
 						} else if (message.type === ChatMessageTypeEnum.EVENT) {
@@ -92,13 +93,18 @@ export class LarkChatXpertHandler implements ICommandHandler<LarkChatXpertComman
 									}
 									break
 								}
+								case ChatMessageEventTypeEnum.ON_AGENT_START:
+								case ChatMessageEventTypeEnum.ON_AGENT_END:
+								case ChatMessageEventTypeEnum.ON_MESSAGE_END: {
+									break
+								}
 								default: {
-									console.log(`未处理的事件: ${message.event}`)
+									this.#logger.warn(`Unprocessed events: `, message)
 								}
 							}
 						}
 					} else {
-						console.log(event)
+						this.#logger.warn(`Unrecognized event: `, event)
 					}
 				},
 				error: (error) => {

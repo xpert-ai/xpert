@@ -3,12 +3,12 @@ import { BaseChannel, isCommand } from '@langchain/langgraph'
 import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
-import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpertAgent, TMessageChannel, TMessageContentComplex, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpertAgent, TMessageChannel, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
-import { AgentStateAnnotation } from './commands/handlers/types'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { instanceToPlain } from 'class-transformer'
+import { AgentStateAnnotation } from './commands/handlers/types'
 
 export function createMapStreamEvents(
 	logger: Logger,
@@ -456,10 +456,6 @@ export function messageEvent(event: ChatMessageEventTypeEnum, data: any) {
 			data: instanceToPlain(data)
 		}
 	} as MessageEvent
-}
-
-export function messageContentText(content: string | TMessageContentComplex) {
-	return typeof content === 'string' ? content : content.type === 'text' ? content.text : ''
 }
 
 export type TStateChannel = {
