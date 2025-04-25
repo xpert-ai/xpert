@@ -6,9 +6,9 @@ import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
 import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpertAgent, TMessageChannel, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
-import { AgentStateAnnotation } from './commands/handlers/types'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { instanceToPlain } from 'class-transformer'
+import { AgentStateAnnotation } from './commands/handlers/types'
 
 export function createMapStreamEvents(
 	logger: Logger,

@@ -1,3 +1,4 @@
+import { ToolMessage } from '@langchain/core/messages'
 import { tool } from '@langchain/core/tools'
 import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
 import { ChatMessageTypeEnum, JSONValue } from '@metad/contracts'
@@ -164,11 +165,12 @@ export function createWelcomeTool(chatbi: AbstractChatBIToolset, context: Partia
 					sys_language: language,
 					// update the message history
 					messages: [
-						{
-							role: 'tool',
-							content: '',
-							tool_call_id: toolCallId
-						}
+						new ToolMessage({
+							content: `Welcome message sent to user!`,
+							name: ChatBILarkToolsEnum.WELCOME,
+							tool_call_id: toolCallId as string,
+						})
+
 					]
 				}
 			})

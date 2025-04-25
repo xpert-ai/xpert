@@ -1,4 +1,4 @@
-import { Cube, Join, PropertyDimension, Schema, SQLExpression } from '@metad/ocap-core'
+import { Cube, Join, nonBlank, Property, PropertyDimension, Schema, SQLExpression } from '@metad/ocap-core'
 import { IModelRole, ISemanticModel, MDX, RoleTypeEnum } from '@metad/contracts'
 import { camelCase, cloneDeep, cloneDeepWith, forIn, isArray, isNil, isObject, isString, omit, pick } from 'lodash'
 import { Observable } from 'rxjs'
@@ -134,14 +134,14 @@ export function convertSchemaToXmla(model: ISemanticModel, schema: Schema): MDX.
 	}
 }
 
-export function convertDimensionToXmla(dimension: any): MDX.Dimension {
+export function convertDimensionToXmla(dimension: Property): MDX.Dimension {
 	return {
 		...omit(dimension, ['hierarchies']),
 		type: dimension.type as MDX.DimensionType,
 		Hierarchy: dimension.hierarchies?.map(
 			(hierarchy) =>
 				({
-					...omit(hierarchy, ['levels', 'tables', 'Join']),
+					...omit(hierarchy, ['levels', 'tables', 'Join']) ,
 					name: hierarchy.name ?? '',
 					...convertTablesJoinToXmla(hierarchy.tables),
 					Level: hierarchy.levels?.map((level) => ({
@@ -151,13 +151,13 @@ export function convertDimensionToXmla(dimension: any): MDX.Dimension {
 						CaptionExpression: convertSQLExpressionToXmla(level.captionExpression),
 						OrdinalExpression: convertSQLExpressionToXmla(level.ordinalExpression),
 						ParentExpression: convertSQLExpressionToXmla(level.parentExpression),
-						Property: level.properties?.map((property) => ({
+						Property: level.properties?.filter(nonBlank)?.map((property) => ({
 							...omit(property, ['propertyExpression']),
 							PropertyExpression: convertSQLExpressionToXmla(property.propertyExpression)
 						})),
 						Closure: convertClosureToXmla(level.closure)
 					}))
-				} as MDX.Hierarchy)
+				} as unknown as MDX.Hierarchy)
 		)
 	} as MDX.Dimension
 }

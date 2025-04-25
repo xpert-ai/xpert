@@ -124,6 +124,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				toolset.close().catch((err) => this.#logger.debug(err))
 			}
 		})
+
+		const endNodes = team.agentConfig?.endNodes ?? []
 		const tools: TGraphTool[] = []
 		const interruptBefore: string[] = []
 		const toolsetVarirables: TStateVariable[] = []
@@ -454,9 +456,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 			const humanMessages: HumanMessage[] = []
 			const messageHistory = getChannelState(state, agentChannel)?.messages ?? []
-			// Determine whether it is Agent reflection (last message is ToolMessage)
-			if (!(isBaseMessage(messageHistory[messageHistory.length - 1])
-				&& isToolMessage(messageHistory[messageHistory.length - 1]))) {
+
+			// Determine whether it is Agent reflection (last message is not HumanMessage)
+			const lastMessage = messageHistory[messageHistory.length - 1]
+			if (!(isBaseMessage(lastMessage) && isToolMessage(lastMessage) && !endNodes.includes(lastMessage.name))) {
 				// Is new human input: use message templates or input message
 				const humanTemplates = agent.promptTemplates?.filter((_) => !!_.text?.trim())
 				if (humanTemplates?.length) {
@@ -572,7 +575,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			.addEdge(START, agentKey)
 
 		// Add nodes for tools
-		const endNodes = team.agentConfig?.endNodes
 		tools?.forEach(({ caller, tool, variables }) => {
 			const name = tool.name
 			subgraphBuilder

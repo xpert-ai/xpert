@@ -37,13 +37,12 @@ services:
     image: ghcr.io/xpert-ai/ocap-olap:latest
     profiles:
       - bi
-    mem_limit: 1024m
-    restart: unless-stopped
+    restart: on-failure
     healthcheck:
       test: curl -m 5 --silent --fail --request GET http://localhost:8080/
-      interval: 10s
-      timeout: 2s
-      retries: 10
+      interval: 30s
+      timeout: 30s
+      retries: 3
     links:
       - db:${DB_HOST:-db}
     depends_on:
