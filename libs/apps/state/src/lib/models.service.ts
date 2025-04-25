@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/member-ordering */
 import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
-import { IDataSource, ISemanticModel, ISemanticModelQueryLog } from '@metad/contracts'
 import { hierarchize, Indicator, omit, pick, SemanticModel as OcapSemanticModel, Cube } from '@metad/ocap-core'
 import { StoryModel } from '@metad/story/core'
 import { Observable, zip } from 'rxjs'
@@ -9,6 +8,7 @@ import { map, switchMap } from 'rxjs/operators'
 import { BusinessAreasService } from './business-area.service'
 import { C_URI_API_MODELS, C_URI_API_MODEL_MEMBERS } from './constants'
 import { convertIndicatorResult, convertStoryModel, timeRangeToParams } from './types'
+import { IDataSource, ISemanticModel, ISemanticModelQueryLog, TSemanticModelDraft } from './types'
 import { OrganizationBaseCrudService } from './organization-base-crud.service'
 import { PaginationParams, toHttpParams } from './crud.service'
 
@@ -21,6 +21,14 @@ export class SemanticModelServerService extends OrganizationBaseCrudService<ISem
 
   constructor() {
     super(C_URI_API_MODELS)
+  }
+
+  saveDraft(id: string, draft: TSemanticModelDraft) {
+    return this.httpClient.post<TSemanticModelDraft>(this.apiBaseUrl + `/${id}/draft`, draft)
+  }
+
+  publish(id: string, releaseNotes: string) {
+    return this.httpClient.post(this.apiBaseUrl + `/${id}/publish`, {releaseNotes})
   }
 
   getModels(path: string, query?) {
@@ -161,12 +169,16 @@ export class SemanticModelServerService extends OrganizationBaseCrudService<ISem
     return this.httpClient.post(C_URI_API_MODELS, convertNewSemanticModel(data))
   }
 
-  update(id: string, input: Partial<OcapSemanticModel>, options?: { relations: string[] }) {
+  update(id: string, input: Partial<ISemanticModel>, options?: { relations: string[] }) {
     let params = new HttpParams()
     if (options?.relations) {
       params = params.append('relations', options.relations.join(','))
     }
     return this.httpClient.put<ISemanticModel>(C_URI_API_MODELS + `/${id}`, convertNewSemanticModel(input), { params })
+  }
+
+  updateModel(id: string, input: Partial<ISemanticModel>) {
+    return this.httpClient.put<ISemanticModel>(C_URI_API_MODELS + `/${id}`, input)
   }
 
   delete(id: string) {
@@ -232,7 +244,7 @@ export class SemanticModelServerService extends OrganizationBaseCrudService<ISem
 /**
  * @deprecated 需重构, 找到更好的转换方式
  */
-export function convertNewSemanticModel(model: Partial<OcapSemanticModel>): ISemanticModel {
+export function convertNewSemanticModel(model: Partial<OcapSemanticModel | ISemanticModel>): ISemanticModel {
   const systemFields = [
     'key',
     'name',
@@ -284,15 +296,17 @@ export interface NgmSemanticModel extends OcapSemanticModel, Pick<ISemanticModel
   dataSource?: IDataSource
   businessAreaId?: string
   indicators?: Indicator[]
+  draft?: TSemanticModelDraft
+  isDraft: boolean
 }
 
 /**
  * @deprecated 需重构, 找到更好的转换方式
  */
-export function convertNewSemanticModelResult(result: ISemanticModel): NgmSemanticModel {
+export function convertNewSemanticModelResult(result: ISemanticModel): NgmSemanticModel & Omit<ISemanticModel, 'indicators'> {
   return {
     ...result.options,
     ...omit(result, 'options'),
     indicators: result.indicators?.map(convertIndicatorResult)
-  } as NgmSemanticModel
+  } as NgmSemanticModel & Omit<ISemanticModel, 'indicators'>
 }

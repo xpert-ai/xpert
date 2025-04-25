@@ -1,8 +1,8 @@
-import * as _ from 'underscore';
-import * as moment from 'moment';
-import * as timezone from 'moment-timezone';
+import _ from 'underscore';
+import moment from 'moment';
+import timezone from 'moment-timezone';
 import { Connection } from 'typeorm';
-import * as faker from 'faker';
+import faker from 'faker';
 import {
 	Organization,
 } from '../core/entities/internal';

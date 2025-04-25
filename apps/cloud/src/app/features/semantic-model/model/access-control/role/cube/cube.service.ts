@@ -34,7 +34,6 @@ export class CubeStateService {
   readonly state$ = this.store.asObservable()
 
   public init(name: string) {
-    // this.connect(this.roleState, { parent: ['options', 'schemaGrant', 'cubeGrants', name], arrayKey: 'cube' })
     this.store.connect(['options', 'schemaGrant', 'cubeGrants', name])
     this.pristineStore.connect(['options', 'schemaGrant', 'cubeGrants', name])
   }

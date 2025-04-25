@@ -24,7 +24,7 @@ export class GetDimensionMembersHandler implements ICommandHandler<GetDimensionM
 
 		const language = model.preferences?.language || RequestContext.getLanguageCode()
 		const modelKey = getSemanticModelKey(model)
-		registerSemanticModel(model, dsCoreService, { language })
+		registerSemanticModel(model, false, dsCoreService, { language })
 		const modelDataSource = await dsCoreService._getDataSource(modelKey)
 
 		this.logger.debug(`Sync members for dimensions: ${hierarchies} in cube: ${cube} of model: ${model.name} ...`)

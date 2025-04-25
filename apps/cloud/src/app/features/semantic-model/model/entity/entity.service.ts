@@ -1,5 +1,5 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
-import { DestroyRef, Injectable, computed, effect, inject, output, signal } from '@angular/core'
+import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { nonNullable } from '@metad/core'
@@ -26,7 +26,7 @@ import {
 import { NxSettingsPanelService } from '@metad/story/designer'
 import { select, withProps } from '@ngneat/elf'
 import { uuid } from 'apps/cloud/src/app/@core'
-import { assign, cloneDeep, isEqual, negate, omit, omitBy } from 'lodash-es'
+import { assign, isEqual, negate, omit, omitBy } from 'lodash-es'
 import {
   EMPTY,
   Observable,
@@ -46,6 +46,9 @@ import { SemanticModelService } from '../model.service'
 import { DEBOUNCE_TIME, EntityPreview, MODEL_TYPE, ModelDesignerType } from '../types'
 import { CubeDimensionType, CubeEventType, newDimensionFromColumn, newDimensionFromTable } from './types'
 
+/**
+ * State servcie for Cube
+ */
 @Injectable()
 export class ModelEntityService {
   #modelService = inject(SemanticModelService)
@@ -108,8 +111,11 @@ export class ModelEntityService {
    */
   readonly tableMeasures = signal<Property[] | null>(null)
 
-  public readonly tables$ = this.cube$.pipe(map((cube) => cube?.tables))
-  public readonly entityType$ = this.entityName$.pipe(
+  /**
+   * @deprecated use `fact`
+   */
+  readonly tables$ = this.cube$.pipe(map((cube) => cube?.tables))
+  readonly entityType$ = this.entityName$.pipe(
     switchMap((name) => this.#modelService.selectEntityType(name)),
     takeUntilDestroyed(),
     shareReplay(1)
@@ -122,14 +128,14 @@ export class ModelEntityService {
     shareReplay(1)
   )
 
-  public readonly originalEntityType$ = this.entityName$.pipe(
+  readonly originalEntityType$ = this.entityName$.pipe(
     switchMap((name) => this.#modelService.selectOriginalEntityType(name)),
     takeUntilDestroyed(),
     shareReplay(1)
   )
 
-  public readonly measures$ = this.cube$.pipe(map((cube) => cube?.measures))
-  public readonly calculatedMembers$ = this.cube$.pipe(map((cube) => cube?.calculatedMembers))
+  readonly measures$ = this.cube$.pipe(map((cube) => cube?.measures))
+  readonly calculatedMembers$ = this.cube$.pipe(map((cube) => cube?.calculatedMembers))
 
   /**
   |--------------------------------------------------------------------------
@@ -159,7 +165,7 @@ export class ModelEntityService {
     const sharedDimensions = this.sharedDimensions()
     const dimensions = this.dimensions()
     return [...(dimensionUsages?.map((usage) => {
-      const dimension = sharedDimensions.find((d) => d.name === usage.source)
+      const dimension = sharedDimensions?.find((d) => d.name === usage.source)
       if (dimension) {
         return {
           ...dimension,
@@ -245,12 +251,12 @@ export class ModelEntityService {
   }
 
   public init(entity: string) {
-    const state = this.store.connect(['model', 'schema', 'cubes', entity]).getValue()
+    const state = this.store.connect(['draft', 'schema', 'cubes', entity]).getValue()
     if (!state.__id__) {
       this.#router.navigate(['../404'], { relativeTo: this.#route })
       return
     }
-    this.pristineStore.connect(['model', 'schema', 'cubes', entity])
+    this.pristineStore.connect(['draft', 'schema', 'cubes', entity])
   }
 
   query(statement: string) {
@@ -394,11 +400,14 @@ export class ModelEntityService {
 
   readonly newHierarchy = this.updater((state, { id, name }: { id: string; name: string }) => {
     const dimension = state.dimensions.find((item) => item.__id__ === id)
-    dimension.hierarchies = dimension.hierarchies ?? []
-    dimension.hierarchies.push({
-      __id__: uuid(),
-      name
-    } as PropertyHierarchy)
+    // Check if the entry already exists or up to two initial entries
+    if (dimension && (name ? !dimension.hierarchies?.some((item) => item.name === name) : dimension.hierarchies?.filter((_) => !_.name).length <= 1 )) {
+      dimension.hierarchies = dimension.hierarchies ?? []
+      dimension.hierarchies.push({
+        __id__: uuid(),
+        name
+      } as PropertyHierarchy)
+    }
   })
 
   readonly newLevel = this.updater(
@@ -413,7 +422,7 @@ export class ModelEntityService {
       }: { id: string; index?: number; name: string; column?: string; caption?: string }
     ) => {
       const hierarchy = getHierarchyById(state, id)
-      // 检查是否已经存在新建条目
+      // Check if the new entry already exists
       if (hierarchy && !hierarchy.levels?.find((item) => item.name === name)) {
         hierarchy.levels = hierarchy.levels ?? []
         hierarchy.levels.splice(index ?? hierarchy.levels.length, 0, {

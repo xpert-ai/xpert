@@ -1,7 +1,7 @@
 import { FileStorageOption, FileStorageProviderEnum, UploadedFile } from '@metad/contracts';
-import * as multer from 'multer';
-import * as fs from 'fs';
-import * as moment from 'moment';
+import multer from 'multer';
+import fs from 'fs';
+import moment from 'moment';
 import { environment, getConfig } from '@metad/server-config';
 import { Provider } from './provider';
 import { basename, join, resolve } from 'path';

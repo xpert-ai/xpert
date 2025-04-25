@@ -2,7 +2,7 @@ import { ITenantSetting } from '@metad/contracts';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindManyOptions, In, Repository } from 'typeorm';
-import * as _ from 'underscore';
+import _ from 'underscore';
 import { TenantAwareCrudService } from './../../core/crud';
 import { TenantSetting } from './tenant-setting.entity';
 

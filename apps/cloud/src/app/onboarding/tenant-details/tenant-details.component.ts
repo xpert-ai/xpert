@@ -35,7 +35,7 @@ import {
   injectHelpWebsite,
   injectLanguage
 } from '../../@core'
-import { WelcomeComponent } from '../welcome/welcome.component'
+
 
 @Component({
   standalone: true,
@@ -270,7 +270,8 @@ export class TenantDetailsComponent {
           dataSource: {
             ...this.dataSourceTypeFormGroup.value,
             typeId: this.type.id
-          }
+          },
+          isDraft: false
         },
         {
           method: 'get',

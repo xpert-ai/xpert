@@ -24,6 +24,9 @@ import {
 import { ChatBIConversationService, ChatbiConverstion, registerModel } from '../../@core'
 import { QuestionAnswer } from './types'
 
+/**
+ * @deprecated use ChatBI toolset.
+ */
 @Injectable()
 export class ChatbiService {
   readonly #modelsService = inject(SemanticModelServerService)
@@ -222,7 +225,7 @@ export class ChatbiService {
   }
 
   private registerModel(model: NgmSemanticModel) {
-    registerModel(omit(model, 'indicators'), this.#dsCoreService, this.#wasmAgent)
+    registerModel(omit(model, 'indicators'), false, this.#dsCoreService, this.#wasmAgent)
   }
 
   newConversation() {

@@ -107,6 +107,21 @@ export class SemanticModel extends TenantOrganizationBaseEntity implements ISema
 	@Column({ nullable: true })
 	ownerId: string
 
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@IsOptional()
+	@Column({ nullable: true })
+	releaseNotes?: string
+
+	@ApiProperty({
+		type: 'string',
+		format: 'date-time',
+		example: '2023-11-21T06:20:32.232Z'
+	})
+	@IsOptional()
+	@Column({ nullable: true, type: 'timestamptz' })
+	publishAt?: Date
+
 	// Members
 	@ManyToMany(() => User)
 	@JoinTable({

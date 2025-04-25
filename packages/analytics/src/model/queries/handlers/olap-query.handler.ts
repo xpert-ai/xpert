@@ -23,7 +23,7 @@ export class ModelOlapQueryHandler implements IQueryHandler<ModelOlapQuery> {
 	) {}
 
 	async execute(query: ModelOlapQuery) {
-		const { id, sessionId, modelId, body, forceRefresh, acceptLanguage } = query.input
+		const { id, sessionId, modelId, body, forceRefresh, acceptLanguage, isDraft } = query.input
 		const user = query.user
 
 		this.logger.verbose(`Executing OLAP query [${id}] for model: ${modelId}`)

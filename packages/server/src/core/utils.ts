@@ -3,11 +3,11 @@ import { IUser } from '@metad/contracts';
 import { getConfig } from '@metad/server-config';
 import { yaml } from '@metad/server-common';
 import { sample } from 'underscore';
-import * as moment from 'moment';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as chalk from 'chalk';
+import moment from 'moment';
+import path from 'path';
+import fs from 'fs';
+import os from 'os';
+import chalk from 'chalk';
 
 
 namespace Utils {

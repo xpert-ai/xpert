@@ -19,19 +19,21 @@ export class ProxyAgent implements Agent {
 		return EMPTY
 	}
 	error(err: any): void {}
-	async request(model: ISemanticModel, options: any): Promise<any> {
+	async request(model: ISemanticModel & {isDraft?: boolean}, options: any): Promise<any> {
 		const user = RequestContext.currentUser()
 
 		const result = await this.queryBus.execute(
 			new ModelOlapQuery(
 				{
 					id: uuid(),
+					organizationId: RequestContext.getOrganizationId(),
 					sessionId: model.id,
 					dataSourceId: model.dataSource.id,
 					modelId: model.id,
 					body: options.body,
 					acceptLanguage: options.headers.acceptLanguage,
-					forceRefresh: options.forceRefresh
+					forceRefresh: options.forceRefresh,
+					isDraft: model.isDraft
 				},
 				user
 			)

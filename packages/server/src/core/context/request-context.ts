@@ -6,7 +6,7 @@ import {
 	RolesEnum
 } from '@metad/contracts';
 import { environment as env } from '@metad/server-config';
-import * as cls from 'cls-hooked';
+import cls from 'cls-hooked';
 import { ExtractJwt } from 'passport-jwt';
 import { JsonWebTokenError, verify } from 'jsonwebtoken';
 

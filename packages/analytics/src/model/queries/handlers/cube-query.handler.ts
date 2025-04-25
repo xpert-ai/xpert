@@ -25,7 +25,7 @@ export class ModelCubeQueryHandler implements IQueryHandler<ModelCubeQuery> {
 	) {}
 
 	async execute(params: ModelCubeQuery) {
-		const { id, sessionId, modelId, body, acceptLanguage, forceRefresh } = params.input
+		const { id, sessionId, modelId, body, acceptLanguage, forceRefresh, isDraft } = params.input
 		const { mdx, query } = body ?? {}
 
 		this.logger.verbose(`Executing OLAP query [${id}] for model: ${modelId}`)
@@ -37,7 +37,7 @@ export class ModelCubeQueryHandler implements IQueryHandler<ModelCubeQuery> {
 		// New Ocap context for every chatbi conversation
 		const dsCoreService = new NgmDSCoreService(this.agent, this.dataSourceFactory)
 
-		registerSemanticModel(model, dsCoreService, { language: acceptLanguage })
+		registerSemanticModel(isDraft ? {...model, ...(model.draft ?? {})} : model, isDraft, dsCoreService, { language: acceptLanguage })
 
 		const entityService = await firstValueFrom(dsCoreService.getEntityService(modelId, query.cube))
 

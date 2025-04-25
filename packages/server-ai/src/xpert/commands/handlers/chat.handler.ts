@@ -7,10 +7,12 @@ import {
 	IChatConversation,
 	IXpert,
 	LongTermMemoryTypeEnum,
+	messageContentText,
 	TChatConversationStatus,
 	TSensitiveOperation,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
+import { appendMessageContent } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
@@ -25,10 +27,9 @@ import {
 } from '../../../chat-conversation/'
 import { appendMessageSteps, ChatMessageUpsertCommand } from '../../../chat-message'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
-import { messageContentText, XpertAgentChatCommand } from '../../../xpert-agent/'
+import { XpertAgentChatCommand } from '../../../xpert-agent/'
 import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
-import { appendMessageContent } from '@metad/copilot'
 import { CreateMemoryStoreCommand } from '../create-memory-store.command'
 
 @CommandHandler(XpertChatCommand)

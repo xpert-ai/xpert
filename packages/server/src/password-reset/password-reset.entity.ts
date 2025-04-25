@@ -1,6 +1,6 @@
 import { Entity, Index, Column, AfterLoad } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-import * as moment from 'moment';
+import moment from 'moment';
 import { IPasswordReset } from '@metad/contracts';
 import { BaseEntity } from './../core/entities/base.entity';
 

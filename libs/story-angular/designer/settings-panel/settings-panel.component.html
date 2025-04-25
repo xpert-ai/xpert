@@ -1,49 +1,56 @@
-<mat-drawer-container class="h-full" displayDensity="compact" autoresize waResizeBox="content-box" (waResizeObserver)="onResize($event)">
-    <mat-drawer #drawer mode="over" position="end" [(opened)]="drawerOpened" class="ngm-settings-panel__drawer">
-        <mat-toolbar class="ngm-settings-panel__drawer-drawer flex justify-start items-center gap-2">
-            <button mat-icon-button type="button" displayDensity="cosy" (click)="closeDrawer()">
-                <span class="flex">
-                    <mat-icon>chevron_right</mat-icon>
-                </span>
-            </button>
-            <span class="flex-1">{{ drawerTitle }}</span>
+<ng-template [cdkPortalOutlet]="settingsPortal"></ng-template>
 
-            <button *ngIf="!liveMode" type="submit" mat-icon-button color="primary" displayDensity="cosy"
-                [matTooltip]="'STORY.DESIGNER.SUBMIT' | translate: {Default: 'Submit'}"
-                (click)="submitDrawer()">
-                <mat-icon>done</mat-icon>
-            </button>
-
-            <button mat-icon-button type="button" displayDensity="cosy" ngmAppearance="danger" class="ngm-settings-panel__drawer-cancel"
-                [matTooltip]="'STORY.DESIGNER.DELETE' | translate: {Default: 'Delete'}"
-                (click)="remove()">
-                <mat-icon fontSet="material-icons-round">
-                    delete
-                </mat-icon>
-            </button>
-        </mat-toolbar>
-
-        <div style="flex: 1; max-height: 100%; overflow: auto;">
-            <ng-template [cdkPortalOutlet]="drawerPortal"></ng-template>
-        </div>
-    </mat-drawer>
-    <mat-drawer-content class="ngm-settings-panel__drawer-content">
-        <ng-template [cdkPortalOutlet]="settingsPortal"></ng-template>
-      
-      @if (settingsPortals) {
-        <mat-tab-group #tabGroup class="h-full" mat-stretch-tabs preserveContent fitInkBarToContent>
-          @for (settingsPortal of settingsPortals; track settingsPortal) {
-            <mat-tab>
-                <ng-template mat-tab-label>
-                  @if (settingsPortal.icon) {
-                    <mat-icon fontSet="material-icons-outlined">{{settingsPortal.icon}}</mat-icon>
-                  }
-                    <span>{{settingsPortal.label | translate: {Default: settingsPortal.label} }}</span>
-                </ng-template>
-                <ng-template [cdkPortalOutlet]="settingsPortal.portal"></ng-template>
-            </mat-tab>
+@if (settingsPortals(); as settingsPortals) {
+  <div class="flex justify-center p-2">
+    <ul class="p-1 flex items-center justify-center gap-2 bg-hover-bg rounded-xl">
+      @for (settingsPortal of settingsPortals; track i; let i = $index) {
+        <li class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 whitespace-nowrap cursor-pointer hover:bg-white"
+          [ngClass]="tabPortalIndex() === i ? 'shadow-md bg-components-card-bg' : ''"
+          (click)="tabPortalIndex.set(i)"
+        >
+          @if (settingsPortal.icon) {
+            <mat-icon fontSet="material-icons-outlined" class="scale-75 origin-center text-zinc-500">{{settingsPortal.icon}}</mat-icon>
           }
-        </mat-tab-group>
+          <span class="ml-1">{{settingsPortal.label | translate: {Default: settingsPortal.label} }}</span>
+        </li>
       }
-    </mat-drawer-content>
-</mat-drawer-container>
+    </ul>
+  </div>
+
+  <div>
+    <ng-template [cdkPortalOutlet]="tabPortal()?.portal"></ng-template>
+  </div>
+}
+
+@if (drawerOpened()) {
+  <div class="absolute top-8 left-0 bottom-0 overflow-y-auto">
+    <mat-toolbar class="ngm-settings-panel__drawer-drawer flex justify-start items-center gap-2 sticky top-0 bg-components-card-bg">
+      <button mat-icon-button type="button" displayDensity="cosy" (click)="closeDrawer()">
+        <span class="flex">
+          <mat-icon>chevron_right</mat-icon>
+        </span>
+      </button>
+      <span class="flex-1">{{ drawerTitle }}</span>
+
+    @if (!liveMode) {
+      <button type="submit" mat-icon-button color="primary" displayDensity="cosy"
+        [matTooltip]="'STORY.DESIGNER.SUBMIT' | translate: {Default: 'Submit'}"
+        (click)="submitDrawer()">
+        <mat-icon>done</mat-icon>
+      </button>
+    }
+
+      <button mat-icon-button type="button" displayDensity="cosy" ngmAppearance="danger" class="ngm-settings-panel__drawer-cancel"
+        [matTooltip]="'STORY.DESIGNER.DELETE' | translate: {Default: 'Delete'}"
+        (click)="remove()">
+        <mat-icon fontSet="material-icons-round">
+          delete
+        </mat-icon>
+      </button>
+    </mat-toolbar>
+
+    <div style="flex: 1; max-height: 100%; overflow: auto;">
+      <ng-template [cdkPortalOutlet]="drawerPortal"></ng-template>
+    </div>
+  </div>
+}

@@ -1,7 +1,7 @@
 import { isNotEmpty } from '@metad/server-common';
 import { GqlModuleOptions, GraphQLTypesLoader } from '@nestjs/graphql';
 import { buildSchema, extendSchema, printSchema } from 'graphql';
-import * as path from 'path';
+import path from 'path';
 import { ConfigService } from '@metad/server-config';
 
 export async function createGraphqlModuleOptions(

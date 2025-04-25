@@ -18,6 +18,7 @@ import {
   Schema,
   Table
 } from '@metad/ocap-core'
+import {t} from 'i18next'
 import { CubeFactTable } from './cube'
 import { Cast } from './functions'
 import { AggregateFunctions, C_MEASURES_ROW_COUNT } from './types'
@@ -632,7 +633,7 @@ export function compileDimensionSchema(
     )
   ).forEach(([name, count]: [string, any]) => {
     if (count > 1) {
-      throw new Error(`Hierarchy name '${name}' cannot be duplicated.`)
+      throw new Error(t('Error.HierarchyNameDuplicated', {ns: 'sql', name, dimension: dimension.name, cube: entity}))
     }
   })
 

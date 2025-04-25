@@ -1,6 +1,6 @@
 {
 	"name": "@metad/analytics",
-	"version": "3.1.11",
+	"version": "3.1.12",
 	"type": "commonjs",
 	"license": "AGPL-3.0",
 	"scripts": {
@@ -26,7 +26,6 @@
 		"date-fns": "^3.0.4",
 		"decompress": "4.2.1",
 		"immer": "^9.0.6",
-		"nestjs-i18n": "^8.1.6",
 		"node-fetch": "2",
 		"redis": "^4.6.13",
 		"reflect-metadata": "^0.1.13",

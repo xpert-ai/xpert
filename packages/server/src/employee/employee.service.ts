@@ -1,7 +1,7 @@
 import { IEmployee, IEmployeeCreateInput, IPagination, RolesEnum } from '@metad/contracts';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as moment from 'moment';
+import moment from 'moment';
 import { Brackets, Like, Repository } from 'typeorm';
 import { RequestContext } from '../core/context';
 import { TenantAwareCrudService } from './../core/crud';

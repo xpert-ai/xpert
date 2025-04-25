@@ -114,12 +114,12 @@ export class ModelDimensionService {
   }
 
   public init(id: string) {
-    const state = this.store.connect(['model', 'schema', 'dimensions', id]).getValue()
+    const state = this.store.connect(['draft', 'schema', 'dimensions', id]).getValue()
     if (!state.__id__) {
       this.router.navigate(['../404'], { relativeTo: this.route })
       return
     }
-    this.pristineStore.connect(['model', 'schema', 'dimensions', id])
+    this.pristineStore.connect(['draft', 'schema', 'dimensions', id])
 
     timer(0).subscribe(() => {
       this.initHierarchyIndex()

@@ -1,6 +1,6 @@
 import { CommandBus, EventsHandler, IEventHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import * as chalk from 'chalk'
+import chalk from 'chalk'
 import { Repository } from 'typeorm'
 import { TenantCreatedEvent, TenantService } from '../../../tenant/'
 import { EmailTemplate } from '../../email-template.entity'

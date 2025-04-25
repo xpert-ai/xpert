@@ -29,6 +29,7 @@ import { PAC_API_BASE_URL } from '@metad/cloud/auth'
 import { environment } from '../environments/environment'
 import { DateAdapter, MAT_DATE_FORMATS } from '@angular/material/core'
 import { DateFnsAdapter, MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter'
+import { initI18n } from './@shared/i18n'
 
 const TYPE_KEY = '__subject__'
 function detectSubjectType(subject) {
@@ -107,6 +108,11 @@ function detectSubjectType(subject) {
       },
       deps: [AppInitService],
       multi: true
+    },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: () => () => initI18n(),
+      multi: true,
     },
     { provide: Ability, useValue: new Ability([], { detectSubjectType }) },
     { provide: PureAbility, useExisting: Ability },

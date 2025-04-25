@@ -1,39 +1,38 @@
+import { convertIndicatorResult, NgmSemanticModel } from '@metad/cloud/state'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import {
-  AgentType,
-  DataSourceOptions,
-  isNil,
-  mapIndicatorToMeasures,
-  omit,
-  Syntax
-} from '@metad/ocap-core'
-import { convertIndicatorResult, NgmSemanticModel } from '@metad/cloud/state'
+import { AgentType, DataSourceOptions, isNil, mapIndicatorToMeasures, omit, Syntax } from '@metad/ocap-core'
 import { getSemanticModelKey } from '@metad/story/core'
 import { IIndicator } from '../types'
 
 /**
  * Register semantic model into data soruce.
- * 
+ *
  * @param model Semantic Model
- * @param dsCoreService 
- * @param wasmAgent 
+ * @param dsCoreService
+ * @param wasmAgent
  * @param indicators Runtime indicators
- * @returns 
+ * @returns
  */
-export function registerModel(model: NgmSemanticModel, dsCoreService: NgmDSCoreService, wasmAgent: WasmAgentService, indicators?: IIndicator[]) {
+export function registerModel(
+  model: NgmSemanticModel,
+  isDraft: boolean,
+  dsCoreService: NgmDSCoreService,
+  wasmAgent: WasmAgentService,
+  indicators?: IIndicator[]
+) {
   const modelKey = getSemanticModelKey(model)
   const agentType = isNil(model.dataSource)
     ? AgentType.Wasm
     : model.dataSource.useLocalAgent
-    ? AgentType.Local
-    : AgentType.Server
+      ? AgentType.Local
+      : AgentType.Server
   const dialect =
     model.dataSource?.type?.type === 'agent'
       ? 'sqlite'
       : agentType === AgentType.Wasm
-      ? 'duckdb'
-      : model.dataSource?.type?.type
+        ? 'duckdb'
+        : model.dataSource?.type?.type
   const catalog = agentType === AgentType.Wasm ? model.catalog || 'main' : model.catalog
   const semanticModel = {
     ...omit(model, 'indicators'),
@@ -54,9 +53,9 @@ export function registerModel(model: NgmSemanticModel, dsCoreService: NgmDSCoreS
         measures[indicator.entity] ??= []
         measures[indicator.entity].push(...mapIndicatorToMeasures(convertIndicatorResult(indicator)))
       }
-      
+
       return measures
-      }, {}),
+    }, {})
   } as DataSourceOptions
 
   if (model.dataSource?.type?.protocol?.toUpperCase() === 'SQL') {
@@ -75,7 +74,8 @@ export function registerModel(model: NgmSemanticModel, dsCoreService: NgmDSCoreS
         ...semanticModel,
         key: getSQLSourceName(modelKey),
         type: 'SQL',
-        syntax: Syntax.SQL
+        syntax: Syntax.SQL,
+        isDraft
       })
 
       dsCoreService.registerModel({
@@ -94,8 +94,9 @@ export function registerModel(model: NgmSemanticModel, dsCoreService: NgmDSCoreS
           /**
            * Corresponding id of XmlaConnection in olap engine:
            */
-          dataSourceInfo: model.id
-        } as any
+          dataSourceInfo: isDraft ? `${model.id}/draft` : model.id
+        } as any,
+        isDraft
       })
     } else {
       dsCoreService.registerModel({
@@ -106,7 +107,8 @@ export function registerModel(model: NgmSemanticModel, dsCoreService: NgmDSCoreS
           dataSourceInfo: model.dataSource?.options?.data_source_info
         } as any,
         // Don't use schema for source XMLA system
-        schema: null
+        schema: null,
+        isDraft
       })
 
       dsCoreService.registerModel({
@@ -114,7 +116,8 @@ export function registerModel(model: NgmSemanticModel, dsCoreService: NgmDSCoreS
         settings: {
           ...semanticModel.settings,
           dataSourceInfo: model.dataSource?.options?.data_source_info
-        } as any
+        } as any,
+        isDraft
       })
     }
   } else {
@@ -124,14 +127,15 @@ export function registerModel(model: NgmSemanticModel, dsCoreService: NgmDSCoreS
       settings: {
         ...semanticModel.settings,
         dataSourceInfo: model.dataSource?.options?.data_source_info
-      } as any
+      } as any,
+      isDraft
     })
   }
 
   if (semanticModel.agentType === AgentType.Wasm) {
     // 先初始化 wasm 服务
     wasmAgent.registerModel({
-      ...semanticModel
+      ...semanticModel,
     })
   }
 

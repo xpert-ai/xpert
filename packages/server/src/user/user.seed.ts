@@ -1,7 +1,7 @@
 import { Connection } from 'typeorm';
-import * as bcrypt from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 import { environment as env } from '@metad/server-config';
-import * as faker from 'faker';
+import faker from 'faker';
 import {
 	IDefaultUser,
 	RolesEnum,

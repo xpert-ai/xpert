@@ -8,9 +8,9 @@ import {
 	IUser,
 	PayPeriodEnum
 } from '@metad/contracts';
-import * as faker from 'faker';
+import faker from 'faker';
 import { environment as env } from '@metad/server-config';
-import * as moment from 'moment';
+import moment from 'moment';
 import { Employee, Organization } from './../core/entities/internal';
 import { getDefaultOrganization } from './../organization/organization.seed';
 

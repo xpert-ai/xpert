@@ -860,6 +860,7 @@
       "EditVariable": "编辑变量",
       "Variables": "参数变量",
       "OpenCubeDesigner": "打开多维数据集属性编辑器",
+      "OpenFactFields": "打开事实字段列表",
       "IsDefault": "是默认",
       "MoveLeft": "左移",
       "MoveRight": "右移",
@@ -876,6 +877,23 @@
       "Failure": "失败",
       "Pending": "等待",
       "Success": "成功",
+      "AutoSave": "自动保存",
+      "Published": "已发布于",
+      "Publish": "发布",
+      "LatestPublished": "最新发布",
+      "PublishUpdate": "发布更新",
+      "AutoArrange": "自动对齐",
+      "EditSharedDimension": "编辑共享维度",
+      "UnlinkSharedDimension": "解除关联共享维度",
+      "ConfigureAssociation": "配置关联关系",
+      "AddHierarchy": "添加层次结构",
+      "RemoveDimension": "移除维度",
+      "AddLevel": "添加层级",
+      "RemoveHierarchy": "移除层次结构",
+      "RemoveLevel": "移除层级",
+      "SelectAFactTable": "选择一个事实表",
+      "Alias": "别名",
+      "SQL": "SQL",
 
       "QUERY": {
         "TITLE": "查询实验室",
@@ -1000,7 +1018,10 @@
         "PleaseSelectFields": "请选择字段！",
         "CubeNotFound": "多维数据集未找到！",
         "CreateDimension": "创建维度",
-        "CubeStructure": "立方体结构"
+        "CubeStructure": "立方体结构",
+        "DragDimensionHere": "拖动维度至此",
+        "DragMeasureHere": "拖动度量至此",
+        "DataPreview": "数据预览"
       },
       "DIMENSION": {
         "Levels": "层级",
@@ -1048,6 +1069,7 @@
           "Column": "字段",
           "Description": "描述",
           "ForeignKey": "外键",
+          "FactForeignKey": "事实表外键",
           "ParentChild": "父子层级关系",
           "Semantics": "语义",
           "Semantic": "语义类型",
@@ -1206,7 +1228,11 @@
         "DimensionHierarchyAlreadyExists": "维度或层次结构已存在！",
         "MemberAlreadyExists": "成员已存在！",
         "MeasureAlreadyExists": "度量已存在！",
-        "DragandDropAddDimension": "拖放以添加维度"
+        "DragandDropAddDimension": "拖放以添加维度",
+        "CubeExists": "多维数据集已存在",
+        "RoleExists": "角色已存在",
+        "UserExists": "用户已存在",
+        "RoleNotExists": "角色不存在"
       },
       "VirtualCube": {
         "VirtualCube": "虚拟多维数据集",

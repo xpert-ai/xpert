@@ -10,7 +10,11 @@ import { FieldArrayType } from '@ngx-formly/core';
   selector: 'ngm-formly-array',
   template: `
 @if (to.label) {
-  <div class="ngm-formly__title">{{ to.label }}</div>
+  <div class="ngm-formly__title">
+    <span [class.line-through]="deprecated"
+      [matTooltip]="deprecated" matTooltipPosition="above"
+    >{{ to.label }}</span>
+  </div>
 }
 <div class="ngm-formly-cdk__drag-list flex flex-col justify-start items-stretch"
   [class.empty]="!field.fieldGroup?.length">
@@ -59,6 +63,10 @@ import { FieldArrayType } from '@ngx-formly/core';
   styleUrls: ['array.type.scss'],
 })
 export class NgmFormlyArrayComponent extends FieldArrayType {
+
+  get deprecated() {
+    return this.props?.deprecated
+  }
 
   drop(event: CdkDragDrop<string[]>) {
     if (!Array.isArray(this.field.fieldGroup) || !Array.isArray(this.field.model)) {

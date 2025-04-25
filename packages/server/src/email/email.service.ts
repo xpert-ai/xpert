@@ -13,9 +13,9 @@ import {
 } from '@metad/contracts';
 import { BadRequestException, forwardRef, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as Email from 'email-templates';
-import * as Handlebars from 'handlebars';
-import * as nodemailer from 'nodemailer';
+import Email from 'email-templates';
+import Handlebars from 'handlebars';
+import nodemailer from 'nodemailer';
 import { Repository, IsNull } from 'typeorm';
 import { environment as env } from '@metad/server-config';
 import { isEmpty, ISMTPConfig } from '@metad/server-common';

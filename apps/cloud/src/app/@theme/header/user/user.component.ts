@@ -11,6 +11,7 @@ import { UserPipe } from '../../../@shared/pipes'
 import { UserProfileInlineComponent } from '../../../@shared/user'
 import { AppService } from '../../../app.service'
 import { OverlayAnimation1 } from '@metad/core'
+import { I18nService } from '@cloud/app/@shared/i18n'
 
 const THEMES = [
   {
@@ -49,7 +50,7 @@ export class HeaderUserComponent {
   readonly store = inject(Store)
   readonly appService = inject(AppService)
   readonly router = inject(Router)
-  readonly #translate = inject(TranslateService)
+  readonly #i18n = inject(I18nService)
   readonly helpWebsite = injectHelpWebsite()
 
   // Inputs
@@ -62,7 +63,7 @@ export class HeaderUserComponent {
   readonly userSignal = toSignal(this.store.user$)
   readonly language$ = toSignal(this.appService.preferredLanguage$)
 
-  readonly themesT$ = toSignal(this.#translate.stream('PAC.Themes'))
+  readonly themesT$ = toSignal(this.#i18n.stream('PAC.Themes'))
 
   readonly themeOptions$ = computed(() => {
     const translate = this.themesT$()
@@ -81,7 +82,7 @@ export class HeaderUserComponent {
 
 
   onLanguageSelect(language: string): void {
-    this.store.preferredLanguage = LanguagesMap[language] ?? language
+    this.#i18n.changeLanguage(language)
   }
   onThemeSelect(mode: string): void {
     this.store.preferredTheme = mode

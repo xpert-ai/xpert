@@ -3,15 +3,17 @@ import { Injectable, inject } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { IModelRole, IUser, MDX } from '@metad/contracts'
 import { Store, select, withProps } from '@ngneat/elf'
-import { ToastrService } from 'apps/cloud/src/app/@core'
+import { ToastrService } from '@cloud/app/@core'
 import { isEqual, negate } from 'lodash-es'
 import { createSubStore, dirtyCheckWith, write } from '../../../store'
 import { SemanticModelService } from '../../model.service'
-import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
+import { userLabel } from '@cloud/app/@shared/pipes'
+import { I18nService } from '@cloud/app/@shared/i18n'
 
 @Injectable()
 export class RoleStateService {
-  #toastrService = inject(ToastrService)
+  readonly #toastrService = inject(ToastrService)
+  readonly #i18n = inject(I18nService)
 
   /**
   |--------------------------------------------------------------------------
@@ -41,8 +43,8 @@ export class RoleStateService {
   constructor(public modelService: SemanticModelService) {}
 
   public init(key: string) {
-    this.store.connect(['model', 'roles', key])
-    this.pristineStore.connect(['model', 'roles', key])
+    this.store.connect(['draft', 'roles', key])
+    this.pristineStore.connect(['draft', 'roles', key])
   }
 
   updater<ProvidedType = void, OriginType = ProvidedType>(
@@ -64,7 +66,7 @@ export class RoleStateService {
     state.options.schemaGrant = state.options.schemaGrant ?? ({ cubeGrants: [] } as MDX.SchemaGrant)
     state.options.schemaGrant.cubeGrants = state.options.schemaGrant.cubeGrants ?? []
     if (state.options.schemaGrant.cubeGrants?.find((item) => item.cube === cube)) {
-      this.#toastrService.warning('多维数据集已经存在')
+      this.#toastrService.warning(this.#i18n.instant('PAC.MODEL.AccessControl.CubeExists', {Default: 'The cube already exists'}))
     } else {
       state.options.schemaGrant.cubeGrants.push({
         cube,
@@ -89,7 +91,9 @@ export class RoleStateService {
     state.users = state.users ?? []
     users.forEach((user) => {
       if (state.users.find((item) => item.id === user.id)) {
-        this.#toastrService.warning('用户已经存在', {}, userLabel(user))
+        this.#toastrService.warning(
+          'PAC.MODEL.AccessControl.UserExists', {Default: 'The user already exists'}
+          , userLabel(user))
       } else {
         state.users.push(user)
       }
@@ -106,7 +110,7 @@ export class RoleStateService {
   readonly addRoleUsage = this.updater((state, { roleName, currentIndex }: any) => {
     const index = state.options.roleUsages.findIndex((name) => name === roleName)
     if (index > -1) {
-      this.#toastrService.warning('角色已经存在')
+      this.#toastrService.warning('PAC.MODEL.AccessControl.RoleExists', {Default: 'The role already exists'})
       return
     }
 
@@ -118,7 +122,7 @@ export class RoleStateService {
     if (index > -1) {
       state.options.roleUsages.splice(index, 1)
     } else {
-      this.#toastrService.error('角色不存在')
+      this.#toastrService.error('PAC.MODEL.AccessControl.RoleNotExists', '', {Default: 'The role not exists'})
     }
   })
 

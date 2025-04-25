@@ -1,12 +1,9 @@
-import { LanguagesEnum } from '@metad/contracts'
-import { ConfigService, environment } from '@metad/server-config'
+import { ConfigService } from '@metad/server-config'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { MulterModule } from '@nestjs/platform-express'
 import { ServeStaticModule, ServeStaticModuleOptions } from '@nestjs/serve-static'
 import { RouterModule } from 'nest-router'
-import { HeaderResolver, I18nJsonParser, I18nModule } from 'nestjs-i18n'
-import * as path from 'path'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { AuthModule } from './auth/auth.module'
@@ -55,15 +52,15 @@ import { ApiKeyModule } from './api-key/api-key.module'
 				children: [{ path: '/', module: HomeModule }]
 			}
 		]),
-		I18nModule.forRoot({
-			fallbackLanguage: LanguagesEnum.English,
-			parser: I18nJsonParser,
-			parserOptions: {
-				path: path.resolve(__dirname, 'i18n/'),
-				watch: !environment.production
-			},
-			resolvers: [new HeaderResolver(['language'])]
-		}),
+		// I18nModule.forRoot({
+		// 	fallbackLanguage: LanguagesEnum.English,
+		// 	parser: I18nJsonParser,
+		// 	parserOptions: {
+		// 		path: path.resolve(__dirname, 'i18n/'),
+		// 		watch: !environment.production
+		// 	},
+		// 	resolvers: [new HeaderResolver(['language'])]
+		// }),
 		CqrsModule,
 		RedisModule,
 		CoreModule,

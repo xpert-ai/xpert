@@ -1,4 +1,4 @@
-import { NgmSemanticModel } from '@metad/cloud/state'
+import { ISemanticModel, NgmSemanticModel } from '@metad/cloud/state'
 import {
   Cube,
   Dimension,
@@ -66,7 +66,7 @@ export interface QueryResult {
 }
 
 export type SemanticModelState = {
-  model: NgmSemanticModel
+  model: NgmSemanticModel & ISemanticModel
   draft?: TSemanticModelDraft
 }
 
@@ -190,7 +190,7 @@ export interface ModelDimensionState extends SemanticModelEntity {
  * @param model
  * @returns
  */
-export function initEntitySubState(model: SemanticModel): Array<ModelCubeState> {
+export function initEntitySubState(model: TSemanticModelDraft): Array<ModelCubeState> {
   const schema: Schema = model.schema
   return (
     schema?.cubes?.map((cube) => {
@@ -217,7 +217,7 @@ export function initEntitySubState(model: SemanticModel): Array<ModelCubeState> 
  * @param model
  * @returns
  */
-export function initDimensionSubState(model: SemanticModel): Array<ModelDimensionState> {
+export function initDimensionSubState(model: TSemanticModelDraft): Array<ModelDimensionState> {
   const schema: Schema = model.schema
   return (
     schema?.dimensions?.map((dimension) => {

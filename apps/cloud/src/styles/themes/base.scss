@@ -47,6 +47,7 @@
   --color-components-toggle-bg: theme('colors.primary.500');
   --color-components-toggle-bg-unchecked: theme('colors.neutral.300');
   --color-components-toggle-knob: theme('colors.gray.50');
+  --color-components-kbd-bg-white: #ffffff1f;
   // Divider
   --ngm-divider-color-secondary: theme('colors.neutral.100');
   --color-divider-regular: theme('colors.neutral.100');
@@ -108,6 +109,7 @@
   --color-components-input-text-placeholder: var(--color-text-secondary);
   --color-components-list-option-bg: theme('colors.neutral.800');
   --color-components-list-option-active-bg: theme('colors.neutral.700');
+  --color-components-kbd-bg-white: #ffffff1f;
   // Divider
   --ngm-divider-color-secondary: theme('colors.neutral.900');
   --color-divider-regular: theme('colors.neutral.900');

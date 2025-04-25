@@ -1,0 +1,7 @@
+{
+    "Error": {
+        "NoCustomSQLProvided": "未提供自定义SQL",
+        "NoMetadata4Entity": "未能获取到实体‘{{entity}}’的运行时元数据",
+        "HierarchyNameDuplicated": "数据集‘{{cube}}’维度‘{{dimension}}’中的层次结构名称‘{{name}}’不能重复。"
+    }
+}

@@ -1,4 +1,4 @@
-import * as chalk from 'chalk';
+import chalk from 'chalk';
 import { LoggerService } from '@nestjs/common';
 
 const DEFAULT_CONTEXT = `Bootstrap Server`;

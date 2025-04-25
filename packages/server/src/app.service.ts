@@ -2,7 +2,7 @@ import { ConfigService } from '@metad/server-config'
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
 // import { SeedDataService } from './core/seeds/seed-data.service';
 import { CommandBus } from '@nestjs/cqrs'
-import * as chalk from 'chalk'
+import chalk from 'chalk'
 import { UserService } from './user/user.service'
 
 @Injectable()

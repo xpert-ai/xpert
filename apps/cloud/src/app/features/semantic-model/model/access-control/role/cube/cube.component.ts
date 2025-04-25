@@ -41,7 +41,7 @@ export class CubeComponent {
   public cubeGrant: MDX.CubeGrant
   public entityType: EntityType
   private cubeName: string
-  public readonly cubeName$ = this.#route.paramMap.pipe(
+  readonly cubeName$ = this.#route.paramMap.pipe(
     startWith(this.#route.snapshot.paramMap),
     map((paramMap) => paramMap.get('name')),
     filter(nonBlank),

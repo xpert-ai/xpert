@@ -264,20 +264,18 @@ export class LarkService {
 					const tenant = integration.tenant
 					const organizationId = integration.organizationId
 					// Does not block onAction execution and returns to Lark immediately
-					setTimeout(() => {
-						this.conversation.onAction(
-							data.action.value,
-							{
-								tenant,
-								organizationId,
-								integrationId: integration.id,
-								userId: user.id,
-								chatId: data.context.open_chat_id
-							},
-							user.id,
-							xpertId
-						).catch((err) => this.logger.error(err))
-					}, 500)
+					this.conversation.onAction(
+						data.action.value,
+						{
+							tenant,
+							organizationId,
+							integrationId: integration.id,
+							userId: user.id,
+							chatId: data.context.open_chat_id
+						},
+						user.id,
+						xpertId
+					).catch((err) => this.logger.error(err))
 					return true
 				} else {
 					this.errorMessage(
@@ -311,8 +309,9 @@ export class LarkService {
 	}
 
 	async getUser(client: lark.Client, tenantId: string, unionId: string) {
+		const larkUserCacheKey = `lark:user:${tenantId}:${unionId}`
 		// From cache
-		let user = await this.cacheManager.get<IUser>('user/' + tenantId + '/' + unionId)
+		let user = await this.cacheManager.get<IUser>(larkUserCacheKey)
 		if (user) {
 			return user
 		}
@@ -359,8 +358,7 @@ export class LarkService {
 		}
 
 		if (user) {
-			await this.cacheManager.set('user/' + tenantId + '/' + unionId, user)
-			
+			await this.cacheManager.set(larkUserCacheKey, user)
 		}
 		
 		return user

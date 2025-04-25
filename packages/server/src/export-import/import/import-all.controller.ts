@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import * as path from 'path';
+import path from 'path';
 import { CommandBus } from '@nestjs/cqrs';
 import { IImportHistory, ImportHistoryStatusEnum, IPagination, UploadedFile } from '@metad/contracts';
 // import { ImportAllService } from './import-all.service';

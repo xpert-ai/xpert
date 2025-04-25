@@ -67,6 +67,7 @@ import {
 } from './types'
 import { markdownTableData, stringifyTableType } from './utils'
 import { TranslationBaseComponent } from '../../../@shared/language/'
+import { resolveSemanticModel } from './story-model.resolver'
 
 @Component({
   selector: 'ngm-semanctic-model',
@@ -209,6 +210,12 @@ export class ModelComponent extends TranslationBaseComponent implements IsDirty 
     () => !this.isWasm$() && (this.modelType$() === MODEL_TYPE.OLAP || this.modelType$() === MODEL_TYPE.SQL)
   )
   readonly tables = toSignal(this.selectDBTables$)
+
+  readonly unsaved = this.modelService.unsaved
+  readonly draftSavedDate = this.modelService.draftSavedDate
+  readonly latestPublishDate = this.modelService.latestPublishDate
+  readonly publishing = signal(false)
+  readonly canPublish = this.modelService.canPublish
 
   /**
   |--------------------------------------------------------------------------
@@ -411,7 +418,7 @@ export class ModelComponent extends TranslationBaseComponent implements IsDirty 
   }
 
   saveAsDefaultCube(name: string) {
-    this.modelService.updateModel({
+    this.modelService.updateDraft({
       cube: name
     })
   }
@@ -531,24 +538,25 @@ export class ModelComponent extends TranslationBaseComponent implements IsDirty 
   }
 
   async removeDBInit() {
-    this.modelService.updateModel({
+    this.modelService.updateDraft({
       dbInitialization: null
     })
   }
 
-  async openPreferences(event) {
-    const model = await firstValueFrom(this.modelService.model$)
-    const result: Partial<NgmSemanticModel> = await firstValueFrom(
-      this._dialog
-        .open(ModelPreferencesComponent, {
-          data: pick(model, 'id', 'name', 'description', 'dataSourceId', 'catalog', 'visibility', 'preferences')
-        })
-        .afterClosed()
-    )
-
-    if (result) {
-      this.modelService.updateModel(result)
-    }
+  async openPreferences() {
+    const model = this.modelService.modelSignal()
+    this._dialog
+      .open(ModelPreferencesComponent, {
+        data: pick(model, 'id', 'key', 'name', 'description', 'dataSourceId', 'catalog', 'visibility', 'preferences')
+      })
+      .afterClosed()
+      .subscribe({
+        next: (result) => {
+          if (result) {
+            this.modelService.updateModel(result)
+          }
+        }
+      })
   }
 
   undo() {
@@ -654,5 +662,28 @@ export class ModelComponent extends TranslationBaseComponent implements IsDirty 
 
   closeSidebar() {
     this.sideMenuOpened.set(false)
+  }
+
+  saveDraft() {
+    this.modelService.saveDraft()
+  }
+
+  publish() {
+    this.publishing.set(true)
+    this.modelsService.publish(this.model.id, '')
+      // .pipe(
+      //   switchMap(() => this.refreshModel())
+      // )
+      .subscribe({
+        next: (model) => {
+          console.log(model)
+          this.publishing.set(false)
+          window.location.reload();
+        },
+        error: (err) => {
+          this.publishing.set(false)
+          this.toastrService.error(getErrorMessage(err))
+        }
+      })
   }
 }

@@ -1,3 +1,5 @@
+import { AdapterBaseOptions, createQueryRunnerByType } from '@metad/adapter'
+import { ISemanticModel } from '@metad/contracts'
 import {
   camelCase,
   cloneDeep,
@@ -9,11 +11,9 @@ import {
   isString,
 } from 'lodash'
 import { Observable } from 'rxjs'
-import * as xml2js from 'xml2js'
-import { convertSchemaRolesToXmla, convertSchemaToXmla } from './mdx'
-import { SemanticModel } from './model.entity'
-import { AdapterBaseOptions, createQueryRunnerByType } from '@metad/adapter'
 import { RedisClientType } from 'redis'
+import xml2js from 'xml2js'
+import { convertSchemaRolesToXmla, convertSchemaToXmla } from './mdx'
 
 
 export function buildSchema(input: any): string {
@@ -86,7 +86,7 @@ export function parseSchema(input: string) {
 
 export const XMLA_CONNECTION_KEY = 'XmlaConnection'
 
-export async function updateXmlaCatalogContent(redisClient: RedisClientType, model: SemanticModel) {
+export async function updateXmlaCatalogContent(redisClient: RedisClientType, model: ISemanticModel) {
   if (
     model.type?.toLowerCase() === 'xmla' &&
     model.dataSource?.type.protocol === 'sql' &&

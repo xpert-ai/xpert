@@ -1,7 +1,7 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
 import { Injectable, inject } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { MDX } from '@metad/contracts'
+import { MDX, TVirtualCube } from '@cloud/app/@core/types'
 import { Property, PropertyMeasure } from '@metad/ocap-core'
 import { select, withProps } from '@ngneat/elf'
 import { ToastrService } from 'apps/cloud/src/app/@core'
@@ -21,12 +21,12 @@ export class VirtualCubeStateService {
   readonly store = createSubStore(
     this.modelService.store,
     { name: 'semantic_model_virtual_cube', arrayKey: '__id__' },
-    withProps<MDX.VirtualCube>(null)
+    withProps<TVirtualCube>(null)
   )
   readonly pristineStore = createSubStore(
     this.modelService.pristineStore,
     { name: 'semantic_model_virtual_cube_pristine', arrayKey: '__id__' },
-    withProps<MDX.VirtualCube>(null)
+    withProps<TVirtualCube>(null)
   )
   readonly dirtyCheckResult = dirtyCheckWith(this.store, this.pristineStore, { comparator: negate(isEqual) })
   readonly dirty$ = toObservable(this.dirtyCheckResult.dirty)
@@ -45,20 +45,19 @@ export class VirtualCubeStateService {
   readonly virtualCube = toSignal(this.store)
 
   init(key: string) {
-    // this.connect(this.modelService, { parent: ['model', 'schema', 'virtualCubes', key], arrayKey: '__id__' })
-    this.store.connect(['model', 'schema', 'virtualCubes', key])
-    this.pristineStore.connect(['model', 'schema', 'virtualCubes', key])
+    this.store.connect(['draft', 'schema', 'virtualCubes', key])
+    this.pristineStore.connect(['draft', 'schema', 'virtualCubes', key])
   }
 
   updater<ProvidedType = void, OriginType = ProvidedType>(
-    fn: (state: MDX.VirtualCube, ...params: OriginType[]) => MDX.VirtualCube | void
+    fn: (state: TVirtualCube, ...params: OriginType[]) => TVirtualCube | void
   ) {
     return (...params: OriginType[]) => {
       this.store.update(write((state) => fn(state, ...params)))
     }
   }
 
-  patchState(vCube: MDX.VirtualCube) {
+  patchState(vCube: TVirtualCube) {
     this.store.update((state) => ({
       ...state,
       ...vCube

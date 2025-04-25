@@ -1,7 +1,7 @@
 import { Connection } from 'typeorm';
-import * as path from 'path';
+import path from 'path';
 import { copyFileSync, mkdirSync } from 'fs';
-import * as chalk from 'chalk';
+import chalk from 'chalk';
 import { rimraf } from 'rimraf';
 import { ConfigService, environment as env } from '@metad/server-config';
 import {

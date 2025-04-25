@@ -36,10 +36,14 @@ export class SemanticModelUpdatedHandler implements IEventHandler<SemanticModelU
 		})
 
 		try {
-			// await this.modelService.updateCatalogContent(model.id)
-
 			// Update Xmla Schema into Redis for model
 			await updateXmlaCatalogContent(this.redisClient, model)
+
+			// Update draft
+			await updateXmlaCatalogContent(this.redisClient, {...model, ...(model.draft ?? {}), options: {
+				schema: model.draft?.schema ?? model.options?.schema,
+				settings: model.draft?.settings ?? model.options?.settings,
+			}, id: `${model.id}/draft`})
 
 			// Clear cache for model
 			try {
@@ -48,7 +52,10 @@ export class SemanticModelUpdatedHandler implements IEventHandler<SemanticModelU
 				//
 			}
 
-			registerSemanticModel(model, this.dsCoreService)
+			/**
+			 * @deprecated use in dependent query
+			 */
+			registerSemanticModel(model, false, this.dsCoreService)
 		} catch (error) {
 			this.#logger.error(`When update model '${model.id}' xmla schema: ${getErrorMessage(error)}`)
 		}

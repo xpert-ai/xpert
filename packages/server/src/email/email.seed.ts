@@ -1,6 +1,6 @@
 import { Connection, ILike, Not } from 'typeorm';
 import { Email } from './email.entity';
-import * as faker from 'faker';
+import faker from 'faker';
 import { IEmail, IEmailTemplate, IOrganization, ITenant, IUser } from '@metad/contracts';
 import { EmailTemplate, User } from './../core/entities/internal';
 

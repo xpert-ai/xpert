@@ -1,0 +1,5 @@
+{
+    "Error": {
+        "NoAnalyticsRowsOrColumns": "Analytics rows or columns is required"
+    }
+}

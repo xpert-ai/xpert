@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import * as path from 'path';
-import * as moment from 'moment';
+import moment from 'moment';
 // import * as sharp from 'sharp'; It's a bug in install sharp in docker image
 import * as fs from 'fs';
 import { FileStorageProviderEnum, IScreenshot, UploadedFile } from '@metad/contracts';

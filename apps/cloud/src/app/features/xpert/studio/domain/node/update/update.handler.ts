@@ -2,8 +2,9 @@ import { IHandler } from '@foblex/mediator'
 import { Store, StoreDef } from '@ngneat/elf'
 import { TXpertTeamNode } from 'apps/cloud/src/app/@core'
 import { omit } from 'lodash-es'
-import { calculateHash, IStudioStore } from '../../types'
+import { IStudioStore } from '../../types'
 import { UpdateNodeRequest } from './update.request'
+import { calculateHash } from '@cloud/app/@shared/utils'
 
 export class UpdateNodeHandler implements IHandler<UpdateNodeRequest> {
   constructor(private store: Store<StoreDef, IStudioStore>) {}

@@ -1,6 +1,6 @@
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { BadRequestException } from '@nestjs/common';
-import * as moment from 'moment';
+import moment from 'moment';
 import { StorageFileCreateCommand } from '../storage-file-create.command';
 import { StorageFileService } from '../../storage-file.service';
 import { RequestContext } from '../../../core';

@@ -12,7 +12,7 @@ import {
 	ValidationPipe
 } from '@nestjs/common'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
-import * as path from 'path'
+import path from 'path'
 import { StorageFileService } from './storage-file.service'
 import { FileStorage, UploadedFileStorage } from '../core/file-storage'
 import { StorageFile } from './storage-file.entity'

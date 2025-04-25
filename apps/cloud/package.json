@@ -1,12 +1,15 @@
 {
 	"name": "@metad/xpert-ui",
-	"version": "3.1.11",
+	"version": "3.1.12",
 	"type": "commonjs",
 	"license": "AGPL-3.0",
 	"scripts": {
 		"start": "nx start cloud"
 	},
 	"dependencies": {
+		"i18next": "~23.14.0",
+		"i18next-browser-languagedetector": "^8.0.5",
+		"i18next-http-backend": "^3.0.2",
 		"ngx-json-viewer": "^3.2.1"
 	},
 	"devDependencies": {

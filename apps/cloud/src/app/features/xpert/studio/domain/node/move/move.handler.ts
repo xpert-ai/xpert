@@ -1,6 +1,7 @@
 import { IHandler } from '@foblex/mediator'
 import { Store, StoreDef } from '@ngneat/elf'
-import { calculateHash, IStudioStore } from '../../types'
+import { calculateHash } from '@cloud/app/@shared/utils'
+import { IStudioStore } from '../../types'
 import { MoveNodeRequest } from './move.request'
 import { omit } from 'lodash-es'
 

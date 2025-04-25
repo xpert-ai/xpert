@@ -47,7 +47,7 @@
       [(opened)]="designerOpened"
       ngmResizer [resizerWidth]="400"
     >
-      <ngm-settings-panel class="ngm-story__settings-container overflow-hidden"
+      <ngm-settings-panel class="ngm-story__settings-container overflow-hidden" displayDensity="compact"
         liveMode
         [(opened)]="designerOpened" 
       />
@@ -91,7 +91,7 @@
         <div #storyContainer class="ngm-story__device ngm-story-container flex-1 max-w-full overflow-auto">
             <div class="ngm-story__device-content relative w-full h-full origin-top shadow-md mx-auto"
                 [ngStyle]="emulatedDeviceSizeStyle()"
-                [style.transform]="'scale('+deviceZoom()?.value ?? 1+')'"
+                [style.transform]="'scale(' + (deviceZoom()?.value ?? 1) + ')'"
                 ngmResizer [resizerWidth]="emulatedDevice()?.width" [resizerHeight]="emulatedDevice()?.height"
                 [ngmResizerDisabled]="!emulatedDevice()"
                 (resizerWidthChange)="onEmulatedDeviceWidthChange($event)"

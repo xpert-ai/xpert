@@ -1,12 +1,12 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { C_URI_API_MODELS, C_URI_API_MODEL_MEMBERS } from '@metad/cloud/state'
+import { C_URI_API_MODELS, C_URI_API_MODEL_MEMBERS, convertNewSemanticModelResult } from '@metad/cloud/state'
 import { IDimensionMember } from '@metad/ocap-core'
 import { NxStoryModelService, StoryModel, StoryConnection } from '@metad/story/core'
 import { isNil, omitBy } from 'lodash-es'
 import { Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
-import { convertStoryModel, convertStoryModelResult, ID, ISemanticModel } from '../@core/types'
+import { convertStoryModel, ID, ISemanticModel } from '../@core/types'
 
 @Injectable()
 export class StoryModelService implements NxStoryModelService {
@@ -21,13 +21,13 @@ export class StoryModelService implements NxStoryModelService {
       .get<ISemanticModel>(C_URI_API_MODELS + '/' + id, {
         params: new HttpParams().append('$query', JSON.stringify({ relations: ['dataSource'] }))
       })
-      .pipe(map(convertStoryModelResult))
+      .pipe(map(convertNewSemanticModelResult))
   }
 
   createModel(model: StoryModel): Observable<StoryModel> {
     return this.httpClient
       .post<ISemanticModel>(C_URI_API_MODELS, convertStoryModel(model))
-      .pipe(map(convertStoryModelResult))
+      .pipe(map(convertNewSemanticModelResult))
   }
 
   removeModel(id: ID): Observable<void> {
@@ -41,7 +41,7 @@ export class StoryModelService implements NxStoryModelService {
   getModels(type?: string): Observable<StoryModel[]> {
     return this.httpClient
       .get<Array<ISemanticModel>>(C_URI_API_MODELS)
-      .pipe(map((result: Array<ISemanticModel>) => result?.map(convertStoryModelResult)))
+      .pipe(map((result: Array<ISemanticModel>) => result?.map(convertNewSemanticModelResult)))
   }
 
   getMembers(modelId: ID, entity: string, hierarchy: string): Observable<IDimensionMember[]> {

@@ -45,6 +45,7 @@ import {
   Syntax,
   VariableProperty
 } from '@metad/ocap-core'
+import { t } from 'i18next'
 import { cloneDeep, groupBy, isArray, isEmpty, isNil, merge, mergeWith, sortBy } from 'lodash'
 import { combineLatest, firstValueFrom, from, Observable, of, throwError } from 'rxjs'
 import {
@@ -242,8 +243,9 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
     }
 
     return this.xmlaService.execute(statement, { headers, forceRefresh }).pipe(
-      // 转换错误, 取出错误文本信息
+      // Handle exceptions and retrieve error text information
       catchError((error) => throwError(() => new Error(simplifyErrorMessage(error.exception?.message)))),
+      // Parsing xmla format data
       map((dataset) => fetchDataFromMultidimensionalTuple(dataset)),
       map((dataset) => ({
         results: dataset.data,

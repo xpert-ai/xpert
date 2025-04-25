@@ -20,7 +20,7 @@ export interface CacheOptions {
   level: number
 }
 
-const CACHE_OPTIONS = {level: 3}
+const CACHE_OPTIONS = {level: 0}
 
 export const serializeArgs = (...args: unknown[]) => args.map((arg: unknown) => arg.toString()).join(':')
 

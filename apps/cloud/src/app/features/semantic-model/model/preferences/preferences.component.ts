@@ -1,23 +1,29 @@
-import { Component, HostBinding, OnInit, inject } from '@angular/core'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { Component, HostBinding, inject, OnInit, signal } from '@angular/core'
 import { FormGroup } from '@angular/forms'
-import { MAT_DIALOG_DATA } from '@angular/material/dialog'
-import { FormlyFieldConfig } from '@ngx-formly/core'
-import { DataSourceService, NgmSemanticModel } from '@metad/cloud/state'
+import { injectToastr } from '@cloud/app/@core'
+import { I18nService } from '@cloud/app/@shared/i18n'
+import { DataSourceService, NgmSemanticModel, SemanticModelServerService } from '@metad/cloud/state'
 import { FORMLY_ROW, FORMLY_W_1_2 } from '@metad/story/designer'
+import { FormlyFieldConfig } from '@ngx-formly/core'
 import { cloneDeep, merge } from 'lodash-es'
-import { firstValueFrom, map } from 'rxjs'
-import { LANGUAGES, Visibility } from '../../../../@core/types'
-import { TranslationBaseComponent } from '../../../../@shared/language'
+import { map } from 'rxjs'
+import { getErrorMessage, LANGUAGES, Visibility } from '../../../../@core/types'
 
 @Component({
   selector: 'pac-model-preferences',
   templateUrl: './preferences.component.html',
   styleUrls: ['./preferences.component.scss']
 })
-export class ModelPreferencesComponent extends TranslationBaseComponent implements OnInit {
+export class ModelPreferencesComponent implements OnInit {
   @HostBinding('class.ngm-dialog-container') isDialogContainer = true
 
-  public data: Partial<NgmSemanticModel> = inject(MAT_DIALOG_DATA)
+  readonly #i18n = inject(I18nService)
+  readonly #modelService = inject(SemanticModelServerService)
+  readonly #toastr = injectToastr()
+  readonly #dialogRef = inject(DialogRef)
+
+  public data: Partial<NgmSemanticModel> = inject(DIALOG_DATA)
   private readonly dataSourceService = inject(DataSourceService)
 
   private readonly dataSources$ = this.dataSourceService.getAll(['type']).pipe(
@@ -37,10 +43,12 @@ export class ModelPreferencesComponent extends TranslationBaseComponent implemen
     return `https://api.mtda.cloud/api/semantic-model/${this.data?.id}/xmla`
   }
 
-  async ngOnInit() {
+  readonly loading = signal(false)
+
+  ngOnInit() {
     merge(this.model, cloneDeep(this.data))
 
-    const TRANSLATE = await firstValueFrom(this.translateService.get('PAC.MODEL.MODEL'))
+    const TRANSLATE = this.#i18n.instant('PAC.MODEL.MODEL')
 
     const className = FORMLY_W_1_2
     this.fields = [
@@ -153,7 +161,7 @@ export class ModelPreferencesComponent extends TranslationBaseComponent implemen
             type: 'toggle',
             props: {
               label: TRANSLATE?.EnableExposeXMLA ?? 'Expose XMLA Service',
-              placeholder: TRANSLATE?.EnableExposeXMLA ?? 'Expose XMLA Service',
+              placeholder: TRANSLATE?.EnableExposeXMLA ?? 'Expose XMLA Service'
             }
           }
         ]
@@ -168,5 +176,20 @@ export class ModelPreferencesComponent extends TranslationBaseComponent implemen
 
   onFormChange(model) {
     // console.log(model)
+  }
+
+  saveModel() {
+    this.loading.set(true)
+    this.#modelService.updateModel(this.data.id, this.model).subscribe({
+      next: () => {
+        this.loading.set(false)
+        this.#toastr.success('PAC.Messages.SavedSuccessfully', { Default: 'Saved Successfully' })
+        this.#dialogRef.close(this.model)
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
   }
 }

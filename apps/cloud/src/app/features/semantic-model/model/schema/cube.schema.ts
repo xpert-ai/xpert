@@ -1,15 +1,14 @@
 import { Injectable } from '@angular/core'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { nonBlank } from '@metad/core'
 import { ISelectOption } from '@metad/ocap-angular/core'
 import { Cube } from '@metad/ocap-core'
 import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
+import { FormlyFieldConfig } from '@ngx-formly/core'
 import { Observable, combineLatest } from 'rxjs'
 import { filter, map, shareReplay, switchMap } from 'rxjs/operators'
 import { EntitySchemaService } from './entity-schema.service'
 import { CubeSchemaState } from './types'
-import { FormlyFieldConfig } from '@ngx-formly/core'
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-
 
 @Injectable()
 export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaState<T>> {
@@ -17,7 +16,17 @@ export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaS
 
   public readonly cube$ = this.select((state) => state.cube)
   public readonly cubeName$ = this.cube$.pipe(map((cube) => cube?.name))
-  public readonly factName$ = this.cube$.pipe(map((cube) => cube?.tables?.[0]?.name))
+  // 
+  public readonly factName$ = this.cube$.pipe(map((cube) => {
+      if (cube.fact?.type === 'table') {
+        return cube.fact.table?.name
+      } else if (cube.fact?.type === 'view') {
+        return cube.fact.view?.alias
+      } else {
+        return cube?.tables?.[0]?.name
+      }
+    })
+  )
 
   public readonly measures$ = this.cube$.pipe(
     map((cube) => {
@@ -36,7 +45,7 @@ export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaS
           }))
         )
       }
-      
+
       return measures
     })
   )
@@ -53,7 +62,7 @@ export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaS
   )
 
   /**
-   * 原始 Fact 数据表字段
+   * Original Fact table fields
    */
   public readonly factFields$ = this.factName$.pipe(
     filter(nonBlank),
@@ -75,25 +84,15 @@ export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaS
   public readonly cube = toSignal(this.cube$)
 
   readonly dimension$ = this.select((state) => state.dimension)
-  readonly otherDimensions = toSignal(combineLatest([
-    this.dimension$.pipe(map((dimension) => dimension?.__id__)),
-    this.cube$.pipe(map((cube) => cube?.dimensions))
-  ])
-    .pipe(
-      map(([id, dimensions]) => dimensions?.filter((dimension) => dimension.__id__ !== id) ?? [])
-    ))
-
-  // dimensions = toSignal(combineLatest([
-  //   this.sharedDimensions$,
-  //   this.otherDimensions$
-  // ]).pipe(
-  //   map(([sharedDimensions, dimensions]) => {
-  //     return [
-  //       ...(dimensions ?? []),
-  //       ...(sharedDimensions ?? [])
-  //     ]
-  //   })
-  // ))
+  readonly otherDimensions = toSignal(
+    combineLatest([
+      this.dimension$.pipe(map((dimension) => dimension?.__id__)),
+      this.cube$.pipe(map((cube) => cube?.dimensions))
+    ]).pipe(map(([id, dimensions]) => dimensions?.filter((dimension) => dimension.__id__ !== id) ?? []))
+  )
+  readonly tableOptions$ = this.tables$.pipe(
+    map((tables) => tables?.map((_) => ({ value: _.key, label: _.caption || _.key })))
+  )
 
   SCHEMA: any
 
@@ -113,7 +112,7 @@ export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaS
                 },
                 fieldGroup: [this.cubeModeling]
               }
-            ] 
+            ]
           }
         ] as FormlyFieldConfig[]
       })
@@ -169,7 +168,7 @@ export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaS
                 label: CUBE?.DefaultMeasure ?? 'Default Measure',
                 valueKey: 'key',
                 options: this.measures$,
-                searchable: true,
+                searchable: true
                 // required: true
               }
             },
@@ -201,6 +200,16 @@ export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaS
               }
             }
           ]
+        },
+        {
+          key: 'fact',
+          type: 'fact',
+          props: {
+            label: COMMON?.FactTable ?? 'Fact Table',
+            valueKey: 'key',
+            options$: this.tableOptions$
+          },
+          className: 'my-4'
         },
         Tables(COMMON, this.tables$)
       ]
@@ -238,6 +247,9 @@ export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaS
   }
 }
 
+/**
+ * @deprecated use table in `fact` attribute
+ */
 export function Tables(COMMON, tables$: Observable<ISelectOption[]>) {
   return {
     key: 'tables',
@@ -257,7 +269,8 @@ export function Tables(COMMON, tables$: Observable<ISelectOption[]>) {
       ]
     },
     props: {
-      label: COMMON?.FactTable ?? 'Fact Table'
+      label: COMMON?.FactTable ?? 'Fact Table',
+      deprecated: 'Use table in `Fact` attribute'
     }
   }
 }

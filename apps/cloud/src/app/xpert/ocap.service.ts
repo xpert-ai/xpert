@@ -95,7 +95,7 @@ export class XpertOcapService {
   }
 
   private registerModel(model: NgmSemanticModel, indicators: IIndicator[]) {
-    registerModel(model, this.#dsCoreService, this.#wasmAgent, indicators)
+    registerModel(model, false, this.#dsCoreService, this.#wasmAgent, indicators)
   }
 
   /**

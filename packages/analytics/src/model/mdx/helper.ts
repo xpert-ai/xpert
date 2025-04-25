@@ -1,9 +1,8 @@
-import { Cube, Join, PropertyDimension, Schema, SQLExpression } from '@metad/ocap-core'
-import { IModelRole, MDX, RoleTypeEnum } from '@metad/contracts'
+import { Cube, Join, nonBlank, Property, PropertyDimension, Schema, SQLExpression } from '@metad/ocap-core'
+import { IModelRole, ISemanticModel, MDX, RoleTypeEnum } from '@metad/contracts'
 import { camelCase, cloneDeep, cloneDeepWith, forIn, isArray, isNil, isObject, isString, omit, pick } from 'lodash'
 import { Observable } from 'rxjs'
-import * as xml2js from 'xml2js'
-import { SemanticModel } from '../model.entity'
+import xml2js from 'xml2js'
 
 export function serializeUniqueName(dimension: string, hierarchy?: string, level?: string) {
 	const name = !!hierarchy && dimension !== hierarchy ? `[${dimension}.${hierarchy}]` : `[${dimension}]`
@@ -84,28 +83,41 @@ export function parseSchema(input: string) {
 }
 
 /**
- * 将 OCAP 协议的 schema 转成 Mondrian 格式的 Schema 进而生成 XML Schema
+ * Convert the OCAP protocol schema to Mondrian format schema and then generate XMLA Schema
  */
-export function convertSchemaToXmla(model: SemanticModel, schema: any): MDX.Schema {
+export function convertSchemaToXmla(model: ISemanticModel, schema: Schema): MDX.Schema {
 	return {
 		name: model.name ?? schema.name,
 		description: model.description,
 		Dimension: schema.dimensions?.map(convertDimensionToXmla),
-		Cube: schema.cubes?.map(
-			(cube: any) =>
-				({
-					...pick(cube, ['name', 'caption', 'description', 'defaultMeasure', 'visible', 'enabled', 'cache']),
-					Table: cube.tables,
-					DimensionUsage: cube.dimensionUsages?.map((usage) => ({
-						...usage
-					})),
-					Dimension: cube.dimensions?.map(convertDimensionToXmla),
-					Measure: cube.measures?.map(convertMeasureToXmla),
-					CalculatedMember: cube.calculatedMembers?.map(convertCalculatedMemberToXmla)
-				} as MDX.Cube)
-		),
-		VirtualCube: schema.virtualCubes?.map((virtualCube: MDX.VirtualCube) => ({
+		Cube: schema.cubes?.map((cube) => {
+			const fact = {} as Partial<MDX.Cube>
+			if (cube.fact?.type) {
+				if (cube.fact.type === 'table') {
+					fact.Table = cube.fact.table
+				} else if (cube.fact.type === 'view') {
+					const view = convertSQLExpressionToXmla(cube.fact.view) as MDX.View
+					view.alias = cube.fact.view.alias
+					fact.View = view
+				}
+			} else {
+				fact.Table = cube.tables
+			}
+			
+			return {
+				...pick(cube, ['name', 'caption', 'description', 'defaultMeasure', 'visible', 'enabled', 'cache']),
+				...fact,
+				DimensionUsage: cube.dimensionUsages?.map((usage) => ({
+					...usage
+				})),
+				Dimension: cube.dimensions?.map(convertDimensionToXmla),
+				Measure: cube.measures?.map(convertMeasureToXmla),
+				CalculatedMember: cube.calculatedMembers?.map(convertCalculatedMemberToXmla)
+			} as MDX.Cube
+		}),
+		VirtualCube: schema.virtualCubes?.map((virtualCube) => ({
 			...omit(virtualCube, ['cubeUsages', 'virtualCubeDimensions', 'virtualCubeMeasures', 'calculatedMembers']),
+			name: virtualCube.name,
 			CubeUsages: {
 				CubeUsage: virtualCube.cubeUsages,
 			},
@@ -118,18 +130,18 @@ export function convertSchemaToXmla(model: SemanticModel, schema: any): MDX.Sche
 				...omit(item, ['formula']),
 				Formula: item.formula
 			}))
-		}))
+		} as MDX.VirtualCube))
 	}
 }
 
-export function convertDimensionToXmla(dimension: any): MDX.Dimension {
+export function convertDimensionToXmla(dimension: Property): MDX.Dimension {
 	return {
 		...omit(dimension, ['hierarchies']),
 		type: dimension.type as MDX.DimensionType,
 		Hierarchy: dimension.hierarchies?.map(
 			(hierarchy) =>
 				({
-					...omit(hierarchy, ['levels', 'tables', 'Join']),
+					...omit(hierarchy, ['levels', 'tables', 'Join']) ,
 					name: hierarchy.name ?? '',
 					...convertTablesJoinToXmla(hierarchy.tables),
 					Level: hierarchy.levels?.map((level) => ({
@@ -139,13 +151,13 @@ export function convertDimensionToXmla(dimension: any): MDX.Dimension {
 						CaptionExpression: convertSQLExpressionToXmla(level.captionExpression),
 						OrdinalExpression: convertSQLExpressionToXmla(level.ordinalExpression),
 						ParentExpression: convertSQLExpressionToXmla(level.parentExpression),
-						Property: level.properties?.map((property) => ({
+						Property: level.properties?.filter(nonBlank)?.map((property) => ({
 							...omit(property, ['propertyExpression']),
 							PropertyExpression: convertSQLExpressionToXmla(property.propertyExpression)
 						})),
 						Closure: convertClosureToXmla(level.closure)
 					}))
-				} as MDX.Hierarchy)
+				} as unknown as MDX.Hierarchy)
 		)
 	} as MDX.Dimension
 }
@@ -197,10 +209,11 @@ export function convertCalculatedMemberToXmla(calculatedMember: any): MDX.Calcul
  * @param input 
  * @returns 
  */
-export function convertSQLExpressionToXmla(input: any): MDX.SQLExpression {
-	if (Array.isArray(input?.sql)) {
+export function convertSQLExpressionToXmla(input: SQLExpression): MDX.SQLExpression {
+	const sqls = input?.sql
+	if (Array.isArray(sqls)) {
 		return {
-			SQL: input.sql.map((item) => ({
+			SQL: sqls.map((item) => ({
 				dialect: item.dialect,
 				_: item.content || item._
 			}))

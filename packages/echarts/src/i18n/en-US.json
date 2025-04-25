@@ -1,0 +1,7 @@
+{
+    "Error": {
+        "CategoryDimensionNotProvided": "'Category' dimension not provided",
+        "NoChartType": "No chart type provided",
+        "UnimplementChartType": "Chart type '{{type}}' is not implemented"
+    }
+}

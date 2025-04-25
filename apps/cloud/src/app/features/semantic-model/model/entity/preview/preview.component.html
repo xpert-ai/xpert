@@ -1,18 +1,18 @@
 <div class="pac-model__shell-bar px-2 flex justify-between items-center">
-    <span>{{ 'PAC.MENU.PREVIEW' | translate: {Default: "Preview"} }}</span>
-    <div class="ngm-toolbar-actions flex items-center gap-1">
-        <mat-slide-toggle labelPosition="before" class="text-sm" ngm-density small [(ngModel)]="manualRefresh">
-            {{ 'PAC.MENU.MANUAL_REFRESH' | translate: {Default: "Manual Refresh"} }}
-        </mat-slide-toggle>
-        <button mat-icon-button displayDensity="cosy" [matTooltip]=" 'PAC.MODEL.ENTITY.CALCULATION.Refresh' | translate: {Default: 'Refresh'} "
-          (click)="refresh()">
-            <mat-icon fontSet="material-icons-outlined">refresh</mat-icon>
-        </button>
-        <button mat-icon-button displayDensity="cosy" [matTooltip]=" 'PAC.MODEL.ENTITY.CALCULATION.Pivot' | translate: {Default: 'Pivot'} "
-          [color]="reverse?'accent':''" (click)="reverse=!reverse;refresh()">
-            <mat-icon fontSet="material-icons-outlined">pivot_table_chart</mat-icon>
-        </button>
-    </div>
+  <span>{{ 'PAC.MODEL.ENTITY.DataPreview' | translate: {Default: "Data Preview"} }}</span>
+  <div class="ngm-toolbar-actions flex items-center gap-1">
+    <mat-slide-toggle labelPosition="before" class="text-sm" ngm-density small [(ngModel)]="manualRefresh">
+      {{ 'PAC.MENU.MANUAL_REFRESH' | translate: {Default: "Manual Refresh"} }}
+    </mat-slide-toggle>
+    <button mat-icon-button displayDensity="cosy" [matTooltip]=" 'PAC.MODEL.ENTITY.CALCULATION.Refresh' | translate: {Default: 'Refresh'} "
+      (click)="refresh()">
+      <mat-icon fontSet="material-icons-outlined">refresh</mat-icon>
+    </button>
+    <button mat-icon-button displayDensity="cosy" [matTooltip]=" 'PAC.MODEL.ENTITY.CALCULATION.Pivot' | translate: {Default: 'Pivot'} "
+      [color]="reverse?'accent':''" (click)="reverse=!reverse;refresh()">
+      <mat-icon fontSet="material-icons-outlined">pivot_table_chart</mat-icon>
+    </button>
+  </div>
 </div>
 
 <ngm-splitter class="flex-1">
@@ -31,28 +31,30 @@
         }
       </div>
     }
-      <mat-accordion class="flex-1" displayDensity="compact" displayMode="flat" togglePosition="before" [multi]="true">
-        <mat-expansion-panel class="mat-elevation-z" [expanded]="true">
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              {{ 'PAC.MODEL.ENTITY.CALCULATION.ROWS' | translate: {Default: "Rows"}  }}
-            </mat-panel-title>
+    <mat-accordion class="flex-1" displayDensity="compact" displayMode="flat" togglePosition="before" [multi]="true">
+      <mat-expansion-panel class="mat-elevation-z" [expanded]="true">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            {{ 'PAC.MODEL.ENTITY.CALCULATION.ROWS' | translate: {Default: "Rows"}  }}
+          </mat-panel-title>
 
-            <div class="flex justify-end items-center">
-              <button mat-icon-button displayDensity="cosy"
-                (click)="$event.stopPropagation();$event.preventDefault();add('rows')">
-                <mat-icon>add</mat-icon>
-              </button>
-            </div>
+          <div class="flex justify-end items-center">
+            <button mat-icon-button displayDensity="cosy"
+              (click)="$event.stopPropagation();$event.preventDefault();add('rows')">
+              <mat-icon>add</mat-icon>
+            </button>
+          </div>
 
-          </mat-expansion-panel-header>
+        </mat-expansion-panel-header>
 
-          <div id="property-modeling-rows" class="pac-cdk-drop__list pb-2" [ngClass]="{'ngm-property-modeling__empty': !rows?.length}"
-            cdkDropList
-            [cdkDropListData]="rows"
-            (cdkDropListDropped)="drop($event)"
-          >
-            <ngm-property-select *ngFor="let property of rows; index as i; trackBy: trackByIndex" displayDensity="compact"
+        <div id="property-modeling-rows" class="pac-cdk-drop__list flex flex-col pb-2" 
+          [ngClass]="{'ngm-property-modeling__empty': !rows?.length}"
+          cdkDropList
+          [cdkDropListData]="rows"
+          (cdkDropListDropped)="drop($event)"
+        >
+          @for (property of rows; track i; let i = $index) {
+            <ngm-property-select displayDensity="compact"
               [dataSettings]="dataSettings()"
               [entityType]="entityType()"
               [capacities]="propertyCapacities"
@@ -69,24 +71,31 @@
 
               <div class="property-modeling-custom-placeholder" *cdkDragPlaceholder></div>
             </ngm-property-select>
-          </div>
-        </mat-expansion-panel>
-        <mat-expansion-panel class="mat-elevation-z" [expanded]="true">
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              {{ 'PAC.MODEL.ENTITY.CALCULATION.COLUMNS' | translate: {Default: "Columns"} }}
-            </mat-panel-title>
-            <div class="flex justify-end items-center">
-              <button mat-icon-button displayDensity="cosy"
-                (click)="$event.stopPropagation();$event.preventDefault();add('columns')">
-                <mat-icon>add</mat-icon>
-              </button>
+          } @empty {
+            <div class="grow flex justify-center items-center text-sm text-text-secondary">
+              {{ 'PAC.MODEL.ENTITY.DragDimensionHere' | translate: {Default: "Drag dimension here"} }}
             </div>
-          </mat-expansion-panel-header>
-          <div id="property-modeling-columns" class="pac-cdk-drop__list pb-2" [ngClass]="{'ngm-property-modeling__empty': !columns?.length}"
-            cdkDropList [cdkDropListData]="columns" (cdkDropListDropped)="drop($event)"
-          >
-            <ngm-property-select *ngFor="let property of columns; index as i; trackBy: trackByIndex" displayDensity="compact"
+          }
+        </div>
+      </mat-expansion-panel>
+      <mat-expansion-panel class="mat-elevation-z" [expanded]="true">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            {{ 'PAC.MODEL.ENTITY.CALCULATION.COLUMNS' | translate: {Default: "Columns"} }}
+          </mat-panel-title>
+          <div class="flex justify-end items-center">
+            <button mat-icon-button displayDensity="cosy"
+              (click)="$event.stopPropagation();$event.preventDefault();add('columns')">
+              <mat-icon>add</mat-icon>
+            </button>
+          </div>
+        </mat-expansion-panel-header>
+        <div id="property-modeling-columns" class="pac-cdk-drop__list flex flex-col pb-2"
+          [ngClass]="{'ngm-property-modeling__empty': !columns?.length}"
+          cdkDropList [cdkDropListData]="columns" (cdkDropListDropped)="drop($event)"
+        >
+          @for (property of columns; track i; let i = $index) {
+            <ngm-property-select displayDensity="compact"
               showAttributes
               [capacities]="propertyCapacities"
               [dataSettings]="dataSettings()"
@@ -102,26 +111,32 @@
               </button>
               <div class="property-modeling-custom-placeholder" *cdkDragPlaceholder></div>
             </ngm-property-select>
-          </div>
-        </mat-expansion-panel>
-      
-        <mat-expansion-panel class="mat-elevation-z" [expanded]="true">
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              {{ 'PAC.MODEL.ENTITY.CALCULATION.FILTERS' | translate: {Default: "Slicers"}  }}
-            </mat-panel-title>
-            <div class="flex justify-end items-center">
-              <!-- <button mat-icon-button displayDensity="cosy"
-                (click)="$event.stopPropagation();$event.preventDefault();newSlicer()">
-                <mat-icon>add</mat-icon>
-              </button> -->
+          } @empty {
+            <div class="grow flex justify-center items-center text-sm text-text-secondary">
+              {{ 'PAC.MODEL.ENTITY.DragMeasureHere' | translate: {Default: "Drag measure here"} }}
             </div>
-          </mat-expansion-panel-header>
-          
-          <div id="property-modeling-slicers" class="pac-cdk-drop__list pb-2" [ngClass]="{'ngm-property-modeling__empty': !slicers?.length}"
-            cdkDropList [cdkDropListData]="slicers" (cdkDropListDropped)="drop($event)"
-          >
-            <ngm-smart-filter *ngFor="let slicer of slicers$ | async; index as i; trackBy: trackByDim"
+          }
+        </div>
+      </mat-expansion-panel>
+    
+      <mat-expansion-panel class="mat-elevation-z" [expanded]="true">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            {{ 'PAC.MODEL.ENTITY.CALCULATION.FILTERS' | translate: {Default: "Slicers"}  }}
+          </mat-panel-title>
+          <div class="flex justify-end items-center">
+            <!-- <button mat-icon-button displayDensity="cosy"
+              (click)="$event.stopPropagation();$event.preventDefault();newSlicer()">
+              <mat-icon>add</mat-icon>
+            </button> -->
+          </div>
+        </mat-expansion-panel-header>
+        
+        <div id="property-modeling-slicers" class="pac-cdk-drop__list pb-2" [ngClass]="{'ngm-property-modeling__empty': !slicers?.length}"
+          cdkDropList [cdkDropListData]="slicers" (cdkDropListDropped)="drop($event)"
+        >
+          @for (slicer of slicers$ | async; track i; let i = $index) {
+            <ngm-smart-filter
               [appearance]="{displayDensity: DisplayDensity.compact, appearance: 'fill'}"
               [dataSettings]="dataSettings()"
               [dimension]="slicer?.dimension"
@@ -134,9 +149,10 @@
                 <mat-icon>clear</mat-icon>
               </button>
             </ngm-smart-filter>
-          </div>
-        </mat-expansion-panel>
-      </mat-accordion>
+          }
+        </div>
+      </mat-expansion-panel>
+    </mat-accordion>
   </ngm-splitter-pane>
   <ngm-splitter-pane size="auto" class="flex-1 flex">
     <ngm-analytical-grid class="flex-1" displayDensity="compact"
@@ -152,15 +168,15 @@
         paging: true,
         pageSize: 50
       }"
-    ></ngm-analytical-grid>
+    />
   </ngm-splitter-pane>
 </ngm-splitter>
 
 @if (entityError()) {
   <div class="pac-result h-full w-full absolute top-0 left-0">
     <div class="bug font-notoColorEmoji">🐞</div>
-    <div class="description">
-        {{entityError()}}
+    <div class="description text-text-secondary">
+      {{entityError()}}
     </div>
   </div>
 }

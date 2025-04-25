@@ -1,6 +1,6 @@
 {
   "name": "@metad/ocap-core",
-  "version": "3.1.11",
+  "version": "3.1.12",
   "license": "AGPL-3.0",
   "dependencies": {
     "tslib": "^2.3.0"
@@ -11,6 +11,7 @@
     "rxjs": ">=7.4.0",
     "uuid": "^8.3.2",
     "idb-keyval": "^6.2.0",
+    "i18next": "^23.14.0",
     "money-clip": "^3.0.5",
     "date-fns": "^3.0.4"
   },

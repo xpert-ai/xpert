@@ -71,6 +71,7 @@ import { EChartEngineEvent, EChartsContext, EChartsOptions, isSeriesDataItem } f
 import { mergeChartOptions, pickEChartsGlobalOptions } from './utils'
 import { waterfallChart } from './waterfall'
 import { fromFetch } from 'rxjs/fetch'
+import { t } from 'i18next'
 
 use([GlobeComponent, Geo3DComponent, Lines3DChart, Polygons3DChart, SurfaceChart, Map3DChart, ScatterGLChart, GraphGLChart, FlowGLChart, LinesGLChart])
 
@@ -249,7 +250,11 @@ export class SmartEChartEngine extends SmartChartEngine<SmartChartEngineState> {
         }
 
         if (!context) {
-          throw new Error(`Unimplements type '${type}'`)
+          if (type) {
+            throw new Error(t('Error.UnimplementChartType', {ns: 'echarts', type}))
+          } else {
+            throw new Error(t('Error.NoChartType', {ns: 'echarts'}))
+          }
         }
 
         if (!isEmpty(chartOptions?.colors?.color)) {

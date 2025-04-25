@@ -1,14 +1,14 @@
 @if (isEmpty()) {
-    <div class="absolute top-0 left-0 inset-0 flex flex-col justify-center items-center">
-        <span class="text-5xl">🛒</span>
-        <span>{{ 'Designer.IsEmpty' | translate: {Default: 'Is Empty'} }}</span>
-    </div>
+  <div class="absolute top-0 left-0 inset-0 flex flex-col justify-center items-center">
+    <span class="text-5xl">🛒</span>
+    <span>{{ 'Designer.IsEmpty' | translate: {Default: 'Is Empty'} }}</span>
+  </div>
 } @else {
-    <formly-form class="w-full"
-        [form]="formGroup"
-        [fields]="fields()"
-        [model]="model"
-        (modelChange)="onModelChange($event)"
-        [options]="options"
-    ></formly-form>
+  <formly-form class="w-full"
+    [form]="formGroup"
+    [fields]="fields()"
+    [model]="model"
+    (modelChange)="onModelChange($event)"
+    [options]="options"
+  />
 }

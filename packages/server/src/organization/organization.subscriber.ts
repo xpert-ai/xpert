@@ -1,5 +1,5 @@
 import { EntitySubscriberInterface, EventSubscriber } from "typeorm";
-import * as faker from 'faker';
+import faker from 'faker';
 import { Organization } from "./organization.entity";
 
 @EventSubscriber()

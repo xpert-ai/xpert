@@ -83,7 +83,7 @@ export class DimensionUsageSchemaService extends CubeSchemaService<DimensionUsag
                 props: {
                   required: true,
                   searchable: true,
-                  label: COMMON?.ForeignKey ?? 'Foreign Key',
+                  label: COMMON?.FactForeignKey ?? 'Foreign Key of Fact',
                   options: this.factFields$,
                   valueKey: 'key',
                 }

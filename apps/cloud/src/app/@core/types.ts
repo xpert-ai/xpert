@@ -7,7 +7,6 @@ export * from '@metad/contracts'
 export {
   convertConnectionResult,
   convertStoryModel,
-  convertStoryModelResult,
   convertStoryPointResult,
   convertStoryResult,
   convertStoryWidgetResult

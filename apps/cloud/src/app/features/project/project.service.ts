@@ -154,7 +154,7 @@ export class ProjectService {
         this.fetchModelDetails(this.models().find((item) => item.key === modelKey).id)
       )
 
-      registerModel(semanticModel as NgmSemanticModel, this.dsCoreService, this.wasmAgent)
+      registerModel(semanticModel as NgmSemanticModel, false, this.dsCoreService, this.wasmAgent)
     }
   }
 

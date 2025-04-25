@@ -15,7 +15,7 @@ import {
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { mergeMap } from 'rxjs/operators';
 import { of, throwError } from 'rxjs';
-import * as moment from 'moment';
+import moment from 'moment';
 import { BaseEntity } from '../entities/internal';
 import { ICrudService } from './icrud.service';
 import { ITryRequest } from './try-request';

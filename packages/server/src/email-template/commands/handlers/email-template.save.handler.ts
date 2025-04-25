@@ -3,7 +3,7 @@ import { EmailTemplateSaveCommand } from '../email-template.save.command';
 import { EmailTemplateService } from '../../email-template.service';
 import { EmailTemplate } from '../../email-template.entity';
 import { LanguagesEnum, EmailTemplateNameEnum, IEmailTemplate } from '@metad/contracts';
-import * as mjml2html from 'mjml';
+import mjml2html from 'mjml';
 import { BadRequestException } from '@nestjs/common';
 import { RequestContext } from './../../../core/context';
 import { IsNull } from 'typeorm';

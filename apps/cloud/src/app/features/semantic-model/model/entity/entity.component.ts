@@ -1,6 +1,6 @@
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, HostBinding, OnInit, inject, model } from '@angular/core'
+import { ChangeDetectionStrategy, Component, HostBinding, OnInit, inject, model, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, NavigationEnd, Router, RouterModule, UrlSegment } from '@angular/router'
@@ -10,7 +10,6 @@ import { NX_STORY_STORE, NxStoryStore, Story, StoryModel } from '@metad/story/co
 import { NxDesignerModule, NxSettingsPanelService } from '@metad/story/designer'
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService } from 'apps/cloud/src/app/@core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { isNil, negate } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom, of } from 'rxjs'
@@ -21,6 +20,12 @@ import { ModelComponent } from '../model.component'
 import { SemanticModelService } from '../model.service'
 import { ModelCubeStructureComponent } from './cube-structure/cube-structure.component'
 import { ModelEntityService } from './entity.service'
+import { MatButtonModule } from '@angular/material/button'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { MatIconModule } from '@angular/material/icon'
+import { MatSidenavModule } from '@angular/material/sidenav'
+import { MatTabsModule } from '@angular/material/tabs'
+import { ModelCubeFactComponent } from './fact/fact.component'
 
 @Component({
   standalone: true,
@@ -32,12 +37,17 @@ import { ModelEntityService } from './entity.service'
   imports: [
     CommonModule,
     FormsModule,
-    MaterialModule,
     RouterModule,
     TranslateModule,
+    MatButtonModule,
+    MatTooltipModule,
+    MatIconModule,
+    MatSidenavModule,
+    MatTabsModule,
     NgmCommonModule,
     NxDesignerModule,
-    ModelCubeStructureComponent
+    ModelCubeStructureComponent,
+    ModelCubeFactComponent
   ],
   animations: [routeAnimations]
 })
@@ -87,6 +97,7 @@ export class ModelEntityComponent implements OnInit {
   public readonly modelType$ = this.modelService.modelType$
   readonly entityType = this.entityService.entityType
   readonly cube = toSignal(this.entityService.cube$)
+  readonly openedFact = signal(false)
 
   /**
   |--------------------------------------------------------------------------
@@ -130,6 +141,7 @@ export class ModelEntityComponent implements OnInit {
     })
 
   ngOnInit() {
+    this.settingsService.setEditable(true)
     this.entityService.setSelectedProperty(null)
   }
 
@@ -145,6 +157,13 @@ export class ModelEntityComponent implements OnInit {
     this.settingsService.setEditable(opened)
   }
 
+  toggleDesignPanel() {
+    if (!this.detailsOpen()) {
+      this.settingsService.setEditable(true)
+    }
+    this.detailsOpen.update((state) => !state)
+  }
+
   toggleCubeDesigner() {
     if (this.detailsOpen() && !this.entityService.selectedProperty()) {
       this.detailsOpen.set(false)
@@ -153,6 +172,10 @@ export class ModelEntityComponent implements OnInit {
       this.settingsService.setEditable(true)
       this.detailsOpen.set(true)
     }
+  }
+
+  toggleFact() {
+    this.openedFact.update((state) => !state)
   }
 
   openSub(event) {

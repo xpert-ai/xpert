@@ -74,6 +74,26 @@
             "input": "packages/duckdb/dist/",
             "output": "./assets/"
           },
+          {
+            "glob": "**/*.json",
+            "input": "packages/core/src/i18n/",
+            "output": "./assets/locales/core/"
+          },
+          {
+            "glob": "**/*.json",
+            "input": "packages/sql/src/i18n/",
+            "output": "./assets/locales/sql/"
+          },
+          {
+            "glob": "**/*.json",
+            "input": "packages/xmla/src/i18n/",
+            "output": "./assets/locales/xmla/"
+          },
+          {
+            "glob": "**/*.json",
+            "input": "packages/echarts/src/i18n/",
+            "output": "./assets/locales/echarts/"
+          },
           "apps/cloud/src/favicon.ico",
           "apps/cloud/src/assets",
           "apps/cloud/src/manifest.webmanifest"

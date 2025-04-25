@@ -32,6 +32,9 @@ export interface ISemanticModelPreferences {
   exposeXmla?: boolean
 }
 
+/**
+ * Model Schema Structured Data
+ */
 export type TSemanticModelOptions<T> = {
   schema?: T
   settings?: any
@@ -51,10 +54,24 @@ export type TSemanticModel = {
   cube?: string
   // 存放语义元数据
   options?: TSemanticModelOptions<any>
+
+  // Roles
+  roles?: Array<IModelRole>
 }
 
-export type TSemanticModelDraft = TSemanticModel & {
+export type TSemanticModelDraft<T = any> = TSemanticModel & {
+  schema?: T
+  settings?: any
   savedAt?: Date
+
+  /**
+   * @legacy Table defination for wasm database
+   */
+  tables?: any[] // Array<TableEntity>
+  /**
+   * @legacy DB Initialization for wasm database
+   */
+  dbInitialization?: string
 }
 
 export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel, TSemanticModel {
@@ -62,6 +79,12 @@ export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel
    * 当前版本上的草稿
    */
   draft?: TSemanticModelDraft
+
+  /**
+   * Publish date of latest
+   */
+  publishAt?: Date
+  releaseNotes?: string
 
   tags?: ITag[]
   
@@ -88,8 +111,6 @@ export interface ISemanticModel extends IBasePerTenantAndOrganizationEntityModel
   indicators?: Array<IIndicator>
   // Query
   queries?: Array<IModelQuery>
-  // Roles
-  roles?: Array<IModelRole>
 }
 
 /**
@@ -135,4 +156,35 @@ export enum SemanticModelStatusEnum {
    * Archived
    */
   Archived = 'archived'
+}
+
+export type TVirtualCube = {
+  name: string
+  caption?: string
+  description?: string
+  cubeUsages: MDX.CubeUsage[]
+  virtualCubeDimensions: MDX.VirtualCubeDimension[]
+  virtualCubeMeasures: MDX.VirtualCubeMeasure[]
+  calculatedMembers: MDX.CalculatedMember[]
+}
+
+export function extractSemanticModelDraft(model: TSemanticModel): TSemanticModelDraft {
+  return {
+    key: model.key,
+    name: model.name,
+    description: model.description,
+    type: model.type,
+    agentType: model.agentType,
+
+    dataSourceId: model.dataSourceId,
+    businessAreaId: model.businessAreaId,
+
+    catalog: model.catalog,
+    cube: model.cube,
+    // 存放语义元数据
+    // options: model.options,
+    schema: model.options?.schema,
+    settings: model.options?.settings,
+    roles: model.roles,
+  }
 }

@@ -1,0 +1,6 @@
+{
+    "Error": {
+        "NoPropertyFoundFor": "No properties found for '{{path}}' in cube '{{cube}}'.",
+        "NoDimensionFoundFor": "Can't find dimension '{{dimension}}' in cube '{{cube}}'."
+    }
+}

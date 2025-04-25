@@ -6,6 +6,9 @@ import { MatTabsModule } from '@angular/material/tabs'
 import { FormlyModule } from '@ngx-formly/core'
 import { FormlyTabGroupComponent } from './tab-group.component'
 
+/**
+ * @deprecated use hl-tabs
+ */
 @NgModule({
   imports: [
     CommonModule,

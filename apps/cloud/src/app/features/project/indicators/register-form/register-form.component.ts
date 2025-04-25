@@ -335,6 +335,7 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
               indicators
               // name: semanticModel.key || semanticModel.name, // xmla 中的 CATALOG_NAME 仍然在使用 model name 属性值， 所示改成 data source name 改成 key 之前需要先修改 CATALOG_NAME 的取值逻辑
             } as NgmSemanticModel,
+            false,
             this.dsCoreService,
             this.wasmAgent
           )

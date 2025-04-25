@@ -1,4 +1,4 @@
-import { BusinessAreaRole, ISemanticModelQueryLog, IUser, SemanticModelStatusEnum } from '@metad/contracts'
+import { BusinessAreaRole, IUser, SemanticModelStatusEnum, TSemanticModelDraft } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { FindOptionsWhere, ITryRequest, PaginationParams, REDIS_CLIENT, RequestContext, User } from '@metad/server-core'
 import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common'
@@ -6,7 +6,7 @@ import { ConfigService } from '@nestjs/config'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import * as _axios from 'axios'
-import * as chalk from 'chalk'
+import chalk from 'chalk'
 import { RedisClientType } from 'redis'
 import { FindManyOptions, ILike, Repository } from 'typeorm'
 import { BusinessArea, BusinessAreaService } from '../business-area'
@@ -29,7 +29,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	constructor(
 		@InjectRepository(SemanticModel)
-		modelRepository: Repository<SemanticModel>,
+		public modelRepository: Repository<SemanticModel>,
 		private readonly dsService: DataSourceService,
 		private readonly cacheService: SemanticModelCacheService,
 		private readonly configService: ConfigService,
@@ -95,10 +95,14 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 			console.log(chalk.red(`Fail seed '${items.length - seeds}' models xmla schema`))
 		}
 
-		// Register semantic models
+		/**
+		 * Register semantic models
+		 * 
+		 * @deprecated use in query
+		 */
 		items.forEach((model) => {
 			try {
-				registerSemanticModel(model, this.dsCoreService)
+				registerSemanticModel(model, false, this.dsCoreService)
 			} catch (err) {
 				console.log(chalk.red(`Error registering semantic model: ${err.message}`))
 			}
@@ -121,6 +125,12 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		// Update Xmla Schema into Redis for model
 		await updateXmlaCatalogContent(this.redisClient, model)
 
+		// Update draft
+		await updateXmlaCatalogContent(this.redisClient, {...model, ...(model.draft ?? {}), options: {
+			schema: model.draft?.schema ?? model.options?.schema,
+			settings: model.draft?.settings ?? model.options?.settings,
+		}, id: `${model.id}/draft`})
+		
 		// Clear cache for model
 		try {
 			await this.cacheService.delete({ modelId: model.id })
@@ -374,5 +384,15 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 	async getLogs(data: PaginationParams<SemanticModelQueryLog>) {
 		return this.logService.findAll(data)
+	}
+
+	async saveDraft(id: string, draft: TSemanticModelDraft) {
+		const model = await this.findOne(id)
+		model.draft = {
+			...draft,
+		} as TSemanticModelDraft
+
+		await this.repository.save(model)
+		return model.draft
 	}
 }

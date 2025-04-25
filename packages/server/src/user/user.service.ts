@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, InsertResult, SelectQueryBuilder, Like, Brackets, WhereExpressionBuilder } from 'typeorm';
-import * as bcrypt from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 import { environment as env } from '@metad/server-config'
 import { User } from './user.entity';
 import { TenantAwareCrudService } from './../core/crud';

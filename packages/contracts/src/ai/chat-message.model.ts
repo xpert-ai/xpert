@@ -180,3 +180,8 @@ export type TMessageContent = string | TMessageContentComplex[];
 export function isMessageGroup(message: CopilotBaseMessage): message is CopilotMessageGroup {
   return 'messages' in message;
 }
+
+// Helers
+export function messageContentText(content: string | TMessageContentComplex) {
+	return typeof content === 'string' ? content : content.type === 'text' ? content.text : ''
+}

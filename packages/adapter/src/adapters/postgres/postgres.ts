@@ -1,7 +1,7 @@
 import { Client, ClientConfig, types } from 'pg'
 import { BaseSQLQueryRunner, SQLAdapterOptions, register } from '../../base'
 import { convertPGSchema, getPGSchemaQuery, pgTypeMap, typeToPGDB } from '../../helpers'
-import { CreationTable, DBProtocolEnum, DBSyntaxEnum, QueryResult, IDSSchema, QueryOptions } from '../../types'
+import { CreationTable, DBProtocolEnum, DBSyntaxEnum, QueryResult, IDSSchema, QueryOptions, IColumnDef } from '../../types'
 import { pgFormat } from './pg-format'
 
 
@@ -133,7 +133,8 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
 
     const columns = res.fields?.map(field => ({
       name: field.name,
-      type: pgTypeMap(`${TypesBuiltins[field.dataTypeID]}`.toLowerCase())
+      type: pgTypeMap(`${TypesBuiltins[field.dataTypeID]}`.toLowerCase()),
+      dataType: `${TypesBuiltins[field.dataTypeID]}`.toLowerCase()
     }))
     const data = res.rows
 
@@ -270,7 +271,7 @@ export class PostgresRunner extends BaseSQLQueryRunner<PostgresAdapterOptions> {
           ],
         },
       }
-    }finally {
+    } finally {
       await this.client.end()
     }
   }

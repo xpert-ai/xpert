@@ -1,5 +1,5 @@
 import { Connection } from 'typeorm';
-import * as faker from 'faker';
+import faker from 'faker';
 import { IContact, ICountry, IOrganization, ITenant } from '@metad/contracts';
 import { Contact, Country } from './../core/entities/internal';
 

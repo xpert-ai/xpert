@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { ConfigService } from '@metad/server-config';
-import * as Handlebars from 'handlebars';
-import * as mjml2html from 'mjml';
+import Handlebars from 'handlebars';
+import mjml2html from 'mjml';
 import { EmailTemplateService } from '../../email-template.service';
 import { EmailTemplateGeneratePreviewQuery } from '../email-template.generate-preview.query';
 

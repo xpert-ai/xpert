@@ -1,8 +1,8 @@
-import { IChatConversation } from '@metad/contracts'
+import { IChatConversation, mapTranslationLanguage } from '@metad/contracts'
 import { REDIS_OPTIONS, RequestContext, runWithRequestContext, UserService } from '@metad/server-core'
 import { CACHE_MANAGER, forwardRef, Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import * as Bull from 'bull'
+import Bull from 'bull'
 import { Queue } from 'bull'
 import { Cache } from 'cache-manager'
 import * as Redis from 'ioredis'
@@ -18,7 +18,7 @@ import { ChatLarkContext, isConfirmAction, isEndAction, isRejectAction } from '.
 export class LarkConversationService implements OnModuleDestroy {
 	readonly #logger = new Logger(LarkConversationService.name)
 
-	public static readonly prefix = 'chat'
+	public static readonly prefix = 'lark:chat'
 
 	private userQueues: Map<string, Queue> = new Map()
 
@@ -41,7 +41,7 @@ export class LarkConversationService implements OnModuleDestroy {
 
 	async setConversation(userId: string, xpertId: string, conversationId: string) {
 		const key = LarkConversationService.prefix + `:${userId}:${xpertId}`
-		await this.cacheManager.set(key, conversationId, { ttl: 60 * 10 })
+		await this.cacheManager.set(key, conversationId, 60 * 10 * 1000) // 10 min conversation live
 		await this.cacheManager.get<string>(key)
 	}
 
@@ -75,7 +75,9 @@ export class LarkConversationService implements OnModuleDestroy {
 
 			return this.larkService.errorMessage(
 				{ integrationId, chatId },
-				new Error(await this.larkService.translate('integration.Lark.ActionSessionTimedOut', {}))
+				new Error(await this.larkService.translate('integration.Lark.ActionSessionTimedOut', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+				}))
 			)
 		}
 
@@ -92,6 +94,7 @@ export class LarkConversationService implements OnModuleDestroy {
 				language: lastMessage?.thirdPartyMessage?.language
 			} as any,
 		)
+
 		if (isEndAction(action)) {
 			await prevMessage.end()
 			await this.cacheManager.del(LarkConversationService.prefix + `:${userId}:${xpertId}`)
@@ -128,7 +131,7 @@ export class LarkConversationService implements OnModuleDestroy {
 	 */
 	async getUserQueue(userId: string): Promise<Bull.Queue> {
 		if (!this.userQueues.has(userId)) {
-			const queue = new Bull(`user-${userId}`, {
+			const queue = new Bull(`lark:user:${userId}`, {
 				redis: this.redisOptions
 			})
 
