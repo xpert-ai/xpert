@@ -11,7 +11,7 @@ import { XpertToolsetService } from '../../xpert-toolset.service'
 export type TBuiltinToolsetParams = {
 	tenantId: string
     organizationId?: string
-	toolsetService: XpertToolsetService
+	toolsetService?: XpertToolsetService
 	commandBus: CommandBus
 	queryBus: QueryBus
 	xpertId?: string
