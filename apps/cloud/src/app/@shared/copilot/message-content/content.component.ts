@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, input } from '@angular/core'
-import { MessageContent, MessageContentComplex } from '@langchain/core/messages'
+import { Component, computed, effect, input } from '@angular/core'
+import { TMessageContent, TMessageContentComplex } from '@cloud/app/@core/types'
 import { MarkdownModule } from 'ngx-markdown'
 
 @Component({
@@ -11,11 +11,11 @@ import { MarkdownModule } from 'ngx-markdown'
   styleUrls: ['content.component.scss']
 })
 export class CopilotMessageContentComponent {
-  readonly content = input<MessageContent>()
+  readonly content = input<TMessageContent>()
 
   readonly contents = computed(() => {
     const content = this.content()
-    const items: MessageContentComplex[] = []
+    const items: TMessageContentComplex[] = []
     if (typeof content === 'string') {
       items.push({
         text: content,
@@ -26,4 +26,10 @@ export class CopilotMessageContentComponent {
     }
     return items
   })
+
+  constructor() {
+    effect(() => {
+      // console.log(this.contents())
+    })
+  }
 }

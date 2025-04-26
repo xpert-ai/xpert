@@ -162,6 +162,12 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			)
 		}
 
+		// Project & Xperts
+		let project: IXpertProject
+		if (projectId) {
+			project = await this.projectService.findOne(projectId, { relations: ['xperts', 'xperts.agent', 'toolsets', 'workspace', 'workspace.environments'] })
+		}
+
 		const abortController = new AbortController()
 		const executionId = execution.id
 		const timeStart = Date.now()
@@ -189,7 +195,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 				try {
 					const thread_id = execution.threadId
-					graph = await this.createReactAgent(command, execution, abortController, subscriber)
+					graph = await this.createReactAgent(command, project, execution, abortController, subscriber)
 					// Run
 					const config = {
 						thread_id,
@@ -224,9 +230,14 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 								signal: abortController.signal
 							}
 						)
-					).pipe(map(createMapStreamEvents(this.#logger, thread_id, subscriber)))
-
-					
+					).pipe(
+						map(createMapStreamEvents(this.#logger, subscriber, {
+							xperts: project?.xperts,
+							disableOutputs: [
+								GRAPH_NODE_TITLE_CONVERSATION
+							]
+						}))
+					)
 
 					const recordLastState = async () => {
 						const state = await graph.getState({
@@ -445,18 +456,13 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 	async createReactAgent(
 		command: ChatCommonCommand,
+		project: IXpertProject,
 		execution: IXpertAgentExecution,
 		abortController: AbortController,
 		subscriber: Subscriber<MessageEvent>
 	) {
 		const { projectId } = command.request
 		const { tenantId, organizationId } = command.options
-
-		// Project
-		let project: IXpertProject
-		if (projectId) {
-			project = await this.projectService.findOne(projectId, { relations: ['xperts', 'xperts.agent', 'toolsets', 'workspace', 'workspace.environments'] })
-		}
 
 		// Env
 		let environment: IEnvironment

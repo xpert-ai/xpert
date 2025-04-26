@@ -14,6 +14,7 @@ import {
   IChatMessageFeedback,
   IKnowledgebase,
   IXpert,
+  IXpertProject,
   IXpertToolset,
   TChatOptions,
   TChatRequest,
@@ -164,6 +165,7 @@ export abstract class ChatService {
   })
 
   readonly xpert = signal<IXpert>(null)
+  readonly project = signal<IXpertProject>(null)
 
   constructor() {
     this.#destroyRef.onDestroy(() => {

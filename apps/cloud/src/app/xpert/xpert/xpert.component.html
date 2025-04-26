@@ -3,8 +3,7 @@
     <div class="h-[52px] px-2 py-3 sm:px-5 items-center flex justify-between">
       <div class="flex flex-row items-center gap-0.5 start-3">
         <a
-          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary hover:bg-button-ghost-hover h-10 w-10 rounded-full
-            hover:bg-hover-bg"
+          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary hover:bg-button-ghost-hover h-10 w-10 rounded-full"
           type="button"
           [matTooltip]="('PAC.Chat.NewChat' | translate: {Default: 'New Chat'}) + ' ⌘J'"
           (click)="newXpertConv()"
@@ -165,7 +164,7 @@
 </div>
 
 @if (canvasOpened()) {
-  <div @bl class="shrink-1 h-full flex max-w-full fixed top-0 right-0 z-[1000] sm:sticky sm:top-0 sm:right-0 sm:ml-3 sm:py-3 sm:mr-2">
+  <div @bl class="shrink-1 flex max-w-full h-full fixed top-0 right-0 z-[1000] sm:sticky sm:top-0 sm:right-0 sm:ml-3 sm:py-3 sm:mr-2">
     <pac-chat-canvas class="max-w-full h-full flex flex-col my-auto bg-components-panel-bg sm:rounded-[22px] shadow-[0px_0px_8px_0px_rgba(0,0,0,0.02)] border border-black/8" />
   </div>
 }

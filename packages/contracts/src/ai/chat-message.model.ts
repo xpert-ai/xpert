@@ -156,6 +156,7 @@ export type TMessageComponent<T extends object = object> = T & {
 
 export type TMessageContentText = {
   id?: string
+  xpertName?: string
   agentKey?: string
   type: "text";
   text: string;
@@ -173,7 +174,12 @@ export type TMessageContentComplex = (TMessageContentText | MessageContentImageU
   type?: "text" | "image_url" | string;
 }) | (Record<string, any> & {
   type?: never;
-})) & {agentKey?: string; created_date?: Date | string}
+})) & {
+  id?: string
+  xpertName?: string
+  agentKey?: string;
+  created_date?: Date | string
+}
 /**
  * Enhance {@link MessageContent} in Langchain.js
  */

@@ -57,7 +57,7 @@ export class CopilotStoredMessageComponent {
 
   constructor() {
     effect(() => {
-      // console.log(this.content())
+      // console.log(this.message())
     })
   }
 }

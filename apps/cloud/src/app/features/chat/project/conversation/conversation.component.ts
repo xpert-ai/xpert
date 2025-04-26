@@ -1,12 +1,12 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, effect, inject, model } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
-import { injectProjectService } from '@cloud/app/@core'
+import { injectProjectService, IXpertProject } from '@cloud/app/@core'
 import { provideOcap } from '@cloud/app/@core/providers/ocap'
-import { ChatService, XpertChatAppComponent, XpertOcapService } from '@cloud/app/xpert'
+import { ChatService, XpertChatAppComponent, XpertHomeService, XpertOcapService } from '@cloud/app/xpert'
 import { provideOcapCore } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectParams } from 'ngxtension/inject-params'
@@ -43,12 +43,15 @@ export class ChatProjectConversationComponent {
   readonly #projectComponent = inject(ChatProjectComponent)
   readonly projectSercice = injectProjectService()
   readonly chatSercice = inject(ChatProjectService)
+  readonly homeService = inject(XpertHomeService)
   readonly #router = inject(Router)
 
   readonly id = injectParams('c')
 
   readonly project = this.#projectComponent.project
   readonly projectId = this.#projectComponent.id
+
+  readonly canvasOpened = computed(() => this.homeService.canvasOpened()?.opened)
 
   constructor() {
     const navigation = this.#router.getCurrentNavigation()
@@ -58,6 +61,10 @@ export class ChatProjectConversationComponent {
       // this.input.set(input)
       this.chatSercice.ask(input)
     }
+
+    effect(() => {
+      this.chatSercice.project.set(this.project() as IXpertProject)
+    }, { allowSignalWrites: true })
   }
 
   routeProject() {

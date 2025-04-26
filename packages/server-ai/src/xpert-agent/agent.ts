@@ -1,25 +1,34 @@
 import { AIMessage, AIMessageChunk, BaseMessage } from '@langchain/core/messages'
-import { BaseChannel, isCommand } from '@langchain/langgraph'
+import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
-import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpertAgent, TMessageChannel, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { BaseChannel, isCommand } from '@langchain/langgraph'
+import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TMessageChannel, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
-import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { instanceToPlain } from 'class-transformer'
 import { AgentStateAnnotation } from './commands/handlers/types'
 
+/**
+ * Create an operator function that intercepts Langgraph events, 
+ * passes the message content through, and sends other events from the subscriber.
+ * 
+ * @param logger 
+ * @param subscriber 
+ * @param options 
+ * @returns 
+ */
 export function createMapStreamEvents(
 	logger: Logger,
-	thread_id: string,
 	subscriber: Subscriber<MessageEvent>,
 	options?: {
 		agent?: IXpertAgent;
 		disableOutputs?: string[]
+		xperts?: IXpert[]
 	}
 ) {
-	const { agent, disableOutputs } = options ?? {}
+	const { agent, disableOutputs, xperts } = options ?? {}
 	// let collectingResult = ''
 	const eventStack: string[] = []
 	let prevEvent = ''
@@ -31,6 +40,7 @@ export function createMapStreamEvents(
 	const processFun = ({ event, tags, data, ...rest }: any) => {
 		const langgraph_node = rest.metadata.langgraph_node
 		const agentKey = isAgentKey(langgraph_node) && langgraph_node !== agent?.key ? langgraph_node : null
+		const xpert = xperts?.find((_) => _.agent?.key === agentKey)
 
 		if (Logger.isLevelEnabled('debug')) {
 			if (event === 'on_chat_model_stream') {
@@ -110,6 +120,9 @@ export function createMapStreamEvents(
 							} as TMessageContentText
 							if (agentKey) {
 								chunk.agentKey = agentKey
+							}
+							if (xpert) {
+								chunk.xpertName = xpert.name
 							}
 							
 							if (typeof msg.content === 'string') {

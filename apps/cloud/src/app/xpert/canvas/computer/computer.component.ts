@@ -13,6 +13,7 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { FileTypePipe, ListHeightStaggerAnimation } from '@metad/core'
 import { BehaviorSubject, debounceTime, switchMap } from 'rxjs'
 import { XpertHomeService } from '../../home.service'
+import { XpertProjectTasksComponent } from '@cloud/app/@shared/xpert'
 
 @Component({
   standalone: true,
@@ -27,7 +28,8 @@ import { XpertHomeService } from '../../home.service'
     MatTooltipModule,
     FileTypePipe,
     FileEditorComponent,
-    CanvasHtmlEditorComponent
+    CanvasHtmlEditorComponent,
+    XpertProjectTasksComponent
   ],
   selector: 'chat-canvas-computer',
   templateUrl: './computer.component.html',

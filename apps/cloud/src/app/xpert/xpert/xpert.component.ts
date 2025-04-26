@@ -16,7 +16,7 @@ import {
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { Router, RouterModule } from '@angular/router'
+import { RouterModule } from '@angular/router'
 import { DisappearBL, IfAnimation, SlideUpDownAnimation } from '@metad/core'
 import { isNil } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -63,7 +63,6 @@ export class XpertChatAppComponent {
   readonly #store = inject(Store)
   readonly chatService = inject(ChatService)
   readonly homeService = inject(XpertHomeService)
-  readonly #router = inject(Router)
   readonly #elementRef = inject(ElementRef)
 
   readonly paramRole = injectParams('name')
@@ -93,8 +92,6 @@ export class XpertChatAppComponent {
   readonly conversationTitle = this.homeService.conversationTitle
 
   readonly isBottom = signal(true)
-
-  // readonly xperts = this.homeService.sortedXperts
 
   readonly greeting = computed(() => {
     const now = new Date();

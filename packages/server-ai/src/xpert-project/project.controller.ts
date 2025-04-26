@@ -1,10 +1,12 @@
-import { IXpertProject, IXpertToolset, OrderTypeEnum } from '@metad/contracts'
+import { IPagination, IXpertProject, IXpertToolset, OrderTypeEnum } from '@metad/contracts'
 import { CrudController, PaginationParams, ParseJsonPipe, TransformInterceptor } from '@metad/server-core'
-import { Controller, Delete, Get, Logger, Param, Put, Query, UseInterceptors } from '@nestjs/common'
+import { Controller, Delete, Get, HttpStatus, Logger, Param, Put, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { FindChatConversationQuery } from '../chat-conversation'
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { FindOneOptions } from 'typeorm'
+import { FindChatConversationQuery } from '../chat-conversation/queries'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
+import { XpertProjectDto } from './dto'
 import { XpertProject } from './entities/project.entity'
 import { XpertProjectService } from './project.service'
 
@@ -20,6 +22,22 @@ export class XpertProjectController extends CrudController<XpertProject> {
 		private readonly queryBus: QueryBus
 	) {
 		super(service)
+	}
+
+	@ApiOperation({ summary: 'find my all' })
+	@ApiResponse({
+		status: HttpStatus.OK,
+		description: 'Found my records'
+	})
+	@Get('my')
+	async findMyAll(@Query('data', ParseJsonPipe) params: PaginationParams<XpertProject>,): Promise<IPagination<XpertProject>> {
+		return this.service.findMyAll(params);
+	}
+
+	@Get(':id')
+	async getXpertProject(@Param('id') id: string, @Query('data', ParseJsonPipe) params: FindOneOptions<XpertProject>) {
+		const project = await this.service.findOne(id, params)
+		return new XpertProjectDto(project)
 	}
 
 	@Get(':id/xperts')
@@ -60,7 +78,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	async updateToolsets(@Param('id') id: string, @Param('toolset') toolsetId: string) {
 		return this.service.addToolset(id, toolsetId)
 	}
-	
+
 	@Delete(':id/toolsets/:toolset')
 	async removeToolset(@Param('id') id: string, @Param('toolset') toolsetId: string) {
 		return this.service.removeToolset(id, toolsetId)

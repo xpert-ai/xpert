@@ -21,7 +21,6 @@ export class ChatProjectService extends ChatService {
   readonly paramId = injectParams('c')
 
   readonly xperts = this.homeService.xperts
-  readonly project = this.projectService.project
 
   private roleSub = toObservable(this.xpert)
     .pipe(

@@ -1,6 +1,7 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
+import { Dialog } from '@angular/cdk/dialog'
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -42,7 +43,7 @@ import { ChatComponentMessageComponent } from '../component-message/component-me
 import { XpertHomeService } from '../home.service'
 import { XpertOcapService } from '../ocap.service'
 import { TCopilotChatMessage } from '../types'
-import { Dialog } from '@angular/cdk/dialog'
+
 
 @Component({
   standalone: true,
@@ -90,10 +91,15 @@ export class ChatAiMessageComponent {
 
   // States
   readonly xpert = this.chatService.xpert
+  readonly project = this.chatService.project
   readonly feedbacks = this.chatService.feedbacks
   readonly executionId = computed(() => this.message()?.executionId)
   readonly status = computed(() => this.message()?.status)
   readonly answering = computed(() => this.chatService.answering() && ['thinking', 'answering'].includes(this.status()))
+  readonly xperts = computed(() => this.project()?.xperts?.reduce((items, xpert) => {
+    items[xpert.name] = xpert
+    return items
+  }, {}))
 
   readonly #contentStr = computed(() => {
     const content = this.message()?.content
@@ -191,7 +197,7 @@ export class ChatAiMessageComponent {
 
   constructor() {
     effect(() => {
-      // console.log(this.agents())
+      // console.log(this.xperts(), this.contents())
     })
   }
 

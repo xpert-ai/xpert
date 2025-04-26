@@ -1,6 +1,7 @@
 import i18next from 'i18next';
 import Backend from 'i18next-http-backend';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import { LanguagesMap } from '@cloud/app/@core/config';
 
 export async function initI18n() {
   await i18next
@@ -9,7 +10,7 @@ export async function initI18n() {
     .init({
       fallbackLng: 'en',
       fallbackNS: 'common',
-      debug: true,
+      // debug: true,
       ns: ['common', 'core', 'sql', 'xmla', 'echarts'],
       defaultNS: 'common', // default namespace
       backend: {
@@ -18,9 +19,10 @@ export async function initI18n() {
       interpolation: {
         escapeValue: false,
       },
-      supportedLngs: ['zh', 'en', 'zh-Hans'],
+      supportedLngs: ['en', 'zh-Hans', 'zh-Hant'],
       detection: {
         order: ['querystring', 'cookie', 'localStorage', 'sessionStorage', 'navigator', 'htmlTag', 'path', 'subdomain'],
-      }
+        convertDetectedLanguage: (lng) => LanguagesMap[lng] ?? lng
+      },
     });
 }

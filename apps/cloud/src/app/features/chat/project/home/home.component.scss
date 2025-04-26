@@ -1,5 +1,5 @@
 :host {
-  @apply max-w-[50rem] px-2 pt-16 mx-auto w-full flex-col relative items-center;
+  @apply flex flex-col relative overflow-y-auto;
 }
 
 .view-option.active {

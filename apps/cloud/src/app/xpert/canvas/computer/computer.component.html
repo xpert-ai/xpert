@@ -33,6 +33,9 @@
           @case ('file') {
             <i class="ri-file-edit-line"></i>
           }
+          @case ('project') {
+            <i class="ri-building-line"></i>
+          }
           @default {
             <i class="ri-hammer-line"></i>
           }
@@ -176,6 +179,13 @@
                     <pac-file-editor class="h-full" [fileName]="step.data.url" 
                       [content]="step.data.content" 
                     />
+                  }
+                }
+              }
+              @case ('project') {
+                @switch (step.tool) {
+                  @case('project_create_tasks') {
+                    <xpert-project-tasks [tasks]="step.data" />
                   }
                 }
               }

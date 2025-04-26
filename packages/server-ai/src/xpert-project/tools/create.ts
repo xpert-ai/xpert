@@ -17,8 +17,6 @@ export const createCreateTasksTool = ({
 			const { configurable } = config ?? {}
 			const { subscriber } = configurable ?? {}
 
-			console.log(_)
-
 			const tasks = await service.saveAll(
 				..._.tasks.map(
 					(task) =>
@@ -34,14 +32,11 @@ export const createCreateTasksTool = ({
 			// Tool message event
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 				type: ChatMessageStepType.ComputerUse,
-				toolset: 'planning',
-				tool: 'create_plan',
+				toolset: 'project',
+				tool: 'project_create_tasks',
 				message: _.tasks.map((_) => _.name).join('\n\n'),
 				title: `Creating tasks`,
-				data: {
-					title: 'Tasks',
-					plan_steps: _.tasks.map((_) => ({ ..._, content: _.name }))
-				}
+				data: tasks
 			})
 
 			subscriber?.next({
