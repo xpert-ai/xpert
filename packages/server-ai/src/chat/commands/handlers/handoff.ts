@@ -17,7 +17,7 @@ function _normalizeAgentName(agentName: string): string {
   return agentName.trim().replace(WHITESPACE_RE, "_").toLowerCase();
 }
 
-const createHandoffTool = ({ agentName }: { agentName: string }) => {
+const createHandoffTool = ({ agentName, description }: { agentName: string; description: string; }) => {
   /**
    * Create a tool that can handoff control to the requested agent.
    *
@@ -53,7 +53,7 @@ const createHandoffTool = ({ agentName }: { agentName: string }) => {
     {
       name: toolName,
       schema: z.object({}),
-      description: "Ask another agent for help.",
+      description: `Ask agent '${agentName}' for help. He is ${description}`,
     }
   );
   return handoffTool;

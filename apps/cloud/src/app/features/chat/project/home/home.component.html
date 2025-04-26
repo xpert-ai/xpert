@@ -30,10 +30,13 @@
       </button>
     </div>
     <button
-      class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 bg-surface-base border border-border-l2 hover:text-fg-primary hover:bg-hover-bg h-9 rounded-full px-3.5 py-2 group text-fg-primary"
+      class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 hover:bg-hover-bg h-9 rounded-full px-3.5 py-2 group
+        text-text-secondary hover:text-text-primary"
       type="button"
+      (click)="openInstruction()"
     >
-      <i class="ri-equalizer-2-line text-lg mr-1"></i>Instruction
+      <i class="ri-equalizer-2-line"></i>
+      <span>{{ 'PAC.XProject.Instruction' | translate: {Default: 'Instruction'} }}</span>
     </button>
 
     @if (loading()) {

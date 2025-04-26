@@ -177,7 +177,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		let _execution = null
 		let operation: TSensitiveOperation = null
 		return new Observable<MessageEvent>((subscriber) => {
-			;(async () => {
+			(async () => {
 				subscriber.next({
 					data: {
 						type: ChatMessageTypeEnum.EVENT,
@@ -530,7 +530,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		if (project?.xperts.length) {
 			for await (const xpert of project.xperts) {
 				const agent = await this.createXpertAgent(xpert, abortController, execution, subscriber, 'last_message', false, supervisorName)
-				const tool = createHandoffTool({ agentName: agent.name })
+				const tool = createHandoffTool({ agentName: agent.name, description: xpert.description })
 				xperts.push({name: agent.name, agent, tool})
 			}
 		}

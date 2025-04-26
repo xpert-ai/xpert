@@ -16,7 +16,9 @@ import {
 	StateGraph
 } from '@langchain/langgraph'
 import { agentLabel, agentUniqueName, channelName, ChatMessageEventTypeEnum, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_SYS, TAgentRunnableConfigurable, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { stringifyMessageContent } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
+import { RequestContext } from '@metad/server-core'
 import { BadRequestException, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
@@ -36,9 +38,7 @@ import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 import { ChatOpenAI } from '@langchain/openai'
 import { XpertConfigException, XpertCopilotNotFoundException } from '../../../core/errors'
-import { RequestContext } from '@metad/server-core'
 import { FakeStreamingChatModel, getChannelState, messageEvent, TStateChannel } from '../../agent'
-import { stringifyMessageContent } from '@metad/copilot'
 import { createParameters } from '../../workflow/parameter'
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateMemoryStoreCommand } from '../../../xpert/commands'
@@ -441,7 +441,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			const { memories } = state
 			const summary = getChannelState(state, agentChannel)?.summary
 			const parameters = stateToParameters(state, environment)
-			let systemTemplate = `Current time: ${new Date().toISOString()}\n${parseXmlString(agent.prompt) ?? ''}`
+			let systemTemplate = `Current time: ${new Date().toISOString()}\nYour ID is '${agent.key}'. Your name is '${agent.name || xpert.name}'.\n${parseXmlString(agent.prompt) ?? ''}`
 			if (memories?.length) {
 				systemTemplate += `\n\n<memories>\n${formatMemories(memories)}\n</memories>`
 			}
@@ -452,7 +452,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				templateFormat: 'mustache'
 			}).format(parameters)
 
-			this.#logger.verbose(`SystemMessage:`, systemMessage.content)
+			this.#logger.verbose(`SystemMessage of ${agentLabel(agent)}:`, systemMessage.content)
 
 			const humanMessages: HumanMessage[] = []
 			const messageHistory = getChannelState(state, agentChannel)?.messages ?? []

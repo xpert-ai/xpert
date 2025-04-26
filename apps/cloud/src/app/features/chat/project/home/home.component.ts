@@ -16,6 +16,7 @@ import {
   XpertWorkspaceService
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
+import { CopilotPromptGeneratorComponent } from '@cloud/app/@shared/copilot'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { UserPipe } from '@cloud/app/@shared/pipes'
 import { attrModel, linkedModel } from '@metad/core'
@@ -70,6 +71,8 @@ export class ChatProjectHomeComponent {
 
   readonly avatar = attrModel(this.project, 'avatar')
   readonly name = attrModel(this.project, 'name')
+  readonly settings = attrModel(this.project, 'settings')
+  readonly instruction = attrModel(this.settings, 'instruction')
 
   // Conversations
   readonly conversations$ = toObservable(this.id).pipe(
@@ -215,6 +218,39 @@ export class ChatProjectHomeComponent {
         next: () => {
           this.loading.set(false)
           this.#router.navigate(['/chat/'])
+        },
+        error: (err) => {
+          this.loading.set(false)
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
+  }
+
+  openInstruction() {
+    this.#dialog
+      .open<string>(CopilotPromptGeneratorComponent, {
+        panelClass: 'large',
+        disableClose: true,
+        data: {
+          instruction: this.instruction()
+        }
+      })
+      .closed
+      .pipe(switchMap((instruction) => {
+        if (instruction) {
+          this.loading.set(true)
+          return this.projectSercice.update(this.id(), {settings: {...(this.settings() ?? {}), instruction}})
+            .pipe(
+              tap(() => {
+                this.loading.set(false)
+                this.instruction.set(instruction)
+              })
+            )
+        }
+        return EMPTY
+      }))
+      .subscribe({
+        next: (result) => {
         },
         error: (err) => {
           this.loading.set(false)
