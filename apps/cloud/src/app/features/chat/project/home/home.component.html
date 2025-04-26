@@ -5,9 +5,9 @@
         [(ngModel)]="avatar" 
       />
 
-      <div class="flex-1 flex gap-2 justify-between items-center min-w-0">
+      <div class="flex-1 flex gap-2 justify-between items-center min-w-0" cdkTrapFocus cdkTrapFocusAutoCapture>
         @if (editing()) {
-          <input class="flex-1 bg-transparent text-2xl focus-visible:outline-none"
+          <input class="flex-1 bg-transparent text-2xl focus-visible:outline-none bg-white" cdkFocusInitial
             type="text"
             [(ngModel)]="name"
           />

@@ -606,7 +606,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 		const callModel = async (state: typeof AgentStateAnnotation.State, config?: RunnableConfig) => {
 			const parameters = stateToParameters(state)
-			const systemTemplate = (project?.settings?.instruction || '') + supervisorPrompt + '\n' + Instruction
+			const systemTemplate = (project?.settings?.instruction || supervisorPrompt) + '\n' + Instruction
 			const systemMessage = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
 				templateFormat: 'mustache'
 			}).format(parameters)

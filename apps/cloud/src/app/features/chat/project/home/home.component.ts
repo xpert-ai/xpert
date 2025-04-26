@@ -1,3 +1,4 @@
+import { A11yModule } from '@angular/cdk/a11y'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
@@ -39,6 +40,7 @@ import { ChatProjectXpertsComponent } from '../xperts/xperts.component'
     RouterModule,
     ReactiveFormsModule,
     FormsModule,
+    A11yModule,
     CdkMenuModule,
     TextFieldModule,
     TranslateModule,
@@ -235,23 +237,24 @@ export class ChatProjectHomeComponent {
           instruction: this.instruction()
         }
       })
-      .closed
-      .pipe(switchMap((instruction) => {
-        if (instruction) {
-          this.loading.set(true)
-          return this.projectSercice.update(this.id(), {settings: {...(this.settings() ?? {}), instruction}})
-            .pipe(
-              tap(() => {
-                this.loading.set(false)
-                this.instruction.set(instruction)
-              })
-            )
-        }
-        return EMPTY
-      }))
+      .closed.pipe(
+        switchMap((instruction) => {
+          if (instruction) {
+            this.loading.set(true)
+            return this.projectSercice
+              .update(this.id(), { settings: { ...(this.settings() ?? {}), instruction } })
+              .pipe(
+                tap(() => {
+                  this.loading.set(false)
+                  this.instruction.set(instruction)
+                })
+              )
+          }
+          return EMPTY
+        })
+      )
       .subscribe({
-        next: (result) => {
-        },
+        next: (result) => {},
         error: (err) => {
           this.loading.set(false)
           this.#toastr.error(getErrorMessage(err))

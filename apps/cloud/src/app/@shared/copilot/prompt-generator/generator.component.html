@@ -57,7 +57,7 @@
     </div>
   </div>
 
-  <div class="w-0 grow flex relative">
+  <div class="w-0 h-full grow p-4 flex flex-col items-stretch relative overflow-auto">
       <!-- <div class="w-0 grow flex flex-col items-center px-8 justify-center h-full space-y-3">
         <svg
           width="14"
@@ -85,38 +85,36 @@
         </div>
       </div> -->
 
-    <div class="w-0 grow p-6 pb-0 h-full flex flex-col items-stretch">
-      <div class="shrink-0 mb-3 leading-[160%] text-base font-semibold text-gray-800">
-        {{ 'PAC.Copilot.GeneratedPrompt' | translate: {Default: 'Generated Prompt'} }}
-      </div>
-      <div class="flex-1 overflow-y-auto pb-2">
-        <div class="relative shadow-md">
-          <div class="rounded-xl bg-[#EEF4FF]">
-            <div class="flex justify-between items-center h-11 pl-3 pr-6">
-              <div class="flex items-center space-x-1">
-                <div class="h2">{{ 'PAC.Copilot.Instructions' | translate: {Default: 'Instructions'} }}</div>
-              </div>
-              <div class="flex items-center"></div>
+    <div class="shrink-0 mb-3 leading-[160%] text-base font-semibold text-gray-800">
+      {{ 'PAC.Copilot.GeneratedPrompt' | translate: {Default: 'Generated Prompt'} }}
+    </div>
+
+    <div class="flex-1 overflow-y-auto pb-2">
+      <div class="relative shadow-md">
+        <div class="rounded-xl bg-[#EEF4FF]">
+          <div class="flex justify-between items-center h-11 pl-3 pr-6">
+            <div class="flex items-center space-x-1">
+              <div class="h2">{{ 'PAC.Copilot.Instructions' | translate: {Default: 'Instructions'} }}</div>
             </div>
-            <copilot-instruction-editor [(instruction)]="instruction" />
+            <div class="flex items-center"></div>
           </div>
+          <copilot-instruction-editor [(instruction)]="instruction" />
         </div>
       </div>
+    </div>
 
-
-      <div class="flex justify-end py-4 bg-white">
-        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large"
-          (click)="cancel()"
-        >
-          {{ 'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}
-        </button>
-        <button type="button" class="btn disabled:btn-disabled btn-primary btn-large ml-2"
-          [disabled]="!instruction() || loading()"
-          (click)="apply()"
-        >
-          {{ 'PAC.ACTIONS.Apply' | translate: {Default: 'Apply'} }}
-        </button>
-      </div>
+    <div class="flex justify-end pt-2 sticky bottom-0 bg-components-card-bg">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large"
+        (click)="cancel()"
+      >
+        {{ 'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}
+      </button>
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large ml-2"
+        [disabled]="!instruction() || loading()"
+        (click)="apply()"
+      >
+        {{ 'PAC.ACTIONS.Apply' | translate: {Default: 'Apply'} }}
+      </button>
     </div>
 
     @if (loading()) {
