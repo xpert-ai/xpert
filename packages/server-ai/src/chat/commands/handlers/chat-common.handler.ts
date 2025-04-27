@@ -1,4 +1,4 @@
-import { HumanMessage, isAIMessage, isBaseMessage, isToolMessage, MessageContent } from '@langchain/core/messages'
+import { AIMessage, HumanMessage, isAIMessage, isBaseMessage, isToolMessage, MessageContent } from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
 import {
@@ -32,7 +32,7 @@ import {
 	TStateVariable,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
-import { AgentRecursionLimit, appendMessageContent, isNil } from '@metad/copilot'
+import { appendMessageContent, isNil } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
@@ -71,6 +71,8 @@ import {
 } from './supervisor'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { toEnvState } from '../../../environment'
+
+const GeneralAgentRecursionLimit = 99
 
 @CommandHandler(ChatCommonCommand)
 export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
@@ -178,6 +180,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		let operation: TSensitiveOperation = null
 		return new Observable<MessageEvent>((subscriber) => {
 			(async () => {
+				// Send conversation start event
 				subscriber.next({
 					data: {
 						type: ChatMessageTypeEnum.EVENT,
@@ -191,7 +194,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					}
 				} as MessageEvent)
 
-				let graph: any = null
+				let graph: CompiledStateGraph<any, any, any> = null
 
 				try {
 					const thread_id = execution.threadId
@@ -226,7 +229,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 									userId,
 									subscriber
 								},
-								recursionLimit: AgentRecursionLimit,
+								recursionLimit: GeneralAgentRecursionLimit,
 								signal: abortController.signal
 							}
 						)
@@ -480,10 +483,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			toolsetVarirables.push(...(_variables ?? []))
 			// stateVariables.push(...toolsetVarirables)
 			const items = await projectToolset.initTools()
-
-			items.forEach((tool) => {
-				console.log(tool.schema)
-			})
+			// items.forEach((tool) => {
+			// 	console.log(tool.schema)
+			// })
 			tools.push(...items)
 		}
 
@@ -686,7 +688,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		)
 		const _execution = {}
 		const runnable = new RunnableLambda({
-			func: async (state: typeof AgentStateAnnotation.spec, config) => {
+			func: async (state: typeof AgentStateAnnotation.State, config) => {
 				const configurable: TAgentRunnableConfigurable = config.configurable
 				const { subscriber } = configurable
 				// Record start time
@@ -737,14 +739,17 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					subscriber.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_END, fullExecution))
 				}
 
+				const _messages = Array.from(state.messages)
 				const primaryChannelName = channelName(xpert.agent.key)
+				const toolMessage = _messages.pop()
+				const aiMessage = _messages.pop() as AIMessage
 				try {
 					const output = await graph.invoke(
 						{
 							...state,
-
+							input: aiMessage.tool_calls[0]?.args?.input,
 							[primaryChannelName]: {
-								messages: state.messages
+								messages: _messages
 							}
 						},
 						{ ...config, configurable: { ...config.configurable, agentKey: '' } }

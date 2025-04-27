@@ -1,6 +1,13 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { tool } from '@langchain/core/tools'
-import { ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, IXpertProjectTask, TMessageContentComponent } from '@metad/contracts'
+import {
+	ChatMessageEventTypeEnum,
+	ChatMessageStepType,
+	ChatMessageTypeEnum,
+	IXpertProjectTask,
+	TAgentRunnableConfigurable,
+	TMessageContentComponent
+} from '@metad/contracts'
 import { shortuuid } from '@metad/server-common'
 import { z } from 'zod'
 import { XpertProjectTaskService } from '../services/project-task.service'
@@ -15,13 +22,14 @@ export const createCreateTasksTool = ({
 	const createTasksTool = tool(
 		async (_, config) => {
 			const { configurable } = config ?? {}
-			const { subscriber } = configurable ?? {}
+			const { subscriber, thread_id } = <TAgentRunnableConfigurable>configurable ?? {}
 
 			const tasks = await service.saveAll(
 				..._.tasks.map(
 					(task) =>
 						({
 							...task,
+							threadId: thread_id,
 							projectId,
 							status: 'in_progress',
 							steps: task.steps?.map((step, i) => ({ ...step, stepIndex: i + 1, status: 'pending' }))

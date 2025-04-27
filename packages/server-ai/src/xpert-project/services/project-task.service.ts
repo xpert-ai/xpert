@@ -1,9 +1,11 @@
 import { IXpertProjectTask } from '@metad/contracts'
+import { DeepPartial } from '@metad/server-common'
 import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
+import { XpertProjectTaskStep } from '../entities/project-task-step.entity'
 import { XpertProjectTask } from '../entities/project-task.entity'
 
 @Injectable()
@@ -13,6 +15,8 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
 	constructor(
 		@InjectRepository(XpertProjectTask)
 		repository: Repository<XpertProjectTask>,
+		@InjectRepository(XpertProjectTaskStep)
+		private stepRepository: Repository<XpertProjectTaskStep>,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
 	) {
@@ -20,11 +24,48 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
 	}
 
 	async saveAll(...entities: IXpertProjectTask[]) {
-		return await this.repository.save(entities.map((entity) => ({
-			...entity,
-			tenantId: RequestContext.currentTenantId(),
-			organizationId: RequestContext.getOrganizationId(),
-			createdById: RequestContext.currentUserId()
-		})))
+		const items = []
+		for await (const entity of entities) {
+			const task = await this.repository.save({
+				...entity,
+				tenantId: RequestContext.currentTenantId(),
+				organizationId: RequestContext.getOrganizationId(),
+				createdById: RequestContext.currentUserId()
+			})
+			if (entity.steps) {
+				task.steps = await this.stepRepository.save(
+					entity.steps.map((_) => ({
+						..._,
+						taskId: task.id,
+						tenantId: RequestContext.currentTenantId(),
+						organizationId: RequestContext.getOrganizationId(),
+						createdById: RequestContext.currentUserId()
+					}))
+				)
+			}
+			items.push(task)
+		}
+
+		return items
+	}
+
+	async updateTaskSteps(projectId: string, threadId: string,  ...entities: DeepPartial<IXpertProjectTask>[]) {
+		const { items: tasks } = await this.findAll({ where: { projectId, threadId }, relations: ['steps'] })
+		for await (const entity of entities) {
+			const task = tasks.find((_) => _.name === entity.name)
+			if (!task) {
+				throw new Error(`Task not exists with name '${entity.name}'`)
+			}
+			entity.steps.forEach((step) => {
+				if (!task.steps[step.stepIndex]) {
+					throw new Error(`Step with index '${step.stepIndex}' not exists in task '${entity.name}'`)
+				}
+				task.steps[step.stepIndex].status = step.status
+				task.steps[step.stepIndex].notes += step.notes || ''
+			})
+			task.steps = await this.stepRepository.save(task.steps)
+		}
+
+		return tasks
 	}
 }

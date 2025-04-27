@@ -6,13 +6,16 @@ import { XpertProjectBaseEntity } from './project.base'
 @Entity('xpert_project_task')
 export class XpertProjectTask extends XpertProjectBaseEntity implements IXpertProjectTask {
 
-	@Column()
+	@Column({ nullable: true })
+	threadId?: string
+
+	@Column({ nullable: true })
 	name: string
 
-	@Column()
+	@Column({ nullable: true })
 	type: string
 
-	@Column({ type: 'enum', enum: ['pending', 'in_progress', 'completed', 'failed'] })
+	@Column({ nullable: true, type: 'enum', enum: ['pending', 'in_progress', 'completed', 'failed'] })
 	status: 'pending' | 'in_progress' | 'completed' | 'failed'
 
 	@Column({ nullable: true })
@@ -21,6 +24,6 @@ export class XpertProjectTask extends XpertProjectBaseEntity implements IXpertPr
 	@Column({ nullable: true })
 	endTime: Date
 
-	@OneToMany(() => XpertProjectTaskStep, (step) => step.task)
+	@OneToMany(() => XpertProjectTaskStep, (step) => step.task,)
 	steps: IXpertProjectTaskStep[]
 }

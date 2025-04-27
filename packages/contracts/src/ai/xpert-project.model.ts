@@ -43,6 +43,7 @@ export interface IBasePerXpertProjectEntityModel extends IBasePerTenantAndOrgani
 }
 
 export interface IXpertProjectTask extends IBasePerXpertProjectEntityModel {
+  threadId?: string
   name: string
   type?: string
   status: 'pending' | 'in_progress' | 'completed' | 'failed'
@@ -53,6 +54,7 @@ export interface IXpertProjectTaskStep extends IBasePerXpertProjectEntityModel {
   taskId: string;
   stepIndex: number;
   description: string;
+  notes: string;
   status: 'pending' | 'running' | 'done' | 'failed';
 }
 

@@ -437,7 +437,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		})
 
 		const enableMessageHistory = !agent.options?.disableMessageHistory
-		const stateModifier = async (state: typeof AgentStateAnnotation.State) => {
+		const stateModifier = async (state: typeof AgentStateAnnotation.State, isStart: boolean) => {
 			const { memories } = state
 			const summary = getChannelState(state, agentChannel)?.summary
 			const parameters = stateToParameters(state, environment)
@@ -459,7 +459,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 			// Determine whether it is Agent reflection (last message is not HumanMessage)
 			const lastMessage = messageHistory[messageHistory.length - 1]
-			if (!(isBaseMessage(lastMessage) && isToolMessage(lastMessage) && !endNodes.includes(lastMessage.name))) {
+			if (isStart || !(isBaseMessage(lastMessage) && isToolMessage(lastMessage) && !endNodes.includes(lastMessage.name))) {
 				// Is new human input: use message templates or input message
 				const humanTemplates = agent.promptTemplates?.filter((_) => !!_.text?.trim())
 				if (humanTemplates?.length) {
@@ -518,7 +518,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				])
 			}
 
-			const {systemMessage, messageHistory, humanMessages} = await stateModifier(state)
+			const {systemMessage, messageHistory, humanMessages} = await stateModifier(state, (<string>config.metadata.langgraph_triggers[0])?.startsWith(START))
 			// Disable history and new human request then remove history
 			const deleteMessages = (!enableMessageHistory && humanMessages.length) ? messageHistory.map((m) => new RemoveMessage({ id: m.id as string })) : []
 			try {

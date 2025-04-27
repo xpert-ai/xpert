@@ -5,6 +5,7 @@ import { XpertProjectService } from '../project.service'
 import { XpertProjectTaskService } from '../services/project-task.service'
 import { createCreateTasksTool } from './create'
 import { createListTasksTool } from './list'
+import { createUpdateTasksTool } from './update'
 
 export class ProjectToolset extends BaseToolset<BuiltinTool> {
 	providerType = XpertToolsetCategoryEnum.BUILTIN
@@ -29,6 +30,7 @@ export class ProjectToolset extends BaseToolset<BuiltinTool> {
 
 		this.tools.push(createListTasksTool({ projectId: this.project.id, service: this.taskService }))
 		this.tools.push(createCreateTasksTool({ projectId: this.project.id, service: this.taskService }))
+		this.tools.push(createUpdateTasksTool({ projectId: this.project.id, service: this.taskService }))
 
 		return this.tools
 	}

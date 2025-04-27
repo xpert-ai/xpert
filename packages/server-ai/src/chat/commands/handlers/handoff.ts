@@ -52,7 +52,9 @@ const createHandoffTool = ({ agentName, description }: { agentName: string; desc
     },
     {
       name: toolName,
-      schema: z.object({}),
+      schema: z.object({
+        input: z.string().describe(`Requirement`)
+      }),
       description: `Ask agent '${agentName}' for help. He is ${description}`,
     }
   );

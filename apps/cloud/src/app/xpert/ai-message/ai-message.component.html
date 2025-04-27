@@ -1,4 +1,4 @@
-<div class="flex items-center">
+<div class="flex items-center py-1 sticky top-14 z-10 bg-surface-container">
   <emoji-avatar class="shrink-0 rounded-full overflow-hidden shadow-sm mr-2" [avatar]="xpert()?.avatar" />
   <div class="truncate text-text-secondary">{{xpert()?.title || xpert()?.name}}</div>
 </div>
@@ -172,9 +172,9 @@
     @for (submessage of messages; track submessage; let last = $last) {
       <div class="relative">
         @if (submessage.agentKey && agents()[submessage.agentKey]; as agent) {
-          <div class="group flex items-center gap-2 py-2 mt-2 sticky top-14 z-10 bg-surface-container">
+          <div class="group flex items-center gap-2 py-2 mt-2 px-1 sticky top-14 z-10 bg-surface-container">
             @if (submessage.id) {
-              <button type="button" class="absolute left-1 w-6 h-6 flex justify-center items-center rounded-lg z-10 transition-opacity bg-white/2 backdrop-blur-sm opacity-0 group-hover:opacity-100"
+              <button type="button" class="absolute left-2 w-6 h-6 flex justify-center items-center rounded-lg z-10 transition-opacity bg-white/2 backdrop-blur-sm opacity-0 group-hover:opacity-100"
                 (click)="toggleCollapseMessage(submessage)">
                 @if (collapseMessages()[submessage.id]) {
                   <i class="ri-arrow-right-s-line"></i>
@@ -188,9 +188,9 @@
           </div>
         }
         @if (submessage.xpertName && xperts()[submessage.xpertName]; as xpert) {
-          <div class="group flex items-center gap-2 py-2 mt-2 sticky top-14 z-10 bg-surface-container">
+          <div class="group flex items-center gap-2 py-2 mt-2 px-1 sticky top-14 z-10 bg-surface-container">
             @if (submessage.id) {
-              <button type="button" class="absolute left-1 w-6 h-6 flex justify-center items-center rounded-lg z-10 transition-opacity bg-white/2 backdrop-blur-sm opacity-0 group-hover:opacity-100"
+              <button type="button" class="absolute left-2 w-6 h-6 flex justify-center items-center rounded-lg z-10 transition-opacity bg-white/2 backdrop-blur-sm opacity-0 group-hover:opacity-100"
                 (click)="toggleCollapseMessage(submessage)">
                 @if (collapseMessages()[submessage.id]) {
                   <i class="ri-arrow-right-s-line"></i>
@@ -241,7 +241,7 @@
   }
   
   @if (contentStr()) {
-    <markdown @fade-in-children clipboard class="ngm-copilot-markdown flex-1"
+    <markdown clipboard class="ngm-copilot-markdown flex-1"
       [clipboardButtonTemplate]="buttonTemplate"
       lineNumbers
       [start]="5"

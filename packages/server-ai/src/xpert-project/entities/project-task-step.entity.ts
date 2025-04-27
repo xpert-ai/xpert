@@ -6,21 +6,25 @@ import { XpertProjectBaseEntity } from './project.base'
 
 @Entity('xpert_project_task_step')
 export class XpertProjectTaskStep extends XpertProjectBaseEntity implements IXpertProjectTaskStep {
-	@Column()
+
+	@Column({ nullable: true })
 	taskId: string
 
-	@ManyToOne(() => XpertProjectTask, (task) => task.id, { onDelete: 'CASCADE' })
+	@ManyToOne(() => XpertProjectTask, (task) => task.id, {
+		nullable: true,
+		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+	})
 	task: XpertProjectTask
 
-	@Column()
+	@Column({ nullable: true })
 	stepIndex: number
 
 	@Column()
 	description: string
 
-	@Column({ nullable: true })
-	agentRole: string
+	@Column({ nullable: true, default: '' })
+	notes: string
 
-	@Column({ type: 'enum', enum: ['pending', 'running', 'done', 'failed'], default: 'pending' })
+	@Column({ nullable: true, type: 'enum', enum: ['pending', 'running', 'done', 'failed'], default: 'pending' })
 	status: 'pending' | 'running' | 'done' | 'failed'
 }

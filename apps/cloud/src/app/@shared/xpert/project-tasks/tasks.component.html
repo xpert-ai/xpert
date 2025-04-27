@@ -15,10 +15,26 @@
           <div class="pt-0">
             @for (step of task.steps; track step.id) {
               <div class="flex items-center ml-4">
-                <div class="font-semibold mr-2">
-                  {{step.stepIndex}}.
+                <div class="mr-1" [matTooltip]="step.notes" matTooltipPosition="left">
+                  @switch (step.status) {
+                    @case ('pending') {
+                      <i class="ri-pause-circle-line text-orange-500"></i>
+                    }
+                    @case ('running') {
+                      <i class="ri-time-line text-text-success"></i>
+                    }
+                    @case ('done') {
+                      <i class="ri-checkbox-circle-line text-text-success"></i>
+                    }
+                    @case ('failed') {
+                      <i class="ri-close-circle-line text-text-destructive"></i>
+                    }
+                    @default {
+                      {{step.stepIndex}}.
+                    }
+                  }
                 </div>
-                <div class="flex-1 inline-block rounded py-1 px-2 text-sm mr-2 truncate">
+                <div class="flex-1 inline-block rounded py-1 px-2 text-sm mr-2 truncate" [title]="step.description">
                   {{step.description}}
                 </div>
               </div>

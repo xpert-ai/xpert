@@ -2,6 +2,7 @@ import { ChatConversationSubscriber } from '../../chat-conversation/conversation
 import { ChatMessageSubscriber } from '../../chat-message/chat-message.subscriber'
 import { CopilotModelSubscriber } from '../../copilot-model/copilot-model.subscriber'
 import { KnowledgebaseSubscriber } from '../../knowledgebase/knowledgebase.subscriber'
+import { XpertProjectTaskSubscriber } from '../../xpert-project/entities/project-task.subscriber'
 import { XpertProjectSubscriber } from '../../xpert-project/project.subscriber'
 import { XpertToolSubscriber } from '../../xpert-tool/xpert-tool.subscriber'
 import { XpertToolsetSubscriber } from '../../xpert-toolset/xpert-toolset.subscriber'
@@ -16,7 +17,8 @@ export const AiSubscribers = [
 	XpertProjectSubscriber,
 	XpertToolsetSubscriber,
 	XpertToolSubscriber,
+	XpertProjectTaskSubscriber,
 	CopilotModelSubscriber,
 	ChatConversationSubscriber,
-	ChatMessageSubscriber
+	ChatMessageSubscriber,
 ]

@@ -1,9 +1,5 @@
-<div
-  class="px-4 items-center justify-between flex-shrink-0 border-b border-divider-regular flex flex-col-reverse md:flex-row md:py-3"
->
-  <div
-    class="flex flex-row gap-1 items-center text-[var(--text-secondary)] font-medium truncate [&amp;_svg]:flex-shrink-0 w-full pt-2 pb-4 md:p-0 md:flex-1 md:min-w-0"
-  >
+<div class="px-4 items-center justify-between flex-shrink-0 border-b border-divider-regular flex flex-col-reverse md:flex-row md:py-3">
+  <div class="flex flex-row gap-1 items-center text-[var(--text-secondary)] font-medium truncate w-full pt-2 pb-4 md:p-0 md:flex-1 md:min-w-0">
   @switch (fileType()) {
     @case ('code') {
       <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3.55566 26.8889C3.55566 28.6071 4.94856 30 6.66678 30H25.3334C27.0517 30 28.4446 28.6071 28.4446 26.8889V9.77778L20.6668 2H6.66678C4.94856 2 3.55566 3.39289 3.55566 5.11111V26.8889Z" fill="#4999E9"></path><path opacity="0.8" d="M20.6685 6.66647C20.6685 8.38469 22.0613 9.77759 23.7796 9.77759H28.4462L20.6685 1.99981V6.66647Z" fill="#7CBDFF"></path><g opacity="0.9"><path d="M12.2146 23.0075C10.8351 21.6055 9.41533 20.2051 8.00342 18.8399C9.32659 17.5371 10.7038 16.1826 12.0868 14.8106C12.4508 15.1731 12.8166 15.5372 13.1831 15.9025C12.1737 16.9083 11.1695 17.9061 10.19 18.8828C11.2178 19.8927 12.2378 20.9105 13.2498 21.9361C12.9037 22.2922 12.5586 22.6494 12.2146 23.0075Z" fill="white"></path><path d="M20.1101 22.9923C19.7678 22.6361 19.4246 22.2809 19.0803 21.9267C20.0955 20.9008 21.1189 19.883 22.1503 18.8735C21.173 17.9015 20.17 16.9067 19.1604 15.9025C19.5269 15.5378 19.8925 15.1745 20.2562 14.8131C21.6404 16.1831 23.0167 17.5325 24.3368 18.8272C22.9219 20.1886 21.4969 21.5883 20.1101 22.9923Z" fill="white"></path><path d="M15.8827 24.1754H14.4272L16.5372 13.7883H18.0544L15.8827 24.1754Z" fill="white"></path><path d="M12.2146 23.0075C10.8351 21.6055 9.41533 20.2051 8.00342 18.8399C9.32659 17.5371 10.7038 16.1826 12.0868 14.8106C12.4508 15.1731 12.8166 15.5372 13.1831 15.9025C12.1737 16.9083 11.1695 17.9061 10.19 18.8828C11.2178 19.8927 12.2378 20.9105 13.2498 21.9361C12.9037 22.2922 12.5586 22.6494 12.2146 23.0075Z" stroke="white" stroke-width="0.233333"></path><path d="M20.1101 22.9923C19.7678 22.6361 19.4246 22.2809 19.0803 21.9267C20.0955 20.9008 21.1189 19.883 22.1503 18.8735C21.173 17.9015 20.17 16.9067 19.1604 15.9025C19.5269 15.5378 19.8925 15.1745 20.2562 14.8131C21.6404 16.1831 23.0167 17.5325 24.3368 18.8272C22.9219 20.1886 21.4969 21.5883 20.1101 22.9923Z" stroke="white" stroke-width="0.233333"></path><path d="M15.8827 24.1754H14.4272L16.5372 13.7883H18.0544L15.8827 24.1754Z" stroke="white" stroke-width="0.233333"></path></g></svg>
@@ -70,63 +66,65 @@
 </div>
 
 <div class="flex-1 flex flex-col overflow-hidden">
-  @if (preview()) {
-    @if (file()?.extension === 'html') {
-      <iframe [src]="url() | safe:'resourceUrl'" class="w-full h-full border-none bg-components-panel-bg"></iframe>
-    } @else {
-      @switch (fileType()) {
-        @case ('text') {
-          <markdown clipboard class="ngm-copilot-markdown flex-1 px-8 py-4 overflow-auto"
-            lineNumbers
-            [start]="5"
-            [data]="content()"
-          />
-        }
-        @case ('code') {
-          <code class="p-4 whitespace-pre-line text-sm">{{content()}}</code>
-        }
-        @case ('zip') {
-          <div class="flex flex-col items-center justify-center gap-6 flex-1 w-full min-h-0">
-            <div
-                class="flex items-center gap-1.5 rounded-[10px] bg-neutral-100 px-2 py-2 w-[280px]">
-                <svg width="32" height="32" viewBox="0 0 32 32" fill="none"
-                    xmlns="http://www.w3.org/2000/svg">
-                    <path
-                        d="M3.55566 26.8889C3.55566 28.6071 4.94856 30 6.66678 30H25.3334C27.0517 30 28.4446 28.6071 28.4446 26.8889V9.77778L20.6668 2H6.66678C4.94856 2 3.55566 3.39289 3.55566 5.11111V26.8889Z"
-                        fill="#F8A100"></path>
-                    <path opacity="0.8"
-                        d="M20.6665 6.66672C20.6665 8.38494 22.0594 9.77783 23.7776 9.77783H28.4443L20.6665 2.00005V6.66672Z"
-                        fill="#FFCE76"></path>
-                    <path
-                        d="M16.0952 14.9524V12.7935H14V10.635H16.0952V8.47619H14V6.31733H16.0952V4.15886H14V2H16.0952V4.15886H18.1905V6.31733H16.0952V8.47619H18.1905V10.635H16.0952V12.7935H18.1905V21.0476H14V14.9524H16.0952ZM17.4286 17.2381H14.7619V20.2857H17.4286V17.2381Z"
-                        fill="white"></path>
-                </svg>
-                <div class="flex flex-col gap-0.5 flex-1 min-w-0">
-                  <div class="text-base text-text-primary truncate">{{file().name}}</div>
-                  <div class="text-sm text-text-tertiary truncate">zip</div>
-                </div>
+  @if (file(); as file) {
+    @if (preview()) {
+      @if (file.extension === 'html') {
+        <iframe [src]="url() | safe:'resourceUrl'" class="w-full h-full border-none bg-components-panel-bg"></iframe>
+      } @else {
+        @switch (fileType()) {
+          @case ('text') {
+            <markdown clipboard class="ngm-copilot-markdown flex-1 px-8 py-4 overflow-auto"
+              lineNumbers
+              [start]="5"
+              [data]="content()"
+            />
+          }
+          @case ('code') {
+            <code class="p-4 whitespace-pre-line text-sm">{{content()}}</code>
+          }
+          @case ('zip') {
+            <div class="flex flex-col items-center justify-center gap-6 flex-1 w-full min-h-0">
+              <div
+                  class="flex items-center gap-1.5 rounded-[10px] bg-neutral-100 px-2 py-2 w-[280px]">
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none"
+                      xmlns="http://www.w3.org/2000/svg">
+                      <path
+                          d="M3.55566 26.8889C3.55566 28.6071 4.94856 30 6.66678 30H25.3334C27.0517 30 28.4446 28.6071 28.4446 26.8889V9.77778L20.6668 2H6.66678C4.94856 2 3.55566 3.39289 3.55566 5.11111V26.8889Z"
+                          fill="#F8A100"></path>
+                      <path opacity="0.8"
+                          d="M20.6665 6.66672C20.6665 8.38494 22.0594 9.77783 23.7776 9.77783H28.4443L20.6665 2.00005V6.66672Z"
+                          fill="#FFCE76"></path>
+                      <path
+                          d="M16.0952 14.9524V12.7935H14V10.635H16.0952V8.47619H14V6.31733H16.0952V4.15886H14V2H16.0952V4.15886H18.1905V6.31733H16.0952V8.47619H18.1905V10.635H16.0952V12.7935H18.1905V21.0476H14V14.9524H16.0952ZM17.4286 17.2381H14.7619V20.2857H17.4286V17.2381Z"
+                          fill="white"></path>
+                  </svg>
+                  <div class="flex flex-col gap-0.5 flex-1 min-w-0">
+                    <div class="text-base text-text-primary truncate">{{file.name}}</div>
+                    <div class="text-sm text-text-tertiary truncate">zip</div>
+                  </div>
+              </div>
+              <div class="text-base text-center text-[var(--text-tertiary)]">
+                {{'PAC.Chat.FormatCannotPreviewed' | translate: {Default: 'This format cannot be previewed.'} }} 
+                <br>{{'PAC.Chat.DownloadFiletoView' | translate: {Default: 'Please download the file to view its contents.'} }} 
+              </div>
+              <button type="button"
+                  class="btn btn-primary inline-flex h-9 items-center justify-center gap-1 rounded-[10px] px-3 hover:opacity-90"
+                (click)="download()"
+              >
+                <i class="ri-download-2-line"></i>
+                <span class="text-sm text-white">{{'PAC.Chat.Download' | translate: {Default: 'Download'} }}</span>
+              </button>
             </div>
-            <div class="text-base text-center text-[var(--text-tertiary)]">
-              {{'PAC.Chat.FormatCannotPreviewed' | translate: {Default: 'This format cannot be previewed.'} }} 
-              <br>{{'PAC.Chat.DownloadFiletoView' | translate: {Default: 'Please download the file to view its contents.'} }} 
-            </div>
-            <button type="button"
-                class="btn btn-primary inline-flex h-9 items-center justify-center gap-1 rounded-[10px] px-3 hover:opacity-90"
-              (click)="download()"
-            >
-              <i class="ri-download-2-line"></i>
-              <span class="text-sm text-white">{{'PAC.Chat.Download' | translate: {Default: 'Download'} }}</span>
-            </button>
-          </div>
-        }
-        @default {
-          <div class="p-4 whitespace-pre-line text-sm">{{content()}}</div>
+          }
+          @default {
+            <div class="p-4 whitespace-pre-line text-sm">{{content()}}</div>
+          }
         }
       }
+    } @else {
+      <pac-file-editor class="h-full" [fileName]="file.url" 
+        [content]="content()"
+      />
     }
-  } @else {
-    <pac-file-editor class="h-full" [fileName]="file().url" 
-      [content]="content()"
-    />
   }
 </div>

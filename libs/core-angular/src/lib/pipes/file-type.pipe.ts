@@ -19,6 +19,7 @@ export class FileTypePipe implements PipeTransform {
       case 'docx':
         return 'text'
       case 'js':
+      case 'jsx':
       case 'ts':
       case 'py':
       case 'java':
