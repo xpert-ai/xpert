@@ -68,7 +68,7 @@
 <div class="flex-1 flex flex-col overflow-hidden">
   @if (file(); as file) {
     @if (preview()) {
-      @if (file.extension === 'html') {
+      @if (extension() === 'html' || extension() === 'jsx') {
         <iframe [src]="url() | safe:'resourceUrl'" class="w-full h-full border-none bg-components-panel-bg"></iframe>
       } @else {
         @switch (fileType()) {

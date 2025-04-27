@@ -30,10 +30,9 @@ export class ChatCanvasFileViewerComponent {
   )
   readonly url = computed(() => this.file()?.url)
 
-  readonly content = derivedAsync(() => {
-    return this.url() ? this.httpClient.get(this.url(), { responseType: 'text' }) : null
-  })
+  readonly content = derivedAsync(() => this.url() ? this.httpClient.get(this.url(), { responseType: 'text' }) : null)
 
+  readonly extension = computed(() => this.file()?.extension || this.file()?.name?.split('.').pop()?.toLowerCase())
   readonly fileType = computed(() => this.file()?.name ? new FileTypePipe().transform(this.file().name) : null)
 
   constructor() {
