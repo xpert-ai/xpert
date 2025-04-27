@@ -470,7 +470,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 		// Env
 		let environment: IEnvironment
-		if (project.workspace?.environments?.length > 0) {
+		if (project?.workspace?.environments?.length > 0) {
 			environment = project.workspace.environments.find((_) => _.isDefault)
 		}
 
@@ -490,7 +490,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			tools.push(...items)
 		}
 
-		if (project.toolsets.length > 0) {
+		if (project?.toolsets.length > 0) {
 			const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
 				new ToolsetGetToolsCommand(project.toolsets.map(({id}) => id), {
 					xpertId: null,
@@ -586,7 +586,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		  }
 
 		let supervisorLLM = llm
-		if (isChatModelWithBindTools(llm)) {
+		if (allTools.length && isChatModelWithBindTools(llm)) {
 			if (
 				isChatModelWithParallelToolCallsParam(llm) &&
 				PROVIDERS_WITH_PARALLEL_TOOL_CALLS_PARAM.has(llm.getName())

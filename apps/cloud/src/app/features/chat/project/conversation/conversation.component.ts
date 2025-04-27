@@ -66,6 +66,8 @@ export class ChatProjectConversationComponent {
     const navigation = this.#router.getCurrentNavigation()
     if (navigation?.extras.state) {
       const { input } = navigation.extras.state
+      
+      this.chatSercice.project.set(this.project() as IXpertProject)
       // Process the data as needed
       this.chatSercice.ask(input)
     }
