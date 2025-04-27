@@ -130,7 +130,9 @@
       <mat-autocomplete #auto="matAutocomplete" class="pac-toolbar-search__autocomplete"
         (opened)="assetsInit=true"
       >
-        <pac-assets *ngIf="assetsInit" [search]="assetsSearch"></pac-assets>
+        @if (assetsInit) {
+          <pac-assets [search]="assetsSearch" />
+        }
         <mat-option class="h-0" style="height: 0; min-height: 0;"></mat-option>
       </mat-autocomplete>
 

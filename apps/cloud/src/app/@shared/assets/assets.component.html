@@ -1,22 +1,28 @@
-<mat-progress-bar *ngIf="searching$ | async"
-  mode="query"
-  color="accent"
-  class="top-0 left-0 w-full"
-  style="position: absolute; height: 2px;"
-></mat-progress-bar>
+@if (searching$ | async) {
+  <mat-progress-bar
+    mode="query"
+    color="accent"
+    class="top-0 left-0 w-full"
+    style="position: absolute; height: 2px;"
+  />
+}
 
-<div *ngIf="!search" class="my-2 mx-4 text-base">
-  {{ 'PAC.SHARED.Assets.RecentlyViewed' | translate: { Default: 'Recently viewed' } }}
-</div>
+@if (!search) {
+  <div class="my-2 mx-4 text-base">
+    {{ 'PAC.SHARED.Assets.RecentlyViewed' | translate: { Default: 'Recently viewed' } }}
+  </div>
+}
 
-<div *ngIf="isEmpty$ | async" class="pac-home__assets-empty p-8 flex flex-col justify-start items-center">
-  <span class="shopping-cart text-lg font-notoColorEmoji">🛒</span>
-  <span>
-    {{
-      'PAC.SHARED.Assets.NoRelevantDigitalAssets' | translate: { Default: 'No relevant digital assets were found' }
-    }}!
-  </span>
-</div>
+@if (isEmpty$ | async) {
+  <div class="pac-home__assets-empty p-8 flex flex-col justify-start items-center">
+    <span class="shopping-cart text-lg font-notoColorEmoji">🛒</span>
+    <span>
+      {{
+        'PAC.SHARED.Assets.NoRelevantDigitalAssets' | translate: { Default: 'No relevant digital assets were found' }
+      }}!
+    </span>
+  </div>
+}
 
 <mat-list class="assets-list" displayDensity="cosy">
   <ng-container *ngFor="let asset of searchAssets$ | async">

@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
@@ -11,12 +12,17 @@ import {
   injectToastr,
   IXpertToolset,
   OrderTypeEnum,
-  XpertToolsetCategoryEnum,
   XpertToolsetService
 } from '@cloud/app/@core'
-import { MCPMarketplaceComponent } from '@cloud/app/@shared/mcp'
+import { MCPMarketplaceComponent, XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 import { ToolsetCardComponent } from '@cloud/app/@shared/xpert'
-import { DisappearFadeOut, DynamicGridDirective, listAnimation, listEnterAnimation, ListSlideStaggerAnimation } from '@metad/core'
+import {
+  DisappearFadeOut,
+  DynamicGridDirective,
+  listAnimation,
+  listEnterAnimation,
+  ListSlideStaggerAnimation
+} from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil, omitBy } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -45,10 +51,11 @@ import { ChatProjectComponent } from '../project.component'
   templateUrl: './tools.component.html',
   styleUrl: 'tools.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  animations: [ DisappearFadeOut, listAnimation, ListSlideStaggerAnimation, listEnterAnimation ]
+  animations: [DisappearFadeOut, listAnimation, ListSlideStaggerAnimation, listEnterAnimation]
 })
 export class ChatProjectToolsComponent {
   readonly #router = inject(Router)
+  readonly #dialog = inject(Dialog)
   readonly projectSercice = injectProjectService()
   readonly toolsetService = inject(XpertToolsetService)
   readonly #projectComponent = inject(ChatProjectComponent)
@@ -126,5 +133,24 @@ export class ChatProjectToolsComponent {
         this.#toastr.error(getErrorMessage(err))
       }
     })
+  }
+
+  openToolset(toolset: IXpertToolset) {
+    this.#dialog
+      .open(XpertMCPManageComponent, {
+        backdropClass: 'backdrop-blur-lg-white',
+        disableClose: true,
+        data: {
+          workspaceId: this.workspaceId(),
+          toolsetId: toolset.id
+        }
+      })
+      .closed.subscribe({
+        next: (saved) => {
+          if (saved) {
+            this.#projectHomeComponent.refreshTools()
+          }
+        }
+      })
   }
 }

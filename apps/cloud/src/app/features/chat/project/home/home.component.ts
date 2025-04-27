@@ -25,7 +25,7 @@ import { attrModel, linkedModel, TranslatePipe } from '@metad/core'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'
-import { catchError, EMPTY, map, of, shareReplay, switchMap, tap } from 'rxjs'
+import { BehaviorSubject, catchError, EMPTY, map, of, shareReplay, switchMap, tap } from 'rxjs'
 import { ChatProjectComponent } from '../project.component'
 import { ChatProjectToolsComponent } from '../tools/tools.component'
 import { ChatProjectXpertsComponent } from '../xperts/xperts.component'
@@ -86,7 +86,8 @@ export class ChatProjectHomeComponent {
     shareReplay(1)
   )
 
-  readonly #toolsets = derivedAsync(() => (this.id() ? this.projectSercice.getToolsets(this.id(), {relations: ['createdBy']}) : of(null)))
+  readonly #toolsRefresh$ = new BehaviorSubject<void>(null)
+  readonly #toolsets = derivedAsync(() => (this.id() ? this.#toolsRefresh$.pipe(switchMap(() => this.projectSercice.getToolsets(this.id(), {relations: ['createdBy']}))) : of(null)))
   readonly toolsets = linkedModel({
     initialValue: null,
     compute: () => this.#toolsets()?.items,
@@ -268,5 +269,9 @@ export class ChatProjectHomeComponent {
           this.#toastr.error(getErrorMessage(err))
         }
       })
+  }
+
+  refreshTools() {
+    this.#toolsRefresh$.next()
   }
 }

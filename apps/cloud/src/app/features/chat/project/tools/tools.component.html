@@ -5,7 +5,7 @@
   </div>
 }
 
-<div @listEnterAnimation class="relative content-start gap-4 pt-2 pb-4 mt-4 grow shrink-0"
+<div @listEnterAnimation class="relative content-start gap-4 pt-2 pb-4 px-1 mt-4 grow shrink-0"
   ngmDynamicGrid colWidth="280"
   box="content-box">
   @for (toolset of toolsets(); track toolset.id) {
@@ -20,17 +20,18 @@
   }
 </div>
 
-<div class="flex items-center py-4 text-lg font-semibold text-gray-500 uppercase">
+<div class="flex items-center py-4 px-1 text-lg font-semibold text-gray-500 uppercase">
   <div class="mr-3">{{ 'PAC.Xpert.MCPToolset' | translate: { Default: 'MCP Toolset' } }}</div>
   <div class="grow w-0 h-px bg-divider-regular"></div>
 </div>
 
-<div class="relative content-start gap-4 pt-2 pb-4 grow shrink-0"
+<div class="relative content-start gap-4 pt-2 pb-4 px-1 grow shrink-0"
   ngmDynamicGrid colWidth="280"
   box="content-box">
   @for (item of wsToolsets(); track item.toolset.id) {
     <xpert-toolset-card class="group/card col-span-1 min-h-[140px] cursor-pointer bg-components-card-bg"
       [toolset]="item.toolset"
+      (click)="openToolset(item.toolset)"
     >
       @if (item.added) {
         <button action type="button" class="btn rounded-xl justify-center w-8 h-8 text-text-success"
