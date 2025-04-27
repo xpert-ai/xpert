@@ -9,7 +9,7 @@ import { CapitalizePipe, DynamicGridDirective } from '@metad/core'
 import { injectConfirmUnique, NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { startWith } from 'rxjs/operators'
@@ -65,7 +65,6 @@ export class MCPMarketplaceComponent {
   readonly logger = inject(NGXLogger)
   readonly #dialog = inject(Dialog)
   readonly #toastr = inject(ToastrService)
-  readonly #translate = inject(TranslateService)
   readonly toolsetService = inject(XpertToolsetService)
   readonly templateService = inject(XpertTemplateService)
   readonly i18n = new NgmI18nPipe()
@@ -111,15 +110,10 @@ export class MCPMarketplaceComponent {
   
   readonly loading = signal(false)
   
-  constructor() {
-    //
-  }
-
-  navigateCategory(category: string) {
+  toggleCategory(category: string) {
     // Add the category query parameter to the URL
-    const currentUrl = this.router.url;
     const urlTree = this.router.createUrlTree([], {
-      queryParams: { category },
+      queryParams: { category: category && category !== this.queryCategory() ? category : null },
       queryParamsHandling: 'merge',
       preserveFragment: true
     });

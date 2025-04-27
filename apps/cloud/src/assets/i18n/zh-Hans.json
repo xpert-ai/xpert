@@ -307,7 +307,28 @@
       "SelectWorkspace": "选择工作空间"
     },
     "XProject": {
-      "DeleteProjectAndAll": "删除项目及其中所有的材料"
+      "DeleteProjectAndAll": "删除项目及其中所有的材料",
+      "Project": "项目",
+      "S": "的",
+      "Instruction": "指令",
+      "Attachments": "附件",
+      "Tools": "工具",
+      "Conversations": "会话",
+      "Members": "成员",
+      "Rename": "重命名",
+      "RemoveProject": "删除项目",
+      "SelectWorkspace": "选择工作空间",
+      "EditXpert": "编辑数字专家",
+      "RemoveXpert": "移除数字专家",
+      "IntroduceExperts": "引入专家",
+      "AllProjects": "所有项目",
+      "AddProject": "添加项目",
+      "NoAccessWorkspace": "无权访问工作空间",
+      "AddTool": "添加",
+      "AddedTool": "已添加",
+      "RemoveTool": "移除",
+      "AddToolsForProject": "为项目通用智能体添加工具",
+      "InputPlaceholder": "在此项目中开始对话"
     },
     "Workflow": {
       "And": "且",
@@ -1695,6 +1716,9 @@
     },
     "Chat": {
       "Common": "通用",
+      "Projects": "项目",
+      "NewProject": "新建项目",
+      "SeeAll": "查看全部",
       "EnableCopilot": "启用智能助理",
       "DeleteConversation": "删除会话",
       "RetrievingDocuments": "检索文档",
@@ -2141,6 +2165,7 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "EditXpert": "编辑数字专家",
       "ConnectWorkflow": "连接工作流",
       "ConnectKnowledgebases": "连接知识库",
       "ConnectToolsets": "连接工具集",
@@ -2569,6 +2594,7 @@
       "NeedReconfigure": "需要重新配置",
       "InstallToWorkspace": "安装到工作空间",
       "Categories": {
+        "All": "所有",
         "Recommended": "推荐",
         "HR": "👔 人力资源",
         "Programming": "🖥️ 编程",

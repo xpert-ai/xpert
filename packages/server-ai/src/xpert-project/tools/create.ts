@@ -43,7 +43,7 @@ export const createCreateTasksTool = ({
 				toolset: 'project',
 				tool: 'project_create_tasks',
 				message: _.tasks.map((_) => _.name).join('\n\n'),
-				title: `Creating tasks`,
+				title: await service.translate('xpert.Project.CreatingTasks'),
 				data: tasks
 			})
 

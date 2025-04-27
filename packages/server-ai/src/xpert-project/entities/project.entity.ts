@@ -3,6 +3,7 @@ import {
 	IUser,
 	IXpert,
 	IXpertProject,
+	IXpertProjectTask,
 	IXpertToolset,
 	IXpertWorkspace,
 	TXpertProjectSettings,
@@ -11,8 +12,8 @@ import {
 import { StorageFile, TenantOrganizationBaseEntity, User } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, RelationId } from 'typeorm'
-import { Xpert, XpertToolset, XpertWorkspace } from '../../core/entities/internal'
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, RelationId } from 'typeorm'
+import { Xpert, XpertProjectTask, XpertToolset, XpertWorkspace } from '../../core/entities/internal'
 import { WorkspaceBaseEntity } from '../../core/entities/base.entity'
 
 @Entity('xpert_project')
@@ -72,6 +73,18 @@ export class XpertProject extends TenantOrganizationBaseEntity implements IXpert
 	@IsOptional()
 	@Column({ nullable: true })
 	workspaceId?: string
+
+	/*
+    |--------------------------------------------------------------------------
+    | @OneToMany 
+    |--------------------------------------------------------------------------
+    */
+	@ApiPropertyOptional({ type: () => XpertProjectTask, isArray: true })
+	@IsOptional()
+	@OneToMany(() => XpertProjectTask, (_) => _.project, {
+		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+	})
+	tasks?: IXpertProjectTask[] | null
 
 	/*
     |--------------------------------------------------------------------------

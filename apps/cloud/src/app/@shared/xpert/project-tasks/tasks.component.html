@@ -1,8 +1,9 @@
 @for (task of _tasks(); track task.id) {
-  <div data-slot="accordion" data-orientation="vertical">
+  <div data-slot="accordion" data-orientation="vertical" class="mt-2">
     <div data-state="open" data-orientation="vertical" data-slot="accordion-item" class="border-b last:border-b-0">
-      <h3 data-orientation="vertical" data-state="open" class="flex mt-2">
-        <button type="button" class="focus-visible:border-ring cursor-pointer focus-visible:ring-ring/50 flex-1 items-start gap-2 rounded-md text-left text-sm font-medium transition-all outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 flex p-0 flex-row-reverse justify-between text-text-secondary"
+      <h3 data-orientation="vertical" data-state="open" class="flex justify-between items-center mt-2">
+        <button type="button" class="focus-visible:border-ring cursor-pointer focus-visible:ring-ring/50 flex-1 items-start gap-2 rounded-md text-left text-sm font-medium transition-all outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 flex p-0 flex-row-reverse justify-between++
+          text-zinc-500"
           (click)="task.__expand__=!task.__expand__">
           <div class="break-all flex-1">
             <span class="text-base">{{task.name}}</span>
@@ -44,4 +45,15 @@
       }
     </div>
   </div>
+}
+
+@if (editable()) {
+  <button type="button" class="btn rounded-xl justify-center w-7 h-7 opacity-0 group-hover:opacity-100 absolute top-1 right-1"
+    (click)="refresh()">
+    <i class="ri-restart-line"></i>
+  </button>
+}
+
+@if (loading()) {
+  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
 }

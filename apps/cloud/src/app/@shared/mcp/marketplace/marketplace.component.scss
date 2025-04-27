@@ -1,3 +1,7 @@
 :host {
   @apply flex flex-col;
 }
+
+.tag.active {
+  @apply after:bg-primary-500/30;
+}

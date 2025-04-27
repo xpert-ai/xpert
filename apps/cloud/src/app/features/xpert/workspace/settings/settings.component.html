@@ -2,7 +2,8 @@
   <div
     class="w-[44px] sm:w-[200px] px-[1px] py-4 sm:p-4 border border-gray-100 shrink-0 sm:shrink-1 flex flex-col items-center sm:items-start"
   >
-    <div class="mb-8 ml-0 sm:ml-2 text-sm sm:text-base font-medium leading-6 text-gray-900">{{ 'PAC.KEY_WORDS.Settings' | translate: {Default: 'Settings'} }}</div>
+    <div class="mb-8 ml-0 sm:ml-2 text-sm sm:text-base font-medium leading-6 text-gray-900"
+      cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>{{ 'PAC.KEY_WORDS.Settings' | translate: {Default: 'Settings'} }}</div>
     <div class="w-full">
       <div class="mb-4">
         <div class="px-2 mb-[6px] text-[10px] sm:text-sm font-medium uppercase text-gray-500">{{ 'PAC.KEY_WORDS.Workspace' | translate: {Default: 'Workspace'} }}</div>

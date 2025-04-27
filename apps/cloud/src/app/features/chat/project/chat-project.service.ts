@@ -2,7 +2,7 @@ import { Location } from '@angular/common'
 import { effect, inject, Injectable } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { Router } from '@angular/router'
-import { IXpert, TChatOptions, TChatRequest } from '@cloud/app/@core/types'
+import { IXpert } from '@cloud/app/@core/types'
 import { ChatService } from '@cloud/app/xpert'
 import { nonNullable } from '@metad/ocap-core'
 import { injectParams } from 'ngxtension/inject-params'
@@ -51,9 +51,6 @@ export class ChatProjectService extends ChatService {
       takeUntilDestroyed()
     )
     .subscribe((id) => {
-      // const roleName = this.paramRole()
-      // const paramId = this.paramId()
-      // if (paramId !== id) {
       if (this.xpert()?.slug) {
         if (id) {
           this.#location.replaceState('/chat/p/' + this.projectService.id() + '/x/' + this.xpert().slug + '/c/' + id)
@@ -65,7 +62,6 @@ export class ChatProjectService extends ChatService {
       } else {
         this.#location.replaceState('/chat/p/' + this.projectService.id())
       }
-      // }
       this.homeService.conversationId.set(id)
     })
 
@@ -83,16 +79,11 @@ export class ChatProjectService extends ChatService {
     )
   }
 
-  chatRequest(name: string, request: TChatRequest, options: TChatOptions) {
-    request.projectId = this.projectService.id()
-    return this.chatService.chat(request, options)
-  }
-
   newConv(xpert?: IXpert) {
     this.conversationId.set(null)
     this.conversation.set(null)
     if (xpert?.slug) {
-      this.#router.navigate(['/chat/p', this.project().id,'/x', xpert.slug])
+      this.#router.navigate(['/chat/p', this.project().id, 'x', xpert.slug])
     } else {
       this.#router.navigate(['/chat/p', this.project().id])
     }

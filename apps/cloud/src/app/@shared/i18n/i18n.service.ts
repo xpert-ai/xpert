@@ -54,4 +54,33 @@ export class I18nService {
   instant(key: string | Array<string>, interpolateParams?: Object) {
     return this.#translate.instant(key, interpolateParams)
   }
+
+  /**
+   * Compatible with both `i18next` and `@ngx-translate` frameworks, distinguished by whether there is a `namespace` in key or params.
+   * 
+   * ```javascript
+   * translate('ns:key', {Default: 'default value'}) // i18next
+   * translate('key', {ns:'name', Default: 'default value'}) // i18next
+   * translate('pac.key', {Default: 'default value'}) // @ngx-translate
+   * ```
+   * 
+   * @param key 
+   * @param options 
+   * @returns 
+   */
+  translate(key: string, options?: {ns?: string; Default?: string;} & Record<string, string>): string {
+    if (!key) {
+      return ''
+    }
+
+    if (!key.includes(':') && !options?.ns) {
+      return this.#translate.instant(key, options)
+    }
+
+    return i18next.t(key, options) as string || options?.Default
+  }
+}
+
+export function injectI18nService() {
+  return inject(I18nService)
 }

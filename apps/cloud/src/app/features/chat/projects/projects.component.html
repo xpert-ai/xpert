@@ -1,7 +1,7 @@
 <div class="flex justify-between align-center my-6 min-h-[42px]">
   <h1 class="text-2xl flex gap-2 items-center">
     <i class="ri-building-line text-2xl mr-2"></i>
-    All Projects
+    {{ 'PAC.XProject.AllProjects' | translate: {Default: 'All Projects'} }}
   </h1>
   <div class="flex justify-end">
     <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
@@ -29,6 +29,8 @@
           <button
             class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-button-ghost-hover disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-3xl visible @sm:invisible @sm:group-hover:visible absolute right-3 top-3"
             type="button"
+            [cdkMenuTriggerFor]="editMenu"
+            [cdkMenuTriggerData]="{project: project}"
           >
             <i class="ri-more-line"></i>
           </button>
@@ -37,3 +39,16 @@
     </div>
   </div>
 </div>
+
+@if (loading()) {
+  <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+}
+
+<ng-template #editMenu let-project="project">
+  <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItem class="danger" (click)="removeProject(project)">
+      <i class="ri-delete-bin-7-line mr-1"></i>
+      <span>{{ 'PAC.XProject.RemoveProject' | translate: {Default: 'Remove project'} }}</span>
+    </div>
+  </div>
+</ng-template>

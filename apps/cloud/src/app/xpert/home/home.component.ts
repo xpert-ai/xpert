@@ -83,7 +83,7 @@ export class ChatHomeComponent {
       .open(ChatConversationsComponent, {
         viewContainerRef: this.#vcr,
         data: {
-          xpertSlug: this.xpert()?.slug,
+          xpertSlug: xpert?.slug,
           basePath: '/'
         }
       })

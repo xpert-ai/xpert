@@ -1,5 +1,5 @@
-<div class="max-w-[50rem] px-2 pt-16 mx-auto w-full flex-1 flex flex-col justify-between items-stretch gap-6">
-  <div class="flex flex-col sm:flex-row items-start gap-6 sm:gap-2 w-full p-1 sticky top-0 bg-surface-container z-20">
+<div class="max-w-[50rem] xl:max-w-[61rem] px-2 pt-16 mx-auto w-full flex-1 flex flex-col justify-between items-stretch gap-6">
+  <div class="flex flex-col items-center sm:flex-row gap-6 sm:gap-1 w-full p-1 sticky top-0 bg-surface-container z-20">
     <div class="flex-1 flex items-center gap-1 sm:gap-2 justify-start group min-w-0 w-full">
       <emoji-avatar [editable]="editing()" class="rounded-xl overflow-hidden" 
         [(ngModel)]="avatar" 
@@ -22,7 +22,8 @@
         }
       </div>
 
-      <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-3xl m-[1px]"
+      <button class="inline-flex items-center justify-center gap-2 pressable whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-3xl m-[1px]
+        text-text-secondary hover:text-text-primary"
         type="button"
         [cdkMenuTriggerFor]="editMenu"
       >
@@ -30,7 +31,7 @@
       </button>
     </div>
     <button
-      class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 hover:bg-hover-bg h-9 rounded-full px-3.5 py-2 group
+      class="inline-flex items-center justify-center gap-2 pressable whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 hover:bg-hover-bg h-9 rounded-full px-3.5 py-2 group
         text-text-secondary hover:text-text-primary"
       type="button"
       (click)="openInstruction()"
@@ -54,13 +55,14 @@
         (ngSubmit)="onSubmit()">
         <div class="flex flex-row gap-2 justify-center w-full relative">
           <input class="hidden" multiple="" type="file" name="files" />
-          <div class="query-bar group bg-components-card-bg ring-zinc-100 hover:ring-zinc-200 focus-within:ring-zinc-300 hover:focus-within:ring-zinc-300 duration-100 relative w-full overflow-hidden @container/input shadow shadow-black/5 max-w-[51rem] ring-1 ring-inset focus-within:ring-1 pb-12 px-2 @[480px]/input:px-3 rounded-3xl">
+          <div class="query-bar group max-w-[51rem] bg-components-card-bg ring-zinc-100 hover:ring-zinc-200 focus-within:ring-zinc-300 hover:focus-within:ring-zinc-300 duration-100 relative w-full overflow-hidden @container/input shadow shadow-black/5 ring-1 ring-inset focus-within:ring-1 pb-12 px-2 @[480px]/input:px-3 rounded-3xl">
             <div
-              class="w-full flex-row gap-2 mt-3 px-1 whitespace-nowrap hidden flex-wrap will-change-[mask-image] @sm:[mask-image:none] [mask-image:linear-gradient(to_right,transparent_0,black_0px,black_calc(100%_-_40px),transparent_100%)]"
+              class="w-full flex-row gap-2 mt-3 px-1 whitespace-nowrap hidden flex-wrap will-change-[mask-image] 
+                @sm:[mask-image:none] [mask-image:linear-gradient(to_right,transparent_0,black_0px,black_calc(100%_-_40px),transparent_100%)]"
               style="opacity: 1; transform: none"
             ></div>
             <div class="relative z-10">
-              <textarea [placeholder]="'Start a conversation in this project'"
+              <textarea [placeholder]=" 'PAC.XProject.InputPlaceholder' | translate: {Default: 'Start a conversation in this project'} "
                 dir="auto"
                 class="w-full px-2 @[480px]/input:px-3 bg-transparent focus:outline-none text-fg-primary align-bottom min-h-14 pt-5 my-0 mb-5"
                 style="resize: none; height: 44px !important"
@@ -75,20 +77,19 @@
               ></textarea>
             </div>
 
-            <div
-              class="flex gap-1.5 absolute inset-x-0 bottom-0 border-2 border-transparent p-2 @[480px]/input:p-2 max-w-full"
-            >
+            <div class="flex items-center gap-1.5 absolute inset-x-0 bottom-0 border-2 border-transparent p-2 @[480px]/input:p-2 max-w-full">
               <button
                 class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 h-9 rounded-full py-2 relative px-2 transition-all duration-150 bg-transparent border w-9 aspect-square border-toggle-border text-secondary hover:text-primary hover:bg-toggle-hover"
                 type="button"
                 aria-label="Attach"
                 tabindex="0"
+                [matTooltip]="'Feature in development.'"
               >
                 <i class="ri-attachment-line text-lg"></i>
               </button>
               <div class="flex grow gap-1.5 max-w-full" style="transform: none; opacity: 1">
                 <div class="grow flex gap-1.5 max-w-full">
-                  <div
+                  <!-- <div
                     class="flex ring-1 rounded-full items-center max-h-[36px] box-border transition-colors duration-100 relative overflow-hidden ring-inset ring-zinc-200"
                   >
                     <button
@@ -105,28 +106,33 @@
                     >
                       <i class="ri-arrow-down-s-line"></i>
                     </button>
-                  </div>
-                  <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full px-3.5 py-2 group/think-toggle transition-colors duration-100 relative overflow-hidden border bg-transparent hover:bg-button-ghost-hover border-border-l2"
+                  </div> -->
+                  <!-- <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full px-3.5 py-2 group/think-toggle transition-colors duration-100 relative overflow-hidden border bg-transparent hover:bg-button-ghost-hover border-border-l2"
                     type="button"
                     tabindex="0"
                   >
                     <i class="ri-lightbulb-flash-line text-lg"></i><span>Think</span>
-                  </button>
+                  </button> -->
 
-                  <div class="flex ring-1 rounded-full items-center max-h-[36px] box-border transition-colors duration-100 relative overflow-hidden ring-inset ring-zinc-200">
+                  <div class="flex ring-1 rounded-full items-center max-h-[31px] box-border transition-colors duration-100 relative overflow-hidden ring-inset ring-zinc-200">
                     <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full px-3.5 py-2 group/ds-toggle transition-colors duration-100 focus-visible:ring-transparent box-border relative overflow-hidden rounded-r-none pr-3 bg-transparent hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
                       type="button"
                       tabindex="0"
                       (click)="routeWorkspace()"
                     >
-                      <i class="ri-hammer-line"></i>
-                      <span>
-                        @if (workspace()) {
-                          {{workspace().name}}
-                        } @else {
-                          Select workspace
-                        }
-                      </span>
+                      @if (workspaceError()) {
+                        <i class="ri-error-warning-line text-base text-text-destructive"></i>
+                        {{workspaceError()}}
+                      } @else {
+                        <i class="ri-hammer-line text-base"></i>
+                        <span>
+                          @if (workspace()) {
+                            {{workspace().name}}
+                          } @else {
+                            {{ 'PAC.XProject.SelectWorkspace' | translate: {Default: 'Select workspace'} }}
+                          }
+                        </span>
+                      }
                     </button>
                     <div class="h-4 w-[1px] bg-divider-deep focus:outline-none" tabindex="-1"></div>
                     <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full px-3.5 py-2 transition-colors duration-100 relative overflow-hidden focus-visible:ring-transparent rounded-l-none pl-2 pr-3 bg-transparent hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
@@ -206,14 +212,14 @@
     </div>
 
     <div dir="ltr" data-orientation="horizontal" class="flex-1 flex flex-col relative pt-1">
-      <div class="flex justify-between sticky top-11 bg-surface-container z-10">
+      <div class="flex justify-between sticky top-11 bg-surface-container z-20">
         <div
           role="tablist"
           aria-orientation="horizontal"
           class="inline-flex items-center justify-center rounded-lg bg-ivory dark:bg-jet/20 p-1 text-secondary place-self-start !bg-transparent bg-none"
           tabindex="0"
         >
-          <button type="button" class="view-option pl-2 pr-4 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+          <button type="button" class="view-option pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
             [class.active]="viewType() === 'attachments'"
             (click)="viewType.set('attachments')"
           >
@@ -221,7 +227,7 @@
             {{'PAC.XProject.Attachments' | translate: {Default: 'Attachments'} }}
           </button>
 
-          <button type="button" class="view-option pl-2 pr-4 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+          <button type="button" class="view-option pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
             [class.active]="viewType() === 'tools'"
             (click)="viewType.set('tools')"
           >
@@ -229,7 +235,7 @@
             {{'PAC.XProject.Tools' | translate: {Default: 'Tools'} }}
           </button>
 
-          <button type="button" class="view-option pl-2 pr-4 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+          <button type="button" class="view-option pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
             [class.active]="viewType() === 'conversations'"
             (click)="viewType.set('conversations')"
           >
@@ -237,7 +243,7 @@
             {{'PAC.XProject.Conversations' | translate: {Default: 'Conversations'} }}
           </button>
 
-          <button type="button" class="view-option pl-2 pr-4 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+          <button type="button" class="view-option pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
             [class.active]="viewType() === 'members'"
             (click)="viewType.set('members')"
           >
@@ -251,6 +257,7 @@
           type="button"
           aria-label="Attach"
           tabindex="0"
+          [matTooltip]="'Feature in development.'"
         >
           <i class="ri-attachment-line text-lg"></i>
           Attach
@@ -266,6 +273,10 @@
             class="mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 overflow-hidden flex-1 pb-5"
             >
             <section class="flex-1 w-full h-full flex flex-col gap-2 relative">
+
+              <div>
+                开发中...
+              </div>
               <div
                 class="flex-1 flex flex-col gap-1 h-full overflow-y-auto [mask-image:linear-gradient(to_bottom,transparent,black_8px,black_calc(100%_-_8px),transparent)] [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_8px,black_calc(100%_-_8px),transparent)] py-2"
                 >
@@ -308,7 +319,7 @@
                         <div class="truncate text-primary">{{ conversation.title || (conversation.createdBy | user) }}</div>
                       </div>
                     </div>
-                    <div class="z-20">
+                    <div class="">
                       <span class="text-secondary whitespace-nowrap ml-2 hidden text-sm md:inline md:group-hover/item:hidden md:group-focus/item:hidden md:group-active/item:hidden">
                         {{ conversation.createdAt | relative }}
                       </span>
@@ -320,13 +331,7 @@
           </div>
         }
         @case ('members') {
-          <div role="tabpanel" tabindex="0" class="mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 overflow-auto pb-5">
-            <ul>
-              <li>
-                {{ project()?.owner | user }}
-              </li>
-            </ul>
-          </div>
+          <chat-project-members [project]="project()" />
         }
       }
     </div>

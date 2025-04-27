@@ -6,6 +6,7 @@ import { RouterModule } from '@angular/router'
 import { attrModel } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ProjectService } from './project.service'
+import { routeAnimations } from '@cloud/app/@core'
 
 /**
  *
@@ -17,6 +18,7 @@ import { ProjectService } from './project.service'
   templateUrl: './project.component.html',
   styleUrl: 'project.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  animations: [routeAnimations],
   providers: [ProjectService]
 })
 export class ChatProjectComponent {

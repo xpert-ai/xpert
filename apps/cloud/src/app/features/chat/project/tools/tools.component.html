@@ -1,4 +1,11 @@
-<div class="relative content-start gap-4 pt-2 pb-4 grow shrink-0"
+@if (!toolsets()?.length) {
+  <div @fadeOut class="p-8 flex justify-center items-center text-text-secondary">
+    <i class="ri-information-2-line text-lg mr-2"></i>
+    {{ 'PAC.XProject.AddToolsForProject' | translate: {Default: 'Add tools for general agent of project'} }}
+  </div>
+}
+
+<div @listEnterAnimation class="relative content-start gap-4 pt-2 pb-4 mt-4 grow shrink-0"
   ngmDynamicGrid colWidth="280"
   box="content-box">
   @for (toolset of toolsets(); track toolset.id) {

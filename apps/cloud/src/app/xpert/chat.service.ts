@@ -206,6 +206,9 @@ export abstract class ChatService {
   }
 
   chatRequest(name: string, request: TChatRequest, options: TChatOptions) {
+    if (this.project()) {
+      request.projectId = this.project().id
+    }
     return this.chatService.chat(request, options)
   }
 

@@ -99,7 +99,7 @@ export class ChatAiMessageComponent {
   readonly xperts = computed(() => this.project()?.xperts?.reduce((items, xpert) => {
     items[xpert.name] = xpert
     return items
-  }, {}))
+  }, {}) ?? {})
 
   readonly #contentStr = computed(() => {
     const content = this.message()?.content

@@ -86,7 +86,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 	) {}
 
 	public async execute(command: ChatCommonCommand): Promise<Observable<any>> {
-		const { tenantId, organizationId, user, knowledgebases } = command.options
+		const { tenantId, organizationId, user, knowledgebases, from: chatFrom } = command.options
 		const { conversationId, projectId, input, retry } = command.request
 		const userId = RequestContext.currentUserId()
 		const languageCode = command.options.language || user.preferredLanguage || 'en-US'
@@ -104,7 +104,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					status: 'busy',
 					options: {
 						knowledgebases
-					}
+					},
+					from: chatFrom
 				})
 			)
 		} else {

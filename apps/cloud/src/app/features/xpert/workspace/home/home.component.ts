@@ -1,7 +1,8 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import {OverlayModule} from '@angular/cdk/overlay';
+import { OverlayModule } from '@angular/cdk/overlay'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
@@ -16,14 +17,17 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import {
-  injectConfirmUnique,
-  NgmCommonModule,
-} from '@metad/ocap-angular/common'
+import { XpertEnvironmentManageComponent } from '@cloud/app/@shared/environment'
+import { injectWorkspace, Store } from '@metad/cloud/state'
+import { injectConfirmUnique, NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { TagFilterComponent } from 'apps/cloud/src/app/@shared/tag'
+import { concat } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
+import { injectParams } from 'ngxtension/inject-params'
 import { BehaviorSubject } from 'rxjs'
 import { debounceTime, map, startWith, tap } from 'rxjs/operators'
 import {
@@ -43,18 +47,10 @@ import {
   XpertWorkspaceService
 } from '../../../../@core'
 import { AppService } from '../../../../app.service'
-import { XpertWorkspaceSettingsComponent } from '../settings/settings.component';
-import { concat } from 'lodash-es';
-import { TagFilterComponent } from 'apps/cloud/src/app/@shared/tag';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { XpertWorkspaceWelcomeComponent } from '../welcome/welcome.component';
-import { injectParams } from 'ngxtension/inject-params';
-import { injectWorkspace, Store } from '@metad/cloud/state';
-import { XpertEnvironmentManageComponent } from '@cloud/app/@shared/environment';
-import { Dialog } from '@angular/cdk/dialog';
+import { XpertWorkspaceSettingsComponent } from '../settings/settings.component'
+import { XpertWorkspaceWelcomeComponent } from '../welcome/welcome.component'
 
 export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
-
 
 @Component({
   standalone: true,
@@ -111,12 +107,11 @@ export class XpertWorkspaceHomeComponent {
 
   readonly loading = signal(true)
   readonly workspaces = toSignal(
-    this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } })
-      .pipe(
-        map(({ items }) => items),
-        tap(() => this.loading.set(false))
-      ),
-    {initialValue: null}
+    this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(
+      map(({ items }) => items),
+      tap(() => this.loading.set(false))
+    ),
+    { initialValue: null }
   )
   readonly workspace = computed(() => this.workspaces()?.find((_) => _.id === this.selectedWorkspace()?.id), {
     equal: (a, b) => a?.id === b?.id
@@ -132,17 +127,26 @@ export class XpertWorkspaceHomeComponent {
   readonly tags = model<ITag[]>([])
 
   // Builtin tool's tags
-  readonly toolTags = toSignal(this.toolsetService.getAllTags().pipe(
-    map((toolTags) => toolTags.map((_) => ({
-      ..._,
-      id: `toolset/${_.name}`,
-      category: 'toolset',
-    } as unknown as ITag)))
-  ))
+  readonly toolTags = toSignal(
+    this.toolsetService.getAllTags().pipe(
+      map((toolTags) =>
+        toolTags.map(
+          (_) =>
+            ({
+              ..._,
+              id: `toolset/${_.name}`,
+              category: 'toolset'
+            }) as unknown as ITag
+        )
+      )
+    )
+  )
 
   readonly isAll = computed(() => !this.type())
-  readonly isXperts = computed(() => !this.type() || Object.values(XpertTypeEnum).includes(this.type() as XpertTypeEnum))
-  readonly isTools = computed(() => this.type() === XpertToolsetCategoryEnum.API )
+  readonly isXperts = computed(
+    () => !this.type() || Object.values(XpertTypeEnum).includes(this.type() as XpertTypeEnum)
+  )
+  readonly isTools = computed(() => this.type() === XpertToolsetCategoryEnum.API)
   readonly isBuiltinTools = computed(() => this.type() === XpertToolsetCategoryEnum.BUILTIN)
 
   readonly allTags = computed(() => {
@@ -164,13 +168,16 @@ export class XpertWorkspaceHomeComponent {
   readonly inDevelopmentOpen = signal(false)
 
   constructor() {
-    effect(() => {
-      if (this.selectedWorkspace()) {
-        if (this.router.url === '/xpert/w/' || this.router.url === '/xpert/w') {
-          this.router.navigate(['/xpert/w/', this.selectedWorkspace().id])
+    effect(
+      () => {
+        if (this.selectedWorkspace()) {
+          if (this.router.url === '/xpert/w/' || this.router.url === '/xpert/w') {
+            this.router.navigate(['/xpert/w/', this.selectedWorkspace().id])
+          }
         }
-      }
-    }, { allowSignalWrites: true })
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   selectWorkspace(ws: IXpertWorkspace) {
@@ -179,25 +186,27 @@ export class XpertWorkspaceHomeComponent {
   }
 
   newWorkspace() {
-    this.confirmUnique({
-        title: this.#translate.instant('PAC.Xpert.NewWorkspace', {Default: 'New Workspace'})
-      }, (name: string) => {
+    this.confirmUnique(
+      {
+        title: this.#translate.instant('PAC.Xpert.NewWorkspace', { Default: 'New Workspace' })
+      },
+      (name: string) => {
         this.loading.set(true)
         return this.workspaceService.create({ name })
-      })
-      .subscribe({
-        next: (workspace) => {
-          this.loading.set(false)
-          this.workspaceService.refresh()
-          this.selectWorkspace(workspace)
-          // this.selectedWorkspaces.set([workspace.id])
-          this.#toastr.success(`PAC.Messages.CreatedSuccessfully`, { Default: 'Created Successfully!' })
-        },
-        error: (error) => {
-          this.loading.set(false)
-          this.#toastr.error(getErrorMessage(error))
-        }
-      })
+      }
+    ).subscribe({
+      next: (workspace) => {
+        this.loading.set(false)
+        this.workspaceService.refresh()
+        this.selectWorkspace(workspace)
+        // this.selectedWorkspaces.set([workspace.id])
+        this.#toastr.success(`PAC.Messages.CreatedSuccessfully`, { Default: 'Created Successfully!' })
+      },
+      error: (error) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
   }
 
   refresh() {
@@ -211,8 +220,7 @@ export class XpertWorkspaceHomeComponent {
           id: this.selectedWorkspace()?.id
         }
       })
-      .closed
-      .subscribe((event) => {
+      .closed.subscribe((event) => {
         if (event === 'deleted' || event === 'archived') {
           this.workspaceService.refresh()
           this.router.navigate(['/xpert/w'])

@@ -10,10 +10,7 @@ export class XpertProjectTaskStep extends XpertProjectBaseEntity implements IXpe
 	@Column({ nullable: true })
 	taskId: string
 
-	@ManyToOne(() => XpertProjectTask, (task) => task.id, {
-		nullable: true,
-		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
-	})
+	@ManyToOne(() => XpertProjectTask, (task) => task.id, {nullable: true,})
 	task: XpertProjectTask
 
 	@Column({ nullable: true })

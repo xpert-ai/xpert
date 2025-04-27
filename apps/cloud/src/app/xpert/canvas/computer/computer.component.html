@@ -185,10 +185,10 @@
               @case ('project') {
                 @switch (step.tool) {
                   @case('project_create_tasks') {
-                    <xpert-project-tasks [tasks]="step.data" />
+                    <xpert-project-tasks [projectId]="projectId()" [tasks]="step.data" class="group" />
                   }
                   @case('project_update_tasks') {
-                    <xpert-project-tasks [tasks]="step.data" />
+                    <xpert-project-tasks [projectId]="projectId()" [tasks]="step.data" class="group" />
                   }
                 }
               }

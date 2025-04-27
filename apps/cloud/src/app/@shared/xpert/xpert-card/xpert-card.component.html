@@ -103,6 +103,8 @@
 <div class="absolute right-4 bottom-4 flex items-center gap-2">
   @if (editable()) {
     <button type="button" class="btn rounded-xl justify-center w-8 h-8"
+      [matTooltip]=" 'PAC.Xpert.EditXpert' | translate: {Default: 'Edit Xpert'} "
+      matTooltipPosition="above"
       (click)="edit()">
       <i class="ri-edit-line"></i>
     </button>

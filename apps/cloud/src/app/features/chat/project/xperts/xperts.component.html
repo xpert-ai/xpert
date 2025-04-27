@@ -21,7 +21,7 @@
       [class.btn-primary]="xperts() && !xperts().length"
       [cdkMenuTriggerFor]="xpertsMenu"
     >
-      {{ 'PAC.XProject.IntroducingExperts' | translate: {Default: 'Introducing Experts'} }}
+      {{ 'PAC.XProject.IntroduceExperts' | translate: {Default: 'Introduce Experts'} }}
       <i class="ri-apps-2-add-line ml-1 text-lg"></i>
     </button>
   }
@@ -53,7 +53,10 @@
     (mouseenter)="mouseenterTooltip()"
     (mouseleave)="hoverTooltip.set(false)"
   >
-    <button action type="button" class="btn rounded-xl justify-center w-8 h-8" (click)="removeXpert(xpert)">
+    <button action type="button" class="btn rounded-xl justify-center w-8 h-8 danger" 
+      [matTooltip]=" 'PAC.XProject.RemoveXpert' | translate: {Default: 'Remove Xpert'} "
+      matTooltipPosition="above"
+      (click)="removeXpert(xpert)">
       <i class="ri-close-line"></i>
     </button>
   </xpert-card>
@@ -62,7 +65,7 @@
 
 <ng-template #xpertsMenu>
   <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary relative p-0">
-    <div class="w-full sticky top-0 bg-components-card-bg">
+    <div class="w-full sticky -top-1 z-10 bg-components-card-bg">
       <ngm-search class="" [formControl]="searchControl" />
     </div>
     

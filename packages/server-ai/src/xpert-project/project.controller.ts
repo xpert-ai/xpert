@@ -1,14 +1,15 @@
-import { IPagination, IXpertProject, IXpertToolset, OrderTypeEnum } from '@metad/contracts'
-import { CrudController, PaginationParams, ParseJsonPipe, TransformInterceptor } from '@metad/server-core'
-import { Controller, Delete, Get, HttpStatus, Logger, Param, Put, Query, UseInterceptors } from '@nestjs/common'
+import { IPagination, IXpertProject, IXpertProjectTask, IXpertToolset, OrderTypeEnum } from '@metad/contracts'
+import { CrudController, PaginationParams, ParseJsonPipe, TransformInterceptor, UserPublicDTO } from '@metad/server-core'
+import { Body, Controller, Delete, Get, HttpStatus, Logger, Param, Put, Query, UseGuards, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { FindOneOptions } from 'typeorm'
 import { FindChatConversationQuery } from '../chat-conversation/queries'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
-import { XpertProjectDto } from './dto'
+import { XpertProjectDto, XpertProjectTaskDto } from './dto'
 import { XpertProject } from './entities/project.entity'
 import { XpertProjectService } from './project.service'
+import { XpertProjectGuard, XpertProjectOwnerGuard } from './guards'
 
 @ApiTags('XpertProject')
 @ApiBearerAuth()
@@ -30,8 +31,8 @@ export class XpertProjectController extends CrudController<XpertProject> {
 		description: 'Found my records'
 	})
 	@Get('my')
-	async findMyAll(@Query('data', ParseJsonPipe) params: PaginationParams<XpertProject>,): Promise<IPagination<XpertProject>> {
-		return this.service.findMyAll(params);
+	async findAllMyProjects(@Query('data', ParseJsonPipe) params: PaginationParams<XpertProject>,): Promise<IPagination<XpertProjectDto>> {
+		return this.service.findAllMy(params);
 	}
 
 	@Get(':id')
@@ -76,11 +77,32 @@ export class XpertProjectController extends CrudController<XpertProject> {
 
 	@Put(':id/toolsets/:toolset')
 	async updateToolsets(@Param('id') id: string, @Param('toolset') toolsetId: string) {
-		return this.service.addToolset(id, toolsetId)
+		await this.service.addToolset(id, toolsetId)
 	}
 
 	@Delete(':id/toolsets/:toolset')
 	async removeToolset(@Param('id') id: string, @Param('toolset') toolsetId: string) {
-		return this.service.removeToolset(id, toolsetId)
+		await this.service.removeToolset(id, toolsetId)
 	}
+
+	@UseGuards(XpertProjectGuard)
+	@Get(':id/members')
+	async getMembers(@Param('id') id: string) {
+		const project = await this.service.findOne(id, { relations: ['members'] })
+		return project.members.map((_) => new UserPublicDTO(_))
+	}
+	
+	@UseGuards(XpertProjectOwnerGuard)
+	@Put(':id/members')
+	async updateMembers(@Param('id') id: string, @Body() members: string[]) {
+		await this.service.updateMembers(id, members)
+	}
+
+	@UseGuards(XpertProjectGuard)
+	@Get(':id/tasks')
+	async getTasks(@Param('id') id: string, @Query('data', ParseJsonPipe) params: PaginationParams<IXpertProjectTask>) {
+		const {items} = await this.service.getTasks(id, params)
+		return items.map((_) => new XpertProjectTaskDto(_))
+	}
+	
 }

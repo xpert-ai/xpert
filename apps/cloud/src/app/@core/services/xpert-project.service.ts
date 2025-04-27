@@ -1,7 +1,9 @@
 import { inject, Injectable } from '@angular/core'
 import {
   IChatConversation,
+  IUser,
   IXpert,
+  IXpertProjectTask,
   IXpertToolset,
   OrganizationBaseCrudService,
   PaginationParams,
@@ -52,8 +54,8 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
     return this.httpClient.delete(this.apiBaseUrl + `/${id}/xperts/${xpertId}`)
   }
 
-  getToolsets(id: string,) {
-    return this.httpClient.get<{ items: IXpertToolset[]; total: number }>(this.apiBaseUrl + `/${id}/toolsets`)
+  getToolsets(id: string, params: PaginationParams<IXpertToolset>) {
+    return this.httpClient.get<{ items: IXpertToolset[]; total: number }>(this.apiBaseUrl + `/${id}/toolsets`, {params: toHttpParams(params)})
   }
 
   addToolset(id: string, toolsetId: string) {
@@ -62,6 +64,25 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
 
   removeToolset(id: string, toolsetId: string) {
     return this.httpClient.delete(this.apiBaseUrl + `/${id}/toolsets/${toolsetId}`)
+  }
+
+  getMembers(id: string) {
+    return this.httpClient.get<IUser[]>(this.apiBaseUrl + `/${id}/members`)
+  }
+
+  updateMembers(id: string, members: string[]) {
+    return this.httpClient.put<IXpertProject>(this.apiBaseUrl + `/${id}/members`, members)
+  }
+
+  refreshTasks(id: string, threadId: string) {
+    return this.httpClient.get<IXpertProjectTask[]>(this.apiBaseUrl + `/${id}/tasks`, {
+      params: toHttpParams({
+        where: {
+          threadId
+        },
+        relations: ['steps']
+      })
+    })
   }
 }
 

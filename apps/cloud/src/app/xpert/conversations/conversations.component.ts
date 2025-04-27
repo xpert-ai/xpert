@@ -37,6 +37,7 @@ import {
 import { AppService } from '../../app.service'
 import { XpertHomeService } from '../home.service'
 import { groupConversations } from '../types'
+import { PaginationParams } from '@metad/cloud/state'
 
 @Component({
   standalone: true,
@@ -75,7 +76,7 @@ export class ChatConversationsComponent {
   readonly #dialogRef = inject(DialogRef)
   readonly xpertService = inject(XpertService)
   readonly #toastr = injectToastr()
-  readonly #data = inject<{xpertSlug: string; basePath: string}>(DIALOG_DATA)
+  readonly #data = inject<{xpertSlug: string; basePath: string; projectId?: string;}>(DIALOG_DATA)
 
   readonly contentContainer = viewChild('contentContainer', { read: ElementRef })
   readonly sidenav = viewChild('sidenav', { read: MatSidenav })
@@ -85,6 +86,7 @@ export class ChatConversationsComponent {
 
   readonly conversationId = this.homeService.conversationId
   readonly xpertSlug = signal(this.#data.xpertSlug)
+  readonly projectId = signal(this.#data.projectId)
 
   readonly sidenavOpened = model(!this.isMobile())
   readonly groups = computed(() => {
@@ -175,18 +177,22 @@ export class ChatConversationsComponent {
             take: this.pageSize,
             skip: this.currentPage() * this.pageSize,
             where: {
-              from: 'webapp'
+              from: 'webapp',
             }
           })
         } else {
+          const where: PaginationParams<IChatConversation>['where'] = {
+            from: 'platform',
+          }
+          if (this.projectId()) {
+            where.projectId = this.projectId()
+          }
           return this.conversationService.getMyInOrg({
             select: ['id', 'threadId', 'title', 'updatedAt', 'from'],
             order: { updatedAt: OrderTypeEnum.DESC },
             take: this.pageSize,
             skip: this.currentPage() * this.pageSize,
-            where: {
-              from: 'platform'
-            }
+            where
           }, this.searchControl.value)
         }
       }),

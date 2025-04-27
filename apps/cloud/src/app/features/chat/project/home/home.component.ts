@@ -6,6 +6,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import {
   DateRelativePipe,
@@ -18,17 +19,17 @@ import {
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { CopilotPromptGeneratorComponent } from '@cloud/app/@shared/copilot'
-import { I18nService } from '@cloud/app/@shared/i18n'
+import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { UserPipe } from '@cloud/app/@shared/pipes'
-import { attrModel, linkedModel } from '@metad/core'
+import { attrModel, linkedModel, TranslatePipe } from '@metad/core'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'
-import { EMPTY, map, of, shareReplay, switchMap, tap } from 'rxjs'
+import { catchError, EMPTY, map, of, shareReplay, switchMap, tap } from 'rxjs'
 import { ChatProjectComponent } from '../project.component'
 import { ChatProjectToolsComponent } from '../tools/tools.component'
 import { ChatProjectXpertsComponent } from '../xperts/xperts.component'
+import { ChatProjectMembersComponent } from '../members/members.component'
 
 /**
  *
@@ -43,13 +44,15 @@ import { ChatProjectXpertsComponent } from '../xperts/xperts.component'
     A11yModule,
     CdkMenuModule,
     TextFieldModule,
-    TranslateModule,
+    MatTooltipModule,
     NgmSpinComponent,
     EmojiAvatarComponent,
+    TranslatePipe,
     UserPipe,
     DateRelativePipe,
     ChatProjectXpertsComponent,
-    ChatProjectToolsComponent
+    ChatProjectToolsComponent,
+    ChatProjectMembersComponent
   ],
   selector: 'pac-chat-project-home',
   templateUrl: './home.component.html',
@@ -63,7 +66,7 @@ export class ChatProjectHomeComponent {
   readonly projectSercice = injectProjectService()
   readonly #projectComponent = inject(ChatProjectComponent)
   readonly workspaceService = inject(XpertWorkspaceService)
-  readonly i18nService = inject(I18nService)
+  readonly i18nService = injectI18nService()
   readonly #toastr = injectToastr()
   readonly confirmDelete = injectConfirmDelete()
 
@@ -83,7 +86,7 @@ export class ChatProjectHomeComponent {
     shareReplay(1)
   )
 
-  readonly #toolsets = derivedAsync(() => (this.id() ? this.projectSercice.getToolsets(this.id()) : of(null)))
+  readonly #toolsets = derivedAsync(() => (this.id() ? this.projectSercice.getToolsets(this.id(), {relations: ['createdBy']}) : of(null)))
   readonly toolsets = linkedModel({
     initialValue: null,
     compute: () => this.#toolsets()?.items,
@@ -91,7 +94,7 @@ export class ChatProjectHomeComponent {
   })
 
   // View
-  readonly viewType = signal<'attachments' | 'tools' | 'conversations' | 'members'>('attachments')
+  readonly viewType = signal<'attachments' | 'tools' | 'conversations' | 'members'>('tools')
 
   readonly form = this.#fb.group({
     input: ''
@@ -102,9 +105,9 @@ export class ChatProjectHomeComponent {
   readonly answering = signal(false)
   readonly isComposing = signal(false)
   readonly editing = signal(false)
+  readonly loading = signal(true)
 
   // Workspaces
-  readonly loading = signal(true)
   readonly workspaces = toSignal(
     this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(
       map(({ items }) => items),
@@ -113,9 +116,14 @@ export class ChatProjectHomeComponent {
     { initialValue: null }
   )
   readonly workspaceId = computed(() => this.project()?.workspaceId)
-  readonly workspace = derivedAsync(() =>
-    this.workspaceId() ? this.workspaceService.getById(this.workspaceId()) : of(null)
+  readonly #workspace = derivedAsync<{workspace?: IXpertWorkspace; error?: string;}>(() =>
+    this.workspaceId() ? this.workspaceService.getById(this.workspaceId()).pipe(
+      map((workspace) => ({workspace})),
+      catchError(() => of({error: this.i18nService.translate('PAC.XProject.NoAccessWorkspace', {Default: 'No access to workspace'})}))
+    ) : of(null)
   )
+  readonly workspace = computed(() => this.#workspace()?.workspace)
+  readonly workspaceError = computed(() => this.#workspace()?.error)
 
   constructor() {
     effect(() => {

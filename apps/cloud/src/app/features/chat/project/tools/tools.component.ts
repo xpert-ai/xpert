@@ -16,7 +16,7 @@ import {
 } from '@cloud/app/@core'
 import { MCPMarketplaceComponent } from '@cloud/app/@shared/mcp'
 import { ToolsetCardComponent } from '@cloud/app/@shared/xpert'
-import { DynamicGridDirective } from '@metad/core'
+import { DisappearFadeOut, DynamicGridDirective, listAnimation, listEnterAnimation, ListSlideStaggerAnimation } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil, omitBy } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -44,7 +44,8 @@ import { ChatProjectComponent } from '../project.component'
   selector: 'chat-project-tools',
   templateUrl: './tools.component.html',
   styleUrl: 'tools.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  animations: [ DisappearFadeOut, listAnimation, ListSlideStaggerAnimation, listEnterAnimation ]
 })
 export class ChatProjectToolsComponent {
   readonly #router = inject(Router)

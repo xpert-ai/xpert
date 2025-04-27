@@ -1,12 +1,19 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, model } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, ViewContainerRef } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import { injectProjectService, IXpertProject } from '@cloud/app/@core'
 import { provideOcap } from '@cloud/app/@core/providers/ocap'
-import { ChatService, XpertChatAppComponent, XpertHomeService, XpertOcapService } from '@cloud/app/xpert'
+import {
+  ChatConversationsComponent,
+  ChatService,
+  XpertChatAppComponent,
+  XpertHomeService,
+  XpertOcapService
+} from '@cloud/app/xpert'
 import { provideOcapCore } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectParams } from 'ngxtension/inject-params'
@@ -45,6 +52,8 @@ export class ChatProjectConversationComponent {
   readonly chatSercice = inject(ChatProjectService)
   readonly homeService = inject(XpertHomeService)
   readonly #router = inject(Router)
+  readonly #dialog = inject(Dialog)
+  readonly #vcr = inject(ViewContainerRef)
 
   readonly id = injectParams('c')
 
@@ -58,18 +67,32 @@ export class ChatProjectConversationComponent {
     if (navigation?.extras.state) {
       const { input } = navigation.extras.state
       // Process the data as needed
-      // this.input.set(input)
       this.chatSercice.ask(input)
     }
 
-    effect(() => {
-      this.chatSercice.project.set(this.project() as IXpertProject)
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        this.chatSercice.project.set(this.project() as IXpertProject)
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   routeProject() {
     this.#router.navigate(['/chat/p', this.projectId()])
   }
 
-  openConversations() {}
+  openConversations() {
+    this.#dialog
+      .open(ChatConversationsComponent, {
+        viewContainerRef: this.#vcr,
+        data: {
+          basePath: '/chat/p' + this.projectId() + `/`,
+          projectId: this.projectId()
+        }
+      })
+      .closed.subscribe({
+        next: () => {}
+      })
+  }
 }

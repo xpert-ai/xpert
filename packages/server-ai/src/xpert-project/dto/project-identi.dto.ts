@@ -7,7 +7,7 @@ import { XpertIdentiDto } from '../../xpert/dto'
 import { ToolsetPublicDTO } from '../../xpert-toolset/dto'
 
 @Expose()
-export class XpertProjectDto implements Partial<IXpertProject> {
+export class XpertProjectIdentiDto implements Partial<IXpertProject> {
 	@ApiProperty({ type: () => Object, readOnly: true })
 	@IsOptional()
 	@IsObject()
@@ -28,7 +28,7 @@ export class XpertProjectDto implements Partial<IXpertProject> {
 	@Transform(({ value }) => value?.map((_) => new ToolsetPublicDTO(_)))
 	toolsets?: IXpertToolset[]
 
-	constructor(partial: Partial<XpertProjectDto | IXpertProject>) {
+	constructor(partial: Partial<XpertProjectIdentiDto | IXpertProject>) {
 		Object.assign(this, partial)
 	}
 }

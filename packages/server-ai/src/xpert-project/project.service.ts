@@ -1,14 +1,16 @@
-import { IXpertProject, IXpertToolset } from '@metad/contracts'
+import { IUser, IXpertProject, IXpertProjectTask, IXpertToolset, OrderTypeEnum } from '@metad/contracts'
 import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { Brackets, Repository } from 'typeorm'
 import { FindXpertToolsetsQuery } from '../xpert-toolset'
 import { ToolsetPublicDTO } from '../xpert-toolset/dto'
 import { XpertIdentiDto } from '../xpert/dto'
 import { FindXpertQuery } from '../xpert/queries'
+import { XpertProjectDto } from './dto'
 import { XpertProject } from './entities/project.entity'
+import { XpertProjectTaskService } from './services/project-task.service'
 
 @Injectable()
 export class XpertProjectService extends TenantOrganizationAwareCrudService<XpertProject> {
@@ -18,9 +20,59 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 		@InjectRepository(XpertProject)
 		repository: Repository<XpertProject>,
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
+		private readonly queryBus: QueryBus,
+		private readonly taskService: XpertProjectTaskService
 	) {
 		super(repository)
+	}
+
+	/**
+	 * Query all projects I have permission to view.
+	 *
+	 * @param options
+	 * @returns
+	 */
+	async findAllMy(options: PaginationParams<XpertProject>) {
+		const user = RequestContext.currentUser()
+		const organizationId = RequestContext.getOrganizationId()
+
+		const orderBy = options?.order
+			? Object.keys(options.order).reduce((order, name) => {
+					order[`project.${name}`] = options.order[name]
+					return order
+				}, {})
+			: {}
+
+		const query = this.repository
+			.createQueryBuilder('project')
+			.leftJoinAndSelect('project.members', 'member')
+			.where('project.tenantId = :tenantId')
+			.andWhere('project.organizationId = :organizationId')
+			.andWhere(
+				new Brackets((qb) => {
+					qb.where(`project.status <> 'archived'`).orWhere(`project.status IS NULL`)
+				})
+			)
+			.andWhere(
+				new Brackets((qb) => {
+					qb.where('project.ownerId = :userId')
+						.orWhere('project.createdById = :userId')
+						.orWhere('member.id = :userId')
+				})
+			)
+			.orderBy(orderBy)
+			.setParameters({
+				tenantId: user.tenantId,
+				organizationId,
+				userId: user.id
+			})
+
+		const projects = await query.getMany()
+
+		return {
+			items: projects.map((item) => new XpertProjectDto(item)),
+			total: projects.length
+		}
 	}
 
 	async getXperts(id: string, params: PaginationParams<IXpertProject>) {
@@ -95,7 +147,9 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 		})
 
 		const total = project.toolsets.length
-		const toolsets = params?.take ? project.toolsets.slice(params.skip, params.skip + params.take) : project.toolsets
+		const toolsets = params?.take
+			? project.toolsets.slice(params.skip, params.skip + params.take)
+			: project.toolsets
 
 		return {
 			items: toolsets.map((_) => new ToolsetPublicDTO(_)),
@@ -140,5 +194,23 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 
 		return project
 	}
-	
+
+	async updateMembers(id: string, members: string[]) {
+		const project = await this.findOne(id)
+		project.members = members.map((id) => ({ id }) as IUser)
+		await this.repository.save(project)
+
+		return await this.findOne(id, { relations: ['members'] })
+	}
+
+	async getTasks(id: string, params: PaginationParams<IXpertProjectTask>) {
+		return this.taskService.findAll({
+			...(params ?? {}),
+			where: {
+				...(params?.where ?? {}),
+				projectId: id
+			},
+			order: { createdAt: OrderTypeEnum.ASC }
+		})
+	}
 }

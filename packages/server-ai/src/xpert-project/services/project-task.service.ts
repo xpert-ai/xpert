@@ -1,9 +1,10 @@
-import { IXpertProjectTask } from '@metad/contracts'
+import { IXpertProjectTask, OrderTypeEnum } from '@metad/contracts'
 import { DeepPartial } from '@metad/server-common'
 import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
+import { I18nService } from 'nestjs-i18n'
 import { Repository } from 'typeorm'
 import { XpertProjectTaskStep } from '../entities/project-task-step.entity'
 import { XpertProjectTask } from '../entities/project-task.entity'
@@ -17,10 +18,15 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
 		repository: Repository<XpertProjectTask>,
 		@InjectRepository(XpertProjectTaskStep)
 		private stepRepository: Repository<XpertProjectTaskStep>,
+		private readonly i18n: I18nService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
 	) {
 		super(repository)
+	}
+
+	async translate(key: string, options?: any) {
+		return await this.i18n.t(key, options)
 	}
 
 	async saveAll(...entities: IXpertProjectTask[]) {
@@ -49,8 +55,12 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
 		return items
 	}
 
-	async updateTaskSteps(projectId: string, threadId: string,  ...entities: DeepPartial<IXpertProjectTask>[]) {
-		const { items: tasks } = await this.findAll({ where: { projectId, threadId }, relations: ['steps'] })
+	async updateTaskSteps(projectId: string, threadId: string, ...entities: DeepPartial<IXpertProjectTask>[]) {
+		const { items: tasks } = await this.findAll({
+			where: { projectId, threadId },
+			relations: ['steps'],
+			order: { createdAt: OrderTypeEnum.ASC }
+		})
 		for await (const entity of entities) {
 			const task = tasks.find((_) => _.name === entity.name)
 			if (!task) {
