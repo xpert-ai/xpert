@@ -1,6 +1,6 @@
 {
   "name": "@metad/adapter",
-  "version": "3.1.12",
+  "version": "3.2.0",
   "license": "AGPL-3.0",
   "dependencies": {
     "axios": "^0.21.4",
