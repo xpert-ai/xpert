@@ -3,18 +3,21 @@
     <pac-chat-xperts class="w-full @lg:w-4/5 max-w-[50rem] overflow-x-auto no-touch-scrollbar" />
   }
 
-  <button header class="inline-flex items-center justify-center gap-2 px-3 h-10 rounded-full whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary 
+  <button header class="inline-flex items-center justify-center gap-2 px-3 h-10 rounded-full whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary 
             hover:bg-hover-bg"
     type="button"
     aria-label="Projects"
     [matTooltip]="('PAC.Chat.Projects' | translate: {Default: 'Projects'})"
     [cdkMenuTriggerFor]="projectMenu"
   >
-    @if (projectLoading()) {
-      <ngm-spin class="mr-2"/>
-    } @else {
-      <i class="ri-building-line text-xl mr-1"></i>
-    }
+    <div class="w-7 h-7 flex justify-center items-center">
+      @if (projectLoading()) {
+        <ngm-spin small/>
+      } @else {
+        <i class="ri-building-line text-xl text-text-secondary"></i>
+      }
+    </div>
+    
     <span>{{ 'PAC.Chat.Projects' | translate: {Default: 'Projects'} }}</span>
   </button>
 

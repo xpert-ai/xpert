@@ -1718,6 +1718,7 @@
     },
     "Chat": {
       "Common": "通用",
+      "Project": "项目",
       "Projects": "项目",
       "NewProject": "新建项目",
       "SeeAll": "查看全部",
