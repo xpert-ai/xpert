@@ -1,3 +1,4 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
@@ -6,7 +7,6 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'
 import { IXpert, XpertAgentExecutionService, XpertAgentExecutionStatusEnum } from '../../../@core'
 import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } from '../../xpert'
-import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 @Component({
   selector: 'chat-message-execution-panel',
@@ -25,9 +25,9 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 export class ChatMessageExecutionPanelComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
 
-  readonly #data = inject<{id: string; xpert: IXpert}>(DIALOG_DATA, {optional: true})
-  readonly #dialogRef = inject(DialogRef, {optional: true})
-  readonly agentExecutionService = inject(XpertAgentExecutionService)
+  readonly #data = inject<{ id: string; xpert: IXpert }>(DIALOG_DATA, { optional: true })
+  readonly #dialogRef = inject(DialogRef, { optional: true })
+  readonly #executionService = inject(XpertAgentExecutionService)
 
   // Inputs
   readonly id = input<string>(this.#data?.id) // ID of XpertAgentExecution
@@ -38,7 +38,7 @@ export class ChatMessageExecutionPanelComponent {
 
   readonly #execution = derivedAsync(() => {
     const id = this.id()
-    return id ? this.agentExecutionService.getOneLog(id) : of(null)
+    return id ? this.#executionService.getOneLog(id) : of(null)
   })
 
   readonly agents = computed(() => {

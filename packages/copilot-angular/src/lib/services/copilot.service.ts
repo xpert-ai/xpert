@@ -103,10 +103,6 @@ export abstract class NgmCopilotService extends CopilotService {
         this.setCopilot(this.copilot())
       }
     }, { allowSignalWrites: true })
-
-    // this.llm$.subscribe((value) => {
-    //   console.log(`selected copilot:`, value)
-    // })
   }
 
   setRole(role: string): void {

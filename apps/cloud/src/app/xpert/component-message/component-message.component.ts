@@ -27,13 +27,11 @@ import { ExplainComponent } from '@metad/story/story'
 import { NxWidgetKpiComponent } from '@metad/story/widgets/kpi'
 import { TranslateModule } from '@ngx-translate/core'
 import { compact, uniq } from 'lodash-es'
-import { MarkdownModule } from 'ngx-markdown'
 import { ChatMessageStepCategory, IXpertTask, Store } from '../../@core'
 import { ChatComponentIndicatorsComponent } from './indicators/indicators.component'
 import { ChatComponentIndicatorComponent } from './indicator/indicator.component'
 import { ChatComponentScheduleTasksComponent } from './schedule-tasks/tasks.component'
 import { XpertHomeService } from '../home.service'
-import { ChatFilesDialogComponent } from '../../@shared/chat'
 import { ChatComponentMemoriesComponent } from './memories/memories.component'
 import { ChatComponentMessageFilesComponent } from './files/files.component'
 import { ChatComponentMessageTasksComponent } from './tasks/tasks.component'
@@ -56,7 +54,6 @@ import { ChatComponentMessageTasksComponent } from './tasks/tasks.component'
     RouterModule,
     TranslateModule,
     MatTooltipModule,
-    MarkdownModule,
     NgmCommonModule,
     NgmSelectionModule,
     AnalyticalCardModule,
@@ -170,6 +167,7 @@ export class ChatComponentMessageComponent {
     this.#dialog
       .open(StoryExplorerComponent, {
         viewContainerRef: this.#viewContainerRef,
+        disableClose: true,
         data: {
           data: {
             dataSettings: this.dataSettings(),

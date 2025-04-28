@@ -11,6 +11,7 @@ import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { uuid } from '@cloud/app/@core'
 import { AppService } from '@cloud/app/app.service'
+import { CopilotEnableModelComponent } from '@cloud/app/@shared/copilot'
 import { ChatService } from '../chat.service'
 import { XpertHomeService } from '../home.service'
 
@@ -25,7 +26,8 @@ import { XpertHomeService } from '../home.service'
     TranslateModule,
     MatInputModule,
     MatTooltipModule,
-    NgmCommonModule
+    NgmCommonModule,
+    CopilotEnableModelComponent
   ],
   selector: 'chat-input',
   templateUrl: './chat-input.component.html',
@@ -46,6 +48,7 @@ export class ChatInputComponent {
   readonly promptControl = new FormControl<string>(null)
   readonly prompt = toSignal(this.promptControl.valueChanges)
   readonly answering = this.chatService.answering
+  readonly xpert = this.chatService.xpert
   readonly canvasOpened = computed(() => this.homeService.canvasOpened()?.opened)
 
   readonly isComposing = signal(false)

@@ -15,10 +15,10 @@
 </div>
 
 @if (expand() && execution()) {
-  <div class="flex items-center my-4 leading-[18px] text-sm font-semibold text-gray-500 uppercase">
+  <!-- <div class="flex items-center my-4 leading-[18px] text-sm font-semibold text-gray-500 uppercase">
     <div class="mr-3">{{execution().agent?.title || execution().agent?.name || execution().agentKey}}</div>
     <div class="grow w-0 h-px bg-divider-regular"></div>
-  </div>
+  </div> -->
 
   @if (execution().summary) {
     <div class="bg-gray-50 px-4 py-2 rounded-lg mb-4">

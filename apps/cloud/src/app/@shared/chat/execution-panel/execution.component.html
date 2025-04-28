@@ -26,7 +26,7 @@
   }
   @case('members') {
     @for (execution of executions(); track execution.id) {
-      <xpert-agent-execution-accordion [execution]="execution" />
+      <xpert-agent-execution-accordion class="px-2 mb-2" [execution]="execution" />
     } @empty {
       <div class="w-full p-8 flex justify-center items-center text-text-secondary">
         {{ 'PAC.Xpert.NoExecutionMembersSteps' | translate: {Default: 'No execution sub-members or steps'} }}

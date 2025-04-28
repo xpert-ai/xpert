@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, input, signal } from '@angular/core'
+import { Component, computed, effect, input, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { agentLabel, IXpertAgentExecution, XpertAgentExecutionStatusEnum } from '../../../@core'
 import { XpertAgentExecutionComponent } from '../execution/execution.component'
@@ -21,7 +21,14 @@ export class XpertAgentExecutionAccordionComponent {
 
   readonly expand = signal(false)
 
+  readonly xpert = computed(() => this.execution()?.xpert)
   readonly agent = computed(() => this.execution()?.agent)
-  readonly avatar = computed(() => this.agent()?.avatar)
-  readonly agentLabel = computed(() => this.agent() ? agentLabel(this.agent()) : this.execution().title)
+  readonly avatar = computed(() => this.agent() ? this.agent().avatar : this.xpert()?.avatar)
+  readonly label = computed(() => this.agent() ? agentLabel(this.agent()) : this.xpert() ? (this.xpert().title || this.xpert().name) : this.execution().title)
+
+  constructor() {
+    effect(() => {
+      // console.log(this.xpert())
+    })
+  }
 }

@@ -49,6 +49,11 @@ module.exports = {
       scale: {
         98: '0.98'
       },
+      fontFamily: {
+        body: [
+          'ui-sans-serif', 'system-ui', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'
+        ]
+      },
       fontSize: {
         xs: "0.7rem",
       },

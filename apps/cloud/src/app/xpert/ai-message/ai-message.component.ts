@@ -92,6 +92,8 @@ export class ChatAiMessageComponent {
   // States
   readonly xpert = this.chatService.xpert
   readonly project = this.chatService.project
+  readonly avatar = computed(() => this.xpert() ? this.xpert().avatar : this.project()?.avatar)
+  readonly title = computed(() => this.xpert() ? this.xpert().title || this.xpert().name : this.project()?.name)
   readonly feedbacks = this.chatService.feedbacks
   readonly executionId = computed(() => this.message()?.executionId)
   readonly status = computed(() => this.message()?.status)

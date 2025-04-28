@@ -168,7 +168,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		// Project & Xperts
 		let project: IXpertProject
 		if (projectId) {
-			project = await this.projectService.findOne(projectId, { relations: ['xperts', 'xperts.agent', 'toolsets', 'workspace', 'workspace.environments'] })
+			project = await this.projectService.findOne(projectId, { 
+				relations: ['xperts', 'xperts.agent', 'toolsets', 'workspace', 'workspace.environments'] 
+			})
 		}
 
 		const abortController = new AbortController()
@@ -519,6 +521,10 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		stateVariables.push(...toolsetVarirables)
 		// Find an available copilot
 		const copilot = await this.queryBus.execute(new CopilotGetChatQuery(tenantId, organizationId))
+		execution.metadata = {
+			provider: copilot.modelProvider?.providerName,
+			model: copilot.copilotModel?.model
+		}
 
 		const llm = await this.queryBus.execute(
 			new CopilotModelGetChatModelQuery(copilot, null, {
@@ -667,6 +673,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		})
 	}
 
+	/**
+	 * Create agent graph for xpert
+	 */
 	async createXpertAgent(
 		xpert: IXpert,
 		abortController: AbortController,
@@ -676,18 +685,21 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		addHandoffBackMessages: boolean,
 		supervisorName: string
 	) {
+		// Sub execution for xpert
+		const _execution: IXpertAgentExecution = {}
 		const { graph, agent } = await this.commandBus.execute<
 			CompileGraphCommand,
 			{ graph: CompiledStateGraph<unknown, unknown>; agent: IXpertAgent }
 		>(
 			new CompileGraphCommand(xpert.agent.key, xpert, {
-				execution,
+				execution: _execution,
+				rootExecutionId: execution.id,
 				rootController: abortController,
 				signal: abortController.signal,
 				subscriber
 			})
 		)
-		const _execution = {}
+		
 		const runnable = new RunnableLambda({
 			func: async (state: typeof AgentStateAnnotation.State, config) => {
 				const configurable: TAgentRunnableConfigurable = config.configurable
@@ -700,7 +712,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 						threadId: config.configurable.thread_id,
 						checkpointNs: config.configurable.checkpoint_ns,
 						xpert: { id: xpert.id } as IXpert,
-						agentKey: xpert.agent.key,
+						// agentKey: xpert.agent.key,
 						inputs: { input: state.input },
 						parentId: execution.id,
 						status: XpertAgentExecutionStatusEnum.RUNNING,

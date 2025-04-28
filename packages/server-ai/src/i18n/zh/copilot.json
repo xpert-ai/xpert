@@ -1,6 +1,9 @@
 {
     "Error": {
         "TokenNoModel": "记录 Token 使用量时未提供 Model 信息",
-        "NoTextEmbeddingModel": "未正确配置嵌入模型或默认嵌入模型"
+        "NoTextEmbeddingModel": "未正确配置嵌入模型或默认嵌入模型",
+        "AIModelNotFound": "未配置 AI 模型",
+        "TokenExceedsLimit": "Token 使用量超出限制",
+        "TokenExceedsOrgLimit": "Token 使用量超出组织限制"
     }
 }

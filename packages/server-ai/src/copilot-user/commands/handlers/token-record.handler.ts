@@ -49,7 +49,11 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
 			})
 
 			if (record.tokenLimit && record.tokenUsed >= record.tokenLimit) {
-				throw new ExceedingLimitException('Token usage exceeds limit')
+				throw new ExceedingLimitException(
+					await this.i18nService.t('copilot.Error.TokenExceedsLimit', {
+						lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+					})
+				)
 			}
 
 			// Record the token usage of the user's organization when using the global Copilot
@@ -67,7 +71,11 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
 				})
 
 				if (orgRecord.tokenLimit && orgRecord.tokenUsed >= orgRecord.tokenLimit) {
-					throw new ExceedingLimitException('Token usage of org exceeds limit')
+					throw new ExceedingLimitException(
+						await this.i18nService.t('copilot.Error.TokenExceedsOrgLimit', {
+							lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+						})
+					)
 				}
 			}
 		}

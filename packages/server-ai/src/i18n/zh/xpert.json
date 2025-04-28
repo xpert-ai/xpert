@@ -18,5 +18,8 @@
     "Project": {
         "CreatingTasks": "创建任务",
         "UpdatingTasks": "更新任务"
+    },
+    "Agent": {
+        "SummarizeTitle": "总结标题"
     }
 }

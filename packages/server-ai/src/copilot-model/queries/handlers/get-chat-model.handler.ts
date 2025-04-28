@@ -1,7 +1,9 @@
+import { mapTranslationLanguage } from '@metad/contracts'
 import { omit } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
+import { I18nService } from 'nestjs-i18n'
 import { AIModelGetProviderQuery, ModelProvider } from '../../../ai-model'
 import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
 import { CopilotCheckLimitCommand, CopilotTokenRecordCommand } from '../../../copilot-user'
@@ -10,12 +12,12 @@ import { CopilotModelGetChatModelQuery } from '../get-chat-model.query'
 
 @QueryHandler(CopilotModelGetChatModelQuery)
 export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotModelGetChatModelQuery> {
-
 	readonly #logger = new Logger(CopilotModelGetChatModelHandler.name)
 
 	constructor(
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
+		private readonly queryBus: QueryBus,
+		private readonly i18nService: I18nService
 	) {}
 
 	public async execute(command: CopilotModelGetChatModelQuery) {
@@ -27,7 +29,11 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 
 		const copilotModel = command.copilotModel ?? copilot.copilotModel
 		if (!copilotModel) {
-			throw new CopilotModelNotFoundException(`No AI model provided`)
+			throw new CopilotModelNotFoundException(
+				await this.i18nService.t('copilot.Error.AIModelNotFound', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+				})
+			)
 		}
 		const modelName = copilotModel.model
 
@@ -76,7 +82,7 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 								model: input.model,
 								tokenUsed: input.usage?.totalTokens,
 								priceUsed: input.usage?.totalPrice,
-								currency: input.usage?.currency,
+								currency: input.usage?.currency
 							})
 						)
 					} catch (err) {

@@ -1566,6 +1566,8 @@
       "SystemVariables": "系统变量",
       "AICopilot": "AI 智能助理",
       "EnableCopilot": "启用智能助理",
+      "EnablePrimaryDefaultModel": "启用主默认模型",
+      "EnableAIProvider": "启用 AI 提供商",
       "GetYourApiKey": "获取你的 API Key",
       "ProvideOpenaiApiKey": "请提供 Openai API Key?",
       "Provider": "提供商",

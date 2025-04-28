@@ -6,6 +6,7 @@ import {
 	IXpertProjectTask,
 	IXpertToolset,
 	IXpertWorkspace,
+	TAvatar,
 	TXpertProjectSettings,
 	TXpertProjectStatus
 } from '@metad/contracts'
@@ -22,6 +23,12 @@ export class XpertProject extends TenantOrganizationBaseEntity implements IXpert
 	@IsString()
 	@Column()
 	name: string
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsString()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	avatar?: TAvatar
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()

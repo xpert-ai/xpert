@@ -18,7 +18,7 @@ import {
   XpertWorkspaceService
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
-import { CopilotPromptGeneratorComponent } from '@cloud/app/@shared/copilot'
+import { CopilotEnableModelComponent, CopilotPromptGeneratorComponent } from '@cloud/app/@shared/copilot'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { UserPipe } from '@cloud/app/@shared/pipes'
 import { attrModel, linkedModel, TranslatePipe } from '@metad/core'
@@ -50,6 +50,7 @@ import { ChatProjectMembersComponent } from '../members/members.component'
     TranslatePipe,
     UserPipe,
     DateRelativePipe,
+    CopilotEnableModelComponent,
     ChatProjectXpertsComponent,
     ChatProjectToolsComponent,
     ChatProjectMembersComponent
@@ -128,7 +129,7 @@ export class ChatProjectHomeComponent {
 
   constructor() {
     effect(() => {
-      // console.log(this.project())
+      //
     })
   }
 

@@ -18,5 +18,8 @@
     "Project": {
         "CreatingTasks": "Creating tasks",
         "UpdatingTasks": "Updating tasks"
+    },
+    "Agent": {
+        "SummarizeTitle": "Summarize Title"
     }
 }

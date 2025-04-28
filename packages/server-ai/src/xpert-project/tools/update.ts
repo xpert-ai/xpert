@@ -2,7 +2,6 @@ import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { tool } from '@langchain/core/tools'
 import { ChatMessageEventTypeEnum, ChatMessageStepType, TAgentRunnableConfigurable } from '@metad/contracts'
 import { z } from 'zod'
-import { t } from 'i18next'
 import { XpertProjectTaskService } from '../services/project-task.service'
 
 export const createUpdateTasksTool = ({

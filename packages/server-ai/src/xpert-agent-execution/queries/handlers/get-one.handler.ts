@@ -18,7 +18,7 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 
 	public async execute(command: XpertAgentExecutionOneQuery): Promise<IXpertAgentExecution> {
 		const id = command.id
-		const execution = await this.service.findOne(id, { relations: ['subExecutions', 'createdBy', 'subExecutions.createdBy'] })
+		const execution = await this.service.findOne(id, { relations: ['createdBy', 'xpert', 'subExecutions', 'subExecutions.createdBy', 'subExecutions.xpert'] })
 
 		const subExecutions = sortBy(execution.subExecutions, 'createdAt')
 

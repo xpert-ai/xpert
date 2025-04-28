@@ -1,4 +1,4 @@
-import { IXpertProjectTask, OrderTypeEnum } from '@metad/contracts'
+import { IXpertProjectTask, mapTranslationLanguage, OrderTypeEnum } from '@metad/contracts'
 import { DeepPartial } from '@metad/server-common'
 import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Injectable, Logger } from '@nestjs/common'
@@ -26,6 +26,8 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
 	}
 
 	async translate(key: string, options?: any) {
+		options ??= {}
+		options.lang = mapTranslationLanguage(RequestContext.getLanguageCode())
 		return await this.i18n.t(key, options)
 	}
 

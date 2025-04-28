@@ -1,6 +1,6 @@
 <div class="flex items-center py-1 sticky top-14 z-10 bg-surface-container">
-  <emoji-avatar class="shrink-0 rounded-full overflow-hidden shadow-sm mr-2" [avatar]="xpert()?.avatar" />
-  <div class="truncate text-text-secondary">{{xpert()?.title || xpert()?.name}}</div>
+  <emoji-avatar class="shrink-0 rounded-full overflow-hidden shadow-sm mr-2" [avatar]="avatar()" />
+  <div class="truncate text-text-secondary">{{title()}}</div>
 </div>
 
 <div class="group/message flex-1 flex flex-col gap-2 pt-2 pb-10">
@@ -229,7 +229,7 @@
             }
           }
           @case ('component') {
-            <chat-component-message class="group/ccm w-full p-2 rounded-2xl hover:bg-neutral-50"
+            <chat-component-message class="group/ccm w-full p-2 rounded-2xl z-0 hover:bg-neutral-50"
               [messageId]="message().id"
               [message]="submessage"
               (register)="onRegister($event)"
@@ -255,8 +255,8 @@
         class="rounded-xl flex flex-col gap-1 p-1 border border-[var(--border-light)] bg-[var(--fill-tsp-gray-main)] max-w-full clickable hover:bg-[var(--fill-tsp-gray-dark)] dark:hover:bg-white/[0.02]"
       >
         @for (step of steps(); track $index) {
-          <div class="relative flex items-center p-1 py-1 rounded-lg group/item hover:bg-white">
-            <div class="w-[16px] inline-flex items-center text-[var(--text-primary)]">
+          <div class="group/item relative flex items-center p-1 py-1 rounded-lg hover:bg-white" >
+            <div class="w-[16px] inline-flex items-center text-text-secondary">
               @if (step.toolset) {
                 @switch (step.toolset) {
                   @case ('project') {
@@ -267,12 +267,11 @@
                   }
                 }
               }
-              
             </div>
             <div class="flex-1 h-full min-w-0 flex">
-              <div class="inline-flex items-center h-full rounded-full text-[14px] text-[var(--text-secondary)] max-w-[100%]">
+              <div class="inline-flex items-center h-full rounded-full font-body text-[14px] text-[var(--text-secondary)] max-w-[100%]">
                 <div
-                  class="max-w-[100%] text-ellipsis overflow-hidden whitespace-nowrap text-[13px]"
+                  class="max-w-[100%] text-ellipsis overflow-hidden whitespace-nowrap text-[13px] group-hover/item:text-text-primary"
                   [title]="step.message || step.title"
                 >
                   <div class="flex items-center">

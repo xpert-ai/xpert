@@ -85,7 +85,9 @@ export class CreateSummarizeTitleAgentHandler implements ICommandHandler<CreateS
 					parentId: rootExecutionId,
 					status: XpertAgentExecutionStatusEnum.RUNNING,
 					channelName: STATE_VARIABLE_TITLE_CHANNEL,
-					title: 'Summarize Title'
+					title: await this.i18nService.t('xpert.Agent.SummarizeTitle', {
+						lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+					})
 				})
 			)
 
