@@ -59,7 +59,7 @@ import {
 	XpertAgentExecutionUpsertCommand
 } from '../../../xpert-agent-execution'
 import { AgentStateAnnotation, stateToParameters } from '../../../xpert-agent/commands/handlers/types'
-import { CreateToolsetCommand, ProjectToolset, XpertProjectService } from '../../../xpert-project/'
+import { CreateProjectToolsetCommand, ProjectToolset, XpertProjectService } from '../../../xpert-project/'
 import { ChatCommonCommand } from '../chat-common.command'
 import { createHandoffBackMessages, createHandoffTool } from './handoff'
 import {
@@ -480,15 +480,12 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		const stateVariables: TStateVariable[] = []
 		const toolsetVarirables: TStateVariable[] = []
 		const tools = []
-		if (project) {
-			const projectToolset = await this.commandBus.execute<CreateToolsetCommand, ProjectToolset>(new CreateToolsetCommand(projectId))
+		if (project?.settings?.mode === 'plan') {
+			const projectToolset = await this.commandBus.execute<CreateProjectToolsetCommand, ProjectToolset>(new CreateProjectToolsetCommand(projectId))
 			const _variables = await projectToolset.getVariables()
 			toolsetVarirables.push(...(_variables ?? []))
 			// stateVariables.push(...toolsetVarirables)
 			const items = await projectToolset.initTools()
-			// items.forEach((tool) => {
-			// 	console.log(tool.schema)
-			// })
 			tools.push(...items)
 		}
 

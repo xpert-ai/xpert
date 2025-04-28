@@ -8,6 +8,7 @@ import { IXpert } from './xpert.model'
 
 export type TXpertProjectSettings = {
   instruction: string
+  mode?: '' | 'plan'
 }
 export type TXpertProjectStatus = 'active' | 'deprecated' | 'archived'
 

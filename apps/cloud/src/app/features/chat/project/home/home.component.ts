@@ -4,23 +4,23 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
-import { toObservable, toSignal } from '@angular/core/rxjs-interop'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import {
-  DateRelativePipe,
   getErrorMessage,
   injectProjectService,
   injectToastr,
+  IXpertProject,
   IXpertWorkspace,
   OrderTypeEnum,
+  TXpertProjectSettings,
   XpertWorkspaceService
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { CopilotEnableModelComponent, CopilotPromptGeneratorComponent } from '@cloud/app/@shared/copilot'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { UserPipe } from '@cloud/app/@shared/pipes'
 import { attrModel, linkedModel, TranslatePipe } from '@metad/core'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -30,6 +30,8 @@ import { ChatProjectComponent } from '../project.component'
 import { ChatProjectToolsComponent } from '../tools/tools.component'
 import { ChatProjectXpertsComponent } from '../xperts/xperts.component'
 import { ChatProjectMembersComponent } from '../members/members.component'
+import { ChatProjectAttachmentsComponent } from '../attachments/attachments.component'
+import { ChatProjectConversationsComponent } from '../conversations/conversations.component'
 
 /**
  *
@@ -48,12 +50,13 @@ import { ChatProjectMembersComponent } from '../members/members.component'
     NgmSpinComponent,
     EmojiAvatarComponent,
     TranslatePipe,
-    UserPipe,
-    DateRelativePipe,
+    
     CopilotEnableModelComponent,
     ChatProjectXpertsComponent,
     ChatProjectToolsComponent,
-    ChatProjectMembersComponent
+    ChatProjectMembersComponent,
+    ChatProjectAttachmentsComponent,
+    ChatProjectConversationsComponent
   ],
   selector: 'pac-chat-project-home',
   templateUrl: './home.component.html',
@@ -79,13 +82,8 @@ export class ChatProjectHomeComponent {
   readonly name = attrModel(this.project, 'name')
   readonly settings = attrModel(this.project, 'settings')
   readonly instruction = attrModel(this.settings, 'instruction')
+  readonly mode = attrModel(this.settings, 'mode')
 
-  // Conversations
-  readonly conversations$ = toObservable(this.id).pipe(
-    switchMap((id) => this.projectSercice.getConversations(id)),
-    map(({ items }) => items),
-    shareReplay(1)
-  )
 
   readonly #toolsRefresh$ = new BehaviorSubject<void>(null)
   readonly #toolsets = derivedAsync(() => (this.id() ? this.#toolsRefresh$.pipe(switchMap(() => this.projectSercice.getToolsets(this.id(), {relations: ['createdBy']}))) : of(null)))
@@ -133,9 +131,13 @@ export class ChatProjectHomeComponent {
     })
   }
 
+  updateProject(project: Partial<IXpertProject>) {
+    return this.projectSercice.update(this.id(), project)
+  }
+
   saveProject() {
     this.loading.set(true)
-    this.projectSercice.update(this.id(), { avatar: this.avatar(), name: this.name() }).subscribe({
+    this.updateProject({ avatar: this.avatar(), name: this.name() }).subscribe({
       next: () => {
         this.loading.set(false)
         this.editing.set(false)
@@ -189,7 +191,7 @@ export class ChatProjectHomeComponent {
 
   selectWorkspace(ws: IXpertWorkspace) {
     this.loading.set(true)
-    this.projectSercice.update(this.project().id, { workspaceId: ws.id }).subscribe({
+    this.updateProject({ workspaceId: ws.id }).subscribe({
       next: () => {
         this.loading.set(false)
         this.project.update((state) => ({ ...state, workspaceId: ws.id }))
@@ -201,8 +203,9 @@ export class ChatProjectHomeComponent {
     })
   }
 
-  routeWorkspace() {
-    this.viewType.set('tools')
+  setMode(mode: TXpertProjectSettings['mode']) {
+    this.mode.set(mode)
+    this.updateMode()
   }
 
   rename() {
@@ -238,6 +241,19 @@ export class ChatProjectHomeComponent {
       })
   }
 
+  updateMode() {
+    this.loading.set(true)
+    this.updateProject({settings: { ...(this.settings() ?? {}), mode: this.mode() } as TXpertProjectSettings}).subscribe({
+      next: () => {
+        this.loading.set(false)
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
+
   openInstruction() {
     this.#dialog
       .open<string>(CopilotPromptGeneratorComponent, {
@@ -251,8 +267,7 @@ export class ChatProjectHomeComponent {
         switchMap((instruction) => {
           if (instruction) {
             this.loading.set(true)
-            return this.projectSercice
-              .update(this.id(), { settings: { ...(this.settings() ?? {}), instruction } })
+            return this.updateProject({ settings: { ...(this.settings() ?? {}), instruction } })
               .pipe(
                 tap(() => {
                   this.loading.set(false)

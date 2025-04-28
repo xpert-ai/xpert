@@ -1,0 +1,39 @@
+<div class="rounded-3xl border text-card-foreground bg-transparent flex-1 flex flex-col items-center justify-center p-4 gap-4 mb-4 mt-4">
+  <div class="bg-components-card-bg flex flex-col justify-center items-center rounded-full w-14 h-14">
+    <span class="text-fg-tertiary">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shapes"><path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z"></path><rect x="3" y="14" width="7" height="7" rx="1"></rect><circle cx="17.5" cy="17.5" r="3.5"></circle>
+      </svg>
+    </span>
+  </div>
+  <div class="flex flex-col gap-1 items-center text-center">
+    <h3 class="font-semibold text-lg">
+      {{ 'PAC.XProject.Welcome' | translate: {Default: 'Welcome'} }}
+    </h3>
+    <span class="text-secondary max-w-full">
+      {{ 'PAC.XProject.StartbyAttachingFiles' | translate: {Default: 'Start by attaching files to your project. They will be used in all chats in this project.'} }}
+    </span>
+  </div>
+</div>
+
+<div
+  class="flex-1 flex flex-col gap-1 h-full overflow-y-auto [mask-image:linear-gradient(to_bottom,transparent,black_8px,black_calc(100%_-_8px),transparent)] [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_8px,black_calc(100%_-_8px),transparent)] py-2"
+  >
+  <div class="flex-1 flex flex-col gap-1 @sm:grid @sm:grid-cols-2 @sm:auto-rows-max">
+    <div class="max-w-full" style="opacity: 1; transform: none">
+      <div
+        class="flex flex-row items-center text-sm transition ease-in-out gap-2 relative group/chip cursor-pointer text-primary bg-chip border border-border-l1 hover:bg-button-secondary-hover px-3 rounded-xl h-10 justify-between pr-1.5"
+      >
+        <figure class="grid aspect-square place-items-center bg-fg-primary/10 rounded-s-xl shrink-0 -ms-3 w-10">
+          <i class="ri-file-word-2-line"></i>
+        </figure>
+        <span class="truncate max-w-full me-auto sm:max-w-full flex-1">xxxxxx.docx</span>
+        <button
+          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-button-ghost-hover disabled:hover:text-secondary disabled:hover:bg-inherit h-6 w-6 rounded-full ml-1 p-0.5 flex-shrink-0"
+          type="button"
+          >
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

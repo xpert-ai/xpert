@@ -4,10 +4,10 @@ import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/c
 import { XpertProjectService } from '../../project.service'
 import { XpertProjectTaskService } from '../../services/project-task.service'
 import { ProjectToolset } from '../../tools'
-import { CreateToolsetCommand } from '../create-toolset.command'
+import { CreateProjectToolsetCommand } from '../create-toolset.command'
 
-@CommandHandler(CreateToolsetCommand)
-export class CreateToolsetHandler implements ICommandHandler<CreateToolsetCommand> {
+@CommandHandler(CreateProjectToolsetCommand)
+export class CreateToolsetHandler implements ICommandHandler<CreateProjectToolsetCommand> {
 	readonly #logger = new Logger(CreateToolsetHandler.name)
 
 	constructor(
@@ -17,7 +17,7 @@ export class CreateToolsetHandler implements ICommandHandler<CreateToolsetComman
 		private readonly taskService: XpertProjectTaskService
 	) {}
 
-	public async execute(command: CreateToolsetCommand) {
+	public async execute(command: CreateProjectToolsetCommand) {
 		const project = await this.service.findOne(command.projectId)
 		return new ProjectToolset(project, this.service, this.taskService, {
 			tenantId: RequestContext.currentTenantId(),

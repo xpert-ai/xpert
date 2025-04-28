@@ -327,7 +327,16 @@
       "AddTool": "添加",
       "AddedTool": "已添加",
       "RemoveTool": "移除",
-      "AddToolsForProject": "为项目通用智能体添加工具",
+      "AddToolsForProject": "选择并绑定工作空间为项目通用智能体添加工具",
+      "PlanningMode": "规划模式",
+      "ExploreMode": "探索模式",
+      "PlanningModeDesc": "AI 帮助你规划步骤，分步帮你执行",
+      "ExploreModeDesc": "让 AI 自主动态思考，完成速度更快",
+      "NoConversations": "尚未对话",
+      "StartaNewConversation": "通过在顶部的输入框中输入内容来在此项目中开始新的对话。",
+      "Welcome": "欢迎",
+      "StartbyAttachingFiles": "首先将文件附加到您的项目。这些文件将用于该项目的所有聊天。",
+      "NoToolsYet": "尚无工具",
       "InputPlaceholder": "在此项目中开始对话"
     },
     "Workflow": {

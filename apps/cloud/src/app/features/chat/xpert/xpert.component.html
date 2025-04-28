@@ -98,7 +98,7 @@
   <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary">
     @for (project of projects(); track project.id) {
       <button cdkMenuItem class="ngm-cdk-menu-item p-1" [routerLink]="['/chat/p', project.id]">
-        {{project.name}}
+        <span class="truncate">{{project.name}}</span>
       </button>
     }
 
