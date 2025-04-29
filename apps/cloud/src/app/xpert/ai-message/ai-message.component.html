@@ -3,7 +3,7 @@
   <div class="truncate text-text-secondary">{{title()}}</div>
 </div>
 
-<div class="group/message flex-1 flex flex-col gap-2 pt-2 pb-10">
+<div class="group/message flex-1 flex flex-col pt-2 pb-10">
 
   <!-- executions -->
   @if (showExecution()) {
@@ -172,7 +172,7 @@
     @for (submessage of messages; track submessage; let last = $last) {
       <div class="relative">
         @if (submessage.agentKey && agents()[submessage.agentKey]; as agent) {
-          <div class="group flex items-center gap-2 py-2 mt-2 px-1 sticky top-14 z-10 bg-surface-container">
+          <div class="group flex items-center gap-2 py-2 px-1 sticky top-14 z-10 bg-surface-container">
             @if (submessage.id) {
               <button type="button" class="absolute left-2 w-6 h-6 flex justify-center items-center rounded-lg z-10 transition-opacity bg-white/2 backdrop-blur-sm opacity-0 group-hover:opacity-100"
                 (click)="toggleCollapseMessage(submessage)">
@@ -188,7 +188,7 @@
           </div>
         }
         @if (submessage.xpertName && xperts()[submessage.xpertName]; as xpert) {
-          <div class="group flex items-center gap-2 py-2 mt-2 px-1 sticky top-14 z-10 bg-surface-container">
+          <div class="group flex items-center gap-2 py-2 px-1 sticky top-14 z-10 bg-surface-container">
             @if (submessage.id) {
               <button type="button" class="absolute left-2 w-6 h-6 flex justify-center items-center rounded-lg z-10 transition-opacity bg-white/2 backdrop-blur-sm opacity-0 group-hover:opacity-100"
                 (click)="toggleCollapseMessage(submessage)">
@@ -257,13 +257,20 @@
         @for (step of steps(); track $index) {
           <div class="group/item relative flex items-center p-1 py-1 rounded-lg hover:bg-white" >
             <div class="w-[16px] inline-flex items-center text-text-secondary">
-              @if (step.toolset) {
-                @switch (step.toolset) {
-                  @case ('project') {
-                    <i class="ri-building-line"></i>
-                  }
-                  @default {
-                    <img src="/api/xpert-toolset/builtin-provider/{{step.toolset}}/icon" alt="{{step.toolset}}" class="rounded-md">
+              @switch (step.category) {
+                @case (eChatMessageStepCategory.File) {
+                  <i class="ri-file-list-3-line"></i>
+                }
+                @default {
+                  @if (step.toolset) {
+                    @switch (step.toolset) {
+                      @case ('project') {
+                        <i class="ri-building-line"></i>
+                      }
+                      @default {
+                        <img src="/api/xpert-toolset/builtin-provider/{{step.toolset}}/icon" alt="{{step.toolset}}" class="rounded-md">
+                      }
+                    }
                   }
                 }
               }

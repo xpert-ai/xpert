@@ -64,7 +64,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		failNode: TXpertTeamNode
 	}> {
 		const { agentKeyOrName, xpert, options } = command
-		const { isStart, execution, leaderKey, channel: agentChannel, summarizeTitle, subscriber, rootController, signal, disableCheckpointer, variables, partners, handoffTools, environment } = options
+		const { isStart, execution, leaderKey, channel: agentChannel, summarizeTitle, subscriber, rootController, signal, disableCheckpointer, variables, partners, handoffTools, environment, tools: additionalTools } = options
 		const userId = RequestContext.currentUserId()
 
 		// Signal controller in this subgraph
@@ -146,6 +146,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				if (team.agentConfig?.interruptBefore?.includes(lc_name)) {
 					interruptBefore.push(tool.name)
 				}
+			})
+		}
+
+		// Additional Tools
+		if (additionalTools) {
+			additionalTools.forEach((tool) => {
+				tools.push({ caller: agent.key, tool })
 			})
 		}
 

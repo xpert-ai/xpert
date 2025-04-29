@@ -1,6 +1,7 @@
 import { AIMessage, HumanMessage, isAIMessage, isBaseMessage, isToolMessage, MessageContent } from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
-import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
+import { RunnableToolLike, RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
+import { StructuredToolInterface } from '@langchain/core/tools'
 import {
 	CompiledStateGraph,
 	END,
@@ -545,7 +546,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		const xperts = []
 		if (project?.xperts.length) {
 			for await (const xpert of project.xperts) {
-				const agent = await this.createXpertAgent(xpert, abortController, execution, subscriber, 'last_message', false, supervisorName)
+				const agent = await this.createXpertAgent(xpert, abortController, execution, subscriber, 'last_message', false, supervisorName, items)
 				const tool = createHandoffTool({ agentName: agent.name, description: xpert.description })
 				xperts.push({name: agent.name, agent, tool})
 			}
@@ -696,7 +697,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		subscriber: Subscriber<MessageEvent>,
 		outputMode: OutputMode,
 		addHandoffBackMessages: boolean,
-		supervisorName: string
+		supervisorName: string,
+		tools: (StructuredToolInterface | RunnableToolLike)[]
 	) {
 		// Sub execution for xpert
 		const _execution: IXpertAgentExecution = {}
@@ -709,7 +711,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				rootExecutionId: execution.id,
 				rootController: abortController,
 				signal: abortController.signal,
-				subscriber
+				subscriber,
+				tools
 			})
 		)
 		

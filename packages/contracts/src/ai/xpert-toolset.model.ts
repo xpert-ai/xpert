@@ -203,5 +203,5 @@ export type TToolsetParams = {
 }
 
 export interface IBaseToolset {
-  name?: string
+  toolNamePrefix?: string
 }

@@ -26,6 +26,7 @@ import { filter, map, shareReplay, switchMap, tap } from 'rxjs'
 import {
   ChatMessageFeedbackRatingEnum,
   ChatMessageFeedbackService,
+  ChatMessageStepCategory,
   DateRelativePipe,
   getErrorMessage,
   IChatMessage,
@@ -74,7 +75,8 @@ import { TCopilotChatMessage } from '../types'
 })
 export class ChatAiMessageComponent {
   eFeedbackRatingEnum = ChatMessageFeedbackRatingEnum
-
+  eChatMessageStepCategory = ChatMessageStepCategory
+  
   readonly chatService = inject(ChatService)
   readonly homeService = inject(XpertHomeService)
   readonly xpertOcapService = inject(XpertOcapService)

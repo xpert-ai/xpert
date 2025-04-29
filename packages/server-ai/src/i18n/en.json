@@ -1,0 +1,11 @@
+{
+    "Error": {
+    },
+    "tools": {
+        "ListFiles": "List files",
+        "CreatedFile": "Created file",
+        "UpdatedFile": "Updated file",
+        "ReadFile": "Read file",
+        "DeletedFile": "Deleted file"
+    }
+}

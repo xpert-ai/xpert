@@ -12,13 +12,14 @@ import {
 import { environment } from '@metad/server-config'
 import axios from 'axios'
 import z from 'zod'
+import {t} from 'i18next'
 import { BaseSandboxToolset } from './sandbox-toolset'
 
 export abstract class BaseFileToolset
 	extends BaseSandboxToolset<DynamicStructuredTool | StructuredToolInterface>
 	implements IBaseToolset
 {
-	name?: string
+	toolNamePrefix: string
 
 	callbackManager?: CallbackManager
 
@@ -26,6 +27,7 @@ export abstract class BaseFileToolset
 		await this._ensureSandbox()
 
 		this.tools = []
+		this.tools.push(buildListFilesTool(this))
 		this.tools.push(buildCreateFileTool(this))
 		this.tools.push(buildStrReplaceTool(this))
 		this.tools.push(buildFullFileRewriteTool(this))
@@ -49,6 +51,7 @@ export abstract class BaseFileToolset
 		return requestData
 	}
 
+	abstract listFiles(): Promise<TFile[]>
 	abstract getFileByPath(filePath: string): Promise<TFile>
 }
 
@@ -63,12 +66,50 @@ function serializeDynamicTool(tool: DynamicStructuredTool) {
 	}
 }
 
+
+export function buildListFilesTool(toolset: BaseFileToolset) {
+	const TOOL_NAME = (toolset.toolNamePrefix ? toolset.toolNamePrefix + '__' : '') + 'list_files'
+	const listFilesTool = tool(
+		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
+			const { signal, configurable } = config ?? {}
+
+			if (toolset.callbackManager) {
+				await toolset.callbackManager.handleToolStart(
+					serializeDynamicTool(listFilesTool),
+					JSON.stringify(parameters),
+					runManager?.runId
+				)
+			}
+
+			const files = await toolset.listFiles()
+
+			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+				type: ChatMessageStepType.ComputerUse,
+				category: ChatMessageStepCategory.Files,
+				tool: TOOL_NAME,
+				title: t('server-ai:tools.ListFiles'),
+				message: t('server-ai:tools.ListFiles'),
+				data: files
+			})
+
+			return JSON.stringify(files)
+		},
+		{
+			name: TOOL_NAME,
+			description: `List all files in current workspace. The path is relative to /workspace (e.g., 'src/main.py' for /workspace/src/main.py)`,
+			schema: z.object({
+			}),
+			verboseParsingErrors: true
+		}
+	)
+
+	return listFilesTool
+}
+
 export function buildCreateFileTool(toolset: BaseFileToolset) {
-	const TOOL_NAME = 'create_file'
+	const TOOL_NAME = (toolset.toolNamePrefix ? toolset.toolNamePrefix + '__' : '') + 'create_file'
 	const createFileTool = tool(
 		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
-			console.log(parameters)
-
 			const { signal, configurable } = config ?? {}
 
 			if (toolset.callbackManager) {
@@ -101,7 +142,7 @@ export function buildCreateFileTool(toolset: BaseFileToolset) {
 				category: ChatMessageStepCategory.File,
 				tool: TOOL_NAME,
 				title: parameters.file_path,
-				message: `Created file: ${parameters.file_path}`,
+				message: t('server-ai:tools.CreatedFile') + `: ${parameters.file_path}`,
 				data: {
 					url: `${environment.baseUrl}/api/sandbox/preview/${configurable?.thread_id}/${parameters.file_path}`,
 					extension: parameters.file_path.split('.').pop(),
@@ -135,7 +176,7 @@ export function buildCreateFileTool(toolset: BaseFileToolset) {
 }
 
 export function buildStrReplaceTool(toolset: BaseFileToolset) {
-	const TOOL_NAME = 'str_replace'
+	const TOOL_NAME = (toolset.toolNamePrefix ? toolset.toolNamePrefix + '__' : '') + 'str_replace'
 	const strReplaceTool = tool(
 		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
 			const { signal, configurable } = config ?? {}
@@ -192,7 +233,7 @@ export function buildStrReplaceTool(toolset: BaseFileToolset) {
 				category: ChatMessageStepCategory.File,
 				tool: TOOL_NAME,
 				title: parameters.file_path,
-				message: `Updated file: ${parameters.file_path}`,
+				message: t('server-ai:tools.UpdatedFile') + `: ${parameters.file_path}`,
 				data: {
 					url: `${environment.baseUrl}/api/sandbox/preview/${configurable?.thread_id}/${parameters.file_path}`,
 					content: newContent,
@@ -220,7 +261,7 @@ export function buildStrReplaceTool(toolset: BaseFileToolset) {
 }
 
 export function buildFullFileRewriteTool(toolset: BaseFileToolset) {
-	const TOOL_NAME = 'full_file_rewrite'
+	const TOOL_NAME = (toolset.toolNamePrefix ? toolset.toolNamePrefix + '__' : '') + 'full_file_rewrite'
 	const fullFileRewriteTool = tool(
 		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
 			const { signal, configurable } = config ?? {}
@@ -262,7 +303,7 @@ export function buildFullFileRewriteTool(toolset: BaseFileToolset) {
 				category: ChatMessageStepCategory.File,
 				tool: TOOL_NAME,
 				title: parameters.file_path,
-				message: `Updated file: ${parameters.file_path}`,
+				message: t('server-ai:tools.UpdatedFile') + `: ${parameters.file_path}`,
 				data: {
 					url: `${environment.baseUrl}/api/sandbox/preview/${configurable?.thread_id}/${parameters.file_path}`,
 					content: parameters.file_contents,
@@ -296,9 +337,8 @@ export function buildFullFileRewriteTool(toolset: BaseFileToolset) {
 	return fullFileRewriteTool
 }
 
-
 export function buildDeleteFileTool(toolset: BaseFileToolset) {
-	const TOOL_NAME = 'delete_file'
+	const TOOL_NAME = (toolset.toolNamePrefix ? toolset.toolNamePrefix + '__' : '') + 'delete_file'
 	const deleteFileTool = tool(
 		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
 			const { signal, configurable } = config ?? {}
@@ -339,7 +379,7 @@ export function buildDeleteFileTool(toolset: BaseFileToolset) {
 				category: ChatMessageStepCategory.File,
 				tool: TOOL_NAME,
 				title: parameters.file_path,
-				message: `Deleted file: ${parameters.file_path}`,
+				message: t('server-ai:tools.DeletedFile') + `: ${parameters.file_path}`,
 				data: {
 					name: parameters.file_path
 				}
@@ -364,7 +404,7 @@ export function buildDeleteFileTool(toolset: BaseFileToolset) {
 
 
 export function buildReadFileTool(toolset: BaseFileToolset) {
-	const TOOL_NAME = 'read_file'
+	const TOOL_NAME = (toolset.toolNamePrefix ? toolset.toolNamePrefix + '__' : '') + 'read_file'
 	const readFileTool = tool(
 		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
 			const { signal, configurable } = config ?? {}
@@ -387,7 +427,7 @@ export function buildReadFileTool(toolset: BaseFileToolset) {
 				category: ChatMessageStepCategory.File,
 				tool: TOOL_NAME,
 				title: parameters.file_path,
-				message: `Read file: ${parameters.file_path}`,
+				message: t('server-ai:tools.ReadFile') + `: ${parameters.file_path}`,
 				data: {
 					name: parameters.file_path,
 					content: originalFile.fileContents

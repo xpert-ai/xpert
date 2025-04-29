@@ -21,6 +21,7 @@ export class ProjectFileToolset extends BaseFileToolset {
 	constructor(protected params?: TProjectFileToolsetParams) {
 		super(params)
 		const project = this.params?.project
+		this.toolNamePrefix = 'project'
 		// eslint-disable-next-line @typescript-eslint/no-this-alias
 		const that = this
 		this.callbackManager = CallbackManager.fromHandlers({
@@ -34,7 +35,7 @@ export class ProjectFileToolset extends BaseFileToolset {
 
 			// 当工具调用成功完成时触发
 			async handleToolEnd({ tool_name, output }, runId: string, parentRunId?: string) {
-				if (tool_name === 'create_file' || tool_name === 'str_replace') {
+				if (tool_name === 'project__create_file' || tool_name === 'project__str_replace' || tool_name === 'project__full_file_rewrite') {
 					const { file_path, file_contents } = output
 					await that.saveFileToDatabase({
 						filePath: file_path,
@@ -44,7 +45,7 @@ export class ProjectFileToolset extends BaseFileToolset {
 						projectId: project?.id
 					})
 				}
-				if (tool_name === 'delete_file') {
+				if (tool_name === 'project__delete_file') {
 					const { file_path } = output
 					await that.deleteFileFromDatabase(file_path)
 				}
