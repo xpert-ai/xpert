@@ -492,14 +492,12 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			tools.push(...items)
 		}
 
-		let fileToolset: ProjectFileToolset = null
-		if (this.configService.environment.pro) {
-			fileToolset = await this.commandBus.execute<CreateFileToolsetCommand, ProjectFileToolset>(new CreateFileToolsetCommand(projectId))
-			const _variables = await fileToolset.getVariables()
-			toolsetVarirables.push(...(_variables ?? []))
-			const items = await fileToolset.initTools()
-			tools.push(...items)
-		}
+		// File toolset
+		const fileToolset = await this.commandBus.execute<CreateFileToolsetCommand, ProjectFileToolset>(new CreateFileToolsetCommand(projectId))
+		const _variables = await fileToolset.getVariables()
+		toolsetVarirables.push(...(_variables ?? []))
+		const items = await fileToolset.initTools()
+		tools.push(...items)
 
 		if (project?.toolsets.length > 0) {
 			const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(

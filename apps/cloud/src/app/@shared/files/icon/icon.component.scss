@@ -1,0 +1,14 @@
+:host {
+  @apply block;
+
+  &.small {
+    svg {
+      @apply w-5 h-5;
+    }
+    
+  }
+}
+
+svg {
+  @apply w-8 h-8;
+}

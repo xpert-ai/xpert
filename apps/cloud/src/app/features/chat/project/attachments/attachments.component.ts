@@ -1,14 +1,15 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import { getErrorMessage, injectProjectService, injectToastr, IXpertProjectFile } from '@cloud/app/@core'
+import { FileIconComponent } from '@cloud/app/@shared/files'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { linkedModel } from '@metad/core'
+import { FileTypePipe, linkedModel } from '@metad/core'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { EMPTY } from 'rxjs'
@@ -29,7 +30,9 @@ import { ChatProjectComponent } from '../project.component'
     CdkMenuModule,
     TranslateModule,
     MatTooltipModule,
-    NgmSpinComponent
+    NgmSpinComponent,
+    FileIconComponent,
+    FileTypePipe
   ],
   selector: 'chat-project-attachments',
   templateUrl: './attachments.component.html',
@@ -57,6 +60,25 @@ export class ChatProjectAttachmentsComponent {
     update: () => {}
   })
 
+  readonly fileList = linkedModel({
+    initialValue: [],
+    compute: () => (this.files() ? buildFileTree(this.files()) : []),
+    update: () => {}
+  })
+
+  readonly dataSource = computed(() => flattenTree(this.fileList()))
+
+  constructor() {
+    effect(() => {
+      // console.log(this.dataSource())
+    })
+  }
+
+  toggleExpand(item: FlatTreeNode) {
+    item.node.expand = !item.node.expand
+    this.fileList.update((nodes) => [...nodes])
+  }
+
   deleteFile(file: IXpertProjectFile) {
     this.confirmDelete({
       value: file.filePath,
@@ -82,4 +104,113 @@ export class ChatProjectAttachmentsComponent {
         }
       })
   }
+}
+
+type FileNode = {
+  name: string
+  type: 'file'
+  children?: undefined
+  file?: IXpertProjectFile
+  expand?: boolean
+}
+
+type FolderNode = {
+  name: string
+  type: 'folder'
+  children: TreeNode[]
+  file?: IXpertProjectFile
+  expand?: boolean
+}
+
+type TreeNode = FileNode | FolderNode
+
+type FolderBuilderNode = {
+  name: string
+  type: 'folder'
+  children: Record<string, TreeNode | FolderBuilderNode>
+}
+
+function buildFileTree(paths: IXpertProjectFile[]): TreeNode[] {
+  const root: Record<string, TreeNode | FolderBuilderNode> = {}
+
+  for (const file of paths) {
+    const parts = file.filePath.split('/')
+    let currentLevel = root
+
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i]
+      const isFile = i === parts.length - 1
+
+      if (isFile) {
+        currentLevel[part] = { name: part, type: 'file', file }
+      } else {
+        if (!currentLevel[part]) {
+          currentLevel[part] = {
+            name: part,
+            type: 'folder',
+            children: {}
+          }
+        }
+        const folder = currentLevel[part] as FolderBuilderNode
+        currentLevel = folder.children
+      }
+    }
+  }
+
+  // Convert to TreeNode[]
+  function objectToArray(nodeMap: Record<string, TreeNode | FolderBuilderNode>): TreeNode[] {
+    return Object.values(nodeMap).map((node) => {
+      if (node.type === 'folder') {
+        return {
+          name: node.name,
+          type: 'folder',
+          children: objectToArray((node as FolderBuilderNode).children)
+        }
+      }
+      return node as FileNode
+    })
+  }
+
+  return objectToArray(root)
+}
+
+function flattenNodes(nodes: TreeNode[]): TreeNode[] {
+  const flattenedNodes = []
+  for (const node of nodes) {
+    flattenedNodes.push(node)
+    if (node.children) {
+      flattenedNodes.push(...flattenNodes(node.children))
+    }
+  }
+  return flattenedNodes
+}
+
+export interface FlatTreeNode {
+  name: string
+  type: 'file' | 'folder'
+  level: number
+  file: IXpertProjectFile
+  expandable: boolean
+  node: TreeNode
+}
+
+function flattenTree(nodes: TreeNode[], level = 0): FlatTreeNode[] {
+  const flatList: FlatTreeNode[] = []
+
+  for (const node of nodes) {
+    flatList.push({
+      name: node.name,
+      type: node.type,
+      level,
+      expandable: node.type === 'folder' && node.children.length > 0,
+      file: node.file,
+      node: node
+    })
+
+    if (node.expand && node.type === 'folder') {
+      flatList.push(...flattenTree(node.children, level + 1))
+    }
+  }
+
+  return flatList
 }
