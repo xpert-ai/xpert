@@ -1,5 +1,5 @@
 :host {
-  @apply flex flex-col relative overflow-y-auto;
+  @apply grow flex flex-col relative overflow-y-auto;
 }
 
 .view-option.active {

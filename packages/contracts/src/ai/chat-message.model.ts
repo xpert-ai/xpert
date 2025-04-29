@@ -30,9 +30,13 @@ export enum ChatMessageStepCategory {
    */
   WebSearch = 'web_search',
   /**
-   * Files creation view or edition
+   * Files list
    */
   Files = 'files',
+  /**
+   * View a file
+   */
+  File = 'file',
   /**
    * Program Execution
    */

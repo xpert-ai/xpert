@@ -192,3 +192,16 @@ export interface IToolProvider {
 }
 
 export type TToolCredentials = Record<string, string | number | boolean | any>
+
+export type TToolsetParams = {
+	tenantId: string
+  organizationId?: string
+	xpertId?: string
+	agentKey?: string
+	signal?: AbortSignal
+	env: Record<string, unknown>
+}
+
+export interface IBaseToolset {
+  name?: string
+}

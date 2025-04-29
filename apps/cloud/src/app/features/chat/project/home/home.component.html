@@ -274,16 +274,16 @@
 
       @switch (viewType()) {
         @case ('attachments') {
-          <chat-project-attachments role="tabpanel" tabindex="0" class="p-2" />
+          <chat-project-attachments role="tabpanel" tabindex="0" class="py-2" />
         }
         @case ('tools') {
-          <chat-project-tools role="tabpanel" tabindex="0" class="p-2" />
+          <chat-project-tools role="tabpanel" tabindex="0" class="py-2" />
         }
         @case ('conversations') {
-          <chat-project-conversations role="tabpanel" tabindex="0" class="p-2" />
+          <chat-project-conversations role="tabpanel" tabindex="0" class="py-2" />
         }
         @case ('members') {
-          <chat-project-members role="tabpanel" tabindex="0" class="p-2" [project]="project()" />
+          <chat-project-members role="tabpanel" tabindex="0" class="py-2" [project]="project()" />
         }
       }
     </div>
@@ -305,7 +305,7 @@
     <div cdkMenuItem [class.active]="mode() === 'plan'" (click)="setMode('plan')">
       <i class="ri-quill-pen-ai-line text-lg mr-2"></i>
       <div class="flex-1 text-left">
-        <div class="text-sm font-medium">{{ 'PAC.XProject.ExploreMode' | translate: {Default: 'Explore Mode'} }}</div>
+        <div class="text-sm font-medium">{{ 'PAC.XProject.PlanningMode' | translate: {Default: 'Planning Mode'} }}</div>
         <div class="text-xs">
           {{ 'PAC.XProject.PlanningModeDesc' | translate: {Default: 'AI helps you plan steps and execute them step by step'} }}
         </div>

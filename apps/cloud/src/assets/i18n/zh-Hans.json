@@ -337,6 +337,7 @@
       "Welcome": "欢迎",
       "StartbyAttachingFiles": "首先将文件附加到您的项目。这些文件将用于该项目的所有聊天。",
       "NoToolsYet": "尚无工具",
+      "DeleteFileFromProject": "从项目中删除文件？",
       "InputPlaceholder": "在此项目中开始对话"
     },
     "Workflow": {

@@ -98,6 +98,18 @@
               }
             </div>
           }
+          @case (eChatMessageStepCategory.File) {
+            @switch (step.data.extension) {
+              @case('html') {
+                <xpert-canvas-html-editor class="h-full overflow-hidden" [content]="step.data.content" [url]="step.data.url" />
+              }
+              @default {
+                <pac-file-editor class="h-full overflow-hidden" [fileName]="step.data.url" 
+                  [content]="step.data.content" 
+                />
+              }
+            }
+          }
           @case (eChatMessageStepCategory.Files) {
             <div class="flex flex-col overflow-auto h-full px-4 py-3">
               @for (item of step.data; track item; let first = $first) {

@@ -1,5 +1,5 @@
 import { TenantModule } from '@metad/server-core'
-import { forwardRef, Module } from '@nestjs/common'
+import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { RouterModule } from 'nest-router'
@@ -10,7 +10,8 @@ import { XpertProjectTask } from './entities/project-task.entity'
 import { XpertProjectTaskStep } from './entities/project-task-step.entity'
 import { XpertProjectTaskLog } from './entities/project-task-log.entity'
 import { CommandHandlers } from './commands/handlers'
-import { XpertProjectTaskService } from './services/project-task.service'
+import { XpertProjectFile } from './entities/project-file.entity'
+import { XpertProjectTaskService, XpertProjectFileService } from './services'
 
 @Module({
 	imports: [
@@ -20,12 +21,13 @@ import { XpertProjectTaskService } from './services/project-task.service'
 			XpertProjectTask,
 			XpertProjectTaskStep,
 			XpertProjectTaskLog,
+			XpertProjectFile
 		]),
 		TenantModule,
 		CqrsModule,
 	],
 	controllers: [XpertProjectController],
-	providers: [XpertProjectService, XpertProjectTaskService, ...CommandHandlers],
+	providers: [XpertProjectService, XpertProjectTaskService, XpertProjectFileService, ...CommandHandlers],
 	exports: [XpertProjectService]
 })
 export class XpertProjectModule {}

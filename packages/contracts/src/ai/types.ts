@@ -12,3 +12,10 @@ export enum ApiAuthType {
   API_KEY = "api_key",
   BASIC = 'basic'
 }
+
+export type TFile = {
+  filePath: string;
+  fileUrl: string;
+  fileType: string;
+  fileContents: string;
+}

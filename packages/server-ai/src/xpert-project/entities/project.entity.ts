@@ -3,6 +3,7 @@ import {
 	IUser,
 	IXpert,
 	IXpertProject,
+	IXpertProjectFile,
 	IXpertProjectTask,
 	IXpertToolset,
 	IXpertWorkspace,
@@ -14,7 +15,7 @@ import { StorageFile, TenantOrganizationBaseEntity, User } from '@metad/server-c
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, RelationId } from 'typeorm'
-import { Xpert, XpertProjectTask, XpertToolset, XpertWorkspace } from '../../core/entities/internal'
+import { Xpert, XpertProjectFile, XpertProjectTask, XpertToolset, XpertWorkspace } from '../../core/entities/internal'
 import { WorkspaceBaseEntity } from '../../core/entities/base.entity'
 
 @Entity('xpert_project')
@@ -93,6 +94,14 @@ export class XpertProject extends TenantOrganizationBaseEntity implements IXpert
 	})
 	tasks?: IXpertProjectTask[] | null
 
+	// Project's files
+	@ApiPropertyOptional({ type: () => XpertProjectFile, isArray: true })
+	@IsOptional()
+	@OneToMany(() => XpertProjectFile, (_) => _.project, {
+		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+	})
+	files?: IXpertProjectFile[]
+
 	/*
     |--------------------------------------------------------------------------
     | @ManyToMany 
@@ -112,12 +121,12 @@ export class XpertProject extends TenantOrganizationBaseEntity implements IXpert
 	})
 	xperts?: IXpert[]
 
-	// Project's files
+	// Project's attachments files
 	@ManyToMany(() => StorageFile)
 	@JoinTable({
-		name: 'xpert_project_file'
+		name: 'xpert_project_attachment'
 	})
-	files?: IStorageFile[]
+	attachments?: IStorageFile[]
 
 	// Project's tools
 	@ManyToMany(() => XpertToolset)

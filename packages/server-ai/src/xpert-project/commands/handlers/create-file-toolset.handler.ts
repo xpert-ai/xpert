@@ -2,13 +2,13 @@ import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { XpertProjectService } from '../../project.service'
-import { XpertProjectTaskService } from '../../services/project-task.service'
-import { CreateProjectToolsetCommand } from '../create-toolset.command'
-import { ProjectToolset } from '../../tools'
+import { XpertProjectTaskService } from '../../services/'
+import { CreateFileToolsetCommand } from '../create-file-toolset.command'
+import { ProjectFileToolset } from '../../tools'
 
-@CommandHandler(CreateProjectToolsetCommand)
-export class CreateProjectToolsetHandler implements ICommandHandler<CreateProjectToolsetCommand> {
-	readonly #logger = new Logger(CreateProjectToolsetHandler.name)
+@CommandHandler(CreateFileToolsetCommand)
+export class CreateFileToolsetHandler implements ICommandHandler<CreateFileToolsetCommand> {
+	readonly #logger = new Logger(CreateFileToolsetHandler.name)
 
 	constructor(
 		private readonly commandBus: CommandBus,
@@ -17,14 +17,19 @@ export class CreateProjectToolsetHandler implements ICommandHandler<CreateProjec
 		private readonly taskService: XpertProjectTaskService
 	) {}
 
-	public async execute(command: CreateProjectToolsetCommand) {
+	public async execute(command: CreateFileToolsetCommand) {
 		const project = await this.service.findOne(command.projectId)
-		return new ProjectToolset(project, this.service, this.taskService, {
+		return new ProjectFileToolset({
 			tenantId: RequestContext.currentTenantId(),
 			organizationId: RequestContext.getOrganizationId(),
+			env: {},
+
 			commandBus: this.commandBus,
 			queryBus: this.queryBus,
-			env: {}
+			// project
+			project,
+			projectService: this.service,
+			taskService: this.taskService
 		})
 	}
 }

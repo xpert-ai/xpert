@@ -59,7 +59,7 @@ import {
 	XpertAgentExecutionUpsertCommand
 } from '../../../xpert-agent-execution'
 import { AgentStateAnnotation, stateToParameters } from '../../../xpert-agent/commands/handlers/types'
-import { CreateProjectToolsetCommand, ProjectToolset, XpertProjectService } from '../../../xpert-project/'
+import { CreateFileToolsetCommand, CreateProjectToolsetCommand, XpertProjectService } from '../../../xpert-project/'
 import { ChatCommonCommand } from '../chat-common.command'
 import { createHandoffBackMessages, createHandoffTool } from './handoff'
 import {
@@ -71,6 +71,8 @@ import {
 } from './supervisor'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { toEnvState } from '../../../environment'
+import { ConfigService } from '@metad/server-config'
+import { ProjectFileToolset, ProjectToolset } from '../../../xpert-project/tools'
 
 const GeneralAgentRecursionLimit = 99
 
@@ -82,7 +84,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		private readonly checkpointSaver: CopilotCheckpointSaver,
 		private readonly projectService: XpertProjectService,
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
+		private readonly queryBus: QueryBus,
+		private readonly configService: ConfigService
 	) {}
 
 	public async execute(command: ChatCommonCommand): Promise<Observable<any>> {
@@ -489,6 +492,15 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			tools.push(...items)
 		}
 
+		let fileToolset: ProjectFileToolset = null
+		if (this.configService.environment.pro) {
+			fileToolset = await this.commandBus.execute<CreateFileToolsetCommand, ProjectFileToolset>(new CreateFileToolsetCommand(projectId))
+			const _variables = await fileToolset.getVariables()
+			toolsetVarirables.push(...(_variables ?? []))
+			const items = await fileToolset.initTools()
+			tools.push(...items)
+		}
+
 		if (project?.toolsets.length > 0) {
 			const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
 				new ToolsetGetToolsCommand(project.toolsets.map(({id}) => id), {
@@ -612,10 +624,16 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 		const callModel = async (state: typeof AgentStateAnnotation.State, config?: RunnableConfig) => {
 			const parameters = stateToParameters(state)
-			const systemTemplate = (project?.settings?.instruction || supervisorPrompt) + '\n' + Instruction
+			let systemTemplate = (project?.settings?.instruction || supervisorPrompt) + '\n\n' + Instruction
+			const files = await fileToolset?.listFiles()
+			if (files) {
+				systemTemplate += '\n\n' + `The list of files in the current workspace is:\n${files.map(({filePath}) => filePath).join('\n') || 'No files yet.'}\n`
+			}
 			const systemMessage = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
 				templateFormat: 'mustache'
 			}).format(parameters)
+
+			this.#logger.verbose(`System message of project general agent:`, systemMessage.content)
 			return { messages: [await supervisorLLM.invoke([systemMessage, ...state.messages], config)] }
 		}
 

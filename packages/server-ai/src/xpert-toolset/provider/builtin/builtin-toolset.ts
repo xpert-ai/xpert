@@ -1,4 +1,4 @@
-import { IXpertToolset, TranslateOptions, TToolCredentials, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { IXpertToolset, TranslateOptions, TToolCredentials, TToolsetParams, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { BaseToolset } from '../../toolset'
@@ -8,16 +8,10 @@ import { XpertToolsetService } from '../../xpert-toolset.service'
 /**
  * The context params of creating toolset
  */
-export type TBuiltinToolsetParams = {
-	tenantId: string
-    organizationId?: string
+export type TBuiltinToolsetParams = TToolsetParams & {
 	toolsetService?: XpertToolsetService
 	commandBus: CommandBus
 	queryBus: QueryBus
-	xpertId?: string
-	agentKey?: string
-	signal?: AbortSignal
-	env: Record<string, unknown>
 }
 
 export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> {
@@ -63,7 +57,7 @@ export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> {
 	getCredentials() {
 		return this.toolset?.credentials
 	}
-	
+
 	/**
 	 * Translate language text
 	 * 

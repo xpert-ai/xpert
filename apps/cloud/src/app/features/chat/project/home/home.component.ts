@@ -4,7 +4,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
@@ -25,7 +25,7 @@ import { attrModel, linkedModel, TranslatePipe } from '@metad/core'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'
-import { BehaviorSubject, catchError, EMPTY, map, of, shareReplay, switchMap, tap } from 'rxjs'
+import { BehaviorSubject, catchError, combineLatest, EMPTY, map, of, shareReplay, startWith, switchMap, tap } from 'rxjs'
 import { ChatProjectComponent } from '../project.component'
 import { ChatProjectToolsComponent } from '../tools/tools.component'
 import { ChatProjectXpertsComponent } from '../xperts/xperts.component'
@@ -124,6 +124,16 @@ export class ChatProjectHomeComponent {
   )
   readonly workspace = computed(() => this.#workspace()?.workspace)
   readonly workspaceError = computed(() => this.#workspace()?.error)
+
+  // Files
+  readonly refreshFiles$ = new BehaviorSubject<void>(null)
+  readonly files$ = combineLatest([toObservable(this.id), this.refreshFiles$]).pipe(
+    switchMap(([id]) => this.projectSercice.getFiles(id).pipe(
+      map((files) => ({files, loading: false})),
+      startWith({files: null, loading: true}))
+    ),
+    shareReplay(1)
+  )
 
   constructor() {
     effect(() => {

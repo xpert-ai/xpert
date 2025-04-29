@@ -1,4 +1,4 @@
-import { IUser, IXpertProject, IXpertProjectTask, IXpertToolset, OrderTypeEnum } from '@metad/contracts'
+import { IUser, IXpertProject, IXpertProjectFile, IXpertProjectTask, IXpertToolset, OrderTypeEnum } from '@metad/contracts'
 import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -11,6 +11,7 @@ import { FindXpertQuery } from '../xpert/queries'
 import { XpertProjectDto } from './dto'
 import { XpertProject } from './entities/project.entity'
 import { XpertProjectTaskService } from './services/project-task.service'
+import { XpertProjectFileService } from './services'
 
 @Injectable()
 export class XpertProjectService extends TenantOrganizationAwareCrudService<XpertProject> {
@@ -21,7 +22,8 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 		repository: Repository<XpertProject>,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		private readonly taskService: XpertProjectTaskService
+		private readonly taskService: XpertProjectTaskService,
+		private readonly fileService: XpertProjectFileService,
 	) {
 		super(repository)
 	}
@@ -212,5 +214,21 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 			},
 			order: { createdAt: OrderTypeEnum.ASC }
 		})
+	}
+
+	async getFiles(id: string, params?: PaginationParams<IXpertProjectFile>) {
+		return this.fileService.findAll({
+			...(params ?? {}),
+			where: {
+				...(params?.where ?? {}),
+				projectId: id
+			},
+			order: { filePath: OrderTypeEnum.ASC }
+		})
+	}
+
+	async getFileByPath(projectId: string, path: string) {
+		const result = await this.fileService.findOneOrFail({where: {projectId, filePath: path}})
+		return result.record
 	}
 }

@@ -1,15 +1,34 @@
 import { IPagination, IXpertProject, IXpertProjectTask, IXpertToolset, OrderTypeEnum } from '@metad/contracts'
-import { CrudController, PaginationParams, ParseJsonPipe, TransformInterceptor, UserPublicDTO } from '@metad/server-core'
-import { Body, Controller, Delete, Get, HttpStatus, Logger, Param, Put, Query, UseGuards, UseInterceptors } from '@nestjs/common'
+import {
+	CrudController,
+	PaginationParams,
+	ParseJsonPipe,
+	TransformInterceptor,
+	UserPublicDTO
+} from '@metad/server-core'
+import {
+	Body,
+	Controller,
+	Delete,
+	Get,
+	HttpStatus,
+	Logger,
+	Param,
+	Put,
+	Query,
+	UseGuards,
+	UseInterceptors
+} from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { FindOneOptions } from 'typeorm'
-import { FindChatConversationQuery } from '../chat-conversation/queries'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
-import { XpertProjectDto, XpertProjectTaskDto } from './dto'
+import { FindChatConversationQuery } from '../chat-conversation/queries'
+import { XpertProjectDto, XpertProjectFileDto, XpertProjectTaskDto } from './dto'
 import { XpertProject } from './entities/project.entity'
-import { XpertProjectService } from './project.service'
 import { XpertProjectGuard, XpertProjectOwnerGuard } from './guards'
+import { XpertProjectService } from './project.service'
+import { XpertProjectFileService } from './services'
 
 @ApiTags('XpertProject')
 @ApiBearerAuth()
@@ -19,6 +38,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	readonly #logger = new Logger(XpertProjectController.name)
 	constructor(
 		private readonly service: XpertProjectService,
+		private readonly fileService: XpertProjectFileService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
 	) {
@@ -31,8 +51,10 @@ export class XpertProjectController extends CrudController<XpertProject> {
 		description: 'Found my records'
 	})
 	@Get('my')
-	async findAllMyProjects(@Query('data', ParseJsonPipe) params: PaginationParams<XpertProject>,): Promise<IPagination<XpertProjectDto>> {
-		return this.service.findAllMy(params);
+	async findAllMyProjects(
+		@Query('data', ParseJsonPipe) params: PaginationParams<XpertProject>
+	): Promise<IPagination<XpertProjectDto>> {
+		return this.service.findAllMy(params)
 	}
 
 	@Get(':id')
@@ -91,7 +113,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
 		const project = await this.service.findOne(id, { relations: ['members'] })
 		return project.members.map((_) => new UserPublicDTO(_))
 	}
-	
+
 	@UseGuards(XpertProjectOwnerGuard)
 	@Put(':id/members')
 	async updateMembers(@Param('id') id: string, @Body() members: string[]) {
@@ -101,8 +123,20 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	@UseGuards(XpertProjectGuard)
 	@Get(':id/tasks')
 	async getTasks(@Param('id') id: string, @Query('data', ParseJsonPipe) params: PaginationParams<IXpertProjectTask>) {
-		const {items} = await this.service.getTasks(id, params)
+		const { items } = await this.service.getTasks(id, params)
 		return items.map((_) => new XpertProjectTaskDto(_))
 	}
-	
+
+	@UseGuards(XpertProjectGuard)
+	@Get(':id/files')
+	async getFiles(@Param('id') id: string) {
+		const { items } = await this.service.getFiles(id)
+		return items.map((_) => new XpertProjectFileDto(_))
+	}
+
+	@UseGuards(XpertProjectGuard)
+	@Delete(':id/file/:file')
+	async deleteFile(@Param('id') id: string, @Param('file') fileId: string) {
+		await this.fileService.delete(fileId)
+	}
 }

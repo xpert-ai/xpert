@@ -1,13 +1,14 @@
 import { IXpertProject, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { CommandBus } from '@nestjs/cqrs'
-import { BaseToolset, BuiltinTool, TBuiltinToolsetParams } from '../../xpert-toolset'
-import { XpertProjectService } from '../project.service'
-import { XpertProjectTaskService } from '../services/project-task.service'
+import { BuiltinTool, TBuiltinToolsetParams } from '../../../xpert-toolset'
+import { XpertProjectService } from '../../project.service'
+import { XpertProjectTaskService } from '../../services/'
 import { createCreateTasksTool } from './create'
 import { createListTasksTool } from './list'
 import { createUpdateTasksTool } from './update'
+import { _BaseToolset } from '../../../shared'
 
-export class ProjectToolset extends BaseToolset<BuiltinTool> {
+export class ProjectToolset extends _BaseToolset<BuiltinTool> {
 	providerType = XpertToolsetCategoryEnum.BUILTIN
 
 	static provider = 'project'
@@ -20,9 +21,9 @@ export class ProjectToolset extends BaseToolset<BuiltinTool> {
 		private project: IXpertProject,
 		private service: XpertProjectService,
 		private taskService: XpertProjectTaskService,
-		private params: TBuiltinToolsetParams
+		protected params: TBuiltinToolsetParams
 	) {
-		super()
+		super(params)
 	}
 
 	async initTools(): Promise<BuiltinTool[]> {

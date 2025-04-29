@@ -3,6 +3,7 @@ import {
   IChatConversation,
   IUser,
   IXpert,
+  IXpertProjectFile,
   IXpertProjectTask,
   IXpertToolset,
   OrganizationBaseCrudService,
@@ -83,6 +84,14 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
         relations: ['steps']
       })
     })
+  }
+
+  getFiles(id: string) {
+    return this.httpClient.get<IXpertProjectFile[]>(this.apiBaseUrl + `/${id}/files`)
+  }
+
+  deleteFile(id: string, fileId: string) {
+    return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/file/${fileId}`)
   }
 }
 

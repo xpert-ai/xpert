@@ -2,6 +2,7 @@ import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IStorageFile } from '../storage-file.model'
 import { TAvatar } from '../types'
 import { IUser } from '../user.model'
+import { TFile } from './types'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IXpertWorkspace } from './xpert-workspace.model'
 import { IXpert } from './xpert.model'
@@ -35,7 +36,8 @@ export interface IXpertProject extends TXpertProject, IBasePerTenantAndOrganizat
   xperts?: IXpert[]
   toolsets?: IXpertToolset[]
   members?: IUser[]
-  files?: IStorageFile[]
+  files?: IXpertProjectFile[]
+  attachments?: IStorageFile[]
 }
 
 export interface IBasePerXpertProjectEntityModel extends IBasePerTenantAndOrganizationEntityModel {
@@ -63,4 +65,7 @@ export interface IXpertProjectTaskLog extends IBasePerXpertProjectEntityModel {
   stepId: string;
   logType: 'input' | 'output' | 'error';
   content: string;
+}
+
+export interface IXpertProjectFile extends IBasePerXpertProjectEntityModel, TFile {
 }
