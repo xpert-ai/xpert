@@ -1,7 +1,8 @@
-import { ChatOpenAI } from '@langchain/openai'
+import { ChatOpenAI, ChatOpenAICallOptions, OpenAIClient } from '@langchain/openai'
 import { AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { Injectable, Logger } from '@nestjs/common'
+import { isNil, omitBy } from 'lodash'
 import { ModelProvider } from '../../../ai-provider'
 import { LargeLanguageModel } from '../../../llm'
 import { TChatModelOptions } from '../../../types/types'
@@ -44,23 +45,65 @@ export class TongyiLargeLanguageModel extends LargeLanguageModel {
 		const modelCredentials = copilotModel.options as QWenModelCredentials
 
 		const model = copilotModel.model
-		const fields = {
-			...params,
-			model,
-			streaming: modelCredentials?.streaming ?? true,
-			temperature: modelCredentials?.temperature ?? 0,
-			maxTokens: modelCredentials?.max_tokens,
-			topP: modelCredentials?.top_p,
-			frequencyPenalty: modelCredentials?.frequency_penalty,
-			maxRetries: modelCredentials?.maxRetries,
-			streamUsage: false
-		}
-		return new ChatOpenAI({
+		const fields = omitBy(
+			{
+				...params,
+				model,
+				streaming: modelCredentials?.streaming ?? true,
+				temperature: modelCredentials?.temperature ?? 0,
+				maxTokens: modelCredentials?.max_tokens,
+				topP: modelCredentials?.top_p,
+				frequencyPenalty: modelCredentials?.frequency_penalty,
+				maxRetries: modelCredentials?.maxRetries,
+				// enable_thinking: modelCredentials?.enable_thinking,
+				modelKwargs: omitBy(
+					{
+						enable_thinking: modelCredentials?.enable_thinking,
+						thinking_budget: modelCredentials?.thinking_budget,
+						enable_search: modelCredentials?.enable_search
+					},
+					isNil
+				),
+				streamUsage: false
+			},
+			isNil
+		)
+		return new ChatTongyi({
 			...fields,
 			callbacks: [
 				...this.createHandleUsageCallbacks(copilot, model, credentials, handleLLMTokens),
 				this.createHandleLLMErrorCallbacks(fields, this.#logger)
 			]
 		})
+	}
+}
+
+export interface ChatDeepSeekCallOptions extends ChatOpenAICallOptions {
+	headers?: Record<string, string>
+}
+
+type OpenAIRoleEnum = 'system' | 'developer' | 'assistant' | 'user' | 'function' | 'tool'
+
+export class ChatTongyi extends ChatOpenAI<ChatDeepSeekCallOptions> {
+	protected override _convertOpenAIDeltaToBaseMessageChunk(
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		delta: Record<string, any>,
+		rawResponse: OpenAIClient.ChatCompletionChunk,
+		defaultRole?: OpenAIRoleEnum
+	) {
+		const messageChunk = super._convertOpenAIDeltaToBaseMessageChunk(delta, rawResponse, defaultRole)
+		messageChunk.additional_kwargs.reasoning_content = delta.reasoning_content
+		return messageChunk
+	}
+
+	protected override _convertOpenAIChatCompletionMessageToBaseMessage(
+		message: OpenAIClient.ChatCompletionMessage,
+		rawResponse: OpenAIClient.ChatCompletion
+	) {
+		const langChainMessage = super._convertOpenAIChatCompletionMessageToBaseMessage(message, rawResponse)
+		langChainMessage.additional_kwargs.reasoning_content =
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			(message as any).reasoning_content
+		return langChainMessage
 	}
 }

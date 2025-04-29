@@ -65,7 +65,10 @@ export function sumTokenUsage(output: LLMResult) {
   let tokenUsed = 0
   output.generations?.forEach((generation) => {
     generation.forEach((item) => {
-      tokenUsed += (<AIMessage>(<ChatGenerationChunk>item).message).usage_metadata.total_tokens
+      const message = (<ChatGenerationChunk>item).message as AIMessage
+      if (message.usage_metadata) {
+        tokenUsed += message.usage_metadata.total_tokens
+      }
     })
   })
   return tokenUsed
@@ -75,9 +78,12 @@ export function calcTokenUsage(output: LLMResult) {
   const tokenUsage = {promptTokens: 0, completionTokens: 0, totalTokens: 0} as TTokenUsage
   output.generations?.forEach((generation) => {
     generation.forEach((item) => {
-      tokenUsage.promptTokens += (<AIMessage>(<ChatGenerationChunk>item).message).usage_metadata.input_tokens
-      tokenUsage.completionTokens = (<AIMessage>(<ChatGenerationChunk>item).message).usage_metadata.output_tokens
-      tokenUsage.totalTokens = (<AIMessage>(<ChatGenerationChunk>item).message).usage_metadata.total_tokens
+      const message = (<ChatGenerationChunk>item).message as AIMessage
+      if (message.usage_metadata) {
+        tokenUsage.promptTokens += message.usage_metadata.input_tokens
+        tokenUsage.completionTokens = message.usage_metadata.output_tokens
+        tokenUsage.totalTokens = message.usage_metadata.total_tokens
+      }
     })
   })
   return tokenUsage
