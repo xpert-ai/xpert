@@ -8,7 +8,9 @@ import {
 	IIndicator,
 	OrderTypeEnum,
 	STATE_VARIABLE_SYS,
+	TAgentRunnableConfigurable,
 	TMessageComponent,
+	TMessageContentComponent,
 	TranslateOptions,
 	TranslationLanguageMap,
 	TStateVariable,
@@ -388,7 +390,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		return tool(
 			async (params, config: LangGraphRunnableConfig): Promise<string> => {
 				const { configurable } = config ?? {}
-				const { subscriber, language } = configurable ?? {}
+				const { language } = configurable ?? {}
 				const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 				this.logger.debug(`Execute tool '${ChatBIToolsEnum.ANSWER_QUESTION}':`, JSON.stringify(params, null, 2))
 
@@ -416,7 +418,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 						const { data, members } = await this.drawChartMessage(
 							answer as ChatAnswer,
 							{ ...context, entityType, language },
-							subscriber
+							configurable as TAgentRunnableConfigurable
 						)
 
 						// Max limit 20 members
@@ -455,8 +457,9 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		)
 	}
 
-	async drawChartMessage(answer: ChatAnswer, context: ChatBIContext, subscriber: Subscriber<MessageEvent>): Promise<any> {
+	async drawChartMessage(answer: ChatAnswer, context: ChatBIContext, configurable: TAgentRunnableConfigurable): Promise<any> {
 		const { dsCoreService, entityType, chatbi, language } = context
+		const { subscriber, agentKey, xpertName } = configurable ?? {}
 		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 
 		const lang = currentState[STATE_VARIABLE_SYS]?.language
@@ -555,8 +558,10 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 								slicers,
 								title: answer.preface,
 								// indicator
-							} as TMessageComponent
-						}
+							} as TMessageComponent,
+							xpertName,
+							agentKey
+						} as TMessageContentComponent
 					}
 				} as MessageEvent)
 			} else {
@@ -574,8 +579,10 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 								slicers,
 								title: answer.preface,
 								indicators
-							} as TMessageComponent
-						}
+							} as TMessageComponent,
+							xpertName,
+							agentKey
+						} as TMessageContentComponent
 					}
 				} as MessageEvent)
 			}
@@ -616,8 +623,6 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				// const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 				// const currentIndicators = currentState[ChatBIVariableEnum.INDICATORS] ?? []
 
-				const { subscriber } = config?.configurable ?? {}
-
 				// Checking the validity of formula
 				const { language, query } = indicator
 				if (query) {
@@ -633,7 +638,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 
 				await this.updateIndicators(dsCoreService, [_indicator])
 				// Created event
-				await this.onCreatedIndicator(subscriber, _indicator, language)
+				await this.onCreatedIndicator(_indicator, config?.configurable as TAgentRunnableConfigurable)
 
 				// Populated when a tool is called with a tool call from a model as input
 				const toolCallId = config.metadata.tool_call_id
@@ -667,7 +672,8 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 	 * @param indicator
 	 * @param language Language of current chat context
 	 */
-	async onCreatedIndicator(subscriber: Subscriber<MessageEvent>, indicator: IIndicator, language: string) {
+	async onCreatedIndicator(indicator: IIndicator, configurable: TAgentRunnableConfigurable) {
+		const { subscriber, xpertName, agentKey } = configurable ?? {}
 		subscriber.next({
 			data: {
 				type: ChatMessageTypeEnum.MESSAGE,
@@ -678,8 +684,10 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 						category: 'Dashboard',
 						type: 'NewIndicator',
 						indicator
-					} as TMessageComponent
-				}
+					} as TMessageComponent,
+					xpertName,
+					agentKey
+				} as TMessageContentComponent
 			}
 		} as MessageEvent)
 	}

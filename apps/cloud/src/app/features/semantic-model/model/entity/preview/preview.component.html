@@ -50,6 +50,7 @@
         <div id="property-modeling-rows" class="pac-cdk-drop__list flex flex-col pb-2" 
           [ngClass]="{'ngm-property-modeling__empty': !rows?.length}"
           cdkDropList
+          [cdkDropListEnterPredicate]="dropRowsPredicate"
           [cdkDropListData]="rows"
           (cdkDropListDropped)="drop($event)"
         >
@@ -92,7 +93,10 @@
         </mat-expansion-panel-header>
         <div id="property-modeling-columns" class="pac-cdk-drop__list flex flex-col pb-2"
           [ngClass]="{'ngm-property-modeling__empty': !columns?.length}"
-          cdkDropList [cdkDropListData]="columns" (cdkDropListDropped)="drop($event)"
+          cdkDropList 
+          [cdkDropListEnterPredicate]="dropRowsPredicate"
+          [cdkDropListData]="columns" 
+          (cdkDropListDropped)="drop($event)"
         >
           @for (property of columns; track i; let i = $index) {
             <ngm-property-select displayDensity="compact"
@@ -133,7 +137,10 @@
         </mat-expansion-panel-header>
         
         <div id="property-modeling-slicers" class="pac-cdk-drop__list pb-2" [ngClass]="{'ngm-property-modeling__empty': !slicers?.length}"
-          cdkDropList [cdkDropListData]="slicers" (cdkDropListDropped)="drop($event)"
+          cdkDropList 
+          [cdkDropListEnterPredicate]="dropSlicersPredicate"
+          [cdkDropListData]="slicers"
+          (cdkDropListDropped)="drop($event)"
         >
           @for (slicer of slicers$ | async; track i; let i = $index) {
             <ngm-smart-filter

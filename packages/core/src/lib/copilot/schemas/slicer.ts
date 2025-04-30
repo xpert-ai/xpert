@@ -48,6 +48,9 @@ export const TimeSlicerSchema = z.object({
   )
 })
 
+/**
+ * Try to fix the slicer formatting issues given by LLM
+ */
 export function tryFixSlicer(slicer: ISlicer, entityType: EntityType) {
   return {
     ...slicer,

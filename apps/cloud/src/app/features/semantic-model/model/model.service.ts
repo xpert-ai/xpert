@@ -42,7 +42,7 @@ import {
   TSemanticModelDraft
 } from '../../../@core'
 import { dirtyCheckWith, write } from '../store'
-import { CreateEntityDialogRetType } from './create-entity/create-entity.component'
+import { CreateEntityDialogRetType, toDimension } from './create-entity/create-entity.component'
 import {
   DEBOUNCE_TIME,
   MODEL_TYPE,
@@ -560,38 +560,12 @@ export class SemanticModelService {
     }
   )
 
-  createDimension({ name, caption, table, expression, primaryKey, columns }: CreateEntityDialogRetType) {
-    const id = uuid()
-    const dimension = {
-      __id__: id,
-      name: name,
-      caption,
-      expression,
-      hierarchies: [
-        {
-          __id__: uuid(),
-          caption,
-          hasAll: true,
-          primaryKey,
-          tables: [
-            {
-              name: table
-            }
-          ],
-          levels:
-            columns?.map((column) => ({
-              __id__: uuid(),
-              name: column.name,
-              caption: column.caption,
-              column: column.name
-            })) ?? []
-        }
-      ]
-    } as PropertyDimension
+  createDimension(entity: CreateEntityDialogRetType) {
+    const dimension = toDimension(entity) as PropertyDimension
     const state = {
       type: SemanticModelEntityType.DIMENSION,
-      id,
-      name: name,
+      id: dimension.__id__,
+      name: dimension.name,
       dimension,
       dirty: true
     } as ModelDimensionState

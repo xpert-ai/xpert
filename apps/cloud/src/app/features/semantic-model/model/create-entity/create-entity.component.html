@@ -16,15 +16,11 @@
         {{ 'PAC.MODEL.CREATE_ENTITY.TYPE' | translate: { Default: 'Type' } }}
       </label>
       <mat-button-toggle-group name="entityType" formControlName="type" ngmAppearance="outline" color="accent" displayDensity="compact">
-        <mat-button-toggle [value]="SemanticModelEntityType.CUBE">
-          {{ 'PAC.MODEL.CREATE_ENTITY.CUBE' | translate: { Default: 'Cube' } }}
-        </mat-button-toggle>
-        <mat-button-toggle [value]="SemanticModelEntityType.DIMENSION">
-          {{ 'PAC.MODEL.CREATE_ENTITY.DIMENSION' | translate: { Default: 'Dimension' } }}
-        </mat-button-toggle>
-        <mat-button-toggle *ngIf="modelType===MODEL_TYPE.OLAP" [value]="SemanticModelEntityType.VirtualCube">
-          {{ 'PAC.MODEL.CREATE_ENTITY.VirtualCube' | translate: { Default: 'Virtual Cube' } }}
-        </mat-button-toggle>
+        @for (type of types(); track type) {
+          <mat-button-toggle [value]="type">
+            {{ ('PAC.MODEL.CREATE_ENTITY.' + type) | translate: { Default: type } }}
+          </mat-button-toggle>
+        }
       </mat-button-toggle-group>
     </div>
 
@@ -57,6 +53,24 @@
         </mat-option>
       </mat-autocomplete>
     </mat-form-field>
+
+    @if (type.value === SemanticModelEntityType.DIMENSION && factFields()?.length) {
+      <mat-form-field appearance="fill" color="accent">
+        <mat-label>{{ 'PAC.MODEL.CREATE_ENTITY.ForeignKeyOfFact' | translate: { Default: 'Foreign key of fact table' } }}</mat-label>
+        <input [placeholder]=" 'PAC.MODEL.CREATE_ENTITY.PickForeignKeyField' | translate: { Default: 'Pick foreign key field' } "
+               matInput
+               [matAutocomplete]="auto"
+               formControlName="foreignKey"
+               >
+        <mat-autocomplete #auto="matAutocomplete" displayDensity="compact" class="ngm-density__compact">
+          @for (option of factFields(); track option.value) {
+            <mat-option [value]="option.value">
+              <ngm-display-behaviour [option]="option" displayBehaviour="descriptionAndId" />
+            </mat-option>
+          }
+        </mat-autocomplete>
+      </mat-form-field>
+    }
 
     <button type="submit"></button>
   </form>
@@ -150,7 +164,7 @@
       </div>
       <div class="overflow-auto">
         <mat-list role="list" cdkDropList (cdkDropListDropped)="drop($event)">
-          <mat-list-item *ngFor="let column of columns" cdkDrag
+          <mat-list-item *ngFor="let column of columns" cdkDrag cdkDragLockAxis="y"
             role="listitem" class="group rounded-lg">
             <div class="w-full h-full flex items-center">
               <mat-checkbox class="group-hover:opacity-100" style="line-height: 1;"

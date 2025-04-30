@@ -4,13 +4,13 @@
   <button type="button" class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
     (click)="close.emit()">
     <i class="ri-close-line"></i>
-  </button>  
+  </button>
 </div>
 
 <div class="flex items-center gap-2 px-2 py-1" displayDensity="compact">
   @if (isSQLSource()) {
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
-      [matTooltip]=" 'PAC.MODEL.ENTITY.OnekeyGenerateModel' | translate: {Default: 'One-key generate model by table fields'} "
+      [matTooltip]=" 'PAC.MODEL.ENTITY.OnekeyGenerateModel' | translate: {Default: 'Generate a model based on table field division, which will overwrite existing information'} "
       matTooltipPosition="above"
       [disabled]="visibleEmpty()"
       (click)="generate()">
@@ -19,12 +19,12 @@
     </button>
 
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
-      [matTooltip]=" 'PAC.MODEL.ENTITY.CreateDimension' | translate: {Default: 'Create dimension'}"
+      [matTooltip]=" 'PAC.MODEL.ENTITY.CreateOneDimensionTip' | translate: {Default: 'Create different levels of a dimension with the selected fields, organized in top-to-bottom order'}"
       matTooltipPosition="above"
       [disabled]="visibleEmpty()"
       (click)="createDimension()">
       <i class="ri-hashtag mr-1"></i>
-      <span>{{ 'PAC.MODEL.ENTITY.CreateDimension' | translate: {Default: "Create an dimension"} }}</span>
+      <span>{{ 'PAC.MODEL.ENTITY.CreateOneDimension' | translate: {Default: "Create one dimension"} }}</span>
     </button>
   }
 

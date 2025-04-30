@@ -1,4 +1,4 @@
-import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop'
+import { CdkDrag, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, ViewChild } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
@@ -18,6 +18,7 @@ import { BehaviorSubject, combineLatest, filter, from, map, of, switchMap } from
 import { SemanticModelService } from '../../model.service'
 import { ModelEntityService } from '../entity.service'
 import { getDropProperty } from '../types'
+import { CdkDragDropContainers } from '../../types'
 
 @Component({
   standalone: true,
@@ -257,6 +258,22 @@ export class ModelEntityPreviewComponent {
     } else if (type === 'rows') {
       this.rows = [...this.rows, {}]
     }
+  }
+
+  dropRowsPredicate(item: CdkDrag<any>) {
+    return (
+      // dimensions
+      item.dropContainer.id === CdkDragDropContainers.Dimensions ||
+      item.dropContainer.id === CdkDragDropContainers.Measures ||
+      item.dropContainer.id === CdkDragDropContainers.CalculatedMembers
+    )
+  }
+
+  dropSlicersPredicate(item: CdkDrag<any>) {
+    return (
+      // dimensions
+      item.dropContainer.id === CdkDragDropContainers.Dimensions
+    )
   }
 
   drop(event: CdkDragDrop<unknown[]>) {

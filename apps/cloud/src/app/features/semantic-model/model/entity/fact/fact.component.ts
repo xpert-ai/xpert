@@ -15,7 +15,7 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { nonBlank } from '@metad/core'
-import { NgmCommonModule, SplitterType } from '@metad/ocap-angular/common'
+import { injectConfirmOptions, NgmCommonModule, SplitterType } from '@metad/ocap-angular/common'
 import { effectAction } from '@metad/ocap-angular/core'
 import { NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
 import {
@@ -46,6 +46,8 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { Dialog } from '@angular/cdk/dialog'
+import { injectI18nService } from '@cloud/app/@shared/i18n'
 
 
 @Component({
@@ -76,6 +78,8 @@ export class ModelCubeFactComponent {
   private readonly _destroyRef = inject(DestroyRef)
   readonly #logger = inject(NGXLogger)
   readonly injector = inject(Injector)
+  readonly confirmOptions = injectConfirmOptions()
+  readonly i18n = injectI18nService()
 
   // Outputs
   readonly close = output<void>()
@@ -282,34 +286,62 @@ export class ModelCubeFactComponent {
     this.entityService.tableMeasures.set(this.measures())
   }
 
-  async createDimension() {
+  createDimension() {
     const levels = this.dimensions().filter((item) => item.visible)
-    // Add new dimension using fields as levels
-    this.entityService.addDimension({
-      __id__: uuid(),
-      name: '',
-      hierarchies: [
+    this.confirmOptions<{name: string; caption: string;}>({
+      information: this.i18n.translate('PAC.MODEL.ENTITY.CreateDimension', {Default: 'Create an dimension'}),
+      formFields: [
         {
-          __id__: uuid(),
-          name: '',
-          hasAll: true,
-          levels: levels.map((property) => ({
-            __id__: uuid(),
-            name: property.name,
-            caption: property.caption,
-            column: property.name
-          }))
+          key: 'name',
+          type: 'input',
+          defaultValue: levels.length === 1 ? levels[0].name : '',
+          props: {
+            label: this.i18n.translate('PAC.KEY_WORDS.Name', {Default: 'Name'}),
+            required: true
+          }
+        },
+        {
+          key: 'caption',
+          type: 'input',
+          defaultValue: levels.length === 1 ? levels[0].caption : '',
+          props: {
+            label: this.i18n.translate('PAC.KEY_WORDS.Caption', {Default: 'Caption'}),
+          }
         }
       ]
+    }).subscribe({
+      next: (value) => {
+        if (value) {
+          // Add new dimension using fields as levels
+          this.entityService.addDimension({
+            __id__: uuid(),
+            name: value.name,
+            caption: value.caption,
+            hierarchies: [
+              {
+                __id__: uuid(),
+                name: '',
+                hasAll: true,
+                levels: levels.map((property) => ({
+                  __id__: uuid(),
+                  name: property.name,
+                  caption: property.caption,
+                  column: property.name
+                }))
+              }
+            ]
+          })
+          // Deselect all fields
+          this.toggleVisibleAll(false)
+          // Emit dimension created event
+          this.entityService.event$.next({ type: 'dimension-created' })
+        }
+      }
     })
-    // Deselect all fields
-    this.toggleVisibleAll(false)
-    // Emit dimension created event
-    this.entityService.event$.next({ type: 'dimension-created' })
   }
 
   /**
-   * 从 XMLA 数据源同步 Cube 定义到本地 Schema 以便进行增强
+   * Synchronize Cube definitions from XMLA data sources to local schema for enhancement
    */
   async sync() {
     if (!(await this.confirmOverwriteCube())) {

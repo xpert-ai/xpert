@@ -222,6 +222,11 @@ export function tryFixChartType(chartType: string) {
 	return null
 }
 
+/**
+ * Try to fix the formatting issues:
+ * - `[Sales Amount]`
+ * - `[Measures].[Sales Amount]`
+ */
 export function fixMeasure(measure: ChartMeasure, entityType: EntityType) {
 	return {
 		...tryFixDimension(measure, entityType),

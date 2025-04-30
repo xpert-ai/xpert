@@ -112,7 +112,7 @@ export function convertSchemaToXmla(model: ISemanticModel, schema: Schema): MDX.
 				})),
 				Dimension: cube.dimensions?.map(convertDimensionToXmla),
 				Measure: cube.measures?.map(convertMeasureToXmla),
-				CalculatedMember: cube.calculatedMembers?.map(convertCalculatedMemberToXmla)
+				CalculatedMember: cube.calculatedMembers?.filter((_) => _.name && _.formula).map(convertCalculatedMemberToXmla)
 			} as MDX.Cube
 		}),
 		VirtualCube: schema.virtualCubes?.map((virtualCube) => ({
@@ -126,7 +126,7 @@ export function convertSchemaToXmla(model: ISemanticModel, schema: Schema): MDX.
 				cubeName: virtualCubeDimension.__shared__ ? null : virtualCubeDimension.cubeName
 			})),
 			VirtualCubeMeasure: virtualCube.virtualCubeMeasures,
-			CalculatedMember: virtualCube.calculatedMembers?.map((item) => ({
+			CalculatedMember: virtualCube.calculatedMembers?.filter((_) => _.name && _.formula).map((item) => ({
 				...omit(item, ['formula']),
 				Formula: item.formula
 			}))

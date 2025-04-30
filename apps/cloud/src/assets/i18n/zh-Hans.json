@@ -995,6 +995,8 @@
       },
       "CREATE_ENTITY": {
         "CREATE_ENTITY": "创建模型实体",
+        "ForeignKeyOfFact": "事实表的外键",
+        "PickForeignKeyField": "选择外键字段",
         "TYPE": "类型",
         "SELECT_TYPE": "选择类型",
         "CUBE": "多维数据集",
@@ -1013,7 +1015,9 @@
         "AssociatedDimension": "关联维度",
         "PrimaryKey": "主键",
         "Visible": "可见",
-        "Caption": "标签"
+        "Caption": "标签",
+        "FactForeignKey": "事实表外键",
+        "SelectForeignKeyForDimension": "为关联维度选择对应的事实表外键"
       },
       "CREATE_TABLE": {
         "TITLE": "添加表",
@@ -1045,7 +1049,7 @@
         "RightKey": "右键",
         "Equal": "等于",
         "OnekeyGeneration": "一键生成",
-        "OnekeyGenerateModel": "根据表字段划分一键生成模型",
+        "OnekeyGenerateModel": "根据表字段划分生成模型, 将覆盖已有信息",
         "SourceFields": "源字段",
         "OnekeySync": "一键同步",
         "OnekeySyncModel": "根据源模型定义一键同步模型",
@@ -1055,6 +1059,8 @@
         "PleaseSelectFields": "请选择字段！",
         "CubeNotFound": "多维数据集未找到！",
         "CreateDimension": "创建维度",
+        "CreateOneDimension": "创建成一个维度",
+        "CreateOneDimensionTip": "将所选字段创建成一个维度的不同层级，层级按上下顺序组织",
         "CubeStructure": "立方体结构",
         "DragDimensionHere": "拖动维度至此",
         "DragMeasureHere": "拖动度量至此",

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { OrderDirection } from '../../orderby'
 import { C_MEASURES, Dimension, isDimension, isMeasure, Measure } from '../../types'
-import { AggregationRole, EntityType, getEntityProperty2 } from '../../models'
+import { AggregationRole, EntityType, getEntityProperty2, unwrapBrackets } from '../../models'
 import { omit } from '../../utils'
 
 export const DataSettingsSchema = z.object({
@@ -102,6 +102,11 @@ export function tryFixDimension(dimension: Dimension | Measure, entityType: Enti
     }
   } else {
     property = getEntityProperty2(entityType, dimension)
+    // Fix meausure name format
+    if (!property && dimension.measure) {
+      const name = unwrapBrackets(dimension.measure.replace('[Measures].', ''))
+      property = getEntityProperty2(entityType, name)
+    }
   }
 
   const _dimension = omit(dimension, 'level', 'hierarchy', 'dimension')

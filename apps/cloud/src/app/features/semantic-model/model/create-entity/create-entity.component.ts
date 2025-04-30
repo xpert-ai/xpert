@@ -1,14 +1,16 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
-import { Component, Inject, effect, inject } from '@angular/core'
+import { Component, Inject, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { AbstractControl, FormControl, FormGroup, ValidatorFn, Validators } from '@angular/forms'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { nonNullable } from '@metad/core'
-import { AggregationRole, Cube, DBTable, Property } from '@metad/ocap-core'
+import { AggregationRole, Cube, DBTable, isNil, omitBy, Property, PropertyDimension } from '@metad/ocap-core'
 import { of } from 'rxjs'
 import { debounceTime, distinctUntilChanged, map, startWith, switchMap, tap } from 'rxjs/operators'
 import { SemanticModelService } from '../model.service'
 import { MODEL_TYPE, SemanticModelEntityType } from '../types'
+import { uuid } from '@cloud/app/@core'
+import { ISelectOption } from '@metad/ocap-angular/core'
 
 export type CreateEntityColumnType = {
   name: string
@@ -29,8 +31,20 @@ export type CreateEntityDialogDataType = {
     table?: string
     caption?: string
   }
+  /**
+   * provide selectable tables
+   */
   entitySets?: DBTable[]
   modelType?: MODEL_TYPE
+  type?: SemanticModelEntityType
+  /**
+   * Provide selectable types
+   */
+  types?: SemanticModelEntityType[]
+  /**
+   * Field list of fact table, to pick one for inline dimension
+   */
+  factFields?: ISelectOption[]
 }
 
 export type CreateEntityDialogRetType = {
@@ -38,6 +52,7 @@ export type CreateEntityDialogRetType = {
   name: string
   caption: string
   table: string
+  foreignKey: string
 
   expression: string
   primaryKey: string
@@ -70,12 +85,24 @@ export class ModelCreateEntityComponent {
     type: this.type,
     name: this.name,
     caption: new FormControl('', [Validators.required]),
-    table: this.table
+    table: this.table,
+    foreignKey: new FormControl()
   })
 
   expression: string
   // 加载中
   loading = false
+
+  readonly types = signal(this.data.types ?? (this.data.modelType===MODEL_TYPE.OLAP ? [
+    SemanticModelEntityType.CUBE,
+    SemanticModelEntityType.DIMENSION,
+    SemanticModelEntityType.VirtualCube
+  ] : [
+    SemanticModelEntityType.CUBE,
+    SemanticModelEntityType.DIMENSION,
+  ]))
+
+  readonly factFields = signal(this.data.factFields)
 
   private readonly tableName$ = this.table.valueChanges.pipe(
     startWith(this.data.model?.table),
@@ -117,7 +144,7 @@ export class ModelCreateEntityComponent {
       name: this.data.model?.name,
       table: this.data.model?.table,
       caption: this.data.model?.caption,
-      type: null
+      type: this.data.type ?? null
     }
     if (this.modelType === MODEL_TYPE.XMLA) {
       initValue.type = SemanticModelEntityType.CUBE
@@ -223,4 +250,36 @@ export class ModelCreateEntityComponent {
       cubes: this.cubes
     })
   }
+}
+
+export function toDimension({ name, caption, table, expression, primaryKey, columns, foreignKey }: CreateEntityDialogRetType) {
+  const id = uuid()
+  const dimension = {
+    __id__: id,
+    name: name,
+    caption,
+    foreignKey,
+    expression,
+    hierarchies: [
+      {
+        __id__: uuid(),
+        caption,
+        hasAll: true,
+        primaryKey,
+        tables: [
+          {
+            name: table
+          }
+        ],
+        levels:
+          columns?.map((column) => ({
+            __id__: uuid(),
+            name: column.name,
+            caption: column.caption,
+            column: column.name
+          })) ?? []
+      }
+    ]
+  } as PropertyDimension
+  return omitBy(dimension, isNil)
 }
