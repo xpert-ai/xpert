@@ -124,6 +124,7 @@ export function createMapStreamEvents(
 							return chunk
 						}
 
+						// Reasoning content in additional_kwargs
 						if (msg.additional_kwargs?.reasoning_content) {
 							const chunk = {
 								type: "reasoning",

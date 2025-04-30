@@ -781,7 +781,14 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 								messages: _messages
 							}
 						},
-						{ ...config, configurable: { ...config.configurable, agentKey: '' } }
+						{ 
+							...config, 
+							configurable: { 
+								...config.configurable, 
+								agentKey: '', // In the general agent, messages do not distinguish between Agents but only between Xperts.
+								xpertName: xpert.name 
+							}
+						}
 					)
 
 					let { messages } = output

@@ -152,6 +152,8 @@ export type TMessageContentComponent = {
   id: string
   type: 'component'
   data: TMessageComponent
+  xpertName?: string
+  agentKey?: string;
 }
 
 /**

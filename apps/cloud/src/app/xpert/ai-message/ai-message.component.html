@@ -7,214 +7,45 @@
 
   <!-- executions -->
   @if (showExecution()) {
-  <div class="relative rounded-xl border border-solid border-teal-800 p-2 bg-gray-50">
-    <div class="flex items-center leading-[18px] text-sm text-gray-500 uppercase">
-      <div class="flex items-center cursor-pointer pressable rounded-md hover:bg-hover-bg"
-        (click)="expandExecutions.set(!expandExecutions())">
-        @if (expandExecutions()) {
-          <i class="ri-arrow-down-s-line"></i>
-        } @else {
-          <i class="ri-arrow-right-s-line"></i>
-        }
-        <div class="mr-3 font-semibold">{{'PAC.Xpert.Executions' | translate: {Default: 'Executions'} }}</div>
+    <div class="relative rounded-xl border border-solid border-teal-800 p-2 bg-gray-50">
+      <div class="flex items-center leading-[18px] text-sm text-gray-500 uppercase">
+        <div class="flex items-center cursor-pointer pressable rounded-md hover:bg-hover-bg"
+          (click)="expandExecutions.set(!expandExecutions())">
+          @if (expandExecutions()) {
+            <i class="ri-arrow-down-s-line"></i>
+          } @else {
+            <i class="ri-arrow-right-s-line"></i>
+          }
+          <div class="mr-3 font-semibold">{{'PAC.Xpert.Executions' | translate: {Default: 'Executions'} }}</div>
+        </div>
       </div>
-    </div>
 
-    @if (expandExecutions()) {
-      @if (loadingExecutions()) {
-        <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+      @if (expandExecutions()) {
+        @if (loadingExecutions()) {
+          <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+        }
+        @for (execution of executions$ | async; track execution.id) {
+          <chat-message-execution [execution]="execution" class="p-1 bg-components-card-bg border border-solid border-divider-regular rounded-xl mb-1" />
+        }
+      } @else {
+        @for (execution of executings(); track execution.id) {
+          <chat-message-execution [execution]="execution" class="p-1 bg-components-card-bg border border-solid border-divider-regular rounded-xl mb-1" />
+        }
       }
-      @for (execution of executions$ | async; track execution.id) {
-        <chat-message-execution [execution]="execution" class="p-1 bg-components-card-bg border border-solid border-divider-regular rounded-xl mb-1" />
-      }
-    } @else {
-      @for (execution of executings(); track execution.id) {
-        <chat-message-execution [execution]="execution" class="p-1 bg-components-card-bg border border-solid border-divider-regular rounded-xl mb-1" />
-      }
-    }
-  </div>
+    </div>
   }
 
   @if (reasoning()) {
     <chat-thought [message]="message()" 
-      class="top-20 left-0 border-2 border-gray-200 rounded-3xl overflow-clip bg-surface-container"
+      class="border-2 border-gray-200 rounded-3xl mb-4 overflow-clip bg-surface-container"
       [class.reasoning]="status() === 'reasoning'"
     />
   }
 
-  <!-- @deprecated use contents -->
-  @if (messageGroup(); as group) {
-    @for (message of group.messages; track message) {
-      @switch (message.role) {
-        @case ('system') {
-          <div class="flex flex-col p-2 rounded-lg text-token-text-secondary bg-token-main-surface-low">
-            <div class="flex justify-start items-center">
-              @if (message.status === 'thinking') {
-                <ngm-spin />
-              }
-              <span class="flex-1">
-                @if (message.status === 'aborted') {
-                  {{ 'PAC.KEY_WORDS.Aborted' | translate: {Default: 'Aborted'} }}!
-                } @else if(message.status === 'thinking') {
-                  {{ 'PAC.Chat.RetrievingDocuments' | translate: {Default: 'Retrieving documents'} }}...
-                } @else {
-                  {{ 'PAC.Chat.RetrievedDocuments' | translate: {
-                      Default: 'Retrieved ' + ($any(message.data)?.length ?? 0) + ' relevant document chunks',
-                      value: $any(message.data)?.length ?? 0
-                    } }}
-                }
-              </span>
-
-              <span class="p-1 rounded-md cursor-pointer active:scale-95 transition-transform
-                hover:bg-black/5 dark:hover:bg-white/10"
-                (click)="message.expanded = !message.expanded">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
-                  class="icon-md text-token-text-tertiary transition-transform"
-                  [class.rotate-180]="message.expanded"
-                >
-                  <path fill-rule="evenodd" clip-rule="evenodd" d="M5.29289 9.29289C5.68342 8.90237 6.31658 8.90237 6.70711 9.29289L12 14.5858L17.2929 9.29289C17.6834 8.90237 18.3166 8.90237 18.7071 9.29289C19.0976 9.68342 19.0976 10.3166 18.7071 10.7071L12.7071 16.7071C12.5196 16.8946 12.2652 17 12 17C11.7348 17 11.4804 16.8946 11.2929 16.7071L5.29289 10.7071C4.90237 10.3166 4.90237 9.68342 5.29289 9.29289Z" fill="currentColor"></path></svg>
-              </span>
-            </div>
-
-            @if (message.expanded) {
-              <div class="flex flex-col text-sm py-2">
-                @for (item of message.data; track $index) {
-                  <p class="px-2 rounded-md hover:bg-black/5 dark:hover:bg-white/10">
-                    <markdown class="ngm-copilot-markdown"
-                      lineNumbers
-                      [start]="5"
-                      [data]="item.doc.pageContent"
-                    />
-                  </p>
-                }
-              </div>
-            }
-          </div>
-        }
-        @case ('tool') {
-          <div class="flex flex-col p-2 rounded-lg text-token-text-secondary bg-token-main-surface-low">
-            <div class="flex justify-start items-center">
-              @if (message.status === 'thinking') {
-                <ngm-spin />
-              }
-              {{message.name}}
-
-              <span class="flex-1">
-                @if (message.status === 'aborted') {
-                  {{ 'PAC.KEY_WORDS.Aborted' | translate: {Default: 'Aborted'} }}!
-                } @else {
-                  {{message.content}}
-                }
-              </span>
-              <span class="p-1 rounded-md cursor-pointer active:scale-95 transition-transform
-               hover:bg-black/5 dark:hover:bg-white/10"
-                (click)="message.expanded = !message.expanded">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
-                  class="icon-md text-token-text-tertiary transition-transform"
-                  [class.rotate-180]="message.expanded"
-                >
-                  <path fill-rule="evenodd" clip-rule="evenodd" d="M5.29289 9.29289C5.68342 8.90237 6.31658 8.90237 6.70711 9.29289L12 14.5858L17.2929 9.29289C17.6834 8.90237 18.3166 8.90237 18.7071 9.29289C19.0976 9.68342 19.0976 10.3166 18.7071 10.7071L12.7071 16.7071C12.5196 16.8946 12.2652 17 12 17C11.7348 17 11.4804 16.8946 11.2929 16.7071L5.29289 10.7071C4.90237 10.3166 4.90237 9.68342 5.29289 9.29289Z" fill="currentColor"></path></svg>
-              </span>
-            </div>
-            @if (message.expanded) {
-              <div class="flex flex-col text-sm py-2">
-                @for (item of message.messages; track $index) {
-                  <p class="px-2 rounded-md hover:bg-black/5 dark:hover:bg-white/10">
-                    <markdown class="ngm-copilot-markdown"
-                      lineNumbers
-                      [start]="5"
-                      [data]="item.content"
-                    />
-                  </p>
-                }
-              </div>
-            }
-          </div>
-        }
-        @case ('component') {
-          <chat-component-message [message]="message" class="w-full"
-            (register)="onRegister($event)"
-          />
-        }
-      }
-    }
+  @for (submessage of contents(); track submessage; let i = $index; let last = $last) {
+    <chat-message-content [prevContent]="contents()[i - 1]" [message]="message()" [content]="submessage" [last]="last"/>
   }
 
-  @if (contents(); as messages) {
-    @for (submessage of messages; track submessage; let i = $index; let last = $last) {
-      <div class="relative">
-        @if (submessage.agentKey && agents()[submessage.agentKey]; as agent) {
-          <div class="group flex items-center gap-2 py-2 px-1 sticky top-14 z-10 bg-surface-container">
-            @if (submessage.id) {
-              <button type="button" class="absolute left-2 w-6 h-6 flex justify-center items-center rounded-lg z-10 transition-opacity bg-white/2 backdrop-blur-sm opacity-0 group-hover:opacity-100"
-                (click)="toggleCollapseMessage(submessage)">
-                @if (collapseMessages()[submessage.id]) {
-                  <i class="ri-arrow-right-s-line"></i>
-                } @else {
-                  <i class="ri-arrow-down-s-line"></i>
-                }
-              </button>
-            }
-            <emoji-avatar [avatar]="agent.avatar" small class="rounded-xl overflow-hidden" />
-            <div class="font-semibold">{{agent.title || agent.name || agent.key}}</div>
-          </div>
-        }
-        @if (submessage.xpertName && xperts()[submessage.xpertName]; as xpert) {
-          <div class="group flex items-center gap-2 py-2 px-1 sticky top-14 z-10 bg-surface-container">
-            @if (submessage.id) {
-              <button type="button" class="absolute left-2 w-6 h-6 flex justify-center items-center rounded-lg z-10 transition-opacity bg-white/2 backdrop-blur-sm opacity-0 group-hover:opacity-100"
-                (click)="toggleCollapseMessage(submessage)">
-                @if (collapseMessages()[submessage.id]) {
-                  <i class="ri-arrow-right-s-line"></i>
-                } @else {
-                  <i class="ri-arrow-down-s-line"></i>
-                }
-              </button>
-            }
-            <emoji-avatar [avatar]="xpert.avatar" small class="rounded-xl overflow-hidden" />
-            <div class="font-semibold">{{xpert.title || xpert.name || xpert.slug}}</div>
-          </div>
-        }
-
-        @switch (submessage.type) {
-          @case ('text') {
-            @if (submessage.id && collapseMessages()[submessage.id]) {
-              <div class="truncate">{{submessage.text}}</div>
-            } @else {
-              <div class="group/content relative w-full mt-2">
-                <markdown clipboard class="ngm-copilot-markdown flex-1"
-                  [clipboardButtonTemplate]="buttonTemplate"
-                  lineNumbers
-                  [start]="5"
-                  [data]="submessage.text"
-                />
-                
-                <div class="absolute -top-3 right-4 flex items-center gap-2 text-sm text-text-secondary opacity-0 group-hover/content:opacity-100 transition-opacity duration-100">
-                  <copy2 [content]="submessage.text" class="pressable" />
-                  <span>{{submessage.created_date | relative}}</span>
-                </div>
-              </div>
-            }
-
-            @if (!last && submessage.agentKey && !collapseMessages()[submessage.id]) {
-              <hr class="mt-8 mb-4 border-t border-solid border-divider-deep">
-            }
-          }
-          @case ('reasoning') {
-            <!-- <chat-thought [message]="message()" [content]="submessage" /> -->
-          }
-          @case ('component') {
-            <chat-component-message class="group/ccm w-full p-2 rounded-2xl z-0 hover:bg-neutral-50"
-              [messageId]="message().id"
-              [message]="submessage"
-              (register)="onRegister($event)"
-            />
-          }
-        }
-      </div>
-    }
-  }
-  
   @if (contentStr()) {
     <markdown clipboard class="ngm-copilot-markdown flex-1"
       [clipboardButtonTemplate]="buttonTemplate"

@@ -1,7 +1,7 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Dialog } from '@angular/cdk/dialog'
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -31,21 +31,18 @@ import {
   getErrorMessage,
   IChatMessage,
   injectToastr,
-  isMessageGroup,
-  TMessageContentComplex,
   XpertAgentExecutionService,
   XpertAgentExecutionStatusEnum
 } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar'
 import { ChatMessageExecutionComponent, ChatMessageExecutionPanelComponent } from '../../@shared/chat'
-import { Copy2Component, CopyComponent } from '../../@shared/common'
+import { CopyComponent } from '../../@shared/common'
 import { ChatService } from '../chat.service'
-import { ChatComponentMessageComponent } from '../component-message/component-message.component'
 import { XpertHomeService } from '../home.service'
 import { XpertOcapService } from '../ocap.service'
-import { TCopilotChatMessage } from '../types'
 import { ChatThoughtComponent } from '../thought/thought.component'
-
+import { TCopilotChatMessage } from '../types'
+import { ChatMessageContentComponent } from './content/content.component'
 
 @Component({
   standalone: true,
@@ -62,11 +59,10 @@ import { ChatThoughtComponent } from '../thought/thought.component'
     MatTooltipModule,
     NgmCommonModule,
     EmojiAvatarComponent,
-    ChatComponentMessageComponent,
     ChatMessageExecutionComponent,
     CopyComponent,
     DateRelativePipe,
-    Copy2Component,
+    ChatMessageContentComponent,
     ChatThoughtComponent
   ],
   selector: 'pac-ai-message',
@@ -78,7 +74,7 @@ import { ChatThoughtComponent } from '../thought/thought.component'
 export class ChatAiMessageComponent {
   eFeedbackRatingEnum = ChatMessageFeedbackRatingEnum
   eChatMessageStepCategory = ChatMessageStepCategory
-  
+
   readonly chatService = inject(ChatService)
   readonly homeService = inject(XpertHomeService)
   readonly xpertOcapService = inject(XpertOcapService)
@@ -96,16 +92,16 @@ export class ChatAiMessageComponent {
   // States
   readonly xpert = this.chatService.xpert
   readonly project = this.chatService.project
-  readonly avatar = computed(() => this.xpert() ? this.xpert().avatar : this.project()?.avatar)
-  readonly title = computed(() => this.xpert() ? this.xpert().title || this.xpert().name : this.project()?.name)
+  readonly avatar = computed(() => (this.xpert() ? this.xpert().avatar : this.project()?.avatar))
+  readonly title = computed(() => (this.xpert() ? this.xpert().title || this.xpert().name : this.project()?.name))
   readonly feedbacks = this.chatService.feedbacks
   readonly executionId = computed(() => this.message()?.executionId)
   readonly status = computed(() => this.message()?.status)
   readonly answering = computed(() => this.chatService.answering() && ['thinking', 'answering'].includes(this.status()))
-  readonly xperts = computed(() => this.project()?.xperts?.reduce((items, xpert) => {
-    items[xpert.name] = xpert
-    return items
-  }, {}) ?? {})
+  // readonly xperts = computed(() => this.project()?.xperts?.reduce((items, xpert) => {
+  //   items[xpert.name] = xpert
+  //   return items
+  // }, {}) ?? {})
 
   readonly #contentStr = computed(() => {
     const content = this.message()?.content
@@ -138,10 +134,10 @@ export class ChatAiMessageComponent {
     return null
   })
 
-  readonly messageGroup = computed(() => {
-    const message = this.message()
-    return isMessageGroup(message as any) ? (message as any) : null
-  })
+  // readonly messageGroup = computed(() => {
+  //   const message = this.message()
+  //   return isMessageGroup(message as any) ? (message as any) : null
+  // })
 
   readonly contentString = computed(() => stringifyMessageContent(this.message().content))
 
@@ -189,20 +185,9 @@ export class ChatAiMessageComponent {
   )
   readonly canvasType = computed(() => this.homeService.canvasOpened()?.type)
 
-  // Agents
-  readonly conversation = this.chatService.conversation
-  readonly agents = computed(
-    () =>
-      this.xpert()?.agents?.reduce((acc, agent) => {
-        acc[agent.key] = agent
-        return acc
-      }, {}) ?? {}
-  )
-  readonly collapseMessages = signal<Record<string, boolean>>({})
-
   constructor() {
     effect(() => {
-      // console.log(this.xperts(), this.contents())
+      // console.log(`reasoning:`, this.reasoning(),)
     })
   }
 
@@ -269,23 +254,17 @@ export class ChatAiMessageComponent {
     })
   }
 
-  toggleCollapseMessage(message: TMessageContentComplex) {
-    if (message.type === 'text') {
-      this.collapseMessages.update((state) => ({ ...state, [message.id]: !state[message.id] }))
-    }
-  }
-
   openLogs() {
-    this.#dialog.open(ChatMessageExecutionPanelComponent, {
-      panelClass: 'chat-message-executions-dialog',
-      data: {
-        id: this.message().executionId,
-        xpert: this.xpert()
-      }
-    }).closed.subscribe({
-      next: () => {
-        
-      }
-    })
+    this.#dialog
+      .open(ChatMessageExecutionPanelComponent, {
+        panelClass: 'chat-message-executions-dialog',
+        data: {
+          id: this.message().executionId,
+          xpert: this.xpert()
+        }
+      })
+      .closed.subscribe({
+        next: () => {}
+      })
   }
 }

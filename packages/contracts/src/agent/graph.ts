@@ -23,6 +23,7 @@ export type TAgentRunnableConfigurable = {
   userId: string
   // Caller
   agentKey: string
+  xpertName?: string
   subscriber: Subscriber<any>
 
   signal?: AbortSignal
