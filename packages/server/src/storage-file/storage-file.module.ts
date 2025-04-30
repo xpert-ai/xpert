@@ -8,6 +8,7 @@ import { StorageFileService } from './storage-file.service';
 import { CommandHandlers } from './commands/handlers';
 import { TenantModule } from '../tenant/tenant.module';
 import { UserModule } from '../user/user.module';
+import { QueryHandlers } from './queries/handlers';
 
 @Module({
 	controllers: [
@@ -22,7 +23,8 @@ import { UserModule } from '../user/user.module';
 	],
 	providers: [
 		StorageFileService,
-		...CommandHandlers
+		...CommandHandlers,
+		...QueryHandlers
 	],
 	exports: [
 		TypeOrmModule,

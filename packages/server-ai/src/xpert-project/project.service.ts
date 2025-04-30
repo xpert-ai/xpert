@@ -1,6 +1,7 @@
-import { IUser, IXpertProject, IXpertProjectFile, IXpertProjectTask, IXpertToolset, OrderTypeEnum } from '@metad/contracts'
+import { IStorageFile, IUser, IXpertProject, IXpertProjectFile, IXpertProjectTask, IXpertToolset, OrderTypeEnum, TFile } from '@metad/contracts'
 import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Injectable, Logger } from '@nestjs/common'
+import { Document } from 'langchain/document'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Brackets, Repository } from 'typeorm'
@@ -12,6 +13,7 @@ import { XpertProjectDto } from './dto'
 import { XpertProject } from './entities/project.entity'
 import { XpertProjectTaskService } from './services/project-task.service'
 import { XpertProjectFileService } from './services'
+import { LoadStorageFileCommand } from '../shared'
 
 @Injectable()
 export class XpertProjectService extends TenantOrganizationAwareCrudService<XpertProject> {
@@ -217,18 +219,50 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 	}
 
 	async getFiles(id: string, params?: PaginationParams<IXpertProjectFile>) {
-		return this.fileService.findAll({
-			...(params ?? {}),
-			where: {
-				...(params?.where ?? {}),
-				projectId: id
-			},
-			order: { filePath: OrderTypeEnum.ASC }
-		})
+		const project = await this.findOne(id, {relations: ['files', 'attachments']})
+
+		return [...project.files, ...project.attachments.map((storageFile) => ({
+			filePath: `attachments/` + storageFile.originalName,
+			fileUrl: storageFile.fileUrl,
+			storageFileId: storageFile.id
+		} as TFile))]
 	}
 
 	async getFileByPath(projectId: string, path: string) {
+		if (path.startsWith('attachments/')) {
+			const project = await this.findOne(projectId, {relations: ['attachments']})
+			const storageFile = project.attachments.find((_) => _.originalName === path.replace(/^attachments\//, ''))
+			if (storageFile) {
+				const docs = await this.commandBus.execute<LoadStorageFileCommand, Document[]>(new LoadStorageFileCommand(storageFile.id))
+				return {
+					filePath: path,
+					fileContents: docs.map((doc) => doc.pageContent).join('\n\n'),
+					fileUrl: storageFile.fileUrl,
+					fileType: storageFile.mimetype
+				}
+			}
+		}
 		const result = await this.fileService.findOneOrFail({where: {projectId, filePath: path}})
 		return result.record
+	}
+
+	async addAttachments(id: string, files: string[]) {
+		const project = await this.findOne(id, { relations: ['attachments'] })
+		const existingAttachmentIds = new Set(project.attachments.map((attachment) => attachment.id))
+		
+		const newAttachments = files
+			.filter((fileId) => !existingAttachmentIds.has(fileId))
+			.map((fileId) => ({ id: fileId } as IStorageFile))
+		
+		project.attachments = [...project.attachments, ...newAttachments]
+		await this.repository.save(project)
+	}
+
+	async removeAttachments(id: string, files: string[]) {
+		const project = await this.findOne(id, { relations: ['attachments'] })
+		project.attachments = project.attachments.filter(
+			(attachment) => !files.includes(attachment.id)
+		)
+		await this.repository.save(project)
 	}
 }

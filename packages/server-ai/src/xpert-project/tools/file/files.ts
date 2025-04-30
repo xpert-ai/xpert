@@ -78,7 +78,6 @@ export class ProjectFileToolset extends BaseFileToolset {
 	}
 
 	async listFiles() {
-		const {items} = await this.projectService.getFiles(this.project.id)
-		return items
+		return await this.projectService.getFiles(this.project.id)
 	}
 }

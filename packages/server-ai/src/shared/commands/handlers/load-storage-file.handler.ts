@@ -1,13 +1,13 @@
 import { DocxLoader } from '@langchain/community/document_loaders/fs/docx'
 import { EPubLoader } from '@langchain/community/document_loaders/fs/epub'
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
-import { FileStorage, StorageFile, StorageFileService } from '@metad/server-core'
+import { PPTXLoader } from '@langchain/community/document_loaders/fs/pptx'
+import { FileStorage, GetStorageFileQuery, StorageFile } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
-import { TextLoader } from 'langchain/document_loaders/fs/text'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Document } from 'langchain/document'
+import { TextLoader } from 'langchain/document_loaders/fs/text'
 import { LoadStorageFileCommand } from '../load-storage-file.command'
-import { PPTXLoader } from "@langchain/community/document_loaders/fs/pptx";
 
 @CommandHandler(LoadStorageFileCommand)
 export class LoadStorageFileHandler implements ICommandHandler<LoadStorageFileCommand> {
@@ -15,13 +15,12 @@ export class LoadStorageFileHandler implements ICommandHandler<LoadStorageFileCo
 
 	constructor(
 		private readonly queryBus: QueryBus,
-		private readonly storageFileService: StorageFileService
 	) {}
 
 	public async execute(command: LoadStorageFileCommand) {
 		const { id } = command
 
-		const storageFile = await this.storageFileService.findOne(id)
+		const storageFile = await this.queryBus.execute<GetStorageFileQuery, StorageFile>(new GetStorageFileQuery(id))
 
 		const type = storageFile.originalName.split('.').pop()
 		let data: Document[]

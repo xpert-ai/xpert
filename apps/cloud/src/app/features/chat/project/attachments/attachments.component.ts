@@ -1,21 +1,30 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core'
+import { HttpEventType } from '@angular/common/http'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
-import { getErrorMessage, injectProjectService, injectToastr, IXpertProjectFile } from '@cloud/app/@core'
-import { FileIconComponent } from '@cloud/app/@shared/files'
+import {
+  getErrorMessage,
+  injectProjectService,
+  injectToastr,
+  IStorageFile,
+  IXpertProjectFile,
+  StorageFileService
+} from '@cloud/app/@core'
+import { FileIconComponent, StorageFileComponent } from '@cloud/app/@shared/files'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { FileTypePipe, linkedModel } from '@metad/core'
+import { FileTypePipe, linkedModel, NgmDndDirective } from '@metad/core'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { EMPTY } from 'rxjs'
-import { map, switchMap } from 'rxjs/operators'
+import { combineLatest, EMPTY, of } from 'rxjs'
+import { catchError, map, switchMap, tap } from 'rxjs/operators'
 import { ChatProjectHomeComponent } from '../home/home.component'
 import { ChatProjectComponent } from '../project.component'
+import { MatProgressBarModule } from '@angular/material/progress-bar'
 
 /**
  *
@@ -30,9 +39,12 @@ import { ChatProjectComponent } from '../project.component'
     CdkMenuModule,
     TranslateModule,
     MatTooltipModule,
+    MatProgressBarModule,
     NgmSpinComponent,
     FileIconComponent,
-    FileTypePipe
+    FileTypePipe,
+    NgmDndDirective,
+    StorageFileComponent
   ],
   selector: 'chat-project-attachments',
   templateUrl: './attachments.component.html',
@@ -48,6 +60,7 @@ export class ChatProjectAttachmentsComponent {
   readonly #toastr = injectToastr()
   readonly confirmDelete = injectConfirmDelete()
   readonly i18n = injectI18nService()
+  readonly storageFileService = inject(StorageFileService)
 
   readonly project = this.#projectComponent.project
 
@@ -68,9 +81,12 @@ export class ChatProjectAttachmentsComponent {
 
   readonly dataSource = computed(() => flattenTree(this.fileList()))
 
+  // Uploading
+  readonly uploadFileList = signal<{ file: File; progress?: number; error?: string; storageFile?: IStorageFile }[]>([])
+
   constructor() {
     effect(() => {
-      // console.log(this.dataSource())
+      // console.log(this.uploadFileList())
     })
   }
 
@@ -103,6 +119,40 @@ export class ChatProjectAttachmentsComponent {
           this.#toastr.error(getErrorMessage(err))
         }
       })
+  }
+
+  moveToProject(item, storageFile: IStorageFile) {
+    this.uploadFileList.update((state) => state.filter((_) => _ !== item))
+    this.loading.set(true)
+    this.projectSercice.addAttachments(this.project().id, [storageFile.id]).subscribe({
+      next: () => {
+        this.loading.set(false)
+        this.#projectHomeComponent.refreshFiles$.next()
+      },
+      error: (err) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
+
+  /**
+   * on file drop handler
+   */
+  onFileDropped(event: FileList) {
+    const filesArray = Array.from(event);
+    this.uploadFileList.update((state) => [...state, ...filesArray.map((file) => ({ file }))]);
+  }
+
+  /**
+   * handle file from browsing
+   */
+  fileBrowseHandler(event: EventTarget & { files?: FileList }) {
+    this.onFileDropped(event.files)
+  }
+
+  stopUpload(item) {
+    this.uploadFileList.update((state) => state.filter((_) => _ !== item));
   }
 }
 

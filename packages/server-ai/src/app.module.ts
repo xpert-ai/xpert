@@ -32,6 +32,7 @@ import { XpertTemplateModule } from './xpert-template/xpert-template.module'
 import { XpertToolModule } from './xpert-tool/index'
 import { XpertToolsetModule } from './xpert-toolset/index'
 import { XpertWorkspaceModule } from './xpert-workspace'
+import { CommandHandlers } from './shared'
 
 @Module({
 	imports: [
@@ -70,6 +71,6 @@ import { XpertWorkspaceModule } from './xpert-workspace'
 		SandboxModule
 	],
 	controllers: [],
-	providers: [...EventHandlers]
+	providers: [...EventHandlers, ...CommandHandlers]
 })
 export class ServerAIModule {}

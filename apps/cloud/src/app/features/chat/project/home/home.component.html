@@ -131,6 +131,15 @@
                     <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default text-primary h-9 rounded-full px-3.5 py-2 transition-colors duration-100 relative overflow-hidden focus-visible:ring-transparent rounded-l-none pl-2 pr-3 bg-transparent hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
                       type="button"
                       [cdkMenuTriggerFor]="modeMenu"
+                      [cdkMenuPosition]="[
+                        {
+                          originX: 'end',
+                          originY: 'bottom',
+                          overlayX: 'end',
+                          overlayY: 'top',
+                          offsetX: 3,
+                        }
+                      ]"
                     >
                       <i class="ri-arrow-down-s-line"></i>
                     </button>

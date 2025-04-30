@@ -93,6 +93,14 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
   deleteFile(id: string, fileId: string) {
     return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/file/${fileId}`)
   }
+
+  addAttachments(id: string, files: string[]) {
+    return this.httpClient.put<void>(this.apiBaseUrl + `/${id}/attachments`, files)
+  }
+
+  removeAttachment(id: string, fileId: string) {
+    return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/attachment/${fileId}`)
+  }
 }
 
 export function injectProjectService() {

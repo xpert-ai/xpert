@@ -1,22 +1,39 @@
-<div class="rounded-3xl border text-card-foreground bg-transparent flex-1 flex flex-col items-center justify-center p-4 gap-4 mb-4 mt-4">
-  <div class="bg-components-card-bg flex flex-col justify-center items-center rounded-full w-14 h-14">
-    <span class="text-fg-tertiary">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shapes"><path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z"></path><rect x="3" y="14" width="7" height="7" rx="1"></rect><circle cx="17.5" cy="17.5" r="3.5"></circle>
-      </svg>
-    </span>
-  </div>
-  <div class="flex flex-col gap-1 items-center text-center">
-    <h3 class="font-semibold text-lg">
-      {{ 'PAC.XProject.Welcome' | translate: {Default: 'Welcome'} }}
-    </h3>
-    <span class="text-secondary max-w-full">
-      {{ 'PAC.XProject.StartbyAttachingFiles' | translate: {Default: 'Start by attaching files to your project. They will be used in all chats in this project.'} }}
-    </span>
-  </div>
-</div>
+<div class="flex items-center justify-center w-full">
+  <label for="dropzone-file" class="flex flex-col items-center justify-center w-full border border-gray-300 border-dashed rounded-3xl cursor-pointer p-4 gap-4 mb-4 mt-4 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600"
+    ngmDnd (fileDropped)="onFileDropped($event)">
+    <div class="bg-components-card-bg flex flex-col justify-center items-center rounded-full w-14 h-14">
+      <span class="text-fg-tertiary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shapes"><path d="M8.3 10a.7.7 0 0 1-.626-1.079L11.4 3a.7.7 0 0 1 1.198-.043L16.3 8.9a.7.7 0 0 1-.572 1.1Z"></path><rect x="3" y="14" width="7" height="7" rx="1"></rect><circle cx="17.5" cy="17.5" r="3.5"></circle>
+        </svg>
+      </span>
+    </div>
+    <div class="flex flex-col gap-1 items-center text-center">
+      <h3 class="font-semibold text-lg">
+        {{ 'PAC.XProject.Welcome' | translate: {Default: 'Welcome'} }}
+      </h3>
+      <span class="text-secondary max-w-full">
+        {{ 'PAC.XProject.StartbyAttachingFiles' | translate: {Default: 'Start by attaching files to your project. They will be used in all chats in this project.'} }}
+      </span>
+      <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
+        <span class="font-semibold">{{ 'PAC.XProject.ClicktoUpload' | translate: {Default: 'Click to upload'} }}</span> {{ 'PAC.XProject.OrDragandDrop' | translate: {Default: 'or drag and drop'} }}
+        (<span class="">{{ 'PAC.XProject.RecognizeTextOnly' | translate: {Default: 'Recognize text only'} }}</span>)</p>
+    </div>
+    <input id="dropzone-file" #fileDropRef type="file" class="hidden" (change)="fileBrowseHandler($event.target)"
+      (click)="fileDropRef.value=null;"/>
+  </label>
+</div> 
 
 <div class="flex-1 flex flex-col gap-1 h-full overflow-y-auto [mask-image:linear-gradient(to_bottom,transparent,black_8px,black_calc(100%_-_8px),transparent)] [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_8px,black_calc(100%_-_8px),transparent)] py-2">
-  <div class="flex-1 flex flex-col @sm:grid @sm:grid-cols-2 @sm:auto-rows-max">
+  <div class="flex-1 flex flex-col">
+    @for (item of uploadFileList(); track item) {
+      <storage-file class="flex flex-row items-center text-sm transition ease-in-out gap-2 relative group/chip cursor-pointer text-primary px-3 rounded-xl h-10 justify-between
+        text-text-secondary hover:text-text-primary hover:bg-white"
+        immediately
+        [file]="item.file" 
+        (storageFile)="moveToProject(item, $event)"
+        (onDelete)="stopUpload(item)"
+      />
+    }
     @for (item of dataSource(); track $index) {
       <div class="flex flex-row items-center text-sm transition ease-in-out gap-2 relative group/chip cursor-pointer text-primary pr-3 rounded-xl h-10 justify-between
         text-text-secondary hover:text-text-primary hover:bg-white"

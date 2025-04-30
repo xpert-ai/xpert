@@ -130,7 +130,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	@UseGuards(XpertProjectGuard)
 	@Get(':id/files')
 	async getFiles(@Param('id') id: string) {
-		const { items } = await this.service.getFiles(id)
+		const items = await this.service.getFiles(id)
 		return items.map((_) => new XpertProjectFileDto(_))
 	}
 
@@ -138,5 +138,17 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	@Delete(':id/file/:file')
 	async deleteFile(@Param('id') id: string, @Param('file') fileId: string) {
 		await this.fileService.delete(fileId)
+	}
+
+	@UseGuards(XpertProjectGuard)
+	@Put(':id/attachments')
+	async addAttachments(@Param('id') id: string, @Body() files: string[]) {
+		await this.service.addAttachments(id, files)
+	}
+
+	@UseGuards(XpertProjectGuard)
+	@Delete(':id/attachment/:file')
+	async removeAttachment(@Param('id') id: string, @Param('file') file: string,) {
+		await this.service.removeAttachments(id, [file])
 	}
 }

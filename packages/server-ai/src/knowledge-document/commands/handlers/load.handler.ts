@@ -5,7 +5,7 @@ import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter'
 import { GetRagWebDocCacheQuery } from '../../../rag-web'
 import { KnowledgeDocumentService } from '../../document.service'
 import { KnowledgeDocLoadCommand } from '../load.command'
-import { LoadStorageFileCommand } from '../load-storage-file.command'
+import { LoadStorageFileCommand } from '../../../shared/'
 
 @CommandHandler(KnowledgeDocLoadCommand)
 export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoadCommand> {

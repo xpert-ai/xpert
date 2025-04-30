@@ -22,6 +22,7 @@ import {
 	Query,
 	UseInterceptors
 } from '@nestjs/common'
+import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { Document } from 'langchain/document'
@@ -30,8 +31,7 @@ import { In } from 'typeorm'
 import { KnowledgeDocument } from './document.entity'
 import { KnowledgeDocumentService } from './document.service'
 import { DocumentChunkDTO } from './dto'
-import { KnowledgeDocLoadCommand, LoadStorageFileCommand } from './commands'
-import { getErrorMessage } from '@metad/server-common'
+import { KnowledgeDocLoadCommand } from './commands'
 import { GetRagWebOptionsQuery } from '../rag-web/queries/'
 import { RagWebLoadCommand } from '../rag-web/commands'
 import { TVectorSearchParams } from '../knowledgebase'

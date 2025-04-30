@@ -15,4 +15,6 @@ export class XpertProjectFile extends XpertProjectBaseEntity implements IXpertPr
 
 	@Column({ nullable: true })
 	fileContents: string
+
+	storageFileId?: string
 }

@@ -18,4 +18,6 @@ export type TFile = {
   fileUrl: string;
   fileType: string;
   fileContents: string;
+
+  storageFileId?: string
 }
