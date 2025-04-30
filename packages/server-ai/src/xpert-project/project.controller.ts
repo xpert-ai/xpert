@@ -147,8 +147,14 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	}
 
 	@UseGuards(XpertProjectGuard)
+	@Delete(':id/attachments/:file')
+	async removeAttachments(@Param('id') id: string, @Param('file') file: string,) {
+		await this.service.removeAttachments(id, [file])
+	}
+
+	@UseGuards(XpertProjectGuard)
 	@Delete(':id/attachment/:file')
-	async removeAttachment(@Param('id') id: string, @Param('file') file: string,) {
+	async deleteAttachment(@Param('id') id: string, @Param('file') file: string,) {
 		await this.service.removeAttachments(id, [file])
 	}
 }

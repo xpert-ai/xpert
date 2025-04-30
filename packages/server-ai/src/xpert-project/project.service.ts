@@ -1,5 +1,5 @@
 import { IStorageFile, IUser, IXpertProject, IXpertProjectFile, IXpertProjectTask, IXpertToolset, OrderTypeEnum, TFile } from '@metad/contracts'
-import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { PaginationParams, RequestContext, StorageFileDeleteCommand, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { Document } from 'langchain/document'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -11,8 +11,7 @@ import { XpertIdentiDto } from '../xpert/dto'
 import { FindXpertQuery } from '../xpert/queries'
 import { XpertProjectDto } from './dto'
 import { XpertProject } from './entities/project.entity'
-import { XpertProjectTaskService } from './services/project-task.service'
-import { XpertProjectFileService } from './services'
+import { XpertProjectTaskService, XpertProjectFileService } from './services/'
 import { LoadStorageFileCommand } from '../shared'
 
 @Injectable()
@@ -264,5 +263,15 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 			(attachment) => !files.includes(attachment.id)
 		)
 		await this.repository.save(project)
+	}
+
+	async delAttachment(id: string, fileId: string) {
+		const project = await this.findOne(id, { relations: ['attachments'] })
+		const index = project.attachments.findIndex((_) => _.id === fileId)
+		if (index > -1) {
+			const files = project.attachments.splice(index, 1)
+			await this.repository.save(project)
+			await this.commandBus.execute(new StorageFileDeleteCommand(fileId))
+		}
 	}
 }

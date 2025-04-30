@@ -104,7 +104,8 @@ export class ChatProjectAttachmentsComponent {
         switchMap((confirm) => {
           if (confirm) {
             this.loading.set(true)
-            return this.projectSercice.deleteFile(this.project().id, file.id)
+            return file.id ? this.projectSercice.deleteFile(this.project().id, file.id)
+              : this.projectSercice.deleteAttachment(this.project().id, file.storageFileId)
           }
           return EMPTY
         })
@@ -214,7 +215,8 @@ function buildFileTree(paths: IXpertProjectFile[]): TreeNode[] {
         return {
           name: node.name,
           type: 'folder',
-          children: objectToArray((node as FolderBuilderNode).children)
+          children: objectToArray((node as FolderBuilderNode).children),
+          expand: node.name === 'attachments'
         }
       }
       return node as FileNode
@@ -224,16 +226,16 @@ function buildFileTree(paths: IXpertProjectFile[]): TreeNode[] {
   return objectToArray(root)
 }
 
-function flattenNodes(nodes: TreeNode[]): TreeNode[] {
-  const flattenedNodes = []
-  for (const node of nodes) {
-    flattenedNodes.push(node)
-    if (node.children) {
-      flattenedNodes.push(...flattenNodes(node.children))
-    }
-  }
-  return flattenedNodes
-}
+// function flattenNodes(nodes: TreeNode[]): TreeNode[] {
+//   const flattenedNodes = []
+//   for (const node of nodes) {
+//     flattenedNodes.push(node)
+//     if (node.children) {
+//       flattenedNodes.push(...flattenNodes(node.children))
+//     }
+//   }
+//   return flattenedNodes
+// }
 
 export interface FlatTreeNode {
   name: string
