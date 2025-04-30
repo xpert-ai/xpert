@@ -34,3 +34,13 @@
     }
   }
 }
+
+@if (error()) {
+  <div class="w-full p-4 flex justify-center text-text-destructive">
+    {{error()}}
+  </div>
+}
+
+@if (loading()) {
+  <ngm-spin class="absolute left-0 top-0 w-full h-full z-10" />
+}

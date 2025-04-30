@@ -1,11 +1,11 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { myRxResource } from '@metad/core'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { of } from 'rxjs'
-import { IXpert, XpertAgentExecutionService, XpertAgentExecutionStatusEnum } from '../../../@core'
+import { getErrorMessage, IXpert, XpertAgentExecutionService, XpertAgentExecutionStatusEnum } from '../../../@core'
 import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } from '../../xpert'
 
 @Component({
@@ -18,6 +18,7 @@ import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } f
     CommonModule,
     FormsModule,
     TranslateModule,
+    NgmSpinComponent,
     XpertAgentExecutionComponent,
     XpertAgentExecutionAccordionComponent
   ]
@@ -36,10 +37,13 @@ export class ChatMessageExecutionPanelComponent {
   // Output
   readonly close = output<void>()
 
-  readonly #execution = derivedAsync(() => {
-    const id = this.id()
-    return id ? this.#executionService.getOneLog(id) : of(null)
+  readonly #execution = myRxResource({
+    request: () => ({ id: this.id() }),
+    loader: ({ request }) => this.#executionService.getOneLog(request.id)
   })
+
+  readonly error = computed(() => getErrorMessage(this.#execution.error()))
+  readonly loading = computed(() => this.#execution.status() === 'loading')
 
   readonly agents = computed(() => {
     if (this.xpert()) {
@@ -51,7 +55,7 @@ export class ChatMessageExecutionPanelComponent {
   readonly pageType = signal<'primary' | 'members'>('primary')
 
   readonly execution = computed(() => {
-    const execution = this.#execution()
+    const execution = this.#execution.value()
     const agents = this.agents()
     return execution
       ? {
@@ -63,11 +67,12 @@ export class ChatMessageExecutionPanelComponent {
 
   readonly executions = computed(() => {
     const agents = this.agents()
-    return this.#execution()?.subExecutions?.map((exec) => ({
+    return this.#execution.value()?.subExecutions?.map((exec) => ({
       ...exec,
       agent: exec.agent ?? agents.find((node) => node.key === exec.agentKey)
     }))
   })
+
 
   onClose() {
     this.close.emit()
