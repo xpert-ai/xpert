@@ -36,7 +36,8 @@ export class XpertPreviewAiMessageComponent {
   })
 
   readonly thirdPartyMessage = computed(() => this.message().thirdPartyMessage)
-  readonly reasoning = computed(() => this.message().reasoning as string)
+  readonly reasoning = computed(() => this.message().reasoning)
+  readonly reasoningText = computed(() => this.reasoning().map(({text}) => text).join('\n\n'))
   readonly #steps = computed(() => this.message().steps)
   readonly lastStep = computed(() =>
     this.message().steps ? this.message().steps[this.message().steps.length - 1] : null

@@ -1783,6 +1783,7 @@
       "PreviewStopGenerate": "关闭对话面板将停止生成内容",
       "StopGenerateOnRestart": "重新开始对话将停止当前生成的内容",
       "Reasoning": "推理",
+      "Thoughts": "推理",
       "Greeting_Good": "您好",
       "Greeting_Good morning": "早上好",
       "Greeting_Good afternoon": "下午好",

@@ -109,7 +109,11 @@ export interface CopilotBaseMessage {
   status?: ChatMessageStatusEnum
 
   content?: string | TMessageContent
-  reasoning?: MessageContent
+
+  /**
+   * Reasoning step messages
+   */
+  reasoning?: TMessageContentReasoning[]
 
   /**
    * Error info when status is error
@@ -171,10 +175,17 @@ export type TMessageContentMemory = {
   type: "memory";
   data: any[];
 };
+export type TMessageContentReasoning = {
+  id?: string
+  xpertName?: string
+  agentKey?: string
+  type: "reasoning";
+  text: string;
+};
 /**
  * Enhance {@link MessageContentComplex} in Langchain.js
  */
-export type TMessageContentComplex = (TMessageContentText | MessageContentImageUrl | TMessageContentComponent | TMessageContentMemory | (Record<string, any> & {
+export type TMessageContentComplex = (TMessageContentText | TMessageContentReasoning | MessageContentImageUrl | TMessageContentComponent | TMessageContentMemory | (Record<string, any> & {
   type?: "text" | "image_url" | string;
 }) | (Record<string, any> & {
   type?: never;

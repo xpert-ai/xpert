@@ -10,10 +10,12 @@ import {
   viewChild
 } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { TMessageContentComplex, TMessageContentReasoning } from '@cloud/app/@core/types'
 import { CopyComponent } from '@cloud/app/@shared/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { TCopilotChatMessage } from '../types'
+import { listEnterAnimation } from '@metad/core'
 
 @Component({
   standalone: true,
@@ -22,14 +24,18 @@ import { TCopilotChatMessage } from '../types'
   templateUrl: './thought.component.html',
   styleUrl: 'thought.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  animations: []
+  animations: [ listEnterAnimation ]
 })
 export class ChatThoughtComponent {
   readonly message = input<TCopilotChatMessage>()
+  readonly content = input<TMessageContentComplex>()
 
   // Reasoning
-  readonly reasoning = computed(() => this.message().reasoning as string)
+  readonly _content = computed(() => this.content() as TMessageContentReasoning)
+  readonly reasoning = computed(() => this.expandReason() ? (this._content() ? [this._content()] : this.message().reasoning) : [])
   readonly expandReason = signal(true)
+
+  readonly reasoningText = computed(() => (this._content() ? [this._content()] : this.message().reasoning)?.map(({text}) => text).join('\n\n'))
 
   readonly status = computed(() => this.message()?.status)
 

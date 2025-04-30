@@ -1,4 +1,4 @@
-@if (reasoning()) {
+@if (reasoning(); as reasoning) {
   <div class="relative group/reasoning w-full max-h-90 px-1 border-l-2 border-solid border-gray-200 overflow-auto">
     <div class="flex justify-between items-center">
       <div class="flex items-center cursor-pointer pressable rounded-md px-1 text-gray-500 hover:bg-hover-bg"
@@ -14,16 +14,18 @@
       </div>
 
       <copy2 #copy class="opacity-30 group-hover/reasoning:opacity-100"
-        [content]="reasoning()"
+        [content]="reasoningText()"
         [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
         matTooltipPosition="above" />
     </div>
     @if (expandReason()) {
-      <markdown class="ngm-copilot-markdown text-xs text-zinc-500"
-        lineNumbers
-        [start]="5"
-        [data]="reasoning()"
-      />
+      @for (item of reasoning; track item.id) {
+        <markdown class="ngm-copilot-markdown text-xs text-zinc-500"
+          lineNumbers
+          [start]="5"
+          [data]="item.text"
+        />
+      }
     }
   </div>
 }

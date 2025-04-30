@@ -36,7 +36,10 @@
   }
 
   @if (reasoning()) {
-    <chat-thought [message]="message()" />
+    <chat-thought [message]="message()" 
+      class="top-20 left-0 border-2 border-gray-200 rounded-3xl overflow-clip bg-surface-container"
+      [class.reasoning]="status() === 'reasoning'"
+    />
   }
 
   <!-- @deprecated use contents -->
@@ -138,7 +141,7 @@
   }
 
   @if (contents(); as messages) {
-    @for (submessage of messages; track submessage; let last = $last) {
+    @for (submessage of messages; track submessage; let i = $index; let last = $last) {
       <div class="relative">
         @if (submessage.agentKey && agents()[submessage.agentKey]; as agent) {
           <div class="group flex items-center gap-2 py-2 px-1 sticky top-14 z-10 bg-surface-container">
@@ -196,6 +199,9 @@
             @if (!last && submessage.agentKey && !collapseMessages()[submessage.id]) {
               <hr class="mt-8 mb-4 border-t border-solid border-divider-deep">
             }
+          }
+          @case ('reasoning') {
+            <!-- <chat-thought [message]="message()" [content]="submessage" /> -->
           }
           @case ('component') {
             <chat-component-message class="group/ccm w-full p-2 rounded-2xl z-0 hover:bg-neutral-50"

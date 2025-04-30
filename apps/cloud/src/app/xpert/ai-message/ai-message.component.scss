@@ -2,6 +2,10 @@
   @apply relative flex flex-col items-stretch;
 }
 
+.chat-thought.reasoning {
+  @apply sticky z-10;
+}
+
 ::ng-deep {
   .cdk-overlay-pane.chat-message-executions-dialog {
     chat-message-execution-panel {

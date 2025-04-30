@@ -169,7 +169,7 @@ export class ChatAiMessageComponent {
   )
 
   // Reasoning
-  readonly reasoning = computed(() => this.message().reasoning as string)
+  readonly reasoning = computed(() => this.message().reasoning)
 
   // Steps
   readonly #steps = computed(() => this.message().steps)

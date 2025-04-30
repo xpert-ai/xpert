@@ -4,7 +4,7 @@ import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
 import { BaseChannel, isCommand } from '@langchain/langgraph'
-import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TMessageChannel, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TMessageChannel, TMessageContentReasoning, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { instanceToPlain } from 'class-transformer'
@@ -97,21 +97,12 @@ export function createMapStreamEvents(
 				return null
 			}
 			case 'on_chat_model_stream': {
-				// if (prevEvent !== 'on_chat_model_stream' && collectingResult) {
-				// 	startStream = true
-				// }
 				prevEvent = event
 
 				if (!disableOutputs?.some((key) => tags.includes(key))) {
 					const msg = data.chunk as AIMessageChunk
 					if (!msg.tool_call_chunks?.length) {
 						if (msg.content) {
-							// let prefix = ''
-							// if (startStream) {
-							// 	prefix = '\n\n'
-							// 	startStream = false
-							// }
-
 							const chunk = {
 								type: "text",
 								text: '',
@@ -132,16 +123,33 @@ export function createMapStreamEvents(
 							}
 							return chunk
 						}
+
 						if (msg.additional_kwargs?.reasoning_content) {
-							subscriber.next({
-								data: {
-									type: ChatMessageTypeEnum.MESSAGE,
-									data: {
-										type: 'reasoning',
-										content: msg.additional_kwargs.reasoning_content
-									}
-								}
-							} as MessageEvent)
+							const chunk = {
+								type: "reasoning",
+								text: '',
+								id: msg.id,
+								created_date: new Date()
+							} as TMessageContentReasoning
+							if (agentKey) {
+								chunk.agentKey = agentKey
+							}
+							if (xpert) {
+								chunk.xpertName = xpert.name
+							}
+							
+							chunk.text += msg.additional_kwargs.reasoning_content
+							return chunk
+
+							// subscriber.next({
+							// 	data: {
+							// 		type: ChatMessageTypeEnum.MESSAGE,
+							// 		data: {
+							// 			type: 'reasoning',
+							// 			content: msg.additional_kwargs.reasoning_content
+							// 		}
+							// 	}
+							// } as MessageEvent)
 						}
 					}
 				}
