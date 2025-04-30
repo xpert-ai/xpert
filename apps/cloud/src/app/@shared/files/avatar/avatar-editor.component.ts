@@ -1,10 +1,8 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, effect, forwardRef, inject, input, output, signal } from '@angular/core'
-import { MatIconModule } from '@angular/material/icon'
-import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { AppearanceDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { firstValueFrom } from 'rxjs'
 import { ScreenshotService } from '../../../@core'
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
 
@@ -18,7 +16,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
   selector: 'pac-avatar-editor',
   templateUrl: './avatar-editor.component.html',
   styles: [``],
-  imports: [CommonModule, MatIconModule, CdkMenuModule, TranslateModule, DensityDirective, AppearanceDirective],
+  imports: [CommonModule, CdkMenuModule, TranslateModule, AppearanceDirective],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
@@ -59,21 +57,24 @@ export class AvatarEditorComponent implements ControlValueAccessor  {
     this.disabled.set(isDisabled)
   }
 
-  async uploadAvatar(event) {
+  uploadAvatar(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0]
-    const screenshot = await this.uploadScreenshot(file!)
-    this.value.set(screenshot.url)
-    this.imageUrlChange.emit(this.value())
-    this.onChange?.(this.value())
+    this.uploadScreenshot(file!).subscribe({
+      next: (screenshot) => {
+        this.value.set(screenshot.url)
+        this.imageUrlChange.emit(this.value())
+        this.onChange?.(this.value())
+      }
+    })
   }
 
-  async uploadScreenshot(fileUpload: File) {
+  uploadScreenshot(fileUpload: File) {
     const formData = new FormData()
     formData.append('file', fileUpload)
-    return await firstValueFrom(this.screenshotService.create(formData))
+    return this.screenshotService.create(formData)
   }
 
-  async remove() {
+  remove() {
     this.value.set(null)
     this.imageUrlChange.emit(null)
     this.onChange?.(null)

@@ -1,70 +1,65 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectorRef, Component } from '@angular/core'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { Component, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonModule } from '@angular/material/button'
-import { MatFormFieldModule } from '@angular/material/form-field'
-import { MatIconModule } from '@angular/material/icon'
-import { MatInputModule } from '@angular/material/input'
-import { UsersService } from '@metad/cloud/state'
-import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { cloneDeep } from '@metad/ocap-core'
+import { IUser, UsersService } from '@metad/cloud/state'
+import { linkedModel } from '@metad/core'
+import { isNil, omitBy } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { firstValueFrom } from 'rxjs'
-import { IUserUpdateInput, LanguagesEnum, Store, ToastrService, User } from '../../../@core'
-import { UserFormsModule } from '../../../@shared/user/forms'
+import { IUserUpdateInput, LanguagesEnum, Store, ToastrService } from '../../../@core'
 import { CreatedByPipe } from '../../../@shared/pipes'
+import { UserFormsModule } from '../../../@shared/user'
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    MatButtonModule,
-    MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
-    FormsModule,
-    ReactiveFormsModule,
-    UserFormsModule,
-    TranslateModule,
-
-    ButtonGroupDirective,
-    DensityDirective
-  ],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, UserFormsModule, TranslateModule],
   selector: 'pac-account-profile',
   template: `<div class="flex flex-col items-center justify-start p-4">
-    <pac-user-basic-info-form #form class="block max-w-full md:max-w-[600px] lg:max-w-[900px]"
-      [(ngModel)]="user" />
-    <div ngmButtonGroup>
+    <pac-user-basic-info-form #form class="block max-w-full md:max-w-[600px] lg:max-w-[900px]" [(ngModel)]="user" />
+
+    <div class="w-full flex justify-center items-center gap-2">
+      <button type="button" class="btn disabled:btn-disabled btn-large" (click)="reset()">
+        {{ 'PAC.ACTIONS.Reset' | translate: { Default: 'Reset' } }}
+      </button>
       <button
-        mat-raised-button
-        displayDensity="cosy"
-        color="primary"
+        type="button"
+        class="btn disabled:btn-disabled btn-primary btn-large"
         [disabled]="form.form.invalid || form.form.pristine"
         (click)="save(form.form)"
       >
-        <mat-icon fontSet="material-icons-outlined" displayDensity="cosy" class="mr-1">save</mat-icon>
-        {{ 'PAC.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
+        {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
       </button>
     </div>
   </div>`,
   styles: [``]
 })
 export class PACAccountProfileComponent {
-  user: User
+  readonly #user = toSignal(this.store.user$)
+  readonly reloadTrigger = signal(0)
 
-  private _userSub = this.store.user$.pipe(takeUntilDestroyed()).subscribe((user) => {
-    this.user = cloneDeep(user) as User
+  readonly user = linkedModel<IUser & { password?: string }>({
+    initialValue: null,
+    compute: () => {
+      this.reloadTrigger()
+      return { ...this.#user() }
+    },
+    update: (user) => {
+      //
+    }
   })
+
   constructor(
     private readonly store: Store,
     private readonly userService: UsersService,
     private readonly _toastrService: ToastrService,
-    private readonly _cdr: ChangeDetectorRef
   ) {}
 
-  async save(form: FormGroup) {
-    const { email, firstName, lastName, tags, preferredLanguage, username, password, imageUrl, timeZone } = this.user
+  reset() {
+    this.reloadTrigger.update((state) => state + 1)
+  }
+
+  save(form: FormGroup) {
+    const { email, firstName, lastName, tags, preferredLanguage, username, password, imageUrl, timeZone } = this.user()
     let request: IUserUpdateInput = {
       email,
       firstName,
@@ -83,16 +78,21 @@ export class PACAccountProfileComponent {
       }
     }
 
-    try {
-      await firstValueFrom(this.userService.updateMe(request))
-      this._toastrService.success(`PAC.NOTES.USERS.USER_UPDATED`, {
-        Default: 'User Updated',
-        name: new CreatedByPipe().transform(this.user)
-      })
-      form.markAsPristine()
-      this._cdr.detectChanges()
-    } catch (error) {
-      this._toastrService.error(error)
-    }
+    this.userService.updateMe(request).subscribe({
+      next: (user) => {
+        this._toastrService.success(`PAC.NOTES.USERS.USER_UPDATED`, {
+          Default: 'User Updated',
+          name: new CreatedByPipe().transform(this.user())
+        })
+        form.markAsPristine()
+        this.store.user = {
+          ...this.store.user,
+          ...omitBy(user, isNil)
+        }
+      },
+      error: (error) => {
+        this._toastrService.error(error)
+      }
+    })
   }
 }

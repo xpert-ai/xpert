@@ -613,6 +613,7 @@
       "DELETE_SELECTED_ENTITY": "删除当前实体",
       "Download": "下载",
       "Delete": "删除",
+      "Reset": "重置",
       "FORMAT_DOCUMENT": "格式化文档",
       "FORMAT_SELECTION": "格式化选中部分",
       "NEW": "新建",

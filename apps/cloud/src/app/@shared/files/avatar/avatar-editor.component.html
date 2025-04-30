@@ -1,27 +1,27 @@
 <div class="relative w-full h-full flex justify-center items-center rounded-full overflow-hidden group border border-solid border-transparent
  hover:border-gray-200 dark:hover:border-gray-600">
-    <img class="" [src]="value() || '/assets/images/avatar-default.svg'" />
-    <div class="absolute w-full h-full top-0 left-0 rounded-full flex justify-center items-center cursor-pointer z-10
-        opacity-0 bg-white/10 backdrop-blur-sm group-hover:opacity-100"
-        [cdkMenuTriggerFor]="disabled() ? null : editorMenu"
-    >
-        <mat-icon class="">edit</mat-icon>
-    </div>
+  <img class="" [src]="value() || '/assets/images/avatar-default.svg'" />
+  <div class="absolute w-full h-full top-0 left-0 rounded-full flex justify-center items-center cursor-pointer z-10
+        opacity-0 bg-white/20 backdrop-blur-sm group-hover:opacity-100"
+    [cdkMenuTriggerFor]="disabled() ? null : editorMenu"
+  >
+    <i class="ri-edit-box-line text-xl"></i>
+  </div>
 </div>
 
 <input #fileUpload type="file" class="file-input invisible w-0"
-    (change)="uploadAvatar($event)"
-    (click)="fileUpload.value=null;">
+  (change)="uploadAvatar($event)"
+  (click)="fileUpload.value=null;">
 
 <ng-template #editorMenu>
-    <div cdkMenu displayDensity="cosy" class="p-2">
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="fileUpload.click()">
-            {{ 'PAC.ACTIONS.Upload' | translate: { Default: 'Upload' } }}
-        </button>
-      @if (value()) {
-        <button cdkMenuItem class="px-2 py-1 rounded-lg" ngmAppearance="danger" (click)="remove()">
-            {{ 'PAC.ACTIONS.Remove' | translate: { Default: 'Remove' } }}
-        </button>
-      }
-    </div>
+  <div cdkMenu class="cdk-menu__large">
+    <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="fileUpload.click()">
+      {{ 'PAC.ACTIONS.Upload' | translate: { Default: 'Upload' } }}
+    </button>
+    @if (value()) {
+      <button cdkMenuItem class="px-2 py-1 rounded-lg danger" (click)="remove()">
+        {{ 'PAC.ACTIONS.Remove' | translate: { Default: 'Remove' } }}
+      </button>
+    }
+  </div>
 </ng-template>

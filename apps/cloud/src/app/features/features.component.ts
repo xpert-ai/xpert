@@ -31,7 +31,6 @@ import { NgmCopilotChatComponent, NgmCopilotEngineService } from '@metad/copilot
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions'
-import { NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { combineLatestWith, firstValueFrom } from 'rxjs'
 import { filter, map, startWith, tap } from 'rxjs/operators'
 import {
@@ -53,10 +52,7 @@ import {
   routeAnimations
 } from '../@core'
 import { AppService } from '../app.service'
-import { ModelCreationComponent } from './semantic-model/creation/creation.component'
-import { QueryCreationDialogComponent } from './semantic-model/query-creation.component'
 import { injectChatCommand } from '../@shared/copilot'
-import { StoryCreationComponent } from '../@shared/story'
 
 
 @Component({
@@ -68,8 +64,6 @@ import { StoryCreationComponent } from '../@shared/story'
 })
 export class FeaturesComponent implements OnInit {
   MENU_CATALOG = MenuCatalog
-  eNgxFloatUiPlacements = NgxFloatUiPlacements
-  eNgxFloatUiTriggers = NgxFloatUiTriggers
   AbilityActions = AbilityActions
 
   readonly #destroyRef = inject(DestroyRef)
@@ -385,13 +379,6 @@ export class FeaturesComponent implements OnInit {
     this.location.back()
   }
 
-  onMenuClicked(event, isMobile) {
-    // this.isCollapsed = true
-    // if (isMobile) {
-    //   this.isCollapsedHidden = true
-    // }
-  }
-
   toggleDark() {
     this.appService.toggleDark()
   }
@@ -562,17 +549,6 @@ export class FeaturesComponent implements OnInit {
         }
       },
       {
-        title: 'Data Sources',
-        matIcon: 'settings_remote',
-        link: '/settings/data-sources',
-        admin: true,
-        data: {
-          translationKey: 'Data Sources',
-          permissionKeys: [AnalyticsPermissionsEnum.DATA_SOURCE_EDIT],
-          featureKey: AnalyticsFeatures.FEATURE_MODEL
-        }
-      },
-      {
         title: 'Settings',
         matIcon: 'settings',
         link: '/settings',
@@ -610,6 +586,17 @@ export class FeaturesComponent implements OnInit {
                 RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN
               ],
               featureKey: AiFeatureEnum.FEATURE_COPILOT_KNOWLEDGEBASE
+            }
+          },
+          {
+            title: 'Data Sources',
+            matIcon: 'settings_remote',
+            link: '/settings/data-sources',
+            admin: true,
+            data: {
+              translationKey: 'Data Sources',
+              permissionKeys: [AnalyticsPermissionsEnum.DATA_SOURCE_EDIT],
+              featureKey: AnalyticsFeatures.FEATURE_MODEL
             }
           },
           {
@@ -731,37 +718,37 @@ export class FeaturesComponent implements OnInit {
     ]
   }
 
-  async createQuery() {
-    const query = await firstValueFrom(this.dialog.open(QueryCreationDialogComponent).afterClosed())
-    if (query) {
-      this.router.navigate(['models', query.modelId, 'query', query.key])
-    }
-  }
+  // async createQuery() {
+  //   const query = await firstValueFrom(this.dialog.open(QueryCreationDialogComponent).afterClosed())
+  //   if (query) {
+  //     this.router.navigate(['models', query.modelId, 'query', query.key])
+  //   }
+  // }
 
-  async createStory() {
-    const story = await firstValueFrom(
-      this.dialog
-        .open(StoryCreationComponent, {
-          data: {}
-        })
-        .afterClosed()
-    )
+  // async createStory() {
+  //   const story = await firstValueFrom(
+  //     this.dialog
+  //       .open(StoryCreationComponent, {
+  //         data: {}
+  //       })
+  //       .afterClosed()
+  //   )
 
-    if (story) {
-      this.router.navigate(['story', story.id, 'edit'])
-    }
-  }
+  //   if (story) {
+  //     this.router.navigate(['story', story.id, 'edit'])
+  //   }
+  // }
 
-  async createModel() {
-    const model = await firstValueFrom(this.dialog.open(ModelCreationComponent, { data: {} }).afterClosed())
-    if (model) {
-      this.router.navigate(['models', model.id])
-    }
-  }
+  // async createModel() {
+  //   const model = await firstValueFrom(this.dialog.open(ModelCreationComponent, { data: {} }).afterClosed())
+  //   if (model) {
+  //     this.router.navigate(['models', model.id])
+  //   }
+  // }
 
-  async createIndicator() {
-    this.router.navigate(['project', 'indicators', 'new'])
-  }
+  // async createIndicator() {
+  //   this.router.navigate(['project', 'indicators', 'new'])
+  // }
 
   toEnableCopilot() {
     this.router.navigate(['settings', 'copilot'])

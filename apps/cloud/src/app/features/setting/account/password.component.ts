@@ -76,9 +76,15 @@ import { UserFormsModule } from '../../../@shared/user/forms'
       }
     </mat-form-field>
 
-    <button mat-raised-button color="primary" [disabled]="passwordForm.pristine || passwordForm.invalid || loading()">
-      {{ 'PAC.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
-    </button>
+    <div class="w-full flex justify-center items-center gap-2">
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-primary btn-large"
+        [disabled]="passwordForm.pristine || passwordForm.invalid || loading()"
+      >
+        {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+      </button>
+    </div>
   </form>`,
   styles: [``]
 })
