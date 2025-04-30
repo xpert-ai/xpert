@@ -1,9 +1,15 @@
 import { Tool } from '@langchain/core/tools'
-import { ChatMessageTypeEnum, IXpertToolset, JSONValue } from '@metad/contracts'
+import {
+	ChatMessageTypeEnum,
+	IXpertToolset,
+	JSONValue,
+	LanguagesEnum,
+	mapTranslationLanguage,
+	TAgentRunnableConfigurable
+} from '@metad/contracts'
 import { Indicator } from '@metad/ocap-core'
 import { TBuiltinToolsetParams } from '@metad/server-ai'
 import { shortuuid } from '@metad/server-common'
-import { Subscriber } from 'rxjs'
 import { AbstractChatBIToolset } from '../chatbi/chatbi-toolset'
 import { ChatBIToolsEnum } from '../chatbi/types'
 import { createChatAnswerTool } from './tools/answer_question'
@@ -28,7 +34,7 @@ export class ChatBILarkToolset extends AbstractChatBIToolset {
 			this.tools.push(
 				createWelcomeTool(this, {
 					dsCoreService: this.dsCoreService,
-					models: this.models,
+					models: this.models
 				})
 			)
 		}
@@ -57,7 +63,9 @@ export class ChatBILarkToolset extends AbstractChatBIToolset {
 		return this.tools
 	}
 
-	async onCreatedIndicator(subscriber: Subscriber<MessageEvent>, indicator: Indicator, lang: string) {
+	async onCreatedIndicator(indicator: Indicator, configurable: TAgentRunnableConfigurable) {
+		const { subscriber, xpertName, agentKey, language } = configurable ?? {}
+		const lang = mapTranslationLanguage(language as LanguagesEnum)
 		subscriber.next({
 			data: {
 				type: ChatMessageTypeEnum.MESSAGE,
@@ -82,7 +90,9 @@ export class ChatBILarkToolset extends AbstractChatBIToolset {
 								tag: 'hr'
 							}
 						]
-					} as unknown as JSONValue
+					} as unknown as JSONValue,
+					xpertName,
+					agentKey
 				}
 			}
 		} as MessageEvent)

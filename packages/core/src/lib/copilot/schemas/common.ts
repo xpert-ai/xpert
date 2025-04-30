@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { OrderDirection } from '../../orderby'
+import { OrderBy, OrderDirection } from '../../orderby'
 import { C_MEASURES, Dimension, isDimension, isMeasure, Measure } from '../../types'
 import { AggregationRole, EntityType, getEntityProperty2, unwrapBrackets } from '../../models'
 import { omit } from '../../utils'
@@ -142,4 +142,14 @@ export function tryFixDimension(dimension: Dimension | Measure, entityType: Enti
     default:
       throw new Error(`Can't find property for '${isMeasure(dimension) ? dimension.measure : dimension.dimension}'`)
   }
+}
+
+export function tryFixOrder(orderBy: OrderBy) {
+  const by = tryFixMeasureName(orderBy.by)
+  return {...orderBy, by}
+}
+
+export function tryFixMeasureName(measure: string) {
+  const name = unwrapBrackets(measure?.replace('[Measures].', ''))
+  return name
 }

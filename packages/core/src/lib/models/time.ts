@@ -13,7 +13,7 @@ import {
   subYears
 } from 'date-fns'
 import { Semantics } from '../annotations'
-import { FilterOperator, ISlicer } from '../types'
+import { FilterOperator, getPropertyHierarchy, ISlicer } from '../types'
 import { isNil } from '../utils'
 import {
   getDefaultHierarchy,
@@ -23,6 +23,7 @@ import {
   getEntityProperty
 } from './helper'
 import { EntityType, Property, PropertyDimension, PropertyHierarchy, PropertyLevel } from './sdl'
+import { t } from 'i18next'
 
 export enum TimeGranularity {
   Year = 'Year',
@@ -266,6 +267,9 @@ export function workOutTimeRangeSlicers(
     const calendarLevel = property?.levels?.find((level) => level.semantics?.semantic === calendarSemantic)
     const targetFormatter = range.formatter || calendarLevel?.semantics?.formatter
     if (!targetFormatter) {
+      if (!calendarLevel) {
+        throw new Error(t('core:Error.NoTimeLevelInDimension', { dimension: getPropertyHierarchy(timeSlicer.dimension), granularity: range.granularity}))
+      }
       throw new Error(`Target formatter not set for dimension: ${timeSlicer.dimension?.dimension} and granularity: ${range.granularity}`)
     }
     const results = range.start ? calcStartEndRange(currentDate || new Date(), {

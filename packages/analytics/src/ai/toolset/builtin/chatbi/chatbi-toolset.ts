@@ -37,6 +37,7 @@ import {
 	Schema,
 	toAdvancedFilter,
 	tryFixDimension,
+	tryFixOrder,
 	tryFixSlicer,
 	tryFixVariableSlicer,
 	workOutTimeRangeSlicers
@@ -501,7 +502,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			presentationVariant.maxItems = answer.top
 		}
 		if (answer.orders) {
-			presentationVariant.sortOrder = answer.orders
+			presentationVariant.sortOrder = answer.orders.map(tryFixOrder)
 		}
 		presentationVariant.groupBy = getEntityDimensions(entityType)
 			.filter((property) => !chartAnnotation.dimensions?.some((item) => item.dimension === property.name))

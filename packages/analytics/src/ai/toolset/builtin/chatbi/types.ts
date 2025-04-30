@@ -75,23 +75,22 @@ export type ChatAnswer = {
 const LanguageSchema = z.enum(['en', 'zh']).describe('Language ​​used by user')
 
 export type TTimeSlicerParam = {
-	dimension: {
-		dimension: string
-		hierarchy: string
-	}
-
+	dimension: string
+	hierarchy: string
 	granularity: TimeGranularity
 	start: string
 	end: string
 }
 
 export const TimeSlicerSchema = z.object({
-	dimension: z
-	  .object({
-		dimension: z.string().describe('The name of the dimension'),
-		hierarchy: z.string().optional().nullable().describe('The name of the hierarchy in the dimension')
-	  })
-	  .describe('the time dimension'),
+	// dimension: z
+	//   .object({
+	// 	dimension: z.string().describe('The name of the dimension'),
+	// 	hierarchy: z.string().optional().nullable().describe('The name of the hierarchy in the dimension')
+	//   })
+	//   .describe('the time dimension'),
+	dimension: z.string().describe('The name of time dimension'),
+	hierarchy: z.string().optional().nullable().describe('The name of selected hierarchy in time dimension'),
 	granularity: z
 		.enum([
 			TimeGranularity.Year,
@@ -270,11 +269,14 @@ export function tryFixDimensions(dimensions: ChartDimension[]) {
 export function mapTimeSlicer(param: TTimeSlicerParam[]): TimeRangesSlicer[] {
   return param?.map((_) => {
 	return {
-		dimension: _.dimension,
+		dimension: {
+			dimension: _.dimension,
+			hierarchy: _.hierarchy,
+		},
 		currentDate: 'TODAY',
 		ranges: [
 			{
-				..._,
+				...omit(_, 'dimension', 'hierarchy'),
 				type: TimeRangeType.Standard,
 			}
 		]
