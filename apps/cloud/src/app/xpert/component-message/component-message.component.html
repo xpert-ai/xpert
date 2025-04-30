@@ -10,7 +10,7 @@
 } @else {
   @switch (data().type) {
     @case ('AnalyticalCard') {
-      <ngm-analytical-card
+      <ngm-analytical-card class="z-0"
         [title]="data().title"
         [dataSettings]="data().dataSettings"
         [chartSettings]="chartSettings()"

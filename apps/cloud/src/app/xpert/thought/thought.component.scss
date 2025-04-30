@@ -1,0 +1,9 @@
+.thought-container.reasoning {
+  mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

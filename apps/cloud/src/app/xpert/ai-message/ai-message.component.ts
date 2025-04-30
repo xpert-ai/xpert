@@ -44,6 +44,7 @@ import { ChatComponentMessageComponent } from '../component-message/component-me
 import { XpertHomeService } from '../home.service'
 import { XpertOcapService } from '../ocap.service'
 import { TCopilotChatMessage } from '../types'
+import { ChatThoughtComponent } from '../thought/thought.component'
 
 
 @Component({
@@ -65,7 +66,8 @@ import { TCopilotChatMessage } from '../types'
     ChatMessageExecutionComponent,
     CopyComponent,
     DateRelativePipe,
-    Copy2Component
+    Copy2Component,
+    ChatThoughtComponent
   ],
   selector: 'pac-ai-message',
   templateUrl: './ai-message.component.html',
@@ -168,7 +170,6 @@ export class ChatAiMessageComponent {
 
   // Reasoning
   readonly reasoning = computed(() => this.message().reasoning as string)
-  readonly expandReason = signal(true)
 
   // Steps
   readonly #steps = computed(() => this.message().steps)
