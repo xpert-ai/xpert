@@ -52,10 +52,10 @@ import { assign, cloneDeep, findIndex, isEmpty, isNil } from 'lodash-es'
 import { BehaviorSubject, combineLatest, Observable } from 'rxjs'
 import { distinctUntilChanged, filter, map, pairwise, shareReplay, skip, startWith, tap, withLatestFrom } from 'rxjs/operators'
 import { Step } from '@metad/ocap-angular/common'
-import { AnalyticalCardService } from './analytical-card.service'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { TranslateService } from '@ngx-translate/core'
 import { SlicersCapacity } from '@metad/ocap-angular/selection'
+import { AnalyticalCardService } from './analytical-card.service'
 
 
 export interface DrillLevel {

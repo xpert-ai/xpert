@@ -8,15 +8,15 @@ import { getErrorMessage, injectProjectService, injectToastr, IXpert } from '@cl
 import { provideOcap } from '@cloud/app/@core/providers/ocap'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { ChatConversationsComponent, ChatService, XpertChatAppComponent, XpertOcapService } from '@cloud/app/xpert'
+import { linkedModel } from '@metad/core'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { provideOcapCore } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { derivedAsync } from 'ngxtension/derived-async'
+import { map, startWith } from 'rxjs'
 import { ChatPlatformService } from '../chat.service'
 import { ChatHomeService } from '../home.service'
 import { ChatXpertsComponent } from '../xperts/xperts.component'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { map, startWith } from 'rxjs'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { linkedModel } from '@metad/core'
 
 /**
  */
@@ -58,7 +58,12 @@ export class ChatXpertComponent {
   readonly xpert = this.chatService.xpert
   readonly xperts = this.homeService.sortedXperts
 
-  readonly #projects = derivedAsync(() => this.projectSercice.getAllMy().pipe(map(({items}) => ({projects: items, loading: false})), startWith({loading: true, projects: null})))
+  readonly #projects = derivedAsync(() =>
+    this.projectSercice.getAllMy().pipe(
+      map(({ items }) => ({ projects: items, loading: false })),
+      startWith({ loading: true, projects: null })
+    )
+  )
   readonly projects = computed(() => this.#projects()?.projects)
   readonly projectLoading = linkedModel({
     initialValue: false,
@@ -79,7 +84,7 @@ export class ChatXpertComponent {
       .open(ChatConversationsComponent, {
         viewContainerRef: this.#vcr,
         data: {
-          basePath: '/chat/'
+          basePath: '/chat'
         }
       })
       .closed.subscribe({
@@ -89,7 +94,7 @@ export class ChatXpertComponent {
 
   newProject() {
     this.projectLoading.set(true)
-    this.projectSercice.create({name: "New Project"}).subscribe({
+    this.projectSercice.create({ name: 'New Project' }).subscribe({
       next: (project) => {
         this.projectLoading.set(false)
         this.#router.navigate(['/chat/p', project.id])

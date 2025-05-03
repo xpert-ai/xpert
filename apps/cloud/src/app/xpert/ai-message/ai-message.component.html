@@ -43,7 +43,16 @@
   }
 
   @for (submessage of contents(); track submessage; let i = $index; let last = $last) {
-    <chat-message-content [prevContent]="contents()[i - 1]" [message]="message()" [content]="submessage" [last]="last"/>
+    <chat-message-avatar #avatar class="group sticky top-14 z-10 bg-surface-container"
+      [prevContent]="contents()[i - 1]"
+      [message]="message()"
+      [content]="submessage"
+      [collapse]="submessage.id && collapseMessages()[submessage.id]"
+      (collapseChange)="updateCollapse(submessage.id, $event)"
+    />
+    <chat-message-content [message]="message()" [content]="submessage" [last]="last" 
+      [collapse]="submessage.id && collapseMessages()[submessage.id]"
+    />
   }
 
   @if (contentStr()) {

@@ -28,8 +28,6 @@ import { NxWidgetKpiComponent } from '@metad/story/widgets/kpi'
 import { TranslateModule } from '@ngx-translate/core'
 import { compact, uniq } from 'lodash-es'
 import { ChatMessageStepCategory, IXpertTask, Store } from '../../@core'
-import { ChatComponentIndicatorsComponent } from './indicators/indicators.component'
-import { ChatComponentIndicatorComponent } from './indicator/indicator.component'
 import { ChatComponentScheduleTasksComponent } from './schedule-tasks/tasks.component'
 import { XpertHomeService } from '../home.service'
 import { ChatComponentMemoriesComponent } from './memories/memories.component'
@@ -60,8 +58,6 @@ import { ChatComponentMessageTasksComponent } from './tasks/tasks.component'
     NxWidgetKpiComponent,
 
     ChatComponentMessageTasksComponent,
-    ChatComponentIndicatorsComponent,
-    ChatComponentIndicatorComponent,
     ChatComponentScheduleTasksComponent,
     ChatComponentMemoriesComponent,
     ChatComponentMessageFilesComponent
@@ -88,14 +84,18 @@ export class ChatComponentMessageComponent {
   // Sub component message
   readonly message = input<any>()
 
-  // Outputs
-  readonly register = output<{ id: string; indicators?: Indicator[] }[]>()
 
   // States
   readonly data = computed(() => this.message()?.data as any)
 
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   readonly primaryTheme = toSignal(this.#store.primaryTheme$)
 
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   readonly chartSettings = computed(() => {
     return {
       ...(this.data()?.chartSettings ?? {}),
@@ -103,66 +103,96 @@ export class ChatComponentMessageComponent {
     }
   })
 
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   readonly dataSettings = computed(() => this.data()?.dataSettings as DataSettings)
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   readonly indicator = computed<Indicator>(() => this.data()?.indicator)
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   readonly dataSource = computed(() => this.dataSettings()?.dataSource)
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   readonly indicators = computed(() => this.data()?.indicators)
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   readonly slicers = computed(() => this.data()?.slicers)
   readonly tasks = computed(() => this.data()?.tasks as IXpertTask[])
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   readonly dataSources = computed(() => compact(uniq<string>(this.indicators()?.map((_) => _.dataSource))))
 
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   readonly explains = signal<any[]>([])
 
-  constructor() {
-    effect(
-      () => {
-        if (this.dataSource()) {
-          this.register.emit([
-            {
-              id: this.dataSource(),
-              indicators: this.indicators()
-            }
-          ])
-        }
-      },
-      { allowSignalWrites: true }
-    )
+  // constructor() {
+  //   effect(
+  //     () => {
+  //       if (this.dataSource()) {
+  //         this.register.emit([
+  //           {
+  //             id: this.dataSource(),
+  //             indicators: this.indicators()
+  //           }
+  //         ])
+  //       }
+  //     },
+  //     { allowSignalWrites: true }
+  //   )
 
-    effect(
-      () => {
-        const newIndicator = this.indicator()
-        if (newIndicator) {
-          this.register.emit([
-            {
-              id: newIndicator.modelId,
-              indicators: [newIndicator]
-            }
-          ])
-        }
-      },
-      { allowSignalWrites: true }
-    )
+  //   effect(
+  //     () => {
+  //       const newIndicator = this.indicator()
+  //       if (newIndicator) {
+  //         this.register.emit([
+  //           {
+  //             id: newIndicator.modelId,
+  //             indicators: [newIndicator]
+  //           }
+  //         ])
+  //       }
+  //     },
+  //     { allowSignalWrites: true }
+  //   )
 
-    effect(
-      () => {
-        if (this.dataSources()) {
-          this.register.emit(this.dataSources().map((id) => ({ id })))
-        }
-      },
-      { allowSignalWrites: true }
-    )
-  }
+  //   effect(
+  //     () => {
+  //       if (this.dataSources()) {
+  //         this.register.emit(this.dataSources().map((id) => ({ id })))
+  //       }
+  //     },
+  //     { allowSignalWrites: true }
+  //   )
+  // }
 
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   setExplains(items: unknown[]) {
     this.explains.set(items)
   }
 
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   openExplain() {
     this.#dialog.open(ExplainComponent, {
       data: this.explains()
     })
   }
 
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   openExplorer() {
     this.#dialog
       .open(StoryExplorerComponent, {
@@ -184,6 +214,9 @@ export class ChatComponentMessageComponent {
       })
   }
 
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   openCanvas() {
     this.homeService.canvasOpened.set({
       opened: true,

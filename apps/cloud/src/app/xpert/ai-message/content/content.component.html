@@ -1,43 +1,7 @@
 @if (content(); as content) {
-  @if (agent(); as agent) {
-    @if (agent.key !== prevContent()?.agentKey) {
-      <div class="group flex items-center gap-2 py-2 px-1 sticky top-14 z-10 bg-surface-container">
-        @if (content.id) {
-          <button type="button" class="absolute left-2 w-6 h-6 flex justify-center items-center rounded-lg z-10 transition-opacity bg-white/2 backdrop-blur-sm opacity-0 group-hover:opacity-100"
-            (click)="toggleCollapseMessage(content)">
-            @if (collapseMessages()[content.id]) {
-              <i class="ri-arrow-right-s-line"></i>
-            } @else {
-              <i class="ri-arrow-down-s-line"></i>
-            }
-          </button>
-        }
-        <emoji-avatar [avatar]="agent.avatar" small class="rounded-xl overflow-hidden" />
-        <div class="font-semibold">{{agent.title || agent.name || agent.key}}</div>
-      </div>
-    }
-  } @else if (xpert()) {
-    @if (xpert().name !== prevContent()?.xpertName) {
-      <div class="group flex items-center gap-2 py-2 px-1 sticky top-14 z-10 bg-surface-container">
-        @if (content.id) {
-          <button type="button" class="absolute left-2 w-6 h-6 flex justify-center items-center rounded-lg z-10 transition-opacity bg-white/2 backdrop-blur-sm opacity-0 group-hover:opacity-100"
-            (click)="toggleCollapseMessage(content)">
-            @if (collapseMessages()[content.id]) {
-              <i class="ri-arrow-right-s-line"></i>
-            } @else {
-              <i class="ri-arrow-down-s-line"></i>
-            }
-          </button>
-        }
-        <emoji-avatar [avatar]="xpert().avatar" small class="rounded-xl overflow-hidden" />
-        <div class="font-semibold">{{xpert().title || xpert().name || xpert().slug}}</div>
-      </div>
-    }
-  }
-
   @switch (content.type) {
     @case ('text') {
-      @if (content.id && collapseMessages()[content.id]) {
+      @if (content.id && collapse()) {
         <div class="truncate">{{content.text}}</div>
       } @else {
         <div class="group/content relative w-full mt-2">
@@ -55,19 +19,28 @@
         </div>
       }
 
-      @if (!last() && content.agentKey && !collapseMessages()[content.id]) {
-        <hr class="mt-8 mb-4 border-t border-solid border-divider-deep">
+      @if (!last() && content.agentKey && !collapse()) {
+        <hr class="mt-8 mb-4 border-t border-solid border-divider-deep" >
       }
     }
     @case ('reasoning') {
       <!-- <chat-thought [message]="message()" [content]="content" /> -->
     }
     @case ('component') {
-      <chat-component-message class="group/ccm w-full p-2 rounded-2xl z-0 hover:bg-neutral-50"
-        [messageId]="message().id"
-        [message]="content"
-        (register)="onRegister($event)"
-      />
+      @switch (content.data.category) {
+        @case ('Dashboard') {
+          <chat-message-dashboard class="group/ccm w-full p-2 rounded-2xl z-0 hover:bg-neutral-50"
+            [messageId]="message().id"
+            [message]="content"
+          />
+        }
+        @default {
+          <chat-component-message class="group/ccm w-full p-2 rounded-2xl z-0 hover:bg-neutral-50"
+            [messageId]="message().id"
+            [message]="content"
+          />
+        }
+      }
     }
   }
 }

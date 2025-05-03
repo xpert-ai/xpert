@@ -18,6 +18,7 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatSidenav } from '@angular/material/sidenav'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
+import { PaginationParams } from '@metad/cloud/state'
 import { NgmCommonModule, NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { effectAction } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
@@ -37,7 +38,7 @@ import {
 import { AppService } from '../../app.service'
 import { XpertHomeService } from '../home.service'
 import { groupConversations } from '../types'
-import { PaginationParams } from '@metad/cloud/state'
+
 
 @Component({
   standalone: true,
@@ -121,10 +122,14 @@ export class ChatConversationsComponent {
   }
 
   selectConversation(item: IChatConversation) {
+    let basePath = this.#data.basePath ?? '/chat'
+    if (item.projectId) {
+      basePath += `/p/${item.projectId}`
+    }
     if (this.xpertSlug()) {
-      this.#router.navigate([this.#data.basePath, 'x', this.xpertSlug(), 'c', item.id])
+      this.#router.navigate([basePath, 'x', this.xpertSlug(), 'c', item.id])
     } else {
-      this.#router.navigate([this.#data.basePath, 'c', item.id])
+      this.#router.navigate([basePath, 'c', item.id])
     }
     this.#dialogRef.close()
   }
@@ -172,7 +177,7 @@ export class ChatConversationsComponent {
         // @todo temporarily determine whether it is a webapp
         if (this.xpertSlug()) {
           return this.xpertService.getAppConversations(this.xpertSlug(), {
-            select: ['id', 'threadId', 'title', 'updatedAt', 'from'],
+            select: ['id', 'threadId', 'title', 'updatedAt', 'from', 'projectId'],
             order: { updatedAt: OrderTypeEnum.DESC },
             take: this.pageSize,
             skip: this.currentPage() * this.pageSize,
@@ -188,7 +193,7 @@ export class ChatConversationsComponent {
             where.projectId = this.projectId()
           }
           return this.conversationService.getMyInOrg({
-            select: ['id', 'threadId', 'title', 'updatedAt', 'from'],
+            select: ['id', 'threadId', 'title', 'updatedAt', 'from', 'projectId'],
             order: { updatedAt: OrderTypeEnum.DESC },
             take: this.pageSize,
             skip: this.currentPage() * this.pageSize,

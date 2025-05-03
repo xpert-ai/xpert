@@ -1,0 +1,29 @@
+@if (agent(); as agent) {
+  @if (content().id) {
+    <button type="button" class="absolute left-2 w-6 h-6 flex justify-center items-center rounded-lg z-10 transition-opacity bg-white/2 backdrop-blur-sm opacity-0 group-hover:opacity-100"
+      (click)="toggleCollapse(content())"
+    >
+    @if (collapse()) {
+      <i class="ri-arrow-right-s-line"></i>
+    } @else {
+      <i class="ri-arrow-down-s-line"></i>
+    }
+    </button>
+  }
+  <emoji-avatar [avatar]="agent.avatar" small class="shrink-0 rounded-xl overflow-hidden" />
+  <div class="font-semibold">{{agent.title || agent.name || agent.key}}</div>
+} @else if (xpert()) {
+  @if (content().id) {
+    <button type="button" class="absolute left-2 w-6 h-6 flex justify-center items-center rounded-lg z-10 transition-opacity bg-white/2 backdrop-blur-sm opacity-0 group-hover:opacity-100"
+      (click)="toggleCollapse(content())"
+    >
+      @if (collapse()) {
+        <i class="ri-arrow-right-s-line"></i>
+      } @else {
+        <i class="ri-arrow-down-s-line"></i>
+      }
+    </button>
+  }
+  <emoji-avatar [avatar]="xpert().avatar" small class="shrink-0 rounded-xl overflow-hidden" />
+  <div class="font-semibold">{{xpert().title || xpert().name || xpert().slug}}</div>
+}

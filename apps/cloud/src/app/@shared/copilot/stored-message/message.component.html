@@ -41,7 +41,9 @@
 
   @switch (message().type) {
     @case ('human') {
-      <copilot-message-content [content]="content()" />
+      <div class="whitespace-pre-wrap">
+        {{ content() }}
+      </div>
     }
     @case ('ai') {
       @if (content()) {
@@ -55,14 +57,9 @@
     }
     @case ('tool') {
       <div class="flex items-center mb-1">Tool: {{toolMessage().name}}</div>
-      <!-- <div class="mb-2">{{toolMessage().tool_call_id}}</div> -->
-
-      <copilot-message-content [content]="toolResponse()" />
-      <!-- <markdown class="ngm-copilot-markdown block"
-        lineNumbers
-        [start]="5"
-        [data]="toolMessage().content"
-      /> -->
+      <div class="whitespace-pre-wrap">
+        {{ toolResponse() }}
+      </div>
     }
   }
 </div>

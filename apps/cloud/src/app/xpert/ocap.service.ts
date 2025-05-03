@@ -9,6 +9,9 @@ import { injectToastr, registerModel } from '../@core'
 import { getErrorMessage, IIndicator, ISemanticModel } from '../@core/types'
 import { XpertHomeService } from './home.service'
 
+/**
+ * State service for ocap framework
+ */
 @Injectable()
 export class XpertOcapService {
   readonly homeService = inject(XpertHomeService)

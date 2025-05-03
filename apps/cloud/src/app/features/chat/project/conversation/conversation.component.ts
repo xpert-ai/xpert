@@ -89,7 +89,7 @@ export class ChatProjectConversationComponent {
       .open(ChatConversationsComponent, {
         viewContainerRef: this.#vcr,
         data: {
-          basePath: '/chat/p' + this.projectId() + `/`,
+          basePath: '/chat',
           projectId: this.projectId()
         }
       })

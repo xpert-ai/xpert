@@ -10,6 +10,7 @@ import {
   effect,
   inject,
   input,
+  model,
   signal
 } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
@@ -19,7 +20,7 @@ import { RouterModule } from '@angular/router'
 import { nonNullable, stringifyMessageContent } from '@metad/copilot'
 import { ListHeightStaggerAnimation } from '@metad/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { Indicator, omit } from '@metad/ocap-core'
+import { omit } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { filter, map, shareReplay, switchMap, tap } from 'rxjs'
@@ -39,10 +40,11 @@ import { ChatMessageExecutionComponent, ChatMessageExecutionPanelComponent } fro
 import { CopyComponent } from '../../@shared/common'
 import { ChatService } from '../chat.service'
 import { XpertHomeService } from '../home.service'
-import { XpertOcapService } from '../ocap.service'
 import { ChatThoughtComponent } from '../thought/thought.component'
 import { TCopilotChatMessage } from '../types'
 import { ChatMessageContentComponent } from './content/content.component'
+import { ChatMessageAvatarComponent } from './avatar/avatar.component'
+
 
 @Component({
   standalone: true,
@@ -63,7 +65,8 @@ import { ChatMessageContentComponent } from './content/content.component'
     CopyComponent,
     DateRelativePipe,
     ChatMessageContentComponent,
-    ChatThoughtComponent
+    ChatThoughtComponent,
+    ChatMessageAvatarComponent
   ],
   selector: 'pac-ai-message',
   templateUrl: './ai-message.component.html',
@@ -77,7 +80,6 @@ export class ChatAiMessageComponent {
 
   readonly chatService = inject(ChatService)
   readonly homeService = inject(XpertHomeService)
-  readonly xpertOcapService = inject(XpertOcapService)
   readonly messageFeedbackService = inject(ChatMessageFeedbackService)
   readonly agentExecutionService = inject(XpertAgentExecutionService)
   readonly #toastr = injectToastr()
@@ -98,10 +100,6 @@ export class ChatAiMessageComponent {
   readonly executionId = computed(() => this.message()?.executionId)
   readonly status = computed(() => this.message()?.status)
   readonly answering = computed(() => this.chatService.answering() && ['thinking', 'answering'].includes(this.status()))
-  // readonly xperts = computed(() => this.project()?.xperts?.reduce((items, xpert) => {
-  //   items[xpert.name] = xpert
-  //   return items
-  // }, {}) ?? {})
 
   readonly #contentStr = computed(() => {
     const content = this.message()?.content
@@ -133,11 +131,6 @@ export class ChatAiMessageComponent {
     }
     return null
   })
-
-  // readonly messageGroup = computed(() => {
-  //   const message = this.message()
-  //   return isMessageGroup(message as any) ? (message as any) : null
-  // })
 
   readonly contentString = computed(() => stringifyMessageContent(this.message().content))
 
@@ -185,14 +178,16 @@ export class ChatAiMessageComponent {
   )
   readonly canvasType = computed(() => this.homeService.canvasOpened()?.type)
 
+  readonly collapseMessages = model<Record<string, boolean>>({})
+
   constructor() {
     effect(() => {
       // console.log(`reasoning:`, this.reasoning(),)
     })
   }
 
-  onRegister(models: { id: string; indicators?: Indicator[] }[]) {
-    this.xpertOcapService.registerSemanticModel(models)
+  updateCollapse(id: string, status: boolean) {
+    this.collapseMessages.update((state) => ({...state, [id]: status}))
   }
 
   onCopy(copyButton) {
