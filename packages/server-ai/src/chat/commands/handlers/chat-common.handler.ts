@@ -181,6 +181,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		const executionId = execution.id
 		const timeStart = Date.now()
 		let status = XpertAgentExecutionStatusEnum.SUCCESS
+		// Collect the output text into execution
 		let result = ''
 		let error = null
 		let _execution = null
@@ -359,7 +360,6 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 						.pipe(
 							filter((content) => !isNil(content)),
 							map((messageContent: MessageContent) => {
-								result += messageContentText(messageContent)
 								return {
 									data: {
 										type: ChatMessageTypeEnum.MESSAGE,
@@ -483,7 +483,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		// Create tools
 		const stateVariables: TStateVariable[] = []
 		const toolsetVarirables: TStateVariable[] = []
-		const tools = []
+		const tools: StructuredToolInterface[] = []
 		if (project?.settings?.mode === 'plan') {
 			const projectToolset = await this.commandBus.execute<CreateProjectToolsetCommand, ProjectToolset>(new CreateProjectToolsetCommand(projectId))
 			const _variables = await projectToolset.getVariables()
@@ -525,6 +525,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				})
 			}
 		}
+
+		this.#logger.debug(`Project general agent use tools:\n${[...tools].map((_, i) => `${i+1}. ` + _.name + ': ' + _.description).join('\n')}`)
 
 		stateVariables.push(...toolsetVarirables)
 		// Find an available copilot
@@ -614,7 +616,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		let supervisorPrompt = ''
 		if (xperts.length > 0) {
 			supervisorPrompt +=
-				'\n您是一位团队主管，管理以下专家，请安排他们任务以解决用户的问题：' +
+				'\nYou are a team leader who manages the following experts. Please assign them tasks to solve user problems:' +
 				project.xperts.reduce((prompt, xpert) => {
 					prompt += `- xpert_${xpert.slug}: I am ${xpert.title || xpert.name}. ${xpert.description}\n\n`
 					return prompt
@@ -623,7 +625,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 		const callModel = async (state: typeof AgentStateAnnotation.State, config?: RunnableConfig) => {
 			const parameters = stateToParameters(state)
-			let systemTemplate = (project?.settings?.instruction || supervisorPrompt) + '\n\n' + Instruction
+			let systemTemplate = `Current time: ${new Date().toISOString()}` + (project?.settings?.instruction || supervisorPrompt) + '\n\n' + Instruction
 			const files = await fileToolset?.listFiles()
 			if (files) {
 				systemTemplate += '\n\n' + `The list of files in the current workspace is:\n${files.map(({filePath}) => filePath).join('\n') || 'No files yet.'}\n`
