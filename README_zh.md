@@ -21,29 +21,37 @@
 
 ## 💡 新功能
 
-**智能体与工作流混合架构**
+### 🔧 数字专家项目 - 全新协作功能上线！
+
+我们新增了 **Xpert Project** 模块，为用户提供一个灵活的智能体协作空间，支持多位数字专家协同完成项目目标：
+
+- 🧠 在一个项目中组合多个数字专家，协同解决复杂问题
+- 🧰 引入绑定的工具集（如 MCP 工具）赋能项目智能体
+- 📎 上传文件作为共享上下文，让智能体理解更多项目信息
+- 🔄 支持探索模式（AI 自主探索）和规划模式（分步骤执行）
+- 👥 邀请成员共同参与项目，支持多用户协作
+- 📁 管理项目会话，统一配置系统指令，提升一致性
+
+📌 快速开始：进入任意数字专家对话界面 → 点击“创建项目” → 开启多智能体协作新体验！
+
+👉 详见文档：[Xpert Project 功能介绍](https://mtda.cloud/docs/ai/chat/project/)
+
+## 智能体与工作流混合架构
 
 在AI技术快速落地的今天，企业面临一个关键矛盾：**如何平衡 LLM 的创造性与流程的稳定性**？纯粹的智能体架构虽灵活，却难以控制；传统工作流虽可靠，却缺乏应变能力。Xpert AI 平台的**智能体与工作流混合架构**，正是为解决这一矛盾而生——它让 AI 既拥有“自由意志”，又遵循“规则秩序”
 ![agent-workflow-hybrid-architecture](https://github.com/user-attachments/assets/b3b432f9-54ab-4ec1-9fc4-7e46fbfb88ba)
 
 [博客 - 智能体与工作流混合架构](https://mtda.cloud/blog/agent-workflow-hybrid-architecture)
 
-## [智能体编排平台](https://mtda.cloud/docs/ai/)
+### [智能体编排平台](https://mtda.cloud/docs/ai/)
 
 通过协调多个智能代理的协作，Xpert 能够完成复杂任务。Xpert 通过高效的管理机制集成不同类型的 AI 代理，利用其能力解决多维度问题。
 
 [Xpert智能体](https://github.com/user-attachments/assets/e21f8b35-2f72-4b81-a245-f36759df7c27)
 
-## [数据分析平台](https://mtda.cloud/docs/models/)
+### [数据分析平台](https://mtda.cloud/docs/models/)
 
 基于云计算的敏捷数据分析平台，支持多维建模、指标管理和 BI 展示。平台可连接多种数据源，实现高效灵活的数据分析与可视化，并提供多种智能分析功能和工具，帮助企业快速准确地发现业务价值并制定运营决策。
-
-### ChatBI：自然语言驱动的商业智能分析
-
-[ChatBI](https://mtda.cloud/docs/chatbi) 是我们新推出的一个创新功能，它将聊天功能与商业智能（BI）分析能力相结合，通过自然语言交互的方式，为用户提供更加直观和便捷的数据分析体验。
-[更多详情](https://mtda.cloud/blog/releases-2-5-chatbi)
-
-[ChatBI_Demo.mp4](https://github.com/user-attachments/assets/5f7c84be-2307-43cf-8342-bce39524e37d)
 
 ## 🚀 快速开始
 
@@ -144,8 +152,8 @@ Xpert AI 云平台链接为 <https://app.mtda.cloud> 。
 此软件在以下许可下可用：
 
 - [Xpert AI 平台社区版](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-community-edition-license)
-- [Xpert AI 平台小企业版](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-small-business-license)
-- [Xpert AI 平台企业版](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-enterprise-license)
+- [Xpert AI 平台企业版](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-small-business-license)
+- [Xpert AI 平台企业专业版](https://github.com/xpert-ai/xpert/blob/main/LICENSE.md#xpert-ai-platform-enterprise-license)
 
 #### 请参阅 [LICENSE](LICENSE.md) 以获取有关许可的更多信息。
 

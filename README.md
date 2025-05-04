@@ -38,28 +38,37 @@ English | [中文](./README_zh.md)
 
 ## 💡 What's New
 
-**Agent and Workflow Hybrid Architecture**
+### 🔧 Digital Expert Project - New Collaboration Features Launched!
 
-In today's rapidly evolving AI landscape, enterprises face a critical dilemma: **how to balance the creativity of LLMs with the stability of processes?** While purely agent-based architectures offer flexibility, they are difficult to control; traditional workflows, though reliable, lack adaptability. The **Agent and Workflow Hybrid Architecture** of the Xpert AI platform is designed to resolve this conflict — it allows AI to possess "free will" while adhering to "rules and order."
+We’ve introduced the **Xpert Project** module, offering users a flexible space for agent collaboration, enabling multiple digital experts to work together to achieve project goals:
+
+- 🧠 Combine multiple digital experts in a single project to collaboratively solve complex problems
+- 🧰 Integrate custom toolsets (e.g., MCP tools) to empower project agents
+- 📎 Upload files as shared context to help agents understand more project details
+- 🔄 Support exploration mode (AI autonomous exploration) and planning mode (step-by-step execution)
+- 👥 Invite team members to join projects, supporting multi-user collaboration
+- 📁 Manage project sessions with unified system instructions for improved consistency
+
+📌 Get Started: Enter any digital expert chat interface → Click “Create Project” → Unlock a new multi-agent collaboration experience!
+
+👉 Learn More: [Xpert Project Feature Guide](https://mtda.cloud/en/docs/ai/chat/project/)
+
+## Agent-Workflow Hybrid Architecture
+
+In today’s rapidly evolving AI landscape, enterprises face a key challenge: **How to balance the creativity of LLMs with the stability of workflows**? Pure agent architectures are flexible but hard to control; traditional workflows are reliable but lack adaptability. Xpert AI’s **Agent-Workflow Hybrid Architecture** is designed to resolve this conflict, enabling AI to have “free will” while adhering to “rule-based order.”
 ![agent-workflow-hybrid-architecture](https://github.com/user-attachments/assets/b3b432f9-54ab-4ec1-9fc4-7e46fbfb88ba)
 
-[Blog - Agent and Workflow Hybrid Architecture](https://mtda.cloud/en/blog/agent-workflow-hybrid-architecture)
+[Blog - Agent-Workflow Hybrid Architecture](https://mtda.cloud/en/blog/agent-workflow-hybrid-architecture)
 
-## [Agent Orchestration Platform](https://mtda.cloud/en/docs/ai/)
+### [Agent Orchestration Platform](https://mtda.cloud/en/docs/ai/)
 
-By coordinating the collaboration of multiple agents, Xpert completes complex tasks. Xpert integrates different types of AI agents through an efficient management mechanism, utilizing their capabilities to solve multidimensional problems.
+By coordinating the collaboration of multiple intelligent agents, Xpert can handle complex tasks. Xpert integrates different types of AI agents through efficient management mechanisms, leveraging their capabilities to address multidimensional problems.
 
-[Xpert Agents](https://github.com/user-attachments/assets/e21f8b35-2f72-4b81-a245-f36759df7c27)
+[Xpert Agent](https://github.com/user-attachments/assets/e21f8b35-2f72-4b81-a245-f36759df7c27)
 
-## [Data Analysis Platform](https://mtda.cloud/en/docs/models/)
+### [Data Analysis Platform](https://mtda.cloud/en/docs/models/)
 
-An agile data analysis platform based on cloud computing for multidimensional modeling, indicator management, and BI display. It supports connecting to various data sources, achieving efficient and flexible data analysis and visualization, and provides multiple intelligent analysis functions and tools to help enterprises quickly and accurately discover business value and make operational decisions.
-
-### ChatBI
-
-[ChatBI](https://mtda.cloud/en/docs/chatbi) is an innovative feature we are introducing, combining chat functionality with business intelligence (BI) analysis capabilities. It offers users a more intuitive and convenient data analysis experience through natural language interaction.
-
-[ChatBI_Demo.mp4](https://github.com/user-attachments/assets/5f7c84be-2307-43cf-8342-bce39524e37d)
+A cloud-based agile data analysis platform supporting multidimensional modeling, metrics management, and BI visualization. The platform connects to various data sources, enabling efficient and flexible data analysis and visualization, and offers multiple intelligent analysis tools to help enterprises quickly and accurately uncover business value and make operational decisions.
 
 ## 🚀 Quick Start
 
