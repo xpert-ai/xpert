@@ -36,6 +36,7 @@ import {
 import { appendMessageContent, isNil } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
+import { ConfigService } from '@metad/server-config'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { format } from 'date-fns/format'
@@ -72,7 +73,6 @@ import {
 } from './supervisor'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { toEnvState } from '../../../environment'
-import { ConfigService } from '@metad/server-config'
 import { ProjectFileToolset, ProjectToolset } from '../../../xpert-project/tools'
 
 const GeneralAgentRecursionLimit = 99

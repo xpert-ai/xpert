@@ -87,7 +87,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 				tenantId,
 				organizationId
 			},
-			relations: ['xperts']
+			relations: ['xperts', ...(params?.relations?.map((relation) => `xperts.${relation}`) ?? [])]
 		})
 
 		const total = project.xperts.length
@@ -146,7 +146,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 				tenantId,
 				organizationId
 			},
-			relations: ['toolsets']
+			relations: ['toolsets', ...(params?.relations?.map((relation) => `toolsets.${relation}`) ?? [])]
 		})
 
 		const total = project.toolsets.length

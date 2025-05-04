@@ -108,7 +108,9 @@ export class SmartEChartEngine extends SmartChartEngine<SmartChartEngineState> {
     delayWhen(() => this.echartsInstance$.pipe(filter(nonNullable))),
     withLatestFrom(this.entityType$),
     switchMap(async ([[data, chartAnnotation, settings, chartOptions], entityType]) => {
-
+      if (!data?.data?.length) {
+        return {}
+      }
       // Merge chart options for specific chart type to common chart options
       chartOptions = mergeChartOptions({}, [], chartOptions, chartAnnotation.chartType?.chartOptions)
 

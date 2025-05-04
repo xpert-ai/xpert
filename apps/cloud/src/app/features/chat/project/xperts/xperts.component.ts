@@ -80,7 +80,7 @@ export class ChatProjectXpertsComponent {
 
   readonly #xperts = derivedAsync(() => {
     const projectId = this.projectId()
-    return projectId ? this.projectService.getXperts(projectId, {}) : of(null)
+    return projectId ? this.projectService.getXperts(projectId, {relations: ['createdBy']}) : of(null)
   })
 
   readonly xperts = linkedModel({
