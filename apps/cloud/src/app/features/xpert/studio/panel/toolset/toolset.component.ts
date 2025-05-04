@@ -118,7 +118,7 @@ export class XpertStudioPanelToolsetComponent {
 
   constructor() {
     effect(() => {
-      console.log(this.toolsetDetail())
+      // console.log(this.toolsetDetail())
     })
   }
 
