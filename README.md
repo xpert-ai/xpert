@@ -49,7 +49,7 @@ We’ve introduced the **Xpert Project** module, offering users a flexible space
 - 👥 Invite team members to join projects, supporting multi-user collaboration
 - 📁 Manage project sessions with unified system instructions for improved consistency
 
-📌 Get Started: Enter any digital expert chat interface → Click “Create Project” → Unlock a new multi-agent collaboration experience!
+https://github.com/user-attachments/assets/03a61307-2ebd-41e7-ac24-e5b31bbeeb60
 
 👉 Learn More: [Xpert Project Feature Guide](https://mtda.cloud/en/docs/ai/chat/project/)
 
