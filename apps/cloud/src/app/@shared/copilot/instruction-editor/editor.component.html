@@ -1,6 +1,6 @@
-<div class="edit-container pt-2 -ml-4 rounded-t-xl text-sm overflow-hidden text-gray-700"
+<!-- <div class="edit-container pt-2 -ml-4 rounded-t-xl text-sm overflow-hidden text-gray-700"
   [style.height.px]="height"
-  >
+  > -->
   <ngx-monaco-editor class="!h-full w-full max-h-full"
     [options]="editorOptions()"
     [ngModel]="instruction()"
@@ -8,7 +8,7 @@
     (resized)="onResized()"
     (onInit)="onInit($event)"
   />
-</div>
+<!-- </div> -->
 
 <div class="absolute bottom-0 left-0 w-full flex justify-center h-2 cursor-row-resize"
   (mousedown)="onMouseDown($event)">

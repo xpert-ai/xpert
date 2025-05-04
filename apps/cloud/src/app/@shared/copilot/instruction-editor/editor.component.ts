@@ -11,14 +11,11 @@ import {
   inject,
   input,
   model,
-  numberAttribute,
   output,
   signal,
   ViewChild,
-  ViewContainerRef
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { effectAction } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -42,7 +39,6 @@ declare var monaco: any
     MonacoEditorModule,
     MatTooltipModule,
   ],
-
 })
 export class CopilotInstructionEditorComponent {
   agentLabel = agentLabel
@@ -52,9 +48,7 @@ export class CopilotInstructionEditorComponent {
 
   // Inputs
   readonly instruction = model<string>()
-  readonly initHeight = input<number, number | string>(210, {
-    transform: numberAttribute
-  })
+  readonly initHeight = input<number | string>(210)
   readonly tooltip = input<string>()
 
   // Outputs
@@ -69,7 +63,7 @@ export class CopilotInstructionEditorComponent {
   height = this.initHeight()
   private isResizing = false
   private startY = 0
-  private startHeight = 0
+  private startHeight: string | number = 0
   readonly copied = signal(false)
 
   readonly editorOptions = signal({
@@ -86,12 +80,17 @@ export class CopilotInstructionEditorComponent {
 
   readonly #editor = signal(null)
 
-  constructor(private overlay: Overlay) {
+  constructor() {
+    // effect(() => {
+    //   if (this.initHeight()) {
+    //     this.height = this.initHeight()
+    //   }
+    // })
+
     effect(() => {
-      if (this.initHeight()) {
-        this.height = this.initHeight()
-      }
-    })
+      const height = this.elementRef.nativeElement.offsetHeight
+      this.startHeight = height
+    }, { allowSignalWrites: true })
   }
 
   toggleWrap() {
@@ -134,8 +133,8 @@ export class CopilotInstructionEditorComponent {
   onMouseMove(event: MouseEvent): void {
     if (this.isResizing) {
       const offset = event.clientY - this.startY
-      this.height = this.startHeight + offset
-      if (this.height < 50) this.height = 50 // Set minimum height
+      // this.height = this.startHeight + offset
+      // if (this.height < 50) this.height = 50 // Set minimum height
 
       this.onResized()
       event.preventDefault()

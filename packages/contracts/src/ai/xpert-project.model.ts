@@ -2,6 +2,7 @@ import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IStorageFile } from '../storage-file.model'
 import { TAvatar } from '../types'
 import { IUser } from '../user.model'
+import { ICopilotModel } from './copilot-model.model'
 import { TFile } from './types'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IXpertWorkspace } from './xpert-workspace.model'
@@ -19,6 +20,10 @@ export type TXpertProject = {
   description?: string
   status: TXpertProjectStatus
   settings?: TXpertProjectSettings
+
+  // Used copilot model
+  copilotModel?: ICopilotModel
+  copilotModelId?: string
 }
 
 /**

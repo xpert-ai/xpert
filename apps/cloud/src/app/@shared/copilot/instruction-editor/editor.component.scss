@@ -1,5 +1,5 @@
 :host {
-  @apply relative overflow-auto;
+  @apply relative flex flex-col;
 }
 
 :host::ng-deep {

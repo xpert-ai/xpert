@@ -172,8 +172,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		// Project & Xperts
 		let project: IXpertProject
 		if (projectId) {
-			project = await this.projectService.findOne(projectId, { 
-				relations: ['xperts', 'xperts.agent', 'toolsets', 'workspace', 'workspace.environments'] 
+			project = await this.projectService.findOne(projectId, {
+				relations: ['copilotModel', 'copilotModel.copilot', 'xperts', 'xperts.agent', 'toolsets', 'workspace', 'workspace.environments'] 
 			})
 		}
 
@@ -530,10 +530,15 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 		stateVariables.push(...toolsetVarirables)
 		// Find an available copilot
-		const copilot = await this.queryBus.execute(new CopilotGetChatQuery(tenantId, organizationId))
+		let copilot = project.copilotModel?.copilot
+		let copilotModel = project.copilotModel
+		if (!copilotModel) {
+			copilot = await this.queryBus.execute(new CopilotGetChatQuery(tenantId, organizationId))
+			copilotModel = copilot.copilotModel
+		}
 		execution.metadata = {
 			provider: copilot.modelProvider?.providerName,
-			model: copilot.copilotModel?.model
+			model: copilotModel?.model
 		}
 
 		const llm = await this.queryBus.execute(

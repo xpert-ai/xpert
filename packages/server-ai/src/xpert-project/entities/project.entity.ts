@@ -1,4 +1,5 @@
 import {
+	ICopilotModel,
 	IStorageFile,
 	IUser,
 	IXpert,
@@ -14,8 +15,8 @@ import {
 import { StorageFile, TenantOrganizationBaseEntity, User } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, RelationId } from 'typeorm'
-import { Xpert, XpertProjectFile, XpertProjectTask, XpertToolset, XpertWorkspace } from '../../core/entities/internal'
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
+import { CopilotModel, Xpert, XpertProjectFile, XpertProjectTask, XpertToolset, XpertWorkspace } from '../../core/entities/internal'
 import { WorkspaceBaseEntity } from '../../core/entities/base.entity'
 
 @Entity('xpert_project')
@@ -81,6 +82,26 @@ export class XpertProject extends TenantOrganizationBaseEntity implements IXpert
 	@IsOptional()
 	@Column({ nullable: true })
 	workspaceId?: string
+
+	/*
+    |--------------------------------------------------------------------------
+    | @OneToOne
+    |--------------------------------------------------------------------------
+    */
+	// Copilot Model
+	@ApiProperty({ type: () => CopilotModel })
+	@OneToOne(() => CopilotModel, {
+		nullable: true,
+		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+	})
+	@JoinColumn()
+	copilotModel?: ICopilotModel
+
+	@ApiProperty({ type: () => String })
+	@RelationId((it: XpertProject) => it.copilotModel)
+	@IsString()
+	@Column({ nullable: true })
+	copilotModelId?: string
 
 	/*
     |--------------------------------------------------------------------------

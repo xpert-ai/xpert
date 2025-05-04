@@ -18,7 +18,7 @@ export class ProjectService {
   readonly id = injectParams('id')
 
   readonly #project = derivedAsync(() =>
-    this.id() ? this.projectSercice.getById(this.id(), { relations: ['createdBy', 'owner', 'xperts'] }) : of(null)
+    this.id() ? this.projectSercice.getById(this.id(), { relations: ['createdBy', 'owner', 'copilotModel', 'xperts'] }) : of(null)
   )
 
   readonly project = linkedModel<Partial<IXpertProject>>({

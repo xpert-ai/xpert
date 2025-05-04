@@ -1,18 +1,34 @@
-import { IStorageFile, IUser, IXpertProject, IXpertProjectFile, IXpertProjectTask, IXpertToolset, OrderTypeEnum, TFile } from '@metad/contracts'
-import { PaginationParams, RequestContext, StorageFileDeleteCommand, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import {
+	IStorageFile,
+	IUser,
+	IXpertProject,
+	IXpertProjectFile,
+	IXpertProjectTask,
+	IXpertToolset,
+	OrderTypeEnum,
+	TFile
+} from '@metad/contracts'
+import {
+	PaginationParams,
+	RequestContext,
+	StorageFileDeleteCommand,
+	TenantOrganizationAwareCrudService
+} from '@metad/server-core'
 import { Injectable, Logger } from '@nestjs/common'
-import { Document } from 'langchain/document'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Brackets, Repository } from 'typeorm'
+import { Document } from 'langchain/document'
+import { assign, omit } from 'lodash'
+import { Brackets, Repository, UpdateResult } from 'typeorm'
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
+import { LoadStorageFileCommand } from '../shared'
 import { FindXpertToolsetsQuery } from '../xpert-toolset'
 import { ToolsetPublicDTO } from '../xpert-toolset/dto'
 import { XpertIdentiDto } from '../xpert/dto'
 import { FindXpertQuery } from '../xpert/queries'
 import { XpertProjectDto } from './dto'
 import { XpertProject } from './entities/project.entity'
-import { XpertProjectTaskService, XpertProjectFileService } from './services/'
-import { LoadStorageFileCommand } from '../shared'
+import { XpertProjectFileService, XpertProjectTaskService } from './services/'
 
 @Injectable()
 export class XpertProjectService extends TenantOrganizationAwareCrudService<XpertProject> {
@@ -24,9 +40,22 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
 		private readonly taskService: XpertProjectTaskService,
-		private readonly fileService: XpertProjectFileService,
+		private readonly fileService: XpertProjectFileService
 	) {
 		super(repository)
+	}
+
+	public async update(
+		id: string,
+		partialEntity: QueryDeepPartialEntity<XpertProject>
+	): Promise<UpdateResult | XpertProject> {
+		const project = await this.findOne(id)
+		if (partialEntity.copilotModel) {
+			project.copilotModel ??= {}
+			assign(project.copilotModel, partialEntity.copilotModel)
+		}
+		assign(project, omit(partialEntity, 'copilotModel'))
+		return await this.repository.save(project)
 	}
 
 	/**
@@ -218,21 +247,29 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 	}
 
 	async getFiles(id: string, params?: PaginationParams<IXpertProjectFile>) {
-		const project = await this.findOne(id, {relations: ['files', 'attachments']})
+		const project = await this.findOne(id, { relations: ['files', 'attachments'] })
 
-		return [...project.files, ...project.attachments.map((storageFile) => ({
-			filePath: `attachments/` + storageFile.originalName,
-			url: storageFile.fileUrl,
-			storageFileId: storageFile.id
-		} as TFile))]
+		return [
+			...project.files,
+			...project.attachments.map(
+				(storageFile) =>
+					({
+						filePath: `attachments/` + storageFile.originalName,
+						url: storageFile.fileUrl,
+						storageFileId: storageFile.id
+					}) as TFile
+			)
+		]
 	}
 
 	async getFileByPath(projectId: string, path: string) {
 		if (path.startsWith('attachments/')) {
-			const project = await this.findOne(projectId, {relations: ['attachments']})
+			const project = await this.findOne(projectId, { relations: ['attachments'] })
 			const storageFile = project.attachments.find((_) => _.originalName === path.replace(/^attachments\//, ''))
 			if (storageFile) {
-				const docs = await this.commandBus.execute<LoadStorageFileCommand, Document[]>(new LoadStorageFileCommand(storageFile.id))
+				const docs = await this.commandBus.execute<LoadStorageFileCommand, Document[]>(
+					new LoadStorageFileCommand(storageFile.id)
+				)
 				return {
 					filePath: path,
 					contents: docs.map((doc) => doc.pageContent).join('\n\n'),
@@ -243,27 +280,25 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 				}
 			}
 		}
-		const result = await this.fileService.findOneOrFail({where: {projectId, filePath: path}})
+		const result = await this.fileService.findOneOrFail({ where: { projectId, filePath: path } })
 		return result.record
 	}
 
 	async addAttachments(id: string, files: string[]) {
 		const project = await this.findOne(id, { relations: ['attachments'] })
 		const existingAttachmentIds = new Set(project.attachments.map((attachment) => attachment.id))
-		
+
 		const newAttachments = files
 			.filter((fileId) => !existingAttachmentIds.has(fileId))
-			.map((fileId) => ({ id: fileId } as IStorageFile))
-		
+			.map((fileId) => ({ id: fileId }) as IStorageFile)
+
 		project.attachments = [...project.attachments, ...newAttachments]
 		await this.repository.save(project)
 	}
 
 	async removeAttachments(id: string, files: string[]) {
 		const project = await this.findOne(id, { relations: ['attachments'] })
-		project.attachments = project.attachments.filter(
-			(attachment) => !files.includes(attachment.id)
-		)
+		project.attachments = project.attachments.filter((attachment) => !files.includes(attachment.id))
 		await this.repository.save(project)
 	}
 

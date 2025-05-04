@@ -9,6 +9,7 @@ import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import {
+  AiModelTypeEnum,
   getErrorMessage,
   injectProjectService,
   injectToastr,
@@ -19,7 +20,7 @@ import {
   XpertWorkspaceService
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
-import { CopilotEnableModelComponent, CopilotPromptGeneratorComponent } from '@cloud/app/@shared/copilot'
+import { CopilotEnableModelComponent, CopilotModelSelectComponent, CopilotPromptGeneratorComponent } from '@cloud/app/@shared/copilot'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { attrModel, linkedModel, TranslatePipe } from '@metad/core'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -51,6 +52,7 @@ import { ChatProjectConversationsComponent } from '../conversations/conversation
     EmojiAvatarComponent,
     TranslatePipe,
     
+    CopilotModelSelectComponent,
     CopilotEnableModelComponent,
     ChatProjectXpertsComponent,
     ChatProjectToolsComponent,
@@ -64,6 +66,8 @@ import { ChatProjectConversationsComponent } from '../conversations/conversation
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatProjectHomeComponent {
+  eModelType = AiModelTypeEnum
+
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
   readonly #fb = inject(FormBuilder)
@@ -83,7 +87,7 @@ export class ChatProjectHomeComponent {
   readonly settings = attrModel(this.project, 'settings')
   readonly instruction = attrModel(this.settings, 'instruction')
   readonly mode = attrModel(this.settings, 'mode')
-
+  readonly copilotModel = attrModel(this.project, 'copilotModel')
 
   readonly #toolsRefresh$ = new BehaviorSubject<void>(null)
   readonly #toolsets = derivedAsync(() => (this.id() ? this.#toolsRefresh$.pipe(switchMap(() => this.projectSercice.getToolsets(this.id(), {relations: ['createdBy']}))) : of(null)))
@@ -147,7 +151,12 @@ export class ChatProjectHomeComponent {
 
   saveProject() {
     this.loading.set(true)
-    this.updateProject({ avatar: this.avatar(), name: this.name() }).subscribe({
+    this.updateProject({ 
+      avatar: this.avatar(), 
+      name: this.name(), 
+      copilotModelId: this.copilotModel()?.id ?? null,
+      copilotModel: this.copilotModel()
+    }).subscribe({
       next: () => {
         this.loading.set(false)
         this.editing.set(false)
@@ -165,8 +174,6 @@ export class ChatProjectHomeComponent {
     const projectId = this.id()
     this.#router.navigate(['/chat/p', projectId, 'x', 'common'], { state: { input } })
   }
-
-  stopGenerating() {}
 
   triggerFun(event: KeyboardEvent) {
     if ((event.isComposing || event.shiftKey) && event.key === 'Enter') {
