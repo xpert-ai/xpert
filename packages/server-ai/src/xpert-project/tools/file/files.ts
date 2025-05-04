@@ -1,9 +1,12 @@
 import { CallbackManager } from '@langchain/core/callbacks/manager'
 import { IXpertProject, IXpertProjectFile, TFile } from '@metad/contracts'
+import { instanceToPlain } from 'class-transformer'
+import { isNil, omitBy } from 'lodash'
 import { BaseFileToolset, TSandboxToolsetParams } from '../../../shared'
 import { XpertProjectService } from '../../project.service'
 import { XpertProjectTaskService } from '../../services/'
 import { UpsertProjectFileCommand, DeleteProjectFileCommand } from '../../commands'
+import { XpertProjectFileDto } from '../../dto'
 
 export type TProjectFileToolsetParams = TSandboxToolsetParams & {
 	project: IXpertProject
@@ -36,14 +39,15 @@ export class ProjectFileToolset extends BaseFileToolset {
 			// 当工具调用成功完成时触发
 			async handleToolEnd({ tool_name, output }, runId: string, parentRunId?: string) {
 				if (tool_name === 'project__create_file' || tool_name === 'project__str_replace' || tool_name === 'project__full_file_rewrite') {
-					const { file_path, file_contents } = output
-					await that.saveFileToDatabase({
+					const { file_path, file_contents, file_description } = output
+					await that.saveFileToDatabase(omitBy({
 						filePath: file_path,
-						fileContents: file_contents,
+						contents: file_contents,
 						fileType: null,
-						fileUrl: null,
+						url: null,
+						description: file_description,
 						projectId: project?.id
-					})
+					}, isNil) as IXpertProjectFile)
 				}
 				if (tool_name === 'project__delete_file') {
 					const { file_path } = output
@@ -78,6 +82,7 @@ export class ProjectFileToolset extends BaseFileToolset {
 	}
 
 	async listFiles() {
-		return await this.projectService.getFiles(this.project.id)
+		const items = await this.projectService.getFiles(this.project.id)
+		return instanceToPlain(items.map((_) => new XpertProjectFileDto(_))) as TFile[]
 	}
 }

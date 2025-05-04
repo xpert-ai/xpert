@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
-import { TMessageComponent } from '@cloud/app/@core'
+import { TFile, TMessageComponent } from '@cloud/app/@core'
 import { ChatFilesDialogComponent } from '@cloud/app/@shared/chat'
 import { ArraySlicePipe, FileTypePipe } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -23,12 +23,12 @@ export class ChatComponentMessageFilesComponent {
   readonly #dialog = inject(Dialog)
 
   // Inputs
-  readonly data = input<TMessageComponent<{ files: any[] }>>()
+  readonly data = input<TMessageComponent<{ files: TFile[] }>>()
 
   // Files
   readonly files = computed(() => this.data()?.files)
 
-  openFileViewer(file) {
+  openFileViewer(file: TFile) {
     this.homeService.canvasOpened.set({
       opened: true,
       type: 'File',
@@ -38,7 +38,7 @@ export class ChatComponentMessageFilesComponent {
 
   openAllFiles() {
     this.#dialog
-      .open(ChatFilesDialogComponent, {
+      .open<TFile>(ChatFilesDialogComponent, {
         data: {
           files: this.files()
         }

@@ -67,5 +67,5 @@ export interface IXpertProjectTaskLog extends IBasePerXpertProjectEntityModel {
   content: string;
 }
 
-export interface IXpertProjectFile extends IBasePerXpertProjectEntityModel, TFile {
+export interface IXpertProjectFile extends IBasePerXpertProjectEntityModel, Omit<TFile, 'createdAt'> {
 }

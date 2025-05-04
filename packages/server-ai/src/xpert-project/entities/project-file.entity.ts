@@ -11,10 +11,13 @@ export class XpertProjectFile extends XpertProjectBaseEntity implements IXpertPr
 	fileType: string
 
 	@Column({ nullable: true })
-	fileUrl: string
+	url: string
 
 	@Column({ nullable: true })
-	fileContents: string
+	contents: string
+
+	@Column({ nullable: true })
+	description: string
 
 	storageFileId?: string
 }

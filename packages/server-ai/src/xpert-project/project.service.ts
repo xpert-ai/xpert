@@ -222,7 +222,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 
 		return [...project.files, ...project.attachments.map((storageFile) => ({
 			filePath: `attachments/` + storageFile.originalName,
-			fileUrl: storageFile.fileUrl,
+			url: storageFile.fileUrl,
 			storageFileId: storageFile.id
 		} as TFile))]
 	}
@@ -235,9 +235,11 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 				const docs = await this.commandBus.execute<LoadStorageFileCommand, Document[]>(new LoadStorageFileCommand(storageFile.id))
 				return {
 					filePath: path,
-					fileContents: docs.map((doc) => doc.pageContent).join('\n\n'),
-					fileUrl: storageFile.fileUrl,
-					fileType: storageFile.mimetype
+					contents: docs.map((doc) => doc.pageContent).join('\n\n'),
+					url: storageFile.fileUrl,
+					fileType: storageFile.mimetype,
+					size: storageFile.size,
+					description: ''
 				}
 			}
 		}

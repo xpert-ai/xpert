@@ -28,7 +28,7 @@ export class XpertProjectTask extends XpertProjectBaseEntity implements IXpertPr
 	@ApiPropertyOptional({ type: () => XpertProjectTaskStep, isArray: true })
 	@IsOptional()
 	@OneToMany(() => XpertProjectTaskStep, (step) => step.task, {
-		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
+		cascade: true
 	})
 	steps: IXpertProjectTaskStep[]
 }

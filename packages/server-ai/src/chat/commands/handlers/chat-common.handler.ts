@@ -777,8 +777,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 						{
 							...state,
 							input: aiMessage.tool_calls[0]?.args?.input,
+							messages: [],
 							[primaryChannelName]: {
-								messages: _messages
+								messages: []
 							}
 						},
 						{ 

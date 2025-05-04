@@ -10,7 +10,7 @@ import { ChatConversationService, ChatMessageStepCategory, ChatMessageStepType, 
 import { FileEditorComponent } from '@cloud/app/@shared/files'
 import { CanvasHtmlEditorComponent } from '../html-editor/html-editor.component'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { FileTypePipe, ListHeightStaggerAnimation } from '@metad/core'
+import { FileExtensionPipe, FileTypePipe, ListHeightStaggerAnimation } from '@metad/core'
 import { BehaviorSubject, debounceTime, switchMap } from 'rxjs'
 import { XpertHomeService } from '../../home.service'
 import { XpertProjectTasksComponent } from '@cloud/app/@shared/xpert'
@@ -28,6 +28,7 @@ import { ChatService } from '../../chat.service'
     MatSliderModule,
     MatTooltipModule,
     FileTypePipe,
+    FileExtensionPipe,
     FileEditorComponent,
     CanvasHtmlEditorComponent,
     XpertProjectTasksComponent

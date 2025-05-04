@@ -13,6 +13,7 @@ import {
   model,
   signal,
   output,
+  DestroyRef,
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -26,8 +27,7 @@ import { EmojiAvatarComponent } from '../../@shared/avatar'
 import { XpertParametersCardComponent } from '../../@shared/xpert'
 import { ChatCanvasComponent } from '../canvas/canvas.component'
 import { ChatInputComponent } from '../chat-input/chat-input.component'
-import { IXpert } from '@metad/contracts'
-import { Store } from '@metad/cloud/state'
+import { IXpert, Store } from '@metad/cloud/state'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { UserPipe } from '../../@shared/pipes'
 import { ChatService } from '../chat.service'
@@ -64,6 +64,7 @@ export class XpertChatAppComponent {
   readonly chatService = inject(ChatService)
   readonly homeService = inject(XpertHomeService)
   readonly #elementRef = inject(ElementRef)
+  readonly #destroyRef = inject(DestroyRef)
 
   readonly paramRole = injectParams('name')
   readonly paramConvId = injectParams('id')
@@ -152,6 +153,10 @@ export class XpertChatAppComponent {
       if (this.messages() && this.isBottom()) {
         this.scrollBottom()
       }
+    })
+
+    this.#destroyRef.onDestroy(() => {
+      this.homeService.canvasOpened.set(null)
     })
 
     this.#elementRef.nativeElement.addEventListener('scroll', (event: Event) => {

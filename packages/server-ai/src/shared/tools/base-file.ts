@@ -145,10 +145,9 @@ export function buildCreateFileTool(toolset: BaseFileToolset) {
 				message: t('server-ai:tools.CreatedFile') + `: ${parameters.file_path}`,
 				data: {
 					url: `${environment.baseUrl}/api/sandbox/preview/${configurable?.thread_id}/${parameters.file_path}`,
-					extension: parameters.file_path.split('.').pop(),
-					content: parameters.file_contents,
-					name: parameters.file_path
-				}
+					contents: parameters.file_contents,
+					filePath: parameters.file_path
+				} as TFile
 			})
 
 			return result
@@ -161,6 +160,7 @@ export function buildCreateFileTool(toolset: BaseFileToolset) {
 					.string()
 					.describe(`Path to the file to be created, relative to /workspace (e.g., 'src/main.py')`),
 				file_contents: z.string().describe(`The content to write to the file`),
+				file_description: z.string().optional().nullable().describe(`A brief description of the file's contents`),
 				permissions: z
 					.string()
 					.optional()
@@ -194,12 +194,12 @@ export function buildStrReplaceTool(toolset: BaseFileToolset) {
 				throw new Error(`File '${parameters.file_path}' does not exist. Use create_file to create a new file.`)
 			}
 
-			const occurrences = (originalFile.fileContents.match(new RegExp(parameters.old_str, 'g')) || []).length
+			const occurrences = (originalFile.contents.match(new RegExp(parameters.old_str, 'g')) || []).length
 			if (occurrences === 0) {
 				throw new Error(`String '${parameters.old_str}' not found in file`)
 			}
 			if (occurrences > 1) {
-				const lines = originalFile.fileContents
+				const lines = originalFile.contents
 					.split('\n')
 					.map((line, index) => (line.includes(parameters.old_str) ? index + 1 : -1))
 					.filter((index) => index !== -1)
@@ -207,7 +207,7 @@ export function buildStrReplaceTool(toolset: BaseFileToolset) {
 			}
 
 			// Perform replacement
-			const newContent = originalFile.fileContents.replace(parameters.old_str, parameters.new_str)
+			const newContent = originalFile.contents.replace(parameters.old_str, parameters.new_str)
 
 			const requestData = {
 				file_path: parameters.file_path,
@@ -236,9 +236,9 @@ export function buildStrReplaceTool(toolset: BaseFileToolset) {
 				message: t('server-ai:tools.UpdatedFile') + `: ${parameters.file_path}`,
 				data: {
 					url: `${environment.baseUrl}/api/sandbox/preview/${configurable?.thread_id}/${parameters.file_path}`,
-					content: newContent,
-					name: parameters.file_path
-				}
+					contents: newContent,
+					filePath: parameters.file_path
+				} as TFile
 			})
 
 			return result
@@ -306,9 +306,9 @@ export function buildFullFileRewriteTool(toolset: BaseFileToolset) {
 				message: t('server-ai:tools.UpdatedFile') + `: ${parameters.file_path}`,
 				data: {
 					url: `${environment.baseUrl}/api/sandbox/preview/${configurable?.thread_id}/${parameters.file_path}`,
-					content: parameters.file_contents,
-					name: parameters.file_path
-				}
+					contents: parameters.file_contents,
+					filePath: parameters.file_path
+				} as TFile
 			})
 
 			return result
@@ -381,8 +381,8 @@ export function buildDeleteFileTool(toolset: BaseFileToolset) {
 				title: parameters.file_path,
 				message: t('server-ai:tools.DeletedFile') + `: ${parameters.file_path}`,
 				data: {
-					name: parameters.file_path
-				}
+					filePath: parameters.file_path
+				} as TFile
 			})
 
 			return result
@@ -429,12 +429,12 @@ export function buildReadFileTool(toolset: BaseFileToolset) {
 				title: parameters.file_path,
 				message: t('server-ai:tools.ReadFile') + `: ${parameters.file_path}`,
 				data: {
-					name: parameters.file_path,
-					content: originalFile.fileContents
-				}
+					filePath: parameters.file_path,
+					contents: originalFile.contents
+				} as TFile
 			})
 
-			return originalFile.fileContents
+			return originalFile.contents
 		},
 		{
 			name: TOOL_NAME,

@@ -1,3 +1,4 @@
+import { t } from 'i18next'
 import { z } from 'zod'
 import { OrderBy, OrderDirection } from '../../orderby'
 import { C_MEASURES, Dimension, isDimension, isMeasure, Measure } from '../../types'
@@ -14,7 +15,8 @@ export const baseDimensionSchema = {
   hierarchy: z
     .string()
     .optional()
-    .describe('The name of the hierarchy of the dimension using pattern `[Hierarchy Name]`'),
+    .nullable()
+    .describe('The name of the hierarchy of the dimension using pattern `[Hierarchy Name]`. If there is only one hierarchy in the same dimension, please ignore this parameter.'),
   level: z
     .string()
     .optional()
@@ -140,7 +142,7 @@ export function tryFixDimension(dimension: Dimension | Measure, entityType: Enti
         zeroSuppression: true
       }
     default:
-      throw new Error(`Can't find property for '${isMeasure(dimension) ? dimension.measure : dimension.dimension}'`)
+      throw new Error(t('Error.NoPropertyFoundFor', {ns: 'core', cube: entityType.name, name: isMeasure(dimension) ? dimension.measure : dimension.dimension}))
   }
 }
 

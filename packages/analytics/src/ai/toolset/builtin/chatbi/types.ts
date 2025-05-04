@@ -139,7 +139,8 @@ export const IndicatorSchema = z.object({
 	query: z
 		.string()
 		.describe(
-			`A query statement to test this indicator can correctly query the results, you need include indicator code as measure name in statement`
+			`A query statement to test this indicator can correctly query the results, you cannot use 'WITH MEMBER' capability. You need include indicator code as measure name in statement like: \n`
+			+ `SELECT { [Measures].[The unique code of indicator] } ON COLUMNS, { <dimensions> } ON ROWS FROM [cube]`
 		)
 })
 

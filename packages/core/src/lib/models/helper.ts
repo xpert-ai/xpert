@@ -1,3 +1,4 @@
+import { t } from 'i18next'
 import { Semantics } from '../annotations'
 import {
   Dimension,
@@ -503,7 +504,7 @@ export function isVisible(property: PropertyAttributes) {
 }
 
 /**
- * 获取实体类型中的日历层级, 如果没有指定层级名称则取默认层级
+ * Get the calendar level in the entity type. If no level name is specified, the default level is used.
  *
  * @param entityType
  * @param param1
@@ -515,10 +516,18 @@ export function getEntityCalendarHierarchy(
 ): PropertyHierarchy {
   const dProperty = getEntityProperty(entityType, dimension)
   if (!dProperty) {
-    throw new Error(`Dimension '${dimension}' not found in '${entityType.caption || entityType.name}'`)
+    throw new Error(
+      t('Error.NoDimensionFoundFor', {ns: 'core', cube: entityType?.name, name: dimension})
+    )
   }
   if (hierarchy) {
-    return dProperty.hierarchies?.find((item) => item.name === hierarchy)
+    const hProperty = dProperty.hierarchies?.find((item) => item.name === hierarchy)
+    if (!hProperty) {
+      throw new Error(
+        t('Error.NoHierarchyFoundFor', {ns: 'core', dimension: dimension, name: hierarchy})
+      )
+    }
+    return hProperty
   }
 
   const defaultHierarchy = dProperty.hierarchies?.find((item) => item.name === dProperty.defaultHierarchy)

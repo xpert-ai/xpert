@@ -15,9 +15,12 @@ export enum ApiAuthType {
 
 export type TFile = {
   filePath: string;
-  fileUrl: string;
   fileType: string;
-  fileContents: string;
+  contents: string;
+  description: string;
+  size?: number
+  createdAt?: Date
+  url?: string
 
   storageFileId?: string
 }

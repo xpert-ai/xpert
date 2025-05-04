@@ -268,7 +268,7 @@ export function workOutTimeRangeSlicers(
     const targetFormatter = range.formatter || calendarLevel?.semantics?.formatter
     if (!targetFormatter) {
       if (!calendarLevel) {
-        throw new Error(t('core:Error.NoTimeLevelInDimension', { dimension: getPropertyHierarchy(timeSlicer.dimension), granularity: range.granularity}))
+        throw new Error(t('Error.NoTimeLevelInDimension', {ns: 'core', dimension: getPropertyHierarchy(timeSlicer.dimension), granularity: range.granularity}))
       }
       throw new Error(`Target formatter not set for dimension: ${timeSlicer.dimension?.dimension} and granularity: ${range.granularity}`)
     }

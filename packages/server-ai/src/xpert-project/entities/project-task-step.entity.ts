@@ -1,4 +1,3 @@
-// entities/project-task-step.entity.ts
 import { IXpertProjectTaskStep } from '@metad/contracts'
 import { Column, Entity, ManyToOne } from 'typeorm'
 import { XpertProjectTask } from './project-task.entity'
@@ -10,7 +9,7 @@ export class XpertProjectTaskStep extends XpertProjectBaseEntity implements IXpe
 	@Column({ nullable: true })
 	taskId: string
 
-	@ManyToOne(() => XpertProjectTask, (task) => task.id, {nullable: true,})
+	@ManyToOne(() => XpertProjectTask, (task) => task.id, {nullable: true, onDelete: 'CASCADE'})
 	task: XpertProjectTask
 
 	@Column({ nullable: true })
