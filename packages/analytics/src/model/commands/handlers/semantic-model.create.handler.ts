@@ -16,34 +16,34 @@ export class SemanticModelCreateHandler implements ICommandHandler<SemanticModel
 	public async execute(command: SemanticModelCreateCommand): Promise<ISemanticModel> {
 		const { input } = command
 
-		const model = await this.modelService.create(omit(input, ['roles', 'queries']))
+		let model = await this.modelService.create(omit(input, ['roles', 'queries']))
 
-		if (model) {
+		if (model && (input.roles?.length || input.queries?.length)) {
 			const userId = RequestContext.currentUserId()
 
-			const request = {
-				...model,
-				roles: input.roles?.map((role) => ({
-					...role,
-					...pick(model, ['tenantId', 'organizationId']),
-					modelId: model.id,
-					createdById: userId,
-					updatedById: userId
-				})),
-				queries: input.queries?.map((item) => ({
-					...item,
-					...pick(model, ['tenantId', 'organizationId']),
-					modelId: model.id,
-					createdById: userId,
-					updatedById: userId
-				}))
-			}
+			model.roles = input.roles?.map((role) => ({
+				...role,
+				...pick(model, ['tenantId', 'organizationId']),
+				modelId: model.id,
+				createdById: userId,
+				updatedById: userId
+			}))
 
-			return await this.modelService.create(request as any)
+			model.queries = input.queries?.map((item) => ({
+				...item,
+				...pick(model, ['tenantId', 'organizationId']),
+				modelId: model.id,
+				createdById: userId,
+				updatedById: userId
+			}))
+
+			model = await this.modelService.modelRepository.save(model)
 		}
 
-		this.eventBus.publish(new SemanticModelUpdatedEvent(model.id))
+		if (model) {
+			this.eventBus.publish(new SemanticModelUpdatedEvent(model.id))
+		}
 
-		return null
+		return model
 	}
 }

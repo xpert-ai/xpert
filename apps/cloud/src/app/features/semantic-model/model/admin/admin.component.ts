@@ -1,23 +1,27 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectorRef, Component, inject } from '@angular/core'
+import { ChangeDetectorRef, Component, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatDialog } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
-import { ActivatedRoute } from '@angular/router'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { NgmSearchComponent, NgmTableComponent } from '@metad/ocap-angular/common'
+import { ActivatedRoute, Router } from '@angular/router'
+import { SemanticModelServerService } from '@metad/cloud/state'
+import { injectConfirmDelete, NgmSearchComponent, NgmSpinComponent, NgmTableComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { SemanticModelServerService } from '@metad/cloud/state'
-import { ISemanticModel, IUser, Store, ToastrService } from 'apps/cloud/src/app/@core'
-import { uniq } from 'lodash-es'
-import { BehaviorSubject, combineLatest, firstValueFrom, map, switchMap } from 'rxjs'
-import { ModelComponent } from '../model.component'
+import { getErrorMessage, injectToastr, ISemanticModel, IUser, Store, ToastrService } from 'apps/cloud/src/app/@core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
-import { UserRoleSelectComponent, UserProfileComponent, UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
-import { Dialog } from '@angular/cdk/dialog'
+import {
+  UserProfileComponent,
+  UserProfileInlineComponent,
+  UserRoleSelectComponent
+} from 'apps/cloud/src/app/@shared/user'
+import { uniq } from 'lodash-es'
+import { BehaviorSubject, combineLatest, EMPTY, firstValueFrom, map, switchMap } from 'rxjs'
+import { ModelComponent } from '../model.component'
 
 @Component({
   standalone: true,
@@ -33,11 +37,12 @@ import { Dialog } from '@angular/cdk/dialog'
     DensityDirective,
     AppearanceDirective,
     NgmSearchComponent,
-    NgmTableComponent
+    NgmTableComponent,
+    NgmSpinComponent
   ],
   selector: 'pac-model-admin',
   templateUrl: 'admin.component.html',
-  styleUrl: 'admin.component.scss',
+  styleUrl: 'admin.component.scss'
 })
 export class ModelAdminComponent extends TranslationBaseComponent {
   userLabel = userLabel
@@ -46,8 +51,11 @@ export class ModelAdminComponent extends TranslationBaseComponent {
   private modelsService = inject(SemanticModelServerService)
   private store = inject(Store)
   private route = inject(ActivatedRoute)
+  readonly #router = inject(Router)
   readonly #model = inject(ModelComponent)
   readonly #dialog = inject(Dialog)
+  readonly #toastr = injectToastr()
+  readonly confirmDelete = injectConfirmDelete()
 
   searchControl = new FormControl()
 
@@ -61,9 +69,14 @@ export class ModelAdminComponent extends TranslationBaseComponent {
 
   readonly modelSideMenuOpened = this.#model.sideMenuOpened
 
+  readonly loading = signal(false)
+
   // Subscribers
   private _modelDetailSub = combineLatest([this.refresh$, this.#model.id$])
-    .pipe(switchMap(([, id]) => this.modelsService.getById(id ?? null, {relations: ['owner', 'members']})), takeUntilDestroyed())
+    .pipe(
+      switchMap(([, id]) => this.modelsService.getById(id ?? null, { relations: ['owner', 'members'] })),
+      takeUntilDestroyed()
+    )
     .subscribe((semanticModel) => {
       this.semanticModel = semanticModel
       this.members = semanticModel.members.map((user) => ({
@@ -74,7 +87,10 @@ export class ModelAdminComponent extends TranslationBaseComponent {
       this._cdr.detectChanges()
     })
   private _searchSub = this.searchControl.valueChanges
-    .pipe(map((text) => text?.trim().toLowerCase()), takeUntilDestroyed())
+    .pipe(
+      map((text) => text?.trim().toLowerCase()),
+      takeUntilDestroyed()
+    )
     .subscribe((text) => {
       this.members = (
         text
@@ -92,7 +108,7 @@ export class ModelAdminComponent extends TranslationBaseComponent {
         loading: false
       }))
     })
-    
+
   constructor(
     private _dialog: MatDialog,
     private _cdr: ChangeDetectorRef,
@@ -103,9 +119,7 @@ export class ModelAdminComponent extends TranslationBaseComponent {
 
   async transferOwner() {
     const value = await firstValueFrom(
-      this.#dialog
-        .open<{ users: IUser[] }>(UserRoleSelectComponent, { data: { single: true } })
-        .closed
+      this.#dialog.open<{ users: IUser[] }>(UserRoleSelectComponent, { data: { single: true } }).closed
     )
     const user = value?.users?.[0]
     if (user) {
@@ -121,9 +135,7 @@ export class ModelAdminComponent extends TranslationBaseComponent {
   }
 
   async openMemberSelect() {
-    const value = await firstValueFrom(
-      this.#dialog.open<{ users: IUser[] }>(UserRoleSelectComponent).closed
-    )
+    const value = await firstValueFrom(this.#dialog.open<{ users: IUser[] }>(UserRoleSelectComponent).closed)
     if (value) {
       this.addMembers(value.users.map(({ id }) => id))
     }
@@ -145,5 +157,36 @@ export class ModelAdminComponent extends TranslationBaseComponent {
 
   openSideMenu() {
     this.modelSideMenuOpened.set(true)
+  }
+
+  deleteModel() {
+    const information = this.getTranslation('PAC.MODEL.TOASTR.DeleteModelPermanently', {
+      Default: 'Delete this model permanently'
+    })
+    const model = this.semanticModel
+    this.confirmDelete({
+      value: model.name,
+      information: information + '?'
+    })
+      .pipe(
+        switchMap((confirm) => {
+          if (confirm) {
+            this.loading.set(true)
+            return this.modelsService.delete(model.id)
+          }
+          return EMPTY
+        })
+      )
+      .subscribe({
+        next: () => {
+          this.loading.set(false)
+          this.#toastr.success('PAC.MODEL.TOASTR.ModelDelete', { Default: 'Model delete' })
+          this.#router.navigate(['/models'])
+        },
+        error: (err) => {
+          this.loading.set(false)
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
   }
 }

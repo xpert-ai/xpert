@@ -17,7 +17,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
-import { SemanticModelServerService, NgmSemanticModel } from '@metad/cloud/state'
+import { SemanticModelServerService } from '@metad/cloud/state'
 import { CopilotChatMessageRoleEnum, CopilotEngine } from '@metad/copilot'
 import { IsDirty, nonBlank } from '@metad/core'
 import { NgmConfirmDeleteComponent, NgmConfirmUniqueComponent } from '@metad/ocap-angular/common'
@@ -45,7 +45,7 @@ import {
   switchMap,
   tap
 } from 'rxjs'
-import { ISemanticModel, MenuCatalog, ToastrService, getErrorMessage, routeAnimations, uuid } from '../../../@core'
+import { ISemanticModel, MenuCatalog, getErrorMessage, injectToastr, routeAnimations, uuid } from '../../../@core'
 import { AppService } from '../../../app.service'
 import { exportSemanticModel } from '../types'
 import { ModelUploadComponent } from '../upload/upload.component'
@@ -67,7 +67,6 @@ import {
 } from './types'
 import { markdownTableData, stringifyTableType } from './utils'
 import { TranslationBaseComponent } from '../../../@shared/language/'
-import { resolveSemanticModel } from './story-model.resolver'
 
 @Component({
   selector: 'ngm-semanctic-model',
@@ -92,7 +91,7 @@ export class ModelComponent extends TranslationBaseComponent implements IsDirty 
   private router = inject(Router)
   private _dialog = inject(MatDialog)
   private _viewContainerRef = inject(ViewContainerRef)
-  private toastrService = inject(ToastrService)
+  readonly #toastr = injectToastr()
   readonly #logger = inject(NGXLogger)
   readonly destroyRef = inject(DestroyRef)
   readonly copilotContext = provideCopilotTables()
@@ -340,7 +339,7 @@ export class ModelComponent extends TranslationBaseComponent implements IsDirty 
     if (modelType === MODEL_TYPE.XMLA) {
       // Check cube exist
       if (entity?.name && this.cubes().some((_) => _.name === entity.name)) {
-        this.toastrService.error('PAC.MODEL.Error_EntityExists', '', {Default: 'Entity already exists!'})
+        this.#toastr.error('PAC.MODEL.Error_EntityExists', '', {Default: 'Entity already exists!'})
         return
       }
       const result = await firstValueFrom(
@@ -452,7 +451,7 @@ export class ModelComponent extends TranslationBaseComponent implements IsDirty 
           }
         },
         error: (err) => {
-          this.toastrService.error(err, 'PAC.MODEL.MODEL.CreateStory')
+          this.#toastr.error(err, 'PAC.MODEL.MODEL.CreateStory')
         }
       })
   }
@@ -600,10 +599,10 @@ export class ModelComponent extends TranslationBaseComponent implements IsDirty 
     if (confirm) {
       try {
         await this.modelService.originalDataSource.dropEntity(tableName)
-        this.toastrService.success('PAC.ACTIONS.Delete')
+        this.#toastr.success('PAC.ACTIONS.Delete')
         this.refreshDBTables$.next(true)
       } catch (err) {
-        this.toastrService.error(err)
+        this.#toastr.error(err)
       }
     }
   }
@@ -633,9 +632,9 @@ export class ModelComponent extends TranslationBaseComponent implements IsDirty 
     try {
       await firstValueFrom(this.modelsService.deleteCache(this.model.id))
       this.clearingServerCache = false
-      this.toastrService.success('PAC.MODEL.ClearServerCache', {Default: 'Clear server cache successfully'})
+      this.#toastr.success('PAC.MODEL.ClearServerCache', {Default: 'Clear server cache successfully'})
     } catch (err) {
-      this.toastrService.error('PAC.MODEL.ClearServerCache', getErrorMessage(err), {Default: 'Clear server cache failed'})
+      this.#toastr.error('PAC.MODEL.ClearServerCache', getErrorMessage(err), {Default: 'Clear server cache failed'})
       this.clearingServerCache = false
     }
   }
@@ -648,7 +647,11 @@ export class ModelComponent extends TranslationBaseComponent implements IsDirty 
   }
 
   async onDownload() {
-    await exportSemanticModel(this.modelsService, this.model.id)
+    try {
+      await exportSemanticModel(this.modelsService, this.model.id)
+    } catch(err) {
+      this.#toastr.error(getErrorMessage(err))
+    }
   }
 
   toggleFullscreen() {
@@ -682,7 +685,7 @@ export class ModelComponent extends TranslationBaseComponent implements IsDirty 
         },
         error: (err) => {
           this.publishing.set(false)
-          this.toastrService.error(getErrorMessage(err))
+          this.#toastr.error(getErrorMessage(err))
         }
       })
   }

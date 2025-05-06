@@ -1,5 +1,5 @@
 import { CdkDropList, DropListRef, moveItemInArray } from '@angular/cdk/drag-drop'
-import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angular/core'
+import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { SemanticModelServerService as SemanticModelsService, NgmSemanticModel, convertNewSemanticModelResult } from '@metad/cloud/state'
