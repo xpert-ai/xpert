@@ -30,9 +30,13 @@ export enum ChatMessageStepCategory {
    */
   WebSearch = 'web_search',
   /**
-   * Files creation view or edition
+   * Files list
    */
   Files = 'files',
+  /**
+   * View a file
+   */
+  File = 'file',
   /**
    * Program Execution
    */
@@ -41,6 +45,9 @@ export enum ChatMessageStepCategory {
   Memory = 'memory'
 }
 
+/**
+ * Step message type, in canvas and ai message.
+ */
 export type TChatMessageStep = {
   type?: ChatMessageStepType
   category?: ChatMessageStepCategory
@@ -53,7 +60,7 @@ export type TChatMessageStep = {
 }
 
 /**
- * 
+ * Chat message entity type
  */
 export interface IChatMessage extends IBasePerTenantAndOrganizationEntityModel, Omit<Omit<CopilotBaseMessage, 'createdAt'>, 'id'> {
 
@@ -64,6 +71,9 @@ export interface IChatMessage extends IBasePerTenantAndOrganizationEntityModel, 
    */
   thirdPartyMessage?: any
 
+  /**
+   * Step messages from tools or others
+   */
   steps?: TChatMessageStep[]
 
   // Many to one
@@ -99,7 +109,11 @@ export interface CopilotBaseMessage {
   status?: ChatMessageStatusEnum
 
   content?: string | TMessageContent
-  reasoning?: MessageContent
+
+  /**
+   * Reasoning step messages
+   */
+  reasoning?: TMessageContentReasoning[]
 
   /**
    * Error info when status is error
@@ -138,6 +152,8 @@ export type TMessageContentComponent = {
   id: string
   type: 'component'
   data: TMessageComponent
+  xpertName?: string
+  agentKey?: string;
 }
 
 /**
@@ -150,6 +166,7 @@ export type TMessageComponent<T extends object = object> = T & {
 
 export type TMessageContentText = {
   id?: string
+  xpertName?: string
   agentKey?: string
   type: "text";
   text: string;
@@ -160,14 +177,26 @@ export type TMessageContentMemory = {
   type: "memory";
   data: any[];
 };
+export type TMessageContentReasoning = {
+  id?: string
+  xpertName?: string
+  agentKey?: string
+  type: "reasoning";
+  text: string;
+};
 /**
  * Enhance {@link MessageContentComplex} in Langchain.js
  */
-export type TMessageContentComplex = (TMessageContentText | MessageContentImageUrl | TMessageContentComponent | TMessageContentMemory | (Record<string, any> & {
+export type TMessageContentComplex = (TMessageContentText | TMessageContentReasoning | MessageContentImageUrl | TMessageContentComponent | TMessageContentMemory | (Record<string, any> & {
   type?: "text" | "image_url" | string;
 }) | (Record<string, any> & {
   type?: never;
-})) & {agentKey?: string; created_date?: Date | string}
+})) & {
+  id?: string
+  xpertName?: string
+  agentKey?: string;
+  created_date?: Date | string
+}
 /**
  * Enhance {@link MessageContent} in Langchain.js
  */
@@ -179,9 +208,4 @@ export type TMessageContent = string | TMessageContentComplex[];
  */
 export function isMessageGroup(message: CopilotBaseMessage): message is CopilotMessageGroup {
   return 'messages' in message;
-}
-
-// Helers
-export function messageContentText(content: string | TMessageContentComplex) {
-	return typeof content === 'string' ? content : content.type === 'text' ? content.text : ''
 }

@@ -1,3 +1,15 @@
 :host {
-    @apply relative flex flex-col items-stretch;
+  @apply relative flex flex-col items-stretch;
+}
+
+chat-thought.reasoning {
+  @apply sticky top-20 z-20;
+}
+
+::ng-deep {
+  .cdk-overlay-pane.chat-message-executions-dialog {
+    chat-message-execution-panel {
+      @apply w-[400px] max-h-[90vh] overflow-x-hidden overflow-y-auto rounded-2xl border border-solid border-divider-deep bg-components-card-bg;
+    }
+  }
 }

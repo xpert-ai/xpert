@@ -1,38 +1,38 @@
-import { REDIS_OPTIONS, RedisModule, UserModule } from '@metad/server-core'
-import { CacheModule, CacheStore, Module, forwardRef } from '@nestjs/common'
+import { RedisModule, UserModule } from '@metad/server-core'
+import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { ScheduleModule } from '@nestjs/schedule'
-import { redisStore } from 'cache-manager-redis-yet'
-import { RedisOptions } from 'ioredis'
 import { AIModule } from './ai'
 import { ChatModule } from './chat'
 import { ChatConversationModule } from './chat-conversation'
+import { ChatMessageModule } from './chat-message'
+import { ChatMessageFeedbackModule } from './chat-message-feedback'
 import { CopilotModule } from './copilot'
 import { CopilotCheckpointModule } from './copilot-checkpoint'
 import { CopilotKnowledgeModule } from './copilot-knowledge'
+import { CopilotModelModule } from './copilot-model'
 import { CopilotOrganizationModule } from './copilot-organization'
+import { CopilotProviderModule } from './copilot-provider'
+import { CopilotStoreModule } from './copilot-store/copilot-store.module'
 import { CopilotUserModule } from './copilot-user'
 import { EventHandlers } from './core/events'
 import { GraphragModule } from './graphrag/graphrag.module'
+import { IntegrationFirecrawlModule } from './integration-firecrawl/firecrawl.module'
 import { IntegrationLarkModule } from './integration-lark/index'
 import { KnowledgeDocumentModule } from './knowledge-document/index'
 import { KnowledgebaseModule } from './knowledgebase/index'
+import { RagWebModule } from './rag-web/rag-web.module'
+import { SandboxModule } from './sandbox/sandbox.module'
+import { XpertModule } from './xpert'
+import { XpertAgentExecutionModule } from './xpert-agent-execution'
+import { XpertAgentModule } from './xpert-agent/index'
+import { XpertProjectModule } from './xpert-project/project.module'
+import { XpertTaskModule } from './xpert-task'
+import { XpertTemplateModule } from './xpert-template/xpert-template.module'
 import { XpertToolModule } from './xpert-tool/index'
 import { XpertToolsetModule } from './xpert-toolset/index'
-import { XpertAgentModule } from './xpert-agent/index'
 import { XpertWorkspaceModule } from './xpert-workspace'
-import { XpertModule } from './xpert'
-import { CopilotModelModule } from './copilot-model'
-import { XpertAgentExecutionModule } from './xpert-agent-execution'
-import { CopilotProviderModule } from './copilot-provider'
-import { CopilotStoreModule } from './copilot-store/copilot-store.module'
-import { ChatMessageModule } from './chat-message'
-import { ChatMessageFeedbackModule } from './chat-message-feedback'
-import { XpertTemplateModule } from './xpert-template/xpert-template.module'
-import { XpertTaskModule } from './xpert-task'
-import { RagWebModule } from './rag-web/rag-web.module'
-import { IntegrationFirecrawlModule } from './integration-firecrawl/firecrawl.module'
-import { SandboxModule } from './sandbox/sandbox.module'
+import { CommandHandlers } from './shared'
 
 @Module({
 	imports: [
@@ -40,27 +40,6 @@ import { SandboxModule } from './sandbox/sandbox.module'
 		forwardRef(() => UserModule),
 		ScheduleModule.forRoot(),
 		RedisModule,
-		// CacheModule.registerAsync({
-		// 	isGlobal: true,
-		// 	imports: [RedisModule],
-		// 	useFactory: async (redisOptions: RedisOptions) => {
-		// 		const store = await redisStore({
-		// 			socket: {
-		// 				host: redisOptions.host,
-		// 				port: redisOptions.port
-		// 			},
-		// 			username: redisOptions.username,
-		// 			password: redisOptions.password
-		// 		})
-
-		// 		return {
-		// 			store: store as unknown as CacheStore,
-		// 			ttl: 3 * 60 // 3 minutes
-		// 			// ttl: configService.get('CACHE_TTL'),
-		// 		}
-		// 	},
-		// 	inject: [REDIS_OPTIONS]
-		// }),
 		KnowledgebaseModule,
 		KnowledgeDocumentModule,
 		ChatModule,
@@ -83,6 +62,7 @@ import { SandboxModule } from './sandbox/sandbox.module'
 		XpertToolModule,
 		XpertToolsetModule,
 		XpertWorkspaceModule,
+		XpertProjectModule,
 		XpertTemplateModule,
 		XpertTaskModule,
 		IntegrationLarkModule,
@@ -91,6 +71,6 @@ import { SandboxModule } from './sandbox/sandbox.module'
 		SandboxModule
 	],
 	controllers: [],
-	providers: [...EventHandlers]
+	providers: [...EventHandlers, ...CommandHandlers]
 })
 export class ServerAIModule {}

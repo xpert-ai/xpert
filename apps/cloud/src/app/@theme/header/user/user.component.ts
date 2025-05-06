@@ -4,14 +4,15 @@ import { Component, computed, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
+import { I18nService } from '@cloud/app/@shared/i18n'
+import { LanguagesEnum, UsersService } from '@metad/cloud/state'
+import { OverlayAnimation1 } from '@metad/core'
 import { ThemesEnum } from '@metad/ocap-angular/core'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { injectHelpWebsite, IUser, LANGUAGES, LanguagesMap, Store } from '../../../@core'
+import { TranslateModule } from '@ngx-translate/core'
+import { getErrorMessage, injectHelpWebsite, injectToastr, IUser, LANGUAGES, Store } from '../../../@core'
 import { UserPipe } from '../../../@shared/pipes'
 import { UserProfileInlineComponent } from '../../../@shared/user'
 import { AppService } from '../../../app.service'
-import { OverlayAnimation1 } from '@metad/core'
-import { I18nService } from '@cloud/app/@shared/i18n'
 
 const THEMES = [
   {
@@ -49,8 +50,10 @@ export class HeaderUserComponent {
 
   readonly store = inject(Store)
   readonly appService = inject(AppService)
+  readonly userService = inject(UsersService)
   readonly router = inject(Router)
   readonly #i18n = inject(I18nService)
+  readonly #toastr = injectToastr()
   readonly helpWebsite = injectHelpWebsite()
 
   // Inputs
@@ -80,9 +83,19 @@ export class HeaderUserComponent {
 
   readonly firstLetter = computed(() => new UserPipe().transform(this.user())?.[0].toUpperCase())
 
-
   onLanguageSelect(language: string): void {
     this.#i18n.changeLanguage(language)
+    this.userService.updateMe({ preferredLanguage: language as LanguagesEnum }).subscribe({
+      next: (user) => {
+        this.store.user = {
+          ...this.store.user,
+          preferredLanguage: user.preferredLanguage
+        }
+      },
+      error: (err) => {
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
   }
   onThemeSelect(mode: string): void {
     this.store.preferredTheme = mode

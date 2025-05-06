@@ -1,0 +1,66 @@
+<div class="relative group/reasoning w-full">
+  <div class="flex justify-between items-center px-5 pt-4 cursor-pointer" (click)="expandReason.set(!expandReason())">
+    @if (status() === 'reasoning') {
+      <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
+    }
+
+    <div class="flex items-center gap-1 overflow-hidden text-text-secondary group-hover/reasoning:text-text-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="stroke-[2] text-primary text-nowrap shrink-0">
+        <path d="M19 9C19 12.866 15.866 17 12 17C8.13398 17 4.99997 12.866 4.99997 9C4.99997 5.13401 8.13398 3 12 3C15.866 3 19 5.13401 19 9Z" class="fill-yellow-100 dark:fill-yellow-300 origin-center transition-all duration-100 scale-0 opacity-0"></path><path d="M15 16.1378L14.487 15.2794L14 15.5705V16.1378H15ZM8.99997 16.1378H9.99997V15.5705L9.51293 15.2794L8.99997 16.1378ZM18 9C18 11.4496 16.5421 14.0513 14.487 15.2794L15.5129 16.9963C18.1877 15.3979 20 12.1352 20 9H18ZM12 4C13.7598 4 15.2728 4.48657 16.3238 5.33011C17.3509 6.15455 18 7.36618 18 9H20C20 6.76783 19.082 4.97946 17.5757 3.77039C16.0931 2.58044 14.1061 2 12 2V4ZM5.99997 9C5.99997 7.36618 6.64903 6.15455 7.67617 5.33011C8.72714 4.48657 10.2401 4 12 4V2C9.89382 2 7.90681 2.58044 6.42427 3.77039C4.91791 4.97946 3.99997 6.76783 3.99997 9H5.99997ZM9.51293 15.2794C7.4578 14.0513 5.99997 11.4496 5.99997 9H3.99997C3.99997 12.1352 5.81225 15.3979 8.48701 16.9963L9.51293 15.2794ZM9.99997 19.5001V16.1378H7.99997V19.5001H9.99997ZM10.5 20.0001C10.2238 20.0001 9.99997 19.7763 9.99997 19.5001H7.99997C7.99997 20.8808 9.11926 22.0001 10.5 22.0001V20.0001ZM13.5 20.0001H10.5V22.0001H13.5V20.0001ZM14 19.5001C14 19.7763 13.7761 20.0001 13.5 20.0001V22.0001C14.8807 22.0001 16 20.8808 16 19.5001H14ZM14 16.1378V19.5001H16V16.1378H14Z" fill="currentColor"></path><path d="M9 16.0001H15" stroke="currentColor"></path><path d="M12 16V12" stroke="currentColor" stroke-linecap="square"></path><g>
+          <path d="M20 7L19 8" stroke="currentColor" stroke-linecap="round" class="transition-all duration-100 ease-in-out translate-x-0 translate-y-0 opacity-0"></path>
+          <path d="M20 9L19 8" stroke="currentColor" stroke-linecap="round" class="transition-all duration-100 ease-in-out translate-x-0 translate-y-0 opacity-0"></path>
+          <path d="M4 7L5 8" stroke="currentColor" stroke-linecap="round" class="transition-all duration-100 ease-in-out translate-x-0 translate-y-0 opacity-0"></path>
+          <path d="M4 9L5 8" stroke="currentColor" stroke-linecap="round" class="transition-all duration-100 ease-in-out translate-x-0 translate-y-0 opacity-0"></path>
+        </g>
+      </svg>
+      <div class="flex items-baseline gap-1 overflow-hidden">
+        <span class="text-base text-nowrap whitespace-nowrap">
+          {{ 'PAC.Chat.Thoughts' | translate: {Default: 'Thoughts'} }}
+        </span>
+      </div>
+    </div>
+
+    <div class="grow"></div>
+  
+    <copy #copy class="mr-1 opacity-30 group-hover/reasoning:opacity-100"
+      [content]="reasoningText()"
+      [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
+      matTooltipPosition="above" 
+      (click)="$event.stopPropagation()"
+    />
+
+    <div class="flex justify-start items-center px-1">
+      @if (expandReason()) {
+        <i class="ri-arrow-down-s-line"></i>
+      } @else {
+        <i class="ri-arrow-right-s-line"></i>
+      }
+    </div>
+  </div>
+
+  <div #container [@listEnterAnimation]="reasoning()" class="thought-container px-5 pb-4 max-h-52 overflow-auto" [class.reasoning]="status() === 'reasoning'">
+    @for (item of reasoning(); track item.id) {
+      <markdown #container class="ngm-copilot-markdown block text-sm font-body text-gray-500"
+        [clipboardButtonTemplate]="buttonTemplate"
+        lineNumbers
+        [start]="5"
+        [data]="item.text"
+      />
+    }
+  </div>
+</div>
+
+<ng-template #buttonTemplate>
+  <button #copyButton class="btn btn-small rounded-xl" (click)="onCopy(copyButton)">
+    @if ($any(copyButton).copied) {
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" >
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M18.0633 5.67375C18.5196 5.98487 18.6374 6.607 18.3262 7.06331L10.8262 18.0633C10.6585 18.3093 10.3898 18.4678 10.0934 18.4956C9.79688 18.5234 9.50345 18.4176 9.29289 18.2071L4.79289 13.7071C4.40237 13.3166 4.40237 12.6834 4.79289 12.2929C5.18342 11.9023 5.81658 11.9023 6.20711 12.2929L9.85368 15.9394L16.6738 5.93664C16.9849 5.48033 17.607 5.36263 18.0633 5.67375Z" fill="currentColor">
+          </path>
+      </svg>
+    } @else {
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" >
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 4C10.8954 4 10 4.89543 10 6H14C14 4.89543 13.1046 4 12 4ZM8.53513 4C9.22675 2.8044 10.5194 2 12 2C13.4806 2 14.7733 2.8044 15.4649 4H17C18.6569 4 20 5.34315 20 7V19C20 20.6569 18.6569 22 17 22H7C5.34315 22 4 20.6569 4 19V7C4 5.34315 5.34315 4 7 4H8.53513ZM8 6H7C6.44772 6 6 6.44772 6 7V19C6 19.5523 6.44772 20 7 20H17C17.5523 20 18 19.5523 18 19V7C18 6.44772 17.5523 6 17 6H16C16 7.10457 15.1046 8 14 8H10C8.89543 8 8 7.10457 8 6Z" fill="currentColor"></path>
+      </svg>
+    }
+  </button>
+</ng-template>

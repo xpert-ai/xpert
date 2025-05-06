@@ -14,5 +14,12 @@
         "RecursionLimitReached": "在达到停止条件之前，已达到递归次数 {value} 限制。您可以通过在数字专家工作室中的代理设置中设置“递归限制”来增加限制。故障排除 URL：https://mtda.cloud/docs/ai/troubleshooting/errors/recursion_limit/",
         "NoAgentInGraph": "在流程中未能找到智能体节点 '{value}'",
         "AgentMissingKey": "Agent 缺少 Key: "
+    },
+    "Project": {
+        "CreatingTasks": "创建任务",
+        "UpdatingTasks": "更新任务"
+    },
+    "Agent": {
+        "SummarizeTitle": "总结标题"
     }
 }

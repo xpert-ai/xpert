@@ -1,11 +1,17 @@
 <xpert-workspace-xperts />
 
-<div class="flex items-center px-12 pt-4 pb-2 text-lg font-semibold text-gray-500 uppercase">
+<div class="flex items-center px-12 text-lg font-semibold text-gray-500 uppercase
+  sticky top-0 pb-3 pt-5 bg-surface-container z-30">
   <div class="mr-3">{{ 'PAC.Xpert.Knowledgebases' | translate: { Default: 'Knowledgebases' } }}</div>
   <div class="grow w-0 h-px bg-divider-regular"></div>
 </div>
 <xpert-workspace-knowledges class="" />
 
 <xpert-workspace-mcp-tools inline />
+<div class="w-full flex justify-center cursor-pointer text-text-secondary hover:text-text-primary hover:underline"
+  [routerLink]="['/xpert/w/', workspaceId(), 'mcp']">
+  {{ 'PAC.MCP.MoreMCPTools' | translate: {Default: 'More MCP Tools'} }}...
+</div>
+
 <xpert-workspace-api-tools />
 <xpert-workspace-builtin-tools />

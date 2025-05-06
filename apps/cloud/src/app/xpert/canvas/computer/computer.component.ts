@@ -10,9 +10,11 @@ import { ChatConversationService, ChatMessageStepCategory, ChatMessageStepType, 
 import { FileEditorComponent } from '@cloud/app/@shared/files'
 import { CanvasHtmlEditorComponent } from '../html-editor/html-editor.component'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { FileTypePipe, ListHeightStaggerAnimation } from '@metad/core'
+import { FileExtensionPipe, FileTypePipe, ListHeightStaggerAnimation } from '@metad/core'
 import { BehaviorSubject, debounceTime, switchMap } from 'rxjs'
 import { XpertHomeService } from '../../home.service'
+import { XpertProjectTasksComponent } from '@cloud/app/@shared/xpert'
+import { ChatService } from '../../chat.service'
 
 @Component({
   standalone: true,
@@ -26,8 +28,10 @@ import { XpertHomeService } from '../../home.service'
     MatSliderModule,
     MatTooltipModule,
     FileTypePipe,
+    FileExtensionPipe,
     FileEditorComponent,
-    CanvasHtmlEditorComponent
+    CanvasHtmlEditorComponent,
+    XpertProjectTasksComponent
   ],
   selector: 'chat-canvas-computer',
   templateUrl: './computer.component.html',
@@ -43,6 +47,7 @@ export class ChatCanvasComputerComponent {
   eChatMessageStepCategory = ChatMessageStepCategory
 
   readonly homeService = inject(XpertHomeService)
+  readonly chatService = inject(ChatService)
   readonly conversationService = inject(ChatConversationService)
   readonly #formatRelative = injectFormatRelative()
 
@@ -88,6 +93,8 @@ export class ChatCanvasComputerComponent {
   })
 
   readonly expandPlan = signal(false)
+
+  readonly projectId = computed(() => this.chatService.project()?.id)
 
   constructor() {
     effect(() => {

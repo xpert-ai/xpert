@@ -1,13 +1,11 @@
 @for (item of contents(); track $index) {
   @switch (item.type) {
     @case ('text') {
-      <div>
-        <markdown class="ngm-copilot-markdown max-h-[400px] block overflow-auto"
-          lineNumbers
-          [start]="5"
-          [data]="item.text"
-        />
-      </div>
+      <markdown class="ngm-copilot-markdown block"
+        lineNumbers
+        [start]="5"
+        [data]="item.text"
+      />
     }
     @case ('tool_use') {
       <div class="mt-2 pt-2 border-t-[0.5px] border-t-black/5">

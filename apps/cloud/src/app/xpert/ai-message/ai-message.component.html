@@ -1,227 +1,60 @@
-<div class="flex items-center">
-  <emoji-avatar class="shrink-0 rounded-full overflow-hidden shadow-sm mr-2" [avatar]="role()?.avatar" />
-  <div class="truncate text-text-secondary">{{role()?.title || role()?.name}}</div>
+<div class="flex items-center py-1 sticky top-14 z-10 bg-surface-container">
+  <emoji-avatar class="shrink-0 rounded-full overflow-hidden shadow-sm mr-2" [avatar]="avatar()" />
+  <div class="truncate text-text-secondary">{{title()}}</div>
 </div>
 
-<div class="group/message relative flex-1 flex flex-col gap-2 pt-2 pb-10 overflow-hidden">
+<div class="group/message flex-1 flex flex-col pt-2 pb-10">
 
   <!-- executions -->
   @if (showExecution()) {
-  <div class="relative rounded-xl border border-solid border-teal-800 p-2 bg-gray-50">
-    <div class="flex items-center leading-[18px] text-sm text-gray-500 uppercase">
-      <div class="flex items-center cursor-pointer pressable rounded-md hover:bg-hover-bg"
-        (click)="expandExecutions.set(!expandExecutions())">
-        @if (expandExecutions()) {
-          <i class="ri-arrow-down-s-line"></i>
-        } @else {
-          <i class="ri-arrow-right-s-line"></i>
-        }
-        <div class="mr-3 font-semibold">{{'PAC.Xpert.Executions' | translate: {Default: 'Executions'} }}</div>
-      </div>
-    </div>
-
-    @if (expandExecutions()) {
-      @if (loadingExecutions()) {
-        <ngm-spin class="absolute left-0 top-0 w-full h-full" />
-      }
-      @for (execution of executions$ | async; track execution.id) {
-        <chat-message-execution [execution]="execution" class="p-1 bg-components-card-bg border border-solid border-divider-regular rounded-xl mb-1" />
-      }
-    } @else {
-      @for (execution of executings(); track execution.id) {
-        <chat-message-execution [execution]="execution" class="p-1 bg-components-card-bg border border-solid border-divider-regular rounded-xl mb-1" />
-      }
-    }
-  </div>
-  }
-
-  @if (reasoning()) {
-    <div class="relative group/reasoning w-full max-h-90 px-1 border-l-2 border-solid border-gray-200 overflow-auto">
-      <div class="flex justify-between items-center">
-        @if (status() === 'reasoning') {
-          <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
-        }
-        <div class="flex justify-start items-center cursor-pointer pressable rounded-md px-1 text-gray-500 hover:bg-hover-bg"
-          (click)="expandReason.set(!expandReason())">
-          @if (expandReason()) {
+    <div class="relative rounded-xl border border-solid border-teal-800 p-2 bg-gray-50">
+      <div class="flex items-center leading-[18px] text-sm text-gray-500 uppercase">
+        <div class="flex items-center cursor-pointer pressable rounded-md hover:bg-hover-bg"
+          (click)="expandExecutions.set(!expandExecutions())">
+          @if (expandExecutions()) {
             <i class="ri-arrow-down-s-line"></i>
           } @else {
             <i class="ri-arrow-right-s-line"></i>
           }
-          <div class="mr-1 leading-[18px] text-sm font-semibold uppercase">
-            {{ 'PAC.Chat.Reasoning' | translate: {Default: 'Reasoning'} }}
-          </div>
+          <div class="mr-3 font-semibold">{{'PAC.Xpert.Executions' | translate: {Default: 'Executions'} }}</div>
         </div>
-
-        <div class="grow"></div>
-  
-        <copy #copy class="mr-1 opacity-30 group-hover/reasoning:opacity-100"
-          [content]="reasoning()"
-          [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
-          matTooltipPosition="above" />
       </div>
-      @if (expandReason()) {
-        <markdown class="ngm-copilot-markdown block text-sm max-h-52 overflow-auto text-gray-500"
-          lineNumbers
-          [start]="5"
-          [data]="reasoning()"
-        />
+
+      @if (expandExecutions()) {
+        @if (loadingExecutions()) {
+          <ngm-spin class="absolute left-0 top-0 w-full h-full" />
+        }
+        @for (execution of executions$ | async; track execution.id) {
+          <chat-message-execution [execution]="execution" class="p-1 bg-components-card-bg border border-solid border-divider-regular rounded-xl mb-1" />
+        }
+      } @else {
+        @for (execution of executings(); track execution.id) {
+          <chat-message-execution [execution]="execution" class="p-1 bg-components-card-bg border border-solid border-divider-regular rounded-xl mb-1" />
+        }
       }
     </div>
   }
 
-  <!-- @deprecated use contents -->
-  @if (messageGroup(); as group) {
-    @for (message of group.messages; track message) {
-      @switch (message.role) {
-        @case ('system') {
-          <div class="flex flex-col p-2 rounded-lg text-token-text-secondary bg-token-main-surface-low">
-            <div class="flex justify-start items-center">
-              @if (message.status === 'thinking') {
-                <ngm-spin />
-              }
-              <span class="flex-1">
-                @if (message.status === 'aborted') {
-                  {{ 'PAC.KEY_WORDS.Aborted' | translate: {Default: 'Aborted'} }}!
-                } @else if(message.status === 'thinking') {
-                  {{ 'PAC.Chat.RetrievingDocuments' | translate: {Default: 'Retrieving documents'} }}...
-                } @else {
-                  {{ 'PAC.Chat.RetrievedDocuments' | translate: {
-                      Default: 'Retrieved ' + ($any(message.data)?.length ?? 0) + ' relevant document chunks',
-                      value: $any(message.data)?.length ?? 0
-                    } }}
-                }
-              </span>
-
-              <span class="p-1 rounded-md cursor-pointer active:scale-95 transition-transform
-                hover:bg-black/5 dark:hover:bg-white/10"
-                (click)="message.expanded = !message.expanded">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
-                  class="icon-md text-token-text-tertiary transition-transform"
-                  [class.rotate-180]="message.expanded"
-                >
-                  <path fill-rule="evenodd" clip-rule="evenodd" d="M5.29289 9.29289C5.68342 8.90237 6.31658 8.90237 6.70711 9.29289L12 14.5858L17.2929 9.29289C17.6834 8.90237 18.3166 8.90237 18.7071 9.29289C19.0976 9.68342 19.0976 10.3166 18.7071 10.7071L12.7071 16.7071C12.5196 16.8946 12.2652 17 12 17C11.7348 17 11.4804 16.8946 11.2929 16.7071L5.29289 10.7071C4.90237 10.3166 4.90237 9.68342 5.29289 9.29289Z" fill="currentColor"></path></svg>
-              </span>
-            </div>
-
-            @if (message.expanded) {
-              <div class="flex flex-col text-sm py-2">
-                @for (item of message.data; track $index) {
-                  <p class="px-2 rounded-md hover:bg-black/5 dark:hover:bg-white/10">
-                    <markdown class="ngm-copilot-markdown"
-                      lineNumbers
-                      [start]="5"
-                      [data]="item.doc.pageContent"
-                    />
-                  </p>
-                }
-              </div>
-            }
-          </div>
-        }
-        @case ('tool') {
-          <div class="flex flex-col p-2 rounded-lg text-token-text-secondary bg-token-main-surface-low">
-            <div class="flex justify-start items-center">
-              @if (message.status === 'thinking') {
-                <ngm-spin />
-              }
-              {{message.name}}
-
-              <span class="flex-1">
-                @if (message.status === 'aborted') {
-                  {{ 'PAC.KEY_WORDS.Aborted' | translate: {Default: 'Aborted'} }}!
-                } @else {
-                  {{message.content}}
-                }
-              </span>
-              <span class="p-1 rounded-md cursor-pointer active:scale-95 transition-transform
-               hover:bg-black/5 dark:hover:bg-white/10"
-                (click)="message.expanded = !message.expanded">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
-                  class="icon-md text-token-text-tertiary transition-transform"
-                  [class.rotate-180]="message.expanded"
-                >
-                  <path fill-rule="evenodd" clip-rule="evenodd" d="M5.29289 9.29289C5.68342 8.90237 6.31658 8.90237 6.70711 9.29289L12 14.5858L17.2929 9.29289C17.6834 8.90237 18.3166 8.90237 18.7071 9.29289C19.0976 9.68342 19.0976 10.3166 18.7071 10.7071L12.7071 16.7071C12.5196 16.8946 12.2652 17 12 17C11.7348 17 11.4804 16.8946 11.2929 16.7071L5.29289 10.7071C4.90237 10.3166 4.90237 9.68342 5.29289 9.29289Z" fill="currentColor"></path></svg>
-              </span>
-            </div>
-            @if (message.expanded) {
-              <div class="flex flex-col text-sm py-2">
-                @for (item of message.messages; track $index) {
-                  <p class="px-2 rounded-md hover:bg-black/5 dark:hover:bg-white/10">
-                    <markdown class="ngm-copilot-markdown"
-                      lineNumbers
-                      [start]="5"
-                      [data]="item.content"
-                    />
-                  </p>
-                }
-              </div>
-            }
-          </div>
-        }
-        @case ('component') {
-          <chat-component-message [message]="message" class="w-full"
-            (register)="onRegister($event)"
-          />
-        }
-      }
-    }
+  @if (reasoning()) {
+    <chat-thought [message]="message()" 
+      class="border-2 border-gray-200 rounded-3xl mb-4 overflow-clip bg-surface-container"
+      [class.reasoning]="status() === 'reasoning'"
+    />
   }
 
-  @if (contents(); as messages) {
-    @for (submessage of messages; track submessage; let last = $last) {
-      @switch (submessage.type) {
-        @case ('text') {
-          @if (submessage.agentKey && agents()[submessage.agentKey]; as agent) {
-            <div class="group flex items-center gap-2 mt-4">
-              @if (submessage.id) {
-                <button type="button" class="absolute left-1 w-6 h-6 flex justify-center items-center rounded-lg z-10 transition-opacity bg-white/2 backdrop-blur-sm opacity-0 group-hover:opacity-100"
-                  (click)="toggleCollapseMessage(submessage)">
-                  @if (collapseMessages()[submessage.id]) {
-                    <i class="ri-arrow-right-s-line"></i>
-                  } @else {
-                    <i class="ri-arrow-down-s-line"></i>
-                  }
-                </button>
-              }
-              <emoji-avatar [avatar]="agent.avatar" small class="rounded-xl overflow-hidden" />
-              <div class="font-semibold">{{agent.title || agent.name || agent.key}}</div>
-            </div>
-          }
-
-          @if (submessage.id && collapseMessages()[submessage.id]) {
-            <div class="truncate">{{submessage.text}}</div>
-          } @else {
-            <div class="group/content relative w-full">
-              <markdown clipboard class="ngm-copilot-markdown flex-1"
-                [clipboardButtonTemplate]="buttonTemplate"
-                lineNumbers
-                [start]="5"
-                [data]="submessage.text"
-              />
-              
-              <div class="absolute -top-3 right-4 flex items-center gap-2 text-sm text-text-secondary opacity-0 group-hover/content:opacity-100 transition-opacity duration-100">
-                <copy2 [content]="submessage.text" class="pressable" />
-                <span>{{submessage.created_date | relative}}</span>
-              </div>
-            </div>
-          }
-
-          @if (!last && submessage.agentKey && !collapseMessages()[submessage.id]) {
-            <hr class="mt-8 mb-4 border-t border-solid border-divider-deep">
-          }
-        }
-        @case ('component') {
-          <chat-component-message class="group/ccm w-full p-2 rounded-2xl hover:bg-neutral-50"
-            [messageId]="message().id"
-            [message]="submessage"
-            (register)="onRegister($event)"
-          />
-        }
-      }
-    }
+  @for (submessage of contents(); track submessage; let i = $index; let last = $last) {
+    <chat-message-avatar #avatar class="group sticky top-14 z-10 bg-surface-container"
+      [prevContent]="contents()[i - 1]"
+      [message]="message()"
+      [content]="submessage"
+      [collapse]="submessage.id && collapseMessages()[submessage.id]"
+      (collapseChange)="updateCollapse(submessage.id, $event)"
+    />
+    <chat-message-content [message]="message()" [content]="submessage" [last]="last" 
+      [collapse]="submessage.id && collapseMessages()[submessage.id]"
+    />
   }
-  
+
   @if (contentStr()) {
     <markdown clipboard class="ngm-copilot-markdown flex-1"
       [clipboardButtonTemplate]="buttonTemplate"
@@ -232,21 +65,35 @@
   }
 
   @if (lastStep(); as step) {
-    <div class="relative group flex-1 min-w-0 cursor-pointer" (click)="toggleSteps()">
+    <div class="relative group flex-1 min-w-0 mt-2 cursor-pointer" (click)="toggleSteps()">
       <div [@listHeightStagger]="steps()"
         class="rounded-xl flex flex-col gap-1 p-1 border border-[var(--border-light)] bg-[var(--fill-tsp-gray-main)] max-w-full clickable hover:bg-[var(--fill-tsp-gray-dark)] dark:hover:bg-white/[0.02]"
       >
         @for (step of steps(); track $index) {
-          <div class="relative flex items-center p-1 py-1 rounded-lg group/item hover:bg-white">
-            <div class="w-[16px] inline-flex items-center text-[var(--text-primary)]">
-              @if (step.toolset) {
-                <img src="/api/xpert-toolset/builtin-provider/{{step.toolset}}/icon" alt="{{step.toolset}}" class="rounded-md">
+          <div class="group/item relative flex items-center p-1 py-1 rounded-lg hover:bg-white" >
+            <div class="w-[16px] inline-flex items-center text-text-secondary">
+              @switch (step.category) {
+                @case (eChatMessageStepCategory.File) {
+                  <i class="ri-file-list-3-line"></i>
+                }
+                @default {
+                  @if (step.toolset) {
+                    @switch (step.toolset) {
+                      @case ('project') {
+                        <i class="ri-building-line"></i>
+                      }
+                      @default {
+                        <img src="/api/xpert-toolset/builtin-provider/{{step.toolset}}/icon" alt="{{step.toolset}}" class="rounded-md">
+                      }
+                    }
+                  }
+                }
               }
             </div>
             <div class="flex-1 h-full min-w-0 flex">
-              <div class="inline-flex items-center h-full rounded-full text-[14px] text-[var(--text-secondary)] max-w-[100%]">
+              <div class="inline-flex items-center h-full rounded-full font-body text-[14px] text-[var(--text-secondary)] max-w-[100%]">
                 <div
-                  class="max-w-[100%] text-ellipsis overflow-hidden whitespace-nowrap text-[13px]"
+                  class="max-w-[100%] text-ellipsis overflow-hidden whitespace-nowrap text-[13px] group-hover/item:text-text-primary"
                   [title]="step.message || step.title"
                 >
                   <div class="flex items-center">
@@ -284,13 +131,21 @@
   }
 
   <div class="absolute left-0 bottom-2 flex justify-end items-center gap-1">
-    <div class="hidden group-hover/message:block p-0.5 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
+    <div class="hidden group-hover/message:flex gap-1 p-0.5 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
       <div class="shrink-0 w-6 h-6 p-1 flex items-center justify-center rounded-md font-medium pressable
         bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
+        [matTooltip]="'PAC.Xpert.Logs' | translate: {Default: 'Logs'}"
+        matTooltipPosition="above"
+        (click)="openLogs()"
       >
-        <copy #copy [content]="contentString()"
-          [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
-          matTooltipPosition="above"/>
+        <i class="ri-chat-thread-line"></i>
+      </div>
+      <div class="shrink-0 w-6 h-6 p-1 flex items-center justify-center rounded-md font-medium pressable
+        bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
+        [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
+        matTooltipPosition="above"
+      >
+        <copy #copy [content]="contentString()" />
       </div>
     </div>
 
@@ -331,24 +186,6 @@
       </div>
     }
 
-    <!-- <div class="hidden group-hover:flex items-center w-max h-[28px] p-0.5 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
-      <div class="shrink-0 p-1 flex items-center justify-center rounded-[6px] font-medium text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="mr-1 w-4 h-4" data-icon="File02" aria-hidden="true">
-          <g id="Icon">
-            <path id="Icon_2" d="M9.33366 7.3335H5.33366M6.66699 10.0002H5.33366M10.667 4.66683H5.33366M13.3337 4.5335V11.4668C13.3337 12.5869 13.3337 13.147 13.1157 13.5748C12.9239 13.9511 12.618 14.2571 12.2416 14.4488C11.8138 14.6668 11.2538 14.6668 10.1337 14.6668H5.86699C4.74689 14.6668 4.18683 14.6668 3.75901 14.4488C3.38269 14.2571 3.07673 13.9511 2.88498 13.5748C2.66699 13.147 2.66699 12.5869 2.66699 11.4668V4.5335C2.66699 3.41339 2.66699 2.85334 2.88498 2.42552C3.07673 2.04919 3.38269 1.74323 3.75901 1.55148C4.18683 1.3335 4.74689 1.3335 5.86699 1.3335H10.1337C11.2538 1.3335 11.8138 1.3335 12.2416 1.55148C12.618 1.74323 12.9239 2.04919 13.1157 2.42552C13.3337 2.85334 13.3337 3.41339 13.3337 4.5335Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
-          </g>
-        </svg>
-        <div class="text-xs leading-4">Prompt 日志</div>
-      </div>
-      <div class="mx-1 w-[1px] h-[14px] bg-gray-200"></div>
-    </div>
-    <div class="hidden group-hover:block h-[28px] p-0.5 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
-      <div class="box-border p-0.5 flex items-center justify-center rounded-md bg-white cursor-pointer">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="p-[3.5px] w-6 h-6 text-[#667085] hover:bg-gray-50" data-icon="Refresh" aria-hidden="true">
-          <path d="M5.46257 4.43262C7.21556 2.91688 9.5007 2 12 2C17.5228 2 22 6.47715 22 12C22 14.1361 21.3302 16.1158 20.1892 17.7406L17 12H20C20 7.58172 16.4183 4 12 4C9.84982 4 7.89777 4.84827 6.46023 6.22842L5.46257 4.43262ZM18.5374 19.5674C16.7844 21.0831 14.4993 22 12 22C6.47715 22 2 17.5228 2 12C2 9.86386 2.66979 7.88416 3.8108 6.25944L7 12H4C4 16.4183 7.58172 20 12 20C14.1502 20 16.1022 19.1517 17.5398 17.7716L18.5374 19.5674Z"></path>
-        </svg>
-      </div>
-    </div> -->
   </div>
 
   @if (answering()) {
@@ -368,18 +205,15 @@
   }
 </div>
 
-
 <ng-template #buttonTemplate>
-  <!-- <button mat-flat-button displayDensity="compact" class="ngm-rounded-full"
-      (click)="run($event)">run</button> -->
-  <button #copyButton mat-flat-button displayDensity="compact" class="ngm-rounded-full" (click)="onCopy(copyButton)">
+  <button #copyButton class="btn btn-small rounded-xl" (click)="onCopy(copyButton)">
     @if ($any(copyButton).copied) {
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon-md">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" >
         <path fill-rule="evenodd" clip-rule="evenodd" d="M18.0633 5.67375C18.5196 5.98487 18.6374 6.607 18.3262 7.06331L10.8262 18.0633C10.6585 18.3093 10.3898 18.4678 10.0934 18.4956C9.79688 18.5234 9.50345 18.4176 9.29289 18.2071L4.79289 13.7071C4.40237 13.3166 4.40237 12.6834 4.79289 12.2929C5.18342 11.9023 5.81658 11.9023 6.20711 12.2929L9.85368 15.9394L16.6738 5.93664C16.9849 5.48033 17.607 5.36263 18.0633 5.67375Z" fill="currentColor">
           </path>
       </svg>
     } @else {
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon-md">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" >
         <path fill-rule="evenodd" clip-rule="evenodd" d="M12 4C10.8954 4 10 4.89543 10 6H14C14 4.89543 13.1046 4 12 4ZM8.53513 4C9.22675 2.8044 10.5194 2 12 2C13.4806 2 14.7733 2.8044 15.4649 4H17C18.6569 4 20 5.34315 20 7V19C20 20.6569 18.6569 22 17 22H7C5.34315 22 4 20.6569 4 19V7C4 5.34315 5.34315 4 7 4H8.53513ZM8 6H7C6.44772 6 6 6.44772 6 7V19C6 19.5523 6.44772 20 7 20H17C17.5523 20 18 19.5523 18 19V7C18 6.44772 17.5523 6 17 6H16C16 7.10457 15.1046 8 14 8H10C8.89543 8 8 7.10457 8 6Z" fill="currentColor"></path>
       </svg>
     }

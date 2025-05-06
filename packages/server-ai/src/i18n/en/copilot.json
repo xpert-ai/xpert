@@ -1,6 +1,9 @@
 {
     "Error": {
         "TokenNoModel": "No model was provided when recording token usage",
-        "NoTextEmbeddingModel": "The embedding model or the default embedding model is not configured correctly"
+        "NoTextEmbeddingModel": "The embedding model or the default embedding model is not configured correctly",
+        "AIModelNotFound": "No AI model provided",
+        "TokenExceedsLimit": "Token usage exceeds limit",
+        "TokenExceedsOrgLimit": "Token usage exceeds organization limit"
     }
 }

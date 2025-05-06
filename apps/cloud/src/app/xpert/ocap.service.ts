@@ -9,6 +9,9 @@ import { injectToastr, registerModel } from '../@core'
 import { getErrorMessage, IIndicator, ISemanticModel } from '../@core/types'
 import { XpertHomeService } from './home.service'
 
+/**
+ * State service for ocap framework
+ */
 @Injectable()
 export class XpertOcapService {
   readonly homeService = inject(XpertHomeService)
@@ -71,7 +74,8 @@ export class XpertOcapService {
     // Register the model when all conditions are ready
     effect(
       () => {
-        const models = Object.values(this.#semanticModels()).filter((model) => model.dirty && model.model)
+        const semanticModels = this.#semanticModels() ?? {}
+        const models = Object.values(semanticModels).filter((model) => model.dirty && model.model)
         if (models.length) {
           models.forEach(({ model, indicators }) => {
             const _model = convertNewSemanticModelResult({

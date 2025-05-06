@@ -1,0 +1,6 @@
+:host {
+  @apply hidden items-center gap-2 py-2 px-1;
+  &.show {
+    @apply flex;
+  }
+}

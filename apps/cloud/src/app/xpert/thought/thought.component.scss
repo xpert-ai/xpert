@@ -1,0 +1,13 @@
+:host {
+  box-shadow: rgba(0, 0, 0, 0.04) 0px 6px 14px 0px;
+}
+
+.thought-container.reasoning {
+  mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

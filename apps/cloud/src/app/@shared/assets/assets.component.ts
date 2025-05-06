@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
-import { Component, Input, inject } from '@angular/core'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { Component, Input, inject, input } from '@angular/core'
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { RouterModule } from '@angular/router'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { isArray } from '@metad/ocap-core'
@@ -8,12 +8,13 @@ import { TranslateModule } from '@ngx-translate/core'
 import { sortBy } from 'lodash-es'
 import { BehaviorSubject, debounceTime, distinctUntilChanged, map, shareReplay, switchMap } from 'rxjs'
 import { FeedsService, VisitsService } from '../../@core'
-import { MaterialModule } from '../material.module'
+import { MatProgressBarModule } from '@angular/material/progress-bar'
+import { MatListModule } from '@angular/material/list'
 
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MaterialModule, RouterModule, TranslateModule, OcapCoreModule],
+  imports: [CommonModule, RouterModule, TranslateModule, MatProgressBarModule, MatListModule, OcapCoreModule],
   selector: 'pac-assets',
   templateUrl: './assets.component.html',
   styleUrls: ['./assets.component.scss'],
@@ -25,18 +26,12 @@ export class AssetsComponent {
   private feedsService = inject(FeedsService)
   private visitsService = inject(VisitsService)
 
-  @Input() get search() {
-    return this.search$.value
-  }
-  set search(value) {
-    this.search$.next(value)
-  }
-  private search$ = new BehaviorSubject<string>('')
+  readonly search = input<string>()
 
   searchAssetsType = 'story'
 
   searching$ = new BehaviorSubject<boolean>(false)
-  public readonly searchAssets$ = this.search$.pipe(
+  readonly searchAssets$ = toObservable(this.search).pipe(
     distinctUntilChanged(),
     debounceTime(500),
     switchMap((text) => {
@@ -80,5 +75,5 @@ export class AssetsComponent {
     shareReplay(1)
   )
 
-  public readonly isEmpty$ = this.searchAssets$.pipe(map((searchAssets) => !searchAssets?.length))
+  readonly isEmpty$ = this.searchAssets$.pipe(map((searchAssets) => !searchAssets?.length))
 }

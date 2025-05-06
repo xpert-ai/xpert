@@ -6,7 +6,7 @@ import { Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { FileTypePipe } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { DateRelativePipe, injectToastr } from '../../../@core'
+import { DateRelativePipe, injectToastr, TFile } from '../../../@core'
 
 @Component({
   standalone: true,
@@ -16,7 +16,7 @@ import { DateRelativePipe, injectToastr } from '../../../@core'
   imports: [CommonModule, FormsModule, DragDropModule, CdkMenuModule, TranslateModule, DateRelativePipe, FileTypePipe]
 })
 export class ChatFilesDialogComponent {
-  readonly #data = inject<{ files: { name: string; url: string; extenstion: string; created_date: string }[] }>(
+  readonly #data = inject<{ files: TFile[] }>(
     DIALOG_DATA
   )
   readonly #dialogRef = inject(DialogRef)
@@ -24,7 +24,7 @@ export class ChatFilesDialogComponent {
 
   readonly files = signal(this.#data.files)
 
-  preview(file) {
+  preview(file: TFile) {
     this.#dialogRef.close(file)
   }
 

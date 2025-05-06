@@ -13,6 +13,7 @@ import {
 	channelName,
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
+	GRAPH_NODE_TITLE_CONVERSATION,
 	IXpertAgent,
 	LanguagesEnum,
 	mapTranslationLanguage,
@@ -164,10 +165,10 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 			)
 		).pipe(
 			map(
-				createMapStreamEvents(this.#logger, thread_id, subscriber, {
+				createMapStreamEvents(this.#logger, subscriber, {
 					disableOutputs: [
 						...(team.agentConfig?.disableOutputs ?? []),
-						'title_conversation',
+						GRAPH_NODE_TITLE_CONVERSATION,
 						'summarize_conversation'
 					],
 					agent
@@ -208,7 +209,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 					const lastMessage = messages[messages.length - 1]
 					if (state.next?.[0]) {
 						const nextAgents = state.next
-							.filter((_) => _ !== 'title_conversation')
+							.filter((_) => _ !== GRAPH_NODE_TITLE_CONVERSATION)
 							.map((key) => state.values[channelName(key)]?.agent)
 							.filter((_) => !!_)
 						if (isBaseMessageChunk(lastMessage) && isAIMessageChunk(lastMessage)) {

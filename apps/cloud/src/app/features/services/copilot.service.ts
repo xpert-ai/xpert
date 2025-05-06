@@ -1,27 +1,15 @@
 import { HttpClient } from '@angular/common/http'
-import { effect, inject, Injectable, signal } from '@angular/core'
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+import { effect, inject, Injectable } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { Router } from '@angular/router'
-import { API_PREFIX, AuthService } from '@metad/cloud/state'
-import { BusinessRoleType, ICopilot } from '@metad/copilot'
+import { AuthService } from '@metad/cloud/state'
+import { BusinessRoleType } from '@metad/copilot'
 import { NgmCopilotService } from '@metad/copilot-angular'
 import { pick } from '@metad/ocap-core'
-import { environment } from 'apps/cloud/src/environments/environment'
-import { omit } from 'lodash-es'
-import {
-  BehaviorSubject,
-  combineLatest,
-  distinctUntilChanged,
-  filter,
-  firstValueFrom,
-  map,
-  startWith,
-  switchMap
-} from 'rxjs'
-import { ICopilot as IServerCopilot } from '../../@core/types'
-import { AgentService } from '../../@core/services/agent.service'
+import { environment } from '@cloud/environments/environment'
+import { BehaviorSubject, combineLatest, firstValueFrom, map } from 'rxjs'
 import { CopilotServerService, Store, XpertService } from '../../@core'
-
+import { AgentService } from '../../@core/services/agent.service'
 
 const baseUrl = environment.API_BASE_URL
 const API_CHAT = constructUrl(baseUrl) + '/api/ai/chat'
@@ -37,18 +25,19 @@ export class PACCopilotService extends NgmCopilotService {
   readonly #agentService = inject(AgentService)
   readonly copilotServer = inject(CopilotServerService)
 
-  readonly refresh$ = new BehaviorSubject(false)
+  // readonly refresh$ = new BehaviorSubject(false)
 
   // Init copilot config
-  private _userSub = this.copilotServer.getCopilots().pipe(
-      takeUntilDestroyed()
-    )
+  private _userSub = this.copilotServer
+    .getCopilots()
+    .pipe(takeUntilDestroyed())
     .subscribe((items) => {
       this.copilots.set(items)
     })
 
   // Use Xpert as copilot role
-  private roleSub = this.xpertService.getMyCopilots(['copilotModel'])
+  private roleSub = this.xpertService
+    .getMyCopilots(['copilotModel'])
     .pipe(
       map(({ items }) => items),
       takeUntilDestroyed()
@@ -99,12 +88,15 @@ export class PACCopilotService extends NgmCopilotService {
   constructor() {
     super()
 
-    effect(() => {
-      this.credentials.set({
-        apiHost: API_AI_HOST,
-        apiKey: this.#store.token
-      })
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        this.credentials.set({
+          apiHost: API_AI_HOST,
+          apiKey: this.#store.token
+        })
+      },
+      { allowSignalWrites: true }
+    )
 
     // effect(
     //   () => {
@@ -155,30 +147,9 @@ export class PACCopilotService extends NgmCopilotService {
     return `Bearer ${this.#store.token}`
   }
 
-  // async upsertItems(items: Partial<IServerCopilot[]>) {
-  //   items = await Promise.all(
-  //     items.map((item) =>
-  //       firstValueFrom(this.httpClient.post<ICopilot>(API_PREFIX + '/copilot', item.id ? item : omit(item, 'id')))
-  //     )
-  //   )
-
-  //   this.copilots.update((copilots) => {
-  //     items.forEach((item) => {
-  //       if (item.id) {
-  //         copilots = copilots.filter((_) => _.id !== item.id)
-  //       }
-  //       copilots.push(item as ICopilot)
-  //     })
-  //     return copilots
-  //   })
-
-  //   this.refresh$.next(true)
-  // }
-
   enableCopilot(): void {
     this.router.navigate(['settings', 'copilot'])
   }
-  
 }
 
 function constructUrl(url: string) {

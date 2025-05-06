@@ -1,0 +1,10 @@
+<button type="button" class="btn px-3 py-2 rounded-2xl border border-input-border"
+  routerLink="/settings/copilot/basic"
+>
+  @if (copilotEnabled()) {
+    {{ 'PAC.Copilot.EnablePrimaryDefaultModel' | translate: {Default: 'Enable primary default model'} }}
+  } @else {
+    {{ 'PAC.Copilot.EnableAIProvider' | translate: {Default: 'Enable AI provider'} }}
+  }
+  <i class="ri-corner-up-right-fill ml-1 text-lg"></i>
+</button>

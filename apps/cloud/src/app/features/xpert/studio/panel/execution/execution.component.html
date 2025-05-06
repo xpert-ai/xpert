@@ -10,11 +10,11 @@
     <div class="tab mr-6 py-3 border-b-2 border-transparent font-semibold leading-[18px] text-gray-400 cursor-pointer"
       [class.active]="pageType() === 'overview'"
       (click)="pageType.set('overview')"
-    >{{ 'PAC.Xpert.Overview' | translate: {Default: 'Overview'} }}</div>
+    >{{ 'PAC.Xpert.PrimaryAgent' | translate: {Default: 'Primary Agent'} }}</div>
     <div class="tab mr-6 py-3 border-b-2 border-transparent font-semibold leading-[18px] text-gray-400 cursor-pointer"
       [class.active]="pageType() === 'steps'"
       (click)="pageType.set('steps')"
-    >{{ 'PAC.Xpert.Steps' | translate: {Default: 'Steps'} }}</div>
+    >{{ 'PAC.Xpert.MembersOrSteps' | translate: {Default: 'Members/Steps'} }}</div>
   </div>
 </div>
 

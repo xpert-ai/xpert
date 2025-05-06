@@ -1,36 +1,7 @@
-import { BaseMessage } from '@langchain/core/messages'
-import { Subscriber } from 'rxjs'
-
-export const CONTEXT_VARIABLE_CURRENTSTATE = 'currentState'
-export const STATE_VARIABLE_SYS = 'sys'
-export const GRAPH_NODE_SUMMARIZE_CONVERSATION = 'summarize_conversation'
-export const GRAPH_NODE_TITLE_CONVERSATION = 'title_conversation'
-
-export type TMessageChannel = {
-  messages: BaseMessage[]
-  summary?: string
-}
-
-
 export type TErrorHandling = {
   type?: null | 'defaultValue' | 'failBranch'
   defaultValue?: {content?: string}
   failBranch?: string
-}
-
-export type TAgentRunnableConfigurable = {
-  thread_id: string
-  checkpoint_ns: string
-  // Custom configurable of invoke
-  tenantId: string
-  organizationId: string
-  language: string
-  userId: string
-  // Caller
-  agentKey: string
-  subscriber: Subscriber<any>
-
-  signal?: AbortSignal
 }
 
 export enum ApiAuthType {
@@ -40,4 +11,16 @@ export enum ApiAuthType {
   NONE = "none",
   API_KEY = "api_key",
   BASIC = 'basic'
+}
+
+export type TFile = {
+  filePath: string;
+  fileType: string;
+  contents: string;
+  description: string;
+  size?: number
+  createdAt?: Date
+  url?: string
+
+  storageFileId?: string
 }

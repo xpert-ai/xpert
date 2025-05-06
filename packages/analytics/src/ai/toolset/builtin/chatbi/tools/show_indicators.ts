@@ -1,5 +1,5 @@
 import { tool } from '@langchain/core/tools'
-import { ChatMessageTypeEnum, JSONValue } from '@metad/contracts'
+import { ChatMessageTypeEnum, TMessageComponent, TMessageContentComponent } from '@metad/contracts'
 import { shortuuid } from '@metad/server-common'
 import { z } from 'zod'
 import { ChatBIContext, TChatBICredentials } from '../types'
@@ -14,7 +14,7 @@ export function createShowIndicatorsTool(context: ChatBIContext, credentials: TC
 			config
 		): Promise<string> => {
 			const { configurable } = config ?? {}
-			const { subscriber } = configurable ?? {}
+			const { subscriber, xpertName, agentKey } = configurable ?? {}
 
 			subscriber?.next({
 				data: {
@@ -23,6 +23,7 @@ export function createShowIndicatorsTool(context: ChatBIContext, credentials: TC
 						id: shortuuid(),
 						type: 'component',
 						data: {
+							category: 'Dashboard',
 							type: 'Indicators',
 							indicators: indicators.map((indicator) => ({
 								...indicator,
@@ -30,8 +31,10 @@ export function createShowIndicatorsTool(context: ChatBIContext, credentials: TC
 								entitySet: indicator.cube,
 								indicatorCode: indicator.indicator
 							}))
-						} as unknown as JSONValue
-					}
+						} as TMessageComponent,
+						xpertName,
+						agentKey
+					} as TMessageContentComponent
 				}
 			} as MessageEvent)
 

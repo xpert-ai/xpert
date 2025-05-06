@@ -6,8 +6,8 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Document } from 'langchain/document'
 import { Repository } from 'typeorm'
 import { KnowledgebaseService, TVectorSearchParams } from '../knowledgebase'
-import { LoadStorageFileCommand } from './commands'
 import { KnowledgeDocument } from './document.entity'
+import { LoadStorageFileCommand } from '../shared'
 
 @Injectable()
 export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService<KnowledgeDocument> {

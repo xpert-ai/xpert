@@ -1,0 +1,44 @@
+import { Dialog } from '@angular/cdk/dialog'
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { CommonModule } from '@angular/common'
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
+import { toObservable } from '@angular/core/rxjs-interop'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { Router, RouterModule } from '@angular/router'
+import { DateRelativePipe, injectProjectService, injectToastr, XpertToolsetService } from '@cloud/app/@core'
+import { UserPipe } from '@cloud/app/@shared/pipes'
+import { TranslateModule } from '@ngx-translate/core'
+import { map, shareReplay, switchMap } from 'rxjs'
+import { ChatProjectHomeComponent } from '../home/home.component'
+import { ChatProjectComponent } from '../project.component'
+
+/**
+ *
+ */
+@Component({
+  standalone: true,
+  imports: [CommonModule, RouterModule, CdkMenuModule, TranslateModule, MatTooltipModule, UserPipe, DateRelativePipe],
+  selector: 'chat-project-conversations',
+  templateUrl: './conversations.component.html',
+  styleUrl: 'conversations.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ChatProjectConversationsComponent {
+  readonly #router = inject(Router)
+  readonly #dialog = inject(Dialog)
+  readonly projectSercice = injectProjectService()
+  readonly toolsetService = inject(XpertToolsetService)
+  readonly #projectComponent = inject(ChatProjectComponent)
+  readonly #homeComponent = inject(ChatProjectHomeComponent)
+  readonly #toastr = injectToastr()
+
+  readonly id = this.#homeComponent.id
+  readonly project = this.#projectComponent.project
+
+  // Conversations
+  readonly conversations$ = toObservable(this.#homeComponent.id).pipe(
+    switchMap((id) => this.projectSercice.getConversations(id)),
+    map(({ items }) => items),
+    shareReplay(1)
+  )
+}

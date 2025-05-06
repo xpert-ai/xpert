@@ -1,4 +1,6 @@
 import { ToolCall as LToolCall } from '@langchain/core/dist/messages/tool'
+import { RunnableToolLike } from '@langchain/core/runnables'
+import { StructuredToolInterface } from '@langchain/core/tools'
 import { ITag } from '../tag-entity.model'
 import { IUser, LanguagesEnum } from '../user.model'
 import { ICopilotModel, TCopilotModel } from './copilot-model.model'
@@ -402,6 +404,7 @@ export type TChatRequest = {
   }
   xpertId: string
   agentKey?: string
+  projectId?: string
   conversationId?: string
   environmentId?: string
   id?: string
@@ -437,8 +440,14 @@ export type TChatOptions = {
    * Whether to summarize the conversation title
    */
   summarizeTitle?: boolean
-  
+  /**
+   * Specify environment with variables to run
+   */
   environment?: IEnvironment
+  /**
+   * Specify additional tools
+   */
+  tools?: (StructuredToolInterface | RunnableToolLike)[]
 }
 
 // Helpers

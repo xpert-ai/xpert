@@ -370,7 +370,7 @@ export function convertOrderby(entityType: EntityType, orderby: OrderBy): MDXPro
   const { by, order = 'ASC' } = deconstructOrderby(orderby)
   const property = getEntityProperty2(entityType, by)
   if (!property) {
-    throw new Error(`Not found property for order by: ${by}`)
+    throw new Error(t('Error.NoPropertyFoundForOrderBy', {ns: 'xmla', by}))
   }
   let name = by
   if (isPropertyLevel(property)) {

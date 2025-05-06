@@ -1,54 +1,10 @@
-@use '@angular/material/core/tokens/token-utils';
-@use '@angular/material/core/style/sass-utils';
-
-$global-prefix: ngm;
-$prefix: (ngm, settings);
-$prefix-color: (#{$prefix}, color);
-
-@function get-unthemable-tokens() {
-  @return (
-    primary-container-rounded: var(--#{$global-prefix}-primary-container-rounded)
-  );
-}
-
-@function get-color-tokens() {
-  @return (
-    color-surface: var(--#{$global-prefix}-color-surface),
-  );
-}
-
-@function get-token-slots() {
-  @return sass-utils.deep-merge-all(
-    get-unthemable-tokens(),
-    get-color-tokens(),
-  );
-}
-
 :host {
-  // --mat-sidenav-container-background-color: transparent;
-  --mat-sidenav-container-text-color: var(--#{$global-prefix}-text-primary-color);
-  --mat-sidenav-container-divider-color: var(--color-divider-regular);
-  @include token-utils.create-token-values($prefix, get-token-slots());
-
   display: flex;
   flex: 1;
   flex-direction: row;
   max-width: 100%;
   overflow: auto;
-}
-
-@include token-utils.use-tokens($prefix, get-token-slots()) {
-  .mat-drawer-container {
-    border-top-left-radius: var(#{token-utils.get-token-variable(primary-container-rounded)});
-  }
-  .mat-drawer.mat-drawer-over {
-    --mat-sidenav-container-background-color: var(#{token-utils.get-token-variable(color-surface)});
-  }
-  .mat-drawer-content {
-    background-color: var(#{token-utils.get-token-variable(color-surface)});
-    // border-top-left-radius: var(#{token-utils.get-token-variable(primary-container-rounded)});
-    @apply flex overflow-hidden; // for rounded corner overflow-visible;
-  }
+  border-top-left-radius: var(--ngm-primary-container-rounded);
 }
 
 .pac-nav__router {
@@ -56,23 +12,6 @@ $prefix-color: (#{$prefix}, color);
   overflow-y: auto;
   overflow-x: hidden;
 }
-
-/**
- * 纵向 nav bar
- */
-.pac-nav__tab-bar {
-  background-color: var(--mdc-outlined-card-container-color);
-
-  .pac-nav__tab {
-    @apply -ml-2 -mr-2 border-2 border-transparent transition-all;
-  }
-  .pac-nav__tab:hover {
-    @apply bg-slate-100 border-slate-200 rounded-lg dark:bg-bluegray-600 dark:border-bluegray-500;
-  }
-  .pac-nav__tab:focus {
-    @apply bg-slate-50 border-slate-200 rounded-lg dark:bg-bluegray-600 dark:border-bluegray-500;
-  }
-  .pac-nav__tab.active {
-    @apply bg-slate-50 border-slate-200 rounded-lg dark:bg-bluegray-700 dark:border-bluegray-500;
-  }
+.link.active {
+  @apply bg-neutral-200;
 }

@@ -27,16 +27,19 @@ import { ExplainComponent } from '@metad/story/story'
 import { NxWidgetKpiComponent } from '@metad/story/widgets/kpi'
 import { TranslateModule } from '@ngx-translate/core'
 import { compact, uniq } from 'lodash-es'
-import { MarkdownModule } from 'ngx-markdown'
 import { ChatMessageStepCategory, IXpertTask, Store } from '../../@core'
-import { ChatComponentIndicatorsComponent } from './indicators/indicators.component'
-import { ChatComponentIndicatorComponent } from './indicator/indicator.component'
-import { ChatComponentTasksComponent } from './tasks/tasks.component'
+import { ChatComponentScheduleTasksComponent } from './schedule-tasks/tasks.component'
 import { XpertHomeService } from '../home.service'
-import { ArraySlicePipe, FileTypePipe } from '@metad/core'
-import { ChatFilesDialogComponent } from '../../@shared/chat'
 import { ChatComponentMemoriesComponent } from './memories/memories.component'
+import { ChatComponentMessageFilesComponent } from './files/files.component'
+import { ChatComponentMessageTasksComponent } from './tasks/tasks.component'
 
+
+/**
+ * A component that uniformly displays different types of component messages.
+ * Currently has two categories: `Computer` and `Dashboard`
+ * 
+ */
 @Component({
   standalone: true,
   imports: [
@@ -49,17 +52,15 @@ import { ChatComponentMemoriesComponent } from './memories/memories.component'
     RouterModule,
     TranslateModule,
     MatTooltipModule,
-    MarkdownModule,
     NgmCommonModule,
     NgmSelectionModule,
     AnalyticalCardModule,
     NxWidgetKpiComponent,
-    FileTypePipe,
-    ArraySlicePipe,
-    ChatComponentIndicatorsComponent,
-    ChatComponentIndicatorComponent,
-    ChatComponentTasksComponent,
-    ChatComponentMemoriesComponent
+
+    ChatComponentMessageTasksComponent,
+    ChatComponentScheduleTasksComponent,
+    ChatComponentMemoriesComponent,
+    ChatComponentMessageFilesComponent
   ],
   selector: 'chat-component-message',
   templateUrl: './component-message.component.html',
@@ -83,14 +84,18 @@ export class ChatComponentMessageComponent {
   // Sub component message
   readonly message = input<any>()
 
-  // Outputs
-  readonly register = output<{ id: string; indicators?: Indicator[] }[]>()
 
   // States
   readonly data = computed(() => this.message()?.data as any)
 
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   readonly primaryTheme = toSignal(this.#store.primaryTheme$)
 
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   readonly chartSettings = computed(() => {
     return {
       ...(this.data()?.chartSettings ?? {}),
@@ -98,73 +103,101 @@ export class ChatComponentMessageComponent {
     }
   })
 
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   readonly dataSettings = computed(() => this.data()?.dataSettings as DataSettings)
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   readonly indicator = computed<Indicator>(() => this.data()?.indicator)
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   readonly dataSource = computed(() => this.dataSettings()?.dataSource)
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   readonly indicators = computed(() => this.data()?.indicators)
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   readonly slicers = computed(() => this.data()?.slicers)
   readonly tasks = computed(() => this.data()?.tasks as IXpertTask[])
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   readonly dataSources = computed(() => compact(uniq<string>(this.indicators()?.map((_) => _.dataSource))))
 
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   readonly explains = signal<any[]>([])
 
-  // Files
-  readonly files = computed(() => this.data()?.files as any[])
+  // constructor() {
+  //   effect(
+  //     () => {
+  //       if (this.dataSource()) {
+  //         this.register.emit([
+  //           {
+  //             id: this.dataSource(),
+  //             indicators: this.indicators()
+  //           }
+  //         ])
+  //       }
+  //     },
+  //     { allowSignalWrites: true }
+  //   )
 
-  constructor() {
-    effect(
-      () => {
-        if (this.dataSource()) {
-          this.register.emit([
-            {
-              id: this.dataSource(),
-              indicators: this.indicators()
-            }
-          ])
-        }
-      },
-      { allowSignalWrites: true }
-    )
+  //   effect(
+  //     () => {
+  //       const newIndicator = this.indicator()
+  //       if (newIndicator) {
+  //         this.register.emit([
+  //           {
+  //             id: newIndicator.modelId,
+  //             indicators: [newIndicator]
+  //           }
+  //         ])
+  //       }
+  //     },
+  //     { allowSignalWrites: true }
+  //   )
 
-    effect(
-      () => {
-        const newIndicator = this.indicator()
-        if (newIndicator) {
-          this.register.emit([
-            {
-              id: newIndicator.modelId,
-              indicators: [newIndicator]
-            }
-          ])
-        }
-      },
-      { allowSignalWrites: true }
-    )
+  //   effect(
+  //     () => {
+  //       if (this.dataSources()) {
+  //         this.register.emit(this.dataSources().map((id) => ({ id })))
+  //       }
+  //     },
+  //     { allowSignalWrites: true }
+  //   )
+  // }
 
-    effect(
-      () => {
-        if (this.dataSources()) {
-          this.register.emit(this.dataSources().map((id) => ({ id })))
-        }
-      },
-      { allowSignalWrites: true }
-    )
-  }
-
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   setExplains(items: unknown[]) {
     this.explains.set(items)
   }
 
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   openExplain() {
     this.#dialog.open(ExplainComponent, {
       data: this.explains()
     })
   }
 
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   openExplorer() {
     this.#dialog
       .open(StoryExplorerComponent, {
         viewContainerRef: this.#viewContainerRef,
+        disableClose: true,
         data: {
           data: {
             dataSettings: this.dataSettings(),
@@ -175,12 +208,15 @@ export class ChatComponentMessageComponent {
       .closed.subscribe({
         next: (result) => {
           if (result) {
-            console.log(result)
+            // console.log(result)
           }
         }
       })
   }
 
+  /**
+   * @deprecated move to ChatMessageDashboardComponent
+   */
   openCanvas() {
     this.homeService.canvasOpened.set({
       opened: true,
@@ -190,23 +226,4 @@ export class ChatComponentMessageComponent {
     })
   }
 
-  openFileViewer(file) {
-    this.homeService.canvasOpened.set({
-      opened: true,
-      type: 'File',
-      file
-    })
-  }
-
-  openAllFiles() {
-    this.#dialog.open(ChatFilesDialogComponent, {
-      data: {
-        files: this.files()
-      }
-    }).closed.subscribe((file) => {
-      if (file) {
-        this.openFileViewer(file)
-      }
-    })
-  }
 }

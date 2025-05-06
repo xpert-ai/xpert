@@ -1,4 +1,4 @@
-import { IXpertToolset, TToolCredentials } from '@metad/contracts'
+import { isEnableTool, IXpertToolset, TToolCredentials } from '@metad/contracts'
 import { BuiltinTool } from '../builtin-tool'
 import { BuiltinToolset, TBuiltinToolsetParams } from '../builtin-toolset'
 
@@ -15,7 +15,7 @@ export class FileToolset extends BuiltinToolset {
 	async initTools(): Promise<BuiltinTool[]> {
 		this.tools = []
 		if (this.toolset?.tools) {
-			this.toolset?.tools.filter((_) => _.enabled).forEach((tool) => {
+			this.toolset?.tools.filter((_) => isEnableTool(_, this.toolset)).forEach((tool) => {
 				// switch(tool.name) {
 				// 	case (FileToolEnum.CREATE_FILE): {
 				// 		this.tools.push(new CreateFileTool(this))

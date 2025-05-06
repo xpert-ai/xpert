@@ -48,6 +48,7 @@
 .ngm-card-content {
   height: calc(100% - 30px);
   max-height: calc(100% - 30px);
+  min-height: 100px;
   margin-bottom: 0;
 }
 

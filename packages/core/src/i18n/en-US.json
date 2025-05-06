@@ -1,5 +1,9 @@
 {
     "Error": {
-        "NoAnalyticsRowsOrColumns": "Analytics rows or columns is required"
+        "NoAnalyticsRowsOrColumns": "Analytics rows or columns is required",
+        "NoTimeLevelInDimension": "No level was found for time granularity '{{granularity}}' in dimension '{{dimension}}'",
+        "NoPropertyFoundFor": "No properties found for '{{name}}' in cube '{{cube}}'.",
+        "NoDimensionFoundFor": "No dimension found for '{{name}}' in cube '{{cube}}'.",
+        "NoHierarchyFoundFor": "No hierarchy found for '{{name}}' in dimension '{{dimension}}'."
     }
 }

@@ -1,0 +1,11 @@
+:host {
+  @apply grow flex flex-col relative overflow-y-auto;
+}
+
+.view-option.active {
+  @apply border-primary-600 text-primary-600;
+}
+
+.view-tab.active {
+  @apply block;
+}

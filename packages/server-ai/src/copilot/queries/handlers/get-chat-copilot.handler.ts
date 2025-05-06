@@ -15,8 +15,6 @@ export class CopilotGetChatHandler implements IQueryHandler<CopilotGetChatQuery>
 		for (const role of [AiProviderRole.Primary, AiProviderRole.Secondary, AiProviderRole.Reasoning]) {
 			const copilot = copilots.find((_) => _.role === role)
 			if (copilot) {
-
-
 				return copilot
 			}
 		}

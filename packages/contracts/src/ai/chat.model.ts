@@ -5,6 +5,8 @@ import { IXpert } from './xpert.model'
 import { I18nObject } from '../types'
 import { CopilotChatMessage, CopilotMessageGroup, IChatMessage } from './chat-message.model'
 import { IXpertAgent } from './xpert-agent.model'
+import { IXpertProject } from './xpert-project.model'
+
 
 export type TChatConversationOptions = {
   parameters?: {
@@ -96,6 +98,9 @@ export interface IChatConversation extends IBasePerTenantAndOrganizationEntityMo
    */
   xpert?: IXpert
   xpertId?: string | null
+
+  project?: IXpertProject
+  projectId?: string | null
 
   executions?: IXpertAgentExecution[]
 }

@@ -18,7 +18,6 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, EMPTY } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 import {
-  getErrorMessage,
   IXpertMCPTemplate,
   IXpertToolset,
   OrderTypeEnum,
@@ -33,9 +32,7 @@ import {
 import { AppService } from '../../../../app.service'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
-import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
-
-const InlineTemplateCount = 8
+import { MCPMarketplaceComponent, XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 
 @Component({
   standalone: true,
@@ -53,7 +50,8 @@ const InlineTemplateCount = 8
     DynamicGridDirective,
     NgmCommonModule,
     CardCreateComponent,
-    ToolsetCardComponent
+    ToolsetCardComponent,
+    MCPMarketplaceComponent
   ],
   selector: 'xpert-workspace-mcp-tools',
   templateUrl: './tools.component.html',
@@ -128,26 +126,6 @@ export class XpertWorkspaceMCPToolsComponent {
           : true
       )
   })
-
-  readonly #templates = derivedAsync(() => {
-    const params = this.inline() ? {take: InlineTemplateCount} : null
-    return this.templateService.getAllMCP(params)
-  })
-
-  readonly categories = computed(() => this.#templates()?.categories)
-  readonly #catTemplates = computed(() => {
-    const templates = this.#templates()?.templates ?? []
-    return this.queryCategory() ? templates.filter((_) => _.category === this.queryCategory()) : templates
-  })
-  readonly templates = computed(() => {
-    const searchText = this.searchText()?.toLowerCase()
-    const templates = this.#catTemplates()
-    return templates.filter((_) => searchText
-      ? _.name.toLowerCase().includes(searchText) || _.title?.toLowerCase().includes(searchText) || _.description?.toLowerCase().includes(searchText)
-      : true)
-  })
-  
-  readonly loading = signal(false)
   
   constructor() {
     //
@@ -193,20 +171,6 @@ export class XpertWorkspaceMCPToolsComponent {
       })
   }
 
-  install(template: IXpertMCPTemplate) {
-    this.loading.set(true)
-    this.templateService.getMCPTemplate(template.id).subscribe({
-      next: (temp) => {
-        this.loading.set(false)
-        this.createTool(temp)
-      },
-      error: (err) => {
-        this.loading.set(false)
-        this.#toastr.error(getErrorMessage(err))
-      }
-    })
-  }
-
   openToolset(toolset: IXpertToolset) {
     this.#dialog
       .open(XpertMCPManageComponent, {
@@ -225,5 +189,4 @@ export class XpertWorkspaceMCPToolsComponent {
         }
       })
   }
-
 }

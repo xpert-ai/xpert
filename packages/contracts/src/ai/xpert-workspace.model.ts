@@ -1,5 +1,6 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IUser } from '../user.model'
+import { IEnvironment } from './environment.model'
 import { IXpert } from './xpert.model'
 
 /**
@@ -17,6 +18,7 @@ export interface IXpertWorkspace extends IBasePerTenantAndOrganizationEntityMode
 
   // One to many
   xperts?: IXpert[]
+  environments?: IEnvironment[]
 
   members?: IUser[]
 }

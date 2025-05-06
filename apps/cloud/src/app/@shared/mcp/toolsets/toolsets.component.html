@@ -1,0 +1,23 @@
+<div class="flex items-center py-4 text-lg font-semibold text-gray-500 uppercase">
+  <div class="mr-3">{{ 'PAC.Xpert.MCPToolset' | translate: { Default: 'MCP Toolset' } }}</div>
+  <div class="grow w-0 h-px bg-divider-regular"></div>
+</div>
+
+<div class="relative content-start gap-4 pt-2 pb-4 grow shrink-0"
+  ngmDynamicGrid colWidth="280"
+  box="content-box">
+
+  <ngm-card-create [title]="'PAC.Xpert.CreateMCPTool' | translate: {Default: 'Create MCP Toolset'}"
+    [helpTitle]="'PAC.Xpert.LearnCreateMCPTool' | translate: {Default: 'Learn more about Xpert MCP toolset'}"
+    helpUrl="/docs/ai/tool/mcp/"
+    (create)="createTool()"
+  />
+
+  @for (toolset of toolsets(); track toolset.id) {
+    <xpert-toolset-card class="col-span-1 min-h-[140px] cursor-pointer bg-components-card-bg"
+      [highlight]="searchText()"
+      [toolset]="toolset"
+      (click)="openToolset(toolset)"
+    />
+  }
+</div>

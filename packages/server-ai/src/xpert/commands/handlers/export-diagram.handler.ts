@@ -30,7 +30,8 @@ export class XpertExportDiagramHandler implements ICommandHandler<XpertExportDia
 				isDraft,
 				rootController: controller,
 				signal: controller.signal,
-				execution: {}
+				execution: {},
+				subscriber: null
 			})
 		)
 

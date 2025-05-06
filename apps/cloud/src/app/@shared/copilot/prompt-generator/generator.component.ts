@@ -1,14 +1,15 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatDialogRef } from '@angular/material/dialog'
-import { MatInputModule } from '@angular/material/input'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { injectPromptGenerator, PRESET_INSTRUCTIONS } from './agent'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { getErrorMessage, ToastrService } from '../../../@core'
+import { injectPromptGenerator, PRESET_INSTRUCTIONS } from './agent'
+import { CopilotInstructionEditorComponent } from '../instruction-editor/editor.component'
 
 @Component({
   standalone: true,
@@ -16,10 +17,21 @@ import { getErrorMessage, ToastrService } from '../../../@core'
   templateUrl: './generator.component.html',
   styleUrls: ['./generator.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, TranslateModule, CdkMenuModule, MatTooltipModule, MatInputModule, NgmSpinComponent]
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    CdkMenuModule,
+    DragDropModule,
+    MatTooltipModule,
+    NgmSpinComponent,
+
+    CopilotInstructionEditorComponent
+  ]
 })
 export class CopilotPromptGeneratorComponent {
-  readonly #dialogRef = inject(MatDialogRef)
+  readonly #dialogRef = inject(DialogRef)
+  readonly #data = inject<{ instruction: string }>(DIALOG_DATA)
   readonly #translate = inject(TranslateService)
   readonly #toastr = inject(ToastrService)
   readonly PRESET_INSTRUCTIONS = PRESET_INSTRUCTIONS
@@ -28,9 +40,9 @@ export class CopilotPromptGeneratorComponent {
 
   readonly instructions = model<string>('')
 
-  readonly prompt = signal<string>('')
+  readonly instruction = signal<string>(this.#data.instruction)
 
-  readonly promptLength = computed(() => this.prompt().length)
+  readonly promptLength = computed(() => this.instruction()?.length)
 
   readonly loading = signal(false)
 
@@ -40,9 +52,9 @@ export class CopilotPromptGeneratorComponent {
       const result = await this.promptGenerator().invoke({
         TASK_DESCRIPTION: this.instructions()
       })
-  
-      this.prompt.set(result.content as string)
-    } catch(err) {
+
+      this.instruction.set(result.content as string)
+    } catch (err) {
       this.#toastr.error(getErrorMessage(err))
     } finally {
       this.loading.set(false)
@@ -61,6 +73,6 @@ export class CopilotPromptGeneratorComponent {
   }
 
   apply() {
-    this.#dialogRef.close(this.prompt())
+    this.#dialogRef.close(this.instruction())
   }
 }

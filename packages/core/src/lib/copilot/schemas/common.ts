@@ -1,7 +1,8 @@
+import { t } from 'i18next'
 import { z } from 'zod'
-import { OrderDirection } from '../../orderby'
+import { OrderBy, OrderDirection } from '../../orderby'
 import { C_MEASURES, Dimension, isDimension, isMeasure, Measure } from '../../types'
-import { AggregationRole, EntityType, getEntityProperty2 } from '../../models'
+import { AggregationRole, EntityType, getEntityProperty2, unwrapBrackets } from '../../models'
 import { omit } from '../../utils'
 
 export const DataSettingsSchema = z.object({
@@ -14,7 +15,8 @@ export const baseDimensionSchema = {
   hierarchy: z
     .string()
     .optional()
-    .describe('The name of the hierarchy of the dimension using pattern `[Hierarchy Name]`'),
+    .nullable()
+    .describe('The name of the hierarchy of the dimension using pattern `[Hierarchy Name]`. If there is only one hierarchy in the same dimension, please ignore this parameter.'),
   level: z
     .string()
     .optional()
@@ -102,6 +104,11 @@ export function tryFixDimension(dimension: Dimension | Measure, entityType: Enti
     }
   } else {
     property = getEntityProperty2(entityType, dimension)
+    // Fix meausure name format
+    if (!property && dimension.measure) {
+      const name = unwrapBrackets(dimension.measure.replace('[Measures].', ''))
+      property = getEntityProperty2(entityType, name)
+    }
   }
 
   const _dimension = omit(dimension, 'level', 'hierarchy', 'dimension')
@@ -135,6 +142,16 @@ export function tryFixDimension(dimension: Dimension | Measure, entityType: Enti
         zeroSuppression: true
       }
     default:
-      throw new Error(`Can't find property for '${isMeasure(dimension) ? dimension.measure : dimension.dimension}'`)
+      throw new Error(t('Error.NoPropertyFoundFor', {ns: 'core', cube: entityType.name, name: isMeasure(dimension) ? dimension.measure : dimension.dimension}))
   }
+}
+
+export function tryFixOrder(orderBy: OrderBy) {
+  const by = tryFixMeasureName(orderBy.by)
+  return {...orderBy, by}
+}
+
+export function tryFixMeasureName(measure: string) {
+  const name = unwrapBrackets(measure?.replace('[Measures].', ''))
+  return name
 }

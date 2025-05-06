@@ -5,7 +5,7 @@
 </header>
 
 <div class="mat-typography py-4 min-h-[100px]" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
-  <formly-form class="w-full"
+  <formly-form #form class="w-full"
     [form]="formGroup"
     [fields]="fields()"
     [model]="model"
@@ -14,13 +14,16 @@
   />
 </div>
 
-<div class="w-full flex justify-end items-center">
-  <div ngmButtonGroup>
-    <button mat-button mat-dialog-close>
-      {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
-    </button>
-    <button mat-raised-button color="accent" cdkFocusInitial (click)="apply()">
-      {{ 'COMPONENTS.COMMON.Confirm' | translate: {Default: 'Confirm'} }}
-    </button>
-  </div>
+<div class="w-full flex justify-end items-center gap-2">
+  <button type="button" class="btn disabled:btn-disabled btn-large"
+    (click)="cancel()"
+  >
+    {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
+  </button>
+  <button type="button" class="btn disabled:btn-disabled btn-primary btn-large" cdkFocusInitial
+    [disabled]="form.form.invalid"
+    (click)="apply()"
+  >
+    {{ 'COMPONENTS.COMMON.Confirm' | translate: {Default: 'Confirm'} }}
+  </button>
 </div>

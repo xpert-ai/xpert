@@ -1,0 +1,76 @@
+import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
+import { IStorageFile } from '../storage-file.model'
+import { TAvatar } from '../types'
+import { IUser } from '../user.model'
+import { ICopilotModel } from './copilot-model.model'
+import { TFile } from './types'
+import { IXpertToolset } from './xpert-toolset.model'
+import { IXpertWorkspace } from './xpert-workspace.model'
+import { IXpert } from './xpert.model'
+
+export type TXpertProjectSettings = {
+  instruction: string
+  mode?: '' | 'plan'
+}
+export type TXpertProjectStatus = 'active' | 'deprecated' | 'archived'
+
+export type TXpertProject = {
+  name: string
+  avatar?: TAvatar
+  description?: string
+  status: TXpertProjectStatus
+  settings?: TXpertProjectSettings
+
+  // Used copilot model
+  copilotModel?: ICopilotModel
+  copilotModelId?: string
+}
+
+/**
+ * Expert Project
+ */
+export interface IXpertProject extends TXpertProject, IBasePerTenantAndOrganizationEntityModel {
+  workspaceId?: string
+  workspace?: IXpertWorkspace
+
+  // Many to one
+  ownerId: string
+  owner?: IUser
+
+  // One to many
+  xperts?: IXpert[]
+  toolsets?: IXpertToolset[]
+  members?: IUser[]
+  files?: IXpertProjectFile[]
+  attachments?: IStorageFile[]
+}
+
+export interface IBasePerXpertProjectEntityModel extends IBasePerTenantAndOrganizationEntityModel {
+  projectId?: string
+  project?: IXpertProject
+}
+
+export interface IXpertProjectTask extends IBasePerXpertProjectEntityModel {
+  threadId?: string
+  name: string
+  type?: string
+  status: 'pending' | 'in_progress' | 'completed' | 'failed'
+  steps: IXpertProjectTaskStep[]
+}
+
+export interface IXpertProjectTaskStep extends IBasePerXpertProjectEntityModel {
+  taskId: string;
+  stepIndex: number;
+  description: string;
+  notes: string;
+  status: 'pending' | 'running' | 'done' | 'failed';
+}
+
+export interface IXpertProjectTaskLog extends IBasePerXpertProjectEntityModel {
+  stepId: string;
+  logType: 'input' | 'output' | 'error';
+  content: string;
+}
+
+export interface IXpertProjectFile extends IBasePerXpertProjectEntityModel, Omit<TFile, 'createdAt'> {
+}

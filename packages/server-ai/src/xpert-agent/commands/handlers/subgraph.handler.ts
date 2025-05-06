@@ -16,7 +16,9 @@ import {
 	StateGraph
 } from '@langchain/langgraph'
 import { agentLabel, agentUniqueName, channelName, ChatMessageEventTypeEnum, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_SYS, TAgentRunnableConfigurable, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { stringifyMessageContent } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
+import { RequestContext } from '@metad/server-core'
 import { BadRequestException, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
@@ -36,9 +38,7 @@ import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 import { ChatOpenAI } from '@langchain/openai'
 import { XpertConfigException, XpertCopilotNotFoundException } from '../../../core/errors'
-import { RequestContext } from '@metad/server-core'
 import { FakeStreamingChatModel, getChannelState, messageEvent, TStateChannel } from '../../agent'
-import { stringifyMessageContent } from '@metad/copilot'
 import { createParameters } from '../../workflow/parameter'
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateMemoryStoreCommand } from '../../../xpert/commands'
@@ -64,7 +64,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		failNode: TXpertTeamNode
 	}> {
 		const { agentKeyOrName, xpert, options } = command
-		const { isStart, execution, leaderKey, channel: agentChannel, summarizeTitle, subscriber, rootController, signal, disableCheckpointer, variables, partners, handoffTools, environment } = options
+		const { isStart, execution, leaderKey, channel: agentChannel, summarizeTitle, subscriber, rootController, signal, disableCheckpointer, variables, partners, handoffTools, environment, tools: additionalTools } = options
 		const userId = RequestContext.currentUserId()
 
 		// Signal controller in this subgraph
@@ -146,6 +146,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				if (team.agentConfig?.interruptBefore?.includes(lc_name)) {
 					interruptBefore.push(tool.name)
 				}
+			})
+		}
+
+		// Additional Tools
+		if (additionalTools) {
+			additionalTools.forEach((tool) => {
+				tools.push({ caller: agent.key, tool })
 			})
 		}
 
@@ -437,11 +444,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		})
 
 		const enableMessageHistory = !agent.options?.disableMessageHistory
-		const stateModifier = async (state: typeof AgentStateAnnotation.State) => {
+		const stateModifier = async (state: typeof AgentStateAnnotation.State, isStart: boolean) => {
 			const { memories } = state
 			const summary = getChannelState(state, agentChannel)?.summary
 			const parameters = stateToParameters(state, environment)
-			let systemTemplate = `Current time: ${new Date().toISOString()}\n${parseXmlString(agent.prompt) ?? ''}`
+			let systemTemplate = `Current time: ${new Date().toISOString()}\nYour ID is '${agent.key}'. Your name is '${agent.name || xpert.name}'.\n${parseXmlString(agent.prompt) ?? ''}`
 			if (memories?.length) {
 				systemTemplate += `\n\n<memories>\n${formatMemories(memories)}\n</memories>`
 			}
@@ -452,14 +459,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				templateFormat: 'mustache'
 			}).format(parameters)
 
-			this.#logger.verbose(`SystemMessage:`, systemMessage.content)
+			this.#logger.verbose(`SystemMessage of ${agentLabel(agent)}:`, systemMessage.content)
 
 			const humanMessages: HumanMessage[] = []
 			const messageHistory = getChannelState(state, agentChannel)?.messages ?? []
 
 			// Determine whether it is Agent reflection (last message is not HumanMessage)
 			const lastMessage = messageHistory[messageHistory.length - 1]
-			if (!(isBaseMessage(lastMessage) && isToolMessage(lastMessage) && !endNodes.includes(lastMessage.name))) {
+			if (isStart || !(isBaseMessage(lastMessage) && isToolMessage(lastMessage) && !endNodes.includes(lastMessage.name))) {
 				// Is new human input: use message templates or input message
 				const humanTemplates = agent.promptTemplates?.filter((_) => !!_.text?.trim())
 				if (humanTemplates?.length) {
@@ -518,7 +525,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				])
 			}
 
-			const {systemMessage, messageHistory, humanMessages} = await stateModifier(state)
+			const {systemMessage, messageHistory, humanMessages} = await stateModifier(state, (<string>config.metadata.langgraph_triggers[0])?.startsWith(START))
 			// Disable history and new human request then remove history
 			const deleteMessages = (!enableMessageHistory && humanMessages.length) ? messageHistory.map((m) => new RemoveMessage({ id: m.id as string })) : []
 			try {
@@ -854,6 +861,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		} as TSubAgent
 	}
 
+	/**
+	 * @deprecated use CreateSummarizeTitleAgentCommand
+	 */
 	async createTitleAgent(xpert: IXpert, options: {rootController: AbortController; rootExecutionId: string; agentKey?: string;}) {
 		const {rootController, rootExecutionId, agentKey} = options
 		const execution = {} as TXpertAgentExecution

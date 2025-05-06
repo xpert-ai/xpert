@@ -1,4 +1,3 @@
-import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
@@ -14,11 +13,11 @@ import {
   model,
   signal,
   output,
-  ViewContainerRef
+  DestroyRef,
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { Router, RouterModule } from '@angular/router'
+import { RouterModule } from '@angular/router'
 import { DisappearBL, IfAnimation, SlideUpDownAnimation } from '@metad/core'
 import { isNil } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -28,8 +27,7 @@ import { EmojiAvatarComponent } from '../../@shared/avatar'
 import { XpertParametersCardComponent } from '../../@shared/xpert'
 import { ChatCanvasComponent } from '../canvas/canvas.component'
 import { ChatInputComponent } from '../chat-input/chat-input.component'
-import { IXpert } from '@metad/contracts'
-import { Store } from '@metad/cloud/state'
+import { IXpert, Store } from '@metad/cloud/state'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { UserPipe } from '../../@shared/pipes'
 import { ChatService } from '../chat.service'
@@ -65,10 +63,8 @@ export class XpertChatAppComponent {
   readonly #store = inject(Store)
   readonly chatService = inject(ChatService)
   readonly homeService = inject(XpertHomeService)
-  readonly #router = inject(Router)
-  readonly #dialog = inject(Dialog)
-  readonly #vcr = inject(ViewContainerRef)
   readonly #elementRef = inject(ElementRef)
+  readonly #destroyRef = inject(DestroyRef)
 
   readonly paramRole = injectParams('name')
   readonly paramConvId = injectParams('id')
@@ -97,8 +93,6 @@ export class XpertChatAppComponent {
   readonly conversationTitle = this.homeService.conversationTitle
 
   readonly isBottom = signal(true)
-
-  // readonly xperts = this.homeService.sortedXperts
 
   readonly greeting = computed(() => {
     const now = new Date();
@@ -159,6 +153,10 @@ export class XpertChatAppComponent {
       if (this.messages() && this.isBottom()) {
         this.scrollBottom()
       }
+    })
+
+    this.#destroyRef.onDestroy(() => {
+      this.homeService.canvasOpened.set(null)
     })
 
     this.#elementRef.nativeElement.addEventListener('scroll', (event: Event) => {

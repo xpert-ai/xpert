@@ -1,23 +1,20 @@
 import { Location } from '@angular/common'
 import { effect, inject, Injectable } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
+import { Router } from '@angular/router'
 import { nonNullable } from '@metad/ocap-core'
-import { TranslateService } from '@ngx-translate/core'
 import { injectParams } from 'ngxtension/inject-params'
 import { distinctUntilChanged, filter, map, withLatestFrom } from 'rxjs'
 import { IXpert } from '../../@core'
-import { ToastrService } from '../../@core/services'
 import { ChatService } from '../../xpert/'
 import { ChatHomeService } from './home.service'
-import { Router } from '@angular/router'
 
 @Injectable()
 export class ChatPlatformService extends ChatService {
-  readonly #translate = inject(TranslateService)
   readonly homeService = inject(ChatHomeService)
-  readonly #toastr = inject(ToastrService)
   readonly #router = inject(Router)
   readonly #location = inject(Location)
+
   readonly paramRole = injectParams('name')
   readonly paramId = injectParams('id')
 
@@ -83,11 +80,6 @@ export class ChatPlatformService extends ChatService {
       { allowSignalWrites: true }
     )
   }
-
-  // async newConversation(xpert?: IXpert) {
-  //   await super.newConversation()
-  //   this.xpert$.next(xpert)
-  // }
 
   newConv(xpert?: IXpert) {
     this.conversationId.set(null)

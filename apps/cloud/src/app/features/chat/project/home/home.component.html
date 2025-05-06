@@ -1,0 +1,364 @@
+<div class="max-w-[50rem] xl:max-w-[62rem] px-2 pt-16 mx-auto w-full flex-1 flex flex-col justify-between items-stretch gap-6">
+  <div class="flex flex-col items-center sm:flex-row gap-6 sm:gap-1 w-full p-1 sticky top-0 bg-surface-container z-20">
+    <div class="flex-1 flex items-center gap-1 sm:gap-2 justify-start group min-w-0 w-full">
+      <emoji-avatar [editable]="editing()" class="rounded-xl overflow-hidden" 
+        [(ngModel)]="avatar" 
+      />
+
+      <div class="flex-1 flex gap-2 justify-between items-center min-w-0" cdkTrapFocus cdkTrapFocusAutoCapture>
+        @if (editing()) {
+          <input class="flex-1 bg-transparent text-2xl focus-visible:outline-none bg-white" cdkFocusInitial
+            type="text"
+            [(ngModel)]="name"
+          />
+          <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-full"
+            type="button"
+            (click)="saveProject()"
+          >
+            <i class="ri-check-line text-lg"></i>
+          </button>
+        } @else {
+          <span class="text-2xl truncate">{{name()}}</span>
+        }
+      </div>
+
+      <button class="inline-flex items-center justify-center gap-2 pressable whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-3xl m-[1px]
+        text-text-secondary hover:text-text-primary"
+        type="button"
+        [cdkMenuTriggerFor]="editMenu"
+      >
+        <i class="ri-more-line text-lg"></i>
+      </button>
+    </div>
+    <button
+      class="inline-flex items-center justify-center gap-2 pressable whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 hover:bg-hover-bg h-9 rounded-full px-3.5 py-2 group
+        text-text-secondary hover:text-text-primary"
+      type="button"
+      (click)="openInstruction()"
+    >
+      <i class="ri-equalizer-2-line"></i>
+      <span>{{ 'PAC.XProject.Instruction' | translate: {Default: 'Instruction'} }}</span>
+    </button>
+
+    @if (loading()) {
+      <ngm-spin class="absolute left-0 top-0 w-full h-full"/>
+    }
+  </div>
+
+  <div class="flex-1 flex gap-6 flex-col">
+
+    <pac-chat-project-xperts class="mt-12" />
+
+    <div class="relative">
+      <form class="bottom-0 w-full text-base flex flex-col gap-2 items-center justify-center relative z-10"
+        [formGroup]="form"
+        (ngSubmit)="onSubmit()">
+        <div class="flex flex-row gap-2 justify-center w-full relative">
+          <input class="hidden" multiple="" type="file" name="files" />
+          <div class="query-bar group max-w-[51rem] bg-components-card-bg ring-zinc-100 hover:ring-zinc-200 focus-within:ring-zinc-300 hover:focus-within:ring-zinc-300 duration-100 relative w-full overflow-hidden @container/input shadow shadow-black/5 ring-1 ring-inset focus-within:ring-1 pb-12 px-2 @[480px]/input:px-3 rounded-3xl">
+            <div
+              class="w-full flex-row gap-2 mt-3 px-1 whitespace-nowrap hidden flex-wrap will-change-[mask-image] 
+                @sm:[mask-image:none] [mask-image:linear-gradient(to_right,transparent_0,black_0px,black_calc(100%_-_40px),transparent_100%)]"
+              style="opacity: 1; transform: none"
+            ></div>
+            <div class="relative z-10">
+              <textarea [placeholder]=" 'PAC.XProject.InputPlaceholder' | translate: {Default: 'Start a conversation in this project'} "
+                dir="auto"
+                class="w-full px-2 @[480px]/input:px-3 bg-transparent focus:outline-none text-fg-primary align-bottom min-h-14 pt-5 my-0 mb-5"
+                style="resize: none; height: 44px !important"
+                formControlName="input"
+                cdkTextareaAutosize
+                cdkAutosizeMinRows="2"
+                cdkAutosizeMaxRows="10"
+                (keydown)="triggerFun($event)"
+                (compositionstart)="onCompositionStart()"
+                (compositionupdate)="onCompositionUpdate($event)"
+                (compositionend)="onCompositionEnd($event)"
+              ></textarea>
+            </div>
+
+            <div class="flex items-center gap-1.5 absolute inset-x-0 bottom-0 border-2 border-transparent p-2 @[480px]/input:p-2 max-w-full">
+              <button
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 h-9 rounded-full py-2 relative px-2 transition-all duration-150 bg-transparent border w-9 aspect-square border-toggle-border text-secondary hover:text-primary hover:bg-toggle-hover"
+                type="button"
+                aria-label="Attach"
+                tabindex="0"
+                [matTooltip]="'Feature in development.'"
+              >
+                <i class="ri-attachment-line text-lg"></i>
+              </button>
+              <div class="flex grow gap-1.5 max-w-full" style="transform: none; opacity: 1">
+                <div class="grow flex gap-1.5 max-w-full">
+                  <!-- <div
+                    class="flex ring-1 rounded-full items-center max-h-[36px] box-border transition-colors duration-100 relative overflow-hidden ring-inset ring-zinc-200"
+                  >
+                    <button
+                      class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full px-3.5 py-2 group/ds-toggle transition-colors duration-100 focus-visible:ring-transparent box-border relative overflow-hidden rounded-r-none pr-3 bg-transparent hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
+                      type="button"
+                      tabindex="0"
+                    >
+                      <i class="ri-menu-search-line text-lg"></i><span>DeepSearch</span>
+                    </button>
+                    <div class="h-4 w-[1px] bg-divider-deep focus:outline-none" tabindex="-1"></div>
+                    <button
+                      class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full px-3.5 py-2 transition-colors duration-100 relative overflow-hidden focus-visible:ring-transparent rounded-l-none pl-2 pr-3 bg-transparent hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
+                      type="button"
+                    >
+                      <i class="ri-arrow-down-s-line"></i>
+                    </button>
+                  </div> -->
+                  <!-- <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full px-3.5 py-2 group/think-toggle transition-colors duration-100 relative overflow-hidden border bg-transparent hover:bg-button-ghost-hover border-border-l2"
+                    type="button"
+                    tabindex="0"
+                  >
+                    <i class="ri-lightbulb-flash-line text-lg"></i><span>Think</span>
+                  </button> -->
+
+                  <div class="flex ring-1 rounded-full items-center max-h-[31px] box-border transition-colors duration-100 relative overflow-hidden ring-inset ring-zinc-200">
+                    <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default h-9 rounded-full px-3.5 py-2 group/ds-toggle transition-colors duration-100 focus-visible:ring-transparent box-border relative overflow-hidden rounded-r-none pr-3 bg-transparent hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
+                      type="button"
+                      tabindex="0"
+                    >
+                      @if (mode() === 'plan') {
+                        <i class="ri-quill-pen-ai-line text-lg"></i>
+                        <span>{{ 'PAC.XProject.PlanningMode' | translate: {Default: 'Planning Mode'} }}</span>
+                      } @else {
+                        <i class="ri-shake-hands-line text-lg"></i>
+                        <span>{{ 'PAC.XProject.ExploreMode' | translate: {Default: 'Explore Mode'} }}</span>
+                      }
+                    </button>
+                    <div class="h-4 w-[1px] bg-divider-deep focus:outline-none" tabindex="-1"></div>
+                    <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default text-primary h-9 rounded-full px-3.5 py-2 transition-colors duration-100 relative overflow-hidden focus-visible:ring-transparent rounded-l-none pl-2 pr-3 bg-transparent hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
+                      type="button"
+                      [cdkMenuTriggerFor]="modeMenu"
+                      [cdkMenuPosition]="[
+                        {
+                          originX: 'end',
+                          originY: 'bottom',
+                          overlayX: 'end',
+                          overlayY: 'top',
+                          offsetX: 3,
+                        }
+                      ]"
+                    >
+                      <i class="ri-arrow-down-s-line"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="ml-auto flex flex-row items-end gap-1">
+                <button type="button" class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1
+                  bg-black disabled:opacity-10 disabled:text-gray-400 enabled:bg-black text-white dark:border-white dark:bg-white bottom-1.5 transition-transform
+                    origin-center enabled:hover:scale-110"
+                  [disabled]="!input()"
+                  (click)="onSubmit()"
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-white dark:text-black">
+                    <path d="M7 11L12 6L17 11M12 18V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+      <div
+        class="text-card-foreground absolute inset-0 flex flex-col items-center gap-1 border justify-center rounded-3xl bg-surface-l1 transition-opacity duration-300 ease-in-out opacity-0 pointer-events-none z-20"
+      >
+        <div class="flex items-center justify-center w-8 h-8">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-file-up absolute transition-all duration-300 ease-in-out opacity-0 scale-75"
+          >
+            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path>
+            <path d="M14 2v4a2 2 0 0 0 2 2h4"></path>
+            <path d="M12 12v6"></path>
+            <path d="m15 15-3-3-3 3"></path>
+          </svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-files absolute transition-all duration-300 ease-in-out opacity-100 scale-100"
+          >
+            <path d="M20 7h-3a2 2 0 0 1-2-2V2"></path>
+            <path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"></path>
+            <path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"></path>
+          </svg>
+        </div>
+        <span class="font-semibold">Attach to query</span
+        ><span class="text-secondary">Drop here to add files to query</span>
+      </div>
+
+      <copilot-enable-model enableModel class="absolute top-0 left-0 w-full h-full justify-center items-center z-10 backdrop-blur-md bg-white/2 hidden" />
+    </div>
+
+    <div dir="ltr" data-orientation="horizontal" class="flex-1 flex flex-col relative pt-1">
+      <div class="flex justify-between items-center sticky top-11 bg-surface-container z-20">
+        <div
+          role="tablist"
+          aria-orientation="horizontal"
+          class="inline-flex items-center justify-center rounded-lg bg-ivory dark:bg-jet/20 p-1 text-secondary place-self-start !bg-transparent bg-none"
+          tabindex="0"
+        >
+          <button type="button" class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+            [class.active]="viewType() === 'attachments'"
+            (click)="viewType.set('attachments')"
+          >
+            <i class="ri-attachment-line text-lg"></i>
+            {{'PAC.XProject.Attachments' | translate: {Default: 'Attachments'} }}
+          </button>
+
+          <button type="button" class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+            [class.active]="viewType() === 'tools'"
+            (click)="viewType.set('tools')"
+          >
+            <i class="ri-hammer-line text-lg"></i>
+            {{'PAC.XProject.Tools' | translate: {Default: 'Tools'} }}
+          </button>
+
+          <button type="button" class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+            [class.active]="viewType() === 'conversations'"
+            (click)="viewType.set('conversations')"
+          >
+            <i class="ri-chat-thread-line text-lg"></i>
+            {{'PAC.XProject.Conversations' | translate: {Default: 'Conversations'} }}
+          </button>
+
+          <button type="button" class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+            [class.active]="viewType() === 'members'"
+            (click)="viewType.set('members')"
+          >
+            <i class="ri-group-line text-lg"></i>
+            {{'PAC.XProject.Members' | translate: {Default: 'Members'} }}
+          </button>
+        </div>
+
+        <button
+          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full py-2 group/attach-button relative transition-colors duration-100 bg-transparent border aspect-square border-border-l2 hover:bg-button-ghost-hover px-3 w-auto"
+          type="button"
+          aria-label="Attach"
+          tabindex="0"
+          [cdkMenuTriggerFor]="workspaceMenu"
+          [cdkMenuPosition]="[
+            {
+              originX: 'end',
+              originY: 'bottom',
+              overlayX: 'end',
+              overlayY: 'center',
+              offsetX: 3,
+            }
+          ]"
+        >
+          @if (workspaceError()) {
+            <i class="ri-error-warning-line text-base text-text-destructive"></i>
+            {{workspaceError()}}
+          } @else {
+            <i class="ri-hammer-line text-base"></i>
+            <span>
+              @if (workspace()) {
+                {{workspace().name}}
+              } @else {
+                {{ 'PAC.XProject.SelectWorkspace' | translate: {Default: 'Select workspace'} }}
+              }
+            </span>
+          }
+        </button>
+        <input class="hidden" multiple="" data-testid="file-input" type="file" />
+      </div>
+
+      @switch (viewType()) {
+        @case ('attachments') {
+          <chat-project-attachments role="tabpanel" tabindex="0" class="py-2" />
+        }
+        @case ('tools') {
+          <chat-project-tools role="tabpanel" tabindex="0" class="py-2" />
+        }
+        @case ('conversations') {
+          <chat-project-conversations role="tabpanel" tabindex="0" class="py-2" />
+        }
+        @case ('members') {
+          <chat-project-members role="tabpanel" tabindex="0" class="py-2" [project]="project()" />
+        }
+      }
+    </div>
+  </div>
+</div>
+
+<ng-template #modeMenu>
+  <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItem [class.active]="!mode()" (click)="setMode('')">
+      <i class="ri-shake-hands-line text-lg mr-2"></i>
+      <div class="flex-1 text-left">
+        <div class="text-sm font-medium">{{ 'PAC.XProject.ExploreMode' | translate: {Default: 'Explore Mode'} }}</div>
+        <div class="text-xs">
+          {{ 'PAC.XProject.ExploreModeDesc' | translate: {Default: 'Let AI think dynamically and autonomously to complete tasks faster'} }}
+          </div>
+      </div>
+    </div>
+
+    <div cdkMenuItem [class.active]="mode() === 'plan'" (click)="setMode('plan')">
+      <i class="ri-quill-pen-ai-line text-lg mr-2"></i>
+      <div class="flex-1 text-left">
+        <div class="text-sm font-medium">{{ 'PAC.XProject.PlanningMode' | translate: {Default: 'Planning Mode'} }}</div>
+        <div class="text-xs">
+          {{ 'PAC.XProject.PlanningModeDesc' | translate: {Default: 'AI helps you plan steps and execute them step by step'} }}
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #workspaceMenu>
+  <div cdkMenu class="cdk-menu__large">
+    @for (workspace of workspaces(); track workspace.id) {
+      <div cdkMenuItem (click)="selectWorkspace(workspace)">
+        {{ workspace.name }}
+      </div>
+    }
+  </div>
+</ng-template>
+
+<ng-template #editMenu>
+  <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItem (click)="rename()">
+      <i class="ri-pencil-line mr-1"></i>
+      <span>{{ 'PAC.XProject.Rename' | translate: {Default: 'Rename'} }}</span>
+    </div>
+    @if (editing()) {
+      <div cdkMenuItem [cdkMenuTriggerFor]="copilotMenu">
+        <i class="ri-brain-2-line mr-1"></i>
+        <span>{{ 'PAC.XProject.AiModel' | translate: {Default: 'AI Model'} }}</span>
+      </div>
+    }
+    <div class="border-b border-solid border-divider-regular my-1"></div>
+
+    <div cdkMenuItem class="danger" (click)="removeProject()">
+      <i class="ri-delete-bin-7-line mr-1"></i>
+      <span>{{ 'PAC.XProject.RemoveProject' | translate: {Default: 'Remove project'} }}</span>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #copilotMenu>
+  <div cdkMenu class="cdk-menu__large w-[360px]">
+    <copilot-model-select class="m-4"
+      [modelType]="eModelType.LLM"
+      [(ngModel)]="copilotModel"
+    />
+  </div>
+</ng-template>

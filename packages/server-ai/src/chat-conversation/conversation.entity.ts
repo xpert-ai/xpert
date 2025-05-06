@@ -2,6 +2,7 @@ import {
 	IChatConversation,
 	IChatMessage,
 	IXpert,
+	IXpertProject,
 	TChatConversationOptions,
 	TChatConversationStatus,
 	TChatFrom,
@@ -11,7 +12,7 @@ import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, RelationId } from 'typeorm'
-import { ChatMessage, Xpert } from '../core/entities/internal'
+import { ChatMessage, Xpert, XpertProject } from '../core/entities/internal'
 
 @Entity('chat_conversation')
 export class ChatConversation extends TenantOrganizationBaseEntity implements IChatConversation {
@@ -91,4 +92,17 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
 	@IsString()
 	@Column({ nullable: true })
 	xpertId?: string
+
+	@ApiProperty({ type: () => XpertProject })
+	@ManyToOne(() => XpertProject, {
+		onDelete: 'CASCADE'
+	})
+	@JoinColumn()
+	project?: IXpertProject
+
+	@ApiProperty({ type: () => String })
+	@RelationId((it: ChatConversation) => it.project)
+	@IsString()
+	@Column({ nullable: true })
+	projectId?: string
 }

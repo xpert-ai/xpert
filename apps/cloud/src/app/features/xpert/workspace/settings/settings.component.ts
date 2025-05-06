@@ -1,21 +1,29 @@
-import { CommonModule } from '@angular/common';
-import { Component, computed, inject, model, signal } from '@angular/core';
-import { IfAnimation, XpertWorkspaceService } from 'apps/cloud/src/app/@core';
-import { derivedAsync } from 'ngxtension/derived-async';
-import { XpertWorkspaceMembersComponent } from './members/members.component';
-import { CdkListboxModule } from '@angular/cdk/listbox';
-import { FormsModule } from '@angular/forms';
-import { XpertWorkspaceModelsComponent } from './models/models.component';
-import { TranslateModule } from '@ngx-translate/core';
-import { XpertWorkspaceSettingsGeneralComponent } from './general/general.component';
-import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { DragDropModule } from '@angular/cdk/drag-drop'
+import { CdkListboxModule } from '@angular/cdk/listbox'
+import { CommonModule } from '@angular/common'
+import { Component, computed, inject, model, signal } from '@angular/core'
+import { FormsModule } from '@angular/forms'
+import { TranslateModule } from '@ngx-translate/core'
+import { IfAnimation, XpertWorkspaceService } from 'apps/cloud/src/app/@core'
+import { derivedAsync } from 'ngxtension/derived-async'
+import { XpertWorkspaceSettingsGeneralComponent } from './general/general.component'
+import { XpertWorkspaceMembersComponent } from './members/members.component'
+import { XpertWorkspaceModelsComponent } from './models/models.component'
 
 @Component({
   selector: 'xpert-workspace-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, CdkListboxModule, TranslateModule,
-    XpertWorkspaceModelsComponent, XpertWorkspaceMembersComponent,
-    XpertWorkspaceSettingsGeneralComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    CdkListboxModule,
+    DragDropModule,
+    TranslateModule,
+    XpertWorkspaceModelsComponent,
+    XpertWorkspaceMembersComponent,
+    XpertWorkspaceSettingsGeneralComponent
+  ],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss',
   animations: [IfAnimation]
@@ -23,13 +31,15 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 export class XpertWorkspaceSettingsComponent {
   readonly workspaceService = inject(XpertWorkspaceService)
 
-  readonly #data = inject<{id: string;}>(DIALOG_DATA)
+  readonly #data = inject<{ id: string }>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef)
 
   readonly workspaceId = signal(this.#data.id)
 
   readonly workspace = derivedAsync(() => {
-    return this.workspaceId() ? this.workspaceService.getOneById(this.workspaceId(), { relations: ['owner', 'members']}) : null
+    return this.workspaceId()
+      ? this.workspaceService.getOneById(this.workspaceId(), { relations: ['owner', 'members'] })
+      : null
   })
 
   readonly owner = computed(() => this.workspace()?.owner)

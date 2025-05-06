@@ -1,48 +1,25 @@
-import { BaseToolkit, StructuredTool, StructuredToolInterface } from '@langchain/core/tools'
+import { StructuredTool, StructuredToolInterface } from '@langchain/core/tools'
 import {
 	IBuiltinTool,
 	IXpertToolset,
 	ToolProviderCredentials,
-	TStateVariable,
 	XpertToolsetCategoryEnum
 } from '@metad/contracts'
 import { z, ZodEffects, ZodObject } from 'zod'
 import { IToolRuntime, ToolProviderIdentity } from './types'
+import { _BaseToolset } from '../shared/'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ZodObjectAny = z.ZodObject<any, any, any, any>;
 
-export abstract class BaseToolset<T extends StructuredToolInterface = StructuredToolInterface> extends BaseToolkit {
+export abstract class BaseToolset<T extends StructuredToolInterface = StructuredToolInterface> extends _BaseToolset<T> {
 	abstract providerType: XpertToolsetCategoryEnum
-	// For Langchain
-	tools: T[]
 
 	identity?: ToolProviderIdentity
 	credentialsSchema?: { [key: string]: ToolProviderCredentials }
-	// For Langgraph
-	stateVariables: TStateVariable[]
 
 	constructor(protected toolset?: IXpertToolset) {
 		super()
-	}
-
-	/**
-	 * Async init tools
-	 *
-	 * @returns
-	 */
-	async initTools() {
-		return this.tools
-	}
-
-	/**
-	 * Get one tool
-	 *
-	 * @param toolName
-	 * @returns
-	 */
-	getTool(toolName: string) {
-		return this.getTools().find((tool) => tool.name === toolName)
 	}
 
 	/**
@@ -61,22 +38,6 @@ export abstract class BaseToolset<T extends StructuredToolInterface = Structured
 	 */
 	getToolset() {
 		return this.toolset
-	}
-
-	/**
-	 * Get state variables config
-	 *
-	 * @returns State variables
-	 */
-	async getVariables(): Promise<TStateVariable[]> {
-		return null
-	}
-
-	/**
-     * Close all (connections).
-     */
-    async close(): Promise<void> {
-		//
 	}
 }
 

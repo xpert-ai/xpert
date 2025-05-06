@@ -7,9 +7,13 @@ import { CopilotModule } from '../copilot'
 import { CopilotCheckpointModule } from '../copilot-checkpoint'
 import { KnowledgebaseModule } from '../knowledgebase/'
 import { XpertToolsetModule } from '../xpert-toolset/'
+import { XpertProjectModule } from '../xpert-project/project.module'
 
 @Module({
-	imports: [CqrsModule, CopilotModule, CopilotCheckpointModule, KnowledgebaseModule, XpertToolsetModule],
+	imports: [CqrsModule, CopilotModule, CopilotCheckpointModule, KnowledgebaseModule, 
+		XpertToolsetModule,
+		XpertProjectModule
+	],
 	controllers: [ChatController],
 	providers: [ChatEventsGateway, ...CommandHandlers],
 	exports: []

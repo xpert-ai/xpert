@@ -22,7 +22,7 @@ import { XpertAgentExecutionStatusComponent } from '../execution-status/executio
   ],
   selector: 'xpert-agent-execution',
   templateUrl: 'execution.component.html',
-  styleUrls: ['execution.component.scss']
+  styleUrls: ['execution.component.scss'],
 })
 export class XpertAgentExecutionComponent {
   readonly execution = input<IXpertAgentExecution>(null)

@@ -1,14 +1,15 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { myRxResource } from '@metad/core'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { of } from 'rxjs'
-import { IXpert, XpertAgentExecutionService, XpertAgentExecutionStatusEnum } from '../../../@core'
+import { getErrorMessage, IXpert, XpertAgentExecutionService, XpertAgentExecutionStatusEnum } from '../../../@core'
 import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } from '../../xpert'
 
 @Component({
-  selector: 'chat-message-execution',
+  selector: 'chat-message-execution-panel',
   templateUrl: './execution.component.html',
   styleUrls: ['./execution.component.scss'],
   standalone: true,
@@ -17,6 +18,7 @@ import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } f
     CommonModule,
     FormsModule,
     TranslateModule,
+    NgmSpinComponent,
     XpertAgentExecutionComponent,
     XpertAgentExecutionAccordionComponent
   ]
@@ -24,19 +26,24 @@ import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } f
 export class ChatMessageExecutionPanelComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
 
-  readonly agentExecutionService = inject(XpertAgentExecutionService)
+  readonly #data = inject<{ id: string; xpert: IXpert }>(DIALOG_DATA, { optional: true })
+  readonly #dialogRef = inject(DialogRef, { optional: true })
+  readonly #executionService = inject(XpertAgentExecutionService)
 
   // Inputs
-  readonly id = input<string>()
-  readonly xpert = input<Partial<IXpert>>()
+  readonly id = input<string>(this.#data?.id) // ID of XpertAgentExecution
+  readonly xpert = input<Partial<IXpert>>(this.#data?.xpert)
 
   // Output
   readonly close = output<void>()
 
-  readonly #execution = derivedAsync(() => {
-    const id = this.id()
-    return id ? this.agentExecutionService.getOneLog(id) : of(null)
+  readonly #execution = myRxResource({
+    request: () => ({ id: this.id() }),
+    loader: ({ request }) => this.#executionService.getOneLog(request.id)
   })
+
+  readonly error = computed(() => getErrorMessage(this.#execution.error()))
+  readonly loading = computed(() => this.#execution.status() === 'loading')
 
   readonly agents = computed(() => {
     if (this.xpert()) {
@@ -45,10 +52,10 @@ export class ChatMessageExecutionPanelComponent {
     return []
   })
 
-  readonly pageType = signal<'overview' | 'steps'>('overview')
+  readonly pageType = signal<'primary' | 'members'>('primary')
 
   readonly execution = computed(() => {
-    const execution = this.#execution()
+    const execution = this.#execution.value()
     const agents = this.agents()
     return execution
       ? {
@@ -57,11 +64,18 @@ export class ChatMessageExecutionPanelComponent {
         }
       : null
   })
+
   readonly executions = computed(() => {
     const agents = this.agents()
-    return this.#execution()?.subExecutions?.map((exec) => ({
+    return this.#execution.value()?.subExecutions?.map((exec) => ({
       ...exec,
       agent: exec.agent ?? agents.find((node) => node.key === exec.agentKey)
     }))
   })
+
+
+  onClose() {
+    this.close.emit()
+    this.#dialogRef?.close()
+  }
 }

@@ -13,13 +13,13 @@ import {
   CopilotAiProvidersComponent,
   CopilotModelSelectComponent,
   CopilotProviderComponent
-} from 'apps/cloud/src/app/@shared/copilot'
+} from '@cloud/app/@shared/copilot'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
 import {
-  CopilotServerService,
   getErrorMessage,
   ICopilotProviderModel,
   injectCopilots,
+  injectCopilotServer,
   Store,
   ToastrService
 } from '../../../../@core'
@@ -48,7 +48,7 @@ export class CopilotFormComponent {
 
   readonly #store = inject(Store)
   readonly copilotService = inject(PACCopilotService)
-  readonly copilotServer = inject(CopilotServerService)
+  readonly copilotServer = injectCopilotServer()
   readonly #toastrService = inject(ToastrService)
   readonly #dialog = inject(Dialog)
   readonly copilots = injectCopilots()
@@ -124,6 +124,7 @@ export class CopilotFormComponent {
       )
       this.formGroup.markAsPristine()
       this.#toastrService.success('PAC.ACTIONS.Save', { Default: 'Save' })
+      this.copilotServer.refresh()
     } catch (err) {
       this.#toastrService.error(getErrorMessage(err))
     } finally {

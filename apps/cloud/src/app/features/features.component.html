@@ -45,7 +45,7 @@
       [isCollapsed]="isCollapsed"
       [isMobile]="isMobile()"
       [menus]="menus()"
-      (clicked)="onMenuClicked($event, isMobile())">
+    >
       <div class="w-full flex flex-col">
         <pac-notification class="flex justify-start"/>
         <pac-tune class="flex justify-start"/>
@@ -130,7 +130,9 @@
       <mat-autocomplete #auto="matAutocomplete" class="pac-toolbar-search__autocomplete"
         (opened)="assetsInit=true"
       >
-        <pac-assets *ngIf="assetsInit" [search]="assetsSearch"></pac-assets>
+        @if (assetsInit) {
+          <pac-assets [search]="assetsSearch" />
+        }
         <mat-option class="h-0" style="height: 0; min-height: 0;"></mat-option>
       </mat-autocomplete>
 
@@ -201,7 +203,7 @@
     color="accent" mode="indeterminate" >
   </mat-progress-bar>
 }
-
+<!-- 
 <mat-menu #creatMenu="matMenu" class="ngm-density__compact mat-color-accent"
   xPosition="before">
   <button mat-menu-item (click)="createQuery()">
@@ -220,4 +222,4 @@
     <mat-icon fontSet="material-icons-outlined">dataset</mat-icon>
     {{ 'PAC.KEY_WORDS.Model' | translate: {Default: 'Model'} }}
   </button>
-</mat-menu>
+</mat-menu> -->

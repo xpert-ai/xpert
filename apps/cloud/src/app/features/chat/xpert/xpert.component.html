@@ -1,7 +1,25 @@
-<xpert-webapp (openHistories)="openConversations()">
+<xpert-webapp class="w-full h-full overflow-y-auto" (openHistories)="openConversations()">
   @if (!xpert()) {
     <pac-chat-xperts class="w-full @lg:w-4/5 max-w-[50rem] overflow-x-auto no-touch-scrollbar" />
   }
+
+  <button header class="inline-flex items-center justify-center gap-2 px-3 h-10 rounded-full whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary 
+            hover:bg-hover-bg"
+    type="button"
+    aria-label="Projects"
+    [matTooltip]="('PAC.Chat.Projects' | translate: {Default: 'Projects'})"
+    [cdkMenuTriggerFor]="projectMenu"
+  >
+    <div class="w-7 h-7 flex justify-center items-center">
+      @if (projectLoading()) {
+        <ngm-spin small/>
+      } @else {
+        <i class="ri-building-line text-xl text-text-secondary"></i>
+      }
+    </div>
+    
+    <span>{{ 'PAC.Chat.Projects' | translate: {Default: 'Projects'} }}</span>
+  </button>
 
   <button action class="inline-flex items-center justify-center gap-2 max-w-[160px] whitespace-nowrap text-base font-medium leading-[normal] truncate cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary 
     hover:bg-hover-bg rounded-xl px-3.5 py-2 flex-row pl-3 pr-2.5 h-9 sm:px-3 border border-button-outline-border sm:border-0
@@ -22,56 +40,78 @@
 
 
 <ng-template #menu>
-    <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary">
-      <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="newConv()">
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          stroke-width="2"
-          class="mr-1"
-        >
-          <path
-            d="M10 4V4C8.13623 4 7.20435 4 6.46927 4.30448C5.48915 4.71046 4.71046 5.48915 4.30448 6.46927C4 7.20435 4 8.13623 4 10V13.6C4 15.8402 4 16.9603 4.43597 17.816C4.81947 18.5686 5.43139 19.1805 6.18404 19.564C7.03968 20 8.15979 20 10.4 20H14C15.8638 20 16.7956 20 17.5307 19.6955C18.5108 19.2895 19.2895 18.5108 19.6955 17.5307C20 16.7956 20 15.8638 20 14V14"
-            stroke="currentColor"
-            stroke-linecap="square"
-          ></path>
-          <path
-            d="M12.4393 14.5607L19.5 7.5C20.3284 6.67157 20.3284 5.32843 19.5 4.5C18.6716 3.67157 17.3284 3.67157 16.5 4.5L9.43934 11.5607C9.15804 11.842 9 12.2235 9 12.6213V15H11.3787C11.7765 15 12.158 14.842 12.4393 14.5607Z"
-            stroke="currentColor"
-            stroke-linecap="square"
-          ></path>
-        </svg>
-        {{'PAC.Xpert.NewChat'  | translate: {Default: 'New Chat'} }}
+  <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary">
+    <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="newConv()">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        stroke-width="2"
+        class="mr-1"
+      >
+        <path
+          d="M10 4V4C8.13623 4 7.20435 4 6.46927 4.30448C5.48915 4.71046 4.71046 5.48915 4.30448 6.46927C4 7.20435 4 8.13623 4 10V13.6C4 15.8402 4 16.9603 4.43597 17.816C4.81947 18.5686 5.43139 19.1805 6.18404 19.564C7.03968 20 8.15979 20 10.4 20H14C15.8638 20 16.7956 20 17.5307 19.6955C18.5108 19.2895 19.2895 18.5108 19.6955 17.5307C20 16.7956 20 15.8638 20 14V14"
+          stroke="currentColor"
+          stroke-linecap="square"
+        ></path>
+        <path
+          d="M12.4393 14.5607L19.5 7.5C20.3284 6.67157 20.3284 5.32843 19.5 4.5C18.6716 3.67157 17.3284 3.67157 16.5 4.5L9.43934 11.5607C9.15804 11.842 9 12.2235 9 12.6213V15H11.3787C11.7765 15 12.158 14.842 12.4393 14.5607Z"
+          stroke="currentColor"
+          stroke-linecap="square"
+        ></path>
+      </svg>
+      {{'PAC.Xpert.NewChat'  | translate: {Default: 'New Chat'} }}
+    </button>
+
+    @for (item of xperts(); track item.id) {
+      <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="newXpertConv(item)">
+        <emoji-avatar [avatar]="item.avatar" xs class="shrink-0 rounded-lg overflow-hidden shadow-sm mr-1" />
+        <p class="overflow-hidden whitespace-nowrap text-ellipsis">{{item.title || item.name}}</p>
       </button>
-  
-      @for (item of xperts(); track item.id) {
-        <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="newXpertConv(item)">
-          <emoji-avatar [avatar]="item.avatar" xs class="shrink-0 rounded-lg overflow-hidden shadow-sm mr-1" />
-          <p class="overflow-hidden whitespace-nowrap text-ellipsis">{{item.title || item.name}}</p>
-        </button>
+    }
+
+    <!-- 
+    <label class="px-2 pb-2">{{'PAC.KEY_WORDS.Knowledgebases' | translate: {Default: 'Knowledgebases'} }}</label>
+    <div class="max-h-64 w-56 overflow-y-auto" (click)="$event.stopPropagation()">
+      @if (knowledgebaseList()?.length) {
+        <pac-knowledgebase-list class="w-full" [disabled]="disabled()" [knowledgebaseList]="knowledgebaseList()" [(knowledgebases)]="knowledgebases" />
+      } @else {
+        <div class="flex justify-center p-4 text-token-text-secondary">
+          <i class="ri-battery-line mr-1"></i>
+          {{ 'PAC.KEY_WORDS.Empty' | translate: {Default: 'Empty'} }}
+        </div>
       }
-  
-      <!-- 
-      <label class="px-2 pb-2">{{'PAC.KEY_WORDS.Knowledgebases' | translate: {Default: 'Knowledgebases'} }}</label>
-      <div class="max-h-64 w-56 overflow-y-auto" (click)="$event.stopPropagation()">
-        @if (knowledgebaseList()?.length) {
-          <pac-knowledgebase-list class="w-full" [disabled]="disabled()" [knowledgebaseList]="knowledgebaseList()" [(knowledgebases)]="knowledgebases" />
-        } @else {
-          <div class="flex justify-center p-4 text-token-text-secondary">
-            <i class="ri-battery-line mr-1"></i>
-            {{ 'PAC.KEY_WORDS.Empty' | translate: {Default: 'Empty'} }}
-          </div>
-        }
-      </div>
-  
-      @if (xpert()?.id) {
-        <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="openAbout()">
-          <i class="ri-information-2-line mr-2"></i>
-          {{'PAC.KEY_WORDS.About'  | translate: {Default: 'About'} }}
-        </button>
-      } -->
     </div>
+
+    @if (xpert()?.id) {
+      <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="openAbout()">
+        <i class="ri-information-2-line mr-2"></i>
+        {{'PAC.KEY_WORDS.About'  | translate: {Default: 'About'} }}
+      </button>
+    } -->
+  </div>
+</ng-template>
+
+<ng-template #projectMenu>
+  <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary">
+    @for (project of projects(); track project.id) {
+      <button cdkMenuItem class="ngm-cdk-menu-item p-1" [routerLink]="['/chat/p', project.id]">
+        <span class="truncate">{{project.name}}</span>
+      </button>
+    }
+
+    <div class="flex justify-between items-center gap-2 mt-2">
+      <button type="button" class="grow btn disabled:btn-disabled btn-primary btn-large shrink-0"
+        (click)="newProject()">
+        <i class="ri-add-line mr-2"></i>
+        {{ 'PAC.Chat.NewProject' | translate: {Default: 'New Project'} }}
+      </button>
+      <button type="button" class="grow btn disabled:btn-disabled btn-secondary btn-large shrink-0"
+        [routerLink]="['/chat/p']">
+        {{ 'PAC.Chat.SeeAll' | translate: {Default: 'See All'} }}
+      </button>
+    </div>
+  </div>
 </ng-template>

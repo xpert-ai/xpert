@@ -1,25 +1,34 @@
 import { AIMessage, AIMessageChunk, BaseMessage } from '@langchain/core/messages'
-import { BaseChannel, isCommand } from '@langchain/langgraph'
+import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
-import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpertAgent, TMessageChannel, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { BaseChannel, isCommand } from '@langchain/langgraph'
+import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TMessageChannel, TMessageContentReasoning, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
-import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { instanceToPlain } from 'class-transformer'
 import { AgentStateAnnotation } from './commands/handlers/types'
 
+/**
+ * Create an operator function that intercepts Langgraph events, 
+ * passes the message content through, and sends other events from the subscriber.
+ * 
+ * @param logger 
+ * @param subscriber 
+ * @param options 
+ * @returns 
+ */
 export function createMapStreamEvents(
 	logger: Logger,
-	thread_id: string,
 	subscriber: Subscriber<MessageEvent>,
 	options?: {
 		agent?: IXpertAgent;
 		disableOutputs?: string[]
+		xperts?: IXpert[]
 	}
 ) {
-	const { agent, disableOutputs } = options ?? {}
+	const { agent, disableOutputs, xperts } = options ?? {}
 	// let collectingResult = ''
 	const eventStack: string[] = []
 	let prevEvent = ''
@@ -30,7 +39,8 @@ export function createMapStreamEvents(
 	const toolsMap: Record<string, string> = {} // For lc_name and name of tool is different
 	const processFun = ({ event, tags, data, ...rest }: any) => {
 		const langgraph_node = rest.metadata.langgraph_node
-		const agentKey = isAgentKey(langgraph_node) && langgraph_node !== agent.key ? langgraph_node : null
+		const agentKey = isAgentKey(langgraph_node) && langgraph_node !== agent?.key ? langgraph_node : null
+		const xpert = xperts?.find((_) => _.agent?.key === agentKey)
 
 		if (Logger.isLevelEnabled('debug')) {
 			if (event === 'on_chat_model_stream') {
@@ -87,21 +97,12 @@ export function createMapStreamEvents(
 				return null
 			}
 			case 'on_chat_model_stream': {
-				// if (prevEvent !== 'on_chat_model_stream' && collectingResult) {
-				// 	startStream = true
-				// }
 				prevEvent = event
 
 				if (!disableOutputs?.some((key) => tags.includes(key))) {
 					const msg = data.chunk as AIMessageChunk
 					if (!msg.tool_call_chunks?.length) {
 						if (msg.content) {
-							// let prefix = ''
-							// if (startStream) {
-							// 	prefix = '\n\n'
-							// 	startStream = false
-							// }
-
 							const chunk = {
 								type: "text",
 								text: '',
@@ -111,6 +112,9 @@ export function createMapStreamEvents(
 							if (agentKey) {
 								chunk.agentKey = agentKey
 							}
+							if (xpert) {
+								chunk.xpertName = xpert.name
+							}
 							
 							if (typeof msg.content === 'string') {
 								chunk.text += msg.content
@@ -119,16 +123,34 @@ export function createMapStreamEvents(
 							}
 							return chunk
 						}
+
+						// Reasoning content in additional_kwargs
 						if (msg.additional_kwargs?.reasoning_content) {
-							subscriber.next({
-								data: {
-									type: ChatMessageTypeEnum.MESSAGE,
-									data: {
-										type: 'reasoning',
-										content: msg.additional_kwargs.reasoning_content
-									}
-								}
-							} as MessageEvent)
+							const chunk = {
+								type: "reasoning",
+								text: '',
+								id: msg.id,
+								created_date: new Date()
+							} as TMessageContentReasoning
+							if (agentKey) {
+								chunk.agentKey = agentKey
+							}
+							if (xpert) {
+								chunk.xpertName = xpert.name
+							}
+							
+							chunk.text += msg.additional_kwargs.reasoning_content
+							return chunk
+
+							// subscriber.next({
+							// 	data: {
+							// 		type: ChatMessageTypeEnum.MESSAGE,
+							// 		data: {
+							// 			type: 'reasoning',
+							// 			content: msg.additional_kwargs.reasoning_content
+							// 		}
+							// 	}
+							// } as MessageEvent)
 						}
 					}
 				}

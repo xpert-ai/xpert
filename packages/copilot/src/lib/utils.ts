@@ -1,10 +1,10 @@
-import { AIMessage, MessageContent, MessageContentComplex, MessageContentText } from '@langchain/core/messages'
+import { AIMessage } from '@langchain/core/messages'
 import { ChatGenerationChunk, LLMResult } from '@langchain/core/outputs'
 import { nanoid as _nanoid } from 'nanoid'
 import { ZodType, ZodTypeDef } from 'zod'
 import zodToJsonSchema from 'zod-to-json-schema'
 import { CopilotChatMessage } from './types'
-import { TMessageContentComplex, TTokenUsage } from '@metad/contracts'
+import { TMessageContent, TMessageContentComplex, TMessageContentReasoning, TMessageContentText, TTokenUsage } from '@metad/contracts'
 
 export function zodToAnnotations(obj: ZodType<any, ZodTypeDef, any>) {
   return (<{ properties: any }>zodToJsonSchema(obj)).properties
@@ -65,7 +65,10 @@ export function sumTokenUsage(output: LLMResult) {
   let tokenUsed = 0
   output.generations?.forEach((generation) => {
     generation.forEach((item) => {
-      tokenUsed += (<AIMessage>(<ChatGenerationChunk>item).message).usage_metadata.total_tokens
+      const message = (<ChatGenerationChunk>item).message as AIMessage
+      if (message.usage_metadata) {
+        tokenUsed += message.usage_metadata.total_tokens
+      }
     })
   })
   return tokenUsed
@@ -75,16 +78,19 @@ export function calcTokenUsage(output: LLMResult) {
   const tokenUsage = {promptTokens: 0, completionTokens: 0, totalTokens: 0} as TTokenUsage
   output.generations?.forEach((generation) => {
     generation.forEach((item) => {
-      tokenUsage.promptTokens += (<AIMessage>(<ChatGenerationChunk>item).message).usage_metadata.input_tokens
-      tokenUsage.completionTokens = (<AIMessage>(<ChatGenerationChunk>item).message).usage_metadata.output_tokens
-      tokenUsage.totalTokens = (<AIMessage>(<ChatGenerationChunk>item).message).usage_metadata.total_tokens
+      const message = (<ChatGenerationChunk>item).message as AIMessage
+      if (message.usage_metadata) {
+        tokenUsage.promptTokens += message.usage_metadata.input_tokens
+        tokenUsage.completionTokens = message.usage_metadata.output_tokens
+        tokenUsage.totalTokens = message.usage_metadata.total_tokens
+      }
     })
   })
   return tokenUsage
 }
 
 // stringify MessageContent
-export function stringifyMessageContent(content: MessageContent | MessageContentComplex) {
+export function stringifyMessageContent(content: TMessageContent | TMessageContentComplex) {
   if (typeof content === 'string') {
     return content
   } else if (Array.isArray(content)) {
@@ -127,17 +133,45 @@ export function appendMessageContent(aiMessage: CopilotChatMessage, content: str
 			aiMessage.content = content
 		}
 	} else {
-    if ((<any>content).type === 'reasoning') {
-      aiMessage.reasoning ??= ''
-      aiMessage.reasoning += (<any>content).content
+    if ((<TMessageContentReasoning>content).type === 'reasoning') {
+      const reasoning = <TMessageContentReasoning>content
+      aiMessage.reasoning ??= []
+      if (aiMessage.reasoning[aiMessage.reasoning.length - 1]?.id === reasoning.id) {
+        aiMessage.reasoning[aiMessage.reasoning.length - 1].text += reasoning.text
+      } else {
+        aiMessage.reasoning.push(reasoning)
+      }
+      aiMessage.reasoning = Array.from(aiMessage.reasoning)
       aiMessage.status = 'reasoning'
+
+      // if (Array.isArray(_content)) {
+      //   const index = _content.findIndex((_) => _.type === 'reasoning' && _.id === content.id)
+      //     if (index > -1) {
+      //       (<TMessageContentReasoning>_content[index]).text += (<TMessageContentReasoning>content).text
+      //     } else {
+      //       _content.push(content)
+      //     }
+      // } else if(_content) {
+      //   aiMessage.content = [
+      //     {
+      //       type: 'text',
+      //       text: _content
+      //     },
+      //     content
+      //   ]
+      // } else {
+      //   aiMessage.content = [
+      //     content
+      //   ]
+      // }
+
     } else {
       if (Array.isArray(_content)) {
         // Merge text content by id
         if (content.type === 'text' && content.id) {
           const index = _content.findIndex((_) => _.type === 'text' && _.id === content.id)
           if (index > -1) {
-            (<MessageContentText>_content[index]).text += content.text
+            (<TMessageContentText>_content[index]).text += content.text
           } else {
             _content.push(content)
           }

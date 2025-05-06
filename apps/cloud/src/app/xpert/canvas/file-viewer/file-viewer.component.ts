@@ -2,18 +2,18 @@ import { CommonModule } from '@angular/common'
 import { HttpClient } from '@angular/common/http'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { FileTypePipe, SafePipe } from '@metad/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
-import { FileEditorComponent } from 'apps/cloud/src/app/@shared/files'
 import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'
+import { FileEditorComponent } from '@cloud/app/@shared/files'
 import { CopyComponent } from '@cloud/app/@shared/common'
-import { FileTypePipe, SafePipe } from '@metad/core'
 import { XpertHomeService } from '../../home.service'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, MatTooltipModule, MarkdownModule, SafePipe, FileTypePipe, CopyComponent, FileEditorComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, MatTooltipModule, MarkdownModule, SafePipe, CopyComponent, FileEditorComponent],
   selector: 'chat-canvas-file-viewer',
   templateUrl: './file-viewer.component.html',
   styleUrl: 'file-viewer.component.scss',
@@ -30,15 +30,14 @@ export class ChatCanvasFileViewerComponent {
   )
   readonly url = computed(() => this.file()?.url)
 
-  readonly content = derivedAsync(() => {
-    return this.url() ? this.httpClient.get(this.url(), { responseType: 'text' }) : null
-  })
+  readonly content = derivedAsync(() => this.url() ? this.httpClient.get(this.url(), { responseType: 'text' }) : null)
 
+  readonly extension = computed(() => this.file()?.extension || this.file()?.name?.split('.').pop()?.toLowerCase())
   readonly fileType = computed(() => this.file()?.name ? new FileTypePipe().transform(this.file().name) : null)
 
   constructor() {
     effect(() => {
-      // console.log(this.file())
+      console.log(this.file())
     })
   }
 

@@ -5747,6 +5747,14 @@
     p-retry "4"
     uuid "^9.0.0"
 
+"@langchain/langgraph-supervisor@0.0.11":
+  version "0.0.11"
+  resolved "https://registry.yarnpkg.com/@langchain/langgraph-supervisor/-/langgraph-supervisor-0.0.11.tgz#99da7df29aa7c8b864133e3ef636c0c7bb3282d6"
+  integrity sha512-bpm1HB+/p6G6ZHp5wLPArU/z9JzOji2PuK9I0E02jPtKcEzxdXQ0CwJax5MUiGr/SEQBalEDWtUcWoZsebg5fA==
+  dependencies:
+    uuid "^10.0.0"
+    zod "^3.23.8"
+
 "@langchain/langgraph-swarm@0.0.3":
   version "0.0.3"
   resolved "https://registry.yarnpkg.com/@langchain/langgraph-swarm/-/langgraph-swarm-0.0.3.tgz#0625a55642713dd3c00f32e428534f87e89eebf3"

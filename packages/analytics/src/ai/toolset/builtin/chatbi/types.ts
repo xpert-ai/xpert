@@ -75,23 +75,22 @@ export type ChatAnswer = {
 const LanguageSchema = z.enum(['en', 'zh']).describe('Language ​​used by user')
 
 export type TTimeSlicerParam = {
-	dimension: {
-		dimension: string
-		hierarchy: string
-	}
-
+	dimension: string
+	hierarchy: string
 	granularity: TimeGranularity
 	start: string
 	end: string
 }
 
 export const TimeSlicerSchema = z.object({
-	dimension: z
-	  .object({
-		dimension: z.string().describe('The name of the dimension'),
-		hierarchy: z.string().optional().nullable().describe('The name of the hierarchy in the dimension')
-	  })
-	  .describe('the time dimension'),
+	// dimension: z
+	//   .object({
+	// 	dimension: z.string().describe('The name of the dimension'),
+	// 	hierarchy: z.string().optional().nullable().describe('The name of the hierarchy in the dimension')
+	//   })
+	//   .describe('the time dimension'),
+	dimension: z.string().describe('The name of time dimension'),
+	hierarchy: z.string().optional().nullable().describe('The name of selected hierarchy in time dimension'),
 	granularity: z
 		.enum([
 			TimeGranularity.Year,
@@ -140,7 +139,8 @@ export const IndicatorSchema = z.object({
 	query: z
 		.string()
 		.describe(
-			`A query statement to test this indicator can correctly query the results, you need include indicator code as measure name in statement`
+			`A query statement to test this indicator can correctly query the results, you cannot use 'WITH MEMBER' capability. You need include indicator code as measure name in statement like: \n`
+			+ `SELECT { [Measures].[The unique code of indicator] } ON COLUMNS, { <dimensions> } ON ROWS FROM [cube]`
 		)
 })
 
@@ -222,6 +222,11 @@ export function tryFixChartType(chartType: string) {
 	return null
 }
 
+/**
+ * Try to fix the formatting issues:
+ * - `[Sales Amount]`
+ * - `[Measures].[Sales Amount]`
+ */
 export function fixMeasure(measure: ChartMeasure, entityType: EntityType) {
 	return {
 		...tryFixDimension(measure, entityType),
@@ -265,11 +270,14 @@ export function tryFixDimensions(dimensions: ChartDimension[]) {
 export function mapTimeSlicer(param: TTimeSlicerParam[]): TimeRangesSlicer[] {
   return param?.map((_) => {
 	return {
-		dimension: _.dimension,
+		dimension: {
+			dimension: _.dimension,
+			hierarchy: _.hierarchy,
+		},
 		currentDate: 'TODAY',
 		ranges: [
 			{
-				..._,
+				...omit(_, 'dimension', 'hierarchy'),
 				type: TimeRangeType.Standard,
 			}
 		]

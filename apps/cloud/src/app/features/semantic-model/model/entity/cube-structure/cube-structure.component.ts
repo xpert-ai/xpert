@@ -8,6 +8,7 @@ import {
   EventEmitter,
   Output,
   ViewChildren,
+  ViewContainerRef,
   booleanAttribute,
   computed,
   inject,
@@ -17,9 +18,8 @@ import {
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
-import { NxActionStripModule } from '@metad/components/action-strip'
 import { CommandDialogComponent } from '@metad/copilot-angular'
-import { CdkConfirmDeleteComponent, NgmCommonModule, SplitterType } from '@metad/ocap-angular/common'
+import { CdkConfirmDeleteComponent, injectConfirmOptions, NgmCommonModule, SplitterType } from '@metad/ocap-angular/common'
 import { NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
 import {
   AggregationRole,
@@ -38,12 +38,13 @@ import {
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { injectToastr, uuid } from '@cloud/app/@core'
 import { NGXLogger } from 'ngx-logger'
-import { combineLatest, combineLatestWith, filter, map, switchMap, withLatestFrom } from 'rxjs'
+import { combineLatest, combineLatestWith, filter, firstValueFrom, map, switchMap, withLatestFrom } from 'rxjs'
 import { SemanticModelService } from '../../model.service'
 import {
   CdkDragDropContainers,
   MODEL_TYPE,
   ModelDesignerType,
+  ModelDimensionState,
   SemanticModelEntity,
   SemanticModelEntityType
 } from '../../types'
@@ -55,6 +56,9 @@ import { MatButtonModule } from '@angular/material/button'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
+import { SQLTableSchema } from '@metad/ocap-sql'
+import { CreateEntityDialogDataType, CreateEntityDialogRetType, ModelCreateEntityComponent, toDimension } from '../../create-entity/create-entity.component'
+import { injectI18nService } from '@cloud/app/@shared/i18n'
 
 /**
  * 展示和编辑多维分析模型的字段列表
@@ -82,7 +86,6 @@ import { MatListModule } from '@angular/material/list'
     InlineDimensionComponent,
     UsageDimensionComponent,
     NgmEntityPropertyComponent,
-    NxActionStripModule
   ]
 })
 export class ModelCubeStructureComponent {
@@ -100,7 +103,10 @@ export class ModelCubeStructureComponent {
   readonly #dialog = inject(Dialog)
   readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()
-  private readonly _logger = inject(NGXLogger)
+  readonly _logger = inject(NGXLogger)
+  readonly #vcr = inject(ViewContainerRef)
+  readonly confirmOptions = injectConfirmOptions()
+  readonly i18n = injectI18nService()
 
   readonly modelType = input<MODEL_TYPE>()
   readonly editable = input<boolean, boolean | string>(false, {
@@ -177,6 +183,9 @@ export class ModelCubeStructureComponent {
 
   readonly selectedProperty = this.entityService.selectedProperty
   readonly entityType = toSignal(this.entityService.originalEntityType$)
+
+  // Fact
+  readonly factFields = toSignal(this.entityService.factFields$)
 
   /**
   |--------------------------------------------------------------------------
@@ -409,27 +418,14 @@ export class ModelCubeStructureComponent {
     if (
       event.previousContainer.id === CdkDragDropContainers.Entities &&
       previousItem.type === SemanticModelEntityType.DIMENSION &&
-      event.container.id === 'list-dimensions'
+      event.container.id === CdkDragDropContainers.Dimensions
     ) {
-      this.entityService.newDimensionUsage({
-        index,
-        usage: {
-          name: previousItem.dimension.name,
-          caption: previousItem.dimension.caption,
-          source: previousItem.dimension.name,
-          foreignKey: previousItem.dimension.foreignKey
-        }
-      })
-      this.emitEvent({ type: 'dimension-created' })
+      this.createDimensionUsageByDim(index, previousItem)
     }
 
     // Add db table as dimension
     if (event.previousContainer.id === CdkDragDropContainers.Tables) {
-      this.entityService.newDimension({
-        index,
-        table: previousItem
-      })
-      this.emitEvent({ type: 'dimension-created' })
+      this.createDimensionByTable(index, previousItem)
     }
   }
 
@@ -500,6 +496,72 @@ export class ModelCubeStructureComponent {
         if (confirm) {
           this.entityService.deleteCubeProperty({id: variable.__id__, type: ModelDesignerType.variable})
         }
+      }
+    })
+  }
+
+  createDimensionByTable(index: number, table: SQLTableSchema) {
+    const factFields = this.factFields()
+    this._dialog
+      .open<ModelCreateEntityComponent, CreateEntityDialogDataType, CreateEntityDialogRetType>(
+        ModelCreateEntityComponent,
+        {
+          viewContainerRef: this.#vcr,
+          data: { 
+            model: { 
+              name: '',
+              table: table.name,
+              caption: table.label 
+            }, 
+            entitySets: [
+              table
+            ], 
+            modelType: MODEL_TYPE.OLAP,
+            type: SemanticModelEntityType.DIMENSION,
+            types: [
+              SemanticModelEntityType.DIMENSION,
+            ],
+            factFields
+          }
+        }
+      )
+      .afterClosed()
+      .subscribe({
+        next: (value) => {
+          this.entityService.insertDimension({index, dimension: toDimension(value)})
+          this.emitEvent({ type: 'dimension-created' })
+        }
+      })
+  }
+
+  createDimensionUsageByDim(index: number, dimState: ModelDimensionState) {
+    const factFields = this.factFields()
+    this.confirmOptions<{foreignKey: string}>({
+      information: this.i18n.translate('PAC.MODEL.CREATE_ENTITY.SelectForeignKeyForDimension', {Default: 'Select the corresponding fact table foreign key for the associated dimension'}),
+      formFields: [
+        {
+          key: 'foreignKey',
+          type: 'select',
+          props: {
+            label: this.i18n.translate('PAC.MODEL.CREATE_ENTITY.FactForeignKey', {Default: 'Foreign key of fact'}),
+            required: true,
+            options: factFields,
+            searchable: true
+          }
+        },
+      ]
+    }).subscribe((value) => {
+      if (value) {
+        this.entityService.newDimensionUsage({
+          index,
+          usage: {
+            name: dimState.dimension.name,
+            caption: dimState.dimension.caption,
+            source: dimState.dimension.name,
+            foreignKey: value.foreignKey
+          }
+        })
+        this.emitEvent({ type: 'dimension-created' })
       }
     })
   }

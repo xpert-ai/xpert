@@ -9,9 +9,8 @@ import {
   PropertyDimension,
   PropertyHierarchy,
   Schema,
-  SemanticModel
 } from '@metad/ocap-core'
-import { IStory, ModelQuery, TSemanticModel, TSemanticModelDraft, uuid } from '../../../@core'
+import { IStory, ModelQuery, TSemanticModelDraft, uuid } from '../../../@core'
 
 export enum MODEL_TYPE {
   /**
@@ -254,7 +253,10 @@ export enum CdkDragDropContainers {
   Tables = 'pac-model-entitysets',
   Entities = 'pac-model-entities',
   HierarchyTable = 'pac-model-dimension__hierarchy-tables',
-  QueryEntity = 'pac-model__query-entities'
+  QueryEntity = 'pac-model__query-entities',
+  Dimensions = 'list-dimensions',
+  Measures = 'list-measures',
+  CalculatedMembers = 'list-calculated-members',
 }
 
 export const DEBOUNCE_TIME = 100

@@ -21,7 +21,9 @@ import {
   Table,
   getHierarchyById,
   getLevelById,
-  isEntitySet
+  isEntitySet,
+  isNil,
+  nonBlank
 } from '@metad/ocap-core'
 import { NxSettingsPanelService } from '@metad/story/designer'
 import { select, withProps } from '@ngneat/elf'
@@ -45,6 +47,7 @@ import { createSubStore, dirtyCheckWith, write } from '../../store'
 import { SemanticModelService } from '../model.service'
 import { DEBOUNCE_TIME, EntityPreview, MODEL_TYPE, ModelDesignerType } from '../types'
 import { CubeDimensionType, CubeEventType, newDimensionFromColumn, newDimensionFromTable } from './types'
+import { injectI18nService } from '@cloud/app/@shared/i18n'
 
 /**
  * State servcie for Cube
@@ -56,6 +59,7 @@ export class ModelEntityService {
   #router = inject(Router)
   #route = inject(ActivatedRoute)
   #destroyRef = inject(DestroyRef)
+  readonly i18n = injectI18nService()
 
   /**
   |--------------------------------------------------------------------------
@@ -115,6 +119,39 @@ export class ModelEntityService {
    * @deprecated use `fact`
    */
   readonly tables$ = this.cube$.pipe(map((cube) => cube?.tables))
+  /**
+   * Fact table or fact view name
+   */
+  readonly factName$ = this.cube$.pipe(map((cube) => {
+      if (cube.fact?.type === 'table') {
+        return cube.fact.table?.name
+      } else if (cube.fact?.type === 'view') {
+        return cube.fact.view?.alias
+      } else {
+        return cube?.tables?.[0]?.name
+      }
+    })
+  )
+   /**
+   * Original Fact table fields
+   */
+  readonly factFields$ = this.factName$.pipe(
+    filter(nonBlank),
+    switchMap((table) => this.#modelService.selectOriginalEntityProperties(table)),
+    map((properties) => [
+      {
+        value: null,
+        key: null,
+        caption: this.i18n.translate('PAC.KEY_WORDS.None', { Default: 'None' })
+      },
+      ...properties.map((property) => ({
+        value: property.name,
+        key: property.name,
+        caption: property.caption
+      }))
+    ]),
+    shareReplay(1)
+  )
   readonly entityType$ = this.entityName$.pipe(
     switchMap((name) => this.#modelService.selectEntityType(name)),
     takeUntilDestroyed(),
@@ -382,6 +419,30 @@ export class ModelEntityService {
     }
   )
 
+  readonly insertDimension = this.updater((state, {index, dimension}: {index?: number; dimension: PropertyDimension}) => {
+    state.dimensions = state.dimensions ?? []
+    if (isNil(index)) {
+      state.dimensions.push(
+        {
+          __id__: uuid(),
+          ...dimension,
+        }
+      )
+    } else {
+      state.dimensions.splice(
+        index,
+        0,
+        {
+          __id__: uuid(),
+          ...dimension,
+        }
+      )
+    }
+  })
+
+  /**
+   * @deprecated use insertDimension
+   */
   readonly addDimension = this.updater((state, dimension: PropertyDimension) => {
     state.dimensions = state.dimensions ?? []
     state.dimensions.push({
