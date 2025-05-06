@@ -12,6 +12,9 @@ import { _BaseToolset } from '../shared/'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ZodObjectAny = z.ZodObject<any, any, any, any>;
 
+/**
+ * @deprecated use `_BaseToolset`. Use `BuiltinToolset` `MCPToolset` `OpenAPIToolset` for sub toolset.
+ */
 export abstract class BaseToolset<T extends StructuredToolInterface = StructuredToolInterface> extends _BaseToolset<T> {
 	abstract providerType: XpertToolsetCategoryEnum
 
@@ -38,6 +41,10 @@ export abstract class BaseToolset<T extends StructuredToolInterface = Structured
 	 */
 	getToolset() {
 		return this.toolset
+	}
+
+	getName() {
+		return this.getToolset()?.name
 	}
 }
 

@@ -27,7 +27,7 @@ import z from 'zod'
 import { v4 as uuidv4 } from "uuid"
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
-import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
+import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertWorkflowQuery, GetXpertChatModelQuery } from '../../../xpert/queries'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
@@ -44,6 +44,7 @@ import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateMemoryStoreCommand } from '../../../xpert/commands'
 import { CreateWorkflowNodeCommand } from '../../workflow'
 import { toEnvState } from '../../../environment'
+import { _BaseToolset } from '../../../shared'
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -111,7 +112,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const store = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore>(new CreateMemoryStoreCommand(xpert, userId))
 
 		// Create tools
-		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
+		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
 			new ToolsetGetToolsCommand(options?.toolsets ?? agent.toolsetIds, {
 				xpertId: xpert.id,
 				agentKey,
@@ -136,7 +137,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			stateVariables.push(...toolsetVarirables)
 			const items = await toolset.initTools()
 			// Filter available tools by agent
-			const availableTools = agent.options?.availableTools?.[toolset.getToolset().name] ?? []
+			const availableTools = agent.options?.availableTools?.[toolset.getName()] ?? []
 			items.filter((tool) => availableTools.length ? availableTools.includes(tool.name) : true)
 			  .forEach((tool) => {
 				const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)

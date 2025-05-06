@@ -3,10 +3,10 @@ import { IXpertProject, IXpertProjectFile, TFile } from '@metad/contracts'
 import { instanceToPlain } from 'class-transformer'
 import { isNil, omitBy } from 'lodash'
 import { BaseFileToolset, TSandboxToolsetParams } from '../../../shared'
+import { DeleteProjectFileCommand, UpsertProjectFileCommand } from '../../commands'
+import { XpertProjectFileDto } from '../../dto'
 import { XpertProjectService } from '../../project.service'
 import { XpertProjectTaskService } from '../../services/'
-import { UpsertProjectFileCommand, DeleteProjectFileCommand } from '../../commands'
-import { XpertProjectFileDto } from '../../dto'
 
 export type TProjectFileToolsetParams = TSandboxToolsetParams & {
 	project: IXpertProject
@@ -38,16 +38,25 @@ export class ProjectFileToolset extends BaseFileToolset {
 
 			// 当工具调用成功完成时触发
 			async handleToolEnd({ tool_name, output }, runId: string, parentRunId?: string) {
-				if (tool_name === 'project__create_file' || tool_name === 'project__str_replace' || tool_name === 'project__full_file_rewrite') {
+				if (
+					tool_name === 'project__create_file' ||
+					tool_name === 'project__str_replace' ||
+					tool_name === 'project__full_file_rewrite'
+				) {
 					const { file_path, file_contents, file_description } = output
-					await that.saveFileToDatabase(omitBy({
-						filePath: file_path,
-						contents: file_contents,
-						fileType: null,
-						url: null,
-						description: file_description,
-						projectId: project?.id
-					}, isNil) as IXpertProjectFile)
+					await that.saveFileToDatabase(
+						omitBy(
+							{
+								filePath: file_path,
+								contents: file_contents,
+								fileType: null,
+								url: null,
+								description: file_description,
+								projectId: project?.id
+							},
+							isNil
+						) as IXpertProjectFile
+					)
 				}
 				if (tool_name === 'project__delete_file') {
 					const { file_path } = output
@@ -68,6 +77,10 @@ export class ProjectFileToolset extends BaseFileToolset {
 				// console.log(`动作输入: ${action.toolInput}`)
 			}
 		})
+	}
+
+	getName() {
+		return `project-files`
 	}
 
 	async getFileByPath(filePath: string): Promise<TFile> {

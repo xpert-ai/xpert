@@ -1,7 +1,7 @@
 import { tool } from '@langchain/core/tools'
 import { TAgentRunnableConfigurable } from '@metad/contracts'
 import { z } from 'zod'
-import { XpertProjectTaskService } from '../../services/'
+import { XpertProjectTaskService } from '../../../services'
 
 export const createListTasksTool = ({
 	projectId,

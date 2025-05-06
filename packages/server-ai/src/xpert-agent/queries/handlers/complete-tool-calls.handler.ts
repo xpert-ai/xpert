@@ -1,5 +1,5 @@
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
-import { agentUniqueName, IXpertAgent, TSensitiveOperation, TToolCallType, XpertParameterTypeEnum } from '@metad/contracts'
+import { agentUniqueName, IXpertAgent, IXpertToolset, TSensitiveOperation, TToolCallType, XpertParameterTypeEnum } from '@metad/contracts'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertAgentQuery } from '../../../xpert/queries'
@@ -46,9 +46,13 @@ export class CompleteToolCallsHandler implements IQueryHandler<CompleteToolCalls
 			tools.push(
 				...items.map((tool) => {
 					const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)
+					let toolsetDefinition: IXpertToolset = null
+					if (typeof toolset.getToolset === 'function') {
+						toolsetDefinition = toolset.getToolset();
+					}
 					return {
 						tool,
-						definition: toolset.getToolset().tools.find((_) => _.name === lc_name)
+						definition: toolsetDefinition?.tools.find((_) => _.name === lc_name)
 					}
 				})
 			)
