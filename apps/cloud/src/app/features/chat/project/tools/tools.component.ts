@@ -14,7 +14,7 @@ import {
   OrderTypeEnum,
   XpertToolsetService
 } from '@cloud/app/@core'
-import { MCPMarketplaceComponent, XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
+import { MCPMarketplaceComponent, TXpertMCPManageComponentRet, XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 import { ToolsetCardComponent } from '@cloud/app/@shared/xpert'
 import {
   DisappearFadeOut,
@@ -66,6 +66,7 @@ export class ChatProjectToolsComponent {
 
   readonly workspace = this.#projectHomeComponent.workspace
   readonly workspaceId = computed(() => this.workspace()?.id)
+  // Toolsets in project
   readonly toolsets = this.#projectHomeComponent.toolsets
 
   readonly formControl = new FormControl()
@@ -73,6 +74,7 @@ export class ChatProjectToolsComponent {
   readonly refresh$ = new BehaviorSubject<void>(null)
   readonly loading = signal(false)
 
+  // Toolsets in workspace
   readonly #toolsets = derivedAsync(() => {
     const where = {
       // category: XpertToolsetCategoryEnum.MCP
@@ -93,6 +95,7 @@ export class ChatProjectToolsComponent {
     )
   })
 
+  // Searched toolsets in workspace
   readonly wsToolsets = computed(() => {
     const searchText = this.searchText()?.toLowerCase()
     return this.#toolsets()
@@ -107,6 +110,9 @@ export class ChatProjectToolsComponent {
       }))
   })
 
+  /**
+   * Add toolset from workspace into project
+   */
   addTool(toolset: IXpertToolset) {
     this.loading.set(true)
     this.projectSercice.addToolset(this.project().id, toolset.id).subscribe({
@@ -121,6 +127,9 @@ export class ChatProjectToolsComponent {
     })
   }
 
+  /**
+   * Remove toolset from project
+   */
   removeTool(toolset: IXpertToolset) {
     this.loading.set(true)
     this.projectSercice.removeToolset(this.project().id, toolset.id).subscribe({
@@ -137,7 +146,7 @@ export class ChatProjectToolsComponent {
 
   openToolset(toolset: IXpertToolset) {
     this.#dialog
-      .open(XpertMCPManageComponent, {
+      .open<TXpertMCPManageComponentRet>(XpertMCPManageComponent, {
         backdropClass: 'backdrop-blur-lg-white',
         disableClose: true,
         data: {
@@ -145,12 +154,22 @@ export class ChatProjectToolsComponent {
           toolsetId: toolset.id
         }
       })
-      .closed.subscribe({
-        next: (saved) => {
-          if (saved) {
+      .closed
+      .subscribe({
+        next: (ret) => {
+          if (ret?.deleted) {
+            // If deleted from workspace
+            this.removeTool(toolset)
+            this.refreshWorkspace()
+          } else if (ret?.saved) {
+            this.refreshWorkspace()
             this.#projectHomeComponent.refreshTools()
           }
         }
       })
+  }
+
+  refreshWorkspace() {
+    this.refresh$.next()
   }
 }

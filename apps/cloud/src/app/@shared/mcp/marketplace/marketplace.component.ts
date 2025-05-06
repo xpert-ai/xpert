@@ -29,7 +29,7 @@ import {
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { AppService } from '@cloud/app/app.service'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { XpertMCPManageComponent } from '../manage/manage.component'
+import { TXpertMCPManageComponentRet, XpertMCPManageComponent } from '../manage/manage.component'
 
 const InlineTemplateCount = 8
 
@@ -143,7 +143,7 @@ export class MCPMarketplaceComponent {
       }
     }
     this.#dialog
-      .open(XpertMCPManageComponent, {
+      .open<TXpertMCPManageComponentRet>(XpertMCPManageComponent, {
         backdropClass: 'backdrop-blur-lg-white',
         disableClose: true,
         data: {
@@ -152,8 +152,8 @@ export class MCPMarketplaceComponent {
         }
       })
       .closed.subscribe({
-        next: (saved) => {
-          if (saved) {
+        next: (ret) => {
+          if (ret?.saved) {
             this.onRefresh()
           }
         }
