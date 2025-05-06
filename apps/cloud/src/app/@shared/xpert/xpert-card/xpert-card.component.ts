@@ -1,11 +1,11 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, Component, computed, inject, input, output } from '@angular/core'
+import { booleanAttribute, Component, computed, effect, inject, input, output } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { injectHelpWebsite, IXpert, XpertTypeEnum } from '../../../@core'
+import { DateRelativePipe, injectHelpWebsite, IXpert, XpertTypeEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../avatar'
 import { UserPipe } from '../../pipes'
 import { TagComponent } from '../../tag'
@@ -20,7 +20,8 @@ import { TagComponent } from '../../tag'
     NgmHighlightDirective,
     EmojiAvatarComponent,
     TagComponent,
-    UserPipe
+    UserPipe,
+    DateRelativePipe
   ],
   selector: 'xpert-card',
   templateUrl: 'xpert-card.component.html',

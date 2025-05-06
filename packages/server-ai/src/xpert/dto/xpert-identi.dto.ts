@@ -1,4 +1,4 @@
-import { IUser, IXpert, IXpertAgent, TAvatar, XpertTypeEnum } from '@metad/contracts'
+import { ITag, IUser, IXpert, IXpertAgent, TAvatar, XpertTypeEnum } from '@metad/contracts'
 import { UserPublicDTO } from '@metad/server-core'
 import { Exclude, Expose, Transform, TransformFnParams } from 'class-transformer'
 import { XpertAgentIdentiDto } from '../../xpert-agent/dto'
@@ -32,6 +32,12 @@ export class XpertIdentiDto implements Partial<IXpert> {
 
 	@Expose()
 	titleCN?: string
+
+	@Expose()
+	publishAt?: Date
+
+	@Expose()
+	tags?: ITag[]
 
 	@Expose()
 	@Transform((params: TransformFnParams) => (params.value ? new XpertAgentIdentiDto(params.value) : null))
