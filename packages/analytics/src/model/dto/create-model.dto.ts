@@ -1,6 +1,6 @@
-import { IModelQuery, IModelRole, ISemanticModelPreferences, ITag, ModelTypeEnum, Visibility } from '@metad/contracts'
+import { IModelQuery, IModelRole, ISemanticModelPreferences, ITag, ModelTypeEnum, TSemanticModelDraft, Visibility } from '@metad/contracts'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsEnum, IsInstance, IsNotEmpty, IsOptional, IsString, IsArray } from 'class-validator'
+import { IsEnum, IsInstance, IsNotEmpty, IsOptional, IsString, IsArray, IsObject } from 'class-validator'
 import { ModelQuery, SemanticModelRole } from '../../core/entities/internal'
 
 export class CreateSemanticModelDTO {
@@ -18,6 +18,11 @@ export class CreateSemanticModelDTO {
 	@IsString()
 	@IsOptional()
 	description: string
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsObject()
+	@IsOptional()
+	draft?: TSemanticModelDraft
 
 	@ApiProperty({ type: () => String, enum: ModelTypeEnum })
 	@IsEnum(ModelTypeEnum)

@@ -854,6 +854,9 @@
     },
     "MODEL": {
       "ModelOverview": "模型概览",
+      "DeleteSementicModel": "删除语义模型",
+      "DeleteSementicModelDesc": "删除此语义模型及其关联数据",
+      "Delete": "删除",
       "UploadSemanticModel": "上传语义模型文件",
       "SharedDimensions": "公共维度",
       "Cubes": "多维数据集",

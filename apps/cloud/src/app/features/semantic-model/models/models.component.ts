@@ -4,10 +4,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { Router } from '@angular/router'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { DataSourceService, SemanticModelServerService } from '@metad/cloud/state'
-import { NgmDialogComponent } from '@metad/components/dialog'
 import { uploadYamlFile } from '@metad/core'
-import { NgmConfirmDeleteComponent, NgmConfirmUniqueComponent, NgmSpinComponent, NgmTreeSelectComponent, TreeTableColumn, TreeTableModule } from '@metad/ocap-angular/common'
+import { NgmConfirmDeleteComponent, NgmConfirmUniqueComponent, NgmSpinComponent, TreeTableColumn, TreeTableModule } from '@metad/ocap-angular/common'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
 import { ButtonGroupDirective, DisplayDensity } from '@metad/ocap-angular/core'
 import { AgentType, Property, Syntax } from '@metad/ocap-core'
@@ -24,16 +24,17 @@ import {
   ToastrService,
   WasmDBDefaultCatalog,
   WasmDBDialect,
-  getDateLocale
+  getDateLocale,
+  getErrorMessage,
+  injectToastr
 } from '../../../@core'
-import { TranslationBaseComponent } from '../../../@shared/language/translation-base.component'
+import { TranslationBaseComponent } from '../../../@shared/language'
 import { AppService } from '../../../app.service'
 import { ModelCreationComponent } from '../creation/creation.component'
 import { exportSemanticModel } from '../types'
 import { SharedModule } from '../../../@shared/shared.module'
 import { MaterialModule } from '../../../@shared/material.module'
 import { CreatedByPipe } from '../../../@shared/pipes'
-import { CdkMenuModule } from '@angular/cdk/menu'
 
 @Component({
   standalone: true,
@@ -43,10 +44,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     NgxPermissionsModule,
     MtxPopoverModule,
     CdkMenuModule,
-    NgmDialogComponent,
 
     // OCAP Modles
-    NgmTreeSelectComponent,
     NgmSpinComponent,
     TreeTableModule,
     NgmControlsModule,
@@ -59,6 +58,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 export class ModelsComponent extends TranslationBaseComponent implements AfterViewInit {
   DisplayDensity = DisplayDensity
   AnalyticsPermissionsEnum = AnalyticsPermissionsEnum
+
+  readonly #toastr = injectToastr()
 
   displayedColumns = ['name', 'dataSource']
   columns: Array<
@@ -162,29 +163,29 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
     }
   }
 
-  async onDelete(model: ISemanticModel) {
-    const information = this.getTranslation('PAC.MODEL.TOASTR.DeleteModelPermanently', {
-      Default: 'Delete this model permanently'
-    })
-    const result = await firstValueFrom(
-      this._dialog
-        .open(NgmConfirmDeleteComponent, {
-          data: {
-            value: model.name,
-            information: information + '?'
-          }
-        })
-        .afterClosed()
-    )
+  // async onDelete(model: ISemanticModel) {
+  //   const information = this.getTranslation('PAC.MODEL.TOASTR.DeleteModelPermanently', {
+  //     Default: 'Delete this model permanently'
+  //   })
+  //   const result = await firstValueFrom(
+  //     this._dialog
+  //       .open(NgmConfirmDeleteComponent, {
+  //         data: {
+  //           value: model.name,
+  //           information: information + '?'
+  //         }
+  //       })
+  //       .afterClosed()
+  //   )
 
-    if (result) {
-      this.loading = true
-      await firstValueFrom(this.store.delete(model.id))
-      this.loading = true
-      this.toastrService.success('PAC.MODEL.TOASTR.ModelDelete', { Default: 'Model delete' })
-      this.refresh$.next()
-    }
-  }
+  //   if (result) {
+  //     this.loading = true
+  //     await firstValueFrom(this.store.delete(model.id))
+  //     this.loading = true
+  //     this.toastrService.success('PAC.MODEL.TOASTR.ModelDelete', { Default: 'Model delete' })
+  //     this.refresh$.next()
+  //   }
+  // }
 
   async createStory(model: StoryModel) {
     const name = await firstValueFrom(this._dialog.open(NgmConfirmUniqueComponent, {}).afterClosed())
@@ -249,13 +250,17 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
   }
 
   async onDownload(id: string) {
-    await exportSemanticModel(this.store, id)
+    try {
+      await exportSemanticModel(this.store, id)
+    } catch(err) {
+      this.#toastr.error(getErrorMessage(err))
+    }
   }
 
   async onUpload(event) {
     const files = event.target.files[0]
     const fileType = files.name.split('.')
-    if (fileType[fileType.length - 1] !== 'yml') {
+    if (!['yml', 'yaml'].includes(fileType[fileType.length - 1])) {
       this.toastrService.error('PAC.NOTES.STORY.UPLOAD_FILETYPE_ERROR')
       return
     }
@@ -270,7 +275,7 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
       businessAreaId: null,
       dataSourceId: null
     })
-    // const _model = await firstValueFrom(this._dialog.open(this.uploadTmpl).afterClosed())
+
     const _model = await firstValueFrom(
       this._dialog
         .open(ModelCreationComponent, {
@@ -290,6 +295,12 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
       model.dataSourceId = _model.dataSourceId
       model.catalog = _model.catalog
       model.type = _model.type
+      if (model.draft) {
+        model.draft = {
+          ...model.draft,
+          ..._model
+        }
+      }
     } else {
       return
     }
@@ -299,7 +310,7 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
       model = await firstValueFrom(this.store.upload(model))
       this.modelUploading = false
       this.toastrService.success('PAC.MODEL.TOASTR.ModelUpload', { Default: 'Model upload' })
-      this.refresh$.next()
+      this.router.navigate(['/models', model.id])
     } catch (err) {
       this.modelUploading = false
       this.toastrService.error((<HttpErrorResponse>err).statusText)

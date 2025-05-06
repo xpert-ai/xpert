@@ -133,6 +133,12 @@ export function convertExcelDate2ISO(cell: number, type: TableColumnType) {
   return cell
 }
 
+/**
+ * Fetch and download semantic model
+ * 
+ * @param modelService 
+ * @param id 
+ */
 export async function exportSemanticModel(modelService: SemanticModelServerService, id: string) {
   const model = await firstValueFrom(modelService.getById(id, {relations: ['roles']}))
   model.roles = model.roles?.map((role) =>
@@ -140,6 +146,6 @@ export async function exportSemanticModel(modelService: SemanticModelServerServi
   )
   saveAsYaml(
     model.name + '.yml',
-    pick(model, 'key', 'name', 'description', 'type', 'catalog', 'cube', 'options', 'preferences', 'roles')
+    pick(model, 'key', 'name', 'description', 'type', 'catalog', 'cube', 'options', 'draft', 'preferences', 'roles')
   )
 }

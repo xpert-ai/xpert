@@ -10,7 +10,7 @@ import {
 } from '@metad/contracts'
 import { shortuuid } from '@metad/server-common'
 import { z } from 'zod'
-import { XpertProjectTaskService } from '../../services/'
+import { XpertProjectTaskService } from '../../../services'
 
 export const createCreateTasksTool = ({
 	projectId,
