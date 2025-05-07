@@ -6,7 +6,7 @@ import { ModelProvider } from '../../../ai-provider'
 import { LargeLanguageModel } from '../../../llm'
 import { mergeCredentials, TChatModelOptions } from '../../../types/types'
 import { CredentialsValidateFailedError } from '../../errors'
-import { toCredentialKwargs, XinferenceCredentials, XinferenceModelCredentials } from '../types'
+import { toCredentialKwargs, XinferenceModelCredentials } from '../types'
 
 @Injectable()
 export class XinferenceLargeLanguageModel extends LargeLanguageModel {
@@ -16,7 +16,7 @@ export class XinferenceLargeLanguageModel extends LargeLanguageModel {
 		super(modelProvider, AiModelTypeEnum.LLM)
 	}
 
-	async validateCredentials(model: string, credentials: XinferenceCredentials): Promise<void> {
+	async validateCredentials(model: string, credentials: XinferenceModelCredentials): Promise<void> {
 		try {
 			const chatModel = new ChatOpenAI({
 				...toCredentialKwargs(credentials),

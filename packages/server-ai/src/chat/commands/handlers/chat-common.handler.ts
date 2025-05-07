@@ -530,8 +530,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 		stateVariables.push(...toolsetVarirables)
 		// Find an available copilot
-		let copilot = project.copilotModel?.copilot
-		let copilotModel = project.copilotModel
+		let copilot = project?.copilotModel?.copilot
+		let copilotModel = project?.copilotModel
 		if (!copilotModel) {
 			copilot = await this.queryBus.execute(new CopilotGetChatQuery(tenantId, organizationId))
 			copilotModel = copilot.copilotModel

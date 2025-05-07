@@ -29,6 +29,8 @@
         [content]="xpert().title || xpert().name">{{ xpert().title || xpert().name }}</div>
     </div>
     <div class="flex items-center text-xs leading-[18px] text-gray-500 font-medium">
+      <div class="truncate">{{'PAC.Xpert.PublishAt' | translate: {Default: 'Publish at'} }}&nbsp;{{xpert().publishAt | relative}}</div>
+      <span class="flex items-center mx-1">·</span>
       <div class="truncate">{{'PAC.KEY_WORDS.By' | translate: {Default: 'By'} }}&nbsp;{{xpert().createdBy | user}}</div>
     </div>
   </div>

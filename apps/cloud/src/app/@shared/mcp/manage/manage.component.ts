@@ -35,6 +35,11 @@ import { XpertToolNameInputComponent } from '../../xpert'
 import { MCPServerFormComponent } from '../server/server.component'
 import { MCPToolsetToolTestComponent } from '../tool-test'
 
+export type TXpertMCPManageComponentRet = {
+  saved?: boolean;
+  deleted?: boolean;
+} | undefined
+
 @Component({
   selector: 'xpert-mcp-manage',
   standalone: true,
@@ -66,7 +71,7 @@ export class XpertMCPManageComponent {
   eTagCategoryEnum = TagCategoryEnum
 
   readonly #dialog = inject(Dialog)
-  readonly #dialogRef = inject(DialogRef)
+  readonly #dialogRef = inject(DialogRef<TXpertMCPManageComponentRet>)
   readonly #data = inject<{ workspaceId: string; toolsetId: string; toolset: Partial<IXpertToolset> }>(DIALOG_DATA)
   readonly toolsetService = inject(XpertToolsetService)
   readonly environmentService = inject(EnvironmentService)
@@ -347,8 +352,7 @@ export class XpertMCPManageComponent {
     ).subscribe({
       next: () => {
         this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, toolset.name)
-        this.saved.set(true)
-        this.close()
+        this.#dialogRef.close({deleted: true})
       },
       error: (error) => {
         this.#toastr.error(getErrorMessage(error))
@@ -357,7 +361,7 @@ export class XpertMCPManageComponent {
   }
 
   close() {
-    this.#dialogRef.close(this.saved())
+    this.#dialogRef.close({saved: this.saved()})
   }
 
   @HostListener('document:keydown.escape', ['$event'])
