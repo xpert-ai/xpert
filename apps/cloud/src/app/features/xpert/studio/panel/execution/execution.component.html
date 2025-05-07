@@ -18,11 +18,11 @@
   </div>
 </div>
 
-<div class="grow overflow-auto">
+<div class="grow px-2 space-y-1 overflow-auto">
   @switch (pageType()) {
     @case('overview') {
       @if (execution(); as execution) {
-        <xpert-agent-execution class="w-full px-4" [execution]="execution" />
+        <xpert-agent-execution class="w-full" [execution]="execution" />
       }
     }
     @case('steps') {

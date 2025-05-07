@@ -1,4 +1,4 @@
 :host {
   --mat-expansion-container-shape: 1rem;
-  @apply flex flex-col;
+  @apply flex flex-col overflow-auto max-h-full;
 }
