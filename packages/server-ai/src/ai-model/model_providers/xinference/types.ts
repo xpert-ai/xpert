@@ -17,7 +17,7 @@ export interface XinferenceModelCredentials extends XinferenceCredentials, Commo
 	frequency_penalty?: number
 }
 
-export function toCredentialKwargs(credentials: XinferenceCredentials) {
+export function toCredentialKwargs(credentials: XinferenceModelCredentials) {
 	const credentialsKwargs: OpenAIBaseInput = {
 		apiKey: credentials.api_key
 	} as OpenAIBaseInput

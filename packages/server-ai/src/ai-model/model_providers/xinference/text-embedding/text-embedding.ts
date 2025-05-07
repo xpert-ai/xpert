@@ -5,7 +5,8 @@ import { Injectable } from '@nestjs/common'
 import { ModelProvider } from '../../../ai-provider'
 import { TextEmbeddingModelManager } from '../../../types/text-embedding-model'
 import { CredentialsValidateFailedError } from '../../errors'
-import { toCredentialKwargs, XinferenceCredentials } from '../types'
+import { toCredentialKwargs, XinferenceCredentials, XinferenceModelCredentials } from '../types'
+import { TChatModelOptions } from '../../../types/types'
 
 @Injectable()
 export class XinferenceTextEmbeddingModel extends TextEmbeddingModelManager {
@@ -13,26 +14,30 @@ export class XinferenceTextEmbeddingModel extends TextEmbeddingModelManager {
 		super(modelProvider, AiModelTypeEnum.TEXT_EMBEDDING)
 	}
 
-	getEmbeddingInstance(copilotModel: ICopilotModel): OpenAIEmbeddings {
+	getEmbeddingInstance(copilotModel: ICopilotModel, options?: TChatModelOptions): OpenAIEmbeddings {
 		const { copilot } = copilotModel
 		const { modelProvider } = copilot
-		const params = toCredentialKwargs(modelProvider.credentials as XinferenceCredentials)
+
+		const params = toCredentialKwargs({
+			...(modelProvider.credentials ?? {}),
+			...(options?.modelProperties ?? {})
+		} as XinferenceModelCredentials)
 
 		return new OpenAIEmbeddings({
 			...params,
 			// batchSize: 512, // Default value if omitted is 512. Max is 2048
-			model: copilotModel.model || copilotModel.copilot.copilotModel?.model,
+			model: copilotModel.model || copilotModel.copilot.copilotModel?.model
 		})
 	}
 
 	async validateCredentials(model: string, credentials: XinferenceCredentials): Promise<void> {
 		try {
 			// transform credentials to kwargs for model instance
-			const params = toCredentialKwargs(credentials as XinferenceCredentials)
+			const params = toCredentialKwargs(credentials as XinferenceModelCredentials)
 			const embeddings = new OpenAIEmbeddings({
 				...params,
 				// batchSize: 512, // Default value if omitted is 512. Max is 2048
-				model,
+				model
 			})
 
 			// call embedding model
