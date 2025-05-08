@@ -5,7 +5,7 @@ import { getErrorMessage } from '@metad/server-common'
 import { CommandBus } from '@nestjs/cqrs'
 import { get } from 'lodash'
 import { SandboxVMCommand } from '../../sandbox'
-import { AgentStateAnnotation } from '../commands/handlers/types'
+import { AgentStateAnnotation } from '../../shared'
 
 const ErrorChannelName = 'error'
 

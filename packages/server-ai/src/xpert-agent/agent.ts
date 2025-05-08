@@ -8,7 +8,7 @@ import { agentLabel, channelName, ChatMessageEventTypeEnum, ChatMessageStepType,
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { instanceToPlain } from 'class-transformer'
-import { AgentStateAnnotation } from './commands/handlers/types'
+import { AgentStateAnnotation } from '../shared'
 
 /**
  * Create an operator function that intercepts Langgraph events, 
@@ -32,10 +32,6 @@ export function createMapStreamEvents(
 	// let collectingResult = ''
 	const eventStack: string[] = []
 	let prevEvent = ''
-	/**
-	 * @deprecated	
-	 */
-	let startStream = false
 	const toolsMap: Record<string, string> = {} // For lc_name and name of tool is different
 	const processFun = ({ event, tags, data, ...rest }: any) => {
 		const langgraph_node = rest.metadata.langgraph_node

@@ -3,6 +3,7 @@ import {
 	IWFNCode,
 	IWorkflowNode,
 	IXpertAgent,
+	STATE_VARIABLE_INPUT,
 	STATE_VARIABLE_SYS,
 	TStateVariable,
 	TWorkflowVarGroup,
@@ -17,7 +18,6 @@ import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertAgentQuery } from '../../../xpert/queries/'
 import { XpertService } from '../../../xpert/xpert.service'
 import { getAgentVarGroup } from '../../agent'
-import { STATE_VARIABLE_INPUT } from '../../commands/handlers/types'
 import {
 	HeadersChannelName,
 	ReqBodyChannelName,

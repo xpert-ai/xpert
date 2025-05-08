@@ -28,7 +28,7 @@ export type TXpert = {
   avatar?: TAvatar
 
   /**
-   * 对话开场白
+   * Conversation starters
    */
   starters?: string[]
 
@@ -48,6 +48,10 @@ export type TXpert = {
    * Long-term memory config
    */
   memory?: TLongTermMemory
+  /**
+   * File upload feature
+   */
+  fileUpload?: TFileUpload
 
   /**
    * Version of role: '1' '2' '2.1' '2.2'...
@@ -63,7 +67,7 @@ export type TXpert = {
   releaseNotes?: string
 
   /**
-   * 当前版本上的草稿
+   * Draft on current version
    */
   draft?: TXpertTeamDraft
   graph?: TXpertGraph
@@ -248,6 +252,10 @@ export type TLongTermMemory = {
     afterSeconds?: number
   }
   qa?: TLongTermMemoryConfig
+}
+
+export type TFileUpload = {
+  enabled?: boolean
 }
 
 export enum XpertTypeEnum {

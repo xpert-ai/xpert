@@ -23,7 +23,7 @@ import { GetXpertWorkflowQuery } from '../../../xpert/queries'
 import { messageEvent } from '../../agent'
 import { XpertAgentSwarmCommand } from '../create-swarm.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
-import { AgentStateAnnotation } from './types'
+import { AgentStateAnnotation } from '../../../shared/'
 
 @CommandHandler(XpertAgentSwarmCommand)
 export class XpertAgentSwarmHandler implements ICommandHandler<XpertAgentSwarmCommand> {

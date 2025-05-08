@@ -22,7 +22,8 @@ import { AnnotationRoot, StateDefinition, UpdateType } from "@langchain/langgrap
 import { channelName, TMessageChannel, TSummarize } from "@metad/contracts";
 import { v4 as uuidv4 } from "uuid";
 import { ToolNode } from "./tool_node";
-import { AgentStateAnnotation, TGraphTool, TSubAgent } from "./types";
+import { TGraphTool, TSubAgent } from "./types";
+import { AgentStateAnnotation } from "../../../shared";
 
 
 function _getStateModifierRunnable(
@@ -119,6 +120,8 @@ export type CreateReactAgentParams<
 };
 
 /**
+ * @deprecated
+ * 
  * Creates a StateGraph agent that relies on a chat llm utilizing tool calling.
  * @param llm The chat llm that can utilize OpenAI-style function calling.
  * @param tools A list of tools or a ToolNode.
@@ -228,6 +231,9 @@ export function createReactAgent(
   // });
 }
 
+/**
+ * @deprecated
+ */
 export function createSummarizeAgent(model: BaseChatModel, summarize: TSummarize, agentKey?: string) {
   return async (state: typeof AgentStateAnnotation.State): Promise<Partial<typeof AgentStateAnnotation.State>> => {
     const channel = channelName(agentKey)

@@ -12,6 +12,7 @@ import {
 	TAvatar,
 	TChatApi,
 	TChatApp,
+	TFileUpload,
 	TLongTermMemory,
 	TSummarize,
 	TXpertAgentConfig,
@@ -22,7 +23,7 @@ import {
 } from '@metad/contracts'
 import { Integration, Tag, User } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsBoolean, IsJSON, IsOptional, IsString } from 'class-validator'
+import { IsBoolean, IsJSON, IsObject, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
 import { WorkspaceBaseEntity } from '../core/entities/base.entity'
 import { CopilotModel, Environment, Knowledgebase, XpertAgent, XpertToolset } from '../core/entities/internal'
@@ -105,6 +106,12 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
 	memory?: TLongTermMemory
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsObject()
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	fileUpload?: TFileUpload
 
 	// Versions
 	@ApiPropertyOptional({ type: () => String })

@@ -24,7 +24,7 @@ import { messageEvent, setStateVariable } from '../../agent'
 import { XpertAgentVariableSchemaQuery } from '../../queries'
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
-import { AgentStateAnnotation } from '../../commands/handlers/types'
+import { AgentStateAnnotation } from '../../../shared'
 
 
 @CommandHandler(CreateWNIteratingCommand)

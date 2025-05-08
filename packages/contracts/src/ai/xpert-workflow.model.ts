@@ -205,9 +205,7 @@ export interface IWFNHttp extends IWorkflowNode {
   errorHandling?: TErrorHandling
 }
 
-export function channelName(name: string) {
-	return name.toLowerCase() + '_channel'
-}
+
 
 
 export function isAgentKey(key: string) {

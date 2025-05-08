@@ -1,8 +1,8 @@
-import { ChatMessageStatusEnum, CopilotMessageType, IChatConversation, IChatMessage, IXpertAgentExecution, TChatMessageStep, TMessageContent, TMessageContentReasoning, TSummaryJob, XpertAgentExecutionStatusEnum } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { ChatMessageStatusEnum, CopilotMessageType, IChatConversation, IChatMessage, IStorageFile, IXpertAgentExecution, TChatMessageStep, TMessageContent, TMessageContentReasoning, TSummaryJob, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
+import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, RelationId } from 'typeorm'
 import { ChatConversation, XpertAgentExecution } from '../core/entities/internal'
 
 @Entity('chat_message')
@@ -55,6 +55,18 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
 	steps?: TChatMessageStep[]
+
+	/*
+    |--------------------------------------------------------------------------
+    | @ManyToMany 
+    |--------------------------------------------------------------------------
+    */
+    // Attachments files
+	@ManyToMany(() => StorageFile)
+	@JoinTable({
+		name: 'chat_message_attachment'
+	})
+	attachments?: IStorageFile[]
 
 	/*
     |--------------------------------------------------------------------------

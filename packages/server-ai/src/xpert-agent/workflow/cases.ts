@@ -10,7 +10,7 @@ import {
 } from '@metad/contracts'
 import { isEmpty } from '@metad/server-common'
 import { get } from 'lodash'
-import { AgentStateAnnotation } from '../commands/handlers/types'
+import { AgentStateAnnotation } from '../../shared'
 
 export function createCasesNode(graph: TXpertGraph, node: TXpertTeamNode & { type: 'workflow' }) {
 	const entity = node.entity as IWFNIfElse

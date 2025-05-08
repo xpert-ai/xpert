@@ -4,6 +4,7 @@ import { IChatConversation } from './chat.model'
 import { LongTermMemoryTypeEnum } from './xpert.model'
 import { XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model';
 import { JSONValue } from '../core.model';
+import { IStorageFile } from '../storage-file.model';
 
 export type TSummaryJob = Record<LongTermMemoryTypeEnum, {
     jobId: number | string;
@@ -63,7 +64,13 @@ export type TChatMessageStep = {
  * Chat message entity type
  */
 export interface IChatMessage extends IBasePerTenantAndOrganizationEntityModel, Omit<Omit<CopilotBaseMessage, 'createdAt'>, 'id'> {
-
+  /**
+   * Files
+   */
+  attachments?: IStorageFile[]
+  /**
+   * Job of summary
+   */
   summaryJob?: TSummaryJob
 
   /**

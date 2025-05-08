@@ -60,7 +60,6 @@ import {
 	XpertAgentExecutionOneQuery,
 	XpertAgentExecutionUpsertCommand
 } from '../../../xpert-agent-execution'
-import { AgentStateAnnotation, stateToParameters } from '../../../xpert-agent/commands/handlers/types'
 import { CreateFileToolsetCommand, CreateProjectToolsetCommand, XpertProjectService } from '../../../xpert-project/'
 import { ChatCommonCommand } from '../chat-common.command'
 import { createHandoffBackMessages, createHandoffTool } from './handoff'
@@ -74,6 +73,7 @@ import {
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { toEnvState } from '../../../environment'
 import { ProjectFileToolset, ProjectToolset } from '../../../xpert-project/tools'
+import { AgentStateAnnotation, stateToParameters } from '../../../shared'
 
 const GeneralAgentRecursionLimit = 99
 

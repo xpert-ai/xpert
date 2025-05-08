@@ -7,6 +7,8 @@ export const STATE_VARIABLE_SYS = 'sys'
 export const GRAPH_NODE_SUMMARIZE_CONVERSATION = 'summarize_conversation'
 export const GRAPH_NODE_TITLE_CONVERSATION = 'title_conversation'
 export const STATE_VARIABLE_FILES = 'files'
+export const STATE_VARIABLE_INPUT = 'input'
+export const STATE_VARIABLE_TITLE_CHANNEL = channelName('title')
 
 export type TMessageChannel = {
   messages: BaseMessage[]
@@ -31,6 +33,10 @@ export type TAgentRunnableConfigurable = {
 
 
 // Helpers
+export function channelName(name: string) {
+	return name.toLowerCase() + '_channel'
+}
+
 export function messageContentText(content: string | TMessageContentComplex) {
 	return typeof content === 'string' ? content : content.type === 'text' ? content.text : ''
 }
