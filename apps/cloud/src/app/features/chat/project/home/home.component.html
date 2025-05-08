@@ -335,9 +335,9 @@
 
 <ng-template #editMenu>
   <div cdkMenu class="cdk-menu__large">
-    <div cdkMenuItem (click)="rename()">
+    <div cdkMenuItem (click)="edit()">
       <i class="ri-pencil-line mr-1"></i>
-      <span>{{ 'PAC.XProject.Rename' | translate: {Default: 'Rename'} }}</span>
+      <span>{{ 'PAC.XProject.Edit' | translate: {Default: 'Edit'} }}</span>
     </div>
     @if (editing()) {
       <div cdkMenuItem [cdkMenuTriggerFor]="copilotMenu">

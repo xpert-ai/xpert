@@ -225,7 +225,7 @@ export class ChatProjectHomeComponent {
     this.updateMode()
   }
 
-  rename() {
+  edit() {
     this.editing.set(true)
   }
 
