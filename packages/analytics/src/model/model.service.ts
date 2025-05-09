@@ -1,20 +1,21 @@
-import { BusinessAreaRole, IUser, SemanticModelStatusEnum, TSemanticModelDraft } from '@metad/contracts'
+import { BusinessAreaRole, IUser, mapTranslationLanguage, SemanticModelStatusEnum, TSemanticModelDraft, Visibility } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { FindOptionsWhere, ITryRequest, PaginationParams, REDIS_CLIENT, RequestContext, User } from '@metad/server-core'
-import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common'
+import { Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import * as _axios from 'axios'
 import chalk from 'chalk'
 import { RedisClientType } from 'redis'
-import { FindManyOptions, ILike, Repository } from 'typeorm'
+import { FindManyOptions, FindOneOptions, ILike, Repository } from 'typeorm'
+import { I18nService } from 'nestjs-i18n'
 import { BusinessArea, BusinessAreaService } from '../business-area'
 import { BusinessAreaAwareCrudService } from '../core/crud/index'
 import { Md5 } from '../core/helper'
 import { DataSourceService } from '../data-source/data-source.service'
 import { SemanticModelCacheService } from './cache/cache.service'
-import { SemanticModelQueryDTO } from './dto'
+import { SemanticModelPublicDTO, SemanticModelQueryDTO } from './dto'
 import { updateXmlaCatalogContent } from './helper'
 import { SemanticModel } from './model.entity'
 import { NgmDSCoreService, registerSemanticModel } from './ocap'
@@ -35,6 +36,7 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		private readonly configService: ConfigService,
 		private readonly businessAreaService: BusinessAreaService,
 		private readonly logService: ModelQueryLogService,
+		private readonly i18nService: I18nService,
 		readonly commandBus: CommandBus,
 		@Inject(REDIS_CLIENT)
 		private readonly redisClient: RedisClientType,
@@ -394,5 +396,32 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 
 		await this.repository.save(model)
 		return model.draft
+	}
+
+	/*
+    |--------------------------------------------------------------------------
+    | Public API
+    |--------------------------------------------------------------------------
+    */
+	async findPublicOne(id: string, options?: FindOneOptions) {
+		const model = await this.repository.findOne(id, {
+			relations: options?.relations,
+			where: {
+				visibility: Visibility.Public,
+			}
+		})
+
+		if (!model) {
+			throw new NotFoundException(
+				await this.i18nService.t('analytics.Error.SemanticModelNotFound', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+					args: {
+						model: id
+					}
+				})
+			)
+		}
+
+		return new SemanticModelPublicDTO(model)
 	}
 }

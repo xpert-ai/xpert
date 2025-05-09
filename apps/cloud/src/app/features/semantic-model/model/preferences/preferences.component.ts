@@ -106,12 +106,8 @@ export class ModelPreferencesComponent implements OnInit {
                   label: TRANSLATE?.Visibility_Public ?? 'Public'
                 },
                 {
-                  value: Visibility.Secret,
-                  label: TRANSLATE?.Visibility_Secret ?? 'Secret'
-                },
-                {
-                  value: Visibility.Private,
-                  label: TRANSLATE?.Visibility_Private ?? 'Private'
+                  value: Visibility.Internal,
+                  label: TRANSLATE?.Visibility_Internal ?? 'Internal'
                 }
               ]
             }

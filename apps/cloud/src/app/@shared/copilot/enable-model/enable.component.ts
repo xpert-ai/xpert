@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
+import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { RouterModule } from '@angular/router'
 import { NgmCopilotService } from '@metad/copilot-angular'
@@ -19,7 +19,7 @@ import { TranslatePipe } from '@metad/core'
   }
 })
 export class CopilotEnableModelComponent {
-  readonly copilotService = inject(NgmCopilotService)
+  readonly copilotService = inject(NgmCopilotService, {optional: true})
 
   // Inputs
   readonly enableModel = input<boolean, string | boolean>(false, {
@@ -27,8 +27,8 @@ export class CopilotEnableModelComponent {
   })
 
   // States
-  readonly copilotEnabled = toSignal(this.copilotService.enabled$)
-  readonly primaryModelEnabled = computed(() => this.copilotService.copilot()?.copilotModel?.model)
+  readonly copilotEnabled = this.copilotService ? toSignal(this.copilotService.enabled$) : signal(true)
+  readonly primaryModelEnabled = this.copilotService ? computed(() => this.copilotService.copilot()?.copilotModel?.model) : signal(true)
 
   readonly show = computed(() => (this.enableModel() && !this.primaryModelEnabled()) || !this.copilotEnabled())
 }

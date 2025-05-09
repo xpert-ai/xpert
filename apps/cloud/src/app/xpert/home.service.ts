@@ -21,6 +21,7 @@ export class XpertHomeService {
   readonly conversationService = inject(ChatConversationService)
   readonly semanticModelService = inject(SemanticModelServerService)
   readonly #toastr = injectToastr()
+
   readonly lang = this.appService.lang
 
   readonly conversations = signal<IChatConversation[]>([])
@@ -47,16 +48,26 @@ export class XpertHomeService {
   readonly #xperts: Record<string, Observable<IXpert>> = {}
 
   readonly #models: Record<string, Observable<ISemanticModel>> = {}
+  readonly #publicModels: Record<string, Observable<ISemanticModel>> = {}
 
   selectSemanticModel(id: string) {
     if (!this.#models[id]) {
-      this.#models[id] = this.semanticModelService
-        .getById(id, {
+      this.#models[id] = this.semanticModelService.getById(id, {
+            relations: ['indicators', 'createdBy', 'updatedBy', 'dataSource', 'dataSource.type']
+          })
+          .pipe(shareReplay(1))
+    }
+    return this.#models[id]
+  }
+
+  selectPublicSemanticModel(id: string) {
+    if (!this.#publicModels[id]) {
+      this.#publicModels[id] = this.semanticModelService.getPublicOne(id, {
           relations: ['indicators', 'createdBy', 'updatedBy', 'dataSource', 'dataSource.type']
         })
         .pipe(shareReplay(1))
     }
-    return this.#models[id]
+    return this.#publicModels[id]
   }
 
   getXpert(slug: string) {

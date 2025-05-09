@@ -1,8 +1,7 @@
 import { ICopilot, IUser, TGatewayQueryEvent } from '@metad/contracts'
 import { CopilotTokenRecordCommand } from '@metad/server-ai'
 import { WsJWTGuard, WsUser } from '@metad/server-core'
-import { InjectQueue } from '@nestjs/bull'
-import { UseGuards } from '@nestjs/common'
+import { CACHE_MANAGER, Inject, UseGuards } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import {
 	ConnectedSocket,
@@ -13,12 +12,12 @@ import {
 	WebSocketServer,
 	WsResponse
 } from '@nestjs/websockets'
-import { Queue } from 'bull'
+import { Cache } from 'cache-manager'
 import { from, Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
 import { Server, Socket } from 'socket.io'
 import { SemanticModelQueryCommand } from '../model/commands'
-import { QUERY_QUEUE_NAME } from '../model/types'
+import { GetOnePublicSemanticModelQuery } from '../model/queries'
 
 @WebSocketGateway({
 	cors: {
@@ -30,9 +29,10 @@ export class EventsGateway implements OnGatewayDisconnect {
 	server: Server
 
 	constructor(
-		@InjectQueue(QUERY_QUEUE_NAME) private readonly queryQueue: Queue,
 		private readonly queryBus: QueryBus,
-		private readonly commandBus: CommandBus
+		private readonly commandBus: CommandBus,
+		@Inject(CACHE_MANAGER)
+		private readonly cacheManager: Cache
 	) {}
 
 	@UseGuards(WsJWTGuard)
@@ -43,6 +43,24 @@ export class EventsGateway implements OnGatewayDisconnect {
 		@WsUser() user: IUser
 	): Promise<WsResponse<any>> {
 		await this.commandBus.execute(new SemanticModelQueryCommand({ sessionId: client.id, userId: user.id, data }))
+		return
+	}
+
+	@SubscribeMessage('public_olap')
+	async publicOlap(
+		@MessageBody() data: TGatewayQueryEvent,
+		@ConnectedSocket() client: Socket,
+		@WsUser() user: IUser
+	): Promise<WsResponse<any>> {
+		const modelId = data.modelId
+		let model = await this.cacheManager.get(`olap:model:` + modelId)
+		if (!model) {
+			// Check visibility (must be public) of semantic model
+			model = await this.queryBus.execute(new GetOnePublicSemanticModelQuery(modelId))
+			await this.cacheManager.set(`olap:model:` + modelId, model, { ttl: 1000 * 60 })
+		}
+
+		await this.commandBus.execute(new SemanticModelQueryCommand({ sessionId: client.id, userId: user?.id, data }))
 		return
 	}
 

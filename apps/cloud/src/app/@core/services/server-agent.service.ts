@@ -20,11 +20,16 @@ import {
 import { getErrorMessage, uuid } from '../types'
 import { AbstractAgent, AuthInfoType } from '../auth'
 
+/**
+ * @deprecated use PAC_SERVER_DEFAULT_OPTIONS
+ */
 export interface PacServerAgentDefaultOptions {
   modelBaseUrl: string
 }
 
-/** Injection token to be used to override the default options for `pac-server-agent`. */
+/**
+ * @deprecated use PAC_SERVER_DEFAULT_OPTIONS
+ */
 export const PAC_SERVER_AGENT_DEFAULT_OPTIONS = new InjectionToken<PacServerAgentDefaultOptions>(
   'pac-server-agent-default-options',
   {
