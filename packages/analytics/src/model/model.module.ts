@@ -18,7 +18,7 @@ import { provideOcap } from './ocap'
 import { QueryHandlers } from './queries/handlers'
 import { SemanticModelRoleModule } from './role/role.module'
 import { QUERY_QUEUE_NAME } from './types'
-import { AgentModule } from '../agent'
+import { AgentModule } from '../agent/agent.module'
 import { ModelQueryLogModule } from '../model-query-log'
 
 @Module({

@@ -1,0 +1,5 @@
+{
+    "Error": {
+        "SemanticModelNotFound": "Semantic model '{model}' not found"
+    }
+}

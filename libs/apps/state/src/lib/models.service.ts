@@ -239,6 +239,24 @@ export class SemanticModelServerService extends OrganizationBaseCrudService<ISem
       params: timeRangeToParams(params, timeRange)
     })
   }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Public API
+  |--------------------------------------------------------------------------
+  */
+
+  getPublicOne(id: string, options?: {select?: (keyof ISemanticModel)[]; relations?: string[]}): Observable<ISemanticModel> {
+    const { relations } = options ?? {}
+    return this.httpClient.get<ISemanticModel>(this.apiBaseUrl + `/public/${id}`, {
+      params: new HttpParams().append(
+        '$query',
+        JSON.stringify({
+          relations: relations ?? []
+        })
+      )
+    })
+  }
 }
 
 /**

@@ -1,12 +1,3 @@
 :host {
-  @apply max-w-full flex-1 flex;
-}
-
-.chat-conversation-list {
-  .item.active, .item.menu-active {
-    @apply bg-black/5 dark:bg-white/10;
-    .menu-trigger {
-      opacity: 100;
-    }
-  }
+  @apply max-w-full max-h-full flex-1 flex overflow-auto;
 }

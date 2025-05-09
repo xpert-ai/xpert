@@ -1,0 +1,5 @@
+{
+    "Error": {
+        "SemanticModelNotFound": "语义模型‘{model}’未找到"
+    }
+}

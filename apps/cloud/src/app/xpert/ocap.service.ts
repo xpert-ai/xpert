@@ -1,4 +1,4 @@
-import { effect, inject, Injectable, signal } from '@angular/core'
+import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { convertNewSemanticModelResult, NgmSemanticModel } from '@metad/cloud/state'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
@@ -8,6 +8,7 @@ import { combineLatest, of, tap } from 'rxjs'
 import { injectToastr, registerModel } from '../@core'
 import { getErrorMessage, IIndicator, ISemanticModel } from '../@core/types'
 import { XpertHomeService } from './home.service'
+import { ChatService } from './chat.service'
 
 /**
  * State service for ocap framework
@@ -18,6 +19,10 @@ export class XpertOcapService {
   readonly #toastr = injectToastr()
   readonly #wasmAgent? = inject(WasmAgentService, { optional: true })
   readonly #dsCoreService = inject(NgmDSCoreService)
+  readonly chatService = inject(ChatService)
+
+  readonly xpert = this.chatService.xpert
+  readonly isPublic = computed(() => this.xpert()?.app?.public)
 
   // SemanticModels
   readonly #semanticModels = signal<
@@ -35,7 +40,9 @@ export class XpertOcapService {
   readonly _semanticModels = derivedAsync(() => {
     const ids = Object.keys(this.#semanticModels()).filter((id) => !this.#semanticModels()[id].model)
     if (ids.length) {
-      return combineLatest(ids.map((id) => this.homeService.selectSemanticModel(id))).pipe(
+      return combineLatest(ids.map((id) => 
+        this.isPublic() ? this.homeService.selectPublicSemanticModel(id) : this.homeService.selectSemanticModel(id))
+      ).pipe(
         tap({
           error: (err) => {
             this.#toastr.error(getErrorMessage(err))

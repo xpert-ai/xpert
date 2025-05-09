@@ -988,6 +988,7 @@
         "CreateStory": "创建故事",
         "Visibility": "可见性",
         "Visibility_Public": "公开",
+        "Visibility_Internal": "非公开",
         "Visibility_Secret": "秘密",
         "Visibility_Private": "私有",
         "RemoveDBInitScript": "删除数据库初始化脚本",
