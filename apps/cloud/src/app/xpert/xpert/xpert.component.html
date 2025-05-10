@@ -82,7 +82,7 @@
     </div>
   </header>
   
-  <div class="relative flex flex-col flex-1 px-2 lg:w-[800px] lg:px-8 max-w-full mx-auto">
+  <div class="relative flex flex-col flex-1 px-2 w-full max-w-full mx-auto lg:w-[800px] lg:px-8">
     @if (!conversationId() && !messages()?.length) {
       <div @ifAnimationTrigger class="flex-1 h-full flex flex-col justify-center items-center gap-4">
         @if (xpert()) {
@@ -133,7 +133,7 @@
         }
       </div>
     } @else {
-      <chat-conversation @ifAnimationTrigger class="flex-1 max-w-full lg:w-[800px] mx-auto py-4 lg:p-8"
+      <chat-conversation @ifAnimationTrigger class="w-full"
         [xpert]="xpert()"
         (chat)="chatInput.ask($event)"
       />
