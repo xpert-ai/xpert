@@ -461,13 +461,17 @@ export class ModelEntityService {
 
   readonly newHierarchy = this.updater((state, { id, name }: { id: string; name: string }) => {
     const dimension = state.dimensions.find((item) => item.__id__ === id)
-    // Check if the entry already exists or up to two initial entries
-    if (dimension && (name ? !dimension.hierarchies?.some((item) => item.name === name) : dimension.hierarchies?.filter((_) => !_.name).length <= 1 )) {
-      dimension.hierarchies = dimension.hierarchies ?? []
-      dimension.hierarchies.push({
-        __id__: uuid(),
-        name
-      } as PropertyHierarchy)
+    if (dimension) {
+      dimension.hierarchies ??= []
+      // Check if the entry already exists or up to two initial entries
+      if (name ? !dimension.hierarchies?.some((item) => item.name === name) : dimension.hierarchies?.filter((_) => !_.name).length <= 1) {
+        dimension.hierarchies.push({
+          __id__: uuid(),
+          name,
+          hasAll: true,
+          visible: true,
+        } as PropertyHierarchy)
+      }
     }
   })
 

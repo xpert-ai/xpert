@@ -11,9 +11,9 @@
     <button mat-button displayDensity="cosy"
       [matTooltip]="'PAC.MODEL.UploadSemanticModel' | translate: {Default: 'Upload Semantic Model File'}"
       matTooltipPosition="above"
-      [disabled]="modelUploading"
+      [disabled]="modelUploading()"
       (click)="fileUpload.click()" >
-      @if (modelUploading) {
+      @if (modelUploading()) {
         <ngm-spin class="inline-block"/>
         {{ 'PAC.ACTIONS.Uploading' | translate: {Default: "Uploading"} }}...
       } @else {
