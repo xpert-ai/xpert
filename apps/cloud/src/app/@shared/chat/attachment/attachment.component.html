@@ -1,0 +1,51 @@
+@if (isImage()) {
+  <figure class="relative flex-shrink-0 aspect-square overflow-hidden w-12 ms-0 me-0 rounded-[9px]"
+    (click)="openImage()">
+    @if (uploadedUrl()) {
+      <img class="h-full mx-auto object-cover" 
+        [src]="uploadedUrl()"
+        [alt]="file()?.name"
+      />
+    } @else {
+      <img class="h-full mx-auto object-cover" 
+        [src]="previewUrl()"
+        [alt]="file()?.name"
+      />
+    }
+  </figure>
+  
+} @else {
+  <pac-file-icon [fileType]="name() | fileType" small class="opacity-80 group-hover/chip:opacity-100"/>
+  <span class="truncate max-w-full me-auto sm:max-w-full flex-1">
+    {{name()}}
+  </span>
+}
+
+<button type="button" class="absolute -top-1 -right-1 btn inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 disabled:hover:text-secondary disabled:hover:bg-inherit h-6 w-6 rounded-full ml-1 p-0.5 flex-shrink-0
+        danger opacity-0 group-hover/chip:opacity-100"
+  (click)="delete()"
+>
+  <i class="ri-close-line"></i>
+</button>
+
+@if (!storageFile() && progress() !== 100) {
+  <ngm-progress-spinner class="absolute top-0 left-0 w-full h-full flex justify-center items-center p-2" mode="determinate"
+    [value]="progress()"
+  />
+}
+
+<ng-template #dialog>
+  <div class="cursor-pointer" (click)="closeImage()">
+    @if (uploadedUrl()) {
+      <img class="h-[80vh] mx-auto object-cover" 
+        [src]="uploadedUrl()"
+        [alt]="file()?.name"
+      />
+    } @else {
+      <img class="h-[80vh] mx-auto object-cover" 
+        [src]="previewUrl()"
+        [alt]="file()?.name"
+      />
+    }
+  </div>
+</ng-template>

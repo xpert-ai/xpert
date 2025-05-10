@@ -1,5 +1,5 @@
 import { SearchItem } from '@langchain/langgraph-checkpoint'
-import { IXpert, IXpertAgentExecution, TChatOptions, TSensitiveOperation} from '@metad/contracts'
+import { IStorageFile, IXpert, IXpertAgentExecution, TChatOptions, TSensitiveOperation} from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 
@@ -9,6 +9,7 @@ export class XpertAgentInvokeCommand implements ICommand {
 	constructor(
 		public readonly input: {
 			input?: string
+			files?: IStorageFile[]
 			[key: string]: unknown
 		},
 		public readonly agentKeyOrName: string,

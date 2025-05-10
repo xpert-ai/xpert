@@ -33,7 +33,6 @@ import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
 import { allAgentsKey, identifyAgent, parseXmlString, stateVariable, TGraphTool, TSubAgent } from './types'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
-import { createSummarizeAgent } from './react_agent_executor'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 import { ChatOpenAI } from '@langchain/openai'
@@ -44,7 +43,7 @@ import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateMemoryStoreCommand } from '../../../xpert/commands'
 import { CreateWorkflowNodeCommand } from '../../workflow'
 import { toEnvState } from '../../../environment'
-import { _BaseToolset, AgentStateAnnotation, stateToParameters } from '../../../shared'
+import { _BaseToolset, AgentStateAnnotation, stateToParameters, createSummarizeAgent, createHumanMessage } from '../../../shared'
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -478,7 +477,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					}
 				}
 				if (!humanMessages.length && state.input) {
-					humanMessages.push(new HumanMessage(state.input))
+					// Add attachments
+					humanMessages.push(await createHumanMessage(state.human))
 				}
 			}
 

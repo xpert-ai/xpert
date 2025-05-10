@@ -4,6 +4,7 @@ import { TMessageContentComplex } from '../ai/chat-message.model'
 
 export const CONTEXT_VARIABLE_CURRENTSTATE = 'currentState'
 export const STATE_VARIABLE_SYS = 'sys'
+export const STATE_VARIABLE_HUMAN = 'human'
 export const GRAPH_NODE_SUMMARIZE_CONVERSATION = 'summarize_conversation'
 export const GRAPH_NODE_TITLE_CONVERSATION = 'title_conversation'
 export const STATE_VARIABLE_FILES = 'files'

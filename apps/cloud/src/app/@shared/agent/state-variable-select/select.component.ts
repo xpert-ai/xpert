@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { agentLabel, TStateVariable, TWorkflowVarGroup, XpertParameterTypeEnum } from '../../../@core/types'
+import { agentLabel, TStateVariable, TStateVariableType, TWorkflowVarGroup, XpertParameterTypeEnum } from '../../../@core/types'
 
 /**
  *
@@ -30,6 +30,7 @@ export class StateVariableSelectComponent {
   
   // Inputs
   readonly variables = input<TWorkflowVarGroup[]>()
+  readonly type = input<TStateVariableType>()
   readonly inline = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
@@ -48,6 +49,17 @@ export class StateVariableSelectComponent {
   readonly value$ = this.cva.value$
 
   readonly variableType = computed(() => this.variable()?.type)
+
+  readonly filteredVariables = computed(() => this.variables()?.map((_) => {
+    const variables = _.variables.filter((v) => this.type() ? v.type === this.type() : true)
+    if (variables.length) {
+      return {
+        ..._,
+        variables
+      }
+    }
+    return null
+  }).filter((_) => !!_))
 
   constructor() {
     effect(() => {

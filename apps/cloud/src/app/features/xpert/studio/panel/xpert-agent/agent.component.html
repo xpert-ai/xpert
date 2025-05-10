@@ -158,7 +158,43 @@
         <div>{{ 'PAC.Xpert.AddMessage' | translate: {Default: 'Add Message'} }}</div>
       </button>
     <!-- } -->
-      
+    
+    <!-- Vision part -->
+    <div class="flex flex-col w-full px-2">
+      <div class="flex justify-between items-center">
+        <div class="uppercase font-semibold text-sm">
+          {{'PAC.Xpert.Vision' | translate: {Default: 'Vision'} }}
+        </div>
+
+        <mat-slide-toggle class=""
+          labelPosition="before"
+          ngm-density="xs"
+          [(ngModel)]="visionEnabled"
+        />
+      </div>
+
+      @if (visionEnabled()) {
+        <div class="p-2">
+          <!-- <xpert-state-variable-select [variables]="variables()" [type]="eXpertParameterTypeEnum.ARRAY_FILE" class="focus:bg-white" 
+            [(ngModel)]="visionVariable"
+          /> -->
+          <div class="flex items-center justify-between">
+            <div class="mr-2 text-xs font-medium uppercase text-text-secondary">Resolution</div>
+            <div class="flex items-center space-x-1">
+              <div class="system-sm-regular flex h-8 cursor-default items-center rounded-md px-2 text-text-secondary system-sm-medium border-[1.5px] border-components-option-card-option-selected-border bg-components-option-card-option-selected-bg shadow-xs justify-center">
+                <span>High</span>
+              </div>
+              <div class="system-sm-regular flex h-8 items-center rounded-md border border-components-option-card-option-border bg-components-option-card-option-bg px-2 text-text-secondary cursor-pointer hover:border-components-option-card-option-border-hover hover:bg-components-option-card-option-bg-hover hover:shadow-xs justify-center">
+                <span>Low</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      }
+    </div>
+
+    <!-- Node part -->
     <div class="w-full flex flex-col gap-2 p-3 bg-gray-50 rounded-xl">
       <div class="flex items-center space-x-1 shrink-0">
         <div class="flex items-center justify-center w-6 h-6">
@@ -214,12 +250,15 @@
       </div>
     </div>
 
+    <!-- Parameters part -->
     <xpert-parameters-edit [ngModel]="parameters()" (ngModelChange)="onParameters($event)" />
 
+    <!-- Knowledges part -->
     <xpert-studio-panel-knowledge-section class="mt-3 rounded-xl bg-gray-50 pt-2 pb-3"
       [key]="key()"
     />
 
+    <!-- Toolsets part -->
     <xpert-studio-panel-toolset-section
       class="mt-3 rounded-xl bg-gray-50 pt-2 pb-3"
       [key]="key()"

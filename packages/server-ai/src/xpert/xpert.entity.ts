@@ -12,10 +12,10 @@ import {
 	TAvatar,
 	TChatApi,
 	TChatApp,
-	TFileUpload,
 	TLongTermMemory,
 	TSummarize,
 	TXpertAgentConfig,
+	TXpertAttachment,
 	TXpertGraph,
 	TXpertOptions,
 	TXpertTeamDraft,
@@ -111,7 +111,7 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 	@IsObject()
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
-	fileUpload?: TFileUpload
+	attachment?: TXpertAttachment
 
 	// Versions
 	@ApiPropertyOptional({ type: () => String })

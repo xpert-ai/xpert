@@ -1,0 +1,10 @@
+<div class="max-w-full" style="opacity: 1; transform: none;">
+  @for (item of attachments(); track i; let i = $index) {
+    <chat-attachment class="flex flex-row items-center text-sm transition ease-in-out gap-2 relative group/chip cursor-pointer text-primary bg-chip border border-border-l1 hover:bg-button-secondary-hover rounded-xl h-12 justify-between p-0.5"
+      immediately
+      [file]="item.file" 
+      [storageFile]="item.storageFile"
+      (storageFileChange)="setStorageFile(i, $event)"
+    />
+  }
+</div>

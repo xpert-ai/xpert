@@ -31,8 +31,8 @@ export enum TreeSelectionMode {
 /**
  * New select option type
  */
-export type TSelectOption<T = string | number | boolean> = {
-  key?: string
+export type TSelectOption<T = string | number | boolean, K = string> = {
+  key?: K
   value: T
 
   label?: TI18N | string

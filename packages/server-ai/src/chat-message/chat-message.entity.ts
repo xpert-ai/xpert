@@ -62,7 +62,7 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
     |--------------------------------------------------------------------------
     */
     // Attachments files
-	@ManyToMany(() => StorageFile)
+	@ManyToMany(() => StorageFile, {cascade: true})
 	@JoinTable({
 		name: 'chat_message_attachment'
 	})

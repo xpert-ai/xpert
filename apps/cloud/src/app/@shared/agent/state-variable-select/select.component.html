@@ -56,7 +56,7 @@
 <ng-template #varsMenu>
   <div cdkMenu class="cdk-menu__medium">
     <ul>
-      @for (g of variables(); track g) {
+      @for (g of filteredVariables(); track g) {
         @if (g.group) {
           <div class="p-1 mt-2 text-sm text-text-secondary uppercase">{{g.group.description | i18n}}</div>
         } @else {

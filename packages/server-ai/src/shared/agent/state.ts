@@ -1,18 +1,29 @@
-import { Annotation, messagesStateReducer } from '@langchain/langgraph'
-import { BaseMessage } from '@langchain/core/messages'
-import { IEnvironment, STATE_VARIABLE_SYS, STATE_VARIABLE_TITLE_CHANNEL, TMessageChannel } from '@metad/contracts'
 import { ToolCall } from '@langchain/core/dist/messages/tool'
+import { BaseMessage } from '@langchain/core/messages'
+import { Annotation, messagesStateReducer } from '@langchain/langgraph'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
+import {
+	IEnvironment,
+	IStorageFile,
+	STATE_VARIABLE_HUMAN,
+	STATE_VARIABLE_SYS,
+	STATE_VARIABLE_TITLE_CHANNEL,
+	TMessageChannel
+} from '@metad/contracts'
 import { commonTimes } from './time'
 
-
-export type TSystemState = {
+export type TAgentStateSystem = {
 	language: string
 	user_email: string
 	timezone: string
 	date: string
 	datetime: string
 	common_times: string
+}
+
+export type TAgentStateHuman = {
+	input: string
+	files: IStorageFile[]
 }
 
 export const AgentStateAnnotation = Annotation.Root({
@@ -24,7 +35,7 @@ export const AgentStateAnnotation = Annotation.Root({
 		reducer: (a, b) => b ?? a,
 		default: () => ''
 	}),
-	[STATE_VARIABLE_SYS]: Annotation<TSystemState>({
+	[STATE_VARIABLE_SYS]: Annotation<TAgentStateSystem>({
 		reducer: (a, b) => {
 			return b
 				? {
@@ -36,7 +47,13 @@ export const AgentStateAnnotation = Annotation.Root({
 		default: () =>
 			({
 				common_times: commonTimes()
-			}) as TSystemState
+			}) as TAgentStateSystem
+	}),
+	[STATE_VARIABLE_HUMAN]: Annotation<TAgentStateHuman>({
+		reducer: (a, b) => {
+			return b ?? a
+		},
+		default: () => ({} as TAgentStateHuman)
 	}),
 	toolCall: Annotation<ToolCall>({
 		reducer: (a, b) => b ?? a,

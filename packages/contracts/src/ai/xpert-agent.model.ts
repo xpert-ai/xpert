@@ -137,6 +137,14 @@ export type TXpertAgentOptions = {
    */
   availableTools?: Record<string, string[]>
   
+  /**
+   * Vision config of agent
+   */
+  vision?: {
+    enabled?: boolean
+    variable?: string
+    resolution?: 'high' | 'low'
+  }
 }
 
 export type TAgentPromptTemplate = {

@@ -42,7 +42,7 @@ import { XpertStudioPanelAgentExecutionComponent } from '../agent-execution/exec
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertStudioPanelToolsetSectionComponent } from './toolset-section/toolset.component'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { BehaviorSubject, catchError, map, of, shareReplay, startWith, switchMap } from 'rxjs'
+import { BehaviorSubject, catchError, map, of, retry, shareReplay, startWith, switchMap } from 'rxjs'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelKnowledgeSectionComponent } from './knowledge-section/knowledge.component'
@@ -54,9 +54,11 @@ import { XpertStudioComponent } from '../../studio.component'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { OverlayAnimations } from '@metad/core'
+import { attrModel, linkedModel, OverlayAnimations } from '@metad/core'
 import { MatSliderModule } from '@angular/material/slider'
 import { XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/workflow'
+import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
+import { VISION_DEFAULT_VARIABLE } from '../../types'
 
 @Component({
   selector: 'xpert-studio-panel-agent',
@@ -77,6 +79,7 @@ import { XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/
     NgmDensityDirective,
     NgmSpinComponent,
     EmojiAvatarComponent,
+    StateVariableSelectComponent,
     XpertStudioPanelToolsetSectionComponent,
     CopilotModelSelectComponent,
     XpertStudioPanelAgentExecutionComponent,
@@ -94,6 +97,7 @@ import { XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/
 })
 export class XpertStudioPanelAgentComponent {
   eModelType = AiModelTypeEnum
+  eXpertParameterTypeEnum = XpertParameterTypeEnum
 
   readonly regex = `{{(.*?)}}`
   readonly elementRef = inject(ElementRef)
@@ -126,13 +130,34 @@ export class XpertStudioPanelAgentComponent {
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
   readonly isEnd = computed(() => this.agentConfig()?.endNodes?.includes(this.agentUniqueName()))
   readonly disableOutput = computed(() => this.agentConfig()?.disableOutputs?.includes(this.key()))
-  readonly enableMessageHistory = computed(() => !this.xpertAgent()?.options?.disableMessageHistory)
+  readonly agentOptions = linkedModel({
+    initialValue: null,
+    compute: () => this.xpertAgent()?.options,
+    update: (value: Partial<TXpertAgentOptions>) => {
+      const options = this.xpertAgent().options ?? {}
+      this.apiService.updateXpertAgent(this.key(), {
+        options: {...options, ...value }
+      })
+    }
+  })
+  
+  readonly enableMessageHistory = computed(() => !this.agentOptions()?.disableMessageHistory)
   readonly promptTemplates = computed(() => this.xpertAgent()?.promptTemplates)
   readonly isPrimaryAgent = computed(() => !!this.xpertAgent()?.xpertId)
 
   readonly parameters = computed(() => this.xpertAgent()?.parameters)
-  readonly memories = computed(() => this.xpertAgent()?.options?.memories)
-  readonly parallelToolCalls = computed(() => this.xpertAgent()?.options?.parallelToolCalls ?? true)
+  readonly memories = computed(() => this.agentOptions()?.memories)
+  readonly parallelToolCalls = computed(() => this.agentOptions()?.parallelToolCalls ?? true)
+  readonly vision = attrModel(this.agentOptions, 'vision')
+  readonly visionEnabled = attrModel(this.vision, 'enabled')
+  readonly visionVariable = linkedModel({
+    initialValue: null,
+    compute: () => this.vision()?.variable ?? VISION_DEFAULT_VARIABLE,
+    update: (variable) => {
+      this.vision.update((state) => ({...(state ?? {}), variable}))
+    }
+  })
+  
 
   // Error handling
   readonly retry = computed(() => this.xpertAgent()?.options?.retry)

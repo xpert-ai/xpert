@@ -3,6 +3,8 @@ import {
 	IWFNCode,
 	IWorkflowNode,
 	IXpertAgent,
+	STATE_VARIABLE_FILES,
+	STATE_VARIABLE_HUMAN,
 	STATE_VARIABLE_INPUT,
 	STATE_VARIABLE_SYS,
 	TStateVariable,
@@ -63,6 +65,34 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			})
 		}
 
+		varGroups.push({
+			group: {
+				name: STATE_VARIABLE_HUMAN,
+				description: {
+					en_US: 'Human',
+					zh_Hans: '用户'
+				}
+			},
+			variables: [
+				{
+					name: STATE_VARIABLE_INPUT,
+					type: XpertParameterTypeEnum.STRING,
+					description: {
+						en_US: 'Input',
+						zh_Hans: '输入'
+					}
+				},
+				{
+					name: STATE_VARIABLE_FILES,
+					type: XpertParameterTypeEnum.ARRAY_FILE,
+					description: {
+						en_US: 'Files',
+						zh_Hans: '文件'
+					}
+				}
+			]
+		})
+
 		const variables: TStateVariable[] = [
 			{
 				name: STATE_VARIABLE_INPUT,
@@ -119,7 +149,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 					en_US: 'Common Times',
 					zh_Hans: '常用时间'
 				}
-			}
+			},
 		]
 		
 		varGroups.push({

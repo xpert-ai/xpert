@@ -13,6 +13,7 @@ import { IIntegration } from '../integration.model'
 import { TChatFrom, TSensitiveOperation } from './chat.model'
 import { IWorkflowNode, TVariableAssigner, VariableOperationEnum } from './xpert-workflow.model'
 import { IEnvironment } from './environment.model'
+import { IStorageFile } from '../storage-file.model'
 
 export type ToolCall = LToolCall
 
@@ -51,7 +52,7 @@ export type TXpert = {
   /**
    * File upload feature
    */
-  fileUpload?: TFileUpload
+  attachment?: TXpertAttachment
 
   /**
    * Version of role: '1' '2' '2.1' '2.2'...
@@ -254,8 +255,12 @@ export type TLongTermMemory = {
   qa?: TLongTermMemoryConfig
 }
 
-export type TFileUpload = {
+export type TXpertAttachmentType = 'document' | 'image' | 'audio' | 'video' | 'others'
+export type TXpertAttachment = {
   enabled?: boolean
+  type?: 'upload' | 'url' | 'all'
+  maxNum?: number
+  fileTypes?: Array<TXpertAttachmentType>
 }
 
 export enum XpertTypeEnum {
@@ -270,6 +275,7 @@ export enum XpertParameterTypeEnum {
   NUMBER = 'number',
   ARRAY_STRING = 'array[string]',
   ARRAY = 'array[object]',
+  ARRAY_FILE = 'array[file]',
 
   STRING = 'string',
   BOOLEAN = 'boolean',
@@ -404,12 +410,20 @@ export enum ChatMessageEventTypeEnum {
   ON_ERROR = 'on_error',
 }
 
+/**
+ * Human input message, include parameters and attachments
+ */
+export type TChatRequestHuman = {
+  input?: string
+  files?: IStorageFile[]
+  [key: string]: unknown
+}
 
 export type TChatRequest = {
-  input: {
-    input?: string
-    [key: string]: unknown
-  }
+  /**
+   * The human input, include parameters
+   */
+  input: TChatRequestHuman
   xpertId: string
   agentKey?: string
   projectId?: string

@@ -21,6 +21,7 @@ import { AppService } from '../../app.service'
 import { ChatAiMessageComponent } from '../ai-message/ai-message.component'
 import { ChatService } from '../chat.service'
 import { XpertHomeService } from '../home.service'
+import { ChatHumanMessageComponent } from './human-message/message.component'
 
 @Component({
   standalone: true,
@@ -34,6 +35,7 @@ import { XpertHomeService } from '../home.service'
     EmojiAvatarComponent,
     ToolCallConfirmComponent,
     ChatAiMessageComponent,
+    ChatHumanMessageComponent,
     XpertParametersCardComponent
   ],
   selector: 'chat-conversation',
