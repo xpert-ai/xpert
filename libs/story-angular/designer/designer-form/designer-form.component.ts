@@ -60,7 +60,7 @@ export class NgmDesignerFormComponent {
 
   onModelChange(event) {
     const title = this.schema.title()
-    this.#logger.log(`[NgmDesignerFormComponent] schema '${title}' onModelChange value:`, event)
+    this.#logger.trace(`[NgmDesignerFormComponent] schema '${title}' onModelChange value:`, event)
     this.onSubmit(event)
   }
 

@@ -13,14 +13,13 @@ import { ToastrService } from 'apps/cloud/src/app/@core'
 import { isNil, negate } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom, of } from 'rxjs'
-import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
+import { debounceTime, distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
 import { AppService } from '../../../../app.service'
 import { injectCalculatedCommand } from '../copilot'
 import { ModelComponent } from '../model.component'
 import { SemanticModelService } from '../model.service'
 import { ModelCubeStructureComponent } from './cube-structure/cube-structure.component'
 import { ModelEntityService } from './entity.service'
-import { MatButtonModule } from '@angular/material/button'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatIconModule } from '@angular/material/icon'
 import { MatSidenavModule } from '@angular/material/sidenav'
@@ -39,7 +38,6 @@ import { ModelCubeFactComponent } from './fact/fact.component'
     FormsModule,
     RouterModule,
     TranslateModule,
-    MatButtonModule,
     MatTooltipModule,
     MatIconModule,
     MatSidenavModule,
@@ -131,13 +129,17 @@ export class ModelEntityComponent implements OnInit {
     })
 
   /**
-   * 监听当前实体类型变化, 将错误信息打印出来;
-   * SQL Model / Olap Model: 用于验证 Schema 是否正确
+   * Monitor the current entity type changes and print out the error information;
+   * SQL Model / Olap Model: Used to verify whether the Schema is correct
    */
   private entityErrorSub = this.entityService.entityError$
-    .pipe(filter(nonBlank), takeUntilDestroyed())
+    .pipe(filter(nonBlank), debounceTime(2000), takeUntilDestroyed())
     .subscribe((error) => {
-      this.#toastr.error(error)
+      this.#toastr.danger(error, '', {}, {
+        duration: 5 * 1000, // 5s
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom'
+      })
     })
 
   ngOnInit() {
