@@ -52,7 +52,7 @@
     {{ 'PAC.MENU.DATA_SOURCES.CONFIGURATION' | translate: {Default: 'Configuration'} }}
   </div>
 
-  @if (type) {
+  @if (dataSourceType(); as type) {
     <form [formGroup]="formGroup" class="flex flex-col justify-start items-stretch">
       <div class="flex justify-center items-center text-lg my-2">
         <img src="assets/images/db-logos/{{type.type}}.png" width="64" height="64" class="m-0 inline-block">
@@ -75,17 +75,19 @@
           </mat-slide-toggle>
         }
 
-        <div class="flex justify-end items-center gap-2">
-          <div>{{ 'PAC.MENU.DATA_SOURCES.AuthType' | translate: {Default: 'Auth Type'} }}</div>
-          <mat-button-toggle-group formControlName="authType" name="authType" ngmAppearance="outline" displayDensity="compact" color="accent">
-            <mat-button-toggle [value]="null"
-              [matTooltip]="'PAC.MENU.DATA_SOURCES.AuthType_None_Description' | translate: {Default: 'Unified system authorization, no need for users to provide accounts.'}"
-            >{{ 'PAC.MENU.DATA_SOURCES.AuthType_None' | translate: {Default: 'None'} }}</mat-button-toggle>
-            <mat-button-toggle [value]="AuthenticationEnum.BASIC"
-              [matTooltip]="'PAC.MENU.DATA_SOURCES.AuthType_Basic_Description' | translate: {Default: 'Users need to provide an account for authorization.'}"
-            >{{ 'PAC.MENU.DATA_SOURCES.AuthType_Basic' | translate: {Default: 'Basic'} }}</mat-button-toggle>
-          </mat-button-toggle-group>
-        </div>
+        @if (isXmla()) {
+          <div class="flex justify-end items-center gap-2">
+            <div>{{ 'PAC.MENU.DATA_SOURCES.AuthType' | translate: {Default: 'Auth Type'} }}</div>
+            <mat-button-toggle-group formControlName="authType" name="authType" ngmAppearance="outline" displayDensity="compact" color="accent">
+              <mat-button-toggle [value]="null"
+                [matTooltip]="'PAC.MENU.DATA_SOURCES.AuthType_None_Description' | translate: {Default: 'Unified system authorization, no need for users to provide accounts.'}"
+              >{{ 'PAC.MENU.DATA_SOURCES.AuthType_None' | translate: {Default: 'None'} }}</mat-button-toggle>
+              <mat-button-toggle [value]="AuthenticationEnum.BASIC"
+                [matTooltip]="'PAC.MENU.DATA_SOURCES.AuthType_Basic_Description' | translate: {Default: 'Users need to provide an account for authorization.'}"
+              >{{ 'PAC.MENU.DATA_SOURCES.AuthType_Basic' | translate: {Default: 'Basic'} }}</mat-button-toggle>
+            </mat-button-toggle-group>
+          </div>
+        }
       </div>
 
       <formly-form

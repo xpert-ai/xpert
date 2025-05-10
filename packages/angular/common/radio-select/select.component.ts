@@ -4,6 +4,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TSelectOption, NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { CdkListboxModule } from '@angular/cdk/listbox'
+import { MatTooltipModule } from '@angular/material/tooltip'
 
 @Component({
   standalone: true,
@@ -23,7 +24,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
     },
     NgxControlValueAccessor
   ],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkListboxModule, NgmI18nPipe]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkListboxModule, MatTooltipModule, NgmI18nPipe]
 })
 export class NgmRadioSelectComponent {
 

@@ -1443,7 +1443,9 @@
         "Url": "主机链接",
         "Request Timeout": "请求超时时间",
         "Verify SSL certificate": "验证 SSL 证书",
-        "HTTP Path": "Http 路径"
+        "SSL Mode": "SSL 模式",
+        "HTTP Path": "Http 路径",
+        "Query timeout": "查询超时时间"
       }
     },
     "Story": {
