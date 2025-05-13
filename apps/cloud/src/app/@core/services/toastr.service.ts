@@ -46,7 +46,7 @@ export class ToastrService {
     )
   }
 
-  danger(error: any, title: string = 'PAC.TOASTR.TITLE.ERROR', translationParams: Object = {}) {
+  danger(error: any, title: string = 'PAC.TOASTR.TITLE.ERROR', translationParams: Object = {}, config?: MatSnackBarConfig) {
     let displayMessage = getErrorMessage(error)
     if (!displayMessage) {
       displayMessage = 'PAC.TOASTR.SystemError'
@@ -55,7 +55,7 @@ export class ToastrService {
     this._snackBar.open(
       this.getTranslation(displayMessage, translationParams),
       this.getTranslation(title || 'PAC.TOASTR.TITLE.ERROR'),
-      {
+      config ?? {
         duration: 5 * 1000, // 5s
         horizontalPosition: 'end',
         verticalPosition: 'bottom'

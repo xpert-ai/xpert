@@ -25,6 +25,9 @@ export class XpertProjectFileDto implements Partial<IXpertProjectFile> {
 	@Expose()
 	description?: string
 
+	@Expose()
+	storageFileId?: string
+
 	@ApiProperty({ type: () => Object, readOnly: true })
 	@IsOptional()
 	@IsObject()

@@ -9,7 +9,7 @@ import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
 import { DisplayDensity, NgmDensityDirective } from '@metad/ocap-angular/core'
 import { NgmEntityModule, PropertyCapacity } from '@metad/ocap-angular/entity'
-import { C_MEASURES, Dimension, EntityType, FilterOperator, getEntityVariables, ISlicer, Measure, Syntax } from '@metad/ocap-core'
+import { C_MEASURES, Dimension, EntityType, FilterOperator, getEntityVariables, isEntitySet, ISlicer, Measure, Syntax } from '@metad/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
@@ -19,6 +19,8 @@ import { SemanticModelService } from '../../model.service'
 import { ModelEntityService } from '../entity.service'
 import { getDropProperty } from '../types'
 import { CdkDragDropContainers } from '../../types'
+import { derivedAsync } from 'ngxtension/derived-async'
+import { getErrorMessage } from '@cloud/app/@core'
 
 @Component({
   standalone: true,
@@ -73,7 +75,7 @@ export class ModelEntityPreviewComponent {
   set columns(value) {
     this.columns$.next(value)
   }
-  public readonly columns$ = new BehaviorSubject<Array<Dimension | Measure>>([
+  readonly columns$ = new BehaviorSubject<Array<Dimension | Measure>>([
     ...(this.entityService.preview?.columns ?? [])
   ])
 
@@ -83,17 +85,17 @@ export class ModelEntityPreviewComponent {
   set slicers(value) {
     this.slicers$.next(value)
   }
-  public readonly slicers$ = new BehaviorSubject<ISlicer[]>([...(this.entityService.preview?.slicers ?? [])])
+  readonly slicers$ = new BehaviorSubject<ISlicer[]>([...(this.entityService.preview?.slicers ?? [])])
 
   readonly variables = model<{ [name: string]: ISlicer | null }>({})
 
   reverse = false
 
-  readonly entityError = toSignal(this.entityService.entityError$)
+  // readonly entityError = toSignal(this.entityService.entityError$)
 
   private refresh$ = new BehaviorSubject<boolean | null>(null)
 
-  public readonly analytics$ = combineLatest([
+  readonly analytics$ = combineLatest([
     this.refresh$.pipe(switchMap((refresh) => (this.manualRefresh ? from([refresh, false]) : of(refresh)))),
     this.rows$,
     this.columns$,
@@ -131,7 +133,7 @@ export class ModelEntityPreviewComponent {
   manualRefresh = false
   entities = []
 
-  public readonly analytics = toSignal(this.analytics$)
+  readonly analytics = toSignal(this.analytics$)
 
   private readonly modelKey = toSignal(this.modelService.model$.pipe(map((model) => model.key ?? model.name)))
   private readonly cubeName = toSignal(
@@ -144,12 +146,12 @@ export class ModelEntityPreviewComponent {
   readonly modelType = toSignal(this.modelService.modelType$)
   readonly dialect = this.modelService.dialect
 
-  public readonly dataSettings = computed(() => ({
+  readonly dataSettings = computed(() => ({
     dataSource: this.modelKey(),
     entitySet: this.cubeName()
   }))
 
-  public readonly analyticsDataSettings = computed(() => ({
+  readonly analyticsDataSettings = computed(() => ({
     ...this.dataSettings(),
     analytics: this.analytics(),
     selectionVariant: {
@@ -157,9 +159,17 @@ export class ModelEntityPreviewComponent {
     }
   }))
 
-  public readonly entityType = toSignal<EntityType, EntityType>(this.entityService.entityType$, {
-    initialValue: { syntax: Syntax.MDX, properties: {} } as EntityType
+  readonly #entityType = derivedAsync(() => {
+    const cubeName = this.cubeName()
+    return cubeName ? this.modelService.dataSource$.pipe(
+      filter(nonNullable),
+      switchMap((dataSource) => dataSource.selectEntitySet(cubeName)),
+      map((result) => isEntitySet(result) ? {entityType: result.entityType} : {error: getErrorMessage(result)})
+    ) : of(null)
   })
+  
+  readonly entityType = computed(() => this.#entityType()?.entityType)
+  readonly entityError = computed(() => this.#entityType()?.error)
 
   readonly variableList = computed(() => {
     return getEntityVariables(this.entityType())

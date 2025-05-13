@@ -1,23 +1,23 @@
-import { Component, OnInit, inject, signal } from '@angular/core'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { Component, OnInit, computed, inject, signal } from '@angular/core'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
-import { DataSourceService, DataSourceTypesService } from '@metad/cloud/state'
-import { AuthenticationEnum, IDataSource, IDataSourceType } from '@metad/contracts'
+import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@metad/cloud/state'
+import { AuthenticationEnum, IDataSource, IDataSourceType } from '@cloud/app/@core/types'
 import { isEmpty, omit } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { BehaviorSubject, firstValueFrom } from 'rxjs'
+import { BehaviorSubject, firstValueFrom, map } from 'rxjs'
 import {
   LocalAgent,
   ServerAgent,
   ToastrService,
   convertConfigurationSchema,
   getErrorMessage
-} from '../../../../@core/index'
-import { environment } from 'apps/cloud/src/environments/environment'
+} from '@cloud/app/@core/index'
+import { environment } from '@cloud/environments/environment'
 import { CommonModule } from '@angular/common'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { MatListModule, MatSelectionList } from '@angular/material/list'
+import { MatListModule } from '@angular/material/list'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { MatButtonModule } from '@angular/material/button'
 import { NgmInputComponent } from '@metad/ocap-angular/common'
@@ -66,13 +66,15 @@ export class PACDataSourceCreationComponent implements OnInit {
 
   readonly loading = signal(false)
 
-  public readonly connectionTypes$ = this.typesService.types$.pipe(takeUntilDestroyed())
+  readonly connectionTypes$ = this.typesService.types$.pipe(takeUntilDestroyed())
   public typeFormGroup = new FormGroup({
     type: new FormControl(null, [Validators.required])
   })
-  get type(): IDataSourceType {
-    return this.typeFormGroup.value?.type?.[0]
-  }
+  // get type(): IDataSourceType {
+  //   return this.typeFormGroup.value?.type?.[0]
+  // }
+
+  readonly dataSourceType = toSignal(this.typeFormGroup.valueChanges.pipe(map((value) => value?.type?.[0])))
 
   formGroup = new FormGroup({
     name: new FormControl(null, [Validators.required]),
@@ -89,7 +91,10 @@ export class PACDataSourceCreationComponent implements OnInit {
   }
 
   model = {}
-  public readonly fields$ = new BehaviorSubject([])
+  readonly fields$ = new BehaviorSubject([])
+
+  // Signal States
+  readonly isXmla = computed(() => this.dataSourceType()?.protocol === DataSourceProtocolEnum.XMLA)
 
   private _typeFormGroupSub = this.typeFormGroup.valueChanges.subscribe(({ type }) => {
     if (!isEmpty(type)) {
@@ -118,7 +123,7 @@ export class PACDataSourceCreationComponent implements OnInit {
       const result = await firstValueFrom(
         this.dataSourceService.create({
           ...this.formGroup.value,
-          typeId: this.type.id
+          typeId: this.dataSourceType().id
         })
       )
 
@@ -139,10 +144,10 @@ export class PACDataSourceCreationComponent implements OnInit {
     try {
       await agent.request(
         {
-          type: this.type.protocol.toUpperCase(),
+          type: this.dataSourceType().protocol.toUpperCase(),
           dataSource: {
             ...this.formGroup.value,
-            type: this.type
+            type: this.dataSourceType()
           }
         },
         {
@@ -150,7 +155,7 @@ export class PACDataSourceCreationComponent implements OnInit {
           url: 'ping',
           body: {
             ...this.formGroup.value,
-            type: this.type
+            type: this.dataSourceType()
           }
         }
       )

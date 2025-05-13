@@ -338,6 +338,7 @@ export class SemanticModelService {
         this.dataSource$.value?.clearCache()
         // Register model after saved to refresh metadata of entity
         this.registerModel()
+        this.dataSource$.value?.refresh()
       })
     )
   }

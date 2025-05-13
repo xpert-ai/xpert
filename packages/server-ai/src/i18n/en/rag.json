@@ -2,6 +2,7 @@
     "Error": {
         "InstallingPlaywright": "Installing playwright. Please try again later!",
         "PlaywrightNotInstalled": "Detected that playwright is not installed. It will be installed. Please try again later!",
-        "ErrorReinstallPlaywright": "Playwright installation failed, will be reinstalled, please try again later!"
+        "ErrorReinstallPlaywright": "Playwright installation failed, will be reinstalled, please try again later!",
+        "KnowledgebaseNoModel": "Embedding model not set for knowledgebase '{{knowledgebase}}'"
     }
 }

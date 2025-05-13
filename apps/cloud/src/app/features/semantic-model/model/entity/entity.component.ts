@@ -9,23 +9,23 @@ import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NX_STORY_STORE, NxStoryStore, Story, StoryModel } from '@metad/story/core'
 import { NxDesignerModule, NxSettingsPanelService } from '@metad/story/designer'
 import { TranslateModule } from '@ngx-translate/core'
-import { ToastrService } from 'apps/cloud/src/app/@core'
+import { injectTranslate, ToastrService } from 'apps/cloud/src/app/@core'
 import { isNil, negate } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom, of } from 'rxjs'
-import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
+import { debounceTime, distinctUntilChanged, filter, map, pairwise, startWith, switchMap } from 'rxjs/operators'
 import { AppService } from '../../../../app.service'
 import { injectCalculatedCommand } from '../copilot'
 import { ModelComponent } from '../model.component'
 import { SemanticModelService } from '../model.service'
 import { ModelCubeStructureComponent } from './cube-structure/cube-structure.component'
 import { ModelEntityService } from './entity.service'
-import { MatButtonModule } from '@angular/material/button'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatIconModule } from '@angular/material/icon'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatTabsModule } from '@angular/material/tabs'
 import { ModelCubeFactComponent } from './fact/fact.component'
+import { isEntitySet } from '@metad/ocap-core'
 
 @Component({
   standalone: true,
@@ -39,7 +39,6 @@ import { ModelCubeFactComponent } from './fact/fact.component'
     FormsModule,
     RouterModule,
     TranslateModule,
-    MatButtonModule,
     MatTooltipModule,
     MatIconModule,
     MatSidenavModule,
@@ -60,6 +59,7 @@ export class ModelEntityComponent implements OnInit {
   readonly #toastr = inject(ToastrService)
   private route = inject(ActivatedRoute)
   private router = inject(Router)
+  readonly i18n = injectTranslate('PAC.MODEL')
   readonly #storyStore = inject<NxStoryStore>(NX_STORY_STORE)
   readonly #model = inject(ModelComponent)
 
@@ -131,13 +131,23 @@ export class ModelEntityComponent implements OnInit {
     })
 
   /**
-   * 监听当前实体类型变化, 将错误信息打印出来;
-   * SQL Model / Olap Model: 用于验证 Schema 是否正确
+   * Monitor the current entity type changes and print out the error information;
+   * SQL Model / Olap Model: Used to verify whether the Schema is correct
    */
-  private entityErrorSub = this.entityService.entityError$
-    .pipe(filter(nonBlank), takeUntilDestroyed())
-    .subscribe((error) => {
-      this.#toastr.error(error)
+  private entityErrorSub = this.entityService.entitySet$
+    .pipe(filter(nonBlank), debounceTime(2000), startWith(null), pairwise(), takeUntilDestroyed())
+    .subscribe(([prev, curr]) => {
+      if (isEntitySet(curr)) {
+        if (!prev || !isEntitySet(prev)) {
+          this.#toastr.success(this.i18n()?.CubeCorrect || 'Cube correct!')
+        }
+      } else if(curr) {
+        this.#toastr.danger(curr, '', {}, {
+          duration: 5 * 1000, // 5s
+          horizontalPosition: 'center',
+          verticalPosition: 'bottom'
+        })
+      }
     })
 
   ngOnInit() {

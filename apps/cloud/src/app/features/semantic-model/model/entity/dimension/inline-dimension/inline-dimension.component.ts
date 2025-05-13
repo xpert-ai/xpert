@@ -107,7 +107,7 @@ export class InlineDimensionComponent {
     this.cubeState.toggleSelectedProperty(node.role, node.__id__)
   }
 
-  addNewItem(event, node: TreeItemFlatNode) {
+  addNewItem(event: MouseEvent, node: TreeItemFlatNode) {
     event.stopPropagation()
     if (!isNil(node)) {
       this.treeControl.expand(node)

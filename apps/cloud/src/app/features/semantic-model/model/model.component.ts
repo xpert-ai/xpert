@@ -19,7 +19,7 @@ import { MatDialog, MatDialogConfig } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { CopilotChatMessageRoleEnum, CopilotEngine } from '@metad/copilot'
-import { IsDirty, nonBlank } from '@metad/core'
+import { nonBlank } from '@metad/core'
 import { NgmConfirmDeleteComponent, NgmConfirmUniqueComponent } from '@metad/ocap-angular/common'
 import { CommandDialogComponent, NgmCopilotChatComponent, provideCopilotDropAction } from '@metad/copilot-angular'
 import { DBTable, PropertyAttributes, TableEntity, pick } from '@metad/ocap-core'
@@ -79,7 +79,7 @@ import { TranslationBaseComponent } from '../../../@shared/language/'
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ModelComponent extends TranslationBaseComponent implements IsDirty {
+export class ModelComponent extends TranslationBaseComponent {
   SemanticModelEntityType = SemanticModelEntityType
   TOOLBAR_ACTION_CATEGORY = TOOLBAR_ACTION_CATEGORY
 
@@ -298,9 +298,9 @@ export class ModelComponent extends TranslationBaseComponent implements IsDirty 
     this.modelService.initModel(this.model)
   }
 
-  isDirty(id?: string) {
-    return id ? this.modelService.dirty()[id] : this.modelService.isDirty()
-  }
+  // isDirty(id?: string) {
+  //   return id ? this.modelService.dirty()[id] : this.modelService.isDirty()
+  // }
 
   trackById(i: number, item: SemanticModelEntity) {
     return item.id

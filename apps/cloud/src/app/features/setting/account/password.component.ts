@@ -78,7 +78,7 @@ import { UserFormsModule } from '../../../@shared/user/forms'
 
     <div class="w-full flex justify-center items-center gap-2">
       <button
-        type="button"
+        type="submit"
         class="btn disabled:btn-disabled btn-primary btn-large"
         [disabled]="passwordForm.pristine || passwordForm.invalid || loading()"
       >

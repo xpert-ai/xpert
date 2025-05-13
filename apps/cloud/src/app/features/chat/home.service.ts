@@ -60,4 +60,11 @@ export class ChatHomeService extends XpertHomeService {
     }
     return this.#xperts[slug]
   }
+
+  /**
+   * 
+   */
+  selectPublicSemanticModel(id: string) {
+    return this.selectSemanticModel(id)
+  }
 }

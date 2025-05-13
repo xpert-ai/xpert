@@ -378,16 +378,30 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
     )
   }
 
+  /**
+   * Observe cube structure.
+   * 
+   * @param cube 
+   * @returns 
+   */
   #selectEntitySet(cube: string): Observable<EntitySet> {
     if (!this._cubeEntityTypies[cube]) {
-      this._cubeEntityTypies[cube] = from(
-        this.getEntitySetWithCache(this.options.name, cube, this.options.settings?.language || '')
+      this._cubeEntityTypies[cube] = this.refresh$.pipe(
+        switchMap(() => this.getEntitySetWithCache(this.options.name, cube, this.options.settings?.language || ''))
       )
     }
 
     return this._cubeEntityTypies[cube]
   }
 
+  /**
+   * Get cube info with cache.
+   * 
+   * @param modelName Name of semantic model
+   * @param cube Name of cube
+   * @param language Language
+   * @returns EntitySet
+   */
   private async getEntitySetWithCache(modelName: string, cube: string, language = ''): Promise<EntitySet> {
     const cacheOptions = {
       key: serializeArgs('xmla-entity:', modelName, cube, language),
@@ -417,6 +431,13 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
     return result
   }
 
+  /**
+   * Get entity type (cube structure) from server.
+   * 
+   * @param cube Name of cube.
+   * @param language Language
+   * @returns 
+   */
   async #discoverEntitySet(cube: string, language = ''): Promise<EntitySet> {
     const CATALOG_NAME = this.options.catalog || ''
     const CUBE_NAME = cube
@@ -721,7 +742,7 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
       })
 
       if (isEmpty(entityProperties)) {
-        throw new Error(`Can't discover metadata for cube '${cube}'`)
+        throw new Error(t('Error.NoCubeMetadata', {ns: 'xmla', cube}))
       }
 
       return {
@@ -850,7 +871,7 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
 
     const entityType = await firstValueFrom(this.selectEntityType(CUBE_NAME))
     if (!isEntityType(entityType)) {
-      throw new Error(`Can't discover metadata for cube '${CUBE_NAME}'`)
+      throw new Error(t('Error.NoCubeMetadata', {ns: 'xmla', cube: CUBE_NAME}))
     }
     const level = getEntityLevel(entityType, {
       dimension: DIMENSION,

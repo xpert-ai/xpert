@@ -2,6 +2,7 @@
     "Error": {
         "NoPropertyFoundFor": "No properties found for '{{path}}' in cube '{{cube}}'.",
         "NoPropertyFoundForOrderBy": "No properties found for order '{{by}}'",
-        "NoDimensionFoundFor": "Can't find dimension '{{dimension}}' in cube '{{cube}}'."
+        "NoDimensionFoundFor": "Can't find dimension '{{dimension}}' in cube '{{cube}}'.",
+        "NoCubeMetadata": "Can't discover metadata for cube '{{cube}}'."
     }
 }

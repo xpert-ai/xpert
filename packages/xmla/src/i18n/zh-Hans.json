@@ -2,6 +2,7 @@
     "Error": {
         "NoPropertyFoundFor": "在数据集‘{{cube}}’中未找到‘{{path}}’相关的属性",
         "NoPropertyFoundForOrderBy": "未找到排序‘{{by}}’的相关属性",
-        "NoDimensionFoundFor": "在数据集‘{{cube}}’中未找到维度‘{{dimension}}’"
+        "NoDimensionFoundFor": "在数据集‘{{cube}}’中未找到维度‘{{dimension}}’",
+        "NoCubeMetadata": "无法获取数据集‘{{cube}}’的元数据"
     }
 }
