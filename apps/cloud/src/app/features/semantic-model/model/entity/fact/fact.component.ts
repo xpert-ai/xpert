@@ -46,7 +46,6 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { Dialog } from '@angular/cdk/dialog'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 
 
@@ -313,23 +312,25 @@ export class ModelCubeFactComponent {
       next: (value) => {
         if (value) {
           // Add new dimension using fields as levels
-          this.entityService.addDimension({
-            __id__: uuid(),
-            name: value.name,
-            caption: value.caption,
-            hierarchies: [
-              {
-                __id__: uuid(),
-                name: '',
-                hasAll: true,
-                levels: levels.map((property) => ({
+          this.entityService.insertDimension({
+            dimension: {
+              __id__: uuid(),
+              name: value.name,
+              caption: value.caption,
+              hierarchies: [
+                {
                   __id__: uuid(),
-                  name: property.name,
-                  caption: property.caption,
-                  column: property.name
-                }))
-              }
-            ]
+                  name: '',
+                  hasAll: true,
+                  levels: levels.map((property) => ({
+                    __id__: uuid(),
+                    name: property.name,
+                    caption: property.caption,
+                    column: property.name
+                  }))
+                }
+              ]
+            }
           })
           // Deselect all fields
           this.toggleVisibleAll(false)

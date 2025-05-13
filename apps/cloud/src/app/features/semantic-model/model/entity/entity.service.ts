@@ -158,8 +158,13 @@ export class ModelEntityService {
     shareReplay(1)
   )
 
-  readonly entityError$ = this.entityName$.pipe(
+  readonly entitySet$ = this.entityName$.pipe(
     switchMap((entity) => this.#modelService.selectEntitySet(entity)),
+    takeUntilDestroyed(),
+    shareReplay(1)
+  )
+
+  readonly entityError$ = this.entitySet$.pipe(
     map((error) => (isEntitySet(error) ? null : error)),
     takeUntilDestroyed(),
     shareReplay(1)

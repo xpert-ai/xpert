@@ -107,6 +107,7 @@ export interface DataSource {
   options: DataSourceOptions
   agent: Agent
 
+  refresh(): void
   /**
    *
    * @deprecated use discoverDBCatalogs
@@ -302,6 +303,7 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
     this.options$.next(options)
   }
   
+  readonly refresh$ = new BehaviorSubject<void>(null)
 
   abstract discoverDBCatalogs(): Observable<Array<DBCatalog>>
   abstract discoverDBTables(): Observable<Array<DBTable>>
@@ -317,6 +319,10 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
   abstract createEntity(name: string, columns: any[], data?: any[]): Observable<string>
   abstract dropEntity(name: string): Promise<void>
   abstract query(options: { statement: string; forceRefresh?: boolean }): Observable<any>
+
+  refresh() {
+    this.refresh$.next()
+  }
 
   setSchema(schema: Schema): void {
     this.options$.next({ ...this.options$.value, schema })
