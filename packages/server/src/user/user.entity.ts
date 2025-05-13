@@ -43,7 +43,6 @@ import {
 	UserOrganization,
 } from '../core/entities/internal'
 import { EmailVerification } from './email-verification/email-verification.entity'
-import { TrialUserCreatedEvent } from './events'
 
 @Entity('user')
 export class User extends TenantBaseEntity implements IUser {
@@ -214,11 +213,6 @@ export class User extends TenantBaseEntity implements IUser {
 	)
 	@JoinColumn()
 	organizations?: IOrganization[]
-
-	createTrial(organizationId: string) {
-		// logic
-		this.apply(new TrialUserCreatedEvent(this.id, organizationId))
-	}
 }
 
 export class UserPreferredLanguageDTO {
@@ -227,10 +221,3 @@ export class UserPreferredLanguageDTO {
 	@IsEnum(LanguagesEnum)
 	readonly preferredLanguage: LanguagesEnum
 }
-
-// export class UserPreferredComponentLayoutDTO {
-// 	@ApiProperty({ type: () => String, enum: ComponentLayoutStyleEnum })
-// 	@IsNotEmpty()
-// 	@IsEnum(ComponentLayoutStyleEnum)
-// 	readonly preferredComponentLayout: ComponentLayoutStyleEnum
-// }

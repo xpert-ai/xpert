@@ -2,7 +2,9 @@ import { ServerAIModule } from '@metad/server-ai'
 import {
 	provideBullModule,
 	provideCacheModule,
+	provideEventEmitterModule,
 	provideI18nModule,
+	provideScheduleModule,
 	SeederModule,
 	ServerAppModule
 } from '@metad/server-core'
@@ -18,6 +20,8 @@ const baseDir = path.join(__dirname, '../../../')
 		provideCacheModule(),
 		provideBullModule(),
 		provideI18nModule(baseDir),
+		provideEventEmitterModule(),
+		provideScheduleModule(),
 		ServerAppModule,
 		ServerAIModule,
 		AnalyticsModule,

@@ -6,6 +6,9 @@ import { InjectEntityManager } from '@nestjs/typeorm'
 import { EntityManager } from 'typeorm'
 import { seedDefaultDataSourceTypes } from '../../data-source-type.seed'
 
+/**
+ * @deprecated used @OnEvent('tenant.created')
+ */
 @EventsHandler(TenantCreatedEvent)
 export class TenantCreatedHandler implements IEventHandler<TenantCreatedEvent> {
 	private readonly logger = new Logger(TenantCreatedHandler.name)

@@ -1,4 +1,3 @@
-import { AggregateRoot } from '@nestjs/cqrs'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import {
 	BaseEntityModel as IBaseEntityModel,
@@ -19,12 +18,13 @@ import { User } from './internal'
 import { Transform } from 'class-transformer'
 import { UserPublicDTO } from '../../user/dto'
 
-export abstract class Model extends AggregateRoot {
+export abstract class Model {
 	constructor(input?: any) {
-		super()
 		if (input) {
+			// Iterate over the key-value pairs in the input object
 			for (const [key, value] of Object.entries(input)) {
-				;(this as any)[key] = value
+				// Assign the value to the corresponding property in this instance
+				(this as any)[key] = value;
 			}
 		}
 	}
@@ -57,7 +57,7 @@ export abstract class BaseEntity extends Model implements IBaseEntityModel {
 	@Column({ type: 'uuid', nullable: true })
 	createdById?: ID
 
-	@ApiProperty({ type: () => User, readOnly: true })
+	// @ApiProperty({ type: () => User, readOnly: true })
 	@Transform(({ value }) => value && new UserPublicDTO(value))
 	@ManyToOne(() => User, {
 		nullable: true,
@@ -74,7 +74,7 @@ export abstract class BaseEntity extends Model implements IBaseEntityModel {
 	@Column({ nullable: true })
 	updatedById?: ID
 
-	@ApiProperty({ type: () => User, readOnly: true })
+	// @ApiProperty({ type: () => User, readOnly: true })
 	@Transform(({ value }) => value && new UserPublicDTO(value))
 	@ManyToOne(() => User, {
 		nullable: true,

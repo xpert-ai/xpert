@@ -3,6 +3,11 @@ import { redisStore } from 'cache-manager-redis-yet'
 import { RedisOptions } from 'ioredis'
 import { REDIS_OPTIONS, RedisModule } from '../core/redis.module'
 
+/**
+ * https://docs.nestjs.com/v8/techniques/caching
+ * 
+ * @returns 
+ */
 export function provideCacheModule() {
     return CacheModule.registerAsync({
         isGlobal: true,

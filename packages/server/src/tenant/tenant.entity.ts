@@ -12,7 +12,6 @@ import {
 	IImportRecord,
 	ISetting
 } from '@metad/contracts';
-import { TenantCreatedEvent } from './events';
 
 @Entity('tenant')
 export class Tenant extends BaseEntity implements ITenant {
@@ -58,9 +57,4 @@ export class Tenant extends BaseEntity implements ITenant {
 		cascade: true
 	})
 	importRecords?: IImportRecord[];
-
-	afterCreated() {
-		// logic
-		this.apply(new TenantCreatedEvent(this.id, this.name))
-	}
 }

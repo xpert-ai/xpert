@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CommandBus, EventPublisher } from '@nestjs/cqrs';
+import { CommandBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { getManager, Repository } from 'typeorm';
 import { CrudService } from '../core/crud/crud.service';
@@ -12,6 +12,7 @@ import {
 	DEFAULT_TENANT,
 	IOrganizationCreateInput
 } from '@metad/contracts';
+import { EventEmitter2 } from 'eventemitter2'
 import { UserService } from '../user/user.service';
 import { RoleService } from './../role/role.service';
 import { TenantRoleBulkCreateCommand } from '../role/commands/tenant-role-bulk-create.command';
@@ -20,6 +21,7 @@ import { ImportRecordUpdateOrCreateCommand } from './../export-import/import-rec
 import { User } from './../core/entities/internal';
 import { TenantSettingSaveCommand } from './tenant-setting/commands';
 import { OrganizationCreateCommand } from '../organization/commands';
+import { TenantCreatedEvent } from './events';
 
 
 @Injectable()
@@ -30,7 +32,7 @@ export class TenantService extends CrudService<Tenant> {
 		private readonly userService: UserService,
 		private readonly roleService: RoleService,
 		private readonly commandBus: CommandBus,
-		private readonly publisher: EventPublisher,
+		private readonly eventEmitter: EventEmitter2
 	) {
 		super(tenantRepository);
 	}
@@ -112,9 +114,14 @@ export class TenantService extends CrudService<Tenant> {
 		}
 
 		//8. Apply tenant created event
-		const _tenant = this.publisher.mergeObjectContext(tenant)
-		_tenant.afterCreated()
-		_tenant.commit()
+		this.eventEmitter.emit(
+			'tenant.created',
+			new TenantCreatedEvent(tenant.id, tenant.name),
+		  );
+		  
+		// const _tenant = this.publisher.mergeObjectContext(tenant)
+		// _tenant.afterCreated()
+		// _tenant.commit()
 
 		return tenant;
 	}

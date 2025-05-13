@@ -1,20 +1,25 @@
-import { Injectable } from '@nestjs/common'
-import { InjectRepository } from '@nestjs/typeorm'
+import { Injectable, Logger } from '@nestjs/common'
+import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm'
 import { AdapterBaseOptions, DBQueryRunner, QUERY_RUNNERS } from '@metad/adapter'
 import { DataSourceProtocolEnum, DataSourceSyntaxEnum, ITenant } from '@metad/contracts'
-import { TenantAwareCrudService, TenantService } from '@metad/server-core'
+import { Tenant, TenantAwareCrudService, TenantCreatedEvent, TenantService } from '@metad/server-core'
 import { environment as env } from '@metad/server-config'
+import { OnEvent } from '@nestjs/event-emitter'
 import chalk from 'chalk'
-import { Repository } from 'typeorm'
+import { EntityManager, Repository } from 'typeorm'
 import { DataSourceType } from './data-source-type.entity'
+import { seedDefaultDataSourceTypes } from './data-source-type.seed'
 
 @Injectable()
 export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType> {
+	private readonly logger = new Logger(DataSourceTypeService.name)
 	log = console.log
+
 	constructor(
 		@InjectRepository(DataSourceType)
 		dsTypeRepository: Repository<DataSourceType>,
-
+		@InjectEntityManager()
+		private entityManager: EntityManager,
 		private tenantService: TenantService
 	) {
 		super(dsTypeRepository)
@@ -60,5 +65,13 @@ export class DataSourceTypeService extends TenantAwareCrudService<DataSourceType
 		} else {
 			return Promise.resolve()
 		}
+	}
+
+	@OnEvent('tenant.created')
+	async handleTenantCreatedEvent(event: TenantCreatedEvent) {
+		this.logger.debug('Tenant Created Event: seed dataSource types')
+		const { tenantId } = event
+		const tenant = await this.entityManager.findOne(Tenant, tenantId)
+		await seedDefaultDataSourceTypes(this.entityManager.connection, tenant)
 	}
 }

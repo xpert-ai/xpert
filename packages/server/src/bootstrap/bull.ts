@@ -1,6 +1,11 @@
 import { BullModule } from '@nestjs/bull'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 
+/**
+ * https://docs.nestjs.com/v8/techniques/queues
+ * 
+ * @returns 
+ */
 export function provideBullModule() {
     return BullModule.forRootAsync({
         imports: [ConfigModule],

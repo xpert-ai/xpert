@@ -1,10 +1,11 @@
 import { CurrenciesEnum, DEFAULT_TENANT, DefaultValueDateTypeEnum, IOrganizationCreateInput, IUser, RolesEnum } from '@metad/contracts'
 import { ConflictException, Logger } from '@nestjs/common'
-import { CommandBus, CommandHandler, EventPublisher, ICommandHandler } from '@nestjs/cqrs'
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { EventEmitter2 } from 'eventemitter2'
 import { OrganizationCreateCommand } from '../../../organization/commands'
 import { RoleService } from '../../../role/role.service'
 import { TenantService } from '../../../tenant/index'
-import { UserService } from '../../../user'
+import { TrialUserCreatedEvent, UserService } from '../../../user'
 import { AuthService } from '../../auth.service'
 import { AuthTrialCommand } from '../auth.trial.command'
 
@@ -13,11 +14,11 @@ export class AuthRegisterTrialHandler implements ICommandHandler<AuthTrialComman
 	private readonly logger = new Logger(AuthRegisterTrialHandler.name)
 	constructor(
 		private readonly commandBus: CommandBus,
-		private readonly publisher: EventPublisher,
 		private readonly userService: UserService,
 		private readonly authService: AuthService,
 		private readonly tenantService: TenantService,
 		private readonly roleService: RoleService,
+		private readonly eventEmitter: EventEmitter2
 	) {}
 
 	public async execute(command: AuthTrialCommand): Promise<IUser> {
@@ -101,10 +102,15 @@ export class AuthRegisterTrialHandler implements ICommandHandler<AuthTrialComman
 
 		this.logger.debug(`Signup user '${userId}'`)
 
-		const user = this.publisher.mergeObjectContext(await this.userService.findOne(userId, { relations: ['role'] }))
+		const user = await this.userService.findOne(userId, { relations: ['role'] })
 
-		user.createTrial(organization.id)
-		user.commit()
+		// user.createTrial(organization.id)
+		// user.commit()
+
+		this.eventEmitter.emit(
+			'trial_user.created',
+			new TrialUserCreatedEvent(userId, organization.id),
+		  );
 
 		return user
 	}

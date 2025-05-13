@@ -16,7 +16,9 @@ import {
 } from '../../entities/internal'
 import { seedTenantDefaultData } from './seeds'
 
-
+/**
+ * @deprecated
+ */
 @EventsHandler(TenantCreatedEvent)
 export class TenantCreatedHandler implements IEventHandler<TenantCreatedEvent> {
 	constructor(

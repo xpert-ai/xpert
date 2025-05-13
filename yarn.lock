@@ -6774,6 +6774,13 @@
   dependencies:
     uuid "8.3.2"
 
+"@nestjs/event-emitter@^3.0.1":
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/@nestjs/event-emitter/-/event-emitter-3.0.1.tgz#6c286f3b46a3d22093397a35015de427972bacfb"
+  integrity sha512-0Ln/x+7xkU6AJFOcQI9tIhUMXVF7D5itiaQGOyJbXtlAfAIt8gzDdJm+Im7cFzKoWkiW5nCXCPh6GSvdQd/3Dw==
+  dependencies:
+    eventemitter2 "6.4.9"
+
 "@nestjs/graphql@^8.0.2 || ^9.0.4", "@nestjs/graphql@^9.0.4":
   version "9.2.7"
   resolved "https://registry.yarnpkg.com/@nestjs/graphql/-/graphql-9.2.7.tgz#37fdf9f220af137557508fe434767a12ea871dbd"
@@ -6807,6 +6814,11 @@
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@nestjs/mapped-types/-/mapped-types-1.0.1.tgz#78b62041c7a407db4a90eb140567321602bed18e"
   integrity sha512-NFvofzSinp00j5rzUd4tf+xi9od6383iY0JP7o0Bnu1fuItAUkWBgc4EKuIQ3D+c2QI3i9pG1kDWAeY27EMGtg==
+
+"@nestjs/mapped-types@1.2.2":
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/@nestjs/mapped-types/-/mapped-types-1.2.2.tgz#d9ddb143776e309dbc1a518ac1607fddac1e140e"
+  integrity sha512-3dHxLXs3M0GPiriAcCFFJQHoDFUuzTD5w6JDhE7TyfT89YKpe6tcCCIqOZWdXmt9AZjjK30RkHRSFF+QEnWFQg==
 
 "@nestjs/microservices@^8.2.2":
   version "8.4.7"
@@ -6887,14 +6899,16 @@
   dependencies:
     path-to-regexp "0.1.7"
 
-"@nestjs/swagger@^5.1.0":
-  version "5.2.1"
-  resolved "https://registry.yarnpkg.com/@nestjs/swagger/-/swagger-5.2.1.tgz#0fbd5dbc84aeebc2912009cce1309d4bebe9a52c"
-  integrity sha512-7dNa08WCnTsW/oAk3Ujde+z64JMfNm19DhpXasFR8oJp/9pggYAbYU927HpA+GJsSFJX6adjIRZsCKUqaGWznw==
+"@nestjs/swagger@^6.3.0":
+  version "6.3.0"
+  resolved "https://registry.yarnpkg.com/@nestjs/swagger/-/swagger-6.3.0.tgz#2963395a398374c25548a012eb15f03f53ad6e53"
+  integrity sha512-Gnig189oa1tD+h0BYIfUwhp/wvvmTn6iO3csR2E4rQrDTgCxSxZDlNdfZo3AC+Rmf8u0KX4ZAX1RZN1qXTtC7A==
   dependencies:
-    "@nestjs/mapped-types" "1.0.1"
+    "@nestjs/mapped-types" "1.2.2"
+    js-yaml "4.1.0"
     lodash "4.17.21"
     path-to-regexp "3.2.0"
+    swagger-ui-dist "4.18.2"
 
 "@nestjs/terminus@^8.0.1":
   version "8.1.1"
@@ -17324,7 +17338,7 @@ eventemitter2@6.4.7:
   resolved "https://registry.yarnpkg.com/eventemitter2/-/eventemitter2-6.4.7.tgz#a7f6c4d7abf28a14c1ef3442f21cb306a054271d"
   integrity sha512-tYUSVOGeQPKt/eC1ABfhHy5Xd96N3oIijJvN3O9+TsC28T5V9yX9oEfEK5faP0EFSNVOG97qtAS68GBrQB2hDg==
 
-eventemitter2@^6.3.1:
+eventemitter2@6.4.9, eventemitter2@^6.3.1:
   version "6.4.9"
   resolved "https://registry.yarnpkg.com/eventemitter2/-/eventemitter2-6.4.9.tgz#41f2750781b4230ed58827bc119d293471ecb125"
   integrity sha512-JEPTiaOt9f04oa6NOkc4aH+nVp5I3wEjpHbIPqfgCdD5v5bUzy7xQqwcVO2aDQgOWhI28da57HksMrzK9HlRxg==
@@ -29445,6 +29459,11 @@ swagger-client@^3.31.0:
     openapi-server-url-templating "^1.0.0"
     ramda "^0.30.1"
     ramda-adjunct "^5.0.0"
+
+swagger-ui-dist@4.18.2:
+  version "4.18.2"
+  resolved "https://registry.yarnpkg.com/swagger-ui-dist/-/swagger-ui-dist-4.18.2.tgz#323308f1c1d87a7c22ce3e273c31835eb680a71b"
+  integrity sha512-oVBoBl9Dg+VJw8uRWDxlyUyHoNEDC0c1ysT6+Boy6CTgr2rUcLcfPon4RvxgS2/taNW6O0+US+Z/dlAsWFjOAQ==
 
 swagger-ui-dist@>=4.11.0:
   version "5.17.14"
