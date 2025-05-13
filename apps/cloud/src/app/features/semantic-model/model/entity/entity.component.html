@@ -15,15 +15,23 @@
           [matTooltip]="'PAC.MODEL.OpenCubeDesigner' | translate: {Default: 'Open cube designer'}"
           matTooltipPosition="above"
           (click)="toggleCubeDesigner()">
-          <i class="ri-equalizer-2-line"></i>
+          <i class="ri-equalizer-2-line mr-1"></i>
+          <span>
+            {{ 'PAC.MODEL.CubeAttributes' | translate: {Default: 'Cube attributes'} }}
+          </span>
         </button>
       }
 
-      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small ml-2"
+      <button type="button" class="btn disabled:btn-disabled btn-small ml-2"
+        [ngClass]="{'btn-primary': openedFact(), 'btn-secondary': !openedFact()}"
         [matTooltip]="'PAC.MODEL.OpenFactFields' | translate: {Default: 'Open the fact field list'}"
         matTooltipPosition="above"
-        (click)="toggleFact()">
-        <i class="ri-database-line"></i>
+        (click)="toggleFact()"
+      >
+        <i class="ri-database-line mr-1"></i>
+        <span>
+          {{ 'PAC.MODEL.FactFields' | translate: {Default: 'Fact field list'} }}
+        </span>
       </button>
       
     </div>

@@ -9,6 +9,7 @@ import {
   computed,
   effect,
   inject,
+  model,
   output,
   signal
 } from '@angular/core'
@@ -45,7 +46,6 @@ import { newDimensionFromColumn } from '../types'
 import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 
 
@@ -62,7 +62,6 @@ import { injectI18nService } from '@cloud/app/@shared/i18n'
     MatIconModule,
     MatTooltipModule,
     MatCheckboxModule,
-    MatProgressSpinnerModule,
     NgmCommonModule,
     NgmEntityPropertyComponent,
   ]
@@ -92,6 +91,7 @@ export class ModelCubeFactComponent {
   readonly measures = signal<Property[]>([])
   readonly allVisible = signal(false)
   readonly loading = signal(false)
+  readonly search = model<string>()
   
 
   readonly visibleIndeterminate = computed(
