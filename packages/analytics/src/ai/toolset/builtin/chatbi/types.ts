@@ -284,3 +284,18 @@ export function mapTimeSlicer(param: TTimeSlicerParam[]): TimeRangesSlicer[] {
 	}
   })
 }
+
+/**
+ * Try to fix the formula given by AI
+ * 
+ * - `WITH MEMBER [Measures].[NewCode] AS '<formula>'` to `'<formula>'`
+ * 
+ * @param formula 
+ */
+export function tryFixFormula(formula: string, code: string) {
+	const prefix = `WITH MEMBER [Measures].[${code}] AS `
+	if (formula.startsWith(prefix)) {
+		return formula.slice(prefix.length)
+	}
+	return formula
+}

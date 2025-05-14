@@ -1,7 +1,7 @@
 import { t } from 'i18next'
 import { z } from 'zod'
 import { OrderBy, OrderDirection } from '../../orderby'
-import { C_MEASURES, Dimension, isDimension, isMeasure, Measure } from '../../types'
+import { C_MEASURES, Dimension, isDimension, isMeasure, isMeasureName, Measure } from '../../types'
 import { AggregationRole, EntityType, getEntityProperty2, unwrapBrackets } from '../../models'
 import { omit } from '../../utils'
 
@@ -146,12 +146,20 @@ export function tryFixDimension(dimension: Dimension | Measure, entityType: Enti
   }
 }
 
+/**
+ * Try to fix orderBy given by AI
+ * 
+ * - `[Measures].[Sales Amount]` to `Sales Amount`
+ * 
+ * @param orderBy 
+ * @returns 
+ */
 export function tryFixOrder(orderBy: OrderBy) {
-  const by = tryFixMeasureName(orderBy.by)
+  const by = isMeasureName(orderBy.by) ? tryFixMeasureName(orderBy.by) : orderBy.by
   return {...orderBy, by}
 }
 
 export function tryFixMeasureName(measure: string) {
-  const name = unwrapBrackets(measure?.replace('[Measures].', ''))
+  const name = unwrapBrackets(measure?.replace(`[${C_MEASURES}].`, ''))
   return name
 }
