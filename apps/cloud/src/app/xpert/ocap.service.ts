@@ -82,8 +82,10 @@ export class XpertOcapService {
     effect(
       () => {
         const semanticModels = this.#semanticModels() ?? {}
+
         const models = Object.values(semanticModels).filter((model) => model.dirty && model.model)
         if (models.length) {
+          console.log(`Step 2.`, models)
           models.forEach(({ model, indicators }) => {
             const _model = convertNewSemanticModelResult({
               ...model,
@@ -106,6 +108,7 @@ export class XpertOcapService {
   }
 
   private registerModel(model: NgmSemanticModel, indicators: IIndicator[]) {
+    console.log(`Step 3.`, model, indicators)
     registerModel(model, false, this.#dsCoreService, this.#wasmAgent, indicators)
   }
 
@@ -128,5 +131,7 @@ export class XpertOcapService {
       })
       return { ...state }
     })
+
+    console.log(`Step 1.`, models)
   }
 }
