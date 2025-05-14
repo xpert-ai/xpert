@@ -17,3 +17,10 @@ export type TGatewayQueryEvent = {
   acceptLanguage?: string
   forceRefresh: boolean
 }
+
+export type TGatewayRespEvent = any
+
+export type TGatewayRespError = {
+  message: string
+  status: number
+}
