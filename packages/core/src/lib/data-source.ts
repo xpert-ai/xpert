@@ -235,9 +235,9 @@ export interface DataSource {
    * Get an indicator by id from entity
    *
    * @param idOrCode Indicator `ID` or `Code`
-   * @param entity
+   * @param cube Cube name
    */
-  getIndicator(idOrCode: string, entity?: string): Indicator
+  getIndicator(idOrCode: string, cube?: string): Indicator
 
   /**
    * Create DB Table
@@ -463,7 +463,7 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
 
   getIndicator(id: string, entity?: string): Indicator {
     return this.options.schema?.indicators?.find(
-      (indicator) => (indicator.id === id || indicator.code === id) && indicator.entity === entity
+      (indicator) => (indicator.id === id || indicator.code === id) && (entity ? indicator.entity === entity : true)
     )
   }
 

@@ -1,4 +1,3 @@
 :host {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col pb-8 max-h-full overflow-auto;
 }
