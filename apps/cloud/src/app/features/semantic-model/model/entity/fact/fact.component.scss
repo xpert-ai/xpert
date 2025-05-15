@@ -8,7 +8,7 @@
 
 .pac-data-type-tag {
   border-color: var(--ngm-color-outline);
-  @apply text-xs leading-3 inline-flex items-center px-3 py-1 rounded-full overflow-hidden text-ellipsis border border-solid;
+  @apply text-xs leading-3 inline-flex items-center px-3 py-1 rounded-full border border-solid truncate;
 }
 
 :host::ng-deep {
