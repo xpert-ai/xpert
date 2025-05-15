@@ -3,7 +3,7 @@ import { IColumnDef, IDSSchema } from './types'
 
 
 /**
- * 根据 SQL 查询结果对象分析出字段类型
+ * Analyze the field type based on the SQL query result object
  *
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/typeof
  *

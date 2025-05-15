@@ -24,7 +24,6 @@ import { EntityCapacity, EntitySchemaNode, EntitySchemaType } from '@metad/ocap-
 import { C_MEASURES, Cube, EntityType, nonNullable, PropertyAttributes, uniqBy, VariableProperty, wrapBrackets } from '@metad/ocap-core'
 import { limitSelect, serializeName } from '@metad/ocap-sql'
 import { ModelQuery, Store } from 'apps/cloud/src/app/@core'
-import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language/translation-base.component'
 import { cloneDeep, isEqual, isPlainObject } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, Subscription, combineLatest, firstValueFrom, of } from 'rxjs'
@@ -38,6 +37,7 @@ import { QueryLabService } from '../query-lab.service'
 import { QueryService } from './query.service'
 import { QueryCopilotEngineService } from './copilot.service'
 import { injectQueryCommand } from '../../copilot'
+import { TranslateService } from '@ngx-translate/core'
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -46,7 +46,7 @@ import { injectQueryCommand } from '../../copilot'
   styleUrls: ['query.component.scss'],
   providers: [QueryService, QueryCopilotEngineService]
 })
-export class QueryComponent extends TranslationBaseComponent {
+export class QueryComponent {
   MODEL_TYPE = MODEL_TYPE
   EntityCapacity = EntityCapacity
 
@@ -61,6 +61,7 @@ export class QueryComponent extends TranslationBaseComponent {
   readonly #logger = inject(NGXLogger)
   readonly featuresComponent = inject(FeaturesComponent)
   readonly #destroyRef = inject(DestroyRef)
+  readonly translateService = inject(TranslateService)
 
   @ViewChild('editor') editor!: BaseEditorDirective
   readonly tableTemplate = viewChild<TemplateRef<any>>('tableTemplate')
@@ -357,8 +358,6 @@ ${calcEntityTypePrompt(entityType)}
     })
 
   constructor() {
-    super()
-
     effect(
       () => {
         if (this.#queryService.initialized()) {

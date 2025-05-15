@@ -188,14 +188,15 @@
                         </span>
                     </nav>
                 </mat-toolbar>
-                <div *ngIf="loading$ | async" class="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center z-[101] bg-gray-500/10 backdrop-blur-lg">
+              @if (loading$ | async) {
+                <div class="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center z-[101] bg-gray-500/10 backdrop-blur-lg">
                     <div class="emoji-loader" style="position: relative; height: 80px;"></div>
                     <button mat-stroked-button (click)="cancelQuery()">
                         {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
                     </button>
                 </div>
-    
-                <mat-progress-bar *ngIf="loading$ | async" mode="query" class="pac-model-query__progress-bar z-[102]"></mat-progress-bar>
+                <mat-progress-bar mode="query" class="pac-model-query__progress-bar z-[102]" />
+              }
 
                 <mat-tab-nav-panel #tabPanel class="pac-cdk-drop__list pac-cdk-drop__area flex flex-col overflow-hidden"
                     cdkDropList
@@ -215,44 +216,45 @@
                         <span>
                         {{ 'PAC.MODEL.QUERY.TotalRecords' | translate: {Default: "Total Records"} }}
                         : {{activeResult.stats?.numberOfEntries}}</span>
-                        <span *ngIf="activeResult.stats?.numberOfEntries > 1000">
-                        , {{ 'PAC.MODEL.QUERY.PreviewTop1000' | translate: {Default: "Preview Top 1000"} }}.
-                        </span>
+                        @if (activeResult.stats?.numberOfEntries > 1000) {
+                          <span>
+                            , {{ 'PAC.MODEL.QUERY.PreviewTop1000' | translate: {Default: "Preview Top 1000"} }}.
+                          </span>
+                        }
 
                     </div>
-                  }
-
-                    <div *ngIf="activeResult?.error" class="pac-result flex-1">
-                        <div class="bug font-notoColorEmoji" >🐞</div>
-                        <div class="description">
-                            {{activeResult.error}}
+                  
+                    @if (activeResult?.error) {
+                        <div class="pac-result flex-1">
+                            <div class="bug font-notoColorEmoji">🐞</div>
+                            <div class="description">
+                                {{activeResult.error}}
+                            </div>
                         </div>
-                    </div>
-
-                    <ng-container *ngIf="!activeResult?.error">
-                        <div *ngIf="activeResult && !activeResult?.data" class="pac-result flex-1">
+                    } @else {
+                        @if (activeResult && !activeResult?.data) {
+                        <div class="pac-result flex-1">
                             <div class="bug font-notoColorEmoji">✔️</div>
                             <div class="description">
                             </div>
                         </div>
+                        }
 
-                        <ngm-table *ngIf="activeResult?.preview" class="pac-model-ql-lab__result ngm-data-preview striped"
+                        @if (activeResult?.preview) {
+                        <ngm-table class="pac-model-ql-lab__result ngm-data-preview striped"
                             [columns]="activeResult?.columns"
                             [data]="activeResult?.preview"
                             [paging]="true"
-                        ></ngm-table>
-                    </ng-container>
-                </mat-tab-nav-panel>
-        
-                <ng-template #errorResult>
-                    <div class="pac-result w-full h-full absolute top-0 left-0">
-                        <div class="bug font-notoColorEmoji">🐞</div>
-                        <div class="description">
-                            {{_error()}}
-                        </div>
+                        />
+                        }
+                    }
+                  } @else {
+                    <div class="grow flex justify-center items-center text-text-secondary">
+                      <i class="ri-information-2-line text-lg mr-2"></i>
+                      <span class="text-sm">{{ 'PAC.MODEL.QUERY.DragDropFieldPreview' | translate: {Default: "Drag table, field, dimension, measure, etc. here to preview the data"} }}</span>
                     </div>
-                </ng-template>
-                
+                  }
+                </mat-tab-nav-panel>
             </ngm-splitter-pane>
         </ngm-splitter>
         

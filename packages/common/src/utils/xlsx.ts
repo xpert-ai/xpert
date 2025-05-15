@@ -18,12 +18,13 @@ export interface UploadSheetType {
   info: string
 }
 
-export async function readExcelWorkSheets(fileName: string, file: any /*Express.Multer.File*/) {
+export async function readExcelWorkSheets(fileName: string, file: {buffer?: Buffer; path?: string;} /*Express.Multer.File*/) {
   const workBook: XLSX.WorkBook = file.buffer ?
     XLSX.read(file.buffer, {
       type: 'buffer',
       cellDates: true,
       cellNF: false,
+      codepage: 65001,
     }) : XLSX.readFile(file.path, {
       type: 'file',
       cellDates: true,
