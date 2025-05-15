@@ -1,7 +1,8 @@
 import { ClickHouse } from 'clickhouse'
-import { BaseSQLQueryRunner, register, SQLAdapterOptions } from '../base'
-import { groupBy, typeOfObj } from '../helpers'
-import { DBProtocolEnum, DBSyntaxEnum, IDSSchema } from '../types'
+import { BaseSQLQueryRunner, register, SQLAdapterOptions } from '../../base'
+import { groupBy, typeOfObj } from '../../helpers'
+import { CreationTable, DBProtocolEnum, DBSyntaxEnum, IDSSchema } from '../../types'
+import { typeToCHDB } from './types'
 
 export interface ClickHouseAdapterOptions extends SQLAdapterOptions {
   dbname?: string
@@ -47,7 +48,7 @@ export class ClickHouseRunner extends BaseSQLQueryRunner<ClickHouseAdapterOption
     }
   }
 
-  async runQuery(query: string, options?: any) {
+  getClient() {
     const url = this.options.url || 'http://127.0.0.1:8123'
     const basicAuth = this.options.username
       ? {
@@ -55,8 +56,7 @@ export class ClickHouseRunner extends BaseSQLQueryRunner<ClickHouseAdapterOption
           password: this.options.password,
         }
       : null
-
-    const clickhouse = new ClickHouse({
+    return new ClickHouse({
       url,
       debug: false,
       basicAuth,
@@ -71,6 +71,10 @@ export class ClickHouseRunner extends BaseSQLQueryRunner<ClickHouseAdapterOption
         database: this.options.dbname,
       },
     })
+  }
+
+  async runQuery(query: string, options?: any) {
+    const clickhouse = this.getClient()
 
     return clickhouse
       .query(query)
@@ -142,6 +146,71 @@ export class ClickHouseRunner extends BaseSQLQueryRunner<ClickHouseAdapterOption
 
   override async createCatalog(catalog: string, options?: {}) {
     await this.runQuery(`CREATE DATABASE IF NOT EXISTS ${catalog}`)
+  }
+
+  async import(params: CreationTable, options?: { catalog?: string }): Promise<void> {
+    const { name, columns, data, mergeType } = params;
+
+    if (!data?.length) {
+      throw new Error('data is empty');
+    }
+
+    const tableName = options?.catalog ? `${options.catalog}.${name}` : name;
+
+    const dropTableStatement = `DROP TABLE IF EXISTS ${tableName}`;
+    const createTableStatement = `CREATE TABLE IF NOT EXISTS ${tableName} (${columns.map(
+      (col) => `\`${col.fieldName}\` ${typeToCHDB(col.type, col.isKey, col.length)}`
+    ).join(', ')}) ENGINE = MergeTree() ORDER BY tuple()`;
+
+    // Transform values
+    const values = data.map((row, index) =>
+      columns.map(({ name, type, length }) => {
+        const value = row[name];
+        if (value instanceof Date) {
+          if (type === 'Date') return value.toISOString().slice(0, 10);
+          if (type === 'Datetime') return value.toISOString().replace('T', ' ').slice(0, 19);
+          if (type === 'Time') return value.toISOString().slice(11, 19);
+          return value.toISOString();
+        }
+        if (type === 'Date' || type === 'Datetime') {
+          try {
+            const dateVal = new Date(value);
+            return type === 'Datetime'
+              ? dateVal.toISOString().replace('T', ' ').slice(0, 19)
+              : dateVal.toISOString().slice(0, 10);
+          } catch (err) {
+            throw new Error(`Converting value '${value}' in row ${index} column '${name}' to date failed: ${(<Error>err).message}`);
+          }
+        }
+        return value;
+      })
+    );
+
+    const batchSize = 10000;
+    const clickhouse = this.getClient()
+    try {
+      if (mergeType === 'DELETE') {
+        await this.runQuery(dropTableStatement)
+      }
+
+      await this.runQuery(createTableStatement)
+
+      for (let i = 0; i < values.length; i += batchSize) {
+        const batch = values.slice(i, i + batchSize);
+        await clickhouse.insert(`INSERT INTO ${tableName}`, batch).toPromise();
+      }
+
+    } catch (err) {
+      throw {
+        message: err instanceof Error ? err.message : 'An unknown error occurred',
+        stats: {
+          statements: [
+            dropTableStatement,
+            createTableStatement
+          ],
+        },
+      };
+    }
   }
 
   async teardown() {
