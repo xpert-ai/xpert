@@ -16,7 +16,7 @@
           matTooltipPosition="above"
           (click)="toggleCubeDesigner()">
           <i class="ri-equalizer-2-line mr-1"></i>
-          <span>
+          <span class="hidden lg:inline-block">
             {{ 'PAC.MODEL.CubeAttributes' | translate: {Default: 'Cube attributes'} }}
           </span>
         </button>
@@ -29,7 +29,7 @@
         (click)="toggleFact()"
       >
         <i class="ri-database-line mr-1"></i>
-        <span>
+        <span class="hidden lg:inline-block">
           {{ 'PAC.MODEL.FactFields' | translate: {Default: 'Fact field list'} }}
         </span>
       </button>
