@@ -25,7 +25,11 @@ services:
 
   redis:
     image: registry.cn-hangzhou.aliyuncs.com/metad/redis-stack:6.2.6-v15-x86_64
-    restart: always
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -h localhost -p 6379 PING']
+      interval: 1s
+      timeout: 30s
     command: ["sh", "-c", "redis-server --requirepass $${REDIS_PASSWORD}"]
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -37,13 +41,12 @@ services:
     image: registry.cn-hangzhou.aliyuncs.com/metad/ocap-olap:latest
     profiles:
       - bi
-    mem_limit: 1024m
-    restart: unless-stopped
+    restart: on-failure
     healthcheck:
       test: curl -m 5 --silent --fail --request GET http://localhost:8080/
-      interval: 10s
-      timeout: 2s
-      retries: 10
+      interval: 30s
+      timeout: 30s
+      retries: 3
     links:
       - db:${DB_HOST:-db}
     depends_on:
@@ -72,7 +75,7 @@ services:
     env_file:
       - .env
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
