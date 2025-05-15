@@ -1,11 +1,12 @@
 import { AdapterBaseOptions, createQueryRunnerByType, DBQueryRunner } from '@metad/adapter'
-import { DataSourceProtocolEnum, IDataSource, IDSSchema } from '@metad/contracts'
+import { DataSourceProtocolEnum, IDataSource, IDSSchema, mapTranslationLanguage } from '@metad/contracts'
 import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
 import * as _axios from 'axios'
 import { addDays } from 'date-fns'
+import { I18nService } from 'nestjs-i18n'
 import { DeepPartial, Repository } from 'typeorm'
 import { DataSourceAuthentication } from './authentication/authentication.entity'
 import { DataSource } from './data-source.entity'
@@ -20,7 +21,8 @@ export class DataSourceService extends TenantOrganizationAwareCrudService<DataSo
 		protected readonly dsRepository: Repository<DataSource>,
 		@InjectRepository(DataSourceAuthentication)
 		protected readonly authRepository: Repository<DataSourceAuthentication>,
-		private configService: ConfigService
+		private configService: ConfigService,
+		private readonly i18nService: I18nService,
 	) {
 		super(dsRepository)
 	}
@@ -36,6 +38,16 @@ export class DataSourceService extends TenantOrganizationAwareCrudService<DataSo
 		let dataSource = await this.dsRepository.findOne(id, {
 			relations: ['type', 'authentications']
 		})
+		if (!dataSource) {
+			throw new NotFoundException(
+				await this.i18nService.t('core.Error.NotFoundException', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+					args: {
+						id
+					}
+				})
+			)
+		}
 
 		dataSource.authentications = authentications ?? dataSource.authentications
 		dataSource.options = options ? {

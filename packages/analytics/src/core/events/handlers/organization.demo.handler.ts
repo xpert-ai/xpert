@@ -21,7 +21,7 @@ import { ConfigService, getConnectionOptions } from '@metad/server-config'
 import { Organization, OrganizationDemoCommand, REDIS_CLIENT, RequestContext } from '@metad/server-core'
 import { Inject, Logger } from '@nestjs/common'
 import { ConfigService as NestConfigService } from '@nestjs/config'
-import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { CommandBus, CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -31,7 +31,6 @@ import { assign, isString } from 'lodash'
 import { RedisClientType } from 'redis'
 import { Repository } from 'typeorm'
 import { importSheetTables, prepareDataSource } from '../../../data-source/utils'
-import { updateXmlaCatalogContent } from '../../../model/helper'
 import {
 	BusinessArea,
 	DataSource,
@@ -43,6 +42,7 @@ import {
 	StoryPoint,
 	StoryWidget
 } from '../../entities/internal'
+import { SemanticModelUpdatedEvent } from '../../../model/events'
 
 
 export enum InstallationModeEnum {
@@ -89,6 +89,7 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 		@InjectRepository(Project)
 		private readonly projectRepository: Repository<Project>,
 		private readonly commandBus: CommandBus,
+		private readonly eventBus: EventBus,
 
 		@Inject(REDIS_CLIENT)
 		private readonly redisClient: RedisClientType
@@ -548,7 +549,10 @@ export class OrganizationDemoHandler implements ICommandHandler<OrganizationDemo
 			relations: ['dataSource', 'dataSource.type', 'roles']
 		})
 
-		await updateXmlaCatalogContent(this.redisClient, model)
+		// await updateXmlaCatalogContent(this.redisClient, model)
+		if (model) {
+			this.eventBus.publish(new SemanticModelUpdatedEvent(model.id))
+		}
 
 		return model
 	}

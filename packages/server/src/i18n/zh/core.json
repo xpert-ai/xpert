@@ -1,4 +1,7 @@
 {
+    "Error": {
+        "NotFoundException": "未找到记录‘{id}’"
+    },
     "User": {
         "Error": {
             "AccountAlreadyExists": "账号已存在",
