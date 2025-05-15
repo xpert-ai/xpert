@@ -1,4 +1,7 @@
 {
+    "Error": {
+        "NotFoundException": "No records found for '{id}'"
+    },
     "User": {
         "Error": {
             "AccountAlreadyExists": "Account already exists",
