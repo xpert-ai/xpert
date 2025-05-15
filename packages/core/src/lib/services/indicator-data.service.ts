@@ -57,7 +57,7 @@ export class SmartIndicatorDataService<
   calendarHierarchy: PropertyHierarchy
   calendarLevel: PropertyLevel
   /**
-   * 指标的时间计算成员的缓存
+   * Cache of time calculation members of indicators
    */
   indicatorMeasures: Record<string, Record<string, string>> = {}
 
@@ -116,6 +116,13 @@ export class SmartIndicatorDataService<
     )
   }
 
+  /**
+   * Register a derivative indicator of an indicator such as year-on-year, month-on-month
+   * 
+   * @param indicator 
+   * @param members 
+   * @returns 
+   */
   registerMembers(indicator: Indicator, members: Array<PeriodFunctions>) {
     return members.map((type) => {
       const name = this.getOrRegisterMember(indicator, type)
@@ -207,7 +214,8 @@ export class SmartIndicatorDataService<
   }
 
   /**
-   * 获取或注册指标的时间计算成员，如何某指标的同比环比
+   * Get or register the time calculation member of the indicator,
+   *  such as the year-on-year and month-on-month changes of a certain indicator
    *
    * @param indicator
    * @param type

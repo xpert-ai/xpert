@@ -63,6 +63,7 @@ import {
 } from './functions'
 import { serializeDimension, serializeSlicer } from './slicer'
 import { wrapHierarchyValue } from './types/index'
+import { t } from 'i18next'
 
 export type WithMemberType = CalculatedMember | NamedSet
 
@@ -71,7 +72,7 @@ export function calculationPropertyToFormula(property: CalculationProperty, slic
   if (isCalculatedProperty(property)) {
     // Checks
     if (!property.formula) {
-      throw new Error(`Calculated property '${property.name}' 's formula is empty!`)
+      throw new Error(t('Error.FormulaEmpty', {ns: 'xmla', name: property.name}))
     }
     formula = property.formula
   } else if (isAggregationProperty(property)) {
@@ -85,7 +86,9 @@ export function calculationPropertyToFormula(property: CalculationProperty, slic
   } else if (isMeasureControlProperty(property)) {
     formula = measureFormatter(property.value as string)
   } else {
-    throw new Error(`不支持的计算类型: ${property.name} is ${property.calculationType}`)
+    throw new Error(
+      t('Error.UnCalculationType', {ns: 'xmla', name: property.name, calculationType: property.calculationType})
+    )
   }
 
   return formula

@@ -1,56 +1,66 @@
-<div class="flex items-center justify-between p-2">
-  <span class="text-lg font-semibold">{{ 'PAC.MODEL.ENTITY.SourceFields' | translate: {Default: "Source Fields"} }}</span>
+<div class="sticky top-0 z-10 bg-components-card-bg">
+  <div class="flex items-center justify-between p-2">
+    <span class="grow text-lg font-semibold">{{ 'PAC.MODEL.ENTITY.SourceFields' | translate: {Default: "Source Fields"} }}</span>
 
-  <button type="button" class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
-    (click)="close.emit()">
-    <i class="ri-close-line"></i>
-  </button>
-</div>
-
-<div class="flex items-center gap-2 px-2 py-1" displayDensity="compact">
-  @if (isSQLSource()) {
-    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
-      [matTooltip]=" 'PAC.MODEL.ENTITY.OnekeyGenerateModel' | translate: {Default: 'Generate a model based on table field division, which will overwrite existing information'} "
-      matTooltipPosition="above"
-      [disabled]="visibleEmpty()"
-      (click)="generate()">
-      <i class="ri-brush-ai-line mr-1"></i>
-      <span>{{ 'PAC.MODEL.ENTITY.OnekeyGeneration' | translate: {Default: "One-key Generation"} }}</span>
+    <!-- <div class="relative w-[160px]">
+      <i class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"></i>
+      <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[3px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
+        [placeholder]="'PAC.MODEL.Search' | translate: {Default: 'Search'}"
+        [(ngModel)]="search"
+      >
+    </div> -->
+  
+    <button type="button" class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 ml-2 cursor-pointer z-20"
+      (click)="close.emit()">
+      <i class="ri-close-line"></i>
     </button>
-
-    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
-      [matTooltip]=" 'PAC.MODEL.ENTITY.CreateOneDimensionTip' | translate: {Default: 'Create different levels of a dimension with the selected fields, organized in top-to-bottom order'}"
-      matTooltipPosition="above"
-      [disabled]="visibleEmpty()"
-      (click)="createDimension()">
-      <i class="ri-hashtag mr-1"></i>
-      <span>{{ 'PAC.MODEL.ENTITY.CreateOneDimension' | translate: {Default: "Create one dimension"} }}</span>
-    </button>
-  }
-
-  @if (isXmla()) {
-    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
-      [matTooltip]=" 'PAC.MODEL.ENTITY.OnekeySyncModel' | translate: {Default: 'One-key sync model by source cube defination'} "
-      matTooltipPosition="above"
-      [disabled]="visibleEmpty()"
-      (click)="sync()"
-    >
-      <i class="ri-brush-ai-line mr-1"></i>
-      <span>{{ 'PAC.MODEL.ENTITY.OnekeySync' | translate: {Default: "One-key Sync"} }}</span>
-    </button>
-  }
-
-  <mat-checkbox displayDensity="cosy" [indeterminate]="visibleIndeterminate()" [ngModel]="allVisible()"
-    (ngModelChange)="toggleVisibleAll($event)">
-    {{ 'PAC.MODEL.ENTITY.SelectAll' | translate: {Default: "Select All"} }}
-  </mat-checkbox>
+  </div>
+  
+  <div class="flex items-center gap-2 px-2 py-1" displayDensity="compact">
+    @if (isSQLSource()) {
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
+        [matTooltip]=" 'PAC.MODEL.ENTITY.OnekeyGenerateModel' | translate: {Default: 'Generate a model based on table field division, which will overwrite existing information'} "
+        matTooltipPosition="above"
+        [disabled]="visibleEmpty()"
+        (click)="generate()">
+        <i class="ri-brush-ai-line mr-1"></i>
+        <span>{{ 'PAC.MODEL.ENTITY.OnekeyGeneration' | translate: {Default: "One-key Generation"} }}</span>
+      </button>
+  
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
+        [matTooltip]=" 'PAC.MODEL.ENTITY.CreateOneDimensionTip' | translate: {Default: 'Create different levels of a dimension with the selected fields, organized in top-to-bottom order'}"
+        matTooltipPosition="above"
+        [disabled]="visibleEmpty()"
+        (click)="createDimension()">
+        <i class="ri-hashtag mr-1"></i>
+        <span>{{ 'PAC.MODEL.ENTITY.CreateOneDimension' | translate: {Default: "Create one dimension"} }}</span>
+      </button>
+    }
+  
+    @if (isXmla()) {
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
+        [matTooltip]=" 'PAC.MODEL.ENTITY.OnekeySyncModel' | translate: {Default: 'One-key sync model by source cube defination'} "
+        matTooltipPosition="above"
+        [disabled]="visibleEmpty()"
+        (click)="sync()"
+      >
+        <i class="ri-brush-ai-line mr-1"></i>
+        <span>{{ 'PAC.MODEL.ENTITY.OnekeySync' | translate: {Default: "One-key Sync"} }}</span>
+      </button>
+    }
+  
+    <mat-checkbox displayDensity="cosy" [indeterminate]="visibleIndeterminate()" [ngModel]="allVisible()"
+      (ngModelChange)="toggleVisibleAll($event)">
+      {{ 'PAC.MODEL.ENTITY.SelectAll' | translate: {Default: "Select All"} }}
+    </mat-checkbox>
+  </div>
 </div>
 
 <div class="px-2 pt-2 flex justify-between items-center">
   <span class="leading-tight text-lg">{{ 'PAC.MENU.DIMENSIONS' | translate: {Default: "Dimensions"} }}</span>
 </div>
 
-<div id="list-table-dimensions" class="pac-model__sub-area-content pac-cdk-drop__list flex-1 flex flex-col overflow-hidden hover:overflow-y-auto"
+<div id="list-table-dimensions" class="pac-model__sub-area-content pac-cdk-drop__list flex-1 flex flex-col"
   cdkDropList
   [cdkDropListData]="dimensions()"
   [cdkDropListEnterPredicate]="dropEnterPredicate"
@@ -77,7 +87,7 @@
   <span class="leading-tight text-lg">{{ 'PAC.MENU.MEASURES' | translate: {Default: "Measures"} }}</span>
 </div>
 
-<div id="list-table-measures" class="pac-model__sub-area-content pac-cdk-drop__list flex-1 flex flex-col overflow-hidden hover:overflow-y-auto"
+<div id="list-table-measures" class="pac-model__sub-area-content pac-cdk-drop__list flex-1 flex flex-col"
   cdkDropList
   [cdkDropListData]="measures()"
   [cdkDropListEnterPredicate]="dropEnterPredicate"

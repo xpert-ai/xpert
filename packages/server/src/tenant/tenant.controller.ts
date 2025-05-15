@@ -122,9 +122,18 @@ export class TenantController extends CrudController<Tenant> {
 		return this.tenantService.findOne(tenantId);
 	}
 
+	/**
+	 * CREATE Owner Tenant
+	 *
+	 * @returns
+	 */
 	@ApiOperation({
-		summary:
-			'Create new tenant. The user who creates the tenant is given the super admin role.'
+		summary: 'Create new tenant. The user who creates the tenant is given the super admin role.',
+		security: [
+			{
+				role: [RolesEnum.SUPER_ADMIN]
+			}
+		]
 	})
 	@ApiResponse({
 		status: HttpStatus.CREATED,
@@ -230,28 +239,5 @@ export class TenantController extends CrudController<Tenant> {
 		}
 		return await this.tenantService.delete(id);
 	}
-
-	// @ApiOperation({
-	// 	summary: 'Generate tenant demo',
-	// 	security: [
-	// 		{
-	// 			role: [RolesEnum.SUPER_ADMIN]
-	// 		}
-	// 	]
-	// })
-	// @ApiResponse({
-	// 	status: HttpStatus.CREATED,
-	// 	description: 'The demo has been successfully generated.'
-	// })
-	// @HttpCode(HttpStatus.OK)
-	// @UseGuards(RoleGuard, TenantPermissionGuard)
-	// @Roles(RolesEnum.SUPER_ADMIN)
-	// @Post(':id/demo')
-	// async generateDemo(@Param('id', UUIDValidationPipe) id: string) {
-	// 	const tenantId = RequestContext.currentTenantId();
-	// 	if (id !== tenantId) {
-	// 		throw new ForbiddenException();
-	// 	}
-	// 	return await this.tenantService.generateDemo(id);
-	// }
+	
 }

@@ -505,23 +505,32 @@ export class ModelEntityService {
     }
   )
 
+  /**
+   * New measure then navigate to attribute panel
+   */
   readonly newMeasure = this.updater((state, event?: { index: number; column?: string }) => {
     state.measures = state.measures ?? []
+    let __id__: string = null
     if (event) {
+      __id__ = uuid()
       state.measures.splice(event.index, 0, {
-        __id__: uuid(),
+        __id__,
         name: event.column,
         column: event.column,
         aggregator: 'sum',
         visible: true
       })
     } else if (!state.measures.find((item) => item.name === '')) {
+      __id__ = uuid()
       state.measures.push({
-        __id__: uuid(),
+        __id__,
         name: '',
         aggregator: 'sum',
         visible: true
       } as PropertyMeasure)
+    }
+    if (__id__) {
+      this.toggleSelectedProperty(ModelDesignerType.measure, __id__)
     }
   })
 

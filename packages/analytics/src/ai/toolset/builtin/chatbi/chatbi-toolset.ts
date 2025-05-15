@@ -45,12 +45,12 @@ import {
 import { BuiltinToolset, ToolNotSupportedError, ToolProviderCredentialValidationError } from '@metad/server-ai'
 import { getErrorMessage, omit, race, shortuuid, TimeoutError } from '@metad/server-common'
 import { groupBy } from 'lodash'
-import { firstValueFrom, Subject, Subscriber, switchMap, takeUntil } from 'rxjs'
+import { firstValueFrom, Subject, switchMap, takeUntil } from 'rxjs'
 import { In } from 'typeorm'
 import { z } from 'zod'
 import { DimensionMemberRetrieverToolQuery } from '../../../../model-member/queries'
 import { getSemanticModelKey, NgmDSCoreService, registerSemanticModel } from '../../../../model/ocap'
-import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, fixMeasure, IndicatorSchema, mapTimeSlicer, TChatBICredentials, tryFixChartType, tryFixDimensions } from './types'
+import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, fixMeasure, IndicatorSchema, mapTimeSlicer, TChatBICredentials, tryFixChartType, tryFixDimensions, tryFixFormula } from './types'
 import { GetBIContextQuery, TBIContext } from '../../../../chatbi'
 
 function cubesReducer(a, b) {
@@ -623,11 +623,15 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 
 				// const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 				// const currentIndicators = currentState[ChatBIVariableEnum.INDICATORS] ?? []
+				if (!indicator.formula) {
+					throw new Error(`The formula of indicator cannot be empty`)
+				}
 
+				const formula = tryFixFormula(indicator.formula, indicator.code)
 				// Checking the validity of formula
 				const { language, query } = indicator
 				if (query) {
-					const statement = `WITH MEMBER [Measures].[${indicator.code}] AS ${indicator.formula}\n` + query
+					const statement = `WITH MEMBER [Measures].[${indicator.code}] AS ${formula}\n` + query
 					const dataSource = await firstValueFrom(dsCoreService.getDataSource(this.getModelKey(indicator.modelId)))
 					const queryResult = await firstValueFrom(dataSource.query({statement, forceRefresh: true}))
 					if (queryResult) {
@@ -635,7 +639,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 					}
 				}
 
-				const _indicator = {...indicator, entity: indicator.cube, visible: true}
+				const _indicator = {...indicator, formula, entity: indicator.cube, visible: true}
 
 				await this.updateIndicators(dsCoreService, [_indicator])
 				// Created event

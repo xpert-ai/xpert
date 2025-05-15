@@ -1,67 +1,67 @@
 export enum PeriodFunctions {
   CURRENT = 'CURRENT',
   /**
-   * 年累计
+   * Year-to-date
    */
   YTD = 'YTD',
   /**
-   * 季度累计
+   * Quarter-to-date
    */
   QTD = 'QTD',
   /**
-   * 周累计
+   * Week-to-date
    */
   WTD = 'WTD',
   /**
-   * 月累计
+   * Month-to-date
    */
   MTD = 'MTD',
   /**
-   * 去年同期年累计
+   * Previous year year-to-date
    */
   PYYTD = 'PYYTD',
   /**
-   * 同比
+   * Year-over-year
    */
   YOY = 'YOY',
   /**
-   * 同比差值（当期 - 去年同期）
+   * Year-over-year difference (current - previous year same period)
    */
   YOYGAP = 'YOYGAP',
   /**
-   * 环比
+   * Month-over-month
    */
   MOM = 'MOM',
   /**
-   * 环比差值（当期 - 上期）
+   * Month-over-month difference (current - previous period)
    */
   MOMGAP = 'MOMGAP',
   /**
-   * 年累计环比
+   * Year-to-date month-over-month
    */
   YTDOM = 'YTDOM',
   /**
-   * 年累计同比
+   * Year-to-date year-over-year
    */
   YTDOY = 'YTDOY',
   /**
-   * 年累计同比差值
+   * Year-to-date year-over-year difference
    */
   YTDOYGAP = 'YTDOYGAP',
   /**
-   * 上期
+   * Previous period
    */
   MPM = 'MPM',
   /**
-   * 上期同比
+   * Previous period year-over-year
    */
   MPMYOY = 'MPMYOY',
   /**
-   * 去年同期
+   * Previous year same period
    */
   PYSM = 'PYSM',
   /**
-   * 去年同期同比
+   * Previous year same period year-over-year
    */
   PYSMYOY = 'PYSMYOY'
 }

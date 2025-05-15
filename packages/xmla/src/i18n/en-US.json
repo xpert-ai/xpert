@@ -3,6 +3,8 @@
         "NoPropertyFoundFor": "No properties found for '{{path}}' in cube '{{cube}}'.",
         "NoPropertyFoundForOrderBy": "No properties found for order '{{by}}'",
         "NoDimensionFoundFor": "Can't find dimension '{{dimension}}' in cube '{{cube}}'.",
-        "NoCubeMetadata": "Can't discover metadata for cube '{{cube}}'."
+        "NoCubeMetadata": "Can't discover metadata for cube '{{cube}}'.",
+        "UnCalculationType": "Calculation type '{{calculationType}}' for calculated indicator '{{name}}' is not implemented.",
+        "FormulaEmpty": "Formula of calculated measure '{{name}}' is empty!"
     }
 }

@@ -1,7 +1,6 @@
 import { RedisModule, UserModule } from '@metad/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
-import { ScheduleModule } from '@nestjs/schedule'
 import { AIModule } from './ai'
 import { ChatModule } from './chat'
 import { ChatConversationModule } from './chat-conversation'
@@ -38,7 +37,6 @@ import { CommandHandlers } from './shared'
 	imports: [
 		forwardRef(() => CqrsModule),
 		forwardRef(() => UserModule),
-		ScheduleModule.forRoot(),
 		RedisModule,
 		KnowledgebaseModule,
 		KnowledgeDocumentModule,

@@ -47,7 +47,6 @@ import { cleanUpRolePermissions, createRolePermissions } from '../../role-permis
 import {
 	createDefaultTenant,
 	createRandomTenants,
-	TenantCreatedEvent,
 	TenantService
 } from '../../tenant';
 import {

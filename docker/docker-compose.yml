@@ -25,7 +25,11 @@ services:
 
   redis:
     image: redis/redis-stack:latest
-    restart: always
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -h localhost -p 6379 PING']
+      interval: 1s
+      timeout: 30s
     command: ["sh", "-c", "redis-server --requirepass $${REDIS_PASSWORD}"]
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -70,6 +74,12 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     entrypoint: './entrypoint.compose.sh'
     command: ['node', 'main.js']
     restart: on-failure
