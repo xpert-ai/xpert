@@ -14,10 +14,11 @@ import { CubeSchemaState } from './types'
 export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaState<T>> {
   readonly sharedDimensions$ = this.modelService.sharedDimensions$
 
-  public readonly cube$ = this.select((state) => state.cube)
-  public readonly cubeName$ = this.cube$.pipe(map((cube) => cube?.name))
-  // 
-  public readonly factName$ = this.cube$.pipe(map((cube) => {
+  readonly cube$ = this.select((state) => state.cube)
+  readonly cubeName$ = this.cube$.pipe(map((cube) => cube?.name))
+  // Fact name (table or sql alias)
+  readonly factName$ = this.cube$.pipe(map((cube) => {
+      if (!cube) return null;
       if (cube.fact?.type === 'table') {
         return cube.fact.table?.name
       } else if (cube.fact?.type === 'view') {
@@ -28,7 +29,7 @@ export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaS
     })
   )
 
-  public readonly measures$ = this.cube$.pipe(
+  readonly measures$ = this.cube$.pipe(
     map((cube) => {
       const measures = [
         {
@@ -50,7 +51,7 @@ export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaS
     })
   )
 
-  public readonly fields$ = this.cubeName$.pipe(
+  readonly fields$ = this.cubeName$.pipe(
     filter(Boolean),
     switchMap((cubeName) => this.modelService.selectOriginalEntityProperties(cubeName)),
     map((properties) => [
@@ -64,7 +65,7 @@ export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaS
   /**
    * Original Fact table fields
    */
-  public readonly factFields$ = this.factName$.pipe(
+  readonly factFields$ = this.factName$.pipe(
     filter(nonBlank),
     switchMap((table) => this.modelService.selectOriginalEntityProperties(table)),
     map((properties) => [
@@ -81,7 +82,7 @@ export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaS
     ])
   )
 
-  public readonly cube = toSignal(this.cube$)
+  readonly cube = toSignal(this.cube$)
 
   readonly dimension$ = this.select((state) => state.dimension)
   readonly otherDimensions = toSignal(
