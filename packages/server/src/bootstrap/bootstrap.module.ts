@@ -7,7 +7,6 @@ import {
 import { ConfigModule, getConfig } from '@metad/server-config';
 import * as path from 'path'
 import { ServerAppModule } from './../server.module';
-import { HealthIndicatorModule } from '../health-indicator';
 import { Logger, LoggerModule } from '../logger';
 import { provideCacheModule } from './cache';
 import { provideBullModule } from './bull';
@@ -28,7 +27,6 @@ const baseDir = path.join(__dirname, '../../../')
 		ServerAppModule,
 		LoggerModule.forRoot(),
 		// PluginModule.forRoot(getConfig()),
-		HealthIndicatorModule
 	]
 })
 export class BootstrapModule implements NestModule, OnApplicationShutdown {
