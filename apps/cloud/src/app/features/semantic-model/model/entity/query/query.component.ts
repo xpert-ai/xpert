@@ -22,7 +22,7 @@ import { injectQueryCommand } from '../../copilot'
 import { ModelComponent } from '../../model.component'
 import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, MODEL_TYPE } from '../../types'
-import { serializePropertyUniqueName } from '../../utils'
+import { serializePropertyUniqueName, typeOfObj } from '../../utils'
 import { ModelEntityService } from '../entity.service'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
@@ -251,19 +251,4 @@ export class EntityQueryComponent extends TranslationBaseComponent {
   triggerFind() {
     this.editor.startFindAction()
   }
-}
-
-/**
- * 根据 SQL 查询结果对象分析出字段类型
- *
- * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/typeof
- *
- * @param obj
- * @returns
- */
-export function typeOfObj(obj) {
-  return Object.entries(obj).map(([key, value]) => ({
-    name: key,
-    type: value === null || value === undefined ? null : typeof value
-  }))
 }

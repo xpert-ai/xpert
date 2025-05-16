@@ -149,6 +149,9 @@ export class SemanticModelService {
     shareReplay(1)
   )
 
+  /**
+   * @deprecated use modelType signal
+   */
   public readonly modelType$ = this.model$.pipe(
     map((model) => {
       if (model.type === 'XMLA') {

@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, HostBinding, OnInit, inject, model,
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, NavigationEnd, Router, RouterModule, UrlSegment } from '@angular/router'
-import { nonBlank, routeAnimations } from '@metad/core'
+import { nonBlank, routeAnimations, LeanRightEaseInAnimation } from '@metad/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NX_STORY_STORE, NxStoryStore, Story, StoryModel } from '@metad/story/core'
 import { NxDesignerModule, NxSettingsPanelService } from '@metad/story/designer'
@@ -26,6 +26,7 @@ import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatTabsModule } from '@angular/material/tabs'
 import { ModelCubeFactComponent } from './fact/fact.component'
 import { isEntitySet } from '@metad/ocap-core'
+import { ModelEntityCalculationComponent } from './calculation/calculation.component'
 
 @Component({
   standalone: true,
@@ -46,9 +47,10 @@ import { isEntitySet } from '@metad/ocap-core'
     NgmCommonModule,
     NxDesignerModule,
     ModelCubeStructureComponent,
-    ModelCubeFactComponent
+    ModelCubeFactComponent,
+    ModelEntityCalculationComponent
   ],
-  animations: [routeAnimations]
+  animations: [routeAnimations, LeanRightEaseInAnimation]
 })
 export class ModelEntityComponent implements OnInit {
   readonly #logger = inject(NGXLogger)
@@ -98,6 +100,7 @@ export class ModelEntityComponent implements OnInit {
   readonly entityType = this.entityService.entityType
   readonly cube = toSignal(this.entityService.cube$)
   readonly openedFact = signal(false)
+  readonly openedCalculation = signal<string>(null)
 
   /**
   |--------------------------------------------------------------------------
@@ -197,7 +200,8 @@ export class ModelEntityComponent implements OnInit {
   }
 
   onPropertyEdit(event) {
-    this.router.navigate([`calculation/${event.__id__}`], { relativeTo: this.route })
+    // this.router.navigate([`calculation/${event.__id__}`], { relativeTo: this.route })
+    this.openedCalculation.set(event.__id__)
   }
 
   toggleFullscreen() {

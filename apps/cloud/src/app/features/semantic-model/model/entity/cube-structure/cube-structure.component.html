@@ -63,18 +63,19 @@
   >
     <ul>
       @for (member of measures(); track member.__id__) {
-        <li class="group/item flex items-center px-2 py-1.5 text-sm hover:bg-hover-bg"
+        <li class="group/item flex items-center px-2 py-1.5 text-sm cursor-pointer hover:bg-hover-bg"
           [class.selected]="isSelected(ModelDesignerType.measure, member.__id__)"
           [class.bg-orange-100]="!member.name"
           cdkDragBoundary=".pac-model-entity" cdkDrag [cdkDragData]="member"
+          (click)="onSelect(ModelDesignerType.measure, member)"
         >
           <ngm-entity-property class="flex-1" [property]="member" [role]="AGGREGATION_ROLE.measure" />
 
           <div class="absolute right-1 flex items-center gap-0.5 p-0.5 rounded-lg bg-components-card-bg opacity-0 group-hover/item:opacity-100">
-            <button type="button" class="btn btn-small w-6 h-6 justify-center"
+            <!-- <button type="button" class="btn btn-small w-6 h-6 justify-center"
               (click)="onSelect(ModelDesignerType.measure, member)">
               <i class="ri-equalizer-2-line"></i>
-            </button>
+            </button> -->
             @if (!member.rt) {
               <button type="button" class="btn btn-small danger w-6 h-6 justify-center"
                 (click)="onDeleteMeasure($event, member)">
@@ -116,20 +117,21 @@
     (cdkDropListDropped)="dropCalcMembers($event)">
     <ul>
       @for (member of calculatedMembers(); track member) {
-        <li class="group/item flex items-center px-2 py-1.5 text-sm hover:bg-hover-bg"
+        <li class="group/item flex items-center px-2 py-1.5 text-sm cursor-pointer hover:bg-hover-bg"
           [class.bg-orange-100]="!member.name"
           [class.selected]="isSelected(ModelDesignerType.calculatedMember, member.__id__)"
           cdkDragBoundary=".pac-model-entity" cdkDrag [cdkDragData]="member"
+          (click)="onCalculatedMemberEdit(member)"
         >
           <div class="w-full flex items-center">
             <ngm-entity-property class="flex-1" [property]="$any(member)" />
     
             <div class="absolute right-1 flex items-center gap-0.5 p-0.5 rounded-lg bg-components-card-bg opacity-0 group-hover/item:opacity-100">
-              <button type="button" class="btn btn-small w-6 h-6 justify-center"
+              <!-- <button type="button" class="btn btn-small w-6 h-6 justify-center"
                 (click)="onCalculatedMemberEdit(member)"
               >
                 <i class="ri-equalizer-2-line"></i>
-              </button>
+              </button> -->
 
               <button type="button" class="btn btn-small danger w-6 h-6 justify-center"
                 (click)="onDeleteCalculatedMember($event, member)">

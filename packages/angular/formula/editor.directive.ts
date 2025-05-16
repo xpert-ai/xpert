@@ -180,6 +180,7 @@ export class NgmBaseEditorDirective implements ControlValueAccessor, OnDestroy {
   }
 
   insert(text: string, position?: any) {
+    this.editor.focus()
     if (position) {
       this.editor.setPosition(position)
     }

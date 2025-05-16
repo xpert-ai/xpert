@@ -652,7 +652,8 @@
       "Duplicate": "复制",
       "OpenAttributesPanel": "打开属性面板",
       "Close": "关闭",
-      "Update": "更新"
+      "Update": "更新",
+      "Test": "测试"
     },
     "MESSAGE": {
       "MAIN_ORGANIZATION_UPDATED": "组织更新成功",
@@ -1075,7 +1076,9 @@
         "CubeStructure": "立方体结构",
         "DragDimensionHere": "拖动维度至此",
         "DragMeasureHere": "拖动度量至此",
-        "DataPreview": "数据预览"
+        "DataPreview": "数据预览",
+        "TestFormula": "测试公式",
+        "AddDimension": "添加维度"
       },
       "DIMENSION": {
         "Levels": "层级",

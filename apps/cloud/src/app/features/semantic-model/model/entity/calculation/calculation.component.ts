@@ -1,34 +1,52 @@
-import { CdkDragDrop } from '@angular/cdk/drag-drop'
+import { CdkDrag, CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, OnDestroy, ViewChild, computed, effect, inject } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+  ViewChild
+} from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
 import { BaseEditorDirective } from '@metad/components/editor'
 import { CommandDialogComponent } from '@metad/copilot-angular'
+import { convertQueryResultColumns, linkedModel } from '@metad/core'
+import { NgmSpinComponent, NgmTableComponent } from '@metad/ocap-angular/common'
 import { DisplayDensity } from '@metad/ocap-angular/core'
-import { NgmCalculatedMeasureComponent, NgmFormulaEditorComponent } from '@metad/ocap-angular/entity'
+import {
+  NgmCalculatedMeasureComponent,
+  NgmEntityModule,
+  NgmFormulaEditorComponent,
+  PropertyCapacity
+} from '@metad/ocap-angular/entity'
 import { NgmFormulaModule } from '@metad/ocap-angular/formula'
-import { Syntax, stringifyProperty } from '@metad/ocap-core'
+import { Dimension, nonBlank, QueryReturn, stringifyProperty, Syntax } from '@metad/ocap-core'
+import { Crossjoin, Members } from '@metad/ocap-xmla'
 import { getSemanticModelKey } from '@metad/story/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
-import { isNil, negate } from 'lodash-es'
+import { differenceBy, isNil, isPlainObject } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { injectParams } from 'ngxtension/inject-params'
-import { EMPTY } from 'rxjs'
-import { filter, map } from 'rxjs/operators'
-import { Store, ToastrService } from '../../../../../@core'
+import { EMPTY, of } from 'rxjs'
+import { catchError, map, startWith } from 'rxjs/operators'
+import { getErrorMessage, ToastrService } from '../../../../../@core'
 import { AppService } from '../../../../../app.service'
 import { injectFormulaCommand } from '../../copilot/'
 import { SemanticModelService } from '../../model.service'
-import { MODEL_TYPE, ModelDesignerType } from '../../types'
+import { CdkDragDropContainers, MODEL_TYPE, ModelDesignerType } from '../../types'
+import { typeOfObj } from '../../utils'
 import { ModelEntityService } from '../entity.service'
 import { getDropProperty } from '../types'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { animate, style, transition, trigger } from '@angular/animations'
 
 @Component({
   standalone: true,
@@ -42,36 +60,53 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
   imports: [
     CommonModule,
     FormsModule,
-    MaterialModule,
     TranslateModule,
+    DragDropModule,
+    MatTooltipModule,
     ContentLoaderModule,
+    NgmTableComponent,
+    NgmEntityModule,
     NgmFormulaModule,
     NgmFormulaEditorComponent,
+    NgmSpinComponent,
 
     NgmCalculatedMeasureComponent
+  ],
+  animations: [
+    trigger('rotateTrigger', [
+      transition(':enter', [
+        style({ transform: 'rotate(90deg)', opacity: 0 }),
+        animate('100ms ease-out', style({ transform: 'rotate(0deg)', opacity: 1 }))
+      ]),
+    ])
   ]
 })
-export class ModelEntityCalculationComponent extends TranslationBaseComponent implements OnDestroy {
+export class ModelEntityCalculationComponent {
   DisplayDensity = DisplayDensity
   Syntax = Syntax
   ModelType = MODEL_TYPE
+  propertyCapacities = [
+    PropertyCapacity.Dimension,
+  ]
 
-  public readonly appService = inject(AppService)
-  public readonly modelService = inject(SemanticModelService)
-  public readonly entityService = inject(ModelEntityService)
+  readonly appService = inject(AppService)
+  readonly modelService = inject(SemanticModelService)
+  readonly entityService = inject(ModelEntityService)
   readonly #route = inject(ActivatedRoute)
   readonly #router = inject(Router)
   readonly #logger = inject(NGXLogger)
-  readonly #store = inject(Store)
   readonly #toastr = inject(ToastrService)
   readonly #dialog = inject(MatDialog)
 
   @ViewChild('editor') editor!: BaseEditorDirective
 
-  readonly params = injectParams()
-  readonly key = computed(() => this.params()?.id)
+  // Inputs
+  readonly key = input<string>()
 
-  public readonly options$ = this.modelService.wordWrap$.pipe(map((wordWrap) => ({ wordWrap })))
+  // Outputs
+  readonly close = output<void>()
+
+  readonly options$ = this.modelService.wordWrap$.pipe(map((wordWrap) => ({ wordWrap })))
 
   /**
   |--------------------------------------------------------------------------
@@ -88,27 +123,81 @@ export class ModelEntityCalculationComponent extends TranslationBaseComponent im
     return EMPTY
   })
 
-  readonly formula = computed(() => this.calculatedMember()?.formula)
+  readonly formula = linkedModel({
+    initialValue: null,
+    compute: () => this.calculatedMember()?.formula,
+    update: () => {}
+  })
+  readonly formulaName = linkedModel({
+    initialValue: null,
+    compute: () => this.calculatedMember()?.name,
+    update: () => {}
+  })
+
+  readonly isDirty = computed(() => this.formula() !== this.calculatedMember()?.formula)
+
   readonly entityType = this.entityService.entityType
   readonly syntax = computed(() => this.entityType().syntax)
 
   private readonly modelKey = toSignal(this.modelService.model$.pipe(map(getSemanticModelKey)))
-  private readonly cubeName = toSignal(
-    this.entityService.cube$.pipe(
-      map((cube) => cube?.name),
-      filter(negate(isNil))
-    )
-  )
+  private readonly cubeName = computed(() => this.cube()?.name)
 
-  public readonly dataSettings = computed(() => ({
+  readonly dataSettings = computed(() => ({
     dataSource: this.modelKey(),
     entitySet: this.cubeName()
   }))
 
-  readonly modelType = toSignal(this.modelService.modelType$)
+  readonly modelType = this.modelService.modelType
   readonly dialect = this.modelService.dialect
   readonly selectedProperty = this.entityService.selectedProperty
   readonly typeKey = computed(() => `${ModelDesignerType.calculatedMember}#${this.key()}`)
+
+  // Test
+  readonly showTest = signal(false)
+  readonly testDimensions = signal<Dimension[]>([])
+
+  readonly testStatement = computed(() => {
+    const dimensions = this.testDimensions().map(stringifyProperty).filter(nonBlank)
+    const cubeName = this.cubeName()
+    const formulaName = this.formulaName() || '_'
+    let statement = `WITH MEMBER [Measures].[${formulaName}] AS ${this.formula()}\nSELECT\n  non empty {[Measures].[${formulaName}]} ON COLUMNS`
+    if (dimensions.length) {
+      statement += `,\n  ${Crossjoin(...dimensions.map((dim) => Members(dim)))} ON ROWS`
+    }
+    statement += `\nFROM [${cubeName}]`
+    return statement
+  })
+
+  readonly testResult = derivedAsync<{ loading?: boolean; error?: string; data?: any[]; columns?: any[] }>(() => {
+    return this.testStatement() && this.showTest()
+      ? this.modelService.dataSource$.value.query({ statement: this.testStatement(), forceRefresh: true }).pipe(
+          catchError((error) => {
+            return of({
+              error: getErrorMessage(error)
+            })
+          }),
+          map(({ status, error, schema, data }: QueryReturn<unknown>) => {
+            if (error) {
+              return {
+                error
+              }
+            }
+
+            const columns = convertQueryResultColumns(schema)
+
+            if (isPlainObject(data)) {
+              columns.push(...typeOfObj(data))
+              data = [data]
+            }
+            return {
+              data,
+              columns
+            }
+          }),
+          startWith({ loading: true })
+        )
+      : of(null)
+  })
 
   /**
   |--------------------------------------------------------------------------
@@ -117,15 +206,7 @@ export class ModelEntityCalculationComponent extends TranslationBaseComponent im
   */
   #formulaCommand = injectFormulaCommand(this.calculatedMember)
 
-  /**
-  |--------------------------------------------------------------------------
-  | Subscribers
-  |--------------------------------------------------------------------------
-  */
-
   constructor() {
-    super()
-
     effect(
       () => {
         if (this.calculatedMember()) {
@@ -174,15 +255,6 @@ export class ModelEntityCalculationComponent extends TranslationBaseComponent im
     this.editor.insert(event.item.data?.name)
   }
 
-  dropFormula(event: CdkDragDrop<any[]>) {
-    const previousItem = event.item.data
-    const index = event.currentIndex
-    if (event.previousContainer.id === 'list-dimensions') {
-      const item = getDropProperty(event, this.modelType(), this.dialect())
-      this.setFormula(`${this.formula()}${stringifyProperty(item)}`)
-    }
-  }
-
   onEditorKeyDown(event) {
     console.log(event)
   }
@@ -199,9 +271,61 @@ export class ModelEntityCalculationComponent extends TranslationBaseComponent im
       .subscribe((result) => {})
   }
 
-  ngOnDestroy(): void {
-    if (this.selectedProperty() === this.typeKey()) {
-      this.entityService.setSelectedProperty(null)
+  toggleTest() {
+    this.showTest.update((state) => !state)
+  }
+
+  dropRowsPredicate(item: CdkDrag<any>) {
+    return (
+      // dimensions
+      item.dropContainer.id === CdkDragDropContainers.Dimensions
+    )
+  }
+
+  dropTestDimensions(event: CdkDragDrop<unknown[]>) {
+    if (event.previousContainer === event.container) {
+      this.testDimensions.update((state) => {
+        const rows = [...state]
+        moveItemInArray(rows, event.previousIndex, event.currentIndex)
+        return rows
+      })
+    } else {
+      if (event.previousContainer.id === CdkDragDropContainers.Dimensions) {
+        const item = getDropProperty(event, this.modelType(), this.dialect())
+        if (event.container.id === 'formula-test-rows') {
+          const rows = differenceBy(this.testDimensions(), [item], 'dimension')
+          rows.splice(event.currentIndex, 0, item)
+          this.testDimensions.set(rows)
+        }
+      }
     }
+  }
+
+  onTestRowChange(event: Dimension, i: number) {
+    this.testDimensions.update((state) => {
+      const rows = [...state]
+      rows[i] = event
+      return rows
+    })
+  }
+
+  removeTestRow(index: number) {
+    this.testDimensions.update((state) => {
+      const rows = [...state]
+      rows.splice(index, 1)
+      return rows
+    })
+  }
+
+  addTestDimension() {
+    this.testDimensions.update((state) => [...state, {}])
+  }
+
+  cancel() {
+    this.close.emit()
+  }
+
+  apply() {
+    this.setFormula(this.formula())
   }
 }

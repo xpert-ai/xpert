@@ -42,9 +42,9 @@ export function formatMeasureValue(
   if (isNumber(value)) {
     const digitsInfo = defaultDigitsInfo(measure)
     const unit = measure.formatting?.unit ?? getMeasurePropertyUnit(property)
-    // if (unit === '%') {
-    //   value = value * 100
-    // }
+    if (unit === '%') {
+      value = value * 100
+    }
     if (measure.formatting?.shortNumber ?? shortNumber) {
       const [short, shortUnit] = formatShortNumber(value, locale)
       return {

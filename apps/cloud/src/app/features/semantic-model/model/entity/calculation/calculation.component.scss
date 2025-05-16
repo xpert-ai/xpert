@@ -1,5 +1,4 @@
 :host {
-  display: flex;
-  max-width: 100%;
-  flex: 1;
+  --mat-sidenav-content-background-color: transparent;
+  @apply relative grow flex flex-col max-w-full;
 }

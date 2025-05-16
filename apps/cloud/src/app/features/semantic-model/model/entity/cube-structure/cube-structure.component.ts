@@ -332,7 +332,6 @@ export class ModelCubeStructureComponent {
 
   onCalculatedMemberEdit(member: Partial<CalculatedMember>) {
     this.entityService.setSelectedProperty(ModelDesignerType.calculatedMember, member.__id__)
-    // this.checklistSelection.select(`${ModelDesignerType.calculatedMember}#${member.__id__}`)
     this.editChange.emit(member)
   }
 
