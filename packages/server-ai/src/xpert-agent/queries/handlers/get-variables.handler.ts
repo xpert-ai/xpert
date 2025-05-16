@@ -1,6 +1,7 @@
 import {
 	channelName,
 	IWFNCode,
+	IWFNKnowledgeRetrieval,
 	IWorkflowNode,
 	IXpertAgent,
 	STATE_VARIABLE_SYS,
@@ -259,6 +260,29 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 								}
 							}
 						)
+						varGroups.push(varGroup)
+						break
+					}
+					case WorkflowNodeTypeEnum.KNOWLEDGE: {
+						variables.push({
+							type: XpertParameterTypeEnum.ARRAY,
+							name: 'results',
+							title: 'Retrieval segmented data',
+							description: {
+								en_US: 'Retrieval segmented data',
+								zh_Hans: '检索分段数据'
+							},
+							item: [
+								{
+									type: XpertParameterTypeEnum.STRING,
+									name: 'content',
+								},
+								{
+									type: XpertParameterTypeEnum.OBJECT,
+									name: 'metadata',
+								}
+							]
+						})
 						varGroups.push(varGroup)
 						break
 					}

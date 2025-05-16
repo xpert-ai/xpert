@@ -58,6 +58,9 @@
   @case (eWorkflowNodeTypeEnum.ANSWER) {
     <xpert-studio-panel-workflow-answer [node]="node()" [entity]="wfNode()" />
   }
+  @case (eWorkflowNodeTypeEnum.KNOWLEDGE) {
+    <xpert-workflow-knowledge [node]="node()" [entity]="wfNode()" />
+  }
   @case (eWorkflowNodeTypeEnum.CODE) {
     <xpert-studio-panel-workflow-code [node]="node()" [wfNode]="wfNode()" />
   }

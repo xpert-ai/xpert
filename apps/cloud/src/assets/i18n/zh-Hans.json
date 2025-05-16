@@ -367,6 +367,7 @@
       "ResponseHeaderJson": "返回头(JSON)",
       "NotSupportedYet": "暂不支持！",
       "HTTPRequest": "HTTP 请求",
+      "KnowledgeRetrieval": "知识检索",
       "CodeExecution": "代码执行",
       "Answer": "回答",
       "Iterating": "迭代",
@@ -2719,7 +2720,8 @@
       "SearchRecallMemories": "搜寻回忆",
       "DuplicateSuccess": "复制成功",
       "DuplicateError": "复制失败",
-      "AfterPublish": "发布后"
+      "AfterPublish": "发布后",
+      "KnowledgeRetrieval": "知识检索"
     },
     "MCP": {
       "Connect": "连接",

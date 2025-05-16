@@ -1,0 +1,32 @@
+  <h3 class="text-2xl font-semi-bold text-text-primary">
+    Select reference Knowledge
+  </h3>
+  <div class="mt-7 max-h-[286px] space-y-1 overflow-y-auto">
+    @for (item of knowledgebases(); track item.id) {
+    <div
+      class="flex h-10 cursor-pointer items-center justify-between rounded-lg px-2 border-[1.5px] border-components-option-card-option-selected-border bg-state-accent-hover shadow-xs hover:border-components-option-card-option-selected-border hover:bg-state-accent-hover hover:shadow-xs"
+    >
+      <div class="mr-1 flex items-center overflow-hidden">
+        <div class="mr-2 flex items-center justify-center rounded-lg w-7 h-7 bg-slate-50 border-[0.5px] border-solid border-slate-200 text-primary-500">
+          <i class="ri-book-shelf-fill text-lg"></i>
+        </div>
+        <div class="max-w-[200px] truncate text-[13px] font-medium text-text-secondary">
+          {{item.name}}
+        </div>
+      </div>
+      <div
+        class="relative inline-flex h-5 items-center rounded-[5px] border border-divider-deep px-[5px] leading-3 text-text-tertiary system-2xs-medium-uppercase shrink-0"
+      >
+        HQ · VECTOR
+      </div>
+    </div>
+    }
+
+  </div>
+  <div class="mt-8 flex items-center justify-between">
+    <div class="text-sm font-medium text-text-secondary">2 Knowledge selected</div>
+    <div class="flex space-x-2">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium">Cancel</button
+      ><button type="button" class="btn disabled:btn-disabled btn-primary btn-medium">Add</button>
+    </div>
+  </div>

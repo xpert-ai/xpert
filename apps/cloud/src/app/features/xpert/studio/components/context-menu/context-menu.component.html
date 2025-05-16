@@ -150,6 +150,16 @@
       {{ 'PAC.Xpert.Transform' | translate: {Default: 'Transform'} }}
     </div>
     <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowKnowledgeRetrieval()"
+    >
+      <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-green-400
+        w-5 h-5 rounded-md
+        shrink-0 mr-2">
+        <i class="ri-book-shelf-line text-sm"></i>
+      </div>
+      <div class="text-text-primary">{{'PAC.Xpert.KnowledgeRetrieval' | translate: {Default: 'Knowledge Retrieval'} }}</div>
+    </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowCode()"
     >
       <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-400

@@ -11,6 +11,7 @@ export enum WorkflowNodeTypeEnum {
   ANSWER = 'answer',
   CODE = 'code',
   HTTP = 'http',
+  KNOWLEDGE = 'knowledge',
   NOTE = 'note'
 }
 
@@ -203,6 +204,11 @@ export interface IWFNHttp extends IWorkflowNode {
    * Error handling
    */
   errorHandling?: TErrorHandling
+}
+
+export interface IWFNKnowledgeRetrieval extends IWorkflowNode {
+  queryVariable: string
+  knowledgebases: {id: string}[]
 }
 
 export function channelName(name: string) {
