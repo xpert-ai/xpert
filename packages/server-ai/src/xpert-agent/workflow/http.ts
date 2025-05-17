@@ -16,6 +16,7 @@ export const HeadersChannelName = 'headers'
 export const ReqUrlChannelName = 'request_url'
 export const ReqMethodChannelName = 'request_method'
 export const ReqBodyChannelName = 'request_body'
+export const ResponseBodyJsonChannelName = 'body_json'
 
 export function createHttpNode(
 	graph: TXpertGraph,
@@ -130,7 +131,7 @@ export function createHttpNode(
 								maxRedirects: 5 // Example follow redirects, adjust as needed
 							})
 
-							const data = response.headers['content-type'] === 'application/json' ? JSON.stringify(response.data) : response.data
+							const data = response.headers['content-type']?.startsWith('application/json') ? JSON.stringify(response.data) : response.data
 							return {
 								state: {
 									[channelName(node.key)]: {
@@ -140,6 +141,7 @@ export function createHttpNode(
 										[StatusCodeChannelName]: response.status,
 										[HeadersChannelName]: response.headers as Record<string, string>,
 										body: data,
+										[ResponseBodyJsonChannelName]: response.data
 									}
 								},
 								output: data
@@ -150,7 +152,8 @@ export function createHttpNode(
 									return {
 										state: {
 											[channelName(node.key)]: entity.errorHandling.defaultValue
-										}
+										},
+										output: entity.errorHandling.defaultValue?.content
 									}
 								}
 								if (entity.errorHandling?.type === 'failBranch') {

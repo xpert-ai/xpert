@@ -24,6 +24,7 @@ import {
 	ReqBodyChannelName,
 	ReqMethodChannelName,
 	ReqUrlChannelName,
+	ResponseBodyJsonChannelName,
 	StatusCodeChannelName
 } from '../../workflow/http'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
@@ -218,6 +219,15 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 								type: XpertParameterTypeEnum.STRING,
 								name: 'body',
 								title: 'Body',
+								description: {
+									en_US: 'Body',
+									zh_Hans: '返回体'
+								}
+							},
+							{
+								type: XpertParameterTypeEnum.OBJECT,
+								name: ResponseBodyJsonChannelName,
+								title: 'Body (JSON)',
 								description: {
 									en_US: 'Body',
 									zh_Hans: '返回体'

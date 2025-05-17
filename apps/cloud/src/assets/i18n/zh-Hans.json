@@ -364,6 +364,7 @@
       "WriteTimeoutDesc": "输入写入超时时间（秒数）",
       "OutputVariables": "输出变量",
       "ResponseContent": "返回内容",
+      "ResponseObject": "返回对象",
       "ResponseStatusCode": "返回状态码",
       "ResponseHeaderJson": "返回头(JSON)",
       "NotSupportedYet": "暂不支持！",
