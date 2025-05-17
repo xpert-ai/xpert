@@ -63,6 +63,10 @@ export class XpertParametersEditComponent {
     )
   }
 
+  onMenuClosed(index: number) {
+    this.onChange()
+  }
+
   onChange() {
     this.cva.writeValue(this.parameters.value)
   }
