@@ -1,6 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -69,6 +69,8 @@ export class XpertWorkflowKnowledgeComponent extends XpertWorkflowBaseComponent 
     }))
   })
 
+  readonly showOutput = signal<boolean>(false)
+
   onFocus(event: Event) {}
 
   select() {
@@ -94,4 +96,8 @@ export class XpertWorkflowKnowledgeComponent extends XpertWorkflowBaseComponent 
   }
 
   edit(id: string) {}
+
+  toggleShowOutput() {
+    this.showOutput.update((state) => !state)
+  }
 }

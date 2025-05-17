@@ -24,6 +24,7 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "PleaseInput": "请输入",
       "PasswordsNotMatch": "密码不匹配",
       "Required": "必输",
       "All": "所有",

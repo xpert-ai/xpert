@@ -26,18 +26,8 @@ export class CreateWNKnowledgeRetrievalHandler implements ICommandHandler<Create
 		const { environment } = command.options
 
 		const entity = node.entity as IWFNKnowledgeRetrieval
-
-		const retrievers = entity.knowledgebases?.map((id) => ({
-			retriever: createKnowledgeRetriever(this.queryBus, id, entity?.recall ?? {}),
-			weight: entity?.recall?.weight
-		}))
-		const retriever = retrievers?.length
-			? new EnsembleRetriever({
-					retrievers: retrievers.map(({ retriever }) => retriever),
-					weights: retrievers.map(({ weight }) => weight ?? 0.5)
-				})
-			: null
-
+	
+		const retriever = createWorkflowRetriever(this.queryBus, entity)
 		return {
 			workflowNode: {
 				graph: RunnableLambda.from(
@@ -61,4 +51,18 @@ export class CreateWNKnowledgeRetrievalHandler implements ICommandHandler<Create
 			}
 		}
 	}
+}
+
+export function createWorkflowRetriever(queryBus: QueryBus, entity: IWFNKnowledgeRetrieval) {
+	const retrievers = entity.knowledgebases?.map((id) => ({
+		retriever: createKnowledgeRetriever(queryBus, id, entity?.recall ?? {}),
+		weight: entity?.recall?.weight
+	}))
+	const retriever = retrievers?.length
+		? new EnsembleRetriever({
+				retrievers: retrievers.map(({ retriever }) => retriever),
+				weights: retrievers.map(({ weight }) => weight ?? 0.5)
+			})
+		: null
+	return retriever
 }

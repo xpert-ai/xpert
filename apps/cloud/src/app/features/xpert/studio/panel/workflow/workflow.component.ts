@@ -27,6 +27,7 @@ import { XpertWorkflowCodeTestComponent } from './code-test/code.component'
 import { XpertWorkflowHttpComponent } from './http/http.component'
 import { XpertWorkflowIconComponent } from '../../components/workflow/icon/icon.component'
 import { XpertWorkflowKnowledgeComponent } from './knowledge/knowledge.component'
+import { XpertWorkflowKnowledgeTestComponent } from './knowledge-test/knowledge.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -51,7 +52,8 @@ import { XpertWorkflowKnowledgeComponent } from './knowledge/knowledge.component
     XpertWorkflowCodeTestComponent,
     XpertWorkflowHttpComponent,
     XpertWorkflowIconComponent,
-    XpertWorkflowKnowledgeComponent
+    XpertWorkflowKnowledgeComponent,
+    XpertWorkflowKnowledgeTestComponent
   ],
   animations: [IfAnimation,]
 })

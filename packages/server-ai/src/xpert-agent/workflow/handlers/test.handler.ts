@@ -1,10 +1,11 @@
-import { IWFNCode, IWorkflowNode, WorkflowNodeTypeEnum } from '@metad/contracts'
+import { IWFNCode, IWFNKnowledgeRetrieval, IWorkflowNode, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { SandboxVMCommand } from '../../../sandbox'
 import { XpertService } from '../../../xpert/xpert.service'
 import { WorkflowTestNodeCommand } from '../test.command'
+import { createWorkflowRetriever } from './create-wn-knowledge-retrieval.handler'
 
 @CommandHandler(WorkflowTestNodeCommand)
 export class WorkflowTestNodeHandler implements ICommandHandler<WorkflowTestNodeCommand> {
@@ -33,6 +34,14 @@ export class WorkflowTestNodeHandler implements ICommandHandler<WorkflowTestNode
 						new SandboxVMCommand(_entity.code, command.inputs, null, _entity.language)
 					)
 					return results
+				}
+				case WorkflowNodeTypeEnum.KNOWLEDGE: {
+					const _entity = entity as IWFNKnowledgeRetrieval
+					
+					const retriever = createWorkflowRetriever(this.queryBus, _entity)
+					const documents = await retriever?.invoke(command.inputs.query) ?? []
+					
+					return documents
 				}
 			}
 		}

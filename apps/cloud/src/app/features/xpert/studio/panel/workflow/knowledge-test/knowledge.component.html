@@ -1,0 +1,57 @@
+<div class="mt-3 space-y-4 px-4">
+  <div>
+    <div class="space-y-2">
+      <div class="">
+        <div class="system-sm-semibold mb-1 flex h-6 items-center gap-1 text-text-secondary">
+          <div class="truncate">{{ 'PAC.Xpert.QueryVariable' | translate: {Default: 'Query Variable'} }}</div>
+        </div>
+        <div class="grow">
+          <textarea class="min-h-20 w-full appearance-none border border-transparent bg-components-input-bg-normal p-2 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-md system-sm-regular"
+            [placeholder]=" 'PAC.KEY_WORDS.PleaseInput' | translate: {Default: 'Please input'}"
+            [(ngModel)]="query"
+          ></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mt-4 flex justify-between space-x-2 px-4">
+  <button type="button" class="btn disabled:btn-disabled btn-primary btn-large w-0 grow space-x-2"
+    [disabled]="loading()"
+    (click)="test()">
+    <div>{{ 'PAC.Xpert.StartRun' | translate: {Default: 'Start run'} }}</div>
+  </button>
+  @if (loading()) {
+    <button type="button" class="btn disabled:btn-disabled btn-large btn-danger pressable"
+      (click)="stopTest()"
+    >
+      <div class="w-full text-center">
+        <i class="ri-stop-line"></i>
+        {{ 'PAC.Xpert.Stop' | translate: { Default: 'Stop' } }}
+      </div>
+    </button>
+  }
+</div>
+
+@if (error()) {
+  <div class="flex flex-col rounded-lg bg-gray-50">
+    <div class="px-3 py-1 flex justify-between items-center">
+      ERROR
+      <copy [content]="error()" />
+    </div>
+    <div class="p-4 text-sm text-text-destructive whitespace-pre-line break-all">
+      {{error()}}
+    </div>
+  </div>
+}
+
+<div class="flex flex-col rounded-lg m-4 bg-gray-50">
+  <div class="px-3 py-1 flex justify-between items-center">
+    OUTPUT
+    <copy [content]="results()" />
+  </div>
+  @if (results()) {
+    <ngx-json-viewer class="p-2 text-sm" [json]="results()" [depth]="1" />
+  }
+</div>

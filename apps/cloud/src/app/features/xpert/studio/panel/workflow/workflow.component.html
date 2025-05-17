@@ -74,9 +74,9 @@
 }
 
 @if (testing()) {
-  <div class="absolute top-0 left-0 w-full h-full z-50 bg-black/20 dark:bg-neutral-500/50 backdrop-blur-[2px]" @ifAnimationTrigger 
+  <div class="absolute top-0 left-0 w-full h-full rounded-2xl z-50 bg-black/20 dark:bg-neutral-500/50 backdrop-blur-[2px]" @ifAnimationTrigger 
     (click)="testing.set(false)">
-    <div class="absolute top-14 left-0 bottom-0 w-full rounded-t-xl bg-components-panel-bg" (click)="$event.stopPropagation()">
+    <div class="absolute top-14 left-0 bottom-0 w-full flex flex-col rounded-t-xl bg-components-panel-bg" (click)="$event.stopPropagation()">
       <div class="flex h-8 shrink-0 items-center justify-between pl-4 pr-3 pt-3">
         <div class="truncate text-base font-semibold text-gray-900">{{'PAC.Xpert.TestRun' | translate: {Default: 'Test Run'} }} {{title || key()}}</div>
         <div class="ml-2 shrink-0 cursor-pointer p-1 w-7 h-7 rounded-md flex justify-center items-center hover:bg-hover-bg" (click)="testing.set(false)">
@@ -84,18 +84,19 @@
         </div>
       </div>
 
-      <div class="p-4">
-        @switch (type()) {
-          @case (eWorkflowNodeTypeEnum.CODE) {
-            <xpert-workflow-code-test [node]="node()" [wfNode]="wfNode()" />
-          }
-          @default {
-            <div>
-              {{ 'PAC.Workflow.NotSupportedYet' | translate: {Default: 'Not supported yet!'} }}
-            </div>
-          }
+      @switch (type()) {
+        @case (eWorkflowNodeTypeEnum.CODE) {
+          <xpert-workflow-code-test class="grow overflow-y-auto pb-4" [node]="node()" [wfNode]="wfNode()" />
         }
-      </div>
+        @case (eWorkflowNodeTypeEnum.KNOWLEDGE) {
+          <xpert-workflow-knowledge-test class="grow overflow-y-auto pb-4" [node]="node()" [entity]="wfNode()" />
+        }
+        @default {
+          <div class="select-none rounded-lg bg-neutral-50 p-3 m-4 text-center text-text-tertiary">
+            {{ 'PAC.Workflow.NotSupportedYet' | translate: {Default: 'Not supported yet!'} }}
+          </div>
+        }
+      }
     </div>
   </div>
 }

@@ -85,6 +85,74 @@
       </div>
     </div>
   </div>
+
+  <div class="h-[0.5px] bg-divider-subtle"></div>
+
+  <div class="group/collapse flex items-center">
+    <div class="ml-4 flex grow items-center">
+      <div class="text-sm font-semibold uppercase flex h-6 cursor-pointer items-center text-text-secondary"
+        (click)="toggleShowOutput()">
+        {{ 'PAC.Xpert.OutputVariables' | translate: {Default: 'Output Variables'} }}
+      </div>
+      <div class="h-4 w-4 shrink-0">
+        <i class="ri-arrow-drop-down-fill" ></i>
+      </div>
+    </div>
+  </div>
+  
+  @if (showOutput()) {
+    <div class="px-4">
+      <div class="flex">
+        <div class="py-1">
+          <div class="flex">
+            <div class="flex items-center leading-[18px]">
+              <div class="code-sm-semibold text-text-secondary">result</div>
+              <div class="text-sm ml-2 text-text-tertiary">Array[Object]</div>
+            </div>
+          </div>
+          <div class="te x t mt-0.5 text-text-tertiary">
+            Retrieval segmented data
+            <div class="ml-2 border-l border-gray-200 pl-2">
+              <div class="flex">
+                <div class="py-1">
+                  <div class="flex">
+                    <div class="flex items-center leading-[18px]">
+                      <div class="code-sm-semibold text-text-secondary">pageContent</div>
+                      <div class="text-sm ml-2 text-text-tertiary">string</div>
+                    </div>
+                  </div>
+                  <div class="text-sm mt-0.5 text-text-tertiary">Segmented content</div>
+                </div>
+              </div>
+              <div class="flex">
+                <div class="py-1">
+                  <div class="flex">
+                    <div class="flex items-center leading-[18px]">
+                      <div class="code-sm-semibold text-text-secondary">id</div>
+                      <div class="text-sm ml-2 text-text-tertiary">string</div>
+                    </div>
+                  </div>
+                  <div class="text-sm mt-0.5 text-text-tertiary">Segmented ID</div>
+                </div>
+              </div>
+              <div class="flex">
+                <div class="py-1">
+                  <div class="flex">
+                    <div class="flex items-center leading-[18px]">
+                      <div class="code-sm-semibold text-text-secondary">metadata</div>
+                      <div class="text-sm ml-2 text-text-tertiary">object</div>
+                    </div>
+                  </div>
+                  <div class="text-sm mt-0.5 text-text-tertiary">Segmented Metadata</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+  
 </div>
 
 <ng-template #recallMenu>
