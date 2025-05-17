@@ -1,0 +1,94 @@
+<div class="space-y-4 px-4 pb-2">
+  <div class="">
+    <div class="flex items-center justify-between">
+      <div class="flex h-6 items-center">
+        <div class="system-sm-semibold-uppercase text-text-secondary">
+          {{ 'PAC.Xpert.QueryVariable' | translate: {Default: 'Query Variable'} }}
+          <span class="text-text-destructive">*</span>
+        </div>
+      </div>
+      <div class="flex"></div>
+    </div>
+    <div class="mt-1">
+      <xpert-state-variable-select [variables]="variables()" class="w-full focus:bg-white" 
+        [(ngModel)]="queryVariable" 
+        (focus)="onFocus($event)"
+      />
+    </div>
+  </div>
+
+  <div class="">
+    <div class="flex items-center justify-between">
+      <div class="flex h-6 items-center">
+        <div class="system-sm-semibold-uppercase text-text-secondary">
+          {{ 'PAC.Xpert.Knowledge' | translate: {Default: 'Knowledge'} }}
+          <span class="text-text-destructive">*</span></div>
+      </div>
+      <div class="flex items-center space-x-1">
+        <div class="inline-block">
+          <button type="button" class="btn disabled:btn-disabled btn-ghost btn-small"
+            [cdkMenuTriggerFor]="recallMenu">
+            <i class="ri-equalizer-2-line"></i>
+            <span class="mr-1">{{ 'PAC.Xpert.RecallSettings' | translate: {Default: 'Recall Settings'} }}</span>
+            @if (recall()?.topK) {
+              <span class="font-semibold text-primary-500">{{recall().topK}}</span>/
+            }
+            <span class="text-text-warning">{{recall()?.score}}</span>
+          </button>
+        </div>
+        <div class="h-3 w-px bg-divider-regular"></div>
+        <div>
+          <div class="w-7 h-7 flex justify-center items-center cursor-pointer select-none rounded-md p-1 hover:bg-state-base-hover"
+            (click)="select()"
+          >
+            <i class="ri-add-line"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mt-1">
+      <div class="space-y-1">
+        @for (item of selectedKnowledgebases(); track item.id; let i = $index) {
+          @if (item.kb) {
+            <div class="group/dataset-item flex h-10 cursor-pointer items-center justify-between rounded-lg border-[0.5px] border-components-panel-border-subtle px-2
+              bg-components-panel-bg hover:bg-hover-bg">
+              <div class="flex w-0 grow items-center space-x-1.5">
+                <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-[0.5px] border-slate-200 bg-slate-50
+                  group-hover/dataset-item:text-primary-500">
+                  <i class="ri-book-shelf-fill text-lg"></i>
+                </div>
+                <div class="system-sm-medium w-0 grow truncate text-text-secondary">
+                  {{item.kb.name}}
+                </div>
+              </div>
+              <div class="ml-2 hidden shrink-0 items-center space-x-1 group-hover/dataset-item:flex">
+                <!-- <button type="button" class="action-btn action-btn-m" (click)="edit(item.id)">
+                  <i class="ri-edit-line"></i>
+                </button> -->
+                <button type="button" class="action-btn action-btn-m danger" (click)="remove(i)">
+                  <i class="ri-delete-bin-line"></i>
+                </button>
+              </div>
+              <!-- <div class="relative inline-flex h-5 items-center rounded-[5px] border border-divider-deep px-[5px] leading-3 text-text-tertiary system-2xs-medium-uppercase shrink-0 group-hover/dataset-item:hidden">
+                HQ · VECTOR</div> -->
+            </div>
+          } @else {
+            <div class="flex justify-center">
+              {{ 'PAC.Xpert.KnowledgeBaseNotFound' | translate: {Default: 'Knowledgebase "' + item.id + '" Not Found', id: item.id} }}
+            </div>
+          }
+        } @empty {
+          <div class="cursor-default select-none rounded-lg bg-neutral-50 p-3 text-center text-sm text-text-tertiary">
+            {{ 'PAC.Xpert.ClickAddToAddKB' | translate: {Default: 'Click the "+" button to add knowledge'} }}
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #recallMenu>
+  <div cdkMenu class="p-4">
+    <knowledge-recall-params [(ngModel)]="recall" />
+  </div>
+</ng-template>

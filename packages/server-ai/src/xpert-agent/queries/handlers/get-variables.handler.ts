@@ -266,7 +266,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 					case WorkflowNodeTypeEnum.KNOWLEDGE: {
 						variables.push({
 							type: XpertParameterTypeEnum.ARRAY,
-							name: 'results',
+							name: 'result',
 							title: 'Retrieval segmented data',
 							description: {
 								en_US: 'Retrieval segmented data',

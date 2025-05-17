@@ -3,8 +3,10 @@ import { END, LangGraphRunnableConfig, Send } from '@langchain/langgraph'
 import { channelName, IWFNKnowledgeRetrieval } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 import { get } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
+import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { AgentStateAnnotation, stateToParameters } from '../../commands/handlers/types'
 import { CreateWNAnswerCommand } from '../create-wn-answer.command'
 import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrieval.command'
@@ -25,20 +27,28 @@ export class CreateWNKnowledgeRetrievalHandler implements ICommandHandler<Create
 
 		const entity = node.entity as IWFNKnowledgeRetrieval
 
+		const retrievers = entity.knowledgebases?.map((id) => ({
+			retriever: createKnowledgeRetriever(this.queryBus, id, entity?.recall ?? {}),
+			weight: entity?.recall?.weight
+		}))
+		const retriever = retrievers?.length
+			? new EnsembleRetriever({
+					retrievers: retrievers.map(({ retriever }) => retriever),
+					weights: retrievers.map(({ weight }) => weight ?? 0.5)
+				})
+			: null
+
 		return {
 			workflowNode: {
 				graph: RunnableLambda.from(
 					async (state: typeof AgentStateAnnotation.State, config: LangGraphRunnableConfig) => {
 						const query = get(stateToParameters(state, environment), entity.queryVariable)
-						console.log(query)
+
+						const documents = await retriever?.invoke(query) ?? []
 
 						return {
 							[channelName(node.key)]: {
-								result: [
-									{
-										content: query
-									}
-								]
+								result: JSON.stringify(documents, null, 2)
 							}
 						}
 					}

@@ -2205,6 +2205,11 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "KnowledgeBaseNotFound": "知识库‘{{id}}’未找到！",
+      "ClickAddToAddKB": "点击“+”按钮添加知识库",
+      "Knowledge": "知识",
+      "QueryVariable": "查询变量",
+      "SelectReferenceKnowledge": "选择参考知识",
       "EditXpert": "编辑数字专家",
       "ConnectWorkflow": "连接工作流",
       "ConnectKnowledgebases": "连接知识库",

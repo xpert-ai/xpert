@@ -1,4 +1,5 @@
 import { I18nObject } from "../types"
+import { TKBRecallParams } from "./knowledgebase.model"
 import { ApiAuthType, TErrorHandling } from "./types"
 import { IXpertAgent } from "./xpert-agent.model"
 import { TStateVariable, TXpertParameter } from "./xpert.model"
@@ -208,7 +209,8 @@ export interface IWFNHttp extends IWorkflowNode {
 
 export interface IWFNKnowledgeRetrieval extends IWorkflowNode {
   queryVariable: string
-  knowledgebases: {id: string}[]
+  knowledgebases: string[]
+  recall?: TKBRecallParams
 }
 
 export function channelName(name: string) {

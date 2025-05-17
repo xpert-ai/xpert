@@ -1,12 +1,14 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, input } from '@angular/core'
+import { Component, computed, effect, inject, model } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { IKnowledgebase, IKnowledgeDocument, KDocumentSourceType } from '../../../@core/types'
-import { DIALOG_DATA } from '@angular/cdk/dialog'
+import { FormsModule } from '@angular/forms'
+import { IKnowledgebase, KDocumentSourceType } from '../../../@core/types'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [CommonModule, FormsModule, TranslateModule, CdkListboxModule],
   selector: 'knowledge-select-reference',
   templateUrl: `select.component.html`,
   styleUrl: `select.component.scss`
@@ -14,7 +16,17 @@ import { DIALOG_DATA } from '@angular/cdk/dialog'
 export class KnowledgeSelectReferenceComponent {
   eKDocumentSourceType = KDocumentSourceType
 
-  readonly data = inject<{knowledgebases: IKnowledgebase[]}>(DIALOG_DATA)
+  readonly data = inject<{ knowledgebases: IKnowledgebase[]; selected: string[] }>(DIALOG_DATA)
+  readonly dialogRef = inject(DialogRef)
 
   readonly knowledgebases = computed(() => this.data?.knowledgebases)
+  readonly selected = model([...(this.data?.selected ?? [])])
+
+  cancel() {
+    this.dialogRef.close()
+  }
+
+  apply() {
+    this.dialogRef.close(this.selected())
+  }
 }
