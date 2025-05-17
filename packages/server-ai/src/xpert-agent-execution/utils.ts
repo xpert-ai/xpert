@@ -6,10 +6,9 @@ import { XpertAgentExecutionUpsertCommand } from './commands'
 import { XpertAgentExecutionDTO } from './dto'
 import { getErrorMessage } from '@metad/server-common'
 import { XpertAgentExecutionOneQuery } from './queries'
-import { AgentStateAnnotation } from '../xpert-agent/commands/handlers/types'
 
 export function wrapAgentExecution(
-	fuc: (execution: Partial<IXpertAgentExecution>) => Promise<{output?: string; state: Partial<typeof AgentStateAnnotation.State>}>,
+	fuc: (execution: Partial<IXpertAgentExecution>) => Promise<{output?: string; state: unknown}>,
 	params: {
 		commandBus: CommandBus,
 		queryBus: QueryBus,

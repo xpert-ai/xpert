@@ -1,12 +1,14 @@
+import { DocumentInterface } from '@langchain/core/documents'
 import { RunnableLambda } from '@langchain/core/runnables'
-import { END, LangGraphRunnableConfig, Send } from '@langchain/langgraph'
-import { channelName, IWFNKnowledgeRetrieval } from '@metad/contracts'
+import { END, Send } from '@langchain/langgraph'
+import { channelName, IWFNKnowledgeRetrieval, IXpertAgentExecution, TAgentRunnableConfigurable } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 import { get } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
+import { wrapAgentExecution } from '../../../xpert-agent-execution/utils'
 import { AgentStateAnnotation, stateToParameters } from '../../commands/handlers/types'
 import { CreateWNAnswerCommand } from '../create-wn-answer.command'
 import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrieval.command'
@@ -23,26 +25,50 @@ export class CreateWNKnowledgeRetrievalHandler implements ICommandHandler<Create
 
 	public async execute(command: CreateWNAnswerCommand) {
 		const { graph, node } = command
-		const { environment } = command.options
+		const { environment, rootExecutionId } = command.options
 
 		const entity = node.entity as IWFNKnowledgeRetrieval
-	
+
 		const retriever = createWorkflowRetriever(this.queryBus, entity)
 		return {
 			workflowNode: {
-				graph: RunnableLambda.from(
-					async (state: typeof AgentStateAnnotation.State, config: LangGraphRunnableConfig) => {
-						const query = get(stateToParameters(state, environment), entity.queryVariable)
+				graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
+					const configurable: TAgentRunnableConfigurable = config.configurable
+					const { thread_id, checkpoint_ns, checkpoint_id, subscriber } = configurable
 
-						const documents = await retriever?.invoke(query) ?? []
+					const query = get(stateToParameters(state, environment), entity.queryVariable)
 
-						return {
-							[channelName(node.key)]: {
-								result: JSON.stringify(documents, null, 2)
-							}
-						}
+					const execution: IXpertAgentExecution = {
+						inputs: { query },
+						parentId: rootExecutionId,
+						threadId: thread_id,
+						checkpointNs: checkpoint_ns,
+						checkpointId: checkpoint_id,
+						agentKey: node.key,
+						title: entity.title
 					}
-				),
+
+					return await wrapAgentExecution(
+						async () => {
+							const documents = (await retriever?.invoke(query)) ?? []
+
+							return {
+								state: {
+									[channelName(node.key)]: {
+										result: JSON.stringify(documents, null, 2)
+									}
+								},
+								output: getFirstTwoDocs(documents)
+							}
+						},
+						{
+							commandBus: this.commandBus,
+							queryBus: this.queryBus,
+							subscriber: subscriber,
+							execution
+						}
+					)()
+				}),
 				ends: []
 			},
 			navigator: async (state: typeof AgentStateAnnotation.State, config) => {
@@ -65,4 +91,11 @@ export function createWorkflowRetriever(queryBus: QueryBus, entity: IWFNKnowledg
 			})
 		: null
 	return retriever
+}
+
+function getFirstTwoDocs(documents: DocumentInterface[]): string {
+	if (documents.length <= 2) {
+		return JSON.stringify(documents, null, 2)
+	}
+	return JSON.stringify(documents.slice(0, 2), null, 2) + '\n...'
 }
