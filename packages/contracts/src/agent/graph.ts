@@ -16,6 +16,7 @@ export type TMessageChannel = {
 export type TAgentRunnableConfigurable = {
   thread_id: string
   checkpoint_ns: string
+  checkpoint_id: string
   // Custom configurable of invoke
   tenantId: string
   organizationId: string

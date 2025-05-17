@@ -44,7 +44,12 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				break
 			}
 			case WorkflowNodeTypeEnum.CODE: {
-				workflow = createCodeNode(this.commandBus, graph, node)
+				workflow = createCodeNode(graph, node, {
+					xpertId, 
+					rootExecutionId: options.rootExecutionId,
+					commandBus: this.commandBus,
+					queryBus: this.queryBus,
+				})
 				channel = {
 					name: channelName(node.key),
 					annotation: Annotation<Record<string, unknown>>({
