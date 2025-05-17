@@ -22,7 +22,7 @@ export class XpertGuard implements CanActivate {
 		// Retrieve current tenant ID from RequestContext
 		const tenantId = RequestContext.currentTenantId()
 
-		const cacheKey = `userXperts_${tenantId}_${user.id}_${xpertId}`
+		const cacheKey = `userXperts:${tenantId}:${user.id}_${xpertId}`
 
 		const fromCache = await this.cacheManager.get<boolean | null>(cacheKey)
 

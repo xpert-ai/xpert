@@ -23,7 +23,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 
 	constructor(
 		@InjectRepository(Xpert)
-		repository: Repository<Xpert>,
+		public readonly repository: Repository<Xpert>,
 		private readonly userService: UserService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus
