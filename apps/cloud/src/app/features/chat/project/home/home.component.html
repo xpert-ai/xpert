@@ -230,6 +230,13 @@
             <i class="ri-hammer-line text-lg"></i>
             {{'PAC.XProject.Tools' | translate: {Default: 'Tools'} }}
           </button>
+          <button type="button" class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+            [class.active]="viewType() === 'knowledges'"
+            (click)="viewType.set('knowledges')"
+          >
+            <i class="ri-book-shelf-line text-lg"></i>
+            {{'PAC.XProject.Knowledges' | translate: {Default: 'Knowledges'} }}
+          </button>
 
           <button type="button" class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
             [class.active]="viewType() === 'conversations'"
@@ -287,6 +294,9 @@
         }
         @case ('tools') {
           <chat-project-tools role="tabpanel" tabindex="0" class="py-2" />
+        }
+        @case ('knowledges') {
+          <chat-project-knowledges role="tabpanel" tabindex="0" class="py-2" />
         }
         @case ('conversations') {
           <chat-project-conversations role="tabpanel" tabindex="0" class="py-2" />

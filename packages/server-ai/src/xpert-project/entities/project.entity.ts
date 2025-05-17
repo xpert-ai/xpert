@@ -1,5 +1,6 @@
 import {
 	ICopilotModel,
+	IKnowledgebase,
 	IStorageFile,
 	IUser,
 	IXpert,
@@ -16,7 +17,7 @@ import { StorageFile, TenantOrganizationBaseEntity, User } from '@metad/server-c
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
-import { CopilotModel, Xpert, XpertProjectFile, XpertProjectTask, XpertToolset, XpertWorkspace } from '../../core/entities/internal'
+import { CopilotModel, Knowledgebase, Xpert, XpertProjectFile, XpertProjectTask, XpertToolset, XpertWorkspace } from '../../core/entities/internal'
 import { WorkspaceBaseEntity } from '../../core/entities/base.entity'
 
 @Entity('xpert_project')
@@ -155,4 +156,11 @@ export class XpertProject extends TenantOrganizationBaseEntity implements IXpert
 		name: 'xpert_project_toolset'
 	})
 	toolsets?: IXpertToolset[]
+
+	// Project's knowledges
+	@ManyToMany(() => Knowledgebase)
+	@JoinTable({
+		name: 'xpert_project_knowledgebase'
+	})
+	knowledges?: IKnowledgebase[]
 }

@@ -1,4 +1,5 @@
 import {
+	IKnowledgebase,
 	IStorageFile,
 	IUser,
 	IXpertProject,
@@ -29,6 +30,8 @@ import { FindXpertQuery } from '../xpert/queries'
 import { XpertProjectDto } from './dto'
 import { XpertProject } from './entities/project.entity'
 import { XpertProjectFileService, XpertProjectTaskService } from './services/'
+import { KnowledgebasePublicDTO } from '../knowledgebase/dto'
+import { KnowledgebaseGetOneQuery } from '../knowledgebase/queries'
 
 @Injectable()
 export class XpertProjectService extends TenantOrganizationAwareCrudService<XpertProject> {
@@ -222,6 +225,67 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 		}
 
 		project.toolsets.splice(index, 1)
+		await this.repository.save(project)
+
+		return project
+	}
+
+	async getKnowledges(id: string, params: PaginationParams<IKnowledgebase>) {
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
+		const project = await this.repository.findOne({
+			where: {
+				id,
+				tenantId,
+				organizationId
+			},
+			relations: ['knowledges', ...(params?.relations?.map((relation) => `knowledges.${relation}`) ?? [])]
+		})
+
+		const total = project.knowledges.length
+		const knowledges = params?.take
+			? project.knowledges.slice(params.skip, params.skip + params.take)
+			: project.knowledges
+
+		return {
+			items: knowledges.map((_) => new KnowledgebasePublicDTO(_)),
+			total
+		}
+	}
+
+	async addKnowledge(id: string, knowledgebaseId: string) {
+		const project = await this.findOne({
+			where: { id },
+			relations: ['knowledges']
+		})
+
+		const exists = project.knowledges.some((_) => _.id === knowledgebaseId)
+		if (exists) {
+			this.#logger.warn(`Knowledgebase with id ${knowledgebaseId} already exists in project ${id}`)
+			return project
+		}
+
+		const knowledgebase = await this.queryBus.execute(new KnowledgebaseGetOneQuery({id: knowledgebaseId}))
+
+		project.knowledges.push(knowledgebase)
+		await this.repository.save(project)
+
+		return project
+	}
+
+	async removeKnowledgebase(id: string, knowledgebaseId: string) {
+		const project = await this.findOne({
+			where: { id },
+			relations: ['knowledges']
+		})
+
+		const index = project.knowledges.findIndex((_) => _.id === knowledgebaseId)
+		if (index === -1) {
+			this.#logger.warn(`Knowledgebase with id ${knowledgebaseId} does not exist in project ${id}`)
+			return project
+		}
+
+		project.knowledges.splice(index, 1)
 		await this.repository.save(project)
 
 		return project

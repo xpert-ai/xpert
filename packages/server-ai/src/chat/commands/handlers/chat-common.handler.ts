@@ -152,28 +152,11 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			)
 		}
 
-		const tools = []
-		// Knowledgebases
-		if (knowledgebases?.length) {
-			const retrievers = knowledgebases.map((id) => createKnowledgeRetriever(this.queryBus, id))
-			const retriever = new EnsembleRetriever({
-				retrievers: retrievers,
-				weights: retrievers.map(() => 0.5)
-			})
-			tools.push(
-				retriever.asTool({
-					name: 'knowledge_retriever',
-					description: 'Get information about question.',
-					schema: z.string()
-				})
-			)
-		}
-
 		// Project & Xperts
 		let project: IXpertProject
 		if (projectId) {
 			project = await this.projectService.findOne(projectId, {
-				relations: ['copilotModel', 'copilotModel.copilot', 'xperts', 'xperts.agent', 'toolsets', 'workspace', 'workspace.environments'] 
+				relations: ['copilotModel', 'copilotModel.copilot', 'xperts', 'xperts.agent', 'toolsets', 'knowledges', 'workspace', 'workspace.environments'] 
 			})
 		}
 
@@ -527,6 +510,22 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		}
 
 		this.#logger.debug(`Project general agent use tools:\n${[...tools].map((_, i) => `${i+1}. ` + _.name + ': ' + _.description).join('\n')}`)
+
+		// Knowledgebases
+		if (project?.knowledges?.length) {
+			const retrievers = project.knowledges.map(({id}) => createKnowledgeRetriever(this.queryBus, id))
+			const retriever = new EnsembleRetriever({
+				retrievers: retrievers,
+				weights: retrievers.map(() => 0.5)
+			})
+			tools.push(
+				retriever.asTool({
+					name: 'knowledge_retriever',
+					description: 'Get information about question.',
+					schema: z.string()
+				}) as any
+			)
+		}
 
 		stateVariables.push(...toolsetVarirables)
 		// Find an available copilot

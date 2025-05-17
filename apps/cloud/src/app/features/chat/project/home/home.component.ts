@@ -33,6 +33,7 @@ import { ChatProjectXpertsComponent } from '../xperts/xperts.component'
 import { ChatProjectMembersComponent } from '../members/members.component'
 import { ChatProjectAttachmentsComponent } from '../attachments/attachments.component'
 import { ChatProjectConversationsComponent } from '../conversations/conversations.component'
+import { ChatProjectKnowledgesComponent } from '../knowledges/knowledges.component'
 
 /**
  *
@@ -58,7 +59,8 @@ import { ChatProjectConversationsComponent } from '../conversations/conversation
     ChatProjectToolsComponent,
     ChatProjectMembersComponent,
     ChatProjectAttachmentsComponent,
-    ChatProjectConversationsComponent
+    ChatProjectConversationsComponent,
+    ChatProjectKnowledgesComponent
   ],
   selector: 'pac-chat-project-home',
   templateUrl: './home.component.html',
@@ -89,6 +91,7 @@ export class ChatProjectHomeComponent {
   readonly mode = attrModel(this.settings, 'mode')
   readonly copilotModel = attrModel(this.project, 'copilotModel')
 
+  // Toolsets
   readonly #toolsRefresh$ = new BehaviorSubject<void>(null)
   readonly #toolsets = derivedAsync(() => (this.id() ? this.#toolsRefresh$.pipe(switchMap(() => this.projectSercice.getToolsets(this.id(), {relations: ['createdBy']}))) : of(null)))
   readonly toolsets = linkedModel({
@@ -97,8 +100,18 @@ export class ChatProjectHomeComponent {
     update: () => {}
   })
 
+  // Knowledgebases
+  readonly #kbRefresh$ = new BehaviorSubject<void>(null)
+  readonly #knowledgebases = derivedAsync(() => (this.id() ? this.#kbRefresh$.pipe(
+    switchMap(() => this.projectSercice.getKnowledgebases(this.id(), {relations: ['createdBy']}))) : of(null)))
+  readonly knowledgebases = linkedModel({
+    initialValue: null,
+    compute: () => this.#knowledgebases()?.items,
+    update: () => {}
+  })
+
   // View
-  readonly viewType = signal<'attachments' | 'tools' | 'conversations' | 'members'>('tools')
+  readonly viewType = signal<'attachments' | 'tools' | 'knowledges' | 'conversations' | 'members'>('tools')
 
   readonly form = this.#fb.group({
     input: ''
