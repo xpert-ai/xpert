@@ -190,10 +190,22 @@
       </div>
     }
     @case ('json') {
-      <pac-code-editor-card title="json" fileName=".json" [(ngModel)]="body" />
+      <copilot-prompt-editor class="relative shadow-md ngm-card-border-gradient self-stretch"
+        [role]="'json'"
+        language="json"
+        [variables]="variables()"
+        enableAi="false"
+        [(prompt)]="body"
+      />
     }
     @case ('raw') {
-      <pac-code-editor-card title="raw text" fileName=".txt" [(ngModel)]="body" />
+      <copilot-prompt-editor class="relative shadow-md ngm-card-border-gradient self-stretch"
+        [role]="'raw text'"
+        language="text"
+        [variables]="variables()"
+        enableAi="false"
+        [(prompt)]="body"
+      />
     }
   }
 </div>
@@ -299,6 +311,15 @@
           </div>
           <div class="system-xs-regular mt-0.5 text-text-tertiary">
             {{ 'PAC.Workflow.ResponseContent' | translate: {Default: 'Response Content'} }}
+          </div>
+        </div>
+        <div class="py-1">
+          <div class="flex items-center leading-[18px]">
+            <div class="code-sm-semibold text-text-secondary">body_json</div>
+            <div class="system-xs-regular ml-2 capitalize text-text-tertiary">object</div>
+          </div>
+          <div class="system-xs-regular mt-0.5 text-text-tertiary">
+            {{ 'PAC.Workflow.ResponseObject' | translate: {Default: 'Response Object'} }}
           </div>
         </div>
         <div class="py-1">

@@ -23,10 +23,11 @@ import {
   listEnterAnimation,
   ListSlideStaggerAnimation
 } from '@metad/core'
+import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil, omitBy } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { BehaviorSubject, EMPTY, map, startWith, switchMap } from 'rxjs'
+import { BehaviorSubject, EMPTY, startWith, switchMap } from 'rxjs'
 import { ChatProjectHomeComponent } from '../home/home.component'
 import { ChatProjectComponent } from '../project.component'
 
@@ -43,6 +44,7 @@ import { ChatProjectComponent } from '../project.component'
     CdkMenuModule,
     TranslateModule,
     MatTooltipModule,
+    ContentLoaderModule,
     DynamicGridDirective,
     MCPMarketplaceComponent,
     ToolsetCardComponent
@@ -75,7 +77,7 @@ export class ChatProjectToolsComponent {
   readonly loading = signal(false)
 
   // Toolsets in workspace
-  readonly #toolsets = derivedAsync(() => {
+  readonly #toolsets = derivedAsync<{ loading?: boolean; items?: IXpertToolset[] }>(() => {
     const where = {
       // category: XpertToolsetCategoryEnum.MCP
     }
@@ -91,15 +93,16 @@ export class ChatProjectToolsComponent {
           }
         })
       ),
-      map(({ items }) => items)
+      startWith({ loading: true })
     )
   })
+  readonly wsToolLoading = computed(() => this.#toolsets()?.loading)
 
   // Searched toolsets in workspace
   readonly wsToolsets = computed(() => {
     const searchText = this.searchText()?.toLowerCase()
     return this.#toolsets()
-      ?.filter((toolset) =>
+      ?.items?.filter((toolset) =>
         searchText
           ? toolset.name.toLowerCase().includes(searchText) || toolset.description?.toLowerCase().includes(searchText)
           : true
@@ -154,8 +157,7 @@ export class ChatProjectToolsComponent {
           toolsetId: toolset.id
         }
       })
-      .closed
-      .subscribe({
+      .closed.subscribe({
         next: (ret) => {
           if (ret?.deleted) {
             // If deleted from workspace

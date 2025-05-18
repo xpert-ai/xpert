@@ -7,62 +7,62 @@
     </button>
   }
 
-    <div class="flex items-center px-4">
-      @if (cube()) {
-        <span class="text-lg">{{ cube().caption || cube().name}}</span>
+  <div class="flex items-center px-4">
+    @if (cube()) {
+      <span class="text-lg">{{ cube().caption || cube().name}}</span>
 
-        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small ml-2"
-          [matTooltip]="'PAC.MODEL.OpenCubeDesigner' | translate: {Default: 'Open cube designer'}"
-          matTooltipPosition="above"
-          (click)="toggleCubeDesigner()">
-          <i class="ri-equalizer-2-line mr-1"></i>
-          <span class="hidden lg:inline-block">
-            {{ 'PAC.MODEL.CubeAttributes' | translate: {Default: 'Cube attributes'} }}
-          </span>
-        </button>
-      }
-
-      <button type="button" class="btn disabled:btn-disabled btn-small ml-2"
-        [ngClass]="{'btn-primary': openedFact(), 'btn-secondary': !openedFact()}"
-        [matTooltip]="'PAC.MODEL.OpenFactFields' | translate: {Default: 'Open the fact field list'}"
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small ml-2"
+        [matTooltip]="'PAC.MODEL.OpenCubeDesigner' | translate: {Default: 'Open cube designer'}"
         matTooltipPosition="above"
-        (click)="toggleFact()"
-      >
-        <i class="ri-database-line mr-1"></i>
+        (click)="toggleCubeDesigner()">
+        <i class="ri-equalizer-2-line mr-1"></i>
         <span class="hidden lg:inline-block">
-          {{ 'PAC.MODEL.FactFields' | translate: {Default: 'Fact field list'} }}
+          {{ 'PAC.MODEL.CubeAttributes' | translate: {Default: 'Cube attributes'} }}
         </span>
       </button>
-      
-    </div>
+    }
 
-    <span class="flex-1 flex"></span>
-    
-    <nav mat-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple mat-stretch-tabs="false" mat-align-tabs="start">
-      <span mat-tab-link [routerLink]="['./structure']" routerLinkActive #rlaStructure="routerLinkActive"
-        [routerLinkActiveOptions]="{exact: true}"
-        [active]="rlaStructure.isActive"
-      >{{ 'PAC.MENU.STRUCTURE' | translate: {Default: "Structure"} }}</span>
-      <span mat-tab-link [routerLink]="['./preview']" routerLinkActive #rlaPreview="routerLinkActive"
-        [routerLinkActiveOptions]="{exact: true}"
-        [active]="rlaPreview.isActive"
-      >{{ 'PAC.MENU.Preview' | translate: {Default: "Preview"} }}</span>
-      <span mat-tab-link [routerLink]="['./query']" routerLinkActive #rlaQuery="routerLinkActive"
-        [routerLinkActiveOptions]="{exact: true}"
-        [active]="rlaQuery.isActive"
-      >{{ 'PAC.MENU.QL_LAB' | translate: {Default: "Query Lab"} }}</span>
-      
-      <span mat-tab-link [matTooltip]="'PAC.ACTIONS.OpenAttributesPanel' | translate: {Default: 'Open attributes panel'}"
-        matTooltipPosition="left"
-        [active]="detailsOpen()"
-        (click)="toggleDesignPanel()"
-      >
-        <mat-icon fontSet="material-icons-outlined" [color]="detailsOpen() ? 'accent' : ''">edit_attributes</mat-icon>
-        @if (!isMobile()) {
-          <span>{{ 'PAC.MENU.Attributes' | translate: {Default: "Attributes"} }}</span>
-        }
+    <button type="button" class="btn disabled:btn-disabled btn-small ml-2"
+      [ngClass]="{'btn-primary': openedFact(), 'btn-secondary': !openedFact()}"
+      [matTooltip]="'PAC.MODEL.OpenFactFields' | translate: {Default: 'Open the fact field list'}"
+      matTooltipPosition="above"
+      (click)="toggleFact()"
+    >
+      <i class="ri-database-line mr-1"></i>
+      <span class="hidden lg:inline-block">
+        {{ 'PAC.MODEL.FactFields' | translate: {Default: 'Fact field list'} }}
       </span>
-    </nav>
+    </button>
+    
+  </div>
+
+  <span class="flex-1 flex"></span>
+  
+  <nav mat-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple mat-stretch-tabs="false" mat-align-tabs="start">
+    <span mat-tab-link [routerLink]="['./structure']" routerLinkActive #rlaStructure="routerLinkActive"
+      [routerLinkActiveOptions]="{exact: true}"
+      [active]="rlaStructure.isActive"
+    >{{ 'PAC.MENU.STRUCTURE' | translate: {Default: "Structure"} }}</span>
+    <span mat-tab-link [routerLink]="['./preview']" routerLinkActive #rlaPreview="routerLinkActive"
+      [routerLinkActiveOptions]="{exact: true}"
+      [active]="rlaPreview.isActive"
+    >{{ 'PAC.MENU.Preview' | translate: {Default: "Preview"} }}</span>
+    <span mat-tab-link [routerLink]="['./query']" routerLinkActive #rlaQuery="routerLinkActive"
+      [routerLinkActiveOptions]="{exact: true}"
+      [active]="rlaQuery.isActive"
+    >{{ 'PAC.MENU.QL_LAB' | translate: {Default: "Query Lab"} }}</span>
+    
+    <span mat-tab-link [matTooltip]="'PAC.ACTIONS.OpenAttributesPanel' | translate: {Default: 'Open attributes panel'}"
+      matTooltipPosition="left"
+      [active]="detailsOpen()"
+      (click)="toggleDesignPanel()"
+    >
+      <mat-icon fontSet="material-icons-outlined" [color]="detailsOpen() ? 'accent' : ''">edit_attributes</mat-icon>
+      @if (!isMobile()) {
+        <span>{{ 'PAC.MENU.Attributes' | translate: {Default: "Attributes"} }}</span>
+      }
+    </span>
+  </nav>
 </div>
 
 <div class="relative grow overflow-hidden">
@@ -92,15 +92,21 @@
   </mat-drawer-container>
 
   <div class="absolute top-0 bottom-0 right-0 m-1 z-10 flex gap-2"
-    [class.hidden]="!detailsOpen() && !openedFact()"
+    [class.hidden]="!detailsOpen() && !openedFact() && !openedCalculation()"
   >
+    @if (openedCalculation()) {
+      <pac-model-entity-calculation @leanRightEaseIn class="shrink-0 w-[840px] grow shadow-2xl rounded-2xl border border-solid border-divider-deep overflow-hidden z-20 bg-slate-50" 
+        [key]="openedCalculation()"
+        (close)="openedCalculation.set(null)"
+      />
+    }
     @if (openedFact()) {
-      <pac-model-cube-fact class="shrink-0 w-[340px] shadow-xl rounded-2xl border border-solid border-divider-deep overflow-hidden bg-components-panel-bg" 
+      <pac-model-cube-fact @leanRightEaseIn class="shrink-0 w-[340px] shadow-xl rounded-2xl border border-solid border-divider-deep overflow-hidden bg-components-panel-bg" 
         (close)="toggleFact()"
       />
     }
     
-    <div ngmResizer [resizerWidth]="360" class="" [class.hidden]="!detailsOpen()">
+    <div ngmResizer @leanRightEaseIn [resizerWidth]="360" class="relative" [class.hidden]="!detailsOpen()">
       <div class="z-10" ngmResizerBar resizerBarPosition="left"
         cdkDrag
         cdkDragLockAxis="x"

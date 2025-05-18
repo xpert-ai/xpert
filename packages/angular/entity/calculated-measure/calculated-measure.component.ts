@@ -11,7 +11,8 @@ import {
   forwardRef,
   inject,
   input,
-  model
+  model,
+  signal
 } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
@@ -22,7 +23,6 @@ import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatTabsModule } from '@angular/material/tabs'
-import { MatToolbarModule } from '@angular/material/toolbar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule, NgmHighlightDirective, ResizerModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
@@ -60,7 +60,6 @@ import { NgmEntityPropertyComponent } from '../property/property.component'
     MatIconModule,
     MatButtonModule,
     MatListModule,
-    MatToolbarModule,
     MatTooltipModule,
     MatExpansionModule,
     TranslateModule,
@@ -136,7 +135,9 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
   calculations = []
   private _onChange: any
 
-  public readonly calculations$ = toObservable(this.entityType).pipe(
+  readonly editorOptions = signal({wordWrap: false})
+
+  readonly calculations$ = toObservable(this.entityType).pipe(
     map(getEntityCalculations),
     map((values) => [
       ...sortBy(values.filter(negate(isIndicatorMeasureProperty)), 'calculationType'),
@@ -150,9 +151,9 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
       )
     )
   )
-  public readonly parameters$ = toObservable(this.entityType).pipe(map(getEntityParameters))
+  readonly parameters$ = toObservable(this.entityType).pipe(map(getEntityParameters))
 
-  public readonly functions$ = of(sortBy(MDXReference.FUNCTIONS, 'label')).pipe(
+  readonly functions$ = of(sortBy(MDXReference.FUNCTIONS, 'label')).pipe(
     switchMap((functions) =>
       this.fnSearchControl.valueChanges.pipe(
         startWith(''),
@@ -163,12 +164,6 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
       )
     )
   )
-
-  // private statementSub = this.statement.valueChanges
-  //   .pipe(distinctUntilChanged(), filter(nonNullable), takeUntilDestroyed())
-  //   .subscribe((value) => {
-  //     this._onChange?.(value)
-  //   })
 
   constructor() {
     effect(
@@ -191,7 +186,9 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
   registerOnChange(fn: any): void {
     this._onChange = fn
   }
-  registerOnTouched(fn: any): void {}
+  registerOnTouched(fn: any): void {
+    //
+  }
   setDisabledState?(isDisabled: boolean): void {
     isDisabled ? this.statement.disable() : this.statement.enable()
   }
@@ -242,6 +239,13 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
 
   onBlur() {
     this._onChange?.(this.statement.value)
+  }
+
+  toggleWrap() {
+    this.editorOptions.update((state) => ({
+      ...state,
+      wordWrap: !state.wordWrap
+    }))
   }
 
   openHelp(event) {

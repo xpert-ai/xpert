@@ -29,4 +29,14 @@
   .system-kbd {
     @apply text-sm font-medium leading-4;
   }
+
+  .code-sm-semibold {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5
+  }
+
+  [class*=code-] {
+    font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace
+  }
 }

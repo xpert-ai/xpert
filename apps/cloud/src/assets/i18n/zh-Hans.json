@@ -24,6 +24,7 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "PleaseInput": "请输入",
       "PasswordsNotMatch": "密码不匹配",
       "Required": "必输",
       "All": "所有",
@@ -314,6 +315,15 @@
       "Instruction": "指令",
       "Attachments": "附件",
       "Tools": "工具",
+      "AvailableToolsets": "可用工具集",
+      "Knowledges": "知识",
+      "NoKnowledgebasesYet": "尚无知识库",
+      "AddKnowledgebasesForProject": "选择绑定工作区，将知识库添加到项目通用智能体",
+      "RemoveKnowledgebase": "移除知识库",
+      "Knowledgebases": "知识库",
+      "AvailableKnowledgebases": "可用知识库",
+      "AddedKnowledgebase": "已添加知识库",
+      "AddKnowledgebase": "添加知识库",
       "Conversations": "会话",
       "Members": "成员",
       "Rename": "重命名",
@@ -363,10 +373,12 @@
       "WriteTimeoutDesc": "输入写入超时时间（秒数）",
       "OutputVariables": "输出变量",
       "ResponseContent": "返回内容",
+      "ResponseObject": "返回对象",
       "ResponseStatusCode": "返回状态码",
       "ResponseHeaderJson": "返回头(JSON)",
       "NotSupportedYet": "暂不支持！",
       "HTTPRequest": "HTTP 请求",
+      "KnowledgeRetrieval": "知识检索",
       "CodeExecution": "代码执行",
       "Answer": "回答",
       "Iterating": "迭代",
@@ -652,7 +664,8 @@
       "Duplicate": "复制",
       "OpenAttributesPanel": "打开属性面板",
       "Close": "关闭",
-      "Update": "更新"
+      "Update": "更新",
+      "Test": "测试"
     },
     "MESSAGE": {
       "MAIN_ORGANIZATION_UPDATED": "组织更新成功",
@@ -1075,7 +1088,9 @@
         "CubeStructure": "立方体结构",
         "DragDimensionHere": "拖动维度至此",
         "DragMeasureHere": "拖动度量至此",
-        "DataPreview": "数据预览"
+        "DataPreview": "数据预览",
+        "TestFormula": "测试公式",
+        "AddDimension": "添加维度"
       },
       "DIMENSION": {
         "Levels": "层级",
@@ -2201,6 +2216,11 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "KnowledgeBaseNotFound": "知识库‘{{id}}’未找到！",
+      "ClickAddToAddKB": "点击“+”按钮添加知识库",
+      "Knowledge": "知识",
+      "QueryVariable": "查询变量",
+      "SelectReferenceKnowledge": "选择参考知识",
       "EditXpert": "编辑数字专家",
       "ConnectWorkflow": "连接工作流",
       "ConnectKnowledgebases": "连接知识库",
@@ -2716,7 +2736,8 @@
       "SearchRecallMemories": "搜寻回忆",
       "DuplicateSuccess": "复制成功",
       "DuplicateError": "复制失败",
-      "AfterPublish": "发布后"
+      "AfterPublish": "发布后",
+      "KnowledgeRetrieval": "知识检索"
     },
     "MCP": {
       "Connect": "连接",

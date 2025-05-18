@@ -11,13 +11,13 @@ import {
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
   XpertAgentService,
-  XpertService
-} from 'apps/cloud/src/app/@core'
-import { XpertStudioApiService } from '../../../domain'
-import { XpertStudioComponent } from '../../../studio.component'
+} from '@cloud/app/@core'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { Subscription } from 'rxjs'
-import { CopyComponent } from 'apps/cloud/src/app/@shared/common'
+import { CopyComponent } from '@cloud/app/@shared/common'
+import { XpertStudioComponent } from '../../../studio.component'
+import { XpertStudioApiService } from '../../../domain'
+
 
 @Component({
   selector: 'xpert-workflow-code-test',

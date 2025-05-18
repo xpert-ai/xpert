@@ -163,11 +163,12 @@
             [disabled]="item.deprecated"
             (click)="setModel(copilot, item.model);mt.close()"
           >
-            <span [ngmHighlight]="searchText()"
+            <span class="truncate" [title]="item.model"
+              [ngmHighlight]="searchText()"
               [content]="item.model"
               customClasses="text-primary-600">{{item.model}}</span>
             @if (item.model_type === 'llm') {
-              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default">
+              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap">
                 {{'PAC.Copilot.Chat' | translate: {Default: 'Chat'} }}
               </div>
             }

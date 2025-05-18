@@ -55,6 +55,15 @@ model_credential_schema:
       placeholder:
         zh_Hans: 在此输入您的API密钥
         en_US: Enter the api key
+    - variable: streaming
+      label:
+        zh_Hans: 流式输出
+        en_US: Streaming
+      show_on:
+        - variable: __model_type
+          value: llm
+      default: true
+      type: boolean
     - variable: invoke_timeout
       label:
         zh_Hans: 调用超时时间 (单位:秒)

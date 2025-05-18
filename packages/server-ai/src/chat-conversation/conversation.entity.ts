@@ -1,4 +1,5 @@
 import {
+	I18nObject,
 	IChatConversation,
 	IChatMessage,
 	IXpert,
@@ -10,7 +11,7 @@ import {
 } from '@metad/contracts'
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsJSON, IsOptional, IsString } from 'class-validator'
+import { IsJSON, IsObject, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, RelationId } from 'typeorm'
 import { ChatMessage, Xpert, XpertProject } from '../core/entities/internal'
 
@@ -21,11 +22,11 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
 	@Column({ nullable: true, default: () => 'gen_random_uuid()' })
 	threadId: string
 
-	@ApiProperty({ type: () => String })
-	@IsString()
+	@ApiPropertyOptional({ type: () => Object })
+	@IsObject()
 	@IsOptional()
-	@Column({ nullable: true })
-	title?: string
+	@Column({ type: 'json', nullable: true })
+	title?: string | I18nObject
 
 	@ApiProperty({ type: () => String })
 	@IsString()

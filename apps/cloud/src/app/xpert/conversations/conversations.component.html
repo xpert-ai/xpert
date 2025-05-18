@@ -40,7 +40,7 @@
                   <input matInput [(ngModel)]="editingTitle" (keydown.enter)="updateTitle(item)" 
                     (keydown.esc)="exitEdit($event)">
                 } @else {
-                  <a class="truncate cursor-pointer" [ngmHighlight]="searchValue" [content]="item.title || item.id"
+                  <a class="truncate cursor-pointer" [ngmHighlight]="searchValue" [content]="(item.title | i18n) || item.id"
                     (click)="selectConversation(item)">{{item.title || item.id}}</a>
                 }
 

@@ -1,18 +1,18 @@
-import { IXpert, IXpertAgentExecution, TAgentExecutionMetadata, TSensitiveOperation, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { I18nObject, IXpert, IXpertAgentExecution, TAgentExecutionMetadata, TSensitiveOperation, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsJSON, IsNumber, IsOptional, IsString, IsEnum } from 'class-validator'
+import { IsJSON, IsNumber, IsOptional, IsString, IsEnum, IsObject } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, RelationId } from 'typeorm'
 import { StoredMessage } from '@langchain/core/messages'
 import { Xpert } from '../core/entities/internal'
 
 @Entity('xpert_agent_execution')
 export class XpertAgentExecution extends TenantOrganizationBaseEntity implements IXpertAgentExecution {
-	@ApiPropertyOptional({ type: () => String })
-	@IsString()
+	@ApiPropertyOptional({ type: () => Object })
+	@IsObject()
 	@IsOptional()
-	@Column({ nullable: true,})
-	title?: string
+	@Column({ type: 'json', nullable: true })
+	title?: string | I18nObject
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()

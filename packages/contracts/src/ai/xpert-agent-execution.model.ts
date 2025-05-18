@@ -3,12 +3,13 @@ import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IXpert } from './xpert.model'
 import { IXpertAgent } from './xpert-agent.model'
 import { TSensitiveOperation } from './chat.model'
+import { I18nObject } from '../types'
 
 /**
  * Corresponds to the run in the [Agent Protocol](https://github.com/langchain-ai/agent-protocol).
  */
 export type TXpertAgentExecution = {
-  title?: string
+  title?: string | I18nObject
   inputs?: any
   outputs?: any
   status?: XpertAgentExecutionStatusEnum
@@ -50,6 +51,9 @@ export type TXpertAgentExecution = {
   operation?: TSensitiveOperation
 
   // Many to one
+  /**
+   * Include workflow node key
+   */
   agentKey?: string
   predecessor?: string
   xpert?: IXpert
