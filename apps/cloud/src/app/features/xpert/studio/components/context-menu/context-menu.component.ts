@@ -7,6 +7,7 @@ import {
   IWFNCode,
   IWFNHttp,
   IWFNIfElse,
+  IWFNKnowledgeRetrieval,
   IWorkflowNode,
   IXpert,
   uuid,
@@ -20,6 +21,7 @@ import {
   genXpertCodeKey,
   genXpertHttpKey,
   genXpertIteratingKey,
+  genXpertKnowledgeKey,
   genXpertNoteKey,
   genXpertRouterKey
 } from '../../../utils'
@@ -134,6 +136,16 @@ export class XpertStudioContextMenuComponent {
       key: genXpertAnswerKey(),
       title: await this.#translate.instant('PAC.Workflow.Answer', { Default: 'Answer' })
     })
+  }
+
+  async addWorkflowKnowledgeRetrieval() {
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.KNOWLEDGE,
+      key: genXpertKnowledgeKey(),
+      title: await this.#translate.instant('PAC.Workflow.KnowledgeRetrieval', { Default: 'Knowledge Retrieval' }),
+      queryVariable: `input`,
+      knowledgebases: []
+    } as IWFNKnowledgeRetrieval)
   }
 
   async addWorkflowCode() {

@@ -1,4 +1,5 @@
 import { I18nObject } from "../types"
+import { TKBRecallParams } from "./knowledgebase.model"
 import { ApiAuthType, TErrorHandling } from "./types"
 import { IXpertAgent } from "./xpert-agent.model"
 import { TStateVariable, TXpertParameter } from "./xpert.model"
@@ -11,6 +12,7 @@ export enum WorkflowNodeTypeEnum {
   ANSWER = 'answer',
   CODE = 'code',
   HTTP = 'http',
+  KNOWLEDGE = 'knowledge',
   NOTE = 'note'
 }
 
@@ -203,6 +205,18 @@ export interface IWFNHttp extends IWorkflowNode {
    * Error handling
    */
   errorHandling?: TErrorHandling
+}
+
+export interface IWFNKnowledgeRetrieval extends IWorkflowNode {
+  queryVariable: string
+  knowledgebases: string[]
+  recall?: TKBRecallParams
+}
+
+export interface IWFNKnowledgeRetrieval extends IWorkflowNode {
+  queryVariable: string
+  knowledgebases: string[]
+  recall?: TKBRecallParams
 }
 
 

@@ -158,8 +158,13 @@ export class ModelEntityService {
     shareReplay(1)
   )
 
-  readonly entityError$ = this.entityName$.pipe(
+  readonly entitySet$ = this.entityName$.pipe(
     switchMap((entity) => this.#modelService.selectEntitySet(entity)),
+    takeUntilDestroyed(),
+    shareReplay(1)
+  )
+
+  readonly entityError$ = this.entitySet$.pipe(
     map((error) => (isEntitySet(error) ? null : error)),
     takeUntilDestroyed(),
     shareReplay(1)
@@ -461,13 +466,17 @@ export class ModelEntityService {
 
   readonly newHierarchy = this.updater((state, { id, name }: { id: string; name: string }) => {
     const dimension = state.dimensions.find((item) => item.__id__ === id)
-    // Check if the entry already exists or up to two initial entries
-    if (dimension && (name ? !dimension.hierarchies?.some((item) => item.name === name) : dimension.hierarchies?.filter((_) => !_.name).length <= 1 )) {
-      dimension.hierarchies = dimension.hierarchies ?? []
-      dimension.hierarchies.push({
-        __id__: uuid(),
-        name
-      } as PropertyHierarchy)
+    if (dimension) {
+      dimension.hierarchies ??= []
+      // Check if the entry already exists or up to two initial entries
+      if (name ? !dimension.hierarchies?.some((item) => item.name === name) : dimension.hierarchies?.filter((_) => !_.name).length <= 1) {
+        dimension.hierarchies.push({
+          __id__: uuid(),
+          name,
+          hasAll: true,
+          visible: true,
+        } as PropertyHierarchy)
+      }
     }
   })
 
@@ -496,23 +505,32 @@ export class ModelEntityService {
     }
   )
 
+  /**
+   * New measure then navigate to attribute panel
+   */
   readonly newMeasure = this.updater((state, event?: { index: number; column?: string }) => {
     state.measures = state.measures ?? []
+    let __id__: string = null
     if (event) {
+      __id__ = uuid()
       state.measures.splice(event.index, 0, {
-        __id__: uuid(),
+        __id__,
         name: event.column,
         column: event.column,
         aggregator: 'sum',
         visible: true
       })
     } else if (!state.measures.find((item) => item.name === '')) {
+      __id__ = uuid()
       state.measures.push({
-        __id__: uuid(),
+        __id__,
         name: '',
         aggregator: 'sum',
         visible: true
       } as PropertyMeasure)
+    }
+    if (__id__) {
+      this.toggleSelectedProperty(ModelDesignerType.measure, __id__)
     }
   })
 

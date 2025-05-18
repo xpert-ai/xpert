@@ -114,6 +114,7 @@
                 <div class=" p-1 rounded-md hover:bg-black/5 w-6 h-6 cursor-pointer"
                   [cdkMenuTriggerFor]="paramConfigMenu"
                   [cdkMenuTriggerData]="{index: i, control: param}"
+                  (cdkMenuClosed)="onMenuClosed(i)"
                 >
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-500" data-icon="Settings01" aria-hidden="true">
                     <g id="Left Icon" clip-path="url(#clip0_11961_30603)">
@@ -336,10 +337,7 @@
         }
         <div>
           <div class="leading-8 text-[13px] font-medium text-gray-700"> {{ 'PAC.Xpert.Optional' | translate: {Default: 'Optional'} }}</div>
-          <div>
-            <mat-slide-toggle ngm-density="xs" formControlName="optional">
-            </mat-slide-toggle>
-          </div>
+          <mat-slide-toggle ngm-density="xs" formControlName="optional" />
         </div>
       </div>
     </div>

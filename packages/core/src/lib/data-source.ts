@@ -107,6 +107,7 @@ export interface DataSource {
   options: DataSourceOptions
   agent: Agent
 
+  refresh(): void
   /**
    *
    * @deprecated use discoverDBCatalogs
@@ -234,9 +235,9 @@ export interface DataSource {
    * Get an indicator by id from entity
    *
    * @param idOrCode Indicator `ID` or `Code`
-   * @param entity
+   * @param cube Cube name
    */
-  getIndicator(idOrCode: string, entity?: string): Indicator
+  getIndicator(idOrCode: string, cube?: string): Indicator
 
   /**
    * Create DB Table
@@ -302,6 +303,7 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
     this.options$.next(options)
   }
   
+  readonly refresh$ = new BehaviorSubject<void>(null)
 
   abstract discoverDBCatalogs(): Observable<Array<DBCatalog>>
   abstract discoverDBTables(): Observable<Array<DBTable>>
@@ -317,6 +319,10 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
   abstract createEntity(name: string, columns: any[], data?: any[]): Observable<string>
   abstract dropEntity(name: string): Promise<void>
   abstract query(options: { statement: string; forceRefresh?: boolean }): Observable<any>
+
+  refresh() {
+    this.refresh$.next()
+  }
 
   setSchema(schema: Schema): void {
     this.options$.next({ ...this.options$.value, schema })
@@ -457,7 +463,7 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
 
   getIndicator(id: string, entity?: string): Indicator {
     return this.options.schema?.indicators?.find(
-      (indicator) => (indicator.id === id || indicator.code === id) && indicator.entity === entity
+      (indicator) => (indicator.id === id || indicator.code === id) && (entity ? indicator.entity === entity : true)
     )
   }
 

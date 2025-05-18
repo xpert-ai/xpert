@@ -1,0 +1,43 @@
+<div class="space-y-1">
+  @for (item of selectedKnowledgebases(); track item.id; let i = $index) {
+    @if (item.kb) {
+      <div class="group/dataset-item flex h-8 cursor-pointer items-center justify-between rounded-lg px-2
+        bg-slate-50">
+        <div class="flex w-0 grow items-center space-x-1.5 text-left">
+          <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-[0.5px] border-slate-200 bg-slate-50 text-text-tertiary
+            group-hover/dataset-item:text-primary-500">
+            <i class="ri-book-shelf-fill text-lg"></i>
+          </div>
+          <div class="text-sm font-medium w-0 grow truncate text-text-secondary">
+            {{item.kb.name}}
+          </div>
+        </div>
+
+        <!-- <div class="relative inline-flex h-5 items-center rounded-[5px] border border-divider-deep px-[5px] leading-3 text-text-tertiary system-2xs-medium-uppercase shrink-0 group-hover/dataset-item:hidden">
+          HQ · VECTOR</div> -->
+      </div>
+    } @else {
+      <div class="flex justify-center">
+        {{ 'PAC.Xpert.KnowledgeBaseNotFound' | translate: {Default: 'Knowledgebase "' + item.id + '" Not Found', id: item.id} }}
+      </div>
+    }
+  } @empty {
+    <div class="cursor-default select-none rounded-lg bg-neutral-50 p-3 text-center text-sm text-text-tertiary">
+      {{ 'PAC.Xpert.ClickAddToAddKB' | translate: {Default: 'Click the "+" button to add knowledge'} }}
+    </div>
+  }
+</div>
+
+<div class="relative w-full flex h-8 p-1">
+  <div class="grow flex justify-end items-center">
+    <div class="text-[12px] font-semibold text-text-primary uppercase">
+      {{ 'PAC.Xpert.Next' | translate: {Default: 'Next'} }}
+    </div>
+  </div>
+
+  <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" class="right group" [fOutputMultiple]="true">
+    <div class="inner-dot cursor-crosshair">
+      <ngm-plus-svg class="w-2 h-2 text-white" />
+    </div>
+  </div>
+</div>

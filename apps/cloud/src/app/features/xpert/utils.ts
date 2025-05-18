@@ -44,6 +44,10 @@ export function genXpertAnswerKey() {
   return letterStartSUID('Answer_')
 }
 
+export function genXpertKnowledgeKey() {
+  return letterStartSUID('Knowledge_')
+}
+
 export function genXpertCodeKey() {
   return letterStartSUID('Code_')
 }

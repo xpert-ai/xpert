@@ -1,4 +1,4 @@
-export * from './adapters/clickhouse'
+export * from './adapters/clickhouse/clickhouse'
 export * from './adapters/hive'
 export * from './adapters/mysql/index'
 export * from './adapters/postgres/index'

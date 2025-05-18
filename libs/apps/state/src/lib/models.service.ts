@@ -162,7 +162,7 @@ export class SemanticModelServerService extends OrganizationBaseCrudService<ISem
   }
 
   create(data: Partial<StoryModel>) {
-    return this.httpClient.post(C_URI_API_MODELS, convertStoryModel(data))
+    return this.httpClient.post<ISemanticModel>(C_URI_API_MODELS, convertStoryModel(data))
   }
 
   createNew(data: Partial<NgmSemanticModel>) {
@@ -237,6 +237,24 @@ export class SemanticModelServerService extends OrganizationBaseCrudService<ISem
     const params = toHttpParams(options)
     return this.httpClient.get<{items: ISemanticModelQueryLog[]; total: number;}>(C_URI_API_MODELS + `/${id}/logs`, {
       params: timeRangeToParams(params, timeRange)
+    })
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Public API
+  |--------------------------------------------------------------------------
+  */
+
+  getPublicOne(id: string, options?: {select?: (keyof ISemanticModel)[]; relations?: string[]}): Observable<ISemanticModel> {
+    const { relations } = options ?? {}
+    return this.httpClient.get<ISemanticModel>(this.apiBaseUrl + `/public/${id}`, {
+      params: new HttpParams().append(
+        '$query',
+        JSON.stringify({
+          relations: relations ?? []
+        })
+      )
     })
   }
 }

@@ -138,7 +138,10 @@ export class XpertStudioApiService {
   readonly xpert = computed(() => this.viewModel()?.team)
 
   // knowledgebases
-  readonly knowledgebases$ = this.knowledgebaseService.getAllInOrg().pipe(
+  readonly knowledgebases$ = toObservable(this.workspaceId).pipe(
+    filter(nonBlank),
+    distinctUntilChanged(),
+    switchMap((id) => this.knowledgebaseService.getAllByWorkspace(id)),
     map(({ items }) => items),
     shareReplay(1)
   )

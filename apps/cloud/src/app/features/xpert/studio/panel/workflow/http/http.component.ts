@@ -24,10 +24,10 @@ import {
   XpertService
 } from 'apps/cloud/src/app/@core'
 import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
-import { CodeEditorCardComponent } from 'apps/cloud/src/app/@shared/editors'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { CopilotPromptEditorComponent } from '@cloud/app/@shared/copilot'
 
 @Component({
   standalone: true,
@@ -39,10 +39,10 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
     TranslateModule,
     NgmSelectComponent,
     NgmRadioSelectComponent,
-    CodeEditorCardComponent,
     XpertVariableInputComponent,
     XpertWorkflowRetryComponent,
-    XpertWorkflowErrorHandlingComponent
+    XpertWorkflowErrorHandlingComponent,
+    CopilotPromptEditorComponent
   ],
   host: {
     tabindex: '-1'

@@ -1,7 +1,8 @@
-import { Connection, Pool, createConnection } from 'mysql2'
+import { Connection, Pool, createConnection, FieldPacket, Types } from 'mysql2'
 import { BaseSQLQueryRunner, SQLAdapterOptions, register } from '../../base'
 import { convertMySQLSchema, pick, typeToMySqlDB } from '../../helpers'
 import { DBProtocolEnum, DBSyntaxEnum, IDSSchema, QueryOptions } from '../../types'
+import { MySQLTypeMap } from './types'
 
 export const MYSQL_TYPE = 'mysql'
 export const RDS_TYPE = 'rds_mysql'
@@ -106,7 +107,7 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
 
   async query(connection: Connection | Pool, statment: string, values?: any) {
     return new Promise((resolve, reject) => {
-      const callback = (error, results, fields) => {
+      const callback = (error, results, fields: FieldPacket[]) => {
         if (error) {
           reject(error)
           return
@@ -115,7 +116,11 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
         resolve({
           status: 'OK',
           data: results,
-          columns: fields
+          columns: fields.map((field) => ({
+            name: field.name,
+            type: MySQLTypeMap[field.columnType],
+            dataType: Types[field.columnType]
+          }))
         })
       }
 

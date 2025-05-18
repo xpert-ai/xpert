@@ -24,6 +24,7 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "PleaseInput": "请输入",
       "PasswordsNotMatch": "密码不匹配",
       "Required": "必输",
       "All": "所有",
@@ -315,6 +316,15 @@
       "Instruction": "指令",
       "Attachments": "附件",
       "Tools": "工具",
+      "AvailableToolsets": "可用工具集",
+      "Knowledges": "知识",
+      "NoKnowledgebasesYet": "尚无知识库",
+      "AddKnowledgebasesForProject": "选择绑定工作区，将知识库添加到项目通用智能体",
+      "RemoveKnowledgebase": "移除知识库",
+      "Knowledgebases": "知识库",
+      "AvailableKnowledgebases": "可用知识库",
+      "AddedKnowledgebase": "已添加知识库",
+      "AddKnowledgebase": "添加知识库",
       "Conversations": "会话",
       "Members": "成员",
       "Rename": "重命名",
@@ -364,10 +374,12 @@
       "WriteTimeoutDesc": "输入写入超时时间（秒数）",
       "OutputVariables": "输出变量",
       "ResponseContent": "返回内容",
+      "ResponseObject": "返回对象",
       "ResponseStatusCode": "返回状态码",
       "ResponseHeaderJson": "返回头(JSON)",
       "NotSupportedYet": "暂不支持！",
       "HTTPRequest": "HTTP 请求",
+      "KnowledgeRetrieval": "知识检索",
       "CodeExecution": "代码执行",
       "Answer": "回答",
       "Iterating": "迭代",
@@ -653,7 +665,8 @@
       "Duplicate": "复制",
       "OpenAttributesPanel": "打开属性面板",
       "Close": "关闭",
-      "Update": "更新"
+      "Update": "更新",
+      "Test": "测试"
     },
     "MESSAGE": {
       "MAIN_ORGANIZATION_UPDATED": "组织更新成功",
@@ -857,6 +870,7 @@
       "ModelOverview": "模型概览",
       "DeleteSementicModel": "删除语义模型",
       "DeleteSementicModelDesc": "删除此语义模型及其关联数据",
+      "CubeCorrect": "数据集正确！",
       "Delete": "删除",
       "UploadSemanticModel": "上传语义模型文件",
       "SharedDimensions": "公共维度",
@@ -904,6 +918,9 @@
       "Variables": "参数变量",
       "OpenCubeDesigner": "打开多维数据集属性编辑器",
       "OpenFactFields": "打开事实字段列表",
+      "Search": "搜索",
+      "FactFields": "事实字段列表",
+      "CubeAttributes": "数据集属性",
       "IsDefault": "是默认",
       "MoveLeft": "左移",
       "MoveRight": "右移",
@@ -946,6 +963,7 @@
         "New": "新建查询",
         "TotalRecords": "总记录数",
         "PreviewTop1000": "最大预览 1000 条",
+        "DragDropFieldPreview": "拖动表、字段、维度、度量等至此进行数据预览",
         "CopilotPlaceholder": "提出问题或请求，输入 CTRL + Enter 发送",
         "CopilotName": "查询实验室",
         "EditorActions": {
@@ -989,6 +1007,7 @@
         "CreateStory": "创建故事",
         "Visibility": "可见性",
         "Visibility_Public": "公开",
+        "Visibility_Internal": "非公开",
         "Visibility_Secret": "秘密",
         "Visibility_Private": "私有",
         "RemoveDBInitScript": "删除数据库初始化脚本",
@@ -1070,7 +1089,9 @@
         "CubeStructure": "立方体结构",
         "DragDimensionHere": "拖动维度至此",
         "DragMeasureHere": "拖动度量至此",
-        "DataPreview": "数据预览"
+        "DataPreview": "数据预览",
+        "TestFormula": "测试公式",
+        "AddDimension": "添加维度"
       },
       "DIMENSION": {
         "Levels": "层级",
@@ -1443,7 +1464,9 @@
         "Url": "主机链接",
         "Request Timeout": "请求超时时间",
         "Verify SSL certificate": "验证 SSL 证书",
-        "HTTP Path": "Http 路径"
+        "SSL Mode": "SSL 模式",
+        "HTTP Path": "Http 路径",
+        "Query timeout": "查询超时时间"
       }
     },
     "Story": {
@@ -2194,6 +2217,11 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "KnowledgeBaseNotFound": "知识库‘{{id}}’未找到！",
+      "ClickAddToAddKB": "点击“+”按钮添加知识库",
+      "Knowledge": "知识",
+      "QueryVariable": "查询变量",
+      "SelectReferenceKnowledge": "选择参考知识",
       "EditXpert": "编辑数字专家",
       "ConnectWorkflow": "连接工作流",
       "ConnectKnowledgebases": "连接知识库",
@@ -2709,7 +2737,8 @@
       "SearchRecallMemories": "搜寻回忆",
       "DuplicateSuccess": "复制成功",
       "DuplicateError": "复制失败",
-      "AfterPublish": "发布后"
+      "AfterPublish": "发布后",
+      "KnowledgeRetrieval": "知识检索"
     },
     "MCP": {
       "Connect": "连接",

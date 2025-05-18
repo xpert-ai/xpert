@@ -60,6 +60,7 @@ import { FindMessageFeedbackQuery } from '../chat-message-feedback/queries'
 import { XpertGuard } from './guards/xpert.guard'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
 import { EnvironmentService } from '../environment'
+import { XpertDeleteCommand } from './commands/delete.command'
 
 
 @ApiTags('Xpert')
@@ -278,7 +279,7 @@ export class XpertController extends CrudController<Xpert> {
 			takeUntilClose(res)
 		)
 	}
-
+	
 	@ApiOperation({ summary: 'Delete record' })
 	@ApiResponse({
 		status: HttpStatus.NO_CONTENT,
@@ -289,25 +290,12 @@ export class XpertController extends CrudController<Xpert> {
 		description: 'Record not found'
 	})
 	@HttpCode(HttpStatus.ACCEPTED)
+	@UseGuards(XpertGuard)
 	@Delete(':id')
 	async delete(
 		@Param('id', UUIDValidationPipe) id: string,
-		@I18nLang() language: LanguagesEnum,
 	): Promise<Xpert | DeleteResult> {
-		const xpert = await this.service.findOne(id)
-		const others = await this.service.findAll({
-			where: {
-				type: xpert.type,
-				slug: xpert.slug,
-				id: Not(xpert.id)
-			}
-		})
-		if (xpert.latest && others.total) {
-			throw new ForbiddenException(
-				await this.i18n.translate('xpert.Error.ForbiddenDeleteLatest', {lang: mapTranslationLanguage(language)})
-			)
-		}
-		return this.service.delete(id)
+		return this.commandBus.execute(new XpertDeleteCommand(id))
 	}
 
 	@Get(':id/managers')

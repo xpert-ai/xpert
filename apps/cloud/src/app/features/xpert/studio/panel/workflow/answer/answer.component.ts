@@ -3,18 +3,14 @@ import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import {
-  getErrorMessage,
   injectToastr,
   IWFNAnswer,
   IWorkflowNode,
-  TXpertTeamNode,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
   XpertService
 } from 'apps/cloud/src/app/@core'
 import { CopilotPromptEditorComponent } from 'apps/cloud/src/app/@shared/copilot'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { catchError, of } from 'rxjs'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
@@ -47,7 +43,7 @@ export class XpertStudioPanelWorkflowAnswerComponent extends XpertWorkflowBaseCo
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
   readonly answerEntity = computed(() => this.entity() as IWFNAnswer)
   readonly promptTemplate = computed(() => this.answerEntity()?.promptTemplate)
-  
+
   updateEntity(name: string, value: string | number) {
     const entity = { ...(this.answerEntity() ?? {}) } as IWFNAnswer
     entity[name] = value

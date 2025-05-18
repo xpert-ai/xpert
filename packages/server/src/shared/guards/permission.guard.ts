@@ -46,7 +46,7 @@ export class PermissionGuard implements CanActivate {
 		const tenantId = RequestContext.currentTenantId();
 		const roleId = RequestContext.currentRoleId();
 
-		const cacheKey = `userPermissions_${tenantId}_${roleId}_${permissions.join('_')}`;
+		const cacheKey = `userPermissions:${tenantId}_${roleId}_${permissions.join('_')}`;
 
 		this.#logger.verbose('Checking User Permissions from Cache with key:', cacheKey);
 

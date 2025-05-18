@@ -11,12 +11,23 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { provideECharts } from '@cloud/app/@core/providers/echarts'
 import { provideOcap } from '@cloud/app/@core/providers/ocap'
+import { injectI18nService } from '@cloud/app/@shared/i18n'
+import { HeaderUserComponent, OrganizationSelectorComponent } from '@cloud/app/@theme/header'
+import { C_URI_API_MODELS, LanguagesEnum } from '@metad/cloud/state'
 import { provideOcapCore } from '@metad/ocap-angular/core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
-import { HeaderUserComponent, OrganizationSelectorComponent } from '@cloud/app/@theme/header'
 import { provideMarkdown } from 'ngx-markdown'
-import { ChatConversationService, injectToastr, routeAnimations, Store, XpertService } from '../../@core'
+import {
+  ChatConversationService,
+  injectLanguage,
+  injectToastr,
+  PAC_SERVER_AGENT_DEFAULT_OPTIONS,
+  PAC_SERVER_DEFAULT_OPTIONS,
+  routeAnimations,
+  Store,
+  XpertService
+} from '../../@core'
 import { ChatAppService } from '../chat-app.service'
 import { ChatService } from '../chat.service'
 import { ChatConversationsComponent } from '../conversations/conversations.component'
@@ -41,7 +52,7 @@ import { XpertChatAppComponent } from '../xpert/xpert.component'
     MatTooltipModule,
     OrganizationSelectorComponent,
     HeaderUserComponent,
-    XpertChatAppComponent,
+    XpertChatAppComponent
   ],
   selector: 'chat-home',
   templateUrl: './home.component.html',
@@ -58,7 +69,17 @@ import { XpertChatAppComponent } from '../xpert/xpert.component'
     provideOcap(),
     provideECharts({
       echarts: () => import('echarts')
-    })
+    }),
+    {
+      provide: PAC_SERVER_AGENT_DEFAULT_OPTIONS,
+      useValue: {
+        modelBaseUrl: C_URI_API_MODELS + '/public'
+      }
+    },
+    {
+      provide: PAC_SERVER_DEFAULT_OPTIONS,
+      useValue: { modelEnv: 'public' }
+    }
   ]
 })
 export class ChatHomeComponent {
@@ -69,6 +90,10 @@ export class ChatHomeComponent {
   readonly #dialog = inject(Dialog)
   readonly #vcr = inject(ViewContainerRef)
   readonly #toastr = injectToastr()
+  readonly currentLanguage = injectLanguage()
+  readonly i18nService = injectI18nService()
+
+  Languages = Object.values(LanguagesEnum).filter((lang) => lang !== LanguagesEnum.Chinese)
 
   readonly xpert = this.chatService.xpert
   readonly conversationId = this.chatService.conversationId
@@ -90,5 +115,9 @@ export class ChatHomeComponent {
       .closed.subscribe({
         next: () => {}
       })
+  }
+
+  selectLang(selectLang: LanguagesEnum) {
+    this.i18nService.changeLanguage(selectLang)
   }
 }

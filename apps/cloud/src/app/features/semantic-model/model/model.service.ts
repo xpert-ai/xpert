@@ -149,6 +149,9 @@ export class SemanticModelService {
     shareReplay(1)
   )
 
+  /**
+   * @deprecated use modelType signal
+   */
   public readonly modelType$ = this.model$.pipe(
     map((model) => {
       if (model.type === 'XMLA') {
@@ -338,6 +341,7 @@ export class SemanticModelService {
         this.dataSource$.value?.clearCache()
         // Register model after saved to refresh metadata of entity
         this.registerModel()
+        this.dataSource$.value?.refresh()
       })
     )
   }

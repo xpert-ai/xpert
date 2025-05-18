@@ -1,4 +1,4 @@
-import { IPagination, IXpertProject, IXpertProjectTask, IXpertToolset, OrderTypeEnum } from '@metad/contracts'
+import { IKnowledgebase, IPagination, IXpertProject, IXpertProjectTask, IXpertToolset, OrderTypeEnum } from '@metad/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -105,6 +105,21 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	@Delete(':id/toolsets/:toolset')
 	async removeToolset(@Param('id') id: string, @Param('toolset') toolsetId: string) {
 		await this.service.removeToolset(id, toolsetId)
+	}
+
+	@Get(':id/knowledges')
+	async getKnowledges(@Param('id') id: string, @Query('data', ParseJsonPipe) params: PaginationParams<IKnowledgebase>) {
+		return this.service.getKnowledges(id, params)
+	}
+
+	@Put(':id/knowledges/:kb')
+	async updateKnowledges(@Param('id') id: string, @Param('kb') kbId: string) {
+		await this.service.addKnowledge(id, kbId)
+	}
+
+	@Delete(':id/knowledges/:kb')
+	async removeKnowledge(@Param('id') id: string, @Param('kb') kbId: string) {
+		await this.service.removeKnowledgebase(id, kbId)
 	}
 
 	@UseGuards(XpertProjectGuard)

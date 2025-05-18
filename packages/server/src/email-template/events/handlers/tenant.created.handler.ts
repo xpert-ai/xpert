@@ -6,6 +6,9 @@ import { TenantCreatedEvent, TenantService } from '../../../tenant/'
 import { EmailTemplate } from '../../email-template.entity'
 import { createDefaultEmailTemplates } from '../../email-template.seed'
 
+/**
+ * @deprecated used @OnEvent('tenant.created')
+ */
 @EventsHandler(TenantCreatedEvent)
 export class TenantCreatedHandler implements IEventHandler<TenantCreatedEvent> {
 	constructor(

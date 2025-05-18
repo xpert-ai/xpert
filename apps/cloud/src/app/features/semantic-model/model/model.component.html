@@ -136,13 +136,14 @@
                           }
                         }
                           
-                          <ngm-display-behaviour class="flex-1 overflow-hidden"
-                            [option]="{key: entity.name, caption: entity.caption}">
-                          </ngm-display-behaviour>
-
+                        <ngm-display-behaviour class="flex-1 overflow-hidden"
+                          [option]="{ key: entity.name, caption: entity.caption }"
+                        />
+                      
+                      <!-- 
                         @if (isDirty(entity.id)) {
                           <pac-dirty-badge class="absolute left-2 top-2"/>
-                        }
+                        } -->
 
                           <button mat-icon-button displayDensity="compact" class="pac-model__nav-action"
                               [cdkMenuTriggerFor]="entityMenu"

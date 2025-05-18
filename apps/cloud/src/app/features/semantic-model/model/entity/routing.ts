@@ -1,5 +1,4 @@
 import { Routes } from '@angular/router'
-import { ModelEntityCalculationComponent } from './calculation/calculation.component'
 import { ModelEntityComponent } from './entity.component'
 import { ModelEntityPreviewComponent } from './preview/preview.component'
 import { EntityQueryComponent } from './query/query.component'
@@ -26,18 +25,6 @@ export const routes: Routes = [
         data: {
           title: 'Model / Cube / Structure'
         }
-      },
-      {
-        path: 'calculation',
-        redirectTo: 'calculation/'
-      },
-      {
-        path: 'calculation/404',
-        component: NotFoundComponent
-      },
-      {
-        path: 'calculation/:id',
-        component: ModelEntityCalculationComponent
       },
       {
         path: 'preview',

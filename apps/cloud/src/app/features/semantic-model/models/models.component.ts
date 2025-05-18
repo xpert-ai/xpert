@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http'
-import { AfterViewInit, Component, Inject, TemplateRef, viewChild, ViewChild } from '@angular/core'
+import { AfterViewInit, Component, Inject, signal, TemplateRef, viewChild, ViewChild } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
@@ -15,7 +15,7 @@ import { NX_STORY_STORE, NxStoryStore, StoryModel, uuid } from '@metad/story/cor
 import { MtxPopoverModule } from '@ng-matero/extensions/popover'
 import { formatRelative } from 'date-fns'
 import { NgxPermissionsModule } from 'ngx-permissions'
-import { BehaviorSubject, firstValueFrom } from 'rxjs'
+import { BehaviorSubject, EMPTY, firstValueFrom } from 'rxjs'
 import { combineLatestWith, distinctUntilChanged, shareReplay, switchMap, tap } from 'rxjs/operators'
 import {
   AnalyticsPermissionsEnum,
@@ -91,7 +91,7 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
   loading = false
   private readonly refresh$ = new BehaviorSubject<void>(null)
 
-  public readonly models$ = this.refresh$.pipe(
+  readonly models$ = this.refresh$.pipe(
     combineLatestWith(this.type$.pipe(distinctUntilChanged())),
     switchMap(([, component]) => {
       this.loading = true
@@ -102,9 +102,9 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
     shareReplay(1)
   )
 
-  public readonly dataSources$ = this.dataSourcesStore.getAll(['type']).pipe(takeUntilDestroyed(), shareReplay(1))
+  readonly dataSources$ = this.dataSourcesStore.getAll(['type']).pipe(takeUntilDestroyed(), shareReplay(1))
 
-  modelUploading = false
+  readonly modelUploading = signal(false)
 
   constructor(
     public appService: AppService,
@@ -233,20 +233,21 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
     }
   }
 
-  async onNewModel(businessAreaId?: string, type?: string) {
-    const model = await firstValueFrom(
-      this._dialog.open(ModelCreationComponent, { data: { businessAreaId, type } }).afterClosed()
-    )
-
-    if (model) {
-      const result = await firstValueFrom(
-        this.store.create({
-          ...model,
-          key: uuid()
-        })
-      )
+  onNewModel(businessAreaId?: string, type?: string) {
+    this._dialog.open(ModelCreationComponent, { data: { businessAreaId, type } }).afterClosed().pipe(
+      switchMap((model) => {
+        if (model) {
+          return this.store.create({
+            ...model,
+            key: uuid()
+          })
+        }
+        return EMPTY
+      })
+    ).subscribe((model) => {
       this.refresh$.next()
-    }
+      this.router.navigate(['/models', model.id])
+    })
   }
 
   async onDownload(id: string) {
@@ -305,14 +306,14 @@ export class ModelsComponent extends TranslationBaseComponent implements AfterVi
       return
     }
 
-    this.modelUploading = true
+    this.modelUploading.set(true)
     try {
       model = await firstValueFrom(this.store.upload(model))
-      this.modelUploading = false
+      this.modelUploading.set(false)
       this.toastrService.success('PAC.MODEL.TOASTR.ModelUpload', { Default: 'Model upload' })
       this.router.navigate(['/models', model.id])
     } catch (err) {
-      this.modelUploading = false
+      this.modelUploading.set(false)
       this.toastrService.error((<HttpErrorResponse>err).statusText)
     }
   }

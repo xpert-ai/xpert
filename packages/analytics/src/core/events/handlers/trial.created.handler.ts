@@ -14,8 +14,10 @@ import {
 	StoryPoint,
 	StoryWidget,
 } from '../../entities/internal'
-import { createLocalAgentDataSource } from './seeds/data-sources/local-agent'
 
+/**
+ * @deprecated use @nestjs/event-emitter like `@OnEvent('order.created')`
+ */
 @EventsHandler(TrialUserCreatedEvent)
 export class TrialUserCreatedHandler
 	implements IEventHandler<TrialUserCreatedEvent>

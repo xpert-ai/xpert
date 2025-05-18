@@ -1,6 +1,5 @@
 import { NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
-import { DirtyCheckGuard } from '../../../@core'
 import { ModelAdminComponent } from './admin/admin.component'
 import { ModelMembersComponent } from './members/members.component'
 import { ModelComponent } from './model.component'
@@ -13,7 +12,6 @@ export const routes: Routes = [
     path: '',
     component: ModelComponent,
     resolve: { storyModel: semanticModelResolver },
-    canDeactivate: [DirtyCheckGuard],
     data: {
       reuseComponent: false
     },

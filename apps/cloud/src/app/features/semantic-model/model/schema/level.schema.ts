@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { DimensionType, getLevelsHierarchy, PropertyLevel } from '@metad/ocap-core'
 import { AccordionWrappers, FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
+import { ISelectOption } from '@metad/ocap-angular/core'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { combineLatest, Observable } from 'rxjs'
 import { combineLatestWith, filter, map, shareReplay, startWith, switchMap } from 'rxjs/operators'
@@ -14,25 +15,24 @@ import {
   SemanticsAccordionWrapper
 } from './common'
 import { CubeSchemaService } from './cube.schema'
-import { ISelectOption } from '@metad/ocap-angular/core'
 
 @Injectable()
 export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
 
-  public readonly _hierarchy$ = combineLatest([this.cube$, this.id$]).pipe(
+  readonly _hierarchy$ = combineLatest([this.cube$, this.id$]).pipe(
     map(([cube, id]) => (cube?.dimensions ? getLevelsHierarchy(cube.dimensions, id) : null))
   )
 
-  public readonly hierarchy$ = this.select((state) => state.hierarchy).pipe(
+  readonly hierarchy$ = this.select((state) => state.hierarchy).pipe(
     combineLatestWith(this._hierarchy$),
     map(([hierarchy, _hierarchy]) => hierarchy ?? _hierarchy)
   )
 
-  public readonly hierarchyTable$ = this.hierarchy$.pipe(
+  readonly hierarchyTable$ = this.hierarchy$.pipe(
     map((hierarchy) => hierarchy?.primaryKeyTable ?? hierarchy?.tables?.[0]?.name)
   )
 
-  public readonly hierarchyTables$ = this.hierarchy$.pipe(
+  readonly hierarchyTables$ = this.hierarchy$.pipe(
     map((hierarchy) => {
       const options = [
         {
@@ -52,7 +52,7 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
     })
   )
 
-  // 取 Level 自身的 Table 否则取 Hierarchy 的 Table
+  // Take the Level's own Table, otherwise take the Hierarchy's Table
   readonly table$ = combineLatest([
     this.select((state) => state.modeling?.table),
     this.hierarchyTable$,

@@ -10,6 +10,7 @@ import { createHttpNode } from '../http'
 import { createCasesNode } from '../cases'
 import { createCodeNode } from '../code'
 import { createSplitterNode } from '../splitter'
+import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrieval.command'
 
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {
@@ -43,7 +44,12 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				break
 			}
 			case WorkflowNodeTypeEnum.CODE: {
-				workflow = createCodeNode(this.commandBus, graph, node)
+				workflow = createCodeNode(graph, node, {
+					xpertId, 
+					rootExecutionId: options.rootExecutionId,
+					commandBus: this.commandBus,
+					queryBus: this.queryBus,
+				})
 				channel = {
 					name: channelName(node.key),
 					annotation: Annotation<Record<string, unknown>>({
@@ -61,7 +67,30 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 				break
 			}
 			case WorkflowNodeTypeEnum.HTTP: {
-				workflow = createHttpNode(this.commandBus, graph, node)
+				workflow = createHttpNode(graph, node, {
+					xpertId, 
+					rootExecutionId: options.rootExecutionId,
+					commandBus: this.commandBus,
+					queryBus: this.queryBus,
+				})
+				channel = {
+					name: channelName(node.key),
+					annotation: Annotation<Record<string, unknown>>({
+						reducer: (a, b) => {
+							return b
+								? {
+										...a,
+										...b
+									}
+								: a
+						},
+						default: () => ({})
+					})
+				}
+				break
+			}
+			case WorkflowNodeTypeEnum.KNOWLEDGE: {
+				workflow =  await this.commandBus.execute(new CreateWNKnowledgeRetrievalCommand(xpertId, graph, node, options))
 				channel = {
 					name: channelName(node.key),
 					annotation: Annotation<Record<string, unknown>>({

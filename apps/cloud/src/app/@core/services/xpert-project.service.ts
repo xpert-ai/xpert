@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core'
 import {
   IChatConversation,
+  IKnowledgebase,
   IUser,
   IXpert,
   IXpertProjectFile,
@@ -65,6 +66,18 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
 
   removeToolset(id: string, toolsetId: string) {
     return this.httpClient.delete(this.apiBaseUrl + `/${id}/toolsets/${toolsetId}`)
+  }
+
+  getKnowledgebases(id: string, params: PaginationParams<IKnowledgebase>) {
+    return this.httpClient.get<{ items: IKnowledgebase[]; total: number }>(this.apiBaseUrl + `/${id}/knowledges`, {params: toHttpParams(params)})
+  }
+
+  addKnowledgebase(id: string, kbId: string) {
+    return this.httpClient.put(this.apiBaseUrl + `/${id}/knowledges/${kbId}`, {})
+  }
+
+  removeKnowledgebase(id: string, kbId: string) {
+    return this.httpClient.delete(this.apiBaseUrl + `/${id}/knowledges/${kbId}`)
   }
 
   getMembers(id: string) {

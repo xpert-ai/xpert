@@ -35,6 +35,7 @@ import { UserOrganizationModule } from './user-organization/user-organization.mo
 import { UserModule } from './user/index'
 import { IntegrationModule } from './integration/integration.module'
 import { ApiKeyModule } from './api-key/api-key.module'
+import { HealthModule } from './health'
 
 @Module({
 	imports: [
@@ -61,6 +62,7 @@ import { ApiKeyModule } from './api-key/api-key.module'
 		// 	},
 		// 	resolvers: [new HeaderResolver(['language'])]
 		// }),
+		HealthModule,
 		CqrsModule,
 		RedisModule,
 		CoreModule,

@@ -1,6 +1,7 @@
 import {
 	channelName,
 	IWFNCode,
+	IWFNKnowledgeRetrieval,
 	IWorkflowNode,
 	IXpertAgent,
 	STATE_VARIABLE_FILES,
@@ -25,6 +26,7 @@ import {
 	ReqBodyChannelName,
 	ReqMethodChannelName,
 	ReqUrlChannelName,
+	ResponseBodyJsonChannelName,
 	StatusCodeChannelName
 } from '../../workflow/http'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
@@ -253,6 +255,15 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 								}
 							},
 							{
+								type: XpertParameterTypeEnum.OBJECT,
+								name: ResponseBodyJsonChannelName,
+								title: 'Body (JSON)',
+								description: {
+									en_US: 'Body',
+									zh_Hans: '返回体'
+								}
+							},
+							{
 								type: XpertParameterTypeEnum.STRING,
 								name: 'error',
 								title: 'Error',
@@ -289,6 +300,29 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 								}
 							}
 						)
+						varGroups.push(varGroup)
+						break
+					}
+					case WorkflowNodeTypeEnum.KNOWLEDGE: {
+						variables.push({
+							type: XpertParameterTypeEnum.ARRAY,
+							name: 'result',
+							title: 'Retrieval segmented data',
+							description: {
+								en_US: 'Retrieval segmented data',
+								zh_Hans: '检索分段数据'
+							},
+							item: [
+								{
+									type: XpertParameterTypeEnum.STRING,
+									name: 'content',
+								},
+								{
+									type: XpertParameterTypeEnum.OBJECT,
+									name: 'metadata',
+								}
+							]
+						})
 						varGroups.push(varGroup)
 						break
 					}

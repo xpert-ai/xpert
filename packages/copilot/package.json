@@ -1,6 +1,6 @@
 {
   "name": "@metad/copilot",
-  "version": "3.2.2",
+  "version": "3.2.6",
   "license": "AGPL-3.0",
   "scripts": {
     "docs": "yarn typedoc --out ./.docs"

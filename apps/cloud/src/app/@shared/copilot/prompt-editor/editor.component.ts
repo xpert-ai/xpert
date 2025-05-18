@@ -71,10 +71,15 @@ export class CopilotPromptEditorComponent {
   })
   readonly tooltip = input<string>()
   readonly variables = input<TWorkflowVarGroup[]>()
-  readonly role = input<'system' | 'ai' | 'human'>()
+  readonly role = input<'system' | 'ai' | 'human' | string>()
   readonly fullscreen = input<boolean, string | boolean>(false, {
     transform: booleanAttribute
   })
+  readonly enableAi = input<boolean, string | boolean>(true, {
+    transform: booleanAttribute
+  })
+
+  readonly language = input<string>('markdown')
 
   // Outputs
   readonly deleted = output<void>()
@@ -94,15 +99,21 @@ export class CopilotPromptEditorComponent {
   private startHeight = 0
   readonly copied = signal(false)
 
-  readonly editorOptions = signal({
+  readonly _defaultOptions = signal({
     theme: 'vs',
     automaticLayout: true,
-    language: 'markdown',
     lineNumbers: 'off',
     glyphMargin: 0,
     wordWrap: false,
     minimap: {
       enabled: false
+    }
+  })
+
+  readonly editorOptions = computed(() => {
+    return {
+      ...this._defaultOptions(),
+      language: this.language()
     }
   })
 
@@ -117,7 +128,7 @@ export class CopilotPromptEditorComponent {
   }
 
   toggleWrap() {
-    this.editorOptions.update((state) => ({...state, wordWrap: !state.wordWrap}))
+    this._defaultOptions.update((state) => ({...state, wordWrap: !state.wordWrap}))
   }
 
   generate() {

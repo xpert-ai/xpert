@@ -10,12 +10,12 @@ import { API_DATA_SOURCE_TYPE } from './constants'
   providedIn: 'root'
 })
 export class DataSourceTypesService {
+  readonly #httpClient = inject(HttpClient)
 
-  private readonly httpClient = inject(HttpClient)
-
-  public readonly types$ = this.getAll().pipe(shareReplay(1))
+  readonly types$ = this.getAll().pipe(shareReplay(1))
 
   getAll() {
-    return this.httpClient.get<{ items: Array<IDataSourceType> }>(API_DATA_SOURCE_TYPE).pipe(map(({ items }) => items))
+    return this.#httpClient.get<{ items: Array<IDataSourceType>; total: number; }>(API_DATA_SOURCE_TYPE)
+      .pipe(map(({ items }) => items))
   }
 }

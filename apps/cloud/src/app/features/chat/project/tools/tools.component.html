@@ -1,7 +1,7 @@
 @if (!toolsets()?.length) {
   <div class="rounded-3xl border text-card-foreground bg-transparent flex-1 flex flex-col items-center justify-center p-4 gap-4 mb-4 mt-4">
     <div class="bg-components-card-bg flex flex-col justify-center items-center rounded-full w-14 h-14">
-      <span class="">
+      <span class="text-text-secondary">
         <i class="ri-hammer-line text-2xl"></i>
       </span>
     </div>
@@ -9,7 +9,7 @@
       <h3 class="font-semibold text-lg">
         {{ 'PAC.XProject.NoToolsYet' | translate: {Default: 'No tools yet'} }}
       </h3>
-      <span class="text-secondary max-w-md">
+      <span class="text-text-secondary max-w-md">
         {{ 'PAC.XProject.AddToolsForProject' | translate: {Default: 'Select to bind a workspace to add tools to the project general agent'} }}
       </span>
     </div>
@@ -33,37 +33,41 @@
   </div>
 
   <div class="flex items-center py-4 px-1 text-lg font-semibold text-gray-500 uppercase">
-    <div class="mr-3">{{ 'PAC.Xpert.Toolsets' | translate: { Default: 'Toolsets' } }}</div>
+    <div class="mr-3">{{ 'PAC.Xpert.AvailableToolsets' | translate: { Default: 'Available Toolsets' } }}</div>
     <div class="grow w-0 h-px bg-divider-regular"></div>
   </div>
 
-  <div class="relative content-start gap-4 pt-2 pb-4 px-1 grow shrink-0"
-    ngmDynamicGrid colWidth="280"
-    box="content-box">
-    @for (item of wsToolsets(); track item.toolset.id) {
-      <xpert-toolset-card class="group/card col-span-1 min-h-[140px] cursor-pointer bg-components-card-bg"
-        [toolset]="item.toolset"
-        (click)="openToolset(item.toolset)"
-      >
-        @if (item.added) {
-          <button action type="button" class="btn rounded-xl justify-center w-8 h-8 text-text-success"
-            [matTooltip]="'PAC.XProject.AddedTool' | translate: {Default: 'Added tool'}"
-            matTooltipPosition="right"
-          >
-            <i class="ri-checkbox-circle-line"></i>
-          </button>
-        } @else {
-          <button action type="button" class="btn rounded-xl justify-center w-8 h-8 opacity-0 group-hover/card:opacity-100"
-            [matTooltip]="'PAC.XProject.AddTool' | translate: {Default: 'Add tool'}"
-            matTooltipPosition="right"
-            (click)="$event.stopPropagation();addTool(item.toolset)"
-          >
-            <i class="ri-apps-2-add-line"></i>
-          </button>
-        }
-      </xpert-toolset-card>
-    }
-  </div>
+  @if (wsToolLoading()) {
+    <list-content-loader />
+  } @else {
+    <div class="relative content-start gap-4 pt-2 pb-4 px-1 grow shrink-0"
+      ngmDynamicGrid colWidth="280"
+      box="content-box">
+      @for (item of wsToolsets(); track item.toolset.id) {
+        <xpert-toolset-card class="group/card col-span-1 min-h-[140px] cursor-pointer bg-components-card-bg"
+          [toolset]="item.toolset"
+          (click)="openToolset(item.toolset)"
+        >
+          @if (item.added) {
+            <button action type="button" class="btn rounded-xl justify-center w-8 h-8 text-text-success"
+              [matTooltip]="'PAC.XProject.AddedTool' | translate: {Default: 'Added tool'}"
+              matTooltipPosition="right"
+            >
+              <i class="ri-checkbox-circle-line"></i>
+            </button>
+          } @else {
+            <button action type="button" class="btn rounded-xl justify-center w-8 h-8 opacity-0 group-hover/card:opacity-100"
+              [matTooltip]="'PAC.XProject.AddTool' | translate: {Default: 'Add tool'}"
+              matTooltipPosition="right"
+              (click)="$event.stopPropagation();addTool(item.toolset)"
+            >
+              <i class="ri-apps-2-add-line"></i>
+            </button>
+          }
+        </xpert-toolset-card>
+      }
+    </div>
+  }
 
   <mcp-marketplace [workspace]="workspace()" (refresh)="refreshWorkspace()"/>
 }

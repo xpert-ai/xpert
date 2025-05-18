@@ -18,10 +18,11 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatSidenav } from '@angular/material/sidenav'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { PaginationParams } from '@metad/cloud/state'
+import { I18nObject } from '@cloud/app/@core/types'
 import { NgmCommonModule, NgmHighlightDirective } from '@metad/ocap-angular/common'
-import { effectAction } from '@metad/ocap-angular/core'
+import { effectAction, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
+import { PaginationParams } from '@metad/cloud/state'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
@@ -57,7 +58,8 @@ import { groupConversations } from '../types'
     WaIntersectionObserver,
     NgmCommonModule,
     DateRelativePipe,
-    NgmHighlightDirective
+    NgmHighlightDirective,
+    NgmI18nPipe
   ],
   selector: 'xpert-chat-conversations',
   templateUrl: './conversations.component.html',
@@ -96,7 +98,7 @@ export class ChatConversationsComponent {
   })
 
   readonly editingConversation = signal<string>(null)
-  readonly editingTitle = signal<string>(null)
+  readonly editingTitle = signal<string | I18nObject>(null)
 
   readonly loading = signal(false)
   readonly pageSize = 20

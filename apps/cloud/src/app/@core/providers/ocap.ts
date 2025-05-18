@@ -2,6 +2,9 @@ import { OCAP_AGENT_TOKEN, OCAP_DATASOURCE_TOKEN } from '@metad/ocap-angular/cor
 import { DataSource, Type } from '@metad/ocap-core'
 import { ServerSocketAgent } from '../services'
 
+/**
+ * Provides the dependencies required by the `ocap` framework.
+ */
 export function provideOcap() {
   return [
     ServerSocketAgent,

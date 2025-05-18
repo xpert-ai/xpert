@@ -35,7 +35,7 @@ export class CdkConfirmOptionsComponent<T> {
   }
 
   onModelChange(event) {
-    console.log(event)
+    // console.log(event)
   }
 
   cancel() {

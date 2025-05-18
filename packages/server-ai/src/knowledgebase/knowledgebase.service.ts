@@ -93,7 +93,14 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
 		const copilotModel = knowledgebase.copilotModel
 		if (requiredEmbeddings && !copilotModel) {
-			throw new CopilotModelNotFoundException(`Copilot model not set for knowledgebase '${knowledgebase.name}'`)
+			throw new CopilotModelNotFoundException(
+				await this.i18nService.t('rag.Error.KnowledgebaseNoModel', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+					args: {
+						knowledgebase: knowledgebase.name
+					}
+				})
+			)
 		}
 		const copilot = copilotModel?.copilot
 		if (requiredEmbeddings && !copilot) {

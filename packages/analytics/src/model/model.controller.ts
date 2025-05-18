@@ -5,13 +5,13 @@ import {
 	IUser,
 	RolesEnum,
 	TSemanticModelDraft,
-	Visibility,
 	VisitEntityEnum,
 	VisitTypeEnum
 } from '@metad/contracts'
 import {
 	CrudController,
 	CurrentUser,
+	OptionParams,
 	PaginationParams,
 	ParseJsonPipe,
 	PermissionGuard,
@@ -312,8 +312,56 @@ export class ModelController extends CrudController<SemanticModel> {
 		return this.commandBus.execute(new SemanticModelCacheDeleteCommand(modelId))
 	}
 
+	@UseInterceptors(ClassSerializerInterceptor)
+	@Put(':id/members')
+	async updateMembers(@Param('id') id: string, @Body() members: string[]) {
+		const project = await this.modelService.updateMembers(id, members)
+		return new SemanticModelPublicDTO(project)
+	}
+
+	@Delete(':id/members/:memberId')
+	async deleteMember(@Param('id') id: string, @Param('memberId') memberId: string) {
+		await this.modelService.deleteMember(id, memberId)
+	}
+
+	@Get(':id/logs')
+	async getLogs(@Param('id') id: string, 
+		@Query('data', ParseJsonPipe) data: PaginationParams<SemanticModelQueryLog>,
+		@Query('start') start: string,
+		@Query('end') end: string) {
+		
+		const {where} = data
+		return this.modelService.getLogs({
+			...data,
+			where: {
+				...(where ?? {}),
+				modelId: id,
+				createdAt: Between(start, end)
+			},
+		})
+	}
+
+	/*
+    |--------------------------------------------------------------------------
+    | Public API
+    |--------------------------------------------------------------------------
+    */
+
 	@Public()
-	@Post('/public/:id/olap')
+	@UseInterceptors(ClassSerializerInterceptor)
+	@Get('public/:id')
+	async publicOne(
+		@Param('id', UUIDValidationPipe) id: string,
+		@Query('$query', ParseJsonPipe) data: OptionParams<SemanticModel>
+	): Promise<SemanticModelPublicDTO> {
+		const { relations } = data
+		return await this.modelService.findPublicOne(id, {
+			relations
+		})
+	}
+
+	@Public()
+	@Post('public/:id/olap')
 	@HttpCode(200)
 	async olapPublic(
 		@Param('id', UUIDValidationPipe) modelId: string,
@@ -321,11 +369,8 @@ export class ModelController extends CrudController<SemanticModel> {
 		@Headers('Accept-Language') acceptLanguage: string,
 		@Res() response: Response
 	) {
-		const model = await this.modelService.findOne(modelId, {
-			where: {
-				visibility: Visibility.Public
-			}
-		})
+		// Check the public attr
+		await this.modelService.findPublicOne(modelId, {})
 
 		Promise.all(
 			body.query.map(({ id, body, forceRefresh }) => {
@@ -355,34 +400,5 @@ export class ModelController extends CrudController<SemanticModel> {
 				console.log(reason)
 				response.status(reason?.response?.status || 500).send(reason?.response?.data)
 			})
-	}
-
-	@UseInterceptors(ClassSerializerInterceptor)
-	@Put(':id/members')
-	async updateMembers(@Param('id') id: string, @Body() members: string[]) {
-		const project = await this.modelService.updateMembers(id, members)
-		return new SemanticModelPublicDTO(project)
-	}
-
-	@Delete(':id/members/:memberId')
-	async deleteMember(@Param('id') id: string, @Param('memberId') memberId: string) {
-		await this.modelService.deleteMember(id, memberId)
-	}
-
-	@Get(':id/logs')
-	async getLogs(@Param('id') id: string, 
-		@Query('data', ParseJsonPipe) data: PaginationParams<SemanticModelQueryLog>,
-		@Query('start') start: string,
-		@Query('end') end: string) {
-		
-		const {where} = data
-		return this.modelService.getLogs({
-			...data,
-			where: {
-				...(where ?? {}),
-				modelId: id,
-				createdAt: Between(start, end)
-			},
-		})
 	}
 }

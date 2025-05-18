@@ -21,18 +21,19 @@ import {
   IXpert,
   IXpertAgent,
   IXpertAgentExecution,
+  messageContentText,
   ToastrService,
   ToolCall,
   XpertAgentExecutionService,
   XpertAgentExecutionStatusEnum,
   XpertAgentService
-} from 'apps/cloud/src/app/@core'
-import { CopilotStoredMessageComponent } from 'apps/cloud/src/app/@shared/copilot'
+} from '@cloud/app/@core'
+import { CopilotStoredMessageComponent } from '@cloud/app/@shared/copilot'
 import {
   ToolCallConfirmComponent,
   XpertAgentExecutionStatusComponent,
   XpertParametersCardComponent
-} from 'apps/cloud/src/app/@shared/xpert'
+} from '@cloud/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
 import { of, Subscription } from 'rxjs'
 import { distinctUntilChanged, switchMap } from 'rxjs/operators'
@@ -190,11 +191,7 @@ export class XpertStudioPanelAgentExecutionComponent {
             if (msg.data) {
               const event = JSON.parse(msg.data)
               if (event.type === ChatMessageTypeEnum.MESSAGE) {
-                if (typeof event.data === 'string') {
-                  this.output.update((state) => state + event.data)
-                } else {
-                  console.log(`未处理的消息：`, event)
-                }
+                this.output.update((state) => state + messageContentText(event.data))
               } else if (event.type === ChatMessageTypeEnum.EVENT) {
                 processEvents(event, this.executionService)
               }
