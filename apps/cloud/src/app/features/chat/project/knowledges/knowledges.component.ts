@@ -11,13 +11,10 @@ import {
   IKnowledgebase,
   injectProjectService,
   injectToastr,
-  IXpertToolset,
   KnowledgebaseService,
-  OrderTypeEnum,
-  XpertToolsetService
+  OrderTypeEnum
 } from '@cloud/app/@core'
-import { MCPMarketplaceComponent, TXpertMCPManageComponentRet, XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
-import { ToolsetCardComponent } from '@cloud/app/@shared/xpert'
+import { KnowledgebaseCardComponent } from '@cloud/app/@shared/knowledge'
 import {
   DisappearFadeOut,
   DynamicGridDirective,
@@ -25,13 +22,13 @@ import {
   listEnterAnimation,
   ListSlideStaggerAnimation
 } from '@metad/core'
+import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil, omitBy } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, EMPTY, map, startWith, switchMap } from 'rxjs'
 import { ChatProjectHomeComponent } from '../home/home.component'
 import { ChatProjectComponent } from '../project.component'
-import { KnowledgebaseCardComponent } from '@cloud/app/@shared/knowledge'
 
 /**
  *
@@ -46,6 +43,7 @@ import { KnowledgebaseCardComponent } from '@cloud/app/@shared/knowledge'
     CdkMenuModule,
     TranslateModule,
     MatTooltipModule,
+    ContentLoaderModule,
     DynamicGridDirective,
     KnowledgebaseCardComponent
   ],
@@ -77,9 +75,8 @@ export class ChatProjectKnowledgesComponent {
   readonly loading = signal(false)
 
   // knowledgebases in workspace
-  readonly #knowledgebases = derivedAsync(() => {
-    const where = {
-    }
+  readonly #knowledgebases = derivedAsync<{loading?: boolean; items?: IKnowledgebase[]}>(() => {
+    const where = {}
     const workspaceId = this.workspaceId()
     if (!workspaceId) return EMPTY
     return this.refresh$.pipe(
@@ -92,17 +89,20 @@ export class ChatProjectKnowledgesComponent {
           }
         })
       ),
-      map(({ items }) => items)
+      startWith({loading: true})
     )
   })
+
+  readonly wsKbLoading = computed(() => this.#knowledgebases()?.loading)
 
   // Searched kbs in workspace
   readonly wsKnowledgebases = computed(() => {
     const searchText = this.searchText()?.toLowerCase()
-    return this.#knowledgebases()
-      ?.filter((knowledgebase) =>
+    const result = this.#knowledgebases()
+    return result?.items?.filter((knowledgebase) =>
         searchText
-          ? knowledgebase.name.toLowerCase().includes(searchText) || knowledgebase.description?.toLowerCase().includes(searchText)
+          ? knowledgebase.name.toLowerCase().includes(searchText) ||
+            knowledgebase.description?.toLowerCase().includes(searchText)
           : true
       )
       .map((knowledgebase) => ({
@@ -143,31 +143,6 @@ export class ChatProjectKnowledgesComponent {
         this.#toastr.error(getErrorMessage(err))
       }
     })
-  }
-
-  openKnowledgebase(kb: IKnowledgebase) {
-    this.#dialog
-      .open<TXpertMCPManageComponentRet>(XpertMCPManageComponent, {
-        backdropClass: 'backdrop-blur-lg-white',
-        disableClose: true,
-        data: {
-          workspaceId: this.workspaceId(),
-          toolsetId: kb.id
-        }
-      })
-      .closed
-      .subscribe({
-        next: (ret) => {
-          if (ret?.deleted) {
-            // If deleted from workspace
-            // this.removeTool(kb)
-            this.refreshWorkspace()
-          } else if (ret?.saved) {
-            this.refreshWorkspace()
-            this.#projectHomeComponent.refreshTools()
-          }
-        }
-      })
   }
 
   refreshWorkspace() {

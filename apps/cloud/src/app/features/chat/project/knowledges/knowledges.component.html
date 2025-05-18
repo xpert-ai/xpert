@@ -1,7 +1,7 @@
 @if (!knowledgebases()?.length) {
   <div class="rounded-3xl border text-card-foreground bg-transparent flex-1 flex flex-col items-center justify-center p-4 gap-4 mb-4 mt-4">
     <div class="bg-components-card-bg flex flex-col justify-center items-center rounded-full w-14 h-14">
-      <span class="">
+      <span class="text-text-secondary">
         <i class="ri-book-shelf-line text-2xl"></i>
       </span>
     </div>
@@ -9,7 +9,7 @@
       <h3 class="font-semibold text-lg">
         {{ 'PAC.XProject.NoKnowledgebasesYet' | translate: {Default: 'No knowledgebases yet'} }}
       </h3>
-      <span class="text-secondary max-w-md">
+      <span class="text-text-secondary max-w-md">
         {{ 'PAC.XProject.AddKnowledgebasesForProject' | translate: {Default: 'Select to bind a workspace to add knowledgebases to the project general agent'} }}
       </span>
     </div>
@@ -33,34 +33,38 @@
   </div>
 
   <div class="flex items-center py-4 px-1 text-lg font-semibold text-gray-500 uppercase">
-    <div class="mr-3">{{ 'PAC.XProject.Knowledgebases' | translate: { Default: 'Knowledgebases' } }}</div>
+    <div class="mr-3">{{ 'PAC.XProject.AvailableKnowledgebases' | translate: { Default: 'Available Knowledgebases' } }}</div>
     <div class="grow w-0 h-px bg-divider-regular"></div>
   </div>
 
-  <div class="relative content-start gap-4 pt-2 pb-4 px-1 grow shrink-0"
-    ngmDynamicGrid colWidth="280"
-    box="content-box">
-    @for (item of wsKnowledgebases(); track item.knowledgebase.id) {
-      <knowledgebase-card class="group/card col-span-1 min-h-[140px] cursor-pointer bg-components-card-bg"
-        [knowledgebase]="item.knowledgebase"
-      >
-        @if (item.added) {
-          <button action type="button" class="btn rounded-xl justify-center w-8 h-8 text-text-success"
-            [matTooltip]="'PAC.XProject.AddedKnowledgebase' | translate: {Default: 'Added knowledgebases'}"
-            matTooltipPosition="right"
-          >
-            <i class="ri-checkbox-circle-line"></i>
-          </button>
-        } @else {
-          <button action type="button" class="btn rounded-xl justify-center w-8 h-8 opacity-0 group-hover/card:opacity-100"
-            [matTooltip]="'PAC.XProject.AddKnowledgebase' | translate: {Default: 'Add knowledgebase'}"
-            matTooltipPosition="right"
-            (click)="$event.stopPropagation();addKnowledgebase(item.knowledgebase)"
-          >
-            <i class="ri-apps-2-add-line"></i>
-          </button>
-        }
-      </knowledgebase-card>
-    }
-  </div>
+  @if (wsKbLoading()) {
+    <list-content-loader />
+  } @else {
+    <div class="relative content-start gap-4 pt-2 pb-4 px-1 grow shrink-0"
+      ngmDynamicGrid colWidth="280"
+      box="content-box">
+      @for (item of wsKnowledgebases(); track item.knowledgebase.id) {
+        <knowledgebase-card class="group/card col-span-1 min-h-[140px] cursor-pointer bg-components-card-bg"
+          [knowledgebase]="item.knowledgebase"
+        >
+          @if (item.added) {
+            <button action type="button" class="btn rounded-xl justify-center w-8 h-8 text-text-success"
+              [matTooltip]="'PAC.XProject.AddedKnowledgebase' | translate: {Default: 'Added knowledgebases'}"
+              matTooltipPosition="right"
+            >
+              <i class="ri-checkbox-circle-line"></i>
+            </button>
+          } @else {
+            <button action type="button" class="btn rounded-xl justify-center w-8 h-8 opacity-0 group-hover/card:opacity-100"
+              [matTooltip]="'PAC.XProject.AddKnowledgebase' | translate: {Default: 'Add knowledgebase'}"
+              matTooltipPosition="right"
+              (click)="$event.stopPropagation();addKnowledgebase(item.knowledgebase)"
+            >
+              <i class="ri-apps-2-add-line"></i>
+            </button>
+          }
+        </knowledgebase-card>
+      }
+    </div>
+  }
 }

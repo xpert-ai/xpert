@@ -1,37 +1,43 @@
-@for (conversation of conversations$ | async; track conversation.id) {
-  <div class="h-[48px] rounded-2xl grid grid-cols-1 grid-rows-1 hover:bg-button-ghost-hover">
-    <a class="col-start-1 col-end-2 row-start-1 row-end-2 block z-10"
-      [routerLink]="['/chat/p', id(), 'c', conversation.id]"
-    ></a>
-    <div class="flex cursor-pointer items-center gap-2 col-start-1 col-end-2 row-start-1 row-end-2 p-4 rounded-2xl">
-      <div class="flex-grow min-w-0">
-        <div class="flex items-center gap-2 w-full">
-          <div class="truncate text-primary">{{ conversation.title || (conversation.createdBy | user) }}</div>
+@if (result(); as result) {
+  @if (result.loading) {
+    <list-content-loader />
+  } @else {
+    @for (conversation of result.items; track conversation.id) {
+      <div class="h-[48px] rounded-2xl grid grid-cols-1 grid-rows-1 hover:bg-button-ghost-hover">
+        <a class="col-start-1 col-end-2 row-start-1 row-end-2 block z-10"
+          [routerLink]="['/chat/p', id(), 'c', conversation.id]"
+        ></a>
+        <div class="flex cursor-pointer items-center gap-2 col-start-1 col-end-2 row-start-1 row-end-2 p-4 rounded-2xl">
+          <div class="flex-grow min-w-0">
+            <div class="flex items-center gap-2 w-full">
+              <div class="truncate text-primary">{{ conversation.title || (conversation.createdBy | user) }}</div>
+            </div>
+          </div>
+          <div class="">
+            <span class="text-secondary whitespace-nowrap ml-2 hidden text-sm md:inline md:group-hover/item:hidden md:group-focus/item:hidden md:group-active/item:hidden">
+              {{ conversation.createdAt | relative }} 
+            </span>
+          </div>
         </div>
       </div>
-      <div class="">
-        <span class="text-secondary whitespace-nowrap ml-2 hidden text-sm md:inline md:group-hover/item:hidden md:group-focus/item:hidden md:group-active/item:hidden">
-          {{ conversation.createdAt | relative }}
-        </span>
+    } @empty {
+      <div class="rounded-3xl border text-card-foreground bg-transparent flex-1 flex flex-col items-center justify-center p-4 gap-4 mb-4 mt-4">
+        <div class="bg-components-card-bg flex flex-col justify-center items-center rounded-full w-14 h-14">
+          <span class="text-fg-tertiary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square-text">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M13 8H7"></path><path d="M17 12H7"></path>
+            </svg>
+          </span>
+        </div>
+        <div class="flex flex-col gap-1 items-center text-center">
+          <h3 class="font-semibold text-lg">
+            {{ 'PAC.XProject.NoConversations' | translate: {Default: 'No conversations yet'} }}
+          </h3>
+          <span class="text-secondary max-w-md">
+            {{ 'PAC.XProject.StartaNewConversation' | translate: {Default: 'Start a new conversation in this project by typing in the input box at the top.'} }}
+          </span>
+        </div>
       </div>
-    </div>
-  </div>
-} @empty {
-  <div class="rounded-3xl border text-card-foreground bg-transparent flex-1 flex flex-col items-center justify-center p-4 gap-4 mb-4 mt-4">
-    <div class="bg-components-card-bg flex flex-col justify-center items-center rounded-full w-14 h-14">
-      <span class="text-fg-tertiary">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square-text">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M13 8H7"></path><path d="M17 12H7"></path>
-        </svg>
-      </span>
-    </div>
-    <div class="flex flex-col gap-1 items-center text-center">
-      <h3 class="font-semibold text-lg">
-        {{ 'PAC.XProject.NoConversations' | translate: {Default: 'No conversations yet'} }}
-      </h3>
-      <span class="text-secondary max-w-md">
-        {{ 'PAC.XProject.StartaNewConversation' | translate: {Default: 'Start a new conversation in this project by typing in the input box at the top.'} }}
-      </span>
-    </div>
-  </div>
+    }
+  }
 }
