@@ -363,6 +363,10 @@ export interface TXpertTeamConnection {
   key: string
   from: string
   to: string
+  /**
+   * - edge: Horizontal Process, workflow
+   * - others: Vertical Process, agent
+   */
   type: 'edge' | TXpertTeamNodeType
 }
 
