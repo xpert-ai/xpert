@@ -240,11 +240,12 @@ export class XpertStudioApiService {
       distinctUntilChanged(),
       tap(() => this.unsaved.set(true)),
       debounceTime(SaveDraftDebounceTime * 1000),
-      switchMap(() => this.saveDraft()),
-      catchError((err) => {
-        this.#toastr.error(getErrorMessage(err))
-        return EMPTY
-      })
+      switchMap(() => this.saveDraft().pipe(
+        catchError((err) => {
+          this.#toastr.error(getErrorMessage(err))
+          return EMPTY
+        })
+      )),
     )
     .subscribe()
 

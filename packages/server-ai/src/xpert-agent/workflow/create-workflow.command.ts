@@ -2,6 +2,17 @@ import { IEnvironment, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 
+/**
+ * Create artifacts for workflow node in graph.
+ * 
+ * @returns
+ *  workflowNode:
+ *    graph:
+ *    ends:
+ *  navigator:
+ *  channel: Channel for the workflow node
+ *  nextNodes: Next nodes
+ */
 export class CreateWorkflowNodeCommand implements ICommand {
 	static readonly type = '[Xpert Agent] Create workflow node'
 
