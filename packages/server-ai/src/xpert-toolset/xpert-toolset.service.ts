@@ -4,7 +4,7 @@ import { CommandBus, ICommand, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { FindConditions, IsNull, Not, Repository } from 'typeorm'
 import { XpertToolset } from './xpert-toolset.entity'
-import { ITag, IUser, IXpertToolset, TagCategoryEnum, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { ITag, IUser, IXpertToolset, mapTranslationLanguage, TagCategoryEnum, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { assign } from 'lodash'
 import { GetXpertWorkspaceQuery } from '../xpert-workspace'
 import { DEFAULT_TOOL_TAG_MAP, defaultToolTags } from './utils/tags'
@@ -160,7 +160,9 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 		return toolsets
 	}
 
-	async translate(key: string, options: translateOptions) {
+	async translate(key: string, options?: translateOptions) {
+		options ??= {}
+		options.lang ??= mapTranslationLanguage(RequestContext.getLanguageCode())
 		return await this.i18n.t(key, options)
 	}
 

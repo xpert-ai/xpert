@@ -11,7 +11,6 @@ import {
 	TAgentRunnableConfigurable,
 	TMessageComponent,
 	TMessageContentComponent,
-	TranslateOptions,
 	TranslationLanguageMap,
 	TStateVariable,
 	TToolCredentials
@@ -167,30 +166,14 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		if (!models || models.length === 0) {
 			throw new ToolProviderCredentialValidationError('Models array is empty')
 		}
-
-		// for await (const id of models) {
-		// 	const result = await this.modelService.findOneOrFail(id, {
-		// 		relations: [
-		// 			'model',
-		// 			'model.dataSource',
-		// 			'model.dataSource.type',
-		// 			'model.roles',
-		// 			'model.indicators',
-		// 		],
-		// 	})
-
-		// 	if (!result.success) {
-		// 		throw new ToolProviderCredentialValidationError(`Model with ID ${id} validation failed`)
-		// 	}
-		// }
 	}
 
-	getTranslator() {
-		return async (key: string, options?: TranslateOptions) => {
-			return await this.translate(key, options)
-		}
-	}
-
+	/**
+	 * Find and register semantic models for toolset.
+	 * 
+	 * @param models 
+	 * @returns 
+	 */
 	async registerChatModels(models: string[]) {
 		const { items } = await this.modelService.findAll({
 			where: { tenantId: this.tenantId, organizationId: this.organizationId, id: In(models) },
@@ -205,6 +188,13 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				visits: OrderTypeEnum.DESC
 			}
 		})
+		// Check exist
+		for await (const id of models) {
+			if (!items.some((_) => _.id === id)) {
+				throw new Error(await this.translate('analytics.Error.ChatBIModelNotFound', {
+					args: {model: id, toolset: this.toolset.name} }))
+			}
+		}
 
 		// Register all models
 		items.forEach((item) => registerSemanticModel(item.model, false, this.dsCoreService))

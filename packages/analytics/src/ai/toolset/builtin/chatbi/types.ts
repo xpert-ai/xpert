@@ -59,7 +59,7 @@ export type ChatBIContext = {
 }
 
 export type ChatAnswer = {
-	language: string
+	language?: string
 	preface: string
 	visualType: 'ColumnChart' | 'LineChart' | 'PieChart' | 'BarChart' | 'Table' | 'KPI'
 	dataSettings: DataSettings
@@ -72,7 +72,7 @@ export type ChatAnswer = {
 	timeSlicers: TTimeSlicerParam[]
 }
 
-const LanguageSchema = z.enum(['en', 'zh']).describe('Language ​​used by user')
+const LanguageSchema = z.enum(['en', 'zh', 'zh-Hans']).describe('Language ​​used by user')
 
 export type TTimeSlicerParam = {
 	dimension: string
@@ -107,7 +107,7 @@ export const TimeSlicerSchema = z.object({
   })
 
 export const ChatAnswerSchema = z.object({
-	language: LanguageSchema,
+	language: LanguageSchema.optional().nullable(),
 	preface: z.string().describe('preface of the answer'),
 	visualType: z
 		.enum(['ColumnChart', 'LineChart', 'PieChart', 'BarChart', 'Table', 'KPI'])
