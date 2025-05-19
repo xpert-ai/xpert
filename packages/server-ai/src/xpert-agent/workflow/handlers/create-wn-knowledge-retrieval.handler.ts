@@ -9,9 +9,9 @@ import { get } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { wrapAgentExecution } from '../../../xpert-agent-execution/utils'
-import { AgentStateAnnotation, stateToParameters } from '../../commands/handlers/types'
 import { CreateWNAnswerCommand } from '../create-wn-answer.command'
 import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrieval.command'
+import { AgentStateAnnotation, stateToParameters } from '../../../shared'
 
 @CommandHandler(CreateWNKnowledgeRetrievalCommand)
 export class CreateWNKnowledgeRetrievalHandler implements ICommandHandler<CreateWNKnowledgeRetrievalCommand> {
