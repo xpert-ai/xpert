@@ -15,12 +15,15 @@ import {
 	START,
 	StateGraph
 } from '@langchain/langgraph'
-import { agentLabel, agentUniqueName, channelName, ChatMessageEventTypeEnum, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_SYS, STATE_VARIABLE_TITLE_CHANNEL, TAgentRunnableConfigurable, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { ChatOpenAI } from '@langchain/openai'
+import { agentLabel, agentUniqueName, channelName, ChatMessageEventTypeEnum, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_SYS, STATE_VARIABLE_TITLE_CHANNEL, TAgentRunnableConfigurable, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { stringifyMessageContent } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
-import { BadRequestException, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
+import { InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
+import { uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
 import z from 'zod'
@@ -31,11 +34,9 @@ import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertWorkflowQuery, GetXpertChatModelQuery } from '../../../xpert/queries'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
-import { allAgentsKey, identifyAgent, parseXmlString, stateVariable, TGraphTool, TSubAgent } from './types'
+import { AgentStateAnnotation, allAgentsKey, identifyAgent, parseXmlString, STATE_VARIABLE_TITLE_CHANNEL, stateToParameters, stateVariable, TGraphTool, TSubAgent } from './types'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
-import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
-import { ChatOpenAI } from '@langchain/openai'
 import { XpertConfigException, XpertCopilotNotFoundException } from '../../../core/errors'
 import { FakeStreamingChatModel, getChannelState, messageEvent, TStateChannel } from '../../agent'
 import { createParameters } from '../../workflow/parameter'
@@ -43,7 +44,7 @@ import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateMemoryStoreCommand } from '../../../xpert/commands'
 import { CreateWorkflowNodeCommand } from '../../workflow'
 import { toEnvState } from '../../../environment'
-import { _BaseToolset, AgentStateAnnotation, stateToParameters, createSummarizeAgent, createHumanMessage } from '../../../shared'
+import { _BaseToolset } from '../../../shared'
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -393,7 +394,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// State
-		const agents = allAgentsKey(graph)
+		const {upstream, downstream} = allChannels(graph, agent.key)
 		const SubgraphStateAnnotation = Annotation.Root({
 			// Temp parameters
 			...(variables?.reduce((state, schema) => {
@@ -415,32 +416,45 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				acc[parameter.name] = Annotation(stateVariable(parameter))
 				return acc
 			}, {}) ?? {}),
+			// Default channels for nodes
+			...Object.fromEntries(uniq([...upstream, ...downstream]).map((key) => {
+				// for agent
+				if (isAgentKey(key)) {
+					return [
+						channelName(key),
+						Annotation<{messages: BaseMessage[]} & Record<string, unknown>>({
+							reducer: (a, b) => {
+								return b ? {
+									...a,
+									...b,
+									messages: b.messages ? messagesStateReducer(a.messages, b.messages) : a.messages
+								} : a
+							},
+							default: () => ({
+								agent: identifyAgent(agent),
+								messages: []})
+						})
+					]
+				}
+				// for workflow
+				return [
+					channelName(key),
+					Annotation<Record<string, unknown>>({
+						reducer: (a, b) => {
+							return b ? {
+								...a,
+								...b,
+							} : a
+						},
+						default: () => ({})
+					})
+				]
+			})),
 			// Channels for workflow nodes
 			...channels.reduce((state, channel) => {
 				state[channel.name] = channel.annotation
 				return state
 			}, {}),
-			// Channels for agents
-			...Object.fromEntries(agents.map((agent) => {
-				if (!agent.key) {
-					throw new BadRequestException(i18n?.AgentMissingKey + agentLabel(agent))
-				}
-				return [
-					channelName(agent.key),
-					Annotation<{messages: BaseMessage[]} & Record<string, unknown>>({
-						reducer: (a, b) => {
-							return b ? {
-								...a,
-								...b,
-								messages: b.messages ? messagesStateReducer(a.messages, b.messages) : a.messages
-							} : a
-						},
-						default: () => ({
-							agent: identifyAgent(agent),
-							messages: []})
-					})
-				]
-			})),
 		})
 
 		const enableMessageHistory = !agent.options?.disableMessageHistory
@@ -1035,4 +1049,60 @@ function withStructured(chatModel: BaseChatModel, agent: IXpertAgent, withTools,
 		})) : chatModel
 	}
 	return chatModelWithTools
+}
+
+/**
+ * Channels of all upstream and downstream nodes relative to the starting point startKey.
+ * 
+ * @param graph 
+ * @param startKey 
+ */
+function allChannels(graph: TXpertGraph, startKey: string) {
+	const upstream = new Set<string>()
+	const downstream = new Set<string>()
+
+	const fromMap = new Map<string, string[]>()
+	const toMap = new Map<string, string[]>()
+
+	// Consider only horizontal processes
+	const connections = graph.connections.filter((_) => _.type === 'edge')
+
+	// Build a mapping table of from and to
+	for (const conn of connections) {
+		if (!fromMap.has(conn.from)) fromMap.set(conn.from, [])
+		fromMap.get(conn.from).push(conn.to)
+
+		if (!toMap.has(conn.to)) toMap.set(conn.to, [])
+		toMap.get(conn.to).push(conn.from)
+	}
+
+	// Downstream DFS
+	function dfsDown(nodeKey: string) {
+		const children = fromMap.get(nodeKey) || []
+		for (const child of children) {
+			if (!downstream.has(child)) {
+				downstream.add(child)
+				dfsDown(child)
+			}
+		}
+	}
+
+	// Upstream DFS
+	function dfsUp(nodeKey: string) {
+		const parents = toMap.get(nodeKey) || []
+		for (const parent of parents) {
+			if (!upstream.has(parent)) {
+				upstream.add(parent)
+				dfsUp(parent)
+			}
+		}
+	}
+
+	dfsDown(startKey)
+	dfsUp(startKey)
+
+	return {
+		upstream: Array.from(upstream),
+		downstream: Array.from(downstream)
+	}
 }
