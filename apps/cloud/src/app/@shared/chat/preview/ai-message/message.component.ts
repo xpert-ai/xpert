@@ -4,20 +4,29 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { ListHeightStaggerAnimation } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatMessageStepType, DateRelativePipe, IChatMessage } from 'apps/cloud/src/app/@core'
+import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { MarkdownModule } from 'ngx-markdown'
 import { Copy2Component } from '../../../common'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, MatTooltipModule, MarkdownModule, DateRelativePipe, Copy2Component],
+  imports: [
+    CommonModule,
+    TranslateModule,
+    MatTooltipModule,
+    MarkdownModule,
+    DateRelativePipe,
+    Copy2Component,
+    NgxJsonViewerModule
+  ],
   selector: 'xpert-preview-ai-message',
   templateUrl: 'message.component.html',
   styleUrls: ['message.component.scss'],
-  animations: [ ListHeightStaggerAnimation ]
+  animations: [ListHeightStaggerAnimation]
 })
 export class XpertPreviewAiMessageComponent {
   eChatMessageStepType = ChatMessageStepType
-  
+
   readonly message = input<IChatMessage>()
 
   readonly contents = computed(() => {
@@ -37,7 +46,11 @@ export class XpertPreviewAiMessageComponent {
 
   readonly thirdPartyMessage = computed(() => this.message().thirdPartyMessage)
   readonly reasoning = computed(() => this.message().reasoning)
-  readonly reasoningText = computed(() => this.reasoning().map(({text}) => text).join('\n\n'))
+  readonly reasoningText = computed(() =>
+    this.reasoning()
+      .map(({ text }) => text)
+      .join('\n\n')
+  )
   readonly #steps = computed(() => this.message().steps)
   readonly lastStep = computed(() =>
     this.message().steps ? this.message().steps[this.message().steps.length - 1] : null
