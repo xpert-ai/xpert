@@ -46,6 +46,9 @@ export class NgmRemoteSelectComponent {
     transform: booleanAttribute
   })
   readonly placeholder = input<string>()
+  readonly restrict = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
   // Outputs
   readonly error = output<string>()
@@ -61,7 +64,7 @@ export class NgmRemoteSelectComponent {
   })
 
   readonly selectOptions = derivedAsync(() => {
-    return this.url() ? this.getSelectOptions(this.url(), this.params()) : []
+    return this.url() ? this.getSelectOptions(this.url(), this.params()) : of(null)
   })
 
   readonly searchText = toSignal<string>(this.searchControl.valueChanges.pipe(debounceTime(300), startWith(null)))
@@ -78,10 +81,18 @@ export class NgmRemoteSelectComponent {
     )
   })
 
+  readonly notFoundOption = computed(() => {
+    if (this.restrict() && this.selectOptions()) {
+      const notExist = this.values()?.find((value) => !this.selectOptions()?.some((_) => this.compareWith(_.value, value)))
+      return notExist
+    }
+    return null
+  })
+
   getSelectOptions(url: string, params: Record<string, unknown>) {
     return of(true).pipe(
       tap(() => this.error.emit(null)),
-      switchMap(() => this.httpClient.get<ISelectOption[]>(url, { params: params ? toParams(params) : null })),
+      switchMap(() => this.httpClient.get<ISelectOption<TSelectOptionValue>[]>(url, { params: params ? toParams(params) : null })),
       catchError((err) => {
         this.error.emit(getErrorMessage(err))
         return of(null)

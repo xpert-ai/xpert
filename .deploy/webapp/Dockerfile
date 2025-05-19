@@ -9,8 +9,14 @@ ARG DEMO
 FROM node:18-alpine AS build
 
 LABEL maintainer="meta.digital.cloud@gmail.com"
+LABEL org.opencontainers.image.source="https://github.com/xpert-ai/xpert"
 
 ENV CI=true
+
+# We make NODE_OPTIONS and other env vars passed as build argument to be available in this stage
+ARG NODE_OPTIONS
+
+ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=60000"}
 
 RUN apk --update add bash && \
     # apk add --no-cache --virtual build-dependencies dos2unix gcc g++ git make python3 vips-dev && \
@@ -42,11 +48,6 @@ RUN yarn build:cloud:prod
 # ==================================================== Stage ==========================================================#
 FROM nginx:alpine AS production
 
-ENV API_BASE_URL=${API_BASE_URL:-http://localhost:3000} \
-    HOST=${HOST:-0.0.0.0} \
-    PORT=${PORT:-80} \
-    DEMO=${DEMO:-false}
-
 WORKDIR /srv/pangolin
 
 COPY --chown=nginx:nginx --from=build /wait ./
@@ -58,6 +59,16 @@ COPY --chown=nginx:nginx --from=build /srv/pangolin/dist/apps/cloud .
 
 RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh && \
     chmod a+rw /etc/nginx/conf.d/compose.conf.template /etc/nginx/conf.d/prod.conf.template
+
+ENV CI=true
+
+ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=12288"}
+ENV NODE_ENV=${NODE_ENV:-production}
+
+ENV API_BASE_URL=${API_BASE_URL:-http://localhost:3000} \
+    HOST=${HOST:-0.0.0.0} \
+    PORT=${PORT:-80} \
+    DEMO=${DEMO:-false}
 
 EXPOSE 80
 EXPOSE 443

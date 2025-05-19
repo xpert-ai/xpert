@@ -20,7 +20,7 @@
     </div>
     @if (expandReason()) {
       @for (item of reasoning; track item.id) {
-        <markdown class="ngm-copilot-markdown text-xs text-zinc-500"
+        <markdown class="ngm-copilot-markdown text-xs font-body text-zinc-500"
           lineNumbers
           [start]="5"
           [data]="item.text"
@@ -41,9 +41,23 @@
     }
     @default {
       <div class="group rounded-lg flex flex-col items-stretch max-h-48 hover:bg-gray-50 transition-all">
-        <div class="text-base font-semibold shrink-0 p-2">{{'PAC.Xpert.Component' | translate: {Default: 'Component'} }}</div>
-        <div class="flex-1 text-sm rounded-lg whitespace-normal overflow-auto">
-          <p class="px-4 pb-4">{{chunk | json}}</p>
+        <div class="flex justify-between items-center text-base p-2">
+          <div>
+            <span class="font-semibold shrink-0">{{'PAC.Xpert.Component' | translate: {Default: 'Component'} }}</span>
+            <i class="ri-information-2-line ml-1 text-text-secondary hover:text-text-primary"
+              [matTooltip]="'PAC.Chat.DisplayOnlyData' | translate: {Default: 'Only display component data'}"
+              matTooltipPosition="above"
+            ></i>
+          </div>
+
+          <copy2 #copy class="opacity-30 group-hover:opacity-100"
+            [content]="chunk"
+            [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
+            matTooltipPosition="above"
+          />
+        </div>
+        <div class="flex-1 px-3 text-sm rounded-lg whitespace-normal overflow-auto">
+          <ngx-json-viewer [json]="chunk" [depth]="1" />
         </div>
       </div>
     }

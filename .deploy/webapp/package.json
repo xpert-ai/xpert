@@ -25,7 +25,7 @@
     "BI"
   ],
   "scripts": {
-    "build:cloud:prod": "set NODE_OPTIONS=--max_old_space_size=8192 & yarn nx build cloud --configuration=production"
+    "build:cloud:prod": "yarn nx build cloud --configuration=production"
   },
   "dependencies": {
     "@angular/animations": "~17.3.0",
