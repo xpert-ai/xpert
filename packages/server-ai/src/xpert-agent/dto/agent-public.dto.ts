@@ -1,10 +1,14 @@
-import { Expose } from 'class-transformer'
-import { XpertAgent } from '../../core/entities/internal'
+import { Exclude, Expose } from 'class-transformer'
+import { XpertAgentIdentiDto } from './agent-identi.dto'
+import { TXpertParameter } from '@metad/contracts'
 
-@Expose()
-export class XpertAgentPublicDTO extends XpertAgent {
-	constructor(partial: Partial<XpertAgentPublicDTO | XpertAgent>) {
-		super()
-		Object.assign(this, partial)
+@Exclude()
+export class XpertAgentPublicDTO extends XpertAgentIdentiDto {
+
+	@Expose()
+	parameters?: TXpertParameter[]
+
+	constructor(partial: Partial<XpertAgentPublicDTO | XpertAgentIdentiDto>) {
+		super(partial)
 	}
 }
