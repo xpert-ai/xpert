@@ -66,7 +66,11 @@ export class ChatInputComponent {
 
   constructor() {
     effect(() => {
-      this.answering() || this.disabled() ? this.promptControl.disable() : this.promptControl.enable()
+      if (this.answering() || this.disabled()) {
+        this.promptControl.disable()
+      } else {
+        this.promptControl.enable()
+      }
     })
   }
 
@@ -156,6 +160,10 @@ export class ChatInputComponent {
 
     this.attachments.update((state) => [...state, ...files.map((file) => ({file}))])
 
+    this.closeAttach()
+  }
+
+  closeAttach() {
     this.attachTrigger().close()
   }
 }

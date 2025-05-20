@@ -36,6 +36,10 @@ export class ChatAttachmentComponent {
     transform: booleanAttribute
   })
 
+  readonly editable = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
+
   // Outputs
   readonly onProgress = output<number>()
   readonly error = output<string>()

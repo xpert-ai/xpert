@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, effect, inject, model } from '@angular/core'
+import { booleanAttribute, ChangeDetectionStrategy, Component, effect, inject, model, input } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
@@ -47,6 +47,9 @@ export class ChatAttachmentsComponent {
 
   // Inputs
   readonly attachments = model<{ file?: File; storageFile?: IStorageFile; error?: string; uploading?: boolean }[]>()
+  readonly editable = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
   constructor() {
     effect(() => {
