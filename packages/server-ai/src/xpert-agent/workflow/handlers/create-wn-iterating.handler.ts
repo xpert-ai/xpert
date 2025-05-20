@@ -169,7 +169,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 										elapsedTime: timeEnd - timeStart,
 										status,
 										error,
-										messages: mapChatMessagesToStoredMessages(messages),
+										messages: messages ? mapChatMessagesToStoredMessages(messages) : null,
 										outputs: {
 											output
 										}

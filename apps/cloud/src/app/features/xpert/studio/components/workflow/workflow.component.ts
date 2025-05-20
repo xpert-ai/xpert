@@ -58,6 +58,7 @@ export class XpertStudioNodeWorkflowComponent {
 
   // Inputs
   readonly node = input<TXpertTeamNode>()
+  readonly startNodes = input<string[]>()
 
   // States
   readonly entity = computed(() => this.node()?.entity as IWorkflowNode)
@@ -66,6 +67,7 @@ export class XpertStudioNodeWorkflowComponent {
   readonly type = computed(() => this.entity()?.type)
   readonly title = computed(() => this.entity()?.title)
   readonly description = computed(() => this.entity()?.description)
+  readonly isStart = computed(() => this.startNodes()?.includes(this.key()))
 
   private get hostElement(): HTMLElement {
     return this.elementRef.nativeElement

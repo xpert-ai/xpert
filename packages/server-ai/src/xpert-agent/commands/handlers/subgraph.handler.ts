@@ -16,7 +16,7 @@ import {
 	StateGraph
 } from '@langchain/langgraph'
 import { ChatOpenAI } from '@langchain/openai'
-import { agentLabel, agentUniqueName, channelName, ChatMessageEventTypeEnum, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_SYS, TAgentRunnableConfigurable, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_SYS, TAgentRunnableConfigurable, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { stringifyMessageContent } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
@@ -27,7 +27,7 @@ import { uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
 import z from 'zod'
-import { v4 as uuidv4 } from "uuid"
+import { v4 as uuidv4 } from 'uuid'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
@@ -85,6 +85,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				`Xpert agent not found for '${xpert.name}' and key or name '${agentKeyOrName}', draft is ${command.options?.isDraft}`
 			)
 		}
+
+		// Agent has next nodes or fail node
+		const agentHasNextNodes = next?.length || fail?.length
 
 		// The xpert (agent team)
 		const team = agent.team
@@ -262,6 +265,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const edges: Record<string, string> = {}
 		// Channels of workflow
 		const channels: TStateChannel[] = []
+		const startNodes = findStartNodes(graph, agent.key).filter((_) => _ !== agent.key)
 		if (isStart) {
 			/**
 			 * The root node is responsible for the overall workflow
@@ -318,6 +322,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						await createSubgraph(nextNodes?.[0], failNode)
 					}
 				} else if(node?.type === 'workflow') {
+					if (nodes[node.key]) {
+						return
+					}
 					const { workflowNode, navigator, nextNodes, channel } = await this.commandBus.execute(
 						new CreateWorkflowNodeCommand(xpert.id, graph, node, parentKey, {
 							isDraft: options.isDraft,
@@ -362,7 +369,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				}
 			}
 
-			if (next?.length || fail?.length) {
+			if (agentHasNextNodes) {
 				const pathMap = [...withTools.map((tool) => tool.name)]
 				for await (const nextNode of next) {
 					await createSubgraph(nextNode, fail?.[0], agentKey)
@@ -389,6 +396,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					createAgentNavigator(channelName(agentKey), summarize, summarizeTitle, next?.map((n) => n.key)),
 					pathMap
 				]
+			}
+
+			if (startNodes.length) {
+				for await (const key of startNodes) {
+					const node = graph.nodes.find((_) => _.key === key)
+					await createSubgraph(node, null)
+				}
 			}
 		}
 		if (leaderKey) {
@@ -597,7 +611,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			.addNode(agentKey, new RunnableLambda({ func: callModel })
 					.withConfig({ runName: agentKey, tags: [thread_id, xpert.id, agentKey] })
 				)
-			.addEdge(START, agentKey)
+		if (isStart && startNodes.length) {
+			for (const key of startNodes) {
+				subgraphBuilder.addEdge(START, key)
+			}
+		} else {
+			subgraphBuilder.addEdge(START, agentKey)
+		}
 
 		// Add nodes for tools
 		tools?.forEach(({ caller, tool, variables }) => {
@@ -661,23 +681,27 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				.addEdge(GRAPH_NODE_SUMMARIZE_CONVERSATION, END)
 		}
 
-		if (!Object.keys(nodes).length) {
+		if (!agentHasNextNodes) {
 			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(agentChannel, summarize, summarizeTitle))
-		} else {
-			// Next nodes
+		}
+
+		// Has other nodes
+		if (Object.keys(nodes).length) {
 			Object.keys(nodes).forEach((name) => subgraphBuilder.addNode(name, nodes[name].graph.withConfig({signal: abortController.signal}), {ends: nodes[name].ends}))
 			Object.keys(edges).forEach((name) => subgraphBuilder.addEdge(name, edges[name]))
 			Object.keys(conditionalEdges).forEach((name) => subgraphBuilder.addConditionalEdges(name, conditionalEdges[name][0], conditionalEdges[name][1]))
 		}
 
+		const compiledGraph = subgraphBuilder.compile({
+			checkpointer: disableCheckpointer ? false : this.copilotCheckpointSaver,
+			interruptBefore,
+			name: agentKey,
+			store
+		})
+
 		return {
 			agent,
-			graph: subgraphBuilder.compile({
-				checkpointer: disableCheckpointer ? false : this.copilotCheckpointSaver,
-				interruptBefore,
-				name: agentKey,
-				store
-			}),
+			graph: compiledGraph,
 			nextNodes: next,
 			failNode: fail?.[0],
 		}
@@ -1052,60 +1076,4 @@ function withStructured(chatModel: BaseChatModel, agent: IXpertAgent, withTools,
 		})) : chatModel
 	}
 	return chatModelWithTools
-}
-
-/**
- * Channels of all upstream and downstream nodes relative to the starting point startKey.
- * 
- * @param graph 
- * @param startKey 
- */
-function allChannels(graph: TXpertGraph, startKey: string) {
-	const upstream = new Set<string>()
-	const downstream = new Set<string>()
-
-	const fromMap = new Map<string, string[]>()
-	const toMap = new Map<string, string[]>()
-
-	// Consider only horizontal processes
-	const connections = graph.connections.filter((_) => _.type === 'edge')
-
-	// Build a mapping table of from and to
-	for (const conn of connections) {
-		if (!fromMap.has(conn.from)) fromMap.set(conn.from, [])
-		fromMap.get(conn.from).push(conn.to)
-
-		if (!toMap.has(conn.to)) toMap.set(conn.to, [])
-		toMap.get(conn.to).push(conn.from)
-	}
-
-	// Downstream DFS
-	function dfsDown(nodeKey: string) {
-		const children = fromMap.get(nodeKey) || []
-		for (const child of children) {
-			if (!downstream.has(child)) {
-				downstream.add(child)
-				dfsDown(child)
-			}
-		}
-	}
-
-	// Upstream DFS
-	function dfsUp(nodeKey: string) {
-		const parents = toMap.get(nodeKey) || []
-		for (const parent of parents) {
-			if (!upstream.has(parent)) {
-				upstream.add(parent)
-				dfsUp(parent)
-			}
-		}
-	}
-
-	dfsDown(startKey)
-	dfsUp(startKey)
-
-	return {
-		upstream: Array.from(upstream),
-		downstream: Array.from(downstream)
-	}
 }
