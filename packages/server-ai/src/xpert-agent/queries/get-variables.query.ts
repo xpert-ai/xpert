@@ -9,8 +9,9 @@ export class XpertAgentVariablesQuery implements IQuery {
 	constructor(
 		public readonly options: {
 			xpertId: string
-			type?: 'agent' | 'workflow'
+			type?: 'input' | 'output'
 			nodeKey?: string,
+
 			/**
 			 * Draft First
 			 */

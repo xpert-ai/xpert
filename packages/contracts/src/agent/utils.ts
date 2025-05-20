@@ -1,4 +1,5 @@
 import { TXpertGraph } from '../ai/xpert.model'
+import { DeepPartial } from '../types'
 
 /**
  * Channels of all upstream and downstream nodes relative to the starting point startKey.
@@ -90,13 +91,61 @@ export function findStartNodes(graph: DeepPartial<TXpertGraph>, key: string): st
 }
 
 /**
- * A recursive implementation of the Partial<T> type.
- * Source: https://stackoverflow.com/a/49936686/772859
+ * Keep the content in the same graph as the key node (including the node, its connected nodes, and the 'edge' type connections between them)
+ * 
+ * @param graph 
+ * @param key 
+ * @returns 
  */
-export type DeepPartial<T> = {
-  [P in keyof T]?: T[P] extends (infer U)[]
-    ? DeepPartial<U>[]
-    : T[P] extends Readonly<infer U>[]
-      ? Readonly<DeepPartial<U>>[]
-      : DeepPartial<T[P]>
+export function getCurrentGraph(graph: TXpertGraph, key: string): TXpertGraph {
+  const validConnections = graph.connections.filter(conn => conn.type === 'edge')
+
+  // Extract the primary key (remove the / suffix)
+  const normalize = (k: string) => k.split('/')[0]
+
+  // Adjacency list: bidirectional (because you want to traverse the current graph)
+  const adjacency = new Map<string, Set<string>>()
+
+  for (const conn of validConnections) {
+    const from = normalize(conn.from)
+    const to = normalize(conn.to)
+
+    if (!adjacency.has(from)) adjacency.set(from, new Set())
+    if (!adjacency.has(to)) adjacency.set(to, new Set())
+
+    adjacency.get(from).add(to)
+    adjacency.get(to).add(from)
+  }
+
+  const visited = new Set<string>()
+  const queue: string[] = [normalize(key)]
+
+  // BFS/DFS collects all nodes in the same graph
+  while (queue.length > 0) {
+    const current = queue.pop()
+    if (visited.has(current)) continue
+    visited.add(current)
+
+    const neighbors = adjacency.get(current) || new Set()
+    for (const neighbor of neighbors) {
+      if (!visited.has(neighbor)) {
+        queue.push(neighbor)
+      }
+    }
+  }
+
+  const nodeSet = new Set(graph.nodes.map(n => n.key))
+  const keptNodes = graph.nodes.filter(n => visited.has(normalize(n.key)))
+  const keptNodeKeys = new Set(keptNodes.map(n => n.key))
+
+  const keptConnections = validConnections.filter(conn => {
+    const from = normalize(conn.from)
+    const to = normalize(conn.to)
+    return visited.has(from) && visited.has(to)
+  })
+
+  return {
+    nodes: keptNodes,
+    connections: keptConnections
+  }
 }

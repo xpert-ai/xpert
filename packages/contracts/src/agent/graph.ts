@@ -1,6 +1,7 @@
 import { BaseMessage } from '@langchain/core/messages'
 import { Subscriber } from 'rxjs'
 import { TMessageContentComplex } from '../ai/chat-message.model'
+import { agentLabel, channelName, IXpertAgent, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '../ai'
 
 export const CONTEXT_VARIABLE_CURRENTSTATE = 'currentState'
 export const STATE_VARIABLE_SYS = 'sys'
@@ -26,6 +27,10 @@ export type TAgentRunnableConfigurable = {
   agentKey: string
   xpertName?: string
   subscriber: Subscriber<any>
+  /**
+   * Execution id of agent workflow node
+   */
+  executionId: string
 
   signal?: AbortSignal
 }
@@ -34,4 +39,86 @@ export type TAgentRunnableConfigurable = {
 // Helpers
 export function messageContentText(content: string | TMessageContentComplex) {
 	return typeof content === 'string' ? content : content.type === 'text' ? content.text : ''
+}
+
+/**
+ * Set value into variable of state.
+ * 
+ * @param state 
+ * @param varName 
+ * @param value 
+ * @returns 
+ */
+export function setStateVariable(state, varName: string, value: any) {
+	const [agentChannelName, variableName] = varName.split('.')
+	if (variableName) {
+		state[agentChannelName] = {[variableName]: value}
+	} else {
+		state[agentChannelName] = value
+	}
+
+	return state
+}
+
+export function getAgentVarGroup(key: string, graph: TXpertGraph): TWorkflowVarGroup {
+	const agent = graph.nodes.find((_) => _.type === 'agent' && _.key === key) as TXpertTeamNode & {type: 'agent'}
+
+	const variables = []
+	const varGroup: TWorkflowVarGroup = {
+		// agent: {
+		// 	title: agent.entity.title,
+		// 	description: agent.entity.description,
+		// 	name: agent.entity.name || agent.entity.key,
+		// 	key: channelName(agent.key)
+		// },
+		group: {
+			name: channelName(agent.key),
+			description: {
+				en_US: agentLabel(agent.entity)
+			},
+		},
+		variables
+	}
+
+	variables.push({
+		name: `output`,
+		type: 'string',
+		description: {
+			zh_Hans: `输出`,
+			en_US: `Output`
+		}
+	})
+	if ((<IXpertAgent>agent.entity).outputVariables) {
+		(<IXpertAgent>agent.entity).outputVariables.forEach((variable) => {
+			variables.push({
+				name: variable.name,
+				type: variable.type as TStateVariable['type'],
+				description: variable.description
+			})
+		})
+	}
+
+	return varGroup
+}
+
+
+// Swarm
+/**
+ * Get swarm partners of agent in team
+ * 
+ * @param graph 
+ * @param agentKey 
+ */
+export function getSwarmPartners(graph: TXpertGraph, agentKey: string, partners: string[], leaderKey?: string) {
+  const connections = graph.connections.filter((conn) => conn.type === 'agent' && conn.to === agentKey && (leaderKey ? conn.from !== leaderKey : true)
+		&& graph.connections.some((_) => _.type === 'agent' && _.to === conn.from && _.from === agentKey))
+
+  connections.forEach((conn) => {
+	const key = conn.from
+	if (partners.indexOf(key) < 0) {
+		partners.push(key)
+		getSwarmPartners(graph, key, partners)
+	}
+  })
+  return partners
 }

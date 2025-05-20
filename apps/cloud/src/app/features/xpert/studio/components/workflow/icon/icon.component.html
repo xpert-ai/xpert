@@ -57,6 +57,13 @@
       <i class="ri-radar-fill"></i>
     </div>
   }
+  @case (eWorkflowNodeTypeEnum.SUBFLOW) {
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
+      w-full h-full rounded-lg shadow-sm
+      shrink-0">
+      <i class="ri-exchange-2-fill"></i>
+    </div>
+  }
   @default {
     <div>Unimplement type ({{type()}})</div>
   }

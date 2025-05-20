@@ -67,6 +67,9 @@
   @case (eWorkflowNodeTypeEnum.HTTP) {
     <xpert-workflow-http [node]="node()" [wfNode]="wfNode()" />
   }
+  @case (eWorkflowNodeTypeEnum.SUBFLOW) {
+    <xpert-workflow-subflow [node]="node()" [entity]="wfNode()" />
+  }
 }
 
 @if (loading()) {

@@ -1,5 +1,6 @@
 import { TXpertGraph } from '../ai/xpert.model'
-import { DeepPartial, findStartNodes } from './utils'
+import { DeepPartial } from '../types'
+import { findStartNodes, getCurrentGraph } from './utils'
 
 describe('findStartNodes', () => {
   it('should return the correct start nodes for a given key', () => {
@@ -115,4 +116,51 @@ describe('findStartNodes', () => {
     expect(startNodes).toEqual(['Agent_albUSvIcdF'])
   })
 
+  it('only edge connections', () => {
+    const graph: DeepPartial<TXpertGraph> = {
+      nodes: [],
+      connections: [
+        {
+          type: 'edge',
+          key: 'Agent_UMVcdTL9w1/Iterating_jsCXACz4wh',
+          from: 'Agent_UMVcdTL9w1',
+          to: 'Iterating_jsCXACz4wh'
+        },
+        {
+          type: 'agent',
+          key: 'Iterating_jsCXACz4wh/Agent_albUSvIcdF',
+          from: 'Iterating_jsCXACz4wh',
+          to: 'Agent_albUSvIcdF'
+        },
+        {
+          type: 'edge',
+          key: 'Agent_albUSvIcdF/Http_T9uLo1NJUV',
+          from: 'Agent_albUSvIcdF',
+          to: 'Http_T9uLo1NJUV'
+        },
+        {
+          type: 'edge',
+          key: 'Iterating_jsCXACz4wh/Code_27ERnJwa2t',
+          from: 'Iterating_jsCXACz4wh',
+          to: 'Code_27ERnJwa2t'
+        },
+        {
+          type: 'edge',
+          key: 'Code_27ERnJwa2t/Agent_M2Wa9MQVpM',
+          from: 'Code_27ERnJwa2t',
+          to: 'Agent_M2Wa9MQVpM'
+        },
+        {
+          type: 'edge',
+          key: 'Agent_M2Wa9MQVpM/Answer_uzsdBtAqPq',
+          from: 'Agent_M2Wa9MQVpM',
+          to: 'Answer_uzsdBtAqPq'
+        }
+      ]
+    }
+
+    const startNodes = getCurrentGraph(graph as TXpertGraph, 'Agent_albUSvIcdF')
+    expect(startNodes).toEqual(['Agent_albUSvIcdF'])
+  })
+  
 })

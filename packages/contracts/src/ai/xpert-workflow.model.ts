@@ -13,6 +13,7 @@ export enum WorkflowNodeTypeEnum {
   CODE = 'code',
   HTTP = 'http',
   KNOWLEDGE = 'knowledge',
+  SUBFLOW = 'subflow',
   NOTE = 'note'
 }
 
@@ -213,10 +214,14 @@ export interface IWFNKnowledgeRetrieval extends IWorkflowNode {
   recall?: TKBRecallParams
 }
 
+export interface IWFNSubflow extends IWorkflowNode {
+  inputs: {name: string; variable?: string}[]
+  outputs: {name: string; variable?: string}[]
+}
+
 export function channelName(name: string) {
 	return name.toLowerCase() + '_channel'
 }
-
 
 export function isAgentKey(key: string) {
   return key?.toLowerCase().startsWith('agent_')

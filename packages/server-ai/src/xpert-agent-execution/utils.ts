@@ -26,6 +26,7 @@ export function wrapAgentExecution(
 				status: XpertAgentExecutionStatusEnum.RUNNING
 			})
 		)
+		execution.id = subexecution.id
 		// Start agent execution event
 		subscriber.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_START, new XpertAgentExecutionDTO(subexecution)))
 

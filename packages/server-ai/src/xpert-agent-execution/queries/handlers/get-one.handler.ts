@@ -1,5 +1,5 @@
 import { mapChatMessagesToStoredMessages } from '@langchain/core/messages'
-import { channelName, IXpertAgent, IXpertAgentExecution } from '@metad/contracts'
+import { channelName, IXpertAgent, IXpertAgentExecution, OrderTypeEnum } from '@metad/contracts'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { sortBy } from 'lodash'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
@@ -21,11 +21,27 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 		const execution = await this.service.findOne(id, { relations: ['createdBy', 'xpert', 'subExecutions', 'subExecutions.createdBy', 'subExecutions.xpert'] })
 
 		const subExecutions = sortBy(execution.subExecutions, 'createdAt')
+		for await (const item of subExecutions) {
+			item.subExecutions = await this.expandSubExecutions(item)
+		}
 
 		return {
 			...(await this.expandExecutionLatestCheckpoint(execution)),
 			subExecutions: await Promise.all(subExecutions.map((item) => this.expandExecutionLatestCheckpoint(item, execution)))
 		}
+	}
+
+	async expandSubExecutions(execution: IXpertAgentExecution) {
+		const {items: executions} = await this.service.findAll({
+			where: {
+				parentId: execution.id
+			},
+			relations: ['createdBy'],
+			order: {
+				createdAt: OrderTypeEnum.ASC
+			}
+		})
+		return executions
 	}
 
 	async expandExecutionLatestCheckpoint(execution: IXpertAgentExecution, parent?: IXpertAgentExecution) {

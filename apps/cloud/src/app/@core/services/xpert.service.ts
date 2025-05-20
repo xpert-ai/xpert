@@ -174,10 +174,13 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   /**
    * Get avaiable variables for agent or global variables
    */
-  getVariables(id: string, agentKey?: string, environmentId?: string) {
+  getVariables(id: string, type: 'input' | 'output', agentKey?: string, environmentId?: string) {
     let params = new HttpParams()
     if (environmentId) {
       params = params.append('environment', environmentId)
+    }
+    if (type) {
+      params = params.append('type', type)
     }
     return agentKey ? this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/agent/${agentKey}/variables`, {params})
     : this.httpClient.get<TWorkflowVarGroup[]>(this.apiBaseUrl + `/${id}/variables`, {params})
@@ -186,7 +189,7 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
   /**
    * Get avaiable variables for workflow node
    */
-  getWorkflowVariables1(id: string, nodeKey: string, environmentId?: string) {
+  getWorkflowVariables(id: string, nodeKey: string, environmentId?: string) {
     let params = new HttpParams()
     if (environmentId) {
       params = params.append('environment', environmentId)

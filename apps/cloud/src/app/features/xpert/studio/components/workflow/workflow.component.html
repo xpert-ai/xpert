@@ -5,7 +5,8 @@
 <div class="relative flex items-center px-3 pt-3 pb-2 rounded-t-2xl" (cdkContextMenuTriggerFor)="context_menu">
   <xpert-workflow-icon [type]="type()" class="w-6 h-6 shrink-0 mr-2" 
     [matTooltip]="key()"
-    matTooltipPosition="above"/>
+    matTooltipPosition="above"
+  />
   
   <div [title]="title()" class="grow mr-1 font-semibold text-sm uppercase text-text-primary truncate flex items-center">
     <div>{{title()}}</div>
@@ -43,14 +44,18 @@
   @case (eWorkflowNodeTypeEnum.HTTP) {
     <xpert-studio-node-workflow-http class="px-3" [node]="node()" [entity]="entity()" />
   }
+  @case (eWorkflowNodeTypeEnum.SUBFLOW) {
+    <xpert-workflow-node-subflow class="px-3" [node]="node()" [entity]="entity()" />
+  }
   @case (eWorkflowNodeTypeEnum.NOTE) {
+    <xpert-workflow-node-note class="px-3" [node]="node()" [entity]="entity()" />
   }
   @default {
     <div>Unimplement type ({{type()}})</div>
   }
 }
 
-@if (description()) {
+@if (type() !== eWorkflowNodeTypeEnum.NOTE && description()) {
   <div class="px-3 pt-1 pb-2 text-left text-xs text-text-tertiary whitespace-pre-line break-words">
     {{description()}}
   </div>

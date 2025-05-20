@@ -329,7 +329,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						new CreateWorkflowNodeCommand(xpert.id, graph, node, parentKey, {
 							isDraft: options.isDraft,
 							subscriber,
-							rootExecutionId: options.rootExecutionId,
 							environment
 						}))
 					if (channel) {

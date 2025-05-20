@@ -28,7 +28,6 @@ export class CreateWNAnswerHandler implements ICommandHandler<CreateWNAnswerComm
 		return {
 			workflowNode: {
 				graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config: LangGraphRunnableConfig) => {
-
 					const aiMessage = await AIMessagePromptTemplate.fromTemplate(entity.promptTemplate, {
 						templateFormat: 'mustache'
 					}).format(stateToParameters(state, environment))

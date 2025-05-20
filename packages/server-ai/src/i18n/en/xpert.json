@@ -9,6 +9,7 @@
         "NameExists": "Name Exist",
         "MultiNodeNotSupported": "Multi-node execution is not supported yet",
         "NoChildNodeForLoop": "No child node found for loop",
+        "NoChildAgentForSubflow": "Agent node for subflow '{key}' not found",
         "ForbiddenDeleteLatest": "You cannot delete the latest version directly, please delete other versions first",
         "XpertCopilotNotFound": "The ai model for the Digital Expert or Agent node is not configured",
         "RecursionLimitReached": "Recursion limit of {value} reached without hitting a stop condition. You can increase the limit by setting the \"Recursion Limit\" in agent settings in xpert studio. Troubleshooting URL: https://mtda.cloud/en/docs/ai/troubleshooting/errors/recursion_limit/",

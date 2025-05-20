@@ -20,6 +20,8 @@ import { XpertStudioNodeWorkflowSplitterComponent } from './splitter/splitter.co
 import { XpertStudioNodeWorkflowHttpComponent } from './http/http.component'
 import { XpertWorkflowIconComponent } from './icon/icon.component'
 import { XpertStudioNodeWorkflowKnowledgeComponent } from './knowledge/knowledge.component'
+import { XpertWorkflowNodeSubflowComponent } from './subflow/subflow.component'
+import { XpertWorkflowNodeNoteComponent } from './note/note.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -39,7 +41,9 @@ import { XpertStudioNodeWorkflowKnowledgeComponent } from './knowledge/knowledge
     XpertStudioNodeWorkflowAnswerComponent,
     XpertStudioNodeWorkflowCodeComponent,
     XpertStudioNodeWorkflowHttpComponent,
-    XpertStudioNodeWorkflowKnowledgeComponent
+    XpertStudioNodeWorkflowKnowledgeComponent,
+    XpertWorkflowNodeSubflowComponent,
+    XpertWorkflowNodeNoteComponent
   ],
   host: {
     tabindex: '-1',

@@ -1,6 +1,6 @@
 import { RunnableLambda } from '@langchain/core/runnables'
 import { END } from '@langchain/langgraph'
-import { channelName, IWFNCode, IXpert, IXpertAgentExecution, TAgentRunnableConfigurable, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { channelName, IWFNCode, IWorkflowNode, IXpertAgentExecution, TAgentRunnableConfigurable, TXpertGraph, TXpertTeamNode, XpertParameterTypeEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { get } from 'lodash'
@@ -17,17 +17,16 @@ export function createCodeNode(
 		commandBus: CommandBus,
 		queryBus: QueryBus,
 		xpertId: string,
-		rootExecutionId: string,
 	}
 ) {
-	const { commandBus, queryBus, xpertId, rootExecutionId } = params
+	const { commandBus, queryBus } = params
 	const entity = node.entity as IWFNCode
 
 	return {
 		workflowNode: {
 			graph: RunnableLambda.from(async (state, config) => {
 				const configurable: TAgentRunnableConfigurable = config.configurable
-				const { thread_id, checkpoint_ns, checkpoint_id, subscriber } = configurable
+				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
 
 				const inputs = entity.inputs.reduce((acc, param) => {
 					acc[param.name] = get(state, param.variable)
@@ -35,9 +34,8 @@ export function createCodeNode(
 				}, {})
 
 				const execution: IXpertAgentExecution = {
-					// xpert: { id: xpertId } as IXpert,
 					inputs: inputs,
-					parentId: rootExecutionId,
+					parentId: executionId,
 					threadId: thread_id,
 					checkpointNs: checkpoint_ns,
 					checkpointId: checkpoint_id,
@@ -109,4 +107,19 @@ export function createCodeNode(
 			return graph.connections.find((conn) => conn.type === 'edge' && conn.from === node.key)?.to ?? END
 		}
 	}
+}
+
+export function codeOutoutVariables(entity: IWorkflowNode) {
+	return [
+		...((<IWFNCode>entity).outputs ?? []),
+		{
+			type: XpertParameterTypeEnum.STRING,
+			name: 'error',
+			title: 'Error',
+			description: {
+				en_US: 'Error info',
+				zh_Hans: '错误信息'
+			}
+		}
+	]
 }

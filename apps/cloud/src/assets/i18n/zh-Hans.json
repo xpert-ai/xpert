@@ -384,6 +384,7 @@
       "Iterating": "迭代",
       "Router": "路由",
       "Agent": "智能体",
+      "Subflow": "子流程",
       "Note": "注释"
     },
     "Environment": {
@@ -2729,7 +2730,9 @@
       "SandboxToolsetTip": "运行在沙盒中的工具",
       "NeedSandboxToolsetTip": "鉴于安全原因，请升级到 pro 版本以在沙盒中安全地运行此工具集",
       "InputVariables": "输入变量",
+      "AddInputVariables": "添加输入变量",
       "OutputVariables": "输出变量",
+      "AddOutputVariables": "添加输出变量",
       "Transform": "转换",
       "Code": "代码执行",
       "TestWorkflowNode": "测试工作流节点",

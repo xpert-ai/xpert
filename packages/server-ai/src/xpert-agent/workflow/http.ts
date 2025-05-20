@@ -1,7 +1,7 @@
 import { PromptTemplate } from '@langchain/core/prompts'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { END } from '@langchain/langgraph'
-import { ApiAuthType, channelName, IWFNHttp, IXpertAgentExecution, TAgentRunnableConfigurable, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { ApiAuthType, channelName, IWFNHttp, IXpertAgentExecution, TAgentRunnableConfigurable, TXpertGraph, TXpertTeamNode, XpertParameterTypeEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import axios from 'axios'
@@ -25,20 +25,19 @@ export function createHttpNode(
 		commandBus: CommandBus,
 		queryBus: QueryBus,
 		xpertId: string,
-		rootExecutionId: string,
 	}
 ) {
-	const { commandBus, queryBus, rootExecutionId } = params
+	const { commandBus, queryBus } = params
 	const entity = node.entity as IWFNHttp
 
 	return {
 		workflowNode: {
 			graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
 				const configurable: TAgentRunnableConfigurable = config.configurable
-				const { thread_id, checkpoint_ns, checkpoint_id, subscriber } = configurable
+				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
 
 				const execution: IXpertAgentExecution = {
-					parentId: rootExecutionId,
+					parentId: executionId,
 					threadId: thread_id,
 					checkpointNs: checkpoint_ns,
 					checkpointId: checkpoint_id,
@@ -190,4 +189,82 @@ export function createHttpNode(
 			return graph.connections.find((conn) => conn.type === 'edge' && conn.from === node.key)?.to ?? END
 		}
 	}
+}
+
+
+export function httpOutoutVariables() {
+	return [
+		{
+			type: XpertParameterTypeEnum.NUMBER,
+			name: StatusCodeChannelName,
+			title: 'Status Code',
+			description: {
+				en_US: 'Status Code',
+				zh_Hans: '状态码'
+			}
+		},
+		{
+			type: XpertParameterTypeEnum.OBJECT,
+			name: HeadersChannelName,
+			title: 'Headers',
+			description: {
+				en_US: 'Response Headers',
+				zh_Hans: '响应头'
+			}
+		},
+		{
+			type: XpertParameterTypeEnum.STRING,
+			name: 'body',
+			title: 'Body',
+			description: {
+				en_US: 'Body',
+				zh_Hans: '返回体'
+			}
+		},
+		{
+			type: XpertParameterTypeEnum.OBJECT,
+			name: ResponseBodyJsonChannelName,
+			title: 'Body (JSON)',
+			description: {
+				en_US: 'Body',
+				zh_Hans: '返回体'
+			}
+		},
+		{
+			type: XpertParameterTypeEnum.STRING,
+			name: 'error',
+			title: 'Error',
+			description: {
+				en_US: 'Error info',
+				zh_Hans: '错误信息'
+			}
+		},
+		{
+			type: XpertParameterTypeEnum.STRING,
+			name: ReqUrlChannelName,
+			title: 'Url',
+			description: {
+				en_US: 'Url',
+				zh_Hans: '链接'
+			}
+		},
+		{
+			type: XpertParameterTypeEnum.STRING,
+			name: ReqMethodChannelName,
+			title: 'Request Method',
+			description: {
+				en_US: 'Request Method',
+				zh_Hans: '请求方法'
+			}
+		},
+		{
+			type: XpertParameterTypeEnum.STRING,
+			name: ReqBodyChannelName,
+			title: 'Request Body',
+			description: {
+				en_US: 'Request Body',
+				zh_Hans: '请求体'
+			}
+		}
+	]
 }

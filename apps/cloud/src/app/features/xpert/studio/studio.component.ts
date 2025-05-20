@@ -251,8 +251,6 @@ export class XpertStudioComponent {
         this.apiService.refresh()
       }
     })
-
-    effect(() => console.log(this.startNodes()))
   }
 
   public ngOnInit(): void {
