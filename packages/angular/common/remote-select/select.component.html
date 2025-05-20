@@ -6,16 +6,23 @@
   [cdkMenuTriggerFor]="menu"
   [cdkMenuTriggerData]="{ trigger: trigger }"
 >
-  <div title="" class="grow space-x-1 text-[13px] leading-[18px] text-gray-700 truncate">
-    @for (item of selectedOptions(); track item.value; let last = $last) {
-      <span>{{item.label | i18n}}</span>
-      @if (!last) {
-        <span>,</span>
+  @if (notFoundOption(); as option) {
+    <div class="grow text-[13px] leading-[18px] text-text-destructive truncate"
+      [title]="'Ngm.RemoteSelect.OptionNotFound' | translate: {Default: 'Option ' + option + ' not found, clear to reselect', option: option}">
+      {{ 'Ngm.RemoteSelect.OptionNotFound' | translate: {Default: 'Option ' + option + ' not found, clear to reselect', option: option} }}
+    </div>
+  } @else {
+    <div title="" class="grow space-x-1 text-[13px] leading-[18px] text-gray-700 truncate">
+      @for (item of selectedOptions(); track item.value; let last = $last) {
+        <span>{{item.label | i18n}}</span>
+        @if (!last) {
+          <span>,</span>
+        }
+      } @empty {
+        <span class="text-text-tertiary">{{placeholder()}}</span>
       }
-    } @empty {
-      <span class="text-text-tertiary">{{placeholder()}}</span>
-    }
-  </div>
+    </div>
+  }
   <div class="shrink-0 ml-1 text-gray-700 opacity-60">
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="remixicon h-4 w-4">
       <path d="M11.9999 13.1714L16.9497 8.22168L18.3639 9.63589L11.9999 15.9999L5.63599 9.63589L7.0502 8.22168L11.9999 13.1714Z"></path>
@@ -40,7 +47,7 @@
         </div>
         <input class="grow block h-[18px] border-0 text-gray-700 text-[13px] placeholder:text-gray-500 appearance-none outline-none  caret-blue-600 !bg-white hover:!bg-white group-hover:!bg-white"
           autocomplete="off" type="text" value="" name="query" tabindex="-1"
-          [placeholder]="'PAC.KEY_WORDS.Search' | translate: {Default: 'Search'}" 
+          [placeholder]="'Ngm.Common.Search' | translate: {Default: 'Search'}" 
           [formControl]="searchControl">
       </div>
     </div>

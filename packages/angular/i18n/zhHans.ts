@@ -348,6 +348,9 @@ export const ZhHans = {
     },
     Messages: {
       NotFoundValue: '未找到值：'
+    },
+    RemoteSelect: {
+      OptionNotFound: '选项‘{{option}}’未找到请清空后重新选择'
     }
   }
 }

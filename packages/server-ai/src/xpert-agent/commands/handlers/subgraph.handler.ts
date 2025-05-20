@@ -417,9 +417,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				return acc
 			}, {}) ?? {}),
 			// Default channels for nodes
-			...Object.fromEntries(uniq([...upstream, ...downstream]).map((key) => {
+			...Object.fromEntries(uniq([agent.key, ...upstream, ...downstream]).map((key) => {
 				// for agent
 				if (isAgentKey(key)) {
+					const agent = graph.nodes.find((_) => _.type === 'agent' && _.key === key)
 					return [
 						channelName(key),
 						Annotation<{messages: BaseMessage[]} & Record<string, unknown>>({
@@ -432,7 +433,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 							},
 							default: () => ({
 								agent: identifyAgent(agent),
-								messages: []})
+								messages: []
+							})
 						})
 					]
 				}
