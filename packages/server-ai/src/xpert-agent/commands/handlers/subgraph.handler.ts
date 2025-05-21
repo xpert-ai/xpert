@@ -664,7 +664,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			})
 		}
 
-		if (summarizeTitle) {
+		if (summarizeTitle && !team.agentConfig?.summarizeTitle?.disable) {
 			const titleAgent = await this.commandBus.execute(
 				new CreateSummarizeTitleAgentCommand({
 					xpert: team,

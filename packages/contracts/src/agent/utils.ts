@@ -149,3 +149,10 @@ export function getCurrentGraph(graph: TXpertGraph, key: string): TXpertGraph {
     connections: keptConnections
   }
 }
+
+export function shortTitle(input: string) {
+  if (input) {
+    return input.length <= 50 ? input : input.slice(0, 50) + '...'
+  }
+  return null
+}

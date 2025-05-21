@@ -2569,6 +2569,7 @@
       "AfterSecondsTooltip": "会话结束多少秒后如果没有继续对话则进行总结",
       "ProfileMemoryPromptTooltip": "提示用于通过指令和约束引导 AI 提取用户信息",
       "QAMemoryPromptTooltip": "提示用于通过指令和约束引导 AI 总结对话问题和答案的成功经验",
+      "SummarizeTitle": "总结标题",
       "ClearMemory": "清空记忆",
       "ClearAllMemoryOfXpert": "清空跟此专家相关的所有记忆",
       "SemanticSearchTest": "语义搜索测试",
