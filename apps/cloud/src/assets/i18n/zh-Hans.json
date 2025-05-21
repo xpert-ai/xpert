@@ -2743,7 +2743,8 @@
       "DuplicateSuccess": "复制成功",
       "DuplicateError": "复制失败",
       "AfterPublish": "发布后",
-      "KnowledgeRetrieval": "知识检索"
+      "KnowledgeRetrieval": "知识检索",
+      "Subflow": "子流程"
     },
     "MCP": {
       "Connect": "连接",
