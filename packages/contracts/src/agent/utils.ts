@@ -118,7 +118,7 @@ export function getCurrentGraph(graph: TXpertGraph, key: string): TXpertGraph {
   }
 
   const visited = new Set<string>()
-  const queue: string[] = [normalize(key)]
+  const queue: string[] = key ? [normalize(key)] : []
 
   // BFS/DFS collects all nodes in the same graph
   while (queue.length > 0) {
