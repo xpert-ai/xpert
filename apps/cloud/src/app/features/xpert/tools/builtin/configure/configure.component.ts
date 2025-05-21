@@ -28,6 +28,7 @@ import { XpertToolBuiltinAuthorizeComponent } from '../authorize/authorize.compo
 import { XpertToolBuiltinToolComponent } from '../tool/tool.component'
 import { CardUpgradeComponent } from 'apps/cloud/src/app/@shared/card'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { environment } from '@cloud/environments/environment'
 
 /**
  * If toolset and tool do not have id, they are considered as templates.
@@ -55,6 +56,7 @@ import { NgmSpinComponent } from '@metad/ocap-angular/common'
 })
 export class XpertToolConfigureBuiltinComponent {
   eTagCategoryEnum = TagCategoryEnum
+  proEnv = environment.pro
 
   readonly #toolsetService = inject(XpertToolsetService)
   readonly #toastr = inject(ToastrService)
@@ -157,6 +159,10 @@ export class XpertToolConfigureBuiltinComponent {
         )
       }
     }, { allowSignalWrites: true })
+
+    effect(() => {
+      console.log(this.toolset(), this.pro())
+    })
   }
 
   openAuthorize(toolset?: IXpertToolset) {
