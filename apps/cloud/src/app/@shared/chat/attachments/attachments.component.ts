@@ -46,7 +46,7 @@ export class ChatAttachmentsComponent {
   readonly storageFileService = inject(StorageFileService)
 
   // Inputs
-  readonly attachments = model<{ file?: File; storageFile?: IStorageFile; error?: string; uploading?: boolean }[]>()
+  readonly attachments = model<{ file?: File; url?: string; storageFile?: IStorageFile; error?: string; uploading?: boolean }[]>()
   readonly editable = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
@@ -63,6 +63,13 @@ export class ChatAttachmentsComponent {
         ...state[index],
         storageFile
       }
+      return [...state]
+    })
+  }
+
+  remove(index: number) {
+    this.attachments.update((state) => {
+      state.splice(index, 1)
       return [...state]
     })
   }

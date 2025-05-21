@@ -248,7 +248,7 @@ export class ModelCreateTableComponent implements OnInit {
     formData.append('file', files[0])
     this.uploadSubscribtion?.unsubscribe()
     this.uploadSubscribtion = this.storageFileService
-      .create(formData, {
+      ._create(formData, {
         observe: 'events',
         reportProgress: true
       })

@@ -7,9 +7,9 @@ import { FileTypePipe, linkedModel } from '@metad/core'
 import { effectAction, NgmDensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { catchError, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
-import { FileIconComponent } from '../../files'
 import { NgmProgressSpinnerComponent } from '@metad/ocap-angular/common'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
+import { FileIconComponent } from '../../files'
 
 @Component({
   standalone: true,
@@ -30,6 +30,7 @@ export class ChatAttachmentComponent {
 
   // Inputs
   readonly file = input<File>()
+  readonly url = input<string>()
   readonly storageFile = model<IStorageFile>()
 
   readonly immediately = input<boolean, boolean | string>(false, {
@@ -87,6 +88,23 @@ export class ChatAttachmentComponent {
     }, { allowSignalWrites: true })
 
     effect(() => {
+      const url = this.url()
+      if (url) {
+        // Check if file is an image
+        this.isImage.set(true)
+
+        // Generate preview for images
+        if (this.isImage()) {
+          this.previewUrl.set(url)
+        }
+
+        if (this.immediately() && !this.storageFile()) {
+          this.createUrlFile(url)
+        }
+      }
+    }, { allowSignalWrites: true })
+
+    effect(() => {
       const file = this.storageFile()
       if (file) {
         // Check if file is an image
@@ -122,7 +140,44 @@ export class ChatAttachmentComponent {
     )
   })
 
+  readonly createUrlFile = effectAction((file$: Observable<string>) => {
+    return file$.pipe(
+      switchMap((file) => {
+        if (file) {
+          return this.storageFileService.createUrl({ url: file, file }).pipe(
+            catchError((error) => {
+              this.error.emit(getErrorMessage(error))
+              return of(null)
+            })
+          )
+        }
+        return EMPTY
+      }),
+      tap((file) => {
+        this.storageFile.set(file)
+        this.uploadedUrl.set(file.url)
+      })
+    )
+  })
+
+  readonly deleteFile = effectAction((file$: Observable<string>) => {
+    return file$.pipe(
+      switchMap((file) =>
+        file ? this.storageFileService.delete(file).pipe(
+              catchError((error) => {
+                this.error.emit(getErrorMessage(error))
+                return of(null)
+              })
+            )
+          : EMPTY
+      )
+    )
+  })
+
   delete() {
+    if (this.storageFile()?.id) {
+      this.deleteFile(this.storageFile().id)
+    }
     this.upload(null)
     this.onDelete.emit()
   }

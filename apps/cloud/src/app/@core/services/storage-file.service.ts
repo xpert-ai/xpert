@@ -11,7 +11,10 @@ export const C_API_STORAGEFILE = API_PREFIX + '/storage-file'
 export class StorageFileService {
   private readonly httpClient = inject(HttpClient)
 
-  create(input: FormData, options?: {
+  /**
+   * @deprecated use `uploadFile` instead
+   */
+  _create(input: FormData, options?: {
     observe: 'events',
     reportProgress: true
   }) {
@@ -25,6 +28,10 @@ export class StorageFileService {
       observe: 'events',
       reportProgress: true
     })
+  }
+
+  createUrl(input: Partial<IStorageFile>) {
+    return this.httpClient.post<IStorageFile>(C_API_STORAGEFILE + '/url', input)
   }
 
   update(id: string, input) {

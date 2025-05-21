@@ -46,6 +46,11 @@
             {{'PAC.Copilot.Chat' | translate: {Default: 'Chat'} }}
           </div>
         }
+        @if (selectedAiModel()?.features?.includes(eModelFeature.VISION)) {
+          <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default mr-0.5 w-[18px] justify-center">
+            <i class="ri-eye-fill"></i>
+          </div>
+        }
         <div class="inline-block cursor-help">
           
         </div>
@@ -139,19 +144,19 @@
 
 <ng-template #modelsMenu let-mt="mt">
   <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu pl-2 pb-2" [style.width.px]="menuTrigger.offsetWidth">
-    <div class="p-1 sticky top-0 w-full bg-components-card-bg border-b border-solid border-divider-deep">
+    <div class="p-1 sticky top-0 w-full bg-components-card-bg border-b border-solid border-divider-deep z-10">
       <ngm-search class="w-full mt-1 rounded-lg overflow-hidden" [formControl]="searchControl" />
     </div>
 
     <div class="pr-2">
       @for (copilot of searchedModels(); track copilot.id) {
-        <div class="text-base px-4 my-4 font-semibold flex justify-start items-center">
-          <span class="uppercase">{{ ('PAC.Copilot.Role_' + copilot.role) | translate: {Default: copilot.role} }}</span>
-          <span class="mx-1">•</span>
+        <div class="text-base p-2 font-semibold flex justify-start items-center sticky top-12 bg-components-card-bg z-10">
           @if (copilot.providerWithModels.icon_small) {
-            <img [src]="(copilot.providerWithModels.icon_small | i18n)" class="w-4 h-4 inline-block mx-1">
+            <img class="w-5 h-5 inline-block mr-2" [src]="(copilot.providerWithModels.icon_small | i18n)">
           }
           {{copilot.providerWithModels?.label | i18n }}
+          <span class="mx-1">•</span>
+          <span class="uppercase">{{ ('PAC.Copilot.Role_' + copilot.role) | translate: {Default: copilot.role} }}</span>
         </div>
         @for (item of copilot.providerWithModels?.models; track item.model) {
           <button type="button" class="w-full flex justify-start items-center gap-2 px-4 py-2 rounded-xl cursor-pointer 

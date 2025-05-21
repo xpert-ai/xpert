@@ -24,6 +24,7 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "OR": "或",
       "PleaseInput": "请输入",
       "PasswordsNotMatch": "密码不匹配",
       "Required": "必输",
@@ -2219,6 +2220,11 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "Vision": "视觉",
+      "Resolution": "分辨率",
+      "High": "高",
+      "Low": "低",
+      "Attachments": "附件",
       "EnterParameters": "请输入必要参数",
       "KnowledgeBaseNotFound": "知识库‘{{id}}’未找到！",
       "ClickAddToAddKB": "点击“+”按钮添加知识库",
@@ -2746,7 +2752,8 @@
       "DuplicateError": "复制失败",
       "AfterPublish": "发布后",
       "KnowledgeRetrieval": "知识检索",
-      "Subflow": "子流程"
+      "Subflow": "子流程",
+      "LocalUpload": "本地上传"
     },
     "MCP": {
       "Connect": "连接",

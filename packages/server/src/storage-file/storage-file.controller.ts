@@ -1,5 +1,6 @@
 import { FileStorageProviderEnum, IScreenshot, IStorageFile, UploadedFile } from '@metad/contracts'
 import {
+	BadRequestException,
 	Body,
 	Controller,
 	Delete,
@@ -12,6 +13,7 @@ import {
 	ValidationPipe
 } from '@nestjs/common'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import axios from 'axios'
 import path from 'path'
 import { StorageFileService } from './storage-file.service'
 import { FileStorage, UploadedFileStorage } from '../core/file-storage'
@@ -58,6 +60,39 @@ export class StorageFileController {
 			storageProvider: (provider.name).toUpperCase() as FileStorageProviderEnum,
 			recordedAt: new Date(),
 		})
+	}
+
+	@Post('url')
+	async createUrl(@Body() entity: StorageFile,) {
+		const { url } = entity
+
+		try {
+			// Download the file from the URL
+			const response = await axios.get(url, { responseType: 'arraybuffer' });
+
+			// 将 ArrayBuffer 转换为 Node.js 的 Buffer 类型
+			const buffer = Buffer.from(response.data);
+
+			// Save the file using FileStorage
+			const provider = new FileStorage().getProvider();
+			const file = await provider.putFile(url);
+
+			const { key, url: _url, originalname, size, mimetype, encoding } = file;
+
+			const decodedOriginalName = Buffer.from(originalname, 'latin1').toString('utf8');
+			return await this.storageFileService.create({
+				file: key,
+				url: _url,
+				originalName: decodedOriginalName,
+				encoding,
+				size,
+				mimetype,
+				storageProvider: (provider.name).toUpperCase() as FileStorageProviderEnum,
+				recordedAt: new Date(),
+			})
+		} catch (error) {
+			throw new BadRequestException(`Failed to download and store file from URL: ${error.message}`);
+		}
 	}
 
 	@ApiOperation({

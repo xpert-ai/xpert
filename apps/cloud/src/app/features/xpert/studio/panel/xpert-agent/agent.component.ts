@@ -34,7 +34,9 @@ import {
   XpertAgentService,
   TXpertAgentOptions,
   injectHelpWebsite,
-  XpertParameterTypeEnum
+  XpertParameterTypeEnum,
+  CopilotServerService,
+  ModelFeature
 } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { XpertStudioApiService } from '../../domain'
@@ -108,6 +110,7 @@ export class XpertStudioPanelAgentComponent {
   readonly executionService = inject(XpertAgentExecutionService)
   readonly panelComponent = inject(XpertStudioPanelComponent)
   readonly xpertStudioComponent = inject(XpertStudioComponent)
+  readonly copilotServer = inject(CopilotServerService)
   readonly #toastr = injectToastr()
   readonly helpWebsite = injectHelpWebsite()
 
@@ -150,6 +153,7 @@ export class XpertStudioPanelAgentComponent {
   readonly parallelToolCalls = computed(() => this.agentOptions()?.parallelToolCalls ?? true)
   readonly vision = attrModel(this.agentOptions, 'vision')
   readonly visionEnabled = attrModel(this.vision, 'enabled')
+  readonly resolution = attrModel(this.vision, 'resolution')
   readonly visionVariable = linkedModel({
     initialValue: null,
     compute: () => this.vision()?.variable ?? VISION_DEFAULT_VARIABLE,
@@ -157,7 +161,7 @@ export class XpertStudioPanelAgentComponent {
       this.vision.update((state) => ({...(state ?? {}), variable}))
     }
   })
-  
+  readonly visionCanEnable = computed(() => this.selectedAiModel()?.features?.includes(ModelFeature.VISION))
 
   // Error handling
   readonly retry = computed(() => this.xpertAgent()?.options?.retry)
@@ -188,7 +192,30 @@ export class XpertStudioPanelAgentComponent {
     this.updateOutputVariables(value ? (this.outputVariables() ?? []) : null)
   }
 
+  readonly copilotWithModels = derivedAsync(() => {
+    const modelType = this.copilotModelType()
+    const copilotId = this.copilotId()
+    return this.copilotServer.getCopilotModels(modelType).pipe(
+      map((copilots) => {
+        return copilots?.filter((_) => copilotId ? _.id === copilotId : true )
+          .sort((a, b) => {
+            const roleOrder = { primary: 0, secondary: 1, embedding: 2 }
+            return roleOrder[a.role] - roleOrder[b.role]
+          })
+      })
+    )
+  })
   readonly copilotModel = model<ICopilotModel>()
+  readonly copilotModelType = computed(() => this.copilotModel()?.modelType)
+  readonly copilotId = computed(() => this.copilotModel()?.copilotId)
+  readonly model = computed(() => this.copilotModel()?.model)
+  readonly selectedCopilotWithModels = computed(() => {
+    return this.copilotWithModels()?.find((_) => _.id === this.copilotId())
+  })
+  readonly selectedAiModel = computed(() =>
+    this.selectedCopilotWithModels()?.providerWithModels?.models?.find((_) => _.model === this.model() &&
+      (this.copilotModelType() ? _.model_type === this.copilotModelType() : true))
+  )
 
   readonly openedExecution = signal(false)
   readonly executionId = model<string>(null)
@@ -254,8 +281,10 @@ export class XpertStudioPanelAgentComponent {
     )
 
     effect(() => {
-      // console.log(`agent copilotModel:`, this.copilotModel())
-    })
+      if (this.selectedAiModel() && !this.visionCanEnable()) {
+        this.visionEnabled.set(false)
+      }
+    }, { allowSignalWrites: true })
   }
 
   onNameChange(event: string) {

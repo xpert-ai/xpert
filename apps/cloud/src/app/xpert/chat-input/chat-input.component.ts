@@ -61,7 +61,8 @@ export class ChatInputComponent {
   readonly isComposing = signal(false)
 
   // Attachments
-  readonly attachments = model<{file: File; storageFile?: IStorageFile}[]>([])
+  readonly attachments = model<{file?: File; url?: string; storageFile?: IStorageFile}[]>([])
+  readonly url = model<string>(null)
   readonly files = computed(() => this.attachments()?.map(({storageFile}) => storageFile))
 
   constructor() {
@@ -104,6 +105,9 @@ export class ChatInputComponent {
 
     // Send message
     this.chatService.chat({ id, content, files: this.files() })
+
+    // Clear
+    this.attachments.set([])
   }
 
   stopGenerating() {
@@ -160,6 +164,12 @@ export class ChatInputComponent {
 
     this.attachments.update((state) => [...state, ...files.map((file) => ({file}))])
 
+    this.closeAttach()
+  }
+
+  createUrlFile() {
+    this.attachments.update((state) => [...state, {url: this.url()}])
+    this.url.set(null)
     this.closeAttach()
   }
 

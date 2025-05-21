@@ -7,7 +7,7 @@
            hover:border-zinc-200 hover:bg-input-background-hover focus-within:border-zinc-300
             hover:focus-within:border-zinc-300 pb-12 px-2 @[480px]/input:px-3"
         >
-          <chat-attachments class="w-full" editable [(attachments)]="attachments"/>
+          <chat-attachments class="w-full py-2" editable [(attachments)]="attachments" />
 
           <div class="relative z-10">
             @if (!isComposing() && !prompt()) {
@@ -207,34 +207,49 @@
     </form>
 
     <copilot-enable-model class="absolute top-0 left-0 w-full h-full justify-center items-center z-10 backdrop-blur-md bg-white/2 hidden"
-      [enableModel]="!xpert()"/>
+      [enableModel]="!xpert()"
+    />
   </div>
 </div>
 
 
 <ng-template #attachMenu>
-  <div class="relative w-[280px] rounded-xl border-[0.5px] border-components-panel-border bg-components-panel-bg-blur p-4 shadow-lg">
-    <div class="flex h-9 items-center rounded-lg border border-components-input-border-active bg-components-input-bg-active p-1 shadow-sm">
-      <input class="system-sm-regular mr-0.5 block grow appearance-none bg-transparent px-1 outline-none" placeholder="Enter URL..." value="" 
-        tabindex="-1">
-      <button type="button" class="btn disabled:btn-disabled btn-primary btn-small shrink-0" disabled>OK</button>
+  <div class="relative w-[280px] rounded-xl border-[0.5px] border-components-panel-border bg-components-panel-bg-blur shadow-lg">
+    <div class="w-full flex justify-between items-center p-2">
+      <div class="pl-2">{{'PAC.Xpert.Attachments' | translate: {Default: 'Attachments'} }}</div>
+      <button type="button" class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+        (click)="closeAttach()">
+        <i class="ri-close-line"></i>
+      </button>
     </div>
-    <div class="system-2xs-medium-uppercase flex h-7 items-center p-2 text-text-quaternary">
-      <div class="mr-2 h-[1px] w-[93px] bg-gradient-to-l from-[rgba(16,24,40,0.08)]"></div>OR
-      <div class="ml-2 h-[1px] w-[93px] bg-gradient-to-r from-[rgba(16,24,40,0.08)]"></div>
-    </div>
-    <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium relative w-full" tabindex="-1">
-      <i class="ri-upload-cloud-2-line mr-2"></i>
-      Local upload
-      <input class="absolute inset-0 block w-full cursor-pointer text-[0] opacity-0 disabled:cursor-not-allowed" 
-        accept=".jpg,.jpeg,.png,.gif,.webp,.svg" multiple type="file"
-        (change)="onFileSelected($event)"
-      >
-    </button>
 
-    <button type="button" class="absolute right-1 top-1 btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
-      (click)="closeAttach()">
-      <i class="ri-close-line"></i>
-    </button>  
+    <div class="px-4 pb-4">
+      <!-- <div class="flex h-9 items-center rounded-lg border border-components-input-border-active bg-components-input-bg-active p-1 shadow-sm">
+        <input class="system-sm-regular mr-0.5 block grow appearance-none bg-transparent px-1 outline-none" 
+          placeholder="Enter URL..."
+          tabindex="-1"
+          [(ngModel)]="url"
+          [ngModelOptions]="{standalone: true}"
+        >
+        <button type="button" class="btn disabled:btn-disabled btn-primary btn-small shrink-0" 
+          [disabled]="!url()"
+          (click)="createUrlFile()"
+        >OK</button>
+      </div>
+      <div class="system-2xs-medium-uppercase flex h-7 items-center p-2 text-text-quaternary">
+        <div class="mr-2 h-[1px] w-[93px] bg-gradient-to-l from-[rgba(16,24,40,0.08)]"></div>
+        {{'PAC.KEY_WORDS.OR' | translate: {Default: 'OR'} }}
+        <div class="ml-2 h-[1px] w-[93px] bg-gradient-to-r from-[rgba(16,24,40,0.08)]"></div>
+      </div> -->
+      <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium relative w-full" tabindex="-1">
+        <i class="ri-upload-cloud-2-line mr-2"></i>
+        
+        {{'PAC.Xpert.LocalUpload' | translate: {Default: 'Local upload'} }}
+        <input class="absolute inset-0 block w-full cursor-pointer text-[0] opacity-0 disabled:cursor-not-allowed" 
+          accept=".jpg,.jpeg,.png,.gif,.webp,.svg" multiple type="file"
+          (change)="onFileSelected($event)"
+        >
+      </button>
+    </div>
   </div>
 </ng-template>

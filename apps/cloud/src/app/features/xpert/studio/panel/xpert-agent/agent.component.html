@@ -100,7 +100,8 @@
 
     <copilot-model-select [inheritModel]="xpertCopilotModel()" [modelType]="eModelType.LLM"
       [ngModel]="copilotModel()"
-      (ngModelChange)="updateCopilotModel($event)" />
+      (ngModelChange)="updateCopilotModel($event)"
+    />
 
     <copilot-prompt-editor class="relative shadow-md ngm-card-border-gradient self-stretch"
       [tooltip]="'PAC.Xpert.SystemPromptTooltip' | translate: {Default: 'Prompts guide AI reponses with instructions and contraints. Insert parameters like {{input}}. This prompt won\'t be visible to users.'}"
@@ -162,13 +163,14 @@
     <!-- Vision part -->
     <div class="flex flex-col w-full px-2">
       <div class="flex justify-between items-center">
-        <div class="uppercase font-semibold text-sm">
+        <div class="uppercase font-semibold text-base">
           {{'PAC.Xpert.Vision' | translate: {Default: 'Vision'} }}
         </div>
 
         <mat-slide-toggle class=""
           labelPosition="before"
           ngm-density="xs"
+          [disabled]="!visionCanEnable()"
           [(ngModel)]="visionEnabled"
         />
       </div>
@@ -179,13 +181,17 @@
             [(ngModel)]="visionVariable"
           /> -->
           <div class="flex items-center justify-between">
-            <div class="mr-2 text-xs font-medium uppercase text-text-secondary">Resolution</div>
+            <div class="mr-2 text-sm font-medium uppercase text-text-secondary">{{'PAC.Xpert.Resolution' | translate: {Default: 'Resolution'} }}</div>
             <div class="flex items-center space-x-1">
-              <div class="system-sm-regular flex h-8 cursor-default items-center rounded-md px-2 text-text-secondary system-sm-medium border-[1.5px] border-components-option-card-option-selected-border bg-components-option-card-option-selected-bg shadow-xs justify-center">
-                <span>High</span>
+              <div class="system-sm-regular flex h-8 items-center rounded-md px-2 text-text-secondary cursor-pointer border-[1.5px] shadow-xs justify-center"
+                [class.border-components-option-card-option-selected-border]="resolution() === 'high'"
+                (click)="resolution.set('high')">
+                <span>{{'PAC.Xpert.High' | translate: {Default: 'High'} }}</span>
               </div>
-              <div class="system-sm-regular flex h-8 items-center rounded-md border border-components-option-card-option-border bg-components-option-card-option-bg px-2 text-text-secondary cursor-pointer hover:border-components-option-card-option-border-hover hover:bg-components-option-card-option-bg-hover hover:shadow-xs justify-center">
-                <span>Low</span>
+              <div class="system-sm-regular flex h-8 items-center rounded-md px-2 text-text-secondary cursor-pointer border-[1.5px] hover:shadow-xs justify-center"
+                [class.border-components-option-card-option-selected-border]="resolution() === 'low'"
+                (click)="resolution.set('low')">
+                <span>{{'PAC.Xpert.Low' | translate: {Default: 'Low'} }}</span>
               </div>
             </div>
           </div>
