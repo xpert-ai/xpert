@@ -1,4 +1,4 @@
-import { IChatConversation, ICopilotStore, IIntegration, IXpert, LanguagesEnum, mapTranslationLanguage, OrderTypeEnum, RolesEnum, TChatApi, TChatApp, TChatOptions, TChatRequest, TXpertTeamDraft, UserType, xpertLabel } from '@metad/contracts'
+import { IChatConversation, ICopilotStore, IIntegration, IXpert, LanguagesEnum, OrderTypeEnum, RolesEnum, TChatApi, TChatApp, TChatOptions, TChatRequest, TXpertTeamDraft, UserType, xpertLabel } from '@metad/contracts'
 import {
 	CrudController,
 	OptionParams,
@@ -362,18 +362,28 @@ export class XpertController extends CrudController<Xpert> {
 	}
 
 	@Get(':id/agent/:agent/variables')
-	async getAgentVariables(@Param('id') id: string, @Param('agent') agentKey: string, @Query('environment') environmentId: string) {
+	async getAgentVariables(
+		@Param('id') id: string, 
+		@Param('agent') agentKey: string, 
+		@Query('environment') environmentId: string,
+		@Query('type') type: 'input' | 'output'
+	) {
 		try {
-			return await this.queryBus.execute(new XpertAgentVariablesQuery({xpertId: id, type: 'agent', nodeKey: agentKey, isDraft: true, environmentId}))
+			return await this.queryBus.execute(new XpertAgentVariablesQuery({xpertId: id, type, nodeKey: agentKey, isDraft: true, environmentId}))
 		} catch (err) {
 			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
 		}
 	}
 
 	@Get(':id/workflow/:key/variables')
-	async getWorkflowVariables(@Param('id') id: string, @Param('key') nodeKey: string, @Query('environment') environmentId: string) {
+	async getWorkflowVariables(
+		@Param('id') id: string, 
+		@Param('key') nodeKey: string, 
+		@Query('environment') environmentId: string,
+		@Query('type') type: 'input' | 'output'
+	) {
 		try {
-			return await this.queryBus.execute(new XpertAgentVariablesQuery({xpertId: id, type: 'workflow', nodeKey, isDraft: true, environmentId}))
+			return await this.queryBus.execute(new XpertAgentVariablesQuery({xpertId: id, type, nodeKey, isDraft: true, environmentId}))
 		} catch (err) {
 			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
 		}

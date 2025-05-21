@@ -20,6 +20,8 @@ import { XpertStudioNodeWorkflowSplitterComponent } from './splitter/splitter.co
 import { XpertStudioNodeWorkflowHttpComponent } from './http/http.component'
 import { XpertWorkflowIconComponent } from './icon/icon.component'
 import { XpertStudioNodeWorkflowKnowledgeComponent } from './knowledge/knowledge.component'
+import { XpertWorkflowNodeSubflowComponent } from './subflow/subflow.component'
+import { XpertWorkflowNodeNoteComponent } from './note/note.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -39,7 +41,9 @@ import { XpertStudioNodeWorkflowKnowledgeComponent } from './knowledge/knowledge
     XpertStudioNodeWorkflowAnswerComponent,
     XpertStudioNodeWorkflowCodeComponent,
     XpertStudioNodeWorkflowHttpComponent,
-    XpertStudioNodeWorkflowKnowledgeComponent
+    XpertStudioNodeWorkflowKnowledgeComponent,
+    XpertWorkflowNodeSubflowComponent,
+    XpertWorkflowNodeNoteComponent
   ],
   host: {
     tabindex: '-1',
@@ -58,6 +62,7 @@ export class XpertStudioNodeWorkflowComponent {
 
   // Inputs
   readonly node = input<TXpertTeamNode>()
+  readonly startNodes = input<string[]>()
 
   // States
   readonly entity = computed(() => this.node()?.entity as IWorkflowNode)
@@ -66,6 +71,7 @@ export class XpertStudioNodeWorkflowComponent {
   readonly type = computed(() => this.entity()?.type)
   readonly title = computed(() => this.entity()?.title)
   readonly description = computed(() => this.entity()?.description)
+  readonly isStart = computed(() => this.startNodes()?.includes(this.key()))
 
   private get hostElement(): HTMLElement {
     return this.elementRef.nativeElement

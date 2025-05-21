@@ -40,7 +40,7 @@ export class CopilotPromptGeneratorComponent {
 
   readonly instructions = model<string>('')
 
-  readonly instruction = signal<string>(this.#data.instruction)
+  readonly instruction = signal<string>(this.#data?.instruction)
 
   readonly promptLength = computed(() => this.instruction()?.length)
 

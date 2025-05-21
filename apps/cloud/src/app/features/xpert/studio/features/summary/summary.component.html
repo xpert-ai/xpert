@@ -9,7 +9,7 @@
   <span class="">{{ 'PAC.Xpert.ReserveQuantity' | translate: {Default: 'Reserve Quantity'} }} (<span class="font-semibold">{{retainMessages()}}</span>)</span>
 </div>
 
-<mat-slider class="w-full" [step]="2" showTickMarks discrete min="0" max="100" ngm-density small color="accent">
+<mat-slider class="w-full" [step]="2" showTickMarks discrete min="4" max="200" ngm-density small color="accent">
   <input [(ngModel)]="summarizeMessages" matSliderStartThumb>
   <input [(ngModel)]="maxMessages" matSliderEndThumb>
 </mat-slider>

@@ -10,6 +10,7 @@ import {
 	IXpert,
 	LongTermMemoryTypeEnum,
 	messageContentText,
+	shortTitle,
 	TChatConversationStatus,
 	TSensitiveOperation,
 	XpertAgentExecutionStatusEnum
@@ -153,7 +154,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				operation,
 				reject,
 				memories,
-				summarizeTitle: true
+				summarizeTitle: !latestXpert.agentConfig?.summarizeTitle?.disable
 			})
 		)
 
@@ -165,7 +166,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 					event: ChatMessageEventTypeEnum.ON_CONVERSATION_START,
 					data: {
 						id: conversation.id,
-						title: conversation.title || input?.input,
+						title: conversation.title || shortTitle(input?.input),
 						createdAt: conversation.createdAt,
 						updatedAt: conversation.updatedAt
 					}
@@ -267,7 +268,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 								new ChatConversationUpsertCommand({
 									id: conversation.id,
 									status: convStatus,
-									title: conversation.title || _execution?.title || input?.input,
+									title: conversation.title || _execution?.title || shortTitle(input?.input),
 									operation,
 									error: _execution?.error
 								})
@@ -330,7 +331,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 								new ChatConversationUpsertCommand({
 									id: conversation.id,
 									status: 'idle',
-									title: conversation.title || _execution?.title || input?.input,
+									title: conversation.title || _execution?.title || shortTitle(input?.input),
 								})
 							)
 						} catch(err) {

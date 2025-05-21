@@ -110,7 +110,7 @@ export class CreateSummarizeTitleAgentHandler implements ICommandHandler<CreateS
 					...messages,
 					new HumanMessage({
 						id: uuidv4(),
-						content: `Create a short title${language ? ` in language '${language}'` : ''} for the conversation above, without adding any extra phrases like 'Conversation Title:':`
+						content: xpert?.agentConfig?.summarizeTitle?.instruction || `Create a short title${language ? ` in language '${language}'` : ''} for the conversation above, without adding any extra phrases like 'Conversation Title:':`
 					})
 				]
 				const response = await chatModel.invoke(allMessages, { tags: [GRAPH_NODE_TITLE_CONVERSATION] })

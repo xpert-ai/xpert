@@ -8,6 +8,7 @@ import {
   IWFNHttp,
   IWFNIfElse,
   IWFNKnowledgeRetrieval,
+  IWFNSubflow,
   IWorkflowNode,
   IXpert,
   uuid,
@@ -23,7 +24,8 @@ import {
   genXpertIteratingKey,
   genXpertKnowledgeKey,
   genXpertNoteKey,
-  genXpertRouterKey
+  genXpertRouterKey,
+  genXpertSubflowKey
 } from '../../../utils'
 import { XpertStudioApiService } from '../../domain'
 import { SelectionService } from '../../domain/selection.service'
@@ -181,6 +183,14 @@ export class XpertStudioContextMenuComponent {
       method: 'get',
       title: await this.#translate.instant('PAC.Workflow.HTTPRequest', { Default: 'HTTP Request' })
     } as IWFNHttp)
+  }
+
+  async addWorkflowSubflow() {
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.SUBFLOW,
+      key: genXpertSubflowKey(),
+      title: await this.#translate.instant('PAC.Workflow.Subflow', { Default: 'Subflow' })
+    } as IWFNSubflow)
   }
 
   public dispose(): void {

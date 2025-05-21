@@ -25,7 +25,6 @@ export class CreateWorkflowNodeCommand implements ICommand {
             isDraft: boolean
             // The subscriber response to client
 			subscriber: Subscriber<MessageEvent>
-            rootExecutionId: string
             environment: IEnvironment
         }
     ) {}

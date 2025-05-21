@@ -15,12 +15,15 @@ export class XpertAgentInvokeCommand implements ICommand {
 		public readonly agentKeyOrName: string,
 		public readonly xpert: Partial<IXpert>,
 		public readonly options: TChatOptions & {
-			// The id of root agent execution
-			rootExecutionId: string
 			// Langgraph thread id
 			thread_id?: string
 			// Use xpert's draft
 			isDraft?: boolean
+			/**
+			 * The id of root agent execution
+			 * @deprecated use `executionId` in `TAgentRunnableConfigurable`
+			 */
+			rootExecutionId: string
 			/**
 			 * The instance of current agent execution.
 			 * Do't save execution in ExecuteCommand, only update it's attributes

@@ -198,6 +198,14 @@ export type TXpertAgentConfig = {
    * Recall params
    */
   recalls?: Record<string, TKBRecallParams>
+
+  /**
+   * Summarize the title of the conversation
+   */
+  summarizeTitle?: {
+    disable?: boolean
+    instruction?: string
+  }
 }
 
 export type TStateVariableType = XpertParameterTypeEnum | 'object' | 'array[string]' | 'array[number]' | 'array[object]'

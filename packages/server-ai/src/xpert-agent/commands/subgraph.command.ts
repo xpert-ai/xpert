@@ -13,16 +13,21 @@ export class XpertAgentSubgraphCommand implements ICommand {
 		public readonly agentKeyOrName: string,
 		public readonly xpert: Partial<IXpert>,
 		public readonly options: TChatOptions & {
+			/**
+			 * Is a subflow enter point
+			 */
 			isStart: boolean
 			/**
 			 * Agent key who calls me
 			 */
 			leaderKey?: string
-			// The id of root agent execution
+			/**
+			 * @deprecated use executionId in configurable
+			 */
 			rootExecutionId?: string
+			execution?: IXpertAgentExecution
 			// Langgraph thread id
 			thread_id?: string
-			execution?: IXpertAgentExecution
 			// Use xpert's draft
 			isDraft?: boolean
 			// The subscriber response to client

@@ -28,10 +28,15 @@ export class XpertStudioNodeAgentComponent {
   readonly apiService = inject(XpertStudioApiService)
   readonly studioComponent = inject(XpertStudioComponent)
 
+  // Inputs
   readonly node = input<TXpertTeamNode & {type: 'agent'}>()
   readonly isRoot = input<boolean>(false)
+  readonly startNodes = input<string[]>()
+
+  // States
   readonly xpertAgent = computed(() => this.node().entity)
   readonly key = computed(() => this.node().key)
+  readonly isStart = computed(() => !this.isRoot() && this.startNodes()?.includes(this.key()))
   
   readonly toolsets = computed(() => this.xpertAgent()?.toolsets)
   
