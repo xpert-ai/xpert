@@ -607,11 +607,11 @@ export class XpertStudioApiService {
     return this.knowledgebases.get(id)
   }
 
-  getVariables(options: {workflowKey?: string; agentKey?: string; }) {
+  getVariables(options: {workflowKey?: string; agentKey?: string; type: 'input' | 'output'}) {
     if (options.workflowKey) {
-      return this.xpertService.getWorkflowVariables1(this.xpert().id, options.workflowKey, this.environmentId())
+      return this.xpertService.getWorkflowVariables(this.xpert().id, options.workflowKey, this.environmentId())
     } else {
-      return this.xpertService.getVariables(this.xpert().id, options.agentKey, this.environmentId())
+      return this.xpertService.getVariables(this.xpert().id, options.type, options.agentKey, this.environmentId())
     }
   }
 }

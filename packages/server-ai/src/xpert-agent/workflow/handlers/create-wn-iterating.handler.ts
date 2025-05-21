@@ -8,6 +8,8 @@ import {
 	IXpert,
 	IXpertAgent,
 	mapTranslationLanguage,
+	setStateVariable,
+	TAgentRunnableConfigurable,
 	TXpertTeamNode,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
@@ -20,7 +22,7 @@ import { I18nService } from 'nestjs-i18n'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { XpertAgentExecutionDTO } from '../../../xpert-agent-execution/dto'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
-import { messageEvent, setStateVariable } from '../../agent'
+import { messageEvent } from '../../agent'
 import { XpertAgentVariableSchemaQuery } from '../../queries'
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
@@ -41,6 +43,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 		const { xpertId, graph, node, options } = command
 		const { subscriber, isDraft } = options
 
+		// Get the only child agent node
 		const connections = graph.connections.filter((conn) => conn.type === 'agent' && conn.from === node.key)
 		if (connections.length > 1) {
 			throw new InternalServerErrorException(
@@ -107,7 +110,9 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 		return {
 			workflowNode: {
 				graph: RunnableLambda.from(
-					async (state: typeof AgentStateAnnotation.State, config: LangGraphRunnableConfig) => {
+					async (state: typeof AgentStateAnnotation.State, config) => {
+						const configurable: TAgentRunnableConfigurable = config.configurable
+						const { subscriber, executionId } = configurable
 						const parameterValue = get(state, entity.inputVariable)
 						const _execution = {
 							...execution,
@@ -127,7 +132,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 									xpert: { id: xpertId } as IXpert,
 									agentKey: agent.key,
 									inputs: item,
-									parentId: options.rootExecutionId,
+									parentId: executionId,
 									status: XpertAgentExecutionStatusEnum.RUNNING
 								})
 							)
@@ -169,7 +174,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 										elapsedTime: timeEnd - timeStart,
 										status,
 										error,
-										messages: mapChatMessagesToStoredMessages(messages),
+										messages: messages ? mapChatMessagesToStoredMessages(messages) : null,
 										outputs: {
 											output
 										}

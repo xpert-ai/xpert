@@ -25,7 +25,7 @@ export class CreateWNKnowledgeRetrievalHandler implements ICommandHandler<Create
 
 	public async execute(command: CreateWNAnswerCommand) {
 		const { graph, node } = command
-		const { environment, rootExecutionId } = command.options
+		const { environment } = command.options
 
 		const entity = node.entity as IWFNKnowledgeRetrieval
 
@@ -34,13 +34,13 @@ export class CreateWNKnowledgeRetrievalHandler implements ICommandHandler<Create
 			workflowNode: {
 				graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
 					const configurable: TAgentRunnableConfigurable = config.configurable
-					const { thread_id, checkpoint_ns, checkpoint_id, subscriber } = configurable
+					const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
 
 					const query = get(stateToParameters(state, environment), entity.queryVariable)
 
 					const execution: IXpertAgentExecution = {
 						inputs: { query },
-						parentId: rootExecutionId,
+						parentId: executionId,
 						threadId: thread_id,
 						checkpointNs: checkpoint_ns,
 						checkpointId: checkpoint_id,

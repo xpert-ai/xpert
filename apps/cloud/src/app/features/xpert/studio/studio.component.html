@@ -77,7 +77,11 @@
       >
         @switch (node.type) {
           @case('agent') {
-            <xpert-studio-node-agent [node]="node" [isRoot]="rootAgent().key === node.key || node.parentId && !!node.entity.xpertId" class=""/>
+            <xpert-studio-node-agent class=""
+              [node]="node"
+              [isRoot]="rootAgent().key === node.key || node.parentId && !!node.entity.xpertId"
+              [startNodes]="startNodes()"
+            />
           }
           @case('knowledge') {
             <xpert-studio-node-knowledge [node]="node" class="" />
@@ -86,7 +90,10 @@
             <xpert-studio-node-toolset [node]="node" class="" />
           }
           @case('workflow') {
-            <xpert-studio-node-workflow [node]="node" class="" />
+            <xpert-studio-node-workflow class=""
+              [node]="node"
+              [startNodes]="startNodes()"
+            />
           }
         }
 

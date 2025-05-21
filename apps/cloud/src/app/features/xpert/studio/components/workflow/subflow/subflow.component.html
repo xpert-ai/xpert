@@ -1,0 +1,19 @@
+<div class="relative w-full flex h-8 p-1">
+  <div class="grow flex justify-end items-center">
+    <div class="text-[12px] font-semibold text-text-primary uppercase">
+      {{ 'PAC.Xpert.Next' | translate: {Default: 'Next'} }}
+    </div>
+  </div>
+
+  <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" class="right group" [fOutputMultiple]="true">
+    <div class="inner-dot cursor-crosshair">
+      <ngm-plus-svg class="w-2 h-2 text-white" />
+    </div>
+  </div>
+</div>
+
+<div fNodeOutput [fOutputId]="node().key + '/agent'" fOutputConnectableSide="bottom" class="bottom group w-4 h-[3px]">
+  <div class="inner-dot cursor-crosshair">
+    <ngm-plus-svg class="w-2 h-2 text-white" />
+  </div>
+</div>

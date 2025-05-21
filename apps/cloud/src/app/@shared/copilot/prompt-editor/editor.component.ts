@@ -134,7 +134,8 @@ export class CopilotPromptEditorComponent {
   generate() {
     this.#dialog
       .open(CopilotPromptGeneratorComponent, {
-        panelClass: 'large'
+        panelClass: 'large',
+        data: {}
       })
       .afterClosed()
       .subscribe({

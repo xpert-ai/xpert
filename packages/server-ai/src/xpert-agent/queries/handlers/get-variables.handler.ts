@@ -1,7 +1,8 @@
 import {
 	channelName,
-	IWFNCode,
-	IWFNKnowledgeRetrieval,
+	getAgentVarGroup,
+	getCurrentGraph,
+	IWFNSubflow,
 	IWorkflowNode,
 	IXpertAgent,
 	STATE_VARIABLE_SYS,
@@ -17,18 +18,14 @@ import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertAgentQuery } from '../../../xpert/queries/'
 import { XpertService } from '../../../xpert/xpert.service'
-import { getAgentVarGroup } from '../../agent'
 import { STATE_VARIABLE_INPUT } from '../../commands/handlers/types'
 import {
-	HeadersChannelName,
-	ReqBodyChannelName,
-	ReqMethodChannelName,
-	ReqUrlChannelName,
-	ResponseBodyJsonChannelName,
-	StatusCodeChannelName
+	httpOutoutVariables,
 } from '../../workflow/http'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
 import { EnvironmentService } from '../../../environment'
+import { subflowOutputVariables } from '../../workflow/subflow'
+import { codeOutoutVariables } from '../../workflow/code'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
@@ -46,6 +43,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		
 		const varGroups: TWorkflowVarGroup[] = []
 		if (environmentId) {
+			// Environment variables
 			const environment = await this.environmentService.findOne(environmentId)
 			varGroups.push({
 				group: {
@@ -65,6 +63,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			})
 		}
 
+		// System state variables
 		const variables: TStateVariable[] = [
 			{
 				name: STATE_VARIABLE_INPUT,
@@ -128,6 +127,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			variables
 		})
 
+		// Xpert state variables
 		const agentConfig = isDraft ? (xpert.draft?.team?.agentConfig ?? xpert.agentConfig) : xpert.agentConfig
 		const stateVariables = agentConfig?.stateVariables
 		if (stateVariables) {
@@ -135,16 +135,18 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		}
 
 		// All agents output
-		const graph = isDraft ? ({ ...(xpert.graph ?? {}), ...(xpert.draft ?? {}) } as TXpertGraph) : xpert.graph
+		const _graph = isDraft ? ({ ...(xpert.graph ?? {}), ...(xpert.draft ?? {}) } as TXpertGraph) : xpert.graph
+		const node = _graph.nodes.find((_) => _.key === nodeKey)
+		const graph = getCurrentGraph(_graph, nodeKey)
 
-		if (type === 'agent') {
-			if (nodeKey) {
-				const _variables = await this.getAgentVariables(xpertId, nodeKey, isDraft)
-				variables.push(..._variables)
-			}
+		// Current agent variables (parameters)
+		if (nodeKey && node.type === 'agent' && type === 'input') {
+			const _variables = await this.getAgentVariables(xpertId, nodeKey, isDraft)
+			variables.push(..._variables)
 		}
 
-		const agentNodes = graph?.nodes?.filter((_) => _.type === 'agent' && _.key !== nodeKey)
+		// Other agents
+		const agentNodes = graph?.nodes?.filter((_) => _.type === 'agent' && (type === 'input' ? _.key !== nodeKey : true))
 		if (agentNodes) {
 			for await (const node of agentNodes) {
 				const g = getAgentVarGroup(node.key, graph)
@@ -165,6 +167,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			}
 		}
 
+		// Workflow nodes
 		const workflowNodes = graph?.nodes?.filter((_) => _.type === 'workflow' && _.key !== nodeKey)
 		if (workflowNodes) {
 			for await (const node of workflowNodes) {
@@ -182,94 +185,12 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 
 				switch (entity.type) {
 					case WorkflowNodeTypeEnum.CODE: {
-						variables.push(...((<IWFNCode>entity).outputs ?? []))
-						variables.push({
-							type: XpertParameterTypeEnum.STRING,
-							name: 'error',
-							title: 'Error',
-							description: {
-								en_US: 'Error info',
-								zh_Hans: '错误信息'
-							}
-						})
+						variables.push(...codeOutoutVariables(entity))
 						varGroups.push(varGroup)
 						break
 					}
 					case WorkflowNodeTypeEnum.HTTP: {
-						variables.push(
-							{
-								type: XpertParameterTypeEnum.NUMBER,
-								name: StatusCodeChannelName,
-								title: 'Status Code',
-								description: {
-									en_US: 'Status Code',
-									zh_Hans: '状态码'
-								}
-							},
-							{
-								type: XpertParameterTypeEnum.OBJECT,
-								name: HeadersChannelName,
-								title: 'Headers',
-								description: {
-									en_US: 'Response Headers',
-									zh_Hans: '响应头'
-								}
-							},
-							{
-								type: XpertParameterTypeEnum.STRING,
-								name: 'body',
-								title: 'Body',
-								description: {
-									en_US: 'Body',
-									zh_Hans: '返回体'
-								}
-							},
-							{
-								type: XpertParameterTypeEnum.OBJECT,
-								name: ResponseBodyJsonChannelName,
-								title: 'Body (JSON)',
-								description: {
-									en_US: 'Body',
-									zh_Hans: '返回体'
-								}
-							},
-							{
-								type: XpertParameterTypeEnum.STRING,
-								name: 'error',
-								title: 'Error',
-								description: {
-									en_US: 'Error info',
-									zh_Hans: '错误信息'
-								}
-							},
-							{
-								type: XpertParameterTypeEnum.STRING,
-								name: ReqUrlChannelName,
-								title: 'Url',
-								description: {
-									en_US: 'Url',
-									zh_Hans: '链接'
-								}
-							},
-							{
-								type: XpertParameterTypeEnum.STRING,
-								name: ReqMethodChannelName,
-								title: 'Request Method',
-								description: {
-									en_US: 'Request Method',
-									zh_Hans: '请求方法'
-								}
-							},
-							{
-								type: XpertParameterTypeEnum.STRING,
-								name: ReqBodyChannelName,
-								title: 'Request Body',
-								description: {
-									en_US: 'Request Body',
-									zh_Hans: '请求体'
-								}
-							}
-						)
+						variables.push(...httpOutoutVariables())
 						varGroups.push(varGroup)
 						break
 					}
@@ -296,12 +217,21 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 						varGroups.push(varGroup)
 						break
 					}
+					case WorkflowNodeTypeEnum.SUBFLOW: {
+						variables.push(...subflowOutputVariables(entity as IWFNSubflow))
+						varGroups.push(varGroup)
+						break
+					}
 				}
 			}
 		}
+
 		return varGroups
 	}
 
+	/**
+	 * Toolset's state variables and parameters
+	 */
 	async getAgentVariables(xpertId: string, key: string, isDraft: boolean) {
 		const variables = []
 		const agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(

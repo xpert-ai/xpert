@@ -44,7 +44,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
 				agentKey,
 				inputs: input,
 				status: XpertAgentExecutionStatusEnum.RUNNING,
-				title: input.input
+				// title: input.input
 			})
 		)
 

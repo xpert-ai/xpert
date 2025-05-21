@@ -25,7 +25,7 @@ export class XpertWorkflowBaseComponent {
     const xpertId = this.xpertId()
     const nodeKey = this.key()
     return xpertId && nodeKey
-      ? this.studioService.getVariables({workflowKey: nodeKey}).pipe(
+      ? this.studioService.getVariables({workflowKey: nodeKey, type: 'input'}).pipe(
           catchError((error) => {
             this._toastr.error(getErrorMessage(error))
             return of([])

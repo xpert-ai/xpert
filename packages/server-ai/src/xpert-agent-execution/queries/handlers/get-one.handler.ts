@@ -1,13 +1,11 @@
 import { mapChatMessagesToStoredMessages } from '@langchain/core/messages'
-import { channelName, IXpertAgent, IXpertAgentExecution } from '@metad/contracts'
+import { channelName, IXpertAgent, IXpertAgentExecution, OrderTypeEnum } from '@metad/contracts'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import { sortBy } from 'lodash'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
-import { XpertAgentExecutionService } from '../../agent-execution.service'
-import { XpertAgentExecutionOneQuery } from '../get-one.query'
-import { XpertAgentExecutionDTO } from '../../dto'
 import { GetXpertAgentQuery } from '../../../xpert/queries'
-
+import { XpertAgentExecutionService } from '../../agent-execution.service'
+import { XpertAgentExecutionDTO } from '../../dto'
+import { XpertAgentExecutionOneQuery } from '../get-one.query'
 
 @QueryHandler(XpertAgentExecutionOneQuery)
 export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentExecutionOneQuery> {
@@ -18,23 +16,48 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 
 	public async execute(command: XpertAgentExecutionOneQuery): Promise<IXpertAgentExecution> {
 		const id = command.id
-		const execution = await this.service.findOne(id, { relations: ['createdBy', 'xpert', 'subExecutions', 'subExecutions.createdBy', 'subExecutions.xpert'] })
+		const execution = await this.service.findOne(id, { relations: ['createdBy', 'xpert'] })
 
-		const subExecutions = sortBy(execution.subExecutions, 'createdAt')
+		return await this.expandExecutionTree(execution)
+	}
+
+	private async expandExecutionTree(execution: IXpertAgentExecution): Promise<IXpertAgentExecution> {
+		// First expand your own Checkpoint and Agent
+		const expandedExecution = await this.expandExecutionLatestCheckpoint(execution)
+
+		// Query and recursively expand subtasks
+		const subExecutions = await this.expandSubExecutions(execution)
+
+		const expandedSubExecutions = await Promise.all(subExecutions.map((sub) => this.expandExecutionTree(sub)))
 
 		return {
-			...(await this.expandExecutionLatestCheckpoint(execution)),
-			subExecutions: await Promise.all(subExecutions.map((item) => this.expandExecutionLatestCheckpoint(item, execution)))
+			...expandedExecution,
+			subExecutions: expandedSubExecutions
 		}
+	}
+
+	async expandSubExecutions(execution: IXpertAgentExecution) {
+		const { items: executions } = await this.service.findAll({
+			where: {
+				parentId: execution.id
+			},
+			relations: ['createdBy'],
+			order: {
+				createdAt: OrderTypeEnum.ASC
+			}
+		})
+		return executions
 	}
 
 	async expandExecutionLatestCheckpoint(execution: IXpertAgentExecution, parent?: IXpertAgentExecution) {
 		let agent = null
 		if (execution.xpertId && execution.agentKey) {
-			agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(new GetXpertAgentQuery(execution.xpertId, execution.agentKey, true))
+			agent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
+				new GetXpertAgentQuery(execution.xpertId, execution.agentKey, true)
+			)
 		}
 		if (!execution.threadId) {
-			return {...execution, agent}
+			return { ...execution, agent }
 		}
 
 		const tuple = await this.queryBus.execute(
@@ -46,7 +69,8 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 		)
 
 		const channel = execution.channelName || (execution.agentKey ? channelName(execution.agentKey) : null)
-		const messages = tuple?.checkpoint?.channel_values?.[channel]?.messages ?? tuple?.checkpoint?.channel_values?.messages
+		const messages =
+			tuple?.checkpoint?.channel_values?.[channel]?.messages ?? tuple?.checkpoint?.channel_values?.messages
 		return new XpertAgentExecutionDTO({
 			...execution,
 			messages: messages ? mapChatMessagesToStoredMessages(messages) : execution.messages,

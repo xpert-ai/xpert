@@ -11,6 +11,7 @@ import { CreateWorkflowNodeCommand } from '../create-workflow.command'
 import { TStateChannel } from '../../agent'
 import { createHttpNode } from '../http'
 import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrieval.command'
+import { CreateWNSubflowCommand } from '../create-wn-subflow.command'
 
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {
@@ -46,7 +47,6 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 			case WorkflowNodeTypeEnum.CODE: {
 				workflow = createCodeNode(graph, node, {
 					xpertId, 
-					rootExecutionId: options.rootExecutionId,
 					commandBus: this.commandBus,
 					queryBus: this.queryBus,
 				})
@@ -69,7 +69,6 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 			case WorkflowNodeTypeEnum.HTTP: {
 				workflow = createHttpNode(graph, node, {
 					xpertId, 
-					rootExecutionId: options.rootExecutionId,
 					commandBus: this.commandBus,
 					queryBus: this.queryBus,
 				})
@@ -91,6 +90,24 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 			}
 			case WorkflowNodeTypeEnum.KNOWLEDGE: {
 				workflow =  await this.commandBus.execute(new CreateWNKnowledgeRetrievalCommand(xpertId, graph, node, options))
+				channel = {
+					name: channelName(node.key),
+					annotation: Annotation<Record<string, unknown>>({
+						reducer: (a, b) => {
+							return b
+								? {
+										...a,
+										...b
+									}
+								: a
+						},
+						default: () => ({})
+					})
+				}
+				break
+			}
+			case WorkflowNodeTypeEnum.SUBFLOW: {
+				workflow =  await this.commandBus.execute(new CreateWNSubflowCommand(xpertId, graph, node, options))
 				channel = {
 					name: channelName(node.key),
 					annotation: Annotation<Record<string, unknown>>({

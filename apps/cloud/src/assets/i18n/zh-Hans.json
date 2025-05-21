@@ -384,6 +384,7 @@
       "Iterating": "迭代",
       "Router": "路由",
       "Agent": "智能体",
+      "Subflow": "子流程",
       "Note": "注释"
     },
     "Environment": {
@@ -2231,6 +2232,7 @@
       "MoreMCPFromMarketplace": "来自市场的更多 MCP 工具集",
       "Discover": "探索",
       "MainAgentTip": "主智能体, 负责接收消息",
+      "StartNodeTip": "开始节点，智能体前置处理逻辑入口",
       "PublishBinding": "发布绑定",
       "SelectAEnv": "选择一个环境",
       "PrimaryAgent": "主智能体",
@@ -2567,6 +2569,7 @@
       "AfterSecondsTooltip": "会话结束多少秒后如果没有继续对话则进行总结",
       "ProfileMemoryPromptTooltip": "提示用于通过指令和约束引导 AI 提取用户信息",
       "QAMemoryPromptTooltip": "提示用于通过指令和约束引导 AI 总结对话问题和答案的成功经验",
+      "SummarizeTitle": "总结标题",
       "ClearMemory": "清空记忆",
       "ClearAllMemoryOfXpert": "清空跟此专家相关的所有记忆",
       "SemanticSearchTest": "语义搜索测试",
@@ -2728,7 +2731,9 @@
       "SandboxToolsetTip": "运行在沙盒中的工具",
       "NeedSandboxToolsetTip": "鉴于安全原因，请升级到 pro 版本以在沙盒中安全地运行此工具集",
       "InputVariables": "输入变量",
+      "AddInputVariables": "添加输入变量",
       "OutputVariables": "输出变量",
+      "AddOutputVariables": "添加输出变量",
       "Transform": "转换",
       "Code": "代码执行",
       "TestWorkflowNode": "测试工作流节点",
@@ -2738,7 +2743,8 @@
       "DuplicateSuccess": "复制成功",
       "DuplicateError": "复制失败",
       "AfterPublish": "发布后",
-      "KnowledgeRetrieval": "知识检索"
+      "KnowledgeRetrieval": "知识检索",
+      "Subflow": "子流程"
     },
     "MCP": {
       "Connect": "连接",

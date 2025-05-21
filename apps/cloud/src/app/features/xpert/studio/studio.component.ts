@@ -42,6 +42,7 @@ import { Observable, of, Subscription } from 'rxjs'
 import { debounceTime, delay, map, tap } from 'rxjs/operators'
 import {
   AiModelTypeEnum,
+  findStartNodes,
   isWorkflowKey,
   IXpertToolset,
   ToastrService,
@@ -151,6 +152,11 @@ export class XpertStudioComponent {
   readonly team = computed(() => this.apiService.team())
   readonly id = computed(() => this.team()?.id)
   readonly rootAgent = computed(() => this.team()?.agent)
+
+  readonly startNodes = computed(() => {
+    return this.rootAgent() ? findStartNodes(this.viewModel(), this.rootAgent()?.key) : null
+  })
+
   /**
    * Extract nested xpert's agents to flat nodes
    */

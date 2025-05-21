@@ -145,6 +145,16 @@
       </div>
       <div class="text-text-primary">{{'PAC.Xpert.Answer' | translate: {Default: 'Answer'} }}</div>
     </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowSubflow()"
+    >
+      <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-500
+        w-5 h-5 rounded-md
+        shrink-0 mr-2">
+        <i class="ri-exchange-2-fill text-sm"></i>
+      </div>
+      <div class="text-text-primary">{{'PAC.Xpert.Subflow' | translate: {Default: 'Subflow'} }}</div>
+    </div>
 
     <div class="flex items-start px-2 mt-2 text-base font-medium text-text-tertiary">
       {{ 'PAC.Xpert.Transform' | translate: {Default: 'Transform'} }}

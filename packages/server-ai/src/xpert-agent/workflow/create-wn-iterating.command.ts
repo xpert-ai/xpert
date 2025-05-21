@@ -13,7 +13,6 @@ export class CreateWNIteratingCommand implements ICommand {
             isDraft: boolean
             // The subscriber response to client
 			subscriber: Subscriber<MessageEvent>
-            rootExecutionId: string
         }
     ) {}
 }

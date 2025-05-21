@@ -16,6 +16,7 @@ import {
   IXpert,
   IXpertProject,
   IXpertToolset,
+  shortTitle,
   TChatOptions,
   TChatRequest,
   TMessageContent,
@@ -103,7 +104,10 @@ export abstract class ChatService {
         ]).pipe(
           map(([conversation, feedbacks]) => {
             return {
-              conversation,
+              conversation: {
+                ...conversation,
+                title: conversation.title || shortTitle(conversation.options?.parameters?.input)
+              },
               feedbacks,
               loading: false
             }
