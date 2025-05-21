@@ -46,6 +46,7 @@ import { CreateMemoryStoreCommand } from '../../../xpert/commands'
 import { CreateWorkflowNodeCommand } from '../../workflow'
 import { toEnvState } from '../../../environment'
 import { _BaseToolset } from '../../../shared'
+import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 
 
 
@@ -207,7 +208,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					xpert,
 					options: {
 						leaderKey: agent.key,
-						rootExecutionId: command.options.rootExecutionId,
 						isDraft: command.options.isDraft,
 						subscriber
 					},
@@ -234,7 +234,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					xpert: collaborator,
 					options: {
 						leaderKey: agent.key,
-						rootExecutionId: command.options.rootExecutionId,
 						isDraft: false,
 						subscriber
 					},
@@ -291,7 +290,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						xpert,
 						options: {
 							leaderKey: parentKey,
-							rootExecutionId: command.options.rootExecutionId,
 							isDraft: command.options.isDraft,
 							subscriber
 						},
@@ -349,7 +347,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						xpert,
 						options: {
 							leaderKey: parentKey,
-							rootExecutionId: command.options.rootExecutionId,
 							isDraft: command.options.isDraft,
 							subscriber
 						},
@@ -668,11 +665,15 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		if (summarizeTitle) {
-			subgraphBuilder.addNode(GRAPH_NODE_TITLE_CONVERSATION, await this.createTitleAgent(team, {
-					rootController,
+			const titleAgent = await this.commandBus.execute(
+				new CreateSummarizeTitleAgentCommand({
+					xpert: team,
+					rootController: rootController,
 					rootExecutionId: command.options.rootExecutionId,
-					agentKey,
-				}))
+					channel: agentChannel
+				})
+			)
+			subgraphBuilder.addNode(GRAPH_NODE_TITLE_CONVERSATION, titleAgent)
 				.addEdge(GRAPH_NODE_TITLE_CONVERSATION, END)
 		}
 		if (summarize?.enabled) {
@@ -721,7 +722,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			xpert: Partial<IXpert>
 			options: {
 				leaderKey: string
-				rootExecutionId: string
 				isDraft: boolean
 				subscriber: Subscriber<MessageEvent>
 			};
@@ -752,7 +752,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				signal,
 				isStart: isTool,
 				leaderKey,
-				rootExecutionId: config.options.rootExecutionId,
 				isDraft: config.options.isDraft,
 				subscriber,
 				execution,
@@ -775,6 +774,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const stateGraph = RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config: LangGraphRunnableConfig): Promise<Partial<typeof AgentStateAnnotation.State>> => {
 			const call = state.toolCall
 			const configurable: TAgentRunnableConfigurable = config.configurable as TAgentRunnableConfigurable
+			const { executionId } = configurable
 
 			// Record start time
 			const timeStart = Date.now()
@@ -786,7 +786,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					xpert: { id: xpert.id } as IXpert,
 					agentKey: agent.key,
 					inputs: call?.args,
-					parentId: options.rootExecutionId,
+					parentId: executionId,
 					status: XpertAgentExecutionStatusEnum.RUNNING,
 					predecessor: configurable.agentKey
 				})
@@ -833,7 +833,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						[`${agent.key}.messages`]: [new HumanMessage(call.args.input)]
 					} : {}),
 				}
-				const output = await graph.invoke(subState, {...config, signal, configurable: {...config.configurable, agentKey: agent.key}})
+				const output = await graph.invoke(subState, {...config, signal, configurable: {
+					...config.configurable,
+					agentKey: agent.key,
+					executionId: _execution.id
+				}})
 
 				const lastMessage = output.messages[output.messages.length - 1]
 				if (lastMessage && isAIMessage(lastMessage)) {
