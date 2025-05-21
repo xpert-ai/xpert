@@ -148,7 +148,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				operation,
 				reject,
 				memories,
-				summarizeTitle: true
+				summarizeTitle: !latestXpert.agentConfig?.summarizeTitle?.disable
 			})
 		)
 

@@ -16,7 +16,7 @@ import {
 	StateGraph
 } from '@langchain/langgraph'
 import { ChatOpenAI } from '@langchain/openai'
-import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_SYS, TAgentRunnableConfigurable, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, getCurrentGraph, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_SYS, TAgentRunnableConfigurable, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { stringifyMessageContent } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
@@ -264,7 +264,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		const edges: Record<string, string> = {}
 		// Channels of workflow
 		const channels: TStateChannel[] = []
-		const startNodes = findStartNodes(graph, agent.key).filter((_) => _ !== agent.key)
+		const startNodes = findStartNodes(getCurrentGraph(graph, agent.key), agent.key).filter((_) => _ !== agent.key)
 		if (isStart) {
 			/**
 			 * The root node is responsible for the overall workflow
@@ -664,7 +664,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			})
 		}
 
-		if (summarizeTitle && !team.agentConfig?.summarizeTitle?.disable) {
+		if (summarizeTitle) {
 			const titleAgent = await this.commandBus.execute(
 				new CreateSummarizeTitleAgentCommand({
 					xpert: team,

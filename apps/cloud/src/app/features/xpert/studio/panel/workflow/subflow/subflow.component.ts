@@ -68,7 +68,7 @@ export class XpertWorkflowSubflowComponent extends XpertWorkflowBaseComponent {
     const xpertId = this.xpertId()
     const nodeKey = this.subAgentKey()
     return xpertId && nodeKey
-      ? this.studioService.getVariables({agentKey: nodeKey, type: 'output'}).pipe(
+      ? this.studioService.getVariables({xpertId, agentKey: nodeKey, type: 'output'}).pipe(
           catchError((error) => {
             this._toastr.error(getErrorMessage(error))
             return of([])

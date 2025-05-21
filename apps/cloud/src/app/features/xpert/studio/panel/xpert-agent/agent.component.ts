@@ -185,7 +185,8 @@ export class XpertStudioPanelAgentComponent {
   readonly variables = derivedAsync(() => {
     const xpertId = this.xpertId()
     const agentKey = this.key()
-    return xpertId && agentKey ? this.apiService.getVariables({agentKey, type: 'input'}).pipe(
+    return xpertId && agentKey ? this.apiService.getVariables({
+      xpertId, agentKey, type: 'input'}).pipe(
       catchError((error) => {
         this.#toastr.error(getErrorMessage(error))
         return of([])

@@ -64,8 +64,10 @@ export function findStartNodes(graph: DeepPartial<TXpertGraph>, key: string): st
   // Construct toMap: record all upstream nodes of each node
   for (const conn of connections) {
     if (!toMap.has(conn.to)) toMap.set(conn.to, [])
-    const [fromKey, type] = conn.from.split('/')
-    if (!type || type === 'edge') toMap.get(conn.to).push(fromKey)
+    const [fromKey] = conn.from.split('/')
+    if (conn.type === 'edge') {
+      toMap.get(conn.to).push(fromKey)
+    }
   }
 
   const result = new Set<string>()
