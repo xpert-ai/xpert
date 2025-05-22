@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
@@ -46,4 +46,12 @@ export class XpertWorkflowNodeSubflowComponent {
       kb: this.knowledgebaseList()?.find((_) => _.id === id)
     }))
   })
+
+  readonly nodes = computed(() => this.studioService.viewModel().nodes)
+
+  readonly canBeConnectedInputs = computed(() =>
+    this.nodes()
+      .filter((_) => _.type === 'agent' || _.type === 'xpert')
+      .map((_) => _.key)
+  )
 }

@@ -318,8 +318,8 @@ export class XpertStudioComponent {
   }
 
   public selectionChanged(event: FSelectionChangeEvent): void {
-    this.isSingleSelection = event.connections.length + event.nodes.length === 1
-    this.selectionService.setNodes(event.nodes)
+    this.isSingleSelection = event.fConnectionIds.length + event.fNodeIds.length === 1
+    this.selectionService.setNodes(event.fNodeIds)
     this.#cdr.markForCheck()
   }
 

@@ -41,7 +41,7 @@ export class XpertAgentExecutionOneHandler implements IQueryHandler<XpertAgentEx
 			where: {
 				parentId: execution.id
 			},
-			relations: ['createdBy'],
+			relations: ['createdBy', 'xpert'],
 			order: {
 				createdAt: OrderTypeEnum.ASC
 			}

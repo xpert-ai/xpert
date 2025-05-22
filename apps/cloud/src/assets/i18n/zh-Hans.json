@@ -1466,7 +1466,9 @@
         "Verify SSL certificate": "验证 SSL 证书",
         "SSL Mode": "SSL 模式",
         "HTTP Path": "Http 路径",
-        "Query timeout": "查询超时时间"
+        "Query timeout": "查询超时时间",
+        "Timezone": "时区(+08:00)",
+        "Server Timezone": "服务端时区(Asia/Shanghai)"
       }
     },
     "Story": {

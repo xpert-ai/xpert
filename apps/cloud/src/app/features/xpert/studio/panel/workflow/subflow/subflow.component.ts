@@ -1,24 +1,24 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
-import { KnowledgeRecallParamsComponent } from '@cloud/app/@shared/knowledge'
 import { attrModel, linkedModel } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
   IWFNSubflow,
   IWorkflowNode,
+  TXpertTeamNode,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
   XpertService
 } from 'apps/cloud/src/app/@core'
+import { derivedAsync } from 'ngxtension/derived-async'
+import { catchError, of } from 'rxjs'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { catchError, of } from 'rxjs'
 
 @Component({
   selector: 'xpert-workflow-subflow',
@@ -55,20 +55,21 @@ export class XpertWorkflowSubflowComponent extends XpertWorkflowBaseComponent {
     }
   })
 
-  readonly inputs = attrModel(this.subflow, 'inputs')
-  readonly outputs = attrModel(this.subflow, 'outputs')
+  readonly inputParams = attrModel(this.subflow, 'inputParams')
+  readonly outputParams = attrModel(this.subflow, 'outputParams')
 
   readonly draft = this.studioService.viewModel
 
-  readonly subAgentKey = computed(() => {
-    return this.draft()?.connections.find((_) => _.type === 'agent' && _.from === this.subflow()?.key)?.to
-  })
+  readonly subAgentKey = computed(() => this.draft()?.connections.find((_) => _.type === 'agent' && _.from === this.subflow()?.key)?.to)
+  readonly subXpertKey = computed(() => this.draft()?.connections.find((_) => _.type === 'xpert' && _.from === this.subflow()?.key)?.to)
+  readonly subXpert = computed(() => this.draft()?.nodes.find((_) => _.type === 'xpert' && _.key === this.subXpertKey()) as TXpertTeamNode & {type: 'xpert'})
+  readonly subXpertAgentKey = computed(() => this.subXpert()?.entity.agent?.key)
 
-  readonly subVariables = derivedAsync(() => {
+  readonly subAgentVariables = derivedAsync(() => {
     const xpertId = this.xpertId()
     const nodeKey = this.subAgentKey()
     return xpertId && nodeKey
-      ? this.studioService.getVariables({xpertId, agentKey: nodeKey, type: 'output'}).pipe(
+      ? this.studioService.getVariables({ xpertId, agentKey: nodeKey, type: 'output' }).pipe(
           catchError((error) => {
             this._toastr.error(getErrorMessage(error))
             return of([])
@@ -77,22 +78,36 @@ export class XpertWorkflowSubflowComponent extends XpertWorkflowBaseComponent {
       : of(null)
   })
 
-  constructor() {
-    super()
+  readonly extXpertVariables = derivedAsync(() => {
+    const xpertId = this.subXpertKey()
+    const nodeKey = this.subXpertAgentKey()
+    return xpertId && nodeKey
+      ? this.studioService.getVariables({ xpertId, agentKey: nodeKey, type: 'output' }).pipe(
+          catchError((error) => {
+            this._toastr.error(getErrorMessage(error))
+            return of([])
+          })
+        )
+      : of(null)
+  })
 
-    effect(() => {
-      console.log(this.subAgentKey())
-    })
-  }
- 
+  readonly subVariables = computed(() => this.extXpertVariables() ?? this.subAgentVariables())
+
+  // constructor() {
+  //   super()
+  //   effect(() => {
+  //     console.log(this.extXpertVariables())
+  //   })
+  // }
+
   addInput() {
-    this.inputs.update((state) => {
-      return [...(state ?? []), {name: 'arg' + ((state?.length ?? 0) + 1)}]
+    this.inputParams.update((state) => {
+      return [...(state ?? []), { name: 'arg' + ((state?.length ?? 0) + 1) }]
     })
   }
 
   updateInput(index: number, name: string, value: string) {
-    this.inputs.update((state) => {
+    this.inputParams.update((state) => {
       state[index] = {
         ...state[index],
         [name]: value
@@ -101,21 +116,35 @@ export class XpertWorkflowSubflowComponent extends XpertWorkflowBaseComponent {
     })
   }
 
+  updateInputParamName(name: string, newName: string) {
+    this.inputParams.update((params) => {
+      params ??= []
+      const index = params?.findIndex((_) => _.name === name)
+      if (index > -1) {
+        params[index] = {
+          ...params[index],
+          name: newName,
+        }
+      }
+      return [...params]
+    })
+  }
+
   removeInput(index: number) {
-    this.inputs.update((state) => {
+    this.inputParams.update((state) => {
       state.splice(index, 1)
       return [...state]
     })
   }
 
   addOutput() {
-    this.outputs.update((state) => {
-      return [...(state ?? []), {name: 'result' + ((state?.length ?? 0) + 1)}]
+    this.outputParams.update((state) => {
+      return [...(state ?? []), { name: 'result' + ((state?.length ?? 0) + 1) }]
     })
   }
 
   updateOutput(index: number, name: string, value: string) {
-    this.outputs.update((state) => {
+    this.outputParams.update((state) => {
       state[index] = {
         ...state[index],
         [name]: value
@@ -125,7 +154,7 @@ export class XpertWorkflowSubflowComponent extends XpertWorkflowBaseComponent {
   }
 
   removeOutput(index: number) {
-    this.outputs.update((state) => {
+    this.outputParams.update((state) => {
       state.splice(index, 1)
       return [...state]
     })

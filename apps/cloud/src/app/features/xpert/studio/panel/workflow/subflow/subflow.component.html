@@ -5,7 +5,7 @@
         {{ 'PAC.Xpert.InputVariables' | translate: {Default: 'Input Variables'} }}
       </div>
     </div>
-    <div class="flex">
+    <div class="flex items-center gap-1">
       <div class="w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none pressable"
         (click)="addInput()"
       >
@@ -15,30 +15,29 @@
   </div>
   
   <div class="mt-1">
-    <div class="space-y-2">
-      @for (param of inputs(); track i; let i = $index) {
-        <div class="flex items-center space-x-1">
-          <div class="relative w-[120px]">
-            <input class="w-full py-1.5 bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular" 
-              [placeholder]=" 'PAC.Xpert.VariableName' | translate: {Default: 'Variable Name'}"
-              [ngModel]="param.name"
-              (ngModelChange)="updateInput(i, 'name', $event)"
-            >
-          </div>
-          <div class="grow cursor-pointer">
-            <div class="!flex group/picker-trigger-wrap relative">
-              <div class="border-gray-100 relative group/wrap flex items-center gap-1 w-full h-9 p-1 rounded-lg bg-components-input-bg-normal">
-                <div class="grow h-full mr-1">
-                  <xpert-state-variable-select [variables]="variables()" [ngModel]="param.variable" (ngModelChange)="updateInput(i, 'variable', $event)"/>
-                </div>
-                <button type="button" class="btn invisible group-hover/wrap:visible group-hover/wrap:relative absolute w-6 h-6 justify-center right-1 group p-1 rounded-md hover:bg-black/5 cursor-pointer danger"
-                  (click)="removeInput(i)">
-                  <i class="ri-delete-bin-line"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div class="space-y-0.5">
+      @for (item of inputParams(); track i; let i = $index) {
+        <li class="group/item relative px-1 py-0.5 flex justify-between items-center text-text-secondary hover:bg-hover-bg">
+          <xpert-state-variable-select class="truncate opacity-90 hover:opacity-100"
+            [variables]="variables()"
+            [ngModel]="item.name"
+            (ngModelChange)="updateInputParamName(item.name, $event)"
+          />
+
+          <div class="grow"></div>
+          <i class="ri-arrow-right-circle-line mx-1"></i>
+
+          <xpert-state-variable-select class="truncate opacity-90 hover:opacity-100"
+            [variables]="subVariables()"
+            [ngModel]="item.variable"
+            (ngModelChange)="updateInput(i, 'variable', $event)"
+          />
+
+          <button type="button" class="btn hidden group-hover/item:inline-flex w-6 h-6 justify-center ml-1 p-1 rounded-md hover:bg-black/5 cursor-pointer danger"
+            (click)="removeInput(i)">
+            <i class="ri-delete-bin-line"></i>
+          </button>
+        </li>
       } @empty {
         <div class="p-3 rounded-lg flex justify-center items-center text-sm text-text-secondary bg-slate-50">
           {{ 'PAC.Xpert.AddInputVariables' | translate: {Default: 'Add input variables'} }}
@@ -57,7 +56,7 @@
         {{ 'PAC.Xpert.OutputVariables' | translate: {Default: 'Output Variables'} }}
       </div>
     </div>
-    <div class="flex">
+    <div class="flex items-center gap-1">
       <div class="w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none pressable"
         (click)="addOutput()"
       >
@@ -67,29 +66,25 @@
   </div>
   
   <div class="mt-1">
-    <div class="space-y-2">
-      @for (param of outputs(); track i; let i = $index) {
-        <div class="flex items-center space-x-1">
+    <div class="space-y-0.5">
+      @for (param of outputParams(); track i; let i = $index) {
+        <div class="group/item flex items-center space-x-1 px-1 py-0.5 hover:bg-hover-bg text-text-secondary">
           <div class="relative w-[120px]">
-            <input class="w-full py-1.5 bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular" 
+            <input class="w-full py-1 bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-2 rounded-lg system-sm-regular" 
               [placeholder]=" 'PAC.Xpert.VariableName' | translate: {Default: 'Variable Name'}"
               [ngModel]="param.name"
               (ngModelChange)="updateOutput(i, 'name', $event)"
             >
           </div>
-          <div class="grow cursor-pointer">
-            <div class="!flex group/picker-trigger-wrap relative">
-              <div class="border-gray-100 relative group/wrap flex items-center gap-1 w-full h-9 p-1 rounded-lg bg-components-input-bg-normal">
-                <div class="grow h-full mr-1">
-                  <xpert-state-variable-select [variables]="subVariables()" [ngModel]="param.variable" (ngModelChange)="updateOutput(i, 'variable', $event)"/>
-                </div>
-                <button type="button" class="btn invisible group-hover/wrap:visible group-hover/wrap:relative absolute w-6 h-6 justify-center right-1 group p-1 rounded-md hover:bg-black/5 cursor-pointer danger"
-                  (click)="removeOutput(i)">
-                  <i class="ri-delete-bin-line"></i>
-                </button>
-              </div>
-            </div>
-          </div>
+
+          <div class="grow"></div>
+          <i class="ri-arrow-left-circle-line mx-1"></i>
+
+          <xpert-state-variable-select [variables]="subVariables()" [ngModel]="param.variable" (ngModelChange)="updateOutput(i, 'variable', $event)"/>
+          <button type="button" class="btn hidden group-hover/item:inline-flex w-6 h-6 justify-center group p-1 rounded-md hover:bg-black/5 cursor-pointer danger"
+            (click)="removeOutput(i)">
+            <i class="ri-delete-bin-line"></i>
+          </button>
         </div>
       } @empty {
         <div class="p-3 rounded-lg flex justify-center items-center text-sm text-text-secondary bg-slate-50">

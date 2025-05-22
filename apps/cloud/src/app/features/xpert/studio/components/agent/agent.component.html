@@ -3,22 +3,26 @@
 <div fNodeInput [fInputId]="node().key + '/edge'" fInputConnectableSide="left" class="left"></div>
 
 <div class="node-output-bottom flex items-center gap-2 h-3 absolute -bottom-[8px] left-1/2 -ml-10">
-  <div fNodeOutput [fOutputId]="node().key + '/agent'" fOutputConnectableSide="bottom" [fOutputMultiple]="true">
+  <div fNodeOutput [fOutputId]="node().key + '/agent'" fOutputConnectableSide="bottom" [fOutputMultiple]="true"
+    [fCanBeConnectedInputs]="canBeConnectedInputs()">
     <div class="inner-dot cursor-crosshair" [matTooltip]="'PAC.Xpert.ConnectAgents' | translate: {Default: 'Connect Agents'}" matTooltipPosition="above">
       <ngm-plus-svg class="w-2 h-2 text-white" />
     </div>
   </div>
-  <div fNodeOutput [fOutputId]="node().key + '/xpert'" fOutputConnectableSide="bottom" [fOutputMultiple]="true">
+  <div fNodeOutput [fOutputId]="node().key + '/xpert'" fOutputConnectableSide="bottom" [fOutputMultiple]="true"
+    [fCanBeConnectedInputs]="canBeConnectedInputs()">
     <div class="inner-dot cursor-crosshair" [matTooltip]="'PAC.Xpert.ConnectXperts' | translate: {Default: 'Connect Xperts'}" matTooltipPosition="above">
       <ngm-plus-svg class="w-2 h-2 text-white" />
     </div>
   </div>
-  <div fNodeOutput [fOutputId]="node().key + '/toolset'" fOutputConnectableSide="bottom" [fOutputMultiple]="true">
+  <div fNodeOutput [fOutputId]="node().key + '/toolset'" fOutputConnectableSide="bottom" [fOutputMultiple]="true"
+    [fCanBeConnectedInputs]="canBeConnectedInputs()">
     <div class="inner-dot cursor-crosshair" [matTooltip]="'PAC.Xpert.ConnectToolsets' | translate: {Default: 'Connect Toolsets'}" matTooltipPosition="above">
       <ngm-plus-svg class="w-2 h-2 text-white" />
     </div>
   </div>
-  <div fNodeOutput [fOutputId]="node().key + '/knowledge'" fOutputConnectableSide="bottom" [fOutputMultiple]="true">
+  <div fNodeOutput [fOutputId]="node().key + '/knowledge'" fOutputConnectableSide="bottom" [fOutputMultiple]="true"
+    [fCanBeConnectedInputs]="canBeConnectedInputs()">
     <div class="inner-dot cursor-crosshair" [matTooltip]="'PAC.Xpert.ConnectKnowledgebases' | translate: {Default: 'Connect Knowledgebases'}" matTooltipPosition="above">
       <ngm-plus-svg class="w-2 h-2 text-white" />
     </div>

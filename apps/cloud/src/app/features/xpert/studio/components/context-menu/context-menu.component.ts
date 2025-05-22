@@ -74,8 +74,8 @@ export class XpertStudioContextMenuComponent {
 
   private subscribeToSelectionChanges(): Subscription {
     return this.selectionService.selection$.subscribe((selection) => {
-      if (this.root.fFlowComponent().getSelection().nodes.length === 1) {
-        this.node = this.root.fFlowComponent().getSelection().nodes[0]
+      if (this.root.fFlowComponent().getSelection().fNodeIds.length === 1) {
+        this.node = this.root.fFlowComponent().getSelection().fNodeIds[0]
       } else {
         this.node = null
       }
