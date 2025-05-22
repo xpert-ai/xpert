@@ -53,7 +53,10 @@ export class CopilotPromptGeneratorComponent {
         TASK_DESCRIPTION: this.instructions()
       })
 
-      this.instruction.set(result.content as string)
+      let content = result.content as string
+      content = content.replace(/^```[a-zA-Z]*\n/, '')
+      content = content.replace(/```$/, '')
+      this.instruction.set(content)
     } catch (err) {
       this.#toastr.error(getErrorMessage(err))
     } finally {
