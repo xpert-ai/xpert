@@ -85,6 +85,10 @@
     border-neutral-200 dark:border-neutral-700 dark:shadow-neutral-800;
   background-color: var(--ngm-color-surface);
 
+  .cdk-menu-item[role='menuitemradio'][aria-checked='true'] {
+    @apply bg-slate-100 font-semibold;
+  }
+
   .cdk-menu-item.cdk-menu-trigger {
     justify-content: space-between;
   }

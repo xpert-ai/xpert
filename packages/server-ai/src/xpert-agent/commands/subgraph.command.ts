@@ -40,6 +40,7 @@ export class XpertAgentSubgraphCommand implements ICommand {
 			disableCheckpointer?: boolean
 			/**
 			 * Temporary parameters (state variables)
+			 * @deprecated Is it still useful?
 			 */
 			variables?: TXpertParameter[]
 			channel: string

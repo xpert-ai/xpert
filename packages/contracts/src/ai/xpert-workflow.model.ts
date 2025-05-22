@@ -1,6 +1,6 @@
 import { I18nObject } from "../types"
 import { TKBRecallParams } from "./knowledgebase.model"
-import { ApiAuthType, TErrorHandling } from "./types"
+import { ApiAuthType, TErrorHandling, TXpertRefParameter } from "./types"
 import { IXpertAgent } from "./xpert-agent.model"
 import { TStateVariable, TXpertParameter } from "./xpert.model"
 
@@ -69,10 +69,8 @@ export interface IWFNIterating extends IWorkflowNode {
    * Variable name of input array in state
    */
   inputVariable: string
-  /**
-   * Variable name of output in state
-   */
-  outputVariable: string
+  inputParams?: TXpertRefParameter[]
+  outputParams?: TXpertRefParameter[]
   /**
    * Execute in parallel, otherwise execute sequentially
    */

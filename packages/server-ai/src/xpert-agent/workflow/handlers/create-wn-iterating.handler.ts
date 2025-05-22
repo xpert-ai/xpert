@@ -1,33 +1,27 @@
 import { RunnableLambda } from '@langchain/core/runnables'
-import { CompiledStateGraph, END, LangGraphRunnableConfig, Send } from '@langchain/langgraph'
-import { mapChatMessagesToStoredMessages } from '@langchain/core/messages'
+import { CompiledStateGraph, END, Send } from '@langchain/langgraph'
 import {
 	channelName,
-	ChatMessageEventTypeEnum,
 	IWFNIterating,
 	IXpert,
 	IXpertAgent,
+	IXpertAgentExecution,
 	mapTranslationLanguage,
 	setStateVariable,
+	STATE_VARIABLE_SYS,
 	TAgentRunnableConfigurable,
-	TXpertTeamNode,
-	XpertAgentExecutionStatusEnum
+	TXpertTeamNode
 } from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { InternalServerErrorException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { compact, get } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
-import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
-import { XpertAgentExecutionDTO } from '../../../xpert-agent-execution/dto'
-import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
-import { messageEvent } from '../../agent'
-import { XpertAgentVariableSchemaQuery } from '../../queries'
-import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
+import { wrapAgentExecution } from '../../../xpert-agent-execution/utils'
+import { AgentStateAnnotation, STATE_VARIABLE_INPUT } from '../../commands/handlers/types'
 import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
-import { AgentStateAnnotation } from '../../commands/handlers/types'
-
+import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
+import { STATE_VARIABLE_ITERATING_OUTPUT, STATE_VARIABLE_ITERATING_OUTPUT_STR } from '../iterating'
 
 @CommandHandler(CreateWNIteratingCommand)
 export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIteratingCommand> {
@@ -65,22 +59,8 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 
 		const entity = node.entity as IWFNIterating
 		const inputVariable = entity.inputVariable
-		const outputVariable = entity.outputVariable
-		let paramSchema = null
-
-		if (inputVariable) {
-			const variableSchema = await this.queryBus.execute(
-				new XpertAgentVariableSchemaQuery({
-					xpertId,
-					type: 'workflow',
-					isDraft,
-					variable: inputVariable
-				})
-			)
-			if (variableSchema?.type.startsWith('array')) {
-				paramSchema = variableSchema.item
-			}
-		}
+		const inputParams = entity.inputParams
+		const outputParams = entity.outputParams
 
 		const execution = {}
 		const abortController = new AbortController()
@@ -100,7 +80,6 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 					execution,
 					subscriber,
 					disableCheckpointer: true,
-					variables: paramSchema,
 					channel: channelName(agentNode.key),
 					partners: []
 				}
@@ -109,160 +88,119 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 
 		return {
 			workflowNode: {
-				graph: RunnableLambda.from(
-					async (state: typeof AgentStateAnnotation.State, config) => {
-						const configurable: TAgentRunnableConfigurable = config.configurable
-						const { subscriber, executionId } = configurable
-						const parameterValue = get(state, entity.inputVariable)
-						const _execution = {
-							...execution,
-							// threadId: config.configurable.thread_id,
-							// checkpointNs: config.configurable.checkpoint_ns
+				graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
+					const configurable: TAgentRunnableConfigurable = config.configurable
+					const { subscriber, executionId } = configurable
+					const parameterValue = get(state, inputVariable)
+
+					const parallel = entity.parallel
+					const maximum = entity.maximum
+					const errorMode = entity.errorMode
+					const invokeSubgraph = async (item, index: number) => {
+						const _state = {...state, ...item}
+						const inputs = inputParams.reduce((acc, curr) => {
+							setStateVariable(acc, curr.variable, get(_state, curr.name))
+							return acc
+						}, {})
+
+						const itemExecution: IXpertAgentExecution = {
+							xpert: { id: xpertId } as IXpert,
+							agentKey: node.key,
+							inputs: item,
+							title: entity.title,
+							parentId: executionId
 						}
 
-						const parallel = entity.parallel
-						const maximum = entity.maximum
-						const errorMode = entity.errorMode
-						const invokeSubgraph = async (item, index: number) => {
-							// Record start time
-							const timeStart = Date.now()
-							let subexecution = await this.commandBus.execute(
-								new XpertAgentExecutionUpsertCommand({
-									..._execution,
+						return await wrapAgentExecution(
+							async () => {
+								const subAgentExecution = {
 									xpert: { id: xpertId } as IXpert,
 									agentKey: agent.key,
-									inputs: item,
-									parentId: executionId,
-									status: XpertAgentExecutionStatusEnum.RUNNING
-								})
-							)
-
-							// Start agent execution event
-							subscriber.next(
-								messageEvent(
-									ChatMessageEventTypeEnum.ON_AGENT_START,
-									new XpertAgentExecutionDTO(subexecution)
-								)
-							)
-
-							let output = null
-							let messages = null
-							let status = XpertAgentExecutionStatusEnum.SUCCESS
-							let error = null
-							// Invoke
-							try {
-								const retState = await subgraph.invoke(
-									{ ...state, ...item },
-									{
-										...config,
-										signal: controller.signal
-									}
-								)
-
-								output = retState[channelName(agentNode.key)].output
-								messages = retState[channelName(agentNode.key)].messages
-								return output
-							} catch(err) {
-								status = XpertAgentExecutionStatusEnum.ERROR
-								error = getErrorMessage(err)
-							} finally {
-								const timeEnd = Date.now()
-								// Record End time
-								subexecution = await this.commandBus.execute(
-									new XpertAgentExecutionUpsertCommand({
-										...subexecution,
-										elapsedTime: timeEnd - timeStart,
-										status,
-										error,
-										messages: messages ? mapChatMessagesToStoredMessages(messages) : null,
-										outputs: {
-											output
-										}
-									})
-								)
-
-								subexecution = await this.queryBus.execute(
-									new XpertAgentExecutionOneQuery(subexecution.id)
-								)
-
-								// End agent execution event
-								subscriber.next(
-									messageEvent(
-										ChatMessageEventTypeEnum.ON_AGENT_END,
-										new XpertAgentExecutionDTO(subexecution)
-									)
-								)
-							}
-						}
-
-						const controller = new AbortController()
-						config.signal.addEventListener('abort', () => {
-							if (!controller.signal.aborted) {
-								try {
-									controller.abort()
-								} catch (err) {
-									//
+									inputs: inputs,
+									parentId: itemExecution.id
 								}
-							}
-						})
-
-						let outputs = null
-						if (Array.isArray(parameterValue)) {
-							outputs = new Array(parameterValue.length).fill(null)
-							if (parallel) {
-								// Execute in parallel with a maximum concurrency limit using a task pool
-								const taskPool = new Set()
-								let index = 0
-								for await (const item of parameterValue) {
-									const i = index
-									// If the task pool is full, wait for one task to complete
-									if (taskPool.size >= maximum) {
-										await Promise.race(taskPool)
-									}
-
-									// Create a new task and add it to the pool
-									const task = invokeSubgraph(item, i)
-										.then((output) => {
-											outputs[i] = output
-										})
-										.catch((err) => {
-											switch (errorMode) {
-												case 'terminate': {
-													throw err
-												}
-												case 'ignore': {
-													this.#logger.error(err)
-													break
-												}
-												case 'remove': {
-													this.#logger.error(err)
-													break
+		
+								const retState = await wrapAgentExecution(
+									async () => {
+										const retState = await subgraph.invoke(
+											{
+												[STATE_VARIABLE_INPUT]: state[STATE_VARIABLE_INPUT],
+												[STATE_VARIABLE_SYS]: state[STATE_VARIABLE_SYS],
+												...inputs
+											},
+											{
+												...config,
+												signal: controller.signal,
+												configurable: {
+													...config.configurable,
+													executionId: itemExecution.id
 												}
 											}
-										})
-										.finally(() => {
-											// Remove the task from the pool once it completes
-											taskPool.delete(task)
-										})
+										)
+		
+										const outputItem = outputParams.reduce((acc, curr) => {
+											acc[curr.name] = get(retState, curr.variable)
+											return acc
+										}, {})
+										const output = retState[channelName(agentNode.key)].output
+		
+										return {
+											state: outputItem,
+											output
+										}
+									},
+									{
+										commandBus: this.commandBus,
+										queryBus: this.queryBus,
+										subscriber,
+										execution: subAgentExecution
+									}
+								)()
 
-									taskPool.add(task)
-									index++
+								return {
+									state: retState
+								}
+							},
+							{
+								commandBus: this.commandBus,
+								queryBus: this.queryBus,
+								subscriber,
+								execution: itemExecution
+							}
+						)()
+					}
+
+					const controller = new AbortController()
+					config.signal.addEventListener('abort', () => {
+						if (!controller.signal.aborted) {
+							try {
+								controller.abort()
+							} catch (err) {
+								//
+							}
+						}
+					})
+
+					let outputs = null
+					if (Array.isArray(parameterValue)) {
+						outputs = new Array(parameterValue.length).fill(null)
+						if (parallel) {
+							// Execute in parallel with a maximum concurrency limit using a task pool
+							const taskPool = new Set()
+							let index = 0
+							for await (const item of parameterValue) {
+								const i = index
+								// If the task pool is full, wait for one task to complete
+								if (taskPool.size >= maximum) {
+									await Promise.race(taskPool)
 								}
 
-								// Wait for all remaining tasks to complete
-								await Promise.all(taskPool)
-							} else {
-								// Execute sequentially
-								let index = 0
-								for await (const item of parameterValue) {
-									// Check signal status
-									if (config.signal.aborted) {
-										return
-									}
-									const i = index
-									try {
-										outputs[i] = await invokeSubgraph(item, i)
-									} catch (err) {
+								// Create a new task and add it to the pool
+								const task = invokeSubgraph(item, i)
+									.then((output) => {
+										outputs[i] = output
+									})
+									.catch((err) => {
 										switch (errorMode) {
 											case 'terminate': {
 												throw err
@@ -276,24 +214,61 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 												break
 											}
 										}
-									} finally {
-										index++
+									})
+									.finally(() => {
+										// Remove the task from the pool once it completes
+										taskPool.delete(task)
+									})
+
+								taskPool.add(task)
+								index++
+							}
+
+							// Wait for all remaining tasks to complete
+							await Promise.all(taskPool)
+						} else {
+							// Execute sequentially
+							let index = 0
+							for await (const item of parameterValue) {
+								// Check signal status
+								if (config.signal.aborted) {
+									return
+								}
+								const i = index
+								try {
+									outputs[i] = await invokeSubgraph(item, i)
+								} catch (err) {
+									switch (errorMode) {
+										case 'terminate': {
+											throw err
+										}
+										case 'ignore': {
+											this.#logger.error(err)
+											break
+										}
+										case 'remove': {
+											this.#logger.error(err)
+											break
+										}
 									}
+								} finally {
+									index++
 								}
 							}
 						}
-
-						if (errorMode === 'remove') {
-							outputs = compact(outputs)
-						}
-
-						const nState = {}
-						if (outputVariable) {
-							setStateVariable(nState, outputVariable, outputs)
-						}
-						return nState
 					}
-				),
+
+					if (errorMode === 'remove') {
+						outputs = compact(outputs)
+					}
+
+					return {
+						[channelName(node.key)]: {
+							[STATE_VARIABLE_ITERATING_OUTPUT]: outputs,
+							[STATE_VARIABLE_ITERATING_OUTPUT_STR]: outputs.map((_) => JSON.stringify(_, null, 2))
+						}
+					}
+				}),
 				ends: []
 			},
 			navigator: async (state: typeof AgentStateAnnotation.State, config) => {

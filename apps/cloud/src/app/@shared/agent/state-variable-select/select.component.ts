@@ -5,7 +5,13 @@ import { FormsModule } from '@angular/forms'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { agentLabel, TStateVariable, TWorkflowVarGroup, XpertParameterTypeEnum } from '../../../@core/types'
+import {
+  agentLabel,
+  getVariableSchema,
+  TStateVariable,
+  TWorkflowVarGroup,
+  XpertParameterTypeEnum
+} from '../../../@core/types'
 
 /**
  *
@@ -27,7 +33,7 @@ export class StateVariableSelectComponent {
   agentLabel = agentLabel
 
   protected cva = inject<NgxControlValueAccessor<string>>(NgxControlValueAccessor)
-  
+
   // Inputs
   readonly variables = input<TWorkflowVarGroup[]>()
   readonly inline = input<boolean, boolean | string>(false, {
@@ -35,23 +41,17 @@ export class StateVariableSelectComponent {
   })
 
   // States
-  readonly group = computed(() => {
-    const [group, name] = this.value$()?.startsWith('sys.') ? [this.value$()] : (this.value$()?.split('.') ?? [])
-    return this.variables()?.find((_) => (name ? _.group?.name === group : !_.group?.name))
-  })
-
-  readonly variable = computed(() => {
-    const [group, name] = this.value$()?.startsWith('sys.') ? [this.value$()] : (this.value$()?.split('.') ?? [])
-    return this.group()?.variables.find((_) => _.name === (name ?? group))
-  })
-
   readonly value$ = this.cva.value$
-
+  readonly selected = computed(() => {
+    return getVariableSchema(this.variables(), this.value$())
+  })
+  readonly group = computed(() => this.selected().group)
+  readonly variable = computed(() => this.selected().variable)
   readonly variableType = computed(() => this.variable()?.type)
 
   constructor() {
     effect(() => {
-      // console.log(this.variables())
+      // console.log(this.variable())
     })
   }
 

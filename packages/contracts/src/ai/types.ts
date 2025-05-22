@@ -1,3 +1,5 @@
+import { XpertParameterTypeEnum } from "./xpert.model"
+
 export type TErrorHandling = {
   type?: null | 'defaultValue' | 'failBranch'
   defaultValue?: {content?: string}
@@ -23,4 +25,17 @@ export type TFile = {
   url?: string
 
   storageFileId?: string
+}
+
+/**
+ * Reference variable (parameter)
+ */
+export type TXpertRefParameter = {
+  type?: XpertParameterTypeEnum
+  name: string
+  optional?: boolean
+  /**
+   * Referencing other variable
+   */
+  variable?: string
 }
