@@ -24,6 +24,7 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "Changelog": "更新日志",
       "PleaseInput": "请输入",
       "PasswordsNotMatch": "密码不匹配",
       "Required": "必输",
@@ -407,6 +408,7 @@
       "DeleteEnv": "删除此环境及其所有的环境变量"
     },
     "MENU": {
+      "IsLatest": "已是最新版本。",
       "Certification": "认证",
       "Chat": "聊天",
       "Copilot": "智能助理",
@@ -486,6 +488,7 @@
       "Data Sources": "数据源",
       "AddCertifications": "添加认证",
       "UserProfile": "用户配置",
+      "About": "关于",
       "Logout": "退出账号",
       "Integration": "集成",
       "HOME": {

@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, input } from '@angular/core'
@@ -5,6 +6,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { I18nService } from '@cloud/app/@shared/i18n'
+import { environment } from '@cloud/environments/environment'
 import { LanguagesEnum, UsersService } from '@metad/cloud/state'
 import { OverlayAnimation1 } from '@metad/core'
 import { ThemesEnum } from '@metad/ocap-angular/core'
@@ -13,6 +15,7 @@ import { getErrorMessage, injectHelpWebsite, injectToastr, IUser, LANGUAGES, Sto
 import { UserPipe } from '../../../@shared/pipes'
 import { UserProfileInlineComponent } from '../../../@shared/user'
 import { AppService } from '../../../app.service'
+import { HeaderAboutComponent } from '../about/about.component'
 
 const THEMES = [
   {
@@ -47,12 +50,14 @@ const THEMES = [
 export class HeaderUserComponent {
   languages = LANGUAGES
   ThemesEnum = ThemesEnum
+  Version = environment.version
 
   readonly store = inject(Store)
   readonly appService = inject(AppService)
   readonly userService = inject(UsersService)
   readonly router = inject(Router)
   readonly #i18n = inject(I18nService)
+  readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly helpWebsite = injectHelpWebsite()
 
@@ -103,6 +108,11 @@ export class HeaderUserComponent {
   onProfile() {
     this.router.navigate(['/settings/account'])
   }
+
+  onAbout() {
+    this.#dialog.open(HeaderAboutComponent)
+  }
+
   onLogoutClick(): void {
     this.router.navigate(['/auth/logout'])
   }
