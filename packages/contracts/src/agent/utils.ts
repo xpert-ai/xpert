@@ -72,8 +72,10 @@ export function findStartNodes(graph: DeepPartial<TXpertGraph>, key: string): st
 
   const result = new Set<string>()
 
+  const checked = []
   // Recursively search upstream until you reach the starting point
   function dfsUp(nodeKey: string) {
+    checked.push(nodeKey)
     const parents = toMap.get(nodeKey)
 
     // There is no upstream, this is the starting point
@@ -83,6 +85,10 @@ export function findStartNodes(graph: DeepPartial<TXpertGraph>, key: string): st
     }
 
     for (const parent of parents) {
+      // There is a cycle
+      if (checked.includes(parent)) {
+        return
+      }
       dfsUp(parent)
     }
   }
