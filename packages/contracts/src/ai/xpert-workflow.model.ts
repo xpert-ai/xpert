@@ -213,8 +213,8 @@ export interface IWFNKnowledgeRetrieval extends IWorkflowNode {
 }
 
 export interface IWFNSubflow extends IWorkflowNode {
-  inputs: {name: string; variable?: string}[]
-  outputs: {name: string; variable?: string}[]
+  inputParams?: TXpertRefParameter[]
+  outputParams?: TXpertRefParameter[]
 }
 
 export function channelName(name: string) {

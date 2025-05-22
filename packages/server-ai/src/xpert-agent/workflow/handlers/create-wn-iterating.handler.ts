@@ -22,6 +22,7 @@ import { AgentStateAnnotation, STATE_VARIABLE_INPUT } from '../../commands/handl
 import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { STATE_VARIABLE_ITERATING_OUTPUT, STATE_VARIABLE_ITERATING_OUTPUT_STR } from '../iterating'
+import { CompileGraphCommand } from '../../commands'
 
 @CommandHandler(CreateWNIteratingCommand)
 export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIteratingCommand> {
@@ -38,11 +39,14 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 		const { subscriber, isDraft } = options
 
 		// Get the only child agent node
-		const connections = graph.connections.filter((conn) => conn.type === 'agent' && conn.from === node.key)
+		const connections = graph.connections.filter((conn) => (conn.type === 'agent' || conn.type === 'xpert') && conn.from === node.key)
 		if (connections.length > 1) {
 			throw new InternalServerErrorException(
 				await this.i18nService.translate('xpert.Error.MultiNodeNotSupported', {
-					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+					args: {
+						node: node.entity.title || node.entity.key
+					}
 				})
 			)
 		}
@@ -53,38 +57,75 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 				})
 			)
 		}
-		const agentNode = graph.nodes.find(
-			(n) => n.type === 'agent' && n.key === connections[0].to
-		) as TXpertTeamNode & { type: 'agent' }
+
+		let extXpert: IXpert = null
+		let _xpertId = xpertId
+		let agentKey: string = null
+		if (connections[0].type === 'xpert') {
+			// Collaborator (external xpert)
+			const collaboratorNode = graph.nodes.find(
+				(n) => n.type === 'xpert' && n.key === connections[0].to
+			) as TXpertTeamNode & { type: 'xpert' }
+			if (collaboratorNode) {
+				extXpert = collaboratorNode.entity
+				_xpertId = collaboratorNode.key
+				agentKey = collaboratorNode.entity.agent.key
+			}
+		} else {
+			const agentNode = graph.nodes.find(
+				(n) => n.type === 'agent' && n.key === connections[0].to
+			) as TXpertTeamNode & { type: 'agent' }
+			if (agentNode) {
+				agentKey = agentNode.key
+			}
+		}
 
 		const entity = node.entity as IWFNIterating
 		const inputVariable = entity.inputVariable
 		const inputParams = entity.inputParams
 		const outputParams = entity.outputParams
 
-		const execution = {}
+		let subgraph = null
+		const execution: IXpertAgentExecution = {}
 		const abortController = new AbortController()
 		// Create graph by command
-		const { agent, graph: subgraph } = await this.commandBus.execute<
-			XpertAgentSubgraphCommand,
-			{ agent: IXpertAgent; graph: CompiledStateGraph<any, any, any> }
-		>(
-			new XpertAgentSubgraphCommand(
-				agentNode.key,
-				{ id: xpertId },
-				{
+		if (extXpert) {
+			const compiled = await this.commandBus.execute<
+				CompileGraphCommand,
+				{ graph: CompiledStateGraph<unknown, unknown>; agent: IXpertAgent }
+			>(
+				new CompileGraphCommand(agentKey, {id: _xpertId}, {
 					isDraft,
-					isStart: true,
+					execution,
 					rootController: abortController,
 					signal: abortController.signal,
-					execution,
 					subscriber,
-					disableCheckpointer: true,
-					channel: channelName(agentNode.key),
-					partners: []
-				}
+				})
 			)
-		)
+			subgraph = compiled.graph
+		} else {
+			const compiled = await this.commandBus.execute<
+				XpertAgentSubgraphCommand,
+				{ agent: IXpertAgent; graph: CompiledStateGraph<any, any, any> }
+			>(
+				new XpertAgentSubgraphCommand(
+					agentKey,
+					{ id: _xpertId },
+					{
+						isDraft,
+						isStart: true,
+						rootController: abortController,
+						signal: abortController.signal,
+						execution,
+						subscriber,
+						disableCheckpointer: true,
+						channel: channelName(agentKey),
+						partners: []
+					}
+				)
+			)
+			subgraph = compiled.graph
+		}
 
 		return {
 			workflowNode: {
@@ -113,11 +154,15 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 
 						return await wrapAgentExecution(
 							async () => {
-								const subAgentExecution = {
-									xpert: { id: xpertId } as IXpert,
-									agentKey: agent.key,
+								const subAgentExecution: IXpertAgentExecution = {
 									inputs: inputs,
 									parentId: itemExecution.id
+								}
+								if (extXpert) {
+									subAgentExecution.xpertId = extXpert.id
+								} else {
+									subAgentExecution.xpertId = xpertId
+									subAgentExecution.agentKey = agentKey
 								}
 		
 								const retState = await wrapAgentExecution(
@@ -133,7 +178,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 												signal: controller.signal,
 												configurable: {
 													...config.configurable,
-													executionId: itemExecution.id
+													executionId: subAgentExecution.id
 												}
 											}
 										)
@@ -142,7 +187,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 											acc[curr.name] = get(retState, curr.variable)
 											return acc
 										}, {})
-										const output = retState[channelName(agentNode.key)].output
+										const output = retState[channelName(agentKey)]?.output
 		
 										return {
 											state: outputItem,

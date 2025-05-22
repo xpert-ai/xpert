@@ -108,6 +108,10 @@ export class XpertStudioPanelXpertComponent {
     this.xpertStudioComponent.updateXpertAgentConfig({ disableOutputs })
   }
 
+  edit() {
+    window.open(['/xpert', this.xpertId() ,'agents'].join('/'), '_blank')
+  }
+
   closePanel() {
     this.panelComponent.close()
   }

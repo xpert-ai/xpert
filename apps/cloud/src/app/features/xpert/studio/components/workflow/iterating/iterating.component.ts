@@ -1,15 +1,15 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@metad/ocap-angular/common'
-import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNIterating,
   IWorkflowNode,
   TXpertTeamNode,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum
-} from 'apps/cloud/src/app/@core'
+} from '@cloud/app/@core'
+import { FFlowModule } from '@foblex/flow'
+import { PlusSvgComponent } from '@metad/ocap-angular/common'
+import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../../domain'
 
 @Component({
@@ -28,12 +28,19 @@ export class XpertStudioNodeWorkflowIteratingComponent {
   eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
 
   readonly elementRef = inject(ElementRef)
-  readonly apiService = inject(XpertStudioApiService)
+  readonly studioService = inject(XpertStudioApiService)
 
   // Inputs
   readonly node = input<TXpertTeamNode>()
   readonly entity = input<IWorkflowNode>()
 
   // States
-  readonly iteratingEntity = computed(() => this.entity() as IWFNIterating)
+  readonly iterating = computed(() => this.entity() as IWFNIterating)
+  readonly nodes = computed(() => this.studioService.viewModel().nodes)
+
+  readonly canBeConnectedInputs = computed(() =>
+    this.nodes()
+      .filter((_) => _.type === 'agent' || _.type === 'xpert')
+      .map((_) => _.key)
+  )
 }

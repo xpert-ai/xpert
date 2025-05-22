@@ -106,6 +106,7 @@ export class XpertAgentSwarmHandler implements ICommandHandler<XpertAgentSwarmCo
 			const runnable = new RunnableLambda({
 				func: async (state: typeof AgentStateAnnotation.spec, config) => {
 					const configurable: TAgentRunnableConfigurable = config.configurable
+					const {executionId} = configurable
 					// Record start time
 					const timeStart = Date.now()
 					const __execution = await this.commandBus.execute(
@@ -116,7 +117,7 @@ export class XpertAgentSwarmHandler implements ICommandHandler<XpertAgentSwarmCo
 							xpert: { id: xpert.id } as IXpert,
 							agentKey: member,
 							inputs: { input: state.input },
-							parentId: options.rootExecutionId,
+							parentId: executionId,
 							status: XpertAgentExecutionStatusEnum.RUNNING,
 							predecessor: configurable.agentKey
 						})

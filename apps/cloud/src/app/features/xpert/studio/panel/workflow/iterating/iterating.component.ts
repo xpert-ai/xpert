@@ -8,6 +8,7 @@ import {
   injectToastr,
   IWFNIterating,
   IWorkflowNode,
+  TXpertTeamNode,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
   XpertService
@@ -108,7 +109,7 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
   readonly subAgent = computed(() => {
     return this.draft()?.nodes.find((_) => _.type === 'agent' && _.key === this.subAgentKey())
   })
-  readonly subVariables = derivedAsync(() => {
+  readonly subAgentVariables = derivedAsync(() => {
     const xpertId = this.xpertId()
     const nodeKey = this.subAgentKey()
     return xpertId && nodeKey
@@ -123,6 +124,24 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
 
   readonly inputVariableItem = computed(() => getVariableSchema(this.variables(), this.inputVariable()).variable?.item)
   readonly restInputParams = computed(() => this.inputParams()?.filter((p) => !this.inputVariableItem()?.some((_) => _.name === p.name)))
+
+  readonly subXpertKey = computed(() => this.draft()?.connections.find((_) => _.type === 'xpert' && _.from === this.iteratingEntity()?.key)?.to)
+  readonly subXpert = computed(() => this.draft()?.nodes.find((_) => _.type === 'xpert' && _.key === this.subXpertKey()) as TXpertTeamNode & {type: 'xpert'})
+  readonly subXpertAgentKey = computed(() => this.subXpert()?.entity.agent?.key)
+  readonly extXpertVariables = derivedAsync(() => {
+    const xpertId = this.subXpertKey()
+    const nodeKey = this.subXpertAgentKey()
+    return xpertId && nodeKey
+      ? this.studioService.getVariables({ xpertId, agentKey: nodeKey, type: 'output' }).pipe(
+          catchError((error) => {
+            this._toastr.error(getErrorMessage(error))
+            return of([])
+          })
+        )
+      : of(null)
+  })
+
+  readonly subVariables = computed(() => this.extXpertVariables() ?? this.subAgentVariables())
 
   constructor() {
     super()
