@@ -1,5 +1,5 @@
 import { inject } from '@angular/core'
-import { letterStartSUID, XpertService } from '../../@core'
+import { letterStartSUID, OrderTypeEnum, XpertService } from '../../@core'
 
 export function injectGetXpertTeam() {
   const xpertService = inject(XpertService)
@@ -24,7 +24,7 @@ export function injectGetXpertsByWorkspace() {
   const xpertService = inject(XpertService)
 
   return (workspace: string) => {
-    return xpertService.getAllByWorkspace(workspace, { where: { latest: true } }, true)
+    return xpertService.getAllByWorkspace(workspace, { where: { latest: true }, order: {updatedAt: OrderTypeEnum.DESC} }, true)
   }
 }
 
@@ -55,6 +55,7 @@ export function genXpertCodeKey() {
 export function genXpertHttpKey() {
   return letterStartSUID('Http_')
 }
+
 export function genXpertSubflowKey() {
   return letterStartSUID('Subflow_')
 }
