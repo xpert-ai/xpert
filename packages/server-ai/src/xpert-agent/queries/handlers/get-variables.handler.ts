@@ -138,7 +138,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		const graph = getCurrentGraph(_graph, nodeKey)
 
 		// Current agent variables (parameters)
-		if (nodeKey && node.type === 'agent' && type === 'input') {
+		if (nodeKey && node?.type === 'agent' && type === 'input') {
 			const _variables = await this.getAgentVariables(xpertId, nodeKey, isDraft)
 			variables.push(..._variables)
 		}
