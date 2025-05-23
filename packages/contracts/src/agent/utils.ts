@@ -1,3 +1,4 @@
+import { isRouterKey } from '../ai'
 import { TXpertGraph } from '../ai/xpert.model'
 import { DeepPartial } from '../types'
 
@@ -8,53 +9,8 @@ import { DeepPartial } from '../types'
  * @param startKey
  */
 export function allChannels(graph: TXpertGraph, startKey: string) {
-  const upstream = new Set<string>()
-  const downstream = new Set<string>()
-
-  const fromMap = new Map<string, string[]>()
-  const toMap = new Map<string, string[]>()
-
-  // Consider only horizontal processes
-  const connections = graph.connections.filter((_) => _.type === 'edge')
-
-  // Build a mapping table of from and to
-  for (const conn of connections) {
-    if (!fromMap.has(conn.from)) fromMap.set(conn.from, [])
-    fromMap.get(conn.from).push(conn.to)
-
-    if (!toMap.has(conn.to)) toMap.set(conn.to, [])
-    toMap.get(conn.to).push(conn.from)
-  }
-
-  // Downstream DFS
-  function dfsDown(nodeKey: string) {
-    const children = fromMap.get(nodeKey) || []
-    for (const child of children) {
-      if (!downstream.has(child)) {
-        downstream.add(child)
-        dfsDown(child)
-      }
-    }
-  }
-
-  // Upstream DFS
-  function dfsUp(nodeKey: string) {
-    const parents = toMap.get(nodeKey) || []
-    for (const parent of parents) {
-      if (!upstream.has(parent)) {
-        upstream.add(parent)
-        dfsUp(parent)
-      }
-    }
-  }
-
-  dfsDown(startKey)
-  dfsUp(startKey)
-
-  return {
-    upstream: Array.from(upstream),
-    downstream: Array.from(downstream)
-  }
+  graph = getCurrentGraph(graph, startKey)
+  return graph.nodes.filter((node) => !(node.type === 'workflow' && isRouterKey(node.key))).map((node) => node.key)
 }
 
 export function findStartNodes(graph: DeepPartial<TXpertGraph>, key: string): string[] {
