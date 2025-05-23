@@ -1,0 +1,328 @@
+team:
+  name: Smart HR Assistant
+  type: agent
+  title: Smart HR Assistant
+  description: Focusing on human resources scenarios, it demonstrates its
+    automation and intelligent capabilities.
+  avatar:
+    emoji:
+      id: card_index
+      set: ""
+      colons: ":card_index:"
+      unified: 1F4C7
+    background: rgba(213, 245, 246, 0.8)
+  starters:
+    - Onboarding
+    - Re-entry
+    - null
+    - null
+  options:
+    position:
+      x: 418.5942830531069
+      y: 135.74492087395313
+    scale: 0.7999999999999998
+    agent:
+      Agent_oHTRI7JN0n:
+        position:
+          x: 40
+          y: 39.875
+      Agent_asX304SSUV:
+        position:
+          x: 400.0000192766528
+          y: 279.87501127951475
+    workflow:
+      Http_5m4Jm0dqyt:
+        position:
+          x: -300
+          y: 40
+      Subflow_jzSikOjWDp:
+        position:
+          x: 380
+          y: 40
+      Http_kjPbgwbQGi:
+        position:
+          x: -480
+          y: 280
+      Http_146tWVPVi6:
+        position:
+          x: -200
+          y: 280
+      Http_xzUhbUgnVT:
+        position:
+          x: 100
+          y: 280
+      Http_Pkhj6bKOcd:
+        position:
+          x: 700
+          y: 280
+      Answer_X6gF8Rz8eQ:
+        position:
+          x: 699.9999796930787
+          y: 40.00000756711145
+  agentConfig:
+    disableOutputs: []
+  memory: null
+  summarize: null
+  version: "1"
+  agent:
+    key: Agent_oHTRI7JN0n
+    name: null
+    title: HR
+    description: HR supervisor, responsible for coordinating onboarding procedures
+    avatar: null
+    prompt: >-
+      The employee information currently being processed is as follows:
+
+      {{employee_name}}
+
+      Please tell the user that the onboarding process will be performed for
+      him/her next and ask him/her to wait patiently.
+
+      Please answer in the language <{{sys.language}}>.
+    promptTemplates: null
+    parameters:
+      - type: text
+        name: employee_name
+        title: Employee Name
+        description: null
+        optional: null
+        maximum: null
+        options: null
+    outputVariables: null
+    options: null
+    copilotModel: null
+    leaderKey: null
+    collaboratorNames: []
+    toolsetIds: []
+    knowledgebaseIds: []
+  copilotModel:
+    modelType: llm
+    model: gpt-4o
+    options: null
+  knowledgebases: []
+  toolsets: []
+  tags: []
+nodes:
+  - type: agent
+    key: Agent_oHTRI7JN0n
+    position:
+      x: 40
+      y: 39.875
+    entity:
+      key: Agent_oHTRI7JN0n
+      name: null
+      title: HR
+      description: HR supervisor, responsible for coordinating onboarding procedures
+      avatar: null
+      prompt: >-
+        The employee information currently being processed is as follows:
+
+        {{employee_name}}
+
+        Please tell the user that the onboarding process will be performed for
+        him/her next and ask him/her to wait patiently.
+
+        Please answer in the language <{{sys.language}}>.
+      promptTemplates: null
+      parameters:
+        - type: text
+          name: employee_name
+          title: Employee Name
+          description: null
+          optional: null
+          maximum: null
+          options: null
+      outputVariables: null
+      options: null
+      copilotModel: null
+      leaderKey: null
+      collaboratorNames: []
+      toolsetIds: []
+      knowledgebaseIds: []
+    hash: ce48b9b3f94f84094a859310a15ff8bb15306cb173211758386b1c6dcf2c6188
+  - type: workflow
+    key: Http_5m4Jm0dqyt
+    position:
+      x: -300
+      y: 40
+    entity:
+      type: http
+      key: Http_5m4Jm0dqyt
+      method: get
+      title: Get Employee Info
+      description: Get employee name, position, department, email address, etc.
+      url: https://mtda.cloud/en/
+    hash: 4d094eead524ad5535b782f4e3ab47ba4b6b637585405ad8bb2bf2e15ccb5450
+  - type: workflow
+    key: Subflow_jzSikOjWDp
+    position:
+      x: 380
+      y: 40
+    entity:
+      type: subflow
+      key: Subflow_jzSikOjWDp
+      title: Onboarding
+      outputParams:
+        - name: email
+          variable: sys.user_email
+      description: Onboarding process
+      inputParams:
+        - name: employee_name
+          variable: employee_info
+    hash: bea60c809590a1f016dfa5f41bfd370e93a05069ac05a77744ec66a44bdf10b2
+  - type: agent
+    key: Agent_asX304SSUV
+    position:
+      x: 400.0000192766528
+      y: 279.87501127951475
+    entity:
+      key: Agent_asX304SSUV
+      name: null
+      title: IT
+      description: IT Supervisor, responsible for onboarding system processing
+      avatar: null
+      prompt: >-
+        You are the IT leader responsible for employee onboarding.
+
+        The procedures completed are as follows:
+
+
+        1. Create email account result:
+
+        {{http_kjpbgwbqgi_channel.status}}
+
+
+        2. Assign devices result:
+
+        {{http_146twvpvi6_channel.status}}
+
+
+        3. Join mail group result:
+
+        {{http_xzuhbugnvt_channel.status}}
+
+
+        Please briefly inform the user of the above processing results and tell
+        him that you will send him an onboarding email immediately.
+
+        Please answer in the language <{{sys.language}}>.
+      promptTemplates: null
+      parameters:
+        - type: text
+          name: employee_info
+          title: Employee info
+          description: null
+          optional: null
+          maximum: null
+          options: null
+      outputVariables: null
+      options:
+        parallelToolCalls: false
+      copilotModel: null
+      leaderKey: Subflow_jzSikOjWDp
+      collaboratorNames: []
+      toolsetIds: []
+      knowledgebaseIds: []
+    hash: fb60b19d77afe4d093c668a2cb4b62e15e138dee01b1cf55410bd909789425c0
+  - type: workflow
+    key: Http_kjPbgwbQGi
+    position:
+      x: -480
+      y: 280
+    entity:
+      type: http
+      key: Http_kjPbgwbQGi
+      method: get
+      title: Create Email Account
+      url: https://mtda.cloud/en/
+      description: Create an email account
+    hash: e09bb9a12770b7ef2f5a6822a49122b285f406020ebae201d261efd701b31784
+  - type: workflow
+    key: Http_146tWVPVi6
+    position:
+      x: -200
+      y: 280
+    entity:
+      type: http
+      key: Http_146tWVPVi6
+      method: get
+      title: Assign Devices
+      url: https://mtda.cloud/en/
+      description: Allocate personal fixed assets to employee
+    hash: 54e02756ea75f860db3abda6dae29a4377119ee62faf8d84841bec15a00f5c6b
+  - type: workflow
+    key: Http_xzUhbUgnVT
+    position:
+      x: 100
+      y: 280
+    entity:
+      type: http
+      key: Http_xzUhbUgnVT
+      method: get
+      title: Join Mail Group
+      url: https://mtda.cloud/en/
+      description: Add employees to the mailing list
+    hash: c10a9c42517b092d10c6172b79f30cb69e0a19c707159281e58115c5e63ec9c1
+  - type: workflow
+    key: Http_Pkhj6bKOcd
+    position:
+      x: 700
+      y: 280
+    entity:
+      type: http
+      key: Http_Pkhj6bKOcd
+      method: get
+      title: Send Welcome Email
+      url: https://mtda.cloud/en/
+      description: Send a welcome email for onboarding procedures
+    hash: 8379099ae795c4e5b0603369de4106fd52cbadddd0401762e9c649a69509311e
+  - type: workflow
+    key: Answer_X6gF8Rz8eQ
+    position:
+      x: 699.9999796930787
+      y: 40.00000756711145
+    entity:
+      type: answer
+      key: Answer_X6gF8Rz8eQ
+      title: Answer
+      promptTemplate: >
+        
+        The onboarding procedures have been completed. Please check your
+        onboarding email.
+
+        {{subflow_jzsikojwdp_channel.email}}
+      description: Inform the user that the onboarding procedures are completed
+    hash: 417f8640a3fedf31fb3ff2629ddb9df18ae6a499c1377efa476a1c06b9d45da0
+connections:
+  - type: edge
+    key: Http_5m4Jm0dqyt/Agent_oHTRI7JN0n
+    from: Http_5m4Jm0dqyt
+    to: Agent_oHTRI7JN0n
+  - type: edge
+    key: Agent_oHTRI7JN0n/Subflow_jzSikOjWDp
+    from: Agent_oHTRI7JN0n
+    to: Subflow_jzSikOjWDp
+  - type: agent
+    key: Subflow_jzSikOjWDp/Agent_asX304SSUV
+    from: Subflow_jzSikOjWDp
+    to: Agent_asX304SSUV
+  - type: edge
+    key: Http_kjPbgwbQGi/Http_146tWVPVi6
+    from: Http_kjPbgwbQGi
+    to: Http_146tWVPVi6
+  - type: edge
+    key: Http_146tWVPVi6/Http_xzUhbUgnVT
+    from: Http_146tWVPVi6
+    to: Http_xzUhbUgnVT
+  - type: edge
+    key: Http_xzUhbUgnVT/Agent_asX304SSUV
+    from: Http_xzUhbUgnVT
+    to: Agent_asX304SSUV
+  - type: edge
+    key: Agent_asX304SSUV/Http_Pkhj6bKOcd
+    from: Agent_asX304SSUV
+    to: Http_Pkhj6bKOcd
+  - type: edge
+    key: Subflow_jzSikOjWDp/Answer_X6gF8Rz8eQ
+    from: Subflow_jzSikOjWDp
+    to: Answer_X6gF8Rz8eQ

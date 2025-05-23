@@ -66,8 +66,8 @@ export class XpertInstallComponent {
   readonly name = model<string>(this.#data.name)
   readonly description = model<string>(this.#data.description)
   readonly avatar = model<TAvatar>(this.#data.avatar)
-  readonly title = model<string>()
-  readonly copilotModel = model<ICopilotModel>()
+  readonly title = model<string>(this.#data.title)
+  readonly copilotModel = model<ICopilotModel>(this.#data.copilotModel)
 
   readonly loading = signal(false)
 

@@ -2,6 +2,7 @@ import { IBasePerTenantEntityModel } from '../base-entity.model'
 import { MCPServerType, TMCPServer } from './xpert-tool-mcp.model'
 import { XpertTypeEnum } from './xpert.model'
 import { TAvatar } from '../types'
+import { TCopilotModel } from './copilot-model.model'
 
 export interface IXpertTemplate extends IBasePerTenantEntityModel {
   key: string
@@ -18,6 +19,7 @@ export type TXpertTemplate = {
   avatar: TAvatar
   type: XpertTypeEnum
   category: string
+  copilotModel?: Partial<TCopilotModel>
   copyright: string
   privacyPolicy?: string
   export_data: string
