@@ -9,9 +9,7 @@
     {{ 'PAC.Xpert.ChooseXpertType' | translate: {Default: 'What type of Xpert do you want?'} }}
   </div>
   <ul class="xpert-type-list flex gap-4" cdkListbox [(ngModel)]="types">
-    <li
-      [cdkOption]="eXpertTypeEnum.Agent"
-    >
+    <li [cdkOption]="eXpertTypeEnum.Agent" [cdkOptionDisabled]="!!type()">
       <svg
         width="13"
         height="12"
@@ -45,9 +43,7 @@
       </div>
     </li>
 
-    <li
-      [cdkOption]="eXpertTypeEnum.Copilot"
-    >
+    <li [cdkOption]="eXpertTypeEnum.Copilot" [cdkOptionDisabled]="!!type()">
       <svg
         width="24"
         height="24"
