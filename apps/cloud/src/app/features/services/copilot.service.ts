@@ -25,8 +25,6 @@ export class PACCopilotService extends NgmCopilotService {
   readonly #agentService = inject(AgentService)
   readonly copilotServer = inject(CopilotServerService)
 
-  // readonly refresh$ = new BehaviorSubject(false)
-
   // Init copilot config
   private _userSub = this.copilotServer
     .getCopilots()

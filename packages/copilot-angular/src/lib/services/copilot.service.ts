@@ -9,6 +9,7 @@ import {
   ICopilot
 } from '@metad/copilot'
 import { TranslateService } from '@ngx-translate/core'
+import { ClientOptions } from '@langchain/openai'
 import { combineLatest, map, shareReplay, startWith } from 'rxjs'
 import { createLLM } from '../core'
 
@@ -111,15 +112,16 @@ export abstract class NgmCopilotService extends CopilotService {
 
   abstract enableCopilot(): void
 
-  forkChatModel$(config: any) {
-    return this.copilot$.pipe(
-      map((copilot) =>
-        copilot?.enabled
-          ? createLLM(copilot, this.credentials(), config, (input) => {
-              this.recordTokenUsage(input)
-            })
-          : null
+  forkChatModel$(config: ClientOptions) {
+    return combineLatest([this.copilot$, this.clientOptions$])
+      .pipe(
+        map(([copilot, clientOptions]) =>
+          copilot?.enabled
+            ? createLLM(copilot, this.credentials(), {...clientOptions, ...config}, (input) => {
+                this.recordTokenUsage(input)
+              })
+            : null
+        )
       )
-    )
   }
 }

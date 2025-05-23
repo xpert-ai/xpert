@@ -1,7 +1,7 @@
 // 同步与：`@metad/server-ai`/copilot/llm.ts
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { ChatAnthropic } from '@langchain/anthropic'
-import { AI_PROVIDERS, AiProtocol, AiProvider, ICopilot, sumTokenUsage } from '@metad/copilot'
+import { AI_PROVIDERS, AiProtocol, AiProvider, ICopilot, calcTokenUsage } from '@metad/copilot'
 import { NgmChatOllama } from './chat-ollama'
 import { TCopilotCredentials } from '../../types'
 import { NgmChatOpenAI } from './chat-openai'
@@ -39,11 +39,11 @@ export function createLLM<T = BaseChatModel>(
           handleLLMEnd(output) {
             tokenRecord({
 							copilot,
-							tokenUsed: output.llmOutput?.['totalTokens'] ?? sumTokenUsage(output)
+							tokenUsed: output.llmOutput?.['totalTokens'] ?? calcTokenUsage(output)?.totalTokens
 						})
           },
           handleLLMNewToken(token: string) {
-            console.log({ token });
+            // console.log({ token });
           },
         }
       ]
@@ -63,7 +63,7 @@ export function createLLM<T = BaseChatModel>(
         callbacks: [
           {
             handleLLMEnd(output) {
-              tokenRecord({ copilot, tokenUsed: sumTokenUsage(output) })
+              tokenRecord({ copilot, tokenUsed: calcTokenUsage(output)?.totalTokens })
             }
           }
         ]
@@ -82,7 +82,7 @@ export function createLLM<T = BaseChatModel>(
             handleLLMEnd(output) {
               tokenRecord({
                 copilot,
-                tokenUsed: output.llmOutput?.['totalTokens'] ?? sumTokenUsage(output)
+                tokenUsed: output.llmOutput?.['totalTokens'] ?? calcTokenUsage(output)?.totalTokens
               })
             }
           }

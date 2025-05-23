@@ -23,7 +23,7 @@ import {
   ViewContainerRef
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
+import { Dialog } from '@angular/cdk/dialog'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import { effectAction, NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -32,6 +32,7 @@ import { timer } from 'rxjs'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { agentLabel, TStateVariable, TWorkflowVarGroup } from '../../../@core'
 import { CopilotPromptGeneratorComponent } from '../prompt-generator/generator.component'
+
 
 declare var monaco: any
 
@@ -58,7 +59,7 @@ export class CopilotPromptEditorComponent {
   agentLabel = agentLabel
   
   readonly #clipboard = inject(Clipboard)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(Dialog)
   readonly #vcr = inject(ViewContainerRef)
   readonly elementRef = inject(ElementRef)
 
@@ -133,11 +134,11 @@ export class CopilotPromptEditorComponent {
 
   generate() {
     this.#dialog
-      .open(CopilotPromptGeneratorComponent, {
+      .open<string>(CopilotPromptGeneratorComponent, {
         panelClass: 'large',
         data: {}
       })
-      .afterClosed()
+      .closed
       .subscribe({
         next: (result) => {
           if (result) {

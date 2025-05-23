@@ -1,0 +1,14 @@
+:host {
+  animation: custom-dialog-enter 300ms ease-out;
+  @apply relative w-[480px] flex flex-col px-8 py-6 rounded-3xl shadow-2xl bg-components-card-bg;
+}
+
+@keyframes custom-dialog-enter {
+  from {
+    scale: 0.9;
+  }
+
+  to {
+    transform: none;
+  }
+}
