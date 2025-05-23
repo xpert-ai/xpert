@@ -70,7 +70,7 @@
 </ng-template>
 
 <ng-template #knowledgeMenu>
-  <div cdkMenu class="ngm-cdk-menu flex flex-col">
+  <div cdkMenu class="cdk-menu__medium">
     <xpert-studio-knowledge-menu class="overflow-auto" />
   </div>
 </ng-template>
@@ -80,12 +80,14 @@
 </ng-template>
 
 <ng-template #collaboratorsMenu>
-  <div cdkMenu class="ngm-cdk-menu flex flex-col">
+  <div cdkMenu class="cdk-menu__medium">
     @for (xpert of collaborators$ | async; track xpert.id) {
-      <xpert-inline-profile cdkMenuItem class="ngm-cdk-menu-item py-1 overflow-hidden"
-        [xpert]="xpert"
-        (click)="addCollaborator(xpert)"
-      />
+      <div cdkMenuItem class="">
+        <xpert-inline-profile class="w-full my-0.5"
+          [xpert]="xpert"
+          (click)="addCollaborator(xpert)"
+        />
+      </div>
     } @empty {
       <div class="p-2">
         {{ 'PAC.Xpert.NoExternalExpert' | translate: {Default: 'No external expert'} }}
