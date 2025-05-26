@@ -12,7 +12,7 @@ export function markedOptionsFactory(): MarkedOptions {
     return `<pre><code class="language-${language}">${code}</code></pre>`
   }
 
-  return { renderer,  }
+  return { renderer }
 }
 
 export function initializeCustomElements(customElementsService: CustomElementsService) {

@@ -31,6 +31,7 @@
       </div>
       @if (expandReason()) {
         <markdown class="ngm-copilot-markdown text-xs text-zinc-500"
+          [disableSanitizer]="true"
           lineNumbers
           [start]="5"
           [data]="reasoning()"

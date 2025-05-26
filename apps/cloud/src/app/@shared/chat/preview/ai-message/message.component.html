@@ -34,6 +34,7 @@
   @switch(chunk.type) {
     @case ('text') {
       <markdown class="ngm-copilot-markdown text-sm"
+        [disableSanitizer]="true"
         lineNumbers
         [start]="5"
         [data]="chunk.text"
