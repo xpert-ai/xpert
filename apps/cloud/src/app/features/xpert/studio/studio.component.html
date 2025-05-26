@@ -106,6 +106,14 @@
                 (click)="removeNode(node.key)">
                 <i class="ri-close-line"></i>
               </button>
+
+              <button type="button" class="flex items-center justify-center w-6 h-6 p-0.5 rounded-md cursor-pointer"
+                [cdkMenuTriggerFor]="nodeMenu"
+                [cdkMenuTriggerData]="{node: node}"
+                (click)="$event.stopPropagation()"
+              >
+                <i class="ri-more-line"></i>
+              </button>
             }
           </div>
         }
@@ -212,4 +220,27 @@
     [connection]="connection"
     [connectionComponent]="connectionComponent"
   />
+</ng-template>
+
+<ng-template #nodeMenu let-node="node">
+  <div cdkMenu class="cdk-menu__medium">
+    <div cdkMenuItem (click)="copyNode(node)">
+      <i class="ri-clipboard-line mr-1"></i> Copy
+    </div>
+    <div cdkMenuItem (click)="duplicateNode(node)">
+      <i class="ri-file-copy-2-line mr-1"></i> Duplicate
+    </div>
+
+    <div class="h-[1px] bg-divider-regular my-1"></div>
+
+    <div cdkMenuItem class="danger" (click)="deleteNode(node)">
+      <i class="ri-delete-bin-3-line mr-1"></i> Delete
+    </div>
+
+    <div class="h-[1px] bg-divider-regular my-1"></div>
+
+    <a cdkMenuItem [href]="helpUrl() + '/docs/ai/workflow/' + (node.type === 'workflow' ? node.entity.type : node.type)" target="_blank">
+      <i class="ri-question-line mr-1"></i> 帮助链接
+    </a>
+  </div>
 </ng-template>

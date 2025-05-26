@@ -43,6 +43,7 @@ import { debounceTime, delay, map, tap } from 'rxjs/operators'
 import {
   AiModelTypeEnum,
   findStartNodes,
+  injectHelpWebsite,
   isWorkflowKey,
   IXpertToolset,
   ToastrService,
@@ -136,6 +137,7 @@ export class XpertStudioComponent {
   readonly selectionService = inject(SelectionService)
   readonly executionService = inject(XpertExecutionService)
   readonly xpertComponent = inject(XpertComponent)
+  readonly helpUrl = injectHelpWebsite()
   readonly #cdr = inject(ChangeDetectorRef)
 
   readonly fFlowComponent = viewChild(FFlowComponent)
@@ -375,6 +377,21 @@ export class XpertStudioComponent {
 
   isDisableOutput(g: TXpertTeamNode) {
     return this.agentConfig()?.disableOutputs?.includes(g.key)
+  }
+
+  copyNode(node: TXpertTeamNode) {
+    console.log(node)
+
+  }
+
+  duplicateNode(node: TXpertTeamNode) {
+    console.log(node)
+    
+  }
+
+  deleteNode(node: TXpertTeamNode) {
+    console.log(node)
+
   }
 }
 

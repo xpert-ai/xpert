@@ -1,9 +1,9 @@
 <ng-template>
   <div #menu="cdkMenu" cdkMenu class="cdk-menu__large bg-components-panel-bg-blur">
-    <div cdkMenuItem class="ngm-cdk-menu-item" (click)="createAgent(menu)">
-      <span>{{ 'PAC.Xpert.NewAgent' | translate: {Default: 'New Agent'} }}</span>
+    <div cdkMenuItem class="" (click)="createAgent(menu)">
+      <i class="ri-robot-3-line mr-1"></i><span>{{ 'PAC.Xpert.NewAgent' | translate: {Default: 'New Agent'} }}</span>
     </div>
-    <div cdkMenuItem class="ngm-cdk-menu-item"
+    <div cdkMenuItem class=""
       [cdkMenuTriggerFor]="collaboratorsMenu"
       [cdkMenuPosition]="[
         {
@@ -15,9 +15,10 @@
         }
       ]"
     >
+      <i class="ri-user-add-line mr-1"></i>
       <span>{{ 'PAC.Xpert.AddExternalExpert' | translate: {Default: 'Add External Expert'} }}</span>
     </div>
-    <div cdkMenuItem class="ngm-cdk-menu-item"
+    <div cdkMenuItem class=""
       [cdkMenuTriggerFor]="knowledgeMenu"
       [cdkMenuPosition]="[
         {
@@ -29,9 +30,10 @@
         }
       ]"
     >
+      <i class="ri-book-shelf-line mr-1"></i>
       <span>{{ 'PAC.Xpert.AddKnowledgebase' | translate: {Default: 'Add Knowledgebase'} }}</span>
     </div>
-    <div cdkMenuItem class="ngm-cdk-menu-item"
+    <div cdkMenuItem class="flex justify-start items-center"
       [cdkMenuTriggerFor]="toolsetMenu"
       [cdkMenuPosition]="[
         {
@@ -43,10 +45,11 @@
         }
       ]"
     >
+      <i class="ri-hammer-line mr-1"></i>
       <span>{{ 'PAC.Xpert.AddToolset' | translate: {Default: 'Add Toolset'} }}</span>
     </div>
 
-    <div cdkMenuItem class="ngm-cdk-menu-item"
+    <div cdkMenuItem class=""
       [cdkMenuTriggerFor]="blockMenu"
       [cdkMenuPosition]="[
         {
@@ -58,12 +61,12 @@
         }
       ]"
     >
-      <span>{{ 'PAC.Xpert.AddBlock' | translate: {Default: 'Add Block'} }}</span>
+      <i class="ri-code-block mr-1"></i><span>{{ 'PAC.Xpert.AddBlock' | translate: {Default: 'Add Block'} }}</span>
     </div>
 
     @if (node) {
-      <div cdkMenuItem class="ngm-cdk-menu-item danger" (click)="deleteNode(menu, node)">
-        <span>{{ 'PAC.Xpert.Remove' | translate: {Default: 'Remove'} }}</span>
+      <div cdkMenuItem class="danger" (click)="deleteNode(menu, node)">
+        <i class="ri-delete-bin-3-line mr-1"></i><span>{{ 'PAC.Xpert.Remove' | translate: {Default: 'Remove'} }}</span>
       </div>
     }
   </div>
@@ -195,7 +198,7 @@
     <div class="flex items-start px-2 mt-2 font-medium text-text-tertiary">
       {{ 'PAC.Xpert.Others' | translate: {Default: 'Others'} }}
     </div>
-    <div cdkMenuItem class="ngm-cdk-menu-item shrink-0 px-4 w-full h-9"
+    <div cdkMenuItem class="shrink-0 px-4 w-full h-9"
       (click)="addWorkflowNote()">
       <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-orange-500
         w-5 h-5 rounded-md

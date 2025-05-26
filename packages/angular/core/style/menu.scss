@@ -89,9 +89,9 @@
     @apply bg-slate-100 font-semibold;
   }
 
-  .cdk-menu-item.cdk-menu-trigger {
-    justify-content: space-between;
-  }
+  // .cdk-menu-item.cdk-menu-trigger {
+  //   justify-content: space-between;
+  // }
 
   .cdk-menu-item {
     @apply flex items-center bg-transparent whitespace-nowrap cursor-pointer border-none select-none;
