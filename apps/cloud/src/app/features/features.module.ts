@@ -16,7 +16,6 @@ import { NGM_WASM_AGENT_WORKER, WasmAgentService } from '@metad/ocap-angular/was
 import { DataSource, Type } from '@metad/ocap-core'
 import { NgmCopilotChatComponent } from '@metad/copilot-angular'
 import { NX_STORY_FEED, NX_STORY_MODEL, NX_STORY_STORE } from '@metad/story/core'
-import { provideMarkdown } from 'ngx-markdown'
 import { environment } from '../../environments/environment'
 import { DirtyCheckGuard, LocalAgent, ServerAgent, ServerSocketAgent, provideLogger } from '../@core/index'
 import { AssetsComponent } from '../@shared/assets/assets.component'
@@ -36,6 +35,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { PACCopilotService } from './services'
 import { MaterialModule } from '../@shared/material.module'
 import { SharedModule } from '../@shared/shared.module'
+import { provideChatMarkdown } from '../@shared/chat'
 
 registerEChartsThemes()
 
@@ -83,7 +83,7 @@ registerEChartsThemes()
     provideLogger(),
     provideFormly(),
     provideFormlyMaterial(),
-    provideMarkdown({}),
+    provideChatMarkdown(),
     {
       provide: NGM_WASM_AGENT_WORKER,
       useValue: '/assets/ocap-agent-data-init.worker.js'
