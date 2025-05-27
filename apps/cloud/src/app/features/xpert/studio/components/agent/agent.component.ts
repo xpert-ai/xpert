@@ -24,9 +24,7 @@ import { XpertStudioComponent } from '../../studio.component'
     CopilotModelSelectComponent
   ],
   host: {
-    tabindex: '-1',
-    '[class.selected]': 'isSelected',
-    '(contextmenu)': 'emitSelectionChangeEvent($event)'
+    tabindex: '-1'
   }
 })
 export class XpertStudioNodeAgentComponent {
@@ -91,7 +89,7 @@ export class XpertStudioNodeAgentComponent {
 
   protected emitSelectionChangeEvent(event: MouseEvent): void {
     this.hostElement.focus()
-    event.preventDefault()
-    event.stopPropagation()
+    // event.preventDefault()
+    // event.stopPropagation()
   }
 }

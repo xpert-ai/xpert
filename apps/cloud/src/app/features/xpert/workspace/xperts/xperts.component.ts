@@ -126,7 +126,8 @@ export class XpertWorkspaceXpertsComponent {
       .open<IXpert>(XpertNewBlankComponent, {
         disableClose: true,
         data: {
-          workspace: this.workspace()
+          workspace: this.workspace(),
+          type: this.type()
         }
       })
       .closed.subscribe((xpert) => {

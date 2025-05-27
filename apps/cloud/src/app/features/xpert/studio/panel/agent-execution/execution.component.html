@@ -68,6 +68,7 @@
 
   <div class="mt-4 p-2 text-sm min-h-[60px] max-h-80 overflow-auto rounded-xl bg-neutral-100 dark:bg-neutral-700">
     <markdown class="ngm-copilot-markdown"
+      [disableSanitizer]="true"
       lineNumbers
       [start]="5"
       [data]="output()"

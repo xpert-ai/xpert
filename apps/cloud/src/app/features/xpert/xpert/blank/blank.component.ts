@@ -37,11 +37,12 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 export class XpertNewBlankComponent {
   eXpertTypeEnum = XpertTypeEnum
   readonly #dialogRef = inject(DialogRef<IXpert>)
-  readonly #dialogData = inject<{ workspace: IXpertWorkspace }>(DIALOG_DATA)
+  readonly #dialogData = inject<{ workspace: IXpertWorkspace; type: XpertTypeEnum }>(DIALOG_DATA)
   readonly xpertService = inject(XpertService)
   readonly #toastr = inject(ToastrService)
 
-  readonly types = model<XpertTypeEnum[]>([XpertTypeEnum.Agent])
+  readonly type = signal(this.#dialogData.type)
+  readonly types = model<XpertTypeEnum[]>([this.#dialogData.type ?? XpertTypeEnum.Agent])
   readonly name = model<string>()
   readonly description = model<string>()
   readonly avatar = model<TAvatar>()

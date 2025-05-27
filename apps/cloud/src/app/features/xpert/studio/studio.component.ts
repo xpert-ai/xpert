@@ -1,6 +1,7 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
+import {Clipboard} from '@angular/cdk/clipboard'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
@@ -43,6 +44,7 @@ import { debounceTime, delay, map, tap } from 'rxjs/operators'
 import {
   AiModelTypeEnum,
   findStartNodes,
+  injectHelpWebsite,
   isWorkflowKey,
   IXpertToolset,
   ToastrService,
@@ -136,7 +138,9 @@ export class XpertStudioComponent {
   readonly selectionService = inject(SelectionService)
   readonly executionService = inject(XpertExecutionService)
   readonly xpertComponent = inject(XpertComponent)
+  readonly helpUrl = injectHelpWebsite()
   readonly #cdr = inject(ChangeDetectorRef)
+  readonly #clipboard = inject(Clipboard)
 
   readonly fFlowComponent = viewChild(FFlowComponent)
   readonly fCanvasComponent = viewChild(FCanvasComponent)
@@ -338,7 +342,7 @@ export class XpertStudioComponent {
   public onSelectNode($event: MouseEvent, node: TXpertTeamNode) {
     if (Math.abs(this.mousePosition.x - $event.screenX) < 5 && 
         Math.abs(this.mousePosition.y - $event.screenY) < 5) {
-      // Execute Click when 原地点击
+      // Execute Click when click in place
       this.selectionService.selectNode(node.key)
     }
   }
@@ -375,6 +379,24 @@ export class XpertStudioComponent {
 
   isDisableOutput(g: TXpertTeamNode) {
     return this.agentConfig()?.disableOutputs?.includes(g.key)
+  }
+
+  copyNode(node: TXpertTeamNode) {
+    this.#clipboard.copy(JSON.stringify(node))
+  }
+
+  duplicateNode(node: TXpertTeamNode) {
+    this.apiService.pasteNode({
+      ...node,
+      position: {
+        x: node.position.x + 50,
+        y: node.position.y + 50
+      }
+    })
+  }
+
+  deleteNode(node: TXpertTeamNode) {
+    this.apiService.removeNode(node.key)
   }
 }
 

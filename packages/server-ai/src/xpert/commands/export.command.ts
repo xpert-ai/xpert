@@ -1,5 +1,8 @@
 import { ICommand } from '@nestjs/cqrs'
 
+/**
+ * Export expert, including published or draft versions
+ */
 export class XpertExportCommand implements ICommand {
 	static readonly type = '[Xpert] Export DSL'
 

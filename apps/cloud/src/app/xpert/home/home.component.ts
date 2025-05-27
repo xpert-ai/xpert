@@ -17,7 +17,6 @@ import { C_URI_API_MODELS, LanguagesEnum } from '@metad/cloud/state'
 import { provideOcapCore } from '@metad/ocap-angular/core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
-import { provideMarkdown } from 'ngx-markdown'
 import {
   ChatConversationService,
   injectLanguage,
@@ -60,7 +59,6 @@ import { XpertChatAppComponent } from '../xpert/xpert.component'
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
-    provideMarkdown({}),
     provideOcapCore(),
     XpertHomeService,
     ChatAppService,

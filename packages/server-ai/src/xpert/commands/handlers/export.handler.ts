@@ -34,18 +34,18 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
 				'agent.copilotModel',
 			] 
 			: [
-			'agent',
-			'agent.copilotModel',
-			'agents',
-			'agents.copilotModel',
-			'executors',
-			'executors.agent',
-			'executors.copilotModel',
-			'copilotModel',
-			'toolsets',
-			'toolsets.tools',
-			'knowledgebases'
-		]
+				'agent',
+				'agent.copilotModel',
+				'agents',
+				'agents.copilotModel',
+				'executors',
+				'executors.agent',
+				'executors.copilotModel',
+				'copilotModel',
+				'toolsets',
+				'toolsets.tools',
+				'knowledgebases'
+			]
 		const xpert = await this.xpertService.findOne(id, {relations})
 
 		const draft = isDraft ? xpert.draft : this.getInitialDraft(xpert)

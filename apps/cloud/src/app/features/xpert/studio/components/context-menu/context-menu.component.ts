@@ -2,7 +2,7 @@ import { CdkMenu, CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectorRef, Component, computed, inject, TemplateRef, ViewChild } from '@angular/core'
 import { MatTabsModule } from '@angular/material/tabs'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNCode,
   IWFNHttp,
@@ -11,6 +11,7 @@ import {
   IWFNSubflow,
   IWorkflowNode,
   IXpert,
+  ToastrService,
   uuid,
   WorkflowNodeTypeEnum,
   XpertParameterTypeEnum
@@ -32,6 +33,7 @@ import { SelectionService } from '../../domain/selection.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioKnowledgeMenuComponent } from '../knowledge-menu/knowledge.component'
 import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.component'
+import { I18nService } from '@cloud/app/@shared/i18n'
 
 @Component({
   selector: 'xpert-studio-context-menu',
@@ -56,7 +58,8 @@ export class XpertStudioContextMenuComponent {
   readonly selectionService = inject(SelectionService)
   private root = inject(XpertStudioComponent)
   readonly #cdr = inject(ChangeDetectorRef)
-  readonly #translate = inject(TranslateService)
+  readonly #translate = inject(I18nService)
+  readonly #toastr = inject(ToastrService)
 
   @ViewChild(TemplateRef, { static: true })
   public template!: TemplateRef<CdkMenu>
@@ -99,6 +102,22 @@ export class XpertStudioContextMenuComponent {
     menu.menuStack.closeAll()
     if (node) {
       this.apiService.removeNode(node)
+    }
+  }
+
+  async pasteNode() {
+    const nodeText = await navigator.clipboard.readText()
+    try {
+      const node = JSON.parse(nodeText)
+      this.apiService.pasteNode({
+        ...node,
+        position: {
+          ...this.root.contextMenuPosition
+        }
+      })
+    } catch(err) {
+      console.error(err)
+      this.#toastr.error(this.#translate.instant('PAC.Xpert.UnableParseContent', { Default: 'Unable to parse content' }))
     }
   }
 

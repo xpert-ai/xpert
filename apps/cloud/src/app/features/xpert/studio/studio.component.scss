@@ -154,6 +154,9 @@ f-flow {
   &.ngm-selected {
     @apply border-components-card-option-selected-border shadow-md;
   }
+  &.f-selected {
+    @apply border-components-card-option-selected-border shadow-md;
+  }
 }
 .f-node {
   cursor: default;

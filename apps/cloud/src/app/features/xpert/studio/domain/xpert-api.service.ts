@@ -4,8 +4,14 @@ import { IPoint, IRect } from '@foblex/2d'
 import { nonNullable, debounceUntilChanged, linkedModel } from '@metad/core'
 import { createStore, Store, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
+import { FCanvasChangeEvent } from '@foblex/flow'
+import { nonBlank } from '@metad/copilot'
+import { derivedAsync } from 'ngxtension/derived-async'
+import { ActivatedRoute, Router } from '@angular/router'
+import { effectAction } from '@metad/ocap-angular/core'
+import { calculateHash } from '@cloud/app/@shared/utils'
 import { EnvironmentService, KnowledgebaseService, ToastrService, XpertService, XpertToolsetService } from 'apps/cloud/src/app/@core'
-import { isEqual, negate, omit } from 'lodash-es'
+import { isEqual, isNil, negate, omit, omitBy, pick } from 'lodash-es'
 import {
   BehaviorSubject,
   catchError,
@@ -53,20 +59,12 @@ import {
   UpdateNodeHandler,
   UpdateNodeRequest
 } from './node'
-import { CreateTeamHandler, CreateTeamRequest, UpdateXpertHandler, UpdateXpertRequest, UpdateXpertTeamHandler, UpdateXpertTeamRequest } from './xpert'
-import { EReloadReason, IStudioStore, TStateHistory } from './types'
-import { ExpandTeamHandler } from './xpert/expand/expand.handler'
-import { ExpandTeamRequest } from './xpert/expand/expand.request'
-import { injectGetXpertsByWorkspace, injectGetXpertTeam } from '../../utils'
-import { XpertComponent } from '../../xpert'
-import { FCanvasChangeEvent } from '@foblex/flow'
-import { nonBlank } from '@metad/copilot'
 import { PACCopilotService } from '../../../services'
+import { EReloadReason, IStudioStore, TStateHistory } from './types'
+import { XpertComponent } from '../../xpert'
+import { CreateTeamHandler, CreateTeamRequest, ExpandTeamRequest, ExpandTeamHandler, UpdateXpertHandler, UpdateXpertRequest } from './xpert'
+import { genWorkflowKey, injectGetXpertsByWorkspace, injectGetXpertTeam } from '../../utils'
 import { CreateWorkflowNodeRequest, CreateWorkflowNodeHandler, UpdateWorkflowNodeHandler, UpdateWorkflowNodeRequest } from './workflow'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { ActivatedRoute, Router } from '@angular/router'
-import { effectAction } from '@metad/ocap-angular/core'
-import { calculateHash } from '@cloud/app/@shared/utils'
 
 
 const SaveDraftDebounceTime = 1 // s
@@ -456,7 +454,7 @@ export class XpertStudioApiService {
     const event = new RemoveNodeHandler(this.store).handle(new RemoveNodeRequest(key))
     event && this.#reload.next(event)
   }
-  // Role node
+  // Agent node
   public createAgent(position: IPoint, agent?: Partial<IXpertAgent>): void {
     new CreateNodeHandler(this.store).handle(new CreateNodeRequest('agent', position, agent))
     this.#reload.next(EReloadReason.AGENT_CREATED)
@@ -472,6 +470,7 @@ export class XpertStudioApiService {
       }
     })
   }
+  // Toolset node
   public createToolset(position: IPoint, toolset: IXpertToolset): void {
     new CreateNodeHandler(this.store).handle(new CreateNodeRequest('toolset', position, toolset))
     this.#reload.next(EReloadReason.TOOLSET_CREATED)
@@ -562,6 +561,32 @@ export class XpertStudioApiService {
       }
     })
     this.#reload.next(EReloadReason.XPERT_UPDATED)
+  }
+
+  pasteNode(node: TXpertTeamNode) {
+    let entity = null
+    switch(node.type) {
+      case ('agent'): {
+        entity = omitBy(
+          {
+            ...omit(node.entity, 'id', 'key', 'leaderKey', 'createdAt', 'createdById', 'updatedAt', 'updatedById'),
+            copilotModel: node.entity.copilotModel ? pick(node.entity.copilotModel, 'copilotId', 'model', 'modelType', 'options') : null,
+            copilotModelId: null
+          },
+          isNil
+        )
+        new CreateNodeHandler(this.store).handle(new CreateNodeRequest(node.type, node.position, entity))
+        this.#reload.next(EReloadReason.XPERT_UPDATED)
+        break
+      }
+      case ('workflow'): {
+        entity = omit(node.entity, 'id', 'key')
+        entity.key = genWorkflowKey(node.entity.type)
+        new CreateWorkflowNodeHandler(this.store).handle(new CreateWorkflowNodeRequest(node.position, entity))
+        this.#reload.next(EReloadReason.XPERT_UPDATED)
+        break
+      }
+    }
   }
 
   public autoLayout() {

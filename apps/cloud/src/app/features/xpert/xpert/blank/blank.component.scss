@@ -8,8 +8,10 @@
 
 .xpert-type-list {
   .cdk-option {
-    @apply w-48 h-24 text-sm flex flex-col justify-center items-center border border-solid border-transparent rounded-xl cursor-pointer
-            hover:bg-primary-100/10 hover:border-primary-300 hover:shadow-sm;
+    @apply w-48 h-24 text-sm flex flex-col justify-center items-center border border-solid border-transparent rounded-xl;
+  }
+  .cdk-option[aria-disabled='false'] {
+    @apply cursor-pointer hover:bg-primary-100/10 hover:border-primary-300 hover:shadow-sm;
   }
   .cdk-option[aria-selected='true'] {
     @apply shadow-md border-primary-500 text-primary-500 bg-primary-100/10;

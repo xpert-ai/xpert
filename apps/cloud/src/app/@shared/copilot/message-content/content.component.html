@@ -2,6 +2,7 @@
   @switch (item.type) {
     @case ('text') {
       <markdown class="ngm-copilot-markdown block"
+        [disableSanitizer]="true"
         lineNumbers
         [start]="5"
         [data]="item.text"
