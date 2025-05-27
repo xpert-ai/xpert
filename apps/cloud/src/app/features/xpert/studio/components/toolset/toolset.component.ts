@@ -21,7 +21,6 @@ import { XpertStudioNodeStatus } from '../../types'
   imports: [FFlowModule, MatTooltipModule, TranslateModule, EmojiAvatarComponent, NgmSpinComponent],
   host: {
     tabindex: '-1',
-    '(contextmenu)': 'emitSelectionChangeEvent($event)',
     '[class]': 'status()'
   }
 })
@@ -73,9 +72,9 @@ export class XpertStudioNodeToolsetComponent {
   readonly isSandbox = computed(() => this.toolset()?.options?.provider?.tags?.includes(ToolTagEnum.SANDBOX))
   readonly needSandbox = computed(() => this.toolsetDetail()?.options?.needSandbox)
 
-  private get hostElement(): HTMLElement {
-    return this.elementRef.nativeElement
-  }
+  // private get hostElement(): HTMLElement {
+  //   return this.elementRef.nativeElement
+  // }
 
   constructor() {
     effect(() => {
@@ -83,13 +82,13 @@ export class XpertStudioNodeToolsetComponent {
     })
   }
 
-  protected emitSelectionChangeEvent(event: MouseEvent): void {
-    this.hostElement.focus()
-    event.preventDefault()
-    event.stopPropagation()
+  // protected emitSelectionChangeEvent(event: MouseEvent): void {
+  //   this.hostElement.focus()
+  //   event.preventDefault()
+  //   event.stopPropagation()
 
-    // Open Context menu
-  }
+  //   // Open Context menu
+  // }
 
   isSensitive(name: string) {
     return this.agentConfig()?.interruptBefore?.includes(name)

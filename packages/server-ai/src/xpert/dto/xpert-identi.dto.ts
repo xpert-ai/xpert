@@ -34,6 +34,9 @@ export class XpertIdentiDto implements Partial<IXpert> {
 	titleCN?: string
 
 	@Expose()
+	version?: string
+
+	@Expose()
 	publishAt?: Date
 
 	@Expose()

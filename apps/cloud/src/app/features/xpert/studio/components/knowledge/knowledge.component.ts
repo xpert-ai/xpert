@@ -18,7 +18,6 @@ import { XpertExecutionService } from '../../services/execution.service'
   host: {
     tabindex: '-1',
     '[class]': 'className()',
-    '(contextmenu)': 'emitSelectionChangeEvent($event)'
   }
 })
 export class XpertStudioNodeKnowledgeComponent {
@@ -42,15 +41,14 @@ export class XpertStudioNodeKnowledgeComponent {
 
   readonly className = computed(() => `${this.executionStatus() ?? ''} ${this.status() ?? ''}`)
 
-  private get hostElement(): HTMLElement {
-    return this.elementRef.nativeElement
-  }
+  // private get hostElement(): HTMLElement {
+  //   return this.elementRef.nativeElement
+  // }
 
-  protected emitSelectionChangeEvent(event: MouseEvent): void {
-    this.hostElement.focus()
-    event.preventDefault()
-    event.stopPropagation()
-
-    // Open Context menu
-  }
+  // protected emitSelectionChangeEvent(event: MouseEvent): void {
+  //   this.hostElement.focus()
+  //   event.preventDefault()
+  //   event.stopPropagation()
+  //   // Open Context menu
+  // }
 }

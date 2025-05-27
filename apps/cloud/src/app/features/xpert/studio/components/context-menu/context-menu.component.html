@@ -33,7 +33,7 @@
       <i class="ri-book-shelf-line mr-1"></i>
       <span>{{ 'PAC.Xpert.AddKnowledgebase' | translate: {Default: 'Add Knowledgebase'} }}</span>
     </div>
-    <div cdkMenuItem class="flex justify-start items-center"
+    <div cdkMenuItem class=""
       [cdkMenuTriggerFor]="toolsetMenu"
       [cdkMenuPosition]="[
         {
@@ -69,6 +69,12 @@
         <i class="ri-delete-bin-3-line mr-1"></i><span>{{ 'PAC.Xpert.Remove' | translate: {Default: 'Remove'} }}</span>
       </div>
     }
+
+    <div class="h-[1px] bg-divider-regular my-1"></div>
+
+    <div cdkMenuItem (click)="pasteNode()">
+      <i class="ri-clipboard-line mr-1"></i> {{ 'PAC.ACTIONS.PasteHere' | translate: {Default: 'Paste Here'} }}
+    </div>
   </div>
 </ng-template>
 

@@ -665,11 +665,13 @@
       "Search": "搜索",
       "Copy": "复制",
       "NewTag": "新建标签",
-      "Duplicate": "复制",
+      "Duplicate": "复印",
       "OpenAttributesPanel": "打开属性面板",
       "Close": "关闭",
       "Update": "更新",
-      "Test": "测试"
+      "Test": "测试",
+      "HelpLink": "帮助链接",
+      "PasteHere": "粘贴到这里"
     },
     "MESSAGE": {
       "MAIN_ORGANIZATION_UPDATED": "组织更新成功",
@@ -2223,6 +2225,7 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "UnableParseContent": "无法解析内容",
       "KnowledgeBaseNotFound": "知识库‘{{id}}’未找到！",
       "ClickAddToAddKB": "点击“+”按钮添加知识库",
       "Knowledge": "知识",

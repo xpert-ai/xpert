@@ -28,7 +28,7 @@ export type TXpert = {
   avatar?: TAvatar
 
   /**
-   * 对话开场白
+   * Conversation starter
    */
   starters?: string[]
 
