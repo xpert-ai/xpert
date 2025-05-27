@@ -47,6 +47,7 @@ export class WorkspaceSelectorComponent {
   }
 
   routeWorkspace(ws: IXpertWorkspace) {
+    if(!ws || !ws.id) return
     this.router.navigate(['/xpert/w/', ws.id])
   }
 }
