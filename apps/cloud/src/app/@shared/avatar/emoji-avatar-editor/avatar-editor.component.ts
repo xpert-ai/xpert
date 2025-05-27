@@ -94,6 +94,15 @@ export class EmojiAvatarEditorComponent {
     return await firstValueFrom(this.screenshotService.create(formData))
   }
 
+  async handleFileDrop(event: DragEvent) {
+    const file = event.dataTransfer?.files?.[0]
+    if (file) {
+      const screenshot = await this.uploadScreenshot(file)
+      this.imageUrl.set(screenshot.url)
+      this.emoji.set(null)
+    }
+  }
+
   addEmoji(event: { emoji: any }) {
     this.emoji.set(pick(event.emoji, 'id', 'set', 'colons', 'unified'))
   }
