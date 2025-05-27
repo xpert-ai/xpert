@@ -3,12 +3,15 @@ import { CompiledStateGraph, END, Send } from '@langchain/langgraph'
 import {
 	channelName,
 	IWFNSubflow,
+	IXpert,
 	IXpertAgent,
 	IXpertAgentExecution,
 	mapTranslationLanguage,
+	setStateVariable,
+	STATE_VARIABLE_INPUT,
+	STATE_VARIABLE_SYS,
 	TAgentRunnableConfigurable,
 	TXpertTeamNode,
-	XpertParameterTypeEnum
 } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
 import { InternalServerErrorException, Logger } from '@nestjs/common'
@@ -18,7 +21,8 @@ import { I18nService } from 'nestjs-i18n'
 import { wrapAgentExecution } from '../../../xpert-agent-execution/utils'
 import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
 import { CreateWNSubflowCommand } from '../create-wn-subflow.command'
-import { AgentStateAnnotation, stateToParameters } from '../../../shared'
+import { CompileGraphCommand } from '../../commands'
+import { AgentStateAnnotation } from '../../../shared'
 
 @CommandHandler(CreateWNSubflowCommand)
 export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCommand> {
@@ -35,11 +39,14 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 		const { isDraft, subscriber, environment } = command.options
 
 		// Get the only child agent node
-		const connections = graph.connections.filter((conn) => conn.type === 'agent' && conn.from === node.key)
+		const connections = graph.connections.filter((conn) => (conn.type === 'agent' || conn.type === 'xpert') && conn.from === node.key)
 		if (connections.length > 1) {
 			throw new InternalServerErrorException(
 				await this.i18nService.translate('xpert.Error.MultiNodeNotSupported', {
-					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+					args: {
+						node: node.entity.title || node.entity.key
+					}
 				})
 			)
 		}
@@ -53,53 +60,84 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 				})
 			)
 		}
-		const agentNode = graph.nodes.find(
-			(n) => n.type === 'agent' && n.key === connections[0].to
-		) as TXpertTeamNode & { type: 'agent' }
+
+		let extXpert: IXpert = null
+		let _xpertId = xpertId
+		let agentKey: string = null
+		if (connections[0].type === 'xpert') {
+			// Collaborator (external xpert)
+			const collaboratorNode = graph.nodes.find(
+				(n) => n.type === 'xpert' && n.key === connections[0].to
+			) as TXpertTeamNode & { type: 'xpert' }
+			if (collaboratorNode) {
+				extXpert = collaboratorNode.entity
+				_xpertId = collaboratorNode.key
+				agentKey = collaboratorNode.entity.agent.key
+			}
+		} else {
+			const agentNode = graph.nodes.find(
+				(n) => n.type === 'agent' && n.key === connections[0].to
+			) as TXpertTeamNode & { type: 'agent' }
+			if (agentNode) {
+				agentKey = agentNode.key
+			}
+		}
 
 		const entity = node.entity as IWFNSubflow
+		const inputParams = entity.inputParams
+		const outputParams = entity.outputParams
 
-		const _execution = {
-			agentKey: agentNode.key,
-			title: agentNode.entity.title
-		}
+		let subgraph = null
+		const _execution: IXpertAgentExecution = {}
 		const abortController = new AbortController()
 		// Create graph by command
-		const { agent, graph: subgraph } = await this.commandBus.execute<
-			XpertAgentSubgraphCommand,
-			{ agent: IXpertAgent; graph: CompiledStateGraph<any, any, any> }
-		>(
-			new XpertAgentSubgraphCommand(
-				agentNode.key,
-				{ id: xpertId },
-				{
+		if (extXpert) {
+			const compiled = await this.commandBus.execute<
+				CompileGraphCommand,
+				{ graph: CompiledStateGraph<unknown, unknown>; agent: IXpertAgent }
+			>(
+				new CompileGraphCommand(agentKey, {id: _xpertId}, {
 					isDraft,
-					isStart: true,
+					execution: _execution,
 					rootController: abortController,
 					signal: abortController.signal,
-					execution: _execution,
 					subscriber,
-					disableCheckpointer: true,
-					variables: entity.inputs?.map((item) => ({
-						name: item.name,
-						type: XpertParameterTypeEnum.STRING,
-					})),
-					channel: channelName(agentNode.key),
-					partners: []
-				}
+				})
 			)
-		)
+			subgraph = compiled.graph
+		} else {
+			const compiled = await this.commandBus.execute<
+				XpertAgentSubgraphCommand,
+				{ agent: IXpertAgent; graph: CompiledStateGraph<any, any, any> }
+			>(
+				new XpertAgentSubgraphCommand(
+					agentKey,
+					{ id: _xpertId },
+					{
+						isDraft,
+						isStart: true,
+						rootController: abortController,
+						signal: abortController.signal,
+						execution: _execution,
+						subscriber,
+						disableCheckpointer: true,
+						channel: channelName(agentKey),
+						partners: []
+					}
+				)
+			)
+			subgraph = compiled.graph
+		}
 
 		return {
 			workflowNode: {
 				graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
 					const configurable: TAgentRunnableConfigurable = config.configurable
 					const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
-					const _state = stateToParameters(state, environment)
-					const inputs = entity.inputs?.reduce((params, { name, variable }) => {
-						params[name] = get(_state, variable)
-						return params
-					}, {})
+					const inputs = inputParams?.reduce((acc, curr) => {
+						setStateVariable(acc, curr.variable, get(state, curr.name))
+						return acc
+					}, {}) ?? {}
 
 					const execution: IXpertAgentExecution = {
 						inputs: inputs,
@@ -120,31 +158,43 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 								threadId: thread_id,
 								checkpointNs: checkpoint_ns,
 								checkpointId: checkpoint_id,
-								agentKey: agentNode.key,
-								title: agentNode.entity.title
+							}
+							if (extXpert) {
+								__execution.xpertId = extXpert.id
+							} else {
+								__execution.xpertId = xpertId
+								__execution.agentKey = agentKey
 							}
 
 							const _state = await wrapAgentExecution(
 								async () => {
 									const retState = await subgraph.invoke(
-										{ ...state, ...inputs },
+										{
+											[STATE_VARIABLE_INPUT]: state[STATE_VARIABLE_INPUT],
+											[STATE_VARIABLE_SYS]: state[STATE_VARIABLE_SYS],
+											...inputs
+										},
 										{
 											...config,
 											signal: abortController.signal,
 											configurable: {
 												...config.configurable,
-												executionId: execution.id
+												executionId: __execution.id
 											}
 										}
 									)
 
+									const outputState = outputParams.reduce((acc, curr) => {
+										acc[curr.name] = get(retState, curr.variable)
+										return acc
+									}, {})
+									const output = retState[channelName(agentKey)]?.output
+
 									return {
 										state: {
-											[channelName(node.key)]: entity.outputs?.reduce((params, { name, variable }) => {
-												params[name] = get(retState, variable)
-												return params
-											}, {})
-										}
+											[channelName(node.key)]: outputState
+										},
+										output
 									}
 								},
 								{

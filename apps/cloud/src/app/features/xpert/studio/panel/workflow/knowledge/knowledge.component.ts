@@ -69,7 +69,7 @@ export class XpertWorkflowKnowledgeComponent extends XpertWorkflowBaseComponent 
     }))
   })
 
-  readonly showOutput = signal<boolean>(false)
+  readonly showOutput = signal<boolean>(true)
 
   onFocus(event: Event) {}
 

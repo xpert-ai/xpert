@@ -48,7 +48,6 @@ import { XpertWorkflowNodeNoteComponent } from './note/note.component'
   host: {
     tabindex: '-1',
     '[class]': 'type()',
-    '(contextmenu)': 'emitSelectionChangeEvent($event)'
   }
 })
 export class XpertStudioNodeWorkflowComponent {
@@ -73,9 +72,9 @@ export class XpertStudioNodeWorkflowComponent {
   readonly description = computed(() => this.entity()?.description)
   readonly isStart = computed(() => this.startNodes()?.includes(this.key()))
 
-  private get hostElement(): HTMLElement {
-    return this.elementRef.nativeElement
-  }
+  // private get hostElement(): HTMLElement {
+  //   return this.elementRef.nativeElement
+  // }
 
   constructor() {
     effect(() => {
@@ -83,11 +82,11 @@ export class XpertStudioNodeWorkflowComponent {
     })
   }
 
-  protected emitSelectionChangeEvent(event: MouseEvent): void {
-    this.hostElement.focus()
-    event.preventDefault()
-    event.stopPropagation()
+  // protected emitSelectionChangeEvent(event: MouseEvent): void {
+  //   this.hostElement.focus()
+  //   event.preventDefault()
+  //   event.stopPropagation()
 
-    // Open Context menu
-  }
+  //   // Open Context menu
+  // }
 }

@@ -1,7 +1,7 @@
 import { BaseMessage } from '@langchain/core/messages'
 import { Subscriber } from 'rxjs'
 import { TMessageContentComplex } from '../ai/chat-message.model'
-import { agentLabel, IXpertAgent, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '../ai'
+import { agentLabel, IXpertAgent, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertParameterTypeEnum } from '../ai'
 
 export const CONTEXT_VARIABLE_CURRENTSTATE = 'currentState'
 export const STATE_VARIABLE_SYS = 'sys'
@@ -56,10 +56,13 @@ export function messageContentText(content: string | TMessageContentComplex) {
  * @param value 
  * @returns 
  */
-export function setStateVariable(state, varName: string, value: any) {
+export function setStateVariable(state: Record<string, any>, varName: string, value: any) {
 	const [agentChannelName, variableName] = varName.split('.')
 	if (variableName) {
-		state[agentChannelName] = {[variableName]: value}
+		state[agentChannelName] = {
+			...(state[agentChannelName] ?? {}),
+			[variableName]: value
+		}
 	} else {
 		state[agentChannelName] = value
 	}
@@ -70,7 +73,7 @@ export function setStateVariable(state, varName: string, value: any) {
 export function getAgentVarGroup(key: string, graph: TXpertGraph): TWorkflowVarGroup {
 	const agent = graph.nodes.find((_) => _.type === 'agent' && _.key === key) as TXpertTeamNode & {type: 'agent'}
 
-	const variables = []
+	const variables: TXpertParameter[] = []
 	const varGroup: TWorkflowVarGroup = {
 		// agent: {
 		// 	title: agent.entity.title,
@@ -89,7 +92,7 @@ export function getAgentVarGroup(key: string, graph: TXpertGraph): TWorkflowVarG
 
 	variables.push({
 		name: `output`,
-		type: 'string',
+		type: XpertParameterTypeEnum.STRING,
 		description: {
 			zh_Hans: `输出`,
 			en_US: `Output`
@@ -100,7 +103,8 @@ export function getAgentVarGroup(key: string, graph: TXpertGraph): TWorkflowVarG
 			variables.push({
 				name: variable.name,
 				type: variable.type as TStateVariable['type'],
-				description: variable.description
+				description: variable.description,
+				item: variable.item
 			})
 		})
 	}

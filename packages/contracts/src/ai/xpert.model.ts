@@ -69,6 +69,7 @@ export type TXpert = {
 
   /**
    * Draft on current version
+   * Draft on current version
    */
   draft?: TXpertTeamDraft
   graph?: TXpertGraph
@@ -91,11 +92,11 @@ export type TXpert = {
   // Many to many relationships
 
   /**
-   * 子专家, 执行具体任务的 Digital Expert, 专注于完成被分配的工作
+   * Sub-experts, Digital experts who perform specific tasks, focus on completing the assigned work
    */
   executors?: IXpert[]
   /**
-   * 调用此专家的任务协调者
+   * The task coordinator who called this expert
    */
   leaders?: IXpert[]
 
@@ -537,13 +538,14 @@ export function createXpertGraph(xpert: IXpert, position: IPoint) {
 }
 
 /**
- * Create agents nodes of xpert and it's area size
+ * Create all nodes of xpert and it's area size
  * 
  * @param xpert 
  * @returns 
  */
 export function createXpertNodes(xpert: IXpert, position: IPoint) {
   const nodes: TXpertTeamNode[] = []
+  // Agents
   nodes.push(...[xpert.agent, ...(xpert.agents ?? [])].map((_) => {
     return {
       type: 'agent',
@@ -554,6 +556,7 @@ export function createXpertNodes(xpert: IXpert, position: IPoint) {
     } as TXpertTeamNode
   }))
 
+  // External experts
   xpert.executors?.forEach((executor) => {
     const position = xpert.options?.xpert?.[executor.id]?.position ?? {x: 0, y: 0}
     const executorGraph = createXpertNodes(executor, position)

@@ -7,7 +7,7 @@
         "FallbackModelNotFound": "未找到'{agent}'的备用模型配置",
         "CopilotModelConfigError": "智能助理模型‘{model}’未正确配置",
         "NameExists": "名称已存在",
-        "MultiNodeNotSupported": "暂不支持多节点运行",
+        "MultiNodeNotSupported": "暂不支持多节点运行‘{node}’",
         "NoChildNodeForLoop": "未找到循环的子节点",
         "NoChildAgentForSubflow": "未找到子流程‘{key}’的智能体节点",
         "ForbiddenDeleteLatest": "不能直接删除最新版本，请先删除其他版本",

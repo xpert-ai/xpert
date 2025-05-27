@@ -1,5 +1,6 @@
 import { inject } from '@angular/core'
-import { letterStartSUID, XpertService } from '../../@core'
+import { upperFirst } from 'lodash-es'
+import { letterStartSUID, OrderTypeEnum, WorkflowNodeTypeEnum, XpertService } from '../../@core'
 
 export function injectGetXpertTeam() {
   const xpertService = inject(XpertService)
@@ -24,7 +25,11 @@ export function injectGetXpertsByWorkspace() {
   const xpertService = inject(XpertService)
 
   return (workspace: string) => {
-    return xpertService.getAllByWorkspace(workspace, { where: { latest: true } }, true)
+    return xpertService.getAllByWorkspace(
+      workspace,
+      { where: { latest: true }, order: { updatedAt: OrderTypeEnum.DESC } },
+      true
+    )
   }
 }
 
@@ -55,10 +60,22 @@ export function genXpertCodeKey() {
 export function genXpertHttpKey() {
   return letterStartSUID('Http_')
 }
+
 export function genXpertSubflowKey() {
   return letterStartSUID('Subflow_')
 }
 
 export function genXpertNoteKey() {
   return letterStartSUID('Note_')
+}
+
+export function genWorkflowKey(type: WorkflowNodeTypeEnum) {
+  switch (type) {
+    case WorkflowNodeTypeEnum.IF_ELSE: {
+      return genXpertRouterKey()
+    }
+    default: {
+      return type ? letterStartSUID(upperFirst(type) + '_') : null
+    }
+  }
 }

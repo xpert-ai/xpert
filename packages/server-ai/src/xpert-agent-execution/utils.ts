@@ -1,10 +1,10 @@
 import { ChatMessageEventTypeEnum, IXpertAgentExecution, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 import { messageEvent } from '../xpert-agent/agent'
 import { XpertAgentExecutionUpsertCommand } from './commands'
 import { XpertAgentExecutionDTO } from './dto'
-import { getErrorMessage } from '@metad/server-common'
 import { XpertAgentExecutionOneQuery } from './queries'
 
 export function wrapAgentExecution(

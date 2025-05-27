@@ -1,12 +1,18 @@
 {
 	"name": "@metad/xpert-ui",
-	"version": "3.2.8",
+	"version": "3.2.10",
 	"type": "commonjs",
 	"license": "AGPL-3.0",
 	"scripts": {
 		"start": "nx start cloud"
 	},
 	"dependencies": {
+		"@foblex/2d": "^1.2.2",
+		"@foblex/drag-toolkit": "^1.1.0",
+		"@foblex/flow": "^17.5.0",
+		"@foblex/mediator": "^1.1.2",
+		"@foblex/platform": "^1.0.4",
+		"@foblex/utils": "^1.1.1",
 		"i18next": "~23.14.0",
 		"i18next-browser-languagedetector": "^8.0.5",
 		"i18next-http-backend": "^3.0.2",

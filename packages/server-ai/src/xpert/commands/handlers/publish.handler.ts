@@ -1,4 +1,15 @@
-import { agentLabel, IKnowledgebase, IXpert, IXpertAgent, IXpertToolset, mapTranslationLanguage, TXpertGraph, TXpertTeamDraft, TXpertTeamNode, WorkflowNodeTypeEnum } from '@metad/contracts'
+import {
+	agentLabel,
+	IKnowledgebase,
+	IXpert,
+	IXpertAgent,
+	IXpertToolset,
+	mapTranslationLanguage,
+	TXpertGraph,
+	TXpertTeamDraft,
+	TXpertTeamNode,
+	WorkflowNodeTypeEnum,
+  } from "@metad/contracts"
 import { omit, pick } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { BadRequestException, HttpException, Logger, NotFoundException } from '@nestjs/common'
@@ -135,18 +146,20 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 		if (draft.nodes) {
 			const newAgents = []
 			const agentNodes = draft.nodes.filter((node) => node.type === 'agent') as (TXpertTeamNode & {type: 'agent'})[]
+			// All relative experts
 			const xpertNodes = draft.nodes.filter((node) => node.type === 'xpert') as (TXpertTeamNode & {type: 'xpert'})[]
+			const totalXpertIds = xpertNodes.map(({key}) => key)
 			const totalToolsetIds = []
 			const totalKnowledgebaseIds = []
-			const totalXpertIds = []
 			for await (const node of agentNodes) {
 				// Collect toolsetIds
 				const toolsetIds = draft.connections.filter((_) => _.type === 'toolset' && _.from === node.key).map((_) => _.to)
 				const knowledgebaseIds = draft.connections.filter((_) => _.type === 'knowledge' && _.from === node.key).map((_) => _.to)
-				const xpertIds = draft.connections.filter((_) => _.type === 'xpert' && _.from === node.key).map((_) => _.to)
 				totalToolsetIds.push(...toolsetIds)
 				totalKnowledgebaseIds.push(...knowledgebaseIds)
-				totalXpertIds.push(...xpertIds)
+				// totalXpertIds.push(...xpertIds)
+				// All relative experts
+				const xpertIds = draft.connections.filter((_) => _.type === 'xpert' && _.from === node.key).map((_) => _.to)
 				const collaboratorNames = xpertIds.map((id) => xpertNodes.find((_) => _.key === id)?.entity.name).filter(Boolean)
 
 				const oldAgent = oldAgents.find((item) => item.key === node.key)

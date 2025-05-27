@@ -58,6 +58,7 @@
   @if (contentStr()) {
     <markdown clipboard class="ngm-copilot-markdown flex-1"
       [clipboardButtonTemplate]="buttonTemplate"
+      [disableSanitizer]="true"
       lineNumbers
       [start]="5"
       [data]="contentStr()"

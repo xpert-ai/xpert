@@ -1,4 +1,4 @@
-import { Connection, Pool, createConnection, FieldPacket, Types } from 'mysql2'
+import { Connection, Pool, createConnection, FieldPacket, Types, ConnectionOptions } from 'mysql2'
 import { BaseSQLQueryRunner, SQLAdapterOptions, register } from '../../base'
 import { convertMySQLSchema, pick, typeToMySqlDB } from '../../helpers'
 import { DBProtocolEnum, DBSyntaxEnum, IDSSchema, QueryOptions } from '../../types'
@@ -9,6 +9,8 @@ export const RDS_TYPE = 'rds_mysql'
 
 export interface MysqlAdapterOptions extends SQLAdapterOptions {
   queryTimeout?: number
+  timezone?: string
+  serverTimezone?: string
 }
 
 export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> extends BaseSQLQueryRunner<T> {
@@ -19,7 +21,7 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
 
   readonly jdbcDriver = 'com.mysql.jdbc.Driver'
   jdbcUrl(schema?: string) {
-    return `jdbc:mysql://${this.options.host}:${this.options.port}/${schema}?user=${encodeURIComponent(
+    return `jdbc:mysql://${this.options.host}:${this.options.port}/${schema}?${this.options.serverTimezone ? `serverTimezone=${this.options.serverTimezone}&` : ''}user=${encodeURIComponent(
       this.options.username as string
     )}&password=${encodeURIComponent(this.options.password as string)}`
   }
@@ -34,6 +36,8 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
         password: { type: 'string', title: 'Password' },
         // 目前 catalog 用于指定数据库
         catalog: { type: 'string', title: 'Database' },
+        timezone: { type: 'string', title: 'Timezone', default: '+08:00' },
+        serverTimezone: { type: 'string', title: 'Server Timezone', default: 'Asia/Shanghai' },
         // database: { type: 'string' },
         // for SSL
         use_ssl: { type: 'boolean', title: 'Use SSL' },
@@ -66,7 +70,7 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
 
   #connection = null
   protected createConnection(database?: string) {
-    const config: any = pick(this.options, ['host', 'port', 'password', 'database'])
+    const config: ConnectionOptions = pick(this.options, ['host', 'port', 'password', 'database'])
     if (this.options.username) {
       config.user = this.options.username
     }
@@ -81,6 +85,9 @@ export class MySQLRunner<T extends MysqlAdapterOptions = MysqlAdapterOptions> ex
       config.ssl = {
         ca: this.options.ssl_cacert
       }
+    }
+    if (this.options.timezone) {
+      config.timezone = this.options.timezone
     }
 
     return createConnection({

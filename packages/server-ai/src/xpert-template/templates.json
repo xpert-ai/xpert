@@ -12,6 +12,26 @@
             ],
             "recommendedApps": [
                 {
+                    "name": "Smart HR Assistant",
+                    "type": "agent",
+                    "title": "Smart HR Assistant",
+                    "description": "Focusing on human resources scenarios, it demonstrates its automation and intelligent capabilities. Demonstrates how to use the 'Subflow' type workflow node.",
+                    "avatar": {
+                        "emoji": {
+                            "id": "card_index"
+                        },
+                        "background": "rgba(213, 245, 246, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43316",
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "gpt-4o"
+                    },
+                    "category": "Assistant",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
                     "name": "Customer Support Swarm",
                     "type": "agent",
                     "title": "Customer Support Swarm",
@@ -234,6 +254,26 @@
                 "Analysis"
             ],
             "recommendedApps": [
+                {
+                    "name": "Smart HR Assistant",
+                    "type": "agent",
+                    "title": "智能人力资源助理",
+                    "description": "聚焦人力资源场景，展现自动化、智能化能力。演示‘子流程’工作流节点的使用方式。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "card_index"
+                        },
+                        "background": "rgba(213, 245, 246, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43317",
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "gpt-4o"
+                    },
+                    "category": "Assistant",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
                 {
                     "name": "Customer Support Swarm",
                     "type": "agent",

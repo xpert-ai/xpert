@@ -404,7 +404,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// State
-		const {upstream, downstream} = allChannels(graph, agent.key)
+		const workflowNodes = allChannels(graph, agent.key)
 		const SubgraphStateAnnotation = Annotation.Root({
 			// Temp parameters
 			...(variables?.reduce((state, schema) => {
@@ -427,7 +427,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				return acc
 			}, {}) ?? {}),
 			// Default channels for nodes
-			...Object.fromEntries(uniq([agent.key, ...upstream, ...downstream]).map((key) => {
+			...Object.fromEntries(uniq([agent.key, ...workflowNodes]).map((key) => {
 				// for agent
 				if (isAgentKey(key)) {
 					const agent = graph.nodes.find((_) => _.type === 'agent' && _.key === key)

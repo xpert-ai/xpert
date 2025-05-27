@@ -1,6 +1,6 @@
 import { TXpertGraph } from '../ai/xpert.model'
 import { DeepPartial } from '../types'
-import { findStartNodes, getCurrentGraph } from './utils'
+import { allChannels, findStartNodes, getCurrentGraph } from './utils'
 
 describe('findStartNodes', () => {
   it('should return the correct start nodes for a given key', () => {
@@ -163,4 +163,121 @@ describe('findStartNodes', () => {
     expect(startNodes).toEqual(['Agent_albUSvIcdF'])
   })
   
+})
+
+describe('allChannels', () => {
+  it('should return the correct start nodes for a given key', () => {
+    const graph: DeepPartial<TXpertGraph> = {
+      nodes: [
+        {
+          type: "agent",
+          key: "Agent_xv0UeM91O6",
+        },
+        {
+          type: "agent",
+          key: "Agent_DiQbU6FKZ6",
+        },
+        {
+          type: "workflow",
+          key: "Router_Q1uTcWa1rZ",
+        },
+        {
+          type: "workflow",
+          key: "Code_MlXFPNEphR",
+        },
+        {
+          type: "workflow",
+          key: "Knowledge_PJ2H5EObqJ",
+        },
+        {
+          type: "workflow",
+          key: "Router_A1Na6n49Ri",
+        },
+        {
+          type: "workflow",
+          key: "Code_1uEOTXgBNQ",
+        },
+        {
+          type: "workflow",
+          key: "Answer_za0cCTiayv",
+        },
+        {
+          type: "workflow",
+          key: "Iterating_CsvbR5teUm",
+        },
+        {
+          type: "workflow",
+          key: "Answer_SowVtmiosK",
+        },
+      ],
+      connections: [
+        {
+          type: "edge",
+          key: "Router_Q1uTcWa1rZ/TT9sQAeTa2/Agent_DiQbU6FKZ6",
+          from: "Router_Q1uTcWa1rZ/TT9sQAeTa2",
+          to: "Agent_DiQbU6FKZ6",
+        },
+        {
+          type: "edge",
+          key: "Knowledge_PJ2H5EObqJ/Router_A1Na6n49Ri",
+          from: "Knowledge_PJ2H5EObqJ",
+          to: "Router_A1Na6n49Ri",
+        },
+        {
+          type: "edge",
+          key: "Router_A1Na6n49Ri/2syn8OhkzH/Agent_xv0UeM91O6",
+          from: "Router_A1Na6n49Ri/2syn8OhkzH",
+          to: "Agent_xv0UeM91O6",
+        },
+        {
+          type: "edge",
+          key: "Router_A1Na6n49Ri/else/Code_1uEOTXgBNQ",
+          from: "Router_A1Na6n49Ri/else",
+          to: "Code_1uEOTXgBNQ",
+        },
+        {
+          type: "edge",
+          key: "Router_Q1uTcWa1rZ/else/Answer_za0cCTiayv",
+          from: "Router_Q1uTcWa1rZ/else",
+          to: "Answer_za0cCTiayv",
+        },
+        {
+          type: "edge",
+          key: "Code_MlXFPNEphR/Router_Q1uTcWa1rZ",
+          from: "Code_MlXFPNEphR",
+          to: "Router_Q1uTcWa1rZ",
+        },
+        {
+          type: "edge",
+          key: "Code_1uEOTXgBNQ/Iterating_CsvbR5teUm",
+          from: "Code_1uEOTXgBNQ",
+          to: "Iterating_CsvbR5teUm",
+        },
+        {
+          type: "agent",
+          key: "Iterating_CsvbR5teUm/Agent_DiQbU6FKZ6",
+          from: "Iterating_CsvbR5teUm",
+          to: "Agent_DiQbU6FKZ6",
+        },
+        {
+          type: "edge",
+          key: "Iterating_CsvbR5teUm/Answer_SowVtmiosK",
+          from: "Iterating_CsvbR5teUm",
+          to: "Answer_SowVtmiosK",
+        },
+      ],
+    }
+
+    const key = 'Agent_xv0UeM91O6'
+    const workflowNodes = allChannels(graph as TXpertGraph, key)
+    expect(workflowNodes).toEqual(expect.arrayContaining([
+      'Agent_xv0UeM91O6',
+      'Knowledge_PJ2H5EObqJ',
+      'Code_1uEOTXgBNQ',
+      'Iterating_CsvbR5teUm',
+      'Answer_SowVtmiosK',
+    ]))
+
+    expect(workflowNodes).toEqual(expect.not.arrayContaining(['Router_Q1uTcWa1rZ']))
+  })
 })

@@ -25,6 +25,7 @@
     "Title": "元数分析云",
     "KEY_WORDS": {
       "OR": "或",
+      "Changelog": "更新日志",
       "PleaseInput": "请输入",
       "PasswordsNotMatch": "密码不匹配",
       "Required": "必输",
@@ -409,6 +410,7 @@
       "DeleteEnv": "删除此环境及其所有的环境变量"
     },
     "MENU": {
+      "IsLatest": "已是最新版本。",
       "Certification": "认证",
       "Chat": "聊天",
       "Copilot": "智能助理",
@@ -488,6 +490,7 @@
       "Data Sources": "数据源",
       "AddCertifications": "添加认证",
       "UserProfile": "用户配置",
+      "About": "关于",
       "Logout": "退出账号",
       "Integration": "集成",
       "HOME": {
@@ -664,11 +667,13 @@
       "Search": "搜索",
       "Copy": "复制",
       "NewTag": "新建标签",
-      "Duplicate": "复制",
+      "Duplicate": "复印",
       "OpenAttributesPanel": "打开属性面板",
       "Close": "关闭",
       "Update": "更新",
-      "Test": "测试"
+      "Test": "测试",
+      "HelpLink": "帮助链接",
+      "PasteHere": "粘贴到这里"
     },
     "MESSAGE": {
       "MAIN_ORGANIZATION_UPDATED": "组织更新成功",
@@ -1468,7 +1473,9 @@
         "Verify SSL certificate": "验证 SSL 证书",
         "SSL Mode": "SSL 模式",
         "HTTP Path": "Http 路径",
-        "Query timeout": "查询超时时间"
+        "Query timeout": "查询超时时间",
+        "Timezone": "时区(+08:00)",
+        "Server Timezone": "服务端时区(Asia/Shanghai)"
       }
     },
     "Story": {
@@ -2226,6 +2233,7 @@
       "Low": "低",
       "Attachments": "附件",
       "EnterParameters": "请输入必要参数",
+      "UnableParseContent": "无法解析内容",
       "KnowledgeBaseNotFound": "知识库‘{{id}}’未找到！",
       "ClickAddToAddKB": "点击“+”按钮添加知识库",
       "Knowledge": "知识",

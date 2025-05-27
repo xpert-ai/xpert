@@ -53,6 +53,7 @@ failed: ${error.message}`)
 			throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR)
 		}
 	}
+	
 	@Post('proxy/:copilotId/:m')
 	async proxyModule(
 		@Param('copilotId') copilotId: string,

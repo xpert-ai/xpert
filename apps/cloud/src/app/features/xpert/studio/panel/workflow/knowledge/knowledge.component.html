@@ -90,14 +90,12 @@
   <div class="h-[0.5px] bg-divider-subtle"></div>
 
   <div class="group/collapse flex items-center">
-    <div class="ml-4 flex grow items-center">
+    <div class="ml-2 flex grow items-center">
       <div class="text-sm font-semibold uppercase flex h-6 cursor-pointer items-center text-text-secondary"
         (click)="toggleShowOutput()">
         {{ 'PAC.Xpert.OutputVariables' | translate: {Default: 'Output Variables'} }}
       </div>
-      <div class="h-4 w-4 shrink-0">
-        <i class="ri-arrow-drop-down-fill" ></i>
-      </div>
+      <i class="ri-arrow-drop-down-fill -rotate-90" [class.rotate-0]="showOutput()" ></i>
     </div>
   </div>
   

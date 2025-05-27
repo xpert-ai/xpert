@@ -74,6 +74,9 @@
         [hideOnScroll]="true"
         [hideTimeout]="300"
         [placement]="eNgxFloatUiPlacements.TOPSTART"
+
+        [cdkContextMenuTriggerFor]="nodeMenu"
+        [cdkContextMenuTriggerData]="{node: node}"
       >
         @switch (node.type) {
           @case('agent') {
@@ -106,6 +109,14 @@
                 (click)="removeNode(node.key)">
                 <i class="ri-close-line"></i>
               </button>
+
+              <button type="button" class="flex items-center justify-center w-6 h-6 p-0.5 rounded-md cursor-pointer"
+                [cdkMenuTriggerFor]="nodeMenu"
+                [cdkMenuTriggerData]="{node: node}"
+                (click)="$event.stopPropagation()"
+              >
+                <i class="ri-more-line"></i>
+              </button>
             }
           </div>
         }
@@ -128,7 +139,8 @@
     }
 
     @for (group of xperts(); track group.key + group.hash) {
-      <div class="group" fGroup [fGroupId]="group.key" [fGroupParentId]="group.parentId" [fGroupPosition]="group.position"
+      <div class="group" [class.f-selected]="selectedNodeKey() === group.key"
+        fGroup [fGroupId]="group.key" [fGroupParentId]="group.parentId" [fGroupPosition]="group.position"
         [fGroupSize]="group.size" fDragHandle
         (fGroupPositionChange)="moveXpertGroup($event, group.key)"
         (fGroupSizeChange)="resizeXpertGroup($event, group.key)"
@@ -211,4 +223,29 @@
     [connection]="connection"
     [connectionComponent]="connectionComponent"
   />
+</ng-template>
+
+<ng-template #nodeMenu let-node="node">
+  <div cdkMenu class="cdk-menu__medium">
+    @if (node.type === 'agent' || node.type === 'workflow') {
+      <div cdkMenuItem (click)="copyNode(node)">
+        <i class="ri-clipboard-line mr-1"></i> {{ 'PAC.ACTIONS.Copy' | translate: {Default: 'Copy'} }}
+      </div>
+      <div cdkMenuItem (click)="duplicateNode(node)">
+        <i class="ri-file-copy-2-line mr-1"></i> {{ 'PAC.ACTIONS.Duplicate' | translate: {Default: 'Duplicate'} }}
+      </div>
+    }
+
+    <div class="h-[1px] bg-divider-regular my-1"></div>
+
+    <div cdkMenuItem class="danger" (click)="deleteNode(node)">
+      <i class="ri-delete-bin-3-line mr-1"></i> {{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} }}
+    </div>
+
+    <div class="h-[1px] bg-divider-regular my-1"></div>
+
+    <a cdkMenuItem [href]="helpUrl() + '/docs/ai/workflow/' + (node.type === 'workflow' ? node.entity.type : node.type)" target="_blank">
+      <i class="ri-question-line mr-1"></i> {{ 'PAC.ACTIONS.HelpLink' | translate: {Default: 'Help Link'} }}
+    </a>
+  </div>
 </ng-template>

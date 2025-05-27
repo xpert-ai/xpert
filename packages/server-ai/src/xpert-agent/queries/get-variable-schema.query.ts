@@ -2,6 +2,8 @@ import { IQuery } from '@nestjs/cqrs'
 
 /**
  * Get schema of state variable.
+ * 
+ * @deprecated Is it still useful?
  */
 export class XpertAgentVariableSchemaQuery implements IQuery {
 	static readonly type = '[Xpert Agent] Get schema of variable'

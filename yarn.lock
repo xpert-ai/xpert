@@ -5105,10 +5105,10 @@
   resolved "https://registry.yarnpkg.com/@floating-ui/utils/-/utils-0.2.8.tgz#21a907684723bbbaa5f0974cf7730bd797eb8e62"
   integrity sha512-kym7SodPp8/wloecOpcmSnWJsK7M0E5Wg8UcFA+uO4B9s5d0ywXOEro/8HM9x0rW+TljRzul/14UYz3TleT3ig==
 
-"@foblex/2d@^1.1.8":
-  version "1.1.8"
-  resolved "https://registry.yarnpkg.com/@foblex/2d/-/2d-1.1.8.tgz#072b020983eb9718bfcc5766365e2b105b966d52"
-  integrity sha512-F5QWANKfqCzYp6sOxh3rW+27ICB+30ccL1p058rTgY7ZiIJv/bMe3OtaY5mMmIqdge7v9Qclu4ykmJmFTFjUeA==
+"@foblex/2d@^1.2.2":
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/@foblex/2d/-/2d-1.2.2.tgz#f172cba5c20153c892842df852b230c013961aa9"
+  integrity sha512-nVl2iw6hF0RDE2+E4U1tSRX5lOI2toG9nY1VaMlQ0RdIB+0mEK1+lhjJDn/qDrBsMYpNCaTZ2CC3Jy54ItOnsQ==
   dependencies:
     tslib "^2.3.0"
 
@@ -5119,10 +5119,10 @@
   dependencies:
     tslib "^2.3.0"
 
-"@foblex/flow@^17.1.0":
-  version "17.1.0"
-  resolved "https://registry.yarnpkg.com/@foblex/flow/-/flow-17.1.0.tgz#cc7c6e517e7fc7dd367e05b88e4fe178d4c47a32"
-  integrity sha512-0ZH6AlHpAbCjW0AF8YNWPrqmxYoqFVeR1f2JGWVAZHJLTM623I0M9if4UDrXJ5QAkWI6FnbXobRP7FiGEJkRRw==
+"@foblex/flow@^17.5.0":
+  version "17.5.0"
+  resolved "https://registry.yarnpkg.com/@foblex/flow/-/flow-17.5.0.tgz#d454928527646a16dbe94ec61962fc44b64d4f81"
+  integrity sha512-kOXA7yND69tCMqYLjWeCoCcgjcZQy3cX4m+h+UmpBH+mViYCssmAyM7a/bs8Zuq4u4G+GucXkji4pGqF4jS2ew==
   dependencies:
     tslib "^2.3.0"
 
@@ -5140,10 +5140,10 @@
   dependencies:
     tslib "^2.3.0"
 
-"@foblex/utils@^1.1.0":
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/@foblex/utils/-/utils-1.1.0.tgz#e47dfb20527be8bea062b704cf3dd2b883663620"
-  integrity sha512-aJoYt7ljHq++SWqWM1JIKmNAoAXwVBobugJST3i5Xv5WuqS5S9ECCGdE1v4/eGo5APJiWPFLS27c/R4Sgoc0yg==
+"@foblex/utils@^1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@foblex/utils/-/utils-1.1.1.tgz#417dede254d892cd8d2e47c3c2dc0f389ca9e41e"
+  integrity sha512-w4g49vLAIogIXNYHWQzcv2p5jJKi/XAoTw7LvuEzKvEXDJ8ezL0BZJfbeg43q2+PyKvlUfu+6ySvNxnXYrb/Bg==
   dependencies:
     tslib "^2.3.0"
 

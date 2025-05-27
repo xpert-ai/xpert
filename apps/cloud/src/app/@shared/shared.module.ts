@@ -12,6 +12,9 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 const Modules = [TranslateModule, FormsModule, ReactiveFormsModule, AbilityModule, OcapCoreModule]
 
+/**
+ * @deprecated
+ */
 @NgModule({
   declarations: [],
   imports: [

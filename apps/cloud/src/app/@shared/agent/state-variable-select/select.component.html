@@ -55,18 +55,22 @@
 
 <ng-template #varsMenu>
   <div cdkMenu class="cdk-menu__medium">
-    <ul>
+    <ul cdkMenuGroup>
       @for (g of filteredVariables(); track g) {
         @if (g.group) {
           <div class="p-1 mt-2 text-sm text-text-secondary uppercase">{{g.group.description | i18n}}</div>
         } @else {
           <div class="p-1 mt-2 text-sm text-text-secondary">{{'PAC.Copilot.SystemVariables' | translate: {Default: 'System Variables'} }}</div>
         }
-        @for (variable of g.variables; track variable.name) {
-          <li cdkMenuItem class="max-w-sm space-x-2 truncate" (click)="selectVariable(g.group?.name, variable)">
-            <span class="text-sm mr-1">{{ variable.name }}</span>
-            <span class="flex-1 text-xs italic truncate text-text-secondary">{{variable.description | i18n}}</span>
-            <span class="ml-4 px-1 text-sm rounded-md bg-gray-50 text-primary-300">{{variable.type}}</span>
+        @for (item of g.variables; track item.name) {
+          <li cdkMenuItemRadio class="max-w-sm"
+            [cdkMenuItemChecked]="item.name === variable()?.name"
+            (click)="selectVariable(g.group?.name, item)">
+            <div class="w-full flex items-center space-x-2 truncate">
+              <span class="text-sm mr-1">{{ item.name }}</span>
+              <span class="flex-1 text-xs italic truncate text-text-secondary">{{item.description | i18n}}</span>
+              <span class="ml-4 px-1 text-sm rounded-md bg-gray-50 text-primary-300">{{item.type}}</span>
+            </div>
           </li>
         }
       }
