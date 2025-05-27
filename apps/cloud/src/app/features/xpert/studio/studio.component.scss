@@ -135,7 +135,7 @@
   .node-toolbar {
     @apply invisible;
   }
-  &:hover, &.ngm-selected {
+  &:hover, &.ngm-selected, &.f-selected {
     .node-toolbar {
       @apply visible;
     }
