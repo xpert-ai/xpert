@@ -36,18 +36,19 @@ export class XpertExecutionService {
   readonly executions = computed<Record<string, IXpertAgentExecution[]>>(() => {
       const agentExecutions = {}
       Object.values(this.#agentExecutions() ?? {}).forEach((executions) => {
-        executions.forEach((execution) => {
-          execution.subExecutions?.forEach((item) => {
-            if (item.agentKey) {
-              agentExecutions[item.agentKey] ??= []
-              agentExecutions[item.agentKey] = agentExecutions[item.agentKey].filter((_) => _.id !== item.id).concat(item)
-            }
-          })
-          if (execution.agentKey) {
-            agentExecutions[execution.agentKey] ??= []
-            agentExecutions[execution.agentKey] = agentExecutions[execution.agentKey].filter((_) => _.id !== execution.id).concat(execution)
-          }
-        })
+        expandExecutions(executions, agentExecutions)
+        // executions.forEach((execution) => {
+        //   execution.subExecutions?.forEach((item) => {
+        //     if (item.agentKey) {
+        //       agentExecutions[item.agentKey] ??= []
+        //       agentExecutions[item.agentKey] = agentExecutions[item.agentKey].filter((_) => _.id !== item.id).concat(item)
+        //     }
+        //   })
+        //   if (execution.agentKey) {
+        //     agentExecutions[execution.agentKey] ??= []
+        //     agentExecutions[execution.agentKey] = agentExecutions[execution.agentKey].filter((_) => _.id !== execution.id).concat(execution)
+        //   }
+        // })
       })
   
       Object.keys(this.knowledgeExecutions() ?? {}).forEach((id) => {
@@ -230,4 +231,14 @@ export class XpertExecutionService {
     this.toolExecutions.set({})
     this.knowledgeExecutions.set({})
   }
+}
+
+function expandExecutions(executions: IXpertAgentExecution[], expanded: Record<string, IXpertAgentExecution[]>) {
+  executions?.forEach((execution) => {
+    if (execution.agentKey) {
+      expanded[execution.agentKey] ??= []
+      expanded[execution.agentKey] = expanded[execution.agentKey].filter((_) => _.id !== execution.id).concat(execution)
+    }
+    expandExecutions(execution.subExecutions, expanded)
+  })
 }
