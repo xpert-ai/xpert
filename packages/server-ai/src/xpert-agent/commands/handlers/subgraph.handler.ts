@@ -571,12 +571,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 				const messages = [...deleteMessages, ...humanMessages]
 				const nState: Record<string, any> = {
-					// [STATE_VARIABLE_INPUT]: '',
-					messages: messages,
+					messages: [...messages],
 					[channelName(agentKey)]: {messages}
 				}
-				if ((isBaseMessage(message) && isAIMessage(message))
-					|| isBaseMessageChunk(message) && isAIMessageChunk(message)) {
+				if ((isBaseMessage(message)) || isBaseMessageChunk(message)) {
 					nState.messages.push(message)
 					nState[channelName(agentKey)].messages.push(message)
 					nState[channelName(agentKey)].output = stringifyMessageContent(message.content)
@@ -695,7 +693,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// Conditional navigator for entry Agent
-		if (!agentHasNextNodes) {
+		if (!nextNodeKey.length) {
 			pathMap.push(END)
 		}
 		subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(agentChannel, summarize, summarizeTitle, nextNodeKey), pathMap)
@@ -713,7 +711,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// Verbose
-		this.#logger.verbose(agentLabel(agent) + ': ', Array.from(subgraphBuilder.allEdges), Object.keys(subgraphBuilder.nodes))
+		this.#logger.verbose(agentLabel(agent) + ': \n'+ Array.from(subgraphBuilder.allEdges).join('\n') + '\n\n' + Object.keys(subgraphBuilder.nodes))
 
 		const compiledGraph = subgraphBuilder.compile({
 			checkpointer: disableCheckpointer ? false : this.copilotCheckpointSaver,

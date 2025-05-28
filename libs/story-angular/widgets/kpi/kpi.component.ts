@@ -18,6 +18,7 @@ import { MatMenuModule } from '@angular/material/menu'
 import { MatButtonModule } from '@angular/material/button'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { DensityDirective } from '@metad/ocap-angular/core'
 
 export interface PacWidgetKPIStyling extends StoryWidgetStyling {
   title: ComponentStyling
@@ -43,7 +44,8 @@ export interface PacWidgetKPIStyling extends StoryWidgetStyling {
 
     NgmObjectNumberComponent,
     KPIPlaceholderComponent,
-    NgmSelectionModule
+    NgmSelectionModule,
+    DensityDirective
   ]
 })
 export class NxWidgetKpiComponent extends AbstractStoryWidget<
