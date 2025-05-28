@@ -47,6 +47,7 @@ export class GoogleLargeLanguageModel extends LargeLanguageModel {
 			streaming: copilotModel.options?.streaming ?? true,
 			temperature: copilotModel.options?.temperature ?? 0,
 			maxOutputTokens: copilotModel.options?.max_output_tokens,
+			verbose: options?.verbose,
 			callbacks: [
 				...this.createHandleUsageCallbacks(
 					copilot,

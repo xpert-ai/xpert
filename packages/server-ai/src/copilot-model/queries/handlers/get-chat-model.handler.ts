@@ -64,6 +64,7 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 				copilot
 			},
 			{
+				verbose: Logger.isLevelEnabled('verbose'),
 				modelProperties: customModels[0]?.modelProperties,
 				handleLLMTokens: async (input) => {
 					if (usageCallback && input.usage) {

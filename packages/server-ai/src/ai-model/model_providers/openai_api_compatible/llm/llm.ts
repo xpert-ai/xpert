@@ -66,6 +66,7 @@ export class OAIAPICompatLargeLanguageModel extends LargeLanguageModel {
 			temperature: copilotModel.options?.temperature ?? 0,
 			maxTokens: copilotModel.options?.max_tokens,
 			streamUsage: false,
+			verbose: options?.verbose,
 			callbacks: [
 				...this.createHandleUsageCallbacks(copilot, model, credentials, handleLLMTokens)
 			]

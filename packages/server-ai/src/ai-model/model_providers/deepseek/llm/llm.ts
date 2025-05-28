@@ -60,6 +60,7 @@ export class DeepseekLargeLanguageModel extends LargeLanguageModel {
 			frequencyPenalty: modelCredentials?.frequency_penalty,
 			maxRetries: modelCredentials?.maxRetries,
 			streamUsage: false,
+			verbose: options?.verbose,
 		}
 		return new ChatDeepSeek({
 			...fields,

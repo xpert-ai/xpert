@@ -48,6 +48,7 @@ export class XAILargeLanguageModel extends LargeLanguageModel {
 			model,
 			streaming: copilotModel.options?.streaming ?? true,
 			temperature: copilotModel.options?.temperature ?? 0,
+			verbose: options?.verbose,
 			callbacks: [
 				...this.createHandleUsageCallbacks(copilot, model, credentials, handleLLMTokens)
 			]
