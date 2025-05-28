@@ -9,6 +9,7 @@ import {
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum
 } from 'apps/cloud/src/app/@core'
+import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
@@ -18,7 +19,6 @@ import { XpertStudioNodeWorkflowIfelseComponent } from './ifelse/ifelse.componen
 import { XpertStudioNodeWorkflowIteratingComponent } from './iterating/iterating.component'
 import { XpertStudioNodeWorkflowSplitterComponent } from './splitter/splitter.component'
 import { XpertStudioNodeWorkflowHttpComponent } from './http/http.component'
-import { XpertWorkflowIconComponent } from './icon/icon.component'
 import { XpertStudioNodeWorkflowKnowledgeComponent } from './knowledge/knowledge.component'
 import { XpertWorkflowNodeSubflowComponent } from './subflow/subflow.component'
 import { XpertWorkflowNodeNoteComponent } from './note/note.component'

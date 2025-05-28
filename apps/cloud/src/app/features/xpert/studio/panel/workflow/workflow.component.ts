@@ -25,10 +25,10 @@ import { XpertStudioPanelWorkflowAnswerComponent } from './answer/answer.compone
 import { XpertStudioPanelWorkflowCodeComponent } from './code/code.component'
 import { XpertWorkflowCodeTestComponent } from './code-test/code.component'
 import { XpertWorkflowHttpComponent } from './http/http.component'
-import { XpertWorkflowIconComponent } from '../../components/workflow/icon/icon.component'
 import { XpertWorkflowKnowledgeComponent } from './knowledge/knowledge.component'
 import { XpertWorkflowKnowledgeTestComponent } from './knowledge-test/knowledge.component'
 import { XpertWorkflowSubflowComponent } from './subflow/subflow.component'
+import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',

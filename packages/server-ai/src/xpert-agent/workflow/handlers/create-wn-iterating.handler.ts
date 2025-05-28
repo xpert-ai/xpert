@@ -10,7 +10,8 @@ import {
 	setStateVariable,
 	STATE_VARIABLE_SYS,
 	TAgentRunnableConfigurable,
-	TXpertTeamNode
+	TXpertTeamNode,
+	WorkflowNodeTypeEnum
 } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
 import { InternalServerErrorException, Logger } from '@nestjs/common'
@@ -145,6 +146,8 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 						}, {})
 
 						const itemExecution: IXpertAgentExecution = {
+							category: 'workflow',
+							type: WorkflowNodeTypeEnum.ITERATING,
 							xpert: { id: xpertId } as IXpert,
 							agentKey: node.key,
 							inputs: item,

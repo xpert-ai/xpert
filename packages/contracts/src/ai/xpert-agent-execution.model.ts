@@ -1,20 +1,44 @@
 import { StoredMessage } from '@langchain/core/messages'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
-import { IXpert } from './xpert.model'
+import { IXpert, TXpertTeamNodeType } from './xpert.model'
 import { IXpertAgent } from './xpert-agent.model'
 import { TSensitiveOperation } from './chat.model'
 import { I18nObject } from '../types'
+import { WorkflowNodeTypeEnum } from './xpert-workflow.model'
 
-/**
- * Corresponds to the run in the [Agent Protocol](https://github.com/langchain-ai/agent-protocol).
- */
-export type TXpertAgentExecution = {
+export type TXpertExecution = {
+  category?: TXpertTeamNodeType
+  type?: WorkflowNodeTypeEnum
   title?: string | I18nObject
   inputs?: any
   outputs?: any
   status?: XpertAgentExecutionStatusEnum
   error?: string
   elapsedTime?: number
+
+  // State of graph
+  threadId?: string
+  checkpointNs?: string
+  checkpointId?: string
+  channelName?: string
+  parent_thread_id?: string
+
+  // Many to one
+  /**
+   * Include workflow node key
+   */
+  agentKey?: string
+  predecessor?: string
+  xpert?: IXpert
+  xpertId?: string
+  // Parent AgentExecution
+  parentId?: string
+}
+
+/**
+ * Corresponds to the run in the [Agent Protocol](https://github.com/langchain-ai/agent-protocol).
+ */
+export type TXpertAgentExecution = TXpertExecution & {
   /**
    * Total token usage of chat model
    */
@@ -38,28 +62,11 @@ export type TXpertAgentExecution = {
   outputTokens?: number
   outputUnitPrice?: number
   outputPriceUnit?: number
-
-  // State of graph
-  threadId?: string
-  checkpointNs?: string
-  checkpointId?: string
-  channelName?: string
-  parent_thread_id?: string
+  
   /**
    * Latest operation when interrupted
    */
   operation?: TSensitiveOperation
-
-  // Many to one
-  /**
-   * Include workflow node key
-   */
-  agentKey?: string
-  predecessor?: string
-  xpert?: IXpert
-  xpertId?: string
-  // Parent AgentExecution
-  parentId?: string
 
   // Stored messages or from checkpoints
   messages?: StoredMessage[]
@@ -74,7 +81,7 @@ export type TXpertAgentExecution = {
 }
 
 /**
- * Execute xpert agent.
+ * Execution of agent or workflow nodes.
  * 
  * Corresponds to the run in the [Agent Protocol](https://github.com/langchain-ai/agent-protocol).
  */
