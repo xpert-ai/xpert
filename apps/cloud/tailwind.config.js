@@ -65,9 +65,6 @@ module.exports = {
           '0%, 100%': { 'border-color': '#3b82f6' },
           '50%': { 'border-color': 'transparent' },
         }
-      },
-      zIndex: {
-        102: '102',
       }
     },
     fontFamily: {
