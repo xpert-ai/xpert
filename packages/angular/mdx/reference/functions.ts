@@ -7,6 +7,26 @@ export const FUNCTIONS = [
     documentation: `Returns a number that is calculated by aggregating over the cells returned by the set expression. If a numeric expression is not provided, this function aggregates each measure within the current query context by using the default aggregation operator that is specified for each measure. If a numeric expression is provided, this function first evaluates, and then sums, the numeric expression for each cell in the specified set.`
   },
   {
+    label: 'Avg',
+    expression: 'Avg(Set_Expression [, Numeric_Expression])',
+    insertText: 'Avg()',
+    documentation:
+      'Returns the average (arithmetic mean) of a numeric expression that is evaluated over the specified set.'
+  },
+  {
+    label: 'Count',
+    expression: 'Count(Set_Expression [, ExcludeEmpty | IncludeEmpty])',
+    insertText: 'Count()',
+    documentation:
+      'Returns the number of tuples in a specified set, with an optional flag to include or exclude empty tuples.'
+  },
+  {
+    label: 'Existing',
+    expression: `Existing Set_Expression`,
+    insertText: 'Existing',
+    documentation: `Forces a specified set to be evaluated within the current context.`
+  },
+  {
     label: 'Filter',
     expression: `Filter(**Set_Expression**, **Logical_Expression**)`,
     insertText: 'Filter()',
@@ -37,20 +57,6 @@ WHERE
     [Measures].[Order Quantity]
 \`\`\`
 `
-  },
-  {
-    label: 'Avg',
-    expression: 'Avg(Set_Expression [, Numeric_Expression])',
-    insertText: 'Avg()',
-    documentation:
-      'Returns the average (arithmetic mean) of a numeric expression that is evaluated over the specified set.'
-  },
-  {
-    label: 'Count',
-    expression: 'Count(Set_Expression [, ExcludeEmpty | IncludeEmpty])',
-    insertText: 'Count()',
-    documentation:
-      'Returns the number of tuples in a specified set, with an optional flag to include or exclude empty tuples.'
   },
   {
     label: 'Max',
