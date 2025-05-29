@@ -2,7 +2,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -29,6 +28,7 @@ import { XpertWorkflowKnowledgeComponent } from './knowledge/knowledge.component
 import { XpertWorkflowKnowledgeTestComponent } from './knowledge-test/knowledge.component'
 import { XpertWorkflowSubflowComponent } from './subflow/subflow.component'
 import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
+import { XpertWorkflowNoteComponent } from './note/note.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -41,7 +41,6 @@ import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
     TranslateModule,
     CdkMenuModule,
     MatSlideToggleModule,
-    MatInputModule,
     MatTooltipModule,
     TextFieldModule,
     NgmDensityDirective,
@@ -55,7 +54,8 @@ import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
     XpertWorkflowIconComponent,
     XpertWorkflowKnowledgeComponent,
     XpertWorkflowKnowledgeTestComponent,
-    XpertWorkflowSubflowComponent
+    XpertWorkflowSubflowComponent,
+    XpertWorkflowNoteComponent
   ],
   animations: [IfAnimation,]
 })

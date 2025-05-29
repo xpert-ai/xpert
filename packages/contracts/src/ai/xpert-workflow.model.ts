@@ -217,6 +217,9 @@ export interface IWFNSubflow extends IWorkflowNode {
   outputParams?: TXpertRefParameter[]
 }
 
+export interface IWFNNote extends IWorkflowNode {
+  content: string
+}
 
 export function isAgentKey(key: string) {
   return key?.toLowerCase().startsWith('agent_')

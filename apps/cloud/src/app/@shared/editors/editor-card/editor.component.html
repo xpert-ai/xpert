@@ -40,6 +40,7 @@
     <pac-code-editor #editor class="h-full w-full"
       [(ngModel)]="value$" [fileName]="fileName()" [lineNumbers]="lineNumbers()"
       editable
+      [wordWrap]="wordWrap()"
     />
 
     <div class="absolute bottom-0 left-0 w-full flex justify-center h-2 cursor-row-resize"

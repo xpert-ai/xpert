@@ -25,6 +25,9 @@ export class CodeEditorComponent {
   readonly lineNumbers = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
+  readonly wordWrap = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
   // States
   readonly defaultOptions = {
@@ -32,7 +35,6 @@ export class CodeEditorComponent {
     automaticLayout: true,
     language: 'markdown',
     glyphMargin: 0,
-    wordWrap: false,
     minimap: {
       enabled: false
     }
@@ -44,6 +46,7 @@ export class CodeEditorComponent {
       language: this.fileName() ? this.mapFileLanguage(this.fileName()) : 'markdown',
       readOnly: !this.editable(),
       lineNumbers: this.lineNumbers() ? 'on' : 'off',
+      wordWrap: this.wordWrap()
     }
   })
 
