@@ -81,7 +81,7 @@ export class CreateSummarizeTitleAgentHandler implements ICommandHandler<CreateS
 			const _execution = await this.commandBus.execute(
 				new XpertAgentExecutionUpsertCommand({
 					...execution,
-					xpert: xpert ? { id: xpert.id } as IXpert : null,
+					// xpert: xpert ? { id: xpert.id } as IXpert : null,
 					parentId: rootExecutionId,
 					status: XpertAgentExecutionStatusEnum.RUNNING,
 					channelName: STATE_VARIABLE_TITLE_CHANNEL,

@@ -54,6 +54,7 @@ export class AnthropicLargeLanguageModel extends LargeLanguageModel {
 			temperature: 0,
 			maxTokens: modelCredentials?.max_tokens,
 			maxRetries: modelCredentials?.maxRetries,
+			verbose: options?.verbose,
 			callbacks: [
 				{
 					handleLLMStart: () => {

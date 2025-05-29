@@ -4,7 +4,6 @@
 	"ignore": ["src/**/*.spec.ts"],
 	"exec": "node --inspect=0.0.0.0:9229 -r ts-node/register -r tsconfig-paths/register src/main.ts",
 	"env": {
-		"NODE_ENV": "development",
-		"LOG_LEVEL": "verbose"
+		"NODE_ENV": "development"
 	}
 }

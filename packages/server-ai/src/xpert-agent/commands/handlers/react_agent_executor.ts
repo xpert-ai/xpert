@@ -261,7 +261,7 @@ export function createSummarizeAgent(model: BaseChatModel, summarize: TSummarize
       throw new Error("Expected a string summary of response from the model");
     }
     return {
-      summary: response.content,
+      // summary: response.content,
       [channel]: {
         summary: response.content,
         messages: deleteMessages

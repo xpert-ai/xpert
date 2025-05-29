@@ -29,9 +29,8 @@
 </div>
 
 <form [formGroup]="form" class="mt-1">
-  <div class="flex flex-col gap-4"
+  <div class="flex flex-col gap-2"
     formArrayName="parameters">
-
     @for (param of parameters.controls; track i; let i = $index) {
       <div class="w-full flex justify-start items-start"
         [formGroupName]="i">

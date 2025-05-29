@@ -55,6 +55,7 @@ export class OllamaLargeLanguageModel extends LargeLanguageModel {
 			streaming: modelCredentials?.streaming ?? true,
 			temperature: modelCredentials?.temperature ?? 0,
 			maxRetries: modelCredentials?.maxRetries,
+			verbose: options?.verbose,
 			callbacks: [
 				...this.createHandleUsageCallbacks(
 					copilot,

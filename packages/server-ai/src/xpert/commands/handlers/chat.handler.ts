@@ -144,7 +144,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				toolsets: null, // Does not support customizing whether to use tools
 				knowledgebases: null, // Does not support customizing whether to use knowledgebases
 				isDraft: options?.isDraft,
-				execution: { id: executionId },
+				execution: { id: executionId, category: 'agent' },
 				operation,
 				reject,
 				memories,

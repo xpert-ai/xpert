@@ -1,17 +1,17 @@
 <div class="flex items-center">
   <div class="w-10 border-b border-solid border-divider-deep mx-2"></div>
-  <span class="">{{ 'PAC.Xpert.NumberofMessageSummarized' | translate: {Default: 'Number of messages summarized'} }} (<span class="font-semibold">{{summarizeMessages}}</span>)</span>
+  <span class="">{{ 'PAC.Xpert.NumberofMessageSummarized' | translate: {Default: 'Number of messages summarized'} }} (<span class="font-semibold">{{summarizeMessages()}}</span>)</span>
   <div class="w-10 border-b border-solid border-divider-deep mx-2"></div>
   <span class="" [matTooltip]="'PAC.Xpert.NumberofMessageTriggered' | translate: {Default: 'The number of messages that triggered the summary'}" matTooltipPosition="above"
-  >{{ 'PAC.Xpert.MaximumTolerance' | translate: {Default: 'Maximum Tolerance'} }}(<span class="font-semibold">{{maxMessages}}</span>)</span>
+  >{{ 'PAC.Xpert.MaximumTolerance' | translate: {Default: 'Maximum Tolerance'} }}(<span class="font-semibold">{{maxMessages()}}</span>)</span>
   <div class="w-10 text-center mx-4"> => </div>
 
   <span class="">{{ 'PAC.Xpert.ReserveQuantity' | translate: {Default: 'Reserve Quantity'} }} (<span class="font-semibold">{{retainMessages()}}</span>)</span>
 </div>
 
-<mat-slider class="w-full" [step]="2" showTickMarks discrete min="4" max="200" ngm-density small color="accent">
-  <input [(ngModel)]="summarizeMessages" matSliderStartThumb>
-  <input [(ngModel)]="maxMessages" matSliderEndThumb>
+<mat-slider class="w-full" [step]="2" showTickMarks discrete min="0" max="200" ngm-density small color="accent">
+  <input [ngModel]="summarizeMessages()" matSliderStartThumb (dragEnd)="summarizeMessages.set($event.value)">
+  <input [ngModel]="maxMessages()" matSliderEndThumb (dragEnd)="maxMessages.set($event.value)">
 </mat-slider>
 
 <copilot-prompt-editor class="relative ngm-card-border-gradient self-stretch"

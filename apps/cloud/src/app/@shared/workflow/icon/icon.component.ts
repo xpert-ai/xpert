@@ -1,8 +1,8 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { WorkflowNodeTypeEnum } from '@cloud/app/@core/types'
 import { TranslateModule } from '@ngx-translate/core'
-import { WorkflowNodeTypeEnum } from 'apps/cloud/src/app/@core'
 
 @Component({
   selector: 'xpert-workflow-icon',

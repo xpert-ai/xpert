@@ -11,6 +11,7 @@ import {
 	STATE_VARIABLE_SYS,
 	TAgentRunnableConfigurable,
 	TXpertTeamNode,
+	WorkflowNodeTypeEnum,
 } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
 import { InternalServerErrorException, Logger } from '@nestjs/common'
@@ -139,6 +140,8 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 					}, {}) ?? {}
 
 					const execution: IXpertAgentExecution = {
+						category: 'workflow',
+						type: WorkflowNodeTypeEnum.SUBFLOW,
 						inputs: inputs,
 						parentId: executionId,
 						threadId: thread_id,
@@ -183,10 +186,10 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 										}
 									)
 
-									const outputState = outputParams.reduce((acc, curr) => {
+									const outputState = outputParams?.reduce((acc, curr) => {
 										acc[curr.name] = get(retState, curr.variable)
 										return acc
-									}, {})
+									}, {}) ?? {}
 									const output = retState[channelName(agentKey)]?.output
 
 									return {

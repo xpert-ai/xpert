@@ -1,6 +1,6 @@
 import { RunnableLambda } from '@langchain/core/runnables'
 import { END } from '@langchain/langgraph'
-import { channelName, IWFNCode, IWorkflowNode, IXpertAgentExecution, TAgentRunnableConfigurable, TXpertGraph, TXpertTeamNode, XpertParameterTypeEnum } from '@metad/contracts'
+import { channelName, IWFNCode, IWorkflowNode, IXpertAgentExecution, TAgentRunnableConfigurable, TXpertGraph, TXpertTeamNode, WorkflowNodeTypeEnum, XpertParameterTypeEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { get } from 'lodash'
@@ -34,6 +34,8 @@ export function createCodeNode(
 				}, {})
 
 				const execution: IXpertAgentExecution = {
+					category: 'workflow',
+					type: WorkflowNodeTypeEnum.CODE,
 					inputs: inputs,
 					parentId: executionId,
 					threadId: thread_id,
@@ -55,7 +57,8 @@ export function createCodeNode(
 								return {
 									state: {
 										[channelName(node.key)]: results ?? {}
-									}
+									},
+									output: results
 								}
 							} catch (err) {
 								if (tryCount > maxRetry) {
@@ -63,7 +66,8 @@ export function createCodeNode(
 										return {
 											state: {
 												[channelName(node.key)]: entity.errorHandling.defaultValue
-											}
+											},
+											output: entity.errorHandling.defaultValue
 										}
 									}
 									if (entity.errorHandling?.type === 'failBranch') {
@@ -72,6 +76,9 @@ export function createCodeNode(
 												[channelName(node.key)]: {
 													[ErrorChannelName]: getErrorMessage(err)
 												}
+											},
+											output: {
+												[ErrorChannelName]: getErrorMessage(err)
 											}
 										}
 									}

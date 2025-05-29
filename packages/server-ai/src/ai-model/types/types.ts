@@ -16,6 +16,7 @@ export type TChatModelOptions = {
          */
         tokenUsed?: number
     }) => void;
+    verbose: boolean
 }
 
 export const ModelProvidersFolderPath = 'packages/server-ai/src/ai-model/model_providers'

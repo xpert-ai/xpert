@@ -2,7 +2,7 @@
   <div fNodeInput [fInputId]="node().key + '/edge'" fInputConnectableSide="left" class="left"></div>
 }
 
-<div class="relative flex items-center px-3 pt-3 pb-2 rounded-t-2xl" (cdkContextMenuTriggerFor)="context_menu">
+<div class="relative flex items-center px-3 pt-3 pb-2 rounded-t-2xl">
   <xpert-workflow-icon [type]="type()" class="w-6 h-6 shrink-0 mr-2" 
     [matTooltip]="key()"
     matTooltipPosition="above"
@@ -60,9 +60,3 @@
     {{description()}}
   </div>
 }
-
-<ng-template #context_menu>
-  <div cdkMenu>
-    AAA
-  </div>
-</ng-template>
