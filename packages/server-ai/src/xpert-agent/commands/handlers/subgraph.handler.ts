@@ -23,7 +23,7 @@ import { RequestContext } from '@metad/server-core'
 import { InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
-import { uniq } from 'lodash'
+import { get, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
 import z from 'zod'
@@ -171,7 +171,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			})))
 		}
 
-		this.#logger.debug(`Use tools:\n${[...tools].map((_, i) => `${i+1}. ` + _.tool.name + ': ' + _.tool.description).join('\n')}`)
+		this.#logger.debug(`Use tools:\n${tools.length ? tools.map((_, i) => `${i+1}. ` + _.tool.name + ': ' + _.tool.description).join('\n') : 'No tools.'}`)
 
 		// Knowledgebases
 		const knowledgebaseIds = options?.knowledgebases ?? agent.knowledgebaseIds
@@ -582,17 +582,19 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					nState[channelName(agentKey)] = message
 				}
 				// Write to memory
-				if (isStart && agent.options?.memories) {
-					agent.options?.memories.forEach((item) => {
-						if (item.inputType === 'constant') {
-							nState[item.variableSelector] = item.value
-						} else if (item.inputType === 'variable') {
-							if (item.value === 'content' && isAIMessageChunk(message as AIMessageChunk)) {
+				agent.options?.memories?.forEach((item) => {
+					if (item.inputType === 'constant') {
+						nState[item.variableSelector] = item.value
+					} else if (item.inputType === 'variable') {
+						if (item.value === 'content') {
+							if (isAIMessageChunk(message as AIMessageChunk)) {
 								nState[item.variableSelector] = (message as AIMessageChunk).content
 							}
+						} else if (item.value) {
+							nState[item.variableSelector] = get(message, item.value)
 						}
-					})
-				}
+					}
+				})
 
 				return nState
 			} catch(err) {
