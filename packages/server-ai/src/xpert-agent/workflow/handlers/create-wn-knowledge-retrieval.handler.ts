@@ -1,7 +1,7 @@
 import { DocumentInterface } from '@langchain/core/documents'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { END, Send } from '@langchain/langgraph'
-import { channelName, IWFNKnowledgeRetrieval, IXpertAgentExecution, TAgentRunnableConfigurable } from '@metad/contracts'
+import { channelName, IWFNKnowledgeRetrieval, IXpertAgentExecution, TAgentRunnableConfigurable, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
@@ -39,6 +39,8 @@ export class CreateWNKnowledgeRetrievalHandler implements ICommandHandler<Create
 					const query = get(stateToParameters(state, environment), entity.queryVariable)
 
 					const execution: IXpertAgentExecution = {
+						category: 'workflow',
+						type: WorkflowNodeTypeEnum.KNOWLEDGE,
 						inputs: { query },
 						parentId: executionId,
 						threadId: thread_id,

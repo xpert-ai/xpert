@@ -193,8 +193,8 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 
 		// All agents output
 		const _graph = isDraft ? ({ ...(xpert.graph ?? {}), ...(xpert.draft ?? {}) } as TXpertGraph) : xpert.graph
-		const node = _graph.nodes.find((_) => _.key === nodeKey)
-		const graph = getCurrentGraph(_graph, nodeKey)
+		const node = _graph.nodes?.find((_) => _.key === nodeKey)
+		const graph = _graph.nodes ? getCurrentGraph(_graph, nodeKey) : _graph
 
 		// Current agent variables (parameters)
 		if (nodeKey && node?.type === 'agent' && type === 'input') {

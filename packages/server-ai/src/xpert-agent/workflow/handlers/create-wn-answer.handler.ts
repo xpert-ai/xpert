@@ -1,13 +1,14 @@
 import { RunnableLambda } from '@langchain/core/runnables'
 import { AIMessagePromptTemplate } from '@langchain/core/prompts'
-import { END, LangGraphRunnableConfig, Send } from '@langchain/langgraph'
-import { IWFNAnswer } from '@metad/contracts'
+import { END, Send } from '@langchain/langgraph'
+import { channelName, IWFNAnswer, IXpertAgentExecution, TAgentRunnableConfigurable, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { FakeStreamingChatModel } from '../../agent'
 import { CreateWNAnswerCommand } from '../create-wn-answer.command'
 import { AgentStateAnnotation, stateToParameters } from '../../../shared'
+import { wrapAgentExecution } from '../../../xpert-agent-execution/utils'
 
 @CommandHandler(CreateWNAnswerCommand)
 export class CreateWNAnswerHandler implements ICommandHandler<CreateWNAnswerCommand> {
@@ -27,12 +28,40 @@ export class CreateWNAnswerHandler implements ICommandHandler<CreateWNAnswerComm
 
 		return {
 			workflowNode: {
-				graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config: LangGraphRunnableConfig) => {
+				graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
+					const configurable: TAgentRunnableConfigurable = config.configurable
+					const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
+
 					const aiMessage = await AIMessagePromptTemplate.fromTemplate(entity.promptTemplate, {
 						templateFormat: 'mustache'
 					}).format(stateToParameters(state, environment))
 
-					await new FakeStreamingChatModel({ responses: [aiMessage] }).invoke([], config)
+					const execution: IXpertAgentExecution = {
+						category: 'workflow',
+						type: WorkflowNodeTypeEnum.ANSWER,
+						parentId: executionId,
+						threadId: thread_id,
+						checkpointNs: checkpoint_ns,
+						checkpointId: checkpoint_id,
+						agentKey: node.key,
+						title: entity.title
+					}
+					return await wrapAgentExecution(async () => {
+						await new FakeStreamingChatModel({ responses: [aiMessage] }).invoke([], config)
+						return {
+							state: {
+								[channelName(node.key)]: {
+									messeges: [aiMessage]
+								}
+							},
+							output: aiMessage.content as string
+						}
+					}, {
+						commandBus: this.commandBus,
+						queryBus: this.queryBus,
+						subscriber: subscriber,
+						execution
+					})()
 				}),
 				ends: []
 			},

@@ -70,6 +70,7 @@ export class TongyiLargeLanguageModel extends LargeLanguageModel {
 		)
 		return new ChatTongyi({
 			...fields,
+			verbose: options?.verbose,
 			callbacks: [
 				...this.createHandleUsageCallbacks(copilot, model, credentials, handleLLMTokens),
 				this.createHandleLLMErrorCallbacks(fields, this.#logger)

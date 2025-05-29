@@ -1,7 +1,7 @@
 import { PromptTemplate } from '@langchain/core/prompts'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { END } from '@langchain/langgraph'
-import { ApiAuthType, channelName, IWFNHttp, IXpertAgentExecution, TAgentRunnableConfigurable, TXpertGraph, TXpertTeamNode, XpertParameterTypeEnum } from '@metad/contracts'
+import { ApiAuthType, channelName, IWFNHttp, IXpertAgentExecution, TAgentRunnableConfigurable, TXpertGraph, TXpertTeamNode, WorkflowNodeTypeEnum, XpertParameterTypeEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import axios from 'axios'
@@ -37,6 +37,8 @@ export function createHttpNode(
 				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
 
 				const execution: IXpertAgentExecution = {
+					category: 'workflow',
+					type: WorkflowNodeTypeEnum.HTTP,
 					parentId: executionId,
 					threadId: thread_id,
 					checkpointNs: checkpoint_ns,

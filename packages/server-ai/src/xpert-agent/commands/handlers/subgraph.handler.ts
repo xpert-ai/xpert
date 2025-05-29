@@ -263,6 +263,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		// Channels of workflow
 		const channels: TStateChannel[] = []
 		const startNodes = findStartNodes(getCurrentGraph(graph, agent.key), agent.key).filter((_) => _ !== agent.key)
+		const pathMap = [...withTools.map((tool) => tool.name)]
+		if (summarizeTitle) {
+			pathMap.push(GRAPH_NODE_TITLE_CONVERSATION)
+		}
+		if (summarize?.enabled) {
+			pathMap.push(GRAPH_NODE_SUMMARIZE_CONVERSATION)
+		}
 		if (isStart) {
 			/**
 			 * The root node is responsible for the overall workflow
@@ -303,19 +310,23 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					const ends = []
 					if (failNode) {
 						ends.push(failNode.key)
+						await createSubgraph(null, failNode)
 					}
-					// if (nextNodes?.[0]) {
-					// 	ends.push(nextNodes[0].key)
-					// }
 					nodes[node.key] = {graph: stateGraph, ends}
-
-					// Fixed Edge
-					if (nextNodes?.[0]?.key) {
-						edges[node.key] = nextNodes[0].key
-					}
-
-					if (nextNodes?.length || failNode) {
-						await createSubgraph(nextNodes?.[0], failNode)
+					if (nextNodes?.length) {
+						// One2many edge or one2one
+						if (nextNodes?.length > 1) {
+							conditionalEdges[node.key] = [(state) => {
+								return nextNodes.filter((_) => !!_).map(({key}) => new Send(key, state))
+							}, nextNodes.map(({key}) => key)]
+						} else if (nextNodes?.[0]?.key) {
+							edges[node.key] = nextNodes[0].key
+						}
+						for await (const nextNode of nextNodes) {
+							await createSubgraph(nextNode, null)
+						}
+					} else {
+						edges[node.key] = END
 					}
 				} else if(node?.type === 'workflow') {
 					if (nodes[node.key]) {
@@ -333,7 +344,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					nodes[node.key] = {
 						...workflowNode
 					}
-					conditionalEdges[node.key] = [navigator, [...nextNodes.map((n) => n.key), END] ]
+					const workflowNodeEnds = [...nextNodes.map((n) => n.key)]
+					if (!nextNodes.length) {
+						workflowNodeEnds.push(END)
+					}
+					conditionalEdges[node.key] = [navigator, workflowNodeEnds]
 					for await (const nNode of nextNodes ?? []) {
 						await createSubgraph(nNode, null)
 					}
@@ -364,7 +379,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			}
 
 			if (agentHasNextNodes) {
-				const pathMap = [...withTools.map((tool) => tool.name)]
 				for await (const nextNode of next) {
 					await createSubgraph(nextNode, fail?.[0], agentKey)
 					pathMap.push(nextNode.key)
@@ -380,16 +394,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				if (fail?.length) {
 					pathMap.push(fail?.[0]?.key)
 				}
-				if (summarizeTitle) {
-					pathMap.push(GRAPH_NODE_TITLE_CONVERSATION)
-				}
-				if (summarize?.enabled) {
-					pathMap.push(GRAPH_NODE_SUMMARIZE_CONVERSATION)
-				}
-				conditionalEdges[agentKey] = [
-					createAgentNavigator(channelName(agentKey), summarize, summarizeTitle, next?.map((n) => n.key)),
-					pathMap
-				]
+				// conditionalEdges[agentKey] = [
+				// 	createAgentNavigator(channelName(agentKey), summarize, summarizeTitle, nextNodeKey),
+				// 	pathMap
+				// ]
 			}
 
 			if (startNodes.length) {
@@ -562,12 +570,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
 				const messages = [...deleteMessages, ...humanMessages]
 				const nState: Record<string, any> = {
-					// [STATE_VARIABLE_INPUT]: '',
-					messages: messages,
+					messages: [...messages],
 					[channelName(agentKey)]: {messages}
 				}
-				if ((isBaseMessage(message) && isAIMessage(message))
-					|| isBaseMessageChunk(message) && isAIMessageChunk(message)) {
+				if ((isBaseMessage(message)) || isBaseMessageChunk(message)) {
 					nState.messages.push(message)
 					nState[channelName(agentKey)].messages.push(message)
 					nState[channelName(agentKey)].output = stringifyMessageContent(message.content)
@@ -607,8 +613,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					.withConfig({ runName: agentKey, tags: [thread_id, xpert.id, agentKey] })
 				)
 		if (isStart && startNodes.length) {
-			for (const key of startNodes) {
-				subgraphBuilder.addEdge(START, key)
+			/**
+			 * @todo use Send does not avoid multiple executions
+			 */
+			if (startNodes.length > 1) {
+				subgraphBuilder.addConditionalEdges(START, (state) => startNodes.map((key) => new Send(key, state)), startNodes)
+			} else {
+				subgraphBuilder.addEdge(START, startNodes[0])
 			}
 		} else {
 			subgraphBuilder.addEdge(START, agentKey)
@@ -680,16 +691,26 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				.addEdge(GRAPH_NODE_SUMMARIZE_CONVERSATION, END)
 		}
 
-		if (!agentHasNextNodes) {
-			subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(agentChannel, summarize, summarizeTitle))
+		// Conditional navigator for entry Agent
+		if (!nextNodeKey.length) {
+			pathMap.push(END)
 		}
+		subgraphBuilder.addConditionalEdges(agentKey, createAgentNavigator(agentChannel, summarize, summarizeTitle, nextNodeKey), pathMap)
 
 		// Has other nodes
 		if (Object.keys(nodes).length) {
-			Object.keys(nodes).forEach((name) => subgraphBuilder.addNode(name, nodes[name].graph.withConfig({signal: abortController.signal}), {ends: nodes[name].ends}))
+			Object.keys(nodes).forEach((name) => subgraphBuilder.addNode(
+																	name,
+																	nodes[name].graph.withConfig({signal: abortController.signal}),
+																	{ends: nodes[name].ends}
+																)
+									  )
 			Object.keys(edges).forEach((name) => subgraphBuilder.addEdge(name, edges[name]))
 			Object.keys(conditionalEdges).forEach((name) => subgraphBuilder.addConditionalEdges(name, conditionalEdges[name][0], conditionalEdges[name][1]))
 		}
+
+		// Verbose
+		this.#logger.verbose(agentLabel(agent) + ': \n'+ Array.from(subgraphBuilder.allEdges).join('\n') + '\n\n' + Object.keys(subgraphBuilder.nodes))
 
 		const compiledGraph = subgraphBuilder.compile({
 			checkpointer: disableCheckpointer ? false : this.copilotCheckpointSaver,

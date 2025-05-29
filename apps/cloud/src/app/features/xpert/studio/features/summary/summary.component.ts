@@ -1,11 +1,10 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject } from '@angular/core'
+import { Component, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { TSummarize } from '@metad/contracts'
-import { OverlayAnimations } from '@metad/core'
+import { attrModel, linkedModel, OverlayAnimations } from '@metad/core'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
@@ -30,42 +29,48 @@ import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
   animations: [...OverlayAnimations]
 })
 export class XpertStudioFeaturesSummaryComponent {
-  readonly apiService = inject(XpertStudioApiService)
+  readonly MinSummarizeMessages = 4
+  readonly studioService = inject(XpertStudioApiService)
 
-  readonly xpert = this.apiService.xpert
-  readonly summarize = computed(() => this.xpert()?.summarize)
-  readonly retainMessages = computed(() => this.summarize()?.retainMessages)
-
-  get maxMessages() {
-    return this.summarize()?.maxMessages ?? 100
-  }
-  set maxMessages(value) {
-    this.updateSummarize({ maxMessages: value })
-  }
-  get summarizeMessages() {
-    return Math.max(this.maxMessages - (this.summarize()?.retainMessages ?? this.maxMessages), 0)
-  }
-  set summarizeMessages(value) {
-    this.updateSummarize({ retainMessages: this.maxMessages - value })
-  }
-
-  get prompt() {
-    return this.summarize()?.prompt
-  }
-  set prompt(value) {
-    this.updateSummarize({ prompt: value })
-  }
-  
-
-  updateSummarize(summarize: Partial<TSummarize>) {
-    this.apiService.updateXpertTeam((xpert) => {
-      return {
-        ...xpert,
-        summarize: {
-          ...(xpert.summarize ?? {}),
-          ...summarize
+  readonly xpert = this.studioService.xpert
+  readonly summarize = linkedModel({
+    initialValue: null,
+    compute: () => this.xpert()?.summarize,
+    update: (value) => {
+      this.studioService.updateXpertTeam((xpert) => {
+        return {
+          ...xpert,
+          summarize: value
         }
-      }
-    })
-  }
+      })
+    }
+  })
+
+  readonly retainMessages = attrModel(this.summarize, 'retainMessages')
+  readonly prompt = attrModel(this.summarize, 'prompt')
+
+  readonly maxMessages = linkedModel({
+    initialValue: null,
+    compute: () => this.summarize()?.maxMessages ?? 100,
+    update: (value) => {
+      this.summarize.update((state) => {
+        return {
+          ...(state ?? {}),
+          maxMessages: value,
+          // retainMessages: Math.min(state?.retainMessages, value) +value - (state?.maxMessages ?? 100)
+        }
+      })
+    }
+  })
+
+  readonly summarizeMessages = linkedModel({
+    initialValue: null,
+    compute: () => Math.max(this.maxMessages() - (this.summarize()?.retainMessages ?? this.maxMessages()), 0),
+    update: (value) => {
+      this.summarize.update((state) => ({
+        ...(state ?? {}),
+        retainMessages: state.maxMessages - (value ?? this.MinSummarizeMessages)
+      }))
+    }
+  })
 }

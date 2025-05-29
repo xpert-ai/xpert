@@ -70,6 +70,7 @@ export class OpenAILargeLanguageModel extends CommonOpenAI {
 			maxTokens: modelCredentials?.max_tokens,
 			maxRetries: modelCredentials?.maxRetries,
 			streamUsage: false,
+			verbose: options?.verbose,
 			callbacks: [...this.createHandleUsageCallbacks(copilot, model, credentials, handleLLMTokens)]
 		})
 	}

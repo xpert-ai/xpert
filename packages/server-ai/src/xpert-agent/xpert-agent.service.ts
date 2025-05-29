@@ -4,11 +4,11 @@ import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { assign } from 'lodash'
+import { Observable } from 'rxjs'
 import { Repository } from 'typeorm'
 import { XpertAgentChatCommand } from './commands'
 import { XpertAgent } from './xpert-agent.entity'
 import { FindXpertQuery } from '../xpert/queries'
-import { Observable } from 'rxjs'
 
 @Injectable()
 export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertAgent> {
@@ -37,7 +37,8 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 				...options,
 				isDraft: true,
 				execution: {
-					id: params.executionId
+					id: params.executionId,
+					category: 'agent'
 				},
 				operation: params.operation,
 				reject: params.reject,

@@ -52,7 +52,8 @@ export class XinferenceLargeLanguageModel extends LargeLanguageModel {
 			topP: modelCredentials?.top_p,
 			frequencyPenalty: modelCredentials?.frequency_penalty,
 			maxRetries: modelCredentials?.maxRetries,
-			streamUsage: false
+			streamUsage: false,
+			verbose: options?.verbose
 		}
 		return new ChatOpenAI({
 			...fields,
