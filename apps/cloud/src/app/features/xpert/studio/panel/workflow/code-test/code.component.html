@@ -1,3 +1,7 @@
+<div class="system-sm-semibold-uppercase text-text-secondary mt-4">
+  {{ 'PAC.Xpert.InputVariables' | translate: {Default: 'Input Variables'} }}
+</div>
+
 @for (parameter of inputs(); track parameter.name) {
   <div class="">
     <div class="system-sm-semibold mb-1 flex h-6 items-center gap-1 text-text-secondary">
@@ -47,7 +51,7 @@
 
 <div class="flex flex-col rounded-lg bg-gray-50">
   <div class="px-3 py-1 flex justify-between items-center">
-    INPUT
+    <span class="uppercase">{{ 'PAC.Xpert.Input' | translate: {Default: 'Input'} }}</span>
     <copy [content]="parameters()"></copy>
   </div>
   @if (parameters()) {
@@ -57,7 +61,7 @@
 
 <div class="flex flex-col rounded-lg bg-gray-50">
   <div class="px-3 py-1 flex justify-between items-center">
-    OUTPUT
+    <span class="uppercase">{{ 'PAC.Xpert.Output' | translate: {Default: 'Output'} }}</span>
     <copy [content]="results()"></copy>
   </div>
   @if (results()) {
