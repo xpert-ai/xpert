@@ -216,6 +216,7 @@ export class XpertWorkspaceHomeComponent {
   openSettings() {
     this.#dialog
       .open(XpertWorkspaceSettingsComponent, {
+        backdropClass: 'backdrop-blur-md-white',
         data: {
           id: this.selectedWorkspace()?.id
         }

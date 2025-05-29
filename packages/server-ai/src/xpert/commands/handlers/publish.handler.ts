@@ -1,6 +1,7 @@
 import {
 	agentLabel,
 	IKnowledgebase,
+	IWFNKnowledgeRetrieval,
 	IXpert,
 	IXpertAgent,
 	IXpertToolset,
@@ -233,6 +234,15 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 					await this.xpertAgentService.delete(agent.id)
 				}
 			}
+
+			// Collect knowledgebases in workflow nodes
+			draft.nodes.filter((node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.KNOWLEDGE)
+				.forEach((node) => {
+					const knowledgebases = (<IWFNKnowledgeRetrieval>node.entity).knowledgebases
+					if (knowledgebases) {
+						totalKnowledgebaseIds.push(...knowledgebases)
+					}
+				})
 
 			// Update agents relative info
 			xpert.agents = newAgents

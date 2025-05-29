@@ -5,16 +5,18 @@ import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
 import { BehaviorSubject, of, pipe, switchMap } from 'rxjs'
-import { KnowledgebaseService, ToastrService, routeAnimations } from '../../../../@core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { KnowledgebaseService, ToastrService, routeAnimations } from '../../../../@core'
+import { MatDividerModule } from '@angular/material/divider'
+import { MatTabsModule } from '@angular/material/tabs'
+import { MatIconModule } from '@angular/material/icon'
 
 @Component({
   standalone: true,
   selector: 'xpert-knowledgebase',
   templateUrl: './knowledgebase.component.html',
   styleUrls: ['./knowledgebase.component.scss'],
-  imports: [RouterModule, TranslateModule, MaterialModule, EmojiAvatarComponent],
+  imports: [RouterModule, TranslateModule, MatDividerModule, MatTabsModule, MatIconModule, EmojiAvatarComponent],
   animations: [routeAnimations]
 })
 export class KnowledgebaseComponent extends TranslationBaseComponent {
@@ -29,7 +31,7 @@ export class KnowledgebaseComponent extends TranslationBaseComponent {
       switchMap(([id]) =>
         id
           ? this.refresh$.pipe(
-              switchMap(() => this.knowledgebaseService.getOneById(id, { relations: ['copilotModel'] }))
+              switchMap(() => this.knowledgebaseService.getOneById(id, { relations: ['copilotModel', 'xperts'] }))
             )
           : of(null)
       )

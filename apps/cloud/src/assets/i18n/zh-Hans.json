@@ -2114,6 +2114,7 @@
     },
     "Knowledgebase": {
       "Knowledgebase": "知识库",
+      "RelatedExperts": "个关联专家",
       "Documents": "文档",
       "Test": "测试",
       "Configuration": "配置",

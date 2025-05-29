@@ -1,10 +1,9 @@
 import { IKnowledgebase, IUser, KnowledgebasePermission, TAvatar } from '@metad/contracts'
 import { Exclude, Expose } from 'class-transformer'
-import { Knowledgebase } from '../knowledgebase.entity'
 
 @Exclude()
-export class KnowledgebasePublicDTO extends Knowledgebase {
-    @Expose()
+export class KnowledgebasePublicDTO implements Partial<IKnowledgebase> {
+	@Expose()
 	declare id: string
 
 	@Expose()
@@ -29,7 +28,6 @@ export class KnowledgebasePublicDTO extends Knowledgebase {
 	declare createdBy?: IUser
 
 	constructor(partial: IKnowledgebase) {
-		super()
 		Object.assign(this, partial)
 	}
 }

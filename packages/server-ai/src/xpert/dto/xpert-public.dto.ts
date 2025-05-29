@@ -1,9 +1,8 @@
-import { IXpertAgent, TXpertGraph, TXpertOptions, TXpertTeamDraft } from '@metad/contracts'
+import { IXpert, IXpertAgent, TXpertGraph, TXpertOptions, TXpertTeamDraft } from '@metad/contracts'
 import { Exclude, Expose, Transform, TransformFnParams } from 'class-transformer'
 import { Knowledgebase, XpertToolset } from '../../core/entities/internal'
 import { KnowledgebasePublicDTO } from '../../knowledgebase/dto'
 import { ToolsetPublicDTO } from '../../xpert-toolset/dto'
-import { Xpert } from '../xpert.entity'
 import { XpertIdentiDto } from './xpert-identi.dto'
 import { XpertAgentPublicDTO } from '../../xpert-agent/dto'
 
@@ -36,7 +35,7 @@ export class XpertPublicDTO extends XpertIdentiDto {
 	)
 	declare toolsets?: XpertToolset[]
 
-	constructor(partial: Partial<XpertPublicDTO | Xpert>) {
+	constructor(partial: Partial<XpertPublicDTO | IXpert>) {
 		super(partial)
 	}
 }

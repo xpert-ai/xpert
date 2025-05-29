@@ -1,5 +1,5 @@
 import { animate, state, style, transition, trigger } from '@angular/animations'
-import { afterNextRender, Component, effect, inject, model, signal, viewChild } from '@angular/core'
+import { afterNextRender, Component, computed, effect, inject, model, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
@@ -33,6 +33,7 @@ import {
   IKnowledgeDocumentPage,
   injectToastr,
   IStorageFile,
+  IXpert,
   KnowledgeDocumentService,
   OrderTypeEnum,
   Store,
@@ -40,9 +41,16 @@ import {
 } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { formatRelative } from 'date-fns/formatRelative'
-import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-import { KnowledgeDocIdComponent } from "../../../../../@shared/knowledge/knowledge-doc-id/doc.component";
+import { KnowledgeDocIdComponent } from "../../../../../@shared/knowledge";
+import { MatTableModule } from '@angular/material/table'
+import { MatIconModule } from '@angular/material/icon'
+import { MatButtonModule } from '@angular/material/button'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { MatDividerModule } from '@angular/material/divider'
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { I18nService } from '@cloud/app/@shared/i18n'
+import { XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
 
 @Component({
   standalone: true,
@@ -53,11 +61,18 @@ import { KnowledgeDocIdComponent } from "../../../../../@shared/knowledge/knowle
     RouterModule,
     FormsModule,
     TranslateModule,
-    MaterialModule,
+    CdkMenuModule,
+    MatIconModule,
+    MatButtonModule,
+    MatTooltipModule,
+    MatDividerModule,
     MatSortModule,
     MatPaginatorModule,
+    MatTableModule,
+    MatProgressSpinnerModule,
     NgmCommonModule,
-    KnowledgeDocIdComponent
+    KnowledgeDocIdComponent,
+    XpertInlineProfileComponent
 ],
   animations: [
     trigger('detailExpand', [
@@ -67,7 +82,7 @@ import { KnowledgeDocIdComponent } from "../../../../../@shared/knowledge/knowle
     ])
   ]
 })
-export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
+export class KnowledgeDocumentsComponent {
   readonly knowledgeDocumentService = inject(KnowledgeDocumentService)
   readonly _toastrService = inject(ToastrService)
   readonly #store = inject(Store)
@@ -77,6 +92,7 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly confirmDelete = injectConfirmDelete()
   readonly #toastr = injectToastr()
+  readonly #translate = inject(I18nService)
 
   readonly paginator = viewChild(MatPaginator)
   readonly sort = viewChild(MatSort)
@@ -84,6 +100,7 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   readonly pageSize = model(20)
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
   readonly knowledgebase$ = toObservable(this.knowledgebase)
+  readonly xperts = computed(() => this.knowledgebase()?.xperts)
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
   readonly delayRefresh$ = new Subject<boolean>()
@@ -123,8 +140,6 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   readonly total = signal<number>(0)
 
   constructor() {
-    super()
-
     afterNextRender(() => {
       // If the user changes the sort order, reset back to the first page.
       this.sort().sortChange.subscribe(() => (this.paginator().pageIndex = 0))
@@ -169,7 +184,7 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
           this.data.set(data.map((item) => ({
             ...item,
             createdAtRelative: formatRelative(new Date(item.updatedAt), new Date(), {
-              locale: getDateLocale(this.translateService.currentLang)
+              locale: getDateLocale(this.#translate.currentLanguage)
             }),
             parserConfig: item.parserConfig ?? {}
           }) as IKnowledgeDocument))
@@ -294,5 +309,9 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
         this.#toastr.error(getErrorMessage(err))
       }
     })
+  }
+
+  openXpert(xpert: IXpert) {
+    window.open(['/xpert', xpert.id ,'agents'].join('/'), '_blank')
   }
 }

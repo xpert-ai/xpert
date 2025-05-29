@@ -24,9 +24,11 @@ import {
 import { Integration, Tag, User } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsJSON, IsObject, IsOptional, IsString } from 'class-validator'
+import { Transform, TransformFnParams } from 'class-transformer'
 import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
 import { WorkspaceBaseEntity } from '../core/entities/base.entity'
 import { CopilotModel, Environment, Knowledgebase, XpertAgent, XpertToolset } from '../core/entities/internal'
+import { KnowledgebasePublicDTO } from '../knowledgebase/dto'
 
 
 @Entity('xpert')
@@ -241,7 +243,8 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 	leaders?: IXpert[]
 
 	// Xpert role's knowledgebases
-	@ManyToMany(() => Knowledgebase, {
+	@Transform((params: TransformFnParams) => params.value?.map((_) => new KnowledgebasePublicDTO(_)))
+	@ManyToMany(() => Knowledgebase, kb => kb.xperts, {
 		onUpdate: 'CASCADE',
 		onDelete: 'CASCADE'
 	})

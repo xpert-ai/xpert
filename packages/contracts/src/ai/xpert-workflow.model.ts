@@ -217,13 +217,6 @@ export interface IWFNSubflow extends IWorkflowNode {
   outputParams?: TXpertRefParameter[]
 }
 
-export interface IWFNKnowledgeRetrieval extends IWorkflowNode {
-  queryVariable: string
-  knowledgebases: string[]
-  recall?: TKBRecallParams
-}
-
-
 
 export function isAgentKey(key: string) {
   return key?.toLowerCase().startsWith('agent_')
