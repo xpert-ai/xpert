@@ -1,6 +1,6 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
-import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, isAIMessage, isAIMessageChunk, isBaseMessage, isBaseMessageChunk, isToolMessage, RemoveMessage, ToolMessage } from '@langchain/core/messages'
+import { AIMessage, BaseMessage, HumanMessage, isAIMessage, isBaseMessage, isBaseMessageChunk, isToolMessage, RemoveMessage, ToolMessage } from '@langchain/core/messages'
 import { HumanMessagePromptTemplate, SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Runnable, RunnableConfig, RunnableLambda, RunnableLike } from '@langchain/core/runnables'
 import {
@@ -574,7 +574,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					messages: [...messages],
 					[channelName(agentKey)]: {messages}
 				}
-				if ((isBaseMessage(message)) || isBaseMessageChunk(message)) {
+				if (isBaseMessage(message) || isBaseMessageChunk(message)) {
 					nState.messages.push(message)
 					nState[channelName(agentKey)].messages.push(message)
 					nState[channelName(agentKey)].output = stringifyMessageContent(message.content)
@@ -587,8 +587,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 						nState[item.variableSelector] = item.value
 					} else if (item.inputType === 'variable') {
 						if (item.value === 'content') {
-							if (isAIMessageChunk(message as AIMessageChunk)) {
-								nState[item.variableSelector] = (message as AIMessageChunk).content
+							if (isBaseMessage(message) || isBaseMessageChunk(message)) {
+								nState[item.variableSelector] = message.content
 							}
 						} else if (item.value) {
 							nState[item.variableSelector] = get(message, item.value)
