@@ -14,6 +14,7 @@ export enum WorkflowNodeTypeEnum {
   HTTP = 'http',
   KNOWLEDGE = 'knowledge',
   SUBFLOW = 'subflow',
+  TEMPLATE = 'template',
   NOTE = 'note'
 }
 
@@ -215,6 +216,17 @@ export interface IWFNKnowledgeRetrieval extends IWorkflowNode {
 export interface IWFNSubflow extends IWorkflowNode {
   inputParams?: TXpertRefParameter[]
   outputParams?: TXpertRefParameter[]
+}
+
+export interface IWFNTemplate extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.TEMPLATE,
+  inputParams?: TXpertRefParameter[]
+  code: string
+  
+  /**
+   * Error handling
+   */
+  errorHandling?: TErrorHandling
 }
 
 export function channelName(name: string) {

@@ -191,6 +191,12 @@
       <div class="text-text-primary">{{'PAC.Xpert.Code' | translate: {Default: 'Code'} }}</div>
     </div>
     <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowTemplate()"
+    >
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TEMPLATE" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">{{'PAC.Xpert.Template' | translate: {Default: 'Template'} }}</div>
+    </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowHttp()"
     >
       <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-teal-400

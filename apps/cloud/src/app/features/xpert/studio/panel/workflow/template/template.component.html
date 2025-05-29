@@ -1,0 +1,52 @@
+<div class="p-4">
+  <div class="flex justify-between items-center">
+    <div class="flex items-center h-6">
+      <div class="font-semibold uppercase text-text-secondary">
+        {{ 'PAC.Xpert.InputVariables' | translate: {Default: 'Input Variables'} }}
+      </div>
+    </div>
+    <div class="flex items-center gap-1">
+      <div class="w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none pressable"
+        (click)="addInput()"
+      >
+        <i class="ri-add-line"></i>
+      </div>
+    </div>
+  </div>
+  
+  <div class="mt-1">
+    <div class="space-y-0.5">
+      @for (item of inputParams(); track i; let i = $index) {
+        <li class="group/item relative px-1 py-0.5 flex justify-between items-center gap-2 text-text-secondary hover:bg-hover-bg">
+          <div class="relative w-[120px]">
+            <input class="w-full py-1.5 bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular" 
+              [placeholder]=" 'PAC.Xpert.VariableName' | translate: {Default: 'Variable Name'}"
+              [ngModel]="item.name"
+              (ngModelChange)="updateInput(i, 'name', $event)"
+            >
+          </div>
+          <xpert-state-variable-select class="grow truncate opacity-90 hover:opacity-100"
+            [variables]="variables()"
+            [ngModel]="item.variable"
+            (ngModelChange)="updateInput(i, 'variable', $event)"
+          />
+          <button type="button" class="btn hidden group-hover/item:inline-flex w-6 h-6 justify-center ml-1 p-1 rounded-md hover:bg-black/5 cursor-pointer danger"
+            (click)="removeInput(i)">
+            <i class="ri-delete-bin-line"></i>
+          </button>
+        </li>
+      } @empty {
+        <div class="p-3 rounded-lg flex justify-center items-center text-sm text-text-secondary bg-slate-50">
+          {{ 'PAC.Xpert.AddInputVariables' | translate: {Default: 'Add input variables'} }}
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<pac-code-editor-card class="m-2" [(ngModel)]="code" editable lineNumbers [initHeight]="600"
+  [title]="'Content'" />
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>

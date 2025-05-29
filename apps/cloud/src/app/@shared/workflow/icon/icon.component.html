@@ -64,6 +64,13 @@
       <i class="ri-exchange-2-fill"></i>
     </div>
   }
+  @case (eWorkflowNodeTypeEnum.TEMPLATE) {
+    <div class="flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-400
+      w-full h-full rounded-lg shadow-sm
+      shrink-0">
+      <i class="ri-font-sans-serif"></i>
+    </div>
+  }
   @default {
     <div>Unimplement type ({{type()}})</div>
   }

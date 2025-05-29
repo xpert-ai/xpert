@@ -9,6 +9,7 @@ import {
   IWFNIfElse,
   IWFNKnowledgeRetrieval,
   IWFNSubflow,
+  IWFNTemplate,
   IWorkflowNode,
   IXpert,
   ToastrService,
@@ -26,7 +27,8 @@ import {
   genXpertKnowledgeKey,
   genXpertNoteKey,
   genXpertRouterKey,
-  genXpertSubflowKey
+  genXpertSubflowKey,
+  genXpertTemplateKey
 } from '../../../utils'
 import { XpertStudioApiService } from '../../domain'
 import { SelectionService } from '../../domain/selection.service'
@@ -34,6 +36,7 @@ import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioKnowledgeMenuComponent } from '../knowledge-menu/knowledge.component'
 import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.component'
 import { I18nService } from '@cloud/app/@shared/i18n'
+import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
 
 @Component({
   selector: 'xpert-studio-context-menu',
@@ -46,7 +49,8 @@ import { I18nService } from '@cloud/app/@shared/i18n'
     MatTabsModule,
     XpertStudioKnowledgeMenuComponent,
     XpertStudioToolsetMenuComponent,
-    XpertInlineProfileComponent
+    XpertInlineProfileComponent,
+    XpertWorkflowIconComponent
   ],
   templateUrl: './context-menu.component.html',
   styleUrl: './context-menu.component.scss'
@@ -193,6 +197,21 @@ export class XpertStudioContextMenuComponent {
         }
       ]
     } as IWFNCode)
+  }
+
+  async addWorkflowTemplate() {
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.TEMPLATE,
+      key: genXpertTemplateKey(),
+      title: await this.#translate.instant('PAC.Workflow.Template', { Default: 'Template' }),
+      code: `{{arg1}}`,
+      inputParams: [
+        {
+          name: 'arg1',
+          variable: ''
+        }
+      ]
+    } as IWFNTemplate)
   }
 
   async addWorkflowHttp() {
