@@ -1,26 +1,21 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
+import { CodeEditorCardComponent } from '@cloud/app/@shared/editors'
 import { attrModel, linkedModel } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
-  getErrorMessage,
-  IWFNSubflow,
   IWFNTemplate,
   IWorkflowNode,
-  TXpertTeamNode,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
   XpertService
 } from 'apps/cloud/src/app/@core'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { catchError, of } from 'rxjs'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-import { CodeEditorCardComponent } from '@cloud/app/@shared/editors'
 
 @Component({
   selector: 'xpert-workflow-template',
@@ -28,7 +23,14 @@ import { CodeEditorCardComponent } from '@cloud/app/@shared/editors'
   styleUrls: ['./template.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, MatTooltipModule, TranslateModule, CdkMenuModule, StateVariableSelectComponent, CodeEditorCardComponent],
+  imports: [
+    FormsModule,
+    MatTooltipModule,
+    TranslateModule,
+    CdkMenuModule,
+    StateVariableSelectComponent,
+    CodeEditorCardComponent
+  ],
   host: {
     tabindex: '-1'
   }
@@ -60,9 +62,7 @@ export class XpertWorkflowTemplateComponent extends XpertWorkflowBaseComponent {
   readonly inputParams = attrModel(this.template, 'inputParams')
   readonly code = attrModel(this.template, 'code')
 
-  readonly draft = this.studioService.viewModel
-
-
+  readonly expandOutputVariables = signal(false)
 
   addInput() {
     this.inputParams.update((state) => {
@@ -85,5 +85,9 @@ export class XpertWorkflowTemplateComponent extends XpertWorkflowBaseComponent {
       state.splice(index, 1)
       return [...state]
     })
+  }
+
+  toggleOutput() {
+    this.expandOutputVariables.update((state) => !state)
   }
 }

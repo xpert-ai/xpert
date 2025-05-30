@@ -387,6 +387,9 @@
       "Router": "路由",
       "Agent": "智能体",
       "Subflow": "子流程",
+      "TemplateTransform": "模版转换",
+      "TransformedContent": "转换后内容",
+      "Code": "代码",
       "Note": "注释"
     },
     "Environment": {

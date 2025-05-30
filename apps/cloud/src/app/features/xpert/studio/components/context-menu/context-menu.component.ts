@@ -2,6 +2,8 @@ import { CdkMenu, CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectorRef, Component, computed, inject, TemplateRef, ViewChild } from '@angular/core'
 import { MatTabsModule } from '@angular/material/tabs'
+import { I18nService } from '@cloud/app/@shared/i18n'
+import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNCode,
@@ -35,8 +37,6 @@ import { SelectionService } from '../../domain/selection.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioKnowledgeMenuComponent } from '../knowledge-menu/knowledge.component'
 import { XpertStudioToolsetMenuComponent } from '../toolset-menu/toolset.component'
-import { I18nService } from '@cloud/app/@shared/i18n'
-import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
 
 @Component({
   selector: 'xpert-studio-context-menu',
@@ -94,7 +94,8 @@ export class XpertStudioContextMenuComponent {
   async createAgent(menu: CdkMenu) {
     menu.menuStack.closeAll()
     this.apiService.createAgent(this.root.contextMenuPosition, {
-      title: (await this.#translate.instant('PAC.Workflow.Agent', { Default: 'Agent' })) + ' ' + (this.agents()?.length ?? 1)
+      title:
+        (await this.#translate.instant('PAC.Workflow.Agent', { Default: 'Agent' })) + ' ' + (this.agents()?.length ?? 1)
     })
   }
 
@@ -119,9 +120,11 @@ export class XpertStudioContextMenuComponent {
           ...this.root.contextMenuPosition
         }
       })
-    } catch(err) {
+    } catch (err) {
       console.error(err)
-      this.#toastr.error(this.#translate.instant('PAC.Xpert.UnableParseContent', { Default: 'Unable to parse content' }))
+      this.#toastr.error(
+        this.#translate.instant('PAC.Xpert.UnableParseContent', { Default: 'Unable to parse content' })
+      )
     }
   }
 
@@ -129,7 +132,7 @@ export class XpertStudioContextMenuComponent {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.NOTE,
       key: genXpertNoteKey(),
-      title: await this.#translate.instant('PAC.Workflow.Note', { Default: 'Note' }),
+      title: await this.#translate.instant('PAC.Workflow.Note', { Default: 'Note' })
     } as IWorkflowNode)
   }
 
@@ -203,7 +206,7 @@ export class XpertStudioContextMenuComponent {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.TEMPLATE,
       key: genXpertTemplateKey(),
-      title: await this.#translate.instant('PAC.Workflow.Template', { Default: 'Template' }),
+      title: await this.#translate.instant('PAC.Workflow.TemplateTransform', { Default: 'Template transform' }),
       code: `{{arg1}}`,
       inputParams: [
         {

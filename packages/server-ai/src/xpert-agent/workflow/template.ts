@@ -17,8 +17,6 @@ import { get } from 'lodash'
 import { wrapAgentExecution } from '../../xpert-agent-execution/utils'
 import { AgentStateAnnotation } from '../commands/handlers/types'
 
-const ErrorChannelName = 'error'
-
 export function createTemplateNode(
 	graph: TXpertGraph,
 	node: TXpertTeamNode & { type: 'workflow' },
@@ -40,7 +38,13 @@ export function createTemplateNode(
 				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
 				const inputs =
 					inputParams?.reduce((acc, curr) => {
-						acc[curr.name] = get(state, curr.variable)
+						if (curr.variable) {
+							if (curr.name) {
+								acc[curr.name] = get(state, curr.variable)
+							} else {
+								acc = get(state, curr.variable)
+							}
+						}
 						return acc
 					}, {}) ?? {}
 
@@ -80,12 +84,12 @@ export function createTemplateNode(
 			ends: []
 		},
 		navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-			if (state[channelName(node.key)][ErrorChannelName]) {
-				return (
-					graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)?.to ??
-					END
-				)
-			}
+			// if (state[channelName(node.key)][ErrorChannelName]) {
+			// 	return (
+			// 		graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)?.to ??
+			// 		END
+			// 	)
+			// }
 			return graph.connections.find((conn) => conn.type === 'edge' && conn.from === node.key)?.to ?? END
 		}
 	}

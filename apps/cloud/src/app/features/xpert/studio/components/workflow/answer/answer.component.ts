@@ -36,6 +36,6 @@ export class XpertStudioNodeWorkflowAnswerComponent {
 
   // States
   readonly answerEntity = computed(() => this.entity() as IWFNAnswer)
-
+  readonly promptTemplate = computed(() => this.answerEntity()?.promptTemplate)
   
 }
