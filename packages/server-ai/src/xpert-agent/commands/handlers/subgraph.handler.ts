@@ -45,7 +45,7 @@ import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateMemoryStoreCommand } from '../../../xpert/commands'
 import { CreateWorkflowNodeCommand } from '../../workflow'
 import { toEnvState } from '../../../environment'
-import { _BaseToolset } from '../../../shared'
+import { _BaseToolset, ToolSchemaParser } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 
 
@@ -480,7 +480,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		})
 
 		const enableMessageHistory = !agent.options?.disableMessageHistory
-		const stateModifier = async (state: typeof AgentStateAnnotation.State, isStart: boolean) => {
+		const stateModifier = async (state: typeof AgentStateAnnotation.State, isStart: boolean, jsonSchema: string) => {
 			const { memories } = state
 			const summary = getChannelState(state, agentChannel)?.summary
 			const parameters = stateToParameters(state, environment)
@@ -494,6 +494,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			const systemMessage = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
 				templateFormat: 'mustache'
 			}).format(parameters)
+			if (jsonSchema) {
+				systemMessage.content += `\n\n\`\`\`json\n${jsonSchema}\n\`\`\``
+			}
 
 			this.#logger.verbose(`SystemMessage of ${agentLabel(agent)}:`, systemMessage.content)
 
@@ -526,7 +529,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		
 		// Execute agent
 		const callModel = async (state: typeof SubgraphStateAnnotation.State, config?: RunnableConfig) => {
-			const structuredChatModel = withStructured(chatModel, agent, withTools)
+			const {structuredChatModel, jsonSchema} = withStructured(chatModel, agent, withTools)
 			let withFallbackModel: Runnable = structuredChatModel
 			if (agent.options?.retry?.enabled) {
 				withFallbackModel = withFallbackModel.withRetry({stopAfterAttempt: agent.options.retry.stopAfterAttempt ?? 2})
@@ -542,14 +545,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 							}
 						}))
 				}
-				let fallbackChatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
+				const _fallbackChatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
 					new GetXpertChatModelQuery(agent.team, null, {
 						copilotModel: agent.options.fallback.copilotModel,
 						abortController: rootController,
 						usageCallback: assignExecutionUsage(execution)
 					})
 				)
-				fallbackChatModel = withStructured(fallbackChatModel, agent, withTools)
+				const {structuredChatModel: fallbackChatModel} = withStructured(_fallbackChatModel, agent, withTools)
 				withFallbackModel = withFallbackModel.withFallbacks([fallbackChatModel])
 			}
 
@@ -561,7 +564,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				])
 			}
 
-			const {systemMessage, messageHistory, humanMessages} = await stateModifier(state, (<string>config.metadata.langgraph_triggers[0])?.startsWith(START))
+			const {systemMessage, messageHistory, humanMessages} = await stateModifier(state, (<string>config.metadata.langgraph_triggers[0])?.startsWith(START), jsonSchema)
 			// Disable history and new human request then remove history
 			const deleteMessages = (!enableMessageHistory && humanMessages.length) ? messageHistory.map((m) => new RemoveMessage({ id: m.id as string })) : []
 			try {
@@ -1088,18 +1091,26 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 }
 
 // Fill tools or structured output into chatModel
-function withStructured(chatModel: BaseChatModel, agent: IXpertAgent, withTools,) {
+function withStructured(chatModel: BaseChatModel, agent: IXpertAgent, withTools: TGraphTool['tool'][]) {
 	let chatModelWithTools = null
+	let jsonSchema: string = null
 	if (withTools.length) {
 		if (agent.options?.parallelToolCalls === false && chatModel instanceof ChatOpenAI) {
 			chatModelWithTools = chatModel.bindTools(withTools, {parallel_tool_calls: false})
 		} else {
 			chatModelWithTools = chatModel.bindTools(withTools)
 		}
-	} else {
-		chatModelWithTools = agent.outputVariables?.length ? chatModel.withStructuredOutput(z.object({
+	} else if (agent.options?.structuredOutputMethod) {
+		const zodSchema = z.object({
 			...createParameters(agent.outputVariables),
-		})) : chatModel
+		})
+		if (agent.options.structuredOutputMethod === 'jsonMode') {
+		  jsonSchema = ToolSchemaParser.serializeJsonSchema(ToolSchemaParser.parseZodToJsonSchema(zodSchema))
+		}
+		chatModelWithTools = chatModel.withStructuredOutput(zodSchema, {method: agent.options.structuredOutputMethod})
 	}
-	return chatModelWithTools
+	return {
+		structuredChatModel: chatModelWithTools,
+		jsonSchema
+	}
 }

@@ -301,12 +301,7 @@
 
     <div class="h-[0.5px] bg-divider-subtle"></div>
 
-    <!-- <xpert-error-handling class="px-2"
-      [ngModel]="errorHandling()"
-      (ngModelChange)="updateErrorHandling($event)"
-    /> -->
-
-    <xpert-workflow-error-handling class="p-4" [defaultValueSchema]="defaultValueSchema"
+    <xpert-workflow-error-handling class="" [defaultValueSchema]="defaultValueSchema"
       [ngModel]="errorHandling()"
       (ngModelChange)="updateErrorHandling($event)"
     />
@@ -322,14 +317,22 @@
         </div>
 
         <div class="flex items-center gap-2">
-          <mat-slide-toggle ngm-density="xs" 
-            [matTooltip]="'PAC.Xpert.CustomOutputStructureTip' | translate: {Default: 'Whether to customize the output structure'}"
-            matTooltipPosition="above"
-            [(ngModel)]="enabledOutputVars" />
+          <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
+            [cdkMenuTriggerFor]="methodMenu"
+          >
+            {{structuredOutputMethodOption()?.label | i18n}}
+            <i class="ri-arrow-down-s-line"></i>
+          </button>
         </div>
       </div>
 
-      @if (enabledOutputVars) {
+      @if (structuredOutputMethod()) {
+        @if (toolsets()?.length) {
+          <div class="my-4 px-2 text-sm rounded-lg border border-solid border-text-warning shadow-md bg-slate-50">
+            <i class="ri-alarm-warning-line mr-2 text-lg text-text-destructive"></i>
+            <span class="text-text-secondary">{{ 'PAC.Xpert.DonotToolCallingAndStructured' | translate: {Default: 'Cannot use tool calls and structured output at the same time!'} }}</span>
+          </div>
+        }
         <xpert-output-variables-edit class="" 
           [ngModel]="outputVariables()"
           (ngModelChange)="updateOutputVariables($event)"
@@ -438,5 +441,19 @@
     <button type="button" class="btn rounded-xl justify-center absolute top-2 right-2 w-8 h-8" (click)="refreshDiagram$.next()">
       <i class="ri-restart-line"></i>
     </button>
+  </div>
+</ng-template>
+
+<ng-template #methodMenu>
+  <div cdkMenu class="cdk-menu__large max-w-xs overflow-hidden">
+    @for (option of StructuredOutputMethodOptions; track option.value) {
+      <div cdkMenuItem class="flex flex-col items-start text-sm mb-2"
+        [class.active]="structuredOutputMethod() === option.value"
+        (click)="structuredOutputMethod.set(option.value)"
+      >
+        <div class="w-full text-left font-semibold mb-1">{{option.label | i18n}}</div>
+        <div class="w-full text-left line-clamp-3 whitespace-normal">{{option.description | i18n}}</div>
+      </div>
+    }
   </div>
 </ng-template>

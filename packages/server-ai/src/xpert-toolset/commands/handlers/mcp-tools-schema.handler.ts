@@ -2,11 +2,11 @@ import { DynamicStructuredTool } from '@langchain/core/tools'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { createMCPClient } from '../../provider/mcp/types'
-import { ToolSchemaParser } from '../../utils/parser'
 import { MCPToolsBySchemaCommand } from '../mcp-tools-schema.command'
 import { XpertToolsetService } from '../../xpert-toolset.service'
 import { createProMCPClient } from '../../provider/mcp/pro'
 import { EnvStateQuery } from '../../../environment'
+import { ToolSchemaParser } from '../../../shared'
 
 @CommandHandler(MCPToolsBySchemaCommand)
 export class MCPToolsBySchemaHandler implements ICommandHandler<MCPToolsBySchemaCommand> {

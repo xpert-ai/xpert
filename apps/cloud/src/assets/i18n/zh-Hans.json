@@ -2269,6 +2269,7 @@
       "OnFailure": "异常时",
       "OutputDefaultValue": "输出默认值",
       "FailBranch": "异常分支",
+      "DonotToolCallingAndStructured": "不能同时使用工具调用与结构化输出！",
       "LearnMore": "了解更多",
       "AddTitle": "添加标题",
       "AddDescription": "添加描述",
