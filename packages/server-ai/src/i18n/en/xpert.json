@@ -5,6 +5,7 @@
         "EmbeddingModelForMemory": "Need to configure embedding model for long-term memory",
         "AgentOutdated": "Agent '{agentKey}' record has been updated, please resynchronize",
         "FallbackModelNotFound": "Fallback model not found for agent '{agent}'",
+        "NoContent4DefaultValue": "Default value for '{agent}' exception handling is not configured",
         "CopilotModelConfigError": "Copilot model '{model}' is not configured correctly",
         "NameExists": "Name Exist",
         "MultiNodeNotSupported": "Multi-node execution is not supported yet '{node}'",

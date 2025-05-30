@@ -559,6 +559,15 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			// Error handling
 			const errorHandling = agent.options?.errorHandling
 			if (errorHandling?.type === 'defaultValue') {
+				if (!errorHandling.defaultValue?.content) {
+					throw new XpertConfigException(await this.i18nService.translate('xpert.Error.NoContent4DefaultValue',
+						{
+							lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+							args: {
+								agent: agentLabel(agent)
+							}
+						}))
+				}
 				withFallbackModel = withFallbackModel.withFallbacks([
 					new FakeStreamingChatModel({responses: [new AIMessage(errorHandling.defaultValue?.content)]})
 				])
@@ -1092,13 +1101,13 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 
 // Fill tools or structured output into chatModel
 function withStructured(chatModel: BaseChatModel, agent: IXpertAgent, withTools: TGraphTool['tool'][]) {
-	let chatModelWithTools = null
+	let structuredChatModel = null
 	let jsonSchema: string = null
 	if (withTools.length) {
 		if (agent.options?.parallelToolCalls === false && chatModel instanceof ChatOpenAI) {
-			chatModelWithTools = chatModel.bindTools(withTools, {parallel_tool_calls: false})
+			structuredChatModel = chatModel.bindTools(withTools, {parallel_tool_calls: false})
 		} else {
-			chatModelWithTools = chatModel.bindTools(withTools)
+			structuredChatModel = chatModel.bindTools(withTools)
 		}
 	} else if (agent.options?.structuredOutputMethod) {
 		const zodSchema = z.object({
@@ -1107,10 +1116,12 @@ function withStructured(chatModel: BaseChatModel, agent: IXpertAgent, withTools:
 		if (agent.options.structuredOutputMethod === 'jsonMode') {
 		  jsonSchema = ToolSchemaParser.serializeJsonSchema(ToolSchemaParser.parseZodToJsonSchema(zodSchema))
 		}
-		chatModelWithTools = chatModel.withStructuredOutput(zodSchema, {method: agent.options.structuredOutputMethod})
+		structuredChatModel = chatModel.withStructuredOutput(zodSchema, {method: agent.options.structuredOutputMethod})
+	} else {
+		structuredChatModel = chatModel
 	}
 	return {
-		structuredChatModel: chatModelWithTools,
+		structuredChatModel,
 		jsonSchema
 	}
 }
