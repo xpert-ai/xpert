@@ -289,6 +289,7 @@
       "CancelDislike": "取不喜欢",
       "Upgrade": "更新",
       "Code": "编码",
+      "Template": "模版",
       "Retry": "重试",
       "Preview": "预览",
       "PublicURL": "公开链接",
@@ -386,6 +387,9 @@
       "Router": "路由",
       "Agent": "智能体",
       "Subflow": "子流程",
+      "TemplateTransform": "模版转换",
+      "TransformedContent": "转换后内容",
+      "Code": "代码",
       "Note": "注释"
     },
     "Environment": {
@@ -2265,6 +2269,7 @@
       "OnFailure": "异常时",
       "OutputDefaultValue": "输出默认值",
       "FailBranch": "异常分支",
+      "DonotToolCallingAndStructured": "不能同时使用工具调用与结构化输出！",
       "LearnMore": "了解更多",
       "AddTitle": "添加标题",
       "AddDescription": "添加描述",
@@ -2744,6 +2749,7 @@
       "AddOutputVariables": "添加输出变量",
       "Transform": "转换",
       "Code": "代码执行",
+      "Template": "模版",
       "TestWorkflowNode": "测试工作流节点",
       "TestRun": "测试运行",
       "Question": "问题",

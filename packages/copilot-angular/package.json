@@ -1,6 +1,6 @@
 {
   "name": "@metad/copilot-angular",
-  "version": "3.2.11",
+  "version": "3.2.12",
   "license": "AGPL-3.0",
   "peerDependencies": {
     "@angular/common": "^17.3.0",

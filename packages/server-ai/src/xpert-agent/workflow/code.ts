@@ -116,7 +116,7 @@ export function createCodeNode(
 	}
 }
 
-export function codeOutoutVariables(entity: IWorkflowNode) {
+export function codeOutputVariables(entity: IWorkflowNode) {
 	return [
 		...((<IWFNCode>entity).outputs ?? []),
 		{

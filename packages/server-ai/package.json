@@ -1,6 +1,6 @@
 {
   "name": "@metad/server-ai",
-  "version": "3.2.11",
+  "version": "3.2.12",
   "type": "commonjs",
   "license": "AGPL-3.0",
   "dependencies": {
@@ -32,6 +32,7 @@
     "cache-manager-redis-yet": "5.1.5",
     "cronstrue": "2.53.0",
     "epub2": "^3.0.2",
+    "handlebars": "^4.7.8",
     "html-to-text": "^7.1.2",
     "isolated-vm": "5.0.4",
     "json-schema-to-zod": "^2.4.0",

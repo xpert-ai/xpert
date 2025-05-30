@@ -22,6 +22,7 @@ import { XpertStudioNodeWorkflowHttpComponent } from './http/http.component'
 import { XpertStudioNodeWorkflowKnowledgeComponent } from './knowledge/knowledge.component'
 import { XpertWorkflowNodeSubflowComponent } from './subflow/subflow.component'
 import { XpertWorkflowNodeNoteComponent } from './note/note.component'
+import { XpertWorkflowNodeTemplateComponent } from './template/template.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -43,6 +44,7 @@ import { XpertWorkflowNodeNoteComponent } from './note/note.component'
     XpertStudioNodeWorkflowHttpComponent,
     XpertStudioNodeWorkflowKnowledgeComponent,
     XpertWorkflowNodeSubflowComponent,
+    XpertWorkflowNodeTemplateComponent,
     XpertWorkflowNodeNoteComponent
   ],
   host: {

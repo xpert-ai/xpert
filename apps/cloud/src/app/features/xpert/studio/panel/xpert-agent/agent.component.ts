@@ -34,7 +34,9 @@ import {
   XpertAgentService,
   TXpertAgentOptions,
   injectHelpWebsite,
-  XpertParameterTypeEnum
+  XpertParameterTypeEnum,
+  TSelectOption,
+  TXpertTeamNode
 } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { XpertStudioApiService } from '../../domain'
@@ -52,9 +54,9 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { uniq } from 'lodash-es'
 import { XpertStudioComponent } from '../../studio.component'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { OverlayAnimations } from '@metad/core'
+import { attrModel, linkedModel, nonNullable, OverlayAnimations } from '@metad/core'
 import { MatSliderModule } from '@angular/material/slider'
 import { XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/workflow'
 
@@ -74,6 +76,7 @@ import { XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/
     MatSliderModule,
     DateRelativePipe,
 
+    NgmI18nPipe,
     NgmDensityDirective,
     NgmSpinComponent,
     EmojiAvatarComponent,
@@ -116,7 +119,7 @@ export class XpertStudioPanelAgentComponent {
   readonly xpert = computed(() => this.apiService.viewModel()?.team)
   readonly xpertId = computed(() => this.xpert()?.id)
   readonly xpertCopilotModel = computed(() => this.xpert()?.copilotModel)
-  readonly toolsets = computed(() => this.xpertAgent()?.toolsets)
+  // readonly toolsets = computed(() => this.xpertAgent()?.toolsets)
   readonly name = computed(() => this.xpertAgent()?.name)
   readonly title = computed(() => this.xpertAgent()?.title)
   readonly prompt = model<string>()
@@ -133,6 +136,13 @@ export class XpertStudioPanelAgentComponent {
   readonly parameters = computed(() => this.xpertAgent()?.parameters)
   readonly memories = computed(() => this.xpertAgent()?.options?.memories)
   readonly parallelToolCalls = computed(() => this.xpertAgent()?.options?.parallelToolCalls ?? true)
+  readonly draft = this.apiService.viewModel
+  readonly toolsets = computed(() => {
+    const draft = this.draft()
+    return draft.connections?.filter((conn) => conn.from === this.key())
+      .map((conn) => draft.nodes.find((n) => n.type === 'toolset' && n.key === conn.to) as TXpertTeamNode & {type: 'toolset'})
+      .filter(nonNullable)
+  })
 
   // Error handling
   readonly retry = computed(() => this.xpertAgent()?.options?.retry)
@@ -143,6 +153,20 @@ export class XpertStudioPanelAgentComponent {
   readonly fallbackModel = computed(() => this.fallback()?.copilotModel)
   readonly errorHandling = computed(() => this.xpertAgent()?.options?.errorHandling)
   readonly errorHandlingType = computed(() => this.errorHandling()?.type)
+
+  // LinkedModels
+  readonly agentOptions = linkedModel({
+    initialValue: null,
+    compute: () => this.xpertAgent()?.options,
+    update: (options) => {
+      this.apiService.updateXpertAgent(this.key(), {options})
+    }
+  })
+  readonly structuredOutputMethod = attrModel(this.agentOptions, 'structuredOutputMethod')
+  readonly structuredOutputMethodOption = computed(() => {
+    return this.StructuredOutputMethodOptions.find((_) => this.structuredOutputMethod() ? _.value === this.structuredOutputMethod() : !_.value)
+  })
+
 
   readonly nameError = computed(() => {
     const name = this.name()
@@ -156,12 +180,6 @@ export class XpertStudioPanelAgentComponent {
   })
 
   readonly outputVariables = computed(() => this.xpertAgent()?.outputVariables)
-  get enabledOutputVars() {
-    return !!this.outputVariables()
-  }
-  set enabledOutputVars(value: boolean) {
-    this.updateOutputVariables(value ? (this.outputVariables() ?? []) : null)
-  }
 
   readonly copilotModel = model<ICopilotModel>()
 
@@ -214,6 +232,42 @@ export class XpertStudioPanelAgentComponent {
       type: XpertParameterTypeEnum.STRING,
       name: 'content',
       title: 'Text'
+    }
+  ]
+
+  readonly StructuredOutputMethodOptions: TSelectOption<TXpertAgentOptions['structuredOutputMethod']>[] = [
+    {
+      value: null,
+      label: {
+        zh_Hans: '默认',
+        en_US: 'Default'
+      },
+      description: {
+        zh_Hans: '消息内容',
+        en_US: 'Message content'
+      }
+    },
+    {
+      value: 'functionCalling',
+      label: {
+        zh_Hans: '函数调用',
+        en_US: 'Function Calling'
+      },
+      description: {
+        zh_Hans: '将工具调用参数从对象解析回原始模式',
+        en_US: 'Tool call arguments to be parsed from an object back to the original schema'
+      }
+    },
+    {
+      value: 'jsonMode',
+      label: {
+        zh_Hans: 'JSON 模式',
+        en_US: 'JSON Mode'
+      },
+      description: {
+        zh_Hans: '将输出解析为 JSON 对象',
+        en_US: 'Parse output as a JSON object'
+      }
     }
   ]
 

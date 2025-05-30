@@ -1,6 +1,6 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
-import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, isAIMessage, isAIMessageChunk, isBaseMessage, isBaseMessageChunk, isToolMessage, RemoveMessage, ToolMessage } from '@langchain/core/messages'
+import { AIMessage, BaseMessage, HumanMessage, isAIMessage, isBaseMessage, isBaseMessageChunk, isToolMessage, RemoveMessage, ToolMessage } from '@langchain/core/messages'
 import { HumanMessagePromptTemplate, SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { Runnable, RunnableConfig, RunnableLambda, RunnableLike } from '@langchain/core/runnables'
 import {
@@ -23,7 +23,7 @@ import { RequestContext } from '@metad/server-core'
 import { InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
-import { uniq } from 'lodash'
+import { get, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
 import z from 'zod'
@@ -45,7 +45,7 @@ import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateMemoryStoreCommand } from '../../../xpert/commands'
 import { CreateWorkflowNodeCommand } from '../../workflow'
 import { toEnvState } from '../../../environment'
-import { _BaseToolset } from '../../../shared'
+import { _BaseToolset, ToolSchemaParser } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 
 
@@ -171,7 +171,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			})))
 		}
 
-		this.#logger.debug(`Use tools:\n${[...tools].map((_, i) => `${i+1}. ` + _.tool.name + ': ' + _.tool.description).join('\n')}`)
+		this.#logger.debug(`Use tools:\n${tools.length ? tools.map((_, i) => `${i+1}. ` + _.tool.name + ': ' + _.tool.description).join('\n') : 'No tools.'}`)
 
 		// Knowledgebases
 		const knowledgebaseIds = options?.knowledgebases ?? agent.knowledgebaseIds
@@ -480,7 +480,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		})
 
 		const enableMessageHistory = !agent.options?.disableMessageHistory
-		const stateModifier = async (state: typeof AgentStateAnnotation.State, isStart: boolean) => {
+		const stateModifier = async (state: typeof AgentStateAnnotation.State, isStart: boolean, jsonSchema: string) => {
 			const { memories } = state
 			const summary = getChannelState(state, agentChannel)?.summary
 			const parameters = stateToParameters(state, environment)
@@ -494,6 +494,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			const systemMessage = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
 				templateFormat: 'mustache'
 			}).format(parameters)
+			if (jsonSchema) {
+				systemMessage.content += `\n\n\`\`\`json\n${jsonSchema}\n\`\`\``
+			}
 
 			this.#logger.verbose(`SystemMessage of ${agentLabel(agent)}:`, systemMessage.content)
 
@@ -526,7 +529,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		
 		// Execute agent
 		const callModel = async (state: typeof SubgraphStateAnnotation.State, config?: RunnableConfig) => {
-			const structuredChatModel = withStructured(chatModel, agent, withTools)
+			const {structuredChatModel, jsonSchema} = withStructured(chatModel, agent, withTools)
 			let withFallbackModel: Runnable = structuredChatModel
 			if (agent.options?.retry?.enabled) {
 				withFallbackModel = withFallbackModel.withRetry({stopAfterAttempt: agent.options.retry.stopAfterAttempt ?? 2})
@@ -542,26 +545,35 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 							}
 						}))
 				}
-				let fallbackChatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
+				const _fallbackChatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
 					new GetXpertChatModelQuery(agent.team, null, {
 						copilotModel: agent.options.fallback.copilotModel,
 						abortController: rootController,
 						usageCallback: assignExecutionUsage(execution)
 					})
 				)
-				fallbackChatModel = withStructured(fallbackChatModel, agent, withTools)
+				const {structuredChatModel: fallbackChatModel} = withStructured(_fallbackChatModel, agent, withTools)
 				withFallbackModel = withFallbackModel.withFallbacks([fallbackChatModel])
 			}
 
 			// Error handling
 			const errorHandling = agent.options?.errorHandling
 			if (errorHandling?.type === 'defaultValue') {
+				if (!errorHandling.defaultValue?.content) {
+					throw new XpertConfigException(await this.i18nService.translate('xpert.Error.NoContent4DefaultValue',
+						{
+							lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+							args: {
+								agent: agentLabel(agent)
+							}
+						}))
+				}
 				withFallbackModel = withFallbackModel.withFallbacks([
 					new FakeStreamingChatModel({responses: [new AIMessage(errorHandling.defaultValue?.content)]})
 				])
 			}
 
-			const {systemMessage, messageHistory, humanMessages} = await stateModifier(state, (<string>config.metadata.langgraph_triggers[0])?.startsWith(START))
+			const {systemMessage, messageHistory, humanMessages} = await stateModifier(state, (<string>config.metadata.langgraph_triggers[0])?.startsWith(START), jsonSchema)
 			// Disable history and new human request then remove history
 			const deleteMessages = (!enableMessageHistory && humanMessages.length) ? messageHistory.map((m) => new RemoveMessage({ id: m.id as string })) : []
 			try {
@@ -574,7 +586,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					messages: [...messages],
 					[channelName(agentKey)]: {messages}
 				}
-				if ((isBaseMessage(message)) || isBaseMessageChunk(message)) {
+				if (isBaseMessage(message) || isBaseMessageChunk(message)) {
 					nState.messages.push(message)
 					nState[channelName(agentKey)].messages.push(message)
 					nState[channelName(agentKey)].output = stringifyMessageContent(message.content)
@@ -582,17 +594,19 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					nState[channelName(agentKey)] = message
 				}
 				// Write to memory
-				if (isStart && agent.options?.memories) {
-					agent.options?.memories.forEach((item) => {
-						if (item.inputType === 'constant') {
-							nState[item.variableSelector] = item.value
-						} else if (item.inputType === 'variable') {
-							if (item.value === 'content' && isAIMessageChunk(message as AIMessageChunk)) {
-								nState[item.variableSelector] = (message as AIMessageChunk).content
+				agent.options?.memories?.forEach((item) => {
+					if (item.inputType === 'constant') {
+						nState[item.variableSelector] = item.value
+					} else if (item.inputType === 'variable') {
+						if (item.value === 'content') {
+							if (isBaseMessage(message) || isBaseMessageChunk(message)) {
+								nState[item.variableSelector] = message.content
 							}
+						} else if (item.value) {
+							nState[item.variableSelector] = get(message, item.value)
 						}
-					})
-				}
+					}
+				})
 
 				return nState
 			} catch(err) {
@@ -1086,18 +1100,28 @@ function createAgentNavigator(agentChannel: string, summarize: TSummarize, summa
 }
 
 // Fill tools or structured output into chatModel
-function withStructured(chatModel: BaseChatModel, agent: IXpertAgent, withTools,) {
-	let chatModelWithTools = null
+function withStructured(chatModel: BaseChatModel, agent: IXpertAgent, withTools: TGraphTool['tool'][]) {
+	let structuredChatModel = null
+	let jsonSchema: string = null
 	if (withTools.length) {
 		if (agent.options?.parallelToolCalls === false && chatModel instanceof ChatOpenAI) {
-			chatModelWithTools = chatModel.bindTools(withTools, {parallel_tool_calls: false})
+			structuredChatModel = chatModel.bindTools(withTools, {parallel_tool_calls: false})
 		} else {
-			chatModelWithTools = chatModel.bindTools(withTools)
+			structuredChatModel = chatModel.bindTools(withTools)
 		}
-	} else {
-		chatModelWithTools = agent.outputVariables?.length ? chatModel.withStructuredOutput(z.object({
+	} else if (agent.options?.structuredOutputMethod) {
+		const zodSchema = z.object({
 			...createParameters(agent.outputVariables),
-		})) : chatModel
+		})
+		if (agent.options.structuredOutputMethod === 'jsonMode') {
+		  jsonSchema = ToolSchemaParser.serializeJsonSchema(ToolSchemaParser.parseZodToJsonSchema(zodSchema))
+		}
+		structuredChatModel = chatModel.withStructuredOutput(zodSchema, {method: agent.options.structuredOutputMethod})
+	} else {
+		structuredChatModel = chatModel
 	}
-	return chatModelWithTools
+	return {
+		structuredChatModel,
+		jsonSchema
+	}
 }

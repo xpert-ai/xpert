@@ -12,6 +12,7 @@ import { TStateChannel } from '../../agent'
 import { createHttpNode } from '../http'
 import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrieval.command'
 import { CreateWNSubflowCommand } from '../create-wn-subflow.command'
+import { createTemplateNode } from '../template'
 
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {
@@ -122,6 +123,14 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 						default: () => ({})
 					})
 				}
+				break
+			}
+			case WorkflowNodeTypeEnum.TEMPLATE: {
+				workflow = createTemplateNode(graph, node, {
+					xpertId, 
+					commandBus: this.commandBus,
+					queryBus: this.queryBus,
+				})
 				break
 			}
 		}

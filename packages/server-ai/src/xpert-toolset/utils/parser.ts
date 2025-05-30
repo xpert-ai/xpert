@@ -6,10 +6,7 @@ import type { JSONSchema4, JSONSchema4Type } from "json-schema";
 import type { ParameterObject } from "openapi-typescript/src/types";
 import { ToolApiSchemaError, ToolNotSupportedError, ToolProviderNotFoundError } from '../errors';
 import { lowerCase } from 'lodash';
-import { z } from "zod";
-import {zodToJsonSchema} from "zod-to-json-schema";
 
-type ZodObjectAny = z.ZodObject<any, any, any, any>;
 
 export class ApiBasedToolSchemaParser {
   
@@ -480,11 +477,4 @@ export class ApiBasedToolSchemaParser {
 			return value
 		}
 	}
-}
-
-export class ToolSchemaParser {
-  static parseZodToJsonSchema(schema: ZodObjectAny | z.ZodEffects<ZodObjectAny>) {
-    const jsonSchema = zodToJsonSchema(schema)
-    return jsonSchema
-  }
 }

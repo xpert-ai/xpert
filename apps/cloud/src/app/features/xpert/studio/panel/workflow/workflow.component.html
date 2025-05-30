@@ -70,6 +70,9 @@
   @case (eWorkflowNodeTypeEnum.SUBFLOW) {
     <xpert-workflow-subflow [node]="node()" [entity]="wfNode()" />
   }
+  @case (eWorkflowNodeTypeEnum.TEMPLATE) {
+    <xpert-workflow-template [node]="node()" [entity]="wfNode()" />
+  }
 }
 
 @if (loading()) {
