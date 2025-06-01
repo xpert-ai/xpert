@@ -48,6 +48,10 @@ export enum ChatBIVariableEnum {
 export type TChatBICredentials = {
 	models: string[]
 	dataPermission?: boolean
+	/**
+	 * Default limit top 100 rows to LLM
+	 */
+	dataLimit?: number
 }
 
 export type ChatBIContext = {

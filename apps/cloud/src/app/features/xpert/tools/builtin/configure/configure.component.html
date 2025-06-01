@@ -120,7 +120,13 @@
   }
   <div class="flex space-x-2">
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium"
-      (click)="cancel($event)">{{'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}</button>
+      (click)="cancel($event)">
+      @if (dirty()) {
+        {{'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}
+      } @else {
+        {{'PAC.ACTIONS.Close' | translate: {Default: 'Close'} }}
+      }
+    </button>
     <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
       [disabled]="!dirty() || !toolsetId() || !atLeastOne()"
       (click)="save()"
