@@ -1,17 +1,17 @@
-import { CdkDrag, CdkDragDrop } from '@angular/cdk/drag-drop'
+import { CdkDrag, CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, ViewChild, computed, effect, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, ViewChild, computed, effect, inject, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { Store } from '@metad/cloud/state'
 import { BaseEditorDirective } from '@metad/components/editor'
-import { convertQueryResultColumns } from '@metad/core'
+import { convertQueryResultColumns, LeanRightEaseInAnimation } from '@metad/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { getErrorMessage } from '@metad/ocap-angular/core'
-import { EntitySchemaNode, EntitySchemaType } from '@metad/ocap-angular/entity'
+import { EntityCapacity, getErrorMessage } from '@metad/ocap-angular/core'
+import { EntitySchemaNode, EntitySchemaType, NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
 import { NgmMDXEditorComponent } from '@metad/ocap-angular/mdx'
 import { NgmSQLEditorComponent } from '@metad/ocap-angular/sql'
-import { QueryReturn, measureFormatter, nonNullable, serializeUniqueName } from '@metad/ocap-core'
+import { C_MEASURES, QueryReturn, isPropertyMeasure, measureFormatter, nonNullable, serializeUniqueName } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isPlainObject } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
@@ -24,8 +24,11 @@ import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, MODEL_TYPE } from '../../types'
 import { serializePropertyUniqueName, typeOfObj } from '../../utils'
 import { ModelEntityService } from '../entity.service'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { MatIconModule } from '@angular/material/icon'
+import { MatButtonModule } from '@angular/material/button'
+import { getSemanticModelKey } from '@metad/story/core'
 
 @Component({
   standalone: true,
@@ -37,14 +40,21 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
     CommonModule,
     FormsModule,
     TranslateModule,
-    MaterialModule,
+    DragDropModule,
+    MatTooltipModule,
+    MatIconModule,
+    MatButtonModule,
     NgmCommonModule,
     NgmMDXEditorComponent,
-    NgmSQLEditorComponent
-  ]
+    NgmSQLEditorComponent,
+    NgmEntitySchemaComponent
+  ],
+  animations: [LeanRightEaseInAnimation]
 })
 export class EntityQueryComponent extends TranslationBaseComponent {
   MODEL_TYPE = MODEL_TYPE
+  eEntityCapacity = EntityCapacity
+  eCdkDragDropContainers = CdkDragDropContainers
 
   readonly modelService = inject(SemanticModelService)
   readonly modelComponent = inject(ModelComponent)
@@ -53,6 +63,7 @@ export class EntityQueryComponent extends TranslationBaseComponent {
   readonly #logger = inject(NGXLogger)
 
   @ViewChild('editor') editor!: BaseEditorDirective
+  readonly dragHandler = viewChild('dragHandler', {read: CdkDrag})
 
   /**
   |--------------------------------------------------------------------------
@@ -63,6 +74,16 @@ export class EntityQueryComponent extends TranslationBaseComponent {
   readonly entityType = this.entityService.entityType
   readonly tables = toSignal(this.modelService.selectDBTables())
   readonly statement = signal<string>(null)
+
+  readonly cube = this.entityService.cube
+  private readonly modelKey = toSignal(this.modelService.model$.pipe(map(getSemanticModelKey)))
+  private readonly cubeName = computed(() => this.cube()?.name)
+  readonly dataSettings = computed(() => ({
+    dataSource: this.modelKey(),
+    entitySet: this.cubeName()
+  }))
+  readonly schemaOpen = signal(false)
+  readonly schemaPin = signal(false)
 
   entities = []
 
@@ -220,6 +241,14 @@ export class EntityQueryComponent extends TranslationBaseComponent {
       this.editor.insert(modelType === MODEL_TYPE.XMLA ? property.name : serializePropertyUniqueName(property, dialect))
     } else if (event.previousContainer.id === CdkDragDropContainers.Entities) {
       this.editor.insert(modelType === MODEL_TYPE.XMLA ? property.name : serializeUniqueName(property.name))
+    } else if (CdkDragDropContainers.CubeSchema) {
+      if (isPropertyMeasure(event.item.data)) {
+        this.editor.insert(`[${C_MEASURES}].[${event.item.data.name}]`)
+      } else if (event.item.data.type === EntitySchemaType.Entity) {
+        this.editor.insert(`[${event.item.data.name}]`)
+      } else {
+        this.editor.insert(event.item.data.name)
+      }
     } else {
       console.log(event.previousContainer.id)
     }
@@ -250,5 +279,16 @@ export class EntityQueryComponent extends TranslationBaseComponent {
 
   triggerFind() {
     this.editor.startFindAction()
+  }
+
+  toggleSchema() {
+    this.schemaOpen.update((state) => !state)
+  }
+
+  togglePin() {
+    this.schemaPin.update((state) => !state)
+    if (this.schemaPin()) {
+      this.dragHandler().reset()
+    }
   }
 }

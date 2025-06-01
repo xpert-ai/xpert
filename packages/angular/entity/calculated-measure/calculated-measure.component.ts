@@ -1,5 +1,5 @@
 import { coerceBooleanProperty } from '@angular/cdk/coercion'
-import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop'
+import { CdkDrag, CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import {
   Component,
@@ -217,6 +217,10 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
       // 参数创建成功
       console.debug(result)
     }
+  }
+
+  dropPredicate(item: CdkDrag<any>) {
+    return ['ngm-calculated-measure__entity-schema', 'ngm-calculated-calculations', 'ngm-calculated-parameters', 'ngm-calculated-functions'].includes(item.dropContainer.id)
   }
 
   drop(event: CdkDragDrop<Array<{ name: string }>>) {

@@ -974,6 +974,8 @@
       "ParentExpressionTag": "自定义父级表达式",
       "ClosureTag": "闭合表",
       "JoinConfig": "关联配置",
+      "OpenCubeSchema": "打开模型信息",
+      "CubeSchema": "模型信息",
 
       "QUERY": {
         "TITLE": "查询实验室",

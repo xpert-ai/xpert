@@ -4,110 +4,112 @@
     [(opened)]="drawerOpened"
     (openedChange)="$event?helper.realignInkBar():''">
     <mat-tab-group #helper class="ngm-calculated-measure__helpers" mat-stretch-tabs="false" >
-        <mat-tab [label]="'Ngm.Calculation.DIMENSION_MEMBERS' | translate: {Default: 'Dimension Members'}"
-            id="ngm-calculated-measure__entity-schema"
+      <mat-tab [label]="'Ngm.Calculation.DIMENSION_MEMBERS' | translate: {Default: 'Dimension Members'}"
+        id="ngm-calculated-measure__entity-schema"
+        cdkDropList
+        [cdkDropListData]="[]"
+      >
+        <ngm-entity-schema class="flex-1 max-w-full w-full"
+          [dsCoreService]="dsCoreService()"
+          [dataSettings]="dataSettings()"
+          [capacities]="[
+            EntityCapacity.Dimension,
+            EntityCapacity.Measure
+          ]">
+        </ngm-entity-schema>
+      </mat-tab>
+
+      <mat-tab [label]="'Ngm.Calculation.CALCULATED_MEMBERS' | translate: {Default: 'Calculated Members'}">
+        <div class="max-w-full w-full flex flex-col justify-start items-stretch overflow-hidden">
+          <ngm-search class="m-1" [formControl]="calculatedMemberSearch"></ngm-search>
+          <mat-list role="list" class="flex-1 max-w-full w-full overflow-auto" displayDensity="cosy"
+            id="ngm-calculated-calculations"
             cdkDropList
-            [cdkDropListData]="[]"
-        >
-            <ngm-entity-schema class="flex-1 max-w-full w-full"
-                [dsCoreService]="dsCoreService()"
-                [dataSettings]="dataSettings()"
-                [capacities]="[
-                    EntityCapacity.Dimension,
-                    EntityCapacity.Measure
-                ]">
-            </ngm-entity-schema>
-        </mat-tab>
+            [cdkDropListData]="calculations"
+            (cdkDropListDropped)="drop($event)"
+            >
+            <mat-list-item role="listitem" *ngFor="let property of calculations$ | async" class="hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              cdkDrag
+              [cdkDragData]="property"
+            >
+              <ngm-entity-property class="flex-1" [property]="property"></ngm-entity-property> <!-- [highlight]="calculatedMemberHighlight" -->
+                <div *cdkDragPlaceholder></div>
+            </mat-list-item>
+          </mat-list>
+        </div>
 
-        <mat-tab [label]="'Ngm.Calculation.CALCULATED_MEMBERS' | translate: {Default: 'Calculated Members'}">
-            <div class="max-w-full w-full flex flex-col justify-start items-stretch overflow-hidden">
-                <ngm-search class="m-1" [formControl]="calculatedMemberSearch"></ngm-search>
-                <mat-list role="list" class="flex-1 max-w-full w-full overflow-auto" displayDensity="cosy"
-                    id="ngm-calculated-calculations"
-                    cdkDropList
-                    [cdkDropListData]="calculations"
-                    (cdkDropListDropped)="drop($event)"
-                    >
-                    <mat-list-item role="listitem" *ngFor="let property of calculations$ | async" class="hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                        cdkDrag
-                        [cdkDragData]="property"
-                    >
-                        <ngm-entity-property class="flex-1" [property]="property"></ngm-entity-property> <!-- [highlight]="calculatedMemberHighlight" -->
-                        <div *cdkDragPlaceholder></div>
-                    </mat-list-item>
-                </mat-list>
-            </div>
+      </mat-tab>
 
-        </mat-tab>
+    @if (story) {
+      <mat-tab [label]="'Ngm.Calculation.PARAMETERS' | translate: {Default: 'Parameters'}">
+        <ng-template matTabContent>
+          <div class="w-full flex flex-col justify-start items-stretch p-4">
+            <button mat-button displayDensity="cosy" ngmAppearance="dashed" (click)="openCreateParameter()">
+              <div class="flex justify-center items-center">
+                <mat-icon fontSet="material-icons-round">add</mat-icon>
+                {{ 'Ngm.Calculation.PARAMETERS' | translate: {Default: 'Parameters'} }}
+              </div>
+            </button>
 
-        <mat-tab *ngIf="story" [label]="'Ngm.Calculation.PARAMETERS' | translate: {Default: 'Parameters'}">
-            <ng-template matTabContent>
-                <div class="w-full flex flex-col justify-start items-stretch p-4">
-                    <button mat-button displayDensity="cosy" ngmAppearance="dashed" (click)="openCreateParameter()">
-                        <div class="flex justify-center items-center">
-                            <mat-icon fontSet="material-icons-round">add</mat-icon>
-                            {{ 'Ngm.Calculation.PARAMETERS' | translate: {Default: 'Parameters'} }}
-                        </div>
-                    </button>
-
-                    <mat-list role="list" displayDensity="compact"
-                        id="ngm-calculated-parameters"
-                        cdkDropList
-                        [cdkDropListData]="calculations"
-                    >
-                        <mat-list-item role="listitem" *ngFor="let property of parameters$ | async" class="rounded-lg overflow-hidden hover:bg-gray-100"
-                            cdkDrag
-                            [cdkDragData]="property"
-                        >
-                            <div class="flex justify-between items-center">
-                                <ngm-entity-property class="flex-1" [property]="property"></ngm-entity-property>
-                                <button mat-icon-button class="ngm-calculated-measure__parameter-edit" (click)="openCreateParameter(property)">
-                                    <mat-icon fontSet="material-icons-round">edit</mat-icon>
-                                </button>
-                            </div>
-
-                            <div *cdkDragPlaceholder></div>
-                        </mat-list-item>
-                    </mat-list>
+            <mat-list role="list" displayDensity="compact"
+              id="ngm-calculated-parameters"
+              cdkDropList
+              [cdkDropListData]="calculations"
+            >
+              <mat-list-item role="listitem" *ngFor="let property of parameters$ | async" class="rounded-lg overflow-hidden hover:bg-gray-100"
+                cdkDrag
+                [cdkDragData]="property"
+              >
+                <div class="flex justify-between items-center">
+                  <ngm-entity-property class="flex-1" [property]="property"></ngm-entity-property>
+                  <button mat-icon-button class="ngm-calculated-measure__parameter-edit" (click)="openCreateParameter(property)">
+                    <mat-icon fontSet="material-icons-round">edit</mat-icon>
+                  </button>
                 </div>
 
-            </ng-template>
-        </mat-tab>
+                <div *cdkDragPlaceholder></div>
+              </mat-list-item>
+            </mat-list>
+          </div>
+        </ng-template>
+      </mat-tab>
+    }
 
-        <mat-tab [label]="'Ngm.Calculation.Formulas' | translate: {Default: 'Formulas'}">
-            <ng-template matTabContent>
-                <div class="flex-1 flex flex-col justify-start items-stretch overflow-auto">
-                    <ngm-search class="p-2" [formControl]="fnSearchControl"></ngm-search>
-                
-                    <mat-accordion cdkDropList
-                        [cdkDropListData]="FUNCTIONS">
-                        <mat-expansion-panel hideToggle *ngFor="let f of functions$ | async" class="mat-elevation-z" style="background: transparent">
-                            <mat-expansion-panel-header>
-                                <mat-panel-title cdkDrag
-                                    [cdkDragData]="f.insertText">
-                                    <span [ngmHighlight]="fnHighlight" [caseSensitive]="false" customClasses="bg-transparent font-semibold text-amber-500"
-                                        [content]="f.label">
-                                    </span>
-                                </mat-panel-title>
-                            </mat-expansion-panel-header>
-                
-                            <ng-template matExpansionPanelContent>
-                            <div class="my-2 text-xs font-mono italic">
-                                {{f.expression}}
-                            </div>
-                            <markdown [textContent]="f.documentation" class=""></markdown>
-                            </ng-template>
-                        </mat-expansion-panel>
-                    </mat-accordion>
-                        
+      <mat-tab [label]="'Ngm.Calculation.Formulas' | translate: {Default: 'Formulas'}">
+        <ng-template matTabContent>
+          <div class="flex-1 flex flex-col justify-start items-stretch overflow-auto">
+            <ngm-search class="p-2" [formControl]="fnSearchControl"></ngm-search>
+          
+            <mat-accordion id="ngm-calculated-functions" cdkDropList
+              [cdkDropListData]="FUNCTIONS">
+              @for (f of functions$ | async; track f) {
+                <mat-expansion-panel hideToggle class="mat-elevation-z" style="background: transparent">
+                  <mat-expansion-panel-header>
+                    <mat-panel-title cdkDrag
+                      [cdkDragData]="f.insertText">
+                      <span [ngmHighlight]="fnHighlight" [caseSensitive]="false" customClasses="bg-transparent font-semibold text-amber-500"
+                        [content]="f.label">
+                      </span>
+                    </mat-panel-title>
+                  </mat-expansion-panel-header>
+        
+                  <ng-template matExpansionPanelContent>
+                    <div class="my-2 text-xs font-mono italic">
+                      {{f.expression}}
                     </div>
-            </ng-template>
-        </mat-tab>
+                    <markdown [textContent]="f.documentation" class=""></markdown>
+                  </ng-template>
+                </mat-expansion-panel>
+              }
+            </mat-accordion>
+          </div>
+        </ng-template>
+      </mat-tab>
     </mat-tab-group>
 
     <div ngmResizerBar resizerBarPosition="left" style="z-index: 1;" class="absolute top-0"
-        cdkDrag
-        cdkDragLockAxis="x"
+      cdkDrag
+      cdkDragLockAxis="x"
     ></div>
   </mat-drawer>
 
@@ -146,9 +148,10 @@
     </div>
 
     @if (syntax()===Syntax.MDX) {
-      <ngm-mdx-editor #editor class="ngm-calculated-measure__monaco-editor flex-1"
+      <ngm-mdx-editor #editor class="ngm-calculated-measure__monaco-editor pac-cdk-drop__list pac-cdk-drop__area flex-1"
         id="ngm-calculated-editor"
         cdkDropList
+        [cdkDropListEnterPredicate]="dropPredicate"
         [cdkDropListData]="calculations"
         (cdkDropListDropped)="drop($event)"
         [entityType]="entityType()"
