@@ -987,7 +987,8 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
             properties[member.name] = {
               ...measure,
               caption: member.caption,
-              formatting: assignDeepOmitBlank(measure.formatting, member.formatting, 2)
+              formatting: assignDeepOmitBlank(measure.formatting, member.formatting, 2),
+              semantics: member.semantics
             } as PropertyMeasure
           } else {
             properties[member.name] = {
@@ -998,6 +999,9 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
             } as CalculatedProperty
           }
         } else {
+          /**
+           * @todo
+           */
           properties[member.dimension] = properties[member.dimension] || {
             name: member.dimension,
             members: []
@@ -1148,6 +1152,13 @@ function mergeVirtualCube(entityType: EntityType, schema: Schema) {
   return entityType
 }
 
+/**
+ * Merge original dimension defination into runtime entity type property
+ * 
+ * @param property 
+ * @param dimension 
+ * @returns 
+ */
 function mergeDimension(property: PropertyDimension, dimension: PropertyDimension) {
   return {
     ...merge({}, property, omitBy(dimension, isNil)),

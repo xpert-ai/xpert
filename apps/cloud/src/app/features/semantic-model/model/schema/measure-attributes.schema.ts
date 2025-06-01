@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core'
 import { map } from 'rxjs'
 import { CubeSchemaService } from './cube.schema'
-import { MeasureFormatting } from './common'
+import { HiddenLLM, MeasureFormatting } from './common'
 import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
 
 @Injectable()
@@ -82,7 +82,23 @@ export class MeasureAttributesSchema extends CubeSchemaService {
             ]
           },
 
-          MeasureFormatting(MEASURE?.FORMATTING)
+          MeasureFormatting(MEASURE?.FORMATTING),
+
+          {
+            key: 'semantics',
+            wrappers: ['panel'],
+            props: {
+              label: COMMON?.Semantics ?? 'Semantics',
+            },
+            fieldGroup: [
+              {
+                fieldGroupClassName: FORMLY_ROW,
+                fieldGroup: [
+                  HiddenLLM(COMMON),
+                ]
+              }
+            ]
+          }
         ]
       }
     ]

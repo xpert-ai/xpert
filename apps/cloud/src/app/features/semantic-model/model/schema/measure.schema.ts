@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core'
 import { AccordionWrappers, FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
 import { map } from 'rxjs'
-import { MeasureExpressionAccordion } from './common'
+import { HiddenLLM, MeasureExpressionAccordion } from './common'
 import { CubeSchemaService } from './cube.schema'
 
 @Injectable()
@@ -141,7 +141,21 @@ export class MeasureSchemaService extends CubeSchemaService {
             ]
           },
 
-          ...AccordionWrappers([MeasureExpressionAccordion(COMMON)])
+          ...AccordionWrappers([
+            MeasureExpressionAccordion(COMMON, ''),
+            {
+              key: 'semantics',
+              label: COMMON?.Semantics ?? 'Semantics',
+              toggleable: true,
+              props: {
+                help: this.helpWebsite() + '/docs/models/dimension-designer/semantics/'
+              },
+              fieldGroupClassName: FORMLY_ROW,
+              fieldGroup: [
+                HiddenLLM(COMMON),
+              ]
+            }
+          ])
         ]
       }
     ]

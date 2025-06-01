@@ -96,7 +96,12 @@
 <div class="flex justify-between items-center p-2 border-t border-solid border-divider-regular">
   <div class="flex items-center gap-2">
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large"
-      (click)="cancel()">{{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+      (click)="cancel()">
+      @if (isDirty()) {
+        {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+      } @else {
+        {{ 'PAC.ACTIONS.Close' | translate: { Default: 'Close' } }}
+      }
     </button>
     <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
       [disabled]="!isDirty()"

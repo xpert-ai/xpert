@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field'
 import { NgmInputComponent } from '@metad/ocap-angular/common'
 import { ISelectOption, OcapCoreModule } from '@metad/ocap-angular/core'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { isObservable } from 'rxjs'
 
 @Component({
@@ -17,7 +18,7 @@ import { isObservable } from 'rxjs'
   host: {
     class: 'pac-formly-input'
   },
-  imports: [CommonModule, ReactiveFormsModule, MatFormFieldModule, FormlyModule, OcapCoreModule, NgmInputComponent]
+  imports: [CommonModule, ReactiveFormsModule, TranslateModule, MatFormFieldModule, FormlyModule, OcapCoreModule, NgmInputComponent]
 })
 export class PACFormlyInputComponent extends FieldType implements OnInit {
   readonly #destroyRef = inject(DestroyRef)

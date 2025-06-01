@@ -86,7 +86,7 @@ export class LevelAttributesSchema extends HierarchySchemaService {
           ]
         },
 
-        ...SemanticsAccordionWrapper(COMMON)
+        ...SemanticsAccordionWrapper(COMMON, '')
       ]
     }
   }

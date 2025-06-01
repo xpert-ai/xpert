@@ -3,12 +3,13 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { AbstractControl } from '@angular/forms'
 import { nonBlank } from '@metad/core'
 import { EntityProperty, PropertyDimension, PropertyHierarchy, serializeUniqueName } from '@metad/ocap-core'
-import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
+import { AccordionWrappers, FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { combineLatest } from 'rxjs'
 import { distinctUntilChanged, filter, map, switchMap, take } from 'rxjs/operators'
 import { DimensionModeling } from './dimension.schema'
 import { CubeSchemaService } from './cube.schema'
+import { HiddenLLM, SemanticsAccordionWrapper } from './common'
 
 @Injectable()
 export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dimension: EntityProperty} = {
@@ -83,7 +84,8 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
           this.getTranslationFun(),
           this.hierarchies$,
           this.fields$,
-          this.otherDimensions()
+          this.otherDimensions(),
+          this.helpWebsite(),
         )
         dimensionModeling.key = 'dimension'
         return [
@@ -187,7 +189,8 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
               type: 'checkbox',
               defaultValue: true,
               props: {
-                label: COMMON?.Visible ?? 'Visible'
+                label: COMMON?.Visible ?? 'Visible',
+                help: this.helpWebsite() + '/docs/models/dimension-designer/hierarchy/',
               }
             },
             {
@@ -196,7 +199,8 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
               defaultValue: true,
               className,
               props: {
-                label: HIERARCHY?.HasAll ?? 'Has All'
+                label: HIERARCHY?.HasAll ?? 'Has All',
+                help: this.helpWebsite() + '/docs/models/dimension-designer/hierarchy/',
               }
             },
             {
@@ -204,7 +208,8 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
               type: 'input',
               className,
               props: {
-                label: HIERARCHY?.AllMemberName ?? 'All Member Name'
+                label: HIERARCHY?.AllMemberName ?? 'All Member Name',
+                help: this.helpWebsite() + '/docs/models/dimension-designer/hierarchy/',
               },
               expressions: {
                 hide: allMemberHide
@@ -215,7 +220,8 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
               type: 'input',
               className,
               props: {
-                label: HIERARCHY?.AllMemberCaption ?? 'All Member Caption'
+                label: HIERARCHY?.AllMemberCaption ?? 'All Member Caption',
+                help: this.helpWebsite() + '/docs/models/dimension-designer/hierarchy/',
               },
               expressions: {
                 hide: allMemberHide
@@ -226,7 +232,8 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
               type: 'input',
               className,
               props: {
-                label: HIERARCHY?.AllLevelName ?? 'All Level Name'
+                label: HIERARCHY?.AllLevelName ?? 'All Level Name',
+                help: this.helpWebsite() + '/docs/models/dimension-designer/hierarchy/',
               },
               expressions: {
                 hide: allMemberHide
@@ -240,7 +247,8 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
           props: {
             icon: 'table_view',
             label: HIERARCHY?.DimensionTable ?? 'Dimension Table',
-            required: true
+            help: this.helpWebsite() + '/docs/models/dimension-designer/hierarchy/',
+            required: true,
           },
           fieldArray: {
             fieldGroup: [
@@ -272,6 +280,7 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
               props: {
                 icon: 'view_column',
                 label: HIERARCHY?.PrimaryKey ?? 'Primary Key',
+                help: this.helpWebsite() + '/docs/models/dimension-designer/hierarchy/',
                 searchable: true,
                 valueKey: 'key',
                 options: this.table$.pipe(
@@ -302,7 +311,8 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
               props: {
                 icon: 'view_column',
                 label: HIERARCHY?.PrimaryKeyTable ?? 'Primary Key Table',
-                options: this.hierarchyTables$
+                options: this.hierarchyTables$,
+                help: this.helpWebsite() + '/docs/models/dimension-designer/hierarchy/'
               },
               expressionProperties: {
                 'props.required': '!!model.tables && model.tables.length > 1'
@@ -311,7 +321,22 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
           ]
         },
 
-        this.defaultMember()
+        this.defaultMember(),
+
+        ...AccordionWrappers([
+          {
+            key: 'semantics',
+            label: COMMON?.Semantics ?? 'Semantics',
+            toggleable: true,
+            props: {
+              help: this.helpWebsite() + '/docs/models/dimension-designer/semantics/'
+            },
+            fieldGroupClassName: FORMLY_ROW,
+            fieldGroup: [
+              HiddenLLM(COMMON),
+            ]
+          }
+        ])
       ]
     }
   }
@@ -323,6 +348,7 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
       type: 'ngm-select',
       props: {
         label: this.SCHEMA?.HIERARCHY?.DefaultMember ?? 'Default Member',
+        help: this.helpWebsite() + '/docs/models/dimension-designer/hierarchy/',
         searchable: true,
         virtualScroll: true,
         options: this.members$.pipe(

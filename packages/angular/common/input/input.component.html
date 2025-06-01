@@ -1,8 +1,11 @@
-@if (label()) {
-  <label class="ngm-input-label shrink-0" [title]="label()">
-    {{ label() }}
-  </label>
-}
+<div>
+  @if (label()) {
+    <label class="ngm-input-label shrink-0" [title]="label()">
+      {{ label() }}
+    </label>
+  }
+  <ng-content select="[ngmLabel]"></ng-content>
+</div>
 
 <div class="relative">
   <input matInput class="ngm-input-element ngm-w-full"

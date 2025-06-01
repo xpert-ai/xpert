@@ -253,7 +253,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 	 * @returns EntityType
 	 */
 	async getCubeCache(modelId: string, cubeName: string) {
-		return await this.cacheManager.get<EntityType>('et/' + modelId + '/' + cubeName)
+		return await this.cacheManager.get<EntityType>('chatbi:' + modelId + '/' + cubeName)
 	}
 	/**
 	 * Save EntityType of cube in cache
@@ -263,7 +263,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 	 * @param data EntityType
 	 */
 	async setCubeCache(modelId: string, cubeName: string, data: EntityType): Promise<void> {
-		await this.cacheManager.set('et/' + modelId + '/' + cubeName, data)
+		await this.cacheManager.set('chatbi:' + modelId + '/' + cubeName, data)
 	}
 
 	createGetAvailableCubes() {
