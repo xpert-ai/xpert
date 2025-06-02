@@ -48,7 +48,7 @@ export enum AuthenticationMethod {
 }
 
 /**
- * 与数据源类型相关的属性设置
+ * Property settings related to data source type
  */
 export interface DataSourceSettings {
   dataSourceId?: string
@@ -176,24 +176,24 @@ export interface DataSource {
   selectMembers(entity: string, dimension: Dimension): Observable<IDimensionMember[]>
 
   /**
-   * 根据指定的 entitySet 名称创建相应的 entityService
+   * Creates a corresponding entityService based on the specified entitySet name
    */
   createEntityService<T>(entity: string): EntityService<T>
 
   /**
-   * 监听运行时 EDM Schema 配置变化
+   * Observe runtime schema
    */
   selectSchema(): Observable<Schema>
 
   /**
-   * 设置自定义的 Schema
+   * Setting a custom Schema
    *
    * @param schema EDMSchema
    */
   setSchema(schema: Schema): void
 
   /**
-   * 更新单个 Cube 定义
+   * Update a single cube definition
    *
    * @param cube
    */
@@ -204,28 +204,28 @@ export interface DataSource {
   upsertIndicator(indicator: Indicator): void
 
   /**
-   * 订阅 Entity 的类型定义变化， 合并运行时和用户增强后的
+   * Observe to Entity type definition changes, merge runtime and user enhancements
    *
    * @param entity
    */
   selectEntitySet(entity: string): Observable<EntitySet | Error>
 
   /**
-   * 单独设置一个 EntityType
+   * Set up EntityType individually
    *
    * @param entityType EntityType
    */
   setEntityType(entityType: EntityType): void
 
   /**
-   * Subscribe type defination of entity (combine runtime type and custom types)
+   * Observe type defination of entity (or Error) (combine runtime type and custom types)
    *
    * @param entity
    */
   selectEntityType(entity: string): Observable<EntityType | Error>
 
   /**
-   * Subscribe indicators of entity
+   * Observe indicators of entity
    *
    * @param entitySet 实体
    */
@@ -256,21 +256,21 @@ export interface DataSource {
   dropEntity(name: string): Promise<void>
 
   /**
-   * 使用语句查询
+   * Use statement query
    *
    * @param statement
    */
   query(options: { statement: string; forceRefresh?: boolean }): Observable<any>
 
   /**
-   * Subscribe to runtime calculated measures
+   * Observe to runtime calculated measures
    * 
    * @param cube 
    */
   selectCalculatedMeasures(cube: string): Observable<CalculatedProperty[]>
 
   /**
-   * 清除浏览器端缓存
+   * Clear the browser cache
    */
   clearCache(): Promise<void>
 

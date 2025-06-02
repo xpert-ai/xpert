@@ -1,6 +1,7 @@
 {
     "Error": {
         "SemanticModelNotFound": "Semantic model '{model}' not found.",
-        "ChatBIModelNotFound": "Semantic model '{model}' not found for '{toolset}' toolset."
+        "ChatBIModelNotFound": "Semantic model '{model}' not found for '{toolset}' toolset.",
+        "IndicatorNotFound": "Indicator '{indicator}' not found."
     }
 }

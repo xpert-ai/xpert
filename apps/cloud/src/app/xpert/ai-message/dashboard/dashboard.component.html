@@ -39,7 +39,7 @@
     </ngm-analytical-card>
   }
   @case ('KPI') {
-    <pac-widget-kpi displayDensity="compact" [title]="data().title"
+    <pac-widget-kpi class="mb-4" displayDensity="compact" [title]="data().title"
       [dataSettings]="data().dataSettings"
       [slicers]="data().slicers"
       [options]="{
@@ -49,7 +49,8 @@
       }"
       (explain)="setExplains($event)"
     >
-      <button ngmAction class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light"
+      <button ngmAction class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
+        bg-transparent hover:bg-hover-bg"
         (click)="openExplain()">
         <i class="ri-terminal-box-line"></i>
       </button>
