@@ -215,7 +215,8 @@ export const CHART_TYPES = [
 				align: 'right'
 			},
 			tooltip: {
-				appendToBody: true
+				appendToBody: true,
+				trigger: 'item',
 			}
 		}
 	}

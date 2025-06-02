@@ -1,17 +1,20 @@
 @if (showToolbar()) {
-  <div class="group flex justify-between items-center">
+  <div class="flex justify-between items-center">
     <span class="title"></span>
 
     <div class="flex items-center gap-1">
-      <button mat-icon-button displayDensity="cosy" class="ngm-menu-trigger opacity-20 group-hover:opacity-100 duration-200"
-        [color]="(hasSlicers$ | async) ? 'accent':''"
-        [matMenuTriggerFor]="filtersMenu"
-        #mt="matMenuTrigger"
-        [class.active]="mt.menuOpen"
+
+      <button class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 bg-transparent hover:bg-hover-bg text-text-secondary hover:text-text-primary"
+        [class.text-primary-500]="hasSlicers$ | async"
+        [cdkMenuTriggerFor]="filtersMenu"
+        [cdkMenuTriggerData]="{trigger: mt}"
+        #mt="cdkMenuTriggerFor"
+        [class.active]="mt.isOpen()"
+
         [matTooltip]="'Story.Common.Slicers' | translate: {Default: 'Slicers'}"
         matTooltipPosition="above"
         >
-        <mat-icon fontSet="material-icons-outlined">filter_alt</mat-icon>
+        <i class="ri-filter-line"></i>
       </button>
 
       <ng-content></ng-content>
@@ -173,15 +176,20 @@
 }
 
 
+<ng-template #filtersMenu let-trigger="trigger">
+  <div class="relative p-4 rounded-2xl border-light shadow-md bg-components-card-bg">
+    <div class="text-base font-semibold">{{ 'Ngm.Selection.Slicers' | translate: {Default: "Slicers"} }}</div>
+    <ngm-slicers class="overflow-hidden" inline editable [slicers]="selectOptions$ | async"
+      [dataSettings]="dataSettings$ | async"
+      [limit]="5"
+      [capacities]="[SlicersCapacity.CombinationSlicer, SlicersCapacity.AdvancedSlicer, SlicersCapacity.Variable]"
+      (valueChange)="setSelectOptions($event)"
+      (click)="$event.stopPropagation()"
+    />
 
-<mat-menu #filtersMenu="matMenu" class="pac-widget__slicer-menu">
-  <div class="text-base font-semibold">{{ 'Ngm.Selection.Slicers' | translate: {Default: "Slicers"} }}</div>
-
-  <ngm-slicers class="overflow-hidden" inline editable [slicers]="selectOptions$ | async"
-    [dataSettings]="dataSettings$ | async"
-    [limit]="5"
-    [capacities]="[SlicersCapacity.CombinationSlicer, SlicersCapacity.AdvancedSlicer, SlicersCapacity.Variable]"
-    (valueChange)="setSelectOptions($event)"
-    (click)="$event.stopPropagation()"
-  />
-</mat-menu>
+    <button type="button" class="absolute right-2 top-2 pressable cursor-pointer text-text-secondary hover:bg-hover-bg rounded-full p-1"
+      (click)="trigger.close()"
+    ><i class="ri-close-circle-line w-6 h-6 block"></i>
+    </button>
+  </div>
+</ng-template>

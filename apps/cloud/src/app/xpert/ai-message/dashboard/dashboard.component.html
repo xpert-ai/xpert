@@ -10,14 +10,16 @@
       }"
       (explain)="setExplains($event)"
     >
-      <button ngmAction class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light"
+      <button ngmAction class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
+        bg-transparent hover:bg-hover-bg"
         [matTooltip]="'PAC.Chat.OpenExplorer' | translate: {Default: 'Open Explorer'}"
         matTooltipPosition="above"
         (click)="openExplorer()">
         <i class="ri-expand-diagonal-2-line"></i>
       </button>
 
-      <button ngmAction class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light"
+      <button ngmAction class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
+        bg-transparent hover:bg-hover-bg"
         [matTooltip]="'PAC.Chat.OpenInCanvas' | translate: {Default: 'Open in canvas'}"
         matTooltipPosition="above"
         (click)="openCanvas()">
@@ -30,7 +32,8 @@
         </svg>
       </button>
     
-      <button ngmAction class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light"
+      <button ngmAction class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
+        bg-transparent hover:bg-hover-bg"
         [matTooltip]="'PAC.Chat.OpenExplain' | translate: {Default: 'Open Explain'}"
         matTooltipPosition="above"
         (click)="openExplain()">
@@ -51,6 +54,8 @@
     >
       <button ngmAction class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
         bg-transparent hover:bg-hover-bg"
+        [matTooltip]="'PAC.Chat.OpenExplain' | translate: {Default: 'Open Explain'}"
+        matTooltipPosition="above"
         (click)="openExplain()">
         <i class="ri-terminal-box-line"></i>
       </button>
