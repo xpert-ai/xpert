@@ -78,26 +78,30 @@
   <ngm-breadcrumb-bar class="shrink-0" [displayDensity]="appearance?.displayDensity ?? DisplayDensity.compact"
     [steps]="breadcrumbs"
     (selectedChange)="reselectDrill($event)"
-    (close)="clearDrill()">
-  </ngm-breadcrumb-bar>
+    (close)="clearDrill()"
+  />
 }
 
-<div class="ngm-card-content">
-  <div *ngIf="error$ | async as error" class="ngm-card-error">
-    <span class="title-icon text-2xl font-notoColorEmoji">🐞</span>
-    <span>
-      {{ error }}
-    </span>
-  </div>
+<div class="ngm-card-content relative">
+  @if (error$ | async; as error) {
+    <div class="ngm-card-error">
+      <span class="title-icon text-2xl font-notoColorEmoji">🐞</span>
+      <span>
+        {{ error }}
+      </span>
+    </div>
+  }
 
-  <div *ngIf="empty$ | async" class="ngm-card-error">
-    <span class="title-icon text-2xl font-notoColorEmoji">🛒</span>
-    <span>
-      {{ 'Ngm.AnalyticalCard.DataEmpty' | translate: {Default: "Data Empty"} }}
-    </span>
-  </div>
+  @if (empty$ | async) {
+    <div class="ngm-card-error">
+      <span class="title-icon text-2xl font-notoColorEmoji">🛒</span>
+      <span>
+        {{ 'Ngm.AnalyticalCard.DataEmpty' | translate: {Default: "Data Empty"} }}
+      </span>
+    </div>
+  }
 
-  <ng-container *ngIf="!((error$ | async) || (empty$ | async))">
+  @if (!((error$ | async) || (empty$ | async))) {
     <div echarts class="echarts-chart"
       [options]="options$ | async"
       [theme]="chartSettings()?.theme ?? 'default'"
@@ -105,10 +109,8 @@
       (optionsError)="onOptionsError($event)"
     >
     </div>
-  </ng-container>
-    
+  }
 </div>
-
 
 <div style="visibility: hidden; position: absolute;"
   #cmt="cdkMenuTriggerFor"
