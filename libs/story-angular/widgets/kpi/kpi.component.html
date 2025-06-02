@@ -3,22 +3,35 @@
     <span class="title"></span>
 
     <div class="flex items-center gap-1">
+      <ng-content></ng-content>
 
-      <button class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 bg-transparent hover:bg-hover-bg text-text-secondary hover:text-text-primary"
-        [class.text-primary-500]="hasSlicers$ | async"
+      <button class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 bg-transparent hover:bg-hover-bg text-text-secondary hover:text-text-primary"
         [cdkMenuTriggerFor]="filtersMenu"
         [cdkMenuTriggerData]="{trigger: mt}"
         #mt="cdkMenuTriggerFor"
         [class.active]="mt.isOpen()"
-
         [matTooltip]="'Story.Common.Slicers' | translate: {Default: 'Slicers'}"
         matTooltipPosition="above"
         >
         <i class="ri-filter-line"></i>
+        @if (hasSlicers$ | async) {
+          <span class="absolute right-0 top-0 w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex ng-star-inserted"></span>
+        }
       </button>
 
-      <ng-content></ng-content>
-
+      @if (isLoading()) {
+        <div class="w-7 h-7 flex justify-center items-center">
+          <i class="ri-loader-2-line animate-spin"></i>
+        </div>
+      } @else {
+        <button class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
+          bg-transparent hover:bg-hover-bg"
+          [matTooltip]=" 'Ngm.AnalyticalCard.Refresh' | translate: {Default: 'Refresh'} "
+          matTooltipPosition="above"
+          (click)="refresh(true)">
+          <i class="ri-refresh-line"></i>
+        </button>
+      }
     </div>
   </div>
 }
@@ -177,9 +190,10 @@
 
 
 <ng-template #filtersMenu let-trigger="trigger">
-  <div class="relative p-4 rounded-2xl border-light shadow-md bg-components-card-bg">
+  <div class="relative p-3 rounded-2xl border-light shadow-md bg-components-card-bg">
     <div class="text-base font-semibold">{{ 'Ngm.Selection.Slicers' | translate: {Default: "Slicers"} }}</div>
-    <ngm-slicers class="overflow-hidden" inline editable [slicers]="selectOptions$ | async"
+    <ngm-slicers class="overflow-hidden" inline editable
+      [slicers]="selectOptions()"
       [dataSettings]="dataSettings$ | async"
       [limit]="5"
       [capacities]="[SlicersCapacity.CombinationSlicer, SlicersCapacity.AdvancedSlicer, SlicersCapacity.Variable]"
@@ -187,9 +201,9 @@
       (click)="$event.stopPropagation()"
     />
 
-    <button type="button" class="absolute right-2 top-2 pressable cursor-pointer text-text-secondary hover:bg-hover-bg rounded-full p-1"
-      (click)="trigger.close()"
-    ><i class="ri-close-circle-line w-6 h-6 block"></i>
+    <button type="button" class="btn-close btn btn-secondary absolute right-2 top-2 flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+      (click)="trigger.close()">
+      <i class="ri-close-line"></i>
     </button>
   </div>
 </ng-template>

@@ -29,23 +29,27 @@
 
       <!-- data download -->
     @if (!options()?.hideDataDownload) {
-      <button mat-icon-button displayDensity="cosy" [matTooltip]=" 'Ngm.AnalyticalCard.DataDownload' | translate: {Default: 'Data Download'} "
+      <button class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
+          bg-transparent hover:bg-hover-bg"
+        [matTooltip]=" 'Ngm.AnalyticalCard.DataDownload' | translate: {Default: 'Data Download'} "
         matTooltipPosition="above"
         (click)="downloadData()">
-        <mat-icon fontSet="material-icons-outlined">file_download</mat-icon>
+        <i class="ri-download-2-line"></i>
       </button>
     }
       <!-- screenshot -->
     @if (!options()?.hideScreenshot) {
-      <button mat-icon-button displayDensity="cosy" [matTooltip]=" 'Ngm.AnalyticalCard.Screenshot' | translate: {Default: 'Screenshot'} "
+      <button class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
+          bg-transparent hover:bg-hover-bg"
+        [matTooltip]=" 'Ngm.AnalyticalCard.Screenshot' | translate: {Default: 'Screenshot'} "
         matTooltipPosition="above"
         (click)="screenshot()">
-        <mat-icon fontSet="material-icons-outlined">photo_camera</mat-icon>
+        <i class="ri-screenshot-2-line"></i>
       </button>
     }
 
     @if (options()?.showSlicers) {
-      <button ngmAction class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 bg-transparent hover:bg-hover-bg"
+      <button ngmAction class="relative btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary bg-transparent hover:bg-hover-bg"
         [cdkMenuTriggerFor]="filtersMenu"
         [cdkMenuTriggerData]="{trigger: mt}"
         #mt="cdkMenuTriggerFor"
@@ -53,23 +57,26 @@
         [matTooltip]="'Story.Common.Slicers' | translate: {Default: 'Slicers'}"
         matTooltipPosition="above">
         <i class="ri-filter-line"></i>
+        @if (slicers?.length) {
+          <span class="absolute right-0 top-0 w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex ng-star-inserted"></span>
+        }
       </button>
     }
 
       <!-- Refresh & Loading icon -->
-      <button mat-icon-button class="ngm-analytical-card__refresh" displayDensity="cosy"
-        [matTooltip]=" 'Ngm.AnalyticalCard.Refresh' | translate: {Default: 'Refresh'} "
-        matTooltipPosition="above"
-        [style.visibility]="(isLoading$ | async) ? 'hidden' : 'visible'"
-        (click)="refresh(true)">
-        <mat-icon fontSet="material-icons-outlined">refresh</mat-icon>
-      </button>
-    @if (isLoading$ | async) {
-      <mat-spinner class="ngm-analytical-card__loading"
-        [diameter]="20"
-        [strokeWidth]="1"
-      />
-    }
+      @if (isLoading$ | async) {
+        <div class="w-7 h-7 flex justify-center items-center">
+          <i class="ri-loader-2-line animate-spin"></i>
+        </div>
+      } @else {
+        <button class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
+          bg-transparent hover:bg-hover-bg"
+          [matTooltip]=" 'Ngm.AnalyticalCard.Refresh' | translate: {Default: 'Refresh'} "
+          matTooltipPosition="above"
+          (click)="refresh(true)">
+          <i class="ri-refresh-line"></i>
+        </button>
+      }
     </div>
   </div>
 }
@@ -209,9 +216,9 @@
       (click)="$event.stopPropagation()"
     />
 
-    <button type="button" class="absolute right-2 top-2 pressable cursor-pointer text-text-secondary hover:bg-hover-bg rounded-full p-1"
-      (click)="trigger.close()"
-    ><i class="ri-close-circle-line w-6 h-6 block"></i>
+    <button type="button" class="btn-close btn btn-secondary absolute right-2 top-2 flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+      (click)="trigger.close()">
+      <i class="ri-close-line"></i>
     </button>
   </div>
 </ng-template>

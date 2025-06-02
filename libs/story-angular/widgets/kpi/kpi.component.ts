@@ -8,7 +8,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { AbstractStoryWidget, StoryWidgetState, StoryWidgetStyling, WidgetMenuType, nonNullable } from '@metad/core'
 import { NgmObjectNumberComponent } from '@metad/ocap-angular/common'
-import { DensityDirective } from '@metad/ocap-angular/core'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
 import { TrendType, assignDeepOmitBlank, isEmpty, isEqual, isNil } from '@metad/ocap-core'
 import { ComponentStyling, NxStoryService, componentStyling } from '@metad/story/core'
@@ -43,7 +42,6 @@ export interface PacWidgetKPIStyling extends StoryWidgetStyling {
     NgmObjectNumberComponent,
     KPIPlaceholderComponent,
     NgmSelectionModule,
-    DensityDirective
   ]
 })
 export class NxWidgetKpiComponent extends AbstractStoryWidget<
@@ -124,6 +122,8 @@ export class NxWidgetKpiComponent extends AbstractStoryWidget<
   })
   readonly titleStyles$ = computed(() => (this.titleStyling() ? componentStyling(this.titleStyling()) : null))
   readonly valueStyles = computed(() => (this.valueStyling() ? componentStyling(this.valueStyling()) : null))
+
+  readonly selectOptions = toSignal(this.selectOptions$)
 
   /**
   |--------------------------------------------------------------------------
