@@ -23,7 +23,6 @@ import {
   FormsModule,
   NG_VALUE_ACCESSOR,
   ReactiveFormsModule,
-  ValidatorFn
 } from '@angular/forms'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { MatIconModule } from '@angular/material/icon'
@@ -35,6 +34,13 @@ import { distinctUntilChanged, filter } from 'rxjs/operators'
 import { NgmDisplayBehaviourComponent } from '../../display-behaviour'
 import { NgmOptionContent } from '../../input/option-content'
 
+/**
+ * Select component is a wrapper of mat-select, you can use it to create a select component.
+ * You can use the following custom elements to customize the select:
+ * - ngmLabel: the custom label elements of the select
+ * - ngmError: the custom error message of the select
+ * - ngmSuffix: the custom suffix elements of the select
+ */
 @Component({
   standalone: true,
   selector: 'ngm-select',

@@ -963,6 +963,19 @@
       "SelectAFactTable": "选择一个事实表",
       "Alias": "别名",
       "SQL": "SQL",
+      "HideMemberTag": "隐藏成员",
+      "HideMember_None": "无(永不隐藏)",
+      "HideMember_Never": "永不隐藏",
+      "HideMember_IfBlankName": "名称为空时",
+      "HideMember_IfParentsName": "名称与父级相同时",
+      "OrdinalColumnTag": "顺序字段",
+      "ParentColumnTag": "父成员字段",
+      "NullParentValueTag": "顶层节点标识值",
+      "ParentExpressionTag": "自定义父级表达式",
+      "ClosureTag": "闭合表",
+      "JoinConfig": "关联配置",
+      "OpenCubeSchema": "打开模型信息",
+      "CubeSchema": "模型信息",
 
       "QUERY": {
         "TITLE": "查询实验室",
@@ -1152,6 +1165,7 @@
           "ParentChild": "父子层级关系",
           "Semantics": "语义",
           "Semantic": "语义类型",
+          "HiddenForLLM": "对大模型隐藏",
           "Formatter": "格式化",
           "Dimension": "维度",
           "Hierarchy": "层次结构",
@@ -4040,7 +4054,8 @@
       "Clear": "清空",
       "Reset": "重置",
       "NotFoundValue": "未找到值：",
-      "SemanticModel": "语义模型"
+      "SemanticModel": "语义模型",
+      "Help": "帮助"
     },
     "VALIDATION": {
       "REQUIRED": "必填",

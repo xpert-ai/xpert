@@ -61,7 +61,7 @@ export function getEChartsTooltip(
 
   const tooltipMeasures = measures.filter(({ measure }) => measure.role === ChartMeasureRoleType.Tooltip)
 
-  tooltip.formatter = (params: any) => {
+  tooltip.formatter ??= (params: any) => {
     const texts = []
     if (Array.isArray(params)) {
       params = params.filter((param) => {
@@ -104,8 +104,9 @@ export function getEChartsTooltip(
             displayBehaviour,
             categoryProperty.dataType
           )
+          + ` (<span style="font-weight: 600;">${params.percent}</span>%)`
       )
-      texts.push(formatMeasuresLabel(row, measures, locale, tooltipOptions?.shortNumber))
+      texts.push('<span style="margin: 0 8px;"></span>' + formatMeasuresLabel(row, measures.filter((_) => _.property.name === params.seriesId), locale, tooltipOptions?.shortNumber))
     }
 
     return texts.join('<br>')

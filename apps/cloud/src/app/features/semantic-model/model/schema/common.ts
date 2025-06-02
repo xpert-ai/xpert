@@ -1,5 +1,5 @@
 import { AggregationRole, Semantics } from '@metad/ocap-core'
-import { AccordionWrappers, FORMLY_W_FULL, FORMLY_ROW, FORMLY_W_1_2 } from '@metad/story/designer'
+import { AccordionWrappers, FORMLY_W_FULL, FORMLY_ROW, FORMLY_W_1_2, TAccordionWrapperExpansion } from '@metad/story/designer'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { format } from 'date-fns'
 import { map, startWith, tap } from 'rxjs'
@@ -99,15 +99,15 @@ export function Semantic(COMMON?) {
       valueKey: 'key',
       options: [
         { key: null, caption: COMMON?.None ?? 'None' },
-        { key: Semantics.Geography, caption: 'Geography' },
-        {
-          key: Semantics['GeoLocation.Latitude'],
-          caption: 'GeoLocation Latitude'
-        },
-        {
-          key: Semantics['GeoLocation.Longitude'],
-          caption: 'GeoLocation Longitude'
-        },
+        // { key: Semantics.Geography, caption: 'Geography' },
+        // {
+        //   key: Semantics['GeoLocation.Latitude'],
+        //   caption: 'GeoLocation Latitude'
+        // },
+        // {
+        //   key: Semantics['GeoLocation.Longitude'],
+        //   caption: 'GeoLocation Longitude'
+        // },
         {
           key: Semantics.Calendar,
           caption: 'Calendar'
@@ -117,54 +117,54 @@ export function Semantic(COMMON?) {
         { key: Semantics['Calendar.Month'], caption: 'Calendar Month' },
         { key: Semantics['Calendar.Week'], caption: 'Calendar Week' },
         { key: Semantics['Calendar.Day'], caption: 'Calendar Day' },
-        {
-          key: Semantics['Amount.CurrencyCode'],
-          caption: 'Amount CurrencyCode'
-        },
-        {
-          key: Semantics['Quantity.UnitOfMeasure'],
-          caption: 'Quantity UnitOfMeasure'
-        },
-        {
-          key: Semantics.CurrencyCode,
-          caption: 'Currency Code'
-        },
-        {
-          key: Semantics.UnitOfMeasure,
-          caption: 'Unit of Measure'
-        },
-        {
-          key: Semantics.Language,
-          caption: 'Language'
-        },
-        {
-          key: Semantics['Address.Region'],
-          caption: 'Address Region'
-        },
-        {
-          key: Semantics['Address.SubRegion'],
-          caption: 'Address SubRegion'
-        },
-        {
-          key: Semantics['Address.Country'],
-          caption: 'Address Country'
-        },
-        {
-          key: Semantics['Address.City'],
-          caption: 'Address City'
-        },
-        {
-          key: Semantics['Address.ZipCode'],
-          caption: 'Address ZipCode'
-        },
-        {
-          key: Semantics['Address.PostBox'],
-          caption: 'Address PostBox'
-        },
-        {
-          key: Semantics['Address.Street'],
-          caption: 'Address Street'
-        }
+        // {
+        //   key: Semantics['Amount.CurrencyCode'],
+        //   caption: 'Amount CurrencyCode'
+        // },
+        // {
+        //   key: Semantics['Quantity.UnitOfMeasure'],
+        //   caption: 'Quantity UnitOfMeasure'
+        // },
+        // {
+        //   key: Semantics.CurrencyCode,
+        //   caption: 'Currency Code'
+        // },
+        // {
+        //   key: Semantics.UnitOfMeasure,
+        //   caption: 'Unit of Measure'
+        // },
+        // {
+        //   key: Semantics.Language,
+        //   caption: 'Language'
+        // },
+        // {
+        //   key: Semantics['Address.Region'],
+        //   caption: 'Address Region'
+        // },
+        // {
+        //   key: Semantics['Address.SubRegion'],
+        //   caption: 'Address SubRegion'
+        // },
+        // {
+        //   key: Semantics['Address.Country'],
+        //   caption: 'Address Country'
+        // },
+        // {
+        //   key: Semantics['Address.City'],
+        //   caption: 'Address City'
+        // },
+        // {
+        //   key: Semantics['Address.ZipCode'],
+        //   caption: 'Address ZipCode'
+        // },
+        // {
+        //   key: Semantics['Address.PostBox'],
+        //   caption: 'Address PostBox'
+        // },
+        // {
+        //   key: Semantics['Address.Street'],
+        //   caption: 'Address Street'
+        // }
       ]
     }
   }
@@ -248,68 +248,104 @@ export function CalendarFormatter(COMMON?) {
   }
 }
 
-export function SemanticsAccordionWrapper(i18n) {
+export function HiddenLLM(COMMON) {
+  return {
+    key: 'hidden',
+    type: 'checkbox',
+    className: FORMLY_W_1_2,
+    props: {
+      label: COMMON?.HiddenForLLM ?? 'Hidden for LLM',
+    }
+  }
+}
+
+export function SemanticsAccordionWrapper(i18n, help: string) {
   return AccordionWrappers([
     {
       key: 'semantics',
       label: i18n?.Semantics ?? 'Semantics',
       toggleable: true,
+      props: {
+        help
+      },
       fieldGroupClassName: FORMLY_ROW,
-      fieldGroup: [Semantic(i18n), CalendarFormatter(i18n)]
+      fieldGroup: [
+        Semantic(i18n), 
+        HiddenLLM(i18n),
+        CalendarFormatter(i18n),
+      ]
     }
   ])
 }
 
-export function KeyExpressionAccordion(COMMON) {
+export function KeyExpressionAccordion(COMMON, help: string) {
   return {
     key: 'keyExpression',
     label: COMMON?.KeyExpression ?? 'Key Expression',
     toggleable: true,
+    props: {
+      help
+    },
     fieldGroup: [SQLExpression(COMMON)]
   }
 }
 
-export function NameExpressionAccordion(COMMON) {
+export function NameExpressionAccordion(COMMON, help: string) {
   return {
     key: 'nameExpression',
     label: COMMON?.NameExpression ?? 'Name Expression',
     toggleable: true,
+    props: {
+      help
+    },
     fieldGroup: [SQLExpression(COMMON)]
   }
 }
 
-export function CaptionExpressionAccordion(COMMON) {
+export function CaptionExpressionAccordion(COMMON, help: string) {
   return {
     key: 'captionExpression',
     label: COMMON?.CaptionExpression ?? 'Caption Expression',
     toggleable: true,
+    props: {
+      help
+    },
     fieldGroup: [SQLExpression(COMMON)]
   }
 }
 
-export function OrdinalExpressionAccordion(COMMON) {
+export function OrdinalExpressionAccordion(COMMON, help: string): TAccordionWrapperExpansion {
   return {
     key: 'ordinalExpression',
     label: COMMON?.OrdinalExpression ?? 'Ordinal Expression',
     toggleable: true,
+    props: {
+      help
+    },
     fieldGroup: [SQLExpression(COMMON)]
   }
 }
 
-export function ParentExpressionAccordion(COMMON) {
+export function ParentExpressionAccordion(COMMON, help: string) {
   return {
     key: 'parentExpression',
     label: COMMON?.ParentExpression ?? 'Parent Expression',
     toggleable: true,
+    props: {
+      help
+    },
     fieldGroup: [SQLExpression(COMMON)]
   }
 }
 
-export function MeasureExpressionAccordion(COMMON) {
+export function MeasureExpressionAccordion(COMMON, help: string) {
   return {
     key: 'measureExpression',
     label: COMMON?.MeasureExpression ?? 'Measure Expression',
     toggleable: true,
+    props: {
+      help
+    },
     fieldGroup: [SQLExpression(COMMON)]
   }
 }

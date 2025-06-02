@@ -14,6 +14,13 @@ import { FieldArrayType } from '@ngx-formly/core';
     <span [class.line-through]="deprecated"
       [matTooltip]="deprecated" matTooltipPosition="above"
     >{{ to.label }}</span>
+
+    @if (props?.help) {
+      <a [href]="props.help" target="_blank" rel="noopener noreferrer" class="group text-xs font-light text-primary-400 hover:text-primary-600 hover:underline hover:font-normal">
+        {{ 'FORMLY.COMMON.Help' | translate: {Default: 'Help'} }}
+        <i class="ri-external-link-line inline-block group-hover:translate-x-1 transition-transform"></i>
+      </a>
+    }
   </div>
 }
 <div class="ngm-formly-cdk__drag-list flex flex-col justify-start items-stretch"

@@ -48,6 +48,10 @@ export enum ChatBIVariableEnum {
 export type TChatBICredentials = {
 	models: string[]
 	dataPermission?: boolean
+	/**
+	 * Default limit top 100 rows to LLM
+	 */
+	dataLimit?: number
 }
 
 export type ChatBIContext = {
@@ -151,7 +155,8 @@ export const CHART_TYPES = [
 		orient: ChartOrient.vertical,
 		chartOptions: {
 			legend: {
-				show: true
+				show: true,
+				type: 'scroll'
 			},
 			tooltip: {
 				appendToBody: true,
@@ -165,7 +170,8 @@ export const CHART_TYPES = [
 		orient: ChartOrient.vertical,
 		chartOptions: {
 			legend: {
-				show: true
+				show: true,
+				type: 'scroll'
 			},
 			tooltip: {
 				appendToBody: true,
@@ -179,7 +185,8 @@ export const CHART_TYPES = [
 		orient: ChartOrient.horizontal,
 		chartOptions: {
 			legend: {
-				show: true
+				show: true,
+				type: 'scroll'
 			},
 			tooltip: {
 				appendToBody: true,
@@ -208,12 +215,19 @@ export const CHART_TYPES = [
 				align: 'right'
 			},
 			tooltip: {
-				appendToBody: true
+				appendToBody: true,
+				trigger: 'item',
 			}
 		}
 	}
 ]
 
+/**
+ * Try to fix Chart options.
+ * 
+ * @param chartType 
+ * @returns 
+ */
 export function tryFixChartType(chartType: string) {
 	if (chartType?.endsWith('Chart')) {
 		chartType = chartType.replace(/Chart$/, '')
@@ -240,9 +254,17 @@ export function fixMeasure(measure: ChartMeasure, entityType: EntityType) {
 	}
 }
 
+/**
+ * Try to fix dimensions for chart:
+ * - Multi-dimensions: How to assign roles of different dimensions;
+ * 
+ * @param dimensions 
+ * @returns 
+ */
 export function tryFixDimensions(dimensions: ChartDimension[]) {
 	if (!dimensions) return dimensions
 
+	// Ignore role if there is only one dimension
 	if (dimensions.length === 1) {
 		return dimensions.map((d) => omit(d, 'role'))
 	}
@@ -263,6 +285,24 @@ export function tryFixDimensions(dimensions: ChartDimension[]) {
 			return d
 		})
 	}
+
+	// Check the number of dimensions without roles
+    const dimensionsWithoutRole = dimensions.filter((d) => !d.role)
+    // If two or more dimensions do not have a role, the second dimension without a role is set to 'Stacked'
+    if (dimensionsWithoutRole.length >= 2) {
+        let emptyRoleFoundCount = 0
+        return dimensions.map((d) => {
+            // Only process dimensions without roles
+            if (!d.role) {
+                emptyRoleFoundCount++;
+                // When a second dimension is found without a role, it is assigned the 'Stacked' role
+                if (emptyRoleFoundCount === 2) {
+                    return { ...d, role: ChartDimensionRoleType.Stacked }
+                }
+            }
+            return d
+        });
+    }
 
 	return dimensions
 }

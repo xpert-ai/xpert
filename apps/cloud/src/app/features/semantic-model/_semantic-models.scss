@@ -3,7 +3,6 @@
 @use './model/entity/structure/structure-theme' as structure;
 @use './model/entity/cube-structure/cube-structure-theme' as cube-structure;
 @use './model/model-theme' as model;
-@use './tables-join/tables-join-theme' as tables-join;
 
 @mixin color($theme) {
   $config: mat.get-color-config($theme);
@@ -16,7 +15,6 @@
   @include structure.color($theme);
   @include cube-structure.color($theme);
   @include model.color($theme);
-  @include tables-join.color($theme);
 }
 
 @mixin typography($theme) {
@@ -28,8 +26,6 @@
   @include structure.density($theme);
   @include cube-structure.density($theme);
   @include model.density($theme);
-  @include tables-join.density($theme);
-
 
   .ngm-tree-table {
     .mat-mdc-cell {

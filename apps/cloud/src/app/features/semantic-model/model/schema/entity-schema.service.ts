@@ -1,16 +1,20 @@
 import { inject, Injectable } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { DataSettingsSchemaService } from '@metad/story/designer'
+import { FormlyFieldConfig } from '@ngx-formly/core'
 import { filter, map, shareReplay, switchMap } from 'rxjs/operators'
+import { injectHelpWebsite } from '@cloud/app/@core'
+import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { ModelEntityService } from '../entity/entity.service'
 import { SemanticModelService } from '../model.service'
 import { EntitySchemaState } from './types'
-import { FormlyFieldConfig } from '@ngx-formly/core'
 
 @Injectable()
 export class EntitySchemaService<T extends EntitySchemaState<T['modeling']>> extends DataSettingsSchemaService<T> {
   protected readonly modelService = inject(SemanticModelService)
   protected readonly entityService? = inject(ModelEntityService, { optional: true })
+  readonly helpWebsite = injectHelpWebsite()
+  readonly i18n = injectI18nService()
 
   public readonly id$ = this.select((state) => state.id)
   public readonly modeling$ = this.select((state) => state.modeling)

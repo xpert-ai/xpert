@@ -14,7 +14,7 @@
     [(ngModel)]="formula"
     (keyDown)="onEditorKeyDown($event)"
   >
-    <button type="button" icon class="w-7 h-7 cursor-pointer mr-1" cdkDrag cdkDragRootElement="pac-model-entity-calculation" cdkDragHandle>
+    <button type="button" icon class="w-7 h-7 cursor-pointer mx-1" cdkDrag cdkDragRootElement="pac-model-entity-calculation" cdkDragHandle>
       <i class="ri-draggable"></i>
     </button>
     <div class="ngm-calculated-measure__action w-6 h-6 flex justify-center items-center rounded-lg mx-1 cursor-pointer text-white opacity-80 hover:opacity-100 bg-gradient-to-br from-pink-400 from-40% to-fuchsia-700"
@@ -96,7 +96,12 @@
 <div class="flex justify-between items-center p-2 border-t border-solid border-divider-regular">
   <div class="flex items-center gap-2">
     <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large"
-      (click)="cancel()">{{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+      (click)="cancel()">
+      @if (isDirty()) {
+        {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+      } @else {
+        {{ 'PAC.ACTIONS.Close' | translate: { Default: 'Close' } }}
+      }
     </button>
     <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
       [disabled]="!isDirty()"

@@ -15,6 +15,9 @@ import { isString } from 'lodash-es'
 import { EMPTY, Observable, catchError, startWith } from 'rxjs'
 
 /**
+ * Props:
+ * - help: string, the help link, will be displayed as a link in the label
+ * - info: string, the info text, will be displayed as a tooltip in the subfix
  * @deprecated default use 'key' as the key field of select option, don't specify the `valueKey` in `props`
  */
 @Component({

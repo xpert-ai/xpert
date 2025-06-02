@@ -1,7 +1,8 @@
 :host {
+  position: relative;
   display: flex;
-  flex-direction: column;
   height: 100%;
+  max-height: 100%;
 }
 
 
@@ -12,4 +13,8 @@
 
 .emoji-loader.absolute {
   position: absolute;
+}
+
+.pac-model-query-schema:not(.pin) {
+  @apply absolute right-1 top-1 bottom-1 shadow-2xl rounded-2xl border border-solid;
 }

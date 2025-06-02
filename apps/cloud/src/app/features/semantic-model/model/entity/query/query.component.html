@@ -1,19 +1,19 @@
-<ngm-splitter [type]="1" class="flex-1 w-full h-full">
-    <ngm-splitter-pane class="flex flex-col justify-end items-stretch z-[101]">
-        <div class="pac-sub-toolbar pac-toolbar__editor py-1 px-2 flex justify-start items-center gap-2">
-            <button mat-flat-button color="primary" displayDensity="compact"
-                matTooltip=" {{ 'PAC.KEY_WORDS.ShortcutKey' | translate: {Default: 'Shortcut Key'} }}: F8"
-                [disabled]="!statement"
-                (click)="run()">
-                <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
+<ngm-splitter [type]="1" class="flex-1 grow h-full">
+  <ngm-splitter-pane class="flex flex-col justify-end items-stretch z-[101]">
+    <div class="pac-sub-toolbar pac-toolbar__editor py-1 px-2 flex justify-start items-center gap-2">
+        <button mat-flat-button color="primary" displayDensity="compact"
+            matTooltip=" {{ 'PAC.KEY_WORDS.ShortcutKey' | translate: {Default: 'Shortcut Key'} }}: F8"
+            [disabled]="!statement"
+            (click)="run()">
+            <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
 
-                <span *ngIf="textSelection()?.text">
-                    {{ 'PAC.MENU.RUN_BY_SELECTION' | translate: {Default: "Run By Selection"} }}
-                </span>
-                <span *ngIf="!textSelection()?.text">
-                    {{ 'PAC.MENU.RUN' | translate: {Default: "Run"} }}
-                </span>
-            </button>
+            <span *ngIf="textSelection()?.text">
+                {{ 'PAC.MENU.RUN_BY_SELECTION' | translate: {Default: "Run By Selection"} }}
+            </span>
+            <span *ngIf="!textSelection()?.text">
+                {{ 'PAC.MENU.RUN' | translate: {Default: "Run"} }}
+            </span>
+        </button>
 
             <span class="flex-1"></span>
             
@@ -36,37 +36,46 @@
                 (click)="triggerFormat()">
                 <mat-icon fontSet="material-icons-round">format_indent_increase</mat-icon>
             </button>
-        </div>
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small ml-2"
+        [matTooltip]="'PAC.MODEL.OpenCubeSchema' | translate: {Default: 'Open cube schema'}"
+        matTooltipPosition="above"
+        (click)="toggleSchema()">
+        <i class="ri-node-tree mr-1"></i>
+        <span class="hidden lg:inline-block">
+          {{ 'PAC.MODEL.CubeSchema' | translate: {Default: 'Cube schema'} }}
+        </span>
+      </button>
+    </div>
 
-        @if (useMDX()) {
-            <ngm-mdx-editor #editor class="pac-cdk-drop__list pac-cdk-drop__area flex-1 w-full h-full"
-                [theme]="themeName()"    
-                [entityType]="entityType()"
-                [ngModel]="statement()"
-                (ngModelChange)="onStatementChange($event)"
-                (selectionChange)="onSelectionChange($event)"
-                (keyDown)="onEditorKeyDown($event)"
+    @if (useMDX()) {
+        <ngm-mdx-editor #editor class="pac-cdk-drop__list pac-cdk-drop__area flex-1 w-full h-full"
+            [theme]="themeName()"    
+            [entityType]="entityType()"
+            [ngModel]="statement()"
+            (ngModelChange)="onStatementChange($event)"
+            (selectionChange)="onSelectionChange($event)"
+            (keyDown)="onEditorKeyDown($event)"
 
-                cdkDropList
-                [cdkDropListData]="entities"
-                (cdkDropListDropped)="drop($event)"
-            />
-        } @else {
-            <ngm-sql-editor #editor class="pac-cdk-drop__list pac-cdk-drop__area flex-1 w-full h-full"
-                [theme]="themeName()"    
-                [entityType]="entityType()"
-                [entitySets]="tables()"
-                [ngModel]="statement()"
-                (ngModelChange)="onStatementChange($event)"
-                (selectionChange)="onSelectionChange($event)"
-                (keyDown)="onEditorKeyDown($event)"
+            cdkDropList
+            [cdkDropListData]="entities"
+            (cdkDropListDropped)="drop($event)"
+        />
+    } @else {
+        <ngm-sql-editor #editor class="pac-cdk-drop__list pac-cdk-drop__area flex-1 w-full h-full"
+            [theme]="themeName()"    
+            [entityType]="entityType()"
+            [entitySets]="tables()"
+            [ngModel]="statement()"
+            (ngModelChange)="onStatementChange($event)"
+            (selectionChange)="onSelectionChange($event)"
+            (keyDown)="onEditorKeyDown($event)"
 
-                cdkDropList
-                [cdkDropListData]="entities"
-                (cdkDropListDropped)="drop($event)"
-            />
-        }
-    </ngm-splitter-pane>
+            cdkDropList
+            [cdkDropListData]="entities"
+            (cdkDropListDropped)="drop($event)"
+        />
+    }
+  </ngm-splitter-pane>
     <ngm-splitter-pane size='15rem' class="relative flex flex-col justify-start items-stretch"
         [collapsed]="!showQueryResult()"
     >
@@ -98,3 +107,47 @@
         </div>
     </ngm-splitter-pane>
 </ngm-splitter>
+
+
+@if (schemaOpen()) {
+    <div @leanRightEaseIn class="pac-model-query-schema shrink-0 w-[400px] max-w-[400px] border-divider-deep overflow-hidden z-[102] bg-components-card-bg"
+      [class.pin]="schemaPin()"
+    >
+      <div class="flex justify-between items-center gap-1 p-2">
+        @if (!schemaPin()) {
+          <button #dragHandler="cdkDrag" type="button" icon class="w-7 h-7 cursor-pointer" cdkDrag cdkDragRootElement=".pac-model-query-schema" cdkDragHandle
+            [cdkDragDisabled]="schemaPin()">
+            <i class="ri-draggable"></i>
+          </button>
+        }
+        <div class="grow text-lg font-semibold">
+          {{ 'PAC.MODEL.CubeSchema' | translate: {Default: 'Cube schema'} }}
+        </div>
+        <button type="button" class="btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+          (click)="togglePin()">
+          @if (schemaPin()) {
+            <i class="ri-unpin-line"></i>
+          } @else {
+            <i class="ri-pushpin-2-line"></i>
+          }
+        </button>
+        <button type="button" class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+          (click)="schemaOpen.set(false)">
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+      <ngm-entity-schema class="flex-1 max-w-full w-full overflow-auto"
+        [id]="eCdkDragDropContainers.CubeSchema"
+        cdkDropList
+        [cdkDropListData]="[]"
+        [dataSettings]="dataSettings()"
+        [capacities]="[
+                    eEntityCapacity.Dimension,
+                    eEntityCapacity.Measure,
+                    eEntityCapacity.Calculation,
+                    eEntityCapacity.Indicator,
+                    eEntityCapacity.Parameter
+                ]"
+      />
+    </div>
+}

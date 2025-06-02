@@ -1,8 +1,12 @@
-@if (label()) {
-  <label class="ngm-select-label shrink-0" [title]="label()">
-    {{label()}}
-  </label>
-}
+<div>
+  @if (label()) {
+    <label class="ngm-select-label shrink-0" [title]="label()">
+      {{label()}}
+    </label>
+  }
+
+  <ng-content select="[ngmLabel]"></ng-content>
+</div>
 
 @if (!searchable()) {
   <div class="relative">

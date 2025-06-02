@@ -650,7 +650,7 @@ export function compileDimensionSchema(
       tablesValidator(hierarchy.tables)
       // must set primaryKeyTable
       if (!hierarchy.primaryKeyTable) {
-        throw new Error(`The primaryKeyTable of hierarchy '${hierarchy.name ?? ''}' is need!`)
+        throw new Error(t('Error.NoPrimaryKeyTable', {ns: 'sql', hierarchy: hierarchy.name ?? ''}))
       }
     }
 
@@ -716,7 +716,8 @@ export function compileDimensionSchema(
 }
 
 export function tablesValidator(tables: Table[]) {
-  if (tables.slice(1).some((table) => !table.join?.fields?.length)) {
-    throw new Error(`tables join fields is need!`)
+  const needJoinTables = tables.slice(1).filter((table) => !table.join?.fields?.length)
+  if (needJoinTables.length) {
+    throw new Error(t('Error.TablesNoJoin', {ns: 'sql', tables: needJoinTables.map(({name}) => name).join(', ')}))
   }
 }

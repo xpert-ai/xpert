@@ -14,7 +14,7 @@ export function markdownEntityType(entityType: EntityType) {
   description: >
   ${prepend('  ', entityType.description || entityType.caption)}
   dimensions:
-  ${getEntityDimensions(entityType)
+  ${getEntityDimensions(entityType).filter((_) => !_.semantics?.hidden)
       .map((dimension) =>
   [
     `  - name: "${dimension.name}"`,
@@ -26,14 +26,14 @@ export function markdownEntityType(entityType: EntityType) {
     `    semantic: ${dimension.semantics.semantic}` : null,
     `    hierarchies:`
   ].filter(nonBlank).join('\n') + '\n' +
-  getDimensionHierarchies(dimension).map((item) =>[
+  getDimensionHierarchies(dimension).filter((_) => !_.semantics?.hidden).map((item) =>[
   `      - name: "${item.name}"`,
   `        caption: "${item.caption || ''}"`,
   item.description && item.description !== item.caption ?
   `        description: >
   ${prepend('          ', item.description)}` : null,
   `        levels:
-  ${getHierarchyLevels(item).filter((level) => level.levelType !== RuntimeLevelType.ALL).map((item) =>
+  ${getHierarchyLevels(item).filter((level) => level.levelType !== RuntimeLevelType.ALL && !level.semantics?.hidden).map((item) =>
   [
   `        - name: "${item.name}"`,
   `            caption: "${item.caption || ''}"`,
@@ -49,8 +49,8 @@ export function markdownEntityType(entityType: EntityType) {
   ).join('\n')}
 `
 
-  const indicators = getEntityIndicators(entityType)
-  const measures = getEntityMeasures(entityType).filter((_) => !indicators.some((indicator) => indicator.name === _.name))
+  const indicators = getEntityIndicators(entityType).filter((_) => !_.semantics?.hidden)
+  const measures = getEntityMeasures(entityType).filter((_) => !_.semantics?.hidden && !indicators.some((indicator) => indicator.name === _.name))
   if (measures.length) {
     context += `  measures:\n`
     + measures.map((item) => 

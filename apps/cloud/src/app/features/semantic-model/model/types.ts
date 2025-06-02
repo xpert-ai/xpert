@@ -257,6 +257,7 @@ export enum CdkDragDropContainers {
   Dimensions = 'list-dimensions',
   Measures = 'list-measures',
   CalculatedMembers = 'list-calculated-members',
+  CubeSchema = 'pac-model-cube-schema',
 }
 
 export const DEBOUNCE_TIME = 100

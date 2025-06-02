@@ -253,7 +253,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 	 * @returns EntityType
 	 */
 	async getCubeCache(modelId: string, cubeName: string) {
-		return await this.cacheManager.get<EntityType>('et/' + modelId + '/' + cubeName)
+		return await this.cacheManager.get<EntityType>('chatbi:' + modelId + '/' + cubeName)
 	}
 	/**
 	 * Save EntityType of cube in cache
@@ -263,7 +263,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 	 * @param data EntityType
 	 */
 	async setCubeCache(modelId: string, cubeName: string, data: EntityType): Promise<void> {
-		await this.cacheManager.set('et/' + modelId + '/' + cubeName, data)
+		await this.cacheManager.set('chatbi:' + modelId + '/' + cubeName, data)
 	}
 
 	createGetAvailableCubes() {
@@ -398,9 +398,13 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 					// Make sure datasource exists
 					const _dataSource = await dsCoreService._getDataSource(answer.dataSettings.dataSource)
 					const entity = await firstValueFrom(
-						dsCoreService.selectEntitySet(answer.dataSettings.dataSource, answer.dataSettings.entitySet)
+						dsCoreService.selectEntitySetOrFail(answer.dataSettings.dataSource, answer.dataSettings.entitySet)
 					)
-					entityType = entity.entityType
+					if (isEntitySet(entity)) {
+					    entityType = entity.entityType
+					} else {
+						throw entity
+					}
 				}
 
 				// Fetch data for chart or table or kpi
@@ -412,16 +416,20 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 							configurable as TAgentRunnableConfigurable
 						)
 
-						// Max limit 20 members
+						// Max limit rows returned for LLM
+						const dataLimit = credentials?.dataLimit ?? 100
 						let results = ''
 						if (dataPermission) {
-							results = data ? JSON.stringify(Object.values(data).slice(0, 20)) : 'Empty'
+							results = data ? JSON.stringify(data.slice(0, dataLimit)) : 'Empty'
+							if (data.length > dataLimit) {
+								results += `\nOnly the first ${dataLimit} pieces of data are returned. There are ${data.length - dataLimit} pieces of data left. Please add more query conditions to view all the data.`
+							}
 						} else {
 							if (members) {
 								Object.keys(members).forEach((key) => {
 									results += `Members of dimension '${key}':]\n`
 									results += Object.values(members[key])
-										.slice(0, 20)
+										.slice(0, credentials?.dataLimit ?? 100)
 										.map((member) => JSON.stringify(member))
 										.join('\n')
 									results += '\n\n'
