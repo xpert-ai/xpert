@@ -46,9 +46,9 @@
       [isMobile]="isMobile()"
       [menus]="menus()"
     >
-      <div class="w-full flex flex-col">
-        <pac-notification class="flex justify-start"/>
-        <pac-tune class="flex justify-start"/>
+      <div class="w-full flex flex-col" [class.items-end]="!isCollapsed">
+        <pac-notification class="flex justify-center"/>
+        <pac-tune class="flex justify-center"/>
       </div>
     </pac-menu>
   </mat-sidenav>

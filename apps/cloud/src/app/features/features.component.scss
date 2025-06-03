@@ -52,7 +52,7 @@ $prefix: (ngm, shell);
     --mat-sidenav-container-width: 260px;
   }
   &.mat-drawer-side {
-    --mat-sidenav-container-width: 58px;
+    --mat-sidenav-container-width: 68px;
     @apply duration-200 ease-in-out;
     transition: width;
   }

@@ -1,4 +1,4 @@
-import { AggregationRole, Semantics } from '@metad/ocap-core'
+import { AggregationRole, DisplayBehaviour, Semantics } from '@metad/ocap-core'
 import { AccordionWrappers, FORMLY_W_FULL, FORMLY_ROW, FORMLY_W_1_2, TAccordionWrapperExpansion } from '@metad/story/designer'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { format } from 'date-fns'
@@ -97,6 +97,7 @@ export function Semantic(COMMON?) {
       label: COMMON?.Semantic ?? 'Semantic',
       searchable: true,
       valueKey: 'key',
+      displayBehaviour: DisplayBehaviour.descriptionOnly,
       options: [
         { key: null, caption: COMMON?.None ?? 'None' },
         // { key: Semantics.Geography, caption: 'Geography' },
