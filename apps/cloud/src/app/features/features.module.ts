@@ -29,7 +29,6 @@ import { provideCheckpointSaver, provideCommandFewShotPrompt, provideDimensionMe
 import { NgmDrawerComponent, NgmDrawerContainerComponent } from '@metad/ocap-angular/common'
 import { NgxEchartsModule } from 'ngx-echarts'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
-import { NgxFloatUiModule } from 'ngx-float-ui'
 import { EmojiAvatarComponent } from '../@shared/avatar'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { PACCopilotService } from './services'
@@ -49,7 +48,6 @@ registerEChartsThemes()
     SharedModule,
     PacAuthModule,
     PACThemeModule,
-    NgxFloatUiModule,
     AssetsComponent,
     ProjectSelectorComponent,
     DensityDirective,
