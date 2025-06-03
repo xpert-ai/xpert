@@ -17,4 +17,5 @@ export interface ICopilotOrganization extends IBasePerTenantEntityModel, TCopilo
 
   // Total tokens used historically
   tokenTotalUsed?: number
+  priceTotalUsed?: number
 }

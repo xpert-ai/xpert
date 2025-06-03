@@ -13,7 +13,7 @@ export class CopilotUsageService {
 
   getOrgUsages(params: PaginationParams<ICopilotOrganization>) {
     return this.httpClient
-      .get<{ items: ICopilotOrganization[] }>(API_COPILOT_ORGANIZATION, {
+      .get<{ items: ICopilotOrganization[]; total?: number; }>(API_COPILOT_ORGANIZATION, {
         params: toHttpParams({
           relations: ['organization'],
           order: {
@@ -22,20 +22,18 @@ export class CopilotUsageService {
           ...(params ?? {})
         })
       })
-      .pipe(map(({ items }) => items))
   }
 
-  getUserUsages() {
-    return this.httpClient
-      .get<{ items: ICopilotUser[] }>(API_COPILOT_USER, {
+  getUserUsages(options: PaginationParams<ICopilotUser>,) {
+    return this.httpClient.get<{ items: ICopilotUser[]; total?: number; }>(API_COPILOT_USER, {
         params: toHttpParams({
+          ...options,
           relations: ['user', 'org'],
           order: {
             updatedAt: OrderTypeEnum.DESC
           }
         })
       })
-      .pipe(map(({ items }) => items))
   }
 
   renewOrgLimit(id: string, tokenLimit: number, priceLimit: number) {
