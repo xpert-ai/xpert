@@ -135,7 +135,16 @@ export class SemanticModelMemberService extends TenantOrganizationAwareCrudServi
 		return await this.delete({ id: In(members.map((item) => item.id)) })
 	}
 
-	async retrieveMembers(tenantId: string, organizationId: string, options: {modelId: string | null; cube: string; dimension?: string; hierarchy?: string; level?: string}, query: string, k = 10) {
+	async retrieveMembers(tenantId: string, organizationId: string, options: {
+				modelId: string | null; 
+				cube: string; 
+				dimension?: string; 
+				hierarchy?: string; 
+				level?: string
+			}, 
+			query: string, 
+			k = 10
+	) {
 		const copilot = await this.queryBus.execute(new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Embedding))
 		if (!copilot) {
 			throw new CopilotNotFoundException(`Copilot not found for role '${AiProviderRole.Embedding}'`)
@@ -153,7 +162,6 @@ export class SemanticModelMemberService extends TenantOrganizationAwareCrudServi
 				if (options.level) {
 					filter.level = options.level
 				}
-
 
 				const docsWithScore = await vectorStore.similaritySearchWithScore(query, k, filter)
 

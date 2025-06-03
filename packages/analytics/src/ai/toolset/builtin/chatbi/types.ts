@@ -35,6 +35,8 @@ import { AbstractChatBIToolset } from './chatbi-toolset'
 import { LanguagesEnum } from '@metad/contracts'
 
 export enum ChatBIToolsEnum {
+	GET_AVAILABLE_CUBES = 'get_available_cubes',
+	GET_CUBE_CONTEXT = 'get_cube_context',
 	SHOW_INDICATORS = 'show_indicators',
 	ANSWER_QUESTION = 'answer_question',
 	CREATE_INDICATOR = 'create_indicator',
