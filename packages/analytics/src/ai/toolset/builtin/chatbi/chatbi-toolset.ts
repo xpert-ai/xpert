@@ -47,10 +47,11 @@ import { groupBy } from 'lodash'
 import { firstValueFrom, Subject, switchMap, takeUntil } from 'rxjs'
 import { In } from 'typeorm'
 import { z } from 'zod'
-import { DimensionMemberRetrieverToolQuery } from '../../../../model-member/queries'
+import { DimensionMemberServiceQuery } from '../../../../model-member/'
 import { getSemanticModelKey, NgmDSCoreService, registerSemanticModel } from '../../../../model/ocap'
 import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, fixMeasure, IndicatorSchema, mapTimeSlicer, TChatBICredentials, tryFixChartType, tryFixDimensions, tryFixFormula } from './types'
 import { GetBIContextQuery, TBIContext } from '../../../../chatbi'
+import { createDimensionMemberRetrieverTool } from './tools/dimension_member_retriever'
 
 function cubesReducer(a, b) {
 	return [...a.filter((_) => !b?.some((item) => item.cubeName === _.cubeName)), ...(b ?? [])]
@@ -137,20 +138,26 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		await this.initModels()
 
 		this.tools = []
-		if (tools.find((_) => _.name === 'get_available_cubes')) {
+		if (tools.find((_) => _.name === ChatBIToolsEnum.GET_AVAILABLE_CUBES)) {
 			this.tools.push(this.createGetAvailableCubes() as unknown as Tool)
 		}
-		if (tools.find((_) => _.name === 'get_cube_context')) {
+		if (tools.find((_) => _.name === ChatBIToolsEnum.GET_CUBE_CONTEXT)) {
 			this.tools.push(this.createCubeContextTool(this.dsCoreService) as unknown as Tool)
 		}
 		if (tools.find((_) => _.name === ChatBIToolsEnum.MEMBER_RETRIEVER)) {
-			const dimensionMemberRetrieverTool = await this.queryBus.execute(
-				new DimensionMemberRetrieverToolQuery(
-					ChatBIToolsEnum.MEMBER_RETRIEVER,
-					this.toolset.tenantId,
-					this.toolset.organizationId
+			const dimensionMemberRetrieverTool = createDimensionMemberRetrieverTool(
+				{
+					chatbi: this,
+					dsCoreService: this.dsCoreService
+				},
+				ChatBIToolsEnum.MEMBER_RETRIEVER,
+				this.toolset.tenantId,
+				this.toolset.organizationId,
+				await this.queryBus.execute(
+					new DimensionMemberServiceQuery()
 				)
 			)
+			
 			this.tools.push(dimensionMemberRetrieverTool)
 		}
 
