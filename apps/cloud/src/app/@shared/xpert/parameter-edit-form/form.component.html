@@ -2,7 +2,7 @@
   <div>
     <div class="leading-8 text-sm font-medium">{{ 'PAC.Xpert.ParameterType' | translate: {Default: 'Parameter type'} }}</div>
     <div>
-      <ul class="parameter-type-list flex space-x-2"
+      <ul class="parameter-type-list flex space-x-1"
         cdkListbox
         [ngModel]="type()"
         [ngModelOptions]="{standalone: true}"
@@ -21,15 +21,9 @@
         </li>
 
         <li class="space-y-1"
-          [cdkOption]="eXpertParameterTypeEnum.PARAGRAPH">
-          <div class="shrink-0">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" data-icon="AlignLeft" aria-hidden="true">
-              <g id="align-left">
-                <path id="Icon" d="M16 10H3M20 6H3M20 14H3M16 18H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-              </g>
-            </svg>
-          </div>
-          <span class="">{{ 'PAC.Xpert.ParameterType_Paragraph' | translate: {Default: 'Paragraph'} }}</span>
+          [cdkOption]="eXpertParameterTypeEnum.OBJECT">
+          <xpert-parameter-icon class="shrink-0 w-5 h-5 text-lg" [type]="eXpertParameterTypeEnum.OBJECT"/>
+          <span class="">{{ 'PAC.Xpert.ParameterType_Object' | translate: {Default: 'Object'} }}</span>
         </li>
 
         <li class="space-y-1"
@@ -114,6 +108,8 @@
   </div>
 
   @switch (type()) {
+    @case (eXpertParameterTypeEnum.OBJECT) {
+    }
     @case (eXpertParameterTypeEnum.SELECT) {
       <div>
         <div class="leading-8 text-[13px] font-medium text-gray-700">{{'PAC.Xpert.SelectOptions' | translate: {Default: 'Select options'} }}</div>

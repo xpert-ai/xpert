@@ -34,7 +34,7 @@ import { XpertParameterIconComponent } from '../parameter-icon/icon.component'
 
     NgmDensityDirective,
     XpertParameterMenuItemComponent,
-    XpertParameterIconComponent
+    XpertParameterIconComponent,
   ],
 
   hostDirectives: [NgxControlValueAccessor]
