@@ -27,7 +27,7 @@
                         "modelType": "llm",
                         "model": "gpt-4o"
                     },
-                    "category": "Assistant",
+                    "category": "Workflow",
                     "copyright": null,
                     "privacyPolicy": null
                 },
@@ -255,10 +255,30 @@
             ],
             "recommendedApps": [
                 {
+                    "name": "Demo - Workflow transform",
+                    "type": "agent",
+                    "title": "智能客服回答模版转换",
+                    "description": "智能客服回答用户关于请假制度的问题。演示<模版转换>节点的功能使用。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "printer"
+                        },
+                        "background": "rgba(228, 251, 204, 0.8)"
+                    },
+                    "id": "de56c3f5-2951-4faa-8229-2f19c1d43318",
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "gpt-4o"
+                    },
+                    "category": "Workflow",
+                    "copyright": null,
+                    "privacyPolicy": null
+                },
+                {
                     "name": "Smart HR Assistant",
                     "type": "agent",
                     "title": "智能人力资源助理",
-                    "description": "聚焦人力资源场景，展现自动化、智能化能力。演示‘子流程’工作流节点的使用方式。",
+                    "description": "聚焦人力资源场景，展现自动化、智能化能力。演示<子流程>工作流节点的使用方式。",
                     "avatar": {
                         "emoji": {
                             "id": "card_index"
@@ -270,7 +290,7 @@
                         "modelType": "llm",
                         "model": "gpt-4o"
                     },
-                    "category": "Assistant",
+                    "category": "Workflow",
                     "copyright": null,
                     "privacyPolicy": null
                 },
