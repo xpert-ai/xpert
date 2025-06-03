@@ -1,7 +1,7 @@
 import { tool } from '@langchain/core/tools'
 import { firstValueFrom, Subject, Subscriber, takeUntil } from 'rxjs'
 import { ChatBILarkContext, TABLE_PAGE_SIZE } from '../types'
-import { ChartAnnotation, ChartBusinessService, ChartDimensionRoleType, EntityType, FilteringLogic, formatNumber, formatShortNumber, getChartSeries, getEntityHierarchy, getEntityProperty, getPropertyHierarchy, getPropertyMeasure, isBlank, ISlicer, isNil, isTimeRangesSlicer, PresentationVariant, PropertyHierarchy, PropertyMeasure, slicerAsString, timeRangesSlicerAsString, toAdvancedFilter, tryFixDimension, tryFixSlicer, tryFixVariableSlicer, workOutTimeRangeSlicers } from '@metad/ocap-core'
+import { ChartAnnotation, ChartBusinessService, ChartDimensionRoleType, EntityType, FilteringLogic, formatNumber, formatShortNumber, getChartSeries, getEntityHierarchy, getEntityProperty, getPropertyHierarchy, getPropertyMeasure, isBlank, ISlicer, isNil, isTimeRangesSlicer, PresentationVariant, PropertyHierarchy, PropertyMeasure, slicerAsString, timeRangesSlicerAsString, toAdvancedFilter, tryFixDimension, tryFixOrder, tryFixSlicer, tryFixVariableSlicer, workOutTimeRangeSlicers } from '@metad/ocap-core'
 import { ChatLarkMessage } from '@metad/server-ai'
 import { createDualAxisChart, createSeriesChart } from '../charts/combination'
 import { createBaseChart, FeishuMessageChartType } from '../charts/chart'
@@ -95,7 +95,7 @@ export function createChatAnswerTool(
 				)
 			} catch (err) {
 				logger.debug(getErrorMessage(err))
-				return `Error: ${getErrorMessage(err)}; If more information is needed from the user, remind the user directly.`
+				throw new Error(getErrorMessage(err) + '\nIf more information is needed from the user, remind the user directly.')
 			}
 		},
 		{
@@ -142,7 +142,7 @@ async function drawChartMessage(
 		presentationVariant.maxItems = answer.top
 	}
 	if (answer.orders) {
-		presentationVariant.sortOrder = answer.orders
+		presentationVariant.sortOrder = answer.orders.map(tryFixOrder)
 	}
 
 	const header = {

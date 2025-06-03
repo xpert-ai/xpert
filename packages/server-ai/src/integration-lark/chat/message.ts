@@ -46,7 +46,7 @@ export class ChatLarkMessage extends Serializable implements ChatLarkMessageFiel
 		img_key: ChatLarkMessage.logoImgKey,
 		corner_radius: "30%"
 	}
-	static readonly helpUrl = 'https://mtda.cloud/docs/chatbi/feishu/bot/'
+	static readonly helpUrl = 'https://mtda.cloud/en/docs/ai/tool/chatbi/feishu/bot'
 
 	private readonly logger = new Logger(ChatLarkMessage.name)
 

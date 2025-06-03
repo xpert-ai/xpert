@@ -28,7 +28,7 @@
   </div>
 </div>
 
-<div class="flex flex-col gap-2 mt-1">
+<div class="flex flex-col gap-1 mt-1">
   @for (param of parameters(); track i; let i = $index) {
     <div class="w-full flex justify-start items-start">
       <xpert-parameter-input class="grow p-1 pl-2 group/item"
@@ -48,7 +48,7 @@
         >
           <i class="ri-settings-4-line"></i>
         </div> -->
-      <div class="flex flex-col justify-start items-center px-2">
+      <div class="flex flex-col justify-start items-center p-1">
         <button type="button" class="action-btn action-btn-l w-7 h-7 danger flex-shrink-0 group flex justify-center items-center rounded-lg overflow-hidden"
           (click)="deleteParameter(i)">
           <i class="ri-delete-bin-line"></i>
