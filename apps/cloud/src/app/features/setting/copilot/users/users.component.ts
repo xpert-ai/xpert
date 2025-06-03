@@ -1,20 +1,27 @@
-import { CommonModule, formatNumber } from '@angular/common'
+import { CommonModule } from '@angular/common'
 import { Component, inject, LOCALE_ID, model, signal } from '@angular/core'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { FormsModule } from '@angular/forms'
+import { MatButtonModule } from '@angular/material/button'
 import { MatDialog } from '@angular/material/dialog'
 import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { DisplayBehaviour, isNil } from '@metad/ocap-core'
+import { effectAction } from '@metad/ocap-angular/core'
+import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
+import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { OrgAvatarComponent } from 'apps/cloud/src/app/@shared/organization'
 import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
-import { ICopilotUser } from '../../../../../../../../packages/contracts/src'
-import { CopilotUsageService, injectFormatRelative, ToastrService } from '../../../../@core'
-import { MatButtonModule } from '@angular/material/button'
+import { switchMap, tap } from 'rxjs/operators'
+import {
+  CopilotUsageService,
+  DateRelativePipe,
+  ICopilotUser,
+  injectFormatRelative,
+  OrderTypeEnum,
+  ToastrService
+} from '../../../../@core'
 
 @Component({
   standalone: true,
@@ -26,16 +33,17 @@ import { MatButtonModule } from '@angular/material/button'
     RouterModule,
     TranslateModule,
     FormsModule,
-    ReactiveFormsModule,
     MatTooltipModule,
     MatIconModule,
     MatButtonModule,
+    WaIntersectionObserver,
     NgmCommonModule,
     OrgAvatarComponent,
-    UserProfileInlineComponent
+    UserProfileInlineComponent,
+    DateRelativePipe
   ]
 })
-export class CopilotUsersComponent extends TranslationBaseComponent {
+export class CopilotUsersComponent {
   DisplayBehaviour = DisplayBehaviour
 
   readonly usageService = inject(CopilotUsageService)
@@ -52,24 +60,15 @@ export class CopilotUsersComponent extends TranslationBaseComponent {
   readonly editId = signal<string | null>(null)
   readonly tokenLimit = model<number>(null)
   readonly priceLimit = model<number>(null)
-  readonly loading = signal<boolean>(false)
 
-  private dataSub = this.usageService
-    .getUserUsages()
-    .pipe(takeUntilDestroyed())
-    .subscribe((usages) => {
-      this.usages.set(usages)
-    })
+  readonly loading = signal(false)
+  readonly pageSize = 20
+  readonly currentPage = signal(0)
+  readonly done = signal(false)
 
-  _formatNumber(value: number): string {
-    return isNil(value) ? '' : formatNumber(value, this.translate.currentLang, '0.0-0')
+  constructor() {
+    this.loadMore()
   }
-  formatNumber = this._formatNumber.bind(this)
-
-  _formatPrice(value: number): string {
-    return isNil(value) ? '' : formatNumber(value, this.translate.currentLang, '0.0-7')
-  }
-  formatPrice = this._formatPrice.bind(this)
 
   renewToken(id: string) {
     this.editId.set(id)
@@ -90,5 +89,37 @@ export class CopilotUsersComponent extends TranslationBaseComponent {
         this._toastrService.error(error, 'Error')
       }
     })
+  }
+
+  loadMore = effectAction((origin$) => {
+    return origin$.pipe(
+      switchMap(() => {
+        this.loading.set(true)
+        return this.usageService.getUserUsages({
+          order: { updatedAt: OrderTypeEnum.DESC },
+          take: this.pageSize,
+          skip: this.currentPage() * this.pageSize
+        })
+      }),
+      tap({
+        next: ({ items, total }) => {
+          this.usages.update((state) => [...state, ...items])
+          this.currentPage.update((state) => ++state)
+          if (items.length < this.pageSize || this.currentPage() * this.pageSize >= total) {
+            this.done.set(true)
+          }
+          this.loading.set(false)
+        },
+        error: (err) => {
+          this.loading.set(false)
+        }
+      })
+    )
+  })
+
+  onIntersection() {
+    if (!this.loading() && !this.done()) {
+      this.loadMore()
+    }
   }
 }

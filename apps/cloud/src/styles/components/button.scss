@@ -112,5 +112,9 @@
     &.btn-danger, &.danger {
       @apply text-red-500 border-red-50 hover:border-red-500 hover:bg-red-50;
     }
+
+    &.active {
+      @apply text-primary-500;
+    }
   }
 }

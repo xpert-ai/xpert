@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, EventEmitter, Input, Output, computed, input } from '@angular/core'
+import { Component, EventEmitter, Output, computed, input } from '@angular/core'
 import { PacMenuGroupComponent } from '../menu-group/menu-group.component'
 import { PacMenuItem } from '../types'
 

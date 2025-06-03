@@ -40,4 +40,7 @@ export type TCopilotTokenUsage = {
   priceLimit?: number
   // Tokens used in the current period
   tokenUsed?: number
+  priceUsed?: number
+
+  currency?: string
 }

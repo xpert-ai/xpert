@@ -1,7 +1,8 @@
-import { IXpert, mapTranslationLanguage, replaceAgentInDraft } from '@metad/contracts'
+import { IXpert, mapTranslationLanguage, replaceAgentInDraft, TXpertTeamDraft } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import {t} from 'i18next'
 import { omit, pick } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { XpertAgentService } from '../../../xpert-agent'
@@ -41,10 +42,10 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
 		}
 
 		const xpert = await this.xpertService.create({
-			...omit(draft.team, 'draft', 'agent', 'agents', 'toolsets', 'knowledgebases',  ...SYSTEM_FIELDS,),
+			...omit(draft.team, 'draft', 'agent', 'agents', 'toolsets', 'knowledgebases', ...SYSTEM_FIELDS),
 			latest: true,
 			version: null,
-			agent: omit(draft.team.agent, ...SYSTEM_FIELDS,),
+			agent: omit(getLatestPrimaryAgent(draft, draft.team.agent.key), ...SYSTEM_FIELDS)
 		})
 
 		// Replace agent in draft
@@ -86,5 +87,14 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
 
 	async createConnection(id: string, leaderKey: string) {
 		await this.agentService.update(id, { leaderKey })
+	}
+}
+
+function getLatestPrimaryAgent(draft: TXpertTeamDraft, key: string) {
+	const index = draft.nodes.findIndex((_) => _.type === 'agent' && _.key === key)
+	if (index > -1) {
+		return draft.nodes[index].entity
+	} else {
+		throw new Error(t('server-ai:Error.AgentNotFound', {key}))
 	}
 }

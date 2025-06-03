@@ -28,62 +28,58 @@
   </div>
 </div>
 
-<form [formGroup]="form" class="mt-1">
-  <div class="flex flex-col gap-2"
-    formArrayName="parameters">
-    @for (param of parameters.controls; track i; let i = $index) {
-      <div class="w-full flex justify-start items-start"
-        [formGroupName]="i">
-        <div class="grow flex items-center gap-1 bg-gray-100 rounded-lg p-1 pl-2 group/item">
-          <xpert-parameter-icon [type]="param.value.type"/>
-          <input matInput placeholder="name" maxlength="30"
-            class="h-6 leading-6 block w-full rounded-md border-0 px-1 py-1.5 text-gray-900  placeholder:text-gray-400 focus:outline-none
-                  bg-transparent hover:bg-white focus:bg-white" type="text"
-            [ngModel]="param.value.name"
-            [ngModelOptions]="{standalone: true}"
-            (ngModelChange)="updateParameter(i, 'name', $event)" >
-          <div tabindex="0" class="p-1 rounded-md hover:bg-black/5 w-6 h-6 flex justify-center items-center cursor-pointer opacity-30 group-hover/item:opacity-100"
-            #parammt="cdkMenuTriggerFor"
-            [cdkMenuTriggerFor]="paramConfigMenu"
-            [cdkMenuTriggerData]="{index: i, control: param, trigger: parammt}"
-          >
-            <i class="ri-settings-4-line"></i>
-          </div>
-        </div>
-        <div class="flex flex-col justify-start items-center px-2">
-          <button type="button" class="action-btn action-btn-l w-7 h-7 danger flex-shrink-0 group flex justify-center items-center rounded-lg overflow-hidden"
-            (click)="deleteParameter(i)">
-            <i class="ri-delete-bin-line"></i>
-          </button>
-        </div>
+<div class="flex flex-col gap-1 mt-1">
+  @for (param of parameters(); track i; let i = $index) {
+    <div class="w-full flex justify-start items-start">
+      <xpert-parameter-input class="grow p-1 pl-2 group/item"
+        [ngModel]="param"
+        (ngModelChange)="setParameter(i, $event)" />
+        <!-- <xpert-parameter-icon [type]="param.value.type"/>
+        <input matInput placeholder="name" maxlength="30"
+          class="h-6 leading-6 block w-full rounded-md border-0 px-1 py-1.5 text-gray-900  placeholder:text-gray-400 focus:outline-none
+                bg-transparent hover:bg-white focus:bg-white" type="text"
+          [ngModel]="param.value.name"
+          [ngModelOptions]="{standalone: true}"
+          (ngModelChange)="updateParameter(i, 'name', $event)" >
+        <div tabindex="0" class="p-1 rounded-md hover:bg-black/5 w-6 h-6 flex justify-center items-center cursor-pointer opacity-30 group-hover/item:opacity-100"
+          #parammt="cdkMenuTriggerFor"
+          [cdkMenuTriggerFor]="paramConfigMenu"
+          [cdkMenuTriggerData]="{index: i, control: param, trigger: parammt}"
+        >
+          <i class="ri-settings-4-line"></i>
+        </div> -->
+      <div class="flex flex-col justify-start items-center p-1">
+        <button type="button" class="action-btn action-btn-l w-7 h-7 danger flex-shrink-0 group flex justify-center items-center rounded-lg overflow-hidden"
+          (click)="deleteParameter(i)">
+          <i class="ri-delete-bin-line"></i>
+        </button>
       </div>
-    }
-  </div>
-</form>
-
+    </div>
+  }
+</div>
 
 <ng-template #parameterTypeMenu >
   <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu p-2">
-
     <xpert-parameter-menu-item class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
       cdkMenuItem
       [type]="eXpertParameterTypeEnum.TEXT"
-      (click)="addParameter({type: eXpertParameterTypeEnum.TEXT, optional: true})" />
-    
-    <xpert-parameter-menu-item class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
-      cdkMenuItem
-      [type]="eXpertParameterTypeEnum.PARAGRAPH"
-      (click)="addParameter({type: eXpertParameterTypeEnum.PARAGRAPH, optional: true})" />
-    
-    <xpert-parameter-menu-item class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
-      cdkMenuItem
-      [type]="eXpertParameterTypeEnum.SELECT"
-      (click)="addParameter({type: eXpertParameterTypeEnum.SELECT, optional: true})" />
-    
+      (click)="addParameter({type: eXpertParameterTypeEnum.TEXT, optional: true})"
+    />
     <xpert-parameter-menu-item class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
       cdkMenuItem
       [type]="eXpertParameterTypeEnum.NUMBER"
-      (click)="addParameter({type: eXpertParameterTypeEnum.NUMBER, optional: true})" />
+      (click)="addParameter({type: eXpertParameterTypeEnum.NUMBER, optional: true})"
+    />
+    <xpert-parameter-menu-item class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
+      cdkMenuItem
+      [type]="eXpertParameterTypeEnum.OBJECT"
+      (click)="addParameter({type: eXpertParameterTypeEnum.OBJECT, optional: true})"
+    />
+    <xpert-parameter-menu-item class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
+      cdkMenuItem
+      [type]="eXpertParameterTypeEnum.SELECT"
+      (click)="addParameter({type: eXpertParameterTypeEnum.SELECT, optional: true})"
+    />
     <xpert-parameter-menu-item class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
       cdkMenuItem
       [type]="eXpertParameterTypeEnum.ARRAY_STRING"
@@ -96,7 +92,7 @@
     />
   </div>
 </ng-template>
-
+<!-- 
 <ng-template #paramConfigMenu let-index="index" let-control="control" let-trigger="trigger">
   <div class="parameter-config-menu p-4 rounded-xl border-[0.5px] border-solid border-divider-deep shadow-lg bg-components-card-bg overflow-auto">
     <div class="w-full flex justify-between items-center">
@@ -111,4 +107,4 @@
       (ngModelChange)="setParameter(index, $event)"
       [ngModelOptions]="{standalone: true}" />
   </div>
-</ng-template>
+</ng-template> -->

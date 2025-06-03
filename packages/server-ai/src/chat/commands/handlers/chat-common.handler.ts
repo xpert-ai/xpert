@@ -391,6 +391,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 						}
 					} as MessageEvent)
 				} catch (err) {
+					console.error(err)
+					this.#logger.error(err)
 					const entity = {
 						id: conversation.id,
 						status: 'error',
@@ -477,11 +479,14 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		}
 
 		// File toolset
-		const fileToolset = await this.commandBus.execute<CreateFileToolsetCommand, ProjectFileToolset>(new CreateFileToolsetCommand(projectId))
-		const _variables = await fileToolset.getVariables()
-		toolsetVarirables.push(...(_variables ?? []))
-		const items = await fileToolset.initTools()
-		tools.push(...items)
+		let fileToolset: ProjectFileToolset
+		if (projectId) {
+			fileToolset = await this.commandBus.execute<CreateFileToolsetCommand, ProjectFileToolset>(new CreateFileToolsetCommand(projectId))
+			const _variables = await fileToolset.getVariables()
+			toolsetVarirables.push(...(_variables ?? []))
+			const items = await fileToolset.initTools()
+			tools.push(...items)
+		}
 
 		if (project?.toolsets.length > 0) {
 			const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
@@ -552,7 +557,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		const xperts = []
 		if (project?.xperts.length) {
 			for await (const xpert of project.xperts) {
-				const agent = await this.createXpertAgent(xpert, abortController, execution, subscriber, 'last_message', false, supervisorName, items)
+				const agent = await this.createXpertAgent(xpert, abortController, execution, subscriber, 'last_message', false, supervisorName, fileToolset?.getTools())
 				const tool = createHandoffTool({ agentName: agent.name, description: xpert.description })
 				xperts.push({name: agent.name, agent, tool})
 			}

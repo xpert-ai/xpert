@@ -264,16 +264,22 @@ export enum XpertTypeEnum {
 }
 
 export enum XpertParameterTypeEnum {
+  /**
+   * @deprecated use string
+   */
   TEXT = 'text',
+  /**
+   * @deprecated use string
+   */
   PARAGRAPH = 'paragraph',
-  SELECT = 'select',
+  STRING = 'string',
   NUMBER = 'number',
+  OBJECT = 'object',
+  SELECT = 'select',
   ARRAY_STRING = 'array[string]',
   ARRAY = 'array[object]',
 
-  STRING = 'string',
   BOOLEAN = 'boolean',
-  OBJECT = 'object',
   SECRET = 'secret',
 }
 
