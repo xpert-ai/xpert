@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { DimensionType, getLevelsHierarchy, PropertyLevel } from '@metad/ocap-core'
+import { DimensionType, DisplayBehaviour, getLevelsHierarchy, PropertyLevel } from '@metad/ocap-core'
 import { AccordionWrappers, FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
 import { ISelectOption } from '@metad/ocap-angular/core'
 import { FormlyFieldConfig } from '@ngx-formly/core'
@@ -161,7 +161,8 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
               type: 'checkbox',
               className,
               props: {
-                label: LEVEL?.UniqueMembers ?? 'Unique Members'
+                label: LEVEL?.UniqueMembers ?? 'Unique Members',
+                help: this.helpDimensionUrl() + '/hierarchy/'
               },
               expressions: {
                 'props.required': '!!model && !!model.closure'
@@ -185,6 +186,7 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
               className,
               props: {
                 label: LEVEL?.Type ?? 'Type',
+                help: this.helpDimensionUrl() + '/hierarchy/',
                 options: [
                   {
                     value: null,
@@ -228,7 +230,7 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
               type: 'ngm-select',
               props: {
                 label: LEVEL?.OrdinalColumn ?? 'Ordinal Column',
-                help: this.helpWebsite() + '/docs/models/dimension-designer/hierarchy/#' + this.i18n.instant('PAC.MODEL.OrdinalColumnTag', {Default: 'ordinal-column'}),
+                help: this.helpDimensionUrl() + '/hierarchy/#' + this.i18n.instant('PAC.MODEL.OrdinalColumnTag', {Default: 'ordinal-column'}),
                 searchable: true,
                 options: this.columnOptions$,
                 valueKey: 'key'
@@ -243,16 +245,19 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
                 searchable: true,
                 options: this.columnOptions$,
                 valueKey: 'key',
-                help: this.helpWebsite() + '/docs/models/dimension-designer/parent-child/#' + this.i18n.instant('PAC.MODEL.ParentColumnTag', {Default: 'parent-member-field'})
+                help: this.helpDimensionUrl() + '/parent-child/#' + this.i18n.instant('PAC.MODEL.ParentColumnTag', {Default: 'parent-member-field'})
               }
             },
             {
               className,
               key: 'nullParentValue',
               type: 'input',
+              expressionProperties: {
+                hide: `!model || !model.parentColumn`
+              },
               props: {
                 label: LEVEL?.NullParentValue ?? 'Null Parent Value',
-                help: this.helpWebsite() + '/docs/models/dimension-designer/parent-child/#' + this.i18n.instant('PAC.MODEL.NullParentValueTag', {Default: 'top-level-node-identifier'})
+                help: this.helpDimensionUrl() + '/parent-child/#' + this.i18n.instant('PAC.MODEL.NullParentValueTag', {Default: 'top-level-node-identifier'})
               }
             },
             {
@@ -274,6 +279,8 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
                 label: LEVEL?.TimeLevelType ?? 'Time Level Type',
                 icon: 'date_range',
                 required: this.get((state) => state.dimension?.type === DimensionType.TimeDimension),
+                displayBehaviour: DisplayBehaviour.descriptionOnly,
+                help: this.helpDimensionUrl() + '/calendar/',
                 options: [
                   { value: null, label: this.getTranslation('PAC.KEY_WORDS.None', { Default: 'None' }) },
                   { value: 'TimeYears', label: 'Year' },
@@ -290,7 +297,8 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
               type: 'select',
               props: {
                 label: LEVEL?.HideMemberIf ?? 'Hide Member If',
-                help: this.helpWebsite() + '/docs/models/dimension-designer/hierarchy/#' + this.i18n.instant('PAC.MODEL.HideMemberTag', {Default: 'hide-member'}),
+                displayBehaviour: DisplayBehaviour.descriptionOnly,
+                help: this.helpDimensionUrl() + '/hierarchy/#' + this.i18n.instant('PAC.MODEL.HideMemberTag', {Default: 'hide-member'}),
                 options: [
                   { value: null, label: this.getTranslation('PAC.MODEL.HideMember_None', { Default: 'None(Never)' }) },
                   { value: 'Never', label: this.i18n.instant('PAC.MODEL.HideMember_Never', {Default: 'Never'}) },
@@ -302,13 +310,13 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
           ]
         },
 
-        ...SemanticsAccordionWrapper(COMMON, this.helpWebsite() + '/docs/models/dimension-designer/hierarchy/'),
+        ...SemanticsAccordionWrapper(COMMON, this.helpDimensionUrl() + '/semantics/'),
         ...AccordionWrappers([
-          KeyExpressionAccordion(COMMON, this.helpWebsite() + '/docs/models/dimension-designer/hierarchy/'),
-          NameExpressionAccordion(COMMON, this.helpWebsite() + '/docs/models/dimension-designer/hierarchy/'),
-          CaptionExpressionAccordion(COMMON, this.helpWebsite() + '/docs/models/dimension-designer/hierarchy/'),
-          OrdinalExpressionAccordion(COMMON, this.helpWebsite() + '/docs/models/dimension-designer/hierarchy/'),
-          ParentExpressionAccordion(COMMON, this.helpWebsite() + '/docs/models/dimension-designer/parent-child/#' + this.i18n.instant('PAC.MODEL.ParentExpressionTag', {Default: 'custom-parent-expression'})),
+          KeyExpressionAccordion(COMMON, this.helpDimensionUrl() + '/hierarchy/'),
+          NameExpressionAccordion(COMMON, this.helpDimensionUrl() + '/hierarchy/'),
+          CaptionExpressionAccordion(COMMON, this.helpDimensionUrl() + '/hierarchy/'),
+          OrdinalExpressionAccordion(COMMON, this.helpDimensionUrl() + '/hierarchy/'),
+          ParentExpressionAccordion(COMMON, this.helpDimensionUrl() + '/parent-child/#' + this.i18n.instant('PAC.MODEL.ParentExpressionTag', {Default: 'custom-parent-expression'})),
           this.closureAccordion(LEVEL, className),
           this.propertyAccordion(COMMON, LEVEL, className)
         ])
@@ -322,7 +330,7 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
       label: LEVEL?.ClosureTable ?? 'Closure Table',
       toggleable: true,
       props: {
-        help: this.helpWebsite() + '/docs/models/dimension-designer/parent-child/#' + this.i18n.instant('PAC.MODEL.ClosureTag', {Default: 'closure-table'})
+        help: this.helpDimensionUrl() + '/parent-child/#' + this.i18n.instant('PAC.MODEL.ClosureTag', {Default: 'closure-table'})
       },
       fieldGroupClassName: FORMLY_ROW,
       fieldGroup: [
@@ -392,7 +400,7 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
       label: LEVEL?.Property ?? 'Property',
       toggleable: true,
       props: {
-        help: this.helpWebsite() + '/docs/models/dimension-designer/hierarchy/'
+        help: this.helpDimensionUrl() + '/hierarchy/'
       },
       fieldArray: {
         fieldGroup: [
