@@ -30,7 +30,7 @@ import { environment } from '../environments/environment'
 import { DateAdapter, MAT_DATE_FORMATS } from '@angular/material/core'
 import { DateFnsAdapter, MAT_DATE_FNS_FORMATS } from '@angular/material-date-fns-adapter'
 import { initI18n } from './@shared/i18n'
-import { CustomElementsService, initializeCustomElements } from './@shared/chat'
+import { CustomElementsService, initializeCustomElements, provideChatMarkdown } from './@shared/chat'
 
 const TYPE_KEY = '__subject__'
 function detectSubjectType(subject) {
@@ -131,7 +131,8 @@ function detectSubjectType(subject) {
       useFactory: initializeCustomElements,
       multi: true,
       deps: [CustomElementsService]
-    }
+    },
+    provideChatMarkdown(),
 
     // {
     //   provide: ErrorHandler,

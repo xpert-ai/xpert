@@ -102,12 +102,12 @@ export abstract class ChatService {
             )
           )
         ]).pipe(
-          map(([conversation, feedbacks]) => {
+          map<[IChatConversation, Record<string, IChatMessageFeedback>], {loading: boolean}>(([conversation, feedbacks]) => {
             return {
-              conversation: {
+              conversation: conversation ? {
                 ...conversation,
                 title: conversation.title || shortTitle(conversation.options?.parameters?.input)
-              },
+              } : null,
               feedbacks,
               loading: false
             }
