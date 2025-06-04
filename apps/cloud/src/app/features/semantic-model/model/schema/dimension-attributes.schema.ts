@@ -82,6 +82,7 @@ export class DimensionAttributesSchema<T extends EntityProperty = PropertyDimens
               className: FORMLY_W_1_2,
               key: 'visible',
               type:'checkbox',
+              defaultValue: true,
               props: {
                 label: COMMON?.Visible ?? 'Visible',
               }
@@ -108,7 +109,7 @@ export class DimensionAttributesSchema<T extends EntityProperty = PropertyDimens
           ]
         },
 
-        ...SemanticsAccordionWrapper(COMMON)
+        ...SemanticsAccordionWrapper(COMMON, '')
       ]
     }
   }

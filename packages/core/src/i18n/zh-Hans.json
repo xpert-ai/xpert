@@ -4,6 +4,8 @@
         "NoTimeLevelInDimension": "在维度‘{{dimension}}’中未找到时间粒度‘{{granularity}}’对应的层级",
         "NoPropertyFoundFor": "在数据集‘{{cube}}’中未找到维度或度量‘{{name}}’。",
         "NoDimensionFoundFor": "在数据集‘{{cube}}’中未找到维度‘{{name}}’。",
-        "NoHierarchyFoundFor": "在维度‘{{dimension}}’中未找到层次结构‘{{name}}’。"
+        "NoHierarchyFoundFor": "在维度‘{{dimension}}’中未找到层次结构‘{{name}}’。",
+        "CalendarDimensionNotFound": "在模型‘{{cube}}’中找不到日历维度",
+        "CalendarHierarchyNotFound": "在维度‘{{dimension}}’中找不到日历层次结构"
     }
 }

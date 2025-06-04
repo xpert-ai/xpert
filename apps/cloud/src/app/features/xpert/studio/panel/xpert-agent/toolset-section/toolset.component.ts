@@ -1,12 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
-import { TXpertTeamNode } from '@metad/contracts'
-import { nonNullable } from '@metad/copilot'
-import { TranslateModule } from '@ngx-translate/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { CommonModule } from '@angular/common'
+import { ChangeDetectionStrategy, Component, ElementRef, inject, input } from '@angular/core'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { TXpertTeamNode } from '@metad/contracts'
+import { TranslateModule } from '@ngx-translate/core'
+import { EmojiAvatarComponent } from '../../../../../../@shared/avatar/'
 import { XpertStudioApiService } from '../../../domain'
-import { EmojiAvatarComponent } from "../../../../../../@shared/avatar/"
-
+import { XpertStudioPanelAgentComponent } from '../agent.component'
 
 @Component({
   selector: 'xpert-studio-panel-toolset-section',
@@ -19,16 +18,11 @@ import { EmojiAvatarComponent } from "../../../../../../@shared/avatar/"
 export class XpertStudioPanelToolsetSectionComponent {
   readonly elementRef = inject(ElementRef)
   readonly apiService = inject(XpertStudioApiService)
+  readonly agentComponent = inject(XpertStudioPanelAgentComponent)
 
   readonly key = input<string>()
 
-  readonly toolsets = computed(() => {
-    const draft = this.apiService.viewModel()
-    return draft.connections
-      .filter((conn) => conn.from === this.key())
-      .map((conn) => draft.nodes.find((n) => n.type === 'toolset' && n.key === conn.to) as TXpertTeamNode & {type: 'toolset'})
-      .filter(nonNullable)
-  })
+  readonly toolsets = this.agentComponent.toolsets
 
   remove(node: TXpertTeamNode) {
     // Remove connection by simulate a drop event

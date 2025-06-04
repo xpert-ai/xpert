@@ -16,6 +16,7 @@ import { FocusMonitor } from '@angular/cdk/a11y';
 interface CheckboxProps extends FormlyFieldProps {
   indeterminate?: boolean;
   labelPosition?: 'before' | 'after';
+  help?: string
 }
 
 export interface FormlyCheckboxFieldConfig extends FormlyFieldConfig<CheckboxProps> {
@@ -35,12 +36,15 @@ export interface FormlyCheckboxFieldConfig extends FormlyFieldConfig<CheckboxPro
       [labelPosition]="props.labelPosition"
     >
       {{ props.label }}
-      <span
-        *ngIf="props.required && props.hideRequiredMarker !== true"
-        aria-hidden="true"
-        class="mat-form-field-required-marker"
-        >*</span
-      >
+      @if (props.required && props.hideRequiredMarker !== true) {
+        <span aria-hidden="true" class="mat-form-field-required-marker">*</span>
+      }
+      @if (props?.help) {
+        <a [href]="props.help" target="_blank" rel="noopener noreferrer" class="group text-xs text-primary-500 hover:text-primary-700 hover:underline">
+          {{ 'FORMLY.COMMON.Help' | translate: {Default: 'Help'} }}
+          <i class="ri-external-link-line inline-block group-hover:translate-x-1 transition-transform"></i>
+        </a>
+      }
     </mat-checkbox>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

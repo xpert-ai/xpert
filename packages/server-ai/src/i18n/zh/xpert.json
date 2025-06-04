@@ -5,6 +5,7 @@
         "EmbeddingModelForMemory": "需要为长期记忆配置'嵌入'模型",
         "AgentOutdated": "Agent '{agentKey}' 记录已更新，请重新同步",
         "FallbackModelNotFound": "未找到'{agent}'的备用模型配置",
+        "NoContent4DefaultValue": "未配置‘{agent}’异常处理的默认值内容",
         "CopilotModelConfigError": "智能助理模型‘{model}’未正确配置",
         "NameExists": "名称已存在",
         "MultiNodeNotSupported": "暂不支持多节点运行‘{node}’",

@@ -92,3 +92,39 @@
     min-width: unset;
   }
 }
+
+.ngm-tables-join__container {
+  .join-table {
+    @apply bg-slate-100;
+
+    &::before {
+      @apply bg-primary-200;
+    }
+  }
+}
+
+.ngm-tables-join__join-menu {
+  width: 500px;
+  max-width: 500px;
+
+  .table-join {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    padding: 1rem;
+    cursor: pointer;
+
+    &:hover {
+      @apply bg-slate-50;
+    }
+
+    &.selected {
+      @apply bg-slate-100;
+    }
+  }
+
+  .join-fields-form {
+    margin-top: 1rem;
+  }
+}

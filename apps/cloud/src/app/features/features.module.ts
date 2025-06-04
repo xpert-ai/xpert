@@ -29,13 +29,11 @@ import { provideCheckpointSaver, provideCommandFewShotPrompt, provideDimensionMe
 import { NgmDrawerComponent, NgmDrawerContainerComponent } from '@metad/ocap-angular/common'
 import { NgxEchartsModule } from 'ngx-echarts'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
-import { NgxFloatUiModule } from 'ngx-float-ui'
 import { EmojiAvatarComponent } from '../@shared/avatar'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { PACCopilotService } from './services'
 import { MaterialModule } from '../@shared/material.module'
 import { SharedModule } from '../@shared/shared.module'
-import { provideChatMarkdown } from '../@shared/chat'
 
 registerEChartsThemes()
 
@@ -49,7 +47,6 @@ registerEChartsThemes()
     SharedModule,
     PacAuthModule,
     PACThemeModule,
-    NgxFloatUiModule,
     AssetsComponent,
     ProjectSelectorComponent,
     DensityDirective,
@@ -83,7 +80,6 @@ registerEChartsThemes()
     provideLogger(),
     provideFormly(),
     provideFormlyMaterial(),
-    provideChatMarkdown(),
     {
       provide: NGM_WASM_AGENT_WORKER,
       useValue: '/assets/ocap-agent-data-init.worker.js'

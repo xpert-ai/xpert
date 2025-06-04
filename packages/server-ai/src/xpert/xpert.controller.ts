@@ -127,7 +127,7 @@ export class XpertController extends CrudController<Xpert> {
 			return await this.commandBus.execute(new XpertImportCommand(dsl))
 		} catch (error) {
 			throw new HttpException(
-				`An error occurred during import: ${error.message}`,
+				error.message,
 				HttpStatus.INTERNAL_SERVER_ERROR
 			)
 		}

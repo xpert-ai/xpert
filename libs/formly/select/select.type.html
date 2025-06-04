@@ -11,6 +11,12 @@
 
   [class.ngm-select-error]="error() || formControl.invalid"
 >
+  @if (props?.help) {
+    <a ngmLabel [href]="props.help" target="_blank" rel="noopener noreferrer" class="group text-xs font-light text-primary-400 hover:text-primary-600 hover:underline hover:font-normal">
+      {{ 'FORMLY.COMMON.Help' | translate: {Default: 'Help'} }}
+      <i class="ri-external-link-line inline-block group-hover:translate-x-1 transition-transform"></i>
+    </a>
+  }
   @if (formControl.invalid) {
     <formly-validation-message ngmError [field]="field" />
   }

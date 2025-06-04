@@ -1,6 +1,6 @@
 {
   "name": "@metad/server-core",
-  "version": "3.2.11",
+  "version": "3.2.13",
   "type": "commonjs",
   "license": "AGPL-3.0",
   "dependencies": {
@@ -36,7 +36,7 @@
     "express-session": "^1.17.2",
     "faker": "^5.5.3",
     "graphql": "^15.4.0",
-    "handlebars": "^4.7.7",
+    "handlebars": "^4.7.8",
     "helmet": "^4.6.0",
     "i18next": "~23.14.0",
     "i18next-fs-backend": "^2.6.0",

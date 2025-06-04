@@ -320,7 +320,9 @@ export function getCalendarDimension(entityType: EntityType): Property {
     (property) => property.semantics?.semantic === Semantics.Calendar
   )
   if (!timeDim) {
-    throw new Error(`Can't found calendar dimension in entityType: ${entityType.name}`)
+    throw new Error(
+      t('Error.CalendarDimensionNotFound', {ns: 'core', cube: entityType.name})
+    )
   }
   return timeDim
 }
@@ -330,7 +332,9 @@ export function getCalendarHierarchy(entityType: EntityType): PropertyHierarchy 
   const timeHierarchy = getDefaultHierarchy(timeDim)
 
   if (!timeHierarchy) {
-    throw new Error(`Can't found calendar hierarchy in dimension: ${timeDim?.name}`)
+    throw new Error(
+      t('Error.CalendarHierarchyNotFound', {ns: 'core', dimension: timeDim?.name})
+    )
   }
 
   return timeHierarchy

@@ -4,20 +4,20 @@ import { FormsModule } from '@angular/forms'
 import { MatButtonModule } from '@angular/material/button'
 import { MatDividerModule } from '@angular/material/divider'
 import { MatIconModule } from '@angular/material/icon'
-import { MatMenuModule } from '@angular/material/menu'
 import { MatSelectModule } from '@angular/material/select'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 
-import { TablesJoinComponent } from './tables-join.component'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { TablesJoinComponent } from './tables-join.component'
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
-    
-    MatMenuModule,
+    CdkMenuModule,
+
     MatIconModule,
     MatSelectModule,
     MatDividerModule,

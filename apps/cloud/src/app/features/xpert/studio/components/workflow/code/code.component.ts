@@ -37,6 +37,7 @@ export class XpertStudioNodeWorkflowCodeComponent {
 
   // States
   readonly codeEntity = computed(() => this.entity() as IWFNCode)
+  readonly code = computed(() => this.codeEntity()?.code)
   readonly retry = computed(() => this.codeEntity()?.retry)
   readonly errorHandling = computed(() => this.codeEntity()?.errorHandling)
 }

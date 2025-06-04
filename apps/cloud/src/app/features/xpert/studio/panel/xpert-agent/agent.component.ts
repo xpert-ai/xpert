@@ -35,6 +35,8 @@ import {
   TXpertAgentOptions,
   injectHelpWebsite,
   XpertParameterTypeEnum,
+  TSelectOption,
+  TXpertTeamNode,
   CopilotServerService,
   ModelFeature
 } from 'apps/cloud/src/app/@core'
@@ -54,12 +56,11 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { uniq } from 'lodash-es'
 import { XpertStudioComponent } from '../../studio.component'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { attrModel, linkedModel, OverlayAnimations } from '@metad/core'
+import { attrModel, linkedModel, nonNullable, OverlayAnimations } from '@metad/core'
 import { MatSliderModule } from '@angular/material/slider'
 import { XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/workflow'
-import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { VISION_DEFAULT_VARIABLE } from '../../types'
 
 @Component({
@@ -78,10 +79,10 @@ import { VISION_DEFAULT_VARIABLE } from '../../types'
     MatSliderModule,
     DateRelativePipe,
 
+    NgmI18nPipe,
     NgmDensityDirective,
     NgmSpinComponent,
     EmojiAvatarComponent,
-    StateVariableSelectComponent,
     XpertStudioPanelToolsetSectionComponent,
     CopilotModelSelectComponent,
     XpertStudioPanelAgentExecutionComponent,
@@ -123,7 +124,7 @@ export class XpertStudioPanelAgentComponent {
   readonly xpert = computed(() => this.apiService.viewModel()?.team)
   readonly xpertId = computed(() => this.xpert()?.id)
   readonly xpertCopilotModel = computed(() => this.xpert()?.copilotModel)
-  readonly toolsets = computed(() => this.xpertAgent()?.toolsets)
+  // readonly toolsets = computed(() => this.xpertAgent()?.toolsets)
   readonly name = computed(() => this.xpertAgent()?.name)
   readonly title = computed(() => this.xpertAgent()?.title)
   readonly prompt = model<string>()
@@ -133,17 +134,14 @@ export class XpertStudioPanelAgentComponent {
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
   readonly isEnd = computed(() => this.agentConfig()?.endNodes?.includes(this.agentUniqueName()))
   readonly disableOutput = computed(() => this.agentConfig()?.disableOutputs?.includes(this.key()))
+  
   readonly agentOptions = linkedModel({
     initialValue: null,
     compute: () => this.xpertAgent()?.options,
-    update: (value: Partial<TXpertAgentOptions>) => {
-      const options = this.xpertAgent().options ?? {}
-      this.apiService.updateXpertAgent(this.key(), {
-        options: {...options, ...value }
-      })
+    update: (options) => {
+      this.apiService.updateXpertAgent(this.key(), {options})
     }
   })
-  
   readonly enableMessageHistory = computed(() => !this.agentOptions()?.disableMessageHistory)
   readonly promptTemplates = computed(() => this.xpertAgent()?.promptTemplates)
   readonly isPrimaryAgent = computed(() => !!this.xpertAgent()?.xpertId)
@@ -162,6 +160,13 @@ export class XpertStudioPanelAgentComponent {
     }
   })
   readonly visionCanEnable = computed(() => this.selectedAiModel()?.features?.includes(ModelFeature.VISION))
+  readonly draft = this.apiService.viewModel
+  readonly toolsets = computed(() => {
+    const draft = this.draft()
+    return draft.connections?.filter((conn) => conn.from === this.key())
+      .map((conn) => draft.nodes.find((n) => n.type === 'toolset' && n.key === conn.to) as TXpertTeamNode & {type: 'toolset'})
+      .filter(nonNullable)
+  })
 
   // Error handling
   readonly retry = computed(() => this.xpertAgent()?.options?.retry)
@@ -172,6 +177,13 @@ export class XpertStudioPanelAgentComponent {
   readonly fallbackModel = computed(() => this.fallback()?.copilotModel)
   readonly errorHandling = computed(() => this.xpertAgent()?.options?.errorHandling)
   readonly errorHandlingType = computed(() => this.errorHandling()?.type)
+
+  // LinkedModels
+  readonly structuredOutputMethod = attrModel(this.agentOptions, 'structuredOutputMethod')
+  readonly structuredOutputMethodOption = computed(() => {
+    return this.StructuredOutputMethodOptions.find((_) => this.structuredOutputMethod() ? _.value === this.structuredOutputMethod() : !_.value)
+  })
+
 
   readonly nameError = computed(() => {
     const name = this.name()
@@ -266,6 +278,42 @@ export class XpertStudioPanelAgentComponent {
       type: XpertParameterTypeEnum.STRING,
       name: 'content',
       title: 'Text'
+    }
+  ]
+
+  readonly StructuredOutputMethodOptions: TSelectOption<TXpertAgentOptions['structuredOutputMethod']>[] = [
+    {
+      value: null,
+      label: {
+        zh_Hans: '默认',
+        en_US: 'Default'
+      },
+      description: {
+        zh_Hans: '消息内容',
+        en_US: 'Message content'
+      }
+    },
+    {
+      value: 'functionCalling',
+      label: {
+        zh_Hans: '函数调用',
+        en_US: 'Function Calling'
+      },
+      description: {
+        zh_Hans: '将工具调用参数从对象解析回原始模式',
+        en_US: 'Tool call arguments to be parsed from an object back to the original schema'
+      }
+    },
+    {
+      value: 'jsonMode',
+      label: {
+        zh_Hans: 'JSON 模式',
+        en_US: 'JSON Mode'
+      },
+      description: {
+        zh_Hans: '将输出解析为 JSON 对象',
+        en_US: 'Parse output as a JSON object'
+      }
     }
   ]
 

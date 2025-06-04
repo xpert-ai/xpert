@@ -47,3 +47,15 @@
 .ngm-kpi__intent {
   @apply cursor-pointer hover:underline;
 }
+
+.ngm-kpi--title {
+  @apply text-xl;
+}
+
+::ng-deep {
+  .ngm-kpi--value {
+    .ngm-object-number--value {
+      @apply text-3xl font-medium tabular-nums;
+    }
+  }
+}

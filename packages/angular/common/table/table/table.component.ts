@@ -95,6 +95,9 @@ export class MyCustomPaginatorIntl implements MatPaginatorIntl {
   }
 }
 
+/**
+ * @deprecated use tailwindcss
+ */
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,

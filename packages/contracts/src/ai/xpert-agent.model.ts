@@ -138,6 +138,14 @@ export type TXpertAgentOptions = {
   availableTools?: Record<string, string[]>
   
   /**
+   * How to achieve structured output (`StructuredOutputMethodOptions['method']`)
+   * - *functionCalling*
+   * - *jsonMode*
+   * - *jsonSchema*
+   * 
+   */
+  structuredOutputMethod?: "functionCalling" | "jsonMode" | "jsonSchema" | string
+  /**
    * Vision config of agent
    */
   vision?: {

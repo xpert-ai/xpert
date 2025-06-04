@@ -87,7 +87,16 @@ export class DimensionUsageSchemaService extends CubeSchemaService<DimensionUsag
                   options: this.factFields$,
                   valueKey: 'key',
                 }
-              }
+              },
+              {
+                className: FORMLY_W_1_2,
+                key: 'visible',
+                type:'checkbox',
+                defaultValue: true,
+                props: {
+                  label: COMMON?.Visible ?? 'Visible',
+                }
+              },
             ]
           }
         ]

@@ -20,18 +20,19 @@
     }
 
       <!-- Refresh & Loading icon -->
-      <button mat-icon-button class="ngm-analytical-grid__refresh" displayDensity="cosy"
-        [style.opacity]="(isLoading$ | async) ? '0' : '1'"
-        [style.visibility]="(isLoading$ | async) ? 'hidden' : 'visible'"
-        (click)="refresh(true)">
-        <mat-icon fontSet="material-icons-outlined">refresh</mat-icon>
-      </button>
-      
-      <mat-spinner *ngIf="isLoading$ | async" displayDensity="cosy"
-        [diameter]="20"
-        [strokeWidth]="1"
-      >
-      </mat-spinner>
+      @if (isLoading$ | async) {
+        <div class="w-7 h-7 flex justify-center items-center">
+          <i class="ri-loader-2-line animate-spin"></i>
+        </div>
+      } @else {
+        <button class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
+          bg-transparent hover:bg-hover-bg"
+          [matTooltip]=" 'Ngm.AnalyticalCard.Refresh' | translate: {Default: 'Refresh'} "
+          matTooltipPosition="above"
+          (click)="refresh(true)">
+          <i class="ri-refresh-line"></i>
+        </button>
+      }
     </div>
   </div>
 }

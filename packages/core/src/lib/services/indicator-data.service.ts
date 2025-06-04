@@ -101,12 +101,10 @@ export class SmartIndicatorDataService<
              * This should be avoided
              */
             console.error(
-              `没有找到相应指标, 一般为 Entity 与 Indicator 没有同时更新而没有对应上导致. Entity is`,
-              this.dataSettings.entitySet,
+              `没有找到相应指标, 一般为 Entity 与 Indicator 没有同时更新而没有对应上导致. Entity is ‘${this.dataSettings.entitySet}’`,
               `Schema is`,
               this.entityService.dataSource.options.schema,
-              `Indicator is`,
-              id
+              `Indicator is ‘${id}’`,
             )
           }
         }
@@ -143,12 +141,10 @@ export class SmartIndicatorDataService<
        * This should be avoided
        */
       console.error(
-        `没有找到相应指标, 一般为 Entity 与 Indicator 没有同时更新而没有对应上导致. Entity is`,
-        this.dataSettings.entitySet,
+        `没有找到相应指标, 一般为 Entity 与 Indicator 没有同时更新而没有对应上导致. Entity is ‘${this.dataSettings.entitySet}’`,
         `Schema is`,
         this.entityService.dataSource.options.schema,
-        `Indicator is`,
-        indicator
+        `Indicator is ‘${indicator}’`,
       )
 
       return EMPTY

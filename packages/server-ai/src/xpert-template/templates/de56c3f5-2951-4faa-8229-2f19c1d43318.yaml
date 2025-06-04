@@ -1,0 +1,284 @@
+team:
+  name: Demo - Workflow transform
+  type: agent
+  title: 智能客服回答模版转换
+  description: 智能客服回答用户关于请假制度的问题，系统检索公司内部人事政策文档，通过大模型提炼出关键信息，再通过模板节点格式化为结构化的回复，最终返回给用户。
+  avatar:
+    emoji:
+      id: printer
+      set: ""
+      colons: ":printer:"
+      unified: 1F5A8-FE0F
+    background: rgba(228, 251, 204, 0.8)
+  starters:
+    - 我要请假
+    - 如何调休
+    - null
+    - null
+  options:
+    position:
+      x: -29.51942260252838
+      y: 242.23129227053136
+    scale: 0.8599999999999999
+    agent:
+      Agent_D8fXPaA6hq:
+        position:
+          x: 140
+          y: 19.875
+    workflow:
+      Template_lvCTjVYj3g:
+        position:
+          x: 480.00000828105726
+          y: 19.957023288892543
+      Answer_vhXtfkYFn7:
+        position:
+          x: 820.0000240432969
+          y: 20.152338442595067
+  agentConfig: null
+  memory: null
+  summarize: null
+  version: "1"
+  agent:
+    key: Agent_D8fXPaA6hq
+    name: null
+    title: HR LLM
+    description: null
+    avatar: null
+    prompt: >-
+      请基于以下文本内容，总结带薪年假的关键点，包括：假期天数、规则、审批方式：
+
+      {
+          "title": "员工手册 - 请假制度",
+          "content": "正式员工每年享有15天带薪年假，年假按自然年计算，未休完可结转至次年，但仅限结转5天。年假需提前一周提交申请，经主管审批。"
+      }
+    promptTemplates: null
+    parameters: null
+    outputVariables:
+      - type: number
+        name: daysPerYear
+        title: 假期天数
+        description: 假期天数
+        optional: false
+        maximum: null
+        options: null
+        operation: null
+        item: null
+        variableSelector: null
+      - type: select
+        name: calculationRule
+        title: 计算方式
+        description: 计算方式
+        optional: true
+        maximum: null
+        options:
+          - 按自然年计算
+          - 按财务年计算
+        operation: null
+        item: null
+        variableSelector: null
+      - type: select
+        name: carryOverRule
+        title: 最多结转x天至次年
+        description: 最多结转x天至次年
+        optional: true
+        maximum: null
+        options:
+          - "5"
+          - "8"
+          - "10"
+        operation: null
+        item: null
+        variableSelector: null
+      - type: text
+        name: approval
+        title: 是否需要审批
+        description: 需提前一周申请，经主管审批；或直接通过。
+        optional: true
+        maximum: null
+        options: null
+        operation: null
+        item: null
+        variableSelector: null
+      - type: text
+        name: brief
+        title: 概要
+        description: 概要
+        optional: true
+        maximum: null
+        options: null
+        operation: null
+        item: null
+        variableSelector: null
+      - type: object
+        optional: true
+        name: abc
+        item:
+          - type: text
+            item:
+              - type: string
+              - type: string
+              - type: string
+            name: vv
+        title: asdfasd
+        description: asdfa色调发生的福气哇
+    options:
+      structuredOutputMethod: functionCalling
+    copilotModel: null
+    leaderKey: null
+    collaboratorNames: []
+    toolsetIds: []
+    knowledgebaseIds: []
+  copilotModel:
+    modelType: llm
+    model: gpt-4o
+    options: null
+  knowledgebases: []
+  toolsets: []
+  tags: []
+nodes:
+  - type: agent
+    key: Agent_D8fXPaA6hq
+    position:
+      x: 140
+      y: 19.875
+    entity:
+      key: Agent_D8fXPaA6hq
+      name: null
+      title: HR LLM
+      description: null
+      avatar: null
+      prompt: >-
+        请基于以下文本内容，总结带薪年假的关键点，包括：假期天数、规则、审批方式：
+
+        {
+            "title": "员工手册 - 请假制度",
+            "content": "正式员工每年享有15天带薪年假，年假按自然年计算，未休完可结转至次年，但仅限结转5天。年假需提前一周提交申请，经主管审批。"
+        }
+      promptTemplates: null
+      parameters: null
+      outputVariables:
+        - type: number
+          name: daysPerYear
+          title: 假期天数
+          description: 假期天数
+          optional: false
+          maximum: null
+          options: null
+          operation: null
+          item: null
+          variableSelector: null
+        - type: select
+          name: calculationRule
+          title: 计算方式
+          description: 计算方式
+          optional: true
+          maximum: null
+          options:
+            - 按自然年计算
+            - 按财务年计算
+          operation: null
+          item: null
+          variableSelector: null
+        - type: select
+          name: carryOverRule
+          title: 最多结转x天至次年
+          description: 最多结转x天至次年
+          optional: true
+          maximum: null
+          options:
+            - "5"
+            - "8"
+            - "10"
+          operation: null
+          item: null
+          variableSelector: null
+        - type: text
+          name: approval
+          title: 是否需要审批
+          description: 需提前一周申请，经主管审批；或直接通过。
+          optional: true
+          maximum: null
+          options: null
+          operation: null
+          item: null
+          variableSelector: null
+        - type: text
+          name: brief
+          title: 概要
+          description: 概要
+          optional: true
+          maximum: null
+          options: null
+          operation: null
+          item: null
+          variableSelector: null
+        - type: object
+          optional: true
+          name: abc
+          item:
+            - type: text
+              item:
+                - type: string
+                - type: string
+                - type: string
+              name: vv
+          title: asdfasd
+          description: asdfa色调发生的福气哇
+      options:
+        structuredOutputMethod: functionCalling
+      copilotModel: null
+      leaderKey: null
+      collaboratorNames: []
+      toolsetIds: []
+      knowledgebaseIds: []
+    hash: 545c3f3b60e0b68f395ba14167f554ad3bd10e371b8e75a0d56c2d8b81859016
+  - type: workflow
+    key: Template_lvCTjVYj3g
+    position:
+      x: 480.00000828105726
+      y: 19.957023288892543
+    entity:
+      type: template
+      key: Template_lvCTjVYj3g
+      title: 模版转换
+      code: |
+        📌 **公司带薪年假制度摘要：**
+
+        - 假期天数：{{daysPerYear}}
+        - 计算方式：{{calculationRule}}
+        - 结转规则：{{carryOverRule}}
+        - 审批流程：{{approval}}
+
+        简要说明：{{brief}}
+      inputParams:
+        - name: daysPerYear
+          variable: agent_d8fxpaa6hq_channel.daysPerYear
+        - name: calculationRule
+          variable: agent_d8fxpaa6hq_channel.calculationRule
+        - name: carryOverRule
+          variable: agent_d8fxpaa6hq_channel.carryOverRule
+        - name: approval
+          variable: agent_d8fxpaa6hq_channel.approval
+        - name: brief
+          variable: agent_d8fxpaa6hq_channel.brief
+    hash: a139f5716ff806e3cd6cda6591a3323e9a37c92da73cd91918108eea425d683f
+  - type: workflow
+    key: Answer_vhXtfkYFn7
+    position:
+      x: 820.0000240432969
+      y: 20.152338442595067
+    entity:
+      type: answer
+      key: Answer_vhXtfkYFn7
+      title: 回答
+      promptTemplate: "{{template_lvctjvyj3g_channel.output}}"
+    hash: 9fbb27f9053770f0fd0211ab6ac1ab533909be26d0e7ec82a879923f998be8e8
+connections:
+  - type: edge
+    key: Agent_D8fXPaA6hq/Template_lvCTjVYj3g
+    from: Agent_D8fXPaA6hq
+    to: Template_lvCTjVYj3g
+  - type: edge
+    key: Template_lvCTjVYj3g/Answer_vhXtfkYFn7
+    from: Template_lvCTjVYj3g
+    to: Answer_vhXtfkYFn7

@@ -113,7 +113,7 @@ export function getEntityProperty2<T extends PropertyAttributes = EntityProperty
 }
 
 /**
- * Get dimensions in entity type, filterd by is visible or empty
+ * Get dimensions in entity type, filterd by is `visible` or **empty**
  *
  * @param entityType
  * @returns

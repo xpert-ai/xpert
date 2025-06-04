@@ -4,6 +4,7 @@ import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { combineLatestWith, firstValueFrom, map, shareReplay, switchMap } from 'rxjs'
 import { CubeSchemaService } from './cube.schema'
+import { HiddenLLM } from './common'
 
 @Injectable()
 export class CalculatedMemberAttributesSchema extends CubeSchemaService<CalculatedMember> {
@@ -248,6 +249,22 @@ export class CalculatedMemberAttributesSchema extends CubeSchemaService<Calculat
                   label: COMMON?.Decimal ?? 'Decimal',
                   appearance: 'standard'
                 }
+              }
+            ]
+          },
+
+          {
+            key: 'semantics',
+            wrappers: ['panel'],
+            props: {
+              label: COMMON?.Semantics ?? 'Semantics',
+            },
+            fieldGroup: [
+              {
+                fieldGroupClassName: FORMLY_ROW,
+                fieldGroup: [
+                  HiddenLLM(COMMON),
+                ]
               }
             ]
           }

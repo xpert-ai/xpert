@@ -1,7 +1,7 @@
-import { IEnvironment } from './types'
+import { IEnvironment, VERSION } from './types'
 
 export const environment: IEnvironment = {
-  version: '3.2.9',
+  version: VERSION,
   production: true,
   DEMO: false,
   /**

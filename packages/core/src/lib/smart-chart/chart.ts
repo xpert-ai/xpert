@@ -94,7 +94,12 @@ export const CHARTS: ChartGroup[] = [
           chartType: {
             type: ChartTypeEnum.Bar,
             orient: ChartOrient.horizontal,
-            variant: BarVariant.None
+            variant: BarVariant.None,
+            chartOptions: {
+              legend: {
+                type: 'scroll'
+              }
+            }
           },
           dimensions: [{}],
           measures: [{}]
@@ -107,7 +112,12 @@ export const CHARTS: ChartGroup[] = [
           chartType: {
             type: ChartTypeEnum.Bar,
             orient: ChartOrient.vertical,
-            variant: BarVariant.None
+            variant: BarVariant.None,
+            chartOptions: {
+              legend: {
+                type: 'scroll'
+              }
+            }
           },
           dimensions: [{}],
           measures: [{}]
@@ -119,7 +129,12 @@ export const CHARTS: ChartGroup[] = [
           chartType: {
             type: ChartTypeEnum.Bar,
             orient: ChartOrient.vertical,
-            variant: BarVariant.Stacked
+            variant: BarVariant.Stacked,
+            chartOptions: {
+              legend: {
+                type: 'scroll'
+              }
+            }
           },
           dimensions: [
             {},
@@ -137,7 +152,12 @@ export const CHARTS: ChartGroup[] = [
           chartType: {
             type: ChartTypeEnum.Bar,
             orient: ChartOrient.horizontal,
-            variant: BarVariant.Stacked
+            variant: BarVariant.Stacked,
+            chartOptions: {
+              legend: {
+                type: 'scroll'
+              }
+            }
           },
           dimensions: [
             {},

@@ -123,9 +123,28 @@ export class DSCoreService extends ComponentStore<DSState> {
   getEntitySet(dataSource: string, entity: string): Observable<EntitySet> {
     return this.selectEntitySet(dataSource, entity)
   }
+  /**
+   * Observe first correct EntitySet, filterd not Error
+   * 
+   * @param dataSource 
+   * @param entity 
+   * @returns 
+   */
   selectEntitySet(dataSource: string, entity: string): Observable<EntitySet> {
     return this.getDataSource(dataSource).pipe(
       switchMap((dataSource) => dataSource.selectEntitySet(entity).pipe(filter(isEntitySet)))
+    )
+  }
+  /**
+   * Observe EntitySet or Error
+   * 
+   * @param dataSource 
+   * @param entity 
+   * @returns 
+   */
+  selectEntitySetOrFail(dataSource: string, entity: string): Observable<EntitySet | Error> {
+    return this.getDataSource(dataSource).pipe(
+      switchMap((dataSource) => dataSource.selectEntitySet(entity))
     )
   }
 

@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core'
-import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
+import { AccordionWrappers, FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
 import { map } from 'rxjs/operators'
 import { DimensionModeling } from './dimension.schema'
 import { HierarchySchemaService } from './hierarchy.schema'
+import { HiddenLLM } from './common'
 
 @Injectable()
 export class HierarchyAttributesSchema extends HierarchySchemaService {
@@ -19,7 +20,8 @@ export class HierarchyAttributesSchema extends HierarchySchemaService {
           this.getTranslationFun(),
           this.hierarchies$,
           this.fields$,
-          this.otherDimensions()
+          this.otherDimensions(),
+          this.helpWebsite()
         )
         dimensionModeling.key = 'dimension'
         return [
@@ -98,7 +100,22 @@ export class HierarchyAttributesSchema extends HierarchySchemaService {
           ]
         },
 
-        this.defaultMember()
+        this.defaultMember(),
+
+        ...AccordionWrappers([
+          {
+            key: 'semantics',
+            label: COMMON?.Semantics ?? 'Semantics',
+            toggleable: true,
+            props: {
+              help: this.helpWebsite() + '/docs/models/dimension-designer/semantics/'
+            },
+            fieldGroupClassName: FORMLY_ROW,
+            fieldGroup: [
+              HiddenLLM(COMMON),
+            ]
+          }
+        ])
       ]
     }
   }

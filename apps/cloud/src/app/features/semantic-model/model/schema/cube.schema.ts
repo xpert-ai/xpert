@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core'
+import { computed, Injectable } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { nonBlank } from '@metad/core'
 import { ISelectOption } from '@metad/ocap-angular/core'
@@ -12,6 +12,9 @@ import { CubeSchemaState } from './types'
 
 @Injectable()
 export class CubeSchemaService<T = Cube> extends EntitySchemaService<CubeSchemaState<T>> {
+
+  readonly helpDimensionUrl = computed(() => this.helpWebsite() + '/docs/models/dimension-designer')
+
   readonly sharedDimensions$ = this.modelService.sharedDimensions$
 
   readonly cube$ = this.select((state) => state.cube)

@@ -25,7 +25,8 @@ import { GetXpertAgentQuery } from '../../../xpert/queries/'
 import { XpertService } from '../../../xpert/xpert.service'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
 import { EnvironmentService } from '../../../environment'
-import { httpOutoutVariables, knowledgeOutputVariables, iteratingOutputVariables, codeOutoutVariables, subflowOutputVariables } from '../../workflow'
+import { httpOutoutVariables, knowledgeOutputVariables, iteratingOutputVariables, codeOutputVariables, subflowOutputVariables } from '../../workflow'
+import { templateOutputVariables } from '../../workflow/template'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
@@ -249,7 +250,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 
 				switch (entity.type) {
 					case WorkflowNodeTypeEnum.CODE: {
-						variables.push(...codeOutoutVariables(entity))
+						variables.push(...codeOutputVariables(entity))
 						varGroups.push(varGroup)
 						break
 					}
@@ -270,6 +271,11 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 					}
 					case WorkflowNodeTypeEnum.ITERATING: {
 						variables.push(...iteratingOutputVariables(entity as IWFNIterating))
+						varGroups.push(varGroup)
+						break
+					}
+					case WorkflowNodeTypeEnum.TEMPLATE: {
+						variables.push(...templateOutputVariables(entity))
 						varGroups.push(varGroup)
 						break
 					}

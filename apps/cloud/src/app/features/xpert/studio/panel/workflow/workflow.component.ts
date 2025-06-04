@@ -28,6 +28,7 @@ import { XpertWorkflowKnowledgeComponent } from './knowledge/knowledge.component
 import { XpertWorkflowKnowledgeTestComponent } from './knowledge-test/knowledge.component'
 import { XpertWorkflowSubflowComponent } from './subflow/subflow.component'
 import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
+import { XpertWorkflowTemplateComponent } from './template/template.component'
 import { XpertWorkflowNoteComponent } from './note/note.component'
 
 @Component({
@@ -55,6 +56,7 @@ import { XpertWorkflowNoteComponent } from './note/note.component'
     XpertWorkflowKnowledgeComponent,
     XpertWorkflowKnowledgeTestComponent,
     XpertWorkflowSubflowComponent,
+    XpertWorkflowTemplateComponent,
     XpertWorkflowNoteComponent
   ],
   animations: [IfAnimation,]

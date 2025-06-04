@@ -73,6 +73,7 @@ export class DimensionSchemaService<T extends EntityProperty = PropertyDimension
           this.hierarchies$,
           this.factFields$,
           this.otherDimensions(),
+          this.helpWebsite(),
           this.rt,
           this.isCube
         )
@@ -96,6 +97,7 @@ export function DimensionModeling(
   hierarchies$: Observable<PropertyHierarchy[]>,
   factColumns$: Observable<ISelectOption[]>,
   dimensions: PropertyDimension[],
+  helpWebsite: string,
   rt = false,
   isCube = false
 ) {
@@ -155,6 +157,15 @@ export function DimensionModeling(
               label: COMMON?.Description ?? 'Description',
               autosizeMinRows: 2,
               autosize: true
+            }
+          },
+          {
+            className: FORMLY_W_1_2,
+            key: 'visible',
+            type:'checkbox',
+            defaultValue: true,
+            props: {
+              label: COMMON?.Visible ?? 'Visible',
             }
           },
           ...(isCube
@@ -232,7 +243,7 @@ export function DimensionModeling(
       },
       // Dimension 应该没有 KeyExpression
       // KeyExpression(COMMON),
-      ...SemanticsAccordionWrapper(COMMON)
+      ...SemanticsAccordionWrapper(COMMON, helpWebsite + '/docs/models/dimension-designer/semantics/')
     ]
   }
 }

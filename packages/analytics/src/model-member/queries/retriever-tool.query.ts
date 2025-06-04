@@ -1,5 +1,8 @@
 import { IQuery } from '@nestjs/cqrs'
 
+/**
+ * @deprecated
+ */
 export class DimensionMemberRetrieverToolQuery implements IQuery {
 	static readonly type = '[DimensionMember] Get Retriever Tool'
 

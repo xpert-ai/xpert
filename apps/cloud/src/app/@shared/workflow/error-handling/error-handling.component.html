@@ -59,14 +59,14 @@
 }
 
 <ng-template #typeMenu>
-  <div cdkMenu class="cdk-menu__medium max-w-xs overflow-hidden">
+  <div cdkMenu class="cdk-menu__large max-w-xs overflow-hidden">
     @for (option of typeOptions; track option.value) {
       <div cdkMenuItem class="flex flex-col items-start text-sm mb-2"
         [class.active]="type() === option.value"
         (click)="setType(option.value)"
       >
-        <div class="w-full text-left font-semibold mb-1 text-gray-600">{{option.label | i18n}}</div>
-        <div class="w-full text-left line-clamp-3 whitespace-normal text-text-secondary">{{option.description | i18n}}</div>
+        <div class="w-full text-left font-semibold mb-1">{{option.label | i18n}}</div>
+        <div class="w-full text-left line-clamp-3 whitespace-normal">{{option.description | i18n}}</div>
       </div>
     }
   </div>

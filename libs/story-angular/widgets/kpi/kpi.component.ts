@@ -1,24 +1,22 @@
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { MatTooltipModule } from '@angular/material/tooltip'
 import { AbstractStoryWidget, StoryWidgetState, StoryWidgetStyling, WidgetMenuType, nonNullable } from '@metad/core'
 import { NgmObjectNumberComponent } from '@metad/ocap-angular/common'
+import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
 import { TrendType, assignDeepOmitBlank, isEmpty, isEqual, isNil } from '@metad/ocap-core'
-import { ComponentStyling, componentStyling, NxStoryService } from '@metad/story/core'
+import { ComponentStyling, NxStoryService, componentStyling } from '@metad/story/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { distinctUntilChanged, filter, map } from 'rxjs/operators'
 import { KeyPerformanceIndicatorService } from './key-performance-indicator.service'
 import { KPIPlaceholderComponent } from './placeholder/placeholder.component'
 import { NxWidgetKPIOptions } from './types'
-import { MatMenuModule } from '@angular/material/menu'
-import { MatButtonModule } from '@angular/material/button'
-import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { DensityDirective } from '@metad/ocap-angular/core'
 
 export interface PacWidgetKPIStyling extends StoryWidgetStyling {
   title: ComponentStyling
@@ -36,16 +34,14 @@ export interface PacWidgetKPIStyling extends StoryWidgetStyling {
     CommonModule,
     FormsModule,
     TranslateModule,
-    MatMenuModule,
+    CdkMenuModule,
     MatIconModule,
-    MatButtonModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
 
     NgmObjectNumberComponent,
     KPIPlaceholderComponent,
     NgmSelectionModule,
-    DensityDirective
   ]
 })
 export class NxWidgetKpiComponent extends AbstractStoryWidget<
@@ -60,9 +56,10 @@ export class NxWidgetKpiComponent extends AbstractStoryWidget<
   readonly storyService = inject(NxStoryService, { optional: true })
   readonly #logger = inject(NGXLogger)
 
-
   readonly intent = computed(() => this.optionsSignal()?.intent)
-  readonly showPlaceholder = computed(() => !(this.dataSettingsSignal()?.dataSource && this.dataSettingsSignal()?.entitySet))
+  readonly showPlaceholder = computed(
+    () => !(this.dataSettingsSignal()?.dataSource && this.dataSettingsSignal()?.entitySet)
+  )
   readonly showToolbar = computed(() => this.optionsSignal()?.showToolbar)
   readonly hasSlicers$ = this.selectOptions$.pipe(map((selectOptions) => !isEmpty(selectOptions)))
 
@@ -102,7 +99,7 @@ export class NxWidgetKpiComponent extends AbstractStoryWidget<
   */
   readonly isLoading = toSignal(this.dataService.loading$)
   readonly error = signal<string | null>(null)
-  readonly kpiStyles = computed(() => this.storyService?.storyOptions()?.preferences?.kpi, { equal: isEqual})
+  readonly kpiStyles = computed(() => this.storyService?.storyOptions()?.preferences?.kpi, { equal: isEqual })
   readonly titleStyling = computed(() => {
     let result = null
     if (this.kpiStyles()?.title) {
@@ -123,17 +120,25 @@ export class NxWidgetKpiComponent extends AbstractStoryWidget<
     }
     return result
   })
-  readonly titleStyles$ = computed(() => this.titleStyling() ? componentStyling(this.titleStyling()) : null)
-  readonly valueStyles = computed(() => this.valueStyling() ? componentStyling(this.valueStyling()) : null)
+  readonly titleStyles$ = computed(() => (this.titleStyling() ? componentStyling(this.titleStyling()) : null))
+  readonly valueStyles = computed(() => (this.valueStyling() ? componentStyling(this.valueStyling()) : null))
+
+  readonly selectOptions = toSignal(this.selectOptions$)
 
   /**
   |--------------------------------------------------------------------------
   | Subscriptions (effect)
   |--------------------------------------------------------------------------
   */
-  private errorSub = this.dataService.selectResult().pipe(map(({ error }) => error), takeUntilDestroyed()).subscribe((err) => {
-    this.error.set(err)
-  })
+  private errorSub = this.dataService
+    .selectResult()
+    .pipe(
+      map(({ error }) => error),
+      takeUntilDestroyed()
+    )
+    .subscribe((err) => {
+      this.error.set(err)
+    })
   // slicers
   private slicersSub = this.selectionVariant$.pipe(takeUntilDestroyed()).subscribe((selectionVariant) => {
     this.dataService.selectionVariant = selectionVariant

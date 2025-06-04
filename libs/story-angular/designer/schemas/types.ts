@@ -14,18 +14,21 @@ export const FORMLY_ROW = 'ngm-formly__row'
 export const FORMLY_MY_2 = 'ngm-formly__my-2'
 export const FORMLY_GAP_2 = 'ngm-formly__gap-2'
 
+export type TAccordionWrapperExpansion = {
+  key: string
+  label: string
+  type?: string
+  fieldGroup?: any[]
+  fieldGroupClassName?: string
+  fieldArray?: any
+  showKey?: string
+  expanded?: boolean
+  toggleable?: boolean
+  props?: Record<string, any>
+}
+
 export function AccordionWrappers(
-  expansions: {
-    key: string
-    label: string
-    type?: string
-    fieldGroup?: any[]
-    fieldGroupClassName?: string
-    fieldArray?: any
-    showKey?: string
-    expanded?: boolean
-    toggleable?: boolean
-  }[],
+  expansions: TAccordionWrapperExpansion[],
   options?: {
     expandedMulti?: boolean
   }
@@ -42,12 +45,13 @@ export function AccordionWrappers(
         expandedMulti: options?.expandedMulti ?? false
       },
       fieldGroup: [
-        ...expansions.map(({ key, type, label, showKey, fieldGroup, fieldGroupClassName, fieldArray, expanded, toggleable }) => {
+        ...expansions.map(({ key, type, label, showKey, fieldGroup, fieldGroupClassName, fieldArray, expanded, toggleable, props }) => {
           showKey = showKey ?? `__show${key}__`
           const expansion = {
             key,
             type,
             props: {
+              ...(props ?? {}),
               label,
               keyShow: showKey,
               expanded

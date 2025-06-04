@@ -2,6 +2,8 @@
     "Error": {
         "NoCustomSQLProvided": "No custom SQL provided",
         "NoMetadata4Entity": "Failed to retrieve runtime metadata for entity '{{entity}}'",
-        "HierarchyNameDuplicated": "Hierarchy name '{{name}}' cannot be repeated in dimension '{{dimension}}' of cube '{{cube}}'."
+        "HierarchyNameDuplicated": "Hierarchy name '{{name}}' cannot be repeated in dimension '{{dimension}}' of cube '{{cube}}'.",
+        "TablesNoJoin": "Tables '{{tables}}' need join",
+        "NoPrimaryKeyTable": "The primary key table for hierarchy '{{hierarchy}}' is not configured"
     }
 }

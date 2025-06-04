@@ -64,6 +64,7 @@ export interface EntityProperty extends BaseProperty, PropertyAttributes {
   semantics?: {
     semantic?: Semantics
     formatter?: string
+    hidden?: boolean
   }
 
   /**

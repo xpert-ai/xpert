@@ -22,6 +22,10 @@ import { map, startWith, switchMap } from 'rxjs'
 import { NgmOptionContent } from './option-content'
 import { NgmHighlightDirective } from '../directives'
 
+/**
+ * You can use the following custom elements to customize the input:
+ * - ngmLabel: the custom label elements of the input
+ */
 @Component({
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, MatInputModule, MatAutocompleteModule, NgmHighlightDirective],

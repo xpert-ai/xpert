@@ -1,5 +1,6 @@
 {
     "Error": {
+        "AgentNotFound": "Agent‘{key}’未找到。"
     },
     "tools": {
         "ListFiles": "列出文件",
