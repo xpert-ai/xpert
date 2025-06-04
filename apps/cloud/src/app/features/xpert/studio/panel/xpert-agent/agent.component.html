@@ -177,18 +177,15 @@
 
       @if (visionEnabled()) {
         <div class="p-2">
-          <!-- <xpert-state-variable-select [variables]="variables()" [type]="eXpertParameterTypeEnum.ARRAY_FILE" class="focus:bg-white" 
-            [(ngModel)]="visionVariable"
-          /> -->
           <div class="flex items-center justify-between">
             <div class="mr-2 text-sm font-medium uppercase text-text-secondary">{{'PAC.Xpert.Resolution' | translate: {Default: 'Resolution'} }}</div>
             <div class="flex items-center space-x-1">
-              <div class="system-sm-regular flex h-8 items-center rounded-md px-2 text-text-secondary cursor-pointer border-[1.5px] shadow-xs justify-center"
+              <div class="system-sm-regular flex h-8 items-center rounded-md px-2 text-text-secondary cursor-pointer border-[1.5px] shadow-xs justify-center hover:text-text-primary"
                 [class.border-components-option-card-option-selected-border]="resolution() === 'high'"
                 (click)="resolution.set('high')">
                 <span>{{'PAC.Xpert.High' | translate: {Default: 'High'} }}</span>
               </div>
-              <div class="system-sm-regular flex h-8 items-center rounded-md px-2 text-text-secondary cursor-pointer border-[1.5px] hover:shadow-xs justify-center"
+              <div class="system-sm-regular flex h-8 items-center rounded-md px-2 text-text-secondary cursor-pointer border-[1.5px] hover:shadow-xs justify-center hover:text-text-primary"
                 [class.border-components-option-card-option-selected-border]="resolution() === 'low'"
                 (click)="resolution.set('low')">
                 <span>{{'PAC.Xpert.Low' | translate: {Default: 'Low'} }}</span>
@@ -196,7 +193,6 @@
             </div>
           </div>
         </div>
-
       }
     </div>
 

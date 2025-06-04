@@ -7,7 +7,9 @@
            hover:border-zinc-200 hover:bg-input-background-hover focus-within:border-zinc-300
             hover:focus-within:border-zinc-300 pb-12 px-2 @[480px]/input:px-3"
         >
-          <chat-attachments class="w-full py-2" editable [(attachments)]="attachments" />
+          @if (attachments()?.length) {
+            <chat-attachments class="w-full pt-2" editable [(attachments)]="attachments" />
+          }
 
           <div class="relative z-10">
             @if (!isComposing() && !prompt()) {
