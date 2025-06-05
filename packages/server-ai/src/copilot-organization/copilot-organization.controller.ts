@@ -34,8 +34,8 @@ export class CopilotOrganizationController extends CrudController<CopilotOrganiz
 		@Query('$filter', ParseJsonPipe) where: PaginationParams<CopilotOrganization>['where'],
 		@Query('$relations', ParseJsonPipe) relations: PaginationParams<CopilotOrganization>['relations'],
 		@Query('$order', ParseJsonPipe) order: PaginationParams<CopilotOrganization>['order'],
-		@Query('$take', ParseJsonPipe) take: PaginationParams<CopilotOrganization>['take'],
-		@Query('$skip', ParseJsonPipe) skip: PaginationParams<CopilotOrganization>['skip'],
+		@Query('$take') take: PaginationParams<CopilotOrganization>['take'],
+		@Query('$skip') skip: PaginationParams<CopilotOrganization>['skip'],
 	): Promise<IPagination<CopilotOrganization>> {
 		return await this.service.findAll({ where, relations, order, take, skip })
 	}
