@@ -6,7 +6,8 @@
     "build": "rimraf target && mvn install && yarn run docker-build",
     "mvn": "mvn install",
     "docker-build": "docker build --tag pangolin/olap .",
-    "start": "sh ./run.sh"
+    "start": "sh ./run.sh",
+    "debug": "sh ./debug.sh"
   },
   "devDependencies": {
     "rimraf": "^3.0.2"

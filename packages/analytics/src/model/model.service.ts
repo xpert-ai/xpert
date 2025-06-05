@@ -257,22 +257,24 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 		}
 	}
 
-	private async innerOlap(query: string, language: string, roleNames?: string[]) {
+	async innerOlap(query: string, language: string, roleNames?: string[]) {
 		const olapHost = this.configService.get<string>('OLAP_HOST') || 'localhost'
 		const olapPort = this.configService.get<string>('OLAP_PORT') || '8080'
 
 		const headers = {
-			Accept: 'text/xml, application/xml, application/soap+xml',
+			Accept: 'text/xml; application/xml; application/soap+xml; charset=UTF-8',
 			'Accept-Language': language || '',
-			'Content-Type': 'text/xml'
+			'Content-Type': 'text/xml; charset=UTF-8',
 		}
+		
 		if (roleNames?.length) {
-			headers['mondrian-role'] = roleNames.join(',')
+			headers['mondrian-role'] = roleNames.map((_) => encodeURIComponent(_)).join(',')
 		}
 
 		try {
 			return await axios.post(`http://${olapHost}:${olapPort}/xmla`, query, { headers })
 		} catch (err) {
+			this.logger.error(err)
 			throw new Error(`Can't connect olap service`)
 		}
 	}
