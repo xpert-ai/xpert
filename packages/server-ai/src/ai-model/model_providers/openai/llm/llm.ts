@@ -46,13 +46,6 @@ export class OpenAILargeLanguageModel extends CommonOpenAI {
 		}
 	}
 
-	protected getCustomizableModelSchemaFromCredentials(
-		model: string,
-		credentials: Record<string, any>
-	): AIModelEntity | null {
-		throw new Error('Method not implemented.')
-	}
-
 	override getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions) {
 		const { copilot } = copilotModel
 		const { handleLLMTokens } = options ?? {}

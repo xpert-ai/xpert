@@ -6,6 +6,7 @@ import {
 	CONTEXT_VARIABLE_CURRENTSTATE,
 	IChatBIModel,
 	IIndicator,
+	isEnableTool,
 	OrderTypeEnum,
 	STATE_VARIABLE_SYS,
 	TAgentRunnableConfigurable,
@@ -26,8 +27,6 @@ import {
 	EntityType,
 	FilteringLogic,
 	getEntityDimensions,
-	getEntityHierarchy,
-	getPropertyHierarchy,
 	Indicator,
 	isEntitySet,
 	markdownModelCube,
@@ -49,7 +48,7 @@ import { In } from 'typeorm'
 import { z } from 'zod'
 import { DimensionMemberServiceQuery } from '../../../../model-member/'
 import { getSemanticModelKey, NgmDSCoreService, registerSemanticModel } from '../../../../model/ocap'
-import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, fixMeasure, IndicatorSchema, mapTimeSlicer, TChatBICredentials, tryFixChartType, tryFixDimensions, tryFixFormula } from './types'
+import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, figureOutMembers, fixMeasure, IndicatorSchema, limitDataResults, mapTimeSlicer, TChatBICredentials, tryFixChartType, tryFixDimensions, tryFixFormula } from './types'
 import { GetBIContextQuery, TBIContext } from '../../../../chatbi'
 import { createDimensionMemberRetrieverTool } from './tools/dimension_member_retriever'
 
@@ -129,7 +128,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		if (!this.toolset) {
 			throw new ToolNotSupportedError(`Toolset not provided for '${this.constructor.prototype.provider}'`)
 		}
-		const tools = this.toolset.tools.filter((_) => !(_.disabled ?? !_.enabled))
+		const tools = this.toolset.tools.filter((_) => isEnableTool(_, this.toolset))
 
 		if (!tools.length) {
 			throw new ToolNotSupportedError(`Tools not be enabled for '${this.constructor.prototype.provider}'`)
@@ -417,34 +416,14 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				// Fetch data for chart or table or kpi
 				if (answer.dimensions?.length || answer.measures?.length) {
 					try {
-						const { data, members } = await this.drawChartMessage(
+						const { data } = await this.drawChartMessage(
 							answer as ChatAnswer,
 							{ ...context, entityType, language },
-							configurable as TAgentRunnableConfigurable
+							configurable as TAgentRunnableConfigurable,
+							credentials
 						)
 
-						// Max limit rows returned for LLM
-						const dataLimit = credentials?.dataLimit ?? 100
-						let results = ''
-						if (dataPermission) {
-							results = data ? JSON.stringify(data.slice(0, dataLimit)) : 'Empty'
-							if (data.length > dataLimit) {
-								results += `\nOnly the first ${dataLimit} pieces of data are returned. There are ${data.length - dataLimit} pieces of data left. Please add more query conditions to view all the data.`
-							}
-						} else {
-							if (members) {
-								Object.keys(members).forEach((key) => {
-									results += `Members of dimension '${key}':]\n`
-									results += Object.values(members[key])
-										.slice(0, credentials?.dataLimit ?? 100)
-										.map((member) => JSON.stringify(member))
-										.join('\n')
-									results += '\n\n'
-								})
-							} else {
-								results = 'Empty'
-							}
-						}
+						const results = limitDataResults(data, credentials)
 
 						return `The data are:\n${results}\n`
 					} catch(err) {
@@ -463,7 +442,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		)
 	}
 
-	async drawChartMessage(answer: ChatAnswer, context: ChatBIContext, configurable: TAgentRunnableConfigurable): Promise<any> {
+	async drawChartMessage(answer: ChatAnswer, context: ChatBIContext, configurable: TAgentRunnableConfigurable, credentials: TChatBICredentials): Promise<any> {
 		const { dsCoreService, entityType, chatbi, language } = context
 		const { subscriber, agentKey, xpertName } = configurable ?? {}
 		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
@@ -597,7 +576,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				if (result.error) {
 					reject(result.error)
 				} else {
-					resolve({ data: result.data, members: figureOutMembers(result.data, dataSettings, entityType) })
+					resolve({ data: figureOutMembers(result.data, dataSettings.chartAnnotation, credentials) })
 				}
 				destroy$.next()
 				destroy$.complete()
@@ -701,29 +680,6 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			}
 		} as MessageEvent)
 	}
-}
-
-function figureOutMembers(data: any[], dataSettings: DataSettings, entityType: EntityType) {
-	const dimensions = dataSettings.chartAnnotation?.dimensions
-	if (data && dimensions) {
-		const categoryMembers = {}
-		dimensions.forEach((dimension) => {
-			categoryMembers[dimension.dimension] = {}
-			const hierarchy = getPropertyHierarchy(dimension)
-			const property = getEntityHierarchy(entityType, hierarchy)
-			const caption = property.memberCaption
-			data.forEach((item, index) => {
-				categoryMembers[dimension.dimension][data[index][property.name]] = {
-					key: data[index][property.name],
-					caption: data[index][caption]
-				}
-			})
-		})
-
-		return categoryMembers
-	}
-
-	return null
 }
 
 function markdownCubes(models: IChatBIModel[]) {

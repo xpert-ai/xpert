@@ -1,7 +1,7 @@
-import { ICopilot, ILLMUsage, PriceType, TTokenUsage } from '@metad/contracts'
+import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilot, ILLMUsage, ModelPropertyKey, ParameterType, PriceType, TTokenUsage } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
-import { AIModel } from './ai-model'
 import { calcTokenUsage, sumTokenUsage } from '@metad/copilot'
+import { AIModel } from './ai-model'
 import { TChatModelOptions } from './types/types'
 
 export type CommonChatModelParameters = {
@@ -106,13 +106,13 @@ export abstract class LargeLanguageModel extends AIModel {
 		promptTokens: number,
 		completionTokens: number
 	): ILLMUsage {
-		// 获取提示价格信息
+		// Get prompt price information
 		const promptPriceInfo = this.getPrice(model, credentials, PriceType.INPUT, promptTokens)
 
-		// 获取完成价格信息
+		// Get completed price information
 		const completionPriceInfo = this.getPrice(model, credentials, PriceType.OUTPUT, completionTokens)
 
-		// 转换使用情况
+		// Conversion usage
 		const usage: ILLMUsage = {
 			promptTokens: promptTokens,
 			promptUnitPrice: promptPriceInfo.unitPrice,
@@ -160,6 +160,52 @@ export abstract class LargeLanguageModel extends AIModel {
 		return {
 			handleLLMError: (err) => {
 				(logger ?? this.#logger).error(err, err.cause?.stack ?? err.stack, `Error attemptNumber: ${err.attemptNumber}, retriesLeft: ${err.retriesLeft}, ChatDeepSeek params are:\n${JSON.stringify(fields, null, 2)}`)
+			}
+		}
+	}
+
+	protected getCustomizableModelSchemaFromCredentials(
+		model: string,
+		credentials: Record<string, any>
+	): AIModelEntity | null {
+		return {
+			model,
+			label: {
+				zh_Hans: model,
+				en_US: model
+			},
+			model_type: AiModelTypeEnum.LLM,
+			fetch_from: FetchFrom.CUSTOMIZABLE_MODEL,
+			model_properties: {
+				[ModelPropertyKey.MODE]: credentials[ModelPropertyKey.MODE],
+				[ModelPropertyKey.CONTEXT_SIZE]: parseInt(credentials[ModelPropertyKey.CONTEXT_SIZE] ?? 4096)
+			},
+			parameter_rules: [
+				{
+					name: 'streaming',
+					type: ParameterType.BOOLEAN,
+					label: {
+						zh_Hans: '是否流式传输结果',
+						en_US: 'Whether to stream the results or not'
+					},
+					default: true
+				},
+				{
+					name: 'temperature',
+					type: ParameterType.FLOAT,
+					label: {
+						zh_Hans: '取样温度',
+						en_US: 'Sampling temperature'
+					},
+					min: 0,
+					max: 2
+				}
+			],
+			pricing: {
+				input: credentials['input_price'] ?? 0,
+				output: credentials['output_price'] ?? 0,
+				unit: credentials['unit'] ?? 0,
+				currency: credentials['currency'] ?? 'USD'
 			}
 		}
 	}

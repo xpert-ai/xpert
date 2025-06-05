@@ -82,6 +82,9 @@ export class CreateSummarizeTitleAgentHandler implements ICommandHandler<CreateS
 				new XpertAgentExecutionUpsertCommand({
 					...execution,
 					// xpert: xpert ? { id: xpert.id } as IXpert : null,
+					threadId: config.configurable.thread_id,
+					checkpointId: config.configurable.checkpoint_id,
+					checkpointNs: '',
 					parentId: rootExecutionId,
 					status: XpertAgentExecutionStatusEnum.RUNNING,
 					channelName: STATE_VARIABLE_TITLE_CHANNEL,
@@ -132,10 +135,8 @@ export class CreateSummarizeTitleAgentHandler implements ICommandHandler<CreateS
 				// Record End time
 				await this.commandBus.execute(
 					new XpertAgentExecutionUpsertCommand({
-						..._execution,
-						threadId: config.configurable.thread_id,
-						checkpointId: config.configurable.checkpoint_id,
-						checkpointNs: '',
+						...execution,
+						id: _execution.id,
 						elapsedTime: timeEnd - timeStart,
 						status,
 						error,
