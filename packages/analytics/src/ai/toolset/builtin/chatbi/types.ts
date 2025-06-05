@@ -1,6 +1,7 @@
 import {
 	assignDeepOmitBlank,
 	C_MEASURES,
+	ChartAnnotation,
 	ChartDimension,
 	ChartDimensionRoleType,
 	ChartDimensionSchema,
@@ -15,6 +16,7 @@ import {
 	DSCoreService,
 	EntityType,
 	getChartType,
+	getPropertyHierarchy,
 	ISlicer,
 	Measure,
 	OrderBy,
@@ -25,7 +27,10 @@ import {
 	TimeRangesSlicer,
 	TimeRangeType,
 	tryFixDimension,
-	VariableSchema
+	VariableSchema,
+	wrapLevelNumber,
+	wrapLevelUniqueName,
+	wrapMemberCaption
 } from '@metad/ocap-core'
 import { omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
@@ -340,4 +345,46 @@ export function tryFixFormula(formula: string, code: string) {
 		return formula.slice(prefix.length)
 	}
 	return formula
+}
+
+export function figureOutMembers(data: any[], chartAnnotation: ChartAnnotation, credentials: TChatBICredentials) {
+	const { dataPermission } = credentials
+
+	const dimensions = chartAnnotation?.dimensions
+	const measures = chartAnnotation?.measures
+	if (data && dimensions) {
+		return data.map((_) => {
+			const item = {}
+			dimensions.forEach((dimension) => {
+				const hierarchy = getPropertyHierarchy(dimension)
+				item[_[wrapLevelUniqueName(hierarchy)]] = _[hierarchy]
+				item[wrapMemberCaption(hierarchy)] = _[wrapMemberCaption(hierarchy)]
+				item[wrapLevelNumber(hierarchy)] = _[wrapLevelNumber(hierarchy)]
+			})
+
+			if (dataPermission && measures) {
+				measures.forEach(({measure}) => {
+					item[measure] = _[measure]
+				})
+			}
+
+			return item
+		})
+	}
+
+	if (dataPermission) {
+		return data
+	}
+	return null
+}
+
+export function limitDataResults(items: any[], credentials: TChatBICredentials) {
+	// Max limit rows returned for LLM
+	const dataLimit = credentials?.dataLimit ?? 100
+	let results = items ? JSON.stringify(items.slice(0, dataLimit), null, 2) : 'Empty'
+	if (items.length > dataLimit) {
+		results += `\nOnly the first ${dataLimit} pieces of data are returned. There are ${items.length - dataLimit} pieces of data left. Please add more query conditions to view all the data.`
+	}
+
+	return results
 }

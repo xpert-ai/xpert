@@ -1,6 +1,7 @@
 import { Tool } from '@langchain/core/tools'
 import {
 	ChatMessageTypeEnum,
+	isEnableTool,
 	IXpertToolset,
 	JSONValue,
 	LanguagesEnum,
@@ -29,7 +30,7 @@ export class ChatBILarkToolset extends AbstractChatBIToolset {
 	async initTools() {
 		await super.initTools()
 
-		const tools = this.toolset.tools.filter((_) => !(_.disabled ?? !_.enabled))
+		const tools = this.toolset.tools.filter((_) => isEnableTool(_, this.toolset))
 		if (tools.find((_) => _.name === ChatBILarkToolsEnum.WELCOME)) {
 			this.tools.push(
 				createWelcomeTool(this, {
