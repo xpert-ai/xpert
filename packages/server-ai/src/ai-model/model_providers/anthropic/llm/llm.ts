@@ -33,13 +33,6 @@ export class AnthropicLargeLanguageModel extends LargeLanguageModel {
 		}
 	}
 
-	protected getCustomizableModelSchemaFromCredentials(
-		model: string,
-		credentials: Record<string, any>
-	): AIModelEntity | null {
-		throw new Error('Method not implemented.')
-	}
-
 	getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions) {
 		const { handleLLMTokens } = options ?? {}
 		const { copilot } = copilotModel
