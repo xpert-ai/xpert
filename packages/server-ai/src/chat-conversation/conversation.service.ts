@@ -19,7 +19,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 
 	constructor(
 		@InjectRepository(ChatConversation)
-		repository: Repository<ChatConversation>,
+		public repository: Repository<ChatConversation>,
 		private readonly messageService: ChatMessageService,
 		readonly commandBus: CommandBus,
 		readonly queryBus: QueryBus,
@@ -139,5 +139,10 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 		}
 
 		return null
+	}
+
+	async getAttachments(id: string) {
+		const conversation = await this.findOne(id, { relations: ['attachments']})
+		return conversation.attachments
 	}
 }

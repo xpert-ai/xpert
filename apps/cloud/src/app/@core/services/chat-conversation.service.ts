@@ -1,7 +1,5 @@
-import { HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { API_PREFIX, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
-import { IChatConversation } from '@metad/contracts'
+import { API_PREFIX, IChatConversation, IStorageFile, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
 import { switchMap } from 'rxjs'
 
 @Injectable({ providedIn: 'root' })
@@ -32,5 +30,9 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
 
   getThreadState(id: string) {
     return this.httpClient.get<any>(this.apiBaseUrl + `/${id}/state`)
+  }
+
+  getAttachments(id: string) {
+    return this.httpClient.get<IStorageFile[]>(this.apiBaseUrl + `/${id}/attachments`)
   }
 }

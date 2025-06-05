@@ -2,9 +2,9 @@ import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { ToolParams } from '@langchain/core/tools'
 import { IXpertTool, TXpertToolEntity } from '@metad/contracts'
-import { BaseTool } from '../../toolset'
 import { ApiBasedToolSchemaParser } from '../../utils/parser'
 import { ToolParameterValidationError } from '../../errors'
+import { BaseTool } from '../../../shared'
 
 export type TODataService = any
 

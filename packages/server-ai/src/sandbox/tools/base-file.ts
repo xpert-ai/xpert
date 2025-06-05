@@ -10,10 +10,10 @@ import {
 	TFile,
 } from '@metad/contracts'
 import { environment } from '@metad/server-config'
-import axios from 'axios'
 import z from 'zod'
 import {t} from 'i18next'
 import { BaseSandboxToolset } from './sandbox-toolset'
+import { toolNamePrefix } from '../../shared'
 
 export abstract class BaseFileToolset
 	extends BaseSandboxToolset<DynamicStructuredTool | StructuredToolInterface>
@@ -37,18 +37,8 @@ export abstract class BaseFileToolset
 	}
 
 	async doRequest(path: string, requestData: any, signal: AbortSignal) {
-		if (environment.pro) {
-		    const sandboxUrl = this.sandboxUrl
-			try {
-				const result = await axios.post(`${sandboxUrl}/file/` + path, requestData, { signal })
-				return JSON.stringify(result.data)
-			} catch (error) {
-				// console.error((<AxiosError>error).toJSON())
-				throw new Error(error.response?.data?.detail || error.response?.data || error)
-			}
-		}
-
-		return requestData
+		const result = await this.sandbox.doRequest('file/' + path, requestData, { signal })
+		return JSON.stringify(result.data)
 	}
 
 	abstract listFiles(): Promise<TFile[]>
@@ -68,7 +58,8 @@ function serializeDynamicTool(tool: DynamicStructuredTool) {
 
 
 export function buildListFilesTool(toolset: BaseFileToolset) {
-	const TOOL_NAME = (toolset.toolNamePrefix ? toolset.toolNamePrefix + '__' : '') + 'list_files'
+	const TOOL_NAME = toolNamePrefix(toolset.toolNamePrefix, 'list_files')
+
 	const listFilesTool = tool(
 		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
 			const { signal, configurable } = config ?? {}
@@ -107,7 +98,8 @@ export function buildListFilesTool(toolset: BaseFileToolset) {
 }
 
 export function buildCreateFileTool(toolset: BaseFileToolset) {
-	const TOOL_NAME = (toolset.toolNamePrefix ? toolset.toolNamePrefix + '__' : '') + 'create_file'
+	const TOOL_NAME = toolNamePrefix(toolset.toolNamePrefix, 'create_file')
+
 	const createFileTool = tool(
 		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
 			const { signal, configurable } = config ?? {}
@@ -120,12 +112,10 @@ export function buildCreateFileTool(toolset: BaseFileToolset) {
 				)
 			}
 
-			const requestData = {
+			const result = await toolset.sandbox.fs.createFile({
 				...parameters,
 				thread_id: configurable?.thread_id
-			}
-
-			const result = await toolset.doRequest('create', requestData, signal)
+			}, {signal})
 
 			// Notification completion
 			if (runManager) {
@@ -176,7 +166,8 @@ export function buildCreateFileTool(toolset: BaseFileToolset) {
 }
 
 export function buildStrReplaceTool(toolset: BaseFileToolset) {
-	const TOOL_NAME = (toolset.toolNamePrefix ? toolset.toolNamePrefix + '__' : '') + 'str_replace'
+	const TOOL_NAME = toolNamePrefix(toolset.toolNamePrefix, 'str_replace')
+	
 	const strReplaceTool = tool(
 		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
 			const { signal, configurable } = config ?? {}
@@ -261,7 +252,8 @@ export function buildStrReplaceTool(toolset: BaseFileToolset) {
 }
 
 export function buildFullFileRewriteTool(toolset: BaseFileToolset) {
-	const TOOL_NAME = (toolset.toolNamePrefix ? toolset.toolNamePrefix + '__' : '') + 'full_file_rewrite'
+	const TOOL_NAME = toolNamePrefix(toolset.toolNamePrefix, 'full_file_rewrite')
+	
 	const fullFileRewriteTool = tool(
 		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
 			const { signal, configurable } = config ?? {}
@@ -338,7 +330,8 @@ export function buildFullFileRewriteTool(toolset: BaseFileToolset) {
 }
 
 export function buildDeleteFileTool(toolset: BaseFileToolset) {
-	const TOOL_NAME = (toolset.toolNamePrefix ? toolset.toolNamePrefix + '__' : '') + 'delete_file'
+	const TOOL_NAME = toolNamePrefix(toolset.toolNamePrefix, 'delete_file')
+	
 	const deleteFileTool = tool(
 		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
 			const { signal, configurable } = config ?? {}
@@ -404,7 +397,8 @@ export function buildDeleteFileTool(toolset: BaseFileToolset) {
 
 
 export function buildReadFileTool(toolset: BaseFileToolset) {
-	const TOOL_NAME = (toolset.toolNamePrefix ? toolset.toolNamePrefix + '__' : '') + 'read_file'
+	const TOOL_NAME = toolNamePrefix(toolset.toolNamePrefix, 'read_file')
+	
 	const readFileTool = tool(
 		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
 			const { signal, configurable } = config ?? {}

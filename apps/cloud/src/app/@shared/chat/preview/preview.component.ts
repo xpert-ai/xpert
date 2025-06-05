@@ -115,7 +115,7 @@ export class ChatConversationPreviewComponent {
   readonly envriments = signal(false)
   readonly avatar = computed(() => this.xpert()?.avatar)
   readonly starters = computed(() => this.xpert()?.starters?.filter(nonBlank))
-  readonly inputLength = computed(() => this.input()?.length)
+  readonly inputLength = computed(() => this.input()?.length ?? 0)
   readonly loading = signal(false)
 
   readonly output = signal('')

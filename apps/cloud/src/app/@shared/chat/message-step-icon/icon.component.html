@@ -1,0 +1,22 @@
+@if (step(); as step) {
+  @switch (step.category) {
+    @case (eChatMessageStepCategory.File) {
+      <i class="ri-file-list-3-line"></i>
+    }
+    @case (eChatMessageStepCategory.Files) {
+      <i class="ri-file-list-3-line"></i>
+    }
+    @default {
+      @if (step.toolset) {
+        @switch (step.toolset) {
+          @case ('project') {
+            <i class="ri-building-line"></i>
+          }
+          @default {
+            <img src="/api/xpert-toolset/builtin-provider/{{step.toolset}}/icon" alt="{{step.toolset}}" class="rounded-md">
+          }
+        }
+      }
+    }
+  }
+}

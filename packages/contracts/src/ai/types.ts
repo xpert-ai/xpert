@@ -15,18 +15,6 @@ export enum ApiAuthType {
   BASIC = 'basic'
 }
 
-export type TFile = {
-  filePath: string;
-  fileType: string;
-  contents: string;
-  description: string;
-  size?: number
-  createdAt?: Date
-  url?: string
-
-  storageFileId?: string
-}
-
 /**
  * Reference variable (parameter)
  */

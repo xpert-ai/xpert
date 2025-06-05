@@ -14,7 +14,11 @@ export type TBuiltinToolsetParams = TToolsetParams & {
 	queryBus: QueryBus
 }
 
-export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> {
+export interface IBuiltinToolset {
+	validateCredentials(credentials: TToolCredentials): Promise<void>
+}
+
+export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> implements IBuiltinToolset {
 	static provider = ''
 	protected logger = new Logger(this.constructor.name)
 

@@ -4,6 +4,7 @@ import {
 	PaginationParams,
 	ParseJsonPipe,
 	RequestContext,
+	StorageFilePublicDTO,
 	TransformInterceptor,
 	UUIDValidationPipe
 } from '@metad/server-core'
@@ -84,5 +85,11 @@ export class ChatConversationController extends CrudController<ChatConversation>
 			...result,
 			items: result.items.map((_) => new ChatConversationSimpleDTO(_))
 		}
+	}
+
+	@Get(':id/attachments')
+	async getAttachments(@Param('id') id: string) {
+		const items = await this.service.getAttachments(id)
+		return items.map((_) => new StorageFilePublicDTO(_))
 	}
 }

@@ -13,3 +13,7 @@ export class ToolSchemaParser {
 		return JSON.stringify(schema, null, 2)
 	}
 }
+
+export function toolNamePrefix(prefix: string, name: string) {
+	return `${prefix ? prefix + '__' : ''}${name}`
+}

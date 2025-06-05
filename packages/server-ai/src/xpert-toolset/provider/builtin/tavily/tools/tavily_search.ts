@@ -5,8 +5,8 @@ import { getEnvironmentVariable } from "@langchain/core/utils/env";
 import { ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageStepType, mapTranslationLanguage } from "@metad/contracts";
 import { RequestContext } from "@metad/server-core";
 import { Logger } from '@nestjs/common'
-import { BaseTool } from "../../../../toolset";
 import { TavilyToolset } from "../tavily";
+import { BaseTool } from "../../../../../shared";
 
 /**
  * Options for the TavilySearchResults tool.

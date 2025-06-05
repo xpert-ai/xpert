@@ -3,7 +3,6 @@ import { Type } from '@nestjs/common'
 import { ToolProviderNotFoundError } from '../../errors'
 import { ToolsetFolderPath } from '../../types'
 import { BingToolset } from './bing/bing'
-import { TBuiltinToolsetParams } from './builtin-toolset'
 import { DingTalkToolset } from './dingtalk/dingtalk'
 import { DiscordToolset } from './discord/discord'
 import { DuckDuckGoToolset } from './duckduckgo/duckduckgo'
@@ -18,12 +17,9 @@ import { TaskToolset } from './task/task'
 import { TavilyToolset } from './tavily/tavily'
 import { FirecrawlToolset } from './firecrawl/firecrawl'
 import { PlanningToolset } from './planning/planning'
-import { BashToolset } from './bash/bash'
-import { FileToolset } from './file/file'
-import { PythonToolset } from './python/python'
 import { BrowserToolset } from './browser/browser'
 import { BrowserUseToolset } from './browser-use/browser-use'
-import { CodeProjectToolset } from './code-project/code-project'
+import { TBuiltinToolsetParams } from './builtin-toolset'
 
 export * from './builtin-tool'
 export * from './builtin-toolset'
@@ -38,12 +34,8 @@ export const BUILTIN_TOOLSET_REPOSITORY: {
 		providers: [
 			TaskToolset,
 			PlanningToolset,
-			BashToolset,
-			FileToolset,
-			PythonToolset,
 			BrowserToolset,
 			BrowserUseToolset,
-			CodeProjectToolset,
 			TavilyToolset,
 			SearchAPIToolset,
 			SerpAPIToolset,

@@ -1,4 +1,4 @@
-import { SharedModule } from '@metad/server-core'
+import { SharedModule, StorageFileModule } from '@metad/server-core'
 import { BullModule } from '@nestjs/bull'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -22,7 +22,8 @@ import { ChatMessageModule } from '../chat-message/chat-message.module'
 		BullModule.registerQueue({
 			name: 'conversation-summary'
 		}),
-		forwardRef(() => ChatMessageModule)
+		forwardRef(() => StorageFileModule),
+		forwardRef(() => ChatMessageModule),
 	],
 	controllers: [ChatConversationController],
 	providers: [ChatConversationService, ConversationSummaryProcessor, ...CommandHandlers, ...QueryHandlers],

@@ -463,6 +463,7 @@ export type TChatRequest = {
 }
 
 export type TChatOptions = {
+  conversationId?: string
   knowledgebases?: string[]
   toolsets?: string[]
   /**

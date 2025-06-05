@@ -1,6 +1,7 @@
 import { IXpertToolset, TToolCredentials } from '@metad/contracts'
-import { BuiltinTool } from '../builtin-tool'
-import { BuiltinToolset, TBuiltinToolsetParams } from '../builtin-toolset'
+import { PythonToolEnum } from './types'
+import { PythonExecuteTool } from './tools/python_execute'
+import { BuiltinTool, BuiltinToolset, TBuiltinToolsetParams } from '../../../xpert-toolset'
 
 export class PythonToolset extends BuiltinToolset {
 	static provider = 'python'
@@ -16,12 +17,12 @@ export class PythonToolset extends BuiltinToolset {
 		this.tools = []
 		if (this.toolset?.tools) {
 			this.toolset?.tools.filter((_) => _.enabled).forEach((tool) => {
-				// switch(tool.name) {
-				// 	case (PythonToolEnum.PYTHON_EXECUTE): {
-				// 		this.tools.push(new PythonExecuteTool(this))
-				// 		break
-				// 	}
-				// }
+				switch(tool.name) {
+					case (PythonToolEnum.PYTHON_EXECUTE): {
+						this.tools.push(new PythonExecuteTool(this))
+						break
+					}
+				}
 			})
 
 		}

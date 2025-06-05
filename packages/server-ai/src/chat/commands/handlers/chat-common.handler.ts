@@ -189,7 +189,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 				try {
 					const thread_id = execution.threadId
-					graph = await this.createReactAgent(command, project, execution, abortController, subscriber)
+					graph = await this.createReactAgent(command, project, execution, abortController, subscriber, conversation.id)
 					// Run
 					const config = {
 						thread_id,
@@ -454,7 +454,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		project: IXpertProject,
 		execution: IXpertAgentExecution,
 		abortController: AbortController,
-		subscriber: Subscriber<MessageEvent>
+		subscriber: Subscriber<MessageEvent>,
+		conversationId: string
 	) {
 		const { projectId } = command.request
 		const { tenantId, organizationId } = command.options
@@ -491,6 +492,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		if (project?.toolsets.length > 0) {
 			const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
 				new ToolsetGetToolsCommand(project.toolsets.map(({id}) => id), {
+					conversationId,
 					xpertId: null,
 					signal: abortController.signal,
 					env: toEnvState(environment)

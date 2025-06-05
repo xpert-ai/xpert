@@ -2,11 +2,11 @@ import { CallbackManager } from '@langchain/core/callbacks/manager'
 import { IXpertProject, IXpertProjectFile, TFile } from '@metad/contracts'
 import { instanceToPlain } from 'class-transformer'
 import { isNil, omitBy } from 'lodash'
-import { BaseFileToolset, TSandboxToolsetParams } from '../../../shared'
 import { DeleteProjectFileCommand, UpsertProjectFileCommand } from '../../commands'
 import { XpertProjectFileDto } from '../../dto'
 import { XpertProjectService } from '../../project.service'
 import { XpertProjectTaskService } from '../../services/'
+import { BaseFileToolset, TSandboxToolsetParams } from '../../../sandbox/'
 
 export type TProjectFileToolsetParams = TSandboxToolsetParams & {
 	project: IXpertProject

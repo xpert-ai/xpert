@@ -6,6 +6,7 @@ import { I18nObject } from '../types'
 import { CopilotChatMessage, CopilotMessageGroup, IChatMessage } from './chat-message.model'
 import { IXpertAgent } from './xpert-agent.model'
 import { IXpertProject } from './xpert-project.model'
+import { IStorageFile } from '../storage-file.model'
 
 
 export type TChatConversationOptions = {
@@ -103,6 +104,10 @@ export interface IChatConversation extends IBasePerTenantAndOrganizationEntityMo
   projectId?: string | null
 
   executions?: IXpertAgentExecution[]
+  /**
+   * Files
+   */
+  attachments?: IStorageFile[]
 }
 
 export type TChatConversationLog = IChatConversation & {

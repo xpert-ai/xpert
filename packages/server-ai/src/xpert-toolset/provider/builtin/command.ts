@@ -3,9 +3,9 @@ import { RunnableConfig } from '@langchain/core/runnables'
 import { ToolParams } from '@langchain/core/tools'
 import { IBuiltinTool, IXpertTool, ToolParameterForm, TToolParameter } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
-import { BaseTool } from '../../toolset'
 import { ApiBasedToolSchemaParser } from '../../utils/parser'
 import { BuiltinToolset } from './builtin-toolset'
+import { BaseTool } from '../../../shared'
 
 
 export class BaseCommandTool extends BaseTool {

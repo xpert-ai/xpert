@@ -1,0 +1,50 @@
+identity:
+  name: code_project_deploy
+  author: XpertAI
+  label:
+    en_US: Deploy
+    zh_Hans: 部署
+description:
+  human:
+    en_US: Deploy code file to server.
+    zh_Hans: 部署代码到服务器。
+parameters:
+  - name: filename
+    type: string
+    required: true
+    label:
+      en_US: File name
+      zh_Hans: 文件名
+    human_description:
+      en_US: File name (include path).
+      zh_Hans: 文件名（包括路径）
+    form: llm
+  - name: type
+    type: string
+    required: true
+    label:
+      en_US: File type
+      zh_Hans: 文件类型
+    human_description:
+      en_US: File type (jsx).
+      zh_Hans: 文件类型（jsx）
+    form: llm
+  - name: content
+    type: string
+    label:
+      en_US: File content
+      zh_Hans: 文件内容
+    human_description:
+      en_US: File content, can be empty.
+      zh_Hans: 文件内容，可以为空
+    form: llm
+  - name: language
+    type: string
+    label:
+      en_US: Language
+      zh_Hans: 语言
+    human_description:
+      en_US: Language of code.
+      zh_Hans: 代码的语言
+    form: llm
+    

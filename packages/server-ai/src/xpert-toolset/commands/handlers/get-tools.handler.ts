@@ -37,6 +37,7 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 		})
 
 		const context: TBuiltinToolsetParams = {
+			conversationId: command.environment?.conversationId,
 			tenantId,
 			organizationId,
 			toolsetService: this.toolsetService,

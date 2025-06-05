@@ -72,25 +72,7 @@
       >
         @for (step of steps(); track $index) {
           <div class="group/item relative flex items-center p-1 py-1 rounded-lg hover:bg-white" >
-            <div class="w-[16px] inline-flex items-center text-text-secondary">
-              @switch (step.category) {
-                @case (eChatMessageStepCategory.File) {
-                  <i class="ri-file-list-3-line"></i>
-                }
-                @default {
-                  @if (step.toolset) {
-                    @switch (step.toolset) {
-                      @case ('project') {
-                        <i class="ri-building-line"></i>
-                      }
-                      @default {
-                        <img src="/api/xpert-toolset/builtin-provider/{{step.toolset}}/icon" alt="{{step.toolset}}" class="rounded-md">
-                      }
-                    }
-                  }
-                }
-              }
-            </div>
+            <chat-message-step-icon class="w-[16px] inline-flex items-center text-text-secondary" [step]="step"/>
             <div class="flex-1 h-full min-w-0 flex">
               <div class="inline-flex items-center h-full rounded-full font-body text-[14px] text-[var(--text-secondary)] max-w-[100%]">
                 <div

@@ -15,6 +15,8 @@ import { BehaviorSubject, debounceTime, switchMap } from 'rxjs'
 import { XpertHomeService } from '../../home.service'
 import { XpertProjectTasksComponent } from '@cloud/app/@shared/xpert'
 import { ChatService } from '../../chat.service'
+import { Dialog } from '@angular/cdk/dialog'
+import { ChatConversationFilesComponent } from '@cloud/app/@shared/chat'
 
 @Component({
   standalone: true,
@@ -49,6 +51,7 @@ export class ChatCanvasComputerComponent {
   readonly homeService = inject(XpertHomeService)
   readonly chatService = inject(ChatService)
   readonly conversationService = inject(ChatConversationService)
+  readonly #dialog = inject(Dialog)
   readonly #formatRelative = injectFormatRelative()
 
   // States
@@ -141,5 +144,13 @@ export class ChatCanvasComputerComponent {
 
   toggleExpand() {
     this.expand.update((state) => !state)
+  }
+
+  openFiles() {
+    this.#dialog.open(ChatConversationFilesComponent, {
+      data: {
+        conversationId: this.homeService.conversation().id
+      }
+    })
   }
 }

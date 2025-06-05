@@ -9,6 +9,14 @@
     <div class="text-text-primary text-lg font-semibold flex-1">
       {{'PAC.Chat.WhosComputer' | translate: {value: 'Xpert', Default: "Xpert's Computer"} }}
     </div>
+
+    <button class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer pressable hover:bg-hover-bg"
+      [matTooltip]="'PAC.Chat.FileList' | translate: {Default: 'File list'}"
+      (click)="openFiles()"
+    >
+      <i class="ri-file-list-3-line"></i>
+    </button>
+    
     <button class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer pressable hover:bg-hover-bg"
       [matTooltip]="'PAC.Chat.CloseCanvas' | translate: {Default: 'Close canvas'}"
       (click)="close()"

@@ -118,6 +118,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		// Create tools
 		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
 			new ToolsetGetToolsCommand(options?.toolsets ?? agent.toolsetIds, {
+				conversationId: options.conversationId,
 				xpertId: xpert.id,
 				agentKey,
 				signal: abortController.signal,

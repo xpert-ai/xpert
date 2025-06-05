@@ -1,5 +1,9 @@
-import { BaseToolkit, StructuredToolInterface } from "@langchain/core/tools"
+import { BaseToolkit, StructuredTool, StructuredToolInterface } from "@langchain/core/tools"
 import { TStateVariable, TToolsetParams } from "@metad/contracts"
+import { z, ZodEffects, ZodObject } from 'zod'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ZodObjectAny = z.ZodObject<any, any, any, any>;
 
 /**
  * Base ability for all toolsets
@@ -53,4 +57,10 @@ export abstract class _BaseToolset<T extends StructuredToolInterface = Structure
     async close(): Promise<void> {
 		//
 	}
+}
+
+export abstract class BaseTool<T extends ZodObjectAny = ZodObjectAny> extends StructuredTool<T> {
+	schema: any = z
+		.object({ input: z.string().optional() })
+		.transform((obj) => obj.input)
 }

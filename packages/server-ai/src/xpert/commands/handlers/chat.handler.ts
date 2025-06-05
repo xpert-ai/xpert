@@ -147,6 +147,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		const agentObservable = await this.commandBus.execute<XpertAgentChatCommand, Promise<Observable<MessageEvent>>>(
 			new XpertAgentChatCommand(input, xpert.agent.key, xpert, {
 				...(options ?? {}),
+				conversationId: conversation.id,
 				toolsets: null, // Does not support customizing whether to use tools
 				knowledgebases: null, // Does not support customizing whether to use knowledgebases
 				isDraft: options?.isDraft,
