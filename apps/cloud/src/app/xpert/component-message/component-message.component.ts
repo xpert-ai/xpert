@@ -33,6 +33,7 @@ import { XpertHomeService } from '../home.service'
 import { ChatComponentMemoriesComponent } from './memories/memories.component'
 import { ChatComponentMessageFilesComponent } from './files/files.component'
 import { ChatComponentMessageTasksComponent } from './tasks/tasks.component'
+import { ChatComponentMessageIframeComponent } from './iframe/iframe.component'
 
 
 /**
@@ -60,7 +61,8 @@ import { ChatComponentMessageTasksComponent } from './tasks/tasks.component'
     ChatComponentMessageTasksComponent,
     ChatComponentScheduleTasksComponent,
     ChatComponentMemoriesComponent,
-    ChatComponentMessageFilesComponent
+    ChatComponentMessageFilesComponent,
+    ChatComponentMessageIframeComponent
   ],
   selector: 'chat-component-message',
   templateUrl: './component-message.component.html',

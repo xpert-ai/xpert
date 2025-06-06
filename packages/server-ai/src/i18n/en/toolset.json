@@ -33,10 +33,6 @@
     "WebSearch": "Web Search",
     "Searching": "Searching"
   },
-  "CodeProject": {
-    "Deploy": "Deploy",
-    "DeploytoServer": "Deploy to server"
-  },
   "Python": {
     "ExecPythonCode": "Executing Python code"
   }

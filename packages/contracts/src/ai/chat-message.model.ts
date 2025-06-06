@@ -42,6 +42,10 @@ export enum ChatMessageStepCategory {
    * Program Execution
    */
   Program = 'program',
+  /**
+   * Iframe
+   */
+  Iframe = 'iframe',
 
   Memory = 'memory'
 }
@@ -49,7 +53,7 @@ export enum ChatMessageStepCategory {
 /**
  * Step message type, in canvas and ai message.
  */
-export type TChatMessageStep = {
+export type TChatMessageStep<T = any> = {
   type?: ChatMessageStepType
   category?: ChatMessageStepCategory
   toolset?: string
@@ -57,7 +61,7 @@ export type TChatMessageStep = {
   title?: string
   message?: string
   created_date?: Date | string
-  data?: any
+  data?: T
 }
 
 /**
@@ -208,6 +212,12 @@ export type TMessageContentComplex = (TMessageContentText | TMessageContentReaso
  * Enhance {@link MessageContent} in Langchain.js
  */
 export type TMessageContent = string | TMessageContentComplex[];
+
+export type TMessageComponentIframe = {
+  type: 'Iframe'
+  url: string
+  title: string
+}
 
 // Type guards
 /**

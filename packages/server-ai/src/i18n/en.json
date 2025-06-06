@@ -8,5 +8,13 @@
         "UpdatedFile": "Updated file",
         "ReadFile": "Read file",
         "DeletedFile": "Deleted file"
+    },
+    "toolset": {
+        "CodeProject": {
+            "File": "File",
+            "Coding": "Coding",
+            "Deploy": "Deploy",
+            "DeploytoServer": "Deploy to server"
+        }
     }
 }

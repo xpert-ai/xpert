@@ -17,6 +17,7 @@ import { XpertProjectTasksComponent } from '@cloud/app/@shared/xpert'
 import { ChatService } from '../../chat.service'
 import { Dialog } from '@angular/cdk/dialog'
 import { ChatConversationFilesComponent } from '@cloud/app/@shared/chat'
+import { ChatCanvasIframeComponent } from '../iframe/iframe.component'
 
 @Component({
   standalone: true,
@@ -33,7 +34,8 @@ import { ChatConversationFilesComponent } from '@cloud/app/@shared/chat'
     FileExtensionPipe,
     FileEditorComponent,
     CanvasHtmlEditorComponent,
-    XpertProjectTasksComponent
+    XpertProjectTasksComponent,
+    ChatCanvasIframeComponent
   ],
   selector: 'chat-canvas-computer',
   templateUrl: './computer.component.html',

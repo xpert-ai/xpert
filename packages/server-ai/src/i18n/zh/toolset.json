@@ -33,10 +33,6 @@
     "WebSearch": "网络搜索",
     "Searching": "正在搜索"
   },
-  "CodeProject": {
-    "Deploy": "部署",
-    "DeploytoServer": "部署到服务器"
-  },
   "Python": {
     "ExecPythonCode": "执行 Python 代码"
   }

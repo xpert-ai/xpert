@@ -62,7 +62,8 @@
     "sharp": "^0.33.5",
     "swagger-ui-express": "^4.1.6",
     "typeorm": "^0.2.37",
-    "underscore": "^1.13.1"
+    "underscore": "^1.13.1",
+    "unzipper": "^0.12.3"
   },
   "devDependencies": {
     "@types/cookie-parser": "1.4.8",

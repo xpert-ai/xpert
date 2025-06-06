@@ -8,5 +8,13 @@
         "UpdatedFile": "更新文件",
         "ReadFile": "读取文件",
         "DeletedFile": "删除文件"
+    },
+    "toolset": {
+        "CodeProject": {
+            "File": "文件",
+            "Coding": "编写代码",
+            "Deploy": "部署",
+            "DeploytoServer": "部署到服务器"
+        }
     }
 }
