@@ -64,34 +64,6 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			})
 		}
 
-		varGroups.push({
-			group: {
-				name: STATE_VARIABLE_HUMAN,
-				description: {
-					en_US: 'Human',
-					zh_Hans: '用户'
-				}
-			},
-			variables: [
-				{
-					name: STATE_VARIABLE_INPUT,
-					type: XpertParameterTypeEnum.STRING,
-					description: {
-						en_US: 'Input',
-						zh_Hans: '输入'
-					}
-				},
-				{
-					name: STATE_VARIABLE_FILES,
-					type: XpertParameterTypeEnum.ARRAY_FILE,
-					description: {
-						en_US: 'Files',
-						zh_Hans: '文件'
-					}
-				}
-			]
-		})
-
 		// System state variables
 		varGroups.push({
 			group: {
