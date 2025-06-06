@@ -24,7 +24,7 @@ import mondrian.xmla.XmlaHandler;
  */
 @Component
 public class XmlaConnectionFactory implements XmlaHandler.ConnectionFactory {
-    protected static final Logger LOGGER = LogManager.getLogger(XmlaServlet.class);
+    protected static final Logger LOGGER = LogManager.getLogger(XmlaConnectionFactory.class);
     // @Autowired
     // private MondrianConnectionFactory mondrianConnectionFactory;
     @Autowired
@@ -41,7 +41,6 @@ public class XmlaConnectionFactory implements XmlaHandler.ConnectionFactory {
         
         if (roleName != null) {
             olapConnection.setRoleNames(List.of(roleName.split(",")));
-            LOGGER.info(olapConnection.getRoleName());
         }
 
         return olapConnection;

@@ -2,6 +2,8 @@ package com.pangolin.olap.web;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -29,8 +31,13 @@ public class DefaultRequestAuthorizer implements RequestAuthorizer {
 		RequestAuthorizationStatus ret = new RequestAuthorizationStatus();
 		ret.authorized = true;
 		ret.token = "[None]";
-		// ret.mondrianRole = defaultRequestAuthorizerRole;
-		ret.mondrianRole = request.getHeader("mondrian-role");
+		// Get and decode the "mondrian-role" header
+		String encodedRole = request.getHeader("mondrian-role");
+		if (encodedRole != null) {
+			ret.mondrianRole = URLDecoder.decode(encodedRole, StandardCharsets.UTF_8);
+		} else {
+			ret.mondrianRole = null; // or a default value if needed
+		}
 		return ret;
 	}
 

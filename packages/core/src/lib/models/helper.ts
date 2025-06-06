@@ -751,6 +751,17 @@ export function wrapHierarchyValue(hierarchy: string, value: string) {
   return `${hierarchy}.${wrapBrackets(value)}`
 }
 
+export function wrapLevelUniqueName(hierarchy: string,) {
+  return `${hierarchy}.[LEVEL_UNIQUE_NAME]`
+}
+
+export function wrapMemberCaption(hierarchy: string,) {
+  return `${hierarchy}.[MEMBER_CAPTION]`
+}
+export function wrapLevelNumber(hierarchy: string,) {
+  return `${hierarchy}.[LEVEL_NUMBER]`
+}
+
 // Type Guards
 export const isDimensionUsage = (toBe): toBe is DimensionUsage => !isNil((toBe as DimensionUsage)?.source)
 

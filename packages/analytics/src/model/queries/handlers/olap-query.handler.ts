@@ -1,22 +1,18 @@
 import { ITryRequest } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
-import * as _axios from 'axios'
 import { DataSourceOlapQuery } from '../../../data-source'
 import { Md5 } from '../../../core/helper'
 import { SemanticModelCacheService } from '../../cache/cache.service'
 import { SemanticModelService } from '../../model.service'
 import { ModelOlapQuery } from '../olap.query'
 
-const axios = _axios.default
 
 @QueryHandler(ModelOlapQuery)
 export class ModelOlapQueryHandler implements IQueryHandler<ModelOlapQuery> {
 	private readonly logger = new Logger(ModelOlapQueryHandler.name)
 
 	constructor(
-		private configService: ConfigService,
 		private readonly semanticModelService: SemanticModelService,
 		private readonly cacheService: SemanticModelCacheService,
 		private readonly queryBus: QueryBus
@@ -37,8 +33,7 @@ export class ModelOlapQueryHandler implements IQueryHandler<ModelOlapQuery> {
 		// const currentUserId = RequestContext.currentUserId()
 		const currentUserId = user?.id
 		const tenantId = user?.tenantId
-		const roleNames = model.roles
-			.filter((role) => role.users.find((user) => user.id === currentUserId))
+		const roleNames = isDraft ? [] : model.roles.filter((role) => role.users.find((user) => user.id === currentUserId))
 			.map((role) => role.name)
 
 		// Query
@@ -80,7 +75,7 @@ export class ModelOlapQueryHandler implements IQueryHandler<ModelOlapQuery> {
 					}, query.user)
 				)
 			} else {
-				queryResult = await this.innerOlap(body, language, roleNames)
+				queryResult = await this.semanticModelService.innerOlap(body, language, roleNames)
 			}
 
 			// Proccess ASCII "\u0000", don't know how generated in olap service
@@ -116,24 +111,5 @@ export class ModelOlapQueryHandler implements IQueryHandler<ModelOlapQuery> {
 			return Promise.reject(error)
 		}
 	}
-
-	private async innerOlap(query: string, language: string, roleNames?: string[]) {
-		const olapHost = this.configService.get<string>('OLAP_HOST') || 'localhost'
-		const olapPort = this.configService.get<string>('OLAP_PORT') || '8080'
-
-		const headers = {
-			Accept: 'text/xml, application/xml, application/soap+xml',
-			'Accept-Language': language || '',
-			'Content-Type': 'text/xml'
-		}
-		if (roleNames?.length) {
-			headers['mondrian-role'] = roleNames.join(',')
-		}
-
-		try {
-			return await axios.post(`http://${olapHost}:${olapPort}/xmla`, query, { headers })
-		} catch (err) {
-			throw new Error(`Can't connect olap service`)
-		}
-	}
+	
 }

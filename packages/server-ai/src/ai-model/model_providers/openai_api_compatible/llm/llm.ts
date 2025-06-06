@@ -1,5 +1,5 @@
 import { ChatOpenAI, ChatOpenAICallOptions, ChatOpenAIFields, ClientOptions, OpenAIClient } from '@langchain/openai'
-import { AIModelEntity, AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
+import { AiModelTypeEnum, ICopilotModel } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { Injectable } from '@nestjs/common'
 import { ModelProvider } from '../../../ai-provider'
@@ -14,13 +14,6 @@ export type TOAIAPICompatLLMParams = ChatOpenAIFields & { configuration: ClientO
 export class OAIAPICompatLargeLanguageModel extends LargeLanguageModel {
 	constructor(readonly modelProvider: ModelProvider) {
 		super(modelProvider, AiModelTypeEnum.LLM)
-	}
-
-	protected getCustomizableModelSchemaFromCredentials(
-		model: string,
-		credentials: Record<string, any>
-	): AIModelEntity | null {
-		throw new Error('Method not implemented.')
 	}
 
 	async validateCredentials(model: string, credentials: OpenAICompatModelCredentials): Promise<void> {

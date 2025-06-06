@@ -9,7 +9,7 @@ import { getErrorMessage, race, shortuuid } from '@metad/server-common'
 import { ChatMessageTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { getContextVariable } from '@langchain/core/context'
-import { ChatAnswer, ChatAnswerSchema, ChatBIToolsEnum, ChatBIVariableEnum, mapTimeSlicer, TChatBICredentials, tryFixChartType } from '../../chatbi/types'
+import { ChatAnswer, ChatAnswerSchema, ChatBIToolsEnum, ChatBIVariableEnum, figureOutMembers, limitDataResults, mapTimeSlicer, TChatBICredentials, tryFixChartType } from '../../chatbi/types'
 
 
 export function createChatAnswerTool(
@@ -59,35 +59,17 @@ export function createChatAnswerTool(
 
 						// Fetch data for chart or table or kpi
 						if (answer.dimensions?.length || answer.measures?.length) {
-							const { data, categoryMembers } = await drawChartMessage(
+							const { data } = await drawChartMessage(
 								{ ...context, entityType: entityType || context.entityType },
 								answer as ChatAnswer,
                                 subscriber,
-								i18n
+								credentials,
+								i18n,
 							)
 
-							if (dataPermission) {
-								// Max limit 20 members
-								const records = data
-									? JSON.stringify(data.slice(0, 20))
-									: 'Empty'
+							const results = limitDataResults(data, credentials)
 
-								return `The analysis data has been displayed to the user. The query data results are:\n${records}\n Please give more analysis suggestions about other dimensions or filter by dimensioin members, 3 will be enough.`
-							}
-
-							// Max limit 20 members
-							let members = ''
-							if (categoryMembers) {
-								Object.keys(categoryMembers).forEach((key) => {
-									members += `Members of dimension '${key}':]\n`
-									members += Object.values(categoryMembers[key]).slice(0, 20).map((member) => JSON.stringify(member)).join('\n')
-									members += '\n\n'
-								})
-							} else {
-								members = 'Empty'
-							}
-
-							return `The analysis data has been displayed to the user. The dimension members involved in this data analysis are:\n${members}\n Please give more analysis suggestions about other dimensions or filter by dimensioin members, 3 will be enough.`
+							return `The data are:\n${results}\n Please give more analysis suggestions about other dimensions or filter by dimensioin members, 3 will be enough.`
 						}
 
 						return `The chart answer has already been provided to the user, please do not repeat the response.`
@@ -111,6 +93,7 @@ async function drawChartMessage(
 	context: ChatBILarkContext,
 	answer: ChatAnswer,
     subscriber: Subscriber<MessageEvent>,
+	credentials: TChatBICredentials,
 	i18n: any
 ): Promise<any> {
 	const { entityType, chatbi } = context
@@ -170,7 +153,7 @@ async function drawChartMessage(
 			}
 
 			try {
-				const { card, categoryMembers } =
+				const { card } =
 					answer.visualType === 'Table'
 						? createTableMessage(answer, chartAnnotation, context.entityType, result.data, header)
 						: chartAnnotation.dimensions?.length > 0
@@ -193,7 +176,7 @@ async function drawChartMessage(
                     }
                 } as MessageEvent)
 
-				resolve({ categoryMembers, data: result.data })
+				resolve({ data: figureOutMembers(result.data, chartAnnotation, credentials) })
 			} catch(err) {
 				reject(err)
 			}

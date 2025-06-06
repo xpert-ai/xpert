@@ -10,7 +10,7 @@ export function getSemanticModelKey(model: ISemanticModel) {
 	return model.id
 }
 
-export function registerSemanticModel(model: ISemanticModel, isDraft: boolean, dsCoreService: DSCoreService, settings?: {language: string}) {
+export function registerSemanticModel(model: ISemanticModel & {isDraft?: boolean}, isDraft: boolean, dsCoreService: DSCoreService, settings?: {language: string}) {
 	const modelKey = getSemanticModelKey(model)
 	const agentType = isNil(model.dataSource)
 		? AgentType.Wasm

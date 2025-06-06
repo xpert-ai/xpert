@@ -1,6 +1,8 @@
 package com.pangolin.olap.web;
 
 import java.util.Map;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -22,10 +24,11 @@ public class AuthXmlaRequestCallback implements XmlaRequestCallback {
         Map<String, Object> context)
         throws Exception
     {
-        String roleName = request.getHeader("mondrian-role");
-        if (roleName != null) {
-            LOGGER.debug(roleName);
-            context.put(XmlaConstants.CONTEXT_ROLE_NAME, roleName);
+        String encodedRoleName = request.getHeader("mondrian-role");
+        if (encodedRoleName != null) {
+            String decodedRoleName = URLDecoder.decode(encodedRoleName, StandardCharsets.UTF_8);
+            LOGGER.debug("Decoded mondrian-role: " + encodedRoleName);
+            context.put(XmlaConstants.CONTEXT_ROLE_NAME, decodedRoleName);
         }
         // We do not perform any special header treatment.
         return true;

@@ -4,12 +4,13 @@ import { CustomElementsService } from './custom-elements.service'
 export function markedOptionsFactory(): MarkedOptions {
   const renderer = new MarkedRenderer()
 
-  renderer.code = (code: string, language: string | undefined) => {
+  const _codeFun = renderer.code
+  renderer.code = (code: string, language: string | undefined, escaped: boolean) => {
     if (language === 'echarts') {
       const escaped = encodeURIComponent(code)
       return `<echarts-wrapper code="${escaped}"></echarts-wrapper>`
     }
-    return `<pre><code class="language-${language}">${code}</code></pre>`
+    return _codeFun.apply(renderer, [code, language, escaped])
   }
 
   return { renderer }

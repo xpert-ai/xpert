@@ -4,42 +4,42 @@
   <table class="table-fixed w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
     <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
       <tr>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 px-6 py-3 w-28">
+        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-48 truncate">
           {{ 'PAC.KEY_WORDS.Organization' | translate: {Default: 'Organization'} }}
         </th>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 px-6 py-3 w-48">
+        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-48 truncate">
           {{ 'PAC.KEY_WORDS.Provider' | translate: {Default: 'Provider'} }}
         </th>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 px-6 py-3 w-32">
+        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-48">
           {{ 'PAC.Copilot.Model' | translate: {Default: 'Model'} }}
         </th>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 px-6 py-3 w-32">
+        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-32">
           {{ 'PAC.KEY_WORDS.TokenUsed' | translate: {Default: 'Token Used'} }}
         </th>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 px-6 py-3 w-32">
+        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-32">
           {{ 'PAC.KEY_WORDS.TokenLimit' | translate: {Default: 'Token Limit'} }}
         </th>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 px-6 py-3 w-[180px]">
+        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-[180px]">
           {{ 'PAC.KEY_WORDS.TokenTotalUsed' | translate: {Default: 'Token Total Used'} }}
         </th>
 
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 px-6 py-3 w-[180px]">
+        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-[180px]">
           {{ 'PAC.Copilot.PriceUsed' | translate: {Default: 'Price Used'} }}
         </th>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 px-6 py-3 w-[180px]">
+        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-[180px]">
           {{ 'PAC.Copilot.PriceLimit' | translate: {Default: 'Price Limit'} }}
         </th>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 px-6 py-3 w-[180px]">
+        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-[180px]">
           {{ 'PAC.Copilot.PriceTotalUsed' | translate: {Default: 'Price Total Used'} }}
         </th>
 
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 px-6 py-3 w-32">
+        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-32">
           {{ 'PAC.KEY_WORDS.Currency' | translate: {Default: 'Currency'} }}
         </th>
-        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 px-6 py-3 w-[180px]">
+        <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-[180px]">
           {{ 'PAC.Copilot.LastUsed' | translate: {Default: 'Last Used'} }}
         </th>
-        <th scope="col" class="sticky top-0 right-0 whitespace-nowrap z-10 border-l border-solid border-divider-regular bg-gray-50 px-6 py-3 w-[240px]">
+        <th scope="col" class="sticky top-0 right-0 whitespace-nowrap z-10 border-l border-solid border-divider-regular bg-gray-50 p-3 w-[240px]">
           {{ 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
         </th>
       </tr>
@@ -67,7 +67,7 @@
 
           <td class="px-4 py-2">{{ item.currency }}</td>
           <td class="px-4 py-2">{{ item.updatedAt | relative }}</td>
-          <td class="px-4 py-2 sticky right-0 border-l border-solid border-divider-regular bg-white">
+          <td class="px-4 py-2 sticky right-0 border-l border-solid border-divider-regular bg-gray-50">
             <div class="flex items-center gap-2" displayDensity="compact">
               @if (editId() === item.id) {
                 <ngm-input type="number" simple [placeholder]="'PAC.Copilot.TokenLimit' | translate: {Default: 'Token Limit'}"

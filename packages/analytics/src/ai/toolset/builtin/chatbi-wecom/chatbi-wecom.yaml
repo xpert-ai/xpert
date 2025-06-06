@@ -29,6 +29,17 @@ credentials_for_provider:
     label:
       en_US: Data Permission
       zh_Hans: 数据权限
+    help:
+      en_US: Is enable access permission of fact data for AI models
+      zh_Hans: 是否启用 AI 模型的事实数据访问权限
+  dataLimit:
+    type: number
+    label:
+      en_US: Data Limit
+      zh_Hans: 数据限制
+    help:
+      en_US: Limit the number of data items returned for LLM
+      zh_Hans: 限制返回给大模型的数据条目数
     placeholder:
-      en_US: Enable data access permission for AI models
-      zh_Hans: 启用 AI 模型的数据访问权限
+      en_US: Default top 100 rows
+      zh_Hans: 默认前 100 行
