@@ -313,6 +313,7 @@
     "XProject": {
       "DeleteProjectAndAll": "删除项目及其中所有的材料",
       "Edit": "编辑",
+      "CancelEdit": "取消编辑",
       "AiModel": "AI 模型",
       "Project": "项目",
       "S": "的",

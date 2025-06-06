@@ -242,6 +242,10 @@ export class ChatProjectHomeComponent {
     this.editing.set(true)
   }
 
+  cancelEdit() {
+    this.editing.set(false)
+  }
+
   removeProject() {
     this.confirmDelete({
       value: this.name(),
