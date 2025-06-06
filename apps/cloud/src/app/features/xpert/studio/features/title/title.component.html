@@ -1,38 +1,36 @@
-<div class="bg-gray-50 rounded-xl">
-  <div class="flex items-center px-3 h-12 overflow-hidden">
-    <div class="shrink-0 flex items-center justify-center mr-1 w-6 h-6">
-      <i class="ri-ai-generate-text shrink-0 text-lg text-primary-500"></i>
-    </div>
-    <div class="shrink-0 mr-2 whitespace-nowrap text-gray-800 font-semibold">
-      {{ 'PAC.Xpert.SummarizeTitle' | translate: {Default: 'Summarize Title'} }}
-    </div>
-    <div class="grow"></div>
-
-    <div class="flex items-center">
-      <button type="button" class="btn flex items-center h-8 rounded-lg"
-        [class.text-primary-500]="view() === 'title' && enableSummarizeTitle()"
-        [disabled]="disableSummarizeTitle()"
-        (click)="toggleView('title')"
-      >
-        <i class="ri-settings-5-line text-lg"></i>
-        <div class="ml-1 leading-[18px] text-sm font-medium">{{ 'PAC.Xpert.Settings' | translate: {Default: 'Settings'} }}</div>
-      </button>
-      <div class="ml-4 mr-3 w-[1px] h-3.5 bg-gray-200"></div>
-
-      <mat-slide-toggle [(ngModel)]="enableSummarizeTitle"
-        labelPosition="before"
-        ngm-density small
-      />
-    </div>
+<div class="flex items-center px-3 h-12 overflow-hidden">
+  <div class="shrink-0 flex items-center justify-center mr-1 w-6 h-6">
+    <i class="ri-ai-generate-text shrink-0 text-lg text-primary-500"></i>
   </div>
+  <div class="shrink-0 mr-2 whitespace-nowrap text-gray-800 font-semibold">
+    {{ 'PAC.Xpert.SummarizeTitle' | translate: {Default: 'Summarize Title'} }}
+  </div>
+  <div class="grow"></div>
 
-  @if (view() === 'title' && enableSummarizeTitle()) {
-    <div class="p-4">
-      <copilot-prompt-editor class="relative ngm-card-border-gradient self-stretch"
-        [role]="'PAC.Xpert.Instruction' | translate: {Default: 'Instruction'}"
-        [tooltip]="'PAC.Xpert.SystemPromptTooltip' | translate: {Default: 'Prompts guide AI reponses with instructions and contraints. Insert parameters like {{input}}. This prompt won\'t be visible to users.'}"
-        [(prompt)]="instruction"
-      />
-    </div>
-  }
+  <div class="flex items-center">
+    <button type="button" class="btn flex items-center h-8 rounded-lg"
+      [class.text-primary-500]="view() === 'title' && enableSummarizeTitle()"
+      [disabled]="disableSummarizeTitle()"
+      (click)="toggleView('title')"
+    >
+      <i class="ri-settings-5-line text-lg"></i>
+      <div class="ml-1 leading-[18px] text-sm font-medium">{{ 'PAC.Xpert.Settings' | translate: {Default: 'Settings'} }}</div>
+    </button>
+    <div class="ml-4 mr-3 w-[1px] h-3.5 bg-gray-200"></div>
+
+    <mat-slide-toggle [(ngModel)]="enableSummarizeTitle"
+      labelPosition="before"
+      ngm-density small
+    />
+  </div>
 </div>
+
+@if (view() === 'title' && enableSummarizeTitle()) {
+  <div @heightChangeAnimation class="p-4">
+    <copilot-prompt-editor class="relative ngm-card-border-gradient self-stretch"
+      [role]="'PAC.Xpert.Instruction' | translate: {Default: 'Instruction'}"
+      [tooltip]="'PAC.Xpert.SystemPromptTooltip' | translate: {Default: 'Prompts guide AI reponses with instructions and contraints. Insert parameters like {{input}}. This prompt won\'t be visible to users.'}"
+      [(prompt)]="instruction"
+    />
+  </div>
+}

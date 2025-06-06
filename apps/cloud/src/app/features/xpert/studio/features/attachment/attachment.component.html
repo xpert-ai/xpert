@@ -1,5 +1,7 @@
-<div class="">
-  <div class="system-sm-semibold leading-8 text-text-secondary">Upload File Types</div>
+<!-- <div class="">
+  <div class="system-sm-semibold leading-8 text-text-secondary">
+    {{ 'PAC.Xpert.UploadFileTypes' | translate: {Default: 'Upload File Types'} }}
+  </div>
   <div>
     <div class="grid grid-cols-3 gap-2">
       @for (item of TypeOptions; track item.value) {
@@ -13,10 +15,10 @@
       }
     </div>
   </div>
-</div>
+</div> -->
 
 <div class="">
-  <div class="system-sm-semibold leading-8 text-text-secondary">Max number of uploads</div>
+  <div class="system-sm-semibold leading-8 text-text-secondary">{{ 'PAC.Xpert.MaxNumberUploads' | translate: {Default: 'Max number of uploads'} }}</div>
   <div>
     <div>
       <div class="body-xs-regular mb-1.5 text-text-tertiary">
@@ -42,7 +44,7 @@
 </div>
 
 <div class="">
-  <div class="system-sm-semibold leading-8 text-text-secondary">Support File Types</div>
+  <div class="system-sm-semibold leading-8 text-text-secondary">{{ 'PAC.Xpert.SupportFileTypes' | translate: {Default: 'Support File Types'} }}</div>
   <div>
     <div class="space-y-1">
       @for (item of fileTypeOptions; track item.value) {

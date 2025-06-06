@@ -35,7 +35,7 @@
     </div>
   </div> -->
 
-  <div class="bg-gray-50 rounded-xl">
+  <div class="rounded-xl border-l-[0.5px] border-t-[0.5px] bg-gray-50">
     <div class="flex items-center px-3 h-12 overflow-hidden">
       <div class="shrink-0 flex items-center justify-center mr-1 w-6 h-6">
         <i class="ri-paragraph shrink-0 text-lg text-[#06AED4]"></i>
@@ -68,7 +68,7 @@
     }
   </div>
 
-  <div class="bg-gray-50 rounded-xl">
+  <div class="rounded-xl border-l-[0.5px] border-t-[0.5px] bg-gray-50">
     <div class="flex items-center px-3 h-12 overflow-hidden">
       <div class="shrink-0 flex items-center justify-center mr-1 w-6 h-6">
         <i class="ri-brain-fill shrink-0 text-lg text-lime-600"></i>
@@ -101,13 +101,14 @@
     }
   </div>
 
-  <xpert-studio-features-title />
+  <xpert-studio-features-title class="rounded-xl border-l-[0.5px] border-t-[0.5px] bg-gray-50" />
+
   <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] bg-gray-50 p-3">
     <div class="mb-2 flex items-center gap-2">
-      <div class="shrink-0 rounded-lg border-[0.5px] border-divider-subtle bg-blue-600 w-7 h-7 flex justify-center items-center shadow-xs">
-        <i class="ri-attachment-fill text-white"></i>
+      <div class="shrink-0 rounded-lg border-[0.5px] border-divider-subtle bg-blue-500 w-7 h-7 flex justify-center items-center shadow-xs">
+        <i class="ri-attachment-2 text-lg text-white"></i>
       </div>
-      <div class="system-sm-semibold flex grow items-center text-text-secondary">File Upload</div>
+      <div class="font-semibold flex grow items-center text-text-secondary">{{ 'PAC.Xpert.FileUpload' | translate: {Default: 'File Upload'} }}</div>
       
       <div class="flex items-center">
         <button type="button" class="btn flex items-center h-8 rounded-lg"
@@ -129,12 +130,12 @@
 
     <div class="flex items-center gap-4 pt-0.5">
       <div class="grow">
-        <div class="system-2xs-medium-uppercase mb-0.5 text-text-tertiary">Support File Types</div>
-        <div class="system-xs-regular text-text-secondary">{{fileTypes()}}</div>
+        <div class="text-sm font-medium uppercase mb-0.5 text-text-tertiary">{{ 'PAC.Xpert.SupportFileTypes' | translate: {Default: 'Support File Types'} }}</div>
+        <div class="system-xs-regular text-text-secondary">{{fileTypes()?.length ? fileTypes() : ('PAC.KEY_WORDS.None' | translate: {Default: 'None'})}}</div>
       </div>
       <div class="h-[27px] w-px rotate-12 bg-divider-subtle"></div>
       <div class="grow">
-        <div class="system-2xs-medium-uppercase mb-0.5 text-text-tertiary">Max uploads</div>
+        <div class="text-sm font-medium uppercase mb-0.5 text-text-tertiary">{{ 'PAC.Xpert.MaxUploads' | translate: {Default: 'Max uploads'} }}</div>
         <div class="system-xs-regular text-text-secondary">{{maxNum()}}</div>
       </div>
     </div>
