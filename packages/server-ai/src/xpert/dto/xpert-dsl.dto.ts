@@ -18,6 +18,7 @@ import {
 	TXpertAgent,
 	TXpertAgentConfig,
 	TXpertAgentOptions,
+	TXpertAttachment,
 	TXpertOptions,
 	TXpertParameter,
 	TXpertTeamConnection,
@@ -58,6 +59,9 @@ export class XpertDslDTO {
 
 	@Expose()
 	summarize?: TSummarize
+
+	@Expose()
+	attachment?: TXpertAttachment
 
 	@Expose()
 	version?: string

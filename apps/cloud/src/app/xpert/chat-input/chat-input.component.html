@@ -31,39 +31,27 @@
               (compositionend)="onCompositionEnd($event)"
             ></textarea>
           </div>
-          <div
-            class="flex gap-1.5 absolute inset-x-0 bottom-0 border-2 border-transparent p-2 @[480px]/input:p-3 max-w-full"
-          >
-            <button #attachTrigger
-              class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 h-9 rounded-full py-2 relative px-2 transition-all duration-150 bg-transparent border w-9 aspect-square border-toggle-border text-secondary hover:text-primary hover:bg-toggle-hover"
-              type="button"
-              aria-label="Attach"
-              tabindex="0"
-              [cdkMenuTriggerFor]="attachMenu"
-              [cdkMenuPosition]="[
-                {
-                  originX: 'center',
-                  originY: 'top',
-                  overlayX: 'center',
-                  overlayY: 'bottom',
-                  offsetY: -6,
-                }
-              ]"
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                class="stroke-[2]"
+          <div class="flex gap-1.5 absolute inset-x-0 bottom-0 border-2 border-transparent p-2 @[480px]/input:p-3 max-w-full">
+            @if (attachment()?.enabled) {
+              <button #attachTrigger
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 h-9 rounded-full py-2 relative px-2 transition-all duration-150 bg-transparent border w-9 aspect-square border-toggle-border text-secondary hover:text-primary hover:bg-toggle-hover"
+                type="button"
+                aria-label="Attach"
+                tabindex="0"
+                [cdkMenuTriggerFor]="attachMenu"
+                [cdkMenuPosition]="[
+                  {
+                    originX: 'center',
+                    originY: 'top',
+                    overlayX: 'center',
+                    overlayY: 'bottom',
+                    offsetY: -6,
+                  }
+                ]"
               >
-                <path
-                  d="M10 9V15C10 16.1046 10.8954 17 12 17V17C13.1046 17 14 16.1046 14 15V7C14 4.79086 12.2091 3 10 3V3C7.79086 3 6 4.79086 6 7V15C6 18.3137 8.68629 21 12 21V21C15.3137 21 18 18.3137 18 15V8"
-                  stroke="currentColor"
-                ></path>
-              </svg>
-            </button>
+                <i class="ri-attachment-line"></i>
+              </button>
+            }
 
             <div class="flex grow gap-1.5 max-w-full" style="transform: none; opacity: 1">
               <div class="grow flex gap-1.5 max-w-full">
