@@ -113,6 +113,14 @@
 }
 
 <div class="sticky bottom-0 flex justify-end p-4 bg-components-card-bg">
+  <div class="grow">
+    @if (helpUrl()) {
+      <a [href]="helpUrl()" target="_blank" rel="noopener noreferrer" class="group inline-flex items-center p-1 text-sm !text-primary-400 hover:!text-primary-600">
+        {{'PAC.Xpert.HelpDocumentation' | translate: {Default: 'Help Documentation'} }}
+        <i class="ri-book-open-line inline-block group-hover:translate-x-1 transition-transform"></i>
+      </a>
+    }
+  </div>
   @if (!atLeastOne()) {
     <div class="flex items-center gap-1 mr-2 text-sm text-text-warning">
       <i class="ri-alarm-warning-line"></i>

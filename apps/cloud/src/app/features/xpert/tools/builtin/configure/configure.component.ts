@@ -6,8 +6,15 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { routeAnimations } from '@metad/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
+import { omit } from 'lodash-es'
+import { catchError, distinctUntilChanged, map, startWith, switchMap } from 'rxjs/operators'
+import { derivedAsync } from 'ngxtension/derived-async'
+import { BehaviorSubject, of } from 'rxjs'
 import {
+  derivedHelpUrl,
+  derivedToolProvider,
   getErrorMessage,
   IBuiltinTool,
   injectHelpWebsite,
@@ -20,15 +27,10 @@ import {
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
-import { omit } from 'lodash-es'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { BehaviorSubject, of } from 'rxjs'
-import { catchError, distinctUntilChanged, map, startWith, switchMap } from 'rxjs/operators'
-import { XpertToolBuiltinAuthorizeComponent } from '../authorize/authorize.component'
-import { XpertToolBuiltinToolComponent } from '../tool/tool.component'
 import { CardUpgradeComponent } from 'apps/cloud/src/app/@shared/card'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { environment } from '@cloud/environments/environment'
+import { XpertToolBuiltinToolComponent } from '../tool/tool.component'
+import { XpertToolBuiltinAuthorizeComponent } from '../authorize/authorize.component'
 
 /**
  * If toolset and tool do not have id, they are considered as templates.
@@ -77,27 +79,30 @@ export class XpertToolConfigureBuiltinComponent {
   readonly workspaceId = signal(this.#data.workspaceId)
   readonly toolsetId = computed(() => this.toolset()?.id)
 
-  readonly #provider = derivedAsync<{error?: string; loading: boolean; provider: IToolProvider;}>(() =>
-    this.providerName() ? this.#toolsetService.getProvider(this.providerName()).pipe(
-      map((provider) => ({provider, loading: false})),
-      catchError((err,) => {
-        return of({
-          error: getErrorMessage(err),
-          loading: false,
-          provider: null
-        })
-      }),
-      startWith({
-        loading: true,
-        provider: null
-      })
-    ) : of(null)
-  )
+  readonly #provider = derivedToolProvider(this.providerName)
+  // derivedAsync<{error?: string; loading: boolean; provider: IToolProvider;}>(() =>
+  //   this.providerName() ? this.#toolsetService.getProvider(this.providerName()).pipe(
+  //     map((provider) => ({provider, loading: false})),
+  //     catchError((err,) => {
+  //       return of({
+  //         error: getErrorMessage(err),
+  //         loading: false,
+  //         provider: null
+  //       })
+  //     }),
+  //     startWith({
+  //       loading: true,
+  //       provider: null
+  //     })
+  //   ) : of(null)
+  // )
   readonly provider = computed(() => this.#provider()?.provider)
   readonly pvLoading = computed(() => this.#provider()?.loading)
   readonly error = computed(() => this.#provider()?.error)
   readonly notImplemented = computed(() => this.provider()?.not_implemented)
   readonly pro = computed(() => this.provider()?.pro)
+  readonly #helpUrl = computed(() => this.provider()?.help_url)
+  readonly helpUrl = derivedHelpUrl(this.#helpUrl)
 
   readonly builtinTools = derivedAsync(() => {
     if (this.providerName()) {
@@ -159,10 +164,6 @@ export class XpertToolConfigureBuiltinComponent {
         )
       }
     }, { allowSignalWrites: true })
-
-    effect(() => {
-      console.log(this.toolset(), this.pro())
-    })
   }
 
   openAuthorize(toolset?: IXpertToolset) {

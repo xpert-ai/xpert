@@ -25,8 +25,15 @@
       </button>
     }
 
-    <div class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer
-      text-text-tertiary hover:text-base-content hover:bg-hover-bg"
+    <a [href]="helpUrl()" target="_blank" class="action-btn action-btn-sm justify-center w-7 h-7 rounded-md pressable"
+      [matTooltip]="'PAC.Xpert.HelpDocumentation' | translate: { Default: 'Help Documentation' }"
+      matTooltipPosition="above"
+    >
+      <i class="ri-book-open-line"></i>
+    </a>
+
+    <div class="flex items-center justify-center w-7 h-7 rounded-md cursor-pointer
+      text-text-tertiary hover:text-text-destructive hover:bg-hover-bg"
       (click)="closePanel()"
     >
       <ngm-close-svg class="w-5 h-5" />
@@ -38,12 +45,12 @@
   {{toolset()?.description}}
 </div>
 
-@if (needSandbox()) {
+<!-- @if (needSandbox()) {
   <div class="flex items-center px-4">
     <i class="ri-alarm-warning-fill mb-0.5 mr-1 text-orange-500"></i>
     <span class="text-sm text-text-secondary truncate">{{ 'PAC.Xpert.NeedSandboxToolsetTip' | translate: {Default: 'For security reasons, please upgrade to the pro version to run this toolset safely in a sandbox'} }}</span>
   </div>
-}
+} -->
 
 @if (isTemplate()) {
   <div class="flex flex-col justify-start items-stretch p-4 space-y-4 w-full">
@@ -61,7 +68,7 @@
         <li class="group/item w-full flex flex-col items-stretch px-2 py-1 rounded-lg border-[0.5px] border-solid border-transparent hover:border-gray-100">
           <div class="relative flex items-center w-full">
             <emoji-avatar small [avatar]="toolset.avatar" class="mr-1 shrink-0 rounded-lg overflow-hidden shadow-sm" />
-            {{toolset.name}}
+            <span class="truncate">{{toolset.name}}</span>
 
             <button type="button" class="absolute right-0 btn btn-small opacity-0 group-hover/item:opacity-100"
               (click)="useToolset(toolset)"

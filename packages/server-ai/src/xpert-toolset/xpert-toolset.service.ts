@@ -113,7 +113,9 @@ export class XpertToolsetService extends TenantOrganizationAwareCrudService<Xper
 			env: envState
 		})
 		// validate credentials
-		await toolproviderController.validateCredentials(entity.credentials)
+		if (toolproviderController.validateCredentials) {
+			await toolproviderController.validateCredentials(entity.credentials)
+		}
 		// encrypt credentials
 		// credentials = tool_configuration.encrypt_tool_credentials(credentials)
 

@@ -112,7 +112,7 @@ export class XpertStudioToolsetMenuComponent {
     }
     this.cdkMenu.menuStack.closeAll()
     this.apiService.createToolset(this.root.contextMenuPosition, {
-      id: uuid(),
+      key: uuid(),
       category: XpertToolsetCategoryEnum.BUILTIN,
       type: toolset.name,
       name: toolset.name

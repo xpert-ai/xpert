@@ -4,7 +4,7 @@
 
 ### How to add step messages ?
 
-如果需用在工具执行内发出执行步骤消息，可以通过 `dispatchCustomEvent` 来发出步骤消息事件。此事件会被截获保存到消息里，同时实时传递到前端展示。
+如果需要在工具执行内发出执行步骤消息，可以通过 `dispatchCustomEvent` 来发出步骤消息事件。此事件会被截获保存到消息里，同时实时传递到前端展示。
 
 在工具中发出自定义事件如下代码：
 
@@ -54,6 +54,20 @@ async function tool(_, config) => {
 	const { configurable } = config ?? {}
 	const { subscriber } = configurable ?? {}
 
+    subscriber?.next({
+        data: {
+            type: ChatMessageTypeEnum.MESSAGE,
+            data: {
+                id: shortuuid(),
+                type: 'component',
+                data: {
+                    category: 'Computer',
+                    type: 'Iframe',
+                    url: indexFile
+                } as TMessageComponent<TMessageComponentIframe>
+            }
+        }
+    } as MessageEvent)
 }
 ```
 
@@ -61,4 +75,3 @@ async function tool(_, config) => {
 
 - 一级分类为 `category`: 'Dashboard' | 'Computer'
 - 二级分类为 `type`: string
-

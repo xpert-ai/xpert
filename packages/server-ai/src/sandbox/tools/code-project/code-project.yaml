@@ -13,4 +13,5 @@ identity:
     - productivity
     - utilities
     - sandbox
+  help_url: /docs/ai/tool/sandbox/code-project/
 credentials_for_provider:

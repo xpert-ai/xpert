@@ -23,6 +23,7 @@ export enum XpertToolsetCategoryEnum {
 
 export type XpertToolsetType = string
 export type TXpertToolset = {
+  key?: string
   /**
    * toolset name
    */
@@ -182,6 +183,7 @@ export interface IToolProvider {
   icon?: string;
   avatar: TAvatar
   label: I18nObject; // label
+  help_url?: string
   type: XpertToolsetCategoryEnum;
   masked_credentials?: Record<string, any>
   original_credentials?: Record<string, any>
