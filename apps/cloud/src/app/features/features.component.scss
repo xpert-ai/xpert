@@ -76,10 +76,7 @@ $prefix: (ngm, shell);
 }
 
 .pac_sidenav-content {
-  z-index: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col overflow-hidden z-10;
 }
 
 .mat-drawer-container.pac-fullscreen {
