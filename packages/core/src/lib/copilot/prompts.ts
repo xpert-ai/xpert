@@ -44,6 +44,11 @@ export function markdownEntityType(entityType: EntityType) {
   `            semantic: ${item.semantics.semantic}` : null,
   item.semantics?.formatter ? 
   `            time_formatter: "${item.semantics.formatter}"` : null,
+    item.properties.length ? 
+  `            properties:` : null,
+    item.properties?.map((_) => 
+  `              - name: ${_.name}\n                caption: ${_.caption}`
+    ).join('\n')
   ].filter(nonBlank).join('\n')).join('\n')}
   `].join('\n')).join('\n')
   ).join('\n')}

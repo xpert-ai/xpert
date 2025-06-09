@@ -211,7 +211,7 @@ export function withCalculationMembers(
           }
           members[formatCalculatedMemberName(withMember)] = withMember
         }
-      } else {
+      } else if (!property?.rt) {
         const calculatedMember = cube?.calculatedMembers?.find(
           (item) => item.hierarchy === dimension.hierarchy && item.name === getMemberValue(member)
         )

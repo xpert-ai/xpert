@@ -48,7 +48,7 @@ import { In } from 'typeorm'
 import { z } from 'zod'
 import { DimensionMemberServiceQuery } from '../../../../model-member/'
 import { getSemanticModelKey, NgmDSCoreService, registerSemanticModel } from '../../../../model/ocap'
-import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, figureOutMembers, fixMeasure, IndicatorSchema, limitDataResults, mapTimeSlicer, TChatBICredentials, tryFixChartType, tryFixDimensions, tryFixFormula } from './types'
+import { CHART_TYPES, ChatAnswer, ChatAnswerSchema, ChatBIContext, ChatBIToolsEnum, ChatBIVariableEnum, extractDataValue, fixMeasure, IndicatorSchema, limitDataResults, mapTimeSlicer, TChatBICredentials, tryFixChartType, tryFixDimensions, tryFixFormula } from './types'
 import { GetBIContextQuery, TBIContext } from '../../../../chatbi'
 import { createDimensionMemberRetrieverTool } from './tools/dimension_member_retriever'
 
@@ -576,7 +576,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				if (result.error) {
 					reject(result.error)
 				} else {
-					resolve({ data: figureOutMembers(result.data, dataSettings.chartAnnotation, credentials) })
+					resolve({ data: extractDataValue(result.data, dataSettings.chartAnnotation, credentials) })
 				}
 				destroy$.next()
 				destroy$.complete()

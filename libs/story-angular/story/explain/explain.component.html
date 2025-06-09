@@ -1,5 +1,5 @@
 <div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
-  <div class="w-full flex justify-start items-center mb-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  <div class="w-full flex justify-start items-center cursor-pointer mb-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
     <span class="text-lg pointer-events-none">
       {{ 'Story.Explain.Title' | translate: {Default: "Execute Explain"} }}
@@ -75,8 +75,9 @@
       <ngm-table class="ngm-data-preview flex-1 overflow-auto"
         [data]="explain.data"
         [columns]="explain.columns"
-      >
-      </ngm-table>
+        paging
+        grid
+      />
     }
     @case ('error') {
       <div>

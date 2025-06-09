@@ -77,31 +77,6 @@
       position: relative;
     }
   }
-
-  .ngm-analytical-grid__filtering-card {
-    width: 300px;
-    
-    .ngm-analytical-grid__filtering {
-      .ngm-selection-list__select-all {
-        .mat-mdc-checkbox {
-          .mdc-form-field {
-            width: 100%;
-          }
-        }
-      }
-
-      .ngm-analytical-grid__viewport {
-        height: 200px;
-      }
-    }
-
-    .ngm-analytical-grid__filtering-actions {
-      display: flex;
-      flex-direction: row;
-      justify-content: flex-end;
-    }
-  }
-
 }
 
 @mixin typography($config-or-theme) {

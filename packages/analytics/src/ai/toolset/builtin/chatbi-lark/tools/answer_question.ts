@@ -9,7 +9,7 @@ import { getErrorMessage, race, shortuuid } from '@metad/server-common'
 import { ChatMessageTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { getContextVariable } from '@langchain/core/context'
-import { ChatAnswer, ChatAnswerSchema, ChatBIToolsEnum, ChatBIVariableEnum, figureOutMembers, limitDataResults, mapTimeSlicer, TChatBICredentials, tryFixChartType } from '../../chatbi/types'
+import { ChatAnswer, ChatAnswerSchema, ChatBIToolsEnum, ChatBIVariableEnum, extractDataValue, limitDataResults, mapTimeSlicer, TChatBICredentials, tryFixChartType } from '../../chatbi/types'
 
 
 export function createChatAnswerTool(
@@ -176,7 +176,7 @@ async function drawChartMessage(
                     }
                 } as MessageEvent)
 
-				resolve({ data: figureOutMembers(result.data, chartAnnotation, credentials) })
+				resolve({ data: extractDataValue(result.data, chartAnnotation, credentials) })
 			} catch(err) {
 				reject(err)
 			}

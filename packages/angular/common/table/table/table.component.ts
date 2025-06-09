@@ -123,7 +123,6 @@ export class MyCustomPaginatorIntl implements MatPaginatorIntl {
 
     //OCAP Modules
     OcapCoreModule,
-    // NgmSearchComponent
   ],
   providers: [{provide: MatPaginatorIntl, useClass: MyCustomPaginatorIntl}],
 })

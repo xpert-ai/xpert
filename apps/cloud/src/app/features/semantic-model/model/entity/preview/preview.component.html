@@ -175,7 +175,16 @@
         paging: true,
         pageSize: 50
       }"
-    />
+      (explain)="setExplains($event)"
+    >
+      <button ngmAction class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
+        bg-transparent hover:bg-hover-bg"
+        [matTooltip]="'PAC.Chat.OpenExplain' | translate: {Default: 'Open Explain'}"
+        matTooltipPosition="above"
+        (click)="openExplain()">
+        <i class="ri-terminal-box-line"></i>
+      </button>
+    </ngm-analytical-grid>
   </ngm-splitter-pane>
 </ngm-splitter>
 
