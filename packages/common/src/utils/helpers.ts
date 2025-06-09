@@ -17,3 +17,7 @@ export function getErrorMessage(err: any): string {
 
   return error
 }
+
+export function getPythonErrorMessage(error) {
+  return error.response?.data?.detail || error.response?.data || getErrorMessage(error)
+}
