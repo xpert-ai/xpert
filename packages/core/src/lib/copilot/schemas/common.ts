@@ -20,7 +20,8 @@ export const baseDimensionSchema = {
   level: z
     .string()
     .optional()
-    .describe('The name of the level in the hierarchy using pattern `[Hierarchy Name].[Level Name]`')
+    .describe('The name of the level in the hierarchy using pattern `[Hierarchy Name].[Level Name]`'),
+  properties: z.array(z.string().describe('The name of property in level, using pattern `[Hierarchy name].[Property name]`')).optional().nullable()
 }
 
 export const DimensionSchema = z.object(baseDimensionSchema)

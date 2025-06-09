@@ -25,7 +25,7 @@ import {
   ViewChild
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { MAT_PAGINATOR_DEFAULT_OPTIONS, MatPaginator } from '@angular/material/paginator'
+import { MatPaginator } from '@angular/material/paginator'
 import { MatSort, SortDirection } from '@angular/material/sort'
 import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
 import { csvDownload, DisplayDensity, NgmAppearance } from '@metad/ocap-angular/core'
@@ -44,6 +44,7 @@ import {
   getDimensionMemberCaption,
   getEntityHierarchy,
   getEntityProperty,
+  getHierarchyProperty,
   getPropertyHierarchy,
   hierarchize,
   IMember,
@@ -58,6 +59,7 @@ import {
   mergeOptions,
   negate,
   omit,
+  pick,
   PivotColumn,
   PrimitiveType,
   PropertyMeasure,
@@ -66,7 +68,7 @@ import {
   wrapBrackets
 } from '@metad/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
-import { maxBy, minBy, orderBy } from 'lodash-es'
+import { maxBy, minBy, orderBy, unionBy } from 'lodash-es'
 import { BehaviorSubject, combineLatest, firstValueFrom, Observable, of } from 'rxjs'
 import { combineLatestWith, debounceTime, filter, map, shareReplay, withLatestFrom } from 'rxjs/operators'
 import { NgmAnalyticsBusinessService } from './analytics.service'
@@ -98,12 +100,6 @@ import { NgmTreeFlatDataSource } from './tree-flat-data-source'
   },
   providers: [
     NgmAnalyticsBusinessService,
-    {
-      provide: MAT_PAGINATOR_DEFAULT_OPTIONS,
-      useValue: {
-        formFieldAppearance: 'outline'
-      }
-    }
   ]
 })
 export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnDestroy, FocusableOption {
@@ -258,23 +254,36 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
   public readonly error$ = this.analyticsService.selectResult().pipe(map((result) => result.error))
   public readonly data$ = this.analyticsService.selectResult().pipe(map((result) => result.data))
 
-  public readonly rowAxes$: Observable<AnalyticalGridColumn[]> = //this.select((state) => state.rows)
-    this.analyticsService.analytics$.pipe(
+  readonly rowAxes$: Observable<AnalyticalGridColumn[]> = this.analyticsService.analytics$.pipe(
       map((analytics) => {
-        return (
-          analytics.rows
-            ?.map((column: any) => {
-              return {
-                ...column,
-                name: column.dimension === C_MEASURES ? wrapBrackets(C_MEASURES) : column.property?.name,
-                caption: column.caption || (column.dimension === C_MEASURES ? C_MEASURES : (column.property?.caption ?? column.name)),
-                memberCaption: getDimensionMemberCaption(column, this.entityType()) ||
-                  (column.dimension === C_MEASURES ? C_MEASURES_CAPTION : column.name),
-                displayBehaviour: column.displayBehaviour ?? DisplayBehaviour.descriptionOnly
-              }
-            })
-            .filter((column) => !isNil(column?.name)) ?? []
-        )
+        console.log(analytics.rows)
+        const columns: AnalyticalGridColumn[] = []
+        analytics.rows?.forEach((column: any) => {
+          columns.push({
+            ...column,
+            name: column.dimension === C_MEASURES ? wrapBrackets(C_MEASURES) : column.property?.name,
+            caption: column.caption || (column.dimension === C_MEASURES ? C_MEASURES : (column.property?.caption ?? column.name)),
+            memberCaption: getDimensionMemberCaption(column, this.entityType()) ||
+              (column.dimension === C_MEASURES ? C_MEASURES_CAPTION : column.name),
+            displayBehaviour: column.displayBehaviour ?? DisplayBehaviour.descriptionOnly
+          })
+          // Properties
+          column.properties?.forEach((name) => {
+            const hierarchy = getEntityHierarchy(this.entityType(), pick(column, 'dimension', 'hierarchy'))
+            const property = getHierarchyProperty(hierarchy, name)
+            if (property) {
+              columns.push({
+                name: name,
+                caption: property.caption,
+                memberCaption: name,
+                displayBehaviour: DisplayBehaviour.descriptionOnly,
+                property
+              } as AnalyticalGridColumn)
+            }
+          })
+        })
+
+        return unionBy(columns.filter((_) => _.name), 'name')
       }),
       combineLatestWith(this._columns$),
       map(([_columns, _columnsOptions]) => {
@@ -545,6 +554,9 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
   private _pivotColumnsSub = this._pivotColumns$
     .pipe(withLatestFrom(this.rowAxes$, this.columnAxes$))
     .subscribe(([levels, rowAxes, columnAxes]) => {
+
+      console.log(levels, rowAxes, columnAxes)
+
       this.rowAxes = rowAxes
       this.columnAxes = columnAxes
       const pivotColumnNames = levels.map((item) => item.map((column) => column.name))
@@ -640,6 +652,9 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
       this.flatDataSource.data = data
     })
     
+  private rowAxesSub = this.rowAxes$.subscribe((value) => {
+    console.log(value)
+  })
   constructor(
     private translateService: TranslateService,
     private cdr: ChangeDetectorRef,

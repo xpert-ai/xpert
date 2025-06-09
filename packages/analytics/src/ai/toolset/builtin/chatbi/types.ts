@@ -347,7 +347,15 @@ export function tryFixFormula(formula: string, code: string) {
 	return formula
 }
 
-export function figureOutMembers(data: any[], chartAnnotation: ChartAnnotation, credentials: TChatBICredentials) {
+/**
+ * Extract necessary dimension and measure member information includes dimension, properties and measures.
+ * 
+ * @param data Raw data array
+ * @param chartAnnotation Dimension measures config via ChartAnnotation
+ * @param credentials Config of ChatBI toolset
+ * @returns 
+ */
+export function extractDataValue(data: any[], chartAnnotation: ChartAnnotation, credentials: TChatBICredentials) {
 	const { dataPermission } = credentials
 
 	const dimensions = chartAnnotation?.dimensions
@@ -360,6 +368,10 @@ export function figureOutMembers(data: any[], chartAnnotation: ChartAnnotation, 
 				item[_[wrapLevelUniqueName(hierarchy)]] = _[hierarchy]
 				item[wrapMemberCaption(hierarchy)] = _[wrapMemberCaption(hierarchy)]
 				item[wrapLevelNumber(hierarchy)] = _[wrapLevelNumber(hierarchy)]
+				// Properties
+				dimension.properties?.forEach((name) => {
+					item[name] = _[name]
+				})
 			})
 
 			if (dataPermission && measures) {
@@ -382,7 +394,7 @@ export function limitDataResults(items: any[], credentials: TChatBICredentials) 
 	// Max limit rows returned for LLM
 	const dataLimit = credentials?.dataLimit ?? 100
 	let results = items ? JSON.stringify(items.slice(0, dataLimit), null, 2) : 'Empty'
-	if (items.length > dataLimit) {
+	if (Array.isArray(items) && items.length > dataLimit) {
 		results += `\nOnly the first ${dataLimit} pieces of data are returned. There are ${items.length - dataLimit} pieces of data left. Please add more query conditions to view all the data.`
 	}
 
