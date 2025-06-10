@@ -6,7 +6,7 @@ import { API_DATA_SOURCE, DataSourceService, injectOrganizationId } from '@metad
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { nonNullable } from '@metad/core'
 import { Agent, AgentStatus, AgentType, DataSourceOptions, UUID } from '@metad/ocap-core'
-import { Observable, Subject, bufferToggle, filter, firstValueFrom, from, merge, mergeMap, windowToggle } from 'rxjs'
+import { Observable, Subject, bufferToggle, filter, firstValueFrom, from, merge, mergeMap, startWith, windowToggle } from 'rxjs'
 import { AbstractAgent, AuthInfoType } from '../auth'
 import { getErrorMessage, uuid, AuthenticationEnum, IDataSource, IDataSourceAuthentication, ISemanticModel, TGatewayQueryEvent } from '../types'
 import { AgentService } from './agent.service'
@@ -59,7 +59,7 @@ export class ServerSocketAgent extends AbstractAgent implements Agent {
     merge(
       this.request$.pipe(
         // Stop process (buffer them) when disconnected
-        bufferToggle(this.#agentService.disconnected$.pipe(filter(Boolean)), () =>
+        bufferToggle(this.#agentService.disconnected$.pipe(startWith(true), filter(Boolean)), () =>
           this.#agentService.connected$.pipe(filter(Boolean))
         )
       ),
