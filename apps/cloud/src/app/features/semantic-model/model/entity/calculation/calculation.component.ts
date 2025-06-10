@@ -28,7 +28,7 @@ import {
   PropertyCapacity
 } from '@metad/ocap-angular/entity'
 import { NgmFormulaModule } from '@metad/ocap-angular/formula'
-import { Dimension, nonBlank, QueryReturn, stringifyProperty, Syntax } from '@metad/ocap-core'
+import { Dimension, measureFormatter, nonBlank, QueryReturn, stringifyProperty, Syntax } from '@metad/ocap-core'
 import { Crossjoin, Members } from '@metad/ocap-xmla'
 import { getSemanticModelKey } from '@metad/story/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
@@ -160,9 +160,13 @@ export class ModelEntityCalculationComponent {
     const dimensions = this.testDimensions().map(stringifyProperty).filter(nonBlank)
     const cubeName = this.cubeName()
     const formulaName = this.formulaName() || '_'
-    let statement = `WITH MEMBER [Measures].[${formulaName}] AS ${this.formula()}\nSELECT\n  non empty {[Measures].[${formulaName}]} ON COLUMNS`
+    let statement = `WITH MEMBER ${measureFormatter(formulaName)} AS ${this.formula()}\nSELECT\n  NON EMPTY {${measureFormatter(formulaName)}} ON COLUMNS`
     if (dimensions.length) {
-      statement += `,\n  ${Crossjoin(...dimensions.map((dim) => Members(dim)))} ON ROWS`
+      statement += `,\n  `
+      if (this.testDimensions().some((_) => _.zeroSuppression)) {
+        statement += `NON EMPTY `
+      }
+      statement += `${Crossjoin(...dimensions.map((dim) => Members(dim)))} ON ROWS`
     }
     statement += `\nFROM [${cubeName}]`
     return statement
