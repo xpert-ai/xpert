@@ -2,16 +2,13 @@ import { ChatMessageEventTypeEnum, IXpertAgentExecution, XpertAgentExecutionStat
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
-import { messageEvent } from '../xpert-agent/agent'
-import { XpertAgentExecutionUpsertCommand } from './commands'
-import { XpertAgentExecutionDTO } from './dto'
-import { XpertAgentExecutionOneQuery } from './queries'
+import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands';
+import { XpertAgentExecutionDTO } from '../../xpert-agent-execution/dto';
+import { messageEvent } from '../../xpert-agent/agent';
+import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries';
 
-/**
- * @deprecated use `wrapAgentExecution` in `shared`
- */
-export function wrapAgentExecution(
-	fuc: (execution: Partial<IXpertAgentExecution>) => Promise<{output?: string; state: unknown}>,
+export function wrapAgentExecution<T>(
+	fuc: (execution: Partial<IXpertAgentExecution>) => Promise<{output?: string; state: T}>,
 	params: {
 		commandBus: CommandBus,
 		queryBus: QueryBus,

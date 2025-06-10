@@ -54,6 +54,7 @@ export enum ChatMessageStepCategory {
  * Step message type, in canvas and ai message.
  */
 export type TChatMessageStep<T = any> = {
+  id?: string
   type?: ChatMessageStepType
   category?: ChatMessageStepCategory
   toolset?: string

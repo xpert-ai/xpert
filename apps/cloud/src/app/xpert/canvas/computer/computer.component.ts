@@ -10,7 +10,7 @@ import { ChatConversationService, ChatMessageStepCategory, ChatMessageStepType, 
 import { FileEditorComponent } from '@cloud/app/@shared/files'
 import { CanvasHtmlEditorComponent } from '../html-editor/html-editor.component'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { FileExtensionPipe, FileTypePipe, ListHeightStaggerAnimation } from '@metad/core'
+import { FileTypePipe, ListHeightStaggerAnimation } from '@metad/core'
 import { BehaviorSubject, debounceTime, switchMap } from 'rxjs'
 import { XpertHomeService } from '../../home.service'
 import { XpertProjectTasksComponent } from '@cloud/app/@shared/xpert'
@@ -18,6 +18,8 @@ import { ChatService } from '../../chat.service'
 import { Dialog } from '@angular/cdk/dialog'
 import { ChatConversationFilesComponent } from '@cloud/app/@shared/chat'
 import { ChatCanvasIframeComponent } from '../iframe/iframe.component'
+import { ChatCanvasTerminalComponent } from '../terminal/terminal.component'
+import { ChatCanvasFileEditorComponent } from '../file-editor/file-editor.component'
 
 @Component({
   standalone: true,
@@ -31,11 +33,12 @@ import { ChatCanvasIframeComponent } from '../iframe/iframe.component'
     MatSliderModule,
     MatTooltipModule,
     FileTypePipe,
-    FileExtensionPipe,
     FileEditorComponent,
     CanvasHtmlEditorComponent,
     XpertProjectTasksComponent,
-    ChatCanvasIframeComponent
+    ChatCanvasIframeComponent,
+    ChatCanvasTerminalComponent,
+    ChatCanvasFileEditorComponent
   ],
   selector: 'chat-canvas-computer',
   templateUrl: './computer.component.html',

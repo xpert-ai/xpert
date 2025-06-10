@@ -8,7 +8,7 @@ import { WorkflowNodeTypeEnum } from './xpert-workflow.model'
 
 export type TXpertExecution = {
   category?: TXpertTeamNodeType
-  type?: WorkflowNodeTypeEnum
+  type?: WorkflowNodeTypeEnum | string
   title?: string | I18nObject
   inputs?: any
   outputs?: any

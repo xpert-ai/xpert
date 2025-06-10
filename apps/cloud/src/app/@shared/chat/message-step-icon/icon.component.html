@@ -6,6 +6,9 @@
     @case (eChatMessageStepCategory.Files) {
       <i class="ri-file-list-3-line"></i>
     }
+    @case (eChatMessageStepCategory.Program) {
+      <i class="ri-terminal-box-line"></i>
+    }
     @default {
       @if (step.toolset) {
         @switch (step.toolset) {

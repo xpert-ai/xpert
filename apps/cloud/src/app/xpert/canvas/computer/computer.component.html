@@ -107,16 +107,7 @@
             </div>
           }
           @case (eChatMessageStepCategory.File) {
-            @switch (step.data.filePath | fileExtension) {
-              @case('html') {
-                <xpert-canvas-html-editor class="h-full overflow-hidden" [content]="step.data.contents" [url]="step.data.url" />
-              }
-              @default {
-                <pac-file-editor class="h-full overflow-hidden" [fileName]="step.data.url" 
-                  [content]="step.data.contents" 
-                />
-              }
-            }
+            <chat-canvas-file-editor [step]="step" class="w-full h-full" />
           }
           @case (eChatMessageStepCategory.Files) {
             <div class="flex flex-col overflow-auto h-full px-4 py-3">
@@ -141,20 +132,7 @@
             </div>
           }
           @case (eChatMessageStepCategory.Program) {
-            <div class="flex flex-col overflow-auto h-full px-4 py-3">
-              <div class="whitespace-pre">{{step.data.code}}</div>
-              @if (step.data.output) {
-                <div class="w-full mt-4 flex flex-col bg-gray-200">
-                  <div class="p-1 border-b border-solid border-neutral-300">console</div>
-                  <div class="whitespace-pre-line">
-                    {{step.data.output}}
-                  </div>
-                </div>
-              }
-              @if (step.data.error) {
-                <div class="mt-4 text-text-destructive">{{step.data.error}}</div>
-              }
-            </div>
+            <chat-canvas-terminal [step]="step" class="p-2" />
           }
           @case (eChatMessageStepCategory.Iframe) {
             <chat-canvas-iframe [step]="step" />
@@ -170,7 +148,7 @@
                   </div>
                 }
               }
-              @case ('bash') {
+              <!-- @case ('bash') {
                 <div dir="ltr" data-orientation="horizontal" class="flex flex-col flex-1 min-h-0">
                   <div
                     role="tabpanel"
@@ -192,7 +170,7 @@
                     </div>
                   </div>
                 </div>
-              }
+              } -->
               @case ('file') {
                 @switch (step.data.extension) {
                   @case('html') {

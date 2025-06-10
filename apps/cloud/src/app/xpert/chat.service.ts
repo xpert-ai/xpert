@@ -18,6 +18,7 @@ import {
   IXpertProject,
   IXpertToolset,
   shortTitle,
+  TChatMessageStep,
   TChatOptions,
   TChatRequest,
   TMessageContent,
@@ -344,6 +345,22 @@ export abstract class ChatService {
                 }
                 case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
                   this.updateLatestMessage((message) => {
+                    message.steps ??= []
+                    const step = event.data as TChatMessageStep
+                    if (step.id) {
+                      const index = message.steps.findIndex((_) => _.id === step.id)
+                      if (index > -1) {
+                        message.steps[index] = {
+                          ...message.steps[index],
+                          ...step
+                        }
+                        return {
+                          ...message,
+                          steps: [...message.steps]
+                        }
+                      }
+                    }
+                    
                     return {
                       ...message,
                       steps: [...(message.steps ?? []), event.data]
@@ -490,7 +507,6 @@ export abstract class ChatService {
   }
 
   updateEvent(event) {
-    // console.log(event)
     this.updateLatestMessage((lastMessage) => {
       return {
         ...lastMessage,

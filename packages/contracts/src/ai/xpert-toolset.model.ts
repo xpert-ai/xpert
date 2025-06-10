@@ -208,3 +208,9 @@ export type TToolsetParams = {
 export interface IBaseToolset {
   toolNamePrefix?: string
 }
+
+export type TProgramToolMessage = {
+  code: string
+	output: string
+  error?: string
+}

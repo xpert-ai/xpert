@@ -3,9 +3,9 @@ import { FileStorageProviderEnum } from './file-provider'
 
 export type TFile = {
   filePath: string;
-  fileType: string;
-  contents: string;
-  description: string;
+  fileType?: string;
+  contents?: string;
+  description?: string;
   size?: number
   createdAt?: Date
   url?: string
