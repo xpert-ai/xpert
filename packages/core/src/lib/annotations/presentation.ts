@@ -2,15 +2,22 @@ import { OrderBy } from '../orderby'
 import { Dimension } from '../types'
 
 /**
+ * 
  * Refer to OData 4.0 Vocabularies - SAP UI
  * see [PresentationVariantType](https://github.com/SAP/odata-vocabularies/blob/master/vocabularies/UI.md#PresentationVariantType)
  */
 export interface PresentationVariant {
   id?: string
   text?: string
+  /**
+   * Top N
+   */
   maxItems?: number
   // 增加此属性是否有必要?
   skip?: number
+  /**
+   * Order by measures or dimension
+   */
   sortOrder?: Array<OrderBy>
   /**
    * Sequence of groupable properties p1, p2, ... defining how the result is composed of instances representing groups,
