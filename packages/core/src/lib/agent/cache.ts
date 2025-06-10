@@ -97,7 +97,7 @@ export function Cache(key: string, {maxAge, level}: CacheOptions) {
 export class DSCacheService implements OcapCache {
   options = {
     maxAge: 1000 * 60 * 60,
-    level: 3
+    level: -1
   }
 
   constructor(options?: CacheOptions) {

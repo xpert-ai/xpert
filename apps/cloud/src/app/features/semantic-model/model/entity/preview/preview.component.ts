@@ -1,18 +1,17 @@
-import { CdkDrag, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop'
+import { CdkDrag, CdkDragDrop, DragDropModule, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, model, ViewChild } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal, ViewChild } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { nonNullable } from '@metad/core'
 import { AnalyticalGridComponent, AnalyticalGridModule } from '@metad/ocap-angular/analytical-grid'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
-import { DisplayDensity, NgmDensityDirective } from '@metad/ocap-angular/core'
+import { DisplayDensity, linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
 import { NgmEntityModule, PropertyCapacity } from '@metad/ocap-angular/entity'
-import { C_MEASURES, Dimension, EntityType, FilterOperator, getEntityVariables, isEntitySet, ISlicer, Measure, Syntax } from '@metad/ocap-core'
+import { C_MEASURES, DataSettings, Dimension, FilterOperator, getEntityVariables, isEntitySet, ISlicer, Measure, PresentationVariant, Syntax } from '@metad/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { differenceBy, isEmpty } from 'lodash-es'
 import { BehaviorSubject, combineLatest, filter, from, map, of, switchMap } from 'rxjs'
 import { SemanticModelService } from '../../model.service'
@@ -21,6 +20,14 @@ import { getDropProperty } from '../types'
 import { CdkDragDropContainers } from '../../types'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { getErrorMessage } from '@cloud/app/@core'
+import { MatIconModule } from '@angular/material/icon'
+import { MatButtonModule } from '@angular/material/button'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { MatExpansionModule } from '@angular/material/expansion'
+import { Dialog } from '@angular/cdk/dialog'
+import { ExplainComponent } from '@metad/story/story'
+import { MatSlideToggleModule } from '@angular/material/slide-toggle'
+import { NgmPresentationComponent } from '@metad/ocap-angular/selection'
 
 @Component({
   standalone: true,
@@ -34,15 +41,21 @@ import { getErrorMessage } from '@cloud/app/@core'
   imports: [
     CommonModule,
     FormsModule,
-    MaterialModule,
     TranslateModule,
     ContentLoaderModule,
+    DragDropModule,
+    MatIconModule,
+    MatButtonModule,
+    MatTooltipModule,
+    MatExpansionModule,
+    MatSlideToggleModule,
 
     NgmCommonModule,
     AnalyticalGridModule,
     NgmControlsModule,
     NgmEntityModule,
-    NgmDensityDirective
+    NgmDensityDirective,
+    NgmPresentationComponent
   ]
 })
 export class ModelEntityPreviewComponent {
@@ -58,6 +71,7 @@ export class ModelEntityPreviewComponent {
 
   readonly modelService = inject(SemanticModelService)
   readonly entityService = inject(ModelEntityService)
+  readonly #dialog = inject(Dialog)
 
   @ViewChild(AnalyticalGridComponent) grid!: AnalyticalGridComponent<any>
 
@@ -151,13 +165,18 @@ export class ModelEntityPreviewComponent {
     entitySet: this.cubeName()
   }))
 
+  readonly presentationVariant = model<PresentationVariant>({
+    maxItems: 1000
+  })
+
   readonly analyticsDataSettings = computed(() => ({
     ...this.dataSettings(),
     analytics: this.analytics(),
     selectionVariant: {
-      selectOptions: this.analytics()?.slicers
-    }
-  }))
+      selectOptions: this.analytics()?.slicers,
+    },
+    presentationVariant: this.presentationVariant()
+  } as DataSettings))
 
   readonly #entityType = derivedAsync(() => {
     const cubeName = this.cubeName()
@@ -174,6 +193,8 @@ export class ModelEntityPreviewComponent {
   readonly variableList = computed(() => {
     return getEntityVariables(this.entityType())
   })
+
+  readonly explains = signal<any[]>([])
 
   constructor() {
     effect(() => {
@@ -380,6 +401,16 @@ export class ModelEntityPreviewComponent {
         }
       }
     }
+  }
+
+  setExplains(items: unknown[]) {
+    this.explains.set(items)
+  }
+
+  openExplain() {
+    this.#dialog.open(ExplainComponent, {
+      data: this.explains()
+    })
   }
 
   ngOnDestroy() {

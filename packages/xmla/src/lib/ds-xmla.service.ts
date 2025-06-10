@@ -111,8 +111,8 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
   // hierarchy members cache
   private _members = {}
 
-  constructor(options: XmlaDataSourceOptions, agent: Agent, cacheService: OcapCache) {
-    super(options, agent, cacheService)
+  constructor(options: XmlaDataSourceOptions, agent: Agent, cacheService?: OcapCache) {
+    super(options, agent)
 
     // 对于内置 OLAP 引擎来说 dataSourceInfo 即是语义模型 ID
     this.xmlaService = new NxXmlaService(options.settings?.dataSourceInfo ?? options.id, {
@@ -329,20 +329,20 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
   }
 
   async getMDCubesWithCache(modelName: string, CATALOG_NAME: string, language = ''): Promise<EntitySet[]> {
-    const cacheOptions = {
-      key: serializeArgs('xmla-catalog:', modelName, CATALOG_NAME || '[CATALOG_NAME]', language),
-      maxAge: 1000 * 60 * 60 * 24 * 30,
-      level: 1,
-      version: '1'
-    }
-    const cache = await this.cacheService?.getCache(cacheOptions)
-    if (cache) {
-      return cache as EntitySet[]
-    }
+    // const cacheOptions = {
+    //   key: serializeArgs('xmla-catalog:', modelName, CATALOG_NAME || '[CATALOG_NAME]', language),
+    //   maxAge: 1000 * 60 * 60 * 24 * 30,
+    //   level: 1,
+    //   version: '1'
+    // }
+    // const cache = await this.cacheService?.getCache(cacheOptions)
+    // if (cache) {
+    //   return cache as EntitySet[]
+    // }
 
     const result = await this._discoverMDCubes(CATALOG_NAME, language)
 
-    this.cacheService?.setCache(cacheOptions, result)
+    // this.cacheService?.setCache(cacheOptions, result)
 
     return result
   }
@@ -403,26 +403,26 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
    * @returns EntitySet
    */
   private async getEntitySetWithCache(modelName: string, cube: string, language = ''): Promise<EntitySet> {
-    const cacheOptions = {
-      key: serializeArgs('xmla-entity:', modelName, cube, language),
-      maxAge: 1000 * 60 * 60 * 24 * 30,
-      level: 1,
-      version: '1'
-    }
+    // const cacheOptions = {
+    //   key: serializeArgs('xmla-entity:', modelName, cube, language),
+    //   maxAge: 1000 * 60 * 60 * 24 * 30,
+    //   level: 1,
+    //   version: '1'
+    // }
 
-    // Get cache firstly
-    const cache = await this.cacheService?.getCache<EntitySet>(cacheOptions)
-    if (cache) {
-      return cache
-    }
+    // // Get cache firstly
+    // const cache = await this.cacheService?.getCache<EntitySet>(cacheOptions)
+    // if (cache) {
+    //   return cache
+    // }
 
     // Actual fetch data
     const result = await this.#discoverEntitySet(cube, language)
 
     // Update cache
-    if (result) {
-      this.cacheService?.setCache(cacheOptions, result)
-    }
+    // if (result) {
+    //   this.cacheService?.setCache(cacheOptions, result)
+    // }
 
     if (!result) {
       console.log(`Can't discover metadata for cube '${cube}'`)
@@ -847,27 +847,27 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
       headers['Accept-Language'] = language
     }
 
-    const cacheOptions = {
-      key: serializeArgs(
-        'xmla-members:',
-        modelName,
-        CATALOG_NAME || '[CATALOG_NAME]',
-        CUBE_NAME,
-        DIMENSION,
-        HIERARCHY_UNIQUE_NAME,
-        LEVEL_UNIQUE_NAME,
-        language
-      ),
-      maxAge: 1000 * 60 * 60 * 24 * 30,
-      level: 2,
-      version: '1'
-    }
+    // const cacheOptions = {
+    //   key: serializeArgs(
+    //     'xmla-members:',
+    //     modelName,
+    //     CATALOG_NAME || '[CATALOG_NAME]',
+    //     CUBE_NAME,
+    //     DIMENSION,
+    //     HIERARCHY_UNIQUE_NAME,
+    //     LEVEL_UNIQUE_NAME,
+    //     language
+    //   ),
+    //   maxAge: 1000 * 60 * 60 * 24 * 30,
+    //   level: 2,
+    //   version: '1'
+    // }
 
     // Get cache firstly
-    const cache = await this.cacheService?.getCache<MDXMember[]>(cacheOptions)
-    if (cache) {
-      return cache
-    }
+    // const cache = await this.cacheService?.getCache<MDXMember[]>(cacheOptions)
+    // if (cache) {
+    //   return cache
+    // }
 
     const entityType = await firstValueFrom(this.selectEntityType(CUBE_NAME))
     if (!isEntityType(entityType)) {
@@ -901,7 +901,7 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
     })
 
     // Update cache
-    this.cacheService?.setCache(cacheOptions, result)
+    // this.cacheService?.setCache(cacheOptions, result)
 
     return result
   }
@@ -1045,23 +1045,23 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
     return this.options.dialect
   }
 
-  override async clearCache(key = ''): Promise<void> {
-    if (!this.cacheService) {
-      return
-    }
-    if (key) {
-      return await this.cacheService.clear(key)
-    }
+  // override async clearCache(key = ''): Promise<void> {
+  //   if (!this.cacheService) {
+  //     return
+  //   }
+  //   if (key) {
+  //     return await this.cacheService.clear(key)
+  //   }
 
-    const keys = await this.cacheService?.keys()
-    return await Promise.all(
-      keys
-        .filter((key) => (key as string).startsWith('xmla') && (key as string).indexOf(`::${this.options.name}`) > -1)
-        .map((key) => this.cacheService.clear(key))
-    ).then(() => {
-      return
-    })
-  }
+  //   const keys = await this.cacheService?.keys()
+  //   return await Promise.all(
+  //     keys
+  //       .filter((key) => (key as string).startsWith('xmla') && (key as string).indexOf(`::${this.options.name}`) > -1)
+  //       .map((key) => this.cacheService.clear(key))
+  //   ).then(() => {
+  //     return
+  //   })
+  // }
 }
 
 // merge EntityType

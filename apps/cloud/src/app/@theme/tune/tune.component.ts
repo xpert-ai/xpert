@@ -52,14 +52,14 @@ export class TuneComponent {
   readonly localAgent? = inject(LocalAgent, { optional: true })
   readonly wasmAgentService = inject(WasmAgentService)
   readonly serverAgent? = inject(ServerSocketAgent, { optional: true })
-  readonly cacheService = inject(NgmDSCacheService)
+  readonly cacheService = inject(NgmDSCacheService, {optional: true})
   readonly store = inject(Store)
 
   get cacheLevel() {
-    return this.cacheService.getCacheLevel()
+    return this.cacheService?.getCacheLevel()
   }
   set cacheLevel(value) {
-    this.cacheService.changeCacheLevel(value)
+    this.cacheService?.changeCacheLevel(value)
     this.store.cacheLevel = value
   }
 
@@ -99,11 +99,11 @@ export class TuneComponent {
 
   readonly unclosedRequests = this.serverAgent?.unclosedRequests
 
-  constructor() {
-    if (this.store.cacheLevel !== null && this.cacheService.getCacheLevel() !== this.store.cacheLevel) {
-      this.cacheService.changeCacheLevel(this.store.cacheLevel)
-    }
-  }
+  // constructor() {
+  //   if (this.store.cacheLevel !== null && this.cacheService?.getCacheLevel() !== this.store.cacheLevel) {
+  //     this.cacheService?.changeCacheLevel(this.store.cacheLevel)
+  //   }
+  // }
 
   tryConnectLocalAgent() {
     this.localAgent?.connect()

@@ -42,13 +42,15 @@ export class CopilotStoredMessageComponent {
 
   readonly reasoning = computed(() => this.message()?.data?.additional_kwargs?.reasoning_content)
   readonly text = computed(() => {
-    const text = this.content()
-      ? typeof this.content() === 'string'
-        ? this.content()
-        : JSON.stringify(this.content())
-      : this.toolCalls()
-        ? JSON.stringify(this.toolCalls())
-        : this.toolResponse()
+    let text = this.content() ? 
+      typeof this.content() === 'string' ? this.content()
+        : JSON.stringify(this.content()) : ''
+    
+    if (this.toolCalls()) {
+      text += text ? '\n\n' : ''
+      text += JSON.stringify(this.toolCalls(), null, 2)
+    }
+
     return text
   })
 

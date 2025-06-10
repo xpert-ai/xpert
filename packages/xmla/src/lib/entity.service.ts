@@ -235,19 +235,19 @@ export class XmlaEntityService<T> extends AbstractEntityService<T> implements En
       headers['Accept-Language'] = language
     }
 
-    const cacheOptions = {
-      key: serializeArgs('xmla-mdx:', modelName, mdx, language),
-      version: '1',
-      maxAge: 1000 * 60 * 60,
-      level: 3
-    }
+    // const cacheOptions = {
+    //   key: serializeArgs('xmla-mdx:', modelName, mdx, language),
+    //   version: '1',
+    //   maxAge: 1000 * 60 * 60,
+    //   level: 3
+    // }
 
     // cache
-    const cache = await this.dataSource.cacheService?.getCache(cacheOptions, options)
+    // const cache = await this.dataSource.cacheService?.getCache(cacheOptions, options)
 
-    if (cache) {
-      return cache
-    }
+    // if (cache) {
+    //   return cache
+    // }
 
     return await this.dataSource.agent.request(this.dataSource.options, {
       headers,

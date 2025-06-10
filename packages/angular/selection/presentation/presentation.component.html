@@ -1,0 +1,39 @@
+<button class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary
+            bg-transparent hover:bg-hover-bg"
+  [matTooltip]="'Ngm.Common.Presentation' | translate: {Default: 'Presentation'}"
+  matTooltipPosition="above"
+  #trigger="cdkMenuTriggerFor"
+  [cdkMenuTriggerFor]="menu"
+  [cdkMenuTriggerData]="{trigger: trigger}"
+>
+  <i class="ri-presentation-line"></i>
+</button>
+
+<ng-template #menu let-trigger="trigger">
+  <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItem [cdkMenuTriggerFor]="topMenu">
+      Top {{topN() ?? ''}}
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #topMenu let-trigger="trigger">
+  <div cdkMenu class="cdk-menu__large">
+    @for (n of topNOptions; track n) {
+      <div cdkMenuItem [class.active]="topN() === n"
+        (click)="topN.set(n)">
+        Top {{n}}
+      </div>
+    }
+
+    <div class="mt-1 flex flex-col" >
+      <label class="text-sm px-1">{{ 'Ngm.Common.Custom' | translate: {Default: 'Custom'} }}</label>
+      <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-2 text-components-input-text-filled caret-primary-600 outline-none 
+        placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs 
+        px-3 radius-md system-sm-regular"
+        [(ngModel)]="topN"
+      >
+    </div>
+  </div>
+</ng-template>
+  

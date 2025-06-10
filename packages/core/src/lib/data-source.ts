@@ -271,6 +271,8 @@ export interface DataSource {
 
   /**
    * Clear the browser cache
+   * 
+   * @deprecated
    */
   clearCache(): Promise<void>
 
@@ -299,7 +301,7 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
   readonly calculatedMeasures$ = this.options$.pipe(map((options) => options?.calculatedMeasures))
 
   protected _entitySets = {}
-  constructor(options: T, public agent: Agent, public cacheService: OcapCache) {
+  constructor(options: T, public agent: Agent, /*public cacheService: OcapCache*/) {
     this.options$.next(options)
   }
   
@@ -472,7 +474,7 @@ export abstract class AbstractDataSource<T extends DataSourceOptions> implements
   }
 
   async clearCache(key = ''): Promise<void> {
-    return await this.cacheService.clear(key)
+    return // await this.cacheService.clear(key)
   }
 
   onDestroy() {

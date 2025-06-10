@@ -8,7 +8,6 @@ import { NgmCopilotContextService, NgmCopilotContextToken, NgmCopilotEngineServi
 import {
   DensityDirective,
   NgmAgentService,
-  NgmDSCacheService,
   OCAP_AGENT_TOKEN,
   OCAP_DATASOURCE_TOKEN
 } from '@metad/ocap-angular/core'
@@ -76,7 +75,7 @@ registerEChartsThemes()
   providers: [
     DirtyCheckGuard,
     NgmAgentService,
-    NgmDSCacheService,
+    // NgmDSCacheService,
     provideLogger(),
     provideFormly(),
     provideFormlyMaterial(),

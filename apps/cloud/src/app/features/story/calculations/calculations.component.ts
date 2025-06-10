@@ -15,7 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import { NgmCommonModule, NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
-import { ISelectOption, NgmDSCacheService, filterSearch } from '@metad/ocap-angular/core'
+import { ISelectOption, filterSearch } from '@metad/ocap-angular/core'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
 import {
   CalculationProperty,
@@ -58,7 +58,7 @@ export class StoryCalculationsComponent {
 
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
-  readonly dsCoreService = inject(NgmDSCacheService)
+  // readonly dsCoreService = inject(NgmDSCacheService)
 
   readonly activeLink = signal<{ dataSource: string; modelId: string; entity: string }>(null)
 

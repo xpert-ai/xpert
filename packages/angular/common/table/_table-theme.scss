@@ -83,18 +83,4 @@
       }
     }
   }
-  .cdk-table.grid {
-    &.ngm-density__cosy {
-      .cdk-header-cell,
-      .cdk-cell {
-        padding: 0 10px;
-      }
-    }
-    &.ngm-density__compact {
-      .cdk-header-cell,
-      .cdk-cell {
-        padding: 0 5px;
-      }
-    }
-  }
 }

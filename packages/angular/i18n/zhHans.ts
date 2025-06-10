@@ -32,7 +32,9 @@ export const ZhHans = {
       DisplayBehaviour_IDOnly: '编码',
       ClearDrillDown: "清空下钻",
       Description: "描述",
-      Step: '步骤'
+      Step: '步骤',
+      Presentation: '展示',
+      Custom: '自定义'
     },
     AnalyticalCard: {
       Screenshot: '截图',
