@@ -26,3 +26,7 @@
 .mat-toolbar {
   font-size: 1rem;
 }
+
+.row.selected {
+  @apply bg-neutral-200;
+}
