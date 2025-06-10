@@ -256,7 +256,6 @@ export class AnalyticalGridComponent<T> implements OnChanges, AfterViewInit, OnD
 
   readonly rowAxes$: Observable<AnalyticalGridColumn[]> = this.analyticsService.analytics$.pipe(
       map((analytics) => {
-        console.log(analytics.rows)
         const columns: AnalyticalGridColumn[] = []
         analytics.rows?.forEach((column: any) => {
           columns.push({
