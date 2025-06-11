@@ -218,6 +218,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 									tenantId: tenantId,
 									organizationId: organizationId,
 									userId,
+									projectId: project?.id,
 									subscriber
 								},
 								recursionLimit: GeneralAgentRecursionLimit,

@@ -1,8 +1,34 @@
-import { getPythonErrorMessage } from '@metad/server-common'
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
+import { getPythonErrorMessage, shortuuid } from '@metad/server-common'
 import { environment } from '@metad/server-config'
 import { DeployWebappCommand } from '@metad/server-core'
 import { CommandBus } from '@nestjs/cqrs'
+import { EventSource } from 'eventsource'
 import axios from 'axios'
+import {t} from 'i18next'
+import { ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageStepType, TChatMessageStep, TProgramToolMessage } from '@metad/contracts'
+import { ToolInvokeError } from '../xpert-toolset'
+
+export type TSandboxBaseParams = {
+	workspace_id: string
+	/**
+	 * @deprecated use `workspace_id`
+	 */
+	thread_id: string
+}
+
+export type TListFilesResponse = {
+	files: {
+		name: string
+		extension: string
+		size: number
+		created_date: string
+	}[]
+}
+
+export type TCreateFileReq = TSandboxBaseParams & {
+	//
+}
 
 export class FileSystem {
 	constructor(protected sandboxUrl: string) {}
@@ -12,31 +38,33 @@ export class FileSystem {
 			const sandboxUrl = this.sandboxUrl
 			try {
 				const result = await axios.post(`${sandboxUrl}/file/` + path, requestData, options)
-				return JSON.stringify(result.data)
+				return result.data
 			} catch (error) {
-				throw new Error(error.response?.data?.detail || error.response?.data || error)
+				throw new Error(getPythonErrorMessage(error))
 			}
 		}
 
 		return requestData
 	}
 
-	async createFile(body: any, options: { signal: AbortSignal }): Promise<void> {
+	async createFile(body: TCreateFileReq, options: { signal: AbortSignal }): Promise<void> {
 		return this.doRequest('create', body, options)
+	}
+
+	async listFiles(body: TSandboxBaseParams, options: { signal: AbortSignal }): Promise<TListFilesResponse> {
+		return this.doRequest('list', body, options)
 	}
 }
 
-export type TProjectDeployParams = {
+export type TProjectDeployParams = TSandboxBaseParams & {
 	base_url: string
 	type: string
-	thread_id: string
 }
 
-export type TProjectCodeParams = {
+export type TProjectCodeParams = TSandboxBaseParams & {
 	filename: string
 	type: string
 	content: string
-	thread_id: string
 }
 
 export class ProjectClient {
@@ -119,6 +147,74 @@ export class BaseToolClient {
 
 export class BashClient extends BaseToolClient {
 	async exec(body, options: { signal: AbortSignal }) {
+		if (environment.pro) {
+			const completionCondition = (data) => {
+				return data.includes('<done>')
+			}
+			return new Promise((resolve, reject) => {
+				const stepId = shortuuid()
+				let result = ''
+				const es = new EventSource(this.sandboxUrl + '/bash/exec/', {
+					fetch: (input, init) =>
+						fetch(input, {
+							...init,
+							method: 'POST',
+							headers: {
+								...init.headers,
+								'Content-Type': 'application/json'
+							},
+							body: JSON.stringify(body),
+							signal: options.signal
+						})
+				})
+
+				es.addEventListener('message', (event) => {
+					console.log(event.data)
+
+					if (completionCondition(event.data)) {
+						resolve(result) // Resolve with the complete message
+						es.close() // Close the connection
+						return
+					} else if (event.data != null) {
+						try {
+							if (result) {
+								result += '\n'
+							}
+							result += event.data ?? ''
+
+							// Update tool message
+							dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+								id: stepId,
+								type: ChatMessageStepType.ComputerUse,
+								category: ChatMessageStepCategory.Program,
+								toolset: 'Bash',
+								tool: 'execute',
+								title: t('server-ai:toolset.Bash.ExecuteBashCommand'),
+								message: body.command,
+								data: {
+									code: body.command,
+									output: result,
+								}
+							} as TChatMessageStep<TProgramToolMessage>).catch((err) => {
+								console.error(err)
+							})
+						} catch (err) {
+							throw new ToolInvokeError(`转换浏览器调用结果错误`)
+						}
+					}
+				})
+
+				es.addEventListener('error', (err) => {
+					console.error(err)
+					if (err.code === 401 || err.code === 403) {
+						console.log('not authorized')
+					}
+					es.close()
+					reject(err)
+				})
+			})
+		}
+
 		return await this.doRequest('bash/exec/', body, { signal: options.signal })
 	}
 }
@@ -146,7 +242,7 @@ export class Sandbox {
 				const result = await axios.post(`${sandboxUrl}/` + path, requestData, options)
 				return JSON.stringify(result.data)
 			} catch (error) {
-				throw new Error(error.response?.data?.detail || error.response?.data || error)
+				throw new Error(getPythonErrorMessage(error))
 			}
 		}
 

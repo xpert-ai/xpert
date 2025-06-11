@@ -18,6 +18,9 @@ export type TMessageChannel = {
 }
 
 export type TAgentRunnableConfigurable = {
+  /**
+   * Thread id
+   */
   thread_id: string
   checkpoint_ns: string
   checkpoint_id: string
@@ -26,6 +29,10 @@ export type TAgentRunnableConfigurable = {
   organizationId: string
   language: string
   userId: string
+  /**
+   * Xpert project id
+   */
+  projectId?: string
   // Caller
   agentKey: string
   xpertName?: string
@@ -46,6 +53,15 @@ export function channelName(name: string) {
 
 export function messageContentText(content: string | TMessageContentComplex) {
 	return typeof content === 'string' ? content : content.type === 'text' ? content.text : ''
+}
+
+/**
+ * Get the project ID or thread ID as the workspace ID
+ * 
+ * @param configurable 
+ */
+export function getRunnableWorkspace(configurable: TAgentRunnableConfigurable) {
+  return configurable?.projectId || configurable?.thread_id
 }
 
 /**

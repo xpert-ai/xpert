@@ -22,7 +22,7 @@
     @if (step().data.error) {
       <div class="mt-4 text-text-destructive">{{ step().data.error }}</div>
     } @else {
-      <pre class="text-xs text-zinc-600 dark:text-zinc-300 font-mono whitespace-pre-wrap break-all overflow-visible"
+      <pre class="text-sm text-zinc-600 dark:text-zinc-300 font-mono whitespace-pre-wrap break-all overflow-visible"
       >{{ step().data.output }}</pre>
     }
   </div>
