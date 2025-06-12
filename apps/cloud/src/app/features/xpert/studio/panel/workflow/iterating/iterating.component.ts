@@ -6,6 +6,7 @@ import {
   getErrorMessage,
   getVariableSchema,
   injectToastr,
+  IteratingItemParameterName,
   IWFNIterating,
   IWorkflowNode,
   TXpertTeamNode,
@@ -54,6 +55,7 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
   readonly studioService = inject(XpertStudioApiService)
   readonly xpertService = inject(XpertService)
   readonly #toastr = injectToastr()
+  readonly ItemParmaName = IteratingItemParameterName
 
   // Inputs
   readonly entity = input<IWorkflowNode>()
@@ -123,7 +125,7 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
   })
 
   readonly inputVariableItem = computed(() => getVariableSchema(this.variables(), this.inputVariable()).variable?.item)
-  readonly restInputParams = computed(() => this.inputParams()?.filter((p) => !this.inputVariableItem()?.some((_) => _.name === p.name)))
+  readonly restInputParams = computed(() => this.inputParams()?.filter((p) => p.name && !this.inputVariableItem()?.some((_) => _.name === p.name)))
 
   readonly subXpertKey = computed(() => this.draft()?.connections.find((_) => _.type === 'xpert' && _.from === this.iteratingEntity()?.key)?.to)
   readonly subXpert = computed(() => this.draft()?.nodes.find((_) => _.type === 'xpert' && _.key === this.subXpertKey()) as TXpertTeamNode & {type: 'xpert'})

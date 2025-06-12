@@ -2731,6 +2731,7 @@
       "RecallSettings": "召回设置",
       "AtLeastOneTool": "至少启用一个工具",
       "Iterating": "迭代",
+      "VariableNameOrOverwriteElement": "变量名，默认覆盖当前元素",
       "Next": "下一步",
       "ErrorModePlaceholder": "选择一种响应错误的方式",
       "Parallelization": "并行",

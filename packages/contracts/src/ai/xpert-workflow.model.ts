@@ -89,6 +89,11 @@ export interface IWFNIterating extends IWorkflowNode {
   errorMode?: 'terminate' | 'ignore' | 'remove'
 }
 
+/**
+ * The parameter name that represents the entire current element in array
+ */
+export const IteratingItemParameterName = ''
+
 export interface IWFNAnswer extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.ANSWER
   promptTemplate: string

@@ -49,8 +49,8 @@
             <span class="text-sm text-text-secondary">{{ 'item' }}</span>
             <xpert-state-variable-select inline class="opacity-90 hover:opacity-100"
               [variables]="subVariables()"
-              [ngModel]="getInputParam('item')"
-              (ngModelChange)="updateInputParam('item', $event)"
+              [ngModel]="getInputParam(ItemParmaName)"
+              (ngModelChange)="updateInputParam(ItemParmaName, $event)"
             />
           </li>
         }
@@ -110,16 +110,15 @@
     <ul class="ml-1 border-l border-solid border-divider-regular">
       @for (item of outputParams(); track i; let i = $index) {
         <li class="group/item relative px-2 py-0.5 flex justify-between items-center text-text-secondary hover:bg-hover-bg">
-          <div class="relative w-[120px]">
+          <div class="relative grow max-w-[220px]">
             <input class="w-full py-1 bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-2 rounded-lg system-sm-regular" 
-              [placeholder]=" 'PAC.Xpert.VariableName' | translate: {Default: 'Variable Name'}"
+              [placeholder]=" 'PAC.Xpert.VariableNameOrOverwriteElement' | translate: {Default: 'Variable name, overwrite current element by default'}"
               [ngModel]="item.name"
               (ngModelChange)="updateOutput(i, 'name', $event)"
             >
           </div>
 
-          <div class="grow"></div>
-          <i class="ri-arrow-left-circle-line mr-1"></i>
+          <i class="ri-arrow-left-circle-line mx-1"></i>
 
           <xpert-state-variable-select inline class="opacity-90 hover:opacity-100"
             [variables]="subVariables()"

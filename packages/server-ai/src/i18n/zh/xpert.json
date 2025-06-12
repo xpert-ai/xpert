@@ -15,7 +15,10 @@
         "XpertCopilotNotFound": "数字专家或智能体节点的智能助理模型未配置",
         "RecursionLimitReached": "在达到停止条件之前，已达到递归次数 {value} 限制。您可以通过在数字专家工作室中的代理设置中设置“递归限制”来增加限制。故障排除 URL：https://mtda.cloud/docs/ai/troubleshooting/errors/recursion_limit/",
         "NoAgentInGraph": "在流程中未能找到智能体节点 '{value}'",
-        "AgentMissingKey": "Agent 缺少 Key: "
+        "AgentMissingKey": "Agent 缺少 Key: ",
+        "InputParamsRequired": "节点‘{node}’的输入变量必输",
+        "OutputParamsRequired": "节点‘{node}’的输出变量必输",
+        "ItemInputParamNotFound": "未找到节点‘{node}’的元素输入变量"
     },
     "Project": {
         "CreatingTasks": "创建任务",
