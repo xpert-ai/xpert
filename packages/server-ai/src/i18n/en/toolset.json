@@ -28,8 +28,5 @@
     "CreatedAPlan": "Created a plan",
     "Update": "Update",
     "Step": "Step"
-  },
-  "Python": {
-    "ExecPythonCode": "Executing Python code"
   }
 }

@@ -45,6 +45,7 @@ export class CopilotPromptGeneratorComponent {
   readonly promptLength = computed(() => this.instruction()?.length)
 
   readonly loading = signal(false)
+  readonly show = signal(false)
 
   async generate() {
     this.loading.set(true)
@@ -69,6 +70,10 @@ export class CopilotPromptGeneratorComponent {
     this.instructions.set(
       this.#translate.instant(`PAC.Copilot.PromptGenerator.${item.key}.instruction`, { Default: item.instruction })
     )
+  }
+
+  toggleGen() {
+    this.show.update((v) => !v)
   }
 
   cancel() {

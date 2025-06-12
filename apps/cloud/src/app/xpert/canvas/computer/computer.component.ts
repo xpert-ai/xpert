@@ -1,25 +1,26 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, model, output, signal } from '@angular/core'
+import { Dialog } from '@angular/cdk/dialog'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
+import { FileTypePipe, ListHeightStaggerAnimation } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { derivedAsync } from 'ngxtension/derived-async'
+import { ChatConversationFilesComponent } from '@cloud/app/@shared/chat'
 import { ChatConversationService, ChatMessageStepCategory, ChatMessageStepType, injectFormatRelative } from '@cloud/app/@core'
 import { FileEditorComponent } from '@cloud/app/@shared/files'
+import { XpertProjectTasksComponent } from '@cloud/app/@shared/xpert'
 import { CanvasHtmlEditorComponent } from '../html-editor/html-editor.component'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { FileTypePipe, ListHeightStaggerAnimation } from '@metad/core'
 import { BehaviorSubject, debounceTime, switchMap } from 'rxjs'
 import { XpertHomeService } from '../../home.service'
-import { XpertProjectTasksComponent } from '@cloud/app/@shared/xpert'
 import { ChatService } from '../../chat.service'
-import { Dialog } from '@angular/cdk/dialog'
-import { ChatConversationFilesComponent } from '@cloud/app/@shared/chat'
 import { ChatCanvasIframeComponent } from '../iframe/iframe.component'
 import { ChatCanvasTerminalComponent } from '../terminal/terminal.component'
 import { ChatCanvasFileEditorComponent } from '../file-editor/file-editor.component'
+
 
 @Component({
   standalone: true,
@@ -28,7 +29,6 @@ import { ChatCanvasFileEditorComponent } from '../file-editor/file-editor.compon
     FormsModule,
     RouterModule,
     CdkMenuModule,
-    RouterModule,
     TranslateModule,
     MatSliderModule,
     MatTooltipModule,
@@ -61,14 +61,16 @@ export class ChatCanvasComputerComponent {
 
   // States
   readonly expand = signal(false)
-  readonly messageId = computed(() => this.homeService.canvasOpened()?.type === 'Computer' && this.homeService.canvasOpened()?.messageId)
+  // readonly messageId = computed(() => this.homeService.canvasOpened()?.type === 'Computer' && this.homeService.canvasOpened()?.messageId)
+  // Collect steps from messages
   readonly steps = computed(() => {
-    const conversation = this.homeService.conversation()
-    const id = this.messageId()
-    if (conversation?.messages) {
-      return id ? conversation.messages.find((_) => _.id === id)?.steps : conversation.messages[conversation.messages.length - 1]?.steps
-    }
-    return []
+    const conversation = this.chatService.conversation()
+    return conversation?.messages?.reduce((acc, message) => {
+      if (message.steps && message.steps.length > 0) {
+        acc.push(...message.steps)
+      }
+      return acc
+    }, [])
   })
 
   readonly stepLength = computed(() => this.steps()?.length)

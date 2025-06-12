@@ -11,7 +11,7 @@ export function getErrorMessage(err: any): string {
   } else if(err?.message) {
     error = err?.message
   } else if (err) {
-    // 实在没办法则转成 JSON string
+    // If there is no other way, convert it to JSON string
     error = JSON.stringify(err)
   }
 
@@ -19,5 +19,11 @@ export function getErrorMessage(err: any): string {
 }
 
 export function getPythonErrorMessage(error) {
-  return error.response?.data?.detail || error.response?.data || getErrorMessage(error)
+  const detail = error.response?.data?.detail
+  if (typeof detail === 'string') {
+    return detail
+  } else if (Array.isArray(detail)) {
+    return detail.map((item) => item.msg || item).join('\n')
+  }
+  return error.response?.data || getErrorMessage(error)
 }

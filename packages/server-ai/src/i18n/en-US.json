@@ -13,6 +13,8 @@
         "CodeProject": {
             "File": "File",
             "Coding": "Coding",
+            "FileCreated": "File created",
+            "Building": "Building",
             "Deploy": "Deploy",
             "DeploytoServer": "Deploy to server"
         },
@@ -22,6 +24,9 @@
         "TavilySearch": {
             "WebSearch": "Web Search",
             "Searching": "Searching"
+        },
+        "Python": {
+            "ExecPythonCode": "Executing Python code"
         }
     }
 }

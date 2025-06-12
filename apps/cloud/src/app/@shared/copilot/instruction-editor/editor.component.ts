@@ -1,7 +1,7 @@
 import { Clipboard } from '@angular/cdk/clipboard'
-import { Overlay } from '@angular/cdk/overlay'
 import { CommonModule } from '@angular/common'
 import {
+  booleanAttribute,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -24,7 +24,6 @@ import { timer } from 'rxjs'
 import { switchMap, tap } from 'rxjs/operators'
 import { agentLabel } from '../../../@core'
 
-declare var monaco: any
 
 @Component({
   selector: 'copilot-instruction-editor',
@@ -50,6 +49,12 @@ export class CopilotInstructionEditorComponent {
   readonly instruction = model<string>()
   readonly initHeight = input<number | string>(210)
   readonly tooltip = input<string>()
+  readonly lineNumbers = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
+  readonly wordWrap = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
   // Outputs
   readonly deleted = output<void>()
@@ -66,17 +71,17 @@ export class CopilotInstructionEditorComponent {
   private startHeight: string | number = 0
   readonly copied = signal(false)
 
-  readonly editorOptions = signal({
+  readonly editorOptions = computed(() => ({
     theme: 'vs',
     automaticLayout: true,
     language: 'markdown',
-    lineNumbers: 'off',
+    lineNumbers: this.lineNumbers() ? 'on' : 'off',
+    wordWrap: this.wordWrap(),
     glyphMargin: 0,
-    wordWrap: false,
     minimap: {
       enabled: false
     }
-  })
+  }))
 
   readonly #editor = signal(null)
 
@@ -91,10 +96,6 @@ export class CopilotInstructionEditorComponent {
       const height = this.elementRef.nativeElement.offsetHeight
       this.startHeight = height
     }, { allowSignalWrites: true })
-  }
-
-  toggleWrap() {
-    this.editorOptions.update((state) => ({ ...state, wordWrap: !state.wordWrap }))
   }
 
   remove() {

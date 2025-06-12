@@ -1,7 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { HttpEventType } from '@angular/common/http'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -20,11 +19,10 @@ import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { FileTypePipe, linkedModel, NgmDndDirective } from '@metad/core'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { combineLatest, EMPTY, of } from 'rxjs'
-import { catchError, map, switchMap, tap } from 'rxjs/operators'
+import { EMPTY } from 'rxjs'
+import { map, switchMap } from 'rxjs/operators'
 import { ChatProjectHomeComponent } from '../home/home.component'
 import { ChatProjectComponent } from '../project.component'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
 
 /**
  *
@@ -39,7 +37,6 @@ import { MatProgressBarModule } from '@angular/material/progress-bar'
     CdkMenuModule,
     TranslateModule,
     MatTooltipModule,
-    MatProgressBarModule,
     NgmSpinComponent,
     FileIconComponent,
     FileTypePipe,
@@ -85,9 +82,9 @@ export class ChatProjectAttachmentsComponent {
   readonly uploadFileList = signal<{ file: File; progress?: number; error?: string; storageFile?: IStorageFile }[]>([])
 
   constructor() {
-    effect(() => {
+    // effect(() => {
       // console.log(this.uploadFileList())
-    })
+    // })
   }
 
   toggleExpand(item: FlatTreeNode) {

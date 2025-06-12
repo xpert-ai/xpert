@@ -28,8 +28,5 @@
     "CreatedAPlan": "创建一个计划",
     "Update": "更新",
     "Step": "步骤"
-  },
-  "Python": {
-    "ExecPythonCode": "执行 Python 代码"
   }
 }

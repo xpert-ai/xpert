@@ -13,6 +13,8 @@
         "CodeProject": {
             "File": "文件",
             "Coding": "编写代码",
+            "FileCreated": "文件已创建",
+            "Building": "构建中",
             "Deploy": "部署",
             "DeploytoServer": "部署到服务器"
         },
@@ -22,6 +24,9 @@
         "TavilySearch": {
             "WebSearch": "网络搜索",
             "Searching": "正在搜索"
+        },
+        "Python": {
+            "ExecPythonCode": "执行 Python 代码"
         }
     }
 }
