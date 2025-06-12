@@ -7,8 +7,12 @@ import { EventSource } from 'eventsource'
 import axios from 'axios'
 import {t} from 'i18next'
 import { ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageStepType, TChatMessageStep, TProgramToolMessage } from '@metad/contracts'
+import { ServerResponse } from 'http'
 import { ToolInvokeError } from '../xpert-toolset'
 
+/**
+ * Base parameters for sandbox operations.
+ */
 export type TSandboxBaseParams = {
 	workspace_id: string
 	/**
@@ -30,7 +34,7 @@ export type TCreateFileReq = TSandboxBaseParams & {
 	//
 }
 
-export class FileSystem {
+export class SandboxFileSystem {
 	constructor(protected sandboxUrl: string) {}
 
 	async doRequest(path: string, requestData: any, options: { signal: AbortSignal }) {
@@ -53,6 +57,32 @@ export class FileSystem {
 
 	async listFiles(body: TSandboxBaseParams, options: { signal: AbortSignal }): Promise<TListFilesResponse> {
 		return this.doRequest('list', body, options)
+	}
+
+	async streamFile(path: string, res: ServerResponse, options?: { signal: AbortSignal }) {
+		const sandboxUrl = this.sandboxUrl
+		const response = await axios.get(`${sandboxUrl}/file/stream/${path}`, { responseType: 'stream', signal: options?.signal })
+
+		// Determine the media type using a mapping object
+		const mediaTypeMapping: { [key: string]: string } = {
+			'.txt': 'text/plain; charset=utf-8',
+			'.json': 'application/json; charset=utf-8',
+			'.html': 'text/html; charset=utf-8',
+			'.py': 'text/plain; charset=utf-8',
+			'.md': 'text/markdown; charset=utf-8',
+			'.jpg': 'image/jpeg',
+			'.jpeg': 'image/jpeg',
+			'.png': 'image/png',
+			'.pdf': 'application/pdf'
+		}
+
+		// Extract the file extension
+		const fileExtension = Object.keys(mediaTypeMapping).find((ext) => path.endsWith(ext))
+		const mediaType = fileExtension ? mediaTypeMapping[fileExtension] : 'text/plain; charset=utf-8'
+
+		// Set the Content-Type header
+		res.setHeader('Content-Type', mediaType)
+		response.data.pipe(res)
 	}
 }
 
@@ -220,7 +250,7 @@ export class BashClient extends BaseToolClient {
 }
 
 export class Sandbox {
-	fs = new FileSystem(this.sandboxUrl)
+	fs = new SandboxFileSystem(this.sandboxUrl)
 	project = new ProjectClient(this.params)
 	python = new PythonClient(this.params)
 	bash = new BashClient(this.params)
@@ -250,7 +280,7 @@ export class Sandbox {
 	}
 }
 
-export class MockFileSystem extends FileSystem {
+export class MockFileSystem extends SandboxFileSystem {
 	async doRequest(path: string, requestData: any, options: { signal: AbortSignal }) {
 		return
 	}

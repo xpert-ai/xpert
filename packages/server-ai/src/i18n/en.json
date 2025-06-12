@@ -9,12 +9,19 @@
         "ReadFile": "Read file",
         "DeletedFile": "Deleted file"
     },
-    "toolset": {
+    "Tools": {
         "CodeProject": {
             "File": "File",
             "Coding": "Coding",
             "Deploy": "Deploy",
             "DeploytoServer": "Deploy to server"
+        },
+        "Bash": {
+            "ExecuteBashCommand": "Execute bash command"
+        },
+        "TavilySearch": {
+            "WebSearch": "Web Search",
+            "Searching": "Searching"
         }
     }
 }

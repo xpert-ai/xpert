@@ -9,12 +9,19 @@
         "ReadFile": "读取文件",
         "DeletedFile": "删除文件"
     },
-    "toolset": {
+    "Tools": {
         "CodeProject": {
             "File": "文件",
             "Coding": "编写代码",
             "Deploy": "部署",
             "DeploytoServer": "部署到服务器"
+        },
+        "Bash": {
+            "ExecuteBashCommand": "执行 Bash 命令"
+        },
+        "TavilySearch": {
+            "WebSearch": "网络搜索",
+            "Searching": "正在搜索"
         }
     }
 }

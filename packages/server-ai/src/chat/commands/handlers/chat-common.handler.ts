@@ -68,6 +68,7 @@ import {
 	isChatModelWithBindTools,
 	isChatModelWithParallelToolCallsParam,
 	OutputMode,
+	PlanInstruction,
 	PROVIDERS_WITH_PARALLEL_TOOL_CALLS_PARAM
 } from './supervisor'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
@@ -471,6 +472,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		const stateVariables: TStateVariable[] = []
 		const toolsetVarirables: TStateVariable[] = []
 		const tools: StructuredToolInterface[] = []
+		// Project toolset for plan mode
 		if (project?.settings?.mode === 'plan') {
 			const projectToolset = await this.commandBus.execute<CreateProjectToolsetCommand, ProjectToolset>(new CreateProjectToolsetCommand(projectId))
 			const _variables = await projectToolset.getVariables()
@@ -490,6 +492,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			tools.push(...items)
 		}
 
+		// Custom toolsets
 		if (project?.toolsets.length > 0) {
 			const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
 				new ToolsetGetToolsCommand(project.toolsets.map(({id}) => id), {
@@ -519,7 +522,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 		this.#logger.debug(`Project general agent use tools:\n${[...tools].map((_, i) => `${i+1}. ` + _.name + ': ' + _.description).join('\n')}`)
 
-		// Knowledgebases
+		// Custom Knowledgebases
 		if (project?.knowledges?.length) {
 			const retrievers = project.knowledges.map(({id}) => createKnowledgeRetriever(this.queryBus, id))
 			const retriever = new EnsembleRetriever({
@@ -556,7 +559,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		)
 
 		const supervisorName = 'general_agent'
-		// Xperts
+		// Custom Xperts
 		const xperts = []
 		if (project?.xperts.length) {
 			for await (const xpert of project.xperts) {
@@ -637,8 +640,13 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 		const callModel = async (state: typeof AgentStateAnnotation.State, config?: RunnableConfig) => {
 			const parameters = stateToParameters(state)
-			let systemTemplate = `Current time: ${new Date().toISOString()}` + (project?.settings?.instruction || supervisorPrompt) + '\n\n' + Instruction
-			const files = await fileToolset?.listFiles()
+			let systemTemplate = `Current time: ${new Date().toISOString()}\n` + (project?.settings?.instruction || supervisorPrompt) + '\n\n' + Instruction
+
+			if (project?.settings?.mode === 'plan') {
+				systemTemplate += `\n\n` + PlanInstruction
+			}
+
+			const files = await fileToolset?.listFiles('project', projectId)
 			if (files) {
 				systemTemplate += '\n\n' + `The list of files in the current workspace is:\n${files.map(({filePath}) => filePath).join('\n') || 'No files yet.'}\n`
 			}

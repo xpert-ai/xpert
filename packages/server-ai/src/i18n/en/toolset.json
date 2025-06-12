@@ -29,10 +29,6 @@
     "Update": "Update",
     "Step": "Step"
   },
-  "TavilySearch": {
-    "WebSearch": "Web Search",
-    "Searching": "Searching"
-  },
   "Python": {
     "ExecPythonCode": "Executing Python code"
   }

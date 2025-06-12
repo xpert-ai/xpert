@@ -7,7 +7,9 @@ import { ApiBasedToolSchemaParser } from '../../utils/parser'
 import { BuiltinToolset } from './builtin-toolset'
 import { BaseTool } from '../../../shared'
 
-
+/**
+ * @deprecated
+ */
 export class BaseCommandTool extends BaseTool {
 	
 	public name: string

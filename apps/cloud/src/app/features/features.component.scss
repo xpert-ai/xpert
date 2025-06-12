@@ -76,7 +76,7 @@ $prefix: (ngm, shell);
 }
 
 .pac_sidenav-content {
-  @apply flex flex-col overflow-hidden z-10;
+  @apply flex flex-col overflow-hidden ;
 }
 
 .mat-drawer-container.pac-fullscreen {
@@ -91,6 +91,7 @@ $prefix: (ngm, shell);
 	background-size: 200%;
   background-position: 80% 50%;
 
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   font-weight: 800;

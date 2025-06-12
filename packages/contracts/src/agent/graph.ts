@@ -64,6 +64,14 @@ export function getRunnableWorkspace(configurable: TAgentRunnableConfigurable) {
   return configurable?.projectId || configurable?.thread_id
 }
 
+export function getWorkspaceFromRunnable(configurable: TAgentRunnableConfigurable): {type?: 'project' | 'conversation'; id?: string} {
+	return configurable?.projectId  ? {type: 'project', id: configurable.projectId} : 
+		configurable?.thread_id ? {
+			type: 'conversation',
+			id: configurable.thread_id
+		} : {}
+  }
+
 /**
  * Set value into variable of state.
  * 

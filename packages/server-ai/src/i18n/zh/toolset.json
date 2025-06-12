@@ -29,10 +29,6 @@
     "Update": "更新",
     "Step": "步骤"
   },
-  "TavilySearch": {
-    "WebSearch": "网络搜索",
-    "Searching": "正在搜索"
-  },
   "Python": {
     "ExecPythonCode": "执行 Python 代码"
   }
