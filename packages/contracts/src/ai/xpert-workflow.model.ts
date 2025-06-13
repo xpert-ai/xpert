@@ -92,7 +92,8 @@ export interface IWFNIterating extends IWorkflowNode {
 /**
  * The parameter name that represents the entire current element in array
  */
-export const IteratingItemParameterName = ''
+export const IteratingItemParameterName = '$item'
+export const IteratingIndexParameterName = '$index'
 
 export interface IWFNAnswer extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.ANSWER

@@ -2,6 +2,7 @@ import { RunnableLambda } from '@langchain/core/runnables'
 import { CompiledStateGraph, END, Send } from '@langchain/langgraph'
 import {
 	channelName,
+	IteratingIndexParameterName,
 	IteratingItemParameterName,
 	IWFNIterating,
 	IXpert,
@@ -9,7 +10,6 @@ import {
 	IXpertAgentExecution,
 	mapTranslationLanguage,
 	setStateVariable,
-	STATE_VARIABLE_SYS,
 	TAgentRunnableConfigurable,
 	TXpertTeamNode,
 	WorkflowNodeTypeEnum
@@ -20,7 +20,7 @@ import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/c
 import { compact, get, isString } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { wrapAgentExecution } from '../../../xpert-agent-execution/utils'
-import { AgentStateAnnotation, STATE_VARIABLE_INPUT } from '../../commands/handlers/types'
+import { AgentStateAnnotation } from '../../commands/handlers/types'
 import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { STATE_VARIABLE_ITERATING_OUTPUT, STATE_VARIABLE_ITERATING_OUTPUT_STR } from '../iterating'
@@ -138,22 +138,14 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 					const maximum = entity.maximum
 					const errorMode = entity.errorMode
 					const invokeSubgraph = async (item, index: number) => {
+						const originalState = isString(item) ? {[IteratingIndexParameterName]: index, [IteratingItemParameterName]: item}
+						  : {...(item ?? {}), [IteratingIndexParameterName]: index, [IteratingItemParameterName]: item}
 						let inputs = {}
-						if (isString(item)) {
-							const inputParam = inputParams.find((param) => param.name === IteratingItemParameterName)
-							if (!inputParam) {
-								throw new InternalServerErrorException(
-									await this.translate('xpert.Error.ItemInputParamNotFound', entity)
-								)
-							}
-							inputs = setStateVariable(inputs, inputParam.variable, item)
-						} else {
-							const _state = {...state, ...item}
-							inputs = inputParams.reduce((acc, curr) => {
-								setStateVariable(acc, curr.variable, get(_state, curr.name))
-								return acc
-							}, inputs)
-						}
+						const _state = {...state, ...originalState}
+						inputs = inputParams.reduce((acc, curr) => {
+							setStateVariable(acc, curr.variable, get(_state, curr.name))
+							return acc
+						}, inputs)
 
 						const itemExecution: IXpertAgentExecution = {
 							category: 'workflow',

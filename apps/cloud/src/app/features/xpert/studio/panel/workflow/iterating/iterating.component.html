@@ -43,17 +43,16 @@
             <i class="ri-delete-bin-line"></i>
           </button>
         </li>
-      } @empty {
-        @if (!restInputParams()?.length) {
-          <li class="px-2 py-0.5 flex justify-between items-center hover:bg-hover-bg">
-            <span class="text-sm text-text-secondary">{{ 'item' }}</span>
-            <xpert-state-variable-select inline class="opacity-90 hover:opacity-100"
-              [variables]="subVariables()"
-              [ngModel]="getInputParam(ItemParmaName)"
-              (ngModelChange)="updateInputParam(ItemParmaName, $event)"
-            />
-          </li>
-        }
+      } 
+      @for (item of SYSTEM_VARIABLES; track item) {
+        <li class="px-2 py-0.5 flex justify-between items-center hover:bg-hover-bg">
+          <span class="text-sm text-text-secondary">{{ item }}</span>
+          <xpert-state-variable-select inline class="opacity-90 hover:opacity-100"
+            [variables]="subVariables()"
+            [ngModel]="getInputParam(item)"
+            (ngModelChange)="updateInputParam(item, $event)"
+          />
+        </li>
       }
 
       @for (item of restInputParams(); track item.name) {

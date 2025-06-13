@@ -6,6 +6,7 @@ import {
   getErrorMessage,
   getVariableSchema,
   injectToastr,
+  IteratingIndexParameterName,
   IteratingItemParameterName,
   IWFNIterating,
   IWorkflowNode,
@@ -126,7 +127,7 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
   })
 
   readonly inputVariableItem = computed(() => getVariableSchema(this.variables(), this.inputVariable()).variable?.item)
-  readonly restInputParams = computed(() => this.inputParams()?.filter((p) => p.name !== '' && !this.inputVariableItem()?.some((_) => _.name === p.name)))
+  readonly restInputParams = computed(() => this.inputParams()?.filter((p) => p.name !== IteratingIndexParameterName && p.name !== IteratingItemParameterName && !this.inputVariableItem()?.some((_) => _.name === p.name)))
 
   readonly subXpertKey = computed(() => this.draft()?.connections.find((_) => _.type === 'xpert' && _.from === this.iteratingEntity()?.key)?.to)
   readonly subXpert = computed(() => this.draft()?.nodes.find((_) => _.type === 'xpert' && _.key === this.subXpertKey()) as TXpertTeamNode & {type: 'xpert'})
@@ -145,6 +146,9 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
   })
 
   readonly subVariables = computed(() => this.extXpertVariables() ?? this.subAgentVariables())
+
+  // System variables
+  readonly SYSTEM_VARIABLES = [IteratingIndexParameterName, IteratingItemParameterName]
 
   constructor() {
     super()
