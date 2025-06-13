@@ -38,8 +38,7 @@ export class XpertVariablePanelComponent {
   readonly #searchTerm = debouncedSignal(this.searchTerm, 300)
   readonly filteredVariables = computed(() => {
     const searchTerm = this.#searchTerm().toLowerCase()
-    return this.variables()
-      .map((group) => ({
+    return this.variables()?.map((group) => ({
         ...group,
         variables: group.variables.filter((variable) => {
           return variable.name.toLowerCase().includes(searchTerm) || variable.title?.toLowerCase().includes(searchTerm)

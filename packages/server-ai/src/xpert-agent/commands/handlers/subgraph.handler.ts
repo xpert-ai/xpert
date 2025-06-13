@@ -164,7 +164,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// Memory tools
-		if (team.memory?.qa?.enabled) {
+		if (team.memory?.enabled && team.memory?.qa?.enabled) {
 			tools.push(...initializeMemoryTools(store, xpert.id).map((tool) => ({
 				caller: agent.key,
 				tool
