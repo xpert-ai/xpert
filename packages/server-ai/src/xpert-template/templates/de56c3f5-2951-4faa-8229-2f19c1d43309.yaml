@@ -1,0 +1,327 @@
+team:
+  name: Workflow Orchestrator-Worker
+  type: agent
+  title: Orchestrator-Worker
+  description: Orchestrator-Worker Agents, the orchestrator can decompose the task and delegate each subtask to the workers.
+  avatar:
+    emoji:
+      id: male-construction-worker
+    background: rgba(254, 247, 195, 0.8)
+  starters:
+    - null
+    - null
+    - null
+    - null
+  options:
+    position:
+      x: 56.05136578724387
+      y: 150.93212250212133
+    scale: 0.94
+    agent:
+      Agent_UMVcdTL9w1:
+        position:
+          x: 10
+          y: 40
+      Agent_albUSvIcdF:
+        position:
+          x: 380
+          y: 260
+    workflow:
+      Iterating_jsCXACz4wh:
+        position:
+          x: 380
+          y: 40
+      Answer_nMvdi1YrI9:
+        position:
+          x: 720
+          y: 40
+    toolset:
+      4ace0c5c-f9c1-44be-a0b8-98920099a68a:
+        position:
+          x: 380
+          y: 440
+  agentConfig:
+    disableOutputs:
+      - Agent_UMVcdTL9w1
+      - Agent_albUSvIcdF
+    stateVariables: []
+  memory: null
+  summarize: null
+  version: "1"
+  agent:
+    key: Agent_UMVcdTL9w1
+    name: null
+    title: Orchestrator
+    description: Generate queries
+    avatar:
+      emoji:
+        id: female-office-worker
+        set: ""
+        colons: ":female-office-worker:"
+        unified: 1F469-200D-1F4BC
+      background: rgba(213, 245, 246, 0.8)
+      url: null
+    prompt: Generate a plan for the report. Up to {{num}} sections.
+    promptTemplates:
+      - id: 6aoHHLG2pX
+        role: human
+        text: "Here is the report topic: {{input}}"
+    parameters:
+      - type: number
+        name: num
+        title: Number of sections
+        description: null
+        optional: null
+        maximum: null
+        options: null
+    outputVariables:
+      - type: array[object]
+        name: sections
+        title: Sections
+        description: Sections of the report.
+        optional: false
+        maximum: null
+        options: null
+        operation: null
+        item:
+          - type: text
+            optional: false
+            name: name
+            description: Name for this section of the report.
+            title: Name
+          - type: paragraph
+            optional: false
+            name: description
+            title: Description
+            description: Brief overview of the main topics and concepts to be covered in
+              this section.
+        variableSelector: null
+    options:
+      structuredOutputMethod: functionCalling
+    copilotModel: null
+    leaderKey: null
+    collaboratorNames: []
+    toolsetIds: []
+    knowledgebaseIds: []
+  copilotModel:
+    modelType: llm
+    model: deepseek-chat
+    options: null
+  knowledgebases: []
+  toolsets:
+    - id: 4ace0c5c-f9c1-44be-a0b8-98920099a68a
+      name: Tavily search tool
+      type: tavily
+      category: builtin
+      description: Tavily search tool
+      avatar:
+        url: //api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon
+      options:
+        toolPositions:
+          tavily_search: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: e8da4e3e-4eea-4033-8c41-f37c27b8fd29
+          name: tavily_search
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+  tags: []
+nodes:
+  - type: agent
+    key: Agent_UMVcdTL9w1
+    position:
+      x: 10
+      y: 40
+    entity:
+      key: Agent_UMVcdTL9w1
+      name: null
+      title: Orchestrator
+      description: Generate queries
+      avatar:
+        emoji:
+          id: female-office-worker
+          set: ""
+          colons: ":female-office-worker:"
+          unified: 1F469-200D-1F4BC
+        background: rgba(213, 245, 246, 0.8)
+        url: null
+      prompt: Generate a plan for the report. Up to {{num}} sections.
+      promptTemplates:
+        - id: 6aoHHLG2pX
+          role: human
+          text: "Here is the report topic: {{input}}"
+      parameters:
+        - type: number
+          name: num
+          title: Number of sections
+          description: null
+          optional: null
+          maximum: null
+          options: null
+      outputVariables:
+        - type: array[object]
+          name: sections
+          title: Sections
+          description: Sections of the report.
+          optional: false
+          maximum: null
+          options: null
+          operation: null
+          item:
+            - type: text
+              optional: false
+              name: name
+              description: Name for this section of the report.
+              title: Name
+            - type: paragraph
+              optional: false
+              name: description
+              title: Description
+              description: Brief overview of the main topics and concepts to be covered in
+                this section.
+          variableSelector: null
+      options:
+        structuredOutputMethod: functionCalling
+      copilotModel: null
+      leaderKey: null
+      collaboratorNames: []
+      toolsetIds: []
+      knowledgebaseIds: []
+  - type: agent
+    key: Agent_albUSvIcdF
+    position:
+      x: 380
+      y: 260
+    entity:
+      key: Agent_albUSvIcdF
+      name: null
+      title: Worker
+      description: null
+      avatar:
+        emoji:
+          id: male-construction-worker
+          set: ""
+          colons: ":male-construction-worker:"
+          unified: 1F477-200D-2642-FE0F
+        background: rgba(213, 245, 246, 0.8)
+        url: null
+      prompt: Write a report section following the provided name and description.
+        Include no preamble for each section. You can use the search tool to
+        search for relevant online information. Use markdown formatting. Use
+        language {{sys.language}}
+      promptTemplates:
+        - id: i2Mpg8wJEe
+          role: human
+          text: "Here is the section name: {{name}} and description: {{description}}"
+      parameters:
+        - type: text
+          name: name
+          title: Name
+          description: null
+          optional: null
+          maximum: null
+          options: null
+        - type: text
+          name: description
+          title: Description
+          description: null
+          optional: null
+          maximum: null
+          options: null
+      outputVariables: null
+      options:
+        disableMessageHistory: true
+      copilotModel: null
+      leaderKey: Iterating_jsCXACz4wh
+      collaboratorNames: []
+      toolsetIds:
+        - 4ace0c5c-f9c1-44be-a0b8-98920099a68a
+      knowledgebaseIds: []
+    hash: 152080dba1887cf3e713f460c870cb6a3de9ca918c36e905f49d02dce8d4cc10
+  - type: workflow
+    key: Iterating_jsCXACz4wh
+    position:
+      x: 380
+      y: 40
+    entity:
+      type: iterating
+      key: Iterating_jsCXACz4wh
+      title: Assign Workers
+      inputVariable: agent_umvcdtl9w1_channel.sections
+      parallel: true
+      maximum: 2
+      errorMode: terminate
+      outputVariable: completedSections
+      description: Assign each chapter to a sub-agent, execute in parallel or
+        serially, and move to the next step after all are completed
+      inputParams:
+        - name: name
+          variable: name
+        - name: description
+          variable: description
+      outputParams:
+        - name: ""
+          variable: agent_albusvicdf_channel.output
+    hash: 77767c3b3da4565ba29a8bc1e49eb266f1191370fc74d4478d67029a4659a1f4
+  - type: workflow
+    key: Answer_nMvdi1YrI9
+    position:
+      x: 720
+      y: 40
+    entity:
+      type: answer
+      key: Answer_nMvdi1YrI9
+      title: Synthesizer
+      description: Format completed section to str to use as context for final sections
+      promptTemplate: "{{iterating_jscxacz4wh_channel.output_str}}"
+    hash: 0703e2264fd8878c743987005af450fdd51cfe7f20960c4c180593c9055b277f
+  - type: toolset
+    key: 4ace0c5c-f9c1-44be-a0b8-98920099a68a
+    position:
+      x: 380
+      y: 440
+    entity:
+      id: 4ace0c5c-f9c1-44be-a0b8-98920099a68a
+      name: Tavily search tool
+      type: tavily
+      category: builtin
+      description: Tavily search tool
+      avatar:
+        url: //api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon
+      options:
+        toolPositions:
+          tavily_search: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: e8da4e3e-4eea-4033-8c41-f37c27b8fd29
+          name: tavily_search
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    hash: 3b1ae0c459c40bb8fbb15bc95d3b689839614d31c1dc7aae7960f146756ae741
+connections:
+  - type: edge
+    key: Agent_UMVcdTL9w1/Iterating_jsCXACz4wh
+    from: Agent_UMVcdTL9w1
+    to: Iterating_jsCXACz4wh
+  - type: agent
+    key: Iterating_jsCXACz4wh/Agent_albUSvIcdF
+    from: Iterating_jsCXACz4wh
+    to: Agent_albUSvIcdF
+  - type: edge
+    key: Iterating_jsCXACz4wh/Answer_nMvdi1YrI9
+    from: Iterating_jsCXACz4wh
+    to: Answer_nMvdi1YrI9
+  - type: toolset
+    key: Agent_albUSvIcdF/4ace0c5c-f9c1-44be-a0b8-98920099a68a
+    from: Agent_albUSvIcdF
+    to: 4ace0c5c-f9c1-44be-a0b8-98920099a68a

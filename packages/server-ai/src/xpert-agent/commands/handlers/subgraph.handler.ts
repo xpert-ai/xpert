@@ -164,7 +164,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// Memory tools
-		if (team.memory?.qa?.enabled) {
+		if (team.memory?.enabled && team.memory?.qa?.enabled) {
 			tools.push(...initializeMemoryTools(store, xpert.id).map((tool) => ({
 				caller: agent.key,
 				tool
@@ -590,8 +590,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					nState.messages.push(message)
 					nState[channelName(agentKey)].messages.push(message)
 					nState[channelName(agentKey)].output = stringifyMessageContent(message.content)
-				} else {
-					nState[channelName(agentKey)] = message
+				} else if (message) {
+					nState[channelName(agentKey)] = {
+						...message,
+						...nState[channelName(agentKey)],
+					}
 				}
 				// Write to memory
 				agent.options?.memories?.forEach((item) => {

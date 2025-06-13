@@ -3,7 +3,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, HostListener, inject, signal } from '@angular/core'
+import { Component, computed, ElementRef, HostListener, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -78,6 +78,7 @@ export class XpertMCPManageComponent {
   readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()
   readonly #router = inject(Router)
+  readonly elementRef = inject(ElementRef)
   readonly confirmName = injectConfirmUnique()
   readonly confirmDelete = injectConfirmDelete()
 
@@ -366,7 +367,9 @@ export class XpertMCPManageComponent {
 
   @HostListener('document:keydown.escape', ['$event'])
   onEscKeydownHandler(event: KeyboardEvent) {
-    event.preventDefault()
-    this.close()
+    const element = this.elementRef.nativeElement as HTMLElement
+    if (document.activeElement && element.contains(document.activeElement)) {
+      this.close()
+    }
   }
 }

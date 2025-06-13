@@ -2,13 +2,14 @@ import { RunnableLambda } from '@langchain/core/runnables'
 import { CompiledStateGraph, END, Send } from '@langchain/langgraph'
 import {
 	channelName,
+	IteratingIndexParameterName,
+	IteratingItemParameterName,
 	IWFNIterating,
 	IXpert,
 	IXpertAgent,
 	IXpertAgentExecution,
 	mapTranslationLanguage,
 	setStateVariable,
-	STATE_VARIABLE_SYS,
 	TAgentRunnableConfigurable,
 	TXpertTeamNode,
 	WorkflowNodeTypeEnum
@@ -16,10 +17,10 @@ import {
 import { RequestContext } from '@metad/server-core'
 import { InternalServerErrorException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { compact, get } from 'lodash'
+import { compact, get, isString } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { wrapAgentExecution } from '../../../xpert-agent-execution/utils'
-import { AgentStateAnnotation, STATE_VARIABLE_INPUT } from '../../commands/handlers/types'
+import { AgentStateAnnotation } from '../../commands/handlers/types'
 import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { STATE_VARIABLE_ITERATING_OUTPUT, STATE_VARIABLE_ITERATING_OUTPUT_STR } from '../iterating'
@@ -39,24 +40,15 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 		const { xpertId, graph, node, options } = command
 		const { subscriber, isDraft } = options
 
+		const entity = node.entity as IWFNIterating
+
 		// Get the only child agent node
 		const connections = graph.connections.filter((conn) => (conn.type === 'agent' || conn.type === 'xpert') && conn.from === node.key)
 		if (connections.length > 1) {
-			throw new InternalServerErrorException(
-				await this.i18nService.translate('xpert.Error.MultiNodeNotSupported', {
-					lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
-					args: {
-						node: node.entity.title || node.entity.key
-					}
-				})
-			)
+			throw new InternalServerErrorException(await this.translate('xpert.Error.MultiNodeNotSupported', entity))
 		}
 		if (connections.length < 1) {
-			throw new InternalServerErrorException(
-				await this.i18nService.translate('xpert.Error.NoChildNodeForLoop', {
-					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-				})
-			)
+			throw new InternalServerErrorException(await this.translate('xpert.Error.NoChildNodeForLoop', entity))
 		}
 
 		let extXpert: IXpert = null
@@ -81,10 +73,17 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 			}
 		}
 
-		const entity = node.entity as IWFNIterating
 		const inputVariable = entity.inputVariable
 		const inputParams = entity.inputParams
 		const outputParams = entity.outputParams
+
+		if (!inputParams?.length) {
+			throw new InternalServerErrorException(await this.translate('xpert.Error.InputParamsRequired', entity))
+		}
+
+		if (!outputParams?.length) {
+			throw new InternalServerErrorException(await this.translate('xpert.Error.OutputParamsRequired', entity))
+		}
 
 		let subgraph = null
 		const execution: IXpertAgentExecution = {}
@@ -139,11 +138,14 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 					const maximum = entity.maximum
 					const errorMode = entity.errorMode
 					const invokeSubgraph = async (item, index: number) => {
-						const _state = {...state, ...item}
-						const inputs = inputParams.reduce((acc, curr) => {
+						const originalState = isString(item) ? {[IteratingIndexParameterName]: index, [IteratingItemParameterName]: item}
+						  : {...(item ?? {}), [IteratingIndexParameterName]: index, [IteratingItemParameterName]: item}
+						let inputs = {}
+						const _state = {...state, ...originalState}
+						inputs = inputParams.reduce((acc, curr) => {
 							setStateVariable(acc, curr.variable, get(_state, curr.name))
 							return acc
-						}, {})
+						}, inputs)
 
 						const itemExecution: IXpertAgentExecution = {
 							category: 'workflow',
@@ -172,8 +174,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 									async () => {
 										const retState = await subgraph.invoke(
 											{
-												[STATE_VARIABLE_INPUT]: state[STATE_VARIABLE_INPUT],
-												[STATE_VARIABLE_SYS]: state[STATE_VARIABLE_SYS],
+												...state,
 												...inputs
 											},
 											{
@@ -187,6 +188,9 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 										)
 		
 										const outputItem = outputParams.reduce((acc, curr) => {
+											if (curr.name === IteratingItemParameterName) {
+												return get(retState, curr.variable)
+											}
 											acc[curr.name] = get(retState, curr.variable)
 											return acc
 										}, {})
@@ -194,7 +198,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 		
 										return {
 											state: outputItem,
-											output
+											output: output
 										}
 									},
 									{
@@ -206,7 +210,8 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 								)()
 
 								return {
-									state: retState
+									state: retState,
+									output: retState as string
 								}
 							},
 							{
@@ -313,7 +318,9 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 					return {
 						[channelName(node.key)]: {
 							[STATE_VARIABLE_ITERATING_OUTPUT]: outputs,
-							[STATE_VARIABLE_ITERATING_OUTPUT_STR]: outputs.map((_) => JSON.stringify(_, null, 2))
+							[STATE_VARIABLE_ITERATING_OUTPUT_STR]: outputs?.map((_) =>
+								typeof _ === 'string' ? _ : JSON.stringify(_, null, 2)
+							).join('\n'),
 						}
 					}
 				}),
@@ -324,5 +331,14 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 				return connections.length > 0 ? connections.map((conn) => new Send(conn.to, state)) : END
 			}
 		}
+	}
+
+	async translate(key: string, entity: IWFNIterating) {
+		return await this.i18nService.translate(key, {
+				lang: mapTranslationLanguage(RequestContext.getLanguageCode()),
+				args: {
+					node: entity.title || entity.key
+				}
+			})
 	}
 }

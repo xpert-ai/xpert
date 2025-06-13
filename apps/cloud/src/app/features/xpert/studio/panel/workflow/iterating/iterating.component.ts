@@ -6,6 +6,8 @@ import {
   getErrorMessage,
   getVariableSchema,
   injectToastr,
+  IteratingIndexParameterName,
+  IteratingItemParameterName,
   IWFNIterating,
   IWorkflowNode,
   TXpertTeamNode,
@@ -24,6 +26,7 @@ import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { attrModel, linkedModel } from '@metad/core'
+import { isNil } from 'lodash-es'
 
 @Component({
   selector: 'xpert-studio-panel-workflow-iterating',
@@ -54,6 +57,7 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
   readonly studioService = inject(XpertStudioApiService)
   readonly xpertService = inject(XpertService)
   readonly #toastr = injectToastr()
+  readonly ItemParmaName = IteratingItemParameterName
 
   // Inputs
   readonly entity = input<IWorkflowNode>()
@@ -123,7 +127,7 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
   })
 
   readonly inputVariableItem = computed(() => getVariableSchema(this.variables(), this.inputVariable()).variable?.item)
-  readonly restInputParams = computed(() => this.inputParams()?.filter((p) => !this.inputVariableItem()?.some((_) => _.name === p.name)))
+  readonly restInputParams = computed(() => this.inputParams()?.filter((p) => p.name !== IteratingIndexParameterName && p.name !== IteratingItemParameterName && !this.inputVariableItem()?.some((_) => _.name === p.name)))
 
   readonly subXpertKey = computed(() => this.draft()?.connections.find((_) => _.type === 'xpert' && _.from === this.iteratingEntity()?.key)?.to)
   readonly subXpert = computed(() => this.draft()?.nodes.find((_) => _.type === 'xpert' && _.key === this.subXpertKey()) as TXpertTeamNode & {type: 'xpert'})
@@ -143,6 +147,9 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
 
   readonly subVariables = computed(() => this.extXpertVariables() ?? this.subAgentVariables())
 
+  // System variables
+  readonly SYSTEM_VARIABLES = [IteratingIndexParameterName, IteratingItemParameterName]
+
   constructor() {
     super()
 
@@ -161,7 +168,7 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
   }
 
   addInput() {
-    this.inputParams.update((params) => [...(params ?? []), {name: '', variable: ''}])
+    this.inputParams.update((params) => [...(params ?? []), {name: null, variable: ''}])
   }
 
   getInputParam(name: string) {

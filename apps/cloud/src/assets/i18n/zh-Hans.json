@@ -24,6 +24,7 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "SearchTerm": "搜索词",
       "Changelog": "更新日志",
       "PleaseInput": "请输入",
       "PasswordsNotMatch": "密码不匹配",
@@ -1637,6 +1638,7 @@
     },
     "Copilot": {
       "Copilot": "智能助理",
+      "ModelConfig": "模型配置",
       "ConversationVariables": "会话变量",
       "SystemVariables": "系统变量",
       "AICopilot": "AI 智能助理",
@@ -2731,6 +2733,7 @@
       "RecallSettings": "召回设置",
       "AtLeastOneTool": "至少启用一个工具",
       "Iterating": "迭代",
+      "VariableNameOrOverwriteElement": "变量名，默认覆盖当前元素",
       "Next": "下一步",
       "ErrorModePlaceholder": "选择一种响应错误的方式",
       "Parallelization": "并行",

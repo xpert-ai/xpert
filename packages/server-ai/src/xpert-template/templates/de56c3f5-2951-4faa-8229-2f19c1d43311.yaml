@@ -2,12 +2,11 @@ team:
   name: Planning and Execution
   type: agent
   title: Planning and Execution
-  description: The planning and execution agent is responsible for developing detailed plans and coordinating execution steps to complete the task efficiently.
+  description: The planning and execution agent is to create detailed plans and
+    coordinate execution steps to efficiently complete tasks.
   avatar:
     emoji:
       id: memo
-      colons: ":memo:"
-      unified: 1F4DD
     background: rgba(251, 232, 255, 0.8)
   starters:
     - I'm going to put the elephant in the refrigerator
@@ -71,33 +70,12 @@ team:
     knowledgebaseIds: []
   copilotModel:
     modelType: llm
-    model: deepseek-chat
+    model: gpt-4o
     options: null
   knowledgebases: []
   toolsets:
-    - id: e4554ac9-cc36-4b97-a8db-8197d3bb2d5d
-      name: Google search tool
-      type: tavily
-      category: builtin
-      description: online search tool
-      avatar:
-        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon
-      options:
-        toolPositions:
-          tavily_search: 0
-      privacyPolicy: null
-      customDisclaimer: null
-      tags: []
-      tools:
-        - id: 74f94aa2-9c19-4bc1-a707-44c286cafc1c
-          name: tavily_search
-          description: null
-          avatar: null
-          enabled: true
-          parameters: null
-          options: null
     - id: 00930607-6084-40de-86b7-a5089042fcd3
-      name: Planning toolset
+      name: Plan
       type: planning
       category: builtin
       description: null
@@ -113,15 +91,8 @@ team:
       customDisclaimer: null
       tags: []
       tools:
-        - id: 87222ba9-8fa1-4a87-93ec-27e8562db2df
-          name: delete_plan_step
-          description: null
-          avatar: null
-          enabled: true
-          parameters: null
-          options: null
-        - id: 2768b66e-f7a2-4b3c-8601-0b50a44a5719
-          name: update_plan_step
+        - id: 5c4daee8-3944-4740-81c3-4c3458ee0ada
+          name: create_plan
           description: null
           avatar: null
           enabled: true
@@ -134,8 +105,36 @@ team:
           enabled: true
           parameters: null
           options: null
-        - id: 5c4daee8-3944-4740-81c3-4c3458ee0ada
-          name: create_plan
+        - id: 2768b66e-f7a2-4b3c-8601-0b50a44a5719
+          name: update_plan_step
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+        - id: 87222ba9-8fa1-4a87-93ec-27e8562db2df
+          name: delete_plan_step
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+    - id: e4554ac9-cc36-4b97-a8db-8197d3bb2d5d
+      name: Google 搜索工具
+      type: tavily
+      category: builtin
+      description: 在线搜索工具
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/tavily/icon
+      options:
+        toolPositions:
+          tavily_search: 0
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 74f94aa2-9c19-4bc1-a707-44c286cafc1c
+          name: tavily_search
           description: null
           avatar: null
           enabled: true
@@ -230,6 +229,17 @@ nodes:
       title: Execute step by step
       description: Execute step by step according to the planned steps
       inputVariable: plan_steps
+      inputParams:
+        - name: index
+          variable: index
+        - name: content
+          variable: content
+      outputParams:
+        - name: ""
+          variable: agent_kzuoaglggf_channel.output
+      parallel: true
+      maximum: 2
+      errorMode: ignore
     hash: 5804cab6c31e81567760cc61a372108e3afc4e975659d62ee640ca36c1ebc71f
   - type: agent
     key: Agent_kZUOAglggf
@@ -240,9 +250,12 @@ nodes:
       key: Agent_kZUOAglggf
       title: Worker
       description: Execute each planning step and update the step status
-      prompt: |-
-        You need to complete the individual steps of the task and update the step status.
-        You can search for relevant information online before executing the task.
+      prompt: >-
+        You need to complete the individual steps of the task and update the
+        step status.
+
+        You can search for relevant information online before executing the
+        task.
       promptTemplates:
         - id: O014FOjBNN
           role: human
@@ -268,6 +281,11 @@ nodes:
       options:
         disableMessageHistory: true
         parallelToolCalls: false
+        availableTools:
+          Plan Toolset:
+            - list_plans
+            - update_plan_step
+            - delete_plan_step
       copilotModel: null
     hash: e0f158152fef2d3ccac38176b7f2a89111e716346acf67e469e212775ae469d1
   - type: toolset
@@ -321,7 +339,7 @@ nodes:
         parallelToolCalls: false
       copilotModel:
         modelType: llm
-        model: deepseek-reasoner
+        model: o3-mini
     hash: c6070d92c64d1d51fd4216e6b36f7f76e9da530964c47d54791f0e8c81687b8b
 connections:
   - type: toolset
