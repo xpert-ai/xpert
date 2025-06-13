@@ -1,5 +1,5 @@
 import { RunnableLambda } from '@langchain/core/runnables'
-import { END } from '@langchain/langgraph'
+import { END, Send } from '@langchain/langgraph'
 import {
 	IWFNIfElse,
 	TWFCaseCondition,
@@ -100,7 +100,13 @@ export function createCasesNode(graph: TXpertGraph, node: TXpertTeamNode & { typ
 		},
 		navigator: async (state: typeof AgentStateAnnotation.State, config) => {
 			const result = evaluateCases(state, config)
-			return graph.connections.find((conn) => conn.type === 'edge' && conn.from === result)?.to ?? END
+			const connections = graph.connections.filter((conn) => conn.type === 'edge' && conn.from === result)
+			if (connections.length > 1) {
+				return connections.map((conn) => new Send(conn.to, state))
+			} else if (connections.length === 1) {
+				return connections[0].to
+			}
+			return END
 		}
 	}
 }

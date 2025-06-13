@@ -1,4 +1,5 @@
 import { FetchFrom, ICopilotProviderModel, ProviderModel } from '@metad/contracts'
+import { ConfigService } from '@metad/server-config'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { Inject } from '@nestjs/common'
 import { AIProvidersService } from '../../../ai-model/index'
@@ -6,7 +7,7 @@ import { GetCopilotProviderModelQuery } from '../../../copilot-provider'
 import { CopilotService } from '../../copilot.service'
 import { CopilotWithProviderDto, ProviderWithModelsDto } from '../../dto'
 import { FindCopilotModelsQuery } from '../copilot-model-find.query'
-import { ConfigService } from '@metad/server-config'
+import { CopilotProviderPublicDto } from '../../../copilot-provider/dto'
 
 @QueryHandler(FindCopilotModelsQuery)
 export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModelsQuery> {
@@ -61,13 +62,15 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 
 					if (models.length) {
 						const providerSchema = provider.getProviderSchema()
+						const baseUrl = this.configService.get('baseUrl') as string
 						copilotSchemas.push(
 							new CopilotWithProviderDto({
 								...copilot,
+								modelProvider: new CopilotProviderPublicDto(copilot.modelProvider, baseUrl),
 								providerWithModels: new ProviderWithModelsDto({
 									...providerSchema,
 									models
-								}, this.configService.get('baseUrl') as string)
+								}, baseUrl)
 							})
 						)
 					}

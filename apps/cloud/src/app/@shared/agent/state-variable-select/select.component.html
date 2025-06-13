@@ -1,4 +1,5 @@
 <div class="menu-trigger group flex justify-start items-center text-sm px-2 p-1 rounded-lg bg-gray-100 hover:bg-gray-200"
+  #trigger="cdkMenuTriggerFor"
   [cdkMenuTriggerFor]="varsMenu"
 >
   <i class="ri-chat-thread-line mr-1 text-primary-400 group-hover:text-primary-500 "></i>
@@ -54,26 +55,10 @@
 
 
 <ng-template #varsMenu>
-  <div cdkMenu class="cdk-menu__medium">
-    <ul cdkMenuGroup>
-      @for (g of filteredVariables(); track g) {
-        @if (g.group) {
-          <div class="p-1 mt-2 text-sm text-text-secondary uppercase">{{g.group.description | i18n}}</div>
-        } @else {
-          <div class="p-1 mt-2 text-sm text-text-secondary">{{'PAC.Copilot.SystemVariables' | translate: {Default: 'System Variables'} }}</div>
-        }
-        @for (item of g.variables; track item.name) {
-          <li cdkMenuItemRadio class="max-w-sm"
-            [cdkMenuItemChecked]="item.name === variable()?.name"
-            (click)="selectVariable(g.group?.name, item)">
-            <div class="w-full flex items-center space-x-2 truncate">
-              <span class="text-sm mr-1">{{ item.name }}</span>
-              <span class="flex-1 text-xs italic truncate text-text-secondary">{{item.description | i18n}}</span>
-              <span class="ml-4 px-1 text-sm rounded-md bg-gray-50 text-primary-300">{{item.type}}</span>
-            </div>
-          </li>
-        }
-      }
-    </ul>
-  </div>
+  <xpert-variable-panel class="border-[0.5px] border-solid border-slate-200 rounded-xl shadow-lg bg-components-card-bg" (click)="$event.stopPropagation()" 
+    [variables]="variables()"
+    [ngModel]="value$()"
+    (ngModelChange)="setVariable($event);trigger.close()"
+    (close)="trigger.close()"
+  />
 </ng-template>

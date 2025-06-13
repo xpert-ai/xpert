@@ -92,8 +92,8 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				}
 			]
 		})
-
-		// System state variables
+		
+		// User parameters
 		const variables: TStateVariable[] = [
 			{
 				name: STATE_VARIABLE_INPUT,
@@ -150,7 +150,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 					en_US: 'Common Times',
 					zh_Hans: '常用时间'
 				}
-			},
+			}
 		]
 		
 		varGroups.push({

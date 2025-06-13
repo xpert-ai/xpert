@@ -41,10 +41,22 @@
       
       <div class="flex items-center truncate text-[13px] font-medium mr-1.5">
         <div class="truncate" [title]="_copilotModel()?.model">{{_copilotModel()?.model}}</div>
-        @if (selectedAiModel()?.model_type === eModelType.LLM) {
-          <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1">
-            {{'PAC.Copilot.Chat' | translate: {Default: 'Chat'} }}
-          </div>
+        @if (selectedAiModel(); as model) {
+          @if (model.model_type === eModelType.LLM) {
+            <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1">
+              {{'PAC.Copilot.Chat' | translate: {Default: 'Chat'} }}
+            </div>
+          }
+          @if (model.features?.includes(eModelFeature.TOOL_CALL) || model.features?.includes(eModelFeature.MULTI_TOOL_CALL)) {
+            <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default mr-0.5 w-[18px] justify-center opacity-60">
+              <i class="ri-hammer-fill"></i>
+            </div>
+          }
+          @if (model.features?.includes(eModelFeature.VISION)) {
+            <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default mr-0.5 w-[18px] justify-center opacity-60">
+              <i class="ri-eye-fill"></i>
+            </div>
+          }
         }
         @if (selectedAiModel()?.features?.includes(eModelFeature.VISION)) {
           <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default mr-0.5 w-[18px] justify-center">
@@ -52,7 +64,6 @@
           </div>
         }
         <div class="inline-block cursor-help">
-          
         </div>
       </div>
     } @else if (__copilotModel()) {
@@ -143,23 +154,20 @@
 </ng-template>
 
 <ng-template #modelsMenu let-mt="mt">
-  <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu pl-2 pb-2" [style.width.px]="menuTrigger.offsetWidth">
+  <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu pl-2" [style.width.px]="menuTrigger.offsetWidth">
     <div class="p-1 sticky top-0 w-full bg-components-card-bg border-b border-solid border-divider-deep z-10">
       <ngm-search class="w-full mt-1 rounded-lg overflow-hidden" [formControl]="searchControl" />
     </div>
 
     <div class="pr-2">
       @for (copilot of searchedModels(); track copilot.id) {
-        <div class="text-base p-2 font-semibold flex justify-start items-center sticky top-12 bg-components-card-bg z-10">
-          @if (copilot.providerWithModels.icon_small) {
-            <img class="w-5 h-5 inline-block mr-2" [src]="(copilot.providerWithModels.icon_small | i18n)">
-          }
-          {{copilot.providerWithModels?.label | i18n }}
-          <span class="mx-1">•</span>
+        <div class="text-base px-4 my-4 font-semibold flex justify-start items-center">
           <span class="uppercase">{{ ('PAC.Copilot.Role_' + copilot.role) | translate: {Default: copilot.role} }}</span>
+          <span class="mx-1">•</span>
+          <span >{{copilot.providerWithModels?.label | i18n }}</span>
         </div>
         @for (item of copilot.providerWithModels?.models; track item.model) {
-          <button type="button" class="w-full flex justify-start items-center gap-2 px-4 py-2 rounded-xl cursor-pointer 
+          <button type="button" class="w-full flex justify-start items-center gap-1 px-4 py-2 rounded-xl cursor-pointer 
             enabled:hover:bg-neutral-100/50 hover:text-primary-500 disabled:cursor-not-allowed"
             [ngClass]="(model() === item.model && modelType() === item.model_type) ? 'bg-neutral-100/50 text-primary-600 font-semibold' : ''"
             [class.opacity-60]="item.deprecated"
@@ -168,17 +176,25 @@
             [disabled]="item.deprecated"
             (click)="setModel(copilot, item.model);mt.close()"
           >
+          @if (copilot.providerWithModels.icon_small) {
+            <img [src]="(copilot.providerWithModels.icon_small | i18n)" class="w-4 h-4 inline-block">
+          }
             <span class="truncate" [title]="item.model"
               [ngmHighlight]="searchText()"
               [content]="item.model"
               customClasses="text-primary-600">{{item.model}}</span>
             @if (item.model_type === 'llm') {
-              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap">
+              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60">
                 {{'PAC.Copilot.Chat' | translate: {Default: 'Chat'} }}
               </div>
             }
+            @if (item.features?.includes(eModelFeature.TOOL_CALL) || item.features?.includes(eModelFeature.MULTI_TOOL_CALL)) {
+              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default mr-0.5 w-[18px] justify-center opacity-60">
+                <i class="ri-hammer-fill"></i>
+              </div>
+            }
             @if (item.features?.includes(eModelFeature.VISION)) {
-              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default mr-0.5 w-[18px] justify-center">
+              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default mr-0.5 w-[18px] justify-center opacity-60">
                 <i class="ri-eye-fill"></i>
               </div>
             }
@@ -186,5 +202,11 @@
         }
       }
     </div>
+
+    <a href="/settings/copilot/basic" target="_blank" class="sticky group bottom-0 flex cursor-pointer items-center rounded-b-lg border-t border-divider-subtle bg-components-panel-bg px-4 py-2 
+      text-text-accent z-10">
+      <span class="system-xs-medium">{{'PAC.Copilot.ModelConfig' | translate: {Default: 'Model config'} }}</span>
+      <i class="ri-external-link-line inline-block group-hover:translate-x-1 transition-transform"></i>
+    </a>
   </div>
 </ng-template>

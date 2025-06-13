@@ -1,13 +1,19 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
+import {
+	ChatMessageEventTypeEnum,
+	ChatMessageStepCategory,
+	ChatMessageStepType,
+	TChatMessageStep,
+	TProgramToolMessage
+} from '@metad/contracts'
 import { getPythonErrorMessage, shortuuid } from '@metad/server-common'
 import { environment } from '@metad/server-config'
 import { DeployWebappCommand } from '@metad/server-core'
 import { CommandBus } from '@nestjs/cqrs'
-import { EventSource } from 'eventsource'
 import axios from 'axios'
-import {t} from 'i18next'
-import { ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageStepType, TChatMessageStep, TProgramToolMessage } from '@metad/contracts'
+import { EventSource } from 'eventsource'
 import { ServerResponse } from 'http'
+import { t } from 'i18next'
 import { ToolInvokeError } from '../xpert-toolset'
 
 /**
@@ -34,6 +40,10 @@ export type TCreateFileReq = TSandboxBaseParams & {
 	//
 }
 
+export type TCreateFileResp = {
+	message: string
+}
+
 export class SandboxFileSystem {
 	constructor(protected sandboxUrl: string) {}
 
@@ -51,7 +61,7 @@ export class SandboxFileSystem {
 		return requestData
 	}
 
-	async createFile(body: TCreateFileReq, options: { signal: AbortSignal }): Promise<void> {
+	async createFile(body: TCreateFileReq, options: { signal: AbortSignal }): Promise<TCreateFileResp> {
 		return this.doRequest('create', body, options)
 	}
 
@@ -61,7 +71,10 @@ export class SandboxFileSystem {
 
 	async streamFile(path: string, res: ServerResponse, options?: { signal: AbortSignal }) {
 		const sandboxUrl = this.sandboxUrl
-		const response = await axios.get(`${sandboxUrl}/file/stream/${path}`, { responseType: 'stream', signal: options?.signal })
+		const response = await axios.get(`${sandboxUrl}/file/stream/${path}`, {
+			responseType: 'stream',
+			signal: options?.signal
+		})
 
 		// Determine the media type using a mapping object
 		const mediaTypeMapping: { [key: string]: string } = {
@@ -93,7 +106,7 @@ export type TProjectDeployParams = TSandboxBaseParams & {
 
 export type TProjectCodeParams = TSandboxBaseParams & {
 	filename: string
-	type: string
+	type?: string
 	content: string
 }
 
@@ -118,8 +131,8 @@ export class ProjectClient {
 			try {
 				return await axios.post(`${sandboxUrl}/project/` + path, requestData, options)
 			} catch (error) {
-				console.log(error)
-				throw new Error(error.response?.data?.detail || error.response?.data || error)
+				console.error(error.response)
+				throw new Error(getPythonErrorMessage(error))
 			}
 		}
 
@@ -131,9 +144,79 @@ export class ProjectClient {
 		return JSON.stringify(response.data, null, 2)
 	}
 
+	async build(body: TProjectDeployParams, options: { signal: AbortSignal }): Promise<string> {
+		// const response = await this.doRequest('build', body, { signal: options.signal })
+		const completionCondition = (data) => {
+				return data.includes('<done>')
+			}
+
+		return new Promise((resolve, reject) => {
+				const stepId = shortuuid()
+				let result = ''
+				const es = new EventSource(this.sandboxUrl + '/project/build/', {
+					fetch: (input, init) =>
+						fetch(input, {
+							...init,
+							method: 'POST',
+							headers: {
+								...init.headers,
+								'Content-Type': 'application/json'
+							},
+							body: JSON.stringify(body),
+							signal: options.signal
+						})
+				})
+
+				es.addEventListener('message', (event) => {
+					console.log(event.data)
+
+					if (completionCondition(event.data)) {
+						resolve(result) // Resolve with the complete message
+						es.close() // Close the connection
+						return
+					} else if (event.data != null) {
+						try {
+							if (result) {
+								result += '\n'
+							}
+							result += event.data ?? ''
+
+							// Update tool message
+							dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+								id: stepId,
+								type: ChatMessageStepType.ComputerUse,
+								category: ChatMessageStepCategory.Program,
+								toolset: 'code-project',
+								tool: 'build-deploy',
+								title: t('server-ai:Tools.CodeProject.Building'),
+								message: t('server-ai:Tools.CodeProject.Building'),
+								data: {
+									code: `npm install && npm run build`,
+									output: result
+								}
+							} as TChatMessageStep<TProgramToolMessage>).catch((err) => {
+								console.error(err)
+							})
+						} catch (err) {
+							throw new ToolInvokeError(`Convert build call result error`)
+						}
+					}
+				})
+
+				es.addEventListener('error', (err) => {
+					console.error(err)
+					if (err.code === 401 || err.code === 403) {
+						console.log('not authorized')
+					}
+					es.close()
+					reject(err)
+				})
+			})
+	}
+
 	async deploy(body: TProjectDeployParams, options: { signal: AbortSignal }): Promise<string> {
 		const response = await this.doRequest('deploy', body, { ...options, responseType: 'stream' })
-		return this.params.commandBus.execute(new DeployWebappCommand(response.data, body.thread_id))
+		return this.params.commandBus.execute(new DeployWebappCommand(response.data, body.workspace_id))
 	}
 }
 
@@ -219,17 +302,17 @@ export class BashClient extends BaseToolClient {
 								category: ChatMessageStepCategory.Program,
 								toolset: 'Bash',
 								tool: 'execute',
-								title: t('server-ai:toolset.Bash.ExecuteBashCommand'),
+								title: t('server-ai:Tools.Bash.ExecuteBashCommand'),
 								message: body.command,
 								data: {
 									code: body.command,
-									output: result,
+									output: result
 								}
 							} as TChatMessageStep<TProgramToolMessage>).catch((err) => {
 								console.error(err)
 							})
 						} catch (err) {
-							throw new ToolInvokeError(`转换浏览器调用结果错误`)
+							throw new ToolInvokeError(`Convert bash call result error`)
 						}
 					}
 				})
@@ -281,11 +364,11 @@ export class Sandbox {
 }
 
 export class MockFileSystem extends SandboxFileSystem {
-	async doRequest(path: string, requestData: any, options: { signal: AbortSignal }) {
+	async doRequest(path: string, requestData: any, options: { signal: AbortSignal }): Promise<any> {
 		return
 	}
 
-	async createFile(body: any, options: { signal: AbortSignal }): Promise<void> {
+	async createFile(body: any, options: { signal: AbortSignal }): Promise<TCreateFileResp> {
 		return this.doRequest('create', body, options)
 	}
 }

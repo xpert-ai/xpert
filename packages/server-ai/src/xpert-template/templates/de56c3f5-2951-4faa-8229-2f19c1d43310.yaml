@@ -6,8 +6,6 @@ team:
   avatar:
     emoji:
       id: memo
-      colons: ":memo:"
-      unified: 1F4DD
     background: rgba(251, 232, 255, 0.8)
   starters:
     - 我要把大象放进冰箱
@@ -16,8 +14,8 @@ team:
     - null
   options:
     position:
-      x: 106.11861409743153
-      y: 112.18511897800386
+      x: 165.11861409743153
+      y: 109.18511897800386
     scale: 0.8199999999999998
     agent:
       Agent_zm7jnDN2qV:
@@ -57,12 +55,13 @@ team:
     title: 规划者
     description: 制定详细计划
     avatar: null
-    prompt: 按用户要求制定完成任务的计划
+    prompt: 按用户要求调用工具制定计划来完成任务。
     promptTemplates: null
     parameters: null
     outputVariables: null
     options:
       parallelToolCalls: false
+      structuredOutputMethod: null
     copilotModel: null
     leaderKey: null
     collaboratorNames: []
@@ -75,6 +74,51 @@ team:
     options: null
   knowledgebases: []
   toolsets:
+    - id: 00930607-6084-40de-86b7-a5089042fcd3
+      name: 规划工具集
+      type: planning
+      category: builtin
+      description: null
+      avatar:
+        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/planning/icon
+      options:
+        toolPositions:
+          create_plan: 0
+          list_plans: 1
+          update_plan_step: 2
+          delete_plan_step: 3
+      privacyPolicy: null
+      customDisclaimer: null
+      tags: []
+      tools:
+        - id: 5c4daee8-3944-4740-81c3-4c3458ee0ada
+          name: create_plan
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+        - id: bf286151-c882-4b1b-9cc2-63eccb5a8faf
+          name: list_plans
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+        - id: 2768b66e-f7a2-4b3c-8601-0b50a44a5719
+          name: update_plan_step
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
+        - id: 87222ba9-8fa1-4a87-93ec-27e8562db2df
+          name: delete_plan_step
+          description: null
+          avatar: null
+          enabled: true
+          parameters: null
+          options: null
     - id: e4554ac9-cc36-4b97-a8db-8197d3bb2d5d
       name: Google 搜索工具
       type: tavily
@@ -96,51 +140,6 @@ team:
           enabled: true
           parameters: null
           options: null
-    - id: 00930607-6084-40de-86b7-a5089042fcd3
-      name: 规划工具集
-      type: planning
-      category: builtin
-      description: null
-      avatar:
-        url: https://api.mtda.cloud/api/xpert-toolset/builtin-provider/planning/icon
-      options:
-        toolPositions:
-          create_plan: 0
-          list_plans: 1
-          update_plan_step: 2
-          delete_plan_step: 3
-      privacyPolicy: null
-      customDisclaimer: null
-      tags: []
-      tools:
-        - id: 87222ba9-8fa1-4a87-93ec-27e8562db2df
-          name: delete_plan_step
-          description: null
-          avatar: null
-          enabled: true
-          parameters: null
-          options: null
-        - id: 2768b66e-f7a2-4b3c-8601-0b50a44a5719
-          name: update_plan_step
-          description: null
-          avatar: null
-          enabled: true
-          parameters: null
-          options: null
-        - id: bf286151-c882-4b1b-9cc2-63eccb5a8faf
-          name: list_plans
-          description: null
-          avatar: null
-          enabled: true
-          parameters: null
-          options: null
-        - id: 5c4daee8-3944-4740-81c3-4c3458ee0ada
-          name: create_plan
-          description: null
-          avatar: null
-          enabled: true
-          parameters: null
-          options: null
   tags: []
 nodes:
   - type: agent
@@ -154,12 +153,13 @@ nodes:
       title: 规划者
       description: 制定详细计划
       avatar: null
-      prompt: 按用户要求制定完成任务的计划
+      prompt: 按用户要求调用工具制定计划来完成任务。
       promptTemplates: null
       parameters: null
       outputVariables: null
       options:
         parallelToolCalls: false
+        structuredOutputMethod: null
       copilotModel: null
       leaderKey: null
       collaboratorNames: []
@@ -230,6 +230,16 @@ nodes:
       title: 按步骤执行
       description: 按照规划步骤，逐步执行
       inputVariable: plan_steps
+      inputParams:
+        - name: index
+          variable: input
+        - name: content
+          variable: content
+      outputParams:
+        - name: ""
+          variable: agent_kzuoaglggf_channel.output
+      parallel: true
+      maximum: 2
     hash: 5804cab6c31e81567760cc61a372108e3afc4e975659d62ee640ca36c1ebc71f
   - type: agent
     key: Agent_kZUOAglggf
@@ -242,7 +252,7 @@ nodes:
       description: 执行每个规划步骤，并更新步骤状态
       prompt: |-
         你需要完成任务的单个步骤, 并更新步骤状态。
-        在执行任务前你可以在线搜索相关资料。
+        在执行任务前你可以调用工具`tavily_search`进行在线搜索相关资料。
       promptTemplates:
         - id: O014FOjBNN
           role: human
@@ -268,6 +278,11 @@ nodes:
       options:
         disableMessageHistory: true
         parallelToolCalls: false
+        availableTools:
+          规划工具集:
+            - list_plans
+            - update_plan_step
+            - delete_plan_step
       copilotModel: null
     hash: e0f158152fef2d3ccac38176b7f2a89111e716346acf67e469e212775ae469d1
   - type: toolset
