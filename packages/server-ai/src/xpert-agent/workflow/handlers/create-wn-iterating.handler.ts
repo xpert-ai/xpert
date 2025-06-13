@@ -329,7 +329,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 							[STATE_VARIABLE_ITERATING_OUTPUT]: outputs,
 							[STATE_VARIABLE_ITERATING_OUTPUT_STR]: outputs?.map((_) =>
 								typeof _ === 'string' ? _ : JSON.stringify(_, null, 2)
-							)
+							).join('\n'),
 						}
 					}
 				}),
