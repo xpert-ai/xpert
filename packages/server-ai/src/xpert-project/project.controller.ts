@@ -14,6 +14,7 @@ import {
 	HttpStatus,
 	Logger,
 	Param,
+	Post,
 	Put,
 	Query,
 	UseGuards,
@@ -60,6 +61,12 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	@Get(':id')
 	async getXpertProject(@Param('id') id: string, @Query('data', ParseJsonPipe) params: FindOneOptions<XpertProject>) {
 		const project = await this.service.findOne(id, params)
+		return new XpertProjectDto(project)
+	}
+
+	@Post(':id/duplicate')
+	async duplicateProject(@Param('id') id: string) {
+		const project = await this.service.duplicate(id)
 		return new XpertProjectDto(project)
 	}
 

@@ -245,14 +245,6 @@
             <i class="ri-chat-thread-line text-lg"></i>
             {{'PAC.XProject.Conversations' | translate: {Default: 'Conversations'} }}
           </button>
-
-          <button type="button" class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
-            [class.active]="viewType() === 'members'"
-            (click)="viewType.set('members')"
-          >
-            <i class="ri-group-line text-lg"></i>
-            {{'PAC.XProject.Members' | translate: {Default: 'Members'} }}
-          </button>
         </div>
 
         <button
@@ -300,9 +292,6 @@
         }
         @case ('conversations') {
           <chat-project-conversations role="tabpanel" tabindex="0" class="py-2" />
-        }
-        @case ('members') {
-          <chat-project-members role="tabpanel" tabindex="0" class="py-2" [project]="project()" />
         }
       }
     </div>
@@ -356,26 +345,31 @@
         <span>{{ 'PAC.XProject.Edit' | translate: {Default: 'Edit'} }}</span>
       </div>
     }
-    @if (editing()) {
+    <!-- @if (editing()) {
       <div cdkMenuItem [cdkMenuTriggerFor]="copilotMenu">
         <i class="ri-brain-2-line mr-1"></i>
         <span>{{ 'PAC.XProject.AiModel' | translate: {Default: 'AI Model'} }}</span>
       </div>
-    }
+    } -->
     <div class="border-b border-solid border-divider-regular my-1"></div>
 
+    <div cdkMenuItem (click)="manage()">
+      <i class="ri-settings-4-line mr-1"></i>
+      <span>{{ 'PAC.XProject.Manage' | translate: {Default: 'Manage'} }}</span>
+    </div>
+<!-- 
     <div cdkMenuItem class="danger" (click)="removeProject()">
       <i class="ri-delete-bin-7-line mr-1"></i>
       <span>{{ 'PAC.XProject.RemoveProject' | translate: {Default: 'Remove project'} }}</span>
-    </div>
+    </div> -->
   </div>
 </ng-template>
 
-<ng-template #copilotMenu>
+<!-- <ng-template #copilotMenu>
   <div cdkMenu class="cdk-menu__large w-[360px]">
     <copilot-model-select class="m-4"
       [modelType]="eModelType.LLM"
       [(ngModel)]="copilotModel"
     />
   </div>
-</ng-template>
+</ng-template> -->

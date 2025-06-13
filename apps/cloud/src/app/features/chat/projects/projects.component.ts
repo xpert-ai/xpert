@@ -88,4 +88,15 @@ export class ChatProjectsComponent {
         }
       })
   }
+
+  duplicateProject(project: IXpertProject) {
+    this.projectSercice.duplicate(project.id).subscribe({
+      next: (newProject) => {
+        this.#router.navigate(['/chat/p', newProject.id])
+      },
+      error: (err) => {
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
 }

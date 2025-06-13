@@ -46,6 +46,11 @@
 
 <ng-template #editMenu let-project="project">
   <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItem (click)="duplicateProject(project)">
+      <i class="ri-file-copy-line mr-1"></i>
+      <span>{{ 'PAC.ACTIONS.Duplicate' | translate: {Default: 'Duplicate'} }}</span>
+    </div>
+    <div class="border-b border-solid border-divider-regular my-1"></div>
     <div cdkMenuItem class="danger" (click)="removeProject(project)">
       <i class="ri-delete-bin-7-line mr-1"></i>
       <span>{{ 'PAC.XProject.RemoveProject' | translate: {Default: 'Remove project'} }}</span>

@@ -1,56 +1,41 @@
-<div class="px-4 sm:px-8 pt-2">
-  <div class="flex flex-col">
-    <div class="flex items-center mb-4 p-3 bg-gray-50 rounded-2xl">
-      <div class="grow mx-2">
-        <div class="text-sm font-medium text-gray-900">{{owner() | user}}
-          <span>{{ 'PAC.XProject.S' | translate: {Default: '\'s'} }}</span>
-          <span>{{ 'PAC.XProject.Project' | translate: {Default: 'Project'} }}</span>
+<div class="flex items-center mb-4 p-3 bg-gray-50 rounded-2xl">
+  <div class="grow mx-2">
+    <div class="text-sm font-medium text-gray-900">{{owner() | user}}
+      <span>{{ 'PAC.XProject.S' | translate: {Default: '\'s'} }}</span>
+      <span>{{ 'PAC.XProject.Project' | translate: {Default: 'Project'} }}</span>
+    </div>
+  </div>
+  <div
+    class="shrink-0 flex items-center py-[7px] px-3 border-[0.5px] border-gray-200 text-[13px] font-medium text-primary-600 bg-white shadow-xs rounded-lg cursor-pointer"
+    (click)="openAddUser()"
+  >
+    <i class="ri-user-add-line mr-2"></i>
+    {{ 'PAC.ACTIONS.Add' | translate: {Default: 'Add'} }}
+  </div>
+</div>
+<div class="overflow-visible lg:overflow-visible">
+  <div class="flex items-center py-[7px] border-b border-gray-200 min-w-[480px]">
+    <div class="grow px-3 text-sm font-medium text-gray-500">{{ 'PAC.KEY_WORDS.User' | translate: {Default: 'User'} }}</div>
+    <div class="shrink-0 w-24 px-3 text-sm font-medium text-gray-500">{{ 'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}</div>
+  </div>
+  <div class="min-w-[480px] relative">
+    @for (member of allMembers(); track member.id) {
+      <div class="flex items-center border-b p-2 border-gray-100 hover:bg-hover-bg">
+        <pac-user-profile-inline class="grow" [user]="member" [isMe]="me().id === member.id" />
+      
+        <div class="shrink-0 w-24 px-3 flex items-center">
+          @if (owner().id === member.id) {
+            <div class="p-2 text-text-secondary" [matTooltip]="'PAC.Xpert.Owner' | translate: {Default: 'Owner'}"
+              matTooltipPosition="after"
+            >
+              <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M11 14.0619V20H13V14.0619C16.9463 14.554 20 17.9204 20 22H4C4 17.9204 7.05369 14.554 11 14.0619ZM12 13C8.685 13 6 10.315 6 7C6 3.685 8.685 1 12 1C15.315 1 18 3.685 18 7C18 10.315 15.315 13 12 13Z"></path></svg>
+            </div>
+          } @else {
+            <button type="button" class="btn btn-secondary btn-danger pressable px-2 py-1 text-sm"
+              (click)="removeMember(member)">{{'PAC.ACTIONS.Remove' | translate: {Default: 'Remove'} }}</button>
+          }
         </div>
       </div>
-      <div
-        class="shrink-0 flex items-center py-[7px] px-3 border-[0.5px] border-gray-200 text-[13px] font-medium text-primary-600 bg-white shadow-xs rounded-lg cursor-pointer"
-        (click)="openAddUser()"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          fill="currentColor"
-          class="w-4 h-4 mr-2"
-        >
-          <path
-            d="M14 14.252V16.3414C13.3744 16.1203 12.7013 16 12 16C8.68629 16 6 18.6863 6 22H4C4 17.5817 7.58172 14 12 14C12.6906 14 13.3608 14.0875 14 14.252ZM12 13C8.685 13 6 10.315 6 7C6 3.685 8.685 1 12 1C15.315 1 18 3.685 18 7C18 10.315 15.315 13 12 13ZM12 11C14.21 11 16 9.21 16 7C16 4.79 14.21 3 12 3C9.79 3 8 4.79 8 7C8 9.21 9.79 11 12 11ZM18 17V14H20V17H23V19H20V22H18V19H15V17H18Z"
-          ></path>
-        </svg>
-        {{ 'PAC.ACTIONS.Add' | translate: {Default: 'Add'} }}
-      </div>
-    </div>
-    <div class="overflow-visible lg:overflow-visible">
-      <div class="flex items-center py-[7px] border-b border-gray-200 min-w-[480px]">
-        <div class="grow px-3 text-sm font-medium text-gray-500">{{ 'PAC.KEY_WORDS.User' | translate: {Default: 'User'} }}</div>
-        <div class="shrink-0 w-24 px-3 text-sm font-medium text-gray-500">{{ 'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}</div>
-      </div>
-      <div class="min-w-[480px] relative">
-        @for (member of allMembers(); track member.id) {
-          <div class="flex items-center border-b p-2 border-gray-100 hover:bg-hover-bg">
-            <pac-user-profile-inline class="grow" [user]="member" [isMe]="me().id === member.id" />
-         
-            <div class="shrink-0 w-24 px-3 flex items-center">
-              @if (owner().id === member.id) {
-                <div class="p-2 text-text-secondary" [matTooltip]="'PAC.Xpert.Owner' | translate: {Default: 'Owner'}"
-                  matTooltipPosition="after"
-                >
-                  <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M11 14.0619V20H13V14.0619C16.9463 14.554 20 17.9204 20 22H4C4 17.9204 7.05369 14.554 11 14.0619ZM12 13C8.685 13 6 10.315 6 7C6 3.685 8.685 1 12 1C15.315 1 18 3.685 18 7C18 10.315 15.315 13 12 13Z"></path></svg>
-                </div>
-              } @else {
-                <button type="button" class="btn btn-secondary btn-danger pressable px-2 py-1 text-sm"
-                  (click)="removeMember(member)">{{'PAC.ACTIONS.Remove' | translate: {Default: 'Remove'} }}</button>
-              }
-            </div>
-          </div>
-        }
-      </div>
-    </div>
+    }
   </div>
 </div>
