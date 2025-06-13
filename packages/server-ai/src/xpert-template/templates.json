@@ -240,6 +240,10 @@
                         },
                         "background": "rgba(251, 232, 255, 0.8)"
                     },
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "gpt-4o"
+                    },
                     "id": "de56c3f5-2951-4faa-8229-2f19c1d43311",
                     "category": "Agent",
                     "copyright": null,
@@ -522,6 +526,10 @@
                             "id": "memo"
                         },
                         "background": "rgba(251, 232, 255, 0.8)"
+                    },
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "deepseek-chat"
                     },
                     "id": "de56c3f5-2951-4faa-8229-2f19c1d43310",
                     "category": "Agent",
