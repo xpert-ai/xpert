@@ -24,6 +24,7 @@
   "PAC": {
     "Title": "元数分析云",
     "KEY_WORDS": {
+      "SearchTerm": "搜索词",
       "Changelog": "更新日志",
       "PleaseInput": "请输入",
       "PasswordsNotMatch": "密码不匹配",

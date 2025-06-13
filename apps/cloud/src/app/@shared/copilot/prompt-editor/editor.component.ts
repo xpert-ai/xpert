@@ -26,12 +26,13 @@ import { FormsModule } from '@angular/forms'
 import { Dialog } from '@angular/cdk/dialog'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
-import { effectAction, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { effectAction } from '@metad/ocap-angular/core'
 import { switchMap, tap } from 'rxjs/operators'
 import { timer } from 'rxjs'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { agentLabel, TStateVariable, TWorkflowVarGroup } from '../../../@core'
 import { CopilotPromptGeneratorComponent } from '../prompt-generator/generator.component'
+import { XpertVariablePanelComponent } from '../../agent'
 
 
 declare var monaco: any
@@ -49,7 +50,7 @@ declare var monaco: any
     TranslateModule,
     MonacoEditorModule,
     MatTooltipModule,
-    NgmI18nPipe,
+    XpertVariablePanelComponent
   ],
   host: {
     '[class.fullscreen]': 'fullscreen()'
@@ -88,9 +89,9 @@ export class CopilotPromptEditorComponent {
   // Children
   @ViewChild('editablePrompt', { static: true }) editablePrompt!: ElementRef
   @ViewChild('suggestionsTemplate', { static: true }) suggestionsTemplate!: TemplateRef<any>
-  readonly suggestionsMenu = viewChild('suggestions', {read: ElementRef})
+  // readonly suggestionsMenu = viewChild('suggestions', {read: ElementRef})
   overlayRef: OverlayRef | null = null
-
+  
   // States
   readonly promptLength = computed(() => this.prompt()?.length)
 
@@ -163,7 +164,7 @@ export class CopilotPromptEditorComponent {
     }
   }
 
-  setVariable(g: string, variable: TStateVariable) {
+  setVariable(variable: string) {
     // Get the current cursor position
     const position = this.getPosition();
 
@@ -187,7 +188,7 @@ export class CopilotPromptEditorComponent {
       position.lineNumber,
       endMatch ? (position.column + endMatch[0].length) : position.column
     );
-    const text = g ? `{{${g}.${variable.name}}}` : `{{${variable.name}}}`
+    const text = `{{${variable}}}`
 
     const operation = {
       range: range,
@@ -208,7 +209,7 @@ export class CopilotPromptEditorComponent {
     const positionStrategy = this.overlay
       .position()
       .flexibleConnectedTo(caretCoords)
-      .withPositions([{ originX: 'start', originY: 'top', overlayX: 'start', overlayY: 'bottom' }])
+      .withPositions([{ originX: 'start', originY: 'top', overlayX: 'start', overlayY: 'top' }])
 
     if (!this.overlayRef) {
       this.overlayRef = this.overlay.create({ positionStrategy })
@@ -217,7 +218,7 @@ export class CopilotPromptEditorComponent {
     } else {
       this.overlayRef.updatePositionStrategy(positionStrategy)
     }
-    this.suggestionsMenu().nativeElement.focus()
+    // this.suggestionsMenu().nativeElement.focus()
   }
 
   hideSuggestions() {

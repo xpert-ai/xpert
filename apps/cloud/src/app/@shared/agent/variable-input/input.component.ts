@@ -4,9 +4,6 @@ import { TemplatePortal } from '@angular/cdk/portal'
 import { CommonModule } from '@angular/common'
 import {
   Component,
-  effect,
-  ElementRef,
-  HostListener,
   inject,
   input,
   signal,
@@ -17,11 +14,11 @@ import {
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { linkedModel } from '@metad/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { TStateVariable, TWorkflowVarGroup } from '../../../@core/types'
+import { TWorkflowVarGroup } from '../../../@core/types'
 import { StateVariableSelectComponent } from '../state-variable-select/select.component'
+import { XpertVariablePanelComponent } from '../variable-panel/variable.component'
 
 @Component({
   standalone: true,
@@ -31,8 +28,8 @@ import { StateVariableSelectComponent } from '../state-variable-select/select.co
     CdkMenuModule,
     TranslateModule,
     MatTooltipModule,
-    NgmI18nPipe,
-    StateVariableSelectComponent
+    StateVariableSelectComponent,
+    XpertVariablePanelComponent
   ],
   selector: 'xpert-variable-input',
   templateUrl: './input.component.html',
@@ -52,7 +49,7 @@ export class XpertVariableInputComponent {
 
   // Children
   readonly suggestionsTemplate = viewChild('suggestionsTemplate', { read: TemplateRef<any> })
-  readonly suggestionsMenu = viewChild('suggestions', { read: ElementRef })
+  readonly varPanel = viewChild('varPanel', { read: XpertVariablePanelComponent })
 
   // States
   readonly currentIndex = signal(0)
@@ -138,7 +135,7 @@ export class XpertVariableInputComponent {
     } else {
       this.overlayRef.updatePositionStrategy(positionStrategy)
     }
-    this.suggestionsMenu().nativeElement.focus()
+    this.varPanel().focus()
   }
 
   hideSuggestions() {
@@ -146,6 +143,7 @@ export class XpertVariableInputComponent {
       this.overlayRef.detach()
       this.overlayRef = null
     }
+    this.currentElement()?.focus()
   }
 
   getCursorPosition() {
@@ -159,8 +157,7 @@ export class XpertVariableInputComponent {
     return { x: cursorX, y: cursorY }
   }
 
-  setVariable(g: string, variable: TStateVariable) {
-    this.hideSuggestions()
+  setVariable(variable: string) {
     const item = this.items()[this.currentIndex()]
     if (item?.type === 'text') {
       const prefix = item.value.slice(0, this.cursorIndex() - 1)
@@ -175,7 +172,7 @@ export class XpertVariableInputComponent {
           },
           {
             type: 'variable',
-            value: g ? `${g}.${variable.name}` : `${variable.name}`
+            value: variable
           },
           {
             type: 'text',
@@ -185,13 +182,6 @@ export class XpertVariableInputComponent {
         return [...state]
       })
     }
-    this.currentElement()?.focus()
-  }
-
-  @HostListener('document:keydown.escape', ['$event'])
-  handleEscapeKey(event: KeyboardEvent) {
-    this.hideSuggestions()
-    this.currentElement()?.focus()
   }
 }
 
