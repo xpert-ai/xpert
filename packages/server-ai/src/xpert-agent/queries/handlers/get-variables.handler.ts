@@ -62,7 +62,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			})
 		}
 
-		// System state variables
+		// User parameters
 		const variables: TStateVariable[] = [
 			{
 				name: STATE_VARIABLE_INPUT,
@@ -72,8 +72,31 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 					zh_Hans: '输入'
 				}
 			},
-			{
-				name: `${STATE_VARIABLE_SYS}.language`,
+		]
+		
+		varGroups.push({
+			group: {
+				name: '',
+				description: {
+					en_US: 'Input Parameters',
+					zh_Hans: '输入参数'
+				}
+			},
+			variables
+		})
+
+		// System variables
+		varGroups.push({
+			group: {
+				name: STATE_VARIABLE_SYS,
+				description: {
+					en_US: 'System Variables',
+					zh_Hans: '系统变量'
+				}
+			},
+			variables: [
+{
+				name: `language`,
 				type: XpertParameterTypeEnum.STRING,
 				description: {
 					en_US: 'Language',
@@ -81,7 +104,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				}
 			},
 			{
-				name: `${STATE_VARIABLE_SYS}.user_email`,
+				name: `user_email`,
 				type: XpertParameterTypeEnum.STRING,
 				description: {
 					en_US: 'User email',
@@ -89,7 +112,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				}
 			},
 			{
-				name: `${STATE_VARIABLE_SYS}.timezone`,
+				name: `timezone`,
 				type: XpertParameterTypeEnum.STRING,
 				description: {
 					en_US: 'User time zone',
@@ -97,7 +120,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				}
 			},
 			{
-				name: `${STATE_VARIABLE_SYS}.date`,
+				name: `date`,
 				type: XpertParameterTypeEnum.STRING,
 				description: {
 					en_US: 'Current Date',
@@ -105,7 +128,7 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				}
 			},
 			{
-				name: `${STATE_VARIABLE_SYS}.datetime`,
+				name: `datetime`,
 				type: XpertParameterTypeEnum.STRING,
 				description: {
 					en_US: 'Current Datetime',
@@ -113,17 +136,14 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				}
 			},
 			{
-				name: `${STATE_VARIABLE_SYS}.common_times`,
+				name: `common_times`,
 				type: XpertParameterTypeEnum.STRING,
 				description: {
 					en_US: 'Common Times',
 					zh_Hans: '常用时间'
 				}
 			}
-		]
-		
-		varGroups.push({
-			variables
+			]
 		})
 
 		// Xpert state variables
