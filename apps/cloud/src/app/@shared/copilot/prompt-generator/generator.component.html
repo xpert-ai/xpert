@@ -1,70 +1,83 @@
-<div class="flex h-[680px] flex-wrap">
-  <div class="w-[570px] shrink-0 p-6 h-full overflow-y-auto border-r border-gray-100">
-    <div class="mb-8" >
-      <div cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle
-        class="leading-[28px] text-xl font-bold cursor-move
-          bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-transparent bg-clip-text">
-        {{ 'PAC.Copilot.PromptGenerator' | translate: {Default: 'Prompt Generator'} }}
-      </div>
-      <div class="mt-1 text-sm font-normal text-text-secondary">
-        {{ 'PAC.Copilot.PromptGeneratorDesc' | translate: {Default: 'The Prompt Generator uses the configured model to optimize prompts for higher quality and better structure. Please write clear and detailed instructions.'} }}
-      </div>
-    </div>
-    <div>
-      <div class="flex items-center">
-        <div class="mr-3 shrink-0 leading-[18px] text-sm font-semibold text-gray-500 uppercase">
-          {{ 'PAC.Copilot.TryIt' | translate: {Default: 'Try it'} }}
+<div class="flex h-[80vh] flex-wrap">
+  @if (show()) {
+    <div class="w-[570px] shrink-0 p-6 h-full overflow-y-auto border-r border-gray-100">
+      <div class="mb-8" >
+        <div class="leading-[28px] text-xl font-bold
+            bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-transparent bg-clip-text">
+          {{ 'PAC.Copilot.PromptGenerator' | translate: {Default: 'Prompt Generator'} }}
         </div>
-        <div
-          class="grow h-px"
-          style="background: linear-gradient(to right, rgb(243, 244, 246), rgba(243, 244, 246, 0))"
-        ></div>
+        <div class="mt-1 text-sm font-normal text-text-secondary">
+          {{ 'PAC.Copilot.PromptGeneratorDesc' | translate: {Default: 'The Prompt Generator uses the configured model to optimize prompts for higher quality and better structure. Please write clear and detailed instructions.'} }}
+        </div>
       </div>
-      <div class="flex flex-wrap">
-        @for (item of PRESET_INSTRUCTIONS; track $index) {
-          <div class="mt-2 mr-1 shrink-0 flex h-8 items-center px-2 rounded-lg cursor-pointer font-medium
-            pressable
-            bg-gray-100 hover:text-indigo-500 dark:bg-slate-800"
-            (click)="presetInstruction(item.key)"
-          >
-            <i class="{{item.icon}}"></i>
-            <div class="ml-1 text-sm hover:bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:text-transparent bg-clip-text">{{ ('PAC.Copilot.PromptGenerator.' + item.key + '.name') | translate: {Default: item.name} }}</div>
+      <div>
+        <div class="flex items-center">
+          <div class="mr-3 shrink-0 leading-[18px] text-sm font-semibold text-gray-500 uppercase">
+            {{ 'PAC.Copilot.TryIt' | translate: {Default: 'Try it'} }}
           </div>
-        }
-      </div>
-    </div>
-    <div class="mt-6">
-      <div class="text-[0px]">
-        <div class="mb-2 leading-5 text-sm font-medium text-gray-900">
-          {{ 'PAC.Copilot.Instructions' | translate: {Default: 'Instructions'} }}
+          <div
+            class="grow h-px"
+            style="background: linear-gradient(to right, rgb(243, 244, 246), rgba(243, 244, 246, 0))"
+          ></div>
         </div>
-        <textarea
-          class="w-full h-[200px] overflow-y-auto px-3 py-2 rounded-lg text-sm bg-gray-50 dark:bg-slate-950"
-          [placeholder]="'PAC.Copilot.WriteClearInstructions' | translate: {Default: 'Write clear and specific instructions.'} "
-          [(ngModel)]="instructions"
-        ></textarea>
+        <div class="flex flex-wrap">
+          @for (item of PRESET_INSTRUCTIONS; track $index) {
+            <div class="mt-2 mr-1 shrink-0 flex h-8 items-center px-2 rounded-lg cursor-pointer font-medium
+              pressable
+              bg-gray-100 hover:text-indigo-500 dark:bg-slate-800"
+              (click)="presetInstruction(item.key)"
+            >
+              <i class="{{item.icon}}"></i>
+              <div class="ml-1 text-sm hover:bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:text-transparent bg-clip-text">{{ ('PAC.Copilot.PromptGenerator.' + item.key + '.name') | translate: {Default: item.name} }}</div>
+            </div>
+          }
+        </div>
       </div>
-      <div class="mt-5 flex justify-end">
-        <button type="button" class="btn disabled:btn-disabled btn-primary btn-large flex space-x-1"
-          (click)="generate()">
-          <i class="ri-sparkling-2-fill mr-1 text-white"></i>
-          
-          <span class="text-sm font-semibold text-white">
-            {{ 'PAC.ACTIONS.Generate' | translate: {Default: 'Generate'} }}
-          </span>
-        </button>
+      <div class="mt-6">
+        <div class="text-[0px]">
+          <div class="mb-2 leading-5 text-sm font-medium text-gray-900">
+            {{ 'PAC.Copilot.Instructions' | translate: {Default: 'Instructions'} }}
+          </div>
+          <textarea
+            class="w-full h-[200px] overflow-y-auto px-3 py-2 rounded-lg text-sm bg-gray-50 dark:bg-slate-950"
+            [placeholder]="'PAC.Copilot.WriteClearInstructions' | translate: {Default: 'Write clear and specific instructions.'} "
+            [(ngModel)]="instructions"
+          ></textarea>
+        </div>
+        <div class="mt-5 flex justify-end">
+          <button type="button" class="btn disabled:btn-disabled btn-primary btn-large flex space-x-1"
+            (click)="generate()">
+            <i class="ri-sparkling-2-fill mr-1 text-white"></i>
+            
+            <span class="text-sm font-semibold text-white">
+              {{ 'PAC.ACTIONS.Generate' | translate: {Default: 'Generate'} }}
+            </span>
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+  }
 
-  <div class="w-0 h-full grow p-4 flex flex-col items-stretch relative overflow-auto">
-    <div class="shrink-0 mb-3 leading-[160%] text-base font-semibold text-gray-800">
-      {{ 'PAC.Copilot.Prompt' | translate: {Default: 'Prompt'} }}
+  <div class="w-0 h-full grow p-4 flex flex-col items-stretch relative overflow-auto bg-gray-50">
+    <div class="shrink-0 flex items-center mb-3  cursor-move text-gray-800"
+      cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+      <button type="button" class="btn disabled:btn-disabled btn-medium flex space-x-1 shrink-0 mr-2"
+        [class.btn-secondary]="!show()"
+        [class.btn-primary]="show()"
+        [matTooltip]="'PAC.Copilot.PromptGenerator' | translate: {Default: 'Prompt Generator'}"
+        matTooltipPosition="above"
+        (click)="toggleGen()"
+      >
+        <i class="ri-sparkling-2-fill"></i>
+      </button>
+      <span class="leading-[160%] text-xl font-semibold">
+        {{ 'PAC.Copilot.Prompt' | translate: {Default: 'Prompt'} }}
+      </span>
     </div>
 
-    <copilot-instruction-editor class="flex-1" initHeight="100%" [(instruction)]="instruction" />
+    <copilot-instruction-editor class="flex-1" initHeight="100%" lineNumbers [(instruction)]="instruction" />
 
-    <div class="flex justify-end pt-2 sticky bottom-0 bg-components-card-bg">
+    <div class="flex justify-end pt-2 sticky bottom-0">
       <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large"
         (click)="cancel()"
       >
@@ -83,7 +96,8 @@
     }
   </div>
 
-  <div class="absolute z-10 top-6 right-6 w-6 h-6 rounded-lg flex items-center justify-center hover:cursor-pointer hover:bg-gray-100 hover:text-text-destructive"
+  <div class="absolute z-10 top-5 right-5 w-7 h-7 text-lg rounded-lg flex items-center justify-center hover:cursor-pointer
+    hover:bg-gray-100 hover:text-text-destructive"
     (click)="cancel()">
     <i class="ri-close-line"></i>
   </div>
