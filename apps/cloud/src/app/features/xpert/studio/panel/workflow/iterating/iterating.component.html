@@ -58,7 +58,7 @@
 
       @for (item of restInputParams(); track item.name) {
         <li class="group/item relative px-2 py-0.5 flex justify-between items-center text-text-secondary hover:bg-hover-bg">
-          <xpert-state-variable-select inline class="opacity-90 hover:opacity-100"
+          <xpert-state-variable-select inline class="overflow-hidden opacity-90 hover:opacity-100"
             [variables]="variables()"
             [ngModel]="item.name"
             (ngModelChange)="updateInputParamName(item.name, $event)"
@@ -68,7 +68,7 @@
 
           <i class="ri-arrow-right-circle-line mr-1"></i>
 
-          <xpert-state-variable-select inline class="opacity-90 hover:opacity-100"
+          <xpert-state-variable-select inline class="overflow-hidden opacity-90 hover:opacity-100"
             [variables]="subVariables()"
             [ngModel]="item.variable"
             (ngModelChange)="updateInputParam(item.name, $event)"

@@ -182,8 +182,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 									async () => {
 										const retState = await subgraph.invoke(
 											{
-												[STATE_VARIABLE_INPUT]: state[STATE_VARIABLE_INPUT],
-												[STATE_VARIABLE_SYS]: state[STATE_VARIABLE_SYS],
+												...state,
 												...inputs
 											},
 											{
