@@ -361,7 +361,7 @@
       "InputPlaceholder": "在此项目中开始对话",
       "DeleteProject": "删除此项目",
       "DeleteProjectDesc": "一旦删除，它将永远消失。请确保",
-      "AiModelDesc": "未定义则使用系统全局智能助理的默认模型"
+      "GlobalModelConfig": "全局模型配置"
     },
     "Workflow": {
       "And": "且",

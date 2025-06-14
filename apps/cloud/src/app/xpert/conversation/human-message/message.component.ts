@@ -41,7 +41,7 @@ export class ChatHumanMessageComponent {
 
   constructor() {
     effect(() => {
-      console.log(this.attachments())
+      // console.log(this.attachments())
     })
   }
 }

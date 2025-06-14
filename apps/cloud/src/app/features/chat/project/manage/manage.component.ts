@@ -13,7 +13,9 @@ import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
+  AiProviderRole,
   getErrorMessage,
+  injectCopilots,
   injectToastr,
   injectUser,
   IXpertProject,
@@ -49,6 +51,7 @@ export class ChatProjectManageComponent {
   readonly #data = inject<{ id: string }>(DIALOG_DATA)
   readonly confirmDelete = injectConfirmDelete()
   readonly i18nService = injectI18nService()
+  readonly #copilots = injectCopilots()
 
   // States
   readonly projectId = signal(this.#data.id)
@@ -66,6 +69,7 @@ export class ChatProjectManageComponent {
   readonly name = computed(() => this.project()?.name)
   readonly owner = computed(() => this.project()?.owner)
   readonly copilotModel = attrModel(this.project, 'copilotModel')
+  readonly primaryCopilot = computed(() => this.#copilots()?.find((_) => _.role === AiProviderRole.Primary)?.copilotModel)
 
   readonly loading = signal(false)
 

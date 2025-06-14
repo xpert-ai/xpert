@@ -4,12 +4,15 @@
   <div class="text-lg font-semibold">{{ 'PAC.XProject.AiModel' | translate: {Default: 'AI Model'} }}</div>
   <copilot-model-select class="mt-4"
     [modelType]="eModelType.LLM"
+    [inheritModel]="primaryCopilot()"
     [(ngModel)]="copilotModel"
     (ngModelChange)="saveProject()"
   />
-  <a href="/settings/copilot/basic" target="_blank" class="text-xs my-1 hover:underline text-primary-400 hover:text-primary-500">
-    {{ 'PAC.XProject.AiModelDesc' | translate: {Default: 'If not defined, the default model of system global copilot is used'} }}
-  </a>
+  @if (!copilotModel() && !primaryCopilot()) {
+    <a href="/settings/copilot/basic" target="_blank" class="text-xs my-1 hover:underline text-primary-400 hover:text-primary-500">
+      {{ 'PAC.XProject.GlobalModelConfig' | translate: {Default: 'Global model config'} }}
+    </a>
+  }
 </div>
 
 <div class="border-b border-solid border-divider-regular my-6"></div>
@@ -27,7 +30,7 @@
   </div>
 
   <div class="border border-solid border-orange-500 rounded-xl flex flex-col">
-    <div class="w-full flex justify-between items-center p-4">
+    <div class="w-full flex justify-between items-center gap-4 p-4">
       <div class="flex flex-col">
         <div class="font-semibold">
           {{ 'PAC.XProject.DeleteProject' | translate: {Default: 'Delete this project'} }}
