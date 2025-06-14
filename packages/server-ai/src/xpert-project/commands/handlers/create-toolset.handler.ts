@@ -22,6 +22,8 @@ export class CreateProjectToolsetHandler implements ICommandHandler<CreateProjec
 		return new ProjectToolset(project, this.service, this.taskService, {
 			tenantId: RequestContext.currentTenantId(),
 			organizationId: RequestContext.getOrganizationId(),
+			projectId: command.projectId,
+			userId: RequestContext.currentUserId(),
 			commandBus: this.commandBus,
 			queryBus: this.queryBus,
 			env: {}

@@ -483,6 +483,10 @@ export type TChatOptions = {
    */
   summarizeTitle?: boolean
   /**
+   * Project ID, identify the project where the xpert invoked
+   */
+  projectId?: string
+  /**
    * Specify environment with variables to run
    */
   environment?: IEnvironment

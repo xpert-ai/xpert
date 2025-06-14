@@ -4,17 +4,16 @@ import {
   IKnowledgebase,
   IUser,
   IXpert,
-  IXpertProjectFile,
   IXpertProjectTask,
   IXpertToolset,
-  OrganizationBaseCrudService,
-  PaginationParams,
-  toHttpParams
-} from '@metad/cloud/state'
+  TFileDirectory,
+} from '../types'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, switchMap } from 'rxjs'
 import { API_XPERT_PROJECT } from '../constants/app.constants'
 import { IXpertProject } from '../types'
+import { OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
+import { toParams } from '@metad/core'
 
 @Injectable({ providedIn: 'root' })
 export class XpertProjectService extends OrganizationBaseCrudService<IXpertProject> {
@@ -99,8 +98,12 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
     })
   }
 
-  getFiles(id: string) {
-    return this.httpClient.get<IXpertProjectFile[]>(this.apiBaseUrl + `/${id}/files`)
+  getFiles(id: string, path: string = '') {
+    return this.httpClient.get<TFileDirectory[]>(this.apiBaseUrl + `/${id}/files`, {
+      params: toParams({
+        path
+      })
+    })
   }
 
   deleteFile(id: string, fileId: string) {

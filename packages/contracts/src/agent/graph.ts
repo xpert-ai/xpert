@@ -55,17 +55,8 @@ export function messageContentText(content: string | TMessageContentComplex) {
 	return typeof content === 'string' ? content : content.type === 'text' ? content.text : ''
 }
 
-/**
- * Get the project ID or thread ID as the workspace ID
- * 
- * @param configurable 
- */
-export function getRunnableWorkspace(configurable: TAgentRunnableConfigurable) {
-  return configurable?.projectId || configurable?.thread_id
-}
-
 export function getWorkspaceFromRunnable(configurable: TAgentRunnableConfigurable): {type?: 'project' | 'conversation'; id?: string} {
-	return configurable?.projectId  ? {type: 'project', id: configurable.projectId} : 
+	return configurable?.projectId  ? {type: 'project', id: ''} : 
 		configurable?.thread_id ? {
 			type: 'conversation',
 			id: configurable.thread_id

@@ -156,6 +156,7 @@ export class ChatCanvasComputerComponent {
   openFiles() {
     this.#dialog.open(ChatConversationFilesComponent, {
       data: {
+        projectId: this.projectId(),
         conversationId: this.homeService.conversation().id
       }
     })

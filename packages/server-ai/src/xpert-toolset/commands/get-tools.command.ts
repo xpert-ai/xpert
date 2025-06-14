@@ -6,6 +6,7 @@ export class ToolsetGetToolsCommand implements ICommand {
 	constructor(
 		public readonly ids: string[],
 		public readonly environment?: {
+			projectId?: string
 			conversationId: string
 			xpertId: string
 			agentKey?: string

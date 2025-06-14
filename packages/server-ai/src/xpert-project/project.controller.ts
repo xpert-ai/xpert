@@ -3,6 +3,7 @@ import {
 	CrudController,
 	PaginationParams,
 	ParseJsonPipe,
+	RequestContext,
 	TransformInterceptor,
 	UserPublicDTO
 } from '@metad/server-core'
@@ -17,6 +18,7 @@ import {
 	Post,
 	Put,
 	Query,
+	Res,
 	UseGuards,
 	UseInterceptors
 } from '@nestjs/common'
@@ -25,11 +27,14 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { FindOneOptions } from 'typeorm'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
 import { FindChatConversationQuery } from '../chat-conversation/queries'
-import { XpertProjectDto, XpertProjectFileDto, XpertProjectTaskDto } from './dto'
+import { XpertProjectDto, XpertProjectTaskDto } from './dto'
 import { XpertProject } from './entities/project.entity'
 import { XpertProjectGuard, XpertProjectOwnerGuard } from './guards'
 import { XpertProjectService } from './project.service'
 import { XpertProjectFileService } from './services'
+import { XpertProjectIdentiDto } from './dto/project-identi.dto'
+import { Response } from 'express'
+import { environment } from '@metad/server-config'
 
 @ApiTags('XpertProject')
 @ApiBearerAuth()
@@ -54,7 +59,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	@Get('my')
 	async findAllMyProjects(
 		@Query('data', ParseJsonPipe) params: PaginationParams<XpertProject>
-	): Promise<IPagination<XpertProjectDto>> {
+	): Promise<IPagination<XpertProjectIdentiDto>> {
 		return this.service.findAllMy(params)
 	}
 
@@ -150,13 +155,6 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	}
 
 	@UseGuards(XpertProjectGuard)
-	@Get(':id/files')
-	async getFiles(@Param('id') id: string) {
-		const items = await this.service.getFiles(id)
-		return items.map((_) => new XpertProjectFileDto(_))
-	}
-
-	@UseGuards(XpertProjectGuard)
 	@Delete(':id/file/:file')
 	async deleteFile(@Param('id') id: string, @Param('file') fileId: string) {
 		await this.fileService.delete(fileId)
@@ -178,5 +176,31 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	@Delete(':id/attachment/:file')
 	async deleteAttachment(@Param('id') id: string, @Param('file') file: string,) {
 		await this.service.removeAttachments(id, [file])
+	}
+
+	@Get(':id/file/:file')
+	async readFile(@Param('id') id: string, @Param('file') filePath: string, @Res() res: Response) {
+		// read file from project and return as a file stream
+		try {
+			const file = await this.fileService.readFile(id, filePath)
+			if (!file) {
+				res.status(HttpStatus.NOT_FOUND).send('File not found')
+				return
+			}
+			res.setHeader('Content-Type', 'text/plain')
+			res.setHeader('Content-Disposition', `attachment; filename="${file.filePath}"`)
+			res.send(file.contents)
+		} catch (error) {
+			this.#logger.error(`Error reading file: ${error.message}`, error.stack)
+			res.status(HttpStatus.INTERNAL_SERVER_ERROR).send('Error reading file')
+		}
+	}
+
+	@UseGuards(XpertProjectGuard)
+	@Get(':id/files')
+	async readFiles(@Param('id') id: string, @Query('deepth') deepth: number, @Query('path') path: string) {
+		if (environment.pro) {
+			//
+		}
 	}
 }

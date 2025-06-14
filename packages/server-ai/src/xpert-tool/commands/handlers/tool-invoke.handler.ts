@@ -65,6 +65,7 @@ export class ToolInvokeHandler implements ICommandHandler<ToolInvokeCommand> {
 			toolsetService: this.toolsetService,
 			commandBus: this.commandBus,
 			queryBus: this.queryBus,
+			userId: RequestContext.currentUserId(),
 			xpertId: parameters?.form?.xpertId,
 			agentKey: parameters?.form?.agentKey,
 			env: envState

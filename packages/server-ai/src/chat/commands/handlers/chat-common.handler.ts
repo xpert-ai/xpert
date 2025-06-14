@@ -26,6 +26,7 @@ import {
 	IXpertAgentExecution,
 	IXpertProject,
 	messageContentText,
+	STATE_VARIABLE_HUMAN,
 	STATE_VARIABLE_SYS,
 	TAgentRunnableConfigurable,
 	TChatConversationStatus,
@@ -496,6 +497,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		if (project?.toolsets.length > 0) {
 			const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
 				new ToolsetGetToolsCommand(project.toolsets.map(({id}) => id), {
+					projectId: project.id,
 					conversationId,
 					xpertId: null,
 					signal: abortController.signal,
@@ -563,7 +565,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		const xperts = []
 		if (project?.xperts.length) {
 			for await (const xpert of project.xperts) {
-				const agent = await this.createXpertAgent(xpert, abortController, execution, subscriber, 'last_message', false, supervisorName, fileToolset?.getTools())
+				const agent = await this.createXpertAgent(project, xpert, abortController, execution, subscriber, 'last_message', false, supervisorName, fileToolset?.getTools())
 				const tool = createHandoffTool({ agentName: agent.name, description: xpert.description })
 				xperts.push({name: agent.name, agent, tool})
 			}
@@ -713,6 +715,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 	 * Create agent graph for xpert
 	 */
 	async createXpertAgent(
+		project: IXpertProject,
 		xpert: IXpert,
 		abortController: AbortController,
 		execution: IXpertAgentExecution,
@@ -734,7 +737,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				rootController: abortController,
 				signal: abortController.signal,
 				subscriber,
-				tools
+				tools,
+				projectId: project?.id,
 			})
 		)
 		
@@ -794,11 +798,16 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				const primaryChannelName = channelName(xpert.agent.key)
 				const toolMessage = _messages.pop()
 				const aiMessage = _messages.pop() as AIMessage
+				const input = aiMessage.tool_calls[0]?.args?.input
 				try {
 					const output = await graph.invoke(
 						{
 							...state,
-							input: aiMessage.tool_calls[0]?.args?.input,
+							input: input,
+							[STATE_VARIABLE_HUMAN]: {
+								input,
+								files: state.files || [],
+							},
 							messages: [],
 							[primaryChannelName]: {
 								messages: []

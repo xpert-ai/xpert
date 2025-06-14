@@ -198,6 +198,8 @@ export type TToolCredentials = Record<string, string | number | boolean | any>
 export type TToolsetParams = {
   tenantId: string
   organizationId?: string
+  projectId?: string
+	userId?: string
 	xpertId?: string
   conversationId?: string
 	agentKey?: string

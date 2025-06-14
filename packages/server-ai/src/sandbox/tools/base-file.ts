@@ -6,7 +6,6 @@ import {
 	ChatMessageEventTypeEnum,
 	ChatMessageStepCategory,
 	ChatMessageStepType,
-	getRunnableWorkspace,
 	getWorkspaceFromRunnable,
 	IBaseToolset,
 	TFile
@@ -475,7 +474,6 @@ export function buildDeleteFileTool(toolset: BaseFileToolset) {
 	const deleteFileTool = tool(
 		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
 			const { signal, configurable } = config ?? {}
-			const workspaceId = getRunnableWorkspace(configurable)
 			const { type, id } = getWorkspaceFromRunnable(configurable)
 
 			if (toolset.callbackManager) {
@@ -493,8 +491,8 @@ export function buildDeleteFileTool(toolset: BaseFileToolset) {
 
 			const requestData = {
 				file_path: parameters.file_path,
-				workspace_id: workspaceId,
-				thread_id: workspaceId
+				workspace_id: id,
+				thread_id: id
 			}
 
 			// Re-create file

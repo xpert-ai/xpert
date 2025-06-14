@@ -43,6 +43,8 @@ export class ToolsetGetToolsHandler implements ICommandHandler<ToolsetGetToolsCo
 			toolsetService: this.toolsetService,
 			commandBus: this.commandBus,
 			queryBus: this.queryBus,
+			userId: RequestContext.currentUserId(),
+			projectId: command.environment?.projectId,
 			xpertId: command.environment?.xpertId,
 			agentKey: command.environment?.agentKey,
 			signal: command.environment?.signal,

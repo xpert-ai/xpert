@@ -1,4 +1,4 @@
-import { IXpertProjectFile } from '@metad/contracts'
+import { TFile } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class UpsertProjectFileCommand implements ICommand {
@@ -6,6 +6,6 @@ export class UpsertProjectFileCommand implements ICommand {
 
 	constructor(
 		public readonly projectId: string,
-		public readonly file: IXpertProjectFile,
+		public readonly file: TFile,
 	) {}
 }

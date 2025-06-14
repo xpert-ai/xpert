@@ -18,7 +18,8 @@ export const devEnvironment: IEnvironment = {
 	envName: 'dev',
 
 	env: {
-		LOG_LEVEL: (process.env.LOG_LEVEL || 'debug') as LogLevel
+		LOG_LEVEL: (process.env.LOG_LEVEL || 'log') as LogLevel,
+		IS_DOCKER: process.env.IS_DOCKER
 	},
 	pro: process.env.PRO === 'true',
 

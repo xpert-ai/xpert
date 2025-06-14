@@ -38,3 +38,10 @@ export interface ICreateStorageFileInput extends IBasePerTenantAndOrganizationEn
 export interface IUpdateStorageFileInput extends ICreateStorageFileInput {
   id: string
 }
+
+export type TFileDirectory = TFile & {
+  fullPath?: string
+  directory?: string
+  hasChildren?: boolean
+  children?: TFileDirectory[]
+}

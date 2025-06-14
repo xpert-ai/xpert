@@ -27,11 +27,11 @@ import { FindXpertToolsetsQuery } from '../xpert-toolset'
 import { ToolsetPublicDTO } from '../xpert-toolset/dto'
 import { XpertIdentiDto } from '../xpert/dto'
 import { FindXpertQuery } from '../xpert/queries'
-import { XpertProjectDto } from './dto'
 import { XpertProject } from './entities/project.entity'
 import { XpertProjectFileService, XpertProjectTaskService } from './services/'
 import { KnowledgebasePublicDTO } from '../knowledgebase/dto'
 import { KnowledgebaseGetOneQuery } from '../knowledgebase/queries'
+import { XpertProjectIdentiDto } from './dto/project-identi.dto'
 
 @Injectable()
 export class XpertProjectService extends TenantOrganizationAwareCrudService<XpertProject> {
@@ -105,7 +105,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 		const projects = await query.getMany()
 
 		return {
-			items: projects.map((item) => new XpertProjectDto(item)),
+			items: projects.map((item) => new XpertProjectIdentiDto(item)),
 			total: projects.length
 		}
 	}

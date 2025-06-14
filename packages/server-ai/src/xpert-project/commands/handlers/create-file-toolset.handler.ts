@@ -28,6 +28,8 @@ export class CreateFileToolsetHandler implements ICommandHandler<CreateFileTools
 			queryBus: this.queryBus,
 			// project
 			project,
+			projectId: project.id,
+			userId: RequestContext.currentUserId(),
 			projectService: this.service,
 			taskService: this.taskService
 		})
