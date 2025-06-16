@@ -43,6 +43,6 @@ export function derivedHelpUrl(helpUrl: (() => string)) {
     if (url) {
       return url
     }
-    return helpBaseUrl()
+    return null
   })
 }

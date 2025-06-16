@@ -2,7 +2,7 @@
   cursor-default"
   [disabled]="disabled()"
 >
-  <div class="w-full text-gray-800 font-semibold leading-5 flex items-center">
+  <div class="w-full text-gray-800 font-semibold leading-5 flex items-center gap-1">
     <button class="w-6 h-6 rounded-md enabled:hover:bg-hover-bg enabled:cursor-pointer"
       [disabled]="disabled()"
       (click)="toggleExpand()">
@@ -13,8 +13,11 @@
       </svg>
     </button>
     
-    <div class="flex-1 truncate">{{tool().identity.label | i18n}}</div>
-
+    <div class="truncate">{{tool().identity.label | i18n}}</div>
+    <div class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono text-gray-600 bg-slate-50">
+      {{tool().identity.name}}
+    </div>
+    <div class="grow"></div>
     <mat-slide-toggle [(ngModel)]="enabled" ngm-density="xs" [disabled]="disabled()" />
   </div>
     
