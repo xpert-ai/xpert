@@ -1,4 +1,4 @@
-import { ApiAuthType, IXpertTool, IXpertToolset, TXpertToolEntity, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { ApiAuthType, I18nObject, IXpertTool, IXpertToolset, TXpertToolEntity, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { Service } from '@sap_oss/odata-library'
 import { uniq } from 'lodash'
 import { ToolProviderCredentialValidationError } from '../../errors'
@@ -31,6 +31,18 @@ export class ODataToolset extends BaseToolset<ODataTool> {
 
 	getTools() {
 		return this.tools
+	}
+
+	/**
+	 * @todo
+	 */
+	getToolTitle(name: string): string | I18nObject {
+		const tool = this.toolset?.tools?.find((tool) => tool.name === name)
+		const identity = tool?.schema?.entity
+		if (identity) {
+			return identity
+		}
+		return null
 	}
 
 	getODataService(toolset: IXpertToolset) {

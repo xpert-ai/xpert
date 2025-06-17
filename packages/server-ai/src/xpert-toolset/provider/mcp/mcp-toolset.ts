@@ -1,6 +1,6 @@
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
-import { IXpertToolset, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { I18nObject, IXpertToolset, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { BaseToolset } from '../../toolset'
 import { TBuiltinToolsetParams } from '../builtin'
@@ -57,6 +57,19 @@ export class MCPToolset extends BaseToolset {
 		}
 
 		throw new Error(`tool ${toolName} not found`)
+	}
+
+	/**
+	 * @todo
+	 */
+	getToolTitle(name: string): string | I18nObject {
+		const tool = this.toolset?.tools?.find((tool) => tool.name === name)
+		console.log(`getToolTitle`, tool)
+		const identity = tool?.schema?.entity
+		if (identity) {
+			return identity
+		}
+		return null
 	}
 
 	async close() {

@@ -24,6 +24,8 @@ export type TAgentRunnableConfigurable = {
   thread_id: string
   checkpoint_ns: string
   checkpoint_id: string
+  tool_call_id?: string
+
   // Custom configurable of invoke
   tenantId: string
   organizationId: string
@@ -36,6 +38,8 @@ export type TAgentRunnableConfigurable = {
   // Caller
   agentKey: string
   xpertName?: string
+  toolName?: string
+
   subscriber: Subscriber<any>
   /**
    * Execution id of agent workflow node
@@ -43,6 +47,13 @@ export type TAgentRunnableConfigurable = {
   executionId: string
 
   signal?: AbortSignal
+}
+
+export type TToolCall = {
+	args: Record<string, any>
+	id: string
+	name: string
+	type: 'tool_call'
 }
 
 
@@ -62,6 +73,10 @@ export function getWorkspaceFromRunnable(configurable: TAgentRunnableConfigurabl
 			id: configurable.thread_id
 		} : {}
   }
+
+export function getToolCallFromConfig(config): TToolCall {
+	return config?.toolCall	|| config?.configurable?.toolCall
+}
 
 /**
  * Set value into variable of state.

@@ -1,4 +1,4 @@
-export const VERSION = '3.2.16'
+export const VERSION = '3.3.0'
 export type IEnvironment = {
     /**
      * Is `production` or `development` evnironment

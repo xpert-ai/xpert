@@ -159,6 +159,7 @@ export enum ToolTagEnum {
 	UTILITIES = 'utilities',
 	ANALYSIS = 'analysis',
 	SANDBOX = 'sandbox',
+	PROJECT = 'project',
 	AGENT = 'agent',
 	OTHER = 'other'
 }

@@ -9,71 +9,30 @@
     @case ('Iframe') {
       <chat-component-message-iframe [data]="data()" />
     }
+    @default {
+      @if (step(); as step) {
+        <button class="inline-flex items-center gap-1.5 py-1 px-2 text-sm bg-muted hover:bg-muted/80 rounded-lg transition-colors cursor-pointer border border-neutral-200 dark:border-neutral-700/50"
+          (click)="openInCanvas(data())">
+          <chat-message-step-icon class="w-4 h-4 inline-flex justify-center items-center text-text-secondary" [step]="{category: step.type, toolset: step.toolset}"/>
+          <span class="text-sm text-foreground">{{step.title}}</span>
+          @if (step.status === 'fail') {
+            <span class="font-mono text-xs ml-1 text-text-destructive truncate max-w-[200px]" [title]="step.error">{{step.error}}</span>
+          } @else {
+            <span class="font-mono text-xs ml-1 text-text-secondary truncate max-w-[200px]" [title]="step.message">{{step.message}}</span>
+          }
+          <span class="font-mono text-xs text-text-secondary ml-1">
+            @if (conversationStatus() === 'busy' && step.status === 'running') {
+              {{ step.created_date | relativeTimes:100 | number:'0.3-3' }}s
+            } @else if (duration()) {
+              {{ duration() }}s
+            }
+          </span>
+        </button>
+      }
+    }
   }
 } @else {
   @switch (data().type) {
-    @case ('AnalyticalCard') {
-      <ngm-analytical-card class="z-0"
-        [title]="data().title"
-        [dataSettings]="data().dataSettings"
-        [chartSettings]="chartSettings()"
-        [slicers]="data().slicers"
-        [options]="{
-          showSlicers: true
-        }"
-        (explain)="setExplains($event)"
-      >
-        <button ngmAction class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light"
-          [matTooltip]="'PAC.Chat.OpenExplorer' | translate: {Default: 'Open Explorer'}"
-          matTooltipPosition="above"
-          (click)="openExplorer()">
-          <i class="ri-expand-diagonal-2-line"></i>
-        </button>
-  
-        <button ngmAction class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light"
-          [matTooltip]="'PAC.Chat.OpenInCanvas' | translate: {Default: 'Open in canvas'}"
-          matTooltipPosition="above"
-          (click)="openCanvas()">
-          <svg class="shrink-0 w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M13 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3"/>
-            <path d="M8 21h8"/>
-            <path d="M12 17v4"/>
-            <path d="m17 8 5-5"/>
-            <path d="M17 3h5v5"/>
-          </svg>
-        </button>
-      
-        <button ngmAction class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light"
-          [matTooltip]="'PAC.Chat.OpenExplain' | translate: {Default: 'Open Explain'}"
-          matTooltipPosition="above"
-          (click)="openExplain()">
-          <i class="ri-terminal-box-line"></i>
-        </button>
-      </ngm-analytical-card>
-    }
-    @case ('KPI') {
-      <pac-widget-kpi displayDensity="compact" [title]="data().title"
-        [dataSettings]="data().dataSettings"
-        [slicers]="data().slicers"
-        [options]="{
-          showToolbar: true,
-          shortNumber: true,
-          digitsInfo: '0.0-2'
-        }"
-        (explain)="setExplains($event)"
-      >
-        <button ngmAction class="btn pressable flex justify-center items-center w-6 h-6 rounded-full border-light"
-          (click)="openExplain()">
-          <i class="ri-terminal-box-line"></i>
-        </button>
-      </pac-widget-kpi>
-    }
-    @case ('Indicators') {
-      <!-- <chat-component-indicators [indicators]="indicators()" class="dark"/> -->
-    }
-    @case ('NewIndicator') {
-      <!-- <chat-component-indicator [indicator]="indicator()" class="dark"/> -->
-    }
     @case ('Tasks') {
       <chat-component-schedule-tasks [tasks]="tasks()" class="dark"/>
     }

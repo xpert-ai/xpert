@@ -47,6 +47,10 @@ export interface IEnvironment {
 	clientBaseUrl: string;
 
 	production: boolean;
+	/**
+	 * The name of the environment, e.g. 'dev', 'prod'
+	 * - dev: Development environment
+	 */
 	envName: string;
 
 	env?: Env;

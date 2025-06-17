@@ -1,4 +1,4 @@
-import { IXpertToolset, TranslateOptions, TToolCredentials, TToolsetParams, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { I18nObject, IBuiltinTool, IXpertToolset, TranslateOptions, TToolCredentials, TToolsetParams, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { BaseToolset } from '../../toolset'
@@ -60,6 +60,15 @@ export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> implements
 
 	getCredentials() {
 		return this.toolset?.credentials
+	}
+
+	getToolTitle(name: string): string | I18nObject {
+		const tool = this.toolset?.tools?.find((tool) => tool.name === name)
+		const identity = (<IBuiltinTool>tool?.schema)?.identity;
+		if (identity) {
+			return identity.label
+		}
+		return null
 	}
 
 	/**

@@ -84,7 +84,8 @@ export class ChatXpertComponent {
       .open(ChatConversationsComponent, {
         viewContainerRef: this.#vcr,
         data: {
-          basePath: '/chat'
+          basePath: '/chat',
+          xpertId: this.xpert()?.id
         }
       })
       .closed.subscribe({

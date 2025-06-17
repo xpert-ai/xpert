@@ -89,11 +89,17 @@ $prefix: (ngm, shell);
 .pac-home-title {
   background: linear-gradient(-45deg, #5d55f4, #00ff95, #5d55f4);
 	background-size: 200%;
-  background-position: 80% 50%;
+  background-position: 180% 50%;
 
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  -webkit-mask-image: url('/assets/brand.png');
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  -webkit-mask-position: center;
+  mask-image: url('/assets/brand.png');
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  mask-position: center;
+
   font-weight: 800;
   cursor: pointer;
 
@@ -106,13 +112,13 @@ $prefix: (ngm, shell);
 
 @keyframes animated_text {
   0% {
-    background-position: 80% 50%;
-  }
-  50% {
     background-position: 180% 50%;
   }
-  100% {
+  50% {
     background-position: 280% 50%;
+  }
+  100% {
+    background-position: 80% 50%;
   }
 }
 

@@ -13,7 +13,10 @@
         <xpert-workflow-icon [type]="type()" class="w-6 h-6 shrink-0 mr-2" />
       }
       @case ('toolset') {
-        <xpert-workflow-icon [type]="'assigner'" class="w-6 h-6 shrink-0 mr-2" />
+        <div class="w-6 h-6 shrink-0 mr-2 flex items-center justify-center border-[0.5px] border-white/2 text-white bg-blue-500
+          rounded-lg shadow-sm">
+          <i class="ri-hammer-fill"></i>
+        </div>
       }
       @default {
         <emoji-avatar [avatar]="avatar()" xs class="rounded-lg overflow-hidden mr-1" />

@@ -127,20 +127,26 @@ export class XpertChatAppComponent {
       { allowSignalWrites: true }
     )
 
-    effect(
-      () => {
+    effect(() => {
         const conv = this.chatService.conversation()
         if (conv?.id) {
-          this.homeService.conversations.update((items) => {
-            const index = items.findIndex((_) => _.id === conv.id)
+          const xpertId = conv.xpertId ?? ''
+          this.homeService.conversations.update((state) => {
+            state[xpertId] ??= []
+            const index = state[xpertId].findIndex((_) => _.id === conv.id)
             if (index > -1) {
-              items[index] = {
-                ...items[index],
+              state[xpertId][index] = {
+                ...state[xpertId][index],
                 ...conv
               }
-              return [...items]
+              return {
+                ...state
+              }
             } else {
-              return [{ ...conv }, ...items]
+              return {
+                ...state,
+                [xpertId]: [{ ...conv }, ...(state[xpertId] ?? [])]
+              }
             }
           })
         }

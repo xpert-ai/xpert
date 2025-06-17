@@ -72,10 +72,8 @@
         }
 
         @if (!isMobile()) {
-          <span class="pac-home-title text-2xl" routerLink="/home">
-            <span class="italic">Xpert</span> AI
-          </span>
-            <!-- {{title() || ('PAC.title.short' | translate)}}-->
+          <div class="pac-home-title w-36 h-12 inline-block -ml-2" routerLink="/home">
+          </div>
 
           <button (click)="back()" type="button" class="p-1 w-8 h-8 flex justify-center items-center rounded-lg text-xl
              text-text-tertiary hover:text-text-secondary hover:bg-white hover:shadow-lg active:shadow-sm">

@@ -4,7 +4,7 @@ import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
 import { BaseChannel, isCommand } from '@langchain/langgraph'
-import { agentLabel, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TMessageChannel, TMessageContentReasoning, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { agentLabel, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TChatMessageStep, TMessageChannel, TMessageComponent, TMessageContentReasoning, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { instanceToPlain } from 'class-transformer'
@@ -182,6 +182,29 @@ export function createMapStreamEvents(
 						}
 					}
 				} as MessageEvent)
+
+				const tool_call_id = data.id || rest.metadata.tool_call_id
+				if (tool_call_id) {
+					subscriber.next({
+						data: {
+							type: ChatMessageTypeEnum.MESSAGE,
+							data: {
+								id: tool_call_id,
+								type: 'component',
+								xpertName: rest.metadata.xpertName,
+								data: {
+									...data,
+									category: 'Computer',
+									toolset: rest.metadata.toolset,
+									tool: rest.name,
+									title: rest.metadata.toolName || rest.metadata[rest.name] || rest.name,
+									created_date: new Date(),
+									status: 'running',
+								} as TMessageComponent<TChatMessageStep>
+							}
+						}
+					} as MessageEvent)
+				}
 				break
 			}
 			case 'on_tool_end': {
@@ -211,6 +234,24 @@ export function createMapStreamEvents(
 						}
 					}
 				} as MessageEvent)
+
+				const tool_call_id = data.output?.tool_call_id || data.id || rest.metadata.tool_call_id
+				if (tool_call_id) {
+					subscriber.next({
+						data: {
+							type: ChatMessageTypeEnum.MESSAGE,
+							data: {
+								id: tool_call_id,
+								type: 'component',
+								data: {
+									category: 'Computer',
+									status: 'success',
+									end_date: new Date(),
+								} as TMessageComponent<TChatMessageStep>
+							}
+						}
+					} as MessageEvent)
+				}
 				break
 			}
 			case 'on_retriever_start': {
@@ -258,6 +299,22 @@ export function createMapStreamEvents(
 								}
 							}
 						} as MessageEvent)
+
+						subscriber.next({
+							data: {
+								type: ChatMessageTypeEnum.MESSAGE,
+								data: {
+									id: data.id || data.toolCall.id || rest.run_id,
+									type: 'component',
+									data: {
+										...data,
+										category: 'Computer',
+										status: 'fail',
+										end_date: new Date(),
+									} as TMessageComponent<TChatMessageStep>
+								}
+							}
+						} as MessageEvent)
 						break
 					}
 					case ChatMessageEventTypeEnum.ON_RETRIEVER_ERROR: {
@@ -276,7 +333,7 @@ export function createMapStreamEvents(
 						break
 					}
 					case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
-						if (data.type === ChatMessageStepType.Notice) {
+						if (data.type === ChatMessageStepType.Notice || data.type === ChatMessageStepType.ComputerUse) {
 							/**
 							 * Notification messages from tool calling are displayed in component messages
 							 */
@@ -284,11 +341,15 @@ export function createMapStreamEvents(
 								data: {
 									type: ChatMessageTypeEnum.MESSAGE,
 									data: {
+										id: data.id || rest.run_id,
 										type: 'component',
 										data: {
+											...data,
+											category: 'Computer',
 											type: data.category,
-											data: data.data
-										}
+											data: data.data,
+											created_date: new Date(),
+										} as TMessageComponent<TChatMessageStep>
 									}
 								}
 							} as MessageEvent)

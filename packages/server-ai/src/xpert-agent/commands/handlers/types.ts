@@ -1,7 +1,6 @@
 import { Runnable, RunnableLike, RunnableToolLike } from '@langchain/core/runnables'
 import { StructuredToolInterface } from '@langchain/core/tools'
 import {
-	IEnvironment,
 	IXpertAgent,
 	TStateVariable,
 	TVariableAssigner,
@@ -29,8 +28,10 @@ export function parseXmlString(content: string) {
 
 export type TGraphTool = {
 	caller: string
+	toolset: string
 	tool: StructuredToolInterface | RunnableToolLike
 	variables?: TVariableAssigner[]
+	title: string
 }
 
 export function stateVariable(variable: TStateVariable) {

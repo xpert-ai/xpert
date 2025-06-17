@@ -2,6 +2,7 @@ import { tool } from '@langchain/core/tools'
 import { TAgentRunnableConfigurable } from '@metad/contracts'
 import { z } from 'zod'
 import { XpertProjectTaskService } from '../../../services'
+import { ProjectToolEnum } from '../project'
 
 export const createListTasksTool = ({
 	projectId,
@@ -17,7 +18,7 @@ export const createListTasksTool = ({
 			return await service.findAll({ where: { projectId, threadId: thread_id } })
 		},
 		{
-			name: `project_list_tasks`,
+			name: ProjectToolEnum.ListTasks,
 			schema: z.object({}),
 			description: 'List all task in project.'
 		}

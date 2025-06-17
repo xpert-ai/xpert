@@ -42,13 +42,17 @@
                 } @else {
                   <a class="truncate cursor-pointer" [ngmHighlight]="searchValue" [content]="(item.title | i18n) || item.id"
                     (click)="selectConversation(item)">{{item.title || item.id}}</a>
+                  @if (item.projectId) {
+                    <span class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 ml-1 text-xs font-mono text-gray-600 bg-slate-50">
+                      {{item.projectId}}</span>
+                  }
                 }
 
+                <span class="grow"></span>
+
                 <div class="z-20 relative flex items-center">
-                  <span
-                    class="text-secondary whitespace-nowrap ml-2 hidden text-sm group-hover:opacity-0 md:inline md:group-hover/item:hidden md:group-focus/item:hidden md:group-active/item:hidden"
-                    >{{ item.updatedAt | relative }}</span
-                  >
+                  <span class="text-secondary whitespace-nowrap ml-2 hidden text-sm group-hover:opacity-0 md:inline md:group-hover/item:hidden md:group-focus/item:hidden md:group-active/item:hidden"
+                    >{{ item.updatedAt | relative }}</span>
                   
                   @if (editingConversation()  === item.id) {
                     <div class="absolute right-1 flex items-center gap-1">
@@ -153,7 +157,6 @@
                         </svg>
                       </button>
                     </div>
-  
                   }
                 </div>
                 

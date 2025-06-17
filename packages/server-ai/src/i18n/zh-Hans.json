@@ -27,6 +27,15 @@
         },
         "Python": {
             "ExecPythonCode": "执行 Python 代码"
+        },
+        "File": {
+            "RewriteFile": "重写文件"
+        },
+        "ProjectTask": {
+            "Tasks": "任务",
+            "ListTasks": "列出任务",
+            "CreateTasks": "创建任务",
+            "UpdateTasks": "更新任务"
         }
     }
 }

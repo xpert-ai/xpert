@@ -1,5 +1,5 @@
 import { StructuredToolInterface } from '@langchain/core/tools'
-import { TranslateOptions, TToolsetParams } from '@metad/contracts'
+import { I18nObject, IBuiltinTool, IXpertToolset, TranslateOptions, TToolsetParams } from '@metad/contracts'
 import { environment } from '@metad/server-config'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { _BaseToolset } from '../../shared/'
@@ -30,7 +30,7 @@ export abstract class BaseSandboxToolset<
 		return this.params?.queryBus
 	}
 
-	constructor(protected params?: TSandboxToolsetParams) {
+	constructor(protected params?: TSandboxToolsetParams, protected toolset?: IXpertToolset) {
 		super(params)
 	}
 
@@ -47,6 +47,19 @@ export abstract class BaseSandboxToolset<
 		}
 
 		return this.sandbox
+	}
+
+	getName() {
+		return this.toolset?.name
+	}
+
+	getToolTitle(name: string): string | I18nObject {
+		const tool = this.toolset?.tools?.find((tool) => tool.name === name)
+		const identity = (<IBuiltinTool>tool?.schema)?.identity;
+		if (identity) {
+			return identity.label
+		}
+		return null
 	}
 
 	/**

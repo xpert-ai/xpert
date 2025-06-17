@@ -4,6 +4,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   input,
@@ -49,6 +50,7 @@ export class ChatConversationComponent {
   readonly chatService = inject(ChatService)
   readonly homeService = inject(XpertHomeService)
   readonly appService = inject(AppService)
+  private destroyRef = inject(DestroyRef)
 
   readonly #toastr = injectToastr()
 
@@ -87,6 +89,10 @@ export class ChatConversationComponent {
       },
       { allowSignalWrites: true }
     )
+
+    this.destroyRef.onDestroy(() => {
+      this.homeService.canvasOpened.set(null)
+    })
   }
 
   onChat(statement: string) {

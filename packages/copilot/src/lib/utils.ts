@@ -4,7 +4,7 @@ import { nanoid as _nanoid } from 'nanoid'
 import { ZodType, ZodTypeDef } from 'zod'
 import zodToJsonSchema from 'zod-to-json-schema'
 import { CopilotChatMessage } from './types'
-import { TMessageContent, TMessageContentComplex, TMessageContentReasoning, TMessageContentText, TTokenUsage } from '@metad/contracts'
+import { TMessageContent, TMessageContentComplex, TMessageContentComponent, TMessageContentReasoning, TMessageContentText, TTokenUsage } from '@metad/contracts'
 
 export function zodToAnnotations(obj: ZodType<any, ZodTypeDef, any>) {
   return (<{ properties: any }>zodToJsonSchema(obj)).properties
@@ -176,7 +176,20 @@ export function appendMessageContent(aiMessage: CopilotChatMessage, content: str
             _content.push(content)
           }
         } else {
-          _content.push(content)
+          const index = _content.findIndex((_) => _.type === 'component' && _.id === content.id)
+          if (index > -1) {
+            _content[index] = {
+              ..._content[index],
+              ...content,
+              data: {
+                ...(<TMessageContentComponent>_content[index]).data,
+                ...(<TMessageContentComponent>content).data,
+                created_date: (<TMessageContentComponent>_content[index]).data.created_date || (<TMessageContentComponent>content).data.created_date
+              }
+            }
+          } else {
+            _content.push(content)
+          }
         }
       } else if(_content) {
         aiMessage.content = [

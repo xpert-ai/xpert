@@ -50,7 +50,7 @@
       [collapse]="submessage.id && collapseMessages()[submessage.id]"
       (collapseChange)="updateCollapse(submessage.id, $event)"
     />
-    <chat-message-content [message]="message()" [content]="submessage" [last]="last" 
+    <chat-message-content class="px-2" [message]="message()" [content]="submessage" [last]="last" 
       [collapse]="submessage.id && collapseMessages()[submessage.id]"
     />
   }

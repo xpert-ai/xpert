@@ -46,6 +46,7 @@
         </div>
         <div class="mt-5 flex justify-end">
           <button type="button" class="btn disabled:btn-disabled btn-primary btn-large flex space-x-1"
+            [disabled]="!instructions() || loading()"
             (click)="generate()">
             <i class="ri-sparkling-2-fill mr-1 text-white"></i>
             

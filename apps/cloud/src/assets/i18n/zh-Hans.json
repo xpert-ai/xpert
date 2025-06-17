@@ -1873,7 +1873,9 @@
       "Download": "下载",
       "FormatCannotPreviewed": "此格式无法预览。",
       "DownloadFiletoView": "请下载文件以查看其内容。",
-      "DisplayOnlyData": "仅展示组件数据"
+      "DisplayOnlyData": "仅展示组件数据",
+      "ExpandCanvas": "展开画布",
+      "FileList": "文件列表"
     },
     "ChatBI": {
       "DeprecationNotes": "ChatBI 功能请使用数字专家智能体中的 ChatBI 工具集！",

@@ -45,7 +45,7 @@ export class XpertAgentSubgraphCommand implements ICommand {
 			variables?: TXpertParameter[]
 			channel: string
 			partners?: string[]
-			handoffTools?: DynamicStructuredTool<any>[]
+			handoffTools?: DynamicStructuredTool[]
 		}
 	) {}
 }

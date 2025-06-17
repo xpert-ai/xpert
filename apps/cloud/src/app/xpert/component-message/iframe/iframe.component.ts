@@ -1,7 +1,6 @@
-import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser'
 import { RouterModule } from '@angular/router'
@@ -19,19 +18,20 @@ import { XpertHomeService } from '../../home.service'
 })
 export class ChatComponentMessageIframeComponent {
   readonly homeService = inject(XpertHomeService)
-  readonly #dialog = inject(Dialog)
   readonly sanitizer = inject(DomSanitizer)
 
   // Inputs
-  readonly data = input<TMessageComponent<TMessageComponentIframe>>()
+  readonly data = input<TMessageComponent>()
+
+  readonly _url = computed(() => (<TMessageComponent<TMessageComponentIframe>>this.data())?.url)
 
   // Safe URL
   readonly url = computed<SafeResourceUrl | null>(() => {
-    const rawUrl = this.data()?.url
+    const rawUrl = this._url()
     return rawUrl ? this.sanitizer.bypassSecurityTrustResourceUrl(rawUrl) : null
   })
 
   openTab() {
-    window.open(this.data().url, '_blank')
+    window.open(this._url(), '_blank')
   }
 }

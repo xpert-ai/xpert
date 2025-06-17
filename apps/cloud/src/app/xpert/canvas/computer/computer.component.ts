@@ -1,7 +1,7 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Dialog } from '@angular/cdk/dialog'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -59,10 +59,18 @@ export class ChatCanvasComputerComponent {
   readonly #dialog = inject(Dialog)
   readonly #formatRelative = injectFormatRelative()
 
+  // Inputs
+  readonly componentId = input<string>()
+
   // States
   readonly expand = signal(false)
+
   // readonly messageId = computed(() => this.homeService.canvasOpened()?.type === 'Computer' && this.homeService.canvasOpened()?.messageId)
-  // Collect steps from messages
+
+  /**
+   * Collect steps from messages
+   * @deprecated use `stepMessages` instead
+   */
   readonly steps = computed(() => {
     const conversation = this.chatService.conversation()
     return conversation?.messages?.reduce((acc, message) => {
@@ -73,16 +81,40 @@ export class ChatCanvasComputerComponent {
     }, [])
   })
 
+  readonly stepMessages = computed(() => {
+    const conversation = this.chatService.conversation()
+    return conversation?.messages?.reduce((acc, message) => {
+      if (Array.isArray(message.content) && message.content.length > 0) {
+        acc.push(...message.content.filter((_) => _.type === 'component'))
+      }
+      return acc
+    }, [])
+  })
+
+  /**
+   * @deprecated use `stepMessages` instead
+   */
   readonly stepLength = computed(() => this.steps()?.length)
   readonly stepIndex = model<number>(0)
+  /**
+   * @deprecated use `stepMessages` instead
+   */
   readonly step = computed(() => this.steps()?.[this.stepIndex()])
+  readonly stepMessage = computed(() => this.stepMessages()?.[this.stepIndex()]?.data)
+  readonly stepMessageLength = computed(() => this.stepMessages()?.length)
 
   // Plan
   readonly hasPlan = computed(
     () => this.steps()?.some((_) => _.type === ChatMessageStepType.ComputerUse && ['create_plan', 'update_plan_step'].includes(_.tool))
   )
   readonly conversationId = this.homeService.conversationId
+  /**
+   * @deprecated
+   */
   readonly #refreshState$ = new BehaviorSubject<void>(null)
+  /**
+   * @deprecated
+   */
   readonly state = derivedAsync(() => {
     const id = this.conversationId()
     return id && this.hasPlan() ? this.#refreshState$.pipe(
@@ -90,6 +122,9 @@ export class ChatCanvasComputerComponent {
       switchMap(() => this.conversationService.getThreadState(id))) : null
   })
 
+  /**
+   * @deprecated
+   */
   readonly plan = computed(() => {
     const state = this.state()
     return state ? {
@@ -107,14 +142,32 @@ export class ChatCanvasComputerComponent {
   readonly projectId = computed(() => this.chatService.project()?.id)
 
   constructor() {
-    effect(() => {
-      // console.log(this.state())
-    })
+    // effect(() => {
+    //   console.log(this.stepMessages(), this.stepMessage(), this.stepIndex())
+    // })
     // Update to last step
     effect(
       () => {
-        if (this.steps()) {
+        if (this.steps()?.length) {
           this.updateStepIndex(this.steps().length - 1)
+          this.#refreshState$.next()
+        }
+      },
+      { allowSignalWrites: true }
+    )
+     effect(
+      () => {
+        if (this.stepMessages()) {
+          if (this.componentId()) {
+            const index = this.stepMessages().findIndex((_) => _.id === this.componentId())
+            if (index >= 0) {
+              this.updateStepIndex(index)
+            } else {
+              this.updateStepIndex(this.stepMessages().length - 1)
+            }
+          } else {
+            this.stepIndex.update((state) => this.stepMessages().length - 1)
+          }
           this.#refreshState$.next()
         }
       },
@@ -142,7 +195,7 @@ export class ChatCanvasComputerComponent {
   formatStepLabel = this._formatStepLabel.bind(this)
 
   close() {
-    this.homeService.canvasOpened.set(null)
+    this.homeService.canvasOpened.update((state) => ({...state, opened: false}))
   }
   
   togglePlan() {

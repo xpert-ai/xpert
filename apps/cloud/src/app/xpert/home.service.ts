@@ -1,4 +1,4 @@
-import { computed, inject, Injectable, model, signal } from '@angular/core'
+import { computed, effect, inject, Injectable, model, signal } from '@angular/core'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { Observable, shareReplay } from 'rxjs'
 import {
@@ -24,7 +24,7 @@ export class XpertHomeService {
 
   readonly lang = this.appService.lang
 
-  readonly conversations = signal<IChatConversation[]>([])
+  // readonly conversations = signal<IChatConversation[]>([])
   readonly currentPage = signal(0)
   readonly pagesCompleted = signal(false)
   /**
@@ -38,7 +38,10 @@ export class XpertHomeService {
 
   readonly canvasOpened = signal<{
     opened: boolean;
-    type: 'Dashboard' | 'Computer' | 'File'; 
+    type: 'Dashboard' | 'Computer' | 'File';
+    /**
+     * @deprecated Use componentId to locate step message
+     */
     messageId?: string; 
     componentId?: string; 
     file?: any
@@ -49,6 +52,36 @@ export class XpertHomeService {
 
   readonly #models: Record<string, Observable<ISemanticModel>> = {}
   readonly #publicModels: Record<string, Observable<ISemanticModel>> = {}
+
+  // Conversations
+  readonly conversations = signal<Record<string, IChatConversation[]>>({})
+
+  // Canvas
+  private canvasEffect = effect(
+    () => {
+      const messages = [...(this.messages() ?? [])]
+      if (!this.canvasOpened()) {
+        // Find the last element with type === 'component'
+        let stepMessage = null
+        messages?.reverse().find((item) => {
+          if (Array.isArray(item.content)) {
+            stepMessage = [...item.content].reverse().find((msg) => msg.type === 'component')
+            return !!stepMessage
+          }
+          return false
+        })
+
+        if (stepMessage) {
+          console.log(stepMessage)
+          this.canvasOpened.set({
+            opened: true,
+            type: 'Computer',
+          })
+        }
+      }
+    },
+    { allowSignalWrites: true }
+  )
 
   selectSemanticModel(id: string) {
     if (!this.#models[id]) {
@@ -77,8 +110,13 @@ export class XpertHomeService {
     return this.#xperts[slug]
   }
 
-  deleteConversation(id: string) {
-    this.conversations.update((items) => items.filter((item) => item.id !== id))
+  deleteConversation(xpertId: string, id: string) {
+    this.conversations.update((state) => {
+      return {
+        ...state,
+        [xpertId]: state[xpertId]?.filter((item) => item.id !== id)
+      }
+    })
     return this.conversationService.delete(id)
   }
 }

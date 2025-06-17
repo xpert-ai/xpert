@@ -10,6 +10,7 @@ identity:
   icon: icon.jpg
   tags:
     - analysis
+  help_url: /docs/ai/tool/chatbi/
 credentials_for_provider:
   models:
     type: remote-select

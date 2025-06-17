@@ -174,6 +174,7 @@ export type TMessageContentComponent = {
 export type TMessageComponent<T extends object = object> = T & {
   category: 'Dashboard' | 'Computer'
   type: string
+  created_date?: Date | string
 }
 
 export type TMessageContentText = {
@@ -218,6 +219,18 @@ export type TMessageComponentIframe = {
   type: 'Iframe'
   url: string
   title: string
+}
+
+export type TMessageComponentStep = {
+  // Triky
+  type: ChatMessageStepCategory
+  toolset: string
+  title: string
+  message: string
+  status: 'success' | 'fail' | 'running'
+  created_date: Date | string
+  end_date: Date | string
+  error?: string
 }
 
 // Type guards

@@ -27,6 +27,15 @@
         },
         "Python": {
             "ExecPythonCode": "Executing Python code"
+        },
+        "File": {
+            "RewriteFile": "Rewrite file"
+        },
+        "ProjectTask": {
+            "Tasks": "Tasks",
+            "ListTasks": "List tasks",
+            "CreateTasks": "Create tasks",
+            "UpdateTasks": "Update tasks"
         }
     }
 }

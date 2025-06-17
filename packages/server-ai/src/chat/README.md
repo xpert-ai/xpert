@@ -14,8 +14,8 @@ dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
     type: ChatMessageStepType.ComputerUse,
     toolset: 'planning',
     tool: 'create_plan',
-    message: _.tasks.map((_) => _.name).join('\n\n'),
-    title: `Creating tasks`,
+    title: `Creating tasks`, // Short title
+    message: _.tasks.map((_) => _.name).join('\n\n'), // Details message
     data: {
         title: 'Tasks',
         steps: _.tasks.map((_) => ({..._, content: _.name,}))
