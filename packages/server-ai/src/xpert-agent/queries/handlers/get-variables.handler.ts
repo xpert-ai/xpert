@@ -64,35 +64,6 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 			})
 		}
 
-		// System state variables
-		varGroups.push({
-			group: {
-				name: STATE_VARIABLE_HUMAN,
-				description: {
-					en_US: 'Human',
-					zh_Hans: '用户'
-				}
-			},
-			variables: [
-				{
-					name: STATE_VARIABLE_INPUT,
-					type: XpertParameterTypeEnum.STRING,
-					description: {
-						en_US: 'Input',
-						zh_Hans: '输入'
-					}
-				},
-				{
-					name: STATE_VARIABLE_FILES,
-					type: XpertParameterTypeEnum.ARRAY_FILE,
-					description: {
-						en_US: 'Files',
-						zh_Hans: '文件'
-					}
-				}
-			]
-		})
-		
 		// User parameters
 		const variables: TStateVariable[] = [
 			{
@@ -104,57 +75,84 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				}
 			},
 			{
-				name: `${STATE_VARIABLE_SYS}.language`,
-				type: XpertParameterTypeEnum.STRING,
+				name: STATE_VARIABLE_FILES,
+				type: XpertParameterTypeEnum.ARRAY_FILE,
 				description: {
-					en_US: 'Language',
-					zh_Hans: '语言'
-				}
-			},
-			{
-				name: `${STATE_VARIABLE_SYS}.user_email`,
-				type: XpertParameterTypeEnum.STRING,
-				description: {
-					en_US: 'User email',
-					zh_Hans: '用户邮箱'
-				}
-			},
-			{
-				name: `${STATE_VARIABLE_SYS}.timezone`,
-				type: XpertParameterTypeEnum.STRING,
-				description: {
-					en_US: 'User time zone',
-					zh_Hans: '用户时区'
-				}
-			},
-			{
-				name: `${STATE_VARIABLE_SYS}.date`,
-				type: XpertParameterTypeEnum.STRING,
-				description: {
-					en_US: 'Current Date',
-					zh_Hans: '当前日期'
-				}
-			},
-			{
-				name: `${STATE_VARIABLE_SYS}.datetime`,
-				type: XpertParameterTypeEnum.STRING,
-				description: {
-					en_US: 'Current Datetime',
-					zh_Hans: '当前时间'
-				}
-			},
-			{
-				name: `${STATE_VARIABLE_SYS}.common_times`,
-				type: XpertParameterTypeEnum.STRING,
-				description: {
-					en_US: 'Common Times',
-					zh_Hans: '常用时间'
+					en_US: 'Files',
+					zh_Hans: '文件'
 				}
 			}
 		]
-		
 		varGroups.push({
+			group: {
+				name: STATE_VARIABLE_HUMAN,
+				description: {
+					en_US: 'Human',
+					zh_Hans: '用户'
+				}
+			},
 			variables
+		})
+
+		// System variables
+		varGroups.push({
+			group: {
+				name: STATE_VARIABLE_SYS,
+				description: {
+					en_US: 'System Variables',
+					zh_Hans: '系统变量'
+				}
+			},
+			variables: [
+				{
+					name: `language`,
+					type: XpertParameterTypeEnum.STRING,
+					description: {
+						en_US: 'Language',
+						zh_Hans: '语言'
+					}
+				},
+				{
+					name: `user_email`,
+					type: XpertParameterTypeEnum.STRING,
+					description: {
+						en_US: 'User email',
+						zh_Hans: '用户邮箱'
+					}
+				},
+				{
+					name: `timezone`,
+					type: XpertParameterTypeEnum.STRING,
+					description: {
+						en_US: 'User time zone',
+						zh_Hans: '用户时区'
+					}
+				},
+				{
+					name: `date`,
+					type: XpertParameterTypeEnum.STRING,
+					description: {
+						en_US: 'Current Date',
+						zh_Hans: '当前日期'
+					}
+				},
+				{
+					name: `datetime`,
+					type: XpertParameterTypeEnum.STRING,
+					description: {
+						en_US: 'Current Datetime',
+						zh_Hans: '当前时间'
+					}
+				},
+				{
+					name: `common_times`,
+					type: XpertParameterTypeEnum.STRING,
+					description: {
+						en_US: 'Common Times',
+						zh_Hans: '常用时间'
+					}
+				}
+			]
 		})
 
 		// Xpert state variables
