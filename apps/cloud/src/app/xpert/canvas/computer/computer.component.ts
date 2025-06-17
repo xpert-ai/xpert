@@ -1,26 +1,31 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Dialog } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
-import { FileTypePipe, ListHeightStaggerAnimation } from '@metad/core'
-import { TranslateModule } from '@ngx-translate/core'
-import { derivedAsync } from 'ngxtension/derived-async'
+import {
+  ChatConversationService,
+  ChatMessageStepCategory,
+  ChatMessageStepType,
+  injectFormatRelative
+} from '@cloud/app/@core'
 import { ChatConversationFilesComponent } from '@cloud/app/@shared/chat'
-import { ChatConversationService, ChatMessageStepCategory, ChatMessageStepType, injectFormatRelative } from '@cloud/app/@core'
 import { FileEditorComponent } from '@cloud/app/@shared/files'
 import { XpertProjectTasksComponent } from '@cloud/app/@shared/xpert'
-import { CanvasHtmlEditorComponent } from '../html-editor/html-editor.component'
+import { FileTypePipe, ListHeightStaggerAnimation } from '@metad/core'
+import { TranslateModule } from '@ngx-translate/core'
+import { uniq } from 'lodash-es'
+import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, debounceTime, switchMap } from 'rxjs'
-import { XpertHomeService } from '../../home.service'
 import { ChatService } from '../../chat.service'
+import { XpertHomeService } from '../../home.service'
+import { ChatCanvasFileEditorComponent } from '../file-editor/file-editor.component'
+import { CanvasHtmlEditorComponent } from '../html-editor/html-editor.component'
 import { ChatCanvasIframeComponent } from '../iframe/iframe.component'
 import { ChatCanvasTerminalComponent } from '../terminal/terminal.component'
-import { ChatCanvasFileEditorComponent } from '../file-editor/file-editor.component'
-
 
 @Component({
   standalone: true,
@@ -65,8 +70,6 @@ export class ChatCanvasComputerComponent {
   // States
   readonly expand = signal(false)
 
-  // readonly messageId = computed(() => this.homeService.canvasOpened()?.type === 'Computer' && this.homeService.canvasOpened()?.messageId)
-
   /**
    * Collect steps from messages
    * @deprecated use `stepMessages` instead
@@ -90,6 +93,8 @@ export class ChatCanvasComputerComponent {
       return acc
     }, [])
   })
+  readonly stepCategories = computed(() => uniq(this.stepMessages().map((_) => _.category)))
+  readonly stepTypes = computed(() => uniq(this.stepMessages().map((_) => _.type)))
 
   /**
    * @deprecated use `stepMessages` instead
@@ -104,8 +109,10 @@ export class ChatCanvasComputerComponent {
   readonly stepMessageLength = computed(() => this.stepMessages()?.length)
 
   // Plan
-  readonly hasPlan = computed(
-    () => this.steps()?.some((_) => _.type === ChatMessageStepType.ComputerUse && ['create_plan', 'update_plan_step'].includes(_.tool))
+  readonly hasPlan = computed(() =>
+    this.steps()?.some(
+      (_) => _.type === ChatMessageStepType.ComputerUse && ['create_plan', 'update_plan_step'].includes(_.tool)
+    )
   )
   readonly conversationId = this.homeService.conversationId
   /**
@@ -117,9 +124,12 @@ export class ChatCanvasComputerComponent {
    */
   readonly state = derivedAsync(() => {
     const id = this.conversationId()
-    return id && this.hasPlan() ? this.#refreshState$.pipe(
-      debounceTime(300),
-      switchMap(() => this.conversationService.getThreadState(id))) : null
+    return id && this.hasPlan()
+      ? this.#refreshState$.pipe(
+          debounceTime(300),
+          switchMap(() => this.conversationService.getThreadState(id))
+        )
+      : null
   })
 
   /**
@@ -127,24 +137,32 @@ export class ChatCanvasComputerComponent {
    */
   readonly plan = computed(() => {
     const state = this.state()
-    return state ? {
-      title: state.plan_title, 
-      steps: state.plan_steps,
-      status: state.plan_steps?.some((_) => _.status === 'in_progress') ? 'in_progress' :
-        state.plan_steps?.every((_) => _.status === 'completed') ? 'completed' : null,
-      total: state.plan_steps?.length,
-      completed: state.plan_steps?.filter((_) => _.status === 'completed')?.length
-    } : null
+    return state
+      ? {
+          title: state.plan_title,
+          steps: state.plan_steps,
+          status: state.plan_steps?.some((_) => _.status === 'in_progress')
+            ? 'in_progress'
+            : state.plan_steps?.every((_) => _.status === 'completed')
+              ? 'completed'
+              : null,
+          total: state.plan_steps?.length,
+          completed: state.plan_steps?.filter((_) => _.status === 'completed')?.length
+        }
+      : null
   })
-
+  /**
+   * @deprecated
+   */
   readonly expandPlan = signal(false)
 
   readonly projectId = computed(() => this.chatService.project()?.id)
 
   constructor() {
     // effect(() => {
-    //   console.log(this.stepMessages(), this.stepMessage(), this.stepIndex())
+    //   console.log(this.stepMessages(), this.stepTypes(), this.stepCategories())
     // })
+
     // Update to last step
     effect(
       () => {
@@ -155,7 +173,8 @@ export class ChatCanvasComputerComponent {
       },
       { allowSignalWrites: true }
     )
-     effect(
+    
+    effect(
       () => {
         if (this.stepMessages()) {
           if (this.componentId()) {
@@ -195,9 +214,9 @@ export class ChatCanvasComputerComponent {
   formatStepLabel = this._formatStepLabel.bind(this)
 
   close() {
-    this.homeService.canvasOpened.update((state) => ({...state, opened: false}))
+    this.homeService.canvasOpened.update((state) => ({ ...state, opened: false }))
   }
-  
+
   togglePlan() {
     this.expandPlan.update((state) => !state)
   }

@@ -20,7 +20,8 @@
     @for (message of messages; track message) {
       @switch (message.type) {
         @case ('component') {
-          <chat-component-message class="w-full p-2 rounded-2xl hover:bg-neutral-50"
+          <chat-message-dashboard class="w-full p-2 rounded-2xl hover:bg-neutral-50"
+            [messageId]="message.id"
             [message]="message"
           />
         }
