@@ -308,7 +308,8 @@
       "Params": "参数",
       "Key": "键",
       "Value": "值",
-      "SelectWorkspace": "选择工作空间"
+      "SelectWorkspace": "选择工作空间",
+      "SearchTerm": "搜索词"
     },
     "XProject": {
       "DeleteProjectAndAll": "删除项目及其中所有的材料",
@@ -684,7 +685,8 @@
       "Update": "更新",
       "Test": "测试",
       "HelpLink": "帮助链接",
-      "PasteHere": "粘贴到这里"
+      "PasteHere": "粘贴到这里",
+      "OpenInNewTab": "在新标签页中打开"
     },
     "MESSAGE": {
       "MAIN_ORGANIZATION_UPDATED": "组织更新成功",
