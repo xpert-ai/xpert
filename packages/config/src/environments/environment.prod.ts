@@ -1,4 +1,4 @@
-require('dotenv').config();
+import 'dotenv/config';
 
 import { FileStorageProviderEnum, VectorTypeEnum } from '@metad/contracts';
 import { IEnvironment, IPACFeatures, LogLevel } from './ienvironment';

@@ -45,7 +45,7 @@ export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> implements
 	}
 
 	constructor(
-		public provider: string,
+		public providerName: string,
 		protected toolset?: IXpertToolset,
 		protected params?: TBuiltinToolsetParams
 	) {

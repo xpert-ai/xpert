@@ -1,18 +1,16 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { CallbackManager, CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
-import { SerializedNotImplemented } from '@langchain/core/load/serializable'
 import { DynamicStructuredTool, StructuredToolInterface, tool } from '@langchain/core/tools'
 import {
 	ChatMessageEventTypeEnum,
 	ChatMessageStepCategory,
 	ChatMessageStepType,
+	getToolCallFromConfig,
 	getWorkspaceFromRunnable,
 	IBaseToolset,
 	TFile
 } from '@metad/contracts'
-import { environment } from '@metad/server-config'
 import { t } from 'i18next'
-import { isNil, omitBy } from 'lodash'
 import z from 'zod'
 import {
 	ConvFileDeleteCommand,
@@ -28,75 +26,24 @@ import {
 	UpsertProjectFileCommand
 } from '../../xpert-project/commands/index'
 import { BaseSandboxToolset } from './sandbox-toolset'
+import { Sandbox, TCreateFileReq, TFileBaseReq } from '../client'
+
+export enum FileToolsetEnum {
+	ListFiles = 'list_files',
+	CreateFile = 'create_file',
+	StrReplace = 'str_replace',
+	FullFileRewrite = 'full_file_rewrite',
+	DeleteFile = 'delete_file',
+	ReadFile = 'read_file'
+}
 
 export abstract class BaseFileToolset
 	extends BaseSandboxToolset<DynamicStructuredTool | StructuredToolInterface>
 	implements IBaseToolset
 {
+	provider = 'file'
+	
 	callbackManager?: CallbackManager
-
-	constructor() {
-		super()
-
-		// eslint-disable-next-line @typescript-eslint/no-this-alias
-		const that = this
-		this.callbackManager = CallbackManager.fromHandlers({
-			// 当工具调用开始时触发
-			async handleToolStart(tool, input) {
-				// console.log(`[Tool Start] 调用工具: `, tool)
-				// console.log(`工具输入: ${input}`)
-				// // 自定义逻辑：记录工具调用时间
-				// console.log(`工具调用时间: ${new Date().toISOString()}`)
-			},
-
-			// 当工具调用成功完成时触发
-			async handleToolEnd(params, runId: string, parentRunId?: string, ...rest) {
-				console.log(`=================================`)
-				console.log(params, runId, parentRunId, rest)
-
-				const { tool_name, output, workspaceType, workspaceId } = params
-
-				if (
-					tool_name === toolNamePrefix(that.toolNamePrefix, 'create_file') ||
-					tool_name === toolNamePrefix(that.toolNamePrefix, 'str_replace') ||
-					tool_name === toolNamePrefix(that.toolNamePrefix, 'full_file_rewrite')
-				) {
-					const { file_path, file_contents, file_description } = output
-					await that.saveFileToDatabase(
-						workspaceType,
-						workspaceId,
-						omitBy(
-							{
-								filePath: file_path,
-								contents: file_contents,
-								fileType: null,
-								url: null,
-								description: file_description
-							},
-							isNil
-						) as TFile
-					)
-				}
-				if (tool_name === toolNamePrefix(this.toolNamePrefix, 'delete_file')) {
-					const { file_path } = output
-					await that.deleteFileFromDatabase(workspaceType, workspaceId, file_path)
-				}
-			},
-
-			// 当工具调用出错时触发
-			async handleToolError(err) {
-				console.error(`[Tool Error] 工具调用失败: ${err.message}`)
-				// 自定义逻辑：记录错误到外部系统（模拟）
-				console.log('将错误记录到外部日志系统...')
-			},
-
-			// 可选：当代理开始处理时触发
-			async handleAgentAction(action) {
-				// console.log(`[Agent Action] 代理执行动作: ${action.tool}`)
-				// console.log(`动作输入: ${action.toolInput}`)
-			}
-		})
-	}
 
 	async initTools() {
 		await this._ensureSandbox()
@@ -111,90 +58,68 @@ export abstract class BaseFileToolset
 		return this.tools
 	}
 
-	async doRequest(path: string, requestData: any, signal: AbortSignal) {
-		const result = await this.sandbox.fs.doRequest(path, requestData, { signal })
-		return result.data
-	}
+	// async doRequest(path: string, requestData: any, signal: AbortSignal) {
+	// 	const result = await this.sandbox.fs.doRequest(path, requestData, { signal })
+	// 	return result.data
+	// }
 
-	async getFileByPath(type: 'project' | 'conversation', id: string, filePath: string): Promise<TFile> {
-		if (type === 'project') {
-			return await this.commandBus.execute(new ReadProjectFileCommand(id, filePath))
-		} else if (type === 'conversation') {
-			return await this.commandBus.execute(new ConvFileGetByPathCommand(this.params.conversationId, filePath))
-		}
-		return null
-	}
+	// async getFileByPath(type: 'project' | 'conversation', id: string, filePath: string): Promise<TFile> {
+	// 	if (type === 'project') {
+	// 		return await this.commandBus.execute(new ReadProjectFileCommand(id, filePath))
+	// 	} else if (type === 'conversation') {
+	// 		return await this.commandBus.execute(new ConvFileGetByPathCommand(this.params.conversationId, filePath))
+	// 	}
+	// 	return null
+	// }
 
-	async saveFileToDatabase(type: 'project' | 'conversation', id: string, file: TFile) {
-		if (type === 'project') {
-			await this.commandBus.execute(new UpsertProjectFileCommand(id, file))
-		} else {
-			await this.commandBus.execute(new ConvFileUpsertCommand(id, file))
-		}
-	}
-	async deleteFileFromDatabase(type: 'project' | 'conversation', id: string, filePath: string) {
-		if (type === 'project') {
-			await this.commandBus.execute(new DeleteProjectFileCommand(id, filePath))
-		} else {
-			await this.commandBus.execute(new ConvFileDeleteCommand(id, filePath))
-		}
-	}
+	// async saveFileToDatabase(type: 'project' | 'conversation', id: string, file: TFile) {
+	// 	if (type === 'project') {
+	// 		await this.commandBus.execute(new UpsertProjectFileCommand(id, file))
+	// 	} else {
+	// 		await this.commandBus.execute(new ConvFileUpsertCommand({threadId: id, file}))
+	// 	}
+	// }
+	// async deleteFileFromDatabase(type: 'project' | 'conversation', id: string, filePath: string) {
+	// 	if (type === 'project') {
+	// 		await this.commandBus.execute(new DeleteProjectFileCommand(id, filePath))
+	// 	} else {
+	// 		await this.commandBus.execute(new ConvFileDeleteCommand(id, filePath))
+	// 	}
+	// }
 
-	async listFiles(type: 'project' | 'conversation', id: string) {
-		if (type === 'project') {
-			return await this.commandBus.execute(new ListProjectFilesCommand(id))
-		} else if (type === 'conversation') {
-			return await this.commandBus.execute(new ListConvFilesCommand(id))
-		}
-		return [] as TFile[]
-	}
-}
-
-function serializeDynamicTool(tool: DynamicStructuredTool) {
-	return {
-		lc: 0,
-		id: tool.lc_id,
-		name: tool.name,
-		type: 'not_implemented' as SerializedNotImplemented['type'],
-		description: tool.description,
-		schema: tool.schema
-	}
+	// async listFiles(type: 'project' | 'conversation', id: string) {
+	// 	if (type === 'project') {
+	// 		return await this.commandBus.execute(new ListProjectFilesCommand(id))
+	// 	} else if (type === 'conversation') {
+	// 		return await this.commandBus.execute(new ListConvFilesCommand(id))
+	// 	}
+	// 	return [] as TFile[]
+	// }
 }
 
 export function buildListFilesTool(toolset: BaseFileToolset) {
-	const TOOL_NAME = toolNamePrefix(toolset.toolNamePrefix, 'list_files')
+	const TOOL_NAME = toolNamePrefix(toolset.toolNamePrefix, FileToolsetEnum.ListFiles)
 
 	const listFilesTool = tool(
 		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
 			const { signal, configurable } = config ?? {}
 			const { type, id: workspaceId } = getWorkspaceFromRunnable(configurable)
-
-			if (toolset.callbackManager) {
-				await toolset.callbackManager.handleToolStart(
-					serializeDynamicTool(listFilesTool),
-					JSON.stringify(parameters),
-					runManager?.runId
-				)
-			}
+			const toolCall = getToolCallFromConfig(config)
 
 			const response = await toolset.sandbox.fs.listFiles(
-				{ workspace_id: workspaceId, thread_id: workspaceId },
+				{ workspace_id: workspaceId },
 				{ signal }
 			)
 
-			if (!response.files?.length) {
-				toolset.listFiles(type, workspaceId)
-			}
-
-			const baseUrl = `${environment.baseUrl}/api/sandbox/preview/${workspaceId}/`
-			const files = response.files.map((_) => ({ ..._, filePath: _.name, url: baseUrl + _.name }) as TFile)
+			const files = response.files.map((_) => ({ ..._, filePath: _.name, url: Sandbox.sandboxFileUrl(toolset.sandbox.volume, workspaceId, _.name) }) as TFile)
 
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+				id: toolCall?.id,
 				type: ChatMessageStepType.ComputerUse,
 				category: ChatMessageStepCategory.Files,
 				tool: TOOL_NAME,
 				title: t('server-ai:tools.ListFiles'),
-				message: t('server-ai:tools.ListFiles'),
+				message: '...',
 				data: files
 			})
 
@@ -212,62 +137,38 @@ export function buildListFilesTool(toolset: BaseFileToolset) {
 }
 
 export function buildCreateFileTool(toolset: BaseFileToolset) {
-	const TOOL_NAME = toolNamePrefix(toolset.toolNamePrefix, 'create_file')
+	const TOOL_NAME = toolNamePrefix(toolset.toolNamePrefix, FileToolsetEnum.CreateFile)
 
 	const createFileTool = tool(
 		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
 			const { signal, configurable } = config ?? {}
 			const { type, id: workspaceId } = getWorkspaceFromRunnable(configurable)
-
-			if (toolset.callbackManager) {
-				await toolset.callbackManager.handleToolStart(
-					serializeDynamicTool(createFileTool),
-					JSON.stringify(parameters),
-					runManager?.runId
-				)
-			}
+			const toolCall = getToolCallFromConfig(config)
 
 			const result = await toolset.sandbox.fs.createFile(
 				{
 					...parameters,
 					workspace_id: workspaceId,
-					thread_id: workspaceId
-				},
+				} as TCreateFileReq,
 				{ signal }
 			)
 
-			// Notification completion
-			if (runManager) {
-				await runManager?.handleToolEnd({ name: TOOL_NAME, result, workspaceType: type, workspaceId })
-			}
-			if (toolset.callbackManager) {
-				for await (const handler of toolset.callbackManager.handlers) {
-					await handler.handleToolEnd(
-						{ output: parameters, tool_name: TOOL_NAME, workspaceType: type, workspaceId },
-						runManager?.runId
-					)
-				}
-			}
-
-			const baseUrl = `${environment.baseUrl}/api/sandbox/preview/${workspaceId}`
+			const fileUrl = Sandbox.sandboxFileUrl(toolset.sandbox.volume, workspaceId, parameters.file_path)
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+				id: toolCall?.id,
 				type: ChatMessageStepType.ComputerUse,
 				category: ChatMessageStepCategory.File,
 				tool: TOOL_NAME,
-				title: parameters.file_path,
-				message: t('server-ai:tools.CreatedFile') + `: ${parameters.file_path}`,
+				title: t('server-ai:tools.CreatedFile'),
+				message: parameters.file_path,
 				data: {
-					url: `${baseUrl}/${parameters.file_path}`,
+					url: fileUrl,
 					contents: parameters.file_contents,
 					filePath: parameters.file_path
 				} as TFile
 			})
 
-			return JSON.stringify({
-				url: `${baseUrl}/${parameters.file_path}`,
-				filePath: parameters.file_path,
-				message: result.message
-			}, null, 2)
+			return `[${parameters.file_path}](${fileUrl}) created successfully.`
 		},
 		{
 			name: TOOL_NAME,
@@ -297,70 +198,52 @@ export function buildCreateFileTool(toolset: BaseFileToolset) {
 }
 
 export function buildStrReplaceTool(toolset: BaseFileToolset) {
-	const TOOL_NAME = toolNamePrefix(toolset.toolNamePrefix, 'str_replace')
+	const TOOL_NAME = toolNamePrefix(toolset.toolNamePrefix, FileToolsetEnum.StrReplace)
 
 	const strReplaceTool = tool(
 		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
 			const { signal, configurable } = config ?? {}
 			const { type, id: workspaceId } = getWorkspaceFromRunnable(configurable)
+			const toolCall = getToolCallFromConfig(config)
 
-			if (toolset.callbackManager) {
-				await toolset.callbackManager.handleToolStart(
-					serializeDynamicTool(strReplaceTool),
-					JSON.stringify(parameters),
-					runManager?.runId
-				)
+			const fileRequest = {
+				workspace_id: workspaceId,
+				file_path: parameters.file_path,
 			}
+			const contents = await toolset.sandbox.fs.readFile(fileRequest, {signal})
 
-			const originalFile = await toolset.getFileByPath(type, workspaceId, parameters.file_path)
-			if (!originalFile) {
-				throw new Error(`File '${parameters.file_path}' does not exist. Use create_file to create a new file.`)
-			}
-
-			const occurrences = (originalFile.contents.match(new RegExp(parameters.old_str, 'g')) || []).length
+			const occurrences = (contents?.match(new RegExp(parameters.old_str, 'g')) || []).length
 			if (occurrences === 0) {
 				throw new Error(`String '${parameters.old_str}' not found in file`)
 			}
 			if (occurrences > 1) {
-				const lines = originalFile.contents
-					.split('\n')
+				const lines = contents.split('\n')
 					.map((line, index) => (line.includes(parameters.old_str) ? index + 1 : -1))
 					.filter((index) => index !== -1)
 				throw new Error(`Multiple occurrences found in lines ${lines}. Please ensure string is unique`)
 			}
 
 			// Perform replacement
-			const newContent = originalFile.contents.replace(parameters.old_str, parameters.new_str)
+			const newContent = contents?.replace(parameters.old_str, parameters.new_str)
 
-			const requestData = {
+			const requestData: TCreateFileReq = {
 				file_path: parameters.file_path,
 				file_contents: newContent,
 				workspace_id: workspaceId,
-				thread_id: workspaceId
 			}
 
 			// Re-create file
-			const result = await toolset.doRequest('create', requestData, signal)
+			const result = await toolset.sandbox.fs.createFile(requestData, {signal})
 
-			// Notification completion
-			if (runManager) {
-				await runManager?.handleToolEnd({ name: TOOL_NAME, result })
-			}
-			if (toolset.callbackManager) {
-				for await (const handler of toolset.callbackManager.handlers) {
-					await handler.handleToolEnd({ output: requestData, tool_name: TOOL_NAME }, runManager?.runId)
-				}
-			}
-
-			const baseUrl = `${environment.baseUrl}/api/sandbox/preview/${workspaceId}`
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+				id: toolCall?.id,
 				type: ChatMessageStepType.ComputerUse,
 				category: ChatMessageStepCategory.File,
 				tool: TOOL_NAME,
-				title: parameters.file_path,
-				message: t('server-ai:tools.UpdatedFile') + `: ${parameters.file_path}`,
+				title: t('server-ai:tools.UpdatedFile'),
+				message: parameters.file_path,
 				data: {
-					url: `${baseUrl}/${parameters.file_path}`,
+					url: Sandbox.sandboxFileUrl(toolset.sandbox.volume, workspaceId, parameters.file_path),
 					contents: newContent,
 					filePath: parameters.file_path
 				} as TFile
@@ -386,62 +269,36 @@ export function buildStrReplaceTool(toolset: BaseFileToolset) {
 }
 
 export function buildFullFileRewriteTool(toolset: BaseFileToolset) {
-	const TOOL_NAME = toolNamePrefix(toolset.toolNamePrefix, 'full_file_rewrite')
+	const TOOL_NAME = toolNamePrefix(toolset.toolNamePrefix, FileToolsetEnum.FullFileRewrite,)
 
 	const fullFileRewriteTool = tool(
 		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
 			const { signal, configurable } = config ?? {}
 			const { type, id: workspaceId } = getWorkspaceFromRunnable(configurable)
+			const toolCall = getToolCallFromConfig(config)
 
-			if (toolset.callbackManager) {
-				await toolset.callbackManager.handleToolStart(
-					serializeDynamicTool(fullFileRewriteTool),
-					JSON.stringify(parameters),
-					runManager?.runId
-				)
-			}
-
-			const originalFile = await toolset.getFileByPath(type, workspaceId, parameters.file_path)
-			if (!originalFile) {
-				throw new Error(`File '${parameters.file_path}' does not exist. Use create_file to create a new file.`)
-			}
-
-			const requestData = {
+			const requestData: TCreateFileReq = {
 				file_path: parameters.file_path,
 				file_contents: parameters.file_contents,
 				workspace_id: workspaceId,
-				thread_id: workspaceId
 			}
 
 			// Re-create file
-			const result = await toolset.doRequest('create', requestData, signal)
+			const result = await toolset.sandbox.fs.createFile(requestData, {signal})
 
-			// Notification completion
-			if (runManager) {
-				await runManager?.handleToolEnd({ name: TOOL_NAME, result })
-			}
-			if (toolset.callbackManager) {
-				for await (const handler of toolset.callbackManager.handlers) {
-					await handler.handleToolEnd({ output: requestData, tool_name: TOOL_NAME }, runManager?.runId)
-				}
-			}
-
-			const baseUrl = `${environment.baseUrl}/api/sandbox/preview/${workspaceId}`
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+				id: toolCall?.id,
 				type: ChatMessageStepType.ComputerUse,
 				category: ChatMessageStepCategory.File,
 				tool: TOOL_NAME,
-				title: parameters.file_path,
-				message: t('server-ai:tools.UpdatedFile') + `: ${parameters.file_path}`,
+				title: t('server-ai:tools.File.RewriteFile'),
+				message: parameters.file_path,
 				data: {
-					url: `${baseUrl}/${parameters.file_path}`,
+					url: Sandbox.sandboxFileUrl(toolset.sandbox.volume, workspaceId, parameters.file_path),
 					contents: parameters.file_contents,
 					filePath: parameters.file_path
 				} as TFile
 			})
-
-			console.log(result)
-
 			return result || 'Done'
 		},
 		{
@@ -469,57 +326,35 @@ export function buildFullFileRewriteTool(toolset: BaseFileToolset) {
 }
 
 export function buildDeleteFileTool(toolset: BaseFileToolset) {
-	const TOOL_NAME = toolNamePrefix(toolset.toolNamePrefix, 'delete_file')
+	const TOOL_NAME = toolNamePrefix(toolset.toolNamePrefix, FileToolsetEnum.DeleteFile)
 
 	const deleteFileTool = tool(
 		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
 			const { signal, configurable } = config ?? {}
 			const { type, id } = getWorkspaceFromRunnable(configurable)
+			const toolCall = getToolCallFromConfig(config)
 
-			if (toolset.callbackManager) {
-				await toolset.callbackManager.handleToolStart(
-					serializeDynamicTool(deleteFileTool),
-					JSON.stringify(parameters),
-					runManager?.runId
-				)
-			}
-
-			const originalFile = await toolset.getFileByPath(type, id, parameters.file_path)
-			if (!originalFile) {
-				throw new Error(`File '${parameters.file_path}' does not exist`)
-			}
-
-			const requestData = {
+			const requestData: TFileBaseReq = {
 				file_path: parameters.file_path,
 				workspace_id: id,
-				thread_id: id
 			}
 
 			// Re-create file
-			const result = await toolset.doRequest('delete', requestData, signal)
-
-			// Notification completion
-			if (runManager) {
-				await runManager?.handleToolEnd({ name: TOOL_NAME, result })
-			}
-			if (toolset.callbackManager) {
-				for await (const handler of toolset.callbackManager.handlers) {
-					await handler.handleToolEnd({ output: requestData, tool_name: TOOL_NAME }, runManager?.runId)
-				}
-			}
+			await toolset.sandbox.fs.deleteFile(requestData, {signal})
 
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+				id: toolCall?.id,
 				type: ChatMessageStepType.ComputerUse,
 				category: ChatMessageStepCategory.File,
 				tool: TOOL_NAME,
-				title: parameters.file_path,
-				message: t('server-ai:tools.DeletedFile') + `: ${parameters.file_path}`,
+				title: t('server-ai:tools.DeletedFile'),
+				message: parameters.file_path,
 				data: {
 					filePath: parameters.file_path
 				} as TFile
 			})
 
-			return result
+			return `File '${parameters.file_path}' deleted successfully`
 		},
 		{
 			name: TOOL_NAME,
@@ -537,46 +372,42 @@ export function buildDeleteFileTool(toolset: BaseFileToolset) {
 }
 
 /**
- * Read the specified file
+ * Read the specified file in sandbox and return its contents.
  *
  * @param toolset
  * @returns
  */
 export function buildReadFileTool(toolset: BaseFileToolset) {
-	const TOOL_NAME = toolNamePrefix(toolset.toolNamePrefix, 'read_file')
+	const TOOL_NAME = toolNamePrefix(toolset.toolNamePrefix, FileToolsetEnum.ReadFile)
 
 	const readFileTool = tool(
 		async (parameters, config, runManager?: CallbackManagerForToolRun) => {
 			const { signal, configurable } = config ?? {}
 			const { type, id } = getWorkspaceFromRunnable(configurable)
+			const toolCall = getToolCallFromConfig(config)
 
-			if (toolset.callbackManager) {
-				await toolset.callbackManager.handleToolStart(
-					serializeDynamicTool(readFileTool),
-					JSON.stringify(parameters),
-					runManager?.runId
-				)
+			const requestData: TFileBaseReq = {
+				file_path: parameters.file_path,
+				workspace_id: id,
 			}
 
-			const originalFile = await toolset.getFileByPath(type, id, parameters.file_path)
-			if (!originalFile) {
-				throw new Error(`File '${parameters.file_path}' does not exist`)
-			}
+			const contents = await toolset.sandbox.fs.readFile(requestData, {signal})
 
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+				id: toolCall?.id,
 				type: ChatMessageStepType.ComputerUse,
 				category: ChatMessageStepCategory.File,
 				tool: TOOL_NAME,
-				title: parameters.file_path,
-				message: t('server-ai:tools.ReadFile') + `: ${parameters.file_path}`,
+				title: t('server-ai:tools.ReadFile'),
+				message: parameters.file_path,
 				data: {
 					filePath: parameters.file_path,
-					contents: originalFile.contents,
-					url: originalFile.url
+					contents: contents,
+					url: Sandbox.sandboxFileUrl(toolset.sandbox.volume, id, parameters.file_path)
 				} as TFile
 			})
 
-			return originalFile.contents
+			return contents
 		},
 		{
 			name: TOOL_NAME,

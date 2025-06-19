@@ -35,6 +35,8 @@ import { XpertProjectFileService } from './services'
 import { XpertProjectIdentiDto } from './dto/project-identi.dto'
 import { Response } from 'express'
 import { environment } from '@metad/server-config'
+import { Sandbox } from '../sandbox/client'
+import { listFiles } from '../shared'
 
 @ApiTags('XpertProject')
 @ApiBearerAuth()

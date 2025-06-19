@@ -47,8 +47,14 @@ export class ChatMessageAvatarComponent {
   )
 
   // Avatar
-  readonly agent = computed(() => this.content()?.agentKey && this.agents()[this.content().agentKey])
-  readonly xpert = computed(() => this.content()?.xpertName && this.xperts()[this.content().xpertName])
+  readonly agent = computed(() => {
+    const agentKey = this.content()?.agentKey
+    return agentKey && this.agents()[agentKey]
+  })
+  readonly xpert = computed(() => {
+    const xpertName = this.content()?.xpertName
+    return xpertName && this.xperts()[xpertName]
+  })
 
   readonly show = computed(() => {
     return this.agent()

@@ -2,8 +2,8 @@ identity:
   name: browser_use_task
   author: XpertAI
   label:
-    en_US: Task
-    zh_Hans: 任务
+    en_US: Execute Task
+    zh_Hans: 执行任务
 description:
   human:
     en_US: Execute Browser Task.

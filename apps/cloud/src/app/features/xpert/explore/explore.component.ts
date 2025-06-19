@@ -4,14 +4,14 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
+import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, RouterModule } from '@angular/router'
 import { DynamicGridDirective } from '@metad/core'
 import { NgmCommonModule, NgmHighlightDirective } from '@metad/ocap-angular/common'
+import { debouncedSignal } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
-import { debounceTime, tap } from 'rxjs'
+import { tap } from 'rxjs'
 import { TXpertTemplate, XpertTemplateService, XpertTypeEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { XpertInstallComponent } from './install/install.component'
@@ -21,12 +21,10 @@ import { XpertInstallComponent } from './install/install.component'
   imports: [
     CommonModule,
     FormsModule,
-    ReactiveFormsModule,
     TranslateModule,
     RouterModule,
     CdkMenuModule,
     CdkListboxModule,
-    MatInputModule,
 
     NgmCommonModule,
     NgmHighlightDirective,
@@ -62,24 +60,27 @@ export class XpertExploreComponent {
       return this.templates()?.recommendedApps.filter((app) => app.category === category)
     }
   })
+
+  readonly searchModel = model<string>('')
+  readonly searchText = debouncedSignal(this.searchModel, 300)
   readonly apps = computed(() => {
     const text = this.searchText().toLowerCase()
     return text
       ? this.recommendedApps()?.filter(
-          (_) => _.name.toLowerCase().includes(text) || _.description?.toLowerCase().includes(text)
+          (_) => _.title?.toLowerCase().includes(text) || _.name.toLowerCase().includes(text) || _.description?.toLowerCase().includes(text)
         )
       : this.recommendedApps()
   })
 
-  readonly searchControl = new FormControl<string>('')
-  readonly searchText = toSignal(this.searchControl.valueChanges.pipe(debounceTime(300)), { initialValue: '' })
-
   constructor() {
-    effect(() => {
-      if (this.querySearch()) {
-        this.searchControl.setValue(this.querySearch())
-      }
-    })
+    effect(
+      () => {
+        if (this.querySearch()) {
+          this.searchModel.set(this.querySearch())
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   install(app: TXpertTemplate) {

@@ -16,6 +16,8 @@ export enum ProjectToolEnum {
 }
 
 export class ProjectToolset extends _BaseToolset<BuiltinTool> {
+	readonly providerName = 'project-tasks'
+	
 	get commandBus(): CommandBus {
 		return this.params.commandBus
 	}

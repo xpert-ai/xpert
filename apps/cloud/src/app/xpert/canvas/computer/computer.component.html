@@ -72,7 +72,7 @@
           <div class="max-w-[250px] truncate text-zinc-500 text-base font-medium text-center">
             @switch (step.toolset) {
               @case ('browser-use') {
-                @if (step.data.url) {
+                @if (step.data?.url) {
                   <a [href]="step.data.url" target="_blank" class="hover:underline">{{step.title}}</a>
                 } @else {
                   {{step.title}}
@@ -293,29 +293,6 @@
                   </div>
                 }
               }
-              <!-- @case ('bash') {
-                <div dir="ltr" data-orientation="horizontal" class="flex flex-col flex-1 min-h-0">
-                  <div
-                    role="tabpanel"
-                    tabindex="0"
-                    class="py-2 focus-visible:outline-none data-[state=inactive]:hidden flex-1 font-mono text-sm leading-relaxed px-3 outline-none overflow-auto whitespace-pre-wrap break-all"
-                  >
-                    <div>
-                      <code>
-                        <span class="mr-2 font-semibold text-green-600">ubuntu&#64;sandbox:~ $</span>
-                        <span>{{step.data.command}}</span>
-                      </code>
-
-                      <code>{{step.data.output}}</code>
-                    </div>
-                    <div class="mt-4">
-                      <code>
-                        <span class="mr-2 font-semibold text-green-600">ubuntu&#64;sandbox:~ $</span>
-                      </code>
-                    </div>
-                  </div>
-                </div>
-              } -->
               @case ('file') {
                 @switch (step.data.extension) {
                   @case('html') {

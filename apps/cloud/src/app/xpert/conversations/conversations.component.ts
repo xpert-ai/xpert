@@ -208,7 +208,8 @@ export class ChatConversationsComponent {
             order: { updatedAt: OrderTypeEnum.DESC },
             take: this.pageSize,
             skip: this.currentPage() * this.pageSize,
-            where
+            where,
+            relations: ['xpert', 'project']
           }, this.searchControl.value)
         }
       }),

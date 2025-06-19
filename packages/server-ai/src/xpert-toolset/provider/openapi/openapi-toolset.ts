@@ -3,7 +3,7 @@ import { BaseToolset } from '../../toolset'
 import { OpenAPITool } from './tools/openapi-tool'
 
 export class OpenAPIToolset extends BaseToolset<OpenAPITool> {
-
+	providerName = 'openapi'
 	providerType = XpertToolsetCategoryEnum.API
 	provider_id: string
 

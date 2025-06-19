@@ -1,4 +1,4 @@
-import { IPagination } from '@metad/contracts'
+import { IPagination, TFile } from '@metad/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -15,6 +15,7 @@ import { Like } from 'typeorm'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
 import { ChatConversationPublicDTO, ChatConversationSimpleDTO } from './dto'
+import { SandboxFilesQuery } from '../sandbox/queries'
 
 @ApiTags('ChatConversation')
 @ApiBearerAuth()
@@ -35,11 +36,11 @@ export class ChatConversationController extends CrudController<ChatConversation>
 		description: 'Found my records'
 	})
 	@Get('my')
-	async findMyAll(
+	async findMyAllPublic(
 		@Query('data', ParseJsonPipe) filter?: PaginationParams<ChatConversation>,
 		@Query('search') search?: string,
 		...options: any[]
-	): Promise<IPagination<ChatConversation>> {
+	): Promise<IPagination<ChatConversationPublicDTO>> {
 		const where = {
 			...(filter.where ?? {}),
 			createdById: RequestContext.currentUserId()
@@ -48,7 +49,12 @@ export class ChatConversationController extends CrudController<ChatConversation>
 			where.title = Like(`%${search}%`)
 		}
 
-		return this.service.findAll({ ...filter, where})
+		const result = await this.service.findAll({ ...filter, where})
+
+		return {
+			...result,
+			items: result.items.map((_) => new ChatConversationPublicDTO(_))
+		}
 	}
 
 	@ApiOperation({ summary: 'Find by id' })
@@ -91,5 +97,14 @@ export class ChatConversationController extends CrudController<ChatConversation>
 	async getAttachments(@Param('id') id: string) {
 		const items = await this.service.getAttachments(id)
 		return items.map((_) => new StorageFilePublicDTO(_))
+	}
+
+	@Get(':id/files')
+	async getFiles(@Param('id') id: string, @Query('deepth') deepth: number, @Query('path') path: string) {
+		const conversation = await this.service.findOne(id)
+		const files = await this.queryBus.execute<SandboxFilesQuery, TFile[]>(
+			new SandboxFilesQuery({ tenantId: conversation.tenantId, userId: conversation.createdById, path: path || conversation.threadId, deepth })
+		)
+		return files
 	}
 }

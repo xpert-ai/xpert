@@ -14,28 +14,11 @@ import { TSandboxToolsetParams } from '../sandbox-toolset'
 export class FileToolset extends BaseFileToolset implements IBuiltinToolset {
 	static provider = 'file'
 
-	get tenantId() {
-		return this.params?.tenantId
-	}
-	get organizationId() {
-		return this.params?.organizationId
-	}
-	get commandBus() {
-		return this.params?.commandBus
-	}
-	get queryBus() {
-		return this.params?.queryBus
-	}
-
 	constructor(
 		protected toolset?: IXpertToolset,
 		protected params?: TSandboxToolsetParams
 	) {
-		super()
-	}
-
-	getName() {
-		return this.toolset?.name
+		super(FileToolset.provider, params, toolset)
 	}
 
 	async initTools() {

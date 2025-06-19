@@ -11,6 +11,8 @@
     },
     "Tools": {
         "CodeProject": {
+            "InitProject": "初始化项目",
+            "ProjectInitFirst": "请先初始化项目",
             "File": "文件",
             "Coding": "编写代码",
             "FileCreated": "文件已创建",
@@ -36,6 +38,9 @@
             "ListTasks": "列出任务",
             "CreateTasks": "创建任务",
             "UpdateTasks": "更新任务"
+        },
+        "BrowserUse": {
+            "ExecutionStep": "执行步骤"
         }
     }
 }

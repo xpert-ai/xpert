@@ -11,6 +11,8 @@
     },
     "Tools": {
         "CodeProject": {
+            "InitProject": "Init project",
+            "ProjectInitFirst": "Please initialize the project first",
             "File": "File",
             "Coding": "Coding",
             "FileCreated": "File created",
@@ -36,6 +38,9 @@
             "ListTasks": "List tasks",
             "CreateTasks": "Create tasks",
             "UpdateTasks": "Update tasks"
+        },
+        "BrowserUse": {
+            "ExecutionStep": "Execution Step"
         }
     }
 }

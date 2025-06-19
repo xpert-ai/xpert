@@ -2,10 +2,9 @@ import { StructuredToolInterface } from '@langchain/core/tools'
 import { I18nObject, IBuiltinTool, IXpertToolset, TranslateOptions, TToolsetParams } from '@metad/contracts'
 import { environment } from '@metad/server-config'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { _BaseToolset } from '../../shared/'
-import { MockSandbox, Sandbox } from '../client'
 import { t } from 'i18next'
-import { SandboxLoadCommand } from '../commands'
+import { _BaseToolset, toolNamePrefix } from '../../shared/'
+import { MockSandbox, Sandbox } from '../client'
 
 export type TSandboxToolsetParams = TToolsetParams & {
 	commandBus: CommandBus
@@ -17,10 +16,6 @@ export abstract class BaseSandboxToolset<
 > extends _BaseToolset<T> {
 	toolNamePrefix: string
 
-	/**
-	 * @deprecated use sandbox: Sandbox
-	 */
-	protected sandboxUrl: string
 	public sandbox: Sandbox
 
 	get commandBus() {
@@ -29,18 +24,25 @@ export abstract class BaseSandboxToolset<
 	get queryBus() {
 		return this.params?.queryBus
 	}
+	get projectId() {
+		return this.params?.projectId
+	}
+	get userId() {
+		return this.params?.userId
+	}
 
-	constructor(protected params?: TSandboxToolsetParams, protected toolset?: IXpertToolset) {
+	constructor(
+		public providerName: string,
+		protected params?: TSandboxToolsetParams,
+		protected toolset?: IXpertToolset
+	) {
 		super(params)
 	}
 
 	protected async _ensureSandbox() {
 		if (!this.sandbox) {
 			if (environment.pro) {
-				const { sandboxUrl } = await this.commandBus.execute<SandboxLoadCommand, { sandboxUrl: string }>(
-					new SandboxLoadCommand()
-				)
-				this.sandbox = new Sandbox({sandboxUrl, commandBus: this.commandBus})
+				//
 			} else {
 				this.sandbox = new MockSandbox({sandboxUrl: '', commandBus: this.commandBus})
 			}
@@ -49,8 +51,11 @@ export abstract class BaseSandboxToolset<
 		return this.sandbox
 	}
 
-	getName() {
-		return this.toolset?.name
+	/**
+	 * @todo Is a prefix required?
+	 */
+	getName(): string {
+		return this.toolset?.name || toolNamePrefix(this.toolNamePrefix, this.providerName)
 	}
 
 	getToolTitle(name: string): string | I18nObject {

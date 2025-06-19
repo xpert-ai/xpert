@@ -6,6 +6,7 @@ import { BaseToolset } from '../../toolset'
 import { ODataTool } from './odata-tool'
 
 export class ODataToolset extends BaseToolset<ODataTool> {
+	providerName = 'odata'
 	providerType = XpertToolsetCategoryEnum.API
 
 	protected service: any = null

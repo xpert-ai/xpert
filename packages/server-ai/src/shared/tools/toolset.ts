@@ -9,7 +9,7 @@ type ZodObjectAny = z.ZodObject<any, any, any, any>;
  * Base ability for all toolsets
  */
 export abstract class _BaseToolset<T extends StructuredToolInterface = StructuredToolInterface> extends BaseToolkit {
-	provider: string
+	abstract providerName: string
 	// For Langchain
 	tools: T[]
 	// For Langgraph

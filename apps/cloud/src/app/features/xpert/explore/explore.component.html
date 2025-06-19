@@ -31,13 +31,14 @@
   <div class="relative w-[200px] flex items-center">
     <i class="ri-search-2-line absolute left-2 text-text-secondary"></i>
     
-    <input matInput [formControl]="searchControl"
-      class="w-full py-[7px] bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular pl-[26px]"
+    <input class="w-full py-[7px] bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular pl-[26px]"
       [placeholder]="'PAC.KEY_WORDS.Search' | translate: {Default: 'Search'}"
+      [(ngModel)]="searchModel"
     />
 
-    @if (searchControl.value) {
-      <i class="ri-close-circle-fill absolute right-2 cursor-pointer text-gray-500 opacity-50 hover:opacity-100" (click)="searchControl.setValue('')"></i>
+    @if (searchModel()) {
+      <i class="ri-close-circle-fill absolute right-2 cursor-pointer text-gray-500 opacity-50 hover:opacity-100"
+        (click)="searchModel.set('')"></i>
     }
   </div>
 </div>
@@ -47,9 +48,7 @@
     ngmDynamicGrid colWidth="280"
     box="content-box">
     @for (app of apps(); track app.id) {
-      <div
-        class="relative overflow-hidden pb-2 group col-span-1 bg-white border-2 border-solid border-transparent rounded-lg shadow-sm flex flex-col transition-all duration-200 ease-in-out hover:shadow-lg"
-      >
+      <div class="relative overflow-hidden pb-2 group col-span-1 bg-white border-2 border-solid border-transparent rounded-lg shadow-sm flex flex-col transition-all duration-200 ease-in-out hover:shadow-lg">
         <div class="flex pt-[14px] px-[14px] pb-3 h-[66px] items-center gap-3 grow-0 shrink-0">
           <div class="relative shrink-0">
             <emoji-avatar [avatar]="app.avatar" class="rounded-lg overflow-hidden shadow-sm shrink-0"/>

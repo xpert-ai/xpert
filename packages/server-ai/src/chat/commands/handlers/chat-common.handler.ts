@@ -483,7 +483,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			const items = await projectToolset.initTools()
 			items.forEach((tool) => {
 				toolsTitleMap[tool.name] = translate(projectToolset.getToolTitle(tool.name))
-				toolsetsMap[tool.name] = projectToolset.provider
+				toolsetsMap[tool.name] = projectToolset.providerName
 				tools.push(...items)
 			})
 		}
@@ -522,7 +522,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				items.forEach((tool) => {
 					// const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)
 					toolsTitleMap[tool.name] = translate(toolset.getToolTitle(tool.name))
-					toolsetsMap[tool.name] = toolset.provider
+					toolsetsMap[tool.name] = toolset.providerName
 					tools.push(tool)
 				})
 			}

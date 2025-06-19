@@ -10,6 +10,7 @@ import {
   derivedToolProvider,
   getEnabledTools,
   getErrorMessage,
+  getToolLabel,
   injectHelpWebsite,
   injectToastr,
   IXpertToolset,
@@ -108,7 +109,7 @@ export class XpertStudioPanelToolsetComponent {
     return null
   })
 
-  readonly tools = computed(() => getEnabledTools(this.toolsetDetail()))
+  readonly tools = computed(() => getEnabledTools(this.toolsetDetail())?.map((tool) => ({tool, label: getToolLabel(tool)})))
 
   readonly expandTools = signal<Record<string, boolean>>({})
 

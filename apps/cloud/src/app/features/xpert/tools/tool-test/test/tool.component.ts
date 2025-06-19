@@ -11,11 +11,11 @@ import {
   output,
   signal
 } from '@angular/core'
-import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
@@ -43,6 +43,7 @@ import { JsonSchema7ObjectType } from 'zod-to-json-schema'
     MatSlideToggleModule,
     NgmDensityDirective,
     NgmSpinComponent,
+    NgmI18nPipe,
     JSONSchemaFormComponent
   ],
   selector: 'xpert-toolset-tool-test',
@@ -52,7 +53,6 @@ import { JsonSchema7ObjectType } from 'zod-to-json-schema'
 })
 export class XpertToolsetToolTestComponent {
   readonly toolsetService = inject(XpertToolsetService)
-  readonly #formBuilder = inject(FormBuilder)
   readonly #toastr = inject(ToastrService)
   readonly toolService = inject(XpertToolService)
 

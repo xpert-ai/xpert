@@ -147,6 +147,7 @@ export type TXpertToolEntity = {
 
 export const TOOL_NAME_REGEX = /^[a-zA-Z0-9_-]+$/;
 
+// Helper functions for tools
 /**
  * Tool is enabled?
  * 
@@ -172,4 +173,13 @@ export function getEnabledTools(toolset: IXpertToolset) {
   return positions && tools
     ? tools.sort((a, b) => (positions[a.name] ?? Infinity) - (positions[b.name] ?? Infinity))
     : tools
+}
+
+export function getToolLabel(tool: IXpertTool): I18nObject | string {
+  if (!tool) return ''
+  const identity = (tool.schema as IBuiltinTool)?.identity
+  if (identity) {
+    return identity.label || tool.name || ''
+  }
+  return tool.name || ''
 }

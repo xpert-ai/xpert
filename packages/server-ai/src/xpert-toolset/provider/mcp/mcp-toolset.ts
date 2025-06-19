@@ -8,6 +8,7 @@ import { createProMCPClient } from './pro'
 import { createMCPClient } from './types'
 
 export class MCPToolset extends BaseToolset {
+	providerName = 'mcp'
 	providerType = XpertToolsetCategoryEnum.MCP
 
 	readonly #logger = new Logger(MCPToolset.name)

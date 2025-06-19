@@ -48,7 +48,7 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
 			]
 		const xpert = await this.xpertService.findOne(id, {relations})
 
-		const draft = isDraft ? xpert.draft : this.getInitialDraft(xpert)
+		const draft = isDraft ? xpert.draft ?? this.getInitialDraft(xpert) : this.getInitialDraft(xpert)
 		// In some cases, there is no primary agent in the draft.
 		if (!draft.team.agent) {
 			draft.team.agent = xpert.agent

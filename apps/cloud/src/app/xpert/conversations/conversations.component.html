@@ -42,9 +42,10 @@
                 } @else {
                   <a class="truncate cursor-pointer" [ngmHighlight]="searchValue" [content]="(item.title | i18n) || item.id"
                     (click)="selectConversation(item)">{{item.title || item.id}}</a>
-                  @if (item.projectId) {
+                  @if (item.project) {
                     <span class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 ml-1 text-xs font-mono text-gray-600 bg-slate-50">
-                      {{item.projectId}}</span>
+                      {{item.project.name}}
+                    </span>
                   }
                 }
 
@@ -69,10 +70,10 @@
                         class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
                         type="button"
                         tabindex="-1"
-                        [matTooltip]="'PAC.ACTIONS.Apply' | translate: {Default: 'Apply'}"
+                        [matTooltip]="'PAC.ACTIONS.Save' | translate: {Default: 'Save'}"
                         matTooltipPosition="above"
                         (click)="updateTitle(item)"
-                      ><i class="ri-close-line"></i></button>
+                      ><i class="ri-check-line"></i></button>
                     </div>
                   } @else {
                     <div class="absolute right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100" >

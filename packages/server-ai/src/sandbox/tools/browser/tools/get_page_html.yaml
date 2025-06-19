@@ -1,9 +1,9 @@
 identity:
-  name: browser_use_click
+  name: browser_get_page_html
   author: XpertAI
   label:
-    en_US: Click
-    zh_Hans: 点击
+    en_US: Get page html
+    zh_Hans: 获取网页内容
 description:
   human:
     en_US: Click a element.

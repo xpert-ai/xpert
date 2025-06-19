@@ -5,7 +5,7 @@
     <iframe [src]="url()" class="h-full w-full"></iframe>
   </div>
   <div class="absolute top-0 left-0 right-0 bg-black/5 dark:bg-white/5 p-2 z-10 flex items-center justify-between">
-    <div class="text-sm font-medium truncate">index.html</div>
+    <div class="text-sm font-medium truncate">{{title()}}</div>
     <button class="w-6 h-6 rounded-full flex justify-center items-center hover:bg-black/10 dark:hover:bg-white/10"
       (click)="openTab()">
       <i class="ri-external-link-line"></i>

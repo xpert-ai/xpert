@@ -148,7 +148,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			  .forEach((tool) => {
 				const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)
 				tools.push({
-					toolset: toolset.provider, 
+					toolset: toolset.providerName, 
 					caller: agent.key, 
 					tool, 
 					variables: team.agentConfig?.toolsMemory?.[lc_name],
@@ -658,7 +658,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		tools?.forEach(({ caller, tool, variables, toolset, title }) => {
 			const name = tool.name
 			subgraphBuilder
-				.addNode(name, new ToolNode([tool], { caller, variables, toolset }).withConfig({signal: abortController.signal}), {metadata: {toolName: title}})
+				.addNode(
+					name, 
+					new ToolNode([tool], { caller, variables, toolset }).withConfig({signal: abortController.signal}),
+					{metadata: {toolset, toolName: title}}
+				)
 			if (endNodes?.includes(tool.name)) {
 				if (nextNodeKey?.length) {
 					if (nextNodeKey.some((_) => !_)) {

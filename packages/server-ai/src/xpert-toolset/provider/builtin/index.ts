@@ -17,8 +17,6 @@ import { TaskToolset } from './task/task'
 import { TavilyToolset } from './tavily/tavily'
 import { FirecrawlToolset } from './firecrawl/firecrawl'
 import { PlanningToolset } from './planning/planning'
-import { BrowserToolset } from './browser/browser'
-import { BrowserUseToolset } from './browser-use/browser-use'
 import { TBuiltinToolsetParams } from './builtin-toolset'
 
 export * from './builtin-tool'
@@ -34,8 +32,6 @@ export const BUILTIN_TOOLSET_REPOSITORY: {
 		providers: [
 			TaskToolset,
 			PlanningToolset,
-			BrowserToolset,
-			BrowserUseToolset,
 			TavilyToolset,
 			SearchAPIToolset,
 			SerpAPIToolset,

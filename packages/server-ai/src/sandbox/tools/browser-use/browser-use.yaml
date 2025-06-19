@@ -13,6 +13,7 @@ identity:
     - productivity
     - sandbox
     - agent
+  help_url: /docs/ai/tool/sandbox/browser-use/
 credentials_for_provider:
   copilotModel:
     type: copilot-model
@@ -41,6 +42,15 @@ credentials_for_provider:
     placeholder:
       en_US: LLM temperature (Default 0.5)
       zh_Hans: 模型温度（默认 0.5）
+  use_vision:
+    type: boolean
+    default: true
+    label:
+      en_US: Use Vision
+      zh_Hans: 使用视觉
+    placeholder:
+      en_US: Use Vision (Page screenshot)
+      zh_Hans: 使用视觉（页面截图）
   enable_recording:
     type: boolean
     default: true

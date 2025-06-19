@@ -4,11 +4,11 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { FileTypePipe } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { map, of } from 'rxjs'
+import { cloneDeep } from 'lodash-es'
+import { of } from 'rxjs'
 import {
   ChatConversationService,
   DateRelativePipe,
@@ -17,9 +17,12 @@ import {
   TFileDirectory,
   XpertProjectService
 } from '../../../@core'
+import { FileIconComponent } from '../../files'
 
 export type TFileDirectoryItem = TFileDirectory & {
   expanded?: boolean
+  level?: number
+  levels?: number[]
 }
 
 @Component({
@@ -35,7 +38,7 @@ export type TFileDirectoryItem = TFileDirectory & {
     TranslateModule,
     NgmSpinComponent,
     DateRelativePipe,
-    FileTypePipe
+    FileIconComponent
   ]
 })
 export class ChatConversationFilesComponent {
@@ -51,15 +54,7 @@ export class ChatConversationFilesComponent {
 
   readonly #attachments = myRxResource<{ projectId?: string; conversationId: string }, TFileDirectoryItem[]>({
     request: () => this.request(),
-    loader: ({ request }) => {
-      return request.projectId
-        ? this.#projectService.getFiles(request.projectId)
-        : request.conversationId
-          ? this.#conversation
-              .getAttachments(request.conversationId)
-              .pipe(map((file) => file as unknown as TFileDirectory[]))
-          : of(null)
-    }
+    loader: ({ request }) => this.getFiles({ ...request })
   })
 
   readonly attachments = linkedModel({
@@ -70,11 +65,11 @@ export class ChatConversationFilesComponent {
   readonly isLoading = computed(() => this.#attachments.status() === 'loading')
 
   readonly flatAttachments = computed(() => {
-    const flatten = (items: TFileDirectoryItem[]): TFileDirectoryItem[] => {
+    const flatten = (items: TFileDirectoryItem[], level = 0): TFileDirectoryItem[] => {
       return items.reduce((acc: TFileDirectoryItem[], item) => {
-        acc.push(item)
+        acc.push({ ...item, level, levels: new Array(level).fill(null) })
         if (item.expanded && item.children && item.children.length > 0) {
-          acc.push(...flatten(item.children))
+          acc.push(...flatten(item.children, level + 1))
         }
         return acc
       }, [])
@@ -84,7 +79,7 @@ export class ChatConversationFilesComponent {
 
   constructor() {
     effect(() => {
-      // console.log(this.attachments())
+      // console.log(this.attachments(), this.flatAttachments())
     })
   }
 
@@ -105,30 +100,29 @@ export class ChatConversationFilesComponent {
   toggleFolder(item: TFileDirectoryItem) {
     if (item.hasChildren) {
       item.expanded = !item.expanded
-      this.attachments.update((attachments) => {
-        const index = attachments.findIndex((f) => f.fullPath === item.fullPath)
-        if (index !== -1) {
-          attachments[index] = {
-            ...attachments[index],
-            expanded: item.expanded
-          }
+      this.attachments.update((state) => {
+        const attachments = cloneDeep(state)
+        const found = findAttachmentByFullPath(attachments, item.fullPath)
+        if (found) {
+          found.expanded = item.expanded
         }
-        return [...attachments]
+        return attachments
       })
       if (item.expanded && !item.children) {
-        this.#projectService.getFiles(this.projectId(), item.fullPath).subscribe({
+        this.getFiles({
+          projectId: this.projectId(),
+          conversationId: this.conversationId(),
+          path: item.fullPath
+        }).subscribe({
           next: (files) => {
-            this.attachments.update((attachments) => {
-              const index = attachments.findIndex((f) => f.fullPath === item.fullPath)
-              if (index !== -1) {
-                attachments[index].children = files
-              } else {
-                attachments.push({
-                  ...item,
-                  children: files
-                })
+            console.log(files)
+            this.attachments.update((state) => {
+              const attachments = cloneDeep(state)
+              const found = findAttachmentByFullPath(attachments, item.fullPath)
+              if (found) {
+                found.children = files
               }
-              return [...attachments]
+              return attachments
             })
           }
         })
@@ -136,7 +130,35 @@ export class ChatConversationFilesComponent {
     }
   }
 
+  getFiles(params: { projectId?: string; conversationId?: string; path?: string }) {
+    const { projectId, conversationId, path } = params
+    return projectId
+      ? this.#projectService.getFiles(projectId, path)
+      : conversationId
+        ? this.#conversation.getFiles(conversationId, path)
+        : of(null)
+  }
+
   close() {
     this.#dialogRef.close()
   }
+}
+
+// Find the attachment in the tree by fullPath
+function findAttachmentByFullPath(
+  items: TFileDirectoryItem[],
+  fullPath: string
+): TFileDirectoryItem | undefined {
+  for (const item of items) {
+    if (item.fullPath === fullPath) {
+      return item
+    }
+    if (item.children) {
+      const found = findAttachmentByFullPath(item.children, fullPath)
+      if (found) {
+        return found
+      }
+    }
+  }
+  return undefined
 }
