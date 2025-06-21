@@ -3,6 +3,7 @@ import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
 import { DynamicStructuredTool, StructuredToolInterface } from '@langchain/core/tools'
 import {
+	Annotation,
 	CompiledStateGraph,
 	END,
 	isCommand,
@@ -53,7 +54,7 @@ import {
 	CompileGraphCommand,
 	createMapStreamEvents,
 	CreateSummarizeTitleAgentCommand,
-	messageEvent
+	messageEvent,
 } from '../../../xpert-agent'
 import {
 	assignExecutionUsage,
@@ -71,10 +72,10 @@ import {
 	PlanInstruction,
 	PROVIDERS_WITH_PARALLEL_TOOL_CALLS_PARAM
 } from './supervisor'
-import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
+import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { toEnvState } from '../../../environment'
 import { ProjectToolset } from '../../../xpert-project/tools'
-import { _BaseToolset, AgentStateAnnotation, BaseTool, stateToParameters, ToolNode, translate } from '../../../shared'
+import { _BaseToolset, AgentStateAnnotation, BaseTool, stateToParameters, stateVariable, ToolNode, translate } from '../../../shared'
 
 const GeneralAgentRecursionLimit = 99
 
@@ -493,16 +494,6 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				tools.push(...items)
 			})
 		}
-
-		// // File toolset
-		// let fileToolset: ProjectFileToolset
-		// if (projectId) {
-		// 	fileToolset = await this.commandBus.execute<CreateFileToolsetCommand, ProjectFileToolset>(new CreateFileToolsetCommand(projectId))
-		// 	const _variables = await fileToolset.getVariables()
-		// 	toolsetVarirables.push(...(_variables ?? []))
-		// 	const items = await fileToolset.initTools()
-		// 	tools.push(...items)
-		// }
 		
 		// Custom toolsets
 		if (project?.toolsets.length > 0) {
@@ -657,6 +648,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				}, '')
 		}
 
+		const stateAnnotation = createStateAnnotation(stateVariables)
+
 		const callModel = async (state: typeof AgentStateAnnotation.State, config?: RunnableConfig) => {
 			const parameters = stateToParameters(state)
 			let systemTemplate = `Current time: ${new Date().toISOString()}\n` + (project?.settings?.instruction || supervisorPrompt) + '\n\n' + Instruction
@@ -677,7 +670,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			return { messages: [await supervisorLLM.invoke([systemMessage, ...state.messages], config)] }
 		}
 
-		let builder = new StateGraph(AgentStateAnnotation)
+		let builder = new StateGraph(stateAnnotation)
 			.addNode(
 				supervisorName,
 				new RunnableLambda({ func: callModel }).withConfig({
@@ -880,4 +873,20 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		runnable.name = `xpert_` + xpert.slug
 		return runnable
 	}
+}
+
+function createStateAnnotation(stateVariables: TStateVariable[]) {
+	return Annotation.Root({
+		...AgentStateAnnotation.spec, // Common agent states
+		// Global conversation variables
+		...(stateVariables.reduce((acc, variable) => {
+			acc[variable.name] = Annotation({
+				...(variable.reducer ? {
+					reducer: variable.reducer,
+					default: variable.default,
+				} : stateVariable(variable)),
+				})
+			return acc
+		}, {}) ?? {})
+	})
 }

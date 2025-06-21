@@ -2,16 +2,11 @@ import { Runnable, RunnableLike, RunnableToolLike } from '@langchain/core/runnab
 import { StructuredToolInterface } from '@langchain/core/tools'
 import {
 	IXpertAgent,
-	TStateVariable,
 	TVariableAssigner,
 	TXpertGraph,
 	TXpertTeamNode,
-	VariableOperationEnum,
-	XpertParameterTypeEnum
 } from '@metad/contracts'
-import { isFunction } from '@metad/server-common'
 import { AgentStateAnnotation } from '../../../shared'
-
 
 export type TSubAgent = {
 	name: string
@@ -32,65 +27,6 @@ export type TGraphTool = {
 	tool: StructuredToolInterface | RunnableToolLike
 	variables?: TVariableAssigner[]
 	title: string
-}
-
-export function stateVariable(variable: TStateVariable) {
-	const defaultValue = isFunction(variable.default) ?
-		variable.default()
-		: [
-			XpertParameterTypeEnum.STRING,
-			XpertParameterTypeEnum.TEXT,
-			XpertParameterTypeEnum.PARAGRAPH
-		].includes(variable.type) ? 
-			variable.default 
-			: typeof variable.default === 'string' ? 
-				JSON.parse(variable.default)
-				: variable.default
-
-	return {
-		default: () => defaultValue,
-		reducer: (left, right) => {
-			if (variable.type.startsWith('array')) {
-				left ??= []
-				switch (variable.operation) {
-					case VariableOperationEnum.APPEND:
-						if (Array.isArray(right)) {
-							return [...left, ...right]
-						} else {
-							return right == null ? left : [...left, right]
-						}
-					case VariableOperationEnum.OVERWRITE:
-						return right
-					default:
-						return right
-				}
-			} else if (variable.type === XpertParameterTypeEnum.NUMBER) {
-				switch (variable.operation) {
-					case VariableOperationEnum.APPEND:
-						return left == null ? Number(right) : left + Number(right)
-					case VariableOperationEnum.OVERWRITE:
-						return Number(right)
-					default:
-						return right
-				}
-			} else if (
-				variable.type === XpertParameterTypeEnum.STRING ||
-				variable.type === XpertParameterTypeEnum.TEXT ||
-				variable.type === XpertParameterTypeEnum.PARAGRAPH
-			) {
-				switch (variable.operation) {
-					case VariableOperationEnum.APPEND:
-						return left == null ? right : left + right
-					case VariableOperationEnum.OVERWRITE:
-						return right ?? left
-					default:
-						return right
-				}
-			} else {
-				return right
-			}
-		}
-	}
 }
 
 export function allAgentsKey(graph: TXpertGraph): IXpertAgent[] {
