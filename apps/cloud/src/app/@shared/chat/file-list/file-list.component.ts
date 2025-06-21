@@ -51,7 +51,7 @@ export class ChatFileListComponent {
   // Inputs
   readonly projectId = input<string | undefined>()
   readonly conversationId = input<string>()
-  readonly refresh = model<object>()
+  readonly refresh = model<object>({})
   readonly editable = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })

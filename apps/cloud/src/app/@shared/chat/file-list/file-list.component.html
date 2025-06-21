@@ -45,10 +45,10 @@
       {{'PAC.Chat.Preview' | translate: {Default: 'Preview'} }}
     </div> -->
     <div cdkMenuItem (click)="download(file.url)">
-      {{'PAC.Chat.Download' | translate: {Default: 'Download'} }}
+      <i class="ri-file-download-line mr-1"></i>{{'PAC.Chat.Download' | translate: {Default: 'Download'} }}
     </div>
     @if (editable()) {
-      <div cdkMenuItem (click)="deleteFile(file)">
+      <div cdkMenuItem class="danger" (click)="deleteFile(file)">
         <i class="ri-delete-bin-4-line mr-1"></i>{{'PAC.Chat.Delete' | translate: {Default: 'Delete'} }}
       </div>
     }
