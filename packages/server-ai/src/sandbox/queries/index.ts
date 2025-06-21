@@ -1,1 +1,1 @@
-export * from './get-files.query';
+export {}

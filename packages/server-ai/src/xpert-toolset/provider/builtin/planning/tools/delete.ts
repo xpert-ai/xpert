@@ -43,7 +43,7 @@ export class PlanningDeleteStepTool extends BuiltinTool {
 		}
 
 		const { subscriber } = config?.configurable ?? {}
-
+		const toolCallId = config.toolCall?.id
 		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 		const planSteps = currentState[PLAN_STEPS_NAME] as TPlanStep[]
 
@@ -55,6 +55,7 @@ export class PlanningDeleteStepTool extends BuiltinTool {
 
 		// Tool message event
 		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+			id: toolCallId,
 			type: ChatMessageStepType.ComputerUse,
 			toolset: PlanningToolset.provider,
 			tool: this.name,
@@ -65,7 +66,6 @@ export class PlanningDeleteStepTool extends BuiltinTool {
 		})
 
 		// Populated when a tool is called with a tool call from a model as input
-		const toolCallId = config.toolCall?.id
 		return new Command({
 			update: {
 				[PLAN_STEPS_NAME]: planSteps.map((_, index) => ({..._, index,})),

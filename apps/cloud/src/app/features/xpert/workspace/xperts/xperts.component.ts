@@ -4,7 +4,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { DynamicGridDirective, uploadYamlFile } from '@metad/core'
 import { CdkConfirmDeleteComponent, injectConfirmUnique, NgmCommonModule } from '@metad/ocap-angular/common'
@@ -63,7 +62,6 @@ export class XpertWorkspaceXpertsComponent {
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
   readonly logger = inject(NGXLogger)
-  readonly #dialog = inject(MatDialog)
   readonly dialog = inject(Dialog)
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)

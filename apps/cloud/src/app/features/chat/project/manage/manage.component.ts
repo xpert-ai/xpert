@@ -122,4 +122,8 @@ export class ChatProjectManageComponent {
         }
       })
   }
+
+  cancel() {
+    this.#dialogRef.close()
+  }
 }

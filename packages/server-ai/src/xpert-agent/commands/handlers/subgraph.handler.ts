@@ -16,9 +16,9 @@ import {
 	StateGraph
 } from '@langchain/langgraph'
 import { ChatOpenAI } from '@langchain/openai'
-import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, getCurrentGraph, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_SYS, STATE_VARIABLE_TITLE_CHANNEL, TAgentRunnableConfigurable, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, getCurrentGraph, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_HUMAN, STATE_VARIABLE_SYS, STATE_VARIABLE_TITLE_CHANNEL, TAgentRunnableConfigurable, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { stringifyMessageContent } from '@metad/copilot'
-import { getErrorMessage } from '@metad/server-common'
+import { getErrorMessage, isFunction } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
 import { InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -685,7 +685,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				.addNode(name, new ToolNode([tool], { toolset: 'transfer_to', caller: '' }).withConfig({signal: abortController.signal}))
 		})
 
-		// Subgraphs
+		// Sub Agents
 		if (subAgents) {
 			Object.keys(subAgents).forEach((name) => {
 				subgraphBuilder.addNode(name, subAgents[name].stateGraph)
@@ -883,14 +883,27 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					...state,
 					...(isTool ? {
 						...call.args,
-						[`${agent.key}.messages`]: [new HumanMessage(call.args.input)]
+						[STATE_VARIABLE_HUMAN]: {
+							input: call.args.input,
+						}
+						// [`${agent.key}.messages`]: [new HumanMessage(call.args.input)]
 					} : {}),
 				}
-				const output = await graph.invoke(subState, {...config, signal, configurable: {
-					...config.configurable,
-					agentKey: agent.key,
-					executionId: _execution.id
-				}})
+				const output = await graph.invoke(
+					subState,
+					{
+						...config,
+						signal, 
+						configurable: {
+							...config.configurable,
+							agentKey: agent.key,
+							executionId: _execution.id
+						},
+						metadata: {
+							agentKey: agent.key,
+						}
+					}
+				)
 
 				const lastMessage = output.messages[output.messages.length - 1]
 				if (lastMessage && isAIMessage(lastMessage)) {

@@ -8,7 +8,6 @@ import {
 import { omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { instanceToPlain } from 'class-transformer'
 import { XpertDraftDslDTO } from '../../dto'
 import { XpertService } from '../../xpert.service'
 import { XpertExportCommand } from '../export.command'
@@ -53,7 +52,7 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
 		if (!draft.team.agent) {
 			draft.team.agent = xpert.agent
 		}
-		return instanceToPlain(new XpertDraftDslDTO(draft))
+		return new XpertDraftDslDTO(draft)
 	}
 
 	getInitialDraft(xpert: IXpert) {

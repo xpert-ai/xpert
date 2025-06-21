@@ -1,4 +1,4 @@
-import { AIMessage, HumanMessage, isAIMessage, isBaseMessage, isToolMessage, MessageContent } from '@langchain/core/messages'
+import { AIMessage, HumanMessage, isAIMessage, isBaseMessage, isToolMessage, MessageContent, RemoveMessage, ToolMessage } from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
 import { DynamicStructuredTool, StructuredToolInterface } from '@langchain/core/tools'
@@ -472,7 +472,13 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		const stateVariables: TStateVariable[] = []
 		const toolsetVarirables: TStateVariable[] = []
 		const tools: StructuredToolInterface[] = []
+		/**
+		 * Map of tool names to their titles
+		 */
 		const toolsTitleMap = {}
+		/**
+		 * The relationship between tool and toolset provider
+		 */
 		const toolsetsMap = {}
 		// Project toolset for plan mode
 		if (project?.settings?.mode === 'plan') {
@@ -575,7 +581,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		if (project?.xperts.length) {
 			for await (const xpert of project.xperts) {
 				const agent = await this.createXpertAgent(project, xpert, abortController, execution, subscriber, 'last_message', false, supervisorName)
-				const tool = createHandoffTool({ agentName: agent.name, description: xpert.description })
+				const tool = createHandoffTool({ agentName: agent.name, title: xpert.title, description: xpert.description })
 				xperts.push({name: agent.name, agent, tool })
 				toolsTitleMap[tool.name] = translate({en_US: 'Task handoff to:', zh_Hans: '任务移交给：'}) + (xpert.title || xpert.name)
 				toolsetsMap[tool.name] = 'transfer_to'
@@ -808,6 +814,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				const toolMessage = _messages.pop()
 				const aiMessage = _messages.pop() as AIMessage
 				const input = aiMessage.tool_calls[0]?.args?.input
+				const tool_call_id = aiMessage.tool_calls[0]?.id
+				const tool_name = aiMessage.tool_calls[0]?.name
 				try {
 					const output = await graph.invoke(
 						{
@@ -827,7 +835,11 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 							configurable: { 
 								...config.configurable, 
 								agentKey: '', // In the general agent, messages do not distinguish between Agents but only between Xperts.
-								xpertName: xpert.name 
+								xpertName: xpert.name
+							},
+							metadata: {
+								agentKey: '', // In the general agent, messages do not distinguish between Agents but only between Xperts.
+								xpertName: xpert.name
 							}
 						}
 					)
@@ -840,13 +852,19 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					}
 
 					if (outputMode === 'last_message') {
-						messages = messages.slice(-1)
+						messages = [
+							new ToolMessage({
+								name: tool_name,
+								content: result,
+								tool_call_id,
+							})
+						]
 					}
 
 					if (addHandoffBackMessages) {
 						messages.push(...createHandoffBackMessages(agent.name, supervisorName))
 					}
-					return { ...output, messages }
+					return { ...output, messages: [new RemoveMessage({id: toolMessage.id}), ...messages] }
 				} catch (err) {
 					if (!isParentCommand(err) && !isCommand(err)) {
 						error = getErrorMessage(err)

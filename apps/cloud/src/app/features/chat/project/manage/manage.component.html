@@ -1,5 +1,6 @@
 <div class="p-4 text-2xl font-semibold cursor-move"
-    cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>{{'PAC.XProject.Manage' | translate: {Default: 'Manage'} }}</div>
+  cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle
+>{{'PAC.XProject.ManageProject' | translate: {Default: 'Manage project'} }}</div>
 <div class="px-6 py-2 flex flex-col">
   <div class="text-lg font-semibold">{{ 'PAC.XProject.AiModel' | translate: {Default: 'AI Model'} }}</div>
   <copilot-model-select class="mt-4"
@@ -50,3 +51,9 @@
 @if (loading()) {
   <ngm-spin class="absolute left-0 top-0 w-full h-full"/>
 }
+
+<div class="absolute z-10 top-5 right-5 w-7 h-7 text-lg rounded-lg flex items-center justify-center hover:cursor-pointer
+  hover:bg-gray-100 hover:text-text-destructive"
+  (click)="cancel()">
+  <i class="ri-close-line"></i>
+</div>

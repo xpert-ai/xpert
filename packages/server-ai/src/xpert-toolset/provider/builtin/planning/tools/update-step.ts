@@ -50,6 +50,7 @@ export class PlanningUpdateStepTool extends BuiltinTool {
 		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 		const language = currentState[STATE_VARIABLE_SYS]?.language
 		const planSteps = currentState[PLAN_STEPS_NAME]
+		const toolCallId = config.toolCall?.id
 
 		if (!planSteps) {
 			throw new ToolParameterValidationError(`No plan steps`)
@@ -64,19 +65,19 @@ export class PlanningUpdateStepTool extends BuiltinTool {
 		const i18n = await this.toolset.translate('toolset.Planning', { lang: mapTranslationLanguage(language) })
 		// Tool message event
 		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+			id: toolCallId,
 			type: ChatMessageStepType.ComputerUse,
 			toolset: PlanningToolset.provider,
 			tool: this.name,
 			title: `${planSteps[parameters.step_index]?.content}`,
-			message: `${i18n.Update} ${parameters.step_index} ${i18n.Step}: ${parameters.step_status}, ${parameters.step_notes}`
+			message: `${i18n.Update} ${parameters.step_index + 1} ${i18n.Step}: ${parameters.step_status}, ${parameters.step_notes}`
 		}).catch((err) => {
 			this.#logger.error(err)
 		})
 
 		planSteps[parameters.step_index].status = parameters.step_status
 		planSteps[parameters.step_index].notes = parameters.step_notes
-
-		const toolCallId = config.toolCall?.id
+		
 		return new Command({
 			update: {
 				[PLAN_STEPS_NAME]: planSteps,

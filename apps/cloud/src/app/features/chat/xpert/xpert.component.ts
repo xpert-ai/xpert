@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, ViewContainerRef } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
-import { getErrorMessage, injectProjectService, injectToastr, IXpert } from '@cloud/app/@core'
+import { getErrorMessage, injectProjectService, injectToastr, IXpert, OrderTypeEnum } from '@cloud/app/@core'
 import { provideOcap } from '@cloud/app/@core/providers/ocap'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { ChatConversationsComponent, ChatService, XpertChatAppComponent, XpertOcapService } from '@cloud/app/xpert'
@@ -59,7 +59,7 @@ export class ChatXpertComponent {
   readonly xperts = this.homeService.sortedXperts
 
   readonly #projects = derivedAsync(() =>
-    this.projectSercice.getAllMy().pipe(
+    this.projectSercice.getAllMy({order: {updatedAt: OrderTypeEnum.DESC}}).pipe(
       map(({ items }) => ({ projects: items, loading: false })),
       startWith({ loading: true, projects: null })
     )

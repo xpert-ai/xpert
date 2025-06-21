@@ -98,6 +98,20 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
     })
   }
 
+  duplicate(id: string) {
+    return this.httpClient.post<IXpertProject>(this.apiBaseUrl + `/${id}/duplicate`, {})
+  }
+
+  exportDsl(id: string) {
+    return this.httpClient.get<{data: string}>(this.apiBaseUrl + `/${id}/export`)
+  }
+
+  importDsl(dsl: {project: IXpertProject}) {
+    return this.httpClient.post<IXpertProject>(this.apiBaseUrl + `/import`, dsl)
+  }
+
+  // Files
+
   getFiles(id: string, path: string = '') {
     return this.httpClient.get<TFileDirectory[]>(this.apiBaseUrl + `/${id}/files`, {
       params: toParams({
@@ -106,8 +120,12 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
     })
   }
 
-  deleteFile(id: string, fileId: string) {
-    return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/file/${fileId}`)
+  deleteFile(id: string, filePath: string) {
+    return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/file`, {
+      params: toParams({
+        path: filePath
+      })
+    })
   }
 
   deleteAttachment(id: string, fileId: string) {
@@ -121,9 +139,14 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
   removeAttachment(id: string, fileId: string) {
     return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/attachments/${fileId}`)
   }
-
-  duplicate(id: string) {
-    return this.httpClient.post<IXpertProject>(this.apiBaseUrl + `/${id}/duplicate`, {})
+  
+  uploadFile(id: string, file: File) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return this.httpClient.post(this.apiBaseUrl + `/${id}/file/upload`, formData, {
+      observe: 'events',
+      reportProgress: true,
+    })
   }
 }
 

@@ -68,7 +68,15 @@
 
     @if (stepMessage(); as step) {
       <div class="h-[36px] flex items-center px-3 w-full bg-[var(--background-gray-main)] border-b border-divider-deep rounded-t-[12px] shadow-[inset_0px_1px_0px_0px_#FFFFFF] dark:shadow-[inset_0px_1px_0px_0px_#FFFFFF30]">
-        <div class="flex-1 flex items-center justify-center">
+        <div class="relative flex-1 flex items-center justify-center">
+          <button class="rounded-md hover:bg-hover-bg absolute left-0 top-1/2 -translate-y-1/2 flex justify-center items-center w-6 h-6 text-text-secondary transition-colors"
+            (click)="togglePin()">
+            @if (pin()) {
+              <i class="ri-pushpin-2-fill text-primary-500"></i>
+            } @else {
+              <i class="ri-pushpin-line"></i>
+            }
+          </button>
           <div class="max-w-[250px] truncate text-zinc-500 text-base font-medium text-center">
             @switch (step.toolset) {
               @case ('browser-use') {
@@ -154,14 +162,16 @@
                   }
                 }
                 @case ('file') {
-                  @switch (step.data.extension) {
+                  @switch (step.data?.extension) {
                     @case('html') {
                       <xpert-canvas-html-editor class="h-full" [content]="step.data.content" [url]="step.data.url" />
                     }
                     @default {
-                      <pac-file-editor class="h-full" [fileName]="step.data.url" 
-                        [content]="step.data.content" 
-                      />
+                      @if (step.data) {
+                        <pac-file-editor class="h-full" [fileName]="step.data.url" 
+                          [content]="step.data.content" 
+                        />
+                      }
                     }
                   }
                 }
@@ -172,6 +182,24 @@
                     }
                     @case('project_update_tasks') {
                       <xpert-project-tasks [projectId]="projectId()" [tasks]="step.data" class="group" />
+                    }
+                  }
+                }
+                <!-- @deprecated -->
+                @case ('planning') {
+                  @switch (step.tool) {
+                    @case('create_plan') {
+                      <div class="p-4">
+                        <div class="text-text-secondary font-semibold">{{step.data.title}}</div>
+                        <ul class="list-decimal list-inside">
+                          @for (item of step.data.steps; track item) {
+                            <li class="text-sm text-text-primary">{{item.content}}</li>
+                          }
+                        </ul>
+                      </div>
+                    }
+                    @default {
+                      <div class="p-4 text-sm whitespace-pre-line">{{step.message}}</div>
                     }
                   }
                 }

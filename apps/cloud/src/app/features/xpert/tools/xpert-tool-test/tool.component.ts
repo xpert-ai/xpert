@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, input, model, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, input, model, output, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialogModule } from '@angular/material/dialog'
@@ -39,9 +39,14 @@ export class XpertToolTestComponent {
   readonly #toastr = inject(ToastrService)
   readonly toolService = inject(XpertToolService)
 
+  // Inputs
   readonly tool = input<IXpertTool>()
   readonly disabled = input<boolean>(false)
   readonly enabled = model<boolean>()
+
+  // Outputs
+  readonly saveParameters = output<Record<string, string>>()
+
   readonly toolId = computed(() => this.tool()?.id)
 
   readonly toolDetail$ = toObservable(this.toolId).pipe(

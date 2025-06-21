@@ -351,6 +351,12 @@
         <span>{{ 'PAC.XProject.AiModel' | translate: {Default: 'AI Model'} }}</span>
       </div>
     } -->
+
+    <div cdkMenuItem (click)="exportDsl()">
+      <i class="ri-export-line mr-1"></i>
+      <span>{{ 'PAC.XProject.ExportDSL' | translate: {Default: 'Export DSL'} }}</span>
+    </div>
+
     <div class="border-b border-solid border-divider-regular my-1"></div>
 
     <div cdkMenuItem (click)="manage()">

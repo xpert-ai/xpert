@@ -144,7 +144,8 @@
         />
       }
 
-      <xpert-tool-test [tool]="item.tool" class="w-full px-2 mt-4" [enabled]="item.tool.enabled" />
+      <xpert-tool-test [tool]="item.tool" class="w-full px-2 mt-4" [enabled]="item.tool.enabled" 
+        (saveParameters)="saveDefaultParameters($event)" />
     }
     </div>
   }

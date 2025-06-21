@@ -275,4 +275,8 @@ export class XpertStudioPanelToolsetComponent {
         })
     }
   }
+
+  saveDefaultParameters(event) {
+    // @todo 未完成
+  }
 }

@@ -6,7 +6,7 @@ import { ICopilotModel } from './copilot-model.model'
 import { IKnowledgebase } from './knowledgebase.model'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IXpertWorkspace } from './xpert-workspace.model'
-import { IXpert } from './xpert.model'
+import { IXpert, TXpertTeamDraft } from './xpert.model'
 
 export type TXpertProjectSettings = {
   instruction: string
@@ -74,4 +74,8 @@ export interface IXpertProjectTaskLog extends IBasePerXpertProjectEntityModel {
 }
 
 export interface IXpertProjectFile extends IBasePerXpertProjectEntityModel, Omit<TFile, 'createdAt'> {
+}
+
+export type TXpertProjectDSL = IXpertProject & {
+  xperts?: TXpertTeamDraft[]
 }

@@ -108,7 +108,9 @@ export function createMapStreamEvents(
 							if (agentKey) {
 								chunk.agentKey = agentKey
 							}
-							if (xpert) {
+							if (rest.metadata.xpertName) {
+								chunk.xpertName = rest.metadata.xpertName
+							} else if (xpert) {
 								chunk.xpertName = xpert.name
 							}
 							
@@ -131,7 +133,9 @@ export function createMapStreamEvents(
 							if (agentKey) {
 								chunk.agentKey = agentKey
 							}
-							if (xpert) {
+							if (rest.metadata.xpertName) {
+								chunk.xpertName = rest.metadata.xpertName
+							} else if (xpert) {
 								chunk.xpertName = xpert.name
 							}
 							
@@ -168,8 +172,7 @@ export function createMapStreamEvents(
 			case 'on_tool_start': {
 				eventStack.push(event)
 				toolsMap[rest.metadata.langgraph_node] = rest.name
-				// Hack out agent key
-				const agentKey = rest.metadata.checkpoint_ns?.split(':')[0]
+				
 				subscriber.next({
 					data: {
 						type: ChatMessageTypeEnum.EVENT,
@@ -178,7 +181,7 @@ export function createMapStreamEvents(
 							data,
 							tags,
 							...rest,
-							agentKey
+							agentKey: rest.metadata.agentKey
 						}
 					}
 				} as MessageEvent)
@@ -192,6 +195,7 @@ export function createMapStreamEvents(
 								id: tool_call_id,
 								type: 'component',
 								xpertName: rest.metadata.xpertName,
+								agentKey: rest.metadata.agentKey,
 								data: {
 									...data,
 									category: 'Computer',
@@ -284,7 +288,7 @@ export function createMapStreamEvents(
 				break
 			}
 			case 'on_custom_event': {
-				logger.verbose(data, rest)
+				// logger.verbose(data, rest)
 				switch (rest.name) {
 					case ChatMessageEventTypeEnum.ON_TOOL_ERROR: {
 						subscriber.next({

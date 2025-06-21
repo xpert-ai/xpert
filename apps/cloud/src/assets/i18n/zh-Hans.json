@@ -335,6 +335,8 @@
       "Rename": "重命名",
       "RemoveProject": "删除项目",
       "Manage": "管理",
+      "ManageProject": "管理项目",
+      "ExportDSL": "导出 DSL",
       "SelectWorkspace": "选择工作空间",
       "EditXpert": "编辑数字专家",
       "RemoveXpert": "移除数字专家",
@@ -362,7 +364,27 @@
       "InputPlaceholder": "在此项目中开始对话",
       "DeleteProject": "删除此项目",
       "DeleteProjectDesc": "一旦删除，它将永远消失。请确保",
-      "GlobalModelConfig": "全局模型配置"
+      "GlobalModelConfig": "全局模型配置",
+      "BindWorkspaceToAddResources": "绑定工作空间以添加资源",
+      "ImportProjectTeam": "导入项目组",
+      "Name": "名称",
+      "RefreshWorkspaceList": "刷新工作空间列表",
+      "ImportXperts": "导入数字专家",
+      "ImportToolsets": "导入工具集",
+      "Done": "完成",
+      "Or": "或",
+      "BindingExpert": "绑定专家",
+      "IntroduceExistExpert": "引入现有专家",
+      "HaveImported": "已导入",
+      "Binding": "绑定",
+      "Import": "导入",
+      "IntroduceExistToolset": "引入现有工具集",
+      "ImportDSL":"从 DSL 文件导入",
+      "EnterProjectName": "输入项目名",
+      "Update": "更新",
+      "Create": "创建",
+      "ProjectCreated": "项目创建成功",
+      "ProjectUpdated": "项目更新成功"
     },
     "Workflow": {
       "And": "且",
@@ -1877,7 +1899,9 @@
       "DownloadFiletoView": "请下载文件以查看其内容。",
       "DisplayOnlyData": "仅展示组件数据",
       "ExpandCanvas": "展开画布",
-      "FileList": "文件列表"
+      "FileList": "文件列表",
+      "FileDeleted": "文件已删除",
+      "FileDeleteError": "文件删除失败"
     },
     "ChatBI": {
       "DeprecationNotes": "ChatBI 功能请使用数字专家智能体中的 ChatBI 工具集！",
@@ -2257,6 +2281,8 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "Agent": "智能体",
+      "Project": "项目组",
       "Vision": "视觉",
       "Resolution": "分辨率",
       "High": "高",
@@ -2379,7 +2405,6 @@
       "StartRun": "开始运行",
       "CreateBlankXpert": "创建空白专家",
       "ChooseXpertType": "想要哪种专家类型？",
-      "Agent": "聊天助手",
       "Copilot": "智能助理",
       "Avatar": "头像",
       "Name": "名称",
@@ -2707,6 +2732,7 @@
       "ExportFailed": "导出失败",
       "NeedReconfigure": "需要重新配置",
       "InstallToWorkspace": "安装到工作空间",
+      "Install": "安装",
       "Categories": {
         "All": "所有",
         "Recommended": "推荐",
@@ -2719,15 +2745,16 @@
         "Thinking": "🧠 思索",
         "Utils": "🛠️ 实用程序",
         "Analysis": "📊 数据分析",
-        "Browser": "🧭 浏览器"
+        "Browser": "🧭 浏览器",
+        "Project": "🤝 项目组"
       },
       "SelectAWorkspace": "选择一个工作空间",
       "Checking": "检查中",
       "Cancel": "取消",
       "Create": "创建",
       "CreateXpertFromTemplate": "从模板 {{value}} 创建数字专家",
-      "ExploreXpertAgents": "探索 Xpert 智能体",
-      "ExploreXpertsDesc": "使用这些模板创建，或根据模板自定义您自己的数字专家。",
+      "ExploreXpertAgents": "探索 Xpert 智能体和项目",
+      "ExploreXpertsDesc": "使用这些模板创建，或根据模板自定义您自己的数字专家或项目组。",
       "Task": "任务",
       "Pause": "暂停",
       "Delete": "删除",

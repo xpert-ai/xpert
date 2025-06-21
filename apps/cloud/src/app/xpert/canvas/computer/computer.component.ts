@@ -69,6 +69,7 @@ export class ChatCanvasComputerComponent {
 
   // States
   readonly expand = signal(false)
+  readonly pin = signal(false)
 
   /**
    * Collect steps from messages
@@ -163,6 +164,18 @@ export class ChatCanvasComputerComponent {
     //   console.log(this.stepMessages(), this.stepTypes(), this.stepCategories())
     // })
 
+    effect(() => {
+      // If componentId is provided, find the step message by componentId
+      if (this.componentId()) {
+        const stepMessage = this.stepMessages()?.find((msg) => msg.id === this.componentId())
+        if (stepMessage) {
+          const index = this.stepMessages().indexOf(stepMessage)
+          this.stepIndex.set(index)
+          this.#refreshState$.next()
+        }
+      }
+    }, { allowSignalWrites: true })
+
     // Update to last step
     effect(
       () => {
@@ -176,22 +189,17 @@ export class ChatCanvasComputerComponent {
     
     effect(
       () => {
-        if (this.stepMessages()) {
-          if (this.componentId()) {
-            const index = this.stepMessages().findIndex((_) => _.id === this.componentId())
-            if (index >= 0) {
-              this.updateStepIndex(index)
-            } else {
-              this.updateStepIndex(this.stepMessages().length - 1)
-            }
-          } else {
-            this.stepIndex.update((state) => this.stepMessages().length - 1)
-          }
+        if (this.stepMessages() && !this.pin()) {
+          this.stepIndex.set(this.stepMessages().length - 1)
           this.#refreshState$.next()
         }
       },
       { allowSignalWrites: true }
     )
+  }
+
+  togglePin() {
+    this.pin.update((state) => !state)
   }
 
   updateStepIndex(index: number) {

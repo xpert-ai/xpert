@@ -5,14 +5,15 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { ActivatedRoute, RouterModule } from '@angular/router'
+import { ActivatedRoute, Router, RouterModule } from '@angular/router'
+import { XpertProjectInstallComponent } from '@cloud/app/@shared/chat'
 import { DynamicGridDirective } from '@metad/core'
 import { NgmCommonModule, NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { debouncedSignal } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { tap } from 'rxjs'
-import { TXpertTemplate, XpertTemplateService, XpertTypeEnum } from '../../../@core'
+import { IXpertProject, TXpertTemplate, XpertTemplateService, XpertTypeEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { XpertInstallComponent } from './install/install.component'
 
@@ -34,9 +35,7 @@ import { XpertInstallComponent } from './install/install.component'
   selector: 'xpert-explore',
   templateUrl: 'explore.component.html',
   styleUrl: 'explore.component.scss',
-  animations: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: []
 })
 export class XpertExploreComponent {
   eXpertTypeEnum = XpertTypeEnum
@@ -44,6 +43,7 @@ export class XpertExploreComponent {
   readonly templateService = inject(XpertTemplateService)
   readonly #dialog = inject(Dialog)
   readonly route = inject(ActivatedRoute)
+  readonly #router = inject(Router)
   readonly querySearch = injectQueryParams('search')
 
   // States
@@ -67,7 +67,10 @@ export class XpertExploreComponent {
     const text = this.searchText().toLowerCase()
     return text
       ? this.recommendedApps()?.filter(
-          (_) => _.title?.toLowerCase().includes(text) || _.name.toLowerCase().includes(text) || _.description?.toLowerCase().includes(text)
+          (_) =>
+            _.title?.toLowerCase().includes(text) ||
+            _.name.toLowerCase().includes(text) ||
+            _.description?.toLowerCase().includes(text)
         )
       : this.recommendedApps()
   })
@@ -84,12 +87,27 @@ export class XpertExploreComponent {
   }
 
   install(app: TXpertTemplate) {
-    this.#dialog
-      .open(XpertInstallComponent, {
-        data: app
+    if (app.type === XpertTypeEnum.Agent) {
+      this.#dialog
+        .open(XpertInstallComponent, {
+          data: app
+        })
+        .closed.subscribe({
+          next: () => {}
+        })
+    } else if (app.type === 'project') {
+      this.#dialog.open<IXpertProject>(XpertProjectInstallComponent, {
+        data: {
+          template: app
+        }
       })
       .closed.subscribe({
-        next: () => {}
-      })
+          next: (project) => {
+            if (project) {
+              this.#router.navigate(['/chat', 'p', project.id])
+            }
+          }
+        })
+    }
   }
 }

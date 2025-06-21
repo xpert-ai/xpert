@@ -269,6 +269,9 @@ export class XpertToolDslDTO {
 
 	@Expose()
 	enabled?: boolean
+	
+	@Expose()
+	disabled?: boolean
 
 	@Expose()
 	parameters?: Record<string, any>

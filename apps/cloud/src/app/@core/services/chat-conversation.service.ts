@@ -9,7 +9,7 @@ import {
   toHttpParams
 } from '@metad/cloud/state'
 import { toParams } from '@metad/core'
-import { switchMap } from 'rxjs'
+import { EMPTY, switchMap } from 'rxjs'
 
 @Injectable({ providedIn: 'root' })
 export class ChatConversationService extends OrganizationBaseCrudService<IChatConversation> {
@@ -45,11 +45,17 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     return this.httpClient.get<IStorageFile[]>(this.apiBaseUrl + `/${id}/attachments`)
   }
 
+  // Files
+
   getFiles(id: string, path: string = '') {
     return this.httpClient.get<TFileDirectory[]>(this.apiBaseUrl + `/${id}/files`, {
       params: toParams({
         path
       })
     })
+  }
+
+  deleteFile(id: string, filePath: string) {
+    return EMPTY // @todo
   }
 }

@@ -11,58 +11,5 @@
     </div>
   </div>
 </header>
-<div class="relative flex-1 min-h-0 flex flex-col">
-  <div class="flex-1 min-h-0 overflow-auto px-3 mt-4 pb-4">
-    <div class="flex flex-col first:pt-0 pt-2">
-      @for (item of flatAttachments(); track item) {
-        <div class="group flex justify-between items-center gap-2 flex-1 min-w-0 min-h-10 px-2 rounded-lg hover:bg-hover-bg">
-          @for (level of item.levels; track $index) {
-            <div class="shrink-0 w-[14px] h-full flex justify-center">
-              <div class="w-[1px] min-h-[36px] h-full bg-neutral-200"></div>
-            </div>
-          }
 
-          @if (item.hasChildren) {
-            @if (item.expanded) {
-              <i class="ri-arrow-down-s-line cursor-pointer" (click)="toggleFolder(item)"></i>
-            } @else {
-              <i class="ri-arrow-right-s-line cursor-pointer" (click)="toggleFolder(item)"></i>
-            }
-          } @else {
-            <i class="ri-folder-line opacity-0"></i>
-          }
-          <pac-file-icon small [fileType]="item.filePath" [directory]="item.hasChildren"/>
-          <div class="flex flex-col justify-center flex-1 min-w-0 max-w-[100%] min-h-[36px]">
-            <span class="text-base text-text-primary text-ellipsis overflow-hidden whitespace-nowrap">{{item.filePath}}</span>
-            <span class="text-xs font-mono text-text-tertiary">{{item.createdAt | relative}}</span>
-          </div>
-          @if (!item.hasChildren) {
-            <div
-              class="flex items-center justify-center cursor-pointer rounded-md w-8 h-8 opacity-0 group-hover:opacity-100"
-              type="button"
-              [cdkMenuTriggerFor]="menu"
-              [cdkMenuTriggerData]="{file: item}"
-            >
-              <i class="ri-more-line"></i>
-            </div>
-          }
-        </div>
-      }
-    </div>
-  </div>
-
-  @if (isLoading())  {
-    <ngm-spin class="absolute top-0 left-0 w-full h-full" />
-  }
-</div>
-
-<ng-template #menu let-file="file">
-  <div cdkMenu class="cdk-menu__medium">
-    <div cdkMenuItem (click)="preview(file)">
-        {{'PAC.Chat.Preview' | translate: {Default: 'Preview'} }}
-    </div>
-    <div cdkMenuItem (click)="download(file.url)">
-        {{'PAC.Chat.Download' | translate: {Default: 'Download'} }}
-    </div>
-  </div>
-</ng-template>
+<chat-file-list [projectId]="projectId()" [conversationId]="conversationId()" />

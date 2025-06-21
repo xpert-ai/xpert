@@ -140,14 +140,14 @@ export class ChatProjectHomeComponent {
   readonly workspaceError = computed(() => this.#workspace()?.error)
 
   // Files
-  readonly refreshFiles$ = new BehaviorSubject<void>(null)
-  readonly files$ = combineLatest([toObservable(this.id), this.refreshFiles$]).pipe(
-    switchMap(([id]) => this.projectsService.getFiles(id).pipe(
-      map((files) => ({files, loading: false})),
-      startWith({files: null, loading: true}))
-    ),
-    shareReplay(1)
-  )
+  // readonly refreshFiles$ = new BehaviorSubject<void>(null)
+  // readonly files$ = combineLatest([toObservable(this.id), this.refreshFiles$]).pipe(
+  //   switchMap(([id]) => this.projectsService.getFiles(id).pipe(
+  //     map((files) => ({files, loading: false})),
+  //     startWith({files: null, loading: true}))
+  //   ),
+  //   shareReplay(1)
+  // )
 
   constructor() {
     effect(() => {
@@ -299,5 +299,19 @@ export class ChatProjectHomeComponent {
         id: this.project().id
       }
     }).closed.subscribe(() => {})
+  }
+
+  exportDsl() {
+    this.projectsService.exportDsl(this.id()).subscribe({
+      next: (result) => {
+        const blob = new Blob([result.data], { type: 'text/plain;charset=utf-8' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `project-${this.project().name}.yaml`
+        a.click();
+        window.URL.revokeObjectURL(url);
+      }
+    })
   }
 }

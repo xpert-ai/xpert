@@ -136,6 +136,12 @@ export type TXpertAgentOptions = {
    * Available tools
    */
   availableTools?: Record<string, string[]>
+  /**
+   * Options for tools of agent
+   */
+  tools?: Record<string, {
+    timeout?: number
+  }>
   
   /**
    * How to achieve structured output (`StructuredOutputMethodOptions['method']`)

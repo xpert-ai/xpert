@@ -15,6 +15,7 @@ import {
 	StorageFileDeleteCommand,
 	TenantOrganizationAwareCrudService
 } from '@metad/server-core'
+import { yaml } from '@metad/server-common'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -31,7 +32,8 @@ import { XpertProject } from './entities/project.entity'
 import { XpertProjectFileService, XpertProjectTaskService } from './services/'
 import { KnowledgebasePublicDTO } from '../knowledgebase/dto'
 import { KnowledgebaseGetOneQuery } from '../knowledgebase/queries'
-import { XpertProjectIdentiDto } from './dto/project-identi.dto'
+import { XpertProjectIdentiDto } from './dto'
+import { ExportProjectCommand } from './commands'
 
 @Injectable()
 export class XpertProjectService extends TenantOrganizationAwareCrudService<XpertProject> {
@@ -404,5 +406,10 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 			attachments: project.attachments.map((_) => ({ id: _.id })),
 			files: []
 		})
+	}
+
+	async exportProject(id: string) {
+		const projectDsl = await this.commandBus.execute(new ExportProjectCommand(id))
+		return yaml.stringify(projectDsl)
 	}
 }

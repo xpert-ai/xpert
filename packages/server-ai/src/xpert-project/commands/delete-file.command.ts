@@ -1,5 +1,8 @@
 import { ICommand } from '@nestjs/cqrs'
 
+/**
+ * @deprecated
+ */
 export class DeleteProjectFileCommand implements ICommand {
 	static readonly type = '[Xpert Project] Delete file'
 

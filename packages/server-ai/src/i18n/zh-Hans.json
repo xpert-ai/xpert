@@ -1,6 +1,7 @@
 {
     "Error": {
-        "AgentNotFound": "Agent‘{key}’未找到。"
+        "AgentNotFound": "Agent‘{key}’未找到。",
+        "PrimaryAgentNotFound": "主智能体节点未找到"
     },
     "tools": {
         "ListFiles": "列出文件",

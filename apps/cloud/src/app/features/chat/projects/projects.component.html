@@ -3,7 +3,14 @@
     <i class="ri-building-line text-2xl mr-2"></i>
     {{ 'PAC.XProject.AllProjects' | translate: {Default: 'All Projects'} }}
   </h1>
-  <div class="flex justify-end">
+  <div class="flex justify-end gap-2">
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large font-normal"
+      (click)="importDsl()">
+      <i class="ri-import-line mr-1"></i>
+      <span class="system-sm-medium">
+        {{'PAC.XProject.ImportDSL' | translate: {Default: 'Import DSL'} }}
+      </span>
+    </button>
     <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
       (click)="addProject()">
       <i class="ri-add-line mr-1"></i>

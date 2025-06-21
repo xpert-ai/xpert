@@ -35,17 +35,17 @@ export type TGraphTool = {
 }
 
 export function stateVariable(variable: TStateVariable) {
-	const defaultValue = [
-		XpertParameterTypeEnum.STRING,
-		XpertParameterTypeEnum.TEXT,
-		XpertParameterTypeEnum.PARAGRAPH
-	].includes(variable.type)
-		? variable.default
-		: isFunction(variable.default)
-			? variable.default
-			: variable.default
-				? JSON.parse(variable.default)
-				: null
+	const defaultValue = isFunction(variable.default) ?
+		variable.default()
+		: [
+			XpertParameterTypeEnum.STRING,
+			XpertParameterTypeEnum.TEXT,
+			XpertParameterTypeEnum.PARAGRAPH
+		].includes(variable.type) ? 
+			variable.default 
+			: typeof variable.default === 'string' ? 
+				JSON.parse(variable.default)
+				: variable.default
 
 	return {
 		default: () => defaultValue,

@@ -50,6 +50,7 @@ export class PlanningCreateTool extends BuiltinTool {
 		const { subscriber } = config?.configurable ?? {}
 		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 		const lang = currentState[STATE_VARIABLE_SYS]?.language
+		const toolCallId = config.toolCall?.id
 
 		const plan = {
 			title: parameters.title,
@@ -59,18 +60,18 @@ export class PlanningCreateTool extends BuiltinTool {
 		const i18n = await this.toolset.translate('toolset.Planning', { lang: mapTranslationLanguage(lang) })
 		// Tool message event
 		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+			id: toolCallId,
 			type: ChatMessageStepType.ComputerUse,
 			toolset: PlanningToolset.provider,
 			tool: this.name,
-			message: `${i18n.CreatedAPlan}: ${parameters.title}\n\n${parameters.steps.join('\n')}`,
-			title: parameters.title,
+			title: i18n.CreatedAPlan,
+			message: parameters.title,
 			data: plan
 		}).catch((err) => {
 			this.#logger.error(err)
 		})
 
 		// Populated when a tool is called with a tool call from a model as input
-		const toolCallId = config.toolCall?.id
 		return new Command({
 			update: {
 				[PLAN_TITLE_NAME]: plan.title,

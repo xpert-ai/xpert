@@ -1,11 +1,11 @@
-import { inject, Injectable } from '@angular/core'
+import { computed, inject, Injectable } from '@angular/core'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
-import { PaginationParams, timeRangeToParams, toHttpParams } from '@metad/cloud/state'
+import { injectXpertPreferences, LanguagesEnum, PaginationParams, timeRangeToParams, toHttpParams } from '@metad/cloud/state'
 import { toParams } from '@metad/ocap-angular/core'
 import { NGXLogger } from 'ngx-logger'
-import { BehaviorSubject, catchError, Observable, tap, throwError } from 'rxjs'
+import { BehaviorSubject, catchError, map, Observable, pipe, tap, throwError } from 'rxjs'
 import { API_XPERT_ROLE } from '../constants/app.constants'
-import { injectApiBaseUrl } from '../providers'
+import { injectApiBaseUrl, injectLanguage } from '../providers'
 import {
   IChatConversation,
   IChatMessageFeedback,
@@ -28,6 +28,7 @@ import {
 import { injectFetchEventSource } from './fetch-event-source'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 import { HttpErrorResponse, HttpParams } from '@angular/common/http'
+import { derivedFrom } from 'ngxtension/derived-from'
 
 @Injectable({ providedIn: 'root' })
 export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
@@ -383,4 +384,50 @@ function handleError(error: HttpErrorResponse): Observable<never> {
   } else {
     return throwError(() => error);
   }
+}
+
+export function injectXperts() {
+  const xpertService = inject(XpertService)
+  const preferences = injectXpertPreferences()
+  const lang = injectLanguage()
+
+  const _xperts = derivedFrom(
+      [
+        xpertService
+          .getMyAll({
+            relations: ['createdBy'],
+            where: { type: XpertTypeEnum.Agent, latest: true },
+            order: { createdAt: OrderTypeEnum.DESC }
+          })
+          .pipe(map(({ items }) => items)),
+        lang
+      ],
+      pipe(
+        map(([roles, lang]) => {
+          if ([LanguagesEnum.SimplifiedChinese, LanguagesEnum.Chinese].includes(lang as LanguagesEnum)) {
+            return roles?.map((role) => ({ ...role, title: role.titleCN || role.title }))
+          } else {
+            return roles
+          }
+        })
+      ),
+      { initialValue: null }
+    )
+    const _sortOrder = computed(() => preferences()?.sortOrder)
+  
+    const sortedXperts = computed(() => {
+      const xperts = _xperts()
+      const sortOrder = _sortOrder()
+      if (xperts && sortOrder) {
+        const sortOrderMap = new Map(sortOrder.map((id, index) => [id, index]))
+        return [...xperts].sort(
+          (a, b) =>
+            (sortOrderMap.get(a.id) ?? 0) - (sortOrderMap.get(b.id) ?? 0) ||
+            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        )
+      }
+  
+      return xperts
+    })
+  return sortedXperts
 }

@@ -1,0 +1,63 @@
+<div class="flex justify-between items-center gap-2">
+  <div class="flex flex-col">
+    <div >
+      <span class="font-semibold text-base truncate">{{title() || name()}}</span>
+      <span class="mx-2">
+        {{ 'PAC.XProject.Or' | translate: {Default: 'or'} }}
+      </span>
+
+      <button class="border-solid border-[0.5px] border-neutral-200 rounded-lg shadow-sm pl-1 pr-2 ml-2"
+        [disabled]="loading() || createdXpert()"
+        [cdkMenuTriggerFor]="xpertsMenu">
+        <i class="ri-links-line ml-1 text-lg"></i>
+        @if (bindedXpert()) {
+          <span>
+            {{ bindedXpert().title || bindedXpert().name }}
+          </span>
+          <i class="ri-close-circle-line cursor-pointer" (click)="removeBindedXpert()"></i>
+        } @else {
+          <span>
+            {{ 'PAC.XProject.IntroduceExistExpert' | translate: {Default: 'Introduce Exist Expert'} }}
+          </span>
+        }
+      </button>
+      @if (createdXpert()) {
+        <i class="ri-checkbox-circle-fill ml-1 text-text-success" 
+          [matTooltip]="'PAC.XProject.HaveImported' | translate: {Default: 'Imported'}"
+          matTooltipPosition="above"></i>
+      }
+    </div>
+    <div class="text-sm text-text-secondary font-body line-clamp-2 whitespace-pre-line truncate mt-2">
+      {{description()}}
+    </div>
+  </div>
+
+  <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium justify-center w-24"
+    [disabled]="loading() || createdXpert() || !project()?.workspaceId"
+    (click)="importXpert()"
+  >
+    @if (loading())  {
+      <ngm-spin class="w-5 h-5 mr-1" />
+    }
+    @if (bindedXpert()) {
+      {{ 'PAC.XProject.Binding' | translate: {Default: 'Binding'} }}
+    } @else {
+      {{ 'PAC.XProject.Import' | translate: {Default: 'Import'} }}
+    }
+  </button>
+</div>
+
+<ng-template #xpertsMenu>
+  <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary relative p-0">
+    <div class="w-full sticky -top-1 z-10 bg-components-card-bg">
+      <ngm-search class="" [formControl]="searchControl" />
+    </div>
+    
+    @for (item of allXperts(); track item.id) {
+      <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="bindExpert(item)">
+        <emoji-avatar [avatar]="item.avatar" xs class="shrink-0 rounded-lg overflow-hidden shadow-sm mr-1" />
+        <p class="overflow-hidden whitespace-nowrap text-ellipsis">{{item.title || item.name}}</p>
+      </button>
+    }
+  </div>
+</ng-template>

@@ -3,7 +3,7 @@
   <div class="truncate text-text-secondary">{{title()}}</div>
 </div>
 
-<div class="group/message flex-1 flex flex-col pt-2 pb-10 z-0">
+<div class="group/message flex-1 flex flex-col pt-2 pb-10">
 
   <!-- executions -->
   @if (showExecution()) {
@@ -50,7 +50,7 @@
       [collapse]="submessage.id && collapseMessages()[submessage.id]"
       (collapseChange)="updateCollapse(submessage.id, $event)"
     />
-    <chat-message-content class="px-2" [message]="message()" [content]="submessage" [last]="last" 
+    <chat-message-content class="px-2 z-0" [message]="message()" [content]="submessage" [last]="last" 
       [collapse]="submessage.id && collapseMessages()[submessage.id]"
     />
   }

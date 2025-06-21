@@ -42,9 +42,7 @@
 
   @switch (message().type) {
     @case ('human') {
-      <div class="whitespace-pre-wrap">
-        {{ content() }}
-      </div>
+      <div class="whitespace-pre-wrap">{{ content() }}</div>
     }
     @case ('ai') {
       @if (content()) {

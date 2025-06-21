@@ -1,27 +1,17 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
-import {
-  getErrorMessage,
-  injectProjectService,
-  injectToastr,
-  IStorageFile,
-  IXpertProjectFile,
-  StorageFileService
-} from '@cloud/app/@core'
-import { FileIconComponent, StorageFileComponent } from '@cloud/app/@shared/files'
+import { injectProjectService, injectToastr } from '@cloud/app/@core'
+import { ChatFileListComponent } from '@cloud/app/@shared/chat/'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { FileTypePipe, linkedModel, NgmDndDirective } from '@metad/core'
+import { NgmDndDirective } from '@metad/core'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { EMPTY } from 'rxjs'
-import { map, switchMap } from 'rxjs/operators'
-import { ChatProjectHomeComponent } from '../home/home.component'
+import { NGXLogger } from 'ngx-logger'
 import { ChatProjectComponent } from '../project.component'
 
 /**
@@ -38,10 +28,8 @@ import { ChatProjectComponent } from '../project.component'
     TranslateModule,
     MatTooltipModule,
     NgmSpinComponent,
-    FileIconComponent,
-    FileTypePipe,
     NgmDndDirective,
-    StorageFileComponent
+    ChatFileListComponent
   ],
   selector: 'chat-project-attachments',
   templateUrl: './attachments.component.html',
@@ -49,97 +37,30 @@ import { ChatProjectComponent } from '../project.component'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatProjectAttachmentsComponent {
+  readonly #logger = inject(NGXLogger)
   readonly #router = inject(Router)
   readonly #dialog = inject(Dialog)
   readonly projectSercice = injectProjectService()
   readonly #projectComponent = inject(ChatProjectComponent)
-  readonly #projectHomeComponent = inject(ChatProjectHomeComponent)
   readonly #toastr = injectToastr()
   readonly confirmDelete = injectConfirmDelete()
   readonly i18n = injectI18nService()
-  readonly storageFileService = inject(StorageFileService)
 
   readonly project = this.#projectComponent.project
-
-  readonly files = toSignal(this.#projectHomeComponent.files$.pipe(map(({ files }) => files)))
-  readonly #loading = toSignal(this.#projectHomeComponent.files$.pipe(map(({ loading }) => loading)))
-
-  readonly loading = linkedModel({
-    initialValue: null,
-    compute: () => this.#loading(),
-    update: () => {}
-  })
-
-  readonly fileList = linkedModel({
-    initialValue: [],
-    compute: () => (this.files() ? buildFileTree(this.files()) : []),
-    update: () => {}
-  })
-
-  readonly dataSource = computed(() => flattenTree(this.fileList()))
+  readonly projectId = computed(() => this.project()?.id)
+  readonly refresh = signal({})
 
   // Uploading
-  readonly uploadFileList = signal<{ file: File; progress?: number; error?: string; storageFile?: IStorageFile }[]>([])
-
-  constructor() {
-    // effect(() => {
-      // console.log(this.uploadFileList())
-    // })
-  }
-
-  toggleExpand(item: FlatTreeNode) {
-    item.node.expand = !item.node.expand
-    this.fileList.update((nodes) => [...nodes])
-  }
-
-  deleteFile(file: IXpertProjectFile) {
-    this.confirmDelete({
-      value: file.filePath,
-      information: this.i18n.translate('PAC.XProject.DeleteFileFromProject', { Default: 'Delete file from project?' })
-    })
-      .pipe(
-        switchMap((confirm) => {
-          if (confirm) {
-            this.loading.set(true)
-            return file.id ? this.projectSercice.deleteFile(this.project().id, file.id)
-              : this.projectSercice.deleteAttachment(this.project().id, file.storageFileId)
-          }
-          return EMPTY
-        })
-      )
-      .subscribe({
-        next: () => {
-          this.loading.set(false)
-          this.#projectHomeComponent.refreshFiles$.next()
-        },
-        error: (err) => {
-          this.loading.set(false)
-          this.#toastr.error(getErrorMessage(err))
-        }
-      })
-  }
-
-  moveToProject(item, storageFile: IStorageFile) {
-    this.uploadFileList.update((state) => state.filter((_) => _ !== item))
-    this.loading.set(true)
-    this.projectSercice.addAttachments(this.project().id, [storageFile.id]).subscribe({
-      next: () => {
-        this.loading.set(false)
-        this.#projectHomeComponent.refreshFiles$.next()
-      },
-      error: (err) => {
-        this.loading.set(false)
-        this.#toastr.error(getErrorMessage(err))
-      }
-    })
-  }
+  readonly loading = signal(false)
 
   /**
    * on file drop handler
    */
-  onFileDropped(event: FileList) {
-    const filesArray = Array.from(event);
-    this.uploadFileList.update((state) => [...state, ...filesArray.map((file) => ({ file }))]);
+  async onFileDropped(event: FileList) {
+    const filesArray = Array.from(event)
+    for await (const file of filesArray) {
+      this.uploadFile(file)
+    }
   }
 
   /**
@@ -149,117 +70,26 @@ export class ChatProjectAttachmentsComponent {
     this.onFileDropped(event.files)
   }
 
-  stopUpload(item) {
-    this.uploadFileList.update((state) => state.filter((_) => _ !== item));
-  }
-}
-
-type FileNode = {
-  name: string
-  type: 'file'
-  children?: undefined
-  file?: IXpertProjectFile
-  expand?: boolean
-}
-
-type FolderNode = {
-  name: string
-  type: 'folder'
-  children: TreeNode[]
-  file?: IXpertProjectFile
-  expand?: boolean
-}
-
-type TreeNode = FileNode | FolderNode
-
-type FolderBuilderNode = {
-  name: string
-  type: 'folder'
-  children: Record<string, TreeNode | FolderBuilderNode>
-}
-
-function buildFileTree(paths: IXpertProjectFile[]): TreeNode[] {
-  const root: Record<string, TreeNode | FolderBuilderNode> = {}
-
-  for (const file of paths) {
-    const parts = file.filePath.split('/')
-    let currentLevel = root
-
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i]
-      const isFile = i === parts.length - 1
-
-      if (isFile) {
-        currentLevel[part] = { name: part, type: 'file', file }
-      } else {
-        if (!currentLevel[part]) {
-          currentLevel[part] = {
-            name: part,
-            type: 'folder',
-            children: {}
-          }
+  uploadFile(file: File) {
+    this.loading.set(true)
+    this.projectSercice.uploadFile(this.projectId(), file).subscribe({
+      next: (event) => {
+        if (event.type === 1) {
+          // Upload progress
+          const progress = Math.round((100 * event.loaded) / event.total)
+          this.#logger.debug(`File upload progress: ${progress}%`)
+        } else if (event.type === 4) {
+          // Upload complete
+          this.#logger.debug('File upload complete')
+          this.loading.set(false)
+          this.refresh.set({})
+          console.log(event.body)
         }
-        const folder = currentLevel[part] as FolderBuilderNode
-        currentLevel = folder.children
+      },
+      error: (error) => {
+        this.loading.set(false)
+        this.#logger.error('File upload failed', error)
       }
-    }
-  }
-
-  // Convert to TreeNode[]
-  function objectToArray(nodeMap: Record<string, TreeNode | FolderBuilderNode>): TreeNode[] {
-    return Object.values(nodeMap).map((node) => {
-      if (node.type === 'folder') {
-        return {
-          name: node.name,
-          type: 'folder',
-          children: objectToArray((node as FolderBuilderNode).children),
-          expand: node.name === 'attachments'
-        }
-      }
-      return node as FileNode
     })
   }
-
-  return objectToArray(root)
-}
-
-// function flattenNodes(nodes: TreeNode[]): TreeNode[] {
-//   const flattenedNodes = []
-//   for (const node of nodes) {
-//     flattenedNodes.push(node)
-//     if (node.children) {
-//       flattenedNodes.push(...flattenNodes(node.children))
-//     }
-//   }
-//   return flattenedNodes
-// }
-
-export interface FlatTreeNode {
-  name: string
-  type: 'file' | 'folder'
-  level: number
-  file: IXpertProjectFile
-  expandable: boolean
-  node: TreeNode
-}
-
-function flattenTree(nodes: TreeNode[], level = 0): FlatTreeNode[] {
-  const flatList: FlatTreeNode[] = []
-
-  for (const node of nodes) {
-    flatList.push({
-      name: node.name,
-      type: node.type,
-      level,
-      expandable: node.type === 'folder' && node.children.length > 0,
-      file: node.file,
-      node: node
-    })
-
-    if (node.expand && node.type === 'folder') {
-      flatList.push(...flattenTree(node.children, level + 1))
-    }
-  }
-
-  return flatList
 }

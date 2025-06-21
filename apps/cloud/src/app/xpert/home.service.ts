@@ -57,31 +57,30 @@ export class XpertHomeService {
   readonly conversations = signal<Record<string, IChatConversation[]>>({})
 
   // Canvas
-  // private canvasEffect = effect(
-  //   () => {
-  //     const messages = [...(this.messages() ?? [])]
-  //     if (!this.canvasOpened()) {
-  //       // Find the last element with type === 'component'
-  //       let stepMessage = null
-  //       messages?.reverse().find((item) => {
-  //         if (Array.isArray(item.content)) {
-  //           stepMessage = [...item.content].reverse().find((msg) => msg.type === 'component')
-  //           return !!stepMessage
-  //         }
-  //         return false
-  //       })
+  private canvasEffect = effect(
+    () => {
+      const messages = [...(this.messages() ?? [])]
+      if (!this.canvasOpened()) {
+        // Find the last element with type === 'component'
+        let stepMessage = null
+        messages?.reverse().find((item) => {
+          if (Array.isArray(item.content)) {
+            stepMessage = [...item.content].reverse().find((msg) => msg.type === 'component' && msg.data?.category === 'Computer')
+            return !!stepMessage
+          }
+          return false
+        })
 
-  //       if (stepMessage) {
-  //         console.log(stepMessage)
-  //         this.canvasOpened.set({
-  //           opened: true,
-  //           type: 'Computer',
-  //         })
-  //       }
-  //     }
-  //   },
-  //   { allowSignalWrites: true }
-  // )
+        if (stepMessage) {
+          this.canvasOpened.set({
+            opened: true,
+            type: 'Computer',
+          })
+        }
+      }
+    },
+    { allowSignalWrites: true }
+  )
 
   selectSemanticModel(id: string) {
     if (!this.#models[id]) {
