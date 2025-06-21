@@ -30,7 +30,7 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 		let channel: TStateChannel = null
 		switch (node.entity.type) {
 			case WorkflowNodeTypeEnum.IF_ELSE: {
-				workflow = createCasesNode(graph, node)
+				workflow = createCasesNode(graph, node, {environment: options.environment})
 				break
 			}
 			case WorkflowNodeTypeEnum.ITERATING: {
@@ -50,6 +50,7 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 					xpertId, 
 					commandBus: this.commandBus,
 					queryBus: this.queryBus,
+					environment: options.environment
 				})
 				channel = {
 					name: channelName(node.key),
@@ -72,6 +73,7 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 					xpertId, 
 					commandBus: this.commandBus,
 					queryBus: this.queryBus,
+					environment: options.environment
 				})
 				channel = {
 					name: channelName(node.key),
@@ -130,6 +132,7 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 					xpertId, 
 					commandBus: this.commandBus,
 					queryBus: this.queryBus,
+					environment: options.environment
 				})
 				break
 			}
