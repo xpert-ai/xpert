@@ -1,0 +1,88 @@
+<copilot-model-select class="w-full"
+  [inheritModel]="xpertCopilotModel()"
+  [modelType]="eAiModelTypeEnum.LLM"
+  [(ngModel)]="copilotModel"
+/>
+
+<div>
+  <div class="my-2 font-semibold uppercase text-text-secondary">
+    {{ 'PAC.Xpert.InputVariables' | translate: {Default: 'Input Variables'} }}
+  </div>
+  <xpert-state-variable-select
+    [variables]="variables()" 
+    [(ngModel)]="inputVariable" 
+  />
+</div>
+
+<div class="space-y-2">
+  <div class="flex items-center justify-between">
+    <div class="flex h-6 items-center">
+      <div class="system-sm-semibold-uppercase text-text-secondary">{{ 'PAC.Xpert.Class' | translate: {Default: 'Class'} }} <span class="text-text-destructive">*</span></div>
+    </div>
+    <div class="flex"></div>
+  </div>
+
+  @for (item of classes(); track i; let i = $index) {
+    <copilot-prompt-editor class="relative self-stretch mb-4 rounded-xl border border-solid border-neutral-100 hover:border-neutral-200 hover:shadow-sm"
+      [initHeight]="160"
+      [role]="('PAC.Xpert.Category' | translate: {Default: 'Category'}) + ' ' + (i+1)"
+      [variables]="variables()"
+      [prompt]="item.description"
+      (promptChange)="updateClass(i, $event)"
+      (deleted)="removeClass(i)"
+    />
+  }
+
+  <button type="button" class="btn disabled:btn-disabled btn-tertiary btn-medium w-full"
+    (click)="addClass()">
+    <i class="ri-menu-add-line mr-1"></i>
+    <div>{{'PAC.Xpert.AddCategory' | translate: {Default: 'Add Category'} }}</div>
+  </button>
+</div>
+
+<div class="h-[0.5px] bg-divider-subtle"></div>
+
+<div class="flex flex-col justify-start items-start gap-2">
+  <div class="flex items-center cursor-pointer text-text-secondary"
+    (click)="toggleAdvanced()">
+    <i class="ri-arrow-right-s-line" [class.rotate-90]="expandAdvanced()"></i>
+    <div class="uppercase font-semibold text-sm">
+      {{'PAC.Xpert.AdvancedSettings' | translate: {Default: 'Advanced Settings'} }}
+    </div>
+  </div>
+
+  @if (expandAdvanced()) {
+    <copilot-prompt-editor class="relative self-stretch mb-4 rounded-xl border border-solid border-neutral-100 hover:border-neutral-200 hover:shadow-sm"
+      [initHeight]="160"
+      [role]="'PAC.Xpert.Instruction' | translate: {Default: 'Instruction'}"
+      [variables]="variables()"
+      [(prompt)]="instruction"
+    />
+  }
+</div>
+
+
+<div class="h-[0.5px] bg-divider-subtle"></div>
+
+<div class="">
+  <div class="flex items-center">
+    <div class="h-4 w-4 shrink-0 flex justify-center items-center text-text-secondary">
+      <i class="ri-arrow-right-s-line" [class.rotate-90]="expandOutputVariables()"></i>
+    </div>
+    <div class="system-sm-semibold-uppercase flex h-6 cursor-pointer items-center text-text-secondary"
+      (click)="toggleOutput()"
+    >{{ 'PAC.Workflow.OutputVariables' | translate: {Default: 'Output Variables'} }}
+    </div>
+  </div>
+  @if (expandOutputVariables()) {
+    <div class="px-4">
+      <div class="flex items-center leading-[18px]">
+        <div class="code-sm-semibold text-text-secondary">category</div>
+        <div class="system-xs-regular ml-2 capitalize text-text-tertiary">number</div>
+      </div>
+      <div class="system-xs-regular mt-0.5 text-text-tertiary">
+        {{ 'PAC.Xpert.CategoryIndex' | translate: {Default: 'Category Index'} }}
+      </div>
+    </div>
+  }
+</div>

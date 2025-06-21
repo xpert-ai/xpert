@@ -6,6 +6,7 @@ import { I18nService } from '@cloud/app/@shared/i18n'
 import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
 import { TranslateModule } from '@ngx-translate/core'
 import {
+  IWFNClassifier,
   IWFNCode,
   IWFNHttp,
   IWFNIfElse,
@@ -73,7 +74,8 @@ export class XpertStudioContextMenuComponent {
   public node: string | null = null
 
   readonly collaborators$ = this.apiService.collaborators$
-  readonly agents = computed(() => this.root.viewModel()?.nodes?.filter((n) => n.type === 'agent'))
+  readonly nodes = computed(() => this.root.viewModel()?.nodes)
+  readonly agents = computed(() => this.nodes()?.filter((n) => n.type === 'agent'))
 
   public ngOnInit(): void {
     this.subscriptions.add(this.subscribeToSelectionChanges())
@@ -164,6 +166,24 @@ export class XpertStudioContextMenuComponent {
       key: genXpertAnswerKey(),
       title: await this.#translate.instant('PAC.Workflow.Answer', { Default: 'Answer' })
     })
+  }
+
+  async addWorkflowQuestionClassifier() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.CLASSIFIER).length ?? 0
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.CLASSIFIER,
+      key: uuid(),
+      title: (await this.#translate.instant('PAC.Workflow.QuestionClassifier', { Default: 'Question Classifier' })) + ` ${length + 1}`,
+      inputVariables: ['human.input'],
+      classes: [
+        {
+          description: '',
+        },
+        {
+          description: '',
+        },
+      ]
+    } as IWFNClassifier)
   }
 
   async addWorkflowKnowledgeRetrieval() {

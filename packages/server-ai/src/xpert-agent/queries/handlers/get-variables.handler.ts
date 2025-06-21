@@ -2,6 +2,7 @@ import {
 	channelName,
 	getAgentVarGroup,
 	getCurrentGraph,
+	IWFNClassifier,
 	IWFNIterating,
 	IWFNKnowledgeRetrieval,
 	IWFNSubflow,
@@ -23,7 +24,7 @@ import { XpertService } from '../../../xpert/xpert.service'
 import { STATE_VARIABLE_INPUT } from '../../commands/handlers/types'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
 import { EnvironmentService } from '../../../environment'
-import { httpOutoutVariables, knowledgeOutputVariables, iteratingOutputVariables, codeOutputVariables, subflowOutputVariables } from '../../workflow'
+import { httpOutoutVariables, knowledgeOutputVariables, iteratingOutputVariables, codeOutputVariables, subflowOutputVariables, classifierOutputVariables } from '../../workflow'
 import { templateOutputVariables } from '../../workflow/template'
 
 @QueryHandler(XpertAgentVariablesQuery)
@@ -237,6 +238,11 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 					}
 					case WorkflowNodeTypeEnum.TEMPLATE: {
 						variables.push(...templateOutputVariables(entity))
+						varGroups.push(varGroup)
+						break
+					}
+					case WorkflowNodeTypeEnum.CLASSIFIER: {
+						variables.push(...classifierOutputVariables(entity as IWFNClassifier))
 						varGroups.push(varGroup)
 						break
 					}
