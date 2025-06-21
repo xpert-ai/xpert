@@ -23,7 +23,6 @@ import { Router, RouterModule } from '@angular/router'
 import { AIPermissionsEnum, getErrorMessage, injectProjectService, injectToastr, IXpert } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertCardComponent } from '@cloud/app/@shared/xpert'
-import { Store } from '@metad/cloud/state'
 import { linkedModel, OverlayAnimations } from '@metad/core'
 import { NgmSearchComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
@@ -62,7 +61,6 @@ export class ChatProjectXpertsComponent {
   readonly homeService = inject(ChatHomeService)
   readonly projectService = injectProjectService()
   readonly #toastr = injectToastr()
-  readonly #store = inject(Store)
   readonly #router = inject(Router)
   readonly overlay = inject(Overlay)
   readonly positionBuilder = inject(OverlayPositionBuilder)

@@ -313,6 +313,7 @@
     },
     "XProject": {
       "DeleteProjectAndAll": "删除项目及其中所有的材料",
+      "Collaborators": "协作者",
       "Edit": "编辑",
       "CancelEdit": "取消编辑",
       "AiModel": "AI 模型",
@@ -321,7 +322,7 @@
       "Instruction": "指令",
       "Attachments": "附件",
       "Tools": "工具",
-      "AvailableToolsets": "可用工具集",
+      "AvailableToolsets": "可选工具集",
       "Knowledges": "知识",
       "NoKnowledgebasesYet": "尚无知识库",
       "AddKnowledgebasesForProject": "选择绑定工作区，将知识库添加到项目通用智能体",

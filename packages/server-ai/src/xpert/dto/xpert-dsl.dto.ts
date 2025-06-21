@@ -66,8 +66,9 @@ export class XpertDslDTO {
 	@Expose()
 	version?: string
 
+	// Only the key needs to be output, the entity is in the nodes
 	@Expose()
-	@Transform(({ value }) => value ? new XpertAgentDslDTO(value) : null)
+	@Transform(({ value }) => value ? {key: value.key} : null)
 	agent?: IXpertAgent
 
 	@Expose()

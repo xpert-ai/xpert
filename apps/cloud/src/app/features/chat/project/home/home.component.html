@@ -47,7 +47,7 @@
 
   <div class="flex-1 flex gap-6 flex-col">
 
-    <pac-chat-project-xperts class="mt-12" />
+    <pac-chat-project-xperts class="mt-12 self-center" />
 
     <div class="relative">
       <form class="bottom-0 w-full text-base flex flex-col gap-2 items-center justify-center relative z-10"
@@ -282,16 +282,16 @@
 
       @switch (viewType()) {
         @case ('attachments') {
-          <chat-project-attachments role="tabpanel" tabindex="0" class="py-2" />
+          <chat-project-attachments role="tabpanel" class="py-2" />
         }
         @case ('tools') {
-          <chat-project-tools role="tabpanel" tabindex="0" class="py-2" />
+          <chat-project-tools role="tabpanel" class="py-2" />
         }
         @case ('knowledges') {
-          <chat-project-knowledges role="tabpanel" tabindex="0" class="py-2" />
+          <chat-project-knowledges role="tabpanel" class="py-2" />
         }
         @case ('conversations') {
-          <chat-project-conversations role="tabpanel" tabindex="0" class="py-2" />
+          <chat-project-conversations role="tabpanel" class="py-2" />
         }
       }
     </div>
