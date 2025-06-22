@@ -5,10 +5,10 @@
 [uri_license_image]: https://img.shields.io/badge/License-AGPL%20v3-blue.svg
 
 <p align="center">
-  <a href="https://app.mtda.cloud/">Xpert Cloud</a> ·
-  <a href="https://mtda.cloud/docs/getting-started/community/">Self-hosting</a> ·
-  <a href="https://mtda.cloud/docs/">Documentation</a> ·
-  <a href="https://mtda.cloud/#connect">Enterprise inquiry</a>
+  <a href="https://app.mtda.cloud/">XpertAI 云</a> ·
+  <a href="https://mtda.cloud/docs/getting-started/community/">自托管</a> ·
+  <a href="https://mtda.cloud/docs/">文档</a> ·
+  <a href="https://mtda.cloud/#connect">企业咨询</a>
 </p>
 
 
