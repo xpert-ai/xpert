@@ -23,6 +23,7 @@ import { XpertStudioNodeWorkflowKnowledgeComponent } from './knowledge/knowledge
 import { XpertWorkflowNodeSubflowComponent } from './subflow/subflow.component'
 import { XpertWorkflowNodeNoteComponent } from './note/note.component'
 import { XpertWorkflowNodeTemplateComponent } from './template/template.component'
+import { XpertWorkflowNodeClassifierComponent } from './classifier/classifier.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -45,7 +46,8 @@ import { XpertWorkflowNodeTemplateComponent } from './template/template.componen
     XpertStudioNodeWorkflowKnowledgeComponent,
     XpertWorkflowNodeSubflowComponent,
     XpertWorkflowNodeTemplateComponent,
-    XpertWorkflowNodeNoteComponent
+    XpertWorkflowNodeNoteComponent,
+    XpertWorkflowNodeClassifierComponent
   ],
   host: {
     tabindex: '-1',

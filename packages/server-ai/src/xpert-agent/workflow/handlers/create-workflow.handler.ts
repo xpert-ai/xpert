@@ -1,5 +1,5 @@
 import { Annotation } from '@langchain/langgraph'
-import { channelName, WorkflowNodeTypeEnum } from '@metad/contracts'
+import { channelName, IXpert, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { createCasesNode } from '../../workflow'
@@ -13,6 +13,7 @@ import { createHttpNode } from '../http'
 import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrieval.command'
 import { CreateWNSubflowCommand } from '../create-wn-subflow.command'
 import { createTemplateNode } from '../template'
+import { CreateWNClassifierCommand } from '../create-wn-classifier.command'
 
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {
@@ -24,13 +25,14 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 	) {}
 
 	public async execute(command: CreateWorkflowNodeCommand) {
-		const { xpertId, graph, node, leaderKey, options } = command
+		const { xpertId, graph, node, options } = command
+		const { xpert } = options
 		
 		let workflow = {} as any
 		let channel: TStateChannel = null
 		switch (node.entity.type) {
 			case WorkflowNodeTypeEnum.IF_ELSE: {
-				workflow = createCasesNode(graph, node)
+				workflow = createCasesNode(graph, node, {environment: options.environment})
 				break
 			}
 			case WorkflowNodeTypeEnum.ITERATING: {
@@ -39,6 +41,10 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 			}
 			case WorkflowNodeTypeEnum.ANSWER: {
 				workflow = await this.commandBus.execute(new CreateWNAnswerCommand(xpertId, graph, node, options))
+				break
+			}
+			case WorkflowNodeTypeEnum.CLASSIFIER: {
+				workflow = await this.commandBus.execute(new CreateWNClassifierCommand(xpert as IXpert, graph, node, options))
 				break
 			}
 			case WorkflowNodeTypeEnum.SPLITTER: {
@@ -50,6 +56,7 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 					xpertId, 
 					commandBus: this.commandBus,
 					queryBus: this.queryBus,
+					environment: options.environment
 				})
 				channel = {
 					name: channelName(node.key),
@@ -72,6 +79,7 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 					xpertId, 
 					commandBus: this.commandBus,
 					queryBus: this.queryBus,
+					environment: options.environment
 				})
 				channel = {
 					name: channelName(node.key),
@@ -130,6 +138,7 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 					xpertId, 
 					commandBus: this.commandBus,
 					queryBus: this.queryBus,
+					environment: options.environment
 				})
 				break
 			}

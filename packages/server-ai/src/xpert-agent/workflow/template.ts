@@ -2,6 +2,7 @@ import { RunnableLambda } from '@langchain/core/runnables'
 import { END } from '@langchain/langgraph'
 import {
 	channelName,
+	IEnvironment,
 	IWFNTemplate,
 	IWorkflowNode,
 	IXpertAgentExecution,
@@ -15,7 +16,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import Handlebars from 'handlebars'
 import { get } from 'lodash'
 import { wrapAgentExecution } from '../../xpert-agent-execution/utils'
-import { AgentStateAnnotation } from '../commands/handlers/types'
+import { AgentStateAnnotation, stateToParameters } from '../commands/handlers/types'
 
 export function createTemplateNode(
 	graph: TXpertGraph,
@@ -24,25 +25,28 @@ export function createTemplateNode(
 		commandBus: CommandBus
 		queryBus: QueryBus
 		xpertId: string
+		environment: IEnvironment
 	}
 ) {
-	const { commandBus, queryBus } = params
+	const { commandBus, queryBus, environment } = params
 	const entity = node.entity as IWFNTemplate
 	const inputParams = entity.inputParams
 	const template = entity.code
 
 	return {
 		workflowNode: {
-			graph: RunnableLambda.from(async (state, config) => {
+			graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
 				const configurable: TAgentRunnableConfigurable = config.configurable
 				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
+				const stateEnv = stateToParameters(state, environment)
+
 				const inputs =
 					inputParams?.reduce((acc, curr) => {
 						if (curr.variable) {
 							if (curr.name) {
-								acc[curr.name] = get(state, curr.variable)
+								acc[curr.name] = get(stateEnv, curr.variable)
 							} else {
-								acc = get(state, curr.variable)
+								acc = get(stateEnv, curr.variable)
 							}
 						}
 						return acc

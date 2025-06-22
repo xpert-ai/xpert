@@ -1,4 +1,5 @@
 import { I18nObject } from "../types"
+import { ICopilotModel } from "./copilot-model.model"
 import { TKBRecallParams } from "./knowledgebase.model"
 import { ApiAuthType, TErrorHandling, TXpertRefParameter } from "./types"
 import { IXpertAgent } from "./xpert-agent.model"
@@ -15,6 +16,7 @@ export enum WorkflowNodeTypeEnum {
   KNOWLEDGE = 'knowledge',
   SUBFLOW = 'subflow',
   TEMPLATE = 'template',
+  CLASSIFIER = 'classifier',
   NOTE = 'note'
 }
 
@@ -233,6 +235,16 @@ export interface IWFNTemplate extends IWorkflowNode {
    * Error handling
    */
   errorHandling?: TErrorHandling
+}
+
+export interface IWFNClassifier extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.CLASSIFIER
+  copilotModel: ICopilotModel
+  inputVariables: string[]
+  classes: {
+    description?: string
+  }[]
+  instruction?: string
 }
 
 export function channelName(name: string) {

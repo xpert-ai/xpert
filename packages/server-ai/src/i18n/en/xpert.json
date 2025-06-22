@@ -18,7 +18,8 @@
         "AgentMissingKey": "Agent is missing Key: ",
         "InputParamsRequired": "The input variables of node '{node}' is required",
         "OutputParamsRequired": "The output variables of node '{node}' is required",
-        "ItemInputParamNotFound": "The item input variable of node '{node}' not found"
+        "ItemInputParamNotFound": "The item input variable of node '{node}' not found",
+        "ClassifierClassesRequired": "The classes of the classifier node '{node}' is required"
     },
     "Project": {
         "CreatingTasks": "Creating tasks",

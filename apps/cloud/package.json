@@ -1,6 +1,6 @@
 {
 	"name": "@metad/xpert-ui",
-	"version": "3.2.16",
+	"version": "3.2.17",
 	"type": "commonjs",
 	"license": "AGPL-3.0",
 	"scripts": {
