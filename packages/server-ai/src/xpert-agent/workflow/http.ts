@@ -67,8 +67,8 @@ export function createHttpNode(
 					if (entity.headers) {
 						for await (const header of entity.headers) {
 							if (header.name) {
-							const name = await PromptTemplate.fromTemplate(header.name, {templateFormat: 'mustache'}).format(stateEnv)
-							headers[name] = await PromptTemplate.fromTemplate(header.value, {templateFormat: 'mustache'}).format(stateEnv)
+								const name = await PromptTemplate.fromTemplate(header.name, {templateFormat: 'mustache'}).format(stateEnv)
+								headers[name] = await PromptTemplate.fromTemplate(header.value, {templateFormat: 'mustache'}).format(stateEnv)
 							}
 						}
 					}
@@ -80,7 +80,7 @@ export function createHttpNode(
 					} else if (entity.authorization?.auth_type === ApiAuthType.API_KEY) {
 						const api_key_value = await PromptTemplate.fromTemplate(entity.authorization.api_key_value, {templateFormat: 'mustache'}).format(stateEnv)
 						switch(entity.authorization.api_key_type) {
-							case ('bearar'): {
+							case ('bearer'): {
 								headers['Authorization'] = `Bearer ${api_key_value}`
 								break
 							}

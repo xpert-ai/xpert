@@ -183,7 +183,7 @@ interface HttpHeader {
 
 export type TWorkflowAuthorization = {
   auth_type?: ApiAuthType
-  api_key_type?: '' | 'bearar' | 'custom'
+  api_key_type?: '' | 'bearer' | 'custom'
   api_key_header?: string
   api_key_value?: string
   username?: string
