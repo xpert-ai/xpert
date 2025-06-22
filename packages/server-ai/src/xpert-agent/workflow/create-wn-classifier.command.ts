@@ -1,12 +1,12 @@
-import { IEnvironment, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { IEnvironment, IXpert, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 
-export class CreateWNIteratingCommand implements ICommand {
-	static readonly type = '[Xpert Agent] Create workflow node iterating'
+export class CreateWNClassifierCommand implements ICommand {
+	static readonly type = '[Xpert Agent] Create workflow node classifier'
 
 	constructor(
-        public readonly xpertId: string,
+        public readonly xpert: IXpert,
         public readonly graph: TXpertGraph,
         public readonly node: TXpertTeamNode & { type: 'workflow' },
         public readonly options: {

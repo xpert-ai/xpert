@@ -10,7 +10,6 @@ import {
 	IXpertAgentExecution,
 	mapTranslationLanguage,
 	setStateVariable,
-	STATE_VARIABLE_INPUT,
 	TAgentRunnableConfigurable,
 	TXpertTeamNode,
 	WorkflowNodeTypeEnum
@@ -25,7 +24,7 @@ import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { STATE_VARIABLE_ITERATING_OUTPUT, STATE_VARIABLE_ITERATING_OUTPUT_STR } from '../iterating'
 import { CompileGraphCommand } from '../../commands'
-import { AgentStateAnnotation } from '../../../shared'
+import { AgentStateAnnotation, stateToParameters } from '../../../shared'
 
 
 @CommandHandler(CreateWNIteratingCommand)
@@ -40,7 +39,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 
 	public async execute(command: CreateWNIteratingCommand) {
 		const { xpertId, graph, node, options } = command
-		const { subscriber, isDraft } = options
+		const { subscriber, isDraft, environment } = options
 
 		const entity = node.entity as IWFNIterating
 
@@ -134,6 +133,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 				graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
 					const configurable: TAgentRunnableConfigurable = config.configurable
 					const { subscriber, executionId } = configurable
+					const stateEnv = stateToParameters(state, environment)
 					const parameterValue = get(state, inputVariable)
 
 					const parallel = entity.parallel

@@ -1,6 +1,7 @@
 import { RunnableLambda } from '@langchain/core/runnables'
 import { END, Send } from '@langchain/langgraph'
 import {
+	IEnvironment,
 	IWFNIfElse,
 	TWFCaseCondition,
 	TXpertGraph,
@@ -10,13 +11,15 @@ import {
 } from '@metad/contracts'
 import { isEmpty } from '@metad/server-common'
 import { get } from 'lodash'
-import { AgentStateAnnotation } from '../../shared'
+import { AgentStateAnnotation, stateToParameters } from '../../shared'
 
-export function createCasesNode(graph: TXpertGraph, node: TXpertTeamNode & { type: 'workflow' }) {
+export function createCasesNode(graph: TXpertGraph, node: TXpertTeamNode & { type: 'workflow' }, params: { environment: IEnvironment }) {
+	const { environment } = params
 	const entity = node.entity as IWFNIfElse
 	const evaluateCases = (state: typeof AgentStateAnnotation.State, config) => {
+		const stateEnv = stateToParameters(state, environment)
 		const evaluateCondition = (condition: TWFCaseCondition) => {
-			const stateValue = get(state, condition.variableSelector)
+			const stateValue = get(stateEnv, condition.variableSelector)
 			if (typeof stateValue === 'number') {
 				const conditionValue = Number(condition.value)
 				switch (condition.comparisonOperator) {

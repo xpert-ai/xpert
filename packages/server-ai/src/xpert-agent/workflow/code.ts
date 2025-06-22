@@ -1,12 +1,12 @@
 import { RunnableLambda } from '@langchain/core/runnables'
 import { END } from '@langchain/langgraph'
-import { channelName, IWFNCode, IWorkflowNode, IXpertAgentExecution, TAgentRunnableConfigurable, TXpertGraph, TXpertTeamNode, WorkflowNodeTypeEnum, XpertParameterTypeEnum } from '@metad/contracts'
+import { channelName, IEnvironment, IWFNCode, IWorkflowNode, IXpertAgentExecution, TAgentRunnableConfigurable, TXpertGraph, TXpertTeamNode, WorkflowNodeTypeEnum, XpertParameterTypeEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { get } from 'lodash'
 import { SandboxVMCommand } from '../../sandbox'
 import { wrapAgentExecution } from '../../xpert-agent-execution/utils'
-import { AgentStateAnnotation } from '../../shared'
+import { AgentStateAnnotation, stateToParameters } from '../../shared'
 
 const ErrorChannelName = 'error'
 
@@ -14,22 +14,24 @@ export function createCodeNode(
 	graph: TXpertGraph,
 	node: TXpertTeamNode & { type: 'workflow' },
 	params: {
-		commandBus: CommandBus,
-		queryBus: QueryBus,
-		xpertId: string,
+		commandBus: CommandBus;
+		queryBus: QueryBus;
+		xpertId: string;
+		environment: IEnvironment
 	}
 ) {
-	const { commandBus, queryBus } = params
+	const { commandBus, queryBus, environment } = params
 	const entity = node.entity as IWFNCode
 
 	return {
 		workflowNode: {
-			graph: RunnableLambda.from(async (state, config) => {
+			graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
 				const configurable: TAgentRunnableConfigurable = config.configurable
 				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
+				const stateEnv = stateToParameters(state, environment)
 
 				const inputs = entity.inputs.reduce((acc, param) => {
-					acc[param.name] = get(state, param.variable)
+					acc[param.name] = get(stateEnv, param.variable)
 					return acc
 				}, {})
 

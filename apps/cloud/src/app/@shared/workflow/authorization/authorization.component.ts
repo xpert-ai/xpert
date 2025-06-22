@@ -105,8 +105,8 @@ export class XpertWorkflowAuthorizationComponent {
       label: 'Basic'
     },
     {
-      value: 'bearar',
-      label: 'Bearar'
+      value: 'bearer',
+      label: 'Bearer'
     },
     {
       value: 'custom',

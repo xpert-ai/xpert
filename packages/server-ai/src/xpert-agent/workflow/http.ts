@@ -1,13 +1,13 @@
 import { PromptTemplate } from '@langchain/core/prompts'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { END } from '@langchain/langgraph'
-import { ApiAuthType, channelName, IWFNHttp, IXpertAgentExecution, TAgentRunnableConfigurable, TXpertGraph, TXpertTeamNode, WorkflowNodeTypeEnum, XpertParameterTypeEnum } from '@metad/contracts'
+import { ApiAuthType, channelName, IEnvironment, IWFNHttp, IXpertAgentExecution, TAgentRunnableConfigurable, TXpertGraph, TXpertTeamNode, WorkflowNodeTypeEnum, XpertParameterTypeEnum } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import axios from 'axios'
 import * as https from 'https'
 import { XpertConfigException } from '../../core'
-import { AgentStateAnnotation } from '../../shared'
+import { AgentStateAnnotation, stateToParameters } from '../../shared'
 import { wrapAgentExecution } from '../../xpert-agent-execution/utils'
 
 const ErrorChannelName = 'error'
@@ -22,12 +22,13 @@ export function createHttpNode(
 	graph: TXpertGraph,
 	node: TXpertTeamNode & { type: 'workflow' },
 	params: {
-		commandBus: CommandBus,
-		queryBus: QueryBus,
-		xpertId: string,
+		commandBus: CommandBus;
+		queryBus: QueryBus;
+		xpertId: string;
+		environment: IEnvironment
 	}
 ) {
-	const { commandBus, queryBus } = params
+	const { commandBus, queryBus, environment } = params
 	const entity = node.entity as IWFNHttp
 
 	return {
@@ -35,6 +36,7 @@ export function createHttpNode(
 			graph: RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
 				const configurable: TAgentRunnableConfigurable = config.configurable
 				const { thread_id, checkpoint_ns, checkpoint_id, subscriber, executionId } = configurable
+				const stateEnv = stateToParameters(state, environment)
 
 				const execution: IXpertAgentExecution = {
 					category: 'workflow',
@@ -50,14 +52,14 @@ export function createHttpNode(
 					if (!entity.url) {
 						throw new XpertConfigException(`Url of http node '${node.key}' is empty!`)
 					}
-					const url = await PromptTemplate.fromTemplate(entity.url, {templateFormat: 'mustache'}).format(state)
+					const url = await PromptTemplate.fromTemplate(entity.url, {templateFormat: 'mustache'}).format(stateEnv)
 
 					const params = {}
 					if (entity.params) {
 						for await (const param of entity.params) {
 							if (param.key) {
-								const key = await PromptTemplate.fromTemplate(param.key, {templateFormat: 'mustache'}).format(state)
-								params[key] = await PromptTemplate.fromTemplate(param.value, {templateFormat: 'mustache'}).format(state)
+								const key = await PromptTemplate.fromTemplate(param.key, {templateFormat: 'mustache'}).format(stateEnv)
+								params[key] = await PromptTemplate.fromTemplate(param.value, {templateFormat: 'mustache'}).format(stateEnv)
 							}
 						}
 					}
@@ -65,20 +67,20 @@ export function createHttpNode(
 					if (entity.headers) {
 						for await (const header of entity.headers) {
 							if (header.name) {
-							const name = await PromptTemplate.fromTemplate(header.name, {templateFormat: 'mustache'}).format(state)
-							headers[name] = await PromptTemplate.fromTemplate(header.value, {templateFormat: 'mustache'}).format(state)
+								const name = await PromptTemplate.fromTemplate(header.name, {templateFormat: 'mustache'}).format(stateEnv)
+								headers[name] = await PromptTemplate.fromTemplate(header.value, {templateFormat: 'mustache'}).format(stateEnv)
 							}
 						}
 					}
 					if (entity.authorization?.auth_type === ApiAuthType.BASIC) {
-						const username = await PromptTemplate.fromTemplate(entity.authorization.username, {templateFormat: 'mustache'}).format(state)
-						const password = await PromptTemplate.fromTemplate(entity.authorization.password, {templateFormat: 'mustache'}).format(state)
+						const username = await PromptTemplate.fromTemplate(entity.authorization.username, {templateFormat: 'mustache'}).format(stateEnv)
+						const password = await PromptTemplate.fromTemplate(entity.authorization.password, {templateFormat: 'mustache'}).format(stateEnv)
 						const base64Credentials = Buffer.from(`${username}:${password}`).toString('base64')
 						headers['Authorization'] = `Basic ${base64Credentials}`
 					} else if (entity.authorization?.auth_type === ApiAuthType.API_KEY) {
-						const api_key_value = await PromptTemplate.fromTemplate(entity.authorization.api_key_value, {templateFormat: 'mustache'}).format(state)
+						const api_key_value = await PromptTemplate.fromTemplate(entity.authorization.api_key_value, {templateFormat: 'mustache'}).format(stateEnv)
 						switch(entity.authorization.api_key_type) {
-							case ('bearar'): {
+							case ('bearer'): {
 								headers['Authorization'] = `Bearer ${api_key_value}`
 								break
 							}
@@ -96,7 +98,7 @@ export function createHttpNode(
 						case ('raw'):
 					}
 					if (entity.body?.body) {
-						body = await PromptTemplate.fromTemplate(entity.body.body, {templateFormat: 'mustache'}).format(state)
+						body = await PromptTemplate.fromTemplate(entity.body.body, {templateFormat: 'mustache'}).format(stateEnv)
 						if (entity.body?.type === 'json') {
 							body = JSON.parse(body)
 						}
@@ -105,8 +107,8 @@ export function createHttpNode(
 						headers['Content-Type'] = 'application/x-www-form-urlencoded'
 						const params = new URLSearchParams()
 						for await (const param of entity.body.encodedForm) {
-							const key = await PromptTemplate.fromTemplate(param.key, {templateFormat: 'mustache'}).format(state)
-							const value = await PromptTemplate.fromTemplate(param.value, {templateFormat: 'mustache'}).format(state)
+							const key = await PromptTemplate.fromTemplate(param.key, {templateFormat: 'mustache'}).format(stateEnv)
+							const value = await PromptTemplate.fromTemplate(param.value, {templateFormat: 'mustache'}).format(stateEnv)
 							params.append(key, value)
 							body = params
 						}

@@ -30,6 +30,7 @@ import { XpertWorkflowSubflowComponent } from './subflow/subflow.component'
 import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
 import { XpertWorkflowTemplateComponent } from './template/template.component'
 import { XpertWorkflowNoteComponent } from './note/note.component'
+import { XpertWorkflowClassifierComponent } from './classifier/classifier.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -57,7 +58,8 @@ import { XpertWorkflowNoteComponent } from './note/note.component'
     XpertWorkflowKnowledgeTestComponent,
     XpertWorkflowSubflowComponent,
     XpertWorkflowTemplateComponent,
-    XpertWorkflowNoteComponent
+    XpertWorkflowNoteComponent,
+    XpertWorkflowClassifierComponent
   ],
   animations: [IfAnimation,]
 })
