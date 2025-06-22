@@ -24,6 +24,7 @@ import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { Subscription } from 'rxjs'
 import {
   genXpertAnswerKey,
+  genXpertClassifierKey,
   genXpertCodeKey,
   genXpertHttpKey,
   genXpertIteratingKey,
@@ -172,7 +173,7 @@ export class XpertStudioContextMenuComponent {
     const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.CLASSIFIER).length ?? 0
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.CLASSIFIER,
-      key: uuid(),
+      key: genXpertClassifierKey(),
       title: (await this.#translate.instant('PAC.Workflow.QuestionClassifier', { Default: 'Question Classifier' })) + ` ${length + 1}`,
       inputVariables: ['human.input'],
       classes: [
