@@ -247,10 +247,7 @@
           </button>
         </div>
 
-        <button
-          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full py-2 group/attach-button relative transition-colors duration-100 bg-transparent border aspect-square border-border-l2 hover:bg-button-ghost-hover px-3 w-auto"
-          type="button"
-          aria-label="Attach"
+        <button type="button" class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-2xl py-2 group/attach-button relative transition-colors duration-100 bg-transparent border aspect-square border-border-l2 hover:bg-button-ghost-hover px-2 w-auto"
           tabindex="0"
           [cdkMenuTriggerFor]="workspaceMenu"
           [cdkMenuPosition]="[
@@ -268,13 +265,16 @@
             {{workspaceError()}}
           } @else {
             <i class="ri-planet-line text-base"></i>
-            <span>
-              @if (workspace()) {
-                {{workspace().name}}
-              } @else {
-                {{ 'PAC.XProject.SelectWorkspace' | translate: {Default: 'Select workspace'} }}
-              }
-            </span>
+            
+            @if (workspace()) {
+              <span class="max-w-[100px] truncate">{{workspace().name}}</span>
+              <button type="button" class="w-6 h-6 shrink-0 inline-flex justify-center items-center rounded-lg hover:bg-hover-bg transition-colors duration-100"
+                (click)="openWorkspace()">
+                <i class="ri-external-link-line"></i>
+              </button>
+            } @else {
+              <span>{{ 'PAC.XProject.SelectWorkspace' | translate: {Default: 'Select workspace'} }}</span>
+            }
           }
         </button>
         <input class="hidden" multiple="" data-testid="file-input" type="file" />

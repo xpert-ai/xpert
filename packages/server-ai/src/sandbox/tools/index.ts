@@ -1,5 +1,6 @@
 import { BUILTIN_TOOLSET_REPOSITORY } from '../../xpert-toolset'
 import { BashToolset } from './bash/bash'
+import { BrowserUseToolset } from './browser-use/browser-use'
 import { CodeProjectToolset } from './code-project/code-project'
 import { FileToolset } from './file/file'
 import { PythonToolset } from './python/python'
@@ -10,7 +11,8 @@ BUILTIN_TOOLSET_REPOSITORY.splice(0, 0, {
 		FileToolset,
 		PythonToolset,
 		CodeProjectToolset,
-		BashToolset
+		BashToolset,
+		BrowserUseToolset
 	]
 })
 

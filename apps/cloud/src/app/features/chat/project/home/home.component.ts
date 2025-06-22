@@ -139,20 +139,16 @@ export class ChatProjectHomeComponent {
   readonly workspace = computed(() => this.#workspace()?.workspace)
   readonly workspaceError = computed(() => this.#workspace()?.error)
 
-  // Files
-  // readonly refreshFiles$ = new BehaviorSubject<void>(null)
-  // readonly files$ = combineLatest([toObservable(this.id), this.refreshFiles$]).pipe(
-  //   switchMap(([id]) => this.projectsService.getFiles(id).pipe(
-  //     map((files) => ({files, loading: false})),
-  //     startWith({files: null, loading: true}))
-  //   ),
-  //   shareReplay(1)
-  // )
-
   constructor() {
     effect(() => {
       //
     })
+  }
+
+  openWorkspace() {
+    if (this.workspace())  {
+      window.open(`/xpert/w/${this.workspace().id}`, '_blank')
+    }
   }
 
   updateProject(project: Partial<IXpertProject>) {

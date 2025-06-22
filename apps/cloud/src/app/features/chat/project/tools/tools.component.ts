@@ -12,10 +12,12 @@ import {
   injectToastr,
   IXpertToolset,
   OrderTypeEnum,
+  XpertToolsetCategoryEnum,
   XpertToolsetService
 } from '@cloud/app/@core'
 import { MCPMarketplaceComponent, TXpertMCPManageComponentRet, XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 import { ToolsetCardComponent } from '@cloud/app/@shared/xpert'
+import { XpertToolConfigureBuiltinComponent } from '@cloud/app/features/xpert/tools'
 import {
   DisappearFadeOut,
   DynamicGridDirective,
@@ -147,7 +149,7 @@ export class ChatProjectToolsComponent {
     })
   }
 
-  openToolset(toolset: IXpertToolset) {
+  configureMCP(toolset: IXpertToolset) {
     this.#dialog
       .open<TXpertMCPManageComponentRet>(XpertMCPManageComponent, {
         backdropClass: 'backdrop-blur-lg-white',
@@ -169,6 +171,34 @@ export class ChatProjectToolsComponent {
           }
         }
       })
+  }
+
+  configureBuiltin(toolset: IXpertToolset) {
+    this.#dialog
+      .open(XpertToolConfigureBuiltinComponent, {
+        disableClose: true,
+        data: {
+          providerName: toolset.type,
+          workspaceId: this.workspace().id,
+          toolset,
+        }
+      })
+      .closed.subscribe((result) => {
+        if (result) {
+          this.refreshWorkspace()
+        }
+      })
+  }
+
+  openToolset(toolset: IXpertToolset) {
+    switch (toolset.category) {
+      case XpertToolsetCategoryEnum.BUILTIN:
+        this.configureBuiltin(toolset)
+        break
+      case XpertToolsetCategoryEnum.MCP:
+        this.configureMCP(toolset)
+        break
+    }
   }
 
   refreshWorkspace() {
