@@ -6,6 +6,9 @@
     @case ('Tasks') {
       <chat-component-message-tasks [data]="data()" />
     }
+    @case ('iframe') {
+      <chat-component-message-iframe [data]="data().data" />
+    }
     @case ('Iframe') {
       <chat-component-message-iframe [data]="data()" />
     }

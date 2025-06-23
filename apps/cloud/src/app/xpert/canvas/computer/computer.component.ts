@@ -189,8 +189,8 @@ export class ChatCanvasComputerComponent {
     
     effect(
       () => {
-        if (this.stepMessages() && !this.pin()) {
-          this.stepIndex.set(this.stepMessages().length - 1)
+        if (this.stepMessageLength() && !this.pin()) {
+          this.stepIndex.set(this.stepMessageLength() - 1)
           this.#refreshState$.next()
         }
       },

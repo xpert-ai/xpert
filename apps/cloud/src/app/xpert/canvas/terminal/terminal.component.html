@@ -7,7 +7,7 @@
   </div>
   <div class="p-4 scrollbar-hide">
     <pre class="text-sm text-zinc-600 dark:text-zinc-300 font-mono whitespace-pre-wrap break-all overflow-visible"
-    >{{ step().data.code }}</pre>
+    >{{ step().data?.code }}</pre>
   </div>
 </div>
 
@@ -19,11 +19,11 @@
     </div>
   </div>
   <div class="p-4 scrollbar-hide">
-    @if (step().data.error) {
+    @if (step().data?.error) {
       <div class="mt-4 text-text-destructive">{{ step().data.error }}</div>
     } @else {
       <pre class="text-sm text-zinc-600 dark:text-zinc-300 font-mono whitespace-pre-wrap break-all overflow-visible"
-      >{{ step().data.output }}</pre>
+      >{{ step().data?.output }}</pre>
     }
   </div>
 </div>

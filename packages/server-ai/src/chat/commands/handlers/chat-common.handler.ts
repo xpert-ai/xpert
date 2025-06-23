@@ -63,7 +63,7 @@ import {
 } from '../../../xpert-agent-execution'
 import { CreateProjectToolsetCommand, XpertProjectService } from '../../../xpert-project/'
 import { ChatCommonCommand } from '../chat-common.command'
-import { createHandoffBackMessages, createHandoffTool } from './handoff'
+import { _normalizeAgentName, createHandoffBackMessages, createHandoffTool } from './handoff'
 import {
 	Instruction,
 	isChatModelWithBindTools,
@@ -734,6 +734,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		addHandoffBackMessages: boolean,
 		supervisorName: string,
 	) {
+		const name = `xpert_` + xpert.slug
 		// Sub execution for xpert
 		const _execution: IXpertAgentExecution = {}
 		const { graph, agent } = await this.commandBus.execute<
@@ -804,11 +805,39 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 				const _messages = Array.from(state.messages)
 				const primaryChannelName = channelName(xpert.agent.key)
-				const toolMessage = _messages.pop()
-				const aiMessage = _messages.pop() as AIMessage
-				const input = aiMessage.tool_calls[0]?.args?.input
-				const tool_call_id = aiMessage.tool_calls[0]?.id
-				const tool_name = aiMessage.tool_calls[0]?.name
+				let toolMessage = null
+				let aiMessage: AIMessage = null
+				while (_messages.length > 0) {
+					const message = _messages.pop()
+					if (isBaseMessage(message)) {
+						if (isAIMessage(message)) {
+							aiMessage = message
+							break
+						} else if (isToolMessage(message) && message.name.includes(_normalizeAgentName(name))) {
+							toolMessage = message
+						}
+					}
+				}
+				if (!aiMessage) {
+					throw new Error(`CAN NOT found AiMessage for transfer back of xpert`)
+				}
+				if (!toolMessage) {
+					throw new Error(`CAN NOT found ToolMessage for transfer back of xpert`)
+				}
+				let input = null
+				let tool_call_id = null
+				let tool_name = null
+				const toolCalls = Array.from(aiMessage.tool_calls)
+				while (toolCalls.length > 0) {
+					const tool_call = toolCalls.pop()
+					if (tool_call.name.includes(_normalizeAgentName(name))) {
+						input = tool_call.args?.input
+						tool_call_id = tool_call.id
+						tool_name = tool_call.name
+						break
+					}
+				}
+				
 				try {
 					const output = await graph.invoke(
 						{
@@ -870,7 +899,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				}
 			}
 		})
-		runnable.name = `xpert_` + xpert.slug
+		runnable.name = name
 		return runnable
 	}
 }

@@ -10,7 +10,7 @@ import {
 
 const WHITESPACE_RE = /\s+/;
 
-function _normalizeAgentName(agentName: string): string {
+export function _normalizeAgentName(agentName: string): string {
   /**
    * Normalize an agent name to be used inside the tool name.
    */
