@@ -1,4 +1,4 @@
-<ul class="flex flex-col gap-2">
+<ul class="flex flex-col gap-1">
   @for (item of menus(); track $index) {
     <li class="flex flex-col items-center">
       <div class="pac-router-link w-full shrink-0 flex justify-start items-center rounded-lg cursor-pointer"
@@ -10,7 +10,7 @@
         (click)="item.expanded=!isActive(item)"
       >
         @if (isCollapsed) {
-          <button type="button" class="menu-button shrink-0 w-16 flex justify-center items-center p-2 leading-4 rounded-xl opacity-80 hover:opacity-100 hover:scale-110 transition-all duration-200 hover:bg-hover-bg"
+          <button type="button" class="menu-button shrink-0 w-[52px] flex justify-center items-center py-2 p-1 leading-4 rounded-xl opacity-80 hover:opacity-100 hover:scale-110 transition-all duration-200 hover:bg-hover-bg"
             [routerLink]="isCollapsed ? item.link : null"
             routerLinkActive
             #rla="routerLinkActive"

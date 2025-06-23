@@ -1,19 +1,19 @@
 import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import {
-  booleanAttribute,
-  Component,
-  computed,
-  inject,
-  input,
-  viewChild
-} from '@angular/core'
+import { booleanAttribute, Component, computed, inject, input, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { agentLabel, getVariableSchema, TWorkflowVarGroup, XpertParameterTypeEnum } from '../../../@core/types'
+import {
+  agentLabel,
+  getVariableSchema,
+  TStateVariableType,
+  TWorkflowVarGroup,
+  XpertParameterTypeEnum
+} from '../../../@core/types'
 import { XpertVariablePanelComponent } from '../variable-panel/variable.component'
+
 
 /**
  *
@@ -38,6 +38,7 @@ export class StateVariableSelectComponent {
 
   // Inputs
   readonly variables = input<TWorkflowVarGroup[]>()
+  readonly type = input<TStateVariableType>()
   readonly inline = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })

@@ -1,9 +1,9 @@
-import { IXpertTool, IXpertToolset, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { I18nObject, isEnableTool, IXpertTool, IXpertToolset, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { BaseToolset } from '../../toolset'
 import { OpenAPITool } from './tools/openapi-tool'
 
 export class OpenAPIToolset extends BaseToolset<OpenAPITool> {
-
+	providerName = 'openapi'
 	providerType = XpertToolsetCategoryEnum.API
 	provider_id: string
 
@@ -11,7 +11,7 @@ export class OpenAPIToolset extends BaseToolset<OpenAPITool> {
 		super(toolset)
 
 		const tools: OpenAPITool[] = []
-		this.toolset.tools?.filter((_) => _.enabled).forEach((item) => {
+		this.toolset.tools?.filter((_) => isEnableTool(_, this.toolset)).forEach((item) => {
 			// Provide specific tool name to tool class
 			const DynamicOpenAPITool = class extends OpenAPITool {
 				static lc_name(): string {
@@ -73,5 +73,17 @@ export class OpenAPIToolset extends BaseToolset<OpenAPITool> {
 		}
 
 		throw new Error(`tool ${toolName} not found`)
+	}
+
+	/**
+	 * @todo
+	 */
+	getToolTitle(name: string): string | I18nObject {
+		const tool = this.toolset?.tools?.find((tool) => tool.name === name)
+		const identity = tool?.schema?.entity
+		if (identity) {
+			return identity
+		}
+		return null
 	}
 }

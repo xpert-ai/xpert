@@ -1,8 +1,9 @@
-import { AIMessage, HumanMessage, isAIMessage, isBaseMessage, isToolMessage, MessageContent } from '@langchain/core/messages'
+import { AIMessage, HumanMessage, isAIMessage, isBaseMessage, isToolMessage, MessageContent, RemoveMessage, ToolMessage } from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
-import { RunnableToolLike, RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
-import { StructuredToolInterface } from '@langchain/core/tools'
+import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
+import { DynamicStructuredTool, StructuredToolInterface } from '@langchain/core/tools'
 import {
+	Annotation,
 	CompiledStateGraph,
 	END,
 	isCommand,
@@ -11,7 +12,6 @@ import {
 	START,
 	StateGraph
 } from '@langchain/langgraph'
-import { ToolNode } from '@langchain/langgraph/prebuilt'
 import {
 	channelName,
 	ChatMessageEventTypeEnum,
@@ -26,6 +26,7 @@ import {
 	IXpertAgentExecution,
 	IXpertProject,
 	messageContentText,
+	STATE_VARIABLE_HUMAN,
 	STATE_VARIABLE_SYS,
 	TAgentRunnableConfigurable,
 	TChatConversationStatus,
@@ -53,27 +54,28 @@ import {
 	CompileGraphCommand,
 	createMapStreamEvents,
 	CreateSummarizeTitleAgentCommand,
-	messageEvent
+	messageEvent,
 } from '../../../xpert-agent'
 import {
 	assignExecutionUsage,
 	XpertAgentExecutionOneQuery,
 	XpertAgentExecutionUpsertCommand
 } from '../../../xpert-agent-execution'
-import { AgentStateAnnotation, stateToParameters } from '../../../xpert-agent/commands/handlers/types'
-import { CreateFileToolsetCommand, CreateProjectToolsetCommand, XpertProjectService } from '../../../xpert-project/'
+import { CreateProjectToolsetCommand, XpertProjectService } from '../../../xpert-project/'
 import { ChatCommonCommand } from '../chat-common.command'
-import { createHandoffBackMessages, createHandoffTool } from './handoff'
+import { _normalizeAgentName, createHandoffBackMessages, createHandoffTool } from './handoff'
 import {
 	Instruction,
 	isChatModelWithBindTools,
 	isChatModelWithParallelToolCallsParam,
 	OutputMode,
+	PlanInstruction,
 	PROVIDERS_WITH_PARALLEL_TOOL_CALLS_PARAM
 } from './supervisor'
-import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
+import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { toEnvState } from '../../../environment'
-import { ProjectFileToolset, ProjectToolset } from '../../../xpert-project/tools'
+import { ProjectToolset } from '../../../xpert-project/tools'
+import { _BaseToolset, AgentStateAnnotation, BaseTool, stateToParameters, stateVariable, ToolNode, translate } from '../../../shared'
 
 const GeneralAgentRecursionLimit = 99
 
@@ -189,7 +191,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 				try {
 					const thread_id = execution.threadId
-					graph = await this.createReactAgent(command, project, execution, abortController, subscriber)
+					graph = await this.createReactAgent(command, project, execution, abortController, subscriber, conversation.id)
 					// Run
 					const config = {
 						thread_id,
@@ -218,6 +220,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 									tenantId: tenantId,
 									organizationId: organizationId,
 									userId,
+									projectId: project?.id,
 									subscriber
 								},
 								recursionLimit: GeneralAgentRecursionLimit,
@@ -454,7 +457,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		project: IXpertProject,
 		execution: IXpertAgentExecution,
 		abortController: AbortController,
-		subscriber: Subscriber<MessageEvent>
+		subscriber: Subscriber<MessageEvent>,
+		conversationId: string
 	) {
 		const { projectId } = command.request
 		const { tenantId, organizationId } = command.options
@@ -469,28 +473,34 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		const stateVariables: TStateVariable[] = []
 		const toolsetVarirables: TStateVariable[] = []
 		const tools: StructuredToolInterface[] = []
+		/**
+		 * Map of tool names to their titles
+		 */
+		const toolsTitleMap = {}
+		/**
+		 * The relationship between tool and toolset provider
+		 */
+		const toolsetsMap = {}
+		// Project toolset for plan mode
 		if (project?.settings?.mode === 'plan') {
 			const projectToolset = await this.commandBus.execute<CreateProjectToolsetCommand, ProjectToolset>(new CreateProjectToolsetCommand(projectId))
 			const _variables = await projectToolset.getVariables()
 			toolsetVarirables.push(...(_variables ?? []))
 			// stateVariables.push(...toolsetVarirables)
 			const items = await projectToolset.initTools()
-			tools.push(...items)
+			items.forEach((tool) => {
+				toolsTitleMap[tool.name] = translate(projectToolset.getToolTitle(tool.name))
+				toolsetsMap[tool.name] = projectToolset.providerName
+				tools.push(...items)
+			})
 		}
-
-		// File toolset
-		let fileToolset: ProjectFileToolset
-		if (projectId) {
-			fileToolset = await this.commandBus.execute<CreateFileToolsetCommand, ProjectFileToolset>(new CreateFileToolsetCommand(projectId))
-			const _variables = await fileToolset.getVariables()
-			toolsetVarirables.push(...(_variables ?? []))
-			const items = await fileToolset.initTools()
-			tools.push(...items)
-		}
-
+		
+		// Custom toolsets
 		if (project?.toolsets.length > 0) {
-			const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, BaseToolset[]>(
+			const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset<BaseTool>[]>(
 				new ToolsetGetToolsCommand(project.toolsets.map(({id}) => id), {
+					projectId: project.id,
+					conversationId,
 					xpertId: null,
 					signal: abortController.signal,
 					env: toEnvState(environment)
@@ -502,13 +512,14 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				}
 			})
 			// const interruptBefore: string[] = []
-			
 			for await (const toolset of toolsets) {
 				const _variables = await toolset.getVariables()
 				toolsetVarirables.push(...(_variables ?? []))
 				const items = await toolset.initTools()
 				items.forEach((tool) => {
 					// const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)
+					toolsTitleMap[tool.name] = translate(toolset.getToolTitle(tool.name))
+					toolsetsMap[tool.name] = toolset.providerName
 					tools.push(tool)
 				})
 			}
@@ -516,16 +527,19 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 		this.#logger.debug(`Project general agent use tools:\n${[...tools].map((_, i) => `${i+1}. ` + _.name + ': ' + _.description).join('\n')}`)
 
-		// Knowledgebases
+		// Custom Knowledgebases
 		if (project?.knowledges?.length) {
 			const retrievers = project.knowledges.map(({id}) => createKnowledgeRetriever(this.queryBus, id))
 			const retriever = new EnsembleRetriever({
 				retrievers: retrievers,
 				weights: retrievers.map(() => 0.5)
 			})
+			const knowledgeToolName = 'knowledge_retriever'
+			toolsTitleMap[knowledgeToolName] = translate({zh_Hans: '知识检索', en_US: 'Knowledge Retrieval'})
+			toolsetsMap[knowledgeToolName] = 'knowledge'
 			tools.push(
 				retriever.asTool({
-					name: 'knowledge_retriever',
+					name: knowledgeToolName,
 					description: 'Get information about question.',
 					schema: z.string()
 				}) as any
@@ -553,13 +567,15 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		)
 
 		const supervisorName = 'general_agent'
-		// Xperts
-		const xperts = []
+		// Custom Xperts
+		const xperts: {name: string; agent; tool: DynamicStructuredTool}[] = []
 		if (project?.xperts.length) {
 			for await (const xpert of project.xperts) {
-				const agent = await this.createXpertAgent(xpert, abortController, execution, subscriber, 'last_message', false, supervisorName, fileToolset?.getTools())
-				const tool = createHandoffTool({ agentName: agent.name, description: xpert.description })
-				xperts.push({name: agent.name, agent, tool})
+				const agent = await this.createXpertAgent(project, xpert, abortController, execution, subscriber, 'last_message', false, supervisorName)
+				const tool = createHandoffTool({ agentName: agent.name, title: xpert.title, description: xpert.description })
+				xperts.push({name: agent.name, agent, tool })
+				toolsTitleMap[tool.name] = translate({en_US: 'Task handoff to:', zh_Hans: '任务移交给：'}) + (xpert.title || xpert.name)
+				toolsetsMap[tool.name] = 'transfer_to'
 			}
 		}
 		const shouldReturnDirect = new Set(
@@ -632,13 +648,20 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				}, '')
 		}
 
+		const stateAnnotation = createStateAnnotation(stateVariables)
+
 		const callModel = async (state: typeof AgentStateAnnotation.State, config?: RunnableConfig) => {
 			const parameters = stateToParameters(state)
-			let systemTemplate = `Current time: ${new Date().toISOString()}` + (project?.settings?.instruction || supervisorPrompt) + '\n\n' + Instruction
-			const files = await fileToolset?.listFiles()
-			if (files) {
-				systemTemplate += '\n\n' + `The list of files in the current workspace is:\n${files.map(({filePath}) => filePath).join('\n') || 'No files yet.'}\n`
+			let systemTemplate = `Current time: ${new Date().toISOString()}\n` + (project?.settings?.instruction || supervisorPrompt) + '\n\n' + Instruction
+
+			if (project?.settings?.mode === 'plan') {
+				systemTemplate += `\n\n` + PlanInstruction
 			}
+
+			// const files = await fileToolset?.listFiles('project', projectId)
+			// if (files) {
+			// 	systemTemplate += '\n\n' + `The list of files in the current workspace is:\n${files.map(({filePath}) => filePath).join('\n') || 'No files yet.'}\n`
+			// }
 			const systemMessage = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
 				templateFormat: 'mustache'
 			}).format(parameters)
@@ -647,7 +670,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			return { messages: [await supervisorLLM.invoke([systemMessage, ...state.messages], config)] }
 		}
 
-		let builder = new StateGraph(AgentStateAnnotation)
+		let builder = new StateGraph(stateAnnotation)
 			.addNode(
 				supervisorName,
 				new RunnableLambda({ func: callModel }).withConfig({
@@ -656,7 +679,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				}),
 			)
 			.addEdge(START, supervisorName)
-			.addNode('tools', new ToolNode(allTools))
+			.addNode('tools', new ToolNode(allTools, {toolsets: toolsetsMap}), {metadata: { ...toolsTitleMap }})
 			.addConditionalEdges("tools", routeToolResponses,)
 			.addConditionalEdges(supervisorName, (state, config) => {
 				const { title } = state
@@ -690,7 +713,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			builder = builder.addNode(agent.name, agent, {
 				subgraphs: [agent]
 			})
-			builder = builder.addEdge(agent.name, supervisorName)
+			builder = builder.addEdge(agent.name as any, supervisorName)
 		}
 
 		return builder.compile({
@@ -702,6 +725,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 	 * Create agent graph for xpert
 	 */
 	async createXpertAgent(
+		project: IXpertProject,
 		xpert: IXpert,
 		abortController: AbortController,
 		execution: IXpertAgentExecution,
@@ -709,8 +733,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		outputMode: OutputMode,
 		addHandoffBackMessages: boolean,
 		supervisorName: string,
-		tools: (StructuredToolInterface | RunnableToolLike)[]
 	) {
+		const name = `xpert_` + xpert.slug
 		// Sub execution for xpert
 		const _execution: IXpertAgentExecution = {}
 		const { graph, agent } = await this.commandBus.execute<
@@ -723,7 +747,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				rootController: abortController,
 				signal: abortController.signal,
 				subscriber,
-				tools
+				projectId: project?.id,
 			})
 		)
 		
@@ -781,13 +805,48 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
 				const _messages = Array.from(state.messages)
 				const primaryChannelName = channelName(xpert.agent.key)
-				const toolMessage = _messages.pop()
-				const aiMessage = _messages.pop() as AIMessage
+				let toolMessage = null
+				let aiMessage: AIMessage = null
+				while (_messages.length > 0) {
+					const message = _messages.pop()
+					if (isBaseMessage(message)) {
+						if (isAIMessage(message)) {
+							aiMessage = message
+							break
+						} else if (isToolMessage(message) && message.name.includes(_normalizeAgentName(name))) {
+							toolMessage = message
+						}
+					}
+				}
+				if (!aiMessage) {
+					throw new Error(`CAN NOT found AiMessage for transfer back of xpert`)
+				}
+				if (!toolMessage) {
+					throw new Error(`CAN NOT found ToolMessage for transfer back of xpert`)
+				}
+				let input = null
+				let tool_call_id = null
+				let tool_name = null
+				const toolCalls = Array.from(aiMessage.tool_calls)
+				while (toolCalls.length > 0) {
+					const tool_call = toolCalls.pop()
+					if (tool_call.name.includes(_normalizeAgentName(name))) {
+						input = tool_call.args?.input
+						tool_call_id = tool_call.id
+						tool_name = tool_call.name
+						break
+					}
+				}
+				
 				try {
 					const output = await graph.invoke(
 						{
 							...state,
-							input: aiMessage.tool_calls[0]?.args?.input,
+							input: input,
+							[STATE_VARIABLE_HUMAN]: {
+								input,
+								files: state.files || [],
+							},
 							messages: [],
 							[primaryChannelName]: {
 								messages: []
@@ -798,7 +857,11 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 							configurable: { 
 								...config.configurable, 
 								agentKey: '', // In the general agent, messages do not distinguish between Agents but only between Xperts.
-								xpertName: xpert.name 
+								xpertName: xpert.name
+							},
+							metadata: {
+								agentKey: '', // In the general agent, messages do not distinguish between Agents but only between Xperts.
+								xpertName: xpert.name
 							}
 						}
 					)
@@ -811,13 +874,19 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					}
 
 					if (outputMode === 'last_message') {
-						messages = messages.slice(-1)
+						messages = [
+							new ToolMessage({
+								name: tool_name,
+								content: result,
+								tool_call_id,
+							})
+						]
 					}
 
 					if (addHandoffBackMessages) {
 						messages.push(...createHandoffBackMessages(agent.name, supervisorName))
 					}
-					return { ...output, messages }
+					return { ...output, messages: [new RemoveMessage({id: toolMessage.id}), ...messages] }
 				} catch (err) {
 					if (!isParentCommand(err) && !isCommand(err)) {
 						error = getErrorMessage(err)
@@ -830,7 +899,23 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				}
 			}
 		})
-		runnable.name = `xpert_` + xpert.slug
+		runnable.name = name
 		return runnable
 	}
+}
+
+function createStateAnnotation(stateVariables: TStateVariable[]) {
+	return Annotation.Root({
+		...AgentStateAnnotation.spec, // Common agent states
+		// Global conversation variables
+		...(stateVariables.reduce((acc, variable) => {
+			acc[variable.name] = Annotation({
+				...(variable.reducer ? {
+					reducer: variable.reducer,
+					default: variable.default,
+				} : stateVariable(variable)),
+				})
+			return acc
+		}, {}) ?? {})
+	})
 }

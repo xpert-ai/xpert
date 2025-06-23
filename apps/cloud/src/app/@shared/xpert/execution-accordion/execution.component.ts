@@ -25,7 +25,21 @@ export class XpertAgentExecutionAccordionComponent {
   readonly xpert = computed(() => this.execution()?.xpert)
   readonly agent = computed(() => this.execution()?.agent)
   readonly avatar = computed(() => this.agent() ? this.agent().avatar : this.xpert()?.avatar)
-  readonly label = computed(() => this.agent() ? agentLabel(this.agent()) : this.xpert() ? (this.xpert().title || this.xpert().name) : this.execution().title)
+  readonly label = computed(() => {
+    const execution = this.execution()
+    if (this.agent()) {
+      return agentLabel(this.agent())
+    }
+    if (this.xpert()) {
+      return this.xpert().title || this.xpert().name
+    }
+
+    if (execution?.title) {
+      return execution.title
+    }
+    
+    return execution?.type
+  })
   
   readonly category = computed(() => this.execution()?.category)
   readonly type = computed(() => this.execution()?.type)

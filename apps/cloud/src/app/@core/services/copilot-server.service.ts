@@ -51,6 +51,12 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
     return this.aiProviders$
   }
 
+  /**
+   * Get AI models by type from cache or server.
+   * 
+   * @param type 
+   * @returns 
+   */
   getCopilotModels(type: AiModelTypeEnum) {
     if (!this.modelsByType.get(type)) {
       this.modelsByType.set(

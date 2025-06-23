@@ -9,14 +9,10 @@
 @for (message of messages(); track message.id) {
   @switch (message.role) {
     @case ('user') {
-      <div class="w-full flex justify-end my-4">
-        <div class="max-w-[70%] p-4 whitespace-pre-wrap rounded-2xl bg-white dark:bg-white/10">{{ message.content }}</div>
-      </div>
+      <chat-human-message class="w-full flex justify-end my-4" [message]="message" />
     }
     @case ('human') {
-      <div class="w-full flex justify-end my-4">
-        <div class="max-w-[70%] p-4 whitespace-pre-wrap rounded-2xl bg-white dark:bg-white/10">{{ message.content }}</div>
-      </div>
+      <chat-human-message class="w-full flex justify-end my-4" [message]="message" />
     }
     @case ('assistant') {
       <pac-ai-message class="py-2 lg:px-2" [message]="message" [showExecution]="showExecution()" />

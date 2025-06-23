@@ -6,7 +6,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { get } from 'lodash'
 import { SandboxVMCommand } from '../../sandbox'
 import { wrapAgentExecution } from '../../xpert-agent-execution/utils'
-import { AgentStateAnnotation, stateToParameters } from '../commands/handlers/types'
+import { AgentStateAnnotation, stateToParameters } from '../../shared'
 
 const ErrorChannelName = 'error'
 

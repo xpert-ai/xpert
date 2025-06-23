@@ -8,6 +8,9 @@ import {
 	IWFNSubflow,
 	IWorkflowNode,
 	IXpertAgent,
+	STATE_VARIABLE_FILES,
+	STATE_VARIABLE_HUMAN,
+	STATE_VARIABLE_INPUT,
 	STATE_VARIABLE_SYS,
 	TStateVariable,
 	TWorkflowVarGroup,
@@ -21,7 +24,6 @@ import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertAgentQuery } from '../../../xpert/queries/'
 import { XpertService } from '../../../xpert/xpert.service'
-import { STATE_VARIABLE_INPUT } from '../../commands/handlers/types'
 import { XpertAgentVariablesQuery } from '../get-variables.query'
 import { EnvironmentService } from '../../../environment'
 import { httpOutoutVariables, knowledgeOutputVariables, iteratingOutputVariables, codeOutputVariables, subflowOutputVariables, classifierOutputVariables } from '../../workflow'
@@ -73,14 +75,21 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 					zh_Hans: '输入'
 				}
 			},
+			{
+				name: STATE_VARIABLE_FILES,
+				type: XpertParameterTypeEnum.ARRAY_FILE,
+				description: {
+					en_US: 'Files',
+					zh_Hans: '文件'
+				}
+			}
 		]
-		
 		varGroups.push({
 			group: {
-				name: '',
+				name: STATE_VARIABLE_HUMAN,
 				description: {
-					en_US: 'Input Parameters',
-					zh_Hans: '输入参数'
+					en_US: 'Human',
+					zh_Hans: '用户'
 				}
 			},
 			variables
@@ -96,54 +105,54 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 				}
 			},
 			variables: [
-{
-				name: `language`,
-				type: XpertParameterTypeEnum.STRING,
-				description: {
-					en_US: 'Language',
-					zh_Hans: '语言'
+				{
+					name: `language`,
+					type: XpertParameterTypeEnum.STRING,
+					description: {
+						en_US: 'Language',
+						zh_Hans: '语言'
+					}
+				},
+				{
+					name: `user_email`,
+					type: XpertParameterTypeEnum.STRING,
+					description: {
+						en_US: 'User email',
+						zh_Hans: '用户邮箱'
+					}
+				},
+				{
+					name: `timezone`,
+					type: XpertParameterTypeEnum.STRING,
+					description: {
+						en_US: 'User time zone',
+						zh_Hans: '用户时区'
+					}
+				},
+				{
+					name: `date`,
+					type: XpertParameterTypeEnum.STRING,
+					description: {
+						en_US: 'Current Date',
+						zh_Hans: '当前日期'
+					}
+				},
+				{
+					name: `datetime`,
+					type: XpertParameterTypeEnum.STRING,
+					description: {
+						en_US: 'Current Datetime',
+						zh_Hans: '当前时间'
+					}
+				},
+				{
+					name: `common_times`,
+					type: XpertParameterTypeEnum.STRING,
+					description: {
+						en_US: 'Common Times',
+						zh_Hans: '常用时间'
+					}
 				}
-			},
-			{
-				name: `user_email`,
-				type: XpertParameterTypeEnum.STRING,
-				description: {
-					en_US: 'User email',
-					zh_Hans: '用户邮箱'
-				}
-			},
-			{
-				name: `timezone`,
-				type: XpertParameterTypeEnum.STRING,
-				description: {
-					en_US: 'User time zone',
-					zh_Hans: '用户时区'
-				}
-			},
-			{
-				name: `date`,
-				type: XpertParameterTypeEnum.STRING,
-				description: {
-					en_US: 'Current Date',
-					zh_Hans: '当前日期'
-				}
-			},
-			{
-				name: `datetime`,
-				type: XpertParameterTypeEnum.STRING,
-				description: {
-					en_US: 'Current Datetime',
-					zh_Hans: '当前时间'
-				}
-			},
-			{
-				name: `common_times`,
-				type: XpertParameterTypeEnum.STRING,
-				description: {
-					en_US: 'Common Times',
-					zh_Hans: '常用时间'
-				}
-			}
 			]
 		})
 

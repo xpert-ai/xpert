@@ -8,6 +8,7 @@ import {
 	IXpertAgentExecution,
 	mapTranslationLanguage,
 	setStateVariable,
+	STATE_VARIABLE_INPUT,
 	STATE_VARIABLE_SYS,
 	TAgentRunnableConfigurable,
 	TXpertTeamNode,
@@ -19,10 +20,10 @@ import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/c
 import { get } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { wrapAgentExecution } from '../../../xpert-agent-execution/utils'
-import { AgentStateAnnotation, STATE_VARIABLE_INPUT } from '../../commands/handlers/types'
 import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
 import { CreateWNSubflowCommand } from '../create-wn-subflow.command'
 import { CompileGraphCommand } from '../../commands'
+import { AgentStateAnnotation } from '../../../shared'
 
 @CommandHandler(CreateWNSubflowCommand)
 export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCommand> {

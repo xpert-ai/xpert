@@ -500,7 +500,7 @@ export class FeaturesComponent implements OnInit {
         link: '/project',
         pathMatch: 'prefix',
         data: {
-          translationKey: 'Project',
+          translationKey: 'BI Project',
           featureKey: AnalyticsFeatures.FEATURE_PROJECT,
           permissionKeys: [AnalyticsPermissionsEnum.STORIES_VIEW]
         },

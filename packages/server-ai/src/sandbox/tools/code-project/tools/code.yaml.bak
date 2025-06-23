@@ -1,0 +1,34 @@
+identity:
+  name: code_project_code
+  author: XpertAI
+  label:
+    en_US: Code
+    zh_Hans: 编码
+description:
+  human:
+    en_US: Code file.
+    zh_Hans: 编码文件。
+parameters:
+  - name: type
+    type: string
+    required: true
+    label:
+      en_US: File Type
+      zh_Hans: 文件类型
+    human_description:
+      en_US: File Type
+      zh_Hans: 文件类型
+    llm_description: The file type of code.
+    form: llm
+  - name: code
+    type: string
+    required: true
+    label:
+      en_US: Code
+      zh_Hans: 代码
+    human_description:
+      en_US: Code
+      zh_Hans: 代码
+    llm_description: The cotent of code file.
+    form: llm
+

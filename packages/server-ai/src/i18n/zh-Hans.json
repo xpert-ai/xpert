@@ -1,6 +1,7 @@
 {
     "Error": {
-        "AgentNotFound": "Agent‘{key}’未找到。"
+        "AgentNotFound": "Agent‘{key}’未找到。",
+        "PrimaryAgentNotFound": "主智能体节点未找到"
     },
     "tools": {
         "ListFiles": "列出文件",
@@ -8,5 +9,39 @@
         "UpdatedFile": "更新文件",
         "ReadFile": "读取文件",
         "DeletedFile": "删除文件"
+    },
+    "Tools": {
+        "CodeProject": {
+            "InitProject": "初始化项目",
+            "ProjectInitFirst": "请先初始化项目",
+            "File": "文件",
+            "Coding": "编写代码",
+            "FileCreated": "文件已创建",
+            "Building": "构建中",
+            "Deploy": "部署",
+            "DeploytoServer": "部署到服务器"
+        },
+        "Bash": {
+            "ExecuteBashCommand": "执行 Bash 命令"
+        },
+        "TavilySearch": {
+            "WebSearch": "网络搜索",
+            "Searching": "正在搜索"
+        },
+        "Python": {
+            "ExecPythonCode": "执行 Python 代码"
+        },
+        "File": {
+            "RewriteFile": "重写文件"
+        },
+        "ProjectTask": {
+            "Tasks": "任务",
+            "ListTasks": "列出任务",
+            "CreateTasks": "创建任务",
+            "UpdateTasks": "更新任务"
+        },
+        "BrowserUse": {
+            "ExecutionStep": "执行步骤"
+        }
     }
 }

@@ -19,5 +19,5 @@ import { TranslateModule } from '@ngx-translate/core'
 export class XpertWorkflowIconComponent {
   eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
 
-  readonly type = input<WorkflowNodeTypeEnum>()
+  readonly type = input<WorkflowNodeTypeEnum | string>()
 }

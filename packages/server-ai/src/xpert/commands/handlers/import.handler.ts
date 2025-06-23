@@ -1,6 +1,6 @@
 import { IXpert, mapTranslationLanguage, replaceAgentInDraft, TXpertTeamDraft } from '@metad/contracts'
 import { RequestContext } from '@metad/server-core'
-import { Logger } from '@nestjs/common'
+import { BadRequestException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import {t} from 'i18next'
 import { omit, pick } from 'lodash'
@@ -39,6 +39,10 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
 					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
 				})
 			)
+		}
+
+		if (!draft.team.agent) {
+			throw new BadRequestException(t('server-ai:Error.PrimaryAgentNotFound'))
 		}
 
 		const xpert = await this.xpertService.create({

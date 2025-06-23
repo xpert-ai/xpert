@@ -1,0 +1,128 @@
+<div class="max-w-2xl shrink-0 truncate px-8 py-4 font-semibold text-xl leading-[30px] text-gray-900 cursor-move"
+  cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  {{ 'PAC.XProject.ImportProjectTeam' | translate: {Default: 'Import Project Team'} }}
+</div>
+
+<div class="px-8 py-4 relative space-y-4 overflow-auto">
+  <div>
+    <div class="py-2 text-sm font-medium leading-[20px] text-gray-900">
+      <span class="text-red-500">*</span>{{ 'PAC.Xpert.Avatar' | translate: {Default: 'Avatar'} }} &amp; {{ 'PAC.XProject.Name' | translate: {Default: 'Name'} }}
+    </div>
+    <div class="flex items-center justify-between space-x-2">
+      <emoji-avatar editable [(avatar)]="avatar" class="rounded-lg overflow-hidden shadow-sm shrink-0" />
+      <div class="relative w-full">
+        <input
+          class="w-full py-[7px] bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover
+              focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-sm
+              placeholder:text-components-input-text-placeholder
+              appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular grow h-10"
+          [placeholder]="'PAC.XProject.EnterProjectName' | translate: {Default: 'Enter project name'}"
+          [(ngModel)]="name"
+        />
+      </div>
+    </div>
+  </div>
+
+  <div class="py-2 flex flex-col">
+    <div class="text-lg font-semibold">{{ 'PAC.XProject.AiModel' | translate: {Default: 'AI Model'} }}</div>
+    <copilot-model-select class="mt-4"
+      [modelType]="eModelType.LLM"
+      [inheritModel]="primaryCopilot()"
+      [(ngModel)]="copilotModel"
+    />
+    @if (!copilotModel() && !primaryCopilot()) {
+      <a href="/settings/copilot/basic" target="_blank" class="text-xs my-1 hover:underline text-primary-400 hover:text-primary-500">
+        {{ 'PAC.XProject.GlobalModelConfig' | translate: {Default: 'Global model config'} }}
+      </a>
+    }
+  </div>
+
+  <div class="py-2">
+    <div class="py-2 leading-[20px] text-gray-900">
+      <span class="text-base">{{ 'PAC.XProject.BindWorkspaceToAddResources' | translate: {Default: 'Bind workspace to add resources'} }}</span>
+
+      <button class="inline-flex ml-1 w-6 h-6 justify-center items-center rounded-lg hover:bg-hover-bg"
+        [matTooltip]="'PAC.XProject.RefreshWorkspaceList' | translate: {Default: 'Refresh workspace list'}"
+        matTooltipPosition="above"
+        (click)="refreshWorkspaceOptions()">
+        <i class="ri-refresh-line"></i>
+      </button>
+    </div>
+
+    <ngm-select [selectOptions]="workspaceOptions()"
+      [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: {Default: 'Select a workspace'}"
+      [(ngModel)]="workspaceId"
+    />
+
+    <a [routerLink]="['/xpert/w']" routerLinkActive="router-link-active" target="_blank" rel="noopener noreferrer" class="inline-flex items-center p-1 text-xs !text-primary-400 hover:!text-primary-600">
+      {{'PAC.Xpert.HowtoCreate' | translate: {Default: 'How to create'} }}
+      <i class="ri-external-link-line"></i>
+    </a>
+  </div>
+
+  <div class="flex">
+    <button type="button" class="btn disabled:btn-disabled btn-large justify-center w-24"
+      [ngClass]="createdProject() ? 'btn-secondary' : 'btn-primary'"
+      [disabled]="!name() || loading()"
+      (click)="createProject()"
+    >
+      @if (createdProject()) {
+        {{ 'PAC.XProject.Update' | translate: {Default: 'Update'} }}
+      } @else {
+        {{ 'PAC.XProject.Create' | translate: {Default: 'Create'} }}
+      }
+    </button>
+  </div>
+
+  <div class="border-b border-solid border-divider-regular my-6"></div>
+
+  @if (xperts()?.length) {
+    <div class="text-lg font-semibold py-2">{{'PAC.XProject.ImportXperts' | translate: {Default: 'Import Experts'} }} </div>
+    <div class="flex flex-col items-stretch gap-4">
+      @for (xpert of xperts(); track xpert.slug; let last = $last) {
+        <project-install-xpert [project]="createdProject()"
+          [xpertDraft]="xpert"
+          [myXperts]="myXperts()"
+          (createdXpertChange)="createdXpert(xpert, $event)"
+        />
+        @if (!last)  {
+          <div class="border-b border-dashed border-divider-deep"></div>
+        }
+      }
+    </div>
+    <div class="border-b border-solid border-divider-regular my-6"></div>
+  }
+
+  @if (toolsets()?.length) {
+    <div class="text-lg font-semibold py-2">{{'PAC.XProject.ImportToolsets' | translate: {Default: 'Import Toolsets'} }} </div>
+    <div class="flex flex-col items-stretch gap-4">
+      @for (toolset of toolsets(); track toolset.id; let last = $last) {
+        <project-install-toolset [project]="createdProject()"
+          [toolset]="toolset"
+          (createdToolsetChange)="createdToolset(toolset, $event)"
+        />
+        @if (!last)  {
+          <div class="border-b border-dashed border-divider-deep"></div>
+        }
+      }
+    </div>
+  }
+
+  @if (loading()) {
+    <ngm-spin class="absolute top-0 left-0 w-full h-full" />
+  }
+</div>
+
+<div class="border-b border-solid border-divider-regular mt-2"></div>
+
+<div class="flex justify-end px-8 py-4">
+  <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large justify-center w-24"
+    [disabled]="loading()"
+    (click)="close()"
+  >{{ 'PAC.Xpert.Cancel' | translate: {Default: 'Cancel'} }}</button>
+
+  <button type="button" class="btn disabled:btn-disabled btn-primary btn-large justify-center w-24 ml-2"
+    [disabled]="!createdProject() || loading()"
+    (click)="done()"
+  >{{ 'PAC.XProject.Done' | translate: {Default: 'Done'} }}</button>
+</div>

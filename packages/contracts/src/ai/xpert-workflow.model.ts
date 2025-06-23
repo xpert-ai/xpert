@@ -247,8 +247,29 @@ export interface IWFNClassifier extends IWorkflowNode {
   instruction?: string
 }
 
-export function channelName(name: string) {
-	return name.toLowerCase() + '_channel'
+export interface IWFNClassifier extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.CLASSIFIER
+  copilotModel: ICopilotModel
+  inputVariables: string[]
+  classes: {
+    description?: string
+  }[]
+  instruction?: string
+}
+
+export interface IWFNTemplate extends IWorkflowNode {
+  type: WorkflowNodeTypeEnum.TEMPLATE,
+  inputParams?: TXpertRefParameter[]
+  code: string
+  
+  /**
+   * Error handling
+   */
+  errorHandling?: TErrorHandling
+}
+
+export interface IWFNNote extends IWorkflowNode {
+  content: string
 }
 
 export function isAgentKey(key: string) {

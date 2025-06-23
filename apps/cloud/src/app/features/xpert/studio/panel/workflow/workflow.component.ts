@@ -2,7 +2,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -30,6 +29,7 @@ import { XpertWorkflowKnowledgeTestComponent } from './knowledge-test/knowledge.
 import { XpertWorkflowSubflowComponent } from './subflow/subflow.component'
 import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
 import { XpertWorkflowTemplateComponent } from './template/template.component'
+import { XpertWorkflowNoteComponent } from './note/note.component'
 import { XpertWorkflowClassifierComponent } from './classifier/classifier.component'
 
 @Component({
@@ -43,7 +43,6 @@ import { XpertWorkflowClassifierComponent } from './classifier/classifier.compon
     TranslateModule,
     CdkMenuModule,
     MatSlideToggleModule,
-    MatInputModule,
     MatTooltipModule,
     TextFieldModule,
     NgmDensityDirective,
@@ -59,6 +58,7 @@ import { XpertWorkflowClassifierComponent } from './classifier/classifier.compon
     XpertWorkflowKnowledgeTestComponent,
     XpertWorkflowSubflowComponent,
     XpertWorkflowTemplateComponent,
+    XpertWorkflowNoteComponent,
     XpertWorkflowClassifierComponent
   ],
   animations: [IfAnimation,]

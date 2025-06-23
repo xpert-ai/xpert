@@ -1,0 +1,23 @@
+identity:
+  name: browser_use_task
+  author: XpertAI
+  label:
+    en_US: Execute Task
+    zh_Hans: 执行任务
+description:
+  human:
+    en_US: Execute Browser Task.
+    zh_Hans: 执行浏览器任务
+  llm: This tool can execute a task in browser.
+parameters:
+  - name: task
+    type: string
+    required: true
+    label:
+      en_US: Task
+      zh_Hans: 任务
+    human_description:
+      en_US: Task.
+      zh_Hans: 任务。
+    llm_description: Task to execute.
+    form: llm

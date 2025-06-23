@@ -1,6 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, input, signal } from '@angular/core'
+import { Component, computed, effect, inject, input, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { nonNullable } from '@metad/copilot'
@@ -40,6 +40,12 @@ export class ChatProjectMembersComponent {
       switchMap((id) => this.projectsService.getMembers(id))
     )
     .subscribe((members) => this.members.set(members))
+  
+  // constructor() {
+  //   effect(() => {
+  //     console.log(this.owner())
+  //   })
+  // }
 
   updateMembers(users: IUser[]) {
     this.members.update((members) => {

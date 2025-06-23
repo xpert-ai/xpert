@@ -27,7 +27,7 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 	@IsString()
 	@IsOptional()
 	@Column({ nullable: true })
-	type?: WorkflowNodeTypeEnum
+	type?: WorkflowNodeTypeEnum | string
 	
 	@ApiPropertyOptional({ type: () => Object })
 	@IsObject()

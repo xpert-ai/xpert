@@ -7,6 +7,9 @@ import { XpertAgentExecutionUpsertCommand } from './commands'
 import { XpertAgentExecutionDTO } from './dto'
 import { XpertAgentExecutionOneQuery } from './queries'
 
+/**
+ * @deprecated use `wrapAgentExecution` in `shared`
+ */
 export function wrapAgentExecution(
 	fuc: (execution: Partial<IXpertAgentExecution>) => Promise<{output?: string; state: unknown}>,
 	params: {

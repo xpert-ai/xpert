@@ -47,7 +47,7 @@
 
   <div class="flex-1 flex gap-6 flex-col">
 
-    <pac-chat-project-xperts class="mt-12" />
+    <pac-chat-project-xperts class="mt-12 self-center" />
 
     <div class="relative">
       <form class="bottom-0 w-full text-base flex flex-col gap-2 items-center justify-center relative z-10"
@@ -245,20 +245,9 @@
             <i class="ri-chat-thread-line text-lg"></i>
             {{'PAC.XProject.Conversations' | translate: {Default: 'Conversations'} }}
           </button>
-
-          <button type="button" class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
-            [class.active]="viewType() === 'members'"
-            (click)="viewType.set('members')"
-          >
-            <i class="ri-group-line text-lg"></i>
-            {{'PAC.XProject.Members' | translate: {Default: 'Members'} }}
-          </button>
         </div>
 
-        <button
-          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-full py-2 group/attach-button relative transition-colors duration-100 bg-transparent border aspect-square border-border-l2 hover:bg-button-ghost-hover px-3 w-auto"
-          type="button"
-          aria-label="Attach"
+        <button type="button" class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-2xl py-2 group/attach-button relative transition-colors duration-100 bg-transparent border aspect-square border-border-l2 hover:bg-button-ghost-hover px-2 w-auto"
           tabindex="0"
           [cdkMenuTriggerFor]="workspaceMenu"
           [cdkMenuPosition]="[
@@ -275,14 +264,17 @@
             <i class="ri-error-warning-line text-base text-text-destructive"></i>
             {{workspaceError()}}
           } @else {
-            <i class="ri-hammer-line text-base"></i>
-            <span>
-              @if (workspace()) {
-                {{workspace().name}}
-              } @else {
-                {{ 'PAC.XProject.SelectWorkspace' | translate: {Default: 'Select workspace'} }}
-              }
-            </span>
+            <i class="ri-planet-line text-base"></i>
+            
+            @if (workspace()) {
+              <span class="max-w-[100px] truncate">{{workspace().name}}</span>
+              <button type="button" class="w-6 h-6 shrink-0 inline-flex justify-center items-center rounded-lg hover:bg-hover-bg transition-colors duration-100"
+                (click)="openWorkspace()">
+                <i class="ri-external-link-line"></i>
+              </button>
+            } @else {
+              <span>{{ 'PAC.XProject.SelectWorkspace' | translate: {Default: 'Select workspace'} }}</span>
+            }
           }
         </button>
         <input class="hidden" multiple="" data-testid="file-input" type="file" />
@@ -290,19 +282,16 @@
 
       @switch (viewType()) {
         @case ('attachments') {
-          <chat-project-attachments role="tabpanel" tabindex="0" class="py-2" />
+          <chat-project-attachments role="tabpanel" class="py-2" />
         }
         @case ('tools') {
-          <chat-project-tools role="tabpanel" tabindex="0" class="py-2" />
+          <chat-project-tools role="tabpanel" class="py-2" />
         }
         @case ('knowledges') {
-          <chat-project-knowledges role="tabpanel" tabindex="0" class="py-2" />
+          <chat-project-knowledges role="tabpanel" class="py-2" />
         }
         @case ('conversations') {
-          <chat-project-conversations role="tabpanel" tabindex="0" class="py-2" />
-        }
-        @case ('members') {
-          <chat-project-members role="tabpanel" tabindex="0" class="py-2" [project]="project()" />
+          <chat-project-conversations role="tabpanel" class="py-2" />
         }
       }
     </div>
@@ -345,30 +334,48 @@
 
 <ng-template #editMenu>
   <div cdkMenu class="cdk-menu__large">
-    <div cdkMenuItem (click)="rename()">
-      <i class="ri-pencil-line mr-1"></i>
-      <span>{{ 'PAC.XProject.Rename' | translate: {Default: 'Rename'} }}</span>
-    </div>
     @if (editing()) {
+      <div cdkMenuItem (click)="cancelEdit()">
+        <i class="ri-pencil-line mr-1"></i>
+        <span>{{ 'PAC.XProject.CancelEdit' | translate: {Default: 'Cancel Edit'} }}</span>
+      </div>
+    } @else {
+      <div cdkMenuItem (click)="edit()">
+        <i class="ri-pencil-line mr-1"></i>
+        <span>{{ 'PAC.XProject.Edit' | translate: {Default: 'Edit'} }}</span>
+      </div>
+    }
+    <!-- @if (editing()) {
       <div cdkMenuItem [cdkMenuTriggerFor]="copilotMenu">
         <i class="ri-brain-2-line mr-1"></i>
         <span>{{ 'PAC.XProject.AiModel' | translate: {Default: 'AI Model'} }}</span>
       </div>
-    }
+    } -->
+
+    <div cdkMenuItem (click)="exportDsl()">
+      <i class="ri-export-line mr-1"></i>
+      <span>{{ 'PAC.XProject.ExportDSL' | translate: {Default: 'Export DSL'} }}</span>
+    </div>
+
     <div class="border-b border-solid border-divider-regular my-1"></div>
 
+    <div cdkMenuItem (click)="manage()">
+      <i class="ri-settings-4-line mr-1"></i>
+      <span>{{ 'PAC.XProject.Manage' | translate: {Default: 'Manage'} }}</span>
+    </div>
+<!-- 
     <div cdkMenuItem class="danger" (click)="removeProject()">
       <i class="ri-delete-bin-7-line mr-1"></i>
       <span>{{ 'PAC.XProject.RemoveProject' | translate: {Default: 'Remove project'} }}</span>
-    </div>
+    </div> -->
   </div>
 </ng-template>
 
-<ng-template #copilotMenu>
+<!-- <ng-template #copilotMenu>
   <div cdkMenu class="cdk-menu__large w-[360px]">
     <copilot-model-select class="m-4"
       [modelType]="eModelType.LLM"
       [(ngModel)]="copilotModel"
     />
   </div>
-</ng-template>
+</ng-template> -->

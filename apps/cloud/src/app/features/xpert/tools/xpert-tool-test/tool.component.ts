@@ -1,16 +1,16 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, inject, input, model, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, input, model, output, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
-import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog, MatDialogModule } from '@angular/material/dialog'
+import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { MatDialogModule } from '@angular/material/dialog'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import { IfAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertTool, ToastrService, XpertToolService, XpertToolsetService } from 'apps/cloud/src/app/@core'
-import { map, of, shareReplay, switchMap, tap } from 'rxjs'
-import { IfAnimations } from '@metad/core'
+import { of, shareReplay, switchMap, tap } from 'rxjs'
 import { XpertToolsetToolTestComponent } from '../tool-test'
 
 @Component({
@@ -36,20 +36,22 @@ import { XpertToolsetToolTestComponent } from '../tool-test'
 })
 export class XpertToolTestComponent {
   readonly toolsetService = inject(XpertToolsetService)
-  readonly #formBuilder = inject(FormBuilder)
-  readonly #dialog = inject(MatDialog)
   readonly #toastr = inject(ToastrService)
-  readonly #cdr = inject(ChangeDetectorRef)
   readonly toolService = inject(XpertToolService)
 
+  // Inputs
   readonly tool = input<IXpertTool>()
   readonly disabled = input<boolean>(false)
   readonly enabled = model<boolean>()
+
+  // Outputs
+  readonly saveParameters = output<Record<string, string>>()
+
   readonly toolId = computed(() => this.tool()?.id)
 
   readonly toolDetail$ = toObservable(this.toolId).pipe(
     switchMap((id) => {
-      if(id) {
+      if (id) {
         this.loading.set(true)
         return this.toolService.getOneById(id)
       }

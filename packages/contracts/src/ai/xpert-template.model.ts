@@ -17,7 +17,7 @@ export type TXpertTemplate = {
   title: string
   description: string
   avatar: TAvatar
-  type: XpertTypeEnum
+  type: XpertTypeEnum | 'project'
   category: string
   copilotModel?: Partial<TCopilotModel>
   copyright: string

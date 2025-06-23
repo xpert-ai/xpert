@@ -3,6 +3,7 @@ import { tool } from '@langchain/core/tools'
 import { ChatMessageEventTypeEnum, ChatMessageStepType, TAgentRunnableConfigurable } from '@metad/contracts'
 import { z } from 'zod'
 import { XpertProjectTaskService } from '../../../services'
+import { ProjectToolEnum } from '../project'
 
 export const createUpdateTasksTool = ({
 	projectId,
@@ -31,7 +32,7 @@ export const createUpdateTasksTool = ({
 			return `Tasks updated!`
 		},
 		{
-			name: `project_update_tasks`,
+			name: ProjectToolEnum.UpdateTasks,
 			schema: z.object({
 				tasks: z
 					.array(

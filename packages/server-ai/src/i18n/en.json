@@ -1,6 +1,7 @@
 {
     "Error": {
-        "AgentNotFound": "Agent '{key}' not found."
+        "AgentNotFound": "Agent '{key}' not found.",
+        "PrimaryAgentNotFound": "Primary agent node not found"
     },
     "tools": {
         "ListFiles": "List files",
@@ -8,5 +9,39 @@
         "UpdatedFile": "Updated file",
         "ReadFile": "Read file",
         "DeletedFile": "Deleted file"
+    },
+    "Tools": {
+        "CodeProject": {
+            "InitProject": "Init project",
+            "ProjectInitFirst": "Please initialize the project first",
+            "File": "File",
+            "Coding": "Coding",
+            "FileCreated": "File created",
+            "Building": "Building",
+            "Deploy": "Deploy",
+            "DeploytoServer": "Deploy to server"
+        },
+        "Bash": {
+            "ExecuteBashCommand": "Execute bash command"
+        },
+        "TavilySearch": {
+            "WebSearch": "Web Search",
+            "Searching": "Searching"
+        },
+        "Python": {
+            "ExecPythonCode": "Executing Python code"
+        },
+        "File": {
+            "RewriteFile": "Rewrite file"
+        },
+        "ProjectTask": {
+            "Tasks": "Tasks",
+            "ListTasks": "List tasks",
+            "CreateTasks": "Create tasks",
+            "UpdateTasks": "Update tasks"
+        },
+        "BrowserUse": {
+            "ExecutionStep": "Execution Step"
+        }
     }
 }

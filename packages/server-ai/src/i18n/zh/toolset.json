@@ -28,16 +28,5 @@
     "CreatedAPlan": "创建一个计划",
     "Update": "更新",
     "Step": "步骤"
-  },
-  "TavilySearch": {
-    "WebSearch": "网络搜索",
-    "Searching": "正在搜索"
-  },
-  "CodeProject": {
-    "Deploy": "部署",
-    "DeploytoServer": "部署到服务器"
-  },
-  "Python": {
-    "ExecPythonCode": "执行 Python 代码"
   }
 }

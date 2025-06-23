@@ -20,4 +20,5 @@ import { TranslateModule } from '@ngx-translate/core'
 export class FileIconComponent {
   // Inputs
   readonly fileType = input<string>()
+  readonly directory = input<boolean>(false)
 }

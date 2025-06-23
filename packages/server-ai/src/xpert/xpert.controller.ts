@@ -40,6 +40,7 @@ import {
 import { getErrorMessage, keepAlive, takeUntilClose, yaml } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { instanceToPlain } from 'class-transformer'
 import { Request, Response } from 'express'
 import { Between, DeleteResult, FindConditions, In, IsNull, Like, Not } from 'typeorm'
 import { I18nLang, I18nService } from 'nestjs-i18n'
@@ -159,7 +160,7 @@ export class XpertController extends CrudController<Xpert> {
 		try {
 			const xpert = await this.commandBus.execute(new XpertExportCommand(xpertId, isDraft === 'true'))
 			return {
-				data: yaml.stringify(xpert)
+				data: yaml.stringify(instanceToPlain(xpert))
 			}
 		} catch(err) {
 			throw new InternalServerErrorException(err.message)
@@ -423,6 +424,7 @@ export class XpertController extends CrudController<Xpert> {
 	async duplicate(@Param('id') id: string, @Body() body: {basic: Partial<IXpert>; isDraft: boolean}) {
 		try {
 			const dsl = await this.commandBus.execute(new XpertExportCommand(id, body.isDraft))
+			// const dsl = instanceToPlain(xpertDto)
 			return await this.commandBus.execute(new XpertImportCommand({...dsl, team: {...dsl.team, ...body.basic}}))
 		} catch(err) {
 			throw new InternalServerErrorException(err.message)

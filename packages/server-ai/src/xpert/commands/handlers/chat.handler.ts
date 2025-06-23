@@ -1,10 +1,12 @@
 import { BaseStore } from '@langchain/langgraph'
 import {
+	ChatMessage,
 	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
 	CopilotChatMessage,
 	figureOutXpert,
 	IChatConversation,
+	IChatMessage,
 	IXpert,
 	LongTermMemoryTypeEnum,
 	messageContentText,
@@ -116,12 +118,16 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			)
 			executionId = execution.id
 
+			const _humanMessage: Partial<IChatMessage> = {
+				role: 'human',
+				content: input.input,
+				conversationId: conversation.id,
+				...(input.files ? {
+					attachments: input.files,
+				} : {})
+			}
 			const userMessage = await this.commandBus.execute(
-				new ChatMessageUpsertCommand({
-					role: 'human',
-					content: input.input,
-					conversationId: conversation.id
-				})
+				new ChatMessageUpsertCommand(_humanMessage)
 			)
 			aiMessage = await this.commandBus.execute(
 				new ChatMessageUpsertCommand({
@@ -141,6 +147,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		const agentObservable = await this.commandBus.execute<XpertAgentChatCommand, Promise<Observable<MessageEvent>>>(
 			new XpertAgentChatCommand(input, xpert.agent.key, xpert, {
 				...(options ?? {}),
+				conversationId: conversation.id,
 				toolsets: null, // Does not support customizing whether to use tools
 				knowledgebases: null, // Does not support customizing whether to use knowledgebases
 				isDraft: options?.isDraft,

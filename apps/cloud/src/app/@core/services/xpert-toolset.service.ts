@@ -1,20 +1,21 @@
-import { inject, Injectable } from '@angular/core'
+import { inject, Injectable, Signal } from '@angular/core'
 import { NGXLogger } from 'ngx-logger'
-import { BehaviorSubject } from 'rxjs'
+import { derivedAsync } from 'ngxtension/derived-async'
+import { BehaviorSubject, catchError, map, of, startWith } from 'rxjs'
 import { API_XPERT_TOOLSET } from '../constants/app.constants'
 import {
   ApiProviderSchemaType,
   ApiToolBundle,
+  getErrorMessage,
   IBuiltinTool,
   IToolProvider,
   IToolTag,
   IXpertTool,
   IXpertToolset,
   OrderTypeEnum,
-  TMCPSchema,
   ToolProviderCredentials,
   TToolCredentials,
-  TXpertToolEntity,
+  TXpertToolEntity
 } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 
@@ -62,7 +63,9 @@ export class XpertToolsetService extends XpertWorkspaceBaseCrudService<IXpertToo
   }
 
   getBuiltinCredentialsSchema(provider: string) {
-    return this.httpClient.get<ToolProviderCredentials[]>(this.apiBaseUrl + `/builtin-provider/${provider}/credentials-schema`)
+    return this.httpClient.get<ToolProviderCredentials[]>(
+      this.apiBaseUrl + `/builtin-provider/${provider}/credentials-schema`
+    )
   }
 
   createBuiltinToolsetInstance(provider: string, entity: Partial<IXpertToolset>) {
@@ -74,17 +77,23 @@ export class XpertToolsetService extends XpertWorkspaceBaseCrudService<IXpertToo
   }
 
   getOpenAPIRemoteSchema(url: string, credentials: Record<string, string>) {
-    return this.httpClient.post<{schema: string; tools: TXpertToolEntity[]}>(this.apiBaseUrl + `/provider/openapi/remote`, {
-      url,
-      credentials
-    })
+    return this.httpClient.post<{ schema: string; tools: TXpertToolEntity[] }>(
+      this.apiBaseUrl + `/provider/openapi/remote`,
+      {
+        url,
+        credentials
+      }
+    )
   }
 
   getODataRemoteMetadata(url: string, credentials: Record<string, string>) {
-    return this.httpClient.post<{schema: string; tools: TXpertToolEntity[]}>(this.apiBaseUrl + `/provider/odata/remote`, {
-      url,
-      credentials
-    })
+    return this.httpClient.post<{ schema: string; tools: TXpertToolEntity[] }>(
+      this.apiBaseUrl + `/provider/odata/remote`,
+      {
+        url,
+        credentials
+      }
+    )
   }
 
   parserODataSchema(schema: string) {
@@ -96,14 +105,40 @@ export class XpertToolsetService extends XpertWorkspaceBaseCrudService<IXpertToo
   }
 
   getMCPToolsBySchema(toolset: Partial<IXpertToolset>) {
-    return this.httpClient.post<{schema: string; tools: TXpertToolEntity[]}>(this.apiBaseUrl + `/provider/mcp/tools`, toolset)
+    return this.httpClient.post<{ schema: string; tools: TXpertToolEntity[] }>(
+      this.apiBaseUrl + `/provider/mcp/tools`,
+      toolset
+    )
   }
 
-  getToolsetTools(id: string,) {
+  getToolsetTools(id: string) {
     return this.httpClient.get<IXpertTool[]>(this.apiBaseUrl + `/${id}/tools`)
   }
 
-  getCredentials(id: string,) {
+  getCredentials(id: string) {
     return this.httpClient.get<TToolCredentials>(this.apiBaseUrl + `/${id}/credentials`)
   }
+}
+
+export function derivedToolProvider(providerName: Signal<string>) {
+  const toolsetService = inject(XpertToolsetService)
+
+  return derivedAsync<{ error?: string; loading: boolean; provider: IToolProvider }>(() =>
+    providerName()
+      ? toolsetService.getProvider(providerName()).pipe(
+          map((provider) => ({ provider, loading: false })),
+          catchError((err) => {
+            return of({
+              error: getErrorMessage(err),
+              loading: false,
+              provider: null
+            })
+          }),
+          startWith({
+            loading: true,
+            provider: null
+          })
+        )
+      : of(null)
+  )
 }

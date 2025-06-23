@@ -7,6 +7,7 @@ import { ChatMessageStepType, DateRelativePipe, IChatMessage } from 'apps/cloud/
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { MarkdownModule } from 'ngx-markdown'
 import { Copy2Component } from '../../../common'
+import { ChatMessageStepIconComponent } from '../../message-step-icon/icon.component'
 
 @Component({
   standalone: true,
@@ -17,7 +18,8 @@ import { Copy2Component } from '../../../common'
     MarkdownModule,
     DateRelativePipe,
     Copy2Component,
-    NgxJsonViewerModule
+    NgxJsonViewerModule,
+    ChatMessageStepIconComponent
   ],
   selector: 'xpert-preview-ai-message',
   templateUrl: 'message.component.html',

@@ -136,6 +136,12 @@ export type TXpertAgentOptions = {
    * Available tools
    */
   availableTools?: Record<string, string[]>
+  /**
+   * Options for tools of agent
+   */
+  tools?: Record<string, {
+    timeout?: number
+  }>
   
   /**
    * How to achieve structured output (`StructuredOutputMethodOptions['method']`)
@@ -145,6 +151,14 @@ export type TXpertAgentOptions = {
    * 
    */
   structuredOutputMethod?: "functionCalling" | "jsonMode" | "jsonSchema" | string
+  /**
+   * Vision config of agent
+   */
+  vision?: {
+    enabled?: boolean
+    variable?: string
+    resolution?: 'high' | 'low'
+  }
 }
 
 export type TAgentPromptTemplate = {

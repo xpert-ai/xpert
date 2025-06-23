@@ -1,17 +1,19 @@
+import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
+import { IStorageFile, uuid } from '@cloud/app/@core'
+import { CopilotEnableModelComponent } from '@cloud/app/@shared/copilot'
+import { AppService } from '@cloud/app/app.service'
 import { OverlayAnimations } from '@metad/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { uuid } from '@cloud/app/@core'
-import { AppService } from '@cloud/app/app.service'
-import { CopilotEnableModelComponent } from '@cloud/app/@shared/copilot'
+import { ChatAttachmentsComponent } from '@cloud/app/@shared/chat'
 import { ChatService } from '../chat.service'
 import { XpertHomeService } from '../home.service'
 
@@ -21,13 +23,15 @@ import { XpertHomeService } from '../home.service'
     CommonModule,
     FormsModule,
     TextFieldModule,
+    CdkMenuModule,
     ReactiveFormsModule,
     RouterModule,
     TranslateModule,
     MatInputModule,
     MatTooltipModule,
     NgmCommonModule,
-    CopilotEnableModelComponent
+    CopilotEnableModelComponent,
+    ChatAttachmentsComponent
   ],
   selector: 'chat-input',
   templateUrl: './chat-input.component.html',
@@ -44,6 +48,9 @@ export class ChatInputComponent {
   // Inputs
   readonly disabled = input<boolean>()
 
+  // Chirldren
+  readonly attachTrigger = viewChild('attachTrigger', {read: CdkMenuTrigger})
+
   // States
   readonly promptControl = new FormControl<string>(null)
   readonly prompt = toSignal(this.promptControl.valueChanges)
@@ -53,9 +60,19 @@ export class ChatInputComponent {
 
   readonly isComposing = signal(false)
 
+  // Attachments
+  readonly attachment = computed(() => this.xpert()?.attachment)
+  readonly attachments = model<{file?: File; url?: string; storageFile?: IStorageFile}[]>([])
+  readonly url = model<string>(null)
+  readonly files = computed(() => this.attachments()?.map(({storageFile}) => storageFile))
+
   constructor() {
     effect(() => {
-      this.answering() || this.disabled() ? this.promptControl.disable() : this.promptControl.enable()
+      if (this.answering() || this.disabled()) {
+        this.promptControl.disable()
+      } else {
+        this.promptControl.enable()
+      }
     })
   }
 
@@ -82,12 +99,16 @@ export class ChatInputComponent {
     this.chatService.appendMessage({
       id,
       role: 'user',
-      content
+      content,
+      attachments: this.files()
     })
     this.promptControl.setValue('')
 
     // Send message
-    this.chatService.chat({ id, content })
+    this.chatService.chat({ id, content, files: this.files() })
+
+    // Clear
+    this.attachments.set([])
   }
 
   stopGenerating() {
@@ -134,5 +155,26 @@ export class ChatInputComponent {
     this.homeService.canvasOpened.update((state) =>
       state ? { ...state, opened: !state.opened } : { opened: true, type: 'Computer' }
     )
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const files: File[] = Array.from(input.files);
+
+    this.attachments.update((state) => [...state, ...files.map((file) => ({file}))])
+
+    this.closeAttach()
+  }
+
+  createUrlFile() {
+    this.attachments.update((state) => [...state, {url: this.url()}])
+    this.url.set(null)
+    this.closeAttach()
+  }
+
+  closeAttach() {
+    this.attachTrigger().close()
   }
 }

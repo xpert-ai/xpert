@@ -20,11 +20,12 @@ import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/c
 import { compact, get, isString } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { wrapAgentExecution } from '../../../xpert-agent-execution/utils'
-import { AgentStateAnnotation, stateToParameters } from '../../commands/handlers/types'
 import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { STATE_VARIABLE_ITERATING_OUTPUT, STATE_VARIABLE_ITERATING_OUTPUT_STR } from '../iterating'
 import { CompileGraphCommand } from '../../commands'
+import { AgentStateAnnotation, stateToParameters } from '../../../shared'
+
 
 @CommandHandler(CreateWNIteratingCommand)
 export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIteratingCommand> {

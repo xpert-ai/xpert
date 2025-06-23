@@ -13,10 +13,12 @@ import {
   IChatConversation,
   IChatMessageFeedback,
   IKnowledgebase,
+  IStorageFile,
   IXpert,
   IXpertProject,
   IXpertToolset,
   shortTitle,
+  TChatMessageStep,
   TChatOptions,
   TChatRequest,
   TMessageContent,
@@ -190,7 +192,7 @@ export abstract class ChatService {
 
   getConversation(id: string) {
     return this.conversationService.getById(id, {
-      relations: ['xpert', 'xpert.agent', 'xpert.agents', 'xpert.knowledgebases', 'xpert.toolsets', 'messages']
+      relations: ['xpert', 'xpert.agent', 'xpert.agents', 'xpert.knowledgebases', 'xpert.toolsets', 'messages', 'messages.attachments']
     })
   }
 
@@ -219,7 +221,14 @@ export abstract class ChatService {
   chat(
     options: Partial<{
       id: string
+      /**
+       * Human text input
+       */
       content: string
+      /**
+       * Attachment files
+       */
+      files: IStorageFile[]
       confirm: boolean
       operation: TSensitiveOperation
       reject: boolean
@@ -251,7 +260,8 @@ export abstract class ChatService {
       {
         input: {
           ...(this.parametersValue() ?? {}),
-          input: options.content
+          input: options.content,
+          files: options.files
         },
         xpertId: this.xpert()?.id,
         conversationId: this.conversation()?.id,
@@ -335,6 +345,22 @@ export abstract class ChatService {
                 }
                 case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
                   this.updateLatestMessage((message) => {
+                    message.steps ??= []
+                    const step = event.data as TChatMessageStep
+                    if (step.id) {
+                      const index = message.steps.findIndex((_) => _.id === step.id)
+                      if (index > -1) {
+                        message.steps[index] = {
+                          ...message.steps[index],
+                          ...step
+                        }
+                        return {
+                          ...message,
+                          steps: [...message.steps]
+                        }
+                      }
+                    }
+                    
                     return {
                       ...message,
                       steps: [...(message.steps ?? []), event.data]
@@ -481,7 +507,6 @@ export abstract class ChatService {
   }
 
   updateEvent(event) {
-    // console.log(event)
     this.updateLatestMessage((lastMessage) => {
       return {
         ...lastMessage,

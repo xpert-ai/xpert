@@ -2,7 +2,6 @@ import { ITag, IUser, IXpert, IXpertAgent, TAvatar, XpertTypeEnum } from '@metad
 import { UserPublicDTO } from '@metad/server-core'
 import { Exclude, Expose, Transform, TransformFnParams } from 'class-transformer'
 import { XpertAgentIdentiDto } from '../../xpert-agent/dto'
-import { Xpert } from '../xpert.entity'
 
 /**
  * IdentiDto: The minimum attributes that can be exposed to represent this object
@@ -54,7 +53,7 @@ export class XpertIdentiDto implements Partial<IXpert> {
 	@Transform(({ value }: TransformFnParams) => value && new UserPublicDTO(value))
 	createdBy?: IUser
 
-	constructor(partial: Partial<XpertIdentiDto | Xpert>) {
+	constructor(partial: Partial<XpertIdentiDto | IXpert>) {
 		Object.assign(this, partial)
 	}
 }

@@ -2,6 +2,7 @@ import { ICopilotModel } from './copilot-model.model'
 import { TAvatar } from '../types'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 import { IKnowledgeDocument } from './knowledge-doc.model'
+import { IXpert } from './xpert.model'
 
 export enum KnowledgebaseTypeEnum {
   Standard = 'standard',
@@ -78,7 +79,7 @@ export type TKnowledgebase = {
  * Knowledgebase Entity
  */
 export interface IKnowledgebase extends TKnowledgebase, IBasePerWorkspaceEntityModel {
-  //
+  xperts?: IXpert[]
 }
 
 export enum KnowledgebasePermission {

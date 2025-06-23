@@ -9,6 +9,14 @@
     <div class="text-text-primary text-lg font-semibold flex-1">
       {{'PAC.Chat.WhosComputer' | translate: {value: 'Xpert', Default: "Xpert's Computer"} }}
     </div>
+
+    <button class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer pressable hover:bg-hover-bg"
+      [matTooltip]="'PAC.Chat.FileList' | translate: {Default: 'File list'}"
+      (click)="openFiles()"
+    >
+      <i class="ri-file-list-3-line"></i>
+    </button>
+    
     <button class="w-7 h-7 relative rounded-md inline-flex items-center justify-center gap-2.5 cursor-pointer pressable hover:bg-hover-bg"
       [matTooltip]="'PAC.Chat.CloseCanvas' | translate: {Default: 'Close canvas'}"
       (click)="close()"
@@ -55,7 +63,180 @@
       </div>
     </div>
   }
+
   <div class="flex flex-col rounded-[12px] overflow-hidden bg-neutral-100 border border-divider-deep dark:border-black/30 shadow-[0px_4px_32px_0px_rgba(0,0,0,0.04)] flex-1 min-h-0">
+
+    @if (stepMessage(); as step) {
+      <div class="h-[36px] flex items-center px-3 w-full bg-[var(--background-gray-main)] border-b border-divider-deep rounded-t-[12px] shadow-[inset_0px_1px_0px_0px_#FFFFFF] dark:shadow-[inset_0px_1px_0px_0px_#FFFFFF30]">
+        <div class="relative flex-1 flex items-center justify-center">
+          <button class="rounded-md hover:bg-hover-bg absolute left-0 top-1/2 -translate-y-1/2 flex justify-center items-center w-6 h-6 text-text-secondary transition-colors"
+            (click)="togglePin()">
+            @if (pin()) {
+              <i class="ri-pushpin-2-fill text-primary-500"></i>
+            } @else {
+              <i class="ri-pushpin-line"></i>
+            }
+          </button>
+          <div class="max-w-[250px] truncate text-zinc-500 text-base font-medium text-center">
+            @switch (step.toolset) {
+              @case ('browser-use') {
+                @if (step.data?.url) {
+                  <a [href]="step.data.url" target="_blank" class="hover:underline">{{step.title}}</a>
+                } @else {
+                  {{step.title}}
+                }
+              }
+              @case ('file') {
+                @if (step.data?.url) {
+                  <a [href]="step.data.url" target="_blank" class="hover:underline">{{step.title}}</a>
+                } @else {
+                  {{step.title}}
+                }
+              }
+              @default {
+                {{step.title}}
+              }
+            }
+          </div>
+        </div>
+      </div>
+      <div class="flex-1 min-h-0 w-full overflow-y-auto">
+        @switch (step.type) {
+          @case (eChatMessageStepCategory.WebSearch) {
+            <div class="flex flex-col overflow-auto h-full px-4 py-3">
+              @for (item of step.data; track item; let first = $first) {
+                <div class="py-3 border-b border-divider-deep" [class.pt-0]="first">
+                  <a [href]="item.url" target="_blank" class="block text-text-primary text-base font-medium hover:underline line-clamp-2 cursor-pointer">
+                    {{item.title}}
+                  </a>
+                  <div class="text-zinc-500 text-sm mt-0.5 line-clamp-3">
+                    {{item.content}}
+                  </div>
+                </div>
+              }
+            </div>
+          }
+          @case (eChatMessageStepCategory.File) {
+            <chat-canvas-file-editor [step]="step" class="w-full h-full" />
+          }
+          @case (eChatMessageStepCategory.Files) {
+            <div class="flex flex-col overflow-auto h-full px-4 py-3">
+              @for (item of step.data; track item; let first = $first) {
+                <div class="py-3 border-b border-divider-deep flex justify-start items-center gap-2" [class.pt-0]="first">
+                  @switch (item.filePath | fileType) {
+                    @case ('code') {
+                      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3.55566 26.8889C3.55566 28.6071 4.94856 30 6.66678 30H25.3334C27.0517 30 28.4446 28.6071 28.4446 26.8889V9.77778L20.6668 2H6.66678C4.94856 2 3.55566 3.39289 3.55566 5.11111V26.8889Z" fill="#4999E9"></path><path opacity="0.8" d="M20.6685 6.66647C20.6685 8.38469 22.0613 9.77759 23.7796 9.77759H28.4462L20.6685 1.99981V6.66647Z" fill="#7CBDFF"></path><g opacity="0.9"><path d="M12.2146 23.0075C10.8351 21.6055 9.41533 20.2051 8.00342 18.8399C9.32659 17.5371 10.7038 16.1826 12.0868 14.8106C12.4508 15.1731 12.8166 15.5372 13.1831 15.9025C12.1737 16.9083 11.1695 17.9061 10.19 18.8828C11.2178 19.8927 12.2378 20.9105 13.2498 21.9361C12.9037 22.2922 12.5586 22.6494 12.2146 23.0075Z" fill="white"></path><path d="M20.1101 22.9923C19.7678 22.6361 19.4246 22.2809 19.0803 21.9267C20.0955 20.9008 21.1189 19.883 22.1503 18.8735C21.173 17.9015 20.17 16.9067 19.1604 15.9025C19.5269 15.5378 19.8925 15.1745 20.2562 14.8131C21.6404 16.1831 23.0167 17.5325 24.3368 18.8272C22.9219 20.1886 21.4969 21.5883 20.1101 22.9923Z" fill="white"></path><path d="M15.8827 24.1754H14.4272L16.5372 13.7883H18.0544L15.8827 24.1754Z" fill="white"></path><path d="M12.2146 23.0075C10.8351 21.6055 9.41533 20.2051 8.00342 18.8399C9.32659 17.5371 10.7038 16.1826 12.0868 14.8106C12.4508 15.1731 12.8166 15.5372 13.1831 15.9025C12.1737 16.9083 11.1695 17.9061 10.19 18.8828C11.2178 19.8927 12.2378 20.9105 13.2498 21.9361C12.9037 22.2922 12.5586 22.6494 12.2146 23.0075Z" stroke="white" stroke-width="0.233333"></path><path d="M20.1101 22.9923C19.7678 22.6361 19.4246 22.2809 19.0803 21.9267C20.0955 20.9008 21.1189 19.883 22.1503 18.8735C21.173 17.9015 20.17 16.9067 19.1604 15.9025C19.5269 15.5378 19.8925 15.1745 20.2562 14.8131C21.6404 16.1831 23.0167 17.5325 24.3368 18.8272C22.9219 20.1886 21.4969 21.5883 20.1101 22.9923Z" stroke="white" stroke-width="0.233333"></path><path d="M15.8827 24.1754H14.4272L16.5372 13.7883H18.0544L15.8827 24.1754Z" stroke="white" stroke-width="0.233333"></path></g></svg>
+                    }
+                    @case ('zip') {
+                      <svg width="26" height="26" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3.55566 26.8889C3.55566 28.6071 4.94856 30 6.66678 30H25.3334C27.0517 30 28.4446 28.6071 28.4446 26.8889V9.77778L20.6668 2H6.66678C4.94856 2 3.55566 3.39289 3.55566 5.11111V26.8889Z" fill="#F8A100"></path><path opacity="0.8" d="M20.6665 6.66672C20.6665 8.38494 22.0594 9.77783 23.7776 9.77783H28.4443L20.6665 2.00005V6.66672Z" fill="#FFCE76"></path><path d="M16.0952 14.9524V12.7935H14V10.635H16.0952V8.47619H14V6.31733H16.0952V4.15886H14V2H16.0952V4.15886H18.1905V6.31733H16.0952V8.47619H18.1905V10.635H16.0952V12.7935H18.1905V21.0476H14V14.9524H16.0952ZM17.4286 17.2381H14.7619V20.2857H17.4286V17.2381Z" fill="white"></path></svg>
+                    }
+                    @default {
+                      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3.55566 26.8889C3.55566 28.6071 4.94856 30 6.66678 30H25.3334C27.0517 30 28.4446 28.6071 28.4446 26.8889V9.77778L20.6668 2H6.66678C4.94856 2 3.55566 3.39289 3.55566 5.11111V26.8889Z" fill="#4D81E8"></path><path d="M20.6685 6.66647C20.6685 8.38469 22.0613 9.77759 23.7796 9.77759H28.4462L20.6685 1.99981V6.66647Z" fill="#9CC3F4"></path><path opacity="0.9" d="M10.1685 18.2363H21.8351" stroke="white" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="round"></path><path opacity="0.9" d="M10.1685 14.3472H12.1129" stroke="white" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="round"></path><path opacity="0.9" d="M15.0293 14.3472H16.9737" stroke="white" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="round"></path><path opacity="0.9" d="M10.1685 21.8333H21.8351" stroke="white" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="round"></path></svg>
+                    }
+                  }
+                  <a [href]="item.url" target="_blank" class="block text-text-primary text-base font-medium hover:underline line-clamp-2 cursor-pointer">
+                    {{item.filePath}}
+                  </a>
+                </div>
+              }
+            </div>
+          }
+          @case (eChatMessageStepCategory.Program) {
+            <chat-canvas-terminal [step]="step" class="p-2" />
+          }
+          @case (eChatMessageStepCategory.Iframe) {
+            <chat-canvas-iframe [step]="step" />
+          }
+          @default {
+            @if (step.error) {
+              <div class="p-2 text-sm whitespace-pre-line text-text-destructive">{{step.error}}</div>
+            } @else {
+              @switch (step.toolset) {
+                @case ('browser-use') {
+                  @if (step.data?.screenshot) {
+                    <img [src]="step.data.screenshot" alt="Screenshot" class="max-w-full h-auto">
+                  }@else if (step.data?.errors) {
+                    <div class="p-2">
+                      <span class="text-text-destructive">{{step.data.errors}}</span>
+                    </div>
+                  }
+                }
+                @case ('file') {
+                  @switch (step.data?.extension) {
+                    @case('html') {
+                      <xpert-canvas-html-editor class="h-full" [content]="step.data.content" [url]="step.data.url" />
+                    }
+                    @default {
+                      @if (step.data) {
+                        <pac-file-editor class="h-full" [fileName]="step.data.url" 
+                          [content]="step.data.content" 
+                        />
+                      }
+                    }
+                  }
+                }
+                @case ('project') {
+                  @switch (step.tool) {
+                    @case('project_create_tasks') {
+                      <xpert-project-tasks [projectId]="projectId()" [tasks]="step.data" class="group" />
+                    }
+                    @case('project_update_tasks') {
+                      <xpert-project-tasks [projectId]="projectId()" [tasks]="step.data" class="group" />
+                    }
+                  }
+                }
+                <!-- @deprecated -->
+                @case ('planning') {
+                  @switch (step.tool) {
+                    @case('create_plan') {
+                      <div class="p-4">
+                        <div class="text-text-secondary font-semibold">{{step.data.title}}</div>
+                        <ul class="list-decimal list-inside">
+                          @for (item of step.data.steps; track item) {
+                            <li class="text-sm text-text-primary">{{item.content}}</li>
+                          }
+                        </ul>
+                      </div>
+                    }
+                    @default {
+                      <div class="p-4 text-sm whitespace-pre-line">{{step.message}}</div>
+                    }
+                  }
+                }
+                @default {
+                  <div class="p-2 text-sm whitespace-pre-line">{{step.message}}</div>
+                }
+              }
+            }
+            
+          }
+        }
+      </div>
+    }
+
+    @if (stepMessages()) {
+      <div class="mt-auto flex w-full items-center gap-2 px-2 h-[44px] relative bg-components-panel-bg border-t border-divider-regular">
+        <div class="flex items-center mr-1">
+          <button type="button"
+            class="flex items-center justify-center w-[24px] h-[24px] rounded-lg text-text-secondary transition-colors
+              enabled:pressable enabled:hover:text-text-primary enabled:hover:bg-hover-bg disabled:cursor-not-allowed"
+            [disabled]="stepIndex() <= 0"
+            (click)="prevStep()">
+            <i class="ri-skip-back-line"></i>
+          </button>
+          <button type="button" class="flex items-center justify-center w-[24px] h-[24px] rounded-lg text-text-secondary transition-colors
+            enabled:pressable enabled:hover:text-text-primary enabled:hover:bg-hover-bg disabled:cursor-not-allowed"
+            [disabled]="stepIndex() >= stepMessageLength() - 1"
+            (click)="nextStep()">
+            <i class="ri-skip-forward-line"></i>
+          </button>
+        </div>
+        <mat-slider class="flex-1" min="0" [max]="stepMessageLength() - 1" step="1" showTickMarks discrete >
+          <input matSliderThumb [ngModel]="stepIndex()" (dragEnd)="updateStepIndex($event.value)" />
+        </mat-slider>
+      </div>
+    }
+
     @if (step(); as step) {
       <div class="h-[36px] flex items-center px-3 w-full bg-[var(--background-gray-main)] border-b border-divider-deep rounded-t-[12px] shadow-[inset_0px_1px_0px_0px_#FFFFFF] dark:shadow-[inset_0px_1px_0px_0px_#FFFFFF30]">
         <div class="flex-1 flex items-center justify-center">
@@ -99,16 +280,7 @@
             </div>
           }
           @case (eChatMessageStepCategory.File) {
-            @switch (step.data.filePath | fileExtension) {
-              @case('html') {
-                <xpert-canvas-html-editor class="h-full overflow-hidden" [content]="step.data.contents" [url]="step.data.url" />
-              }
-              @default {
-                <pac-file-editor class="h-full overflow-hidden" [fileName]="step.data.url" 
-                  [content]="step.data.contents" 
-                />
-              }
-            }
+            <chat-canvas-file-editor [step]="step" class="w-full h-full" />
           }
           @case (eChatMessageStepCategory.Files) {
             <div class="flex flex-col overflow-auto h-full px-4 py-3">
@@ -133,20 +305,10 @@
             </div>
           }
           @case (eChatMessageStepCategory.Program) {
-            <div class="flex flex-col overflow-auto h-full px-4 py-3">
-              <div class="whitespace-pre">{{step.data.code}}</div>
-              @if (step.data.output) {
-                <div class="w-full mt-4 flex flex-col bg-gray-200">
-                  <div class="p-1 border-b border-solid border-neutral-300">console</div>
-                  <div class="whitespace-pre-line">
-                    {{step.data.output}}
-                  </div>
-                </div>
-              }
-              @if (step.data.error) {
-                <div class="mt-4 text-text-destructive">{{step.data.error}}</div>
-              }
-            </div>
+            <chat-canvas-terminal [step]="step" class="p-2" />
+          }
+          @case (eChatMessageStepCategory.Iframe) {
+            <chat-canvas-iframe [step]="step" />
           }
           @default {
             @switch (step.toolset) {
@@ -158,29 +320,6 @@
                     <span class="text-text-destructive">{{step.data.errors}}</span>
                   </div>
                 }
-              }
-              @case ('bash') {
-                <div dir="ltr" data-orientation="horizontal" class="flex flex-col flex-1 min-h-0">
-                  <div
-                    role="tabpanel"
-                    tabindex="0"
-                    class="py-2 focus-visible:outline-none data-[state=inactive]:hidden flex-1 font-mono text-sm leading-relaxed px-3 outline-none overflow-auto whitespace-pre-wrap break-all"
-                  >
-                    <div>
-                      <code>
-                        <span class="mr-2 font-semibold text-green-600">ubuntu&#64;sandbox:~ $</span>
-                        <span>{{step.data.command}}</span>
-                      </code>
-
-                      <code>{{step.data.output}}</code>
-                    </div>
-                    <div class="mt-4">
-                      <code>
-                        <span class="mr-2 font-semibold text-green-600">ubuntu&#64;sandbox:~ $</span>
-                      </code>
-                    </div>
-                  </div>
-                </div>
               }
               @case ('file') {
                 @switch (step.data.extension) {
@@ -212,8 +351,7 @@
         }
       </div>
     }
-
-    @if (steps()) {
+    @if (steps()?.length) {
       <div class="mt-auto flex w-full items-center gap-2 px-2 h-[44px] relative bg-components-panel-bg border-t border-divider-regular">
         <div class="flex items-center mr-1">
           <button type="button"

@@ -1,6 +1,18 @@
 import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
 import { FileStorageProviderEnum } from './file-provider'
 
+export type TFile = {
+  filePath: string;
+  fileType?: string;
+  contents?: string;
+  description?: string;
+  size?: number
+  createdAt?: Date
+  url?: string
+
+  storageFileId?: string
+}
+
 export interface IStorageFile extends IBasePerTenantAndOrganizationEntityModel {
   file: string
   url?: string
@@ -25,4 +37,11 @@ export interface ICreateStorageFileInput extends IBasePerTenantAndOrganizationEn
 
 export interface IUpdateStorageFileInput extends ICreateStorageFileInput {
   id: string
+}
+
+export type TFileDirectory = TFile & {
+  fullPath?: string
+  directory?: string
+  hasChildren?: boolean
+  children?: TFileDirectory[]
 }

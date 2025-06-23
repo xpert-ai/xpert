@@ -2,31 +2,6 @@
 
 ## Step message
 
-### How to add step messages ?
-
-如果需用在工具执行内发出执行步骤消息，可以通过 `dispatchCustomEvent` 来发出步骤消息事件。此事件会被截获保存到消息里，同时实时传递到前端展示。
-
-在工具中发出自定义事件如下代码：
-
-```javascript
-// Tool message event
-dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-    type: ChatMessageStepType.ComputerUse,
-    toolset: 'planning',
-    tool: 'create_plan',
-    message: _.tasks.map((_) => _.name).join('\n\n'),
-    title: `Creating tasks`,
-    data: {
-        title: 'Tasks',
-        steps: _.tasks.map((_) => ({..._, content: _.name,}))
-    }
-}).catch((err) => {
-    console.error(err)
-})
-```
-
-### 步骤事件是如何分类的？
-
 每个步骤消息的类型定义为 `TChatMessageStep`。
 
 - 第一级分类是 `type` 类型为 `ChatMessageStepType`： 是对消息隶属于哪种 Canvas 类型，包括 `ComputerUse` `File` 和 `Notice`。
@@ -42,9 +17,38 @@ dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 
 工具内发出的消息要对应这些分类，这些分类最终对应到前端展示的组件，如果有未能满足的类型则需要添加。
 
+
+### How to add step messages ?
+
+如果需要在工具执行内发出执行步骤消息，可以通过 `dispatchCustomEvent` 来发出步骤消息事件。此事件会被截获保存到消息里，同时实时传递到前端展示。
+
+在工具中发出自定义事件如下代码：
+
+```javascript
+// Tool message event
+dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+    type: ChatMessageStepType.ComputerUse,
+    toolset: 'planning',
+    tool: 'create_plan',
+    title: `Creating tasks`, // Short title
+    message: _.tasks.map((_) => _.name).join('\n\n'), // Details message
+    data: {
+        title: 'Tasks',
+        steps: _.tasks.map((_) => ({..._, content: _.name,}))
+    }
+}).catch((err) => {
+    console.error(err)
+})
+```
+
 ## Component message
 
 组件消息，需要在 AI 消息中展示为复杂组件的消息类型，可以表达结构化的信息。
+
+组件消息的类型定义为 `TMessageContentComponent`， 具体的组件定义为 `TMessageComponent` 其
+
+- 一级分类为 `category`: 'Dashboard' | 'Computer'
+- 二级分类为 `type`: string
 
 目前组件消息是通过 `configurable` 中的 `subscriber` 发出去的。首先需要在工具中通过 `config` 参数获得 `configurable` 然后拿到 `subscriber` 对象，
 调用 `next` 方法发出具体消息。
@@ -54,11 +58,19 @@ async function tool(_, config) => {
 	const { configurable } = config ?? {}
 	const { subscriber } = configurable ?? {}
 
+    subscriber?.next({
+        data: {
+            type: ChatMessageTypeEnum.MESSAGE,
+            data: {
+                id: shortuuid(),
+                type: 'component',
+                data: {
+                    category: 'Computer',
+                    type: 'Iframe',
+                    url: indexFile
+                } as TMessageComponent<TMessageComponentIframe>
+            }
+        }
+    } as MessageEvent)
 }
 ```
-
-组件消息的类型定义为 `TMessageContentComponent`， 具体的组件定义为 `TMessageComponent` 其
-
-- 一级分类为 `category`: 'Dashboard' | 'Computer'
-- 二级分类为 `type`: string
-

@@ -15,6 +15,7 @@ import {
 	StorageFileDeleteCommand,
 	TenantOrganizationAwareCrudService
 } from '@metad/server-core'
+import { yaml } from '@metad/server-common'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -27,11 +28,12 @@ import { FindXpertToolsetsQuery } from '../xpert-toolset'
 import { ToolsetPublicDTO } from '../xpert-toolset/dto'
 import { XpertIdentiDto } from '../xpert/dto'
 import { FindXpertQuery } from '../xpert/queries'
-import { XpertProjectDto } from './dto'
 import { XpertProject } from './entities/project.entity'
 import { XpertProjectFileService, XpertProjectTaskService } from './services/'
 import { KnowledgebasePublicDTO } from '../knowledgebase/dto'
 import { KnowledgebaseGetOneQuery } from '../knowledgebase/queries'
+import { XpertProjectIdentiDto } from './dto'
+import { ExportProjectCommand } from './commands'
 
 @Injectable()
 export class XpertProjectService extends TenantOrganizationAwareCrudService<XpertProject> {
@@ -105,7 +107,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 		const projects = await query.getMany()
 
 		return {
-			items: projects.map((item) => new XpertProjectDto(item)),
+			items: projects.map((item) => new XpertProjectIdentiDto(item)),
 			total: projects.length
 		}
 	}
@@ -374,5 +376,40 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 			await this.repository.save(project)
 			await this.commandBus.execute(new StorageFileDeleteCommand(fileId))
 		}
+	}
+
+	async duplicate(id: string): Promise<XpertProject> {
+		const project = await this.findOne(id, {
+			relations: [
+				'copilotModel',
+				'xperts',
+				'toolsets',
+				'knowledges',
+				'attachments'
+			]
+		})
+		
+		return await this.create({
+			...project,
+			id: undefined, // Clear the ID to create a new project
+			tenantId: undefined,
+			organizationId: undefined,
+			createdAt: undefined,
+			updatedAt: undefined,
+			createdById: undefined,
+			updatedById: undefined,
+			name: `${project.name} - Copy`,
+			status: 'active',
+			xperts: project.xperts.map((xpert) => ({ id: xpert.id })),
+			toolsets: project.toolsets.map((toolset) => ({ id: toolset.id })),
+			knowledges: project.knowledges.map((knowledge) => ({ id: knowledge.id })),
+			attachments: project.attachments.map((_) => ({ id: _.id })),
+			files: []
+		})
+	}
+
+	async exportProject(id: string) {
+		const projectDsl = await this.commandBus.execute(new ExportProjectCommand(id))
+		return yaml.stringify(projectDsl)
 	}
 }

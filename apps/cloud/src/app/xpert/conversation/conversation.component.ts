@@ -4,6 +4,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   input,
@@ -21,6 +22,7 @@ import { AppService } from '../../app.service'
 import { ChatAiMessageComponent } from '../ai-message/ai-message.component'
 import { ChatService } from '../chat.service'
 import { XpertHomeService } from '../home.service'
+import { ChatHumanMessageComponent } from './human-message/message.component'
 
 @Component({
   standalone: true,
@@ -34,6 +36,7 @@ import { XpertHomeService } from '../home.service'
     EmojiAvatarComponent,
     ToolCallConfirmComponent,
     ChatAiMessageComponent,
+    ChatHumanMessageComponent,
     XpertParametersCardComponent
   ],
   selector: 'chat-conversation',
@@ -47,6 +50,7 @@ export class ChatConversationComponent {
   readonly chatService = inject(ChatService)
   readonly homeService = inject(XpertHomeService)
   readonly appService = inject(AppService)
+  private destroyRef = inject(DestroyRef)
 
   readonly #toastr = injectToastr()
 
@@ -85,6 +89,10 @@ export class ChatConversationComponent {
       },
       { allowSignalWrites: true }
     )
+
+    this.destroyRef.onDestroy(() => {
+      this.homeService.canvasOpened.set(null)
+    })
   }
 
   onChat(statement: string) {

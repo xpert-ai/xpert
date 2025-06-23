@@ -1,10 +1,18 @@
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
+import {
+  getEnabledTools,
+  getToolLabel,
+  IXpertToolset,
+  ToolTagEnum,
+  TXpertTeamNode,
+  XpertAgentExecutionStatusEnum
+} from '@cloud/app/@core'
+import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { FFlowModule } from '@foblex/flow'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { TXpertTeamNode, XpertAgentExecutionStatusEnum, IXpertToolset, ToolTagEnum, getEnabledTools } from '@cloud/app/@core'
-import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, of } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
@@ -18,7 +26,7 @@ import { XpertStudioNodeStatus } from '../../types'
   styleUrls: ['./toolset.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, EmojiAvatarComponent, NgmSpinComponent],
+  imports: [FFlowModule, MatTooltipModule, TranslateModule, NgmI18nPipe, EmojiAvatarComponent, NgmSpinComponent],
   host: {
     tabindex: '-1',
     '[class]': 'status()'
@@ -41,10 +49,12 @@ export class XpertStudioNodeToolsetComponent {
 
   // Retrieve the latest information about the toolset
   readonly toolsetDetail = derivedAsync(() => {
-    return this.toolset() ? this.apiService.getToolset(this.toolset().id).toolset$.pipe(catchError((err) => of(null))) : of(null)
+    return this.toolset()
+      ? this.apiService.getToolset(this.toolset().id).toolset$.pipe(catchError((err) => of(null)))
+      : of(null)
   })
 
-  readonly status = computed<XpertStudioNodeStatus>(() => this.toolset() && !this.toolsetDetail() ? 'template' : null)
+  readonly status = computed<XpertStudioNodeStatus>(() => (this.toolset() && !this.toolsetDetail() ? 'template' : null))
 
   readonly availableTools = computed(() => getEnabledTools(this.toolsetDetail()))
   readonly xpert = this.xpertStudioComponent.xpert
@@ -57,6 +67,7 @@ export class XpertStudioNodeToolsetComponent {
     const executions = this.toolExecutions()
     return tools?.map((tool) => ({
       tool,
+      label: getToolLabel(tool),
       executions: Object.values(executions?.[tool.name] ?? {}).sort(
         (a, b) => a.createdAt?.getTime() - b.createdAt?.getTime()
       )
@@ -72,23 +83,6 @@ export class XpertStudioNodeToolsetComponent {
   readonly isSandbox = computed(() => this.toolset()?.options?.provider?.tags?.includes(ToolTagEnum.SANDBOX))
   readonly needSandbox = computed(() => this.toolsetDetail()?.options?.needSandbox)
 
-  // private get hostElement(): HTMLElement {
-  //   return this.elementRef.nativeElement
-  // }
-
-  constructor() {
-    effect(() => {
-      // console.log(this.toolset())
-    })
-  }
-
-  // protected emitSelectionChangeEvent(event: MouseEvent): void {
-  //   this.hostElement.focus()
-  //   event.preventDefault()
-  //   event.stopPropagation()
-
-  //   // Open Context menu
-  // }
 
   isSensitive(name: string) {
     return this.agentConfig()?.interruptBefore?.includes(name)

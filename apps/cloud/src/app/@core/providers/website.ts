@@ -21,3 +21,28 @@ export function injectHelpWebsite() {
     }
   })
 }
+
+/**
+ * Build a complete help link based on the official website URL.
+ * 
+ * Example:
+ * ```ts
+ * helpUrl = derivedHelpUrl(() => this.provider()?.help_url)
+ * ```
+ * 
+ * @param helpUrl a function or Signal that return a url string
+ * @returns 
+ */
+export function derivedHelpUrl(helpUrl: (() => string)) {
+  const helpBaseUrl = injectHelpWebsite()
+  return computed(() => {
+    const url = helpUrl()
+    if (url?.startsWith('/')) {
+      return helpBaseUrl() + url
+    }
+    if (url) {
+      return url
+    }
+    return null
+  })
+}

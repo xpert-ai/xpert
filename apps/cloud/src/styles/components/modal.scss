@@ -16,6 +16,10 @@
   min-height: 40vh;
 }
 
+.cdk-overlay-backdrop.backdrop-blur-sm-black {
+  @apply backdrop-blur-sm transition-all duration-100 ease-in bg-black/10;
+}
+
 .cdk-overlay-backdrop.backdrop-blur-md-white {
   @apply backdrop-blur-md transition-all duration-100 ease-in bg-white/50;
 }

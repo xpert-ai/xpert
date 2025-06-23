@@ -1,0 +1,31 @@
+@if (step(); as step) {
+  @switch (step.category) {
+    @case (eChatMessageStepCategory.File) {
+      <i class="ri-file-list-3-line"></i>
+    }
+    @case (eChatMessageStepCategory.Files) {
+      <i class="ri-file-list-3-line"></i>
+    }
+    @case (eChatMessageStepCategory.Program) {
+      <i class="ri-terminal-box-line"></i>
+    }
+    @default {
+      @if (step.toolset) {
+        @switch (step.toolset) {
+          @case ('project') {
+            <i class="ri-building-line"></i>
+          }
+          @case ('transfer_to') {
+            <i class="ri-exchange-2-fill"></i>
+          }
+          @case ('knowledge') {
+            <i class="ri-book-shelf-fill"></i>
+          }
+          @default {
+            <img src="/api/xpert-toolset/builtin-provider/{{step.toolset}}/icon" alt="{{step.toolset}}" class="rounded-md">
+          }
+        }
+      }
+    }
+  }
+}

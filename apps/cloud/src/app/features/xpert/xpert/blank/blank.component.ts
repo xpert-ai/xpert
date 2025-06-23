@@ -62,7 +62,12 @@ export class XpertNewBlankComponent {
         avatar: this.avatar(),
         agent: {
           key: genAgentKey(),
-          avatar: this.avatar()
+          avatar: this.avatar(),
+          options: {
+            vision: {
+              enabled: true,
+            }
+          }
         }
       })
       .subscribe({

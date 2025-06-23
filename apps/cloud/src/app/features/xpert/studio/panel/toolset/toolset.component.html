@@ -25,8 +25,15 @@
       </button>
     }
 
-    <div class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer
-      text-text-tertiary hover:text-base-content hover:bg-hover-bg"
+    <a [href]="helpUrl()" target="_blank" class="action-btn action-btn-sm justify-center w-7 h-7 rounded-md pressable"
+      [matTooltip]="'PAC.Xpert.HelpDocumentation' | translate: { Default: 'Help Documentation' }"
+      matTooltipPosition="above"
+    >
+      <i class="ri-book-open-line"></i>
+    </a>
+
+    <div class="flex items-center justify-center w-7 h-7 rounded-md cursor-pointer
+      text-text-tertiary hover:text-text-destructive hover:bg-hover-bg"
       (click)="closePanel()"
     >
       <ngm-close-svg class="w-5 h-5" />
@@ -38,12 +45,12 @@
   {{toolset()?.description}}
 </div>
 
-@if (needSandbox()) {
+<!-- @if (needSandbox()) {
   <div class="flex items-center px-4">
     <i class="ri-alarm-warning-fill mb-0.5 mr-1 text-orange-500"></i>
     <span class="text-sm text-text-secondary truncate">{{ 'PAC.Xpert.NeedSandboxToolsetTip' | translate: {Default: 'For security reasons, please upgrade to the pro version to run this toolset safely in a sandbox'} }}</span>
   </div>
-}
+} -->
 
 @if (isTemplate()) {
   <div class="flex flex-col justify-start items-stretch p-4 space-y-4 w-full">
@@ -61,7 +68,7 @@
         <li class="group/item w-full flex flex-col items-stretch px-2 py-1 rounded-lg border-[0.5px] border-solid border-transparent hover:border-gray-100">
           <div class="relative flex items-center w-full">
             <emoji-avatar small [avatar]="toolset.avatar" class="mr-1 shrink-0 rounded-lg overflow-hidden shadow-sm" />
-            {{toolset.name}}
+            <span class="truncate">{{toolset.name}}</span>
 
             <button type="button" class="absolute right-0 btn btn-small opacity-0 group-hover/item:opacity-100"
               (click)="useToolset(toolset)"
@@ -77,24 +84,30 @@
 
 
 <div class="w-full flex flex-col gap-2 p-2">
-  @for (tool of tools(); track tool.id) {
+  @for (item of tools(); track item.tool.id) {
     <div class="w-full flex flex-col">
       <div class="my-2 h-[1px] bg-divider-subtle"></div>
       <div class="w-full flex justify-start items-center">
         <button class="w-7 h-7 mr-1 flex justify-center items-center rounded-lg pressable enabled:hover:bg-hover-bg enabled:cursor-pointer"
-          (click)="toggleExpand(tool.name)"
+          (click)="toggleExpand(item.tool.name)"
         >
           <i class="ri-arrow-up-s-line text-text-tertiary transition-transform origin-center"
-            [ngClass]="{'rotate-90': !expandTools()[tool.name]}"></i>
+            [ngClass]="{'rotate-90': !expandTools()[item.tool.name]}"></i>
         </button>
-        <div class="px-2 truncate">{{tool.name | i18n}}</div>
+
+        <span class="px-2 truncate" [title]="item.tool.description || item.tool.name">
+          {{item.label | i18n}}
+        </span>
+        <div class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50">
+          {{item.tool.name}}
+        </div>
       </div>
 
-    @if (expandTools()[tool.name]) {
-      <div class="px-2 my-2 text-sm text-text-secondary line-clamp-3">{{tool.description | i18n}}</div>
+    @if (expandTools()[item.tool.name]) {
+      <div class="px-2 my-2 text-sm text-text-secondary line-clamp-3">{{item.tool.description | i18n}}</div>
 
       <div class="w-full flex justify-end px-2 mb-4">
-        <mat-slide-toggle [ngModel]="getSensitive(tool.name)" (ngModelChange)="updateSensitive(tool.name, $event)"
+        <mat-slide-toggle [ngModel]="getSensitive(item.tool.name)" (ngModelChange)="updateSensitive(item.tool.name, $event)"
           labelPosition="before"
           ngm-density="xs"
           [matTooltip]="'PAC.Xpert.SensitiveToolsTip' | translate: {Default: 'Sensitive tools require user confirmation before execution'}"
@@ -103,7 +116,7 @@
       </div>
 
       <div class="w-full flex justify-end px-2 mb-4">
-        <mat-slide-toggle [ngModel]="isEnd(tool.name)" (ngModelChange)="updateEnd(tool.name, $event)"
+        <mat-slide-toggle [ngModel]="isEnd(item.tool.name)" (ngModelChange)="updateEnd(item.tool.name, $event)"
           labelPosition="before"
           ngm-density="xs"
           [matTooltip]="'PAC.Xpert.EndTool' | translate: {Default: 'End point tool, the conversation ends when tool completed'}"
@@ -112,7 +125,7 @@
       </div>
 
       <div class="w-full flex justify-end px-2 mb-4">
-        <mat-slide-toggle [ngModel]="toolMemory(tool.name)" (ngModelChange)="toggleToolMemory(tool.name, $event)"
+        <mat-slide-toggle [ngModel]="toolMemory(item.tool.name)" (ngModelChange)="toggleToolMemory(item.tool.name, $event)"
           labelPosition="before"
           ngm-density="xs"
           [matTooltip]="'PAC.Xpert.ToolMemoryTip' | translate: {Default: 'Tool memory, storing tool results in agent state variables'}"
@@ -120,18 +133,19 @@
         >{{'PAC.Xpert.ToolMemory' | translate: {Default: 'Tool Memory'} }}</mat-slide-toggle>
       </div>
 
-      @if (toolMemory(tool.name)) {
+      @if (toolMemory(item.tool.name)) {
         <xpert-variables-assigner class="p-2"
           [title]="'PAC.Xpert.WritetoMemory' | translate: {Default: 'Write to memory'}"
           [tooltip]="'PAC.Xpert.WriteToolResultToMemoryTooltip' | translate: {Default: 'Write tool output to global memory of the digital expert'}"
           type="tool"
           [variables]="variables()"
-          [memories]="toolMemory(tool.name)"
-          (memoriesChange)="updateToolMemory(tool.name, $event)"
+          [memories]="toolMemory(item.tool.name)"
+          (memoriesChange)="updateToolMemory(item.tool.name, $event)"
         />
       }
 
-      <xpert-tool-test [tool]="tool" class="w-full px-2 mt-4" [enabled]="tool.enabled" />
+      <xpert-tool-test [tool]="item.tool" class="w-full px-2 mt-4" [enabled]="item.tool.enabled" 
+        (saveParameters)="saveDefaultParameters($event)" />
     }
     </div>
   }

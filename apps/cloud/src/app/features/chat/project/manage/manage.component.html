@@ -1,0 +1,59 @@
+<div class="p-4 text-2xl font-semibold cursor-move"
+  cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle
+>{{'PAC.XProject.ManageProject' | translate: {Default: 'Manage project'} }}</div>
+<div class="px-6 py-2 flex flex-col">
+  <div class="text-lg font-semibold">{{ 'PAC.XProject.AiModel' | translate: {Default: 'AI Model'} }}</div>
+  <copilot-model-select class="mt-4"
+    [modelType]="eModelType.LLM"
+    [inheritModel]="primaryCopilot()"
+    [(ngModel)]="copilotModel"
+    (ngModelChange)="saveProject()"
+  />
+  @if (!copilotModel() && !primaryCopilot()) {
+    <a href="/settings/copilot/basic" target="_blank" class="text-xs my-1 hover:underline text-primary-400 hover:text-primary-500">
+      {{ 'PAC.XProject.GlobalModelConfig' | translate: {Default: 'Global model config'} }}
+    </a>
+  }
+</div>
+
+<div class="border-b border-solid border-divider-regular my-6"></div>
+
+<div class="px-6 py-2">
+  <div class="text-lg font-semibold">{{'PAC.XProject.Collaborators' | translate: {Default: 'Collaborators'} }}</div>
+  <chat-project-members tabindex="-1" class="py-3" [project]="project()" />
+</div>
+
+<div class="border-b border-solid border-divider-regular my-6"></div>
+
+<div class="px-6 py-2 mb-4">
+  <div class="text-lg font-semibold text-orange-500 pb-2">
+    {{ 'PAC.KEY_WORDS.DangerZone' | translate: {Default: 'Danger zone'} }}
+  </div>
+
+  <div class="border border-solid border-orange-500 rounded-xl flex flex-col">
+    <div class="w-full flex justify-between items-center gap-4 p-4">
+      <div class="flex flex-col">
+        <div class="font-semibold">
+          {{ 'PAC.XProject.DeleteProject' | translate: {Default: 'Delete this project'} }}
+        </div>
+        <div>
+          {{ 'PAC.XProject.DeleteProjectDesc' | translate: {Default: 'Once deleted, it will be gone forever. Please be certain'} }}
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-large danger pressable" (click)="deleteProject()">
+        {{ 'PAC.XProject.DeleteProject' | translate: {Default: 'Delete this project'} }}
+      </button>
+    </div>
+  </div>
+</div>
+
+@if (loading()) {
+  <ngm-spin class="absolute left-0 top-0 w-full h-full"/>
+}
+
+<div class="absolute z-10 top-5 right-5 w-7 h-7 text-lg rounded-lg flex items-center justify-center hover:cursor-pointer
+  hover:bg-gray-100 hover:text-text-destructive"
+  (click)="cancel()">
+  <i class="ri-close-line"></i>
+</div>

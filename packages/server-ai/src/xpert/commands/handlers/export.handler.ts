@@ -8,7 +8,6 @@ import {
 import { omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { instanceToPlain } from 'class-transformer'
 import { XpertDraftDslDTO } from '../../dto'
 import { XpertService } from '../../xpert.service'
 import { XpertExportCommand } from '../export.command'
@@ -48,12 +47,12 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
 			]
 		const xpert = await this.xpertService.findOne(id, {relations})
 
-		const draft = isDraft ? xpert.draft : this.getInitialDraft(xpert)
+		const draft = isDraft ? xpert.draft ?? this.getInitialDraft(xpert) : this.getInitialDraft(xpert)
 		// In some cases, there is no primary agent in the draft.
 		if (!draft.team.agent) {
 			draft.team.agent = xpert.agent
 		}
-		return instanceToPlain(new XpertDraftDslDTO(draft))
+		return new XpertDraftDslDTO(draft)
 	}
 
 	getInitialDraft(xpert: IXpert) {

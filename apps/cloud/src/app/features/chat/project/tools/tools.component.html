@@ -16,31 +16,31 @@
   </div>
 }
 
-@if (workspace()) {
-  <div @listEnterAnimation class="relative content-start gap-4 pt-2 pb-4 px-1 mt-4 grow shrink-0"
-    ngmDynamicGrid colWidth="280"
-    box="content-box">
-    @for (toolset of toolsets(); track toolset.id) {
-      <xpert-toolset-card [toolset]="toolset" inline class="group/card bg-components-card-bg">
-        <button action type="button" class="btn rounded-xl justify-center w-8 h-8 danger opacity-0 group-hover/card:opacity-100"
-          [matTooltip]="'PAC.XProject.RemoveTool' | translate: {Default: 'Remove tool'}"
-          matTooltipPosition="right"
-          (click)="removeTool(toolset)">
-          <i class="ri-delete-bin-7-line"></i>
-        </button>
-      </xpert-toolset-card>
-    }
-  </div>
+<div @listEnterAnimation class="relative content-start gap-4 pt-2 pb-4 px-1 my-4 grow shrink-0"
+  ngmDynamicGrid colWidth="280"
+  box="content-box">
+@for (toolset of toolsets(); track toolset.id) {
+  <xpert-toolset-card [toolset]="toolset" inline class="group/card bg-components-card-bg">
+    <button action type="button" class="btn rounded-xl justify-center w-8 h-8 danger opacity-0 group-hover/card:opacity-100"
+      [matTooltip]="'PAC.XProject.RemoveTool' | translate: {Default: 'Remove tool'}"
+      matTooltipPosition="right"
+      (click)="removeTool(toolset)">
+      <i class="ri-delete-bin-7-line"></i>
+    </button>
+  </xpert-toolset-card>
+}
+</div>
 
+@if (workspace()) {
   <div class="flex items-center py-4 px-1 text-lg font-semibold text-gray-500 uppercase">
-    <div class="mr-3">{{ 'PAC.Xpert.AvailableToolsets' | translate: { Default: 'Available Toolsets' } }}</div>
+    <div class="mr-3">{{ 'PAC.XProject.AvailableToolsets' | translate: { Default: 'Available Toolsets' } }}</div>
     <div class="grow w-0 h-px bg-divider-regular"></div>
   </div>
 
   @if (wsToolLoading()) {
     <list-content-loader />
   } @else {
-    <div class="relative content-start gap-4 pt-2 pb-4 px-1 grow shrink-0"
+    <div class="relative content-start gap-4 pt-2 pb-4 px-1 grow shrink-0 opacity-60 hover:opacity-100 transition-all duration-300 ease-in-out"
       ngmDynamicGrid colWidth="280"
       box="content-box">
       @for (item of wsToolsets(); track item.toolset.id) {
@@ -69,5 +69,6 @@
     </div>
   }
 
-  <mcp-marketplace [workspace]="workspace()" (refresh)="refreshWorkspace()"/>
+  <mcp-marketplace class="opacity-60 hover:opacity-100 transition-all duration-300 ease-in-out"
+    [workspace]="workspace()" (refresh)="refreshWorkspace()"/>
 }

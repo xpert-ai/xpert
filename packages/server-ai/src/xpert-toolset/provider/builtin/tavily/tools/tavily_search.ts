@@ -1,12 +1,12 @@
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
 import { CallbackManagerForToolRun } from "@langchain/core/callbacks/manager";
-import { Tool, type ToolParams } from "@langchain/core/tools";
+import { Tool, ToolRunnableConfig, type ToolParams } from "@langchain/core/tools";
 import { getEnvironmentVariable } from "@langchain/core/utils/env";
-import { ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageStepType, mapTranslationLanguage } from "@metad/contracts";
-import { RequestContext } from "@metad/server-core";
+import { ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageStepType, getToolCallFromConfig } from "@metad/contracts";
+import { t } from 'i18next'
 import { Logger } from '@nestjs/common'
-import { BaseTool } from "../../../../toolset";
 import { TavilyToolset } from "../tavily";
+import { BaseTool } from "../../../../../shared";
 
 /**
  * Options for the TavilySearchResults tool.
@@ -119,7 +119,8 @@ export class TavilySearchResults extends BaseTool {
 
   protected async _call(
     input: string,
-    _runManager?: CallbackManagerForToolRun
+    _runManager?: CallbackManagerForToolRun,
+    parentConfig?: ToolRunnableConfig
   ): Promise<[string, any]> {
     const body: Record<string, unknown> = {
       query: input,
@@ -144,15 +145,16 @@ export class TavilySearchResults extends BaseTool {
       throw new Error(`Could not parse Tavily results. Please try again.`);
     }
 
-    const i18n = await this.toolset.translate('toolset.TavilySearch', { lang: mapTranslationLanguage(RequestContext.getLanguageCode()) })
+    const toolCall = getToolCallFromConfig(parentConfig)
     // Tool message event
 		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+      id: toolCall?.id,
 			type: ChatMessageStepType.ComputerUse,
       category: ChatMessageStepCategory.WebSearch,
 			toolset: TavilyToolset.provider,
 			tool: this.name,
-			message: `${i18n.Searching}: ${input}`,
-			title: i18n.WebSearch,
+			title: t('server-ai:Tools.TavilySearch.WebSearch'),
+			message: input,
 			data: json.results
 		}).catch((err) => {
 			this.#logger.error(err)

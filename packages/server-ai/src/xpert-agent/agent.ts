@@ -4,11 +4,11 @@ import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
 import { BaseChannel, isCommand } from '@langchain/langgraph'
-import { agentLabel, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TMessageChannel, TMessageContentReasoning, TMessageContentText, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertTeamNode } from '@metad/contracts'
+import { agentLabel, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TChatMessageStep, TMessageChannel, TMessageComponent, TMessageContentReasoning, TMessageContentText} from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { instanceToPlain } from 'class-transformer'
-import { AgentStateAnnotation } from './commands/handlers/types'
+import { AgentStateAnnotation } from '../shared'
 
 /**
  * Create an operator function that intercepts Langgraph events, 
@@ -32,10 +32,6 @@ export function createMapStreamEvents(
 	// let collectingResult = ''
 	const eventStack: string[] = []
 	let prevEvent = ''
-	/**
-	 * @deprecated	
-	 */
-	let startStream = false
 	const toolsMap: Record<string, string> = {} // For lc_name and name of tool is different
 	const processFun = ({ event, tags, data, ...rest }: any) => {
 		const langgraph_node = rest.metadata.langgraph_node
@@ -112,7 +108,9 @@ export function createMapStreamEvents(
 							if (agentKey) {
 								chunk.agentKey = agentKey
 							}
-							if (xpert) {
+							if (rest.metadata.xpertName) {
+								chunk.xpertName = rest.metadata.xpertName
+							} else if (xpert) {
 								chunk.xpertName = xpert.name
 							}
 							
@@ -135,7 +133,9 @@ export function createMapStreamEvents(
 							if (agentKey) {
 								chunk.agentKey = agentKey
 							}
-							if (xpert) {
+							if (rest.metadata.xpertName) {
+								chunk.xpertName = rest.metadata.xpertName
+							} else if (xpert) {
 								chunk.xpertName = xpert.name
 							}
 							
@@ -172,8 +172,7 @@ export function createMapStreamEvents(
 			case 'on_tool_start': {
 				eventStack.push(event)
 				toolsMap[rest.metadata.langgraph_node] = rest.name
-				// Hack out agent key
-				const agentKey = rest.metadata.checkpoint_ns?.split(':')[0]
+				
 				subscriber.next({
 					data: {
 						type: ChatMessageTypeEnum.EVENT,
@@ -182,10 +181,34 @@ export function createMapStreamEvents(
 							data,
 							tags,
 							...rest,
-							agentKey
+							agentKey: rest.metadata.agentKey
 						}
 					}
 				} as MessageEvent)
+
+				const tool_call_id = data.id || rest.metadata.tool_call_id
+				if (tool_call_id) {
+					subscriber.next({
+						data: {
+							type: ChatMessageTypeEnum.MESSAGE,
+							data: {
+								id: tool_call_id,
+								type: 'component',
+								xpertName: rest.metadata.xpertName,
+								agentKey: rest.metadata.agentKey,
+								data: {
+									...data,
+									category: 'Computer',
+									toolset: rest.metadata.toolset,
+									tool: rest.name,
+									title: rest.metadata.toolName || rest.metadata[rest.name] || rest.name,
+									created_date: new Date(),
+									status: 'running',
+								} as TMessageComponent<TChatMessageStep>
+							}
+						}
+					} as MessageEvent)
+				}
 				break
 			}
 			case 'on_tool_end': {
@@ -215,6 +238,24 @@ export function createMapStreamEvents(
 						}
 					}
 				} as MessageEvent)
+
+				const tool_call_id = data.output?.tool_call_id || data.id || rest.metadata.tool_call_id
+				if (tool_call_id) {
+					subscriber.next({
+						data: {
+							type: ChatMessageTypeEnum.MESSAGE,
+							data: {
+								id: tool_call_id,
+								type: 'component',
+								data: {
+									category: 'Computer',
+									status: 'success',
+									end_date: new Date(),
+								} as TMessageComponent<TChatMessageStep>
+							}
+						}
+					} as MessageEvent)
+				}
 				break
 			}
 			case 'on_retriever_start': {
@@ -247,7 +288,7 @@ export function createMapStreamEvents(
 				break
 			}
 			case 'on_custom_event': {
-				logger.verbose(data, rest)
+				// logger.verbose(data, rest)
 				switch (rest.name) {
 					case ChatMessageEventTypeEnum.ON_TOOL_ERROR: {
 						subscriber.next({
@@ -259,6 +300,22 @@ export function createMapStreamEvents(
 									...data,
 									name: toolsMap[data.toolCall.name] ?? data.toolCall.name,
 									tags
+								}
+							}
+						} as MessageEvent)
+
+						subscriber.next({
+							data: {
+								type: ChatMessageTypeEnum.MESSAGE,
+								data: {
+									id: data.id || data.toolCall.id || rest.run_id,
+									type: 'component',
+									data: {
+										...data,
+										category: 'Computer',
+										status: 'fail',
+										end_date: new Date(),
+									} as TMessageComponent<TChatMessageStep>
 								}
 							}
 						} as MessageEvent)
@@ -280,7 +337,7 @@ export function createMapStreamEvents(
 						break
 					}
 					case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
-						if (data.type === ChatMessageStepType.Notice) {
+						if (data.type === ChatMessageStepType.Notice || data.type === ChatMessageStepType.ComputerUse) {
 							/**
 							 * Notification messages from tool calling are displayed in component messages
 							 */
@@ -288,11 +345,14 @@ export function createMapStreamEvents(
 								data: {
 									type: ChatMessageTypeEnum.MESSAGE,
 									data: {
+										id: data.id || rest.run_id,
 										type: 'component',
 										data: {
+											...data,
+											category: 'Computer',
 											type: data.category,
-											data: data.data
-										}
+											data: data.data,
+										} as TMessageComponent<TChatMessageStep>
 									}
 								}
 							} as MessageEvent)

@@ -16,7 +16,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import Handlebars from 'handlebars'
 import { get } from 'lodash'
 import { wrapAgentExecution } from '../../xpert-agent-execution/utils'
-import { AgentStateAnnotation, stateToParameters } from '../commands/handlers/types'
+import { AgentStateAnnotation, stateToParameters } from '../../shared'
 
 export function createTemplateNode(
 	graph: TXpertGraph,

@@ -1,11 +1,11 @@
-import { IXpertAgent, TXpertGraph, TXpertOptions, TXpertTeamDraft } from '@metad/contracts'
+import { IOrganization, IXpert, IXpertAgent, TXpertGraph, TXpertOptions, TXpertTeamDraft } from '@metad/contracts'
+import { OrganizationPublicDTO } from '@metad/server-core'
 import { Exclude, Expose, Transform, TransformFnParams } from 'class-transformer'
 import { Knowledgebase, XpertToolset } from '../../core/entities/internal'
 import { KnowledgebasePublicDTO } from '../../knowledgebase/dto'
-import { ToolsetPublicDTO } from '../../xpert-toolset/dto'
-import { Xpert } from '../xpert.entity'
-import { XpertIdentiDto } from './xpert-identi.dto'
 import { XpertAgentPublicDTO } from '../../xpert-agent/dto'
+import { ToolsetPublicDTO } from '../../xpert-toolset/dto'
+import { XpertIdentiDto } from './xpert-identi.dto'
 
 @Expose()
 export class XpertPublicDTO extends XpertIdentiDto {
@@ -36,7 +36,11 @@ export class XpertPublicDTO extends XpertIdentiDto {
 	)
 	declare toolsets?: XpertToolset[]
 
-	constructor(partial: Partial<XpertPublicDTO | Xpert>) {
+	@Expose()
+	@Transform((params: TransformFnParams) => (params.value ? new OrganizationPublicDTO(params.value) : null))
+	organization?: IOrganization
+
+	constructor(partial: Partial<XpertPublicDTO | IXpert>) {
 		super(partial)
 	}
 }

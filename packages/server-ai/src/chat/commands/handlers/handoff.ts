@@ -10,14 +10,14 @@ import {
 
 const WHITESPACE_RE = /\s+/;
 
-function _normalizeAgentName(agentName: string): string {
+export function _normalizeAgentName(agentName: string): string {
   /**
    * Normalize an agent name to be used inside the tool name.
    */
   return agentName.trim().replace(WHITESPACE_RE, "_").toLowerCase();
 }
 
-const createHandoffTool = ({ agentName, description }: { agentName: string; description: string; }) => {
+const createHandoffTool = ({ agentName, title, description }: { agentName: string; title: string; description: string; }) => {
   /**
    * Create a tool that can handoff control to the requested agent.
    *
@@ -29,7 +29,13 @@ const createHandoffTool = ({ agentName, description }: { agentName: string; desc
    *   (the tool name will look like this: `transfer_to_<agent_name>`).
    */
   const toolName = `transfer_to_${_normalizeAgentName(agentName)}`;
-
+  let toolDescription = `Ask expert "${agentName}" for help.`
+  if (title) {
+    toolDescription += ` He is "${title}".`;
+  }
+  if (description) {
+    toolDescription += ` He is described as "${description}".`;
+  }
   const handoffTool = tool(
     async (_, config) => {
       /**
@@ -55,7 +61,7 @@ const createHandoffTool = ({ agentName, description }: { agentName: string; desc
       schema: z.object({
         input: z.string().describe(`Requirement`)
       }),
-      description: `Ask agent '${agentName}' for help. He is ${description}`,
+      description: toolDescription,
     }
   );
   return handoffTool;

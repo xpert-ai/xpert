@@ -81,11 +81,7 @@
     >
       @for (step of steps(); track step) {
         <div class="relative flex items-center p-1 py-0.5 rounded-lg group/item hover:bg-white">
-          <div class="w-[16px] inline-flex items-center text-[var(--text-primary)]">
-            @if (step.toolset) {
-              <img src="/api/xpert-toolset/builtin-provider/{{step.toolset}}/icon" alt="{{step.toolset}}" class="rounded-md">
-            }
-          </div>
+          <chat-message-step-icon class="w-[16px] inline-flex items-center text-text-secondary" [step]="step"/>
           <div class="flex-1 h-full min-w-0 flex">
             <div class="inline-flex items-center h-full rounded-full text-[14px] text-[var(--text-secondary)] max-w-[100%]">
               <div

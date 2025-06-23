@@ -11,7 +11,7 @@ import {
 } from '@metad/contracts'
 import { isEmpty } from '@metad/server-common'
 import { get } from 'lodash'
-import { AgentStateAnnotation, stateToParameters } from '../commands/handlers/types'
+import { AgentStateAnnotation, stateToParameters } from '../../shared'
 
 export function createCasesNode(graph: TXpertGraph, node: TXpertTeamNode & { type: 'workflow' }, params: { environment: IEnvironment }) {
 	const { environment } = params

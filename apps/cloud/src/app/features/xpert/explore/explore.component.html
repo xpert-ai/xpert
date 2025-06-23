@@ -1,9 +1,9 @@
 <div class="shrink-0 pt-6 px-12">
   <div class="mb-1 text-2xl font-semibold text-primary-600">
-    {{ 'PAC.Xpert.ExploreXpertAgents' | translate: {Default: 'Explore Xpert Agents'} }}
+    {{ 'PAC.Xpert.ExploreXpertAgents' | translate: {Default: 'Explore Xpert Agents and Projects'} }}
   </div>
-  <div class="text-gray-500 text-sm">
-    {{ 'PAC.Xpert.ExploreXpertsDesc' | translate: {Default: 'Use these templates to create, or customize your own digital expert based on the template.'} }}
+  <div class="text-gray-500 text-base">
+    {{ 'PAC.Xpert.ExploreXpertsDesc' | translate: {Default: 'Use these templates to create, or customize your own digital expert or project team based on the template.'} }}
   </div>
 </div>
 
@@ -31,13 +31,14 @@
   <div class="relative w-[200px] flex items-center">
     <i class="ri-search-2-line absolute left-2 text-text-secondary"></i>
     
-    <input matInput [formControl]="searchControl"
-      class="w-full py-[7px] bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular pl-[26px]"
+    <input class="w-full py-[7px] bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular pl-[26px]"
       [placeholder]="'PAC.KEY_WORDS.Search' | translate: {Default: 'Search'}"
+      [(ngModel)]="searchModel"
     />
 
-    @if (searchControl.value) {
-      <i class="ri-close-circle-fill absolute right-2 cursor-pointer text-gray-500 opacity-50 hover:opacity-100" (click)="searchControl.setValue('')"></i>
+    @if (searchModel()) {
+      <i class="ri-close-circle-fill absolute right-2 cursor-pointer text-gray-500 opacity-50 hover:opacity-100"
+        (click)="searchModel.set('')"></i>
     }
   </div>
 </div>
@@ -47,13 +48,11 @@
     ngmDynamicGrid colWidth="280"
     box="content-box">
     @for (app of apps(); track app.id) {
-      <div
-        class="relative overflow-hidden pb-2 group col-span-1 bg-white border-2 border-solid border-transparent rounded-lg shadow-sm flex flex-col transition-all duration-200 ease-in-out hover:shadow-lg"
-      >
+      <div class="relative overflow-hidden pb-2 group col-span-1 bg-white border-2 border-solid border-transparent rounded-lg shadow-sm flex flex-col transition-all duration-200 ease-in-out hover:shadow-lg">
         <div class="flex pt-[14px] px-[14px] pb-3 h-[66px] items-center gap-3 grow-0 shrink-0">
           <div class="relative shrink-0">
             <emoji-avatar [avatar]="app.avatar" class="rounded-lg overflow-hidden shadow-sm shrink-0"/>
-            <span class="absolute bottom-[-3px] right-[-3px] w-4 h-4 p-0.5 bg-white rounded border-[0.5px] border-[rgba(0,0,0,0.02)] shadow-sm">
+            <span class="absolute bottom-[-3px] right-[-3px] w-4 h-4 flex justify-center items-center bg-white rounded border-[0.5px] border-[rgba(0,0,0,0.02)] shadow-sm">
               @switch (app.type) {
                 @case (eXpertTypeEnum.Copilot) {
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-primary-600" >
@@ -63,13 +62,10 @@
                   </svg>
                 }
                 @case (eXpertTypeEnum.Agent) {
-                  <svg width="13" height="12" viewBox="0 0 13 12" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-[#1570EF]">
-                    <g id="chat-bot">
-                      <path id="Vector" d="M4.20913 2.76912L4.09542 2.83543L3.98172 2.76912C3.90566 2.72476 3.86328 2.64979 3.86328 2.57101C3.86328 2.44347 3.96789 2.33887 4.09542 2.33887C4.22296 2.33887 4.32757 2.44347 4.32757 2.57101C4.32757 2.64979 4.28519 2.72476 4.20913 2.76912Z" fill="currentColor" stroke="currentColor" stroke-width="1.25"></path>
-                      <path id="Vector_2" d="M10.0174 6.00058C10.0123 5.98686 10.0097 5.97229 10.0046 5.95858C9.81684 5.48158 9.35398 5.14258 8.81056 5.14258H8.66784L7.52484 5.99972C7.33713 6.14029 7.11556 6.21444 6.88284 6.21444C6.29184 6.21444 5.81056 5.73358 5.81056 5.14258H2.81013C2.10127 5.14258 1.52441 5.71944 1.52441 6.42829V9.85686C1.52441 10.5657 2.10127 11.1426 2.81013 11.1426H8.81013C9.51899 11.1426 10.0958 10.5657 10.0958 9.85686V6.42829C10.0958 6.34386 10.0868 6.26158 10.071 6.18186C10.0586 6.11886 10.0384 6.05972 10.0174 6.00058ZM3.88156 8.57115C3.52713 8.57115 3.2387 8.28272 3.2387 7.92829C3.2387 7.57386 3.52713 7.28544 3.88156 7.28544C4.23599 7.28544 4.52441 7.57386 4.52441 7.92829C4.52441 8.28272 4.23599 8.57115 3.88156 8.57115ZM7.7387 8.57115C7.38427 8.57115 7.09584 8.28272 7.09584 7.92829C7.09584 7.57386 7.38427 7.28544 7.7387 7.28544C8.09313 7.28544 8.38156 7.57386 8.38156 7.92829C8.38156 8.28272 8.09313 8.57115 7.7387 8.57115Z" fill="currentColor"></path>
-                      <path id="Vector_3" d="M6.66699 5.14314V1.71456C6.66699 1.24099 7.05056 0.857422 7.52413 0.857422H10.9527C11.4263 0.857422 11.8098 1.24099 11.8098 1.71456V3.42885C11.8098 3.90242 11.4263 4.28599 10.9527 4.28599H8.38128L7.00985 5.31456C6.86842 5.42042 6.66699 5.31971 6.66699 5.14314Z" fill="currentColor"></path>
-                    </g>
-                  </svg>
+                  <i class="ri-robot-3-fill text-xs text-blue-500"></i>
+                }
+                @case ('project') {
+                  <i class="ri-user-community-fill text-xs text-indigo-500"></i>
                 }
               }
             </span>
@@ -85,6 +81,9 @@
                 }
                 @case (eXpertTypeEnum.Agent) {
                   <div class="truncate">{{ 'PAC.Xpert.Agent' | translate: {Default: 'Agent'} }}</div>
+                }
+                @case ('project') {
+                  <div class="truncate">{{ 'PAC.Xpert.Project' | translate: {Default: 'Project'} }}</div>
                 }
               }
             </div>
@@ -102,7 +101,11 @@
               (click)="install(app)"
             >
               <i class="ri-add-line text-lg leading-5 mr-2"></i>
-              <span class="text-sm">{{ 'PAC.Xpert.InstallToWorkspace' | translate: {Default: 'Install to workspace'} }}</span>
+              @if (app.type === 'project') {
+                <span class="text-sm">{{ 'PAC.Xpert.Install' | translate: {Default: 'Install'} }}</span>
+              } @else {
+                <span class="text-sm">{{ 'PAC.Xpert.InstallToWorkspace' | translate: {Default: 'Install to workspace'} }}</span>
+              }
             </button>
           </div>
         </div>

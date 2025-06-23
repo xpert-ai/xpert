@@ -4,8 +4,8 @@ import { ToolParams } from '@langchain/core/tools'
 import { ApiAuthType, ApiToolBundle, IXpertTool, XpertToolsetCategoryEnum } from '@metad/contracts'
 import axios, { AxiosResponse } from 'axios'
 import { ToolParameterValidationError, ToolProviderCredentialValidationError } from '../../../errors'
-import { BaseTool } from '../../../toolset'
 import { ApiBasedToolSchemaParser } from '../../../utils/parser'
+import { BaseTool } from '../../../../shared'
 
 const API_TOOL_DEFAULT_TIMEOUT = [
 	parseInt(process.env.API_TOOL_DEFAULT_CONNECT_TIMEOUT || '10'),

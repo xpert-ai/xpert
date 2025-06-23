@@ -5,12 +5,12 @@ English | [中文](./README_zh.md)
 
 <p align="center">
   <a href="https://mtda.cloud/en/">
-  <img src="https://avatars.githubusercontent.com/u/100019674?v=4" alt="Xpert AI">
+    <img src="docs/images/logo.png" alt="Xpert AI" style="width: 240px; height: auto;">
   </a>
 </p>
 
 <p align="center">
-  <a href="https://app.mtda.cloud/">Xpert Cloud</a> ·
+  <a href="https://app.mtda.cloud/">XpertAI Cloud</a> ·
   <a href="https://mtda.cloud/en/docs/getting-started/community/">Self-hosting</a> ·
   <a href="https://mtda.cloud/en/docs/">Documentation</a> ·
   <a href="https://mtda.cloud/en/#connect">Enterprise inquiry</a>

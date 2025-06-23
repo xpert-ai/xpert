@@ -1,12 +1,21 @@
-import { IKnowledgebase, IPagination, IXpertProject, IXpertProjectTask, IXpertToolset, OrderTypeEnum } from '@metad/contracts'
+import {
+	IKnowledgebase,
+	IPagination,
+	IXpertProject,
+	IXpertProjectTask,
+	IXpertToolset,
+	OrderTypeEnum,
+} from '@metad/contracts'
 import {
 	CrudController,
 	PaginationParams,
 	ParseJsonPipe,
+	RequestContext,
 	TransformInterceptor,
 	UserPublicDTO
 } from '@metad/server-core'
 import {
+	BadRequestException,
 	Body,
 	Controller,
 	Delete,
@@ -14,21 +23,29 @@ import {
 	HttpStatus,
 	Logger,
 	Param,
+	Post,
 	Put,
 	Query,
+	Res,
+	UploadedFile,
 	UseGuards,
 	UseInterceptors
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { Response } from 'express'
 import { FindOneOptions } from 'typeorm'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
 import { FindChatConversationQuery } from '../chat-conversation/queries'
-import { XpertProjectDto, XpertProjectFileDto, XpertProjectTaskDto } from './dto'
+import { VolumeClient } from '../sandbox/volume'
+import { XpertProjectDto, XpertProjectTaskDto } from './dto'
+import { XpertProjectIdentiDto } from './dto/project-identi.dto'
 import { XpertProject } from './entities/project.entity'
 import { XpertProjectGuard, XpertProjectOwnerGuard } from './guards'
 import { XpertProjectService } from './project.service'
 import { XpertProjectFileService } from './services'
+import { getErrorMessage } from '@metad/server-common'
 
 @ApiTags('XpertProject')
 @ApiBearerAuth()
@@ -53,7 +70,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	@Get('my')
 	async findAllMyProjects(
 		@Query('data', ParseJsonPipe) params: PaginationParams<XpertProject>
-	): Promise<IPagination<XpertProjectDto>> {
+	): Promise<IPagination<XpertProjectIdentiDto>> {
 		return this.service.findAllMy(params)
 	}
 
@@ -61,6 +78,20 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	async getXpertProject(@Param('id') id: string, @Query('data', ParseJsonPipe) params: FindOneOptions<XpertProject>) {
 		const project = await this.service.findOne(id, params)
 		return new XpertProjectDto(project)
+	}
+
+	@Post(':id/duplicate')
+	async duplicateProject(@Param('id') id: string) {
+		const project = await this.service.duplicate(id)
+		return new XpertProjectDto(project)
+	}
+
+	@UseGuards(XpertProjectGuard)
+	@Get(':id/export')
+	async exportDsl(@Param('id') id: string) {
+		return {
+			data: await this.service.exportProject(id)
+		}
 	}
 
 	@Get(':id/xperts')
@@ -108,7 +139,10 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	}
 
 	@Get(':id/knowledges')
-	async getKnowledges(@Param('id') id: string, @Query('data', ParseJsonPipe) params: PaginationParams<IKnowledgebase>) {
+	async getKnowledges(
+		@Param('id') id: string,
+		@Query('data', ParseJsonPipe) params: PaginationParams<IKnowledgebase>
+	) {
 		return this.service.getKnowledges(id, params)
 	}
 
@@ -142,17 +176,50 @@ export class XpertProjectController extends CrudController<XpertProject> {
 		return items.map((_) => new XpertProjectTaskDto(_))
 	}
 
+	// Files
 	@UseGuards(XpertProjectGuard)
 	@Get(':id/files')
-	async getFiles(@Param('id') id: string) {
-		const items = await this.service.getFiles(id)
-		return items.map((_) => new XpertProjectFileDto(_))
+	async readFiles(@Param('id') id: string, @Query('deepth') deepth: number, @Query('path') path: string) {
+		const project = await this.service.findOne(id, { relations: ['createdBy'] })
+		const client = new VolumeClient({
+			tenantId: project.tenantId,
+			userId: project.ownerId,
+			projectId: project.id,
+		})
+
+		return await client.list({path, deepth})
+	}
+
+	@Post(':id/file/upload')
+	@UseInterceptors(FileInterceptor('file'))
+	async uploadFile(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+		const client = new VolumeClient({
+			tenantId: RequestContext.currentTenantId(),
+			userId: RequestContext.currentUserId(),
+			projectId: id
+		})
+
+		const url = await client.putFile('/', {
+			...file,
+			originalname: Buffer.from(file.originalname, 'latin1').toString('utf8')
+		})
+		return { url }
 	}
 
 	@UseGuards(XpertProjectGuard)
-	@Delete(':id/file/:file')
-	async deleteFile(@Param('id') id: string, @Param('file') fileId: string) {
-		await this.fileService.delete(fileId)
+	@Delete(':id/file')
+	async deleteFile(@Param('id') id: string, @Query('path') filePath: string) {
+		const client = new VolumeClient({
+			tenantId: RequestContext.currentTenantId(),
+			userId: RequestContext.currentUserId(),
+			projectId: id
+		})
+		try {
+			await client.deleteFile(filePath)
+		} catch (error) {
+			this.#logger.error(`Error deleting file: ${error.message}`, error.stack)
+			throw new BadRequestException(getErrorMessage(error))
+		}
 	}
 
 	@UseGuards(XpertProjectGuard)
@@ -163,13 +230,32 @@ export class XpertProjectController extends CrudController<XpertProject> {
 
 	@UseGuards(XpertProjectGuard)
 	@Delete(':id/attachments/:file')
-	async removeAttachments(@Param('id') id: string, @Param('file') file: string,) {
+	async removeAttachments(@Param('id') id: string, @Param('file') file: string) {
 		await this.service.removeAttachments(id, [file])
 	}
 
 	@UseGuards(XpertProjectGuard)
 	@Delete(':id/attachment/:file')
-	async deleteAttachment(@Param('id') id: string, @Param('file') file: string,) {
+	async deleteAttachment(@Param('id') id: string, @Param('file') file: string) {
 		await this.service.removeAttachments(id, [file])
 	}
+
+	@Get(':id/file/:file')
+	async readFile(@Param('id') id: string, @Param('file') filePath: string, @Res() res: Response) {
+		// read file from project and return as a file stream
+		try {
+			const file = await this.fileService.readFile(id, filePath)
+			if (!file) {
+				res.status(HttpStatus.NOT_FOUND).send('File not found')
+				return
+			}
+			res.setHeader('Content-Type', 'text/plain')
+			res.setHeader('Content-Disposition', `attachment; filename="${file.filePath}"`)
+			res.send(file.contents)
+		} catch (error) {
+			this.#logger.error(`Error reading file: ${error.message}`, error.stack)
+			res.status(HttpStatus.INTERNAL_SERVER_ERROR).send('Error reading file')
+		}
+	}
+	
 }

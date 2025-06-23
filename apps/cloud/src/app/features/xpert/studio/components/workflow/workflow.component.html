@@ -61,8 +61,9 @@
   }
 }
 
-@if (type() !== eWorkflowNodeTypeEnum.NOTE && description()) {
-  <div class="px-3 pt-1 pb-2 text-left text-xs text-text-tertiary whitespace-pre-line break-words">
+@if (description()) {
+  <div class="px-3 pt-1 text-left text-xs text-text-tertiary line-clamp-3"
+    [title]="description()">
     {{description()}}
   </div>
 }

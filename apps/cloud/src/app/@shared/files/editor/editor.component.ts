@@ -18,15 +18,19 @@ export class FileEditorComponent {
   readonly editable = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
+  readonly lineNumbers = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
+  readonly wordWrap = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
   // States
   readonly defaultOptions = {
     theme: 'vs',
     automaticLayout: true,
     language: 'markdown',
-    lineNumbers: 'off',
     glyphMargin: 0,
-    wordWrap: false,
     minimap: {
       enabled: false
     }
@@ -35,6 +39,8 @@ export class FileEditorComponent {
   readonly editorOptions = computed(() => {
     return {
       ...this.defaultOptions,
+      lineNumbers: this.lineNumbers() ? 'on' : 'off',
+      wordWrap: this.wordWrap(),
       language: this.fileName() ? this.mapFileLanguage(this.fileName()) : 'markdown',
       readOnly: !this.editable()
     }

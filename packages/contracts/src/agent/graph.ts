@@ -1,13 +1,16 @@
 import { BaseMessage } from '@langchain/core/messages'
 import { Subscriber } from 'rxjs'
 import { TMessageContentComplex } from '../ai/chat-message.model'
-import { agentLabel, channelName, IXpertAgent, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertParameterTypeEnum } from '../ai'
+import { agentLabel, IXpertAgent, TStateVariable, TWorkflowVarGroup, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertParameterTypeEnum } from '../ai'
 
 export const CONTEXT_VARIABLE_CURRENTSTATE = 'currentState'
 export const STATE_VARIABLE_SYS = 'sys'
+export const STATE_VARIABLE_HUMAN = 'human'
 export const GRAPH_NODE_SUMMARIZE_CONVERSATION = 'summarize_conversation'
 export const GRAPH_NODE_TITLE_CONVERSATION = 'title_conversation'
 export const STATE_VARIABLE_FILES = 'files'
+export const STATE_VARIABLE_INPUT = 'input'
+export const STATE_VARIABLE_TITLE_CHANNEL = channelName('title')
 
 export type TMessageChannel = {
   messages: BaseMessage[]
@@ -15,17 +18,28 @@ export type TMessageChannel = {
 }
 
 export type TAgentRunnableConfigurable = {
+  /**
+   * Thread id
+   */
   thread_id: string
   checkpoint_ns: string
   checkpoint_id: string
+  tool_call_id?: string
+
   // Custom configurable of invoke
   tenantId: string
   organizationId: string
   language: string
   userId: string
+  /**
+   * Xpert project id
+   */
+  projectId?: string
   // Caller
   agentKey: string
   xpertName?: string
+  toolName?: string
+
   subscriber: Subscriber<any>
   /**
    * Execution id of agent workflow node
@@ -35,10 +49,33 @@ export type TAgentRunnableConfigurable = {
   signal?: AbortSignal
 }
 
+export type TToolCall = {
+	args: Record<string, any>
+	id: string
+	name: string
+	type: 'tool_call'
+}
+
 
 // Helpers
+export function channelName(name: string) {
+	return name.toLowerCase() + '_channel'
+}
+
 export function messageContentText(content: string | TMessageContentComplex) {
 	return typeof content === 'string' ? content : content.type === 'text' ? content.text : ''
+}
+
+export function getWorkspaceFromRunnable(configurable: TAgentRunnableConfigurable): {type?: 'project' | 'conversation'; id?: string} {
+	return configurable?.projectId  ? {type: 'project', id: ''} : 
+		configurable?.thread_id ? {
+			type: 'conversation',
+			id: configurable.thread_id
+		} : {}
+  }
+
+export function getToolCallFromConfig(config): TToolCall {
+	return config?.toolCall	|| config?.configurable?.toolCall
 }
 
 /**

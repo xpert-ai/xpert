@@ -52,6 +52,9 @@ module.exports = {
       fontFamily: {
         body: [
           'ui-sans-serif', 'system-ui', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'
+        ],
+        mono: [
+          '"Geist Mono"', 'monospace'
         ]
       },
       fontSize: {

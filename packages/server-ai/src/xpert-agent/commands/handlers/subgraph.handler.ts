@@ -16,7 +16,7 @@ import {
 	StateGraph
 } from '@langchain/langgraph'
 import { ChatOpenAI } from '@langchain/openai'
-import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, getCurrentGraph, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_SYS, TAgentRunnableConfigurable, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { agentLabel, agentUniqueName, allChannels, channelName, ChatMessageEventTypeEnum, findStartNodes, getCurrentGraph, GRAPH_NODE_SUMMARIZE_CONVERSATION, GRAPH_NODE_TITLE_CONVERSATION, isAgentKey, IXpert, IXpertAgent, IXpertAgentExecution, mapTranslationLanguage, STATE_VARIABLE_HUMAN, STATE_VARIABLE_SYS, STATE_VARIABLE_TITLE_CHANNEL, TAgentRunnableConfigurable, TMessageChannel, TStateVariable, TSummarize, TXpertAgentExecution, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { stringifyMessageContent } from '@metad/copilot'
 import { getErrorMessage } from '@metad/server-common'
 import { RequestContext } from '@metad/server-core'
@@ -34,9 +34,8 @@ import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertWorkflowQuery, GetXpertChatModelQuery } from '../../../xpert/queries'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
-import { AgentStateAnnotation, identifyAgent, parseXmlString, STATE_VARIABLE_TITLE_CHANNEL, stateToParameters, stateVariable, TGraphTool, TSubAgent } from './types'
+import { identifyAgent, parseXmlString, TGraphTool, TSubAgent } from './types'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
-import { createSummarizeAgent } from './react_agent_executor'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
 import { XpertConfigException, XpertCopilotNotFoundException } from '../../../core/errors'
 import { FakeStreamingChatModel, getChannelState, messageEvent, TStateChannel } from '../../agent'
@@ -45,9 +44,8 @@ import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
 import { CreateMemoryStoreCommand } from '../../../xpert/commands'
 import { CreateWorkflowNodeCommand } from '../../workflow'
 import { toEnvState } from '../../../environment'
-import { _BaseToolset, ToolSchemaParser } from '../../../shared'
+import { _BaseToolset, ToolSchemaParser, AgentStateAnnotation, createHumanMessage, stateToParameters, createSummarizeAgent, translate, stateVariable } from '../../../shared'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
-
 
 
 @CommandHandler(XpertAgentSubgraphCommand)
@@ -120,6 +118,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		// Create tools
 		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
 			new ToolsetGetToolsCommand(options?.toolsets ?? agent.toolsetIds, {
+				projectId: options.projectId,
+				conversationId: options.conversationId,
 				xpertId: xpert.id,
 				agentKey,
 				signal: abortController.signal,
@@ -147,7 +147,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			items.filter((tool) => availableTools.length ? availableTools.includes(tool.name) : true)
 			  .forEach((tool) => {
 				const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)
-				tools.push({ caller: agent.key, tool, variables: team.agentConfig?.toolsMemory?.[lc_name] })
+				tools.push({
+					toolset: toolset.providerName, 
+					caller: agent.key, 
+					tool, 
+					variables: team.agentConfig?.toolsMemory?.[lc_name],
+					title: translate(toolset.getToolTitle(tool.name))
+				})
 
 				// Add sensitive tools into interruptBefore
 				if (team.agentConfig?.interruptBefore?.includes(lc_name)) {
@@ -159,15 +165,17 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		// Additional Tools
 		if (additionalTools) {
 			additionalTools.forEach((tool) => {
-				tools.push({ caller: agent.key, tool })
+				tools.push({ toolset: '', title: '', caller: agent.key, tool })
 			})
 		}
 
 		// Memory tools
 		if (team.memory?.enabled && team.memory?.qa?.enabled) {
 			tools.push(...initializeMemoryTools(store, xpert.id).map((tool) => ({
+				toolset: 'memories',
 				caller: agent.key,
-				tool
+				tool,
+				title: translate({en_US: 'Memory', zh_Hans: '记忆' })
 			})))
 		}
 
@@ -187,12 +195,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				weights: retrievers.map(({weight}) => weight ?? 0.5),
 			  })
 			tools.push({
+				toolset: 'knowledgebase',
 				caller: agent.key,
 				tool: retriever.asTool({
 					name: "knowledge_retriever",
 					description: "Get knowledges about question.",
 					schema: z.string().describe(`key information of question`),
-				  })
+				  }),
+				title: translate({en_US: 'Knowledge Retriever', zh_Hans: '知识检索器' })
 			})
 		}
 
@@ -517,7 +527,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					}
 				}
 				if (!humanMessages.length && state.input) {
-					humanMessages.push(new HumanMessage(state.input))
+					// Add attachments
+					humanMessages.push(await createHumanMessage(state.human, agent.options?.vision))
 				}
 			}
 
@@ -645,10 +656,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// Add nodes for tools
-		tools?.forEach(({ caller, tool, variables }) => {
+		tools?.forEach(({ caller, tool, variables, toolset, title }) => {
 			const name = tool.name
 			subgraphBuilder
-				.addNode(name, new ToolNode([tool], { caller, variables }).withConfig({signal: abortController.signal}))
+				.addNode(
+					name, 
+					new ToolNode([tool], { caller, variables, toolset }).withConfig({signal: abortController.signal}),
+					{metadata: {toolset, toolName: title}}
+				)
 			if (endNodes?.includes(tool.name)) {
 				if (nextNodeKey?.length) {
 					if (nextNodeKey.some((_) => !_)) {
@@ -668,10 +683,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		handoffTools?.forEach((tool) => {
 			const name = tool.name
 			subgraphBuilder
-				.addNode(name, new ToolNode([tool], { caller: '' }).withConfig({signal: abortController.signal}))
+				.addNode(name, new ToolNode([tool], { toolset: 'transfer_to', caller: '' }).withConfig({signal: abortController.signal}))
 		})
 
-		// Subgraphs
+		// Sub Agents
 		if (subAgents) {
 			Object.keys(subAgents).forEach((name) => {
 				subgraphBuilder.addNode(name, subAgents[name].stateGraph)
@@ -869,14 +884,27 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 					...state,
 					...(isTool ? {
 						...call.args,
-						[`${agent.key}.messages`]: [new HumanMessage(call.args.input)]
+						[STATE_VARIABLE_HUMAN]: {
+							input: call.args.input,
+						}
+						// [`${agent.key}.messages`]: [new HumanMessage(call.args.input)]
 					} : {}),
 				}
-				const output = await graph.invoke(subState, {...config, signal, configurable: {
-					...config.configurable,
-					agentKey: agent.key,
-					executionId: _execution.id
-				}})
+				const output = await graph.invoke(
+					subState,
+					{
+						...config,
+						signal, 
+						configurable: {
+							...config.configurable,
+							agentKey: agent.key,
+							executionId: _execution.id
+						},
+						metadata: {
+							agentKey: agent.key,
+						}
+					}
+				)
 
 				const lastMessage = output.messages[output.messages.length - 1]
 				if (lastMessage && isAIMessage(lastMessage)) {

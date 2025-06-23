@@ -5,10 +5,10 @@ import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatMessageStepType } from '../../@core'
+import { XpertHomeService } from '../home.service'
 import { ChatCanvasComputerComponent } from './computer/computer.component'
 import { ChatCanvasDashboardComponent } from './dashboard/dashboard.component'
 import { ChatCanvasFileViewerComponent } from './file-viewer/file-viewer.component'
-import { XpertHomeService } from '../home.service'
 
 @Component({
   standalone: true,
@@ -30,19 +30,27 @@ import { XpertHomeService } from '../home.service'
 })
 export class ChatCanvasComponent {
   eChatMessageStepType = ChatMessageStepType
-  
+
   readonly homeService = inject(XpertHomeService)
-  
+
   readonly canvas = this.homeService.canvasOpened
   readonly opened = computed(() => this.canvas()?.opened)
   readonly canvasType = computed(() => this.canvas()?.type)
+  readonly componentId = computed(() => this.canvas()?.componentId)
 
   constructor() {
-    effect(() => {
-      const conversation = this.homeService.conversation()
-      if (conversation?.messages && this.canvas()?.messageId && !conversation.messages.some((_) => _.id === this.canvas().messageId)) {
-        this.canvas.update((state) => ({opened: true, type: state.type}))
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        const conversation = this.homeService.conversation()
+        if (
+          conversation?.messages &&
+          this.canvas()?.messageId &&
+          !conversation.messages.some((_) => _.id === this.canvas().messageId)
+        ) {
+          this.canvas.update((state) => ({ opened: true, type: state.type }))
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 }

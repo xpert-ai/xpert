@@ -2,7 +2,7 @@
  * `ng build ---prod` replaces `environment.ts` with `environment.prod.ts`.
  * The list of file replacements can be found in `angular.json`.
  */
-require('dotenv').config();
+import 'dotenv/config';
 
 import { FileStorageProviderEnum, VectorTypeEnum } from '@metad/contracts';
 import { IEnvironment, IPACFeatures, LogLevel } from './ienvironment';
@@ -18,7 +18,8 @@ export const devEnvironment: IEnvironment = {
 	envName: 'dev',
 
 	env: {
-		LOG_LEVEL: (process.env.LOG_LEVEL || 'debug') as LogLevel
+		LOG_LEVEL: (process.env.LOG_LEVEL || 'log') as LogLevel,
+		IS_DOCKER: process.env.IS_DOCKER
 	},
 	pro: process.env.PRO === 'true',
 

@@ -1,0 +1,29 @@
+<div class="bg-zinc-100 dark:bg-neutral-900 rounded-lg overflow-hidden border border-zinc-200/20">
+  <div class="bg-zinc-300 dark:bg-neutral-800 flex items-center justify-between dark:border-zinc-700/50">
+    <div class="bg-zinc-200 w-full dark:bg-zinc-800 px-4 py-2 flex items-center gap-2">
+      <i class="ri-terminal-line"></i>
+      <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Terminal input</span>
+    </div>
+  </div>
+  <div class="p-4 scrollbar-hide">
+    <pre class="text-sm text-zinc-600 dark:text-zinc-300 font-mono whitespace-pre-wrap break-all overflow-visible"
+    >{{ step().data?.code }}</pre>
+  </div>
+</div>
+
+<div class="bg-zinc-100 dark:bg-neutral-900 rounded-lg overflow-hidden border border-zinc-200/20">
+  <div class="bg-zinc-300 dark:bg-neutral-800 flex items-center justify-between dark:border-zinc-700/50">
+    <div class="bg-zinc-200 w-full dark:bg-zinc-800 px-4 py-2 flex items-center gap-2">
+      <i class="ri-terminal-line"></i>
+      <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Terminal output</span>
+    </div>
+  </div>
+  <div class="p-4 scrollbar-hide">
+    @if (step().data?.error) {
+      <div class="mt-4 text-text-destructive">{{ step().data.error }}</div>
+    } @else {
+      <pre class="text-sm text-zinc-600 dark:text-zinc-300 font-mono whitespace-pre-wrap break-all overflow-visible"
+      >{{ step().data?.output }}</pre>
+    }
+  </div>
+</div>

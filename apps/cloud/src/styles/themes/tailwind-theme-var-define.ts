@@ -66,6 +66,8 @@ const vars = {
   'components-toggle-bg-unchecked': 'var(--color-components-toggle-bg-unchecked)',
   'components-toggle-knob': 'var(--color-components-toggle-knob)',
   'components-kbd-bg-white': 'var(--color-components-kbd-bg-white)',
+  'components-checkbox-bg': 'var(--color-components-checkbox-bg)',
+  'components-option-card-option-selected-border': 'var(--color-components-option-card-option-selected-border)',
   'button-ghost-hover': 'var(--color-hover-bg)',
   'surface-container-bg': 'var(--ngm-color-surface-container)'
 }

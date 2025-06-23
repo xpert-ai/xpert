@@ -1,10 +1,10 @@
 import { get_lc_unique_name, Serializable } from '@langchain/core/load/serializable'
-import { agentUniqueName, IXpertAgent, IXpertToolset, TSensitiveOperation, TToolCallType, XpertParameterTypeEnum } from '@metad/contracts'
+import { agentUniqueName, IXpertAgent, IXpertToolset, STATE_VARIABLE_INPUT, TSensitiveOperation, TToolCallType, XpertParameterTypeEnum } from '@metad/contracts'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertAgentQuery } from '../../../xpert/queries'
 import { CompleteToolCallsQuery } from '../complete-tool-calls.query'
-import { identifyAgent, STATE_VARIABLE_INPUT } from '../../commands/handlers/types'
+import { identifyAgent } from '../../commands/handlers/types'
 
 @QueryHandler(CompleteToolCallsQuery)
 export class CompleteToolCallsHandler implements IQueryHandler<CompleteToolCallsQuery> {

@@ -6,6 +6,7 @@ import {
 	IXpert,
 	mapTranslationLanguage,
 	STATE_VARIABLE_SYS,
+	STATE_VARIABLE_TITLE_CHANNEL,
 	TMessageChannel,
 	TXpertAgentExecution,
 	XpertAgentExecutionStatusEnum
@@ -21,7 +22,7 @@ import { XpertCopilotNotFoundException } from '../../../core/errors'
 import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { GetXpertChatModelQuery } from '../../../xpert/queries'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
-import { AgentStateAnnotation, STATE_VARIABLE_TITLE_CHANNEL } from './types'
+import { AgentStateAnnotation } from '../../../shared'
 
 
 @CommandHandler(CreateSummarizeTitleAgentCommand)

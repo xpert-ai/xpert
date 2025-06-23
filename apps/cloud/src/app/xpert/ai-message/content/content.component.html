@@ -38,7 +38,7 @@
         @default {
           <chat-component-message class="group/ccm w-full p-2 rounded-2xl z-0 hover:bg-neutral-50"
             [messageId]="message().id"
-            [message]="content"
+            [message]="$any(content)"
           />
         }
       }

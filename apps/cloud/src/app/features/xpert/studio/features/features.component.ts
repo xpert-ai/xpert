@@ -4,13 +4,14 @@ import { Component, computed, inject, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { attrModel, IfAnimations, linkedModel } from '@metad/core'
+import { IfAnimations } from '@metad/core'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../domain'
 import { XpertStudioFeaturesMemoryComponent } from './memory/memory.component'
 import { XpertStudioFeaturesSummaryComponent } from './summary/summary.component'
 import { XpertStudioFeaturesTitleComponent } from './title/title.component'
+import { XpertStudioFeaturesAttachmentComponent } from './attachment/attachment.component'
 
 @Component({
   selector: 'xpert-studio-features',
@@ -25,7 +26,8 @@ import { XpertStudioFeaturesTitleComponent } from './title/title.component'
     NgmDensityDirective,
     XpertStudioFeaturesSummaryComponent,
     XpertStudioFeaturesMemoryComponent,
-    XpertStudioFeaturesTitleComponent
+    XpertStudioFeaturesTitleComponent,
+    XpertStudioFeaturesAttachmentComponent
   ],
   templateUrl: './features.component.html',
   styleUrl: './features.component.scss',
@@ -38,14 +40,18 @@ export class XpertStudioFeaturesComponent {
   // Outputs
   readonly close = output()
 
-  readonly view = signal<'summarize' | 'image_upload' | 'memory' | 'title'>(null)
+  readonly view = signal<'summarize' | 'attachment' | 'memory' | 'title'>(null)
   readonly xpert = this.apiService.xpert
   readonly summarize = computed(() => this.xpert()?.summarize)
   readonly enabledSummarize = computed(() => this.summarize()?.enabled)
   readonly memory = computed(() => this.xpert()?.memory)
   readonly enabledMemory = computed(() => this.memory()?.enabled)
+  readonly attachment = computed(() => this.xpert()?.attachment)
+  readonly enabledAttachment = computed(() => this.attachment()?.enabled)
+  readonly fileTypes = computed(() => this.attachment()?.fileTypes)
+  readonly maxNum = computed(() => this.attachment()?.maxNum)
 
-  toggleView(view: 'summarize' | 'image_upload' | 'memory' | 'title') {
+  toggleView(view: 'summarize' | 'attachment' | 'memory' | 'title') {
     this.view.update((state) => (state === view ? null : view))
   }
 
@@ -67,6 +73,18 @@ export class XpertStudioFeaturesComponent {
         ...xpert,
         memory: {
           ...(xpert.memory ?? {}),
+          enabled
+        }
+      }
+    })
+  }
+
+  toggleAttachment(enabled?: boolean) {
+    this.apiService.updateXpertTeam((xpert) => {
+      return {
+        ...xpert,
+        attachment: {
+          ...(xpert.attachment ?? {}),
           enabled
         }
       }

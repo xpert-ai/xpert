@@ -11,6 +11,7 @@ import {
 import { shortuuid } from '@metad/server-common'
 import { z } from 'zod'
 import { XpertProjectTaskService } from '../../../services'
+import { ProjectToolEnum } from '../project'
 
 export const createCreateTasksTool = ({
 	projectId,
@@ -64,7 +65,7 @@ export const createCreateTasksTool = ({
 			return `Tasks created!`
 		},
 		{
-			name: `project_create_tasks`,
+			name: ProjectToolEnum.CreateTasks,
 			schema: z.object({
 				tasks: z
 					.array(

@@ -67,7 +67,7 @@ export class ProjectFilesDialogComponent {
           switchMap((file) => {
             const formData = new FormData()
             formData.append('file', file)
-            return this.storageFileService.create(formData)
+            return this.storageFileService._create(formData)
           }),
           switchMap((file: any | IStorageFile) => {
             return this.projectService

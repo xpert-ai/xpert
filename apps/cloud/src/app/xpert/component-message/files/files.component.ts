@@ -23,7 +23,7 @@ export class ChatComponentMessageFilesComponent {
   readonly #dialog = inject(Dialog)
 
   // Inputs
-  readonly data = input<TMessageComponent<{ files: TFile[] }>>()
+  readonly data = input<TMessageComponent<{ files?: TFile[] }>>()
 
   // Files
   readonly files = computed(() => this.data()?.files)

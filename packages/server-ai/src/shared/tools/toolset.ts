@@ -1,10 +1,15 @@
-import { BaseToolkit, StructuredToolInterface } from "@langchain/core/tools"
-import { TStateVariable, TToolsetParams } from "@metad/contracts"
+import { BaseToolkit, StructuredTool, StructuredToolInterface } from "@langchain/core/tools"
+import { I18nObject, TStateVariable, TToolsetParams } from "@metad/contracts"
+import { z } from 'zod'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ZodObjectAny = z.ZodObject<any, any, any, any>;
 
 /**
  * Base ability for all toolsets
  */
 export abstract class _BaseToolset<T extends StructuredToolInterface = StructuredToolInterface> extends BaseToolkit {
+	abstract providerName: string
 	// For Langchain
 	tools: T[]
 	// For Langgraph
@@ -48,9 +53,20 @@ export abstract class _BaseToolset<T extends StructuredToolInterface = Structure
 	}
 
 	/**
+	 * Get title of tool
+	 */
+	abstract getToolTitle(name: string): string | I18nObject
+
+	/**
      * Close all (connections).
      */
     async close(): Promise<void> {
 		//
 	}
+}
+
+export abstract class BaseTool<T extends ZodObjectAny = ZodObjectAny> extends StructuredTool<T> {
+	schema: any = z
+		.object({ input: z.string().optional() })
+		.transform((obj) => obj.input)
 }

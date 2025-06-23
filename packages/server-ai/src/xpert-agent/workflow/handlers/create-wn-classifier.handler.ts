@@ -21,8 +21,8 @@ import { XpertConfigException } from '../../../core'
 import { assignExecutionUsage } from '../../../xpert-agent-execution'
 import { wrapAgentExecution } from '../../../xpert-agent-execution/utils'
 import { GetXpertChatModelQuery } from '../../../xpert/queries'
-import { AgentStateAnnotation, stateToParameters } from '../../commands/handlers/types'
 import { CreateWNClassifierCommand } from '../create-wn-classifier.command'
+import { AgentStateAnnotation, stateToParameters } from '../../../shared'
 
 @CommandHandler(CreateWNClassifierCommand)
 export class CreateWNClassifierHandler implements ICommandHandler<CreateWNClassifierCommand> {

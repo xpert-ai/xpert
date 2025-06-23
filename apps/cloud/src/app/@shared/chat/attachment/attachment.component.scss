@@ -1,0 +1,14 @@
+:host {
+  @apply relative bg-white;
+}
+.img-figure {
+  @apply w-12;
+}
+
+::ng-deep {
+  [ngm-density].large {
+    .img-figure {
+      @apply w-16;
+    }
+  }
+}

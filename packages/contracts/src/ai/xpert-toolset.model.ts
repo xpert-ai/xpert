@@ -23,6 +23,7 @@ export enum XpertToolsetCategoryEnum {
 
 export type XpertToolsetType = string
 export type TXpertToolset = {
+  key?: string
   /**
    * toolset name
    */
@@ -158,6 +159,7 @@ export enum ToolTagEnum {
 	UTILITIES = 'utilities',
 	ANALYSIS = 'analysis',
 	SANDBOX = 'sandbox',
+	PROJECT = 'project',
 	AGENT = 'agent',
 	OTHER = 'other'
 }
@@ -182,6 +184,7 @@ export interface IToolProvider {
   icon?: string;
   avatar: TAvatar
   label: I18nObject; // label
+  help_url?: string
   type: XpertToolsetCategoryEnum;
   masked_credentials?: Record<string, any>
   original_credentials?: Record<string, any>
@@ -194,9 +197,12 @@ export interface IToolProvider {
 export type TToolCredentials = Record<string, string | number | boolean | any>
 
 export type TToolsetParams = {
-	tenantId: string
+  tenantId: string
   organizationId?: string
+  projectId?: string
+	userId?: string
 	xpertId?: string
+  conversationId?: string
 	agentKey?: string
 	signal?: AbortSignal
 	env: Record<string, unknown>
@@ -204,4 +210,10 @@ export type TToolsetParams = {
 
 export interface IBaseToolset {
   toolNamePrefix?: string
+}
+
+export type TProgramToolMessage = {
+  code: string
+	output: string
+  error?: string
 }

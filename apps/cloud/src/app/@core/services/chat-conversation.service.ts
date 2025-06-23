@@ -1,8 +1,15 @@
-import { HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { API_PREFIX, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
-import { IChatConversation } from '@metad/contracts'
-import { switchMap } from 'rxjs'
+import {
+  API_PREFIX,
+  IChatConversation,
+  IStorageFile,
+  OrganizationBaseCrudService,
+  PaginationParams,
+  TFileDirectory,
+  toHttpParams
+} from '@metad/cloud/state'
+import { toParams } from '@metad/core'
+import { EMPTY, switchMap } from 'rxjs'
 
 @Injectable({ providedIn: 'root' })
 export class ChatConversationService extends OrganizationBaseCrudService<IChatConversation> {
@@ -32,5 +39,23 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
 
   getThreadState(id: string) {
     return this.httpClient.get<any>(this.apiBaseUrl + `/${id}/state`)
+  }
+
+  getAttachments(id: string) {
+    return this.httpClient.get<IStorageFile[]>(this.apiBaseUrl + `/${id}/attachments`)
+  }
+
+  // Files
+
+  getFiles(id: string, path: string = '') {
+    return this.httpClient.get<TFileDirectory[]>(this.apiBaseUrl + `/${id}/files`, {
+      params: toParams({
+        path
+      })
+    })
+  }
+
+  deleteFile(id: string, filePath: string) {
+    return EMPTY // @todo
   }
 }

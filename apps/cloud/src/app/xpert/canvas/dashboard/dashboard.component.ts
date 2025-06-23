@@ -6,13 +6,14 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { DataSettings } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ChatComponentMessageComponent, XpertHomeService } from '@cloud/app/xpert/'
+import { XpertHomeService } from '@cloud/app/xpert/'
 import {
   ChatMessageStepType,
   injectFormatRelative,
   TMessageComponent,
   TMessageContentComponent
 } from '@cloud/app/@core'
+import { ChatMessageDashboardComponent } from '../../ai-message/dashboard/dashboard.component'
 
 @Component({
   standalone: true,
@@ -24,7 +25,7 @@ import {
     RouterModule,
     TranslateModule,
     MatTooltipModule,
-    ChatComponentMessageComponent
+    ChatMessageDashboardComponent
   ],
   selector: 'chat-canvas-dashboard',
   templateUrl: './dashboard.component.html',
@@ -44,6 +45,9 @@ export class ChatCanvasDashboardComponent {
   readonly expand = signal(false)
 
   readonly messages = this.homeService.messages
+  /**
+   * @deprecated Use `componentId` to locate step message
+   */
   readonly messageId = computed(
     () => this.homeService.canvasOpened()?.type === 'Dashboard' && this.homeService.canvasOpened()?.messageId
   )
@@ -91,18 +95,18 @@ export class ChatCanvasDashboardComponent {
 
   constructor() {
     effect(() => {
-      // console.log(this.messageId(), this.message(), this.contents())
+      console.log(this.componentId(), this.contents())
     })
 
     // Update to last component
-    effect(
-      () => {
-        if (this.messages()) {
-          this.homeService.canvasOpened.update((state) => ({ opened: true, type: 'Dashboard' }))
-        }
-      },
-      { allowSignalWrites: true }
-    )
+    // effect(
+    //   () => {
+    //     if (this.messages()) {
+    //       this.homeService.canvasOpened.update((state) => ({ opened: true, type: 'Dashboard' }))
+    //     }
+    //   },
+    //   { allowSignalWrites: true }
+    // )
   }
 
   toggleExpand() {

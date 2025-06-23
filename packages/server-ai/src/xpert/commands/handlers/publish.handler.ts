@@ -1,6 +1,7 @@
 import {
 	agentLabel,
 	IKnowledgebase,
+	IWFNKnowledgeRetrieval,
 	IXpert,
 	IXpertAgent,
 	IXpertToolset,
@@ -234,6 +235,15 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 				}
 			}
 
+			// Collect knowledgebases in workflow nodes
+			draft.nodes.filter((node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.KNOWLEDGE)
+				.forEach((node) => {
+					const knowledgebases = (<IWFNKnowledgeRetrieval>node.entity).knowledgebases
+					if (knowledgebases) {
+						totalKnowledgebaseIds.push(...knowledgebases)
+					}
+				})
+
 			// Update agents relative info
 			xpert.agents = newAgents
 			xpert.toolsets = uniq(totalToolsetIds).map((id) => ({id} as IXpertToolset))
@@ -262,6 +272,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 			xpert.agentConfig = draft.team.agentConfig
 			xpert.memory = draft.team.memory
 			xpert.summarize = draft.team.summarize
+			xpert.attachment = draft.team.attachment
 			xpert.options = xpertOptions
 		}
 

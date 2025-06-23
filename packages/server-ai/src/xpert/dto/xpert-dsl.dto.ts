@@ -18,6 +18,7 @@ import {
 	TXpertAgent,
 	TXpertAgentConfig,
 	TXpertAgentOptions,
+	TXpertAttachment,
 	TXpertOptions,
 	TXpertParameter,
 	TXpertTeamConnection,
@@ -60,10 +61,14 @@ export class XpertDslDTO {
 	summarize?: TSummarize
 
 	@Expose()
-	version?: string
+	attachment?: TXpertAttachment
 
 	@Expose()
-	@Transform(({ value }) => value ? new XpertAgentDslDTO(value) : null)
+	version?: string
+
+	// Only the key needs to be output, the entity is in the nodes
+	@Expose()
+	@Transform(({ value }) => value ? {key: value.key} : null)
 	agent?: IXpertAgent
 
 	@Expose()
@@ -265,6 +270,9 @@ export class XpertToolDslDTO {
 
 	@Expose()
 	enabled?: boolean
+	
+	@Expose()
+	disabled?: boolean
 
 	@Expose()
 	parameters?: Record<string, any>

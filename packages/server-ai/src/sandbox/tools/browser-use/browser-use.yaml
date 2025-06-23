@@ -1,0 +1,70 @@
+identity:
+  pro: true
+  author: XpertAI
+  name: browser-use
+  label:
+    en_US: Browser Use
+    zh_Hans: 浏览器使用
+  description:
+    en_US: Browser-use tool.
+    zh_Hans: 浏览器使用工具。
+  icon: icon.svg
+  tags:
+    - productivity
+    - sandbox
+    - agent
+  help_url: /docs/ai/tool/sandbox/browser-use/
+credentials_for_provider:
+  copilotModel:
+    type: copilot-model
+    required: true
+    label:
+      en_US: AI Model
+      zh_Hans: LLM 模型
+    placeholder:
+      en_US: Please select a ai model
+      zh_Hans: 请选择一个大语言模型
+    url: /settings/copilot/basic
+  max_steps:
+    type: int
+    label:
+      en_US: Max Steps
+      zh_Hans: 最大步数
+    placeholder:
+      en_US: Max steps to run
+      zh_Hans: 执行的最大步数
+  llm_temperature:
+    type: number
+    max: 1
+    label:
+      en_US: LLM temperature
+      zh_Hans: 模型温度
+    placeholder:
+      en_US: LLM temperature (Default 0.5)
+      zh_Hans: 模型温度（默认 0.5）
+  use_vision:
+    type: boolean
+    default: true
+    label:
+      en_US: Use Vision
+      zh_Hans: 使用视觉
+    placeholder:
+      en_US: Use Vision (Page screenshot)
+      zh_Hans: 使用视觉（页面截图）
+  enable_recording:
+    type: boolean
+    default: true
+    label:
+      en_US: Recording
+      zh_Hans: 录屏
+    placeholder:
+      en_US: Enable Recording (Default true)
+      zh_Hans: 启用录屏（默认 启用）
+  restrictions:
+    type: text-input
+    label:
+      en_US: Task Restrictions
+      zh_Hans: 任务限制条件
+    placeholder:
+      en_US: Task Prefix Restrictions
+      zh_Hans: 任务前缀限制条件

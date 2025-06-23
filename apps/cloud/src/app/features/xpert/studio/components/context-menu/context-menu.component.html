@@ -92,7 +92,7 @@
   <div cdkMenu class="cdk-menu__medium">
     @for (xpert of collaborators$ | async; track xpert.id) {
       <div cdkMenuItem class="">
-        <xpert-inline-profile class="w-full my-0.5"
+        <xpert-inline-profile class="w-full max-w-sm my-0.5"
           [xpert]="xpert"
           (click)="addCollaborator(xpert)"
         />

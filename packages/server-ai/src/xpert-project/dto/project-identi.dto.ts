@@ -1,19 +1,36 @@
-import { IUser, IXpert, IXpertProject, IXpertToolset } from '@metad/contracts'
+import { IUser, IXpert, IXpertProject, IXpertToolset, TAvatar, TXpertProjectStatus } from '@metad/contracts'
 import { UserPublicDTO } from '@metad/server-core'
 import { ApiProperty } from '@nestjs/swagger'
-import { Expose, Transform, TransformFnParams } from 'class-transformer'
+import { Exclude, Expose, Transform, TransformFnParams } from 'class-transformer'
 import { IsObject, IsOptional } from 'class-validator'
 import { XpertIdentiDto } from '../../xpert/dto'
 import { ToolsetPublicDTO } from '../../xpert-toolset/dto'
 
-@Expose()
+@Exclude()
 export class XpertProjectIdentiDto implements Partial<IXpertProject> {
+	@Expose()
+	id: string
+
+	@Expose()
+	name: string
+
+	@Expose()
+	description?: string
+
+	@Expose()
+	avatar?: TAvatar
+
+	@Expose()
+	status: TXpertProjectStatus
+
+	@Expose()
 	@ApiProperty({ type: () => Object, readOnly: true })
 	@IsOptional()
 	@IsObject()
 	@Transform(({ value }: TransformFnParams) => value && new UserPublicDTO(value))
 	readonly createdBy: IUser
 
+	@Expose()
 	@ApiProperty({ type: () => Object, readOnly: true })
 	@IsOptional()
 	@IsObject()

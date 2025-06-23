@@ -18,7 +18,7 @@ export class ChatComponentMessageTasksComponent {
   readonly chatService = inject(ChatService)
 
   // Inputs
-  readonly data = input<TMessageComponent<{ tasks: IXpertProjectTask[] }>>()
+  readonly data = input<TMessageComponent<{ tasks?: IXpertProjectTask[] }>>()
 
   // States
   readonly tasks = computed(() => this.data()?.tasks)

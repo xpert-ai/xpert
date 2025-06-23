@@ -8,7 +8,7 @@
 
 <div class="relative max-w-full flex justify-start items-center px-3 pt-3 pb-2">
   <emoji-avatar [avatar]="toolset().avatar" small class="shrink-0 mr-2 rounded-lg overflow-hidden shadow-sm" />
-  @if (isSandbox()) {
+  @if (isSandbox() || needSandbox()) {
     <div class="absolute left-7 bottom-1 flex justify-center items-center w-5 h-5 rounded-md shadow-sm bg-white"
       [matTooltip]="'PAC.Xpert.SandboxToolsetTip' | translate: {Default: 'Tools that to be run in a sandbox'}">
       <i class="ri-instance-line text-green-700"></i>
@@ -27,7 +27,7 @@
   </div>
 </div>
 
-<div class="max-w-full max-h-14 px-4 text-text-tertiary text-sm text-left line-clamp-2"
+<div class="max-w-full max-h-14 px-4 text-text-tertiary font-body text-sm text-left line-clamp-2"
   [title]="toolset().description">{{toolset().description}}</div>
 
 <div class="w-full flex flex-col justify-start items-stretch p-2 gap-1 max-h-48 overflow-y-auto"
@@ -35,7 +35,7 @@
   (wheel)="$event.stopPropagation()"
 >
   @for (item of tools(); track item.tool.id) {
-    <div class="relative flex items-center gap-1 px-4 py-2 text-left rounded-lg text-sm bg-gray-100 dark:bg-zinc-800"
+    <div class="relative flex items-center gap-1 p-2 text-left rounded-lg text-sm bg-gray-100 dark:bg-zinc-800"
       [matTooltip]="item.tool.description"
       matTooltipPosition="after"
     >
@@ -65,9 +65,13 @@
           [matTooltip]="'PAC.Xpert.SensitiveToolsTip' | translate: {Default: 'Sensitive tools require user confirmation before execution'}"
           matTooltipPosition="above"></i>
       }
-      <span class="flex-1 truncate" [title]="item.tool.description || item.tool.name">
-        {{item.tool.name}}
+      <span class="whitespace-nowrap" [title]="item.tool.description || item.tool.name">
+        {{item.label | i18n}}
       </span>
+      <div class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50">
+        {{item.tool.name}}
+      </div>
+      <span class="flex-1"></span>
 
       @if (hasMemory(item.tool.name)) {
         <i class="ri-brain-fill shrink-0 text-lg leading-4 text-text-secondary"

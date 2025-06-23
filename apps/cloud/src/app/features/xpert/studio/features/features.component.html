@@ -1,4 +1,4 @@
-<div class="flex items-center justify-between px-5 pt-4 cursor-move sticky top-0 z-10 bg-components-card-bg">
+<div class="flex items-center justify-between px-5 pt-4 sticky top-0 z-10 bg-components-card-bg">
   <span class="font-medium text-xl">
     {{ 'PAC.Xpert.Features' | translate: {Default: 'Features'} }}
   </span>
@@ -35,7 +35,7 @@
     </div>
   </div> -->
 
-  <div class="bg-gray-50 rounded-xl">
+  <div class="rounded-xl border-l-[0.5px] border-t-[0.5px] bg-gray-50">
     <div class="flex items-center px-3 h-12 overflow-hidden">
       <div class="shrink-0 flex items-center justify-center mr-1 w-6 h-6">
         <i class="ri-paragraph shrink-0 text-lg text-[#06AED4]"></i>
@@ -68,7 +68,7 @@
     }
   </div>
 
-  <div class="bg-gray-50 rounded-xl">
+  <div class="rounded-xl border-l-[0.5px] border-t-[0.5px] bg-gray-50">
     <div class="flex items-center px-3 h-12 overflow-hidden">
       <div class="shrink-0 flex items-center justify-center mr-1 w-6 h-6">
         <i class="ri-brain-fill shrink-0 text-lg text-lime-600"></i>
@@ -100,6 +100,48 @@
       <xpert-studio-features-memory class="w-full px-3 mt-2 overflow-hidden" @heightChangeAnimation/>
     }
   </div>
-  
-  <xpert-studio-features-title />
+
+  <xpert-studio-features-title class="rounded-xl border-l-[0.5px] border-t-[0.5px] bg-gray-50" />
+
+  <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] bg-gray-50 p-3">
+    <div class="mb-2 flex items-center gap-2">
+      <div class="shrink-0 rounded-lg border-[0.5px] border-divider-subtle bg-blue-500 w-6 h-6 flex justify-center items-center shadow-xs">
+        <i class="ri-attachment-2 text-lg text-white"></i>
+      </div>
+      <div class="font-semibold flex grow items-center text-text-secondary">{{ 'PAC.Xpert.FileUpload' | translate: {Default: 'File Upload'} }}</div>
+      
+      <div class="flex items-center">
+        <button type="button" class="btn flex items-center h-8 rounded-lg"
+          [class.text-primary-500]="view() === 'attachment' && enabledAttachment()"
+          [disabled]="!enabledAttachment()"
+          (click)="toggleView('attachment')"
+        >
+          <i class="ri-settings-5-line text-lg"></i>
+          <div class="ml-1 leading-[18px] text-sm font-medium">{{ 'PAC.Xpert.Settings' | translate: {Default: 'Settings'} }}</div>
+        </button>
+        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-gray-200"></div>
+
+        <mat-slide-toggle [ngModel]="enabledAttachment()" (ngModelChange)="toggleAttachment($event)"
+          labelPosition="before"
+          ngm-density small
+        />
+      </div>
+    </div>
+
+    <div class="flex items-center gap-4 pt-0.5">
+      <div class="grow">
+        <div class="text-sm font-medium uppercase mb-0.5 text-text-tertiary">{{ 'PAC.Xpert.SupportFileTypes' | translate: {Default: 'Support File Types'} }}</div>
+        <div class="system-xs-regular text-text-secondary">{{fileTypes()?.length ? fileTypes() : ('PAC.KEY_WORDS.None' | translate: {Default: 'None'})}}</div>
+      </div>
+      <div class="h-[27px] w-px rotate-12 bg-divider-subtle"></div>
+      <div class="grow">
+        <div class="text-sm font-medium uppercase mb-0.5 text-text-tertiary">{{ 'PAC.Xpert.MaxUploads' | translate: {Default: 'Max uploads'} }}</div>
+        <div class="system-xs-regular text-text-secondary">{{maxNum()}}</div>
+      </div>
+    </div>
+
+    @if (view() === 'attachment' && enabledAttachment()) {
+      <xpert-studio-features-attachment @heightChangeAnimation class="mt-4" />
+    }
+  </div>
 </div>

@@ -4,6 +4,7 @@ import { IChatConversation } from './chat.model'
 import { LongTermMemoryTypeEnum } from './xpert.model'
 import { XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model';
 import { JSONValue } from '../core.model';
+import { IStorageFile } from '../storage-file.model';
 
 export type TSummaryJob = Record<LongTermMemoryTypeEnum, {
     jobId: number | string;
@@ -41,6 +42,10 @@ export enum ChatMessageStepCategory {
    * Program Execution
    */
   Program = 'program',
+  /**
+   * Iframe
+   */
+  Iframe = 'iframe',
 
   Memory = 'memory'
 }
@@ -48,7 +53,8 @@ export enum ChatMessageStepCategory {
 /**
  * Step message type, in canvas and ai message.
  */
-export type TChatMessageStep = {
+export type TChatMessageStep<T = any> = {
+  id?: string
   type?: ChatMessageStepType
   category?: ChatMessageStepCategory
   toolset?: string
@@ -56,14 +62,20 @@ export type TChatMessageStep = {
   title?: string
   message?: string
   created_date?: Date | string
-  data?: any
+  data?: T
 }
 
 /**
  * Chat message entity type
  */
 export interface IChatMessage extends IBasePerTenantAndOrganizationEntityModel, Omit<Omit<CopilotBaseMessage, 'createdAt'>, 'id'> {
-
+  /**
+   * Files
+   */
+  attachments?: IStorageFile[]
+  /**
+   * Job of summary
+   */
   summaryJob?: TSummaryJob
 
   /**
@@ -162,6 +174,7 @@ export type TMessageContentComponent = {
 export type TMessageComponent<T extends object = object> = T & {
   category: 'Dashboard' | 'Computer'
   type: string
+  created_date?: Date | string
 }
 
 export type TMessageContentText = {
@@ -201,6 +214,24 @@ export type TMessageContentComplex = (TMessageContentText | TMessageContentReaso
  * Enhance {@link MessageContent} in Langchain.js
  */
 export type TMessageContent = string | TMessageContentComplex[];
+
+export type TMessageComponentIframe = {
+  type: 'Iframe'
+  url: string
+  title: string
+}
+
+export type TMessageComponentStep = {
+  // Triky
+  type: ChatMessageStepCategory
+  toolset: string
+  title: string
+  message: string
+  status: 'success' | 'fail' | 'running'
+  created_date: Date | string
+  end_date: Date | string
+  error?: string
+}
 
 // Type guards
 /**

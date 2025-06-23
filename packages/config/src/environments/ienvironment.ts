@@ -26,6 +26,7 @@ export type LogLevel = 'verbose' | 'debug' | 'log' | 'warn' | 'error';
  */
 export interface Env {
 	LOG_LEVEL?: LogLevel;
+	IS_DOCKER?: string;
 	[key: string]: string;
 }
 
@@ -47,6 +48,11 @@ export interface IEnvironment {
 	clientBaseUrl: string;
 
 	production: boolean;
+	/**
+	 * The name of the environment, e.g. 'dev', 'prod'
+	 * - dev: Development environment
+	 * - prod: Production environment
+	 */
 	envName: string;
 
 	env?: Env;

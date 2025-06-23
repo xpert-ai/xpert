@@ -13,6 +13,7 @@ import { IIntegration } from '../integration.model'
 import { TChatFrom, TSensitiveOperation } from './chat.model'
 import { IWorkflowNode, TVariableAssigner, VariableOperationEnum } from './xpert-workflow.model'
 import { IEnvironment } from './environment.model'
+import { IStorageFile } from '../storage-file.model'
 
 export type ToolCall = LToolCall
 
@@ -28,7 +29,7 @@ export type TXpert = {
   avatar?: TAvatar
 
   /**
-   * Conversation starter
+   * Conversation starters
    */
   starters?: string[]
 
@@ -48,6 +49,10 @@ export type TXpert = {
    * Long-term memory config
    */
   memory?: TLongTermMemory
+  /**
+   * File upload feature
+   */
+  attachment?: TXpertAttachment
 
   /**
    * Version of role: '1' '2' '2.1' '2.2'...
@@ -63,6 +68,7 @@ export type TXpert = {
   releaseNotes?: string
 
   /**
+   * Draft on current version
    * Draft on current version
    */
   draft?: TXpertTeamDraft
@@ -258,6 +264,14 @@ export type TLongTermMemory = {
   qa?: TLongTermMemoryConfig
 }
 
+export type TXpertAttachmentType = 'document' | 'image' | 'audio' | 'video' | 'others'
+export type TXpertAttachment = {
+  enabled?: boolean
+  type?: 'upload' | 'url' | 'all'
+  maxNum?: number
+  fileTypes?: Array<TXpertAttachmentType>
+}
+
 export enum XpertTypeEnum {
   Agent = 'agent',
   Copilot = 'copilot'
@@ -278,6 +292,7 @@ export enum XpertParameterTypeEnum {
   SELECT = 'select',
   ARRAY_STRING = 'array[string]',
   ARRAY = 'array[object]',
+  ARRAY_FILE = 'array[file]',
 
   BOOLEAN = 'boolean',
   SECRET = 'secret',
@@ -414,12 +429,20 @@ export enum ChatMessageEventTypeEnum {
   ON_ERROR = 'on_error',
 }
 
+/**
+ * Human input message, include parameters and attachments
+ */
+export type TChatRequestHuman = {
+  input?: string
+  files?: IStorageFile[]
+  [key: string]: unknown
+}
 
 export type TChatRequest = {
-  input: {
-    input?: string
-    [key: string]: unknown
-  }
+  /**
+   * The human input, include parameters
+   */
+  input: TChatRequestHuman
   xpertId: string
   agentKey?: string
   projectId?: string
@@ -440,6 +463,7 @@ export type TChatRequest = {
 }
 
 export type TChatOptions = {
+  conversationId?: string
   knowledgebases?: string[]
   toolsets?: string[]
   /**
@@ -458,6 +482,10 @@ export type TChatOptions = {
    * Whether to summarize the conversation title
    */
   summarizeTitle?: boolean
+  /**
+   * Project ID, identify the project where the xpert invoked
+   */
+  projectId?: string
   /**
    * Specify environment with variables to run
    */

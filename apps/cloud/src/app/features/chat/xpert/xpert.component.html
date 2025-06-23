@@ -41,7 +41,8 @@
 
 <ng-template #menu>
   <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary">
-    <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="newConv()">
+    <button class="flex justify-start items-center p-2 rounded-lg shadow-sm hover:shadow-md !bg-components-card-bg hover:!bg-neutral-50 sticky top-0 z-10"
+      cdkMenuItem (click)="newConv()">
       <svg
         width="20"
         height="20"
@@ -95,14 +96,14 @@
 </ng-template>
 
 <ng-template #projectMenu>
-  <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary">
+  <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary !pb-0">
     @for (project of projects(); track project.id) {
       <button cdkMenuItem class="ngm-cdk-menu-item p-1" [routerLink]="['/chat/p', project.id]">
         <span class="truncate">{{project.name}}</span>
       </button>
     }
 
-    <div class="flex justify-between items-center gap-2 mt-2">
+    <div class="sticky bottom-0 flex justify-between items-center gap-4 mt-2 p-2 bg-components-card-bg">
       <button type="button" class="grow btn disabled:btn-disabled btn-primary btn-large shrink-0"
         (click)="newProject()">
         <i class="ri-add-line mr-2"></i>

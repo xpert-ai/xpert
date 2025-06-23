@@ -2,16 +2,15 @@
   <div class="relative w-full px-2 pb-3 sm:pb-4">
     <form class="bottom-0 w-full text-base flex flex-col gap-2 items-center justify-center relative z-10">
       <div class="flex flex-row gap-2 justify-center w-full relative">
-        <input class="hidden" multiple="" type="file" name="files" />
         <div
           class="query-bar group bg-components-card-bg duration-100 relative w-full shadow-sm sm:shadow-md rounded-[28px] border border-zinc-100 overflow-hidden 
            hover:border-zinc-200 hover:bg-input-background-hover focus-within:border-zinc-300
             hover:focus-within:border-zinc-300 pb-12 px-2 @[480px]/input:px-3"
         >
-          <div
-            class="w-full flex-row gap-2 mt-3 whitespace-nowrap flex-wrap hidden will-change-[mask-image] @sm:[mask-image:none] [mask-image:linear-gradient(to_right,transparent_0,black_0px,black_calc(100%_-_40px),transparent_100%)]"
-            style="opacity: 1; transform: none"
-          ></div>
+          @if (attachments()?.length) {
+            <chat-attachments class="w-full pt-2" editable [(attachments)]="attachments" />
+          }
+
           <div class="relative z-10">
             @if (!isComposing() && !prompt()) {
               <span class="absolute px-2 py-5 text-text-secondary pointer-events-none">
@@ -32,30 +31,27 @@
               (compositionend)="onCompositionEnd($event)"
             ></textarea>
           </div>
-          <div
-            class="flex gap-1.5 absolute inset-x-0 bottom-0 border-2 border-transparent p-2 @[480px]/input:p-3 max-w-full"
-          >
-            <button
-              class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 h-9 rounded-full py-2 relative px-2 transition-all duration-150 bg-transparent border w-9 aspect-square border-toggle-border text-secondary hover:text-primary hover:bg-toggle-hover"
-              type="button"
-              aria-label="Attach"
-              tabindex="0"
-              [matTooltip]="'Feature in development.'"
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                class="stroke-[2]"
+          <div class="flex gap-1.5 absolute inset-x-0 bottom-0 border-2 border-transparent p-2 @[480px]/input:p-3 max-w-full">
+            @if (attachment()?.enabled) {
+              <button #attachTrigger
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 h-9 rounded-full py-2 relative px-2 transition-all duration-150 bg-transparent border w-9 aspect-square border-toggle-border text-secondary hover:text-primary hover:bg-toggle-hover"
+                type="button"
+                aria-label="Attach"
+                tabindex="0"
+                [cdkMenuTriggerFor]="attachMenu"
+                [cdkMenuPosition]="[
+                  {
+                    originX: 'center',
+                    originY: 'top',
+                    overlayX: 'center',
+                    overlayY: 'bottom',
+                    offsetY: -6,
+                  }
+                ]"
               >
-                <path
-                  d="M10 9V15C10 16.1046 10.8954 17 12 17V17C13.1046 17 14 16.1046 14 15V7C14 4.79086 12.2091 3 10 3V3C7.79086 3 6 4.79086 6 7V15C6 18.3137 8.68629 21 12 21V21C15.3137 21 18 18.3137 18 15V8"
-                  stroke="currentColor"
-                ></path>
-              </svg>
-            </button>
+                <i class="ri-attachment-line"></i>
+              </button>
+            }
 
             <div class="flex grow gap-1.5 max-w-full" style="transform: none; opacity: 1">
               <div class="grow flex gap-1.5 max-w-full">
@@ -201,6 +197,49 @@
     </form>
 
     <copilot-enable-model class="absolute top-0 left-0 w-full h-full justify-center items-center z-10 backdrop-blur-md bg-white/2 hidden"
-      [enableModel]="!xpert()"/>
+      [enableModel]="!xpert()"
+    />
   </div>
 </div>
+
+
+<ng-template #attachMenu>
+  <div class="relative w-[280px] rounded-xl border-[0.5px] border-components-panel-border bg-components-panel-bg-blur shadow-lg">
+    <div class="w-full flex justify-between items-center p-2">
+      <div class="pl-2">{{'PAC.Xpert.Attachments' | translate: {Default: 'Attachments'} }}</div>
+      <button type="button" class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+        (click)="closeAttach()">
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+
+    <div class="px-4 pb-4">
+      <!-- <div class="flex h-9 items-center rounded-lg border border-components-input-border-active bg-components-input-bg-active p-1 shadow-sm">
+        <input class="system-sm-regular mr-0.5 block grow appearance-none bg-transparent px-1 outline-none" 
+          placeholder="Enter URL..."
+          tabindex="-1"
+          [(ngModel)]="url"
+          [ngModelOptions]="{standalone: true}"
+        >
+        <button type="button" class="btn disabled:btn-disabled btn-primary btn-small shrink-0" 
+          [disabled]="!url()"
+          (click)="createUrlFile()"
+        >OK</button>
+      </div>
+      <div class="system-2xs-medium-uppercase flex h-7 items-center p-2 text-text-quaternary">
+        <div class="mr-2 h-[1px] w-[93px] bg-gradient-to-l from-[rgba(16,24,40,0.08)]"></div>
+        {{'PAC.KEY_WORDS.OR' | translate: {Default: 'OR'} }}
+        <div class="ml-2 h-[1px] w-[93px] bg-gradient-to-r from-[rgba(16,24,40,0.08)]"></div>
+      </div> -->
+      <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium relative w-full" tabindex="-1">
+        <i class="ri-upload-cloud-2-line mr-2"></i>
+        
+        {{'PAC.Xpert.LocalUpload' | translate: {Default: 'Local upload'} }}
+        <input class="absolute inset-0 block w-full cursor-pointer text-[0] opacity-0 disabled:cursor-not-allowed" 
+          accept=".jpg,.jpeg,.png,.gif,.webp,.svg" multiple type="file"
+          (change)="onFileSelected($event)"
+        >
+      </button>
+    </div>
+  </div>
+</ng-template>

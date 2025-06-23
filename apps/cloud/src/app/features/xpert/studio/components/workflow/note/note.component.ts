@@ -4,6 +4,7 @@ import { FFlowModule } from '@foblex/flow'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
+  IWFNNote,
   IWorkflowNode,
   TXpertTeamNode,
   WorkflowNodeTypeEnum,
@@ -35,5 +36,5 @@ export class XpertWorkflowNodeNoteComponent {
   readonly entity = input<IWorkflowNode>()
 
   // States
-  readonly description = computed(() => this.entity()?.description)
+  readonly content = computed(() => (<IWFNNote>this.entity())?.content)
 }

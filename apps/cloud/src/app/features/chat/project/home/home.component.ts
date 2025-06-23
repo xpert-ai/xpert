@@ -30,10 +30,10 @@ import { BehaviorSubject, catchError, combineLatest, EMPTY, map, of, shareReplay
 import { ChatProjectComponent } from '../project.component'
 import { ChatProjectToolsComponent } from '../tools/tools.component'
 import { ChatProjectXpertsComponent } from '../xperts/xperts.component'
-import { ChatProjectMembersComponent } from '../members/members.component'
 import { ChatProjectAttachmentsComponent } from '../attachments/attachments.component'
 import { ChatProjectConversationsComponent } from '../conversations/conversations.component'
 import { ChatProjectKnowledgesComponent } from '../knowledges/knowledges.component'
+import { ChatProjectManageComponent } from '../manage/manage.component'
 
 /**
  *
@@ -53,11 +53,9 @@ import { ChatProjectKnowledgesComponent } from '../knowledges/knowledges.compone
     EmojiAvatarComponent,
     TranslatePipe,
     
-    CopilotModelSelectComponent,
     CopilotEnableModelComponent,
     ChatProjectXpertsComponent,
     ChatProjectToolsComponent,
-    ChatProjectMembersComponent,
     ChatProjectAttachmentsComponent,
     ChatProjectConversationsComponent,
     ChatProjectKnowledgesComponent
@@ -68,12 +66,11 @@ import { ChatProjectKnowledgesComponent } from '../knowledges/knowledges.compone
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatProjectHomeComponent {
-  eModelType = AiModelTypeEnum
 
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
   readonly #fb = inject(FormBuilder)
-  readonly projectSercice = injectProjectService()
+  readonly projectsService = injectProjectService()
   readonly #projectComponent = inject(ChatProjectComponent)
   readonly workspaceService = inject(XpertWorkspaceService)
   readonly i18nService = injectI18nService()
@@ -89,11 +86,11 @@ export class ChatProjectHomeComponent {
   readonly settings = attrModel(this.project, 'settings')
   readonly instruction = attrModel(this.settings, 'instruction')
   readonly mode = attrModel(this.settings, 'mode')
-  readonly copilotModel = attrModel(this.project, 'copilotModel')
+  // readonly copilotModel = attrModel(this.project, 'copilotModel')
 
   // Toolsets
   readonly #toolsRefresh$ = new BehaviorSubject<void>(null)
-  readonly #toolsets = derivedAsync(() => (this.id() ? this.#toolsRefresh$.pipe(switchMap(() => this.projectSercice.getToolsets(this.id(), {relations: ['createdBy']}))) : of(null)))
+  readonly #toolsets = derivedAsync(() => (this.id() ? this.#toolsRefresh$.pipe(switchMap(() => this.projectsService.getToolsets(this.id(), {relations: ['createdBy']}))) : of(null)))
   readonly toolsets = linkedModel({
     initialValue: null,
     compute: () => this.#toolsets()?.items,
@@ -103,7 +100,7 @@ export class ChatProjectHomeComponent {
   // Knowledgebases
   readonly #kbRefresh$ = new BehaviorSubject<void>(null)
   readonly #knowledgebases = derivedAsync(() => (this.id() ? this.#kbRefresh$.pipe(
-    switchMap(() => this.projectSercice.getKnowledgebases(this.id(), {relations: ['createdBy']}))) : of(null)))
+    switchMap(() => this.projectsService.getKnowledgebases(this.id(), {relations: ['createdBy']}))) : of(null)))
   readonly knowledgebases = linkedModel({
     initialValue: null,
     compute: () => this.#knowledgebases()?.items,
@@ -111,7 +108,7 @@ export class ChatProjectHomeComponent {
   })
 
   // View
-  readonly viewType = signal<'attachments' | 'tools' | 'knowledges' | 'conversations' | 'members'>('tools')
+  readonly viewType = signal<'attachments' | 'tools' | 'knowledges' | 'conversations'>('tools')
 
   readonly form = this.#fb.group({
     input: ''
@@ -142,24 +139,20 @@ export class ChatProjectHomeComponent {
   readonly workspace = computed(() => this.#workspace()?.workspace)
   readonly workspaceError = computed(() => this.#workspace()?.error)
 
-  // Files
-  readonly refreshFiles$ = new BehaviorSubject<void>(null)
-  readonly files$ = combineLatest([toObservable(this.id), this.refreshFiles$]).pipe(
-    switchMap(([id]) => this.projectSercice.getFiles(id).pipe(
-      map((files) => ({files, loading: false})),
-      startWith({files: null, loading: true}))
-    ),
-    shareReplay(1)
-  )
-
   constructor() {
     effect(() => {
       //
     })
   }
 
+  openWorkspace() {
+    if (this.workspace())  {
+      window.open(`/xpert/w/${this.workspace().id}`, '_blank')
+    }
+  }
+
   updateProject(project: Partial<IXpertProject>) {
-    return this.projectSercice.update(this.id(), project)
+    return this.projectsService.update(this.id(), project)
   }
 
   saveProject() {
@@ -167,8 +160,8 @@ export class ChatProjectHomeComponent {
     this.updateProject({ 
       avatar: this.avatar(), 
       name: this.name(), 
-      copilotModelId: this.copilotModel()?.id ?? null,
-      copilotModel: this.copilotModel()
+      // copilotModelId: this.copilotModel()?.id ?? null,
+      // copilotModel: this.copilotModel()
     }).subscribe({
       next: () => {
         this.loading.set(false)
@@ -238,37 +231,12 @@ export class ChatProjectHomeComponent {
     this.updateMode()
   }
 
-  rename() {
+  edit() {
     this.editing.set(true)
   }
 
-  removeProject() {
-    this.confirmDelete({
-      value: this.name(),
-      information: this.i18nService.instant('PAC.XProject.DeleteProjectAndAll', {
-        Default: 'Delete the project and all the materials in it'
-      })
-    })
-      .pipe(
-        switchMap((confirm) => {
-          if (confirm) {
-            this.loading.set(true)
-            return this.projectSercice.delete(this.id())
-          } else {
-            return EMPTY
-          }
-        })
-      )
-      .subscribe({
-        next: () => {
-          this.loading.set(false)
-          this.#router.navigate(['/chat/'])
-        },
-        error: (err) => {
-          this.loading.set(false)
-          this.#toastr.error(getErrorMessage(err))
-        }
-      })
+  cancelEdit() {
+    this.editing.set(false)
   }
 
   updateMode() {
@@ -319,5 +287,27 @@ export class ChatProjectHomeComponent {
 
   refreshTools() {
     this.#toolsRefresh$.next()
+  }
+
+  manage() {
+    this.#dialog.open(ChatProjectManageComponent, {
+      data: {
+        id: this.project().id
+      }
+    }).closed.subscribe(() => {})
+  }
+
+  exportDsl() {
+    this.projectsService.exportDsl(this.id()).subscribe({
+      next: (result) => {
+        const blob = new Blob([result.data], { type: 'text/plain;charset=utf-8' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `project-${this.project().name}.yaml`
+        a.click();
+        window.URL.revokeObjectURL(url);
+      }
+    })
   }
 }

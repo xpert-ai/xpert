@@ -1,9 +1,11 @@
-import { ICopilotModel, IKnowledgebase, IKnowledgeDocument, KnowledgebaseParserConfig, KnowledgebasePermission, KnowledgebaseTypeEnum, TAvatar } from '@metad/contracts'
+import { ICopilotModel, IKnowledgebase, IKnowledgeDocument, IXpert, KnowledgebaseParserConfig, KnowledgebasePermission, KnowledgebaseTypeEnum, TAvatar } from '@metad/contracts'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
+import { Transform, TransformFnParams } from 'class-transformer'
 import { IsJSON, IsNumber, IsOptional, IsString, IsEnum } from 'class-validator'
-import { Column, Entity, Index, JoinColumn, OneToMany, OneToOne, RelationId } from 'typeorm'
-import { CopilotModel, KnowledgeDocument } from '../core/entities/internal'
+import { Column, Entity, Index, JoinColumn, ManyToMany, OneToMany, OneToOne, RelationId } from 'typeorm'
+import { CopilotModel, KnowledgeDocument, Xpert } from '../core/entities/internal'
 import { WorkspaceBaseEntity } from '../core/entities/base.entity'
+import { XpertIdentiDto } from '../xpert/dto'
 
 @Entity('knowledgebase')
 @Index(['tenantId', 'organizationId', 'name'], { unique: true })
@@ -116,4 +118,13 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 		cascade: ['insert', 'update', 'remove', 'soft-remove', 'recover']
 	})
 	documents?: IKnowledgeDocument[] | null
+
+	/*
+    |--------------------------------------------------------------------------
+    | @ManyToMany 
+    |--------------------------------------------------------------------------
+    */
+	@Transform((params: TransformFnParams) => params.value?.map((_) => new XpertIdentiDto(_)))
+	@ManyToMany(() => Xpert, xpert => xpert.knowledgebases)
+	xperts?: IXpert[]
 }

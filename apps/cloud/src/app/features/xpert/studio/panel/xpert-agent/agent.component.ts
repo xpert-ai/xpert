@@ -36,7 +36,9 @@ import {
   injectHelpWebsite,
   XpertParameterTypeEnum,
   TSelectOption,
-  TXpertTeamNode
+  TXpertTeamNode,
+  CopilotServerService,
+  ModelFeature
 } from 'apps/cloud/src/app/@core'
 import { AppService } from 'apps/cloud/src/app/app.service'
 import { XpertStudioApiService } from '../../domain'
@@ -44,7 +46,7 @@ import { XpertStudioPanelAgentExecutionComponent } from '../agent-execution/exec
 import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertStudioPanelToolsetSectionComponent } from './toolset-section/toolset.component'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { BehaviorSubject, catchError, map, of, shareReplay, startWith, switchMap } from 'rxjs'
+import { BehaviorSubject, catchError, map, of, retry, shareReplay, startWith, switchMap } from 'rxjs'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertStudioPanelKnowledgeSectionComponent } from './knowledge-section/knowledge.component'
@@ -59,6 +61,7 @@ import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { attrModel, linkedModel, nonNullable, OverlayAnimations } from '@metad/core'
 import { MatSliderModule } from '@angular/material/slider'
 import { XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/workflow'
+import { VISION_DEFAULT_VARIABLE } from '../../types'
 
 @Component({
   selector: 'xpert-studio-panel-agent',
@@ -97,6 +100,7 @@ import { XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/
 })
 export class XpertStudioPanelAgentComponent {
   eModelType = AiModelTypeEnum
+  eXpertParameterTypeEnum = XpertParameterTypeEnum
 
   readonly regex = `{{(.*?)}}`
   readonly elementRef = inject(ElementRef)
@@ -107,6 +111,7 @@ export class XpertStudioPanelAgentComponent {
   readonly executionService = inject(XpertAgentExecutionService)
   readonly panelComponent = inject(XpertStudioPanelComponent)
   readonly xpertStudioComponent = inject(XpertStudioComponent)
+  readonly copilotServer = inject(CopilotServerService)
   readonly #toastr = injectToastr()
   readonly helpWebsite = injectHelpWebsite()
 
@@ -129,13 +134,32 @@ export class XpertStudioPanelAgentComponent {
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
   readonly isEnd = computed(() => this.agentConfig()?.endNodes?.includes(this.agentUniqueName()))
   readonly disableOutput = computed(() => this.agentConfig()?.disableOutputs?.includes(this.key()))
-  readonly enableMessageHistory = computed(() => !this.xpertAgent()?.options?.disableMessageHistory)
+  
+  readonly agentOptions = linkedModel({
+    initialValue: null,
+    compute: () => this.xpertAgent()?.options,
+    update: (options) => {
+      this.apiService.updateXpertAgent(this.key(), {options})
+    }
+  })
+  readonly enableMessageHistory = computed(() => !this.agentOptions()?.disableMessageHistory)
   readonly promptTemplates = computed(() => this.xpertAgent()?.promptTemplates)
   readonly isPrimaryAgent = computed(() => !!this.xpertAgent()?.xpertId)
 
   readonly parameters = computed(() => this.xpertAgent()?.parameters)
-  readonly memories = computed(() => this.xpertAgent()?.options?.memories)
-  readonly parallelToolCalls = computed(() => this.xpertAgent()?.options?.parallelToolCalls ?? true)
+  readonly memories = computed(() => this.agentOptions()?.memories)
+  readonly parallelToolCalls = computed(() => this.agentOptions()?.parallelToolCalls ?? true)
+  readonly vision = attrModel(this.agentOptions, 'vision')
+  readonly visionEnabled = attrModel(this.vision, 'enabled')
+  readonly resolution = attrModel(this.vision, 'resolution')
+  readonly visionVariable = linkedModel({
+    initialValue: null,
+    compute: () => this.vision()?.variable ?? VISION_DEFAULT_VARIABLE,
+    update: (variable) => {
+      this.vision.update((state) => ({...(state ?? {}), variable}))
+    }
+  })
+  readonly visionCanEnable = computed(() => this.selectedAiModel()?.features?.includes(ModelFeature.VISION))
   readonly draft = this.apiService.viewModel
   readonly toolsets = computed(() => {
     const draft = this.draft()
@@ -155,13 +179,6 @@ export class XpertStudioPanelAgentComponent {
   readonly errorHandlingType = computed(() => this.errorHandling()?.type)
 
   // LinkedModels
-  readonly agentOptions = linkedModel({
-    initialValue: null,
-    compute: () => this.xpertAgent()?.options,
-    update: (options) => {
-      this.apiService.updateXpertAgent(this.key(), {options})
-    }
-  })
   readonly structuredOutputMethod = attrModel(this.agentOptions, 'structuredOutputMethod')
   readonly structuredOutputMethodOption = computed(() => {
     return this.StructuredOutputMethodOptions.find((_) => this.structuredOutputMethod() ? _.value === this.structuredOutputMethod() : !_.value)
@@ -180,8 +197,37 @@ export class XpertStudioPanelAgentComponent {
   })
 
   readonly outputVariables = computed(() => this.xpertAgent()?.outputVariables)
+  get enabledOutputVars() {
+    return !!this.outputVariables()
+  }
+  set enabledOutputVars(value: boolean) {
+    this.updateOutputVariables(value ? (this.outputVariables() ?? []) : null)
+  }
 
+  readonly copilotWithModels = derivedAsync(() => {
+    const modelType = this.copilotModelType()
+    const copilotId = this.copilotId()
+    return this.copilotServer.getCopilotModels(modelType).pipe(
+      map((copilots) => {
+        return copilots?.filter((_) => copilotId ? _.id === copilotId : true )
+          .sort((a, b) => {
+            const roleOrder = { primary: 0, secondary: 1, embedding: 2 }
+            return roleOrder[a.role] - roleOrder[b.role]
+          })
+      })
+    )
+  })
   readonly copilotModel = model<ICopilotModel>()
+  readonly copilotModelType = computed(() => this.copilotModel()?.modelType)
+  readonly copilotId = computed(() => this.copilotModel()?.copilotId)
+  readonly model = computed(() => this.copilotModel()?.model)
+  readonly selectedCopilotWithModels = computed(() => {
+    return this.copilotWithModels()?.find((_) => _.id === this.copilotId())
+  })
+  readonly selectedAiModel = computed(() =>
+    this.selectedCopilotWithModels()?.providerWithModels?.models?.find((_) => _.model === this.model() &&
+      (this.copilotModelType() ? _.model_type === this.copilotModelType() : true))
+  )
 
   readonly openedExecution = signal(false)
   readonly executionId = model<string>(null)
@@ -283,8 +329,10 @@ export class XpertStudioPanelAgentComponent {
     )
 
     effect(() => {
-      // console.log(`agent copilotModel:`, this.copilotModel())
-    })
+      if (this.selectedAiModel() && !this.visionCanEnable()) {
+        this.visionEnabled.set(false)
+      }
+    }, { allowSignalWrites: true })
   }
 
   onNameChange(event: string) {

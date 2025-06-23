@@ -1,0 +1,61 @@
+<div class="flex justify-between items-center gap-2">
+  <div class="flex flex-col">
+    <div >
+      <span class="font-semibold text-base truncate">{{name()}}</span>
+      <span class="mx-2">
+        {{ 'PAC.XProject.Or' | translate: {Default: 'or'} }}
+      </span>
+
+      <button class="border-solid border-[0.5px] border-neutral-200 rounded-lg shadow-sm pl-1 pr-2 ml-2"
+        [disabled]="loading() || createdToolset()"
+        [cdkMenuTriggerFor]="toolsMenu"
+      >
+        <i class="ri-links-line ml-1 text-lg"></i>
+        @if (bindedToolset()) {
+          <span>
+            {{ bindedToolset().name }}
+          </span>
+          <i class="ri-close-circle-line cursor-pointer" (click)="removeBindedToolset()"></i>
+        } @else {
+          <span>
+            {{ 'PAC.XProject.IntroduceExistToolset' | translate: {Default: 'Introduce Exist Toolset'} }}
+          </span>
+        }
+      </button>
+      @if (createdToolset()) {
+        <i class="ri-checkbox-circle-fill ml-1 text-text-success"
+          [matTooltip]="'PAC.XProject.HaveImported' | translate: {Default: 'Imported'}"
+          matTooltipPosition="above"></i>
+      }
+    </div>
+    <div class="text-sm text-text-secondary font-body line-clamp-2 whitespace-pre-line truncate mt-2">
+      {{description()}}
+    </div>
+  </div>
+
+  <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium justify-center w-24"
+    [disabled]="loading() || createdToolset() || !project()?.workspaceId"
+    (click)="importToolset()"
+  >
+    @if (loading())  {
+      <ngm-spin class="w-5 h-5 mr-1" />
+    }
+    @if (bindedToolset()) {
+      {{ 'PAC.XProject.Binding' | translate: {Default: 'Binding'} }}
+    } @else {
+      {{ 'PAC.XProject.Import' | translate: {Default: 'Import'} }}
+    }
+  </button>
+</div>
+
+
+<ng-template #toolsMenu>
+  <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary relative p-0">
+    @for (toolset of toolsets(); track toolset.id) {
+      <button class="ngm-cdk-menu-item p-1" cdkMenuItem (click)="bindToolset(toolset)">
+        <emoji-avatar small [avatar]="toolset.avatar" class="mr-1 shrink-0 rounded-lg overflow-hidden shadow-sm" />
+        <span class="truncate">{{toolset.name}}</span>
+      </button>
+    }
+  </div>
+</ng-template>

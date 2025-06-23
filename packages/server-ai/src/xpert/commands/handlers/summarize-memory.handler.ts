@@ -22,10 +22,10 @@ import z from 'zod'
 import { CreateCopilotStoreCommand, formatMemories } from '../../../copilot-store'
 import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { XpertAgentExecutionStateQuery } from '../../../xpert-agent-execution/queries'
-import { AgentStateAnnotation } from '../../../xpert-agent/commands/handlers/types'
 import { GetXpertAgentQuery, GetXpertChatModelQuery, GetXpertMemoryEmbeddingsQuery } from '../../queries'
 import { XpertService } from '../../xpert.service'
 import { XpertSummarizeMemoryCommand } from '../summarize-memory.command'
+import { AgentStateAnnotation } from '../../../shared'
 
 @CommandHandler(XpertSummarizeMemoryCommand)
 export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummarizeMemoryCommand> {

@@ -79,7 +79,7 @@ export class ChatConversationsComponent {
   readonly #dialogRef = inject(DialogRef)
   readonly xpertService = inject(XpertService)
   readonly #toastr = injectToastr()
-  readonly #data = inject<{xpertSlug: string; basePath: string; projectId?: string;}>(DIALOG_DATA)
+  readonly #data = inject<{xpertId?: string; xpertSlug: string; basePath: string; projectId?: string;}>(DIALOG_DATA)
 
   readonly contentContainer = viewChild('contentContainer', { read: ElementRef })
   readonly sidenav = viewChild('sidenav', { read: MatSidenav })
@@ -90,11 +90,12 @@ export class ChatConversationsComponent {
   readonly conversationId = this.homeService.conversationId
   readonly xpertSlug = signal(this.#data.xpertSlug)
   readonly projectId = signal(this.#data.projectId)
+  readonly xpertId = signal(this.#data.xpertId ?? '')
 
   readonly sidenavOpened = model(!this.isMobile())
   readonly groups = computed(() => {
     const conversations = this.homeService.conversations()
-    return groupConversations(conversations)
+    return conversations[this.xpertId()] ? groupConversations(conversations[this.xpertId()]) : []
   })
 
   readonly editingConversation = signal<string>(null)
@@ -138,7 +139,7 @@ export class ChatConversationsComponent {
 
   deleteConv(id: string) {
     this.loading.set(true)
-    this.homeService.deleteConversation(id).subscribe({
+    this.homeService.deleteConversation(this.xpertId(), id).subscribe({
       next: () => {
         this.loading.set(false)
       },
@@ -168,7 +169,12 @@ export class ChatConversationsComponent {
 
   resetLoadConversations() {
     this.currentPage.set(0)
-    this.homeService.conversations.set([])
+    this.homeService.conversations.update((state) => {
+      return {
+        ...state,
+        [this.xpertId()]: []
+      }
+    })
     this.pagesCompleted.set(false)
   }
 
@@ -194,21 +200,35 @@ export class ChatConversationsComponent {
           if (this.projectId()) {
             where.projectId = this.projectId()
           }
+          if (this.xpertId())  {
+            where.xpertId = this.xpertId()
+          }
           return this.conversationService.getMyInOrg({
             select: ['id', 'threadId', 'title', 'updatedAt', 'from', 'projectId'],
             order: { updatedAt: OrderTypeEnum.DESC },
             take: this.pageSize,
             skip: this.currentPage() * this.pageSize,
-            where
+            where,
+            relations: ['xpert', 'project']
           }, this.searchControl.value)
         }
       }),
       tap({
         next: ({ items, total }) => {
           if (this.currentPage()) {
-            this.homeService.conversations.update((state) => [...state, ...items])
+            this.homeService.conversations.update((state) => {
+              return {
+                ...state,
+                [this.xpertId()]: [...(state[this.xpertId()] ?? []), ...items]
+              }
+            })
           } else {
-            this.homeService.conversations.update((state) => [...items])
+            this.homeService.conversations.update((state) => {
+              return {
+                ...state,
+                [this.xpertId()]: [...items]
+              }
+            })
           }
           this.currentPage.update((state) => ++state)
           if (items.length < this.pageSize || this.currentPage() * this.pageSize >= total) {

@@ -15,7 +15,7 @@
 
   @if (expand()) {
     <ng-content></ng-content>
-    <xpert-toolset-tool-test @heightChangeAnimation [tool]="toolDetail$ | async" />
+    <xpert-toolset-tool-test @heightChangeAnimation [tool]="toolDetail$ | async"  />
   }
 
   @if (loading()) {

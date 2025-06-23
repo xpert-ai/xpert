@@ -6,8 +6,12 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
 import {
+  derivedHelpUrl,
+  derivedToolProvider,
   getEnabledTools,
   getErrorMessage,
+  getToolLabel,
+  injectHelpWebsite,
   injectToastr,
   IXpertToolset,
   TVariableAssigner,
@@ -61,6 +65,7 @@ export class XpertStudioPanelToolsetComponent {
   readonly router = inject(Router)
   readonly dialog = inject(Dialog)
   readonly #toastr = injectToastr()
+  readonly helpWebsite = injectHelpWebsite()
   readonly configureBuiltin = injectConfigureBuiltin()
 
   // Inputs
@@ -70,8 +75,9 @@ export class XpertStudioPanelToolsetComponent {
   readonly xpert = this.xpertStudioComponent.xpert
   readonly xpertId = computed(() => this.xpert()?.id)
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
-  readonly toolsetId = computed(() => this.node()?.key)
+  // Toolset node
   readonly toolset = computed(() => this.node()?.entity as IXpertToolset)
+  readonly toolsetId = computed(() => this.toolset()?.id)
   readonly agentConfig = computed(() => this.xpert()?.agentConfig)
   readonly positions = computed(() => this.toolset()?.options?.toolPositions)
 
@@ -84,11 +90,16 @@ export class XpertStudioPanelToolsetComponent {
       : of(null)
   })
 
+  readonly providerName = computed(() => this.toolset().type)
+  readonly #provider = derivedToolProvider(this.providerName)
+  
+  readonly provider = computed(() => this.#provider()?.provider)
   readonly needSandbox = computed(() => this.toolsetDetail()?.options?.needSandbox)
+  readonly helpUrl = derivedHelpUrl(() => this.provider()?.help_url || '/docs/ai/tool/')
 
   // Not initialized, needs to be reconfigured
-  readonly isTemplate = computed(() => this.toolsetId() && !this.toolsetDetail())
-  readonly providerName = computed(() => this.toolset().type)
+  readonly isTemplate = computed(() => this.toolset() && !this.toolsetDetail())
+
   readonly toolsets = derivedAsync(() => {
     if (this.providerName() && this.isTemplate()) {
       return this.toolsetService
@@ -98,7 +109,7 @@ export class XpertStudioPanelToolsetComponent {
     return null
   })
 
-  readonly tools = computed(() => getEnabledTools(this.toolsetDetail()))
+  readonly tools = computed(() => getEnabledTools(this.toolsetDetail())?.map((tool) => ({tool, label: getToolLabel(tool)})))
 
   readonly expandTools = signal<Record<string, boolean>>({})
 
@@ -118,7 +129,7 @@ export class XpertStudioPanelToolsetComponent {
 
   constructor() {
     effect(() => {
-      // console.log(this.toolsetDetail())
+      // console.log(this.node()?.entity)
     })
   }
 
@@ -208,7 +219,7 @@ export class XpertStudioPanelToolsetComponent {
     this.toolsetService.getOneById(toolset.id, { }).subscribe({
       next: (toolset) => {
         this.loading.set(false)
-        this.studioService.replaceToolset(this.toolset().id, toolset)
+        this.studioService.replaceToolset(this.toolset().key || this.toolset().id, toolset)
       },
       error: (err) => {
         this.loading.set(false)
@@ -263,5 +274,9 @@ export class XpertStudioPanelToolsetComponent {
           }
         })
     }
+  }
+
+  saveDefaultParameters(event) {
+    // @todo 未完成
   }
 }

@@ -98,4 +98,8 @@ export class XpertStudioPanelKnowledgeComponent {
   updateRecall(value: TKBRecallParams) {
     this.studioService.updateXpertAgentConfig({recalls: {...(this.recalls() ?? {}), [this.id()]: value}})
   }
+
+  edit() {
+    window.open(['/xpert', 'knowledges', this.knowledgebase().id].join('/'), '_blank')
+  }
 }

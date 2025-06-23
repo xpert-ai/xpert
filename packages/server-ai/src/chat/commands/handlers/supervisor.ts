@@ -33,3 +33,4 @@ export function isChatModelWithParallelToolCallsParam(
 }
 
 export const Instruction = `Please answer in '{{sys.language}}'`
+export const PlanInstruction = ``
