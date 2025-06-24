@@ -66,7 +66,7 @@ async function tool(_, config) => {
                 type: 'component',
                 data: {
                     category: 'Computer',
-                    type: 'Iframe',
+                    type: 'iframe',
                     url: indexFile
                 } as TMessageComponent<TMessageComponentIframe>
             }

@@ -63,6 +63,7 @@ export type TChatMessageStep<T = any> = {
   message?: string
   created_date?: Date | string
   data?: T
+  artifact?: any
 }
 
 /**

@@ -1,4 +1,4 @@
-import { AIMessage, AIMessageChunk, BaseMessage } from '@langchain/core/messages'
+import { AIMessage, AIMessageChunk, BaseMessage, isToolMessage } from '@langchain/core/messages'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
@@ -241,17 +241,21 @@ export function createMapStreamEvents(
 
 				const tool_call_id = data.output?.tool_call_id || data.id || rest.metadata.tool_call_id
 				if (tool_call_id) {
+					const component: any = {
+									category: 'Computer',
+									status: 'success',
+									end_date: new Date(),
+								}
+					if (isToolMessage(output)) {
+						component.artifact = output.artifact
+					}
 					subscriber.next({
 						data: {
 							type: ChatMessageTypeEnum.MESSAGE,
 							data: {
 								id: tool_call_id,
 								type: 'component',
-								data: {
-									category: 'Computer',
-									status: 'success',
-									end_date: new Date(),
-								} as TMessageComponent<TChatMessageStep>
+								data: component as TMessageComponent<TChatMessageStep>
 							}
 						}
 					} as MessageEvent)

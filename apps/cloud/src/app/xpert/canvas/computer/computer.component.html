@@ -203,6 +203,11 @@
                     }
                   }
                 }
+                @case ('browser') {
+                  @if (step.artifact) {
+                    <img [src]="step.artifact.image_url" [alt]="step.artifact.title" class="max-w-full h-auto">
+                  }
+                }
                 @default {
                   <div class="p-2 text-sm whitespace-pre-line">{{step.message}}</div>
                 }
