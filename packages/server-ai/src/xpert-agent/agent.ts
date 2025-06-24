@@ -1,4 +1,4 @@
-import { AIMessage, AIMessageChunk, BaseMessage, isToolMessage } from '@langchain/core/messages'
+import { AIMessage, AIMessageChunk, BaseMessage, isBaseMessage, isToolMessage } from '@langchain/core/messages'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
@@ -246,7 +246,7 @@ export function createMapStreamEvents(
 									status: 'success',
 									end_date: new Date(),
 								}
-					if (isToolMessage(output)) {
+					if (isBaseMessage(output) && isToolMessage(output) && output.artifact) {
 						component.artifact = output.artifact
 					}
 					subscriber.next({

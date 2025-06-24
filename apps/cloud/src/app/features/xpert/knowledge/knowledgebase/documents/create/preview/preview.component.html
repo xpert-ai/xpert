@@ -1,0 +1,64 @@
+@if (category() === eKBDocumentCategoryEnum.Sheet) {
+  <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+    <thead class="">
+      <tr>
+        @for (field of fields(); track field.value) {
+          <th scope="col" class="px-6 py-3 bg-gray-50 dark:bg-gray-800 whitespace-nowrap sticky top-0 z-10">
+            <div class="inline-flex items-center gap-2">
+              <div class="inline-block text-gray-700 uppercase dark:text-gray-400">
+                {{field.label}}
+              </div>
+              <div class="inline-block font-normal">
+                <ngm-checkbox [label]="'PAC.Knowledgebase.Index' | translate: {Default: 'Index'}"
+                  [ngModel]="this.allIndexed() || sheetParserConfig()?.indexedFields?.includes(field.value)"
+                  (ngModelChange)="updateIndexed(field.value, $event)"
+                />
+              </div>
+            </div>
+          </th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (doc of docs(); track doc) {
+        <tr class="border-b border-gray-200 dark:border-gray-700">
+          @for (field of fields(); track field.value) {
+            <td scope="col" class="px-6 py-1 font-medium text-gray-900 whitespace-nowrap bg-gray-50/50 dark:text-white dark:bg-gray-800/50">
+              {{doc.metadata.raw?.[field.value] || 'N/A'}}
+            </td>
+          }
+        </tr>
+
+        <tr>
+          <td scope="col" [attr.colspan]="fields().length" class="px-6 pb-4 pt-2 text-sm font-mono">
+            {{ doc.pageContent || 'No content available' }}
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+} @else {
+  @for (chunk of docs(); track chunk; let i = $index) {
+    <div class="space-y-2">
+        <div class="flex items-center text-text-secondary text-sm font-medium">
+        <i class="ri-text-block mr-1"></i>
+        <p class="flex gap-2 ml-0.5">
+            <span>Chunk-{{i}}</span>
+            <span>·</span>
+            <span>{{chunk.pageContent.length}} characters</span>
+        </p>
+        </div>
+        <div class="text-text-primary text-sm">{{chunk.pageContent}}</div>
+    </div>
+  } @empty {
+    @if (error()) {
+      <div class="text-text-warning">
+        {{error()}}
+      </div>
+    }
+  }
+}
+
+@if (loading()) {
+  <ngm-spin class="absolute w-full h-full left-0 top-0"/>
+}

@@ -31,7 +31,7 @@ export class RagWebLoadHandler implements ICommandHandler<RagWebLoadCommand> {
 			// Save docs to cache
 			for await (const doc of docs) {
 				const key = `${RagWebLoadCommand.prefix}:${doc.metadata.scrapeId}`
-				await this.cacheManager.set(key, doc, 60 * 60) // https://docs.nestjs.com/v8/techniques/caching#interacting-with-the-cache-store
+				await this.cacheManager.set(key, doc, 5 * 60 * 1000) // https://docs.nestjs.com/v8/techniques/caching#interacting-with-the-cache-store
 			}
 
 			const duration = Math.round(((Date.now() - startTime) / 1000) * 100) / 100

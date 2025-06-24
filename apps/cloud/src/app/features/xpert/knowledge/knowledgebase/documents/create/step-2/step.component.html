@@ -1,5 +1,5 @@
 <div class="py-4 flex w-full grow overflow-hidden">
-  <div class="grow max-w-[50%] flex flex-col px-8 py-4 overflow-auto">
+  <div class="grow max-w-[40%] flex flex-col px-8 py-4 overflow-auto">
     <div class="system-md-semibold mb-1">
       {{ 'PAC.Knowledgebase.ChunkSettings' | translate: {Default: 'Chunk Settings'} }}
     </div>
@@ -100,7 +100,7 @@
     </div>
   </div>
 
-  <div class="grow max-w-[50%] relative flex flex-col pl-4 py-4 border-l border-y border-solid border-divider-regular rounded-xl">
+  <div class="grow max-w-[60%] relative flex flex-col pl-4 py-4 border-l border-y border-solid border-divider-regular rounded-xl">
     <header class="pl-5 pt-4 pr-4 pb-3 border-b border-divider-subtle">
       <div class="">
         <div class="text-text-accent system-2xs-semibold-uppercase uppercase px-1 mb-1">
@@ -124,39 +124,24 @@
               <i class="ri-arrow-down-s-line"></i>
             </div>
           </div>
-          @if (estimateFile()) {
+          <!-- @if (estimateFile()) {
             <div class="inline-flex items-center px-[5px] h-5 rounded-[5px] border border-divider-deep leading-3 text-text-tertiary system-2xs-medium-uppercase">
               {{estimateFile().docs.length}} {{'PAC.Knowledgebase.EstimationChunk' | translate: {Default: 'Estimation Chunk'} }}
             </div>
-          }
+          } -->
         </div>
       </div>
     </header>
 
-    <main class="py-5 px-6 w-full grow space-y-6 overflow-auto">
-      @for (chunk of estimateFile()?.docs; track chunk; let i = $index) {
-        <div class="space-y-2">
-          <div class="flex items-center text-text-secondary text-sm font-medium">
-            <i class="ri-text-block mr-1"></i>
-            <p class="flex gap-2 ml-0.5">
-              <span>Chunk-{{i}}</span>
-              <span>·</span>
-              <span>{{chunk.pageContent.length}} characters</span>
-            </p>
-          </div>
-          <div class="text-text-primary text-sm">{{chunk.pageContent}}</div>
-        </div>
-      } @empty {
-        @if (estimateFile()?.error) {
-          <div class="text-text-warning">
-            {{estimateFile()?.error}}
-          </div>
-        }
-      }
-    </main>
-
-    @if (estimating()) {
-      <ngm-spin class="absolute w-full h-full left-0 top-0"/>
+    @if (selectedFile()) {
+      <xpert-knowledge-document-preview class="py-5 px-6 w-full grow space-y-6 overflow-auto" 
+            [(item)]="selectedFile" 
+            [parserConfig]="parserConfig()"
+          />
+    }
+    @if (selectedWebDoc()) {
+      <xpert-knowledge-document-webpages [item]="selectedWebDoc()" 
+            [parserConfig]="parserConfig()"/>
     }
   </div>
 </div>
@@ -164,12 +149,12 @@
 <ng-template #files>
   <div cdkMenu class="cdk-menu__medium">
     @for (file of fileList(); track file) {
-      <div cdkMenuItem (click)="selectedWebDoc.set(null);selectedFile.set(file)">
+      <div cdkMenuItem (click)="selectedWebDoc.set(null);selectedFileId.set(file.doc.storageFile.id)">
         {{ file.file.name }}
       </div>
     }
     @for (doc of webDocs(); track doc) {
-      <div cdkMenuItem (click)="selectedFile.set(null);selectedWebDoc.set(doc)">
+      <div cdkMenuItem (click)="selectedFileId.set(null);selectedWebDoc.set(doc)">
         <div class="w-full flex flex-col items-start">
           <div>{{ doc.metadata.title }}</div>
           <div class="text-xs text-text-secondary">{{ doc.metadata.url }}</div>

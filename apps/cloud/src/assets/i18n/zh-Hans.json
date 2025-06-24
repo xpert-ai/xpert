@@ -1776,6 +1776,7 @@
       "PriceLimit": "限额",
       "PriceTotalUsed": "已用总金额",
       "TokenLimit": "限额(Token)",
+      "ModelConfig": "模型配置",
       "Prompts": {
         "Set story theme dark": "设置故事暗黑主题",
         "Set story gradient background color sense of technology": "设置故事背景为科技感渐变色",
@@ -2171,6 +2172,10 @@
     },
     "Knowledgebase": {
       "Knowledgebase": "知识库",
+      "Index": "索引",
+      "CreateKnowledgebase": "创建知识库",
+      "CreateKnowledgebaseDesc": "空知识库中还没有文档，你可以在今后任何时候上传文档至该知识库。",
+      "KnowledgebaseName": "知识库名称",
       "RelatedExperts": "个关联专家",
       "Documents": "文档",
       "Test": "测试",

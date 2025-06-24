@@ -11,6 +11,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject } from 'rxjs'
 import {
   DocumentParserConfig,
+  DocumentTextParserConfig,
   IIntegration,
   IKnowledgeDocument,
   IStorageFile,
@@ -28,16 +29,8 @@ import { KnowledgeDocumentCreateStep1Component } from './step-1/step.component'
 import { KnowledgeDocumentCreateStep2Component } from './step-2/step.component'
 import { KnowledgeDocumentCreateStep3Component } from './step-3/step.component'
 import { TSelectOption } from '@metad/ocap-angular/core'
+import { TFileItem } from '../types'
 
-export type TFileItem = {
-  // storageFile?: IStorageFile
-  file: File
-  doc?: IKnowledgeDocument
-  // extension: string
-  loading?: boolean
-  progress?: number
-  error?: string
-}
 
 @Component({
   standalone: true,
@@ -88,7 +81,7 @@ export class KnowledgeDocumentCreateComponent {
   readonly selectedWebPages = signal<string[]>([])
 
   // Step 2
-  readonly parserConfig = model<DocumentParserConfig>({} as DocumentParserConfig)
+  readonly parserConfig = model<DocumentTextParserConfig>({} as DocumentTextParserConfig)
   readonly step2Avaiable = computed(() => this.fileList()?.length || this.webResult()?.docs?.length)
 
   // Step 3
