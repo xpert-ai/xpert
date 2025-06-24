@@ -53,6 +53,9 @@
   @case (eWorkflowNodeTypeEnum.TEMPLATE) {
     <xpert-workflow-node-template class="px-3" [node]="node()" [entity]="entity()" />
   }
+  @case (eWorkflowNodeTypeEnum.TOOL) {
+    <xpert-workflow-node-tool class="px-3" [node]="node()" [entity]="entity()" />
+  }
   @case (eWorkflowNodeTypeEnum.NOTE) {
     <xpert-workflow-node-note class="px-3" [node]="node()" [entity]="entity()" />
   }

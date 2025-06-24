@@ -27,6 +27,7 @@ export class CreateWorkflowNodeCommand implements ICommand {
 			subscriber: Subscriber<MessageEvent>
             environment: IEnvironment
             xpert: Partial<IXpert>
+            conversationId?: string
         }
     ) {}
 }

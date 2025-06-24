@@ -4,7 +4,8 @@ import { FFlowModule } from '@foblex/flow'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
-  IWFNHttp,
+  AiModelTypeEnum,
+  IWFNTool,
   IWorkflowNode,
   TXpertTeamNode,
   WorkflowNodeTypeEnum,
@@ -14,29 +15,35 @@ import { XpertStudioApiService } from '../../../domain'
 import { XpertNodeErrorHandlingComponent } from '../../error-handling/error.component'
 
 @Component({
-  selector: 'xpert-studio-node-workflow-http',
-  templateUrl: './http.component.html',
-  styleUrls: ['./http.component.scss'],
+  selector: 'xpert-workflow-node-tool',
+  templateUrl: './tool.component.html',
+  styleUrls: ['./tool.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, PlusSvgComponent, XpertNodeErrorHandlingComponent],
-  host: {
-    tabindex: '-1'
-  }
+  imports: [FFlowModule, MatTooltipModule, TranslateModule, PlusSvgComponent, XpertNodeErrorHandlingComponent]
 })
-export class XpertStudioNodeWorkflowHttpComponent {
+export class XpertWorkflowNodeToolComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
   eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
+  eModelType = AiModelTypeEnum
 
   readonly elementRef = inject(ElementRef)
-  readonly apiService = inject(XpertStudioApiService)
+  readonly studioService = inject(XpertStudioApiService)
 
   // Inputs
   readonly node = input<TXpertTeamNode>()
   readonly entity = input<IWorkflowNode>()
 
   // States
-  readonly httpEntity = computed(() => this.entity() as IWFNHttp)
-  readonly retry = computed(() => this.httpEntity()?.retry)
-  readonly errorHandling = computed(() => this.httpEntity()?.errorHandling)
+  readonly tool = computed(() => this.entity() as IWFNTool)
+
+  readonly xpertCopilotModel = computed(() =>  this.studioService.viewModel()?.team.copilotModel)
+  readonly nodes = computed(() => this.studioService.viewModel().nodes)
+  readonly errorHandling = computed(() => this.tool()?.errorHandling)
+
+  readonly canBeConnectedInputs = computed(() =>
+    this.nodes()
+      .filter((_) => _.type === 'agent' || _.type === 'xpert')
+      .map((_) => _.key)
+  )
 }

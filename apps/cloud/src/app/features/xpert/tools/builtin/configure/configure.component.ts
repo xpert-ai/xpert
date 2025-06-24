@@ -240,7 +240,7 @@ export class XpertToolConfigureBuiltinComponent {
 export function injectConfigureBuiltin() {
   const dialog = inject(Dialog)
 
-  return (providerName: string, workspaceId: string, toolset: IXpertToolset, tools: IXpertTool[]) => {
+  return (providerName: string, workspaceId: string, toolset?: IXpertToolset, tools?: IXpertTool[]) => {
     return dialog.open<IXpertToolset>(XpertToolConfigureBuiltinComponent, {
       disableClose: true,
       data: {

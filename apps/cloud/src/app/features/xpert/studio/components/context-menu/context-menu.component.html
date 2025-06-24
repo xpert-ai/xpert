@@ -85,7 +85,7 @@
 </ng-template>
 
 <ng-template #toolsetMenu>
-  <xpert-studio-toolset-menu cdkMenu class="cdk-menu__medium overflow-auto" />
+  <xpert-studio-toolset-menu cdkMenu class="cdk-menu__medium overflow-auto" [onSelect]="onSelectToolset.bind(this)"/>
 </ng-template>
 
 <ng-template #collaboratorsMenu>
@@ -174,12 +174,23 @@
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TEMPLATE" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">{{'PAC.Xpert.Template' | translate: {Default: 'Template'} }}</div>
     </div>
+
+    <div class="flex items-start px-2 mt-2 text-base font-medium text-text-tertiary">
+      {{ 'PAC.Xpert.Tools' | translate: {Default: 'Tools'} }}
+    </div>
     <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
       (click)="addWorkflowHttp()"
     >
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.HTTP" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">{{'PAC.Xpert.Http' | translate: {Default: 'HTTP'} }}</div>
     </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowTool()"
+    >
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TOOL" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">{{'PAC.Workflow.Tool' | translate: {Default: 'Tool'} }}</div>
+    </div>
+
 
     <div class="flex items-start px-2 mt-2 font-medium text-text-tertiary">
       {{ 'PAC.Xpert.Others' | translate: {Default: 'Others'} }}

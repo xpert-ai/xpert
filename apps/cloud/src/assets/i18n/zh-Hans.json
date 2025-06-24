@@ -422,7 +422,9 @@
       "TemplateTransform": "模版转换",
       "TransformedContent": "转换后内容",
       "Code": "代码",
-      "Note": "注释"
+      "Note": "注释",
+      "MCP": "MCP",
+      "Tool": "工具"
     },
     "Environment": {
       "Environment": "环境",
@@ -2508,6 +2510,12 @@
       "NewAgent": "新建智能体",
       "AddKnowledgebase": "添加知识库",
       "AddToolset": "添加工具集",
+      "AddTool": "添加工具",
+      "SelectToolset": "选择工具集",
+      "SelectTool": "选择工具",
+      "AddMCPServer": "添加 MCP 服务器",
+      "Tool": "工具",
+      "ParameterVariable": "参数变量",
       "AddExternalExpert": "添加外部专家",
       "AddBlock": "添加模块",
       "Remove": "移除",

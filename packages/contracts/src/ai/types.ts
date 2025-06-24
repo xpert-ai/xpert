@@ -2,7 +2,7 @@ import { XpertParameterTypeEnum } from "./xpert.model"
 
 export type TErrorHandling = {
   type?: null | 'defaultValue' | 'failBranch'
-  defaultValue?: {content?: string}
+  defaultValue?: {content?: string; } & Record<string, any>
   failBranch?: string
 }
 

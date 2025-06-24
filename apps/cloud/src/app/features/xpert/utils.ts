@@ -73,6 +73,10 @@ export function genXpertSubflowKey() {
   return letterStartSUID('Subflow_')
 }
 
+export function genXpertToolKey() {
+  return letterStartSUID('Tool_')
+}
+
 export function genXpertNoteKey() {
   return letterStartSUID('Note_')
 }
