@@ -1,9 +1,23 @@
-<div class="relative w-full flex h-8 p-1">
-  <div class="grow flex justify-end items-center">
-    <div class="text-[12px] font-semibold text-text-primary uppercase">
-      {{ 'PAC.Xpert.Next' | translate: {Default: 'Next'} }}
+<div class="relative bg-zinc-50 hover:bg-zinc-100 flex h-9 cursor-pointer items-center gap-1 rounded-lg px-2 text-sm text-text-placeholder"
+>
+  @if (toolset(); as toolset) {
+    <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 overflow-hidden rounded-lg scale-95"  />
+  }
+  @if (tool(); as tool) {
+    <div class="flex items-center whitespace-nowrap" [title]="tool.description || tool.name">
+      {{tool.label | i18n}}
     </div>
-  </div>
+    <div class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50">
+      {{tool.name}}
+    </div>
+  } @else {
+    <div class="bg-neutral-100 text-lg flex h-5 w-5 items-center justify-center rounded-[5px]">
+      <i class="ri-add-line"></i>
+    </div>
+    <div class="flex items-center uppercase">
+      <span>{{ 'PAC.Xpert.SelectTool' | translate: {Default: 'Select Tool'} }}</span>
+    </div>
+  }
 
   <div fNodeOutput [fOutputId]="node().key + '/edge'" fOutputConnectableSide="right" class="right group" [fOutputMultiple]="true">
     <div class="inner-dot cursor-crosshair">
@@ -11,7 +25,6 @@
     </div>
   </div>
 </div>
-
 
 @if (errorHandling()?.type) {
   <xpert-node-error-handling [node]="node()" [errorHandling]="errorHandling()" />

@@ -609,8 +609,10 @@ export class XpertStudioApiService {
     this.#reload.next(EReloadReason.KNOWLEDGE_CREATED)
   }
 
-  // Get toolset detail from cache or remote
   private readonly toolsets = new Map<string, {toolset$: Observable<IXpertToolset>; refresh$: BehaviorSubject<void>}>()
+  /**
+   * Get toolset detail with tools from cache or remote
+   */
   getToolset(id: string): {toolset$: Observable<IXpertToolset>; refresh$: BehaviorSubject<void>} {
     if (!this.toolsets.get(id)) {
       const refresh$ = new BehaviorSubject<void>(null)

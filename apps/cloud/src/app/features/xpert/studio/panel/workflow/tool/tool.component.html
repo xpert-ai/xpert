@@ -45,7 +45,7 @@
   </div>
 
   <div class="space-y-0.5 rounded-[9px] bg-zinc-100 p-0.5">
-    <div class="bg-zinc-50 hover:bg-zinc-100 relative flex h-9 cursor-pointer items-center rounded-lg border border-dashed
+    <div class="bg-zinc-50 hover:bg-zinc-100 relative flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-dashed
       border-divider-deep px-2 text-sm text-text-placeholder"
       [cdkMenuTriggerFor]="toolsMenu"
       [ariaDisabled]="!toolsetDetail()"
@@ -53,11 +53,14 @@
       matTooltipPosition="left"
     >
       @if (tool(); as tool) {
-        <div class="flex items-center uppercase">
-          <span>{{tool.name}}</span>
+        <div class="flex items-center whitespace-nowrap" [title]="tool.description || tool.name">
+          {{tool.label | i18n}}
+        </div>
+        <div class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50">
+          {{tool.name}}
         </div>
       } @else {
-        <div class="bg-neutral-100 text-lg mr-1.5 flex h-5 w-5 items-center justify-center rounded-[5px]">
+        <div class="bg-neutral-100 text-lg flex h-5 w-5 items-center justify-center rounded-[5px]">
           <i class="ri-add-line"></i>
         </div>
         <div class="flex items-center uppercase">

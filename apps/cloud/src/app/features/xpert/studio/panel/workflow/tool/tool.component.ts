@@ -97,7 +97,16 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
       label: getToolLabel(tool)
     }))
   )
-  readonly tool = computed(() => this.tools()?.find((t) => t.value === this.toolName())?.tool)
+  readonly tool = computed(() => {
+    const tool = this.tools()?.find((t) => t.value === this.toolName())?.tool
+    if (tool) {
+      return {
+        ...tool,
+        label: getToolLabel(tool),
+      }
+    }
+    return null
+  })
   readonly schema = computed(() => this.tool()?.schema)
 
   readonly xpertCopilotModel = computed(() => this.xpert()?.copilotModel)
