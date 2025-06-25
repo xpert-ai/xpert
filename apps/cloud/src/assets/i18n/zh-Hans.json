@@ -424,7 +424,8 @@
       "Code": "代码",
       "Note": "注释",
       "MCP": "MCP",
-      "Tool": "工具"
+      "Tool": "工具",
+      "VariableAssigner": "变量赋值"
     },
     "Environment": {
       "Environment": "环境",
@@ -2518,6 +2519,7 @@
       "ParameterVariable": "参数变量",
       "AddExternalExpert": "添加外部专家",
       "AddBlock": "添加模块",
+      "AddWorkflow": "添加工作流",
       "Remove": "移除",
       "RemoveConnection": "移除连接",
       "PleaseEnter": "请输入",

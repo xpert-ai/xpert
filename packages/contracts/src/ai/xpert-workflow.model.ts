@@ -6,7 +6,13 @@ import { IXpertAgent } from "./xpert-agent.model"
 import { TStateVariable, TXpertParameter } from "./xpert.model"
 
 export enum WorkflowNodeTypeEnum {
+  /**
+   * State Variable Assigner
+   */
   ASSIGNER = 'assigner',
+  /**
+   * Router
+   */
   IF_ELSE = 'if-else',
   SPLITTER = 'splitter',
   ITERATING = 'iterating',
@@ -55,7 +61,7 @@ export type TVariableAssigner = {
 
 export interface IWFNAssigner extends IWorkflowNode {
   type: WorkflowNodeTypeEnum.ASSIGNER
-  variables: TVariableAssigner[]
+  assigners: TVariableAssigner[]
 }
 
 export interface IWFNIfElse extends IWorkflowNode {

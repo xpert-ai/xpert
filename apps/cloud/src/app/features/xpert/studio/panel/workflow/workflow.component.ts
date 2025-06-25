@@ -32,6 +32,7 @@ import { XpertWorkflowTemplateComponent } from './template/template.component'
 import { XpertWorkflowNoteComponent } from './note/note.component'
 import { XpertWorkflowClassifierComponent } from './classifier/classifier.component'
 import { XpertWorkflowToolComponent } from './tool/tool.component'
+import { XpertWorkflowAssignerComponent } from './assigner/assigner.component'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -61,7 +62,8 @@ import { XpertWorkflowToolComponent } from './tool/tool.component'
     XpertWorkflowTemplateComponent,
     XpertWorkflowNoteComponent,
     XpertWorkflowClassifierComponent,
-    XpertWorkflowToolComponent
+    XpertWorkflowToolComponent,
+    XpertWorkflowAssignerComponent
   ],
   animations: [IfAnimation,]
 })

@@ -22,12 +22,14 @@ import {
   XpertParameterTypeEnum,
   IXpertToolset,
   IToolProvider,
-  XpertToolsetCategoryEnum
+  XpertToolsetCategoryEnum,
+  IWFNAssigner
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { Subscription } from 'rxjs'
 import {
   genXpertAnswerKey,
+  genXpertAssignerKey,
   genXpertClassifierKey,
   genXpertCodeKey,
   genXpertHttpKey,
@@ -232,7 +234,7 @@ export class XpertStudioContextMenuComponent {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.TEMPLATE,
       key: genXpertTemplateKey(),
-      title: await this.#translate.instant('PAC.Workflow.TemplateTransform', { Default: 'Template transform' }),
+      title: await this.#translate.instant('PAC.Workflow.TemplateTransform', { Default: 'Template Transform' }),
       code: `{{arg1}}`,
       inputParams: [
         {
@@ -241,6 +243,22 @@ export class XpertStudioContextMenuComponent {
         }
       ]
     } as IWFNTemplate)
+  }
+  
+  addWorkflowVariableAssigner() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.ASSIGNER).length ?? 0
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.ASSIGNER,
+      key: genXpertAssignerKey(),
+      title: this.#translate.instant('PAC.Workflow.VariableAssigner', { Default: 'Variable Assigner' }) + ` ${length + 1}`,
+      assigners: [
+        {
+          value: '',
+          variableSelector: '',
+          inputType: 'variable'
+        }
+      ]
+    } as IWFNAssigner)
   }
 
   async addWorkflowHttp() {

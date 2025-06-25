@@ -52,6 +52,9 @@
   @case (eWorkflowNodeTypeEnum.IF_ELSE) {
     <xpert-studio-panel-workflow-ifelse [node]="node()" [entity]="wfNode()" />
   }
+  @case (eWorkflowNodeTypeEnum.ASSIGNER) {
+    <xpert-workflow-assigner [node]="node()" [entity]="wfNode()" />
+  }
   @case (eWorkflowNodeTypeEnum.ITERATING) {
     <xpert-studio-panel-workflow-iterating [node]="node()" [entity]="wfNode()" />
   }

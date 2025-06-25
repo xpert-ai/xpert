@@ -26,6 +26,9 @@
   @case (eWorkflowNodeTypeEnum.IF_ELSE) {
     <xpert-studio-node-workflow-ifelse class="px-3" [node]="node()" [entity]="entity()" />
   }
+  @case (eWorkflowNodeTypeEnum.ASSIGNER) {
+    <xpert-workflow-node-assigner class="px-3" [node]="node()" [entity]="entity()" />
+  }
   @case (eWorkflowNodeTypeEnum.SPLITTER) {
     <xpert-studio-node-workflow-splitter class="px-3" [node]="node()" [entity]="entity()" />
   }

@@ -61,7 +61,8 @@
         }
       ]"
     >
-      <i class="ri-code-block mr-1"></i><span>{{ 'PAC.Xpert.AddBlock' | translate: {Default: 'Add Block'} }}</span>
+      <i class="ri-code-block mr-1"></i>
+      <span>{{ 'PAC.Xpert.AddWorkflow' | translate: {Default: 'Add Workflow'} }}</span>
     </div>
 
     @if (node) {
@@ -106,7 +107,7 @@
 </ng-template>
 
 <ng-template #blockMenu>
-  <div cdkMenu class="cdk-menu__medium bg-components-panel-bg-blur rounded-lg backdrop-blur-[5px] shadow-lg !min-w-[256px]">
+  <div cdkMenu class="cdk-menu__medium bg-components-panel-bg-blur rounded-xl backdrop-blur-[5px] shadow-lg !min-w-[256px]">
     <div class="flex items-start px-2 mt-2 text-base font-medium text-text-tertiary">
       {{ 'PAC.Xpert.Logic' | translate: {Default: 'Logic'} }}
     </div>
@@ -174,6 +175,13 @@
       <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TEMPLATE" class="w-6 h-6 shrink-0 mr-2" />
       <div class="text-text-primary">{{'PAC.Xpert.Template' | translate: {Default: 'Template'} }}</div>
     </div>
+    <div cdkMenuItem class="flex items-center px-4 w-full h-9 rounded-lg hover:bg-state-base-hover cursor-pointer"
+      (click)="addWorkflowVariableAssigner()"
+    >
+      <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.ASSIGNER" class="w-6 h-6 shrink-0 mr-2" />
+      <div class="text-text-primary">{{'PAC.Workflow.VariableAssigner' | translate: {Default: 'Variable Assigner'} }}</div>
+    </div>
+
 
     <div class="flex items-start px-2 mt-2 text-base font-medium text-text-tertiary">
       {{ 'PAC.Xpert.Tools' | translate: {Default: 'Tools'} }}

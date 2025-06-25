@@ -25,6 +25,7 @@ import { XpertWorkflowNodeNoteComponent } from './note/note.component'
 import { XpertWorkflowNodeTemplateComponent } from './template/template.component'
 import { XpertWorkflowNodeClassifierComponent } from './classifier/classifier.component'
 import { XpertWorkflowNodeToolComponent } from './tool/tool.component'
+import { XpertWorkflowNodeAssignerComponent } from './assigner/assigner.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -49,7 +50,8 @@ import { XpertWorkflowNodeToolComponent } from './tool/tool.component'
     XpertWorkflowNodeTemplateComponent,
     XpertWorkflowNodeNoteComponent,
     XpertWorkflowNodeClassifierComponent,
-    XpertWorkflowNodeToolComponent
+    XpertWorkflowNodeToolComponent,
+    XpertWorkflowNodeAssignerComponent
   ],
   host: {
     tabindex: '-1',

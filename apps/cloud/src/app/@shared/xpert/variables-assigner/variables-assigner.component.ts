@@ -32,7 +32,7 @@ export class XpertVariablesAssignerComponent {
   readonly variables = input<TWorkflowVarGroup[]>()
   readonly parameters = input<TXpertParameter[]>()
   readonly memories = model<TVariableAssigner[]>()
-  readonly type = input<'tool' | 'agent'>()
+  readonly type = input<'tool' | 'agent' | 'variable'>()
 
   readonly OPERATIONS: TSelectOption<TAgentOutputVariable['operation']>[] = VariableOperations
   readonly InputTypeOptions: TSelectOption<TVariableAssigner['inputType']>[] = [

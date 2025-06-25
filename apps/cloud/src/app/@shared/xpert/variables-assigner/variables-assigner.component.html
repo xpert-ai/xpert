@@ -44,6 +44,13 @@
             <input class="grow rounded-lg text-sm bg-gray-100 px-2 py-1 focus:bg-white opacity-70 hover:opacity-100 focus:opacity-100"
               [ngModel]="memory.value"
               (ngModelChange)="updateMemory(i, 'value', $event)">
+          } @else if (type() === 'variable') {
+            <xpert-state-variable-select class="grow border-0 opacity-90 hover:opacity-100"
+              [variables]="variables()"
+              [ngModel]="memory.value"
+              [ngModelOptions]="{standalone: true}"
+              (ngModelChange)="updateMemory(i, 'value', $event)"
+            />
           } @else {
             <ngm-select class="grow border-0 opacity-70 hover:opacity-100"
               [selectOptions]="ValueOptions()"

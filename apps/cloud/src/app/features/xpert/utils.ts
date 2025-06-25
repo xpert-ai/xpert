@@ -65,6 +65,10 @@ export function genXpertTemplateKey() {
   return letterStartSUID('Template_')
 }
 
+export function genXpertAssignerKey() {
+  return letterStartSUID('Assigner_')
+}
+
 export function genXpertHttpKey() {
   return letterStartSUID('Http_')
 }
