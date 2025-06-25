@@ -19,10 +19,10 @@ import { I18nService } from 'nestjs-i18n'
 import z from 'zod'
 import { XpertConfigException } from '../../../core'
 import { assignExecutionUsage } from '../../../xpert-agent-execution'
-import { wrapAgentExecution } from '../../../xpert-agent-execution/utils'
 import { GetXpertChatModelQuery } from '../../../xpert/queries'
 import { CreateWNClassifierCommand } from '../create-wn-classifier.command'
-import { AgentStateAnnotation, stateToParameters } from '../../../shared'
+import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
+import { wrapAgentExecution } from '../../../shared/agent/execution'
 
 @CommandHandler(CreateWNClassifierCommand)
 export class CreateWNClassifierHandler implements ICommandHandler<CreateWNClassifierCommand> {
@@ -148,8 +148,7 @@ ${instruction ? `## User Instruction\n${instruction}` : ''}`,
 			},
 			navigator: async (state: typeof AgentStateAnnotation.State, config) => {
 				const category = (state[channelName(node.key)] as unknown as {category: number})?.category
-				const connections = graph.connections.filter((conn) => conn.type === 'edge' && conn.from === node.key + '/category_' + category)
-				return connections.length > 0 ? connections.map((conn) => new Send(conn.to, state)) : END
+				return nextWorkflowNodes(graph, node.key + '/category_' + category, state)
 			}
 		}
 	}

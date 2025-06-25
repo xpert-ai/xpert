@@ -1,5 +1,4 @@
 import { RunnableLambda } from '@langchain/core/runnables'
-import { END } from '@langchain/langgraph'
 import {
 	channelName,
 	IEnvironment,
@@ -15,8 +14,8 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import Handlebars from 'handlebars'
 import { get } from 'lodash'
-import { wrapAgentExecution } from '../../xpert-agent-execution/utils'
-import { AgentStateAnnotation, stateToParameters } from '../../shared'
+import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../shared'
+import { wrapAgentExecution } from '../../shared/agent/execution'
 
 export function createTemplateNode(
 	graph: TXpertGraph,
@@ -88,13 +87,7 @@ export function createTemplateNode(
 			ends: []
 		},
 		navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-			// if (state[channelName(node.key)][ErrorChannelName]) {
-			// 	return (
-			// 		graph.connections.find((conn) => conn.type === 'edge' && conn.from === `${node.key}/fail`)?.to ??
-			// 		END
-			// 	)
-			// }
-			return graph.connections.find((conn) => conn.type === 'edge' && conn.from === node.key)?.to ?? END
+			return nextWorkflowNodes(graph, node.key, state)
 		}
 	}
 }

@@ -19,12 +19,12 @@ import { InternalServerErrorException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { compact, get, isString } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
-import { wrapAgentExecution } from '../../../xpert-agent-execution/utils'
 import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
 import { CreateWNIteratingCommand } from '../create-wn-iterating.command'
 import { STATE_VARIABLE_ITERATING_OUTPUT, STATE_VARIABLE_ITERATING_OUTPUT_STR } from '../iterating'
 import { CompileGraphCommand } from '../../commands'
-import { AgentStateAnnotation, stateToParameters } from '../../../shared'
+import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
+import { wrapAgentExecution } from '../../../shared/agent/execution'
 
 
 @CommandHandler(CreateWNIteratingCommand)
@@ -329,8 +329,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 				ends: []
 			},
 			navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-				const connections = graph.connections.filter((conn) => conn.type === 'edge' && conn.from === node.key)
-				return connections.length > 0 ? connections.map((conn) => new Send(conn.to, state)) : END
+				return nextWorkflowNodes(graph, node.key, state)
 			}
 		}
 	}

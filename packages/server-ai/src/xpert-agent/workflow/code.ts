@@ -1,12 +1,23 @@
 import { RunnableLambda } from '@langchain/core/runnables'
 import { END } from '@langchain/langgraph'
-import { channelName, IEnvironment, IWFNCode, IWorkflowNode, IXpertAgentExecution, TAgentRunnableConfigurable, TXpertGraph, TXpertTeamNode, WorkflowNodeTypeEnum, XpertParameterTypeEnum } from '@metad/contracts'
+import {
+	channelName,
+	IEnvironment,
+	IWFNCode,
+	IWorkflowNode,
+	IXpertAgentExecution,
+	TAgentRunnableConfigurable,
+	TXpertGraph,
+	TXpertTeamNode,
+	WorkflowNodeTypeEnum,
+	XpertParameterTypeEnum
+} from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { get } from 'lodash'
 import { SandboxVMCommand } from '../../sandbox'
-import { wrapAgentExecution } from '../../xpert-agent-execution/utils'
-import { AgentStateAnnotation, stateToParameters } from '../../shared'
+import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../shared'
+import { wrapAgentExecution } from '../../shared/agent/execution'
 
 const ErrorChannelName = 'error'
 
@@ -14,9 +25,9 @@ export function createCodeNode(
 	graph: TXpertGraph,
 	node: TXpertTeamNode & { type: 'workflow' },
 	params: {
-		commandBus: CommandBus;
-		queryBus: QueryBus;
-		xpertId: string;
+		commandBus: CommandBus
+		queryBus: QueryBus
+		xpertId: string
 		environment: IEnvironment
 	}
 ) {
@@ -113,7 +124,8 @@ export function createCodeNode(
 					END
 				)
 			}
-			return graph.connections.find((conn) => conn.type === 'edge' && conn.from === node.key)?.to ?? END
+
+			return nextWorkflowNodes(graph, node.key, state)
 		}
 	}
 }

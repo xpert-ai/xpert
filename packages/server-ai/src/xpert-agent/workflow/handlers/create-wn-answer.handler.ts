@@ -1,14 +1,13 @@
 import { RunnableLambda } from '@langchain/core/runnables'
 import { AIMessagePromptTemplate } from '@langchain/core/prompts'
-import { END, Send } from '@langchain/langgraph'
 import { channelName, IWFNAnswer, IXpertAgentExecution, TAgentRunnableConfigurable, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { FakeStreamingChatModel } from '../../agent'
 import { CreateWNAnswerCommand } from '../create-wn-answer.command'
-import { AgentStateAnnotation, stateToParameters } from '../../../shared'
-import { wrapAgentExecution } from '../../../xpert-agent-execution/utils'
+import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
+import { wrapAgentExecution } from '../../../shared/agent/execution'
 
 @CommandHandler(CreateWNAnswerCommand)
 export class CreateWNAnswerHandler implements ICommandHandler<CreateWNAnswerCommand> {
@@ -66,8 +65,7 @@ export class CreateWNAnswerHandler implements ICommandHandler<CreateWNAnswerComm
 				ends: []
 			},
 			navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-				const connections = graph.connections.filter((conn) => conn.type === 'edge' && conn.from === node.key)
-				return connections.length > 0 ? connections.map((conn) => new Send(conn.to, state)) : END
+				return nextWorkflowNodes(graph, node.key, state)
 			}
 		}
 	}

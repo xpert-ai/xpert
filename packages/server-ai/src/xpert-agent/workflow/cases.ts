@@ -1,5 +1,4 @@
 import { RunnableLambda } from '@langchain/core/runnables'
-import { END, Send } from '@langchain/langgraph'
 import {
 	IEnvironment,
 	IWFNIfElse,
@@ -11,7 +10,7 @@ import {
 } from '@metad/contracts'
 import { isEmpty } from '@metad/server-common'
 import { get } from 'lodash'
-import { AgentStateAnnotation, stateToParameters } from '../../shared'
+import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../shared'
 
 export function createCasesNode(graph: TXpertGraph, node: TXpertTeamNode & { type: 'workflow' }, params: { environment: IEnvironment }) {
 	const { environment } = params
@@ -103,13 +102,7 @@ export function createCasesNode(graph: TXpertGraph, node: TXpertTeamNode & { typ
 		},
 		navigator: async (state: typeof AgentStateAnnotation.State, config) => {
 			const result = evaluateCases(state, config)
-			const connections = graph.connections.filter((conn) => conn.type === 'edge' && conn.from === result)
-			if (connections.length > 1) {
-				return connections.map((conn) => new Send(conn.to, state))
-			} else if (connections.length === 1) {
-				return connections[0].to
-			}
-			return END
+			return nextWorkflowNodes(graph, result, state)
 		}
 	}
 }
