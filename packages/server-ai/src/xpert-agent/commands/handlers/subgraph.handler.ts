@@ -23,7 +23,7 @@ import { RequestContext } from '@metad/server-core'
 import { InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
-import { get, uniq } from 'lodash'
+import { get, isNil, omitBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
 import z from 'zod'
@@ -187,7 +187,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			const recalls = team.agentConfig?.recalls
 			const recall = agent.options?.recall
 			const retrievers = knowledgebaseIds.map((id) => ({
-				retriever: createKnowledgeRetriever(this.queryBus, id, {...(recalls?.[id] ?? {}), ...(recall ?? {})}),
+				retriever: createKnowledgeRetriever(this.queryBus, id, {...(omitBy(recalls?.[id], isNil) ?? {}), ...(omitBy(recall, isNil) ?? {})}),
 				weight: recalls?.[id]?.weight
 			}))
 			const retriever = new EnsembleRetriever({
