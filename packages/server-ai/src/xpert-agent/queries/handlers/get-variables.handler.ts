@@ -20,14 +20,21 @@ import {
 } from '@metad/contracts'
 import { omit } from '@metad/server-common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
+import { EnvironmentService } from '../../../environment'
 import { BaseToolset, ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertAgentQuery } from '../../../xpert/queries/'
 import { XpertService } from '../../../xpert/xpert.service'
-import { XpertAgentVariablesQuery } from '../get-variables.query'
-import { EnvironmentService } from '../../../environment'
-import { httpOutoutVariables, knowledgeOutputVariables, iteratingOutputVariables, codeOutputVariables, subflowOutputVariables, classifierOutputVariables } from '../../workflow'
+import {
+	classifierOutputVariables,
+	codeOutputVariables,
+	httpOutoutVariables,
+	iteratingOutputVariables,
+	knowledgeOutputVariables,
+	subflowOutputVariables
+} from '../../workflow'
 import { templateOutputVariables } from '../../workflow/template'
 import { toolOutputVariables } from '../../workflow/tool'
+import { XpertAgentVariablesQuery } from '../get-variables.query'
 
 @QueryHandler(XpertAgentVariablesQuery)
 export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVariablesQuery> {
@@ -42,8 +49,20 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		const { xpertId, type, nodeKey, isDraft, environmentId } = command.options
 
 		const xpert = await this.xpertService.findOne(xpertId, { select: ['id', 'agentConfig', 'draft', 'graph'] })
-		
+
 		const varGroups: TWorkflowVarGroup[] = []
+		const variables: TStateVariable[] = []
+		varGroups.push({
+			group: {
+				name: '',
+				description: {
+					en_US: 'Global',
+					zh_Hans: '全局变量'
+				}
+			},
+			variables
+		})
+
 		// Environment variables
 		if (environmentId) {
 			const environment = await this.environmentService.findOne(environmentId)
@@ -54,36 +73,20 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 						en_US: 'Environment',
 						zh_Hans: '环境变量'
 					}
-				  },
-				variables: environment.variables?.filter((_) => _.name).map((_) => ({
-					name: _.name,
-					type: _.type === 'secret' ? XpertParameterTypeEnum.SECRET : XpertParameterTypeEnum.STRING,
-					description: {
-						en_US: '',
-					}
-				}))
+				},
+				variables: environment.variables
+					?.filter((_) => _.name)
+					.map((_) => ({
+						name: _.name,
+						type: _.type === 'secret' ? XpertParameterTypeEnum.SECRET : XpertParameterTypeEnum.STRING,
+						description: {
+							en_US: ''
+						}
+					}))
 			})
 		}
 
 		// User parameters
-		const variables: TStateVariable[] = [
-			{
-				name: STATE_VARIABLE_INPUT,
-				type: XpertParameterTypeEnum.STRING,
-				description: {
-					en_US: 'Input',
-					zh_Hans: '输入'
-				}
-			},
-			{
-				name: STATE_VARIABLE_FILES,
-				type: XpertParameterTypeEnum.ARRAY_FILE,
-				description: {
-					en_US: 'Files',
-					zh_Hans: '文件'
-				}
-			}
-		]
 		varGroups.push({
 			group: {
 				name: STATE_VARIABLE_HUMAN,
@@ -92,7 +95,24 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 					zh_Hans: '用户'
 				}
 			},
-			variables
+			variables: [
+				{
+					name: STATE_VARIABLE_INPUT,
+					type: XpertParameterTypeEnum.STRING,
+					description: {
+						en_US: 'Input',
+						zh_Hans: '输入'
+					}
+				},
+				{
+					name: STATE_VARIABLE_FILES,
+					type: XpertParameterTypeEnum.ARRAY_FILE,
+					description: {
+						en_US: 'Files',
+						zh_Hans: '文件'
+					}
+				}
+			]
 		})
 
 		// System variables
@@ -175,7 +195,9 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
 		}
 
 		// Other agents
-		const agentNodes = graph?.nodes?.filter((_) => _.type === 'agent' && (type === 'input' ? _.key !== nodeKey : true))
+		const agentNodes = graph?.nodes?.filter(
+			(_) => _.type === 'agent' && (type === 'input' ? _.key !== nodeKey : true)
+		)
 		if (agentNodes) {
 			for await (const node of agentNodes) {
 				const g = getAgentVarGroup(node.key, graph)
