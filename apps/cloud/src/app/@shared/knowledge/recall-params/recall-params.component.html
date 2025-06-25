@@ -25,11 +25,10 @@
       <div class="relative w-full">
         <input
           class="py-1.5 bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular w-[72px]"
-          step="1"
-          max="20"
-          min="1"
+          step="10"
+          max="1000"
+          min="0"
           type="number"
-          tabindex="-1"
           [ngModel]="topK()"
           (ngModelChange)="update({topK: $event})"
         />
@@ -37,7 +36,7 @@
     </div>
   </div>
   <div class="flex items-center grow">
-    <mat-slider class="w-full" ngm-density="small" [max]="20" [min]="1" [step]="1" showTickMarks discrete >
+    <mat-slider class="w-full" ngm-density="small" [max]="1000" [min]="0" [step]="10" showTickMarks discrete >
       <input matSliderThumb 
         [ngModel]="topK()"
         (dragEnd)="update({topK: $event.value})"
@@ -63,11 +62,10 @@
       <div class="relative w-full">
         <input
           class="py-1.5 bg-components-input-bg-normal border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-lg system-sm-regular w-[72px]"
-          step="0.1"
+          step="0.05"
           max="1"
-          min="0"
+          min="0.05"
           type="number"
-          tabindex="-1"
           [ngModel]="score()"
           (ngModelChange)="update({score: $event})"
         />
@@ -75,7 +73,7 @@
     </div>
   </div>
   <div class="flex items-center grow">
-    <mat-slider class="w-full" ngm-density="small" [max]="1" [min]="0" [step]="0.1" showTickMarks discrete >
+    <mat-slider class="w-full" ngm-density="small" [max]="1" [min]="0.05" [step]="0.05" showTickMarks discrete >
       <input matSliderThumb
         [ngModel]="score()"
         (dragEnd)="update({score: $event.value})" 
