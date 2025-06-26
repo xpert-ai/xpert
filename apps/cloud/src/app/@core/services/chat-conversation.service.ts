@@ -10,9 +10,12 @@ import {
 } from '@metad/cloud/state'
 import { toParams } from '@metad/core'
 import { EMPTY, switchMap } from 'rxjs'
+import { injectFetchEventSource } from './fetch-event-source'
 
 @Injectable({ providedIn: 'root' })
 export class ChatConversationService extends OrganizationBaseCrudService<IChatConversation> {
+  readonly fetchEventSource = injectFetchEventSource()
+
   constructor() {
     super(API_PREFIX + '/chat-conversation')
   }
@@ -60,12 +63,16 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
   }
 
   synthesize(id: string, messageId: string) {
-    return this.httpClient.get(this.apiBaseUrl + `/${id}/synthesize`, {
-      params: toParams({
-        message_id: messageId,
-        voice: 'default',
-        language: 'zh-CN'
-      })
-    })
+    return this.fetchEventSource(
+          {
+            url: this.apiBaseUrl + `/${id}/synthesize`,
+            method: 'GET',
+            params: {
+              message_id: messageId,
+              voice: 'default',
+              language: 'zh-CN'
+            }
+          },
+        )
   }
 }

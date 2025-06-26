@@ -31,6 +31,7 @@ import {
   IXpert,
   ToastrService,
   ToolCall,
+  TtsStreamPlayerService,
   TXpertParameter,
   uuid,
   XpertAgentExecutionService,
@@ -41,12 +42,13 @@ import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { ToolCallConfirmComponent, XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { map, Observable, of, timer, switchMap, tap, Subscription, EMPTY, pipe } from 'rxjs'
+import { map, Observable, of, timer, switchMap, tap, Subscription, EMPTY, pipe, filter } from 'rxjs'
 import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
 import { effectAction } from '@metad/ocap-angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { injectConfirmDelete } from '@metad/ocap-angular/common'
 import { MatInputModule } from '@angular/material/input'
+import { StoredMessage } from '@langchain/core/messages'
 
 @Component({
   standalone: true,
@@ -65,7 +67,8 @@ import { MatInputModule } from '@angular/material/input'
   ],
   selector: 'chat-conversation-preview',
   templateUrl: 'preview.component.html',
-  styleUrls: ['preview.component.scss']
+  styleUrls: ['preview.component.scss'],
+  providers: [TtsStreamPlayerService],
 })
 export class ChatConversationPreviewComponent {
   eExecutionStatusEnum = XpertAgentExecutionStatusEnum
@@ -80,6 +83,8 @@ export class ChatConversationPreviewComponent {
   readonly #translate = inject(TranslateService)
   readonly #clipboard = inject(Clipboard)
   readonly confirmDel = injectConfirmDelete()
+  readonly #playerService = inject(TtsStreamPlayerService)
+  readonly isPlaying = this.#playerService.isPlaying
 
   // Inputs
   readonly conversationId = model<string>()
@@ -494,19 +499,60 @@ export class ChatConversationPreviewComponent {
     }
   }
 
+  private synthesizeSub: Subscription
+  readonly synthesizeLoading = signal(false)
   readAloud(message: IChatMessage) {
-    console.log(message)
-    this.conversationService.synthesize(this.conversationId(), message.id).subscribe({
-      next: (audio: any) => {
-        const audioUrl = URL.createObjectURL(audio)
-        const audioElement = new Audio(audioUrl)
-        audioElement.play().catch((error) => {
-          this.#toastr.error(getErrorMessage(error))
-        })
-      },
-      error: (error) => {
+    if (this.synthesizeLoading() || this.isPlaying()) {
+      this.synthesizeSub?.unsubscribe()
+      this.synthesizeSub = null
+      this.synthesizeLoading.set(false)
+      this.#playerService.stop().catch((error) => {
         this.#toastr.error(getErrorMessage(error))
-      }
-    })
+      })
+    } else {
+      this.synthesizeLoading.set(true)
+      this.synthesizeSub?.unsubscribe()
+      this.synthesizeSub = this.conversationService.synthesize(this.conversationId(), message.id)
+        .subscribe({
+          next: (event) => {
+            if (event.event === 'error') {
+              this.#toastr.error(event.data)
+              this.synthesizeSub = null
+              this.synthesizeLoading.set(false)
+              return
+            }
+            if (event.data.startsWith(':')) {
+              // Ignore non-data events
+              return
+            }
+              
+            if (event.data) {
+              try {
+                const message = JSON.parse(event.data) as StoredMessage
+                console.log(message.data)
+                const audioContent = message.data.content?.[0] as any
+                if (audioContent.type !== 'audio') {
+                  this.#toastr.error(this.#translate.instant('PAC.Chat.PreviewReadAloudError', {Default: 'Read aloud only supports audio messages'}))
+                  return
+                }
+
+                this.#playerService.enqueueChunk(audioContent.data)
+                // playBase64WavAudio(audioContent.data)
+              } catch (error) {
+                this.#toastr.error(getErrorMessage(error))
+              }
+            }
+          },
+          error: (error) => {
+            this.#toastr.error(getErrorMessage(error))
+            this.synthesizeSub = null
+            this.synthesizeLoading.set(false)
+          },
+          complete: () => {
+            this.synthesizeSub = null
+            this.synthesizeLoading.set(false)
+          }
+        })
+    }
   }
 }
