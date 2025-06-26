@@ -5,13 +5,16 @@ import { FormsModule } from '@angular/forms'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { IfAnimations } from '@metad/core'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../domain'
 import { XpertStudioFeaturesMemoryComponent } from './memory/memory.component'
 import { XpertStudioFeaturesSummaryComponent } from './summary/summary.component'
 import { XpertStudioFeaturesTitleComponent } from './title/title.component'
 import { XpertStudioFeaturesAttachmentComponent } from './attachment/attachment.component'
+import { XpertStudioFeaturesOpenerComponent } from './opener/opener.component'
+import { XpertStudioFeaturesSuggestionComponent } from './suggestion/suggestion.component'
+import { XpertStudioFeaturesTTSComponent } from './tts/tts.component'
 
 @Component({
   selector: 'xpert-studio-features',
@@ -27,7 +30,10 @@ import { XpertStudioFeaturesAttachmentComponent } from './attachment/attachment.
     XpertStudioFeaturesSummaryComponent,
     XpertStudioFeaturesMemoryComponent,
     XpertStudioFeaturesTitleComponent,
-    XpertStudioFeaturesAttachmentComponent
+    XpertStudioFeaturesAttachmentComponent,
+    XpertStudioFeaturesOpenerComponent,
+    XpertStudioFeaturesSuggestionComponent,
+    XpertStudioFeaturesTTSComponent
   ],
   templateUrl: './features.component.html',
   styleUrl: './features.component.scss',
@@ -40,18 +46,41 @@ export class XpertStudioFeaturesComponent {
   // Outputs
   readonly close = output()
 
-  readonly view = signal<'summarize' | 'attachment' | 'memory' | 'title'>(null)
+  readonly view = signal<'summarize' | 'attachment' | 'memory' | 'title' | 'opener' | 'suggestion' | 'tts'>(null)
   readonly xpert = this.apiService.xpert
+
   readonly summarize = computed(() => this.xpert()?.summarize)
   readonly enabledSummarize = computed(() => this.summarize()?.enabled)
   readonly memory = computed(() => this.xpert()?.memory)
   readonly enabledMemory = computed(() => this.memory()?.enabled)
-  readonly attachment = computed(() => this.xpert()?.attachment)
+  readonly features = linkedModel({
+      initialValue: null,
+      compute: () => this.apiService.xpert()?.features,
+      update: (features) => {
+        this.apiService.updateXpertTeam((xpert) => {
+          return {
+            ...xpert,
+            features: {
+              ...(xpert.features ?? {}),
+              ...features
+            }
+          }
+        })
+      }
+    })
+  readonly attachment = attrModel(this.features, 'attachment')
+  readonly opener = attrModel(this.features, 'opener')
+  readonly suggestion = attrModel(this.features, 'suggestion')
+  readonly textToSpeech = attrModel(this.features, 'textToSpeech')
   readonly enabledAttachment = computed(() => this.attachment()?.enabled)
   readonly fileTypes = computed(() => this.attachment()?.fileTypes)
   readonly maxNum = computed(() => this.attachment()?.maxNum)
 
-  toggleView(view: 'summarize' | 'attachment' | 'memory' | 'title') {
+  readonly opener_enabled = attrModel(this.opener, 'enabled')
+  readonly suggestion_enabled = attrModel(this.suggestion, 'enabled')
+  readonly textToSpeech_enabled = attrModel(this.textToSpeech, 'enabled')
+
+  toggleView(view: 'summarize' | 'attachment' | 'memory' | 'title' | 'opener' | 'suggestion' | 'tts') {
     this.view.update((state) => (state === view ? null : view))
   }
 
@@ -80,14 +109,9 @@ export class XpertStudioFeaturesComponent {
   }
 
   toggleAttachment(enabled?: boolean) {
-    this.apiService.updateXpertTeam((xpert) => {
-      return {
-        ...xpert,
-        attachment: {
-          ...(xpert.attachment ?? {}),
-          enabled
-        }
-      }
-    })
+    this.attachment.update((state) => ({
+      ...(state ?? {}),
+      enabled
+    }))
   }
 }

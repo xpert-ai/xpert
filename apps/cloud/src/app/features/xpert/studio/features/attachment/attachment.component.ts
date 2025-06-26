@@ -21,22 +21,23 @@ import { XpertStudioApiService } from '../../domain'
 export class XpertStudioFeaturesAttachmentComponent {
   readonly apiService = inject(XpertStudioApiService)
 
-  readonly attachment = linkedModel({
+  readonly features = linkedModel({
     initialValue: null,
-    compute: () => this.apiService.xpert()?.attachment,
-    update: (attachment) => {
+    compute: () => this.apiService.xpert()?.features,
+    update: (features) => {
       this.apiService.updateXpertTeam((xpert) => {
         return {
           ...xpert,
-          attachment: {
-            ...(xpert.attachment ?? {}),
-            ...attachment
+          features: {
+            ...(xpert.features ?? {}),
+            ...features
           }
         }
       })
     }
   })
 
+  readonly attachment = attrModel(this.features, 'attachment')
   readonly type = attrModel(this.attachment, 'type')
   readonly maxNum = attrModel(this.attachment, 'maxNum')
   readonly fileTypes = attrModel(this.attachment, 'fileTypes')

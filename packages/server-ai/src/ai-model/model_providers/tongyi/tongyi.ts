@@ -5,8 +5,9 @@ import { TongyiLargeLanguageModel } from './llm/llm'
 import { toCredentialKwargs, TongyiCredentials } from './types'
 import { AiModelTypeEnum } from '@metad/contracts'
 import { CredentialsValidateFailedError } from '../errors'
-import { PROVIDE_AI_MODEL_TEXT_EMBEDDING } from '../../types/types'
+import { PROVIDE_AI_MODEL_TEXT_EMBEDDING, PROVIDE_AI_MODEL_TTS } from '../../types/types'
 import { TongyiTextEmbeddingModel } from './text-embedding/text-embedding'
+import { TongyiTTSModel } from './tts/tts'
 
 @Injectable()
 export class TongyiProvider extends ModelProvider {
@@ -50,6 +51,10 @@ export class TongyiProvider extends ModelProvider {
 		{
 			provide: PROVIDE_AI_MODEL_TEXT_EMBEDDING,
 			useClass: TongyiTextEmbeddingModel
+		},
+		{
+			provide: PROVIDE_AI_MODEL_TTS,
+			useClass: TongyiTTSModel
 		}
 	],
 	exports: [TongyiProvider]

@@ -58,4 +58,14 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
   deleteFile(id: string, filePath: string) {
     return EMPTY // @todo
   }
+
+  synthesize(id: string, messageId: string) {
+    return this.httpClient.get(this.apiBaseUrl + `/${id}/synthesize`, {
+      params: toParams({
+        message_id: messageId,
+        voice: 'default',
+        language: 'zh-CN'
+      })
+    })
+  }
 }

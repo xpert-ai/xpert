@@ -493,4 +493,20 @@ export class ChatConversationPreviewComponent {
       this.close.emit()
     }
   }
+
+  readAloud(message: IChatMessage) {
+    console.log(message)
+    this.conversationService.synthesize(this.conversationId(), message.id).subscribe({
+      next: (audio: any) => {
+        const audioUrl = URL.createObjectURL(audio)
+        const audioElement = new Audio(audioUrl)
+        audioElement.play().catch((error) => {
+          this.#toastr.error(getErrorMessage(error))
+        })
+      },
+      error: (error) => {
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
+  }
 }

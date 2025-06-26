@@ -272,7 +272,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 			xpert.agentConfig = draft.team.agentConfig
 			xpert.memory = draft.team.memory
 			xpert.summarize = draft.team.summarize
-			xpert.attachment = draft.team.attachment
+			xpert.features = draft.team.features
 			xpert.options = xpertOptions
 		}
 

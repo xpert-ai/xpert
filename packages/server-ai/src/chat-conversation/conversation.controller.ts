@@ -100,7 +100,7 @@ export class ChatConversationController extends CrudController<ChatConversation>
 	}
 
 	@Get(':id/files')
-	async getFiles(@Param('id') id: string, @Query('deepth') deepth: number, @Query('path') path: string) {
+	async getFiles(@Param('id', UUIDValidationPipe) id: string, @Query('deepth') deepth: number, @Query('path') path: string) {
 		const conversation = await this.service.findOne(id)
 		const client = new VolumeClient({
 				tenantId: conversation.tenantId,
@@ -108,5 +108,14 @@ export class ChatConversationController extends CrudController<ChatConversation>
 			})
 	
 		return await client.list({path: path || conversation.threadId, deepth})
+	}
+
+	@Get(':id/synthesize')
+	async synthesize(@Param('id', UUIDValidationPipe) id: string,
+		@Query('message_id') messageId: string,
+		@Query('voice') voice: string,
+		@Query('language') language: string
+	) {
+		return await this.service.synthesize(id, messageId, {voice, language})
 	}
 }

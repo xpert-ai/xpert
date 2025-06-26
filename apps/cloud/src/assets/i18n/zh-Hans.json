@@ -2293,6 +2293,10 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "SuggestionPromptTooltip": "指导大模型如何给出后续建议问题",
+      "Text2Speech": "文字转语音",
+      "ConversationOpener": "对话开场白",
+      "Suggestions": "问题建议",
       "Agent": "智能体",
       "Project": "项目组",
       "Vision": "视觉",

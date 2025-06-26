@@ -77,7 +77,7 @@
 
                 <div class="absolute flex justify-end items-center gap-1 right-0 -top-4">
 
-                  <div class="hidden group-hover:flex justify-center items-center w-8 h-8 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
+                  <div class="hidden group-hover:flex justify-center items-center p-1 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
                     <div class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium
                       bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
                       [matTooltip]="'PAC.KEY_WORDS.Copy' | translate: {Default: 'Copy'} "
@@ -88,6 +88,19 @@
                         <i class="ri-clipboard-fill"></i>
                       } @else {
                         <i class="ri-clipboard-line"></i>
+                      }
+                    </div>
+
+                    <div class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium
+                      bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
+                      [matTooltip]="'PAC.Xpert.ReadAloud' | translate: {Default: 'Read aloud'} "
+                      matTooltipPosition="above"
+                      (click)="readAloud(message)"
+                    >
+                      @if (copiedMessages()[message.id]) {
+                        <i class="ri-clipboard-fill"></i>
+                      } @else {
+                        <i class="ri-speak-ai-line"></i>
                       }
                     </div>
                   </div>

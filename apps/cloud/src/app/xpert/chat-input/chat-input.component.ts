@@ -61,7 +61,7 @@ export class ChatInputComponent {
   readonly isComposing = signal(false)
 
   // Attachments
-  readonly attachment = computed(() => this.xpert()?.attachment)
+  readonly attachment = computed(() => this.xpert()?.features?.attachment)
   readonly attachments = model<{file?: File; url?: string; storageFile?: IStorageFile}[]>([])
   readonly url = model<string>(null)
   readonly files = computed(() => this.attachments()?.map(({storageFile}) => storageFile))
