@@ -226,6 +226,7 @@ export type TMessageComponentStep = {
   // Triky
   type: ChatMessageStepCategory
   toolset: string
+  toolset_id: string
   title: string
   message: string
   status: 'success' | 'fail' | 'running'

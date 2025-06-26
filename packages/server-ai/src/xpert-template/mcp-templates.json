@@ -425,7 +425,80 @@
 						"EVERART_API_KEY": "your_key_here"
 					}
 				}
-			}
+			},
+			{
+                "name": "HyperBrowser",
+                "title": "HyperBrowser",
+                "description": "It provides various tools to scrape, extract structured data, and crawl webpages. It also provides easy access to general purpose browser agents like OpenAI's CUA, Anthropic's Claude Computer Use, and Browser Use.",
+                "author": "hyperbrowserai",
+                "id": "hyperbrowser-mcp",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/189776885?v=4",
+                "explore": "https://mcp.so/zh/server/mcp/hyperbrowserai?tab=content",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "hyperbrowser-mcp"
+                    ],
+                    "env": {
+                        "HYPERBROWSER_API_KEY": "YOUR-API-KEY"
+                    }
+                }
+            },
+			{
+                "name": "MCP NPX Fetch",
+                "title": "MCP NPX Fetch",
+                "description": "MCP NPX Fetch is a powerful MCP server that enables users to fetch and transform web content into various formats, including HTML, JSON, Markdown, and Plain Text.",
+                "author": "tokenizin-agency",
+                "id": "@tokenizin/mcp-npx-fetch",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/167765557?v=4",
+                "explore": "https://mcp.so/server/mcp-npx-fetch?utm_source=chatgpt.com",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "@tokenizin/mcp-npx-fetch"
+                    ]
+				}
+            },
+			{
+                "name": "Bing CN",
+                "title": "Bing CN MCP",
+                "description": "Bing CN MCP Server is a server based on the Model Context Protocol (MCP) that provides two main tools: a Bing search tool for scraping Bing search results and a webpage content scraping tool for retrieving content from specified web pages.",
+                "author": "yan5236",
+                "id": "bing-cn-mcp",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/82815557?v=4",
+                "explore": "https://github.com/yan5236/bing-cn-mcp-server",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "bing-cn-mcp"
+                    ]
+				}
+            }
 		]
 	},
 	"zh-Hans": {
@@ -854,7 +927,80 @@
 						"EVERART_API_KEY": "your_key_here"
 					}
 				}
-			}
+			},
+			{
+                "name": "HyperBrowser",
+                "title": "Hyper Browser",
+                "description": "它提供了各种工具来抓取、提取结构化数据和爬取网页。它还可以轻松访问通用浏览器代理，例如 OpenAI 的 CUA、Anthropic 的 Claude Computer Use 和 Browser Use。",
+                "author": "hyperbrowserai",
+                "id": "hyperbrowser-mcp",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/189776885?v=4",
+                "explore": "https://mcp.so/zh/server/mcp/hyperbrowserai?tab=content",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "hyperbrowser-mcp"
+                    ],
+                    "env": {
+                        "HYPERBROWSER_API_KEY": "YOUR-API-KEY"
+                    }
+                }
+            },
+			{
+                "name": "MCP NPX Fetch",
+                "title": "MCP NPX Fetch",
+                "description": "MCP NPX Fetch 使用户能够获取 Web 内容并将其转换为各种格式，包括 HTML、JSON、Markdown 和纯文本。",
+                "author": "tokenizin-agency",
+                "id": "@tokenizin/mcp-npx-fetch",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/167765557?v=4",
+                "explore": "https://mcp.so/server/mcp-npx-fetch?utm_source=chatgpt.com",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "@tokenizin/mcp-npx-fetch"
+                    ]
+				}
+            },
+			{
+                "name": "Bing CN",
+                "title": "Bing CN MCP",
+                "description": "Bing CN MCP 提供两个主要工具：用于抓取 Bing 搜索结果的 Bing 搜索工具和用于从指定网页检索内容的网页内容抓取工具。",
+                "author": "yan5236",
+                "id": "bing-cn-mcp",
+                "category": "Utils",
+                "type": "stdio",
+                "icon": "https://avatars.githubusercontent.com/u/82815557?v=4",
+                "explore": "https://github.com/yan5236/bing-cn-mcp-server",
+                "copyright": null,
+                "privacyPolicy": null,
+                "tags": [
+                    "utilities"
+                ],
+                "server": {
+                    "type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "bing-cn-mcp"
+                    ]
+				}
+            }
 		]
 	}
 }

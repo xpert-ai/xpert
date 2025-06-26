@@ -126,6 +126,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				env: toEnvState(environment)
 			})
 		)
+		// Clean all toolsets when aborted
 		abortController.signal.addEventListener('abort', () => {
 			for (const toolset of toolsets) {
 				toolset.close().catch((err) => this.#logger.debug(err))
@@ -148,11 +149,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 			  .forEach((tool) => {
 				const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)
 				tools.push({
-					toolset: toolset.providerName, 
+					toolset: {
+						provider: toolset.providerName,
+						id: toolset.getId(),
+						title: translate(toolset.getToolTitle(tool.name))
+					},
 					caller: agent.key, 
 					tool, 
 					variables: team.agentConfig?.toolsMemory?.[lc_name],
-					title: translate(toolset.getToolTitle(tool.name))
 				})
 
 				// Add sensitive tools into interruptBefore
@@ -165,17 +169,19 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		// Additional Tools
 		if (additionalTools) {
 			additionalTools.forEach((tool) => {
-				tools.push({ toolset: '', title: '', caller: agent.key, tool })
+				tools.push({ toolset: {provider: '', title: ''}, caller: agent.key, tool })
 			})
 		}
 
 		// Memory tools
 		if (team.memory?.enabled && team.memory?.qa?.enabled) {
 			tools.push(...initializeMemoryTools(store, xpert.id).map((tool) => ({
-				toolset: 'memories',
+				toolset: {
+					provider: 'memories',
+					title: translate({en_US: 'Memory', zh_Hans: '记忆' })
+				},
 				caller: agent.key,
 				tool,
-				title: translate({en_US: 'Memory', zh_Hans: '记忆' })
 			})))
 		}
 
@@ -195,14 +201,16 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 				weights: retrievers.map(({weight}) => weight ?? 0.5),
 			  })
 			tools.push({
-				toolset: 'knowledgebase',
+				toolset: {
+					provider: 'knowledgebase',
+					title: translate({en_US: 'Knowledge Retriever', zh_Hans: '知识检索器' })
+				},
 				caller: agent.key,
 				tool: retriever.asTool({
 					name: "knowledge_retriever",
 					description: "Get knowledges about question.",
 					schema: z.string().describe(`key information of question`),
 				  }),
-				title: translate({en_US: 'Knowledge Retriever', zh_Hans: '知识检索器' })
 			})
 		}
 
@@ -656,13 +664,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		}
 
 		// Add nodes for tools
-		tools?.forEach(({ caller, tool, variables, toolset, title }) => {
+		tools?.forEach(({ caller, tool, variables, toolset }) => {
 			const name = tool.name
 			subgraphBuilder
 				.addNode(
 					name, 
-					new ToolNode([tool], { caller, variables, toolset }).withConfig({signal: abortController.signal}),
-					{metadata: {toolset, toolName: title}}
+					new ToolNode([tool], { caller, variables }).withConfig({signal: abortController.signal}),
+					{metadata: {toolset: toolset.provider, toolsetId: toolset.id, toolName: toolset.title}}
 				)
 			if (endNodes?.includes(tool.name)) {
 				if (nextNodeKey?.length) {
@@ -683,7 +691,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 		handoffTools?.forEach((tool) => {
 			const name = tool.name
 			subgraphBuilder
-				.addNode(name, new ToolNode([tool], { toolset: 'transfer_to', caller: '' }).withConfig({signal: abortController.signal}))
+				.addNode(
+					name,
+					new ToolNode([tool], { caller: '' })
+						.withConfig({signal: abortController.signal}),
+					{metadata: {toolset: 'transfer_to'}}
+				)
 		})
 
 		// Sub Agents

@@ -4,7 +4,7 @@ import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
 import { BaseChannel, isCommand } from '@langchain/langgraph'
-import { agentLabel, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TChatMessageStep, TMessageChannel, TMessageComponent, TMessageContentReasoning, TMessageContentText} from '@metad/contracts'
+import { agentLabel, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TChatMessageStep, TMessageChannel, TMessageComponent, TMessageComponentStep, TMessageContentReasoning, TMessageContentText} from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { instanceToPlain } from 'class-transformer'
@@ -200,11 +200,12 @@ export function createMapStreamEvents(
 									...data,
 									category: 'Computer',
 									toolset: rest.metadata.toolset,
+									toolset_id: rest.metadata.toolsetId,
 									tool: rest.name,
 									title: rest.metadata.toolName || rest.metadata[rest.name] || rest.name,
 									created_date: new Date(),
 									status: 'running',
-								} as TMessageComponent<TChatMessageStep>
+								} as TMessageComponent<TMessageComponentStep>
 							}
 						}
 					} as MessageEvent)

@@ -2,7 +2,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
@@ -90,14 +90,12 @@ export class ChatComponentMessageComponent {
   // constructor() {
   //   effect(
   //     () => {
-  //       console.log(this.data())
+  //       console.log(this.step())
   //     },
-  //     { allowSignalWrites: true }
   //   )
   // }
 
   openInCanvas(data: TMessageComponent) {
-    // console.log(data)
     this.homeService.canvasOpened.set({
       opened: true,
       type: 'Computer',

@@ -75,6 +75,10 @@ export class OpenAPIToolset extends BaseToolset<OpenAPITool> {
 		throw new Error(`tool ${toolName} not found`)
 	}
 
+	getId() {
+		return this.toolset?.id
+	}
+
 	/**
 	 * @todo
 	 */

@@ -21,6 +21,9 @@
           @case ('knowledge') {
             <i class="ri-book-shelf-fill"></i>
           }
+          @case ('mcp') {
+            <emoji-avatar [avatar]="avatar()" xs class="overflow-hidden rounded-lg"/>
+          }
           @default {
             <img src="/api/xpert-toolset/builtin-provider/{{step.toolset}}/icon" alt="{{step.toolset}}" class="rounded-md">
           }

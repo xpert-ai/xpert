@@ -72,7 +72,9 @@
       >
         @for (step of steps(); track $index) {
           <div class="group/item relative flex items-center p-1 py-1 rounded-lg hover:bg-white" >
-            <chat-message-step-icon class="w-[16px] inline-flex items-center text-text-secondary" [step]="step"/>
+            <chat-message-step-icon class="w-[16px] inline-flex items-center text-text-secondary"
+              [step]="{category: step.category}"
+            />
             <div class="flex-1 h-full min-w-0 flex">
               <div class="inline-flex items-center h-full rounded-full font-body text-[14px] text-[var(--text-secondary)] max-w-[100%]">
                 <div

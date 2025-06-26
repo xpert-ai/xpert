@@ -2,12 +2,12 @@ import { DynamicStructuredTool } from '@langchain/core/tools'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import { I18nObject, IXpertToolset, XpertToolsetCategoryEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
-import { BaseToolset } from '../../toolset'
 import { TBuiltinToolsetParams } from '../builtin'
 import { createProMCPClient } from './pro'
 import { createMCPClient } from './types'
+import { _BaseToolset } from '../../../shared'
 
-export class MCPToolset extends BaseToolset {
+export class MCPToolset extends _BaseToolset {
 	providerName = 'mcp'
 	providerType = XpertToolsetCategoryEnum.MCP
 
@@ -16,10 +16,17 @@ export class MCPToolset extends BaseToolset {
 	// MCP Client
 	protected client: MultiServerMCPClient = null
 	constructor(
-		protected toolset?: IXpertToolset,
+		protected toolset: IXpertToolset,
 		protected params?: TBuiltinToolsetParams
 	) {
-		super(toolset)
+		super(params)
+	}
+
+	getId(): string {
+		return this.toolset.id
+	}
+	getName(): string {
+		return this.toolset.name
 	}
 
 	async initTools() {
@@ -65,7 +72,6 @@ export class MCPToolset extends BaseToolset {
 	 */
 	getToolTitle(name: string): string | I18nObject {
 		const tool = this.toolset?.tools?.find((tool) => tool.name === name)
-		console.log(`getToolTitle`, tool)
 		const identity = tool?.schema?.entity
 		if (identity) {
 			return identity

@@ -16,7 +16,9 @@
       @if (step(); as step) {
         <button class="inline-flex items-center gap-1.5 py-1 px-2 text-sm bg-muted hover:bg-muted/80 rounded-lg transition-colors cursor-pointer border border-neutral-200 dark:border-neutral-700/50"
           (click)="openInCanvas(data())">
-          <chat-message-step-icon class="w-4 h-4 shrink-0 inline-flex justify-center items-center text-text-secondary" [step]="{category: step.type, toolset: step.toolset}"/>
+          <chat-message-step-icon class="w-4 h-4 shrink-0 inline-flex justify-center items-center text-text-secondary"
+            [step]="{category: step.type, toolset: step.toolset, toolsetId: step.toolset_id}"
+          />
           <span class="text-sm max-w-[200px] truncate text-foreground" [title]="step.title">{{step.title}}</span>
           @if (step.status === 'fail') {
             <span class="font-mono text-xs ml-1 text-text-destructive truncate max-w-[200px]" [title]="step.error">{{step.error}}</span>

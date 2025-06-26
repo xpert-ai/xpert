@@ -29,6 +29,10 @@ export abstract class _BaseToolset<T extends StructuredToolInterface = Structure
 	}
 
 	/**
+	 * Get ID of the toolset
+	 */
+	abstract getId(): string
+	/**
 	 * Get name of the toolset
 	 */
 	abstract getName(): string
