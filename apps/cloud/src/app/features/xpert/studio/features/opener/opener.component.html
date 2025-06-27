@@ -1,45 +1,47 @@
-  <textarea
-    rows="3"
-    class="system-md-regular w-full border-0 bg-transparent px-0 text-text-secondary focus:outline-none focus:bg-white"
-    placeholder="Write your opener message here, you can use variables, try type \{\{ variable \}\}."
-    [(ngModel)]="message"
-  ></textarea>
-  <div>
-    <div class="flex items-center py-2">
-      <div class="flex shrink-0 space-x-0.5 text-xs font-medium leading-[18px] text-text-tertiary">
-        <div class="uppercase">Opening Questions</div>
-        <div>·</div>
-        <div>{{questions()?.length ?? 0}}/10</div>
-      </div>
-      <div
-        class="my-2 bg-gradient-to-r from-divider-regular to-background-gradient-mask-transparent ml-3 h-px w-0 grow"
-      ></div>
+<textarea
+  rows="3"
+  class="system-md-regular w-full border-0 bg-transparent p-1 rounded-md text-text-secondary focus:outline-none focus:bg-white"
+  [placeholder]="'PAC.Xpert.WriteOpenerMessage' | translate: {Default: 'Write your opener message here.'}"
+  [(ngModel)]="message"
+></textarea>
+<div>
+  <div class="flex items-center py-2">
+    <div class="flex shrink-0 space-x-0.5 text-xs font-medium leading-[18px] text-text-tertiary">
+      <div class="uppercase">{{ 'PAC.Xpert.OpeningQuestions' | translate: {Default: 'Opening Questions'} }}</div>
+      <div>·</div>
+      <div>{{questions()?.length ?? 0}}/10</div>
     </div>
-    <div class="space-y-1" cdkDropList (cdkDropListDropped)="drop($event)">
-      @for (question of questions(); track i; let i = $index) {
-        <div class="group relative flex items-center rounded-lg border border-components-panel-border-subtle bg-components-panel-on-panel-item-bg pl-2.5 hover:bg-components-panel-on-panel-item-bg-hover"
-          cdkDrag cdkDragLockAxis="y"
-        >
-          <i class="ri-draggable"></i>
-          <input
-            class="h-9 w-full grow cursor-pointer overflow-x-auto rounded-lg border-0 bg-transparent pl-1.5 pr-8 text-sm leading-9 text-text-secondary focus:outline-none focus:bg-white"
-            type="input"
-            [ngModel]="question"
-            (ngModelChange)="updateQuestion(i, $event)"
-            />
-          <div class="absolute right-1.5 top-1/2 translate-y-[-50%] cursor-pointer rounded-md w-6 h-6 flex justify-center items-center text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive"
-            (click)="removeQuestion(i)">
-            <i class="ri-delete-bin-3-line"></i>
-          </div>
+    <div
+      class="my-2 bg-gradient-to-r from-divider-regular to-background-gradient-mask-transparent ml-3 h-px w-0 grow"
+    ></div>
+  </div>
+  <div class="space-y-1" cdkDropList (cdkDropListDropped)="drop($event)">
+    @for (question of questions(); track i; let i = $index) {
+      <div class="group relative flex items-center rounded-lg border border-components-panel-border-subtle bg-components-panel-on-panel-item-bg pl-2.5 hover:bg-components-panel-on-panel-item-bg-hover"
+        cdkDrag cdkDragLockAxis="y"
+      >
+        <i class="ri-draggable"></i>
+        <input
+          class="h-9 w-full grow cursor-pointer overflow-x-auto rounded-lg border-0 bg-transparent pl-1.5 pr-8 text-sm leading-9 text-text-secondary focus:outline-none focus:bg-white"
+          type="input"
+          [ngModel]="question"
+          (ngModelChange)="updateQuestion(i, $event)"
+          />
+        <div class="absolute right-1.5 top-1/2 translate-y-[-50%] cursor-pointer rounded-md w-6 h-6 flex justify-center items-center text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive"
+          (click)="removeQuestion(i)">
+          <i class="ri-delete-bin-3-line"></i>
         </div>
-      }
-    </div>
+      </div>
+    }
+  </div>
 
-    <div class="mt-1 flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-neutral-100 px-3 
-        text-components-button-tertiary-text hover:bg-hover-bg"
-      (click)="addQuestion()"
-    >
-      <i class="ri-add-line"></i>
-      <div class="system-sm-medium text-[13px]">Add option</div>
+  <div class="mt-1 flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-neutral-100 px-3 
+      text-components-button-tertiary-text hover:bg-hover-bg"
+    (click)="addQuestion()"
+  >
+    <i class="ri-add-line"></i>
+    <div class="system-sm-medium text-[13px]">
+      {{ 'PAC.Xpert.AddQuestion' | translate: {Default: 'Add Question'} }}
     </div>
   </div>
+</div>

@@ -2293,6 +2293,9 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "WriteOpenerMessage": "在这里写下开场白消息",
+      "OpeningQuestions": "开场白问题",
+      "AddQuestion": "添加问题",
       "FilterWorkspace": "过滤工作空间",
       "Speaking": "正在说话",
       "Converting": "正在转换",

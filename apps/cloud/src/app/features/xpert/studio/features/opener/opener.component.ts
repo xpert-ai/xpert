@@ -38,16 +38,14 @@ export class XpertStudioFeaturesOpenerComponent {
   readonly questions = attrModel(this.opener, 'questions')
 
   addQuestion() {
-    if (this.questions()?.length < 10) {
-      this.questions.update((questions) => {
-        return [...(questions ?? []), '']
-      })
-    }
+    if (this.questions()?.length >= 10) return
+    this.questions.update((questions) => {
+      return [...(questions ?? []), '']
+    })
   }
 
   removeQuestion(index: number) {
     this.questions.update((questions) => {
-      questions = questions ?? []
       questions.splice(index, 1)
       return [...questions]
     })
