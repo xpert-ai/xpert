@@ -2293,6 +2293,8 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "Suggesting": "正在推荐",
+      "TryAsking": "试着问问",
       "WriteOpenerMessage": "在这里写下开场白消息",
       "OpeningQuestions": "开场白问题",
       "AddQuestion": "添加问题",

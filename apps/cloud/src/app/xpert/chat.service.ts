@@ -29,6 +29,7 @@ import {
 import {
   ChatConversationService,
   ChatMessageFeedbackService,
+  ChatMessageService,
   ChatService as ChatServerService,
   ToastrService,
   XpertService
@@ -45,6 +46,7 @@ export abstract class ChatService {
   readonly chatService = inject(ChatServerService)
   readonly conversationService = inject(ChatConversationService)
   readonly feedbackService = inject(ChatMessageFeedbackService)
+  readonly chatMessageService = inject(ChatMessageService)
   readonly xpertService = inject(XpertService)
   readonly appService = inject(AppService)
   readonly homeService = inject(XpertHomeService)
@@ -172,6 +174,7 @@ export abstract class ChatService {
 
   readonly xpert = signal<IXpert>(null)
   readonly project = signal<IXpertProject>(null)
+  readonly suggestion_enabled = computed(() => this.xpert()?.features?.suggestion?.enabled)
 
   constructor() {
     this.#destroyRef.onDestroy(() => {
@@ -399,6 +402,10 @@ export abstract class ChatService {
             error: null
           }
         })
+        if (this.suggestion_enabled()) {
+          const lastMessage = this.#messages()[this.#messages().length - 1]
+          this.onSuggestionQuestions(lastMessage.id)
+        }
       }
     })
   }
@@ -415,14 +422,31 @@ export abstract class ChatService {
     })
   }
 
-  async newConversation1(xpert?: IXpert) {
-    if (this.answering() && this.conversation()?.id) {
-      this.cancelMessage()
-    }
-    this.conversation.set(null)
-    this.conversationId.set(null)
-    this.#messages.set([])
+  // Suggestion Questions
+  readonly suggesting = signal(false)
+  readonly suggestionQuestions = signal<string[]>([])
+  onSuggestionQuestions(id: string) {
+    this.suggesting.set(true)
+    this.chatMessageService.suggestedQuestions(id).subscribe({
+      next: (questions) => {
+        this.suggesting.set(false)
+        this.suggestionQuestions.set(questions)
+      },
+      error: (error) => {
+        this.suggesting.set(false)
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
   }
+
+  // async newConversation1(xpert?: IXpert) {
+  //   if (this.answering() && this.conversation()?.id) {
+  //     this.cancelMessage()
+  //   }
+  //   this.conversation.set(null)
+  //   this.conversationId.set(null)
+  //   this.#messages.set([])
+  // }
 
   setConversation(id: string) {
     if (id !== this.conversationId()) {

@@ -270,6 +270,7 @@ export class ChatAiMessageComponent {
       })
   }
 
+  // Text to Speech
   readonly synthesizeLoading = this.#synthesizeService.synthesizeLoading
   readonly isPlaying = this.#synthesizeService.isPlaying
   readAloud(message: IChatMessage) {

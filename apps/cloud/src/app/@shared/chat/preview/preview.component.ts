@@ -3,10 +3,8 @@ import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
 import {
   booleanAttribute,
-  ChangeDetectorRef,
   Component,
   computed,
-  DestroyRef,
   effect,
   ElementRef,
   inject,
@@ -15,7 +13,6 @@ import {
   output,
   signal,
   viewChild,
-  ViewChild
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -28,6 +25,7 @@ import {
   ChatMessageEventTypeEnum,
   ChatMessageFeedbackRatingEnum,
   ChatMessageFeedbackService,
+  ChatMessageService,
   ChatMessageTypeEnum,
   ChatService,
   getErrorMessage,
@@ -44,9 +42,9 @@ import {
   XpertAgentExecutionService,
   XpertAgentExecutionStatusEnum,
   XpertService
-} from 'apps/cloud/src/app/@core'
-import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
-import { ToolCallConfirmComponent, XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
+} from '@cloud/app/@core'
+import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
+import { ToolCallConfirmComponent, XpertParametersCardComponent } from '@cloud/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { map, Observable, of, timer, switchMap, tap, Subscription, EMPTY, pipe, filter } from 'rxjs'
@@ -54,7 +52,6 @@ import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
 import { effectAction } from '@metad/ocap-angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { injectConfirmDelete } from '@metad/ocap-angular/common'
-import { MatInputModule } from '@angular/material/input'
 
 @Component({
   standalone: true,
@@ -65,7 +62,6 @@ import { MatInputModule } from '@angular/material/input'
     TextFieldModule,
     MatTooltipModule,
     MarkdownModule,
-    MatInputModule,
     EmojiAvatarComponent,
     XpertParametersCardComponent,
     XpertPreviewAiMessageComponent,
@@ -84,10 +80,9 @@ export class ChatConversationPreviewComponent {
   readonly conversationService = inject(ChatConversationService)
   readonly agentExecutionService = inject(XpertAgentExecutionService)
   readonly messageFeedbackService = inject(ChatMessageFeedbackService)
+  readonly chatMessageService = inject(ChatMessageService)
   readonly chatService = inject(ChatService)
   readonly #toastr = inject(ToastrService)
-  readonly #destroyRef = inject(DestroyRef)
-  readonly #cdr = inject(ChangeDetectorRef)
   readonly #translate = inject(TranslateService)
   readonly #clipboard = inject(Clipboard)
   readonly confirmDel = injectConfirmDelete()
@@ -134,6 +129,7 @@ export class ChatConversationPreviewComponent {
   readonly textToSpeech_enabled = computed(() => this.xpert()?.features?.textToSpeech?.enabled)
   readonly speechToText_enabled = computed(() => this.xpert()?.features?.speechToText?.enabled)
   readonly attachment_enabled = computed(() => this.xpert()?.features?.attachment?.enabled)
+  readonly suggestion_enabled = computed(() => this.xpert()?.features?.suggestion?.enabled)
   readonly inputLength = computed(() => this.input()?.length ?? 0)
   readonly loading = signal(false)
 
@@ -329,6 +325,9 @@ export class ChatConversationPreviewComponent {
           if (this.currentMessage()) {
             this.appendMessage({ ...this.currentMessage() })
           }
+          if (this.suggestion_enabled()) {
+            this.onSuggestionQuestions(this.currentMessage().id)
+          }
           this.currentMessage.set(null)
         }
       })
@@ -355,6 +354,28 @@ export class ChatConversationPreviewComponent {
     this.loading.set(false)
     this.currentMessage.set(null)
     this.chatStop.emit()
+  }
+
+  // Suggestion Questions
+  readonly suggesting = signal(false)
+  readonly suggestionQuestions = signal<string[]>([])
+  onSuggestionQuestions(id: string) {
+    this.suggesting.set(true)
+    this.chatMessageService.suggestedQuestions(id).subscribe({
+      next: (questions) => {
+        this.suggesting.set(false)
+        this.suggestionQuestions.set(questions)
+      },
+      error: (error) => {
+        this.suggesting.set(false)
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
+  }
+
+  onSelectSuggestionQuestion(question: string) {
+    this.chat({ input: question })
+    this.suggestionQuestions.set([]) // Clear suggestions after selection
   }
 
   appendMessage(message: Partial<IChatMessage>) {
