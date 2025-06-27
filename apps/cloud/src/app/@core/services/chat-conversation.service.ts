@@ -62,17 +62,4 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     return EMPTY // @todo
   }
 
-  synthesize(id: string, messageId: string) {
-    return this.fetchEventSource(
-          {
-            url: this.apiBaseUrl + `/${id}/synthesize`,
-            method: 'GET',
-            params: {
-              message_id: messageId,
-              voice: 'default',
-              language: 'zh-CN'
-            }
-          },
-        )
-  }
 }

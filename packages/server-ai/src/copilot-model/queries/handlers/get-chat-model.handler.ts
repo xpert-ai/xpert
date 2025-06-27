@@ -50,7 +50,7 @@ export class CopilotModelGetChatModelHandler implements IQueryHandler<CopilotMod
 
 		// Custom model
 		const customModels = await this.queryBus.execute(
-			new GetCopilotProviderModelQuery(copilot.modelProvider.id, modelName)
+			new GetCopilotProviderModelQuery(copilot.modelProvider.id, {modelName})
 		)
 
 		const modelProvider = await this.queryBus.execute<AIModelGetProviderQuery, ModelProvider>(

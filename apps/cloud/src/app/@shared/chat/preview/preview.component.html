@@ -95,18 +95,20 @@
                       }
                     </div>
 
-                    <div class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium
-                      bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
-                      [matTooltip]="'PAC.Xpert.ReadAloud' | translate: {Default: 'Read aloud'} "
-                      matTooltipPosition="above"
-                      (click)="readAloud(message)"
-                    >
-                      @if (synthesizeLoading() || isPlaying()) {
-                        <i class="ri-stop-circle-line text-primary-500"></i>
-                      } @else {
-                        <i class="ri-speak-ai-line"></i>
-                      }
-                    </div>
+                    @if (textToSpeech_enabled()) {
+                      <div class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium
+                        bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
+                        [matTooltip]="'PAC.Xpert.ReadAloud' | translate: {Default: 'Read aloud'} "
+                        matTooltipPosition="above"
+                        (click)="readAloud(message)"
+                      >
+                        @if (synthesizeLoading() || isPlaying()) {
+                          <i class="ri-stop-circle-line text-primary-500"></i>
+                        } @else {
+                          <i class="ri-speak-ai-line"></i>
+                        }
+                      </div>
+                    }
                   </div>
 
                 @if (message.executionId) {
@@ -234,15 +236,30 @@
       <div class="pb-4 w-full max-w-full mx-auto">
         <div class="relative">
           <div class="p-[5.5px] max-h-[150px] bg-white border-[1.5px] border-gray-200 rounded-xl mb-2">
-            <textarea class="outline-none w-full pl-2 pr-16" matInput [(ngModel)]="input"
-              cdkTextareaAutosize
-              cdkAutosizeMinRows="1"
-              cdkAutosizeMaxRows="5"
+            <textarea class="outline-none w-full pl-2 pr-16"
+              [(ngModel)]="input"
               (keydown)="onKeydown($event)"
             ></textarea>
-            <div class="absolute bottom-[7px] flex items-center h-8 right-2">
+            <div class="absolute bottom-[7px] flex items-center h-8 right-2 z-10">
               <div class="flex items-center px-1 h-5 rounded-md bg-gray-100 text-xs font-medium text-gray-500">{{inputLength()}}</div>
               <div class="mx-2 w-[1px] h-4 bg-black opacity-5"></div>
+
+              @if (attachment_enabled()) {
+                <button type="button" class="action-btn action-btn-l w-8 h-8 flex justify-center items-center rounded-lg" >
+                  <i class="ri-attachment-line text-lg"></i>
+                </button>
+              }
+
+              @if (speechToText_enabled()) {
+                @if (speeching()) {
+                  
+                } @else {
+                  <button type="button" class="action-btn action-btn-l w-8 h-8 flex justify-center items-center rounded-lg"
+                    (click)="startRecording()">
+                    <i class="ri-mic-ai-fill text-lg"></i>
+                  </button>
+                }
+              }
 
               @if (loading()) {
                 <button class="w-8 h-8 flex justify-center items-center rounded-full border-light hover:shadow-md"
@@ -260,6 +277,33 @@
                   </svg>
                 </button>
               }
+            </div>
+
+            <div class="absolute left-0 bottom-0 w-full h-12 border border-solid border-gray-200 rounded-lg bg-white shadow-md z-10 p-2 overflow-hidden"
+              [ngClass]="{
+                'hidden': !speeching(),
+                'block': speeching()
+              }"
+            >
+              <canvas #waveCanvas class="absolute left-0 top-0 w-full h-12 z-0"></canvas>
+              <div class="absolute right-0 left-0 flex items-center px-4 z-10">
+                <div class="grow">
+                  @if (isRecording())  {
+                    <span>{{'PAC.Xpert.Speaking' | translate: {Default: 'Speaking'} }}...</span>
+                  } @else if (isConverting()) {
+                    <span>{{'PAC.Xpert.Converting' | translate: {Default: 'Converting'} }}...</span>
+                  }
+                </div>
+                <button type="button" class="action-btn action-btn-l w-8 h-8 flex justify-center items-center rounded-lg"
+                  (click)="stopRecording()">
+                  <i class="ri-stop-circle-line text-primary-500"></i>
+                </button>
+                @if (isRecording()) {
+                  <div>
+                    {{recordTimes() * 1000 | date:'mm:ss'}}
+                  </div>
+                }
+              </div>
             </div>
           </div>
         </div>

@@ -13,12 +13,10 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 	public async execute(command: RunCreateStreamCommand): Promise<any> {
 		const threadId = command.threadId
 		const input = command.input
-
-		console.log(input)
 		
 		// Find thread (conversation) and assistant (xpert)
 		const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
-		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: input.assistant_id }))
+		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: input.assistant_id }, {}))
 
 		// Update xpert id for chat conversation
 		conversation.xpertId = xpert.id

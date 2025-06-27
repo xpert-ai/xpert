@@ -2293,6 +2293,12 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "FilterWorkspace": "过滤工作空间",
+      "Speaking": "正在说话",
+      "Converting": "正在转换",
+      "ReadAloud": "朗读",
+      "Speech2Text": "语音转文本",
+      "ConvertingSpeechToText": "正在将语音转换为文本",
       "SuggestionPromptTooltip": "指导大模型如何给出后续建议问题",
       "Text2Speech": "文字转语音",
       "ConversationOpener": "对话开场白",

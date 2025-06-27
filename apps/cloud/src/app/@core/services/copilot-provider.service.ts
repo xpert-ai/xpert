@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core'
-import { OrganizationBaseCrudService } from '@metad/cloud/state'
+import { AiModelTypeEnum, OrganizationBaseCrudService } from '@metad/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { API_COPILOT_PROVIDER } from '../constants/app.constants'
 import { ICopilotProvider, ICopilotProviderModel, ParameterRule, ProviderModel } from '../types'
@@ -12,10 +12,11 @@ export class CopilotProviderService extends OrganizationBaseCrudService<ICopilot
     super(API_COPILOT_PROVIDER)
   }
 
-  getModelParameterRules(providerId: string, model: string) {
+  getModelParameterRules(providerId: string, modelType: AiModelTypeEnum, model: string) {
     return this.httpClient.get<ParameterRule[]>(this.apiBaseUrl + `/${providerId}/model-parameter-rules`, {
       params: {
-        model
+        model,
+        modelType
       }
     })
   }

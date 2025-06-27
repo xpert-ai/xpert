@@ -11,6 +11,6 @@
   }
 }
 
-.ngm-cdk-option.active {
-  @apply text-primary-600;
+.workspace-item.active {
+  @apply text-primary-600 font-semibold bg-primary-50;
 }

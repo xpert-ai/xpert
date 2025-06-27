@@ -15,6 +15,7 @@ import { XpertStudioFeaturesAttachmentComponent } from './attachment/attachment.
 import { XpertStudioFeaturesOpenerComponent } from './opener/opener.component'
 import { XpertStudioFeaturesSuggestionComponent } from './suggestion/suggestion.component'
 import { XpertStudioFeaturesTTSComponent } from './tts/tts.component'
+import { XpertStudioFeaturesSTTComponent } from './stt/stt.component'
 
 @Component({
   selector: 'xpert-studio-features',
@@ -33,7 +34,8 @@ import { XpertStudioFeaturesTTSComponent } from './tts/tts.component'
     XpertStudioFeaturesAttachmentComponent,
     XpertStudioFeaturesOpenerComponent,
     XpertStudioFeaturesSuggestionComponent,
-    XpertStudioFeaturesTTSComponent
+    XpertStudioFeaturesTTSComponent,
+    XpertStudioFeaturesSTTComponent
   ],
   templateUrl: './features.component.html',
   styleUrl: './features.component.scss',
@@ -46,7 +48,7 @@ export class XpertStudioFeaturesComponent {
   // Outputs
   readonly close = output()
 
-  readonly view = signal<'summarize' | 'attachment' | 'memory' | 'title' | 'opener' | 'suggestion' | 'tts'>(null)
+  readonly view = signal<'summarize' | 'attachment' | 'memory' | 'title' | 'opener' | 'suggestion' | 'tts' | 'stt'>(null)
   readonly xpert = this.apiService.xpert
 
   readonly summarize = computed(() => this.xpert()?.summarize)
@@ -72,6 +74,7 @@ export class XpertStudioFeaturesComponent {
   readonly opener = attrModel(this.features, 'opener')
   readonly suggestion = attrModel(this.features, 'suggestion')
   readonly textToSpeech = attrModel(this.features, 'textToSpeech')
+  readonly speechToText = attrModel(this.features, 'speechToText')
   readonly enabledAttachment = computed(() => this.attachment()?.enabled)
   readonly fileTypes = computed(() => this.attachment()?.fileTypes)
   readonly maxNum = computed(() => this.attachment()?.maxNum)
@@ -79,8 +82,9 @@ export class XpertStudioFeaturesComponent {
   readonly opener_enabled = attrModel(this.opener, 'enabled')
   readonly suggestion_enabled = attrModel(this.suggestion, 'enabled')
   readonly textToSpeech_enabled = attrModel(this.textToSpeech, 'enabled')
+  readonly speechToText_enabled = attrModel(this.speechToText, 'enabled')
 
-  toggleView(view: 'summarize' | 'attachment' | 'memory' | 'title' | 'opener' | 'suggestion' | 'tts') {
+  toggleView(view: 'summarize' | 'attachment' | 'memory' | 'title' | 'opener' | 'suggestion' | 'tts' | 'stt') {
     this.view.update((state) => (state === view ? null : view))
   }
 

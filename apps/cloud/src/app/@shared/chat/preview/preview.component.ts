@@ -3,15 +3,19 @@ import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
 import {
   booleanAttribute,
+  ChangeDetectorRef,
   Component,
   computed,
   DestroyRef,
   effect,
+  ElementRef,
   inject,
   input,
   model,
   output,
-  signal
+  signal,
+  viewChild,
+  ViewChild
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -19,16 +23,19 @@ import { appendMessageContent, stringifyMessageContent } from '@metad/copilot'
 import { nonBlank } from '@metad/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
+  AudioRecorderService,
   ChatConversationService,
   ChatMessageEventTypeEnum,
   ChatMessageFeedbackRatingEnum,
   ChatMessageFeedbackService,
   ChatMessageTypeEnum,
+  ChatService,
   getErrorMessage,
   IChatConversation,
   IChatMessage,
   IChatMessageFeedback,
   IXpert,
+  SynthesizeService,
   ToastrService,
   ToolCall,
   TtsStreamPlayerService,
@@ -48,7 +55,6 @@ import { effectAction } from '@metad/ocap-angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { injectConfirmDelete } from '@metad/ocap-angular/common'
 import { MatInputModule } from '@angular/material/input'
-import { StoredMessage } from '@langchain/core/messages'
 
 @Component({
   standalone: true,
@@ -68,7 +74,7 @@ import { StoredMessage } from '@langchain/core/messages'
   selector: 'chat-conversation-preview',
   templateUrl: 'preview.component.html',
   styleUrls: ['preview.component.scss'],
-  providers: [TtsStreamPlayerService],
+  providers: [TtsStreamPlayerService, AudioRecorderService, SynthesizeService],
 })
 export class ChatConversationPreviewComponent {
   eExecutionStatusEnum = XpertAgentExecutionStatusEnum
@@ -78,13 +84,15 @@ export class ChatConversationPreviewComponent {
   readonly conversationService = inject(ChatConversationService)
   readonly agentExecutionService = inject(XpertAgentExecutionService)
   readonly messageFeedbackService = inject(ChatMessageFeedbackService)
+  readonly chatService = inject(ChatService)
   readonly #toastr = inject(ToastrService)
   readonly #destroyRef = inject(DestroyRef)
+  readonly #cdr = inject(ChangeDetectorRef)
   readonly #translate = inject(TranslateService)
   readonly #clipboard = inject(Clipboard)
   readonly confirmDel = injectConfirmDelete()
-  readonly #playerService = inject(TtsStreamPlayerService)
-  readonly isPlaying = this.#playerService.isPlaying
+  readonly #audioRecorder = inject(AudioRecorderService)
+  readonly #synthesizeService = inject(SynthesizeService)
 
   // Inputs
   readonly conversationId = model<string>()
@@ -106,6 +114,9 @@ export class ChatConversationPreviewComponent {
   readonly chatError = output<string>()
   readonly chatStop = output<void>()
 
+  // Children
+  readonly canvasRef = viewChild('waveCanvas', {read: ElementRef})
+
   // States
   readonly conversation = signal<Partial<IChatConversation>>(null)
 
@@ -120,6 +131,9 @@ export class ChatConversationPreviewComponent {
   readonly envriments = signal(false)
   readonly avatar = computed(() => this.xpert()?.avatar)
   readonly starters = computed(() => this.xpert()?.starters?.filter(nonBlank))
+  readonly textToSpeech_enabled = computed(() => this.xpert()?.features?.textToSpeech?.enabled)
+  readonly speechToText_enabled = computed(() => this.xpert()?.features?.speechToText?.enabled)
+  readonly attachment_enabled = computed(() => this.xpert()?.features?.attachment?.enabled)
   readonly inputLength = computed(() => this.input()?.length ?? 0)
   readonly loading = signal(false)
 
@@ -192,6 +206,10 @@ export class ChatConversationPreviewComponent {
       },
       { allowSignalWrites: true }
     )
+
+    effect(() => this.#audioRecorder.canvasRef.set(this.canvasRef()), { allowSignalWrites: true })
+    effect(() => this.#audioRecorder.xpert.set(this.xpert() as IXpert), { allowSignalWrites: true })
+    effect(() => this.input.set(this.#audioRecorder.text()), { allowSignalWrites: true })
   }
 
   chat(options?: { input?: string; confirm?: boolean; reject?: boolean; retry?: boolean }) {
@@ -499,60 +517,21 @@ export class ChatConversationPreviewComponent {
     }
   }
 
-  private synthesizeSub: Subscription
-  readonly synthesizeLoading = signal(false)
+  readonly synthesizeLoading = this.#synthesizeService.synthesizeLoading
+  readonly isPlaying = this.#synthesizeService.isPlaying
   readAloud(message: IChatMessage) {
-    if (this.synthesizeLoading() || this.isPlaying()) {
-      this.synthesizeSub?.unsubscribe()
-      this.synthesizeSub = null
-      this.synthesizeLoading.set(false)
-      this.#playerService.stop().catch((error) => {
-        this.#toastr.error(getErrorMessage(error))
-      })
-    } else {
-      this.synthesizeLoading.set(true)
-      this.synthesizeSub?.unsubscribe()
-      this.synthesizeSub = this.conversationService.synthesize(this.conversationId(), message.id)
-        .subscribe({
-          next: (event) => {
-            if (event.event === 'error') {
-              this.#toastr.error(event.data)
-              this.synthesizeSub = null
-              this.synthesizeLoading.set(false)
-              return
-            }
-            if (event.data.startsWith(':')) {
-              // Ignore non-data events
-              return
-            }
-              
-            if (event.data) {
-              try {
-                const message = JSON.parse(event.data) as StoredMessage
-                console.log(message.data)
-                const audioContent = message.data.content?.[0] as any
-                if (audioContent.type !== 'audio') {
-                  this.#toastr.error(this.#translate.instant('PAC.Chat.PreviewReadAloudError', {Default: 'Read aloud only supports audio messages'}))
-                  return
-                }
-
-                this.#playerService.enqueueChunk(audioContent.data)
-                // playBase64WavAudio(audioContent.data)
-              } catch (error) {
-                this.#toastr.error(getErrorMessage(error))
-              }
-            }
-          },
-          error: (error) => {
-            this.#toastr.error(getErrorMessage(error))
-            this.synthesizeSub = null
-            this.synthesizeLoading.set(false)
-          },
-          complete: () => {
-            this.synthesizeSub = null
-            this.synthesizeLoading.set(false)
-          }
-        })
-    }
+    this.#synthesizeService.readAloud(this.conversationId(), message)
   }
+
+  readonly speeching = this.#audioRecorder.speeching
+  readonly isRecording = this.#audioRecorder.isRecording
+  readonly isConverting = this.#audioRecorder.isConverting
+  readonly recordTimes = this.#audioRecorder.recordTimes
+  async startRecording() {
+    await this.#audioRecorder.startRecording()
+  }
+  stopRecording() {
+    this.#audioRecorder.stopRecording()
+  }
+
 }

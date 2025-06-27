@@ -11,12 +11,6 @@ model_properties:
       language: [ "zh-Hans", "en-US" ]
     - mode: "Chelsie"
       language: [ "zh-Hans", "en-US" ]
-    - mode: "Dylan"
-      language: [ "zh-Hans", "en-US" ]
-    - mode: "Jada"
-      language: [ "zh-Hans", "en-US" ]
-    - mode: "Sunny"
-      language: [ "zh-Hans", "en-US" ]
   word_limit: 7000
   audio_type: 'wav'
   max_workers: 5

@@ -1,7 +1,5 @@
-import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { BaseStore } from '@langchain/langgraph'
 import { IChatMessage, LongTermMemoryTypeEnum } from '@metad/contracts'
-import { filterMessageText } from '@metad/copilot'
 import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { InjectQueue } from '@nestjs/bull'
 import { Injectable, Logger } from '@nestjs/common'
@@ -10,14 +8,10 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
 import { DeepPartial, Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
-import { CopilotModelGetChatModelQuery } from '../copilot-model'
 import { CreateCopilotStoreCommand } from '../copilot-store'
-import { CopilotGetOneQuery } from '../copilot/queries'
 import { FindAgentExecutionsQuery, XpertAgentExecutionStateQuery } from '../xpert-agent-execution/queries'
-import { FindXpertQuery } from '../xpert/queries'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationPublicDTO } from './dto'
-import { cleanMarkdownForSpeech } from '../shared/utils'
 
 @Injectable()
 export class ChatConversationService extends TenantOrganizationAwareCrudService<ChatConversation> {
@@ -152,34 +146,5 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 	async getAttachments(id: string) {
 		const conversation = await this.findOne(id, { relations: ['attachments'] })
 		return conversation.attachments
-	}
-
-	async synthesize(id: string, messageId: string, options: { signal: AbortSignal; voice?: string; language?: string }) {
-		const conversation = await this.findOne(id, { relations: ['messages'] })
-		const message = conversation.messages.find((_) => _.id === messageId)
-
-		if (!message) {
-			throw new Error('Message not found')
-		}
-
-		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: conversation.xpertId }, []))
-
-		const copilotModel = xpert.draft?.team?.features?.textToSpeech?.copilotModel
-		const copilotId = copilotModel?.copilotId
-
-		const copilot = await this.queryBus.execute(
-			new CopilotGetOneQuery(RequestContext.currentTenantId(), copilotId, ['copilotModel'])
-		)
-
-		const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
-			new CopilotModelGetChatModelQuery(copilot, copilotModel, {
-				abortController: new AbortController(),
-				usageCallback: null
-			})
-		)
-		const text = filterMessageText(message.content)
-		return await chatModel.stream(cleanMarkdownForSpeech(text), {
-			signal: options.signal
-		})
 	}
 }

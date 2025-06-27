@@ -37,11 +37,21 @@ export async function* createSSEGenerator(options: SSEGeneratorOptions): AsyncGe
 		},
 	} as any)
 
-	const onMessage = (event: MessageEvent) => events.push(event)
-	const onError = (error: any) => errors.push(error)
+	const onMessage = (event: MessageEvent) => {
+		// console.log('SSE Message:', event.data)
+		events.push(event)
+	}
+	const onError = (error: any) => {
+		console.log('SSE Error:', error)
+		errors.push(error)
+	}
 
 	es.addEventListener('result', onMessage)
-	es.addEventListener('error', onError)
+	// es.addEventListener('error', onError)
+	es.onerror = (error: any) => {
+		console.error('SSE onerror:', error)
+		errors.push(error)
+	}
 
 	try {
 		while (true) {

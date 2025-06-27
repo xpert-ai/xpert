@@ -1,5 +1,4 @@
 import { IPagination } from '@metad/contracts'
-import { keepAlive, takeUntilClose } from '@metad/server-common'
 import {
 	CrudController,
 	PaginationParams,
@@ -9,17 +8,14 @@ import {
 	TransformInterceptor,
 	UUIDValidationPipe
 } from '@metad/server-core'
-import { Controller, Get, Header, HttpStatus, Param, Query, Res, Sse, UseInterceptors } from '@nestjs/common'
+import { Controller, Get, HttpStatus, Param, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
-import { Response } from 'express'
-import { from, map } from 'rxjs'
 import { Like } from 'typeorm'
 import { VolumeClient } from '../sandbox/volume'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
 import { ChatConversationPublicDTO, ChatConversationSimpleDTO } from './dto'
-import { BaseMessage, mapChatMessagesToStoredMessages } from '@langchain/core/messages'
 
 @ApiTags('ChatConversation')
 @ApiBearerAuth()
@@ -116,37 +112,5 @@ export class ChatConversationController extends CrudController<ChatConversation>
 		})
 
 		return await client.list({ path: path || conversation.threadId, deepth })
-	}
-
-	@Header('content-type', 'text/event-stream')
-	@Header('Connection', 'keep-alive')
-	@Get(':id/synthesize')
-	@Sse()
-	async chat(
-		@Res() res: Response,
-		@Param('id', UUIDValidationPipe) id: string,
-		@Query('message_id') messageId: string,
-		@Query('voice') voice: string,
-		@Query('language') language: string
-	) {
-		const abortController = new AbortController()
-		res.on('close', () => {
-			abortController.abort()
-		})
-		const observable = from(await this.service.synthesize(id, messageId, { 
-			signal: abortController.signal,
-			voice, language
-		}))
-
-		return observable.pipe(
-			map((data) => {
-				return {
-					data: mapChatMessagesToStoredMessages([data as BaseMessage])[0],
-				} as MessageEvent
-			}),
-			// Add an operator to send a comment event periodically (30s) to keep the connection alive
-			keepAlive(30000),
-			takeUntilClose(res)
-		)
 	}
 }

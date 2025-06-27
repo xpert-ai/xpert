@@ -1,13 +1,13 @@
 import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal, viewChild } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, model, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
-import { IStorageFile, uuid } from '@cloud/app/@core'
+import { AudioRecorderService, IStorageFile, uuid } from '@cloud/app/@core'
 import { CopilotEnableModelComponent } from '@cloud/app/@shared/copilot'
 import { AppService } from '@cloud/app/app.service'
 import { OverlayAnimations } from '@metad/core'
@@ -31,25 +31,28 @@ import { XpertHomeService } from '../home.service'
     MatTooltipModule,
     NgmCommonModule,
     CopilotEnableModelComponent,
-    ChatAttachmentsComponent
+    ChatAttachmentsComponent,
   ],
   selector: 'chat-input',
   templateUrl: './chat-input.component.html',
   styleUrl: 'chat-input.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  animations: [...OverlayAnimations]
+  animations: [...OverlayAnimations],
+  providers: [AudioRecorderService]
 })
 export class ChatInputComponent {
   readonly chatService = inject(ChatService)
   readonly homeService = inject(XpertHomeService)
   readonly appService = inject(AppService)
   readonly #router = inject(Router)
+  readonly #audioRecorder = inject(AudioRecorderService)
 
   // Inputs
   readonly disabled = input<boolean>()
 
   // Chirldren
   readonly attachTrigger = viewChild('attachTrigger', {read: CdkMenuTrigger})
+  readonly canvasRef = viewChild('waveCanvas', {read: ElementRef})
 
   // States
   readonly promptControl = new FormControl<string>(null)
@@ -61,7 +64,9 @@ export class ChatInputComponent {
   readonly isComposing = signal(false)
 
   // Attachments
-  readonly attachment = computed(() => this.xpert()?.features?.attachment)
+  readonly features = computed(() => this.xpert()?.features)
+  readonly attachment = computed(() => this.features()?.attachment)
+  readonly speechToText_enabled = computed(() => this.features()?.speechToText?.enabled)
   readonly attachments = model<{file?: File; url?: string; storageFile?: IStorageFile}[]>([])
   readonly url = model<string>(null)
   readonly files = computed(() => this.attachments()?.map(({storageFile}) => storageFile))
@@ -74,6 +79,10 @@ export class ChatInputComponent {
         this.promptControl.enable()
       }
     })
+
+    effect(() => this.#audioRecorder.canvasRef.set(this.canvasRef()), { allowSignalWrites: true })
+    effect(() => this.#audioRecorder.xpert.set(this.xpert()), { allowSignalWrites: true })
+    effect(() => this.promptControl.setValue(this.#audioRecorder.text()), { allowSignalWrites: true })
   }
 
   send() {
@@ -176,5 +185,17 @@ export class ChatInputComponent {
 
   closeAttach() {
     this.attachTrigger().close()
+  }
+
+  // Speech to Text
+  readonly speeching = this.#audioRecorder.speeching
+  readonly isRecording = this.#audioRecorder.isRecording
+  readonly isConverting = this.#audioRecorder.isConverting
+  readonly recordTimes = this.#audioRecorder.recordTimes
+  async startRecording() {
+    await this.#audioRecorder.startRecording()
+  }
+  stopRecording() {
+    this.#audioRecorder.stopRecording()
   }
 }

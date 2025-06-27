@@ -12,6 +12,7 @@ import { TextEmbeddingModelManager } from './types/text-embedding-model'
 import { ModelProvidersFolderPath, TChatModelOptions } from './types/types'
 import { AiModelNotFoundException } from '../core/errors'
 import { TextToSpeechModel } from './tts'
+import { SpeechToTextModel } from './speech2text'
 
 @Injectable()
 export abstract class ModelProvider {
@@ -135,6 +136,8 @@ export abstract class ModelProvider {
 				return this.getModelManager<TextEmbeddingModelManager>(type)?.getEmbeddingInstance(copilotModel, options)
 			case AiModelTypeEnum.TTS:
 				return this.getModelManager<TextToSpeechModel>(type)?.getChatModel(copilotModel, options)
+			case AiModelTypeEnum.SPEECH2TEXT:
+				return this.getModelManager<SpeechToTextModel>(type)?.getChatModel(copilotModel, options)
 		}
 		
 		return null

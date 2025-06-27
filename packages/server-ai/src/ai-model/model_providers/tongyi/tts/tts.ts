@@ -21,10 +21,12 @@ export class TongyiTTSModel extends TextToSpeechModel {
 	}
 
 	getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions): BaseChatModel {
+		const parameters = copilotModel.options || options?.modelProperties
+
 		return new TTSChatModel({
 			apiKey: copilotModel.copilot.modelProvider.credentials.dashscope_api_key,
 			model: copilotModel.model,
-			voice: copilotModel.options?.voice
+			voice: parameters?.voice
 		})
 	}
 }
@@ -102,17 +104,17 @@ export class TTSChatModel extends BaseChatModel {
 				body: JSON.stringify(data)
 			}),
 			completionCondition: (data) => data.includes('stop'),
-			errorCondition: (data) => data.startsWith('[ERROR]'),
+			errorCondition: (data) => false ,// data.startsWith('[ERROR]'),
 			parseData: (data) => data, //JSON.parse(data.trim()), // optional
 			signal
 		})
 
 		for await (const event of generator) {
 			if (event.type === 'progress') {
-				console.log('🚧 Progress .')
+				// console.log('🚧 Progress .')
 				yield _convertTTSDeltaToBaseMessageChunk(event.output)
 			} else if (event.type === 'complete') {
-				console.log('✅ Complete:', event.status, event.result || event.error)
+				// console.log('✅ Complete:', event.status, event.result || event.error)
 				yield _convertTTSDeltaToBaseMessageChunk(event.result)
 				break
 			} else if (event.type === 'error') {

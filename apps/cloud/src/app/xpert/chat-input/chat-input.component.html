@@ -30,6 +30,17 @@
               (compositionupdate)="onCompositionUpdate($event)"
               (compositionend)="onCompositionEnd($event)"
             ></textarea>
+
+            <div class="absolute left-0 bottom-0 w-full h-full z-10 p-2 overflow-hidden bg-white"
+              [ngClass]="{
+                'hidden': !speeching(),
+                'block': speeching()
+              }"
+            ><canvas #waveCanvas class="absolute left-0 top-0 w-full h-full z-0"></canvas>
+              @if (isConverting()) {
+                <div class="flex items-center">{{'PAC.Xpert.ConvertingSpeechToText' | translate: {Default: 'Converting speech to text'} }}...</div>
+              }
+            </div>
           </div>
           <div class="flex gap-1.5 absolute inset-x-0 bottom-0 border-2 border-transparent p-2 @[480px]/input:p-3 max-w-full">
             @if (attachment()?.enabled) {
@@ -170,6 +181,34 @@
               </div>
             </div>
             <div class="ml-auto flex flex-row items-end gap-1">
+              @if (speechToText_enabled()) {
+                <div class="flex items-center px-2 z-10">
+                  <div class="grow">
+                    @if (isRecording())  {
+                      <span>{{'PAC.Xpert.Speaking' | translate: {Default: 'Speaking'} }}...</span>
+                    } @else if (isConverting()) {
+                      <span>{{'PAC.Xpert.Converting' | translate: {Default: 'Converting'} }}...</span>
+                    }
+                  </div>
+                  @if (speeching()) {
+                    <button type="button" class="action-btn action-btn-l w-10 h-10 flex justify-center items-center rounded-full text-lg"
+                      (click)="stopRecording()">
+                      <i class="ri-stop-circle-line text-primary-500"></i>
+                    </button>
+                  }
+                  @if (isRecording()) {
+                    <div>
+                      {{recordTimes() * 1000 | date:'mm:ss'}}
+                    </div>
+                  } @else if (!isConverting()) {
+                    <button type="button" class="action-btn action-btn-l w-10 h-10 flex justify-center items-center rounded-full text-lg"
+                      (click)="startRecording()">
+                      <i class="ri-mic-ai-fill text-lg"></i>
+                    </button>
+                  }
+                </div>
+              }
+
               @if (answering()) {
                 <button type="button" class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1 text-white bg-black dark:bg-white dark:text-black
                   transition-transform origin-center enabled:hover:scale-110"

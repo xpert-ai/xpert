@@ -10,6 +10,7 @@ import {
 } from '@metad/contracts'
 import { ConfigService } from '@metad/server-config'
 import { RequestContext, runWithRequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { getErrorMessage } from '@metad/server-common'
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { SchedulerRegistry } from '@nestjs/schedule'
@@ -23,7 +24,6 @@ import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 import { XpertAgentService } from '../xpert-agent/xpert-agent.service'
 import { FindXpertQuery } from '../xpert/queries'
 import { XpertTask } from './xpert-task.entity'
-import { getErrorMessage } from '@metad/server-common'
 
 @Injectable()
 export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTask> implements OnModuleInit {
@@ -57,7 +57,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
 	async chatAgentJob(id: string, params: TChatAgentParams, options: TChatOptions) {
 		const xpertId = params.xpertId
-		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }, ['agent']))
+		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }, {relations: ['agent']}))
 		// New execution (Run) in thread
 		const execution = await this.commandBus.execute(
 			new XpertAgentExecutionUpsertCommand({

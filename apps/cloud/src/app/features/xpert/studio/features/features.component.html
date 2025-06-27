@@ -188,7 +188,7 @@
   <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-gray-50 px-3 py-2">
     <div class="mb-2 flex items-center gap-2">
       <div class="shrink-0 w-6 h-6 flex justify-center items-center">
-        <i class="ri-chat-voice-ai-line text-lg text-teal-500"></i>
+        <i class="ri-speak-ai-fill text-lg text-teal-500"></i>
       </div>
       <div class="font-semibold flex grow items-center"
         [ngClass]="{'text-text-primary': textToSpeech_enabled(), 'text-text-secondary': !textToSpeech_enabled()}">
@@ -214,6 +214,38 @@
 
     @if (view() === 'tts' && textToSpeech_enabled()) {
       <xpert-studio-features-tts @heightChangeAnimation class="mt-4" />
+    }
+  </div>
+
+  <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-gray-50 px-3 py-2">
+    <div class="mb-2 flex items-center gap-2">
+      <div class="shrink-0 w-6 h-6 flex justify-center items-center">
+        <i class="ri-mic-ai-fill text-lg text-teal-500"></i>
+      </div>
+      <div class="font-semibold flex grow items-center"
+        [ngClass]="{'text-text-primary': speechToText_enabled(), 'text-text-secondary': !speechToText_enabled()}">
+        {{ 'PAC.Xpert.Speech2Text' | translate: {Default: 'Speech to Text'} }}</div>
+      
+      <div class="flex items-center">
+        <button type="button" class="btn flex items-center h-8 rounded-lg"
+          [class.text-primary-500]="view() === 'stt' && speechToText_enabled()"
+          [disabled]="!speechToText_enabled()"
+          (click)="toggleView('stt')"
+        >
+          <i class="ri-settings-5-line text-lg"></i>
+          <div class="ml-1 leading-[18px] text-sm font-medium">{{ 'PAC.Xpert.Settings' | translate: {Default: 'Settings'} }}</div>
+        </button>
+        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-gray-200"></div>
+
+        <mat-slide-toggle [(ngModel)]="speechToText_enabled"
+          labelPosition="before"
+          ngm-density small
+        />
+      </div>
+    </div>
+
+    @if (view() === 'stt' && speechToText_enabled()) {
+      <xpert-studio-features-stt @heightChangeAnimation class="mt-4" />
     }
   </div>
 </div>
