@@ -1,4 +1,4 @@
-import { IChatConversation, ICopilotStore, IIntegration, IXpert, LanguagesEnum, OrderTypeEnum, RolesEnum, TChatApi, TChatApp, TChatOptions, TChatRequest, TXpertTeamDraft, UserType, xpertLabel } from '@metad/contracts'
+import { IChatConversation, ICopilotStore, IIntegration, IXpert, LanguagesEnum, LongTermMemoryTypeEnum, OrderTypeEnum, RolesEnum, TChatApi, TChatApp, TChatOptions, TChatRequest, TCopilotStore, TMemoryQA, TMemoryUserProfile, TXpertTeamDraft, UserType, xpertLabel } from '@metad/contracts'
 import {
 	CrudController,
 	OptionParams,
@@ -335,8 +335,13 @@ export class XpertController extends CrudController<Xpert> {
 		}
 	}
 
+	@Post(':id/memory')
+	async createMemory(@Param('id') id: string, @Body() body: {type: LongTermMemoryTypeEnum; value: TMemoryQA | TMemoryUserProfile}) {
+		return this.service.createMemory(id, body)
+	}
+
 	@Post(':id/memory/search')
-	async searchMemory(@Param('id') id: string, @Body() body: {text: string; isDraft?: boolean;}) {
+	async searchMemory(@Param('id') id: string, @Body() body: {type: LongTermMemoryTypeEnum; text: string; isDraft?: boolean;}) {
 		try {
 			return await this.queryBus.execute(new SearchXpertMemoryQuery(id, body))
 		} catch(err) {

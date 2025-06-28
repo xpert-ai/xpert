@@ -1,14 +1,12 @@
-import { Embeddings } from '@langchain/core/embeddings'
 import { BaseStore } from '@langchain/langgraph'
-import { AiProviderRole, ICopilot, IUser, IXpertAgent, LongTermMemoryTypeEnum } from '@metad/contracts'
+import { IUser, IXpertAgent } from '@metad/contracts'
 import { RequestContext, UserService } from '@metad/server-core'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { compact, uniq } from 'lodash'
 import { In } from 'typeorm'
-import { CopilotGetOneQuery, CopilotOneByRoleQuery } from '../../../copilot'
-import { CopilotModelGetEmbeddingsQuery } from '../../../copilot-model'
 import { CreateCopilotStoreCommand, StoreItemDTO } from '../../../copilot-store'
 import { CopilotNotFoundException } from '../../../core/errors'
+import { createMemoryEmbeddings } from '../../types'
 import { XpertService } from '../../xpert.service'
 import { GetXpertAgentQuery } from '../get-xpert-agent.query'
 import { SearchXpertMemoryQuery } from '../search-memory.query'
@@ -37,42 +35,10 @@ export class SearchXpertMemoryHandler implements IQueryHandler<SearchXpertMemory
 			return
 		}
 
-		let copilot: ICopilot = null
-		if (memory.copilotModel?.copilotId) {
-			copilot = await this.queryBus.execute(
-				new CopilotGetOneQuery(tenantId, memory.copilotModel.copilotId, ['copilotModel', 'modelProvider'])
-			)
-		} else {
-			copilot = await this.queryBus.execute(
-				new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Embedding, [
-					'copilotModel',
-					'modelProvider'
-				])
-			)
+		const embeddings = await createMemoryEmbeddings(memory, this.queryBus, { tenantId, organizationId })
+		if (!embeddings) {
+			throw new CopilotNotFoundException(`Not found the embeddings role copilot`)
 		}
-
-		if (!copilot?.enabled) {
-			throw new CopilotNotFoundException(`Not found the embeddinga role copilot`)
-		}
-
-		let embeddings = null
-		const copilotModel = memory.copilotModel ?? copilot.copilotModel
-		if (copilotModel && copilot?.modelProvider) {
-			embeddings = await this.queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
-				new CopilotModelGetEmbeddingsQuery(copilot, copilotModel, {
-					tokenCallback: (token) => {
-						// execution.embedTokens += token ?? 0
-					}
-				})
-			)
-		}
-
-		// const fields = []
-		// if (memory.type === LongTermMemoryTypeEnum.QA) {
-		// 	fields.push('input')
-		// } else {
-		// 	fields.push('profile')
-		// }
 
 		const userId = RequestContext.currentUserId()
 		const store = await this.commandBus.execute<CreateCopilotStoreCommand, BaseStore>(
@@ -82,20 +48,21 @@ export class SearchXpertMemoryHandler implements IQueryHandler<SearchXpertMemory
 				userId,
 				index: {
 					dims: null,
-					embeddings,
+					embeddings
 					// fields
 				}
 			})
 		)
 
-		const items = (await store.search([xpert.id], { query: options.text })) as unknown as { createdById: string }[]
+		const namespacePrefix = options.type ? [xpert.id, options.type] : [xpert.id]
+		const items = (await store.search(namespacePrefix, { query: options.text })) as unknown as { createdById: string }[]
+		// Asociate createdById with user details
 		const userIds = compact(uniq(items.map((item) => item.createdById)))
 		let users: IUser[] = []
 		if (userIds.length) {
 			const result = await this.userService.findAll({ where: { id: In(userIds) } })
 			users = result.items
 		}
-
 		return items.map(
 			(item) => new StoreItemDTO({ ...item, createdBy: users.find((_) => _.id === item.createdById) })
 		)

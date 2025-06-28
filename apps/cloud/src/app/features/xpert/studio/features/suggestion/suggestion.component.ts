@@ -5,6 +5,7 @@ import { attrModel, linkedModel, OverlayAnimations } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
 import { CopilotPromptEditorComponent } from '@cloud/app/@shared/copilot'
+import { linkedXpertFeaturesModel } from '../types'
 
 @Component({
   selector: 'xpert-studio-features-suggestion',
@@ -17,21 +18,7 @@ import { CopilotPromptEditorComponent } from '@cloud/app/@shared/copilot'
 export class XpertStudioFeaturesSuggestionComponent {
   readonly apiService = inject(XpertStudioApiService)
 
-  readonly features = linkedModel({
-    initialValue: null,
-    compute: () => this.apiService.xpert()?.features,
-    update: (features) => {
-      this.apiService.updateXpertTeam((xpert) => {
-        return {
-          ...xpert,
-          features: {
-            ...(xpert.features ?? {}),
-            ...features
-          }
-        }
-      })
-    }
-  })
+  readonly features = linkedXpertFeaturesModel(this.apiService)
 
   readonly suggestion = attrModel(this.features, 'suggestion')
   readonly prompt = attrModel(this.suggestion, 'prompt')

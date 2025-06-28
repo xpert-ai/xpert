@@ -43,6 +43,14 @@ export type TXpertFeatures = {
    * File upload feature
    */
   attachment?: TXpertAttachment
+
+  /**
+   * Reply with memory(Q&A)
+   */
+  memoryReply?: {
+    enabled: boolean
+    scoreThreshold?: number
+  }
 }
 
 export type TXpert = {

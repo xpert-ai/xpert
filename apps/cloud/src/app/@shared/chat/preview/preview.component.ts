@@ -125,7 +125,14 @@ export class ChatConversationPreviewComponent {
   })
   readonly envriments = signal(false)
   readonly avatar = computed(() => this.xpert()?.avatar)
-  readonly starters = computed(() => this.xpert()?.starters?.filter(nonBlank))
+  readonly features = computed(() => this.xpert()?.features)
+  readonly opener = computed(() => this.features()?.opener)
+  readonly starters = computed(() => {
+    if (this.opener()?.enabled) {
+      return this.opener()?.questions
+    }
+    return this.xpert()?.starters
+  })
   readonly textToSpeech_enabled = computed(() => this.xpert()?.features?.textToSpeech?.enabled)
   readonly speechToText_enabled = computed(() => this.xpert()?.features?.speechToText?.enabled)
   readonly attachment_enabled = computed(() => this.xpert()?.features?.attachment?.enabled)
@@ -465,21 +472,21 @@ export class ChatConversationPreviewComponent {
       }).subscribe((confirm) => {
         if (confirm) {
           this.onStop()
-          
-          this.conversationId.set(null)
-          this.conversation.set(null)
-          this._messages.set([])
-          this.parameterValue.set({})
-          this.restart.emit()
+          this.clear()
         }
       })
     } else {
-      this.conversationId.set(null)
-      this.conversation.set(null)
-      this._messages.set([])
-      this.parameterValue.set({})
-      this.restart.emit()
+      this.clear()
     }
+  }
+
+  clear() {
+    this.conversationId.set(null)
+    this.conversation.set(null)
+    this._messages.set([])
+    this.parameterValue.set({})
+    this.suggestionQuestions.set([])
+    this.restart.emit()
   }
 
   onRetry() {
@@ -541,7 +548,7 @@ export class ChatConversationPreviewComponent {
   readonly synthesizeLoading = this.#synthesizeService.synthesizeLoading
   readonly isPlaying = this.#synthesizeService.isPlaying
   readAloud(message: IChatMessage) {
-    this.#synthesizeService.readAloud(this.conversationId(), message)
+    this.#synthesizeService.readAloud(this.conversation().id, message)
   }
 
   readonly speeching = this.#audioRecorder.speeching

@@ -7,7 +7,7 @@ export interface ICopilotStoreVector extends TCopilotStoreVector, IBasePerTenant
 
 export type TCopilotStore = {
   prefix: string
-  key: string
+  key?: string
   value: any
 }
 

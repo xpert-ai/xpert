@@ -1,6 +1,6 @@
 import { computed, inject, Injectable } from '@angular/core'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
-import { injectXpertPreferences, LanguagesEnum, PaginationParams, timeRangeToParams, toHttpParams } from '@metad/cloud/state'
+import { injectXpertPreferences, LanguagesEnum, LongTermMemoryTypeEnum, PaginationParams, TCopilotStore, timeRangeToParams, TMemoryQA, TMemoryUserProfile, toHttpParams } from '@metad/cloud/state'
 import { toParams } from '@metad/ocap-angular/core'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, catchError, map, Observable, pipe, tap, throwError } from 'rxjs'
@@ -164,7 +164,11 @@ export class XpertService extends XpertWorkspaceBaseCrudService<IXpert> {
       }
     })
   }
-  searchMemory(id: string, body: { text: string; isDraft: boolean }) {
+
+  addMemory(id: string, memory: {type: LongTermMemoryTypeEnum; value: TMemoryQA | TMemoryUserProfile}) {
+    return this.httpClient.post<TCopilotStore>(this.apiBaseUrl + `/${id}/memory`, memory)
+  }
+  searchMemory(id: string, body: { type: LongTermMemoryTypeEnum; text: string; isDraft: boolean }) {
     return this.httpClient.post<SearchItem[]>(this.apiBaseUrl + `/${id}/memory/search`, body)
   }
 

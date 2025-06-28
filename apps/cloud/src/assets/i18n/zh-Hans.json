@@ -2293,6 +2293,7 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "SelectMemoryType": "选择记忆类型",
       "Suggesting": "正在推荐",
       "TryAsking": "试着问问",
       "WriteOpenerMessage": "在这里写下开场白消息",
@@ -2681,10 +2682,17 @@
       "AfterSeconds": "几秒后",
       "LongTermMemoryTypeEnum": {
         "UserProfile": "用户档案",
-        "Profile": "用户配置",
+        "Profile": "档案",
         "QuestionAnswer": "问题/回答",
         "Custom": "自定义"
       },
+      "AddMemory": "添加记忆",
+      "MemoryReply": "记忆回复",
+      "EasyMatch": "容易匹配",
+      "ExactMatch": "精确匹配",
+      "EnterQuestion": "输入问题",
+      "EnterAnswer": "输入回复",
+      "EnterContext": "输入上下文",
       "AfterSecondsTooltip": "会话结束多少秒后如果没有继续对话则进行总结",
       "ProfileMemoryPromptTooltip": "提示用于通过指令和约束引导 AI 提取用户信息",
       "QAMemoryPromptTooltip": "提示用于通过指令和约束引导 AI 总结对话问题和答案的成功经验",

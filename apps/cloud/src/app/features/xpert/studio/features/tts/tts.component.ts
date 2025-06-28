@@ -6,6 +6,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { AiModelTypeEnum } from '@cloud/app/@core'
+import { linkedXpertFeaturesModel } from '../types'
 
 @Component({
   selector: 'xpert-studio-features-tts',
@@ -20,21 +21,7 @@ export class XpertStudioFeaturesTTSComponent {
   
   readonly apiService = inject(XpertStudioApiService)
 
-  readonly features = linkedModel({
-    initialValue: null,
-    compute: () => this.apiService.xpert()?.features,
-    update: (features) => {
-      this.apiService.updateXpertTeam((xpert) => {
-        return {
-          ...xpert,
-          features: {
-            ...(xpert.features ?? {}),
-            ...features
-          }
-        }
-      })
-    }
-  })
+  readonly features = linkedXpertFeaturesModel(this.apiService)
 
   readonly textToSpeech = attrModel(this.features, 'textToSpeech')
   readonly copilotModel = attrModel(this.textToSpeech, 'copilotModel')

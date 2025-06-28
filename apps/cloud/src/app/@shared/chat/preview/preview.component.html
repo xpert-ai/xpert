@@ -193,7 +193,7 @@
             <div class="grow w-0 h-px bg-divider-deep"></div>
           </div>
 
-          <div class="max-w-full flex flex-col justify-start items-start gap-2 text-sm overflow-hidden p-4 text-text-secondary">
+          <div class="w-full max-w-full flex flex-wrap justify-start items-start gap-2 text-sm overflow-hidden p-4 text-text-secondary">
             @for (starter of starters(); track starter) {
               <div class="max-w-full px-2 py-1 border-light rounded-lg cursor-pointer truncate shadow-sm hover:shadow-md"
                 (click)="chat({input: starter})"
@@ -206,11 +206,11 @@
 
     @if (suggestion_enabled()) {
       @if (suggesting()) {
-        <div class="flex cursor-pointer items-center">
+        <div class="flex justify-center items-center cursor-pointer">
           <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
-          <div class="text-text-tertiary ml-2">
-          {{ 'PAC.Xpert.Suggesting' | translate: {Default: 'Suggesting'} }}...
-        </div>
+          <div class="text-sm text-text-tertiary ml-2">
+            {{ 'PAC.Xpert.Suggesting' | translate: {Default: 'Suggesting'} }}...
+          </div>
         </div>
       } @else if (suggestionQuestions()?.length) {
         <div class="mb-2 py-2">
