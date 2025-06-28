@@ -370,9 +370,9 @@ export abstract class ChatService {
                     }
                   })
 
-                  if (event.data && !this.homeService.canvasOpened()) {
-                    this.homeService.canvasOpened.set({ type: 'Computer', opened: true })
-                  }
+                  // if (event.data && !this.homeService.canvasOpened()) {
+                  //   this.homeService.canvasOpened.set({ type: 'Computer', opened: true })
+                  // }
                   break
                 }
                 default:

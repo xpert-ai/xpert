@@ -95,6 +95,14 @@ export class ChatComponentMessageComponent {
   //   )
   // }
 
+  openComponentMessage() {
+    if (this.data()?.category === 'Computer') {
+      this.openInCanvas(this.data())
+    } else if (this.data()?.category === 'Tool') {
+      console.log(this.data())
+    }
+  }
+
   openInCanvas(data: TMessageComponent) {
     this.homeService.canvasOpened.set({
       opened: true,

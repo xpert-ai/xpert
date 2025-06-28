@@ -15,6 +15,7 @@ export type TSummaryJob = Record<LongTermMemoryTypeEnum, {
 
 /**
  * Message step type: determines the type of canvas
+ * @deprecated use TMessageComponent['category'] instead
  */
 export enum ChatMessageStepType {
   ComputerUse = 'computer_use',
@@ -24,6 +25,7 @@ export enum ChatMessageStepType {
 
 /**
  * Category of step message: determines the display components of computer use
+ * @deprecated use TMessageComponent['type'] instead
  */
 export enum ChatMessageStepCategory {
   /**
@@ -47,11 +49,14 @@ export enum ChatMessageStepCategory {
    */
   Iframe = 'iframe',
 
-  Memory = 'memory'
+  Memory = 'memory',
+
+  Tasks = 'tasks',
 }
 
 /**
  * Step message type, in canvas and ai message.
+ * @deprecated use TMessageComponent instead
  */
 export type TChatMessageStep<T = any> = {
   id?: string
@@ -173,7 +178,7 @@ export type TMessageContentComponent = {
  * Defines the data type of the sub-message of `component` type in the message `content` {@link MessageContentComplex}
  */
 export type TMessageComponent<T extends object = object> = T & {
-  category: 'Dashboard' | 'Computer'
+  category: 'Dashboard' | 'Computer' | 'Tool'
   type: string
   created_date?: Date | string
 }
@@ -217,7 +222,7 @@ export type TMessageContentComplex = (TMessageContentText | TMessageContentReaso
 export type TMessageContent = string | TMessageContentComplex[];
 
 export type TMessageComponentIframe = {
-  type: 'Iframe'
+  type: 'iframe'
   url: string
   title: string
 }
@@ -233,6 +238,7 @@ export type TMessageComponentStep = {
   created_date: Date | string
   end_date: Date | string
   error?: string
+  data?: JSONValue
 }
 
 // Type guards

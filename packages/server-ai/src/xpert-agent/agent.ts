@@ -4,7 +4,7 @@ import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
 import { BaseChannel, isCommand } from '@langchain/langgraph'
-import { agentLabel, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TChatMessageStep, TMessageChannel, TMessageComponent, TMessageComponentStep, TMessageContentReasoning, TMessageContentText} from '@metad/contracts'
+import { agentLabel, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TMessageChannel, TMessageComponent, TMessageComponentStep, TMessageContentComponent, TMessageContentReasoning, TMessageContentText} from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { instanceToPlain } from 'class-transformer'
@@ -198,7 +198,7 @@ export function createMapStreamEvents(
 								agentKey: rest.metadata.agentKey,
 								data: {
 									...data,
-									category: 'Computer',
+									category: 'Tool',
 									toolset: rest.metadata.toolset,
 									toolset_id: rest.metadata.toolsetId,
 									tool: rest.name,
@@ -206,7 +206,7 @@ export function createMapStreamEvents(
 									created_date: new Date(),
 									status: 'running',
 								} as TMessageComponent<TMessageComponentStep>
-							}
+							} as TMessageContentComponent
 						}
 					} as MessageEvent)
 				}
@@ -243,7 +243,7 @@ export function createMapStreamEvents(
 				const tool_call_id = data.output?.tool_call_id || data.id || rest.metadata.tool_call_id
 				if (tool_call_id) {
 					const component: any = {
-									category: 'Computer',
+									// category: 'Computer',
 									status: 'success',
 									end_date: new Date(),
 								}
@@ -256,7 +256,7 @@ export function createMapStreamEvents(
 							data: {
 								id: tool_call_id,
 								type: 'component',
-								data: component as TMessageComponent<TChatMessageStep>
+								data: component as TMessageComponent<TMessageComponentStep>
 							}
 						}
 					} as MessageEvent)
@@ -317,10 +317,10 @@ export function createMapStreamEvents(
 									type: 'component',
 									data: {
 										...data,
-										category: 'Computer',
+										// category: 'Computer',
 										status: 'fail',
 										end_date: new Date(),
-									} as TMessageComponent<TChatMessageStep>
+									} as TMessageComponent<TMessageComponentStep>
 								}
 							}
 						} as MessageEvent)
@@ -357,8 +357,8 @@ export function createMapStreamEvents(
 											category: 'Computer',
 											type: data.category,
 											data: data.data,
-										} as TMessageComponent<TChatMessageStep>
-									}
+										} as TMessageComponent<TMessageComponentStep>
+									} as TMessageContentComponent
 								}
 							} as MessageEvent)
 						} else {

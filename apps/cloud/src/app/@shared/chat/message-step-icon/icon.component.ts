@@ -6,6 +6,7 @@ import { myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatMessageStepCategory } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from '../../avatar/emoji-avatar/avatar.component'
+import { of } from 'rxjs'
 
 @Component({
   standalone: true,
@@ -19,12 +20,12 @@ export class ChatMessageStepIconComponent {
 
   readonly httpClient = inject(HttpClient)
 
-  readonly step = input<{ category: ChatMessageStepCategory; toolset?: string; toolsetId?: string }>()
+  readonly step = input<{ type: ChatMessageStepCategory; toolset?: string; toolsetId?: string }>()
 
   readonly #avatar = myRxResource({
     request: () => (this.step()?.toolset === 'mcp' ? this.step().toolsetId : null),
     loader: ({ request }) => {
-      return request ? this.httpClient.get(`/api/xpert-toolset/mcp/${request}/avatar`) : null
+      return request ? this.httpClient.get(`/api/xpert-toolset/mcp/${request}/avatar`) : of(null)
     }
   })
 

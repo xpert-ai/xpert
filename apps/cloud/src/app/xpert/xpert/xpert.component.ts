@@ -121,7 +121,6 @@ export class XpertChatAppComponent {
 
   constructor() {
     effect(() => {
-      console.log(this.xpert())
       this.chatService.xpert.set(this.xpert())
     }, { allowSignalWrites: true })
 
