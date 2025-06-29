@@ -213,7 +213,7 @@
     <div class="fixed inset-0 bg-black bg-opacity-25 data-[closed]:opacity-0 data-[enter]:opacity-100 data-[enter]:duration-300 data-[enter]:ease-out data-[leave]:opacity-0 data-[leave]:duration-200 data-[leave]:ease-in">
     </div>
     <div class="fixed inset-0">
-      <div class="flex min-h-full flex-col items-end justify-center pb-2 pt-[100px]" (click)="showFeatures.set(false)">
+      <div class="flex min-h-full flex-col items-end justify-center pb-2 pr-1 pt-[100px]" (click)="showFeatures.set(false)">
         <xpert-studio-features class="relative flex h-0 w-[620px] grow flex-col overflow-hidden border-components-panel-border bg-components-panel-bg-alt p-0 text-left align-middle shadow-xl transition-all rounded-l-2xl border-b-[0.5px] border-l-[0.5px] border-t-[0.5px] data-[closed]:scale-95 data-[closed]:opacity-0 data-[enter]:scale-100 data-[enter]:opacity-100 data-[enter]:duration-300 data-[enter]:ease-out data-[leave]:scale-95 data-[leave]:opacity-0 data-[leave]:duration-200 data-[leave]:ease-in"
           (click)="$event.stopPropagation()"
           (close)="showFeatures.set(false)"

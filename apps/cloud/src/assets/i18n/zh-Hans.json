@@ -2293,6 +2293,8 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "NewMCPToolset": "新建 MCP 工具集",
+      "CopyParamsSample": "复制参数示例",
       "SelectMemoryType": "选择记忆类型",
       "Suggesting": "正在推荐",
       "TryAsking": "试着问问",

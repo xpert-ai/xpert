@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
@@ -11,6 +11,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
   getEnabledTools,
+  getErrorMessage,
   getToolLabel,
   IToolProvider,
   IWFNTool,
@@ -18,7 +19,8 @@ import {
   IXpertToolset,
   WorkflowNodeTypeEnum,
   XpertAgentExecutionStatusEnum,
-  XpertParameterTypeEnum
+  XpertParameterTypeEnum,
+  XpertToolService
 } from 'apps/cloud/src/app/@core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, of } from 'rxjs'
@@ -29,6 +31,7 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 import { Dialog } from '@angular/cdk/dialog'
 import { XpertWorkflowErrorHandlingComponent } from '@cloud/app/@shared/workflow'
+import { ClipboardModule, Clipboard } from '@angular/cdk/clipboard'
 
 
 @Component({
@@ -40,6 +43,7 @@ import { XpertWorkflowErrorHandlingComponent } from '@cloud/app/@shared/workflow
   imports: [
     CommonModule,
     FormsModule,
+    ClipboardModule,
     CdkMenuModule,
     MatTooltipModule,
     TranslateModule,
@@ -59,7 +63,9 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
   readonly elementRef = inject(ElementRef)
   readonly xpertStudioComponent = inject(XpertStudioComponent)
   readonly studioService = inject(XpertStudioApiService)
+  readonly toolService = inject(XpertToolService)
   readonly #dialog = inject(Dialog)
+  readonly #clipboard = inject(Clipboard)
   readonly configureBuiltin = injectConfigureBuiltin()
 
   // Inputs
@@ -108,17 +114,20 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
     return null
   })
   readonly schema = computed(() => this.tool()?.schema)
+  readonly paramsSample = signal<{loading?: boolean; value?: any}>({})
 
   readonly xpertCopilotModel = computed(() => this.xpert()?.copilotModel)
 
   readonly expandOutputVariables = signal(false)
 
-  // constructor() {
-  //   super()
-  //   effect(() => {
-  //     console.log(this.tool())
-  //   })
-  // }
+  constructor() {
+    super()
+    effect(() => {
+      if (this.tool()) {
+        this.paramsSample.set({ loading: false, value: null })
+      }
+    }, { allowSignalWrites: true })
+  }
 
   toggleOutput() {
     this.expandOutputVariables.update((state) => !state)
@@ -167,4 +176,27 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
         }
       })
     }
+  
+  copyParamsSample() {
+    if (!this.paramsSample().loading) {
+      if (this.paramsSample().value) {
+        const value = this.paramsSample().value
+        this.#clipboard.copy(JSON.stringify(value, null, 2))
+        this._toastr.success('PAC.Xpert.Copied', { Default: 'Copied'})
+        return
+      }
+      this.paramsSample.update((state) => ({ ...state, loading: true }))
+      this.toolService.getParamsFaker(this.tool().id).subscribe({
+        next: (value) => {
+          this.paramsSample.update((state) => ({ loading: false, value }))
+          this.#clipboard.copy(JSON.stringify(value, null, 2))
+          this._toastr.success('PAC.Xpert.Copied', { Default: 'Copied'})
+        },
+        error: (error) => {
+          this.paramsSample.update((state) => ({ loading: false, value: null }))
+          this._toastr.error(getErrorMessage(error)) 
+        }
+      })
+    }
+  }
 }

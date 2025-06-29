@@ -25,6 +25,11 @@ export class XpertToolController extends CrudController<XpertTool> {
 		super(service)
 	}
 
+	@Post('test')
+	async test(@Body() body: Partial<IXpertTool>) {
+		return await this.service.testTool(body)
+	}
+
 	@Get(':id')
 	async findById(
 		@Param('id', UUIDValidationPipe) id: string,
@@ -33,8 +38,10 @@ export class XpertToolController extends CrudController<XpertTool> {
 		return this.service.getTool(id, { relations })
 	}
 
-	@Post('test')
-	async test(@Body() body: Partial<IXpertTool>) {
-		return await this.service.testTool(body)
+	@Get(':id/faker')
+	async paramsFaker(
+		@Param('id', UUIDValidationPipe) id: string,
+	) {
+		return this.service.getParamsFaker(id)
 	}
 }

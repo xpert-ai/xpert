@@ -44,7 +44,7 @@
     <div class="flex"></div>
   </div>
 
-  <div class="space-y-0.5 rounded-[9px] bg-zinc-100 p-0.5">
+  <div class="relative rounded-[9px] bg-zinc-100 p-0.5">
     <div class="bg-zinc-50 hover:bg-zinc-100 relative flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-dashed
       border-divider-deep px-2 text-sm text-text-placeholder"
       [cdkMenuTriggerFor]="toolsMenu"
@@ -68,6 +68,14 @@
         </div>
       }
     </div>
+
+    @if (tool(); as tool) {
+      <button type="button" class="btn btn-secondary btn-small absolute right-2 top-1/2 -translate-y-1/2"
+        [disabled]="paramsSample().loading"
+        (click)="copyParamsSample()">
+        {{ 'PAC.Xpert.CopyParamsSample' | translate: {Default: 'Copy Params Sample'} }}
+      </button>
+    }
   </div>
 </div>
 
@@ -75,10 +83,12 @@
   <div class="my-2 font-semibold uppercase text-text-secondary">
     {{ 'PAC.Xpert.ParameterVariable' | translate: {Default: 'Parameter Variable'} }}
   </div>
-  <xpert-state-variable-select
-    [variables]="variables()" 
-    [(ngModel)]="parameterVariable" 
-  />
+  <div class="relative rounded-[9px] bg-zinc-100 p-1">
+    <xpert-state-variable-select class="rounded-lg border border-dashed border-divider-deep"
+      [variables]="variables()" 
+      [(ngModel)]="parameterVariable" 
+    />
+  </div>
 </div>
 
 <!-- <div class="h-[0.5px] bg-divider-subtle"></div>

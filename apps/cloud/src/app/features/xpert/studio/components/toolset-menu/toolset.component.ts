@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenu, CdkMenuModule } from '@angular/cdk/menu'
 import { CdkOverlayOrigin, OverlayModule } from '@angular/cdk/overlay'
@@ -5,12 +6,14 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 import { NgmHighlightDirective, NgmSearchComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { debounceTime, map, startWith } from 'rxjs'
 import { IToolProvider, IXpertToolset, XpertToolsetCategoryEnum } from 'apps/cloud/src/app/@core'
 import { ToolProviderCardComponent, ToolsetCardComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { debounceTime, map, startWith } from 'rxjs'
 import { EmojiAvatarComponent } from '../../../../../@shared/avatar'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
@@ -29,7 +32,8 @@ import { XpertStudioComponent } from '../../studio.component'
     CdkMenuModule,
     CdkListboxModule,
     OverlayModule,
-    
+    MatTooltipModule,
+
     NgmSearchComponent,
     NgmHighlightDirective,
     NgmI18nPipe,
@@ -42,14 +46,17 @@ import { XpertStudioComponent } from '../../studio.component'
   }
 })
 export class XpertStudioToolsetMenuComponent {
+  eXpertToolsetCategoryEnum = XpertToolsetCategoryEnum
+
   readonly elementRef = inject(ElementRef)
   readonly cdkMenu = inject(CdkMenu)
+  readonly #dialog = inject(Dialog)
   private root = inject(XpertStudioComponent)
   readonly apiService = inject(XpertStudioApiService)
   readonly i18n = new NgmI18nPipe()
 
   // Inputs
-  readonly onSelect = input<(event: {toolset: IXpertToolset; provider: IToolProvider}) => void>()
+  readonly onSelect = input<(event: { toolset: IXpertToolset; provider: IToolProvider }) => void>()
 
   readonly TYPES = [
     {
@@ -72,6 +79,7 @@ export class XpertStudioToolsetMenuComponent {
 
   readonly #builtinToolProviders = this.apiService.builtinToolProviders
   readonly #toolsets = toSignal(this.apiService.toolsets$)
+  readonly workspaceId = this.apiService.workspaceId
   readonly searchControl = new FormControl()
   readonly searchText = toSignal(
     this.searchControl.valueChanges.pipe(
@@ -136,5 +144,25 @@ export class XpertStudioToolsetMenuComponent {
     this.toolDetailTrigger.set(overlayTrigger)
     this.builtinToolset.set(toolset)
     this.toolset.set(null)
+  }
+
+  createMCPToolset() {
+    let toolset: Partial<IXpertToolset> = null
+    this.#dialog
+      .open<{ toolset: IXpertToolset }>(XpertMCPManageComponent, {
+        backdropClass: 'backdrop-blur-lg-white',
+        disableClose: true,
+        data: {
+          workspaceId: this.workspaceId(),
+          toolset
+        }
+      })
+      .closed.subscribe({
+        next: ({ toolset }) => {
+          if (toolset) {
+            this.onSelect()?.({ toolset, provider: null })
+          }
+        }
+      })
   }
 }

@@ -4,9 +4,11 @@ import { PaginationParams, TenantOrganizationAwareCrudService } from '@metad/ser
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
+import { JSONSchemaFaker, Schema } from 'json-schema-faker'
 import { uniq } from 'lodash'
 import { Repository } from 'typeorm'
-import { ListBuiltinToolsQuery, XpertToolsetService } from '../xpert-toolset'
+import { _BaseToolset, ToolSchemaParser } from '../shared'
+import { ListBuiltinToolsQuery, ToolsetGetToolsCommand, XpertToolsetService } from '../xpert-toolset'
 import { ToolInvokeCommand } from './commands'
 import { XpertTool } from './xpert-tool.entity'
 
@@ -58,5 +60,18 @@ export class XpertToolService extends TenantOrganizationAwareCrudService<XpertTo
 				toolset: toolset ?? tool.toolset
 			})
 		)
+	}
+
+	async getParamsFaker(id: string) {
+		const tool = await this.getTool(id, { relations: ['toolset'] })
+		const toolsets = await this.commandBus.execute<ToolsetGetToolsCommand, _BaseToolset[]>(
+			new ToolsetGetToolsCommand([tool.toolsetId])
+		)
+		const toolset = toolsets[0]
+		await toolset.initTools()
+		const toolInstance = toolset.getTool(tool.name)
+		const jsonSchema = ToolSchemaParser.parseZodToJsonSchema(toolInstance.schema)
+		const sample = JSONSchemaFaker.generate(jsonSchema as Schema)
+		return sample
 	}
 }
