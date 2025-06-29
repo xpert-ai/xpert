@@ -41,7 +41,7 @@ export class FileTypePipe implements PipeTransform {
       case 'zip':
         return 'zip'
       default:
-        return 'unknown'
+        return extension
     }
   }
 }

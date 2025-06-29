@@ -18,6 +18,7 @@ import { XpertStudioFeaturesTTSComponent } from './tts/tts.component'
 import { XpertStudioFeaturesSTTComponent } from './stt/stt.component'
 import { XpertStudioFeaturesMemoryReplyComponent } from './memory-reply/memory-reply.component'
 import { linkedXpertFeaturesModel } from './types'
+import { injectHelpWebsite } from '@cloud/app/@core'
 
 type ViewType = 'summarize' | 'attachment' | 'memory' | 'title' | 'opener' | 'suggestion' | 'tts' | 'stt' | 'memoryReply'
 
@@ -49,6 +50,7 @@ type ViewType = 'summarize' | 'attachment' | 'memory' | 'title' | 'opener' | 'su
 export class XpertStudioFeaturesComponent {
   // readonly #dialogRef = inject(DialogRef)
   readonly apiService = inject(XpertStudioApiService)
+  readonly helpUrl = injectHelpWebsite('/docs/ai/xpert/features/')
 
   // Outputs
   readonly close = output()

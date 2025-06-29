@@ -3,7 +3,14 @@
     {{ 'PAC.Xpert.Features' | translate: {Default: 'Features'} }}
   </span>
   <div class="flex items-center">
-    <button type="button" class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+    <a [href]="helpUrl()" target="_blank"
+      class="mr-1 flex h-7 w-7 items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-state-base-hover"
+      [matTooltip]="'PAC.Xpert.HelpDocumentation' | translate: {Default: 'Help Document'}"
+      matTooltipPosition="above"
+    >
+      <i class="ri-book-open-line"></i>
+    </a>
+    <button type="button" class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 ml-2 cursor-pointer z-20"
       (click)="close.emit()">
       <i class="ri-close-line"></i>
     </button>  
