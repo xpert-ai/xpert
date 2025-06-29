@@ -6,8 +6,8 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input } f
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
-import { ChatMessageStepIconComponent } from '@cloud/app/@shared/chat'
-import { NgmDSCoreService, RelativeTimesPipe } from '@metad/ocap-angular/core'
+import { ChatToolCallChunkComponent } from '@cloud/app/@shared/chat'
+import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { SlicersCapacity } from '@metad/ocap-angular/selection'
 import { TimeGranularity } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -50,8 +50,7 @@ import { ChatService } from '../chat.service'
     ChatComponentMemoriesComponent,
     ChatComponentMessageFilesComponent,
     ChatComponentMessageIframeComponent,
-    ChatMessageStepIconComponent,
-    RelativeTimesPipe
+    ChatToolCallChunkComponent
   ],
   selector: 'chat-component-message',
   templateUrl: './component-message.component.html',
