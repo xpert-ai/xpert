@@ -54,7 +54,6 @@ import { XpertWorkflowNodeAssignerComponent } from './assigner/assigner.componen
     XpertWorkflowNodeAssignerComponent
   ],
   host: {
-    tabindex: '-1',
     '[class]': 'type()',
   }
 })
@@ -79,22 +78,4 @@ export class XpertStudioNodeWorkflowComponent {
   readonly title = computed(() => this.entity()?.title)
   readonly description = computed(() => this.entity()?.description)
   readonly isStart = computed(() => this.startNodes()?.includes(this.key()))
-
-  // private get hostElement(): HTMLElement {
-  //   return this.elementRef.nativeElement
-  // }
-
-  constructor() {
-    effect(() => {
-      // console.log(this.node())
-    })
-  }
-
-  // protected emitSelectionChangeEvent(event: MouseEvent): void {
-  //   this.hostElement.focus()
-  //   event.preventDefault()
-  //   event.stopPropagation()
-
-  //   // Open Context menu
-  // }
 }

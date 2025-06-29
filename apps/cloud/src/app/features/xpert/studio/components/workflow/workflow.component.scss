@@ -1,5 +1,5 @@
 :host {
-  @apply flex flex-col justify-start items-stretch;
+  @apply flex flex-col justify-start items-stretch max-h-full;
 }
 
 .f-component.f-node-output.right {

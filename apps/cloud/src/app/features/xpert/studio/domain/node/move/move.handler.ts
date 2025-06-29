@@ -37,6 +37,14 @@ export class MoveNodeHandler implements IHandler<MoveNodeRequest> {
           ...(_node.position ?? {}),
           ...request.position
         }
+        if (request.position.width && request.position.height) {
+          if (_node.type === 'workflow' && _node.entity.type === 'note') {
+            _node.size = {
+              width: request.position.width,
+              height: request.position.height
+            }
+          }
+        }
       } else {
         // throw new Error(`Team node with key ${request.key} not found`)
       }
