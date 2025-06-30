@@ -3,11 +3,11 @@ import { Component, computed, effect, input, signal } from '@angular/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ListHeightStaggerAnimation } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ChatMessageStepType, DateRelativePipe, IChatMessage } from 'apps/cloud/src/app/@core'
+import { IChatConversation, IChatMessage } from 'apps/cloud/src/app/@core'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { MarkdownModule } from 'ngx-markdown'
 import { Copy2Component } from '../../../common'
-import { ChatMessageStepIconComponent } from '../../message-step-icon/icon.component'
+import { ChatToolCallChunkComponent } from '../../tool-call-chunk/tool-call-chunk.component'
 
 @Component({
   standalone: true,
@@ -16,10 +16,9 @@ import { ChatMessageStepIconComponent } from '../../message-step-icon/icon.compo
     TranslateModule,
     MatTooltipModule,
     MarkdownModule,
-    DateRelativePipe,
     Copy2Component,
     NgxJsonViewerModule,
-    ChatMessageStepIconComponent
+    ChatToolCallChunkComponent
   ],
   selector: 'xpert-preview-ai-message',
   templateUrl: 'message.component.html',
@@ -27,20 +26,23 @@ import { ChatMessageStepIconComponent } from '../../message-step-icon/icon.compo
   animations: [ListHeightStaggerAnimation]
 })
 export class XpertPreviewAiMessageComponent {
-  eChatMessageStepType = ChatMessageStepType
 
+  // Inputs
   readonly message = input<IChatMessage>()
+  readonly conversation = input<Partial<IChatConversation>>()
 
+  // States
   readonly contents = computed(() => {
-    if (typeof this.message()?.content === 'string') {
+    const messageContent = this.message()?.content
+    if (typeof messageContent === 'string') {
       return [
         {
           type: 'text',
           text: this.message().content
         }
       ]
-    } else if (Array.isArray(this.message()?.content)) {
-      return this.message().content as any[]
+    } else if (Array.isArray(messageContent)) {
+      return messageContent
     }
 
     return null
@@ -66,6 +68,8 @@ export class XpertPreviewAiMessageComponent {
   })
   readonly expandReason = signal(false)
   readonly expandSteps = signal(false)
+
+  readonly conversationStatus = computed(() => this.conversation()?.status)
 
   constructor() {
     effect(() => {

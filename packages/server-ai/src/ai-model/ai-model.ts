@@ -94,7 +94,7 @@ export abstract class AIModel {
 			const yamlContent = fs.readFileSync(filePath, 'utf8')
 			const yamlData = yaml.parse(yamlContent)
 
-			// 处理参数规则和标签
+			// Processing parameter rules and tags
 			this.processParameterRules(yamlData)
 			this.processLabel(yamlData)
 
@@ -106,7 +106,7 @@ export abstract class AIModel {
 			}
 		}
 
-		// 根据位置排序模型架构
+		// Sorting model architecture by position
 		this.modelSchemas = this.sortModelSchemas(modelSchemas, providerModelTypePath)
 		return this.modelSchemas
 	}
@@ -175,7 +175,7 @@ export abstract class AIModel {
 	}
 
 	private sortModelSchemas(modelSchemas: AIModelEntity[], providerModelTypePath: string) {
-		// 实现模型架构排序逻辑
+		// Implementing model architecture sorting logic
 		if (!this.positions) {
 			this.positions = getPositionMap(providerModelTypePath)
 		}
@@ -187,11 +187,15 @@ export abstract class AIModel {
 		})
 	}
 
+	protected _commonParameterRules(model: string,): ParameterRule[] {
+		return null
+	}
+
 	public getParameterRules(model: string, credentials: Record<string, string>): ParameterRule[] {
 		const modelSchema = this.getModelSchema(model, credentials)
 		const parameterRules: ParameterRule[] = modelSchema?.parameter_rules ?? []
 		return [
-			...CommonParameterRules,
+			...(this._commonParameterRules(model) ?? []),
 			...parameterRules.filter((_) => !CommonParameterRules.some((r) => r.name === _.name))
 		]
 	}

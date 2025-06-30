@@ -47,7 +47,7 @@ dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 
 组件消息的类型定义为 `TMessageContentComponent`， 具体的组件定义为 `TMessageComponent` 其
 
-- 一级分类为 `category`: 'Dashboard' | 'Computer'
+- 一级分类为 `category`: 'Dashboard' | 'Computer' | 'Tool'
 - 二级分类为 `type`: string
 
 目前组件消息是通过 `configurable` 中的 `subscriber` 发出去的。首先需要在工具中通过 `config` 参数获得 `configurable` 然后拿到 `subscriber` 对象，
@@ -66,7 +66,7 @@ async function tool(_, config) => {
                 type: 'component',
                 data: {
                     category: 'Computer',
-                    type: 'Iframe',
+                    type: 'iframe',
                     url: indexFile
                 } as TMessageComponent<TMessageComponentIframe>
             }

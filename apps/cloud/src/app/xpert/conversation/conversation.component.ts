@@ -81,6 +81,9 @@ export class ChatConversationComponent {
   readonly parameters = computed(() => this.xpert()?.agent?.parameters)
 
   readonly parametersValue = this.chatService.parametersValue
+  readonly suggestion_enabled = this.chatService.suggestion_enabled
+  readonly suggesting = this.chatService.suggesting
+  readonly suggestionQuestions = this.chatService.suggestionQuestions
 
   constructor() {
     effect(
@@ -127,5 +130,10 @@ export class ChatConversationComponent {
     this.chatService.chat({
       retry: true
     })
+  }
+
+  onSelectSuggestionQuestion(question: string) {
+    this.onChat(question)
+    this.suggestionQuestions.set([]) // Clear suggestions after selection
   }
 }

@@ -309,7 +309,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 							let entityType = await this.getCubeCache(item.modelId, item.name)
 							if (!entityType) {
 								// Update runtime indicators
-								const indicators = currentState[ChatBIVariableEnum.INDICATORS]
+								const indicators = currentState?.[ChatBIVariableEnum.INDICATORS]
 								if (indicators) {
 									await this.updateIndicators(dsCoreService, indicators)
 								}
@@ -348,7 +348,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 						return new Command({
 							update: {
 								chatbi_cubes: cubes,
-								chatbi_cubes_context: cubesReducer(currentState.chatbi_cubes, cubes)
+								chatbi_cubes_context: cubesReducer(currentState?.chatbi_cubes ?? [], cubes)
 									.map(({ context }) => context)
 									.join('\n\n'),
 								// update the message history
@@ -394,7 +394,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				const answer = params as ChatAnswer
 
 				// Update runtime indicators
-				const indicators = currentState[ChatBIVariableEnum.INDICATORS]
+				const indicators = currentState?.[ChatBIVariableEnum.INDICATORS]
 				if (indicators) {
 					await this.updateIndicators(dsCoreService, indicators)
 				}
@@ -447,8 +447,8 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		const { subscriber, agentKey, xpertName } = configurable ?? {}
 		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 
-		const lang = currentState[STATE_VARIABLE_SYS]?.language
-		const indicators = currentState[ChatBIVariableEnum.INDICATORS]?.map((_) => omit(_, 'default', 'reducer'))
+		const lang = currentState?.[STATE_VARIABLE_SYS]?.language
+		const indicators = currentState?.[ChatBIVariableEnum.INDICATORS]?.map((_) => omit(_, 'default', 'reducer'))
 		const chartService = new ChartBusinessService(dsCoreService)
 		const destroy$ = new Subject<void>()
 
@@ -605,8 +605,6 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			async (indicator: Indicator & { cube: string; language: 'zh' | 'en'; query: string}, config: LangGraphRunnableConfig) => {
 				this.logger.debug(`[ChatBI] [create_indicator] new indicator: ${JSON.stringify(indicator)}`)
 
-				// const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
-				// const currentIndicators = currentState[ChatBIVariableEnum.INDICATORS] ?? []
 				if (!indicator.formula) {
 					throw new Error(`The formula of indicator cannot be empty`)
 				}

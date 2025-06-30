@@ -92,9 +92,10 @@ export class CopilotProviderController extends CrudController<CopilotProvider> {
 	@Get(':providerId/model-parameter-rules')
 	async getModelParameters(
 		@Param('providerId', UUIDValidationPipe) providerId: string,
-		@Query('model') model: string
+		@Query('model') model: string,
+		@Query('modelType') modelType: AiModelTypeEnum
 	) {
-		return this.queryBus.execute(new CopilotProviderModelParameterRulesQuery(providerId, AiModelTypeEnum.LLM, model))
+		return this.queryBus.execute(new CopilotProviderModelParameterRulesQuery(providerId, modelType || AiModelTypeEnum.LLM, model))
 	}
 
 	@Get(':providerId/model')

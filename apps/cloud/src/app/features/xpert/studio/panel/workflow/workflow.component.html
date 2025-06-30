@@ -52,6 +52,9 @@
   @case (eWorkflowNodeTypeEnum.IF_ELSE) {
     <xpert-studio-panel-workflow-ifelse [node]="node()" [entity]="wfNode()" />
   }
+  @case (eWorkflowNodeTypeEnum.ASSIGNER) {
+    <xpert-workflow-assigner [node]="node()" [entity]="wfNode()" />
+  }
   @case (eWorkflowNodeTypeEnum.ITERATING) {
     <xpert-studio-panel-workflow-iterating [node]="node()" [entity]="wfNode()" />
   }
@@ -75,6 +78,9 @@
   }
   @case (eWorkflowNodeTypeEnum.TEMPLATE) {
     <xpert-workflow-template [node]="node()" [entity]="wfNode()" />
+  }
+  @case (eWorkflowNodeTypeEnum.TOOL) {
+    <xpert-workflow-tool [node]="node()" [entity]="wfNode()" />
   }
   @case (eWorkflowNodeTypeEnum.NOTE) {
     <xpert-workflow-note [node]="node()" [entity]="wfNode()" />

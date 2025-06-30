@@ -65,12 +65,20 @@ export function genXpertTemplateKey() {
   return letterStartSUID('Template_')
 }
 
+export function genXpertAssignerKey() {
+  return letterStartSUID('Assigner_')
+}
+
 export function genXpertHttpKey() {
   return letterStartSUID('Http_')
 }
 
 export function genXpertSubflowKey() {
   return letterStartSUID('Subflow_')
+}
+
+export function genXpertToolKey() {
+  return letterStartSUID('Tool_')
 }
 
 export function genXpertNoteKey() {

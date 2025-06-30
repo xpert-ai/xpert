@@ -111,7 +111,14 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
   }
 
   // Files
-
+  uploadFile(id: string, file: File) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return this.httpClient.post(this.apiBaseUrl + `/${id}/file/upload`, formData, {
+      observe: 'events',
+      reportProgress: true,
+    })
+  }
   getFiles(id: string, path: string = '') {
     return this.httpClient.get<TFileDirectory[]>(this.apiBaseUrl + `/${id}/files`, {
       params: toParams({
@@ -128,26 +135,13 @@ export class XpertProjectService extends OrganizationBaseCrudService<IXpertProje
     })
   }
 
-  deleteAttachment(id: string, fileId: string) {
-    return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/attachment/${fileId}`)
-  }
-
   addAttachments(id: string, files: string[]) {
     return this.httpClient.put<void>(this.apiBaseUrl + `/${id}/attachments`, files)
   }
-
   removeAttachment(id: string, fileId: string) {
     return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/attachments/${fileId}`)
   }
   
-  uploadFile(id: string, file: File) {
-    const formData = new FormData()
-    formData.append('file', file)
-    return this.httpClient.post(this.apiBaseUrl + `/${id}/file/upload`, formData, {
-      observe: 'events',
-      reportProgress: true,
-    })
-  }
 }
 
 export function injectProjectService() {

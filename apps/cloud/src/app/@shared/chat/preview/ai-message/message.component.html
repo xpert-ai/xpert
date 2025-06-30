@@ -40,27 +40,34 @@
         [data]="chunk.text"
       />
     }
-    @default {
-      <div class="group rounded-lg flex flex-col items-stretch max-h-48 hover:bg-gray-50 transition-all">
-        <div class="flex justify-between items-center text-base p-2">
-          <div>
-            <span class="font-semibold shrink-0">{{'PAC.Xpert.Component' | translate: {Default: 'Component'} }}</span>
-            <i class="ri-information-2-line ml-1 text-text-secondary hover:text-text-primary"
-              [matTooltip]="'PAC.Chat.DisplayOnlyData' | translate: {Default: 'Only display component data'}"
-              matTooltipPosition="above"
-            ></i>
-          </div>
+    @case ('component') {
+      @if (chunk.data.category === 'Tool') {
+        <chat-tool-call-chunk [chunk]="chunk.data" [conversationStatus]="conversationStatus()" />
+      } @else {
+        <div class="group rounded-lg flex flex-col items-stretch max-h-48 hover:bg-gray-50 transition-all">
+          <div class="flex justify-between items-center text-base p-2">
+            <div>
+              <span class="font-semibold shrink-0">{{'PAC.Xpert.Component' | translate: {Default: 'Component'} }}</span>
+              <i class="ri-information-2-line ml-1 text-text-secondary hover:text-text-primary"
+                [matTooltip]="'PAC.Chat.DisplayOnlyData' | translate: {Default: 'Only display component data'}"
+                matTooltipPosition="above"
+              ></i>
+            </div>
 
-          <copy2 #copy class="opacity-30 group-hover:opacity-100"
-            [content]="chunk"
-            [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
-            matTooltipPosition="above"
-          />
+            <copy2 #copy class="opacity-30 group-hover:opacity-100"
+              [content]="chunk"
+              [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
+              matTooltipPosition="above"
+            />
+          </div>
+          <div class="flex-1 px-3 text-sm rounded-lg whitespace-normal overflow-auto">
+            <ngx-json-viewer [json]="chunk" [depth]="1" />
+          </div>
         </div>
-        <div class="flex-1 px-3 text-sm rounded-lg whitespace-normal overflow-auto">
-          <ngx-json-viewer [json]="chunk" [depth]="1" />
-        </div>
-      </div>
+      }
+    }
+    @default {
+      <
     }
   }
 }
@@ -70,53 +77,6 @@
     <div class="text-base font-semibold shrink-0 p-2">{{'PAC.Xpert.ThirdPartyMessage' | translate: {Default: 'Third-party platform message'} }}</div>
     <div class="flex-1 text-sm rounded-lg whitespace-normal overflow-auto">
       <p class="px-4 pb-4">{{thirdPartyMessage() | json}}</p>
-    </div>
-  </div>
-}
-
-@if (lastStep(); as step) {
-  <div class="flex-1 min-w-0 cursor-pointer" (click)="toggleSteps()">
-    <div [@listHeightStagger]="steps()"
-      class="rounded-xl flex flex-col gap-2 p-1 border border-[var(--border-light)] bg-[var(--fill-tsp-gray-main)] max-w-full clickable hover:bg-[var(--fill-tsp-gray-dark)] dark:hover:bg-white/[0.02]"
-    >
-      @for (step of steps(); track step) {
-        <div class="relative flex items-center p-1 py-0.5 rounded-lg group/item hover:bg-white">
-          <chat-message-step-icon class="w-[16px] inline-flex items-center text-text-secondary" [step]="step"/>
-          <div class="flex-1 h-full min-w-0 flex">
-            <div class="inline-flex items-center h-full rounded-full text-[14px] text-[var(--text-secondary)] max-w-[100%]">
-              <div
-                class="max-w-[100%] text-ellipsis overflow-hidden whitespace-nowrap text-[13px]"
-                [title]="step.message || step.title"
-              >
-                @switch (step.type) {
-                  @case (eChatMessageStepType.File) {
-                    <div class="flex items-center">
-                      <span class="mr-1">{{step.type}}: </span>
-                      <a [href]="step.data" target="_blank" class="hover:underline hover:text-text-primary"
-                        (click)="$event.stopPropagation()">{{step.data}}</a>
-                    </div>
-                  }
-                  @default {
-                    <div class="flex items-center">
-                      <span
-                        class="flex-1 min-w-0 rounded-[6px] px-1 ml-1 relative top-[0px] text-[12px] font-mono max-w-full text-ellipsis overflow-hidden whitespace-nowrap text-[var(--text-tertiary)]"
-                        >
-                        {{ step.message || step.title }}
-                      </span>
-                    </div>
-                  }
-                }
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="absolute -top-4 right-2 float-right transition text-xs text-text-tertiary hidden group-hover/item:block"
-          >
-            {{ step.created_date | relative }}
-          </div>
-        </div>
-      }
     </div>
   </div>
 }

@@ -3,7 +3,6 @@ import { DATABASE_POOL_TOKEN, RequestContext } from '@metad/server-core'
 import { Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { Pool } from 'pg'
-import { CopilotStoreService } from '../../copilot-store.service'
 import { CopilotMemoryStore } from '../../store'
 import { CreateCopilotStoreCommand } from '../create-store.command'
 
@@ -11,7 +10,6 @@ import { CreateCopilotStoreCommand } from '../create-store.command'
 export class CreateCopilotStoreHandler implements ICommandHandler<CreateCopilotStoreCommand> {
 	constructor(
 		private readonly commandBus: CommandBus,
-		private readonly service: CopilotStoreService,
 		@Inject(DATABASE_POOL_TOKEN) private readonly pgPool: Pool
 	) {}
 

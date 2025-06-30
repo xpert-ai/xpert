@@ -38,6 +38,7 @@ import { MCPToolsetToolTestComponent } from '../tool-test'
 export type TXpertMCPManageComponentRet = {
   saved?: boolean;
   deleted?: boolean;
+  toolset?: Partial<IXpertToolset>
 } | undefined
 
 @Component({
@@ -362,7 +363,7 @@ export class XpertMCPManageComponent {
   }
 
   close() {
-    this.#dialogRef.close({saved: this.saved()})
+    this.#dialogRef.close({saved: this.saved(), toolset: this.toolset()})
   }
 
   @HostListener('document:keydown.escape', ['$event'])

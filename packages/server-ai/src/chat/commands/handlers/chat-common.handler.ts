@@ -21,6 +21,7 @@ import {
 	IChatConversation,
 	IChatMessage,
 	IEnvironment,
+	IStorageFile,
 	IXpert,
 	IXpertAgent,
 	IXpertAgentExecution,
@@ -75,7 +76,7 @@ import {
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { toEnvState } from '../../../environment'
 import { ProjectToolset } from '../../../xpert-project/tools'
-import { _BaseToolset, AgentStateAnnotation, BaseTool, stateToParameters, stateVariable, ToolNode, translate } from '../../../shared'
+import { _BaseToolset, AgentStateAnnotation, BaseTool, createHumanMessage, stateToParameters, stateVariable, ToolNode, translate } from '../../../shared'
 
 const GeneralAgentRecursionLimit = 99
 
@@ -149,7 +150,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				new ChatMessageUpsertCommand({
 					role: 'human',
 					content: input.input,
-					conversationId: conversation.id
+					conversationId: conversation.id,
+					attachments: input.files as IStorageFile[],
 				})
 			)
 		}
@@ -203,7 +205,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 							input?.input || retry
 								? {
 										...(input ?? {}),
-										messages: [new HumanMessage(userMessage.content as string)],
+										messages: [
+											await createHumanMessage(this.commandBus, input, {enabled: true, resolution: 'low'})
+										],
 										[STATE_VARIABLE_SYS]: {
 											language: languageCode,
 											user_email: user.email,
@@ -480,7 +484,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		/**
 		 * The relationship between tool and toolset provider
 		 */
-		const toolsetsMap = {}
+		const toolsetsMap: Record<string, {provider: string; toolsetId: string;}> = {}
 		// Project toolset for plan mode
 		if (project?.settings?.mode === 'plan') {
 			const projectToolset = await this.commandBus.execute<CreateProjectToolsetCommand, ProjectToolset>(new CreateProjectToolsetCommand(projectId))
@@ -490,7 +494,10 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			const items = await projectToolset.initTools()
 			items.forEach((tool) => {
 				toolsTitleMap[tool.name] = translate(projectToolset.getToolTitle(tool.name))
-				toolsetsMap[tool.name] = projectToolset.providerName
+				toolsetsMap[tool.name] = {
+					provider: projectToolset.providerName,
+					toolsetId: null
+				}
 				tools.push(...items)
 			})
 		}
@@ -519,7 +526,10 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				items.forEach((tool) => {
 					// const lc_name = get_lc_unique_name(tool.constructor as typeof Serializable)
 					toolsTitleMap[tool.name] = translate(toolset.getToolTitle(tool.name))
-					toolsetsMap[tool.name] = toolset.providerName
+					toolsetsMap[tool.name] = {
+						provider: toolset.providerName,
+						toolsetId: toolset.getId()
+					}
 					tools.push(tool)
 				})
 			}
@@ -536,7 +546,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 			})
 			const knowledgeToolName = 'knowledge_retriever'
 			toolsTitleMap[knowledgeToolName] = translate({zh_Hans: '知识检索', en_US: 'Knowledge Retrieval'})
-			toolsetsMap[knowledgeToolName] = 'knowledge'
+			toolsetsMap[knowledgeToolName] = {provider: 'knowledge', toolsetId: null}
 			tools.push(
 				retriever.asTool({
 					name: knowledgeToolName,
@@ -575,7 +585,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				const tool = createHandoffTool({ agentName: agent.name, title: xpert.title, description: xpert.description })
 				xperts.push({name: agent.name, agent, tool })
 				toolsTitleMap[tool.name] = translate({en_US: 'Task handoff to:', zh_Hans: '任务移交给：'}) + (xpert.title || xpert.name)
-				toolsetsMap[tool.name] = 'transfer_to'
+				toolsetsMap[tool.name] = {provider: 'transfer_to', toolsetId: null}
 			}
 		}
 		const shouldReturnDirect = new Set(

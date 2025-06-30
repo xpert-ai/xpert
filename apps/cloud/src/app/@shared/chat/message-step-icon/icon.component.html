@@ -1,5 +1,5 @@
 @if (step(); as step) {
-  @switch (step.category) {
+  @switch (step.type) {
     @case (eChatMessageStepCategory.File) {
       <i class="ri-file-list-3-line"></i>
     }
@@ -20,6 +20,12 @@
           }
           @case ('knowledge') {
             <i class="ri-book-shelf-fill"></i>
+          }
+          @case ('project-tasks') {
+            <i class="ri-task-fill"></i>
+          }
+          @case ('mcp') {
+            <emoji-avatar [avatar]="avatar()" xs class="shrink-0 overflow-hidden rounded-lg scale-75"/>
           }
           @default {
             <img src="/api/xpert-toolset/builtin-provider/{{step.toolset}}/icon" alt="{{step.toolset}}" class="rounded-md">

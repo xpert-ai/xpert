@@ -15,7 +15,7 @@ import {
 	TLongTermMemory,
 	TSummarize,
 	TXpertAgentConfig,
-	TXpertAttachment,
+	TXpertFeatures,
 	TXpertGraph,
 	TXpertOptions,
 	TXpertTeamDraft,
@@ -113,7 +113,7 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 	@IsObject()
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
-	attachment?: TXpertAttachment
+	features?: TXpertFeatures
 
 	// Versions
 	@ApiPropertyOptional({ type: () => String })

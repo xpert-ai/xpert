@@ -89,7 +89,7 @@ export class ChatCanvasComputerComponent {
     const conversation = this.chatService.conversation()
     return conversation?.messages?.reduce((acc, message) => {
       if (Array.isArray(message.content) && message.content.length > 0) {
-        acc.push(...message.content.filter((_) => _.type === 'component'))
+        acc.push(...message.content.filter((_) => _.type === 'component' && _.data?.category === 'Computer'))
       }
       return acc
     }, [])

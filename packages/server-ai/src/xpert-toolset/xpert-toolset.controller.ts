@@ -1,12 +1,14 @@
-import { IPagination, IXpertTool, IXpertToolset, TMCPSchema } from '@metad/contracts'
+import { IPagination, IXpertTool, IXpertToolset } from '@metad/contracts'
 import {
 	CrudController,
 	PaginationParams,
 	ParseJsonPipe,
 	Public,
 	RequestContext,
-	TransformInterceptor
+	TransformInterceptor,
+	UUIDValidationPipe
 } from '@metad/server-core'
+import { ConfigService } from '@metad/server-config'
 import {
 	Body,
 	Controller,
@@ -22,10 +24,12 @@ import {
 	Inject,
 	UseGuards,
 	InternalServerErrorException,
-	BadRequestException
+	BadRequestException,
+	CACHE_MANAGER
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
+import { Cache } from 'cache-manager'
 import { ServerResponse } from 'http'
 import { TestOpenAPICommand } from '../xpert-tool/commands/'
 import { MCPToolsBySchemaCommand, ParserODataSchemaCommand, ParserOpenAPISchemaCommand } from './commands/'
@@ -41,7 +45,6 @@ import {
 import { XpertToolset } from './xpert-toolset.entity'
 import { XpertToolsetService } from './xpert-toolset.service'
 import { ToolProviderNotFoundError } from './errors'
-import { ConfigService } from '@metad/server-config'
 import { ToolsetGuard } from './guards/toolset.guard'
 import { WorkspaceGuard } from '../xpert-workspace'
 
@@ -63,7 +66,9 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 	constructor(
 		private readonly service: XpertToolsetService,
 		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
+		private readonly queryBus: QueryBus,
+		@Inject(CACHE_MANAGER)
+		private readonly cacheManager: Cache
 	) {
 		super(service)
 	}
@@ -141,6 +146,19 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
 		return new ToolProviderDTO({
 			...providers[0].identity
 		}, this.baseUrl)
+	}
+
+	@Public()
+	@Get('mcp/:id/avatar')
+	async getMCPAvatar(@Param('id', UUIDValidationPipe) id: string) {
+		const cacheKey = `mcp:avatar:${id}`
+		const avatar = await this.cacheManager.get(cacheKey)
+		if (!avatar) {
+			const toolset = await this.service.findOne(id)
+			await this.cacheManager.set(cacheKey, toolset.avatar, 5 * 60 * 1000) // Cache for 5 minutes
+			return toolset.avatar
+		}
+		return avatar
 	}
 
 	@Public()

@@ -58,6 +58,33 @@
   }
 }
 
+@if (suggestion_enabled()) {
+  @if (suggesting()) {
+    <div class="flex cursor-pointer justify-center items-center">
+      <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
+      <div class="text-text-tertiary ml-2">
+        {{ 'PAC.Xpert.Suggesting' | translate: {Default: 'Suggesting'} }}...
+      </div>
+    </div>
+  } @else if (suggestionQuestions()?.length) {
+    <div class="mb-2 py-2">
+      <div class="mb-2.5 flex items-center justify-between gap-2">
+        <div class="w-full my-2 bg-gradient-to-r from-divider-regular to-divider-deep h-px grow rotate-180"></div>
+        <div class="shrink-0 text-text-tertiary">
+          {{ 'PAC.Xpert.TryAsking' | translate: {Default: 'Try asking'} }}
+        </div>
+        <div class="w-full my-2 bg-gradient-to-r from-divider-regular to-divider-deep h-px grow"></div>
+      </div>
+      <div class="flex flex-wrap justify-center">
+        @for (question of suggestionQuestions(); track question) {
+          <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small mb-1 mr-1 last:mr-0"
+            (click)="onSelectSuggestionQuestion(question)">{{question}}</button>
+        }
+      </div>
+    </div>
+  }
+}
+
 @if (conversationStatus() === eExecutionStatusEnum.ERROR) {
   <div class="w-full flex items-start gap-2 p-4 rounded-3xl text-orange-500 bg-orange-50 border border-solid border-orange-200">
     <div >

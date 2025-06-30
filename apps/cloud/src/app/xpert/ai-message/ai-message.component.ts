@@ -32,6 +32,8 @@ import {
   getErrorMessage,
   IChatMessage,
   injectToastr,
+  SynthesizeService,
+  TtsStreamPlayerService,
   XpertAgentExecutionService,
   XpertAgentExecutionStatusEnum
 } from '../../@core'
@@ -73,7 +75,8 @@ import { ChatMessageAvatarComponent } from './avatar/avatar.component'
   templateUrl: './ai-message.component.html',
   styleUrl: 'ai-message.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  animations: [ListHeightStaggerAnimation]
+  animations: [ListHeightStaggerAnimation],
+  providers: [SynthesizeService, TtsStreamPlayerService]
 })
 export class ChatAiMessageComponent {
   eFeedbackRatingEnum = ChatMessageFeedbackRatingEnum
@@ -85,6 +88,7 @@ export class ChatAiMessageComponent {
   readonly agentExecutionService = inject(XpertAgentExecutionService)
   readonly #toastr = injectToastr()
   readonly #dialog = inject(Dialog)
+  readonly #synthesizeService = inject(SynthesizeService)
 
   // Inputs
   readonly message = input<TCopilotChatMessage>()
@@ -97,6 +101,8 @@ export class ChatAiMessageComponent {
   readonly project = this.chatService.project
   readonly avatar = computed(() => (this.xpert() ? this.xpert().avatar : this.project()?.avatar))
   readonly title = computed(() => (this.xpert() ? this.xpert().title || this.xpert().name : this.project()?.name))
+  readonly features = computed(() => this.xpert()?.features)
+  readonly textToSpeech_enabled = computed(() => this.features()?.textToSpeech?.enabled)
   readonly feedbacks = this.chatService.feedbacks
   readonly executionId = computed(() => this.message()?.executionId)
   readonly status = computed(() => this.message()?.status)
@@ -262,5 +268,12 @@ export class ChatAiMessageComponent {
       .closed.subscribe({
         next: () => {}
       })
+  }
+
+  // Text to Speech
+  readonly synthesizeLoading = this.#synthesizeService.synthesizeLoading
+  readonly isPlaying = this.#synthesizeService.isPlaying
+  readAloud(message: IChatMessage) {
+    this.#synthesizeService.readAloud(message.conversationId, message)
   }
 }

@@ -8,6 +8,7 @@ import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
+import { XpertNodeErrorHandlingComponent } from '../error-handling/error.component'
 
 @Component({
   selector: 'xpert-studio-node-agent',
@@ -21,11 +22,9 @@ import { XpertStudioComponent } from '../../studio.component'
     TranslateModule,
     PlusSvgComponent,
     EmojiAvatarComponent,
-    CopilotModelSelectComponent
+    CopilotModelSelectComponent,
+    XpertNodeErrorHandlingComponent
   ],
-  host: {
-    tabindex: '-1'
-  }
 })
 export class XpertStudioNodeAgentComponent {
   eModelType = AiModelTypeEnum

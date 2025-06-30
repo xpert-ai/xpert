@@ -58,6 +58,10 @@ export abstract class BuiltinToolset extends BaseToolset<BuiltinTool> implements
 
 	abstract _validateCredentials(credentials: TToolCredentials): Promise<void>
 
+	getId() {
+		return this.toolset?.id
+	}
+
 	getCredentials() {
 		return this.toolset?.credentials
 	}

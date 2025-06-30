@@ -29,6 +29,7 @@ import {
 import {
   ChatConversationService,
   ChatMessageFeedbackService,
+  ChatMessageService,
   ChatService as ChatServerService,
   ToastrService,
   XpertService
@@ -45,6 +46,7 @@ export abstract class ChatService {
   readonly chatService = inject(ChatServerService)
   readonly conversationService = inject(ChatConversationService)
   readonly feedbackService = inject(ChatMessageFeedbackService)
+  readonly chatMessageService = inject(ChatMessageService)
   readonly xpertService = inject(XpertService)
   readonly appService = inject(AppService)
   readonly homeService = inject(XpertHomeService)
@@ -172,6 +174,11 @@ export abstract class ChatService {
 
   readonly xpert = signal<IXpert>(null)
   readonly project = signal<IXpertProject>(null)
+  readonly suggestion_enabled = computed(() => this.xpert()?.features?.suggestion?.enabled)
+
+  // Attachments
+  readonly attachments = signal<{file?: File; url?: string; storageFile?: IStorageFile}[]>([])
+  readonly recentAttachments = signal<IStorageFile[]>(null)
 
   constructor() {
     this.#destroyRef.onDestroy(() => {
@@ -200,15 +207,19 @@ export abstract class ChatService {
     return this.feedbackService.getMyAll({ where: { conversationId: id } })
   }
 
-  ask(content: string) {
+  ask(content: string, params: {files: {id: string}[]}) {
     const id = uuid()
-    this.appendMessage({
+    const humanMessage: TCopilotChatMessage = {
       id,
       role: 'user',
       content
-    })
+    }
+    if (params?.files?.length) {
+      humanMessage.attachments = params.files as IStorageFile[]
+    }
+    this.appendMessage(humanMessage)
     // Send message
-    this.chat({ id, content })
+    this.chat({ id, content, files: params.files })
   }
 
   chatRequest(name: string, request: TChatRequest, options: TChatOptions) {
@@ -228,7 +239,7 @@ export abstract class ChatService {
       /**
        * Attachment files
        */
-      files: IStorageFile[]
+      files: Partial<IStorageFile>[]
       confirm: boolean
       operation: TSensitiveOperation
       reject: boolean
@@ -367,9 +378,9 @@ export abstract class ChatService {
                     }
                   })
 
-                  if (event.data && !this.homeService.canvasOpened()) {
-                    this.homeService.canvasOpened.set({ type: 'Computer', opened: true })
-                  }
+                  // if (event.data && !this.homeService.canvasOpened()) {
+                  //   this.homeService.canvasOpened.set({ type: 'Computer', opened: true })
+                  // }
                   break
                 }
                 default:
@@ -399,6 +410,10 @@ export abstract class ChatService {
             error: null
           }
         })
+        if (this.suggestion_enabled()) {
+          const lastMessage = this.#messages()[this.#messages().length - 1]
+          this.onSuggestionQuestions(lastMessage.id)
+        }
       }
     })
   }
@@ -415,14 +430,31 @@ export abstract class ChatService {
     })
   }
 
-  async newConversation1(xpert?: IXpert) {
-    if (this.answering() && this.conversation()?.id) {
-      this.cancelMessage()
-    }
-    this.conversation.set(null)
-    this.conversationId.set(null)
-    this.#messages.set([])
+  // Suggestion Questions
+  readonly suggesting = signal(false)
+  readonly suggestionQuestions = signal<string[]>([])
+  onSuggestionQuestions(id: string) {
+    this.suggesting.set(true)
+    this.chatMessageService.suggestedQuestions(id).subscribe({
+      next: (questions) => {
+        this.suggesting.set(false)
+        this.suggestionQuestions.set(questions)
+      },
+      error: (error) => {
+        this.suggesting.set(false)
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
   }
+
+  // async newConversation1(xpert?: IXpert) {
+  //   if (this.answering() && this.conversation()?.id) {
+  //     this.cancelMessage()
+  //   }
+  //   this.conversation.set(null)
+  //   this.conversationId.set(null)
+  //   this.#messages.set([])
+  // }
 
   setConversation(id: string) {
     if (id !== this.conversationId()) {
@@ -524,4 +556,9 @@ export abstract class ChatService {
 
   //
   abstract newConv(xpert?: IXpert): void
+  onAttachCreated(file: IStorageFile): void {}
+  onAttachDeleted(fileId: string): void {}
+  getRecentAttachmentsSignal() {
+    return this.recentAttachments
+  }
 }

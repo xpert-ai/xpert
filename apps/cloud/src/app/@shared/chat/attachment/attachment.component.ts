@@ -40,6 +40,9 @@ export class ChatAttachmentComponent {
   readonly editable = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
+  readonly deletable = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
   // Outputs
   readonly onProgress = output<number>()
@@ -175,7 +178,7 @@ export class ChatAttachmentComponent {
   })
 
   delete() {
-    if (this.storageFile()?.id) {
+    if (this.storageFile()?.id && this.deletable()) {
       this.deleteFile(this.storageFile().id)
     }
     this.upload(null)

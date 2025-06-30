@@ -7,6 +7,12 @@ export class FindXpertQuery implements IQuery {
 
 	constructor(
 		public readonly conditions: FindConditions<IXpert>,
-		public readonly relations?: string[]
+		public readonly params?: {
+			relations?: string[]
+			/**
+			 * Draft First
+			 */
+			isDraft?: boolean
+		}
 	) {}
 }

@@ -1,8 +1,8 @@
-import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilot, ILLMUsage, ModelPropertyKey, ParameterType, PriceType, TTokenUsage } from '@metad/contracts'
+import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilot, ILLMUsage, ModelPropertyKey, ParameterRule, ParameterType, PriceType, TTokenUsage } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { calcTokenUsage, sumTokenUsage } from '@metad/copilot'
 import { AIModel } from './ai-model'
-import { TChatModelOptions } from './types/types'
+import { CommonParameterRules, TChatModelOptions } from './types/types'
 
 export type CommonChatModelParameters = {
 	temperature: number
@@ -99,6 +99,10 @@ export class LLMUsage implements ILLMUsage {
 export abstract class LargeLanguageModel extends AIModel {
 	readonly #logger = new Logger(LargeLanguageModel.name)
 	protected startedAt: DOMHighResTimeStamp
+
+	protected _commonParameterRules(model: string,): ParameterRule[] {
+		return CommonParameterRules
+	}
 
 	protected calcResponseUsage(
 		model: string,

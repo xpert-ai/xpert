@@ -34,7 +34,7 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
 					const customModels = await this.queryBus.execute<
 						GetCopilotProviderModelQuery,
 						ICopilotProviderModel[]
-					>(new GetCopilotProviderModelQuery(copilot.modelProvider.id))
+					>(new GetCopilotProviderModelQuery(copilot.modelProvider.id, {modelType: command.type}))
 					const models = []
 					if (customModels?.length) {
 						models.push(

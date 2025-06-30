@@ -72,12 +72,16 @@
                   <path id="Rectangle 1" d="M1.03647 1.5547C0.59343 0.890144 1.06982 0 1.86852 0H8V12L1.03647 1.5547Z" fill="currentColor"></path>
                 </svg>
                 <div class="grow-0 relative inline-block px-2 py-3 max-w-full bg-gray-100 rounded-b-2xl rounded-tr-2xl text-base text-gray-900">
-                  <xpert-preview-ai-message [message]="message" class="w-full grow" />
+                  <xpert-preview-ai-message [message]="message" [conversation]="conversation()" class="w-full grow" />
                 </div>
 
                 <div class="absolute flex justify-end items-center gap-1 right-0 -top-4">
 
-                  <div class="hidden group-hover:flex justify-center items-center w-8 h-8 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
+                  <div class="group-hover:flex justify-center items-center p-1 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0"
+                    [ngClass]="{
+                      hidden: !(synthesizeLoading() || isPlaying()),
+                      flex: synthesizeLoading() || isPlaying()
+                    }">
                     <div class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium
                       bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
                       [matTooltip]="'PAC.KEY_WORDS.Copy' | translate: {Default: 'Copy'} "
@@ -90,6 +94,21 @@
                         <i class="ri-clipboard-line"></i>
                       }
                     </div>
+
+                    @if (textToSpeech_enabled()) {
+                      <div class="shrink-0 w-6 h-6 flex items-center justify-center rounded-[6px] font-medium
+                        bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
+                        [matTooltip]="'PAC.Xpert.ReadAloud' | translate: {Default: 'Read aloud'} "
+                        matTooltipPosition="above"
+                        (click)="readAloud(message)"
+                      >
+                        @if (synthesizeLoading() || isPlaying()) {
+                          <i class="ri-stop-circle-line text-primary-500"></i>
+                        } @else {
+                          <i class="ri-speak-ai-line"></i>
+                        }
+                      </div>
+                    }
                   </div>
 
                 @if (message.executionId) {
@@ -174,7 +193,7 @@
             <div class="grow w-0 h-px bg-divider-deep"></div>
           </div>
 
-          <div class="max-w-full flex flex-col justify-start items-start gap-2 text-sm overflow-hidden p-4 text-text-secondary">
+          <div class="w-full max-w-full flex flex-wrap justify-start items-start gap-2 text-sm overflow-hidden p-4 text-text-secondary">
             @for (starter of starters(); track starter) {
               <div class="max-w-full px-2 py-1 border-light rounded-lg cursor-pointer truncate shadow-sm hover:shadow-md"
                 (click)="chat({input: starter})"
@@ -183,6 +202,33 @@
           </div>
         }
       </div>
+    }
+
+    @if (suggestion_enabled()) {
+      @if (suggesting()) {
+        <div class="flex justify-center items-center cursor-pointer">
+          <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
+          <div class="text-sm text-text-tertiary ml-2">
+            {{ 'PAC.Xpert.Suggesting' | translate: {Default: 'Suggesting'} }}...
+          </div>
+        </div>
+      } @else if (suggestionQuestions()?.length) {
+        <div class="mb-2 py-2">
+          <div class="mb-2.5 flex items-center justify-between gap-2">
+            <div class="w-full my-2 bg-gradient-to-r from-divider-regular to-divider-deep h-px grow rotate-180"></div>
+            <div class="shrink-0 text-text-tertiary">
+            {{ 'PAC.Xpert.TryAsking' | translate: {Default: 'Try asking'} }}
+          </div>
+            <div class="w-full my-2 bg-gradient-to-r from-divider-regular to-divider-deep h-px grow"></div>
+          </div>
+          <div class="flex flex-wrap justify-center">
+            @for (question of suggestionQuestions(); track question) {
+              <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small mb-1 mr-1 last:mr-0"
+                (click)="onSelectSuggestionQuestion(question)">{{question}}</button>
+            }
+          </div>
+        </div>
+      }
     }
     
     @if (conversationStatus() === eExecutionStatusEnum.INTERRUPTED && operation()) {
@@ -217,15 +263,30 @@
       <div class="pb-4 w-full max-w-full mx-auto">
         <div class="relative">
           <div class="p-[5.5px] max-h-[150px] bg-white border-[1.5px] border-gray-200 rounded-xl mb-2">
-            <textarea class="outline-none w-full pl-2 pr-16" matInput [(ngModel)]="input"
-              cdkTextareaAutosize
-              cdkAutosizeMinRows="1"
-              cdkAutosizeMaxRows="5"
+            <textarea class="outline-none w-full pl-2 pr-16"
+              [(ngModel)]="input"
               (keydown)="onKeydown($event)"
             ></textarea>
-            <div class="absolute bottom-[7px] flex items-center h-8 right-2">
+            <div class="absolute bottom-[7px] flex items-center h-8 right-2 z-10">
               <div class="flex items-center px-1 h-5 rounded-md bg-gray-100 text-xs font-medium text-gray-500">{{inputLength()}}</div>
               <div class="mx-2 w-[1px] h-4 bg-black opacity-5"></div>
+
+              @if (attachment_enabled()) {
+                <button type="button" class="action-btn action-btn-l w-8 h-8 flex justify-center items-center rounded-lg" >
+                  <i class="ri-attachment-line text-lg"></i>
+                </button>
+              }
+
+              @if (speechToText_enabled()) {
+                @if (speeching()) {
+                  
+                } @else {
+                  <button type="button" class="action-btn action-btn-l w-8 h-8 flex justify-center items-center rounded-lg"
+                    (click)="startRecording()">
+                    <i class="ri-mic-ai-fill text-lg"></i>
+                  </button>
+                }
+              }
 
               @if (loading()) {
                 <button class="w-8 h-8 flex justify-center items-center rounded-full border-light hover:shadow-md"
@@ -243,6 +304,33 @@
                   </svg>
                 </button>
               }
+            </div>
+
+            <div class="absolute left-0 bottom-0 w-full h-12 border border-solid border-gray-200 rounded-lg bg-white shadow-md z-10 p-2 overflow-hidden"
+              [ngClass]="{
+                'hidden': !speeching(),
+                'block': speeching()
+              }"
+            >
+              <canvas #waveCanvas class="absolute left-0 top-0 w-full h-12 z-0"></canvas>
+              <div class="absolute right-0 left-0 flex items-center px-4 z-10">
+                <div class="grow">
+                  @if (isRecording())  {
+                    <span>{{'PAC.Xpert.Speaking' | translate: {Default: 'Speaking'} }}...</span>
+                  } @else if (isConverting()) {
+                    <span>{{'PAC.Xpert.Converting' | translate: {Default: 'Converting'} }}...</span>
+                  }
+                </div>
+                <button type="button" class="action-btn action-btn-l w-8 h-8 flex justify-center items-center rounded-lg"
+                  (click)="stopRecording()">
+                  <i class="ri-stop-circle-line text-primary-500"></i>
+                </button>
+                @if (isRecording()) {
+                  <div>
+                    {{recordTimes() * 1000 | date:'mm:ss'}}
+                  </div>
+                }
+              </div>
             </div>
           </div>
         </div>

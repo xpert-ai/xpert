@@ -17,6 +17,42 @@ import { IStorageFile } from '../storage-file.model'
 
 export type ToolCall = LToolCall
 
+export type TXpertFeatures = {
+  opener: {
+    enabled: boolean
+    message: string
+    questions: string[]
+  }
+
+  suggestion: {
+    enabled: boolean
+    prompt: string
+  }
+
+  textToSpeech: {
+    enabled: boolean
+    copilotModel?: TCopilotModel
+  }
+
+  speechToText: {
+    enabled: boolean
+    copilotModel?: TCopilotModel
+  }
+
+  /**
+   * File upload feature
+   */
+  attachment?: TXpertAttachment
+
+  /**
+   * Reply with memory(Q&A)
+   */
+  memoryReply?: {
+    enabled: boolean
+    scoreThreshold?: number
+  }
+}
+
 export type TXpert = {
   slug: string
   name: string
@@ -49,10 +85,8 @@ export type TXpert = {
    * Long-term memory config
    */
   memory?: TLongTermMemory
-  /**
-   * File upload feature
-   */
-  attachment?: TXpertAttachment
+
+  features?: TXpertFeatures
 
   /**
    * Version of role: '1' '2' '2.1' '2.2'...
@@ -434,7 +468,7 @@ export enum ChatMessageEventTypeEnum {
  */
 export type TChatRequestHuman = {
   input?: string
-  files?: IStorageFile[]
+  files?: Partial<IStorageFile>[]
   [key: string]: unknown
 }
 

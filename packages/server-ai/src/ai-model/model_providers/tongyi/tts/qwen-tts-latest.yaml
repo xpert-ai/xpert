@@ -1,0 +1,27 @@
+model: qwen-tts-latest
+model_type: tts
+model_properties:
+  default_voice: 'Ethan'
+  voices:
+    - mode: "Ethan"
+      language: [ "zh-Hans", "en-US" ]
+    - mode: "Cherry"
+      language: [ "zh-Hans", "en-US" ]
+    - mode: "Serena"
+      language: [ "zh-Hans", "en-US" ]
+    - mode: "Chelsie"
+      language: [ "zh-Hans", "en-US" ]
+    - mode: "Dylan"
+      language: [ "zh-Hans", "en-US" ]
+    - mode: "Jada"
+      language: [ "zh-Hans", "en-US" ]
+    - mode: "Sunny"
+      language: [ "zh-Hans", "en-US" ]
+  word_limit: 7000
+  audio_type: 'wav'
+  max_workers: 5
+pricing:
+  input: '1'
+  output: '0'
+  unit: '0.0001'
+  currency: RMB

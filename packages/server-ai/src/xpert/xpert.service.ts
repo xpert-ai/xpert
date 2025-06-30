@@ -1,4 +1,4 @@
-import { convertToUrlPath, IUser, TXpertTeamDraft } from '@metad/contracts'
+import { convertToUrlPath, IUser, IXpertAgentExecution, LongTermMemoryTypeEnum, TCopilotStore, TMemoryQA, TMemoryUserProfile, TXpertTeamDraft } from '@metad/contracts'
 import {
 	OptionParams,
 	PaginationParams,
@@ -12,10 +12,13 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { assign, uniq, uniqBy } from 'lodash'
 import { FindConditions, In, IsNull, Not, Repository } from 'typeorm'
+import { v4 as uuidv4 } from 'uuid'
 import { GetXpertWorkspaceQuery, MyXpertWorkspaceQuery } from '../xpert-workspace'
 import { XpertPublishCommand } from './commands'
 import { Xpert } from './xpert.entity'
 import { XpertIdentiDto } from './dto'
+import { GetXpertMemoryEmbeddingsQuery } from './queries'
+import { CopilotMemoryStore, CreateCopilotStoreCommand } from '../copilot-store'
 
 @Injectable()
 export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
@@ -286,5 +289,30 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 			},
 			relations: uniq((relations ?? []).concat(['user', 'createdBy', 'organization']))
 		})
+	}
+
+	async createMemory(xpertId: string, body:  {type: LongTermMemoryTypeEnum; value: TMemoryQA | TMemoryUserProfile}) {
+		const xpert = await this.findOne(xpertId, { relations: ['agent'] })
+		const memory = xpert.memory
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
+		const execution: IXpertAgentExecution = {}
+		const embeddings = await this.queryBus.execute(
+			new GetXpertMemoryEmbeddingsQuery(tenantId, organizationId, memory, {
+				tokenCallback: (token) => {
+					execution.embedTokens += token ?? 0
+				}
+			})
+		)
+		const store = await this.commandBus.execute<CreateCopilotStoreCommand, CopilotMemoryStore>(new CreateCopilotStoreCommand({
+			index: {
+				dims: null,
+				embeddings,
+				fields: ['question', ]
+			}
+		}))
+
+		const memoryKey = uuidv4()
+		await store.put([xpertId, body.type || LongTermMemoryTypeEnum.QA], memoryKey, body.value)
 	}
 }

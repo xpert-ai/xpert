@@ -1,10 +1,12 @@
 {
   "name": "@metad/server-common",
-  "version": "3.3.0",
+  "version": "3.3.1",
   "type": "commonjs",
   "license": "AGPL-3.0",
   "dependencies": {
     "@nestjs/typeorm": "^8.0.3",
+    "chardet": "^2.1.0",
+    "iconv-lite": "^0.6.3",
     "short-unique-id": "^4.4.4",
     "xlsx": "^0.18.5",
     "yaml": "^2.6.1"

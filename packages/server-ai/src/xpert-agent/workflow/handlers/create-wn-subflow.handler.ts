@@ -1,5 +1,5 @@
 import { RunnableLambda } from '@langchain/core/runnables'
-import { CompiledStateGraph, END, Send } from '@langchain/langgraph'
+import { CompiledStateGraph } from '@langchain/langgraph'
 import {
 	channelName,
 	IWFNSubflow,
@@ -19,11 +19,11 @@ import { InternalServerErrorException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { get } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
-import { wrapAgentExecution } from '../../../xpert-agent-execution/utils'
 import { XpertAgentSubgraphCommand } from '../../commands/subgraph.command'
 import { CreateWNSubflowCommand } from '../create-wn-subflow.command'
 import { CompileGraphCommand } from '../../commands'
-import { AgentStateAnnotation } from '../../../shared'
+import { AgentStateAnnotation, nextWorkflowNodes } from '../../../shared'
+import { wrapAgentExecution } from '../../../shared/agent/execution'
 
 @CommandHandler(CreateWNSubflowCommand)
 export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCommand> {
@@ -223,8 +223,7 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
 				ends: []
 			},
 			navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-				const connections = graph.connections.filter((conn) => conn.type === 'edge' && conn.from === node.key)
-				return connections.length > 0 ? connections.map((conn) => new Send(conn.to, state)) : END
+				return nextWorkflowNodes(graph, node.key, state)
 			}
 		}
 	}

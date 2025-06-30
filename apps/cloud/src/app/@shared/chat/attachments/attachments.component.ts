@@ -1,7 +1,6 @@
-import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, ChangeDetectionStrategy, Component, effect, inject, model, input } from '@angular/core'
+import { booleanAttribute, ChangeDetectionStrategy, Component, effect, inject, model, input, output } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
@@ -39,7 +38,6 @@ import { ChatAttachmentComponent } from '../attachment/attachment.component'
   ]
 })
 export class ChatAttachmentsComponent {
-  readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly confirmDelete = injectConfirmDelete()
   readonly i18n = injectI18nService()
@@ -50,6 +48,13 @@ export class ChatAttachmentsComponent {
   readonly editable = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
+  readonly deletable = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
+
+  // Outputs
+  readonly onCreated = output<IStorageFile>()
+  readonly onDeleted = output<string>()
 
   constructor() {
     effect(() => {
@@ -65,12 +70,15 @@ export class ChatAttachmentsComponent {
       }
       return [...state]
     })
+    this.onCreated.emit(storageFile)
   }
 
   remove(index: number) {
+    const attachment = this.attachments()[index]
     this.attachments.update((state) => {
       state.splice(index, 1)
       return [...state]
     })
+    this.onDeleted.emit(attachment.storageFile?.id)
   }
 }

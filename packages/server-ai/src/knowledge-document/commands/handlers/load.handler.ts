@@ -1,11 +1,17 @@
-import { DocumentParserConfig, IKnowledgeDocument } from '@metad/contracts'
+import {
+	DocumentSheetParserConfig,
+	DocumentTextParserConfig,
+	IKnowledgeDocument,
+	KBDocumentCategoryEnum
+} from '@metad/contracts'
+import { pick } from '@metad/server-common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Document } from 'langchain/document'
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter'
 import { GetRagWebDocCacheQuery } from '../../../rag-web'
+import { LoadStorageFileCommand, LoadStorageSheetCommand } from '../../../shared/'
 import { KnowledgeDocumentService } from '../../document.service'
 import { KnowledgeDocLoadCommand } from '../load.command'
-import { LoadStorageFileCommand } from '../../../shared/'
 
 @CommandHandler(KnowledgeDocLoadCommand)
 export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoadCommand> {
@@ -17,6 +23,24 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 
 	public async execute(command: KnowledgeDocLoadCommand): Promise<Document[]> {
 		const { doc } = command.input
+
+		if (doc.category === KBDocumentCategoryEnum.Sheet) {
+			const parserConfig = doc.parserConfig as DocumentSheetParserConfig
+			const data = await this.commandBus.execute(new LoadStorageSheetCommand(doc.storageFileId))
+			const documents: Document[] = []
+			for (const row of data) {
+				const metadata = { raw: row, docId: doc.id }
+				documents.push(
+					new Document({
+						pageContent: parserConfig?.indexedFields?.length
+							? JSON.stringify(pick(row, parserConfig.indexedFields))
+							: JSON.stringify(row),
+						metadata
+					})
+				)
+			}
+			return documents
+		}
 
 		if (doc.storageFileId) {
 			const docs = await this.commandBus.execute(new LoadStorageFileCommand(doc.storageFileId))
@@ -41,15 +65,15 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
 		return await this.splitDocuments(doc, docs)
 	}
 
-	async splitDocuments(document: IKnowledgeDocument, data: Document[], parserConfig?: DocumentParserConfig) {
+	async splitDocuments(document: IKnowledgeDocument, data: Document[], parserConfig?: DocumentTextParserConfig) {
 		// Text Preprocessing
 		if (document.parserConfig?.replaceWhitespace) {
-			data.forEach(doc => {
+			data.forEach((doc) => {
 				doc.pageContent = doc.pageContent.replace(/[\s\n\t]+/g, ' ') // Replace consecutive spaces, newlines, and tabs
 			})
 		}
 		if (document.parserConfig?.removeSensitive) {
-			data.forEach(doc => {
+			data.forEach((doc) => {
 				doc.pageContent = doc.pageContent.replace(/https?:\/\/[^\s]+/g, '') // Remove URLs
 				doc.pageContent = doc.pageContent.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '') // Remove email addresses
 			})

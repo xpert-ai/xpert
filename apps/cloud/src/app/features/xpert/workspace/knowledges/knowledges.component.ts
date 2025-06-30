@@ -6,6 +6,7 @@ import { DynamicGridDirective, nonBlank } from '@metad/core'
 import { injectConfirmDelete, injectConfirmUnique } from '@metad/ocap-angular/common'
 import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { Dialog } from '@angular/cdk/dialog'
 import { BehaviorSubject, filter, map, switchMap } from 'rxjs'
 import {
   getErrorMessage,
@@ -23,6 +24,7 @@ import { EmojiAvatarComponent } from '../../../../@shared/avatar'
 import { CardCreateComponent } from '../../../../@shared/card'
 import { UserProfileInlineComponent } from '../../../../@shared/user'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
+import { XpertNewKnowledgeComponent } from '../../knowledge'
 
 @Component({
   standalone: true,
@@ -55,6 +57,7 @@ export class XpertWorkspaceKnowledgesComponent {
   readonly confirmUnique = injectConfirmUnique()
   readonly confirmDelete = injectConfirmDelete()
   readonly homeComponent = inject(XpertWorkspaceHomeComponent)
+  readonly #dialog = inject(Dialog)
 
   readonly organizationId$ = this.#store.selectOrganizationId()
 
@@ -98,22 +101,15 @@ export class XpertWorkspaceKnowledgesComponent {
   }
 
   newKnowledgebase() {
-    this.confirmUnique(
-      {
-        title: this.#translate()?.NewKnowledgebase || `New Knowledgebase`
-      },
-      (name: string) =>
-        this.knowledgebaseService.create({
-          name,
-          workspaceId: this.workspaceId()
-        })
-    ).subscribe({
-      next: (result) => {
-        this.refresh()
-        this._toastrService.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created successfully!' })
-      },
-      error: (error) => {
-        this._toastrService.error(error, 'Error')
+    this.#dialog.open<IKnowledgebase>(XpertNewKnowledgeComponent, {
+      data: {
+        workspaceId: this.workspaceId()
+      }
+    }).closed.subscribe({
+      next: (knowledgebase) => {
+        if (knowledgebase) {
+          this.#router.navigate(['/xpert/knowledges/', knowledgebase.id,])
+        }
       }
     })
   }

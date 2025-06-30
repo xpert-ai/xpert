@@ -23,10 +23,13 @@ export function parseXmlString(content: string) {
 
 export type TGraphTool = {
 	caller: string
-	toolset: string
+	toolset: {
+		provider: string
+		title: string
+		id?: string
+	}
 	tool: StructuredToolInterface | RunnableToolLike
 	variables?: TVariableAssigner[]
-	title: string
 }
 
 export function allAgentsKey(graph: TXpertGraph): IXpertAgent[] {

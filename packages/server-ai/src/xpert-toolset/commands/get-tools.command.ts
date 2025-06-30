@@ -1,5 +1,8 @@
 import { ICommand } from '@nestjs/cqrs'
 
+/**
+ * Create toolsets instances for given toolset IDs.
+ */
 export class ToolsetGetToolsCommand implements ICommand {
 	static readonly type = '[Xpert Toolset] Get tools'
 

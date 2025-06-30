@@ -1,0 +1,11 @@
+:host {
+  @apply flex flex-col justify-start items-stretch pb-4 space-y-4 px-4;
+}
+
+.f-component.f-node-output.right {
+  border-radius: 0;
+  width: 3px;
+  height: var(--output-size);
+  right: -1rem;
+  @apply bg-blue-500;
+}

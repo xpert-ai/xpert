@@ -9,9 +9,10 @@ import { RunnableConfig, RunnableToolLike } from "@langchain/core/runnables";
 import { DynamicTool, StructuredToolInterface } from "@langchain/core/tools";
 import { Command, isCommand, isGraphInterrupt, MessagesAnnotation } from "@langchain/langgraph";
 import { END, Send } from "@langchain/langgraph";
-import { ChatMessageEventTypeEnum } from "@metad/contracts";
+import { ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from "@metad/contracts";
 import { getErrorMessage } from "@metad/server-common";
 import { RunnableCallable } from "./utils";
+import { setContextVariable } from "@langchain/core/context";
 
 export type ToolNodeOptions = {
   name?: string;
@@ -20,7 +21,7 @@ export type ToolNodeOptions = {
   /**
    * A mapping of tool names to their toolset names.
    */
-  toolsets: Record<string, string>;
+  toolsets: Record<string, {provider: string; toolsetId: string}>;
 };
 
 /**
@@ -150,7 +151,7 @@ export class ToolNode<T = any> extends RunnableCallable<T, T> {
 
   trace = false;
 
-  toolsets: Record<string, string> = {};
+  toolsets: ToolNodeOptions['toolsets'] = {};
 
   constructor(
     tools: (StructuredToolInterface | DynamicTool | RunnableToolLike)[],
@@ -165,6 +166,9 @@ export class ToolNode<T = any> extends RunnableCallable<T, T> {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async run(input: any, config: RunnableConfig): Promise<T> {
+    // We set a context variable before invoking the tool node and running our tool.
+    setContextVariable(CONTEXT_VARIABLE_CURRENTSTATE, input)
+    
     const message = Array.isArray(input)
       ? input[input.length - 1]
       : input.messages[input.messages.length - 1];
@@ -187,7 +191,8 @@ export class ToolNode<T = any> extends RunnableCallable<T, T> {
               metadata: {
                 ...config.metadata,
                 tool_call_id: call.id,
-                toolset: this.toolsets[tool.name]
+                toolset: this.toolsets[tool.name]?.provider,
+                toolsetId: this.toolsets[tool.name]?.toolsetId
               }
             }
           );

@@ -2,13 +2,18 @@
   <div class="relative w-full px-2 pb-3 sm:pb-4">
     <form class="bottom-0 w-full text-base flex flex-col gap-2 items-center justify-center relative z-10">
       <div class="flex flex-row gap-2 justify-center w-full relative">
+        <input id="dropzone-file" #fileDropRef class="hidden" [accept]="attachment_accept()" multiple type="file" name="files"
+          (change)="fileBrowseHandler($event.target)"
+          (click)="fileDropRef.value=null;"/>
         <div
           class="query-bar group bg-components-card-bg duration-100 relative w-full shadow-sm sm:shadow-md rounded-[28px] border border-zinc-100 overflow-hidden 
            hover:border-zinc-200 hover:bg-input-background-hover focus-within:border-zinc-300
             hover:focus-within:border-zinc-300 pb-12 px-2 @[480px]/input:px-3"
         >
           @if (attachments()?.length) {
-            <chat-attachments class="w-full pt-2" editable [(attachments)]="attachments" />
+            <chat-attachments class="w-full pt-2" editable [(attachments)]="attachments" 
+              (onCreated)="onAttachCreated($event)"
+            />
           }
 
           <div class="relative z-10">
@@ -30,9 +35,20 @@
               (compositionupdate)="onCompositionUpdate($event)"
               (compositionend)="onCompositionEnd($event)"
             ></textarea>
+
+            <div class="absolute left-0 bottom-0 w-full h-full z-10 p-2 overflow-hidden bg-white"
+              [ngClass]="{
+                'hidden': !speeching(),
+                'block': speeching()
+              }"
+            ><canvas #waveCanvas class="absolute left-0 top-0 w-full h-full z-0"></canvas>
+              @if (isConverting()) {
+                <div class="flex items-center">{{'PAC.Xpert.ConvertingSpeechToText' | translate: {Default: 'Converting speech to text'} }}...</div>
+              }
+            </div>
           </div>
           <div class="flex gap-1.5 absolute inset-x-0 bottom-0 border-2 border-transparent p-2 @[480px]/input:p-3 max-w-full">
-            @if (attachment()?.enabled) {
+            @if (attachment_enabled()) {
               <button #attachTrigger
                 class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 h-9 rounded-full py-2 relative px-2 transition-all duration-150 bg-transparent border w-9 aspect-square border-toggle-border text-secondary hover:text-primary hover:bg-toggle-hover"
                 type="button"
@@ -49,7 +65,7 @@
                   }
                 ]"
               >
-                <i class="ri-attachment-line"></i>
+                <i class="ri-attachment-line text-lg"></i>
               </button>
             }
 
@@ -170,6 +186,34 @@
               </div>
             </div>
             <div class="ml-auto flex flex-row items-end gap-1">
+              @if (speechToText_enabled()) {
+                <div class="flex items-center px-2 z-10">
+                  <div class="grow">
+                    @if (isRecording())  {
+                      <span>{{'PAC.Xpert.Speaking' | translate: {Default: 'Speaking'} }}...</span>
+                    } @else if (isConverting()) {
+                      <span>{{'PAC.Xpert.Converting' | translate: {Default: 'Converting'} }}...</span>
+                    }
+                  </div>
+                  @if (speeching()) {
+                    <button type="button" class="action-btn action-btn-l w-10 h-10 flex justify-center items-center rounded-full text-lg"
+                      (click)="stopRecording()">
+                      <i class="ri-stop-circle-line text-primary-500"></i>
+                    </button>
+                  }
+                  @if (isRecording()) {
+                    <div>
+                      {{recordTimes() * 1000 | date:'mm:ss'}}
+                    </div>
+                  } @else if (!isConverting()) {
+                    <button type="button" class="action-btn action-btn-l w-10 h-10 flex justify-center items-center rounded-full text-lg"
+                      (click)="startRecording()">
+                      <i class="ri-mic-ai-fill text-lg"></i>
+                    </button>
+                  }
+                </div>
+              }
+
               @if (answering()) {
                 <button type="button" class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1 text-white bg-black dark:bg-white dark:text-black
                   transition-transform origin-center enabled:hover:scale-110"
@@ -204,42 +248,36 @@
 
 
 <ng-template #attachMenu>
-  <div class="relative w-[280px] rounded-xl border-[0.5px] border-components-panel-border bg-components-panel-bg-blur shadow-lg">
-    <div class="w-full flex justify-between items-center p-2">
-      <div class="pl-2">{{'PAC.Xpert.Attachments' | translate: {Default: 'Attachments'} }}</div>
-      <button type="button" class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
-        (click)="closeAttach()">
-        <i class="ri-close-line"></i>
-      </button>
+  <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItem (click)="fileDropRef.click()">
+      <i class="ri-folder-line text-lg mr-2"></i>
+      <div class="text-sm font-medium">{{ 'PAC.XProject.UploadAFile' | translate: {Default: 'Upload a file'} }}</div>
     </div>
 
-    <div class="px-4 pb-4">
-      <!-- <div class="flex h-9 items-center rounded-lg border border-components-input-border-active bg-components-input-bg-active p-1 shadow-sm">
-        <input class="system-sm-regular mr-0.5 block grow appearance-none bg-transparent px-1 outline-none" 
-          placeholder="Enter URL..."
-          tabindex="-1"
-          [(ngModel)]="url"
-          [ngModelOptions]="{standalone: true}"
-        >
-        <button type="button" class="btn disabled:btn-disabled btn-primary btn-small shrink-0" 
-          [disabled]="!url()"
-          (click)="createUrlFile()"
-        >OK</button>
+    @if (recentAttachments()?.length) {
+      <div cdkMenuItem [cdkMenuTriggerFor]="recentMenu" >
+        <i class="ri-file-history-line text-lg mr-2"></i>
+        <div class="grow text-sm font-medium">{{ 'PAC.XProject.Recent' | translate: {Default: 'Recent'} }}</div>
+        <i class="ri-arrow-right-s-line"></i>
       </div>
-      <div class="system-2xs-medium-uppercase flex h-7 items-center p-2 text-text-quaternary">
-        <div class="mr-2 h-[1px] w-[93px] bg-gradient-to-l from-[rgba(16,24,40,0.08)]"></div>
-        {{'PAC.KEY_WORDS.OR' | translate: {Default: 'OR'} }}
-        <div class="ml-2 h-[1px] w-[93px] bg-gradient-to-r from-[rgba(16,24,40,0.08)]"></div>
-      </div> -->
-      <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium relative w-full" tabindex="-1">
-        <i class="ri-upload-cloud-2-line mr-2"></i>
-        
-        {{'PAC.Xpert.LocalUpload' | translate: {Default: 'Local upload'} }}
-        <input class="absolute inset-0 block w-full cursor-pointer text-[0] opacity-0 disabled:cursor-not-allowed" 
-          accept=".jpg,.jpeg,.png,.gif,.webp,.svg" multiple type="file"
-          (change)="onFileSelected($event)"
-        >
-      </button>
-    </div>
+    }
+  </div>
+</ng-template>
+
+<ng-template #recentMenu>
+  <div cdkMenu class="cdk-menu__medium">
+    @for (file of recentAttachments(); track file.id) {
+      <div cdkMenuItem class="flex items-center gap-2" (click)="addAttachment(file)">
+        <pac-file-icon [fileType]="file.originalName | fileType" />
+        <div class="flex-1 text-left max-w-sm truncate">
+          <div class="text-base truncate">{{ file.originalName }}</div>
+          <div class="text-xs font-mono text-secondary">{{ file.size/1024 | number:'0.0-0' }}KB · {{ file.createdAt | relative }}</div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm flex justify-center items-center rounded-full w-6 h-6 hover:text-text-destructive hover:border-text-destructive"
+           (click)="onAttachDeleted(file.id)">
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+    }
   </div>
 </ng-template>

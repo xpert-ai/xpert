@@ -21,7 +21,9 @@ import {
   IKnowledgeDocumentPage,
   injectHelpWebsite,
   IntegrationService,
+  isDocumentSheet,
   IStorageFile,
+  KBDocumentCategoryEnum,
   KDocumentSourceType,
   KDocumentWebTypeOptions,
   KnowledgeDocumentService,
@@ -32,11 +34,12 @@ import {
 } from '../../../../../../../@core'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../../documents.component'
-import { KnowledgeDocumentCreateComponent, TFileItem } from '../create.component'
+import { KnowledgeDocumentCreateComponent } from '../create.component'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { isNil, uniq } from 'lodash-es'
 import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
+import { TFileItem } from '../../types'
 
 @Component({
   standalone: true,
@@ -249,11 +252,13 @@ export class KnowledgeDocumentCreateStep1Component {
       )
       .subscribe({
         complete: () => {
+          const type = item.file.name.split('.').pop().toLowerCase()
           item.loading = false
           item.doc = {
             storageFile,
             sourceType: KDocumentSourceType.FILE,
-            type: item.file.name.split('.').pop().toLowerCase()
+            type,
+            category: isDocumentSheet(type) ? KBDocumentCategoryEnum.Sheet : KBDocumentCategoryEnum.Text
           } as IKnowledgeDocument
           this.fileList.update((state) => state.map((_) => {
             if (_ === item) { // Refresh current item

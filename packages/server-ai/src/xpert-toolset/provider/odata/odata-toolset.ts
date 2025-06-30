@@ -34,6 +34,10 @@ export class ODataToolset extends BaseToolset<ODataTool> {
 		return this.tools
 	}
 
+	getId() {
+		return this.toolset?.id
+	}
+
 	/**
 	 * @todo
 	 */

@@ -2,18 +2,20 @@ import { Location } from '@angular/common'
 import { effect, inject, Injectable } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { Router } from '@angular/router'
-import { IXpert } from '@cloud/app/@core/types'
+import { IStorageFile, IXpert } from '@cloud/app/@core/types'
 import { ChatService } from '@cloud/app/xpert'
 import { nonNullable } from '@metad/ocap-core'
 import { injectParams } from 'ngxtension/inject-params'
 import { distinctUntilChanged, filter, map, withLatestFrom } from 'rxjs'
 import { ChatHomeService } from '../home.service'
 import { ProjectService } from './project.service'
+import { injectProjectService } from '@cloud/app/@core'
 
 @Injectable()
 export class ChatProjectService extends ChatService {
   readonly homeService = inject(ChatHomeService)
   readonly projectService = inject(ProjectService)
+  readonly #projectsService = injectProjectService()
   readonly #router = inject(Router)
   readonly #location = inject(Location)
 
@@ -87,5 +89,15 @@ export class ChatProjectService extends ChatService {
     } else {
       this.#router.navigate(['/chat/p', this.project().id])
     }
+  }
+
+  onAttachCreated(file: IStorageFile): void {
+    this.projectService.onAttachCreated(file)
+  }
+  onAttachDeleted(fileId: string): void {
+    this.projectService.onAttachDeleted(fileId)
+  }
+  getRecentAttachmentsSignal() {
+    return this.projectService.project_attachments
   }
 }

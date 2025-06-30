@@ -49,6 +49,7 @@ import {
 import { AppService } from '../../../../app.service'
 import { XpertWorkspaceSettingsComponent } from '../settings/settings.component'
 import { XpertWorkspaceWelcomeComponent } from '../welcome/welcome.component'
+import { debouncedSignal } from '@metad/ocap-angular/core'
 
 export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
 
@@ -164,6 +165,14 @@ export class XpertWorkspaceHomeComponent {
 
   readonly searchControl = new FormControl()
   readonly searchText = toSignal(this.searchControl.valueChanges.pipe(debounceTime(300), startWith('')))
+
+  // Search for workspaces
+  readonly searchWorkspace = model<string>('')
+  readonly #debouncedSearchWs = debouncedSignal(this.searchWorkspace, 300)
+  readonly filteredWorkspaces = computed(() => {
+    const searchText = this.#debouncedSearchWs().toLowerCase()
+    return this.workspaces()?.filter((ws) => ws.name.toLowerCase().includes(searchText))
+  })
 
   readonly inDevelopmentOpen = signal(false)
 

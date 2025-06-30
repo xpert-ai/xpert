@@ -31,7 +31,7 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
 
 	async chatAgent(params: TChatAgentParams, options: TChatOptions) {
 		const xpertId = params.xpertId
-		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }, ['agent']))
+		const xpert = await this.queryBus.execute(new FindXpertQuery({ id: xpertId }, {relations: ['agent'], isDraft: true}))
 		return await this.commandBus.execute<XpertAgentChatCommand, Observable<MessageEvent>>(
 			new XpertAgentChatCommand(params.input, params.agentKey, xpert, {
 				...options,

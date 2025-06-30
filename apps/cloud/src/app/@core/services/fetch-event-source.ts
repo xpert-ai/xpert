@@ -11,10 +11,14 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
   const lang = injectLanguage()
 
 
-  return (url: string, data: T) => {
+  return (params: string | {url: string; method: 'POST' | 'GET'; headers?: Record<string, any>; params?: Record<string, any>}, data?: T) => {
+    const url: string = typeof params === 'string' ? params : params.url
+    const method = typeof params === 'object' && params.method ? params.method : 'POST'
     return new Observable<EventSourceMessage>((subscriber) => {
       const ctrl = new AbortController()
       const organization = store.selectedOrganization ?? { id: null }
+
+      const _headers = typeof params === 'object' && params.headers ? params.headers : {}
 
       // For retry 1 when unauthorized.
       let unauthorized = false
@@ -26,13 +30,21 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
           Language: lang(),
-          'Time-Zone': Intl.DateTimeFormat().resolvedOptions().timeZone
+          'Time-Zone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+          ..._headers
         }
         if (organization?.id) {
           headers['Organization-Id'] = organization.id
         }
-        fetchEventSource(url, {
-          method: 'POST',
+        // Handle query params if provided
+        let finalUrl = url
+        if (typeof params === 'object' && params.params) {
+          const searchParams = new URLSearchParams(params.params as Record<string, string>).toString()
+          finalUrl += (finalUrl.includes('?') ? '&' : '?') + searchParams
+        }
+
+        fetchEventSource(finalUrl, {
+          method,
           headers,
           body: data,
           openWhenHidden: true,

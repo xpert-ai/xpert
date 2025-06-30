@@ -1,12 +1,19 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, input, model } from '@angular/core'
+import { Component, computed, input, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TSelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { TAgentOutputVariable, TVariableAssigner, TWorkflowVarGroup, TXpertParameter, uuid, VariableOperations } from '../../../@core/types'
-import { NgmSelectComponent } from '../../common'
+import {
+  TAgentOutputVariable,
+  TVariableAssigner,
+  TWorkflowVarGroup,
+  TXpertParameter,
+  uuid,
+  VariableOperations
+} from '../../../@core/types'
 import { StateVariableSelectComponent } from '../../agent'
+import { NgmSelectComponent } from '../../common'
 
 /**
  *
@@ -26,13 +33,12 @@ import { StateVariableSelectComponent } from '../../agent'
   styleUrls: ['variables-assigner.component.scss']
 })
 export class XpertVariablesAssignerComponent {
-
   readonly title = input<string>()
   readonly tooltip = input<string>()
   readonly variables = input<TWorkflowVarGroup[]>()
   readonly parameters = input<TXpertParameter[]>()
   readonly memories = model<TVariableAssigner[]>()
-  readonly type = input<'tool' | 'agent'>()
+  readonly type = input<'tool' | 'agent' | 'variable'>()
 
   readonly OPERATIONS: TSelectOption<TAgentOutputVariable['operation']>[] = VariableOperations
   readonly InputTypeOptions: TSelectOption<TVariableAssigner['inputType']>[] = [
@@ -75,16 +81,20 @@ export class XpertVariablesAssignerComponent {
         zh_Hans: '内容',
         en_US: 'Content'
       }
-    },
+    }
   ]
 
   readonly ValueOptions = computed(() => {
     const options = this.type() === 'tool' ? this.ToolValueOptions : this.AgentValueOptions
-    return options.concat(this.parameters()?.map((param) => ({
-      value: param.name,
-      label: param.title || param.description || param.name
-    })) ?? [])
+    return options.concat(
+      this.parameters()?.map((param) => ({
+        value: param.name,
+        label: param.title || param.description || param.name
+      })) ?? []
+    )
   })
+
+  readonly hoveredDelIndex = signal<number | null>(null)
 
   add() {
     this.memories.update((state) => [...(state ?? []), { id: uuid() } as TVariableAssigner])
@@ -92,7 +102,7 @@ export class XpertVariablesAssignerComponent {
 
   updateMemory(index: number, name: string, value: any) {
     this.memories.update((memories) => {
-      const entity = {[name]: value}
+      const entity = { [name]: value }
       if (name === 'inputType' && memories[index].inputType !== value) {
         entity.value = null
       }
@@ -106,8 +116,8 @@ export class XpertVariablesAssignerComponent {
 
   deleteMemory(index: number) {
     this.memories.update((memories) => {
-      memories?.splice(index, 1)
-      return memories
+      memories.splice(index, 1)
+      return [...memories]
     })
   }
 }

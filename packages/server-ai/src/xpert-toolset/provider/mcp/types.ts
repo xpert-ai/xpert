@@ -13,7 +13,7 @@ export async function createMCPClient(toolset: Partial<IXpertToolset>, schema: T
 		const transport = server.type?.toLowerCase()
 		if (transport === MCPServerType.SSE || (!transport && server.url)) {
 			let headers = server.headers
-			if (Object.keys(server.env ?? {}).length === 0) {
+			if (Object.keys(server.headers ?? {}).length === 0) {
 				headers = null
 			} else {
 				for await (const name of Object.keys(headers)) {

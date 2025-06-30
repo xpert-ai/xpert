@@ -2,12 +2,12 @@ import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
-import { ChatMessageStepIconComponent } from '@cloud/app/@shared/chat'
-import { NgmDSCoreService, RelativeTimesPipe } from '@metad/ocap-angular/core'
+import { ChatToolCallChunkComponent } from '@cloud/app/@shared/chat'
+import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { SlicersCapacity } from '@metad/ocap-angular/selection'
 import { TimeGranularity } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -50,8 +50,7 @@ import { ChatService } from '../chat.service'
     ChatComponentMemoriesComponent,
     ChatComponentMessageFilesComponent,
     ChatComponentMessageIframeComponent,
-    ChatMessageStepIconComponent,
-    RelativeTimesPipe
+    ChatToolCallChunkComponent
   ],
   selector: 'chat-component-message',
   templateUrl: './component-message.component.html',
@@ -90,14 +89,20 @@ export class ChatComponentMessageComponent {
   // constructor() {
   //   effect(
   //     () => {
-  //       console.log(this.data())
+  //       console.log(this.step())
   //     },
-  //     { allowSignalWrites: true }
   //   )
   // }
 
+  openComponentMessage() {
+    if (this.data()?.category === 'Computer') {
+      this.openInCanvas(this.data())
+    } else if (this.data()?.category === 'Tool') {
+      console.log(this.data())
+    }
+  }
+
   openInCanvas(data: TMessageComponent) {
-    // console.log(data)
     this.homeService.canvasOpened.set({
       opened: true,
       type: 'Computer',

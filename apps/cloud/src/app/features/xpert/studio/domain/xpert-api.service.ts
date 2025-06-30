@@ -143,10 +143,11 @@ export class XpertStudioApiService {
     map(({ items }) => items),
     shareReplay(1)
   )
+  readonly refreshToolsets$ = new BehaviorSubject<void>(null)
   readonly toolsets$ = toObservable(this.workspaceId).pipe(
     filter(nonBlank),
     distinctUntilChanged(),
-    switchMap((id) => this.toolsetService.getAllByWorkspace(id, {relations: ['createdBy'], order: {updatedAt: OrderTypeEnum.DESC}})),
+    switchMap((id) => this.refreshToolsets$.pipe(switchMap(() => this.toolsetService.getAllByWorkspace(id, {relations: ['createdBy'], order: {updatedAt: OrderTypeEnum.DESC}})))),
     map(({ items }) => items),
     shareReplay(1)
   )
@@ -608,8 +609,10 @@ export class XpertStudioApiService {
     this.#reload.next(EReloadReason.KNOWLEDGE_CREATED)
   }
 
-  // Get toolset detail from cache or remote
   private readonly toolsets = new Map<string, {toolset$: Observable<IXpertToolset>; refresh$: BehaviorSubject<void>}>()
+  /**
+   * Get toolset detail with tools from cache or remote
+   */
   getToolset(id: string): {toolset$: Observable<IXpertToolset>; refresh$: BehaviorSubject<void>} {
     if (!this.toolsets.get(id)) {
       const refresh$ = new BehaviorSubject<void>(null)

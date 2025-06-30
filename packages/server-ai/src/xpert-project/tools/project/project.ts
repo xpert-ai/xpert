@@ -31,6 +31,9 @@ export class ProjectToolset extends _BaseToolset<BuiltinTool> {
 		super(params)
 	}
 
+	getId(): string {
+		return null
+	}
 	getName(): string {
 		return `project-tasks`
 	}

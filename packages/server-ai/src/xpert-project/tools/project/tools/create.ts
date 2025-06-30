@@ -2,13 +2,12 @@ import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { tool } from '@langchain/core/tools'
 import {
 	ChatMessageEventTypeEnum,
+	ChatMessageStepCategory,
 	ChatMessageStepType,
-	ChatMessageTypeEnum,
+	getToolCallFromConfig,
 	IXpertProjectTask,
 	TAgentRunnableConfigurable,
-	TMessageContentComponent
 } from '@metad/contracts'
-import { shortuuid } from '@metad/server-common'
 import { z } from 'zod'
 import { XpertProjectTaskService } from '../../../services'
 import { ProjectToolEnum } from '../project'
@@ -24,7 +23,8 @@ export const createCreateTasksTool = ({
 		async (_, config) => {
 			const { configurable } = config ?? {}
 			const { subscriber, thread_id } = <TAgentRunnableConfigurable>configurable ?? {}
-
+			const toolCall = getToolCallFromConfig(config)
+			
 			const tasks = await service.saveAll(
 				..._.tasks.map(
 					(task) =>
@@ -40,7 +40,9 @@ export const createCreateTasksTool = ({
 
 			// Tool message event
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+				id: toolCall?.id,
 				type: ChatMessageStepType.ComputerUse,
+				category: ChatMessageStepCategory.Tasks,
 				toolset: 'project',
 				tool: 'project_create_tasks',
 				message: _.tasks.map((_) => _.name).join('\n\n'),
@@ -48,20 +50,20 @@ export const createCreateTasksTool = ({
 				data: tasks
 			})
 
-			subscriber?.next({
-				data: {
-					type: ChatMessageTypeEnum.MESSAGE,
-					data: {
-						id: shortuuid(),
-						type: 'component',
-						data: {
-							category: 'Computer',
-							type: 'Tasks',
-							tasks
-						}
-					} as TMessageContentComponent
-				}
-			} as MessageEvent)
+			// subscriber?.next({
+			// 	data: {
+			// 		type: ChatMessageTypeEnum.MESSAGE,
+			// 		data: {
+			// 			id: shortuuid(),
+			// 			type: 'component',
+			// 			data: {
+			// 				category: 'Computer',
+			// 				type: 'Tasks',
+			// 				tasks
+			// 			}
+			// 		} as TMessageContentComponent
+			// 	}
+			// } as MessageEvent)
 			return `Tasks created!`
 		},
 		{

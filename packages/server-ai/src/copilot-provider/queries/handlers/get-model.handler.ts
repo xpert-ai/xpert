@@ -12,11 +12,16 @@ export class GetCopilotProviderModelHandler implements IQueryHandler<GetCopilotP
 	) {}
 
 	public async execute(command: GetCopilotProviderModelQuery) {
+		const { modelName, modelType } = command.params ?? {}
+		const conditions = {
+			providerId: command.providerId,
+			modelName: modelName || Not(IsNull())
+		}
+		if (modelType) {
+			conditions['modelType'] = modelType
+		}
 		const { items } = await this.service.findAllInOrganizationOrTenant({
-			where: {
-				providerId: command.providerId,
-				modelName: command.modelName || Not(IsNull())
-			}
+			where: conditions
 		})
 
 		return items

@@ -14,6 +14,8 @@ import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrie
 import { CreateWNSubflowCommand } from '../create-wn-subflow.command'
 import { createTemplateNode } from '../template'
 import { CreateWNClassifierCommand } from '../create-wn-classifier.command'
+import { createToolNode } from '../tool'
+import { createAssignerNode } from '../assigner'
 
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {
@@ -31,6 +33,15 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 		let workflow = {} as any
 		let channel: TStateChannel = null
 		switch (node.entity.type) {
+			case WorkflowNodeTypeEnum.ASSIGNER: {
+				workflow = createAssignerNode(graph, node, {
+					commandBus: this.commandBus,
+					queryBus: this.queryBus,
+					xpertId,
+					environment: options.environment,
+				})
+				break
+			}
 			case WorkflowNodeTypeEnum.IF_ELSE: {
 				workflow = createCasesNode(graph, node, {environment: options.environment})
 				break
@@ -139,6 +150,16 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 					commandBus: this.commandBus,
 					queryBus: this.queryBus,
 					environment: options.environment
+				})
+				break
+			}
+			case WorkflowNodeTypeEnum.TOOL: {
+				workflow = createToolNode(graph, node, {
+					commandBus: this.commandBus,
+					queryBus: this.queryBus,
+					xpertId,
+					environment: options.environment,
+					conversationId: options.conversationId
 				})
 				break
 			}

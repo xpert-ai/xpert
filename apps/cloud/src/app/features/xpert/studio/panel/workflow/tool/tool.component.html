@@ -1,0 +1,173 @@
+<div>
+  <div class="flex justify-between items-center">
+    <div class="my-2 font-semibold uppercase text-text-secondary">
+      {{ 'PAC.Xpert.Toolset' | translate: {Default: 'Toolset'} }}
+    </div>
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small"
+      (click)="createMCPTool()">
+      <i class="ri-add-line"></i>
+      {{ 'PAC.Xpert.AddMCPServer' | translate: {Default: 'Add MCP Server'} }}
+    </button>
+  </div>
+
+  <div class="space-y-0.5 rounded-[9px] bg-zinc-100 p-0.5">
+    <div class="bg-zinc-50 hover:bg-zinc-100 relative flex h-9 cursor-pointer items-center rounded-lg border border-dashed
+      border-divider-deep px-1 text-sm text-text-placeholder"
+      [cdkMenuTriggerFor]="toolsetMenu"
+      [matTooltip]="toolsetDetail()?.description"
+      matTooltipPosition="left"
+    >
+      @if (toolsetDetail(); as toolset) {
+        <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-lg scale-95"  />
+        <div class="flex items-center uppercase">
+          <span>{{toolset.name}}</span>
+        </div>
+      } @else {
+        <div class="bg-neutral-100 text-lg mr-1.5 flex h-5 w-5 items-center justify-center rounded-[5px]">
+          <i class="ri-add-line"></i>
+        </div>
+        <div class="flex items-center uppercase">
+          <span>{{ 'PAC.Xpert.SelectToolset' | translate: {Default: 'Select Toolset'} }}</span>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<div class="space-y-2">
+  <div class="flex items-center justify-between">
+    <div class="flex h-6 items-center">
+      <div class="system-sm-semibold-uppercase text-text-secondary">
+        {{ 'PAC.Xpert.Tool' | translate: {Default: 'Tool'} }}
+      </div>
+    </div>
+    <div class="flex"></div>
+  </div>
+
+  <div class="relative rounded-[9px] bg-zinc-100 p-0.5">
+    <div class="bg-zinc-50 hover:bg-zinc-100 relative flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-dashed
+      border-divider-deep px-2 text-sm text-text-placeholder"
+      [cdkMenuTriggerFor]="toolsMenu"
+      [ariaDisabled]="!toolsetDetail()"
+      [matTooltip]="tool()?.description"
+      matTooltipPosition="left"
+    >
+      @if (tool(); as tool) {
+        <div class="flex items-center whitespace-nowrap" [title]="tool.description || tool.name">
+          {{tool.label | i18n}}
+        </div>
+        <div class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50">
+          {{tool.name}}
+        </div>
+      } @else {
+        <div class="bg-neutral-100 text-lg flex h-5 w-5 items-center justify-center rounded-[5px]">
+          <i class="ri-add-line"></i>
+        </div>
+        <div class="flex items-center uppercase">
+          <span>{{ 'PAC.Xpert.SelectTool' | translate: {Default: 'Select Tool'} }}</span>
+        </div>
+      }
+    </div>
+
+    @if (tool(); as tool) {
+      <button type="button" class="btn btn-secondary btn-small absolute right-2 top-1/2 -translate-y-1/2"
+        [disabled]="paramsSample().loading"
+        (click)="copyParamsSample()">
+        {{ 'PAC.Xpert.CopyParamsSample' | translate: {Default: 'Copy Params Sample'} }}
+      </button>
+    }
+  </div>
+</div>
+
+<div>
+  <div class="my-2 system-sm-semibold-uppercase text-text-secondary">
+    {{ 'PAC.Xpert.ParameterVariable' | translate: {Default: 'Parameter Variable'} }}
+  </div>
+  <div class="relative rounded-[9px] bg-zinc-100 p-1">
+    <xpert-state-variable-select class="rounded-lg border border-dashed border-divider-deep"
+      [variables]="variables()" 
+      [(ngModel)]="parameterVariable" 
+    />
+  </div>
+</div>
+
+<!-- <div class="h-[0.5px] bg-divider-subtle"></div>
+<div class="p-4 flex flex-col gap-2">
+  <div>
+    {{ 'PAC.Xpert.Schema' | translate: {Default: 'Schema'} }}
+  </div>
+  <div class="p-2 whitespace-pre-wrap text-text-secondary font-mono text-xs bg-neutral-50">
+    {{schema() | json}}
+  </div>
+</div> -->
+
+<div class="h-[0.5px] bg-divider-subtle"></div>
+
+<div class="space-y-2">
+  <div class="flex items-center">
+    <div class="h-4 w-4 shrink-0 flex justify-center items-center text-text-secondary">
+      <i class="ri-arrow-right-s-line" [class.rotate-90]="expandOutputVariables()"></i>
+    </div>
+    <div class="system-sm-semibold-uppercase flex h-6 cursor-pointer items-center text-text-secondary"
+      (click)="toggleOutput()"
+    >{{ 'PAC.Workflow.OutputVariables' | translate: {Default: 'Output Variables'} }}
+    </div>
+  </div>
+  @if (expandOutputVariables()) {
+    <div class="px-4">
+      <div class="flex items-center leading-[18px]">
+        <div class="code-sm-semibold text-text-secondary">text</div>
+        <div class="system-xs-regular ml-2 capitalize text-text-tertiary">string</div>
+      </div>
+      <div class="system-xs-regular mt-0.5 text-text-tertiary">
+        {{ 'PAC.Xpert.Text' | translate: {Default: 'Text'} }}
+      </div>
+    </div>
+    <div class="px-4">
+      <div class="flex items-center leading-[18px]">
+        <div class="code-sm-semibold text-text-secondary">files</div>
+        <div class="system-xs-regular ml-2 capitalize text-text-tertiary">file[]</div>
+      </div>
+      <div class="system-xs-regular mt-0.5 text-text-tertiary">
+        {{ 'PAC.Xpert.Files' | translate: {Default: 'Files'} }}
+      </div>
+    </div>
+    <div class="px-4">
+      <div class="flex items-center leading-[18px]">
+        <div class="code-sm-semibold text-text-secondary">json</div>
+        <div class="system-xs-regular ml-2 capitalize text-text-tertiary">json</div>
+      </div>
+      <div class="system-xs-regular mt-0.5 text-text-tertiary">
+        {{ 'PAC.Xpert.JSON' | translate: {Default: 'JSON'} }}
+      </div>
+    </div>
+  }
+</div>
+
+<div class="w-full h-[0.5px] bg-divider-subtle"></div>
+
+<xpert-workflow-error-handling class=""
+  [defaultValueSchema]="[
+    {
+      type: eXpertParameterTypeEnum.STRING,
+      name: 'result'
+    }
+  ]"
+  [(ngModel)]="errorHandling"
+/>
+
+<ng-template #toolsetMenu>
+  <xpert-studio-toolset-menu cdkMenu class="cdk-menu__medium overflow-auto"
+    [onSelect]="onSelectToolset.bind(this)"
+  />
+</ng-template>
+
+<ng-template #toolsMenu>
+  <div cdkMenu class="cdk-menu__medium overflow-auto">
+    @for (tool of tools(); track tool.value) {
+      <div cdkMenuItem (click)="onSelectTool(tool.value)">
+        {{ tool.label | i18n }}
+      </div>
+    }
+  </div>
+</ng-template>
