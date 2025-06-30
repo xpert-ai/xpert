@@ -21,6 +21,7 @@ import {
 	IChatConversation,
 	IChatMessage,
 	IEnvironment,
+	IStorageFile,
 	IXpert,
 	IXpertAgent,
 	IXpertAgentExecution,
@@ -75,7 +76,7 @@ import {
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { toEnvState } from '../../../environment'
 import { ProjectToolset } from '../../../xpert-project/tools'
-import { _BaseToolset, AgentStateAnnotation, BaseTool, stateToParameters, stateVariable, ToolNode, translate } from '../../../shared'
+import { _BaseToolset, AgentStateAnnotation, BaseTool, createHumanMessage, stateToParameters, stateVariable, ToolNode, translate } from '../../../shared'
 
 const GeneralAgentRecursionLimit = 99
 
@@ -149,7 +150,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 				new ChatMessageUpsertCommand({
 					role: 'human',
 					content: input.input,
-					conversationId: conversation.id
+					conversationId: conversation.id,
+					attachments: input.files as IStorageFile[],
 				})
 			)
 		}
@@ -203,7 +205,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 							input?.input || retry
 								? {
 										...(input ?? {}),
-										messages: [new HumanMessage(userMessage.content as string)],
+										messages: [
+											await createHumanMessage(this.commandBus, input, {enabled: true, resolution: 'low'})
+										],
 										[STATE_VARIABLE_SYS]: {
 											language: languageCode,
 											user_email: user.email,

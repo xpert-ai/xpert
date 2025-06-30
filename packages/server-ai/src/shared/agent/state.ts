@@ -4,10 +4,10 @@ import { Annotation, messagesStateReducer } from '@langchain/langgraph'
 import { SearchItem } from '@langchain/langgraph-checkpoint'
 import {
 	IEnvironment,
-	IStorageFile,
 	STATE_VARIABLE_HUMAN,
 	STATE_VARIABLE_SYS,
 	STATE_VARIABLE_TITLE_CHANNEL,
+	TChatRequestHuman,
 	TMessageChannel,
 	TStateVariable,
 	VariableOperationEnum,
@@ -23,11 +23,6 @@ export type TAgentStateSystem = {
 	date: string
 	datetime: string
 	common_times: string
-}
-
-export type TAgentStateHuman = {
-	input: string
-	files: IStorageFile[]
 }
 
 export const AgentStateAnnotation = Annotation.Root({
@@ -53,11 +48,11 @@ export const AgentStateAnnotation = Annotation.Root({
 				common_times: commonTimes()
 			}) as TAgentStateSystem
 	}),
-	[STATE_VARIABLE_HUMAN]: Annotation<TAgentStateHuman>({
+	[STATE_VARIABLE_HUMAN]: Annotation<TChatRequestHuman>({
 		reducer: (a, b) => {
 			return b ?? a
 		},
-		default: () => ({} as TAgentStateHuman)
+		default: () => ({} as TChatRequestHuman)
 	}),
 	toolCall: Annotation<ToolCall>({
 		reducer: (a, b) => b ?? a,

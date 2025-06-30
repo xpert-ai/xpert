@@ -6,11 +6,12 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'
 import { of } from 'rxjs'
 import { ChatHomeService } from '../home.service'
+import { attrModel } from '@metad/ocap-angular/core'
 
 @Injectable()
 export class ProjectService {
   readonly homeService = inject(ChatHomeService)
-  readonly projectSercice = injectProjectService()
+  readonly projectsService = injectProjectService()
 
   readonly paramRole = injectParams('name')
   readonly paramId = injectParams('c')
@@ -18,7 +19,7 @@ export class ProjectService {
   readonly id = injectParams('id')
 
   readonly #project = derivedAsync(() =>
-    this.id() ? this.projectSercice.getById(this.id(), { relations: ['createdBy', 'owner', 'copilotModel', 'xperts'] }) : of(null)
+    this.id() ? this.projectsService.getById(this.id(), { relations: ['createdBy', 'owner', 'copilotModel', 'xperts', 'attachments'] }) : of(null)
   )
 
   readonly project = linkedModel<Partial<IXpertProject>>({
@@ -30,5 +31,20 @@ export class ProjectService {
   // Attachments
   readonly attachments = signal<{ file?: File; url?: string; storageFile?: IStorageFile }[]>([])
   readonly files = computed(() => this.attachments()?.map(({storageFile}) => storageFile))
+  readonly project_attachments = attrModel(this.project, 'attachments')
   
+  onAttachCreated(file: IStorageFile) {
+    this.projectsService.addAttachments(this.id(), [file.id]).subscribe({
+      next: () => {
+        this.project_attachments.update((state) => [...state, file])
+      },
+    })
+  }
+  onAttachDeleted(fileId: string) {
+    this.projectsService.removeAttachment(this.id(), fileId).subscribe({
+      next: () => {
+        this.project_attachments.update((state) => state.filter((file) => file.id !== fileId))
+      }
+    })
+  }
 }

@@ -16,7 +16,7 @@
       </span>
       <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
         <span class="font-semibold">{{ 'PAC.XProject.ClicktoUpload' | translate: {Default: 'Click to upload'} }}</span> {{ 'PAC.XProject.OrDragandDrop' | translate: {Default: 'or drag and drop'} }}
-        (<span class="">{{ 'PAC.XProject.RecognizeTextOnly' | translate: {Default: 'Recognize text only'} }}</span>)</p>
+      </p>
     </div>
     <input id="dropzone-file" #fileDropRef type="file" class="hidden" (change)="fileBrowseHandler($event.target)"
       (click)="fileDropRef.value=null;"/>

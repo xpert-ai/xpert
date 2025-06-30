@@ -58,7 +58,9 @@
             (click)="fileDropRef.value=null;"/>
           <div class="query-bar group max-w-[51rem] bg-components-card-bg ring-zinc-100 hover:ring-zinc-200 focus-within:ring-zinc-300 hover:focus-within:ring-zinc-300 duration-100 relative w-full overflow-hidden @container/input shadow shadow-black/5 ring-1 ring-inset focus-within:ring-1 pb-12 px-2 @[480px]/input:px-3 rounded-3xl">
             @if (attachments()?.length) {
-              <chat-attachments class="w-full pt-2" editable [(attachments)]="attachments" />
+              <chat-attachments class="w-full pt-2" editable [(attachments)]="attachments" 
+                (onCreated)="onAttachCreated($event)"
+                />
             }
             <div class="relative z-10">
               <textarea [placeholder]=" 'PAC.XProject.InputPlaceholder' | translate: {Default: 'Start a conversation in this project'} "
@@ -84,7 +86,16 @@
                 tabindex="0"
                 [matTooltip]="'PAC.XProject.UploadAttachmentsTooltip' | translate: {Default: 'Upload attachments (only recognize text and images)'}"
                 matTooltipPosition="above"
-                (click)="fileDropRef.click()"
+                [cdkMenuTriggerFor]="attachMenu"
+                [cdkMenuPosition]="[
+                  {
+                    originX: 'center',
+                    originY: 'top',
+                    overlayX: 'center',
+                    overlayY: 'bottom',
+                    offsetY: -5,
+                  }
+                ]"
               >
                 <i class="ri-attachment-line text-lg"></i>
               </button>
@@ -364,5 +375,40 @@
       <i class="ri-settings-4-line mr-1"></i>
       <span>{{ 'PAC.XProject.Manage' | translate: {Default: 'Manage'} }}</span>
     </div>
+  </div>
+</ng-template>
+
+
+<ng-template #attachMenu>
+  <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItem (click)="fileDropRef.click()">
+      <i class="ri-folder-line text-lg mr-2"></i>
+      <div class="text-sm font-medium">{{ 'PAC.XProject.UploadAFile' | translate: {Default: 'Upload a file'} }}</div>
+    </div>
+
+    <div cdkMenuItem [cdkMenuTriggerFor]="recentMenu" >
+      <i class="ri-file-history-line text-lg mr-2"></i>
+      <div class="grow text-sm font-medium">{{ 'PAC.XProject.Recent' | translate: {Default: 'Recent'} }}</div>
+      <i class="ri-arrow-right-s-line"></i>
+    </div>
+  </div>
+</ng-template>
+
+
+<ng-template #recentMenu>
+  <div cdkMenu class="cdk-menu__medium">
+    @for (file of project_attachments(); track file.id) {
+      <div cdkMenuItem class="flex items-center gap-2" (click)="addAttachment(file)">
+        <pac-file-icon [fileType]="file.originalName | fileType" />
+        <div class="flex-1 text-left max-w-sm truncate">
+          <div class="text-base truncate">{{ file.originalName }}</div>
+          <div class="text-xs font-mono text-secondary">{{ file.size/1024 | number:'0.0-0' }}KB · {{ file.createdAt | relative }}</div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm flex justify-center items-center rounded-full w-6 h-6 hover:text-text-destructive hover:border-text-destructive"
+           (click)="onAttachDeleted(file.id)">
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
+    }
   </div>
 </ng-template>

@@ -4,8 +4,8 @@ import { Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { TXpertAttachment, TXpertAttachmentType } from '@cloud/app/@core/types'
-import { attrModel, linkedModel, OverlayAnimations } from '@metad/core'
+import { Attachment_Type_Options, TXpertAttachment, TXpertAttachmentType } from '@cloud/app/@core/types'
+import { attrModel, OverlayAnimations } from '@metad/core'
 import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
@@ -53,48 +53,7 @@ export class XpertStudioFeaturesAttachmentComponent {
     }
   ]
 
-  readonly fileTypeOptions: TSelectOption<string, TXpertAttachmentType>[] = [
-    {
-      key: 'document',
-      value: 'TXT, MD, MDX, MARKDOWN, PDF, HTML, XLSX, XLS, DOC, DOCX, CSV, EML, MSG, PPTX, PPT, XML, EPUB',
-      label: {
-        zh_Hans: '文档',
-        en_US: 'Document',
-      },
-    },
-    {
-      key: 'image',
-      value: 'JPG, JPEG, PNG, GIF, WEBP, SVG',
-      label: {
-        zh_Hans: '图片',
-        en_US: 'Image',
-      },
-    },
-    {
-      key: 'audio',
-      value: 'MP3, M4A, WAV, AMR, MPGA',
-      label: {
-        zh_Hans: '音频',
-        en_US: 'Audio',
-      },
-    },
-    {
-      key: 'video',
-      value: 'MP4, MOV, MPEG, WEBM',
-      label: {
-        zh_Hans: '视频',
-        en_US: 'Video',
-      },
-    },
-    {
-      key: 'others',
-      value: '',
-      label: {
-        zh_Hans: '其他文件类型',
-        en_US: 'Other file types',
-      },
-    }
-  ]
+  readonly fileTypeOptions = Attachment_Type_Options
 
   selectType(type: TXpertAttachment['type']) {
     this.type.set(type)

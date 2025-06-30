@@ -468,7 +468,7 @@ export enum ChatMessageEventTypeEnum {
  */
 export type TChatRequestHuman = {
   input?: string
-  files?: IStorageFile[]
+  files?: Partial<IStorageFile>[]
   [key: string]: unknown
 }
 

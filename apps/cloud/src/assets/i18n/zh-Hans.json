@@ -313,6 +313,8 @@
     },
     "XProject": {
       "Files": "文件",
+      "UploadAFile": "上传一个文件",
+      "Recent": "最近",
       "UploadAttachmentsTooltip": "上传附件（仅识别文字和图片）",
       "DeleteProjectAndAll": "删除项目及其中所有的材料",
       "Collaborators": "协作者",
@@ -1911,7 +1913,8 @@
       "FileList": "文件列表",
       "FileDeleted": "文件已删除",
       "FileDeleteError": "文件删除失败",
-      "Delete": "删除"
+      "Delete": "删除",
+      "AttachmentsMaxNumExceeded": "附件数量超过限制"
     },
     "ChatBI": {
       "DeprecationNotes": "ChatBI 功能请使用数字专家智能体中的 ChatBI 工具集！",

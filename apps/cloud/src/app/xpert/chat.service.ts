@@ -176,6 +176,10 @@ export abstract class ChatService {
   readonly project = signal<IXpertProject>(null)
   readonly suggestion_enabled = computed(() => this.xpert()?.features?.suggestion?.enabled)
 
+  // Attachments
+  readonly attachments = signal<{file?: File; url?: string; storageFile?: IStorageFile}[]>([])
+  readonly recentAttachments = signal<IStorageFile[]>(null)
+
   constructor() {
     this.#destroyRef.onDestroy(() => {
       if (this.answering() && this.conversation()?.id) {
@@ -203,7 +207,7 @@ export abstract class ChatService {
     return this.feedbackService.getMyAll({ where: { conversationId: id } })
   }
 
-  ask(content: string, params: {files: IStorageFile[]}) {
+  ask(content: string, params: {files: {id: string}[]}) {
     const id = uuid()
     const humanMessage: TCopilotChatMessage = {
       id,
@@ -211,7 +215,7 @@ export abstract class ChatService {
       content
     }
     if (params?.files?.length) {
-      humanMessage.attachments = params.files
+      humanMessage.attachments = params.files as IStorageFile[]
     }
     this.appendMessage(humanMessage)
     // Send message
@@ -235,7 +239,7 @@ export abstract class ChatService {
       /**
        * Attachment files
        */
-      files: IStorageFile[]
+      files: Partial<IStorageFile>[]
       confirm: boolean
       operation: TSensitiveOperation
       reject: boolean
@@ -552,4 +556,9 @@ export abstract class ChatService {
 
   //
   abstract newConv(xpert?: IXpert): void
+  onAttachCreated(file: IStorageFile): void {}
+  onAttachDeleted(fileId: string): void {}
+  getRecentAttachmentsSignal() {
+    return this.recentAttachments
+  }
 }

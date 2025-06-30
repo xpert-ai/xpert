@@ -9,9 +9,11 @@ import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import {
+  DateRelativePipe,
   getErrorMessage,
   injectProjectService,
   injectToastr,
+  IStorageFile,
   IXpertProject,
   IXpertWorkspace,
   OrderTypeEnum,
@@ -22,7 +24,7 @@ import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { ChatAttachmentsComponent } from '@cloud/app/@shared/chat'
 import { CopilotEnableModelComponent, CopilotPromptGeneratorComponent } from '@cloud/app/@shared/copilot'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { attrModel, linkedModel, TranslatePipe } from '@metad/core'
+import { attrModel, FileTypePipe, linkedModel, TranslatePipe } from '@metad/core'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -36,6 +38,7 @@ import { ChatProjectToolsComponent } from '../tools/tools.component'
 import { ChatProjectXpertsComponent } from '../xperts/xperts.component'
 import { ProjectService } from '../project.service'
 import { ChatProjectFilesComponent } from '../files/files.component'
+import { FileIconComponent } from '@cloud/app/@shared/files'
 
 /**
  *
@@ -55,13 +58,16 @@ import { ChatProjectFilesComponent } from '../files/files.component'
     EmojiAvatarComponent,
     TranslatePipe,
 
+    FileTypePipe,
+    DateRelativePipe,
     CopilotEnableModelComponent,
     ChatProjectXpertsComponent,
     ChatProjectToolsComponent,
     ChatProjectFilesComponent,
     ChatProjectConversationsComponent,
     ChatProjectKnowledgesComponent,
-    ChatAttachmentsComponent
+    ChatAttachmentsComponent,
+    FileIconComponent
   ],
   selector: 'pac-chat-project-home',
   templateUrl: './home.component.html',
@@ -88,6 +94,7 @@ export class ChatProjectHomeComponent {
   readonly avatar = attrModel(this.project, 'avatar')
   readonly name = attrModel(this.project, 'name')
   readonly settings = attrModel(this.project, 'settings')
+  readonly project_attachments = attrModel(this.project, 'attachments')
   readonly instruction = attrModel(this.settings, 'instruction')
   readonly mode = attrModel(this.settings, 'mode')
 
@@ -344,5 +351,20 @@ export class ChatProjectHomeComponent {
   async onFileDropped(event: FileList) {
     const filesArray = Array.from(event)
     this.attachments.update((state) => [...state, ...filesArray.map((file) => ({ file }))])
+  }
+
+  onAttachCreated(file: IStorageFile) {
+    this.projectService.onAttachCreated(file)
+  }
+  onAttachDeleted(fileId: string) {
+    this.projectService.onAttachDeleted(fileId)
+  }
+  addAttachment(file: IStorageFile) {
+    this.attachments.update((state) => {
+      if (!state?.some((attachment) => attachment.storageFile?.id === file.id)) {
+        return [...state, {storageFile: file}]
+      }
+      return state
+    })
   }
 }

@@ -1,7 +1,10 @@
 import { HumanMessage } from '@langchain/core/messages'
-import { IStorageFile, TXpertAgentOptions } from '@metad/contracts'
+import { TChatRequestHuman, TXpertAgentOptions } from '@metad/contracts'
 import { FileStorage } from '@metad/server-core'
+import { CommandBus } from '@nestjs/cqrs'
+import { Document } from 'langchain/document'
 import sharp from 'sharp'
+import { LoadStorageFileCommand } from '../commands'
 
 /**
  * Create human message using input string and image (or othter types) files
@@ -10,7 +13,8 @@ import sharp from 'sharp'
  * @returns
  */
 export async function createHumanMessage(
-	state: { input: string; files: IStorageFile[] },
+	commandBus: CommandBus,
+	state: TChatRequestHuman,
 	vision: TXpertAgentOptions['vision']
 ) {
 	const { input, files } = state
@@ -18,12 +22,9 @@ export async function createHumanMessage(
 	if (files?.length) {
 		return new HumanMessage({
 			content: [
-				{
-					type: 'text',
-					text: input
-				},
 				...(await Promise.all(
 					files.map(async (file) => {
+						console.log(file.mimetype)
 						if (file.mimetype?.startsWith('image')) {
 							const provider = new FileStorage().getProvider(file.storageProvider)
 							let imageData = null
@@ -36,16 +37,41 @@ export async function createHumanMessage(
 							return {
 								type: 'image_url',
 								image_url: {
-									url: `data:image/jpeg;base64,${imageData.toString('base64')}`
+									url: `data:${file.mimetype};base64,${imageData.toString('base64')}`
 								}
 							}
 						}
+
+						if (file.mimetype?.startsWith('video')) {
+							// Process video files
+							const provider = new FileStorage().getProvider(file.storageProvider)
+							const videoData = await provider.getFile(file.file)
+							return {
+								type: 'video_url',
+								video_url: {
+									url: `data:${file.mimetype};base64,${videoData.toString('base64')}`
+								}
+							}
+						}
+
+						if (file.mimetype?.startsWith('audio')) {
+							throw new Error('Audio files are not supported yet')
+						}
+
+						// Process other files as text
+						const docs = await commandBus.execute<LoadStorageFileCommand, Document[]>(
+										new LoadStorageFileCommand(file.id)
+									)
 						return {
 							type: 'text',
-							text: ''
+							text: `File: ${file.originalName}\n\n<file_content>\n${docs[0].pageContent}\n</file_content>`,
 						}
 					})
-				))
+				)),
+				{
+					type: 'text',
+					text: input
+				},
 			]
 		})
 	}

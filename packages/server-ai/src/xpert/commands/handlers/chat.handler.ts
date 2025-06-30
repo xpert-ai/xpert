@@ -6,6 +6,7 @@ import {
 	figureOutXpert,
 	IChatConversation,
 	IChatMessage,
+	IStorageFile,
 	IXpert,
 	LongTermMemoryTypeEnum,
 	messageContentText,
@@ -122,7 +123,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				content: input.input,
 				conversationId: conversation.id,
 				...(input.files ? {
-					attachments: input.files,
+					attachments: input.files as IStorageFile[],
 				} : {})
 			}
 			const userMessage = await this.commandBus.execute(

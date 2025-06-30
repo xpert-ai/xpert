@@ -7,15 +7,16 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
-import { AudioRecorderService, IStorageFile, uuid } from '@cloud/app/@core'
+import { Attachment_Type_Options, AudioRecorderService, DateRelativePipe, injectToastr, IStorageFile, uuid } from '@cloud/app/@core'
 import { CopilotEnableModelComponent } from '@cloud/app/@shared/copilot'
 import { AppService } from '@cloud/app/app.service'
-import { OverlayAnimations } from '@metad/core'
+import { FileTypePipe, OverlayAnimations } from '@metad/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatAttachmentsComponent } from '@cloud/app/@shared/chat'
 import { ChatService } from '../chat.service'
 import { XpertHomeService } from '../home.service'
+import { FileIconComponent } from '@cloud/app/@shared/files'
 
 @Component({
   standalone: true,
@@ -30,8 +31,11 @@ import { XpertHomeService } from '../home.service'
     MatInputModule,
     MatTooltipModule,
     NgmCommonModule,
+    DateRelativePipe,
     CopilotEnableModelComponent,
     ChatAttachmentsComponent,
+    FileIconComponent,
+    FileTypePipe
   ],
   selector: 'chat-input',
   templateUrl: './chat-input.component.html',
@@ -45,6 +49,7 @@ export class ChatInputComponent {
   readonly homeService = inject(XpertHomeService)
   readonly appService = inject(AppService)
   readonly #router = inject(Router)
+  readonly #toastr = injectToastr()
   readonly #audioRecorder = inject(AudioRecorderService)
 
   // Inputs
@@ -66,8 +71,24 @@ export class ChatInputComponent {
   // Attachments
   readonly features = computed(() => this.xpert()?.features)
   readonly attachment = computed(() => this.features()?.attachment)
+  readonly attachment_enabled = computed(() => {
+    return !!this.chatService.project() || this.attachment()?.enabled
+  })
+  readonly attachment_maxNum = computed(() => this.attachment()?.maxNum ?? 10)
+  readonly attachment_accept = computed(() => {
+    if (this.chatService.project()) {
+      return '*/*'
+    }
+    const fileTypes = this.attachment()?.fileTypes
+    if (fileTypes) {
+      return fileTypes.map((type) => Attachment_Type_Options.find((_) => _.key === type)?.value?.split(',').map((t) => `.${t.trim()}`)).flat().join(',')
+    }
+    return '*/*'
+  })
+
   readonly speechToText_enabled = computed(() => this.features()?.speechToText?.enabled)
-  readonly attachments = model<{file?: File; url?: string; storageFile?: IStorageFile}[]>([])
+  readonly attachments = this.chatService.attachments // model<{file?: File; url?: string; storageFile?: IStorageFile}[]>([])
+  readonly recentAttachments = this.chatService.getRecentAttachmentsSignal()
   readonly url = model<string>(null)
   readonly files = computed(() => this.attachments()?.map(({storageFile}) => storageFile))
 
@@ -166,25 +187,41 @@ export class ChatInputComponent {
     )
   }
 
-  onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (!input.files || input.files.length === 0) return;
-
-    const files: File[] = Array.from(input.files);
-
-    this.attachments.update((state) => [...state, ...files.map((file) => ({file}))])
-
-    this.closeAttach()
+  // Attachments
+  fileBrowseHandler(event: EventTarget & { files?: FileList }) {
+    this.onFileDropped(event.files)
   }
-
-  createUrlFile() {
-    this.attachments.update((state) => [...state, {url: this.url()}])
-    this.url.set(null)
-    this.closeAttach()
+  onFileDropped(event: FileList) {
+    const filesArray = Array.from(event)
+    this.attachments.update((state) => {
+      while (state.length < this.attachment_maxNum()) {
+        const file = filesArray.shift()
+        state.push({ file })
+        if (state.length >= this.attachment_maxNum() && filesArray.length > 0) {
+          this.#toastr.error('PAC.Chat.AttachmentsMaxNumExceeded', '', {Default: 'Attachments exceed the maximum number allowed.'})
+          return [...state]
+        }
+      }
+      return [...state]
+    })
   }
-
-  closeAttach() {
-    this.attachTrigger().close()
+  onAttachCreated(file: IStorageFile) {
+    this.chatService.onAttachCreated(file)
+  }
+  onAttachDeleted(fileId: string) {
+    this.chatService.onAttachDeleted(fileId)
+  }
+  addAttachment(file: IStorageFile) {
+    this.attachments.update((state) => {
+      if (!state?.some((attachment) => attachment.storageFile?.id === file.id)) {
+        if (state.length >= this.attachment_maxNum()) {
+          this.#toastr.error('PAC.Chat.AttachmentsMaxNumExceeded', '', {Default: 'Attachments exceed the maximum number allowed.'})
+          return state
+        }
+        return [...state, {storageFile: file}]
+      }
+      return state
+    })
   }
 
   // Speech to Text
