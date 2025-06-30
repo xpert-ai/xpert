@@ -11,6 +11,7 @@ import { EventHandlers } from './events/handlers'
 import { TenantController } from './tenant.controller'
 import { Tenant } from './tenant.entity'
 import { TenantService } from './tenant.service'
+import { QueryHandlers } from './queries/handlers'
 
 @Module({
   imports: [
@@ -23,7 +24,7 @@ import { TenantService } from './tenant.service'
     CqrsModule
   ],
   controllers: [TenantController],
-  providers: [TenantService, ...CommandHandlers, ...EventHandlers],
+  providers: [TenantService, ...CommandHandlers, ...QueryHandlers, ...EventHandlers],
   exports: [TenantService, RolePermissionModule]
 })
 export class TenantModule {}
