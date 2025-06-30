@@ -54,13 +54,12 @@
         [formGroup]="form"
         (ngSubmit)="onSubmit()">
         <div class="flex flex-row gap-2 justify-center w-full relative">
-          <input class="hidden" multiple="" type="file" name="files" />
+          <input id="dropzone-file" #fileDropRef class="hidden" multiple="" type="file" name="files" (change)="fileBrowseHandler($event.target)"
+            (click)="fileDropRef.value=null;"/>
           <div class="query-bar group max-w-[51rem] bg-components-card-bg ring-zinc-100 hover:ring-zinc-200 focus-within:ring-zinc-300 hover:focus-within:ring-zinc-300 duration-100 relative w-full overflow-hidden @container/input shadow shadow-black/5 ring-1 ring-inset focus-within:ring-1 pb-12 px-2 @[480px]/input:px-3 rounded-3xl">
-            <div
-              class="w-full flex-row gap-2 mt-3 px-1 whitespace-nowrap hidden flex-wrap will-change-[mask-image] 
-                @sm:[mask-image:none] [mask-image:linear-gradient(to_right,transparent_0,black_0px,black_calc(100%_-_40px),transparent_100%)]"
-              style="opacity: 1; transform: none"
-            ></div>
+            @if (attachments()?.length) {
+              <chat-attachments class="w-full pt-2" editable [(attachments)]="attachments" />
+            }
             <div class="relative z-10">
               <textarea [placeholder]=" 'PAC.XProject.InputPlaceholder' | translate: {Default: 'Start a conversation in this project'} "
                 dir="auto"
@@ -83,7 +82,9 @@
                 type="button"
                 aria-label="Attach"
                 tabindex="0"
-                [matTooltip]="'Feature in development.'"
+                [matTooltip]="'PAC.XProject.UploadAttachmentsTooltip' | translate: {Default: 'Upload attachments (only recognize text and images)'}"
+                matTooltipPosition="above"
+                (click)="fileDropRef.click()"
               >
                 <i class="ri-attachment-line text-lg"></i>
               </button>
@@ -216,11 +217,11 @@
           tabindex="0"
         >
           <button type="button" class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
-            [class.active]="viewType() === 'attachments'"
-            (click)="viewType.set('attachments')"
+            [class.active]="viewType() === 'files'"
+            (click)="viewType.set('files')"
           >
-            <i class="ri-attachment-line text-lg"></i>
-            {{'PAC.XProject.Attachments' | translate: {Default: 'Attachments'} }}
+            <i class="ri-hard-drive-3-line text-lg"></i>
+            {{'PAC.XProject.Files' | translate: {Default: 'Files'} }}
           </button>
 
           <button type="button" class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
@@ -281,8 +282,8 @@
       </div>
 
       @switch (viewType()) {
-        @case ('attachments') {
-          <chat-project-attachments role="tabpanel" class="py-2" />
+        @case ('files') {
+          <chat-project-files role="tabpanel" class="py-2" />
         }
         @case ('tools') {
           <chat-project-tools role="tabpanel" class="py-2" />
@@ -363,19 +364,5 @@
       <i class="ri-settings-4-line mr-1"></i>
       <span>{{ 'PAC.XProject.Manage' | translate: {Default: 'Manage'} }}</span>
     </div>
-<!-- 
-    <div cdkMenuItem class="danger" (click)="removeProject()">
-      <i class="ri-delete-bin-7-line mr-1"></i>
-      <span>{{ 'PAC.XProject.RemoveProject' | translate: {Default: 'Remove project'} }}</span>
-    </div> -->
   </div>
 </ng-template>
-
-<!-- <ng-template #copilotMenu>
-  <div cdkMenu class="cdk-menu__large w-[360px]">
-    <copilot-model-select class="m-4"
-      [modelType]="eModelType.LLM"
-      [(ngModel)]="copilotModel"
-    />
-  </div>
-</ng-template> -->

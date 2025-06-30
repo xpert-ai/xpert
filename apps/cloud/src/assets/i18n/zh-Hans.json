@@ -312,6 +312,8 @@
       "SearchTerm": "搜索词"
     },
     "XProject": {
+      "Files": "文件",
+      "UploadAttachmentsTooltip": "上传附件（仅识别文字和图片）",
       "DeleteProjectAndAll": "删除项目及其中所有的材料",
       "Collaborators": "协作者",
       "Edit": "编辑",

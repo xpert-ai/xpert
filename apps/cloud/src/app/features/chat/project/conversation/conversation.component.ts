@@ -19,6 +19,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { injectParams } from 'ngxtension/inject-params'
 import { ChatProjectService } from '../chat-project.service'
 import { ChatProjectComponent } from '../project.component'
+import { ProjectService } from '../project.service'
 
 /**
  *
@@ -48,9 +49,10 @@ import { ChatProjectComponent } from '../project.component'
 })
 export class ChatProjectConversationComponent {
   readonly #projectComponent = inject(ChatProjectComponent)
-  readonly projectSercice = injectProjectService()
+  readonly #projectsSercice = injectProjectService()
   readonly chatSercice = inject(ChatProjectService)
   readonly homeService = inject(XpertHomeService)
+  readonly projectService = inject(ProjectService)
   readonly #router = inject(Router)
   readonly #dialog = inject(Dialog)
   readonly #vcr = inject(ViewContainerRef)
@@ -69,7 +71,8 @@ export class ChatProjectConversationComponent {
       
       this.chatSercice.project.set(this.project() as IXpertProject)
       // Process the data as needed
-      this.chatSercice.ask(input)
+      this.chatSercice.ask(input, {files: this.projectService.files()})
+      this.projectService.attachments.set([])
     }
 
     effect(

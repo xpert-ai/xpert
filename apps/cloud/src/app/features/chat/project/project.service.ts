@@ -1,6 +1,6 @@
-import { inject, Injectable } from '@angular/core'
+import { computed, inject, Injectable, signal } from '@angular/core'
 import { injectProjectService } from '@cloud/app/@core'
-import { IXpertProject } from '@cloud/app/@core/types'
+import { IStorageFile, IXpertProject } from '@cloud/app/@core/types'
 import { linkedModel } from '@metad/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'
@@ -26,4 +26,9 @@ export class ProjectService {
     compute: () => this.#project(),
     update: () => {}
   })
+
+  // Attachments
+  readonly attachments = signal<{ file?: File; url?: string; storageFile?: IStorageFile }[]>([])
+  readonly files = computed(() => this.attachments()?.map(({storageFile}) => storageFile))
+  
 }

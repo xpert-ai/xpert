@@ -203,15 +203,19 @@ export abstract class ChatService {
     return this.feedbackService.getMyAll({ where: { conversationId: id } })
   }
 
-  ask(content: string) {
+  ask(content: string, params: {files: IStorageFile[]}) {
     const id = uuid()
-    this.appendMessage({
+    const humanMessage: TCopilotChatMessage = {
       id,
       role: 'user',
       content
-    })
+    }
+    if (params?.files?.length) {
+      humanMessage.attachments = params.files
+    }
+    this.appendMessage(humanMessage)
     // Send message
-    this.chat({ id, content })
+    this.chat({ id, content, files: params.files })
   }
 
   chatRequest(name: string, request: TChatRequest, options: TChatOptions) {
