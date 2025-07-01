@@ -17,7 +17,7 @@
 }
 
 @if (workspace()) {
-  <div @listEnterAnimation class="relative content-start gap-4 pt-2 pb-4 px-1 mt-4 grow shrink-0"
+  <div @listEnterAnimation class="relative content-start gap-4 pt-2 pb-4 px-1 my-4 grow shrink-0"
     ngmDynamicGrid colWidth="280"
     box="content-box">
     @for (toolset of knowledgebases(); track toolset.id) {
@@ -40,7 +40,7 @@
   @if (wsKbLoading()) {
     <list-content-loader />
   } @else {
-    <div class="relative content-start gap-4 pt-2 pb-4 px-1 grow shrink-0"
+    <div class="relative content-start gap-4 pt-2 pb-4 px-1 grow shrink-0 opacity-60 hover:opacity-100 transition-all duration-300 ease-in-out"
       ngmDynamicGrid colWidth="280"
       box="content-box">
       @for (item of wsKnowledgebases(); track item.knowledgebase.id) {

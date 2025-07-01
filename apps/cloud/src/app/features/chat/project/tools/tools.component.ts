@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -10,6 +10,7 @@ import {
   getErrorMessage,
   injectProjectService,
   injectToastr,
+  IToolProvider,
   IXpertToolset,
   OrderTypeEnum,
   XpertToolsetCategoryEnum,
@@ -32,6 +33,10 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, EMPTY, startWith, switchMap } from 'rxjs'
 import { ChatProjectHomeComponent } from '../home/home.component'
 import { ChatProjectComponent } from '../project.component'
+import { CardCreateComponent } from '@cloud/app/@shared/card'
+import { debouncedSignal, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
+import { NgmHighlightDirective } from '@metad/ocap-angular/common'
 
 /**
  *
@@ -49,7 +54,11 @@ import { ChatProjectComponent } from '../project.component'
     ContentLoaderModule,
     DynamicGridDirective,
     MCPMarketplaceComponent,
-    ToolsetCardComponent
+    ToolsetCardComponent,
+    CardCreateComponent,
+    NgmI18nPipe,
+    EmojiAvatarComponent,
+    NgmHighlightDirective
   ],
   selector: 'chat-project-tools',
   templateUrl: './tools.component.html',
@@ -65,6 +74,7 @@ export class ChatProjectToolsComponent {
   readonly #projectComponent = inject(ChatProjectComponent)
   readonly #projectHomeComponent = inject(ChatProjectHomeComponent)
   readonly #toastr = injectToastr()
+  readonly i18n = new NgmI18nPipe()
 
   readonly project = this.#projectComponent.project
 
@@ -73,8 +83,8 @@ export class ChatProjectToolsComponent {
   // Toolsets in project
   readonly toolsets = this.#projectHomeComponent.toolsets
 
-  readonly formControl = new FormControl()
-  readonly searchText = toSignal(this.formControl.valueChanges.pipe(startWith(this.formControl.value)))
+  // readonly formControl = new FormControl()
+  // readonly searchText = toSignal(this.formControl.valueChanges.pipe(startWith(this.formControl.value)))
   readonly refresh$ = new BehaviorSubject<void>(null)
   readonly loading = signal(false)
 
@@ -102,7 +112,7 @@ export class ChatProjectToolsComponent {
 
   // Searched toolsets in workspace
   readonly wsToolsets = computed(() => {
-    const searchText = this.searchText()?.toLowerCase()
+    const searchText = null // this.searchText()?.toLowerCase()
     return this.#toolsets()
       ?.items?.filter((toolset) =>
         searchText
@@ -114,6 +124,19 @@ export class ChatProjectToolsComponent {
         added: this.toolsets()?.some((_) => _.id === toolset.id)
       }))
   })
+
+  readonly search = model<string>('')
+  readonly searchText = debouncedSignal(this.search, 300)
+  readonly #builtinToolProviders = toSignal(this.toolsetService.builtinToolProviders$)
+  readonly builtinToolProviders = computed(() => {
+    const search = this.searchText()?.trim().toLowerCase()
+    return this.#builtinToolProviders()?.filter(
+      (provider) =>
+        provider.name.toLowerCase().includes(search) ||
+        this.i18n.transform(provider.description)?.toLowerCase().includes(search)
+    )
+  })
+
 
   /**
    * Add toolset from workspace into project
@@ -149,14 +172,14 @@ export class ChatProjectToolsComponent {
     })
   }
 
-  configureMCP(toolset: IXpertToolset) {
+  configureMCP(toolset: IXpertToolset = null) {
     this.#dialog
       .open<TXpertMCPManageComponentRet>(XpertMCPManageComponent, {
         backdropClass: 'backdrop-blur-lg-white',
         disableClose: true,
         data: {
           workspaceId: this.workspaceId(),
-          toolsetId: toolset.id
+          toolsetId: toolset?.id
         }
       })
       .closed.subscribe({
@@ -173,7 +196,23 @@ export class ChatProjectToolsComponent {
       })
   }
 
-  configureBuiltin(toolset: IXpertToolset) {
+  createBuiltinToolset(provider: IToolProvider) {
+    this.#dialog
+      .open(XpertToolConfigureBuiltinComponent, {
+        disableClose: true,
+        data: {
+          providerName: provider.name,
+          workspaceId: this.workspace().id,
+        }
+      })
+      .closed.subscribe((result) => {
+        if (result) {
+          this.refreshWorkspace()
+        }
+      })
+  }
+
+  configureBuiltin(toolset: IXpertToolset = null) {
     this.#dialog
       .open(XpertToolConfigureBuiltinComponent, {
         disableClose: true,

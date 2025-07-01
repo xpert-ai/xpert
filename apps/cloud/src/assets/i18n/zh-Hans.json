@@ -2301,6 +2301,7 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "OrCreateBuiltinToolset": "或创建内置工具集",
       "Profile": "个人档案",
       "EnterProfile": "请输入个人档案",
       "NewMCPToolset": "新建 MCP 工具集",

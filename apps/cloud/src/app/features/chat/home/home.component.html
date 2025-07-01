@@ -319,7 +319,7 @@
   <div @overlayAnimation1 class="p-3 rounded-3xl border-[0.5px] border-solid border-neutral-200 shadow-sm overflow-auto bg-components-card-bg"
     (mouseover)="enterMenuOverlay('history')"
     (mouseleave)="leaveMenuOverlay('history')">
-    <div class="text-text-primary font-semibold px-2">{{'PAC.Chat.Histories' | translate: {Default: 'Histories'} }}</div>
+    <div class="text-text-primary font-semibold px-2 pb-2">{{'PAC.Chat.Histories' | translate: {Default: 'Histories'} }}</div>
     <ng-container *ngTemplateOutlet="histories"></ng-container>
   </div>
 </ng-template>
@@ -341,7 +341,7 @@
   <div @overlayAnimation1 class="p-3 rounded-3xl border-[0.5px] border-solid border-neutral-200 shadow-sm overflow-auto bg-components-card-bg"
     (mouseover)="enterMenuOverlay('project')"
     (mouseleave)="leaveMenuOverlay('project')">
-    <div class="text-text-primary font-semibold px-2">{{'PAC.Chat.Projects' | translate: {Default: 'Projects'} }}</div>
+    <div class="text-text-primary font-semibold px-2 pb-2">{{'PAC.Chat.Projects' | translate: {Default: 'Projects'} }}</div>
     <ng-container *ngTemplateOutlet="projectsTempl"></ng-container>
   </div>
 </ng-template>
