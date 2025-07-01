@@ -1,46 +1,48 @@
-<div class="flex justify-between align-center my-6 min-h-[42px]">
-  <h1 class="text-2xl flex gap-2 items-center">
-    <i class="ri-building-line text-2xl mr-2"></i>
-    {{ 'PAC.XProject.AllProjects' | translate: {Default: 'All Projects'} }}
-  </h1>
-  <div class="flex justify-end gap-2">
-    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large font-normal"
-      (click)="importDsl()">
-      <i class="ri-import-line mr-1"></i>
-      <span class="system-sm-medium">
-        {{'PAC.XProject.ImportDSL' | translate: {Default: 'Import DSL'} }}
-      </span>
-    </button>
-    <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
-      (click)="addProject()">
-      <i class="ri-add-line mr-1"></i>
-      <span class="system-sm-medium">
-        {{'PAC.XProject.AddProject' | translate: {Default: 'Add Project'} }}
-      </span>
-    </button>
+<div class="max-w-[50rem] xl:max-w-[61rem] px-2 pt-16 mx-auto">
+  <div class="flex justify-between align-center py-6 min-h-[42px] sticky top-0 z-10 bg-surface-container">
+    <h1 class="text-2xl flex gap-2 items-center">
+      <i class="ri-building-line text-2xl mr-2"></i>
+      {{ 'PAC.XProject.AllProjects' | translate: {Default: 'All Projects'} }}
+    </h1>
+    <div class="flex justify-end gap-2">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large font-normal"
+        (click)="importDsl()">
+        <i class="ri-import-line mr-1"></i>
+        <span class="system-sm-medium">
+          {{'PAC.XProject.ImportDSL' | translate: {Default: 'Import DSL'} }}
+        </span>
+      </button>
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+        (click)="addProject()">
+        <i class="ri-add-line mr-1"></i>
+        <span class="system-sm-medium">
+          {{'PAC.XProject.AddProject' | translate: {Default: 'Add Project'} }}
+        </span>
+      </button>
+    </div>
   </div>
-</div>
-<div class="flex-1 flex flex-col gap-1 h-full overflow-y-auto py-1 [mask-image:linear-gradient(to_bottom,transparent,black_4px,black_calc(100%_-_4px),transparent)] [-webkit-mask-image:linear-gradient(to_bottom,transparent,black_4px,black_calc(100%_-_4px),transparent)]">
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-    @for (project of projects(); track project.id) {
-      <div class="group relative">
-        <a [routerLink]="['/chat/p', project.id]">
-          <div class="border text-card-foreground flex flex-row items-center @sm:flex-col @sm:items-stretch gap-2 px-5 py-4 pe-12 @sm:pe-5 max-w-4/5 rounded-3xl hover:bg-surface-l1 shadow-none h-full overflow-hidden
-            bg-none bg-transparent hover:bg-components-card-bg">
-            <emoji-avatar class="rounded-xl overflow-hidden" [avatar]="project.avatar" />
-            <div class="text-sm font-medium truncate">{{project.name}}</div>
-          </div>
-        </a>
-        <button
-          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-button-ghost-hover disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-3xl visible @sm:invisible @sm:group-hover:visible absolute right-3 top-3"
-          type="button"
-          [cdkMenuTriggerFor]="editMenu"
-          [cdkMenuTriggerData]="{project: project}"
-        >
-          <i class="ri-more-line"></i>
-        </button>
-      </div>
-    }
+  <div class="flex-1 flex flex-col gap-1 py-1">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      @for (project of projects(); track project.id) {
+        <div class="group relative">
+          <a [routerLink]="['/chat/p', project.id]">
+            <div class="border text-card-foreground flex flex-row items-center @sm:flex-col @sm:items-stretch gap-2 px-5 py-4 pe-12 @sm:pe-5 max-w-4/5 rounded-3xl hover:bg-surface-l1 shadow-none h-full overflow-hidden
+              bg-none bg-transparent hover:bg-components-card-bg">
+              <emoji-avatar class="rounded-xl overflow-hidden" [avatar]="project.avatar" />
+              <div class="text-sm font-medium truncate">{{project.name}}</div>
+            </div>
+          </a>
+          <button
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-button-ghost-hover disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-3xl visible @sm:invisible @sm:group-hover:visible absolute right-3 top-3"
+            type="button"
+            [cdkMenuTriggerFor]="editMenu"
+            [cdkMenuTriggerData]="{project: project}"
+          >
+            <i class="ri-more-line"></i>
+          </button>
+        </div>
+      }
+    </div>
   </div>
 </div>
 

@@ -25,7 +25,7 @@
           (click)="openConversations()"
         >
           @if (sidebarState() === 'expanded') {
-            <span class="space-x-1 align-baseline" style="opacity: 1">
+            <span class="space-x-1 align-baseline whitespace-nowrap truncate">
               <span>{{'PAC.KEY_WORDS.Search' | translate: {Default: 'Search'} }}</span>
               <span class="text-xs text-muted-foreground">⌘K</span>
             </span>
@@ -306,7 +306,7 @@
   cdkConnectedOverlay
   [cdkConnectedOverlayOrigin]="history_trigger"
   [cdkConnectedOverlayOpen]="menuOverlay() === 'history' && sidebarState() === 'closed'"
-  [cdkConnectedOverlayOffsetX]="-5"
+  [cdkConnectedOverlayOffsetY]="-15"
   [cdkConnectedOverlayPositions]="[
     {
       originX: 'end',
@@ -328,7 +328,7 @@
   cdkConnectedOverlay
   [cdkConnectedOverlayOrigin]="project_trigger"
   [cdkConnectedOverlayOpen]="menuOverlay() === 'project' && sidebarState() === 'closed'"
-  [cdkConnectedOverlayOffsetX]="-5"
+  [cdkConnectedOverlayOffsetY]="-15"
   [cdkConnectedOverlayPositions]="[
     {
       originX: 'end',
@@ -350,7 +350,7 @@
   cdkConnectedOverlay
   [cdkConnectedOverlayOrigin]="task_trigger"
   [cdkConnectedOverlayOpen]="menuOverlay() === 'task' && sidebarState() === 'closed'"
-  [cdkConnectedOverlayOffsetX]="-5"
+  [cdkConnectedOverlayOffsetY]="-15"
   [cdkConnectedOverlayPositions]="[
     {
       originX: 'end',
@@ -364,7 +364,7 @@
     (mouseover)="enterMenuOverlay('task')"
     (mouseleave)="leaveMenuOverlay('task')">
     <div class="flex justify-between items-center mb-2 pl-2">
-      <div>{{'PAC.Chat.Tasks' | translate: {Default: 'Tasks'} }}</div>
+      <div class="text-text-primary font-semibold">{{'PAC.Chat.Tasks' | translate: {Default: 'Tasks'} }}</div>
       <button
         class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed select-none h-7 w-7 rounded-full ms-auto hover:bg-hover-bg"
         type="button"
@@ -530,7 +530,7 @@
     }
 
     <button
-      class="inline-flex items-center gap-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary bg-transparent hover:text-fg-secondary disabled:hover:text-fg-primary w-full justify-start px-2.5 text-xs font-semibold no-wrap pb-1 mt-1"
+      class="inline-flex items-center gap-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary bg-transparent hover:text-fg-secondary disabled:hover:text-fg-primary w-full justify-start px-2.5 text-sm font-semibold no-wrap pb-1 mt-1"
       type="button"
       tabindex="-1"
       [routerLink]="['/chat/p']"

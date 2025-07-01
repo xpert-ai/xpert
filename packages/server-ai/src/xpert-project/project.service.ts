@@ -104,7 +104,9 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 				organizationId,
 				userId: user.id
 			})
-		applyWhereToQueryBuilder(query, 'project', options?.where ?? {})
+		if (options?.where) {
+			applyWhereToQueryBuilder(query, 'project', options.where)
+		}
 		
 		if (options?.skip) {
 			query.skip(options.skip)
