@@ -135,7 +135,7 @@ export class ChatInputComponent {
     this.promptControl.setValue('')
 
     // Send message
-    this.chatService.chat({ id, content, files: this.files() })
+    this.chatService.chat({ id, content, files: this.files()?.map((file) => ({id: file.id, originalName: file.originalName})) })
 
     // Clear
     this.attachments.set([])
@@ -194,7 +194,7 @@ export class ChatInputComponent {
   onFileDropped(event: FileList) {
     const filesArray = Array.from(event)
     this.attachments.update((state) => {
-      while (state.length < this.attachment_maxNum()) {
+      while (state.length < this.attachment_maxNum() && filesArray.length > 0) {
         const file = filesArray.shift()
         state.push({ file })
         if (state.length >= this.attachment_maxNum() && filesArray.length > 0) {

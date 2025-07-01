@@ -71,7 +71,7 @@ export class ChatProjectConversationComponent {
       
       this.chatSercice.project.set(this.project() as IXpertProject)
       // Process the data as needed
-      this.chatSercice.ask(input, {files: this.projectService.files()?.map((file) => ({id: file.id}))})
+      this.chatSercice.ask(input, {files: this.projectService.files()?.map((file) => ({id: file.id, originalName: file.originalName}))})
       this.projectService.attachments.set([])
     }
 
