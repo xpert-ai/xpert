@@ -40,7 +40,11 @@
         (click)="$event.stopPropagation()"
       >
         <ul data-sidebar="menu" class="flex w-full min-w-0 flex-col cursor-default">
-          <li data-sidebar="menu-item" class="group/menu-item whitespace-nowrap mx-[.125rem] relative">
+          <li data-sidebar="menu-item" class="group/menu-item whitespace-nowrap mx-[.125rem] relative"
+            [matTooltip]="'PAC.Chat.NewChat' | translate: {Default: 'New Chat'}"
+            matTooltipPosition="after"
+            [matTooltipDisabled]="sidebarState() === 'expanded'"
+          >
             <a
               class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary text-sm h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full flex flex-row gap-2 p-[.5rem] text-sm text-text-secondary hover:text-text-primary cursor-pointer"
               tabindex="-1"
