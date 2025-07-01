@@ -1834,6 +1834,7 @@
       }
     },
     "Chat": {
+      "Histories": "历史记录",
       "ShowMore": "显示更多",
       "Rename": "重命名",
       "Common": "通用",

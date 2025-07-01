@@ -135,20 +135,8 @@
                 <ngm-spin small />
               } @else {
                 <div data-sidebar="icon" class="size-5 flex items-center justify-center shrink-0 ms-[2px]">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0.5 0.5 13 15"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="stroke-[2] group-hover/menu-item:hidden"
-                    [class.!inline-block]="sidebarState()==='closed'"
-                  >
-                    <path
-                      d="M7.33301 0.755859L13.1064 4.08984L13.4404 4.28223V11.7188L13.1064 11.9111L7.33301 15.2441L7 15.4365L6.66699 15.2441L0.893555 11.9111L0.55957 11.7188V4.28223L0.893555 4.08984L6.66699 0.755859L7 0.563477L7.33301 0.755859ZM1.89355 10.9492L6.33398 13.5137V8.38184L1.89355 5.76953V10.9492ZM7.66699 8.38086V13.5127L12.1064 10.9492V5.76953L7.66699 8.38086ZM2.60449 4.64062L7.00098 7.22656L11.3945 4.64062L7 2.10352L2.60449 4.64062Z"
-                      fill="currentColor"
-                    ></path>
-                  </svg>
+                  <i class="ri-building-line text-lg w-[16px] h-[16px] flex justify-center items-center group-hover/menu-item:hidden"
+                    [class.!inline-flex]="sidebarState()==='closed'"></i>
                   @if (sidebarState() === 'expanded') {
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -349,6 +337,7 @@
   <div @overlayAnimation1 class="p-3 rounded-3xl border-[0.5px] border-solid border-neutral-200 shadow-sm overflow-auto bg-components-card-bg"
     (mouseover)="enterMenuOverlay('project')"
     (mouseleave)="leaveMenuOverlay('project')">
+    <div class="text-text-primary font-semibold px-2">{{'PAC.Chat.Projects' | translate: {Default: 'Projects'} }}</div>
     <ng-container *ngTemplateOutlet="projectsTempl"></ng-container>
   </div>
 </ng-template>
@@ -421,9 +410,11 @@
         } @else {
           <div style="opacity: 1" class="relative group/conversation-item">
             <a
-              class="peer/menu-button relative items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary text-sm h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active pl-3 pr-1 py-1 text-sm w-full flex flex-row gap-2 text-primary"
+              class="peer/menu-button relative items-center overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary text-sm h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active pl-3 pr-1 py-1 text-sm w-full flex flex-row gap-2 text-primary"
               tabindex="-1"
               [routerLink]="['/chat/c', conv.id]"
+              [matTooltip]="conv.title | i18n"
+              matTooltipPosition="above"
               >
               <span
                 class="flex-1 select-none whitespace-nowrap max-w-full overflow-hidden inline-block"

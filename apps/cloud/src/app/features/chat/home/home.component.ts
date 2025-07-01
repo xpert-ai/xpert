@@ -8,10 +8,10 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { groupConversations } from '@cloud/app/xpert/types'
-import { I18nObject, IChatConversation, IXpertProject, PaginationParams } from '@metad/cloud/state'
+import { I18nObject, IChatConversation, injectUserPreferences, IXpertProject, PaginationParams, PersistState } from '@metad/cloud/state'
 import { OverlayAnimations, routeAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
@@ -41,7 +41,8 @@ type TMenuOverlayType = 'history' | 'project' | 'task'
     TranslateModule,
     MatTooltipModule,
     NgmSpinComponent,
-    EmojiAvatarComponent
+    EmojiAvatarComponent,
+    NgmI18nPipe
   ],
   selector: 'pac-chat-home',
   templateUrl: './home.component.html',
@@ -67,6 +68,7 @@ export class ChatHomeComponent {
   readonly #dialog = inject(Dialog)
   readonly #vcr = inject(ViewContainerRef)
   readonly #toastr = injectToastr()
+  readonly #preferences = injectUserPreferences()
 
   readonly isMobile = this.appService.isMobile
   readonly lang = this.appService.lang
@@ -75,7 +77,15 @@ export class ChatHomeComponent {
 
   readonly xpert = this.homeService.xpert
 
-  readonly sidebarState = signal<'expanded' | 'closed'>('expanded')
+  readonly chatSidebar = attrModel(this.#preferences, 'chatSidebar')
+  readonly sidebarState = linkedModel<PersistState['preferences']['chatSidebar']>({
+    initialValue: 'expanded',
+    compute: () => this.chatSidebar() || 'expanded',
+    update: (state) => {
+      this.chatSidebar.set(state)
+    }
+  })
+  
   readonly menuOverlay = signal<TMenuOverlayType>(null)
   private leaveTimer = null
 
