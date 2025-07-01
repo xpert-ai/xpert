@@ -1,3 +1,5 @@
 :host {
-  @apply w-full;
+  --sidebar-width: 17rem;
+  --sidebar-width-icon: 3.5rem;
+  @apply w-full flex;
 }

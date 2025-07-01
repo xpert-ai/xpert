@@ -10,6 +10,7 @@ import {
 	TFile
 } from '@metad/contracts'
 import {
+	applyWhereToQueryBuilder,
 	PaginationParams,
 	RequestContext,
 	StorageFileDeleteCommand,
@@ -103,6 +104,14 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 				organizationId,
 				userId: user.id
 			})
+		applyWhereToQueryBuilder(query, 'project', options?.where ?? {})
+		
+		if (options?.skip) {
+			query.skip(options.skip)
+		}
+		if (options?.take) {
+			query.take(options.take)
+		}
 
 		const projects = await query.getMany()
 

@@ -3,8 +3,7 @@ import { Component, inject, model } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { BusinessAreasService, IndicatorsService, Store, ToastrService, hierarchize } from '@metad/cloud/state'
-import { HighlightDirective } from '@metad/components/core'
-import { IndicatorType, PermissionApprovalStatusTypesEnum } from '@metad/contracts'
+import { IndicatorType, PermissionApprovalStatusTypesEnum, TagCategoryEnum } from '@cloud/app/@core/types'
 import { NgmCommonModule, NgmHighlightDirective, NgmTreeSelectComponent, ResizerModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { findTreeNode } from '@metad/ocap-core'
@@ -36,7 +35,6 @@ import { TagViewerComponent } from '../../../@shared/tag'
     SharedModule,
     MaterialModule,
 
-    HighlightDirective,
     InlineSearchComponent,
 
     NgmCommonModule,
@@ -87,7 +85,7 @@ export class MarketComponent {
   private selectedTagNames$ = new BehaviorSubject<string[]>([])
   public certificationsControl = new FormControl()
 
-  public readonly tags$ = this.tagService.getAllByCategory('indicator')
+  public readonly tags$ = this.tagService.getAllByCategory(TagCategoryEnum.INDICATOR)
   public readonly index$ = new BehaviorSubject<number>(1)
   private refreshApproval$ = new BehaviorSubject<void>(null)
 

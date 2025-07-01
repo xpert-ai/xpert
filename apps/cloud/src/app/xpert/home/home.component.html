@@ -1,4 +1,20 @@
 <xpert-webapp class="w-full h-full overflow-y-auto" (openHistories)="openConversations()">
+  <button header
+    class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary 
+      hover:bg-hover-bg h-10 w-10 rounded-full"
+    type="button"
+    aria-label="History"
+    [matTooltip]="('PAC.Chat.History' | translate: {Default: 'History'}) +' ⌘K'"
+    (click)="openConversations()"
+  >
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="stroke-[2]">
+      <path d="M3 5L19 5" stroke="currentColor" stroke-linecap="square" stroke-linejoin="round"></path>
+      <path d="M3 12H7" stroke="currentColor" stroke-linecap="square" stroke-linejoin="round"></path>
+      <circle cx="16" cy="15" r="4" stroke="currentColor"></circle>
+      <path d="M19 18L21 20" stroke="currentColor" stroke-linecap="square"></path>
+      <path d="M3 19H7" stroke="currentColor" stroke-linecap="square" stroke-linejoin="round"></path>
+    </svg>
+  </button>
   <pac-organization-selector action />
   @if (user(); as user) {
     <pac-header-user [user]="user" action />
