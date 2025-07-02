@@ -316,11 +316,11 @@
     },
   ]"
 >
-  <div @overlayAnimation1 class="p-3 rounded-3xl border-[0.5px] border-solid border-neutral-200 shadow-sm overflow-auto bg-components-card-bg"
+  <div @overlayAnimation1 class="max-w-md p-3 rounded-3xl border-[0.5px] border-solid border-neutral-200 shadow-sm overflow-auto bg-components-card-bg"
     (mouseover)="enterMenuOverlay('history')"
     (mouseleave)="leaveMenuOverlay('history')">
     <div class="text-text-primary font-semibold px-2 pb-2">{{'PAC.Chat.Histories' | translate: {Default: 'Histories'} }}</div>
-    <ng-container *ngTemplateOutlet="histories"></ng-container>
+    <ng-container *ngTemplateOutlet="histories; context: {panel: true}"></ng-container>
   </div>
 </ng-template>
 
@@ -338,7 +338,7 @@
     },
   ]"
 >
-  <div @overlayAnimation1 class="p-3 rounded-3xl border-[0.5px] border-solid border-neutral-200 shadow-sm overflow-auto bg-components-card-bg"
+  <div @overlayAnimation1 class="max-w-md p-3 rounded-3xl border-[0.5px] border-solid border-neutral-200 shadow-sm overflow-auto bg-components-card-bg"
     (mouseover)="enterMenuOverlay('project')"
     (mouseleave)="leaveMenuOverlay('project')">
     <div class="text-text-primary font-semibold px-2 pb-2">{{'PAC.Chat.Projects' | translate: {Default: 'Projects'} }}</div>
@@ -360,7 +360,7 @@
     },
   ]"
 >
-  <div @overlayAnimation1 class="p-3 rounded-3xl border-[0.5px] border-solid border-neutral-200 shadow-sm overflow-auto bg-components-card-bg"
+  <div @overlayAnimation1 class="max-w-md p-3 rounded-3xl border-[0.5px] border-solid border-neutral-200 shadow-sm overflow-auto bg-components-card-bg"
     (mouseover)="enterMenuOverlay('task')"
     (mouseleave)="leaveMenuOverlay('task')">
     <div class="flex justify-between items-center mb-2 pl-2">
@@ -375,15 +375,18 @@
     </div>
 
     <div class="w-80 min-h-[200px] overflow-auto flex flex-col justify-start">
-      
+      <div class="grow w-full flex flex-col justify-center items-center text-text-secondary text-3xl">
+        <i class="ri-calendar-schedule-line"></i>
+      </div>
     </div>
   </div>
 </ng-template>
 
-<ng-template #histories>
+<ng-template #histories let-panel="panel">
   <div class="flex flex-col gap-1 w-full min-w-0 relative">
     @for (g of groups(); track g) {
-      <div class="py-1 pl-2 text-sm font-semibold text-secondary sticky top-0 z-20 whitespace-nowrap">{{g.name}}</div>
+      <div class="py-2 pl-2 text-sm font-semibold text-secondary whitespace-nowrap sticky -top-3 z-20"
+        [class.bg-components-card-bg]="panel">{{g.name}}</div>
       @for (conv of g.values; track conv.id) {
         @if (editingConversation()  === conv.id) {
           <div class="flex items-center relative h-10">
@@ -467,40 +470,40 @@
 <ng-template #projectsTempl>
   <div class="flex flex-col gap-1 w-full min-w-0">
     @for (project of projects(); track project.id) {
-      <div class="relative group/conversation-item">
-        @if (editingProject() === project.id) {
-          <div class="flex items-center relative h-10">
-            <input class="outline-none w-full rounded-sm px-2 py-1.5" [(ngModel)]="editingProjName"
-              (compositionstart)="onCompositionStart()"
-              (compositionupdate)="onCompositionUpdate($event)"
-              (compositionend)="onCompositionEnd($event)"
-              (keydown.enter)="updateProjTitle(project)"
-              (keydown.esc)="exitEditProj($event)">
+      @if (editingProject() === project.id) {
+        <div class="flex items-center relative h-10">
+          <input class="outline-none w-full rounded-sm px-2 py-1.5" [(ngModel)]="editingProjName"
+            (compositionstart)="onCompositionStart()"
+            (compositionupdate)="onCompositionUpdate($event)"
+            (compositionend)="onCompositionEnd($event)"
+            (keydown.enter)="updateProjTitle(project)"
+            (keydown.esc)="exitEditProj($event)">
 
-            <div class="absolute right-1 flex items-center gap-1">
-              <button
-                class="btn w-7 h-7 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
-                type="button"
-                tabindex="-1"
-                [matTooltip]="'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'}"
-                matTooltipPosition="above"
-                (click)="exitEditProj($event)"
-              ><i class="ri-close-line"></i></button>
+          <div class="absolute right-1 flex items-center gap-1">
+            <button
+              class="btn w-7 h-7 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
+              type="button"
+              tabindex="-1"
+              [matTooltip]="'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'}"
+              matTooltipPosition="above"
+              (click)="exitEditProj($event)"
+            ><i class="ri-close-line"></i></button>
 
-              <button
-                class="btn w-7 h-7 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
-                type="button"
-                tabindex="-1"
-                [matTooltip]="'PAC.ACTIONS.Save' | translate: {Default: 'Save'}"
-                matTooltipPosition="above"
-                (click)="updateProjTitle(project)"
-              ><i class="ri-check-line"></i>
-              </button>
-            </div>
+            <button
+              class="btn w-7 h-7 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
+              type="button"
+              tabindex="-1"
+              [matTooltip]="'PAC.ACTIONS.Save' | translate: {Default: 'Save'}"
+              matTooltipPosition="above"
+              (click)="updateProjTitle(project)"
+            ><i class="ri-check-line"></i>
+            </button>
           </div>
-        } @else {
+        </div>
+      } @else {
+        <div class="relative group/conversation-item">
           <a
-            class="peer/menu-button relative items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary text-sm h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active pl-2 pr-1 py-1 text-sm w-full flex flex-row gap-2 text-primary"
+            class="peer/menu-button relative items-center overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active pl-2 pr-1 py-1 text-sm w-full flex flex-row gap-2 text-primary"
             tabindex="-1"
             [routerLink]="['/chat/p', project.id]"
           >
@@ -510,23 +513,23 @@
             <span
               class="flex-1 select-none text-nowrap max-w-full overflow-hidden inline-block truncate"
               style="mask-image: linear-gradient(to right, black 85%, transparent 100%)"
-              >{{ project.name }}</span
-            >
-            @if (sidebarState() === 'expanded') {
-              <button
-                class="absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none disabled:hover:bg-transparent border border-transparent h-7 w-7 rounded-full hidden group-hover/conversation-item:flex
-                  bg-white/60 hover:bg-white"
-                type="button"
-                aria-label="Show project menu"
-                [cdkMenuTriggerFor]="projectMenu"
-                [cdkMenuTriggerData]="{ proj: project }"
-              >
-                <i class="ri-more-2-line"></i>
-              </button>
-            }
+              >{{ project.name }}</span>
           </a>
-        }
-      </div>
+          @if (sidebarState() === 'expanded') {
+            <button
+              class="absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none disabled:hover:bg-transparent border border-transparent h-7 w-7 rounded-full hidden group-hover/conversation-item:flex
+                bg-white/60 hover:bg-white"
+              type="button"
+              aria-label="Show project menu"
+              [cdkMenuTriggerFor]="projectMenu"
+              [cdkMenuTriggerData]="{ proj: project }"
+
+            >
+              <i class="ri-more-2-line"></i>
+            </button>
+          }
+        </div>
+      }
     }
 
     <button
