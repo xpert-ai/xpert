@@ -290,7 +290,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
 		// Check all nodes have been connected
 		if (draft.nodes?.length > 1) {
 			draft.nodes.filter((_) => !(_.type === 'workflow' && _.entity.type === WorkflowNodeTypeEnum.NOTE)).forEach((node) => {
-				if (!draft.connections.some((connection) => connection.from === node.key || connection.to === node.key)) {
+				if (!draft.connections.some((connection) => connection.from?.startsWith(node.key) || connection.to === node.key)) {
 					throw new HttpException(`There are free Xpert agents!`, 500)
 				}
 			})
