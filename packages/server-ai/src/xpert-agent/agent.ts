@@ -381,7 +381,9 @@ export function createMapStreamEvents(
 						break
 					}
 					case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
-						if (data.type === ChatMessageStepType.Notice || data.type === ChatMessageStepType.ComputerUse) {
+						if (
+							data.category === 'Computer' ||
+							data.type === ChatMessageStepType.Notice || data.type === ChatMessageStepType.ComputerUse) {
 							/**
 							 * Notification messages from tool calling are displayed in component messages
 							 */
@@ -394,7 +396,7 @@ export function createMapStreamEvents(
 										data: {
 											...data,
 											category: 'Computer',
-											type: data.category,
+											type: data.category === 'Computer'? data.type : data.category,
 											data: data.data,
 										} as TMessageComponent<TMessageComponentStep>
 									} as TMessageContentComponent
