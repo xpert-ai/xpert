@@ -2,7 +2,6 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { HumanMessage } from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { RunnableLambda } from '@langchain/core/runnables'
-import { END, Send } from '@langchain/langgraph'
 import {
 	channelName,
 	IWFNClassifier,
@@ -23,6 +22,7 @@ import { GetXpertChatModelQuery } from '../../../xpert/queries'
 import { CreateWNClassifierCommand } from '../create-wn-classifier.command'
 import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
+import { CopilotGetOneQuery } from '../../../copilot'
 
 @CommandHandler(CreateWNClassifierCommand)
 export class CreateWNClassifierHandler implements ICommandHandler<CreateWNClassifierCommand> {
@@ -43,6 +43,15 @@ export class CreateWNClassifierHandler implements ICommandHandler<CreateWNClassi
 		const inputVariables = entity.inputVariables
 		const classes = entity.classes
 		const instruction = entity.instruction
+
+		if (copilotModel?.copilotId && !copilotModel.copilot) {
+			const copilot = await this.queryBus.execute(new CopilotGetOneQuery(
+				RequestContext.currentTenantId(),
+				copilotModel.copilotId,
+				['copilotModel',]
+			))
+			copilotModel.copilot = copilot
+		}
 
 		if (!copilotModel?.copilot) {
 			throw new XpertConfigException(
@@ -107,8 +116,6 @@ export class CreateWNClassifierHandler implements ICommandHandler<CreateWNClassi
     You are a text classification engine that analyzes text data and assigns categories based on user input or automatically determined categories.
 ## Task
     Your task is to assign one categories ONLY to the input text and only one category may be assigned returned in the output. Additionally, you need to extract the key words from the text that are related to the classification.
-## Format
-    The input text is in the variable input_text. Categories are specified as a category list with two filed category_id and category_name in the variable categories. Classification instructions may be included to improve the classification accuracy.
 ## Constraint
     DO NOT include anything other than the JSON in your response.
 ## Categories:
