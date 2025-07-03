@@ -18,9 +18,9 @@
   </div>
 </div>
 
-<div class="flex flex-col gap-4">
+<div class="space-y-2">
   @for (memory of memories(); track memory.id; let i = $index) {
-    <div class="flex">
+    <div class="flex p-0.5 rounded-lg" [class.bg-red-100]="hoveredDelIndex() === i">
       <div class="w-full flex-1 flex flex-col items-start gap-2 overflow-hidden">
 
         <xpert-state-variable-select class="w-full opacity-90 hover:opacity-100"
@@ -44,6 +44,13 @@
             <input class="grow rounded-lg text-sm bg-gray-100 px-2 py-1 focus:bg-white opacity-70 hover:opacity-100 focus:opacity-100"
               [ngModel]="memory.value"
               (ngModelChange)="updateMemory(i, 'value', $event)">
+          } @else if (type() === 'variable') {
+            <xpert-state-variable-select class="grow border-0 opacity-90 hover:opacity-100"
+              [variables]="variables()"
+              [ngModel]="memory.value"
+              [ngModelOptions]="{standalone: true}"
+              (ngModelChange)="updateMemory(i, 'value', $event)"
+            />
           } @else {
             <ngm-select class="grow border-0 opacity-70 hover:opacity-100"
               [selectOptions]="ValueOptions()"
@@ -58,6 +65,8 @@
 
       <div class="flex flex-col p-1">
         <button type="button" class="action-btn action-btn-l w-7 h-7 danger flex-shrink-0 group flex justify-center items-center rounded-lg overflow-hidden"
+          (mouseenter)="hoveredDelIndex.set(i)"
+          (mouseleave)="hoveredDelIndex.set(null)"
           (click)="deleteMemory(i)">
           <i class="ri-delete-bin-line"></i>
         </button>

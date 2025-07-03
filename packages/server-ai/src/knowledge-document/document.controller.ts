@@ -1,4 +1,4 @@
-import { IDocumentChunk, IIntegration, IKnowledgeDocument, TRagWebOptions } from '@metad/contracts'
+import { IDocumentChunk, IIntegration, IKnowledgeDocument, isDocumentSheet, KBDocumentCategoryEnum, TRagWebOptions } from '@metad/contracts'
 import {
 	CrudController,
 	IntegrationService,
@@ -91,6 +91,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 	@Post('estimate')
 	async estimate(@Body() entity: Partial<IKnowledgeDocument>) {
 		try {
+			entity.category ??= isDocumentSheet(entity.type) ? KBDocumentCategoryEnum.Sheet : KBDocumentCategoryEnum.Text
 			return await this.commandBus.execute(new KnowledgeDocLoadCommand({doc: entity as IKnowledgeDocument}))
 		} catch(err) {
 			throw new BadRequestException(getErrorMessage(err))

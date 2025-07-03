@@ -15,7 +15,7 @@ import { NGXLogger } from 'ngx-logger'
 import { ChatProjectComponent } from '../project.component'
 
 /**
- *
+ * @deprecated
  */
 @Component({
   standalone: true,

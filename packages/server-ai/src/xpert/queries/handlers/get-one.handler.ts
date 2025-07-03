@@ -8,6 +8,13 @@ export class FindXpertHandler implements IQueryHandler<FindXpertQuery> {
 	constructor(private readonly service: XpertService) {}
 
 	public async execute(command: FindXpertQuery): Promise<IXpert> {
-		return await this.service.findOne({ where: command.conditions, relations: command.relations })
+		const { conditions, params } = command
+		const { relations, isDraft } = params ?? {}
+		const xpert = await this.service.findOne({ where: conditions, relations })
+		if (isDraft) {
+			return (xpert.draft?.team ?? xpert) as IXpert
+		}
+
+		return xpert
 	}
 }

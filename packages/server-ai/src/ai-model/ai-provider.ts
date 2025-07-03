@@ -11,6 +11,8 @@ import { AIProviderRegistry } from './registry'
 import { TextEmbeddingModelManager } from './types/text-embedding-model'
 import { ModelProvidersFolderPath, TChatModelOptions } from './types/types'
 import { AiModelNotFoundException } from '../core/errors'
+import { TextToSpeechModel } from './tts'
+import { SpeechToTextModel } from './speech2text'
 
 @Injectable()
 export abstract class ModelProvider {
@@ -122,16 +124,22 @@ export abstract class ModelProvider {
 		copilotModel: ICopilotModel,
 		options?: TChatModelOptions
 	): Promise<BaseLanguageModel | BaseChatModel | Embeddings> {
-		if (type === AiModelTypeEnum.LLM) {
-			return this.getModelManager(type)?.getChatModel(copilotModel, options)
-		} else if (type === AiModelTypeEnum.TEXT_EMBEDDING) {
-			if (!copilotModel.options) {
-				const predefinedModels = await this.getModels(AiModelTypeEnum.TEXT_EMBEDDING)
-				const modelName = copilotModel.model || copilotModel.copilot.copilotModel?.model
-				copilotModel.options = predefinedModels.find((_) => _.model === modelName)?.model_properties
-			}
-			return this.getModelManager<TextEmbeddingModelManager>(type)?.getEmbeddingInstance(copilotModel, options)
+		switch (type) {
+			case AiModelTypeEnum.LLM:
+				return this.getModelManager(type)?.getChatModel(copilotModel, options)
+			case AiModelTypeEnum.TEXT_EMBEDDING:
+				if (!copilotModel.options) {
+					const predefinedModels = await this.getModels(AiModelTypeEnum.TEXT_EMBEDDING)
+					const modelName = copilotModel.model || copilotModel.copilot.copilotModel?.model
+					copilotModel.options = predefinedModels.find((_) => _.model === modelName)?.model_properties
+				}
+				return this.getModelManager<TextEmbeddingModelManager>(type)?.getEmbeddingInstance(copilotModel, options)
+			case AiModelTypeEnum.TTS:
+				return this.getModelManager<TextToSpeechModel>(type)?.getChatModel(copilotModel, options)
+			case AiModelTypeEnum.SPEECH2TEXT:
+				return this.getModelManager<SpeechToTextModel>(type)?.getChatModel(copilotModel, options)
 		}
+		
 		return null
 	}
 }

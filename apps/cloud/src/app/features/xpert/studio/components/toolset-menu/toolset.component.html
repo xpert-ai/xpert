@@ -1,20 +1,41 @@
-<ngm-search [formControl]="searchControl" class="w-full rounded-xl" />
-
-<ul class="w-full flex items-center px-3 py-2 mb-1 space-x-1 bg-gray-25 border-b-[0.5px] border-black/[0.08]"
-  cdkListbox
-  [(ngModel)]="type"
+<div class="w-full flex flex-col items-start sticky top-0 z-10 bg-white border-b-[0.5px] border-black/[0.08]">
+  <ngm-search [formControl]="searchControl" class="w-full rounded-xl" />
+  
+  <ul class="w-full flex items-center px-3 py-2 mb-1 space-x-1 bg-gray-25 border-b-[0.5px] border-black/[0.08]"
+    cdkListbox
+    [(ngModel)]="type"
   >
-  @for (type of TYPES; track type.value) {
-    <div #option="cdkOption" class="flex items-center px-2 h-6 rounded-md hover:bg-gray-100 cursor-pointer text-sm font-medium text-gray-700 "
-      [ngClass]="{'bg-gray-200': option.isSelected()}"
-      [cdkOption]="type.value"
-    >
-      {{ ('PAC.Xpert.ToolsetType_' + type.label) | translate: {Default: type.label} }}
-    </div>
-  }
-</ul>
+    @for (type of TYPES; track type.value) {
+      <div #option="cdkOption" class="flex items-center px-2 h-6 rounded-md hover:bg-gray-100 cursor-pointer text-sm font-medium text-gray-700 "
+        [ngClass]="{'bg-gray-200': option.isSelected()}"
+        [cdkOption]="type.value"
+        >
+        {{ ('PAC.Xpert.ToolsetType_' + type.label) | translate: {Default: type.label} }}
+      </div>
+    }
+  </ul>
+</div>
 
 @if (type()[0]) {
+  @switch (type()[0]) {
+    @case (eXpertToolsetCategoryEnum.MCP) {
+      <div class="w-full space-y-0.5 rounded-[9px] bg-zinc-100 p-0.5">
+        <div class="bg-zinc-50 hover:bg-zinc-100 relative flex h-9 cursor-pointer items-center rounded-lg border border-dashed
+          border-divider-deep px-1 text-sm text-text-placeholder"
+          [matTooltip]="''"
+          matTooltipPosition="left"
+          (click)="createMCPToolset()"
+        >
+          <div class="bg-neutral-100 text-lg mr-1.5 flex h-5 w-5 items-center justify-center rounded-[5px]">
+            <i class="ri-add-line"></i>
+          </div>
+          <div class="flex items-center uppercase">
+            <span>{{ 'PAC.Xpert.NewMCPToolset' | translate: {Default: 'New MCP Toolset'} }}</span>
+          </div>
+        </div>
+      </div>
+    }
+  }
   @for (toolset of toolsets(); track toolset.id) {
     <div cdkMenuItem class="shrink-0 w-full flex justify-start items-center px-1.5 py-2 rounded-lg overflow-hidden"
       (click)="createToolset(toolset)"

@@ -1,17 +1,16 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, model, signal } from '@angular/core'
+import { Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
-import { NgmCheckboxComponent, NgmInputComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmCheckboxComponent, NgmInputComponent } from '@metad/ocap-angular/common'
+import { linkedModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
-import { Document } from 'langchain/document'
-import { derivedFrom } from 'ngxtension/derived-from'
-import { BehaviorSubject, catchError, combineLatest, debounceTime, EMPTY, map, of, pipe, switchMap, tap } from 'rxjs'
+import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
+import { BehaviorSubject, combineLatest, of, switchMap, tap } from 'rxjs'
 import {
   getErrorMessage,
   IKnowledgeDocumentPage,
@@ -22,8 +21,9 @@ import {
 } from '../../../../../../../@core'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../../documents.component'
-import { KnowledgeDocumentCreateComponent, TFileItem } from '../create.component'
-import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
+import { KnowledgeDocumentCreateComponent } from '../create.component'
+import { KnowledgeDocumentPreviewComponent } from '../preview/preview.component'
+import { KnowledgeDocumentWebpagesComponent } from '../webpages/webpages.component'
 
 @Component({
   standalone: true,
@@ -39,10 +39,10 @@ import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'
     MatTooltipModule,
     MatProgressBarModule,
     NgmCheckboxComponent,
-    NgmSelectComponent,
-    NgmSpinComponent,
     NgmInputComponent,
-    KnowledgeDocIdComponent
+    KnowledgeDocIdComponent,
+    KnowledgeDocumentPreviewComponent,
+    KnowledgeDocumentWebpagesComponent
   ]
 })
 export class KnowledgeDocumentCreateStep2Component {
@@ -66,83 +66,28 @@ export class KnowledgeDocumentCreateStep2Component {
   readonly fileList = this.createComponent.fileList
   readonly webResult = this.createComponent.webResult
   readonly selectedWebPages = this.createComponent.selectedWebPages
-  readonly webDocs = computed(() => this.selectedWebPages().map((id) => 
-    this.webResult()?.docs.find((doc) => doc.metadata.scrapeId === id)))
-  readonly selectedFile = signal<TFileItem>(null)
-  readonly selectedWebDoc = signal<IKnowledgeDocumentPage>(null)
-  readonly estimateFiles = signal<Record<string, { error?: string; docs?: Document[] }>>({})
-  readonly estimating = signal<boolean>(false)
-
-  // Estimate embedding for file or webpage
-  readonly estimateFile = derivedFrom(
-    [this.selectedFile, this.selectedWebDoc, this.estimateFiles],
-    pipe(
-      debounceTime(300),
-      switchMap(([selectedFile, selectedWebDoc, estimateFiles]) => {
-        const storageFileId = selectedFile?.doc?.storageFile?.id
-        if (selectedFile && estimateFiles[storageFileId]) {
-          return of(estimateFiles[storageFileId])
-        }
-        const scrapeId = selectedWebDoc?.metadata?.scrapeId
-        if (selectedWebDoc && estimateFiles[scrapeId]) {
-          return of(estimateFiles[scrapeId])
-        }
-
-        if (selectedFile) {
-          this.estimating.set(true)
-          return this.knowledgeDocumentService
-            .estimate({
-              parserConfig: this.parserConfig(),
-              storageFileId: selectedFile.doc.storageFile.id
-            })
-            .pipe(
-              catchError((err) => {
-                this.#toastr.error(getErrorMessage(err))
-                this.estimating.set(false),
-                  this.estimateFiles.update((state) => ({
-                    ...state,
-                    [storageFileId]: { error: getErrorMessage(err) }
-                  }))
-                return EMPTY
-              }),
-              map((docs) => {
-                this.estimating.set(false),
-                  this.estimateFiles.update((state) => ({ ...state, [storageFileId]: { docs } }))
-                return { docs, error: null }
-              })
-            )
-        }
-
-        if (selectedWebDoc) {
-          this.estimating.set(true)
-          return this.knowledgeDocumentService
-            .estimate({
-              parserConfig: this.parserConfig(),
-              pages: [{metadata: selectedWebDoc.metadata, pageContent: ''}]
-            })
-            .pipe(
-              catchError((err) => {
-                this.#toastr.error(getErrorMessage(err))
-                this.estimating.set(false),
-                  this.estimateFiles.update((state) => ({
-                    ...state,
-                    [scrapeId]: { error: getErrorMessage(err) }
-                  }))
-                return EMPTY
-              }),
-              map((docs) => {
-                this.estimating.set(false),
-                  this.estimateFiles.update((state) => ({ ...state, [scrapeId]: { docs } }))
-                return { docs, error: null }
-              })
-            )
-
-        }
-        return of(null)
-      })
-    ),
-    { initialValue: null }
+  readonly webDocs = computed(() =>
+    this.selectedWebPages().map((id) => this.webResult()?.docs.find((doc) => doc.metadata.scrapeId === id))
   )
+
+  readonly selectedFileId = signal<string>(null)
+  readonly selectedFile = linkedModel({
+    initialValue: null,
+    compute: () => {
+      return this.selectedFileId() ? this.fileList().find((_) => _.doc.storageFile.id === this.selectedFileId()) : null
+    },
+    update: (value) => {
+      this.fileList.update((state) => {
+        return state.map((item) => {
+          if (item.doc.storageFile.id === value.doc.storageFile.id) {
+            return { ...item, ...value }
+          }
+          return item
+        })
+      })
+    }
+  })
+  readonly selectedWebDoc = signal<IKnowledgeDocumentPage>(null)
 
   readonly parserConfig = this.createComponent.parserConfig
   get delimiter() {
@@ -180,32 +125,33 @@ export class KnowledgeDocumentCreateStep2Component {
   }
 
   constructor() {
-    effect(
-      () => {
-        if (this.parserConfig()) {
-          this.estimateFiles.set({})
-        }
-      },
-      { allowSignalWrites: true }
-    )
+    // effect(
+    //   () => {
+    //     if (this.parserConfig()) {
+    //       this.estimateFiles.set({})
+    //     }
+    //   },
+    //   { allowSignalWrites: true }
+    // )
   }
 
   save() {
     combineLatest([
-      this.fileList()?.length ? 
-        this.knowledgeDocumentService
-          .createBulk(
+      this.fileList()?.length
+        ? this.knowledgeDocumentService.createBulk(
             this.fileList().map((item) => ({
               knowledgebaseId: this.knowledgebase().id,
               sourceType: KDocumentSourceType.FILE,
               storageFileId: item.doc.storageFile.id,
-              parserConfig: this.parserConfig(),
-              name: item.doc.storageFile.originalName
+              parserConfig: item.doc.parserConfig ?? this.parserConfig(),
+              name: item.doc.storageFile.originalName,
+              category: item.doc.category,
+              type: item.doc.type
             }))
-          ) : of([]),
-      this.webDocs()?.length ?
-        this.knowledgeDocumentService.createBulk(
-          [
+          )
+        : of([]),
+      this.webDocs()?.length
+        ? this.knowledgeDocumentService.createBulk([
             {
               knowledgebaseId: this.knowledgebase().id,
               parserConfig: this.parserConfig(),
@@ -217,8 +163,8 @@ export class KnowledgeDocumentCreateStep2Component {
                 status: 'finish'
               }))
             }
-          ]
-        ) : of([])
+          ])
+        : of([])
     ])
       .pipe(
         switchMap(([files, docs]) => {

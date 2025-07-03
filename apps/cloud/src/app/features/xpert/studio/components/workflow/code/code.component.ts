@@ -12,6 +12,7 @@ import {
   XpertAgentExecutionStatusEnum
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
+import { XpertNodeErrorHandlingComponent } from '../../error-handling/error.component'
 
 @Component({
   selector: 'xpert-studio-node-workflow-code',
@@ -19,7 +20,7 @@ import { XpertStudioApiService } from '../../../domain'
   styleUrls: ['./code.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, PlusSvgComponent],
+  imports: [FFlowModule, MatTooltipModule, TranslateModule, PlusSvgComponent, XpertNodeErrorHandlingComponent],
   host: {
     tabindex: '-1'
   }

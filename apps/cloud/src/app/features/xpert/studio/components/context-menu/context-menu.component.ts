@@ -11,6 +11,7 @@ import {
   IWFNHttp,
   IWFNIfElse,
   IWFNKnowledgeRetrieval,
+  IWFNTool,
   IWFNSubflow,
   IWFNTemplate,
   IWorkflowNode,
@@ -18,12 +19,17 @@ import {
   ToastrService,
   uuid,
   WorkflowNodeTypeEnum,
-  XpertParameterTypeEnum
+  XpertParameterTypeEnum,
+  IXpertToolset,
+  IToolProvider,
+  XpertToolsetCategoryEnum,
+  IWFNAssigner
 } from 'apps/cloud/src/app/@core'
 import { XpertInlineProfileComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { Subscription } from 'rxjs'
 import {
   genXpertAnswerKey,
+  genXpertAssignerKey,
   genXpertClassifierKey,
   genXpertCodeKey,
   genXpertHttpKey,
@@ -32,7 +38,8 @@ import {
   genXpertNoteKey,
   genXpertRouterKey,
   genXpertSubflowKey,
-  genXpertTemplateKey
+  genXpertTemplateKey,
+  genXpertToolKey
 } from '../../../utils'
 import { XpertStudioApiService } from '../../domain'
 import { SelectionService } from '../../domain/selection.service'
@@ -227,7 +234,7 @@ export class XpertStudioContextMenuComponent {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.TEMPLATE,
       key: genXpertTemplateKey(),
-      title: await this.#translate.instant('PAC.Workflow.TemplateTransform', { Default: 'Template transform' }),
+      title: await this.#translate.instant('PAC.Workflow.TemplateTransform', { Default: 'Template Transform' }),
       code: `{{arg1}}`,
       inputParams: [
         {
@@ -236,6 +243,22 @@ export class XpertStudioContextMenuComponent {
         }
       ]
     } as IWFNTemplate)
+  }
+  
+  addWorkflowVariableAssigner() {
+    const length = this.nodes()?.filter((n) => n.type === 'workflow' && n.entity?.type === WorkflowNodeTypeEnum.ASSIGNER).length ?? 0
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.ASSIGNER,
+      key: genXpertAssignerKey(),
+      title: this.#translate.instant('PAC.Workflow.VariableAssigner', { Default: 'Variable Assigner' }) + ` ${length + 1}`,
+      assigners: [
+        {
+          value: '',
+          variableSelector: '',
+          inputType: 'variable'
+        }
+      ]
+    } as IWFNAssigner)
   }
 
   async addWorkflowHttp() {
@@ -247,12 +270,34 @@ export class XpertStudioContextMenuComponent {
     } as IWFNHttp)
   }
 
+  async addWorkflowTool() {
+    this.apiService.addBlock(this.root.contextMenuPosition, {
+      type: WorkflowNodeTypeEnum.TOOL,
+      key: genXpertToolKey(),
+      title: await this.#translate.instant('PAC.Workflow.Tool', { Default: 'Tool' })
+    } as IWFNTool)
+  }
+
   async addWorkflowSubflow() {
     this.apiService.addBlock(this.root.contextMenuPosition, {
       type: WorkflowNodeTypeEnum.SUBFLOW,
       key: genXpertSubflowKey(),
       title: await this.#translate.instant('PAC.Workflow.Subflow', { Default: 'Subflow' })
     } as IWFNSubflow)
+  }
+
+  onSelectToolset({toolset, provider}: {toolset?: IXpertToolset; provider?: IToolProvider}) {
+    if (toolset) {
+      this.apiService.createToolset(this.root.contextMenuPosition, toolset)
+    }
+    if (provider) {
+      this.apiService.createToolset(this.root.contextMenuPosition, {
+            key: uuid(),
+            category: XpertToolsetCategoryEnum.BUILTIN,
+            type: provider.name,
+            name: provider.name
+          })
+    }
   }
 
   public dispose(): void {

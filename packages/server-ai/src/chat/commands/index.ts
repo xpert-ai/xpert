@@ -1,3 +1,5 @@
 export * from './chat-ws.command'
 export * from './cancel-chat.command'
 export * from './chat.command'
+export * from './speed-to-text.command'
+export * from './synthesize.command'

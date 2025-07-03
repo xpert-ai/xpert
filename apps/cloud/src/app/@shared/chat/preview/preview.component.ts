@@ -5,13 +5,14 @@ import {
   booleanAttribute,
   Component,
   computed,
-  DestroyRef,
   effect,
+  ElementRef,
   inject,
   input,
   model,
   output,
-  signal
+  signal,
+  viewChild,
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -19,34 +20,38 @@ import { appendMessageContent, stringifyMessageContent } from '@metad/copilot'
 import { nonBlank } from '@metad/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
+  AudioRecorderService,
   ChatConversationService,
   ChatMessageEventTypeEnum,
   ChatMessageFeedbackRatingEnum,
   ChatMessageFeedbackService,
+  ChatMessageService,
   ChatMessageTypeEnum,
+  ChatService,
   getErrorMessage,
   IChatConversation,
   IChatMessage,
   IChatMessageFeedback,
   IXpert,
+  SynthesizeService,
   ToastrService,
   ToolCall,
+  TtsStreamPlayerService,
   TXpertParameter,
   uuid,
   XpertAgentExecutionService,
   XpertAgentExecutionStatusEnum,
   XpertService
-} from 'apps/cloud/src/app/@core'
-import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
-import { ToolCallConfirmComponent, XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
+} from '@cloud/app/@core'
+import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
+import { ToolCallConfirmComponent, XpertParametersCardComponent } from '@cloud/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { map, Observable, of, timer, switchMap, tap, Subscription, EMPTY, pipe } from 'rxjs'
+import { map, Observable, of, timer, switchMap, tap, Subscription, EMPTY, pipe, filter } from 'rxjs'
 import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
 import { effectAction } from '@metad/ocap-angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { injectConfirmDelete } from '@metad/ocap-angular/common'
-import { MatInputModule } from '@angular/material/input'
 
 @Component({
   standalone: true,
@@ -57,7 +62,6 @@ import { MatInputModule } from '@angular/material/input'
     TextFieldModule,
     MatTooltipModule,
     MarkdownModule,
-    MatInputModule,
     EmojiAvatarComponent,
     XpertParametersCardComponent,
     XpertPreviewAiMessageComponent,
@@ -65,7 +69,8 @@ import { MatInputModule } from '@angular/material/input'
   ],
   selector: 'chat-conversation-preview',
   templateUrl: 'preview.component.html',
-  styleUrls: ['preview.component.scss']
+  styleUrls: ['preview.component.scss'],
+  providers: [TtsStreamPlayerService, AudioRecorderService, SynthesizeService],
 })
 export class ChatConversationPreviewComponent {
   eExecutionStatusEnum = XpertAgentExecutionStatusEnum
@@ -75,11 +80,14 @@ export class ChatConversationPreviewComponent {
   readonly conversationService = inject(ChatConversationService)
   readonly agentExecutionService = inject(XpertAgentExecutionService)
   readonly messageFeedbackService = inject(ChatMessageFeedbackService)
+  readonly chatMessageService = inject(ChatMessageService)
+  readonly chatService = inject(ChatService)
   readonly #toastr = inject(ToastrService)
-  readonly #destroyRef = inject(DestroyRef)
   readonly #translate = inject(TranslateService)
   readonly #clipboard = inject(Clipboard)
   readonly confirmDel = injectConfirmDelete()
+  readonly #audioRecorder = inject(AudioRecorderService)
+  readonly #synthesizeService = inject(SynthesizeService)
 
   // Inputs
   readonly conversationId = model<string>()
@@ -101,6 +109,9 @@ export class ChatConversationPreviewComponent {
   readonly chatError = output<string>()
   readonly chatStop = output<void>()
 
+  // Children
+  readonly canvasRef = viewChild('waveCanvas', {read: ElementRef})
+
   // States
   readonly conversation = signal<Partial<IChatConversation>>(null)
 
@@ -114,7 +125,18 @@ export class ChatConversationPreviewComponent {
   })
   readonly envriments = signal(false)
   readonly avatar = computed(() => this.xpert()?.avatar)
-  readonly starters = computed(() => this.xpert()?.starters?.filter(nonBlank))
+  readonly features = computed(() => this.xpert()?.features)
+  readonly opener = computed(() => this.features()?.opener)
+  readonly starters = computed(() => {
+    if (this.opener()?.enabled) {
+      return this.opener()?.questions
+    }
+    return this.xpert()?.starters
+  })
+  readonly textToSpeech_enabled = computed(() => this.xpert()?.features?.textToSpeech?.enabled)
+  readonly speechToText_enabled = computed(() => this.xpert()?.features?.speechToText?.enabled)
+  readonly attachment_enabled = computed(() => this.xpert()?.features?.attachment?.enabled)
+  readonly suggestion_enabled = computed(() => this.xpert()?.features?.suggestion?.enabled)
   readonly inputLength = computed(() => this.input()?.length ?? 0)
   readonly loading = signal(false)
 
@@ -187,6 +209,10 @@ export class ChatConversationPreviewComponent {
       },
       { allowSignalWrites: true }
     )
+
+    effect(() => this.#audioRecorder.canvasRef.set(this.canvasRef()), { allowSignalWrites: true })
+    effect(() => this.#audioRecorder.xpert.set(this.xpert() as IXpert), { allowSignalWrites: true })
+    effect(() => this.input.set(this.#audioRecorder.text()), { allowSignalWrites: true })
   }
 
   chat(options?: { input?: string; confirm?: boolean; reject?: boolean; retry?: boolean }) {
@@ -306,6 +332,9 @@ export class ChatConversationPreviewComponent {
           if (this.currentMessage()) {
             this.appendMessage({ ...this.currentMessage() })
           }
+          if (this.suggestion_enabled()) {
+            this.onSuggestionQuestions(this.currentMessage().id)
+          }
           this.currentMessage.set(null)
         }
       })
@@ -332,6 +361,28 @@ export class ChatConversationPreviewComponent {
     this.loading.set(false)
     this.currentMessage.set(null)
     this.chatStop.emit()
+  }
+
+  // Suggestion Questions
+  readonly suggesting = signal(false)
+  readonly suggestionQuestions = signal<string[]>([])
+  onSuggestionQuestions(id: string) {
+    this.suggesting.set(true)
+    this.chatMessageService.suggestedQuestions(id).subscribe({
+      next: (questions) => {
+        this.suggesting.set(false)
+        this.suggestionQuestions.set(questions)
+      },
+      error: (error) => {
+        this.suggesting.set(false)
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
+  }
+
+  onSelectSuggestionQuestion(question: string) {
+    this.chat({ input: question })
+    this.suggestionQuestions.set([]) // Clear suggestions after selection
   }
 
   appendMessage(message: Partial<IChatMessage>) {
@@ -421,21 +472,21 @@ export class ChatConversationPreviewComponent {
       }).subscribe((confirm) => {
         if (confirm) {
           this.onStop()
-          
-          this.conversationId.set(null)
-          this.conversation.set(null)
-          this._messages.set([])
-          this.parameterValue.set({})
-          this.restart.emit()
+          this.clear()
         }
       })
     } else {
-      this.conversationId.set(null)
-      this.conversation.set(null)
-      this._messages.set([])
-      this.parameterValue.set({})
-      this.restart.emit()
+      this.clear()
     }
+  }
+
+  clear() {
+    this.conversationId.set(null)
+    this.conversation.set(null)
+    this._messages.set([])
+    this.parameterValue.set({})
+    this.suggestionQuestions.set([])
+    this.restart.emit()
   }
 
   onRetry() {
@@ -493,4 +544,22 @@ export class ChatConversationPreviewComponent {
       this.close.emit()
     }
   }
+
+  readonly synthesizeLoading = this.#synthesizeService.synthesizeLoading
+  readonly isPlaying = this.#synthesizeService.isPlaying
+  readAloud(message: IChatMessage) {
+    this.#synthesizeService.readAloud(this.conversation().id, message)
+  }
+
+  readonly speeching = this.#audioRecorder.speeching
+  readonly isRecording = this.#audioRecorder.isRecording
+  readonly isConverting = this.#audioRecorder.isConverting
+  readonly recordTimes = this.#audioRecorder.recordTimes
+  async startRecording() {
+    await this.#audioRecorder.startRecording()
+  }
+  stopRecording() {
+    this.#audioRecorder.stopRecording()
+  }
+
 }

@@ -1,12 +1,13 @@
 import {
-	DocumentParserConfig,
 	TDocumentWebOptions,
 	IIntegration,
 	IKnowledgebase,
 	IKnowledgeDocument,
 	IKnowledgeDocumentPage,
 	IStorageFile,
-	KDocumentSourceType
+	KDocumentSourceType,
+	KBDocumentCategoryEnum,
+	DocumentTextParserConfig
 } from '@metad/contracts'
 import { Integration, StorageFile, TenantOrganizationBaseEntity } from '@metad/server-core'
 import { Optional } from '@nestjs/common'
@@ -73,13 +74,19 @@ export class KnowledgeDocument extends TenantOrganizationBaseEntity implements I
 	@IsJSON()
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
-	parserConfig: DocumentParserConfig
+	parserConfig: DocumentTextParserConfig
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@Optional()
 	@Column({ nullable: true, length: 20 })
 	sourceType?: KDocumentSourceType
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsString()
+	@Optional()
+	@Column({ nullable: true })
+	category?: KBDocumentCategoryEnum | null
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()

@@ -146,17 +146,32 @@
 <router-outlet></router-outlet>
 
 <ng-template #workspaceMenu>
-  <div class="cdk-menu__large" cdkMenu displayDensity="cosy">
-    <label class="px-2 pb-2 font-semibold">{{ 'PAC.KEY_WORDS.Workspaces' | translate: { Default: 'Workspaces' } }}</label>
+  <div cdkMenu class="cdk-menu__large">
+    @if (workspaces().length > 6) {
+      <div class="p-1 relative w-full">
+        <div class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder flex justify-center items-center">
+          <i class="ri-search-line "></i>
+        </div>
+        <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
+          [placeholder]="'PAC.Xpert.FilterWorkspace' | translate: {Default: 'Filter Workspace'}"
+          [(ngModel)]="searchWorkspace"
+        >
+      </div>
+    } @else {
+      <label class="px-2 font-semibold">{{ 'PAC.KEY_WORDS.Workspaces' | translate: { Default: 'Workspaces' } }}</label>
+    }
+    
     <div class="max-h-64 w-56 overflow-y-auto" (click)="$event.stopPropagation()">
-      @for (item of workspaces(); track item.name) {
-        <div cdkMenuItem class="workspace-item" [class.active]="item.id === selectedWorkspace()?.id" (click)="selectWorkspace(item)">
+      @for (item of filteredWorkspaces(); track item.name) {
+        <div class="workspace-item p-2 rounded-lg cursor-pointer hover:bg-hover-bg"
+          [class.active]="item.id === selectedWorkspace()?.id"
+          (click)="selectWorkspace(item)">
           <div class="flex-1 truncate">
             @if (me().id === item.ownerId) {
-              <i class="ri-user-2-fill mr-1 text-text-secondary" [matTooltip]="'PAC.Xpert.YouAreOwner' | translate: {Default: 'You are owner'}"
+              <i class="ri-user-2-fill mr-1 opacity-50" [matTooltip]="'PAC.Xpert.YouAreOwner' | translate: {Default: 'You are owner'}"
                   matTooltipPosition="left"></i>
             }
-            <span>{{ item.name }}</span>
+            <span [ngmHighlight]="searchWorkspace()" [content]="item.name">{{ item.name }}</span>
           </div>
         </div>
       } @empty {

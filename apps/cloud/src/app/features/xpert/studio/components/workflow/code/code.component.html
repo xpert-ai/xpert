@@ -1,4 +1,4 @@
-<div class="text-left text-xs whitespace-pre-line line-clamp-3" [title]="code()">
+<div class="text-left text-xs font-mono whitespace-pre-line line-clamp-3" [title]="code()">
   {{code()}}
 </div>
 
@@ -27,31 +27,6 @@
     </div>
   </div>
 }
-
 @if (errorHandling()?.type) {
-  <div class="w-full relative mt-2">
-    <div class="relative flex items-center justify-between px-[5px] h-7 bg-gray-100 rounded-md">
-      <div class="text-sm font-medium uppercase text-text-tertiary">
-        {{'PAC.Xpert.OnFailure' | translate: {Default: 'On Failure'} }}
-      </div>
-      @if (errorHandling().type === 'defaultValue') {
-        <div class="system-xs-medium text-gray-500">
-          {{'PAC.Xpert.OutputDefaultValue' | translate: {Default: 'Output Default Value'} }}
-        </div>
-      }
-      @if (errorHandling().type === 'failBranch') {
-        <div class="system-xs-medium text-gray-500">
-          {{'PAC.Xpert.FailBranch' | translate: {Default: 'Fail Branch'} }}
-        </div>
-      }
-    </div>
-
-    @if (errorHandling().type === 'failBranch') {
-      <div class="edge danger right group" fNodeOutput [fOutputId]="node().key + '/fail/edge'" fOutputConnectableSide="right">
-        <div class="inner-dot cursor-crosshair">
-          <ngm-plus-svg class="w-2 h-2 text-white" />
-        </div>
-      </div>
-    }
-  </div>
+  <xpert-node-error-handling [node]="node()" [errorHandling]="errorHandling()" />
 }

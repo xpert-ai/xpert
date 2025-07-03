@@ -1,6 +1,6 @@
-import { IWFNClassifier, XpertParameterTypeEnum } from '@metad/contracts'
+import { IWorkflowNode, XpertParameterTypeEnum } from '@metad/contracts'
 
-export function classifierOutputVariables(entity: IWFNClassifier) {
+export function classifierOutputVariables(entity: IWorkflowNode) {
     return [
         {
             type: XpertParameterTypeEnum.NUMBER,

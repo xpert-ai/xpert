@@ -7,7 +7,7 @@ import { injectLanguage } from './translate'
  *
  * @returns url of website
  */
-export function injectHelpWebsite() {
+export function injectHelpWebsite(url?: string) {
   const lang = injectLanguage()
 
   const website = 'https://mtda.cloud'
@@ -15,9 +15,9 @@ export function injectHelpWebsite() {
   return computed(() => {
     const language = lang()
     if ([LanguagesEnum.Chinese, LanguagesEnum.SimplifiedChinese, LanguagesEnum.TraditionalChinese].includes(language)) {
-      return website
+      return website + (url ?? '')
     } else {
-      return `${website}/en`
+      return `${website}/en` + (url ?? '')
     }
   })
 }

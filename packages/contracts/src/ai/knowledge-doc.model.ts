@@ -5,18 +5,54 @@ import { IKnowledgeDocumentPage } from './knowledge-doc-page.model'
 import { IKnowledgebase } from './knowledgebase.model'
 import { TRagWebOptions } from './rag-web'
 
+
 export type DocumentParserConfig = {
   pages?: number[][]
-  delimiter: string
-  chunkSize: number | null
-  chunkOverlap: number | null
   replaceWhitespace?: boolean
   removeSensitive?: boolean
 }
 
+export type DocumentTextParserConfig = DocumentParserConfig & {
+  delimiter?: string
+  chunkSize?: number | null
+  chunkOverlap?: number | null
+}
+
+export type DocumentSheetParserConfig = DocumentParserConfig & {
+  fields?: string[]
+  indexedFields?: string[]
+}
+
+/**
+ * Import Type:
+ * - file: local file
+ * - web: web document
+ * - feishu
+ * - wechat
+ * - notion
+ * ...
+ */
 export enum KDocumentSourceType {
+  /**
+   * Local files
+   */
   FILE = 'file',
+  /**
+   * Web documents
+   */
   WEB = 'web'
+}
+
+/**
+ * Document type category, determine how to process the document.
+ */
+export enum KBDocumentCategoryEnum {
+  Text = 'text',
+  Image = 'image',
+  Audio = 'audio',
+  Video = 'video',
+  Sheet = 'sheet',
+  Other = 'other'
 }
 
 export type TDocumentWebOptions = TRagWebOptions & {
@@ -41,11 +77,15 @@ export type TKnowledgeDocument = {
    * default parser ID
    */
   parserId: string
-  parserConfig: DocumentParserConfig
+  parserConfig: DocumentTextParserConfig
   /**
    * where dose this document come from
    */
   sourceType?: KDocumentSourceType | null
+  /**
+   * document type category
+   */
+  category?: KBDocumentCategoryEnum | null
   /**
    * Local file extension or Web doc provider
    */
@@ -106,3 +146,7 @@ export interface IDocumentChunk {
 }
 
 export type Metadata = Record<string, any>
+
+export function isDocumentSheet(type: string): boolean {
+  return ['csv', 'xls', 'xlsx', 'ods'].includes(type)
+}

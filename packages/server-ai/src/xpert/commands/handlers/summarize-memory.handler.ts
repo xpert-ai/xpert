@@ -65,6 +65,10 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 			typeof AgentStateAnnotation.State
 		>(new XpertAgentExecutionStateQuery(executionId))
 
+		if (!summarizedState) {
+			return
+		}
+
 		// Create a new execution (Run) for this chat
 		const execution = await this.commandBus.execute(
 			new XpertAgentExecutionUpsertCommand({

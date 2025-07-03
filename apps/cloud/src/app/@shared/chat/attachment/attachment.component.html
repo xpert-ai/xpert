@@ -16,7 +16,7 @@
   
 } @else {
   <pac-file-icon [fileType]="name() | fileType" small class="opacity-80 group-hover/chip:opacity-100"/>
-  <span class="truncate max-w-full me-auto sm:max-w-full flex-1">
+  <span class="truncate max-w-full me-auto sm:max-w-full flex-1 mr-2">
     {{name()}}
   </span>
 }
@@ -31,7 +31,7 @@
 }
 
 @if (!storageFile() && progress() !== 100) {
-  <ngm-progress-spinner class="absolute top-0 left-0 w-full h-full flex justify-center items-center p-2" mode="determinate"
+  <ngm-progress-spinner class="absolute top-0 left-0 w-12 h-12 flex justify-center items-center p-2" mode="determinate"
     [value]="progress()"
   />
 }

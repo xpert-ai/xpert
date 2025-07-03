@@ -4,8 +4,9 @@ import {
 	IXpertProject,
 	IXpertProjectTask,
 	IXpertToolset,
-	OrderTypeEnum,
+	OrderTypeEnum
 } from '@metad/contracts'
+import { getErrorMessage } from '@metad/server-common'
 import {
 	CrudController,
 	PaginationParams,
@@ -45,7 +46,6 @@ import { XpertProject } from './entities/project.entity'
 import { XpertProjectGuard, XpertProjectOwnerGuard } from './guards'
 import { XpertProjectService } from './project.service'
 import { XpertProjectFileService } from './services'
-import { getErrorMessage } from '@metad/server-common'
 
 @ApiTags('XpertProject')
 @ApiBearerAuth()
@@ -177,6 +177,14 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	}
 
 	// Files
+	/**
+	 * List files in volume of project
+	 *
+	 * @param id Project
+	 * @param deepth Deepth of the directory structure to list
+	 * @param path Path to list files from
+	 * @returns
+	 */
 	@UseGuards(XpertProjectGuard)
 	@Get(':id/files')
 	async readFiles(@Param('id') id: string, @Query('deepth') deepth: number, @Query('path') path: string) {
@@ -184,12 +192,19 @@ export class XpertProjectController extends CrudController<XpertProject> {
 		const client = new VolumeClient({
 			tenantId: project.tenantId,
 			userId: project.ownerId,
-			projectId: project.id,
+			projectId: project.id
 		})
 
-		return await client.list({path, deepth})
+		return await client.list({ path, deepth })
 	}
 
+	/**
+	 * Upload a file to the project volume.
+	 *
+	 * @param id
+	 * @param file
+	 * @returns
+	 */
 	@Post(':id/file/upload')
 	@UseInterceptors(FileInterceptor('file'))
 	async uploadFile(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
@@ -206,6 +221,12 @@ export class XpertProjectController extends CrudController<XpertProject> {
 		return { url }
 	}
 
+	/**
+	 * Delete a file from the project volume.
+	 *
+	 * @param id
+	 * @param filePath
+	 */
 	@UseGuards(XpertProjectGuard)
 	@Delete(':id/file')
 	async deleteFile(@Param('id') id: string, @Query('path') filePath: string) {
@@ -222,6 +243,12 @@ export class XpertProjectController extends CrudController<XpertProject> {
 		}
 	}
 
+	/**
+	 * Add storage files as attachments to the project.
+	 *
+	 * @param id
+	 * @param files
+	 */
 	@UseGuards(XpertProjectGuard)
 	@Put(':id/attachments')
 	async addAttachments(@Param('id') id: string, @Body() files: string[]) {
@@ -234,12 +261,9 @@ export class XpertProjectController extends CrudController<XpertProject> {
 		await this.service.removeAttachments(id, [file])
 	}
 
-	@UseGuards(XpertProjectGuard)
-	@Delete(':id/attachment/:file')
-	async deleteAttachment(@Param('id') id: string, @Param('file') file: string) {
-		await this.service.removeAttachments(id, [file])
-	}
-
+	/**
+	 * @deprecated Probably won't be used.
+	 */
 	@Get(':id/file/:file')
 	async readFile(@Param('id') id: string, @Param('file') filePath: string, @Res() res: Response) {
 		// read file from project and return as a file stream
@@ -257,5 +281,4 @@ export class XpertProjectController extends CrudController<XpertProject> {
 			res.status(HttpStatus.INTERNAL_SERVER_ERROR).send('Error reading file')
 		}
 	}
-	
 }

@@ -65,7 +65,7 @@
           [matTooltip]="'PAC.Xpert.SensitiveToolsTip' | translate: {Default: 'Sensitive tools require user confirmation before execution'}"
           matTooltipPosition="above"></i>
       }
-      <span class="whitespace-nowrap" [title]="item.tool.description || item.tool.name">
+      <span class="truncate whitespace-nowrap" [title]="item.tool.description || item.tool.name">
         {{item.label | i18n}}
       </span>
       <div class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50">

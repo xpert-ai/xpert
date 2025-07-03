@@ -82,6 +82,15 @@ export class XpertChatAppComponent {
     return slug && slug !== 'common' ? this.homeService.getXpert(slug) : null
   })
 
+  readonly features = computed(() => this.xpert()?.features)
+  readonly opener = computed(() => this.features()?.opener)
+  readonly starters = computed(() => {
+    if (this.opener()?.enabled) {
+      return this.opener()?.questions
+    }
+    return this.xpert()?.starters
+  })
+
   readonly parameters = computed(() => this.xpert()?.agent?.parameters)
   readonly parametersValue = model<Record<string, unknown>>()
 
@@ -111,12 +120,9 @@ export class XpertChatAppComponent {
   })
 
   constructor() {
-    effect(
-      () => {
-        this.chatService.xpert.set(this.xpert())
-      },
-      { allowSignalWrites: true }
-    )
+    effect(() => {
+      this.chatService.xpert.set(this.xpert())
+    }, { allowSignalWrites: true })
 
     effect(
       () => {

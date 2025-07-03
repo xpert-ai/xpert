@@ -34,7 +34,7 @@ export function createChatAnswerTool(
 			const i18n = await chatbi.translate('toolset.ChatBI', {lang: language})
 			
 			// Update runtime indicators
-			const indicators = currentState[ChatBIVariableEnum.INDICATORS]
+			const indicators = currentState?.[ChatBIVariableEnum.INDICATORS]
 			if (indicators) {
 				await chatbi.updateIndicators(dsCoreService, indicators)
 			}

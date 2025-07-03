@@ -10,9 +10,12 @@ import {
 } from '@metad/cloud/state'
 import { toParams } from '@metad/core'
 import { EMPTY, switchMap } from 'rxjs'
+import { injectFetchEventSource } from './fetch-event-source'
 
 @Injectable({ providedIn: 'root' })
 export class ChatConversationService extends OrganizationBaseCrudService<IChatConversation> {
+  readonly fetchEventSource = injectFetchEventSource()
+
   constructor() {
     super(API_PREFIX + '/chat-conversation')
   }
@@ -58,4 +61,5 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
   deleteFile(id: string, filePath: string) {
     return EMPTY // @todo
   }
+
 }

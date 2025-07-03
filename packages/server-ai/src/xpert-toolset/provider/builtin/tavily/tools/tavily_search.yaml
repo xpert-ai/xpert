@@ -12,7 +12,7 @@ description:
     pt_BR: A tool for search engine built specifically for AI agents (LLMs), delivering real-time, accurate, and factual results at speed.
   llm: A tool for search engine built specifically for AI agents (LLMs), delivering real-time, accurate, and factual results at speed.
 parameters:
-  - name: query
+  - name: input
     type: string
     required: true
     label:

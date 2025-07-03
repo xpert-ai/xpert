@@ -7,8 +7,8 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import axios from 'axios'
 import * as https from 'https'
 import { XpertConfigException } from '../../core'
-import { AgentStateAnnotation, stateToParameters } from '../../shared'
-import { wrapAgentExecution } from '../../xpert-agent-execution/utils'
+import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../shared'
+import { wrapAgentExecution } from '../../shared/agent/execution'
 
 const ErrorChannelName = 'error'
 export const StatusCodeChannelName = 'status_code'
@@ -154,7 +154,7 @@ export function createHttpNode(
 								if (entity.errorHandling?.type === 'defaultValue') {
 									return {
 										state: {
-											[channelName(node.key)]: entity.errorHandling.defaultValue
+											[channelName(node.key)]: entity.errorHandling.defaultValue as any
 										},
 										output: entity.errorHandling.defaultValue?.content
 									}
@@ -190,7 +190,8 @@ export function createHttpNode(
 						?.to ?? END
 				)
 			}
-			return graph.connections.find((conn) => conn.type === 'edge' && conn.from === node.key)?.to ?? END
+
+			return nextWorkflowNodes(graph, node.key, state)
 		}
 	}
 }

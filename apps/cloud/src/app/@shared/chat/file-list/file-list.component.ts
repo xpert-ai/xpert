@@ -3,6 +3,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, effect, inject, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { FileTypePipe } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -40,6 +41,7 @@ export type TFileDirectoryItem = TFileDirectory & {
     TranslateModule,
     NgmSpinComponent,
     DateRelativePipe,
+    FileTypePipe,
     FileIconComponent
   ]
 })
@@ -59,9 +61,9 @@ export class ChatFileListComponent {
   // States
   readonly #attachments = myRxResource<{ projectId?: string; conversationId: string }, TFileDirectoryItem[]>({
     request: () => this.refresh() && {
-    projectId: this.projectId(),
-    conversationId: this.conversationId()
-  },
+      projectId: this.projectId(),
+      conversationId: this.conversationId()
+    },
     loader: ({ request }) => this.getFiles({ ...request })
   })
 

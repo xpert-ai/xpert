@@ -1,11 +1,11 @@
 <div class="space-y-1">
   @for (item of selectedKnowledgebases(); track item.id; let i = $index) {
     @if (item.kb) {
-      <div class="group/dataset-item flex h-8 cursor-pointer items-center justify-between rounded-lg px-2
+      <div class="group/kb-item flex h-8 cursor-pointer items-center justify-between rounded-lg px-2
         bg-slate-50">
         <div class="flex w-0 grow items-center space-x-1.5 text-left">
           <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-[0.5px] border-slate-200 bg-slate-50 text-text-tertiary
-            group-hover/dataset-item:text-primary-500">
+            group-hover/kb-item:text-primary-500">
             <i class="ri-book-shelf-fill text-lg"></i>
           </div>
           <div class="text-sm font-medium w-0 grow truncate text-text-secondary">
@@ -13,7 +13,7 @@
           </div>
         </div>
 
-        <!-- <div class="relative inline-flex h-5 items-center rounded-[5px] border border-divider-deep px-[5px] leading-3 text-text-tertiary system-2xs-medium-uppercase shrink-0 group-hover/dataset-item:hidden">
+        <!-- <div class="relative inline-flex h-5 items-center rounded-[5px] border border-divider-deep px-[5px] leading-3 text-text-tertiary system-2xs-medium-uppercase shrink-0 group-hover/kb-item:hidden">
           HQ · VECTOR</div> -->
       </div>
     } @else {
@@ -22,7 +22,7 @@
       </div>
     }
   } @empty {
-    <div class="cursor-default select-none rounded-lg bg-neutral-50 p-3 text-center text-sm text-text-tertiary">
+    <div class="cursor-default select-none rounded-lg bg-neutral-50 px-3 h-8 flex justify-center items-center text-sm text-text-tertiary">
       {{ 'PAC.Xpert.ClickAddToAddKB' | translate: {Default: 'Click the "+" button to add knowledge'} }}
     </div>
   }

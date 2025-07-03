@@ -1,3 +1,4 @@
+import { AiModelTypeEnum } from '@metad/contracts'
 import { IQuery } from '@nestjs/cqrs'
 
 /**
@@ -7,6 +8,9 @@ export class GetCopilotProviderModelQuery implements IQuery {
 
 	constructor(
 		public readonly providerId: string,
-		public readonly modelName?: string,
+		public readonly params: {
+			modelName?: string
+			modelType?: AiModelTypeEnum
+		}
 	) {}
 }

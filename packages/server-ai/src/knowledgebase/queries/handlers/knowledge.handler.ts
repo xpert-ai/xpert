@@ -38,7 +38,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 					.then((docs) =>
 						docs
 							.map(([doc, score]) => ({ doc, score }))
-							.filter(({ score: _score }) => 1 - _score >= (score || kb.similarityThreshold || 0.5))
+							.filter(({ score: _score }) => 1 - _score >= (score ?? kb.similarityThreshold ?? 0.5))
 					)
 			})
 		)
@@ -51,8 +51,7 @@ export class KnowledgeSearchQueryHandler implements IQueryHandler<KnowledgeSearc
 
 		return (
 			sortBy(documents, 'score', 'desc')
-				// .filter(({ score: _score }) => 1 - _score >= (score ?? 0.1))
-				.slice(0, k)
+				.slice(0, k || 1000)
 		)
 	}
 }

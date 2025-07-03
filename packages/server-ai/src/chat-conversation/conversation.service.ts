@@ -6,7 +6,7 @@ import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
-import { DeepPartial, Like, Repository } from 'typeorm'
+import { DeepPartial, Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { CreateCopilotStoreCommand } from '../copilot-store'
 import { FindAgentExecutionsQuery, XpertAgentExecutionStateQuery } from '../xpert-agent-execution/queries'
@@ -116,10 +116,12 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 					}
 				}
 
-				await this.messageService.update(messageId, { summaryJob: {
-					...(message.summaryJob),
-					[type]: null
-				} })
+				await this.messageService.update(messageId, {
+					summaryJob: {
+						...message.summaryJob,
+						[type]: null
+					}
+				})
 			}
 		} catch (err) {
 			this.logger.error(err)
@@ -131,9 +133,9 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 	}
 
 	async getThreadState(id: string) {
-		const conversation = await this.findOne(id, { relations: ['messages']})
+		const conversation = await this.findOne(id, { relations: ['messages'] })
 		const lastMessage = conversation.messages[conversation.messages.length - 1]
-		
+
 		if (lastMessage.executionId) {
 			return await this.queryBus.execute(new XpertAgentExecutionStateQuery(lastMessage.executionId))
 		}
@@ -142,7 +144,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 	}
 
 	async getAttachments(id: string) {
-		const conversation = await this.findOne(id, { relations: ['attachments']})
+		const conversation = await this.findOne(id, { relations: ['attachments'] })
 		return conversation.attachments
 	}
 }

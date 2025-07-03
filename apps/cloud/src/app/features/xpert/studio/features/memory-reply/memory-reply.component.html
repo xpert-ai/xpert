@@ -1,0 +1,28 @@
+<div class="flex items-start justify-between space-x-2">
+  <input class="block h-8 w-20 shrink-0 appearance-none rounded-lg bg-components-input-bg-normal pl-3 mr-8 text-[13px] text-components-input-text-filled outline-none"
+    min="0.8"
+    max="1"
+    step="0.01"
+    type="number"
+    [(ngModel)]="scoreThreshold"
+  />
+
+  <div class="grow flex flex-col">
+    <mat-slider class="grow" min="0.8" max="1" step="0.01" showTickMarks discrete>
+      <input matSliderThumb [(ngModel)]="scoreThreshold">
+    </mat-slider>
+    <div class="text-xs font-semibold uppercase flex items-center justify-between">
+      <div class="flex space-x-1 text-cyan-500">
+        <div>0.8</div>
+        <div>·</div>
+        <div>{{ 'PAC.Xpert.EasyMatch' | translate: {Default: 'Easy Match'} }}</div>
+      </div>
+      <div class="flex space-x-1 text-blue-500">
+        <div>1.0</div>
+        <div>·</div>
+        <div>{{ 'PAC.Xpert.ExactMatch' | translate: {Default: 'Exact Match'} }}</div>
+      </div>
+    </div>
+  </div>
+  
+</div>

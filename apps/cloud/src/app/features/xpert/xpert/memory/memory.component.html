@@ -1,11 +1,30 @@
-<div class="text-xl font-medium p-4">{{ 'PAC.Xpert.LongTermMemory' | translate: {Default: 'Long-term Memory'} }}</div>
-
-<div class="flex justify-between p-4">
-  <ngm-search [formControl]="searchControl" />
-  <button type="button" class="btn btn-medium pressable danger" (click)="clearMemory()">{{ 'PAC.Xpert.ClearMemory' | translate: {Default: 'Clear memory'} }}</button>
+<div class="text-xl font-medium p-4">
+  {{ 'PAC.Xpert.LongTermMemory' | translate: {Default: 'Long-term Memory'} }}
 </div>
 
-<ngm-table class="flex-1 overflow-hidden text-sm" displayDensity="compact" paging
+<div class="flex justify-between items-center gap-2 px-4 pb-4">
+  <ngm-search [formControl]="searchControl" />
+  <div class="grow"></div>
+  <ngm-select class="w-40" [placeholder]="'PAC.Xpert.SelectMemoryType' | translate: {Default: 'Select memory type'}"
+    [(ngModel)]="memoryType" [selectOptions]="memoryTypesOptions" />
+  
+  <div class="flex space-x-2">
+    <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
+      (click)="toggleAddMemory()">
+      <i class="ri-add-line mr-1"></i>
+      <div>{{ 'PAC.Xpert.AddMemory' | translate: {Default: 'Add memory'} }}</div>
+    </button>
+    <div class="relative">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium w-8 p-0"
+        [cdkMenuTriggerFor]="moreMenu"
+      >
+        <i class="ri-more-line"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<ngm-table class="flex-1 overflow-hidden text-sm z-10" displayDensity="compact" paging
   [columns]="columns()"
   [data]="filterdData()"
 />
@@ -15,10 +34,8 @@
     {{ 'PAC.Xpert.SemanticSearchTest' | translate: {Default: 'Semantic search test'} }}
   </div>
   <div class="relative w-full p-[5.5px] max-h-[150px] bg-white border-[1.5px] border-gray-200 rounded-xl mb-2">
-    <textarea class="outline-none w-full pl-2 pr-16" matInput [(ngModel)]="input"
-      cdkTextareaAutosize
-      cdkAutosizeMinRows="1"
-      cdkAutosizeMaxRows="5"
+    <textarea class="outline-none w-full pl-2 pr-16"
+      [(ngModel)]="input"
       (keydown)="onKeydown($event)"
     ></textarea>
     <div class="absolute bottom-1 h-8 right-2 flex items-center">
@@ -45,7 +62,95 @@
 </div>
 
 @if (loading()) {
-  <ngm-spin class="absolute left-0 top-0 w-full h-full flex justify-center items-center"></ngm-spin>
+  <ngm-spin class="absolute left-0 top-0 w-full h-full flex justify-center items-center" />
+}
+
+@if (showAddMemory()) {
+  <div @overlayAnimation1 class="fixed inset-0 z-50 flex items-center justify-center bg-neutral-800 bg-opacity-50 transition-all" (click)="showAddMemory.set(false)">
+    <div class="absolute right-4 bottom-4 top-28 shrink-0 w-[600px] rounded-2xl shadow-sm flex flex-col overflow-hidden bg-components-card-bg" (click)="$event.stopPropagation()">
+      <div class="p-4 border-b border-divider-subtle flex justify-between items-center">
+        <h2 class="text-xl font-semibold">{{ 'PAC.Xpert.AddMemory' | translate: {Default: 'Add Memory'} }}</h2>
+        <button type="button" class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+          (click)="showAddMemory.set(false)">
+          <i class="ri-close-line"></i>
+        </button>  
+      </div>
+      <div class="grow p-4" (ngSubmit)="addMemory()">
+        @if (memoryType() === eLongTermMemoryTypeEnum.QA) {
+          <div class="space-y-6 p-6 pb-4">
+            <div class="flex">
+              <div class="mr-3 shrink-0 w-6 h-6 flex items-center justify-center text-text-secondary">
+                <i class="ri-questionnaire-line"></i>
+              </div>
+              <div class="grow">
+                <div class="system-xs-semibold mb-1 text-text-primary">
+                  {{ 'PAC.Xpert.Question' | translate: {Default: 'Question'} }}
+                </div>
+                <textarea class="min-h-20 w-full appearance-none border border-transparent bg-components-input-bg-normal p-2 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-md system-sm-regular"
+                  placeholder="{{ 'PAC.Xpert.EnterQuestion' | translate: {Default: 'Enter question'} }}"
+                  [(ngModel)]="question"
+                ></textarea>
+              </div>
+            </div>
+            <div class="flex">
+              <div class="mr-3 shrink-0 w-6 h-6 flex items-center justify-center text-text-secondary">
+                <i class="ri-brain-line"></i>
+              </div>
+              <div class="grow">
+                <div class="system-xs-semibold mb-1 text-text-primary">
+                  {{ 'PAC.Xpert.Answer' | translate: {Default: 'Answer'} }}
+                </div>
+                <textarea class="min-h-20 w-full appearance-none border border-transparent bg-components-input-bg-normal p-2 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-md system-sm-regular"
+                  placeholder="{{ 'PAC.Xpert.EnterAnswer' | translate: {Default: 'Enter answer'} }}"
+                  [(ngModel)]="answer"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+        } @else {
+          <div class="space-y-6 p-6 pb-4">
+            <div class="flex">
+              <div class="mr-3 shrink-0 w-6 h-6 flex items-center justify-center text-text-secondary">
+                <i class="ri-chat-thread-line"></i>
+              </div>
+              <div class="grow">
+                <div class="system-xs-semibold mb-1 text-text-primary">
+                  {{ 'PAC.Xpert.Context' | translate: {Default: 'Context'} }}
+                </div>
+                <textarea class="min-h-20 w-full appearance-none border border-transparent bg-components-input-bg-normal p-2 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-md system-sm-regular"
+                  placeholder="{{ 'PAC.Xpert.EnterContext' | translate: {Default: 'Enter context'} }}"
+                  [(ngModel)]="context"
+                ></textarea>
+              </div>
+            </div>
+            <div class="flex">
+              <div class="mr-3 shrink-0 w-6 h-6 flex items-center justify-center text-text-secondary">
+                <i class="ri-profile-line"></i>
+              </div>
+              <div class="grow">
+                <div class="system-xs-semibold mb-1 text-text-primary">
+                  {{ 'PAC.Xpert.Profile' | translate: {Default: 'Profile'} }}
+                </div>
+                <textarea class="min-h-20 w-full appearance-none border border-transparent bg-components-input-bg-normal p-2 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-md system-sm-regular"
+                  placeholder="{{ 'PAC.Xpert.EnterProfile' | translate: {Default: 'Enter profile'} }}"
+                  [(ngModel)]="profile"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="w-full flex justify-end gap-2 p-4 bg-neutral-50 border-t border-divider-subtle">
+        <button type="button" class="btn btn-secondary btn-large"
+          (click)="showAddMemory.set(false)">{{ 'PAC.Xpert.Cancel' | translate: {Default: 'Cancel'} }}</button>
+        <button type="submit" class="btn btn-primary btn-large"
+          (click)="addMemory()"
+          [disabled]="addMemoryDisabled() || loading()"
+        >{{ 'PAC.ACTIONS.Add' | translate: {Default: 'Add'} }}</button>
+      </div>
+    </div>
+  </div>
 }
 
 <ng-template #scoreTemplate let-score>
@@ -58,7 +163,7 @@
   {{ createdAt | relative}}
 </ng-template>
 <ng-template #valueTemplate let-value>
-  <div class="rounded-lg p-1 my-1 whitespace-pre hover:bg-gray-50">{{value | json}}</div>
+  <ngx-json-viewer class="text-sm max-w-md font-mono" [json]="value" [depth]="1" />
 </ng-template>
 
 <ng-template #actionTemplate let-id="id" let-value="value">
@@ -81,6 +186,15 @@
     <div cdkMenuItem class="danger" (click)="delete(id, value)">
       <i class="ri-delete-bin-line mr-1"></i>
         {{ 'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} }}
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #moreMenu>
+  <div cdkMenu class="cdk-menu__medium">
+    <div cdkMenuItem class="danger" (click)="clearMemory()" >
+      <i class="ri-delete-bin-7-line mr-1"></i>
+      {{ 'PAC.Xpert.ClearMemory' | translate: {Default: 'Clear memory'} }}
     </div>
   </div>
 </ng-template>

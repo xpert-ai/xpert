@@ -64,7 +64,7 @@
       [data]="contentStr()"
     />
   }
-
+<!-- 
   @if (lastStep(); as step) {
     <div class="relative group flex-1 min-w-0 mt-2 cursor-pointer" (click)="toggleSteps()">
       <div [@listHeightStagger]="steps()"
@@ -72,7 +72,9 @@
       >
         @for (step of steps(); track $index) {
           <div class="group/item relative flex items-center p-1 py-1 rounded-lg hover:bg-white" >
-            <chat-message-step-icon class="w-[16px] inline-flex items-center text-text-secondary" [step]="step"/>
+            <chat-message-step-icon class="w-[16px] inline-flex items-center text-text-secondary"
+              [step]="{category: step.category}"
+            />
             <div class="flex-1 h-full min-w-0 flex">
               <div class="inline-flex items-center h-full rounded-full font-body text-[14px] text-[var(--text-secondary)] max-w-[100%]">
                 <div
@@ -111,7 +113,7 @@
         </svg>
       </a>
     </div>
-  }
+  } -->
 
   <div class="absolute left-0 bottom-2 flex justify-end items-center gap-1">
     <div class="hidden group-hover/message:flex gap-1 p-0.5 rounded-lg bg-white border-[0.5px] border-gray-100 shadow-sm shrink-0">
@@ -169,6 +171,23 @@
       </div>
     }
 
+    @if (textToSpeech_enabled()) {
+      <div class="shrink-0 hidden group-hover/message:flex w-7 h-7 items-center justify-center rounded-[6px] font-medium
+        bg-components-card-bg text-gray-500 hover:bg-gray-50 cursor-pointer hover:text-gray-700"
+        [ngClass]="{
+            '!flex': synthesizeLoading() || isPlaying()
+          }"
+        [matTooltip]="'PAC.Xpert.ReadAloud' | translate: {Default: 'Read aloud'} "
+        matTooltipPosition="above"
+        (click)="readAloud(message())"
+      >
+        @if (synthesizeLoading() || isPlaying()) {
+          <i class="ri-stop-circle-line text-primary-500"></i>
+        } @else {
+          <i class="ri-speak-ai-line"></i>
+        }
+      </div>
+    }
   </div>
 
   @if (answering()) {

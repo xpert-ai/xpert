@@ -137,7 +137,7 @@ export class CopilotModelSelectComponent {
     const provider = this.provider()
     const model = this.model()
     if (provider && model) {
-      return this.copilotProviderService.getModelParameterRules(this.providerId(), this.model())
+      return this.copilotProviderService.getModelParameterRules(this.providerId(), this.modelType(), this.model())
     }
     return null
   })

@@ -1,6 +1,5 @@
 import { DocumentInterface } from '@langchain/core/documents'
 import { RunnableLambda } from '@langchain/core/runnables'
-import { END, Send } from '@langchain/langgraph'
 import { channelName, IWFNKnowledgeRetrieval, IXpertAgentExecution, TAgentRunnableConfigurable, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -8,10 +7,10 @@ import { EnsembleRetriever } from 'langchain/retrievers/ensemble'
 import { get } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
-import { wrapAgentExecution } from '../../../xpert-agent-execution/utils'
 import { CreateWNAnswerCommand } from '../create-wn-answer.command'
 import { CreateWNKnowledgeRetrievalCommand } from '../create-wn-knowledge-retrieval.command'
-import { AgentStateAnnotation, stateToParameters } from '../../../shared'
+import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
+import { wrapAgentExecution } from '../../../shared/agent/execution'
 
 @CommandHandler(CreateWNKnowledgeRetrievalCommand)
 export class CreateWNKnowledgeRetrievalHandler implements ICommandHandler<CreateWNKnowledgeRetrievalCommand> {
@@ -74,8 +73,7 @@ export class CreateWNKnowledgeRetrievalHandler implements ICommandHandler<Create
 				ends: []
 			},
 			navigator: async (state: typeof AgentStateAnnotation.State, config) => {
-				const connections = graph.connections.filter((conn) => conn.type === 'edge' && conn.from === node.key)
-				return connections.length > 0 ? connections.map((conn) => new Send(conn.to, state)) : END
+				return nextWorkflowNodes(graph, node.key, state)
 			}
 		}
 	}

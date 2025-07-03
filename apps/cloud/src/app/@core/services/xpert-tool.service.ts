@@ -19,4 +19,7 @@ export class XpertToolService extends OrganizationBaseCrudService<IXpertTool> {
     return this.httpClient.post(this.apiBaseUrl + `/test`, tool, { responseType: 'text' })
   }
   
+  getParamsFaker(id: string) {
+    return this.httpClient.get<Record<string, any>>(this.apiBaseUrl + `/${id}/faker`)
+  }
 }

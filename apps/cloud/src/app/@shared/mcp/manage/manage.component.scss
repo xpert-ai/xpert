@@ -1,3 +1,7 @@
 :host {
   @apply mx-auto flex h-[100vh] max-w-[1048px];
 }
+
+.tool-item.selected {
+  @apply bg-white shadow-sm;
+}

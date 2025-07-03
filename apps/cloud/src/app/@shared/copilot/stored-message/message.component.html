@@ -42,7 +42,7 @@
 
   @switch (message().type) {
     @case ('human') {
-      <div class="whitespace-pre-wrap">{{ content() }}</div>
+      <copilot-message-content [content]="content()" />
     }
     @case ('ai') {
       @if (content()) {

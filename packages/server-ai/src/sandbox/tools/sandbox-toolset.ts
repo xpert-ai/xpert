@@ -51,6 +51,10 @@ export abstract class BaseSandboxToolset<
 		return this.sandbox
 	}
 
+	getId(): string {
+		return this.toolset?.id
+	}
+
 	/**
 	 * @todo Is a prefix required?
 	 */

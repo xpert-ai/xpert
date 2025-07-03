@@ -1,3 +1,6 @@
+import chardet from 'chardet'
+import fsPromises from 'fs/promises'
+import iconv from 'iconv-lite'
 import * as XLSX from 'xlsx'
 
 // The same as import { TableColumnType } from '@metad/ocap-core'
@@ -18,18 +21,22 @@ export interface UploadSheetType {
   info: string
 }
 
-export async function readExcelWorkSheets(fileName: string, file: {buffer?: Buffer; path?: string;} /*Express.Multer.File*/) {
-  const workBook: XLSX.WorkBook = file.buffer ?
-    XLSX.read(file.buffer, {
-      type: 'buffer',
-      cellDates: true,
-      cellNF: false,
-      codepage: 65001,
-    }) : XLSX.readFile(file.path, {
-      type: 'file',
-      cellDates: true,
-      cellNF: false,
-    })
+export async function readExcelWorkSheets(
+  fileName: string,
+  file: { buffer?: Buffer; path?: string } /*Express.Multer.File*/
+) {
+  const workBook: XLSX.WorkBook = file.buffer
+    ? XLSX.read(file.buffer, {
+        type: 'buffer',
+        cellDates: true,
+        cellNF: false,
+        codepage: 65001
+      })
+    : XLSX.readFile(file.path, {
+        type: 'file',
+        cellDates: true,
+        cellNF: false
+      })
 
   return await readExcelJson(workBook, fileName)
 }
@@ -81,7 +88,7 @@ The current row data is ${item}, and the header row data is ${excelTransformNum}
       fileName,
       name: wSheet.SheetNames.length > 1 ? sheetName : name,
       columns: columns.filter((col) => !!col),
-      data: excelDataEncodeToJson,
+      data: excelDataEncodeToJson
     }
   })
 }
@@ -97,4 +104,43 @@ export function mapToTableColumnType(type: string): TableColumnType {
     default:
       return 'String'
   }
+}
+
+/**
+ * Automatically identify encoding and parse CSV into JSON (adapted to Chinese)
+ *
+ * @param filePath
+ * @returns
+ */
+export async function loadCsvWithAutoEncoding(filePath: string) {
+  // Step 1: Read the original Buffer
+  const buffer = await fsPromises.readFile(filePath)
+
+  // Step 2: Automatically detect encoding (may return GB18030, UTF-8, etc.)
+  const encoding = chardet.detect(buffer) || 'utf8'
+
+  // Step 3: Decode to string
+  const content = iconv.decode(buffer, encoding)
+
+  // Step 4: Parse to Sheet
+  const workbook = XLSX.read(content, { type: 'string' })
+  const sheet = workbook.Sheets[workbook.SheetNames[0]]
+
+  // Step 5: Convert to JSON
+  const jsonData = XLSX.utils.sheet_to_json(sheet)
+
+  return jsonData
+}
+
+export async function loadExcel(filePath: string) {
+  const workbook = XLSX.readFile(filePath, {
+        type: 'file',
+        cellDates: true,
+        cellNF: false
+      })
+  const sheet = workbook.Sheets[workbook.SheetNames[0]]
+
+  const jsonData = XLSX.utils.sheet_to_json(sheet)
+
+  return jsonData
 }
