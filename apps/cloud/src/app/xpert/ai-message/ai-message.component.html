@@ -65,25 +65,24 @@
     />
   }
 
-  @if (status() === 'thinking' && status() === 'answering') {
-    <div class="flex justify-start items-center gap-2">
-      @if (status() === 'thinking' && status() === 'answering') {
-        <span class="thinking-placeholder !m-0"></span>
-      }
-      @if (lastStep(); as event) {
-        <div class="px-2 py-1 flex items-center gap-1 rounded-lg cursor-pointer text-sm text-token-text-secondary bg-gray-50 hover:bg-gray-100"
-          [matTooltip]=" message().error"
-          matTooltipPosition="above"
-          matTooltipPositionAtOrigin
-        >
-          {{event.title}}
-          @if (event.message) {
-            : {{event.message}}
-          }
-        </div>
-      }
-    </div>
-  }
+  <div class="flex justify-start items-center gap-2">
+    @if (answering()) {
+      <span class="thinking-placeholder !m-0"></span>
+    }
+    @if (lastStep(); as event) {
+      <div class="px-2 py-1 flex items-center gap-1 rounded-lg cursor-pointer text-sm text-token-text-secondary bg-gray-50 hover:bg-gray-100"
+        [matTooltip]=" message().error"
+        matTooltipPosition="above"
+        matTooltipPositionAtOrigin
+      >
+        {{event.title}}
+        @if (event.message) {
+          : {{event.message}}
+        }
+      </div>
+    }
+  </div>
+  
 <!-- 
   @if (lastStep(); as step) {
     <div class="relative group flex-1 min-w-0 mt-2 cursor-pointer" (click)="toggleSteps()">

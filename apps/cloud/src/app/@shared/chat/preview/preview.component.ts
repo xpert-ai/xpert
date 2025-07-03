@@ -314,7 +314,7 @@ export class ChatConversationPreviewComponent {
                     }))
                     break
                   }
-                  case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
+                  case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
                     this.currentMessage.update((state) => ({
                       ...state,
                       events: [...(state.events ?? []), event.data]

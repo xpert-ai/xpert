@@ -379,7 +379,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 								subscriber.next({
 									data: {
 										type: ChatMessageTypeEnum.EVENT,
-										event: ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+										event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
 										data: data
 									}
 								} as MessageEvent)

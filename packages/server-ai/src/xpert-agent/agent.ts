@@ -4,7 +4,7 @@ import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
 import { BaseChannel, isCommand } from '@langchain/langgraph'
-import { agentLabel, ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TMessageChannel, TMessageComponent, TMessageComponentStep, TMessageContentComponent, TMessageContentReasoning, TMessageContentText} from '@metad/contracts'
+import { agentLabel, ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TMessageChannel, TMessageComponent, TMessageComponentStep, TMessageContentComponent, TMessageContentReasoning, TMessageContentText} from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { instanceToPlain } from 'class-transformer'
@@ -381,9 +381,7 @@ export function createMapStreamEvents(
 						break
 					}
 					case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
-						if (
-							data.category === 'Computer' ||
-							data.type === ChatMessageStepType.Notice || data.type === ChatMessageStepType.ComputerUse) {
+						if (data.category === 'Computer') {
 							/**
 							 * Notification messages from tool calling are displayed in component messages
 							 */
@@ -403,7 +401,7 @@ export function createMapStreamEvents(
 								}
 							} as MessageEvent)
 						} else {
-							logger.warn(`Unsupported custom_event & tool message type: ${data.type}`, data)
+							logger.warn(`Unsupported custom_event & tool message category: ${data.category}`, data)
 							/**
 							 * Others are displayed as execution steps (event) temporarily
 							 */

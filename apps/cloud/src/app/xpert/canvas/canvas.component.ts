@@ -4,7 +4,6 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@a
 import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { ChatMessageStepType } from '../../@core'
 import { XpertHomeService } from '../home.service'
 import { ChatCanvasComputerComponent } from './computer/computer.component'
 import { ChatCanvasDashboardComponent } from './dashboard/dashboard.component'
@@ -29,7 +28,6 @@ import { ChatCanvasFileViewerComponent } from './file-viewer/file-viewer.compone
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatCanvasComponent {
-  eChatMessageStepType = ChatMessageStepType
 
   readonly homeService = inject(XpertHomeService)
 

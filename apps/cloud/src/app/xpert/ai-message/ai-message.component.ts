@@ -28,7 +28,6 @@ import {
   ChatMessageFeedbackRatingEnum,
   ChatMessageFeedbackService,
   ChatMessageStepCategory,
-  DateRelativePipe,
   getErrorMessage,
   IChatMessage,
   injectToastr,
@@ -38,7 +37,7 @@ import {
   XpertAgentExecutionStatusEnum
 } from '../../@core'
 import { EmojiAvatarComponent } from '../../@shared/avatar'
-import { ChatMessageExecutionComponent, ChatMessageExecutionPanelComponent, ChatMessageStepIconComponent } from '../../@shared/chat'
+import { ChatMessageExecutionComponent, ChatMessageExecutionPanelComponent } from '../../@shared/chat'
 import { CopyComponent } from '../../@shared/common'
 import { ChatService } from '../chat.service'
 import { XpertHomeService } from '../home.service'
@@ -65,11 +64,9 @@ import { ChatMessageAvatarComponent } from './avatar/avatar.component'
     EmojiAvatarComponent,
     ChatMessageExecutionComponent,
     CopyComponent,
-    DateRelativePipe,
     ChatMessageContentComponent,
     ChatThoughtComponent,
     ChatMessageAvatarComponent,
-    ChatMessageStepIconComponent
   ],
   selector: 'pac-ai-message',
   templateUrl: './ai-message.component.html',

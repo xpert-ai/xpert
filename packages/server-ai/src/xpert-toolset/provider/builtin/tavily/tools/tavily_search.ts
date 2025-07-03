@@ -2,7 +2,7 @@ import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
 import { CallbackManagerForToolRun } from "@langchain/core/callbacks/manager";
 import { Tool, ToolRunnableConfig, type ToolParams } from "@langchain/core/tools";
 import { getEnvironmentVariable } from "@langchain/core/utils/env";
-import { ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageStepType, getToolCallFromConfig } from "@metad/contracts";
+import { ChatMessageEventTypeEnum, ChatMessageStepCategory, getToolCallFromConfig } from "@metad/contracts";
 import { t } from 'i18next'
 import { Logger } from '@nestjs/common'
 import { TavilyToolset } from "../tavily";
@@ -149,8 +149,8 @@ export class TavilySearchResults extends BaseTool {
     // Tool message event
 		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
       id: toolCall?.id,
-			type: ChatMessageStepType.ComputerUse,
-      category: ChatMessageStepCategory.WebSearch,
+      category: 'Computer',
+      type: ChatMessageStepCategory.WebSearch,
 			toolset: TavilyToolset.provider,
 			tool: this.name,
 			title: t('server-ai:Tools.TavilySearch.WebSearch'),

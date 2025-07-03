@@ -9,7 +9,6 @@ import { RouterModule } from '@angular/router'
 import {
   ChatConversationService,
   ChatMessageStepCategory,
-  ChatMessageStepType,
   injectFormatRelative
 } from '@cloud/app/@core'
 import { ChatConversationFilesComponent } from '@cloud/app/@shared/chat'
@@ -55,7 +54,6 @@ import { ChatCanvasKnowledgesComponent } from '../knowledges/knowledges.componen
   }
 })
 export class ChatCanvasComputerComponent {
-  eChatMessageStepType = ChatMessageStepType
   eChatMessageStepCategory = ChatMessageStepCategory
 
   readonly homeService = inject(XpertHomeService)

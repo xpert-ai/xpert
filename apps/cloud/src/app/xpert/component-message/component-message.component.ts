@@ -13,7 +13,6 @@ import { TimeGranularity } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ChatMessageStepCategory,
-  ChatMessageStepType,
   IXpertTask,
   TMessageComponent,
   TMessageComponentStep,
@@ -61,7 +60,6 @@ export class ChatComponentMessageComponent {
   eSlicersCapacity = SlicersCapacity
   eTimeGranularity = TimeGranularity
   eChatMessageStepCategory = ChatMessageStepCategory
-  eChatMessageStepType = ChatMessageStepType
 
   readonly #dialog = inject(Dialog)
   readonly dsCore = inject(NgmDSCoreService)

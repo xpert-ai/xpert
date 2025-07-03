@@ -87,11 +87,25 @@ async function tool(_, config) => {
 subscriber.next({
     data: {
         type: ChatMessageTypeEnum.EVENT,
-        event: ChatMessageEventTypeEnum.ON_TOOL_START,
+        event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
         data: {
-            data,
+            ...data,
             agentKey: rest.metadata.agentKey
         }
     }
 } as MessageEvent)
+
+await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
+    id: `sandbox-ready-${userId || RequestContext.currentUserId()}`,
+    title: t('server-ai:Sandbox.Starting'),
+    status: 'running',
+    created_date: new Date().toISOString(),
+} as TChatEventMessage)
+await new Promise((resolve) => setTimeout(resolve, 2000))
+await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
+    id: `sandbox-ready-${userId || RequestContext.currentUserId()}`,
+    title: t('server-ai:Sandbox.Ready'),
+    status: 'success',
+    end_date: new Date().toISOString(),
+} as TChatEventMessage)
 ```

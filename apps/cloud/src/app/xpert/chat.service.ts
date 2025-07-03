@@ -365,8 +365,7 @@ export abstract class ChatService {
                   })
                   break
                 }
-                case ChatMessageEventTypeEnum.ON_CHAT_EVENT:
-                case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
+                case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
                   this.updateLatestMessage((message) => {
                     message.events ??= []
                     const step = event.data as TChatMessageStep

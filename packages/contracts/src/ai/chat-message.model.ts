@@ -15,17 +15,15 @@ export type TSummaryJob = Record<LongTermMemoryTypeEnum, {
 
 /**
  * Message step type: determines the type of canvas
- * @deprecated use TMessageComponent['category'] instead
  */
-export enum ChatMessageStepType {
-  ComputerUse = 'computer_use',
-  File = 'file',
-  Notice = 'notice'
-}
+// export enum ChatMessageStepType {
+//   ComputerUse = 'computer_use',
+//   File = 'file',
+//   Notice = 'notice'
+// }
 
 /**
  * Category of step message: determines the display components of computer use
- * @deprecated use TMessageComponent['type'] instead
  */
 export enum ChatMessageStepCategory {
   /**
@@ -245,6 +243,18 @@ export type TMessageComponentStep<T = JSONValue> = {
   end_date: Date | string
   error?: string
   data?: T
+}
+
+/**
+ * Data type for chat event message
+ */
+export type TChatEventMessage = {
+  title: string
+  message?: string
+  status: 'success' | 'fail' | 'running'
+  created_date?: Date | string
+  end_date?: Date | string
+  error?: string
 }
 
 // Type guards
