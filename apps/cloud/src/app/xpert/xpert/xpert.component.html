@@ -161,9 +161,10 @@
       </div>
     </div>
 
-    <chat-input #chatInput cdkTrapFocusAutoCapture class="bg-neutral-100"
+    <chat-input #chatInput cdkTrapFocusAutoCapture class="bg-neutral-100 rounded-t-[28px]"
       [disabled]="parameterInvalid()"
       [matTooltip]="parameterInvalid() ? ('PAC.Xpert.EnterParameters' | translate: {Default: 'Please enter the required parameters'}) : null"
+      (asked)="onAsked($event)"
     />
   </div>
   

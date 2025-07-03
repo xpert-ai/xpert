@@ -1,6 +1,8 @@
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { PromptTemplate } from '@langchain/core/prompts'
 import { MultiServerMCPClient } from '@langchain/mcp-adapters'
-import { IXpertToolset, MCPServerType, TMCPSchema, TMCPServer } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, IXpertToolset, MCPServerType, TChatEventMessage, TMCPSchema, TMCPServer } from '@metad/contracts'
+import { t } from 'i18next'
 
 export async function createMCPClient(toolset: Partial<IXpertToolset>, schema: TMCPSchema, envState: Record<string, unknown>) {
 	const mcpServers = {}
@@ -28,6 +30,13 @@ export async function createMCPClient(toolset: Partial<IXpertToolset>, schema: T
 				useNodeEventSource: true
 			}
 		} else if (transport === MCPServerType.STDIO || (!transport && server.command)) {
+			// Starting event
+			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
+				id: toolset.id,
+				title: t('server-ai:Tools.MCP.Starting'),
+				status: 'running',
+				created_date: new Date().toISOString(),
+			} as TChatEventMessage)
 			let args = null
 			if (server.args?.length) {
 				args = []
@@ -63,6 +72,15 @@ export async function createMCPClient(toolset: Partial<IXpertToolset>, schema: T
 		additionalToolNamePrefix: server.toolNamePrefix,
 		mcpServers
 	})
+
+	await client.getTools()
+	// Ready event
+	await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
+		id: toolset.id,
+		title: t('server-ai:Tools.MCP.Ready'),
+		status: 'success',
+		end_date: new Date().toISOString(),
+	} as TChatEventMessage)
 
 	return { client, destroy: null }
 }

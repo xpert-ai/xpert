@@ -1,3 +1,4 @@
+import { RunnableLambda } from '@langchain/core/runnables'
 import { BaseStore } from '@langchain/langgraph'
 import {
 	ChatMessageEventTypeEnum,
@@ -35,7 +36,7 @@ import { XpertAgentChatCommand } from '../../../xpert-agent/'
 import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
 import { CreateMemoryStoreCommand } from '../create-memory-store.command'
-import { RunnableLambda } from '@langchain/core/runnables'
+
 
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {

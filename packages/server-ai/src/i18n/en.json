@@ -10,7 +10,22 @@
         "ReadFile": "Read file",
         "DeletedFile": "Deleted file"
     },
+    "Sandbox": {
+        "Starting": "Sandbox is starting...",
+        "Ready": "Sandbox is ready"
+    },
+    "Xpert": {
+        "SummaryTitleStarting": "Summarizing title...",
+        "SummaryTitleEnd": "Title summarized"
+    },
     "Tools": {
+        "MCP": {
+            "Starting": "MCP Server is starting...",
+            "Ready": "MCP Server is ready"
+        },
+        "Memory": {
+            "RecallMemories": "Recall memories"
+        },
         "CodeProject": {
             "InitProject": "Init project",
             "ProjectInitFirst": "Please initialize the project first",

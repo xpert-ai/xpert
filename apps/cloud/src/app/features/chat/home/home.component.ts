@@ -70,6 +70,9 @@ export class ChatHomeComponent {
   readonly #toastr = injectToastr()
   readonly #preferences = injectUserPreferences()
 
+  // Signals
+  readonly currentPage = signal<{type?: 'project' | 'conversation', id?: string}>({})
+
   readonly isMobile = this.appService.isMobile
   readonly lang = this.appService.lang
 
@@ -171,13 +174,12 @@ export class ChatHomeComponent {
     }, 200)
   }
 
-  openNewChat() {}
-
   newProject() {
     this.projectLoading.set(true)
     this.projectSercice.create({ name: 'New Project' }).subscribe({
       next: (project) => {
         this.projectLoading.set(false)
+        this.projects.update((items) => [project, ...(items ?? [])])
         this.#router.navigate(['/chat/p', project.id])
       },
       error: (err) => {

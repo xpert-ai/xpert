@@ -381,9 +381,9 @@ export function createMapStreamEvents(
 						break
 					}
 					case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
-						if (data.category === 'Computer') {
+						if (data.category === 'Computer' || data.category === 'Tool') {
 							/**
-							 * Notification messages from tool calling are displayed in component messages
+							 * Tool messages from tool calling are displayed in component messages
 							 */
 							subscriber.next({
 								data: {
@@ -393,8 +393,8 @@ export function createMapStreamEvents(
 										type: 'component',
 										data: {
 											...data,
-											category: 'Computer',
-											type: data.category === 'Computer'? data.type : data.category,
+											category: data.category,
+											type: data.type,
 											data: data.data,
 										} as TMessageComponent<TMessageComponentStep>
 									} as TMessageContentComponent
