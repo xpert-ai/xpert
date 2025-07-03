@@ -226,17 +226,17 @@ export class XpertStudioComponent {
 
   // Agent Execution Running status
   readonly executions = this.executionService.executions
-  readonly toolExecutions = this.executionService.toolExecutions
+  readonly toolMessages = this.executionService.toolMessages
   readonly sidePanel = model<"preview" | "variables">()
   readonly showFeatures = model(false)
 
   readonly runningToolsets = computed<Array<{key: string; agentKey: string; running: boolean}>>(() => {
-    const executions = this.toolExecutions()
+    const toolMessages = this.toolMessages()
     const toolsetNodes = this.viewModel()?.nodes.filter((n) => n.type === 'toolset')
     const running = []
     toolsetNodes?.forEach((node) => {
       (<IXpertToolset>node.entity).tools?.forEach((t) => {
-        Object.values(executions[t.name] ?? {}).filter((exec) => exec.status === XpertAgentExecutionStatusEnum.RUNNING)
+        toolMessages?.filter((exec) => exec.data.status === XpertAgentExecutionStatusEnum.RUNNING)
           .forEach((execution) => {
             running.push({
               key: node.key,

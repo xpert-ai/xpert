@@ -1,5 +1,9 @@
 # Chat
 
+`ChatMessageTypeEnum` 定义了所有的消息类型，主要分为以下几类：
+- `ChatMessageTypeEnum.MESSAGE`：消息，需要持久化在对话消息列表中的消息。
+- `ChatMessageTypeEnum.EVENT`：事件，临时事件消息，不需要持久化在对话消息列表中。
+
 ## Step message
 
 每个步骤消息的类型定义为 `TChatMessageStep`。
@@ -73,4 +77,21 @@ async function tool(_, config) => {
         }
     } as MessageEvent)
 }
+```
+
+## Event message
+
+当消息类型为 **Event** 时，需要设置 event 类型为 `ChatMessageEventTypeEnum`，并且需要设置代表具体数据的 `data` 字段。
+
+```typescript
+subscriber.next({
+    data: {
+        type: ChatMessageTypeEnum.EVENT,
+        event: ChatMessageEventTypeEnum.ON_TOOL_START,
+        data: {
+            data,
+            agentKey: rest.metadata.agentKey
+        }
+    }
+} as MessageEvent)
 ```

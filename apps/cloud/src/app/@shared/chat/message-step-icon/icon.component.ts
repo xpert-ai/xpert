@@ -4,9 +4,9 @@ import { Component, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ChatMessageStepCategory } from 'apps/cloud/src/app/@core'
-import { EmojiAvatarComponent } from '../../avatar/emoji-avatar/avatar.component'
 import { of } from 'rxjs'
+import { ChatMessageStepCategory } from '@cloud/app/@core'
+import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 
 @Component({
   standalone: true,
@@ -31,9 +31,4 @@ export class ChatMessageStepIconComponent {
 
   readonly avatar = this.#avatar.value
 
-  // constructor() {
-  //   effect(() => {
-  //     console.log(this.step())
-  //   })
-  // }
 }

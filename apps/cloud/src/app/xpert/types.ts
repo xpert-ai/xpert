@@ -6,10 +6,13 @@ import { subDays } from 'date-fns/subDays'
 import { IChatConversation, IChatMessage, IXpertAgentExecution } from '../@core/types'
 
 export type TCopilotChatMessage = IChatMessage & {
-  event?: {
-    name: string
-    message: string
-  }
+  /**
+   * Events generated during the process are not stored
+   */
+  // event?: {
+  //   name: string
+  //   message: string
+  // }
   error?: string
   expanded?: boolean
   executions?: IXpertAgentExecution[]

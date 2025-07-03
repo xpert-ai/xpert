@@ -54,7 +54,7 @@
         [formGroup]="form"
         (ngSubmit)="onSubmit()">
         <div class="flex flex-row gap-2 justify-center w-full relative">
-          <input id="dropzone-file" #fileDropRef class="hidden" multiple="" type="file" name="files" (change)="fileBrowseHandler($event.target)"
+          <input #fileDropRef class="hidden" multiple="" type="file" name="files" (change)="fileBrowseHandler($event.target)"
             (click)="fileDropRef.value=null;"/>
           <div class="query-bar group max-w-[51rem] bg-components-card-bg ring-zinc-100 hover:ring-zinc-200 focus-within:ring-zinc-300 hover:focus-within:ring-zinc-300 duration-100 relative w-full overflow-hidden @container/input shadow shadow-black/5 ring-1 ring-inset focus-within:ring-1 pb-12 px-2 @[480px]/input:px-3 rounded-3xl">
             @if (attachments()?.length) {

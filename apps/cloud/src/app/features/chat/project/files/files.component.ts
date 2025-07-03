@@ -83,7 +83,6 @@ export class ChatProjectFilesComponent {
           this.#logger.debug('File upload complete')
           this.loading.set(false)
           this.refresh.set({})
-          console.log(event.body)
         }
       },
       error: (error) => {

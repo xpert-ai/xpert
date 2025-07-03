@@ -18,14 +18,13 @@ import { XpertProjectTasksComponent } from '@cloud/app/@shared/xpert'
 import { FileTypePipe, ListHeightStaggerAnimation } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniq } from 'lodash-es'
-import { derivedAsync } from 'ngxtension/derived-async'
-import { BehaviorSubject, debounceTime, switchMap } from 'rxjs'
 import { ChatService } from '../../chat.service'
 import { XpertHomeService } from '../../home.service'
 import { ChatCanvasFileEditorComponent } from '../file-editor/file-editor.component'
 import { CanvasHtmlEditorComponent } from '../html-editor/html-editor.component'
 import { ChatCanvasIframeComponent } from '../iframe/iframe.component'
 import { ChatCanvasTerminalComponent } from '../terminal/terminal.component'
+import { ChatCanvasKnowledgesComponent } from '../knowledges/knowledges.component'
 
 @Component({
   standalone: true,
@@ -43,7 +42,8 @@ import { ChatCanvasTerminalComponent } from '../terminal/terminal.component'
     XpertProjectTasksComponent,
     ChatCanvasIframeComponent,
     ChatCanvasTerminalComponent,
-    ChatCanvasFileEditorComponent
+    ChatCanvasFileEditorComponent,
+    ChatCanvasKnowledgesComponent
   ],
   selector: 'chat-canvas-computer',
   templateUrl: './computer.component.html',
@@ -71,20 +71,6 @@ export class ChatCanvasComputerComponent {
   readonly expand = signal(false)
   readonly pin = signal(false)
 
-  /**
-   * Collect steps from messages
-   * @deprecated use `stepMessages` instead
-   */
-  readonly steps = computed(() => {
-    const conversation = this.chatService.conversation()
-    return conversation?.messages?.reduce((acc, message) => {
-      if (message.steps && message.steps.length > 0) {
-        acc.push(...message.steps)
-      }
-      return acc
-    }, [])
-  })
-
   readonly stepMessages = computed(() => {
     const conversation = this.chatService.conversation()
     return conversation?.messages?.reduce((acc, message) => {
@@ -92,78 +78,20 @@ export class ChatCanvasComputerComponent {
         acc.push(...message.content.filter((_) => _.type === 'component' && _.data?.category === 'Computer'))
       }
       return acc
-    }, [])
+    }, []) ?? []
   })
   readonly stepCategories = computed(() => uniq(this.stepMessages().map((_) => _.category)))
   readonly stepTypes = computed(() => uniq(this.stepMessages().map((_) => _.type)))
 
-  /**
-   * @deprecated use `stepMessages` instead
-   */
-  readonly stepLength = computed(() => this.steps()?.length)
   readonly stepIndex = model<number>(0)
-  /**
-   * @deprecated use `stepMessages` instead
-   */
-  readonly step = computed(() => this.steps()?.[this.stepIndex()])
   readonly stepMessage = computed(() => this.stepMessages()?.[this.stepIndex()]?.data)
   readonly stepMessageLength = computed(() => this.stepMessages()?.length)
 
-  // Plan
-  readonly hasPlan = computed(() =>
-    this.steps()?.some(
-      (_) => _.type === ChatMessageStepType.ComputerUse && ['create_plan', 'update_plan_step'].includes(_.tool)
-    )
-  )
   readonly conversationId = this.homeService.conversationId
-  /**
-   * @deprecated
-   */
-  readonly #refreshState$ = new BehaviorSubject<void>(null)
-  /**
-   * @deprecated
-   */
-  readonly state = derivedAsync(() => {
-    const id = this.conversationId()
-    return id && this.hasPlan()
-      ? this.#refreshState$.pipe(
-          debounceTime(300),
-          switchMap(() => this.conversationService.getThreadState(id))
-        )
-      : null
-  })
-
-  /**
-   * @deprecated
-   */
-  readonly plan = computed(() => {
-    const state = this.state()
-    return state
-      ? {
-          title: state.plan_title,
-          steps: state.plan_steps,
-          status: state.plan_steps?.some((_) => _.status === 'in_progress')
-            ? 'in_progress'
-            : state.plan_steps?.every((_) => _.status === 'completed')
-              ? 'completed'
-              : null,
-          total: state.plan_steps?.length,
-          completed: state.plan_steps?.filter((_) => _.status === 'completed')?.length
-        }
-      : null
-  })
-  /**
-   * @deprecated
-   */
-  readonly expandPlan = signal(false)
 
   readonly projectId = computed(() => this.chatService.project()?.id)
 
   constructor() {
-    // effect(() => {
-    //   console.log(this.stepMessages(), this.stepTypes(), this.stepCategories())
-    // })
-
     effect(() => {
       // If componentId is provided, find the step message by componentId
       if (this.componentId()) {
@@ -171,27 +99,14 @@ export class ChatCanvasComputerComponent {
         if (stepMessage) {
           const index = this.stepMessages().indexOf(stepMessage)
           this.stepIndex.set(index)
-          this.#refreshState$.next()
         }
       }
     }, { allowSignalWrites: true })
-
-    // Update to last step
-    effect(
-      () => {
-        if (this.steps()?.length) {
-          this.updateStepIndex(this.steps().length - 1)
-          this.#refreshState$.next()
-        }
-      },
-      { allowSignalWrites: true }
-    )
     
     effect(
       () => {
         if (this.stepMessageLength() && !this.pin()) {
           this.stepIndex.set(this.stepMessageLength() - 1)
-          this.#refreshState$.next()
         }
       },
       { allowSignalWrites: true }
@@ -214,19 +129,8 @@ export class ChatCanvasComputerComponent {
     this.stepIndex.update((state) => ++state)
   }
 
-  _formatStepLabel(value: number): string {
-    const step = this.steps()?.[value]
-    return step ? this.#formatRelative(step.created_date) : `${value}`
-  }
-
-  formatStepLabel = this._formatStepLabel.bind(this)
-
   close() {
     this.homeService.canvasOpened.update((state) => ({ ...state, opened: false }))
-  }
-
-  togglePlan() {
-    this.expandPlan.update((state) => !state)
   }
 
   toggleExpand() {

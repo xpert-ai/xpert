@@ -17,7 +17,7 @@
         } @else {
           <i class="ri-folder-line opacity-0"></i>
         }
-        <pac-file-icon small [fileType]="item.filePath | fileType" [directory]="item.hasChildren"/>
+        <pac-file-icon [fileType]="item.filePath | fileType" [directory]="item.hasChildren"/>
         <div class="flex flex-col justify-center flex-1 min-w-0 max-w-[100%] min-h-[36px]">
           <span class="text-base text-text-primary text-ellipsis overflow-hidden whitespace-nowrap">{{item.filePath}}</span>
           <span class="text-xs font-mono text-text-tertiary">{{item.createdAt | relative}}</span>

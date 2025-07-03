@@ -1,4 +1,4 @@
-import { AIMessage, HumanMessage, isAIMessage, isBaseMessage, isToolMessage, MessageContent, RemoveMessage, ToolMessage } from '@langchain/core/messages'
+import { AIMessage, isAIMessage, isBaseMessage, isToolMessage, MessageContent, RemoveMessage, ToolMessage } from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
 import { DynamicStructuredTool, StructuredToolInterface } from '@langchain/core/tools'
@@ -31,6 +31,7 @@ import {
 	STATE_VARIABLE_SYS,
 	TAgentRunnableConfigurable,
 	TChatConversationStatus,
+	TChatRequestHuman,
 	TSensitiveOperation,
 	TStateVariable,
 	XpertAgentExecutionStatusEnum
@@ -174,18 +175,37 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 		let _execution = null
 		let operation: TSensitiveOperation = null
 		return new Observable<MessageEvent>((subscriber) => {
-			(async () => {
-				// Send conversation start event
+			// Send conversation start event
+			subscriber.next({
+				data: {
+					type: ChatMessageTypeEnum.EVENT,
+					event: ChatMessageEventTypeEnum.ON_CONVERSATION_START,
+					data: {
+						id: conversation.id,
+						status: 'busy',
+						createdAt: conversation.createdAt,
+						updatedAt: conversation.updatedAt
+					}
+				}
+			} as MessageEvent)
+			const reflect = RunnableLambda.from(async (input: TChatRequestHuman) => {
+				if (!aiMessage) {
+					aiMessage = await this.commandBus.execute(
+						new ChatMessageUpsertCommand({
+							role: 'ai',
+							content: ``,
+							executionId,
+							conversationId: conversation.id,
+							status: 'thinking'
+						})
+					)
+				}
+
 				subscriber.next({
 					data: {
 						type: ChatMessageTypeEnum.EVENT,
-						event: ChatMessageEventTypeEnum.ON_CONVERSATION_START,
-						data: {
-							id: conversation.id,
-							status: 'busy',
-							createdAt: conversation.createdAt,
-							updatedAt: conversation.updatedAt
-						}
+						event: ChatMessageEventTypeEnum.ON_MESSAGE_START,
+						data: { ...aiMessage, status: 'thinking' }
 					}
 				} as MessageEvent)
 
@@ -377,26 +397,6 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 								complete().catch((err) => this.#logger.error(err))
 							}
 						})
-
-					if (!aiMessage) {
-						aiMessage = await this.commandBus.execute(
-							new ChatMessageUpsertCommand({
-								role: 'ai',
-								content: ``,
-								executionId,
-								conversationId: conversation.id,
-								status: 'thinking'
-							})
-						)
-					}
-
-					subscriber.next({
-						data: {
-							type: ChatMessageTypeEnum.EVENT,
-							event: ChatMessageEventTypeEnum.ON_MESSAGE_START,
-							data: { ...aiMessage, status: 'thinking' }
-						}
-					} as MessageEvent)
 				} catch (err) {
 					console.error(err)
 					this.#logger.error(err)
@@ -415,7 +415,31 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					} as MessageEvent)
 					subscriber.complete()
 				}
-			})()
+			})
+
+			const logger = this.#logger
+			reflect.invoke(input, {
+				callbacks: [
+					{
+						handleCustomEvent(eventName, data, runId) {
+							if (eventName === ChatMessageEventTypeEnum.ON_CHAT_EVENT) {
+								logger.debug(`========= handle custom event in project:`, eventName, runId)
+								subscriber.next({
+									data: {
+										type: ChatMessageTypeEnum.EVENT,
+										event: ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+										data: data
+									}
+								} as MessageEvent)
+							} else {
+								logger.warn(`Unprocessed custom event in project:`, eventName, runId)
+							}
+						},
+					},
+				],
+			}).catch((err) => {
+				console.error(err)
+			})
 		}).pipe(
 			tap({
 				next: (event) => {

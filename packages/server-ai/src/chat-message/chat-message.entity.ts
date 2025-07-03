@@ -54,7 +54,7 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
 	@IsJSON()
 	@IsOptional()
 	@Column({ type: 'json', nullable: true })
-	steps?: TChatMessageStep[]
+	events?: TChatMessageStep[]
 
 	/*
     |--------------------------------------------------------------------------

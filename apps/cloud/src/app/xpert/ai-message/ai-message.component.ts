@@ -123,9 +123,9 @@ export class ChatAiMessageComponent {
 
   readonly contentStr = computed(() => {
     const content = this.#contentStr()
-    if (['thinking', 'answering'].includes(this.status()) && this.answering()) {
-      return content + '<span class="thinking-placeholder"></span>'
-    }
+    // if (['thinking', 'answering'].includes(this.status()) && this.answering()) {
+    //   return content + '<span class="thinking-placeholder"></span>'
+    // }
     return content
   })
 
@@ -168,13 +168,13 @@ export class ChatAiMessageComponent {
   readonly reasoning = computed(() => this.message().reasoning)
 
   // Steps
-  readonly #steps = computed(() => this.message().steps)
+  readonly #events = computed(() => this.message().events)
   readonly lastStep = computed(() =>
-    this.canvasMessageId() !== this.message().id && this.#steps() ? this.#steps()[this.#steps().length - 1] : null
+    this.canvasMessageId() !== this.message().id && this.#events() ? this.#events()[this.#events().length - 1] : null
   )
-  readonly steps = computed(() => {
+  readonly events = computed(() => {
     if (this.expandSteps()) {
-      return this.#steps()
+      return this.#events()
     } else {
       return [this.lastStep()]
     }
@@ -187,11 +187,11 @@ export class ChatAiMessageComponent {
 
   readonly collapseMessages = model<Record<string, boolean>>({})
 
-  constructor() {
-    effect(() => {
-      // console.log(`reasoning:`, this.reasoning(),)
-    })
-  }
+  // constructor() {
+  //   effect(() => {
+  //     console.log(`Message status:`, this.status(), this.lastStep()?.status)
+  //   })
+  // }
 
   updateCollapse(id: string, status: boolean) {
     this.collapseMessages.update((state) => ({...state, [id]: status}))

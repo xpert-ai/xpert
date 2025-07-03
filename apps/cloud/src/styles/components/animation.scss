@@ -26,7 +26,7 @@
 }
 
 @layer components {
-  markdown.ngm-copilot-markdown .thinking-placeholder {
+  .thinking-placeholder {
     @apply inline-block w-5 h-5 -mb-1 rounded-full bg-black dark:bg-white;
     animation: twinkling 2000ms infinite linear;
   }
