@@ -44,3 +44,29 @@ export type JSONValue =
       [x: string]: JSONValue
     }
   | Array<JSONValue>
+
+export type WhereOperator<T> =
+  | { $eq?: T }
+  | { $ne?: T }
+  | { $in?: T[] }
+  | { $notIn?: T[] }
+  | { $like?: string }
+  | { $ilike?: string }
+  | { $gt?: T }
+  | { $gte?: T }
+  | { $lt?: T }
+  | { $lte?: T }
+  | { $isNull?: boolean }
+
+export type SmartWhere<T> = Partial<{
+  [P in keyof T]?: T[P] | WhereOperator<T[P]>
+}>
+
+export type PaginationParams<T> = {
+  select?: (keyof T)[]
+  take?: number
+  skip?: number
+  where?: SmartWhere<T>
+  relations?: string[]
+  order?: Partial<{ [P in keyof T]: OrderTypeEnum }>
+}

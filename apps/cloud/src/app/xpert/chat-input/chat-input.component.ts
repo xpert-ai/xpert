@@ -1,7 +1,7 @@
 import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, model, signal, viewChild } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, model, output, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
@@ -54,6 +54,9 @@ export class ChatInputComponent {
 
   // Inputs
   readonly disabled = input<boolean>()
+
+  // Outputs
+  readonly asked = output<string>()
 
   // Chirldren
   readonly attachTrigger = viewChild('attachTrigger', {read: CdkMenuTrigger})
@@ -135,10 +138,12 @@ export class ChatInputComponent {
     this.promptControl.setValue('')
 
     // Send message
-    this.chatService.chat({ id, content, files: this.files() })
+    this.chatService.chat({ id, content, files: this.files()?.map((file) => ({id: file.id, originalName: file.originalName})) })
 
     // Clear
     this.attachments.set([])
+
+    this.asked.emit(content)
   }
 
   stopGenerating() {
@@ -194,7 +199,7 @@ export class ChatInputComponent {
   onFileDropped(event: FileList) {
     const filesArray = Array.from(event)
     this.attachments.update((state) => {
-      while (state.length < this.attachment_maxNum()) {
+      while (state.length < this.attachment_maxNum() && filesArray.length > 0) {
         const file = filesArray.shift()
         state.push({ file })
         if (state.length >= this.attachment_maxNum() && filesArray.length > 0) {

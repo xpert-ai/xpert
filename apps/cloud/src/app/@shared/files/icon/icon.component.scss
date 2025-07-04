@@ -2,20 +2,12 @@
   @apply block;
 
   &.small {
-    svg {
-      @apply w-5 h-5;
-    }
-    
-    img {
+    & > svg, & > img, & > figure {
       @apply w-5 h-5;
     }
   }
-}
 
-svg {
-  @apply w-8 h-8;
-}
-
-img {
-  @apply w-8 h-8;
+  & > svg, & > img, & > figure {
+    @apply w-8 h-8;
+  }
 }

@@ -2,7 +2,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
@@ -13,7 +13,6 @@ import { TimeGranularity } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ChatMessageStepCategory,
-  ChatMessageStepType,
   IXpertTask,
   TMessageComponent,
   TMessageComponentStep,
@@ -61,7 +60,6 @@ export class ChatComponentMessageComponent {
   eSlicersCapacity = SlicersCapacity
   eTimeGranularity = TimeGranularity
   eChatMessageStepCategory = ChatMessageStepCategory
-  eChatMessageStepType = ChatMessageStepType
 
   readonly #dialog = inject(Dialog)
   readonly dsCore = inject(NgmDSCoreService)
@@ -86,13 +84,6 @@ export class ChatComponentMessageComponent {
   })
   readonly conversationStatus = computed(() => this.chatService.conversation()?.status)
 
-  // constructor() {
-  //   effect(
-  //     () => {
-  //       console.log(this.step())
-  //     },
-  //   )
-  // }
 
   openComponentMessage() {
     if (this.data()?.category === 'Computer') {

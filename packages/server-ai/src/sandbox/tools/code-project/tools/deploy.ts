@@ -4,7 +4,6 @@ import { getCurrentTaskInput, LangGraphRunnableConfig } from '@langchain/langgra
 import {
 	ChatMessageEventTypeEnum,
 	ChatMessageStepCategory,
-	ChatMessageStepType,
 	ChatMessageTypeEnum,
 	LanguagesEnum,
 	mapTranslationLanguage,
@@ -73,30 +72,6 @@ export class DeployTool extends SandboxBaseTool {
 			const files = result.data.files.map((file) => ({ ...file, url: baseUrl + file.name, filePath: file.name }))
 			const i18n = await this.toolset.translate('toolset.CodeProject', { lang: mapTranslationLanguage(lang) })
 			// Tool message event
-			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-				type: ChatMessageStepType.ComputerUse,
-				category: ChatMessageStepCategory.Files,
-				toolset: CodeProjectToolset.provider,
-				tool: this.name,
-				title: i18n.Deploy,
-				message: i18n.DeploytoServer,
-				data: files
-			} as TChatMessageStep)
-
-			configurable.subscriber?.next({
-				data: {
-					type: ChatMessageTypeEnum.MESSAGE,
-					data: {
-						id: shortuuid(),
-						type: 'component',
-						data: {
-							category: 'Computer',
-							type: 'Files',
-							files
-						} as TMessageComponent
-					}
-				}
-			} as MessageEvent)
 
 			return JSON.stringify(files)
 		} catch (error) {

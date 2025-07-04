@@ -1,7 +1,7 @@
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { getContextVariable } from '@langchain/core/context'
 import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum, ChatMessageStepType, CONTEXT_VARIABLE_CURRENTSTATE } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import z from 'zod'
 import { ToolParameterValidationError } from '../../../../errors'
@@ -56,7 +56,7 @@ export class PlanningDeleteStepTool extends BuiltinTool {
 		// Tool message event
 		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 			id: toolCallId,
-			type: ChatMessageStepType.ComputerUse,
+			category: 'Computer',
 			toolset: PlanningToolset.provider,
 			tool: this.name,
 			title: `❌ ${_delSteps[0]?.content}`,

@@ -1,8 +1,5 @@
-import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { LangGraphRunnableConfig } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum, ChatMessageStepType } from '@metad/contracts'
-import { environment } from '@metad/server-config'
 import { Logger } from '@nestjs/common'
 import * as _axios from 'axios'
 import z from 'zod'
@@ -68,22 +65,6 @@ export class FileEditTool extends SandboxBaseTool {
 
 		try {
 			const result = await axios.post(`${sandboxUrl}/file/edit/`, requestData, { signal })
-			if (parameters.command !== 'view') {
-				dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-					type: ChatMessageStepType.ComputerUse,
-					toolset: FileToolset.provider,
-					tool: this.name,
-					title: parameters.path,
-					message: `${parameters.command}: ${parameters.path || parameters.file_text || parameters.new_str}`,
-					data: {
-						url: `${environment.baseUrl}/api/sandbox/preview/${configurable?.thread_id}/${parameters.path}`,
-						extension: parameters.path.split('.').pop(),
-						content: parameters.file_text || parameters.new_str,
-					}
-				}).catch((err) => {
-					this.#logger.error(err)
-				})
-			}
 			return JSON.stringify(result.data)
 		} catch (error) {
 			// console.error((<AxiosError>error).toJSON())

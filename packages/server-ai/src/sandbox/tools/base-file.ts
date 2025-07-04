@@ -4,7 +4,6 @@ import { DynamicStructuredTool, StructuredToolInterface, tool } from '@langchain
 import {
 	ChatMessageEventTypeEnum,
 	ChatMessageStepCategory,
-	ChatMessageStepType,
 	getToolCallFromConfig,
 	getWorkspaceFromRunnable,
 	IBaseToolset,
@@ -115,8 +114,8 @@ export function buildListFilesTool(toolset: BaseFileToolset) {
 
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 				id: toolCall?.id,
-				type: ChatMessageStepType.ComputerUse,
-				category: ChatMessageStepCategory.Files,
+				category: 'Computer',
+				type: ChatMessageStepCategory.Files,
 				tool: TOOL_NAME,
 				title: t('server-ai:tools.ListFiles'),
 				message: '...',
@@ -156,8 +155,8 @@ export function buildCreateFileTool(toolset: BaseFileToolset) {
 			const fileUrl = Sandbox.sandboxFileUrl(toolset.sandbox.volume, workspaceId, parameters.file_path)
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 				id: toolCall?.id,
-				type: ChatMessageStepType.ComputerUse,
-				category: ChatMessageStepCategory.File,
+				category: 'Computer',
+				type: ChatMessageStepCategory.File,
 				tool: TOOL_NAME,
 				title: t('server-ai:tools.CreatedFile'),
 				message: parameters.file_path,
@@ -237,8 +236,8 @@ export function buildStrReplaceTool(toolset: BaseFileToolset) {
 
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 				id: toolCall?.id,
-				type: ChatMessageStepType.ComputerUse,
-				category: ChatMessageStepCategory.File,
+				category: 'Computer',
+				type: ChatMessageStepCategory.File,
 				tool: TOOL_NAME,
 				title: t('server-ai:tools.UpdatedFile'),
 				message: parameters.file_path,
@@ -288,10 +287,10 @@ export function buildFullFileRewriteTool(toolset: BaseFileToolset) {
 
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 				id: toolCall?.id,
-				type: ChatMessageStepType.ComputerUse,
-				category: ChatMessageStepCategory.File,
+				category: 'Computer',
+				type: ChatMessageStepCategory.File,
 				tool: TOOL_NAME,
-				title: t('server-ai:tools.File.RewriteFile'),
+				title: t('server-ai:Tools.File.RewriteFile'),
 				message: parameters.file_path,
 				data: {
 					url: Sandbox.sandboxFileUrl(toolset.sandbox.volume, workspaceId, parameters.file_path),
@@ -335,8 +334,8 @@ export function buildDeleteFileTool(toolset: BaseFileToolset) {
 			const toolCall = getToolCallFromConfig(config)
 
 			const requestData: TFileBaseReq = {
-				file_path: parameters.file_path,
 				workspace_id: id,
+				file_path: parameters.file_path,
 			}
 
 			// Re-create file
@@ -344,8 +343,8 @@ export function buildDeleteFileTool(toolset: BaseFileToolset) {
 
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 				id: toolCall?.id,
-				type: ChatMessageStepType.ComputerUse,
-				category: ChatMessageStepCategory.File,
+				category: 'Computer',
+				type: ChatMessageStepCategory.File,
 				tool: TOOL_NAME,
 				title: t('server-ai:tools.DeletedFile'),
 				message: parameters.file_path,
@@ -395,8 +394,8 @@ export function buildReadFileTool(toolset: BaseFileToolset) {
 
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 				id: toolCall?.id,
-				type: ChatMessageStepType.ComputerUse,
-				category: ChatMessageStepCategory.File,
+				category: 'Computer',
+				type: ChatMessageStepCategory.File,
 				tool: TOOL_NAME,
 				title: t('server-ai:tools.ReadFile'),
 				message: parameters.file_path,

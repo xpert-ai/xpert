@@ -99,6 +99,7 @@ export class ChatConversationPreviewComponent {
     transform: booleanAttribute
   })
   readonly _messages = model<IChatMessage[]>()
+  readonly currentMessage = model<Partial<IChatMessage>>(null)
   readonly parameterValue = model<Record<string, unknown>>()
 
   // Outputs
@@ -155,7 +156,7 @@ export class ChatConversationPreviewComponent {
     }
     return null
   })
-  readonly currentMessage = signal<Partial<IChatMessage>>(null)
+  
   readonly messages = computed(() => {
     if (this.currentMessage()) {
       const messages = this._messages()
@@ -195,6 +196,7 @@ export class ChatConversationPreviewComponent {
     })
 
   private chatSubscription: Subscription
+  
   constructor() {
     effect(
       () => {
@@ -312,10 +314,10 @@ export class ChatConversationPreviewComponent {
                     }))
                     break
                   }
-                  case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
+                  case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
                     this.currentMessage.update((state) => ({
                       ...state,
-                      steps: [...(state.steps ?? []), event.data]
+                      events: [...(state.events ?? []), event.data]
                     }))
                     break
                   }

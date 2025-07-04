@@ -46,6 +46,7 @@ export class XpertStudioNodeToolsetComponent {
   // States
   readonly toolset = computed(() => this.node().entity as IXpertToolset)
   readonly positions = computed(() => this.toolset()?.options?.toolPositions)
+  readonly toolsetId = computed(() => this.toolset()?.id)
 
   // Retrieve the latest information about the toolset
   readonly toolsetDetail = derivedAsync(() => {
@@ -60,17 +61,13 @@ export class XpertStudioNodeToolsetComponent {
   readonly xpert = this.xpertStudioComponent.xpert
   readonly agentConfig = computed(() => this.xpert()?.agentConfig)
 
-  readonly toolExecutions = this.executionService.toolExecutions
-
   readonly tools = computed(() => {
     const tools = this.availableTools()
-    const executions = this.toolExecutions()
+    const executions = this.executionService.toolMessages()
     return tools?.map((tool) => ({
       tool,
       label: getToolLabel(tool),
-      executions: Object.values(executions?.[tool.name] ?? {}).sort(
-        (a, b) => a.createdAt?.getTime() - b.createdAt?.getTime()
-      )
+      executions: executions?.map((_) => _.data).filter((e) => e.toolset_id === this.toolsetId() && e.tool === tool.name),
     }))
   })
 

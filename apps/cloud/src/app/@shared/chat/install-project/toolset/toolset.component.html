@@ -6,8 +6,8 @@
         {{ 'PAC.XProject.Or' | translate: {Default: 'or'} }}
       </span>
 
-      <button class="border-solid border-[0.5px] border-neutral-200 rounded-lg shadow-sm pl-1 pr-2 ml-2"
-        [disabled]="loading() || createdToolset()"
+      <button class="border-solid border-[0.5px] border-neutral-200 rounded-lg shadow-sm pl-1 pr-2 ml-2 disabled:text-text-secondary disabled:shadow-none disabled:cursor-not-allowed"
+        [disabled]="!project() || loading() || createdToolset()"
         [cdkMenuTriggerFor]="toolsMenu"
       >
         <i class="ri-links-line ml-1 text-lg"></i>
@@ -56,6 +56,10 @@
         <emoji-avatar small [avatar]="toolset.avatar" class="mr-1 shrink-0 rounded-lg overflow-hidden shadow-sm" />
         <span class="truncate">{{toolset.name}}</span>
       </button>
+    } @empty {
+      <div class="p-2 text-text-secondary">
+        {{ 'PAC.XProject.NoToolset' | translate: {Default: 'No toolset found'} }}
+      </div>
     }
   </div>
 </ng-template>

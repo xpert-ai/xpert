@@ -1,3 +1,575 @@
-<div class="max-w-full flex-1 h-full relative" @routeAnimations>
+<div
+  class="group"
+  [attr.data-state]="sidebarState()"
+  [attr.data-collapsible]="sidebarState() === 'closed' ? 'icon' : 'expanded'"
+>
+  <div
+    class="flex flex-col h-full w-[--sidebar-width] transition-[left,right,width] ease-linear group-data-[collapsible=icon]:w-[--sidebar-width-icon] border-r border-solid border-gray-200 dark:border-gray-700"
+    [ngClass]="{
+      'cursor-w-resize': sidebarState() === 'expanded',
+      'cursor-e-resize': sidebarState() === 'closed',
+    }"
+    (click)="toggleSidebar()"
+  >
+    <div class="grow overflow-auto">
+      <div
+        data-sidebar="group"
+        class="relative flex w-full min-w-0 flex-col px-1.5 py-[2px] shrink-0 transition-[width,transform,opacity] duration-200 my-1"
+        (click)="$event.stopPropagation()"
+      >
+        <button
+          data-sidebar="menu-button"
+          tabindex="-1"
+          class="peer/menu-button flex items-center gap-2 overflow-hidden text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary text-sm hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active py-2.5 ps-[11px] pe-[11px] rounded-full border border-border-l1 bg-surface-l1 justify-between text-text-secondary hover:text-text-primary h-[2.5rem] mx-[.125rem]"
+          aria-label="Search"
+          (click)="openConversations()"
+        >
+          @if (sidebarState() === 'expanded') {
+            <span class="space-x-1 align-baseline whitespace-nowrap truncate">
+              <span>{{'PAC.KEY_WORDS.Search' | translate: {Default: 'Search'} }}</span>
+              <span class="text-xs text-muted-foreground">⌘K</span>
+            </span>
+          }
+          <i class="ri-search-2-line text-lg absolute right-5"></i>
+        </button>
+      </div>
+
+      <div
+        data-sidebar="group"
+        class="relative flex w-full min-w-0 flex-col px-1.5 py-[2px] shrink-0 transition-[width,transform,opacity] duration-200"
+        (click)="$event.stopPropagation()"
+      >
+        <ul data-sidebar="menu" class="flex w-full min-w-0 flex-col cursor-default">
+          <li data-sidebar="menu-item" class="group/menu-item whitespace-nowrap mx-[.125rem] relative"
+            [matTooltip]="'PAC.Chat.NewChat' | translate: {Default: 'New Chat'}"
+            matTooltipPosition="after"
+            [matTooltipDisabled]="sidebarState() === 'expanded'"
+          >
+            <a
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary text-sm h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full flex flex-row gap-2 p-[.5rem] text-sm text-text-secondary hover:text-text-primary cursor-pointer"
+              tabindex="-1"
+              routerLink="/chat"
+              >
+              <div data-sidebar="icon" class="w-5 h-5 flex items-center justify-center shrink-0 ms-[2px]">
+                <i class="ri-chat-new-line text-lg"></i>
+              </div>
+              @if (sidebarState() === 'expanded') {
+                {{'PAC.Chat.NewChat' | translate: {Default: 'New Chat'} }}
+              }
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div
+        data-sidebar="group"
+        class="relative flex w-full min-w-0 flex-col px-1.5 py-[2px] shrink-0 transition-[width,transform,opacity] duration-200"
+        (click)="$event.stopPropagation()"
+      >
+        <ul data-sidebar="menu" class="flex w-full min-w-0 flex-col cursor-default">
+          <li data-sidebar="menu-item" class="group/menu-item whitespace-nowrap mx-[.125rem] relative"
+            cdkOverlayOrigin #task_trigger="cdkOverlayOrigin"
+            (mouseover)="enterMenuOverlay('task')"
+            (mouseleave)="leaveMenuOverlay('task')">
+            <a
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary text-sm h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full flex flex-row gap-2 p-[.5rem] text-sm text-text-secondary hover:text-text-primary"
+              data-sidebar="menu-button"
+              data-active="false"
+              tabindex="-1"
+              routerLink="/chat/tasks"
+              >
+              <div data-sidebar="icon" class="size-5 flex items-center justify-center shrink-0 ms-[2px]">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="17"
+                  height="17"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="lucide lucide-alarm-clock-check"
+                >
+                  <circle cx="12" cy="13" r="8"></circle>
+                  <path d="M5 3 2 6"></path>
+                  <path d="m22 6-3-3"></path>
+                  <path d="M6.38 18.7 4 21"></path>
+                  <path d="M17.64 18.67 20 21"></path>
+                  <path d="m9 13 2 2 4-4"></path>
+                </svg>
+              </div>
+              @if (sidebarState() === 'expanded') {
+                {{'PAC.Chat.Tasks' | translate: {Default: 'Tasks'} }}
+              }
+            </a>
+            @if (sidebarState() === 'expanded') {
+              <span class="absolute top-1/2 right-2 -translate-y-1/2">
+                <button
+                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed [&amp;_svg]:shrink-0 select-none text-fg-secondary hover:text-fg-primary hover:bg-button-ghost-hover disabled:hover:text-fg-secondary disabled:hover:bg-transparent [&amp;_svg]:hover:text-fg-primary h-7 w-7 rounded-full ms-auto opacity-0 group-hover/menu-item:opacity-100 transition-opacity duration-200"
+                  type="button"
+                  aria-label="Create task"
+                >
+                  <i class="ri-add-line"></i>
+                </button>
+              </span>
+            }
+          </li>
+        </ul>
+      </div>
+
+      <div
+        data-sidebar="group"
+        class="relative flex w-full min-w-0 flex-col px-1.5 py-[2px] shrink-0 transition-[width,transform,opacity] duration-200"
+        (click)="$event.stopPropagation()"
+      >
+        <ul data-sidebar="menu" class="flex w-full min-w-0 flex-col cursor-default">
+          <li data-sidebar="menu-item" class="group/menu-item whitespace-nowrap mx-[.125rem] relative"
+            cdkOverlayOrigin #project_trigger="cdkOverlayOrigin"
+            (mouseover)="enterMenuOverlay('project')"
+            (mouseleave)="leaveMenuOverlay('project')"
+            >
+            <button
+              aria-label="Projects"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary text-sm h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full bg-background text-text-secondary hover:text-text-primary p-[.5rem]"
+              tabindex="-1"
+              (click)="projectsExpanded() ? projectsExpanded.set(false) : projectsExpanded.set(true)"
+            >
+              @if (projectLoading()) {
+                <ngm-spin small />
+              } @else {
+                <div data-sidebar="icon" class="size-5 flex items-center justify-center shrink-0 ms-[2px]">
+                  <i class="ri-building-line text-lg w-[16px] h-[16px] flex justify-center items-center group-hover/menu-item:hidden"
+                    [class.!inline-flex]="sidebarState()==='closed'"></i>
+                  @if (sidebarState() === 'expanded') {
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="lucide lucide-chevron-up hidden group-hover/menu-item:block transition-[transform] duration-200"
+                      [class.rotate-180]="!projectsExpanded()"
+                    >
+                      <path d="m18 15-6-6-6 6"></path>
+                    </svg>
+                  }
+                </div>
+              }
+              @if (sidebarState() === 'expanded') {
+                {{'PAC.Chat.Projects' | translate: {Default: 'Projects'} }}
+              }
+            </button>
+            @if (sidebarState() === 'expanded') {
+              <span class="absolute top-1/2 right-2 -translate-y-1/2">
+                <button
+                  class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed [&amp;_svg]:shrink-0 select-none text-fg-secondary hover:text-fg-primary hover:bg-button-ghost-hover disabled:hover:text-fg-secondary disabled:hover:bg-transparent [&amp;_svg]:hover:text-fg-primary h-7 w-7 rounded-full ms-auto opacity-0 group-hover/menu-item:opacity-100 transition-opacity duration-200"
+                  type="button"
+                  aria-label="Create new project"
+                  (click)="newProject()"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-plus"
+                  >
+                    <path d="M5 12h14"></path>
+                    <path d="M12 5v14"></path>
+                  </svg>
+                </button>
+              </span>
+            }
+          </li>
+
+          @if (sidebarState() === 'expanded' && projectsExpanded()) {
+            <div style="overflow: hidden; height: auto">
+              <div class="flex flex-row mt-1">
+                <div class="cursor-pointer ms-[10px] me-[4px]">
+                  <div class="border-l border-border-l1 h-full ms-[6px] me-[4px]"></div>
+                </div>
+                <ng-container *ngTemplateOutlet="projectsTempl"></ng-container>
+              </div>
+            </div>
+          }
+        </ul>
+      </div>
+
+      <div
+        data-sidebar="group"
+        class="relative flex w-full min-w-0 flex-col px-1.5 py-[2px] shrink-0 transition-[width,transform,opacity] duration-200"
+        (click)="$event.stopPropagation()"
+      >
+        <ul data-sidebar="menu" class="flex w-full min-w-0 flex-col cursor-default">
+          <li data-sidebar="menu-item" class="group/menu-item whitespace-nowrap mx-[.125rem] relative"
+            cdkOverlayOrigin #history_trigger="cdkOverlayOrigin"
+            (mouseover)="enterMenuOverlay('history')"
+            (mouseleave)="leaveMenuOverlay('history')"
+          >
+            <button
+              aria-label="History"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary text-sm h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full flex flex-row gap-2 bg-background text-text-secondary hover:text-text-primary text-sm rounded-xl p-[.5rem]"
+              data-sidebar="menu-button"
+              tabindex="-1"
+              (click)="historyExpanded() ? historyExpanded.set(false) : historyExpanded.set(true)"
+            >
+              <div data-sidebar="icon" class="size-5 flex items-center justify-center shrink-0 ms-[2px]">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" 
+                  class="stroke-[2] group-hover/menu-item:hidden"
+                  [class.!inline-block]="sidebarState()==='closed'"
+                ><path d="M4.4999 3L4.4999 8H9.49988M4.4999 7.99645C5.93133 5.3205 8.75302 3.5 11.9999 3.5C16.6943 3.5 20.4999 7.30558 20.4999 12C20.4999 16.6944 16.6943 20.5 11.9999 20.5C7.6438 20.5 4.05303 17.2232 3.55811 13" stroke="currentColor"></path><path d="M15 9L12 12V16" stroke="currentColor"></path></svg>
+                @if (sidebarState() === 'expanded') {
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-chevron-up hidden group-hover/menu-item:block transition-[transform] duration-200"
+                    [class.rotate-180]="!historyExpanded()"
+                  >
+                    <path d="m18 15-6-6-6 6"></path>
+                  </svg>
+                }
+              </div>
+              @if (sidebarState() === 'expanded') {
+                {{'PAC.Chat.History' | translate: {Default: 'History'} }}
+              }
+            </button>
+          </li>
+
+           @if (sidebarState() === 'expanded' && historyExpanded()) {
+            <div style="overflow: hidden; height: auto">
+              <div class="flex flex-row mt-1">
+                <div class="cursor-pointer ms-[6px] me-[4px]">
+                  <div class="border-l border-border-l1 h-full ms-[12px] me-[4px]"></div>
+                </div>
+                <ng-container *ngTemplateOutlet="histories"></ng-container>
+              </div>
+            </div>
+          }
+        </ul>
+      </div>
+    </div>
+
+    <div data-sidebar="footer" class="flex flex-col gap-2 mt-auto relative shrink-0 h-[56px]">
+      <div class="cursor-w-resize grow">
+        <button
+          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-secondary hover:text-fg-primary hover:bg-button-ghost-hover disabled:hover:text-fg-secondary disabled:hover:bg-transparent [&amp;_svg]:hover:text-fg-primary h-10 w-10 rounded-full absolute end-2 bottom-3"
+          type="button"
+          data-sidebar="trigger"
+          (click)="toggleSidebar();$event.stopPropagation()"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="17"
+            height="17"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-arrow-right-to-line transition-transform duration-200"
+            [class.rotate-180]="sidebarState() === 'expanded'"
+          >
+            <path d="M17 12H3"></path>
+            <path d="m11 18 6-6-6-6"></path>
+            <path d="M21 5v14"></path>
+          </svg>
+          <span class="sr-only">Toggle Sidebar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flex-1 h-full relative overflow-hidden" @routeAnimations>
   <router-outlet #o="outlet"></router-outlet>
 </div>
+
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="history_trigger"
+  [cdkConnectedOverlayOpen]="menuOverlay() === 'history' && sidebarState() === 'closed'"
+  [cdkConnectedOverlayOffsetY]="-15"
+  [cdkConnectedOverlayPositions]="[
+    {
+      originX: 'end',
+      originY: 'top',
+      overlayX: 'start',
+      overlayY: 'top'
+    },
+  ]"
+>
+  <div @overlayAnimation1 class="max-w-md p-3 rounded-3xl border-[0.5px] border-solid border-neutral-200 shadow-sm overflow-auto bg-components-card-bg"
+    (mouseover)="enterMenuOverlay('history')"
+    (mouseleave)="leaveMenuOverlay('history')">
+    <div class="text-text-primary font-semibold px-2 pb-2">{{'PAC.Chat.Histories' | translate: {Default: 'Histories'} }}</div>
+    <ng-container *ngTemplateOutlet="histories; context: {panel: true}"></ng-container>
+  </div>
+</ng-template>
+
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="project_trigger"
+  [cdkConnectedOverlayOpen]="menuOverlay() === 'project' && sidebarState() === 'closed'"
+  [cdkConnectedOverlayOffsetY]="-15"
+  [cdkConnectedOverlayPositions]="[
+    {
+      originX: 'end',
+      originY: 'top',
+      overlayX: 'start',
+      overlayY: 'top'
+    },
+  ]"
+>
+  <div @overlayAnimation1 class="max-w-md p-3 rounded-3xl border-[0.5px] border-solid border-neutral-200 shadow-sm overflow-auto bg-components-card-bg"
+    (mouseover)="enterMenuOverlay('project')"
+    (mouseleave)="leaveMenuOverlay('project')">
+    <div class="text-text-primary font-semibold px-2 pb-2">{{'PAC.Chat.Projects' | translate: {Default: 'Projects'} }}</div>
+    <ng-container *ngTemplateOutlet="projectsTempl"></ng-container>
+  </div>
+</ng-template>
+
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="task_trigger"
+  [cdkConnectedOverlayOpen]="menuOverlay() === 'task' && sidebarState() === 'closed'"
+  [cdkConnectedOverlayOffsetY]="-15"
+  [cdkConnectedOverlayPositions]="[
+    {
+      originX: 'end',
+      originY: 'top',
+      overlayX: 'start',
+      overlayY: 'top'
+    },
+  ]"
+>
+  <div @overlayAnimation1 class="max-w-md p-3 rounded-3xl border-[0.5px] border-solid border-neutral-200 shadow-sm overflow-auto bg-components-card-bg"
+    (mouseover)="enterMenuOverlay('task')"
+    (mouseleave)="leaveMenuOverlay('task')">
+    <div class="flex justify-between items-center mb-2 pl-2">
+      <div class="text-text-primary font-semibold">{{'PAC.Chat.Tasks' | translate: {Default: 'Tasks'} }}</div>
+      <button
+        class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed select-none h-7 w-7 rounded-full ms-auto hover:bg-hover-bg"
+        type="button"
+        aria-label="Create task"
+      >
+        <i class="ri-add-line"></i>
+      </button>
+    </div>
+
+    <div class="w-80 min-h-[200px] overflow-auto flex flex-col justify-start">
+      <div class="grow w-full flex flex-col justify-center items-center text-text-secondary text-3xl">
+        <i class="ri-calendar-schedule-line"></i>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #histories let-panel="panel">
+  <div class="flex flex-col gap-1 w-full min-w-0 relative">
+    @for (g of groups(); track g) {
+      <div class="py-2 pl-2 text-sm font-semibold text-secondary whitespace-nowrap sticky -top-3 z-20"
+        [class.bg-components-card-bg]="panel">{{g.name}}</div>
+      @for (conv of g.values; track conv.id) {
+        @if (editingConversation()  === conv.id) {
+          <div class="flex items-center relative h-10">
+            <input class="outline-none w-full rounded-sm px-2 py-1.5" [(ngModel)]="editingTitle" (keydown.enter)="updateTitle(conv)"
+              (keydown.esc)="exitEdit($event)">
+
+            <div class="absolute right-1 flex items-center gap-1">
+              <button
+                class="btn w-7 h-7 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
+                type="button"
+                tabindex="-1"
+                [matTooltip]="'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'}"
+                matTooltipPosition="above"
+                (click)="exitEdit($event)"
+              ><i class="ri-close-line"></i></button>
+
+              <button
+                class="btn w-7 h-7 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
+                type="button"
+                tabindex="-1"
+                [matTooltip]="'PAC.ACTIONS.Save' | translate: {Default: 'Save'}"
+                matTooltipPosition="above"
+                (click)="updateTitle(conv)"
+              ><i class="ri-check-line"></i>
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div style="opacity: 1" class="relative group/conversation-item">
+            <a
+              class="peer/menu-button relative items-center overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary text-sm h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active pl-3 pr-1 py-1 w-full flex flex-row gap-2 text-primary"
+              [class.bg-hover-bg]="currentPage().type === 'conversation' && currentPage().id === conv.id"
+              tabindex="-1"
+              [routerLink]="['/chat/c', conv.id]"
+              [matTooltip]="conv.title | i18n"
+              matTooltipPosition="above"
+              >
+              <span
+                class="flex-1 select-none whitespace-nowrap max-w-full overflow-hidden inline-block"
+                style="mask-image: linear-gradient(to right, black 85%, transparent 100%)"
+                >{{conv.title || conv.id}}</span
+              >
+              @if (conv.xpert) {
+                <span class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 ml-1 text-xs font-mono text-gray-600 bg-slate-50">
+                  {{conv.xpert.title || conv.xpert.name}}
+                </span>
+              }
+              
+            </a>
+
+            @if (sidebarState() === 'expanded') {
+              <button
+                class="absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary disabled:hover:bg-transparent border border-transparent h-7 w-7 rounded-full hidden group-hover/conversation-item:flex
+                  bg-white/60 hover:bg-white"
+                type="button"
+                #trigger="cdkMenuTriggerFor"
+                [cdkMenuTriggerFor]="conversationMenu"
+                [cdkMenuTriggerData]="{ conv: conv }"
+                [class.!flex]="trigger.isOpen()"
+              >
+                <i class="ri-more-2-line"></i>
+              </button>
+            }
+          </div>
+        }
+      }
+    }
+
+    @if (convLoading())  {
+      <ngm-spin small class="absolute top-1/2 -translate-y-1/2 w-full" />
+    }
+    
+    <button
+      class="inline-flex items-center gap-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary bg-transparent hover:text-fg-secondary disabled:hover:text-fg-primary w-full justify-start px-2.5 text-sm font-semibold no-wrap pb-1 mt-1"
+      type="button"
+      tabindex="-1"
+      (click)="openConversations()"
+    >
+      {{'PAC.Chat.ShowMore' | translate: {Default: 'Show more'} }}
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #projectsTempl>
+  <div class="flex flex-col gap-1 w-full min-w-0">
+    @for (project of projects(); track project.id) {
+      @if (editingProject() === project.id) {
+        <div class="flex items-center relative h-10">
+          <input class="outline-none w-full rounded-sm px-2 py-1.5" [(ngModel)]="editingProjName"
+            (compositionstart)="onCompositionStart()"
+            (compositionupdate)="onCompositionUpdate($event)"
+            (compositionend)="onCompositionEnd($event)"
+            (keydown.enter)="updateProjTitle(project)"
+            (keydown.esc)="exitEditProj($event)">
+
+          <div class="absolute right-1 flex items-center gap-1">
+            <button
+              class="btn w-7 h-7 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
+              type="button"
+              tabindex="-1"
+              [matTooltip]="'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'}"
+              matTooltipPosition="above"
+              (click)="exitEditProj($event)"
+            ><i class="ri-close-line"></i></button>
+
+            <button
+              class="btn w-7 h-7 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
+              type="button"
+              tabindex="-1"
+              [matTooltip]="'PAC.ACTIONS.Save' | translate: {Default: 'Save'}"
+              matTooltipPosition="above"
+              (click)="updateProjTitle(project)"
+            ><i class="ri-check-line"></i>
+            </button>
+          </div>
+        </div>
+      } @else {
+        <div class="relative group/conversation-item">
+          <a
+            class="peer/menu-button relative items-center overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active pl-2 pr-1 py-1 text-sm w-full flex flex-row gap-2 text-primary"
+            [class.bg-hover-bg]="currentPage().type === 'project' && currentPage().id === project.id"
+            tabindex="-1"
+            [routerLink]="['/chat/p', project.id]"
+          >
+            <div>
+              <emoji-avatar [avatar]="project.avatar" xs class="inline-flex overflow-hidden rounded-xl"/>
+            </div>
+            <span
+              class="flex-1 select-none text-nowrap max-w-full overflow-hidden inline-block truncate"
+              style="mask-image: linear-gradient(to right, black 85%, transparent 100%)"
+              >{{ project.name }}</span>
+          </a>
+          @if (sidebarState() === 'expanded') {
+            <button
+              class="absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none disabled:hover:bg-transparent border border-transparent h-7 w-7 rounded-full hidden group-hover/conversation-item:flex
+                bg-white/60 hover:bg-white"
+              type="button"
+              aria-label="Show project menu"
+              #trigger="cdkMenuTriggerFor"
+              [cdkMenuTriggerFor]="projectMenu"
+              [cdkMenuTriggerData]="{ proj: project }"
+              [class.!flex]="trigger.isOpen()"
+            >
+              <i class="ri-more-2-line"></i>
+            </button>
+          }
+        </div>
+      }
+    }
+
+    <button
+      class="inline-flex items-center gap-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary bg-transparent hover:text-fg-secondary disabled:hover:text-fg-primary w-full justify-start px-2.5 text-sm font-semibold no-wrap pb-1 mt-1"
+      type="button"
+      tabindex="-1"
+      [routerLink]="['/chat/p']"
+    >
+      {{ 'PAC.Chat.SeeAll' | translate: { Default: 'See All' } }}
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #conversationMenu let-conv="conv">
+  <div cdkMenu class="cdk-menu__medium">
+    <div cdkMenuItem (click)="editingConversation.set(conv.id);editingTitle.set(conv.title)">
+      <i class="ri-pencil-line mr-2"></i>
+      <span>{{'PAC.Chat.Rename' | translate: {Default: 'Rename'} }}</span>
+    </div>
+    <div cdkMenuItem class="danger" (click)="deleteConv(conv.id)">
+      <i class="ri-delete-bin-line mr-2"></i>
+      <span>{{'PAC.Chat.Delete' | translate: {Default: 'Delete'} }}</span>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #projectMenu let-proj="proj">
+  <div cdkMenu class="cdk-menu__medium">
+    <div cdkMenuItem (click)="editingProject.set(proj.id);editingProjName.set(proj.name)">
+      <i class="ri-pencil-line mr-2"></i>
+      <span>{{'PAC.Chat.Rename' | translate: {Default: 'Rename'} }}</span>
+    </div>
+    <div cdkMenuItem class="danger" (click)="deleteProj(proj.id)">
+      <i class="ri-delete-bin-line mr-2"></i>
+      <span>{{'PAC.Chat.Delete' | translate: {Default: 'Delete'} }}</span>
+    </div>
+  </div>
+</ng-template>

@@ -8,7 +8,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { combineLatestWith, debounceTime, map, startWith, switchMap } from 'rxjs'
-import { ITag, TagService } from '../../../@core'
+import { ITag, TagCategoryEnum, TagService } from '../../../@core'
 import { TagComponent } from '../tag/tag.component'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 
@@ -43,7 +43,7 @@ export class TagSelectComponent implements ControlValueAccessor {
 
   readonly tagService = inject(TagService)
 
-  readonly category = input<string>()
+  readonly category = input<TagCategoryEnum>()
   readonly optional = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })

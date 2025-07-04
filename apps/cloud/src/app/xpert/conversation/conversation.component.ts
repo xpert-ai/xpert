@@ -56,7 +56,6 @@ export class ChatConversationComponent {
 
   // Inputs
   readonly xpert = input.required<IXpert>()
-  // readonly chatInput = input.required<ChatInputComponent>()
   readonly showExecution = input<boolean, string | boolean>(false, {
     transform: booleanAttribute
   })
@@ -96,6 +95,10 @@ export class ChatConversationComponent {
     this.destroyRef.onDestroy(() => {
       this.homeService.canvasOpened.set(null)
     })
+
+    // effect(() => {
+    //   console.log(this.conversationStatus())
+    // })
   }
 
   onChat(statement: string) {

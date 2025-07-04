@@ -461,6 +461,7 @@ export enum ChatMessageEventTypeEnum {
   ON_RETRIEVER_ERROR = 'on_retriever_error',
   ON_INTERRUPT = 'on_interrupt',
   ON_ERROR = 'on_error',
+  ON_CHAT_EVENT = 'on_chat_event',
 }
 
 /**

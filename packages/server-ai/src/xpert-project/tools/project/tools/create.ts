@@ -3,7 +3,6 @@ import { tool } from '@langchain/core/tools'
 import {
 	ChatMessageEventTypeEnum,
 	ChatMessageStepCategory,
-	ChatMessageStepType,
 	getToolCallFromConfig,
 	IXpertProjectTask,
 	TAgentRunnableConfigurable,
@@ -41,29 +40,14 @@ export const createCreateTasksTool = ({
 			// Tool message event
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
 				id: toolCall?.id,
-				type: ChatMessageStepType.ComputerUse,
-				category: ChatMessageStepCategory.Tasks,
+				category: 'Computer',
+				type: ChatMessageStepCategory.Tasks,
 				toolset: 'project',
 				tool: 'project_create_tasks',
 				message: _.tasks.map((_) => _.name).join('\n\n'),
 				title: await service.translate('xpert.Project.CreatingTasks'),
 				data: tasks
 			})
-
-			// subscriber?.next({
-			// 	data: {
-			// 		type: ChatMessageTypeEnum.MESSAGE,
-			// 		data: {
-			// 			id: shortuuid(),
-			// 			type: 'component',
-			// 			data: {
-			// 				category: 'Computer',
-			// 				type: 'Tasks',
-			// 				tasks
-			// 			}
-			// 		} as TMessageContentComponent
-			// 	}
-			// } as MessageEvent)
 			return `Tasks created!`
 		},
 		{

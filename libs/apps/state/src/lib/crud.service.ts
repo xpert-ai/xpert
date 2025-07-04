@@ -1,15 +1,9 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { inject } from '@angular/core'
-import { OrderTypeEnum } from '@metad/contracts'
+import { PaginationParams } from '@metad/contracts'
+export {PaginationParams}
 
-export type PaginationParams<T> = {
-  select?: (keyof T)[]
-  take?: number
-  skip?: number
-  where?: Partial<{[P in keyof T]: string | number | boolean | Date}>
-  relations?: string[]
-  order?: Partial<{ [P in keyof T]: OrderTypeEnum }>
-}
+
 
 export class CrudService<T> {
   protected readonly httpClient = inject(HttpClient)
