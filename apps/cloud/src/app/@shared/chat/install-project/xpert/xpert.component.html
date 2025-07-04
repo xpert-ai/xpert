@@ -6,8 +6,8 @@
         {{ 'PAC.XProject.Or' | translate: {Default: 'or'} }}
       </span>
 
-      <button class="border-solid border-[0.5px] border-neutral-200 rounded-lg shadow-sm pl-1 pr-2 ml-2"
-        [disabled]="loading() || createdXpert()"
+      <button class="border-solid border-[0.5px] border-neutral-200 rounded-lg shadow-sm pl-1 pr-2 ml-2 disabled:text-text-secondary disabled:shadow-none disabled:cursor-not-allowed"
+        [disabled]="!project() || loading() || createdXpert()"
         [cdkMenuTriggerFor]="xpertsMenu">
         <i class="ri-links-line ml-1 text-lg"></i>
         @if (bindedXpert()) {
@@ -58,6 +58,10 @@
         <emoji-avatar [avatar]="item.avatar" xs class="shrink-0 rounded-lg overflow-hidden shadow-sm mr-1" />
         <p class="overflow-hidden whitespace-nowrap text-ellipsis">{{item.title || item.name}}</p>
       </button>
+    } @empty {
+      <div class="p-2 text-text-secondary">
+        {{ 'PAC.XProject.NoExperts' | translate: {Default: 'No experts found'} }}
+      </div>
     }
   </div>
 </ng-template>

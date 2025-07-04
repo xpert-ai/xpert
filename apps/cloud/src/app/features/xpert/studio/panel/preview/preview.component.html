@@ -4,6 +4,8 @@
     [xpert]="xpert()"
     [environmentId]="environmentId()"
     [parameters]="parameters()"
+    [(_messages)]="messages"
+    [(currentMessage)]="currentMessage"
     (close)="close()"
     (restart)="restart()"
     (chatEvent)="onChatEvent($event)"

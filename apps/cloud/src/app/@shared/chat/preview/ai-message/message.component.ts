@@ -55,9 +55,9 @@ export class XpertPreviewAiMessageComponent {
       .map(({ text }) => text)
       .join('\n\n')
   )
-  readonly #steps = computed(() => this.message().steps)
+  readonly #steps = computed(() => this.message().events)
   readonly lastStep = computed(() =>
-    this.message().steps ? this.message().steps[this.message().steps.length - 1] : null
+    this.message().events ? this.message().events[this.message().events.length - 1] : null
   )
   readonly steps = computed(() => {
     if (this.expandSteps()) {

@@ -15,7 +15,11 @@
         <div class="ml-3 text-sm font-semibold leading-5 text-gray-800 group-hover:text-primary-600 dark:text-gray-200">{{title()}}</div>
     </div>
 
-    <div class="p-4 pt-0 text-text-tertiary text-sm font-thin">{{description()}}</div>
+    @if (description()) {
+      <div class="p-4 pt-0 text-text-tertiary text-sm font-thin">{{description()}}</div>
+    }
+
+    <ng-content></ng-content>
   </div>
     
   <div class="px-4 py-3 rounded-b-xl border-t-[0.5px]

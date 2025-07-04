@@ -1,7 +1,7 @@
 import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, model, signal, viewChild } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, model, output, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatInputModule } from '@angular/material/input'
@@ -54,6 +54,9 @@ export class ChatInputComponent {
 
   // Inputs
   readonly disabled = input<boolean>()
+
+  // Outputs
+  readonly asked = output<string>()
 
   // Chirldren
   readonly attachTrigger = viewChild('attachTrigger', {read: CdkMenuTrigger})
@@ -139,6 +142,8 @@ export class ChatInputComponent {
 
     // Clear
     this.attachments.set([])
+
+    this.asked.emit(content)
   }
 
   stopGenerating() {

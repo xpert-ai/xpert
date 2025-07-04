@@ -5,6 +5,7 @@ import {
   Indicator,
   IndicatorsService,
   NgmSemanticModel,
+  TagCategoryEnum,
   convertIndicatorResult,
   hierarchizeBusinessAreas
 } from '@metad/cloud/state'
@@ -123,7 +124,7 @@ export class ProjectService {
   /**
    * Tags
    */
-  readonly tags = toSignal(this.tagService.getAllByCategory('indicator'), { initialValue: [] })
+  readonly tags = toSignal(this.tagService.getAllByCategory(TagCategoryEnum.INDICATOR), { initialValue: [] })
 
   // constructor() {
   //   effect(() => {

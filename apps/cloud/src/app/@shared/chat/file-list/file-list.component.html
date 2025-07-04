@@ -1,6 +1,17 @@
-<div class="flex-1 min-h-0 overflow-auto mt-4 pb-4">
+<div class="flex justify-between items-center p-1 border-b border-solid border-divider-deep">
+  <div>
+
+  </div>
+
+  <div>
+    <button type="button" class="btn btn-secondary btn-sm" (click)="emptyFiles()">
+      {{'PAC.Chat.Empty' | translate: {Default: 'Empty'} }}
+    </button>
+  </div>
+</div>
+<div class="flex-1 min-h-0 overflow-auto mt-4">
   <div class="flex flex-col first:pt-0 pt-2">
-    @for (item of flatAttachments(); track item) {
+    @for (item of flatFiles(); track item) {
       <div class="group flex justify-between items-center gap-2 flex-1 min-w-0 min-h-10 px-2 rounded-lg hover:bg-hover-bg">
         @for (level of item.levels; track $index) {
           <div class="shrink-0 w-[14px] h-full flex justify-center">
@@ -17,7 +28,7 @@
         } @else {
           <i class="ri-folder-line opacity-0"></i>
         }
-        <pac-file-icon small [fileType]="item.filePath | fileType" [directory]="item.hasChildren"/>
+        <pac-file-icon [fileType]="item.filePath | fileType" [directory]="item.hasChildren"/>
         <div class="flex flex-col justify-center flex-1 min-w-0 max-w-[100%] min-h-[36px]">
           <span class="text-base text-text-primary text-ellipsis overflow-hidden whitespace-nowrap">{{item.filePath}}</span>
           <span class="text-xs font-mono text-text-tertiary">{{item.createdAt | relative}}</span>
@@ -25,6 +36,8 @@
         <div
           class="flex items-center justify-center cursor-pointer rounded-md w-8 h-8 opacity-0 group-hover:opacity-100"
           type="button"
+          #trigger="cdkMenuTriggerFor"
+          [class.opacity-100]="trigger.isOpen()"
           [cdkMenuTriggerFor]="menu"
           [cdkMenuTriggerData]="{file: item}"
         >

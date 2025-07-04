@@ -16,9 +16,6 @@
       @case ('Tasks') {
         <chat-component-schedule-tasks [tasks]="tasks()" class="dark"/>
       }
-      @case (eChatMessageStepCategory.Memory) {
-        <chat-component-memories [memories]="data().data" />
-      }
       @default {
         @if (step(); as step) {
           <chat-tool-call-chunk [chunk]="step" [conversationStatus]="conversationStatus()" (click)="openComponentMessage()" />
@@ -27,9 +24,16 @@
     }
   }
   @case ('Tool') {
-    @if (step(); as step) {
-      <chat-tool-call-chunk [chunk]="step" [conversationStatus]="conversationStatus()" (click)="openComponentMessage()" />
-    }
+    @switch (data().type) {
+      @case (eChatMessageStepCategory.Memory) {
+        <chat-component-memories [memories]="data().data" />
+      }
+      @default {
+        @if (step(); as step) {
+          <chat-tool-call-chunk [chunk]="step" [conversationStatus]="conversationStatus()" (click)="openComponentMessage()" />
+        }
+      }
+    } 
   }
   @default {
     <div class="text-text-secondary text-sm">Unsupported category: {{data().category}}</div>

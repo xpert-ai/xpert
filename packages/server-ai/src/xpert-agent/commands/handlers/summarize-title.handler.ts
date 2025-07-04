@@ -2,11 +2,12 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { HumanMessage } from '@langchain/core/messages'
 import { RunnableConfig } from '@langchain/core/runnables'
 import {
+	ChatMessageEventTypeEnum,
 	GRAPH_NODE_TITLE_CONVERSATION,
-	IXpert,
 	mapTranslationLanguage,
 	STATE_VARIABLE_SYS,
 	STATE_VARIABLE_TITLE_CHANNEL,
+	TChatEventMessage,
 	TMessageChannel,
 	TXpertAgentExecution,
 	XpertAgentExecutionStatusEnum
@@ -16,6 +17,7 @@ import { RequestContext } from '@metad/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
+import { t } from 'i18next'
 import { v4 as uuidv4 } from 'uuid'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
 import { XpertCopilotNotFoundException } from '../../../core/errors'
@@ -23,6 +25,7 @@ import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../..
 import { GetXpertChatModelQuery } from '../../../xpert/queries'
 import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 import { AgentStateAnnotation } from '../../../shared'
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 
 
 @CommandHandler(CreateSummarizeTitleAgentCommand)
@@ -74,6 +77,13 @@ export class CreateSummarizeTitleAgentHandler implements ICommandHandler<CreateS
 			state: typeof AgentStateAnnotation.State,
 			config: RunnableConfig
 		): Promise<Partial<typeof AgentStateAnnotation.State>> => {
+			// Starting event
+			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
+				id: config.metadata.run_id,
+				title: t('server-ai:Xpert.SummaryTitleStarting'),
+				status: 'running',
+				created_date: new Date().toISOString(),
+			} as TChatEventMessage)
 			// Record start time
 			const timeStart = Date.now()
 			let status = XpertAgentExecutionStatusEnum.SUCCESS
@@ -146,6 +156,12 @@ export class CreateSummarizeTitleAgentHandler implements ICommandHandler<CreateS
 						}
 					})
 				)
+				await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
+					id: config.metadata.run_id,
+					title: t('server-ai:Xpert.SummaryTitleEnd'),
+					status: 'success',
+					end_date: new Date().toISOString(),
+				} as TChatEventMessage)
 			}
 		}
 	}

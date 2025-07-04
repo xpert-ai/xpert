@@ -6,6 +6,7 @@ import {
 	RequestContext,
 	StorageFilePublicDTO,
 	TransformInterceptor,
+	transformWhere,
 	UUIDValidationPipe
 } from '@metad/server-core'
 import { Controller, Get, HttpStatus, Param, Query, UseInterceptors } from '@nestjs/common'
@@ -42,7 +43,7 @@ export class ChatConversationController extends CrudController<ChatConversation>
 		...options: any[]
 	): Promise<IPagination<ChatConversationPublicDTO>> {
 		const where = {
-			...(filter.where ?? {}),
+			...(transformWhere(filter.where ?? {})),
 			createdById: RequestContext.currentUserId()
 		} as any
 		if (search) {

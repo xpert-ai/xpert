@@ -10,6 +10,7 @@ import { FileTypePipe, SafePipe } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'
+import { of } from 'rxjs'
 import { XpertHomeService } from '../../home.service'
 
 @Component({
@@ -42,18 +43,24 @@ export class ChatCanvasFileEditorComponent {
 
   readonly url = computed(() => this.file()?.url)
 
-  readonly content = derivedAsync(() => (this.url() ? this.httpClient.get(this.url(), { responseType: 'text' }) : null))
+  readonly content = derivedAsync(() => {
+    const file = this.file()
+    if (file.contents) {
+      return of(file.contents)
+    }
+    return this.url() ? this.httpClient.get(this.url(), { responseType: 'text' }) : null
+  })
 
   readonly extension = computed(() => this.file()?.filePath?.split('.').pop()?.toLowerCase())
   readonly fileType = computed(() =>
     this.file()?.filePath ? new FileTypePipe().transform(this.file().filePath) : null
   )
 
-  constructor() {
-    effect(() => {
-      // console.log(this.file())
-    })
-  }
+  // constructor() {
+  //   effect(() => {
+  //     console.log(this.file())
+  //   })
+  // }
 
   exportToPdf() {
     // Check if the URL is available

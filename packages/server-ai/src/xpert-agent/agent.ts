@@ -4,7 +4,7 @@ import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
 import { BaseChannel, isCommand } from '@langchain/langgraph'
-import { agentLabel, ChatMessageEventTypeEnum, ChatMessageStepType, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TMessageChannel, TMessageComponent, TMessageComponentStep, TMessageContentComponent, TMessageContentReasoning, TMessageContentText} from '@metad/contracts'
+import { agentLabel, ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TMessageChannel, TMessageComponent, TMessageComponentStep, TMessageContentComponent, TMessageContentReasoning, TMessageContentText} from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { instanceToPlain } from 'class-transformer'
@@ -12,7 +12,7 @@ import { AgentStateAnnotation } from '../shared'
 
 /**
  * Create an operator function that intercepts Langgraph events, 
- * passes the message content through, and sends other events from the subscriber.
+ * passes the message content through, and sends other events to client by sse subscriber.
  * 
  * @param logger 
  * @param subscriber 
@@ -173,18 +173,18 @@ export function createMapStreamEvents(
 				eventStack.push(event)
 				toolsMap[rest.metadata.langgraph_node] = rest.name
 				
-				subscriber.next({
-					data: {
-						type: ChatMessageTypeEnum.EVENT,
-						event: ChatMessageEventTypeEnum.ON_TOOL_START,
-						data: {
-							data,
-							tags,
-							...rest,
-							agentKey: rest.metadata.agentKey
-						}
-					}
-				} as MessageEvent)
+				// subscriber.next({
+				// 	data: {
+				// 		type: ChatMessageTypeEnum.EVENT,
+				// 		event: ChatMessageEventTypeEnum.ON_TOOL_START,
+				// 		data: {
+				// 			data,
+				// 			tags,
+				// 			...rest,
+				// 			agentKey: rest.metadata.agentKey
+				// 		}
+				// 	}
+				// } as MessageEvent)
 
 				const tool_call_id = data.id || rest.metadata.tool_call_id
 				if (tool_call_id) {
@@ -228,17 +228,17 @@ export function createMapStreamEvents(
 						output = toolMessage
 					}
 				}
-				subscriber.next({
-					data: {
-						type: ChatMessageTypeEnum.EVENT,
-						event: ChatMessageEventTypeEnum.ON_TOOL_END,
-						data: {
-							data: { ...data, output },
-							tags,
-							...rest
-						}
-					}
-				} as MessageEvent)
+				// subscriber.next({
+				// 	data: {
+				// 		type: ChatMessageTypeEnum.EVENT,
+				// 		event: ChatMessageEventTypeEnum.ON_TOOL_END,
+				// 		data: {
+				// 			data: { ...data, output },
+				// 			tags,
+				// 			...rest
+				// 		}
+				// 	}
+				// } as MessageEvent)
 
 				const tool_call_id = data.output?.tool_call_id || data.id || rest.metadata.tool_call_id
 				if (tool_call_id) {
@@ -264,50 +264,89 @@ export function createMapStreamEvents(
 				break
 			}
 			case 'on_retriever_start': {
-				// logger.verbose(data, rest)
+				// console.log('on_retriever_start', data, rest)
 				subscriber.next({
 					data: {
-						type: ChatMessageTypeEnum.EVENT,
-						event: ChatMessageEventTypeEnum.ON_RETRIEVER_START,
+						type: ChatMessageTypeEnum.MESSAGE,
 						data: {
-							data,
-							tags,
-							...rest
-						}
+							id: data.id || rest.metadata.tool_call_id,
+							type: 'component',
+							xpertName: rest.metadata.xpertName,
+							agentKey: rest.metadata.agentKey,
+							data: {
+								category: 'Tool',
+								type: ChatMessageStepCategory.Knowledges,
+								toolset: rest.metadata.toolset,
+								toolset_id: rest.metadata.toolsetId,
+								tool: rest.name,
+								title: rest.metadata.toolName || rest.metadata[rest.name] || rest.name,
+								created_date: new Date(),
+								status: 'running',
+								message: data.input?.query,
+								end_date: null,
+							} as TMessageComponent<TMessageComponentStep>
+						} as TMessageContentComponent
 					}
 				} as MessageEvent)
+				// subscriber.next({
+				// 	data: {
+				// 		type: ChatMessageTypeEnum.EVENT,
+				// 		event: ChatMessageEventTypeEnum.ON_RETRIEVER_START,
+				// 		data: {
+				// 			data,
+				// 			tags,
+				// 			...rest
+				// 		}
+				// 	}
+				// } as MessageEvent)
 				break
 			}
 			case 'on_retriever_end': {
+				// console.log('on_retriever_end', data, rest)
 				subscriber.next({
 					data: {
-						type: ChatMessageTypeEnum.EVENT,
-						event: ChatMessageEventTypeEnum.ON_RETRIEVER_END,
+						type: ChatMessageTypeEnum.MESSAGE,
 						data: {
-							data,
-							tags,
-							...rest
-						}
+							id: data.id || rest.metadata.tool_call_id,
+							type: 'component',
+							data: {
+								category: 'Computer',
+								end_date: new Date(),
+								status: 'success',
+								data: data.output,
+							} as Partial<TMessageComponent<TMessageComponentStep>>
+						} as TMessageContentComponent
 					}
 				} as MessageEvent)
+				// subscriber.next({
+				// 	data: {
+				// 		type: ChatMessageTypeEnum.EVENT,
+				// 		event: ChatMessageEventTypeEnum.ON_RETRIEVER_END,
+				// 		data: {
+				// 			data,
+				// 			tags,
+				// 			...rest
+				// 		}
+				// 	}
+				// } as MessageEvent)
 				break
 			}
 			case 'on_custom_event': {
 				// logger.verbose(data, rest)
 				switch (rest.name) {
 					case ChatMessageEventTypeEnum.ON_TOOL_ERROR: {
-						subscriber.next({
-							data: {
-								type: ChatMessageTypeEnum.EVENT,
-								event: ChatMessageEventTypeEnum.ON_TOOL_ERROR,
-								data: {
-									...rest,
-									...data,
-									name: toolsMap[data.toolCall.name] ?? data.toolCall.name,
-									tags
-								}
-							}
-						} as MessageEvent)
+						// subscriber.next({
+						// 	data: {
+						// 		type: ChatMessageTypeEnum.EVENT,
+						// 		event: ChatMessageEventTypeEnum.ON_TOOL_ERROR,
+						// 		data: {
+						// 			...rest,
+						// 			...data,
+						// 			name: toolsMap[data.toolCall.name] ?? data.toolCall.name,
+						// 			tags
+						// 		}
+						// 	}
+						// } as MessageEvent)
 
 						subscriber.next({
 							data: {
@@ -342,9 +381,9 @@ export function createMapStreamEvents(
 						break
 					}
 					case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
-						if (data.type === ChatMessageStepType.Notice || data.type === ChatMessageStepType.ComputerUse) {
+						if (data.category === 'Computer' || data.category === 'Tool') {
 							/**
-							 * Notification messages from tool calling are displayed in component messages
+							 * Tool messages from tool calling are displayed in component messages
 							 */
 							subscriber.next({
 								data: {
@@ -354,31 +393,47 @@ export function createMapStreamEvents(
 										type: 'component',
 										data: {
 											...data,
-											category: 'Computer',
-											type: data.category,
+											category: data.category,
+											type: data.type,
 											data: data.data,
 										} as TMessageComponent<TMessageComponentStep>
 									} as TMessageContentComponent
 								}
 							} as MessageEvent)
 						} else {
+							logger.warn(`Unsupported custom_event & tool message category: ${data.category}`, data)
 							/**
 							 * Others are displayed as execution steps (event) temporarily
 							 */
-							subscriber.next({
-								data: {
-									type: ChatMessageTypeEnum.EVENT,
-									event: ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
-									data: {
-										tags,
-										...rest,
-										...data,
-										created_date: new Date()
-									}
-								}
-							} as MessageEvent)
+							// subscriber.next({
+							// 	data: {
+							// 		type: ChatMessageTypeEnum.EVENT,
+							// 		event: ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+							// 		data: {
+							// 			tags,
+							// 			...rest,
+							// 			...data,
+							// 			created_date: new Date()
+							// 		}
+							// 	}
+							// } as MessageEvent)
 						}
 						break
+					}
+					case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
+						// logger.debug(`on_chat_event`, data)
+						subscriber.next({
+							data: {
+								type: ChatMessageTypeEnum.EVENT,
+								event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+								data: {
+									tags,
+									...rest,
+									...data,
+									created_date: new Date()
+								}
+							}
+						} as MessageEvent)
 					}
 				}
 				break

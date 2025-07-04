@@ -1,3 +1,4 @@
+import { RunnableLambda } from '@langchain/core/runnables'
 import { BaseStore } from '@langchain/langgraph'
 import {
 	ChatMessageEventTypeEnum,
@@ -12,6 +13,7 @@ import {
 	messageContentText,
 	shortTitle,
 	TChatConversationStatus,
+	TChatRequestHuman,
 	TSensitiveOperation,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
@@ -34,6 +36,7 @@ import { XpertAgentChatCommand } from '../../../xpert-agent/'
 import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
 import { CreateMemoryStoreCommand } from '../create-memory-store.command'
+
 
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
@@ -163,7 +166,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				}
 			} as MessageEvent);
 
-			(async () => {
+			const logger = this.#logger
+			RunnableLambda.from(async (input: TChatRequestHuman) => {
 				let status = XpertAgentExecutionStatusEnum.SUCCESS
 				let error = null
 				let result = ''
@@ -367,7 +371,26 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 					})
 				)
 				.subscribe(subscriber)
-			})().catch((err) => {
+			}).invoke(input, {
+				callbacks: [
+					{
+						handleCustomEvent(eventName, data, runId) {
+							if (eventName === ChatMessageEventTypeEnum.ON_CHAT_EVENT) {
+								logger.debug(`========= handle custom event in project:`, eventName, runId)
+								subscriber.next({
+									data: {
+										type: ChatMessageTypeEnum.EVENT,
+										event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+										data: data
+									}
+								} as MessageEvent)
+							} else {
+								logger.warn(`Unprocessed custom event in project:`, eventName, runId)
+							}
+						},
+					},
+				],
+			}).catch((err) => {
 				subscriber.error(err)
 			})
 
@@ -378,7 +401,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 			}
 		})
 	}
-
 }
 
 async function getLongTermMemory(store: BaseStore, xpertId: string, input: string) {

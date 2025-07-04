@@ -43,7 +43,7 @@
                   <a class="truncate cursor-pointer" [ngmHighlight]="searchValue" [content]="(item.title | i18n) || item.id"
                     (click)="selectConversation(item)">{{item.title || item.id}}</a>
                   @if (item.project) {
-                    <span class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 ml-1 text-xs font-mono text-gray-600 bg-slate-50">
+                    <span class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 ml-1 text-xs font-mono truncate text-gray-600 bg-slate-50">
                       {{item.project.name}}
                     </span>
                   }

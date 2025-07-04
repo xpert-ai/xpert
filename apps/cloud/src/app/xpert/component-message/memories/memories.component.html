@@ -3,14 +3,14 @@
   {{ 'PAC.Xpert.SearchRecallMemories' | translate: {Default: 'Search recall memories'} }}: ({{memories()?.length}})</div>
 
 @if (expand()) {
-  <ul class="px-2 mt-2 text-xs">
+  <ul class="px-2 mt-2 text-sm">
     @for (memory of memories(); track memory.key) {
       <li>
         <div class="flex items-center gap-1">
-          <div>{{ 'PAC.Xpert.Question' | translate: {Default: 'Question'} }}: </div>
+          <div>{{ 'PAC.Xpert.Question' | translate: {Default: 'Question'} }}<span class="font-mono">[{{memory.score | number: '0.0-2'}}]</span>: </div>
           <div>{{memory.value.question}}</div>
         </div>
-        <div class="flex items-center mt-1">
+        <div class="flex items-center mt-1 font-body text-text-secondary">
           <div>{{memory.value.answer}}</div>
         </div>
       </li>

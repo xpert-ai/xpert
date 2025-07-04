@@ -25,7 +25,7 @@ import {
   RouterEvent
 } from '@angular/router'
 import { PacMenuItem } from '@metad/cloud/auth'
-import { UsersService } from '@metad/cloud/state'
+import { injectUserPreferences, UsersService } from '@metad/cloud/state'
 import { isNotEmpty, nonNullable } from '@metad/core'
 import { NgmCopilotChatComponent, NgmCopilotEngineService } from '@metad/copilot-angular'
 import { TranslateService } from '@ngx-translate/core'
@@ -53,6 +53,7 @@ import {
 } from '../@core'
 import { AppService } from '../app.service'
 import { injectChatCommand } from '../@shared/copilot'
+import { attrModel } from '@metad/ocap-angular/core'
 
 
 @Component({
@@ -67,9 +68,13 @@ export class FeaturesComponent implements OnInit {
   AbilityActions = AbilityActions
 
   readonly #destroyRef = inject(DestroyRef)
+  readonly #preferences = injectUserPreferences()
 
   readonly sidenav = viewChild('sidenav', { read: MatSidenav })
   readonly copilotChat = viewChild('copilotChat', { read: NgmCopilotChatComponent })
+
+  // States
+  readonly fixedLayoutSider = attrModel(this.#preferences, 'fixedLayoutSider')
 
   copilotEngine: NgmCopilotEngineService | null = null
   readonly sidenavMode = signal<MatDrawerMode>('over')
@@ -189,7 +194,7 @@ export class FeaturesComponent implements OnInit {
       })
 
     effect(() => {
-      if (this.store.fixedLayoutSider()) {
+      if (this.fixedLayoutSider()) {
         this.sidenavMode.set('side')
         this.sidenavOpened.set(true)
       } else {
@@ -197,7 +202,6 @@ export class FeaturesComponent implements OnInit {
         this.sidenavOpened.set(false)
       }
     }, { allowSignalWrites: true })
-
   }
 
   async ngOnInit() {
@@ -308,11 +312,11 @@ export class FeaturesComponent implements OnInit {
       setTimeout(() => {
         sidenav.ngDoCheck()
       }, 200)
-      this.store.setFixedLayoutSider(true)
+      this.fixedLayoutSider.set(true)
     } else {
       this.sidenav().toggle()
       setTimeout(() => {
-        this.store.setFixedLayoutSider(false)
+        this.fixedLayoutSider.set(false)
       }, 1000)
     }
   }

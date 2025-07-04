@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core'
+import { effect, Injectable } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { AbstractControl } from '@angular/forms'
 import { nonBlank } from '@metad/core'
@@ -6,25 +6,25 @@ import { EntityProperty, PropertyDimension, PropertyHierarchy, serializeUniqueNa
 import { AccordionWrappers, FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
 import { FormlyFieldConfig } from '@ngx-formly/core'
 import { combineLatest } from 'rxjs'
-import { distinctUntilChanged, filter, map, switchMap, take } from 'rxjs/operators'
+import { distinctUntilChanged, filter, map, startWith, switchMap, take } from 'rxjs/operators'
 import { DimensionModeling } from './dimension.schema'
 import { CubeSchemaService } from './cube.schema'
-import { HiddenLLM, SemanticsAccordionWrapper } from './common'
+import { HiddenLLM } from './common'
 
 @Injectable()
 export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dimension: EntityProperty} = {
   hierarchy: PropertyHierarchy;
   dimension: PropertyDimension
 }> extends CubeSchemaService<T>  {
-
-  private readonly _dimension$ = this.select((state) => state.dimension)
+  
+  readonly hierarchies$ = this.select((state) => state.hierarchies)
+  readonly _dimension$ = this.select((state) => state.modeling?.dimension)
+  readonly hierarchy$ = this.select((state) => state.modeling?.hierarchy)
   readonly dimensionName$ = this._dimension$.pipe(
     map((dimension) => dimension?.name),
     filter(nonBlank),
     distinctUntilChanged()
   )
-  readonly hierarchies$ = this.select((state) => state.hierarchies)
-  readonly hierarchy$ = this.select((state) => state.modeling?.hierarchy)
 
   readonly otherHierarchies = toSignal(
     this.select((state) => state.hierarchies?.filter((item) => item.__id__ !== state.modeling?.hierarchy?.__id__))
@@ -58,17 +58,16 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
       distinctUntilChanged()
     )
   ]).pipe(
-    switchMap(([dimension, hierarchy]) =>
-      this.modelService
+    switchMap(([dimension, hierarchy]) => {
+      return this.modelService
         .selectOriginalMembers(dimension, {
           dimension: serializeUniqueName(dimension),
           hierarchy: serializeUniqueName(dimension, hierarchy)
-        })
-        .pipe(
+        }).pipe(
           // selectMembers Frequent refreshes cause abnormal display of ngm-select components
           take(1)
         )
-    )
+    })
   )
 
   HIERARCHY: any
@@ -359,7 +358,7 @@ export class HierarchySchemaService<T extends {hierarchy: PropertyHierarchy; dim
               key: null,
               caption: this.getTranslation('PAC.KEY_WORDS.None', { Default: 'None' })
             },
-            ...members.map((member) => ({
+            ...(members ?? []).map((member) => ({
               value: member.memberKey,
               label: member.memberCaption,
               key: member.memberKey,

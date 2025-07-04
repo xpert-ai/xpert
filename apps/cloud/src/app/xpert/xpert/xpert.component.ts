@@ -163,7 +163,7 @@ export class XpertChatAppComponent {
     effect(() => {
       // Follow the latest news
       if (this.messages() && this.isBottom()) {
-        this.scrollBottom()
+        this.scrollBottom(true)
       }
     })
 
@@ -189,7 +189,13 @@ export class XpertChatAppComponent {
     this.openHistories.emit()
   }
 
-  scrollBottom(smooth = false) {
+  onAsked(content: string) {
+    setTimeout(() => {
+      this.scrollBottom(true)
+    }, 100)
+  }
+
+  scrollBottom(smooth: boolean) {
     setTimeout(() => {
       this.#elementRef.nativeElement.scrollTo({
         top: this.#elementRef.nativeElement.scrollHeight,

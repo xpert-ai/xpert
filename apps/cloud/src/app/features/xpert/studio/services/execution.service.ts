@@ -7,6 +7,8 @@ import {
   IChatConversation,
   IChatMessageFeedback,
   IXpertAgentExecution,
+  TMessageComponentStep,
+  TMessageContentComponent,
   XpertAgentExecutionStatusEnum
 } from 'apps/cloud/src/app/@core'
 import { combineLatest, of, switchMap } from 'rxjs'
@@ -37,24 +39,7 @@ export class XpertExecutionService {
       const agentExecutions = {}
       Object.values(this.#agentExecutions() ?? {}).forEach((executions) => {
         expandExecutions(executions, agentExecutions)
-        // executions.forEach((execution) => {
-        //   execution.subExecutions?.forEach((item) => {
-        //     if (item.agentKey) {
-        //       agentExecutions[item.agentKey] ??= []
-        //       agentExecutions[item.agentKey] = agentExecutions[item.agentKey].filter((_) => _.id !== item.id).concat(item)
-        //     }
-        //   })
-        //   if (execution.agentKey) {
-        //     agentExecutions[execution.agentKey] ??= []
-        //     agentExecutions[execution.agentKey] = agentExecutions[execution.agentKey].filter((_) => _.id !== execution.id).concat(execution)
-        //   }
-        // })
       })
-  
-      Object.keys(this.knowledgeExecutions() ?? {}).forEach((id) => {
-        agentExecutions[id] = this.knowledgeExecutions()[id]
-      })
-  
       return agentExecutions
     })
 
@@ -77,8 +62,35 @@ export class XpertExecutionService {
     return agentExecutions
   })
 
-  readonly toolExecutions = signal<Record<string, Record<string, Partial<IXpertAgentExecution>>>>({})
-  readonly knowledgeExecutions = signal<Record<string, Partial<IXpertAgentExecution>[]>>({})
+  readonly toolMessages = computed(() => {
+    const executions: TMessageContentComponent<TMessageComponentStep>[] = []
+    this.messages().forEach((message) => {
+      if (message.role === 'ai' && Array.isArray(message.content)) {
+        message.content?.forEach((content) => {
+          if (content.type === 'component' && content.data?.toolset_id) {
+            executions.push(content as TMessageContentComponent<TMessageComponentStep>)
+          }
+        })
+      }
+    })
+
+    return executions
+  })
+
+  readonly knowledgeMessages = computed(() => {
+    const executions: TMessageContentComponent<TMessageComponentStep>[] = []
+    this.messages().forEach((message) => {
+      if (message.role === 'ai' && Array.isArray(message.content)) {
+        message.content?.forEach((content) => {
+          if (content.type === 'component' && content.data?.toolset === 'knowledgebase') {
+            executions.push(content as TMessageContentComponent<TMessageComponentStep>)
+          }
+        })
+      }
+    })
+
+    return executions
+  })
 
   // Subsribe conversation
   private conversationSub = toObservable(this.conversationId)
@@ -86,8 +98,8 @@ export class XpertExecutionService {
       switchMap((id) =>
         id
           ? combineLatest([
-              this.conversationService.getById(this.conversationId(), { relations: ['messages'] }),
-              this.feedbackService.getAll({ where: { conversationId: this.conversationId() } })
+              this.conversationService.getById(id, { relations: ['messages'] }),
+              this.feedbackService.getAll({ where: { conversationId: id } })
             ])
           : of([])
       )
@@ -123,11 +135,8 @@ export class XpertExecutionService {
     )
   }
 
-  appendMessage(message: Partial<CopilotChatMessage>) {
-    this.#messages.update((state) => {
-      const messages = state?.filter((_) => _.id !== message.id)
-      return [...(messages ?? []), message]
-    })
+  setMessages(messages: Partial<CopilotChatMessage>[]) {
+    this.#messages.set(messages)
   }
 
   setAgentExecution(key: string, execution: IXpertAgentExecution) {
@@ -147,70 +156,8 @@ export class XpertExecutionService {
     this.#messages.set([])
   }
 
-  /**
-   * Update execution of tool call
-   *
-   * @param name Tool's name
-   * @param id Execution run id
-   * @param execution Execution entity
-   */
-  updateToolExecution(name: string, id: string, execution: Partial<IXpertAgentExecution>) {
-    this.toolExecutions.update((state) => ({
-      ...state,
-      [name]: {
-        ...(state[name] ?? {}),
-        [id]: {
-          ...(state[name]?.[id] ?? {}),
-          ...execution
-        }
-      }
-    }))
-  }
-
-  setKnowledgeExecution(name: string, execution: Partial<IXpertAgentExecution>) {
-    this.knowledgeExecutions.update((state) => {
-      const executions = state[name] ?? []
-      return {
-        ...state,
-        [name]: executions.filter((_) => _.id !== execution.id).concat(execution)
-      }
-    })
-  }
-
   markError(error: string) {
     this.#agentExecutions.update((state) => {
-      return Object.keys(state).reduce((acc, key) => {
-        acc[key] = state[key].map((execution) => {
-          return execution.status === XpertAgentExecutionStatusEnum.RUNNING
-            ? {
-                ...execution,
-                status: XpertAgentExecutionStatusEnum.ERROR,
-                error
-              }
-            : execution
-        })
-        return acc
-      }, {})
-    })
-
-    this.toolExecutions.update((state) => {
-      return Object.keys(state).reduce((acc, name) => {
-        acc[name] = Object.keys(acc[name] ?? {}).reduce((executions, id) => {
-          executions[id] =
-            acc[name][id].status === XpertAgentExecutionStatusEnum.RUNNING
-              ? {
-                  ...acc[name][id],
-                  status: XpertAgentExecutionStatusEnum.ERROR,
-                  error
-                }
-              : acc[name][id]
-          return executions
-        }, {})
-        return acc
-      }, {})
-    })
-
-    this.knowledgeExecutions.update((state) => {
       return Object.keys(state).reduce((acc, key) => {
         acc[key] = state[key].map((execution) => {
           return execution.status === XpertAgentExecutionStatusEnum.RUNNING
@@ -228,8 +175,6 @@ export class XpertExecutionService {
 
   clear() {
     this.#agentExecutions.set({})
-    this.toolExecutions.set({})
-    this.knowledgeExecutions.set({})
   }
 }
 

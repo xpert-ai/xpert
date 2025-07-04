@@ -27,7 +27,6 @@ import { get, isNil, omitBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { Subscriber } from 'rxjs'
 import z from 'zod'
-import { v4 as uuidv4 } from 'uuid'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
@@ -37,7 +36,7 @@ import { ToolNode } from './tool_node'
 import { identifyAgent, parseXmlString, TGraphTool, TSubAgent } from './types'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retriever'
-import { XpertConfigException, XpertCopilotNotFoundException } from '../../../core/errors'
+import { XpertConfigException } from '../../../core/errors'
 import { FakeStreamingChatModel, getChannelState, messageEvent, TStateChannel } from '../../agent'
 import { createParameters } from '../../workflow/parameter'
 import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
@@ -989,87 +988,87 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 	/**
 	 * @deprecated use CreateSummarizeTitleAgentCommand
 	 */
-	async createTitleAgent(xpert: IXpert, options: {rootController: AbortController; rootExecutionId: string; agentKey?: string;}) {
-		const {rootController, rootExecutionId, agentKey} = options
-		const execution = {} as TXpertAgentExecution
-		const copilotModel = xpert.copilotModel
-		if (!copilotModel) {
-			throw new XpertCopilotNotFoundException(await this.i18nService.t('xpert.Error.XpertCopilotNotFound', {
-				lang: mapTranslationLanguage(RequestContext.getLanguageCode())
-			}))
-		}
-		execution.metadata = {
-			provider: copilotModel.copilot.modelProvider?.providerName,
-			model: copilotModel.model || copilotModel.copilot.copilotModel?.model
-		}
-		const chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
-			new GetXpertChatModelQuery(xpert, null, {
-				copilotModel: copilotModel,
-				abortController: rootController,
-				usageCallback: assignExecutionUsage(execution)
-			})
-		)
+	// async createTitleAgent(xpert: IXpert, options: {rootController: AbortController; rootExecutionId: string; agentKey?: string;}) {
+	// 	const {rootController, rootExecutionId, agentKey} = options
+	// 	const execution = {} as TXpertAgentExecution
+	// 	const copilotModel = xpert.copilotModel
+	// 	if (!copilotModel) {
+	// 		throw new XpertCopilotNotFoundException(await this.i18nService.t('xpert.Error.XpertCopilotNotFound', {
+	// 			lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+	// 		}))
+	// 	}
+	// 	execution.metadata = {
+	// 		provider: copilotModel.copilot.modelProvider?.providerName,
+	// 		model: copilotModel.model || copilotModel.copilot.copilotModel?.model
+	// 	}
+	// 	const chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
+	// 		new GetXpertChatModelQuery(xpert, null, {
+	// 			copilotModel: copilotModel,
+	// 			abortController: rootController,
+	// 			usageCallback: assignExecutionUsage(execution)
+	// 		})
+	// 	)
 		
-		return async (state: typeof AgentStateAnnotation.State, config: RunnableConfig): Promise<Partial<typeof AgentStateAnnotation.State>> => {
-			// Record start time
-			const timeStart = Date.now()
-			let status = XpertAgentExecutionStatusEnum.SUCCESS
-			let error = null
-			let result = null
-			const _execution = await this.commandBus.execute(
-				new XpertAgentExecutionUpsertCommand({
-					...execution,
-					xpert: { id: xpert.id } as IXpert,
-					parentId: rootExecutionId,
-					status: XpertAgentExecutionStatusEnum.RUNNING,
-					channelName: STATE_VARIABLE_TITLE_CHANNEL
-				})
-			)
+	// 	return async (state: typeof AgentStateAnnotation.State, config: RunnableConfig): Promise<Partial<typeof AgentStateAnnotation.State>> => {
+	// 		// Record start time
+	// 		const timeStart = Date.now()
+	// 		let status = XpertAgentExecutionStatusEnum.SUCCESS
+	// 		let error = null
+	// 		let result = null
+	// 		const _execution = await this.commandBus.execute(
+	// 			new XpertAgentExecutionUpsertCommand({
+	// 				...execution,
+	// 				xpert: { id: xpert.id } as IXpert,
+	// 				parentId: rootExecutionId,
+	// 				status: XpertAgentExecutionStatusEnum.RUNNING,
+	// 				channelName: STATE_VARIABLE_TITLE_CHANNEL
+	// 			})
+	// 		)
 
-			try {
-				// Title the conversation
-				const messages = (<TMessageChannel>state[channelName(agentKey)]).messages
-				const language = state[STATE_VARIABLE_SYS]?.language
+	// 		try {
+	// 			// Title the conversation
+	// 			const messages = (<TMessageChannel>state[channelName(agentKey)]).messages
+	// 			const language = state[STATE_VARIABLE_SYS]?.language
 			
-				const allMessages = [...messages, new HumanMessage({
-					id: uuidv4(),
-					content: `Create a short title${language ? ` in language '${language}'` : ''} for the conversation above, without adding any extra phrases like 'Conversation Title:':`,
-				})]
-				const response = await chatModel.invoke(allMessages, {tags: [GRAPH_NODE_TITLE_CONVERSATION]});
-				result = response.content
-				if (typeof response.content !== "string") {
-					throw new Error("Expected a string response from the model");
-				}
+	// 			const allMessages = [...messages, new HumanMessage({
+	// 				id: uuidv4(),
+	// 				content: `Create a short title${language ? ` in language '${language}'` : ''} for the conversation above, without adding any extra phrases like 'Conversation Title:':`,
+	// 			})]
+	// 			const response = await chatModel.invoke(allMessages, {tags: [GRAPH_NODE_TITLE_CONVERSATION]});
+	// 			result = response.content
+	// 			if (typeof response.content !== "string") {
+	// 				throw new Error("Expected a string response from the model");
+	// 			}
 				
-				return {
-					title: response.content.replace(/^"/g, '').replace(/"$/g, ''),
-					[STATE_VARIABLE_TITLE_CHANNEL]: {
-						messages: [...allMessages, response]
-					}
-				}
-			} catch (err) {
-				error = getErrorMessage(err)
-				status = XpertAgentExecutionStatusEnum.ERROR
-			} finally {
-				const timeEnd = Date.now()
-				// Record End time
-				await this.commandBus.execute(
-					new XpertAgentExecutionUpsertCommand({
-						..._execution,
-						threadId: config.configurable.thread_id,
-						checkpointId: config.configurable.checkpoint_id,
-						checkpointNs: '',
-						elapsedTime: timeEnd - timeStart,
-						status,
-						error,
-						outputs: {
-							output: result
-						}
-					})
-				)
-			}
-		}
-	}
+	// 			return {
+	// 				title: response.content.replace(/^"/g, '').replace(/"$/g, ''),
+	// 				[STATE_VARIABLE_TITLE_CHANNEL]: {
+	// 					messages: [...allMessages, response]
+	// 				}
+	// 			}
+	// 		} catch (err) {
+	// 			error = getErrorMessage(err)
+	// 			status = XpertAgentExecutionStatusEnum.ERROR
+	// 		} finally {
+	// 			const timeEnd = Date.now()
+	// 			// Record End time
+	// 			await this.commandBus.execute(
+	// 				new XpertAgentExecutionUpsertCommand({
+	// 					..._execution,
+	// 					threadId: config.configurable.thread_id,
+	// 					checkpointId: config.configurable.checkpoint_id,
+	// 					checkpointNs: '',
+	// 					elapsedTime: timeEnd - timeStart,
+	// 					status,
+	// 					error,
+	// 					outputs: {
+	// 						output: result
+	// 					}
+	// 				})
+	// 			)
+	// 		}
+	// 	}
+	// }
 }
 
 function ensureSummarize(summarize?: TSummarize) {

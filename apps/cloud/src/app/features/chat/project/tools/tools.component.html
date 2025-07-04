@@ -43,6 +43,20 @@
     <div class="relative content-start gap-4 pt-2 pb-4 px-1 grow shrink-0 opacity-60 hover:opacity-100 transition-all duration-300 ease-in-out"
       ngmDynamicGrid colWidth="280"
       box="content-box">
+        <ngm-card-create [title]="'PAC.Xpert.CreateMCPTool' | translate: {Default: 'Create MCP Toolset'}"
+          [helpTitle]="'PAC.Xpert.LearnCreateMCPTool' | translate: {Default: 'Learn more about Xpert MCP toolset'}"
+          helpUrl="/docs/ai/tool/mcp/"
+          (create)="configureMCP()"
+        >
+          <div class="flex flex-col px-2">
+            <button class="mb-1 flex w-full cursor-pointer items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary"
+              [cdkMenuTriggerFor]="builtinMenu"
+              (click)="$event.stopPropagation();">
+              <i class="ri-tools-line text-lg mr-2"></i>
+              <span>{{'PAC.Xpert.OrCreateBuiltinToolset' | translate: {Default: 'Or create built-in toolset'} }}</span>
+            </button>
+          </div>
+        </ngm-card-create>
       @for (item of wsToolsets(); track item.toolset.id) {
         <xpert-toolset-card class="group/card col-span-1 min-h-[140px] cursor-pointer bg-components-card-bg"
           [toolset]="item.toolset"
@@ -72,3 +86,28 @@
   <mcp-marketplace class="opacity-60 hover:opacity-100 transition-all duration-300 ease-in-out"
     [workspace]="workspace()" (refresh)="refreshWorkspace()"/>
 }
+
+<ng-template #builtinMenu>
+  <div cdkMenu class="relative">
+    <div class="w-[200px] p-2 sticky top-0 z-10 bg-components-card-bg">
+      <i class="ri-search-line absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 flex justify-center items-center"></i>
+      <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-[7px] text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
+        placeholder="{{ 'PAC.KEY_WORDS.Search' | translate: {Default: 'Search'} }}"
+        [(ngModel)]="search"
+      >
+    </div>
+    <div class="p-2">
+      @for (toolset of builtinToolProviders(); track toolset.id) {
+        <div cdkMenuItem class="shrink-0 w-full flex justify-start items-center px-1.5 py-2 rounded-lg overflow-hidden"
+          [cdkMenuItemDisabled]="toolset.not_implemented"
+          (click)="createBuiltinToolset(toolset)"
+          >
+          <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-lg scale-95"  />
+          <div class="flex-1 truncate" [ngmHighlight]="searchText()" [content]="toolset.label | i18n">
+            {{toolset.label | i18n}}
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</ng-template>

@@ -113,17 +113,22 @@ export function stateToParameters(state: typeof AgentStateAnnotation.State, envi
 }
 
 export function stateVariable(variable: TStateVariable) {
-	const defaultValue = isFunction(variable.default) ?
-		variable.default()
-		: [
-			XpertParameterTypeEnum.STRING,
-			XpertParameterTypeEnum.TEXT,
-			XpertParameterTypeEnum.PARAGRAPH
-		].includes(variable.type) ? 
-			variable.default 
-			: typeof variable.default === 'string' ? 
-				JSON.parse(variable.default)
-				: variable.default
+	let defaultValue = null
+	try {
+		defaultValue = isFunction(variable.default) ?
+			variable.default()
+			: [
+				XpertParameterTypeEnum.STRING,
+				XpertParameterTypeEnum.TEXT,
+				XpertParameterTypeEnum.PARAGRAPH
+			].includes(variable.type) ? 
+				variable.default 
+				: typeof variable.default === 'string' ? 
+					JSON.parse(variable.default)
+					: variable.default
+	} catch (error) {
+		//
+	}
 
 	return {
 		default: () => defaultValue,

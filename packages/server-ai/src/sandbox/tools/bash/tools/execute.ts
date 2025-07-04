@@ -1,7 +1,7 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { LangGraphRunnableConfig } from '@langchain/langgraph'
-import { ChatMessageEventTypeEnum, ChatMessageStepType } from '@metad/contracts'
+import { ChatMessageEventTypeEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import z from 'zod'
 import { BashToolset } from '../bash'
@@ -40,21 +40,6 @@ export class BashExecTool extends SandboxBaseTool {
 		}
 
 		const { signal, configurable } = config ?? {}
-
-		// Tool message event
-		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-			type: ChatMessageStepType.ComputerUse,
-			toolset: BashToolset.provider,
-			tool: this.name,
-			title: parameters.command,
-			message: parameters.command,
-			data: {
-				command: parameters.command,
-				// output: result.data.output
-			}
-		}).catch((err) => {
-			this.#logger.error(err)
-		})
 
 		return '' // JSON.stringify(result.data)
 	}

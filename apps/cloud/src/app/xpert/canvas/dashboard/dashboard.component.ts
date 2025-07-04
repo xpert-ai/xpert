@@ -8,7 +8,6 @@ import { DataSettings } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertHomeService } from '@cloud/app/xpert/'
 import {
-  ChatMessageStepType,
   injectFormatRelative,
   TMessageComponent,
   TMessageContentComponent
@@ -36,7 +35,6 @@ import { ChatMessageDashboardComponent } from '../../ai-message/dashboard/dashbo
   }
 })
 export class ChatCanvasDashboardComponent {
-  eChatMessageStepType = ChatMessageStepType
 
   readonly homeService = inject(XpertHomeService)
   readonly #formatRelative = injectFormatRelative()

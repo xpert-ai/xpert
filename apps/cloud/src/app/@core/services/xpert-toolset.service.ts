@@ -1,7 +1,7 @@
 import { inject, Injectable, Signal } from '@angular/core'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { BehaviorSubject, catchError, map, of, startWith } from 'rxjs'
+import { BehaviorSubject, catchError, map, of, shareReplay, startWith } from 'rxjs'
 import { API_XPERT_TOOLSET } from '../constants/app.constants'
 import {
   ApiProviderSchemaType,
@@ -24,6 +24,10 @@ export class XpertToolsetService extends XpertWorkspaceBaseCrudService<IXpertToo
   readonly #logger = inject(NGXLogger)
 
   readonly #refresh = new BehaviorSubject<void>(null)
+
+  readonly builtinToolProviders$ = this.getProviders().pipe(
+    shareReplay(1),
+  )
 
   constructor() {
     super(API_XPERT_TOOLSET)

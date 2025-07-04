@@ -152,7 +152,7 @@ export class XpertStudioApiService {
     shareReplay(1)
   )
 
-  readonly builtinToolProviders = derivedAsync(() => this.toolsetService.getProviders())
+  readonly builtinToolProviders = derivedAsync(() => this.toolsetService.builtinToolProviders$)
   
   readonly workspace = computed(() => this.team()?.workspace, { equal: (a, b) => a?.id === b?.id })
 

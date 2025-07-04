@@ -1,4 +1,3 @@
-import { MessageContent } from '@langchain/core/messages'
 import { format } from 'date-fns/format'
 import { isToday } from 'date-fns/isToday'
 import { isWithinInterval } from 'date-fns/isWithinInterval'
@@ -7,10 +6,13 @@ import { subDays } from 'date-fns/subDays'
 import { IChatConversation, IChatMessage, IXpertAgentExecution } from '../@core/types'
 
 export type TCopilotChatMessage = IChatMessage & {
-  event?: {
-    name: string
-    message: string
-  }
+  /**
+   * Events generated during the process are not stored
+   */
+  // event?: {
+  //   name: string
+  //   message: string
+  // }
   error?: string
   expanded?: boolean
   executions?: IXpertAgentExecution[]

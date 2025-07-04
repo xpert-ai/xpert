@@ -1,6 +1,5 @@
 import { inject, Injectable } from '@angular/core'
-import { OrganizationBaseCrudService } from '@metad/cloud/state'
-import { ITag, TagCategoryEnum } from '@metad/contracts'
+import { ITag, OrganizationBaseCrudService, TagCategoryEnum } from '@metad/cloud/state'
 import { BehaviorSubject, Observable } from 'rxjs'
 import { map, shareReplay, switchMap } from 'rxjs/operators'
 import { API_TAG } from '../constants/app.constants'
@@ -36,7 +35,7 @@ export class TagService extends OrganizationBaseCrudService<ITag> {
     return this.#categories$
   }
 
-  getAllByCategory(category?: string) {
+  getAllByCategory(category?: TagCategoryEnum) {
     if (!this.#categories.get(category ?? '')) {
       this.#categories.set(
         category ?? '',
