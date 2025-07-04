@@ -1,11 +1,11 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { Router, RouterModule } from '@angular/router'
-import { injectProjectService, injectToastr } from '@cloud/app/@core'
+import { RouterModule } from '@angular/router'
+import { injectProjectService, injectToastr, TFileDirectory } from '@cloud/app/@core'
 import { ChatFileListComponent } from '@cloud/app/@shared/chat/'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { NgmDndDirective } from '@metad/core'
@@ -38,7 +38,6 @@ import { ChatProjectComponent } from '../project.component'
 })
 export class ChatProjectFilesComponent {
   readonly #logger = inject(NGXLogger)
-  readonly #router = inject(Router)
   readonly #dialog = inject(Dialog)
   readonly projectService = injectProjectService()
   readonly #projectComponent = inject(ChatProjectComponent)
@@ -48,6 +47,7 @@ export class ChatProjectFilesComponent {
 
   readonly project = this.#projectComponent.project
   readonly projectId = computed(() => this.project()?.id)
+  readonly files = model<TFileDirectory[]>()
   readonly refresh = signal({})
 
   // Uploading

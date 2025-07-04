@@ -312,6 +312,11 @@
       "SearchTerm": "搜索词"
     },
     "XProject": {
+      "NoRecentFiles": "没有最近的文件",
+      "NoToolset": "尚无工具集",
+      "NoExperts": "尚无专家",
+      "AfterCreatingProject": "创建项目后",
+      "DragandDropFiles": "拖放文件到此处以上传",
       "Files": "文件",
       "UploadAFile": "上传一个文件",
       "Recent": "最近",
@@ -1834,6 +1839,7 @@
       }
     },
     "Chat": {
+      "Empty": "清空",
       "Histories": "历史记录",
       "ShowMore": "显示更多",
       "Rename": "重命名",

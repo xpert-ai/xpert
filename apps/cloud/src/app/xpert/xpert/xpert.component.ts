@@ -190,7 +190,9 @@ export class XpertChatAppComponent {
   }
 
   onAsked(content: string) {
-    this.scrollBottom(true)
+    setTimeout(() => {
+      this.scrollBottom(true)
+    }, 100)
   }
 
   scrollBottom(smooth: boolean) {

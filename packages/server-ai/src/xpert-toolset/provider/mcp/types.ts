@@ -34,6 +34,7 @@ export async function createMCPClient(toolset: Partial<IXpertToolset>, schema: T
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
 				id: toolset.id,
 				title: t('server-ai:Tools.MCP.Starting'),
+				message: toolset.name,
 				status: 'running',
 				created_date: new Date().toISOString(),
 			} as TChatEventMessage)

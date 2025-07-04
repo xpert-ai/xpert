@@ -396,7 +396,7 @@
 
 
 <ng-template #recentMenu>
-  <div cdkMenu class="cdk-menu__medium">
+  <div cdkMenu class="cdk-menu__medium !rounded-2xl">
     @for (file of project_attachments(); track file.id) {
       <div cdkMenuItem class="flex items-center gap-2" (click)="addAttachment(file)">
         <pac-file-icon [fileType]="file.originalName | fileType" />
@@ -408,6 +408,10 @@
            (click)="onAttachDeleted(file.id)">
           <i class="ri-close-line"></i>
         </button>
+      </div>
+    } @empty {
+      <div class="text-center text-sm text-text-secondary px-2 py-1">
+        {{ 'PAC.XProject.NoRecentFiles' | translate: {Default: 'No recent files'} }}
       </div>
     }
   </div>

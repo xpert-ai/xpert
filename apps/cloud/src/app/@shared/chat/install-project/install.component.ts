@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { Router, RouterModule } from '@angular/router'
+import { RouterModule } from '@angular/router'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { parseYAML } from '@metad/core'
@@ -21,6 +21,7 @@ import {
   IXpert,
   IXpertProject,
   IXpertToolset,
+  OrderTypeEnum,
   TXpertProjectDSL,
   TXpertTeamDraft,
   XpertProjectService,
@@ -53,9 +54,7 @@ import { ProjectInstallXpertComponent } from './xpert/xpert.component'
   selector: 'xpert-project-install',
   templateUrl: 'install.component.html',
   styleUrl: 'install.component.scss',
-  animations: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: []
 })
 export class XpertProjectInstallComponent {
   eModelType = AiModelTypeEnum
@@ -66,7 +65,6 @@ export class XpertProjectInstallComponent {
   readonly workspaceService = inject(XpertWorkspaceService)
   readonly templateService = inject(XpertTemplateService)
   readonly xpertService = inject(XpertService)
-  readonly #router = inject(Router)
   readonly #toastr = injectToastr()
   readonly myXperts = injectXperts()
   readonly #copilots = injectCopilots()
@@ -75,7 +73,7 @@ export class XpertProjectInstallComponent {
   readonly #workspaceRs = myRxResource({
     request: () => this.#refreshWS(),
     loader: ({ request }) => {
-      return this.workspaceService.getAllMy().pipe(map(({ items }) => items))
+      return this.workspaceService.getAllMy({order: {updatedAt: OrderTypeEnum.DESC}}).pipe(map(({ items }) => items))
     }
   })
   readonly workspaceOptions = computed(() => {

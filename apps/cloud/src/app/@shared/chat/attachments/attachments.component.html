@@ -1,6 +1,7 @@
 <div class="max-w-full flex flex-wrap gap-1" style="opacity: 1; transform: none;">
   @for (item of attachments(); track item.storageFile?.id; let i = $index) {
-    <chat-attachment class="flex flex-row items-center text-sm transition ease-in-out gap-2 relative group/chip cursor-pointer text-primary bg-chip border border-border-l1 hover:bg-button-secondary-hover rounded-xl justify-between p-0.5"
+    <chat-attachment class="flex flex-row items-center text-sm transition ease-in-out gap-2 relative group/chip cursor-pointer text-primary bg-chip border border-border-l1 hover:bg-button-secondary-hover rounded-xl justify-between p-0.5
+      min-h-[3rem]"
       immediately
       [editable]="editable()"
       [file]="item.file"
