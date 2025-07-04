@@ -188,6 +188,14 @@ export function createMapStreamEvents(
 
 				const tool_call_id = data.id || rest.metadata.tool_call_id
 				if (tool_call_id) {
+					let input = data.input
+					if (data.input && typeof data.input.input === 'string') {
+						try {
+							input = JSON.parse(data.input.input)
+						} catch (error) {
+							//
+						}
+					}
 					subscriber.next({
 						data: {
 							type: ChatMessageTypeEnum.MESSAGE,
@@ -205,6 +213,7 @@ export function createMapStreamEvents(
 									title: rest.metadata.toolName || rest.metadata[rest.name] || rest.name,
 									created_date: new Date(),
 									status: 'running',
+									input
 								} as TMessageComponent<TMessageComponentStep>
 							} as TMessageContentComponent
 						}
