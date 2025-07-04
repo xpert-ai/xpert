@@ -28,7 +28,7 @@
           <a [routerLink]="['/chat/p', project.id]">
             <div class="border text-card-foreground flex flex-row items-center @sm:flex-col @sm:items-stretch gap-2 px-5 py-4 pe-12 @sm:pe-5 max-w-4/5 rounded-3xl hover:bg-surface-l1 shadow-none h-full overflow-hidden
               bg-none bg-transparent hover:bg-components-card-bg">
-              <emoji-avatar class="rounded-xl overflow-hidden" [avatar]="project.avatar" />
+              <emoji-avatar class="shrink-0 rounded-xl overflow-hidden" [avatar]="project.avatar" />
               <div class="text-sm font-medium truncate">{{project.name}}</div>
             </div>
           </a>
