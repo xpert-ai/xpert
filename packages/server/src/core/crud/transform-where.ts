@@ -34,7 +34,7 @@ type OperatorValue =
   | `$notIn`  | Value is not in the list             | `Not(In([...]))`             |
   | `$like`   | Fuzzy matching                       | `Like('%xxx%')`              |
   | `$ilike`  | Case-insensitive matching (Postgres) | `ILike('%xxx%')`             |
-  | `$eq`     | ​​Equal to                           | `value`                      |
+  | `$eq`     | Equal to                             | `value`                      |
   | `$ne`     | Not equal to                         | `Not(value)`                 |
   | `$gt`     | Greater than                         | `MoreThan(value)`            |
   | `$gte`    | Greater than or equal to             | `MoreThanOrEqual(value)`     |
@@ -49,13 +49,13 @@ export function transformWhere<T = any>(where: Record<string, OperatorValue>): F
   for (const key in where) {
     const value = where[key]
 
-    // 简单值，直接赋值
+    // Simple value, direct assignment
     if (typeof value !== 'object' || value === null) {
       result[key] = value
       continue
     }
 
-    // 特殊语法处理
+    // Special syntax processing
     if ('$isNull' in value) {
       result[key] = value.$isNull ? IsNull() : Not(IsNull())
     } else if ('$in' in value) {
@@ -79,7 +79,7 @@ export function transformWhere<T = any>(where: Record<string, OperatorValue>): F
     } else if ('$lte' in value) {
       result[key] = LessThanOrEqual(value.$lte)
     } else {
-      // fallback: 直接作为子条件嵌套
+      // fallback: directly as a sub-condition
       result[key] = value
     }
   }
@@ -98,7 +98,7 @@ export function applyWhereToQueryBuilder<T>(
   if (!where) return qb
 
   Object.entries(where).forEach(([key, value], index) => {
-    const paramKey = `${key}_${index}` // 防止重复命名
+    const paramKey = `${key}_${index}` // Preventing duplicate naming
     const fieldPath = `${alias}.${key}`
 
     if (typeof value !== 'object' || value === null) {
