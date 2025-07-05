@@ -1,9 +1,10 @@
-import { convertToUrlPath, IUser, IXpertAgentExecution, LongTermMemoryTypeEnum, TCopilotStore, TMemoryQA, TMemoryUserProfile, TXpertTeamDraft } from '@metad/contracts'
+import { convertToUrlPath, IUser, IXpertAgentExecution, LongTermMemoryTypeEnum, TMemoryQA, TMemoryUserProfile, TXpertTeamDraft } from '@metad/contracts'
 import {
 	OptionParams,
 	PaginationParams,
 	RequestContext,
 	TenantOrganizationAwareCrudService,
+	transformWhere,
 	UserPublicDTO,
 	UserService
 } from '@metad/server-core'
@@ -67,7 +68,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 	async getAllByWorkspace(workspaceId: string, data: PaginationParams<Xpert>, published: boolean, user: IUser) {
 		const { relations, order, take } = data ?? {}
 		let { where } = data ?? {}
-		where = where ?? {}
+		where = transformWhere(where ?? {})
 		if (workspaceId === 'null' || workspaceId === 'undefined' || !workspaceId) {
 			where = {
 				...(<FindConditions<Xpert>>where),

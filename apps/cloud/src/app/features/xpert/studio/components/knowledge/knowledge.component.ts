@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input
 import { toSignal } from '@angular/core/rxjs-interop'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { TXpertTeamNode } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
@@ -14,10 +15,10 @@ import { XpertExecutionService } from '../../services/execution.service'
   styleUrls: ['./knowledge.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, EmojiAvatarComponent],
+  imports: [FFlowModule, MatTooltipModule, TranslateModule, EmojiAvatarComponent, NgmSpinComponent],
   host: {
     tabindex: '-1',
-    '[class]': 'className()',
+    '[class]': 'className()'
   }
 })
 export class XpertStudioNodeKnowledgeComponent {
@@ -25,30 +26,30 @@ export class XpertStudioNodeKnowledgeComponent {
   readonly studioService = inject(XpertStudioApiService)
   readonly executionService = inject(XpertExecutionService)
 
-  readonly node = input<TXpertTeamNode & {type: 'knowledge'}>()
+  readonly node = input<TXpertTeamNode & { type: 'knowledge' }>()
   readonly id = computed(() => this.node()?.key)
   readonly knowledge = computed(() => this.node().entity)
 
-  readonly execution = computed(() => {
-    const executions = this.executionService.knowledgeExecutions()?.[this.id()]
-    return executions ? executions[executions.length - 1] : null
-  })
-  readonly executionStatus = computed(() => this.execution()?.status)
-
-  readonly knowledgebases = toSignal(this.studioService.knowledgebases$, {initialValue: null})
+  readonly knowledgebases = toSignal(this.studioService.knowledgebases$, { initialValue: null })
   readonly knowledgebaseDetail = computed(() => this.knowledgebases()?.find((_) => _.id === this.id()))
-  readonly status = computed(() => (this.id() && this.knowledgebases() && !this.knowledgebaseDetail() ? 'template' : null))
+  readonly status = computed(() =>
+    this.id() && this.knowledgebases() && !this.knowledgebaseDetail() ? 'template' : null
+  )
+
+  readonly executions = computed(() => this.executionService.knowledgeMessages()?.filter((_) => _.data?.tool === this.id()))
+  readonly executionStatus = computed(() => {
+    const executions = this.executions()
+    if (!executions || executions.length === 0) {
+      return null
+    }
+    if (executions.some((_) => _.data.status === 'running')) {
+      return 'running'
+    } else if (executions.some((_) => _.data.status === 'fail')) {
+      return 'error'
+    } else {
+      return 'success'
+    }
+  })
 
   readonly className = computed(() => `${this.executionStatus() ?? ''} ${this.status() ?? ''}`)
-
-  // private get hostElement(): HTMLElement {
-  //   return this.elementRef.nativeElement
-  // }
-
-  // protected emitSelectionChangeEvent(event: MouseEvent): void {
-  //   this.hostElement.focus()
-  //   event.preventDefault()
-  //   event.stopPropagation()
-  //   // Open Context menu
-  // }
 }

@@ -15,17 +15,15 @@ export type TSummaryJob = Record<LongTermMemoryTypeEnum, {
 
 /**
  * Message step type: determines the type of canvas
- * @deprecated use TMessageComponent['category'] instead
  */
-export enum ChatMessageStepType {
-  ComputerUse = 'computer_use',
-  File = 'file',
-  Notice = 'notice'
-}
+// export enum ChatMessageStepType {
+//   ComputerUse = 'computer_use',
+//   File = 'file',
+//   Notice = 'notice'
+// }
 
 /**
  * Category of step message: determines the display components of computer use
- * @deprecated use TMessageComponent['type'] instead
  */
 export enum ChatMessageStepCategory {
   /**
@@ -52,24 +50,29 @@ export enum ChatMessageStepCategory {
   Memory = 'memory',
 
   Tasks = 'tasks',
+
+  /**
+   * Knowledges (knowledge base retriever results)
+   */
+  Knowledges = 'knowledges'
 }
 
 /**
  * Step message type, in canvas and ai message.
- * @deprecated use TMessageComponent instead
  */
-export type TChatMessageStep<T = any> = {
-  id?: string
-  type?: ChatMessageStepType
-  category?: ChatMessageStepCategory
-  toolset?: string
-  tool?: string
-  title?: string
-  message?: string
-  created_date?: Date | string
-  data?: T
-  artifact?: any
-}
+export type TChatMessageStep<T = any> = TMessageComponent<TMessageComponentStep<T>>
+// {
+//   id?: string
+//   type?: ChatMessageStepType
+//   category?: ChatMessageStepCategory
+//   toolset?: string
+//   tool?: string
+//   title?: string
+//   message?: string
+//   created_date?: Date | string
+//   data?: T
+//   artifact?: any
+// }
 
 /**
  * Chat message entity type
@@ -92,7 +95,7 @@ export interface IChatMessage extends IBasePerTenantAndOrganizationEntityModel, 
   /**
    * Step messages from tools or others
    */
-  steps?: TChatMessageStep[]
+  events?: TChatMessageStep[]
 
   // Many to one
   /**
@@ -166,10 +169,10 @@ export interface CopilotMessageGroup extends CopilotBaseMessage {
 /**
  * Similar to {@link MessageContentText} | {@link MessageContentImageUrl}, which together form {@link MessageContentComplex}
  */
-export type TMessageContentComponent = {
+export type TMessageContentComponent<T extends object = object> = {
   id: string
   type: 'component'
-  data: TMessageComponent
+  data: TMessageComponent<T>
   xpertName?: string
   agentKey?: string;
 }
@@ -178,6 +181,7 @@ export type TMessageContentComponent = {
  * Defines the data type of the sub-message of `component` type in the message `content` {@link MessageContentComplex}
  */
 export type TMessageComponent<T extends object = object> = T & {
+  id?: string
   category: 'Dashboard' | 'Computer' | 'Tool'
   type: string
   created_date?: Date | string
@@ -227,18 +231,30 @@ export type TMessageComponentIframe = {
   title: string
 }
 
-export type TMessageComponentStep = {
-  // Triky
+export type TMessageComponentStep<T = JSONValue> = {
   type: ChatMessageStepCategory
   toolset: string
   toolset_id: string
+  tool?: string
   title: string
   message: string
   status: 'success' | 'fail' | 'running'
   created_date: Date | string
   end_date: Date | string
   error?: string
-  data?: JSONValue
+  data?: T
+}
+
+/**
+ * Data type for chat event message
+ */
+export type TChatEventMessage = {
+  title?: string
+  message?: string
+  status?: 'success' | 'fail' | 'running'
+  created_date?: Date | string
+  end_date?: Date | string
+  error?: string
 }
 
 // Type guards

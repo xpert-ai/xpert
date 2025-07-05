@@ -1,6 +1,5 @@
-import { Clipboard } from '@angular/cdk/clipboard'
 import { CommonModule } from '@angular/common'
-import { Component, computed, DestroyRef, effect, inject, model, output, signal } from '@angular/core'
+import { Component, computed, effect, inject, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
@@ -8,6 +7,7 @@ import {
   ChatConversationService,
   ChatMessageFeedbackRatingEnum,
   ChatMessageFeedbackService,
+  IChatMessage,
   ToastrService,
   XpertAgentExecutionService,
   XpertAgentExecutionStatusEnum,
@@ -46,12 +46,12 @@ export class XpertStudioPreviewComponent {
   readonly messageFeedbackService = inject(ChatMessageFeedbackService)
   readonly studioComponent = inject(XpertStudioComponent)
   readonly #toastr = inject(ToastrService)
-  readonly #destroyRef = inject(DestroyRef)
-  readonly #clipboard = inject(Clipboard)
 
   // Models
   readonly conversationId = model<string>(null)
   readonly conversations = signal<string[]>([null])
+  readonly messages = model<IChatMessage[]>()
+  readonly currentMessage = model<IChatMessage>()
 
   // Outputs
   readonly execution = output<string>()
@@ -80,6 +80,16 @@ export class XpertStudioPreviewComponent {
       },
       { allowSignalWrites: true }
     )
+
+    effect(() => {
+      if (this.messages()) {
+        const messages = [...this.messages()]
+        if (this.currentMessage()) {
+          messages.push(this.currentMessage())
+        }
+        this.executionService.setMessages(messages)
+      }
+    }, { allowSignalWrites: true })
   }
 
   onChatEvent(event) {

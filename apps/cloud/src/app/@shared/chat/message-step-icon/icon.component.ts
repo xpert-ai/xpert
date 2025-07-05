@@ -4,8 +4,8 @@ import { Component, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ChatMessageStepCategory } from 'apps/cloud/src/app/@core'
-import { EmojiAvatarComponent } from '../../avatar/emoji-avatar/avatar.component'
+import { ChatMessageStepCategory } from '@cloud/app/@core'
+import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { of } from 'rxjs'
 
 @Component({

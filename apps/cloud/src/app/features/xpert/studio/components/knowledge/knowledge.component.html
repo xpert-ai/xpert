@@ -15,3 +15,28 @@
 
 <div class="max-w-full max-h-14 px-4 text-text-tertiary text-sm text-left line-clamp-2"
   [title]="knowledge().description">{{knowledge().description}}</div>
+
+@if (executions()?.length) {
+  <div class="flex justify-start items-center px-3 pt-2 pb-3 h-10">
+    @for (execution of executions(); track execution) {
+      @switch (execution.data.status) {
+        @case ('running') {
+          <ngm-spin class="shrink-0 scale-90 origin-center" small />
+        }
+        @case ('fail') {
+          <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
+            [matTooltip]="execution.data.error"
+            matTooltipPosition="above"
+          ></div>
+        }
+        @case ('success') {
+          <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
+            [matTooltip]="execution.data.message"
+            matTooltipPosition="above"
+          >
+          </div>
+        }
+      }
+    }
+  </div>
+}

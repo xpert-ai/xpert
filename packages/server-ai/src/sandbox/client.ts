@@ -2,7 +2,6 @@ import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import {
 	ChatMessageEventTypeEnum,
 	ChatMessageStepCategory,
-	ChatMessageStepType,
 	TChatMessageStep,
 	TProgramToolMessage,
 	TToolCall
@@ -186,87 +185,7 @@ export class ProjectClient {
 			}
 
 		return new Promise((resolve, reject) => {
-				const stepId = shortuuid()
-				const createdDate = new Date()
-				let result = ''
-				const es = new EventSource(this.sandboxUrl + '/project/build/', {
-					fetch: (input, init) =>
-						fetch(input, {
-							...init,
-							method: 'POST',
-							headers: {
-								...init.headers,
-								'Content-Type': 'application/json'
-							},
-							body: JSON.stringify(body),
-							signal: options.signal
-						})
-				})
-
-				es.addEventListener('message', (event) => {
-					if (errorCondition(event.data)) {
-						dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-							id: stepId,
-							type: ChatMessageStepType.ComputerUse,
-							category: ChatMessageStepCategory.Program,
-							end_date: new Date(),
-							status: 'fail',
-							error: result,
-						} as TChatMessageStep<TProgramToolMessage>).catch((err) => {
-							console.error(err)
-						})
-					} else if (completionCondition(event.data)) {
-						dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-							id: stepId,
-							type: ChatMessageStepType.ComputerUse,
-							category: ChatMessageStepCategory.Program,
-							end_date: new Date(),
-							status: 'success'
-						} as TChatMessageStep<TProgramToolMessage>).catch((err) => {
-							console.error(err)
-						})
-						resolve(result) // Resolve with the complete message
-						es.close() // Close the connection
-						return
-					} else if (event.data != null) {
-						try {
-							if (result) {
-								result += '\n'
-							}
-							result += event.data ?? ''
-
-							// Update tool message
-							dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-								id: stepId,
-								type: ChatMessageStepType.ComputerUse,
-								category: ChatMessageStepCategory.Program,
-								toolset: 'code-project',
-								tool: 'build-deploy',
-								title: t('server-ai:Tools.CodeProject.Building'),
-								message: `npm run build`,
-								data: {
-									code: `npm install && npm run build`,
-									output: result
-								},
-								created_date: createdDate,
-								status: 'running'
-							} as TChatMessageStep<TProgramToolMessage>).catch((err) => {
-								console.error(err)
-							})
-						} catch (err) {
-							throw new ToolInvokeError(`Convert build call result error`)
-						}
-					}
-				})
-
-				es.addEventListener('error', (err) => {
-					console.error(err)
-					if (err.code === 401 || err.code === 403) {
-						console.log('not authorized')
-					}
-					es.close()
-					reject(err)
-				})
+			//
 			})
 	}
 
@@ -389,23 +308,7 @@ export class BashClient extends BaseToolClient {
 	}
 
 	async dispatchStepEvent(command: string, output: string, stepId: string) {
-		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
-			{
-				id: stepId,
-				type: ChatMessageStepType.ComputerUse,
-				category: ChatMessageStepCategory.Program,
-				toolset: 'Bash',
-				tool: 'execute',
-				title: t('server-ai:Tools.Bash.ExecuteBashCommand'),
-				message: command,
-				data: {
-					code: command,
-					output: output
-				}
-			} as TChatMessageStep<TProgramToolMessage>
-		).catch((err) => {
-					console.error(err)
-				})
+		//
 	}
 }
 

@@ -10,7 +10,22 @@
         "ReadFile": "读取文件",
         "DeletedFile": "删除文件"
     },
+    "Sandbox": {
+        "Starting": "沙盒正在启动...",
+        "Ready": "沙盒已就绪"
+    },
+    "Xpert": {
+        "SummaryTitleStarting": "正在总结标题...",
+        "SummaryTitleEnd": "标题已总结"
+    },
     "Tools": {
+        "MCP": {
+            "Starting": "MCP 服务器正在启动...",
+            "Ready": "MCP 服务器已就绪"
+        },
+        "Memory": {
+            "RecallMemories": "回忆"
+        },
         "CodeProject": {
             "InitProject": "初始化项目",
             "ProjectInitFirst": "请先初始化项目",

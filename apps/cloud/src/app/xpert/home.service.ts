@@ -24,7 +24,6 @@ export class XpertHomeService {
 
   readonly lang = this.appService.lang
 
-  // readonly conversations = signal<IChatConversation[]>([])
   readonly currentPage = signal(0)
   readonly pagesCompleted = signal(false)
   /**

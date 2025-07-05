@@ -312,6 +312,11 @@
       "SearchTerm": "搜索词"
     },
     "XProject": {
+      "NoRecentFiles": "没有最近的文件",
+      "NoToolset": "尚无工具集",
+      "NoExperts": "尚无专家",
+      "AfterCreatingProject": "创建项目后",
+      "DragandDropFiles": "拖放文件到此处以上传",
       "Files": "文件",
       "UploadAFile": "上传一个文件",
       "Recent": "最近",
@@ -711,7 +716,7 @@
       "Search": "搜索",
       "Copy": "复制",
       "NewTag": "新建标签",
-      "Duplicate": "复印",
+      "Duplicate": "复制",
       "OpenAttributesPanel": "打开属性面板",
       "Close": "关闭",
       "Update": "更新",
@@ -1540,7 +1545,7 @@
     "Story": {
       "StoryToolbar": "故事工具栏",
       "EditStory": "编辑故事",
-      "DuplicateStory": "复印故事",
+      "DuplicateStory": "复制故事",
       "DownloadStory": "下载故事",
       "AutoRefresh": "自动刷新",
       "RemoveBookmark": "取消收藏",
@@ -1834,6 +1839,10 @@
       }
     },
     "Chat": {
+      "Empty": "清空",
+      "Histories": "历史记录",
+      "ShowMore": "显示更多",
+      "Rename": "重命名",
       "Common": "通用",
       "Project": "项目",
       "Projects": "项目",
@@ -2298,6 +2307,7 @@
       "AddIntegrationHelp": "了解更多关于自定义集成的信息"
     },
     "Xpert": {
+      "OrCreateBuiltinToolset": "或创建内置工具集",
       "Profile": "个人档案",
       "EnterProfile": "请输入个人档案",
       "NewMCPToolset": "新建 MCP 工具集",
@@ -3146,7 +3156,7 @@
         "LINKED_ANALYSIS": "关联分析",
         "COPY": "复制",
         "COPY_TO": "复制到",
-        "DUPLICATE": "复印",
+        "DUPLICATE": "复制",
         "ADD": "添加",
         "FULLSCREEN": "全屏",
         "EXIT_FULLSCREEN": "退出全屏",

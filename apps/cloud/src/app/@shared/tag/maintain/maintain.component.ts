@@ -8,7 +8,7 @@ import { MatInputModule } from '@angular/material/input'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { getErrorMessage, ITag, TagService, ToastrService } from '../../../@core'
+import { getErrorMessage, ITag, TagCategoryEnum, TagService, ToastrService } from '../../../@core'
 import { TagCreatorComponent } from '../creator/creator.component'
 import { TagComponent } from '../tag/tag.component'
 
@@ -35,7 +35,7 @@ export class TagMaintainComponent {
 
   readonly allCategories = toSignal(this.tagService.getAllCategories())
 
-  readonly categories = model<string[]>([])
+  readonly categories = model<TagCategoryEnum[]>([])
   readonly category = computed(() => this.categories()[0])
 
   readonly #tags = derivedAsync(() => {
@@ -44,7 +44,7 @@ export class TagMaintainComponent {
 
   readonly tags = computed(() => structuredClone(this.#tags()))
 
-  setCategories(event: ListboxValueChangeEvent<string>) {
+  setCategories(event: ListboxValueChangeEvent<TagCategoryEnum>) {
     this.categories.set([...event.value])
   }
 

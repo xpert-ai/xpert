@@ -1,13 +1,13 @@
 
 
 import { BaseStore, LangGraphRunnableConfig } from "@langchain/langgraph";
-import { v4 as uuidv4 } from "uuid";
 import { tool } from "@langchain/core/tools";
-import { z } from "zod";
-import { ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageStepType, LongTermMemoryTypeEnum, TChatMessageStep } from "@metad/contracts";
+import { ChatMessageEventTypeEnum, ChatMessageStepCategory, getToolCallFromConfig, LongTermMemoryTypeEnum, TChatMessageStep } from "@metad/contracts";
 import { Logger } from "@nestjs/common";
-import { formatMemories } from "./utils";
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
+import { t } from 'i18next'
+import { z } from "zod";
+import { formatMemories } from "./utils";
 
 export function ensureConfiguration(config?: LangGraphRunnableConfig) {
   const configurable = config?.configurable || {};
@@ -42,20 +42,24 @@ export function initializeMemoryTools(store: BaseStore, xpertId: string) {
    * @param memoryId Optional ID to overwrite an existing memory.
    * @returns A string confirming the memory storage.
    */
-  async function searchRecallMemories(opts: {query: string;}) {
+  async function searchRecallMemories(opts: {query: string;}, config) {
     const { query } = opts;
     const items = await store.search([xpertId, LongTermMemoryTypeEnum.QA], {query: query})
 
+    const toolCall = getToolCallFromConfig(config)
     if (items.length > 0) {
       // Step tool message
       dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-        type: ChatMessageStepType.Notice,
-        category: ChatMessageStepCategory.Memory,
+        id: toolCall?.id,
+        category: 'Tool',
+        type: ChatMessageStepCategory.Memory,
         toolset: `memories`,
         tool: `search_recall_memories`,
-        message: `Recall memories`,
-        title: `Recall memories`,
-        data: items
+        title: t('server-ai:Tools.Memory.RecallMemories'),
+        data: items,
+        status: 'success',
+        created_date: new Date().toISOString(),
+        end_date: new Date().toISOString(),
       } as TChatMessageStep).catch((err) => {
         logger.error(err)
       })

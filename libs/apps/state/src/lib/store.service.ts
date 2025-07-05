@@ -23,7 +23,7 @@ import { distinctUntilChanged, map } from 'rxjs/operators';
 import { combineLatest } from 'rxjs';
 import { uniqBy } from 'lodash-es';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ThemesEnum, prefersColorScheme } from '@metad/ocap-angular/core';
+import { ThemesEnum, linkedModel, prefersColorScheme } from '@metad/ocap-angular/core';
 
 
 export interface AppState {
@@ -61,7 +61,6 @@ export interface PersistState {
 	 * The cache level for the ocap framework
 	 */
 	cacheLevel: number
-	fixedLayoutSider?: boolean
 	/**
 	 * Pin the story toolbar on the left side of designer
 	 */
@@ -71,13 +70,17 @@ export interface PersistState {
 	 */
 	copilotRole?: string
 	/**
-	 * preferences for xperts
+	 * @deprecated use xpert in preferences
 	 */
 	xpert: {
 		/**
 		 * Order of xperts in chat page
 		 */
 		sortOrder: string[]
+	}
+	preferences?: {
+		chatSidebar: 'closed' | 'expanded'
+		fixedLayoutSider?: boolean
 	}
 }
 
@@ -100,8 +103,8 @@ export function createInitialPersistState(): PersistState {
 	const preferredLanguage = localStorage.getItem('preferredLanguage') || null;
 	const componentLayout = localStorage.getItem('componentLayout') || [];
 	const cacheLevel = localStorage.getItem('cacheLevel') || null;
-	const fixedLayoutSider = true
 	const xpert = localStorage.getItem('xpert') || null;
+	const preferences = localStorage.getItem('preferences') || {fixedLayoutSider: true};
 
 	return {
 		token,
@@ -111,8 +114,8 @@ export function createInitialPersistState(): PersistState {
 		preferredLanguage,
 		componentLayout,
 		cacheLevel,
-		fixedLayoutSider,
 		xpert,
+		preferences
 	} as unknown as PersistState;
 }
 
@@ -190,10 +193,13 @@ export class Store {
 	token$ = this.persistQuery.select((state) => state.token);
 
 	// Signals
-	readonly fixedLayoutSider = toSignal(this.persistQuery.select((state) => state.fixedLayoutSider))
 	readonly pinStoryToolbar = toSignal(this.persistQuery.select((state) => state.pinStoryToolbar))
 	readonly copilotRole = toSignal(this.persistQuery.select((state) => state.copilotRole))
+	/**
+	 * @deprecated use xpert in preferences
+	 */
 	readonly xpert = toSignal(this.persistQuery.select((state) => state.xpert))
+	readonly preferences = toSignal(this.persistQuery.select((state) => state.preferences))
 
 	set selectedOrganization(organization: IOrganization) {
 		this.appStore.update({
@@ -470,12 +476,6 @@ export class Store {
 		});
 	}
 
-	setFixedLayoutSider(value) {
-		this.persistStore.update({
-			fixedLayoutSider: value
-		})
-	}
-
 	setPinStoryToolbar(value: boolean) {
 		this.persistStore.update({
 			pinStoryToolbar: value
@@ -543,6 +543,16 @@ export class Store {
 		})
 	}
 
+	updatePreferences(preferences: Partial<PersistState['preferences']>) {
+		this.persistStore.update((state) => {
+			state.preferences = {
+				...(state.preferences ?? {}),
+				...preferences
+			} as PersistState['preferences']
+			return {...state}
+		})
+	}
+
 	setWorkspace(workspace: IXpertWorkspace) {
 		this.persistStore.update((state) => {
 			return {
@@ -572,6 +582,17 @@ export function injectOrganization() {
 export function injectXpertPreferences() {
 	const store = inject(Store)
 	return store.xpert
+}
+
+export function injectUserPreferences() {
+	const store = inject(Store)
+	return linkedModel({
+		initialValue: null,
+		compute: () => store.preferences(),
+		update: (preferences) => {
+			store.updatePreferences(preferences)
+		}
+	})
 }
 
 export function injectWorkspace() {

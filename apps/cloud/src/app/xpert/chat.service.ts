@@ -130,13 +130,7 @@ export abstract class ChatService {
   /**
    * The conversation
    */
-  readonly conversation = linkedModel({
-    initialValue: null,
-    compute: () => {
-      return this.#conversation()?.conversation
-    },
-    update: () => {}
-  })
+  readonly conversation = signal<IChatConversation>(null)
   readonly loadingConv = linkedModel({
     initialValue: null,
     compute: () => {
@@ -147,7 +141,7 @@ export abstract class ChatService {
 
   readonly #messages = linkedModel<TCopilotChatMessage[]>({
     initialValue: null,
-    compute: () => this.conversation()?.messages ?? [],
+    compute: () => this.conversation()?.messages,
     update: (value) => {
       this.conversation.update((state) => ({ ...(state ?? {}), messages: value }) as IChatConversation)
     }
@@ -195,6 +189,23 @@ export abstract class ChatService {
       },
       { allowSignalWrites: true }
     )
+
+    effect(
+      () => {
+        // Update local data when remote conversation loaded
+        const conversation = this.#conversation()?.conversation
+        if (conversation) {
+          if (!this.conversation() || this.conversation()?.id && this.conversation().id !== conversation.id) {
+            this.conversation.set(conversation)
+          }
+        }
+      },
+      { allowSignalWrites: true }
+    )
+
+    // effect(() => {
+    //   console.log('ChatService: conversation changed', this.conversation(), this.#messages())
+    // })
   }
 
   getConversation(id: string) {
@@ -354,33 +365,29 @@ export abstract class ChatService {
                   })
                   break
                 }
-                case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
+                case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
                   this.updateLatestMessage((message) => {
-                    message.steps ??= []
+                    message.events ??= []
                     const step = event.data as TChatMessageStep
-                    if (step.id) {
-                      const index = message.steps.findIndex((_) => _.id === step.id)
+                    if (step?.id) {
+                      const index = message.events.findIndex((_) => _.id === step.id)
                       if (index > -1) {
-                        message.steps[index] = {
-                          ...message.steps[index],
+                        message.events[index] = {
+                          ...message.events[index],
                           ...step
                         }
                         return {
                           ...message,
-                          steps: [...message.steps]
+                          events: [...message.events]
                         }
                       }
                     }
                     
                     return {
                       ...message,
-                      steps: [...(message.steps ?? []), event.data]
+                      events: [...(message.events ?? []), event.data]
                     }
                   })
-
-                  // if (event.data && !this.homeService.canvasOpened()) {
-                  //   this.homeService.canvasOpened.set({ type: 'Computer', opened: true })
-                  // }
                   break
                 }
                 default:
@@ -446,15 +453,6 @@ export abstract class ChatService {
       }
     })
   }
-
-  // async newConversation1(xpert?: IXpert) {
-  //   if (this.answering() && this.conversation()?.id) {
-  //     this.cancelMessage()
-  //   }
-  //   this.conversation.set(null)
-  //   this.conversationId.set(null)
-  //   this.#messages.set([])
-  // }
 
   setConversation(id: string) {
     if (id !== this.conversationId()) {

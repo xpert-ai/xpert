@@ -58,8 +58,11 @@ export class ChatFileListComponent {
     transform: booleanAttribute
   })
 
+  // Outputs
+  readonly fileList = model<TFileDirectory[]>()
+
   // States
-  readonly #attachments = myRxResource<{ projectId?: string; conversationId: string }, TFileDirectoryItem[]>({
+  readonly #files = myRxResource<{ projectId?: string; conversationId: string }, TFileDirectoryItem[]>({
     request: () => this.refresh() && {
       projectId: this.projectId(),
       conversationId: this.conversationId()
@@ -67,26 +70,28 @@ export class ChatFileListComponent {
     loader: ({ request }) => this.getFiles({ ...request })
   })
 
-  readonly attachments = linkedModel({
+  readonly files = linkedModel({
     initialValue: null,
-    compute: () => this.#attachments.value(),
+    compute: () => this.#files.value(),
     update: () => {}
   })
 
-  readonly flatAttachments = computed(() => {
-    return this.attachments() && flatten(this.attachments())
+  readonly flatFiles = computed(() => {
+    return this.files() && flatten(this.files())
   })
 
   readonly loading = linkedModel({
     initialValue: false,
-    compute: () => this.#attachments.status() === 'loading',
+    compute: () => this.#files.status() === 'loading',
     update: () => {}
   })
 
   constructor() {
     effect(() => {
-      // console.log(this.attachments(), this.flatAttachments())
-    })
+      if (this.files()) {
+        this.fileList.set(this.files())
+      }
+    }, { allowSignalWrites: true })
   }
 
   preview(file: TFile) {
@@ -106,7 +111,7 @@ export class ChatFileListComponent {
   toggleFolder(item: TFileDirectoryItem) {
     if (item.hasChildren) {
       item.expanded = !item.expanded
-      this.attachments.update((state) => {
+      this.files.update((state) => {
         const attachments = cloneDeep(state)
         const found = findAttachmentByFullPath(attachments, item.fullPath)
         if (found) {
@@ -121,8 +126,7 @@ export class ChatFileListComponent {
           path: item.fullPath
         }).subscribe({
           next: (files) => {
-            console.log(files)
-            this.attachments.update((state) => {
+            this.files.update((state) => {
               const attachments = cloneDeep(state)
               const found = findAttachmentByFullPath(attachments, item.fullPath)
               if (found) {
@@ -160,6 +164,10 @@ export class ChatFileListComponent {
           this.#toastr.error('PAC.Chat.FileDeleteError', '', {Default: 'Failed to delete file'})
         },
       })
+  }
+
+  emptyFiles() {
+    this.deleteFile({fullPath: '/', filePath: '/', directory: '/',})
   }
 }
 

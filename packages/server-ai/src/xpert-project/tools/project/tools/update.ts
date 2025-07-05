@@ -1,6 +1,6 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { tool } from '@langchain/core/tools'
-import { ChatMessageEventTypeEnum, ChatMessageStepType, TAgentRunnableConfigurable } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, TAgentRunnableConfigurable } from '@metad/contracts'
 import { z } from 'zod'
 import { XpertProjectTaskService } from '../../../services'
 import { ProjectToolEnum } from '../project'
@@ -21,7 +21,7 @@ export const createUpdateTasksTool = ({
 
 			// Tool message event
 			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-				type: ChatMessageStepType.ComputerUse,
+				category: 'Computer',
 				toolset: 'project',
 				tool: 'project_update_tasks',
 				message: _.tasks.map((_) => _.name).join('\n\n'),

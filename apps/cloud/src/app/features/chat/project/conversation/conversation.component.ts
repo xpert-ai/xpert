@@ -69,10 +69,13 @@ export class ChatProjectConversationComponent {
     if (navigation?.extras.state) {
       const { input } = navigation.extras.state
       
-      this.chatSercice.project.set(this.project() as IXpertProject)
-      // Process the data as needed
-      this.chatSercice.ask(input, {files: this.projectService.files()?.map((file) => ({id: file.id}))})
-      this.projectService.attachments.set([])
+      // Wait until all Signals are initialized before assigning values (linkedModel)
+      setTimeout(() => {
+        this.chatSercice.project.set(this.project() as IXpertProject)
+        // Process the data as needed
+        this.chatSercice.ask(input, {files: this.projectService.files()?.map((file) => ({id: file.id, originalName: file.originalName}))})
+        this.projectService.attachments.set([])
+      })
     }
 
     effect(

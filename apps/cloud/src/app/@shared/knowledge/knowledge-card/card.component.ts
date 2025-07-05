@@ -1,12 +1,12 @@
 import { CommonModule } from '@angular/common'
 import { Component, input } from '@angular/core'
-import { IKnowledgebase } from '@metad/contracts'
-import { TranslateModule } from '@ngx-translate/core'
-import { EmojiAvatarComponent } from '../../avatar'
-import { NgmHighlightDirective } from '@metad/ocap-angular/common'
-import { FormControl } from '@angular/forms'
 import { toSignal } from '@angular/core/rxjs-interop'
+import { FormControl } from '@angular/forms'
+import { IKnowledgebase, KnowledgebaseTypeEnum } from '@cloud/app/@core/types'
+import { NgmHighlightDirective } from '@metad/ocap-angular/common'
+import { TranslateModule } from '@ngx-translate/core'
 import { startWith } from 'rxjs/operators'
+import { EmojiAvatarComponent } from '../../avatar'
 import { UserPipe } from '../../pipes'
 
 @Component({
@@ -17,8 +17,9 @@ import { UserPipe } from '../../pipes'
   styleUrl: `card.component.scss`
 })
 export class KnowledgebaseCardComponent {
-  readonly knowledgebase = input<IKnowledgebase>()
+  eKnowledgebaseTypeEnum = KnowledgebaseTypeEnum
 
+  readonly knowledgebase = input<IKnowledgebase>()
 
   readonly formControl = new FormControl()
   readonly searchText = toSignal(this.formControl.valueChanges.pipe(startWith(this.formControl.value)))

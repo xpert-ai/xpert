@@ -77,7 +77,12 @@
   <div class="border-b border-solid border-divider-regular my-6"></div>
 
   @if (xperts()?.length) {
-    <div class="text-lg font-semibold py-2">{{'PAC.XProject.ImportXperts' | translate: {Default: 'Import Experts'} }} </div>
+    <div class="flex items-center gap-1 py-2">
+      @if (!createdProject()) {
+        <div class="text-sm text-text-warning">({{'PAC.XProject.AfterCreatingProject' | translate: {Default: 'After creating project'} }})</div>
+      }
+      <div class="text-lg font-semibold">{{'PAC.XProject.ImportXperts' | translate: {Default: 'Import Experts'} }}</div>
+    </div>
     <div class="flex flex-col items-stretch gap-4">
       @for (xpert of xperts(); track xpert.slug; let last = $last) {
         <project-install-xpert [project]="createdProject()"
@@ -94,7 +99,13 @@
   }
 
   @if (toolsets()?.length) {
-    <div class="text-lg font-semibold py-2">{{'PAC.XProject.ImportToolsets' | translate: {Default: 'Import Toolsets'} }} </div>
+    <div class="flex items-center gap-1 py-2">
+      @if (!createdProject()) {
+        <div class="text-sm text-text-warning">({{'PAC.XProject.AfterCreatingProject' | translate: {Default: 'After creating project'} }})</div>
+      }
+      <div class="text-lg font-semibold">{{'PAC.XProject.ImportToolsets' | translate: {Default: 'Import Toolsets'} }}</div>
+    </div>
+    
     <div class="flex flex-col items-stretch gap-4">
       @for (toolset of toolsets(); track toolset.id; let last = $last) {
         <project-install-toolset [project]="createdProject()"
