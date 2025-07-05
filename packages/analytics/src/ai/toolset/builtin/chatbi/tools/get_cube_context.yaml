@@ -3,12 +3,12 @@ identity:
   author: Xpert AI
   label:
     en_US: Get the context of cube
-    zh_Hans: 获取 Cube 的上下文信息
+    zh_Hans: 获取数据模型上下文信息
 entity: ChatBI
 description:
   human:
     en_US: Get the context of cube
-    zh_Hans: 获取 Cube 的上下文信息
+    zh_Hans: 获取数据模型上下文信息
   llm: A tool to query context of cube.
 parameters:
   - name: modelId

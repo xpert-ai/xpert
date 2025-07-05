@@ -17,5 +17,6 @@ export const ChartMeasureSchema = z.object({
     .enum([ChartMeasureRoleType.Axis1, ChartMeasureRoleType.Axis2])
     .nullable()
     .optional()
-    .describe('Role of value axis')
+    .describe('Role of value axis'),
+  shapeType: z.enum(['line', 'bar', 'scatter', null]).nullable().optional().describe('Corresponding to the series type in ECharts. If not specified, visualType is used'),
 })

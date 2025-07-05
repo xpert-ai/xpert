@@ -430,7 +430,8 @@
                 >{{conv.title || conv.id}}</span
               >
               @if (conv.xpert) {
-                <span class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 ml-1 text-xs font-mono text-gray-600 bg-slate-50">
+                <span class="max-w-[50%] whitespace-nowrap truncate border-[0.5px] border-slate-200 border-solid rounded-md px-2 ml-1 text-xs font-mono text-gray-600 bg-slate-50"
+                  [title]="conv.xpert.title || conv.xpert.name">
                   {{conv.xpert.title || conv.xpert.name}}
                 </span>
               }

@@ -1,7 +1,9 @@
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { getContextVariable } from '@langchain/core/context'
 import { Tool, tool } from '@langchain/core/tools'
 import { Command, LangGraphRunnableConfig } from '@langchain/langgraph'
 import {
+	ChatMessageEventTypeEnum,
 	ChatMessageTypeEnum,
 	CONTEXT_VARIABLE_CURRENTSTATE,
 	IChatBIModel,
@@ -18,6 +20,7 @@ import {
 } from '@metad/contracts'
 import {
 	BarVariant,
+	ChartAnnotation,
 	ChartBusinessService,
 	ChartOrient,
 	ChartSettings,
@@ -296,6 +299,13 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		return tool(
 			async ({ modelId, name }, config: LangGraphRunnableConfig) => {
 				this.logger.debug(`Tool 'get_cube_context' params:`, modelId, name)
+				const toolCallId = config.metadata.tool_call_id
+				// Tool message event
+				await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+					id: toolCallId,
+					category: 'Tool',
+					message: name,
+				})
 				try {
 					// Fetch a context variable named "currentState".
 					// We have set this variable explicitly in each ToolNode invoke method that calls this tool.
@@ -344,7 +354,6 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 						}
 
 						// Populated when a tool is called with a tool call from a model as input
-						const toolCallId = config.metadata.tool_call_id
 						return new Command({
 							update: {
 								chatbi_cubes: cubes,
@@ -444,7 +453,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 
 	async drawChartMessage(answer: ChatAnswer, context: ChatBIContext, configurable: TAgentRunnableConfigurable, credentials: TChatBICredentials): Promise<any> {
 		const { dsCoreService, entityType, chatbi, language } = context
-		const { subscriber, agentKey, xpertName } = configurable ?? {}
+		const { subscriber, agentKey, xpertName, tool_call_id } = configurable ?? {}
 		const currentState = getContextVariable(CONTEXT_VARIABLE_CURRENTSTATE)
 
 		const lang = currentState?.[STATE_VARIABLE_SYS]?.language
@@ -452,7 +461,7 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		const chartService = new ChartBusinessService(dsCoreService)
 		const destroy$ = new Subject<void>()
 
-		const chartAnnotation = {
+		const chartAnnotation: ChartAnnotation = {
 			chartType: tryFixChartType(answer.visualType),
 			dimensions: tryFixDimensions(answer.dimensions?.map((dimension) => tryFixDimension(dimension, entityType))),
 			measures: answer.measures?.map((measure) => fixMeasure(measure, entityType))
@@ -514,64 +523,72 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 			}
 		}
 
-		return new Promise((resolve, reject) => {
-			const dataSettings = {
+		const dataSettings = {
 				...answer.dataSettings,
 				chartAnnotation,
 				presentationVariant
 			}
-
-			// In parallel: return to the front-end display and back-end data retrieval
-			if (answer.visualType === 'KPI') {
-				subscriber?.next({
+		// In parallel: return to the front-end display and back-end data retrieval
+		if (answer.visualType === 'KPI') {
+			subscriber?.next({
+				data: {
+					type: ChatMessageTypeEnum.MESSAGE,
 					data: {
-						type: ChatMessageTypeEnum.MESSAGE,
+						id: shortuuid(),
+						type: 'component',
 						data: {
-							id: shortuuid(),
-							type: 'component',
-							data: {
-								category: 'Dashboard',
-								type: 'KPI',
-								dataSettings: {
-									...omit(dataSettings, 'chartAnnotation'),
-									KPIAnnotation: {
-										DataPoint: {
-											Value: chartAnnotation.measures[0]
-										}
+							category: 'Dashboard',
+							type: 'KPI',
+							dataSettings: {
+								...omit(dataSettings, 'chartAnnotation'),
+								KPIAnnotation: {
+									DataPoint: {
+										Value: chartAnnotation.measures[0]
 									}
-								} as DataSettings,
-								slicers,
-								title: answer.preface,
-								// indicator
-							} as TMessageComponent,
-							xpertName,
-							agentKey
-						} as TMessageContentComponent
-					}
-				} as MessageEvent)
-			} else {
-				subscriber.next({
-					data: {
-						type: ChatMessageTypeEnum.MESSAGE,
-						data: {
-							id: shortuuid(),
-							type: 'component',
-							data: {
-								category: 'Dashboard',
-								type: 'AnalyticalCard',
-								dataSettings,
-								chartSettings,
-								slicers,
-								title: answer.preface,
-								indicators
-							} as TMessageComponent,
-							xpertName,
-							agentKey
-						} as TMessageContentComponent
-					}
-				} as MessageEvent)
-			}
-
+								}
+							} as DataSettings,
+							slicers,
+							title: answer.preface,
+							// indicator
+						} as TMessageComponent,
+						xpertName,
+						agentKey
+					} as TMessageContentComponent
+				}
+			} as MessageEvent)
+		} else {
+			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+				id: tool_call_id,
+				category: 'Dashboard',
+				type: 'AnalyticalCard',
+				dataSettings,
+				chartSettings,
+				slicers,
+				title: answer.preface,
+				indicators
+			} as TMessageComponent)
+			// subscriber.next({
+			// 	data: {
+			// 		type: ChatMessageTypeEnum.MESSAGE,
+			// 		data: {
+			// 			id: shortuuid(),
+			// 			type: 'component',
+			// 			data: {
+			// 				category: 'Dashboard',
+			// 				type: 'AnalyticalCard',
+			// 				dataSettings,
+			// 				chartSettings,
+			// 				slicers,
+			// 				title: answer.preface,
+			// 				indicators
+			// 			} as TMessageComponent,
+			// 			xpertName,
+			// 			agentKey
+			// 		} as TMessageContentComponent
+			// 	}
+			// } as MessageEvent)
+		}
+		return new Promise((resolve, reject) => {
 			chartService.selectResult().subscribe((result) => {
 				if (result.error) {
 					reject(result.error)
@@ -604,10 +621,17 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 		return tool(
 			async (indicator: Indicator & { cube: string; language: 'zh' | 'en'; query: string}, config: LangGraphRunnableConfig) => {
 				this.logger.debug(`[ChatBI] [create_indicator] new indicator: ${JSON.stringify(indicator)}`)
+				const toolCallId = config.metadata.tool_call_id
 
 				if (!indicator.formula) {
 					throw new Error(`The formula of indicator cannot be empty`)
 				}
+
+				await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+					id: toolCallId,
+					category: 'Tool',
+					message: indicator.name || indicator.code,
+				})
 
 				const formula = tryFixFormula(indicator.formula, indicator.code)
 				// Checking the validity of formula
@@ -627,8 +651,6 @@ export abstract class AbstractChatBIToolset extends BuiltinToolset {
 				// Created event
 				await this.onCreatedIndicator(_indicator, config?.configurable as TAgentRunnableConfigurable)
 
-				// Populated when a tool is called with a tool call from a model as input
-				const toolCallId = config.metadata.tool_call_id
 				return new Command({
 					update: {
 						[ChatBIVariableEnum.INDICATORS]: [_indicator],

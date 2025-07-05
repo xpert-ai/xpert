@@ -390,7 +390,7 @@ export function createMapStreamEvents(
 						break
 					}
 					case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
-						if (data.category === 'Computer' || data.category === 'Tool') {
+						if (data.category === 'Computer' || data.category === 'Tool' || data.category === 'Dashboard') {
 							/**
 							 * Tool messages from tool calling are displayed in component messages
 							 */

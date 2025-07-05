@@ -105,11 +105,11 @@ export interface ChartMeasure extends Measure, ChartProperty {
   role?: ChartMeasureRoleType
 
   /**
-   * 对应 ECharts 中的 series type
+   * Corresponding to the series type in ECharts
    */
   shapeType?: string
   /**
-   * Measure 的参考线
+   * Reference line of measure
    */
   referenceLines?: ReferenceLine[]
 }
@@ -143,7 +143,7 @@ export interface ChartAnnotation extends Annotation {
   chartType: ChartType // Chart type
   dimensions: Array<ChartDimension>
   measures: Array<ChartMeasure>
-  // 图形库详细的配置项
+  // Detailed configuration of chart
   options?: any
 }
 
