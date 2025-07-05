@@ -109,7 +109,7 @@
                         </button>
                     </div>
                 </mat-toolbar>
-                <div style="flex: 1; max-height: calc(100% - 34px)" class="flex">
+                <div style="flex: 1; max-height: calc(100% - 34px)" class="flex relative">
                   @switch (viewMode()) {
                     @case('table') {
                         <ngm-table class="ngm-data-preview striped flex-1 max-w-full"
@@ -129,12 +129,12 @@
                   }
 
                   @if (loading()) {
-                    <mat-spinner strokeWidth="2" diameter="30"/>
+                    <ngm-spin class="absolute left-0 top-0 w-full h-full" />
                   }
                   @if (error$ | async; as error) {
                     <div class="pac-model-hierarchy__error">
-                        <div style="font-size: 4rem;" class="font-notoColorEmoji">🐞</div>
-                        <div>{{error}}</div>
+                        <div style="font-size: 3rem;" class="font-notoColorEmoji">🐞</div>
+                        <div class="max-w-md font-mono text-text-warning">{{error}}</div>
                     </div>
                   }
                 </div>

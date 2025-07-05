@@ -26,7 +26,7 @@ import { C_MEASURES, Dimension, DisplayBehaviour, OrderDirection, PropertyLevel,
 import { C_MEASURES_ROW_COUNT, serializeMeasureName, serializeMemberCaption, serializeUniqueName } from '@metad/ocap-sql'
 import { NxSettingsPanelService } from '@metad/story/designer'
 import { ContentLoaderModule } from '@ngneat/content-loader'
-import { TranslateService } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgmError, ToastrService, uuid } from 'apps/cloud/src/app/@core'
 import { isEqual } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
@@ -54,8 +54,15 @@ import { ModelDimensionService } from '../dimension.service'
 import { HierarchyTableComponent } from '../hierarchy-table/hierarchy-table.component'
 import { HierarchyTableDataType } from '../types'
 import { ModelHierarchyService } from './hierarchy.service'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
+import { CommonModule } from '@angular/common'
+import { MatCheckboxModule } from '@angular/material/checkbox'
+import { MatButtonToggleModule } from '@angular/material/button-toggle'
+import { FormsModule } from '@angular/forms'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import { MatIconModule } from '@angular/material/icon'
+import { MatButtonModule } from '@angular/material/button'
+import { MatListModule } from '@angular/material/list'
+import { MatToolbarModule } from '@angular/material/toolbar'
 
 @Component({
   standalone: true,
@@ -67,9 +74,17 @@ import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
   },
   providers: [ModelHierarchyService],
   imports: [
-    SharedModule,
-    MaterialModule,
+    CommonModule,
+    TranslateModule,
     ContentLoaderModule,
+    FormsModule,
+    MatCheckboxModule,
+    MatButtonToggleModule,
+    MatTooltipModule,
+    MatIconModule,
+    MatButtonModule,
+    MatListModule,
+    MatToolbarModule,
     OcapCoreModule,
     ResizerModule,
     SplitterModule,
@@ -280,7 +295,8 @@ export class ModelHierarchyComponent implements AfterViewInit {
           )
         : of({
             data: [],
-            error: null
+            error: null,
+            stats: null
           })
     }),
     tap((result) => this.logger.debug(`Dimension Levels Preview Query result`, result)),
@@ -289,8 +305,8 @@ export class ModelHierarchyComponent implements AfterViewInit {
   )
 
   readonly error$ = this.query$.pipe(map(({ error }) => error))
-
   readonly data = toSignal(this.query$.pipe(map(({ data }) => data)))
+  readonly stats = toSignal(this.query$.pipe(map(({ stats }) => stats)))
   readonly showKey = model(false)
 
   /**
@@ -342,6 +358,10 @@ export class ModelHierarchyComponent implements AfterViewInit {
       .subscribe((id) => {
         this.hierarchyService.init(id)
       })
+
+    // effect(() => {
+    //   console.log(this.columns(), this.data())
+    // })
   }
 
   ngAfterViewInit(): void {

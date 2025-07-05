@@ -222,7 +222,10 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
                 searchable: true,
                 options: this.columnOptions$,
                 valueKey: 'key'
-              }
+              },
+              expressions: {
+                'props.disabled': `!!model && !!model.parentColumn`
+              },
             },
             {
               className,
@@ -252,7 +255,7 @@ export class LevelSchemaService extends CubeSchemaService<PropertyLevel> {
               className,
               key: 'nullParentValue',
               type: 'input',
-              expressionProperties: {
+              expressions: {
                 hide: `!model || !model.parentColumn`
               },
               props: {

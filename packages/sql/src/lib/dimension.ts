@@ -483,7 +483,7 @@ export function buildDimensionContext(
     // Ordinal Column
     context.orderBys.push({
       table,
-      column: level.ordinalColumn || level.column
+      column: level.ordinalColumn || level.nameColumn || level.column
     })
   } else {
     throw new Error(`找不到 Level ${row.level}`)

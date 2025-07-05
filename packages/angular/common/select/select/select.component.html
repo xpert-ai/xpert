@@ -37,9 +37,11 @@
   <div class="relative">
     <input class="ngm-input-element w-full relative"
       #searInput type="text"
+      [disabled]="isDisabled"
       [placeholder]="placeholder()"
       matInput
       [matAutocomplete]="auto"
+      [matAutocompleteDisabled]="isDisabled"
       [ngModel]="autoInput()"
       (ngModelChange)="onAutoInput($event)"
       (blur)="onBlur($event)"
