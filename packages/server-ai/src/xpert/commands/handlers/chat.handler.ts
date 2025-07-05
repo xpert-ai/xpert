@@ -57,8 +57,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 		const xpert = await this.xpertService.findOne(xpertId, { relations: ['agent'] })
 		const latestXpert = figureOutXpert(xpert, options?.isDraft)
 		const memory = latestXpert.memory
-		const memoryStore = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore>(new CreateMemoryStoreCommand(latestXpert, userId))
-		// await this.createMemoryStore(latestXpert, userId)
+		let memoryStore: BaseStore = null
+		
 		let memories = null
 
 		let conversation: IChatConversation
@@ -103,7 +103,10 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 				)
 
 				// Remember
-				memories = await getLongTermMemory(memoryStore, xpertId, input.input)
+				if (memory?.enabled && memory.profile?.enabled) {
+					memoryStore = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore>(new CreateMemoryStoreCommand(latestXpert, userId))
+					memories = await getLongTermMemory(memoryStore, xpertId, input.input)
+				}
 			}
 
 			// New execution (Run) in thread
@@ -171,7 +174,10 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
 				// Memory Reply
 				const memoryReply = latestXpert.features?.memoryReply
-				if (memoryReply?.enabled && memory?.enabled) {
+				if (memoryReply?.enabled) {
+					if (!memoryStore) {
+						memoryStore = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore>(new CreateMemoryStoreCommand(latestXpert, userId))
+					}
 					const items = await memoryStore.search([xpertId, LongTermMemoryTypeEnum.QA], { query: input.input })
 					const memoryReplies = items.filter((item) => item.score >= (memoryReply.scoreThreshold ?? 0.8))
 					if (memoryReplies.length > 0) {
