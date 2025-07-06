@@ -11,7 +11,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { firstValueFrom } from 'rxjs'
 import { map, startWith, switchMap } from 'rxjs/operators'
-import { DefaultProject, IProject, ProjectsService, Store, ToastrService } from '../../../@core'
+import { DefaultProject, IProject, ProjectAPIService, Store, ToastrService } from '../../../@core'
 import { ProjectCreationComponent } from './creation/creation.component'
 
 @Component({
@@ -35,7 +35,7 @@ export class ProjectSelectorComponent {
   private _dialog = inject(MatDialog)
   private _toastrService = inject(ToastrService)
   private _router = inject(Router)
-  private projectService = inject(ProjectsService)
+  private projectService = inject(ProjectAPIService)
   private translateService = inject(TranslateService)
   readonly store = inject(Store)
 

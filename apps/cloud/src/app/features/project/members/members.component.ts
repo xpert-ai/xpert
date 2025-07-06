@@ -7,7 +7,7 @@ import { MatIconModule } from '@angular/material/icon'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatest, firstValueFrom, map, switchMap } from 'rxjs'
-import { ICertification, IProject, IUser, ProjectsService, Store, ToastrService } from '../../../@core'
+import { ICertification, IProject, IUser, ProjectAPIService, Store, ToastrService } from '../../../@core'
 import { ProjectComponent } from '../project/project.component'
 import { uniq } from 'lodash-es'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
@@ -52,7 +52,7 @@ export class ProjectMembersComponent extends TranslationBaseComponent {
   userLabel = userLabel
 
   // Injectors
-  private projectService = inject(ProjectsService)
+  private projectAPI = inject(ProjectAPIService)
   private projectComponent = inject(ProjectComponent)
   private store = inject(Store)
   private _dialog = inject(MatDialog)
@@ -75,7 +75,7 @@ export class ProjectMembersComponent extends TranslationBaseComponent {
   private _projectDetailSub = combineLatest([this.refresh$, this.projectComponent.projectId$])
     .pipe(
       switchMap(([, projectId]) =>
-        this.projectService.getOne(projectId ?? null, ['owner', 'members', 'certifications'])
+        this.projectAPI.getOne(projectId ?? null, ['owner', 'members', 'certifications'])
       ),
       takeUntilDestroyed()
     )
@@ -122,7 +122,7 @@ export class ProjectMembersComponent extends TranslationBaseComponent {
     )
     const user = value?.users?.[0]
     if (user) {
-      await firstValueFrom(this.projectService.update(this.project.id, { ownerId: user.id }))
+      await firstValueFrom(this.projectAPI.update(this.project.id, { ownerId: user.id }))
       this.project.owner = user
       this.project.ownerId = user.id
       this._toastrService.success('PAC.Project.TransferOwnership', { Default: 'Transfer Ownership' })
@@ -141,7 +141,7 @@ export class ProjectMembersComponent extends TranslationBaseComponent {
   async addMembers(members: string[]) {
     if (this.project?.id) {
       await firstValueFrom(
-        this.projectService.updateMembers(this.project.id, uniq([...members, ...this.members.map(({ id }) => id)]))
+        this.projectAPI.updateMembers(this.project.id, uniq([...members, ...this.members.map(({ id }) => id)]))
       )
       this.refresh$.next()
     }
@@ -155,7 +155,7 @@ export class ProjectMembersComponent extends TranslationBaseComponent {
       )
       if (confirm) {
         member.loading = true
-        await firstValueFrom(this.projectService.deleteMember(this.project.id, id))
+        await firstValueFrom(this.projectAPI.deleteMember(this.project.id, id))
         this.refresh$.next()
       }
     }
@@ -173,7 +173,7 @@ export class ProjectMembersComponent extends TranslationBaseComponent {
       if (certificationId) {
         try {
           await firstValueFrom(
-            this.projectService.updateCertifications(
+            this.projectAPI.updateCertifications(
               this.project.id,
               uniq([...this.project.certifications.map((item) => item.id), certificationId])
             )
@@ -190,7 +190,7 @@ export class ProjectMembersComponent extends TranslationBaseComponent {
   async removeCertification(id: string) {
     if (this.project?.id) {
       try {
-        await firstValueFrom(this.projectService.deleteCertification(this.project.id, id))
+        await firstValueFrom(this.projectAPI.deleteCertification(this.project.id, id))
         this.refresh$.next()
         this._toastrService.success('PAC.Project.RemoveCertification', { Default: 'Remove Certification' })
       } catch (err) {
@@ -207,7 +207,7 @@ export class ProjectMembersComponent extends TranslationBaseComponent {
       return
     }
     try {
-      await firstValueFrom(this.projectService.delete(this.project.id))
+      await firstValueFrom(this.projectAPI.delete(this.project.id))
       this._toastrService.success('PAC.ACTIONS.Delete', { Default: 'Delete' })
     } catch (err) {
       this._toastrService.error(err)

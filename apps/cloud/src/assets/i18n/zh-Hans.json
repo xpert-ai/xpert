@@ -618,6 +618,7 @@
       "INDICATOR": {
         "REGISTER_INDICATOR": "注册指标",
         "BATCH_UPLOAD": "批量上传",
+        "Embedding": "嵌入",
         "DownloadAsTemplate": "下载为模板",
         "INDICATOR_MARKET": "指标市场",
         "INDICATOR_MARKET_DESC": "浏览指标，申请指标权限"
@@ -807,6 +808,7 @@
         "BUSINESS_AREA_PLACEHOLDER": "选择所属业务域",
         "IsActive": "激活",
         "AvailableInApplication": "指标应用适用",
+        "EmbeddingStatus": "索引状态",
         "Visible": "是否可见",
         "Visibility": "可见性",
         "UNIT": "单位",

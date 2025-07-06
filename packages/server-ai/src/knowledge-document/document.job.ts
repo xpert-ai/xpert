@@ -10,9 +10,10 @@ import { KnowledgebaseService, KnowledgeDocumentVectorStore } from '../knowledge
 import { KnowledgeDocumentService } from './document.service'
 import { CopilotTokenRecordCommand } from '../copilot-user'
 import { KnowledgeDocLoadCommand } from './commands'
+import { JOB_EMBEDDING_DOCUMENT } from './types'
 
 @Processor({
-	name: 'embedding-document',
+	name: JOB_EMBEDDING_DOCUMENT,
 	// scope: Scope.REQUEST
 })
 export class KnowledgeDocumentConsumer {

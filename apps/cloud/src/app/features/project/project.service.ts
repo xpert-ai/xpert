@@ -17,6 +17,7 @@ import { Store, createStore, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
 import { cloneDeep } from 'lodash-es'
 import {
+  BehaviorSubject,
   EMPTY,
   catchError,
   combineLatest,
@@ -34,7 +35,7 @@ import {
 import {
   IProject,
   ISemanticModel,
-  ProjectsService,
+  ProjectAPIService,
   TagService,
   ToastrService,
   isUUID,
@@ -44,7 +45,7 @@ import { NewIndicatorCodePlaceholder, ProjectIndicatorsState, injectFetchModelDe
 
 @Injectable()
 export class ProjectService {
-  readonly projectsService = inject(ProjectsService)
+  readonly projectAPI = inject(ProjectAPIService)
   readonly indicatorsService = inject(IndicatorsService)
   readonly businessAreasStore = inject(BusinessAreasService)
   readonly tagService = inject(TagService)
@@ -114,6 +115,7 @@ export class ProjectService {
   readonly dirty = signal<Record<string, boolean>>({})
   readonly hasDirty = computed(() => Object.values(this.dirty()).some((dirty) => dirty))
   readonly loading = signal(false)
+  readonly refreshEmbedding$ = new BehaviorSubject<boolean>(true)
 
   /**
    * Business Areas
@@ -222,7 +224,7 @@ export class ProjectService {
   }
 
   refreshIndicators() {
-    this.projectsService
+    this.projectAPI
       .getOne(this.project().id ?? null, ['indicators', 'indicators.businessArea'])
       .subscribe((project) => {
         this.updateProject({

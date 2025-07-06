@@ -13,6 +13,7 @@ import { KnowledgebaseModule } from '../knowledgebase/knowledgebase.module'
 import { CommandHandlers } from './commands/handlers'
 import { KnowledgeDocumentPage } from './page/document-page.entity'
 import { QueryHandlers } from './queries/handlers'
+import { JOB_EMBEDDING_DOCUMENT } from './types'
 
 @Module({
 	imports: [
@@ -27,7 +28,7 @@ import { QueryHandlers } from './queries/handlers'
 		IntegrationModule,
 
 		BullModule.registerQueue({
-			name: 'embedding-document',
+			name: JOB_EMBEDDING_DOCUMENT,
 		  })
 	],
 	controllers: [KnowledgeDocumentController],

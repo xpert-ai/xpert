@@ -1,6 +1,6 @@
-import { Body, ClassSerializerInterceptor, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseInterceptors } from '@nestjs/common';
+import { Body, ClassSerializerInterceptor, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query, UseInterceptors } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { CrudController, PaginationParams, ParseJsonPipe, UUIDValidationPipe } from '@metad/server-core';
+import { CrudController, PaginationParams, ParseJsonPipe, transformWhere, UUIDValidationPipe } from '@metad/server-core';
 import {
 	ApiTags,
 	ApiBearerAuth,
@@ -73,15 +73,21 @@ export class IndicatorController extends CrudController<Indicator> {
 	 */
 	@UseInterceptors(ClassSerializerInterceptor)
 	@Get('project/:id')
-	async byProject(@Param('id', UUIDValidationPipe) id: string, @Query('$query', ParseJsonPipe) options?: FindManyOptions<Indicator>) {
-		const { where, relations, select } = options ?? {}
+	async byProject(@Param('id', UUIDValidationPipe) id: string, @Query('data', ParseJsonPipe) options?: PaginationParams<Indicator>) {
+		const { relations, select } = options ?? {}
+		const where = transformWhere(options?.where ?? {})
 		// Check the project permission
 		// todo
 		return await this.indicatorService.findAll({
 			select,
 			relations,
-			where: {projectId: id, ...(where as ObjectLiteral ?? {})}
+			where: {...where, projectId: id}
 		})
+	}
+
+	@Post('project/:id/embedding')
+	async startEmbedding(@Param('id') id: string, @Body() body: { ids: string[] }) {
+		await this.indicatorService.startEmbedding(id)
 	}
 
 	/**
@@ -133,4 +139,8 @@ export class IndicatorController extends CrudController<Indicator> {
 		return this.indicatorService.findOne(id, {relations, ...options});
 	}
 
+	@Delete(':id')
+	async deleteById(@Param('id', UUIDValidationPipe) id: string,): Promise<void> {
+		await this.indicatorService.deleteById(id)
+	}
 }

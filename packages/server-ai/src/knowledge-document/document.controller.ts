@@ -35,6 +35,7 @@ import { KnowledgeDocLoadCommand } from './commands'
 import { GetRagWebOptionsQuery } from '../rag-web/queries/'
 import { RagWebLoadCommand } from '../rag-web/commands'
 import { TVectorSearchParams } from '../knowledgebase'
+import { JOB_EMBEDDING_DOCUMENT } from './types'
 
 @ApiTags('KnowledgeDocument')
 @ApiBearerAuth()
@@ -47,7 +48,7 @@ export class KnowledgeDocumentController extends CrudController<KnowledgeDocumen
 		private readonly integrationService: IntegrationService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		@InjectQueue('embedding-document') private docQueue: Queue
+		@InjectQueue(JOB_EMBEDDING_DOCUMENT) private docQueue: Queue
 	) {
 		super(service)
 	}

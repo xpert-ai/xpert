@@ -4,6 +4,7 @@ import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { RouterModule } from 'nest-router'
 import { SemanticModelModule } from '../model'
+import { CommandHandlers } from './commands/handlers'
 import { ProjectController } from './project.controller'
 import { Project } from './project.entity'
 import { ProjectService } from './project.service'
@@ -15,10 +16,10 @@ import { QueryHandlers } from './queries/handlers'
 		TypeOrmModule.forFeature([Project]),
 		TenantModule,
 		CqrsModule,
-		SemanticModelModule,
+		SemanticModelModule
 	],
 	controllers: [ProjectController],
-	providers: [ProjectService, ...QueryHandlers],
+	providers: [ProjectService, ...QueryHandlers, ...CommandHandlers],
 	exports: [TypeOrmModule, ProjectService]
 })
 export class ProjectModule {}

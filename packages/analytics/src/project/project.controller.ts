@@ -50,6 +50,19 @@ export class ProjectController extends CrudController<Project> {
 		}
 	}
 
+	@Get('select-options')
+	async getSelectOptions() {
+		const { items, total } = await this.queryBus.execute<ProjectMyQuery, { items: IProject[]; total: number }>(
+			new ProjectMyQuery({
+				relations: []
+			})
+		)
+		return items.map((item) => ({
+			value: item.id,
+			label: item.name
+		}))
+	}
+
 	@ApiOperation({ summary: 'Find by id' })
 	@ApiResponse({
 		status: HttpStatus.OK,
@@ -122,7 +135,7 @@ export class ProjectController extends CrudController<Project> {
 	}
 
 	/**
-	 * Restore soft deleted employee
+	 * Restore soft deleted project
 	 *
 	 * @param projectId
 	 * @returns
@@ -144,7 +157,7 @@ export class ProjectController extends CrudController<Project> {
 	}
 
 	/**
-	 * Soft delete employee from organization
+	 * Soft delete bi project
 	 *
 	 * @param projectId
 	 * @returns

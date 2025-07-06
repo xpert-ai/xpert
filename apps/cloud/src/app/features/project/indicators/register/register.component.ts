@@ -417,7 +417,10 @@ export class IndicatorRegisterComponent extends TranslationBaseComponent impleme
 
     this.store.update((state) => ({
       ...state,
-      id: null
+      id: null,
+      embeddingStatus: null,
+      error: null,
+      code: state.code + ' (Copy)',
     }))
   }
 

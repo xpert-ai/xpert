@@ -1,9 +1,10 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { IIndicator } from '@metad/contracts'
+import { IIndicator, PaginationParams } from '@metad/contracts'
 import { map } from 'rxjs/operators'
 import { C_URI_API_INDICATORS } from './constants'
 import { Indicator, convertIndicator, convertIndicatorResult } from './types'
+import { toHttpParams } from './crud.service'
 
 
 @Injectable({
@@ -27,10 +28,8 @@ export class IndicatorsService {
       .pipe(map(({ items }) => items))
   }
 
-  getByProject(projectId: string, options: {relations, where}) {
-    const query = JSON.stringify(options)
-    const params = new HttpParams().append('$query', query)
-    return this.httpClient.get<{ items: IIndicator[] }>(C_URI_API_INDICATORS + `/project/${projectId}`, { params })
+  getByProject(projectId: string, params: PaginationParams<IIndicator> ) {
+    return this.httpClient.get<{ items: IIndicator[]; total: number }>(C_URI_API_INDICATORS + `/project/${projectId}`, { params: toHttpParams(params) })
   }
 
   getApp(relations = []) {
@@ -62,5 +61,9 @@ export class IndicatorsService {
   createBulk(input: Array<Partial<Indicator>>) {
     return this.httpClient.post<Indicator[]>(C_URI_API_INDICATORS + '/bulk', input.map(convertIndicator))
       .pipe(map((items) => items.map(convertIndicatorResult)))
+  }
+
+  startEmbedding(projectId: string) {
+    return this.httpClient.post<void>(C_URI_API_INDICATORS + `/project/${projectId}/embedding`, {})
   }
 }

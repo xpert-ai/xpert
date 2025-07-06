@@ -1,3 +1,4 @@
+import { EmbeddingStatusEnum } from '../ai'
 import { ITag } from '../tag-entity.model'
 import { Visibility } from '../visibility.model'
 import { IBusinessArea } from './business-area'
@@ -52,6 +53,8 @@ export interface IIndicator extends IBasePerProjectEntityModel {
   validity?: string
   business?: string
   status?: IndicatorStatusEnum
+  embeddingStatus?: EmbeddingStatusEnum
+  error?: string
 
   options?: {
     dimensions?: Array<string>
