@@ -147,7 +147,7 @@
 
 <ng-template #workspaceMenu>
   <div cdkMenu class="cdk-menu__large">
-    @if (workspaces().length > 6) {
+    @if (workspaces().length > 10) {
       <div class="p-1 relative w-full">
         <div class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder flex justify-center items-center">
           <i class="ri-search-line "></i>
@@ -161,7 +161,7 @@
       <label class="px-2 font-semibold">{{ 'PAC.KEY_WORDS.Workspaces' | translate: { Default: 'Workspaces' } }}</label>
     }
     
-    <div class="max-h-64 w-56 overflow-y-auto" (click)="$event.stopPropagation()">
+    <div class="max-h-96 w-56 overflow-y-auto" (click)="$event.stopPropagation()">
       @for (item of filteredWorkspaces(); track item.name) {
         <div class="workspace-item p-2 rounded-lg cursor-pointer hover:bg-hover-bg"
           [class.active]="item.id === selectedWorkspace()?.id"
