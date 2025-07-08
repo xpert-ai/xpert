@@ -67,6 +67,7 @@ import {
 } from './types'
 import { markdownTableData, stringifyTableType } from './utils'
 import { TranslationBaseComponent } from '../../../@shared/language/'
+import { Dialog } from '@angular/cdk/dialog'
 
 @Component({
   selector: 'ngm-semanctic-model',
@@ -90,6 +91,7 @@ export class ModelComponent extends TranslationBaseComponent {
   private route = inject(ActivatedRoute)
   private router = inject(Router)
   private _dialog = inject(MatDialog)
+  readonly #dialog = inject(Dialog)
   private _viewContainerRef = inject(ViewContainerRef)
   readonly #toastr = injectToastr()
   readonly #logger = inject(NGXLogger)
@@ -543,15 +545,19 @@ export class ModelComponent extends TranslationBaseComponent {
   }
 
   async openPreferences() {
+    const preferences = ['id', 'key', 'name', 'description', 'dataSourceId', 'catalog', 'visibility', 'preferences']
     const model = this.modelService.modelSignal()
-    this._dialog
+    this.#dialog
       .open(ModelPreferencesComponent, {
-        data: pick(model, 'id', 'key', 'name', 'description', 'dataSourceId', 'catalog', 'visibility', 'preferences')
+        data: pick(model, ...preferences),
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
       })
-      .afterClosed()
+      .closed
       .subscribe({
         next: (result) => {
           if (result) {
+            console.log('Model preferences updated:', result)
             this.modelService.updateModel(result)
           }
         }

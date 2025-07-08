@@ -1,10 +1,10 @@
 import { MatBottomSheet } from '@angular/material/bottom-sheet'
+import { signal } from '@angular/core'
 import { DataSourceService } from '@metad/cloud/state'
 import { firstValueFrom, of, ReplaySubject, Subject } from 'rxjs'
 import { switchMap } from 'rxjs/operators'
 import { AuthInfoType, BottomSheetBasicAuthComponent } from '../auth'
 import { AgentEvent, IDataSource, IDataSourceAuthentication } from '../types'
-import { signal } from '@angular/core'
 
 export abstract class AbstractAgent {
 

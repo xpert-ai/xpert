@@ -23,7 +23,6 @@ import { ModelUploadComponent } from '../upload/upload.component'
 import { ModelCreateEntityComponent } from './create-entity/create-entity.component'
 import { ModelComponent } from './model.component'
 import { ModelOverviewComponent } from './overview/overview.component'
-import { ModelPreferencesComponent } from './preferences/preferences.component'
 import { ModelRoutingModule } from './routing'
 import {
   CalculatedMemberAttributesSchema,
@@ -48,7 +47,7 @@ import { DateRelativePipe } from '@cloud/app/@core'
 import { NgmFormlyFactModule } from '../formly/fact'
 
 @NgModule({
-  declarations: [ModelComponent, ModelOverviewComponent, ModelCreateEntityComponent, ModelPreferencesComponent],
+  declarations: [ModelComponent, ModelOverviewComponent, ModelCreateEntityComponent],
   imports: [
     ModelRoutingModule,
     CommonModule,

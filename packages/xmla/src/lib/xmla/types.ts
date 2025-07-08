@@ -1,6 +1,6 @@
 export interface Exception {
   type: 'error' | 'warning'
-  code: string
+  code: number
   message: string
   data: any
   source?: string
