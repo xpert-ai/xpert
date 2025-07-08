@@ -11,6 +11,7 @@ import { AbstractAgent, AuthInfoType } from '../auth'
 import { getErrorMessage, uuid, AuthenticationEnum, IDataSource, IDataSourceAuthentication, ISemanticModel, TGatewayQueryEvent } from '../types'
 import { AgentService } from './agent.service'
 import { PAC_SERVER_AGENT_DEFAULT_OPTIONS, PacServerAgentDefaultOptions } from './server-agent.service'
+import { injectToastr } from './toastr.service'
 import { PAC_SERVER_DEFAULT_OPTIONS, PacServerDefaultOptions } from '../providers'
 
 
@@ -22,7 +23,8 @@ export class ServerSocketAgent extends AbstractAgent implements Agent {
   readonly #i18n = inject(I18nService)
   readonly #agentService = inject(AgentService)
   readonly #organizationId = injectOrganizationId()
-  readonly #serverOptions = inject<PacServerDefaultOptions>(PAC_SERVER_DEFAULT_OPTIONS)
+  protected readonly serverOptions = inject<PacServerDefaultOptions>(PAC_SERVER_DEFAULT_OPTIONS, {optional: true})
+  readonly #toastr = injectToastr()
 
   type = AgentType.Server
 
@@ -76,7 +78,7 @@ export class ServerSocketAgent extends AbstractAgent implements Agent {
         takeUntilDestroyed()
       )
       .subscribe((request) => {
-        if (this.#serverOptions.modelEnv === 'public') {
+        if (this.serverOptions.modelEnv === 'public') {
           this.#agentService.emit('public_olap', request)
         } else {
           this.#agentService.emit('olap', request)
@@ -129,6 +131,8 @@ export class ServerSocketAgent extends AbstractAgent implements Agent {
         const { id, status } = data
         if (status === 401 && this.queuePool()[id]) {
           this.request$.next(this.queuePool()[id].request)
+        } else {
+          this.#toastr.error(`OCAP socket error: ` + data.message)
         }
       })
     })
@@ -302,5 +306,9 @@ export class ServerSocketAgent extends AbstractAgent implements Agent {
         dataSource.id ? this.dataSourceService.ping(dataSource.id, dataSource) : this.dataSourceService.ping(dataSource)
       )
     }
+  }
+
+  setServerOptions(options: PacServerDefaultOptions) {
+    this.serverOptions.modelEnv = options.modelEnv
   }
 }

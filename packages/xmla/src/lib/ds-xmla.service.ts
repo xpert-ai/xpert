@@ -143,11 +143,11 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
         )
       ),
       catchError((err) => {
+        const exception = (<Xmla.Request>err).exception
         // 应该改成类型判断的方式
-        let error =
-          (<Xmla.Request>err).exception?.message ??
-          getErrorMessage((<Xmla.Request>err).exception?.data) ??
-          (<Xmla.Exception>err).message
+        let error = (exception?.code === -10 ? exception?.data?.error
+          : exception?.message ?? getErrorMessage(exception?.data)) ??
+            (<Xmla.Exception>err).message
         error = simplifyErrorMessage(error)
         this.agent.error(error)
         throw new Error(error)
@@ -761,12 +761,12 @@ export class XmlaDataSource extends AbstractDataSource<XmlaDataSourceOptions> {
         annotations
       }
     } catch (err: unknown) {
-      console.error(err)
-      // 应该改成类型判断的方式
-      let error =
-        (<Xmla.Request>err).exception?.message ??
-        getErrorMessage((<Xmla.Request>err).exception?.data) ??
-        (<Xmla.Exception>err).message
+      const exception = (<Xmla.Request>err).exception
+        // 应该改成类型判断的方式
+        let error = (exception?.code === -10 ? exception?.data?.error
+          : exception?.message ?? getErrorMessage(exception?.data)) ??
+            (<Xmla.Exception>err).message
+   
       error = simplifyErrorMessage(error)
       this.agent.error(error)
       throw new Error(error)

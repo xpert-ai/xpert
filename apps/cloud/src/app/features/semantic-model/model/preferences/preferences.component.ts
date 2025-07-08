@@ -1,22 +1,32 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { Component, HostBinding, inject, OnInit, signal } from '@angular/core'
 import { FormGroup } from '@angular/forms'
-import { injectToastr } from '@cloud/app/@core'
+import { injectApiBaseUrl, injectToastr } from '@cloud/app/@core'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { DataSourceService, NgmSemanticModel, SemanticModelServerService } from '@metad/cloud/state'
 import { FORMLY_ROW, FORMLY_W_1_2 } from '@metad/story/designer'
-import { FormlyFieldConfig } from '@ngx-formly/core'
+import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { cloneDeep, merge } from 'lodash-es'
 import { map } from 'rxjs'
 import { getErrorMessage, LANGUAGES, Visibility } from '../../../../@core/types'
+import { CommonModule } from '@angular/common'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { MatButtonModule } from '@angular/material/button'
+import { DragDropModule } from '@angular/cdk/drag-drop'
+import { TranslateModule } from '@ngx-translate/core'
+import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 
 @Component({
+  standalone: true,
+  imports: [CommonModule, FormlyModule, TranslateModule, DragDropModule, MatButtonModule, ButtonGroupDirective, NgmSpinComponent],
   selector: 'pac-model-preferences',
   templateUrl: './preferences.component.html',
   styleUrls: ['./preferences.component.scss']
 })
 export class ModelPreferencesComponent implements OnInit {
   @HostBinding('class.ngm-dialog-container') isDialogContainer = true
+
+  readonly baseUrl = injectApiBaseUrl()
 
   readonly #i18n = inject(I18nService)
   readonly #modelService = inject(SemanticModelServerService)
@@ -39,9 +49,7 @@ export class ModelPreferencesComponent implements OnInit {
   model: Partial<NgmSemanticModel> = {}
   fields: FormlyFieldConfig[] = []
 
-  get xmlaUrl() {
-    return `https://api.mtda.cloud/api/semantic-model/${this.data?.id}/xmla`
-  }
+  readonly xmlaUrl = this.baseUrl + `/api/semantic-model/${this.data?.id}/xmla`
 
   readonly loading = signal(false)
 
@@ -187,5 +195,9 @@ export class ModelPreferencesComponent implements OnInit {
         this.#toastr.error(getErrorMessage(err))
       }
     })
+  }
+
+  close() {
+    this.#dialogRef.close()
   }
 }

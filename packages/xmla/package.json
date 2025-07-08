@@ -1,6 +1,6 @@
 {
   "name": "@metad/ocap-xmla",
-  "version": "3.3.2",
+  "version": "3.3.3",
   "license": "AGPL-3.0",
   "scripts": {
     "docs": "yarn typedoc --out ./.docs"

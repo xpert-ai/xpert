@@ -97,6 +97,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 			>(
 				new CompileGraphCommand(agentKey, {id: _xpertId}, {
 					isDraft,
+					mute: command.options.mute,
 					execution,
 					rootController: abortController,
 					signal: abortController.signal,
@@ -114,6 +115,7 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
 					{ id: _xpertId },
 					{
 						isDraft,
+						mute: command.options.mute,
 						isStart: true,
 						rootController: abortController,
 						signal: abortController.signal,

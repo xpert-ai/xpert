@@ -1,4 +1,4 @@
-import { Annotation } from '@langchain/langgraph'
+import { Annotation, messagesStateReducer } from '@langchain/langgraph'
 import { channelName, IXpert, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -16,6 +16,7 @@ import { createTemplateNode } from '../template'
 import { CreateWNClassifierCommand } from '../create-wn-classifier.command'
 import { createToolNode } from '../tool'
 import { createAssignerNode } from '../assigner'
+import { BaseMessage } from '@langchain/core/messages'
 
 @CommandHandler(CreateWorkflowNodeCommand)
 export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflowNodeCommand> {
@@ -52,6 +53,23 @@ export class CreateWorkflowNodeHandler implements ICommandHandler<CreateWorkflow
 			}
 			case WorkflowNodeTypeEnum.ANSWER: {
 				workflow = await this.commandBus.execute(new CreateWNAnswerCommand(xpertId, graph, node, options))
+				channel = {
+					name: channelName(node.key),
+					annotation: Annotation<{messages: BaseMessage[]} & Record<string, unknown>>({
+						reducer: (a, b) => {
+							return b
+								? {
+										...a,
+										...b,
+										messages: b.messages ? messagesStateReducer(a.messages, b.messages) : a.messages
+									}
+								: a
+						},
+						default: () => ({
+							messages: []
+						})
+					})
+				}
 				break
 			}
 			case WorkflowNodeTypeEnum.CLASSIFIER: {

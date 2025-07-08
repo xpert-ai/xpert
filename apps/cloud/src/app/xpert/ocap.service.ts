@@ -5,7 +5,7 @@ import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import { Indicator } from '@metad/ocap-core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { combineLatest, of, tap } from 'rxjs'
-import { injectToastr, registerModel } from '../@core'
+import { injectToastr, registerModel, ServerSocketAgent } from '../@core'
 import { getErrorMessage, IIndicator, ISemanticModel } from '../@core/types'
 import { XpertHomeService } from './home.service'
 import { ChatService } from './chat.service'
@@ -18,6 +18,7 @@ export class XpertOcapService {
   readonly homeService = inject(XpertHomeService)
   readonly #toastr = injectToastr()
   readonly #wasmAgent? = inject(WasmAgentService, { optional: true })
+  readonly #serverAgent = inject(ServerSocketAgent)
   readonly #dsCoreService = inject(NgmDSCoreService)
   readonly chatService = inject(ChatService)
 
@@ -29,14 +30,16 @@ export class XpertOcapService {
     Record<
       string,
       {
-        model?: ISemanticModel
-        indicators?: Indicator[]
-        dirty?: boolean
+        model?: ISemanticModel // Semantic model details from the server
+        indicators?: Indicator[] // Runtime indicators to be registered
+        dirty?: boolean // Whether the model or indicators is dirty and needs to be registered
       }
     >
   >({})
 
-  // Fetch semantic models details
+  /**
+   * Fetch semantic models details
+   */
   readonly _semanticModels = derivedAsync(() => {
     const ids = Object.keys(this.#semanticModels()).filter((id) => !this.#semanticModels()[id].model)
     if (ids.length) {
@@ -55,6 +58,11 @@ export class XpertOcapService {
   })
 
   constructor() {
+    effect(() => {
+      if (this.isPublic()) {
+        this.#serverAgent.setServerOptions({ modelEnv: 'public' })
+      }
+    })
     // Got model details
     effect(
       () => {
@@ -127,6 +135,11 @@ export class XpertOcapService {
             ...state[id].indicators.filter((_) => !indicators.some((i) => i.code === _.code)),
             ...indicators
           ]
+        }
+
+        state[id] = {
+          ...state[id],
+          dirty: true
         }
       })
       return { ...state }

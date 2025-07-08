@@ -1,5 +1,6 @@
 import { ICopilot, IUser, TGatewayQueryEvent, TGatewayRespError, TGatewayRespEvent } from '@metad/contracts'
 import { CopilotTokenRecordCommand } from '@metad/server-ai'
+import { getErrorMessage } from '@metad/server-common'
 import { WsJWTGuard, WsUser } from '@metad/server-core'
 import { CACHE_MANAGER, Inject, UseGuards } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -54,15 +55,26 @@ export class EventsGateway implements OnGatewayDisconnect {
 	): Promise<WsResponse<TGatewayRespEvent | TGatewayRespError>> {
 		const modelId = data.modelId
 		const cacheKey = `olap:public-model:` + modelId
-		let model = await this.cacheManager.get(cacheKey)
-		if (!model) {
-			// Check visibility (must be public) of semantic model
-			model = await this.queryBus.execute(new GetOnePublicSemanticModelQuery(modelId))
-			await this.cacheManager.set(cacheKey, model, 1000 * 60)
-		}
+		try {
+			let model = await this.cacheManager.get(cacheKey)
+			if (!model) {
+				// Check visibility (must be public) of semantic model
+				model = await this.queryBus.execute(new GetOnePublicSemanticModelQuery(modelId))
+				await this.cacheManager.set(cacheKey, model, 1000 * 60)
+			}
 
-		await this.commandBus.execute(new SemanticModelQueryCommand({ sessionId: client.id, userId: user?.id, data }))
-		return
+			await this.commandBus.execute(
+				new SemanticModelQueryCommand({ sessionId: client.id, userId: user?.id, data })
+			)
+			return
+		} catch (error) {
+			this.sendQueryResult(client.id, {
+				id: data.id,
+				status: 500,
+				statusText: getErrorMessage(error) ?? 'Internal Server Error',
+				data: error
+			})
+		}
 	}
 
 	@UseGuards(WsJWTGuard)

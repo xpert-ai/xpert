@@ -76,7 +76,7 @@ import { XpertChatAppComponent } from '../xpert/xpert.component'
     },
     {
       provide: PAC_SERVER_DEFAULT_OPTIONS,
-      useValue: { modelEnv: 'public' }
+      useValue: { modelEnv: 'internal' }
     }
   ]
 })

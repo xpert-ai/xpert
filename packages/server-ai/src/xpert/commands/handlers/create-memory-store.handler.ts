@@ -24,9 +24,9 @@ export class CreateMemoryStoreHandler implements ICommandHandler<CreateMemorySto
 		const userId = command.userId
 		const { tenantId, organizationId } = command.xpert
 		const memory = xpert.memory
-		if (!memory?.enabled) {
-			return null
-		}
+		// if (!memory?.enabled) {
+		// 	return null
+		// }
 
 		const embeddings = await this.queryBus.execute(
 			new GetXpertMemoryEmbeddingsQuery(tenantId, organizationId, memory, {})

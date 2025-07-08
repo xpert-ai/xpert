@@ -1,10 +1,10 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-  <h4 style="pointer-events: none;">
+<header class="p-8 text-2xl cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  <h4 >
     {{ 'PAC.MODEL.MODEL.Preferences' | translate: {Default: "Preferences"} }}
   </h4>
 </header>
 
-<mat-dialog-content class="mat-typography relative">
+<div class="mat-typography relative p-4">
   <formly-form [form]="form" [fields]="fields" [model]="model"
     (modelChange)="onFormChange(model)"/>
   @if (model.preferences?.exposeXmla) {
@@ -16,10 +16,10 @@
   @if (loading()) {
     <ngm-spin class="absolute top-0 left-0 w-full h-full" />
   }
-</mat-dialog-content>
+</div>
 
-<mat-dialog-actions >
-  <button mat-button mat-dialog-close>
+<div class="flex justify-between items-center p-4">
+  <button mat-button (click)="close()">
     {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: "Cancel"} }}
   </button>
 
@@ -31,4 +31,4 @@
       {{ 'PAC.KEY_WORDS.Apply' | translate: {Default: "Apply"} }}
     </button>
   </div>
-</mat-dialog-actions>
+</div>

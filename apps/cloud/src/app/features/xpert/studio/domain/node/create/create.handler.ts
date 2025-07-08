@@ -29,8 +29,8 @@ export class CreateNodeHandler implements IHandler<CreateNodeRequest> {
           }
 
           draft.team.agentConfig ??= {} 
-          draft.team.agentConfig.disableOutputs ??= []
-          draft.team.agentConfig.disableOutputs.push(key)
+          draft.team.agentConfig.mute ??= []
+          draft.team.agentConfig.mute.push([key])
           break
         }
         default: {
