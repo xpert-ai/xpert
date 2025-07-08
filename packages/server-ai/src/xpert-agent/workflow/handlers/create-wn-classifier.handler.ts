@@ -118,6 +118,12 @@ export class CreateWNClassifierHandler implements ICommandHandler<CreateWNClassi
     Your task is to assign one categories ONLY to the input text and only one category may be assigned returned in the output. Additionally, you need to extract the key words from the text that are related to the classification.
 ## Constraint
     DO NOT include anything other than the JSON in your response.
+	You can use the following JSON schema to format your response:
+	\`\`\`json
+	{
+	  "category": 1
+	}
+	\`\`\`
 ## Categories:
 ${classes.map((c, i) => `- ${i + 1}: ${c.description}`).join('\n')}
 

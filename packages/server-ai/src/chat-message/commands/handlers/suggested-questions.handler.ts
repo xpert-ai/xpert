@@ -8,7 +8,7 @@ import { z } from 'zod'
 import { CopilotGetOneQuery } from '../../../copilot'
 import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
 import { ChatMessageService } from '../../chat-message.service'
-import { SUGGESTED_QUESTIONS_PROMPT } from '../../types'
+import { SUGGESTED_QUESTIONS_PROMPT, SUGGESTED_QUESTIONS_SCHEMA } from '../../types'
 import { SuggestedQuestionsCommand } from '../suggested-questions.command'
 
 @CommandHandler(SuggestedQuestionsCommand)
@@ -57,7 +57,7 @@ export class SuggestedQuestionsHandler implements ICommandHandler<SuggestedQuest
 						return null
 					})
 					.filter(nonNullable),
-				['human', instruction]
+				['human', instruction + SUGGESTED_QUESTIONS_SCHEMA]
 			],
 			{
 				templateFormat: 'mustache'
