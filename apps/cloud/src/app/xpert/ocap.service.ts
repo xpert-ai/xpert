@@ -29,14 +29,16 @@ export class XpertOcapService {
     Record<
       string,
       {
-        model?: ISemanticModel
-        indicators?: Indicator[]
-        dirty?: boolean
+        model?: ISemanticModel // Semantic model details from the server
+        indicators?: Indicator[] // Runtime indicators to be registered
+        dirty?: boolean // Whether the model or indicators is dirty and needs to be registered
       }
     >
   >({})
 
-  // Fetch semantic models details
+  /**
+   * Fetch semantic models details
+   */
   readonly _semanticModels = derivedAsync(() => {
     const ids = Object.keys(this.#semanticModels()).filter((id) => !this.#semanticModels()[id].model)
     if (ids.length) {
@@ -127,6 +129,11 @@ export class XpertOcapService {
             ...state[id].indicators.filter((_) => !indicators.some((i) => i.code === _.code)),
             ...indicators
           ]
+        }
+
+        state[id] = {
+          ...state[id],
+          dirty: true
         }
       })
       return { ...state }
