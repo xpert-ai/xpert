@@ -60,7 +60,7 @@ export class XpertStudioNodeAgentComponent {
   readonly agentLabel = computed(() => agentLabel(this.xpertAgent()))
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
   readonly isEnd = computed(() => this.agentConfig()?.endNodes?.includes(this.agentUniqueName()))
-  readonly isDisableOutput = computed(() => this.agentConfig()?.disableOutputs?.includes(this.key()))
+  readonly isDisableOutput = computed(() => this.agentConfig()?.mute?.some((_) => _.length === 1 && _[0] === this.key()))
   // Options
   readonly options = computed(() => this.xpertAgent()?.options)
   readonly retry = computed(() => this.options()?.retry)

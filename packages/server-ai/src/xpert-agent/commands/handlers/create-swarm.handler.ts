@@ -88,6 +88,7 @@ export class XpertAgentSwarmHandler implements ICommandHandler<XpertAgentSwarmCo
 				}
 			>(
 				new XpertAgentSubgraphCommand(member, xpert, {
+					...command.options,
 					thread_id,
 					rootController,
 					signal,

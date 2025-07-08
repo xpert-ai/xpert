@@ -2,7 +2,6 @@ import { CompiledStateGraph } from '@langchain/langgraph'
 import { channelName, getSwarmPartners, IXpertAgent, TXpertGraph } from '@metad/contracts'
 import { Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { I18nService } from 'nestjs-i18n'
 import { GetXpertWorkflowQuery } from '../../../xpert/queries'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentSwarmCommand } from '../create-swarm.command'
@@ -15,7 +14,6 @@ export class CompileGraphHandler implements ICommandHandler<CompileGraphCommand>
 	constructor(
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		private readonly i18nService: I18nService
 	) {}
 
 	public async execute(command: CompileGraphCommand): Promise<{graph: CompiledStateGraph<any, any, any>; agent: IXpertAgent}> {

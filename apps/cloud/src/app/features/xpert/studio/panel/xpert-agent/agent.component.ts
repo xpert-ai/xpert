@@ -130,10 +130,48 @@ export class XpertStudioPanelAgentComponent {
   readonly prompt = model<string>()
   readonly promptLength = computed(() => this.prompt()?.length)
   readonly agentUniqueName = computed(() => agentUniqueName(this.xpertAgent()))
-  readonly agentConfig = computed(() => this.xpert()?.agentConfig)
+  // readonly agentConfig = computed(() => this.xpert()?.agentConfig)
+  readonly agentConfig = linkedModel({
+    initialValue: null,
+    compute: () => this.xpert()?.agentConfig,
+    update: (config) => {
+      this.apiService.updateXpertAgentConfig(config)
+    }
+  })
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
   readonly isEnd = computed(() => this.agentConfig()?.endNodes?.includes(this.agentUniqueName()))
-  readonly disableOutput = computed(() => this.agentConfig()?.disableOutputs?.includes(this.key()))
+  readonly mute = computed(() => this.agentConfig()?.mute)
+
+  readonly disableOutput = linkedModel({
+    initialValue: false,
+    compute: () => this.mute()?.some((_) => _.length === 1 && _[0] === this.key()),
+    update: (value) => {
+      const key = this.key()
+      const mute = this.mute() ?? []
+      const index = mute.findIndex((_) => _.length === 1 && _[0] === key)
+      console.log(index)
+
+      if (value) {
+        if (index === -1) {
+          this.agentConfig.update((config) => ({
+            ...config,
+            mute: [...(config?.mute ?? []), [key]]
+          }))
+        }
+      } else {
+        if (index >= 0) {
+          this.agentConfig.update((config) => {
+            const mute = [...config.mute]
+            mute.splice(index, 1)
+            return {
+              ...config,
+              mute
+            }
+          })
+        }
+      }
+    }
+  })
   
   readonly agentOptions = linkedModel({
     initialValue: null,
@@ -395,14 +433,6 @@ export class XpertStudioPanelAgentComponent {
       ? uniq([...(this.agentConfig()?.endNodes ?? []), name])
       : (this.agentConfig()?.endNodes?.filter((_) => _ !== name) ?? [])
     this.xpertStudioComponent.updateXpertAgentConfig({ endNodes })
-  }
-
-  updateDisableOutput(value: boolean) {
-    const name = this.key()
-    const disableOutputs = value
-      ? uniq([...(this.agentConfig()?.disableOutputs ?? []), name])
-      : (this.agentConfig()?.disableOutputs?.filter((_) => _ !== name) ?? [])
-    this.xpertStudioComponent.updateXpertAgentConfig({ disableOutputs })
   }
 
   updateParallelToolCalls(value: boolean) {

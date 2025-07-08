@@ -6,6 +6,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { OverlayAnimations } from '@metad/core'
 import { CloseSvgComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -18,12 +19,10 @@ import {
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { XpertParametersCardComponent } from 'apps/cloud/src/app/@shared/xpert'
-import { uniq } from 'lodash-es'
 import { BehaviorSubject, map, shareReplay, startWith, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
 
 @Component({
   selector: 'xpert-studio-panel-xpert',
@@ -71,8 +70,44 @@ export class XpertStudioPanelXpertComponent {
   readonly copilotModel = computed(() => this.xpert()?.copilotModel)
 
   // Team
-  readonly agentConfig = computed(() => this.team()?.agentConfig)
-  readonly disableOutput = computed(() => this.agentConfig()?.disableOutputs?.includes(this.xpertId()))
+  readonly agentConfig = linkedModel({
+    initialValue: null,
+    compute: () => this.team()?.agentConfig,
+    update: (config) => {
+      this.studioService.updateXpertAgentConfig(config)
+    }
+  })
+  readonly mute = linkedModel({
+    initialValue: false,
+    compute: () => this.agentConfig()?.mute?.some((_) => _.length === 1 && _[0] === this.xpertId()),
+    update: (value) => {
+      const mute = this.agentConfig()?.mute ?? []
+      const index = mute.findIndex((_) => _.length === 1 && _[0] === this.xpertId())
+      console.log(index)
+      if (value) {
+        if (index === -1) {
+          this.agentConfig.update((config) => {
+            return {
+              ...config,
+              mute: [...(config?.mute ?? []), [this.xpertId()]]
+            }
+          })
+        }
+      }
+      else {
+        if (index >= 0) {
+          this.agentConfig.update((config) => {
+            const mute = [...config.mute]
+            mute.splice(index, 1)
+            return {
+              ...config,
+              mute
+            }
+          })
+        }
+      }
+    }
+  })
 
   readonly loading = signal(false)
 
@@ -98,14 +133,6 @@ export class XpertStudioPanelXpertComponent {
           this.#toastr.error(getErrorMessage(error))
         }
       })
-  }
-
-  updateDisableOutput(value: boolean) {
-    const name = this.xpertId()
-    const disableOutputs = value
-      ? uniq([...(this.agentConfig()?.disableOutputs ?? []), name])
-      : (this.agentConfig()?.disableOutputs?.filter((_) => _ !== name) ?? [])
-    this.xpertStudioComponent.updateXpertAgentConfig({ disableOutputs })
   }
 
   edit() {

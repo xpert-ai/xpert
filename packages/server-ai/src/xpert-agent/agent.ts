@@ -3,8 +3,8 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { BaseLLMParams } from '@langchain/core/language_models/llms'
 import { CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ChatGenerationChunk, ChatResult } from '@langchain/core/outputs'
-import { BaseChannel, isCommand } from '@langchain/langgraph'
-import { agentLabel, ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TMessageChannel, TMessageComponent, TMessageComponentStep, TMessageContentComponent, TMessageContentReasoning, TMessageContentText} from '@metad/contracts'
+import { BaseChannel, CompiledStateGraph, isCommand } from '@langchain/langgraph'
+import { agentLabel, ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageTypeEnum, isAgentKey, IXpert, IXpertAgent, TMessageChannel, TMessageComponent, TMessageComponentStep, TMessageContentComponent, TMessageContentReasoning, TMessageContentText, TXpertAgentConfig, TXpertTeamNode} from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { instanceToPlain } from 'class-transformer'
@@ -24,11 +24,15 @@ export function createMapStreamEvents(
 	subscriber: Subscriber<MessageEvent>,
 	options?: {
 		agent?: IXpertAgent;
-		disableOutputs?: string[]
+		/**
+		 * @deprecated use `mute` instead
+		 */
+		disableOutputs?: TXpertAgentConfig['disableOutputs']
+		mute: TXpertAgentConfig['mute']
 		xperts?: IXpert[]
 	}
 ) {
-	const { agent, disableOutputs, xperts } = options ?? {}
+	const { agent, disableOutputs, mute, xperts } = options ?? {}
 	// let collectingResult = ''
 	const eventStack: string[] = []
 	let prevEvent = ''
@@ -85,7 +89,7 @@ export function createMapStreamEvents(
 					eventStack.pop()
 				}
 				if (prevEvent !== 'on_chat_model_stream') {
-					if (!disableOutputs?.some((key) => tags.includes(key))) {
+					if (!isMute(tags, mute, disableOutputs)) {
 						const msg = data.output as AIMessageChunk
 						return msg.content
 					}
@@ -95,7 +99,7 @@ export function createMapStreamEvents(
 			case 'on_chat_model_stream': {
 				prevEvent = event
 
-				if (!disableOutputs?.some((key) => tags.includes(key))) {
+				if (!isMute(tags, mute, disableOutputs)) {
 					const msg = data.chunk as AIMessageChunk
 					if (!msg.tool_call_chunks?.length) {
 						if (msg.content) {
@@ -158,7 +162,7 @@ export function createMapStreamEvents(
 			}
 
 			case 'on_chain_stream': {
-				if (!disableOutputs?.some((key) => tags.includes(key))) {
+				if (!isMute(tags, mute, disableOutputs)) {
 					const msg = data.chunk as AIMessageChunk
 					if (!msg.tool_call_chunks?.length) {
 						if (msg.content) {
@@ -460,6 +464,18 @@ export function createMapStreamEvents(
 	}
 }
 
+function isMute(tags: string[], mute: TXpertAgentConfig['mute'], disableOutputs?: TXpertAgentConfig['disableOutputs']) {
+	if (disableOutputs?.some((key) => tags.includes(key))) {
+		return true
+	}
+
+	if (mute.some((_) => _.every((tag) => tags.includes(tag)))) {
+		return true
+	}
+
+	return false
+}
+
 export class FakeStreamingChatModel extends BaseChatModel {
 	sleep?: number = 50;
   
@@ -556,4 +572,16 @@ export type TStateChannel = {
 
 export function getChannelState(state, channel: string): TMessageChannel {
 	return channel ? state[channel] : state
+}
+
+export type TAgentSubgraphResult = {
+	agent: IXpertAgent; 
+	graph: CompiledStateGraph<unknown, unknown, any>;
+	nextNodes: TXpertTeamNode[];
+	failNode: TXpertTeamNode
+	mute?: TXpertAgentConfig['mute']
+}
+
+export type TAgentSubgraphParams = {
+	mute: TXpertAgentConfig['mute']
 }

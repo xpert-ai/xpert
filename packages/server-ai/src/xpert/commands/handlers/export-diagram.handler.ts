@@ -28,6 +28,7 @@ export class XpertExportDiagramHandler implements ICommandHandler<XpertExportDia
 		>(
 			new CompileGraphCommand(agentKey ?? xpert.agent.key, xpert, {
 				isDraft,
+				mute: [],
 				rootController: controller,
 				signal: controller.signal,
 				execution: {},

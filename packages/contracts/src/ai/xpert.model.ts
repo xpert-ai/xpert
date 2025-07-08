@@ -226,8 +226,14 @@ export type TXpertAgentConfig = {
 
   /**
    * Disable agent's output
+   * @deprecated use `mute` instead
    */
   disableOutputs?: string[]
+
+  /**
+   * Mute nodes in the graph of agents: filter messages by tags of stream events
+   */
+  mute?: string[][]
 
   /**
    * Recall params

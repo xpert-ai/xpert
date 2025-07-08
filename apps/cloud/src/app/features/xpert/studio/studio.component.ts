@@ -378,7 +378,7 @@ export class XpertStudioComponent {
   }
 
   isDisableOutput(g: TXpertTeamNode) {
-    return this.agentConfig()?.disableOutputs?.includes(g.key)
+    return this.agentConfig()?.mute?.some((_) => _.length === 1 && _[0] === g.key)
   }
 
   copyNode(node: TXpertTeamNode) {

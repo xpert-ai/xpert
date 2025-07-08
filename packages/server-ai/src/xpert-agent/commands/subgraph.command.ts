@@ -2,6 +2,7 @@ import { DynamicStructuredTool } from '@langchain/core/tools'
 import { IXpert, IXpertAgentExecution, TChatOptions, TXpertParameter } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
+import { TAgentSubgraphParams } from '../agent'
 
 /**
  * Create ReAct graph for agent
@@ -12,7 +13,7 @@ export class XpertAgentSubgraphCommand implements ICommand {
 	constructor(
 		public readonly agentKeyOrName: string,
 		public readonly xpert: Partial<IXpert>,
-		public readonly options: TChatOptions & {
+		public readonly options: TChatOptions & TAgentSubgraphParams & {
 			/**
 			 * Is a subflow enter point
 			 */
