@@ -1,5 +1,5 @@
 .ngm-modal-sidenav {
-    @apply bg-bluegray-700 text-white dark:bg-bluegray-900;
+  @apply bg-bluegray-700 text-white dark:bg-bluegray-900;
 }
 
 /* for dialog container */
@@ -26,4 +26,32 @@
 
 .cdk-overlay-backdrop.backdrop-blur-lg-white {
   @apply backdrop-blur-lg transition-all duration-100 ease-in bg-white/60;
+}
+
+.cdk-overlay-backdrop.xp-overlay-share-sheet {
+  pointer-events: auto;
+  backdrop-filter: blur(4px);
+  background-color: rgba(249, 249, 249, 0.8);
+}
+
+.cdk-overlay-pane.xp-overlay-pane-share-sheet {
+  .cdk-dialog-container {
+    @apply rounded-[36px] shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(0,0,0,0.2)] dark:shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(255,255,255,0.4)] border-[0.5px] border-solid border-neutral-300 bg-components-card-bg;
+    animation: custom-dialog-enter-bounce 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@keyframes custom-dialog-enter-bounce {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  85% {
+    transform: translateY(-20px);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
 }

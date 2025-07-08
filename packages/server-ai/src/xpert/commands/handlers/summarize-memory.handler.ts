@@ -25,7 +25,7 @@ import { XpertAgentExecutionStateQuery } from '../../../xpert-agent-execution/qu
 import { GetXpertAgentQuery, GetXpertChatModelQuery, GetXpertMemoryEmbeddingsQuery } from '../../queries'
 import { XpertService } from '../../xpert.service'
 import { XpertSummarizeMemoryCommand } from '../summarize-memory.command'
-import { AgentStateAnnotation } from '../../../shared'
+import { AgentStateAnnotation, ToolSchemaParser } from '../../../shared'
 
 @CommandHandler(XpertSummarizeMemoryCommand)
 export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummarizeMemoryCommand> {
@@ -220,7 +220,8 @@ export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummari
 		}
 
 		prompt += `\nThe following are existing memories:\n<memories>\n${formatMemories(items)}\n</memories>`
-
+		const jsonSchema = ToolSchemaParser.serializeJsonSchema(ToolSchemaParser.parseZodToJsonSchema(schema))
+		prompt += `\n\nYou can use the following JSON schema to format your response:\n\`\`\`json\n$${jsonSchema}\n\`\`\`\n\n`
 		const experiences = await chatModel
 			.withStructuredOutput(schema)
 			.invoke([systemMessage, ...messages, new HumanMessage(prompt)])

@@ -5,7 +5,7 @@ import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import { Indicator } from '@metad/ocap-core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { combineLatest, of, tap } from 'rxjs'
-import { injectToastr, registerModel } from '../@core'
+import { injectToastr, registerModel, ServerSocketAgent } from '../@core'
 import { getErrorMessage, IIndicator, ISemanticModel } from '../@core/types'
 import { XpertHomeService } from './home.service'
 import { ChatService } from './chat.service'
@@ -18,6 +18,7 @@ export class XpertOcapService {
   readonly homeService = inject(XpertHomeService)
   readonly #toastr = injectToastr()
   readonly #wasmAgent? = inject(WasmAgentService, { optional: true })
+  readonly #serverAgent = inject(ServerSocketAgent)
   readonly #dsCoreService = inject(NgmDSCoreService)
   readonly chatService = inject(ChatService)
 
@@ -57,6 +58,11 @@ export class XpertOcapService {
   })
 
   constructor() {
+    effect(() => {
+      if (this.isPublic()) {
+        this.#serverAgent.setServerOptions({ modelEnv: 'public' })
+      }
+    })
     // Got model details
     effect(
       () => {

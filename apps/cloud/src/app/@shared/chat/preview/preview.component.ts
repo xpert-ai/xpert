@@ -218,6 +218,7 @@ export class ChatConversationPreviewComponent {
   }
 
   chat(options?: { input?: string; confirm?: boolean; reject?: boolean; retry?: boolean }) {
+    this.suggestionQuestions.set([]) // Clear suggestions after selection
     this.loading.set(true)
 
     if (options?.input) {
@@ -384,7 +385,6 @@ export class ChatConversationPreviewComponent {
 
   onSelectSuggestionQuestion(question: string) {
     this.chat({ input: question })
-    this.suggestionQuestions.set([]) // Clear suggestions after selection
   }
 
   appendMessage(message: Partial<IChatMessage>) {

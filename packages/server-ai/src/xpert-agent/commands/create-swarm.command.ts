@@ -1,6 +1,7 @@
 import { IXpert, IXpertAgentExecution, TChatOptions } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
+import { TAgentSubgraphParams } from '../agent'
 
 /**
  * Create swarm for agents
@@ -11,7 +12,7 @@ export class XpertAgentSwarmCommand implements ICommand {
 	constructor(
 		public readonly agentKeyOrName: string,
 		public readonly xpert: Partial<IXpert>,
-		public readonly options: TChatOptions & {
+		public readonly options: TChatOptions & TAgentSubgraphParams & {
 			// The id of root agent execution
 			rootExecutionId?: string
 			// Langgraph thread id

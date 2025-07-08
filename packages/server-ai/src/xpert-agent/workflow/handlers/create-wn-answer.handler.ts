@@ -1,13 +1,20 @@
-import { RunnableLambda } from '@langchain/core/runnables'
+import { AIMessage } from '@langchain/core/messages'
 import { AIMessagePromptTemplate } from '@langchain/core/prompts'
-import { channelName, IWFNAnswer, IXpertAgentExecution, TAgentRunnableConfigurable, WorkflowNodeTypeEnum } from '@metad/contracts'
+import { RunnableLambda } from '@langchain/core/runnables'
+import {
+	channelName,
+	IWFNAnswer,
+	IXpertAgentExecution,
+	TAgentRunnableConfigurable,
+	WorkflowNodeTypeEnum
+} from '@metad/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
-import { FakeStreamingChatModel } from '../../agent'
-import { CreateWNAnswerCommand } from '../create-wn-answer.command'
 import { AgentStateAnnotation, nextWorkflowNodes, stateToParameters } from '../../../shared'
 import { wrapAgentExecution } from '../../../shared/agent/execution'
+import { FakeStreamingChatModel } from '../../agent'
+import { CreateWNAnswerCommand } from '../create-wn-answer.command'
 
 @CommandHandler(CreateWNAnswerCommand)
 export class CreateWNAnswerHandler implements ICommandHandler<CreateWNAnswerCommand> {
@@ -20,7 +27,7 @@ export class CreateWNAnswerHandler implements ICommandHandler<CreateWNAnswerComm
 	) {}
 
 	public async execute(command: CreateWNAnswerCommand) {
-		const { graph, node, } = command
+		const { graph, node } = command
 		const { environment } = command.options
 
 		const entity = node.entity as IWFNAnswer
@@ -45,22 +52,31 @@ export class CreateWNAnswerHandler implements ICommandHandler<CreateWNAnswerComm
 						agentKey: node.key,
 						title: entity.title
 					}
-					return await wrapAgentExecution(async () => {
-						await new FakeStreamingChatModel({ responses: [aiMessage] }).invoke([], config)
-						return {
-							state: {
-								[channelName(node.key)]: {
-									messeges: [aiMessage]
-								}
-							},
-							output: aiMessage.content as string
+					return await wrapAgentExecution(
+						async () => {
+							await new FakeStreamingChatModel({ responses: [aiMessage] }).invoke([], config)
+							return {
+								state: {
+									[channelName(node.key)]: {
+										messeges: [aiMessage]
+									},
+									// Append to main message channel
+									messages: [
+										new AIMessage({
+											content: aiMessage.content
+										})
+									]
+								},
+								output: aiMessage.content as string
+							}
+						},
+						{
+							commandBus: this.commandBus,
+							queryBus: this.queryBus,
+							subscriber: subscriber,
+							execution
 						}
-					}, {
-						commandBus: this.commandBus,
-						queryBus: this.queryBus,
-						subscriber: subscriber,
-						execution
-					})()
+					)()
 				}),
 				ends: []
 			},

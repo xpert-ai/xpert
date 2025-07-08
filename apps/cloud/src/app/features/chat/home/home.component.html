@@ -136,7 +136,7 @@
               (click)="projectsExpanded() ? projectsExpanded.set(false) : projectsExpanded.set(true)"
             >
               @if (projectLoading()) {
-                <ngm-spin small />
+                <ngm-spin small class="w-6 h-6"/>
               } @else {
                 <div data-sidebar="icon" class="size-5 flex items-center justify-center shrink-0 ms-[2px]">
                   <i class="ri-building-line text-lg w-[16px] h-[16px] flex justify-center items-center group-hover/menu-item:hidden"

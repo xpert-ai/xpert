@@ -11,7 +11,7 @@ import { AgentStateAnnotation } from '../../../shared'
 export type TSubAgent = {
 	name: string
 	tool: StructuredToolInterface | RunnableToolLike
-	node?: RunnableLike<typeof AgentStateAnnotation> | Runnable
+	// node?: RunnableLike<typeof AgentStateAnnotation> | Runnable
 	stateGraph?: Runnable
 	nextNodes?: TXpertTeamNode[]
 	failNode?: TXpertTeamNode

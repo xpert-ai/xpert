@@ -232,7 +232,7 @@
       <div class="flex justify-end items-center gap-1 w-full">
         <i class="ri-volume-mute-fill text-base text-sky-700"></i>
         <div class="text-sm">{{'PAC.Xpert.DisableOutput' | translate: {Default: 'Disable Output'} }}</div>
-        <mat-slide-toggle class="flex" [ngModel]="disableOutput()" (ngModelChange)="updateDisableOutput($event)"
+        <mat-slide-toggle class="flex" [(ngModel)]="disableOutput"
           labelPosition="before"
           ngm-density="xs"
           [matTooltip]="'PAC.Xpert.DisableOutputTip' | translate: {Default: 'Disable returning the agent\'s output to the user'}"

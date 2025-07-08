@@ -103,7 +103,8 @@ export class XpertMemoryComponent {
       },
       {
         name: 'key',
-        caption: i18n.Key || 'Key'
+        caption: i18n.Key || 'Key',
+        width: '200px',
       },
       {
         name: 'value',
@@ -191,6 +192,7 @@ export class XpertMemoryComponent {
       next: (result) => {
         this.#loading.set(false)
         this.showAddMemory.set(false)
+        this.#refresh$.next()
       },
       error: (err) => {
         this.#loading.set(false)

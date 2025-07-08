@@ -20,6 +20,7 @@ import {
 	STATE_VARIABLE_HUMAN,
 	STATE_VARIABLE_SYS,
 	TSensitiveOperation,
+	TXpertAgentConfig,
 	XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
 import { AgentRecursionLimit, isNil } from '@metad/copilot'
@@ -58,6 +59,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		const organizationId = RequestContext.getOrganizationId()
 		const userId = RequestContext.currentUserId()
 		const user = RequestContext.currentUser()
+		const mute = [] as TXpertAgentConfig['mute']
 
 		// Env
 		if (!options.environment && xpert.environmentId) {
@@ -74,11 +76,17 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 				...options,
 				execution,
 				rootController: abortController,
-				signal: abortController.signal
+				signal: abortController.signal,
+				mute
 			})
 		)
 		
 		const team = agent.team
+
+		// mute
+		if (team.agentConfig?.mute?.length) {
+			mute.push(...team.agentConfig.mute)
+		}
 
 		const thread_id = command.options.thread_id
 		const config = {
@@ -172,6 +180,11 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 		).pipe(
 			map(
 				createMapStreamEvents(this.#logger, subscriber, {
+					mute: [
+						...mute,
+						[GRAPH_NODE_TITLE_CONVERSATION],
+						['summarize_conversation']
+					],
 					disableOutputs: [
 						...(team.agentConfig?.disableOutputs ?? []),
 						GRAPH_NODE_TITLE_CONVERSATION,

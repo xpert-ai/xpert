@@ -1,6 +1,7 @@
 import { IXpert, IXpertAgentExecution, TChatOptions } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
+import { TAgentSubgraphParams } from '../agent'
 
 /**
  * Compile graph for agent
@@ -11,7 +12,7 @@ export class CompileGraphCommand implements ICommand {
 	constructor(
 		public readonly agentKeyOrName: string,
 		public readonly xpert: Partial<IXpert>,
-		public readonly options: TChatOptions & {
+		public readonly options: TChatOptions & TAgentSubgraphParams & {
 			/**
 			 * Agent key who calls me
 			 */

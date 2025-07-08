@@ -3,6 +3,7 @@ import { TranslateService } from '@ngx-translate/core'
 
 /**
  * Extends this class to use the getTranslation method
+ * @deprecated Use `I18nService` instead
  */
 export abstract class TranslationBaseComponent {
   public readonly translateService = inject(TranslateService)

@@ -18,7 +18,7 @@ export class GetXpertMemoryEmbeddingsHandler implements IQueryHandler<GetXpertMe
 	public async execute(command: GetXpertMemoryEmbeddingsQuery): Promise<IXpert> {
 		const { tenantId, organizationId, memory } = command
 		let copilot: ICopilot = null
-		if (memory.copilotModel?.copilotId) {
+		if (memory?.copilotModel?.copilotId) {
 			copilot = await this.queryBus.execute(
 				new CopilotGetOneQuery(tenantId, memory.copilotModel.copilotId, ['copilotModel', 'modelProvider'])
 			)
@@ -40,7 +40,7 @@ export class GetXpertMemoryEmbeddingsHandler implements IQueryHandler<GetXpertMe
 		}
 
 		let embeddings = null
-		const copilotModel = memory.copilotModel ?? copilot.copilotModel
+		const copilotModel = memory?.copilotModel ?? copilot.copilotModel
 		if (copilotModel && copilot?.modelProvider) {
 			embeddings = await this.queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
 				new CopilotModelGetEmbeddingsQuery(copilot, copilotModel, command.options)
