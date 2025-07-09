@@ -557,7 +557,6 @@ export class ModelComponent extends TranslationBaseComponent {
       .subscribe({
         next: (result) => {
           if (result) {
-            console.log('Model preferences updated:', result)
             this.modelService.updateModel(result)
           }
         }

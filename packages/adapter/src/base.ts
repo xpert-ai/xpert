@@ -89,6 +89,9 @@ export abstract class BaseHTTPQueryRunner<T extends HttpAdapterOptions = HttpAda
  */
 export interface SQLAdapterOptions extends AdapterBaseOptions {
   url?: string
+  /**
+   * Database name, used as catalog
+   */
   catalog?: string
 
   use_ssl?: boolean

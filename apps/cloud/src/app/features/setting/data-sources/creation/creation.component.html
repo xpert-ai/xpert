@@ -1,12 +1,12 @@
-<div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
-  <div class="w-full flex justify-start items-center mb-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white group">
+  <div class="w-full flex justify-start items-center p-4 mb-4 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <i class="ri-draggable -ml-2 opacity-0 group-hover:opacity-80"></i>
-    <span class="text-lg pointer-events-none">
+    <span class="text-xl pointer-events-none">
       {{ 'PAC.ACTIONS.NEW' | translate: {Default: 'New'} }} {{ 'PAC.KEY_WORDS.DataSource' | translate: {Default: 'Data Source'} }}
     </span>
   </div>
 
-  <form [formGroup]="typeFormGroup" class="flex-1 overflow-auto">
+  <form [formGroup]="typeFormGroup" class="flex-1 pl-4 overflow-auto">
     <mat-selection-list class="pac-ds-creation__types ngm-nav-list" formControlName="type" disableRipple [multiple]="false"
       [compareWith]="compareFn"
     >
@@ -25,7 +25,7 @@
     </mat-selection-list>
   </form>
 
-  <div class="flex justify-between items-center">
+  <div class="flex justify-between items-center p-4">
     <div ngmButtonGroup>
       <button mat-raised-button color="accent"
         [disabled]="loading() || formGroup.pristine || formGroup.invalid"
@@ -47,13 +47,13 @@
   </div>
 </div>
 
-<div class="w-[500px] shrink-0 flex flex-col p-4 overflow-y-auto">
-  <div class="text-lg">
+<div class="w-[500px] shrink-0 flex flex-col overflow-y-auto">
+  <div class="text-lg sticky top-0 z-10 px-6 py-4 bg-white">
     {{ 'PAC.MENU.DATA_SOURCES.CONFIGURATION' | translate: {Default: 'Configuration'} }}
   </div>
 
   @if (dataSourceType(); as type) {
-    <form [formGroup]="formGroup" class="flex flex-col justify-start items-stretch">
+    <form [formGroup]="formGroup" class="flex flex-col justify-start items-stretch p-6">
       <div class="flex justify-center items-center text-lg my-2">
         <img src="assets/images/db-logos/{{type.type}}.png" width="64" height="64" class="m-0 inline-block">
         {{type.name}}

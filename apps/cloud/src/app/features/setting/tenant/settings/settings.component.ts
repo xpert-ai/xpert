@@ -1,6 +1,7 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core'
+import { ChangeDetectorRef, Component, OnInit, inject, signal } from '@angular/core'
 import { isNil } from '@metad/ocap-core'
-import { TenantService } from '../../../../@core'
+import { DataSourceTypesService } from '@metad/cloud/state'
+import { TenantService, ToastrService } from '../../../../@core'
 
 interface ItemData {
   id?: string
@@ -14,6 +15,10 @@ interface ItemData {
   styles: [':host {display: block; width: 100%; padding: 1rem;}']
 })
 export class SettingsComponent implements OnInit {
+
+  readonly dataSourceTypeAPI = inject(DataSourceTypesService)
+  readonly #toastr = inject(ToastrService)
+
   i = 0
   editCache: { [key: string]: { edit: boolean; data: ItemData } } = {}
 
@@ -82,6 +87,22 @@ export class SettingsComponent implements OnInit {
       this.editCache[item.id] = {
         ...(this.editCache[item.id] ?? {edit: false}),
         data: { ...item }
+      }
+    })
+  }
+
+  // DataSource Types Sync
+  readonly syncing = signal(false)
+  syncDataSourceTypes() {
+    this.syncing.set(true)
+    this.dataSourceTypeAPI.sync().subscribe({
+      next: () => {
+        this.syncing.set(false)
+        this.#toastr.success('PAC.MESSAGE.DataSourceTypesSyncSuccess', {Default: 'DataSource Types synchronized successfully'})
+      },
+      error: (error) => {
+        this.syncing.set(false)
+        this.#toastr.error('PAC.MESSAGE.DataSourceTypesSyncError', error.message, {Default: 'DataSource Types synchronization failed'})
       }
     })
   }

@@ -309,7 +309,8 @@
       "Key": "键",
       "Value": "值",
       "SelectWorkspace": "选择工作空间",
-      "SearchTerm": "搜索词"
+      "SearchTerm": "搜索词",
+      "DataSourceTypes": "数据源类型"
     },
     "XProject": {
       "NoRecentFiles": "没有最近的文件",
@@ -723,7 +724,8 @@
       "Test": "测试",
       "HelpLink": "帮助链接",
       "PasteHere": "粘贴到这里",
-      "OpenInNewTab": "在新标签页中打开"
+      "OpenInNewTab": "在新标签页中打开",
+      "SyncDataSourceTypes": "同步数据源类型"
     },
     "MESSAGE": {
       "MAIN_ORGANIZATION_UPDATED": "组织更新成功",
@@ -741,7 +743,9 @@
       "ConfirmExitDirtyData": "有未保存数据, 确认退出吗?",
       "Sure": "确定",
       "UserAuthenticationFailure": "用户认证失败",
-      "NoEditAuthorization": "没有编辑权限"
+      "NoEditAuthorization": "没有编辑权限",
+      "DataSourceTypesSyncSuccess": "数据源类型同步成功",
+      "DataSourceTypesSyncError": "数据源类型同步失败"
     },
     "Messages": {
       "AlreadyExists": "{{value}}已存在",
