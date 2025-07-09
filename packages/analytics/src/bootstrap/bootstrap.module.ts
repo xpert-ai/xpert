@@ -8,6 +8,7 @@ import {
 	SeederModule,
 	ServerAppModule
 } from '@metad/server-core'
+import { ConfigModule } from '@metad/server-config'
 import { Logger, MiddlewareConsumer, Module, NestModule, OnApplicationShutdown } from '@nestjs/common'
 import * as path from 'path'
 import { AnalyticsModule } from '../app.module'
@@ -17,6 +18,7 @@ const baseDir = path.join(__dirname, '../../../')
 
 @Module({
 	imports: [
+		ConfigModule,
 		provideCacheModule(),
 		provideBullModule(),
 		provideI18nModule(baseDir),
