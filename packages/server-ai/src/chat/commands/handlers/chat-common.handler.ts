@@ -228,7 +228,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 								? {
 										...(input ?? {}),
 										messages: [
-											await createHumanMessage(this.commandBus, input, {enabled: true, resolution: 'low'})
+											await createHumanMessage(this.commandBus, this.queryBus, input, {enabled: true, resolution: 'low'})
 										],
 										[STATE_VARIABLE_SYS]: {
 											language: languageCode,

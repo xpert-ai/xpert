@@ -1,7 +1,7 @@
 import { HumanMessage } from '@langchain/core/messages'
 import { TChatRequestHuman, TXpertAgentOptions } from '@metad/contracts'
-import { FileStorage } from '@metad/server-core'
-import { CommandBus } from '@nestjs/cqrs'
+import { FileStorage, GetStorageFileQuery } from '@metad/server-core'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Document } from 'langchain/document'
 import sharp from 'sharp'
 import { LoadStorageFileCommand } from '../commands'
@@ -14,6 +14,7 @@ import { LoadStorageFileCommand } from '../commands'
  */
 export async function createHumanMessage(
 	commandBus: CommandBus,
+	queryBus: QueryBus,
 	state: TChatRequestHuman,
 	vision: TXpertAgentOptions['vision']
 ) {
@@ -23,8 +24,8 @@ export async function createHumanMessage(
 		return new HumanMessage({
 			content: [
 				...(await Promise.all(
-					files.map(async (file) => {
-						console.log(file.mimetype)
+					files.map(async (_) => {
+						const file = await queryBus.execute(new GetStorageFileQuery(_.id))
 						if (file.mimetype?.startsWith('image')) {
 							const provider = new FileStorage().getProvider(file.storageProvider)
 							let imageData = null

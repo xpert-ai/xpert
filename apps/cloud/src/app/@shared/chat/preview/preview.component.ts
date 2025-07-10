@@ -17,9 +17,9 @@ import {
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { appendMessageContent, stringifyMessageContent } from '@metad/copilot'
-import { nonBlank } from '@metad/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
+  Attachment_Type_Options,
   AudioRecorderService,
   ChatConversationService,
   ChatMessageEventTypeEnum,
@@ -32,6 +32,7 @@ import {
   IChatConversation,
   IChatMessage,
   IChatMessageFeedback,
+  IStorageFile,
   IXpert,
   SynthesizeService,
   ToastrService,
@@ -52,12 +53,16 @@ import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
 import { effectAction } from '@metad/ocap-angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { injectConfirmDelete } from '@metad/ocap-angular/common'
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { ChatAttachmentsComponent } from '../attachments/attachments.component'
+import { ChatHumanMessageComponent } from './human-message/message.component'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     FormsModule,
+    CdkMenuModule,
     TranslateModule,
     TextFieldModule,
     MatTooltipModule,
@@ -65,7 +70,9 @@ import { injectConfirmDelete } from '@metad/ocap-angular/common'
     EmojiAvatarComponent,
     XpertParametersCardComponent,
     XpertPreviewAiMessageComponent,
-    ToolCallConfirmComponent
+    ToolCallConfirmComponent,
+    ChatAttachmentsComponent,
+    ChatHumanMessageComponent
   ],
   selector: 'chat-conversation-preview',
   templateUrl: 'preview.component.html',
@@ -136,7 +143,6 @@ export class ChatConversationPreviewComponent {
   })
   readonly textToSpeech_enabled = computed(() => this.xpert()?.features?.textToSpeech?.enabled)
   readonly speechToText_enabled = computed(() => this.xpert()?.features?.speechToText?.enabled)
-  readonly attachment_enabled = computed(() => this.xpert()?.features?.attachment?.enabled)
   readonly suggestion_enabled = computed(() => this.xpert()?.features?.suggestion?.enabled)
   readonly inputLength = computed(() => this.input()?.length ?? 0)
   readonly loading = signal(false)
@@ -177,7 +183,7 @@ export class ChatConversationPreviewComponent {
       switchMap((id) =>
         id
           ? this.conversationService.getOneById(this.conversationId(), {
-              relations: ['messages', 'xpert', 'xpert.agent', 'xpert.agents']
+              relations: ['messages', 'messages.attachments', 'xpert', 'xpert.agent', 'xpert.agents']
             })
           : of(null)
       )
@@ -197,6 +203,20 @@ export class ChatConversationPreviewComponent {
 
   private chatSubscription: Subscription
   
+  // Attachments
+  readonly attachment = computed(() => this.xpert()?.features?.attachment)
+  readonly attachment_enabled = computed(() => this.attachment()?.enabled)
+  readonly attachment_maxNum = computed(() => this.attachment()?.maxNum ?? 10)
+  readonly attachment_accept = computed(() => {
+    const fileTypes = this.attachment()?.fileTypes
+    if (fileTypes) {
+      return fileTypes.map((type) => Attachment_Type_Options.find((_) => _.key === type)?.value?.split(',').map((t) => `.${t.trim()}`)).flat().join(',')
+    }
+    return '*/*'
+  })
+  readonly attachments = signal<{file?: File; url?: string; storageFile?: IStorageFile}[]>([])
+  readonly files = computed(() => this.attachments()?.map(({storageFile}) => storageFile))
+
   constructor() {
     effect(
       () => {
@@ -220,13 +240,19 @@ export class ChatConversationPreviewComponent {
   chat(options?: { input?: string; confirm?: boolean; reject?: boolean; retry?: boolean }) {
     this.suggestionQuestions.set([]) // Clear suggestions after selection
     this.loading.set(true)
+    this.conversation.update((state) => ({
+      ...(state ?? {}),
+      status: 'busy',
+      error: null
+    }))
 
     if (options?.input) {
       // Add to user message
       this.appendMessage({
         role: 'human',
         content: options.input,
-        id: uuid()
+        id: uuid(),
+        attachments: this.files()
       })
       this.input.set('')
       this.currentMessage.set({
@@ -252,7 +278,8 @@ export class ChatConversationPreviewComponent {
         {
           input: {
             ...(this.parameterValue() ?? {}),
-            input: options?.input
+            input: options?.input,
+            files: this.files()?.map((file) => ({id: file.id, originalName: file.originalName}))
           },
           conversationId: this.conversation()?.id,
           xpertId: this.xpert().id,
@@ -341,6 +368,9 @@ export class ChatConversationPreviewComponent {
           this.currentMessage.set(null)
         }
       })
+
+    // Clear
+    this.attachments.set([])
   }
 
   onChatError(message: string) {
@@ -409,7 +439,7 @@ export class ChatConversationPreviewComponent {
 
   onKeydown(event: KeyboardEvent) {
     if (event.key === 'Enter') {
-      if (event.isComposing || event.shiftKey) {
+      if (event.isComposing || event.shiftKey || this.loading()) {
         return
       }
 
@@ -564,4 +594,25 @@ export class ChatConversationPreviewComponent {
     this.#audioRecorder.stopRecording()
   }
 
+  // Attachments
+  fileBrowseHandler(event: EventTarget & { files?: FileList }) {
+    this.onFileDropped(event.files)
+  }
+  onFileDropped(event: FileList) {
+    const filesArray = Array.from(event)
+    this.attachments.update((state) => {
+      while (state.length < this.attachment_maxNum() && filesArray.length > 0) {
+        const file = filesArray.shift()
+        state.push({ file })
+        if (state.length >= this.attachment_maxNum() && filesArray.length > 0) {
+          this.#toastr.error('PAC.Chat.AttachmentsMaxNumExceeded', '', {Default: 'Attachments exceed the maximum number allowed.'})
+          return [...state]
+        }
+      }
+      return [...state]
+    })
+  }
+  onAttachCreated(file: IStorageFile) {
+    //
+  }
 }
