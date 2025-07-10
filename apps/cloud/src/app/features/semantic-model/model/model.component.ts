@@ -647,7 +647,7 @@ export class ModelComponent extends TranslationBaseComponent {
   /**
    * Reset model state
    */
-  async reset() {
+  reset() {
     this.modelService.initModel(this.model)
   }
 
@@ -679,19 +679,30 @@ export class ModelComponent extends TranslationBaseComponent {
   publish() {
     this.publishing.set(true)
     this.modelsService.publish(this.model.id, '')
-      // .pipe(
-      //   switchMap(() => this.refreshModel())
-      // )
       .subscribe({
         next: (model) => {
-          console.log(model)
           this.publishing.set(false)
-          window.location.reload();
+          window.location.reload()
         },
         error: (err) => {
           this.publishing.set(false)
           this.#toastr.error(getErrorMessage(err))
         }
       })
+  }
+
+  resume() {
+    this.modelsService.updateModel(this.model.id, { 
+      key: this.model.key,
+      name: this.model.name,
+      draft: null
+    }).subscribe({
+      next: () => {
+        window.location.reload()
+      },
+      error: (err) => {
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
   }
 }

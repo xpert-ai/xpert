@@ -488,17 +488,23 @@
 <ng-template #publishMenu>
   <div cdkMenu class="cdk-menu__large rounded-xl">
     <div class="p-2">
-      <div class="system-xs-medium-uppercase flex h-6 items-center text-text-tertiary">
+      <div class="system-xs-medium-uppercase flex h-6 items-center text-text-secondary">
         {{ 'PAC.MODEL.LatestPublished' | translate: {Default: 'Latest Published'} }}
       </div>
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between gap-2">
         <div class="system-sm-medium flex items-center text-text-secondary">
           {{ 'PAC.MODEL.Published' | translate: {Default: 'Published'} }}
           {{latestPublishDate() | relative}}
         </div>
+
+        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-sm self-center px-2 py-1 rounded-lg border border-token-border-medium text-sm transition duration-200"
+          [disabled]="!canPublish()"
+          (click)="resume()">
+          {{ 'PAC.Xpert.Reset' | translate: {Default: 'Reset'} }}
+        </button>
       </div>
     
-      <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium mt-3 w-full"
+      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large mt-3 w-full"
         [disabled]="!canPublish()"
         (click)="publish()">
         <div class="flex items-center gap-1">
