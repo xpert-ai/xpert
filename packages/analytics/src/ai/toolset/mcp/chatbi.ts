@@ -1,5 +1,5 @@
+import { Tool } from '@metad/server-ai';
 import { Injectable } from '@nestjs/common';
-import { Tool } from '@orbit-codes/nestjs-mcp';
 
 @Injectable()
 export class CalculatorService {
