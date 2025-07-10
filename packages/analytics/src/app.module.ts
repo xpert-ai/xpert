@@ -38,6 +38,7 @@ import { ChatBIConversationModule } from './chatbi-conversation/conversation.mod
 import { ChatBIModule } from './chatbi'
 import { ChatBIModelModule } from './chatbi-model'
 import { ModelQueryLogModule } from './model-query-log'
+import { AiBiModule } from './ai/aibi.module'
 
 @Module({
 	imports: [
@@ -78,7 +79,8 @@ import { ModelQueryLogModule } from './model-query-log'
 		RedisModule,
 		ChatBIConversationModule,
 		ChatBIModule,
-		ChatBIModelModule
+		ChatBIModelModule,
+		AiBiModule
 	],
 	controllers: [AppController],
 	providers: [AnalyticsService, ...EventHandlers, ...CommandHandlers]
