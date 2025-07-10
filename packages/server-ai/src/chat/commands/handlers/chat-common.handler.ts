@@ -952,13 +952,13 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 					await finalize()
 				}
 			}
-		})
+		}).withConfig({tags: [xpert.id]})
 		runnable.name = name
 		
 		if (xpert.agentConfig?.mute?.length) {
 			mute.push(...xpert.agentConfig.mute.map((_) => [xpert.id, ..._]))
 		}
-		return runnable.withConfig({tags: [xpert.id]})
+		return runnable
 	}
 }
 
